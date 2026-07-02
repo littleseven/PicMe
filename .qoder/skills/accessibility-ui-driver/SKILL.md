@@ -121,3 +121,9 @@ python3 scripts/verify_ui_driver.py
 ```
 
 Expected output: `✅ Integration test passed: search mode entered`
+
+## Related Skills
+
+- [agent-test-expert](/agent-test-expert) — PicMe JSON 命令驱动测试
+- [adb-bot](/adb-bot) — General adb device control and log collection
+- [ui-automation-expert](/ui-automation-expert) — UI automation strategy overview

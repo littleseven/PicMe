@@ -177,6 +177,7 @@ adb pull /sdcard/test.png /tmp/test.png
 - [架构文档](docs/03-TECHNICAL-SPECS/AGENT_TEST_ARCHITECTURE.md) — 完整架构说明
 - [PC 端测试脚本](scripts/agent-tester) — 测试执行入口
 - [Accessibility UI Driver](/accessibility-ui-driver) — 结构化 UI dump 与交互
+- [adb-bot](/adb-bot) — 通用 adb 设备控制与日志收集
 - [应用端接收器](app/src/main/java/com/mamba/picme/testing/agent/bridge/AgentTestBroadcastReceiver.kt) — 广播接收与命令分发
 - [CapabilityRegistry](app/src/main/java/com/mamba/picme/domain/agent/CapabilityRegistry.kt) — 命令分发中心
 - [AgentCommandParser](app/src/main/java/com/mamba/picme/domain/agent/AgentCommandParser.kt) — JSON 命令解析
