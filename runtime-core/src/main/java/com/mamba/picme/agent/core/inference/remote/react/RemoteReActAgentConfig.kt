@@ -106,6 +106,10 @@ data class RemoteReActAgentConfig(
 规则 8：任务完成。
   只有当任务目标已经可以确认达成时，才调用 finish(summary)。
 
+## 操作后状态观察
+
+当你调用 click/scroll/input_text/navigate_to/go_back 等 UI 操作工具后，工具返回中会包含操作后的屏幕状态摘要（格式为 "Action: ...\nPost-action screen state: ..."）。请基于该摘要判断操作是否生效，再决定下一步行动或调用 finish。如果屏幕状态未按预期变化，可以尝试重试或换用其他元素。
+
 ## 回复格式（极其重要）
 
 **正确做法**：
