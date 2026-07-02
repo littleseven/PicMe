@@ -1,5 +1,5 @@
 ---
-name: picme-qa-acceptance
+name: qa-acceptance
 description: Use when performing PicMe QA acceptance, including end-to-end verification, boundary testing, performance baseline comparison, and red-line compliance checks
 version: 2.0.0
 created: 2026-05-25
@@ -17,7 +17,7 @@ tags:
 ---
 
 
-# PicMe QA 验收
+# QA Acceptance
 
 > **定位**：PicMe QA 质量验收专家，执行端到端验收、边界测试、性能基线对比与红线合规检查。
 > **触发时机**：用户需要 QA 验收、边界测试、性能基线对比或红线合规检查时自动启用。
@@ -30,7 +30,7 @@ QA 角色专属 Skill。在 RD 完成代码修改后执行验收，确保交付�
 ## 触发条件
 
 - RD 提交"修复完成"或"功能完成"
-- 执行 `.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh` 后生成报告
+- 执行 `scripts/auto-dev-loop.sh` 后生成报告
 - 用户明确要求"验收"、"测试"、"验证"
 - PR 提交前最终检查
 
@@ -73,7 +73,7 @@ QA 角色专属 Skill。在 RD 完成代码修改后执行验收，确保交付�
 
 ```bash
 # 一键开发自循环
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh
+scripts/auto-dev-loop.sh
 ```
 
 **检查输出目录**：`scripts/auto_test_output/<timestamp>/`
@@ -93,12 +93,12 @@ QA 角色专属 Skill。在 RD 完成代码修改后执行验收，确保交付�
 
 ```bash
 # P0 用例回归
-.qoder/skills/image-quality-checker/scripts/regression-test.sh
+scripts/regression-test.sh
 
 # 模块定向回归
-.qoder/skills/image-quality-checker/scripts/regression-test.sh --camera
-.qoder/skills/image-quality-checker/scripts/regression-test.sh --gallery
-.qoder/skills/image-quality-checker/scripts/regression-test.sh --beauty
+scripts/regression-test.sh --camera
+scripts/regression-test.sh --gallery
+scripts/regression-test.sh --beauty
 ```
 
 ---
@@ -247,9 +247,9 @@ python3 scripts/check_i18n_sync.py
 | `scripts/ai-gate.sh` | L1 自动化检查入口 |
 | `scripts/auto-dev-loop.sh` | L1 设备验证入口（JSON 命令 + accessibility UI dump） |
 | `scripts/regression-test.sh` | L1 回归测试入口（JSON 命令驱动） |
-| `/agent-test-expert` | PicMe JSON 测试 |
-| `/accessibility-ui-driver` | PicMe UI 自动化 |
-| [adb-bot](/adb-bot) | PicMe ADB 参考 |
+| `/agent-test` | Agent Test |
+| `/ui-driver` | UI Driver |
+| [adb-bot](/adb-bot) | ADB Bot |
 | [image-quality-checker](/image-quality-checker) | 最终截图质量分析 |
 | [error-healer](/error-healer) | 编译错误自动修复 |
 | [doc-sync-guardian](/doc-sync-guardian) | 文档一致性检查 |
@@ -263,7 +263,7 @@ python3 scripts/check_i18n_sync.py
 
 ```bash
 # 完整验收（有设备时，使用 JSON 命令驱动）
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh && .qoder/skills/image-quality-checker/scripts/regression-test.sh
+scripts/auto-dev-loop.sh && scripts/regression-test.sh
 
 # 发送单个 JSON 测试命令
 adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"switch_ratio\",\"params\":{\"ratio\":\"16_9\"}}'"

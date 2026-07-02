@@ -9,7 +9,7 @@
 |---------|------|------|
 | `/android-build-debug` | Android 编译、安装、日志调试标准化流程 | 114 |
 | `/error-healer` | Kotlin/Gradle 编译错误自动分类与修复策略 | 299 |
-| `/auto-dev-loop` | 一键编译→安装→设备验证→质量检查闭环 | 213 |
+| `/dev-loop` | 一键编译→安装→设备验证→质量检查闭环 | 213 |
 | `/i18n-validator` | 多语言同步验证（中/英/繁），禁止硬编码字符串 | 113 |
 
 ### 📱 设备控制与调试
@@ -21,9 +21,9 @@
 ### 🧪 测试与质量
 | Command | 说明 | 行数 |
 |---------|------|------|
-| `/agent-test-expert` | Agent 自动化测试 V2（JSON 驱动，PC 端）✅ 当前推荐 | 158 |
+| `/agent-test` | Agent 自动化测试 V2（JSON 驱动，PC 端）✅ 当前推荐 | 158 |
 | `/qa-acceptance` | QA 质量验收（端到端/边界/性能基线/红线） | 267 |
-| `/accessibility-ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） | 129 |
+| `/ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） | 129 |
 
 ### 🎨 渲染与图形
 | Command | 说明 | 行数 |

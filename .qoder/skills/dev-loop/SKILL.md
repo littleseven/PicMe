@@ -1,5 +1,5 @@
 ---
-name: picme-dev-loop
+name: dev-loop
 description: Use when running the full PicMe development self-heal loop from code check through install, device verification, and report generation
 version: 2.0.0
 created: 2026-05-03
@@ -14,9 +14,9 @@ tags:
 ---
 
 
-# PicMe 开发自循环
+# Dev Loop
 
-> **定位**：PicMe 开发自循环自动化，一键完成编译到报告完整闭环。
+> **定位**：Dev Loop自动化，一键完成编译到报告完整闭环。
 > **触发时机**：用户需要快速验证改动、执行完整开发闭环或 CI 检查时自动启用。
 
 
@@ -26,7 +26,7 @@ tags:
 
 ```
 修改前: 代码修改 → ./gradlew assembleDebug → [人工] adb install → [人工] 打开应用 → [人工] 验证
-修改后: 代码修改 → .qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh → 全自动闭环（含报告）
+修改后: 代码修改 → scripts/auto-dev-loop.sh → 全自动闭环（含报告）
 ```
 
 ## 快速开始
@@ -37,7 +37,7 @@ tags:
 
 ```bash
 # 在项目根目录执行
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh
+scripts/auto-dev-loop.sh
 ```
 
 自动完成：
@@ -50,27 +50,27 @@ tags:
 ### 快速模式（仅编译+安装+启动）
 
 ```bash
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh --quick
+scripts/auto-dev-loop.sh --quick
 ```
 
 ### 纯代码检查（无设备）
 
 ```bash
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh --no-install
+scripts/auto-dev-loop.sh --no-install
 ```
 
 ### 带拍照质量分析
 
 ```bash
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh --capture
+scripts/auto-dev-loop.sh --capture
 ```
 
 ### 回归测试（P0 用例）
 
 ```bash
-.qoder/skills/image-quality-checker/scripts/regression-test.sh           # 全部 P0 用例
-.qoder/skills/image-quality-checker/scripts/regression-test.sh --camera  # 仅相机模块
-.qoder/skills/image-quality-checker/scripts/regression-test.sh --beauty  # 仅美颜模块
+scripts/regression-test.sh           # 全部 P0 用例
+scripts/regression-test.sh --camera  # 仅相机模块
+scripts/regression-test.sh --beauty  # 仅美颜模块
 ```
 
 ## 工作流集成
@@ -80,7 +80,7 @@ tags:
 **场景1: 代码修改后的标准验证**
 ```
 1. RD 完成代码修改
-2. 执行: .qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh
+2. 执行: scripts/auto-dev-loop.sh
 3. 读取报告: scripts/auto_test_output/<timestamp>/report.md
 4. 如果有失败 → 自动修复 → 重新执行
 5. 如果全部通过 → 进入 CR/QA 环节
@@ -89,15 +89,15 @@ tags:
 **场景2: 修复 Bug 后的定向回归**
 ```
 1. 修复美颜相关 Bug
-2. 执行: .qoder/skills/image-quality-checker/scripts/regression-test.sh --beauty
+2. 执行: scripts/regression-test.sh --beauty
 3. 验证美颜滑杆、滤镜切换是否正常
 ```
 
 **场景3: PR 提交前的完整验证**
 ```
 1. 执行: .qoder/skills/image-quality-checker/scripts/ai-gate.sh（代码级检查）
-2. 执行: .qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh（设备级验证）
-3. 执行: .qoder/skills/image-quality-checker/scripts/regression-test.sh（端到端回归）
+2. 执行: scripts/auto-dev-loop.sh（设备级验证）
+3. 执行: scripts/regression-test.sh（端到端回归）
 4. 全部通过 → 提交代码
 ```
 
@@ -208,12 +208,12 @@ fi
 ```yaml
 - name: Auto Dev Loop
   run: |
-    .qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh --ci
+    scripts/auto-dev-loop.sh --ci
     
 - name: Regression Test
   if: success()
   run: |
-    .qoder/skills/image-quality-checker/scripts/regression-test.sh --ci
+    scripts/regression-test.sh --ci
 ```
 
 ## 相关文件
@@ -221,10 +221,10 @@ fi
 - `scripts/auto-dev-loop.sh` — 一键开发自循环
 - `scripts/regression-test.sh` — 端到端回归测试（JSON 命令驱动）
 - `scripts/ai-gate.sh` — 代码级质量门禁
-- `/accessibility-ui-driver` — PicMe UI 自动化
+- `/ui-driver` — UI Driver
 - `/android-build-debug` — 编译调试参考
-- `/adb-bot` — PicMe ADB 参考
-- `/agent-test-expert` — PicMe JSON 测试
+- `/adb-bot` — ADB Bot
+- `/agent-test` — Agent Test
 - `/image-quality-checker` — 图片质量分析
 - `/compose-ui-expert` — UI 验证参考
 - `/perf-optimizer` — 性能基线对比
@@ -234,5 +234,6 @@ fi
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 2.0.0 | 2026-07-02 | 统一命名为 PicMe 开发自循环；设备验证优先使用 accessibility UI dump |
+| 2.1.0 | 2026-07-02 | 重命名目录和 skill 名从 `auto-dev-loop` 到 `dev-loop` |
+| 2.0.0 | 2026-07-02 | 统一标题为 Dev Loop；设备验证优先使用 accessibility UI dump |
 | 1.1.0 | 2026-05-03 | 初始版本 |

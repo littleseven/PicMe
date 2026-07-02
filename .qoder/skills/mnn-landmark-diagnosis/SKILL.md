@@ -242,10 +242,10 @@ adb logcat -d | grep "MNN vs ONNX"
 | 像素误差 | < 3px (@192x192) |
 | 帧间稳定性 | 连续 10 帧标准差 < 0.01 |
 
-### Step 4: auto-dev-loop 集成
+### Step 4: Dev Loop 集成
 
 ```bash
-.qoder/skills/image-quality-checker/scripts/auto-dev-loop.sh
+scripts/auto-dev-loop.sh
 ```
 
 检查输出报告中的：

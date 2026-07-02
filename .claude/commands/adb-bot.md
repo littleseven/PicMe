@@ -362,7 +362,7 @@ adb logcat -d > /tmp/logcat.txt
 ## 相关文件
 
 - [commands.md](commands.md) - 完整相机控制命令列表
-- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
+- [ui-driver](/ui-driver) — UI Driver
 - [image-quality-checker](/image-quality-checker) — 截图质量分析
 
 ## 版本历史

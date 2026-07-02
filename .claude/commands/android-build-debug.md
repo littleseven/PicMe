@@ -103,7 +103,7 @@ adb shell am start -n com.mamba.picme/.MainActivity
 
 - [error-healer](/error-healer) — 编译错误自动分类与修复
 - [adb-bot](/adb-bot) — 设备控制与日志收集
-- [auto-dev-loop](/auto-dev-loop) — 一键开发自循环
+- [dev-loop](/dev-loop) — Dev Loop
 
 ## 版本历史
 

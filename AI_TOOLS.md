@@ -82,7 +82,7 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 |---------|------|
 | `/android-build-debug` | Android 编译、安装、日志调试标准化流程 |
 | `/error-healer` | Kotlin/Gradle 编译错误自动分类与修复策略 |
-| `/auto-dev-loop` | 一键编译→安装→设备验证→质量检查闭环 |
+| `/dev-loop` | 一键编译→安装→设备验证→质量检查闭环 |
 | `/i18n-validator` | 多语言同步验证（中/英/繁），禁止硬编码字符串 |
 | `/qa-acceptance` | QA 质量验收（端到端/边界/性能基线/红线） |
 | `/doc-sync-guardian` | 三层文档体系一致性维护 |
@@ -96,10 +96,11 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 
 | Skill | 描述 |
 |-------|------|
-| `accessibility-ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） |
+| `ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） |
 | `adb-bot` | ADB 基础控制与调试 |
+| `agent-test` | PicMe Agent JSON 命令驱动测试 |
 | `android-build-debug` | Android 编译、安装、日志调试 |
-| `auto-dev-loop` | 编译→安装→验证→报告一键闭环 |
+| `dev-loop` | 编译→安装→验证→报告一键闭环 |
 | `av-gl-expert` | 音视频与 OpenGL 渲染专家 |
 | `compose-ui-expert` | Jetpack Compose UI 开发与性能优化 |
 | `coordinate-system-standard` | 人脸关键点坐标系规范化 |
@@ -202,7 +203,7 @@ cd ~/AndroidStudioProjects/langchain4android && claude
 | 2026-05-25 | 新增 `compose-ui-expert` / `i18n-validator` / `perf-optimizer` | Jetpack Compose 专家、国际化验证、性能优化 |
 | 2026-05-25 | 新增 `mnn-integration` / `ncnn-integration` / `mnn-llm-android` | 推理引擎集成规范完善 |
 | 2026-05-28 | 新增 `qa-acceptance` | QA 验收流程 |
-| 2026-07-02 | 测试 Skill 整合 | 删除 `agent-test-framework` 与 `ui-automation-expert`，合并到 `accessibility-ui-driver`；`adb-bot` 精简为通用 ADB 参考 |
+| 2026-07-02 | 测试 Skill 整合与重命名 | 删除 `agent-test-framework` / `ui-automation-expert`；`accessibility-ui-driver` → `ui-driver`；`agent-test-expert` → `agent-test`；`auto-dev-loop` → `dev-loop` |
 | 2026-05-31 | 文档全面审计与更新 | 根目录文档与 wiki 一致性清理 |
 | 2026-06-25 | Claude Code 命令整理 | `.qoder/skills/` → `.claude/commands/`，修复 19 个过期引用 |
 | 2026-06-30 | AI 工具索引刷新 | 明确 Claude Code 命令为主力来源，更新 DEVELOPMENT.md / CLAUDE.md / 本文件 |

@@ -1,4 +1,4 @@
-# PicMe 开发自循环
+# Dev Loop
 
 > **定位**：PicMe 开发自循环自动化，一键完成编译到报告完整闭环。
 > **触发时机**：用户需要快速验证改动、执行完整开发闭环或 CI 检查时自动启用。
@@ -194,12 +194,12 @@ fi
 
 ## 相关文件
 
-- `scripts/auto-dev-loop.sh` — 一键开发自循环
+- `scripts/auto-dev-loop.sh` — Dev Loop
 - `scripts/regression-test.sh` — 端到端回归测试（JSON 命令驱动）
 - `scripts/ai-gate.sh` — 代码级质量门禁
 - `/android-build-debug` — 编译调试参考
 - `/adb-bot` — adb 命令参考
-- `/agent-test-expert` — JSON 驱动测试方法（主要测试方法）
+- `/agent-test` — JSON 驱动测试方法（主要测试方法）
 - `/image-quality-checker` — 图片质量分析
 - `/compose-ui-expert` — UI 验证参考
 - `/perf-optimizer` — 性能基线对比

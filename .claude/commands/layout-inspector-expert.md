@@ -109,7 +109,7 @@ fun MyComponent() {
 ## 相关文件
 
 - [compose-ui-expert](/compose-ui-expert) — Compose UI 代码修复
-- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
+- [ui-driver](/ui-driver) — UI Driver
 
 ## 版本历史
 

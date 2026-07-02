@@ -53,7 +53,7 @@ QA 角色专属 Skill。在 RD 完成代码修改后执行验收，确保交付�
 ### 1.2 设备验证（如有设备连接）
 
 ```bash
-# 一键开发自循环
+# Dev Loop
 ./scripts/auto-dev-loop.sh
 ```
 
@@ -226,7 +226,7 @@ python3 scripts/check_i18n_sync.py
 | `scripts/ai-gate.sh` | L1 自动化检查入口 |
 | `scripts/auto-dev-loop.sh` | L1 设备验证入口（JSON 命令驱动） |
 | `scripts/regression-test.sh` | L1 回归测试入口（JSON 命令驱动） |
-| `/agent-test-expert` | JSON 驱动测试方法（主要方法） |
+| `/agent-test` | JSON 驱动测试方法（主要方法） |
 | [adb-bot](/adb-bot) | 设备控制与日志收集 |
 | [image-quality-checker](/image-quality-checker) | 截图质量分析 |
 | [error-healer](/error-healer) | 编译错误自动修复 |

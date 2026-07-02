@@ -1,9 +1,9 @@
 ---
-name: picme-ui-automation
+name: ui-driver
 description: Use when automating PicMe UI interactions through structured accessibility data, replacing screenshot-based image recognition with precise text, contentDescription, or bounds-driven actions
 ---
 
-# PicMe UI 自动化
+# UI Driver
 
 ## Overview
 
@@ -32,7 +32,7 @@ Drive PicMe UI automation through structured accessibility node data instead of 
 
 ### 1. PicMe JSON Commands（首选，功能触发）
 
-For PicMe-specific actions like capture, switch camera, navigate, use [agent-test-expert](/agent-test-expert):
+For PicMe-specific actions like capture, switch camera, navigate, use [agent-test](/agent-test):
 
 ```bash
 adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"capture\",\"params\":{}}'"
@@ -180,13 +180,14 @@ Expected output: `✅ Integration test passed: search mode entered`
 
 ## Related Skills
 
-- [agent-test-expert](/agent-test-expert) — PicMe JSON 测试
-- [adb-bot](/adb-bot) — PicMe ADB 参考
-- [auto-dev-loop](/auto-dev-loop) — PicMe 开发自循环
+- [agent-test](/agent-test) — Agent Test
+- [adb-bot](/adb-bot) — ADB Bot
+- [dev-loop](/dev-loop) — Dev Loop
 
 ## Version History
 
 | Version | Date | Change |
 |---------|------|--------|
-| 2.0.0 | 2026-07-02 | Merged ui-automation-expert content; renamed to PicMe UI 自动化 |
+| 2.1.0 | 2026-07-02 | Renamed directory and skill name from `accessibility-ui-driver` to `ui-driver` |
+| 2.0.0 | 2026-07-02 | Merged `ui-automation-expert` content; renamed title to UI Driver |
 | 1.0.0 | 2026-07-02 | Initial Accessibility UI Driver skill |

@@ -1,5 +1,5 @@
 ---
-name: picme-adb
+name: adb-bot
 description: Use when connecting Android devices, controlling app lifecycle, filtering logs, taking screenshots, pulling files, or checking performance metrics via adb
 version: 2.0.0
 created: 2026-05-03
@@ -12,12 +12,12 @@ tags:
   - device
 ---
 
-# PicMe ADB 参考
+# ADB Bot
 
 > **定位**：通用 Android adb 调试与设备控制。
 > **触发时机**：需要连接设备、启动/停止应用、收集日志、截屏、查看性能指标等基础 adb 操作时启用。
-> **PicMe 专属命令**：使用 [agent-test-expert](/agent-test-expert)（PicMe JSON 测试）。
-> **UI 自动化**：使用 [accessibility-ui-driver](/accessibility-ui-driver)（PicMe UI 自动化）。
+> **PicMe 专属命令**：使用 [agent-test](/agent-test)（Agent Test）。
+> **UI 自动化**：使用 [ui-driver](/ui-driver)（UI Driver）。
 
 ---
 
@@ -84,7 +84,7 @@ grep -iE "error|exception|fatal|failed" /tmp/logcat.txt
 
 ## UI 交互（基础 fallback）
 
-> **优先使用 [accessibility-ui-driver](/accessibility-ui-driver)**，以下命令仅在无法启用 AccessibilityService 时使用。
+> **优先使用 [ui-driver](/ui-driver)**，以下命令仅在无法启用 AccessibilityService 时使用。
 
 ```bash
 # 点击坐标
@@ -175,14 +175,14 @@ adb shell dumpsys window displays
 
 ## 相关 Skill
 
-- [agent-test-expert](/agent-test-expert) — PicMe JSON 测试
-- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
-- [auto-dev-loop](/auto-dev-loop) — PicMe 开发自循环
+- [agent-test](/agent-test) — Agent Test
+- [ui-driver](/ui-driver) — UI Driver
+- [dev-loop](/dev-loop) — Dev Loop
 
 ## 版本历史
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 2.0.0 | 2026-07-02 | 统一命名为 PicMe ADB 参考；移除 PicMe 专属 TEST_COMMAND 内容，改为通用 adb 参考；指向 PicMe JSON 测试和 PicMe UI 自动化 |
+| 2.0.0 | 2026-07-02 | 统一标题为 ADB Bot；移除 PicMe 专属 TEST_COMMAND 内容，改为通用 adb 参考；指向 Agent Test 和 UI Driver |
 | 1.1.0 | 2026-05-31 | 统一格式，添加定位块 |
 | 1.0.0 | 2026-05-03 | 初始版本 |

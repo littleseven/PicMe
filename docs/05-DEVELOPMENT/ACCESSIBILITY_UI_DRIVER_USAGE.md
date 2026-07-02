@@ -4,7 +4,7 @@
 
 > 适用场景：你已经拉取包含本功能的最新 `main` 分支，并希望在真机/模拟器上手动验证 `scripts/ui_driver.py` 与 PicMe AccessibilityService 的交互。
 
-> 如果你是 AI Agent，优先阅读技能 `.qoder/skills/accessibility-ui-driver/SKILL.md`，其中包含快速参考和常见陷阱。
+> 如果你是 AI Agent，优先阅读技能 `.qoder/skills/ui-driver/SKILL.md`，其中包含快速参考和常见陷阱。
 
 ---
 
