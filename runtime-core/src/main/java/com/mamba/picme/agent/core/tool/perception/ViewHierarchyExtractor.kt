@@ -17,6 +17,8 @@ object ViewHierarchyExtractor {
 
     private const val MAX_TEXT_LENGTH = 80
     private const val MAX_CHILDREN = 200
+    private const val DEFAULT_SUMMARY_TEXT_LENGTH = 30
+    private const val DEFAULT_SUMMARY_ELEMENTS = 30
 
     /**
      * 从根 View 提取 UI 树 JSON。
@@ -38,8 +40,19 @@ object ViewHierarchyExtractor {
     /**
      * 提取当前屏幕的语义化摘要，供 LLM 快速理解页面结构。
      * 包含：页面标题、可交互元素列表、关键状态信息。
+     *
+     * @param includeFullTree 是否在摘要后附加完整层级树，默认 true
+     * @param maxSummaryTextLength 摘要中元素文本的最大长度，默认 30
+     * @param maxSummaryElements 摘要中返回的可交互元素最大数量，默认 30
      */
-    fun extractSemanticSummary(rootView: View, screenWidth: Int, screenHeight: Int): String {
+    fun extractSemanticSummary(
+        rootView: View,
+        screenWidth: Int,
+        screenHeight: Int,
+        includeFullTree: Boolean = true,
+        maxSummaryTextLength: Int = DEFAULT_SUMMARY_TEXT_LENGTH,
+        maxSummaryElements: Int = DEFAULT_SUMMARY_ELEMENTS
+    ): String {
         val summary = StringBuilder()
         summary.appendLine("=== 页面结构摘要 ===")
 
@@ -51,13 +64,24 @@ object ViewHierarchyExtractor {
 
         // 提取所有可交互元素的语义描述
         val interactiveElements = mutableListOf<String>()
-        collectInteractiveElements(rootView, interactiveElements, screenWidth, screenHeight)
+        collectInteractiveElements(
+            rootView,
+            interactiveElements,
+            screenWidth,
+            screenHeight,
+            maxTextLength = maxSummaryTextLength
+        )
 
-        if (interactiveElements.isNotEmpty()) {
-            summary.appendLine("可交互元素 (${interactiveElements.size}个):")
-            interactiveElements.forEach { summary.appendLine("  - $it") }
+        val trimmedElements = interactiveElements.take(maxSummaryElements)
+        if (trimmedElements.isNotEmpty()) {
+            summary.appendLine("可交互元素 (${trimmedElements.size}个):")
+            trimmedElements.forEach { summary.appendLine("  - $it") }
         } else {
             summary.appendLine("可交互元素: 无")
+        }
+
+        if (interactiveElements.size > maxSummaryElements) {
+            summary.appendLine("  ... 还有 ${interactiveElements.size - maxSummaryElements} 个元素已省略")
         }
 
         // 提取关键状态（如选中状态、开关状态等）
@@ -68,8 +92,10 @@ object ViewHierarchyExtractor {
             states.forEach { summary.appendLine("  - $it") }
         }
 
-        summary.appendLine("=== 完整层级树 ===")
-        summary.appendLine(extract(rootView, screenWidth, screenHeight))
+        if (includeFullTree) {
+            summary.appendLine("=== 完整层级树 ===")
+            summary.appendLine(extract(rootView, screenWidth, screenHeight))
+        }
 
         return summary.toString()
     }
@@ -108,11 +134,12 @@ object ViewHierarchyExtractor {
         out: MutableList<String>,
         screenWidth: Int,
         screenHeight: Int,
-        parentDesc: String = ""
+        parentDesc: String = "",
+        maxTextLength: Int = MAX_TEXT_LENGTH
     ) {
         if (view.visibility != View.VISIBLE) return
 
-        val desc = buildSemanticDescription(view, screenWidth, screenHeight)
+        val desc = buildSemanticDescription(view, screenWidth, screenHeight, maxTextLength)
         if (desc != null) {
             out.add("$parentDesc$desc")
         }
@@ -120,12 +147,24 @@ object ViewHierarchyExtractor {
         if (view is ViewGroup) {
             val childPrefix = if (desc != null) "$desc > " else ""
             for (i in 0 until view.childCount) {
-                collectInteractiveElements(view.getChildAt(i), out, screenWidth, screenHeight, childPrefix)
+                collectInteractiveElements(
+                    view.getChildAt(i),
+                    out,
+                    screenWidth,
+                    screenHeight,
+                    childPrefix,
+                    maxTextLength
+                )
             }
         }
     }
 
-    private fun buildSemanticDescription(view: View, screenWidth: Int, screenHeight: Int): String? {
+    private fun buildSemanticDescription(
+        view: View,
+        screenWidth: Int,
+        screenHeight: Int,
+        maxTextLength: Int = MAX_TEXT_LENGTH
+    ): String? {
         val className = view.javaClass.simpleName
 
         val text = when (view) {
@@ -156,7 +195,10 @@ object ViewHierarchyExtractor {
         val parts = mutableListOf<String>()
         parts.add(className)
         if (id != null) parts.add("id=$id")
-        if (!text.isNullOrEmpty()) parts.add("text=\"$text\"")
+        if (!text.isNullOrEmpty()) {
+            val displayText = if (text.length > maxTextLength) text.take(maxTextLength) + "…" else text
+            parts.add("text=\"$displayText\"")
+        }
         if (isClickable) parts.add("clickable")
         if (isEditable) parts.add("editable")
         if (isScrollable) parts.add("scrollable")
