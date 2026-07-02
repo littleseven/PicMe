@@ -1,7 +1,7 @@
 ---
 name: dev-loop
 description: Use when running the full PicMe development self-heal loop from code check through install, device verification, and report generation
-version: 2.0.0
+version: 2.2.0
 created: 2026-05-03
 updated: 2026-07-02
 maintainer: [RD] 全栈工程师
@@ -45,12 +45,18 @@ scripts/auto-dev-loop.sh
 2. **编译** — `./gradlew :app:assembleDebug`
 3. **安装** — 自动 `adb install -r`
 4. **设备验证** — 启动应用 + 执行 JSON 命令（通过 AgentTestBroadcastReceiver）+ accessibility UI dump 验证状态 + 收集日志
-5. **报告生成** — Markdown 格式报告 + 所有日志/dump/截图归档
+5. **报告生成** — Markdown 格式报告 + 所有日志/dump 归档
 
-### 快速模式（仅编译+安装+启动）
+### 快速模式（编译+安装+UI dump）
 
 ```bash
 scripts/auto-dev-loop.sh --quick
+```
+
+### 极速模式（跳过 lint/单元测试/instrumented test）
+
+```bash
+scripts/auto-dev-loop.sh --fast
 ```
 
 ### 纯代码检查（无设备）
@@ -59,10 +65,10 @@ scripts/auto-dev-loop.sh --quick
 scripts/auto-dev-loop.sh --no-install
 ```
 
-### 带拍照质量分析
+### 带 Instrumented Tests
 
 ```bash
-scripts/auto-dev-loop.sh --capture
+scripts/auto-dev-loop.sh --instrumented
 ```
 
 ### 回归测试（P0 用例）
@@ -112,10 +118,8 @@ scripts/auto_test_output/
     ├── unit_test.log                   # 单元测试日志
     ├── build.log                       # 编译日志
     ├── install.log                     # 安装日志
-    ├── ui_dump_startup.json            # 启动后 accessibility UI dump
-    ├── ui_dump_after_capture.json      # 拍照后 accessibility UI dump
-    ├── screen_startup.png              # 启动截屏（仅最终视觉验证）
-    ├── screen_after_capture.png        # 拍照后截屏（仅最终视觉验证）
+    ├── ui_dump_startup.txt             # 启动后 accessibility UI dump（结构化文本）
+    ├── ui_dump_startup.err             # UI dump 错误日志（如有）
     ├── logcat_picme.txt                # PicMe 标签日志
     └── instrumented_test.log           # Instrumented test 日志
 ```
@@ -126,8 +130,11 @@ scripts/auto_test_output/
 |------|------|------|
 | `auto-dev-loop.sh` | `--no-install` | 跳过设备安装 |
 | `auto-dev-loop.sh` | `--no-test` | 跳过设备端测试 |
-| `auto-dev-loop.sh` | `--capture` | 自动拍照并分析质量 |
-| `auto-dev-loop.sh` | `--quick` | 快速模式（仅编译+安装+截屏） |
+| `auto-dev-loop.sh` | `--quick` | 快速模式（编译+安装+UI dump） |
+| `auto-dev-loop.sh` | `--fast` | 极速模式（跳过 lint/unit test/instrumented test） |
+| `auto-dev-loop.sh` | `--instrumented` | 运行 Instrumented Tests |
+| `auto-dev-loop.sh` | `--with-lint` | 运行 ktlint + detekt |
+| `auto-dev-loop.sh` | `--test-suite` | 已弃用，配合 `--instrumented` 选择测试套件 |
 | `regression-test.sh` | `--camera` | 仅执行相机测试 |
 | `regression-test.sh` | `--gallery` | 仅执行相册测试 |
 | `regression-test.sh` | `--beauty` | 仅执行美颜测试 |
@@ -153,7 +160,7 @@ scripts/auto_test_output/
 ```
 如果项目未配置 `connectedDebugAndroidTest` 任务，此警告可忽略。
 
-### 截屏坐标不准确（Gallery 测试）
+### UI 元素定位不准确（Gallery 测试）
 `regression-test.sh` 中的相册入口坐标基于常见分辨率计算：
 ```bash
 local tap_x=$((w * 75 / 100))
@@ -161,10 +168,10 @@ local tap_y=$((h * 95 / 100))
 ```
 如果 UI 布局变化，需更新坐标。
 
-**推荐替代方案**：使用 `scripts/ui_driver.py` 通过 contentDescription 或 bounds 精准点击，避免分辨率依赖：
+**推荐替代方案**：`auto-dev-loop.sh` 已改用 accessibility UI dump；手动定位时可使用 `scripts/ui_driver.py` 通过 contentDescription 或 bounds 精准点击，避免分辨率依赖：
 ```bash
 python3 scripts/ui_driver.py click --content-description "相册"
-python3 scripts/ui_driver.py dump > scripts/auto_test_output/$(date +%Y%m%d_%H%M%S)/ui_dump_gallery.json
+python3 scripts/ui_driver.py dump --package com.mamba.picme
 ```
 
 ## 扩展指南
@@ -234,6 +241,7 @@ fi
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.2.0 | 2026-07-02 | 修复 package name（`com.picme` → `com.mamba.picme`）；Phase 4 全面改用 accessibility UI dump；新增 `--fast` 模式；Instrumented Tests 仅在 `--instrumented` 时运行 |
 | 2.1.0 | 2026-07-02 | 重命名目录和 skill 名从 `auto-dev-loop` 到 `dev-loop` |
 | 2.0.0 | 2026-07-02 | 统一标题为 Dev Loop；设备验证优先使用 accessibility UI dump |
 | 1.1.0 | 2026-05-03 | 初始版本 |

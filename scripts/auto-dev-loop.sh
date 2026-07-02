@@ -5,12 +5,14 @@
 # 调用：./scripts/auto-dev-loop.sh [options]
 #
 # Options:
-#   --no-install    仅编译和代码检查，跳过设备安装
-#   --no-test       跳过设备端验证
-#   --quick         快速模式：仅编译 + 安装 + 启动（跳过详细验证）
-#   --test-suite    指定测试套件：all (默认), beauty, gallery
-#   --with-lint     运行 ktlint + detekt（默认跳过以节省时间）
-#   --help          显示帮助信息
+#   --no-install      仅编译和代码检查，跳过设备安装
+#   --no-test         跳过设备端验证
+#   --quick           快速模式：仅编译 + 安装 + UI dump（跳过详细验证）
+#   --fast            极速模式：跳过 lint、unit test、instrumented test，仅编译+安装+UI dump
+#   --test-suite      指定测试套件：all (默认), beauty, gallery（已弃用，使用 --instrumented）
+#   --instrumented    运行 Instrumented Tests（默认跳过）
+#   --with-lint       运行 ktlint + detekt（默认跳过以节省时间）
+#   --help            显示帮助信息
 #
 
 set -e
@@ -30,7 +32,9 @@ NC='\033[0m'
 NO_INSTALL=false
 NO_TEST=false
 QUICK_MODE=false
+FAST_MODE=false
 TEST_SUITE="all"
+INSTRUMENTED=false
 SHOW_HELP=false
 
 RUN_LINT=false
@@ -40,12 +44,19 @@ while [[ $# -gt 0 ]]; do
         --no-install) NO_INSTALL=true; shift ;;
         --no-test) NO_TEST=true; shift ;;
         --quick) QUICK_MODE=true; shift ;;
+        --fast) FAST_MODE=true; shift ;;
         --test-suite) TEST_SUITE="$2"; shift 2 ;;
+        --instrumented) INSTRUMENTED=true; shift ;;
         --with-lint) RUN_LINT=true; shift ;;
         --help) SHOW_HELP=true; shift ;;
         *) echo "未知参数：$1"; exit 1 ;;
     esac
 done
+
+if [ "$FAST_MODE" = true ]; then
+    RUN_LINT=false
+    INSTRUMENTED=false
+fi
 
 if [ "$SHOW_HELP" = true ]; then
     echo "用法：$0 [选项]"
@@ -53,16 +64,18 @@ if [ "$SHOW_HELP" = true ]; then
     echo "选项:"
     echo "  --no-install      仅编译和代码检查，跳过设备安装"
     echo "  --no-test         跳过设备端验证"
-    echo "  --quick           快速模式：仅编译 + 安装 + 启动（跳过详细验证）"
-    echo "  --test-suite      指定测试套件：all (默认), beauty, gallery"
+    echo "  --quick           快速模式：仅编译 + 安装 + UI dump（跳过详细验证）"
+    echo "  --fast            极速模式：跳过 lint、unit test、instrumented test，仅编译+安装+UI dump"
+    echo "  --test-suite      已弃用，使用 --instrumented 运行 Instrumented Tests"
+    echo "  --instrumented    运行 Instrumented Tests（默认跳过）"
     echo "  --with-lint       运行 ktlint + detekt（默认跳过以节省时间）"
     echo "  --help            显示帮助信息"
     echo ""
     echo "工作流:"
-    echo "  1. 代码质量检查（ktlint + detekt，可选）"
+    echo "  1. 代码质量检查（ktlint + detekt，可选；--fast 跳过）"
     echo "  2. 编译 Debug APK"
     echo "  3. 安装到设备"
-    echo "  4. 设备端验证（截屏 + 日志 + 广播命令测试）"
+    echo "  4. 设备端验证（accessibility UI dump + 日志 + 广播命令测试）"
     echo "  5. 生成报告"
     exit 0
 fi
@@ -134,13 +147,18 @@ run_phase1() {
     fi
 
     # 单元测试
-    echo ""
-    echo "→ JVM 单元测试..."
-    if ./gradlew testDebugUnitTest > "$OUTPUT_DIR/unit_test.log" 2>&1; then
-        local test_summary=$(grep -E "tests? completed" "$OUTPUT_DIR/unit_test.log" | tail -1 || echo "测试完成")
-        log_ok "JVM 单元测试通过 — $test_summary"
+    if [ "$FAST_MODE" = true ]; then
+        log_warn "--fast 模式：跳过 JVM 单元测试"
     else
-        log_warn "JVM 单元测试失败 (日志：$OUTPUT_DIR/unit_test.log)"
+        echo ""
+        echo "→ JVM 单元测试..."
+        if ./gradlew testDebugUnitTest > "$OUTPUT_DIR/unit_test.log" 2>&1; then
+            local test_summary=$(grep -E "tests? completed" "$OUTPUT_DIR/unit_test.log" | tail -1 || echo "测试完成")
+            log_ok "JVM 单元测试通过 — $test_summary"
+        else
+            log_fail "JVM 单元测试失败 (日志：$OUTPUT_DIR/unit_test.log)"
+            fail=1
+        fi
     fi
 
     return $fail
@@ -210,13 +228,39 @@ run_phase3() {
     adb shell am start -n com.mamba.picme/.MainActivity > /dev/null 2>&1
     sleep 3
 
-    if adb shell ps | grep -q "com.picme"; then
+    if adb shell ps | grep -q "com.mamba.picme"; then
         log_ok "应用已启动并在前台运行"
     else
         log_warn "应用启动状态不确定，继续后续验证"
     fi
 
     return 0
+}
+
+# ============================================
+# 工具函数：启用并连接 Accessibility Service
+# ============================================
+setup_accessibility_service() {
+    echo ""
+    echo "→ 启用 PicMeAccessibilityService..."
+    adb shell settings put secure enabled_accessibility_services com.mamba.picme/.testing.accessibility.PicMeAccessibilityService > /dev/null 2>&1 || true
+    adb shell settings put secure accessibility_enabled 1 > /dev/null 2>&1 || true
+
+    echo "→ 设置 adb forward tcp:27183..."
+    adb forward tcp:27183 tcp:27183 > /dev/null 2>&1 || true
+
+    echo "→ 等待 Accessibility Service 就绪..."
+    local attempts=0
+    while [ $attempts -lt 15 ]; do
+        if python3 "$PROJECT_ROOT/scripts/ui_driver.py" dump --package com.mamba.picme > /dev/null 2>&1; then
+            log_ok "Accessibility Service 已就绪"
+            return 0
+        fi
+        attempts=$((attempts + 1))
+        sleep 1
+    done
+    log_warn "Accessibility Service 未在 15s 内就绪，继续后续验证"
+    return 1
 }
 
 # ============================================
@@ -230,32 +274,41 @@ run_phase4() {
         return 0
     fi
 
-    if [ "$QUICK_MODE" = true ]; then
-        log_warn "快速模式：仅截屏确认应用正常显示"
-        echo "→ 截屏确认应用状态..."
-        adb shell screencap -p /sdcard/screen_$TIMESTAMP.png
-        adb pull /sdcard/screen_$TIMESTAMP.png "$OUTPUT_DIR/screen_startup.png" > /dev/null 2>&1
-        if [ -f "$OUTPUT_DIR/screen_startup.png" ]; then
-            log_ok "截屏已保存：$OUTPUT_DIR/screen_startup.png"
+    # 清除日志
+    adb logcat -c > /dev/null 2>&1 || true
+
+    # 启用并连接 accessibility service
+    setup_accessibility_service
+
+    if [ "$QUICK_MODE" = true ] || [ "$FAST_MODE" = true ]; then
+        log_warn "快速/极速模式：仅执行 UI dump 确认应用正常显示"
+        echo "→ 收集启动后 UI 结构..."
+        sleep 2
+        if python3 "$PROJECT_ROOT/scripts/ui_driver.py" dump --package com.mamba.picme > "$OUTPUT_DIR/ui_dump_startup.txt" 2>"$OUTPUT_DIR/ui_dump_startup.err"; then
+            if grep -q "com.mamba.picme" "$OUTPUT_DIR/ui_dump_startup.txt" 2>/dev/null; then
+                log_ok "检测到 PicMe 界面节点"
+            else
+                log_warn "未检测到 PicMe 界面节点"
+            fi
         else
-            log_warn "截屏保存失败"
+            log_warn "UI dump 失败"
         fi
         return 0
     fi
 
-    # 清除日志
-    adb logcat -c > /dev/null 2>&1 || true
-
-    # 4.1 截屏（启动后）
+    # 4.1 收集启动后 UI 结构（结构化文本，替代截图）
     echo ""
-    echo "→ 截屏检查启动画面..."
+    echo "→ 收集启动后 UI 结构 (accessibility dump)..."
     sleep 2
-    adb shell screencap -p /sdcard/screen_startup.png
-    adb pull /sdcard/screen_startup.png "$OUTPUT_DIR/screen_startup.png" > /dev/null 2>&1
-    if [ -f "$OUTPUT_DIR/screen_startup.png" ]; then
-        log_ok "启动画面截屏已保存"
+    if python3 "$PROJECT_ROOT/scripts/ui_driver.py" dump --package com.mamba.picme > "$OUTPUT_DIR/ui_dump_startup.txt" 2>"$OUTPUT_DIR/ui_dump_startup.err"; then
+        log_ok "启动后 UI dump 已保存：$OUTPUT_DIR/ui_dump_startup.txt"
+        if grep -q "com.mamba.picme" "$OUTPUT_DIR/ui_dump_startup.txt" 2>/dev/null; then
+            log_ok "检测到 PicMe 界面节点"
+        else
+            log_warn "未检测到 PicMe 界面节点"
+        fi
     else
-        log_warn "启动画面截屏保存失败"
+        log_warn "启动后 UI dump 失败 (错误日志：$OUTPUT_DIR/ui_dump_startup.err)"
     fi
 
     # 4.2 收集日志
@@ -285,7 +338,7 @@ run_phase4() {
     echo "→ JSON 命令功能测试..."
 
     # 测试拍照命令
-    adb shell "am broadcast -n com.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.picme.AGENT_TEST --es json '{\"method\":\"capture\",\"params\":{}}'" > /dev/null 2>&1
+    adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"capture\",\"params\":{}}'" > /dev/null 2>&1
     sleep 1
     if adb logcat -d | grep -qE "AgentTestReceiver.*JSON command executed.*success"; then
         log_ok "拍照 JSON 命令测试通过"
@@ -293,8 +346,8 @@ run_phase4() {
         log_warn "拍照 JSON 命令测试未检测到成功日志"
     fi
 
-    # 测试获取状态命令（通过 switch_ratio 验证命令分发链路）
-    adb shell "am broadcast -n com.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.picme.AGENT_TEST --es json '{\"method\":\"switch_ratio\",\"params\":{\"ratio\":\"4_3\"}}'" > /dev/null 2>&1
+    # 测试画幅切换命令（验证命令分发链路）
+    adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"switch_ratio\",\"params\":{\"ratio\":\"4_3\"}}'" > /dev/null 2>&1
     sleep 0.5
     if adb logcat -d | grep -qE "AgentTestReceiver.*JSON command executed.*success"; then
         log_ok "画幅切换 JSON 命令测试通过"
@@ -302,18 +355,21 @@ run_phase4() {
         log_warn "画幅切换 JSON 命令测试未检测到成功日志"
     fi
 
-    # 4.5 可选：Instrumented Tests（仅指定 --test-suite 时运行）
-    if [ "$TEST_SUITE" != "all" ]; then
+    # 4.5 Instrumented Tests（仅 --instrumented 时运行）
+    if [ "$INSTRUMENTED" = true ]; then
         echo ""
         echo "→ 运行 Instrumented Tests..."
-        
+
         local test_filter=""
         case "$TEST_SUITE" in
             "beauty")
-                test_filter="com.picme.tools.BeautyEngineAutomationTest"
+                test_filter="com.mamba.picme.tools.BeautyEngineAutomationTest"
                 ;;
             "gallery")
-                test_filter="com.picme.features.gallery.*Test"
+                test_filter="com.mamba.picme.features.gallery.*Test"
+                ;;
+            *)
+                test_filter="com.mamba.picme.*Test"
                 ;;
         esac
 
@@ -324,6 +380,8 @@ run_phase4() {
         else
             log_warn "Instrumented Tests 存在失败或跳过 (日志：$OUTPUT_DIR/instrumented_test.log)"
         fi
+    else
+        log_warn "跳过 Instrumented Tests（使用 --instrumented 启用）"
     fi
 
     return 0
