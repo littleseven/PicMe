@@ -1,10 +1,9 @@
 ---
-name: qa-acceptance
-description: |
-  PicMe QA 质量验收专家。执行端到端验收、边界测试、性能基线对比与红线合规检查。
-version: 1.0.0
+name: picme-qa-acceptance
+description: Use when performing PicMe QA acceptance, including end-to-end verification, boundary testing, performance baseline comparison, and red-line compliance checks
+version: 2.0.0
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-07-02
 maintainer: [QA] 质量专家
 tags:
   - qa
@@ -18,7 +17,7 @@ tags:
 ---
 
 
-# QA 验收专家 (QA Acceptance Expert)
+# PicMe QA 验收
 
 > **定位**：PicMe QA 质量验收专家，执行端到端验收、边界测试、性能基线对比与红线合规检查。
 > **触发时机**：用户需要 QA 验收、边界测试、性能基线对比或红线合规检查时自动启用。
@@ -248,9 +247,9 @@ python3 scripts/check_i18n_sync.py
 | `scripts/ai-gate.sh` | L1 自动化检查入口 |
 | `scripts/auto-dev-loop.sh` | L1 设备验证入口（JSON 命令 + accessibility UI dump） |
 | `scripts/regression-test.sh` | L1 回归测试入口（JSON 命令驱动） |
-| `/agent-test-expert` | JSON 驱动测试方法（主要方法） |
-| `/accessibility-ui-driver` | 结构化 UI dump 与精准交互 |
-| [adb-bot](/adb-bot) | 设备控制与日志收集 |
+| `/agent-test-expert` | PicMe JSON 测试 |
+| `/accessibility-ui-driver` | PicMe UI 自动化 |
+| [adb-bot](/adb-bot) | PicMe ADB 参考 |
 | [image-quality-checker](/image-quality-checker) | 最终截图质量分析 |
 | [error-healer](/error-healer) | 编译错误自动修复 |
 | [doc-sync-guardian](/doc-sync-guardian) | 文档一致性检查 |
@@ -285,5 +284,5 @@ python3 scripts/check_i18n_sync.py
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 1.1.0 | 2026-07-02 | L1 设备验证增加 accessibility UI dump，截图仅用于最终视觉验证 |
+| 2.0.0 | 2026-07-02 | 统一命名为 PicMe QA 验收；L1 设备验证增加 accessibility UI dump |
 | 1.0.0 | 2026-05-25 | 初始版本 |

@@ -1,10 +1,9 @@
 ---
-name: auto-dev-loop
-description: |
-  PicMe 开发自循环自动化。一键完成编译→安装→设备验证→质量检查→报告完整闭环。
-version: 1.1.0
+name: picme-dev-loop
+description: Use when running the full PicMe development self-heal loop from code check through install, device verification, and report generation
+version: 2.0.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-07-02
 maintainer: [RD] 全栈工程师
 tags:
   - android
@@ -15,7 +14,7 @@ tags:
 ---
 
 
-# Auto Dev Loop - 开发自循环自动化
+# PicMe 开发自循环
 
 > **定位**：PicMe 开发自循环自动化，一键完成编译到报告完整闭环。
 > **触发时机**：用户需要快速验证改动、执行完整开发闭环或 CI 检查时自动启用。
@@ -222,10 +221,10 @@ fi
 - `scripts/auto-dev-loop.sh` — 一键开发自循环
 - `scripts/regression-test.sh` — 端到端回归测试（JSON 命令驱动）
 - `scripts/ai-gate.sh` — 代码级质量门禁
-- `/accessibility-ui-driver` — Accessibility UI dump 与交互
+- `/accessibility-ui-driver` — PicMe UI 自动化
 - `/android-build-debug` — 编译调试参考
-- `/adb-bot` — adb 命令参考
-- `/agent-test-expert` — JSON 驱动测试方法（主要测试方法）
+- `/adb-bot` — PicMe ADB 参考
+- `/agent-test-expert` — PicMe JSON 测试
 - `/image-quality-checker` — 图片质量分析
 - `/compose-ui-expert` — UI 验证参考
 - `/perf-optimizer` — 性能基线对比
@@ -235,5 +234,5 @@ fi
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 1.2.0 | 2026-07-02 | 设备验证优先使用 accessibility UI dump，截图仅用于最终视觉验证 |
+| 2.0.0 | 2026-07-02 | 统一命名为 PicMe 开发自循环；设备验证优先使用 accessibility UI dump |
 | 1.1.0 | 2026-05-03 | 初始版本 |

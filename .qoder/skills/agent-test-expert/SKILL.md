@@ -1,13 +1,9 @@
 ---
-name: agent-test-expert
-description: |
-  PicMe Agent Test V2 测试专家。通过 PC 端主导的 JSON 数据驱动方案执行自动化测试：
-  运行测试套件/单个用例、发送 JSON 命令、accessibility UI dump 验证、性能采集、报告生成。
-  Use when the user mentions agent testing, automated testing, JSON-driven tests,
-  running test suites, sending adb test commands, or verifying camera/agent features.
-version: 1.0.0
+name: picme-test-json
+description: Use when running PicMe automated tests via JSON commands sent through AgentTestBroadcastReceiver, including test suites, single test cases, camera/agent feature verification, or performance/log collection
+version: 2.0.0
 created: 2026-06-06
-updated: 2026-06-06
+updated: 2026-07-02
 maintainer: [RD] 全栈工程师, [QA] 质量专家
 tags:
   - android
@@ -19,10 +15,10 @@ tags:
 ---
 
 
-# Agent Test 专家 (V2 JSON驱动)
+# PicMe JSON 测试
 
 > **定位**：PC 端主导的 JSON 数据驱动自动化测试执行与诊断。
-> **触发时机**：用户提及运行测试、验证功能、发送测试命令、截屏检查、性能采集时启用。
+> **触发时机**：用户提及运行测试、验证功能、发送测试命令、Accessibility UI 状态检查、性能采集时启用。
 
 ---
 
@@ -176,8 +172,8 @@ adb pull /sdcard/test.png /tmp/test.png
 
 - [架构文档](docs/03-TECHNICAL-SPECS/AGENT_TEST_ARCHITECTURE.md) — 完整架构说明
 - [PC 端测试脚本](scripts/agent-tester) — 测试执行入口
-- [Accessibility UI Driver](/accessibility-ui-driver) — 结构化 UI dump 与交互
-- [adb-bot](/adb-bot) — 通用 adb 设备控制与日志收集
+- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
+- [adb-bot](/adb-bot) — PicMe ADB 参考
 - [应用端接收器](app/src/main/java/com/mamba/picme/testing/agent/bridge/AgentTestBroadcastReceiver.kt) — 广播接收与命令分发
 - [CapabilityRegistry](app/src/main/java/com/mamba/picme/domain/agent/CapabilityRegistry.kt) — 命令分发中心
 - [AgentCommandParser](app/src/main/java/com/mamba/picme/domain/agent/AgentCommandParser.kt) — JSON 命令解析
@@ -186,5 +182,5 @@ adb pull /sdcard/test.png /tmp/test.png
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 1.1.0 | 2026-07-02 | UI 验证优先使用 accessibility dump，截图降为最终视觉验证 |
+| 2.0.0 | 2026-07-02 | 统一命名为 PicMe JSON 测试；UI 验证优先使用 accessibility dump |
 | 1.0.0 | 2026-06-06 | 初始版本，基于 Agent Test V2 JSON 驱动架构 |

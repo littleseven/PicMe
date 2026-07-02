@@ -96,8 +96,8 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 
 | Skill | 描述 |
 |-------|------|
-| `adb-bot` | ADB 自动化控制与调试 |
-| `agent-test-framework` | Agent 能力自动化测试框架 |
+| `accessibility-ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） |
+| `adb-bot` | ADB 基础控制与调试 |
 | `android-build-debug` | Android 编译、安装、日志调试 |
 | `auto-dev-loop` | 编译→安装→验证→报告一键闭环 |
 | `av-gl-expert` | 音视频与 OpenGL 渲染专家 |
@@ -201,7 +201,8 @@ cd ~/AndroidStudioProjects/langchain4android && claude
 | 2026-05-20 | 新增 `mnn-landmark-diagnosis` | MNN 关键点 C++ 层性能诊断 Skill |
 | 2026-05-25 | 新增 `compose-ui-expert` / `i18n-validator` / `perf-optimizer` | Jetpack Compose 专家、国际化验证、性能优化 |
 | 2026-05-25 | 新增 `mnn-integration` / `ncnn-integration` / `mnn-llm-android` | 推理引擎集成规范完善 |
-| 2026-05-28 | 新增 `agent-test-framework` / `qa-acceptance` | Agent 能力测试与 QA 验收流程 |
+| 2026-05-28 | 新增 `qa-acceptance` | QA 验收流程 |
+| 2026-07-02 | 测试 Skill 整合 | 删除 `agent-test-framework` 与 `ui-automation-expert`，合并到 `accessibility-ui-driver`；`adb-bot` 精简为通用 ADB 参考 |
 | 2026-05-31 | 文档全面审计与更新 | 根目录文档与 wiki 一致性清理 |
 | 2026-06-25 | Claude Code 命令整理 | `.qoder/skills/` → `.claude/commands/`，修复 19 个过期引用 |
 | 2026-06-30 | AI 工具索引刷新 | 明确 Claude Code 命令为主力来源，更新 DEVELOPMENT.md / CLAUDE.md / 本文件 |

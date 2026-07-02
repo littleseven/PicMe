@@ -1,4 +1,4 @@
-# PicMe ADB 自动化 Skill
+# PicMe ADB 参考
 
 > **定位**：通过 adb 命令自动化控制 PicMe 相机应用并调试 Android 设备。
 > **触发时机**：用户需要 adb 自动化控制、截屏分析、日志过滤或性能监控时自动启用。
@@ -362,7 +362,7 @@ adb logcat -d > /tmp/logcat.txt
 ## 相关文件
 
 - [commands.md](commands.md) - 完整相机控制命令列表
-- [ui-automation-expert](/ui-automation-expert) — UI 自动化测试
+- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
 - [image-quality-checker](/image-quality-checker) — 截图质量分析
 
 ## 版本历史

@@ -1,13 +1,13 @@
 ---
-name: accessibility-ui-driver
-description: Use when using scripts/ui_driver.py to dump Android UI trees or perform clicks and text input through the PicMe AccessibilityService RPC server
+name: picme-ui-automation
+description: Use when automating PicMe UI interactions through structured accessibility data, replacing screenshot-based image recognition with precise text, contentDescription, or bounds-driven actions
 ---
 
-# Accessibility UI Driver
+# PicMe UI 自动化
 
 ## Overview
 
-Drive Android UI automation through structured accessibility node data instead of screenshots. The PC-side Python client `scripts/ui_driver.py` talks to `PicMeAccessibilityService` over a local JSON-RPC socket forwarded by adb.
+Drive PicMe UI automation through structured accessibility node data instead of screenshots. The PC-side Python client `scripts/ui_driver.py` talks to `PicMeAccessibilityService` over a local JSON-RPC socket forwarded by adb.
 
 ## When to Use
 
@@ -16,6 +16,54 @@ Drive Android UI automation through structured accessibility node data instead o
 - Typing into `EditText` fields after locating them
 - Waiting for a UI element to appear before acting
 - Avoiding screenshot + image-recognition based automation
+
+## Why Screenshot-Based Automation Is Unreliable
+
+| Problem | Cause |
+|---------|-------|
+| Resolution dependent | Different devices produce different screenshot sizes |
+| Theme sensitive | Dark mode, dynamic colors change pixels |
+| Animation interference | Hard to time screenshots during transitions |
+| Position drift | Language/font/size changes move buttons |
+| High maintenance cost | Any UI tweak requires new reference images |
+| Token expensive | Base64 images are orders of magnitude larger than text |
+
+## Recommended Approaches (in order)
+
+### 1. PicMe JSON Commands（首选，功能触发）
+
+For PicMe-specific actions like capture, switch camera, navigate, use [agent-test-expert](/agent-test-expert):
+
+```bash
+adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"capture\",\"params\":{}}'"
+```
+
+### 2. Accessibility UI Driver（运行时混合页面首选）
+
+Use `scripts/ui_driver.py` when you need to inspect or interact with the live UI after JSON commands have driven the app to a target state.
+
+### 3. Compose UI Test（Compose-only 页面）
+
+```kotlin
+composeTestRule.onNodeWithTag("exposure_slider")
+    .performTouchInput { swipeRight() }
+composeTestRule.onNodeWithContentDescription("切换摄像头")
+    .performClick()
+```
+
+### 4. uiautomator dump（无 AccessibilityService 时备用）
+
+```bash
+adb shell uiautomator dump /sdcard/window_dump.xml
+adb pull /sdcard/window_dump.xml
+```
+
+### 5. Espresso（传统 View 页面）
+
+```kotlin
+onView(withId(R.id.shutter_button)).perform(click())
+onView(withText("确认")).check(matches(isDisplayed()))
+```
 
 ## Quick Setup
 
@@ -86,7 +134,7 @@ with UiDriverClient() as client:
 python3 scripts/ui_driver.py dump
 python3 scripts/ui_driver.py click --content-description "搜索照片"
 python3 scripts/ui_driver.py click --text "2026-07-02"
-python3 scripts/ui_driver.py input --text "搜索照片，如 猫、去年夏天、上海..." --value "猫"
+python3 scripts/ui_driver.py input --bounds '{"left":325,"top":166,"right":1135,"bottom":322}' --value "猫"
 python3 scripts/ui_driver.py swipe --start-x 600 --start-y 2000 --end-x 600 --end-y 500
 python3 scripts/ui_driver.py back
 python3 scripts/ui_driver.py find --content-description "关闭搜索"
@@ -122,8 +170,23 @@ python3 scripts/verify_ui_driver.py
 
 Expected output: `✅ Integration test passed: search mode entered`
 
+## Red Rules
+
+**Never:**
+1. Locate click targets by screenshot pixel matching
+2. Use absolute coordinates without a fallback strategy
+3. Click during animation transitions without waiting for idle
+4. Proceed to the next step without verifying the current action result
+
 ## Related Skills
 
-- [agent-test-expert](/agent-test-expert) — PicMe JSON 命令驱动测试
-- [adb-bot](/adb-bot) — General adb device control and log collection
-- [ui-automation-expert](/ui-automation-expert) — UI automation strategy overview
+- [agent-test-expert](/agent-test-expert) — PicMe JSON 测试
+- [adb-bot](/adb-bot) — PicMe ADB 参考
+- [auto-dev-loop](/auto-dev-loop) — PicMe 开发自循环
+
+## Version History
+
+| Version | Date | Change |
+|---------|------|--------|
+| 2.0.0 | 2026-07-02 | Merged ui-automation-expert content; renamed to PicMe UI 自动化 |
+| 1.0.0 | 2026-07-02 | Initial Accessibility UI Driver skill |

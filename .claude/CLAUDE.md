@@ -22,9 +22,8 @@
 | Command | 说明 | 行数 |
 |---------|------|------|
 | `/agent-test-expert` | Agent 自动化测试 V2（JSON 驱动，PC 端）✅ 当前推荐 | 158 |
-| `/agent-test-framework` ⚠️ | Agent 测试框架 V1（已废弃，保留为架构参考） | 244 |
 | `/qa-acceptance` | QA 质量验收（端到端/边界/性能基线/红线） | 267 |
-| `/ui-automation-expert` | 基于 Accessibility 节点的精准 UI 交互测试 | 163 |
+| `/accessibility-ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） | 129 |
 
 ### 🎨 渲染与图形
 | Command | 说明 | 行数 |

@@ -1,8 +1,6 @@
 ---
-name: adb-bot
-description: |
-  通用 Android adb 调试与设备控制参考。用于检查设备连接、启动/停止应用、过滤日志、截屏、
-  拉取文件、查看性能指标等基础 adb 操作。不处理 PicMe 专属测试命令或 UI 自动化。
+name: picme-adb
+description: Use when connecting Android devices, controlling app lifecycle, filtering logs, taking screenshots, pulling files, or checking performance metrics via adb
 version: 2.0.0
 created: 2026-05-03
 updated: 2026-07-02
@@ -14,12 +12,12 @@ tags:
   - device
 ---
 
-# PicMe ADB 基础参考
+# PicMe ADB 参考
 
 > **定位**：通用 Android adb 调试与设备控制。
 > **触发时机**：需要连接设备、启动/停止应用、收集日志、截屏、查看性能指标等基础 adb 操作时启用。
-> **PicMe 专属命令**：使用 [agent-test-expert](/agent-test-expert)。
-> **UI 自动化**：使用 [accessibility-ui-driver](/accessibility-ui-driver)。
+> **PicMe 专属命令**：使用 [agent-test-expert](/agent-test-expert)（PicMe JSON 测试）。
+> **UI 自动化**：使用 [accessibility-ui-driver](/accessibility-ui-driver)（PicMe UI 自动化）。
 
 ---
 
@@ -177,15 +175,14 @@ adb shell dumpsys window displays
 
 ## 相关 Skill
 
-- [agent-test-expert](/agent-test-expert) — PicMe 专属 JSON 测试命令
-- [accessibility-ui-driver](/accessibility-ui-driver) — 结构化 UI dump 与精准交互
-- [auto-dev-loop](/auto-dev-loop) — 完整开发自循环
-- [ui-automation-expert](/ui-automation-expert) — UI 自动化策略
+- [agent-test-expert](/agent-test-expert) — PicMe JSON 测试
+- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
+- [auto-dev-loop](/auto-dev-loop) — PicMe 开发自循环
 
 ## 版本历史
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 2.0.0 | 2026-07-02 | 移除 PicMe 专属 TEST_COMMAND 内容，改为通用 adb 参考；指向 agent-test-expert 和 accessibility-ui-driver |
+| 2.0.0 | 2026-07-02 | 统一命名为 PicMe ADB 参考；移除 PicMe 专属 TEST_COMMAND 内容，改为通用 adb 参考；指向 PicMe JSON 测试和 PicMe UI 自动化 |
 | 1.1.0 | 2026-05-31 | 统一格式，添加定位块 |
 | 1.0.0 | 2026-05-03 | 初始版本 |

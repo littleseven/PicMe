@@ -126,7 +126,7 @@ fun MyComponent() {
 ## 相关文件
 
 - [compose-ui-expert](/compose-ui-expert) — Compose UI 代码修复
-- [ui-automation-expert](/ui-automation-expert) — UI 自动化测试
+- [accessibility-ui-driver](/accessibility-ui-driver) — PicMe UI 自动化
 
 ## 版本历史
 
