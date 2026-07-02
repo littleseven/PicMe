@@ -185,13 +185,23 @@ class UiDriverClient:
         return result.get("success", False)
 
     def long_click(
-        self, text: Optional[str] = None, content_description: Optional[str] = None
+        self,
+        text: Optional[str] = None,
+        content_description: Optional[str] = None,
+        bounds: Optional[Bounds] = None,
     ) -> bool:
         params: dict[str, Any] = {}
         if text is not None:
             params["text"] = text
         if content_description is not None:
             params["contentDescription"] = content_description
+        if bounds is not None:
+            params["bounds"] = {
+                "left": bounds.left,
+                "top": bounds.top,
+                "right": bounds.right,
+                "bottom": bounds.bottom,
+            }
         result = self._call("action.longClick", params)
         return result.get("success", False)
 

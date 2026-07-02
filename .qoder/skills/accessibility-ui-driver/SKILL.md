@@ -73,7 +73,7 @@ with UiDriverClient() as client:
 | `find_nodes(text=..., content_description=..., class_name=..., clickable=..., scrollable=...)` | Find nodes server-side |
 | `find_node(predicate)` | Depth-first search with a lambda |
 | `click(text=\|content_description=\|bounds=...)` | Click a node; walks up to clickable ancestor if needed |
-| `long_click(text=\|content_description=...)` | Long-click a node |
+| `long_click(text=\|content_description=\|bounds=...)` | Long-click a node |
 | `input_text(value, text=\|content_description=\|bounds=...)` | Set text on an `EditText` |
 | `swipe((x1, y1), (x2, y2), duration_ms=300)` | Swipe gesture |
 | `press_back()` | Press the back button |
