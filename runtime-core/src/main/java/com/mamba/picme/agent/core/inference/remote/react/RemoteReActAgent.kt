@@ -10,6 +10,8 @@ import com.mamba.picme.agent.core.platform.storage.DataStoreChatMemoryStore
 import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
 import com.mamba.service.AiServices
 import com.mamba.data.message.SystemMessage
+import com.mamba.exception.HttpException
+import com.mamba.exception.RetriableException
 import com.mamba.model.chat.listener.ChatModelListener
 import com.mamba.model.chat.listener.ChatModelResponseContext
 import com.mamba.model.output.TokenUsage
@@ -37,6 +39,12 @@ class RemoteReActAgent(
 ) {
     companion object {
         private const val TAG = "RemoteReActAgent"
+
+        /** 远程模型服务 transient 错误时的顶层重试次数 */
+        private const val MAX_RETRIES = 3
+
+        /** 每次重试的退避间隔（毫秒） */
+        private val RETRY_BACKOFF_MS = longArrayOf(1000L, 2000L, 4000L)
     }
 
     private val toolService = PicMeToolService(windowManager)
@@ -195,17 +203,15 @@ class RemoteReActAgent(
         cb.onLoopStart(1)
 
         val startTime = System.currentTimeMillis()
+        var lastError: Throwable? = null
 
         try {
-            // 获取 AiServices 代理（自动处理工具调用循环）
             val assistant = getOrCreateAssistant()
 
-            // 调用 chat 方法，AiServices 内部自动处理：
-            // 1. 添加 UserMessage 到 ChatMemory
-            // 2. 调用 LLM 传入 toolSpecifications
-            // 3. 如果返回 tool calls，自动执行工具并构建 ToolExecutionResultMessage
-            // 4. 继续循环直到没有 tool calls 或达到 maxIterations
-            val result = assistant.chat(userPrompt)
+            // 顶层重试循环：对远程模型 transient 错误（5xx/upstream error）做指数退避重试
+            val result = runWithRetries {
+                assistant.chat(userPrompt)
+            }
 
             val latencyMs = System.currentTimeMillis() - startTime
             val totalTokens = accumulatedTokenUsage
@@ -221,6 +227,7 @@ class RemoteReActAgent(
             cb.onComplete(1, result, totalTokens?.totalTokenCount() ?: 0, metrics)
 
         } catch (e: Exception) {
+            lastError = e
             val latencyMs = System.currentTimeMillis() - startTime
             val metrics = AgentExecutionMetrics(
                 latencyMs = latencyMs,
@@ -235,11 +242,75 @@ class RemoteReActAgent(
                 cb.onComplete(0, "Task cancelled", accumulatedTokenUsage?.totalTokenCount() ?: 0, metrics)
             } else {
                 Logger.e(TAG, "Agent execution failed", e)
-                cb.onError(0, e, accumulatedTokenUsage?.totalTokenCount() ?: 0, metrics)
+                val friendlyError = RuntimeException(buildFriendlyErrorMessage(e), e)
+                cb.onError(0, friendlyError, accumulatedTokenUsage?.totalTokenCount() ?: 0, metrics)
             }
         }
 
         Logger.d(TAG, "runAgentWithAiServices end")
+    }
+
+    /**
+     * 执行 [block]，对可重试的远程模型错误进行顶层指数退避重试。
+     *
+     * @throws Exception 所有重试耗尽后抛出最后一次异常
+     */
+    private inline fun <T> runWithRetries(block: () -> T): T {
+        var lastError: Throwable? = null
+        for (attempt in 0 until MAX_RETRIES) {
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastError = e
+                if (!isRetriableError(e) || cancelled.get()) {
+                    throw e
+                }
+                val backoffMs = RETRY_BACKOFF_MS.getOrNull(attempt) ?: RETRY_BACKOFF_MS.last()
+                Logger.w(TAG, "Remote model transient error (attempt ${attempt + 1}/$MAX_RETRIES), retrying in ${backoffMs}ms", e)
+                try {
+                    Thread.sleep(backoffMs)
+                } catch (ie: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    throw e
+                }
+            }
+        }
+        throw lastError ?: IllegalStateException("Remote model call failed after $MAX_RETRIES retries")
+    }
+
+    /**
+     * 判断异常是否为远程模型/网关的 transient 错误（可重试）。
+     */
+    private fun isRetriableError(error: Throwable): Boolean {
+        if (error is RetriableException) return true
+
+        val causeChain = generateSequence<Throwable>(error) { it.cause }
+        return causeChain.any {
+            val is5xxHttp = (it as? HttpException)?.statusCode()?.let { code -> code in 500..599 } == true
+            val isUpstream = it.message?.contains("upstream_error", ignoreCase = true) == true
+            val is5xxMessage = it.message?.let { msg ->
+                listOf("502", "503", "504").any { code -> msg.contains(code) }
+            } == true
+            is5xxHttp || isUpstream || is5xxMessage
+        }
+    }
+
+    /**
+     * 把底层异常转换为飞书用户友好的错误描述。
+     */
+    private fun buildFriendlyErrorMessage(original: Throwable): String {
+        val causeChain = generateSequence<Throwable>(original) { it.cause }
+        val hasUpstream = causeChain.any { it.message?.contains("upstream_error", ignoreCase = true) == true }
+        val statusCode = causeChain.mapNotNull { (it as? HttpException)?.statusCode() }.firstOrNull()
+
+        return when {
+            hasUpstream || statusCode in listOf(502, 503, 504) -> {
+                "远程模型服务暂时不可用（${statusCode ?: "upstream 502"}），请稍后重试，或到设置切换其他模型供应商。"
+            }
+            else -> {
+                "远程模型调用失败：${original.message ?: "未知错误"}"
+            }
+        }
     }
 
     /**
