@@ -20,6 +20,7 @@ tags:
 
 > **⚠️ 已废弃**：V1 测试体系已由 `agent-test-expert`（V2 JSON 驱动 PC 端方案）替代。
 > 本文档保留作为架构设计参考。DSL 设计理念仍适用于理解测试架构。
+> 当前运行时 UI 验证优先使用 `/accessibility-ui-driver`（结构化 accessibility dump），截图仅保留用于最终视觉验收。
 
 
 ## 定位

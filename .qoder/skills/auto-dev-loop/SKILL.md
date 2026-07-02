@@ -45,8 +45,8 @@ tags:
 1. **代码检查** — ktlint + detekt + JVM unit tests
 2. **编译** — `./gradlew :app:assembleDebug`
 3. **安装** — 自动 `adb install -r`
-4. **设备验证** — 启动应用 + 截屏 + 执行 JSON 命令（通过 AgentTestBroadcastReceiver）+ 收集日志
-5. **报告生成** — Markdown 格式报告 + 所有日志/截图归档
+4. **设备验证** — 启动应用 + 执行 JSON 命令（通过 AgentTestBroadcastReceiver）+ accessibility UI dump 验证状态 + 收集日志
+5. **报告生成** — Markdown 格式报告 + 所有日志/dump/截图归档
 
 ### 快速模式（仅编译+安装+启动）
 
@@ -113,8 +113,10 @@ scripts/auto_test_output/
     ├── unit_test.log                   # 单元测试日志
     ├── build.log                       # 编译日志
     ├── install.log                     # 安装日志
-    ├── screen_startup.png              # 启动截屏
-    ├── screen_after_capture.png        # 拍照后截屏
+    ├── ui_dump_startup.json            # 启动后 accessibility UI dump
+    ├── ui_dump_after_capture.json      # 拍照后 accessibility UI dump
+    ├── screen_startup.png              # 启动截屏（仅最终视觉验证）
+    ├── screen_after_capture.png        # 拍照后截屏（仅最终视觉验证）
     ├── logcat_picme.txt                # PicMe 标签日志
     └── instrumented_test.log           # Instrumented test 日志
 ```
@@ -159,6 +161,12 @@ local tap_x=$((w * 75 / 100))
 local tap_y=$((h * 95 / 100))
 ```
 如果 UI 布局变化，需更新坐标。
+
+**推荐替代方案**：使用 `scripts/ui_driver.py` 通过 contentDescription 或 bounds 精准点击，避免分辨率依赖：
+```bash
+python3 scripts/ui_driver.py click --content-description "相册"
+python3 scripts/ui_driver.py dump > scripts/auto_test_output/$(date +%Y%m%d_%H%M%S)/ui_dump_gallery.json
+```
 
 ## 扩展指南
 
@@ -214,6 +222,7 @@ fi
 - `scripts/auto-dev-loop.sh` — 一键开发自循环
 - `scripts/regression-test.sh` — 端到端回归测试（JSON 命令驱动）
 - `scripts/ai-gate.sh` — 代码级质量门禁
+- `/accessibility-ui-driver` — Accessibility UI dump 与交互
 - `/android-build-debug` — 编译调试参考
 - `/adb-bot` — adb 命令参考
 - `/agent-test-expert` — JSON 驱动测试方法（主要测试方法）
@@ -226,4 +235,5 @@ fi
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.2.0 | 2026-07-02 | 设备验证优先使用 accessibility UI dump，截图仅用于最终视觉验证 |
 | 1.1.0 | 2026-05-03 | 初始版本 |

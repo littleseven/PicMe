@@ -82,8 +82,10 @@ QA 角色专属 Skill。在 RD 完成代码修改后执行验收，确保交付�
 | 文件 | 检查内容 |
 |------|----------|
 | `report.md` | 汇总报告，首先阅读 |
-| `screen_startup.png` | 启动画面是否正常 |
-| `screen_after_capture.png` | 拍照后画面是否正常 |
+| `ui_dump_startup.json` | 启动后 UI 结构（按钮、文本、EditText 等） |
+| `ui_dump_after_capture.json` | 拍照后 UI 结构 |
+| `screen_startup.png` | 启动画面视觉质量（仅最终视觉验证） |
+| `screen_after_capture.png` | 拍照后画面视觉质量（仅最终视觉验证） |
 | `logcat_picme.txt` | PicMe 标签日志，搜索 ERROR/FATAL |
 | `build.log` | 编译是否成功 |
 | `install.log` | 安装是否成功 |
@@ -244,11 +246,12 @@ python3 scripts/check_i18n_sync.py
 | 工具/Skill | 整合方式 |
 |-----------|----------|
 | `scripts/ai-gate.sh` | L1 自动化检查入口 |
-| `scripts/auto-dev-loop.sh` | L1 设备验证入口（JSON 命令驱动） |
+| `scripts/auto-dev-loop.sh` | L1 设备验证入口（JSON 命令 + accessibility UI dump） |
 | `scripts/regression-test.sh` | L1 回归测试入口（JSON 命令驱动） |
 | `/agent-test-expert` | JSON 驱动测试方法（主要方法） |
+| `/accessibility-ui-driver` | 结构化 UI dump 与精准交互 |
 | [adb-bot](/adb-bot) | 设备控制与日志收集 |
-| [image-quality-checker](/image-quality-checker) | 截图质量分析 |
+| [image-quality-checker](/image-quality-checker) | 最终截图质量分析 |
 | [error-healer](/error-healer) | 编译错误自动修复 |
 | [doc-sync-guardian](/doc-sync-guardian) | 文档一致性检查 |
 | [compose-ui-expert](/compose-ui-expert) | UI 布局与交互验收 |
@@ -282,4 +285,5 @@ python3 scripts/check_i18n_sync.py
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.1.0 | 2026-07-02 | L1 设备验证增加 accessibility UI dump，截图仅用于最终视觉验证 |
 | 1.0.0 | 2026-05-25 | 初始版本 |

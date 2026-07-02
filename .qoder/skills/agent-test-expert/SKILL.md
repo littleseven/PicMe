@@ -2,7 +2,7 @@
 name: agent-test-expert
 description: |
   PicMe Agent Test V2 测试专家。通过 PC 端主导的 JSON 数据驱动方案执行自动化测试：
-  运行测试套件/单个用例、发送 JSON 命令、截屏验证、性能采集、报告生成。
+  运行测试套件/单个用例、发送 JSON 命令、accessibility UI dump 验证、性能采集、报告生成。
   Use when the user mentions agent testing, automated testing, JSON-driven tests,
   running test suites, sending adb test commands, or verifying camera/agent features.
 version: 1.0.0
@@ -116,7 +116,16 @@ adb logcat -c
 adb logcat -d | grep -iE "AgentTestReceiver|NavigationCapability|CapabilityRegistry|CameraCapability|scene"
 ```
 
-### Step 4: 截屏验证
+### Step 4: UI 状态验证
+
+**首选：Accessibility UI dump（结构化文本，更准更省 token）**
+
+```bash
+python3 scripts/ui_driver.py dump > /tmp/ui_dump.json
+python3 scripts/ui_driver.py find --content-description "快门"
+```
+
+**次选：截屏（仅用于最终视觉验证）**
 
 ```bash
 adb shell screencap -p /sdcard/test.png
@@ -167,6 +176,7 @@ adb pull /sdcard/test.png /tmp/test.png
 
 - [架构文档](docs/03-TECHNICAL-SPECS/AGENT_TEST_ARCHITECTURE.md) — 完整架构说明
 - [PC 端测试脚本](scripts/agent-tester) — 测试执行入口
+- [Accessibility UI Driver](/accessibility-ui-driver) — 结构化 UI dump 与交互
 - [应用端接收器](app/src/main/java/com/mamba/picme/testing/agent/bridge/AgentTestBroadcastReceiver.kt) — 广播接收与命令分发
 - [CapabilityRegistry](app/src/main/java/com/mamba/picme/domain/agent/CapabilityRegistry.kt) — 命令分发中心
 - [AgentCommandParser](app/src/main/java/com/mamba/picme/domain/agent/AgentCommandParser.kt) — JSON 命令解析
@@ -175,4 +185,5 @@ adb pull /sdcard/test.png /tmp/test.png
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.1.0 | 2026-07-02 | UI 验证优先使用 accessibility dump，截图降为最终视觉验证 |
 | 1.0.0 | 2026-06-06 | 初始版本，基于 Agent Test V2 JSON 驱动架构 |
