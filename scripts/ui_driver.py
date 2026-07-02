@@ -162,10 +162,17 @@ class UiDriverClient:
         result = self._call("ui.find", params)
         return [UiNode.from_json(n) for n in result.get("nodes", [])]
 
-    def click(self, text: Optional[str] = None, bounds: Optional[Bounds] = None) -> bool:
+    def click(
+        self,
+        text: Optional[str] = None,
+        content_description: Optional[str] = None,
+        bounds: Optional[Bounds] = None,
+    ) -> bool:
         params: dict[str, Any] = {}
         if text is not None:
             params["text"] = text
+        if content_description is not None:
+            params["contentDescription"] = content_description
         if bounds is not None:
             params["bounds"] = {
                 "left": bounds.left,
@@ -176,8 +183,15 @@ class UiDriverClient:
         result = self._call("action.click", params)
         return result.get("success", False)
 
-    def long_click(self, text: Optional[str] = None) -> bool:
-        result = self._call("action.longClick", {"text": text})
+    def long_click(
+        self, text: Optional[str] = None, content_description: Optional[str] = None
+    ) -> bool:
+        params: dict[str, Any] = {}
+        if text is not None:
+            params["text"] = text
+        if content_description is not None:
+            params["contentDescription"] = content_description
+        result = self._call("action.longClick", params)
         return result.get("success", False)
 
     def swipe(
@@ -193,8 +207,18 @@ class UiDriverClient:
         )
         return result.get("success", False)
 
-    def input_text(self, value: str, text: Optional[str] = None) -> bool:
-        result = self._call("action.input", {"value": value, "text": text})
+    def input_text(
+        self,
+        value: str,
+        text: Optional[str] = None,
+        content_description: Optional[str] = None,
+    ) -> bool:
+        params: dict[str, Any] = {"value": value}
+        if text is not None:
+            params["text"] = text
+        if content_description is not None:
+            params["contentDescription"] = content_description
+        result = self._call("action.input", params)
         return result.get("success", False)
 
     def press_back(self) -> bool:
@@ -241,7 +265,7 @@ def format_ui_tree(node: UiNode, indent: int = 0) -> str:
     )
     lines = [f"{prefix}[{node.class_name or 'Node'}] {label} {', '.join(info)}"]
     for child in node.children:
-        lines.extend(format_ui_tree(child, indent + 1))
+        lines.extend(format_ui_tree(child, indent + 1).split("\n"))
     return "\n".join(lines)
 
 
@@ -256,8 +280,8 @@ if __name__ == "__main__":
             tree = client.dump_ui(package="com.mamba.picme")
             print(format_ui_tree(tree))
         elif command == "click":
-            text = sys.argv[2] if len(sys.argv) > 2 else ""
-            ok = client.click(text=text)
+            label = sys.argv[2] if len(sys.argv) > 2 else ""
+            ok = client.click(content_description=label)
             print(f"click result: {ok}")
         else:
             print(f"Unknown command: {command}")

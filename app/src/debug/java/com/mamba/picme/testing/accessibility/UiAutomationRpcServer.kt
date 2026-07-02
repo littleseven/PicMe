@@ -283,19 +283,20 @@ class UiAutomationRpcServer(
     private fun findSingleNode(params: JSONObject): AccessibilityNodeInfo? {
         val root = service.rootInActiveWindow ?: return null
         val text = params.optString("text", null)
+        val contentDescription = params.optString("contentDescription", null)
         val boundsObj = params.optJSONObject("bounds")
 
         val matches = findNodes(
             root,
             text = text,
-            contentDescription = null,
+            contentDescription = contentDescription,
             className = null,
             clickable = null,
             scrollable = null
         )
         root.recycle()
 
-        val node = when {
+        val candidate = when {
             boundsObj != null -> {
                 val bounds = Rect(
                     boundsObj.getInt("left"),
@@ -308,8 +309,27 @@ class UiAutomationRpcServer(
                     nodeBounds == bounds
                 }
             }
-            else -> matches.firstOrNull()
+            else -> matches.firstOrNull { it.isClickable } ?: matches.firstOrNull()
         }
-        return node
+
+        if (candidate == null) {
+            matches.forEach { it.recycle() }
+            return null
+        }
+
+        // Walk up to a clickable ancestor if the candidate itself is not clickable.
+        var target: AccessibilityNodeInfo? = candidate
+        while (target != null && !target.isClickable) {
+            val parent = target.parent
+            if (parent != null) {
+                target.recycle()
+                target = parent
+            } else {
+                break
+            }
+        }
+
+        matches.filter { it != candidate }.forEach { it.recycle() }
+        return target
     }
 }
