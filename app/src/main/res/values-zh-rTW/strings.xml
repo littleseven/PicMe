@@ -553,4 +553,38 @@
     <string name="gallery_debug_features_desc">相簿功能的測試工具與後端模式切換。</string>
     <string name="debug_image_download">圖片下載頁</string>
     <string name="debug_image_download_desc">測試數據生成與圖片下載。</string>
+
+    <!-- 圖片編輯器 -->
+    <string name="editor_tab_crop">構圖</string>
+    <string name="editor_tab_adjust">調節</string>
+    <string name="editor_tab_beauty">美顏</string>
+    <string name="editor_tab_filter">濾鏡</string>
+    <string name="editor_tab_markup">標記</string>
+    <string name="crop_ratio_label">裁剪比例</string>
+    <string name="rotate_left">左旋</string>
+    <string name="rotate_right">右旋</string>
+    <string name="flip_horizontal">水平翻轉</string>
+    <string name="adjust_brightness">亮度</string>
+    <string name="adjust_exposure">曝光</string>
+    <string name="adjust_temperature">色溫</string>
+    <string name="adjust_tint">色調</string>
+    <string name="reset">重設</string>
+    <string name="markup_tool_text">文字</string>
+    <string name="markup_stroke_width">筆畫粗細</string>
+    <string name="markup_phase2_hint">標記功能完整繪製互動將在 Phase 2 實現</string>
+    <string name="filter_panel_phase2">濾鏡面板（Phase 2）</string>
+    <string name="redo">重做</string>
+    <string name="done">完成</string>
+    <string name="editor_load_failed">無法載入圖片</string>
+    <string name="editor_preview_failed">預覽處理失敗</string>
+    <string name="editor_save_failed">儲存失敗</string>
+    <string name="editor_save_failed_with_reason">儲存失敗：%1$s</string>
+    <string name="editor_load_failed_with_reason">載入失敗：%1$s</string>
+    <string name="aspect_ratio_free">自由</string>
+    <string name="aspect_ratio_original">原始</string>
+    <string name="aspect_ratio_square">1:1</string>
+    <string name="aspect_ratio_4_3">4:3</string>
+    <string name="aspect_ratio_3_4">3:4</string>
+    <string name="aspect_ratio_16_9">16:9</string>
+    <string name="aspect_ratio_9_16">9:16</string>
 </resources>

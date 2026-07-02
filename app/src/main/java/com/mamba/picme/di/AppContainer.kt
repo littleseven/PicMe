@@ -23,6 +23,7 @@ import com.mamba.picme.data.indexing.MediaIndexingWorker
 import com.mamba.picme.data.indexing.MediaStoreObserver
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.data.repository.MediaRepositoryImpl
+import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.ExplicitFirstSearchPipeline
@@ -41,6 +42,7 @@ import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.chat.ChatViewModelDependencies
+import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
 import androidx.lifecycle.ViewModel
 
@@ -111,8 +113,11 @@ interface AppContainer {
     /** 双级缩略图缓存（LRU 内存 + 磁盘） */
     val thumbnailCache: ThumbnailCache
 
+    val photoEditRecipeRepository: PhotoEditRecipeRepository
+
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
+    fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory
 
     /** 创建 MediaStoreObserver（需要 ContentResolver，按需创建） */
     fun createMediaStoreObserver(onChange: (List<com.mamba.picme.data.indexing.MediaChangeEvent>) -> Unit): MediaStoreObserver
@@ -256,6 +261,10 @@ class AppContainerImpl(
         MediaRepositoryImpl(database.mediaDao(), context)
     }
 
+    override val photoEditRecipeRepository: PhotoEditRecipeRepository by lazy {
+        PhotoEditRecipeRepository(database.photoEditRecipeDao())
+    }
+
     override val userPreferencesRepository: UserSettingsRepository by lazy {
         UserPreferencesRepository(context)
     }
@@ -358,6 +367,15 @@ class AppContainerImpl(
         MediaViewModelFactory(mediaViewModelDependencies)
     }
 
+    private val photoEditorViewModelFactory: ViewModelProvider.Factory by lazy {
+        PhotoEditorViewModelFactory(
+            photoProcessor = photoProcessor,
+            faceDetector = faceDetector,
+            recipeRepository = photoEditRecipeRepository,
+            mediaRepository = repository
+        )
+    }
+
     private val chatViewModelDependencies: ChatViewModelDependencies by lazy {
         ChatViewModelDependencies(
             context = context,
@@ -373,6 +391,10 @@ class AppContainerImpl(
 
     override fun createMediaViewModelFactory(): ViewModelProvider.Factory {
         return mediaViewModelFactory
+    }
+
+    override fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory {
+        return photoEditorViewModelFactory
     }
 
     override fun createChatViewModelFactory(): ViewModelProvider.Factory {

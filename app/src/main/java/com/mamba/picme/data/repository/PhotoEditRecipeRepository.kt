@@ -1,0 +1,148 @@
+package com.mamba.picme.data.repository
+
+import android.graphics.RectF
+import com.mamba.picme.beauty.api.BeautySettings
+import com.mamba.picme.beauty.api.FilterType
+import com.mamba.picme.beauty.api.StyleFilter
+import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
+import com.mamba.picme.data.local.entity.PhotoEditRecipeEntity
+import com.mamba.picme.features.editor.AdjustmentRecipe
+import com.mamba.picme.features.editor.AspectRatio
+import com.mamba.picme.features.editor.CropRecipe
+import com.mamba.picme.features.editor.EditRecipe
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+
+class PhotoEditRecipeRepository(
+    private val dao: PhotoEditRecipeDao
+) {
+    private val moshi = Moshi.Builder()
+        .addLast(KotlinJsonAdapterFactory())
+        .build()
+    private val beautySettingsAdapter = moshi.adapter(BeautySettings::class.java)
+
+    suspend fun save(outputUri: String, sourceUri: String, recipe: EditRecipe) {
+        val entity = PhotoEditRecipeEntity(
+            outputUri = outputUri,
+            sourceUri = sourceUri,
+            recipeJson = recipe.toJson()
+        )
+        dao.insert(entity)
+    }
+
+    suspend fun load(outputUri: String): EditRecipe? = withContext(Dispatchers.IO) {
+        dao.getByOutputUri(outputUri)?.let { entity ->
+            runCatching { EditRecipe.fromJson(entity.recipeJson, entity.sourceUri) }.getOrNull()
+        }
+    }
+
+    fun observe(outputUri: String): Flow<EditRecipe?> {
+        return dao.observeByOutputUri(outputUri).map { entity ->
+            entity?.let {
+                runCatching { EditRecipe.fromJson(it.recipeJson, it.sourceUri) }.getOrNull()
+            }
+        }
+    }
+
+    suspend fun delete(outputUri: String) {
+        dao.delete(outputUri)
+    }
+
+    private fun EditRecipe.toJson(): String {
+        return JSONObject().apply {
+            put("version", version)
+            put("sourceUri", sourceUri)
+            put("crop", JSONObject().apply {
+                put("rotation", crop.rotation)
+                put("flippedH", crop.flippedH)
+                put("flippedV", crop.flippedV)
+                put("straightenAngle", crop.straightenAngle)
+                put("aspectRatio", crop.aspectRatio.name)
+                crop.cropRect?.let {
+                    put("cropRectLeft", it.left)
+                    put("cropRectTop", it.top)
+                    put("cropRectRight", it.right)
+                    put("cropRectBottom", it.bottom)
+                }
+            })
+            put("adjustments", JSONObject().apply {
+                put("brightness", adjustments.brightness)
+                put("exposure", adjustments.exposure)
+                put("contrast", adjustments.contrast)
+                put("saturation", adjustments.saturation)
+                put("temperature", adjustments.temperature)
+                put("tint", adjustments.tint)
+                put("vignette", adjustments.vignette)
+            })
+            put("beauty", beautySettingsAdapter.toJson(beauty))
+            put("colorFilter", colorFilter.name)
+            put("styleFilter", styleFilter.name)
+            put("markup", emptyList<String>()) // Phase 2: serialize markup actions
+        }.toString()
+    }
+
+    companion object {
+        fun EditRecipe.Companion.fromJson(json: String, fallbackSourceUri: String): EditRecipe {
+            val moshi = Moshi.Builder()
+                .addLast(KotlinJsonAdapterFactory())
+                .build()
+            val beautyAdapter = moshi.adapter(BeautySettings::class.java)
+            val root = JSONObject(json)
+            val cropObj = root.getJSONObject("crop")
+            val cropRect = if (cropObj.has("cropRectLeft")) {
+                RectF(
+                    cropObj.getDouble("cropRectLeft").toFloat(),
+                    cropObj.getDouble("cropRectTop").toFloat(),
+                    cropObj.getDouble("cropRectRight").toFloat(),
+                    cropObj.getDouble("cropRectBottom").toFloat()
+                )
+            } else null
+
+            return EditRecipe(
+                sourceUri = root.optString("sourceUri", fallbackSourceUri),
+                crop = CropRecipe(
+                    rotation = cropObj.optInt("rotation", 0),
+                    flippedH = cropObj.optBoolean("flippedH", false),
+                    flippedV = cropObj.optBoolean("flippedV", false),
+                    straightenAngle = cropObj.optDouble("straightenAngle", 0.0).toFloat(),
+                    aspectRatio = try {
+                        AspectRatio.valueOf(cropObj.optString("aspectRatio", "FREE"))
+                    } catch (_: IllegalArgumentException) {
+                        AspectRatio.FREE
+                    },
+                    cropRect = cropRect
+                ),
+                adjustments = root.getJSONObject("adjustments").let {
+                    AdjustmentRecipe(
+                        brightness = it.optDouble("brightness", 0.0).toFloat(),
+                        exposure = it.optDouble("exposure", 0.0).toFloat(),
+                        contrast = it.optDouble("contrast", 50.0).toFloat(),
+                        saturation = it.optDouble("saturation", 100.0).toFloat(),
+                        temperature = it.optDouble("temperature", 5000.0).toFloat(),
+                        tint = it.optDouble("tint", 0.0).toFloat(),
+                        vignette = it.optDouble("vignette", 0.0).toFloat()
+                    )
+                },
+                beauty = runCatching {
+                    beautyAdapter.fromJson(root.getString("beauty"))
+                }.getOrNull() ?: BeautySettings(),
+                colorFilter = try {
+                    FilterType.valueOf(root.optString("colorFilter", "NONE"))
+                } catch (_: IllegalArgumentException) {
+                    FilterType.NONE
+                },
+                styleFilter = try {
+                    StyleFilter.valueOf(root.optString("styleFilter", "NONE"))
+                } catch (_: IllegalArgumentException) {
+                    StyleFilter.NONE
+                },
+                version = root.optInt("version", 1)
+            )
+        }
+    }
+}

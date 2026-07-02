@@ -1,0 +1,179 @@
+package com.mamba.picme.features.editor
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.mamba.picme.R
+import com.mamba.picme.features.editor.components.AdjustPanel
+import com.mamba.picme.features.editor.components.CropPanel
+import com.mamba.picme.features.editor.components.EditorBottomBar
+import com.mamba.picme.features.editor.components.EditorTopBar
+import com.mamba.picme.features.editor.components.MarkupPanel
+
+@Composable
+fun PhotoEditorScreen(
+    sourceUri: String,
+    recipeUri: String?,
+    viewModel: PhotoEditorViewModel,
+    onNavigateBack: () -> Unit,
+    onEditSaved: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.load(context, sourceUri, recipeUri)
+        viewModel.onSaveComplete = onEditSaved
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.onSaveComplete = null }
+    }
+
+    Scaffold(
+        topBar = {
+            EditorTopBar(
+                title = stringResource(R.string.edit),
+                canUndo = viewModel.canUndo,
+                canRedo = viewModel.canRedo,
+                isSaving = (state as? PhotoEditorViewModel.State.Ready)?.isSaving == true,
+                onCancel = onNavigateBack,
+                onUndo = viewModel::undo,
+                onRedo = viewModel::redo,
+                onCompare = { /* handled in preview */ },
+                onDone = {
+                    val ready = state as? PhotoEditorViewModel.State.Ready ?: return@EditorTopBar
+                    viewModel.save(context, ready.recipe)
+                }
+            )
+        },
+        bottomBar = {
+            val ready = state as? PhotoEditorViewModel.State.Ready ?: return@Scaffold
+            Column(modifier = Modifier.navigationBarsPadding()) {
+                PanelForTab(
+                    tab = ready.selectedTab,
+                    recipe = ready.recipe,
+                    onRecipeChange = viewModel::updateRecipe
+                )
+                EditorBottomBar(
+                    selectedTab = ready.selectedTab,
+                    onTabSelected = viewModel::selectTab
+                )
+            }
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            when (val s = state) {
+                is PhotoEditorViewModel.State.Loading -> {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+                is PhotoEditorViewModel.State.Error -> {
+                    Text(
+                        text = s.message,
+                        color = Color.White,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is PhotoEditorViewModel.State.Ready -> {
+                    var comparing by remember { mutableStateOf(false) }
+                    val displayBitmap = if (comparing) s.originalBitmap else s.previewBitmap
+                    Image(
+                        bitmap = displayBitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onPress = {
+                                        comparing = true
+                                        tryAwaitRelease()
+                                        comparing = false
+                                    }
+                                )
+                            }
+                    )
+                    if (s.isProcessing) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PanelForTab(
+    tab: PhotoEditorViewModel.EditorTab,
+    recipe: EditRecipe,
+    onRecipeChange: (EditRecipe) -> Unit
+) {
+    when (tab) {
+        PhotoEditorViewModel.EditorTab.CROP -> CropPanel(
+            crop = recipe.crop,
+            onChange = { onRecipeChange(recipe.copy(crop = it)) }
+        )
+        PhotoEditorViewModel.EditorTab.ADJUST -> AdjustPanel(
+            adjustments = recipe.adjustments,
+            onChange = { onRecipeChange(recipe.copy(adjustments = it)) }
+        )
+        PhotoEditorViewModel.EditorTab.BEAUTY -> {
+            com.mamba.picme.features.camera.components.BeautyPanel(
+                settings = recipe.beauty,
+                onSettingsChanged = { onRecipeChange(recipe.copy(beauty = it)) },
+                onDismiss = {}
+            )
+        }
+        PhotoEditorViewModel.EditorTab.FILTER -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.filter_panel_phase2),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        PhotoEditorViewModel.EditorTab.MARKUP -> MarkupPanel(
+            actions = recipe.markup,
+            onChange = { onRecipeChange(recipe.copy(markup = it)) }
+        )
+    }
+}

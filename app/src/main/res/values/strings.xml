@@ -581,4 +581,38 @@
     <string name="gallery_debug_features_desc">Test tools and backend toggles for album features.</string>
     <string name="debug_image_download">Image Download</string>
     <string name="debug_image_download_desc">Generate test data and download images.</string>
+
+    <!-- Photo Editor -->
+    <string name="editor_tab_crop">Crop</string>
+    <string name="editor_tab_adjust">Adjust</string>
+    <string name="editor_tab_beauty">Beauty</string>
+    <string name="editor_tab_filter">Filter</string>
+    <string name="editor_tab_markup">Markup</string>
+    <string name="crop_ratio_label">Aspect Ratio</string>
+    <string name="rotate_left">Rotate left</string>
+    <string name="rotate_right">Rotate right</string>
+    <string name="flip_horizontal">Flip horizontal</string>
+    <string name="adjust_brightness">Brightness</string>
+    <string name="adjust_exposure">Exposure</string>
+    <string name="adjust_temperature">Temperature</string>
+    <string name="adjust_tint">Tint</string>
+    <string name="reset">Reset</string>
+    <string name="markup_tool_text">Text</string>
+    <string name="markup_stroke_width">Stroke width</string>
+    <string name="markup_phase2_hint">Markup drawing tools will be available in Phase 2</string>
+    <string name="filter_panel_phase2">Filter panel (Phase 2)</string>
+    <string name="redo">Redo</string>
+    <string name="done">Done</string>
+    <string name="editor_load_failed">Failed to load image</string>
+    <string name="editor_preview_failed">Preview processing failed</string>
+    <string name="editor_save_failed">Save failed</string>
+    <string name="editor_save_failed_with_reason">Save failed: %1$s</string>
+    <string name="editor_load_failed_with_reason">Load failed: %1$s</string>
+    <string name="aspect_ratio_free">Free</string>
+    <string name="aspect_ratio_original">Original</string>
+    <string name="aspect_ratio_square">1:1</string>
+    <string name="aspect_ratio_4_3">4:3</string>
+    <string name="aspect_ratio_3_4">3:4</string>
+    <string name="aspect_ratio_16_9">16:9</string>
+    <string name="aspect_ratio_9_16">9:16</string>
 </resources>

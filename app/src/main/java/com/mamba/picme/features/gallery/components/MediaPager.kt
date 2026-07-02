@@ -3,6 +3,7 @@ package com.mamba.picme.features.gallery.components
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -10,7 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -45,7 +47,6 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.rounded.AutoFixHigh
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -57,6 +58,8 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.KeyboardVoice
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -84,6 +87,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -106,7 +110,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.mamba.picme.R
-import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.context.MediaAsset
@@ -114,42 +117,24 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.TagTranslator
-import com.mamba.picme.features.camera.components.BeautySelector
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.common.chat.AgentMessage
 import com.mamba.picme.features.common.chat.AiChatScreen
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.foundation.layout.height
-import java.io.IOException
-import android.graphics.Paint
-import android.graphics.Rect
-import org.json.JSONArray
-import org.json.JSONObject
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
 
 private const val TAG = "Gallery"
 
-@OptIn(ExperimentalFoundationApi::class, FlowPreview::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaPager(
     assets: List<MediaAsset>,
@@ -159,11 +144,7 @@ fun MediaPager(
     onStartOcr: (String) -> Unit,
     onDismissOcr: () -> Unit,
     ocrState: StateFlow<MediaViewModel.OcrResult?>,
-    photoEditState: StateFlow<MediaViewModel.PhotoEditState>,
-    onPrepareEdit: (Bitmap) -> Unit,
-    onProcessPhoto: (Bitmap, BeautySettings) -> Unit,
-    onSavePhoto: (Bitmap) -> Unit,
-    onClearEditState: () -> Unit,
+    onNavigateToEditor: (MediaAsset) -> Unit,
     voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: () -> Unit = {}
 ) {
@@ -173,11 +154,7 @@ fun MediaPager(
     var show468Points by remember { mutableStateOf(false) }
     var showBigBeauty106 by remember { mutableStateOf(false) }
     var currentPageZoomed by remember { mutableStateOf(false) }
-    var isEditing by remember { mutableStateOf(false) }
     var showBarsVisible by remember { mutableStateOf(true) }
-    var editSettings by remember { mutableStateOf(BeautySettings()) }
-    var processedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var loadedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showAiChatPanel by remember { mutableStateOf(false) }
     var visionResult by remember { mutableStateOf<String?>(null) }
     var isVisionLoading by remember { mutableStateOf(false) }
@@ -185,45 +162,10 @@ fun MediaPager(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val currentAsset = assets.getOrNull(pagerState.currentPage)
-    val editState by photoEditState.collectAsState()
 
-    // 启动照片编辑（长按或工具栏按钮共用）
-    val startPhotoEdit = {
-        val asset = currentAsset
-        if (asset != null && asset.type == MediaType.PHOTO) {
-            Log.d(TAG, "Start photo editing mode")
-            isEditing = true
-            editSettings = BeautySettings(enabled = true)
-            processedBitmap = null
-            loadedBitmap = null
-            onClearEditState()
-
-            scope.launch(Dispatchers.IO) {
-                try {
-                    val bitmap = context.contentResolver.openInputStream(asset.uri.toUri())?.use {
-                        BitmapFactory.decodeStream(it)
-                    }
-                    if (bitmap != null) {
-                        loadedBitmap = bitmap
-                        withContext(Dispatchers.Main) {
-                            onPrepareEdit(bitmap)
-                        }
-                    } else {
-                        Logger.e(TAG, "Failed to decode bitmap for editing")
-                    }
-                } catch (e: IOException) {
-                    Logger.e(TAG, "IO error when loading bitmap: ${e.message}")
-                } catch (e: OutOfMemoryError) {
-                    Logger.e(TAG, "OOM when loading bitmap: ${e.message}")
-                } catch (e: IllegalArgumentException) {
-                    Logger.e(TAG, "Invalid image data: ${e.message}")
-                }
-            }
-        }
-    }
     val landmarkState = rememberFaceLandmarkDetection(
         imageUri = currentAsset?.uri.orEmpty(),
-        enabled = showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO && !isEditing
+        enabled = showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO
     )
 
     LaunchedEffect(pagerState.currentPage) {
@@ -233,86 +175,34 @@ fun MediaPager(
         }
     }
 
-    LaunchedEffect(editState) {
-        when (val state = editState) {
-            is MediaViewModel.PhotoEditState.Ready -> {
-                processedBitmap = state.bitmap
-            }
-            is MediaViewModel.PhotoEditState.Idle -> {
-                processedBitmap = null
-                loadedBitmap = null
-            }
-            else -> {}
-        }
-    }
-
-    // 实时预览：editSettings 变化后 debounce 200ms 自动触发处理
-    LaunchedEffect(isEditing) {
-        if (!isEditing) return@LaunchedEffect
-        androidx.compose.runtime.snapshotFlow { editSettings }
-            .drop(1) // 跳过初始值，避免进入编辑模式时自动触发
-            .debounce(200)
-            .filter { it.enabled && it.hasAnyEffect() }
-            .collect { settings ->
-                loadedBitmap?.let { bitmap ->
-                    onProcessPhoto(bitmap, settings)
-                }
-            }
-    }
-
-    // [Bitmap 生命周期] 退出编辑时清理引用
-    // 注意：不在 Compose 渲染周期内 recycle Bitmap，避免 "trying to use a recycled bitmap" 崩溃。
-    // Bitmap 生命周期由 MediaViewModel 统一管理（preparePhotoEdit/processPhoto/clearPhotoEditState）。
-    DisposableEffect(isEditing) {
-        onDispose {
-            processedBitmap = null
-            loadedBitmap = null
-            Log.d("Gallery", "Left edit mode, cleared bitmap references")
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             pageSpacing = 16.dp,
-            userScrollEnabled = !currentPageZoomed && !isEditing
+            userScrollEnabled = !currentPageZoomed
         ) { pageIndex ->
             val asset = assets[pageIndex]
             if (asset.type == MediaType.VIDEO) {
                 VideoPlayer(uri = asset.uri)
             } else {
-                val showProcessed = pageIndex == pagerState.currentPage && processedBitmap != null && isEditing
-                if (showProcessed) {
-                    Image(
-                        bitmap = processedBitmap!!.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    ZoomableImage(
-                        uri = asset.uri,
-                        onClick = {
-                            if (!isEditing) {
-                                Log.d(TAG, "Toggle bars visibility via click")
-                                showBarsVisible = !showBarsVisible
-                            }
-                        },
-                        onLongClick = {
-                            if (!isEditing) {
-                                Log.d("Gallery", "Trigger photo edit via long press")
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                startPhotoEdit()
-                            }
-                        },
-                        onZoomStateChanged = { scale ->
-                            if (pageIndex == pagerState.currentPage) {
-                                currentPageZoomed = scale > 1.02f
-                            }
+                ZoomableImage(
+                    uri = asset.uri,
+                    onClick = {
+                        Log.d(TAG, "Toggle bars visibility via click")
+                        showBarsVisible = !showBarsVisible
+                    },
+                    onLongClick = {
+                        Log.d("Gallery", "Trigger photo editor via long press")
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigateToEditor(asset)
+                    },
+                    onZoomStateChanged = { scale ->
+                        if (pageIndex == pagerState.currentPage) {
+                            currentPageZoomed = scale > 1.02f
                         }
-                    )
-                }
+                    }
+                )
             }
         }
 
@@ -333,18 +223,12 @@ fun MediaPager(
         ) {
             mediaPagerTopControls(
                 onClose = {
-                    if (isEditing) {
-                        isEditing = false
-                        editSettings = BeautySettings()
-                        processedBitmap = null
-                        onClearEditState()
-                    } else if (showAiChatPanel) {
+                    if (showAiChatPanel) {
                         showAiChatPanel = false
                     } else {
                         onClose()
                     }
                 },
-                isEditing = isEditing,
                 dateText = dateText,
                 onToggleInfo = {
                     Log.d("Gallery", "Toggle info visibility via top bar")
@@ -355,7 +239,7 @@ fun MediaPager(
         }
 
         // Bottom Bar with animated visibility
-        if (!isEditing && currentAsset?.type == MediaType.PHOTO) {
+        if (currentAsset?.type == MediaType.PHOTO) {
             AnimatedVisibility(
                 visible = showBarsVisible && !currentPageZoomed,
                 enter = fadeIn() + slideInVertically { it },
@@ -378,7 +262,13 @@ fun MediaPager(
                         context.startActivity(Intent.createChooser(shareIntent, null))
                     }
                 },
-                onStartEdit = startPhotoEdit,
+                onStartEdit = {
+                    val asset = assets.getOrNull(pagerState.currentPage)
+                    if (asset != null && asset.type == MediaType.PHOTO) {
+                        Log.d(TAG, "Navigate to photo editor")
+                        onNavigateToEditor(asset)
+                    }
+                },
                 onStartVision = {
                     val asset = assets.getOrNull(pagerState.currentPage)
                     if (asset?.type != MediaType.PHOTO) return@mediaPagerBottomBar
@@ -452,7 +342,7 @@ fun MediaPager(
             }
         }
 
-        if (showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO && !isEditing) {
+        if (showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO) {
             FaceLandmarkCanvasOverlay(
                 state = landmarkState,
                 show468Points = show468Points,
@@ -469,7 +359,7 @@ fun MediaPager(
         }
 
         // Photo Info Dialog (取代旧的 SourceInfoOverlay)
-        if (showInfo && currentAsset != null && !showLandmarkOverlay && !isEditing) {
+        if (showInfo && currentAsset != null && !showLandmarkOverlay) {
             PhotoInfoDialog(
                 asset = currentAsset,
                 onDismiss = { showInfo = false }
@@ -495,34 +385,8 @@ fun MediaPager(
             }
         )
 
-        // Photo Edit Panel
-        if (isEditing && currentAsset?.type == MediaType.PHOTO) {
-            photoEditPanel(
-                editState = editState,
-                settings = editSettings,
-                onSettingsChanged = { editSettings = it },
-                onSave = {
-                    processedBitmap?.let { bitmap ->
-                        onSavePhoto(bitmap)
-                        isEditing = false
-                        editSettings = BeautySettings()
-                        processedBitmap = null
-                        loadedBitmap = null
-                        onClearEditState()
-                    }
-                },
-                onCancel = {
-                    isEditing = false
-                    editSettings = BeautySettings()
-                    processedBitmap = null
-                    loadedBitmap = null
-                    onClearEditState()
-                }
-            )
-        }
-
         // AI Chat Panel - 右下角浮动按钮入口
-        if (!isEditing && currentAsset?.type == MediaType.PHOTO) {
+        if (currentAsset?.type == MediaType.PHOTO) {
             if (!showAiChatPanel) {
                 FloatingActionButton(
                     onClick = { showAiChatPanel = true },
@@ -1008,7 +872,6 @@ private fun VisionResultOverlay(
 @Composable
 private fun mediaPagerTopControls(
     onClose: () -> Unit,
-    isEditing: Boolean,
     dateText: String,
     onToggleInfo: () -> Unit,
     onReTag: () -> Unit,
@@ -1033,7 +896,7 @@ private fun mediaPagerTopControls(
             ) {
                 IconButton(
                     onClick = {
-                        Log.d("Gallery", if (isEditing) "Cancel editing mode" else "Close MediaPager")
+                        Log.d("Gallery", "Close MediaPager")
                         onClose()
                     },
                     colors = IconButtonDefaults.iconButtonColors(
@@ -1651,100 +1514,6 @@ private fun InfoRow(label: String, value: String) {
             color = Color.White,
             modifier = Modifier.weight(0.65f)
         )
-    }
-}
-
-@Composable
-private fun photoEditPanel(
-    editState: MediaViewModel.PhotoEditState,
-    settings: BeautySettings,
-    onSettingsChanged: (BeautySettings) -> Unit,
-    onSave: () -> Unit,
-    onCancel: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 16.dp),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (editState is MediaViewModel.PhotoEditState.Analyzing) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                Text(
-                    text = stringResource(R.string.analyzing_face),
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            } else {
-                BeautySelector(
-                    settings = settings,
-                    onSettingsChanged = onSettingsChanged
-                )
-
-                Spacer(modifier = Modifier.padding(vertical = 8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    val isProcessing = editState is MediaViewModel.PhotoEditState.Processing
-
-                    OutlinedButton(
-                        onClick = onCancel,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            text = stringResource(R.string.cancel),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Button(
-                        onClick = onSave,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f),
-                        enabled = !isProcessing
-                    ) {
-                        if (isProcessing) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(R.string.save),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 

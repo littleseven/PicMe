@@ -551,4 +551,38 @@
     <string name="gallery_debug_features_desc">相册功能的测试工具与后端模式切换。</string>
     <string name="debug_image_download">图片下载页</string>
     <string name="debug_image_download_desc">测试数据生成与图片下载。</string>
+
+    <!-- 图片编辑器 -->
+    <string name="editor_tab_crop">构图</string>
+    <string name="editor_tab_adjust">调节</string>
+    <string name="editor_tab_beauty">美颜</string>
+    <string name="editor_tab_filter">滤镜</string>
+    <string name="editor_tab_markup">标记</string>
+    <string name="crop_ratio_label">裁剪比例</string>
+    <string name="rotate_left">左旋</string>
+    <string name="rotate_right">右旋</string>
+    <string name="flip_horizontal">水平翻转</string>
+    <string name="adjust_brightness">亮度</string>
+    <string name="adjust_exposure">曝光</string>
+    <string name="adjust_temperature">色温</string>
+    <string name="adjust_tint">色调</string>
+    <string name="reset">重置</string>
+    <string name="markup_tool_text">文字</string>
+    <string name="markup_stroke_width">笔画粗细</string>
+    <string name="markup_phase2_hint">标记功能完整绘制交互将在 Phase 2 实现</string>
+    <string name="filter_panel_phase2">滤镜面板（Phase 2）</string>
+    <string name="redo">重做</string>
+    <string name="done">完成</string>
+    <string name="editor_load_failed">无法加载图片</string>
+    <string name="editor_preview_failed">预览处理失败</string>
+    <string name="editor_save_failed">保存失败</string>
+    <string name="editor_save_failed_with_reason">保存失败：%1$s</string>
+    <string name="editor_load_failed_with_reason">加载失败：%1$s</string>
+    <string name="aspect_ratio_free">自由</string>
+    <string name="aspect_ratio_original">原始</string>
+    <string name="aspect_ratio_square">1:1</string>
+    <string name="aspect_ratio_4_3">4:3</string>
+    <string name="aspect_ratio_3_4">3:4</string>
+    <string name="aspect_ratio_16_9">16:9</string>
+    <string name="aspect_ratio_9_16">9:16</string>
 </resources>

@@ -6,181 +6,160 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**: 提供涂鸦与马赛克两种基础图片编辑能力，支持撤销与保存到相册
+> **版本**: 2.0  
+> **状态**: 生效中  
+> **最后更新**: 2026-07-02  
+> **维护者**: RD Agent
+
+**模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜（Phase 2）、标记（Phase 2）五大类编辑。
 
 **主要维护者**: [RD] 全栈工程师
 
-**阅读对象**: RD、AI Agent
+**阅读对象**: RD、QA、AI Agent
 
 ## 1. 核心产品逻辑 (Core Product Logic)
 
 - **[LOCAL] 纯本地处理**: 所有编辑操作必须在设备本地完成，严禁上传云端
-- **[PERF] 实时绘制响应**: 手指滑动绘制延迟 < 50ms，保持跟手流畅
-- **[I18N] 多语言文案**: 保存成功/失败提示必须提取到 strings.xml
-- **[FEEDBACK] 操作反馈**: 撤销、保存等关键操作需提供明确的视觉或触感反馈
-- **[MEMORY] 内存优化**: 大图加载必须使用 inMutable 配置，避免重复分配 Bitmap
+- **[PERF] 实时预览**: 参数调节后 200ms debounce 触发预览，处理在后台线程执行
+- **[I18N] 多语言文案**: 所有用户可见标签、内容描述、错误提示必须提取到 strings.xml
+- **[FEEDBACK] 操作反馈**: 撤销/重做、保存等关键操作提供明确的视觉反馈；长按预览区可对比原图
+- **[MEMORY] 内存优化**: 预览图按最长边 2048px 降采样，源 Bitmap 在 ViewModel 销毁时回收
+- **[NON-DESTRUCTIVE] 非破坏性编辑**: 原图不动，保存生成新副本，并将完整配方持久化到 Room
 
 ## 2. 技术实现规范 (Technical Implementation)
 
-### 2.1 涂鸦功能 (Doodle Mode)
+### 2.1 配方数据模型 (EditRecipe)
 
-**技术规范**:
-- **画笔颜色**: 默认红色 (`android.graphics.Color.RED`)，可通过调色板切换
-- **画笔粗细**: 固定 60f，可根据屏幕密度动态调整
-- **路径记录**: 使用 `Path` 对象记录每次绘制轨迹，支持撤销回退
-- **绘制线程**: 必须在 UI 线程通过 `ComposeCanvas` 渲染，避免并发冲突
+**核心文件**: `features/editor/EditRecipe.kt`
+
+**结构**:
+- `crop: CropRecipe` — 裁剪比例 `AspectRatio`、旋转角度、水平翻转
+- `adjustments: AdjustmentRecipe` — 亮度、曝光、对比度、饱和度、色温、色调
+- `beauty: BeautySettings` — 复用相机模块美颜参数
+- `colorFilter: FilterType` / `styleFilter: StyleFilter` — 色调/风格滤镜（Phase 2）
+- `markup: List<MarkupAction>` — 涂鸦/马赛克/文字路径（Phase 2）
+- `version: Int` — 配方版本，便于后续迁移
 
 **代码示例**:
 ```kotlin
-// DrawAction 数据结构
-data class DrawAction(
-    val path: Path,
-    val mode: EditMode,
-    val color: Int = android.graphics.Color.RED,
-    val strokeWidth: Float = 60f
+val recipe = EditRecipe(
+    sourceUri = asset.uri,
+    crop = CropRecipe(aspectRatio = AspectRatio.SQUARE, rotation = 90),
+    adjustments = AdjustmentRecipe(brightness = 10f, contrast = 60f),
+    beauty = BeautySettings(enabled = true, smooth = 30)
 )
+```
 
-// Canvas 绘制逻辑
-ComposeCanvas(modifier = Modifier.fillMaxSize()) {
-    originalBitmap?.let { bitmap ->
-        drawIntoCanvas { canvas ->
-            // 绘制原图
-            canvas.drawImage(bitmap.asImageBitmap(), srcSize, dstSize)
-            
-            // 叠加绘制路径
-            actions.forEach { action ->
-                val paint = Paint().apply {
-                    if (action.mode == EditMode.MOSAIC && mosaicShader != null) {
-                        shader = mosaicShader
-                    } else {
-                        color = Color(action.color)
-                    }
-                    style = PaintingStyle.Stroke
-                    strokeWidth = action.strokeWidth
-                    strokeCap = StrokeCap.Round
-                }
-                canvas.nativeCanvas.drawPath(action.path, paint.asFrameworkPaint())
-            }
-        }
-    }
+### 2.2 编辑历史与撤销 (EditHistory)
+
+**核心文件**: `features/editor/EditHistory.kt`
+
+**技术规范**:
+- 使用 `MutableList<EditRecipe>` 作为状态栈，配合 `index` 指向当前配方
+- `push()` 丢弃当前索引之后的重做历史，追加新配方
+- `undo()` / `redo()` 仅移动索引，不修改历史列表
+- 单元测试覆盖空历史、undo/redo 边界、push 后丢弃重做分支
+
+### 2.3 配方应用器 (RecipeApplier)
+
+**核心文件**: `features/editor/RecipeApplier.kt`
+
+**处理顺序**:
+1. `applyCrop(base, crop)` — 先旋转/翻转，再按 `AspectRatio` 自动居中裁剪
+2. `applyGpuEffects(cropped, recipe, faceData)` — 调用 `PhotoProcessor.process()` 应用美颜与滤镜
+3. `applyMarkup(processed, markup)` — 当前为占位，Phase 2 叠加涂鸦/马赛克路径
+
+**关键约束**:
+- 裁剪矩形使用原图归一化坐标；`AspectRatio.FREE` 时不裁剪
+- 旋转后通过 `Bitmap.createBitmap` 生成新 Bitmap
+- 人脸检测缓存由 `PhotoEditorViewModel` 提供，避免重复检测
+
+### 2.4 ViewModel 与状态 (PhotoEditorViewModel)
+
+**核心文件**: `features/editor/PhotoEditorViewModel.kt`
+
+**状态定义**:
+```kotlin
+sealed class State {
+    object Loading : State()
+    data class Ready(
+        val originalBitmap: Bitmap,
+        val previewBitmap: Bitmap,
+        val recipe: EditRecipe,
+        val selectedTab: EditorTab = EditorTab.CROP,
+        val isProcessing: Boolean = false,
+        val isSaving: Boolean = false,
+        val error: String? = null
+    ) : State()
+    data class Error(val message: String) : State()
 }
 ```
 
-### 2.2 马赛克功能 (Mosaic Mode)
+**技术规范**:
+- `load(context, sourceUri, recipeUri)` 在 `Dispatchers.IO` 解码预览图，并尝试从 `recipeUri` 恢复配方
+- 预览通过 `_recipeChanges.debounce(200)` 自动触发，避免滑动过程中频繁重算
+- 保存时使用完整分辨率原图，按同一配方处理，输出 JPEG（质量 95）到 `Pictures/PicMe`
+- 保存成功后调用 `PhotoEditRecipeRepository.save(outputUri, sourceUri, recipe)` 持久化配方
+
+### 2.5 UI 结构
+
+**核心文件**:
+- `features/editor/PhotoEditorScreen.kt` — 编辑器主屏幕
+- `features/editor/components/EditorTopBar.kt` — 顶部导航、撤销/重做、完成
+- `features/editor/components/EditorBottomBar.kt` — 底部 tab（Crop / Adjust / Beauty / Filter / Markup）
+- `features/editor/components/CropPanel.kt` — 裁剪比例与旋转/翻转
+- `features/editor/components/AdjustPanel.kt` — 光色参数滑块
+- `features/editor/components/MarkupPanel.kt` — Phase 2 标记工具占位
+
+**交互规范**:
+- 顶部标题使用 `R.string.edit`
+- 长按预览区切换显示原图，松开后恢复编辑后效果
+- 底部 tab 文案全部来自 `strings.xml`，支持英文/简体中文/繁体中文
+
+### 2.6 配方持久化 (PhotoEditRecipeRepository)
+
+**核心文件**: `data/repository/PhotoEditRecipeRepository.kt`
 
 **技术规范**:
-- **马赛克粒度**: 块大小 = 图片宽度 / 40，最小 10px
-- **着色器生成**: 使用 `BitmapShader` + `Matrix` 缩放实现像素化效果
-- **TileMode**: 使用 `CLAMP` 模式避免边缘拉伸异常
-- **性能优化**: Shader 在图片加载时预计算一次，绘制时直接复用
-
-**代码示例**:
-```kotlin
-// 马赛克 Shader 初始化
-val blockSize = (bitmap.width / 40f).coerceAtLeast(10f)
-val smallW = (bitmap.width / blockSize).toInt().coerceAtLeast(1)
-val smallH = (bitmap.height / blockSize).toInt().coerceAtLeast(1)
-val small = Bitmap.createScaledBitmap(bitmap, smallW, smallH, false)
-val shader = BitmapShader(small, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-val matrix = Matrix()
-matrix.postScale(bitmap.width.toFloat() / smallW, bitmap.height.toFloat() / smallH)
-shader.setLocalMatrix(matrix)
-mosaicShader = shader
-```
-
-### 2.3 撤销机制 (Undo)
-
-**技术规范**:
-- **数据结构**: 使用 `mutableStateListOf<DrawAction>` 存储绘制历史
-- **撤销操作**: 移除列表最后一项并触发重绘 (`drawIteration++`)
-- **状态管理**: 撤销按钮在无历史记录时应禁用 (`enabled = actions.isNotEmpty()`)
-- **内存控制**: 不限制撤销步数，但需监控大图的内存占用
-
-### 2.4 图片保存 (Save to Gallery)
-
-**技术规范**:
-- **保存线程**: 必须在 `Dispatchers.IO` 后台线程执行，避免阻塞 UI
-- **MediaStore API**: 使用 `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` 插入相册
-- **文件格式**: 固定使用 PNG 格式保留透明度（如需压缩可改用 JPEG）
-- **元数据写入**: 记录拍摄时间、修改时间等 EXIF 信息
-- **异常处理**: 保存失败必须 Toast 提示用户，并记录日志
-
-**代码示例**:
-```kotlin
-private suspend fun saveEditedImage(
-    context: Context,
-    bitmap: Bitmap,
-    viewModel: MediaViewModel,
-    successMsg: String,
-    failedMsg: String
-) {
-    withContext(Dispatchers.IO) {
-        try {
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, "EDITED_${System.currentTimeMillis()}.png")
-                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-            }
-            
-            val uri = context.contentResolver.insert(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues
-            )
-            
-            uri?.let {
-                context.contentResolver.openOutputStream(it)?.use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-                }
-                
-                // 通知 ViewModel 刷新相册
-                viewModel.refreshMedia()
-                
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
-                }
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "$failedMsg: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-}
-```
+- Room 表 `photo_edit_recipes` 以 `outputUri` 为主键，保存 `sourceUri`、`recipeJson`、`updatedAt`
+- 使用 Moshi 将 `EditRecipe` 序列化为 JSON
+- `load(outputUri)` 反序列化配方，用于「再次编辑」已保存的副本
 
 ## 3. Agent 执行规约 (Execution Rules)
 
-- **图片加载**: 必须在 `Dispatchers.IO` 线程加载大图，严禁在 UI 线程解码
-- **Bitmap 回收**: 编辑完成后必须调用 `bitmap.recycle()` 释放 native 内存
-- **Shader 复用**: 马赛克 Shader 应在 `LaunchedEffect` 中初始化一次，避免重复创建
-- **路径优化**: 频繁绘制时可考虑使用 `PathMeasure` 简化路径点，减少渲染压力
-- **I18N**: 所有用户可见文案（保存成功、失败、加载失败）必须提取到 strings.xml
+- **图片加载**: 必须在 `Dispatchers.IO` 线程加载/解码大图，严禁在 UI 线程解码
+- **Bitmap 回收**: `sourceBitmap` 在 ViewModel `onCleared()` 时回收；中间 Bitmap 不手动 recycle，依赖垃圾回收
+- **线程管理**: 预览处理在 `Dispatchers.Default`，保存写入在 `Dispatchers.IO`
+- **I18N**: 所有用户可见文案必须提取到 strings.xml，禁止硬编码
 - **权限检查**: 保存前无需显式检查存储权限（Android 10+ Scoped Storage）
-- **日志规范**: 关键操作（加载、保存、撤销）需记录 `PicMe:Editor` 日志
+- **日志规范**: 关键操作（加载、保存、撤销、预览失败）需记录 `PicMe:Editor` 日志
+- **配方一致性**: 预览与保存必须基于同一份 `EditRecipe`，禁止在保存路径中单独构造参数
 
 ## 4. 常见陷阱检查清单 (Checklist)
 
-- [ ] 是否在 UI 线程中加载了大图？(必须使用 Dispatchers.IO)
-- [ ] Bitmap 使用后是否调用了 recycle()？(避免 OOM)
-- [ ] 马赛克 Shader 是否只初始化了一次？(避免重复计算)
-- [ ] 撤销操作后是否触发了重绘？(drawIteration++ 或 state 更新)
+- [ ] 是否在 UI 线程中加载/解码了大图？(必须使用 Dispatchers.IO)
+- [ ] `sourceBitmap` 是否在 ViewModel 销毁时 recycle？(避免 OOM)
+- [ ] 预览 debounce 是否合理？(200ms，避免滑动时频繁渲染)
+- [ ] 撤销/重做后是否触发了预览更新？(`_recipeChanges.value = recipe`)
 - [ ] 保存操作是否在后台线程执行？(避免 ANR)
-- [ ] 保存失败是否有明确的错误提示？(Toast + 日志)
-- [ ] 绘制路径是否使用了抗锯齿？(StrokeCap.Round)
-- [ ] 编辑后的图片是否正确通知了相册刷新？(viewModel.refreshMedia)
-- [ ] 是否处理了图片加载失败的异常？(try-catch + Toast)
-- [ ] 当前绘制路径 (currentPath) 是否在抬起手指后加入 actions 列表？
+- [ ] 保存失败是否有明确的错误提示？(State.Error + 日志)
+- [ ] 所有新 UI 文案是否已提取到 strings.xml？(I18N)
+- [ ] `AspectRatio` 显示文案是否通过 `stringResource(labelRes)` 获取？
+- [ ] 编辑后的图片是否正确通知了相册刷新？(`mediaRepository.refreshMediaLibrary()`)
+- [ ] 是否处理了图片加载失败的异常？(try-catch + State.Error)
 
 ## 5. 与产品文档对照 (Product Alignment)
 
 **必须满足的产品指标**:
-- ✅ 纯本地编辑 → 无网络请求，所有处理在设备端完成
-- ✅ 实时绘制响应 → ComposeCanvas + State 驱动，延迟 < 50ms
-- ✅ 撤销功能 → mutableStateListOf 记录历史，支持无限步回退
-- ✅ 保存到相册 → MediaStore API 插入，自动刷新 Gallery
+- ✅ 纯本地编辑 → 无网络请求，所有处理与保存都在设备端完成
+- ✅ 非破坏性编辑 → 原图不变，保存为新副本并持久化配方
+- ✅ 撤销/重做 → `EditHistory` 支持完整状态回退与重做
+- ✅ 三语本地化 → 编辑器标签/错误提示全部提取到 strings.xml
+- ✅ 相册刷新 → 保存成功后刷新媒体库，新副本立即可见
 
 **技术决策记录**:
-- 选择 ComposeCanvas 而非自定义 View：与 Jetpack Compose 生态无缝集成，状态管理更简洁
-- 使用 BitmapShader 实现马赛克：GPU 加速，性能优于逐像素 CPU 处理
-- 不限制撤销步数：简化实现，依赖系统内存管理；若出现 OOM 再引入 LRU 策略
-- 保存为 PNG 格式：保留透明度信息，适合涂鸦场景；后续可扩展为用户可选格式
+- 使用 `EditRecipe` 配方模型统一描述所有编辑操作：便于撤销/重做、持久化、再次编辑与后续 AI 自然语言编辑
+- 独立 `PhotoEditorScreen` 替代 MediaPager 就地编辑：减少手势冲突，支持更复杂的底部面板
+- 预览与保存共用 `RecipeApplier`：保证「所见即所得」，避免预览与最终输出不一致
+- 配方持久化到 Room 而非 EXIF：JSON 更灵活，可跨版本迁移
+- 标记/滤镜功能 Phase 2 实现：当前保留 UI 占位与数据字段，避免一次性改动过大

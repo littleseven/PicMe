@@ -21,4 +21,16 @@ sealed class Screen(val route: String) {
             }
         }
     }
+
+    data object PhotoEditor : Screen("photo_editor/{sourceUri}?recipeUri={recipeUri}") {
+        fun createRoute(sourceUri: String, recipeUri: String? = null): String {
+            val encodedSource = java.net.URLEncoder.encode(sourceUri, "UTF-8")
+            return if (recipeUri != null) {
+                val encodedRecipe = java.net.URLEncoder.encode(recipeUri, "UTF-8")
+                "photo_editor/$encodedSource?recipeUri=$encodedRecipe"
+            } else {
+                "photo_editor/$encodedSource"
+            }
+        }
+    }
 }

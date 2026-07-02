@@ -46,6 +46,8 @@ import com.mamba.picme.features.camera.CameraScreen
 import com.mamba.picme.features.chat.ChatScreen
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.debug.DebugScreen
+import com.mamba.picme.features.editor.PhotoEditorScreen
+import com.mamba.picme.features.editor.PhotoEditorViewModel
 import com.mamba.picme.features.gallery.GalleryScreen
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -228,6 +230,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 GalleryScreen(
+                                    navController = navController,
                                     viewModel = mediaViewModel,
                                     onNavigateToChat = { navController.navigate(Screen.Chat.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToCamera = { navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true }) },
@@ -236,6 +239,39 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToDebug = { navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToTagControl = {
                                         navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
+                                    }
+                                )
+                            }
+                            composable(
+                                route = Screen.PhotoEditor.route,
+                                arguments = listOf(
+                                    navArgument("sourceUri") { type = NavType.StringType },
+                                    navArgument("recipeUri") {
+                                        type = NavType.StringType
+                                        defaultValue = ""
+                                        nullable = true
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val encodedSource = backStackEntry.arguments?.getString("sourceUri") ?: ""
+                                val encodedRecipe = backStackEntry.arguments?.getString("recipeUri").orEmpty()
+                                val sourceUri = java.net.URLDecoder.decode(encodedSource, "UTF-8")
+                                val recipeUri = encodedRecipe.takeIf { it.isNotBlank() }
+                                    ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+
+                                val factory = app.container.createPhotoEditorViewModelFactory()
+                                val viewModel: PhotoEditorViewModel = viewModel(factory = factory)
+
+                                PhotoEditorScreen(
+                                    sourceUri = sourceUri,
+                                    recipeUri = recipeUri,
+                                    viewModel = viewModel,
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onEditSaved = { outputUri ->
+                                        navController.previousBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.set("photo_editor_output_uri", outputUri)
+                                        navController.popBackStack()
                                     }
                                 )
                             }

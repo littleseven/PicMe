@@ -74,11 +74,14 @@ import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavController
+import androidx.navigation.navOptions
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.R
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.navigation.Screen
 import com.mamba.picme.service.tag.TagGenerationService
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -100,6 +103,7 @@ private const val SEARCH_DEBOUNCE_MS = 300L
 @OptIn(FlowPreview::class)
 @Composable
 fun GalleryScreen(
+    navController: NavController,
     viewModel: MediaViewModel,
     onNavigateToChat: () -> Unit,
     onNavigateToCamera: () -> Unit,
@@ -780,18 +784,11 @@ fun GalleryScreen(
                             viewModel.clearOcrResult()
                         },
                         ocrState = viewModel.ocrState,
-                        photoEditState = viewModel.photoEditState,
-                        onPrepareEdit = { bitmap ->
-                            viewModel.preparePhotoEdit(bitmap)
-                        },
-                        onProcessPhoto = { bitmap, settings ->
-                            viewModel.processPhoto(bitmap, settings)
-                        },
-                        onSavePhoto = { bitmap ->
-                            viewModel.saveProcessedPhoto(context, bitmap)
-                        },
-                        onClearEditState = {
-                            viewModel.clearPhotoEditState()
+                        onNavigateToEditor = { asset ->
+                            navController.navigate(
+                                Screen.PhotoEditor.createRoute(sourceUri = asset.uri),
+                                navOptions { launchSingleTop = true }
+                            )
                         },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = {

@@ -7,9 +7,9 @@
 > - 相册自然语言搜索的完整链路以 `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` 为唯一事实来源（SSOT）。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-> **版本**: 1.1  
+> **版本**: 1.2  
 > **状态**: 生效中  
-> **最后更新**: 2026-06-30  
+> **最后更新**: 2026-07-02  
 > **维护者**: RD Agent
 
 **模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。重复照片管理入口已迁移至设置页「相册功能」卡片。
@@ -240,51 +240,45 @@ SearchTopBar(
 - 使用 `GalleryAgentPanel` + `AgentChatPanel` 公共组件
 - 负责自然语言相册浏览/编辑/管理指令
 
-### 2.7 静态图美颜编辑（2026-05 新增）
+### 2.7 图片编辑器（Photo Editor，2026-07 Phase 1）
+
+**模块定位**: 从 MediaPager 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜（Phase 2）、标记（Phase 2）五大类编辑。
 
 **技术规范**:
-- **入口**: 
+- **入口**:
   - MediaPager 顶部工具栏 ✨ 编辑按钮（`AutoFixHigh` icon），仅 `MediaType.PHOTO` 显示
-  - **长按图片区域**：直接进入编辑模式（带 `HapticFeedbackType.LongPress` 触感反馈）
-- **状态管理**: 使用 `MutableStateFlow<PhotoEditState>` 密封类管理编辑状态
-  - `Idle`: 未进入编辑模式
-  - `Analyzing`: 正在执行人脸检测
-  - `Ready(bitmap, faceData)`: 准备就绪，可显示 BeautySelector 面板
-  - `Processing`: GPU 离屏渲染处理中
-  - `Error(message)`: 处理失败
-- **人脸检测缓存**: 
-  - `preparePhotoEdit(bitmap, lensFacing=1)` 执行一次检测，缓存 `FaceData` 到 `cachedEditFaceData`
-  - `processPhoto(bitmap, settings)` 复用缓存，跳过重复检测
-  - `clearPhotoEditState()` 同步清除缓存
-- **实时预览触发**: Compose 层使用 `snapshotFlow { editSettings }.drop(1).debounce(200).filter { enabled && hasAnyEffect() }` 自动触发处理
-- **GPU 处理**: 调用 `PhotoProcessor.process(bitmap, params, faceData)`，在 `Dispatchers.Default` 执行
-- **保存策略**: `saveProcessedPhoto(context, bitmap)` 在 `Dispatchers.IO` 写入 MediaStore，文件名 `EDITED_${timestamp}.jpg`
-- **坐标系注意**: 相册编辑路径传入 `lensFacing=1`（后置），避免 `MediaPipe468Adapter` 对 X 坐标做镜像；`PhotoProcessorImpl` 中照片路径**不做 Y 翻转**（`GLUtils.texImage2D` 纹理坐标与图像坐标天然对齐）
+  - **长按图片区域**：直接进入编辑器（带 `HapticFeedbackType.LongPress` 触感反馈）
+  - 两者均通过 `onNavigateToEditor(asset)` 回调导航到 `Screen.PhotoEditor(sourceUri, recipeUri?)`
+- **导航路由**: `MainActivity` NavHost 注册 `photo_editor/{sourceUri}`，可选参数 `recipeUri` 用于重新编辑已保存的副本
+- **非破坏性编辑**: 原图始终不动；保存时生成新文件写入 MediaStore（`Pictures/PicMe/EDITED_${timestamp}.jpg`），并将本次完整配方持久化到 `photo_edit_recipes` 表
+- **配方数据模型**: `EditRecipe`
+  - `crop: CropRecipe` — 裁剪比例、旋转角度、水平翻转
+  - `adjustments: AdjustmentRecipe` — 亮度、曝光、对比度、饱和度、色温、色调
+  - `beauty: BeautySettings` — 复用相机侧美颜面板与 GPU 处理管线
+  - `colorFilter / styleFilter` — 色调/风格滤镜（Phase 2 占位）
+  - `markup: List<MarkupAction>` — 涂鸦/马赛克/文字标记（Phase 2 占位）
+- **状态与历史**: `PhotoEditorViewModel` 管理 `State`（Loading / Ready / Error），内部使用 `EditHistory` 支持撤销/重做；预览通过 `_recipeChanges.debounce(200)` 自动触发
+- **处理管线**: `RecipeApplier`
+  1. `applyCrop()` — 按 `AspectRatio` 自动居中裁剪，支持 90° 旋转与水平翻转
+  2. `applyGpuEffects()` — 调用 `PhotoProcessor.process()` 应用美颜与 GPU 滤镜
+  3. `applyMarkup()` — 当前为占位，Phase 2 叠加涂鸦/马赛克路径
+- **性能与内存**:
+  - 预览图按最长边 2048px 降采样解码
+  - 所有处理在 `Dispatchers.Default` / `Dispatchers.IO` 执行
+  - `sourceBitmap` 在 ViewModel `onCleared()` 时回收
+- **I18N**: 编辑器内所有标签、内容描述、错误提示均已提取到 `strings.xml`，同步覆盖英文 / 简体中文 / 繁体中文
 
 **代码示例**:
 ```kotlin
-// ViewModel 层
-fun preparePhotoEdit(bitmap: Bitmap, lensFacing: Int = 1) {
-    viewModelScope.launch(Dispatchers.Default) {
-        _photoEditState.value = PhotoEditState.Analyzing
-        val detectionResult = faceDetector.detectPhoto(bitmap, lensFacing)
-        val faceData = detectionResult?.landmarks106?.toFaceData(bitmap.width, bitmap.height)
-        cachedEditFaceData = faceData
-        _photoEditState.value = PhotoEditState.Ready(bitmap, faceData)
-    }
+// 从 MediaPager 进入编辑器
+onNavigateToEditor = { asset ->
+    navController.navigate(Screen.PhotoEditor(asset.uri, recipeUri = null))
 }
 
-fun processPhoto(bitmap: Bitmap, settings: BeautySettings, lensFacing: Int = 1) {
-    viewModelScope.launch(Dispatchers.Default) {
-        _photoEditState.value = PhotoEditState.Processing
-        val faceData = cachedEditFaceData ?: run {
-            faceDetector.detectPhoto(bitmap, lensFacing)
-                ?.landmarks106?.toFaceData(bitmap.width, bitmap.height)
-        }
-        val params = settings.toBeautyParams()
-        val processed = photoProcessor.process(bitmap, params, faceData)
-        _photoEditState.value = PhotoEditState.Ready(processed, faceData)
-    }
+// 保存成功后返回 outputUri，Gallery 自动刷新媒体库
+val onEditSaved: (String) -> Unit = { outputUri ->
+    navController.popBackStack()
+    viewModel.refreshMediaLibrary()
 }
 ```
 
@@ -370,7 +364,7 @@ context.startForegroundService(
 
 ## 3. adb 自动化测试命令 (Gallery Test Commands)
 
-MediaPager 集成与 Camera 同源的广播命令体系（`com.mamba.picme.TEST_COMMAND`），支持通过 adb 精确控制相册操作，无需图像识别。
+> **实现状态（2026-07）**: 旧版 Camera/Gallery 同源广播命令体系已随图片编辑器重构移除。当前仅保留可直接通过 `am broadcast` 触发的导航类命令；编辑器内部参数调节命令后续通过 UI Automator / 新的测试通道覆盖。
 
 **命令列表**:
 
@@ -378,13 +372,7 @@ MediaPager 集成与 Camera 同源的广播命令体系（`com.mamba.picme.TEST_
 |------|------|------|
 | `enter_gallery` | — | 从相机页进入相册（CameraScreen 处理） |
 | `open_photo` | `index` (int) | 跳转到指定索引的图片 |
-| `long_press_photo` | — | 长按照片，触发进入编辑模式 |
-| `start_edit` | — | 进入图片编辑模式（等效长按/✨按钮） |
-| `save_edit` | — | 保存当前编辑结果 |
-| `cancel_edit` | — | 取消编辑并退出编辑模式 |
-| `set_smooth` | `value` (0-100) | 设置磨皮强度 |
-| `set_whiten` | `value` (0-100) | 设置美白强度 |
-| `set_edit_filter` | `filter` (string) | 设置色调滤镜 |
+| `long_press_photo` | — | 长按照片，触发进入独立图片编辑器 |
 | `start_ocr` | — | 触发 OCR 文字识别 |
 | `dismiss_ocr` | — | 关闭 OCR 结果浮层 |
 | `toggle_landmark` | — | 切换人脸关键点覆盖层 |
@@ -405,15 +393,8 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action enter_gallery
 # 打开第 3 张图片（索引从 0 开始）
 adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action open_photo --ei index 2
 
-# 进入编辑模式
-adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action start_edit
-
-# 设置磨皮 50、美白 30
-adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action set_smooth --ei value 50
-adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action set_whiten --ei value 30
-
-# 保存编辑
-adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action save_edit
+# 长按照片进入编辑器
+adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action long_press_photo
 
 # 启动 TAG 全量扫描
 adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action start_tag_scan_all
@@ -425,11 +406,8 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 ```
 
 **实现细节**:
-- 命令定义: `CameraTestCommand` sealed class（位于 `features/camera/test/`）
-- 分发器: `CameraTestCommandDispatcher.commandFlow`（SharedFlow，Camera 与 Gallery 共用）
-- 收集器: `MediaPager` 内通过 `LaunchedEffect(Unit)` 订阅，仅响应 Gallery 相关命令
-- 编辑参数命令（`set_smooth` 等）仅在 `isEditing=true` 时生效，否则返回 Error
 - TAG 扫描命令通过 `TagGenerationService` 对应 Intent 触发，无需 UI 处于前台
+- 编辑器导航命令由 `MediaPager` 通过 `LaunchedEffect` 订阅并转换为 UI 回调；编辑器内部状态不再通过广播命令控制
 
 ## 4. Agent 执行规约 (Execution Rules)
 
@@ -471,6 +449,7 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 - ✅ 智能聚类 → GetGroupedMediaUseCase 支持 6 种分组模式
 - ✅ 流体动效 → HorizontalPager + ZoomableImage 手势联动
 - ✅ 批量操作 → mutableStateListOf 支持连续批选与全选；搜索结果支持相同操作
+- ✅ 独立图片编辑器 → 非破坏性配方编辑，裁剪/调节/美颜三语本地化，保存为新副本并持久化配方
 - ✅ OCR 本地识别 → ML Kit 离线引擎，ViewModel 生命周期管理
 - ✅ TAG 生成控制 → 5-Pass 队列 + 类别/时间范围精细控制 + OpenCL 超时降级
 - ✅ 自然语言搜索 → `MediaSearchEngine` + `SemanticSearchEngine` 本地召回；结果网格支持长按批量选择
@@ -485,3 +464,4 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 - OpenCL 推理由 `OpenClGuardian` 守护：warmup + 连续失败降级 CPU，降低设备兼容性风险
 - 搜索结果缩略图禁用 Coil crossfade：规避 LazyVerticalGrid 复用 item 时 Bitmap 已回收导致的崩溃
 - 搜索模式下订阅 `allMedia` 变化：删除/授权完成后自动刷新搜索结果，保证数据一致性
+- 图片编辑器使用独立屏幕 + `EditRecipe` 配方模型：支持撤销/重做、非破坏性保存、配方持久化与再次编辑

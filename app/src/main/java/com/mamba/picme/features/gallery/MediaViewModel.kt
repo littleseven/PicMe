@@ -2,17 +2,12 @@ package com.mamba.picme.features.gallery
 
 import android.content.Context
 import android.content.IntentSender
-import android.graphics.Bitmap
 import android.net.Uri
-import android.provider.MediaStore
 import com.mamba.picme.core.common.Logger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mamba.picme.beauty.api.PhotoProcessor
-import com.mamba.picme.beauty.api.facedetect.FaceDetectionSource
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
-import com.mamba.picme.beauty.api.toBeautyParams
-import com.mamba.picme.beauty.internal.facedetect.Face106ToWarpParams
 import com.mamba.picme.domain.model.DuplicateGroup
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
@@ -29,9 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import android.content.ContentValues
-import com.mamba.picme.beauty.api.BeautySettings
-import com.mamba.picme.beauty.api.FaceData
+
 
 class MediaViewModel(
     private val repository: MediaRepository,
@@ -257,152 +250,4 @@ class MediaViewModel(
         }
     }
 
-    // ========================================
-    // 静态图美颜编辑（相册预览页）
-    // ========================================
-
-    sealed class PhotoEditState {
-        object Idle : PhotoEditState()
-        object Analyzing : PhotoEditState()
-        object Processing : PhotoEditState()
-        data class Ready(val bitmap: Bitmap, val faceData: FaceData?) : PhotoEditState()
-        data class Error(val message: String) : PhotoEditState()
-    }
-
-    private val _photoEditState = MutableStateFlow<PhotoEditState>(PhotoEditState.Idle)
-    val photoEditState: StateFlow<PhotoEditState> = _photoEditState.asStateFlow()
-
-    private var cachedEditFaceData: FaceData? = null
-
-    /**
-     * 进入编辑模式时预处理：加载图片并执行一次人脸检测，缓存 FaceData 供后续复用
-     */
-    fun preparePhotoEdit(bitmap: Bitmap, lensFacing: Int = 1) {
-        viewModelScope.launch(Dispatchers.Default) {
-            _photoEditState.value = PhotoEditState.Analyzing
-            try {
-                val detectionResult = faceDetector.detectPhoto(bitmap, lensFacing)
-                val faceData = detectionResult?.landmarks106?.toFaceData(bitmap.width, bitmap.height)
-                cachedEditFaceData = faceData
-
-                if (faceData != null) {
-                    Logger.d(TAG, "Face detected for editing, landmarks=${detectionResult.landmarks106.size}")
-                } else {
-                    Logger.w(TAG, "No face detected for editing")
-                }
-
-                val oldReady = _photoEditState.value as? PhotoEditState.Ready
-                _photoEditState.value = PhotoEditState.Ready(bitmap, faceData)
-                oldReady?.bitmap?.let { if (!it.isRecycled) it.recycle() }
-            } catch (e: Exception) {
-                Logger.e(TAG, "Face detection failed: ${e.message}", e)
-                _photoEditState.value = PhotoEditState.Error("人脸检测失败：${e.message}")
-            }
-        }
-    }
-
-    /**
-     * 对静态 Bitmap 应用美颜处理（GPU 离屏渲染）
-     * 若已调用 [preparePhotoEdit] 缓存 FaceData，则跳过重复检测
-     *
-     * @param bitmap 原始图片
-     * @param settings 美颜设置
-     * @param lensFacing 镜头方向（影响人脸检测镜像）
-     */
-    fun processPhoto(bitmap: Bitmap, settings: BeautySettings, lensFacing: Int = 1) {
-        viewModelScope.launch(Dispatchers.Default) {
-            _photoEditState.value = PhotoEditState.Processing
-            try {
-                Logger.d(TAG, "Processing photo: smoothing=${settings.smoothing}, filter=${settings.colorFilter}, style=${settings.styleFilter}")
-
-                val faceData = cachedEditFaceData ?: run {
-                    val detectionResult = faceDetector.detectPhoto(bitmap, lensFacing)
-                    detectionResult?.landmarks106?.toFaceData(bitmap.width, bitmap.height)
-                }
-
-                val params = settings.toBeautyParams()
-                val processedBitmap = photoProcessor.process(bitmap, params, faceData)
-
-                Logger.d(TAG, "Photo processing completed")
-                // 回收上一帧的旧 Bitmap（避免多次参数调节时累积）
-                val oldReady = _photoEditState.value as? PhotoEditState.Ready
-                _photoEditState.value = PhotoEditState.Ready(processedBitmap, faceData)
-                oldReady?.bitmap?.let { if (!it.isRecycled) it.recycle() }
-            } catch (e: Exception) {
-                Logger.e(TAG, "Photo processing failed: ${e.message}", e)
-                _photoEditState.value = PhotoEditState.Error("处理失败：${e.message}")
-            }
-        }
-    }
-
-    /**
-     * 将处理后的 Bitmap 保存为新的图片文件
-     */
-    fun saveProcessedPhoto(context: Context, bitmap: Bitmap) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, "EDITED_${System.currentTimeMillis()}.jpg")
-                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
-                }
-                val uri = context.contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    contentValues
-                )
-                uri?.let { imageUri ->
-                    context.contentResolver.openOutputStream(imageUri)?.use { outputStream ->
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
-                    }
-                    Logger.d(TAG, "Saved edited photo to $imageUri")
-                    // 刷新媒体库
-                    repository.refreshMediaLibrary()
-                }
-            } catch (e: Exception) {
-                Logger.e(TAG, "Failed to save edited photo: ${e.message}", e)
-            }
-        }
-    }
-
-    fun clearPhotoEditState() {
-        val oldState = _photoEditState.value
-        _photoEditState.value = PhotoEditState.Idle
-        cachedEditFaceData = null
-        // 安全回收旧 Bitmap，避免 HWUI use-after-recycle 警告
-        (oldState as? PhotoEditState.Ready)?.bitmap?.let { bmp ->
-            if (!bmp.isRecycled) {
-                bmp.recycle()
-                Logger.d(TAG, "Recycled old edit bitmap")
-            }
-        }
-    }
-
-    /**
-     * 106 点 landmarks → FaceData 转换（用于静态图编辑路径）
-     */
-    private fun FloatArray.toFaceData(imageWidth: Int, imageHeight: Int): FaceData? {
-        if (this.size < 212) return null
-        val warpParams = Face106ToWarpParams.convert(this, FaceDetectionSource.MEDIAPIPE)
-        return FaceData(
-            faceCenterX = warpParams.faceCenterX,
-            faceCenterY = warpParams.faceCenterY,
-            leftEyeX = warpParams.leftEyeX,
-            leftEyeY = warpParams.leftEyeY,
-            rightEyeX = warpParams.rightEyeX,
-            rightEyeY = warpParams.rightEyeY,
-            mouthCenterX = warpParams.mouthCenterX,
-            mouthCenterY = warpParams.mouthCenterY,
-            mouthLeftX = warpParams.mouthLeftX,
-            mouthLeftY = warpParams.mouthLeftY,
-            mouthRightX = warpParams.mouthRightX,
-            mouthRightY = warpParams.mouthRightY,
-            upperLipCenterX = warpParams.upperLipCenterX,
-            upperLipCenterY = warpParams.upperLipCenterY,
-            lowerLipCenterX = warpParams.lowerLipCenterX,
-            lowerLipCenterY = warpParams.lowerLipCenterY,
-            faceRadius = warpParams.faceRadius,
-            hasFace = true,
-            landmarks106 = this
-        )
-    }
 }

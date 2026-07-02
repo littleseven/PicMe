@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
+import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.dao.TagScanTaskDao
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
@@ -18,6 +19,7 @@ import com.mamba.picme.data.local.entity.MediaTagCrossRef
 import com.mamba.picme.data.local.entity.OcrWordEntity
 import com.mamba.picme.data.local.entity.OcrWordOccurrence
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.data.local.entity.PhotoEditRecipeEntity
 import com.mamba.picme.data.local.entity.TagEntity
 import com.mamba.picme.data.local.entity.TagScanTaskEntity
 import com.mamba.picme.data.model.MediaEntity
@@ -29,6 +31,7 @@ import com.mamba.picme.data.model.MediaEntity
         ChatSessionEntity::class,
         PersonEntity::class,
         FaceEmbeddingEntity::class,
+        PhotoEditRecipeEntity::class,
         TagEntity::class,
         MediaTagCrossRef::class,
         OcrWordEntity::class,
@@ -37,7 +40,7 @@ import com.mamba.picme.data.model.MediaEntity
         MediaLocationEntity::class,
         TagScanTaskEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -50,6 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ocrWordDao(): OcrWordDao
     abstract fun personDao(): PersonDao
     abstract fun locationDao(): LocationDao
+    abstract fun photoEditRecipeDao(): PhotoEditRecipeDao
 
     companion object {
         @Volatile
@@ -62,7 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "picme_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .build()
                 INSTANCE = instance
                 instance
@@ -178,6 +182,24 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_media_assets_hasFace` ON `media_assets`(`hasFace`)"
+                )
+            }
+        }
+
+        /**
+         * Migration 8 → 9：新增 photo_edit_recipes 表，保存编辑配方以实现非破坏性编辑
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `photo_edit_recipes` (
+                        `outputUri` TEXT PRIMARY KEY NOT NULL,
+                        `sourceUri` TEXT NOT NULL,
+                        `recipeJson` TEXT NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
                 )
             }
         }
