@@ -240,15 +240,11 @@ class UiAutomationRpcServer(
     private fun handleInput(request: RpcRequest): RpcResponse {
         val params = request.params ?: JSONObject()
         val value = params.getString("value")
-        val node = findSingleNode(params) ?: return RpcResponse.error(
-            request.id,
-            code = -32002,
-            message = "Target node not found"
+        return performAction(
+            request,
+            action = { AccessibilityActionPerformer(service).inputText(it, value) },
+            walkToClickableAncestor = false
         )
-        val performer = AccessibilityActionPerformer(service)
-        val success = performer.inputText(node, value)
-        node.recycle()
-        return RpcResponse.success(request.id, JSONObject().apply { put("success", success) })
     }
 
     private fun handlePressBack(request: RpcRequest): RpcResponse {
@@ -267,10 +263,11 @@ class UiAutomationRpcServer(
 
     private fun performAction(
         request: RpcRequest,
-        action: (AccessibilityNodeInfo) -> Boolean
+        action: (AccessibilityNodeInfo) -> Boolean,
+        walkToClickableAncestor: Boolean = true
     ): RpcResponse {
         val params = request.params ?: JSONObject()
-        val node = findSingleNode(params) ?: return RpcResponse.error(
+        val node = findSingleNode(params, walkToClickableAncestor) ?: return RpcResponse.error(
             request.id,
             code = -32002,
             message = "Target node not found"
@@ -280,7 +277,10 @@ class UiAutomationRpcServer(
         return RpcResponse.success(request.id, JSONObject().apply { put("success", success) })
     }
 
-    private fun findSingleNode(params: JSONObject): AccessibilityNodeInfo? {
+    private fun findSingleNode(
+        params: JSONObject,
+        walkToClickableAncestor: Boolean = true
+    ): AccessibilityNodeInfo? {
         val root = service.rootInActiveWindow ?: return null
         val text = params.optString("text", null)
         val contentDescription = params.optString("contentDescription", null)
@@ -317,15 +317,18 @@ class UiAutomationRpcServer(
             return null
         }
 
-        // Walk up to a clickable ancestor if the candidate itself is not clickable.
         var target: AccessibilityNodeInfo? = candidate
-        while (target != null && !target.isClickable) {
-            val parent = target.parent
-            if (parent != null) {
-                target.recycle()
-                target = parent
-            } else {
-                break
+
+        if (walkToClickableAncestor) {
+            // Walk up to a clickable ancestor if the candidate itself is not clickable.
+            while (target != null && !target.isClickable) {
+                val parent = target.parent
+                if (parent != null) {
+                    target.recycle()
+                    target = parent
+                } else {
+                    break
+                }
             }
         }
 

@@ -213,12 +213,20 @@ class UiDriverClient:
         value: str,
         text: Optional[str] = None,
         content_description: Optional[str] = None,
+        bounds: Optional[Bounds] = None,
     ) -> bool:
         params: dict[str, Any] = {"value": value}
         if text is not None:
             params["text"] = text
         if content_description is not None:
             params["contentDescription"] = content_description
+        if bounds is not None:
+            params["bounds"] = {
+                "left": bounds.left,
+                "top": bounds.top,
+                "right": bounds.right,
+                "bottom": bounds.bottom,
+            }
         result = self._call("action.input", params)
         return result.get("success", False)
 
@@ -239,6 +247,20 @@ class UiDriverClient:
             if nodes:
                 return nodes[0]
             time.sleep(poll_ms / 1000.0)
+        return None
+
+    def find_node(
+        self, predicate: callable, root: Optional[UiNode] = None
+    ) -> Optional[UiNode]:
+        """Depth-first search for the first node that satisfies ``predicate``."""
+        tree = root if root is not None else self.dump_ui(package="com.mamba.picme")
+        stack = [tree]
+        while stack:
+            node = stack.pop()
+            if predicate(node):
+                return node
+            # Iterate in original order by reversing children before pushing.
+            stack.extend(reversed(node.children))
         return None
 
     def close(self) -> None:

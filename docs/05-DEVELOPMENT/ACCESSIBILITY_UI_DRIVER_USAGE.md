@@ -4,6 +4,8 @@
 
 > 适用场景：你已经拉取包含本功能的最新 `main` 分支，并希望在真机/模拟器上手动验证 `scripts/ui_driver.py` 与 PicMe AccessibilityService 的交互。
 
+> 如果你是 AI Agent，优先阅读技能 `.qoder/skills/accessibility-ui-driver/SKILL.md`，其中包含快速参考和常见陷阱。
+
 ---
 
 ## 1. 前置条件
@@ -167,15 +169,19 @@ python3 scripts/ui_driver.py long-click --content-description "搜索照片"
 
 ### 6.5 输入文本
 
+PicMe 的搜索框提示文字在 `EditText` 的子 `TextView` 上，因此直接通过 `--text` 定位不到 `EditText`。推荐先用 `dump` 获取搜索框的 bounds，再用 `--bounds` 输入：
+
 ```bash
 # 先点击搜索进入搜索模式
 python3 scripts/ui_driver.py click --content-description "搜索照片"
 
-# 在搜索框输入文本
-python3 scripts/ui_driver.py input --text "搜索照片，如 猫、去年夏天、上海..." --value "猫"
+# 通过 bounds 在搜索框输入文本（bounds 从 dump 输出中复制）
+python3 scripts/ui_driver.py input \
+  --bounds '{"left":325,"top":166,"right":1135,"bottom":322}' \
+  --value "猫"
 ```
 
-> `input` 命令会查找匹配文本的 `EditText` 节点，聚焦后通过 AccessibilityService 的 `ACTION_SET_TEXT` 设置文本。
+> `input` 命令会聚焦目标节点并通过 `ACTION_SET_TEXT` 设置文本。它**不会**向上查找可点击父节点，因此请精确指向 `EditText` 本身。
 
 ### 6.6 返回键
 
