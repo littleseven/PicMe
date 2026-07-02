@@ -1,6 +1,7 @@
 package com.mamba.picme.features.gallery.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Sort
@@ -28,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.mamba.picme.R
@@ -60,6 +62,7 @@ fun GalleryTopBar(
     onToggleScan: () -> Unit = {}
 ) {
     TopAppBar(
+        modifier = Modifier.displayCutoutPadding(),
         title = {
             Text(
                 if (isSelectionMode) {
