@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """UiDriverClient - PC端 AccessibilityService 驱动客户端."""
 
+import argparse
 import json
 import socket
 import subprocess
@@ -269,19 +270,107 @@ def format_ui_tree(node: UiNode, indent: int = 0) -> str:
     return "\n".join(lines)
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python3 scripts/ui_driver.py dump|click <args>")
-        sys.exit(1)
+def _parse_bounds(value: str) -> Bounds:
+    data = json.loads(value)
+    return Bounds(
+        left=int(data["left"]),
+        top=int(data["top"]),
+        right=int(data["right"]),
+        bottom=int(data["bottom"]),
+    )
 
-    command = sys.argv[1]
+
+def _build_locator_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--text", help="Match node text (partial match)")
+    parser.add_argument(
+        "--content-description", help="Match node contentDescription (partial match)"
+    )
+    parser.add_argument("--class-name", help="Match node className (partial match)")
+    parser.add_argument("--bounds", type=_parse_bounds, help="Match exact bounds as JSON")
+
+
+def _locator_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    if args.text:
+        result["text"] = args.text
+    if args.content_description:
+        result["content_description"] = args.content_description
+    if args.class_name:
+        result["class_name"] = args.class_name
+    if args.bounds:
+        result["bounds"] = args.bounds
+    return result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="ui_driver.py",
+        description="PC-side AccessibilityService UI automation driver",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    dump_parser = subparsers.add_parser("dump", help="Dump current UI tree")
+    dump_parser.add_argument("--package", default="com.mamba.picme", help="Target package")
+    dump_parser.add_argument("--max-depth", type=int, default=50, help="Max tree depth")
+
+    click_parser = subparsers.add_parser("click", help="Click a node")
+    _build_locator_args(click_parser)
+
+    long_click_parser = subparsers.add_parser("long-click", help="Long-click a node")
+    _build_locator_args(long_click_parser)
+
+    input_parser = subparsers.add_parser("input", help="Input text into a node")
+    _build_locator_args(input_parser)
+    input_parser.add_argument("--value", required=True, help="Text to input")
+
+    swipe_parser = subparsers.add_parser("swipe", help="Swipe on screen")
+    swipe_parser.add_argument("--start-x", type=int, required=True)
+    swipe_parser.add_argument("--start-y", type=int, required=True)
+    swipe_parser.add_argument("--end-x", type=int, required=True)
+    swipe_parser.add_argument("--end-y", type=int, required=True)
+    swipe_parser.add_argument("--duration", type=int, default=300, help="Duration in ms")
+
+    back_parser = subparsers.add_parser("back", help="Press back button")
+
+    find_parser = subparsers.add_parser("find", help="Find nodes matching criteria")
+    _build_locator_args(find_parser)
+
+    args = parser.parse_args()
+
     with UiDriverClient() as client:
-        if command == "dump":
-            tree = client.dump_ui(package="com.mamba.picme")
+        if args.command == "dump":
+            tree = client.dump_ui(package=args.package, max_depth=args.max_depth)
             print(format_ui_tree(tree))
-        elif command == "click":
-            label = sys.argv[2] if len(sys.argv) > 2 else ""
-            ok = client.click(content_description=label)
+
+        elif args.command == "click":
+            locator = _locator_from_args(args)
+            ok = client.click(**locator)
             print(f"click result: {ok}")
-        else:
-            print(f"Unknown command: {command}")
+
+        elif args.command == "long-click":
+            locator = _locator_from_args(args)
+            ok = client.long_click(**locator)
+            print(f"long-click result: {ok}")
+
+        elif args.command == "input":
+            locator = _locator_from_args(args)
+            ok = client.input_text(args.value, **locator)
+            print(f"input result: {ok}")
+
+        elif args.command == "swipe":
+            ok = client.swipe(
+                start=(args.start_x, args.start_y),
+                end=(args.end_x, args.end_y),
+                duration_ms=args.duration,
+            )
+            print(f"swipe result: {ok}")
+
+        elif args.command == "back":
+            ok = client.press_back()
+            print(f"back result: {ok}")
+
+        elif args.command == "find":
+            locator = _locator_from_args(args)
+            nodes = client.find_nodes(**locator)
+            for node in nodes:
+                print(format_ui_tree(node))
