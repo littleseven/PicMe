@@ -472,7 +472,6 @@ class PicMeApplication : Application(), ImageLoaderFactory {
         }
         override fun onActivityResumed(activity: Activity) {
             currentActivity = activity
-            PicMeToolService.currentRootView = activity.window.decorView.rootView
             PicMeToolService.currentActivity = activity
             Logger.d(TAG, "Activity resumed: ${activity.javaClass.simpleName}")
         }
