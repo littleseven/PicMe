@@ -9,6 +9,7 @@ import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.tool.perception.UiObservationFormatter
 import com.mamba.picme.agent.core.tool.perception.ViewHierarchyExtractor
 import com.mamba.picme.agent.core.tool.CameraToolHelper
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -37,6 +38,12 @@ class PicMeToolService(
     companion object {
         private const val TAG = "PicMeToolService"
 
+        /** UI 操作后等待屏幕稳定的时间（毫秒） */
+        private const val UI_SETTLE_DELAY_MS = 300L
+
+        /** 导航操作后等待屏幕稳定的时间（毫秒） */
+        private const val NAVIGATION_SETTLE_DELAY_MS = 500L
+
         /** 当前 Activity rootView，由外部设置 */
         @JvmStatic
         var currentRootView: android.view.View? = null
@@ -47,6 +54,51 @@ class PicMeToolService(
 
         private var screenWidth = 0
         private var screenHeight = 0
+    }
+
+    /**
+     * 捕获操作后的屏幕状态，并格式化为标准返回字符串。
+     */
+    private fun capturePostActionState(actionDescription: String): String {
+        val rootView = currentRootView
+            ?: return UiObservationFormatter.format(
+                actionDescription,
+                "Error: No activity root view available"
+            )
+
+        val size = getScreenSize()
+        val screenW = size[0]
+        val screenH = size[1]
+
+        return try {
+            val state = ViewHierarchyExtractor.extractSemanticSummary(
+                rootView = rootView,
+                screenWidth = screenW,
+                screenHeight = screenH,
+                includeFullTree = false,
+                maxSummaryTextLength = 30,
+                maxSummaryElements = 30
+            )
+            UiObservationFormatter.format(actionDescription, state)
+        } catch (e: Exception) {
+            Logger.w(TAG, "Failed to capture post-action state", e)
+            UiObservationFormatter.format(
+                actionDescription,
+                "Warning: failed to capture post-action screen state: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * 等待 UI 稳定。当前实现使用固定延迟，后续可替换为 frame callback 或导航监听器。
+     */
+    private fun waitForUiSettle(navigation: Boolean = false) {
+        val delayMs = if (navigation) NAVIGATION_SETTLE_DELAY_MS else UI_SETTLE_DELAY_MS
+        try {
+            Thread.sleep(delayMs)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
     }
 
     // ==================== UI 感知工具 ====================
@@ -79,21 +131,30 @@ class PicMeToolService(
     ): String {
         val rootView = currentRootView ?: return "Error: No activity root view available"
 
-        if (text != null) {
-            return clickByText(rootView, text)
+        val actionResult = if (text != null) {
+            clickByText(rootView, text)
+        } else if (x != null && y != null) {
+            clickByCoordinates(rootView, x, y)
+        } else {
+            "Error: Either provide (x, y) coordinates or text parameter"
         }
 
-        if (x == null || y == null) {
-            return "Error: Either provide (x, y) coordinates or text parameter"
+        if (actionResult.startsWith("Error:")) {
+            return actionResult
         }
 
+        waitForUiSettle()
+        return capturePostActionState(actionResult)
+    }
+
+    private fun clickByCoordinates(root: android.view.View, x: Int, y: Int): String {
         val size = getScreenSize()
         if (x < 0 || x >= size[0] || y < 0 || y >= size[1]) {
             return "Error: Coordinates ($x, $y) out of screen bounds (${size[0]}x${size[1]})"
         }
 
         return try {
-            val targetView = findViewAtPosition(rootView, x, y)
+            val targetView = findViewAtPosition(root, x, y)
             if (targetView != null && targetView.isClickable) {
                 targetView.performClick()
                 "Clicked at ($x, $y) on ${targetView.javaClass.simpleName}"
@@ -124,27 +185,34 @@ class PicMeToolService(
         val rootView = currentRootView ?: return "Error: No activity root view available"
 
         val focusedEditText = findFocusedEditText(rootView)
-        if (focusedEditText != null) {
+        val actionResult = if (focusedEditText != null) {
             focusedEditText.post {
                 if (clearFirst) focusedEditText.setText("")
                 focusedEditText.append(text)
                 focusedEditText.setSelection(focusedEditText.text?.length ?: 0)
             }
-            return "Input text '$text' into focused EditText"
-        }
-
-        val firstEditText = findFirstEditText(rootView)
-        if (firstEditText != null) {
-            firstEditText.post {
-                firstEditText.requestFocus()
-                if (clearFirst) firstEditText.setText("")
-                firstEditText.append(text)
-                firstEditText.setSelection(firstEditText.text?.length ?: 0)
+            "Input text '$text' into focused EditText"
+        } else {
+            val firstEditText = findFirstEditText(rootView)
+            if (firstEditText != null) {
+                firstEditText.post {
+                    firstEditText.requestFocus()
+                    if (clearFirst) firstEditText.setText("")
+                    firstEditText.append(text)
+                    firstEditText.setSelection(firstEditText.text?.length ?: 0)
+                }
+                "Input text '$text' into first available EditText"
+            } else {
+                "Error: No EditText found on current screen"
             }
-            return "Input text '$text' into first available EditText"
         }
 
-        return "Error: No EditText found on current screen"
+        if (actionResult.startsWith("Error:")) {
+            return actionResult
+        }
+
+        waitForUiSettle()
+        return capturePostActionState(actionResult)
     }
 
     @Tool(name = "scroll", value = ["在屏幕上滑动滚动。支持按方向（up/down）滑动。"])
@@ -159,27 +227,43 @@ class PicMeToolService(
         }
         val isPage = distance != "small"
 
-        val recyclerView = findRecyclerView(rootView)
-        if (recyclerView != null) {
-            val d = if (isPage) recyclerView.height else recyclerView.height / 3
-            recyclerView.post { recyclerView.smoothScrollBy(0, if (dir == "down") d else -d) }
-            return "Scrolled $direction in RecyclerView"
+        val actionResult = when {
+            rootView is RecyclerView -> {
+                val d = if (isPage) rootView.height else rootView.height / 3
+                rootView.post { rootView.smoothScrollBy(0, if (dir == "down") d else -d) }
+                "Scrolled $direction in RecyclerView"
+            }
+            else -> {
+                val recyclerView = findRecyclerView(rootView)
+                if (recyclerView != null) {
+                    val d = if (isPage) recyclerView.height else recyclerView.height / 3
+                    recyclerView.post { recyclerView.smoothScrollBy(0, if (dir == "down") d else -d) }
+                    "Scrolled $direction in RecyclerView"
+                } else {
+                    val scrollView = findScrollView(rootView)
+                    if (scrollView != null) {
+                        val d = if (isPage) scrollView.height else scrollView.height / 3
+                        scrollView.post { scrollView.smoothScrollBy(0, if (dir == "down") d else -d) }
+                        "Scrolled $direction in ScrollView"
+                    } else {
+                        "Error: No scrollable container found on current screen"
+                    }
+                }
+            }
         }
 
-        val scrollView = findScrollView(rootView)
-        if (scrollView != null) {
-            val d = if (isPage) scrollView.height else scrollView.height / 3
-            scrollView.post { scrollView.smoothScrollBy(0, if (dir == "down") d else -d) }
-            return "Scrolled $direction in ScrollView"
+        if (actionResult.startsWith("Error:")) {
+            return actionResult
         }
 
-        return "Error: No scrollable container found on current screen"
+        waitForUiSettle()
+        return capturePostActionState(actionResult)
     }
 
     @Tool(name = "go_back", value = ["返回上一页"])
     fun goBack(): String {
         val activity = currentActivity ?: return "Error: No current activity reference available"
-        return try {
+        val actionResult = try {
             if (activity is ComponentActivity) {
                 activity.runOnUiThread { activity.onBackPressedDispatcher.onBackPressed() }
             } else {
@@ -189,6 +273,13 @@ class PicMeToolService(
         } catch (e: Exception) {
             "Error: Back navigation failed: ${e.message}"
         }
+
+        if (actionResult.startsWith("Error:")) {
+            return actionResult
+        }
+
+        waitForUiSettle(navigation = true)
+        return capturePostActionState(actionResult)
     }
 
     // ==================== 导航工具 ====================
@@ -201,7 +292,14 @@ class PicMeToolService(
         if (destination !in valid) {
             return "Error: Invalid destination: '$destination'. Must be one of: ${valid.joinToString()}"
         }
-        return dispatchCommand(AgentCommand.NavigateTo(destination = destination))
+
+        val dispatchResult = dispatchCommand(AgentCommand.NavigateTo(destination = destination))
+        if (dispatchResult.startsWith("Error:")) {
+            return dispatchResult
+        }
+
+        waitForUiSettle(navigation = true)
+        return capturePostActionState("Navigated to $destination")
     }
 
     // ==================== 相机控制工具 ====================
