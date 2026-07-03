@@ -82,6 +82,57 @@ object AccessibilityActionPerformer {
     }
 
     /**
+     * 点击相册网格中的第 N 个媒体项。
+     *
+     * 通过 contentDescription 前缀识别照片/视频/文档节点，按屏幕位置（从上到下、从左到右）排序后点击。
+     *
+     * @param root 无障碍树根节点
+     * @param index 从 1 开始的序号
+     * @param mediaPrefixes 媒体类型文案前缀，如 ["照片", "Photo", "视频", "Video", "文档", "Document"]
+     */
+    fun clickGalleryItem(root: AccessibilityNodeInfo, index: Int, mediaPrefixes: List<String>): Boolean {
+        if (index <= 0) {
+            Logger.w(TAG, "Invalid gallery item index: $index")
+            return false
+        }
+        val nodes = collectMediaNodes(root, mediaPrefixes)
+        if (nodes.isEmpty()) {
+            Logger.w(TAG, "No gallery media items found")
+            return false
+        }
+        // 按屏幕位置排序：先 top，再 left
+        val sorted = nodes.sortedWith(compareBy({ it.bounds.top }, { it.bounds.left }))
+        val target = sorted.getOrNull(index - 1) ?: run {
+            Logger.w(TAG, "Gallery item index $index out of range, only ${sorted.size} items visible")
+            sorted.forEach { it.node.recycle() }
+            return false
+        }
+        val result = clickNodeOrClickableAncestor(target.node)
+        sorted.forEach { it.node.recycle() }
+        return result
+    }
+
+    private data class MediaNode(val node: AccessibilityNodeInfo, val bounds: Rect)
+
+    private fun collectMediaNodes(root: AccessibilityNodeInfo, prefixes: List<String>): List<MediaNode> {
+        val result = mutableListOf<MediaNode>()
+        val stack = ArrayDeque<AccessibilityNodeInfo>()
+        stack.add(root)
+        while (stack.isNotEmpty()) {
+            val node = stack.removeFirst()
+            val contentDesc = node.contentDescription?.toString() ?: ""
+            if (prefixes.any { contentDesc.startsWith(it) }) {
+                val bounds = Rect().also { node.getBoundsInScreen(it) }
+                result.add(MediaNode(AccessibilityNodeInfo.obtain(node), bounds))
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { stack.add(it) }
+            }
+        }
+        return result
+    }
+
+    /**
      * 对目标节点或其 clickable 祖先执行 ACTION_CLICK。
      *
      * 如果节点本身不可点击且没有 clickable 祖先，但节点是可编辑的（Compose TextField），

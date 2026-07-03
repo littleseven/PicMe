@@ -87,15 +87,16 @@ class RemoteCommandDispatcher(
             Logger.i(tag, "飞书拍照追踪已启动: messageId=$messageId")
         }
 
-        // ── 快速通道：相册搜索 ──
-        // 对于明确的“搜索照片”指令，直接走工具调用，避免依赖 LLM 是否遵循 prompt。
+        // ── 快速通道：相册搜索 + 预览 ──
+        // 对于明确的“搜索照片”指令（可能附带“预览第 N 张”），直接走工具调用，避免依赖 LLM 是否遵循 prompt。
         val directSearchQuery = extractSearchQuery(text)
         if (directSearchQuery != null) {
             withContext(Dispatchers.IO) {
                 channelHandler.sendMessage("⏳ 正在搜索照片...", messageId)
                 val wm = appContext.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+                val previewIndex = extractPreviewIndex(text)
                 val result = if (wm != null) {
-                    executeDirectGallerySearch(directSearchQuery, wm)
+                    executeDirectGallerySearch(directSearchQuery, previewIndex, wm)
                 } else {
                     "❌ WindowManager 不可用"
                 }
@@ -269,13 +270,17 @@ class RemoteCommandDispatcher(
      * - 搜索去年夏天小孩的照片
      * - 进入相册，搜索“去年夏天小孩”
      * - 查找上海的照片
+     * - 打开相册，搜索7月的美女，预览第四张
+     *
+     * 遇到“预览/查看/打开/点击/第 N 张”等后续动作词时停止，避免把预览指令也当成搜索词。
      */
     private fun extractSearchQuery(text: String): String? {
         val cleaned = text.replace("[\"“”]".toRegex(), "")
+        val stopWords = "，?(?:预览|查看|打开|点击|第[一二三四五六七八九十0-9]+张)"
         val patterns = listOf(
-            "搜索[:：]?(.+?)(?:的照片|\$)".toRegex(),
-            "查找[:：]?(.+?)(?:的照片|\$)".toRegex(),
-            "找(.+?)的照片".toRegex()
+            "搜索[:：]?(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex(),
+            "查找[:：]?(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex(),
+            "找(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex()
         )
         for (pattern in patterns) {
             pattern.find(cleaned)?.groupValues?.get(1)?.trim()?.let {
@@ -286,9 +291,47 @@ class RemoteCommandDispatcher(
     }
 
     /**
-     * 直接执行相册搜索，不经过 LLM ReAct 循环。
+     * 从用户输入中提取“预览第 N 张”的序号。
+     * 支持中文数字（第四张）和阿拉伯数字（第4张）。
      */
-    private fun executeDirectGallerySearch(query: String, wm: WindowManager): String {
+    private fun extractPreviewIndex(text: String): Int? {
+        val matchResult = "第([一二三四五六七八九十0-9]+)张".toRegex().find(text) ?: return null
+        return chineseNumberToInt(matchResult.groupValues[1])
+    }
+
+    /**
+     * 中文/阿拉伯数字转 Int。
+     */
+    private fun chineseNumberToInt(text: String): Int? {
+        text.toIntOrNull()?.let { return it }
+        val chars = mapOf(
+            '一' to 1, '二' to 2, '三' to 3, '四' to 4, '五' to 5,
+            '六' to 6, '七' to 7, '八' to 8, '九' to 9
+        )
+        var result = 0
+        var temp = 0
+        for (c in text) {
+            when {
+                c in chars -> temp = chars[c]!!
+                c == '十' -> {
+                    result += if (temp == 0) 10 else temp * 10
+                    temp = 0
+                }
+                c == '百' -> {
+                    result += if (temp == 0) 100 else temp * 100
+                    temp = 0
+                }
+                else -> return null
+            }
+        }
+        result += temp
+        return if (result > 0) result else null
+    }
+
+    /**
+     * 直接执行相册搜索（并可选预览第 N 张），不经过 LLM ReAct 循环。
+     */
+    private fun executeDirectGallerySearch(query: String, previewIndex: Int?, wm: WindowManager): String {
         return try {
             val toolService = PicMeToolService(wm)
             val navigateResult = toolService.navigateTo("gallery")
@@ -298,6 +341,14 @@ class RemoteCommandDispatcher(
             val searchResult = toolService.searchPhotos(query)
             if (searchResult.startsWith("Error:")) {
                 return "❌ 搜索失败：$searchResult"
+            }
+            if (previewIndex != null) {
+                val clickResult = toolService.clickGalleryItem(previewIndex)
+                return if (clickResult.startsWith("Error:")) {
+                    "✅ 已搜索“$query”，但预览第 ${previewIndex} 张失败：$clickResult"
+                } else {
+                    "✅ 已搜索“$query”并预览第 ${previewIndex} 张照片"
+                }
             }
             "✅ 已完成相册搜索：$searchResult"
         } catch (e: Exception) {

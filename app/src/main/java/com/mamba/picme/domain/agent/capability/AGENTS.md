@@ -58,7 +58,23 @@ Application.onCreate() → getInstance() 创建 → 注册到 CapabilityRegistry
 @Volatile private var _autoConfirm: Boolean
 ```
 
-### 2.2 FeishuChannelHandler — 飞书通道管理
+### 2.2 Capability 全局注册（2026-07 补充）
+
+`NavigationCapability` 与 `SystemCapability` 除了在 `MainActivity` 的 `ComposeCapabilityHost` 中注册外，还需通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`。
+
+**原因**：
+- 飞书直接搜索快速通道在后台线程通过 `PicMeToolService` 调用 `CapabilityRegistry.dispatch()`。
+- `CapabilityRegistry` 优先查询 `CapabilityHost.get()`（Compose 树中设置的全局 host），当 `MainActivity` 重建或 host 被清空时，会回退到全局 registry。
+- 若 `NavigationCapability` 未注册到全局 registry，host 不可用时 `navigate_to` 会报 `No capability found`。
+
+**实现位置**：`MainActivity.kt` 在创建 `navigationCapability`/`systemCapability` 后同步调用：
+```kotlin
+val orchestrator = AgentOrchestrator.getInstance(applicationContext)
+orchestrator.registerCapability(navigationCapability)
+orchestrator.registerCapability(systemCapability)
+```
+
+### 2.3 FeishuChannelHandler — 飞书通道管理
 
 **关键行为**：
 - 使用飞书 OAPI SDK 的 `ws.Client` 与飞书平台建立 WebSocket 长连接
@@ -81,9 +97,9 @@ Application.onCreate() → FeishuChannelHandler.init(appId, appSecret)
 **与 ApkClaw 的差异**：
 - `FeishuChannelHandler` 只负责飞书通道（消息收发），不直接处理业务
 - 业务命令全部委托给 `RemoteCommandDispatcher` → Capability 系统
-- 不需要 AccessibilityService，因为我们操作的是自有 Capability
+- 浏览/搜索等自有 Capability 操作不依赖 AccessibilityService；但“预览第 N 张”等需要识别 Compose 网格具体项的场景，依赖无障碍服务读取语义节点
 
-### 2.3 RemoteCommandDispatcher — 命令分派
+### 2.4 RemoteCommandDispatcher — 命令分派
 
 **解析策略**：
 
@@ -92,6 +108,7 @@ Application.onCreate() → FeishuChannelHandler.init(appId, appSecret)
 | **明确动作** | 直接映射 → Capability | `action: "browse_recent"` → GalleryCapability |
 | **自然语言** | LLM 解析意图 | `"帮我优化这张照片"` → `edit_image / ai_optimize` |
 | **组合命令** | LLM 分解为子任务 | `"裁剪成1:1再调亮"` → `[crop, brightness]` |
+| **相册搜索快速通道** | 正则提取，不经过 LLM | `"搜索去年夏天小孩的照片"`、`"打开相册搜索7月的美女预览第四张"` |
 
 **执行流程**：
 ```
@@ -99,14 +116,21 @@ Application.onCreate() → FeishuChannelHandler.init(appId, appSecret)
     → 收集结果 → FeishuChannelHandler.sendImage/sendMessage 回复
 ```
 
-### 2.4 与 agent-core 的边界
+**相册搜索快速通道（2026-07）**：
+- 为避免 LLM 不遵循 prompt 导致搜索失败，`RemoteCommandDispatcher` 对明确包含“搜索/查找/找...的照片”的指令走本地直接执行。
+- 支持复合命令：`打开相册，搜索7月的美女，预览第四张` → 提取 query=`7月的美女`、index=`4`。
+- 执行步骤：`navigate_to(gallery)` → `search_photos(query)` → （可选）`click_gallery_item(index)`。
+- `click_gallery_item` 依赖无障碍服务识别相册网格中 `contentDescription` 以 `照片/Photo/视频/Video/文档/Document` 开头的语义节点。
+- 若当前已在相册页，`navigate_to(gallery)` 会忽略（不报错），因此复合命令在任意场景均可触发。
+
+### 2.5 与 agent-core 的边界
 
 - **禁止**：在 `AgentCommands.kt` 中添加远程控制专用的 `Remote*` 类型
 - **禁止**：在 agent-core 中引入任何飞书 SDK 相关依赖
 - **允许**：在 `app` 模块的 domain 层引入飞书 OAPI SDK
 - **原则**：agent-core 保持零业务依赖，远程控制相关类型和逻辑全部在 `app` 模块
 
-### 2.5 确认流程矩阵
+### 2.6 确认流程矩阵
 
 | 操作类型 | 确认要求 | 实现 |
 |----------|----------|------|

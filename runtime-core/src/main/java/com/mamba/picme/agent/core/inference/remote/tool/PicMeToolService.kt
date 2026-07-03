@@ -405,6 +405,36 @@ class PicMeToolService(
         return dispatchResult
     }
 
+    @Tool(name = "click_gallery_item", value = ["点击相册网格中的第 N 个媒体项。必须先进入相册并完成搜索。index 从 1 开始，按屏幕可见项的顺序计数。"])
+    fun clickGalleryItem(
+        @P(name = "index", value = "从 1 开始的照片序号") index: Int
+    ): String {
+        val actionResult = if (AccessibilityServiceHolder.isActive()) {
+            val accessibilityRoot = AccessibilityServiceHolder.getRootNode()
+            if (accessibilityRoot != null) {
+                val prefixes = listOf("照片", "Photo", "视频", "Video", "文档", "Document")
+                val ok = AccessibilityActionPerformer.clickGalleryItem(accessibilityRoot, index, prefixes)
+                accessibilityRoot.recycle()
+                if (ok) {
+                    "Clicked gallery item at index $index"
+                } else {
+                    "Error: Failed to click gallery item at index $index"
+                }
+            } else {
+                "Error: Accessibility service root not available"
+            }
+        } else {
+            "Error: Accessibility service is not active"
+        }
+
+        if (actionResult.startsWith("Error:")) {
+            return actionResult
+        }
+
+        waitForUiSettle()
+        return capturePostActionState(actionResult)
+    }
+
     @Tool(name = "go_back", value = ["返回上一页"])
     fun goBack(): String {
         val actionResult = runOnUiThreadAndWait {
@@ -631,6 +661,7 @@ class PicMeToolService(
             )
             "navigate_to" -> navigateTo(args.optString("destination", ""))
             "search_photos" -> searchPhotos(args.optString("query", ""))
+            "click_gallery_item" -> clickGalleryItem(args.optInt("index", 0))
             "go_back" -> goBack()
             "capture" -> capture()
             "flip_camera" -> flipCamera()

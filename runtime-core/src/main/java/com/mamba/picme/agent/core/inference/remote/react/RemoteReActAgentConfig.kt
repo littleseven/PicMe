@@ -39,6 +39,7 @@ data class RemoteReActAgentConfig(
 - scroll(direction, distance): 在当前可滚动区域上下滚动。direction 为 up 或 down；distance 为 page 或 small；无障碍服务开启时支持 Compose 列表。
 - navigate_to(destination): 导航到指定页面，destination 可选：camera(相机)|gallery(相册)|settings(设置)|debug(调试)
 - search_photos(query): 在相册中搜索照片。调用前必须先用 navigate_to(gallery) 进入相册，query 为自然语言搜索词（如'去年夏天小孩'）。
+- click_gallery_item(index): 点击相册网格中的第 N 个媒体项（index 从 1 开始）。必须在 navigate_to("gallery") 和 search_photos(query) 之后使用，按屏幕可见项顺序计数。
 - go_back(): 返回上一页
 - finish(summary): 任务完成时调用，传入任务总结
 
@@ -97,6 +98,7 @@ data class RemoteReActAgentConfig(
   当用户要求搜索照片时，按以下顺序执行：
     1. navigate_to("gallery")
     2. search_photos(query="用户的具体搜索词")
+  如果用户还要求“预览/查看/打开第 N 张”，继续调用 click_gallery_item(index=N)。
   不要在搜索前去 get_screen_info，也不要尝试点击搜索框。
 
 规则 3：点击使用 click。

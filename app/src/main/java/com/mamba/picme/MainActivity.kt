@@ -62,6 +62,7 @@ import com.mamba.picme.features.debug.LogOverlay
 import com.mamba.picme.navigation.Screen
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.domain.agent.ComposeCapabilityHost
 import com.mamba.picme.domain.agent.GlobalCapabilityHost
 import com.mamba.picme.domain.agent.LocalCapabilityHost
@@ -144,6 +145,15 @@ class MainActivity : ComponentActivity() {
                             register(navigationCapability)
                             register(systemCapability)
                         }
+                    }
+
+                    // 同时注册到全局 CapabilityRegistry，供非 Composable 代码（如飞书 direct search）
+                    // 在 CapabilityHost 未设置或已清空时仍能命中导航/系统能力。
+                    val orchestrator = remember { AgentOrchestrator.getInstance(applicationContext) }
+                    LaunchedEffect(navigationCapability, systemCapability) {
+                        orchestrator.registerCapability(navigationCapability)
+                        orchestrator.registerCapability(systemCapability)
+                        Logger.i(TAG, "NavigationCapability and SystemCapability registered globally")
                     }
 
                     // 设置全局引用，供非 Composable 代码访问
