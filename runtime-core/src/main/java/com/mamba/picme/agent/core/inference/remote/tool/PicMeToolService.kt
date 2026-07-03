@@ -143,7 +143,7 @@ class PicMeToolService(
 
     // ==================== UI 感知工具 ====================
 
-    @Tool(name = "get_screen_info", value = ["获取当前屏幕的 UI 层级树信息（纯文本描述），包含所有可见元素的 class/id/text/bounds/clickable/scrollable 等属性。这是感知 UI 状态的唯一途径。"])
+    @Tool(name = "get_screen_info", value = ["获取当前屏幕的 UI 层级树信息（紧凑 JSON），包含所有可见元素的 class/id/text/bounds/clickable/scrollable 等属性。这是感知 UI 状态的唯一途径。注意：Compose 页面可能只显示 AndroidComposeView 而无子元素。"])
     fun getScreenInfo(): String {
         if (screenWidth <= 0 || screenHeight <= 0) {
             val dm = android.util.DisplayMetrics()
@@ -167,7 +167,7 @@ class PicMeToolService(
         } ?: "Error: No current activity reference available"
     }
 
-    @Tool(name = "click", value = ["点击屏幕上的元素。支持通过坐标(x,y)或文本(text)定位目标。"])
+    @Tool(name = "click", value = ["点击屏幕上的元素。必须且只能使用以下两种方式之一：1) 传 x 和 y 坐标；2) 传 text 按可见文本查找。坐标应从 get_screen_info 返回的 bounds 取中心点。"])
     fun click(
         @P(name = "x", value = "X coordinate (use with y, mutually exclusive with text)") x: Int? = null,
         @P(name = "y", value = "Y coordinate (use with x, mutually exclusive with text)") y: Int? = null,
@@ -224,7 +224,7 @@ class PicMeToolService(
         }
     }
 
-    @Tool(name = "input_text", value = ["在输入框中输入文本"])
+    @Tool(name = "input_text", value = ["在输入框中输入文本。输入前必须先点击输入框获取焦点；仅对原生 EditText 有效，Compose TextField 不支持。"])
     fun inputText(
         @P(name = "text", value = "要输入的文本内容") text: String,
         @P(name = "clear_first", value = "是否先清空现有文本，默认 true") clearFirst: Boolean = true
@@ -261,7 +261,7 @@ class PicMeToolService(
         return capturePostActionState(actionResult)
     }
 
-    @Tool(name = "scroll", value = ["在屏幕上滑动滚动。支持按方向（up/down）滑动。"])
+    @Tool(name = "scroll", value = ["在屏幕上滑动滚动。direction 为 up（向上滑，显示下方内容）或 down（向下滑，显示上方内容）；distance 为 page 或 small。仅对 RecyclerView/ScrollView 有效。"])
     fun scroll(
         @P(name = "direction", value = "滚动方向: up|down") direction: String,
         @P(name = "distance", value = "滚动距离: page|small，默认 page") distance: String = "page"
