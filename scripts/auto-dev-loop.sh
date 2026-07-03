@@ -243,7 +243,7 @@ run_phase3() {
 setup_accessibility_service() {
     echo ""
     echo "→ 启用 PicMeAccessibilityService..."
-    adb shell settings put secure enabled_accessibility_services com.mamba.picme/.testing.accessibility.PicMeAccessibilityService > /dev/null 2>&1 || true
+    adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService > /dev/null 2>&1 || true
     adb shell settings put secure accessibility_enabled 1 > /dev/null 2>&1 || true
 
     echo "→ 设置 adb forward tcp:27183..."

@@ -58,7 +58,7 @@ AccessibilityService 不会自动启用，需要手动在系统设置中打开�
 ### 方式 B：通过 adb（适合自动化脚本）
 
 ```bash
-adb shell settings put secure enabled_accessibility_services com.mamba.picme/.testing.accessibility.PicMeAccessibilityService
+adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService
 ```
 
 验证是否启用：
@@ -70,7 +70,7 @@ adb shell settings get secure enabled_accessibility_services
 应包含：
 
 ```
-com.mamba.picme/.testing.accessibility.PicMeAccessibilityService
+com.mamba.picme/.accessibility.PicMeAccessibilityService
 ```
 
 > 注意：部分国产 ROM 可能限制通过 adb 开启无障碍服务，若命令执行后未生效，请使用方式 A。
@@ -247,7 +247,7 @@ python3 scripts/verify_ui_driver.py
 ./gradlew :app:installDebug --no-daemon
 
 # 2. 启用 AccessibilityService
-adb shell settings put secure enabled_accessibility_services com.mamba.picme/.testing.accessibility.PicMeAccessibilityService
+adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService
 
 # 3. 启动应用
 adb shell am start -n com.mamba.picme/.MainActivity

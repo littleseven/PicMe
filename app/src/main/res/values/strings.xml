@@ -449,6 +449,7 @@
     <string name="settings_accessibility_service_enabled">Enabled</string>
     <string name="settings_accessibility_service_disabled">Not enabled</string>
     <string name="settings_accessibility_service_action_open">Open Settings</string>
+    <string name="accessibility_service_description">Enables PicMe AI Agent to read screen content and perform taps or text input.</string>
 
     <!-- Background permissions (MIUI / Xiaomi) -->
     <string name="settings_background_permission_title">Background Running Permission</string>

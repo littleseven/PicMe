@@ -428,6 +428,7 @@
     <string name="settings_accessibility_service_enabled">已開啟</string>
     <string name="settings_accessibility_service_disabled">未開啟</string>
     <string name="settings_accessibility_service_action_open">去開啟</string>
+    <string name="accessibility_service_description">開啟後 PicMe AI 助手可讀取螢幕內容並執行點擊、輸入等操作。</string>
 
     <!-- 背景執行權限（MIUI / 小米） -->
     <string name="settings_background_permission_title">背景執行權限</string>

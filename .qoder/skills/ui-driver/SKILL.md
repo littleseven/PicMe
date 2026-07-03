@@ -73,7 +73,7 @@ onView(withText("确认")).check(matches(isDisplayed()))
 
 # 2. Enable the accessibility service
 adb shell settings put secure enabled_accessibility_services \
-  com.mamba.picme/.testing.accessibility.PicMeAccessibilityService
+  com.mamba.picme/.accessibility.PicMeAccessibilityService
 
 # 3. Forward the RPC port
 adb forward tcp:27183 tcp:27183
