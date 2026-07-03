@@ -40,10 +40,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.mamba.picme.R
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.agent.core.model.context.MediaAsset
@@ -197,11 +201,28 @@ fun MediaItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val mediaTypeLabel = when (asset.type) {
+        MediaType.VIDEO -> context.getString(R.string.media_type_video)
+        MediaType.DOCUMENT -> context.getString(R.string.media_type_document)
+        else -> context.getString(R.string.media_type_photo)
+    }
+    val contentDescription = "$mediaTypeLabel，${asset.fileName}"
+    val selectionStateDescription = when {
+        isSelectionMode && isSelected -> context.getString(R.string.media_state_selected)
+        isSelectionMode -> context.getString(R.string.media_state_unselected)
+        else -> null
+    }
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(ThumbnailCornerRadius))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .semantics {
+                this.contentDescription = contentDescription
+                selectionStateDescription?.let { this.stateDescription = it }
+            }
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -221,7 +242,7 @@ fun MediaItem(
         if (asset.type == MediaType.VIDEO) {
             Icon(
                 Icons.Rounded.PlayCircle,
-                contentDescription = null,
+                contentDescription = context.getString(R.string.media_type_video),
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(32.dp),

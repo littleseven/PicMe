@@ -430,6 +430,13 @@
     <string name="settings_accessibility_service_action_open">去開啟</string>
     <string name="accessibility_service_description">開啟後 PicMe AI 助手可讀取螢幕內容並執行點擊、輸入等操作。</string>
 
+    <!-- 媒體項無障礙標籤 -->
+    <string name="media_type_photo">照片</string>
+    <string name="media_type_video">影片</string>
+    <string name="media_type_document">文件</string>
+    <string name="media_state_selected">已選擇</string>
+    <string name="media_state_unselected">未選擇</string>
+
     <!-- 背景執行權限（MIUI / 小米） -->
     <string name="settings_background_permission_title">背景執行權限</string>
     <string name="settings_background_permission_summary">在小米/紅米等 MIUI 裝置上需要開啟，否則 AI 服務容易被系統回收。</string>

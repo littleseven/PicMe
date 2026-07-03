@@ -362,6 +362,36 @@ context.startForegroundService(
 - **位置记录**: 使用 `mutableStateMapOf<Long, Rect>` 记录缩略图位置，支持展开动画
 - **回收位图保护**: 搜索结果缩略图禁用 Coil crossfade，避免列表滚动时复用已回收 Bitmap 导致崩溃
 
+### 2.11 无障碍语义 (Accessibility Semantics)
+
+**目的**: 让 AccessibilityService / UI Automator / ReAct Agent 能够识别网格中的具体媒体项，而不是只能看到空的可点击容器。
+
+**实现位置**: `features/gallery/components/MediaGrid.kt` → `MediaItem()`
+
+**技术规范**:
+- **每个缩略图必须提供 `contentDescription`**，格式为 `"<类型>，<文件名>"`
+  - 照片: `R.string.media_type_photo` + `asset.fileName`
+  - 视频: `R.string.media_type_video` + `asset.fileName`
+  - 文档: `R.string.media_type_document` + `asset.fileName`
+- **视频叠加图标**单独设置 `contentDescription = R.string.media_type_video`
+- **选择模式下**通过 `stateDescription` 暴露选中状态
+  - 已选中: `R.string.media_state_selected`
+  - 未选中: `R.string.media_state_unselected`
+- **多语言**: 类型与状态文案必须提取到 `strings.xml`（已支持 zh / zh-rCN / zh-rTW / en）
+
+**验证方式**:
+```bash
+adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService
+adb forward tcp:27183 tcp:27183
+python3 scripts/ui_driver.py dump
+```
+
+预期在相册网格中能看到类似：
+```
+[android.view.View] 照片，TEST_PERSON_林依晨_1782859757911.jpg clickable, bounds=(...)
+[android.view.View] 视频，share_xxx.mp4 clickable, bounds=(...)
+```
+
 ## 3. adb 自动化测试命令 (Gallery Test Commands)
 
 > **实现状态（2026-07）**: 旧版 Camera/Gallery 同源广播命令体系已随图片编辑器重构移除。当前仅保留可直接通过 `am broadcast` 触发的导航类命令；编辑器内部参数调节命令后续通过 UI Automator / 新的测试通道覆盖。

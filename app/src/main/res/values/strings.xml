@@ -451,6 +451,13 @@
     <string name="settings_accessibility_service_action_open">Open Settings</string>
     <string name="accessibility_service_description">Enables PicMe AI Agent to read screen content and perform taps or text input.</string>
 
+    <!-- Media item accessibility labels -->
+    <string name="media_type_photo">Photo</string>
+    <string name="media_type_video">Video</string>
+    <string name="media_type_document">Document</string>
+    <string name="media_state_selected">Selected</string>
+    <string name="media_state_unselected">Not selected</string>
+
     <!-- Background permissions (MIUI / Xiaomi) -->
     <string name="settings_background_permission_title">Background Running Permission</string>
     <string name="settings_background_permission_summary">Required on some ROMs like MIUI to keep AI services alive.</string>
