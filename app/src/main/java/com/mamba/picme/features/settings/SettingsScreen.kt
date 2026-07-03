@@ -1,6 +1,8 @@
 package com.mamba.picme.features.settings
 
 import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Label
+import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Language
@@ -63,6 +66,7 @@ import com.mamba.picme.BuildConfig
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
+import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.designsystem.PicMeTheme
 import com.mamba.picme.data.download.DownloadState
@@ -724,6 +728,38 @@ private fun SettingsContent(
                                     isFloatingChatRunning = true
                                 }
                             }
+                        }
+                    )
+                }
+
+                // ── AI 远程控制无障碍服务 ───────────────────────────────
+                var isAccessibilityEnabled by remember {
+                    mutableStateOf(AccessibilityServiceHolder.isActive())
+                }
+
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        isAccessibilityEnabled = AccessibilityServiceHolder.isActive()
+                        delay(1000)
+                    }
+                }
+
+                SettingsSection(
+                    title = stringResource(R.string.settings_accessibility_service_title),
+                    description = stringResource(R.string.settings_accessibility_service_summary)
+                ) {
+                    SettingsClickableRow(
+                        title = stringResource(R.string.settings_accessibility_service_title),
+                        subtitle = stringResource(R.string.settings_accessibility_service_summary),
+                        valueText = stringResource(
+                            if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled
+                        ),
+                        leadingIcon = Icons.Rounded.Accessibility,
+                        onClick = {
+                            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
                         }
                     )
                 }

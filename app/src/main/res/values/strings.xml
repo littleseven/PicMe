@@ -443,6 +443,13 @@
     <string name="floating_chat_notification_content">Tap to open PicMe or stop the bubble.</string>
     <string name="chat_send">Send</string>
 
+    <!-- AI Remote Control Accessibility Service -->
+    <string name="settings_accessibility_service_title">AI Remote Control Accessibility</string>
+    <string name="settings_accessibility_service_summary">Allow Agent/Feishu commands to read Compose UI elements and perform taps or input.</string>
+    <string name="settings_accessibility_service_enabled">Enabled</string>
+    <string name="settings_accessibility_service_disabled">Not enabled</string>
+    <string name="settings_accessibility_service_action_open">Open Settings</string>
+
     <!-- Background permissions (MIUI / Xiaomi) -->
     <string name="settings_background_permission_title">Background Running Permission</string>
     <string name="settings_background_permission_summary">Required on some ROMs like MIUI to keep AI services alive.</string>

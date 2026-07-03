@@ -422,6 +422,13 @@
     <string name="floating_chat_notification_content">點擊開啟 PicMe 或停止氣泡。</string>
     <string name="chat_send">發送</string>
 
+    <!-- AI 遠端控制無障礙服務 -->
+    <string name="settings_accessibility_service_title">AI 遠端控制無障礙服務</string>
+    <string name="settings_accessibility_service_summary">開啟後 Agent/飛書指令才能識別 Compose 介面元素並執行點擊、輸入等操作。</string>
+    <string name="settings_accessibility_service_enabled">已開啟</string>
+    <string name="settings_accessibility_service_disabled">未開啟</string>
+    <string name="settings_accessibility_service_action_open">去開啟</string>
+
     <!-- 背景執行權限（MIUI / 小米） -->
     <string name="settings_background_permission_title">背景執行權限</string>
     <string name="settings_background_permission_summary">在小米/紅米等 MIUI 裝置上需要開啟，否則 AI 服務容易被系統回收。</string>
