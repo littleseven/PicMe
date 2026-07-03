@@ -61,7 +61,7 @@ class GalleryCapability : BaseCapability() {
         fun onDeleteMedia(mediaIds: List<String>)
         fun onShareMedia(mediaIds: List<String>)
         fun onSelectMedia(mediaId: String, selected: Boolean)
-        fun onSearch(query: String)
+        fun onSearch(query: String, results: List<com.mamba.picme.agent.core.model.context.MediaAsset>)
         fun onSwitchViewMode(mode: ViewMode)
         fun onFavoriteMedia(mediaId: String, favorite: Boolean)
     }
@@ -267,7 +267,7 @@ class GalleryCapability : BaseCapability() {
             return try {
                 val result = engine.search(command.query)
                 Logger.i(tag, "Search '${command.query}' → ${result.resultCount} results")
-                d.onSearch(command.query)
+                d.onSearch(command.query, result.media)
                 Result.success(
                     AgentAction.TextReply(
                         commandId = command.commandId,
@@ -287,7 +287,7 @@ class GalleryCapability : BaseCapability() {
         } else {
             // 回退到旧行为（搜索引擎未初始化）
             Logger.w(tag, "Search engine not initialized, falling back to delegate")
-            d.onSearch(command.query)
+            d.onSearch(command.query, emptyList())
             return Result.success(AgentAction.Success(commandId = command.commandId, command = command))
         }
     }

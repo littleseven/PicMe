@@ -383,8 +383,12 @@ fun GalleryScreen(
                     selectedIds.remove(id)
                 }
             }
-            override fun onSearch(query: String) {
-                Logger.d(TAG_AGENT, "Search query: $query")
+            override fun onSearch(query: String, results: List<com.mamba.picme.agent.core.model.context.MediaAsset>) {
+                Logger.d(TAG_AGENT, "Search query: $query, results=${results.size}")
+                searchQuery = query
+                isSearchActive = true
+                isSearchLoading = false
+                searchResultMedia = results
             }
             override fun onSwitchViewMode(mode: GalleryCapability.ViewMode) {
                 Logger.d(TAG_AGENT, "Switch to view mode: $mode")
