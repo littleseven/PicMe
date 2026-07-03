@@ -10,8 +10,6 @@ import com.mamba.picme.agent.core.platform.storage.DataStoreChatMemoryStore
 import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
 import com.mamba.service.AiServices
 import com.mamba.data.message.SystemMessage
-import com.mamba.exception.HttpException
-import com.mamba.exception.RetriableException
 import com.mamba.model.chat.listener.ChatModelListener
 import com.mamba.model.chat.listener.ChatModelResponseContext
 import com.mamba.model.output.TokenUsage
@@ -39,12 +37,6 @@ class RemoteReActAgent(
 ) {
     companion object {
         private const val TAG = "RemoteReActAgent"
-
-        /** 远程模型服务 transient 错误时的顶层重试次数 */
-        private const val MAX_RETRIES = 3
-
-        /** 每次重试的退避间隔（毫秒） */
-        private val RETRY_BACKOFF_MS = longArrayOf(1000L, 2000L, 4000L)
     }
 
     private val toolService = PicMeToolService(windowManager)
@@ -203,15 +195,21 @@ class RemoteReActAgent(
         cb.onLoopStart(1)
 
         val startTime = System.currentTimeMillis()
-        var lastError: Throwable? = null
 
         try {
+            // 获取 AiServices 代理（自动处理工具调用循环）
             val assistant = getOrCreateAssistant()
 
-            // 顶层重试循环：对远程模型 transient 错误（5xx/upstream error）做指数退避重试
-            val result = runWithRetries {
-                assistant.chat(userPrompt)
-            }
+            // 调用 chat 方法，AiServices 内部自动处理：
+            // 1. 添加 UserMessage 到 ChatMemory
+            // 2. 调用 LLM 传入 toolSpecifications
+            // 3. 如果返回 tool calls，自动执行工具并构建 ToolExecutionResultMessage
+            // 4. 继续循环直到没有 tool calls 或达到 maxIterations
+            //
+            // 注意：这里的重试由底层 ChatModel（OpenAiChatModel 等）在 HTTP 层完成；
+            // 我们不在 assistant.chat 级别做顶层重试，因为一旦工具已经被执行，重新添加
+            // UserMessage 会破坏 "assistant tool_calls → tool messages → assistant" 的合法序列。
+            val result = assistant.chat(userPrompt)
 
             val latencyMs = System.currentTimeMillis() - startTime
             val totalTokens = accumulatedTokenUsage
@@ -227,7 +225,6 @@ class RemoteReActAgent(
             cb.onComplete(1, result, totalTokens?.totalTokenCount() ?: 0, metrics)
 
         } catch (e: Exception) {
-            lastError = e
             val latencyMs = System.currentTimeMillis() - startTime
             val metrics = AgentExecutionMetrics(
                 latencyMs = latencyMs,
@@ -251,61 +248,19 @@ class RemoteReActAgent(
     }
 
     /**
-     * 执行 [block]，对可重试的远程模型错误进行顶层指数退避重试。
-     *
-     * @throws Exception 所有重试耗尽后抛出最后一次异常
-     */
-    private inline fun <T> runWithRetries(block: () -> T): T {
-        var lastError: Throwable? = null
-        for (attempt in 0 until MAX_RETRIES) {
-            try {
-                return block()
-            } catch (e: Exception) {
-                lastError = e
-                if (!isRetriableError(e) || cancelled.get()) {
-                    throw e
-                }
-                val backoffMs = RETRY_BACKOFF_MS.getOrNull(attempt) ?: RETRY_BACKOFF_MS.last()
-                Logger.w(TAG, "Remote model transient error (attempt ${attempt + 1}/$MAX_RETRIES), retrying in ${backoffMs}ms", e)
-                try {
-                    Thread.sleep(backoffMs)
-                } catch (ie: InterruptedException) {
-                    Thread.currentThread().interrupt()
-                    throw e
-                }
-            }
-        }
-        throw lastError ?: IllegalStateException("Remote model call failed after $MAX_RETRIES retries")
-    }
-
-    /**
-     * 判断异常是否为远程模型/网关的 transient 错误（可重试）。
-     */
-    private fun isRetriableError(error: Throwable): Boolean {
-        if (error is RetriableException) return true
-
-        val causeChain = generateSequence<Throwable>(error) { it.cause }
-        return causeChain.any {
-            val is5xxHttp = (it as? HttpException)?.statusCode()?.let { code -> code in 500..599 } == true
-            val isUpstream = it.message?.contains("upstream_error", ignoreCase = true) == true
-            val is5xxMessage = it.message?.let { msg ->
-                listOf("502", "503", "504").any { code -> msg.contains(code) }
-            } == true
-            is5xxHttp || isUpstream || is5xxMessage
-        }
-    }
-
-    /**
      * 把底层异常转换为飞书用户友好的错误描述。
      */
     private fun buildFriendlyErrorMessage(original: Throwable): String {
         val causeChain = generateSequence<Throwable>(original) { it.cause }
         val hasUpstream = causeChain.any { it.message?.contains("upstream_error", ignoreCase = true) == true }
-        val statusCode = causeChain.mapNotNull { (it as? HttpException)?.statusCode() }.firstOrNull()
+        val hasToolSequence = original.message?.contains("tool_calls", ignoreCase = true) == true
 
         return when {
-            hasUpstream || statusCode in listOf(502, 503, 504) -> {
-                "远程模型服务暂时不可用（${statusCode ?: "upstream 502"}），请稍后重试，或到设置切换其他模型供应商。"
+            hasUpstream -> {
+                "远程模型服务暂时不可用（upstream error），请稍后重试，或到设置切换其他模型供应商。"
+            }
+            hasToolSequence -> {
+                "对话历史中的工具调用消息顺序异常，已自动重置会话，请重新发送指令。"
             }
             else -> {
                 "远程模型调用失败：${original.message ?: "未知错误"}"
@@ -350,42 +305,71 @@ private class DataStoreChatMemory(
     override fun add(message: com.mamba.data.message.ChatMessage) {
         val messages = store.getMessages(memoryId)
 
-        // System message 必须始终位于对话开头
+        // System message 必须始终位于对话开头，且唯一
         if (message is com.mamba.data.message.SystemMessage) {
-            // 如果已有 SystemMessage，先移除旧的再插入到开头
-            val existingSystem = messages.indexOfFirst { it is com.mamba.data.message.SystemMessage }
-            if (existingSystem >= 0) {
-                messages.removeAt(existingSystem)
-            }
+            messages.removeAll { it is com.mamba.data.message.SystemMessage }
             messages.add(0, message)
         } else {
             messages.add(message)
         }
 
-        if (messages.size > maxMessages) {
-            // 保留 SystemMessage（如果存在）确保对话结构有效
-            val systemMsg = messages.filterIsInstance<com.mamba.data.message.SystemMessage>().firstOrNull()
-            val trimmed = messages.takeLast(maxMessages).toMutableList()
-            if (systemMsg != null && trimmed.firstOrNull() !is com.mamba.data.message.SystemMessage) {
-                trimmed.add(0, systemMsg)
-            }
+        trimToMaxMessages(messages)
+        store.updateMessages(memoryId, messages)
+    }
 
-            // 清理孤立的 tool result：删除找不到对应 assistant tool_calls 的 ToolExecutionResultMessage
-            val assistantToolCallIds = trimmed.filterIsInstance<com.mamba.data.message.AiMessage>()
-                .filter { it.hasToolExecutionRequests() }
-                .flatMap { it.toolExecutionRequests() }
-                .map { it.id() }
-                .toSet()
-            trimmed.removeAll { msg ->
-                msg is com.mamba.data.message.ToolExecutionResultMessage &&
-                    msg.id() != null &&
-                    msg.id() !in assistantToolCallIds
-            }
+    /**
+     * 将消息列表截断到 [maxMessages]，同时保证 OpenAI tool_calls 序列合法：
+     * 每个包含 tool_calls 的 assistant 消息及其后续所有 tool result 消息必须成块保留/删除，
+     * 不能只保留一半，否则会出现 "insufficient tool messages following tool_calls message" 错误。
+     */
+    private fun trimToMaxMessages(messages: MutableList<com.mamba.data.message.ChatMessage>) {
+        if (messages.size <= maxMessages) return
 
-            store.updateMessages(memoryId, trimmed)
-        } else {
-            store.updateMessages(memoryId, messages)
+        val systemMsg = messages.filterIsInstance<com.mamba.data.message.SystemMessage>().firstOrNull()
+        val nonSystem = messages.filter { it !is com.mamba.data.message.SystemMessage }
+
+        // 把非系统消息划分成 "块"：
+        // - 普通消息自己一块
+        // - assistant(tool_calls) + 紧随其后的所有 tool result 消息为一块
+        val blocks = mutableListOf<MutableList<com.mamba.data.message.ChatMessage>>()
+        var i = 0
+        while (i < nonSystem.size) {
+            val msg = nonSystem[i]
+            if (msg is com.mamba.data.message.AiMessage && msg.hasToolExecutionRequests()) {
+                val block = mutableListOf<com.mamba.data.message.ChatMessage>(msg)
+                i++
+                while (i < nonSystem.size && nonSystem[i] is com.mamba.data.message.ToolExecutionResultMessage) {
+                    block.add(nonSystem[i])
+                    i++
+                }
+                blocks.add(block)
+            } else {
+                blocks.add(mutableListOf(msg))
+                i++
+            }
         }
+
+        // 从最新的一块往回取，确保 tool-call 块不被拆散
+        val systemSize = if (systemMsg != null) 1 else 0
+        val available = maxMessages - systemSize
+        val keptBlocks = mutableListOf<MutableList<com.mamba.data.message.ChatMessage>>()
+        var keptCount = 0
+        for (block in blocks.asReversed()) {
+            if (block.size > available) {
+                // 单块就超出预算，丢弃整块，避免破坏 tool_calls 配对
+                continue
+            }
+            if (keptCount + block.size <= available) {
+                keptBlocks.add(0, block)
+                keptCount += block.size
+            } else {
+                break
+            }
+        }
+
+        messages.clear()
+        systemMsg?.let { messages.add(it) }
+        keptBlocks.forEach { messages.addAll(it) }
     }
 
     override fun clear() {
