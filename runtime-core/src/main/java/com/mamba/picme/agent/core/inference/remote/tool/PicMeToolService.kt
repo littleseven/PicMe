@@ -388,6 +388,22 @@ class PicMeToolService(
         return capturePostActionState(actionResult)
     }
 
+    @Tool(name = "search_photos", value = ["在相册中搜索照片。调用前必须先用 navigate_to(gallery) 进入相册。参数 query 为自然语言搜索词，如'去年夏天小孩'。"])
+    fun searchPhotos(
+        @P(name = "query", value = "搜索关键词，例如'去年夏天小孩'") query: String
+    ): String {
+        if (query.isBlank()) {
+            return "Error: query cannot be empty"
+        }
+
+        val dispatchResult = dispatchCommand(AgentCommand.SearchMedia(query = query))
+        if (dispatchResult.startsWith("Error:")) {
+            return dispatchResult
+        }
+
+        return "Search executed for '$query': $dispatchResult"
+    }
+
     @Tool(name = "go_back", value = ["返回上一页"])
     fun goBack(): String {
         val actionResult = runOnUiThreadAndWait {
@@ -606,6 +622,7 @@ class PicMeToolService(
                 distance = args.optString("distance", "page")
             )
             "navigate_to" -> navigateTo(args.optString("destination", ""))
+            "search_photos" -> searchPhotos(args.optString("query", ""))
             "go_back" -> goBack()
             "capture" -> capture()
             "flip_camera" -> flipCamera()

@@ -38,6 +38,7 @@ data class RemoteReActAgentConfig(
 - input_text(text, clear_first): 在当前焦点输入框输入文字。输入前必须先点击输入框获取焦点；无障碍服务开启时支持 Compose TextField。
 - scroll(direction, distance): 在当前可滚动区域上下滚动。direction 为 up 或 down；distance 为 page 或 small；无障碍服务开启时支持 Compose 列表。
 - navigate_to(destination): 导航到指定页面，destination 可选：camera(相机)|gallery(相册)|settings(设置)|debug(调试)
+- search_photos(query): 在相册中搜索照片。调用前必须先用 navigate_to(gallery) 进入相册，query 为自然语言搜索词（如'去年夏天小孩'）。
 - go_back(): 返回上一页
 - finish(summary): 任务完成时调用，传入任务总结
 
@@ -132,7 +133,7 @@ data class RemoteReActAgentConfig(
 - 用户说"你好" -> content: "你好呀，我是小觅"（**不调用任何工具**）
 - 用户说"牛顿是谁" -> content: 自然语言介绍牛顿（**不调用任何工具**）
 - 用户说"点击设置按钮" -> 先调用 get_screen_info，找到设置按钮后调用 click(text="设置") 或 click(x, y)
-- 用户说"搜索去年夏天小孩的照片" -> 先 navigate_to("gallery")，再 get_screen_info，找到搜索框后 click 聚焦，再 input_text，最后点击搜索
+- 用户说"搜索去年夏天小孩的照片" -> 先 navigate_to("gallery")，再 search_photos(query="去年夏天小孩")
 
 ## 安全约束
 - 绝不自动填写密码、支付密码、银行卡号等敏感凭证
