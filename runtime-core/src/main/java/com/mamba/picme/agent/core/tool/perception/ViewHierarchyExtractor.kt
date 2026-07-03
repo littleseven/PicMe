@@ -34,7 +34,8 @@ object ViewHierarchyExtractor {
         } catch (e: Exception) {
             root.put("error", "View tree extraction failed: ${e.message}")
         }
-        return root.toString(2)
+        // 使用紧凑格式输出，减少 LLM token 消耗
+        return root.toString()
     }
 
     /**
