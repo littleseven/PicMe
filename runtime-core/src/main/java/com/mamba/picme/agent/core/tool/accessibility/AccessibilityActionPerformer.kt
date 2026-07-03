@@ -83,6 +83,9 @@ object AccessibilityActionPerformer {
 
     /**
      * 对目标节点或其 clickable 祖先执行 ACTION_CLICK。
+     *
+     * 如果节点本身不可点击且没有 clickable 祖先，但节点是可编辑的（Compose TextField），
+     * 则退而执行 ACTION_FOCUS，让后续 input_text 可以定位到该输入框。
      */
     private fun clickNodeOrClickableAncestor(node: AccessibilityNodeInfo): Boolean {
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
@@ -103,6 +106,14 @@ object AccessibilityActionPerformer {
                 original = current
             }
             current = parent
+        }
+
+        // 兜底：可编辑节点没有 clickable 祖先时，聚焦它
+        if (node.isEditableCompat()) {
+            if (!node.isFocused) {
+                node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            }
+            return true
         }
         return false
     }

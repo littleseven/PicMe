@@ -18,12 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.mamba.picme.R
-import androidx.compose.ui.res.stringResource
 
 /**
  * 通用搜索框组件
@@ -52,7 +53,7 @@ fun SearchField(
     ) {
         Icon(
             imageVector = Icons.Filled.Search,
-            contentDescription = null,
+            contentDescription = "搜索图标",
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             modifier = Modifier.padding(end = 8.dp)
         )
@@ -75,7 +76,9 @@ fun SearchField(
                 }
                 innerTextField()
             },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .semantics { contentDescription = "搜索框" }
         )
         if (query.isNotEmpty()) {
             IconButton(
