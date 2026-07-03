@@ -249,13 +249,27 @@ class UiDriverClient:
         return result.get("success", False)
 
     def wait_for(
-        self, text: str, timeout_ms: int = 5000, poll_ms: int = 200
+        self,
+        text: Optional[str] = None,
+        content_description: Optional[str] = None,
+        predicate: Optional[callable] = None,
+        timeout_ms: int = 5000,
+        poll_ms: int = 200,
     ) -> Optional[UiNode]:
         deadline = time.time() + timeout_ms / 1000.0
         while time.time() < deadline:
-            nodes = self.find_nodes(text=text)
-            if nodes:
-                return nodes[0]
+            if predicate is not None:
+                node = self.find_node(predicate)
+                if node is not None:
+                    return node
+            elif content_description is not None:
+                nodes = self.find_nodes(content_description=content_description)
+                if nodes:
+                    return nodes[0]
+            elif text is not None:
+                nodes = self.find_nodes(text=text)
+                if nodes:
+                    return nodes[0]
             time.sleep(poll_ms / 1000.0)
         return None
 
