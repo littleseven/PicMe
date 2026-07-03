@@ -264,15 +264,26 @@ class GalleryCapability : BaseCapability() {
 
         val engine = searchEngine
         if (engine != null) {
-            val result = engine.search(command.query)
-            Logger.i(tag, "Search '${command.query}' → ${result.resultCount} results")
-            d.onSearch(command.query)
-            return Result.success(
-                AgentAction.TextReply(
-                    commandId = command.commandId,
-                    message = "找到 ${result.resultCount} 张匹配 '${command.query}' 的照片"
+            return try {
+                val result = engine.search(command.query)
+                Logger.i(tag, "Search '${command.query}' → ${result.resultCount} results")
+                d.onSearch(command.query)
+                Result.success(
+                    AgentAction.TextReply(
+                        commandId = command.commandId,
+                        message = "找到 ${result.resultCount} 张匹配 '${command.query}' 的照片"
+                    )
                 )
-            )
+            } catch (e: Exception) {
+                Logger.e(tag, "Search failed for '${command.query}'", e)
+                Result.success(
+                    AgentAction.Error(
+                        commandId = command.commandId,
+                        errorCode = AgentErrorCode.INTERNAL_ERROR,
+                        message = "搜索失败：${e.message ?: "未知错误"}"
+                    )
+                )
+            }
         } else {
             // 回退到旧行为（搜索引擎未初始化）
             Logger.w(tag, "Search engine not initialized, falling back to delegate")
