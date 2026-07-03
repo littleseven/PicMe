@@ -12,15 +12,10 @@ class HttpResponseLogger {
     static void log(Logger log, SuccessfulHttpResponse response) {
         try {
             log.info(
-                    """
-                            HTTP response:
-                            - status code: {}
-                            - headers: {}
-                            - body: {}
-                            """,
+                    "HTTP response: statusCode={}, headers={}, body={}",
                     response.statusCode(),
                     format(response.headers()),
-                    response.body());
+                    HttpRequestLogger.compact(response.body()));
         } catch (Exception e) {
             log.warn("Exception occurred while logging HTTP response: {}", e.getMessage());
         }

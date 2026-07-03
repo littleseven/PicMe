@@ -22,20 +22,21 @@ class HttpRequestLogger {
     static void log(Logger log, HttpRequest httpRequest) {
         try {
             log.info(
-                    """
-                            HTTP request:
-                            - method: {}
-                            - url: {}
-                            - headers: {}
-                            - body: {}
-                            """,
+                    "HTTP request: method={}, url={}, headers={}, body={}",
                     httpRequest.method(),
                     httpRequest.url(),
                     format(httpRequest.headers()),
-                    httpRequest.body());
+                    compact(httpRequest.body()));
         } catch (Exception e) {
             log.warn("Exception occurred while logging HTTP request: {}", e.getMessage());
         }
+    }
+
+    static String compact(String body) {
+        if (body == null) {
+            return "";
+        }
+        return body.replaceAll("\\s+", " ").trim();
     }
 
     static String format(Map<String, List<String>> headers) {
