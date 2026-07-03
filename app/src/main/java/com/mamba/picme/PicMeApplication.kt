@@ -499,18 +499,18 @@ class PicMeApplication : Application(), ImageLoaderFactory {
     /**
      * 初始化应用级 Capability
      *
-     * **已废弃**：Capability 现在采用页面级生命周期管理。
-     * - NavigationCapability 由 MainActivity 创建（Activity 级）
-     * - CameraCapability/GalleryCapability/SettingsCapability 由各 Screen 创建（页面级）
-     *
-     * 保留此方法用于向后兼容的日志输出，实际注册已移至 MainActivity 和各 Screen。
+     * 页面级 Capability（Camera/Gallery/Settings）随 Screen 创建和销毁，
+     * 但 GalleryCapability 需要支持后台飞书指令直接搜索，因此同时注册为全局 Capability。
+     * 它的可用性仍由 delegate 绑定状态决定，只有相册页面激活时才能真正执行命令。
      */
     private fun initializeCapabilities() {
-        Logger.i(TAG, "Capability lifecycle migrated to page-scoped model")
+        Logger.i(TAG, "Capability lifecycle: page-scoped + global GalleryCapability for Feishu search")
         Logger.i(TAG, "- NavigationCapability: Activity-scoped (MainActivity)")
         Logger.i(TAG, "- CameraCapability: Page-scoped (CameraScreen)")
-        Logger.i(TAG, "- GalleryCapability: Page-scoped (GalleryScreen)")
+        Logger.i(TAG, "- GalleryCapability: Page-scoped (GalleryScreen) + global registry")
         Logger.i(TAG, "- SettingsCapability: Page-scoped (SettingsScreen)")
+
+        AgentOrchestrator.getInstance(this).registerCapability(GalleryCapability.getInstance())
     }
 
     override fun newImageLoader(): ImageLoader {
