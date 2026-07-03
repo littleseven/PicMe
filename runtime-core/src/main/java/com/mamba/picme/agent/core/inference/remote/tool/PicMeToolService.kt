@@ -7,6 +7,7 @@ import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.platform.logging.Logger
@@ -401,7 +402,7 @@ class PicMeToolService(
             return dispatchResult
         }
 
-        return "Search executed for '$query': $dispatchResult"
+        return dispatchResult
     }
 
     @Tool(name = "go_back", value = ["返回上一页"])
@@ -573,7 +574,14 @@ class PicMeToolService(
             }
             val result = deferred.get(5, TimeUnit.SECONDS)
             result.fold(
-                onSuccess = { "OK: ${it::class.simpleName}" },
+                onSuccess = { action ->
+                    when (action) {
+                        is AgentAction.TextReply -> action.message
+                        is AgentAction.Success -> "OK"
+                        is AgentAction.Error -> "Error: ${action.message}"
+                        else -> "OK: ${action::class.simpleName}"
+                    }
+                },
                 onFailure = { "Error: ${it.message}" }
             )
         } catch (e: Exception) {
