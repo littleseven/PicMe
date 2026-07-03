@@ -13,6 +13,9 @@ import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.tool.perception.UiObservationFormatter
 import com.mamba.picme.agent.core.tool.perception.ViewHierarchyExtractor
 import com.mamba.picme.agent.core.tool.CameraToolHelper
+import com.mamba.picme.agent.core.tool.accessibility.AccessibilityActionPerformer
+import com.mamba.picme.agent.core.tool.accessibility.AccessibilityNodeDumper
+import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
@@ -98,34 +101,66 @@ class PicMeToolService(
     }
 
     /**
-     * 捕获操作后的屏幕状态，并格式化为标准返回字符串。
+     * 确保屏幕尺寸已初始化。
      */
-    private fun capturePostActionState(actionDescription: String): String {
-        val size = getScreenSize()
-        val screenW = size[0]
-        val screenH = size[1]
+    private fun ensureScreenSize() {
+        if (screenWidth <= 0 || screenHeight <= 0) {
+            val dm = android.util.DisplayMetrics()
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getRealMetrics(dm)
+            screenWidth = dm.widthPixels
+            screenHeight = dm.heightPixels
+        }
+    }
 
-        val state = runOnUiThreadAndWait {
+    /**
+     * 获取当前屏幕结构化描述。
+     *
+     * 优先使用 Accessibility 树（能识别 Compose 语义节点）；如果无障碍服务未开启，
+     * 回退到传统 View 层级树。
+     */
+    private fun dumpScreenState(): String {
+        ensureScreenSize()
+
+        val accessibilityRoot = AccessibilityServiceHolder.getRootNode()
+        if (accessibilityRoot != null) {
+            return try {
+                AccessibilityNodeDumper.dump(accessibilityRoot, screenWidth, screenHeight)
+            } catch (e: Exception) {
+                Logger.w(TAG, "Accessibility dump failed, falling back to view hierarchy", e)
+                dumpViewHierarchyState()
+            } finally {
+                accessibilityRoot.recycle()
+            }
+        }
+        return dumpViewHierarchyState()
+    }
+
+    private fun dumpViewHierarchyState(): String {
+        return runOnUiThreadAndWait {
             val rootView = currentActivity?.window?.decorView?.rootView
             if (rootView == null) {
                 "Error: No activity root view available"
             } else {
                 try {
-                    ViewHierarchyExtractor.extractSemanticSummary(
-                        rootView = rootView,
-                        screenWidth = screenW,
-                        screenHeight = screenH,
-                        includeFullTree = false,
-                        maxSummaryTextLength = 30,
-                        maxSummaryElements = 30
-                    )
+                    ViewHierarchyExtractor.extract(rootView, screenWidth, screenHeight)
                 } catch (e: Exception) {
-                    Logger.w(TAG, "Failed to capture post-action state", e)
-                    "Warning: failed to capture post-action screen state: ${e.message}"
+                    "Error: Failed to extract screen info: ${e.message}"
                 }
             }
         } ?: "Error: No current activity reference available"
+    }
 
+    /**
+     * 捕获操作后的屏幕状态，并格式化为标准返回字符串。
+     */
+    private fun capturePostActionState(actionDescription: String): String {
+        val state = try {
+            dumpScreenState()
+        } catch (e: Exception) {
+            Logger.w(TAG, "Failed to capture post-action state", e)
+            "Warning: failed to capture post-action screen state: ${e.message}"
+        }
         return UiObservationFormatter.format(actionDescription, state)
     }
 
@@ -143,48 +178,22 @@ class PicMeToolService(
 
     // ==================== UI 感知工具 ====================
 
-    @Tool(name = "get_screen_info", value = ["获取当前屏幕的 UI 层级树信息（紧凑 JSON），包含所有可见元素的 class/id/text/bounds/clickable/scrollable 等属性。这是感知 UI 状态的唯一途径。注意：Compose 页面可能只显示 AndroidComposeView 而无子元素。"])
+    @Tool(name = "get_screen_info", value = ["获取当前屏幕的 UI 层级树信息（紧凑 JSON），包含所有可见元素的 class/text/content_desc/bounds/clickable/scrollable/editable 等属性。这是感知 UI 状态的唯一途径。若无障碍服务已开启，可识别 Compose 语义节点；否则仅返回 View 层级树。"])
     fun getScreenInfo(): String {
-        if (screenWidth <= 0 || screenHeight <= 0) {
-            val dm = android.util.DisplayMetrics()
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.getRealMetrics(dm)
-            screenWidth = dm.widthPixels
-            screenHeight = dm.heightPixels
-        }
-
-        return runOnUiThreadAndWait {
-            val rootView = currentActivity?.window?.decorView?.rootView
-            if (rootView == null) {
-                "Error: No activity root view available"
-            } else {
-                try {
-                    ViewHierarchyExtractor.extract(rootView, screenWidth, screenHeight)
-                } catch (e: Exception) {
-                    "Error: Failed to extract screen info: ${e.message}"
-                }
-            }
-        } ?: "Error: No current activity reference available"
+        return dumpScreenState()
     }
 
-    @Tool(name = "click", value = ["点击屏幕上的元素。必须且只能使用以下两种方式之一：1) 传 x 和 y 坐标；2) 传 text 按可见文本查找。坐标应从 get_screen_info 返回的 bounds 取中心点。"])
+    @Tool(name = "click", value = ["点击屏幕上的元素。必须且只能使用以下两种方式之一：1) 传 x 和 y 坐标；2) 传 text 按可见文本查找。坐标应从 get_screen_info 返回的 bounds 取中心点。无障碍服务开启时优先使用 Accessibility 点击，支持 Compose 语义节点。"])
     fun click(
         @P(name = "x", value = "X coordinate (use with y, mutually exclusive with text)") x: Int? = null,
         @P(name = "y", value = "Y coordinate (use with x, mutually exclusive with text)") y: Int? = null,
         @P(name = "text", value = "Click element by visible text (mutually exclusive with x/y)") text: String? = null
     ): String {
-        val actionResult = runOnUiThreadAndWait {
-            val rootView = currentActivity?.window?.decorView?.rootView
-                ?: return@runOnUiThreadAndWait "Error: No activity root view available"
-
-            if (text != null) {
-                clickByText(rootView, text)
-            } else if (x != null && y != null) {
-                clickByCoordinates(rootView, x, y)
-            } else {
-                "Error: Either provide (x, y) coordinates or text parameter"
-            }
-        } ?: "Error: No current activity reference available"
+        val actionResult = when {
+            text != null -> clickByText(text)
+            x != null && y != null -> clickByCoordinates(x, y)
+            else -> "Error: Either provide (x, y) coordinates or text parameter"
+        }
 
         if (actionResult.startsWith("Error:")) {
             return actionResult
@@ -192,6 +201,44 @@ class PicMeToolService(
 
         waitForUiSettle()
         return capturePostActionState(actionResult)
+    }
+
+    private fun clickByText(text: String): String {
+        val accessibilityRoot = AccessibilityServiceHolder.getRootNode()
+        if (accessibilityRoot != null) {
+            val ok = AccessibilityActionPerformer.clickByText(accessibilityRoot, text)
+            accessibilityRoot.recycle()
+            return if (ok) {
+                "Clicked element with text: '$text' via accessibility"
+            } else {
+                "Error: No accessible element with text: '$text'"
+            }
+        }
+
+        return runOnUiThreadAndWait {
+            val rootView = currentActivity?.window?.decorView?.rootView
+                ?: return@runOnUiThreadAndWait "Error: No activity root view available"
+            clickByText(rootView, text)
+        } ?: "Error: No current activity reference available"
+    }
+
+    private fun clickByCoordinates(x: Int, y: Int): String {
+        val accessibilityRoot = AccessibilityServiceHolder.getRootNode()
+        if (accessibilityRoot != null) {
+            val ok = AccessibilityActionPerformer.clickByCoordinate(accessibilityRoot, x, y)
+            accessibilityRoot.recycle()
+            return if (ok) {
+                "Clicked at ($x, $y) via accessibility"
+            } else {
+                "Error: Accessibility click failed at ($x, $y)"
+            }
+        }
+
+        return runOnUiThreadAndWait {
+            val rootView = currentActivity?.window?.decorView?.rootView
+                ?: return@runOnUiThreadAndWait "Error: No activity root view available"
+            clickByCoordinates(rootView, x, y)
+        } ?: "Error: No current activity reference available"
     }
 
     private fun clickByCoordinates(root: android.view.View, x: Int, y: Int): String {
@@ -224,34 +271,49 @@ class PicMeToolService(
         }
     }
 
-    @Tool(name = "input_text", value = ["在输入框中输入文本。输入前必须先点击输入框获取焦点；仅对原生 EditText 有效，Compose TextField 不支持。"])
+    @Tool(name = "input_text", value = ["在输入框中输入文本。输入前必须先点击输入框获取焦点；无障碍服务开启时支持 Compose TextField，否则仅支持原生 EditText。"])
     fun inputText(
         @P(name = "text", value = "要输入的文本内容") text: String,
         @P(name = "clear_first", value = "是否先清空现有文本，默认 true") clearFirst: Boolean = true
     ): String {
-        val actionResult = runOnUiThreadAndWait {
-            val rootView = currentActivity?.window?.decorView?.rootView
-                ?: return@runOnUiThreadAndWait "Error: No activity root view available"
-
-            val focusedEditText = findFocusedEditText(rootView)
-            if (focusedEditText != null) {
-                if (clearFirst) focusedEditText.setText("")
-                focusedEditText.append(text)
-                focusedEditText.setSelection(focusedEditText.text?.length ?: 0)
-                "Input text '$text' into focused EditText"
-            } else {
-                val firstEditText = findFirstEditText(rootView)
-                if (firstEditText != null) {
-                    firstEditText.requestFocus()
-                    if (clearFirst) firstEditText.setText("")
-                    firstEditText.append(text)
-                    firstEditText.setSelection(firstEditText.text?.length ?: 0)
-                    "Input text '$text' into first available EditText"
+        val actionResult = if (AccessibilityServiceHolder.isActive()) {
+            val accessibilityRoot = AccessibilityServiceHolder.getRootNode()
+            if (accessibilityRoot != null) {
+                val ok = AccessibilityActionPerformer.inputText(accessibilityRoot, text, clearFirst)
+                accessibilityRoot.recycle()
+                if (ok) {
+                    "Input text '$text' via accessibility"
                 } else {
-                    "Error: No EditText found on current screen"
+                    "Error: Accessibility input failed"
                 }
+            } else {
+                "Error: Accessibility service root not available"
             }
-        } ?: "Error: No current activity reference available"
+        } else {
+            runOnUiThreadAndWait {
+                val rootView = currentActivity?.window?.decorView?.rootView
+                    ?: return@runOnUiThreadAndWait "Error: No activity root view available"
+
+                val focusedEditText = findFocusedEditText(rootView)
+                if (focusedEditText != null) {
+                    if (clearFirst) focusedEditText.setText("")
+                    focusedEditText.append(text)
+                    focusedEditText.setSelection(focusedEditText.text?.length ?: 0)
+                    "Input text '$text' into focused EditText"
+                } else {
+                    val firstEditText = findFirstEditText(rootView)
+                    if (firstEditText != null) {
+                        firstEditText.requestFocus()
+                        if (clearFirst) firstEditText.setText("")
+                        firstEditText.append(text)
+                        firstEditText.setSelection(firstEditText.text?.length ?: 0)
+                        "Input text '$text' into first available EditText"
+                    } else {
+                        "Error: No EditText found on current screen"
+                    }
+                }
+            } ?: "Error: No current activity reference available"
+        }
 
         if (actionResult.startsWith("Error:")) {
             return actionResult
@@ -261,7 +323,7 @@ class PicMeToolService(
         return capturePostActionState(actionResult)
     }
 
-    @Tool(name = "scroll", value = ["在屏幕上滑动滚动。direction 为 up（向上滑，显示下方内容）或 down（向下滑，显示上方内容）；distance 为 page 或 small。仅对 RecyclerView/ScrollView 有效。"])
+    @Tool(name = "scroll", value = ["在屏幕上滑动滚动。direction 为 up（向上滑，显示下方内容）或 down（向下滑，显示上方内容）；distance 为 page 或 small。无障碍服务开启时支持 Compose 可滚动列表，否则仅支持 RecyclerView/ScrollView。"])
     fun scroll(
         @P(name = "direction", value = "滚动方向: up|down") direction: String,
         @P(name = "distance", value = "滚动距离: page|small，默认 page") distance: String = "page"
@@ -270,37 +332,53 @@ class PicMeToolService(
         if (dir !in listOf("up", "down")) {
             return "Error: Invalid direction: '$direction'. Must be 'up' or 'down'"
         }
+        @Suppress("UNUSED_VARIABLE")
         val isPage = distance != "small"
 
-        val actionResult = runOnUiThreadAndWait {
-            val rootView = currentActivity?.window?.decorView?.rootView
-                ?: return@runOnUiThreadAndWait "Error: No activity root view available"
-
-            when {
-                rootView is RecyclerView -> {
-                    val d = if (isPage) rootView.height else rootView.height / 3
-                    rootView.smoothScrollBy(0, if (dir == "down") d else -d)
-                    "Scrolled $direction in RecyclerView"
+        val actionResult = if (AccessibilityServiceHolder.isActive()) {
+            val accessibilityRoot = AccessibilityServiceHolder.getRootNode()
+            if (accessibilityRoot != null) {
+                val ok = AccessibilityActionPerformer.scroll(accessibilityRoot, dir)
+                accessibilityRoot.recycle()
+                if (ok) {
+                    "Scrolled $direction via accessibility"
+                } else {
+                    "Error: Accessibility scroll failed"
                 }
-                else -> {
-                    val recyclerView = findRecyclerView(rootView)
-                    if (recyclerView != null) {
-                        val d = if (isPage) recyclerView.height else recyclerView.height / 3
-                        recyclerView.smoothScrollBy(0, if (dir == "down") d else -d)
+            } else {
+                "Error: Accessibility service root not available"
+            }
+        } else {
+            runOnUiThreadAndWait {
+                val rootView = currentActivity?.window?.decorView?.rootView
+                    ?: return@runOnUiThreadAndWait "Error: No activity root view available"
+
+                when {
+                    rootView is RecyclerView -> {
+                        val d = if (isPage) rootView.height else rootView.height / 3
+                        rootView.smoothScrollBy(0, if (dir == "down") d else -d)
                         "Scrolled $direction in RecyclerView"
-                    } else {
-                        val scrollView = findScrollView(rootView)
-                        if (scrollView != null) {
-                            val d = if (isPage) scrollView.height else scrollView.height / 3
-                            scrollView.smoothScrollBy(0, if (dir == "down") d else -d)
-                            "Scrolled $direction in ScrollView"
+                    }
+                    else -> {
+                        val recyclerView = findRecyclerView(rootView)
+                        if (recyclerView != null) {
+                            val d = if (isPage) recyclerView.height else recyclerView.height / 3
+                            recyclerView.smoothScrollBy(0, if (dir == "down") d else -d)
+                            "Scrolled $direction in RecyclerView"
                         } else {
-                            "Error: No scrollable container found on current screen"
+                            val scrollView = findScrollView(rootView)
+                            if (scrollView != null) {
+                                val d = if (isPage) scrollView.height else scrollView.height / 3
+                                scrollView.smoothScrollBy(0, if (dir == "down") d else -d)
+                                "Scrolled $direction in ScrollView"
+                            } else {
+                                "Error: No scrollable container found on current screen"
+                            }
                         }
                     }
                 }
-            }
-        } ?: "Error: No current activity reference available"
+            } ?: "Error: No current activity reference available"
+        }
 
         if (actionResult.startsWith("Error:")) {
             return actionResult

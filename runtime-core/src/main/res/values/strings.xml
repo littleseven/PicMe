@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="picme_accessibility_service_label">PicMe AI 远程控制</string>
+    <string name="picme_accessibility_service_description">为飞书远程指令提供屏幕结构识别与自动化操作能力。仅在您主动开启时运行。</string>
+</resources>
