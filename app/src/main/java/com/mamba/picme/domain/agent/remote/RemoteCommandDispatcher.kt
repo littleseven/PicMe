@@ -271,6 +271,7 @@ class RemoteCommandDispatcher(
      * - 进入相册，搜索“去年夏天小孩”
      * - 查找上海的照片
      * - 打开相册，搜索7月的美女，预览第四张
+     * - 打开相册，预览7月1日的第四张美女图片
      *
      * 遇到“预览/查看/打开/点击/第 N 张”等后续动作词时停止，避免把预览指令也当成搜索词。
      */
@@ -278,13 +279,19 @@ class RemoteCommandDispatcher(
         val cleaned = text.replace("[\"“”]".toRegex(), "")
         val stopWords = "，?(?:预览|查看|打开|点击|第[一二三四五六七八九十0-9]+张)"
         val patterns = listOf(
+            // 显式搜索动词
             "搜索[:：]?(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex(),
             "查找[:：]?(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex(),
-            "找(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex()
+            "找(.+?)(?:的照片|(?=$stopWords)|\$)".toRegex(),
+            // 省略搜索动词、直接“预览/查看/打开 X 的第 N 张”
+            "预览(.+?)第[一二三四五六七八九十0-9]+张".toRegex(),
+            "查看(.+?)第[一二三四五六七八九十0-9]+张".toRegex(),
+            "打开(.+?)第[一二三四五六七八九十0-9]+张".toRegex()
         )
         for (pattern in patterns) {
             pattern.find(cleaned)?.groupValues?.get(1)?.trim()?.let {
-                if (it.isNotBlank()) return it
+                // 过滤掉纯“相册”这种无意义 query
+                if (it.isNotBlank() && it != "相册") return it
             }
         }
         return null
