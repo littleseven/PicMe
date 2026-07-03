@@ -8,6 +8,7 @@ import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
@@ -84,6 +85,24 @@ class RemoteCommandDispatcher(
         if (text.contains("拍照") || text.contains("拍张") || text.contains("拍照片")) {
             FeishuPhotoTracker.startCapture(messageId)
             Logger.i(tag, "飞书拍照追踪已启动: messageId=$messageId")
+        }
+
+        // ── 快速通道：相册搜索 ──
+        // 对于明确的“搜索照片”指令，直接走工具调用，避免依赖 LLM 是否遵循 prompt。
+        val directSearchQuery = extractSearchQuery(text)
+        if (directSearchQuery != null) {
+            withContext(Dispatchers.IO) {
+                channelHandler.sendMessage("⏳ 正在搜索照片...", messageId)
+                val wm = appContext.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+                val result = if (wm != null) {
+                    executeDirectGallerySearch(directSearchQuery, wm)
+                } else {
+                    "❌ WindowManager 不可用"
+                }
+                saveAgentMessage(result)
+                channelHandler.sendMessage(result, messageId)
+            }
+            return
         }
 
         withContext(Dispatchers.IO) {
@@ -241,6 +260,49 @@ class RemoteCommandDispatcher(
             chatSessionDao.touchSession(feishuSessionId)
         } catch (e: Exception) {
             Logger.w(tag, "Failed to save agent message", e)
+        }
+    }
+
+    /**
+     * 从用户输入中提取相册搜索关键词。
+     * 支持的句式：
+     * - 搜索去年夏天小孩的照片
+     * - 进入相册，搜索“去年夏天小孩”
+     * - 查找上海的照片
+     */
+    private fun extractSearchQuery(text: String): String? {
+        val cleaned = text.replace("[\"“”]".toRegex(), "")
+        val patterns = listOf(
+            "搜索[:：]?(.+?)(?:的照片|\$)".toRegex(),
+            "查找[:：]?(.+?)(?:的照片|\$)".toRegex(),
+            "找(.+?)的照片".toRegex()
+        )
+        for (pattern in patterns) {
+            pattern.find(cleaned)?.groupValues?.get(1)?.trim()?.let {
+                if (it.isNotBlank()) return it
+            }
+        }
+        return null
+    }
+
+    /**
+     * 直接执行相册搜索，不经过 LLM ReAct 循环。
+     */
+    private fun executeDirectGallerySearch(query: String, wm: WindowManager): String {
+        return try {
+            val toolService = PicMeToolService(wm)
+            val navigateResult = toolService.navigateTo("gallery")
+            if (navigateResult.startsWith("Error:")) {
+                return "❌ 进入相册失败：$navigateResult"
+            }
+            val searchResult = toolService.searchPhotos(query)
+            if (searchResult.startsWith("Error:")) {
+                return "❌ 搜索失败：$searchResult"
+            }
+            "✅ 已完成相册搜索：$searchResult"
+        } catch (e: Exception) {
+            Logger.e(tag, "Direct gallery search failed", e)
+            "❌ 搜索执行异常：${e.message ?: "未知错误"}"
         }
     }
 }
