@@ -4,7 +4,9 @@
 >
 > **方案变更（2026-06-17）**：从 SCF Relay Server 架构变更为设备端直连飞书 WebSocket，参考 [ApkClaw](https://github.com/apkclaw-team/ApkClaw) 的 Feishu OAPI SDK 集成方案，去除云端中转服务，架构更简洁、零基础设施成本。
 >
-> 产品定义见 [`../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制融合入口`](../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制融合入口)
+> **状态更新（2026-07-03）**：IM 远程控制已从 P0 产品线降级为 P2 实验线。本文档中的实现细节仍可作为技术参考，但优先级与资源投入需以 `PRODUCT.md` 为准。
+>
+> 产品定义见 [`../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2`](../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2)
 
 ---
 
@@ -526,7 +528,7 @@ class RemoteCommandDispatcher(
 
 | 文档 | 说明 |
 |------|------|
-| `../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制融合入口` | 产品交互规范 |
+| `../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2` | 产品交互规范 |
 | `../../PRODUCT.md` | 产品路线图与里程碑 |
 | `../../docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | Agent 架构详细设计 |
 | `../../docs/03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md` | 远程推理架构（LLM 复用层） |

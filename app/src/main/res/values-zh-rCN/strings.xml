@@ -114,6 +114,9 @@
     <string name="edit">编辑</string>
     <string name="save">保存</string>
     <string name="apply">应用</string>
+    <string name="ai_optimize">AI 一键优化</string>
+    <string name="ai_optimize_not_available">AI 优化暂不可用</string>
+    <string name="ai_optimize_failed">AI 优化失败：%1$s</string>
     <string name="processing">处理中...</string>
     <string name="analyzing_face">分析人脸中...</string>
     <string name="doodle">涂鸦</string>

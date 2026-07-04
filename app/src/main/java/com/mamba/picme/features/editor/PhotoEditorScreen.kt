@@ -40,6 +40,7 @@ import com.mamba.picme.features.editor.components.MarkupPanel
 fun PhotoEditorScreen(
     sourceUri: String,
     recipeUri: String?,
+    autoOptimize: Boolean = false,
     viewModel: PhotoEditorViewModel,
     onNavigateBack: () -> Unit,
     onEditSaved: (String) -> Unit
@@ -48,7 +49,7 @@ fun PhotoEditorScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.load(context, sourceUri, recipeUri)
+        viewModel.load(context, sourceUri, recipeUri, autoOptimize)
         viewModel.onSaveComplete = onEditSaved
     }
 
@@ -67,6 +68,7 @@ fun PhotoEditorScreen(
                 onUndo = viewModel::undo,
                 onRedo = viewModel::redo,
                 onCompare = { /* handled in preview */ },
+                onAiOptimize = viewModel::aiOptimize,
                 onDone = {
                     val ready = state as? PhotoEditorViewModel.State.Ready ?: return@EditorTopBar
                     viewModel.save(context, ready.recipe)

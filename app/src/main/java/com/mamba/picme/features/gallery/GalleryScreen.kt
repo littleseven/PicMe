@@ -794,6 +794,12 @@ fun GalleryScreen(
                                 navOptions { launchSingleTop = true }
                             )
                         },
+                        onAiOptimize = { asset ->
+                            navController.navigate(
+                                Screen.PhotoEditor.createRoute(sourceUri = asset.uri, autoOptimize = true),
+                                navOptions { launchSingleTop = true }
+                            )
+                        },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = {
                             searchScope.launch {

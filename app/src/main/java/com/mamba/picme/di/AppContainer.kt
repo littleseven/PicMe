@@ -37,6 +37,11 @@ import com.mamba.picme.domain.tag.i18n.OpusMtTranslator
 import com.mamba.picme.domain.tag.i18n.TagTranslator
 import com.mamba.picme.data.download.LlmModelDownloadManager
 import com.mamba.picme.data.download.ModelPathConfig
+import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
+import com.mamba.picme.domain.agent.capability.optimize.analyzer.LocalSceneAnalyzer
+import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
+import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
+import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
@@ -114,6 +119,7 @@ interface AppContainer {
     val thumbnailCache: ThumbnailCache
 
     val photoEditRecipeRepository: PhotoEditRecipeRepository
+    val aiOptimizeUseCase: AiOptimizeUseCase
 
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
@@ -265,6 +271,15 @@ class AppContainerImpl(
         PhotoEditRecipeRepository(database.photoEditRecipeDao())
     }
 
+    override val aiOptimizeUseCase: AiOptimizeUseCase by lazy {
+        AiOptimizeUseCase(
+            sceneAnalyzer = LocalSceneAnalyzer(context, faceDetector),
+            presetRepository = AssetPresetRepository(context),
+            consentManager = CloudOptimizeConsentManager(context),
+            smartEngine = null
+        )
+    }
+
     override val userPreferencesRepository: UserSettingsRepository by lazy {
         UserPreferencesRepository(context)
     }
@@ -274,7 +289,11 @@ class AppContainerImpl(
     }
 
     private val photoProcessor: PhotoProcessor by lazy {
-        GlBeautyPreviewProviderFactory().createPhotoProcessor(context)
+        photoProcessorFactory(context)
+    }
+
+    private fun photoProcessorFactory(ctx: Context): PhotoProcessor {
+        return GlBeautyPreviewProviderFactory().createPhotoProcessor(ctx)
     }
 
     override val imageProcessor: ImageProcessor by lazy {
@@ -369,10 +388,12 @@ class AppContainerImpl(
 
     private val photoEditorViewModelFactory: ViewModelProvider.Factory by lazy {
         PhotoEditorViewModelFactory(
-            photoProcessor = photoProcessor,
+            appContext = context,
+            photoProcessorFactory = ::photoProcessorFactory,
             faceDetector = faceDetector,
             recipeRepository = photoEditRecipeRepository,
-            mediaRepository = repository
+            mediaRepository = repository,
+            aiOptimizeUseCase = aiOptimizeUseCase
         )
     }
 

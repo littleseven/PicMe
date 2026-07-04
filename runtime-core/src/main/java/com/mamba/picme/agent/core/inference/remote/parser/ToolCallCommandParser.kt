@@ -64,6 +64,7 @@ object ToolCallCommandParser {
             "switch_mode" -> parseSwitchMode(args)
             "navigate_to" -> parseNavigateTo(args)
             "go_back" -> AgentCommand.GoBack()
+            "ai_optimize" -> parseAiOptimize(args)
             "text_reply" -> parseTextReply(args)
             "launch_app" -> parseLaunchApp(args)
             "open_system_settings" -> parseOpenSystemSettings(args)
@@ -164,6 +165,12 @@ object ToolCallCommandParser {
     private fun parseNavigateTo(args: JSONObject): AgentCommand.NavigateTo {
         val destination = args.optString("destination", "")
         return AgentCommand.NavigateTo(destination = destination)
+    }
+
+    private fun parseAiOptimize(args: JSONObject): AgentCommand.AiOptimize {
+        val imageUri = args.optString("image_uri", "")
+        val mode = args.optString("mode", "fast")
+        return AgentCommand.AiOptimize(imageUri = imageUri, mode = mode)
     }
 
     private fun parseTextReply(args: JSONObject): AgentCommand.TextReply {

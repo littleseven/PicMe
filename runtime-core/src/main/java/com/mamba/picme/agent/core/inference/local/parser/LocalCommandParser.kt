@@ -400,6 +400,13 @@ object LocalCommandParser {
             }
             "go_back" -> AgentCommand.GoBack(commandId = commandId)
 
+            // ===== 编辑命令 =====
+            "ai_optimize" -> {
+                val imageUri = extractJsonField(json, "image_uri") ?: ""
+                val mode = extractJsonField(json, "mode") ?: "fast"
+                AgentCommand.AiOptimize(commandId = commandId, imageUri = imageUri, mode = mode)
+            }
+
             // ===== 设置命令 =====
             "change_theme" -> {
                 val theme = extractJsonField(json, "theme") ?: "system"
@@ -633,6 +640,14 @@ object LocalCommandParser {
                 AgentCommand.DeleteMedia(mediaIds = emptyList())
             lower.contains("分享") ->
                 AgentCommand.ShareMedia(mediaIds = emptyList())
+            // AI 一键优化（兜底：无 JSON 时通过关键词触发；image_uri 由 Capability 从 PageContext 补全）
+            lower.contains("优化") || lower.contains("修一下") || lower.contains("修图") ||
+                lower.contains("美化") || lower.contains("增强") || lower.contains("调一下") ||
+                lower.contains("帮我修") || lower.contains("智能优化") || lower.contains("一键优化") ||
+                (lower.contains("修") && lower.contains("照片")) ||
+                (lower.contains("修") && lower.contains("图")) ||
+                (lower.contains("调") && lower.contains("照片")) ->
+                AgentCommand.AiOptimize(imageUri = "", mode = "fast")
             else -> null
         }
     }

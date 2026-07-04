@@ -295,6 +295,11 @@ class AiAgentUseCase(
             is AgentCommand.DownloadModel -> AiAgentCommand.TextReply("下载模型: ${command.modelId}")
             is AgentCommand.SwitchFaceEngine -> AiAgentCommand.TextReply("切换人脸引擎: ${command.engine}")
             is AgentCommand.ToggleSetting -> AiAgentCommand.TextReply("切换设置: ${command.settingKey}")
+            // AI 一键优化
+            is AgentCommand.AiOptimize -> {
+                command.resultRecipe?.let { AiAgentCommand.ApplyEditRecipe(it) }
+                    ?: AiAgentCommand.TextReply("AI 优化图片: ${command.imageUri}")
+            }
             // 系统/外部 App 命令
             is AgentCommand.LaunchApp -> AiAgentCommand.TextReply("打开应用: ${command.appName ?: command.packageName}")
             is AgentCommand.OpenSystemSettings -> AiAgentCommand.TextReply("打开设置: ${command.setting}")
@@ -351,6 +356,11 @@ class AiAgentUseCase(
                     is AgentCommand.DownloadModel -> AiAgentCommand.TextReply("下载模型: ${cmd.modelId}")
                     is AgentCommand.SwitchFaceEngine -> AiAgentCommand.TextReply("切换人脸引擎: ${cmd.engine}")
                     is AgentCommand.ToggleSetting -> AiAgentCommand.TextReply("切换设置: ${cmd.settingKey}")
+                    // AI 一键优化
+                    is AgentCommand.AiOptimize -> {
+                        cmd.resultRecipe?.let { AiAgentCommand.ApplyEditRecipe(it) }
+                            ?: AiAgentCommand.TextReply("AI 优化图片: ${cmd.imageUri}")
+                    }
                     // 系统/外部 App 命令
                     is AgentCommand.LaunchApp -> AiAgentCommand.TextReply("打开应用: ${cmd.appName ?: cmd.packageName}")
                     is AgentCommand.OpenSystemSettings -> AiAgentCommand.TextReply("打开设置: ${cmd.setting}")

@@ -260,6 +260,10 @@ class MainActivity : ComponentActivity() {
                                         type = NavType.StringType
                                         defaultValue = ""
                                         nullable = true
+                                    },
+                                    navArgument("autoOptimize") {
+                                        type = NavType.BoolType
+                                        defaultValue = false
                                     }
                                 )
                             ) { backStackEntry ->
@@ -268,6 +272,7 @@ class MainActivity : ComponentActivity() {
                                 val sourceUri = java.net.URLDecoder.decode(encodedSource, "UTF-8")
                                 val recipeUri = encodedRecipe.takeIf { it.isNotBlank() }
                                     ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                                val autoOptimize = backStackEntry.arguments?.getBoolean("autoOptimize") ?: false
 
                                 val factory = app.container.createPhotoEditorViewModelFactory()
                                 val viewModel: PhotoEditorViewModel = viewModel(factory = factory)
@@ -275,6 +280,7 @@ class MainActivity : ComponentActivity() {
                                 PhotoEditorScreen(
                                     sourceUri = sourceUri,
                                     recipeUri = recipeUri,
+                                    autoOptimize = autoOptimize,
                                     viewModel = viewModel,
                                     onNavigateBack = { navController.popBackStack() },
                                     onEditSaved = { outputUri ->

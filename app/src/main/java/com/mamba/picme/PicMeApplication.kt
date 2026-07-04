@@ -23,6 +23,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.platform.logging.Logger as AgentCoreLogger
 import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
+import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 // 其他页面级 Capability 由各 Screen 自行创建
 import com.mamba.picme.domain.agent.remote.FeishuChannelHandler
@@ -509,8 +510,16 @@ class PicMeApplication : Application(), ImageLoaderFactory {
         Logger.i(TAG, "- CameraCapability: Page-scoped (CameraScreen)")
         Logger.i(TAG, "- GalleryCapability: Page-scoped (GalleryScreen) + global registry")
         Logger.i(TAG, "- SettingsCapability: Page-scoped (SettingsScreen)")
+        Logger.i(TAG, "- AiOptimizeCapability: Application-scoped")
 
-        AgentOrchestrator.getInstance(this).registerCapability(GalleryCapability.getInstance())
+        val orchestrator = AgentOrchestrator.getInstance(this)
+        orchestrator.registerCapability(GalleryCapability.getInstance())
+        orchestrator.registerCapability(
+            AiOptimizeCapability(
+                context = this,
+                optimizeUseCase = container.aiOptimizeUseCase
+            )
+        )
     }
 
     override fun newImageLoader(): ImageLoader {

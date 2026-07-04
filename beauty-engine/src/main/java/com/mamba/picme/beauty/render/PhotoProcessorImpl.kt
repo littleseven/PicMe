@@ -149,7 +149,12 @@ class PhotoProcessorImpl(private val context: Context) : PhotoProcessor {
             return
         }
 
-        Logger.d(TAG, "Initializing EGL for photo processing")
+        Logger.d(TAG, "Initializing EGL for photo processing on thread ${Thread.currentThread().name}")
+
+        // [关键修复] 上下文失效/线程切换后，旧 EGL 上下文下的 Shader/FBO/纹理全部失效，
+        // 必须在创建新上下文前彻底释放，否则 BeautyRenderer 会复用无效 program ID，
+        // 导致渲染黑屏。
+        releaseContextDependentResources()
 
         if (!eglCore.init()) {
             throw PhotoProcessException("EGL initialization failed")
@@ -182,6 +187,41 @@ class PhotoProcessorImpl(private val context: Context) : PhotoProcessor {
 
         isEglInitialized = true
         Logger.d(TAG, "EGL initialized successfully for photo processing (Pbuffer=${pbWidth}x${pbHeight})")
+    }
+
+    /**
+     * 释放依赖 EGL 上下文的资源。
+     *
+     * 当 EGL 上下文因线程切换、驱动回收等原因失效时，必须连同 ShaderProgram、FBO、
+     * 纹理一起重建，否则后续渲染会使用已失效的 OpenGL 对象句柄，输出黑屏。
+     */
+    private fun releaseContextDependentResources() {
+        // 释放 BeautyRenderer（内部持有主 Shader 与 2D Shader）
+        beautyRenderer?.release()
+        beautyRenderer = null
+
+        // 释放输入纹理
+        if (inputTextureId != 0) {
+            GLES20.glDeleteTextures(1, intArrayOf(inputTextureId), 0)
+            inputTextureId = 0
+        }
+
+        // 释放 FBO
+        deleteFbo()
+
+        // 释放 EGL 上下文与 Surface
+        if (isEglInitialized) {
+            eglCore.clearCurrent()
+            if (eglSurface != EGL14.EGL_NO_SURFACE) {
+                EGL14.eglDestroySurface(eglCore.eglDisplay, eglSurface)
+                eglSurface = EGL14.EGL_NO_SURFACE
+            }
+            if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                EGL14.eglDestroyContext(eglCore.eglDisplay, eglContext)
+                eglContext = EGL14.EGL_NO_CONTEXT
+            }
+            eglCore.release()
+        }
     }
 
     /**

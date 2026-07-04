@@ -487,6 +487,8 @@ class ChatViewModel(
                 "✅ 已打开 $target"
             }
             is AgentCommand.OpenSystemSettings -> "✅ 已打开 ${command.setting} 设置"
+            is AgentCommand.AiOptimize -> command.explanation?.let { "✅ $it" }
+                ?: "✅ 已执行 AI 一键优化"
             is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
             else -> "✅ 已执行 ${AgentCommand.getMethodName(command)}"
         }

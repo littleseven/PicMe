@@ -265,7 +265,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 
 | 红线 | 定义 | 验证方式 |
 |------|------|----------|
-| **[PRIVACY]** | 敏感数据强制本地推理，零云端推理（敏感数据） | 权限清单扫描、网络抓包 |
+| **[PRIVACY]** | 敏感数据优先本地推理；确需云端处理时，必须获得用户授权且不得留存 | 权限清单扫描、网络抓包、授权流程审计 |
 | **[PERF]** | 交互 < 100ms，快门 < 50ms | 性能测试、人工体感 |
 | **[I18N]** | 禁止硬编码，三语同步 | 资源文件检查 |
 | **[DOC-SYNC]** | 代码变更必须同步文档 | CI 文档检查 |
@@ -306,7 +306,8 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **AI 协作角色** | `agents/README.md`, `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`app/src/.../features/camera/` 等） |
 | **技术专项** | `docs/*.md` |
-| **IM 远程控制技术规格（新增）** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md` |
+| **IM 远程控制技术规格** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md` |
+| **AI 一键优化参数标准** | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZE_PARAMETER_STANDARD.md` |
 
 > **架构说明（2026-06-26）**：
 > - **`:agent-core` 是 Java Android Library**（非 Kotlin），提供 LangChain4j 风格的 ChatModel、@Tool、AiServices、ChatMemory 等 API
@@ -333,5 +334,5 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 ---
 
 > **维护者**：CO Agent
-> **最后更新**：2026-06-22
+> **最后更新**：2026-07-03
 > **实验状态**：进行中 · Phase 5（agent-core Java 库独立发布 + PicMe Demo 验证 + IM 远程控制）

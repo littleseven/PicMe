@@ -298,6 +298,8 @@ private fun mapAgentActionToAiAgentCommand(action: AgentAction.Success): AiAgent
             AiAgentCommand.NavigateTo(cmd.destination)
         is AgentCommand.GoBack ->
             AiAgentCommand.GoBack
+        is AgentCommand.AiOptimize ->
+            cmd.resultRecipe?.let { AiAgentCommand.ApplyEditRecipe(it) }
         else -> null
     }
 }
@@ -371,6 +373,7 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.SearchMedia -> "搜索照片"
         is AgentCommand.SwitchViewMode -> "切换视图"
         is AgentCommand.FavoriteMedia -> "收藏照片"
+        is AgentCommand.AiOptimize -> "AI 一键优化"
         is AgentCommand.LaunchApp -> "打开应用"
         is AgentCommand.OpenSystemSettings -> "打开设置"
         is AgentCommand.Unknown -> "未知命令"
@@ -410,6 +413,7 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.SearchMedia -> Icons.Rounded.Search
     is AgentCommand.SwitchViewMode -> Icons.Rounded.GridView
     is AgentCommand.FavoriteMedia -> Icons.Rounded.Favorite
+    is AgentCommand.AiOptimize -> Icons.Rounded.AutoFixHigh
     is AgentCommand.LaunchApp -> Icons.AutoMirrored.Rounded.Launch
     is AgentCommand.OpenSystemSettings -> Icons.Rounded.Settings
     is AgentCommand.Unknown -> Icons.AutoMirrored.Rounded.Help

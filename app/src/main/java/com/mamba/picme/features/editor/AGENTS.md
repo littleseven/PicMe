@@ -6,9 +6,9 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-> **版本**: 2.0  
+> **版本**: 2.1  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-02  
+> **最后更新**: 2026-07-03  
 > **维护者**: RD Agent
 
 **模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜（Phase 2）、标记（Phase 2）五大类编辑。
@@ -73,6 +73,8 @@ val recipe = EditRecipe(
 - 裁剪矩形使用原图归一化坐标；`AspectRatio.FREE` 时不裁剪
 - 旋转后通过 `Bitmap.createBitmap` 生成新 Bitmap
 - 人脸检测缓存由 `PhotoEditorViewModel` 提供，避免重复检测
+- `applyGpuEffects` 运行在独立单线程调度器上，避免 EGL 上下文在协程线程池间切换而失效
+- GPU 路径抛出异常或输出全黑时，降级为 CPU 滤镜兜底，确保不显示黑屏
 
 ### 2.4 ViewModel 与状态 (PhotoEditorViewModel)
 
@@ -129,7 +131,7 @@ sealed class State {
 
 - **图片加载**: 必须在 `Dispatchers.IO` 线程加载/解码大图，严禁在 UI 线程解码
 - **Bitmap 回收**: `sourceBitmap` 在 ViewModel `onCleared()` 时回收；中间 Bitmap 不手动 recycle，依赖垃圾回收
-- **线程管理**: 预览处理在 `Dispatchers.Default`，保存写入在 `Dispatchers.IO`
+- **线程管理**: 预览处理在独立单线程调度器（PhotoProcessor EGL 上下文绑定），裁剪/标记在 `Dispatchers.Default`，保存写入在 `Dispatchers.IO`
 - **I18N**: 所有用户可见文案必须提取到 strings.xml，禁止硬编码
 - **权限检查**: 保存前无需显式检查存储权限（Android 10+ Scoped Storage）
 - **日志规范**: 关键操作（加载、保存、撤销、预览失败）需记录 `PicMe:Editor` 日志
@@ -146,6 +148,7 @@ sealed class State {
 - [ ] 所有新 UI 文案是否已提取到 strings.xml？(I18N)
 - [ ] `AspectRatio` 显示文案是否通过 `stringResource(labelRes)` 获取？
 - [ ] 编辑后的图片是否正确通知了相册刷新？(`mediaRepository.refreshMediaLibrary()`)
+- [ ] GPU 预览失败或输出黑屏时是否有 CPU 兜底？(RecipeApplier 全黑检测 + filter fallback)
 - [ ] 是否处理了图片加载失败的异常？(try-catch + State.Error)
 
 ## 5. 与产品文档对照 (Product Alignment)

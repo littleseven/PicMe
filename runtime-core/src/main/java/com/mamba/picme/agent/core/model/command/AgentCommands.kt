@@ -248,6 +248,22 @@ sealed class AgentCommand {
 
     // ==================== 编辑命令 ====================
 
+    /**
+     * AI 一键优化图片
+     *
+     * @property imageUri 待优化图片的本地 URI
+     * @property mode 优化模式：fast 本地快速优化（默认），smart 云端智能推荐
+     * @property explanation 执行后生成的用户说明（Capability 回写）
+     * @property resultRecipe 执行后生成的编辑配方 JSON（Capability 回写，UI 据此进入编辑器）
+     */
+    data class AiOptimize(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val imageUri: String,
+        val mode: String = "fast",
+        val explanation: String? = null,
+        val resultRecipe: String? = null
+    ) : AgentCommand()
+
     // ==================== 系统/外部 App 命令 ====================
 
     /**
@@ -359,6 +375,7 @@ sealed class AgentCommand {
             is ToggleSetting -> "toggle_setting"
             is NavigateTo -> "navigate_to"
             is GoBack -> "go_back"
+            is AiOptimize -> "ai_optimize"
             is LaunchApp -> "launch_app"
             is OpenSystemSettings -> "open_system_settings"
             is BatchExecute -> "batch_execute"

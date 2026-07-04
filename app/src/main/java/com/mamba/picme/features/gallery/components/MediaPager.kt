@@ -145,6 +145,7 @@ fun MediaPager(
     onDismissOcr: () -> Unit,
     ocrState: StateFlow<MediaViewModel.OcrResult?>,
     onNavigateToEditor: (MediaAsset) -> Unit,
+    onAiOptimize: (MediaAsset) -> Unit,
     voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: () -> Unit = {}
 ) {
@@ -417,16 +418,45 @@ fun MediaPager(
                 onSendMessage = { input ->
                     pagerMessages.value = pagerMessages.value + AgentMessage.UserText(content = input)
                     pagerIsProcessing = true
-                    // TODO: 集成图片编辑相关的 Agent 处理
                     scope.launch {
-                        kotlinx.coroutines.delay(500)
-                        pagerIsProcessing = false
-                        pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                            content = "我收到了您的指令：$input。图片编辑功能正在开发中..."
-                        )
+                        val lower = input.lowercase()
+                        val isOptimizeRequest = lower.contains("优化") || lower.contains("修一下") ||
+                            lower.contains("修图") || lower.contains("美化") || lower.contains("增强") ||
+                            lower.contains("调一下") || lower.contains("帮我修") ||
+                            lower.contains("智能优化") || lower.contains("一键优化") ||
+                            (lower.contains("修") && (lower.contains("照片") || lower.contains("图"))) ||
+                            (lower.contains("调") && lower.contains("照片"))
+
+                        if (isOptimizeRequest) {
+                            val asset = currentAsset
+                            if (asset != null) {
+                                pagerIsProcessing = false
+                                pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
+                                    content = "好的，正在为您打开 AI 优化编辑器..."
+                                )
+                                showAiChatPanel = false
+                                onAiOptimize(asset)
+                            } else {
+                                pagerIsProcessing = false
+                                pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
+                                    content = "请先选择一张图片，我再帮您优化~"
+                                )
+                            }
+                        } else {
+                            kotlinx.coroutines.delay(500)
+                            pagerIsProcessing = false
+                            pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
+                                content = "我收到了您的指令：$input。当前相册预览仅支持 AI 一键优化，可以说“优化这张照片”。"
+                            )
+                        }
                     }
                 },
-                onCommand = { /* TODO: 处理图片编辑命令 */ }
+                onCommand = { command ->
+                    if (command is com.mamba.picme.domain.model.AiAgentCommand.ApplyEditRecipe) {
+                        // 语音/Agent 通道已生成优化配方，由上层导航到编辑器应用
+                        currentAsset?.let { onAiOptimize(it) }
+                    }
+                }
             )
         }
     }

@@ -13,6 +13,7 @@ import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,8 +25,10 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import com.mamba.picme.R
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
 
 private const val TAG = "PhotoEditorViewModel"
 private const val PREVIEW_MAX_DIM = 2048
@@ -35,7 +38,8 @@ class PhotoEditorViewModel(
     private val photoProcessor: PhotoProcessor,
     private val faceDetector: FaceDetector,
     private val recipeRepository: PhotoEditRecipeRepository,
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    private val aiOptimizeUseCase: AiOptimizeUseCase? = null
 ) : ViewModel() {
 
     sealed class State {
@@ -66,6 +70,14 @@ class PhotoEditorViewModel(
     private var cachedFaceData: FaceData? = null
     private var appContext: Context? = null
 
+    /**
+     * 照片处理专用单线程调度器。
+     *
+     * PhotoProcessor 内部使用 EGL 上下文，必须在同一线程上调用；
+     * 协程 [Dispatchers.Default] 线程池可能切换线程，导致 EGL 上下文失效而黑屏。
+     */
+    private val photoProcessingDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+
     init {
         _recipeChanges
             .drop(1)
@@ -77,7 +89,7 @@ class PhotoEditorViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun load(context: Context, sourceUri: String, recipeUri: String?) {
+    fun load(context: Context, sourceUri: String, recipeUri: String?, autoOptimize: Boolean = false) {
         appContext = context.applicationContext
         viewModelScope.launch {
             try {
@@ -93,6 +105,9 @@ class PhotoEditorViewModel(
                 history.reset(loadedRecipe)
                 _state.value = State.Ready(originalBitmap = bitmap, previewBitmap = bitmap, recipe = loadedRecipe)
                 processPreview(loadedRecipe)
+                if (autoOptimize) {
+                    aiOptimize()
+                }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to load photo", e)
                 _state.value = State.Error(
@@ -158,6 +173,39 @@ class PhotoEditorViewModel(
         _recipeChanges.value = recipe
     }
 
+    /**
+     * AI 一键优化：分析当前图片场景并应用推荐配方。
+     */
+    fun aiOptimize() {
+        val useCase = aiOptimizeUseCase ?: run {
+            _state.value = (_state.value as? State.Ready)?.copy(
+                error = appContext?.getString(R.string.ai_optimize_not_available) ?: "AI 优化不可用"
+            ) ?: State.Error("AI 优化不可用")
+            return
+        }
+        val current = _state.value as? State.Ready ?: return
+        val sourceUri = current.recipe.sourceUri
+        viewModelScope.launch {
+            val processingState = current.copy(isProcessing = true, error = null)
+            _state.value = processingState
+            try {
+                val result = useCase.fastOptimize(sourceUri, current.recipe)
+                history.push(result.editRecipe)
+                _state.value = processingState.copy(
+                    recipe = result.editRecipe,
+                    isProcessing = false
+                )
+                _recipeChanges.value = result.editRecipe
+            } catch (e: Exception) {
+                Logger.e(TAG, "AI optimize failed", e)
+                _state.value = processingState.copy(
+                    isProcessing = false,
+                    error = appContext?.getString(R.string.ai_optimize_failed, e.message ?: "") ?: "AI 优化失败"
+                )
+            }
+        }
+    }
+
     fun redo() {
         val recipe = history.redo() ?: return
         val current = _state.value as? State.Ready ?: return
@@ -171,7 +219,7 @@ class PhotoEditorViewModel(
             val current = _state.value as? State.Ready ?: return@launch
             _state.value = current.copy(isProcessing = true)
             try {
-                val applier = RecipeApplier(photoProcessor)
+                val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher)
                 val cropped = withContext(Dispatchers.Default) { applier.applyCrop(base, recipe.crop) }
                 val processed = applier.applyGpuEffects(cropped, recipe, cachedFaceData)
                 val marked = withContext(Dispatchers.Default) { applier.applyMarkup(processed, recipe.markup) }
@@ -195,7 +243,7 @@ class PhotoEditorViewModel(
             _state.value = current.copy(isSaving = true)
             try {
                 val fullBitmap = decodeFullBitmap(context, Uri.parse(recipe.sourceUri)) ?: return@launch
-                val applier = RecipeApplier(photoProcessor)
+                val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher)
                 val cropped = withContext(Dispatchers.Default) { applier.applyCrop(fullBitmap, recipe.crop) }
                 val processed = applier.applyGpuEffects(cropped, recipe, cachedFaceData)
                 val finalBitmap = withContext(Dispatchers.Default) { applier.applyMarkup(processed, recipe.markup) }
@@ -249,5 +297,9 @@ class PhotoEditorViewModel(
     override fun onCleared() {
         super.onCleared()
         sourceBitmap?.takeIf { !it.isRecycled }?.recycle()
+        runCatching {
+            photoProcessor.release()
+            photoProcessingDispatcher.close()
+        }.onFailure { Logger.e(TAG, "Failed to release photo processor", it) }
     }
 }

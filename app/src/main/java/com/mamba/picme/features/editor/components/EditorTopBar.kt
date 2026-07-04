@@ -3,6 +3,7 @@ package com.mamba.picme.features.editor.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -28,6 +29,7 @@ fun EditorTopBar(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onCompare: (pressed: Boolean) -> Unit,
+    onAiOptimize: () -> Unit,
     onDone: () -> Unit
 ) {
     CenterAlignedTopAppBar(
@@ -41,6 +43,12 @@ fun EditorTopBar(
             }
         },
         actions = {
+            IconButton(onClick = onAiOptimize, enabled = !isSaving) {
+                Icon(
+                    imageVector = Icons.Default.AutoFixHigh,
+                    contentDescription = stringResource(R.string.ai_optimize)
+                )
+            }
             IconButton(onClick = onUndo, enabled = canUndo) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Undo,

@@ -491,4 +491,54 @@ class AgentOrchestratorParseTest {
         )
     }
 
+    // ------------------------------------------------------------------
+    // AI 一键优化关键词兜底测试
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `parseLlmResponse optimize photo keyword maps to AiOptimize`() {
+        val input = "优化这张照片"
+        val command = LocalCommandParser.parseLlmResponse(input, defaultContext)
+        assertTrue(
+            "「优化这张照片」应解析为 AiOptimize",
+            command is AgentCommand.AiOptimize
+        )
+        val optimize = command as AgentCommand.AiOptimize
+        assertEquals("fast", optimize.mode)
+    }
+
+    @Test
+    fun `parseLlmResponse repair portrait keyword maps to AiOptimize`() {
+        val input = "把这张人像修一下"
+        val command = LocalCommandParser.parseLlmResponse(input, defaultContext)
+        assertTrue(
+            "「把这张人像修一下」应解析为 AiOptimize",
+            command is AgentCommand.AiOptimize
+        )
+    }
+
+    @Test
+    fun `parseLlmResponse beautify keyword maps to AiOptimize`() {
+        val input = "帮我美化一下这张图"
+        val command = LocalCommandParser.parseLlmResponse(input, defaultContext)
+        assertTrue(
+            "「帮我美化一下这张图」应解析为 AiOptimize",
+            command is AgentCommand.AiOptimize
+        )
+    }
+
+    @Test
+    fun `parseCommandByMethod ai_optimize returns AiOptimize`() {
+        val command = LocalCommandParser.parseCommandByMethod(
+            method = "ai_optimize",
+            json = "{\"action\":\"ai_optimize\",\"image_uri\":\"file:///test.jpg\",\"mode\":\"smart\"}",
+            context = defaultContext,
+            fallbackText = ""
+        )
+        assertTrue(command is AgentCommand.AiOptimize)
+        val optimize = command as AgentCommand.AiOptimize
+        assertEquals("file:///test.jpg", optimize.imageUri)
+        assertEquals("smart", optimize.mode)
+    }
+
 }

@@ -178,6 +178,9 @@ internal class CameraAgentCommandHandler(
             is AiAgentCommand.SearchMedia -> {
                 Logger.d(TAG, "SearchMedia handled by Gallery, not Camera")
             }
+            is AiAgentCommand.ApplyEditRecipe -> {
+                Logger.d(TAG, "ApplyEditRecipe handled by Editor, not Camera")
+            }
         }
     }
 

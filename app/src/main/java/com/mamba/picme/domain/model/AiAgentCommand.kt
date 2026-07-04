@@ -132,4 +132,14 @@ sealed class AiAgentCommand {
     data class SearchMedia(
         val query: String
     ) : AiAgentCommand()
+
+    /**
+     * 应用 AI 优化后的编辑配方
+     *
+     * @property recipeJson 由 [com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability]
+     *                     生成的 OptimizeResultDto JSON
+     */
+    data class ApplyEditRecipe(
+        val recipeJson: String
+    ) : AiAgentCommand()
 }

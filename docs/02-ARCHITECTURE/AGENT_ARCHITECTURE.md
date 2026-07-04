@@ -33,7 +33,7 @@
 
 | 约束 | 定义 | 验证方式 |
 |------|------|----------|
-| **[PRIVACY]** | 敏感数据强制本地推理，人脸/对话数据严禁上云 | PrivacyGuard 拦截数据流 |
+| **[PRIVACY]** | 敏感数据优先本地推理；确需云端处理时，必须获得用户授权且不得留存 | PrivacyGuard 拦截数据流 + 授权流程审计 |
 | **[PERF]** | 交互反馈 < 100ms，LLM 推理后台完成 | 端侧 Qwen3.5-2B 首 token 目标 < 600ms |
 | **[I18N]** | System Prompt 及用户可见回复禁止硬编码中文 | 接入 string 资源 |
 | **[OFFLINE]** | 本地模型未下载时提供明确引导 | 非静默失败 |
@@ -250,15 +250,15 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
 class SceneManager {
     
     enum class Scene {
-        CHAT,        // 聊天首页（默认）
+        GALLERY,     // 相册首页（默认）
+        CHAT,        // AI 对话二级页
         CAMERA,      // 相机页
-        GALLERY,     // 相册页
         SETTINGS,    // 设置页
         EDITOR,      // 编辑页
         DEBUG        // 调试页
     }
     
-    private val _currentScene = MutableStateFlow(Scene.CHAT)
+    private val _currentScene = MutableStateFlow(Scene.GALLERY)
     val currentScene: StateFlow<Scene> = _currentScene.asStateFlow()
     
     fun transitionTo(scene: Scene) {
@@ -269,9 +269,9 @@ class SceneManager {
      * 获取场景对应的 Capability 列表
      */
     fun getCapabilitiesForScene(scene: Scene): List<String> = when (scene) {
+        Scene.GALLERY -> listOf("gallery", "editor", "navigation")
         Scene.CHAT -> listOf("chat", "navigation", "gallery", "editor")
         Scene.CAMERA -> listOf("camera", "navigation")
-        Scene.GALLERY -> listOf("gallery", "navigation")
         Scene.SETTINGS -> listOf("settings", "navigation")
         Scene.EDITOR -> listOf("edit", "navigation")
         Scene.DEBUG -> listOf("navigation")
@@ -512,13 +512,13 @@ class NavigationCapability(
 | **聊天/闲聊** | 通过 text_reply 命令兜底 | 原生支持（流式 + 多轮） |
 | **Strategy** | L1 Cache / L2 Batch | L2 Batch / L3 Plan / L4 Chat |
 | **延迟** | < 600ms | 500ms-2s |
-| **隐私** | 100% 端侧 | 非敏感数据允许上云 |
+| **隐私** | 敏感数据本地处理，复杂推理可经用户授权后上云 | 非敏感数据允许上云 |
 
 ### 4.2 端侧推理模式选型（Qwen3.5-2B）
 
 **不推荐完整 ReAct**，原因：
 - 2B 模型 COT（链式思考）能力弱，Thought 质量不稳定
-- 聊天首页要求 < 500ms 首字延迟，多轮推理无法满足 `[PERF]` 红线
+- AI 对话页要求 < 500ms 首字延迟，多轮推理无法满足 `[PERF]` 红线
 - 端侧电池/发热敏感
 
 **端侧能力边界（2026-06-12 验证）**：
