@@ -85,9 +85,9 @@ fun FilterType.toAndroidColorMatrix(): ColorMatrix {
 
         FilterType.WARM -> ColorMatrix(
             floatArrayOf(
-                1.2f, 0f, 0f, 0f, 0f,
-                0f, 1.0f, 0f, 0f, 0f,
-                0f, 0.5f, 0f, 0f, 0f,
+                1.15f, 0.05f, 0f, 0f, 0.03f,
+                0.02f, 1.05f, 0f, 0f, 0f,
+                0f, 0f, 0.85f, 0f, -0.03f,
                 0f, 0f, 0f, 1f, 0f
             )
         )

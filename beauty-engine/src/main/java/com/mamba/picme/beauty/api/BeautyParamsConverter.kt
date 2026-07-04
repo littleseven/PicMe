@@ -30,6 +30,8 @@ fun BeautySettings.toBeautyParams(): BeautyParams {
     val shaderTint = (tint / 100f).coerceIn(-1f, 1f)
     // 亮度: UI -100~+100，0=原始 → Shader -1.0~+1.0 (÷100)
     val shaderBrightness = (brightness / 100f).coerceIn(-1f, 1f)
+    // 曝光: UI -100~+100，0=原始 → Shader EV -2.0~+2.0 (÷50)，与 Apple Photos 一致
+    val shaderExposure = (exposure / 50f).coerceIn(-2f, 2f)
     // RGB 通道: UI 0-200，100=原始 → Shader 0.0-2.0，1.0=原始 (÷100)
     val shaderRed = (redAdjustment / 100f).coerceIn(0f, 2f)
     val shaderGreen = (greenAdjustment / 100f).coerceIn(0f, 2f)
@@ -42,7 +44,7 @@ fun BeautySettings.toBeautyParams(): BeautyParams {
         // 美颜关闭时仍需携带色调矩阵、调色参数和风格特效（滤镜/调色/风格独立于美颜开关）
         return BeautyParams.EMPTY.copy(
             colorMatrix = matrix,
-            exposure = exposure.coerceIn(-10f, 10f),
+            exposure = shaderExposure,
             contrast = shaderContrast,
             saturation = shaderSaturation,
             temperature = shaderTemperature,
@@ -64,7 +66,7 @@ fun BeautySettings.toBeautyParams(): BeautyParams {
         lipColorIndex = lipColorIndex.coerceIn(0, 11),
         blush = (blush / 100f).coerceIn(0f, 1f),
         blushColorFamily = blushColorFamily.coerceIn(0, 2),
-        exposure = exposure.coerceIn(-10f, 10f),
+        exposure = shaderExposure,
         contrast = shaderContrast,
         saturation = shaderSaturation,
         temperature = shaderTemperature,

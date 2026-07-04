@@ -464,16 +464,12 @@ class PhotoProcessorImpl(private val context: Context) : PhotoProcessor {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
         // 判断是否需要完整多 Pass 管线
-        val needMultiPass = params.smoothing > 0.001f ||
-            params.whitening > 0.001f ||
-            params.bigEyes > 0.001f ||
-            kotlin.math.abs(params.slimFace) > 0.001f ||
-            params.lipColor > 0.001f ||
-            params.blush > 0.001f ||
-            params.styleEffect != StyleEffect.NONE
+        // [关键修复] 美颜/美型/妆容在主 Shader 中已支持人脸区域 mask，不会污染黑色/暗色背景；
+        // BeautyUnitPass（LUT 磨皮+美白）缺少人脸 mask，会把暗部背景误判为肤色并染成绿/青色。
+        // 因此照片路径仅在需要风格特效（Toon/Sketch 等）时才走多 Pass。
+        val needMultiPass = params.styleEffect != StyleEffect.NONE
 
         if (needMultiPass) {
-            // [关键修复] 使用与预览完全一致的完整多 Pass 管线
             renderer.renderBeautyMultiPass(
                 width = width,
                 height = height,
@@ -481,7 +477,7 @@ class PhotoProcessorImpl(private val context: Context) : PhotoProcessor {
                 skipCopyPass = true
             )
         } else {
-            // 无需多 Pass：直接主 Shader
+            // 主 Shader 已覆盖磨皮/美白/美型/妆容/调色/滤镜，且对非人脸区域保持原色
             renderer.renderMainShaderFromFbo2D(inputTextureId, width, height)
         }
 
