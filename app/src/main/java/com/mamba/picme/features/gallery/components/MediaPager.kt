@@ -76,6 +76,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -149,315 +150,317 @@ fun MediaPager(
     voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: () -> Unit = {}
 ) {
-    val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { assets.size })
-    var showInfo by remember { mutableStateOf(false) }
-    var showLandmarkOverlay by remember { mutableStateOf(false) }
-    var show468Points by remember { mutableStateOf(false) }
-    var showBigBeauty106 by remember { mutableStateOf(false) }
-    var currentPageZoomed by remember { mutableStateOf(false) }
-    var showBarsVisible by remember { mutableStateOf(true) }
-    var showAiChatPanel by remember { mutableStateOf(false) }
-    var visionResult by remember { mutableStateOf<String?>(null) }
-    var isVisionLoading by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
-    val currentAsset = assets.getOrNull(pagerState.currentPage)
+    key(initialIndex) {
+        val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { assets.size })
+        var showInfo by remember { mutableStateOf(false) }
+        var showLandmarkOverlay by remember { mutableStateOf(false) }
+        var show468Points by remember { mutableStateOf(false) }
+        var showBigBeauty106 by remember { mutableStateOf(false) }
+        var currentPageZoomed by remember { mutableStateOf(false) }
+        var showBarsVisible by remember { mutableStateOf(true) }
+        var showAiChatPanel by remember { mutableStateOf(false) }
+        var visionResult by remember { mutableStateOf<String?>(null) }
+        var isVisionLoading by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        val haptic = LocalHapticFeedback.current
+        val scope = rememberCoroutineScope()
+        val currentAsset = assets.getOrNull(pagerState.currentPage)
 
-    val landmarkState = rememberFaceLandmarkDetection(
-        imageUri = currentAsset?.uri.orEmpty(),
-        enabled = showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO
-    )
-
-    LaunchedEffect(pagerState.currentPage) {
-        currentPageZoomed = false
-        if (currentAsset?.type != MediaType.PHOTO) {
-            showLandmarkOverlay = false
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            pageSpacing = 16.dp,
-            userScrollEnabled = !currentPageZoomed
-        ) { pageIndex ->
-            val asset = assets[pageIndex]
-            if (asset.type == MediaType.VIDEO) {
-                VideoPlayer(uri = asset.uri)
-            } else {
-                ZoomableImage(
-                    uri = asset.uri,
-                    onClick = {
-                        Log.d(TAG, "Toggle bars visibility via click")
-                        showBarsVisible = !showBarsVisible
-                    },
-                    onLongClick = {
-                        Log.d("Gallery", "Trigger photo editor via long press")
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onNavigateToEditor(asset)
-                    },
-                    onZoomStateChanged = { scale ->
-                        if (pageIndex == pagerState.currentPage) {
-                            currentPageZoomed = scale > 1.02f
-                        }
-                    }
-                )
-            }
-        }
-
-        // 格式化日期
-        val dateText = remember(currentAsset) {
-            currentAsset?.captureDate?.let {
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                sdf.format(Date(it))
-            } ?: ""
-        }
-
-        // Top Controls with animated visibility
-        AnimatedVisibility(
-            visible = showBarsVisible && !currentPageZoomed,
-            enter = fadeIn() + slideInVertically(),
-            exit = fadeOut() + slideOutVertically(),
-            modifier = Modifier.align(Alignment.TopCenter)
-        ) {
-            mediaPagerTopControls(
-                onClose = {
-                    if (showAiChatPanel) {
-                        showAiChatPanel = false
-                    } else {
-                        onClose()
-                    }
-                },
-                dateText = dateText,
-                onToggleInfo = {
-                    Log.d("Gallery", "Toggle info visibility via top bar")
-                    showInfo = !showInfo
-                },
-                onReTag = onReTag
-            )
-        }
-
-        // Bottom Bar with animated visibility
-        if (currentAsset?.type == MediaType.PHOTO) {
-            AnimatedVisibility(
-                visible = showBarsVisible && !currentPageZoomed,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                mediaPagerBottomBar(
-                    showLandmarkAction = currentAsset?.type == MediaType.PHOTO,
-                    showLandmarkOverlay = showLandmarkOverlay,
-                    showInfo = showInfo,
-                onShare = {
-                    val selectedAsset = assets.getOrNull(pagerState.currentPage)
-                    Log.d("Gallery", "Share media from pager: ${selectedAsset?.id}")
-                    selectedAsset?.let { asset ->
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            putExtra(Intent.EXTRA_STREAM, asset.uri.toUri())
-                            type = if (asset.type == MediaType.VIDEO) "video/*" else "image/*"
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, null))
-                    }
-                },
-                onStartEdit = {
-                    val asset = assets.getOrNull(pagerState.currentPage)
-                    if (asset != null && asset.type == MediaType.PHOTO) {
-                        Log.d(TAG, "Navigate to photo editor")
-                        onNavigateToEditor(asset)
-                    }
-                },
-                onStartVision = {
-                    val asset = assets.getOrNull(pagerState.currentPage)
-                    if (asset?.type != MediaType.PHOTO) return@mediaPagerBottomBar
-                    Log.d("Gallery", "Trigger vision inference for asset: ${asset.id}")
-                    visionResult = null
-                    isVisionLoading = true
-                    scope.launch(Dispatchers.IO) {
-                        try {
-                            val bitmap = context.contentResolver.openInputStream(asset.uri.toUri())?.use {
-                                BitmapFactory.decodeStream(it)
-                            }
-                            if (bitmap != null) {
-                                val orchestrator = AgentOrchestrator.getInstance(context)
-
-                                // 确保模型已加载并执行图像推理
-                                val inferenceResult = orchestrator.withModelLoaded(
-                                    modelId = "qwen3_5_2b",
-                                    useOpencl = false,
-                                    caller = "MediaPager:imageInference"
-                                ) { engine ->
-                                    engine.imageInference(
-                                        bitmap = bitmap,
-                                        systemPrompt = "你是一个图像理解助手。请用简洁的中文描述这张图片的内容，包括主要对象、场景、颜色和氛围。",
-                                        userPrompt = "请描述这张图片",
-                                        maxTokens = 256
-                                    )
-                                }
-
-                                val result = if (inferenceResult.isSuccess) {
-                                    inferenceResult.getOrThrow()
-                                } else {
-                                    val error = inferenceResult.exceptionOrNull()
-                                    Log.e("Gallery", "Vision inference failed", error)
-                                    visionResult = "模型加载失败: ${error?.message ?: "未知错误"}"
-                                    bitmap.recycle()
-                                    isVisionLoading = false
-                                    return@launch
-                                }
-                                visionResult = result.ifEmpty { "模型返回了空结果" }
-                                bitmap.recycle()
-                            } else {
-                                visionResult = "无法加载图片"
-                            }
-                        } catch (e: Exception) {
-                            Log.e("Gallery", "Vision inference failed", e)
-                            visionResult = "推理失败: ${e.message}"
-                        }
-                        isVisionLoading = false
-                    }
-                },
-                onToggleLandmarks = {
-                    showLandmarkOverlay = !showLandmarkOverlay
-                },
-                onToggleInfo = {
-                    Log.d("Gallery", "Toggle info visibility via button")
-                    showInfo = !showInfo
-                },
-                onStartOcr = {
-                    val selectedAsset = assets.getOrNull(pagerState.currentPage)
-                    Log.d("Gallery", "Trigger OCR via toolbar button for asset: ${selectedAsset?.id}")
-                    selectedAsset?.let { onStartOcr(it.uri) }
-                },
-                onDelete = {
-                    val selectedAsset = assets.getOrNull(pagerState.currentPage)
-                    if (selectedAsset != null) {
-                        Log.d("Gallery", "Request delete media: ${selectedAsset.id}")
-                        onDelete(selectedAsset)
-                    }
-                }
-            )
-            }
-        }
-
-        if (showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO) {
-            FaceLandmarkCanvasOverlay(
-                state = landmarkState,
-                show468Points = show468Points,
-                showBigBeauty106 = showBigBeauty106
-            )
-            FaceLandmarkControlBar(
-                state = landmarkState,
-                show468Points = show468Points,
-                showBigBeauty106 = showBigBeauty106,
-                onToggle468Points = { show468Points = !show468Points },
-                onToggleBigBeauty106 = { showBigBeauty106 = !showBigBeauty106 },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
-        }
-
-        // Photo Info Dialog (取代旧的 SourceInfoOverlay)
-        if (showInfo && currentAsset != null && !showLandmarkOverlay) {
-            PhotoInfoDialog(
-                asset = currentAsset,
-                onDismiss = { showInfo = false }
-            )
-        }
-
-        // OCR Result Overlay
-        OcrResultOverlay(
-            ocrState = ocrState,
-            onDismiss = {
-                Log.d("Gallery", "Dismiss OCR result overlay")
-                onDismissOcr()
-            }
+        val landmarkState = rememberFaceLandmarkDetection(
+            imageUri = currentAsset?.uri.orEmpty(),
+            enabled = showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO
         )
 
-        // Vision (图像理解) Result Overlay
-        VisionResultOverlay(
-            result = visionResult,
-            isLoading = isVisionLoading,
-            onDismiss = {
-                visionResult = null
-                isVisionLoading = false
+        LaunchedEffect(pagerState.currentPage) {
+            currentPageZoomed = false
+            if (currentAsset?.type != MediaType.PHOTO) {
+                showLandmarkOverlay = false
             }
-        )
+        }
 
-        // AI Chat Panel - 右下角浮动按钮入口
-        if (currentAsset?.type == MediaType.PHOTO) {
-            if (!showAiChatPanel) {
-                FloatingActionButton(
-                    onClick = { showAiChatPanel = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 80.dp)
-                        .navigationBarsPadding(),
-                    shape = CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.KeyboardVoice,
-                        contentDescription = "AI Agent",
-                        tint = Color.White
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                pageSpacing = 16.dp,
+                userScrollEnabled = !currentPageZoomed
+            ) { pageIndex ->
+                val asset = assets[pageIndex]
+                if (asset.type == MediaType.VIDEO) {
+                    VideoPlayer(uri = asset.uri, isActive = pageIndex == pagerState.settledPage)
+                } else {
+                    ZoomableImage(
+                        uri = asset.uri,
+                        onClick = {
+                            Log.d(TAG, "Toggle bars visibility via click")
+                            showBarsVisible = !showBarsVisible
+                        },
+                        onLongClick = {
+                            Log.d("Gallery", "Trigger photo editor via long press")
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigateToEditor(asset)
+                        },
+                        onZoomStateChanged = { scale ->
+                            if (pageIndex == pagerState.currentPage) {
+                                currentPageZoomed = scale > 1.02f
+                            }
+                        }
                     )
                 }
             }
 
-            val pagerMessages = remember { mutableStateOf<List<AgentMessage>>(emptyList()) }
-            var pagerIsProcessing by remember { mutableStateOf(false) }
+            // 格式化日期
+            val dateText = remember(currentAsset) {
+                currentAsset?.captureDate?.let {
+                    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    sdf.format(Date(it))
+                } ?: ""
+            }
 
-            AiChatScreen(
-                visible = showAiChatPanel,
-                messages = pagerMessages.value,
-                isProcessing = pagerIsProcessing,
-                onVisibleChange = { showAiChatPanel = it },
-                voiceCoordinator = voiceCoordinator,
-                onSendMessage = { input ->
-                    pagerMessages.value = pagerMessages.value + AgentMessage.UserText(content = input)
-                    pagerIsProcessing = true
-                    scope.launch {
-                        val lower = input.lowercase()
-                        val isOptimizeRequest = lower.contains("优化") || lower.contains("修一下") ||
-                            lower.contains("修图") || lower.contains("美化") || lower.contains("增强") ||
-                            lower.contains("调一下") || lower.contains("帮我修") ||
-                            lower.contains("智能优化") || lower.contains("一键优化") ||
-                            (lower.contains("修") && (lower.contains("照片") || lower.contains("图"))) ||
-                            (lower.contains("调") && lower.contains("照片"))
-
-                        if (isOptimizeRequest) {
-                            val asset = currentAsset
-                            if (asset != null) {
-                                pagerIsProcessing = false
-                                pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                                    content = "好的，正在为您打开 AI 优化编辑器..."
-                                )
-                                showAiChatPanel = false
-                                onAiOptimize(asset)
-                            } else {
-                                pagerIsProcessing = false
-                                pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                                    content = "请先选择一张图片，我再帮您优化~"
-                                )
-                            }
+            // Top Controls with animated visibility
+            AnimatedVisibility(
+                visible = showBarsVisible && !currentPageZoomed,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically(),
+                modifier = Modifier.align(Alignment.TopCenter)
+            ) {
+                mediaPagerTopControls(
+                    onClose = {
+                        if (showAiChatPanel) {
+                            showAiChatPanel = false
                         } else {
-                            kotlinx.coroutines.delay(500)
-                            pagerIsProcessing = false
-                            pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                                content = "我收到了您的指令：$input。当前相册预览仅支持 AI 一键优化，可以说“优化这张照片”。"
-                            )
+                            onClose()
+                        }
+                    },
+                    dateText = dateText,
+                    onToggleInfo = {
+                        Log.d("Gallery", "Toggle info visibility via top bar")
+                        showInfo = !showInfo
+                    },
+                    onReTag = onReTag
+                )
+            }
+
+            // Bottom Bar with animated visibility
+            if (currentAsset?.type == MediaType.PHOTO) {
+                AnimatedVisibility(
+                    visible = showBarsVisible && !currentPageZoomed,
+                    enter = fadeIn() + slideInVertically { it },
+                    exit = fadeOut() + slideOutVertically { it },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    mediaPagerBottomBar(
+                        showLandmarkAction = currentAsset?.type == MediaType.PHOTO,
+                        showLandmarkOverlay = showLandmarkOverlay,
+                        showInfo = showInfo,
+                    onShare = {
+                        val selectedAsset = assets.getOrNull(pagerState.currentPage)
+                        Log.d("Gallery", "Share media from pager: ${selectedAsset?.id}")
+                        selectedAsset?.let { asset ->
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                putExtra(Intent.EXTRA_STREAM, asset.uri.toUri())
+                                type = if (asset.type == MediaType.VIDEO) "video/*" else "image/*"
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, null))
+                        }
+                    },
+                    onStartEdit = {
+                        val asset = assets.getOrNull(pagerState.currentPage)
+                        if (asset != null && asset.type == MediaType.PHOTO) {
+                            Log.d(TAG, "Navigate to photo editor")
+                            onNavigateToEditor(asset)
+                        }
+                    },
+                    onStartVision = {
+                        val asset = assets.getOrNull(pagerState.currentPage)
+                        if (asset?.type != MediaType.PHOTO) return@mediaPagerBottomBar
+                        Log.d("Gallery", "Trigger vision inference for asset: ${asset.id}")
+                        visionResult = null
+                        isVisionLoading = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val bitmap = context.contentResolver.openInputStream(asset.uri.toUri())?.use {
+                                    BitmapFactory.decodeStream(it)
+                                }
+                                if (bitmap != null) {
+                                    val orchestrator = AgentOrchestrator.getInstance(context)
+
+                                    // 确保模型已加载并执行图像推理
+                                    val inferenceResult = orchestrator.withModelLoaded(
+                                        modelId = "qwen3_5_2b",
+                                        useOpencl = false,
+                                        caller = "MediaPager:imageInference"
+                                    ) { engine ->
+                                        engine.imageInference(
+                                            bitmap = bitmap,
+                                            systemPrompt = "你是一个图像理解助手。请用简洁的中文描述这张图片的内容，包括主要对象、场景、颜色和氛围。",
+                                            userPrompt = "请描述这张图片",
+                                            maxTokens = 256
+                                        )
+                                    }
+
+                                    val result = if (inferenceResult.isSuccess) {
+                                        inferenceResult.getOrThrow()
+                                    } else {
+                                        val error = inferenceResult.exceptionOrNull()
+                                        Log.e("Gallery", "Vision inference failed", error)
+                                        visionResult = "模型加载失败: ${error?.message ?: "未知错误"}"
+                                        bitmap.recycle()
+                                        isVisionLoading = false
+                                        return@launch
+                                    }
+                                    visionResult = result.ifEmpty { "模型返回了空结果" }
+                                    bitmap.recycle()
+                                } else {
+                                    visionResult = "无法加载图片"
+                                }
+                            } catch (e: Exception) {
+                                Log.e("Gallery", "Vision inference failed", e)
+                                visionResult = "推理失败: ${e.message}"
+                            }
+                            isVisionLoading = false
+                        }
+                    },
+                    onToggleLandmarks = {
+                        showLandmarkOverlay = !showLandmarkOverlay
+                    },
+                    onToggleInfo = {
+                        Log.d("Gallery", "Toggle info visibility via button")
+                        showInfo = !showInfo
+                    },
+                    onStartOcr = {
+                        val selectedAsset = assets.getOrNull(pagerState.currentPage)
+                        Log.d("Gallery", "Trigger OCR via toolbar button for asset: ${selectedAsset?.id}")
+                        selectedAsset?.let { onStartOcr(it.uri) }
+                    },
+                    onDelete = {
+                        val selectedAsset = assets.getOrNull(pagerState.currentPage)
+                        if (selectedAsset != null) {
+                            Log.d("Gallery", "Request delete media: ${selectedAsset.id}")
+                            onDelete(selectedAsset)
                         }
                     }
-                },
-                onCommand = { command ->
-                    if (command is com.mamba.picme.domain.model.AiAgentCommand.ApplyEditRecipe) {
-                        // 语音/Agent 通道已生成优化配方，由上层导航到编辑器应用
-                        currentAsset?.let { onAiOptimize(it) }
-                    }
+                )
+                }
+            }
+
+            if (showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO) {
+                FaceLandmarkCanvasOverlay(
+                    state = landmarkState,
+                    show468Points = show468Points,
+                    showBigBeauty106 = showBigBeauty106
+                )
+                FaceLandmarkControlBar(
+                    state = landmarkState,
+                    show468Points = show468Points,
+                    showBigBeauty106 = showBigBeauty106,
+                    onToggle468Points = { show468Points = !show468Points },
+                    onToggleBigBeauty106 = { showBigBeauty106 = !showBigBeauty106 },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+
+            // Photo Info Dialog (取代旧的 SourceInfoOverlay)
+            if (showInfo && currentAsset != null && !showLandmarkOverlay) {
+                PhotoInfoDialog(
+                    asset = currentAsset,
+                    onDismiss = { showInfo = false }
+                )
+            }
+
+            // OCR Result Overlay
+            OcrResultOverlay(
+                ocrState = ocrState,
+                onDismiss = {
+                    Log.d("Gallery", "Dismiss OCR result overlay")
+                    onDismissOcr()
                 }
             )
+
+            // Vision (图像理解) Result Overlay
+            VisionResultOverlay(
+                result = visionResult,
+                isLoading = isVisionLoading,
+                onDismiss = {
+                    visionResult = null
+                    isVisionLoading = false
+                }
+            )
+
+            // AI Chat Panel - 右下角浮动按钮入口
+            if (currentAsset?.type == MediaType.PHOTO) {
+                if (!showAiChatPanel) {
+                    FloatingActionButton(
+                        onClick = { showAiChatPanel = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 80.dp)
+                            .navigationBarsPadding(),
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardVoice,
+                            contentDescription = "AI Agent",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                val pagerMessages = remember { mutableStateOf<List<AgentMessage>>(emptyList()) }
+                var pagerIsProcessing by remember { mutableStateOf(false) }
+
+                AiChatScreen(
+                    visible = showAiChatPanel,
+                    messages = pagerMessages.value,
+                    isProcessing = pagerIsProcessing,
+                    onVisibleChange = { showAiChatPanel = it },
+                    voiceCoordinator = voiceCoordinator,
+                    onSendMessage = { input ->
+                        pagerMessages.value = pagerMessages.value + AgentMessage.UserText(content = input)
+                        pagerIsProcessing = true
+                        scope.launch {
+                            val lower = input.lowercase()
+                            val isOptimizeRequest = lower.contains("优化") || lower.contains("修一下") ||
+                                lower.contains("修图") || lower.contains("美化") || lower.contains("增强") ||
+                                lower.contains("调一下") || lower.contains("帮我修") ||
+                                lower.contains("智能优化") || lower.contains("一键优化") ||
+                                (lower.contains("修") && (lower.contains("照片") || lower.contains("图"))) ||
+                                (lower.contains("调") && lower.contains("照片"))
+
+                            if (isOptimizeRequest) {
+                                val asset = currentAsset
+                                if (asset != null) {
+                                    pagerIsProcessing = false
+                                    pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
+                                        content = "好的，正在为您打开 AI 优化编辑器..."
+                                    )
+                                    showAiChatPanel = false
+                                    onAiOptimize(asset)
+                                } else {
+                                    pagerIsProcessing = false
+                                    pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
+                                        content = "请先选择一张图片，我再帮您优化~"
+                                    )
+                                }
+                            } else {
+                                kotlinx.coroutines.delay(500)
+                                pagerIsProcessing = false
+                                pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
+                                    content = "我收到了您的指令：$input。当前相册预览仅支持 AI 一键优化，可以说“优化这张照片”。"
+                                )
+                            }
+                        }
+                    },
+                    onCommand = { command ->
+                        if (command is com.mamba.picme.domain.model.AiAgentCommand.ApplyEditRecipe) {
+                            // 语音/Agent 通道已生成优化配方，由上层导航到编辑器应用
+                            currentAsset?.let { onAiOptimize(it) }
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -1548,14 +1551,18 @@ private fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-fun VideoPlayer(uri: String) {
+fun VideoPlayer(uri: String, isActive: Boolean) {
     val context = LocalContext.current
-    val exoPlayer = remember {
+    val exoPlayer = remember(uri) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(uri))
             prepare()
-            playWhenReady = true
+            playWhenReady = isActive
         }
+    }
+
+    LaunchedEffect(isActive) {
+        exoPlayer.playWhenReady = isActive
     }
 
     DisposableEffect(Unit) {
