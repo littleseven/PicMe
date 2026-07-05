@@ -223,7 +223,7 @@ class FaceDetectorManager(context: Context) : FaceDetector {
     /**
      * 多人脸检测（ROI + RetinaFace 5 点 landmarks）
      *
-     * 为 MobileFaceNet 等人脸识别/聚类任务提供对齐所需关键点。
+     * 为人脸识别/聚类任务提供对齐所需关键点。
      * - MNN/NCNN 路径：复用 RetinaFace 已输出的 5 点 landmarks
      * - MediaPipe / 其他路径：回退到 detectPhoto，landmarks 为空
      *

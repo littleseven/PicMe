@@ -922,7 +922,6 @@
     <ID>MaxLineLength:DataDrivenTestLauncher.kt$DataDrivenTestLauncher$Logger.i("DataDrivenTestRunner", "SuiteCompleted: ${report.suiteName} - ${report.passedCount}/${report.totalCases} passed (${report.passRate * 100}%)")</ID>
     <ID>MaxLineLength:DeviceTestController.kt$DeviceTestController$return runningApps?.any { it.processName == "com.mamba.picme" &amp;&amp; it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND } == true</ID>
     <ID>MaxLineLength:FaceClusterEngine.kt$FaceClusterEngine$Log.d(TAG, "extractFeature: extracted ${embedding.size}-dim embedding, norm=${sqrt(embedding.map { it*it }.sum().toDouble())}")</ID>
-    <ID>MaxLineLength:FaceClusterEngine.kt$FaceClusterEngine$Log.w(TAG, "MobileFaceNet model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download w600k_mbf.mnn to enable.")</ID>
     <ID>MaxLineLength:FaceClusteringWorker.kt$FaceClusteringWorker$Logger.i(TAG, "Processing done: $newFaces new media with faces, $totalFaceCount total faces, ${embeddings.size} media with embeddings")</ID>
     <ID>MaxLineLength:FaceClusteringWorker.kt$FaceClusteringWorker$val subClusters = clusterEmbeddingsFlat(embeddings, members, ClusteringConfig.DBSCAN_EPS * 0.7f, ClusteringConfig.DBSCAN_MIN_PTS)</ID>
     <ID>MaxLineLength:FaceLandmarkOverlay.kt$val faceOvalIndices = setOf(10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109)</ID>

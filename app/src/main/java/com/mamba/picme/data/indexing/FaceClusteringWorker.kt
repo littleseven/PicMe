@@ -132,14 +132,14 @@ class FaceClusteringWorker(
         val db = AppDatabase.getDatabase(context)
         val dao = db.mediaDao()
 
-        // Step 0: 尝试加载 ArcFace R100 MNN 模型（可选，用于 embedding + 聚类）
-        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-r100-mnn")
-        val embedder = MnnEmbeddingExtractor(File(modelDir, "arcface_r100.mnn"))
-        val hasEmbeddingModel = embedder.isModelReady && embedder.initialize(inputName = "data", outputName = "fc1", useGpu = true)
+        // Step 0: 尝试加载 Glint360K R100 MNN 模型（可选，用于 embedding + 聚类）
+        val modelDir = ModelPathConfig.getModelDir(context, "face-embedding-glint360k-r100-mnn")
+        val embedder = MnnEmbeddingExtractor(File(modelDir, "glintr100.mnn"))
+        val hasEmbeddingModel = embedder.isModelReady && embedder.initialize(inputName = "input.1", outputName = "1333", useGpu = true, swapRb = false)
 
         if (!hasEmbeddingModel) {
-            Logger.w(TAG, "Face embedding model not found at ${modelDir}/arcface_r100.mnn")
-            Logger.w(TAG, "Will run face detection only (hasFace=true). Download model for person clustering.")
+            Logger.w(TAG, "Face embedding model not found at ${modelDir}/glintr100.mnn")
+            Logger.w(TAG, "Will run face detection only (hasFace=true). Download glintr100.mnn for person clustering.")
         }
 
         // Step 1: 按处理状态分离媒体
@@ -161,8 +161,8 @@ class FaceClusteringWorker(
         // 有需聚类的照片但无 embedding 模型：仅做增量人脸检测
         if (!hasEmbeddingModel) {
             if (needClustering.isNotEmpty()) {
-                Logger.w(TAG, "${needClustering.size} photos need clustering but ArcFace R100 model not available")
-                Logger.w(TAG, "Will run face detection only. Download arcface_r100.mnn for person clustering.")
+                Logger.w(TAG, "${needClustering.size} photos need clustering but Glint360K R100 model not available")
+                Logger.w(TAG, "Will run face detection only. Download glintr100.mnn for person clustering.")
             }
             if (needDetection.isEmpty()) {
                 Logger.i(TAG, "No new faces to detect, and no embedding model for clustering — nothing to do")
@@ -338,10 +338,10 @@ class FaceClusteringWorker(
         val db = AppDatabase.getDatabase(context)
         val dao = db.mediaDao()
 
-        // 加载 ArcFace R100 模型
-        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-r100-mnn")
-        val embedder = MnnEmbeddingExtractor(File(modelDir, "arcface_r100.mnn"))
-        val hasEmbeddingModel = embedder.isModelReady && embedder.initialize(inputName = "data", outputName = "fc1", useGpu = true)
+        // 加载 Glint360K R100 模型
+        val modelDir = ModelPathConfig.getModelDir(context, "face-embedding-glint360k-r100-mnn")
+        val embedder = MnnEmbeddingExtractor(File(modelDir, "glintr100.mnn"))
+        val hasEmbeddingModel = embedder.isModelReady && embedder.initialize(inputName = "input.1", outputName = "1333", useGpu = true, swapRb = false)
 
         if (!hasEmbeddingModel) {
             Logger.w(TAG, "[Streaming] Face embedding model not available, cannot cluster")

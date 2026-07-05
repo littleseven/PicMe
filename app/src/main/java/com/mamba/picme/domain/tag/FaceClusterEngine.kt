@@ -37,7 +37,7 @@ class FaceClusterEngine(private val context: Context) {
     companion object {
         private const val TAG = "FaceClusterEngine"
 
-        /** MobileFaceNet 标准输入尺寸 */
+        /** 人脸 embedding 标准输入尺寸（112×112，与 InsightFace/ArcFace 系列对齐一致） */
         const val FACE_INPUT_SIZE = 112
 
         /** 特征向量维度 */
@@ -57,7 +57,7 @@ class FaceClusterEngine(private val context: Context) {
 
     /** Glint360K R100 嵌入提取器（懒加载，模型缺失时为 null） */
     private val embeddingExtractor: MnnEmbeddingExtractor? by lazy {
-        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-glint360k-r100-mnn")
+        val modelDir = ModelPathConfig.getModelDir(context, "face-embedding-glint360k-r100-mnn")
         val modelFile = File(modelDir, "glintr100.mnn")
         val extractor = MnnEmbeddingExtractor(modelFile)
         // Glint360K R100 MNN 输入/输出名：input.1 / 1333；优先尝试 OpenCL GPU，失败回退 CPU
@@ -82,7 +82,7 @@ class FaceClusterEngine(private val context: Context) {
     /**
      * 提取人脸特征向量
      *
-     * 优先使用 5 点 landmarks 做仿射对齐后再输入 MobileFaceNet；
+     * 优先使用 5 点 landmarks 做仿射对齐后再输入 embedding 模型；
      * 无 landmarks 时回退到 ROI 裁剪+缩放。
      *
      * @param bitmap 原始图片
@@ -138,10 +138,10 @@ class FaceClusterEngine(private val context: Context) {
      * 使用 5 点 landmarks 做最小二乘仿射对齐，输出 112×112 人脸图
      *
      * 5 点顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]
-     * 目标模板为 ArcFace/MobileFaceNet 标准 112×112 对齐坐标。
+     * 目标模板为 InsightFace 标准 112×112 对齐坐标。
      */
     private fun alignFaceWithLandmarks(bitmap: Bitmap, landmarks5: FloatArray, mediaId: Long = -1): Bitmap {
-        // MobileFaceNet 标准 112×112 对齐目标点
+        // InsightFace 标准 112×112 对齐目标点
         val dstPoints = floatArrayOf(
             38.2946f, 51.6963f,   // 左眼
             73.5318f, 51.5014f,   // 右眼

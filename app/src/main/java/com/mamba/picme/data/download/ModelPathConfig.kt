@@ -14,8 +14,8 @@ import java.io.File
  *
  * 【目录结构】
  * /data/data/com.mamba.picme/files/llm_models/
- * ├── qwen-1.7b/                              # LLM 模型
- * ├── sherpa-onnx-asr-zipformer/              # ASR 模型
+ * ├── qwen3_5_2b/                             # LLM 模型
+ * ├── sherpa-onnx-zipformer-zh-en/            # ASR 模型
  * ├── sherpa-onnx-kws-zipformer-wenetspeech/  # KWS 唤醒词模型
  * └── (其他模型...)
  */
@@ -33,7 +33,7 @@ object ModelPathConfig {
     /**
      * 获取指定模型ID的目录
      * @param context Android Context
-     * @param modelId 模型ID（e.g., "qwen-1.7b", "sherpa-onnx-kws-zipformer-wenetspeech"）
+     * @param modelId 模型ID（e.g., "qwen3_5_2b", "sherpa-onnx-kws-zipformer-wenetspeech"）
      * @return 模型目录路径
      */
     fun getModelDir(context: Context, modelId: String): File {
@@ -118,8 +118,8 @@ object ModelPathConfig {
 
     // ===== 模型 ID 常量定义 =====
 
-    const val MODEL_ID_LLM = "qwen-1.7b"
-    const val MODEL_ID_ASR = "sherpa-onnx-asr-zipformer"
+    const val MODEL_ID_LLM = "qwen3_5_2b"
+    const val MODEL_ID_ASR = "sherpa-onnx-zipformer-zh-en"
     const val MODEL_ID_KWS = "sherpa-onnx-kws-zipformer-wenetspeech"
     const val MODEL_ID_MOBILECLIP = "mobileclip-onnx"
     const val MODEL_ID_OPUS_MT = "opus-mt-zh-en"

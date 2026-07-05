@@ -6,13 +6,13 @@ import com.mamba.picme.beauty.api.Logger
 import java.nio.ByteBuffer
 
 /**
- * 专用 MNN MobileFaceNet 人脸 Embedding 提取器 JNI 桥接类
+ * 通用 MNN 人脸 Embedding 提取器 JNI 桥接类
  *
  * 与 [MnnFaceDetector] 解耦，直接使用原生 MnnFaceEmbedder 推理：
  * - 输入：112×112 RGB
  * - 输出：512 维 L2 归一化 embedding
  *
- * 模型路径: {filesDir}/llm_models/picme-face-embedding-mnn/w600k_mbf.mnn
+ * 当前默认模型路径: {filesDir}/llm_models/face-embedding-glint360k-r100-mnn/glintr100.mnn
  */
 class MnnFaceEmbedder private constructor(
     private var nativeHandle: Long,

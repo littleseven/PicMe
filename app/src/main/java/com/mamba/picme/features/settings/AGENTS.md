@@ -119,9 +119,9 @@
   - `qwen3_5_2b`（本地 LLM，文字/多模态对话）
   - `sherpa-onnx-zipformer-zh-en`（ASR，语音输入）
   - `sherpa-onnx-kws-zipformer-wenetspeech`（KWS，唤醒词）
-  - `picme-face-det-500m-mnn`（默认人脸检测，Det10G 已降级为可选）
-  - `picme-face-landmark-mnn`（人脸关键点）
-  - `picme-face-embedding-r100-mnn`（人脸聚类/识别，ArcFace R100）
+  - `face-det-retina500m-mnn`（默认人脸检测，Det10G 已降级为可选）
+  - `face-landmark-2d106-mnn`（人脸关键点）
+  - `face-embedding-glint360k-r100-mnn`（人脸聚类/识别，Glint360K R100）
   - `mobileclip-onnx`（语义搜索/相册打标）
   - `opus-mt-zh-en`（中文查询翻译）
 

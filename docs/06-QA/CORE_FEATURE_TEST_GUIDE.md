@@ -41,11 +41,14 @@
 
 | 模型 ID | 名称 | 用途 | 大小（约） |
 |------|------|------|:---:|
-| `picme-face-det-mnn` | MNN ROI (Det10G) | 快速人脸区域检测 | ~2MB |
-| `picme-face-det-500m-mnn` | MNN ROI (Det500M) | 高精度人脸检测 | ~5MB |
-| `picme-face-landmark-mnn` | MNN 2D106 | 106 点人脸关键点定位 | ~1MB |
-| `picme-face-embedding-mnn` | MNN MobileFaceNet | 人脸特征向量提取（聚类用） | ~2MB |
 | `qwen3_5_2b` | Qwen3.5-2B | 端侧图像理解与标签生成 | ~2.5GB |
+| `sherpa-onnx-zipformer-zh-en` | Sherpa-ONNX Zipformer | 流式语音识别（语音输入） | ~280MB |
+| `sherpa-onnx-kws-zipformer-wenetspeech` | Sherpa-ONNX KWS | 唤醒词检测 | ~14MB |
+| `face-det-retina500m-mnn` | MNN ROI (Det500M) | 默认高精度人脸检测 | ~5MB |
+| `face-landmark-2d106-mnn` | MNN 2D106 | 106 点人脸关键点定位 | ~1MB |
+| `face-embedding-glint360k-r100-mnn` | Glint360K R100 | 人脸特征向量提取（聚类/识别） | ~248MB |
+| `mobileclip-onnx` | MobileCLIP-S2 | 图像/文本语义编码（语义搜索/相册打标） | ~397MB |
+| `opus-mt-zh-en` | OPUS-MT | 中文→英文翻译（语义搜索查询翻译） | ~70MB |
 
 > 模型中心顶部 Tag 按"**人脸检测**"和"**对话**"排序，便于快速找到必须模型。
 
@@ -128,7 +131,7 @@
 | 按钮 | 功能 | 前置条件 |
 |------|------|----------|
 | **全量 3-Pass 扫描** | 顺序执行 P1→P2→P3 | 5 个必须模型已下载 |
-| **Pass 1：人脸检测** | 仅执行人脸检测 + Embedding 提取 | MNN ROI + 2D106 + MobileFaceNet |
+| **Pass 1：人脸检测** | 仅执行人脸检测 + Embedding 提取 | MNN ROI + 2D106 + Glint360K R100 |
 | **Pass 2：DBSCAN 聚类** | 基于已有 embedding 重新聚类 | Pass 1 已执行过 |
 | **Pass 3：Qwen 标签** | 对无标签照片生成标签 | Pass 1 已执行过，Qwen 模型已下载 |
 | **Pass 3：重新生成标签** | 清空全部标签后全量重标 | Qwen 模型已下载 |
@@ -208,7 +211,7 @@
 | 问题 | 排查步骤 |
 |------|----------|
 | Pass 1 结果为 0 | ① 检查 MNN ROI + 2D106 模型是否已下载<br>② 确认相机权限已授予 |
-| Pass 2 人物簇不准确 | ① 检查 MobileFaceNet 模型是否已下载<br>② 聚类阈值在 `ClusteringConfig.kt`（当前余弦相似度阈值 0.72） |
+| Pass 2 人物簇不准确 | ① 检查 Glint360K R100 模型是否已下载<br>② 聚类阈值在 `ClusteringConfig.kt`（当前余弦相似度阈值 0.72） |
 | Pass 3 标签为空 | ① 检查 Qwen3.5-2B 模型是否已下载<br>② 确认 API Key 配置正确<br>③ 确认设备内存足够（需 4GB+ 空闲） |
 | 模型下载失败 | ① 检查网络连接<br>② 确认存储空间 > 5GB<br>③ 检查下载通知栏是否有错误提示 |
 | 扫描中途停止 | ① 确认前台服务通知可见<br>② 检查电池优化白名单<br>③ 查看 logcat `PicMe:TagScheduler` 标签日志 |

@@ -12,7 +12,7 @@ package com.mamba.picme.domain.tag
  * DBSCAN_EPS       : DBSCAN 余弦距离上限（= 1 - 相似度，越小越严格）
  * CLUSTER_COHESION_MIN : 簇内平均相似度下限（低于此值则分裂）
  *
- * 当前值: 相似度 ≥ 0.72 / 距离 ≤ 0.28，适用于 MobileFaceNet 512 维 embedding
+ * 当前值: 相似度 ≥ 0.72 / 距离 ≤ 0.28，适用于 Glint360K R100 512 维 embedding
  * ──────────────────────────────────────────────────────
  */
 object ClusteringConfig {

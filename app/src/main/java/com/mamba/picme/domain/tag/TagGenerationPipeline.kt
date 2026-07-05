@@ -34,7 +34,7 @@ import org.json.JSONObject
  * 依赖注入：
  * - [faceDetector]：Stage 1 使用，RetinaFace Det500M
  * - [llmEngine]：Stage 3 使用，Qwen3.5-2B MNN
- * - [faceClusterEngine]：Stage 2 使用，MobileFaceNet + 增量聚类
+ * - [faceClusterEngine]：Stage 2 使用，Glint360K R100 + 增量聚类
  * - [normalizer]：标签后处理规范化
  * - [openClGuardian]：OpenCL 超时守卫（可选）
  * - [userSettingsRepository]：用户设置（语言偏好等）
@@ -145,7 +145,7 @@ class TagGenerationPipeline(
     // ═══════════════════════════════════════════════════
 
     /**
-     * [Pass 1] 单张照片的人脸检测 + MobileFaceNet Embedding 提取
+     * [Pass 1] 单张照片的人脸检测 + Glint360K R100 Embedding 提取
      *
      * 结果持久化（faceRoiJson 字段）供 Pass 3 构造人脸上下文。
      * Embedding 由调度器写入 face_embeddings 表供 Pass 2 DBSCAN。
@@ -437,7 +437,7 @@ class TagGenerationPipeline(
      * 1. 用 RetinaFace 获取所有人脸 ROI（含其自带的 5 点，作为 fallback）。
      * 2. 对每个 ROI 调用 2D106 关键点检测，得到 106 点统一关键点。
      * 3. 从 106 点中提取更稳定的 5 点（双眼中心、鼻尖、嘴角），
-     *    供 Stage 2 的 ArcFace/MobileFaceNet 进行仿射对齐。
+     *    供 Stage 2 的 ArcFace/Glint360K R100 进行仿射对齐。
      *
      * 关键点索引基于统一 106 标准（画面视角）：
      * - 左眼（画面右侧）: 58-63 外轮廓 + 75-76 内眼角
@@ -566,7 +566,7 @@ class TagGenerationPipeline(
     }
 
     // ═══════════════════════════════════════════════════
-    //  Stage 2: MobileFaceNet 特征提取 → 人脸聚类
+    //  Stage 2: Glint360K R100 特征提取 → 人脸聚类
     // ═══════════════════════════════════════════════════
 
     private suspend fun stage2FaceCluster(

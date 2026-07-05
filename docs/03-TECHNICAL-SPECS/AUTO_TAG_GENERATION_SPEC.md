@@ -31,7 +31,7 @@
 | `OpenClGuardian` | `domain/tag/OpenClGuardian.kt` | Pass 3 前 warmup 与 OpenCL → CPU 降级 |
 | `MobileClipEngine` | `domain/tag/MobileClipEngine.kt` | MobileCLIP-S0 语义编码 |
 | `MlKitTagExtractor` | `domain/tag/MlKitTagExtractor.kt` | ML Kit Image Labeler 英文标签提取 |
-| `FaceClusterEngine` | `domain/tag/FaceClusterEngine.kt` | MobileFaceNet Embedding + DBSCAN 聚类 |
+| `FaceClusterEngine` | `domain/tag/FaceClusterEngine.kt` | Glint360K R100 Embedding + DBSCAN 聚类 |
 | `TagNormalizer` / `ControlledVocab` | `domain/tag/TagNormalizer.kt` | Qwen 输出规范化与受控词表映射 |
 | `TagGenerationService` | `service/tag/TagGenerationService.kt` | 前台 Service，驱动 Orchestrator 并暴露进度 |
 | `TagGenerationControlScreen` | `features/gallery/components/TagGenerationControlScreen.kt` | 3-Pass 控制与按类别/时间范围重新生成 UI |
@@ -45,7 +45,7 @@
 ┌─────────────────────────────────────────────┐
 │ Pass 1: FACE_DETECTION                       │
 │ • 人脸 ROI 检测 + 106 关键点                 │
-│ • MobileFaceNet 512 维人脸 Embedding         │
+│ • Glint360K R100 512 维人脸 Embedding         │
 │ • MobileCLIP 语义 Embedding（Base64）        │
 │ 写入: faceRoiResult / face_embeddings        │
 │       semanticEmbedding / lastTagScanPasses  │
@@ -150,7 +150,7 @@ suspend fun stage1WithEmbeddings(
 2. 人脸 ROI 检测 → `Stage1Result`（`hasFace` / `faceCount` / `roiRects`）
 3. 对每张人脸：
    - 用 106 关键点做仿射对齐 → 112×112 ROI
-   - `FaceClusterEngine.extractFeature()` → 512 维 MobileFaceNet embedding
+   - `FaceClusterEngine.extractFeature()` → 512 维 Glint360K R100 embedding
    - 写入 `face_embeddings` 表
 4. `MobileClipEngine.encodeImage()` → 512 维语义向量 → Base64
 5. 写入 `media_assets.faceRoiResult` / `semanticEmbedding` / `hasFace`
@@ -274,7 +274,7 @@ class OpenClGuardian(
 | `faceRoiResult` | `media_assets` | 人脸 ROI 检测 JSON |
 | `semanticEmbedding` | `media_assets` | MobileCLIP 512 维向量 Base64 |
 | `lastTagScanAt` / `lastTagScanPasses` | `media_assets` | 增量去重 |
-| `face_embeddings.embedding` | `face_embeddings` | MobileFaceNet 512 维 ByteArray |
+| `face_embeddings.embedding` | `face_embeddings` | Glint360K R100 512 维 ByteArray |
 | `persons.name` / `faceCount` | `persons` | 人物簇 |
 | `tag_scan_tasks.*` | `tag_scan_tasks` | 扫描任务队列 |
 
@@ -286,7 +286,7 @@ class OpenClGuardian(
 |------|----------|--------|------|
 | Pass 1 人脸检测 | ~30-80ms | ✅ | 依赖 FaceDetector 后端 |
 | Pass 1 MobileCLIP | ~50-100ms | ✅ | 已内联合并，无额外解码 |
-| Pass 1 Embedding | ~30-60ms | ✅ | MobileFaceNet 512 维 |
+| Pass 1 Embedding | ~30-60ms | ✅ | Glint360K R100 512 维 |
 | Pass 2 DBSCAN | ~5-20ms/对比 | ❌ | 全局依赖 |
 | Pass 3 Qwen | ~2-8s | ❌ | 独占调度器，OpenCL 优先 |
 | Pass 5 ML Kit | ~50-200ms | ✅ | 首次可能触发模型下载 |

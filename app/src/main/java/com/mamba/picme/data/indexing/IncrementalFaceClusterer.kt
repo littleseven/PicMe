@@ -42,7 +42,7 @@ class IncrementalFaceClusterer(
      * 对指定媒体列表进行增量人脸聚类。
      *
      * @param mediaIds 需要聚类的媒体 ID 列表
-     * @param embedder MobileFaceNet embedding 提取器（已初始化）
+     * @param embedder Glint360K R100 embedding 提取器（已初始化）
      * @return 是否需要触发全量重聚
      */
     suspend fun processIncremental(

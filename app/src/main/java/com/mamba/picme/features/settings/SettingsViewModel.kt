@@ -279,12 +279,12 @@ private val ESSENTIAL_MODEL_IDS = listOf(
     // Det10G 和 Det500M 都是 ROI 检测模型，共享 DET_500M_MNN/DET_500M_NCNN 类型
     // isModelDownloaded 需检查所有映射 ID 以兼容两种模型
     private val modelIdToDetectionType = mapOf(
-        "picme-face-det-mnn" to DetectionModelType.DET_500M_MNN,
-        "picme-face-det-ncnn" to DetectionModelType.DET_500M_NCNN,
-        "picme-face-det-500m-mnn" to DetectionModelType.DET_500M_MNN,
-        "picme-face-det-500m-ncnn" to DetectionModelType.DET_500M_NCNN,
-        "picme-face-landmark-mnn" to DetectionModelType.FACE_2D106_MNN,
-        "picme-face-landmark-ncnn" to DetectionModelType.FACE_2D106_NCNN
+        "face-det-retina10g-mnn" to DetectionModelType.DET_500M_MNN,
+        "face-det-retina10g-ncnn" to DetectionModelType.DET_500M_NCNN,
+        "face-det-retina500m-mnn" to DetectionModelType.DET_500M_MNN,
+        "face-det-retina500m-ncnn" to DetectionModelType.DET_500M_NCNN,
+        "face-landmark-2d106-mnn" to DetectionModelType.FACE_2D106_MNN,
+        "face-landmark-2d106-ncnn" to DetectionModelType.FACE_2D106_NCNN
     )
 
     /**
@@ -469,28 +469,28 @@ private val ESSENTIAL_MODEL_IDS = listOf(
         return when (stage) {
             DetectionStage.ROI -> when (modelType) {
                 DetectionModelType.DET_500M_MNN -> {
-                    if (modelDownloadManager.isModelDownloaded("picme-face-det-500m-mnn")) {
-                        "picme-face-det-500m-mnn"
-                    } else if (modelDownloadManager.isModelDownloaded("picme-face-det-mnn")) {
-                        "picme-face-det-mnn"
+                    if (modelDownloadManager.isModelDownloaded("face-det-retina500m-mnn")) {
+                        "face-det-retina500m-mnn"
+                    } else if (modelDownloadManager.isModelDownloaded("face-det-retina10g-mnn")) {
+                        "face-det-retina10g-mnn"
                     } else {
-                        "picme-face-det-500m-mnn"
+                        "face-det-retina500m-mnn"
                     }
                 }
                 DetectionModelType.DET_500M_NCNN -> {
-                    if (modelDownloadManager.isModelDownloaded("picme-face-det-500m-ncnn")) {
-                        "picme-face-det-500m-ncnn"
-                    } else if (modelDownloadManager.isModelDownloaded("picme-face-det-ncnn")) {
-                        "picme-face-det-ncnn"
+                    if (modelDownloadManager.isModelDownloaded("face-det-retina500m-ncnn")) {
+                        "face-det-retina500m-ncnn"
+                    } else if (modelDownloadManager.isModelDownloaded("face-det-retina10g-ncnn")) {
+                        "face-det-retina10g-ncnn"
                     } else {
-                        "picme-face-det-500m-ncnn"
+                        "face-det-retina500m-ncnn"
                     }
                 }
                 else -> null
             }
             DetectionStage.LANDMARK -> when (modelType) {
-                DetectionModelType.FACE_2D106_MNN -> "picme-face-landmark-mnn"
-                DetectionModelType.FACE_2D106_NCNN -> "picme-face-landmark-ncnn"
+                DetectionModelType.FACE_2D106_MNN -> "face-landmark-2d106-mnn"
+                DetectionModelType.FACE_2D106_NCNN -> "face-landmark-2d106-ncnn"
                 else -> null
             }
         }

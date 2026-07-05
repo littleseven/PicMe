@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * 人脸 Embedding 实体 —— 存储 MobileFaceNet 提取的 512 维特征向量
+ * 人脸 Embedding 实体 —— 存储 Glint360K R100 提取的 512 维特征向量
  *
  * 支持增量聚类：新的人脸 embedding 可与已有 person 质心做余弦距离匹配。
  * 每 N 个增量触发一次全量 DBSCAN 重聚以保证聚类质量。

@@ -41,11 +41,14 @@ Go to **`Settings → Model Center`** and ensure the following models marked as 
 
 | Model ID | Name | Purpose | Size (approx.) |
 |------|------|------|:---:|
-| `picme-face-det-mnn` | MNN ROI (Det10G) | Fast face region detection | ~2MB |
-| `picme-face-det-500m-mnn` | MNN ROI (Det500M) | High-precision face detection | ~5MB |
-| `picme-face-landmark-mnn` | MNN 2D106 | 106-point facial landmark detection | ~1MB |
-| `picme-face-embedding-mnn` | MNN MobileFaceNet | Face feature vector extraction (for clustering) | ~2MB |
 | `qwen3_5_2b` | Qwen3.5-2B | On-device image understanding & tag generation | ~2.5GB |
+| `sherpa-onnx-zipformer-zh-en` | Sherpa-ONNX Zipformer | Streaming speech recognition (voice input) | ~280MB |
+| `sherpa-onnx-kws-zipformer-wenetspeech` | Sherpa-ONNX KWS | Wake-word detection | ~14MB |
+| `face-det-retina500m-mnn` | MNN ROI (Det500M) | Default high-precision face detection | ~5MB |
+| `face-landmark-2d106-mnn` | MNN 2D106 | 106-point facial landmark detection | ~1MB |
+| `face-embedding-glint360k-r100-mnn` | Glint360K R100 | Face feature vector extraction (clustering/recognition) | ~248MB |
+| `mobileclip-onnx` | MobileCLIP-S2 | Image/text semantic encoding (semantic search/photo tagging) | ~397MB |
+| `opus-mt-zh-en` | OPUS-MT | Chinese→English translation (semantic search query translation) | ~70MB |
 
 > Model Center tags are sorted with "**Face Detection**" and "**Chat**" at the top for quick access to required models.
 
@@ -128,7 +131,7 @@ Go to **`Settings → Model Center`** and ensure the following models marked as 
 | Button | Function | Prerequisites |
 |------|------|----------|
 | **Full 3-Pass Scan** | Execute P1→P2→P3 sequentially | All 5 required models downloaded |
-| **Pass 1: Face Detection** | Face detection + embedding extraction only | MNN ROI + 2D106 + MobileFaceNet |
+| **Pass 1: Face Detection** | Face detection + embedding extraction only | MNN ROI + 2D106 + Glint360K R100 |
 | **Pass 2: DBSCAN Clustering** | Re-cluster based on existing embeddings | Pass 1 has been executed |
 | **Pass 3: Qwen Tags** | Generate tags for untagged photos | Pass 1 executed, Qwen model downloaded |
 | **Pass 3: Regenerate Tags** | Clear all tags and regenerate from scratch | Qwen model downloaded |
@@ -208,7 +211,7 @@ Go to **`Settings → Model Center`** and ensure the following models marked as 
 | Issue | Troubleshooting Steps |
 |------|----------|
 | Pass 1 result is 0 | ① Check if MNN ROI + 2D106 models are downloaded<br>② Confirm camera permission is granted |
-| Pass 2 person clusters inaccurate | ① Check if MobileFaceNet model is downloaded<br>② Clustering threshold in `ClusteringConfig.kt` (current cosine similarity threshold: 0.72) |
+| Pass 2 person clusters inaccurate | ① Check if Glint360K R100 model is downloaded<br>② Clustering threshold in `ClusteringConfig.kt` (current cosine similarity threshold: 0.72) |
 | Pass 3 tags are empty | ① Check if Qwen3.5-2B model is downloaded<br>② Confirm API Key is configured correctly<br>③ Confirm device has sufficient memory (4GB+ free) |
 | Model download failed | ① Check network connection<br>② Confirm free storage > 5GB<br>③ Check download notification bar for error messages |
 | Scan stops mid-way | ① Confirm foreground service notification is visible<br>② Check battery optimization whitelist<br>③ Check logcat for `PicMe:TagScheduler` tag logs |

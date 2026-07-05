@@ -12,8 +12,7 @@ import java.io.File
  * 直接提取 512 维 L2 归一化 embedding。
  *
  * 当前默认模型：Glint360K R100（budaoshou/Glint360K-R100-MNN）
- * 路径: {filesDir}/llm_models/picme-face-embedding-glint360k-r100-mnn/glintr100.mnn
- * 历史模型：ArcFace R100（budaoshou/ArcFace-R100-MNN）、MobileFaceNet
+ * 路径: {filesDir}/llm_models/face-embedding-glint360k-r100-mnn/glintr100.mnn
  */
 class MnnEmbeddingExtractor(
     private val modelFile: File,
@@ -32,10 +31,10 @@ class MnnEmbeddingExtractor(
     /**
      * 初始化 MNN 模型
      *
-     * @param inputName 输入层名称，Glint360K R100 / MobileFaceNet 为 "input.1"，旧 ArcFace R100 为 "data"
-     * @param outputName 输出层名称，Glint360K R100 为 "1333"，旧 ArcFace R100 为 "fc1"；空字符串则自动查找
+     * @param inputName 输入层名称，Glint360K R100 为 "input.1"
+     * @param outputName 输出层名称，Glint360K R100 为 "1333"；空字符串则自动查找
      * @param useGpu 是否优先尝试 OpenCL GPU 后端（失败自动回退 CPU）
-     * @param swapRb 是否交换 R/B 通道；Glint360K R100 使用 RGB（false），部分旧模型需要 BGR（true）
+     * @param swapRb 是否交换 R/B 通道；Glint360K R100 使用 RGB（false）
      */
     fun initialize(
         inputName: String = "input.1",

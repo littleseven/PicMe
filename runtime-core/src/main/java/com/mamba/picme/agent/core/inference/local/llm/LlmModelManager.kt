@@ -30,11 +30,6 @@ class LlmModelManager(private val context: Context) {
             assetDir = "models/llm/Qwen3.5-2B-MNN",
             cacheDirName = "qwen3_5_2b",
             version = "1.0"
-        ),
-        "qwen3_5_0.8b" to LlmModelInfo(
-            assetDir = "models/llm/Qwen3.5-0.8B-MNN",
-            cacheDirName = "qwen3_5_0.8b",
-            version = "1.0"
         )
     )
 
@@ -48,7 +43,7 @@ class LlmModelManager(private val context: Context) {
      * @throws IllegalArgumentException 如果 key 不存在
      */
     fun prepareModel(modelKey: String): String {
-        // 1. 优先检查下载目录：支持注册表模型和动态新增模型（如 qwen3_5_0_8b）
+        // 1. 优先检查下载目录：支持注册表模型和动态新增模型
         findDownloadedModelDir(modelKey)?.let { modelDir ->
             Logger.d(tag, "LLM model found in download dir: ${modelDir.absolutePath}")
             return modelDir.absolutePath

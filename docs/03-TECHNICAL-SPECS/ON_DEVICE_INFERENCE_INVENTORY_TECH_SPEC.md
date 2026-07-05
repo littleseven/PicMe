@@ -65,7 +65,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 | 功能 | 引擎/模型 | 作用 | 备注 |
 |------|-----------|------|------|
 | 语义搜索 | **MobileCLIP-S2-ONNX** + **OPUS-MT Zh→En** | 图文跨模态相似度匹配 | MobileCLIP 文本/图像编码 512 维 |
-| 人脸聚类 | **MobileFaceNet w600k_mnn** + DBSCAN | 提取 512 维 face embedding | MNN CPU 推理 |
+| 人脸聚类 | **Glint360K R100** + DBSCAN | 提取 512 维 face embedding | MNN CPU 推理 |
 | 图像理解 | **Qwen3.5-2B-MNN** | 相册单张图像理解 | `MediaPager` 已修复加载检查 |
 | 标签/元数据 | **ML Kit Image Labeler**、**ML Kit Text Recognition** | 英文标签、OCR 文字 | 英文标签与 Qwen 中文标签混用 |
 
@@ -75,7 +75,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 
 | Pass | 引擎/模型 | 作用 | 单张耗时 | 是否量化 |
 |------|-----------|------|----------|----------|
-| **Pass 1** | MNN/NCNN RetinaFace + MobileFaceNet | 人脸 ROI + 106 关键点 + 512 维 Embedding | ~30-80ms | 否 |
+| **Pass 1** | MNN/NCNN RetinaFace + Glint360K R100 | 人脸 ROI + 106 关键点 + 512 维 Embedding | ~30-80ms | 否 |
 | **Pass 1.5** | MobileCLIP-S2-ONNX (fp32) | 语义编码 → `semanticEmbedding` | ~50-100ms | 否 |
 | **Pass 2** | DBSCAN / 增量余弦匹配 | 人脸聚类 → `personId` | ~5-20ms/对比 | — |
 | **Pass 3** | Qwen3.5-2B-MNN | 图像理解生成中文标签 | ~2-8s | 否 |
@@ -112,7 +112,6 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 | 模型 | 引擎 | 大小 | 量化 | 运行时内存 | 用途 |
 |------|------|------|------|------------|------|
 | **Qwen3.5-2B-MNN** | MNN-LLM | 1.32GB (weight ~1.8GB) | **未量化**（FP16/FP32） | ~4.2GB | 默认本地 LLM，聊天/图像理解/Tag Pass 3 |
-| **Qwen3.5-0.8B-MNN** | MNN-LLM | 547MB | **未量化** | ~1.5GB | 轻量备选，适合中端设备 |
 
 > 问题：2B 模型未做 INT4 量化，内存占用过大，与相机美颜叠加后易 OOM。
 
@@ -133,7 +132,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 | **RetinaFace Det10G** (NCNN) | NCNN | 16.9MB | 否 | ROI 检测备选 |
 | **RetinaFace Det500M** (NCNN) | NCNN | 1.27MB | 否 | ROI 检测备选 |
 | **2D106 Landmark** (NCNN) | NCNN | 5.02MB | 否 | 关键点备选 |
-| **MobileFaceNet w600k** (MNN) | MNN | 4.5MB | 否 | 人脸 512 维 Embedding |
+| **Glint360K R100** (MNN) | MNN | 248MB | 否 | 人脸 512 维 Embedding（聚类/识别） |
 
 > 问题：所有人脸模型均未量化；Det10G 与 Det500M 同时存在，后者已替代前者为默认，但前者模型仍作为可选保留。
 
@@ -158,10 +157,10 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 
 | 模型类别 | 已量化 | 未量化 | 说明 |
 |----------|--------|--------|------|
-| LLM | — | Qwen3.5-2B、Qwen3.5-0.8B | 最大内存瓶颈，INT4 量化待实施 |
+| LLM | — | Qwen3.5-2B | 最大内存瓶颈，INT4 量化待实施 |
 | ASR/KWS | Sherpa-ONNX ASR、KWS | — | 已 INT8 量化 |
 | 人脸检测/关键点 | — | MNN/NCNN RetinaFace、2D106 | 模型小，量化收益有限 |
-| 人脸 Embedding | — | MobileFaceNet | 4.5MB，量化收益有限 |
+| 人脸 Embedding | — | Glint360K R100 | 248MB，量化收益有限 |
 | CLIP | — | MobileCLIP-S2 | fp16 在 CPU 上不稳定，强制 fp32 |
 | 翻译 | OPUS-MT | — | INT8 量化 |
 
@@ -254,8 +253,8 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 
 ### 6.4 工程层问题
 
-12. **模型 ID 不一致**
-    - `ModelPathConfig.MODEL_ID_LLM` 为 `"qwen-1.7b"`，但 `LlmModelManager` 只注册 `"qwen3_5_2b"`，路径/ID 存在历史遗留不一致。
+12. **模型 ID 不一致（已修复）**
+    - `ModelPathConfig.MODEL_ID_LLM` 已统一为 `"qwen3_5_2b"`，`MODEL_ID_ASR` 已统一为 `"sherpa-onnx-zipformer-zh-en"`，与 `LlmModelManager` 注册表及 `llm_models.json` 保持一致。
 
 13. **ML Kit 英文标签与 Qwen 中文标签混用**
     - `MetadataExtractor` 输出英文标签（如 "Outdoor"），Qwen 输出中文标签（如 "户外"），`LIKE` 搜索无法跨语言命中，依赖 LLM Agent 做同义词扩展。

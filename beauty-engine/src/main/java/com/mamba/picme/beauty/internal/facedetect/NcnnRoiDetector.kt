@@ -124,7 +124,7 @@ class NcnnRoiDetector(
                     "Ensure libncnn.so in jniLibs/arm64-v8a/ AND model [$MODEL_KEY] is valid.")
             } catch (e: IllegalStateException) {
                 initFailureReason = "Model not found: $MODEL_KEY. " +
-                    "Download 'picme-face-det-500m-ncnn' from ModelScope via Settings."
+                    "Download 'face-det-retina500m-ncnn' from ModelScope via Settings."
                 Logger.e(TAG, initFailureReason!!, e)
                 detector = null
             } catch (e: Exception) {

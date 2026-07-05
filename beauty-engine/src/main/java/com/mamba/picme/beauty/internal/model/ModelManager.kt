@@ -71,12 +71,12 @@ object ModelManager {
      * 人脸检测模型下载配置（映射到 llm_models/<modelId>/ 目录）
      */
     private val FACE_DETECTION_DOWNLOAD_KEYS = mapOf(
-        "det10g_mnn" to "picme-face-det-mnn",
-        "2d106_mnn" to "picme-face-landmark-mnn",
-        "det10g_ncnn" to "picme-face-det-ncnn",
-        "2d106_ncnn" to "picme-face-landmark-ncnn",
-        "det_500m_mnn" to "picme-face-det-500m-mnn",
-        "det_500m_ncnn" to "picme-face-det-500m-ncnn"
+        "det10g_mnn" to "face-det-retina10g-mnn",
+        "2d106_mnn" to "face-landmark-2d106-mnn",
+        "det10g_ncnn" to "face-det-retina10g-ncnn",
+        "2d106_ncnn" to "face-landmark-2d106-ncnn",
+        "det_500m_mnn" to "face-det-retina500m-mnn",
+        "det_500m_ncnn" to "face-det-retina500m-ncnn"
     )
 
     private val MODEL_REGISTRY = mapOf(

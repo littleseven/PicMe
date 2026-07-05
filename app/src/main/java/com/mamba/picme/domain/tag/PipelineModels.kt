@@ -3,7 +3,7 @@ package com.mamba.picme.domain.tag
 import android.graphics.RectF
 
 /**
- * 单个人脸的 ROI + RetinaFace 5 点 landmarks（用于 MobileFaceNet 对齐）
+ * 单个人脸的 ROI + RetinaFace 5 点 landmarks（用于人脸 embedding 对齐）
  *
  * @param roi 人脸 ROI 区域（像素坐标）
  * @param landmarks5 5 点原图像素坐标（FloatArray，长度 10）。

@@ -87,7 +87,7 @@ beauty-engine/src/main/java/com/picme/beauty/
   │       ├── Face106ToWarpParams.kt
   │       ├── RoiDetector.kt / MnnRoiDetector.kt（AtomicBoolean CAS 非阻塞初始化）/ NcnnRoiDetector.kt（含 detectRoiFromYuv NV21 零拷贝）
   │       ├── LandmarkDetector.kt / MnnLandmarkDetector.kt（AtomicBoolean CAS 非阻塞初始化）/ NcnnLandmarkDetector.kt
-  │       ├── mnn/MnnFaceDetector.kt / MnnFaceEmbedder.kt（ArcFace/MobileFaceNet embedding，支持 OpenCL GPU）
+  │       ├── mnn/MnnFaceDetector.kt / MnnFaceEmbedder.kt（通用 MNN 人脸 embedding 提取器，支持 OpenCL GPU）
   │       ├── ncnn/NcnnFaceDetector.kt     # 含 detectRetinaFaceFromNv21() JNI 方法
   │       └── adapter/ (FaceLandmarkAdapter, MediaPipe468Adapter, MnnLandmarkAdapter, NcnnLandmarkAdapter)
 ├── log/                               # 结构化日志

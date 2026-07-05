@@ -479,7 +479,7 @@
 ### 5.3 人脸模型 INT8 量化评估
 
 **背景**
-- RetinaFace、2D106、MobileFaceNet 均为未量化 float32。
+- RetinaFace、2D106、Glint360K R100 均为未量化 float32。
 
 **收益评估**
 - 模型本身很小（1-5MB），INT8 后内存降幅有限（< 50%）。
@@ -493,7 +493,7 @@
 
 **风险**
 - 中。人脸关键点 INT8 可能引起 landmark 抖动，影响美颜形变精度。
-- MobileFaceNet INT8 可能降低聚类准确率。
+- Glint360K R100 INT8 可能降低聚类准确率。
 
 **依赖**
 - 量化工具链（MNN/NCNN）

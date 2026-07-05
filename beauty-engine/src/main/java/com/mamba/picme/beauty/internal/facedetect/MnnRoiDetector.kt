@@ -203,7 +203,7 @@ class MnnRoiDetector(
      * 多脸检测：返回 ROI + RetinaFace 5 点 landmarks
      *
      * 5 点顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]，坐标为原图像素坐标。
-     * landmarks 不随 ROI 扩展而扩展，保留真实五官位置用于 MobileFaceNet 对齐。
+     * landmarks 不随 ROI 扩展而扩展，保留真实五官位置用于人脸 embedding 对齐。
      */
     fun detectFacesWithLandmarks(bitmap: Bitmap): List<FaceDetection> {
         // [优化] 懒加载初始化（CAS 无锁，初始化中的线程直接返回）

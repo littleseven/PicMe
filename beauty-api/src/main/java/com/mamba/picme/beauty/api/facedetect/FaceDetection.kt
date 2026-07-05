@@ -5,7 +5,7 @@ import android.graphics.RectF
 /**
  * 单个人脸检测结果（ROI + 5 关键点）
  *
- * 为 MobileFaceNet / ArcFace 等人脸识别模型提供对齐所需信息。
+ * 为人脸识别/聚类模型提供对齐所需信息。
  * 5 点 landmarks 顺序遵循 RetinaFace / ArcFace 标准：
  * [左眼 x, 左眼 y, 右眼 x, 右眼 y, 鼻尖 x, 鼻尖 y, 左嘴角 x, 左嘴角 y, 右嘴角 x, 右嘴角 y]
  *

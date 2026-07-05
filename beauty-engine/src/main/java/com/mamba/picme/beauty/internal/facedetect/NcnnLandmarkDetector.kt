@@ -103,7 +103,7 @@ class NcnnLandmarkDetector(
                     "Ensure libncnn.so in jniLibs/arm64-v8a/ AND model [$MODEL_KEY] is valid.")
             } catch (e: IllegalStateException) {
                 initFailureReason = "Model not found: $MODEL_KEY. " +
-                    "Download 'picme-face-landmark-ncnn' from ModelScope via Settings."
+                    "Download 'face-landmark-2d106-ncnn' from ModelScope via Settings."
                 Logger.e(TAG, initFailureReason!!, e)
                 detector = null
             } catch (e: Exception) {

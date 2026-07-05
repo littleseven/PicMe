@@ -11,7 +11,7 @@
 TAG 生成采用三阶段管道（[TagGenerationScheduler](../../app/src/main/java/com/mamba/picme/domain/tag/TagGenerationScheduler.kt) + [TagGenerationPipeline](../../app/src/main/java/com/mamba/picme/domain/tag/TagGenerationPipeline.kt)）：
 
 ```
-Pass 1 (人脸 ROI + 106关键点 + MobileFaceNet Embedding)  →  Pass 2 (DBSCAN 全局聚类)  →  Pass 3 (Qwen3.5-2B 图像理解)
+Pass 1 (人脸 ROI + 106关键点 + Glint360K R100 Embedding)  →  Pass 2 (DBSCAN 全局聚类)  →  Pass 3 (Qwen3.5-2B 图像理解)
   ~10-50ms + ~20-80ms + ~30-60ms                                 ~2-5s (一次)                  ~2-8s/张
 ```
 

@@ -35,27 +35,6 @@
     "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx"]
   },
   {
-    "id": "qwen3_5_0_8b",
-    "name": "Qwen3.5-0.8B-MNN",
-    "description": "阿里通义千问 3.5 0.8B 轻量多模态版，支持图片理解，适合中端设备本地运行",
-    "type": "LLM",
-    "size": 547000000,
-    "sources": {
-      "ModelScope": "MNN/Qwen3.5-0.8B-MNN"
-    },
-    "files": [
-      "config.json",
-      "llm_config.json",
-      "llm.mnn",
-      "llm.mnn.json",
-      "llm.mnn.weight",
-      "tokenizer.txt",
-      "visual.mnn",
-      "visual.mnn.weight"
-    ],
-    "tags": ["chat", "vision", "multilingual", "lightweight"]
-  },
-  {
     "id": "qwen3_5_2b",
     "name": "Qwen3.5-2B-MNN",
     "description": "阿里通义千问 3.5 2B 多模态版，支持图片理解与推理，适合高端设备本地运行",
@@ -77,7 +56,7 @@
     "tags": ["must-have", "chat", "reasoning", "multilingual", "vision"]
   },
   {
-    "id": "picme-face-det-mnn",
+    "id": "face-det-retina10g-mnn",
     "name": "RetinaFace Det10G",
     "description": "RetinaFace 人脸检测模型 (MNN 格式)，用于 ROI 区域检测，GPU 加速",
     "type": "FACE_DETECTION",
@@ -91,7 +70,7 @@
     "tags": ["beauty-camera", "face", "detection", "mnn"]
   },
   {
-    "id": "picme-face-landmark-mnn",
+    "id": "face-landmark-2d106-mnn",
     "name": "2D106 Landmark",
     "description": "2D106 人脸关键点模型 (MNN 格式)，用于 106 点面部关键点检测，GPU 加速",
     "type": "FACE_DETECTION",
@@ -105,7 +84,7 @@
     "tags": ["must-have", "beauty-camera", "face", "landmark", "mnn"]
   },
   {
-    "id": "picme-face-det-ncnn",
+    "id": "face-det-retina10g-ncnn",
     "name": "RetinaFace Det10G",
     "description": "RetinaFace 人脸检测模型 (NCNN 格式)，用于 ROI 区域检测，轻量高效",
     "type": "FACE_DETECTION",
@@ -120,7 +99,7 @@
     "tags": ["beauty-camera", "face", "detection", "ncnn"]
   },
   {
-    "id": "picme-face-landmark-ncnn",
+    "id": "face-landmark-2d106-ncnn",
     "name": "2D106 Landmark",
     "description": "2D106 人脸关键点模型 (NCNN 格式)，用于 106 点面部关键点检测，轻量高效",
     "type": "FACE_DETECTION",
@@ -135,7 +114,7 @@
     "tags": ["beauty-camera", "face", "landmark", "ncnn"]
   },
   {
-    "id": "picme-face-det-500m-mnn",
+    "id": "face-det-retina500m-mnn",
     "name": "RetinaFace Det500M",
     "description": "RetinaFace-MobileNet0.25 人脸检测模型 (MNN 格式)，用于 ROI 区域检测，GPU 加速",
     "type": "FACE_DETECTION",
@@ -149,49 +128,7 @@
     "tags": ["must-have", "beauty-camera", "face", "detection", "mnn"]
   },
   {
-    "id": "picme-face-embedding-mnn",
-    "name": "MobileFaceNet MNN",
-    "description": "MobileFaceNet 人脸特征提取模型 (MNN 格式)，512 维 embedding，用于人脸聚类和识别，~4.5MB",
-    "type": "FACE_EMBEDDING",
-    "size": 4500000,
-    "sources": {
-      "ModelScope": "budaoshou/InsightFace-MobileFaceNet-MNN"
-    },
-    "files": [
-      "w600k_mbf.mnn"
-    ],
-    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "mobilefacenet"]
-  },
-  {
-    "id": "picme-face-embedding-r100-mnn",
-    "name": "ArcFace R100 MNN",
-    "description": "ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，精度高于 MobileFaceNet，~250MB",
-    "type": "FACE_EMBEDDING",
-    "size": 260572332,
-    "sources": {
-      "ModelScope": "budaoshou/ArcFace-R100-MNN"
-    },
-    "files": [
-      "arcface_r100.mnn"
-    ],
-    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface"]
-  },
-  {
-    "id": "picme-face-embedding-glint360k-r100-mnn",
-    "name": "Glint360K R100 MNN",
-    "description": "Glint360K 上训练的 ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，精度优于 MobileFaceNet，~248MB",
-    "type": "FACE_EMBEDDING",
-    "size": 260598260,
-    "sources": {
-      "ModelScope": "budaoshou/Glint360K-R100-MNN"
-    },
-    "files": [
-      "glintr100.mnn"
-    ],
-    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface", "glint360k"]
-  },
-  {
-    "id": "picme-face-det-500m-ncnn",
+    "id": "face-det-retina500m-ncnn",
     "name": "RetinaFace Det500M",
     "description": "RetinaFace-MobileNet0.25 人脸检测模型 (NCNN 格式)，用于 ROI 区域检测，轻量高效",
     "type": "FACE_DETECTION",
@@ -204,6 +141,20 @@
       "det_500m.bin"
     ],
     "tags": ["beauty-camera", "face", "detection", "ncnn"]
+  },
+  {
+    "id": "face-embedding-glint360k-r100-mnn",
+    "name": "Glint360K R100 MNN",
+    "description": "Glint360K 上训练的 ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，~248MB",
+    "type": "FACE_EMBEDDING",
+    "size": 260598260,
+    "sources": {
+      "ModelScope": "budaoshou/Glint360K-R100-MNN"
+    },
+    "files": [
+      "glintr100.mnn"
+    ],
+    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface", "glint360k"]
   },
   {
     "id": "mobileclip-onnx",

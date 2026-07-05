@@ -13,12 +13,12 @@
 namespace picme {
 
 /**
- * 专用 MNN MobileFaceNet 人脸 Embedding 提取器
+ * 通用 MNN 人脸 Embedding 提取器
  *
- * 不依赖 MnnFaceDetector，直接使用 MNN Interpreter 加载 MobileFaceNet 模型，
+ * 不依赖 MnnFaceDetector，直接使用 MNN Interpreter 加载人脸 embedding 模型，
  * 输入 112x112 RGB，输出 512 维 L2 归一化 embedding。
  *
- * 模型: w600k_mbf.mnn (InsightFace-MobileFaceNet-MNN)
+ * 当前默认模型: glintr100.mnn (Glint360K-R100-MNN)
  * 输入: input.1, [1, 3, 112, 112]
  * 输出: 512-dim embedding (自动从多输出中定位)
  */

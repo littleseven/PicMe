@@ -108,16 +108,6 @@ class LlmModelDownloadManager(context: Context) {
         private val FACE_DETECTION_ROI_500M_MNN_FILES = listOf("det_500m.mnn")
 
         /**
-         * MobileFaceNet 人脸嵌入 MNN 模型文件列表（模型中心统一下载）
-         */
-        private val FACE_EMBEDDING_MNN_FILES = listOf("w600k_mbf.mnn")
-
-        /**
-         * ArcFace R100 人脸嵌入 MNN 模型文件列表
-         */
-        private val FACE_EMBEDDING_R100_MNN_FILES = listOf("arcface_r100.mnn")
-
-        /**
          * Glint360K R100 人脸嵌入 MNN 模型文件列表
          */
         private val FACE_EMBEDDING_GLINT360K_R100_MNN_FILES = listOf("glintr100.mnn")
@@ -484,15 +474,13 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId.contains("kws", ignoreCase = true) -> KWS_MODEL_FILES
             modelId.contains("zipformer", ignoreCase = true) -> ASR_MODEL_FILES
             modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
-            modelId == "picme-face-det-mnn" -> FACE_DETECTION_ROI_MNN_FILES
-            modelId == "picme-face-landmark-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
-            modelId == "picme-face-det-ncnn" -> FACE_DETECTION_ROI_NCNN_FILES
-            modelId == "picme-face-det-500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
-            modelId == "picme-face-det-500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
-            modelId == "picme-face-landmark-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
-            modelId == "picme-face-embedding-mnn" -> FACE_EMBEDDING_MNN_FILES
-            modelId == "picme-face-embedding-r100-mnn" -> FACE_EMBEDDING_R100_MNN_FILES
-            modelId == "picme-face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
+            modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
+            modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
+            modelId == "face-det-retina10g-ncnn" -> FACE_DETECTION_ROI_NCNN_FILES
+            modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
+            modelId == "face-det-retina500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
+            modelId == "face-landmark-2d106-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
+            modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
@@ -510,14 +498,13 @@ fun isModelDownloaded(modelId: String): Boolean {
             tags.any { it.equals("FACE_DETECTION", ignoreCase = true) } -> FACE_DETECTION_ROI_MNN_FILES
             modelId.contains("zipformer", ignoreCase = true) -> ASR_MODEL_FILES
             modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
-            modelId == "picme-face-det-mnn" -> FACE_DETECTION_ROI_MNN_FILES
-            modelId == "picme-face-landmark-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
-            modelId == "picme-face-det-ncnn" -> FACE_DETECTION_ROI_NCNN_FILES
-            modelId == "picme-face-det-500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
-            modelId == "picme-face-det-500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
-            modelId == "picme-face-landmark-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
-            modelId == "picme-face-embedding-mnn" -> FACE_EMBEDDING_MNN_FILES
-            modelId == "picme-face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
+            modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
+            modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
+            modelId == "face-det-retina10g-ncnn" -> FACE_DETECTION_ROI_NCNN_FILES
+            modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
+            modelId == "face-det-retina500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
+            modelId == "face-landmark-2d106-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
+            modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
@@ -1321,9 +1308,9 @@ data class ModelConfig(
             "qwen3_5_2b",                // 本地 LLM（文字/多模态对话）
             "sherpa-onnx-zipformer-zh-en", // ASR（语音输入）
             "sherpa-onnx-kws-zipformer-wenetspeech", // KWS（唤醒词）
-            "picme-face-det-500m-mnn",  // MNN ROI (Det500M)
-            "picme-face-landmark-mnn",  // MNN 2D106
-            "picme-face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
+            "face-det-retina500m-mnn",  // MNN ROI (Det500M)
+            "face-landmark-2d106-mnn",  // MNN 2D106
+            "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
             "mobileclip-onnx",          // 语义搜索/相册打标
             "opus-mt-zh-en"             // 中文查询翻译
         )
