@@ -1,9 +1,9 @@
 # 相册自动 Tag 生成技术方案
 
 > **状态**: 已实施  
-> **最后更新**: 2026-06-30  
+> **最后更新**: 2026-07-05  
 > **维护者**: RD Agent  
-> **相关文档**: `GALLERY_SEARCH.md`（相册搜索 SSOT）、`TAG_DATABASE_SCHEMA.md`、`TAG_I18N_DESIGN.md`、`TAG_SCAN_STATE_MACHINE.md`、`TAG_GENERATION_PERFORMANCE_ANALYSIS.md`
+> **相关文档**: `GALLERY_SEARCH.md`（相册搜索 SSOT）、`TAG_DATABASE_SCHEMA.md`、`TAG_I18N_DESIGN.md`、`TAG_SCAN_STATE_MACHINE.md`、`TAG_GENERATION_PERFORMANCE_ANALYSIS.md`、`ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`
 
 ---
 
@@ -152,7 +152,8 @@ suspend fun stage1WithEmbeddings(
    - 用 106 关键点做仿射对齐 → 112×112 ROI
    - `FaceClusterEngine.extractFeature()` → 512 维 Glint360K R100 embedding
    - 写入 `face_embeddings` 表
-4. `MobileClipEngine.encodeImage()` → 512 维语义向量 → Base64
+4. **`MobileClipEngine.encodeImage()` → 512 维语义向量 → Base64**
+   - **无论是否检测到人脸，都会执行 MobileCLIP 语义编码**，确保风景、文档、静物等无人脸照片也能被语义搜索召回。
 5. 写入 `media_assets.faceRoiResult` / `semanticEmbedding` / `hasFace`
 
 ### 3.2 Pass 2：DBSCAN 全局聚类
@@ -161,6 +162,14 @@ suspend fun stage1WithEmbeddings(
 - 余弦距离 + DBSCAN 参数：`DBSCAN_EPS`、`DBSCAN_MIN_PTS`
 - 生成 `persons` 记录，更新 `face_embeddings.personId` 与 `media_assets.faceId`
 - 对仅含一张照片的人脸直接新建单簇
+
+#### 人物命名与全量重聚类保名
+
+- 用户在 **TAG 生成控制页** 可为每个人物簇输入名称，写入 `persons.name`
+- 全量重跑 Pass 2 时，系统会在清表前捕获已命名人质的 centroid 快照（`NamedPersonSnapshot`）
+- 新簇质心与旧快照做余弦相似度匹配，阈值 `NAME_PRESERVE_MIN_SIMILARITY = 0.65`
+- 匹配成功则复用原 `personId` 与 `name`，避免重扫描后用户命名丢失
+- 每个旧人物最多被复用一次，未匹配到的新簇将创建新的匿名人物
 
 ### 3.3 Pass 3：Qwen 图像理解标签生成
 

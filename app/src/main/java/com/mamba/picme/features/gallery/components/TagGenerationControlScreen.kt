@@ -2,8 +2,8 @@
 
 package com.mamba.picme.features.gallery.components
 
-import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import com.mamba.picme.PicMeApplication
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.TagScanPass
@@ -70,6 +70,7 @@ fun TagGenerationControlScreen(
     var withLabels by remember { mutableIntStateOf(0) }
     var withSemantic by remember { mutableIntStateOf(0) }
     var personCount by remember { mutableIntStateOf(0) }
+    var namedPersonCount by remember { mutableIntStateOf(0) }
     var embeddingCount by remember { mutableIntStateOf(0) }
     var remainingPass1 by remember { mutableIntStateOf(0) }
     var remainingPass3 by remember { mutableIntStateOf(0) }
@@ -94,6 +95,7 @@ fun TagGenerationControlScreen(
                 withLabels = stats.withLabels
                 withSemantic = stats.withSemantic
                 personCount = stats.personCount
+                namedPersonCount = stats.namedPersonCount
                 embeddingCount = stats.faceEmbeddingCount
                 remainingPass1 = stats.remainingForPass1
                 remainingPass3 = stats.remainingForPass3
@@ -245,6 +247,7 @@ fun TagGenerationControlScreen(
                 withLabels = withLabels,
                 withSemantic = withSemantic,
                 personCount = personCount,
+                namedPersonCount = namedPersonCount,
                 embeddingCount = embeddingCount,
                 remainingPass1 = remainingPass1,
                 remainingPass3 = remainingPass3,
@@ -722,37 +725,67 @@ private fun PassControlCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+
+            Column(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                OutlinedButton(
-                    onClick = onIncremental,
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier
+                        .clickable { onIncremental() }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("增量生成")
+                    Icon(
+                        imageVector = Icons.Rounded.AddCircleOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "增量",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
                 }
-                Button(
-                    onClick = onFull,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    ),
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier
+                        .clickable { onFull() }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("全部重新生成")
+                    Icon(
+                        imageVector = Icons.Rounded.Replay,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "全量",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
                 }
             }
         }
@@ -805,6 +838,7 @@ private fun StatsCard(
     withLabels: Int,
     withSemantic: Int,
     personCount: Int,
+    namedPersonCount: Int,
     embeddingCount: Int,
     remainingPass1: Int,
     remainingPass3: Int,
@@ -818,52 +852,174 @@ private fun StatsCard(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatItem("总照片", totalMedia.toString())
-                StatItem("含人脸", withFace.toString())
-                StatItem("有标签", withLabels.toString())
-                StatItem("有语义", withSemantic.toString())
-                StatItem("人物簇", personCount.toString())
+            Spacer(Modifier.height(12.dp))
+
+            // ── 媒体总量（两列卡片） ──────────────────
+            StatsSectionTitle("媒体总量")
+            Row(modifier = Modifier.fillMaxWidth()) {
+                StatsNumberCard(
+                    label = "总照片",
+                    value = totalMedia.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(10.dp))
+                StatsNumberCard(
+                    label = "有语义向量",
+                    value = withSemantic.toString(),
+                    modifier = Modifier.weight(1f)
+                )
             }
-            Spacer(Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatItem("Embedding", embeddingCount.toString())
-                StatItem("Pass1剩余", remainingPass1.toString())
-                StatItem("Pass3剩余", remainingPass3.toString())
-                StatItem("ML Kit", withMlKitLabels.toString())
-                StatItem("MLKit剩余", remainingMlKit.toString())
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+
+            // ── 人脸与人物（2×2 卡片网格） ────────────
+            StatsSectionTitle("人脸与人物")
+            Row(modifier = Modifier.fillMaxWidth()) {
+                StatsNumberCard(
+                    label = "含人脸照片",
+                    value = withFace.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(10.dp))
+                StatsNumberCard(
+                    label = "人脸 Embedding",
+                    value = embeddingCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
             }
+            Spacer(Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                StatsNumberCard(
+                    label = "识别出的人",
+                    value = personCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(10.dp))
+                StatsNumberCard(
+                    label = "已命名人",
+                    value = namedPersonCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+
+            // ── Pass 进度（三列表格） ─────────────────
+            StatsSectionTitle("Pass 进度")
+            StatsPassTableHeader()
+            HorizontalDivider()
+            StatsPassTableRow("Pass 1", "$withFace / $totalMedia", remainingPass1.toString())
+            StatsPassTableRow("Pass 3", "$withLabels / $totalMedia", remainingPass3.toString())
+            StatsPassTableRow("ML Kit", "$withMlKitLabels / $totalMedia", remainingMlKit.toString())
         }
     }
 }
 
 @Composable
-private fun RowScope.StatItem(
+private fun StatsSectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 6.dp, bottom = 8.dp)
+    )
+}
+
+@Composable
+private fun StatsNumberCard(
     label: String,
     value: String,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier.weight(1f),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsPassTableHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
         Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = valueColor
-        )
-        Text(
-            text = label,
+            text = "Pass",
+            modifier = Modifier.weight(0.22f),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        Text(
+            text = "完成",
+            modifier = Modifier.weight(0.46f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.End
+        )
+        Text(
+            text = "剩余",
+            modifier = Modifier.weight(0.32f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun StatsPassTableRow(pass: String, done: String, remaining: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = pass,
+            modifier = Modifier.weight(0.22f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+        )
+        Text(
+            text = done,
+            modifier = Modifier.weight(0.46f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.End,
+            maxLines = 1
+        )
+        Text(
+            text = remaining,
+            modifier = Modifier.weight(0.32f),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.End,
+            maxLines = 1
         )
     }
 }

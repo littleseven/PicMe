@@ -5,6 +5,8 @@
 > **验证人**: RD Agent  
 > **状态**: ⚠️ **FP32 模型推理异常，INT8 模型尚未验证**
 
+> **重要更新**：本记录反映的是 **2026-06-28 日间的代码状态**。当天晚些时候 commit `bee0dcbe`（`fix(i18n): OPUS-MT tokenizer vocab mapping + decoder optimization`）修复了 SentencePiece ↔ HuggingFace token ID 映射、decoder EOS 控制、KV-cache 传递等问题，并验证通过 `美丽的姑娘` → `beautiful girl` 等用例。当前 `OpusMtTranslator.kt` 已改为加载 INT8 量化模型（`encoder_model_quantized.onnx` 等）。因此本文档目前处于**待重新验证**状态，不能直接代表当前代码的行为。
+
 ---
 
 ## 1. 验证目标

@@ -1,10 +1,10 @@
 # TAG 中英文国际化方案
 
 > 状态：已落地（Phase 0 + Phase 1 + Phase 1.5 实现完成）  
-> 最后更新：2026-07-01  
+> 最后更新：2026-07-05  
 > 维护者：RD Agent  
 > 目标：在**不强制全量重新生成 TAG** 的前提下，让中英文用户都能跨语言搜索和查看 TAG。  
-> 关联文档：`GALLERY_SEARCH.md`（搜索链路 SSOT）、`AUTO_TAG_GENERATION_SPEC.md`、`TAG_DATABASE_SCHEMA.md`
+> 关联文档：`GALLERY_SEARCH.md`（搜索链路 SSOT）、`AUTO_TAG_GENERATION_SPEC.md`、`TAG_DATABASE_SCHEMA.md`、`ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`（Tokenizer 现状）
 
 ---
 
@@ -264,6 +264,8 @@ expandForSearch(中文查询词)
   └─ 4. 保留原词兜底
 ```
 
+> **Tokenizer 说明**：OPUS-MT 的编解码依赖 `:sentencepiece` 模块加载的 `source.spm` / `target.spm`，`tokenizer.json` 仅用于 Hugging Face token ID 与 SentencePiece piece 之间的映射。详见 `ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md` 第 4.7 节。
+
 ### 6.5.4 ChineseQueryTranslator CLIP 扩展增强
 
 ```
@@ -278,6 +280,8 @@ expandForClip(中文查询)
   │
   └─ 3. translateForClip 基础翻译（vocab→OPUS-MT 回退）
 ```
+
+> OPUS-MT 翻译内部同样走 SentencePiece → HF ID → 推理 → HF ID → SentencePiece 的往返，具体映射细节见 `ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md` 第 4.7 节。
 
 ### 6.5.5 关键文件变更
 

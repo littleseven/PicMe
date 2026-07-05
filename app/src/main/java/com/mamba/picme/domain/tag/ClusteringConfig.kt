@@ -56,5 +56,9 @@ object ClusteringConfig {
     /** 方案 B 最小簇大小，小于此值的连通分量视为噪声。
      *  与 DBSCAN_MIN_PTS 保持一致的语义：≥2 张人脸才成人物簇。 */
     const val KNN_MIN_CLUSTER_SIZE = 2
+
+    /** 全量重聚类时，新簇与旧命名人物质心的最小余弦相似度。
+     *  高于此值则认为新旧簇为同一人，复用 personId 与 name。 */
+    const val NAME_PRESERVE_MIN_SIMILARITY = 0.65f
 }
 

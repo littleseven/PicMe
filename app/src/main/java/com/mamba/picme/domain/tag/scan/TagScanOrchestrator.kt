@@ -124,6 +124,7 @@ class TagScanOrchestrator(
             val remainingForPass3 = unlabeledCount
             val withMlKitLabels = db.mediaDao().getMlKitLabeledCount()
             val remainingForMlKit = db.mediaDao().getUnlabeledMlKitMediaCount()
+            val namedPersonCount = db.personDao().getNamedPersonCount()
 
             TagScanDbStats(
                 totalMedia = totalMedia,
@@ -131,6 +132,7 @@ class TagScanOrchestrator(
                 withLabels = withLabels,
                 withSemantic = withSemantic,
                 personCount = personCount,
+                namedPersonCount = namedPersonCount,
                 faceEmbeddingCount = faceEmbeddingCount,
                 remainingForPass1 = remainingForPass1,
                 remainingForPass3 = remainingForPass3,
@@ -154,6 +156,9 @@ class TagScanOrchestrator(
 
     /** 当前会话消息历史 */
     private val sessionMessages = mutableListOf<ScanMessage>()
+
+    /** 当前会话中被标记为全量重跑的 Pass 集合，供 executeTask 读取 */
+    private val fullRescanPasses = mutableSetOf<TagScanPass>()
 
     init {
         // 启动时恢复被异常中断的 RUNNING 任务
@@ -302,21 +307,24 @@ class TagScanOrchestrator(
         val sessionId = newSessionId()
         logInfo(sessionId, "schedulePass: $pass, mode=$mode")
 
+        if (mode == ScanMode.FULL) {
+            fullRescanPasses += pass
+        }
+
         val allIds = db.mediaDao().getAllMediaIds()
         var ids = filterMediaIdsByQuery(allIds, query)
 
         if (pass == TagScanPass.FACE_DETECTION && mode == ScanMode.FULL) {
-            // 全量重跑 Pass 1：清空旧的人脸数据
+            // 全量重跑 Pass 1：清空媒体端的人脸标记。
+            // 不删除 face_embeddings 与 persons，使后续 Pass 2 全量重聚类时还能基于旧 embedding
+            // 计算命名人物质心，从而复用人名。
             db.mediaDao().resetAllFaceData()
-            db.personDao().clearAllEmbeddings()
-            db.personDao().clearAllPersons()
         }
 
         if (pass == TagScanPass.DBSCAN && mode == ScanMode.FULL) {
-            // 全量重跑 Pass 2：清空旧人物簇及媒体上的 faceId，重新对全部 face embeddings 做 DBSCAN
-            db.personDao().clearAllPersons()
-            db.personDao().resetAllEmbeddingAssignments()
-            db.mediaDao().resetAllFaceIds()
+            // 全量重跑 Pass 2：由 scheduler.executeDbscan(isFullRescan=true) 负责
+            // 先保存命名人物质心快照，再清空旧人物簇及媒体上的 faceId，最后重新聚类。
+            // 这里仅做标记，实际清空操作在 executeDbscan 中按快照捕获后执行。
         }
 
         if (pass == TagScanPass.QWEN_TAGGING && mode == ScanMode.FULL) {
@@ -584,6 +592,7 @@ class TagScanOrchestrator(
                 return
             }
             activeSessionId = sessionId
+            fullRescanPasses.clear()
         }
 
         currentJob?.cancel()
@@ -645,7 +654,10 @@ class TagScanOrchestrator(
         return try {
             when (task.pass) {
                 TagScanPass.FACE_DETECTION -> scheduler.executeFaceDetection(task.mediaId)
-                TagScanPass.DBSCAN -> scheduler.executeDbscan()
+                TagScanPass.DBSCAN -> scheduler.executeDbscan(
+                    preserveNamedPersons = true,
+                    isFullRescan = task.pass in fullRescanPasses
+                )
                 TagScanPass.QWEN_TAGGING -> scheduler.executeQwenTagging(task.mediaId)
                 TagScanPass.MOBILE_CLIP_ENCODING -> scheduler.executeMobileClipEncoding(task.mediaId)
                 TagScanPass.ML_KIT_TAGGING -> scheduler.executeMlKitTagging(task.mediaId)
@@ -996,6 +1008,7 @@ class TagScanOrchestrator(
         val withLabels: Int,
         val withSemantic: Int,
         val personCount: Int,
+        val namedPersonCount: Int = 0,
         val faceEmbeddingCount: Int,
         val remainingForPass1: Int,
         val remainingForPass3: Int,

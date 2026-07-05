@@ -1,10 +1,10 @@
 # PicMe 端侧推理引擎与模型全景梳理
 
-> **版本**: 1.0  
+> **版本**: 1.2  
 > **状态**: 生效中  
-> **最后更新**: 2026-06-30  
+> **最后更新**: 2026-07-05  
 > **维护者**: RD Agent  
-> **范围**: `:app`、`:runtime-core`、`:beauty-engine`、`:beauty-api`、`:sentencepiece` 模块中所有本地推理引擎、模型、量化策略及运行时瓶颈
+> **范围**: `:app`、`:runtime-core`、`:beauty-engine`、`:beauty-api`、`:sentencepiece` 模块中所有本地推理引擎、模型、量化策略、tokenizer 及运行时瓶颈
 
 ---
 
@@ -27,7 +27,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 | **Sherpa-ONNX** | 1.13.3 | `:runtime-core` | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
 | **MediaPipe Tasks Vision** | 0.10.26 | `:app`、`:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
 | **ML Kit** | 多个 | `:app` | 人脸检测、图像标注、OCR | Google Play Services / 内置 TFLite |
-| **SentencePiece** | 项目本地 | `:sentencepiece` | OPUS-MT 分词 | `libsentencepiece.so` |
+| **SentencePiece** | 项目本地 | `:sentencepiece` | OPUS-MT 分词（`source.spm` / `target.spm`） | `libsentencepiece_android.so` |
 
 > **ABI 过滤**: 仅 `arm64-v8a`。`app/build.gradle.kts` 中使用 `pickFirsts` 解决 `libonnxruntime.so` 冲突。
 
@@ -75,8 +75,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 
 | Pass | 引擎/模型 | 作用 | 单张耗时 | 是否量化 |
 |------|-----------|------|----------|----------|
-| **Pass 1** | MNN/NCNN RetinaFace + Glint360K R100 | 人脸 ROI + 106 关键点 + 512 维 Embedding | ~30-80ms | 否 |
-| **Pass 1.5** | MobileCLIP-S2-ONNX (fp32) | 语义编码 → `semanticEmbedding` | ~50-100ms | 否 |
+| **Pass 1** | MNN/NCNN RetinaFace + Glint360K R100 + MobileCLIP-S2-ONNX | 人脸 ROI + 106 关键点 + 人脸/图像 512 维 Embedding；**MobileCLIP 无论是否有人脸都执行** | ~80-180ms | 否 |
 | **Pass 2** | DBSCAN / 增量余弦匹配 | 人脸聚类 → `personId` | ~5-20ms/对比 | — |
 | **Pass 3** | Qwen3.5-2B-MNN | 图像理解生成中文标签 | ~2-8s | 否 |
 
@@ -163,6 +162,34 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 | 人脸 Embedding | — | Glint360K R100 | 248MB，量化收益有限 |
 | CLIP | — | MobileCLIP-S2 | fp16 在 CPU 上不稳定，强制 fp32 |
 | 翻译 | OPUS-MT | — | INT8 量化 |
+
+---
+
+## 4.7 Tokenizer 现状与分工
+
+当前端侧同时存在两套 tokenizer 实现，分别服务不同模型，**不存在互相替代关系**。
+
+| Tokenizer | 实现位置 | 服务模型 | 输入文件 | 输出 | 说明 |
+|---|---|---|---|---|---|
+| **SentencePiece** | `:sentencepiece` (`SentencePieceProcessor`) | OPUS-MT Zh→En | `source.spm` / `target.spm` | `IntArray` (SP piece IDs) | C++ JNI 实现，负责文本 ↔ SP pieces 的编解码 |
+| **Hugging Face BPE** | `:app` (`MobileClipTokenizer`) | MobileCLIP-S2-ONNX | `tokenizer.json`（回退 `vocab.txt` + `merges.txt`） | `LongArray` (HF token IDs) | 自研 Kotlin 实现，解析 Hugging Face BPE 格式 |
+
+### OPUS-MT 为什么同时需要 `.spm` 和 `tokenizer.json`
+
+OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出 IDs 是 Hugging Face tokenizer 的 ID 空间。因此运行时链路为：
+
+1. `source.spm` 把中文文本编码成 SP piece IDs；
+2. `tokenizer.json` 把 SP pieces 映射为 HF token IDs，作为 encoder 输入；
+3. Decoder 输出 HF IDs 后，再通过 `tokenizer.json` 反向映射为 SP pieces；
+4. `target.spm` 把 SP pieces 解码为英文句子。
+
+所以 `tokenizer.json` 在这里只是 **ID 映射表**，真正的分词/解码仍由 SentencePiece 完成。没有 `:sentencepiece` 模块，OPUS-MT 链路无法运转。
+
+### 是否应统一
+
+- **算法层不可统一**：CLIP BPE 与 Marian/SentencePiece 词表不同，模型权重已绑定各自 tokenizer，重新训练或重新导出成本过高。
+- **接口层可统一**：如果未来再接入第三种 tokenizer，建议抽象 `Tokenizer` 接口，由 `SentencePieceTokenizer`、`HuggingFaceBpeTokenizer` 等实现，上层只依赖接口。
+- 当前仅两个模型、两个独立入口，直接抽象的收益有限，暂不作为优先项。
 
 ---
 
@@ -322,6 +349,8 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 - `docs/03-TECHNICAL-SPECS/AUTO_TAG_GENERATION_SPEC.md` — TAG 生成 5-Pass 管道
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION_PERFORMANCE_ANALYSIS.md` — TAG 性能瓶颈分析
 - `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` — 相册自然语言搜索（含 MobileCLIP 语义召回）
+- `docs/03-TECHNICAL-SPECS/TAG_I18N_DESIGN.md` — TAG 国际化与 OPUS-MT 翻译回退
+- `docs/06-QA/research/OPUS_MT_TRANSLATION_VALIDATION.md` — OPUS-MT 端侧推理验证记录
 - `docs/03-TECHNICAL-SPECS/KWS_MIGRATION_TECH_SPEC.md` — KWS 唤醒词迁移
 - `docs/06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md` — LLM 开启前后性能对比
 - `docs/06-QA/perf_trace_2026-06-06_ncnn_highperf.md` — NCNN 人脸检测性能基线

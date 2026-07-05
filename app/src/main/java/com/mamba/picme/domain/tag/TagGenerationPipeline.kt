@@ -145,15 +145,17 @@ class TagGenerationPipeline(
     // ═══════════════════════════════════════════════════
 
     /**
-     * [Pass 1] 单张照片的人脸检测 + Glint360K R100 Embedding 提取
+     * [Pass 1] 单张照片的人脸检测 + Glint360K R100 Embedding 提取 + MobileCLIP 语义编码
      *
      * 结果持久化（faceRoiJson 字段）供 Pass 3 构造人脸上下文。
      * Embedding 由调度器写入 face_embeddings 表供 Pass 2 DBSCAN。
+     * MobileCLIP 语义编码**不依赖是否检测到人脸**，无人脸的照片同样需要语义 embedding
+     * 以支持自然语言搜索。
      *
      * @param uri 照片 Content URI
      * @param lensFacing 镜头方向
      * @param mediaId 媒体 ID
-     * @return 包含 faceRoi JSON 和每张人脸的 embedding 列表
+     * @return 包含 faceRoi JSON、每张人脸的 embedding 列表和 MobileCLIP 语义 embedding
      */
     suspend fun stage1WithEmbeddings(
         uri: String,
@@ -172,24 +174,26 @@ class TagGenerationPipeline(
 
             val faceRoiJson = faceRoiToJson(stage1Result)
 
-            if (!stage1Result.hasFace) {
-                return Stage1WithEmbeddingsResult(faceRoiJson, emptyList())
-            }
-
             // 提取每张人脸的 512 维 embedding，过滤零向量
-            val embeddings = mutableListOf<FloatArray>()
-            for (face in stage1Result.faces) {
-                val feature = faceClusterEngine.extractFeature(
-                    faceBitmap, face.roi, face.landmarks5, mediaId
-                )
-                if (!isZeroVector(feature)) {
-                    embeddings.add(feature)
-                } else {
-                    Log.w(TAG, "[Pass 1] Zero vector embedding skipped for mediaId=$mediaId, roi=${face.roi}")
+            val embeddings = if (stage1Result.hasFace) {
+                mutableListOf<FloatArray>().also { list ->
+                    for (face in stage1Result.faces) {
+                        val feature = faceClusterEngine.extractFeature(
+                            faceBitmap, face.roi, face.landmarks5, mediaId
+                        )
+                        if (!isZeroVector(feature)) {
+                            list.add(feature)
+                        } else {
+                            Log.w(TAG, "[Pass 1] Zero vector embedding skipped for mediaId=$mediaId, roi=${face.roi}")
+                        }
+                    }
                 }
+            } else {
+                emptyList()
             }
 
-            // 复用同一张 faceBitmap 做 MobileCLIP 语义编码，避免二次解码图片
+            // 复用同一张 faceBitmap 做 MobileCLIP 语义编码，避免二次解码图片。
+            // 无论是否检测到人脸，都需要语义 embedding 以支持自然语言搜索。
             val semanticEmbedding = stage4MobileClipEncoding(
                 uri = uri,
                 mediaId = mediaId,

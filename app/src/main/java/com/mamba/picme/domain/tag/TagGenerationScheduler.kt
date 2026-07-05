@@ -35,6 +35,19 @@ import org.json.JSONObject
 import kotlin.math.sqrt
 
 /**
+ * 用于全量重聚类时保留命名人信息的快照。
+ *
+ * @param personId 原人物 ID
+ * @param name 用户为该人物设置的名称
+ * @param centroid 该人物所有 face embedding 的质心
+ */
+data class NamedPersonSnapshot(
+    val personId: Long,
+    val name: String,
+    val centroid: FloatArray
+)
+
+/**
  * 标签生成批处理调度器
  *
  * 管理全量扫描和单张处理的调度，提供进度回调和取消支持。
@@ -314,8 +327,14 @@ class TagGenerationScheduler(
     /**
      * 基于 face_embeddings 表执行人脸聚类。
      * 当前由 [ClusteringConfig.USE_ADAPTIVE_CLUSTERING] 控制使用方案 B 或方案 A。
+     *
+     * @param namedPersonSnapshots 全量重聚类时传入的已命名人物质心快照，
+     *                             用于将新簇与旧人物匹配并复用 personId/name。
      */
-    private suspend fun runDbscanClustering(dao: com.mamba.picme.data.local.MediaDao) {
+    private suspend fun runDbscanClustering(
+        dao: com.mamba.picme.data.local.MediaDao,
+        namedPersonSnapshots: List<NamedPersonSnapshot> = emptyList()
+    ) {
         val unassigned = personDao.getUnassignedEmbeddings()
         if (unassigned.isEmpty()) {
             Log.i(TAG, "DBSCAN: no unassigned embeddings, skipping")
@@ -391,20 +410,27 @@ class TagGenerationScheduler(
 
         Log.i(TAG, "DBSCAN assignment start: ${sorted.size} clusters to persist")
         var assignedCount = 0
+        var reusedCount = 0
         val clusterKeyToPersonId = mutableMapOf<Int, Long>()
+        val availableSnapshots = namedPersonSnapshots.toMutableList()
         db.withTransaction {
             for ((index, entry) in sorted.withIndex()) {
                 val mediaIds = entry.value.map { it.first }.distinct()
                 val totalFaces = entry.value.size
+                val centroid = clusterCentroids[entry.key]
                 Log.d(TAG, "DBSCAN persisting cluster #$index (key=${entry.key}, $totalFaces faces, ${mediaIds.size} media)")
-                val personId = personDao.insertPerson(
-                    com.mamba.picme.data.local.entity.PersonEntity(
-                        faceCount = totalFaces,
-                        coverMediaId = mediaIds.firstOrNull()
-                    )
+
+                val personId = findOrCreatePersonForCluster(
+                    mediaIds = mediaIds,
+                    totalFaces = totalFaces,
+                    centroid = centroid,
+                    availableSnapshots = availableSnapshots
                 )
+                if (personId in namedPersonSnapshots.map { it.personId }) {
+                    reusedCount++
+                }
                 clusterKeyToPersonId[entry.key] = personId
-                Log.d(TAG, "DBSCAN inserted personId=$personId for cluster #$index")
+                Log.d(TAG, "DBSCAN assigned personId=$personId for cluster #$index")
                 // 批量更新 media_assets.faceId（同一人物的所有媒体一次性写入）
                 dao.updateFaceIdBatch(mediaIds, personId.toString())
                 assignedCount += entry.value.size
@@ -461,11 +487,66 @@ class TagGenerationScheduler(
 
         val noiseCount = noisePoints.size
         Log.i(TAG, "DBSCAN done: $assignedCount media clustered into ${sorted.size} persons, " +
-            "noise=$noiseCount (merged=$mergedNoiseCount, remaining=${noiseCount - mergedNoiseCount})")
+            "reused=$reusedCount, noise=$noiseCount (merged=$mergedNoiseCount, remaining=${noiseCount - mergedNoiseCount})")
 
         // 【关键修复】校验 hasFace 标记：清理有 hasFace=true 但无有效 embedding 的媒体
         // 这些媒体可能是之前误检（RetinaFace 误报）或零向量过滤后的残留
         cleanupInvalidHasFace(dao)
+    }
+
+    /**
+     * 为新聚类簇寻找或创建对应的人物记录。
+     *
+     * 优先将新簇质心与 [availableSnapshots] 中已命名人质的心做余弦相似度匹配，
+     * 相似度 ≥ [ClusteringConfig.NAME_PRESERVE_MIN_SIMILARITY] 时复用旧 personId 与 name，
+     * 否则插入新人物。每个旧人物最多被复用一次。
+     */
+    private suspend fun findOrCreatePersonForCluster(
+        mediaIds: List<Long>,
+        totalFaces: Int,
+        centroid: FloatArray?,
+        availableSnapshots: MutableList<NamedPersonSnapshot>
+    ): Long {
+        val coverMediaId = mediaIds.firstOrNull()
+
+        // 没有可用快照或无法计算质心时直接新建
+        if (centroid == null || availableSnapshots.isEmpty()) {
+            return personDao.insertPerson(
+                com.mamba.picme.data.local.entity.PersonEntity(
+                    faceCount = totalFaces,
+                    coverMediaId = coverMediaId
+                )
+            )
+        }
+
+        var bestIndex = -1
+        var bestSim = -1f
+        availableSnapshots.forEachIndexed { index, snapshot ->
+            val sim = 1f - cosineDistance(centroid, snapshot.centroid)
+            if (sim > bestSim) {
+                bestSim = sim
+                bestIndex = index
+            }
+        }
+
+        return if (bestIndex >= 0 && bestSim >= ClusteringConfig.NAME_PRESERVE_MIN_SIMILARITY) {
+            val snapshot = availableSnapshots.removeAt(bestIndex)
+            personDao.updatePersonStats(
+                personId = snapshot.personId,
+                faceCount = totalFaces,
+                coverMediaId = coverMediaId
+            )
+            Log.i(TAG, "Reused named person id=${snapshot.personId} name=${snapshot.name} " +
+                "for new cluster (sim=${String.format("%.3f", bestSim)})")
+            snapshot.personId
+        } else {
+            personDao.insertPerson(
+                com.mamba.picme.data.local.entity.PersonEntity(
+                    faceCount = totalFaces,
+                    coverMediaId = coverMediaId
+                )
+            )
+        }
     }
 
     /**
@@ -857,10 +938,64 @@ class TagGenerationScheduler(
 
     /**
      * [原子任务] Pass 2：人脸聚类（密度自适应 / DBSCAN）
+     *
+     * @param preserveNamedPersons 是否在聚类前保存已命名人物质心，
+     *                             并在聚类后尝试复用 personId/name。
+     * @param isFullRescan 是否全量重聚类。为 true 时会在捕获快照后清空旧人物簇、
+     *                     重置 embedding 分配并清除媒体上的 faceId。
      */
-    suspend fun executeDbscan() {
+    suspend fun executeDbscan(preserveNamedPersons: Boolean = false, isFullRescan: Boolean = false) {
         val dao = db.mediaDao()
-        runDbscanClustering(dao)
+        val snapshots = if (preserveNamedPersons) buildNamedPersonSnapshots() else emptyList()
+
+        if (isFullRescan) {
+            Log.i(TAG, "DBSCAN full rescan: clearing old persons/assignments/faceIds after snapshot capture")
+            db.personDao().clearAllPersons()
+            db.personDao().resetAllEmbeddingAssignments()
+            dao.resetAllFaceIds()
+        }
+
+        runDbscanClustering(dao, snapshots)
+    }
+
+    /**
+     * 构建已命名人物质心快照，供全量重聚类时复用 personId/name。
+     */
+    private suspend fun buildNamedPersonSnapshots(): List<NamedPersonSnapshot> {
+        val persons = personDao.getAllPersons().filter { !it.name.isNullOrBlank() }
+        if (persons.isEmpty()) return emptyList()
+
+        val snapshots = mutableListOf<NamedPersonSnapshot>()
+        for (person in persons) {
+            val embeddings = personDao.getEmbeddingsByPerson(person.personId)
+            if (embeddings.isEmpty()) continue
+            val centroid = computeCentroid(embeddings.map { byteArrayToFloatArray(it.embedding) })
+            snapshots.add(
+                NamedPersonSnapshot(
+                    personId = person.personId,
+                    name = person.name!!,
+                    centroid = centroid
+                )
+            )
+        }
+        Log.i(TAG, "Built ${snapshots.size} named person snapshots for clustering preservation")
+        return snapshots
+    }
+
+    /** 计算一组 embedding 的算术平均质心 */
+    private fun computeCentroid(embeddings: List<FloatArray>): FloatArray {
+        if (embeddings.isEmpty()) return FloatArray(512)
+        val dim = embeddings.first().size
+        val sum = FloatArray(dim)
+        for (emb in embeddings) {
+            for (i in 0 until dim) {
+                sum[i] += emb[i]
+            }
+        }
+        for (i in 0 until dim) {
+            sum[i] /= embeddings.size
+        }
+        return sum
     }
 
     /**
