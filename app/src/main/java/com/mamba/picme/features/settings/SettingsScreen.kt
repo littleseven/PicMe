@@ -732,36 +732,38 @@ private fun SettingsContent(
                     )
                 }
 
-                // ── AI 远程控制无障碍服务 ───────────────────────────────
-                var isAccessibilityEnabled by remember {
-                    mutableStateOf(AccessibilityServiceHolder.isActive())
-                }
-
-                LaunchedEffect(Unit) {
-                    while (true) {
-                        isAccessibilityEnabled = AccessibilityServiceHolder.isActive()
-                        delay(1000)
+                // ── AI 远程控制无障碍服务（仅 debug 构建） ───────────────
+                if (BuildConfig.DEBUG) {
+                    var isAccessibilityEnabled by remember {
+                        mutableStateOf(AccessibilityServiceHolder.isActive())
                     }
-                }
 
-                SettingsSection(
-                    title = stringResource(R.string.settings_accessibility_service_title),
-                    description = stringResource(R.string.settings_accessibility_service_summary)
-                ) {
-                    SettingsClickableRow(
-                        title = stringResource(R.string.settings_accessibility_service_title),
-                        subtitle = stringResource(R.string.settings_accessibility_service_summary),
-                        valueText = stringResource(
-                            if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled
-                        ),
-                        leadingIcon = Icons.Rounded.Accessibility,
-                        onClick = {
-                            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(intent)
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            isAccessibilityEnabled = AccessibilityServiceHolder.isActive()
+                            delay(1000)
                         }
-                    )
+                    }
+
+                    SettingsSection(
+                        title = stringResource(R.string.settings_accessibility_service_title),
+                        description = stringResource(R.string.settings_accessibility_service_summary)
+                    ) {
+                        SettingsClickableRow(
+                            title = stringResource(R.string.settings_accessibility_service_title),
+                            subtitle = stringResource(R.string.settings_accessibility_service_summary),
+                            valueText = stringResource(
+                                if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled
+                            ),
+                            leadingIcon = Icons.Rounded.Accessibility,
+                            onClick = {
+                                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
                 }
 
                 var isIgnoringBatteryOptimizations by remember {
