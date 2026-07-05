@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.7] - 2026-07-05
+
+### ✨ Features
+- feat(accessibility): move AccessibilityService to debug-only builds
+
 ## [1.0.6] - 2026-07-05
 
 ### ✨ Features
