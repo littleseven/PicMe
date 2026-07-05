@@ -9,6 +9,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
+import com.mamba.picme.beauty.api.facedetect.FaceDetection
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -175,12 +176,14 @@ class TagGenerationPipeline(
 
             // 提取每张人脸的 512 维 embedding，过滤零向量
             val embeddings = mutableListOf<FloatArray>()
-            for (roi in stage1Result.roiRects) {
-                val feature = faceClusterEngine.extractFeature(faceBitmap, roi)
+            for (face in stage1Result.faces) {
+                val feature = faceClusterEngine.extractFeature(
+                    faceBitmap, face.roi, face.landmarks5
+                )
                 if (!isZeroVector(feature)) {
                     embeddings.add(feature)
                 } else {
-                    Log.w(TAG, "[Pass 1] Zero vector embedding skipped for mediaId=$mediaId, roi=$roi")
+                    Log.w(TAG, "[Pass 1] Zero vector embedding skipped for mediaId=$mediaId, roi=${face.roi}")
                 }
             }
 
@@ -427,22 +430,23 @@ class TagGenerationPipeline(
     // ═══════════════════════════════════════════════════
 
     /**
-     * [轻量版] 人脸检测 — 仅使用 RetinaFace 获取 ROI，跳过 106 点关键点检测
+     * [对齐版] 人脸检测 — 获取 ROI + RetinaFace 5 点 landmarks
      *
-     * 使用 faceDetector.detectFacesOnly() 替代 detectPhoto()，
-     * 节省 ~20-80ms 的关键点检测时间。
+     * 使用 faceDetector.detectFacesWithLandmarks() 获取每个人脸的 ROI 和 5 点 landmarks，
+     * 供 Stage 2 的 MobileFaceNet 进行 5 点仿射对齐，提升聚类准确度。
      */
     private fun stage1FaceDetection(bitmap: Bitmap): Stage1Result {
-        val roiRects = faceDetector.detectFacesOnly(bitmap)
+        val detections = faceDetector.detectFacesWithLandmarks(bitmap)
 
-        if (roiRects.isEmpty()) {
+        if (detections.isEmpty()) {
             return Stage1Result(false)
         }
 
+        val faces = detections.map { FaceRoi(it.roi, it.landmarks5) }
         return Stage1Result(
             hasFace = true,
-            faceCount = roiRects.size,
-            roiRects = roiRects
+            faceCount = faces.size,
+            faces = faces
         )
     }
 
@@ -457,12 +461,14 @@ class TagGenerationPipeline(
     ): Stage2Result? {
         val embeddings = mutableListOf<FaceEmbeddingOutput>()
 
-        for (roi in stage1Result.roiRects) {
-            val feature = faceClusterEngine.extractFeature(bitmap, roi)
+        for (face in stage1Result.faces) {
+            val feature = faceClusterEngine.extractFeature(
+                bitmap, face.roi, face.landmarks5
+            )
 
             // 过滤零向量，避免误聚类
             if (isZeroVector(feature)) {
-                Log.w(TAG, "[Stage 2] Zero vector embedding skipped for mediaId=$mediaId, roi=$roi")
+                Log.w(TAG, "[Stage 2] Zero vector embedding skipped for mediaId=$mediaId, roi=${face.roi}")
                 continue
             }
 

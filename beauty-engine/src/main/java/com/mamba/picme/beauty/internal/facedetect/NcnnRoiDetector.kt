@@ -8,6 +8,7 @@ import android.graphics.Matrix
 import android.graphics.RectF
 import android.os.SystemClock
 import com.mamba.picme.beauty.api.Logger
+import com.mamba.picme.beauty.api.facedetect.FaceDetection
 import com.mamba.picme.beauty.internal.facedetect.ncnn.NcnnFaceDetector
 import com.mamba.picme.beauty.internal.model.ModelManager
 import java.nio.ByteBuffer
@@ -148,6 +149,15 @@ class NcnnRoiDetector(
      * - 返回所有有效脸，供上层判断合影/自拍
      */
     fun detectFaces(bitmap: Bitmap): List<RectF> {
+        return detectFacesWithLandmarks(bitmap).map { it.roi }
+    }
+
+    /**
+     * 多脸检测：返回 ROI + RetinaFace 5 点 landmarks
+     *
+     * 5 点顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]，坐标为原图像素坐标。
+     */
+    fun detectFacesWithLandmarks(bitmap: Bitmap): List<FaceDetection> {
         ensureInitialized()
 
         val totalStart = SystemClock.elapsedRealtime()
@@ -162,7 +172,7 @@ class NcnnRoiDetector(
         // 所有 NCNN 调用（包括 ROI 和 Landmark）必须串行化到同一线程
         return synchronized(NCNN_GLOBAL_LOCK) {
             try {
-                detectFacesLocked(bitmap, det, totalStart)
+                detectFacesWithLandmarksLocked(bitmap, det, totalStart)
             } catch (e: Exception) {
                 Logger.e(TAG, "NcnnRoi detection failed", e)
                 emptyList()
@@ -170,12 +180,12 @@ class NcnnRoiDetector(
         }
     }
 
-    private fun detectFacesLocked(bitmap: Bitmap, det: NcnnFaceDetector, totalStart: Long): List<RectF> {
+    private fun detectFacesWithLandmarksLocked(bitmap: Bitmap, det: NcnnFaceDetector, totalStart: Long): List<FaceDetection> {
         val scaleStart = SystemClock.elapsedRealtime()
         val scaledBitmap = getScaledBitmap(bitmap, INPUT_SIZE)
         val scaleElapsed = SystemClock.elapsedRealtime() - scaleStart
 
-        Logger.d(TAG, "[Perf] NcnnRoiFaces START: engine=$ENGINE_NAME, gpu=$isGpuEnabled, original=${bitmap.width}x${bitmap.height}, scaled=${scaledBitmap.width}x${scaledBitmap.height}")
+        Logger.d(TAG, "[Perf] NcnnRoiFacesWithLandmarks START: engine=$ENGINE_NAME, gpu=$isGpuEnabled, original=${bitmap.width}x${bitmap.height}, scaled=${scaledBitmap.width}x${scaledBitmap.height}")
 
         val inferStart = SystemClock.elapsedRealtime()
         val faces = det.detectRetinaFaces(scaledBitmap, CONFIDENCE_THRESHOLD, 0.3f)
@@ -184,11 +194,11 @@ class NcnnRoiDetector(
         val totalElapsed = SystemClock.elapsedRealtime() - totalStart
 
         if (faces.isEmpty()) {
-            Logger.d(TAG, "[Perf] NcnnRoiFaces DONE (no face): engine=$ENGINE_NAME, gpu=$isGpuEnabled, total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms)")
+            Logger.d(TAG, "[Perf] NcnnRoiFacesWithLandmarks DONE (no face): engine=$ENGINE_NAME, gpu=$isGpuEnabled, total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms)")
             return emptyList()
         }
 
-        Logger.i(TAG, "[Perf] NcnnRoiFaces DONE: engine=$ENGINE_NAME, gpu=$isGpuEnabled, total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms), rawFaces=${faces.size}")
+        Logger.i(TAG, "[Perf] NcnnRoiFacesWithLandmarks DONE: engine=$ENGINE_NAME, gpu=$isGpuEnabled, total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms), rawFaces=${faces.size}")
 
         val origW = bitmap.width.toFloat()
         val origH = bitmap.height.toFloat()
@@ -199,7 +209,7 @@ class NcnnRoiDetector(
         val padTop = (INPUT_SIZE - scaledH) / 2f
         val imageArea = origW * origH
 
-        val roiList = mutableListOf<RectF>()
+        val result = mutableListOf<FaceDetection>()
         for (face in faces) {
             // 减去 letterbox padding，再除以缩放比例，映射回原图
             var mappedX1 = ((face.x1 - padLeft) / scale)
@@ -223,19 +233,34 @@ class NcnnRoiDetector(
             val faceArea = (mappedX2 - mappedX1) * (mappedY2 - mappedY1)
             val areaRatio = faceArea / imageArea
 
-            // 过滤面积 < 1.5% 图片总面积的脸（过小/误检），放宽以识别更多小脸
-            if (areaRatio >= 0.015f) {
-                roiList.add(RectF(mappedX1, mappedY1, mappedX2, mappedY2))
-            } else {
+            // 过滤面积 < 1.5% 图片总面积的脸（过小/误检）
+            if (areaRatio < 0.015f) {
                 Logger.d(TAG, "Filtered small face: areaRatio=${String.format("%.2f%%", areaRatio * 100)}")
+                continue
             }
+
+            // 映射 5 点 landmarks 到原图坐标（不随 ROI 扩展）
+            val landmarks5 = if (face.landmarks.size >= 10) {
+                FloatArray(10) { i ->
+                    val src = face.landmarks[i]
+                    if (i % 2 == 0) {
+                        ((src - padLeft) / scale).coerceIn(0f, origW)
+                    } else {
+                        ((src - padTop) / scale).coerceIn(0f, origH)
+                    }
+                }
+            } else {
+                null
+            }
+
+            result.add(FaceDetection(RectF(mappedX1, mappedY1, mappedX2, mappedY2), landmarks5))
         }
 
         // 按面积从大到小排序
-        roiList.sortByDescending { it.width() * it.height() }
+        result.sortByDescending { it.roi.width() * it.roi.height() }
 
-        Logger.d(TAG, "NcnnRoiFaces: ${roiList.size} valid faces after filtering (min 1.5% area)")
-        return roiList
+        Logger.d(TAG, "NcnnRoiFacesWithLandmarks: ${result.size} valid faces after filtering (min 1.5% area)")
+        return result
     }
 
     /**

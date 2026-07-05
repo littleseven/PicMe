@@ -3,13 +3,47 @@ package com.mamba.picme.domain.tag
 import android.graphics.RectF
 
 /**
- * Stage 1 产出：人脸 ROI 检测结果（轻量版，无关键点）
+ * 单个人脸的 ROI + RetinaFace 5 点 landmarks（用于 MobileFaceNet 对齐）
+ *
+ * @param roi 人脸 ROI 区域（像素坐标）
+ * @param landmarks5 5 点原图像素坐标（FloatArray，长度 10）。
+ *                   顺序：[左眼 x,y, 右眼 x,y, 鼻尖 x,y, 左嘴角 x,y, 右嘴角 x,y]。
+ *                   null 表示 ROI 检测器未提供 landmarks（兼容回退路径）。
+ */
+data class FaceRoi(
+    val roi: RectF,
+    val landmarks5: FloatArray? = null
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as FaceRoi
+        return roi == other.roi &&
+            ((landmarks5 == null && other.landmarks5 == null) ||
+                (landmarks5 != null && other.landmarks5 != null &&
+                    landmarks5.contentEquals(other.landmarks5)))
+    }
+
+    override fun hashCode(): Int {
+        var result = roi.hashCode()
+        result = 31 * result + (landmarks5?.contentHashCode() ?: 0)
+        return result
+    }
+}
+
+/**
+ * Stage 1 产出：人脸 ROI 检测结果（含可选 5 点 landmarks）
  */
 data class Stage1Result(
     val hasFace: Boolean,
     val faceCount: Int = 0,
-    val roiRects: List<RectF> = emptyList()
+    val faces: List<FaceRoi> = emptyList()
 ) {
+    /**
+     * 兼容旧代码：仅返回 ROI 矩形列表
+     */
+    val roiRects: List<RectF> get() = faces.map { it.roi }
+
     val isSelfie: Boolean get() = faceCount == 1
 
     /**
@@ -27,13 +61,13 @@ data class Stage1Result(
         other as Stage1Result
         return hasFace == other.hasFace &&
                 faceCount == other.faceCount &&
-                roiRects == other.roiRects
+                faces == other.faces
     }
 
     override fun hashCode(): Int {
         var result = hasFace.hashCode()
         result = 31 * result + faceCount
-        result = 31 * result + roiRects.hashCode()
+        result = 31 * result + faces.hashCode()
         return result
     }
 }
@@ -91,7 +125,9 @@ data class QwenTagsNormalized(
     val objects: List<String>,
     val tags: List<String>,
     val summary: String,
-    val nonStandard: List<String> = emptyList()
+    val nonStandard: List<String> = emptyList(),
+    /** JSON 是否被成功解析（与受控词表匹配无关） */
+    val jsonParsed: Boolean = true
 )
 
 /**

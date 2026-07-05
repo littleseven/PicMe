@@ -1,15 +1,15 @@
 package com.mamba.picme.data.indexing
 
 import android.graphics.Bitmap
-import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
+import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceEmbedder
 import com.mamba.picme.core.common.Logger
 import java.io.File
 
 /**
  * MNN MobileFaceNet 人脸嵌入提取器
  *
- * 复用 MnnFaceDetector 的 JNI 层（beauty_native），
- * 加载 MNN 版的 MobileFaceNet 模型，提取 512 维 embedding。
+ * 使用原生 MnnFaceEmbedder 加载 MNN 版 MobileFaceNet 模型，
+ * 直接提取 512 维 L2 归一化 embedding。
  *
  * 模型由模型中心下载，路径: {filesDir}/llm_models/picme-face-embedding-mnn/w600k_mbf.mnn
  * 链接: https://modelscope.cn/models/budaoshou/InsightFace-MobileFaceNet-MNN
@@ -26,29 +26,29 @@ class MnnEmbeddingExtractor(
     val isModelReady: Boolean
         get() = modelFile.exists() && modelFile.length() > 100_000
 
-    private var detector: MnnFaceDetector? = null
+    private var embedder: MnnFaceEmbedder? = null
 
     /**
      * 初始化 MNN 模型
      */
     fun initialize(): Boolean {
-        if (detector != null) return true
+        if (embedder != null) return true
         if (!isModelReady) {
             Logger.w(TAG, "Model not found: ${modelFile.absolutePath}")
             return false
         }
-        detector = MnnFaceDetector.create(
+        embedder = MnnFaceEmbedder.create(
             modelPath = modelFile.absolutePath,
             inputSize = inputSize,
-            useGpu = false,
-            inputName = "input",
-            outputNames = emptyArray()
+            embeddingDim = embeddingDim,
+            inputName = "input.1",
+            outputName = ""
         )
-        if (detector == null) {
-            Logger.e(TAG, "Failed to create MNN detector")
+        if (embedder == null) {
+            Logger.e(TAG, "Failed to create MNN face embedder")
             return false
         }
-        Logger.i(TAG, "MNN MobileFaceNet loaded")
+        Logger.i(TAG, "MNN MobileFaceNet loaded via native embedder")
         return true
     }
 
@@ -59,52 +59,38 @@ class MnnEmbeddingExtractor(
      * @return 512 维 L2 归一化 embedding，或 null
      */
     fun extractEmbedding(faceBitmap: Bitmap): FloatArray? {
-        val det = detector ?: return null
+        val emb = embedder ?: return null
 
         // 确保输入尺寸
         val resized = if (faceBitmap.width != inputSize || faceBitmap.height != inputSize) {
             Bitmap.createScaledBitmap(faceBitmap, inputSize, inputSize, true)
         } else faceBitmap
 
-        try {
-            val raw = det.detect(resized)
-            if (raw == null) {
-                Logger.w(TAG, "extractEmbedding: detect returned null (model fail or output mismatch)")
+        return try {
+            val embedding = emb.extract(resized)
+            if (embedding == null) {
+                Logger.w(TAG, "extractEmbedding: native extract returned null")
                 return null
             }
-            if (raw.size < embeddingDim) {
-                Logger.w(TAG, "extractEmbedding: output too small (${raw.size} < $embeddingDim), model output may not be compatible")
+            if (embedding.size != embeddingDim) {
+                Logger.w(TAG, "extractEmbedding: unexpected dim ${embedding.size} (expected $embeddingDim)")
                 return null
             }
 
-            // 取前 embeddingDim 个值并 L2 归一化
-            val embedding = raw.copyOf(embeddingDim)
-
-            // [诊断] 打印前 5 个值和 L2 norm，用于判断归一化是否正确
+            // [诊断] 打印前 5 个值和 L2 norm
             val previewVals = embedding.take(5).map { "%.4f".format(it) }
-            var sqSum = 0.0
-            for (v in embedding) sqSum += (v * v).toDouble()
-            Logger.d(TAG, "extractEmbedding: dim=${embedding.size}, first5=[${previewVals.joinToString()}], rawL2=%.4f".format(kotlin.math.sqrt(sqSum)))
+            val norm = kotlin.math.sqrt(embedding.map { it * it }.sum().toDouble())
+            Logger.d(TAG, "extractEmbedding: dim=${embedding.size}, first5=[${previewVals.joinToString()}], l2=%.4f".format(norm))
 
-            l2Normalize(embedding)
-            return embedding
+            embedding
         } catch (e: Exception) {
             Logger.e(TAG, "Embedding extraction failed", e)
-            return null
-        }
-    }
-
-    private fun l2Normalize(embedding: FloatArray) {
-        var norm = 0f
-        for (v in embedding) norm += v * v
-        norm = kotlin.math.sqrt(norm)
-        if (norm > 0f) {
-            for (i in embedding.indices) embedding[i] /= norm
+            null
         }
     }
 
     fun close() {
-        // MnnFaceDetector 自身不提供 close，实例会被 GC 回收
-        detector = null
+        embedder?.release()
+        embedder = null
     }
 }

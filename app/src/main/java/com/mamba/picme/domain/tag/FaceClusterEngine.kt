@@ -2,6 +2,8 @@ package com.mamba.picme.domain.tag
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.RectF
 import android.util.Log
 import com.mamba.picme.data.download.ModelPathConfig
@@ -63,18 +65,18 @@ class FaceClusterEngine(private val context: Context) {
     /**
      * 提取人脸特征向量
      *
-     * 从原始图片中裁剪人脸 ROI、缩放到 112×112，
-     * 通过 MobileFaceNet MNN 模型提取 512 维 L2 归一化 embedding。
-     *
-     * 模型缺失时返回零向量（聚类将退化为全量新建簇）。
+     * 优先使用 5 点 landmarks 做仿射对齐后再输入 MobileFaceNet；
+     * 无 landmarks 时回退到 ROI 裁剪+缩放。
      *
      * @param bitmap 原始图片
      * @param roi 人脸 ROI 区域（像素坐标）
+     * @param landmarks5 RetinaFace 5 点原图像素坐标（长度 10），null 则回退旧路径
      * @return 512 维特征向量（L2 归一化后的真实 embedding，或零向量）
      */
     suspend fun extractFeature(
         bitmap: Bitmap,
-        roi: RectF
+        roi: RectF,
+        landmarks5: FloatArray? = null
     ): FloatArray {
         val extractor = embeddingExtractor
         if (extractor == null) {
@@ -83,24 +85,15 @@ class FaceClusterEngine(private val context: Context) {
         }
 
         return try {
-            // 1. 安全裁剪人脸 ROI（带 20% 边距扩展）
-            val marginW = (roi.width() * 0.2f).toInt().coerceAtLeast(10)
-            val marginH = (roi.height() * 0.2f).toInt().coerceAtLeast(10)
-            val cropX = roi.left.toInt().minus(marginW).coerceIn(0, bitmap.width)
-            val cropY = roi.top.toInt().minus(marginH).coerceIn(0, bitmap.height)
-            val cropW = (roi.width().toInt() + marginW * 2).coerceAtMost(bitmap.width - cropX)
-            val cropH = (roi.height().toInt() + marginH * 2).coerceAtMost(bitmap.height - cropY)
-
-            if (cropW <= 0 || cropH <= 0) {
-                Log.w(TAG, "extractFeature: invalid crop region, returning zero vector")
-                return FloatArray(EMBEDDING_DIM) { 0f }
+            val faceBitmap = if (landmarks5 != null && landmarks5.size >= 10) {
+                // 5 点仿射对齐路径
+                alignFaceWithLandmarks(bitmap, landmarks5)
+            } else {
+                // 回退：ROI 裁剪 + 直接缩放
+                cropAndScaleFace(bitmap, roi)
             }
 
-            val cropped = Bitmap.createBitmap(bitmap, cropX, cropY, cropW, cropH)
-            val faceBitmap = Bitmap.createScaledBitmap(cropped, FACE_INPUT_SIZE, FACE_INPUT_SIZE, true)
-            if (faceBitmap !== cropped) cropped.recycle()
-
-            // 2. MNN 推理提取 embedding
+            // MNN 推理提取 embedding
             val embedding = extractor.extractEmbedding(faceBitmap)
             faceBitmap.recycle()
 
@@ -115,6 +108,124 @@ class FaceClusterEngine(private val context: Context) {
             Log.w(TAG, "extractFeature: failed with exception, falling back to zero vector", e)
             FloatArray(EMBEDDING_DIM) { 0f }
         }
+    }
+
+    /**
+     * 使用 5 点 landmarks 做最小二乘仿射对齐，输出 112×112 人脸图
+     *
+     * 5 点顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]
+     * 目标模板为 ArcFace/MobileFaceNet 标准 112×112 对齐坐标。
+     */
+    private fun alignFaceWithLandmarks(bitmap: Bitmap, landmarks5: FloatArray): Bitmap {
+        // MobileFaceNet 标准 112×112 对齐目标点
+        val dstPoints = floatArrayOf(
+            38.2946f, 51.6963f,   // 左眼
+            73.5318f, 51.5014f,   // 右眼
+            56.0252f, 71.7366f,   // 鼻尖
+            41.5493f, 92.3655f,   // 左嘴角
+            70.7299f, 92.2041f    // 右嘴角
+        )
+
+        val transform = computeAffineTransform(landmarks5, dstPoints)
+
+        val aligned = Bitmap.createBitmap(FACE_INPUT_SIZE, FACE_INPUT_SIZE, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(aligned)
+        // 黑色背景填充，防止 warp 区域外为透明
+        canvas.drawColor(android.graphics.Color.BLACK)
+        canvas.drawBitmap(bitmap, transform, null)
+        return aligned
+    }
+
+    /**
+     * 最小二乘求解 5 点 → 5 点的仿射变换矩阵
+     *
+     * 仿射模型：u = a*x + b*y + c, v = d*x + e*y + f
+     * 分别对 u/v 用正规方程求解。
+     */
+    private fun computeAffineTransform(src: FloatArray, dst: FloatArray): Matrix {
+        val n = src.size / 2
+
+        var sx = 0f; var sy = 0f
+        var sxx = 0f; var syy = 0f; var sxy = 0f
+        var su = 0f; var sv = 0f
+        var sxu = 0f; var syu = 0f
+        var sxv = 0f; var syv = 0f
+
+        for (i in 0 until n) {
+            val x = src[i * 2]
+            val y = src[i * 2 + 1]
+            val u = dst[i * 2]
+            val v = dst[i * 2 + 1]
+
+            sx += x; sy += y
+            sxx += x * x; syy += y * y; sxy += x * y
+            su += u; sv += v
+            sxu += x * u; syu += y * u
+            sxv += x * v; syv += y * v
+        }
+
+        // 正规矩阵 M = | sxx sxy sx |
+        //              | sxy syy sy |
+        //              | sx  sy  n  |
+        val m00 = sxx; val m01 = sxy; val m02 = sx
+        val m10 = sxy; val m11 = syy; val m12 = sy
+        val m20 = sx;  val m21 = sy;  val m22 = n.toFloat()
+
+        val det = m00 * (m11 * m22 - m12 * m21) -
+            m01 * (m10 * m22 - m12 * m20) +
+            m02 * (m10 * m21 - m11 * m20)
+
+        // 退化时回退到单位变换
+        if (det == 0f) {
+            Log.w(TAG, "alignFaceWithLandmarks: degenerate landmarks, fallback to identity transform")
+            return Matrix()
+        }
+
+        val invDet = 1f / det
+
+        // 伴随矩阵 / det
+        val i00 = (m11 * m22 - m12 * m21) * invDet
+        val i01 = -(m01 * m22 - m02 * m21) * invDet
+        val i02 = (m01 * m12 - m02 * m11) * invDet
+        val i10 = -(m10 * m22 - m12 * m20) * invDet
+        val i11 = (m00 * m22 - m02 * m20) * invDet
+        val i12 = -(m00 * m12 - m02 * m10) * invDet
+        val i20 = (m10 * m21 - m11 * m20) * invDet
+        val i21 = -(m00 * m21 - m01 * m20) * invDet
+        val i22 = (m00 * m11 - m01 * m10) * invDet
+
+        val a = i00 * sxu + i01 * syu + i02 * su
+        val b = i10 * sxu + i11 * syu + i12 * su
+        val c = i20 * sxu + i21 * syu + i22 * su
+
+        val d = i00 * sxv + i01 * syv + i02 * sv
+        val e = i10 * sxv + i11 * syv + i12 * sv
+        val f = i20 * sxv + i21 * syv + i22 * sv
+
+        val matrix = Matrix()
+        matrix.setValues(floatArrayOf(a, b, c, d, e, f, 0f, 0f, 1f))
+        return matrix
+    }
+
+    /**
+     * 回退路径：ROI 裁剪 + 直接缩放到 112×112
+     */
+    private fun cropAndScaleFace(bitmap: Bitmap, roi: RectF): Bitmap {
+        val marginW = (roi.width() * 0.2f).toInt().coerceAtLeast(10)
+        val marginH = (roi.height() * 0.2f).toInt().coerceAtLeast(10)
+        val cropX = roi.left.toInt().minus(marginW).coerceIn(0, bitmap.width)
+        val cropY = roi.top.toInt().minus(marginH).coerceIn(0, bitmap.height)
+        val cropW = (roi.width().toInt() + marginW * 2).coerceAtMost(bitmap.width - cropX)
+        val cropH = (roi.height().toInt() + marginH * 2).coerceAtMost(bitmap.height - cropY)
+
+        if (cropW <= 0 || cropH <= 0) {
+            throw IllegalArgumentException("Invalid crop region: x=$cropX, y=$cropY, w=$cropW, h=$cropH")
+        }
+
+        val cropped = Bitmap.createBitmap(bitmap, cropX, cropY, cropW, cropH)
+        val scaled = Bitmap.createScaledBitmap(cropped, FACE_INPUT_SIZE, FACE_INPUT_SIZE, true)
+        if (scaled !== cropped) cropped.recycle()
+        return scaled
     }
 
     /**

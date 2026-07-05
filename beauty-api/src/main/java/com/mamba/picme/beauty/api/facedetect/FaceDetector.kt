@@ -41,6 +41,18 @@ interface FaceDetector {
     fun detectFacesOnly(bitmap: Bitmap): List<RectF>
 
     /**
+     * 多人脸检测（ROI + 5 点 landmarks）
+     *
+     * 为 MobileFaceNet 等人脸识别/聚类任务提供对齐所需关键点。
+     * MNN/NCNN 路径复用 RetinaFace 已输出的 5 点 landmarks；
+     * MediaPipe 路径当前仅返回 ROI，不返回 landmarks。
+     *
+     * @param bitmap 静态图片 Bitmap
+     * @return 人脸检测结果列表（像素坐标 ROI + 5 点 landmarks），无人脸返回空列表
+     */
+    fun detectFacesWithLandmarks(bitmap: Bitmap): List<FaceDetection>
+
+    /**
      * 切换检测引擎模式
      */
     fun setEngineMode(mode: EngineType)

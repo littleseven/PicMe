@@ -3,9 +3,11 @@
 #include <string>
 #include <vector>
 #include "mnn_face_detector.h"
+#include "mnn_face_embedder.h"
 
 #define LOG_TAG "PicMe:MnnJNI"
 #define LOGD(...) do { if (picme::MnnFaceDetector::isLogEnabled()) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__); } while(0)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 extern "C" {
@@ -339,6 +341,86 @@ Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceDetector_nativeDetect
     const std::vector<float>& result = detector->detectFromNv21(
         data, nv21Width, nv21Height, rotationDegrees,
         roiLeft, roiTop, roiRight, roiBottom);
+    if (result.empty()) {
+        return 0;
+    }
+
+    jsize maxSize = env->GetArrayLength(outResult);
+    jsize copySize = static_cast<jsize>(std::min(result.size(), static_cast<size_t>(maxSize)));
+    env->SetFloatArrayRegion(outResult, 0, copySize, result.data());
+    return copySize;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceEmbedder_nativeCreate(
+        JNIEnv *env,
+        jclass clazz,
+        jstring modelPath,
+        jint inputSize,
+        jint embeddingDim,
+        jstring inputName,
+        jstring outputName) {
+
+    const char *modelCStr = env->GetStringUTFChars(modelPath, nullptr);
+    const char *inputCStr = env->GetStringUTFChars(inputName, nullptr);
+    const char *outputCStr = env->GetStringUTFChars(outputName, nullptr);
+
+    auto *embedder = new picme::MnnFaceEmbedder();
+    bool success = embedder->load(
+        std::string(modelCStr),
+        static_cast<int>(inputSize),
+        static_cast<int>(embeddingDim),
+        std::string(inputCStr),
+        std::string(outputCStr)
+    );
+
+    env->ReleaseStringUTFChars(modelPath, modelCStr);
+    env->ReleaseStringUTFChars(inputName, inputCStr);
+    env->ReleaseStringUTFChars(outputName, outputCStr);
+
+    if (!success) {
+        delete embedder;
+        LOGE("Failed to load MNN face embedder");
+        return 0;
+    }
+
+    LOGI("MnnFaceEmbedder created: inputSize=%d, embeddingDim=%d", inputSize, embeddingDim);
+    return reinterpret_cast<jlong>(embedder);
+}
+
+JNIEXPORT void JNICALL
+Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceEmbedder_nativeDestroy(
+        JNIEnv *env,
+        jclass clazz,
+        jlong handle) {
+    auto *embedder = reinterpret_cast<picme::MnnFaceEmbedder *>(handle);
+    delete embedder;
+    LOGD("MnnFaceEmbedder destroyed");
+}
+
+JNIEXPORT jint JNICALL
+Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceEmbedder_nativeExtract(
+        JNIEnv *env,
+        jclass clazz,
+        jlong handle,
+        jobject imageData,      // DirectByteBuffer RGB
+        jint width,
+        jint height,
+        jint channels,
+        jfloatArray outResult) {  // 预分配结果缓冲区 [embeddingDim]
+
+    auto *embedder = reinterpret_cast<picme::MnnFaceEmbedder *>(handle);
+    if (!embedder) {
+        return 0;
+    }
+
+    unsigned char *data = static_cast<unsigned char *>(env->GetDirectBufferAddress(imageData));
+    if (!data) {
+        LOGE("nativeExtract: GetDirectBufferAddress returned null");
+        return 0;
+    }
+
+    const std::vector<float>& result = embedder->extract(data, width, height, channels);
     if (result.empty()) {
         return 0;
     }

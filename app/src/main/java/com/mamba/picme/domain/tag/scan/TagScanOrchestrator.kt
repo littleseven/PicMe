@@ -300,6 +300,13 @@ class TagScanOrchestrator(
             db.personDao().clearAllPersons()
         }
 
+        if (pass == TagScanPass.DBSCAN && mode == ScanMode.FULL) {
+            // 全量重跑 Pass 2：清空旧人物簇及媒体上的 faceId，重新对全部 face embeddings 做 DBSCAN
+            db.personDao().clearAllPersons()
+            db.personDao().resetAllEmbeddingAssignments()
+            db.mediaDao().resetAllFaceIds()
+        }
+
         if (pass == TagScanPass.QWEN_TAGGING && mode == ScanMode.FULL) {
             // 全量重跑 Pass 3：清空已有标签
             db.mediaDao().resetAllLabels()

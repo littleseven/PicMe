@@ -16,6 +16,7 @@ import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.testing.agent.cases.BeautyAgentTestCases
+import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.testing.agent.cases.CameraAgentTestCases
 import com.mamba.picme.testing.agent.core.AgentTestCase
 import com.mamba.picme.testing.agent.core.AgentTestResult
@@ -213,6 +214,22 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         val json = intent.getStringExtra(EXTRA_JSON) ?: return
         Logger.i(TAG, "V2.1 JSON command: $json")
 
+        // TAG 扫描命令：直接启动 TagGenerationService，不经过 CapabilityRegistry
+        val jsonObj = try {
+            org.json.JSONObject(json)
+        } catch (e: Exception) {
+            null
+        }
+        val method = jsonObj?.optString("method", "")
+        if (method != null && handleTagScanCommand(method, context, jsonObj.optJSONObject("params"))) {
+            sendResponse(context, JSONObject().apply {
+                put("type", "cmd_result")
+                put("method", method)
+                put("status", "success")
+            }.toString())
+            return
+        }
+
         val registry = CapabilityRegistry.getInstance()
         val command = LocalCommandParser.parseLlmResponse(
             json,
@@ -288,6 +305,16 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         val cmd = intent.getStringExtra(EXTRA_CMD) ?: return
         val param = intent.getStringExtra(EXTRA_PARAM)
         Logger.i(TAG, "V2 Single command: cmd=$cmd, param=$param (deprecated, use --es json)")
+
+        // TAG 扫描命令：直接启动 TagGenerationService，不经过 CapabilityRegistry
+        if (handleTagScanCommand(cmd, context)) {
+            sendResponse(context, JSONObject().apply {
+                put("type", "cmd_result")
+                put("cmd", cmd)
+                put("status", "success")
+            }.toString())
+            return
+        }
 
         val registry = CapabilityRegistry.getInstance()
         val command = parseCommand(cmd, param)
@@ -445,6 +472,46 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             }
             else -> throw IllegalArgumentException("Unknown command: $cmd")
         }
+    }
+
+    /**
+     * 处理 TAG 扫描命令：直接启动 TagGenerationService
+     *
+     * 支持命令：
+     * - scan_pass1_full / scan_pass1：全量 Pass 1 人脸检测
+     * - scan_pass2_full / scan_pass2：全量 Pass 2 DBSCAN 聚类
+     * - scan_pass3_full / scan_pass3：全量 Pass 3 Qwen 标签生成
+     * - scan_pass4_full / scan_pass4：全量 MobileCLIP 语义编码
+     * - scan_mlkit_full / scan_mlkit：全量 ML Kit 标签提取
+     * - scan_all：全量 3-Pass 扫描
+     * - cancel：取消扫描
+     *
+     * @return true 如果 cmd 是 TAG 扫描命令并已处理
+     */
+    private fun handleTagScanCommand(
+        cmd: String,
+        context: Context,
+        params: org.json.JSONObject? = null
+    ): Boolean {
+        val serviceIntent = when (cmd.lowercase()) {
+            "scan_pass1_full", "scan_pass1" -> TagGenerationService.intentScanPass1Full(context)
+            "scan_pass1_incremental" -> TagGenerationService.intentScanPass1(context)
+            "scan_pass2_full", "scan_pass2" -> TagGenerationService.intentScanPass2Full(context)
+            "scan_pass2_incremental" -> TagGenerationService.intentScanPass2(context)
+            "scan_pass3_full", "scan_pass3" -> TagGenerationService.intentScanPass3Full(context)
+            "scan_pass3_incremental" -> TagGenerationService.intentScanPass3(context)
+            "scan_pass4_full", "scan_pass4" -> TagGenerationService.intentScanPass4Full(context)
+            "scan_pass4_incremental" -> TagGenerationService.intentScanPass4(context)
+            "scan_mlkit_full", "scan_mlkit" -> TagGenerationService.intentScanPassMlKitFull(context)
+            "scan_mlkit_incremental" -> TagGenerationService.intentScanPassMlKit(context)
+            "scan_all" -> TagGenerationService.intentScanAll(context)
+            "scan_incremental" -> TagGenerationService.intentScanIncremental(context)
+            "cancel" -> TagGenerationService.intentCancel(context)
+            else -> return false
+        }
+        Logger.i(TAG, "Starting TagGenerationService: $cmd")
+        context.startForegroundService(serviceIntent)
+        return true
     }
 
     /**

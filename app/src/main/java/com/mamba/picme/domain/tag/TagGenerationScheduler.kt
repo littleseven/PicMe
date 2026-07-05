@@ -3,6 +3,7 @@ package com.mamba.picme.domain.tag
 import android.content.Context
 import android.util.Log
 import androidx.camera.core.CameraSelector
+import androidx.room.withTransaction
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
@@ -312,11 +313,15 @@ class TagGenerationScheduler(
             return
         }
 
-        // 按 mediaId 分组
+        // 按 mediaId 分组，同时记录每个 (mediaId, faceIndex) 对应的 embeddingId
         val embeddingsMap = mutableMapOf<Long, MutableList<FloatArray>>()
+        val embeddingIdMap = mutableMapOf<Pair<Long, Int>, Long>()
         for (emb in unassigned) {
             val feature = byteArrayToFloatArray(emb.embedding)
-            embeddingsMap.getOrPut(emb.mediaId) { mutableListOf() }.add(feature)
+            val list = embeddingsMap.getOrPut(emb.mediaId) { mutableListOf() }
+            val faceIndex = list.size
+            list.add(feature)
+            embeddingIdMap[emb.mediaId to faceIndex] = emb.embeddingId
         }
 
         if (embeddingsMap.size < 2) {
@@ -351,33 +356,85 @@ class TagGenerationScheduler(
         // 验证簇内部一致性，分裂不健康的簇
         clusters = validateAndSplitClusters(clusters, embeddingsMap)
 
-        // 分配 personId
+        // 分配 personId：按簇批量写入，避免逐条 UPDATE 阻塞协程/线程
         val sorted = clusters.entries
             .filter { it.key != -1 }
             .sortedByDescending { it.value.size }
 
+        // 预计算各簇质心，用于后续噪声点归并
+        val clusterCentroids = sorted.associate { entry ->
+            entry.key to computeClusterCentroid(entry.value, embeddingsMap)
+        }
+
+        Log.i(TAG, "DBSCAN assignment start: ${sorted.size} clusters to persist")
         var assignedCount = 0
-        for ((index, entry) in sorted.withIndex()) {
-            val mediaIds = entry.value.map { it.first }.distinct()
-            val totalFaces = entry.value.size
-            val personId = personDao.insertPerson(
-                com.mamba.picme.data.local.entity.PersonEntity(
-                    faceCount = totalFaces,
-                    coverMediaId = mediaIds.firstOrNull()
+        val clusterKeyToPersonId = mutableMapOf<Int, Long>()
+        db.withTransaction {
+            for ((index, entry) in sorted.withIndex()) {
+                val mediaIds = entry.value.map { it.first }.distinct()
+                val totalFaces = entry.value.size
+                Log.d(TAG, "DBSCAN persisting cluster #$index (key=${entry.key}, $totalFaces faces, ${mediaIds.size} media)")
+                val personId = personDao.insertPerson(
+                    com.mamba.picme.data.local.entity.PersonEntity(
+                        faceCount = totalFaces,
+                        coverMediaId = mediaIds.firstOrNull()
+                    )
                 )
-            )
-            for ((mid, _) in entry.value) {
-                dao.updateFaceId(mid, personId.toString())
-                assignedCount++
-            }
-            // 给簇内所有 media 的 embedding 赋 personId
-            for (mid in mediaIds) {
-                personDao.assignEmbeddingByMediaId(mediaId = mid, personId = personId)
+                clusterKeyToPersonId[entry.key] = personId
+                Log.d(TAG, "DBSCAN inserted personId=$personId for cluster #$index")
+                // 批量更新 media_assets.faceId（同一人物的所有媒体一次性写入）
+                dao.updateFaceIdBatch(mediaIds, personId.toString())
+                assignedCount += entry.value.size
+                // 批量更新 face_embeddings.personId
+                if (mediaIds.isNotEmpty()) {
+                    personDao.assignEmbeddingsByMediaIds(mediaIds, personId)
+                }
             }
         }
 
-        val noiseCount = clusters[-1]?.size ?: 0
-        Log.i(TAG, "DBSCAN done: $assignedCount media clustered into ${sorted.size} persons, $noiseCount noise")
+        // 处理噪声点：仅将明显归属于已有簇的边界点回收，
+        // 不再为每个噪声点创建单例，避免照片较少的人脸产生过多碎片簇。
+        val noisePoints = clusters[-1] ?: emptyList()
+        var mergedNoiseCount = 0
+        if (noisePoints.isNotEmpty()) {
+            db.withTransaction {
+                for ((mediaId, faceIndex) in noisePoints) {
+                    val emb = embeddingsMap[mediaId]?.getOrNull(faceIndex) ?: continue
+                    val embeddingId = embeddingIdMap[mediaId to faceIndex] ?: continue
+
+                    // 找到最近簇质心
+                    var bestKey: Int? = null
+                    var bestSim = -1f
+                    for ((key, centroid) in clusterCentroids) {
+                        val sim = 1f - cosineDistance(emb, centroid)
+                        if (sim > bestSim) {
+                            bestSim = sim
+                            bestKey = key
+                        }
+                    }
+
+                    val mergeThreshold = 1f - ClusteringConfig.DBSCAN_EPS
+                    val targetPersonId = if (bestKey != null && bestSim >= mergeThreshold) {
+                        clusterKeyToPersonId[bestKey]
+                    } else null
+
+                    if (targetPersonId != null) {
+                        // 归并到已有簇
+                        personDao.incrementFaceCount(targetPersonId)
+                        personDao.assignEmbedding(embeddingId, targetPersonId)
+                        val existingFaceId = dao.getFaceIdByMediaId(mediaId)
+                        if (existingFaceId.isNullOrBlank()) {
+                            dao.updateFaceId(mediaId, targetPersonId.toString())
+                        }
+                        mergedNoiseCount++
+                    }
+                }
+            }
+        }
+
+        val noiseCount = noisePoints.size
+        Log.i(TAG, "DBSCAN done: $assignedCount media clustered into ${sorted.size} persons, " +
+            "noise=$noiseCount (merged=$mergedNoiseCount, remaining=${noiseCount - mergedNoiseCount})")
 
         // 【关键修复】校验 hasFace 标记：清理有 hasFace=true 但无有效 embedding 的媒体
         // 这些媒体可能是之前误检（RetinaFace 误报）或零向量过滤后的残留
@@ -445,7 +502,7 @@ class TagGenerationScheduler(
             Log.d(TAG, "Cluster $clusterId (${members.size} faces) avg similarity: ${String.format("%.3f", avgSimilarity)}")
             if (avgSimilarity < ClusteringConfig.CLUSTER_COHESION_MIN) {
                 Log.w(TAG, "Cluster $clusterId cohesion too low (${String.format("%.3f", avgSimilarity)}), splitting")
-                val subClusters = dbscanCluster(embeddings, members, ClusteringConfig.DBSCAN_EPS * 0.7f, ClusteringConfig.DBSCAN_MIN_PTS)
+                val subClusters = dbscanCluster(embeddings, members, ClusteringConfig.DBSCAN_EPS * 0.75f, ClusteringConfig.DBSCAN_MIN_PTS)
                 var newId = clusterId * 1000
                 for ((_, subMembers) in subClusters) {
                     result[newId++] = subMembers
@@ -535,6 +592,28 @@ class TagGenerationScheduler(
         }
         val similarity = dot / (sqrt(normA) * sqrt(normB))
         return (1f - similarity).coerceAtLeast(0f)
+    }
+
+    /** 计算簇的质心（成员 embedding 的算术平均） */
+    private fun computeClusterCentroid(
+        members: List<Pair<Long, Int>>,
+        embeddings: Map<Long, List<FloatArray>>
+    ): FloatArray {
+        val dim = embeddings.values.firstOrNull()?.firstOrNull()?.size ?: 512
+        val sum = FloatArray(dim)
+        var count = 0
+        for ((mediaId, faceIndex) in members) {
+            val emb = embeddings[mediaId]?.getOrNull(faceIndex) ?: continue
+            for (i in emb.indices) {
+                sum[i] += emb[i]
+            }
+            count++
+        }
+        if (count == 0) return FloatArray(dim)
+        for (i in sum.indices) {
+            sum[i] /= count
+        }
+        return sum
     }
 
     // ═══════════════════════════════════════════════════
@@ -669,6 +748,9 @@ class TagGenerationScheduler(
             dao.updateFaceRoiResult(entity.id, result.faceRoiJson, hasValidFace)
         }
 
+        // 先清除该媒体旧 embedding，避免全量重扫时产生重复记录
+        personDao.deleteEmbeddingsByMedia(entity.id)
+
         for (embedding in result.embeddings) {
             personDao.insertEmbedding(
                 com.mamba.picme.data.local.entity.FaceEmbeddingEntity(
@@ -711,7 +793,11 @@ class TagGenerationScheduler(
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return
         val faceRoiJson = dao.getFaceRoiResult(entity.id)
+
+        Log.d(TAG, "[Benchmark] Pass 3 start: mediaId=$mediaId")
+        val startMs = System.currentTimeMillis()
         val normalized = pipeline.stage3QwenTagging(entity.uri, faceRoiJson)
+        val durationMs = System.currentTimeMillis() - startMs
 
         // 若任务已被取消，丢弃本次推理结果
         currentCoroutineContext().ensureActive()
@@ -724,6 +810,9 @@ class TagGenerationScheduler(
             qwenSummary = normalized.summary
         )
         dao.updateLabels(entity.id, unifiedTagToJson(unified))
+
+        Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, durationMs=$durationMs, " +
+            "jsonOk=${normalized.jsonParsed}, scene=${normalized.scene}, tags=${normalized.tags}")
 
         delay(getThrottleMs())
     }

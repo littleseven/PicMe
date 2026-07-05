@@ -11,6 +11,7 @@ import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
 import com.mamba.picme.beauty.api.Logger
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.EngineType
+import com.mamba.picme.beauty.api.facedetect.FaceDetection
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionResult
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionSource
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
@@ -206,6 +207,77 @@ class FaceDetectorManager(context: Context) : FaceDetector {
         } catch (e: Exception) {
             lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
             Logger.e(TAG, "detectFacesOnly failed", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * 多人脸检测（ROI + RetinaFace 5 点 landmarks）
+     *
+     * 为 MobileFaceNet 等人脸识别/聚类任务提供对齐所需关键点。
+     * - MNN/NCNN 路径：复用 RetinaFace 已输出的 5 点 landmarks
+     * - MediaPipe / 其他路径：回退到 detectPhoto，landmarks 为空
+     *
+     * @param bitmap 静态图片 Bitmap
+     * @return 人脸检测结果列表（像素坐标 ROI + 5 点 landmarks），无人脸返回空列表
+     */
+    override fun detectFacesWithLandmarks(bitmap: Bitmap): List<FaceDetection> {
+        if (!isPipelineInitialized) {
+            Logger.w(TAG, "detectFacesWithLandmarks: Pipeline not initialized")
+            return emptyList()
+        }
+
+        val startTime = SystemClock.elapsedRealtime()
+
+        return try {
+            synchronized(lock) {
+                val config = pipelineConfig ?: return emptyList()
+
+                when (config.roiEngine) {
+                    InferenceBackendType.MNN -> {
+                        val mnnRoi = roiDetector as? MnnRoiDetector
+                        if (mnnRoi != null) {
+                            val faces = mnnRoi.detectFacesWithLandmarks(bitmap)
+                            lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
+                            lastDetectionSource = FaceDetectionSource.MNN
+                            Logger.d(TAG, "[Perf] detectFacesWithLandmarks(MNN): ${faces.size} faces, ${lastProcessTimeMs}ms")
+                            return faces
+                        }
+                    }
+                    InferenceBackendType.NCNN -> {
+                        val ncnnRoi = roiDetector as? NcnnRoiDetector
+                        if (ncnnRoi != null) {
+                            val faces = ncnnRoi.detectFacesWithLandmarks(bitmap)
+                            lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
+                            lastDetectionSource = FaceDetectionSource.NCNN
+                            Logger.d(TAG, "[Perf] detectFacesWithLandmarks(NCNN): ${faces.size} faces, ${lastProcessTimeMs}ms")
+                            return faces
+                        }
+                    }
+                    else -> {
+                        // ONNX / TFLite / MediaPipe 路径：回退到完整 detectPhoto 提取 ROI
+                        Logger.w(TAG, "detectFacesWithLandmarks: fallback to detectPhoto for ${config.roiEngine}")
+                    }
+                }
+
+                // Fallback：使用 detectPhoto 返回单脸 ROI，landmarks 为空
+                val result = detectPhoto(bitmap, CameraCharacteristics.LENS_FACING_BACK)
+                lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
+
+                if (result != null) {
+                    val w = bitmap.width.toFloat()
+                    val h = bitmap.height.toFloat()
+                    val roi = result.roiRect?.let {
+                        RectF(it.left * w, it.top * h, it.right * w, it.bottom * h)
+                    } ?: RectF(0f, 0f, w, h)
+                    listOf(FaceDetection(roi, null))
+                } else {
+                    emptyList()
+                }
+            }
+        } catch (e: Exception) {
+            lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
+            Logger.e(TAG, "detectFacesWithLandmarks failed", e)
             emptyList()
         }
     }

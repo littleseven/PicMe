@@ -137,6 +137,14 @@ interface MediaDao {
     @Query("UPDATE media_assets SET faceId = :faceId WHERE id = :mediaId")
     suspend fun updateFaceId(mediaId: Long, faceId: String)
 
+    /** 查询指定媒体的 faceId */
+    @Query("SELECT faceId FROM media_assets WHERE id = :mediaId")
+    suspend fun getFaceIdByMediaId(mediaId: Long): String?
+
+    /** 批量更新 faceId（Pass 2 DBSCAN 分配人物时避免逐条更新阻塞） */
+    @Query("UPDATE media_assets SET faceId = :faceId WHERE id IN (:mediaIds)")
+    suspend fun updateFaceIdBatch(mediaIds: List<Long>, faceId: String)
+
     /** 按 hasFace 搜索 */
     @Deprecated("大数据量时易造成 Java Heap OOM，请优先使用 getHasFaceCount() / getHasFaceIds()")
     @Query("SELECT * FROM media_assets WHERE hasFace = 1 ORDER BY captureDate DESC")

@@ -10,6 +10,7 @@ import android.os.SystemClock
 import com.mamba.picme.agent.core.platform.mnn.MnnGlobalReleaseLock
 import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
 import com.mamba.picme.beauty.api.Logger
+import com.mamba.picme.beauty.api.facedetect.FaceDetection
 import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
 import com.mamba.picme.beauty.internal.model.ModelManager
 import java.util.concurrent.atomic.AtomicBoolean
@@ -195,6 +196,16 @@ class MnnRoiDetector(
      * - 返回所有有效脸，供上层判断合影/自拍
      */
     fun detectFaces(bitmap: Bitmap): List<RectF> {
+        return detectFacesWithLandmarks(bitmap).map { it.roi }
+    }
+
+    /**
+     * 多脸检测：返回 ROI + RetinaFace 5 点 landmarks
+     *
+     * 5 点顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]，坐标为原图像素坐标。
+     * landmarks 不随 ROI 扩展而扩展，保留真实五官位置用于 MobileFaceNet 对齐。
+     */
+    fun detectFacesWithLandmarks(bitmap: Bitmap): List<FaceDetection> {
         // [优化] 懒加载初始化（CAS 无锁，初始化中的线程直接返回）
         if (!ensureInitialized()) {
             Logger.d(TAG, "[Perf] Skipping ROI detection: detector not ready")
@@ -210,7 +221,7 @@ class MnnRoiDetector(
         }
 
         val engineLabel = if (isGpuEnabled) "MNN-OpenCL" else "MNN-CPU"
-        Logger.d(TAG, "[Perf] MnnRoiFaces START: engine=$engineLabel, original=${bitmap.width}x${bitmap.height}, scaled=$INPUT_SIZE")
+        Logger.d(TAG, "[Perf] MnnRoiFacesWithLandmarks START: engine=$engineLabel, original=${bitmap.width}x${bitmap.height}, scaled=$INPUT_SIZE")
 
         return try {
             val scaleStart = SystemClock.elapsedRealtime()
@@ -223,11 +234,11 @@ class MnnRoiDetector(
             val totalElapsed = SystemClock.elapsedRealtime() - totalStart
 
             if (faces.isEmpty()) {
-                Logger.d(TAG, "[Perf] MnnRoiFaces DONE (no face): total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms)")
+                Logger.d(TAG, "[Perf] MnnRoiFacesWithLandmarks DONE (no face): total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms)")
                 return emptyList()
             }
 
-            Logger.i(TAG, "[Perf] MnnRoiFaces DONE: engine=$engineLabel, total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms), rawFaces=${faces.size}")
+            Logger.i(TAG, "[Perf] MnnRoiFacesWithLandmarks DONE: engine=$engineLabel, total=${totalElapsed}ms (scale=${scaleElapsed}ms, infer=${inferElapsed}ms), rawFaces=${faces.size}")
 
             // 逆向 letterbox 变换映射回原图尺寸
             val origW = bitmap.width.toFloat()
@@ -239,7 +250,7 @@ class MnnRoiDetector(
             val padTop = (INPUT_SIZE - scaledH) / 2f
             val imageArea = origW * origH
 
-            val roiList = mutableListOf<RectF>()
+            val result = mutableListOf<FaceDetection>()
             for (face in faces) {
                 // 减去 letterbox padding，再除以缩放比例，映射回原图
                 var mappedX1 = ((face.x1 - padLeft) / scale)
@@ -263,21 +274,36 @@ class MnnRoiDetector(
                 val faceArea = (mappedX2 - mappedX1) * (mappedY2 - mappedY1)
                 val areaRatio = faceArea / imageArea
 
-                // 过滤面积 < 1.5% 图片总面积的脸（过小/误检），放宽以识别更多小脸
-                if (areaRatio >= 0.015f) {
-                    roiList.add(RectF(mappedX1, mappedY1, mappedX2, mappedY2))
-                } else {
+                // 过滤面积 < 1.5% 图片总面积的脸（过小/误检）
+                if (areaRatio < 0.015f) {
                     Logger.d(TAG, "Filtered small face: areaRatio=${String.format("%.2f%%", areaRatio * 100)}")
+                    continue
                 }
+
+                // 映射 5 点 landmarks 到原图坐标（不随 ROI 扩展）
+                val landmarks5 = if (face.landmarks.size >= 10) {
+                    FloatArray(10) { i ->
+                        val src = face.landmarks[i]
+                        if (i % 2 == 0) {
+                            ((src - padLeft) / scale).coerceIn(0f, origW)
+                        } else {
+                            ((src - padTop) / scale).coerceIn(0f, origH)
+                        }
+                    }
+                } else {
+                    null
+                }
+
+                result.add(FaceDetection(RectF(mappedX1, mappedY1, mappedX2, mappedY2), landmarks5))
             }
 
             // 按面积从大到小排序
-            roiList.sortByDescending { it.width() * it.height() }
+            result.sortByDescending { it.roi.width() * it.roi.height() }
 
-            Logger.d(TAG, "MnnRoiFaces: ${roiList.size} valid faces after filtering (min 1.5% area)")
-            roiList
+            Logger.d(TAG, "MnnRoiFacesWithLandmarks: ${result.size} valid faces after filtering (min 1.5% area)")
+            result
         } catch (e: Exception) {
-            Logger.e(TAG, "MnnRoiFaces detection failed", e)
+            Logger.e(TAG, "MnnRoiFacesWithLandmarks detection failed", e)
             emptyList()
         }
     }

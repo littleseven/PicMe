@@ -82,6 +82,10 @@ interface PersonDao {
     @Query("UPDATE face_embeddings SET personId = :personId WHERE mediaId = :mediaId")
     suspend fun assignEmbeddingByMediaId(mediaId: Long, personId: Long)
 
+    /** 按 mediaId 列表批量更新 personId（避免逐条更新阻塞主流程） */
+    @Query("UPDATE face_embeddings SET personId = :personId WHERE mediaId IN (:mediaIds)")
+    suspend fun assignEmbeddingsByMediaIds(mediaIds: List<Long>, personId: Long)
+
     /** 清空 face_embeddings 和 persons 表（不删除 trigger 依赖的表） */
     @Query("DELETE FROM face_embeddings")
     suspend fun clearAllEmbeddings()

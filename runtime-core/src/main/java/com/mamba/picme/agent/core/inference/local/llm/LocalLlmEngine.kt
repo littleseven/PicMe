@@ -418,6 +418,7 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
                     decodeSpeed = result.decodeSpeed
                 )
                 Logger.d(tag, "[Vision] inference done: ${result.response.take(100)}, " +
+                    "promptLen=${result.promptLen}, decodeLen=${result.decodeLen}, " +
                     "vision=${result.visionTime}us, decode=${result.decodeTime}us")
                 result.response
             } catch (exception: CancellationException) {
@@ -469,6 +470,7 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
                     decodeSpeed = result.decodeSpeed
                 )
                 Logger.d(tag, "[Vision] inference with timeout done: ${result.response.take(100)}, " +
+                    "promptLen=${result.promptLen}, decodeLen=${result.decodeLen}, " +
                     "vision=${result.visionTime}us, decode=${result.decodeTime}us")
                 result.response
             } catch (exception: CancellationException) {
