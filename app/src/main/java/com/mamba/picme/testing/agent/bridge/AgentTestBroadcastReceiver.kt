@@ -22,6 +22,7 @@ import com.mamba.picme.testing.agent.core.AgentTestCase
 import com.mamba.picme.testing.agent.core.AgentTestResult
 import com.mamba.picme.testing.agent.device.DeviceTestController
 import com.mamba.picme.testing.agent.runner.AgentTestRunner
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -485,6 +486,7 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
      * - scan_mlkit_full / scan_mlkit：全量 ML Kit 标签提取
      * - scan_all：全量 3-Pass 扫描
      * - cancel：取消扫描
+     * - dump_face_embeddings [path]：导出所有 face embeddings 到 JSONL（默认 externalCacheDir/face_embeddings.jsonl）
      *
      * @return true 如果 cmd 是 TAG 扫描命令并已处理
      */
@@ -493,6 +495,30 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         context: Context,
         params: org.json.JSONObject? = null
     ): Boolean {
+        when (cmd.lowercase()) {
+            "dump_face_embeddings" -> {
+                scope.launch {
+                    try {
+                        val outputPath = params?.optString("path")
+                            ?: context.externalCacheDir?.let { File(it, "face_embeddings.jsonl").absolutePath }
+                            ?: File(context.cacheDir, "face_embeddings.jsonl").absolutePath
+                        val engine = com.mamba.picme.domain.tag.FaceClusterEngine(context)
+                        engine.dumpEmbeddingsForAnalysis(File(outputPath))
+                        sendResponse(context, JSONObject().apply {
+                            put("type", "cmd_result")
+                            put("cmd", cmd)
+                            put("status", "success")
+                            put("path", outputPath)
+                        }.toString())
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "dump_face_embeddings failed", e)
+                        sendResponse(context, createErrorResponse("dump_face_embeddings failed: ${e.message}"))
+                    }
+                }
+                return true
+            }
+        }
+
         val serviceIntent = when (cmd.lowercase()) {
             "scan_pass1_full", "scan_pass1" -> TagGenerationService.intentScanPass1Full(context)
             "scan_pass1_incremental" -> TagGenerationService.intentScanPass1(context)

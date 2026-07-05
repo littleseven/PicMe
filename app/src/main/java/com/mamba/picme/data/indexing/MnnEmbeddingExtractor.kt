@@ -11,9 +11,9 @@ import java.io.File
  * 使用原生 MnnFaceEmbedder 加载 MNN 版人脸特征模型，
  * 直接提取 512 维 L2 归一化 embedding。
  *
- * 当前默认模型：ArcFace R100（budaoshou/ArcFace-R100-MNN）
- * 路径: {filesDir}/llm_models/picme-face-embedding-r100-mnn/arcface_r100.mnn
- * 历史模型：MobileFaceNet（budaoshou/InsightFace-MobileFaceNet-MNN）
+ * 当前默认模型：Glint360K R100（budaoshou/Glint360K-R100-MNN）
+ * 路径: {filesDir}/llm_models/picme-face-embedding-glint360k-r100-mnn/glintr100.mnn
+ * 历史模型：ArcFace R100（budaoshou/ArcFace-R100-MNN）、MobileFaceNet
  */
 class MnnEmbeddingExtractor(
     private val modelFile: File,
@@ -32,14 +32,16 @@ class MnnEmbeddingExtractor(
     /**
      * 初始化 MNN 模型
      *
-     * @param inputName 输入层名称，MobileFaceNet 为 "input.1"，ArcFace R100 为 "data"
-     * @param outputName 输出层名称，ArcFace R100 为 "fc1"；空字符串则自动查找
+     * @param inputName 输入层名称，Glint360K R100 / MobileFaceNet 为 "input.1"，旧 ArcFace R100 为 "data"
+     * @param outputName 输出层名称，Glint360K R100 为 "1333"，旧 ArcFace R100 为 "fc1"；空字符串则自动查找
      * @param useGpu 是否优先尝试 OpenCL GPU 后端（失败自动回退 CPU）
+     * @param swapRb 是否交换 R/B 通道；Glint360K R100 使用 RGB（false），部分旧模型需要 BGR（true）
      */
     fun initialize(
         inputName: String = "input.1",
         outputName: String = "",
-        useGpu: Boolean = false
+        useGpu: Boolean = false,
+        swapRb: Boolean = false
     ): Boolean {
         if (embedder != null) return true
         if (!isModelReady) {
@@ -55,10 +57,11 @@ class MnnEmbeddingExtractor(
                 embeddingDim = embeddingDim,
                 inputName = inputName,
                 outputName = outputName,
-                useGpu = true
+                useGpu = true,
+                swapRb = swapRb
             )
             if (embedder != null) {
-                Logger.i(TAG, "MNN face embedder loaded with OpenCL GPU: inputName=$inputName, outputName=$outputName")
+                Logger.i(TAG, "MNN face embedder loaded with OpenCL GPU: inputName=$inputName, outputName=$outputName, swapRb=$swapRb")
                 return true
             }
             Logger.w(TAG, "OpenCL GPU embedder failed, falling back to CPU")
@@ -70,13 +73,14 @@ class MnnEmbeddingExtractor(
             embeddingDim = embeddingDim,
             inputName = inputName,
             outputName = outputName,
-            useGpu = false
+            useGpu = false,
+            swapRb = swapRb
         )
         if (embedder == null) {
             Logger.e(TAG, "Failed to create MNN face embedder")
             return false
         }
-        Logger.i(TAG, "MNN face embedder loaded with CPU: inputName=$inputName, outputName=$outputName")
+        Logger.i(TAG, "MNN face embedder loaded with CPU: inputName=$inputName, outputName=$outputName, swapRb=$swapRb")
         return true
     }
 

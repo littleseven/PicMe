@@ -357,6 +357,9 @@ class TagGenerationScheduler(
             }
         }
 
+        // 诊断：分析 embedding 两两相似度分布
+        logEmbeddingSimilarityDistribution(embeddingsMap, flatIndex)
+
         // DBSCAN
         var clusters = dbscanCluster(embeddingsMap, flatIndex, ClusteringConfig.DBSCAN_EPS, ClusteringConfig.DBSCAN_MIN_PTS)
         Log.i(TAG, "DBSCAN: ${clusters.size} clusters from ${flatIndex.size} face embeddings")
@@ -586,6 +589,60 @@ class TagGenerationScheduler(
             result.getOrPut(l) { mutableListOf() }.add(flatIndex[i])
         }
         return result
+    }
+
+    /**
+     * 诊断：统计所有 embedding 两两余弦相似度的分布。
+     *
+     * 采样计算（最多 3000 对），输出最小/最大/平均/标准差和直方图，
+     * 用于判断 embedding 是否有区分度。
+     */
+    private fun logEmbeddingSimilarityDistribution(
+        embeddings: Map<Long, List<FloatArray>>,
+        flatIndex: List<Pair<Long, Int>>
+    ) {
+        if (flatIndex.size < 2) return
+
+        val random = java.util.Random(42)
+        val similarities = mutableListOf<Float>()
+        val maxSamples = 3000
+        var attempts = 0
+        val totalPairs = flatIndex.size * (flatIndex.size - 1L) / 2
+
+        while (similarities.size < maxSamples && attempts < maxSamples * 3 && totalPairs > 0) {
+            val i = random.nextInt(flatIndex.size)
+            var j = random.nextInt(flatIndex.size)
+            if (i == j) {
+                attempts++
+                continue
+            }
+            val embI = embeddings[flatIndex[i].first]?.getOrNull(flatIndex[i].second) ?: run { attempts++; continue }
+            val embJ = embeddings[flatIndex[j].first]?.getOrNull(flatIndex[j].second) ?: run { attempts++; continue }
+            val sim = 1f - cosineDistance(embI, embJ)
+            similarities.add(sim)
+            attempts++
+        }
+
+        if (similarities.isEmpty()) return
+
+        similarities.sort()
+        val minSim = similarities.first()
+        val maxSim = similarities.last()
+        val meanSim = similarities.average().toFloat()
+        val variance = similarities.map { (it - meanSim) * (it - meanSim) }.average().toFloat()
+        val stdSim = kotlin.math.sqrt(variance)
+
+        // 直方图：按相似度区间统计
+        val buckets = IntArray(10) // [0,0.1), [0.1,0.2), ..., [0.9,1.0]
+        for (sim in similarities) {
+            val idx = (sim * 10).toInt().coerceIn(0, 9)
+            buckets[idx]++
+        }
+
+        Log.i(TAG, "Embedding similarity distribution: pairs=${similarities.size}, " +
+            "min=${String.format("%.3f", minSim)}, max=${String.format("%.3f", maxSim)}, " +
+            "mean=${String.format("%.3f", meanSim)}, std=${String.format("%.3f", stdSim)}")
+        Log.i(TAG, "Similarity histogram: ${buckets.joinToString(" ") { "%.1f:%d".format(it / 10.0, it) }}")
     }
 
     /** 余弦距离: 1 - cosine_similarity，范围 [0, 2] */

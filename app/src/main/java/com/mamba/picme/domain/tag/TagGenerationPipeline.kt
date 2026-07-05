@@ -180,7 +180,7 @@ class TagGenerationPipeline(
             val embeddings = mutableListOf<FloatArray>()
             for (face in stage1Result.faces) {
                 val feature = faceClusterEngine.extractFeature(
-                    faceBitmap, face.roi, face.landmarks5
+                    faceBitmap, face.roi, face.landmarks5, mediaId
                 )
                 if (!isZeroVector(feature)) {
                     embeddings.add(feature)
@@ -578,7 +578,7 @@ class TagGenerationPipeline(
 
         for (face in stage1Result.faces) {
             val feature = faceClusterEngine.extractFeature(
-                bitmap, face.roi, face.landmarks5
+                bitmap, face.roi, face.landmarks5, mediaId
             )
 
             // 过滤零向量，避免误聚类

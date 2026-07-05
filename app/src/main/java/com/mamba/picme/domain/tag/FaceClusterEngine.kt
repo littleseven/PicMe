@@ -13,6 +13,7 @@ import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.PersonEntity
 import java.io.BufferedWriter
 import java.io.File
+import java.io.FileOutputStream
 import java.io.FileWriter
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,11 +22,11 @@ import kotlin.math.sqrt
 /**
  * 人脸聚类引擎
  *
- * 负责 ArcFace R100 特征提取（Stage 2a/2b）和增量化余弦距离聚类（Stage 2c）。
+ * 负责 Glint360K R100 特征提取（Stage 2a/2b）和增量化余弦距离聚类（Stage 2c）。
  *
  * ## 实现状态 (2026-07-05)
- * - **ArcFace R100 特征提取**：已集成 [MnnEmbeddingExtractor]，
- *   使用 MNN 加载 arcface_r100.mnn 模型提取 512 维 embedding。
+ * - **Glint360K R100 特征提取**：已集成 [MnnEmbeddingExtractor]，
+ *   使用 MNN 加载 glintr100.mnn 模型提取 512 维 embedding。
  *   模型缺失时降级为零向量（聚类不生效）。
  * - **聚类算法**：增量式余弦距离匹配已实现。
  *
@@ -44,21 +45,32 @@ class FaceClusterEngine(private val context: Context) {
 
         /** 未分配人脸的 personId 标记 */
         const val UNASSIGNED_ID: Long = -1
+
+        /** 调试：最多保存多少张对齐后人脸图 */
+        private const val MAX_DEBUG_FACE_SAVES = 30
+
+        @Volatile
+        private var debugFaceSaveCount = 0
     }
 
     private val personDao = AppDatabase.getDatabase(context).personDao()
 
-    /** ArcFace R100 嵌入提取器（懒加载，模型缺失时为 null） */
+    /** Glint360K R100 嵌入提取器（懒加载，模型缺失时为 null） */
     private val embeddingExtractor: MnnEmbeddingExtractor? by lazy {
-        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-r100-mnn")
-        val modelFile = File(modelDir, "arcface_r100.mnn")
+        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-glint360k-r100-mnn")
+        val modelFile = File(modelDir, "glintr100.mnn")
         val extractor = MnnEmbeddingExtractor(modelFile)
-        // ArcFace R100 MNN 输入/输出名：data / fc1；优先尝试 OpenCL GPU，失败回退 CPU
-        if (extractor.isModelReady && extractor.initialize(inputName = "data", outputName = "fc1", useGpu = true)) {
-            Log.i(TAG, "ArcFace R100 model loaded: ${modelFile.absolutePath}")
+        // Glint360K R100 MNN 输入/输出名：input.1 / 1333；优先尝试 OpenCL GPU，失败回退 CPU
+        if (extractor.isModelReady && extractor.initialize(
+                inputName = "input.1",
+                outputName = "1333",
+                useGpu = true,
+                swapRb = false
+            )) {
+            Log.i(TAG, "Glint360K R100 model loaded: ${modelFile.absolutePath}")
             extractor
         } else {
-            Log.w(TAG, "ArcFace R100 model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download arcface_r100.mnn to enable.")
+            Log.w(TAG, "Glint360K R100 model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download glintr100.mnn to enable.")
             null
         }
     }
@@ -76,12 +88,14 @@ class FaceClusterEngine(private val context: Context) {
      * @param bitmap 原始图片
      * @param roi 人脸 ROI 区域（像素坐标）
      * @param landmarks5 RetinaFace 5 点原图像素坐标（长度 10），null 则回退旧路径
+     * @param mediaId 媒体文件 ID（仅用于调试文件名）
      * @return 512 维特征向量（L2 归一化后的真实 embedding，或零向量）
      */
     suspend fun extractFeature(
         bitmap: Bitmap,
         roi: RectF,
-        landmarks5: FloatArray? = null
+        landmarks5: FloatArray? = null,
+        mediaId: Long = -1
     ): FloatArray {
         val extractor = embeddingExtractor
         if (extractor == null) {
@@ -92,10 +106,15 @@ class FaceClusterEngine(private val context: Context) {
         return try {
             val faceBitmap = if (landmarks5 != null && landmarks5.size >= 10) {
                 // 5 点仿射对齐路径
-                alignFaceWithLandmarks(bitmap, landmarks5)
+                alignFaceWithLandmarks(bitmap, landmarks5, mediaId)
             } else {
                 // 回退：ROI 裁剪 + 直接缩放
                 cropAndScaleFace(bitmap, roi)
+            }
+
+            // [调试] 保存前 MAX_DEBUG_FACE_SAVES 张对齐后人脸图，供人工检查对齐质量
+            if (debugFaceSaveCount < MAX_DEBUG_FACE_SAVES) {
+                saveDebugFace(faceBitmap, mediaId, "aligned")
             }
 
             // MNN 推理提取 embedding
@@ -121,7 +140,7 @@ class FaceClusterEngine(private val context: Context) {
      * 5 点顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]
      * 目标模板为 ArcFace/MobileFaceNet 标准 112×112 对齐坐标。
      */
-    private fun alignFaceWithLandmarks(bitmap: Bitmap, landmarks5: FloatArray): Bitmap {
+    private fun alignFaceWithLandmarks(bitmap: Bitmap, landmarks5: FloatArray, mediaId: Long = -1): Bitmap {
         // MobileFaceNet 标准 112×112 对齐目标点
         val dstPoints = floatArrayOf(
             38.2946f, 51.6963f,   // 左眼
@@ -139,6 +158,23 @@ class FaceClusterEngine(private val context: Context) {
         canvas.drawColor(android.graphics.Color.BLACK)
         canvas.drawBitmap(bitmap, transform, null)
         return aligned
+    }
+
+    /**
+     * 保存调试人脸图到外部缓存目录
+     */
+    private fun saveDebugFace(bitmap: Bitmap, mediaId: Long, suffix: String) {
+        try {
+            val dir = File(context.externalCacheDir, "debug_faces").apply { mkdirs() }
+            val file = File(dir, "face_${mediaId}_${System.currentTimeMillis()}_$suffix.jpg")
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            debugFaceSaveCount++
+            Log.d(TAG, "Saved debug face: ${file.absolutePath}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to save debug face", e)
+        }
     }
 
     /**

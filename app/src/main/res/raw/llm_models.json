@@ -177,6 +177,20 @@
     "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface"]
   },
   {
+    "id": "picme-face-embedding-glint360k-r100-mnn",
+    "name": "Glint360K R100 MNN",
+    "description": "Glint360K 上训练的 ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，精度优于 MobileFaceNet，~248MB",
+    "type": "FACE_EMBEDDING",
+    "size": 260598260,
+    "sources": {
+      "ModelScope": "budaoshou/Glint360K-R100-MNN"
+    },
+    "files": [
+      "glintr100.mnn"
+    ],
+    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface", "glint360k"]
+  },
+  {
     "id": "picme-face-det-500m-ncnn",
     "name": "RetinaFace Det500M",
     "description": "RetinaFace-MobileNet0.25 人脸检测模型 (NCNN 格式)，用于 ROI 区域检测，轻量高效",

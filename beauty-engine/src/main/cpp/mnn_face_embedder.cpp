@@ -156,13 +156,26 @@ bool MnnFaceEmbedder::bindInputOutput() {
 MNN::Tensor *MnnFaceEmbedder::findEmbeddingOutput(const std::map<std::string, MNN::Tensor *> &outputs) {
     outputName_.clear();
 
-    // 1. 优先使用用户指定的输出名
+    // 列出所有可用输出供诊断
+    LOGI("Available MNN outputs (%zu):", outputs.size());
+    for (const auto &kv : outputs) {
+        MNN::Tensor *t = kv.second;
+        if (t) {
+            LOGI("  '%s': [%d, %d, %d, %d], elements=%d",
+                 kv.first.c_str(), t->batch(), t->channel(), t->height(), t->width(), t->elementSize());
+        }
+    }
+
+    // 1. 严格使用用户指定的输出名（ArcFace R100 应为 fc1）
     if (!preferredOutputName_.empty()) {
         auto it = outputs.find(preferredOutputName_);
-        if (it != outputs.end() && it->second && it->second->elementSize() == embeddingDim_) {
+        if (it != outputs.end() && it->second) {
             outputName_ = preferredOutputName_;
+            LOGI("Using preferred output tensor: '%s' (elements=%d)",
+                 outputName_.c_str(), it->second->elementSize());
             return it->second;
         }
+        LOGE("Preferred output tensor '%s' NOT found, falling back to auto-select", preferredOutputName_.c_str());
     }
 
     // 2. 按 elementSize == embeddingDim_ 筛选候选
@@ -176,14 +189,7 @@ MNN::Tensor *MnnFaceEmbedder::findEmbeddingOutput(const std::map<std::string, MN
     }
 
     if (candidates.empty()) {
-        LOGE("No output tensor with elementSize=%d found. Available outputs:", embeddingDim_);
-        for (const auto &kv : outputs) {
-            MNN::Tensor *t = kv.second;
-            if (t) {
-                LOGE("  '%s': [%d, %d, %d, %d], elements=%d",
-                     kv.first.c_str(), t->batch(), t->channel(), t->height(), t->width(), t->elementSize());
-            }
-        }
+        LOGE("No output tensor with elementSize=%d found.", embeddingDim_);
         return nullptr;
     }
 
@@ -192,15 +198,18 @@ MNN::Tensor *MnnFaceEmbedder::findEmbeddingOutput(const std::map<std::string, MN
                                     [](const std::pair<std::string, MNN::Tensor *> &p) {
                                         const std::string &name = p.first;
                                         return name.find("matmul") != std::string::npos ||
-                                               name.find("Reshape") != std::string::npos;
+                                               name.find("Reshape") != std::string::npos ||
+                                               name.find("fc1") != std::string::npos;
                                     });
     if (preferredIt != candidates.end()) {
         outputName_ = preferredIt->first;
+        LOGI("Using auto-selected output tensor: '%s'", outputName_.c_str());
         return preferredIt->second;
     }
 
     // 4. 回退到第一个候选
     outputName_ = candidates[0].first;
+    LOGI("Using fallback output tensor: '%s'", outputName_.c_str());
     return candidates[0].second;
 }
 
@@ -229,6 +238,9 @@ std::vector<float> MnnFaceEmbedder::extract(const unsigned char *imageData,
     }
 
     const int totalPixels = inputSize_ * inputSize_;
+    // InsightFace ArcFace R100 原始预处理：
+    // cv2.dnn.blobFromImage(scalefactor=1.0/128.0, mean=(127.5,127.5,127.5), swapRB=false)
+    // 等价于 (pixel - 127.5) / 128.0，输出范围约 [-0.996, 0.992]
     constexpr float normMean = 127.5f;
     constexpr float normStd = 128.0f;
     const bool isNCHW = (inputDimType == MNN::Tensor::DimensionType::CAFFE);
@@ -268,10 +280,23 @@ std::vector<float> MnnFaceEmbedder::extract(const unsigned char *imageData,
     resultBuffer_.resize(embeddingDim_);
     std::memcpy(resultBuffer_.data(), outData, embeddingDim_ * sizeof(float));
 
+    // L2 归一化前记录原始统计
+    float rawMin = resultBuffer_[0], rawMax = resultBuffer_[0];
+    double rawSum = 0.0, rawSumSq = 0.0;
+    for (int i = 0; i < embeddingDim_; i++) {
+        float v = resultBuffer_[i];
+        if (v < rawMin) rawMin = v;
+        if (v > rawMax) rawMax = v;
+        rawSum += v;
+        rawSumSq += static_cast<double>(v) * v;
+    }
+    double rawMean = rawSum / embeddingDim_;
+    double rawStd = std::sqrt(rawSumSq / embeddingDim_ - rawMean * rawMean);
+
     // L2 归一化
     l2Normalize(resultBuffer_.data(), embeddingDim_);
 
-    // 诊断：检查 NaN/Inf
+    // 诊断：检查 NaN/Inf 和分布
     bool hasNan = false;
     for (int i = 0; i < embeddingDim_; i++) {
         if (std::isnan(resultBuffer_[i]) || std::isinf(resultBuffer_[i])) {
@@ -282,8 +307,10 @@ std::vector<float> MnnFaceEmbedder::extract(const unsigned char *imageData,
     if (hasNan) {
         LOGE("Embedding contains NaN/Inf!");
     } else {
-        LOGD("Embedding extracted: dim=%d, first5=[%.4f,%.4f,%.4f,%.4f,%.4f]",
-             embeddingDim_, resultBuffer_[0], resultBuffer_[1], resultBuffer_[2], resultBuffer_[3], resultBuffer_[4]);
+        LOGD("Embedding extracted: dim=%d, raw=[min=%.4f,max=%.4f,mean=%.4f,std=%.4f], "
+             "norm1 first5=[%.4f,%.4f,%.4f,%.4f,%.4f]",
+             embeddingDim_, rawMin, rawMax, rawMean, rawStd,
+             resultBuffer_[0], resultBuffer_[1], resultBuffer_[2], resultBuffer_[3], resultBuffer_[4]);
     }
 
     return resultBuffer_;

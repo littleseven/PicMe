@@ -118,6 +118,11 @@ class LlmModelDownloadManager(context: Context) {
         private val FACE_EMBEDDING_R100_MNN_FILES = listOf("arcface_r100.mnn")
 
         /**
+         * Glint360K R100 人脸嵌入 MNN 模型文件列表
+         */
+        private val FACE_EMBEDDING_GLINT360K_R100_MNN_FILES = listOf("glintr100.mnn")
+
+        /**
          * 人脸检测 ROI Det500M NCNN 模型文件列表
          */
         private val FACE_DETECTION_ROI_500M_NCNN_FILES = listOf("det_500m.param", "det_500m.bin")
@@ -487,6 +492,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "picme-face-landmark-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
             modelId == "picme-face-embedding-mnn" -> FACE_EMBEDDING_MNN_FILES
             modelId == "picme-face-embedding-r100-mnn" -> FACE_EMBEDDING_R100_MNN_FILES
+            modelId == "picme-face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
@@ -510,6 +516,8 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "picme-face-det-500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
             modelId == "picme-face-det-500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
             modelId == "picme-face-landmark-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
+            modelId == "picme-face-embedding-mnn" -> FACE_EMBEDDING_MNN_FILES
+            modelId == "picme-face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
@@ -1315,7 +1323,7 @@ data class ModelConfig(
             "sherpa-onnx-kws-zipformer-wenetspeech", // KWS（唤醒词）
             "picme-face-det-500m-mnn",  // MNN ROI (Det500M)
             "picme-face-landmark-mnn",  // MNN 2D106
-            "picme-face-embedding-r100-mnn", // ArcFace R100 人脸 embedding
+            "picme-face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
             "mobileclip-onnx",          // 语义搜索/相册打标
             "opus-mt-zh-en"             // 中文查询翻译
         )

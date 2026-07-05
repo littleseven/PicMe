@@ -17,7 +17,8 @@ import java.nio.ByteBuffer
 class MnnFaceEmbedder private constructor(
     private var nativeHandle: Long,
     private val inputSize: Int,
-    private val embeddingDim: Int
+    private val embeddingDim: Int,
+    private val swapRb: Boolean
 ) {
     companion object {
         private const val TAG = "MnnFaceEmbedder"
@@ -73,6 +74,8 @@ class MnnFaceEmbedder private constructor(
          * @param inputName 输入层名称（默认 "input.1"）
          * @param outputName 优先使用的输出层名称（空则自动查找）
          * @param useGpu 是否请求 OpenCL GPU 后端（默认 false）
+         * @param swapRb 是否交换 R/B 通道。InsightFace 官方 ArcFace R100 通常用 RGB，
+         *               但部分自定义训练模型用 BGR；默认 false 保持 RGB。
          */
         fun create(
             modelPath: String,
@@ -80,13 +83,14 @@ class MnnFaceEmbedder private constructor(
             embeddingDim: Int = 512,
             inputName: String = "input.1",
             outputName: String = "",
-            useGpu: Boolean = false
+            useGpu: Boolean = false,
+            swapRb: Boolean = false
         ): MnnFaceEmbedder? {
             val handle = MnnGlobalReleaseLock.withOperation {
                 nativeCreate(modelPath, inputSize, embeddingDim, useGpu, inputName, outputName)
             }
             return if (handle != 0L) {
-                MnnFaceEmbedder(handle, inputSize, embeddingDim)
+                MnnFaceEmbedder(handle, inputSize, embeddingDim, swapRb)
             } else {
                 Logger.e(TAG, "Failed to create native MNN face embedder")
                 null
@@ -145,9 +149,18 @@ class MnnFaceEmbedder private constructor(
         val rgbBuffer = getRgbBuffer(pixelCount * 3)
         for (i in 0 until pixelCount) {
             val pixel = pixels[i]
-            rgbBuffer.put(i * 3, (pixel shr 16 and 0xFF).toByte())     // R
-            rgbBuffer.put(i * 3 + 1, (pixel shr 8 and 0xFF).toByte())  // G
-            rgbBuffer.put(i * 3 + 2, (pixel and 0xFF).toByte())        // B
+            val r = (pixel shr 16 and 0xFF).toByte()
+            val g = (pixel shr 8 and 0xFF).toByte()
+            val b = (pixel and 0xFF).toByte()
+            if (swapRb) {
+                rgbBuffer.put(i * 3, b)     // B
+                rgbBuffer.put(i * 3 + 1, g) // G
+                rgbBuffer.put(i * 3 + 2, r) // R
+            } else {
+                rgbBuffer.put(i * 3, r)     // R
+                rgbBuffer.put(i * 3 + 1, g) // G
+                rgbBuffer.put(i * 3 + 2, b) // B
+            }
         }
 
         val outResult = getResultBuffer(embeddingDim)
