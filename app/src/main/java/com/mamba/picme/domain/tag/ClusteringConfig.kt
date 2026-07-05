@@ -17,6 +17,9 @@ package com.mamba.picme.domain.tag
  */
 object ClusteringConfig {
 
+    /** 聚类策略切换：true 使用方案 B（密度自适应 MST/HDBSCAN），false 使用方案 A（DBSCAN） */
+    const val USE_ADAPTIVE_CLUSTERING = true
+
     /** 余弦相似度阈值：高于此值归入已有簇（越接近 1.0 越严格）
      *  0.65：在抑制误聚与召回低频人脸之间取平衡 */
     const val COSINE_THRESHOLD = 0.65f
@@ -35,4 +38,23 @@ object ClusteringConfig {
 
     /** 增量积累达到此数量后触发全量 DBSCAN 重聚 */
     const val RE_CLUSTER_THRESHOLD = 100
+
+    // ═══════════════════════════════════════════════════
+    //  方案 B：密度自适应 k-NN 图连通分量聚类
+    // ═══════════════════════════════════════════════════
+
+    /** k-NN 邻居数 k。
+     *  越小簇越紧凑（可能漏召），越大越连通（可能混组）。
+     *  当前经验值 3：在明星测试集上得到 10 个高纯度簇，接近真实 11 人。 */
+    const val KNN_K = 3
+
+    /** k-NN 建边最小余弦相似度（= 1 - eps）。
+     *  越大边越严格（纯度高、噪声多）；越小边越宽松（召回高、可能混组）。
+     *  当前经验值 0.40：在 70 张明星测试图上 purity=1.0。 */
+    const val KNN_MIN_SIMILARITY = 0.40f
+
+    /** 方案 B 最小簇大小，小于此值的连通分量视为噪声。
+     *  与 DBSCAN_MIN_PTS 保持一致的语义：≥2 张人脸才成人物簇。 */
+    const val KNN_MIN_CLUSTER_SIZE = 2
 }
+

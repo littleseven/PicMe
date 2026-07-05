@@ -34,7 +34,8 @@ import kotlinx.coroutines.launch
  * TAG 生成精细控制子页面
  *
  * 显示 3-Pass 混合管道的各阶段进度和数据库统计。
- * MobileCLIP 语义编码已内联合并到 Pass 1，不再作为独立 Pass 4 显示。
+ * Pass 1 已内联整合：RetinaFace 人脸检测 / 2D106 ROI 对齐 / Glint360K R100 人脸编码 / MobileCLIP 语义编码。
+ * MobileCLIP 不再作为独立 Pass 4 显示。
  * 所有操作通过 TagGenerationService → TagScanOrchestrator 统一管理。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -270,9 +271,9 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Pass 1: 人脸检测 + MobileCLIP 语义编码（内联）", style = MaterialTheme.typography.bodyMedium)
+                            Text("Pass 1: 人脸检测 + 人脸编码 + MobileCLIP 语义编码（内联）", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "RetinaFace + MobileCLIP-S2 → $withFace / $totalMedia 张 · 有语义 $withSemantic 张",
+                                "RetinaFace + 2D106 对齐 + Glint360K R100 + MobileCLIP-S2 → $withFace / $totalMedia 张 · 有语义 $withSemantic 张",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -290,9 +291,9 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Pass 2: DBSCAN 全局聚类", style = MaterialTheme.typography.bodyMedium)
+                            Text("Pass 2: 密度自适应人脸聚类（方案 B）", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "$personCount 个人物簇",
+                                "k-NN 图连通分量 → $personCount 个人物簇",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -393,8 +394,8 @@ fun TagGenerationControlScreen(
                     Spacer(Modifier.height(8.dp))
 
                     PassControlCard(
-                        title = "人脸检测",
-                        subtitle = "RetinaFace 检测人脸 ROI：$withFace / $totalMedia 张 · 剩余 $remainingPass1 张",
+                        title = "人脸检测与编码",
+                        subtitle = "RetinaFace ROI + 2D106 对齐 + Glint360K R100：$withFace / $totalMedia 张 · 剩余 $remainingPass1 张",
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass1(context))
@@ -409,7 +410,7 @@ fun TagGenerationControlScreen(
 
                     PassControlCard(
                         title = "人脸聚类",
-                        subtitle = "DBSCAN 全局聚类：$personCount 个人物簇 · $embeddingCount 条 embedding",
+                        subtitle = "密度自适应 k-NN 图聚类：$personCount 个人物簇 · $embeddingCount 条 embedding",
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass2(context))
@@ -699,8 +700,8 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
 }
 
 private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
-    TagScanPass.FACE_DETECTION -> "Pass 1: 人脸检测 + MobileCLIP"
-    TagScanPass.DBSCAN -> "Pass 2: DBSCAN 聚类"
+    TagScanPass.FACE_DETECTION -> "Pass 1: 人脸检测 + 编码 + MobileCLIP"
+    TagScanPass.DBSCAN -> "Pass 2: 密度自适应聚类"
     TagScanPass.QWEN_TAGGING -> "Pass 3: Qwen 标签"
     TagScanPass.MOBILE_CLIP_ENCODING -> "MobileCLIP 语义编码（单独）"
     TagScanPass.ML_KIT_TAGGING -> "ML Kit 英文标签"

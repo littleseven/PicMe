@@ -308,11 +308,12 @@ class TagGenerationScheduler(
     }
 
     // ═══════════════════════════════════════════════════
-    //  Pass 2: DBSCAN 全局聚类
+    //  Pass 2: 人脸聚类（方案 A DBSCAN / 方案 B 密度自适应 k-NN）
     // ═══════════════════════════════════════════════════
 
     /**
-     * 基于 face_embeddings 表执行 DBSCAN 全局聚类
+     * 基于 face_embeddings 表执行人脸聚类。
+     * 当前由 [ClusteringConfig.USE_ADAPTIVE_CLUSTERING] 控制使用方案 B 或方案 A。
      */
     private suspend fun runDbscanClustering(dao: com.mamba.picme.data.local.MediaDao) {
         val unassigned = personDao.getUnassignedEmbeddings()
@@ -360,12 +361,23 @@ class TagGenerationScheduler(
         // 诊断：分析 embedding 两两相似度分布
         logEmbeddingSimilarityDistribution(embeddingsMap, flatIndex)
 
-        // DBSCAN
-        var clusters = dbscanCluster(embeddingsMap, flatIndex, ClusteringConfig.DBSCAN_EPS, ClusteringConfig.DBSCAN_MIN_PTS)
-        Log.i(TAG, "DBSCAN: ${clusters.size} clusters from ${flatIndex.size} face embeddings")
-
-        // 验证簇内部一致性，分裂不健康的簇
-        clusters = validateAndSplitClusters(clusters, embeddingsMap)
+        // 选择聚类策略：方案 B（密度自适应 k-NN 图聚类）或方案 A（DBSCAN）
+        val clusters = if (ClusteringConfig.USE_ADAPTIVE_CLUSTERING) {
+            AdaptiveFaceClusterer.cluster(
+                embeddingsMap = embeddingsMap,
+                flatIndex = flatIndex,
+                k = ClusteringConfig.KNN_K,
+                minSimilarity = ClusteringConfig.KNN_MIN_SIMILARITY,
+                minClusterSize = ClusteringConfig.KNN_MIN_CLUSTER_SIZE
+            ).also {
+                Log.i(TAG, "Adaptive k-NN clustering: ${it.size} cluster keys from ${flatIndex.size} face embeddings")
+            }
+        } else {
+            var dbscanClusters = dbscanCluster(embeddingsMap, flatIndex, ClusteringConfig.DBSCAN_EPS, ClusteringConfig.DBSCAN_MIN_PTS)
+            Log.i(TAG, "DBSCAN: ${dbscanClusters.size} clusters from ${flatIndex.size} face embeddings")
+            // 验证簇内部一致性，分裂不健康的簇
+            validateAndSplitClusters(dbscanClusters, embeddingsMap)
+        }
 
         // 分配 personId：按簇批量写入，避免逐条 UPDATE 阻塞协程/线程
         val sorted = clusters.entries
@@ -424,7 +436,11 @@ class TagGenerationScheduler(
                         }
                     }
 
-                    val mergeThreshold = 1f - ClusteringConfig.DBSCAN_EPS
+                    val mergeThreshold = if (ClusteringConfig.USE_ADAPTIVE_CLUSTERING) {
+                        ClusteringConfig.KNN_MIN_SIMILARITY
+                    } else {
+                        1f - ClusteringConfig.DBSCAN_EPS
+                    }
                     val targetPersonId = if (bestKey != null && bestSim >= mergeThreshold) {
                         clusterKeyToPersonId[bestKey]
                     } else null
@@ -840,7 +856,7 @@ class TagGenerationScheduler(
     }
 
     /**
-     * [原子任务] Pass 2：DBSCAN 全局聚类
+     * [原子任务] Pass 2：人脸聚类（密度自适应 / DBSCAN）
      */
     suspend fun executeDbscan() {
         val dao = db.mediaDao()
