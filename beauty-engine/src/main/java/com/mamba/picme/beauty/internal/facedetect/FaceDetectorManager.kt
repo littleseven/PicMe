@@ -149,6 +149,15 @@ class FaceDetectorManager(context: Context) : FaceDetector {
     }
 
     /**
+     * 对单个人脸 ROI 执行 2D106 关键点检测
+     *
+     * 公开接口实现，委托给内部的 [detectLandmarksWithRoi]。
+     */
+    override fun detectLandmarksForRoi(bitmap: Bitmap, lensFacing: Int, roi: RectF): FaceDetectionResult? {
+        return detectLandmarksWithRoi(bitmap, lensFacing, roi)
+    }
+
+    /**
      * [轻量检测] 仅返回人脸 ROI，不执行关键点检测
      *
      * 专为 TAG 生成等场景设计，跳过 landmark 模型以节省 ~20-80ms。

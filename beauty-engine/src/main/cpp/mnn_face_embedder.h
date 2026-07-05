@@ -34,12 +34,14 @@ public:
      * @param embeddingDim 输出维度（默认 512）
      * @param inputName 输入层名称（默认 "input.1"）
      * @param preferredOutputName 优先使用的输出层名称（空则自动查找）
+     * @param useGpu 是否请求 OpenCL GPU 后端（失败可回退 CPU）
      */
     bool load(const std::string &modelPath,
               int inputSize = 112,
               int embeddingDim = 512,
               const std::string &inputName = "input.1",
-              const std::string &preferredOutputName = "");
+              const std::string &preferredOutputName = "",
+              bool useGpu = false);
 
     /**
      * 提取人脸 embedding
@@ -72,6 +74,7 @@ private:
     std::string outputName_;
     std::string preferredOutputName_;
     bool loaded_;
+    bool useGpu_;
 
     // 复用结果缓冲区
     std::vector<float> resultBuffer_;

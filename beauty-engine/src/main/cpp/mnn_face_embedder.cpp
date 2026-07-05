@@ -13,7 +13,7 @@ namespace picme {
 
 MnnFaceEmbedder::MnnFaceEmbedder()
     : session_(nullptr), inputTensor_(nullptr), outputTensor_(nullptr),
-      inputSize_(112), embeddingDim_(512), loaded_(false) {
+      inputSize_(112), embeddingDim_(512), loaded_(false), useGpu_(false) {
 }
 
 MnnFaceEmbedder::~MnnFaceEmbedder() {
@@ -24,13 +24,15 @@ bool MnnFaceEmbedder::load(const std::string &modelPath,
                            int inputSize,
                            int embeddingDim,
                            const std::string &inputName,
-                           const std::string &preferredOutputName) {
+                           const std::string &preferredOutputName,
+                           bool useGpu) {
     release();
 
     inputSize_ = inputSize;
     embeddingDim_ = embeddingDim;
     inputName_ = inputName;
     preferredOutputName_ = preferredOutputName;
+    useGpu_ = useGpu;
 
     interpreter_.reset(MNN::Interpreter::createFromFile(modelPath.c_str()));
     if (!interpreter_) {
@@ -58,13 +60,42 @@ bool MnnFaceEmbedder::createSession() {
 
     MNN::ScheduleConfig config;
     config.numThread = 4;
-    config.type = MNN_FORWARD_CPU;
-    LOGI("Using CPU backend with %d threads", config.numThread);
+    if (useGpu_) {
+        config.type = MNN_FORWARD_OPENCL;
+        LOGI("Requesting OpenCL GPU backend for face embedder...");
+    } else {
+        config.type = MNN_FORWARD_CPU;
+        LOGI("Using CPU backend with %d threads", config.numThread);
+    }
 
     session_ = interpreter_->createSession(config);
     if (!session_) {
         LOGE("Failed to create MNN session");
         return false;
+    }
+
+    // 校验 GPU 请求是否被静默降级
+    if (useGpu_) {
+        int backendInfo[4] = {0};
+        bool ok = interpreter_->getSessionInfo(session_, MNN::Interpreter::BACKENDS, backendInfo);
+        if (ok && backendInfo[0] > 0) {
+            int actualBackend = backendInfo[1];
+            const char* backendName = "Unknown";
+            switch (actualBackend) {
+                case MNN_FORWARD_VULKAN: backendName = "Vulkan"; break;
+                case MNN_FORWARD_CPU:    backendName = "CPU"; break;
+                case MNN_FORWARD_OPENCL: backendName = "OpenCL"; break;
+                case MNN_FORWARD_OPENGL: backendName = "OpenGL"; break;
+                default: break;
+            }
+            LOGI("MNN embedder actual backend: %s (type=%d)", backendName, actualBackend);
+            if (actualBackend != MNN_FORWARD_OPENCL) {
+                LOGE("MNN embedder OpenCL request was SILENTLY degraded to %s", backendName);
+                useGpu_ = false;
+            }
+        } else {
+            LOGI("Cannot query MNN embedder backend type");
+        }
     }
 
     return bindInputOutput();
@@ -280,6 +311,7 @@ void MnnFaceEmbedder::release() {
     inputTensor_ = nullptr;
     outputTensor_ = nullptr;
     loaded_ = false;
+    useGpu_ = false;
     inputSize_ = 112;
     embeddingDim_ = 512;
     inputName_.clear();

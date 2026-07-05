@@ -11,17 +11,21 @@ import com.mamba.picme.data.indexing.MnnEmbeddingExtractor
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.PersonEntity
+import java.io.BufferedWriter
 import java.io.File
+import java.io.FileWriter
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.sqrt
 
 /**
  * 人脸聚类引擎
  *
- * 负责 MobileFaceNet 特征提取（Stage 2a/2b）和增量化余弦距离聚类（Stage 2c）。
+ * 负责 ArcFace R100 特征提取（Stage 2a/2b）和增量化余弦距离聚类（Stage 2c）。
  *
- * ## 实现状态 (2026-06-24)
- * - **MobileFaceNet 特征提取**：已集成 [MnnEmbeddingExtractor]，
- *   使用 MNN 加载 w600k_mbf.mnn 模型提取 512 维 embedding。
+ * ## 实现状态 (2026-07-05)
+ * - **ArcFace R100 特征提取**：已集成 [MnnEmbeddingExtractor]，
+ *   使用 MNN 加载 arcface_r100.mnn 模型提取 512 维 embedding。
  *   模型缺失时降级为零向量（聚类不生效）。
  * - **聚类算法**：增量式余弦距离匹配已实现。
  *
@@ -44,16 +48,17 @@ class FaceClusterEngine(private val context: Context) {
 
     private val personDao = AppDatabase.getDatabase(context).personDao()
 
-    /** MobileFaceNet 嵌入提取器（懒加载，模型缺失时为 null） */
+    /** ArcFace R100 嵌入提取器（懒加载，模型缺失时为 null） */
     private val embeddingExtractor: MnnEmbeddingExtractor? by lazy {
-        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-mnn")
-        val modelFile = File(modelDir, "w600k_mbf.mnn")
+        val modelDir = ModelPathConfig.getModelDir(context, "picme-face-embedding-r100-mnn")
+        val modelFile = File(modelDir, "arcface_r100.mnn")
         val extractor = MnnEmbeddingExtractor(modelFile)
-        if (extractor.isModelReady && extractor.initialize()) {
-            Log.i(TAG, "MobileFaceNet model loaded: ${modelFile.absolutePath}")
+        // ArcFace R100 MNN 输入/输出名：data / fc1；优先尝试 OpenCL GPU，失败回退 CPU
+        if (extractor.isModelReady && extractor.initialize(inputName = "data", outputName = "fc1", useGpu = true)) {
+            Log.i(TAG, "ArcFace R100 model loaded: ${modelFile.absolutePath}")
             extractor
         } else {
-            Log.w(TAG, "MobileFaceNet model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download w600k_mbf.mnn to enable.")
+            Log.w(TAG, "ArcFace R100 model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download arcface_r100.mnn to enable.")
             null
         }
     }
@@ -377,5 +382,36 @@ class FaceClusterEngine(private val context: Context) {
             floats[i] = java.lang.Float.intBitsToFloat(bits)
         }
         return floats
+    }
+
+    /**
+     * [临时调试] 导出所有 face embeddings 到 JSONL 文件，供 Python 分析阈值。
+     *
+     * 输出格式：每行一个 JSON 对象
+     * ```json
+     * {"embeddingId":1,"personId":3,"mediaId":123,"embedding":[0.1,0.2,...]}
+     * ```
+     *
+     * @param outputFile 输出文件路径（建议 externalCacheDir/face_embeddings.jsonl）
+     */
+    suspend fun dumpEmbeddingsForAnalysis(outputFile: File) {
+        val allEmbeddings = personDao.getAllEmbeddings()
+        Log.i(TAG, "Dumping ${allEmbeddings.size} embeddings to ${outputFile.absolutePath}")
+
+        BufferedWriter(FileWriter(outputFile)).use { writer ->
+            for (entity in allEmbeddings) {
+                val feature = byteArrayToFloatArray(entity.embedding)
+                val json = JSONObject().apply {
+                    put("embeddingId", entity.embeddingId)
+                    put("personId", entity.personId ?: -1)
+                    put("mediaId", entity.mediaId)
+                    put("embedding", JSONArray(feature.toList()))
+                }
+                writer.write(json.toString())
+                writer.newLine()
+            }
+        }
+
+        Log.i(TAG, "Embeddings dump finished: ${outputFile.absolutePath}")
     }
 }

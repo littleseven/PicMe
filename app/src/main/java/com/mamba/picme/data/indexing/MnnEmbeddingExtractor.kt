@@ -6,13 +6,14 @@ import com.mamba.picme.core.common.Logger
 import java.io.File
 
 /**
- * MNN MobileFaceNet 人脸嵌入提取器
+ * MNN 人脸嵌入提取器
  *
- * 使用原生 MnnFaceEmbedder 加载 MNN 版 MobileFaceNet 模型，
+ * 使用原生 MnnFaceEmbedder 加载 MNN 版人脸特征模型，
  * 直接提取 512 维 L2 归一化 embedding。
  *
- * 模型由模型中心下载，路径: {filesDir}/llm_models/picme-face-embedding-mnn/w600k_mbf.mnn
- * 链接: https://modelscope.cn/models/budaoshou/InsightFace-MobileFaceNet-MNN
+ * 当前默认模型：ArcFace R100（budaoshou/ArcFace-R100-MNN）
+ * 路径: {filesDir}/llm_models/picme-face-embedding-r100-mnn/arcface_r100.mnn
+ * 历史模型：MobileFaceNet（budaoshou/InsightFace-MobileFaceNet-MNN）
  */
 class MnnEmbeddingExtractor(
     private val modelFile: File,
@@ -30,25 +31,52 @@ class MnnEmbeddingExtractor(
 
     /**
      * 初始化 MNN 模型
+     *
+     * @param inputName 输入层名称，MobileFaceNet 为 "input.1"，ArcFace R100 为 "data"
+     * @param outputName 输出层名称，ArcFace R100 为 "fc1"；空字符串则自动查找
+     * @param useGpu 是否优先尝试 OpenCL GPU 后端（失败自动回退 CPU）
      */
-    fun initialize(): Boolean {
+    fun initialize(
+        inputName: String = "input.1",
+        outputName: String = "",
+        useGpu: Boolean = false
+    ): Boolean {
         if (embedder != null) return true
         if (!isModelReady) {
             Logger.w(TAG, "Model not found: ${modelFile.absolutePath}")
             return false
         }
+
+        // 优先尝试 GPU；失败时回退 CPU（仅当 useGpu=true 时）
+        if (useGpu) {
+            embedder = MnnFaceEmbedder.create(
+                modelPath = modelFile.absolutePath,
+                inputSize = inputSize,
+                embeddingDim = embeddingDim,
+                inputName = inputName,
+                outputName = outputName,
+                useGpu = true
+            )
+            if (embedder != null) {
+                Logger.i(TAG, "MNN face embedder loaded with OpenCL GPU: inputName=$inputName, outputName=$outputName")
+                return true
+            }
+            Logger.w(TAG, "OpenCL GPU embedder failed, falling back to CPU")
+        }
+
         embedder = MnnFaceEmbedder.create(
             modelPath = modelFile.absolutePath,
             inputSize = inputSize,
             embeddingDim = embeddingDim,
-            inputName = "input.1",
-            outputName = ""
+            inputName = inputName,
+            outputName = outputName,
+            useGpu = false
         )
         if (embedder == null) {
             Logger.e(TAG, "Failed to create MNN face embedder")
             return false
         }
-        Logger.i(TAG, "MNN MobileFaceNet loaded via native embedder")
+        Logger.i(TAG, "MNN face embedder loaded with CPU: inputName=$inputName, outputName=$outputName")
         return true
     }
 

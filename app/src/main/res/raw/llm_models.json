@@ -163,6 +163,20 @@
     "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "mobilefacenet"]
   },
   {
+    "id": "picme-face-embedding-r100-mnn",
+    "name": "ArcFace R100 MNN",
+    "description": "ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，精度高于 MobileFaceNet，~250MB",
+    "type": "FACE_EMBEDDING",
+    "size": 260572332,
+    "sources": {
+      "ModelScope": "budaoshou/ArcFace-R100-MNN"
+    },
+    "files": [
+      "arcface_r100.mnn"
+    ],
+    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface"]
+  },
+  {
     "id": "picme-face-det-500m-ncnn",
     "name": "RetinaFace Det500M",
     "description": "RetinaFace-MobileNet0.25 人脸检测模型 (NCNN 格式)，用于 ROI 区域检测，轻量高效",

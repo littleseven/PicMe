@@ -358,6 +358,7 @@ Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceEmbedder_nativeCreate
         jstring modelPath,
         jint inputSize,
         jint embeddingDim,
+        jboolean useGpu,
         jstring inputName,
         jstring outputName) {
 
@@ -371,7 +372,8 @@ Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceEmbedder_nativeCreate
         static_cast<int>(inputSize),
         static_cast<int>(embeddingDim),
         std::string(inputCStr),
-        std::string(outputCStr)
+        std::string(outputCStr),
+        static_cast<bool>(useGpu)
     );
 
     env->ReleaseStringUTFChars(modelPath, modelCStr);
@@ -384,7 +386,8 @@ Java_com_mamba_picme_beauty_internal_facedetect_mnn_MnnFaceEmbedder_nativeCreate
         return 0;
     }
 
-    LOGI("MnnFaceEmbedder created: inputSize=%d, embeddingDim=%d", inputSize, embeddingDim);
+    LOGI("MnnFaceEmbedder created: inputSize=%d, embeddingDim=%d, useGpu=%d",
+         inputSize, embeddingDim, useGpu);
     return reinterpret_cast<jlong>(embedder);
 }
 

@@ -7,9 +7,11 @@ import android.graphics.Matrix
 import android.graphics.RectF
 import android.net.Uri
 import android.util.Log
+import androidx.camera.core.CameraSelector
 import androidx.exifinterface.media.ExifInterface
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.beauty.api.facedetect.FaceDetection
+import com.mamba.picme.beauty.api.facedetect.FaceDetectionResult
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -99,7 +101,7 @@ class TagGenerationPipeline(
 
         try {
             // ── Stage 1: 轻量人脸 ROI 检测（复用 faceBitmap）───
-            stage1Result = stage1FaceDetection(faceBitmap)
+            stage1Result = stage1FaceDetection(faceBitmap, lensFacing)
             Log.d(TAG, "Stage 1 done: hasFace=${stage1Result.hasFace}, count=${stage1Result.faceCount}")
 
             // ── Stage 2: 人脸聚类（复用同一个 faceBitmap，不再重新解码）───
@@ -165,7 +167,7 @@ class TagGenerationPipeline(
         }
 
         try {
-            val stage1Result = stage1FaceDetection(faceBitmap)
+            val stage1Result = stage1FaceDetection(faceBitmap, lensFacing)
             Log.d(TAG, "[Pass 1] Stage 1 done: hasFace=${stage1Result.hasFace}, count=${stage1Result.faceCount}")
 
             val faceRoiJson = faceRoiToJson(stage1Result)
@@ -426,28 +428,141 @@ class TagGenerationPipeline(
     }
 
     // ═══════════════════════════════════════════════════
-    //  Stage 1: 轻量人脸 ROI 检测（仅 bbox，无关键点）
+    //  Stage 1: 人脸 ROI 检测 + 2D106 关键点对齐
     // ═══════════════════════════════════════════════════
 
     /**
-     * [对齐版] 人脸检测 — 获取 ROI + RetinaFace 5 点 landmarks
+     * [方案 B] 人脸检测 — 获取 ROI + 2D106 重新计算 5 点 landmarks
      *
-     * 使用 faceDetector.detectFacesWithLandmarks() 获取每个人脸的 ROI 和 5 点 landmarks，
-     * 供 Stage 2 的 MobileFaceNet 进行 5 点仿射对齐，提升聚类准确度。
+     * 1. 用 RetinaFace 获取所有人脸 ROI（含其自带的 5 点，作为 fallback）。
+     * 2. 对每个 ROI 调用 2D106 关键点检测，得到 106 点统一关键点。
+     * 3. 从 106 点中提取更稳定的 5 点（双眼中心、鼻尖、嘴角），
+     *    供 Stage 2 的 ArcFace/MobileFaceNet 进行仿射对齐。
+     *
+     * 关键点索引基于统一 106 标准（画面视角）：
+     * - 左眼（画面右侧）: 58-63 外轮廓 + 75-76 内眼角
+     * - 右眼（画面左侧）: 52-57 外轮廓 + 72-73 内眼角
+     * - 鼻尖中心: 49
+     * - 左嘴角（画面右侧）: 94
+     * - 右嘴角（画面左侧）: 84
      */
-    private fun stage1FaceDetection(bitmap: Bitmap): Stage1Result {
+    private fun stage1FaceDetection(bitmap: Bitmap, lensFacing: Int): Stage1Result {
         val detections = faceDetector.detectFacesWithLandmarks(bitmap)
 
         if (detections.isEmpty()) {
             return Stage1Result(false)
         }
 
-        val faces = detections.map { FaceRoi(it.roi, it.landmarks5) }
+        val faces = detections.map { detection ->
+            // 优先用 2D106 重新计算 5 点；失败时回退到 RetinaFace 5 点
+            val landmarks5 = detectLandmarks5From106(bitmap, lensFacing, detection.roi)
+                ?: detection.landmarks5
+            FaceRoi(detection.roi, landmarks5)
+        }
+
+        val fallbackCount = faces.count { it.landmarks5 == null }
+        if (fallbackCount > 0) {
+            Log.w(TAG, "[PlanB] $fallbackCount/${faces.size} faces fallback to RetinaFace 5-pt or no landmarks")
+        }
+
         return Stage1Result(
             hasFace = true,
             faceCount = faces.size,
             faces = faces
         )
+    }
+
+    /**
+     * 对单个 ROI 运行 2D106 关键点检测，并转换为 ArcFace 5 点像素坐标。
+     *
+     * @return 长度 10 的 FloatArray（5 点 x,y 像素坐标），失败返回 null
+     */
+    private fun detectLandmarks5From106(
+        bitmap: Bitmap,
+        lensFacing: Int,
+        roi: RectF
+    ): FloatArray? {
+        val result: FaceDetectionResult = faceDetector.detectLandmarksForRoi(bitmap, lensFacing, roi)
+            ?: return null
+
+        val landmarks106 = result.landmarks106
+        if (landmarks106.size < 212) {
+            Log.w(TAG, "[PlanB] 106 landmarks too short: ${landmarks106.size}")
+            return null
+        }
+
+        return convert106ToLandmarks5(landmarks106, bitmap.width, bitmap.height)
+    }
+
+    /**
+     * 将统一 106 点归一化坐标转换为 ArcFace 5 点像素坐标。
+     *
+     * 输出顺序：[左眼，右眼，鼻尖，左嘴角，右嘴角]。
+     *
+     * **关键约定**：ArcFace 模板中的"左/右"以**画面**为参考（ aligned 图像左侧 = 画面左）。
+     * 统一 106 点则以"被摄者真实面部"命名，因此存在交叉映射：
+     * - 画面左眼（ArcFace 左眼）= 106 右眼区域（画面左侧）= 52-57 + 72-73
+     * - 画面右眼（ArcFace 右眼）= 106 左眼区域（画面右侧）= 58-63 + 75-76
+     * - 画面左嘴角（ArcFace 左嘴角）= 106 右嘴角（画面左侧）= 84
+     * - 画面右嘴角（ArcFace 右嘴角）= 106 左嘴角（画面右侧）= 94
+     */
+    private fun convert106ToLandmarks5(
+        landmarks106: FloatArray,
+        bitmapWidth: Int,
+        bitmapHeight: Int
+    ): FloatArray {
+        // ArcFace 左眼 = 画面左侧 = 106 右眼区域 (52-57 外轮廓 + 72-73 内眼角)
+        val leftEyeX = averageX(landmarks106, intArrayOf(52, 53, 54, 55, 56, 57, 72, 73))
+        val leftEyeY = averageY(landmarks106, intArrayOf(52, 53, 54, 55, 56, 57, 72, 73))
+
+        // ArcFace 右眼 = 画面右侧 = 106 左眼区域 (58-63 外轮廓 + 75-76 内眼角)
+        val rightEyeX = averageX(landmarks106, intArrayOf(58, 59, 60, 61, 62, 63, 75, 76))
+        val rightEyeY = averageY(landmarks106, intArrayOf(58, 59, 60, 61, 62, 63, 75, 76))
+
+        // 鼻尖中心: 49
+        val noseX = landmarks106[49 * 2]
+        val noseY = landmarks106[49 * 2 + 1]
+
+        // ArcFace 左嘴角 = 画面左侧 = 106 右嘴角 (84)
+        val leftMouthX = landmarks106[84 * 2]
+        val leftMouthY = landmarks106[84 * 2 + 1]
+
+        // ArcFace 右嘴角 = 画面右侧 = 106 左嘴角 (94)
+        val rightMouthX = landmarks106[94 * 2]
+        val rightMouthY = landmarks106[94 * 2 + 1]
+
+        val landmarks5 = floatArrayOf(
+            leftEyeX * bitmapWidth, leftEyeY * bitmapHeight,
+            rightEyeX * bitmapWidth, rightEyeY * bitmapHeight,
+            noseX * bitmapWidth, noseY * bitmapHeight,
+            leftMouthX * bitmapWidth, leftMouthY * bitmapHeight,
+            rightMouthX * bitmapWidth, rightMouthY * bitmapHeight
+        )
+
+        // 简单合理性校验：画面左侧点 x 应小于画面右侧点，眼睛应高于嘴角
+        if (landmarks5[0] >= landmarks5[2]) {
+            Log.w(TAG, "[PlanB] Left eye x (${landmarks5[0]}) >= right eye x (${landmarks5[2]}), alignment may be mirrored")
+        }
+        if (landmarks5[6] >= landmarks5[8]) {
+            Log.w(TAG, "[PlanB] Left mouth x (${landmarks5[6]}) >= right mouth x (${landmarks5[8]}), alignment may be mirrored")
+        }
+        if (landmarks5[1] >= landmarks5[9]) {
+            Log.w(TAG, "[PlanB] Eye y (${landmarks5[1]}) >= mouth y (${landmarks5[9]}), alignment may be flipped")
+        }
+
+        return landmarks5
+    }
+
+    private fun averageX(landmarks: FloatArray, indices: IntArray): Float {
+        var sum = 0f
+        for (i in indices) sum += landmarks[i * 2]
+        return sum / indices.size
+    }
+
+    private fun averageY(landmarks: FloatArray, indices: IntArray): Float {
+        var sum = 0f
+        for (i in indices) sum += landmarks[i * 2 + 1]
+        return sum / indices.size
     }
 
     // ═══════════════════════════════════════════════════

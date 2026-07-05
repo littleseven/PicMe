@@ -72,16 +72,18 @@ class MnnFaceEmbedder private constructor(
          * @param embeddingDim 输出维度（默认 512）
          * @param inputName 输入层名称（默认 "input.1"）
          * @param outputName 优先使用的输出层名称（空则自动查找）
+         * @param useGpu 是否请求 OpenCL GPU 后端（默认 false）
          */
         fun create(
             modelPath: String,
             inputSize: Int = 112,
             embeddingDim: Int = 512,
             inputName: String = "input.1",
-            outputName: String = ""
+            outputName: String = "",
+            useGpu: Boolean = false
         ): MnnFaceEmbedder? {
             val handle = MnnGlobalReleaseLock.withOperation {
-                nativeCreate(modelPath, inputSize, embeddingDim, inputName, outputName)
+                nativeCreate(modelPath, inputSize, embeddingDim, useGpu, inputName, outputName)
             }
             return if (handle != 0L) {
                 MnnFaceEmbedder(handle, inputSize, embeddingDim)
@@ -96,6 +98,7 @@ class MnnFaceEmbedder private constructor(
             modelPath: String,
             inputSize: Int,
             embeddingDim: Int,
+            useGpu: Boolean,
             inputName: String,
             outputName: String
         ): Long

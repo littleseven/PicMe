@@ -128,7 +128,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 美颜预览 | `BeautyPreviewProvider` → `BeautyPreviewEngine` | 通过 beauty-api 接口调用 |
 | 人脸检测 | `FaceDetector`（beauty-api 接口） | MediaPipe/MNN/NCNN 多引擎 |
 | 远程推理 | `RemoteOrchestrator`（agent-core） | OpenAI Chat Completions API + langchain4j |
-| TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU |
+| TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine` | Layer 0.5 显式约束优先分段检索（时间/地点/人脸→内容关键词）；Layer 1 QueryParser 规则；Layer 2 LLM；Layer 2.5 MobileCLIP 语义；Layer 3 融合排序 |
 | 飞书远程控制 | `PicMeApplication` → Feishu SDK | IM 远程命令与照片回传 |
 

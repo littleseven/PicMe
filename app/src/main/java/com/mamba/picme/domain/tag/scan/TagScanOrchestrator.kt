@@ -52,8 +52,20 @@ class TagScanOrchestrator(
         /** 轮询任务间隔 */
         private const val POLL_INTERVAL_MS = 100L
 
-        /** 历史移动平均窗口：用于估算剩余时间 */
+        /** 每个 Pass 的历史耗时窗口：用于估算剩余时间 */
         private const val ESTIMATE_WINDOW_SIZE = 20
+
+        /** 无样本时的默认单任务耗时（ms），避免冷启动 ETA 跳变 */
+        private val DEFAULT_PASS_DURATION_MS = mapOf(
+            TagScanPass.FACE_DETECTION to 800L,
+            TagScanPass.DBSCAN to 5_000L,
+            TagScanPass.QWEN_TAGGING to 4_000L,
+            TagScanPass.MOBILE_CLIP_ENCODING to 1_000L,
+            TagScanPass.ML_KIT_TAGGING to 300L
+        )
+
+        /** ETA 上限：超过 24 小时按 24 小时显示，避免异常值 */
+        private const val MAX_ESTIMATE_MS = 24 * 60 * 60 * 1000L
 
         /** 清理已完成任务的最小保留时间 */
         private const val CLEANUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000L
@@ -137,8 +149,8 @@ class TagScanOrchestrator(
     private val sessionMutex = Mutex()
     private var activeSessionId: String? = null
 
-    /** 最近 N 次任务耗时，用于估算剩余时间 */
-    private val recentDurationsMs = ArrayDeque<Long>(ESTIMATE_WINDOW_SIZE)
+    /** 每个 Pass 最近 N 次任务耗时，用于估算剩余时间 */
+    private val recentDurationsMs = mutableMapOf<TagScanPass, ArrayDeque<Long>>()
 
     /** 当前会话消息历史 */
     private val sessionMessages = mutableListOf<ScanMessage>()
@@ -606,7 +618,7 @@ class TagScanOrchestrator(
                 val success = executeTask(task)
 
                 val durationMs = System.currentTimeMillis() - startMs
-                recordDuration(durationMs)
+                recordDuration(task.pass, durationMs)
 
                 if (!success) {
                     handleTaskFailure(task)
@@ -744,10 +756,7 @@ class TagScanOrchestrator(
         val pending = stats.count(TagScanTaskStatus.PENDING)
         val failed = stats.count(TagScanTaskStatus.FAILED)
 
-        val avgMs = recentDurationsMs.average().toLong().takeIf { it > 0 }
-        val estimatedRemainingMs = if (avgMs != null && (pending + failed) > 0) {
-            avgMs * (pending + failed)
-        } else null
+        val estimatedRemainingMs = estimateRemainingMs(sessionId)
 
         _progress.value = TagScanSessionProgress(
             sessionId = sessionId,
@@ -785,11 +794,77 @@ class TagScanOrchestrator(
         }
     }
 
-    private fun recordDuration(durationMs: Long) {
-        if (recentDurationsMs.size >= ESTIMATE_WINDOW_SIZE) {
-            recentDurationsMs.removeFirst()
+    private fun recordDuration(pass: TagScanPass, durationMs: Long) {
+        // 过滤极端异常值：单任务耗时超过 30 分钟视为异常（多为应用被挂起/后台冻结），
+        // 不计入估算，避免中位数被这种非Processing时间污染。
+        if (durationMs > 30 * 60 * 1000L) {
+            Log.w(TAG, "[ETA] Abnormal duration filtered: pass=$pass, duration=${durationMs}ms")
+            return
         }
-        recentDurationsMs.addLast(durationMs)
+        val deque = recentDurationsMs.getOrPut(pass) { ArrayDeque(ESTIMATE_WINDOW_SIZE) }
+        if (deque.size >= ESTIMATE_WINDOW_SIZE) {
+            deque.removeFirst()
+        }
+        deque.addLast(durationMs)
+    }
+
+    /**
+     * 按 Pass 估算剩余时间
+     *
+     * 策略：
+     * 1. 每个 Pass 独立维护最近 N 次任务耗时，用中位数作为该 Pass 单任务预估耗时
+     *    （比均值更抗异常值）。
+     * 2. 某 Pass 尚无样本时，使用 [DEFAULT_PASS_DURATION_MS] 默认值，避免冷启动
+     *    时 ETA 从 0 突然跳到真实值。
+     * 3. 对 pending + failed 任务按 Pass 分组，分别相乘后求和。
+     * 4. 最终 ETA 上限 [MAX_ESTIMATE_MS]。
+     */
+    private suspend fun estimateRemainingMs(sessionId: String): Long? {
+        val stats = db.tagScanTaskDao().countByStatusAndPass(sessionId)
+        val pendingByPass = stats
+            .filter { it.status == TagScanTaskStatus.PENDING }
+            .groupBy { it.pass }
+            .mapValues { entry -> entry.value.sumOf { it.cnt.toLong() } }
+        val failedByPass = stats
+            .filter { it.status == TagScanTaskStatus.FAILED }
+            .groupBy { it.pass }
+            .mapValues { entry -> entry.value.sumOf { it.cnt.toLong() } }
+
+        if (pendingByPass.isEmpty() && failedByPass.isEmpty()) return null
+
+        var totalMs = 0L
+        var hasAnyEstimate = false
+
+        for (pass in TagScanPass.entries) {
+            val pending = pendingByPass[pass] ?: 0L
+            val failed = failedByPass[pass] ?: 0L
+            val remainingTasks = pending + failed
+            if (remainingTasks <= 0) continue
+
+            val avgMs = estimatePassDurationMs(pass)
+            totalMs += avgMs * remainingTasks
+            hasAnyEstimate = true
+        }
+
+        return if (hasAnyEstimate) totalMs.coerceAtMost(MAX_ESTIMATE_MS) else null
+    }
+
+    private fun estimatePassDurationMs(pass: TagScanPass): Long {
+        val deque = recentDurationsMs[pass]
+        if (deque.isNullOrEmpty()) {
+            return DEFAULT_PASS_DURATION_MS[pass] ?: 1_000L
+        }
+        return median(deque).coerceAtLeast(50L)
+    }
+
+    private fun median(values: ArrayDeque<Long>): Long {
+        val sorted = values.sorted()
+        val size = sorted.size
+        return if (size % 2 == 1) {
+            sorted[size / 2]
+        } else {
+            (sorted[size / 2 - 1] + sorted[size / 2]) / 2
+        }
     }
 
     // ═══════════════════════════════════════════════════════════

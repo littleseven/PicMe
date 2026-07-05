@@ -53,6 +53,19 @@ interface FaceDetector {
     fun detectFacesWithLandmarks(bitmap: Bitmap): List<FaceDetection>
 
     /**
+     * 对单个人脸 ROI 执行 2D106 关键点检测
+     *
+     * 供 Tag 生成等场景使用：先通过 [detectFacesWithLandmarks] 或 [detectFacesOnly]
+     * 获取 ROI，再调用此方法获取 106 点关键点，用于更精确的人脸对齐。
+     *
+     * @param bitmap 静态图片 Bitmap
+     * @param lensFacing 镜头方向（CameraSelector.LENS_FACING_FRONT / BACK）
+     * @param roi 人脸 ROI 区域（Bitmap 像素坐标）
+     * @return 包含 106 关键点的检测结果，失败返回 null
+     */
+    fun detectLandmarksForRoi(bitmap: Bitmap, lensFacing: Int, roi: RectF): FaceDetectionResult?
+
+    /**
      * 切换检测引擎模式
      */
     fun setEngineMode(mode: EngineType)

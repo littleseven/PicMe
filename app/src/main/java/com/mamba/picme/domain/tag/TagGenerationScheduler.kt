@@ -6,8 +6,11 @@ import androidx.camera.core.CameraSelector
 import androidx.room.withTransaction
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
+import com.mamba.picme.beauty.api.facedetect.DevicePreference
 import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
 import com.mamba.picme.beauty.api.facedetect.InferenceBackendType
+import com.mamba.picme.beauty.api.facedetect.LandmarkDetectorType
+import com.mamba.picme.beauty.api.facedetect.RoiDetectorType
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
@@ -115,10 +118,15 @@ class TagGenerationScheduler(
     private val pipeline: TagGenerationPipeline by lazy {
         val faceDetector = FaceDetectorFactory.create(context)
         // 【关键修复】必须调用 updatePipelineConfig()，否则 FaceDetectorManager
-        // 的 isPipelineInitialized 保持 false，所有 detectPhoto() 静默返回 null
+        // 的 isPipelineInitialized 保持 false，所有 detectPhoto() 静默返回 null。
+        // 方案 B：ROI 与 2D106 landmark 均走 MNN + OpenCL GPU（FORCE_GPU）。
         faceDetector.updatePipelineConfig(DetectionPipelineConfig(
+            roiDetector = RoiDetectorType.DET10G,
+            landmarkDetector = LandmarkDetectorType.INSIGHTFACE_2D106,
             roiEngine = InferenceBackendType.MNN,
-            landmarkEngine = InferenceBackendType.MNN
+            landmarkEngine = InferenceBackendType.MNN,
+            roiDevice = DevicePreference.FORCE_GPU,
+            landmarkDevice = DevicePreference.FORCE_GPU
         ))
         val llmEngine = AgentOrchestrator.getInstance(context).getLlmEngine()
         val mobileClip = MobileClipEngine(context)

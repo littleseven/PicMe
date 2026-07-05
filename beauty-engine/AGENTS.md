@@ -79,7 +79,7 @@ beauty-engine/src/main/java/com/picme/beauty/
 │   │   ├── FrameSyncManager.kt
 │   │   └── MotionTracker.kt
   │   └── facedetect/                    # 人脸检测实现（MNN/NCNN/MediaPipe）
-  │       ├── FaceDetectorManager.kt       # 三引擎调度 + 零拷贝路径（detectFromImage/detectRoiFromNv21）
+  │       ├── FaceDetectorManager.kt       # 三引擎调度 + 零拷贝路径（detectFromImage/detectRoiFromNv21/detectLandmarksWithRoi）
   │       ├── DetectionPipelineFactory.kt
   │       ├── MediaPipeFaceDetector.kt     # 含 detect(mediaImage: Image) 零拷贝重载
   │       ├── MediaPipeLandmarkDetector.kt # 含 detectLandmarks(mediaImage: Image) 零拷贝重载
@@ -87,7 +87,7 @@ beauty-engine/src/main/java/com/picme/beauty/
   │       ├── Face106ToWarpParams.kt
   │       ├── RoiDetector.kt / MnnRoiDetector.kt（AtomicBoolean CAS 非阻塞初始化）/ NcnnRoiDetector.kt（含 detectRoiFromYuv NV21 零拷贝）
   │       ├── LandmarkDetector.kt / MnnLandmarkDetector.kt（AtomicBoolean CAS 非阻塞初始化）/ NcnnLandmarkDetector.kt
-  │       ├── mnn/MnnFaceDetector.kt
+  │       ├── mnn/MnnFaceDetector.kt / MnnFaceEmbedder.kt（ArcFace/MobileFaceNet embedding，支持 OpenCL GPU）
   │       ├── ncnn/NcnnFaceDetector.kt     # 含 detectRetinaFaceFromNv21() JNI 方法
   │       └── adapter/ (FaceLandmarkAdapter, MediaPipe468Adapter, MnnLandmarkAdapter, NcnnLandmarkAdapter)
 ├── log/                               # 结构化日志

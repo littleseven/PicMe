@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.mamba.picme.data.local.entity.TagScanPass
 import com.mamba.picme.data.local.entity.TagScanTaskEntity
 import com.mamba.picme.data.local.entity.TagScanTaskStatus
 
@@ -67,6 +68,18 @@ interface TagScanTaskDao {
         """
     )
     suspend fun countByStatus(sessionId: String): List<StatusCount>
+
+    /**
+     * 按会话获取各状态 × Pass 统计（用于 ETA 估算）
+     */
+    @Query(
+        """
+        SELECT status, pass, COUNT(*) as cnt FROM tag_scan_tasks
+        WHERE sessionId = :sessionId
+        GROUP BY status, pass
+        """
+    )
+    suspend fun countByStatusAndPass(sessionId: String): List<StatusPassCount>
 
     /**
      * 更新任务为运行中
@@ -197,5 +210,11 @@ interface TagScanTaskDao {
 
 data class StatusCount(
     val status: TagScanTaskStatus,
+    val cnt: Int
+)
+
+data class StatusPassCount(
+    val status: TagScanTaskStatus,
+    val pass: TagScanPass,
     val cnt: Int
 )
