@@ -93,16 +93,6 @@ class LlmModelDownloadManager(context: Context) {
         private val FACE_DETECTION_LANDMARK_MNN_FILES = listOf("2d106det.mnn")
 
         /**
-         * 人脸检测 ROI NCNN 模型文件列表
-         */
-        private val FACE_DETECTION_ROI_NCNN_FILES = listOf("det_10g.param", "det_10g.bin")
-
-        /**
-         * 人脸检测 Landmark NCNN 模型文件列表
-         */
-        private val FACE_DETECTION_LANDMARK_NCNN_FILES = listOf("2d106det.param", "2d106det.bin")
-
-        /**
          * 人脸检测 ROI Det500M MNN 模型文件列表
          */
         private val FACE_DETECTION_ROI_500M_MNN_FILES = listOf("det_500m.mnn")
@@ -111,11 +101,6 @@ class LlmModelDownloadManager(context: Context) {
          * Glint360K R100 人脸嵌入 MNN 模型文件列表
          */
         private val FACE_EMBEDDING_GLINT360K_R100_MNN_FILES = listOf("glintr100.mnn")
-
-        /**
-         * 人脸检测 ROI Det500M NCNN 模型文件列表
-         */
-        private val FACE_DETECTION_ROI_500M_NCNN_FILES = listOf("det_500m.param", "det_500m.bin")
         
         /**
          * MobileCLIP ONNX fp32 模型文件列表（MobileCLIP-S2）
@@ -476,10 +461,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
             modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
             modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
-            modelId == "face-det-retina10g-ncnn" -> FACE_DETECTION_ROI_NCNN_FILES
             modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
-            modelId == "face-det-retina500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
-            modelId == "face-landmark-2d106-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
@@ -500,10 +482,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
             modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
             modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
-            modelId == "face-det-retina10g-ncnn" -> FACE_DETECTION_ROI_NCNN_FILES
             modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
-            modelId == "face-det-retina500m-ncnn" -> FACE_DETECTION_ROI_500M_NCNN_FILES
-            modelId == "face-landmark-2d106-ncnn" -> FACE_DETECTION_LANDMARK_NCNN_FILES
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES

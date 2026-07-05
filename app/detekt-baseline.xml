@@ -950,7 +950,6 @@
     <ID>MaxLineLength:SampleDataGenerator.kt$SampleDataGenerator$"Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1"</ID>
     <ID>MaxLineLength:SampleDataGenerator.kt$SampleDataGenerator$"Portrait Candidates -&gt; DUITANG:${duitang.size}, PROFESSIONAL:${xiuren.size + tuchong.size + metcn.size + p500.size}, SOCIAL:${xhs.size + weibo.size}, HUABAN:${huaban.size}"</ID>
     <ID>MaxLineLength:SampleDataGenerator.kt$SampleDataGenerator$if</ID>
-    <ID>MaxLineLength:SettingsViewModel.kt$SettingsViewModel$StageConfig(DetectionStage.LANDMARK, DetectionModelType.FACE_2D106_NCNN, InferenceEngineType.NCNN, InferenceDevicePreference.AUTO)</ID>
     <ID>MaxLineLength:TagGenerationControlScreen.kt$if (personCount &gt; 0 || !isScanning || !isModelAvailable) Icons.Rounded.CheckCircle else Icons.Rounded.HourglassEmpty</ID>
     <ID>MaxLineLength:TagGenerationControlScreen.kt$tint = if (personCount &gt; 0 || !isScanning || !isModelAvailable) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline</ID>
     <ID>MaxLineLength:TagGenerationPipeline.kt$TagGenerationPipeline$return """{"hasFace":${result.hasFace},"faceCount":${result.faceCount},"isSelfie":${result.isSelfie},"isGroupPhoto":${result.isGroupPhoto}}"""</ID>

@@ -78,18 +78,17 @@ beauty-engine/src/main/java/com/picme/beauty/
 │   │   ├── FrameSyncBridge.kt
 │   │   ├── FrameSyncManager.kt
 │   │   └── MotionTracker.kt
-  │   └── facedetect/                    # 人脸检测实现（MNN/NCNN/MediaPipe）
-  │       ├── FaceDetectorManager.kt       # 三引擎调度 + 零拷贝路径（detectFromImage/detectRoiFromNv21/detectLandmarksWithRoi）
+  │   └── facedetect/                    # 人脸检测实现（MNN/MediaPipe）
+  │       ├── FaceDetectorManager.kt       # 双引擎调度 + 零拷贝路径（detectFromImage/detectRoiFromNv21/detectLandmarksWithRoi）
   │       ├── DetectionPipelineFactory.kt
   │       ├── MediaPipeFaceDetector.kt     # 含 detect(mediaImage: Image) 零拷贝重载
   │       ├── MediaPipeLandmarkDetector.kt # 含 detectLandmarks(mediaImage: Image) 零拷贝重载
   │       ├── MediaPipeRoiDetector.kt
   │       ├── Face106ToWarpParams.kt
-  │       ├── RoiDetector.kt / MnnRoiDetector.kt（AtomicBoolean CAS 非阻塞初始化）/ NcnnRoiDetector.kt（含 detectRoiFromYuv NV21 零拷贝）
-  │       ├── LandmarkDetector.kt / MnnLandmarkDetector.kt（AtomicBoolean CAS 非阻塞初始化）/ NcnnLandmarkDetector.kt
+  │       ├── RoiDetector.kt / MnnRoiDetector.kt（AtomicBoolean CAS 非阻塞初始化）
+  │       ├── LandmarkDetector.kt / MnnLandmarkDetector.kt（AtomicBoolean CAS 非阻塞初始化）
   │       ├── mnn/MnnFaceDetector.kt / MnnFaceEmbedder.kt（通用 MNN 人脸 embedding 提取器，支持 OpenCL GPU）
-  │       ├── ncnn/NcnnFaceDetector.kt     # 含 detectRetinaFaceFromNv21() JNI 方法
-  │       └── adapter/ (FaceLandmarkAdapter, MediaPipe468Adapter, MnnLandmarkAdapter, NcnnLandmarkAdapter)
+  │       └── adapter/ (FaceLandmarkAdapter, MediaPipe468Adapter, MnnLandmarkAdapter)
 ├── log/                               # 结构化日志
 │   ├── BeautyLog.kt
 │   └── BeautyLogProxy.kt
@@ -174,8 +173,8 @@ beauty-engine/src/main/java/com/picme/beauty/
   - **参数映射**：UI 参数 → ΔL (亮度提升) 和 ΔU/ΔV (色度调整)
 
 - **瘦脸 (Slim Face)**：
-  - **人脸检测**：`FaceDetectorManager` 按需初始化，主链路 `MediaPipeFaceDetector` 输出 468→106 点；`MnnFaceDetector` / `NcnnFaceDetector` 作为备选（连续 3 次漏检 + 冷却时间后触发）。旧 InsightFace ONNX 路径已完全移除。
-  - **零拷贝检测**（2026-06 新增）：MediaPipe 统一管线优先走 `detectFromImage()`（Image 零拷贝，跳过 YUV→ARGB）；NCNN/MNN 路径走 `detectRoiFromNv21()`（NV21 零拷贝 ROI 检测）。
+  - **人脸检测**：`FaceDetectorManager` 按需初始化，主链路 `MediaPipeFaceDetector` 输出 468→106 点；`MnnFaceDetector` 作为备选（连续 3 次漏检 + 冷却时间后触发）。旧 InsightFace ONNX 路径已完全移除；NCNN 路径已于 2026-07 完全移除。
+  - **零拷贝检测**（2026-06 新增）：MediaPipe 统一管线优先走 `detectFromImage()`（Image 零拷贝，跳过 YUV→ARGB）；MNN 路径走 `detectRoiFromNv21()`（NV21 零拷贝 ROI 检测）。
   - **MNN 并发优化**（2026-06）：`MnnRoiDetector` / `MnnLandmarkDetector` 初始化从阻塞 `synchronized` 切换为 `AtomicBoolean` CAS 非阻塞模式。初始化进行中时其他线程跳过本帧，不阻塞渲染。
   - **变形算法**：基于 Delaunay 三角剖分的网格变形 (Mesh Warping)
   - **实现要点**：以下颌角为中心点，向内收缩 5%-30%
@@ -376,11 +375,11 @@ if (fps < 25 || processingMs > 20) {
 - [ ] 美白是否避免全图过曝？（仅提升肤色区域亮度）
 - [ ] 人脸检测器是否按需初始化？（禁止启动时预加载）
 - [ ] MediaPipe 是否避免重复初始化？（`c67211ea` 修复）
-- [ ] MNN/NCNN 检测器是否仅在备选触发时初始化？（禁止每帧常驻，旧 InsightFace ONNX 路径已移除）
+- [ ] MNN 检测器是否仅在备选触发时初始化？（禁止每帧常驻，旧 InsightFace ONNX 路径已移除；NCNN 路径已完全移除）
 - [ ] MNN 检测器（MnnRoiDetector/MnnLandmarkDetector）是否使用 `AtomicBoolean` CAS 而非 `synchronized` 做懒加载？（防止初始化阻塞渲染线程）
 - [ ] MNN 检测器是否将重型模型加载延迟到下次 `detect()` 调用而非在 `onResourceManagerLoad()` 回调中执行？
-- [ ] 人脸检测是否优先使用零拷贝路径？（MediaPipe: `detectFromImage()`；NCNN: `detectRoiFromNv21()`）
-- [ ] NCNN NV21 零拷贝路径传入的 `ByteBuffer` 是否为 `DirectByteBuffer`？
+- [ ] 人脸检测是否优先使用零拷贝路径？（MediaPipe: `detectFromImage()`；MNN: `detectRoiFromNv21()`）
+- [ ] MNN NV21 零拷贝路径传入的 `ByteBuffer` 是否为 `DirectByteBuffer`？
 - [ ] 零拷贝路径失败时是否有 Bitmap 降级路径保底？
 
 ### 4.6 拍照 GPU 化检查清单（2026-05 新增）

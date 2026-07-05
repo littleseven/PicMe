@@ -476,7 +476,7 @@ internal fun handleImageAnalysisFrameMediaPipe(
 
         val hasExistingFace = (existingWarpParams?.hasFace == true) || FaceDetectionCache.isValid()
         val canReuseRoi = FaceDetectionCache.isRoiValid()
-        val supportsRoiReuse = detectionEngineMode == EngineType.MNN || detectionEngineMode == EngineType.NCNN
+        val supportsRoiReuse = detectionEngineMode == EngineType.MNN
 
         val shouldRunLandmarkOnly: Boolean
         val shouldSkipDetection: Boolean
@@ -577,13 +577,13 @@ internal fun handleImageAnalysisFrameMediaPipe(
 
         // [降级] 非 MediaPipe → Bitmap / NV21 路径（此时 Image 未被关闭）
         if (detectionResult == null) {
-            // [Zero-Copy #2] 尝试 MNN/NCNN NV21 YUV 直传路径（仅 YUV 输出时可用）
+            // [Zero-Copy #2] 尝试 MNN NV21 YUV 直传路径（仅 YUV 输出时可用）
             // 避免 YUV→ARGB Bitmap（~5ms）+ Bitmap→RGB ByteBuffer（~2ms）的双重 CPU 拷贝
             var nv21Result: RectF? = null
             var nv21Buffer: ByteBuffer? = null
             if (!isRgbaOutput) {
                 val useNv21Path = faceDetector is FaceDetectorManager &&
-                    (detectionEngineMode == EngineType.MNN || detectionEngineMode == EngineType.NCNN)
+                    detectionEngineMode == EngineType.MNN
                 if (useNv21Path) {
                     val nv21Start = SystemClock.elapsedRealtime()
                     nv21Buffer = ImageUtils.imageProxyToNv21(imageProxy)
@@ -623,7 +623,6 @@ internal fun handleImageAnalysisFrameMediaPipe(
                         }
 
                         // [Zero-Copy #3] NV21 Landmark 检测（MNN 模式：跳过 Bitmap 创建，省 ~5ms）
-                        // NCNN 暂不支持 NV21 landmark，走 Bitmap 降级路径
                         if (nv21Result != null && detectionEngineMode == EngineType.MNN) {
                             val lmStart = SystemClock.elapsedRealtime()
                             detectionResult = detectorManager.detectLandmarksFromNv21WithRoi(
@@ -657,7 +656,7 @@ internal fun handleImageAnalysisFrameMediaPipe(
                 val pathLabel = if (isRgbaOutput) "RGBA→Bitmap" else "YUV→Bitmap"
                 Logger.dThrottled("Camera", "bitmap_convert", "[Perf] $pathLabel: ${bitmapElapsed}ms, size=${bitmap.width}x${bitmap.height}")
 
-                // 如果 NV21 ROI 检测成功但 Landmark NV21 路径未产出（NCNN 或失败），用 Bitmap 做 Landmark
+                // 如果 NV21 ROI 检测成功但 Landmark NV21 路径未产出，用 Bitmap 做 Landmark
                 if (nv21Result != null) {
                     val lmStart = SystemClock.elapsedRealtime()
                     val landmarkResult = (faceDetector as FaceDetectorManager).detectLandmarksWithRoi(

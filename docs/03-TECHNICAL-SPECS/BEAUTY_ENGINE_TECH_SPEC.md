@@ -355,7 +355,7 @@ while (isRendering && !Thread.interrupted()) {
 
 ### 3.5 难点 5：MediaPipe 468 点 → 106 点映射
 
-**背景**：人脸检测多引擎统一输出 106 点标准格式。MediaPipe Face Landmarker 输出 468 点，需映射为 106 点；MNN/NCNN 2D106 检测器输出 106 点，通过 Adapter 重排。多种来源供大美丽链路复用。旧 InsightFace ONNX 路径已移除。
+**背景**：人脸检测多引擎统一输出 106 点标准格式。MediaPipe Face Landmarker 输出 468 点，需映射为 106 点；MNN 2D106 检测器输出 106 点，通过 Adapter 重排。多种来源供大美丽链路复用。旧 InsightFace ONNX 路径与 NCNN 路径均已移除。
 
 **关键说明**：具体映射关系以代码实现为准，本文档仅记录核心原则。
 
@@ -461,7 +461,7 @@ M0=(0.119,0.380)  M1=(0.125,0.391)  ...  M16=(0.500,0.552)  ...  M31=(0.875,0.39
 - **触发条件**：`BeautyStrategy.BIG_BEAUTY`（默认值，唯一值）
 - **路由类**：`GlBeautyPreviewStrategy`
 - **Provider**：`GlBeautyPreviewProvider` → `BeautyPreviewView` → `CameraPreviewRenderer`
-- **人脸检测**：默认使用 MediaPipe Face Mesh 468→106 输出构建 `FaceWarpParams`，MNN 2D106 或 NCNN 2D106 作为备选（通过 DetectionPipelineFactory 配置），再由 `CameraPreviewRenderer.mapViewNormalizedToUv()` 映射到纹理 UV。旧 InsightFace ONNX 路径已完全移除。
+- **人脸检测**：默认使用 MediaPipe Face Mesh 468→106 输出构建 `FaceWarpParams`，MNN 2D106 作为备选（通过 DetectionPipelineFactory 配置），再由 `CameraPreviewRenderer.mapViewNormalizedToUv()` 映射到纹理 UV。旧 InsightFace ONNX 路径与 NCNN 路径均已完全移除。
 - **容灾**：warm-up 失败调用 `onGlWarmUpFallback(reason)` 上报，由 `CameraRuntimeState` 持久化
 
 ### 4.3 下一步技术项（RD，优先级排序）

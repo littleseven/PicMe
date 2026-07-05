@@ -83,36 +83,7 @@
     ],
     "tags": ["must-have", "beauty-camera", "face", "landmark", "mnn"]
   },
-  {
-    "id": "face-det-retina10g-ncnn",
-    "name": "RetinaFace Det10G",
-    "description": "RetinaFace 人脸检测模型 (NCNN 格式)，用于 ROI 区域检测，轻量高效",
-    "type": "FACE_DETECTION",
-    "size": 16914878,
-    "sources": {
-      "ModelScope": "budaoshou/InsightFace-Det10G-NCNN"
-    },
-    "files": [
-      "det_10g.param",
-      "det_10g.bin"
-    ],
-    "tags": ["beauty-camera", "face", "detection", "ncnn"]
-  },
-  {
-    "id": "face-landmark-2d106-ncnn",
-    "name": "2D106 Landmark",
-    "description": "2D106 人脸关键点模型 (NCNN 格式)，用于 106 点面部关键点检测，轻量高效",
-    "type": "FACE_DETECTION",
-    "size": 5019727,
-    "sources": {
-      "ModelScope": "budaoshou/InsightFace-2D106Det-NCNN"
-    },
-    "files": [
-      "2d106det.param",
-      "2d106det.bin"
-    ],
-    "tags": ["beauty-camera", "face", "landmark", "ncnn"]
-  },
+
   {
     "id": "face-det-retina500m-mnn",
     "name": "RetinaFace Det500M",
@@ -127,21 +98,7 @@
     ],
     "tags": ["must-have", "beauty-camera", "face", "detection", "mnn"]
   },
-  {
-    "id": "face-det-retina500m-ncnn",
-    "name": "RetinaFace Det500M",
-    "description": "RetinaFace-MobileNet0.25 人脸检测模型 (NCNN 格式)，用于 ROI 区域检测，轻量高效",
-    "type": "FACE_DETECTION",
-    "size": 1270514,
-    "sources": {
-      "ModelScope": "budaoshou/InsightFace-Det500M-NCNN"
-    },
-    "files": [
-      "det_500m.param",
-      "det_500m.bin"
-    ],
-    "tags": ["beauty-camera", "face", "detection", "ncnn"]
-  },
+
   {
     "id": "face-embedding-glint360k-r100-mnn",
     "name": "Glint360K R100 MNN",

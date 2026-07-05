@@ -62,47 +62,12 @@ if(EXISTS ${MNN_EXPRESS_SO_PATH})
     message(STATUS "libMNN_Express.so found but NOT linking - Express symbols are already in libMNN.so")
 endif()
 
-# ── NCNN 配置 ───────────────────────────────────────────
-set(NCNN_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/ncnn")
-set(NCNN_HEADER_DIR "${NCNN_ROOT_DIR}/include")
-set(NCNN_LINK_AVAILABLE FALSE)
-
-if(EXISTS "${NCNN_HEADER_DIR}/net.h")
-    include_directories(${NCNN_HEADER_DIR})
-    message(STATUS "NCNN headers found at ${NCNN_HEADER_DIR}")
-    set(NCNN_LINK_AVAILABLE TRUE)
-else()
-    message(STATUS "NCNN headers not found at ${NCNN_HEADER_DIR}. NCNN GPU inference will be stubbed.")
-endif()
-
-set(NCNN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}")
-set(NCNN_SO_PATH "${NCNN_LIB_DIR}/libncnn.so")
-
-if(NCNN_LINK_AVAILABLE AND EXISTS ${NCNN_SO_PATH})
-    message(STATUS "Using NCNN shared library: ${NCNN_SO_PATH}")
-    add_library(ncnn SHARED IMPORTED)
-    set_target_properties(ncnn PROPERTIES IMPORTED_LOCATION ${NCNN_SO_PATH})
-else()
-    set(NCNN_LINK_AVAILABLE FALSE)
-    message(STATUS "libncnn.so not found at ${NCNN_SO_PATH}. NCNN GPU inference will be stubbed.")
-endif()
-
 # ── 源文件 ──────────────────────────────────────────────
 set(NATIVE_SOURCES
     mnn_jni_bridge.cpp
     mnn_face_detector.cpp
     mnn_face_embedder.cpp
-    ncnn_jni_bridge.cpp
-    ncnn_face_detector.cpp
 )
-
-if(NCNN_LINK_AVAILABLE)
-    add_definitions(-DNCNN_AVAILABLE=1)
-    message(STATUS "NCNN support enabled (GPU inference active)")
-else()
-    add_definitions(-DNCNN_AVAILABLE=0)
-    message(STATUS "NCNN support disabled (GPU inference stubbed)")
-endif()
 
 # ── 创建共享库 ──────────────────────────────────────────
 add_library(beauty_native SHARED ${NATIVE_SOURCES})
@@ -128,10 +93,6 @@ set(LINK_LIBRARIES
 
 if(TARGET mnn_llm)
     list(APPEND LINK_LIBRARIES mnn_llm)
-endif()
-
-if(NCNN_LINK_AVAILABLE)
-    list(APPEND LINK_LIBRARIES ncnn)
 endif()
 
 target_link_libraries(beauty_native ${LINK_LIBRARIES})

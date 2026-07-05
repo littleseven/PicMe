@@ -10,7 +10,7 @@ import org.json.JSONObject
  */
 enum class LogModule(val tagPrefixes: List<String>, val displayName: String) {
     FACE_DETECTION(
-        listOf("FaceDetector", "MediaPipe", "Mnn", "Ncnn", "LandmarkAdapter"),
+        listOf("FaceDetector", "MediaPipe", "Mnn", "LandmarkAdapter"),
         "Face Detection"
     ),
     RENDERING(

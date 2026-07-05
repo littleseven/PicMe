@@ -35,7 +35,6 @@ enum class BeautyStrategy {
 enum class FaceDetectionEngineMode {
     MEDIAPIPE,  // MediaPipe 算法系列 (TFLite)
     MNN,        // MNN 算法系列 (GPU/CPU)
-    NCNN,       // NCNN 算法系列 (轻量级)
     CUSTOM      // 使用 StageConfig 独立配置
 }
 
@@ -63,10 +62,8 @@ enum class DetectionStage {
  */
 enum class DetectionModelType {
     MEDIAPIPE,          // MediaPipe 系列模型 (TFLite)
-    DET_500M_MNN,         // InsightFace RetinaFace-MobileNet0.25 (MNN)
-    DET_500M_NCNN,        // InsightFace RetinaFace-MobileNet0.25 (NCNN)
-    FACE_2D106_MNN,     // InsightFace 2D106 (MNN)
-    FACE_2D106_NCNN;    // InsightFace 2D106 (NCNN)
+    DET_500M_MNN,       // InsightFace RetinaFace-MobileNet0.25 (MNN)
+    FACE_2D106_MNN;     // InsightFace 2D106 (MNN)
 
     /**
      * 获取模型对应的推理引擎类型
@@ -74,23 +71,22 @@ enum class DetectionModelType {
     fun toEngineType(): InferenceEngineType = when (this) {
         MEDIAPIPE -> InferenceEngineType.TFLITE
         DET_500M_MNN, FACE_2D106_MNN -> InferenceEngineType.MNN
-        DET_500M_NCNN, FACE_2D106_NCNN -> InferenceEngineType.NCNN
     }
 
     /**
      * 判断是否为 ROI 阶段可用的模型
      */
     fun isRoiModel(): Boolean = when (this) {
-        MEDIAPIPE, DET_500M_MNN, DET_500M_NCNN -> true
-        FACE_2D106_MNN, FACE_2D106_NCNN -> false
+        MEDIAPIPE, DET_500M_MNN -> true
+        FACE_2D106_MNN -> false
     }
 
     /**
      * 判断是否为 Landmark 阶段可用的模型
      */
     fun isLandmarkModel(): Boolean = when (this) {
-        MEDIAPIPE, FACE_2D106_MNN, FACE_2D106_NCNN -> true
-        DET_500M_MNN, DET_500M_NCNN -> false
+        MEDIAPIPE, FACE_2D106_MNN -> true
+        DET_500M_MNN -> false
     }
 }
 
@@ -100,7 +96,6 @@ enum class DetectionModelType {
  */
 enum class InferenceEngineType {
     MNN,                // MNN (支持 CPU/GPU)
-    NCNN,               // NCNN (轻量级)
     TFLITE              // TensorFlow Lite (MediaPipe 默认)
 }
 

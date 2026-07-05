@@ -37,11 +37,7 @@ internal object DetectionPipelineFactory {
                         val requireGpu = device != DevicePreference.FORCE_CPU
                         MnnRoiDetector(context, requireGpu = requireGpu)
                     }
-                    InferenceBackendType.NCNN -> {
-                        val requireGpu = device != DevicePreference.FORCE_CPU
-                        NcnnRoiDetector(context, requireGpu = requireGpu)
-                    }
-                    else -> error("DET10G only supports MNN or NCNN backend")
+                    else -> error("DET10G only supports MNN backend")
                 }
             }
         }
@@ -66,11 +62,7 @@ internal object DetectionPipelineFactory {
                         val requireGpu = device != DevicePreference.FORCE_CPU
                         MnnLandmarkDetector(context, requireGpu = requireGpu)
                     }
-                    InferenceBackendType.NCNN -> {
-                        val requireGpu = device != DevicePreference.FORCE_CPU
-                        NcnnLandmarkDetector(context, requireGpu = requireGpu)
-                    }
-                    else -> error("INSIGHTFACE_2D106 only supports MNN or NCNN backend")
+                    else -> error("INSIGHTFACE_2D106 only supports MNN backend")
                 }
             }
             LandmarkDetectorType.MEDIAPIPE -> {

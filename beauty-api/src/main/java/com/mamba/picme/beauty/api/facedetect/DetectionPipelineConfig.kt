@@ -6,14 +6,12 @@ package com.mamba.picme.beauty.api.facedetect
 enum class InferenceBackendType {
     ONNX,       // ONNX Runtime (CPU/NNAPI)
     MNN,        // MNN (支持 CPU/GPU)
-    NCNN,       // NCNN (轻量级)
     TFLITE;     // TensorFlow Lite (MediaPipe 默认)
 
     val displayName: String
         get() = when (this) {
             ONNX -> "ONNX"
             MNN -> "MNN"
-            NCNN -> "NCNN"
             TFLITE -> "TFLite"
         }
 }

@@ -9,7 +9,6 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.runtime.cache.L1CacheSettings
 import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
-import com.mamba.picme.beauty.internal.facedetect.ncnn.NcnnFaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.DownloadStatus
@@ -276,15 +275,12 @@ private val ESSENTIAL_MODEL_IDS = listOf(
     val downloadStates: StateFlow<Map<String, DownloadState>> = modelDownloadManager.downloadStates
 
     // 模型 ID 到 DetectionModelType 的映射
-    // Det10G 和 Det500M 都是 ROI 检测模型，共享 DET_500M_MNN/DET_500M_NCNN 类型
+    // Det10G 和 Det500M 都是 ROI 检测模型，共享 DET_500M_MNN 类型
     // isModelDownloaded 需检查所有映射 ID 以兼容两种模型
     private val modelIdToDetectionType = mapOf(
         "face-det-retina10g-mnn" to DetectionModelType.DET_500M_MNN,
-        "face-det-retina10g-ncnn" to DetectionModelType.DET_500M_NCNN,
         "face-det-retina500m-mnn" to DetectionModelType.DET_500M_MNN,
-        "face-det-retina500m-ncnn" to DetectionModelType.DET_500M_NCNN,
-        "face-landmark-2d106-mnn" to DetectionModelType.FACE_2D106_MNN,
-        "face-landmark-2d106-ncnn" to DetectionModelType.FACE_2D106_NCNN
+        "face-landmark-2d106-mnn" to DetectionModelType.FACE_2D106_MNN
     )
 
     /**
@@ -477,20 +473,10 @@ private val ESSENTIAL_MODEL_IDS = listOf(
                         "face-det-retina500m-mnn"
                     }
                 }
-                DetectionModelType.DET_500M_NCNN -> {
-                    if (modelDownloadManager.isModelDownloaded("face-det-retina500m-ncnn")) {
-                        "face-det-retina500m-ncnn"
-                    } else if (modelDownloadManager.isModelDownloaded("face-det-retina10g-ncnn")) {
-                        "face-det-retina10g-ncnn"
-                    } else {
-                        "face-det-retina500m-ncnn"
-                    }
-                }
                 else -> null
             }
             DetectionStage.LANDMARK -> when (modelType) {
                 DetectionModelType.FACE_2D106_MNN -> "face-landmark-2d106-mnn"
-                DetectionModelType.FACE_2D106_NCNN -> "face-landmark-2d106-ncnn"
                 else -> null
             }
         }
@@ -662,10 +648,6 @@ private val ESSENTIAL_MODEL_IDS = listOf(
         FaceDetectionEngineMode.MNN -> Pair(
             StageConfig(DetectionStage.ROI, DetectionModelType.DET_500M_MNN, InferenceEngineType.MNN, InferenceDevicePreference.AUTO),
             StageConfig(DetectionStage.LANDMARK, DetectionModelType.FACE_2D106_MNN, InferenceEngineType.MNN, InferenceDevicePreference.AUTO)
-        )
-        FaceDetectionEngineMode.NCNN -> Pair(
-            StageConfig(DetectionStage.ROI, DetectionModelType.DET_500M_NCNN, InferenceEngineType.NCNN, InferenceDevicePreference.AUTO),
-            StageConfig(DetectionStage.LANDMARK, DetectionModelType.FACE_2D106_NCNN, InferenceEngineType.NCNN, InferenceDevicePreference.AUTO)
         )
         FaceDetectionEngineMode.CUSTOM -> Pair(
             StageConfig.defaultRoi(),
@@ -853,7 +835,6 @@ private val ESSENTIAL_MODEL_IDS = listOf(
         // 同步 C++ 层的人脸检测日志开关（静态全局开关，影响所有 native 实例）
         val faceDetectionEnabled = config.isEnabled(LogModule.FACE_DETECTION)
         MnnFaceDetector.setNativeLogEnabled(faceDetectionEnabled)
-        NcnnFaceDetector.setNativeLogEnabled(faceDetectionEnabled)
         viewModelScope.launch {
             repository.updateLogModuleConfig(config)
         }

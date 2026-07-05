@@ -164,7 +164,6 @@ internal data class CameraPreviewActions(
 internal fun FaceDetectionEngineMode.toEngineType(): EngineType = when (this) {
     FaceDetectionEngineMode.MEDIAPIPE -> EngineType.MEDIAPIPE
     FaceDetectionEngineMode.MNN -> EngineType.MNN
-    FaceDetectionEngineMode.NCNN -> EngineType.NCNN
     FaceDetectionEngineMode.CUSTOM -> EngineType.MEDIAPIPE
 }
 

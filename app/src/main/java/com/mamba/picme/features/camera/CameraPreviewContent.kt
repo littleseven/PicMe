@@ -77,7 +77,6 @@ import kotlinx.coroutines.launch
 private val INSIGHTFACE_DEBUG_TEXT_COLOR = Color(0xFFFFAB91)
 private val MEDIAPIPE_DEBUG_TEXT_COLOR = Color(0xFF80CBC4)
 private val MNN_DEBUG_TEXT_COLOR = Color(0xFFCE93D8)
-private val NCNN_DEBUG_TEXT_COLOR = Color(0xFF90CAF9)
 private val NONE_DEBUG_TEXT_COLOR = Color(0xFFA5D6A7)
 private val LIP_HIGHLIGHT_COLOR = Color(0xFFFF80AB)
 
@@ -361,7 +360,6 @@ private fun BoxScope.CameraPreviewDebugStatus(uiState: CameraPreviewUiState) {
         FaceDetectionSource.NONE -> "NONE"
         FaceDetectionSource.MEDIAPIPE -> "MEDIAPIPE"
         FaceDetectionSource.MNN -> "MNN GPU"
-        FaceDetectionSource.NCNN -> "NCNN GPU"
     }
     val detectionCompact = buildString {
         append("Detect ")
@@ -424,7 +422,6 @@ private fun BoxScope.CameraPreviewDebugStatus(uiState: CameraPreviewUiState) {
                     color = when (uiState.faceWarpParams.detectionSource) {
                         FaceDetectionSource.MEDIAPIPE -> MEDIAPIPE_DEBUG_TEXT_COLOR
                         FaceDetectionSource.MNN -> MNN_DEBUG_TEXT_COLOR  // [性能优化] MNN GPU
-                        FaceDetectionSource.NCNN -> NCNN_DEBUG_TEXT_COLOR  // [性能优化] NCNN 轻量级检测器
                         FaceDetectionSource.NONE -> NONE_DEBUG_TEXT_COLOR
                     },
                     fontSize = 9.sp

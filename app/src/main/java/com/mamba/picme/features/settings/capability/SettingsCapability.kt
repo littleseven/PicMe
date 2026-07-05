@@ -92,7 +92,7 @@ class SettingsCapability : BaseCapability() {
         "change_theme" -> "切换主题模式，参数：theme (light/dark/system)"
         "change_language" -> "切换应用语言，参数：language (zh/en)"
         "download_model" -> "下载AI模型，参数：model_id"
-        "switch_face_engine" -> "切换人脸检测引擎，参数：engine (mediapipe/mnn/ncnn/custom)"
+        "switch_face_engine" -> "切换人脸检测引擎，参数：engine (mediapipe/mnn/custom)"
         "toggle_setting" -> "开关设置项，参数：key, enabled (true/false)"
         else -> "未知命令"
     }
@@ -210,14 +210,13 @@ class SettingsCapability : BaseCapability() {
         val engine = when (command.engine.lowercase()) {
             "mediapipe" -> FaceDetectionEngineMode.MEDIAPIPE
             "mnn" -> FaceDetectionEngineMode.MNN
-            "ncnn" -> FaceDetectionEngineMode.NCNN
             "custom" -> FaceDetectionEngineMode.CUSTOM
             else -> {
                 return Result.success(
                     AgentAction.Error(
                         commandId = command.commandId,
                         errorCode = AgentErrorCode.INVALID_PARAMS,
-                        message = "未知的人脸检测引擎: ${command.engine}，支持 mediapipe/mnn/ncnn/custom"
+                        message = "未知的人脸检测引擎: ${command.engine}，支持 mediapipe/mnn/custom"
                     )
                 )
             }

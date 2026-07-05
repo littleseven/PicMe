@@ -43,7 +43,6 @@
     <string name="face_detection_engine_title">Face detection engine</string>
     <string name="face_detection_engine_mode_mediapipe">MediaPipe</string>
     <string name="face_detection_engine_mode_mnn">MNN</string>
-    <string name="face_detection_engine_mode_ncnn">NCNN</string>
     <string name="face_detection_engine_mode_custom">Custom</string>
     <string name="face_detection_advanced">Detection Options</string>
     <string name="settings_face_detection_advanced_desc">Advanced face detection settings.</string>
@@ -51,7 +50,6 @@
     <string name="settings_inference_engine_desc">Select the underlying inference framework for face detection and landmark processing.</string>
     <string name="inference_engine_tflite">TFLite (MediaPipe Default)</string>
     <string name="inference_engine_mnn">MNN (Supports CPU/GPU)</string>
-    <string name="inference_engine_ncnn">NCNN (Lightweight)</string>
     <string name="inference_device_preference">Device Preference</string>
     <string name="settings_inference_device_preference_desc">Force inference engine to use CPU or GPU, or let it choose automatically.</string>
     <string name="device_preference_auto">Auto (Default)</string>
@@ -64,9 +62,7 @@
     <string name="model_type">Model</string>
     <string name="model_mediapipe">MediaPipe</string>
     <string name="model_det10g_mnn">RetinaFace 500M-MNN</string>
-    <string name="model_det10g_ncnn">RetinaFace 500M-NCNN</string>
     <string name="model_2d106_mnn">2D106-MNN</string>
-    <string name="model_2d106_ncnn">2D106-NCNN</string>
     <string name="model_mnn">MNN</string>
     <string name="face_detection_source_none">None</string>
     <string name="camera_face_debug_requested_label">Requested engine</string>

@@ -42,19 +42,18 @@ private const val R_PLAN_RECOVERY_COOLDOWN_MS = 3 * 60 * 1000L
 // 领域模型 → 推理引擎层模型转换
 internal fun DetectionModelType.toRoiDetectorType(): RoiDetectorType = when (this) {
     DetectionModelType.MEDIAPIPE -> RoiDetectorType.MEDIAPIPE
-    DetectionModelType.DET_500M_MNN, DetectionModelType.DET_500M_NCNN -> RoiDetectorType.DET10G
+    DetectionModelType.DET_500M_MNN -> RoiDetectorType.DET10G
     else -> RoiDetectorType.MEDIAPIPE
 }
 
 internal fun DetectionModelType.toLandmarkDetectorType(): LandmarkDetectorType = when (this) {
     DetectionModelType.MEDIAPIPE -> LandmarkDetectorType.MEDIAPIPE
-    DetectionModelType.FACE_2D106_MNN, DetectionModelType.FACE_2D106_NCNN -> LandmarkDetectorType.INSIGHTFACE_2D106
+    DetectionModelType.FACE_2D106_MNN -> LandmarkDetectorType.INSIGHTFACE_2D106
     else -> LandmarkDetectorType.MEDIAPIPE
 }
 
 internal fun InferenceEngineType.toInferenceBackendType(): InferenceBackendType = when (this) {
     InferenceEngineType.MNN -> InferenceBackendType.MNN
-    InferenceEngineType.NCNN -> InferenceBackendType.NCNN
     InferenceEngineType.TFLITE -> InferenceBackendType.TFLITE
 }
 

@@ -45,10 +45,8 @@ import kotlin.math.PI
 // [常量定义] 调试颜色
 private val MEDIAPIPE_DEBUG_COLOR = Color(0xFF4DB6AC)
 private val MNN_DEBUG_COLOR = Color(0xFF7E57C2)
-private val NCNN_DEBUG_COLOR = Color(0xFF42A5F5)
 private val MEDIAPIPE_SOURCE_COLOR = Color(0xFF26A69A)
 private val MNN_SOURCE_COLOR = Color(0xFFAB47BC)
-private val NCNN_SOURCE_COLOR = Color(0xFF64B5F6)
 private val NONE_DEBUG_COLOR = Color(0xFF9E9E9E)
 
 @Composable
@@ -63,13 +61,11 @@ internal fun FaceDebugOverlay(
     val detectionLabel = when (faceWarpParams.detectionSource) {
         FaceDetectionSource.MEDIAPIPE -> stringResource(R.string.face_detection_engine_mode_mediapipe)
         FaceDetectionSource.MNN -> stringResource(R.string.inference_engine_mnn)
-        FaceDetectionSource.NCNN -> stringResource(R.string.inference_engine_ncnn)
         FaceDetectionSource.NONE -> stringResource(R.string.face_detection_source_none)
     }
     val requestedLabel = when (faceWarpParams.requestedDetectionEngineMode) {
         EngineType.MEDIAPIPE -> stringResource(R.string.face_detection_engine_mode_mediapipe)
         EngineType.MNN -> stringResource(R.string.inference_engine_mnn)
-        EngineType.NCNN -> stringResource(R.string.inference_engine_ncnn)
     }
     val requestedColor = faceDebugRequestedColor(faceWarpParams.requestedDetectionEngineMode)
     val detectionColor = faceDebugSourceColor(faceWarpParams.detectionSource)
@@ -170,7 +166,6 @@ private fun faceDebugRequestedColor(mode: EngineType): Color {
     return when (mode) {
         EngineType.MEDIAPIPE -> MEDIAPIPE_DEBUG_COLOR
         EngineType.MNN -> MNN_DEBUG_COLOR  // [性能优化] MNN OpenCL GPU
-        EngineType.NCNN -> NCNN_DEBUG_COLOR  // [性能优化] NCNN 轻量级检测器
     }
 }
 
@@ -178,7 +173,6 @@ private fun faceDebugSourceColor(source: FaceDetectionSource): Color {
     return when (source) {
         FaceDetectionSource.MEDIAPIPE -> MEDIAPIPE_SOURCE_COLOR
         FaceDetectionSource.MNN -> MNN_SOURCE_COLOR  // [性能优化] MNN OpenCL GPU
-        FaceDetectionSource.NCNN -> NCNN_SOURCE_COLOR  // [性能优化] NCNN 轻量级检测器
         FaceDetectionSource.NONE -> NONE_DEBUG_COLOR
     }
 }

@@ -44,7 +44,7 @@ interface FaceDetector {
      * 多人脸检测（ROI + 5 点 landmarks）
      *
      * 为人脸识别/聚类任务提供对齐所需关键点。
-     * MNN/NCNN 路径复用 RetinaFace 已输出的 5 点 landmarks；
+     * MNN 路径复用 RetinaFace 已输出的 5 点 landmarks；
      * MediaPipe 路径当前仅返回 ROI，不返回 landmarks。
      *
      * @param bitmap 静态图片 Bitmap

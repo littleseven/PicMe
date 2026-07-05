@@ -24,7 +24,7 @@ import java.nio.ByteBuffer
 /**
  * 人脸检测管理器
  *
- * 多引擎调度器（MediaPipe + InsightFace + MNN + NCNN），实现 FaceDetector 公开接口。
+ * 多引擎调度器（MediaPipe + MNN），实现 FaceDetector 公开接口。
  * 所有检测输入均为 Bitmap，ImageProxy → Bitmap 转换由调用方负责。
  *
  * 配置来源：设置页的 StageConfig（ROI + Landmark 独立配置），通过 updatePipelineConfig() 传入。
@@ -60,8 +60,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
     private var mediaPipeDetector: MediaPipeFaceDetector? = null
     private var mnnRoiDetector: MnnRoiDetector? = null
     private var mnnLandmarkDetector: MnnLandmarkDetector? = null
-    private var ncnnRoiDetector: NcnnRoiDetector? = null
-    private var ncnnLandmarkDetector: NcnnLandmarkDetector? = null
 
     @Volatile
     private var lastProcessTimeMs: Long = 0
@@ -73,25 +71,25 @@ class FaceDetectorManager(context: Context) : FaceDetector {
         Logger.w(TAG, "setEngineMode() is deprecated, use updatePipelineConfig() instead")
     }
 
-    override fun updatePipelineConfig(newConfig: DetectionPipelineConfig) {
-        Logger.i(TAG, "updatePipelineConfig: roi=${newConfig.roiDetector}/${newConfig.roiEngine}, landmark=${newConfig.landmarkDetector}/${newConfig.landmarkEngine}")
+    override fun updatePipelineConfig(config: DetectionPipelineConfig) {
+        Logger.i(TAG, "updatePipelineConfig: roi=${config.roiDetector}/${config.roiEngine}, landmark=${config.landmarkDetector}/${config.landmarkEngine}")
 
         synchronized(lock) {
             val current = pipelineConfig
             if (current != null &&
-                current.roiDetector == newConfig.roiDetector &&
-                current.landmarkDetector == newConfig.landmarkDetector &&
-                current.roiEngine == newConfig.roiEngine &&
-                current.landmarkEngine == newConfig.landmarkEngine &&
-                current.roiDevice == newConfig.roiDevice &&
-                current.landmarkDevice == newConfig.landmarkDevice &&
-                current.useLooseCrop == newConfig.useLooseCrop
+                current.roiDetector == config.roiDetector &&
+                current.landmarkDetector == config.landmarkDetector &&
+                current.roiEngine == config.roiEngine &&
+                current.landmarkEngine == config.landmarkEngine &&
+                current.roiDevice == config.roiDevice &&
+                current.landmarkDevice == config.landmarkDevice &&
+                current.useLooseCrop == config.useLooseCrop
             ) {
                 Logger.w(TAG, "Config unchanged, skipping update")
                 return
             }
 
-            pipelineConfig = newConfig
+            pipelineConfig = config
             initializePipelineLocked()
         }
     }
@@ -141,9 +139,8 @@ class FaceDetectorManager(context: Context) : FaceDetector {
             Logger.e(TAG, "Face detection failed", e)
             null
         } catch (e: Error) {
-            // [NCNN 保护] 捕获 native 崩溃（如 OpenMP 线程亲和性错误）
             lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
-            Logger.e(TAG, "Face detection native error (NCNN/OpenMP?)", e)
+            Logger.e(TAG, "Face detection native error", e)
             null
         }
     }
@@ -189,14 +186,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
                             roiList.addAll(faces)
                         }
                     }
-                    InferenceBackendType.NCNN -> {
-                        val ncnnRoi = roiDetector as? NcnnRoiDetector
-                        if (ncnnRoi != null) {
-                            // 多脸检测：返回所有有效人脸 ROI
-                            val faces = ncnnRoi.detectFaces(bitmap)
-                            roiList.addAll(faces)
-                        }
-                    }
                     else -> {
                         // ONNX / TFLite 路径：回退到完整 detectPhoto 提取 ROI
                         Logger.w(TAG, "detectFacesOnly: fallback to detectPhoto for ${config.roiEngine}")
@@ -224,7 +213,7 @@ class FaceDetectorManager(context: Context) : FaceDetector {
      * 多人脸检测（ROI + RetinaFace 5 点 landmarks）
      *
      * 为人脸识别/聚类任务提供对齐所需关键点。
-     * - MNN/NCNN 路径：复用 RetinaFace 已输出的 5 点 landmarks
+     * - MNN 路径：复用 RetinaFace 已输出的 5 点 landmarks
      * - MediaPipe / 其他路径：回退到 detectPhoto，landmarks 为空
      *
      * @param bitmap 静态图片 Bitmap
@@ -250,16 +239,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
                             lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
                             lastDetectionSource = FaceDetectionSource.MNN
                             Logger.d(TAG, "[Perf] detectFacesWithLandmarks(MNN): ${faces.size} faces, ${lastProcessTimeMs}ms")
-                            return faces
-                        }
-                    }
-                    InferenceBackendType.NCNN -> {
-                        val ncnnRoi = roiDetector as? NcnnRoiDetector
-                        if (ncnnRoi != null) {
-                            val faces = ncnnRoi.detectFacesWithLandmarks(bitmap)
-                            lastProcessTimeMs = SystemClock.elapsedRealtime() - startTime
-                            lastDetectionSource = FaceDetectionSource.NCNN
-                            Logger.d(TAG, "[Perf] detectFacesWithLandmarks(NCNN): ${faces.size} faces, ${lastProcessTimeMs}ms")
                             return faces
                         }
                     }
@@ -294,7 +273,7 @@ class FaceDetectorManager(context: Context) : FaceDetector {
     /**
      * [Zero-Copy] 人脸 ROI 检测——直接从 YUV NV21 输入
      *
-     * 支持 MNN 和 NCNN ROI 检测器的 NV21 直传路径。
+     * 支持 MNN ROI 检测器的 NV21 直传路径。
      * NV21 DirectByteBuffer 直传 C++ 层，在 native 端完成
      * NV21→RGB + resize + letterbox + 归一化的一体化预处理。
      *
@@ -317,10 +296,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
                 InferenceBackendType.MNN -> {
                     val mnnRoi = roiDetector as? MnnRoiDetector
                     mnnRoi?.detectRoiFromYuv(nv21Data, width, height, rotationDegrees)
-                }
-                InferenceBackendType.NCNN -> {
-                    val ncnnRoi = roiDetector as? NcnnRoiDetector
-                    ncnnRoi?.detectRoiFromYuv(nv21Data, width, height, rotationDegrees)
                 }
                 else -> {
                     Logger.d(TAG, "NV21 path not available for ${config.roiEngine}")
@@ -394,7 +369,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
 
                 val detectionSource = when (config.landmarkEngine) {
                     InferenceBackendType.MNN -> FaceDetectionSource.MNN
-                    InferenceBackendType.NCNN -> FaceDetectionSource.NCNN
                     else -> FaceDetectionSource.MEDIAPIPE
                 }
                 lastDetectionSource = detectionSource
@@ -425,8 +399,7 @@ class FaceDetectorManager(context: Context) : FaceDetector {
                     )
                 }
 
-                val useGpuForLandmark = config.landmarkEngine == InferenceBackendType.MNN ||
-                    config.landmarkEngine == InferenceBackendType.NCNN
+                val useGpuForLandmark = config.landmarkEngine == InferenceBackendType.MNN
 
                 val roiEngineLabel = "${config.roiDetector.name}/${config.roiEngine.name}(NV21)"
                 val lmEngineLabel = "${config.landmarkDetector.name}/${config.landmarkEngine.name}"
@@ -532,7 +505,7 @@ class FaceDetectorManager(context: Context) : FaceDetector {
             )
 
             val roiEngineLabel = "${config.roiEngine.name}(NV21)"
-            val lmEngineLabel = "${config.landmarkEngine.name}(NV21→GPU)"
+            val lmEngineLabel = "${config.landmarkDetector.name}(NV21→GPU)"
             Logger.d(TAG, "[Perf] NV21 path breakdown (zero-copy): ROI($roiEngineLabel) → Landmark($lmEngineLabel)=${lmTime}ms, Total=${lastProcessTimeMs}ms")
 
             FaceDetectionResult(
@@ -566,18 +539,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
     private fun getMnnLandmarkDetector(): MnnLandmarkDetector {
         return mnnLandmarkDetector ?: MnnLandmarkDetector(appContext, requireGpu = true).also {
             mnnLandmarkDetector = it
-        }
-    }
-
-    private fun getNcnnRoiDetector(): NcnnRoiDetector {
-        return ncnnRoiDetector ?: NcnnRoiDetector(appContext, requireGpu = true).also {
-            ncnnRoiDetector = it
-        }
-    }
-
-    private fun getNcnnLandmarkDetector(): NcnnLandmarkDetector {
-        return ncnnLandmarkDetector ?: NcnnLandmarkDetector(appContext, requireGpu = true).also {
-            ncnnLandmarkDetector = it
         }
     }
 
@@ -643,7 +604,6 @@ class FaceDetectorManager(context: Context) : FaceDetector {
         return if (landmarkResult != null && landmarkResult.size >= POINT_COUNT * 2) {
             val detectionSource = when (config.landmarkEngine) {
                 InferenceBackendType.MNN -> FaceDetectionSource.MNN
-                InferenceBackendType.NCNN -> FaceDetectionSource.NCNN
                 else -> FaceDetectionSource.MEDIAPIPE
             }
             lastDetectionSource = detectionSource
@@ -660,10 +620,8 @@ class FaceDetectorManager(context: Context) : FaceDetector {
                 roiResult.bottom / bitmap.height.toFloat()
             )
 
-            val useGpuForRoi = config.roiEngine == InferenceBackendType.MNN ||
-                config.roiEngine == InferenceBackendType.NCNN
-            val useGpuForLandmark = config.landmarkEngine == InferenceBackendType.MNN ||
-                config.landmarkEngine == InferenceBackendType.NCNN
+            val useGpuForRoi = config.roiEngine == InferenceBackendType.MNN
+            val useGpuForLandmark = config.landmarkEngine == InferenceBackendType.MNN
 
             FaceDetectionResult(
                 landmarks106 = adaptedResult,
@@ -724,8 +682,7 @@ class FaceDetectorManager(context: Context) : FaceDetector {
             Logger.e(TAG, "Photo detection failed", e)
             null
         } catch (e: Error) {
-            // [NCNN 保护] 捕获 native 崩溃
-            Logger.e(TAG, "Photo detection native error (NCNN/OpenMP?)", e)
+            Logger.e(TAG, "Photo detection native error", e)
             null
         }
     }
@@ -821,13 +778,9 @@ class FaceDetectorManager(context: Context) : FaceDetector {
             mediaPipeDetector?.release()
             mnnRoiDetector?.release()
             mnnLandmarkDetector?.release()
-            ncnnRoiDetector?.release()
-            ncnnLandmarkDetector?.release()
             mediaPipeDetector = null
             mnnRoiDetector = null
             mnnLandmarkDetector = null
-            ncnnRoiDetector = null
-            ncnnLandmarkDetector = null
 
             isPipelineInitialized = false
             lastDetectionSource = FaceDetectionSource.NONE

@@ -44,7 +44,6 @@
     <string name="face_detection_engine_title">人臉檢測引擎</string>
 <string name="face_detection_engine_mode_mediapipe">MediaPipe</string>
     <string name="face_detection_engine_mode_mnn">MNN</string>
-    <string name="face_detection_engine_mode_ncnn">NCNN</string>
     <string name="face_detection_engine_mode_custom">自訂</string>
     <string name="face_detection_advanced">人臉檢測進階配置</string>
     <string name="settings_face_detection_advanced_desc">控制人臉關鍵點與動態檢測節奏，平衡效能與精度。</string>
@@ -52,7 +51,6 @@
     <string name="settings_inference_engine_desc">選擇人臉檢測和關鍵點處理的底層推理框架。</string>
     <string name="inference_engine_tflite">TFLite (MediaPipe 預設)</string>
     <string name="inference_engine_mnn">MNN (支援 CPU/GPU)</string>
-    <string name="inference_engine_ncnn">NCNN (輕量級)</string>
     <string name="inference_device_preference">設備偏好</string>
     <string name="settings_inference_device_preference_desc">強制推理引擎使用 CPU 或 GPU，或讓其自動選擇。</string>
     <string name="device_preference_auto">自動（預設）</string>
@@ -65,9 +63,7 @@
     <string name="model_type">模型</string>
     <string name="model_mediapipe">MediaPipe</string>
     <string name="model_det10g_mnn">RetinaFace 500M-MNN</string>
-    <string name="model_det10g_ncnn">RetinaFace 500M-NCNN</string>
     <string name="model_2d106_mnn">2D106-MNN</string>
-    <string name="model_2d106_ncnn">2D106-NCNN</string>
     <string name="model_mnn">MNN</string>
     <string name="face_detection_source_none">無</string>
     <string name="camera_face_debug_requested_label">目前請求引擎</string>
@@ -381,7 +377,7 @@
     <string name="local_face_detection_model">本地人臉檢測模型</string>
     <string name="local_face_detection_model_fallback">未下載本地人臉檢測模型，點擊下方前往下載。</string>
     <string name="face_detection_model_manager">人臉檢測模型管理</string>
-    <string name="face_detection_model_manager_desc">下載和管理端側人臉檢測模型（MNN/NCNN）。</string>
+    <string name="face_detection_model_manager_desc">下載和管理端側人臉檢測模型（MNN）。</string>
     <string name="no_face_detection_models_available">暫無人臉檢測模型，請檢查網絡連接。</string>
 
     <!-- Model Manager -->

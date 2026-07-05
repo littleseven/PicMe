@@ -907,7 +907,6 @@ voiceCoordinator.stopPushToTalk()
         } else {
             when (landmarkStageConfig.engineType) {
                 InferenceEngineType.MNN -> EngineType.MNN
-                InferenceEngineType.NCNN -> EngineType.NCNN
                 InferenceEngineType.TFLITE -> EngineType.MEDIAPIPE
             }
         }
