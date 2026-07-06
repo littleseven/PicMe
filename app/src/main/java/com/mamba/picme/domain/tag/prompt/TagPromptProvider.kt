@@ -14,4 +14,8 @@ import com.mamba.picme.domain.model.AppLanguage
 interface TagPromptProvider {
     fun systemPrompt(lang: AppLanguage): String
     fun userPrompt(lang: AppLanguage, faceCount: Int, isGroupPhoto: Boolean): String
+
+    /** 精简版：只要求 Qwen 输出 activity 和 summary */
+    fun systemPromptForActivityAndSummary(lang: AppLanguage): String
+    fun userPromptForActivityAndSummary(lang: AppLanguage, faceCount: Int, isGroupPhoto: Boolean): String
 }

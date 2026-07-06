@@ -15,6 +15,52 @@ class DefaultTagPromptProvider : TagPromptProvider {
         CHINESE_SYSTEM_PROMPT
     }
 
+    override fun systemPromptForActivityAndSummary(lang: AppLanguage): String = if (lang == AppLanguage.ENGLISH) {
+        ENGLISH_SYSTEM_PROMPT_ACTIVITY_SUMMARY
+    } else {
+        CHINESE_SYSTEM_PROMPT_ACTIVITY_SUMMARY
+    }
+
+    override fun userPromptForActivityAndSummary(
+        lang: AppLanguage,
+        faceCount: Int,
+        isGroupPhoto: Boolean
+    ): String {
+        if (faceCount <= 0) {
+            return if (lang == AppLanguage.ENGLISH) {
+                "Analyze the activity and write a one-sentence summary."
+            } else {
+                "请分析照片中的活动，并用一句话概括照片内容。"
+            }
+        }
+
+        return if (lang == AppLanguage.ENGLISH) {
+            buildString {
+                append("The photo has $faceCount face(s), ")
+                append(
+                    when {
+                        isGroupPhoto -> "it looks like a group photo."
+                        faceCount >= 2 -> "it looks like a photo of two people."
+                        else -> "it looks like a single-person photo."
+                    }
+                )
+                append(" Analyze the activity and write a one-sentence summary.")
+            }
+        } else {
+            buildString {
+                append("照片中有${faceCount}张人脸，")
+                append(
+                    when {
+                        isGroupPhoto -> "可能是合影。"
+                        faceCount >= 2 -> "可能是双人照。"
+                        else -> "可能是单人照。"
+                    }
+                )
+                append("请分析照片中的活动，并用一句话概括照片内容。")
+            }
+        }
+    }
+
     override fun userPrompt(lang: AppLanguage, faceCount: Int, isGroupPhoto: Boolean): String {
         if (faceCount <= 0) {
             return if (lang == AppLanguage.ENGLISH) {
@@ -72,6 +118,36 @@ class DefaultTagPromptProvider : TagPromptProvider {
             appendLine()
             appendLine("示例：")
             appendLine("{\"scene\":\"公园\",\"activity\":\"散步\",\"objects\":[\"婴儿\",\"推车\",\"树\"],\"tags\":[\"女\",\"婴儿\",\"户外\",\"公园\",\"散步\",\"亲子\",\"白天\",\"推车\"],\"summary\":\"一位妈妈推着婴儿车在阳光明媚的公园小径上散步，周围绿树成荫，氛围轻松愉快\"}")
+        }
+
+        private val CHINESE_SYSTEM_PROMPT_ACTIVITY_SUMMARY = buildString {
+            appendLine("你是一个相册照片描述助手。只输出纯JSON，不要markdown代码块、不要解释、不要多余文字。")
+            appendLine()
+            appendLine("输出格式：")
+            appendLine("{\"activity\":\"活动\",\"summary\":\"一句话概括\"}")
+            appendLine()
+            appendLine("要求：")
+            appendLine("1. 全部使用中文，专有名词（如iPhone）除外")
+            appendLine("2. activity：吃饭/旅行/运动/聚会/散步/自拍/工作/休息等")
+            appendLine("3. summary：30-40字的一句话概括，包含主要人物、场景、动作和氛围")
+            appendLine()
+            appendLine("示例：")
+            appendLine("{\"activity\":\"散步\",\"summary\":\"一位妈妈推着婴儿车在阳光明媚的公园小径上散步，周围绿树成荫，氛围轻松愉快\"}")
+        }
+
+        private val ENGLISH_SYSTEM_PROMPT_ACTIVITY_SUMMARY = buildString {
+            appendLine("You are a photo album description assistant. Output valid JSON only. No markdown, no explanation, no extra text.")
+            appendLine()
+            appendLine("Output format:")
+            appendLine("{\"activity\":\"the activity\",\"summary\":\"a one-sentence summary\"}")
+            appendLine()
+            appendLine("Requirements:")
+            appendLine("1. Use English only, except proper nouns like iPhone.")
+            appendLine("2. activity: eating/traveling/sports/party/walking/selfie/working/resting/etc.")
+            appendLine("3. summary: a 25-40 word sentence summarizing the photo, including main people, scene, action and atmosphere.")
+            appendLine()
+            appendLine("Example:")
+            appendLine("{\"activity\":\"walking\",\"summary\":\"A mother pushing a stroller with her baby along a sunny park path lined with green trees, enjoying a relaxing afternoon walk\"}")
         }
 
         private val ENGLISH_SYSTEM_PROMPT = buildString {
