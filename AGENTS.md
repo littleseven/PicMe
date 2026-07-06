@@ -306,6 +306,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **AI 协作角色** | `agents/README.md`, `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`app/src/.../features/camera/` 等） |
 | **技术专项** | `docs/*.md` |
+| **本地开发环境** | `docs/05-DEVELOPMENT/LOCAL_ENVIRONMENT.md` |
 | **IM 远程控制技术规格** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md` |
 | **AI 一键优化参数标准** | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZE_PARAMETER_STANDARD.md` |
 

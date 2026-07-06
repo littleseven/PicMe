@@ -1,8 +1,8 @@
 # langchain4android 文档导航索引
 
 > **维护者**: CO Agent  
-> **最后更新**: 2026-06-30
-> **版本**: 1.3
+> **最后更新**: 2026-07-06
+> **版本**: 1.4
 
 ---
 
@@ -148,6 +148,7 @@ langchain4android 采用**四层文档架构**，遵循 AGENTS.md 顶层治理�
 | 文档 | 用途 | 读者 |
 |------|------|------|
 | [`DEVELOPMENT.md`](./05-DEVELOPMENT/DEVELOPMENT.md) | 双螺旋工作流、反向链接规范、CI 规则 | RD/CO |
+| [`LOCAL_ENVIRONMENT.md`](./05-DEVELOPMENT/LOCAL_ENVIRONMENT.md) | 本机开发环境路径上下文（MNN、HF/MS、模型目录） | RD/CO |
 | [`TASK_MARKUP_SPEC.md`](./05-DEVELOPMENT/TASK_MARKUP_SPEC.md) | `[kimi-task]` 标记语法与解析规则 | PM/CO |
 | [`CODE_REVIEW_CHECKLIST.md`](./05-DEVELOPMENT/CODE_REVIEW_CHECKLIST.md) | CR 检查项与一票否决项 | CR/RD |
 | [`PLAN-AGENT-UI.md`](./05-DEVELOPMENT/PLAN-AGENT-UI.md) | Agent UI 层实现计划（含 Plan 消息气泡） | RD |
@@ -158,6 +159,7 @@ langchain4android 采用**四层文档架构**，遵循 AGENTS.md 顶层治理�
 - 反向链接注释格式（`// Spec: ...`）
 - CI 文档同步检查脚本
 - `[kimi-task]` 解析为 Task JSON
+- 本机开发环境路径上下文（MNN、HF/MS、模型目录）
 
 ---
 
