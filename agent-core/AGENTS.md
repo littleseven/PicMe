@@ -30,8 +30,8 @@
 
 | API | 包路径 | 说明 |
 |-----|--------|------|
-| `ChatLanguageModel` | `com.mamba.model.chat` | 聊天模型接口 |
-| `StreamingChatLanguageModel` | `com.mamba.model.chat` | 流式聊天模型接口 |
+| `ChatModel` | `com.mamba.model.chat` | 聊天模型接口 |
+| `StreamingChatModel` | `com.mamba.model.chat` | 流式聊天模型接口 |
 | `OpenAiChatModel` | `com.mamba.model.openai` | OpenAI 协议聊天模型实现 |
 | `OpenAiStreamingChatModel` | `com.mamba.model.openai` | OpenAI 协议流式聊天模型实现 |
 | `ToolSpecification` | `com.mamba.agent.tool` | Tool 规格定义 |

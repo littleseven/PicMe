@@ -4,10 +4,10 @@
 > - 本文档仅承载 `:app` 主应用模块的实现细节（架构、组件、导航、依赖注入）。
 > - 产品目标与验收口径以 `PRODUCT.md` 为准；交互流程与体验规则以 `docs/01-PRODUCT/FEATURES.md` 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
-> - 美颜引擎实现细节见 `beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `agent-core/AGENTS.md`。
+> - 美颜引擎实现细节见 `beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `runtime-core/AGENTS.md`。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：`:app` 是 PicMe 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:app` 负责将 `:agent-core`、`:beauty-api`、`:beauty-engine` 三个独立库组装为完整应用。
+**模块定位**：`:app` 是 PicMe 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:app` 负责将 `:runtime-core`、`:beauty-api`、`:beauty-engine`、`:sentencepiece` 四个独立库组装为完整应用（`:agent-core` 的能力已下沉到 `:runtime-core` 中，由 `:runtime-core` 以 `api` 方式透出）。
 
 **主要维护者**：[RD] 全栈工程师
 
@@ -115,19 +115,20 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 ```
 :app
- ├── :agent-core      ← Agent Runtime 核心（编排、推理、语音、远程）
- ├── :beauty-api      ← 美颜 API 契约（BeautySettings、Face、FilterType 等）
- └── :beauty-engine   ← 美颜引擎实现（OpenGL ES + EGL 渲染）
+ ├── :runtime-core    ← Agent Runtime 核心（编排、推理、语音、远程；内部包含 :agent-core 基础 API）
+ ├── :beauty-api      ← 美颜 API 契约
+ ├── :beauty-engine   ← 美颜引擎实现
+ └── :sentencepiece   ← SentencePiece tokenizer
 ```
 
 ### 3.2 关键集成点
 
 | 集成场景 | 入口类 | 说明 |
 |----------|--------|------|
-| Agent 交互 | `AiAgentUseCase` → `AgentOrchestrator` | Facade 模式，委托给 agent-core |
+| Agent 交互 | `AiAgentUseCase` → `AgentOrchestrator` | Facade 模式，委托给 :runtime-core 的 `AgentOrchestrator` |
 | 美颜预览 | `BeautyPreviewProvider` → `BeautyPreviewEngine` | 通过 beauty-api 接口调用 |
 | 人脸检测 | `FaceDetector`（beauty-api 接口） | MediaPipe/MNN 双引擎 |
-| 远程推理 | `RemoteOrchestrator`（agent-core） | OpenAI Chat Completions API + langchain4j |
+| 远程推理 | `RemoteReActAgent`（:runtime-core） | OpenAI Chat Completions API + tool_calls |
 | TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine` | Layer 0.5 显式约束优先分段检索（时间/地点/人脸→内容关键词）；Layer 1 QueryParser 规则；Layer 2 LLM；Layer 2.5 MobileCLIP 语义；Layer 3 融合排序 |
 | 飞书远程控制 | `PicMeApplication` → Feishu SDK | IM 远程命令与照片回传 |

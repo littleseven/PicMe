@@ -65,7 +65,7 @@ API 变更必须保证源级兼容（source-compatible）。破坏性变更需�
 ### 3.1 模块依赖图
 
 ```
-:app  ──────────────→ beauty-api ←────────────── :agent-core
+:app  ──────────────→ beauty-api ←────────────── :runtime-core
   │                       ↑                            │
   └──→ :beauty-engine ────┘                            │
            (实现 beauty-api 接口)                       │
@@ -78,7 +78,6 @@ API 变更必须保证源级兼容（source-compatible）。破坏性变更需�
 |--------|-----------|------|
 | `:app` | `BeautySettings`、`FilterType`、`StyleFilter`、`FaceDetector`、`Face`、`EngineType` | 用户交互读取/设置美颜参数、选择滤镜、切换检测引擎、渲染人脸覆盖层 |
 | `:beauty-engine` | 全部类型 | 实现 `FaceDetector` 和 `BeautyProcessor` 接口、消费所有数据类 |
-| `:agent-core` | `FaceDetector`、`FaceDetectionResult` | Agent 能力调用人脸检测获取结果 |
 
 ---
 
