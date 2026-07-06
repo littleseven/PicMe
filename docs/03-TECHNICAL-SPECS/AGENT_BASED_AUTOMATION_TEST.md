@@ -2,7 +2,7 @@
 
 > **文档类型**: 技术方案 (Technical Spec)
 > **关联文档**: [AGENTS.md](/AGENTS.md), [FEATURES.md](/docs/01-PRODUCT/FEATURES.md)
-> **最后更新**: 2026-06-05
+> **最后更新**: 2026-06-06
 
 ---
 

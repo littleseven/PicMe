@@ -2,7 +2,7 @@
 
 > **文档编号**: TECH-SPEC-MNN-RM-001
 > **关联模块**: `agent-core/src/main/java/com/picme/agent/core/mnn/` (MnnResourceManager), `agent-core/src/main/java/com/picme/agent/core/voice/` (SherpaMnnAsrEngine)
-> **最后更新**: 2026-06-06
+> **最后更新**: 2026-06-17
 
 ---
 

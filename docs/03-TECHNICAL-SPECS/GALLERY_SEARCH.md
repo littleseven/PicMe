@@ -1,7 +1,7 @@
 # PicMe 相册自然语言搜索技术方案
 
 > **状态**: 已实施  
-> **最后更新**: 2026-06-30  
+> **最后更新**: 2026-07-05  
 > **维护者**: RD Agent  
 > **关联代码**: `app/src/main/java/com/mamba/picme/domain/search/`、`app/src/main/java/com/mamba/picme/domain/tag/`、`app/src/main/java/com/mamba/picme/features/gallery/`
 

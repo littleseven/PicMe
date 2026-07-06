@@ -3,7 +3,7 @@
 > **文档类型**：产品 + 技术方案（Product & Technical Proposal）  
 > **针对能力**：AI 一键优化（AI One-Click Image Optimization）  
 > **产品背景**：新路线下相册首页为默认入口，AI 对话为二级助手，IM 远程为 P2 实验线  
-> **最后更新**：2026-07-03  
+> **最后更新**：2026-07-04  
 > **维护者**：PM Agent（产品定义）+ RD Agent（技术实现）
 
 ---

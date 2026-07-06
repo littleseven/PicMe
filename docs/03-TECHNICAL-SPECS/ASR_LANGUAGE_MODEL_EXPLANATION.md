@@ -2,7 +2,7 @@
 
 > **文档编号**: TECH-SPEC-ASR-LM-001
 > **关联模块**: `features/camera/voice/`, `k2fsa/sherpa/mnn/`
-> **最后更新**: 2026-06-06
+> **最后更新**: 2026-06-07
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **文档类型**：技术规范（Technical Specification）  
 > **针对能力**：AI 一键优化（AI One-Click Image Optimization）  
-> **最后更新**：2026-07-03  
+> **最后更新**：2026-07-04  
 > **维护者**：RD Agent（实现）+ CR Agent（合规审查）
 
 ---

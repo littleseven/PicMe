@@ -3,7 +3,7 @@
 > **Review 对象**：基于 Qwen3.5-2B / Qwen3-VL 2B 的本地图像理解与 TAG 生成体系  
 > **Review 范围**：`app/src/main/java/com/mamba/picme/domain/tag/` 及相关 Spec 文档  
 > **Review 重点**：打标体系设计、模型选择合理性、效果、效率、可维护性  
-> **最后更新**：2026-07-04  
+> **最后更新**：2026-07-05  
 
 ---
 
