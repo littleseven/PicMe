@@ -37,6 +37,18 @@ data class ControlledVocab(
             clothing + animal + foodDrink + architecture + nature + transport
     }
 
+    /** MobileCLIP scene 字段候选：直接取 scene 类别 */
+    val sceneCandidates: List<String>
+        get() = scene
+
+    /** MobileCLIP objects 字段候选：直接取 objects 类别 */
+    val objectCandidates: List<String>
+        get() = objects
+
+    /** MobileCLIP tags 字段候选：跨人物、服饰、动物、食物、建筑、自然、交通工具、氛围等类别 */
+    val tagCandidates: List<String>
+        get() = people + clothing + animal + foodDrink + architecture + nature + transport + atmosphere
+
     /**
      * 反向同义词映射：标准词 → 所有同义词列表
      * 用于搜索扩展：搜索"美女"时也能匹配标签"女性"
