@@ -4,7 +4,7 @@
 > - 本文档定义 Agent 的运行时架构、Capability 模型与推理模式选型。
 > - 产品目标与验收口径以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
-> - **重要：`:agent-core` 是 Java 基础库**（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry 等）在 `:app` 模块的 `app/src/main/java/com/mamba/picme/domain/` 目录下。
+> - **重要：`:agent-core` 是 Java 基础库**（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:runtime-core` 模块的 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 目录下。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
 
 **模块定位**: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PicMe）
 **主要维护者**: [RD] 全栈工程师  
@@ -713,6 +713,6 @@ sealed class AgentCommand {
 - [IM_REMOTE_CONTROL_TECH_SPEC.md](../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) — IM 远程控制技术规范
 - [KWS_MIGRATION_TECH_SPEC.md](../03-TECHNICAL-SPECS/KWS_MIGRATION_TECH_SPEC.md) — KWS 唤醒词迁移方案
 - [REMOTE_REACT_ARCHITECTURE_REVIEW.md](../03-TECHNICAL-SPECS/REMOTE_REACT_ARCHITECTURE_REVIEW.md) — ReAct 架构审查
-- `app/src/main/java/com/mamba/picme/domain/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard 等）
+- `runtime-core/src/main/java/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）
 - `agent-core/src/main/java/com/mamba/` — 源码目录（Java 基础库：ChatModel、OpenAiChatModel、Tool、AiServices 等）
 - `app/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt` — Facade 桥接层
