@@ -2,7 +2,7 @@
 
 > **版本**: 1.0  
 > **状态**: 生效中  
-> **最后更新**: 2026-06-30  
+> **最后更新**: 2026-07-06  
 > **维护者**: RD Agent  
 > **范围**: 对 `ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md` 中提出的短期/中期/长期优化方案进行可行性、收益、风险、工时评估
 
@@ -133,8 +133,8 @@
 ### 3.3 人脸检测 GPU 失败 CPU 降级
 
 **背景**
-- `MnnRoiDetector`/`NcnnRoiDetector` 当前 `requireGpu=true`，GPU 初始化失败时检测器为 `null`。
-- 部分中低端设备不支持 OpenCL/Vulkan 或驱动有 Bug。
+- `MnnRoiDetector` 当前 `requireGpu=true`，GPU 初始化失败时检测器为 `null`。
+- 部分中低端设备不支持 OpenCL 或驱动有 Bug。
 
 **收益评估**
 - 提升设备兼容性，避免人脸检测完全失效
@@ -144,9 +144,8 @@
 **技术可行性**
 - 高。需修改：
   - `MnnRoiDetector.kt` / `MnnLandmarkDetector.kt`：GPU 失败时尝试 CPU 后端
-  - `NcnnRoiDetector.kt` / `NcnnLandmarkDetector.kt`：Vulkan 失败时尝试 CPU 后端
   - `FaceDetectorManager`：当 GPU 检测器为 null 时回退到 CPU 检测器
-- MNN/NCNN 均支持 CPU 后端切换。
+- MNN 支持 CPU 后端切换。
 
 **成本**
 - 代码修改：1 天
@@ -397,7 +396,7 @@
 ### 5.1 统一推理框架评估
 
 **背景**
-- 当前同时维护 MNN、NCNN、ONNX Runtime、Sherpa-ONNX、MediaPipe、ML Kit 六套栈。
+- 当前同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe、ML Kit 五套栈。
 
 **候选方案**
 
@@ -496,7 +495,7 @@
 - Glint360K R100 INT8 可能降低聚类准确率。
 
 **依赖**
-- 量化工具链（MNN/NCNN）
+- 量化工具链（MNN/ONNX Runtime）
 - 人脸对齐/聚类评估数据集
 
 **验收指标**
