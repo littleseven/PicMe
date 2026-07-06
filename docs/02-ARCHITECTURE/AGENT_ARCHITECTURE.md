@@ -174,7 +174,7 @@
 │                                                                              │
 │  ┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐ │
 │  │ :agent-core (SDK)    │ │LlmModelDownloadManager│ │ FaceDetect Pipeline  │ │
-│  │ Java Library          │ │前台服务·断点续传       │ │ MediaPipe·MNN·NCNN   │ │
+│  │ Java Library          │ │前台服务·断点续传       │ │ MediaPipe·MNN        │ │
 │  │ ChatModel·@Tool      │ └──────────────────────┘ └──────────────────────┘ │
 │  │ AiServices·SSE       │ ┌──────────────────────┐                           │
 │  └──────────────────────┘ │ Network Monitor      │                           │
