@@ -143,6 +143,8 @@ class TagGenerationScheduler(
         ))
         val llmEngine = AgentOrchestrator.getInstance(context).getLlmEngine()
         val mobileClip = MobileClipEngine(context)
+        val tokenizer = MobileClipTokenizer(context)
+        val classifier = MobileClipTagClassifier(mobileClip, tokenizer, vocab)
         TagGenerationPipeline(
             context = context,
             faceDetector = faceDetector,
@@ -152,7 +154,8 @@ class TagGenerationScheduler(
             openClGuardian = openClGuardian,
             userSettingsRepository = userSettingsRepository,
             mobileClipEngine = mobileClip,
-            mlKitTagExtractor = MlKitTagExtractor(context)
+            mlKitTagExtractor = MlKitTagExtractor(context),
+            mobileClipTagClassifier = classifier
         )
     }
 
@@ -1005,6 +1008,9 @@ class TagGenerationScheduler(
         if (!ensureModelLoaded()) {
             throw IllegalStateException("LLM model not loaded")
         }
+
+        // 预热 MobileCLIP 分类器（首次会预计算候选标签文本 embedding）
+        pipeline.warmUpMobileClipClassifier()
 
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return
