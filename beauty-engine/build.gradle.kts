@@ -52,7 +52,7 @@ android {
 
 dependencies {
     implementation(project(":beauty-api"))
-    implementation(project(":runtime-core"))
+    implementation(project(":mnn-core"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.mediapipe.face.landmarker)
     implementation(libs.kotlinx.coroutines.android)

@@ -260,6 +260,7 @@ dependencies {
     // 美颜引擎模块
     implementation(project(":beauty-engine"))
     implementation(project(":runtime-core"))
+    implementation(project(":mnn-core"))
     // sherpa-onnx: runtime-core 编译期依赖，app 模块提供运行时 AAR 打包
     implementation(files("../runtime-core/libs/sherpa-onnx-1.13.3.aar"))
     // Agent 核心模块（将来提取独立库）

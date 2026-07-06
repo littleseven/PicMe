@@ -1,7 +1,7 @@
 package com.mamba.picme.beauty.internal.facedetect.mnn
 
 import android.graphics.Bitmap
-import com.mamba.picme.agent.core.platform.mnn.MnnGlobalReleaseLock
+import com.mamba.picme.mnn.MnnGlobalReleaseLock
 import com.mamba.picme.beauty.api.Logger
 import java.nio.ByteBuffer
 

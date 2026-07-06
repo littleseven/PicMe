@@ -83,7 +83,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
-import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
+import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.agent.core.runtime.state.SceneManager

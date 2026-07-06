@@ -7,8 +7,8 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.RectF
 import android.os.SystemClock
-import com.mamba.picme.agent.core.platform.mnn.MnnGlobalReleaseLock
-import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
+import com.mamba.picme.mnn.MnnGlobalReleaseLock
+import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.beauty.api.Logger
 import com.mamba.picme.beauty.api.facedetect.FaceDetection
 import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector

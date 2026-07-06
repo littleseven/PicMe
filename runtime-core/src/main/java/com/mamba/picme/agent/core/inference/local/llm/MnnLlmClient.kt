@@ -3,7 +3,7 @@ package com.mamba.picme.agent.core.inference.local.llm
 import android.content.Context
 import android.graphics.Bitmap
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.mnn.MnnGlobalReleaseLock
+import com.mamba.picme.mnn.MnnGlobalReleaseLock
 import org.json.JSONObject
 import java.io.File
 

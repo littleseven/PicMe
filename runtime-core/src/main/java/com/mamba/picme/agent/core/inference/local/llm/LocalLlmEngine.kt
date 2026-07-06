@@ -10,8 +10,8 @@ import com.mamba.picme.agent.core.local.llm.StreamingLlmChatLanguageModel
 import com.mamba.picme.agent.core.local.llm.StreamingChatResponseHandler
 import com.mamba.picme.agent.core.inference.local.llm.MnnLlmClient.NativeReleaseTarget
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.mnn.MnnGlobalReleaseLock
-import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
+import com.mamba.picme.mnn.MnnGlobalReleaseLock
+import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.data.message.AiMessage
 import com.mamba.data.message.ChatMessage

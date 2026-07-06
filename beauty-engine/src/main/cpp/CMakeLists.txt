@@ -22,18 +22,13 @@ else()
     message(FATAL_ERROR "MNN headers not found. Please ensure MNN is set up.")
 endif()
 
-# MNN 库路径（优先从 runtime-core 的 jniLibs 查找，回退到自身 jniLibs）
-set(MNN_LIB_DIR_RUNTIME_CORE "${CMAKE_CURRENT_SOURCE_DIR}/../../../../runtime-core/src/main/jniLibs/${ANDROID_ABI}")
-set(MNN_LIB_DIR_SELF "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}")
+# MNN 库路径（从 :mnn-core 的 jniLibs 查找）
+set(MNN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../mnn-core/src/main/jniLibs/${ANDROID_ABI}")
 
-if(EXISTS "${MNN_LIB_DIR_RUNTIME_CORE}/libMNN.so")
-    set(MNN_LIB_DIR ${MNN_LIB_DIR_RUNTIME_CORE})
-    message(STATUS "Using MNN from runtime-core: ${MNN_LIB_DIR}")
-elseif(EXISTS "${MNN_LIB_DIR_SELF}/libMNN.so")
-    set(MNN_LIB_DIR ${MNN_LIB_DIR_SELF})
-    message(STATUS "Using MNN from beauty-engine: ${MNN_LIB_DIR}")
+if(EXISTS "${MNN_LIB_DIR}/libMNN.so")
+    message(STATUS "Using MNN from mnn-core: ${MNN_LIB_DIR}")
 else()
-    message(FATAL_ERROR "libMNN.so not found in runtime-core or beauty-engine jniLibs")
+    message(FATAL_ERROR "libMNN.so not found in mnn-core jniLibs")
 endif()
 
 set(MNN_SO_PATH "${MNN_LIB_DIR}/libMNN.so")

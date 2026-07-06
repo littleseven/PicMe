@@ -1,4 +1,4 @@
-package com.mamba.picme.agent.core.platform.mnn
+package com.mamba.picme.mnn
 
 import android.app.ActivityManager
 import android.app.Application
@@ -6,7 +6,6 @@ import android.content.ComponentCallbacks2
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import com.mamba.picme.agent.core.platform.logging.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -158,12 +157,12 @@ class MnnResourceManager private constructor(context: Context) {
             "llm" -> ModelState.entries[llmModelState.getAndSet(newState.ordinal)]
             "face" -> ModelState.entries[faceModelState.getAndSet(newState.ordinal)]
             else -> {
-                Logger.w(TAG, "Unknown module for setModelState: $module")
+                MnnLogger.w(TAG, "Unknown module for setModelState: $module")
                 return
             }
         }
         if (oldState != newState) {
-            Logger.i(TAG, "ModelState: $module $oldState -> $newState")
+            MnnLogger.i(TAG, "ModelState: $module $oldState -> $newState")
         }
     }
 
@@ -215,12 +214,12 @@ class MnnResourceManager private constructor(context: Context) {
                 override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {}
 
                 override fun onLowMemory() {
-                    Logger.w(TAG, "System onLowMemory triggered")
+                    MnnLogger.w(TAG, "System onLowMemory triggered")
                     handleMemoryPressure(ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
                 }
 
                 override fun onTrimMemory(level: Int) {
-                    Logger.d(TAG, "onTrimMemory level=$level")
+                    MnnLogger.d(TAG, "onTrimMemory level=$level")
                     handleMemoryPressure(level)
                 }
             })
@@ -245,7 +244,7 @@ class MnnResourceManager private constructor(context: Context) {
         val oldScene = Scene.entries[currentScene.getAndSet(newScene.ordinal)]
         if (oldScene == newScene) return
 
-        Logger.i(TAG, "Scene changed: $oldScene -> $newScene")
+        MnnLogger.i(TAG, "Scene changed: $oldScene -> $newScene")
 
         when (newScene) {
             Scene.CAMERA -> {
@@ -300,12 +299,12 @@ class MnnResourceManager private constructor(context: Context) {
     }
 
     fun releaseAtLevel(module: String, level: ReleaseLevel) {
-        Logger.i(TAG, "releaseAtLevel: module=$module, level=$level")
+        MnnLogger.i(TAG, "releaseAtLevel: module=$module, level=$level")
         val callback = when (module.lowercase()) {
             "llm" -> llmReleaseCallbacks[level]
             "face" -> faceReleaseCallbacks[level]
             else -> {
-                Logger.w(TAG, "Unknown module for release: $module")
+                MnnLogger.w(TAG, "Unknown module for release: $module")
                 null
             }
         }
@@ -328,7 +327,7 @@ class MnnResourceManager private constructor(context: Context) {
      */
     fun acquireLlm(owner: String) {
         val count = llmRefCount.incrementAndGet()
-        Logger.d(TAG, "LLM acquired by $owner, refCount=$count")
+        MnnLogger.d(TAG, "LLM acquired by $owner, refCount=$count")
         cancelBackgroundUnload()
     }
 
@@ -345,17 +344,17 @@ class MnnResourceManager private constructor(context: Context) {
         onSoftRelease: () -> Unit
     ) {
         val count = llmRefCount.decrementAndGet()
-        Logger.d(TAG, "LLM released by $owner, refCount=$count")
+        MnnLogger.d(TAG, "LLM released by $owner, refCount=$count")
 
         if (count <= 0) {
             synchronized(this) {
                 llmRefCount.set(0)
                 if (!hasOtherReferences(excludeLlm = true)) {
-                    Logger.i(TAG, "LLM safe to unload (no other references)")
+                    MnnLogger.i(TAG, "LLM safe to unload (no other references)")
                     // 使用 MNN 全局锁串行化 native 释放
                     MnnGlobalReleaseLock.withLock { onSafeUnload() }
                 } else {
-                    Logger.i(TAG, "LLM soft release (other references active)")
+                    MnnLogger.i(TAG, "LLM soft release (other references active)")
                     onSoftRelease()
                 }
             }
@@ -367,7 +366,7 @@ class MnnResourceManager private constructor(context: Context) {
      */
     fun acquireFaceDetection(owner: String) {
         val count = faceDetectionRefCount.incrementAndGet()
-        Logger.d(TAG, "FaceDetection acquired by $owner, refCount=$count")
+        MnnLogger.d(TAG, "FaceDetection acquired by $owner, refCount=$count")
         cancelFaceDetectionUnload()
         cancelBackgroundUnload()
     }
@@ -381,17 +380,17 @@ class MnnResourceManager private constructor(context: Context) {
         onSoftRelease: () -> Unit
     ) {
         val count = faceDetectionRefCount.decrementAndGet()
-        Logger.d(TAG, "FaceDetection released by $owner, refCount=$count")
+        MnnLogger.d(TAG, "FaceDetection released by $owner, refCount=$count")
 
         if (count <= 0) {
             synchronized(this) {
                 faceDetectionRefCount.set(0)
                 if (!hasOtherReferences(excludeFaceDetection = true)) {
-                    Logger.i(TAG, "FaceDetection safe to unload (no other references)")
+                    MnnLogger.i(TAG, "FaceDetection safe to unload (no other references)")
                     // 使用 MNN 全局锁串行化 native 释放
                     MnnGlobalReleaseLock.withLock { onSafeUnload() }
                 } else {
-                    Logger.i(TAG, "FaceDetection soft release (other references active)")
+                    MnnLogger.i(TAG, "FaceDetection soft release (other references active)")
                     onSoftRelease()
                 }
             }
@@ -406,7 +405,7 @@ class MnnResourceManager private constructor(context: Context) {
     fun onAppForeground() {
         _isAppInForeground.set(true)
         cancelBackgroundUnload()
-        Logger.i(TAG, "App entered foreground")
+        MnnLogger.i(TAG, "App entered foreground")
     }
 
     /**
@@ -414,19 +413,19 @@ class MnnResourceManager private constructor(context: Context) {
      */
     fun onAppBackground() {
         _isAppInForeground.set(false)
-        Logger.i(TAG, "App entered background, scheduling unload")
+        MnnLogger.i(TAG, "App entered background, scheduling unload")
 
         if (backgroundUnloadScheduled.compareAndSet(false, true)) {
             scope.launch {
                 delay(BACKGROUND_UNLOAD_DELAY_MS)
                 if (!isAppInForeground && !isAnyRequested) {
-                    Logger.i(TAG, "Background timeout, triggering soft trim for all")
+                    MnnLogger.i(TAG, "Background timeout, triggering soft trim for all")
                     notifySoftTrim()
                 }
 
                 delay(BACKGROUND_FORCE_UNLOAD_DELAY_MS - BACKGROUND_UNLOAD_DELAY_MS)
                 if (!isAppInForeground && !isAnyRequested) {
-                    Logger.i(TAG, "Background force unload timeout, triggering safe unload")
+                    MnnLogger.i(TAG, "Background force unload timeout, triggering safe unload")
                     notifySafeUnload()
                 }
                 backgroundUnloadScheduled.set(false)
@@ -449,22 +448,22 @@ class MnnResourceManager private constructor(context: Context) {
     private fun handleMemoryPressure(level: Int) {
         when (level) {
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE -> {
-                Logger.i(TAG, "Memory pressure: MODERATE, soft trim")
+                MnnLogger.i(TAG, "Memory pressure: MODERATE, soft trim")
                 notifySoftTrim()
             }
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW,
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> {
-                Logger.i(TAG, "Memory pressure: LOW/CRITICAL, force unload")
+                MnnLogger.i(TAG, "Memory pressure: LOW/CRITICAL, force unload")
                 notifySafeUnload()
             }
             ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> {
                 if (!isAnyRequested) {
-                    Logger.i(TAG, "UI hidden, scheduling unload")
+                    MnnLogger.i(TAG, "UI hidden, scheduling unload")
                     onAppBackground()
                 }
             }
             ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> {
-                Logger.w(TAG, "Memory pressure: COMPLETE, emergency unload")
+                MnnLogger.w(TAG, "Memory pressure: COMPLETE, emergency unload")
                 notifySafeUnload()
             }
         }
@@ -484,7 +483,7 @@ class MnnResourceManager private constructor(context: Context) {
         }
 
         if (level != MemoryPressureLevel.NORMAL) {
-            Logger.w(TAG, "Native memory pressure: $level (heap=${nativeHeapMB}MB)")
+            MnnLogger.w(TAG, "Native memory pressure: $level (heap=${nativeHeapMB}MB)")
             notifyMemoryPressure(level)
         }
 
@@ -555,7 +554,7 @@ class MnnResourceManager private constructor(context: Context) {
             delay(FACE_DETECTION_UNLOAD_DELAY_MS)
             // 强制重置引用计数，场景驱动不受引用计数约束
             val refCount = faceDetectionRefCount.getAndSet(0)
-            Logger.i(TAG, "Force unload face detection: refCount was $refCount, reset to 0")
+            MnnLogger.i(TAG, "Force unload face detection: refCount was $refCount, reset to 0")
             notifyFaceDetectionUnload()
             faceDetectionUnloadScheduled.set(false)
         }

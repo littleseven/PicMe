@@ -7,7 +7,7 @@ import android.graphics.RectF
 import android.hardware.camera2.CameraCharacteristics
 import android.media.Image
 import android.os.SystemClock
-import com.mamba.picme.agent.core.platform.mnn.MnnResourceManager
+import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.beauty.api.Logger
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.EngineType

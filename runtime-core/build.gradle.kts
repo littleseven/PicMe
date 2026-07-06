@@ -26,12 +26,6 @@ android {
         }
     }
 
-    sourceSets {
-        getByName("main") {
-            jniLibs.srcDirs("src/main/jniLibs")
-        }
-    }
-
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -48,6 +42,7 @@ android {
 
 dependencies {
     implementation(project(":beauty-api"))
+    implementation(project(":mnn-core"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)

@@ -101,6 +101,7 @@ beauty-engine/src/main/java/com/picme/beauty/
 - `beauty-engine:api/` 包：可依赖 `:beauty-api`，**禁止**依赖 `render/`、`androidx.camera.*`、`features.*`、`data.*`
 - `render/` 包：允许实现 `api/` 接口，允许依赖 `android.*` 和 OpenGL ES 相关库
 - `:beauty-api` 模块：零 Android/OpenGL 依赖，纯 Kotlin
+- `:beauty-engine` 模块：依赖 `:beauty-api` 和 `:mnn-core`（MNN native 库与资源锁），**禁止**依赖 `:runtime-core` 或 `:app`
 
 ### 2.2 对外 API 层 (`api/`)
 

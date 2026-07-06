@@ -30,10 +30,11 @@
 :runtime-core
     ├── :agent-core (api)
     ├── :beauty-api
+    ├── :mnn-core
     └── Sherpa-ONNX AAR (compileOnly)
 ```
 
-> 注意：`:runtime-core` **不**应被 `:beauty-engine` 依赖。MNN 资源管理由 `:runtime-core` 内部的 `platform.mnn` 包负责，通过 `MnnResourceManager` 统一加载与释放。
+> 注意：`:runtime-core` **不**应被 `:beauty-engine` 依赖。MNN 资源管理已下沉到独立模块 `:mnn-core`，`:beauty-engine` 通过 `:mnn-core` 共享 MNN 资源。
 
 ## 核心组件位置
 
@@ -67,9 +68,9 @@
 | `ToolCallCommandParser` | tool_calls 命令解析器（name + arguments → AgentCommand） | `agent.core.inference.remote.parser` |
 | `PicMeToolService` | 远程推理 @Tool 注解工具集 | `agent.core.inference.remote.tool` |
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
-| `MnnResourceManager` | MNN 资源管理 | `agent.core.platform.mnn` |
 | `Logger` | 日志接口 | `agent.core.platform.logging` |
 | `ThreadPoolManager` | 线程池管理 | `agent.core.platform.thread` |
+| `MnnResourceManager` / `MnnGlobalReleaseLock` | MNN 资源管理 | `:mnn-core`（已下沉） |
 | `ExecutionEngine` / `ExecutionReporter` / `ExecutionState` / `InferenceResult` | 执行引擎与执行状态 | `agent.core.runtime.execution` |
 | `AgentCommands` / `AgentModels` / `AiAgentConfig` / `MediaAsset` / `PageContext` / `SceneContext` / `ExecutionPlan` | 数据模型 | `agent.core.model.*` |
 | `AsrEngine` / `AudioRecorder` / `VadDetector` / `SherpaOnnxAsrEngine` / `KeywordSpotterEngine` | 语音交互（Sherpa-ONNX） | `agent.core.platform.voice` |
@@ -84,7 +85,7 @@
 | `inference/` | `local/...`, `remote/...` | 本地/远程推理管道（pipeline、llm、parser、prompt、react、tool） |
 | `local/` | `llm/ChatModel`, `StreamingChatModel`, `ChatMessage`, `ChatRequest`, `ChatResponse`, 等 | 与 LangChain4j API 对齐的自定义纯 Kotlin 模型层（为本地/远程推理提供标准化接口） |
 | `model/` | `command/`, `config/`, `context/`, `plan/` | 数据模型 |
-| `platform/` | `logging/`, `mnn/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、MNN 资源、存储、线程、语音 |
+| `platform/` | `logging/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、存储、线程、语音 |
 | `remote/` | `config/` | 远程模型配置与工厂 |
 | `runtime/` | `cache/`, `capability/`, `execution/`, `policy/`, `state/` | 运行时能力：缓存、Capability、执行、隐私策略、场景状态 |
 | `tool/` | `accessibility/`, `perception/`, `CameraToolHelper` | Agent 工具与辅助功能 |
@@ -191,9 +192,6 @@
 
 ### `platform/logging/`
 - `Logger.kt` — 日志接口
-
-### `platform/mnn/`
-- `MnnResourceManager.kt` — MNN 资源管理
 
 ### `platform/storage/`
 - `DataStoreChatMemoryStore.kt` — DataStore ChatMemory 存储
