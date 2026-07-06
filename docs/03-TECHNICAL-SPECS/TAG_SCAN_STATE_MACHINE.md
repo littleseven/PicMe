@@ -1,5 +1,11 @@
 # TAG 扫描状态机
 
+> **版本**: 1.0  
+> **状态**: 生效中  
+> **最后更新**: 2026-07-06  
+> **维护者**: RD Agent  
+
+
 > 文档位置：`docs/03-TECHNICAL-SPECS/TAG_SCAN_STATE_MACHINE.md`
 > 关联实现：`app/src/main/java/com/mamba/picme/domain/tag/scan/TagScanOrchestrator.kt`
 > 最后更新：2026-06-30

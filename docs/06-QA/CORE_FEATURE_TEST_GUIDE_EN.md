@@ -1,5 +1,11 @@
 # PicMe Core Feature Test Guide
 
+> **版本**: 1.0  
+> **状态**: 生效中  
+> **最后更新**: 2026-07-06  
+> **维护者**: RD Agent  
+
+
 > Version: v1.0.2 | Updated: 2026-06-25
 >
 > This guide covers the core feature test procedures for the PicMe app, including model downloads, permission grants, photo capture, tag generation, and AI chat.

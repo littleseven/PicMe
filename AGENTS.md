@@ -234,7 +234,7 @@ langchain4android 的文档设计为**机器可读、交叉引用完整**，AI �
 ```
 PRODUCT.md (What: 目标与约束)
     ↓ 引用
-FEATURES.md (How: 交互与体验)
+docs/01-PRODUCT/FEATURES.md (How: 交互与体验)
     ↓ 引用
 模块 AGENTS.md (Implementation: 实现约束)
     ↓ 反向链接

@@ -1,5 +1,10 @@
 # IM 远程控制技术规格
 
+> **版本**: 1.0  
+> **状态**: 实验线 / 参考文档  
+> **最后更新**: 2026-07-06  
+> **维护者**: RD Agent  
+
 > **新增产品线（2026-06-17）**：通过飞书等 IM 即时通讯 + LLM 实现 App 远程控制的技术架构设计。
 >
 > **方案变更（2026-06-17）**：从 SCF Relay Server 架构变更为设备端直连飞书 WebSocket，参考 [ApkClaw](https://github.com/apkclaw-team/ApkClaw) 的 Feishu OAPI SDK 集成方案，去除云端中转服务，架构更简洁、零基础设施成本。

@@ -1,5 +1,11 @@
 # 技术文档：帧同步美妆系统（Frame-Sync Makeup System）
 
+> **版本**: 1.0  
+> **状态**: 生效中  
+> **最后更新**: 2026-07-06  
+> **维护者**: RD Agent  
+
+
 **版本**：1.1
 **状态**：🔄 部分实现（核心组件 FrameSyncManager / MotionTracker / FrameSyncBridge 已落地；预测补偿算法与 hide 降级策略待收尾）
 > ⚠️ **审计备注（2026-06）**：`DetectionQueue` 和 `FaceDetectionWorker` 为**设计期概念**，从未实际落地（对应 .kt 文件不存在）。当前使用同步检测路径（CameraFrameAnalyzer 直接调用 faceDetector.detect()）。本文档 Section 3.2 及 10(代码变更清单) 中关于 DetectionQueue 的内容均为设计方案，非已落地代码。
