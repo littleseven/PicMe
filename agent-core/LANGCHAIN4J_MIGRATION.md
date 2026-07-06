@@ -1,14 +1,14 @@
-# Mamba Agent 模块：LangChain4j 合并改造记录
+# agent-core 模块：LangChain4j 合并改造记录
 
-> 文档定位：技术留底，记录 mamba-agent 模块如何从 langchain4j 多模块合并为单模块，以及关键改动点。
+> 文档定位：技术留底，记录 agent-core 模块如何从 langchain4j 多模块合并为单模块，以及关键改动点。
 > 创建时间：2026-06-19
-> 关联模块：`mamba-agent`
+> 关联模块：`:agent-core`
 
 ---
 
 ## 1. 改造目标
 
-将 langchain4j 的以下三个模块合并为 PicMe 项目的单个 Android Library 模块 `mamba-agent`：
+将 langchain4j 的以下三个模块合并为 PicMe 项目的单个 Android Library 模块 `:agent-core`：
 
 | 原模块 | 来源 | 合并方式 |
 |--------|------|----------|
@@ -23,7 +23,7 @@
 ## 2. 模块结构
 
 ```
-mamba-agent/
+agent-core/
 ├── build.gradle                          # Android Library 构建配置
 ├── consumer-rules.pro                    # ProGuard 规则
 ├── src/main/java/com/mamba/
@@ -200,7 +200,7 @@ dependencies {
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation(project(":mamba-agent"))
+    implementation(project(":agent-core"))
 }
 ```
 
@@ -220,7 +220,7 @@ val response = chatModel.chat("Hello")
 
 ## 6. 注意事项
 
-1. **ServiceLoader 机制**：`mamba-agent` 内部仍使用 `ServiceHelper.loadFactories()` 进行 SPI 加载，但所有 SPI 工厂类已合并到同一模块中。
+1. **ServiceLoader 机制**：`:agent-core` 内部仍使用 `ServiceHelper.loadFactories()` 进行 SPI 加载，但所有 SPI 工厂类已合并到同一模块中。
 
 2. **Jackson 依赖**：OpenAI DTO 的序列化/反序列化仍依赖 Jackson（`jackson-databind`），但项目其他部分优先使用 Gson。
 
