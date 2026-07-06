@@ -155,7 +155,6 @@ internal data class CameraPreviewActions(
     val onToggleVoiceControl: () -> Unit,
     val onToggleAiAgentPanel: () -> Unit,
     val onToggleProPanel: () -> Unit,
-    val onAsrRelease: () -> Unit = {},
     val onLlmRelease: () -> Unit = {},
     val onFaceDetectRelease: () -> Unit = {},
     val onNavigateBack: () -> Unit = {}
@@ -265,7 +264,6 @@ internal fun buildCameraPreviewActions(
     onToggleVoiceControl: () -> Unit,
     onToggleAiAgentPanel: () -> Unit,
     onToggleLogs: () -> Unit,
-    onAsrRelease: () -> Unit = {},
     onLlmRelease: () -> Unit = {},
     onFaceDetectRelease: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
@@ -315,7 +313,6 @@ internal fun buildCameraPreviewActions(
                 onPanelVisibilityChanged = { isVisible -> panelState.showGridSelector = isVisible }
             )
         },
-        onAsrRelease = onAsrRelease,
         onLlmRelease = onLlmRelease,
         onFaceDetectRelease = onFaceDetectRelease,
         onToggleLogs = onToggleLogs,

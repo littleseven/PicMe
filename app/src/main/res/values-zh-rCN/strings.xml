@@ -407,6 +407,20 @@
     <string name="essential_models_download_later">暂不下载</string>
     <string name="essential_models_download_progress">正在下载…</string>
 
+    <!-- 相册必须模型下载 -->
+    <string name="gallery_required_models_download_title">下载相册必备模型</string>
+    <string name="gallery_required_models_download_message">相册打标、人脸识别或语义搜索所需模型尚未下载，缺少这些模型将无法自动扫描照片和智能搜索。是否立即下载？</string>
+    <string name="gallery_required_models_download_button">一键下载</string>
+    <string name="gallery_required_models_download_later">暂不下载</string>
+    <string name="gallery_required_models_download_progress">正在下载…</string>
+
+    <!-- 聊天模型下载 -->
+    <string name="chat_models_download_title">下载聊天模型</string>
+    <string name="chat_models_download_message">本地聊天、语音输入或唤醒词所需模型尚未下载，缺少这些模型将无法使用本地对话和语音功能。是否立即下载？</string>
+    <string name="chat_models_download_button">一键下载</string>
+    <string name="chat_models_download_later">暂不下载</string>
+    <string name="chat_models_download_progress">正在下载…</string>
+
 
     <!-- 悬浮聊天入口 -->
     <string name="floating_chat_title">AI 聊天</string>

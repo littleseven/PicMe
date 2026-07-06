@@ -15,12 +15,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -129,6 +125,11 @@ class MainActivity : ComponentActivity() {
                 currentLanguage = appLanguage
             }
 
+            // 进入应用且处于 WiFi 时，后台静默下载缺失的 Tier 1 + Tier 2 模型
+            LaunchedEffect(Unit) {
+                settingsViewModel.startSilentDownloadIfWifi()
+            }
+
             CompositionLocalProvider(
                 LocalConfiguration provides Configuration(context.resources.configuration).apply {
                     setLocale(getLocaleFromLanguage(appLanguage))
@@ -212,6 +213,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 ChatScreen(
                                     viewModel = chatViewModel,
+                                    settingsViewModel = settingsViewModel,
                                     onNavigateBack = { navController.popBackStack() },
                                     onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) }
                                 )
@@ -242,6 +244,7 @@ class MainActivity : ComponentActivity() {
                                 GalleryScreen(
                                     navController = navController,
                                     viewModel = mediaViewModel,
+                                    settingsViewModel = settingsViewModel,
                                     onNavigateToChat = { navController.navigate(Screen.Chat.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToCamera = { navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
@@ -431,14 +434,6 @@ class MainActivity : ComponentActivity() {
                     if (showLogOverlay) {
                         LogOverlay(onDismiss = { settingsViewModel.setShowLogOverlay(false) })
                     }
-
-                    // 必要模型一键下载提示（由 CameraScreen 在进入相机 3 秒后触发）
-                    EssentialModelsDownloadDialog(
-                        showPrompt = settingsViewModel.showEssentialModelsPrompt.collectAsState().value,
-                        isDownloading = settingsViewModel.isBatchDownloading.collectAsState().value,
-                        onDownload = { settingsViewModel.startBatchDownload() },
-                        onDismiss = { settingsViewModel.dismissDownloadPrompt() }
-                    )
                 }
             }
         }
@@ -452,47 +447,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         testEntryPoint?.release()
-    }
-
-    @Composable
-    private fun EssentialModelsDownloadDialog(
-        showPrompt: Boolean,
-        isDownloading: Boolean,
-        onDownload: () -> Unit,
-        onDismiss: () -> Unit
-    ) {
-        if (!showPrompt) return
-        AlertDialog(
-            onDismissRequest = { if (!isDownloading) onDismiss() },
-            title = {
-                Text(text = stringResource(R.string.essential_models_download_title))
-            },
-            text = {
-                Text(text = stringResource(R.string.essential_models_download_message))
-            },
-            confirmButton = {
-                Button(
-                    onClick = onDownload,
-                    enabled = !isDownloading
-                ) {
-                    Text(
-                        text = if (isDownloading) {
-                            stringResource(R.string.essential_models_download_progress)
-                        } else {
-                            stringResource(R.string.essential_models_download_button)
-                        }
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = onDismiss,
-                    enabled = !isDownloading
-                ) {
-                    Text(text = stringResource(R.string.essential_models_download_later))
-                }
-            }
-        )
     }
 
     private fun getLocaleFromLanguage(language: AppLanguage): Locale {

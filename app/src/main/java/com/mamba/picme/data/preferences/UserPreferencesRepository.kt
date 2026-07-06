@@ -299,7 +299,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             }
         }
         .map { preferences ->
-            preferences[PreferencesKeys.DEBUG_UI_ENABLED] ?: true
+            preferences[PreferencesKeys.DEBUG_UI_ENABLED] ?: false
         }
 
     override suspend fun updateDebugUiEnabled(enabled: Boolean) {

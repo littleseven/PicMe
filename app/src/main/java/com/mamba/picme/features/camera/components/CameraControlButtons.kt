@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.FilterBAndW
 import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Landscape
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -45,7 +44,6 @@ fun CameraLeftControls(
     onToggleLogOverlay: () -> Unit,
     debugUiEnabled: Boolean,
     showLogOverlay: Boolean,
-    onAsrRelease: () -> Unit = {},
     onLlmRelease: () -> Unit = {},
     onFaceDetectRelease: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
@@ -64,14 +62,6 @@ fun CameraLeftControls(
                 icon = Icons.Rounded.Terminal,
                 onClick = onToggleLogOverlay,
                 isActive = showLogOverlay
-            )
-
-            // ASR 全量释放
-            ControlButton(
-                icon = Icons.Rounded.Mic,
-                onClick = onAsrRelease,
-                tint = Color(0xFFFF9800),
-                modifier = Modifier.size(36.dp)
             )
 
             // LLM 全量释放

@@ -1,6 +1,7 @@
 package com.mamba.picme.domain.tag.scan
 
 import android.content.Context
+import android.os.PowerManager
 import android.util.Log
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.dao.StatusCount
@@ -150,6 +151,14 @@ class TagScanOrchestrator(
 
     private val sessionMutex = Mutex()
     private var activeSessionId: String? = null
+
+    /** 扫描期间持有 partial wake lock，防止息屏后 CPU 休眠导致任务挂起 */
+    private val wakeLock: PowerManager.WakeLock by lazy {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PicMe:TagScanWakeLock").apply {
+            setReferenceCounted(false)
+        }
+    }
 
     /** 每个 Pass 最近 N 次任务耗时，用于估算剩余时间 */
     private val recentDurationsMs = mutableMapOf<TagScanPass, ArrayDeque<Long>>()
@@ -604,6 +613,7 @@ class TagScanOrchestrator(
     private suspend fun runSession(sessionId: String) {
         updateProgressState(sessionId, ScanSessionState.RUNNING)
         logInfo(sessionId, "会话开始运行")
+        acquireWakeLock()
 
         var qwenModelPrepared = false
 
@@ -647,6 +657,8 @@ class TagScanOrchestrator(
         } catch (e: Exception) {
             logError(sessionId, "会话异常: ${e.message}")
             updateProgressState(sessionId, ScanSessionState.PAUSED)
+        } finally {
+            releaseWakeLock()
         }
     }
 
@@ -884,13 +896,33 @@ class TagScanOrchestrator(
     // ═══════════════════════════════════════════════════════════
 
     private suspend fun maybeResumeOnStartup() {
-        // 简单策略：启动时不自动恢复，避免用户不知情时后台运行
-        // 如需自动恢复，可在此处查询活跃会话并 startSession
+        // 自动恢复 Service 被系统杀死后遗留的待处理会话：
+        // init 块已先调用 resetRunningToPending()，将异常中断的 RUNNING 任务重置为 PENDING。
+        val pendingSession = db.tagScanTaskDao().findSessionsByStatus(TagScanTaskStatus.PENDING)
+            .firstOrNull()
+            ?: return
+        logInfo(pendingSession, "Service 重建，自动恢复待处理会话")
+        startSession(pendingSession)
     }
 
     private suspend fun findFirstPausedSession(): String? {
-        // Room 没有直接按状态查 sessionId 的方法，这里简化处理
-        return null
+        return db.tagScanTaskDao().findSessionsByStatus(TagScanTaskStatus.PAUSED).firstOrNull()
+    }
+
+    private fun acquireWakeLock() {
+        try {
+            if (!wakeLock.isHeld) wakeLock.acquire()
+        } catch (e: Exception) {
+            Log.w(TAG, " acquire wake lock failed: ${e.message}")
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            if (wakeLock.isHeld) wakeLock.release()
+        } catch (e: Exception) {
+            Log.w(TAG, " release wake lock failed: ${e.message}")
+        }
     }
 
     private fun newSessionId(): String = "tag-${UUID.randomUUID().toString().substring(0, 8)}"

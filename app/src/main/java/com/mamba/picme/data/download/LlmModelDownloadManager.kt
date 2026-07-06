@@ -1280,18 +1280,28 @@ data class ModelConfig(
 ) {
     companion object {
         /**
-         * 必须模型 ID 集合
-         * Det10G 已降级为可选，Det500M 成为默认人脸检测必须模型。
+         * 必须模型 ID 集合（Tier 1：相册扫描/创建 TAG 相关，最高优先）
+         *
+         * 当用户进入相册启动自动扫描前，必须确保这些模型已下载。
+         * 本地 LLM、ASR、KWS 已移出必须列表，改为聊天页提醒。
          */
         val REQUIRED_MODEL_IDS = setOf(
-            "qwen3_5_2b",                // 本地 LLM（文字/多模态对话）
-            "sherpa-onnx-zipformer-zh-en", // ASR（语音输入）
-            "sherpa-onnx-kws-zipformer-wenetspeech", // KWS（唤醒词）
             "face-det-retina500m-mnn",  // MNN ROI (Det500M)
             "face-landmark-2d106-mnn",  // MNN 2D106
             "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
             "mobileclip-onnx",          // 语义搜索/相册打标
             "opus-mt-zh-en"             // 中文查询翻译
+        )
+
+        /**
+         * 聊天/语音/本地 LLM 相关模型 ID 集合（Tier 2：次高优先）
+         *
+         * 不在相册必须列表中，仅在聊天页提醒下载。
+         */
+        val CHAT_MODEL_IDS = setOf(
+            "qwen3_5_2b",                // 本地 LLM（文字/多模态对话）
+            "sherpa-onnx-zipformer-zh-en", // ASR（语音输入）
+            "sherpa-onnx-kws-zipformer-wenetspeech" // KWS（唤醒词）
         )
     }
 

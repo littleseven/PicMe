@@ -206,6 +206,19 @@ interface TagScanTaskDao {
         """
     )
     suspend fun hasActiveTasks(): Boolean
+
+    /**
+     * 查询包含指定状态任务的会话 ID 列表（按最近创建时间倒序）
+     */
+    @Query(
+        """
+        SELECT sessionId FROM tag_scan_tasks
+        WHERE status = :status
+        GROUP BY sessionId
+        ORDER BY MAX(createdAt) DESC
+        """
+    )
+    suspend fun findSessionsByStatus(status: TagScanTaskStatus): List<String>
 }
 
 data class StatusCount(

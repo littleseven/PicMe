@@ -428,6 +428,20 @@
     <string name="essential_models_download_later">Not Now</string>
     <string name="essential_models_download_progress">Downloading…</string>
 
+    <!-- Gallery Required Models Download -->
+    <string name="gallery_required_models_download_title">Download Required Models</string>
+    <string name="gallery_required_models_download_message">Album tagging, face recognition, and semantic search models are not downloaded. Without them, auto tag scanning and smart search will be unavailable. Download now?</string>
+    <string name="gallery_required_models_download_button">Download All</string>
+    <string name="gallery_required_models_download_later">Not Now</string>
+    <string name="gallery_required_models_download_progress">Downloading…</string>
+
+    <!-- Chat Models Download -->
+    <string name="chat_models_download_title">Download Chat Models</string>
+    <string name="chat_models_download_message">Local chat, voice input, and wake word models are not downloaded. Download now?</string>
+    <string name="chat_models_download_button">Download All</string>
+    <string name="chat_models_download_later">Not Now</string>
+    <string name="chat_models_download_progress">Downloading…</string>
+
 
     <!-- Floating Chat Bubble -->
     <string name="floating_chat_title">AI Chat</string>

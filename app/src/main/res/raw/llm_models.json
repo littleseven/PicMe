@@ -53,7 +53,7 @@
       "visual.mnn",
       "visual.mnn.weight"
     ],
-    "tags": ["must-have", "chat", "reasoning", "multilingual", "vision"]
+    "tags": ["chat", "reasoning", "multilingual", "vision"]
   },
   {
     "id": "face-det-retina10g-mnn",

@@ -456,11 +456,7 @@ fun CameraContent(
         CameraThreadRegistry.initialize()
     }
 
-    // 进入相机 3 秒后检查必要模型，避免应用启动时立即打扰用户
-    LaunchedEffect(Unit) {
-        delay(3000)
-        settingsViewModel?.checkEssentialModels()
-    }
+
 
     // [Day1 线程隔离] 分析线程与拍照线程分离，避免人脸检测阻塞拍照回调
     val analysisExecutor = remember {
@@ -1740,18 +1736,6 @@ CameraPreviewContent(
         onToggleLogs = {
             coroutineScope.launch {
                 userPreferencesRepository.updateShowLogOverlay(!showLogOverlay)
-            }
-        },
-
-        // ASR 全量释放
-        onAsrRelease = {
-            val before = captureMnnMemoryStats(context)
-            Logger.i(TAG, "🎤 [ASR释放] 开始")
-            Logger.i(TAG, "📊 [释放前内存] Native ${before?.nativeHeapMB}MB | Java ${before?.javaHeapUsedMB}MB")
-            voiceCoordinator.releaseAsr()
-            coroutineScope.launch {
-                val after = sampleMemoryAfterRelease(context)
-                showReleaseMemoryToast(context, "ASR", "full", before, after)
             }
         },
 

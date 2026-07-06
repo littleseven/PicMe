@@ -292,13 +292,13 @@ class TagGenerationService : Service() {
         if (intent == null || intent.action == null) {
             // 首次启动，仅显示前台通知
             startForeground(NOTIFICATION_ID, buildNotification(null))
-            return START_NOT_STICKY
+            return START_STICKY
         }
 
         // 启动前台通知（任何首次 Intent 都需要）
         startForeground(NOTIFICATION_ID, buildNotification(null))
 
-        val orch = orchestrator ?: return START_NOT_STICKY
+        val orch = orchestrator ?: return START_STICKY
 
         // 根据 Action 分发
         serviceScope.launch {
@@ -383,7 +383,7 @@ class TagGenerationService : Service() {
             }
         }
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

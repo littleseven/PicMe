@@ -1,6 +1,10 @@
 package com.mamba.picme.features.settings
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -10,6 +14,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.runtime.cache.L1CacheSettings
 import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.common.NetworkUtils
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.download.LlmModelDownloadManager
@@ -33,9 +38,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingsViewModel(
     private val repository: UserSettingsRepository,
@@ -46,13 +53,27 @@ class SettingsViewModel(
     companion object {
         private const val TAG = "Settings"
 
-// 必要模型（LLM + ASR + KWS），检测到缺少时提示一键下载
-// 仅保留核心模型以节省用户首次进入时间
-private val ESSENTIAL_MODEL_IDS = listOf(
-    "qwen3_5_2b", // 下划线格式，与 ModelManager 注册表一致
-    "sherpa-onnx-zipformer-zh-en", // ASR 模型
-    "sherpa-onnx-kws-zipformer-wenetspeech" // KWS 唤醒词模型
-)
+        /**
+         * Tier 1：相册扫描/创建 TAG 必须的模型（最高优先）。
+         * 进入相册且自动扫描任务启动前必须全部已下载，否则弹出下载提醒。
+         */
+        val GALLERY_REQUIRED_MODEL_IDS = listOf(
+            "face-det-retina500m-mnn", // 人脸 ROI 检测
+            "face-landmark-2d106-mnn", // 人脸 2D106 关键点
+            "face-embedding-glint360k-r100-mnn", // 人脸特征 embedding
+            "mobileclip-onnx", // 语义搜索/相册打标
+            "opus-mt-zh-en" // 中文查询翻译
+        )
+
+        /**
+         * Tier 2：聊天/语音/本地 LLM 相关模型（次高优先）。
+         * 已从相册必须列表中移出，仅在聊天页提醒下载。
+         */
+        val CHAT_REQUIRED_MODEL_IDS = listOf(
+            "qwen3_5_2b", // 本地 LLM
+            "sherpa-onnx-zipformer-zh-en", // ASR 语音输入
+            "sherpa-onnx-kws-zipformer-wenetspeech" // KWS 唤醒词
+        )
     }
 
     val themeMode: StateFlow<ThemeMode> = repository.themeModeFlow
@@ -75,7 +96,7 @@ private val ESSENTIAL_MODEL_IDS = listOf(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
+            initialValue = false
         )
 
     val faceDetectionEngineMode: StateFlow<FaceDetectionEngineMode> = repository.faceDetectionEngineModeFlow
@@ -290,49 +311,143 @@ private val ESSENTIAL_MODEL_IDS = listOf(
     private val lastDownloadStatuses = mutableMapOf<String, DownloadStatus>()
 
     // ── 必要模型一键下载 ────────────────────────────
-    private val _showEssentialModelsPrompt = MutableStateFlow(false)
-    val showEssentialModelsPrompt: StateFlow<Boolean> = _showEssentialModelsPrompt.asStateFlow()
+    private val _showGalleryRequiredModelsPrompt = MutableStateFlow(false)
+    val showGalleryRequiredModelsPrompt: StateFlow<Boolean> = _showGalleryRequiredModelsPrompt.asStateFlow()
+
+    private val _showChatModelsPrompt = MutableStateFlow(false)
+    val showChatModelsPrompt: StateFlow<Boolean> = _showChatModelsPrompt.asStateFlow()
 
     private val _isBatchDownloading = MutableStateFlow(false)
     val isBatchDownloading: StateFlow<Boolean> = _isBatchDownloading.asStateFlow()
 
+    // 静默下载（WiFi 自动下载）正在处理的模型 ID 集合，用于网络切换时精准暂停
+    private val _silentDownloadModelIds = MutableStateFlow<Set<String>>(emptySet())
+
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var wasWifi = false
+
     /**
-     * 检查必要模型是否缺失，若缺失则提示一键下载。
-     * 由 CameraScreen 在进入相机 3 秒后调用，避免应用启动时立即打扰用户。
+     * 检查相册扫描必须的 Tier 1 模型是否已全部下载。
+     * 纯查询，不修改提示状态；返回 true 表示可以启动自动扫描。
      */
-    fun checkEssentialModels() {
-        if (_isBatchDownloading.value || _showEssentialModelsPrompt.value) return
-        viewModelScope.launch {
-            val missingAny = ESSENTIAL_MODEL_IDS.any { id ->
-                !modelDownloadManager.isModelDownloaded(id)
-            }
-            if (missingAny) {
-                Logger.i(TAG, "Essential models missing, showing download prompt")
-                _showEssentialModelsPrompt.value = true
+    suspend fun areGalleryRequiredModelsDownloaded(): Boolean {
+        return withContext(Dispatchers.IO) {
+            GALLERY_REQUIRED_MODEL_IDS.all { id ->
+                modelDownloadManager.isModelDownloaded(id)
             }
         }
     }
 
     /**
-     * 一键下载：按顺序先下载所有 LLM 模型，再下载 ASR 模型。
+     * 在蜂窝网络下检查相册扫描必须的 Tier 1 模型，缺失则弹窗提醒。
+     * WiFi 场景由 [startSilentDownloadIfWifi] 静默处理，不弹窗。
      */
-    fun startBatchDownload() {
+    suspend fun checkGalleryRequiredModelsOnCellular() {
+        if (!NetworkUtils.isCellularConnected(appContext)) return
+        if (_isBatchDownloading.value || _showGalleryRequiredModelsPrompt.value) return
+        val missingAny = withContext(Dispatchers.IO) {
+            GALLERY_REQUIRED_MODEL_IDS.any { id ->
+                !modelDownloadManager.isModelDownloaded(id)
+            }
+        }
+        if (missingAny) {
+            Logger.i(TAG, "Gallery required models missing on cellular, showing download prompt")
+            _showGalleryRequiredModelsPrompt.value = true
+        }
+    }
+
+    /**
+     * 在蜂窝网络下检查聊天/语音/本地 LLM 相关模型。
+     * 仅当本地推理或语音功能已开启/调用且模型缺失时才弹窗。
+     */
+    suspend fun checkChatModelsOnCellular() {
+        if (!NetworkUtils.isCellularConnected(appContext)) return
+        if (_isBatchDownloading.value || _showChatModelsPrompt.value) return
+        if (!isChatFeatureEnabled()) return
+        val missingAny = withContext(Dispatchers.IO) {
+            CHAT_REQUIRED_MODEL_IDS.any { id ->
+                !modelDownloadManager.isModelDownloaded(id)
+            }
+        }
+        if (missingAny) {
+            Logger.i(TAG, "Chat models missing on cellular, showing download prompt")
+            _showChatModelsPrompt.value = true
+        }
+    }
+
+    /**
+     * 当用户选择本地模型或启用语音等功能时调用，用于蜂窝网络下的提醒。
+     */
+    suspend fun checkChatModelsOnFeatureEnabled() {
+        checkChatModelsOnCellular()
+    }
+
+    /**
+     * 判断聊天相关功能（本地 LLM 或语音）是否已开启。
+     */
+    private suspend fun isChatFeatureEnabled(): Boolean {
+        val inferencePref = repository.aiAgentInferencePreferenceFlow.first()
+        val voiceMode = repository.voiceCommandModeFlow.first()
+        return inferencePref != AiAgentInferencePreference.FORCE_REMOTE ||
+            voiceMode != VoiceCommandMode.DISABLED
+    }
+
+    /**
+     * 在 WiFi 环境下静默下载缺失的 Tier 1 + Tier 2 模型。
+     * 进入应用时调用，非 WiFi 不执行。
+     */
+    fun startSilentDownloadIfWifi() {
+        if (!NetworkUtils.isWifiConnected(appContext)) {
+            Logger.i(TAG, "Not on WiFi, skipping silent model download")
+            return
+        }
+        if (_isBatchDownloading.value) return
+        viewModelScope.launch {
+            val allModelIds = GALLERY_REQUIRED_MODEL_IDS + CHAT_REQUIRED_MODEL_IDS
+            val missingAny = withContext(Dispatchers.IO) {
+                allModelIds.any { id ->
+                    !modelDownloadManager.isModelDownloaded(id)
+                }
+            }
+            if (missingAny) {
+                Logger.i(TAG, "Starting silent model download on WiFi")
+                _silentDownloadModelIds.value = allModelIds.toSet()
+                startBatchDownload(allModelIds, "wifi-silent")
+            }
+        }
+    }
+
+    /**
+     * 一键下载相册扫描必须的 Tier 1 模型。
+     */
+    fun startGalleryRequiredModelsDownload() {
+        startBatchDownload(GALLERY_REQUIRED_MODEL_IDS, "gallery")
+    }
+
+    /**
+     * 一键下载聊天/语音/本地 LLM 相关的 Tier 2 模型。
+     */
+    fun startChatModelsDownload() {
+        startBatchDownload(CHAT_REQUIRED_MODEL_IDS, "chat")
+    }
+
+    /**
+     * 通用批量下载实现：按 [modelIds] 顺序依次下载缺失模型。
+     */
+    private fun startBatchDownload(modelIds: List<String>, logTag: String) {
         if (_isBatchDownloading.value) return
         _isBatchDownloading.value = true
-        _showEssentialModelsPrompt.value = false
+        _showGalleryRequiredModelsPrompt.value = false
+        _showChatModelsPrompt.value = false
         viewModelScope.launch {
             try {
-                // Step 1: 下载所有未下载的 LLM 模型（排除 ASR 和 KWS）
-                val llmIds = ESSENTIAL_MODEL_IDS.filter {
-                    it != "sherpa-onnx-zipformer-zh-en" && it != "sherpa-onnx-kws-zipformer-wenetspeech"
-                }
-                for (modelId in llmIds) {
+                for (modelId in modelIds) {
                     if (!modelDownloadManager.isModelDownloaded(modelId)) {
                         val config = _allModels.value.find { it.id == modelId }
                         if (config != null) {
-                            Logger.i(TAG, "Batch: downloading LLM model $modelId")
+                            Logger.i(TAG, "Batch[$logTag]: downloading $modelId")
                             modelDownloadManager.enqueueDownload(modelId, config)
-                            // 等待下载完成
+                            // 等待下载完成或失败
                             modelDownloadManager.downloadStates.first { states ->
                                 states[modelId]?.status == DownloadStatus.COMPLETED ||
                                     states[modelId]?.status == DownloadStatus.FAILED
@@ -340,49 +455,106 @@ private val ESSENTIAL_MODEL_IDS = listOf(
                         }
                     }
                 }
-
-                // Step 2: 下载 ASR 模型
-                val asrId = "sherpa-onnx-zipformer-zh-en"
-                if (!modelDownloadManager.isModelDownloaded(asrId)) {
-                    val config = _allModels.value.find { it.id == asrId }
-                    if (config != null) {
-                        Logger.i(TAG, "Batch: downloading ASR model $asrId")
-                        modelDownloadManager.enqueueDownload(asrId, config)
-                        modelDownloadManager.downloadStates.first { states ->
-                            states[asrId]?.status == DownloadStatus.COMPLETED ||
-                                states[asrId]?.status == DownloadStatus.FAILED
-                        }
-                    }
-                }
-
-                // Step 3: 下载 KWS 唤醒词模型
-                val kwsId = "sherpa-onnx-kws-zipformer-wenetspeech"
-                if (!modelDownloadManager.isModelDownloaded(kwsId)) {
-                    val config = _allModels.value.find { it.id == kwsId }
-                    if (config != null) {
-                        Logger.i(TAG, "Batch: downloading KWS model $kwsId")
-                        modelDownloadManager.enqueueDownload(kwsId, config)
-                        modelDownloadManager.downloadStates.first { states ->
-                            states[kwsId]?.status == DownloadStatus.COMPLETED ||
-                                states[kwsId]?.status == DownloadStatus.FAILED
-                        }
-                    }
-                }
-
-                Logger.i(TAG, "Batch download complete")
+                Logger.i(TAG, "Batch[$logTag] download complete")
             } catch (e: Exception) {
-                Logger.e(TAG, "Batch download failed", e)
+                Logger.e(TAG, "Batch[$logTag] download failed", e)
             } finally {
                 _isBatchDownloading.value = false
+                _silentDownloadModelIds.value = emptySet()
             }
         }
     }
 
     /**
-     * 关闭下载提示弹窗
+     * 注册网络状态监听，用于静默下载在 WiFi->蜂窝时自动暂停，
+     * 以及回到 WiFi 时自动恢复/补下载。
      */
-    fun dismissDownloadPrompt() {
-        _showEssentialModelsPrompt.value = false
+    private fun registerSilentDownloadNetworkMonitor() {
+        try {
+            val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE)
+                as? ConnectivityManager ?: return
+            wasWifi = NetworkUtils.isWifiConnected(appContext)
+
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) = onNetworkChanged()
+                override fun onLost(network: Network) = onNetworkChanged()
+                override fun onCapabilitiesChanged(
+                    network: Network,
+                    capabilities: NetworkCapabilities
+                ) = onNetworkChanged()
+            }
+
+            connectivityManager.registerDefaultNetworkCallback(callback)
+            networkCallback = callback
+            Logger.i(TAG, "Silent download network monitor registered")
+        } catch (e: Exception) {
+            Logger.e(TAG, "Failed to register silent download network monitor", e)
+        }
+    }
+
+    /**
+     * 网络变化时处理静默下载的暂停/恢复。
+     */
+    private fun onNetworkChanged() {
+        val nowWifi = NetworkUtils.isWifiConnected(appContext)
+        val hadWifi = wasWifi
+        wasWifi = nowWifi
+
+        if (hadWifi && !nowWifi) {
+            Logger.i(TAG, "Network left WiFi, pausing silent downloads")
+            pauseSilentDownloads()
+        } else if (!hadWifi && nowWifi) {
+            Logger.i(TAG, "Network back to WiFi, resuming silent downloads")
+            resumeSilentDownloadsIfNeeded()
+            startSilentDownloadIfWifi()
+        }
+    }
+
+    /**
+     * 暂停当前静默下载集合中正在下载的模型。
+     */
+    private fun pauseSilentDownloads() {
+        val silentIds = _silentDownloadModelIds.value
+        if (silentIds.isEmpty()) return
+        for (modelId in silentIds) {
+            val state = modelDownloadManager.downloadStates.value[modelId]
+            if (state?.status == DownloadStatus.DOWNLOADING) {
+                Logger.i(TAG, "Pausing silent download: $modelId")
+                modelDownloadManager.pauseDownload(modelId)
+            }
+        }
+    }
+
+    /**
+     * 回到 WiFi 时恢复处于 PAUSED 状态的静默下载模型。
+     */
+    private fun resumeSilentDownloadsIfNeeded() {
+        val silentIds = _silentDownloadModelIds.value
+        if (silentIds.isEmpty()) return
+        for (modelId in silentIds) {
+            val state = modelDownloadManager.downloadStates.value[modelId]
+            if (state?.status == DownloadStatus.PAUSED) {
+                val config = _allModels.value.find { it.id == modelId }
+                if (config != null) {
+                    Logger.i(TAG, "Resuming silent download: $modelId")
+                    modelDownloadManager.enqueueResume(modelId, config)
+                }
+            }
+        }
+    }
+
+    /**
+     * 关闭相册模型下载提示弹窗
+     */
+    fun dismissGalleryRequiredModelsPrompt() {
+        _showGalleryRequiredModelsPrompt.value = false
+    }
+
+    /**
+     * 关闭聊天模型下载提示弹窗
+     */
+    fun dismissChatModelsPrompt() {
+        _showChatModelsPrompt.value = false
     }
 
     init {
@@ -390,6 +562,21 @@ private val ESSENTIAL_MODEL_IDS = listOf(
         loadModels()
         observeDownloadCompletion()
         syncL1CacheSetting()
+        registerSilentDownloadNetworkMonitor()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        networkCallback?.let { callback ->
+            try {
+                val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE)
+                    as? ConnectivityManager
+                connectivityManager?.unregisterNetworkCallback(callback)
+                Logger.i(TAG, "Silent download network monitor unregistered")
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to unregister silent download network monitor", e)
+            }
+        }
     }
 
     private fun syncL1CacheSetting() {

@@ -69,6 +69,7 @@ import com.mamba.picme.features.gallery.agent.GalleryAgentPanel
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.components.FloatingBottomTab
 import com.mamba.picme.features.common.components.FloatingBottomTabItem
+import com.mamba.picme.features.settings.SettingsViewModel
 import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
@@ -84,6 +85,7 @@ import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.navigation.Screen
 import com.mamba.picme.service.tag.TagGenerationService
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
@@ -105,6 +107,7 @@ private const val SEARCH_DEBOUNCE_MS = 300L
 fun GalleryScreen(
     navController: NavController,
     viewModel: MediaViewModel,
+    settingsViewModel: SettingsViewModel,
     onNavigateToChat: () -> Unit,
     onNavigateToCamera: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -269,8 +272,17 @@ fun GalleryScreen(
         }
     }
 
+    // 进入相册后，仅在蜂窝网络下检查 Tier 1 模型并弹窗提醒
+    // WiFi 场景由 MainActivity 启动时静默下载，不打扰用户
+    LaunchedEffect(hasMediaPermission) {
+        if (hasMediaPermission) {
+            settingsViewModel.checkGalleryRequiredModelsOnCellular()
+        }
+    }
+
     // AI 图片标签自动扫描 —— 仅在首次安装、夜间或充电时触发
     // 避免高频自动扫描导致耗电发烫，用户可通过顶部按钮手动触发
+    // 启动前检查 Tier 1 模型是否已下载，未下载则跳过扫描；蜂窝网络下弹窗提醒
     LaunchedEffect(allFlatMedia.size) {
         if (hasMediaPermission && allFlatMedia.isNotEmpty()
             && !TagGenerationService.isScanning.value) {
@@ -302,7 +314,13 @@ fun GalleryScreen(
             } catch (_: Exception) { false }
 
             if (isFirstLaunch || (isCharging && isNightTime)) {
-                context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                val ready = settingsViewModel.areGalleryRequiredModelsDownloaded()
+                if (ready) {
+                    context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                } else {
+                    Logger.i(TAG, "Skipping auto scan: gallery required models not downloaded")
+                    settingsViewModel.checkGalleryRequiredModelsOnCellular()
+                }
             }
         }
     }
@@ -857,6 +875,43 @@ fun GalleryScreen(
             dismissButton = {
                 TextButton(onClick = { renamingPersonGroup = null }) {
                     Text("取消")
+                }
+            }
+        )
+    }
+
+    // ── 相册必须模型下载提示 ────────────────────────────
+    val showGalleryRequiredModelsPrompt by settingsViewModel.showGalleryRequiredModelsPrompt.collectAsState()
+    val isBatchDownloading by settingsViewModel.isBatchDownloading.collectAsState()
+    if (showGalleryRequiredModelsPrompt) {
+        AlertDialog(
+            onDismissRequest = { if (!isBatchDownloading) settingsViewModel.dismissGalleryRequiredModelsPrompt() },
+            title = {
+                Text(text = stringResource(R.string.gallery_required_models_download_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.gallery_required_models_download_message))
+            },
+            confirmButton = {
+                Button(
+                    onClick = { settingsViewModel.startGalleryRequiredModelsDownload() },
+                    enabled = !isBatchDownloading
+                ) {
+                    Text(
+                        text = if (isBatchDownloading) {
+                            stringResource(R.string.gallery_required_models_download_progress)
+                        } else {
+                            stringResource(R.string.gallery_required_models_download_button)
+                        }
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { settingsViewModel.dismissGalleryRequiredModelsPrompt() },
+                    enabled = !isBatchDownloading
+                ) {
+                    Text(text = stringResource(R.string.gallery_required_models_download_later))
                 }
             }
         )

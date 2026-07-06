@@ -96,7 +96,7 @@ internal fun rememberCameraRuntimeContext(context: Context): CameraRuntimeContex
     LaunchedEffect(Unit) {
         beautyStrategy = userPreferencesRepository.beautyStrategyFlow.first()
     }
-    val debugUiEnabled by userPreferencesRepository.debugUiEnabledFlow.collectAsState(initial = true)
+    val debugUiEnabled by userPreferencesRepository.debugUiEnabledFlow.collectAsState(initial = false)
     val showCameraInfoInPreview by userPreferencesRepository.showCameraInfoInPreviewFlow.collectAsState(initial = false)
     val showFaceDebugOverlay by userPreferencesRepository.showFaceDebugOverlayFlow.collectAsState(initial = false)
     val showLogOverlay by userPreferencesRepository.showLogOverlayFlow.collectAsState(initial = false)

@@ -65,6 +65,8 @@ import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -129,6 +131,7 @@ import com.mamba.picme.agent.core.platform.voice.AsrEngine
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.PushToTalkEngine
+import com.mamba.picme.features.settings.SettingsViewModel
 import java.io.File
 
 private const val TAG = "ChatScreen"
@@ -147,6 +150,7 @@ private const val TAG = "ChatScreen"
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
@@ -174,6 +178,11 @@ fun ChatScreen(
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
+    }
+
+    // 进入聊天页后，若已开启本地推理或语音功能，在蜂窝网络下检查 Tier 2 模型
+    LaunchedEffect(Unit) {
+        settingsViewModel.checkChatModelsOnCellular()
     }
 
     // 沉浸式模式：隐藏系统栏
@@ -233,7 +242,14 @@ fun ChatScreen(
                 ChatInputArea(
                     currentModel = currentModel,
                     isProcessing = isProcessing,
-                    onModelSwitch = { viewModel.switchModel(it) },
+                    onModelSwitch = { option ->
+                        viewModel.switchModel(option)
+                        if (option is ChatModelOption.Local) {
+                            scope.launch {
+                                settingsViewModel.checkChatModelsOnFeatureEnabled()
+                            }
+                        }
+                    },
                     onSendMessage = { text ->
                         viewModel.sendMessage(text)
                     },
@@ -273,6 +289,43 @@ fun ChatScreen(
                 onDismiss = { previewImageUri = null }
             )
         }
+    }
+
+    // ── 聊天/语音/本地 LLM 模型下载提示 ────────────────────────────
+    val showChatModelsPrompt by settingsViewModel.showChatModelsPrompt.collectAsState()
+    val isChatBatchDownloading by settingsViewModel.isBatchDownloading.collectAsState()
+    if (showChatModelsPrompt) {
+        AlertDialog(
+            onDismissRequest = { if (!isChatBatchDownloading) settingsViewModel.dismissChatModelsPrompt() },
+            title = {
+                Text(text = stringResource(R.string.chat_models_download_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.chat_models_download_message))
+            },
+            confirmButton = {
+                Button(
+                    onClick = { settingsViewModel.startChatModelsDownload() },
+                    enabled = !isChatBatchDownloading
+                ) {
+                    Text(
+                        text = if (isChatBatchDownloading) {
+                            stringResource(R.string.chat_models_download_progress)
+                        } else {
+                            stringResource(R.string.chat_models_download_button)
+                        }
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { settingsViewModel.dismissChatModelsPrompt() },
+                    enabled = !isChatBatchDownloading
+                ) {
+                    Text(text = stringResource(R.string.chat_models_download_later))
+                }
+            }
+        )
     }
 }
 
