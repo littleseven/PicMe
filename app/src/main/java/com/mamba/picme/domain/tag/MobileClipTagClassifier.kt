@@ -1,0 +1,150 @@
+package com.mamba.picme.domain.tag
+
+import android.graphics.Bitmap
+import android.util.Log
+
+/**
+ * MobileCLIP 零 shot 分类输出
+ */
+data class MobileClipTags(
+    val scene: String,
+    val objects: List<String>,
+    val tags: List<String>
+)
+
+/**
+ * MobileCLIP 零 shot TAG 分类器
+ *
+ * 职责：
+ * - 启动时预计算 ControlledVocab 候选标签的文本 embedding
+ * - 对输入图像编码，与候选标签 embedding 计算余弦相似度
+ * - 按字段阈值策略输出 Top-K 标签
+ */
+class MobileClipTagClassifier(
+    private val mobileClipEngine: MobileClipEngine,
+    private val tokenizer: MobileClipTokenizer,
+    private val vocab: ControlledVocab
+) {
+    companion object {
+        private const val TAG = "MobileClipTagClassifier"
+
+        /** scene 字段：Top-1，阈值 0.30 */
+        private const val SCENE_TOP_K = 1
+        private const val SCENE_THRESHOLD = 0.30f
+
+        /** objects 字段：Top-3，阈值 0.25 */
+        private const val OBJECT_TOP_K = 3
+        private const val OBJECT_THRESHOLD = 0.25f
+
+        /** tags 字段：Top-5，阈值 0.20 */
+        private const val TAG_TOP_K = 5
+        private const val TAG_THRESHOLD = 0.20f
+    }
+
+    private var isReady = false
+
+    /** 候选标签文本 embedding 缓存：label -> FloatArray(512) */
+    private val textEmbeddings = mutableMapOf<String, FloatArray>()
+
+    /**
+     * 预热：加载 MobileCLIP 模型并预计算所有候选标签的文本 embedding
+     *
+     * @return 是否成功。失败时调用方应回退到 Qwen 全量输出。
+     */
+    fun warmUp(): Boolean {
+        if (isReady) return true
+
+        if (!mobileClipEngine.initializeWithFallback()) {
+            Log.w(TAG, "MobileClipEngine initialization failed")
+            return false
+        }
+
+        if (!tokenizer.load()) {
+            Log.w(TAG, "MobileClipTokenizer load failed")
+            return false
+        }
+
+        val candidates = vocab.sceneCandidates + vocab.objectCandidates + vocab.tagCandidates
+        val distinct = candidates.distinct()
+        Log.i(TAG, "Precomputing text embeddings for ${distinct.size} candidates")
+
+        var failed = 0
+        for (label in distinct) {
+            val tokenIds = tokenizer.encode(label) ?: run {
+                failed++
+                continue
+            }
+            val embedding = mobileClipEngine.encodeText(tokenIds) ?: run {
+                failed++
+                continue
+            }
+            textEmbeddings[label] = embedding
+        }
+
+        if (textEmbeddings.isEmpty()) {
+            Log.w(TAG, "No text embeddings computed, classifier unusable")
+            return false
+        }
+
+        if (failed > 0) {
+            Log.w(TAG, "$failed/${distinct.size} candidate labels failed to encode")
+        }
+
+        isReady = true
+        Log.i(TAG, "Warmup complete: ${textEmbeddings.size} text embeddings cached")
+        return true
+    }
+
+    /**
+     * 对单张图像进行分类
+     *
+     * @return MobileClipTags，失败返回 null
+     */
+    fun classify(bitmap: Bitmap): MobileClipTags? {
+        if (!isReady) {
+            Log.w(TAG, "Classifier not warmed up")
+            return null
+        }
+
+        val imageEmbedding = mobileClipEngine.encodeImage(bitmap) ?: run {
+            Log.w(TAG, "Failed to encode image")
+            return null
+        }
+
+        val scene = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates, imageEmbedding).firstOrNull() ?: ""
+        val objects = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates, imageEmbedding)
+        val tags = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates, imageEmbedding)
+
+        return MobileClipTags(scene = scene, objects = objects, tags = tags)
+    }
+
+    /**
+     * 从指定候选集中选取与图像相似度最高的 Top-K 标签，过滤低于阈值的标签
+     */
+    private fun topK(
+        k: Int,
+        threshold: Float,
+        candidates: List<String>,
+        imageEmbedding: FloatArray
+    ): List<String> {
+        val scored = candidates.mapNotNull { label ->
+            val textEmbedding = textEmbeddings[label] ?: return@mapNotNull null
+            val sim = cosineSimilarity(imageEmbedding, textEmbedding)
+            if (sim >= threshold) label to sim else null
+        }
+        return scored.sortedByDescending { it.second }
+            .take(k)
+            .map { it.first }
+    }
+
+    /**
+     * 计算两个 L2 归一化向量的余弦相似度
+     */
+    private fun cosineSimilarity(a: FloatArray, b: FloatArray): Float {
+        var dot = 0f
+        for (i in a.indices) {
+            dot += a[i] * b[i]
+        }
+        return dot.coerceIn(-1f, 1f)
+    }
+}
