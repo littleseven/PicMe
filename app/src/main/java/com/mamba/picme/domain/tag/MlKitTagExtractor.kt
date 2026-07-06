@@ -53,7 +53,20 @@ class MlKitTagExtractor(
         }
     }
 
-    private val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+    /**
+     * ML Kit 图像标注客户端。
+     *
+     * 延迟初始化并在失败时降级为 null，避免在构造阶段因 ML Kit 内部初始化异常
+     * （如 R8 构建下 MultiFlavorDetectorCreator NPE）导致崩溃。
+     */
+    private val labeler by lazy {
+        try {
+            ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+        } catch (e: Exception) {
+            Logger.w(TAG, "Failed to initialize ML Kit image labeler, tagging disabled", e)
+            null
+        }
+    }
 
     /**
      * 从 URI 提取 ML Kit 英文标签
@@ -78,8 +91,12 @@ class MlKitTagExtractor(
      * @return 英文标签列表（已过滤/排序），失败返回空列表
      */
     fun extract(inputImage: InputImage): List<String> {
+        val currentLabeler = labeler ?: run {
+            Logger.w(TAG, "Image labeler unavailable, skipping label extraction")
+            return emptyList()
+        }
         return try {
-            val result = Tasks.await(labeler.process(inputImage))
+            val result = Tasks.await(currentLabeler.process(inputImage))
             val labels = result.map { it.text to it.confidence }
             filterLabels(labels, confidenceThreshold, maxLabels)
                 .also { Logger.d(TAG, "ML Kit labels extracted: $it") }
@@ -100,8 +117,12 @@ class MlKitTagExtractor(
      * 预热 ML Kit 模型（首次使用可能触发 Play Services 下载）
      */
     fun warmup(inputImage: InputImage): Boolean {
+        val currentLabeler = labeler ?: run {
+            Logger.w(TAG, "Image labeler unavailable, skipping warmup")
+            return false
+        }
         return try {
-            Tasks.await(labeler.process(inputImage))
+            Tasks.await(currentLabeler.process(inputImage))
             true
         } catch (e: Exception) {
             Logger.w(TAG, "ML Kit warmup failed: ${e.message}")
@@ -111,7 +132,7 @@ class MlKitTagExtractor(
 
     fun close() {
         try {
-            labeler.close()
+            labeler?.close()
         } catch (e: Exception) {
             Logger.w(TAG, "Error closing labeler", e)
         }

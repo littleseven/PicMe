@@ -68,7 +68,21 @@ class LocalSceneAnalyzer(
         )
     }
 
-    private val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+    /**
+     * ML Kit 图像标注客户端。
+     *
+     * 采用 lazy + try-catch 延迟初始化：避免在 Application.onCreate 阶段创建
+     * 导致启动崩溃（部分机型/R8 构建下 MultiFlavorDetectorCreator 会抛出 NPE）。
+     * 初始化失败时降级为 null，后续标签分析返回空列表。
+     */
+    private val labeler by lazy {
+        try {
+            ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+        } catch (e: Exception) {
+            Logger.w(TAG, "Failed to initialize ML Kit image labeler, scene labeling disabled", e)
+            null
+        }
+    }
 
     override suspend fun analyze(imageUri: String): SceneAnalysis = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
@@ -185,9 +199,13 @@ class LocalSceneAnalyzer(
      * ML Kit 图像标签分析
      */
     private fun analyzeLabels(bitmap: Bitmap): SceneSignal.Labels {
+        val currentLabeler = labeler ?: run {
+            Logger.w(TAG, "Image labeler unavailable, skipping label analysis")
+            return SceneSignal.Labels(labels = emptyList())
+        }
         return try {
             val inputImage = InputImage.fromBitmap(bitmap, 0)
-            val result = com.google.android.gms.tasks.Tasks.await(labeler.process(inputImage))
+            val result = com.google.android.gms.tasks.Tasks.await(currentLabeler.process(inputImage))
             val labels = result
                 .filter { it.confidence >= confidenceThreshold }
                 .sortedByDescending { it.confidence }
@@ -295,7 +313,7 @@ class LocalSceneAnalyzer(
 
     fun close() {
         try {
-            labeler.close()
+            labeler?.close()
         } catch (e: Exception) {
             Logger.w(TAG, "Error closing labeler", e)
         }

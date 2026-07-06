@@ -34,3 +34,8 @@
 -dontwarn javax.lang.model.type.TypeMirror
 -dontwarn javax.lang.model.type.TypeVisitor
 -dontwarn javax.lang.model.util.SimpleTypeVisitor8
+# ML Kit: 防止 R8 裁剪/混淆通过反射访问的内部注册表，避免 release 构建下
+# MultiFlavorDetectorCreator 等类出现 NPE（Attempt to read from field 'HashMap ...' on null）
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit.** { *; }
+-dontwarn com.google.mlkit.**

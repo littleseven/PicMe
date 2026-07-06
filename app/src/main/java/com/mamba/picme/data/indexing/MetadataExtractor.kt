@@ -29,8 +29,20 @@ class MetadataExtractor(
 
     private val tag = "PicMe:MetadataExtractor"
 
-    private val labeler =
-        ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+    /**
+     * ML Kit 图像标注客户端。
+     *
+     * 延迟初始化并在失败时降级为 null，避免 Worker 构造阶段因 ML Kit 内部初始化异常
+     * （如 R8 构建下 MultiFlavorDetectorCreator NPE）导致崩溃。
+     */
+    private val labeler by lazy {
+        try {
+            ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+        } catch (e: Exception) {
+            Logger.w(tag, "Failed to initialize ML Kit image labeler, label extraction disabled", e)
+            null
+        }
+    }
 
     private val textRecognizer =
         TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
@@ -50,8 +62,12 @@ class MetadataExtractor(
      * ML Kit 图像标注：返回前 5 个置信度最高的标签
      */
     internal fun extractLabels(inputImage: InputImage): List<String> {
+        val currentLabeler = labeler ?: run {
+            Logger.w(tag, "Image labeler unavailable, skipping label extraction")
+            return emptyList()
+        }
         return try {
-            val result = Tasks.await(labeler.process(inputImage))
+            val result = Tasks.await(currentLabeler.process(inputImage))
             result
                 .sortedByDescending { label -> label.confidence }
                 .take(5)
@@ -155,7 +171,7 @@ class MetadataExtractor(
 
     fun close() {
         try {
-            labeler.close()
+            labeler?.close()
             textRecognizer.close()
         } catch (e: Exception) {
             Logger.w(tag, "Error closing extractors", e)
