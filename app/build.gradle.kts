@@ -151,14 +151,11 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            // 解决 onnxruntime-android 与 sherpa-onnx 的 libonnxruntime.so 冲突
-            // sherpa-onnx-1.13.3 内置 ONNX Runtime 1.24.3，onnxruntime-android 必须与之一致
-            // 否则 libonnxruntime4j_jni.so 与 libonnxruntime.so ABI 不匹配
-            // 会导致 UnsatisfiedLinkError: cannot locate symbol "OrtGetApiBase"
+            // `:app` 直接使用 ONNX Runtime Java API（MobileCLIP / OPUS-MT），需要保留 `onnxruntime-android` 坐标。
+            // Sherpa-ONNX AAR 同时内置同名 `libonnxruntime.so`，导致打包冲突。
+            // 当前两个来源均为 ONNX Runtime 1.24.3，ABI 兼容；仅支持 arm64-v8a，故只保留该 ABI 的 pickFirst。
+            // 升级任一依赖时，必须确保 `libonnxruntime.so` 版本一致，否则会出现 UnsatisfiedLinkError。
             pickFirsts += "lib/arm64-v8a/libonnxruntime.so"
-            pickFirsts += "lib/armeabi-v7a/libonnxruntime.so"
-            pickFirsts += "lib/x86/libonnxruntime.so"
-            pickFirsts += "lib/x86_64/libonnxruntime.so"
         }
         resources {
             excludes += "/META-INF/DEPENDENCIES"
