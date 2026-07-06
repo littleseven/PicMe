@@ -34,8 +34,8 @@ android {
 dependencies {
     // ─── 核心依赖（原 langchain4j-core + open-ai + http-client-okhttp 合并） ───
 
-    // JSON 序列化（替换 Jackson）
-    api 'com.google.code.gson:gson:2.11.0'
+    // JSON 序列化：Gson 用于通用 JSON，Jackson 用于 OpenAI DTO 序列化/反序列化
+    implementation 'com.google.code.gson:gson:2.11.0'
 
     // HTTP 客户端（OkHttp）
     api 'com.squareup.okhttp3:okhttp:4.10.0'
@@ -49,23 +49,9 @@ dependencies {
     api 'org.jspecify:jspecify:1.0.0'
 
     // Jackson（OpenAI DTO 序列化/反序列化需要）
-    api 'com.fasterxml.jackson.core:jackson-databind:2.14.3'
-    api 'com.fasterxml.jackson.core:jackson-core:2.14.3'
-    api 'com.fasterxml.jackson.core:jackson-annotations:2.14.3'
-
-    // ─── Android 生态（原 mamba-agent-android 合并） ───
-
-    // Lifecycle
-    api 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
-    api 'androidx.lifecycle:lifecycle-common:2.8.7'
-    api 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
-
-    // Room（可选，用于 ChatMemory 持久化）
-    api 'androidx.room:room-runtime:2.7.0'
-    api 'androidx.room:room-ktx:2.7.0'
-
-    // Coroutines
-    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.3'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.14.3'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.14.3'
 
     // Core library desugaring
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
@@ -78,7 +64,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
     // ─── 已删除的依赖 ───
-    // ❌ jackson-databind / jackson-core / jackson-annotations
     // ❌ opennlp-tools
     // ❌ java.net.http.HttpClient（JDK 11+）
     // ❌ ServiceLoader SPI 相关
