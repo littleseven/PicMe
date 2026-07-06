@@ -2,6 +2,7 @@ package com.mamba.picme.domain.tag
 
 import android.graphics.Bitmap
 import android.util.Log
+import com.mamba.picme.domain.model.AppLanguage
 
 /**
  * MobileCLIP 零 shot 分类输出
@@ -16,9 +17,10 @@ data class MobileClipTags(
  * MobileCLIP 零 shot TAG 分类器
  *
  * 职责：
- * - 启动时预计算 ControlledVocab 候选标签的文本 embedding
+ * - 启动时预计算 ControlledVocab 中英候选标签的文本 embedding
  * - 对输入图像编码，与候选标签 embedding 计算余弦相似度
  * - 按字段阈值策略输出 Top-K 标签
+ * - 支持中文/英文输出；非中英语言返回 null，由调用方回退到 Qwen 全量输出
  */
 class MobileClipTagClassifier(
     private val mobileClipEngine: MobileClipEngine,
@@ -43,11 +45,14 @@ class MobileClipTagClassifier(
 
     private var isReady = false
 
-    /** 候选标签文本 embedding 缓存：label -> FloatArray(512) */
-    private val textEmbeddings = mutableMapOf<String, FloatArray>()
+    /** 中文候选标签文本 embedding 缓存：label -> FloatArray(512) */
+    private val textEmbeddingsZh = mutableMapOf<String, FloatArray>()
+
+    /** 英文候选标签文本 embedding 缓存：label -> FloatArray(512) */
+    private val textEmbeddingsEn = mutableMapOf<String, FloatArray>()
 
     /**
-     * 预热：加载 MobileCLIP 模型并预计算所有候选标签的文本 embedding
+     * 预热：加载 MobileCLIP 模型并预计算中英所有候选标签的文本 embedding
      *
      * @return 是否成功。失败时调用方应回退到 Qwen 全量输出。
      */
@@ -64,12 +69,35 @@ class MobileClipTagClassifier(
             return false
         }
 
-        val candidates = vocab.sceneCandidates + vocab.objectCandidates + vocab.tagCandidates
-        val distinct = candidates.distinct()
-        Log.i(TAG, "Precomputing text embeddings for ${distinct.size} candidates")
+        val zhCandidates = vocab.sceneCandidates + vocab.objectCandidates + vocab.tagCandidates
+        val enCandidates = vocab.sceneCandidatesEn + vocab.objectCandidatesEn + vocab.tagCandidatesEn
+        val distinctZh = zhCandidates.distinct()
+        val distinctEn = enCandidates.distinct()
+        Log.i(TAG, "Precomputing text embeddings: zh=${distinctZh.size}, en=${distinctEn.size}")
 
+        val zhFailed = precomputeEmbeddings(distinctZh, textEmbeddingsZh)
+        val enFailed = precomputeEmbeddings(distinctEn, textEmbeddingsEn)
+
+        if (textEmbeddingsZh.isEmpty() && textEmbeddingsEn.isEmpty()) {
+            Log.w(TAG, "No text embeddings computed, classifier unusable")
+            return false
+        }
+
+        if (zhFailed > 0 || enFailed > 0) {
+            Log.w(TAG, "Embedding failures: zh=$zhFailed/${distinctZh.size}, en=$enFailed/${distinctEn.size}")
+        }
+
+        isReady = true
+        Log.i(TAG, "Warmup complete: zh=${textEmbeddingsZh.size}, en=${textEmbeddingsEn.size} text embeddings cached")
+        return true
+    }
+
+    private fun precomputeEmbeddings(
+        candidates: List<String>,
+        cache: MutableMap<String, FloatArray>
+    ): Int {
         var failed = 0
-        for (label in distinct) {
+        for (label in candidates) {
             val tokenIds = tokenizer.encode(label) ?: run {
                 failed++
                 continue
@@ -78,31 +106,25 @@ class MobileClipTagClassifier(
                 failed++
                 continue
             }
-            textEmbeddings[label] = embedding
+            cache[label] = embedding
         }
-
-        if (textEmbeddings.isEmpty()) {
-            Log.w(TAG, "No text embeddings computed, classifier unusable")
-            return false
-        }
-
-        if (failed > 0) {
-            Log.w(TAG, "$failed/${distinct.size} candidate labels failed to encode")
-        }
-
-        isReady = true
-        Log.i(TAG, "Warmup complete: ${textEmbeddings.size} text embeddings cached")
-        return true
+        return failed
     }
 
     /**
-     * 对单张图像进行分类
+     * 对单张图像进行分类（按当前目标语言返回对应语言标签）
      *
-     * @return MobileClipTags，失败返回 null
+     * @param lang 目标语言，仅支持 [AppLanguage.CHINESE] 和 [AppLanguage.ENGLISH]
+     * @return MobileClipTags，失败或非中英语言返回 null
      */
-    fun classify(bitmap: Bitmap): MobileClipTags? {
+    fun classify(bitmap: Bitmap, lang: AppLanguage): MobileClipTags? {
         if (!isReady) {
             Log.w(TAG, "Classifier not warmed up")
+            return null
+        }
+
+        if (lang != AppLanguage.CHINESE && lang != AppLanguage.ENGLISH) {
+            Log.w(TAG, "Unsupported language for MobileCLIP classification: $lang")
             return null
         }
 
@@ -111,9 +133,10 @@ class MobileClipTagClassifier(
             return null
         }
 
-        val scene = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates, imageEmbedding).firstOrNull() ?: ""
-        val objects = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates, imageEmbedding)
-        val tags = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates, imageEmbedding)
+        val embeddings = if (lang == AppLanguage.ENGLISH) textEmbeddingsEn else textEmbeddingsZh
+        val scene = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(lang), imageEmbedding, embeddings).firstOrNull() ?: ""
+        val objects = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(lang), imageEmbedding, embeddings)
+        val tags = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(lang), imageEmbedding, embeddings)
 
         return MobileClipTags(scene = scene, objects = objects, tags = tags)
     }
@@ -125,10 +148,11 @@ class MobileClipTagClassifier(
         k: Int,
         threshold: Float,
         candidates: List<String>,
-        imageEmbedding: FloatArray
+        imageEmbedding: FloatArray,
+        embeddings: Map<String, FloatArray>
     ): List<String> {
         val scored = candidates.mapNotNull { label ->
-            val textEmbedding = textEmbeddings[label] ?: return@mapNotNull null
+            val textEmbedding = embeddings[label] ?: return@mapNotNull null
             val sim = cosineSimilarity(imageEmbedding, textEmbedding)
             if (sim >= threshold) label to sim else null
         }
