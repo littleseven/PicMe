@@ -8,8 +8,8 @@
 **模块定位**: Agent 命令语法与使用示例  
 **主要维护者**: [RD] 全栈工程师  
 **阅读对象**: RD、PM、AI Agent  
-**版本**: 1.0  
-**最后更新**: 2026-06-07  
+**版本**: 1.1  
+**最后更新**: 2026-07-06  
 
 ---
 
@@ -18,10 +18,12 @@
 1. [命令格式](#1-命令格式)
 2. [相机控制命令](#2-相机控制命令)
 3. [相册管理命令](#3-相册管理命令)
-4. [设置管理命令](#4-设置管理命令)
-5. [导航命令](#5-导航命令)
-6. [编辑命令](#6-编辑命令)
-7. [通用命令](#7-通用命令)
+4. [标签生成命令](#4-标签生成命令)
+5. [AI 优化命令](#5-ai-优化命令)
+6. [设置管理命令](#6-设置管理命令)
+7. [导航命令](#7-导航命令)
+8. [系统/外部 App 命令](#8-系统外部-app-命令)
+9. [通用命令](#9-通用命令)
 
 ---
 
@@ -37,24 +39,14 @@ Agent 通过 LLM 将用户自然语言输入解析为结构化命令：
 
 ### 1.2 命令类型安全
 
-所有命令使用 `sealed class` 定义，确保类型安全：
-
-```kotlin
-sealed class AgentCommand {
-    // 相机命令
-    data object CapturePhoto : AgentCommand()
-    data class AdjustBeauty(val settings: BeautySettings) : AgentCommand()
-
-    // Gallery 命令
-    data class ViewMedia(val mediaId: String?) : AgentCommand()
-
-    // ... 其他命令
-}
-```
+所有命令使用 `sealed class` 定义，确保类型安全。具体命令类型见项目 `AgentCommand.kt`。
 
 ---
 
 ## 2. 相机控制命令
+
+**Capability**: `camera`  
+**活跃场景**: `CAMERA`
 
 ### 2.1 拍照相关
 
@@ -81,12 +73,6 @@ Agent: ✅ 已为你拍照
 | "停止录像" | `ToggleRecording` | 结束录像 |
 | "录视频" | `ToggleRecording` | 切换录像状态 |
 
-**示例**:
-```
-用户：开始录像
-Agent: ✅ 正在录制，再说话可停止
-```
-
 ### 2.3 摄像头控制
 
 | 自然语言 | 解析命令 | 说明 |
@@ -94,12 +80,6 @@ Agent: ✅ 正在录制，再说话可停止
 | "翻转镜头" | `FlipCamera` | 前后摄像头切换 |
 | "切后置" | `FlipCamera` | 切换到后置 |
 | "切前置" | `FlipCamera` | 切换到前置 |
-
-**示例**:
-```
-用户：翻转镜头
-Agent: ✅ 已切换到后置摄像头
-```
 
 ### 2.4 变焦调节
 
@@ -160,9 +140,21 @@ Agent: ✅ 已切换到后置摄像头
 | "素描效果" | `SwitchStyle("sketch")` | 素描风格特效 |
 | "原图" | `SwitchFilter("none")` | 关闭滤镜 |
 
+### 2.9 画幅比例
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "16:9" | `SwitchRatio("16:9")` | 宽屏画幅 |
+| "4:3" | `SwitchRatio("4:3")` | 标准画幅 |
+| "1:1" | `SwitchRatio("1:1")` | 方形画幅 |
+| "全屏" | `SwitchRatio("full")` | 全屏画幅 |
+
 ---
 
 ## 3. 相册管理命令
+
+**Capability**: `gallery`  
+**活跃场景**: `GALLERY`
 
 ### 3.1 查看照片
 
@@ -191,7 +183,7 @@ Agent: ✅ 已切换到后置摄像头
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
-| "收藏这张" | `FavoriteMedia(mediaId)` | 收藏当前照片 |
+| "收藏这张" | `FavoriteMedia(mediaId, favorite=true)` | 收藏当前照片 |
 | "取消收藏" | `FavoriteMedia(mediaId, favorite=false)` | 取消收藏 |
 
 ### 3.5 搜索照片
@@ -201,28 +193,62 @@ Agent: ✅ 已切换到后置摄像头
 | "找昨天的照片" | `SearchMedia("昨天")` | 按时间搜索 |
 | "找有文字的照片" | `SearchMedia("文字")` | 按 OCR 内容搜索 |
 | "找自拍" | `SearchMedia("自拍")` | 按标签搜索 |
+| "搜索7月的美女" | `SearchMedia("7月的美女")` | 复合语义搜索 |
 
 ### 3.6 批量选择
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
 | "选这张" | `SelectMedia(mediaId, selected=true)` | 选择当前媒体 |
-| "选这张" | `SelectMedia(mediaId, selected=true)` | 选择单张 |
 | "取消选择" | `SelectMedia(mediaId, selected=false)` | 取消选择 |
 
 ### 3.7 视图模式切换
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
-| "网格视图" | `SwitchViewMode(GRID)` | 网格布局 |
-| "列表视图" | `SwitchViewMode(LIST)` | 列表布局 |
-| "大图浏览" | `SwitchViewMode(MAGNIFY)` | 放大浏览 |
+| "网格视图" | `SwitchViewMode("grid")` | 网格布局 |
+| "列表视图" | `SwitchViewMode("list")` | 列表布局 |
+| "时间线视图" | `SwitchViewMode("timeline")` | 时间线布局 |
 
 ---
 
-## 4. 设置管理命令
+## 4. 标签生成命令
 
-### 4.1 主题切换
+**Capability**: `auto_tag`  
+**活跃场景**: `GALLERY`
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "扫描所有照片标签" | `ScanAllTags` | 触发全量标签扫描 |
+| "给照片打标签" | `ScanAllTags` | 触发全量标签扫描 |
+| "查看这张照片的标签" | `GetPhotoTags(photoId)` | 查询指定照片的标签 |
+| "标签扫描进度" | `GetTagProgress` | 获取当前扫描进度 |
+| "取消标签扫描" | `CancelTagScan` | 取消当前扫描 |
+
+---
+
+## 5. AI 优化命令
+
+**Capability**: `ai_optimize`  
+**活跃场景**: `GALLERY`, `CHAT`
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "优化这张照片" | `AiOptimize(imageUri, mode="fast")` | 本地快速优化 |
+| "智能优化这张" | `AiOptimize(imageUri, mode="smart")` | 云端视觉模型推荐（需授权） |
+
+**参数说明**:
+- `image_uri`: 待优化图片的本地文件 URI（必填）
+- `mode`: `fast`（默认，本地分析）或 `smart`（云端推荐）
+
+---
+
+## 6. 设置管理命令
+
+**Capability**: `settings`  
+**活跃场景**: `SETTINGS`
+
+### 6.1 主题切换
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -230,7 +256,7 @@ Agent: ✅ 已切换到后置摄像头
 | "浅色模式" | `ChangeTheme(LIGHT)` | 切换到浅色主题 |
 | "跟随系统" | `ChangeTheme(FOLLOW_SYSTEM)` | 跟随系统主题 |
 
-### 4.2 语言设置
+### 6.2 语言设置
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -238,7 +264,7 @@ Agent: ✅ 已切换到后置摄像头
 | "繁体中文" | `ChangeLanguage(ZH_TW)` | 切换到繁体中文 |
 | "简体中文" | `ChangeLanguage(ZH_CN)` | 切换到简体中文 |
 
-### 4.3 模型管理
+### 6.3 模型管理
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -246,14 +272,17 @@ Agent: ✅ 已切换到后置摄像头
 | "下载人脸模型" | `DownloadModel("landmark_mp468")` | 下载 MediaPipe 模型 |
 | "检查模型更新" | `DownloadModel("check_updates")` | 检查可用更新 |
 
-### 4.4 人脸引擎切换
+### 6.4 人脸引擎切换
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
 | "用 MNN 检测" | `SwitchFaceEngine(MNN_2D106)` | 切换到 MNN 2D106 点 |
+| "用 MediaPipe 检测" | `SwitchFaceEngine(MEDIAPIPE_468)` | 切换到 MediaPipe 468 点 |
 | "默认引擎" | `SwitchFaceEngine(DEFAULT)` | 使用默认引擎 |
 
-### 4.5 开关设置项
+> **注意**: NCNN 路径已于 2026-07-05 完全移除。
+
+### 6.5 开关设置项
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -263,18 +292,23 @@ Agent: ✅ 已切换到后置摄像头
 
 ---
 
-## 5. 导航命令
+## 7. 导航命令
 
-### 5.1 页面切换
+**Capability**: `navigation`  
+**活跃场景**: `ALL`
+
+### 7.1 页面切换
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
 | "去相册" | `NavigateTo("gallery")` | 切换到相册页 |
 | "打开设置" | `NavigateTo("settings")` | 切换到设置页 |
 | "回相机" | `NavigateTo("camera")` | 返回相机页 |
-| "进入编辑" | `NavigateTo("editor")` | 进入编辑页 |
+| "打开聊天" | `NavigateTo("chat")` | 切换到聊天页 |
+| "进入调试" | `NavigateTo("debug")` | 进入调试页 |
+| "打开模型中心" | `NavigateTo("model_center")` | 切换到模型中心 |
 
-### 5.2 返回操作
+### 7.2 返回操作
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -284,36 +318,12 @@ Agent: ✅ 已切换到后置摄像头
 
 ---
 
-## 6. 编辑命令
+## 8. 系统/外部 App 命令
 
-### 6.1 应用编辑
+**Capability**: `system`  
+**活跃场景**: `ALL`
 
-| 自然语言 | 解析命令 | 说明 |
-|---------|---------|------|
-| "磨皮 30" | `ApplyEdit("smooth", {"value": 30})` | 应用磨皮 |
-| "加个滤镜" | `ApplyEdit("filter", {"type": "vintage"})` | 添加复古滤镜 |
-| "裁剪一下" | `ApplyEdit("crop", {"ratio": "1:1"})` | 1:1 裁剪 |
-
-### 6.2 保存编辑
-
-| 自然语言 | 解析命令 | 说明 |
-|---------|---------|------|
-| "保存" | `SaveEdit` | 保存编辑结果 |
-| "另存为" | `SaveEdit(overwrite=false)` | 保存为新文件 |
-
-### 6.3 撤销/重做
-
-| 自然语言 | 解析命令 | 说明 |
-|---------|---------|------|
-| "撤销" | `UndoEdit` | 撤销上一步操作 |
-| "重做" | `RedoEdit` | 重做被撤销的操作 |
-| "重来" | `UndoEdit(nSteps)` | 撤销多步 |
-
----
-
-## 6. 系统/外部 App 命令
-
-### 6.1 启动应用
+### 8.1 启动应用
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -321,7 +331,7 @@ Agent: ✅ 已切换到后置摄像头
 | "启动支付宝" | `LaunchApp(appName="支付宝")` | 按应用名启动 |
 | "打开相机" | `LaunchApp(packageName="com.android.camera")` | 按包名启动（示例） |
 
-### 6.2 打开系统设置
+### 8.2 打开系统设置
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -330,22 +340,11 @@ Agent: ✅ 已切换到后置摄像头
 | "打开通知设置" | `OpenSystemSettings("app_notifications")` | 打开本应用通知设置 |
 | "打开无障碍设置" | `OpenSystemSettings("accessibility")` | 打开系统无障碍设置 |
 
-### 6.3 无障碍自动操作（需开启无障碍服务）
-
-| 自然语言 | 解析命令 | 说明 |
-|---------|---------|------|
-| "点击通讯录" | `PerformAccessibilityAction("click", target={type:"text", value:"通讯录"})` | 点击界面上的目标文本 |
-| "输入 1234" | `PerformAccessibilityAction("input", target={type:"class_name", value:"android.widget.EditText"}, params={text:"1234"})` | 在输入框中填入文本 |
-| "返回" | `PerformAccessibilityAction("back")` | 模拟返回键 |
-| "主页" | `PerformAccessibilityAction("home")` | 模拟主页键 |
-| "最近任务" | `PerformAccessibilityAction("recent")` | 打开最近任务 |
-| "向上滑动" | `PerformAccessibilityAction("scroll_forward")` | 向上/向前滚动 |
-
 ---
 
-## 7. 通用命令
+## 9. 通用命令
 
-### 7.1 延迟命令
+### 9.1 延迟命令
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -363,7 +362,7 @@ Agent: 已设置3秒后拍照
 Agent: ✅ 已为你拍照
 ```
 
-### 7.2 批量执行
+### 9.2 批量执行
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -372,7 +371,7 @@ Agent: ✅ 已为你拍照
 
 **说明**: `BatchExecute` 将多个命令按顺序执行，支持任意组合（包括 `Delay` + 任意命令）。
 
-### 7.3 文本回复
+### 9.3 文本回复
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
@@ -380,7 +379,7 @@ Agent: ✅ 已为你拍照
 | "今天天气怎么样" | `TextReply("闲聊回复")` | 闲聊 |
 | "谢谢" | `TextReply("礼貌回复")` | 礼貌回应 |
 
-### 7.4 澄清请求
+### 9.4 澄清请求
 
 当 Agent 无法理解用户意图时，会返回澄清请求：
 
@@ -389,7 +388,7 @@ Agent: ✅ 已为你拍照
 Agent: 你想调高哪个参数？磨皮、美白还是其他？
 ```
 
-### 7.5 错误处理
+### 9.5 错误处理
 
 | 场景 | 响应 |
 |------|------|
@@ -410,10 +409,10 @@ Agent: 你想调高哪个参数？磨皮、美白还是其他？
 
 可用功能:
 - camera: 相机控制：拍照、录像、美颜、滤镜
-  • capture_photo
+  • capture
   • adjust_beauty
   • switch_filter
-  ...
+  • ...
 - navigation: 页面导航：切换页面、返回上一页
   • navigate_to
   • go_back

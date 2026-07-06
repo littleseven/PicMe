@@ -8,51 +8,64 @@
 **模块定位**: Agent 能力注册表与命令映射  
 **主要维护者**: [RD] 全栈工程师  
 **阅读对象**: RD、AI Agent  
-**版本**: 1.0  
-**最后更新**: 2026-07-01  
+**版本**: 1.1  
+**最后更新**: 2026-07-06  
 
 ---
 
 ## 📋 目录
 
 1. [Capability 概览](#capability-概览)
-2. [CameraCapability](#2-cameraCapability)
+2. [CameraCapability](#2-cameracapability)
 3. [GalleryCapability](#3-gallerycapability)
 4. [SettingsCapability](#4-settingscapability)
 5. [NavigationCapability](#5-navigationcapability)
-6. [EditCapability](#6-editcapability)
+6. [SystemCapability](#6-systemcapability)
+7. [AutoTagCapability](#7-autotagcapability)
+8. [AiOptimizeCapability](#8-aioptimizecapability)
+9. [RemoteControlCapability](#9-remotecontrolcapability)
+10. [BeautyCapability（非 Agent 编排）](#10-beautycapability非-agent-编排)
 
 ---
 
 ## 1. Capability 概览
 
-| Capability | 活跃场景 | 命令数 | 状态 |
-|------------|----------|--------|------|
-| **CameraCapability** | CAMERA | 11 | ✅ 已落地 |
-| **GalleryCapability** | GALLERY | 7 | ✅ 已落地 |
-| **SettingsCapability** | SETTINGS | 5 | ✅ 已落地 |
-| **NavigationCapability** | ALL | 2 | ✅ 已落地 |
-| **SystemCapability** | ALL | 2 | ✅ 已落地 |
-| **AccessibilityCapability** | ALL | 1 | ✅ 已落地（需用户手动开启无障碍服务） |
-| **EditCapability** | EDITOR | 0 | 🔄 待实现（`AgentCommands.kt` 中无对应命令类型） |
+| Capability | name | 活跃场景 | 命令数 | 状态 | 生命周期 |
+|------------|------|----------|--------|------|----------|
+| **CameraCapability** | `camera` | CAMERA | 12 | ✅ 已落地 | 页面级（CameraScreen） |
+| **GalleryCapability** | `gallery` | GALLERY | 7 | ✅ 已落地 | 应用级单例 + 页面 delegate |
+| **SettingsCapability** | `settings` | SETTINGS | 5 | ✅ 已落地 | 应用级单例 + 页面 delegate |
+| **NavigationCapability** | `navigation` | ALL | 2 | ✅ 已落地 | Activity 级（MainActivity） |
+| **SystemCapability** | `system` | ALL | 2 | ✅ 已落地 | Activity/Service 级 |
+| **AutoTagCapability** | `auto_tag` | GALLERY | 4 | ✅ 已落地 | 应用级 |
+| **AiOptimizeCapability** | `ai_optimize` | GALLERY, CHAT | 1 | ✅ 已落地 | 应用级 |
+| **RemoteControlCapability** | `remote_control` | ALL | 0 | ✅ 已落地 | 应用级单例，不走 AgentCommand 路由 |
+| **BeautyCapability** | — | — | — | ✅ 已落地 | 测试/程序化 API，不注册到 Agent 编排 |
+
+> **变更说明（2026-07-06）**：
+> - 新增 `AutoTagCapability`、`AiOptimizeCapability`、`RemoteControlCapability`
+> - 移除 `AccessibilityCapability`（当前代码库中不存在对应实现）
+> - 移除 `EditCapability`（编辑页独立路由尚未落地）
+> - `CameraCapability` 命令从 11 个增加到 12 个（新增 `delay`）
 
 ### 1.1 场景 - 能力映射
 
 | 场景 | 可用 Capability |
 |------|-----------------|
 | `CAMERA` | CameraCapability, NavigationCapability, SystemCapability |
-| `GALLERY` | GalleryCapability, NavigationCapability, SystemCapability |
+| `GALLERY` | GalleryCapability, AutoTagCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `SETTINGS` | SettingsCapability, NavigationCapability, SystemCapability |
-| `CHAT` | NavigationCapability, SystemCapability |
-| `EDITOR` | NavigationCapability, SystemCapability（编辑独立路由预留） |
+| `CHAT` | AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `DEBUG` | NavigationCapability, SystemCapability |
+| `UNKNOWN` | NavigationCapability, SystemCapability, RemoteControlCapability |
 
 ---
 
 ## 2. CameraCapability
 
-**职责**: 相机控制、美颜调节、滤镜切换、拍摄模式管理  
+**职责**: 相机控制、美颜调节、滤镜切换、拍摄模式管理、延迟拍照  
 **活跃场景**: `CAMERA`  
+**文件**: `app/src/main/java/com/mamba/picme/features/camera/capability/CameraCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 2.1 支持命令
@@ -70,7 +83,7 @@
 | `switch_style` | `styleType: String` | 切换风格特效 | "卡通风格" |
 | `switch_scene` | `scene: String` | 切换场景模式 | "人像场景" |
 | `switch_ratio` | `ratio: String` | 切换画幅比例 | "16:9" |
-| `text_reply` | `message: String` | 文本回复 | "你会什么" |
+| `delay` | `delay_ms: Int` | 延迟执行（可组合其他命令） | "3秒后拍照" |
 
 ### 2.2 美颜参数范围
 
@@ -84,121 +97,62 @@
 | 腮红 | 0-100 | 20 |
 | 眉毛 | 0-100 | 15 |
 
-### 2.3 实现要点
+### 2.3 生命周期
 
-```kotlin
-class CameraCapability(
-    private val onCapturePhoto: () -> Unit,
-    private val onToggleRecording: () -> Unit,
-    private val onFlipCamera: () -> Unit,
-    private val onAdjustZoom: (Float) -> Unit,
-    private val onAdjustExposure: (Int) -> Unit,
-    private val onSwitchMode: (String) -> Unit,
-    private val onAdjustBeauty: (BeautyType, Int) -> Unit,
-    private val onSwitchFilter: (FilterType) -> Unit,
-    private val onSwitchStyle: (StyleType) -> Unit,
-    private val onSwitchScene: (SceneMode) -> Unit,
-    private val onSwitchRatio: (AspectRatio) -> Unit
-) : Capability {
-    override val name = "camera"
-    override val description = "相机控制：拍照、录像、美颜、滤镜"
-    
-    override fun activeScenes() = listOf(SceneManager.Scene.CAMERA)
-    
-    override fun supportedCommands() = listOf(
-        "capture", "toggle_recording", "flip_camera",
-        "adjust_zoom", "adjust_exposure", "switch_mode",
-        "adjust_beauty", "switch_filter", "switch_style",
-        "switch_scene", "switch_ratio"
-    )
-}
-```
+- **页面级**：由 `CameraScreen` 创建和持有
+- `CameraScreen Enter → CameraCapability() 创建 → 注册到 CapabilityHost`
+- `CameraScreen Exit → CapabilityHost 注销 → CameraCapability 被 GC 回收`
 
 ---
 
 ## 3. GalleryCapability
 
-**职责**: 相册查看、删除、分享、搜索、批量选择  
+**职责**: 相册查看、删除、分享、搜索、批量选择、收藏  
 **活跃场景**: `GALLERY`  
-**状态**: ✅ 已落地（2026-06 更新：此前标注"部分实现"，现已完整实现）
+**文件**: `app/src/main/java/com/mamba/picme/features/gallery/capability/GalleryCapability.kt`  
+**状态**: ✅ 已落地
 
 ### 3.1 支持命令
 
 | 命令 | 参数 | 描述 | 示例 |
 |------|------|------|------|
-| `view_media` | `mediaId: String?` | 查看照片/视频 | "看这张照片" |
-| `delete_media` | `mediaIds: List<String>` | 删除照片/视频 | "删除这张" |
-| `share_media` | `mediaIds: List<String>` | 分享照片/视频 | "分享这张" |
-| `favorite_media` | `mediaId: String` | 收藏照片 | "收藏这张" |
+| `view_media` | `media_id: String?` | 查看照片/视频 | "看这张照片" |
+| `delete_media` | `media_ids: List<String>` | 删除照片/视频 | "删除这张" |
+| `share_media` | `media_ids: List<String>` | 分享照片/视频 | "分享这张" |
+| `favorite_media` | `media_id: String, favorite: Boolean` | 收藏/取消收藏 | "收藏这张" |
 | `search_media` | `query: String` | 搜索照片 | "找昨天的照片" |
-| `select_media` | `mediaId: String, selected: Boolean` | 批量选择 | "多选这张" |
-| `switch_view_mode` | `mode: ViewMode` | 切换视图模式 | "网格视图" |
-| `text_reply` | `message: String` | 文本回复 | "有哪些照片" |
+| `select_media` | `media_id: String, selected: Boolean` | 批量选择 | "多选这张" |
+| `switch_view_mode` | `mode: String` | 切换视图模式 | "网格视图" |
 
-### 3.2 页面上下文
+### 3.2 生命周期
 
-```kotlin
-data class GalleryContext(
-    val currentMedia: MediaAsset?,
-    val selectedItems: List<MediaAsset>,
-    val isSelectionMode: Boolean
-) : PageContext()
-```
-
-### 3.3 实现要点
-
-```kotlin
-class GalleryCapability(
-    private val onViewMedia: ((MediaAsset) -> Unit)? = null,
-    private val onDeleteMedia: ((List<MediaAsset>) -> Unit)? = null,
-    private val onShareMedia: ((List<MediaAsset>) -> Unit)? = null,
-    private val onSelectMedia: ((MediaAsset, Boolean) -> Unit)? = null,
-    private val onSearch: ((String) -> Unit)? = null,
-    private val onSwitchViewMode: ((ViewMode) -> Unit)? = null
-) : Capability {
-    
-    override val name = "gallery"
-    override val description = "查看、删除、分享、搜索照片和视频"
-    
-    override fun activeScenes() = listOf(SceneManager.Scene.GALLERY)
-    
-    override suspend fun execute(
-        command: AgentCommand,
-        context: AgentContext,
-        pageContext: PageContext?
-    ): Result<AgentAction> {
-        val galleryContext = pageContext as? PageContext.GalleryContext
-        // ... 命令处理逻辑
-    }
-}
-```
+- **应用级单例 + 页面 delegate**：在 `Application.onCreate()` 中注册一次
+- 相册页面激活时绑定 delegate，离开时解绑
+- 支持跨页面指令排队：页面再次激活时执行待处理命令
 
 ---
 
 ## 4. SettingsCapability
 
-**职责**: 主题切换、语言设置、模型管理、人脸引擎切换  
+**职责**: 主题切换、语言设置、模型管理、人脸引擎切换、调试选项  
 **活跃场景**: `SETTINGS`  
-**状态**: ✅ 已落地（2026-06 更新：此前标注"规划中"，现 SettingsViewModel 中已实现对应的状态管理）
+**文件**: `app/src/main/java/com/mamba/picme/features/settings/capability/SettingsCapability.kt`  
+**状态**: ✅ 已落地
 
 ### 4.1 支持命令
 
 | 命令 | 参数 | 描述 | 示例 |
 |------|------|------|------|
-| `change_theme` | `theme: ThemeMode` | 切换主题 | "深色模式" |
-| `change_language` | `language: AppLanguage` | 切换语言 | "英文界面" |
-| `download_model` | `modelId: String` | 下载 AI 模型 | "下载美颜模型" |
-| `switch_face_engine` | `engine: FaceDetectionEngineMode` | 切换人脸引擎 | "用 MediaPipe" |
+| `change_theme` | `theme: String` | 切换主题（light/dark/system） | "深色模式" |
+| `change_language` | `language: String` | 切换语言（zh/en） | "英文界面" |
+| `download_model` | `model_id: String` | 下载 AI 模型 | "下载美颜模型" |
+| `switch_face_engine` | `engine: String` | 切换人脸引擎（mediapipe/mnn/custom） | "用 MediaPipe" |
 | `toggle_setting` | `key: String, enabled: Boolean` | 开关设置项 | "开启调试模式" |
-| `text_reply` | `message: String` | 文本回复 | "有什么设置" |
 
-### 4.2 页面上下文
+### 4.2 生命周期
 
-```kotlin
-data class SettingsContext(
-    val currentCategory: String?
-) : PageContext()
-```
+- **应用级单例 + 页面 delegate**
+- 设置页面激活时绑定 delegate，离开时解绑
 
 ---
 
@@ -206,6 +160,7 @@ data class SettingsContext(
 
 **职责**: 页面切换、返回上一页  
 **活跃场景**: `ALL` (所有场景)  
+**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/NavigationCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 5.1 支持命令
@@ -214,132 +169,144 @@ data class SettingsContext(
 |------|------|------|------|
 | `navigate_to` | `destination: String` | 切换到指定页面 | "去相册"/"打开设置" |
 | `go_back` | - | 返回上一页 | "返回"/"回去" |
-| `text_reply` | `message: String` | 文本回复 | "能去哪里" |
 
 ### 5.2 页面映射
 
 | 意图关键词 | 目标页面 |
 |-----------|---------|
-| "相机", "拍照" | `Screen.Camera` |
-| "相册", "照片", " gallery" | `Screen.Gallery` |
-| "设置", "设定" | `Screen.Settings` |
-| "编辑", "修图" | `Screen.Editor` |
+| "相机", "拍照" | `camera` |
+| "相册", "照片", "gallery" | `gallery` |
+| "设置", "设定" | `settings` |
+| "聊天", "对话" | `chat` |
+| "调试" | `debug` |
+| "模型中心" | `model_center` |
 
-### 5.3 实现要点
+### 5.3 生命周期
 
-```kotlin
-class NavigationCapability(
-    private val onNavigate: (Screen) -> Unit,
-    private val onBack: () -> Unit
-) : Capability {
-    
-    override val name = "navigation"
-    override val description = "页面导航：切换页面、返回上一页"
-    
-    override fun activeScenes() = SceneManager.Scene.entries.toList()
-    
-    override fun supportedCommands() = listOf(
-        "navigate_to", "go_back", "text_reply"
-    )
-}
-```
+- **Activity 级**：由 `MainActivity` 创建和持有
+- 同时在 `MainActivity` 中通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`
 
 ---
 
 ## 6. SystemCapability
 
-**职责**: 启动其他应用、打开系统设置
-**活跃场景**: `ALL` (所有场景)
+**职责**: 启动其他应用、打开系统设置  
+**活跃场景**: `ALL` (所有场景)  
+**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/SystemCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 6.1 支持命令
 
 | 命令 | 参数 | 描述 | 示例 |
 |------|------|------|------|
-| `launch_app` | `packageName: String?`, `appName: String?` | 启动应用 | "打开微信" |
+| `launch_app` | `package_name: String?`, `app_name: String?` | 启动应用 | "打开微信" |
 | `open_system_settings` | `setting: String` | 打开系统设置 | "打开WiFi设置" |
-| `text_reply` | `message: String` | 文本回复 | "能打开哪些应用" |
 
-### 6.2 应用名解析
+### 6.2 生命周期
 
-- 优先使用 `packageName`。
-- 若只提供 `appName`，则在已安装应用列表中按应用标签模糊匹配。
-- 匹配失败时返回错误，不会随意启动未知应用。
-
-### 6.3 实现要点
-
-```kotlin
-class SystemCapability(
-    private val context: Context
-) : BaseCapability() {
-    override val name = "system"
-    override val description = "系统控制：打开其他应用、系统设置"
-
-    override fun supportedCommands() = listOf(
-        "launch_app",
-        "open_system_settings"
-    )
-}
-```
+- 在 `MainActivity` 和 `FloatingChatBubbleService` 中创建并注册
+- 构造函数注入 `Context`
 
 ---
 
-## 7. AccessibilityCapability
+## 7. AutoTagCapability
 
-**职责**: 在其他应用中执行无障碍自动操作（点击、输入、滚动、返回、主页、最近任务）
-**活跃场景**: `ALL` (所有场景)
-**状态**: ✅ 已落地（需用户在系统设置中手动开启 PicMe 无障碍服务）
+**职责**: 将标签系统作为 Agent 可编排的 Capability 暴露，支持触发全量标签扫描、查询照片标签、获取进度、取消扫描  
+**活跃场景**: `GALLERY`  
+**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/AutoTagCapability.kt`  
+**状态**: ✅ 已落地
 
 ### 7.1 支持命令
 
 | 命令 | 参数 | 描述 | 示例 |
 |------|------|------|------|
-| `perform_accessibility_action` | `action: String`, `target: AccessibilityTarget?`, `params: Map<String,String>` | 执行无障碍动作 | "点击通讯录"、"输入 1234" |
+| `scan_all_tags` | - | 触发全量标签扫描 | "扫描所有照片标签" |
+| `get_photo_tags` | `photo_id: Long` | 查询指定照片的标签 | "查看这张照片的标签" |
+| `get_tag_progress` | - | 获取当前扫描进度 | "标签扫描进度" |
+| `cancel_tag_scan` | - | 取消当前扫描 | "取消标签扫描" |
 
-### 7.2 可用性
+### 7.2 生命周期
 
-- `isAvailable()` 仅在 `PicMeAccessibilityService` 已连接时返回 `true`。
-- 服务未开启时执行命令会返回 `CAPABILITY_UNAVAILABLE` 错误，并提示用户前往设置开启。
-
-### 7.3 实现要点
-
-```kotlin
-class AccessibilityCapability : BaseCapability() {
-    override val name = "accessibility"
-    override val description = "无障碍自动化：在其他应用中执行点击、输入、滚动、返回等操作"
-
-    override fun supportedCommands() = listOf("perform_accessibility_action")
-
-    override fun isAvailable() = AccessibilityController.isServiceConnected()
-}
-```
+- **应用级**：委托给 `TagScanOrchestrator` 执行
+- 所有扫描统一走 orchestrator，确保与 UI 控制页进度同源
 
 ---
 
-## 8. EditCapability（预留）
+## 8. AiOptimizeCapability
 
-**职责**: 图片编辑、保存、撤销/重做  
-**活跃场景**: `EDITOR`  
-**状态**: ⏳ 规划中
+**职责**: AI 一键优化图片，分析照片场景并自动推荐美颜、滤镜、调节参数  
+**活跃场景**: `GALLERY`, `CHAT`  
+**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/optimize/AiOptimizeCapability.kt`  
+**状态**: ✅ 已落地
 
 ### 8.1 支持命令
 
 | 命令 | 参数 | 描述 | 示例 |
 |------|------|------|------|
-| `apply_edit` | `editType: String, params: Map` | 应用编辑操作 | "磨皮 30" |
-| `save_edit` | - | 保存编辑结果 | "保存" |
-| `undo_edit` | - | 撤销上一步 | "撤销" |
-| `redo_edit` | - | 重做上一步 | "重做" |
-| `text_reply` | `message: String` | 文本回复 | "能怎么编辑" |
+| `ai_optimize` | `image_uri: String`, `mode: String?` | AI 一键优化图片 | "优化这张照片" |
 
-### 8.2 页面上下文
+参数说明：
+- `image_uri`: 待优化图片的本地文件 URI（必填）
+- `mode`: `fast`（本地场景分析 + 本地预设，默认）或 `smart`（云端视觉模型推荐，需用户授权）
 
-```kotlin
-data class EditorContext(
-    val editingMedia: MediaAsset,
-    val hasUnsavedChanges: Boolean
-) : PageContext()
-```
+### 8.2 生命周期
+
+- **应用级**：在 `Application.onCreate()` 中注册
+- 实际优化逻辑委托给 `AiOptimizeUseCase`
+
+---
+
+## 9. RemoteControlCapability
+
+**职责**: IM 远程控制：管理设备绑定与远程命令执行状态  
+**活跃场景**: `ALL`  
+**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt`  
+**状态**: ✅ 已落地
+
+### 9.1 支持命令
+
+**无 AgentCommand 路由命令**。`RemoteControlCapability` 不通过 `AgentCommand` 密封类分发命令；所有管理操作通过公开 API 由 `RemoteCommandDispatcher` 直接调用。
+
+`execute()` 始终返回 `METHOD_NOT_FOUND`。
+
+### 9.2 公开管理 API
+
+| API | 说明 |
+|-----|------|
+| `updateBinding(token, relayUrl, userId, deviceName)` | 更新设备绑定状态 |
+| `clearBinding()` | 清除设备绑定 |
+| `setAutoConfirm(enabled)` | 设置自动确认模式 |
+| `buildStatusString()` | 构建设备状态描述 |
+
+### 9.3 生命周期
+
+- **应用级单例**：在 `Application.onCreate()` 中创建，永不注销
+- 进程结束时 `onDestroy()` 清理状态
+
+---
+
+## 10. BeautyCapability（非 Agent 编排）
+
+**职责**: 提供美颜调节的标准化程序化能力，支持生产代码和测试直接调用  
+**文件**: `app/src/main/java/com/mamba/picme/capability/BeautyCapability.kt`  
+**状态**: ✅ 已落地
+
+### 10.1 支持操作
+
+| 操作 | 参数 | 描述 |
+|------|------|------|
+| `adjustSmoothing` | `smoothness: Float` | 调整磨皮 |
+| `adjustWhitening` | `whitening: Float` | 调整美白 |
+| `adjustSlimFace` | `slimFace: Float` | 调整瘦脸 |
+| `adjustBigEyes` | `bigEyes: Float` | 调整大眼 |
+| `applyAllEffects` | `settings: BeautySettings` | 应用所有美颜效果 |
+| `batchTest` | `paramSets: List<BeautySettings>` | 批量测试多组参数 |
+
+### 10.2 说明
+
+- `BeautyCapability` **不注册到 `CapabilityRegistry`**，不作为 Agent 可编排能力
+- 供测试引擎、自动化测试或业务代码直接调用
+- 若未来需要 Agent 控制美颜参数，应通过 `CameraCapability.adjust_beauty` 命令
 
 ---
 
@@ -362,26 +329,19 @@ class NewCapability : Capability {
 }
 ```
 
-### 步骤 2: 注册到 CapabilityRegistry
+### 步骤 2: 注册到 AgentOrchestrator
 
 ```kotlin
-val registry = CapabilityRegistry.getInstance().apply {
-    register(NewCapability())
-}
+AgentOrchestrator.getInstance(context).registerCapability(NewCapability())
 ```
 
-### 步骤 3: 扩展 AgentCommand
+### 步骤 3: 在 `AgentCommand` 密封类中添加命令类型
 
-```kotlin
-sealed class AgentCommand {
-    data class NewCommand(val param: String) : AgentCommand()
-    // ... 其他命令
-}
-```
+位置：`agent-core/src/main/java/com/mamba/.../AgentCommand.kt`（或项目实际路径）
 
-### 步骤 4: 更新 PromptBuilder
+### 步骤 4: 更新本文档与 `COMMAND_REFERENCE.md`
 
-在 `PromptBuilder.buildSystemPrompt()` 中添加新 Capability 的自描述。
+新增 Capability 必须在 `CAPABILITY_REGISTRY.md` 和 `COMMAND_REFERENCE.md` 中同步登记。
 
 ---
 
