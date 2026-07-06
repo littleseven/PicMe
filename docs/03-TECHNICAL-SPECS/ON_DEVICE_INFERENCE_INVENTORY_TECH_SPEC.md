@@ -2,7 +2,7 @@
 
 > **版本**: 1.2  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-05  
+> **最后更新**: 2026-07-06  
 > **维护者**: RD Agent  
 > **范围**: `:app`、`:runtime-core`、`:beauty-engine`、`:beauty-api`、`:sentencepiece` 模块中所有本地推理引擎、模型、量化策略、tokenizer 及运行时瓶颈
 
@@ -22,7 +22,6 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 |------|---------|----------|----------|--------|
 | **MNN** | 3.5.0 | `:runtime-core`、`:beauty-engine` | LLM（Qwen）、人脸 ROI/关键点/Embedding、视觉编码器 | `libMNN.so`、`libMNN_CL.so` |
 | **MNN-LLM** | 内置于 MNN | `:runtime-core` | Qwen3.5-2B/0.8B 多模态 LLM | `libMNN.so` + `libmnn_llm.so` |
-| **NCNN** | Vulkan 后端 | `:beauty-engine` | 人脸 ROI/关键点备选 | `libncnn.so` |
 | **ONNX Runtime** | 1.24.3 | `:app`、`:runtime-core` | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
 | **Sherpa-ONNX** | 1.13.3 | `:runtime-core` | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
 | **MediaPipe Tasks Vision** | 0.10.26 | `:app`、`:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
@@ -41,15 +40,14 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 |------|-----------|------|----------|------|
 | 实时美颜渲染 | **大美丽（BIG_BEAUTY）** 自研 OpenGL ES | 磨皮、美白、大眼、瘦脸、唇色、腮红、风格滤镜 | 相机页常驻 | 零拷贝 GPU 管线，目标 30-60fps |
 | 人脸检测（默认） | **MediaPipe Face Landmarker** 468 点 | 输出 468 点 → 映射为 106 点 | 相机页初始化 | 首选路径，零拷贝 `ImageProxy` |
-| 人脸检测（备选 1） | **MNN RetinaFace det_500m** + **2D106 landmark** | ROI + 106 点 | 相机页初始化 | OpenCL GPU 优先 |
-| 人脸检测（备选 2） | **NCNN RetinaFace det_500m** + **2D106 landmark** | ROI + 106 点 | 相机页初始化 | Vulkan GPU，NV21 零拷贝路径 |
+| 人脸检测（备选） | **MNN RetinaFace det_500m** + **2D106 landmark** | ROI + 106 点 | 相机页初始化 | OpenCL GPU 优先 |
 | 语音唤醒词 | **KwakeWordKwsEngine**（Sherpa-ONNX KeywordSpotter） | 检测 "小觅" 等唤醒词 | 相机页常驻监听 | Sherpa-ONNX KWS 已落地；VAD+ASR 方案保留为 KWS 不可用时回退 |
 | 语音指令识别 | **Sherpa-ONNX Zipformer ASR** (INT8) | 唤醒后转录指令 | 唤醒后按需加载 | 与 LLM 分时复用 |
 | Agent 指令执行 | **Remote LLM**（默认）/ **Qwen3.5-2B-MNN**（本地降级） | 解析并执行语音/文字指令 | 跨页面保活 | 默认远程优先策略 |
 
 **当前方案问题**：
-- 人脸检测三引擎并存，配置复杂；`FaceDetectorManager` 在 `updatePipelineConfig()` 前返回 `null` 导致静默失败。
-- `MnnRoiDetector`/`NcnnRoiDetector` 写死 `requireGpu=true`，GPU 初始化失败时无 CPU 降级路径。
+- 人脸检测双引擎并存（MediaPipe 默认 + MNN 备选），配置较复杂；`FaceDetectorManager` 在 `updatePipelineConfig()` 前返回 `null` 导致静默失败。
+- `MnnRoiDetector` 写死 `requireGpu=true`，GPU 初始化失败时无 CPU 降级路径。
 - 语音唤醒已迁移到 Sherpa-ONNX KWS（~14MB INT8），相机页常驻监听；原 VAD+ASR 文本匹配方案保留为 KWS 模型缺失时的回退。
 
 ### 3.2 拍照/图片编辑页
@@ -58,7 +56,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 |------|-----------|------|------|
 | 拍照美颜处理 | **大美丽 GPU 离屏渲染** | 预览与拍照复用同一 Shader 管线 | 效果一致性 ≥ 99% |
 | 拍照降级 | **GpuBeautyProcessor**（CPU Canvas） | GPU 失败时兜底 | 正向映射，已废弃但保留 |
-| 人脸检测 | 同相机页 MediaPipe/MNN/NCNN | 复用预览阶段缓存 | `FaceDetectionCache` 减少差异 |
+| 人脸检测 | 同相机页 MediaPipe/MNN | 复用预览阶段缓存 | `FaceDetectionCache` 减少差异 |
 
 ### 3.3 相册页 / GalleryScreen
 
@@ -75,7 +73,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 
 | Pass | 引擎/模型 | 作用 | 单张耗时 | 是否量化 |
 |------|-----------|------|----------|----------|
-| **Pass 1** | MNN/NCNN RetinaFace + Glint360K R100 + MobileCLIP-S2-ONNX | 人脸 ROI + 106 关键点 + 人脸/图像 512 维 Embedding；**MobileCLIP 无论是否有人脸都执行** | ~80-180ms | 否 |
+| **Pass 1** | MNN RetinaFace + Glint360K R100 + MobileCLIP-S2-ONNX | 人脸 ROI + 106 关键点 + 人脸/图像 512 维 Embedding；**MobileCLIP 无论是否有人脸都执行** | ~80-180ms | 否 |
 | **Pass 2** | DBSCAN / 增量余弦匹配 | 人脸聚类 → `personId` | ~5-20ms/对比 | — |
 | **Pass 3** | Qwen3.5-2B-MNN | 图像理解生成中文标签 | ~2-8s | 否 |
 
@@ -128,9 +126,6 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 | **RetinaFace Det10G** (MNN) | MNN | 16.9MB | 否 | ROI 检测（历史） |
 | **RetinaFace Det500M** (MNN) | MNN | 1.26MB | 否 | ROI 检测（当前默认 must-have） |
 | **2D106 Landmark** (MNN) | MNN | 4.98MB | 否 | 106 点关键点 |
-| **RetinaFace Det10G** (NCNN) | NCNN | 16.9MB | 否 | ROI 检测备选 |
-| **RetinaFace Det500M** (NCNN) | NCNN | 1.27MB | 否 | ROI 检测备选 |
-| **2D106 Landmark** (NCNN) | NCNN | 5.02MB | 否 | 关键点备选 |
 | **Glint360K R100** (MNN) | MNN | 248MB | 否 | 人脸 512 维 Embedding（聚类/识别） |
 
 > 问题：所有人脸模型均未量化；Det10G 与 Det500M 同时存在，后者已替代前者为默认，但前者模型仍作为可选保留。
@@ -158,7 +153,7 @@ PicMe（觅影相册）当前在端侧同时运行 **7 套推理框架**、**14+
 |----------|--------|--------|------|
 | LLM | — | Qwen3.5-2B | 最大内存瓶颈，INT4 量化待实施 |
 | ASR/KWS | Sherpa-ONNX ASR、KWS | — | 已 INT8 量化 |
-| 人脸检测/关键点 | — | MNN/NCNN RetinaFace、2D106 | 模型小，量化收益有限 |
+| 人脸检测/关键点 | — | MNN RetinaFace、2D106 | 模型小，量化收益有限 |
 | 人脸 Embedding | — | Glint360K R100 | 248MB，量化收益有限 |
 | CLIP | — | MobileCLIP-S2 | fp16 在 CPU 上不稳定，强制 fp32 |
 | 翻译 | OPUS-MT | — | INT8 量化 |
@@ -204,15 +199,14 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 | **Swap PSS 暴涨** | 2.33GB Swap | 内存压力触发系统换页 | 渲染卡顿、发热 |
 | **CameraX ImageReader 缓冲** | Native Heap 1.72GB 基线 | 1280×720 多帧缓冲 + GPU 纹理 | 即使无 LLM 也占用偏高 |
 
-> 实测：`06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md` 显示，开启本地 LLM 后 Native Heap 从 1.72GB → 3.61GB，Swap 从 54MB → 2.33GB，Janky frames 从 0.89% → 18.42%。
+> 实测：`06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md`（历史文件名，含 NCNN 基线）显示，开启本地 LLM 后 Native Heap 从 1.72GB → 3.61GB，Swap 从 54MB → 2.33GB，Janky frames 从 0.89% → 18.42%。
 
 ### 5.2 计算瓶颈（P1）
 
 | 瓶颈 | 现象 | 根因 | 影响 |
 |------|------|------|------|
 | **LLM 单线程串行** | 所有 load/generate/unload 排队 | `PicMe-LLM-Model-Thread` + `engineMutex` | 长生成阻塞模型切换和 Tag 管道 |
-| **MNN 全局释放锁** | create/destroy/reset 串行 | `MnnGlobalReleaseLock` 保护 MNN 全局状态 | LLM/ASR/人脸检测互相阻塞 |
-| **NCNN OpenMP 全局锁** | ROI + Landmark 串行 | `NCNN_GLOBAL_LOCK` | 无法并行跑多个人脸模型 |
+| **MNN 全局释放锁** | create/destroy/reset 串行 | `MnnGlobalReleaseLock` 保护 MNN 全局状态 | LLM/人脸检测互相阻塞 |
 | **TAG Pass 3 Qwen 推理** | 2-8s/张 | CPU 解码 128 tokens ≈ 3.8s | 9000 张全量扫描约 13 小时 |
 | **MediaPipe 主线程初始化** | 首帧延迟 | `Dispatchers.Main` 强制初始化 | 启动时掉帧 |
 
@@ -239,7 +233,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ### 6.1 架构层问题
 
 1. **多框架并存，维护成本高**
-   - 同时维护 MNN、NCNN、ONNX Runtime、Sherpa-ONNX、MediaPipe、ML Kit 六套推理栈，JNI 桥接、模型下载、生命周期管理重复。
+   - 同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe、ML Kit 五套推理栈，JNI 桥接、模型下载、生命周期管理重复。
    - 示例：`app/build.gradle.kts` 需要 `pickFirsts` 解决 `libonnxruntime.so` 冲突；`MNN-source/`  vendored 但未作为运行时依赖。
 
 2. **MNN 全局状态耦合**
@@ -266,14 +260,14 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ### 6.3 运行时问题
 
 8. **GPU 失败无 CPU 降级**
-   - `MnnRoiDetector`/`NcnnRoiDetector` 写死 `requireGpu=true`，OpenCL/Vulkan 初始化失败时检测器为 `null`，导致整帧无人脸。
+   - `MnnRoiDetector` 写死 `requireGpu=true`，OpenCL 初始化失败时检测器为 `null`，导致整帧无人脸。
    - Qwen 视觉编码器虽有 `OpenClGuardian` CPU 降级，但人脸检测缺少等价机制。
 
 9. **TAG 扫描物理瓶颈**
    - Pass 3 Qwen 2-8s/张是物理上限，9000 张需 13 小时。当前优化（移除 Pass 1 节流、maxTokens=64、OpenCL GPU、照片去重）理论上可压缩到 2-3 小时，但去重等方案尚未落地。
 
 10. **线程过度串行化**
-    - LLM `engineMutex` + `MnnGlobalReleaseLock` + NCNN `NCNN_GLOBAL_LOCK` 三重串行，牺牲了本可并行的能力（如 MobileCLIP 与 Qwen 不共享 GPU，本可并发）。
+    - LLM `engineMutex` + `MnnGlobalReleaseLock` 双重串行，牺牲了本可并行的能力（如 MobileCLIP 与 Qwen 不共享 GPU，本可并发）。
 
 11. **Native 内存阈值固定**
     - `MnnResourceManager` 使用固定阈值（2GB/2.56GB/3.07GB）触发 trim/unload，未按设备 RAM 分级，低端机可能太晚，高端机可能过早。
@@ -352,8 +346,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - `docs/03-TECHNICAL-SPECS/TAG_I18N_DESIGN.md` — TAG 国际化与 OPUS-MT 翻译回退
 - `docs/06-QA/research/OPUS_MT_TRANSLATION_VALIDATION.md` — OPUS-MT 端侧推理验证记录
 - `docs/03-TECHNICAL-SPECS/KWS_MIGRATION_TECH_SPEC.md` — KWS 唤醒词迁移
-- `docs/06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md` — LLM 开启前后性能对比
-- `docs/06-QA/perf_trace_2026-06-06_ncnn_highperf.md` — NCNN 人脸检测性能基线
+- `docs/06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md` — LLM 开启前后性能对比（历史文件名，含 NCNN 基线）
 - `app/src/main/res/raw/llm_models.json` — 模型清单与下载配置
 - `app/src/main/java/com/mamba/picme/features/settings/AGENTS.md` — 模型中心与设置
 
