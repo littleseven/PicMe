@@ -58,6 +58,7 @@ ktlint {
 // }
 
 android {
+    ndkVersion = "28.2.13676358"
     namespace = "com.mamba.picme"
     compileSdk = 36
 

@@ -4,6 +4,7 @@ plugins {
 }
 
 android {
+    ndkVersion = "28.2.13676358"
     namespace = "com.mamba.picme.agent.core"
     compileSdk = 36
 
