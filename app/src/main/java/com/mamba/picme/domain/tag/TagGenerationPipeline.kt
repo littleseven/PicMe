@@ -65,8 +65,8 @@ class TagGenerationPipeline(
         /** Qwen 图像推理的图片最长边缩放 */
         private const val MAX_VISION_SIZE = 512
 
-        /** Qwen Stage 3 最大输出 token 数（从 128 增至 256 以支持丰富标签） */
-        private const val QWEN_MAX_TOKENS = 256
+        /** Qwen Stage 3 最大输出 token 数（activity + summary 模式下 128 足够） */
+        private const val QWEN_MAX_TOKENS = 128
     }
 
     /** 当前生成目标语言，由用户设置决定 */
@@ -270,8 +270,8 @@ class TagGenerationPipeline(
         val faceCount = if (faceRoi?.hasFace == true) faceRoi.faceCount else 0
         val isGroupPhoto = faceRoi?.isGroupPhoto ?: false
 
-        // 1. 先尝试 MobileCLIP 分类
-        val mobileClipTags = mobileClipTagClassifier?.classify(bitmap)
+        // 1. 先尝试 MobileCLIP 分类（仅中英语言；其他语言自动回退到 Qwen 全量输出）
+        val mobileClipTags = mobileClipTagClassifier?.classify(bitmap, targetLanguage)
 
         // 2. MobileCLIP 成功时：Qwen 只输出 activity + summary
         //    MobileCLIP 失败时：Qwen 输出全量字段作为回退
