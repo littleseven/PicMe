@@ -120,7 +120,7 @@ langchain4android 采用**四层文档架构**，遵循 AGENTS.md 顶层治理�
 - TAG 生成 5-Pass 管道：人脸检测/Embedding、DBSCAN 聚类、Qwen 标签、MobileCLIP 语义编码、ML Kit 英文标签
 - EGL 上下文管理、Shader 编译、资源释放
 - FrameId 体系、FrameSyncManager、预测补偿算法
-- MNN/NCNN 双引擎人脸检测（InsightFace ONNX 路径已移除）
+- MediaPipe/MNN 双引擎人脸检测（InsightFace ONNX 与 NCNN 路径已移除）
 - ROC 关键点映射、MNN 维度类型修复
 - 远程推理架构：IntentCache（L1 缓存）、本地/远程协议分离（ADR-005）、命令系统包隔离（ADR-006）
 

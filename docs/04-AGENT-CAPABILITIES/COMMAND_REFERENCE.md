@@ -251,7 +251,6 @@ Agent: ✅ 已切换到后置摄像头
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
 | "用 MNN 检测" | `SwitchFaceEngine(MNN_2D106)` | 切换到 MNN 2D106 点 |
-| "用 NCNN 检测" | `SwitchFaceEngine(NCNN_2D106)` | 切换到 NCNN 2D106 点 |
 | "默认引擎" | `SwitchFaceEngine(DEFAULT)` | 使用默认引擎 |
 
 ### 4.5 开关设置项
