@@ -44,13 +44,6 @@ android {
     }
 }
 
-configurations.all {
-    resolutionStrategy {
-        force("com.fasterxml.jackson.core:jackson-databind:2.14.3")
-        force("com.fasterxml.jackson.core:jackson-core:2.14.3")
-        force("com.fasterxml.jackson.core:jackson-annotations:2.14.3")
-    }
-}
 
 dependencies {
     implementation(project(":beauty-api"))
@@ -72,10 +65,6 @@ dependencies {
     // agent-core: 合并后的 langchain4j 单库模块（core + open-ai + okhttp）
     api(project(":agent-core"))
 
-    // 强制降级 Jackson 到 2.14.3，避免 Android 上 Java 17 API 兼容问题
-    api("com.fasterxml.jackson.core:jackson-databind:2.14.3")
-    api("com.fasterxml.jackson.core:jackson-core:2.14.3")
-    api("com.fasterxml.jackson.core:jackson-annotations:2.14.3")
 
     // RecyclerView（ScrollTool 滚动检测）
     implementation(libs.androidx.recyclerview)

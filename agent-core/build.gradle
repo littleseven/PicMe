@@ -38,9 +38,9 @@ dependencies {
     api 'com.google.code.gson:gson:2.11.0'
 
     // HTTP 客户端（OkHttp）
-    api 'com.squareup.okhttp3:okhttp:4.12.0'
-    api 'com.squareup.okhttp3:logging-interceptor:4.12.0'
-    api 'com.squareup.okhttp3:okhttp-sse:4.12.0'
+    api 'com.squareup.okhttp3:okhttp:4.10.0'
+    api 'com.squareup.okhttp3:logging-interceptor:4.10.0'
+    api 'com.squareup.okhttp3:okhttp-sse:4.10.0'
 
     // 日志（保留 SLF4J API，由调用方选择桥接实现）
     api 'org.slf4j:slf4j-api:2.0.16'
@@ -61,11 +61,11 @@ dependencies {
     api 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
 
     // Room（可选，用于 ChatMemory 持久化）
-    api 'androidx.room:room-runtime:2.6.1'
-    api 'androidx.room:room-ktx:2.6.1'
+    api 'androidx.room:room-runtime:2.7.0'
+    api 'androidx.room:room-ktx:2.7.0'
 
     // Coroutines
-    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 
     // Core library desugaring
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
