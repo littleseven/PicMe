@@ -30,52 +30,42 @@
 
 ## 2. 模块依赖图
 
-```mermaid
-flowchart TB
-    subgraph App["应用层"]
-        APP[:app]
-    end
-
-    subgraph Runtime["Agent Runtime"]
-        RUNCORE[:runtime-core]
-        AGENTCORE[:agent-core]
-    end
-
-    subgraph Vision["视觉能力"]
-        BEAUTY[:beauty-engine]
-        BEAUTYAPI[:beauty-api]
-    end
-
-    subgraph NativeShared["Native 共享"]
-        MNN[:mnn-core]
-        SP[:sentencepiece]
-    end
-
-    APP --> BEAUTYAPI
-    APP --> BEAUTY
-    APP --> RUNCORE
-    APP --> MNN
-    APP --> SP
-
-    RUNCORE --> AGENTCORE
-    RUNCORE --> BEAUTYAPI
-    RUNCORE --> MNN
-
-    BEAUTY --> BEAUTYAPI
-    BEAUTY --> MNN
-
-    AGENTCORE -.->|外部依赖| OKHTTP[OkHttp 4.10.0]
-    AGENTCORE -.->|外部依赖| GSON[Gson 2.11.0]
-    AGENTCORE -.->|外部依赖| JACKSON[Jackson 2.14.3]
-    AGENTCORE -.->|外部依赖| SLF4J[SLF4J 2.0.16]
-
-    style APP fill:#e1f5fe
-    style RUNCORE fill:#fff3e0
-    style AGENTCORE fill:#fff3e0
-    style BEAUTY fill:#e8f5e9
-    style BEAUTYAPI fill:#e8f5e9
-    style MNN fill:#fce4ec
-    style SP fill:#fce4ec
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              应用层 (Application)                            │
+│                              ┌─────────────────┐                            │
+│                              │     :app        │                            │
+│                              │  PicMe 主应用   │                            │
+│                              └────────┬────────┘                            │
+└───────────────────────────────────────┼─────────────────────────────────────┘
+        │              │                │               │              │
+        ▼              ▼                ▼               ▼              ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────┐ ┌──────────────┐
+│  :beauty-api │ │ :beauty-engine│ │ :runtime-core│ │  :mnn-core  │ │ :sentencepiece│
+│  美颜 API契约 │ │  美颜引擎实现  │ │ Agent Runtime│ │ MNN 共享模块 │ │  SentencePiece │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └──────┬──────┘ └──────────────┘
+       │                │                │                │
+       │                │                │                │
+       │                │                ▼                │
+       │                │       ┌─────────────────┐       │
+       │                │       │   :agent-core   │       │
+       │                │       │ Java LLM 基础库 │       │
+       │                │       └────────┬────────┘       │
+       │                │                │                │
+       │                │                ▼                │
+       │                │    ┌─────────────────────────┐  │
+       │                │    │  OkHttp / Gson / Jackson │  │
+       │                │    │     SLF4J / JSpecify      │  │
+       │                │    └─────────────────────────┘  │
+       │                │         外部 Maven 依赖         │
+       │                │                                   │
+       ▼                ▼                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  说明                                                                        │
+│  • :beauty-engine 不再依赖 :runtime-core，二者通过 :mnn-core 共享 MNN 资源   │
+│  • :app 直接依赖 :mnn-core（PicMeApplication / CameraScreen 使用 MnnResourceManager）│
+│  • :agent-core 零业务依赖，可独立作为 JitPack 库发布                          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 依赖方向说明
@@ -89,41 +79,57 @@ flowchart TB
 
 ## 3. Native SO 归属图
 
-```mermaid
-flowchart LR
-    subgraph MNNCoreSO[":mnn-core"]
-        MNN_SO["libMNN.so<br/>7.2 MB"]
-        OPENCL_SO["libOpenCL.so<br/>96 KB"]
-    end
-
-    subgraph BeautySO[":beauty-engine"]
-        BEAUTY_NATIVE["libbeauty_native.so"]
-    end
-
-    subgraph RuntimeSO[":runtime-core"]
-        AGENT_NATIVE["libagent_native.so"]
-    end
-
-    subgraph SentencepieceSO[":sentencepiece"]
-        SP_SO["libsentencepiece_android.so"]
-    end
-
-    subgraph ExternalSO["外部 AAR"]
-        SHERPA["libsherpa-onnx-*.so"]
-        ONNX["libonnxruntime.so"]
-        MEDIAPIPE["libmediapipe_tasks_vision_jni.so"]
-        MLKIT["libmlkit*.so"]
-    end
-
-    MNN_SO -->|供| RUNCORE_LINK["runtime-core JNI"]
-    MNN_SO -->|供| BEAUTY_LINK["beauty-engine JNI"]
-    OPENCL_SO -->|App 预加载| APP_PRELOAD[":app 启动加载"]
-
-    style MNNCoreSO fill:#fce4ec
-    style BeautySO fill:#e8f5e9
-    style RuntimeSO fill:#fff3e0
-    style SentencepieceSO fill:#fce4ec
-    style ExternalSO fill:#f3e5f5
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           项目内部 Native 库                                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────┐    ┌─────────────────────────────┐ │
+│  │           :mnn-core                 │    │        :runtime-core        │ │
+│  │  ┌─────────────────────────────┐   │    │  ┌───────────────────────┐  │ │
+│  │  │ libMNN.so           (7.2 MB)│◄───┼────┤  │ libagent_native.so    │  │ │
+│  │  └─────────────────────────────┘   │    │  │ LLM JNI 桥接          │  │ │
+│  │            ▲                       │    │  └───────────────────────┘  │ │
+│  │            │                        │    └─────────────────────────────┘ │
+│  │  ┌─────────────────────────────┐   │                  ▲                  │
+│  │  │ libOpenCL.so        (96 KB) │◄───┼──────────────────┘                  │
+│  │  └─────────────────────────────┘   │           :app 启动预加载            │
+│  └─────────────────────────────────────┘                                      │
+│         ▲                              ▲                                      │
+│         │                              │                                       │
+│         │         ┌─────────────────────────────┐                             │
+│         │         │        :beauty-engine       │                             │
+│         │         │  ┌───────────────────────┐  │                             │
+│         └─────────┤  │ libbeauty_native.so   │  │                             │
+│                   │  │ 人脸检测 JNI 桥接      │  │                             │
+│                   │  └───────────────────────┘  │                             │
+│                   └─────────────────────────────┘                             │
+│                                                                              │
+│  ┌─────────────────────────────────────┐    ┌─────────────────────────────┐ │
+│  │        :sentencepiece               │    │           :app              │ │
+│  │  ┌─────────────────────────────┐   │    │  (聚合所有 SO 到 APK)        │ │
+│  │  │ libsentencepiece_android.so │◄───┼────┤                             │ │
+│  │  └─────────────────────────────┘   │    └─────────────────────────────┘ │
+│  └─────────────────────────────────────┘                                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                           外部 AAR 携带的 Native 库                           │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌────────────────────────┐│
+│  │ Sherpa-ONNX AAR     │  │ MediaPipe AAR       │  │ ML Kit AAR             ││
+│  │ libsherpa-onnx-*.so │  │ libmediapipe_tasks_ │  │ libmlkit*.so           ││
+│  │ libonnxruntime.so   │  │ vision_jni.so       │  │                        ││
+│  └──────────┬──────────┘  └──────────┬──────────┘  └───────────┬────────────┘│
+│             └────────────────────────┼─────────────────────────┘             │
+│                                      ▼                                        │
+│                              ┌───────────────┐                               │
+│                              │     :app      │                               │
+│                              │ libonnxruntime│                               │
+│                              │ 通过 pickFirsts│                               │
+│                              │ 解决双来源冲突 │                               │
+│                              └───────────────┘                               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### SO 归属说明
@@ -166,15 +172,37 @@ flowchart LR
 
 ## 5. 架构红线
 
-```mermaid
-flowchart LR
-    subgraph Rules["依赖方向红线"]
-        R1["`:beauty-engine` 禁止依赖 `:runtime-core`"]
-        R2["`:agent-core` 禁止依赖 `:app` / `:runtime-core` 业务类型"]
-        R3["`:beauty-api` 零第三方依赖"]
-        R4["`:app` 禁止直接依赖 `beauty-engine:render/` 内部实现"]
-        R5["`:mnn-core` 禁止依赖 `:runtime-core` / `:beauty-engine`"]
-    end
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          依赖方向红线                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  [R1] :beauty-engine 禁止依赖 :runtime-core                          │   │
+│  │       视觉引擎通过 :mnn-core 共享 MNN 资源，不得反向耦合 Agent Runtime │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  [R2] :agent-core 禁止依赖 :app / :runtime-core 业务类型             │   │
+│  │       Java LLM 基础库保持平台无关，可独立发布                          │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  [R3] :beauty-api 零第三方依赖                                        │   │
+│  │       仅 Kotlin stdlib + Android graphics，作为纯契约模块              │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  [R4] :app 禁止直接依赖 beauty-engine:render/ 内部实现                │   │
+│  │       App 仅通过 beauty-engine:api/ 能力契约消费视觉能力               │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  [R5] :mnn-core 禁止依赖 :runtime-core / :beauty-engine               │   │
+│  │       Native 共享模块必须保持底层独立，避免循环依赖                    │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 | 红线 | 定义 | 验证方式 |
