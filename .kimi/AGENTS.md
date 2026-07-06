@@ -54,7 +54,7 @@
 | 产品需求 | `../PRODUCT.md` | 目标与约束 |
 | 交互规范 | `../docs/01-PRODUCT/FEATURES.md` | 交互与体验规则 |
 | 技术规范 | `../AGENTS.md` | 代码风格与审查清单 |
-| 模块规范 | `../app/src/main/java/com/picme/*/AGENTS.md` | 各模块实现细则 |
+| 模块规范 | `../app/src/main/java/com/mamba/picme/*/AGENTS.md` | 各模块实现细则 |
 | 本地环境 | `../docs/05-DEVELOPMENT/LOCAL_ENVIRONMENT.md` | 本机 MNN、HF/MS、模型目录等环境上下文 |
 
 ## 快捷命令
