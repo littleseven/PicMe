@@ -40,6 +40,7 @@ import org.json.JSONObject
  * - [userSettingsRepository]：用户设置（语言偏好等）
  * - [promptProvider]：Prompt 生成策略
  * - [mobileClipEngine]：MobileCLIP 语义编码（可选）
+ * - [mobileClipTagClassifier]：MobileCLIP 零 shot 标签分类器（可选）
  */
 class TagGenerationPipeline(
     private val context: Context,
@@ -51,7 +52,8 @@ class TagGenerationPipeline(
     private val userSettingsRepository: UserSettingsRepository? = null,
     private val promptProvider: TagPromptProvider = DefaultTagPromptProvider(),
     private val mobileClipEngine: MobileClipEngine? = null,
-    private val mlKitTagExtractor: MlKitTagExtractor? = null
+    private val mlKitTagExtractor: MlKitTagExtractor? = null,
+    private val mobileClipTagClassifier: MobileClipTagClassifier? = null
 ) {
 
     companion object {
@@ -233,45 +235,129 @@ class TagGenerationPipeline(
         }
 
         return try {
-            if (!llmEngine.isLoaded) {
-                Log.w(TAG, "[Pass 3] LLM not loaded, skipping Qwen tagging")
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "")
-            }
-
-            // 从 JSON 恢复人脸上下文
-            val faceRoi = faceRoiJson?.let { parseFaceRoi(it) }
-
-            // 构造 user prompt（融入人脸上下文）
-            val userPrompt = if (faceRoi != null && faceRoi.hasFace) {
-                promptProvider.userPrompt(targetLanguage, faceRoi.faceCount, faceRoi.isGroupPhoto)
-            } else {
-                promptProvider.userPrompt(targetLanguage, 0, false)
-            }
-
-            val response = runVisionInference(bitmap, userPrompt)
-
-            if (response.isBlank()) {
-                Log.w(TAG, "[Pass 3] empty response from LLM")
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "")
-            }
-
-            Log.d(TAG, "[Pass 3] raw response: $response")
-
-            val jsonPart = extractJson(response)
-            if (jsonPart == null) {
-                Log.w(TAG, "[Pass 3] failed to extract JSON from response")
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "", listOf(response))
-            }
-
-            val qwenTags = parseQwenResponse(jsonPart)
-            if (qwenTags == null) {
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "", listOf(response))
-            }
-
-            normalizer.normalize(qwenTags)
+            val combined = runStage3Combined(bitmap, faceRoiJson)
+            QwenTags(
+                scene = combined.scene,
+                activity = combined.activity,
+                objects = combined.objects,
+                tags = combined.tags,
+                summary = combined.summary
+            ).let { normalizer.normalize(it) }
         } finally {
             bitmap.recycle()
         }
+    }
+
+    /**
+     * Stage 3 合并结果：MobileCLIP 分类 + Qwen activity/summary
+     */
+    private data class Stage3CombinedResult(
+        val scene: String = "",
+        val activity: String = "",
+        val objects: List<String> = emptyList(),
+        val tags: List<String> = emptyList(),
+        val summary: String = "",
+        val fromMobileClip: Boolean = false
+    )
+
+    private suspend fun runStage3Combined(bitmap: Bitmap, faceRoiJson: String?): Stage3CombinedResult {
+        if (!llmEngine.isLoaded) {
+            Log.w(TAG, "[Pass 3] LLM not loaded, skipping Qwen tagging")
+        }
+
+        // 从 JSON 恢复人脸上下文
+        val faceRoi = faceRoiJson?.let { parseFaceRoi(it) }
+        val faceCount = if (faceRoi?.hasFace == true) faceRoi.faceCount else 0
+        val isGroupPhoto = faceRoi?.isGroupPhoto ?: false
+
+        // 1. 先尝试 MobileCLIP 分类
+        val mobileClipTags = mobileClipTagClassifier?.classify(bitmap)
+
+        // 2. MobileCLIP 成功时：Qwen 只输出 activity + summary
+        //    MobileCLIP 失败时：Qwen 输出全量字段作为回退
+        return if (mobileClipTags != null) {
+            val qwenActivitySummary = runQwenActivityAndSummary(bitmap, faceCount, isGroupPhoto)
+            if (qwenActivitySummary != null) {
+                Stage3CombinedResult(
+                    scene = mobileClipTags.scene,
+                    activity = qwenActivitySummary.activity,
+                    objects = mobileClipTags.objects,
+                    tags = mobileClipTags.tags,
+                    summary = qwenActivitySummary.summary,
+                    fromMobileClip = true
+                )
+            } else {
+                Stage3CombinedResult(
+                    scene = mobileClipTags.scene,
+                    objects = mobileClipTags.objects,
+                    tags = mobileClipTags.tags,
+                    fromMobileClip = true
+                )
+            }
+        } else {
+            val qwenTags = runQwenFull(bitmap, faceCount, isGroupPhoto)
+            if (qwenTags != null) {
+                Stage3CombinedResult(
+                    scene = qwenTags.scene,
+                    activity = qwenTags.activity,
+                    objects = qwenTags.objects,
+                    tags = qwenTags.tags,
+                    summary = qwenTags.summary,
+                    fromMobileClip = false
+                )
+            } else {
+                Stage3CombinedResult()
+            }
+        }
+    }
+
+    private data class QwenActivitySummary(
+        val activity: String,
+        val summary: String
+    )
+
+    private suspend fun runQwenActivityAndSummary(
+        bitmap: Bitmap,
+        faceCount: Int,
+        isGroupPhoto: Boolean
+    ): QwenActivitySummary? {
+        if (!llmEngine.isLoaded) return null
+
+        val systemPrompt = promptProvider.systemPromptForActivityAndSummary(targetLanguage)
+        val userPrompt = promptProvider.userPromptForActivityAndSummary(targetLanguage, faceCount, isGroupPhoto)
+        val response = runVisionInference(bitmap, systemPrompt, userPrompt)
+
+        if (response.isBlank()) return null
+        val jsonPart = extractJson(response) ?: return null
+        return parseQwenActivitySummary(jsonPart)
+    }
+
+    private fun parseQwenActivitySummary(jsonStr: String): QwenActivitySummary? {
+        return try {
+            val obj = JSONObject(jsonStr)
+            QwenActivitySummary(
+                activity = obj.optString("activity", ""),
+                summary = obj.optString("summary", "")
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse activity+summary JSON: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun runQwenFull(
+        bitmap: Bitmap,
+        faceCount: Int,
+        isGroupPhoto: Boolean
+    ): QwenTags? {
+        if (!llmEngine.isLoaded) return null
+
+        val userPrompt = promptProvider.userPrompt(targetLanguage, faceCount, isGroupPhoto)
+        val response = runVisionInference(bitmap, stage3SystemPrompt, userPrompt)
+
+        if (response.isBlank()) return null
+        val jsonPart = extractJson(response) ?: return null
+        return parseQwenResponse(jsonPart)
     }
 
     /**
@@ -279,6 +365,17 @@ class TagGenerationPipeline(
      */
     fun releaseMobileClip() {
         mobileClipEngine?.release()
+    }
+
+    /**
+     * 预热 MobileCLIP 标签分类器
+     *
+     * 在 Pass 3 开始前调用，预计算候选标签文本 embedding。
+     *
+     * @return 是否成功。失败时 Stage 3 会回退到 Qwen 全量输出。
+     */
+    fun warmUpMobileClipClassifier(): Boolean {
+        return mobileClipTagClassifier?.warmUp() ?: false
     }
 
     /**
@@ -618,51 +715,8 @@ class TagGenerationPipeline(
         stage1Result: Stage1Result,
         stage2Result: Stage2Result?
     ): QwenTagsNormalized {
-        val bitmap = loadBitmap(uri, MAX_VISION_SIZE)
-        if (bitmap == null) {
-            Log.w(TAG, "Stage 3: failed to load bitmap, returning empty tags")
-            return QwenTagsNormalized("", "", emptyList(), emptyList(), "")
-        }
-
-        return try {
-            if (!llmEngine.isLoaded) {
-                Log.w(TAG, "Stage 3: LLM not loaded, skipping Qwen tagging")
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "")
-            }
-
-            // 构造 user prompt（融入人脸上下文）
-            val userPrompt = promptProvider.userPrompt(
-                targetLanguage,
-                if (stage1Result.hasFace) stage1Result.faceCount else 0,
-                stage1Result.isGroupPhoto
-            )
-
-            val response = runVisionInference(bitmap, userPrompt)
-
-            if (response.isBlank()) {
-                Log.w(TAG, "Stage 3: empty response from LLM")
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "")
-            }
-
-            Log.d(TAG, "Stage 3 raw response: $response")
-
-            // 提取 JSON 部分（模型可能生成额外文本）
-            val jsonPart = extractJson(response)
-            if (jsonPart == null) {
-                Log.w(TAG, "Stage 3: failed to extract JSON from response")
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "", listOf(response))
-            }
-
-            val qwenTags = parseQwenResponse(jsonPart)
-            if (qwenTags == null) {
-                return QwenTagsNormalized("", "", emptyList(), emptyList(), "", listOf(response))
-            }
-
-            // 后处理规范化
-            normalizer.normalize(qwenTags)
-        } finally {
-            bitmap.recycle()
-        }
+        val faceRoiJson = faceRoiToJson(stage1Result)
+        return stage3QwenTagging(uri, faceRoiJson)
     }
 
     private fun parseQwenResponse(jsonStr: String): QwenTags? {
@@ -715,30 +769,35 @@ class TagGenerationPipeline(
     /**
      * 带 OpenCL 守护的多模态推理
      *
+     * @param systemPrompt 本次推理使用的 system prompt
      * - 若 [openClGuardian] 存在，则使用其超时保护与自动降级逻辑
      * - 若 OpenCL 路径返回 Timeout，自动降级到 CPU 并立即重试一次
      * - 若不存在 Guardian，回退到原始 llmEngine.imageInference
      */
-    private suspend fun runVisionInference(bitmap: Bitmap, userPrompt: String): String {
+    private suspend fun runVisionInference(
+        bitmap: Bitmap,
+        systemPrompt: String,
+        userPrompt: String
+    ): String {
         return if (openClGuardian != null) {
             when (val result = openClGuardian.inference(
                 bitmap = bitmap,
-                systemPrompt = stage3SystemPrompt,
+                systemPrompt = systemPrompt,
                 userPrompt = userPrompt,
                 maxTokens = QWEN_MAX_TOKENS
             )) {
                 is OpenClInferenceResult.Success -> result.response
                 is OpenClInferenceResult.Timeout -> {
                     Log.w(TAG, "OpenCL timeout, retrying with CPU fallback")
-                    llmEngine.imageInference(bitmap, stage3SystemPrompt, userPrompt, maxTokens = QWEN_MAX_TOKENS)
+                    llmEngine.imageInference(bitmap, systemPrompt, userPrompt, maxTokens = QWEN_MAX_TOKENS)
                 }
                 is OpenClInferenceResult.Error -> {
                     Log.w(TAG, "OpenCL error: ${result.message}, falling back to CPU")
-                    llmEngine.imageInference(bitmap, stage3SystemPrompt, userPrompt, maxTokens = QWEN_MAX_TOKENS)
+                    llmEngine.imageInference(bitmap, systemPrompt, userPrompt, maxTokens = QWEN_MAX_TOKENS)
                 }
             }
         } else {
-            llmEngine.imageInference(bitmap, stage3SystemPrompt, userPrompt, maxTokens = QWEN_MAX_TOKENS)
+            llmEngine.imageInference(bitmap, systemPrompt, userPrompt, maxTokens = QWEN_MAX_TOKENS)
         }
     }
 
