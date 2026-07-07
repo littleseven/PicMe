@@ -19,6 +19,7 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.model.AiAgentCommand
 import com.mamba.picme.features.camera.capability.CameraCapability
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 
 /**
@@ -128,6 +129,12 @@ class AiAgentUseCase(
      */
     val isLocalModelLoaded: Boolean
         get() = orchestrator.isModelLoaded
+
+    /**
+     * 本地模型是否正在加载中（供 UI 显示 "Agent 启动中"）
+     */
+    val isLocalModelLoading: StateFlow<Boolean>
+        get() = orchestrator.isModelLoading
 
     /**
      * 卸载本地模型，释放内存

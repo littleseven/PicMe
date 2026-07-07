@@ -29,21 +29,24 @@ class CameraAgentIntegration(
     /**
      * 进入 Camera 场景
      *
-     * 注意：Scene 切换由 MainActivity 统一管理，此处不再重复设置
+     * 相机页默认不加载 LLM：进入时若模型已加载则立即卸载，释放内存给相机预览/美颜。
+     * Scene 切换由 MainActivity 统一管理，但 LLM 生命周期在此显式协调。
      */
     fun enterCameraScene() {
-        Logger.i(TAG, "Entering CAMERA scene (scene managed by MainActivity)")
-        // Scene 切换由 MainActivity 的 DisposableEffect 统一管理
+        Logger.i(TAG, "Entering CAMERA scene, unload LLM if loaded")
+        if (orchestrator.isModelLoaded) {
+            orchestrator.unloadModel()
+        }
     }
 
     /**
      * 离开 Camera 场景
      *
-     * 注意：Scene 切换由 MainActivity 统一管理，此处不再重复设置
+     * 注意：Scene 切换由 MainActivity 统一管理，此处不再重复设置。
+     * LLM 是否在离开相机页后预加载由具体目标页自行决定。
      */
     fun leaveCameraScene() {
         Logger.i(TAG, "Exiting CAMERA scene (scene managed by MainActivity)")
-        // Scene 切换由 MainActivity 的 DisposableEffect 统一管理
     }
 }
 

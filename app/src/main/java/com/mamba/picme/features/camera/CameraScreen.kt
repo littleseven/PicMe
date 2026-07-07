@@ -681,6 +681,9 @@ fun CameraContent(
         )
     }
 
+    // 监听 Agent 模型加载状态，用于在相机页显示 "Agent 启动中"
+    val aiAgentModelLoading by aiAgentUseCase.isLocalModelLoading.collectAsState(initial = false)
+
     // LLM 按需加载：仅在 AI Chat 打开或语音控制打开时加载本地模型。
     val resolvedModelId = remember(aiAgentLocalModel) {
         aiAgentLocalModel.takeIf { it.isNotBlank() } ?: "qwen3_5_2b"
@@ -1598,6 +1601,7 @@ CameraPreviewContent(
     onAiAgentMessagesChange = { aiAgentMessages = it },
     onAiAgentIsProcessingChange = { aiAgentIsProcessing = it },
     voiceCoordinator = voiceCoordinator,
+    isModelLoading = aiAgentModelLoading,
     isWakeWordActive = voiceCommandMode == VoiceCommandMode.WAKE_WORD,
     onAiAgentCommand = { command ->
         Logger.i(TAG, "onAiAgentCommand received: ${command.javaClass.simpleName}")

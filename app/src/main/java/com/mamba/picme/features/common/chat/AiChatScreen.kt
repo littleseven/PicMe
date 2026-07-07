@@ -135,7 +135,8 @@ fun AiChatScreen(
     autoExecutePlans: Boolean = true,
     onPlanConfirm: () -> Unit = {},
     onPlanCancel: () -> Unit = {},
-    voiceCoordinator: VoiceCommandCoordinator? = null
+    voiceCoordinator: VoiceCommandCoordinator? = null,
+    isModelLoading: Boolean = false
 ) {
     val context = LocalContext.current
 
@@ -189,7 +190,8 @@ fun AiChatScreen(
                     onDismiss = { onVisibleChange(false) },
                     onPlanConfirm = onPlanConfirm,
                     onPlanCancel = onPlanCancel,
-                    voiceCoordinator = voiceCoordinator
+                    voiceCoordinator = voiceCoordinator,
+                    isModelLoading = isModelLoading
                 )
             }
         }
@@ -207,7 +209,8 @@ private fun AiChatScreenContent(
     onPlanConfirm: () -> Unit,
     onPlanCancel: () -> Unit,
     modifier: Modifier = Modifier,
-    voiceCoordinator: VoiceCommandCoordinator? = null
+    voiceCoordinator: VoiceCommandCoordinator? = null,
+    isModelLoading: Boolean = false
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -233,6 +236,39 @@ private fun AiChatScreenContent(
             exit = shrinkVertically() + fadeOut()
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // 模型加载中提示
+                AnimatedVisibility(
+                    visible = isModelLoading,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Sync,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Agent 启动中...",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+
                 // Messages list
                 LazyColumn(
                     modifier = Modifier
@@ -251,7 +287,7 @@ private fun AiChatScreenContent(
 
                 // Input bar
                 ChatInputBar(
-                    isProcessing = isProcessing,
+                    isProcessing = isProcessing || isModelLoading,
                     onSend = onSendMessage,
                     onCommand = onCommand,
                     voiceCoordinator = voiceCoordinator
