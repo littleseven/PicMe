@@ -33,6 +33,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -75,6 +78,22 @@ class AgentOrchestrator private constructor(context: Context) {
      * SupervisorJob 确保单个后台任务失败不影响其他任务。
      */
     private val backgroundScope = CoroutineScope(SupervisorJob())
+
+    private val _isModelLoading = MutableStateFlow(false)
+    val isModelLoading: StateFlow<Boolean> = _isModelLoading.asStateFlow()
+
+    init {
+        // 场景驱动的 LLM 生命周期：进入相机页时立即卸载本地 LLM，释放内存给美颜/相机预览。
+        // 相机页触发 Agent 时再异步加载（调用方通过 ensureModelLoaded / withModelLoaded）。
+        backgroundScope.launch(orchestratorDispatcher) {
+            sceneManager.currentScene.collect { scene ->
+                if (scene == SceneManager.Scene.CAMERA && localLlmEngine.isLoaded) {
+                    Logger.i(tag, "CAMERA scene entered, unloading local LLM to free memory")
+                    unloadModel()
+                }
+            }
+        }
+    }
 
     // 便捷访问器
     private val localLlmEngine get() = configurator.localLlmEngine
@@ -249,7 +268,12 @@ class AgentOrchestrator private constructor(context: Context) {
             )
         }
 
-        val result = localLlmEngine.loadModel(targetModel, targetUseOpencl)
+        _isModelLoading.value = true
+        val result = try {
+            localLlmEngine.loadModel(targetModel, targetUseOpencl)
+        } finally {
+            _isModelLoading.value = false
+        }
 
         result.onSuccess {
             Logger.i(tag, "[ModelLoadAudit] caller=$caller, model loaded successfully")
@@ -304,14 +328,18 @@ class AgentOrchestrator private constructor(context: Context) {
 
     /**
      * 场景驱动的模型加载策略
+     *
+     * 进入相机页时默认不保留 LLM，由独立协程监听场景并在进入 CAMERA 时卸载。
+     * 此处保留卸载逻辑作为 processInput 入口的二次确认，确保相机页触发 Agent 时
+     * 先释放再异步加载（而非直接使用可能已陈旧的模型上下文）。
      */
     private fun applySceneDrivenModelPolicy() {
         val currentScene = sceneManager.currentScene.value
         when (currentScene) {
             SceneManager.Scene.CAMERA -> {
                 if (localLlmEngine.isLoaded) {
-                    Logger.i(tag, "CAMERA scene: trimming LLM memory (clear history, keep model)")
-                    localLlmEngine.trimMemory()
+                    Logger.i(tag, "CAMERA scene: unloading local LLM before agent inference")
+                    unloadModel()
                 }
             }
             else -> { /* 非相机场景：保持当前状态 */ }

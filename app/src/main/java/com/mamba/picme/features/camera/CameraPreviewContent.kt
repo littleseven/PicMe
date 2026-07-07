@@ -95,7 +95,8 @@ internal fun CameraPreviewContent(
     voiceCoordinator: VoiceCommandCoordinator? = null,
     isWakeWordActive: Boolean = false,
     onAiAgentCommand: ((AiAgentCommand) -> Unit)? = null,
-    onUpdateVoiceCoordinatorState: (() -> Unit)? = null
+    onUpdateVoiceCoordinatorState: (() -> Unit)? = null,
+    isModelLoading: Boolean = false
 ) {
     // 非美颜类面板开启状态（美颜面板用独立的 BeautyPanel 渲染，不走 PrimaryControlPanels）
     val isAnyPanelOpen = uiState.showFilterSelector || uiState.showRatioSelector ||
@@ -240,6 +241,7 @@ internal fun CameraPreviewContent(
             isProcessing = aiAgentIsProcessing,
             onVisibleChange = onAiAgentChatVisibleChange,
             voiceCoordinator = voiceCoordinator,
+            isModelLoading = isModelLoading,
             onSendMessage = { input ->
                 onAiAgentMessagesChange(aiAgentMessages + AgentMessage.UserText(content = input))
                 onAiAgentIsProcessingChange(true)
