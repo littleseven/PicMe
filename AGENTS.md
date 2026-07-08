@@ -1,5 +1,11 @@
 # langchain4android AI Agent 系统：唯一事实来源 (SSOT)
 
+> **版本**：2.0（合并版）  
+> **状态**：进行中  
+> **最后更新**：2026-07-08  
+> **维护者**：CO Agent  
+> **历史合并说明**：本文档由根目录 `AGENTS.md` 与 `agents/README.md` 合并而成。`agents/README.md` 中的角色速查、状态板模板、Token 节省、回流机制、Tools 输入输出、工具调用速查等内容已并入本文档对应章节或附录，原文件已删除。
+
 > 本文档为**顶层治理文档**，定义 Agent First 的研发流程与协作规范。
 >
 > **langchain4android** 是面向 Android 的 AI Agent 基础库（Java），Demo 工程 **PicMe（觅影相册）** 验证其在真实场景中的可行性。
@@ -110,19 +116,21 @@ PicMe 采用**角色化协作模型**：每个 Agent 角色有明确的职责边
 
 ### 3.1 角色定义
 
-| 角色 | 标识 | 核心职责 | 关键能力 |
-|------|------|----------|----------|
-| **[CO]** 协调者 | `🤖CO` | 任务分级、流程路由、冲突仲裁 | 复杂度分析、状态板维护 |
-| **[PM]** 产品经理 | `🤖PM` | 需求澄清、PRD 维护、验收标准 | 需求拆解、文档同步 |
-| **[RD]** 全栈工程师 | `🤖RD` | 端到端实现、文档同步、Self-Heal | 代码生成、Tools 编排 |
-| **[CR]** 规范守护者 | `🤖CR` | 架构合规审查、代码质量裁决 | 红线检查、影响分析 |
-| **[QA]** 质量专家 | `🤖QA` | 边界测试、性能基线、端到端验收 | 场景设计、回归检测 |
+| 角色 | 标识 | 核心职责 | 关键能力 | 参考文档 | 激活方式 |
+|------|------|----------|----------|----------|----------|
+| **[CO]** 协调者 | `🤖CO` | 任务分级、状态板维护、流程推进 | 复杂度分析、状态板维护 | [`agents/co_agent.md`](agents/co_agent.md) | **所有请求默认激活** |
+| **[PM]** 产品经理 | `🤖PM` | 需求澄清、PRD 维护、验收标准 | 需求拆解、文档同步 | [`agents/pm_agent.md`](agents/pm_agent.md) | 由 CO 在需求类任务中激活 |
+| **[RD]** 全栈工程师 | `🤖RD` | 端到端实现、Self-Heal、Tools 编排 | 代码生成、Tools 编排 | [`agents/rd_agent.md`](agents/rd_agent.md) | 由 CO 在实现类任务中激活 |
+| **[CR]** 规范守护者 | `🤖CR` | 架构合规审查、代码质量裁决 | 红线检查、影响分析 | [`agents/review_agent.md`](agents/review_agent.md) | 由 CO 在 RD 完成后激活 |
+| **[QA]** 质量专家 | `🤖QA` | 边界测试、性能基线、端到端验收 | 场景设计、回归检测 | [`agents/qa_agent.md`](agents/qa_agent.md) | 由 CO 在 CR 通过后激活 |
 
-> **详细角色手册**：各角色的完整能力定义、参考文档和激活方式见 [`agents/README.md`](agents/README.md)。
+**设计原则**：
+- 每个角色有**明确的输入输出契约**
+- 每个角色有**可验证的交付标准**
+- 角色间通过 **CO 协调**传递信息，非直接沟通
+- **CO 是所有用户请求的唯一入口**
 
-### 3.2 协作流程（CO驱动）
-
-**核心原则**：CO是所有用户请求的默认入口，负责分析、分级、路由和推进。
+### 3.2 协作流程（CO 驱动）
 
 ```
 用户请求
@@ -134,33 +142,33 @@ PicMe 采用**角色化协作模型**：每个 Agent 角色有明确的职责边
 [RD] 原子化实现 → 代码 + 文档同步
     ↓  调用 Tools 完成验证
 [RD] Self-Heal 闭环 → 编译 → 安装 → 测试 → 日志
-    ↓  [CO检测到"编译通过"自动推进]
+    ↓  [CO 检测到"编译通过"自动推进]
 [CR] 规范审查 → 架构合规、代码质量
-    ↓  [CO检测到"审计通过"自动推进]
+    ↓  [CO 检测到"审计通过"自动推进]
 [QA] 验收测试 → 边界、性能、体验
-    ↓  [CO检测到"验收通过"自动推进]
+    ↓  [CO 检测到"验收通过"自动推进]
 [CO] 汇总交付 → 更新状态板 → 报告闭环
 ```
 
-**CO推进规则**：
-- RD报告编译通过 → CO**必须**立即启动CR审计
-- CR报告无Critical → CO**必须**立即启动QA验收
-- QA报告无P0缺陷 → CO**必须**立即生成最终交付报告
-- **严禁**在L1/L2任务中间环节要求用户确认
+**CO 推进规则**：
+- RD 报告编译通过 → CO **必须**立即启动 CR 审计
+- CR 报告无 Critical → CO **必须**立即启动 QA 验收
+- QA 报告无 P0 缺陷 → CO **必须**立即生成最终交付报告
+- **严禁**在 L1/L2 任务中间环节要求用户确认
 
 ### 3.3 Tools 层
 
 基础设施原子化为 **Tools**，供 Agent 编排调用：
 
-| Tool | 功能 | 调用者 | 状态 |
-|------|------|--------|------|
-| `CompileTool` | 代码编译检查 | RD | 🔄 脚本实现 (`./gradlew`) |
-| `InstallTool` | 安装到设备 | RD | 🔄 脚本实现 (`adb install`) |
-| `ScreenshotTool` | 自动截屏 | RD/QA | 🔄 脚本实现 (`adb screencap`) |
-| `LogAnalysisTool` | 结构化日志分析 | RD | 📋 设计愿景 |
-| `DocSyncTool` | 文档同步检查 | CR | 📋 设计愿景 |
-| `ScreenshotDiffTool` | UI 回归检测 | QA | 🔄 脚本实现 (`screenshot-diff.py`) |
-| `PerfBaselineTool` | 性能基线对比 | QA | 📋 设计愿景 |
+| Tool | 功能 | 输入 | 输出 | 调用者 | 状态 |
+|------|------|------|------|--------|------|
+| `CompileTool` | 代码编译检查 | 源码变更 | 编译结果/错误日志 | RD | 🔄 脚本实现 (`./gradlew`) |
+| `InstallTool` | 安装到设备 | APK | 安装状态 | RD | 🔄 脚本实现 (`adb install`) |
+| `ScreenshotTool` | 自动截屏 | 设备连接 | 截图文件 | RD/QA | 🔄 脚本实现 (`adb screencap`) |
+| `LogAnalysisTool` | 结构化日志分析 | Logcat | 结构化事件 | RD | 📋 设计愿景 |
+| `DocSyncTool` | 文档同步检查 | Git diff | 需更新文档列表 | CR | 📋 设计愿景 |
+| `ScreenshotDiffTool` | UI 回归检测 | 截图对比 | Diff 报告 | QA | 🔄 脚本实现 (`screenshot-diff.py`) |
+| `PerfBaselineTool` | 性能基线对比 | 性能指标 | 对比报告 | QA | 📋 设计愿景 |
 
 > **实现状态（2026-06）**：Tools 层概念已定义，但大部分以独立 shell 脚本（`./scripts/`）或 Gradle task 形式存在，尚未封装为统一的 Agent-tools 接口。`ScreenshotDiffTool` 等已有对应脚本落地。
 
@@ -168,17 +176,52 @@ PicMe 采用**角色化协作模型**：每个 Agent 角色有明确的职责边
 
 ### 3.4 触发口令与执行模式
 
-| 口令 | 模式 | 自动化程度 | CO行为 | 适用场景 |
+| 口令 | 模式 | 自动化程度 | CO 行为 | 适用场景 |
 |------|------|-----------|--------|----------|
-| （无口令） | **默认模式** | L1全自动 / L2半自动 | 自动分析分级并启动对应流程 | 日常开发任务 |
-| `自动执行` | 全链路自动 | L1/L2全自动 | 强制启动完整CO→PM→RD→CR→QA流程 | 明确的全链路需求 |
+| （无口令） | **默认模式** | L1 全自动 / L2 半自动 | 自动分析分级并启动对应流程 | 日常开发任务 |
+| `自动执行` | 全链路自动 | L1/L2 全自动 | 强制启动完整 CO→PM→RD→CR→QA 流程 | 明确的全链路需求 |
 | `保守执行` | 全链路可控 | 关键节点暂停 | 每阶段完成后暂停等待用户确认 | 高风险变更、不可逆操作 |
-| `仅分析` | 诊断模式 | 不执行 | CO仅输出分析，不启动任何角色 | 需求澄清、方案比选 |
+| `仅分析` | 诊断模式 | 不执行 | CO 仅输出分析，不启动任何角色 | 需求澄清、方案比选 |
 
 **默认模式分级行为**：
-- **L1任务**（单文件修改、已知模式）：CO→RD→CR→QA，全自动推进，仅最终报告
-- **L2任务**（跨多文件、新功能）：CO→PM→RD→CR→QA，半自动，关键节点简报
-- **L3任务**（架构变更、无先例）：CO→PM→RD→CR→QA，手动，每阶段确认
+- **L1 任务**（单文件修改、已知模式）：CO→RD→CR→QA，全自动推进，仅最终报告
+- **L2 任务**（跨多文件、新功能）：CO→PM→RD→CR→QA，半自动，关键节点简报
+- **L3 任务**（架构变更、无先例）：CO→PM→RD→CR→QA，手动，每阶段确认
+
+### 3.5 状态板管理（强制）
+
+CO 必须使用 `todo_write` 工具维护任务状态板，确保跨消息持久化。
+
+**状态板模板**：
+
+```markdown
+## 任务状态板：[任务简述]
+
+| 阶段 | 负责 | 状态 | 输出物 |
+|------|------|------|--------|
+| 需求分析 | [PM] | ⏸️/🔄/✅/❌ | 需求确认 |
+| 技术实现 | [RD] | ⏸️/🔄/✅/❌ | 代码 + 构建结果 |
+| 规范审计 | [CR] | ⏸️/🔄/✅/❌ | 审计报告 |
+| 质量验收 | [QA] | ⏸️/🔄/✅/❌ | 测试报告 |
+| 最终交付 | [CO] | ⏸️/🔄/✅/❌ | 汇总报告 |
+
+**当前阶段**：[角色]
+**任务分级**：[L1/L2/L3]
+**RD 自愈次数**：[0/1/2]
+**阻塞项**：[如有]
+```
+
+### 3.6 回流机制
+
+- CR 不通过 → CO 回流 RD，不通过计数 +1
+- QA 不通过 → CO 回流 RD，标记为 Bug
+- RD 自愈 2 次仍失败 → CO 上报用户，提供选项
+
+### 3.7 Token 节省
+
+- L1 任务阶段间推进消息 ≤ 3 行
+- 状态板替代长篇进度汇报
+- 各角色仅输出增量信息，不重复已知上下文
 
 ---
 
@@ -189,24 +232,39 @@ langchain4android 的核心创新是赋予 RD **闭环验证能力**——不仅
 ### 4.1 自愈工作流
 
 ```kotlin
-object RdAgent {
-    fun implement(task: Task) {
-        var attempts = 0
-        while (attempts < MAX_RETRY) {
-            try {
-                writeCode(task)
-                val result = execute("./scripts/auto-dev-loop.sh")
-                if (result.success) {
-                    submitPR()
-                    return
-                }
+// RD Agent 的标准执行循环
+fun implementTask(task: CoTask) {
+    // 1. 理解需求（基于 CO 传递的 PM 结论）
+    val requirement = parsePmConclusion(task.pmOutput)
+    val spec = parseFeaturesMd(task.featureRef)
+
+    // 2. 分析上下文
+    analyzeCodebase(task.affectedModules)
+
+    // 3. 编码实现
+    writeCode(requirement, spec)
+
+    // 4. 闭环验证
+    var attempts = 0
+    while (attempts < MAX_RETRY) {
+        val result = execute("./scripts/auto-dev-loop.sh")
+        when {
+            result.success -> {
+                reportToCo("✅ 编译通过，变更摘要：...")
+                return
+            }
+            result.recoverable -> {
                 analyzeAndFix(result.errors)
                 attempts++
-            } catch (e: Exception) {
-                if (attempts >= MAX_RETRY) escalateToHuman()
+                reportToCo("🔄 第${attempts}次自愈...")
+            }
+            else -> {
+                reportToCo("❌ 不可恢复错误：...")
+                return
             }
         }
     }
+    reportToCo("❌ 自愈${MAX_RETRY}次仍失败...")
 }
 ```
 
@@ -303,12 +361,17 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **顶层治理** | `AGENTS.md`（本文档） |
 | **产品定义** | `PRODUCT.md` |
 | **交互规范** | `docs/01-PRODUCT/FEATURES.md` |
-| **AI 协作角色** | `agents/README.md`, `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
+| **AI 协作角色** | `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`app/src/.../features/camera/` 等） |
-| **技术专项** | `docs/*.md` |
+| **技术专项** | `docs/03-TECHNICAL-SPECS/*.md` |
 | **本地开发环境** | `docs/05-DEVELOPMENT/LOCAL_ENVIRONMENT.md` |
 | **IM 远程控制技术规格** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md` |
-| **AI 一键优化参数标准** | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZE_PARAMETER_STANDARD.md` |
+| **AI 一键优化** | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md` |
+| **TAG 生成** | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` |
+| **MNN LLM 运维** | `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` |
+| **语音栈** | `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` |
+| **人脸关键点** | `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md` |
+| **坐标系规范** | `docs/07-STANDARDS/COORDINATE_SYSTEM.md` |
 
 > **架构说明（2026-06-26）**：
 > - **`:agent-core` 是 Java Android Library**（非 Kotlin），提供 LangChain4j 风格的 ChatModel、@Tool、AiServices、ChatMemory 等 API
@@ -334,6 +397,39 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 
 ---
 
-> **维护者**：CO Agent
-> **最后更新**：2026-07-03
-> **实验状态**：进行中 · Phase 5（agent-core Java 库独立发布 + PicMe Demo 验证 + IM 远程控制）
+## 附录 A：工具调用速查
+
+| 场景 | 工具 | 示例 |
+|------|------|------|
+| 代码修改 | `replace_in_file` | 原子化修改 |
+| 批量读取 | `read_file` | 多文件并行分析 |
+| 编译验证 | `execute_command` | `./gradlew assembleDebug` |
+| 设备操作 | `execute_command` | `adb install/logcat` |
+| 任务追踪 | `todo_write` | **状态板维护（强制）** |
+| 知识存储 | `update_memory` | 关键决策记录 |
+
+## 附录 B：快速参考
+
+### 文档体系
+```
+PRODUCT.md (What)
+    ↓
+FEATURES.md (How)
+    ↓
+模块 AGENTS.md (Implementation)
+    ↓
+代码
+```
+
+### 角色流转
+```
+用户 → CO → PM → RD → CR → QA → CO → 用户
+         ↑              ↓______↓
+         └────────────── 回流机制
+```
+
+### 关键指标
+- RD Self-Heal 成功率：目标 > 70%
+- 文档同步率：目标 > 95%
+- 人工介入率：目标 < 20%
+- 阶段遗漏率：目标 = 0%

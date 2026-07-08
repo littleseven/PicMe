@@ -536,7 +536,7 @@ class RemoteCommandDispatcher(
 | `../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2` | 产品交互规范 |
 | `../../PRODUCT.md` | 产品路线图与里程碑 |
 | `../../docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | Agent 架构详细设计 |
-| `../../docs/03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md` | 远程推理架构（LLM 复用层） |
+| `../../docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | 远程推理架构（LLM 复用层） |
 | `../../app/.../domain/agent/remote/FeishuChannelHandler.kt` | 飞书通道实现（待实现） |
 | `../../app/.../domain/agent/capability/RemoteControlCapability.kt` | 远程控制管理 Capability |
 

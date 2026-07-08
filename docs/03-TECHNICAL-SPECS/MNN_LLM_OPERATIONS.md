@@ -1,0 +1,1198 @@
+# MNN-LLM 运维手册
+
+> **文档编号**: TECH-SPEC-MNN-OPS-001  
+> **关联模块**: `:runtime-core` (LocalLlmEngine, MnnLlmClient, MnnResourceManager), `:app` (AgentOrchestrator, ChatViewModel, MediaPager, TagGenerationScheduler)  
+> **最后更新**: 2026-07-08  
+> **维护者**: RD Agent  
+>
+> **历史合并说明**：本文档由以下 5 份文档合并而成：`MNN_LLM_MULTI_INSTANCE_RESEARCH.md`、`MNN_LLM_PERFORMANCE_OPTIMIZATION.md`、`MNN_RESOURCE_MANAGER_DESIGN.md`、`MNN_UNLOAD_TRIGGER_MECHANISM.md`、`MNN_UNLOAD_TEST_CASES.md`。内容已按「架构与单例安全 → 资源管理器 → 加载/卸载触发机制 → 性能优化 → 测试用例」重组，并消除重复内容。
+
+---
+
+## 1. 架构与单例安全
+
+### 1.1 调研背景
+
+相册预览页点击"图像理解"返回空结果，日志显示 `LLM not loaded, cannot do image inference`。修复过程中发现 `MediaPager.kt` 直接调用 `imageInference()` 前未加载模型，引发对全局模型加载模式的深入调研。
+
+### 1.2 全局模型加载调用点（共 8 处）
+
+| # | 调用位置 | 调用方式 | 场景 | 是否已做加载检查 |
+|---|----------|----------|------|------------------|
+| 1 | `AgentOrchestrator.loadModel()` | `localLlmEngine.loadModel()` | 通用入口 | 内部处理 |
+| 2 | `ChatViewModel.kt:583` | `orchestrator.loadModel()` | 聊天页进入 | 有（`isLoaded` 检查） |
+| 3 | `AiAgentUseCase.kt:157` | `orchestrator.loadModel()` | Agent 推理 | 有（`isLoaded` 检查） |
+| 4 | `TagGenerationScheduler.kt:1040` | `engine.loadModel(..., useOpencl=true)` | Pass 3 OpenCL 尝试 | 有（完整 `ensureModelLoaded` 流程） |
+| 5 | `TagGenerationScheduler.kt:1059` | `engine.loadModel(..., useOpencl=false)` | Pass 3 CPU 回退 | 有（完整 `ensureModelLoaded` 流程） |
+| 6 | `OpenClGuardian.kt:188` | `engine.loadModel(...)` | OpenCL warmup | 有（Guardian 内部检查） |
+| 7 | `ImageTagIndexingWorker.kt:209` | `localLlmEngine.loadModel()` | 后台标签索引 | 有（Worker 内部检查） |
+| 8 | `MediaPager.kt:400` | `engine.loadModel(...)` | 相册图像理解 | **修复后添加**（此前缺失） |
+
+**关键发现**：所有调用最终都汇聚到 `AgentOrchestrator.getLlmEngine()` 返回的**同一个** `LocalLlmEngine` 实例。
+
+### 1.3 单例架构链路
+
+```
+调用方（8处）
+    │
+    ▼
+AgentOrchestrator.getInstance(context)  ←── 进程级单例（Double-Check Locking）
+    │
+    ├── getLlmEngine() ───────────────────────→ LocalLlmEngine（单例，由 AgentConfigurator 持有）
+    │                                                   │
+    │                                                   ▼
+    │                                           MnnLlmClient（成员变量，唯一实例）
+    │                                                   │
+    │                                                   ▼
+    │                                           nativeHandle: Long（指向 C++ Llm 对象）
+    │
+    └── loadModel(modelId) ─────────────────────→ LocalLlmEngine.loadModel(modelId)
+                                                        │
+                                                        ▼
+                                                engineMutex.withLock（协程 Mutex）
+                                                        │
+                                                        ▼
+                                                MnnLlmClient.load(modelId)
+                                                        │
+                                                        ▼
+                                                if (isLoaded) return true（幂等守卫）
+                                                        │
+                                                        ▼
+                                                MnnGlobalReleaseLock.withOperation {
+                                                    nativeHandle = nativeCreate(configPath)
+                                                }
+```
+
+### 1.4 MNN 多实例安全性判断：安全（在当前架构下）
+
+#### 安全的核心原因
+
+| 保障层级 | 机制 | 说明 |
+|----------|------|------|
+| **架构层** | 全局单例 `AgentOrchestrator` | 所有调用方通过 `getInstance()` 获取同一实例，自然汇聚到同一 `LocalLlmEngine` |
+| **引擎层** | `LocalLlmEngine` 唯一实例 | 由 `AgentConfigurator` 持有，进程生命周期内唯一 |
+| **客户端层** | `MnnLlmClient` 唯一实例 | `LocalLlmEngine` 的成员变量，构造函数内创建 |
+| **加载层** | `isLoaded` 幂等守卫 | `MnnLlmClient.load()` 第一行检查 `if (isLoaded) return true`，防止重复 `nativeCreate` |
+| **线程层** | `engineMutex` + `modelDispatcher` | `LocalLlmEngine.loadModel()` 使用 `Mutex.withLock` + 专用单线程调度器，串行化所有模型操作 |
+| **Native 层** | `MnnGlobalReleaseLock` | 所有 MNN native 操作（create/destroy/reset/generate）通过全局锁串行化，防止并发冲突 |
+
+#### MNN 全局共享状态问题
+
+> `libMNN.so` 的 `EagerBufferAllocator` 和 `Express::Executor` 是全局共享状态，非线程安全。所有涉及 MNN native 资源释放的操作必须通过此锁串行化，防止并发释放导致的 use-after-free / double-free 崩溃。
+
+**当前架构如何规避**：
+
+| 风险场景 | 是否可能发生 | 原因 |
+|----------|-------------|------|
+| 两个 `MnnLlmClient` 实例同时加载同一模型 | **不可能** | `LocalLlmEngine` 是单例，其内部 `MnnLlmClient` 也是单例 |
+| 同一 `MnnLlmClient` 重复调用 `load()` | **安全** | `isLoaded` 守卫 + `engineMutex` 串行化 |
+| 加载与卸载并发执行 | **安全** | `engineMutex` 确保互斥；`MnnGlobalReleaseLock` 确保 native 层串行 |
+| 多个调用方同时请求加载 | **安全** | `modelDispatcher` 单线程 + `Mutex` 排队 |
+| 一处加载后另一处调用推理 | **安全** | 所有操作在同一 `nativeHandle` 上执行，状态一致 |
+
+#### 假设多实例架构的风险（理论分析）
+
+如果**未来**出现多个 `LocalLlmEngine` / `MnnLlmClient` 实例同时加载同一模型：
+
+| 风险 | 严重程度 | 说明 |
+|------|----------|------|
+| Native 内存重复分配 | 高 | 每个 `nativeCreate` 独立分配 ~4GB Native Heap，极易 OOM |
+| MNN 全局状态冲突 | 高 | `EagerBufferAllocator` 非线程安全，并发 create/destroy 可能崩溃 |
+| 模型状态不一致 | 中 | 各实例独立 KV Cache，多轮对话历史不共享 |
+| 引用计数混乱 | 中 | `MnnResourceManager` 的引用计数与实例生命周期难以对齐 |
+
+**结论**：即使 MNN 底层支持多实例，应用层也应保持**单例模式**，通过 `MnnResourceManager` 的引用计数协调生命周期。
+
+### 1.5 图像理解空结果根因与修复
+
+**根因**：`MediaPager.kt` 的 `onStartVision` 回调直接调用 `engine.imageInference()`，未先加载模型。
+
+**修复**：在调用 `imageInference()` 前添加 `ensureModelLoaded` 模式：
+
+```kotlin
+val orchestrator = AgentOrchestrator.getInstance(context)
+val engine = orchestrator.getLlmEngine()
+
+val modelKey = "qwen3_5_2b"
+if (!engine.isLoaded) {
+    val loadResult = engine.loadModel(modelKey, useOpencl = false)
+    if (loadResult.isFailure) {
+        // 处理加载失败
+        return@launch
+    }
+}
+
+val result = engine.imageInference(bitmap, systemPrompt, userPrompt)
+```
+
+### 1.6 模型加载最佳实践模式
+
+```kotlin
+/**
+ * 标准模型加载模式（适用于所有调用方）
+ */
+suspend fun safeModelInference(
+    orchestrator: AgentOrchestrator,
+    modelKey: String = "qwen3_5_2b",
+    inferenceBlock: suspend (LocalLlmEngine) -> String
+): String {
+    val engine = orchestrator.getLlmEngine()
+    
+    // Step 1: 确保模型已加载（幂等操作）
+    if (!engine.isLoaded) {
+        val loadResult = engine.loadModel(modelKey, useOpencl = false)
+        if (loadResult.isFailure) {
+            return "模型加载失败: ${loadResult.exceptionOrNull()?.message}"
+        }
+    }
+    
+    // Step 2: 执行推理
+    return inferenceBlock(engine)
+}
+```
+
+### 1.7 架构设计建议
+
+| 改进项 | 优先级 | 说明 |
+|--------|--------|------|
+| 封装 `ensureModelLoaded()` 到 `AgentOrchestrator` | P1 | 避免各调用方重复实现加载检查逻辑 |
+| 添加 `loadModel()` 调用点日志审计 | P2 | 便于追踪谁在何时触发了模型加载 |
+| 统一 `useOpencl` 参数决策 | P2 | 当前各调用方自行决定，应由 `OpenClGuardian` 统一管理 |
+| 文档化加载契约 | P2 | 明确各调用方的加载责任（调用前是否必须加载） |
+
+---
+
+## 2. 资源管理器
+
+### 2.1 背景与问题
+
+PicMe 使用 MNN 3.5.0 统一构建的 `libMNN.so`，同时承载两个独立子系统：
+
+| 子系统 | MNN API | 内存占用 | 生命周期 |
+|--------|---------|----------|----------|
+| **LLM** | `MNN::Transformer::Llm` | Qwen3.5-2B 约 1.5-2.5GB | 加载后常驻，无自动卸载 |
+| **ASR** | `MNN::Express::Module` (via Sherpa-MNN) | Zipformer 约 100-300MB | 相机页初始化，页面退出不释放 |
+
+> **注意**：当前语音栈已迁移至 Sherpa-ONNX（见 [VOICE_STACK.md](VOICE_STACK.md)），ASR 不再依赖 `libMNN.so`，LLM 成为 `libMNN.so` 唯一使用者。本节保留历史设计用于理解 `MnnResourceManager` 的演进。
+
+### 2.2 核心冲突（历史）
+
+`MNN::Transformer::Llm::destroy()` 在释放 LLM 独占内存时，会触及 MNN 全局内存分配器状态，导致**同一进程内仍在运行的 Sherpa-MNN ASR 崩溃**。
+
+现有规避方案（`AgentOrchestrator.applySceneDrivenModelPolicy`）：
+
+```kotlin
+// 相机场景：不卸载模型，仅 trimMemory 清理 KV Cache
+localLlmEngine.trimMemory()
+```
+
+这导致 LLM 模型在相机场景下**无法真正释放**，后台内存占用极高。
+
+### 2.3 设计目标
+
+| 目标 | 度量 |
+|------|------|
+| **安全共享** | LLM 与 ASR 可共存，释放时互不破坏 |
+| **自动卸载** | App 后台 60s 后完全释放，无需人工干预 |
+| **内存压力响应** | `onTrimMemory(CRITICAL)` 时紧急释放 |
+| **零泄漏** | 页面退出时 ASR 实例 100% 释放 |
+| **低延迟恢复** | 前台恢复时模型重新加载 < 3s |
+
+### 2.4 引用计数协调
+
+引入 `MnnResourceManager` 作为**唯一协调者**，LLM 和 ASR 分别持有独立引用计数：
+
+```
+LLM 请求加载  →  acquireLlm()   → llmRefCount++
+ASR 请求加载  →  acquireAsr()   → asrRefCount++
+
+LLM 请求释放  →  releaseLlm()
+    ├─ asrRefCount == 0 → onSafeUnload()  → 真正 unload()
+    └─ asrRefCount  > 0 → onSoftRelease() → trimMemory()
+
+ASR 请求释放  →  releaseAsr()
+    ├─ llmRefCount == 0 → onSafeUnload()  → 真正 release()
+    └─ llmRefCount  > 0 → onSoftRelease() → stopStreaming()
+```
+
+### 2.5 联合状态机
+
+```
+                    ┌─────────────────────────────────────┐
+                    │         MNN_RESOURCE_STATE          │
+                    └─────────────────────────────────────┘
+
+    ┌──────────┐    load()    ┌──────────┐   both agree   ┌──────────┐
+    │  IDLE    │ ───────────→ │  SHARED  │ ─────────────→ │ UNLOADED │
+    │(无模型)   │              │(LLM+ASR) │   unload()     │(已释放)   │
+    └──────────┘              └────┬─────┘                └──────────┘
+         ↑                         │
+         │              ┌──────────┴──────────┐
+         │              │                     │
+         │         trim()                asr_stop()
+         │              ↓                     ↓
+         │       ┌──────────┐          ┌──────────┐
+         └───────│ LLM_ONLY │          │ ASR_ONLY │
+                 │(仅LLM常驻)│          │(仅ASR常驻)│
+                 └──────────┘          └──────────┘
+```
+
+### 2.6 生命周期触发矩阵（历史）
+
+| 当前状态 | 触发事件 | LLM 动作 | ASR 动作 | 结果状态 |
+|----------|----------|----------|----------|----------|
+| IDLE | 用户文字输入 | `loadModel()` | 无 | LLM_ONLY |
+| IDLE | 进入相机页 + 语音开启 | `trimMemory()`（如已加载） | `tryInitRecognizer()` | SHARED / ASR_ONLY |
+| LLM_ONLY | 进入相机页 + 语音开启 | 保持 | `tryInitRecognizer()` | SHARED |
+| ASR_ONLY | 用户文字输入 | `loadModel()` | 保持 | SHARED |
+| SHARED | 离开相机页 | `trimMemory()` | `release()` → softRelease | LLM_ONLY |
+| SHARED | 文字聊天结束 | `unload()` → softRelease | 保持 | ASR_ONLY |
+| SHARED | 后台 30s | `trimMemory()` | `stopStreaming()` | SHARED (soft) |
+| SHARED | 后台 60s / 内存压力 | `unload()` | `release()` | IDLE |
+| * | `onTrimMemory(CRITICAL)` | `unload()` | `release()` | IDLE |
+
+### 2.7 组件职责
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| `MnnResourceManager` | `runtime-core/.../mnn/MnnResourceManager.kt` | 引用计数管理、生命周期监听、内存压力响应、事件分发 |
+| `LocalLlmEngine` | `runtime-core/.../inference/local/llm/LocalLlmEngine.kt` | `load()` 成功后调用 `acquireLlm()`；`unload()` 改为调用 `releaseLlm()` |
+| `SherpaMnnAsrEngine` | `app/.../camera/voice/SherpaMnnAsrEngine.kt` | `tryInitRecognizer()` 成功后调用 `acquireAsr()`；`release()` 改为调用 `releaseAsr()` |
+| `VoiceCommandCoordinator` | `app/.../camera/voice/VoiceCommandCoordinator.kt` | `release()` 中新增 `(asrEngine as? SherpaMnnAsrEngine)?.release()` |
+| `CameraScreen` | `app/.../camera/CameraScreen.kt` | 监听 ON_RESUME / ON_PAUSE，联动 `MnnResourceManager` |
+| `PicMeApplication` | `app/.../PicMeApplication.kt` | `ActivityTracker` 计数，前后台切换通知 `MnnResourceManager` |
+
+### 2.8 线程安全
+
+| 组件 | 关键操作 | 同步机制 |
+|------|----------|----------|
+| `MnnResourceManager` | 引用计数 | `AtomicInteger` |
+| `MnnResourceManager` | 监听器列表 | `CopyOnWriteArrayList` |
+| `MnnResourceManager` | 后台调度 | `AtomicBoolean` 防重复 |
+| `LocalLlmEngine` | load/unload/generate | `Mutex` |
+| `SherpaMnnAsrEngine` | recognizer 创建/释放 | `synchronized(initLock)` |
+| `SherpaMnnAsrEngine` | 流式识别状态 | `AtomicBoolean` |
+
+### 2.9 调试与观测
+
+#### 日志标签
+
+| 标签 | 来源 | 关键日志 |
+|------|------|----------|
+| `MnnResourceManager` | `MnnResourceManager` | refCount 变化、前后台切换、内存压力级别 |
+| `LocalLlmEngine` | `LocalLlmEngine` | load/unload/trimMemory 状态转换 |
+| `SherpaMnnAsr` | `SherpaMnnAsrEngine` | init/release/softRelease 状态转换 |
+
+#### 内存统计 API
+
+```kotlin
+val stats = MnnResourceManager.getInstance(context).getMemoryStats()
+// stats.llmRefCount
+// stats.asrRefCount
+// stats.appInForeground
+// stats.javaHeapUsedMB
+// stats.availableMemoryMB
+// stats.lowMemory
+```
+
+---
+
+## 3. 加载/卸载触发机制
+
+### 3.1 触发源总览
+
+| 触发源 | 触发条件 | 动作 | 延迟 | 优先级 |
+|--------|----------|------|------|--------|
+| **App 后台** | 最后一个 Activity `onStopped()` | `onAppBackground()` | 30s softTrim → 60s safeUnload | 中 |
+| **CameraScreen 生命周期** | `ON_PAUSE` | `onAppBackground()` | 同上 | 中 |
+| **内存压力** | `onTrimMemory(RUNNING_MODERATE)` | `notifySoftTrim()` | 立即 | 低 |
+| **内存压力** | `onTrimMemory(RUNNING_LOW)` | `notifySafeUnload()` | 立即 | 高 |
+| **内存压力** | `onTrimMemory(RUNNING_CRITICAL)` | `notifySafeUnload()` | 立即 | 紧急 |
+| **内存压力** | `onTrimMemory(UI_HIDDEN)` | `onAppBackground()` | 30s → 60s | 中 |
+| **内存压力** | `onTrimMemory(COMPLETE)` | `notifySafeUnload()` | 立即 | 紧急 |
+| **页面退出** | `VoiceCommandCoordinator.release()` | `releaseAsr()` → softRelease | 立即 | 中 |
+| **文字聊天结束** | `AgentOrchestrator.unloadModel()` | `releaseLlm()` → softRelease | 立即 | 低 |
+| **模型切换** | `loadModel()` 加载新模型 | `unload()` 旧模型 | 立即 | 中 |
+
+### 3.2 引用计数协调机制（核心规则）
+
+```
+acquireLlm()  → llmRefCount++
+acquireAsr()  → asrRefCount++
+
+releaseLlm()
+    ├─ asrRefCount == 0 → onSafeUnload()  → 真正 nativeDestroy()
+    └─ asrRefCount  > 0 → onSoftRelease() → trimMemory()（保留模型）
+
+releaseAsr()
+    ├─ llmRefCount == 0 → onSafeUnload()  → 真正 recognizer.release()
+    └─ llmRefCount  > 0 → onSoftRelease() → stopStreaming()（保留模型）
+```
+
+### 3.3 App 前后台切换
+
+**触发位置**: `PicMeApplication.ActivityTracker`
+
+```kotlin
+override fun onActivityStarted(activity: Activity) {
+    if (activityCount == 0) {
+        MnnResourceManager.getInstance(this@PicMeApplication).onAppForeground()
+    }
+    activityCount++
+}
+
+override fun onActivityStopped(activity: Activity) {
+    activityCount--
+    if (activityCount == 0) {
+        MnnResourceManager.getInstance(this@PicMeApplication).onAppBackground()
+    }
+}
+```
+
+**时序**：
+
+```
+用户按 Home 键
+    │
+    ▼
+最后一个 Activity onStopped()
+    │
+    ▼
+onAppBackground()
+    │
+    ▼
+调度协程：delay 30s
+    │
+    ▼
+30s 后检查：仍后台 + 无引用？
+    │
+    ├── 是 → notifySoftTrim()
+    │           ├── LocalLlmEngine.onSoftTrim() → trimMemory()
+    │           └── SherpaMnnAsrEngine.onSoftTrim() → stopStreaming()
+    │
+    ▼
+delay 再 30s（累计 60s）
+    │
+    ▼
+60s 后检查：仍后台 + 无引用？
+    │
+    ├── 是 → notifySafeUnload()
+    │           ├── LocalLlmEngine.onSafeUnload() → performUnload()
+    │           └── SherpaMnnAsrEngine.onSafeUnload() → performUnload()
+    │
+    ▼
+┌─────────────────────────────────────┐
+│            IDLE 状态                │
+│     LLM + ASR 完全释放              │
+└─────────────────────────────────────┘
+```
+
+**关键参数**：
+- `BACKGROUND_UNLOAD_DELAY_MS = 30000L`
+- `BACKGROUND_FORCE_UNLOAD_DELAY_MS = 60000L`
+
+### 3.4 系统内存压力
+
+**触发位置**: `MnnResourceManager.init()` 注册的 `ComponentCallbacks2`
+
+```kotlin
+private fun handleMemoryPressure(level: Int) {
+    when (level) {
+        TRIM_MEMORY_RUNNING_MODERATE -> notifySoftTrim()
+        TRIM_MEMORY_RUNNING_LOW,
+        TRIM_MEMORY_RUNNING_CRITICAL -> notifySafeUnload()
+        TRIM_MEMORY_UI_HIDDEN -> {
+            if (!isAnyRequested) onAppBackground()
+        }
+        TRIM_MEMORY_COMPLETE -> notifySafeUnload()
+    }
+}
+```
+
+**Android 内存压力级别说明**：
+
+| 级别 | 含义 | 本系统响应 |
+|------|------|-----------|
+| `RUNNING_MODERATE` | 系统内存略有压力 | softTrim（清理 KV Cache） |
+| `RUNNING_LOW` | 系统内存紧张 | safeUnload（完全释放） |
+| `RUNNING_CRITICAL` | 系统内存极度紧张 | safeUnload（完全释放） |
+| `UI_HIDDEN` | 应用 UI 不可见 | 如果无引用，调度后台卸载 |
+| `COMPLETE` | 系统内存耗尽 | safeUnload（完全释放） |
+
+### 3.5 模型切换
+
+**触发位置**: `LocalLlmEngine.loadModel()`
+
+```kotlin
+suspend fun loadModel(modelId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    engineMutex.withLock {
+        if (client.isLoaded && currentModelId == modelId) {
+            return@withLock Result.success(Unit)
+        }
+        if (client.isLoaded) {
+            client.unload()  // ← 直接卸载旧模型
+            currentModelId = null
+        }
+        // ... 加载新模型
+    }
+}
+```
+
+**注意**: 模型切换时的 `unload()` 不走 `MnnResourceManager`，因为这是**同类型资源替换**，不是**引用释放**。
+
+### 3.6 防重复机制
+
+#### 后台卸载防重调度
+
+```kotlin
+private val backgroundUnloadScheduled = AtomicBoolean(false)
+
+fun onAppBackground() {
+    if (backgroundUnloadScheduled.compareAndSet(false, true)) {
+        scope.launch {
+            delay(BACKGROUND_UNLOAD_DELAY_MS)
+            // ... softTrim
+            delay(BACKGROUND_FORCE_UNLOAD_DELAY_MS - BACKGROUND_UNLOAD_DELAY_MS)
+            // ... safeUnload
+            backgroundUnloadScheduled.set(false)
+        }
+    }
+}
+
+fun onAppForeground() {
+    cancelBackgroundUnload()  // AtomicBoolean.set(false)
+}
+```
+
+#### 引用计数防负值
+
+```kotlin
+fun releaseLlm(owner: String, onSafeUnload: () -> Unit, onSoftRelease: () -> Unit) {
+    val count = llmRefCount.decrementAndGet()
+    if (count <= 0) {
+        llmRefCount.set(0)  // 防负值
+        // ...
+    }
+}
+```
+
+### 3.7 日志追踪
+
+#### 关键日志标签
+
+| 标签 | 来源 | 关键日志模式 |
+|------|------|-------------|
+| `MnnResourceManager` | `MnnResourceManager` | `LLM acquired/released by X, refCount=N` |
+| `MnnResourceManager` | `MnnResourceManager` | `App entered foreground/background` |
+| `MnnResourceManager` | `MnnResourceManager` | `Memory pressure: LEVEL, action` |
+| `LocalLlmEngine` | `LocalLlmEngine` | `LLM fully unloaded` / `LLM memory trimmed` |
+| `SherpaMnnAsr` | `SherpaMnnAsrEngine` | `ASR fully unloaded` / `ASR soft released` |
+| `VoiceCommand` | `VoiceCommandCoordinator` | `VoiceCommandCoordinator released` |
+
+#### ADB 日志过滤命令
+
+```bash
+# 查看所有 MNN 资源管理日志
+adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaMnnAsr:*" "VoiceCommand:*" -v time
+
+# 只看引用计数变化
+adb logcat -s "MnnResourceManager:*" -v time | grep -E "acquired|released|refCount"
+
+# 只看卸载事件
+adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaMnnAsr:*" -v time | grep -E "unloaded|trimmed|soft released"
+```
+
+---
+
+## 4. 性能优化
+
+### 4.1 当前配置分析
+
+#### 已部署模型
+
+| 模型 | 文件大小 | 运行时内存 | 配置路径 |
+|------|---------|-----------|---------|
+| **Qwen3.5-2B** | weight 1.8GB | ~4.2GB | `files/llm_models/qwen3.5-2b/config.json` |
+| Qwen3.5-0.8B | weight 470MB | ~1.5GB（预估） | `files/llm_models/qwen3.5-0.8b/config.json` |
+
+#### 当前 config.json（Qwen3.5-2B）
+
+```json
+{
+    "llm_model": "llm.mnn",
+    "llm_weight": "llm.mnn.weight",
+    "backend_type": "cpu",
+    "thread_num": 4,
+    "precision": "low",
+    "memory": "low",
+    "sampler_type": "mixed",
+    "mixed_samplers": ["penalty", "topK", "topP", "min_p", "temperature"],
+    "penalty": 1.1,
+    "temperature": 0.6,
+    "topP": 0.95,
+    "topK": 20,
+    "min_p": 0
+}
+```
+
+#### 当前问题
+
+| 问题 | 现象 | 根因 |
+|------|------|------|
+| 内存占用过高 | Native Heap ~4.2GB | 2B 模型 weight 1.8GB + KV Cache + 激活值 |
+| 应用被 OOM Kill | 相机预览 + LLM 同时运行时可能被杀 | 总 PSS 可能超过 LMK 阈值 |
+| 渲染卡顿 | Janky frames 增加 | 内存压力导致 Swap 换页，GPU 竞争 |
+| 高温 | CPU/GPU 可能发热 | CPU 后端推理，未使用 GPU/NPU |
+
+### 4.2 MNN-LLM 配置参数详解
+
+#### 内存相关参数
+
+| 参数 | 类型 | 当前值 | 可选值 | 说明 |
+|------|------|--------|--------|------|
+| `memory` | string | `low` | `low` / `normal` / `high` | 内存使用模式。`low` 减少中间缓存，`high` 加速但占内存 |
+| `precision` | string | `low` | `low` / `normal` / `high` / `low_bf16` | 精度模式。`low` 使用 FP16/INT8，`high` 使用 FP32 |
+| `backend_type` | string | `cpu` | `cpu` / `gpu` / `npu` | 推理后端。GPU 可减少 CPU 占用但增加 GPU 内存 |
+| `thread_num` | int | 4 | 1-N | CPU 线程数。过多线程增加内存和调度开销 |
+
+#### MNN 高级 Hint（C++ API）
+
+```cpp
+// KV Cache 大小限制（单层）
+// 超过限制会换出到磁盘
+interpreter->setHint(MNN::Interpreter::KVCACHE_SIZE_LIMIT, 1024); // KB
+
+// Attention 量化选项
+// 0: 不量化, 1: Q/K Int8 V Float, 2: Q/K/V Int8
+interpreter->setHint(MNN::Interpreter::ATTENTION_OPTION, 2);
+
+// Flash Attention
+// 0: 不使用, 1: 使用（减少内存占用）
+interpreter->setHint(MNN::Interpreter::ATTENTION_OPTION, 2 + 8); // Int8 + FlashAttn
+
+// 使用 mmap 加载模型（减少内存占用）
+interpreter->setHint(MNN::Interpreter::USE_CACHED_MMAP, 1);
+```
+
+#### 关键发现
+
+> **Memory 经验**：MNN LLM 推理时出现"Memory not Enough"错误，可能是配置中使用了 `use_mmap: true` 导致内存占用过高。建议参考历史版本配置：使用 `thread_num: 4`（而非2），不启用 `use_mmap`，保持 `memory: low` 和 `precision: low`。
+
+### 4.3 优化策略（按优先级排序）
+
+#### P0：模型量化（效果最显著）
+
+**当前模型**：Qwen3.5-2B FP16/FP32（weight 1.8GB）  
+**目标**：INT4 量化（weight ~600MB，减少 65%）
+
+| 量化级别 | 模型大小 | 运行时内存 | 质量损失 | 适用场景 |
+|---------|---------|-----------|---------|---------|
+| FP16（当前） | 1.8GB | ~4.2GB | 无 | 高端设备 |
+| INT8 | ~900MB | ~2.5GB | 轻微 | 中端设备 |
+| **INT4** | **~600MB** | **~1.5GB** | 可接受 | **推荐** |
+
+**操作步骤**：
+1. 从 ModelScope 下载 Qwen3.5-2B-INT4-MNN 或自行转换
+2. 替换 `llm.mnn` + `llm.mnn.weight`
+3. 更新 `config.json` 中的 `precision: "low"`
+
+**MNN 转换命令参考**：
+```bash
+# INT4 量化转换（需 MNN 工具链）
+mnnconvert -f ONNX --modelFile qwen3.5-2b.onnx \
+  --MNNModel qwen3.5-2b-int4.mnn \
+  --weightQuantBits 4 \
+  --weightQuantAsymmetric
+```
+
+#### P0：切换到更小的模型
+
+**备选模型**：Qwen3.5-0.8B（已下载，weight 470MB）
+
+| 对比 | Qwen3.5-2B | Qwen3.5-0.8B |
+|------|-----------|-------------|
+| Weight | 1.8GB | 470MB |
+| 预估运行时 | ~4.2GB | ~1.5GB |
+| 推理质量 | 较高 | 中等 |
+| 适用场景 | 纯聊天页 | 相机预览共存 |
+
+**建议**：
+- 相机预览场景自动切换到 0.8B 模型
+- 聊天页可使用 2B 模型提供更强推理能力
+
+#### P1：GPU 后端切换
+
+**当前**：`backend_type: "cpu"`  
+**建议**：`backend_type: "gpu"`（Vulkan）
+
+| 后端 | CPU 占用 | GPU 内存 | 温度 | 适用场景 |
+|------|---------|---------|------|---------|
+| CPU | 高 | 低 | 高（CPU发热） | 低端设备 |
+| GPU | 低 | 高 | 中（GPU发热） | 有 GPU 的设备 |
+| NPU | 极低 | 中 | 低 | 支持 NPU 的设备 |
+
+**注意事项**：
+- GPU 后端会增加 GPU 内存占用（~500MB-1GB）
+- 需要设备支持 Vulkan
+- 首次加载可能有编译延迟
+
+#### P1：动态加载/卸载
+
+**当前问题**：LLM 模型常驻内存，即使不在聊天页
+
+**优化方案**：
+
+```kotlin
+// 相机预览页：不加载 LLM
+class CameraViewModel {
+    init {
+        // 进入相机页时卸载 LLM
+        agentOrchestrator.unloadModel()
+    }
+}
+
+// 聊天页：按需加载
+class ChatViewModel {
+    fun onEnter() {
+        viewModelScope.launch {
+            agentOrchestrator.loadModel("qwen3_5_2b")
+        }
+    }
+    
+    fun onExit() {
+        agentOrchestrator.unloadModel()
+    }
+}
+```
+
+**收益**：
+- 相机预览场景释放 ~3.5GB 内存
+- 避免 OOM Kill
+- 聊天页首次进入有加载延迟（~2-3秒）
+
+#### P1：KV Cache 限制
+
+**当前问题**：KV Cache 随对话长度无限增长
+
+**优化方案**：
+
+```json
+{
+    "max_new_tokens": 512,
+    "max_context_length": 2048
+}
+```
+
+或在 C++ 层设置：
+```cpp
+// 限制 KV Cache 大小（单层 1024KB = 1MB）
+llm->set_config("{\"kv_cache_limit\": 1024}");
+
+// 或限制最大历史长度
+llm->set_config("{\"max_history\": 10}");
+```
+
+**收益**：
+- 长对话场景内存不再无限增长
+- 限制后最大额外内存 ~500MB
+
+#### P2：推理参数优化
+
+| 参数 | 当前值 | 建议值 | 说明 |
+|------|--------|--------|------|
+| `thread_num` | 4 | 2 | 减少线程数和内存开销 |
+| `temperature` | 0.6 | 0.3 | 降低随机性，减少采样计算 |
+| `topK` | 20 | 10 | 减少候选 token 数 |
+| `max_new_tokens` | 8192 | 128 | 限制生成长度（Agent 场景 128 足够） |
+
+#### P2：内存监控与自动降级
+
+```kotlin
+class MemoryMonitor {
+    fun checkMemory(): LlmMode {
+        val nativeHeap = getNativeHeapSize()
+        return when {
+            nativeHeap > 3_000_000_000 -> LlmMode.REMOTE_ONLY // >3GB 用远程
+            nativeHeap > 2_000_000_000 -> LlmMode.SMALL_MODEL  // >2GB 用小模型
+            else -> LlmMode.LOCAL_FULL
+        }
+    }
+}
+```
+
+### 4.4 推荐配置组合
+
+#### 方案 A：相机预览场景（推荐）
+
+```json
+{
+    "llm_model": "llm.mnn",
+    "llm_weight": "llm.mnn.weight",
+    "backend_type": "cpu",
+    "thread_num": 2,
+    "precision": "low",
+    "memory": "low",
+    "max_new_tokens": 128,
+    "sampler_type": "mixed",
+    "temperature": 0.3,
+    "topK": 10,
+    "topP": 0.9
+}
+```
+
+**配合**：不加载 LLM 模型，使用远程 LLM 或本地 0.8B 模型
+
+#### 方案 B：聊天页（高质量）
+
+```json
+{
+    "llm_model": "llm.mnn",
+    "llm_weight": "llm.mnn.weight",
+    "backend_type": "gpu",
+    "thread_num": 4,
+    "precision": "low",
+    "memory": "normal",
+    "max_new_tokens": 512,
+    "sampler_type": "mixed",
+    "temperature": 0.6,
+    "topK": 20,
+    "topP": 0.95
+}
+```
+
+**配合**：INT4 量化模型，限制 KV Cache
+
+#### 方案 C：低端设备（极致省内存）
+
+```json
+{
+    "llm_model": "llm.mnn",
+    "llm_weight": "llm.mnn.weight",
+    "backend_type": "cpu",
+    "thread_num": 1,
+    "precision": "low",
+    "memory": "low",
+    "max_new_tokens": 64,
+    "sampler_type": "greedy"
+}
+```
+
+**配合**：0.8B 模型，动态加载
+
+### 4.5 预期收益（基于 Qwen3.5-2B）
+
+| 优化项 | 当前 | 目标 | 收益 |
+|--------|------|------|------|
+| 模型量化（INT4） | ~4.2GB | ~1.5GB | 内存减少 64% |
+| 切换 0.8B 模型 | ~4.2GB | ~1.5GB | 内存减少 64% |
+| 动态加载 | 常驻 | 按需 | 相机场景释放 ~4.2GB |
+| GPU 后端 | CPU 高负载 | GPU 承担 | CPU 占用降低 |
+| 综合优化 | 可能 LMK 被杀 | 稳定运行 | 可用性提升 |
+
+---
+
+## 5. 测试用例
+
+### 5.1 测试环境准备
+
+#### 硬件要求
+
+- Android 设备（API 24+）
+- 已安装 PicMe 调试版 APK
+- LLM 模型（qwen3_5_2b）已下载
+- ASR 模型（sherpa-onnx-zipformer-zh-en）已下载
+
+#### ADB 日志准备
+
+```bash
+# 清除旧日志
+adb logcat -c
+
+# 开启过滤日志（保持终端运行）
+adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaMnnAsr:*" "VoiceCommand:*" "AgentOrchestrator:*" -v time
+```
+
+#### 内存监控（可选）
+
+```bash
+# 监控进程内存
+adb shell dumpsys meminfo com.mamba.picme | grep -E "TOTAL|Java Heap|Native Heap"
+
+# 或持续监控
+while true; do
+    adb shell dumpsys meminfo com.mamba.picme | grep "TOTAL PSS"
+    sleep 5
+done
+```
+
+### 5.2 测试用例
+
+#### TC-001: 后台自动卸载（核心用例）
+
+**目的**: 验证 App 进入后台后，LLM 和 ASR 按预期时间线卸载
+
+**前置条件**:
+- App 已启动，进入相机页
+- ASR 初始化成功（`acquireAsr()`）
+- LLM 已加载（`acquireLlm()`）
+
+**操作步骤**:
+
+| 步骤 | 操作 | 期望日志 |
+|------|------|----------|
+| 1 | 打开 PicMe，进入相机页 | `ASR acquired by SherpaMnnAsrEngine, refCount=1` |
+| 2 | 说一句话触发语音指令 | `LLM acquired by LocalLlmEngine, refCount=1` |
+| 3 | 按 Home 键回到桌面 | `App entered background, scheduling unload` |
+| 4 | 等待 30 秒 | `Background timeout, triggering soft trim for all` |
+| 5 | 继续等待 30 秒（累计 60s） | `Background force unload timeout, triggering safe unload` |
+| 6 | 观察最终状态 | `LLM fully unloaded` + `ASR fully unloaded` |
+
+**验证标准**:
+- [ ] 30s 时触发 softTrim（LLM trimMemory + ASR stopStreaming）
+- [ ] 60s 时触发 safeUnload（LLM performUnload + ASR performUnload）
+- [ ] 内存下降（Native Heap 减少 1-2GB）
+
+**通过标准**: 所有期望日志按顺序出现，无崩溃
+
+---
+
+#### TC-002: 页面退出释放 ASR
+
+**目的**: 验证离开相机页时 ASR 正确释放，LLM 根据引用状态处理
+
+**前置条件**:
+- App 在相机页，ASR 已初始化
+
+**操作步骤**:
+
+| 步骤 | 操作 | 期望日志（LLM 未加载） | 期望日志（LLM 已加载） |
+|------|------|------------------------|------------------------|
+| 1 | 打开相机页 | `ASR acquired, refCount=1` | `ASR acquired, refCount=1` |
+| 2 | 发送语音指令（可选） | — | `LLM acquired, refCount=1` |
+| 3 | 点击底部导航切换到相册页 | `ASR released, refCount=0` | `ASR released, refCount=0` |
+| 4 | 观察释放行为 | `ASR safe to unload` → `ASR fully unloaded` | `ASR soft release (LLM still active)` |
+
+**验证标准**:
+- [ ] 切换页面后 `VoiceCommandCoordinator released` 出现
+- [ ] ASR refCount 正确递减到 0
+- [ ] 无 LLM 引用时 ASR 真正释放；有 LLM 引用时 ASR 软释放
+
+**通过标准**: ASR 不再占用内存，无资源泄漏
+
+---
+
+#### TC-003: 内存压力紧急释放
+
+**目的**: 验证系统内存紧张时立即释放模型
+
+**前置条件**:
+- App 在相机页，LLM + ASR 均已加载
+
+**操作步骤**:
+
+| 步骤 | 操作 | 期望日志 |
+|------|------|----------|
+| 1 | 进入相机页，触发语音 | `LLM acquired` + `ASR acquired` |
+| 2 | 执行 ADB 命令模拟内存压力 | — |
+| 3 | 观察日志 | `Memory pressure: LOW/CRITICAL, force unload` |
+| 4 | 验证释放 | `LLM fully unloaded` + `ASR fully unloaded` |
+
+**ADB 命令**:
+```bash
+# 模拟 RUNNING_CRITICAL
+adb shell am send-trim-memory com.mamba.picme RUNNING_CRITICAL
+
+# 或模拟 COMPLETE
+adb shell am send-trim-memory com.mamba.picme COMPLETE
+```
+
+**验证标准**:
+- [ ] 命令执行后立即触发 safeUnload
+- [ ] 无 30s/60s 延迟
+- [ ] 模型完全释放
+
+**通过标准**: 紧急释放成功，App 不崩溃
+
+---
+
+#### TC-004: 引用计数正确性（边界测试）
+
+**目的**: 验证复杂场景下引用计数不泄漏、不负值
+
+**前置条件**:
+- App 已启动
+
+**操作步骤**:
+
+| 步骤 | 操作 | 期望 refCount | 期望状态 |
+|------|------|---------------|----------|
+| 1 | 打开相机页 | llm=0, asr=1 | ASR_ONLY |
+| 2 | 发送语音指令 | llm=1, asr=1 | SHARED |
+| 3 | 切换到相册页（ASR release） | llm=1, asr=0 | LLM_ONLY |
+| 4 | 进入文字聊天 | llm=1, asr=0 | LLM_ONLY |
+| 5 | 文字聊天结束（LLM release） | llm=0, asr=0 | IDLE |
+| 6 | 再次进入相机页 | llm=0, asr=1 | ASR_ONLY |
+| 7 | 再次发送语音 | llm=1, asr=1 | SHARED |
+| 8 | 按 Home 键 | — | 调度卸载 |
+| 9 | 等待 60s | llm=0, asr=0 | IDLE |
+
+**验证标准**:
+- [ ] 每个步骤 refCount 符合预期
+- [ ] 无负值出现
+- [ ] 重复进入/退出不累积泄漏
+
+**通过标准**: 引用计数始终非负，最终可回到 IDLE
+
+---
+
+#### TC-005: 前台恢复可重新加载
+
+**目的**: 验证卸载后重新进入前台，模型可正常恢复
+
+**前置条件**:
+- 已完成 TC-001，模型已卸载
+
+**操作步骤**:
+
+| 步骤 | 操作 | 期望日志 |
+|------|------|----------|
+| 1 | 后台 60s，确认模型已卸载 | `LLM fully unloaded` + `ASR fully unloaded` |
+| 2 | 重新打开 PicMe | `App entered foreground` |
+| 3 | 进入相机页 | `ASR acquired, refCount=1` |
+| 4 | 发送语音指令 | `LLM acquired, refCount=1` |
+| 5 | 验证功能正常 | 语音识别成功，LLM 推理成功 |
+
+**验证标准**:
+- [ ] 前台恢复后模型可重新加载
+- [ ] 语音识别功能正常
+- [ ] LLM 推理功能正常
+
+**通过标准**: 功能完全恢复，无异常
+
+---
+
+#### TC-006: 单例安全与重复加载
+
+**目的**: 验证多处调用加载同一模型不会导致重复分配
+
+**前置条件**:
+- App 已启动
+
+**操作步骤**:
+
+| 步骤 | 操作 | 期望日志 |
+|------|------|----------|
+| 1 | 打开聊天页 | `LLM acquired, refCount=1` |
+| 2 | 进入相册页触发图像理解 | 复用同一 `LocalLlmEngine`，无新的 `nativeCreate` |
+| 3 | 观察内存 | Native Heap 不重复增长 |
+
+**验证标准**:
+- [ ] `isLoaded` 幂等守卫生效
+- [ ] 同一模型只 `nativeCreate` 一次
+- [ ] 多次调用 `loadModel()` 安全
+
+**通过标准**: 无重复加载，无 OOM
+
+---
+
+### 5.3 自动化测试脚本
+
+```bash
+#!/bin/bash
+# scripts/test-mnn-unload.sh
+# MNN 模型卸载自动化测试脚本
+
+set -e
+
+PACKAGE="com.mamba.picme"
+LOG_FILE="/tmp/mnn_unload_test_$(date +%Y%m%d_%H%M%S).log"
+TAGS="MnnResourceManager:LocalLlmEngine:SherpaMnnAsr:VoiceCommand"
+
+echo "=== MNN Unload Test ==="
+echo "Log file: $LOG_FILE"
+
+# 清理日志
+adb logcat -c
+
+# 启动日志收集
+adb logcat -s "$TAGS" -v time > "$LOG_FILE" &
+LOG_PID=$!
+
+# 测试函数
+run_test() {
+    local test_name=$1
+    local steps=$2
+    echo ""
+    echo "=== $test_name ==="
+    eval "$steps"
+}
+
+# TC-001: 后台自动卸载
+tc_001() {
+    echo "Step 1: Launch app and enter camera"
+    adb shell am start -n ${PACKAGE}/.MainActivity
+    sleep 3
+
+    echo "Step 2: Trigger voice command (simulate tap on voice button)"
+    adb shell input tap 540 1800
+    sleep 2
+
+    echo "Step 3: Press Home"
+    adb shell input keyevent KEYCODE_HOME
+    sleep 2
+
+    echo "Step 4: Wait 35s for softTrim"
+    sleep 35
+
+    echo "Step 5: Wait 30s more for safeUnload (total 65s)"
+    sleep 30
+
+    echo "Step 6: Check logs"
+    if grep -q "LLM fully unloaded" "$LOG_FILE" && grep -q "ASR fully unloaded" "$LOG_FILE"; then
+        echo "✓ TC-001 PASSED"
+    else
+        echo "✗ TC-001 FAILED"
+        echo "Expected: LLM fully unloaded + ASR fully unloaded"
+        grep -E "unloaded|trimmed|soft released" "$LOG_FILE" | tail -10
+    fi
+}
+
+# TC-003: 内存压力紧急释放
+tc_003() {
+    echo "Step 1: Launch app and enter camera"
+    adb shell am start -n ${PACKAGE}/.MainActivity
+    sleep 3
+
+    echo "Step 2: Trigger voice command"
+    adb shell input tap 540 1800
+    sleep 2
+
+    echo "Step 3: Send trim memory command"
+    adb shell am send-trim-memory ${PACKAGE} RUNNING_CRITICAL
+    sleep 2
+
+    echo "Step 4: Check logs"
+    if grep -q "Memory pressure:.*force unload" "$LOG_FILE" && \
+       grep -q "LLM fully unloaded" "$LOG_FILE"; then
+        echo "✓ TC-003 PASSED"
+    else
+        echo "✗ TC-003 FAILED"
+        grep -E "Memory pressure|force unload|fully unloaded" "$LOG_FILE" | tail -10
+    fi
+}
+
+# 执行测试
+run_test "TC-001: Background Auto Unload" tc_001
+
+# 清理并重新收集日志
+kill $LOG_PID 2>/dev/null
+adb logcat -c
+adb logcat -s "$TAGS" -v time > "$LOG_FILE" &
+LOG_PID=$!
+
+run_test "TC-003: Memory Pressure Emergency Unload" tc_003
+
+# 清理
+kill $LOG_PID 2>/dev/null
+
+echo ""
+echo "=== Test Complete ==="
+echo "Full log: $LOG_FILE"
+```
+
+### 5.4 手动测试检查清单
+
+#### 测试前检查
+
+- [ ] 设备已连接，`adb devices` 显示设备
+- [ ] PicMe 调试版已安装
+- [ ] LLM 模型已下载（设置 → AI 模型管理）
+- [ ] ASR 模型已下载
+- [ ] 日志过滤命令已运行
+
+#### 测试中记录
+
+| 测试项 | 开始时间 | 结束时间 | 结果 | 备注 |
+|--------|----------|----------|------|------|
+| TC-001 | | | | |
+| TC-002 | | | | |
+| TC-003 | | | | |
+| TC-004 | | | | |
+| TC-005 | | | | |
+| TC-006 | | | | |
+
+#### 测试后检查
+
+- [ ] 无崩溃、无 ANR
+- [ ] 内存最终回到 IDLE 基线
+- [ ] 功能可恢复
+
+### 5.5 常见问题排查
+
+#### Q1: 后台 60s 后模型未卸载
+
+**排查步骤**:
+1. 检查日志是否有 `App entered background`
+2. 检查 `activityCount` 是否正确（是否有后台 Service 保持 Activity）
+3. 检查 `backgroundUnloadScheduled` 是否为 true（可能被前台事件取消）
+
+#### Q2: ASR 释放后 recognizer 仍存在
+
+**排查步骤**:
+1. 检查日志是否有 `VoiceCommandCoordinator released`
+2. 检查 `SherpaMnnAsrEngine.release()` 是否被调用
+3. 检查 refCount 是否为 0
+
+#### Q3: LLM unload 导致 ASR 崩溃
+
+**排查步骤**:
+1. 检查 refCount 是否正确（不应在 ASR 引用存在时 safeUnload LLM）
+2. 检查 `MnnResourceManager` 的协调逻辑
+3. 查看崩溃堆栈是否涉及 MNN 全局状态
+
+#### Q4: 多处加载导致 OOM
+
+**排查步骤**:
+1. 检查是否所有调用方都通过 `AgentOrchestrator.getInstance()`
+2. 检查 `isLoaded` 幂等守卫是否生效
+3. 检查 `MnnGlobalReleaseLock` 是否正常工作
+4. 查看 Native Heap 是否有异常重复增长
+
+---
+
+## 6. 验收标准
+
+- [ ] `MnnResourceManager` 单例可正常获取，引用计数正确增减
+- [ ] LLM 加载后 `llmRefCount == 1`，卸载后 `llmRefCount == 0`
+- [ ] ASR 初始化后 `asrRefCount == 1`，释放后 `asrRefCount == 0`
+- [ ] 双方同时存在时，单方 release 只触发 softRelease
+- [ ] 双方均 release 后触发真正的 native unload
+- [ ] App 后台 30s 触发 softTrim，60s 触发 safeUnload
+- [ ] `onTrimMemory(CRITICAL)` 立即触发 safeUnload
+- [ ] 离开相机页后 ASR 不再泄漏
+- [ ] 量化模型转换并测试推理质量
+- [ ] GPU 后端兼容性测试（Vulkan 支持检测）
+- [ ] 动态加载/卸载功能实现
+- [ ] 内存监控 + 自动降级逻辑
+- [ ] 相机预览场景不加载 LLM
+- [ ] 长对话 KV Cache 增长测试
+- [ ] 编译通过，无 lint 错误
+
+---
+
+## 7. 相关文件
+
+| 文件 | 说明 |
+|------|------|
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/facade/AgentOrchestrator.kt` | Agent 编排器 |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/facade/AgentConfigurator.kt` | 配置器，持有 `LocalLlmEngine` 单例 |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt` | LLM 引擎 |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt` | MNN LLM 客户端 |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/mnn/MnnResourceManager.kt` | 资源协调管理器 |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/mnn/MnnGlobalReleaseLock.kt` | Native 全局释放锁 |
+| `app/src/main/java/com/mamba/picme/features/camera/voice/SherpaMnnAsrEngine.kt` | ASR 引擎（历史） |
+| `app/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt` | 语音协调器 |
+| `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` | 相机页面 |
+| `app/src/main/java/com/mamba/picme/PicMeApplication.kt` | 应用入口 |
+| `scripts/test-mnn-unload.sh` | 自动化测试脚本 |
+| `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` | 语音栈迁移后架构 |

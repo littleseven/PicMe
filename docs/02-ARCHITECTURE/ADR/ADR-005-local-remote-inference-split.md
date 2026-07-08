@@ -405,7 +405,7 @@ class AgentOrchestrator {
 
 - `docs/01-PRODUCT/FEATURES.md` — 交互规范
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构
-- `docs/03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md` — 远程推理架构详细设计
+- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — 远程推理架构详细设计
 - `agent-core/AGENTS.md` — Agent Core 模块规范
 - `ADR-001` — 美颜引擎分层架构（图片编辑复用基础）
 - `ADR-003` — 坐标系统管理（图片编辑关键点定位基础）

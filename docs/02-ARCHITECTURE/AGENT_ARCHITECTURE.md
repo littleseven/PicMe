@@ -1,16 +1,19 @@
 # langchain4android Agent 架构设计
 
+> **版本**：4.0（合并版）  
+> **状态**：已实施 / 迭代中  
+> **最后更新**：2026-07-08  
+> **主要维护者**：[RD] 全栈工程师  
+> **历史合并说明**：本文档由 `AGENT_ARCHITECTURE.md` 与 `REMOTE_INFERENCE_ARCHITECTURE.md` 合并而成。远程推理相关的 OpenAI 协议、langchain4j 标准化、DeepSeek 适配、四层模型、性能成本与验收标准已并入“推理模式选型”与“远程推理”章节，原 `REMOTE_INFERENCE_ARCHITECTURE.md` 已删除。
+
 > **边界声明（Boundary Statement）**
 > - 本文档定义 Agent 的运行时架构、Capability 模型与推理模式选型。
 > - 产品目标与验收口径以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
 > - **重要：`:agent-core` 是 Java 基础库**（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:runtime-core` 模块的 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 目录下。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
 
-**模块定位**: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PicMe）
-**主要维护者**: [RD] 全栈工程师  
-**阅读对象**: RD、AI Agent  
-**版本**: 3.1 (2026-06 架构更新)  
-**最后更新**: 2026-06-21
+**模块定位**: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PicMe）  
+**阅读对象**: RD、AI Agent
 
 ---
 
@@ -21,9 +24,13 @@
 3. [核心组件设计](#3-核心组件设计)
 4. [推理模式选型](#4-推理模式选型)
 5. [命令扩展](#5-命令扩展)
-6. [执行规约](#6-执行规约)
-7. [常见陷阱检查清单](#7-常见陷阱检查清单)
-8. [架构演进路线图](#8-架构演进路线图)
+6. [数据模型](#6-数据模型)
+7. [执行规约](#7-执行规约)
+8. [常见陷阱检查清单](#8-常见陷阱检查清单)
+9. [验收标准](#9-验收标准)
+10. [远程推理任务拆分](#10-远程推理任务拆分-agent-task)
+11. [架构演进路线图](#11-架构演进路线图)
+12. [附录：参考文档](#12-附录参考文档)
 
 ---
 
@@ -52,7 +59,7 @@
     └── REMOTE → RemoteInferencePipeline → RemoteOrchestrator → OpenAI tool_calls → Capability 执行
 ```
 
-**核心组件状态**:
+**核心组件状态**: 
 
 | 组件 | 职责 | 状态 |
 |------|------|------|
@@ -125,13 +132,12 @@
 │  ┌────────────────────────────┐  ┌──────────────────────────────────────┐   │
 │  │  LocalInferencePipeline    │  │  RemoteInferencePipeline              │   │
 │  │  ┌──────────────────────┐  │  │  ┌────────────────────────────────┐  │   │
-│  ┌──────────────────────┐  │  │  │ RemoteOrchestrator             │  │   │
-│  │  │ LocalLlmEngine       │  │  │  │ :agent-core OpenAiChatModel   │  │   │
-│  │  │ Qwen3.5-2B (MNN)     │  │  │  │ OpenAI Chat Completions API   │  │   │
-│  │  │ L1 Cache → L2 Batch  │  │  │  │ DeepSeek V4 适配               │  │   │
-│  │  └──────────────────────┘  │  │  │ L2 Batch / L3 Plan / L4 Chat   │  │   │
-│  └────────────────────────────┘  │  └────────────────────────────────┘  │   │
-│                                  │                                      │   │
+│  │  │ LocalLlmEngine       │  │  │  │ RemoteOrchestrator             │  │   │
+│  │  │ Qwen3.5-2B (MNN)     │  │  │  │ :agent-core OpenAiChatModel   │  │   │
+│  │  │ L1 Cache → L2 Batch  │  │  │  │ OpenAI Chat Completions API   │  │   │
+│  │  └──────────────────────┘  │  │  │ DeepSeek V4 适配               │  │   │
+│  └────────────────────────────┘  │  │ L2 Batch / L3 Plan / L4 Chat   │  │   │
+│                                  │  └────────────────────────────────┘  │   │
 │  ┌──────────────────────────┐    │                                      │   │
 │  │   Voice Pipeline (ONNX)  │    │  ┌────────────────────────────────┐  │   │
 │  │  ┌────────────────────┐  │    │  │ FeishuRemoteChannel            │  │   │
@@ -536,12 +542,12 @@ class NavigationCapability(
 
 **推荐分层自适应模式**：
 
-| 层级 | 模式 | 适用场景 | 协议 | 执行位置 |
-|------|------|---------|------|----------|
-| Layer 1 | 本地规则缓存 | "拍照"等高频指令 | 0 | 端侧 |
-| Layer 2 | Batch Function Calling | 简单连续动作指令（2-3 步） | OpenAI tool_calls | 远程 |
-| Layer 3 | Plan-and-Execute | 条件/多步任务 | OpenAI tool_calls + ExecutionPlan | 远程规划 + 本地执行 |
-| Layer 4 | 流式 Chat | 开放式对话、闲聊 | OpenAI streaming | 远程 |
+| 层级 | 模式 | 适用场景 | 协议 | 输出格式 | 执行位置 |
+|------|------|---------|------|---------|---------|
+| Layer 1 | 本地规则缓存 | 高频指令命中缓存 | 不走 LLM | 预定义命令 | 端侧 |
+| Layer 2 | Batch Function Calling | 简单连续动作指令（2-3 步） | OpenAI Chat Completions + tool_calls | `ToolExecutionRequest[]` → `AgentCommand[]` | 远程 |
+| Layer 3 | Plan-and-Execute | 条件/依赖/多步骤 | OpenAI Chat Completions + tool_calls | `ExecutionPlan` (含 command 字段) | 远程规划 + 本地执行 |
+| Layer 4 | 流式 Chat | 开放式对话、闲聊 | OpenAI Chat Completions (stream=true) | 文本流 + 可选 tool_calls | 远程 |
 
 **远程优化策略**：
 - 连接池 + Keep-Alive 复用 TCP
@@ -549,6 +555,141 @@ class NavigationCapability(
 - 2s 超时降级到本地规则或文本提示
 - 常见意图响应缓存（LruCache）
 - **隐私分级**：敏感数据（人脸/对话内容）强制本地；非敏感指令（天气/通用闲聊）允许远程
+
+### 4.4 远程推理协议实现
+
+远程推理使用标准 OpenAI Chat Completions API 格式：
+
+**请求格式**：
+```json
+POST /v1/chat/completions
+{
+  "model": "deepseek-chat",
+  "messages": [
+    {"role": "system", "content": "..."},
+    {"role": "user", "content": "帮我优化这张照片"}
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "ai_optimize",
+        "description": "AI 一键优化图片",
+        "parameters": {
+          "type": "object",
+          "properties": {...},
+          "required": [...],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "required",
+  "stream": false
+}
+```
+
+**响应格式（tool_calls）**：
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_xxx",
+        "type": "function",
+        "function": {
+          "name": "ai_optimize",
+          "arguments": "{\"image_id\": \"img_123\"}"
+        }
+      }]
+    }
+  }]
+}
+```
+
+**关键规则**：
+- `tool_calls` 是 `message` 对象的独立字段，与 `content` 互斥
+- 当存在 `tool_calls` 时，`content` 必须为 `null`
+- 参数通过 `function.arguments` 传递，为标准 JSON 字符串
+
+**langchain4j 标准化实现**：
+```kotlin
+class RemoteOrchestrator(config: RemoteModelConfig) {
+    private val openAiChatModel = OpenAiChatModel.builder()  // :agent-core
+        .baseUrl(config.baseUrl)
+        .apiKey(config.apiKey)
+        .modelName(config.modelId)
+        .temperature(config.temperature)
+        .maxTokens(config.maxTokens)
+        .build()
+    
+    fun chat(request: ChatRequest): ChatResponse {
+        // 直接使用 :agent-core OpenAiChatModel，支持 tool_calls、流式、多轮
+    }
+}
+```
+
+远程推理直接使用 `:agent-core OpenAiChatModel`，支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问等）；通过 `AiServices` 代理构建器 + `ChatMemory` 实现多轮对话。
+
+**命令解析（ToolCallCommandParser）**：
+```kotlin
+object ToolCallCommandParser {
+    fun parse(request: ToolExecutionRequest, context: AgentContext): AgentCommand {
+        val name = request.name()      // 工具名 → 命令类型映射
+        val args = request.arguments() // 标准 JSON 参数
+        
+        return when (name) {
+            "switch_filter" -> AgentCommand.SwitchFilter(filterType = parseFilterType(args))
+            "adjust_beauty" -> AgentCommand.AdjustBeauty(settings = parseBeautySettings(args))
+            // ... 其他命令
+            else -> AgentCommand.TextReply("未知命令: $name")
+        }
+    }
+}
+```
+
+远程解析器与本地解析器完全隔离：
+- 远程：`ToolCallCommandParser` — 解析 `name` + `arguments` → `AgentCommand`
+- 本地：`LocalCommandParser` — 解析 `method` + `params` → `AgentCommand`
+
+### 4.5 DeepSeek 适配
+
+| 适配项 | 实现 | 位置 |
+|--------|------|------|
+| 禁用 thinking | API 请求自动附加 `thinking: {"type": "disabled"}` | `OpenAiChatModel` 内部处理 |
+| strict 模式兼容 | ToolSpec 自动添加 `additionalProperties: false` | `OpenAiChatModel` 内部处理 |
+| tool_choice 修复 | `REQUIRED` 正确映射为 `"required"`（非 `"auto"`） | `OpenAiChatModel` 内部处理 |
+| content 回退解析 | 当 API 未返回 tool_calls 但 content 含 tool_calls JSON 时，正则提取解析 | `RemoteOrchestrator.parseFallbackToolCalls()` |
+| Prompt 规范 | 禁止在 Prompt 中提供具体 tool_calls JSON 示例，避免模型输出到 content | `RemotePromptBuilder` |
+
+### 4.6 性能与成本考量
+
+**Token 消耗估算**：
+
+| 模式 | System Prompt | User Input | Output | 单次总 Token |
+|------|--------------|-----------|--------|-------------|
+| L1 Cache | 0 | 0 | 0 | 0 |
+| L2 Batch | ~800 | ~50 | ~200 | ~1050 |
+| L3 Plan | ~1000 | ~100 | ~500 | ~1600 |
+| L4 Chat | ~800 | ~50 | ~300 | ~1150 |
+
+**延迟估算**：
+
+| 模式 | 网络 RTT | LLM 生成 | 解析 | 总延迟 |
+|------|---------|---------|------|-------|
+| L1 | 0 | 0 | 0 | < 10ms |
+| L2 | 200-500ms | 200-500ms | 50ms | 450-1050ms |
+| L3 | 200-500ms | 500-1000ms | 100ms | 800-1600ms |
+| L4 (流式) | 200-500ms | 首 token 50-200ms | 50ms | 250-750ms |
+
+**优化策略**：
+1. **L1 缓存预热**：启动时预置 50+ 高频意图
+2. **L2 默认化**：80% 场景走 L2，保持简单高效
+3. **L3 异步执行**：计划生成后异步执行，不阻塞 UI
+4. **L4 流式**：首 token 低延迟，提升对话体验
+5. **连接池 + Keep-Alive**：复用 TCP 连接
 
 ---
 
@@ -635,7 +776,83 @@ sealed class AgentCommand {
 
 ---
 
-## 6. Agent 执行规约 (Execution Rules)
+## 6. 数据模型
+
+### 6.1 AgentCommand 密封类
+
+见 [第 5 章](#5-命令扩展)。
+
+### 6.2 推理结果包装
+
+```kotlin
+sealed class InferenceResult {
+    data class Local(val command: AgentCommand) : InferenceResult()
+    data class Remote(val commands: List<AgentCommand>) : InferenceResult()
+    data class Text(val message: String) : InferenceResult()
+    data class Plan(val plan: ExecutionPlan) : InferenceResult()
+    data class Error(val reason: String) : InferenceResult()
+}
+```
+
+### 6.3 ExecutionPlan（L3 Plan 模式）
+
+```json
+{
+  "plan_id": "uuid",
+  "steps": [
+    {
+      "step": 1,
+      "condition": "currentCamera == BACK",
+      "command": {
+        "name": "flip_camera",
+        "arguments": "{}"
+      },
+      "description": "切换到前置摄像头"
+    }
+  ]
+}
+```
+
+### 6.4 AiAgentUseCase（Facade）
+
+```kotlin
+class AiAgentUseCase(
+    context: Context,
+    agentMode: AiAgentMode = AiAgentMode.REMOTE, // 默认 REMOTE（远程优先）
+    privacyLevel: AiAgentPrivacyLevel = AiAgentPrivacyLevel.STRICT,
+    localModelId: String = "qwen3_5_2b",
+    remoteConfig: RemoteModelConfig? = null,
+    forceRemote: Boolean = false
+) {
+    private val orchestrator = AgentOrchestrator(
+        localPipeline = LocalInferencePipeline(...),
+        remotePipeline = RemoteInferencePipeline(...)
+    )
+    
+    suspend fun processInput(userInput: String, context: AgentContext): InferenceResult {
+        return when (configurator.getAgentMode()) {
+            AiAgentMode.LOCAL -> localPipeline.process(input)
+            AiAgentMode.REMOTE -> remotePipeline.process(input)
+            AiAgentMode.OFF -> Result.failure(AgentDisabledException())
+        }
+    }
+}
+```
+
+### 6.5 IM 远程控制集成
+
+飞书远程控制复用同一 `RemoteOrchestrator` 和 `RemoteInferencePipeline`：
+
+```
+飞书消息 → FeishuChannelHandler → RemoteCommandDispatcher
+    → LLM 解析意图（复用 RemoteOrchestrator，独立 System Prompt）
+    → CapabilityRegistry.dispatch()
+    → 结果 → FeishuChannelHandler.sendMessage/sendImage
+```
+
+---
+
+## 7. Agent 执行规约 (Execution Rules)
 
 - **JSON 解析**: 必须使用 `kotlinx.serialization.json`，严禁正则提取字段
 - **System Prompt**: 禁止硬编码在 `AgentOrchestrator` 内，需抽象为 `PromptBuilder` 策略接口
@@ -650,7 +867,7 @@ sealed class AgentCommand {
 
 ---
 
-## 7. 常见陷阱检查清单 (Checklist)
+## 8. 常见陷阱检查清单 (Checklist)
 
 - [ ] JSON 解析是否使用了正则？（必须用 kotlinx.serialization，正则无法处理嵌套/转义）
 - [ ] System Prompt 是否硬编码在类内？（需按场景插件化，违反 OCP）
@@ -668,7 +885,57 @@ sealed class AgentCommand {
 
 ---
 
-## 8. 架构演进路线图
+## 9. 验收标准
+
+| ID | 验收项 | 优先级 |
+|----|--------|--------|
+| AC-1 | 远程模式下，"磨皮 60 然后拍照" 能解析为两个 tool_calls 并依次执行 | P0 |
+| AC-2 | 远程模式下，"如果是后置就切前置再拍" 能正确执行条件判断 | P0 |
+| AC-3 | 本地模式下，所有现有功能保持 100% 兼容 | P0 |
+| AC-4 | L1 缓存命中率 > 60%（高频指令） | P1 |
+| AC-5 | 远程推理平均延迟 < 1.5s | P1 |
+| AC-6 | 支持对话式记忆（多轮上下文） | P2 |
+| AC-7 | DeepSeek 模型 tool_calls 成功率 > 95% | P0 |
+| AC-8 | 流式聊天首 token 延迟 < 500ms | P1 |
+
+---
+
+## 10. 远程推理任务拆分 [agent-task]
+
+### Phase 1: 基础设施 (RD) — 已完成
+- [x] `agent-task:remote-infra-001` 实现 `RemoteInferencePipeline`（标准 OpenAI 协议）
+- [x] `agent-task:remote-infra-002` 引入 :agent-core `OpenAiChatModel` 标准化
+- [x] `agent-task:remote-infra-003` 实现 `ToolCallCommandParser`（tool_calls → AgentCommand）
+- [x] `agent-task:remote-infra-004` 删除 `InferenceRouter`、`AdaptiveStrategySelector` 等冗余组件
+
+### Phase 2: L2 Batch 模式 (RD) — 已完成
+- [x] `agent-task:remote-l2-001` 实现 `RemoteOrchestrator.processBatch()`（tool_calls 解析）
+- [x] `agent-task:remote-l2-002` 设计 `RemotePromptBuilder`（ToolSpecification 格式）
+- [x] `agent-task:remote-l2-003` UI 层适配批量命令串行执行
+
+### Phase 3: L3 Plan 模式 (RD) — 已完成
+- [x] `agent-task:remote-l3-001` 实现 `ExecutionEngine` 执行引擎
+- [x] `agent-task:remote-l3-002` 更新 Plan 格式为标准 tool_calls（command 字段）
+- [x] `agent-task:remote-l3-003` 条件求值器 (`evaluateCondition`)
+
+### Phase 4: L4 流式 Chat (RD) — 已完成
+- [x] `agent-task:remote-l4-001` 实现流式聊天（StreamingChatResponseHandler）
+- [x] `agent-task:remote-l4-002` ChatMemory 历史管理（DataStoreChatMemoryStore）
+
+### Phase 5: DeepSeek 适配 (RD) — 已完成
+- [x] `agent-task:remote-ds-001` 禁用 thinking 模式
+- [x] `agent-task:remote-ds-002` strict 模式兼容（additionalProperties: false）
+- [x] `agent-task:remote-ds-003` content 回退解析（fallback tool_calls 提取）
+- [x] `agent-task:remote-ds-004` Prompt 移除 tool_calls JSON 示例
+
+### Phase 6: 集成与测试 (QA)
+- [ ] `agent-task:remote-qa-001` 端到端测试（多指令、条件、降级）
+- [ ] `agent-task:remote-qa-002` 性能基准（延迟、Token 消耗）
+- [ ] `agent-task:remote-qa-003` DeepSeek 工具调用成功率测试
+
+---
+
+## 11. 架构演进路线图
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -704,15 +971,16 @@ sealed class AgentCommand {
 
 ---
 
-## 附录：参考文档
+## 12. 附录：参考文档
 
 - [AGENTS.md](../../AGENTS.md) — 顶层治理规则
 - [FEATURES.md](../01-PRODUCT/FEATURES.md) — 功能交互细节
 - [COMMAND_REFERENCE.md](../04-AGENT-CAPABILITIES/COMMAND_REFERENCE.md) — 命令参考手册
-- [REMOTE_INFERENCE_ARCHITECTURE.md](../03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md) — 远程推理架构详细设计
+- [AI_OPTIMIZATION.md](../03-TECHNICAL-SPECS/AI_OPTIMIZATION.md) — AI 一键优化
+- [TAG_GENERATION.md](../03-TECHNICAL-SPECS/TAG_GENERATION.md) — TAG 生成
+- [MNN_LLM_OPERATIONS.md](../03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md) — MNN LLM 运维
+- [VOICE_STACK.md](../03-TECHNICAL-SPECS/VOICE_STACK.md) — 语音栈
 - [IM_REMOTE_CONTROL_TECH_SPEC.md](../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) — IM 远程控制技术规范
-- [KWS_MIGRATION_TECH_SPEC.md](../03-TECHNICAL-SPECS/KWS_MIGRATION_TECH_SPEC.md) — KWS 唤醒词迁移方案
-- [REMOTE_REACT_ARCHITECTURE_REVIEW.md](../03-TECHNICAL-SPECS/REMOTE_REACT_ARCHITECTURE_REVIEW.md) — ReAct 架构审查
 - `runtime-core/src/main/java/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）
 - `agent-core/src/main/java/com/mamba/` — 源码目录（Java 基础库：ChatModel、OpenAiChatModel、Tool、AiServices 等）
 - `app/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt` — Facade 桥接层

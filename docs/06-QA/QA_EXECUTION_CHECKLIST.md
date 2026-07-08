@@ -146,7 +146,7 @@
 | AdaptiveStrategySelector | 连续输入不同复杂度指令 | ✅ 根据指令特征自动选择 L1~L4 策略 | ☐ |
 | 上下文记忆 | 多轮对话中连续指令 | ✅ MemoryManager 正确维护上下文 | ☐ |
 
-> 详细架构设计见 `docs/03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md`
+> 详细架构设计见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`
 
 ---
 

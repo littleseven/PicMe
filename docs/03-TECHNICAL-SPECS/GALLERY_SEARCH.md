@@ -245,7 +245,7 @@ PicMe 相册支持用户用自然语言搜索本地照片，例如：
 ## 8. 相关文档
 
 - `docs/02-ARCHITECTURE/ADR/ADR-007-natural-language-photo-search.md` — 原始架构决策
-- `docs/03-TECHNICAL-SPECS/AUTO_TAG_GENERATION_SPEC.md` — TAG 生成管道细节
-- `docs/03-TECHNICAL-SPECS/TAG_DATABASE_SCHEMA.md` — 数据库表结构
-- `docs/03-TECHNICAL-SPECS/TAG_I18N_DESIGN.md` — TAG 国际化方案
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 生成管道细节
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — 数据库表结构
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 国际化方案
 - `app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md` — 相册模块实现约束

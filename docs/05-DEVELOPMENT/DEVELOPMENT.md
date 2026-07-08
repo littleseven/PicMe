@@ -41,7 +41,7 @@ Spec 文档更新（Consensus）
 - **[MUST]** 代码修改了 `beauty-engine/` 内部实现，必须同步修改 `beauty-engine/AGENTS.md`（或 PR 描述中说明原因）
 - **[MUST]** 代码修改了 `beauty-api/` 公开接口，必须同步修改 `beauty-engine/AGENTS.md` + `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` + 通知 App 层适配
 - **[MUST]** 新增功能必须在 `PRODUCT.md` / `FEATURES.md` 中有对应需求描述
-- **[MUST]** 修改相册搜索/TAG 生成相关代码，必须同步更新 `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` 或 `docs/03-TECHNICAL-SPECS/AUTO_TAG_GENERATION_SPEC.md`
+- **[MUST]** 修改相册搜索/TAG 生成相关代码，必须同步更新 `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` 或 `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md`
 - **[MUST]** 新增/修改 AI Capability 必须同步更新 `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md` 与 `COMMAND_REFERENCE.md`
 
 ---

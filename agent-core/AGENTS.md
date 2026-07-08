@@ -93,7 +93,7 @@ String response = chatModel.chat("Hello");
 
 - [`LANGCHAIN4J_MIGRATION.md`](./LANGCHAIN4J_MIGRATION.md) — 模块合并与改造历史
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构
-- `docs/03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md` — 远程推理架构
+- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构（含远程推理）
 
 ---
 

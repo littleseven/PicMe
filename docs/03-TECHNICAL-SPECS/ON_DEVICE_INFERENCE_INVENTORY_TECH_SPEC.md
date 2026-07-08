@@ -336,16 +336,16 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` — 大美丽美颜引擎
 - `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` — 人脸检测三引擎架构
-- `docs/03-TECHNICAL-SPECS/MNN_LLM_PERFORMANCE_OPTIMIZATION.md` — MNN-LLM 性能优化
-- `docs/03-TECHNICAL-SPECS/MNN_LLM_MULTI_INSTANCE_RESEARCH.md` — LLM 单例与加载点
-- `docs/03-TECHNICAL-SPECS/MNN_RESOURCE_MANAGER_DESIGN.md` — MNN 资源管理
+- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — MNN-LLM 性能优化
+- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — LLM 单例与加载点
+- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — MNN 资源管理
 - `docs/03-TECHNICAL-SPECS/MNN_MULTI_MODEL_LOAD_UNLOAD_CHECKLIST.md` — 多模型生命周期改造
-- `docs/03-TECHNICAL-SPECS/AUTO_TAG_GENERATION_SPEC.md` — TAG 生成 5-Pass 管道
-- `docs/03-TECHNICAL-SPECS/TAG_GENERATION_PERFORMANCE_ANALYSIS.md` — TAG 性能瓶颈分析
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 生成 5-Pass 管道
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 性能瓶颈分析
 - `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` — 相册自然语言搜索（含 MobileCLIP 语义召回）
-- `docs/03-TECHNICAL-SPECS/TAG_I18N_DESIGN.md` — TAG 国际化与 OPUS-MT 翻译回退
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 国际化与 OPUS-MT 翻译回退
 - `docs/06-QA/research/OPUS_MT_TRANSLATION_VALIDATION.md` — OPUS-MT 端侧推理验证记录
-- `docs/03-TECHNICAL-SPECS/KWS_MIGRATION_TECH_SPEC.md` — KWS 唤醒词迁移
+- `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` — KWS 唤醒词迁移
 - `docs/06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md` — LLM 开启前后性能对比（历史文件名，含 NCNN 基线）
 - `app/src/main/res/raw/llm_models.json` — 模型清单与下载配置
 - `app/src/main/java/com/mamba/picme/features/settings/AGENTS.md` — 模型中心与设置

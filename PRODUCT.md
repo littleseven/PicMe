@@ -443,11 +443,10 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md` | Chat UI 统一化技术规格 |
 | `docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md` | 帧同步美妆技术规格 |
 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 大美丽引擎技术规范 |
-| `docs/03-TECHNICAL-SPECS/AI_ONE_CLICK_OPTIMIZATION_PROPOSAL.md` | AI 一键图片优化方案 |
-| `docs/01-PRODUCT/PRODUCT_CRITIQUE_AND_RECOMMENDATIONS.md` | 产品诊断与改进建议 |
+| `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md` | AI 一键图片优化方案与参数标准 |
 | `domain/agent/AGENTS.md` | Agent Runtime 实现规范 |
 | `app/src/main/java/com/mamba/picme/features/chat/AGENTS.md` | Chat 二级页模块实现规范 |
-| `agents/README.md` | AI 协作开发角色定义 |
+| `AGENTS.md` | AI 协作开发角色定义 |
 
 ---
 

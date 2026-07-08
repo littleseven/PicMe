@@ -132,7 +132,7 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 | [CR] 规范审计 | `agents/review_agent.md` | 代码质量、架构合规、安全巡检 |
 | [QA] 质量专家 | `agents/qa_agent.md` | 测试策略、边界测试、性能验收 |
 
-> **快速参考**：`agents/README.md`
+> **快速参考**：`AGENTS.md`
 
 ---
 
@@ -144,11 +144,12 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 | 交互规范 | `docs/01-PRODUCT/FEATURES.md` | 交互与体验规则 |
 | 开发工作流 | `docs/05-DEVELOPMENT/DEVELOPMENT.md` | Spec-Code 双螺旋演进、CR 规范 |
 | 相册搜索 SSOT | `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` | 自然语言搜索完整链路 |
-| TAG 生成 | `docs/03-TECHNICAL-SPECS/AUTO_TAG_GENERATION_SPEC.md` | 5-Pass 标签生成管道 |
+| TAG 生成 | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` | 5-Pass 标签生成管道 |
 | 美颜引擎 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | Shader 架构、多 Pass 渲染 |
+| 人脸关键点 | `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md` | MediaPipe 468 / 火山 106 点参考与映射 |
 | 人脸检测架构 | `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 多引擎 ROI + Landmark 设计 |
 | 帧同步妆容 | `docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md` | 时序对齐、甩飞问题根治 |
-| 远程推理 | `docs/03-TECHNICAL-SPECS/REMOTE_INFERENCE_ARCHITECTURE.md` | 本地/远程协议分离、IntentCache |
+| 远程推理 | `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | 本地/远程协议分离、IntentCache |
 
 ---
 
@@ -194,7 +195,7 @@ cd ~/AndroidStudioProjects/langchain4android && claude
 | 2026-05-03 | 创建 `.kimi/AGENTS.md` 与 `.kimi/skills/` | kimi-cli 获得独立项目配置入口 |
 | 2026-05-03 | `.openclaw/skills/` 同步新增 skills 符号链接 | OpenClaw 可见完整 skills 列表 |
 | 2026-05-03 | 删除断裂的 `shader-debug` 符号链接 | 消除 OpenClaw 加载错误 |
-| 2026-05-03 | 精简 `agents/README.md` | 避免与根 `AGENTS.md` 重复 |
+| 2026-05-03 | 精简 `AGENTS.md`（已合并入根 `AGENTS.md`） | 避免与根 `AGENTS.md` 重复 |
 | 2026-05-03 | 修正 `scripts/kimi-cli.sh` APK 路径 | `picme-debug` → `app-debug`；项目路径 `PicMe` → `langchain4android` |
 | 2026-05-03 | 新增 `DEVELOPMENT.md` | 通用开发命令从 OpenClaw 独占迁移为全平台共用 |
 | 2026-05-03 | 新增 `AI_TOOLS.md` | 统一索引所有 AI 工具配置位置 |

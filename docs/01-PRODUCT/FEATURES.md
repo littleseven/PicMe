@@ -122,7 +122,7 @@
 
 > **定位**：P0 核心能力。通过一键触发，系统自动分析照片场景并应用推荐的美颜、滤镜、调节参数，让用户无需手动调参即可获得更好的照片效果。
 >
-> **技术方案**：默认走本地 Fast 路径（ML Kit 图像识别 + 人脸检测 + 本地预设规则）；复杂场景可经用户授权后走远程 Smart 路径（视觉大模型）。详见 `docs/03-TECHNICAL-SPECS/AI_ONE_CLICK_OPTIMIZATION_PROPOSAL.md`。
+> **技术方案**：默认走本地 Fast 路径（ML Kit 图像识别 + 人脸检测 + 本地预设规则）；复杂场景可经用户授权后走远程 Smart 路径（视觉大模型）。详见 `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md`。
 
 #### 入口
 

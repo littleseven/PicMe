@@ -326,7 +326,7 @@ wc -l AGENTS.md  # 如果超过 500 行，可能需要瘦身
 📦 移动: 滤镜算法实现 -> `beauty-engine/AGENTS.md Section 2`
 
 ### 移动到技术专项文档
-📦 移动: MediaPipe 468→106 映射详解 -> `docs/03-TECHNICAL-SPECS/MEDIAPIPE_468_TO_106_MAPPING_STRATEGY.md`
+📦 移动: MediaPipe 468→106 映射详解 -> `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md`
 📦 移动: EGL 离屏渲染架构 -> `docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md`
 
 ### 标记为废弃
