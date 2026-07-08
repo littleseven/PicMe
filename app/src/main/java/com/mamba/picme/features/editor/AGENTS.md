@@ -6,12 +6,12 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-> **版本**: 2.1  
+> **版本**: 2.2  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-03  
+> **最后更新**: 2026-07-08  
 > **维护者**: RD Agent
 
-**模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜（Phase 2）、标记（Phase 2）五大类编辑。
+**模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜、标记（Phase 2）五大类编辑。
 
 **主要维护者**: [RD] 全栈工程师
 
@@ -36,7 +36,7 @@
 - `crop: CropRecipe` — 裁剪比例 `AspectRatio`、旋转角度、水平翻转
 - `adjustments: AdjustmentRecipe` — 亮度、曝光、对比度、饱和度、色温、色调
 - `beauty: BeautySettings` — 复用相机模块美颜参数
-- `colorFilter: FilterType` / `styleFilter: StyleFilter` — 色调/风格滤镜（Phase 2）
+- `colorFilter: FilterType` / `styleFilter: StyleFilter` — 色调/风格滤镜
 - `markup: List<MarkupAction>` — 涂鸦/马赛克/文字路径（Phase 2）
 - `version: Int` — 配方版本，便于后续迁移
 
@@ -111,6 +111,7 @@ sealed class State {
 - `features/editor/components/EditorBottomBar.kt` — 底部 tab（Crop / Adjust / Beauty / Filter / Markup）
 - `features/editor/components/CropPanel.kt` — 裁剪比例与旋转/翻转
 - `features/editor/components/AdjustPanel.kt` — 光色参数滑块
+- `features/editor/components/FilterPanel.kt` — 色调滤镜与风格特效选择
 - `features/editor/components/MarkupPanel.kt` — Phase 2 标记工具占位
 
 **交互规范**:
@@ -161,10 +162,11 @@ sealed class State {
 - ✅ 撤销/重做 → `EditHistory` 支持完整状态回退与重做
 - ✅ 三语本地化 → 编辑器标签/错误提示全部提取到 strings.xml
 - ✅ 相册刷新 → 保存成功后刷新媒体库，新副本立即可见
+- ✅ 滤镜/风格特效 → 编辑页 FILTER tab 已接入 `FilterPanel`，选择后实时预览
 
 **技术决策记录**:
 - 使用 `EditRecipe` 配方模型统一描述所有编辑操作：便于撤销/重做、持久化、再次编辑与后续 AI 自然语言编辑
 - 独立 `PhotoEditorScreen` 替代 MediaPager 就地编辑：减少手势冲突，支持更复杂的底部面板
 - 预览与保存共用 `RecipeApplier`：保证「所见即所得」，避免预览与最终输出不一致
 - 配方持久化到 Room 而非 EXIF：JSON 更灵活，可跨版本迁移
-- 标记/滤镜功能 Phase 2 实现：当前保留 UI 占位与数据字段，避免一次性改动过大
+- 标记功能 Phase 2 实现：当前保留 UI 占位与数据字段，避免一次性改动过大
