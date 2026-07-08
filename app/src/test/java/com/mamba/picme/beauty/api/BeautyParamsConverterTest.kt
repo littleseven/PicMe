@@ -85,9 +85,9 @@ class BeautyParamsConverterTest {
 
     @Test
     fun `toBeautyParams exposure is mapped correctly`() {
-        val settings = BeautySettings(exposure = 5f, enabled = true)
+        val settings = BeautySettings(exposure = 50f, enabled = true)
         val params = settings.toBeautyParams()
-        assertEquals(5f, params.exposure, 0.001f)
+        assertEquals(1.0f, params.exposure, 0.001f) // 50/50 = 1.0 EV
     }
 
     @Test
