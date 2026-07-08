@@ -5,6 +5,8 @@
 **更新日期**: 2026-06-18  
 **决策**: RD  
 **依赖**: ADR-005（本地/远程推理协议分离）
+>
+> **实现详情与远程编排规格见**: [`docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md`](../../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md)（本 ADR 保留决策背景，具体远程指令与飞书链路以该技术规范为唯一事实来源）
 
 ---
 
@@ -564,5 +566,5 @@ graph TB
 
 - `ADR-005` — 本地/远程推理协议分离（本 ADR 的前置决策）
 - `agent-core/AGENTS.md` — Agent Core 模块规范（需同步更新）
-- `docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md` — 帧同步技术规范
-- `docs/03-TECHNICAL-SPECS/CAPABILITY_LIFECYCLE_DESIGN.md` — Capability 生命周期
+- `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` — 大美丽美颜引擎（含帧同步美妆系统）
+- `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md` — Capability 注册表与生命周期规范

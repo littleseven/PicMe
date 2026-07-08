@@ -630,13 +630,12 @@ scripts/check-doc-coordinate-annotation.sh # ✅ 通过
 ### 7.1 规范文档
 
 - [COORDINATE_SYSTEM.md](../../07-STANDARDS/COORDINATE_SYSTEM.md) - 坐标系规范详细说明
-- [CAMERA_PREVIEW_TECH_SPEC.md](../../03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md) - 相机预览技术规范
+- [BEAUTY_ENGINE_TECH_SPEC.md](../../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 大美丽引擎技术规范（含相机预览比例与坐标转换）
 - InsightFace 106 映射文档（已移除，InsightFace ONNX 路径已于 2026-05 删除）
 
 ### 7.2 技术文档
 
-- [BEAUTY_ENGINE_TECH_SPEC.md](../../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 大美丽引擎技术规范
-- [BEAUTY_ENGINE_FALLBACK.md](../../08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md) - 容灾降级说明
+- [BEAUTY_ENGINE_TECH_SPEC.md](../../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 大美丽引擎技术规范（含渲染链路、帧同步美妆与容灾降级恢复）
 
 ### 7.3 其他 ADR
 

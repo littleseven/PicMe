@@ -1,22 +1,19 @@
 # 大美丽：实时美颜完整指南
 
-> **版本**: 1.0  
-> **状态**: 生效中  
+> **版本**: 7.0  
+> **状态**: 生效中（大美丽 BIG_BEAUTY 单引擎）  
 > **最后更新**: 2026-07-06  
 > **维护者**: RD Agent  
-
-
-**版本**：7.0
-**状态**：实施中（大美丽 BIG_BEAUTY 单引擎）
-**最后更新**：2026-05-24（文档同步更新，修正引擎描述与包名）
-**技术路线**：自研 GPU 加速管线 + EGL 共享上下文 + SurfaceTexture 直通 + GPU 离屏渲染拍照（CPU Fallback 降级）
+> **技术路线**: 自研 GPU 加速管线 + EGL 共享上下文 + SurfaceTexture 直通 + GPU 离屏渲染拍照（CPU Fallback 降级）
 
 ---
 
 ## 文档边界与导航
 
-- 本文档聚焦 大美丽 主引擎：渲染链路、容灾回退、冷却恢复与观测指标。
-- 预览比例与坐标转换细节：见 `CAMERA_PREVIEW_TECH_SPEC.md`。
+- 本文档聚焦 大美丽 主引擎：渲染链路、容灾回退、冷却恢复与观测指标，同时涵盖相机预览比例策略、帧同步美妆系统与容灾降级恢复机制。
+- 预览比例与坐标转换细节：见「[9. 相机预览与比例策略](#9-相机预览与比例策略)」。
+- 帧同步美妆系统：见「[10. 帧同步美妆系统](#10-帧同步美妆系统)」。
+- 容灾降级与恢复：见「[11. 容灾降级与恢复](#11-容灾降级与恢复)」。
 - 产品交互与验收口径：见 `FEATURES.md`。
 - beauty-engine 模块实现规范：见 `beauty-engine/AGENTS.md`。
 
@@ -659,17 +656,1055 @@ QA 相关内容已提取到独立文档：`docs/06-QA/QA_EXECUTION_CHECKLIST.md`
 
 ---
 
-## 9. 相关文档与实现入口
+## 12. 相关文档与实现入口
 
 - `PRODUCT.md` — 产品需求规格说明书（大美丽 产品策略）
 - `FEATURES.md` — 功能交互规范（重点：`1.3.5` 大美丽 性能与验收）
 - `AGENTS.md` — AI Agent 操作规范
-- `CAMERA_PREVIEW_TECH_SPEC.md` — 相机预览与坐标系统规范
+- 「[9. 相机预览与比例策略](#9-相机预览与比例策略)」 — 相机预览与坐标系统规范
 - `BIG_BEAUTY_QA_EXECUTION_CHECKLIST.md` — 大美丽 QA 独立执行清单
 - `beauty-engine/src/main/java/com/mamba/picme/beauty/api/` — 对外稳定 API（`BeautyParams`、`BeautyPreviewProvider`、`BeautyPreviewCapability`、`BeautyPreviewEngine`）
 - `beauty-engine/src/main/java/com/mamba/picme/beauty/render/` — GL 渲染管线核心实现
 - `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` — 预览绑定、容灾回退与调试浮层
 - `app/src/main/java/com/mamba/picme/features/camera/CameraPreviewStrategies.kt` — 引擎策略路由
+
+---
+
+
+
+---
+
+## 9. 相机预览与比例策略
+
+**最后更新**：2026-04（按预览策略重构对齐）
+**状态**：生产稳定版（策略化预览链路：大美丽 Provider + PreviewView 兜底）
+
+---
+
+### 1. 核心解决方案
+
+#### 1.1 核心原则
+**采用策略化预览绑定（大美丽 Provider + PreviewView 兜底）**，并在 `PreviewView` 路径下使用 `ScaleType` 处理比例。
+
+> 说明：本指南聚焦预览层的比例与坐标问题；当前实现仅保留 `GlBeautyPreviewStrategy`（BIG_BEAUTY）单策略。GL 引擎的 `SurfaceView + Provider` 初始化、容灾回退与恢复链路详见本文档正文。
+
+#### 1.2 PreviewView 路径技术方案（兜底与通用预览）
+
+##### PreviewView 配置
+```kotlin
+val previewView = remember {
+    PreviewView(context).apply {
+        // [关键配置] 根据比例模式设置 ScaleType
+        scaleType = if (aspectRatio == AspectRatio.RATIO_FULL) {
+            PreviewView.ScaleType.FILL_CENTER  // FULL 模式：裁剪填充，铺满屏幕
+        } else {
+            PreviewView.ScaleType.FIT_CENTER   // 其他模式：保持比例，可能有黑边
+        }
+        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+    }
+}
+```
+
+##### 动态调整 ScaleType
+```kotlin
+LaunchedEffect(aspectRatio) {
+    previewView.scaleType = if (aspectRatio == AspectRatio.RATIO_FULL) {
+        PreviewView.ScaleType.FILL_CENTER
+    } else {
+        PreviewView.ScaleType.FIT_CENTER
+    }
+}
+```
+
+##### 拍照与预览比例同步（ViewPort + UseCaseGroup）
+```kotlin
+val screenWidth = context.resources.displayMetrics.widthPixels
+val screenHeight = context.resources.displayMetrics.heightPixels
+
+// 为 FULL 模式配置 ViewPort
+val viewPort = ViewPort.Builder(
+    Rational(screenWidth, screenHeight),
+    preview.targetRotation
+).build()
+
+val useCaseGroup = UseCaseGroup.Builder()
+    .addUseCase(preview)
+    .addUseCase(imageCapture)
+    .setViewPort(viewPort)
+    .build()
+
+cameraProvider.bindToLifecycle(
+    lifecycleOwner,
+    cameraSelector,
+    useCaseGroup
+)
+```
+
+##### 手动裁剪 Bitmap（必须）
+```kotlin
+// 在 ImageProcessor.onCaptureSuccess 中
+val cropRect = image.cropRect
+val originalBitmap = image.toBitmap()
+val croppedBitmap = if (cropRect.width() != originalBitmap.width ||
+                         cropRect.height() != originalBitmap.height) {
+    Bitmap.createBitmap(
+        originalBitmap,
+        cropRect.left,
+        cropRect.top,
+        cropRect.width(),
+        cropRect.height()
+    )
+} else {
+    originalBitmap
+}
+```
+
+---
+
+### 2. 技术原理
+
+#### 2.1 相机传感器物理特性
+
+##### 传感器方向
+```
+┌─────────────────────────────┐
+│   手机竖屏握持              │
+│                             │
+│    ┌───────────┐            │
+│    │ 传感器    │ ← 横向放置 │
+│    │ (864x480) │            │
+│    └───────────┘            │
+│                             │
+└─────────────────────────────┘
+```
+
+**关键事实**：
+- 相机传感器**永远横向放置**（width > height）
+- 输出的原始帧永远是**横向分辨率**
+- FULL 模式典型输出：**864 x 480**（宽高比 1.8:1）
+
+##### 不同模式的传感器输出
+
+| 模式 | 传感器输出 | 宽高比 | 说明 |
+|------|-----------|--------|------|
+| **4:3** | 640 x 480 | 1.33 (4:3) | 标准照片模式 |
+| **16:9** | 864 x 480 | 1.8 (≈16:9) | 宽屏模式 |
+| **FULL** | 864 x 480 | 1.8 | 传感器最大输出，需裁剪到屏幕比例 |
+
+#### 2.2 CameraX 的旋转机制
+
+##### 自动旋转流程
+
+```
+传感器输出 (864x480, 横向)
+         ↓
+   CameraX 自动旋转 270°
+         ↓
+  PreviewView 显示 (480x864, 竖向)
+```
+
+**旋转规则**：
+- 后置摄像头：顺时针旋转 **90°**
+- 前置摄像头：顺时针旋转 **270°**
+- 竖屏显示时：宽高交换（480 x 864）
+
+#### 2.3 PreviewView ScaleType 工作原理
+
+##### FIT_CENTER（保持比例）
+```
+┌──────────────────┐
+│   黑边 (上)      │
+├──────────────────┤
+│                  │
+│   预览画面       │
+│  (480 x 864)     │
+│                  │
+├──────────────────┤
+│   黑边 (下)      │
+└──────────────────┘
+```
+
+**适用场景**：4:3、16:9 模式
+**特点**：
+- 预览画面完整显示
+- 可能有黑边（letterbox）
+- 所见即所得
+
+##### FILL_CENTER（裁剪填充）
+```
+┌──────────────────┐
+│                  │← 裁剪掉顶部
+│ ╔══════════════╗ │
+│ ║  预览画面    ║ │
+│ ║ (铺满全屏)   ║ │
+│ ║              ║ │
+│ ╚══════════════╝ │
+│                  │← 裁剪掉底部
+└──────────────────┘
+```
+
+**适用场景**：FULL 模式
+**特点**：
+- 预览画面铺满全屏
+- 边缘会被裁剪
+- 需配合 ViewPort 确保拍照与预览一致
+
+---
+
+### 3. 坐标系统与人脸跟踪（重构对齐）
+
+#### 3.1 当前实现的转换模型
+
+当前实现不再依赖 `PreviewView.getImageTransform()`，而是使用统一函数：
+
+- `transformFaceCoordinateSimple(...)`（分析链路）
+- `transformFaceCoordinate(...)`（屏幕绘制链路）
+
+两者都遵循同一套四步法：
+
+1. **归一化**：按旋转后的宽高将人脸点位映射到 `0~1`
+2. **镜像补偿**：前置摄像头执行 `x = 1 - x`
+3. **旋转补偿**：根据 `rotationDegrees` 做方向修正
+4. **像素映射**：乘以 `previewWidth/previewHeight` 得到屏幕坐标
+
+#### 3.2 当前代码实现（简化版）
+
+```kotlin
+internal fun transformFaceCoordinateSimple(
+    faceX: Float,
+    faceY: Float,
+    imageProxyWidth: Int,
+    imageProxyHeight: Int,
+    previewWidth: Float,
+    previewHeight: Float,
+    rotationDegrees: Int,
+    lensFacing: Int
+): Offset {
+    val (rotatedWidth, rotatedHeight) = when (rotationDegrees) {
+        90, 270 -> Pair(imageProxyHeight, imageProxyWidth)
+        else -> Pair(imageProxyWidth, imageProxyHeight)
+    }
+
+    val normX = faceX / rotatedWidth
+    val normY = faceY / rotatedHeight
+    val mirroredX = if (lensFacing == CameraSelector.LENS_FACING_FRONT) 1f - normX else normX
+
+    val (adjustedX, adjustedY) = when (rotationDegrees) {
+        180 -> Pair(1f - mirroredX, 1f - normY)
+        else -> Pair(mirroredX, normY)
+    }
+
+    return Offset(adjustedX * previewWidth, adjustedY * previewHeight)
+}
+```
+
+#### 3.3 重构后注意事项
+
+- `rotationDegrees=90/270` 时先交换 `imageProxy` 的宽高再归一化。
+- 前置镜像与旋转补偿顺序不可颠倒。
+- 该链路服务于十字星绘制与 `FaceWarpParams`，两者必须共用同一转换逻辑。
+- 调试日志固定输出 `Step1~Step4`，用于回归比对坐标偏移。
+
+---
+
+### 4. 最佳实践
+
+#### 4.1 比例选择器实现
+```kotlin
+@Composable
+fun RatioSelector(
+    currentRatio: AspectRatio,
+    onRatioChange: (AspectRatio) -> Unit
+) {
+    val ratios = listOf(
+        AspectRatio.RATIO_4_3 to "4:3",
+        AspectRatio.RATIO_16_9 to "16:9",
+        AspectRatio.RATIO_FULL to "FULL"
+    )
+
+    Row {
+        ratios.forEach { (ratio, label) ->
+            Button(onClick = { onRatioChange(ratio) }) {
+                Text(label)
+            }
+        }
+    }
+}
+```
+
+#### 4.2 PreviewView 生命周期管理
+```kotlin
+DisposableEffect(previewView) {
+    onDispose {
+        previewView.releasePointerCapture()
+    }
+}
+```
+
+#### 4.3 性能优化
+- 使用 `ImplementationMode.COMPATIBLE` 确保兼容性
+- 避免频繁切换 `ScaleType`
+- 坐标转换缓存 `Matrix` 对象
+- 大美丽模式下使用 `Preview` UseCase，零拷贝直连 OES 纹理
+
+---
+
+### 5. 常见问题
+
+#### 问题 1：预览画面拉伸变形
+**原因**：使用了错误的 ScaleType
+**解决**：FULL 模式使用 `FILL_CENTER`，其他模式使用 `FIT_CENTER`
+
+#### 问题 2：拍照比例与预览不一致
+**原因**：未配置 ViewPort 或未手动裁剪 Bitmap
+**解决**：使用 `UseCaseGroup` + `ViewPort`，并在 `ImageProcessor` 中手动裁剪
+
+#### 问题 3：人脸跟踪十字星位置偏移
+**原因**：归一化宽高、前置镜像或旋转补偿顺序不一致
+**解决**：统一走 `transformFaceCoordinateSimple()` / `transformFaceCoordinate()` 四步法，并核对 `Step1~Step4` 日志
+
+#### 问题 4：FULL 模式黑边
+**原因**：传感器比例与屏幕比例不匹配
+**解决**：使用 `FILL_CENTER` + ViewPort 裁剪
+
+---
+
+---
+
+## 10. 帧同步美妆系统
+
+> **版本**: 1.0  
+> **状态**: 生效中  
+> **最后更新**: 2026-07-06  
+> **维护者**: RD Agent  
+
+
+**版本**：1.1
+**状态**：🔄 部分实现（核心组件 FrameSyncManager / MotionTracker / FrameSyncBridge 已落地；预测补偿算法与 hide 降级策略待收尾）
+> ⚠️ **审计备注（2026-06）**：`DetectionQueue` 和 `FaceDetectionWorker` 为**设计期概念**，从未实际落地（对应 .kt 文件不存在）。当前使用同步检测路径（CameraFrameAnalyzer 直接调用 faceDetector.detect()）。本文档 Section 3.2 及 10(代码变更清单) 中关于 DetectionQueue 的内容均为设计方案，非已落地代码。
+**依赖**：`BIG_BEAUTY_TECH_SPEC.md`（已落地）
+**最后更新**：2026-05-24
+
+---
+
+### 1. 架构目标
+
+将当前"异步松散耦合"的人脸检测-渲染链路，升级为"准同步帧匹配"架构：
+
+- **精确对齐**：渲染帧使用对应相机帧的人脸检测结果
+- **可预测**：检测缺失时，基于运动轨迹预测补偿
+- **可降级**：预测不可信时，隐藏妆容而非错误渲染
+- **零侵入**：`FaceMakeupPass` 等下游组件只消费同步后的数据，不感知同步逻辑
+
+---
+
+### 2. 系统架构
+
+#### 2.1 整体数据流
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CameraX 预览层                                  │
+│  ┌─────────────────┐                                                       │
+│  │ SurfaceTexture  │  updateTexImage() 时生成 FrameId                       │
+│  │   (帧源)        │                                                       │
+│  └────────┬────────┘                                                       │
+│           │                                                                  │
+│           ▼ FrameId + ImageProxy                                            │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐       │
+│  │  📋 DetectionQueue │────▶│ FaceDetector    │────▶│ DetectionResult │       │
+│  │  (设计概念，未落地) │     │ (MediaPipe/MNN) │     │ (106点+FrameId) │       │
+│  │   深度=2,超时丢帧 │     │                 │     │                 │       │
+│  │  > 注：未实现，当前 │     │                 │     │                 │       │
+│  │    使用同步检测路径 │     │                 │     │                 │       │
+│  └─────────────────┘     └─────────────────┘     └────────┬────────┘       │
+│                                                           │                  │
+│                                                           ▼                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │                      FrameSyncManager (单例)                            ││
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                   ││
+│  │  │ ResultStore  │  │ MatchEngine  │  │ Predictor    │                   ││
+│  │  │ (时序存储)   │  │ (帧ID匹配)   │  │ (运动预测)   │                   ││
+│  │  └──────────────┘  └──────────────┘  └──────────────┘                   ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+│                              │                                               │
+│                              ▼ FrameSyncResult                                │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │                         渲染线程 (GL Thread)                            ││
+│  │  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐   ││
+│  │  │ CameraPreview   │────▶│  BeautyRenderer │────▶│ FaceMakeupPass  │   ││
+│  │  │   Renderer      │     │                 │     │ (消费同步顶点)  │   ││
+│  │  └─────────────────┘     └─────────────────┘     └─────────────────┘   ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 2.2 关键设计决策
+
+| 决策 | 选择 | 理由 |
+|------|------|------|
+| FrameId 生成位置 | `SurfaceTexture.updateTexImage()` 时 | 与相机帧严格绑定，避免多线程竞争 |
+| 队列存储位置 | CPU 侧（非 GL 线程） | 避免阻塞渲染，检测线程直接写 |
+| 预测计算位置 | CPU 侧，`FrameSyncManager` | GPU 只做渲染，CPU 做轻量预测 |
+| 同步结果传递 | 拷贝到 `FaceMakeupPass` writeBuffer | 保持现有双缓冲机制，替换数据来源 |
+| 严格缺失阈值 | 3 帧（默认，可配置） | 60fps 下约 50ms，用户无感知 |
+
+---
+
+### 3. 核心组件设计
+
+#### 3.1 FrameId 体系
+
+```kotlin
+/**
+ * 全局帧标识符
+ * - 单调递增，从 1 开始
+ * - 与相机帧生命周期绑定
+ */
+@JvmInline
+value class FrameId(val value: Long) : Comparable<FrameId> {
+    companion object {
+        val INVALID = FrameId(0L)
+        private val counter = AtomicLong(0L)
+        fun next(): FrameId = FrameId(counter.incrementAndGet())
+    }
+    override fun compareTo(other: FrameId): Int = value.compareTo(other.value)
+}
+```
+
+**绑定点**：
+
+```kotlin
+// CameraPreviewRenderer 渲染循环
+surfaceTexture?.updateTexImage()
+val currentFrameId = FrameId.next()  // ← 帧ID在此生成
+
+// 1. 将帧ID与SurfaceTexture当前帧绑定
+frameSyncManager.bindFrameId(currentFrameId, surfaceTextureTimestamp)
+
+// 2. 查询该帧对应的人脸同步结果
+val syncResult = frameSyncManager.query(currentFrameId)
+
+// 3. 将同步结果传递给 BeautyRenderer
+beautyRenderer.applyFrameSyncResult(syncResult)
+```
+
+#### 3.2 DetectionQueue（检测输入队列）
+
+> **⚠️ 设计概念（未落地）**：以下 DetectionQueue 为设计方案，当前代码库中 `DetectionQueue.kt` 不存在。同步检测路径仍在 CameraFrameAnalyzer 中直接调用 `faceDetector.detect()`。保留本节供未来异步检测改造参考。
+
+```kotlin
+/**
+ * 带帧ID的检测任务队列
+ * - 深度限制：2（防止检测线程积压）
+ * - 超时策略：任务入队后 > 200ms 未消费则丢弃
+ */
+class DetectionQueue(
+    private val maxDepth: Int = 2,
+    private val timeoutMs: Long = 200L
+) {
+    data class Task(
+        val frameId: FrameId,
+        val bitmap: Bitmap,
+        val rotationDegrees: Int,
+        val lensFacing: Int,
+        val enqueueTimeMs: Long
+    )
+
+    private val queue = ArrayBlockingQueue<Task>(maxDepth)
+
+    fun offer(task: Task): Boolean {
+        // 队列满时丢弃最旧的任务
+        if (queue.remainingCapacity() == 0) {
+            queue.poll()
+        }
+        return queue.offer(task)
+    }
+
+    fun poll(): Task? {
+        val task = queue.poll() ?: return null
+        // 超时丢弃
+        return if (SystemClock.elapsedRealtime() - task.enqueueTimeMs > timeoutMs) {
+            task.bitmap.recycle()
+            null
+        } else {
+            task
+        }
+    }
+}
+```
+
+**检测线程改造**：
+
+> **⚠️ 设计概念（未落地）**：以下检测线程改造为设计方案，当前仍使用同步检测路径。
+
+```kotlin
+// FaceDetectorManager.detect() 改为消费队列
+detectionThread = Thread {
+    while (isRunning) {
+        val task = detectionQueue.poll() ?: continue
+        
+        // 执行检测，结果携带 FrameId
+        val result = detectInternal(task.bitmap, task.rotationDegrees, task.lensFacing)
+        
+        result?.let {
+            frameSyncManager.storeResult(
+                FrameSyncResult(
+                    frameId = task.frameId,
+                    landmarks106 = it.landmarks,
+                    detectionSource = it.source,
+                    detectionLatencyMs = SystemClock.elapsedRealtime() - task.enqueueTimeMs
+                )
+            )
+        }
+        
+        task.bitmap.recycle()
+    }
+}.apply { name = "FaceDetectionWorker" }
+```
+
+#### 3.3 FrameSyncManager（时序对齐核心）
+
+```kotlin
+/**
+ * 帧同步管理器
+ * - 线程安全：ResultStore 使用 ConcurrentHashMap + 环形缓冲区
+ * - 轻量级：查询操作 O(1)，无锁读（使用 volatile + copy-on-write）
+ */
+class FrameSyncManager(
+    private val config: FrameSyncConfig = FrameSyncConfig.DEFAULT
+) {
+    data class FrameSyncConfig(
+        val maxStoredResults: Int = 10,        // 保留最近 10 个检测结果
+        val missingThresholdFrames: Int = 3,    // 缺失 3 帧后隐藏妆容
+        val predictionMaxRatio: Float = 1.5f,   // 预测位移不超过上一帧 150%
+        val syncMode: SyncMode = SyncMode.STRICT
+    ) {
+        companion object {
+            val DEFAULT = FrameSyncConfig()
+        }
+    }
+
+    enum class SyncMode {
+        STRICT,      // 精确匹配 + 缺失隐藏
+        SMOOTH,      // 历史回退 + 预测补偿
+        OFF          // 关闭帧同步（保持当前行为）
+    }
+
+    data class FrameSyncResult(
+        val frameId: FrameId = FrameId.INVALID,
+        val landmarks106: FloatArray? = null,
+        val detectionSource: FaceDetectionSource = FaceDetectionSource.NONE,
+        val syncStatus: SyncStatus = SyncStatus.MISSING,
+        val detectionLatencyMs: Long = 0L,
+        val predictedOffsetPx: Float = 0f
+    )
+
+    enum class SyncStatus {
+        EXACT_MATCH,      // 精确匹配
+        HISTORICAL_FALLBACK, // 历史回退（使用最近旧结果）
+        PREDICTED,        // 预测补偿
+        MISSING           // 缺失（无可用结果）
+    }
+
+    // ─── 内部存储 ───
+    private val resultStore = ConcurrentHashMap<FrameId, DetectionResult>()
+    private val frameHistory = ConcurrentLinkedQueue<FrameId>()
+    private val motionTracker = MotionTracker()
+
+    // ─── 公共 API ───
+
+    /**
+     * 绑定当前渲染帧的 FrameId（由渲染线程调用）
+     */
+    fun bindFrameId(frameId: FrameId, timestampNs: Long) {
+        // 记录帧时间戳，用于计算检测延迟
+    }
+
+    /**
+     * 存储检测结果（由检测线程调用）
+     */
+    fun storeResult(result: DetectionResult) {
+        resultStore[result.frameId] = result
+        frameHistory.offer(result.frameId)
+        motionTracker.update(result.frameId, result.landmarks106)
+        trimOldResults()
+    }
+
+    /**
+     * 查询帧同步结果（由渲染线程调用，每帧一次）
+     */
+    fun query(currentFrameId: FrameId): FrameSyncResult {
+        if (config.syncMode == SyncMode.OFF) {
+            return FrameSyncResult(syncStatus = SyncStatus.MISSING)
+        }
+
+        // 1. 精确匹配
+        resultStore[currentFrameId]?.let {
+            return FrameSyncResult(
+                frameId = currentFrameId,
+                landmarks106 = it.landmarks106,
+                detectionSource = it.detectionSource,
+                syncStatus = SyncStatus.EXACT_MATCH,
+                detectionLatencyMs = it.detectionLatencyMs
+            )
+        }
+
+        // 2. 查找最近历史结果
+        val historicalResult = findNearestHistoricalResult(currentFrameId)
+            ?: return FrameSyncResult(syncStatus = SyncStatus.MISSING)
+
+        val frameDiff = currentFrameId.value - historicalResult.frameId.value
+
+        // 3. 严格模式：超过阈值直接隐藏
+        if (config.syncMode == SyncMode.STRICT && frameDiff > config.missingThresholdFrames) {
+            return FrameSyncResult(syncStatus = SyncStatus.MISSING)
+        }
+
+        // 4. 平滑模式：预测补偿
+        if (config.syncMode == SyncMode.SMOOTH) {
+            val predicted = motionTracker.predict(
+                fromFrameId = historicalResult.frameId,
+                toFrameId = currentFrameId,
+                maxRatio = config.predictionMaxRatio
+            )
+            return FrameSyncResult(
+                frameId = historicalResult.frameId,
+                landmarks106 = predicted,
+                detectionSource = historicalResult.detectionSource,
+                syncStatus = SyncStatus.PREDICTED,
+                detectionLatencyMs = historicalResult.detectionLatencyMs,
+                predictedOffsetPx = calculateOffset(predicted, historicalResult.landmarks106)
+            )
+        }
+
+        // 5. 严格模式且未超阈值：使用历史结果（无预测）
+        return FrameSyncResult(
+            frameId = historicalResult.frameId,
+            landmarks106 = historicalResult.landmarks106,
+            detectionSource = historicalResult.detectionSource,
+            syncStatus = SyncStatus.HISTORICAL_FALLBACK,
+            detectionLatencyMs = historicalResult.detectionLatencyMs
+        )
+    }
+
+    private fun findNearestHistoricalResult(currentFrameId: FrameId): DetectionResult? {
+        // 从 currentFrameId 向前查找最近的有结果的帧
+        return frameHistory.asReversed()
+            .firstOrNull { it <= currentFrameId && resultStore.containsKey(it) }
+            ?.let { resultStore[it] }
+    }
+
+    private fun trimOldResults() {
+        while (frameHistory.size > config.maxStoredResults) {
+            val oldId = frameHistory.poll() ?: break
+            resultStore.remove(oldId)
+        }
+    }
+}
+```
+
+#### 3.4 MotionTracker（运动预测）
+
+```kotlin
+/**
+ * 轻量级运动跟踪器
+ * 基于速度外推的预测算法（Phase 1），后续可替换为 Kalman Filter
+ */
+class MotionTracker {
+    data class FrameState(
+        val frameId: FrameId,
+        val landmarks106: FloatArray,
+        val timestampMs: Long
+    )
+
+    private val history = ArrayDeque<FrameState>(3)  // 保留最近 3 帧
+
+    fun update(frameId: FrameId, landmarks106: FloatArray) {
+        history.addLast(FrameState(frameId, landmarks106.clone(), SystemClock.elapsedRealtime()))
+        if (history.size > 3) history.removeFirst()
+    }
+
+    /**
+     * 预测目标帧的人脸关键点位置
+     * @return 预测后的 FloatArray(212)，如果无法预测则返回历史结果
+     */
+    fun predict(fromFrameId: FrameId, toFrameId: FrameId, maxRatio: Float): FloatArray {
+        if (history.size < 2) {
+            return history.lastOrNull()?.landmarks106 ?: FloatArray(212)
+        }
+
+        val latest = history.last()
+        val previous = history[history.size - 2]
+
+        // 计算帧间速度：velocity = (latest - previous) / (latestFrameId - previousFrameId)
+        val frameDiff = (latest.frameId.value - previous.frameId.value).coerceAtLeast(1L)
+        val targetDiff = (toFrameId.value - fromFrameId.value).coerceAtLeast(0L)
+
+        val predicted = FloatArray(latest.landmarks106.size)
+        for (i in latest.landmarks106.indices) {
+            val velocity = (latest.landmarks106[i] - previous.landmarks106[i]) / frameDiff
+            val rawPredicted = latest.landmarks106[i] + velocity * targetDiff
+
+            // 约束：预测位移不超过上一帧位移的 maxRatio 倍
+            val actualDiff = rawPredicted - latest.landmarks106[i]
+            val maxDiff = kotlin.math.abs(velocity * frameDiff * maxRatio)
+            val clampedDiff = actualDiff.coerceIn(-maxDiff, maxDiff)
+
+            predicted[i] = latest.landmarks106[i] + clampedDiff
+        }
+
+        return predicted
+    }
+}
+```
+
+---
+
+### 4. 渲染管线改造
+
+#### 4.1 CameraPreviewRenderer 改造点
+
+```kotlin
+// 新增成员
+private val frameSyncManager = FrameSyncManager.getInstance()
+private var currentFrameId: FrameId = FrameId.INVALID
+
+// 渲染循环改造
+while (isRendering && !Thread.interrupted()) {
+    if (!frameAvailable) { /* ... */ }
+
+    surfaceTexture?.updateTexImage()
+    frameAvailable = false
+
+    // ─── 帧同步核心 ───
+    currentFrameId = FrameId.next()
+    val syncResult = frameSyncManager.query(currentFrameId)
+    applySyncResultToRenderer(syncResult)
+    // ────────────────
+
+    beautyRenderer.onRender()
+    // ...
+}
+
+private fun applySyncResultToRenderer(result: FrameSyncManager.FrameSyncResult) {
+    when (result.syncStatus) {
+        FrameSyncManager.SyncStatus.EXACT_MATCH,
+        FrameSyncManager.SyncStatus.HISTORICAL_FALLBACK,
+        FrameSyncManager.SyncStatus.PREDICTED -> {
+            result.landmarks106?.let {
+                // 直接更新 FaceMakeupPass 的 writeBuffer
+                // 替换原有的 updateFacePoints106 路径
+                beautyRenderer.updateSyncedFacePoints106(it)
+            }
+            beautyRenderer.setHasFace(true)
+        }
+        FrameSyncManager.SyncStatus.MISSING -> {
+            beautyRenderer.setHasFace(false)
+        }
+    }
+
+    // 调试指标透传
+    latestPerfStats = latestPerfStats.copy(
+        detectionLatencyMs = result.detectionLatencyMs,
+        syncStatus = result.syncStatus.name,
+        predictedOffsetPx = result.predictedOffsetPx
+    )
+}
+```
+
+#### 4.2 BeautyRenderer 新增接口
+
+```kotlin
+class BeautyRenderer(private val context: Context) : GLRenderer() {
+    // 新增：接收帧同步后的 106 点
+    fun updateSyncedFacePoints106(landmarks106: FloatArray) {
+        // 直接透传给 FaceMakeupPass，跳过旧的插值路径
+        faceMakeupPass.updateFaceLandmarksSynced(landmarks106)
+    }
+
+    fun setHasFace(hasFace: Boolean) {
+        this.hasFace = if (hasFace) 1f else 0f
+    }
+}
+```
+
+#### 4.3 FaceMakeupPass 改造
+
+```kotlin
+class FaceMakeupPass(private val context: Context) {
+    // 新增：帧同步入口（替换旧的双缓冲插值路径）
+    fun updateFaceLandmarksSynced(landmarks106: FloatArray) {
+        synchronized(bufferLock) {
+            // 直接写入 writeBuffer，不再做时间插值
+            // 帧同步已由 FrameSyncManager 完成
+            writeBuffer.clear()
+            writeBuffer.put(landmarks106)
+            writeBuffer.flip()
+            hasNewLandmarks = true
+        }
+    }
+
+    // 保留旧接口用于降级模式
+    fun updateFaceLandmarks(landmarks106: FloatArray) { /* ... */ }
+}
+```
+
+---
+
+### 5. 拍照与录制链路
+
+#### 5.1 拍照后处理（PhotoProcessorImpl）
+
+拍照为单帧场景，帧同步退化为"有无人脸判断"：
+
+```kotlin
+fun processPhoto(imageProxy: ImageProxy): Bitmap {
+    val bitmap = imageProxy.toBitmap()
+    val frameId = FrameId.next()
+
+    // 同步检测（拍照场景允许阻塞）
+    val detectionResult = faceDetector.detectPhoto(bitmap, lensFacing)
+
+    return if (detectionResult != null) {
+        // 有人脸：正常渲染妆容
+        frameSyncManager.storeResult(
+            DetectionResult(frameId, detectionResult.landmarks, detectionResult.source)
+        )
+        gpuRenderer.renderWithSync(frameId)
+    } else {
+        // 无人脸：跳过妆容 Pass
+        gpuRenderer.renderWithoutMakeup(bitmap)
+    }
+}
+```
+
+#### 5.2 视频录制
+
+视频录制复用预览同一套渲染管线，`CameraPreviewRenderer` 的帧同步逻辑自动覆盖录制输出。
+
+**关键约束**：录制帧率固定 30fps，渲染到 `recordingWindowSurface` 时必须与预览帧使用相同的 `FrameSyncResult`。
+
+---
+
+### 6. 性能指标与监控
+
+#### 6.1 新增性能指标
+
+```kotlin
+data class BeautyPerfStats(
+    val fps: Float = 0f,
+    val processingMs: Int = 0,
+    val delayMs: Int = 0,
+    val cpuUsage: Float = 0f,
+    val nullFrames: Int = 0,
+    val errorCategory: String = "",
+    val errorReason: String = "",
+    // ─── 帧同步新增 ───
+    val detectionLatencyMs: Long = 0L,      // 检测滞后时间
+    val syncStatus: String = "",            // 同步状态
+    val predictedOffsetPx: Float = 0f       // 预测补偿像素量
+)
+```
+
+#### 6.2 调试浮层展示
+
+```
+┌─────────────────────────────┐
+│ FPS: 58.3  |  GPU: 4.2ms   │
+│ Latency: 45ms | Sync: PRED  │  ← 新增
+│ Offset: 3.2px | Face: ✓     │  ← 新增
+└─────────────────────────────┘
+```
+
+#### 6.3 日志字段
+
+```
+[FrameSync] frameId=1024, status=EXACT_MATCH, latency=32ms, source=MEDIAPIPE
+[FrameSync] frameId=1025, status=PREDICTED, latency=48ms, offset=5.1px, framesSinceDetection=2
+[FrameSync] frameId=1026, status=MISSING, hidden=true, framesSinceDetection=4
+```
+
+---
+
+### 7. 线程安全模型
+
+| 组件 | 所属线程 | 线程安全策略 |
+|------|----------|-------------|
+| `FrameId.next()` | 渲染线程 | AtomicLong，无锁 |
+| `FrameSyncManager.bindFrameId()` | 渲染线程 | 无需同步 |
+| `FrameSyncManager.storeResult()` | 检测线程 | ConcurrentHashMap.put |
+| `FrameSyncManager.query()` | 渲染线程 | volatile + copy-on-write |
+| `MotionTracker.update()` | 检测线程 | synchronized (history) |
+| `MotionTracker.predict()` | 渲染线程 | synchronized (history) |
+
+**关键保证**：
+- `query()` 与 `storeResult()` 可并发执行，无需互斥
+- `MotionTracker` 的 `update` 与 `predict` 需互斥（synchronized）
+- 渲染线程每帧只读，检测线程只写，无死锁风险
+
+---
+
+### 8. 风险与降级策略
+
+#### 8.1 风险评估
+
+| 风险 | 概率 | 影响 | 缓解 |
+|------|------|------|------|
+| 检测队列积压 | 中 | 检测延迟增加 | 队列深度限制 + 超时丢弃 |
+| 预测算法不稳定 | 低 | 妆容抖动 | 位移约束 + 可关闭预测 |
+| 内存泄漏（Bitmap） | 低 | OOM | DetectionQueue 超时自动 recycle |
+| 低端机性能 | 中 | 帧率下降 | 支持关闭帧同步（SyncMode.OFF） |
+
+#### 8.2 降级路径
+
+```
+FrameSyncManager 初始化失败
+    └── 降级为 SyncMode.OFF
+        └── 恢复当前双缓冲插值行为
+
+检测线程崩溃
+    └── FrameSyncManager 接收不到新结果
+        └── query() 持续返回 MISSING
+            └── BeautyRenderer 设置 hasFace=false
+                └── 妆容隐藏，其他美颜正常
+
+预测结果超出约束
+    └── clamp 到最大允许位移
+        └── 视觉上表现为"妆容慢半拍"，但不跳变
+```
+
+---
+
+### 9. 实现顺序（建议）
+
+#### Step 1：FrameId 体系（1 天）
+- 定义 `FrameId` value class
+- 在 `CameraPreviewRenderer` 中生成并传递
+
+#### Step 2：FrameSyncManager 骨架（2 天）
+- 实现 `ResultStore` + `MatchEngine`
+- 实现 `query()` 的精确匹配 + 历史回退 + 缺失隐藏
+- 单元测试覆盖
+
+#### Step 3：检测线程改造（2 天）
+- `DetectionQueue` 实现
+- `FaceDetectorManager` 改为消费队列
+- 检测结果携带 FrameId
+
+#### Step 4：渲染管线对接（1 天）
+- `CameraPreviewRenderer` 调用 `query()`
+- `BeautyRenderer` 新增 `updateSyncedFacePoints106()`
+- `FaceMakeupPass` 新增 `updateFaceLandmarksSynced()`
+
+#### Step 5：预测补偿（2 天）
+- `MotionTracker` 实现速度外推
+- 位移约束 + 参数调优
+
+#### Step 6：调试与验收（2 天）
+- 调试浮层指标接入
+- 多机型真机测试
+- A/B 对比（开启/关闭帧同步）
+
+---
+
+### 10. 代码变更清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `beauty-engine/.../FrameId.kt` | 新增 | 全局帧 ID |
+| `beauty-engine/.../FrameSyncManager.kt` | 新增 | 时序对齐核心 |
+| `beauty-engine/.../MotionTracker.kt` | 新增 | 运动预测 |
+| `beauty-engine/.../DetectionQueue.kt` | 新增（⏳ 设计中，未落地） | 检测任务队列 |
+| `CameraPreviewRenderer.kt` | 修改 | 集成 FrameSyncManager |
+| `BeautyRenderer.kt` | 修改 | 新增同步接口 |
+| `FaceMakeupPass.kt` | 修改 | 新增同步入口 |
+| `FaceDetectorManager.kt` | 修改（⏳ 设计中，未落地） | 改为消费队列 |
+| `BeautyPerfStats.kt` | 修改 | 新增帧同步指标 |
+| `GlBeautyPreviewProvider.kt` | 修改 | 透传帧同步配置 |
+
+---
+
+---
+
+## 11. 容灾降级与恢复
+
+> **定位**：跨模块容灾兜底的单一事实来源（SSOT）。
+> 
+> 本节统一说明 `beauty-engine`（大美丽）初始化失败或运行异常时的回退策略、状态记录与恢复机制。
+
+**最后更新**：2026-05-01（同步多 Pass 渲染现状、PreviewView 容灾路径与可观测性说明）
+
+---
+
+### 1. 引擎策略概览
+
+PicMe 当前引擎策略如下：
+
+| 引擎 | 状态 | 职责 | 实现类 | 所在模块 |
+|------|------|------|--------|----------|
+| **大美丽 (`BIG_BEAUTY`)** | ✅ 唯一引擎 | 自研 OpenGL ES + EGL 管线；当前基础美颜走主 Shader，磨皮/美白/几何美型/妆容按需走多 Pass GPU 链路 | `GlBeautyPreviewProvider` | `:beauty-engine` |
+
+> **重要说明**：当前项目为单引擎架构。大美丽初始化失败后，系统将使用 `PreviewView` 进行无美颜预览，并通过冷却窗口机制在下次启动时自动重试。
+
+---
+
+### 2. 故障回退流程
+
+#### 2.1 初始化阶段回退（大美丽 warm-up 失败）
+
+在 `:app` 模块的相机预览链路（`CameraPreviewStrategies.kt`）中，按以下流程处理初始化失败：
+
+1. 相机绑定时触发大美丽 warm-up（`GlBeautyPreviewProvider.initialize()`）。
+2. 若 `initialize()` 抛出异常（如 GLES 不支持、Shader 编译失败、EGL 上下文创建失败）：
+   - 调用 `onGlWarmUpFallback(reason)` 收敛回退逻辑；
+   - 调用 `BeautyEngineRuntimeState.markGlEngineFallback(reason)` 记录回退原因与冷却时间；
+   - 切换至 `useProviderRenderView = false`，使用 CameraX 原生 `PreviewView` 继续预览；
+   - 仅持久化 `gl_engine_recovery_available_at_ms` 冷却窗口，不再写入任何已删除的旧兜底引擎状态；
+   - 输出 `PicMe:Camera` 级别日志，确保问题可追踪。
+3. 若超过 `PROVIDER_VIEW_BIND_TIMEOUT_MS` 超时仍未绑定成功，同样触发上述回退流程。
+
+```kotlin
+// CameraPreviewStrategies.kt（示意，非完整代码）
+private fun onGlWarmUpFallback(reason: String) {
+    BeautyEngineRuntimeState.markGlEngineFallback(reason)
+    // 切换到 PreviewView
+    _uiState.update { state -> state.copy(useProviderRenderView = false) }
+    Logger.w("PicMe:Camera", "大美丽 warm-up failed: $reason, fallback to PreviewView")
+}
+```
+
+#### 2.2 运行时异常回退
+
+- `beauty-engine` 内部运行异常（如渲染线程崩溃、FBO 失效、妆容 Pass 渲染失败）会直接抛出。
+- `BeautyRenderer` 会同步输出 `PicMe:BeautyRenderer` 分类日志，例如 `shader_compile`、`fbo_pipeline`、`texture_input`、`face_makeup`、`style_effect`。
+- `CameraPreviewRenderer` 会把最近一次分类与原因聚合进 `BeautyPerfStats.errorCategory/errorReason`，供调试浮层直接展示。
+- `:app` 层在接收到异常后，通过 `BeautyEngineRuntimeState` 标记状态，并在下一次页面重建时回落至 `PreviewView`。
+- 详细的运行时冷却与重试机制，请参阅 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`。
+
+---
+
+### 3. 冷却恢复机制
+
+`BeautyEngineRuntimeState` 是 `:app` 模块中的单例对象，负责记录并消费回退原因：
+
+- **`markGlEngineFallback(reason: String)`**：记录回退原因，并写入冷却时间戳（`gl_engine_recovery_available_at_ms`）。
+- **`consumeGlEngineFallbackReason(): String?`**：消费并清空回退原因，供 UI 层展示一次性提示（如 Toast / Snackbar）。
+- **冷却到期后**：自动触发 `triggerManualGlEngineRecovery()`，下次相机启动时重新尝试大美丽初始化。
+
+**设计意图**：
+- 回退原因只会被消费一次，避免重复弹窗。
+- UI 层在适当时机（如相机页面 `onResume`）查询并展示降级提示文案，文案必须提取到 `strings.xml` 以支持 I18N。
+
+---
+
+### 4. 依赖方向约束
+
+- `:beauty-engine` 模块**不依赖** `:app` 模块，也不感知外部策略的存在。
+- `:beauty-engine` 仅在初始化失败时抛出异常；兜底决策完全由 `:app` 的相机预览策略层负责。
+- 禁止 `:beauty-engine` 的 `render/` 内部实现类被 `:app` 直接引用；`:app` 只能通过 `api/BeautyPreviewProvider` 访问能力。
+
+---
 
 ---
 
@@ -824,7 +1859,7 @@ verts[i * 2 + 1] += eyeAxisY * axisOffset * str * slimRadius
 
 ---
 
-## 10. 总结
+## 13. 总结
 
 大美丽的核心是**构建一个高性能、可观测、可降级的 GPU 加速图像流处理管道**：
 

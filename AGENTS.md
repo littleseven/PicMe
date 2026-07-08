@@ -364,13 +364,19 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **AI 协作角色** | `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`app/src/.../features/camera/` 等） |
 | **技术专项** | `docs/03-TECHNICAL-SPECS/*.md` |
-| **本地开发环境** | `docs/05-DEVELOPMENT/LOCAL_ENVIRONMENT.md` |
+| **端侧推理全景** | `docs/03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`（含优化评估与多模型生命周期改造清单） |
 | **IM 远程控制技术规格** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md` |
 | **AI 一键优化** | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md` |
 | **TAG 生成** | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` |
 | **MNN LLM 运维** | `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` |
-| **语音栈** | `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` |
+| **语音栈** | `docs/03-TECHNICAL-SPECS/VOICE_STACK.md`（含 ASR Language Model 说明） |
+| **大美丽美颜引擎** | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（含相机预览比例、帧同步美妆、容灾降级） |
 | **人脸关键点** | `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md` |
+| **能力注册与实现** | `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`（含实现指南与生命周期规范） |
+| **开发规范** | `docs/05-DEVELOPMENT/DEVELOPMENT.md`（含代码审查与任务标记规范） |
+| **本地开发环境** | `docs/05-DEVELOPMENT/LOCAL_ENVIRONMENT.md` |
+| **QA 验收** | `docs/06-QA/QA_EXECUTION_CHECKLIST.md`（含自动化测试与核心功能测试指引） |
+| **性能基线** | `docs/06-QA/PERFORMANCE_BASELINE_REPORT.md` |
 | **坐标系规范** | `docs/07-STANDARDS/COORDINATE_SYSTEM.md` |
 
 > **架构说明（2026-06-26）**：

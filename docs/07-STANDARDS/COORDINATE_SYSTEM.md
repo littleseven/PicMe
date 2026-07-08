@@ -393,8 +393,7 @@ grep -r "leftEye\|rightEye" app/src/ --include="*.kt" | grep -v "imageLeft\|imag
 
 **文件列表**：
 - InsightFace 106 映射文档（已移除，2026-05）
-- `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`
-- `docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md`
+- `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（含相机预览比例与坐标转换、人脸关键点使用）
 - `.qoder/skills/av-gl-expert/SKILL.md`
 
 **修改示例**：
@@ -696,8 +695,7 @@ exit 0
 
 ### 内部文档
 - InsightFace 106 映射文档（已移除，2026-05；坐标系规范不受影响）
-- [CAMERA_PREVIEW_TECH_SPEC.md](../03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md) - 坐标转换章节
-- [BEAUTY_ENGINE_TECH_SPEC.md](../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 人脸关键点使用
+- [BEAUTY_ENGINE_TECH_SPEC.md](../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 相机预览比例、坐标转换与人脸关键点使用
 
 ### 外部资源
 - [OpenCV Coordinate System](https://docs.opencv.org/master/d2/d44/tutorial_py_image_basic_ops.html)
