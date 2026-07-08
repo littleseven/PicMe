@@ -61,7 +61,8 @@ fun BeautySettings.toBeautyParams(): BeautyParams {
         smoothing = (smoothing / 100f).coerceIn(0f, 1f),
         whitening = (whitening / 100f).coerceIn(0f, 1f),
         bigEyes = (bigEyes / 100f).coerceIn(0f, 1f),
-        slimFace = (slimFace / 50f * 1.35f).coerceIn(-1f, 1f),
+        // UI 层面 slimFace 正值表示瘦脸；引擎层面负值表示瘦脸，因此转换时取反
+        slimFace = -(slimFace / 50f * 1.35f).coerceIn(-1f, 1f),
         lipColor = (lipColor / 100f).coerceIn(0f, 1f),
         lipColorIndex = lipColorIndex.coerceIn(0, 11),
         blush = (blush / 100f).coerceIn(0f, 1f),

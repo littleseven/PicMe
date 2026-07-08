@@ -7,25 +7,32 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mamba.picme.R
 import com.mamba.picme.beauty.api.FaceData
 import com.mamba.picme.beauty.api.PhotoProcessor
+import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
+import com.mamba.picme.features.camera.toDevicePreference
+import com.mamba.picme.features.camera.toInferenceBackendType
+import com.mamba.picme.features.camera.toLandmarkDetectorType
+import com.mamba.picme.features.camera.toRoiDetectorType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import com.mamba.picme.R
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
@@ -39,6 +46,7 @@ class PhotoEditorViewModel(
     private val faceDetector: FaceDetector,
     private val recipeRepository: PhotoEditRecipeRepository,
     private val mediaRepository: MediaRepository,
+    private val userSettingsRepository: UserSettingsRepository? = null,
     private val aiOptimizeUseCase: AiOptimizeUseCase? = null
 ) : ViewModel() {
 
@@ -101,6 +109,7 @@ class PhotoEditorViewModel(
                     return@launch
                 }
                 sourceBitmap = bitmap
+                ensureFaceDetectionPipeline()
                 cachedFaceData = detectFace(bitmap)
                 history.reset(loadedRecipe)
                 _state.value = State.Ready(originalBitmap = bitmap, previewBitmap = bitmap, recipe = loadedRecipe)
@@ -114,6 +123,33 @@ class PhotoEditorViewModel(
                     context.getString(R.string.editor_load_failed_with_reason, e.message ?: "")
                 )
             }
+        }
+    }
+
+    /**
+     * 确保人脸检测流水线已初始化。
+     *
+     * 编辑页从相册直接进入时，可能尚未经过相机页，导致 [FaceDetectorManager] 的 pipelineConfig
+     * 为 null，人脸检测被跳过，进而瘦脸/大眼等美型效果不生效。
+     * 此处从用户设置读取 ROI/Landmark 阶段配置并下发到 FaceDetector。
+     */
+    private suspend fun ensureFaceDetectionPipeline() {
+        val repository = userSettingsRepository ?: return
+        try {
+            val roiStageConfig = repository.roiStageConfigFlow.first()
+            val landmarkStageConfig = repository.landmarkStageConfigFlow.first()
+            val config = DetectionPipelineConfig(
+                roiDetector = roiStageConfig.modelType.toRoiDetectorType(),
+                landmarkDetector = landmarkStageConfig.modelType.toLandmarkDetectorType(),
+                roiEngine = roiStageConfig.engineType.toInferenceBackendType(),
+                landmarkEngine = landmarkStageConfig.engineType.toInferenceBackendType(),
+                roiDevice = roiStageConfig.devicePreference.toDevicePreference(),
+                landmarkDevice = landmarkStageConfig.devicePreference.toDevicePreference()
+            )
+            faceDetector.updatePipelineConfig(config)
+            Logger.d(TAG, "Face detection pipeline initialized for editor")
+        } catch (e: Exception) {
+            Logger.e(TAG, "Failed to initialize face detection pipeline for editor", e)
         }
     }
 

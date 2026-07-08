@@ -59,7 +59,7 @@ class BeautyParamsConverterTest {
         assertEquals(0.5f, params.smoothing, 0.001f) // 50/100
         assertEquals(0.3f, params.whitening, 0.001f) // 30/100
         assertEquals(0.4f, params.bigEyes, 0.001f)   // 40/100
-        assertEquals(0.54f, params.slimFace, 0.001f) // 20/50*1.35
+        assertEquals(-0.54f, params.slimFace, 0.001f) // 20/50*1.35，UI 正值瘦脸对应引擎负值
         assertEquals(0.6f, params.lipColor, 0.001f)  // 60/100
         assertEquals(5, params.lipColorIndex)
         assertEquals(0.25f, params.blush, 0.001f)    // 25/100
@@ -187,7 +187,7 @@ class BeautyParamsConverterTest {
             slimFace = 100f // 超出范围
         )
         val params = settings.toBeautyParams()
-        assertEquals(1.0f, params.slimFace, 0.001f) // 被限制到 1.0
+        assertEquals(-1.0f, params.slimFace, 0.001f) // 被限制到 -1.0（UI 正值瘦脸对应引擎负值）
     }
 
     @Test

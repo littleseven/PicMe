@@ -393,6 +393,7 @@ class AppContainerImpl(
             faceDetector = faceDetector,
             recipeRepository = photoEditRecipeRepository,
             mediaRepository = repository,
+            userSettingsRepository = userPreferencesRepository,
             aiOptimizeUseCase = aiOptimizeUseCase
         )
     }

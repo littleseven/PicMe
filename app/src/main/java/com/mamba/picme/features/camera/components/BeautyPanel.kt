@@ -59,10 +59,11 @@ internal enum class BeautyTab(val labelRes: Int, val icon: ImageVector) {
 fun BeautyPanel(
     settings: BeautySettings,
     onSettingsChanged: (BeautySettings) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    maxHeightRatio: Float = PANEL_HEIGHT_RATIO
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val panelMaxHeight = screenHeight * PANEL_HEIGHT_RATIO
+    val panelMaxHeight = screenHeight * maxHeightRatio.coerceIn(0.2f, 0.75f)
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = BeautyTab.values()
 
