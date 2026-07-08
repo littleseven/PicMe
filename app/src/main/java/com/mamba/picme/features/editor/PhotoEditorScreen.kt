@@ -39,6 +39,7 @@ import com.mamba.picme.features.editor.components.AdjustPanel
 import com.mamba.picme.features.editor.components.CropPanel
 import com.mamba.picme.features.editor.components.EditorBottomBar
 import com.mamba.picme.features.editor.components.EditorTopBar
+import com.mamba.picme.features.editor.components.FilterPanel
 import com.mamba.picme.features.editor.components.MarkupPanel
 
 @Composable
@@ -187,19 +188,13 @@ private fun PanelForTab(
                 maxHeightRatio = 0.45f
             )
         }
-        PhotoEditorViewModel.EditorTab.FILTER -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.filter_panel_phase2),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+        PhotoEditorViewModel.EditorTab.FILTER -> FilterPanel(
+            colorFilter = recipe.colorFilter,
+            styleFilter = recipe.styleFilter,
+            onChange = { colorFilter, styleFilter ->
+                onRecipeChange(recipe.copy(colorFilter = colorFilter, styleFilter = styleFilter))
             }
-        }
+        )
         PhotoEditorViewModel.EditorTab.MARKUP -> MarkupPanel(
             actions = recipe.markup,
             onChange = { onRecipeChange(recipe.copy(markup = it)) }
