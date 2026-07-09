@@ -24,8 +24,6 @@ import androidx.compose.material.icons.rounded.Face
 import androidx.compose.material.icons.rounded.FaceRetouchingNatural
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.LineStyle
-import androidx.compose.material.icons.rounded.SelfImprovement
-import androidx.compose.material.icons.rounded.Timeline
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,12 +45,11 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.beauty.api.BeautySettings
 
-private const val PANEL_HEIGHT_RATIO = 0.5f
+private const val PANEL_HEIGHT_RATIO = 0.35f
 
 internal enum class BeautyTab(val labelRes: Int, val icon: ImageVector) {
     FACE(R.string.facial_refinement, Icons.Rounded.FaceRetouchingNatural),
-    MAKEUP(R.string.makeup_adjustment, Icons.Rounded.ColorLens),
-    BODY(R.string.body_management, Icons.Rounded.SelfImprovement)
+    MAKEUP(R.string.makeup_adjustment, Icons.Rounded.ColorLens)
 }
 
 @Composable
@@ -113,13 +110,12 @@ fun BeautyPanel(
                         .fillMaxWidth()
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     when (tabs[selectedTab]) {
                         BeautyTab.FACE -> FacialRefinementContent(settings, onSettingsChanged)
                         BeautyTab.MAKEUP -> MakeupAdjustmentContent(settings, onSettingsChanged)
-                        BeautyTab.BODY -> BodyManagementContent(settings, onSettingsChanged)
                     }
                 }
 
@@ -242,25 +238,4 @@ internal fun MakeupAdjustmentContent(
     )
 }
 
-@Composable
-internal fun BodyManagementContent(
-    settings: BeautySettings,
-    onSettingsChanged: (BeautySettings) -> Unit
-) {
-    BeautySlider(
-        icon = Icons.Rounded.SelfImprovement,
-        label = stringResource(R.string.body_enhancement),
-        value = settings.bodyEnhancement,
-        valueRange = -30f..30f,
-        onValueChange = { onSettingsChanged(settings.copy(bodyEnhancement = it)) },
-        onReset = { onSettingsChanged(settings.copy(bodyEnhancement = 0f)) }
-    )
-    BeautySlider(
-        icon = Icons.Rounded.Timeline,
-        label = stringResource(R.string.leg_extension),
-        value = settings.legExtension,
-        valueRange = 0f..50f,
-        onValueChange = { onSettingsChanged(settings.copy(legExtension = it)) },
-        onReset = { onSettingsChanged(settings.copy(legExtension = 0f)) }
-    )
-}
+

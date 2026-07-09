@@ -185,8 +185,7 @@ private fun PanelForTab(
             BeautyPanel(
                 settings = recipe.beauty,
                 onSettingsChanged = { onRecipeChange(recipe.copy(beauty = it)) },
-                onDismiss = {},
-                maxHeightRatio = 0.45f
+                onDismiss = {}
             )
         }
         PhotoEditorViewModel.EditorTab.FILTER -> FilterPanel(

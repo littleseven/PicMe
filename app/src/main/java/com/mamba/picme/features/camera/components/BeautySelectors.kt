@@ -72,7 +72,6 @@ internal fun BeautyPanelContent(settings: BeautySettings, onSettingsChanged: (Be
         when (tabs[selectedTab]) {
             BeautyTab.FACE -> FacialRefinementContent(settings, onSettingsChanged)
             BeautyTab.MAKEUP -> MakeupAdjustmentContent(settings, onSettingsChanged)
-            BeautyTab.BODY -> BodyManagementContent(settings, onSettingsChanged)
         }
     }
 }
@@ -182,12 +181,4 @@ internal fun MakeupAdjustmentSelector(
     }
 }
 
-@Composable
-fun BodyManagementSelector(settings: BeautySettings, onSettingsChanged: (BeautySettings) -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        BodyManagementContent(settings, onSettingsChanged)
-    }
-}
+
