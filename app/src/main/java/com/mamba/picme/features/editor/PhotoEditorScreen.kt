@@ -120,6 +120,15 @@ fun PhotoEditorScreen(
                     var scale by remember { mutableFloatStateOf(1f) }
                     var offsetX by remember { mutableFloatStateOf(0f) }
                     var offsetY by remember { mutableFloatStateOf(0f) }
+
+                    // 切换编辑 tab 或更换源图时重置缩放/平移，避免用户在不同工具间跳转时
+                    // 仍保留上一状态的放大视图，导致预览图只显示局部而误以为被裁剪。
+                    LaunchedEffect(sourceUri, s.selectedTab) {
+                        scale = 1f
+                        offsetX = 0f
+                        offsetY = 0f
+                    }
+
                     val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
                         scale = (scale * zoomChange).coerceIn(1f, 4f)
                         offsetX += panChange.x
