@@ -30,6 +30,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -140,6 +142,7 @@ private fun FilterChip(
             .width(72.dp)
             .clickable { onClick() }
             .padding(horizontal = 4.dp)
+            .semantics { contentDescription = "Filter $label" }
     ) {
         Box(
             modifier = Modifier

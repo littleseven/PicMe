@@ -128,7 +128,7 @@ fun PhotoEditorScreen(
                     val displayBitmap = if (comparing) s.originalBitmap else s.previewBitmap
                     Image(
                         bitmap = displayBitmap.asImageBitmap(),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.cd_image_preview),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
