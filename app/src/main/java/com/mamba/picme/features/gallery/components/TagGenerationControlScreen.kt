@@ -26,6 +26,7 @@ import com.mamba.picme.data.local.entity.TagScanPass
 import com.mamba.picme.domain.tag.TagCategory
 import com.mamba.picme.domain.tag.scan.ScanSessionState
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
+import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
 import com.mamba.picme.service.tag.TagGenerationService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -88,7 +89,7 @@ fun TagGenerationControlScreen(
         coroutineScope.launch {
             try {
                 android.util.Log.d("TagGenControl", "refreshStats() called")
-                val stats = com.mamba.picme.domain.tag.scan.TagScanOrchestrator.getDbStats(db)
+                val stats = TagScanOrchestrator.getDbStats(db)
                 android.util.Log.d("TagGenControl", "stats=$stats")
                 totalMedia = stats.totalMedia
                 withFace = stats.withFace

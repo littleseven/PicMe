@@ -15,6 +15,7 @@ import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.domain.tag.FaceClusterEngine
 import com.mamba.picme.testing.agent.cases.BeautyAgentTestCases
 import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.testing.agent.cases.CameraAgentTestCases
@@ -502,7 +503,7 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
                         val outputPath = params?.optString("path")
                             ?: context.externalCacheDir?.let { File(it, "face_embeddings.jsonl").absolutePath }
                             ?: File(context.cacheDir, "face_embeddings.jsonl").absolutePath
-                        val engine = com.mamba.picme.domain.tag.FaceClusterEngine(context)
+                        val engine = FaceClusterEngine(context)
                         engine.dumpEmbeddingsForAnalysis(File(outputPath))
                         sendResponse(context, JSONObject().apply {
                             put("type", "cmd_result")

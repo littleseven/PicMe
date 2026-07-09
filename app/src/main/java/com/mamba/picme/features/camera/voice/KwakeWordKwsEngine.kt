@@ -2,6 +2,7 @@ package com.mamba.picme.features.camera.voice
 
 import com.mamba.picme.agent.core.platform.voice.AudioRecorder
 import com.mamba.picme.agent.core.platform.voice.KeywordSpotterEngine
+import com.mamba.picme.agent.core.platform.voice.SpotterStream
 import com.mamba.picme.core.common.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -121,7 +122,7 @@ class KwakeWordKwsEngine(
              Logger.d(tag, "  • Chunk samples: $chunkSamples (${KWS_CHUNK_MS}ms @ ${KWS_SAMPLE_RATE}Hz)")
              val buffer = ShortArray(chunkSamples)
 
-             var kwsStream: com.mamba.picme.agent.core.platform.voice.SpotterStream? = null
+             var kwsStream: SpotterStream? = null
              val startTime = System.currentTimeMillis()
              var processedChunks = 0
              var totalAudioMs = 0L

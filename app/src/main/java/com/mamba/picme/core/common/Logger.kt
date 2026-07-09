@@ -268,7 +268,7 @@ object Logger {
  */
 @Deprecated(
     message = "Use Logger instead",
-    replaceWith = ReplaceWith("Logger", "com.mamba.picme.core.common.Logger"),
+    replaceWith = ReplaceWith("Logger", "Logger"),
     level = DeprecationLevel.WARNING
 )
 typealias PicMeLogger = Logger

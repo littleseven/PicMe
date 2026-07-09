@@ -1,6 +1,46 @@
 # Changelog
 
-## [1.0.7] - 2026-07-05
+## [1.0.10] - 2026-07-09
+
+### ✨ Features
+- feat(editor): 编辑页滤镜面板实现，支持风格特效实时预览
+- feat(tag): MobileCLIP 中英双语分类 + Qwen token 限制优化
+- feat(tag): MobileClipTagClassifier 零样本场景/物体/标签分类
+- feat(tag): 结合 MobileCLIP 分类与 Qwen 活动+摘要生成
+- feat(tag): 添加活动+摘要专用提示词变体
+- feat(tag): ControlledVocab 按字段暴露候选列表
+
+### 🐛 Bug Fixes
+- fix(editor): 修复编辑页瘦脸/大眼不生效与方向反问题，并优化预览图尺寸
+- fix(beauty): 恢复照片编辑路径多 Pass 美颜管线
+
+### ⚡ Performance
+- perf(agent): 相机页默认卸载 LLM，异步加载 UI 优化启动速度
+
+### 🔧 Build & Refactor
+- build: 提取 :mnn-core 模块，移除 beauty-engine -> runtime-core 依赖
+- build(agent-core): 传递依赖转换为 implementation 隔离
+- build: 统一各 native 模块 ndkVersion 为 28.2.13676358
+- build: 对齐 agent-core 与 runtime-core 依赖版本
+- build(beauty-engine): 移除未使用的 libncnn.so 减小包体积
+- build(app): 限定 onnxruntime pickFirst 到 arm64-v8a 并文档化双来源约束
+- build: 修复 KSP 增量缓存损坏问题
+
+### 📚 Documentation
+- docs(editor): 更新 AGENTS.md，标记滤镜功能已实现
+- docs: 第二轮精简 — 合并技术规范同类项并修复死链
+- docs: 精简文档体系 — 合并同类项并删除过时/临时文档
+- docs: 将 mermaid 图表转换为 ASCII 线框图
+- docs: 添加模块架构图并修正 AgentOrchestrator 位置
+- docs: 添加架构审查修复实施计划
+- docs(sentencepiece): 添加模块 AGENTS.md
+- docs: 修复 AGENTS.md 模块职责不匹配问题
+- docs: 结构性治理 — agent-core AGENTS.md、规范标题、路径修复
+
+### 🧪 Tests
+- test(tag): 添加 MobileClipTagClassifier top-k 单元测试
+
+---
 
 ### ✨ Features
 - feat(accessibility): move AccessibilityService to debug-only builds

@@ -116,6 +116,7 @@ import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import com.mamba.picme.features.common.chat.AgentMessage
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
+import com.mamba.picme.PicMeApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -813,7 +814,7 @@ fun CameraContent(
     }
 
     val onCommandRef = remember { mutableStateOf<(AiAgentCommand) -> Unit>({}) }
-    val app = context.applicationContext as com.mamba.picme.PicMeApplication
+    val app = context.applicationContext as PicMeApplication
     val kwsEngine = remember { app.container.kwsEngine }
     val voiceCoordinator = remember(asrEngine, aiAgentUseCase, kwsEngine) {
         VoiceCommandCoordinator(

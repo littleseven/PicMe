@@ -10,11 +10,16 @@ import android.os.Bundle
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
+import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
+import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.local.ChatMessageEntity
+import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.di.AppContainer
 import com.mamba.picme.di.AppContainerImpl
+import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.model.config.AiAgentMode
@@ -63,7 +68,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
     val feishuChannelHandler: FeishuChannelHandler by lazy { FeishuChannelHandler(applicationScope) }
 
     val remoteCommandDispatcher: RemoteCommandDispatcher by lazy {
-        val database = com.mamba.picme.data.local.AppDatabase.getDatabase(this)
+        val database = AppDatabase.getDatabase(this)
         RemoteCommandDispatcher(
             feishuChannelHandler,
             this,
@@ -326,7 +331,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                     val orchestrator = AgentOrchestrator.getInstance(this@PicMeApplication)
 
                     // 使用新版 ProviderConfigs 格式解析（DataStore 已迁移到新格式）
-                    val providerConfigs = com.mamba.picme.domain.model.ProviderConfigs.fromJson(configsJson)
+                    val providerConfigs = ProviderConfigs.fromJson(configsJson)
                     val selectedProviderConfig = providerConfigs.configs
                         .find { it.modelId == selectedModelId && it.isConfigured }
                         ?: providerConfigs.configs.firstOrNull { it.isConfigured }
@@ -363,15 +368,15 @@ class PicMeApplication : Application(), ImageLoaderFactory {
     private fun observeFeishuPhotoCapture() {
         applicationScope.launch {
             try {
-                val chatMessageDao = com.mamba.picme.data.local.AppDatabase.getDatabase(this@PicMeApplication).chatMessageDao()
-                val chatSessionDao = com.mamba.picme.data.local.AppDatabase.getDatabase(this@PicMeApplication).chatSessionDao()
+                val chatMessageDao = AppDatabase.getDatabase(this@PicMeApplication).chatMessageDao()
+                val chatSessionDao = AppDatabase.getDatabase(this@PicMeApplication).chatSessionDao()
                 val feishuSessionId = "feishu"
 
                 repository.allMedia.collect { mediaList ->
                     Logger.d(TAG, "allMedia emit: size=${mediaList.size}")
 
                     // 查找来源为飞书远程控制的新照片
-                    val feishuPhotos = mediaList.filter { it.source == "feishu_remote" && it.type == com.mamba.picme.agent.core.model.context.MediaType.PHOTO }
+                    val feishuPhotos = mediaList.filter { it.source == "feishu_remote" && it.type == MediaType.PHOTO }
                     if (feishuPhotos.isEmpty()) {
                         Logger.d(TAG, "没有检测到 feishu_remote 来源的照片")
                         return@collect
@@ -394,14 +399,14 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                         val existingSession = chatSessionDao.getSession(feishuSessionId)
                         if (existingSession == null) {
                             chatSessionDao.insertSession(
-                                com.mamba.picme.data.local.ChatSessionEntity(
+                                ChatSessionEntity(
                                     sessionId = feishuSessionId,
                                     title = "飞书远程控制"
                                 )
                             )
                         }
                         chatMessageDao.insertMessage(
-                            com.mamba.picme.data.local.ChatMessageEntity(
+                            ChatMessageEntity(
                                 id = UUID.randomUUID().toString(),
                                 sessionId = feishuSessionId,
                                 type = "agent_image",

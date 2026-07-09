@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.R
+import com.mamba.picme.features.common.SearchField
 
 /**
  * 聊天历史侧边栏 — 展示所有会话线程，支持切换、搜索、新建、重命名与删除
@@ -130,7 +131,7 @@ fun ChatThreadSidebar(
                 }
 
                 // 搜索框
-                com.mamba.picme.features.common.SearchField(
+                SearchField(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChange,
                     placeholder = stringResource(R.string.search_history),

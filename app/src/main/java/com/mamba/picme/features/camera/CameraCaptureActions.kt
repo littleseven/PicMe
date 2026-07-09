@@ -26,6 +26,7 @@ import com.mamba.picme.domain.agent.remote.FeishuPhotoTracker
 import com.mamba.picme.features.camera.state.CameraStateMachine
 import com.mamba.picme.features.camera.state.CameraStateManager
 import com.mamba.picme.features.gallery.MediaViewModel
+import com.mamba.picme.PicMeApplication
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
 import android.content.ContentValues
@@ -92,7 +93,7 @@ internal fun handleCaptureClick(
                 if (pendingMessageId != null) {
                     Logger.w(TAG, "Feishu photo capture failed: ImageCapture not ready, messageId=$pendingMessageId")
                     try {
-                        val app = context.applicationContext as? com.mamba.picme.PicMeApplication
+                        val app = context.applicationContext as? PicMeApplication
                         app?.feishuChannelHandler?.sendMessage(
                             "抱歉，相机还没准备好，请稍等片刻再试",
                             pendingMessageId
@@ -133,7 +134,7 @@ internal fun handleCaptureClick(
                                 Logger.w(TAG, "Feishu photo capture failed, notifying user: messageId=$pendingMessageId")
                                 // 通知飞书用户拍照失败 - 通过应用容器获取 FeishuChannelHandler
                                 try {
-                                    val app = context.applicationContext as? com.mamba.picme.PicMeApplication
+                                    val app = context.applicationContext as? PicMeApplication
                                     app?.feishuChannelHandler?.sendMessage(
                                         "抱歉，拍照失败了，请再试一次",
                                         pendingMessageId

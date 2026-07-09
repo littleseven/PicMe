@@ -122,6 +122,7 @@ import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.common.chat.AgentMessage
 import com.mamba.picme.features.common.chat.AiChatScreen
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
+import com.mamba.picme.domain.model.AiAgentCommand
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
@@ -454,7 +455,7 @@ fun MediaPager(
                         }
                     },
                     onCommand = { command ->
-                        if (command is com.mamba.picme.domain.model.AiAgentCommand.ApplyEditRecipe) {
+                        if (command is AiAgentCommand.ApplyEditRecipe) {
                             // 语音/Agent 通道已生成优化配方，由上层导航到编辑器应用
                             currentAsset?.let { onAiOptimize(it) }
                         }

@@ -10,6 +10,7 @@ import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.search.QueryBuilder
+import com.mamba.picme.agent.core.model.context.MediaAsset
 import java.lang.ref.WeakReference
 
 /**
@@ -61,7 +62,7 @@ class GalleryCapability : BaseCapability() {
         fun onDeleteMedia(mediaIds: List<String>)
         fun onShareMedia(mediaIds: List<String>)
         fun onSelectMedia(mediaId: String, selected: Boolean)
-        fun onSearch(query: String, results: List<com.mamba.picme.agent.core.model.context.MediaAsset>)
+        fun onSearch(query: String, results: List<MediaAsset>)
         fun onSwitchViewMode(mode: ViewMode)
         fun onFavoriteMedia(mediaId: String, favorite: Boolean)
     }

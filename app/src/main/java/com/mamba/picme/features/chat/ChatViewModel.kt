@@ -15,6 +15,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
+import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
@@ -412,15 +413,15 @@ class ChatViewModel(
         }
 
         when (inferenceResult) {
-            is com.mamba.picme.agent.core.runtime.execution.InferenceResult.Chat -> {
+            is InferenceResult.Chat -> {
                 insertAgentMessage(sessionId, inferenceResult.message, modelLabel, performance)
             }
-            is com.mamba.picme.agent.core.runtime.execution.InferenceResult.Local -> {
+            is InferenceResult.Local -> {
                 val action = orchestrator.getCapabilityRegistry()
                     .dispatch(inferenceResult.command, agentContext)
                 handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
             }
-            is com.mamba.picme.agent.core.runtime.execution.InferenceResult.Batch -> {
+            is InferenceResult.Batch -> {
                 val commands = inferenceResult.commands
                 val finalCommand = if (commands.size > 1) {
                     AgentCommand.BatchExecute(commands = commands)
@@ -431,7 +432,7 @@ class ChatViewModel(
                     .dispatch(finalCommand, agentContext)
                 handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
             }
-            is com.mamba.picme.agent.core.runtime.execution.InferenceResult.Plan -> {
+            is InferenceResult.Plan -> {
                 val action = orchestrator.getCapabilityRegistry()
                     .dispatch(AgentCommand.ExecutePlan(plan = inferenceResult.plan), agentContext)
                 handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
