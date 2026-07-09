@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import com.mamba.picme.features.camera.components.BeautyPanel
 import com.mamba.picme.features.editor.components.AdjustPanel
 import com.mamba.picme.features.editor.components.CropPanel
 import com.mamba.picme.features.editor.components.EditorBottomBar
@@ -128,7 +129,7 @@ fun PhotoEditorScreen(
                     Image(
                         bitmap = displayBitmap.asImageBitmap(),
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
@@ -181,7 +182,7 @@ private fun PanelForTab(
             onChange = { onRecipeChange(recipe.copy(adjustments = it)) }
         )
         PhotoEditorViewModel.EditorTab.BEAUTY -> {
-            com.mamba.picme.features.camera.components.BeautyPanel(
+            BeautyPanel(
                 settings = recipe.beauty,
                 onSettingsChanged = { onRecipeChange(recipe.copy(beauty = it)) },
                 onDismiss = {},

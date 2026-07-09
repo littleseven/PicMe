@@ -65,6 +65,7 @@ import com.mamba.picme.features.gallery.components.galleryReadPermissions
 import com.mamba.picme.features.gallery.components.hasGalleryPermission
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.components.shareMediaAssets
+import com.mamba.picme.features.gallery.components.SearchTopBar
 import com.mamba.picme.features.gallery.agent.GalleryAgentPanel
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.components.FloatingBottomTab
@@ -77,13 +78,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.navOptions
+import com.mamba.picme.domain.model.GroupTitleType
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.R
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.navigation.Screen
 import com.mamba.picme.service.tag.TagGenerationService
+import com.mamba.picme.PicMeApplication
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -126,7 +130,7 @@ fun GalleryScreen(
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     var isSearchLoading by remember { mutableStateOf(false) }
-    var searchResultMedia by remember { mutableStateOf<List<com.mamba.picme.agent.core.model.context.MediaAsset>>(emptyList()) }
+    var searchResultMedia by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     val searchEngine = remember { GalleryCapability.getInstance().searchEngine }
     val searchScope = rememberCoroutineScope()
 
@@ -176,7 +180,7 @@ fun GalleryScreen(
         }
     }
     val context = LocalContext.current
-    val app = context.applicationContext as com.mamba.picme.PicMeApplication
+    val app = context.applicationContext as PicMeApplication
     val thumbnailCache = remember { app.container.thumbnailCache }
     val deleteAuthRequest by viewModel.deleteAuthRequest.collectAsState()
 
@@ -189,7 +193,7 @@ fun GalleryScreen(
 
     // 当切换到 PERSON 分组模式时加载所有 person 名称
     LaunchedEffect(groupingMode) {
-        if (groupingMode == com.mamba.picme.domain.model.GroupingMode.PERSON) {
+        if (groupingMode == GroupingMode.PERSON) {
             try {
                 val db = AppDatabase.getDatabase(context)
                 val persons = db.personDao().getAllPersons()
@@ -401,7 +405,7 @@ fun GalleryScreen(
                     selectedIds.remove(id)
                 }
             }
-            override fun onSearch(query: String, results: List<com.mamba.picme.agent.core.model.context.MediaAsset>) {
+            override fun onSearch(query: String, results: List<MediaAsset>) {
                 Logger.d(TAG_AGENT, "Search query: $query, results=${results.size}")
                 searchQuery = query
                 isSearchActive = true
@@ -460,7 +464,7 @@ fun GalleryScreen(
             when {
                 isSearchActive && !isSelectionMode -> {
                     // 搜索模式：显示搜索框
-                    com.mamba.picme.features.gallery.components.SearchTopBar(
+                    SearchTopBar(
                         searchQuery = searchQuery,
                         onQueryChange = { query ->
                             searchQuery = query
@@ -561,8 +565,8 @@ fun GalleryScreen(
                     } else if (searchResultMedia.isEmpty()) {
                         EmptyGalleryMessage(message = "未找到匹配 \"$searchQuery\" 的照片")
                     } else {
-                        val searchGroup = com.mamba.picme.domain.model.GroupedMedia(
-                            titleType = com.mamba.picme.domain.model.GroupTitleType.SEARCH,
+                        val searchGroup = GroupedMedia(
+                            titleType = GroupTitleType.SEARCH,
                             titleValue = "\"$searchQuery\"",
                             items = searchResultMedia
                         )
@@ -707,7 +711,7 @@ fun GalleryScreen(
                             dragSelectionVisitedIds.clear()
                         },
                         onGroupTitleClick = { group ->
-                            if (groupingMode == com.mamba.picme.domain.model.GroupingMode.PERSON) {
+                            if (groupingMode == GroupingMode.PERSON) {
                                 val currentName = personNameMap[group.titleValue] ?: "人物 ${group.titleValue}"
                                 renamingPersonGroup = group
                                 renamingPersonName = currentName
@@ -850,7 +854,7 @@ fun GalleryScreen(
                         val group = renamingPersonGroup
                         if (group != null) {
                             val name = renamingPersonName.trim()
-                            if (name.isNotBlank() && groupingMode == com.mamba.picme.domain.model.GroupingMode.PERSON) {
+                            if (name.isNotBlank() && groupingMode == GroupingMode.PERSON) {
                                 kotlinx.coroutines.MainScope().launch {
                                     try {
                                         val personId = group.titleValue.toLongOrNull()

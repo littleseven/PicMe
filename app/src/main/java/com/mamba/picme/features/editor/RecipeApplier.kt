@@ -7,6 +7,7 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
+import com.mamba.picme.beauty.api.FaceData
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.PhotoProcessException
 import com.mamba.picme.beauty.api.PhotoProcessor
@@ -75,7 +76,7 @@ class RecipeApplier(
     suspend fun applyGpuEffects(
         bitmap: Bitmap,
         recipe: EditRecipe,
-        faceData: com.mamba.picme.beauty.api.FaceData?
+        faceData: FaceData?
     ): Bitmap = withContext(processingDispatcher) {
         val settings = recipe.beauty.copy(
             enabled = true,
