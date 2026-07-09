@@ -67,6 +67,10 @@ app/keystore/
 # Kotlin compiler error logs
 .kotlin/errors/
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Temporary model download cache
 tmp_models/
 
