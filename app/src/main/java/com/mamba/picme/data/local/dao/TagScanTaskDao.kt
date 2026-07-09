@@ -195,6 +195,12 @@ interface TagScanTaskDao {
     suspend fun getTasksBySession(sessionId: String): List<TagScanTaskEntity>
 
     /**
+     * 获取所有扫描任务（用于备份导出）
+     */
+    @Query("SELECT * FROM tag_scan_tasks ORDER BY createdAt DESC")
+    suspend fun getAllTasks(): List<TagScanTaskEntity>
+
+    /**
      * 是否存在活跃任务
      */
     @Query(

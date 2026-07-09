@@ -393,6 +393,48 @@ interface MediaDao {
     /** 在指定 ID 列表中搜索文件名 */
     @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND fileName LIKE '%' || :keyword || '%'")
     suspend fun searchFileNameInIds(ids: List<Long>, keyword: String): List<MediaEntity>
+
+    /**
+     * 从备份批量更新 TAG 相关元数据字段。
+     * 一次性写入 labels / mlKitLabels / mlKitLabelsZh / ocrText / 地理位置 /
+     * faceRoiResult / semanticEmbedding / lastTagScanAt / lastTagScanPasses /
+     * hasFace / faceId，避免还原时多次 UPDATE。
+     */
+    @Query(
+        """
+        UPDATE media_assets SET
+            labels = :labels,
+            mlKitLabels = :mlKitLabels,
+            mlKitLabelsZh = :mlKitLabelsZh,
+            ocrText = :ocrText,
+            latitude = :latitude,
+            longitude = :longitude,
+            locationName = :locationName,
+            faceRoiResult = :faceRoiResult,
+            semanticEmbedding = :semanticEmbedding,
+            lastTagScanAt = :lastTagScanAt,
+            lastTagScanPasses = :lastTagScanPasses,
+            hasFace = :hasFace,
+            faceId = :faceId
+        WHERE id = :mediaId
+        """
+    )
+    suspend fun updateTagMetadataFromBackup(
+        mediaId: Long,
+        labels: String?,
+        mlKitLabels: String?,
+        mlKitLabelsZh: String?,
+        ocrText: String?,
+        latitude: Double?,
+        longitude: Double?,
+        locationName: String?,
+        faceRoiResult: String?,
+        semanticEmbedding: String?,
+        lastTagScanAt: Long?,
+        lastTagScanPasses: String?,
+        hasFace: Boolean,
+        faceId: String?
+    )
 }
 
 data class FaceGroupCount(

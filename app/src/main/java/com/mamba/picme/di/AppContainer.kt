@@ -38,6 +38,9 @@ import com.mamba.picme.domain.tag.i18n.TagTranslator
 import com.mamba.picme.data.download.LlmModelDownloadManager
 import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
+import com.mamba.picme.domain.backup.BackupTagDataUseCase
+import com.mamba.picme.domain.backup.RestoreTagDataUseCase
+import com.mamba.picme.domain.backup.TagDataBackupRepository
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.LocalSceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
 import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
@@ -50,6 +53,10 @@ import com.mamba.picme.features.chat.ChatViewModelDependencies
 import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
 import androidx.lifecycle.ViewModel
+import com.mamba.picme.domain.tag.TagScanProgress
+import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
+import com.mamba.picme.data.indexing.MediaChangeEvent
+import com.mamba.picme.service.tag.TagGenerationService
 
 data class MediaViewModelDependencies(
     val repository: MediaRepository,
@@ -108,11 +115,11 @@ interface AppContainer {
     /** TAG 生成扫描状态（只读，从 TagGenerationService 获取） */
     val tagGenerationIsScanning: kotlinx.coroutines.flow.StateFlow<Boolean>
     /** TAG 生成扫描进度（旧版兼容） */
-    val tagGenerationProgress: kotlinx.coroutines.flow.StateFlow<com.mamba.picme.domain.tag.TagScanProgress?>
+    val tagGenerationProgress: kotlinx.coroutines.flow.StateFlow<TagScanProgress?>
     /** TAG 生成最后消息 */
     val tagGenerationLastMessage: kotlinx.coroutines.flow.StateFlow<String?>
     /** TAG 生成会话级增强进度 */
-    val tagGenerationSessionProgress: kotlinx.coroutines.flow.StateFlow<com.mamba.picme.domain.tag.scan.TagScanSessionProgress?>
+    val tagGenerationSessionProgress: kotlinx.coroutines.flow.StateFlow<TagScanSessionProgress?>
     /** 跨维度查询构建器（LLM 意图 → Room 查询） */
     val queryBuilder: QueryBuilder
     /** 双级缩略图缓存（LRU 内存 + 磁盘） */
@@ -121,12 +128,17 @@ interface AppContainer {
     val photoEditRecipeRepository: PhotoEditRecipeRepository
     val aiOptimizeUseCase: AiOptimizeUseCase
 
+    /** TAG 数据库备份用例 */
+    val backupTagDataUseCase: BackupTagDataUseCase
+    /** TAG 数据库还原用例 */
+    val restoreTagDataUseCase: RestoreTagDataUseCase
+
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
     fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory
 
     /** 创建 MediaStoreObserver（需要 ContentResolver，按需创建） */
-    fun createMediaStoreObserver(onChange: (List<com.mamba.picme.data.indexing.MediaChangeEvent>) -> Unit): MediaStoreObserver
+    fun createMediaStoreObserver(onChange: (List<MediaChangeEvent>) -> Unit): MediaStoreObserver
 }
 
 class AppContainerImpl(
@@ -227,26 +239,26 @@ class AppContainerImpl(
 
     /** TAG 生成扫描状态（从 TagGenerationService 获取） */
     override val tagGenerationIsScanning: kotlinx.coroutines.flow.StateFlow<Boolean>
-        get() = com.mamba.picme.service.tag.TagGenerationService.isScanning
+        get() = TagGenerationService.isScanning
 
     /** TAG 生成扫描进度（旧版兼容） */
-    override val tagGenerationProgress: kotlinx.coroutines.flow.StateFlow<com.mamba.picme.domain.tag.TagScanProgress?>
-        get() = com.mamba.picme.service.tag.TagGenerationService.progress
+    override val tagGenerationProgress: kotlinx.coroutines.flow.StateFlow<TagScanProgress?>
+        get() = TagGenerationService.progress
 
     /** TAG 生成最后消息 */
     override val tagGenerationLastMessage: kotlinx.coroutines.flow.StateFlow<String?>
-        get() = com.mamba.picme.service.tag.TagGenerationService.lastScanMessage
+        get() = TagGenerationService.lastScanMessage
 
     /** TAG 生成会话级增强进度 */
-    override val tagGenerationSessionProgress: kotlinx.coroutines.flow.StateFlow<com.mamba.picme.domain.tag.scan.TagScanSessionProgress?>
-        get() = com.mamba.picme.service.tag.TagGenerationService.sessionProgress
+    override val tagGenerationSessionProgress: kotlinx.coroutines.flow.StateFlow<TagScanSessionProgress?>
+        get() = TagGenerationService.sessionProgress
 
     /**
      * 创建 MediaStoreObserver。
      * 每次调用创建新实例，生命周期由调用方管理。
      */
     override fun createMediaStoreObserver(
-        onChange: (List<com.mamba.picme.data.indexing.MediaChangeEvent>) -> Unit
+        onChange: (List<MediaChangeEvent>) -> Unit
     ): MediaStoreObserver {
         return MediaStoreObserver(
             contentResolver = context.contentResolver,
@@ -278,6 +290,22 @@ class AppContainerImpl(
             consentManager = CloudOptimizeConsentManager(context),
             smartEngine = null
         )
+    }
+
+    private val tagDataBackupRepository: TagDataBackupRepository by lazy {
+        TagDataBackupRepository(
+            mediaDao = database.mediaDao(),
+            tagDao = database.tagDao(),
+            tagScanTaskDao = database.tagScanTaskDao()
+        )
+    }
+
+    override val backupTagDataUseCase: BackupTagDataUseCase by lazy {
+        BackupTagDataUseCase(context, tagDataBackupRepository)
+    }
+
+    override val restoreTagDataUseCase: RestoreTagDataUseCase by lazy {
+        RestoreTagDataUseCase(context, tagDataBackupRepository, backupTagDataUseCase)
     }
 
     override val userPreferencesRepository: UserSettingsRepository by lazy {
