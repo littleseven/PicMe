@@ -100,7 +100,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.ChatBubble
-import androidx.compose.material.icons.rounded.SmartToy
+import androidx.compose.material.icons.rounded.CloudDownload
 
 private const val TAG = "Gallery"
 private const val TAG_AGENT = "GalleryAgent"
@@ -737,7 +737,7 @@ fun GalleryScreen(
                         onClick = onNavigateToChat
                     ),
                     FloatingBottomTabItem(
-                        icon = Icons.Rounded.SmartToy,
+                        icon = Icons.Rounded.CloudDownload,
                         onClick = onNavigateToModelCenter
                     )
                 )
