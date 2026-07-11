@@ -266,7 +266,6 @@
     <string name="landmark_overlay">Face Landmarks</string>
     <string name="landmark_loading">Detecting face landmarks…</string>
     <string name="landmark_no_face_detected">No face detected</string>
-<string name="landmark_big_beauty">Big Beauty</string>
 <string name="landmark_compatibility">GPUPixel</string>
 <!-- /Users/guoshuai/AndroidStudioProjects/PicMe/app/src/main/res/values/strings.xml -->
 

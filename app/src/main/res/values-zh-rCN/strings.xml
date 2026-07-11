@@ -229,7 +229,6 @@
     <string name="landmark_overlay">人脸关键点</string>
     <string name="landmark_loading">正在检测人脸关键点…</string>
     <string name="landmark_no_face_detected">未检测到人脸</string>
-<string name="landmark_big_beauty">大美丽</string>
 <string name="landmark_compatibility">GPUPixel</string>
 
     <!-- Duplicate Management -->

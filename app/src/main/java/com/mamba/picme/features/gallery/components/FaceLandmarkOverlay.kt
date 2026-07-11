@@ -8,30 +8,15 @@ import android.net.Uri
 import android.util.Log
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionConstants
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -40,9 +25,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.exifinterface.media.ExifInterface
@@ -62,9 +44,7 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 private const val TAG = "GalleryLandmark"
 
 private class LandmarkDetectionSnapshot(
-    val mediaPipe468Points: List<Pair<Float, Float>>?,
-    val bigBeauty106Points: FloatArray?,
-    val mpDetectTime: Float
+    val bigBeauty106Points: FloatArray?
 )
 
 // 与 FaceMakeupPass 中的腮红三角网格保持一致，便于对齐静态图左右脸区域。
@@ -88,9 +68,7 @@ private val BLUSH_TRIANGLE_INDICES = intArrayOf(
 class FaceLandmarkDetectionState(
     val imageWidth: Int,
     val imageHeight: Int,
-    val mediaPipe468Points: List<Pair<Float, Float>>?,
     val bigBeauty106Points: FloatArray?,
-    val mpDetectTime: Float,
     val isLoading: Boolean,
     val errorMessage: String?
 )
@@ -103,11 +81,9 @@ fun rememberFaceLandmarkDetection(
     val context = LocalContext.current
     var imageWidth by remember(imageUri) { mutableIntStateOf(0) }
     var imageHeight by remember(imageUri) { mutableIntStateOf(0) }
-    var mediaPipe468Points by remember(imageUri) { mutableStateOf<List<Pair<Float, Float>>?>(null) }
     var bigBeauty106Points by remember(imageUri) { mutableStateOf<FloatArray?>(null) }
     var isLoading by remember(imageUri) { mutableStateOf(false) }
     var errorMessage by remember(imageUri) { mutableStateOf<String?>(null) }
-    var mpDetectTime by remember(imageUri) { mutableFloatStateOf(0f) }
     var detectionRequestId by remember { mutableIntStateOf(0) }
 
     var mediaPipeLandmarker by remember { mutableStateOf<FaceLandmarker?>(null) }
@@ -140,9 +116,7 @@ fun rememberFaceLandmarkDetection(
 
         isLoading = true
         errorMessage = null
-        mediaPipe468Points = null
         bigBeauty106Points = null
-        mpDetectTime = 0f
 
         try {
             val bitmap = withContext(Dispatchers.IO) {
@@ -154,22 +128,10 @@ fun rememberFaceLandmarkDetection(
 
             val snapshot = try {
                 withContext(Dispatchers.Default) {
-                    var detectedMediaPipe468: List<Pair<Float, Float>>? = null
-                    var detectedBigBeauty106: FloatArray? = null
-                    var detectedMpTime = 0f
-
-                    mediaPipeLandmarker?.let { landmarker ->
-                        val mpStart = System.currentTimeMillis()
-                        val mpResult = detectMediaPipe468(bitmap, landmarker)
-                        detectedMpTime = (System.currentTimeMillis() - mpStart).toFloat()
-                        detectedMediaPipe468 = mpResult?.landmarks
-                        detectedBigBeauty106 = mpResult?.points106
-                    }
-
                     LandmarkDetectionSnapshot(
-                        mediaPipe468Points = detectedMediaPipe468,
-                        bigBeauty106Points = detectedBigBeauty106,
-                        mpDetectTime = detectedMpTime
+                        bigBeauty106Points = mediaPipeLandmarker?.let { landmarker ->
+                            detectMediaPipe106(bitmap, landmarker)
+                        }
                     )
                 }
             } finally {
@@ -180,11 +142,9 @@ fun rememberFaceLandmarkDetection(
                 return@LaunchedEffect
             }
 
-            mediaPipe468Points = snapshot.mediaPipe468Points
             bigBeauty106Points = snapshot.bigBeauty106Points
-            mpDetectTime = snapshot.mpDetectTime
 
-            if (snapshot.mediaPipe468Points == null) {
+            if (snapshot.bigBeauty106Points == null) {
                 errorMessage = context.getString(R.string.landmark_no_face_detected)
             }
         } catch (error: CancellationException) {
@@ -204,9 +164,7 @@ fun rememberFaceLandmarkDetection(
     return FaceLandmarkDetectionState(
         imageWidth = imageWidth,
         imageHeight = imageHeight,
-        mediaPipe468Points = mediaPipe468Points,
         bigBeauty106Points = bigBeauty106Points,
-        mpDetectTime = mpDetectTime,
         isLoading = isLoading,
         errorMessage = errorMessage
     )
@@ -215,8 +173,6 @@ fun rememberFaceLandmarkDetection(
 @Composable
 fun FaceLandmarkCanvasOverlay(
     state: FaceLandmarkDetectionState,
-    show468Points: Boolean,
-    showBigBeauty106: Boolean,
     modifier: Modifier = Modifier
 ) {
     if (state.imageWidth <= 0 || state.imageHeight <= 0) {
@@ -287,52 +243,7 @@ fun FaceLandmarkCanvasOverlay(
             }
         }
 
-        if (show468Points && state.mediaPipe468Points != null) {
-            val pointColor = Color(0xFF00FF00)
-            val faceOvalIndices = setOf(10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109)
-            val leftEyeIndices = setOf(33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 133, 155, 154, 153, 145, 144)
-            val rightEyeIndices = setOf(362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 463, 380, 381, 382)
-            val noseIndices = setOf(1, 2, 3, 4, 5, 6, 19, 94, 168, 195, 196, 197, 198, 174, 217, 236, 275, 248, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360)
-            val mouthIndices = setOf(61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 375, 321, 78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 84, 183)
-            val leftEyebrowIndices = setOf(70, 63, 105, 66, 107, 46, 53, 52, 65)
-            val rightEyebrowIndices = setOf(336, 296, 334, 293, 300, 295, 282, 283, 276)
-            val allFeatureIndices = faceOvalIndices + leftEyeIndices + rightEyeIndices +
-                noseIndices + mouthIndices + leftEyebrowIndices + rightEyebrowIndices
-
-            state.mediaPipe468Points.forEachIndexed { index, point ->
-                val canvasPoint = toCanvasPoint(point.first, point.second)
-                val radius = when {
-                    faceOvalIndices.contains(index) -> 5f
-                    leftEyeIndices.contains(index) -> 5f
-                    rightEyeIndices.contains(index) -> 5f
-                    noseIndices.contains(index) -> 5f
-                    mouthIndices.contains(index) -> 5f
-                    leftEyebrowIndices.contains(index) -> 5f
-                    rightEyebrowIndices.contains(index) -> 5f
-                    else -> 2f
-                }
-                drawCircle(color = pointColor, radius = radius, center = canvasPoint)
-
-                if (allFeatureIndices.contains(index)) {
-                    drawIntoCanvas { canvas ->
-                        val paint = Paint().apply {
-                            color = "#00FF00".toColorInt()
-                            textSize = 16f
-                            textAlign = Paint.Align.CENTER
-                            isFakeBoldText = true
-                        }
-                        canvas.nativeCanvas.drawText(
-                            index.toString(),
-                            canvasPoint.x,
-                            canvasPoint.y - 10f,
-                            paint
-                        )
-                    }
-                }
-            }
-        }
-
-        if (showBigBeauty106 && state.bigBeauty106Points != null) {
+        if (state.bigBeauty106Points != null) {
             val blueColor = Color(0xFF4488FF)
             drawBlushTriangleMesh(state.bigBeauty106Points, blueColor)
             for (index in 0 until state.bigBeauty106Points.size / 2) {
@@ -359,87 +270,6 @@ fun FaceLandmarkCanvasOverlay(
 
     }
 }
-
-@Composable
-fun FaceLandmarkControlBar(
-    state: FaceLandmarkDetectionState,
-    show468Points: Boolean,
-    showBigBeauty106: Boolean,
-    onToggle468Points: () -> Unit,
-    onToggleBigBeauty106: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.58f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            LandmarkToggle(
-                color = Color(0xFF00FF00),
-                label = "468",
-                subLabel = "${state.mpDetectTime.toInt()}ms",
-                enabled = show468Points,
-                onClick = onToggle468Points
-            )
-            LandmarkToggle(
-                color = Color(0xFF4488FF),
-                label = stringResource(R.string.landmark_big_beauty),
-                subLabel = "106",
-                enabled = showBigBeauty106,
-                onClick = onToggleBigBeauty106
-            )
-        }
-    }
-}
-
-@Composable
-private fun LandmarkToggle(
-    color: Color,
-    label: String,
-    subLabel: String,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .background(
-                    color = if (enabled) color else Color.Gray.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(6.dp)
-                )
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                fontSize = 16.sp,
-                color = if (enabled) Color.White else Color.Gray
-            )
-            Text(
-                text = subLabel,
-                fontSize = 12.sp,
-                color = Color.Gray.copy(alpha = 0.8f)
-            )
-        }
-    }
-}
-
-private class MediaPipeResult(
-    val landmarks: List<Pair<Float, Float>>,
-    val points106: FloatArray
-)
 
 private fun createFaceLandmarker(context: Context, delegate: Delegate): FaceLandmarker {
     val baseOptions = BaseOptions.builder()
@@ -543,7 +373,7 @@ private fun normalizeBitmapOrientation(context: Context, uri: Uri, bitmap: Bitma
     }
 }
 
-private fun detectMediaPipe468(bitmap: Bitmap, landmarker: FaceLandmarker): MediaPipeResult? {
+private fun detectMediaPipe106(bitmap: Bitmap, landmarker: FaceLandmarker): FloatArray? {
     return try {
         val mpImage = BitmapImageBuilder(bitmap).build()
         val result = landmarker.detect(mpImage)
@@ -551,11 +381,7 @@ private fun detectMediaPipe468(bitmap: Bitmap, landmarker: FaceLandmarker): Medi
             Log.d(TAG, "No face detected by MediaPipe")
             return null
         }
-
-        val landmarks = result.faceLandmarks()[0]
-        val points468 = landmarks.map { landmark -> Pair(landmark.x(), landmark.y()) }
-        val points106 = convert468To106ForDebug(landmarks)
-        MediaPipeResult(points468, points106)
+        convert468To106ForDebug(result.faceLandmarks()[0])
     } catch (error: Exception) {
         Logger.e(TAG, "MediaPipe detection failed", error)
         null

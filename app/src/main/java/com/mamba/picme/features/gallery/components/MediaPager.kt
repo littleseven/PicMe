@@ -155,8 +155,6 @@ fun MediaPager(
         val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { assets.size })
         var showInfo by remember { mutableStateOf(false) }
         var showLandmarkOverlay by remember { mutableStateOf(false) }
-        var show468Points by remember { mutableStateOf(false) }
-        var showBigBeauty106 by remember { mutableStateOf(false) }
         var currentPageZoomed by remember { mutableStateOf(false) }
         var showBarsVisible by remember { mutableStateOf(true) }
         var showAiChatPanel by remember { mutableStateOf(false) }
@@ -347,19 +345,7 @@ fun MediaPager(
             }
 
             if (showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO) {
-                FaceLandmarkCanvasOverlay(
-                    state = landmarkState,
-                    show468Points = show468Points,
-                    showBigBeauty106 = showBigBeauty106
-                )
-                FaceLandmarkControlBar(
-                    state = landmarkState,
-                    show468Points = show468Points,
-                    showBigBeauty106 = showBigBeauty106,
-                    onToggle468Points = { show468Points = !show468Points },
-                    onToggleBigBeauty106 = { showBigBeauty106 = !showBigBeauty106 },
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
+                FaceLandmarkCanvasOverlay(state = landmarkState)
             }
 
             // Photo Info Dialog (取代旧的 SourceInfoOverlay)
