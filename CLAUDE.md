@@ -9,7 +9,7 @@ PicMe is a technology research project exploring two main tracks: **(1) AI Codin
 **Current focus (2026-06)** has shifted from camera-first to **remote inference framework + smart gallery** (相册/图片编辑为主入口, camera as auxiliary). See `PRODUCT.md` for the latest product roadmap.
 
 Key technological decisions:
-- **On-device Agent**: `agent-core/` implements an Agent Runtime (AgentOrchestrator, LocalLlmEngine, CapabilityRegistry, etc.) that maps natural language to device capabilities via Qwen3.5-2B running on MNN-LLM.
+- **On-device Agent**: `runtime-core/` (package `com.mamba.picme.agent.core`) implements an Agent Runtime (AgentOrchestrator, LocalLlmEngine, CapabilityRegistry, etc.) that maps natural language to device capabilities via Qwen3.5-2B running on MNN-LLM.
 - **Remote inference**: Standard OpenAI Chat Completions API protocol via langchain4j, with DeepSeek adapter support. Local/remote pipelines fully separated per ADR-005.
 - **Privacy-first**: All sensitive AI processing (LLM inference, face detection, OCR) runs locally; non-sensitive commands may use remote orchestration in REMOTE mode.
 - **Self-developed Engine**: Full OpenGL ES + EGL pipeline (no third-party beauty SDKs); GPUPixel has been completely removed.
@@ -51,13 +51,18 @@ adb logcat -s "PicMe:*"
 
 ### Module Structure
 
-Four Gradle modules defined in `settings.gradle.kts`:
+Seven Gradle modules defined in `settings.gradle.kts`:
 - **`:app`** — Main Android application (Camera, Gallery, Editor, Settings)
 - **`:beauty-api`** — Pure Kotlin library; stable API contracts shared between `:app` and `:beauty-engine`
   (BeautySettings, FilterType, StyleFilter, Face, FaceDetector, FrameSyncConfig, etc.)
 - **`:beauty-engine`** — Independent Android library; self-developed OpenGL ES + EGL real-time beauty engine
-- **`:agent-core`** — Pure Kotlin library; Agent Runtime infrastructure (AgentOrchestrator, CapabilityRegistry,
-  LocalLlmEngine, LocalInferencePipeline, RemoteInferencePipeline, ExecutionEngine, PrivacyGuard, MemoryManager, voice/ASR, remote/orchestration, etc.)
+- **`:runtime-core`** — Pure Kotlin library; **Agent Runtime** infrastructure (AgentOrchestrator, CapabilityRegistry,
+  LocalLlmEngine, LocalInferencePipeline, RemoteInferencePipeline, ExecutionEngine, PrivacyGuard, MemoryManager, voice/ASR, remote/orchestration, etc.). Package `com.mamba.picme.agent.core.*`
+- **`:agent-core`** — Java HTTP client library (`com.mamba.client.*`); low-level networking dependency of `:runtime-core`. **Not** the Agent Runtime.
+- **`:mnn-core`** — MNN inference JNI wrappers
+- **`:sentencepiece`** — tokenizer
+
+> ⚠️ **命名注意**：Agent Runtime 在 **`:runtime-core`**（包 `com.mamba.picme.agent.core`），**不是** `:agent-core`（后者是 Java HTTP 客户端）。这是历史"改名做了一半"的遗留——模块名 / 包名 / 旧文档三方不一致。本文档已按现实更正；如需彻底对齐（模块改名）见 `docs/07-STANDARDS/REPO_REORGANIZATION_PLAN.md`。依赖链：`:app → :runtime-core → :agent-core`。
 
 GPUPixel has been fully removed; all GPU capabilities are provided by the self-developed engine.
 
@@ -72,7 +77,7 @@ agent-core/   beauty-api/   beauty-engine/  (strict boundaries — see below)
 - **Features**: Compose UI + ViewModels. Camera features include an Agent interaction panel for natural language control.
 - **Domain**: Pure Kotlin, no Android dependencies. Includes `domain/usecase/AiAgentUseCase` as Facade to `agent-core`.
 - **Data**: Repository implementations, Room DB, DataStore preferences, and LLM model download management (`LlmModelDownloadManager`).
-- **agent-core**: Agent Runtime infrastructure moved from `domain/agent/` to independent module.
+- **runtime-core**: Agent Runtime infrastructure (moved from `domain/agent/`; package `com.mamba.picme.agent.core`).
 
 ### Beauty-Engine Layered Architecture (Critical Dependency Boundary)
 
@@ -124,7 +129,7 @@ Solves makeup "flying off" caused by face detection (~10 fps) and rendering (30�
 ```
 User Input ("找出去年夏天的照片" / "磨皮50")
     → AiAgentUseCase (Facade in domain/usecase/)
-    → AgentOrchestrator.dispatch() (in agent-core/)
+    → AgentOrchestrator.dispatch() (in runtime-core/)
     ├── LOCAL: LocalInferencePipeline
     │   ├── LocalLlmEngine (Qwen3.5-2B via MNN-LLM, custom JSON protocol)
     │   └── L1 Cache Hit? → direct return
@@ -135,7 +140,7 @@ User Input ("找出去年夏天的照片" / "磨皮50")
     → GalleryCapability / EditorCapability (execute)
 ```
 
-- **Module**: `:agent-core` — independent pure Kotlin module containing all Agent Runtime components.
+- **Module**: `:runtime-core` — independent pure Kotlin module containing all Agent Runtime components (package `com.mamba.picme.agent.core`).
 - **Local model**: Qwen3.5-2B-MNN with custom JSON array protocol (method + args).
 - **Remote protocol**: Standard OpenAI Chat Completions API (tool_calls, streaming, multi-turn dialogue). langchain4j SDK as consumer layer.
 - **Capabilities**: `AdjustBeauty` (smooth/whiten/slim/eye/lip/blush/brow), `SwitchFilter`, `SwitchStyle`, `SwitchScene`, `SwitchRatio`, `AdjustExposure`, `AdjustZoom`, `FlipCamera`, `Capture`, `ToggleRecording`, `GallerySearch`, `EditImage`.
