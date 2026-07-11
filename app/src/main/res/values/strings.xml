@@ -274,6 +274,8 @@
     <string name="ocr_recognize">Extract Text</string>
     <string name="ocr_copy_success">Text copied to clipboard</string>
     <string name="ocr_share_title">Share Text</string>
+    <string name="vision_loading">Analyzing image…</string>
+    <string name="vision_result_title">Image Analysis</string>
     <string name="media_details">Details</string>
     <string name="media_info_path">Path: %1$s</string>
     <string name="media_info_size">Size: %1$s</string>

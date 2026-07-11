@@ -775,20 +775,29 @@ private fun VisionResultOverlay(
                         onClick = { /* Stop propagation */ }
                     )
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (isLoading) {
+                if (isLoading) {
+                    // Loading 状态使用紧凑居中布局，避免在大容器中内容偏上
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = 48.dp, vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.padding(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "图像理解中...",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = stringResource(R.string.vision_loading),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    } else if (result != null) {
+                    }
+                } else if (result != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         // Header
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -804,7 +813,7 @@ private fun VisionResultOverlay(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "图像理解结果",
+                                    text = stringResource(R.string.vision_result_title),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -817,7 +826,7 @@ private fun VisionResultOverlay(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
-                                    contentDescription = "关闭",
+                                    contentDescription = stringResource(R.string.close),
                                     tint = Color.Gray,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -852,7 +861,7 @@ private fun VisionResultOverlay(
                             OutlinedButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(result))
-                                    Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.ocr_copied), Toast.LENGTH_SHORT).show()
                                 },
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.weight(1f),
