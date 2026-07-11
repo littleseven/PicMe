@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.mamba.picme.R
+import kotlin.random.Random
 
 fun hasGalleryPermission(context: Context): Boolean {
     return galleryReadPermissions().all { permission ->
@@ -120,9 +122,17 @@ fun EmptyGalleryMessage(message: String? = null) {
 @Composable
 fun GallerySplashPlaceholder() {
     val locale = LocalConfiguration.current.locales[0]
-    val randomQuote = remember {
-        getRandomQuoteForLocale(locale)
+    // 按系统/应用语言选取对应格言池；locale 作为 key，语言切换时重新取池。
+    val pool = remember(locale) { getQuotesForLocale(locale) }
+    // 关键修复：用 rememberSaveable 持久化下标，使其跨 Activity 重建保持稳定。
+    // 启动时若持久化的应用语言（DataStore 异步加载）与 StateFlow 初始值 SYSTEM 不同，
+    // MainActivity 的 LaunchedEffect(appLanguage) 会触发 recreate() 以应用语言；
+    // 普通 remember 在重建后重新随机，会导致"格言刷两次且内容不同"的闪烁。
+    // 以 pool.size 作为输入：仅在语言切换导致池容量变化时才重新抽取。
+    val quoteIndex = rememberSaveable(pool.size) {
+        Random.nextInt(pool.size)
     }
+    val randomQuote = pool[quoteIndex % pool.size]
 
     Box(
         modifier = Modifier.fillMaxSize(),
