@@ -8,10 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Button
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -31,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.mamba.picme.R
-import kotlin.random.Random
 
 fun hasGalleryPermission(context: Context): Boolean {
     return galleryReadPermissions().all { permission ->
@@ -113,26 +114,37 @@ fun EmptyGalleryMessage(message: String? = null) {
 /**
  * 相册暖启动占位页，代替 [EmptyGalleryMessage] 在冷启动时显示。
  *
- * 在 Room 查询返回前，展示摄影格言，避免"未找到任何媒体文件"闪烁。
- * 数据加载完成后自动过渡到相册内容。
+ * 在 Room 查询返回前，展示与系统语言匹配的名人格言（含作者），
+ * 避免"未找到任何媒体文件"闪烁。数据加载完成后自动过渡到相册内容。
  */
 @Composable
 fun GallerySplashPlaceholder() {
+    val locale = LocalConfiguration.current.locales[0]
     val randomQuote = remember {
-        allQuotes[Random.nextInt(allQuotes.size)]
+        getRandomQuoteForLocale(locale)
     }
 
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(horizontal = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(
+                space = 16.dp,
+                alignment = Alignment.Top
+            )
         ) {
+            // 顶部留白，将格言推至约屏幕 30% 位置，比正中更有呼吸感
+            Spacer(modifier = Modifier.fillMaxHeight(0.28f))
+
             // 格言正文 — 衬线字体，更具艺术感
             Text(
-                text = "“$randomQuote”",
+                text = "\u201C${randomQuote.text}\u201D",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontFamily = FontFamily.Serif,
                     fontStyle = FontStyle.Italic,
@@ -141,8 +153,21 @@ fun GallerySplashPlaceholder() {
                     lineHeight = 30.sp
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 48.dp)
+                textAlign = TextAlign.Center
+            )
+
+            // 作者 / 出处
+            Text(
+                text = "\u2014 ${randomQuote.author}",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Normal,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
             )
         }
     }
