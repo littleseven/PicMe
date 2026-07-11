@@ -86,8 +86,8 @@ adb logcat -s "PicMe:*"
 | 模块 | 说明 |
 |------|------|
 | `:app` | 主应用模块（UI + DI + Data + Features） |
-| `:agent-core` | Agent Runtime 核心（Java，ChatModel / Tool / AiServices） |
-| `:runtime-core` | Agent 运行时扩展（远程推理、ReAct、本地 LLM 封装） |
+| `:agent-core` | LangChain4j Java 基础库（ChatModel / Tool / AiServices / ChatMemory） |
+| `:runtime-core` | Agent Runtime 核心（AgentOrchestrator、编排、本地/远程推理、语音 ASR） |
 | `:beauty-api` | 美颜接口契约层 |
 | `:beauty-engine` | 美颜引擎（OpenGL ES + EGL 渲染管线） |
 | `:sentencepiece` | 本地分词库 JNI 包装 |

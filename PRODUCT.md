@@ -156,7 +156,7 @@ ChatScreen (二级页 - features/chat/)
     ├─ MessageRepository (对话持久化)
     └─ ModelSelector (本地/远程智能选择 + 用户偏好)
         ↓
-AgentOrchestrator (agent-core/)
+AgentOrchestrator (runtime-core/)
     ├── LOCAL: LocalInferencePipeline
     │   ├── LocalLlmEngine (Qwen3.5-2B-MNN)
     │   └── 自定义 JSON 数组协议

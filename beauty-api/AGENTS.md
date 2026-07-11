@@ -3,10 +3,10 @@
 > **边界声明（Boundary Statement）**
 > - 本文档定义 `:beauty-api` 模块的 API 契约稳定性承诺、类型清单和演变规则。
 > - `:beauty-api` 是**纯 Kotlin 库模块**（零 Android/OpenGL 依赖），仅持有接口、数据类和枚举。
-> - 实现由 `:beauty-engine` 提供；消费方为 `:app` 和 `:agent-core`。
+> - 实现由 `:beauty-engine` 提供；消费方为 `:app`、`:runtime-core` 与 `:beauty-engine`。
 > - 美颜引擎实现细节见 `beauty-engine/AGENTS.md`；架构决策背景见 `docs/02-ARCHITECTURE/ADR/`。
 
-**模块定位**：`:beauty-api` 是 PicMe 美颜系统的**接口契约层**，为 `:app`、`:agent-core`、`:beauty-engine` 三个模块提供稳定的共享类型定义。该模块不包含任何实现代码，仅定义跨模块通信的"语言"。
+**模块定位**：`:beauty-api` 是 PicMe 美颜系统的**接口契约层**，为 `:app`、`:runtime-core`、`:beauty-engine` 三个模块提供稳定的共享类型定义。该模块不包含任何实现代码，仅定义跨模块通信的"语言"。
 
 **主要维护者**：[RD] 全栈工程师
 
