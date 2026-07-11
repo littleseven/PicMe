@@ -58,11 +58,11 @@ Seven Gradle modules defined in `settings.gradle.kts`:
 - **`:beauty-engine`** — Independent Android library; self-developed OpenGL ES + EGL real-time beauty engine
 - **`:runtime-core`** — Pure Kotlin library; **Agent Runtime** infrastructure (AgentOrchestrator, CapabilityRegistry,
   LocalLlmEngine, LocalInferencePipeline, RemoteInferencePipeline, ExecutionEngine, PrivacyGuard, MemoryManager, voice/ASR, remote/orchestration, etc.). Package `com.mamba.picme.agent.core.*`
-- **`:agent-core`** — Java HTTP client library (`com.mamba.client.*`); low-level networking dependency of `:runtime-core`. **Not** the Agent Runtime.
+- **`:agent-core`** — **langchain4j 的 Android 适配层**（远程推理库移植；为 langchain4j 提供 Android 兼容的 HTTP 客户端 `com.mamba.client.*`）。`:runtime-core` 远程推理链路的底层依赖。
 - **`:mnn-core`** — MNN inference JNI wrappers
 - **`:sentencepiece`** — tokenizer
 
-> ⚠️ **命名注意**：Agent Runtime 在 **`:runtime-core`**（包 `com.mamba.picme.agent.core`），**不是** `:agent-core`（后者是 Java HTTP 客户端）。这是历史"改名做了一半"的遗留——模块名 / 包名 / 旧文档三方不一致。本文档已按现实更正；如需彻底对齐（模块改名）见 `docs/07-STANDARDS/REPO_REORGANIZATION_PLAN.md`。依赖链：`:app → :runtime-core → :agent-core`。
+> ⚠️ **模块语义（重要）**：`:runtime-core` = 本地 Agent Runtime（编排本地 Qwen + 远程推理；AgentOrchestrator/CapabilityRegistry/LocalLlmEngine/RemoteInferencePipeline/…；包 `com.mamba.picme.agent.core`）。`:agent-core` = **langchain4j 的 Android 适配层**（远程推理库；runtime-core 远程链路的底层依赖）。旧版文档曾把 Agent Runtime 误归到 `agent-core`，已更正。依赖链：`:app → :runtime-core → :agent-core`。
 
 GPUPixel has been fully removed; all GPU capabilities are provided by the self-developed engine.
 
@@ -71,11 +71,11 @@ GPUPixel has been fully removed; all GPU capabilities are provided by the self-d
 ```
 features/  →  domain/usecase/  →  domain/repository/  →  data/
    ↓                ↓
-agent-core/   beauty-api/   beauty-engine/  (strict boundaries — see below)
+runtime-core/   beauty-api/   beauty-engine/  (strict boundaries — see below)
 ```
 
 - **Features**: Compose UI + ViewModels. Camera features include an Agent interaction panel for natural language control.
-- **Domain**: Pure Kotlin, no Android dependencies. Includes `domain/usecase/AiAgentUseCase` as Facade to `agent-core`.
+- **Domain**: Pure Kotlin, no Android dependencies. Includes `domain/usecase/AiAgentUseCase` as Facade to `:runtime-core` (Agent Runtime).
 - **Data**: Repository implementations, Room DB, DataStore preferences, and LLM model download management (`LlmModelDownloadManager`).
 - **runtime-core**: Agent Runtime infrastructure (moved from `domain/agent/`; package `com.mamba.picme.agent.core`).
 
@@ -181,7 +181,7 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 
 - **ktlint** (v1.3.1) — Kotlin code style
 - **detekt** (v1.23.6, config: `detekt-config.yml`) — Static analysis
-- **Unit tests** — Pure JVM tests covering coordinate algorithms, state machines, converters, end-to-end flows. ~50 test files across `app/src/test/`, `beauty-engine/src/test/`, and `agent-core/src/test/`.
+- **Unit tests** — Pure JVM tests covering coordinate algorithms, state machines, converters, end-to-end flows. ~50 test files across `app/src/test/`, `beauty-engine/src/test/`, and `runtime-core/src/test/`.
 - **Instrumentation tests** — Require connected device/emulator.
 
 ## Documentation Hierarchy
