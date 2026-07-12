@@ -1,7 +1,7 @@
 # PicMe 服务端实现方案（Ktor）— Review 版
 
 > **文档状态**：待 Review（未实施）。定稿后据此编码，并重写 `OVERSEAS_SERVER_DEPLOYMENT.md` 为现实版。
-> **最后更新**：2026-07-11
+> **最后更新**：2026-07-12（按实际事实修正：Monorepo、锐驰型 200M 无限流量、OpenClaw 共存、Nginx 非 宝塔、COS 100G 已购、polang.net DNS-only）
 > **维护者**：RD Agent
 > **关联**：`PRODUCT.md`、`OVERSEAS_SERVER_DEPLOYMENT.md`、`AI_OPTIMIZATION.md`
 
@@ -9,7 +9,14 @@
 
 ## 1. 目标与范围
 
-**目标**：在 HK 腾讯轻量（`43.161.201.142`，Nginx 1.24 已就绪，TLS 已通）上部署一个 **Ktor 后端**，挂 `api.polang.net`，支撑 PicMe App 的「推荐拍照 + 图片优化」服务端能力。
+**目标**：在已购的 HK 腾讯轻量服务器上部署一个 **Ktor 后端**，挂 `api.polang.net`，支撑 PicMe App 的「推荐拍照 + 图片优化」服务端能力。
+
+**现状资源（均已就位，不再采购）**：
+- **服务器**：腾讯轻量 · 香港·三区 · **锐驰型** · 2C2G / 40G SSD / **200Mbps 峰值 · 无限流量**；公网 IP `43.161.201.142`；实例 `lhins-5u0t1f9f`；到期 2027-01-11。
+- **域名**：`polang.net`（Cloudflare 注册，**DNS-only 灰云**，A 记录 → `43.161.201.142`）。
+- **前置 Web**：Nginx 1.24（Ubuntu apt 装，**非宝塔**），已在 `polang.net` 托管项目官网 + 隐私声明（过审用），TLS 由 certbot 管。
+- **对象存储**：腾讯 COS **100GB 标准存储包**（HK，`ap-hongkong`）。
+- **同机另一租户**：OpenClaw（龙虾 AI 助手）——与后端共享 2G 内存，后端须设 `MemoryMax`。
 
 **本轮交付（MVP 骨架）**：
 - 5 个路由：`/healthz`、`/recommend`、`/assets`、`/llm`、`/telemetry`
@@ -22,27 +29,16 @@
 
 ---
 
-## 2. 代码管理与仓库策略 ⬅️ 待定
+## 2. 代码管理：Monorepo（已定）
 
-| 维度 | A. 独立仓库 `picme-server`（**推荐**） | B. Monorepo `langchain4android/server/` |
-|------|--------------------------------------|------------------------------------------|
-| 生命周期 | Server（部署到盒子）与 App（APK→Play）分离，互不干扰 | 同仓，`./gradlew build` 会带上整个安卓工程 |
-| 仓库可见性 | 可灵活设私有（含部署/基础设施细节），App 仓继续公开 | 绑死：App 仓公开则 Server 代码也公开 |
-| CI/部署 | Server 自有 Actions（build+deploy），不被 App 提交触发 | 需用 path filter 隔离，否则互相触发 |
-| 密钥/部署隔离 | 干净（独立仓 + 独立 Actions secrets） | 同仓，需小心 path/secret 隔离 |
-| 端云共享 Kotlin 类型 | 需发布构件（JitPack/Maven）或 Git submodule，多一步 | 同一 Gradle 构建直接 `shared/` 模块引用，最简 |
-| App 仓体积 | 不增加 | 当前 App 仓已 7 模块（app/beauty-api/beauty-engine/runtime-core/agent-core/mnn-core/sentencepiece），再加 server 更臃肿 |
+**决策**：后端放进本仓 `langchain4android/server/`（**Monorepo**）——AI 全栈协作友好，端云同仓便于跨端检索与契约演进。
 
-**推荐：A（独立仓库 `picme-server`）**。理由：
-1. App 仓已很大且多模块、且已公开；Server 生命周期/可见性/部署都不同。
-2. Solo 开发者跨仓协调成本极低，独立仓更清爽。
-3. Server 仓可设私有，部署配置/基础设施细节不暴露。
-
-**唯一选 B 的场景**：你确定很快要做端云 Kotlin 类型共享（DTO/推荐规则），且接受 App 仓继续公开包含 Server 代码。
-
-> 契约一致性（即便独立仓）：把「API 契约/OpenAPI」维护在一个公开处（如 Server 仓的 `openapi.yaml` 或 wiki），App 与 Server 各自按契约实现；将来真要类型共享再上 JitPack。
-
-> 下文工程结构以 **A（独立仓）** 为例；若选 B，把 `server/` 内容放进 `langchain4android/server/` 即可，其余不变。
+**落地点与构建边界**：
+- 目录：`langchain4android/server/`（自洽的 Ktor Gradle 工程）。
+- 构建：`server/` 用**独立的 `settings.gradle.kts`**，**不纳入安卓的 settings.gradle.kts** → `cd server && ./gradlew installDist` 只编译后端，安卓构建完全不依赖 `:server`、也不被拖慢。
+- CI（后期）：用 path filter 让 `server/**` 改动才触发后端 build/deploy，不污染安卓流水线。
+- 密钥：`server/.env` 不入 git；GitHub Actions（若启用）用独立 secrets。
+- **端云共享 Kotlin（红利）**：将来在仓内加 `shared/` 模块，App 与 Server 共同引用——这是 monorepo 相对独立仓的最大优势，DTO/推荐规则可端云同源。
 
 ---
 
@@ -64,10 +60,12 @@
 
 ---
 
-## 4. 工程结构（独立仓 `picme-server`）
+## 4. 工程结构（monorepo 子目录 `server/`，自洽 Gradle build）
+
+`server/` 寄居在 `langchain4android/` 下，**用独立 `settings.gradle.kts`、不纳入安卓 `settings.gradle.kts`**——安卓 7 模块的构建完全不依赖它、也不被拖慢：
 
 ```
-picme-server/
+server/   # = langchain4android/server/（rootProject.name = "picme-server"，cd server && ./gradlew ...）
 ├── build.gradle.kts
 ├── settings.gradle.kts
 ├── gradle/libs.versions.toml          # 版本目录
@@ -195,13 +193,18 @@ COS_PRESIGN_TTL_MIN=60
 
 ## 9. 部署
 
-**本地构建**：`./gradlew :installDist` → `build/install/picme-server/bin/picme-server`。
+**本地构建**（在 `server/` 下）：`./gradlew installDist` → `build/install/picme-server/bin/picme-server`（rootProject.name=`picme-server`）。
 
-**`deploy.sh`**（一键）：
+**`deploy.sh`**（置于 `server/` 下，一键）：
 ```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+HOST=ubuntu@43.161.201.142            # 也可 ubuntu@api.polang.net
 ./gradlew clean installDist
-rsync -az --delete build/install/picme-server/ ubuntu@api-host:~/picme-server/
-ssh ubuntu@api.host 'sudo systemctl restart picme-api'
+rsync -az --delete build/install/picme-server/ "$HOST":~/picme-server/
+ssh "$HOST" 'sudo systemctl restart picme-api'
+sleep 1
 curl -fsS https://api.polang.net/healthz
 ```
 
@@ -264,7 +267,7 @@ WantedBy=multi-user.target
 
 ## 13. 实施顺序
 
-1. 建仓（`picme-server` 或 monorepo `server/`）+ Gradle 工程 + `Application.kt` + `/healthz`，本地跑通。
+1. 在 `langchain4android/server/` 建独立 Ktor Gradle 工程（自带 `settings.gradle.kts`，不纳入安卓构建）+ `Application.kt` + `/healthz`，本地 `cd server && ./gradlew run` 跑通。
 2. Exposed + SQLite + migrations + `/recommend`（seed 静态规则）。
 3. `/assets` manifest + COS 预签名。
 4. `/llm` 流式代理（先接一家）+ 限流 + 日预算。
@@ -276,14 +279,15 @@ WantedBy=multi-user.target
 
 ## 14. 待你拍板的决策点 ⚠️
 
-1. **仓库策略**：A 独立仓 `picme-server`（推荐） / B monorepo？
-2. **Ktor 版本**：3.x（Kotlin 2.x / JDK 21）OK？
-3. **服务引擎**：CIO（省内存，推荐） / Netty？
-4. **DB 访问**：Exposed（推荐） / 裸 JDBC？
-5. **LLM 默认接哪家**：Gemini（有免费额度）/ OpenAI(gpt-4o-mini) / Groq？
-6. **COS 预签名有效期**（默认 1h）；模型下发**先走 COS 直连**确认？
-7. **限流/日预算默认值**：`/llm` 20 次/分钟、$1/天——合理吗？
-8. **MemoryMax**：systemd 限 400M（给 OpenClaw 留余地）合理吗？
+> 仓库策略已定 **Monorepo**（见 §2），不在此列。
+
+1. **Ktor 版本**：3.x（Kotlin 2.x / JDK 21）OK？
+2. **服务引擎**：CIO（省内存，推荐） / Netty？
+3. **DB 访问**：Exposed（推荐） / 裸 JDBC？
+4. **LLM 默认接哪家**：Gemini（有免费额度）/ OpenAI(gpt-4o-mini) / Groq？
+5. **COS 预签名有效期**（默认 1h）；模型下发**先走 COS 直连**确认？
+6. **限流/日预算默认值**：`/llm` 20 次/分钟、$1/天——合理吗？
+7. **MemoryMax**：systemd 限 400M（给 OpenClaw 留余地）合理吗？
 
 ---
 
