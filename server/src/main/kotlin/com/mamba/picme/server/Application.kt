@@ -1,5 +1,6 @@
 package com.mamba.picme.server
 
+import com.mamba.picme.server.admin.adminRoute
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.APP_TOKEN_HEADER
 import com.mamba.picme.server.auth.EmailService
@@ -71,7 +72,8 @@ fun Application.module(config: AppConfig) {
     // --- Auth interceptor ---
     intercept(ApplicationCallPipeline.Plugins) {
         val uri = call.request.local.uri.substringBefore("?")
-        if (uri in publicRoutes) return@intercept
+        // /admin/** 由 admin 路由组自己的 cookie 拦截认证，不走 app-token
+        if (uri in publicRoutes || uri == "/admin" || uri.startsWith("/admin/")) return@intercept
 
         val rawToken = call.request.headers[APP_TOKEN_HEADER]
         if (rawToken == null) {
@@ -118,5 +120,7 @@ fun Application.module(config: AppConfig) {
         telemetryRoute()
         quotaRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
+        // 管理后台（/admin/**，独立 cookie 认证）
+        adminRoute(config.adminToken)
     }
 }
