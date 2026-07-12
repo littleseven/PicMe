@@ -10,7 +10,7 @@ fun Routing.healthzRoute() {
             mapOf(
                 "status" to "ok",
                 "service" to "picme-server",
-                "version" to "0.3.0",
+                "version" to "0.5.0",
             ),
         )
     }

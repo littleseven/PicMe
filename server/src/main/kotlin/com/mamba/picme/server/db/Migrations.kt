@@ -9,7 +9,7 @@ object Migrations {
         transaction(Db.instance) {
             SchemaUtils.create(
                 Rules, Assets, TelemetryEvents, LlmDailyCounters,
-                Accounts, EmailVerifications,
+                Accounts, EmailVerifications, LlmCallLogs,
             )
             seedRules()
         }
