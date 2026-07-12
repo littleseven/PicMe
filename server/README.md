@@ -42,6 +42,27 @@ curl http://127.0.0.1:8080/healthz
 ## 部署
 `deploy.sh`（开发机构建 installDist → rsync 到 `~/picme-server.new/` → ssh 触发切换）+ `deploy-switch.sh`（服务器端**蓝绿**：备份现网 → 切换 → `systemctl restart` → healthz 校验 → **失败自动回滚**）。OpenClaw 可直接 `bash ~/deploy-switch.sh` 实现「一句话发布」（指令见 `OPENCLAW_DEPLOY.md`）。systemd `picme-api.service`：`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`，与 OpenClaw 共享 2G 盒子。
 
+## 管理后台（v0.5.0）
+
+运营者用的 SSR HTML 后台（kotlinx.html，同二进制部署，零前端构建）。访问 `https://api.polang.net/admin`。
+
+| 页面 | 路径 | 内容 |
+|------|------|------|
+| 登录 | `/admin/login` | 输入 `ADMIN_TOKEN` 登录 |
+| 概览 | `/admin` | 今日 stat 卡片（用户/新增/调用/token/成本¥/字节/blocked）+ 近 14 天趋势 |
+| 用户 | `/admin/users` | 邮箱 / 状态 / 注册时间 / 累计调用 / 累计 token / 累计成本 / 最后活跃 |
+| 用户详情 | `/admin/users/{id}` | 该用户汇总 + 最近 50 条调用明细 |
+| 流量 | `/admin/traffic` | 近 30 天每日 调用/blocked/token/成本/字节 |
+
+**用量采集**：每次 `/v1/chat/completions`（含被限流/超额拦截、上游错误）写一条 `llm_call_log`，解析上游 `usage` 记录真实 prompt/completion token，按 `LLM_PRICES_JSON` 单价估算成本（¥）。`account.llm_calls_used` 仍是「额度计数器」，与此处的「分析用量」职责分离。
+
+**认证与加固**：
+- `/admin/**` 不走 app-token，用固定 `ADMIN_TOKEN` + cookie（`picme_admin = sha256(ADMIN_TOKEN)`）。
+- `ADMIN_TOKEN` 为空 → 后台禁用（全部 503）。
+- **强烈建议** nginx 对 `/admin` 加 IP 白名单，或仅走 SSH 隧道访问（公网暴露请务必配 token）。
+
+**配置**（`/etc/picme/server.env`）：`ADMIN_TOKEN`（必填）、`LLM_PRICES_JSON`（可选，覆盖默认单价）。
+
 ## LLM 代理与 SCF 迁移
 
 `/v1/chat/completions` 端口从 `infra/tencentscf/index.js` 移植：
