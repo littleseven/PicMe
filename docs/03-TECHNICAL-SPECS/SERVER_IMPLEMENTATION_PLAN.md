@@ -221,25 +221,11 @@ COS_PRESIGN_TTL_MIN=60
 
 **本地构建**：`./gradlew -p server installDist` → `build/install/picme-server/bin/picme-server`（rootProject.name=`picme-server`）。注意 `server/` 无独立 `gradlew`，须用根目录 wrapper 加 `-p server`。
 
-**`deploy.sh`**（置于 `server/` 下，一键）：
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-HOST=ubuntu@43.161.201.142
-
-# 构建用根目录 gradlew + -p server
-"$REPO_ROOT/gradlew" -p "$SCRIPT_DIR" clean installDist
-
-rsync -az --delete \
-  --exclude='*.log' --exclude='logs/' --exclude='*.db*' --exclude='.env' \
-  "$SCRIPT_DIR/build/install/picme-server/" "$HOST":~/picme-server/
-
-ssh "$HOST" 'sudo systemctl restart picme-api'
-ssh "$HOST" 'systemctl is-active --wait picme-api'
-curl -fsS https://api.polang.net/healthz
-```
+**两段式发布（蓝绿 + 自动回滚）**，脚本见 `server/deploy.sh` + `server/deploy-switch.sh`（单一来源，不再在此复制全文）：
+- `deploy.sh`（开发机）：`installDist` → rsync artifact 到服务器 `~/picme-server.new/`（不覆盖现网）→ ssh 触发切换。
+- `deploy-switch.sh`（服务器）：备份现网 → `mv .new → picme-server` → `systemctl restart picme-api` → 轮询 `http://127.0.0.1:8080/healthz`（最长 30s）→ **失败自动回滚**到 `~/picme-server.prev` + 打 journalctl。
+- OpenClaw 可直接 `bash ~/deploy-switch.sh` 实现「一句话发布」（指令见 `server/OPENCLAW_DEPLOY.md`）。
+- 前提（首次部署确认）：ubuntu 用户 `sudo systemctl` 免密；生产监听 `127.0.0.1:8080`（`HEALTH_URL` 不符时用环境变量覆盖）。
 
 **`picme-api.service`**（systemd）：
 ```ini

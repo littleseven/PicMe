@@ -31,6 +31,6 @@ curl http://127.0.0.1:8080/healthz
 ```
 
 ## 部署
-`deploy.sh`（构建 → rsync → systemctl restart → curl healthz）+ `picme-api.service`（systemd，`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`，与 OpenClaw 共享 2G 盒子）。
+`deploy.sh`（开发机构建 installDist → rsync 到 `~/picme-server.new/` → ssh 触发切换）+ `deploy-switch.sh`（服务器端**蓝绿**：备份现网 → 切换 → `systemctl restart` → healthz 校验 → **失败自动回滚**）。OpenClaw 可直接 `bash ~/deploy-switch.sh` 实现「一句话发布」（指令见 `OPENCLAW_DEPLOY.md`）。systemd `picme-api.service`：`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`，与 OpenClaw 共享 2G 盒子。
 
 架构与决策见 `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`。
