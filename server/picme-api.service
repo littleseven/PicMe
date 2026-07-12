@@ -1,0 +1,17 @@
+[Unit]
+Description=PicMe API (Ktor)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/picme-server
+EnvironmentFile=/etc/picme/server.env
+ExecStart=/home/ubuntu/picme-server/bin/picme-server
+Restart=always
+RestartSec=3
+# 内存上限：与 OpenClaw 共享 2G 盒子，给后端设上限防拖垮
+MemoryMax=400M
+
+[Install]
+WantedBy=multi-user.target

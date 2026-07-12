@@ -1,0 +1,56 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
+    application
+}
+
+group = "com.mamba.picme"
+version = "0.1.0"
+
+repositories { mavenCentral() }
+
+val ktorVersion = "3.0.3"
+val exposedVersion = "0.55.0"
+
+dependencies {
+    // Ktor server (CIO engine, 省内存)
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-cio:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation("io.ktor:ktor-server-default-headers:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    // Ktor client（LLM 流式代理）
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    // Exposed + SQLite + HikariCP
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+    implementation("org.xerial:sqlite-jdbc:3.46.1.3")
+    implementation("com.zaxxer:HikariCP:5.1.0")
+    // 腾讯 COS
+    implementation("com.qcloud:cos_api:5.6.227")
+    // 序列化 & 日志
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("ch.qos.logback:logback-classic:1.5.12")
+}
+
+application {
+    mainClass.set("com.mamba.picme.server.ApplicationKt")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
