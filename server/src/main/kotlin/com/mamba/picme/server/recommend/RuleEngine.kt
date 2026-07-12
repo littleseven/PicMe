@@ -1,12 +1,13 @@
 package com.mamba.picme.server.recommend
 
 import com.mamba.picme.server.db.Db
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.VarCharColumnType
 import org.jetbrains.exposed.sql.statements.StatementType
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 @Serializable
 data class RecommendRequest(
@@ -26,7 +27,7 @@ data class RecommendResponse(
  * 用 exec(sql, args, statementType, transform) 走参数绑定查询。
  */
 class RuleEngine(private val json: Json) {
-    fun recommend(req: RecommendRequest): RecommendResponse? {
+    suspend fun recommend(req: RecommendRequest): RecommendResponse? {
         val sql = """
             SELECT version, params_json
             FROM rule
@@ -34,7 +35,7 @@ class RuleEngine(private val json: Json) {
             ORDER BY version DESC
             LIMIT 1
         """.trimIndent()
-        val hit: Pair<Int, String>? = transaction(Db.instance) {
+        val hit: Pair<Int, String>? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             exec(
                 sql,
                 listOf(

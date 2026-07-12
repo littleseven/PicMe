@@ -11,6 +11,12 @@ object Rules : Table("rule") {
     val version = integer("version")
     val enabled = integer("enabled").default(1)
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        // (scene, locale, version) 唯一：让 seed 的 INSERT OR IGNORE 真正幂等，重启不重复；
+        // version 进键，仍允许同一 (scene, locale) 新版本热更（RuleEngine 取 version DESC）。
+        uniqueIndex(scene, locale, version)
+    }
 }
 
 object Assets : Table("asset") {

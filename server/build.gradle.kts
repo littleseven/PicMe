@@ -44,6 +44,15 @@ application {
     mainClass.set("com.mamba.picme.server.ApplicationKt")
 }
 
+// migrations/ 下的 *.sql 进 classpath，运行时由 Migrations 读取执行
+sourceSets {
+    main {
+        resources {
+            srcDir("migrations")
+        }
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)

@@ -6,10 +6,11 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.post
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 @Serializable
 data class TelemetryBatch(val events: List<TelemetryRecord>)
@@ -21,7 +22,7 @@ fun Routing.telemetryRoute() {
     post("/telemetry") {
         val batch = call.receive<TelemetryBatch>()
         val now = System.currentTimeMillis()
-        transaction(Db.instance) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             batch.events.forEach { ev ->
                 TelemetryEvents.insert {
                     it[TelemetryEvents.type] = ev.type

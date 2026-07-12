@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS rule (
   enabled INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS idx_rule_scene ON rule(scene, locale, enabled);
+-- seed 幂等关键：INSERT OR IGNORE 需唯一约束才会忽略重复
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_seed ON rule(scene, locale, version);
 
 CREATE TABLE IF NOT EXISTS asset (
   key TEXT PRIMARY KEY,
