@@ -77,12 +77,15 @@ class AdminRoutesTest {
         }
         assertEquals(HttpStatusCode.Unauthorized, r3.status)
 
-        // 4. correct password → 302 redirect to /admin
+        // 4. correct password → 302 redirect to /admin + 安全 cookie 标志
         val r4 = c.post("/admin/login") {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody("password=$token")
         }
         assertEquals(HttpStatusCode.Found, r4.status)
+        val setCookie = r4.headers[HttpHeaders.SetCookie]
+        assertTrue("cookie 应含 HttpOnly", setCookie?.contains("HttpOnly") == true)
+        assertTrue("cookie 应含 SameSite=Lax", setCookie?.contains("SameSite=Lax") == true)
 
         // 5. valid cookie → overview 200
         val r5 = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }

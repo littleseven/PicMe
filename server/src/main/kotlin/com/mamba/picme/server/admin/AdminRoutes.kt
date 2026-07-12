@@ -1,6 +1,7 @@
 package com.mamba.picme.server.admin
 
 import io.ktor.http.ContentType
+import io.ktor.http.Cookie
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
@@ -33,10 +34,15 @@ fun Route.adminRoute(adminToken: String) {
             val password = params["password"] ?: ""
             if (adminToken.isNotBlank() && password == adminToken) {
                 call.response.cookies.append(
-                    AdminAuth.COOKIE_NAME,
-                    AdminAuth.expectedCookieValue(adminToken),
-                    path = "/admin",
-                    httpOnly = true,
+                    Cookie(
+                        name = AdminAuth.COOKIE_NAME,
+                        value = AdminAuth.expectedCookieValue(adminToken),
+                        path = "/admin",
+                        httpOnly = true,
+                        secure = call.isHttps(),
+                        // Ktor 3.0.3 的 Cookie 无 sameSite 字段（3.1.0 才加），用 extensions 追加原始属性
+                        extensions = mapOf("SameSite" to "Lax"),
+                    ),
                 )
                 call.respondRedirect("/admin")
             } else {
@@ -50,10 +56,15 @@ fun Route.adminRoute(adminToken: String) {
 
         get("/logout") {
             call.response.cookies.append(
-                AdminAuth.COOKIE_NAME,
-                "",
-                path = "/admin",
-                expires = GMTDate(0),
+                Cookie(
+                    name = AdminAuth.COOKIE_NAME,
+                    value = "",
+                    path = "/admin",
+                    expires = GMTDate(0),
+                    httpOnly = true,
+                    secure = call.isHttps(),
+                    extensions = mapOf("SameSite" to "Lax"),
+                ),
             )
             call.respondRedirect("/admin/login")
         }
@@ -108,3 +119,7 @@ private suspend fun ApplicationCall.adminGuard(adminToken: String): Boolean {
     }
     return true
 }
+
+/** 是否走 HTTPS：nginx 终止 TLS 时按 X-Forwarded-Proto 判断；本地 http dev 返回 false（cookie 不加 Secure）。 */
+private fun ApplicationCall.isHttps(): Boolean =
+    request.headers["X-Forwarded-Proto"]?.equals("https", ignoreCase = true) == true

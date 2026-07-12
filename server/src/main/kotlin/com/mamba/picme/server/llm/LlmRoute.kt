@@ -25,21 +25,20 @@ fun Route.llmRoute(
     listOf("/v1/chat/completions", "/chat/completions").forEach { path ->
         post(path) {
             val clientIp = call.request.clientIp()
-            val tokenHash = call.attributes[TokenHashKey]
-            // auth 拦截器已保证 tokenHash 有效 → accountId 必非空；防御性 ?: 处理。
-            val accountId = AccountService.idForTokenHash(tokenHash)
 
-            // 先读 body 取 model，便于 blocked 行也记录归属模型
-            val body = call.receive<JsonObject>()
-            val requestedModel = (body["model"] as? JsonPrimitive)?.content ?: ""
-
+            // 限流优先：命中限流前不做任何 DB / body 解析，避免洪水请求打满单连接 SQLite
+            // （HikariCP maximumPoolSize=1）。命中限流直接 429，不写 llm_call_log——
+            // 限流命中数见服务日志（CallLogging）；后台「blocked」统计仍含 blocked_quota。
             if (rateLimiter != null && !rateLimiter.allow(clientIp)) {
-                accountId?.let {
-                    UsageRecorder.log(it, requestedModel, "", null, 0, "blocked_rate", null, prices)
-                }
                 call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to "rate_limit_exceeded"))
                 return@post
             }
+
+            val tokenHash = call.attributes[TokenHashKey]
+            // auth 拦截器已保证 tokenHash 有效 → accountId 必非空；防御性 ?: 处理。
+            val accountId = AccountService.idForTokenHash(tokenHash)
+            val body = call.receive<JsonObject>()
+            val requestedModel = (body["model"] as? JsonPrimitive)?.content ?: ""
 
             // Quota check
             if (!AccountService.checkAndIncrementQuota(tokenHash)) {
