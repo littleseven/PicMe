@@ -1,5 +1,12 @@
 package com.mamba.picme.server.config
 
+import com.mamba.picme.server.analytics.Price
+import com.mamba.picme.server.analytics.defaultPrices
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+
 data class AppConfig(
     val host: String,
     val port: Int,
@@ -24,6 +31,9 @@ data class AppConfig(
     val cosRegion: String,
     val cosBucket: String,
     val cosPresignTtlMin: Int,
+    // Admin 后台
+    val adminToken: String,
+    val llmPrices: Map<String, Price>,
 ) {
     companion object {
         fun load(): AppConfig = AppConfig(
@@ -52,6 +62,9 @@ data class AppConfig(
             cosRegion = env("COS_REGION", "ap-hongkong"),
             cosBucket = env("COS_BUCKET", ""),
             cosPresignTtlMin = envInt("COS_PRESIGN_TTL_MIN", 60),
+            // Admin
+            adminToken = env("ADMIN_TOKEN", ""),
+            llmPrices = parsePrices(System.getenv("LLM_PRICES_JSON")),
         )
 
         private fun env(key: String, default: String): String =
@@ -59,5 +72,26 @@ data class AppConfig(
 
         private fun envInt(key: String, default: Int): Int =
             System.getenv(key)?.toIntOrNull() ?: default
+
+        /**
+         * 解析 LLM_PRICES_JSON 覆盖默认单价。格式 {"model":{"in":1.5,"out":6.0}}，合并覆盖默认。
+         * null/空/解析失败 → 走 defaultPrices()。
+         */
+        internal fun parsePrices(json: String?): Map<String, Price> {
+            if (json.isNullOrBlank()) return defaultPrices()
+            return try {
+                val parsed = Json.parseToJsonElement(json).jsonObject
+                defaultPrices().toMutableMap().apply {
+                    parsed.forEach { (model, v) ->
+                        val obj = v as? JsonObject ?: return@forEach
+                        val inn = (obj["in"] as? JsonPrimitive)?.content?.toDoubleOrNull()
+                        val out = (obj["out"] as? JsonPrimitive)?.content?.toDoubleOrNull()
+                        if (inn != null && out != null) this[model] = Price(inn, out)
+                    }
+                }.toMap()
+            } catch (e: Exception) {
+                defaultPrices()
+            }
+        }
     }
 }
