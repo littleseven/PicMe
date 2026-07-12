@@ -1,7 +1,7 @@
 # PicMe 仓库整理方案
 
 > **状态总览**
-> - ✅ 已完成：模块命名文档修正（`CLAUDE.md`/`PRODUCT.md`/`beauty-api/AGENTS.md`/`ON_DEVICE_INFERENCE_INVENTORY` 等）；`server/` 后端骨架落地；Tier 1 安全挪动（`analyze_commits.py`→`scripts/`、`cloudflare/`+`tencentscf/`→`infra/`）。
+> - ✅ 已完成：模块命名文档修正（`CLAUDE.md`/`PRODUCT.md`/`beauty-api/AGENTS.md`/`ON_DEVICE_INFERENCE_INVENTORY` 等）；`server/` 后端骨架落地；Tier 1 安全挪动（`analyze_commits.py`→`scripts/`、`cloudflare/`+`tencentscf/`→`infra/`）；移除空壳 `buildSrc/`、废弃 `tools/json-schema-to-gbnf`、移除 `.cursorrules`（未用 Cursor）。
 > - ⏳ 待定：根 `DEVELOPMENT.md` 去留（§6 #1）；`shared/` 占位（可选）。
 > - ❌ 不做：模块改名（Tier 2，已否决）。
 > - ➖ 留根（有原因）：`CHANGELOG.md`/`RELEASE_NOTE_*`（`release-automation.sh` 写死路径）、`input_images/`（4 个 viz 脚本使用）、`agents/`（AI 工具约定）。
@@ -55,10 +55,10 @@ langchain4android/
 ├── docs/                   # 文档根（changelog/agents 未单列：发版记录留根、agents/ 留根）
 ├── infra/                  # ✅ cloudflare/ + tencentscf/（无服务器实验，已挪入）
 ├── scripts/                # ✅ analyze_commits.py 已挪入
-├── tools/                  # json-schema-to-gbnf（input_images/ 留根，viz 脚本使用）
-├── .claude/  .qoder/       # AI 工具目录，保留
+├── .claude/  .qoder/  .kimi/  .idea/  .github/   # 工具/IDE 目录，保留
 ├── AGENTS.md  AI_TOOLS.md  CLAUDE.md  PRODUCT.md  README.md   # 约定，留根
-├── settings.gradle.kts · build.gradle.kts · gradle/ · gradlew · buildSrc/
+├── CHANGELOG.md  RELEASE_NOTE_*.md  input_images/  agents/    # 留根（发版脚本写死 / viz 脚本用 / AI 约定）
+├── settings.gradle.kts · build.gradle.kts · gradle/ · gradlew   # buildSrc 已移除（空壳）
 └── ...
 ```
 
@@ -79,6 +79,11 @@ langchain4android/
 | `.claude/worktrees`、`.qoder/`、`.claude/` | **保留** | 工具目录（worktrees 由 EnterWorktree 工具管理） |
 
 **风险**：`grep` 引用（CI、脚本路径、文档相对链接）避免断链——本次挪动的 3 项均仅文档提及、无脚本/CI 引用，已验证安全。
+
+**其它清理（已执行）**：
+- 移除 `buildSrc/`：空壳（`build.gradle.kts` 仅声明 `java-gradle-plugin`、无源码）；原 `checkNoFullyQualifiedName` 任务本就未定义、`app/build.gradle.kts:57` 引用已注释。`./gradlew help` 验证根构建配置正常。
+- 移除 `tools/json-schema-to-gbnf/`：GBNF（llama.cpp 语法）工具，本地 LLM 已转 MNN-LLM，废弃（该目录未被 git 跟踪）。
+- 移除 `.cursorrules`：未使用 Cursor IDE；同步清理 `AI_TOOLS.md`、`.kimi/AGENTS.md` 中的引用。
 
 ### Tier 2　模块重命名 —— ❌ 已否决（不做）
 

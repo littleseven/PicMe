@@ -1,7 +1,7 @@
 # PicMe — kimi-cli 项目配置
 
 > **定位**：本文件为 kimi-cli 专用项目级配置，与项目根目录 `AGENTS.md` 共同构成规范体系。  
-> **优先级**：根目录 `AGENTS.md` > 本文件 > `.cursorrules`。模块级 `AGENTS.md` 在其管辖范围内优先。
+> **优先级**：根目录 `AGENTS.md` > 本文件。模块级 `AGENTS.md` 在其管辖范围内优先。
 
 ## 项目速览
 

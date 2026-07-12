@@ -12,7 +12,6 @@
 | **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | 当前主力 AI 开发环境（命令目录与索引） |
 | **Qoder** | `.qoder/skills/` + `.qoder/agents/` | 项目级 | 原主力 AI 开发环境（Skills / Agents），现与 `.claude/commands/` 并存 |
 | **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发；`.kimi/skills` 为 `.qoder/skills` 符号链接 |
-| **Cursor** | `.cursorrules` | 项目级 | Cursor IDE 规范与上下文 |
 | **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、角色职责、全局红线 |
 
 ---
@@ -25,8 +24,6 @@
 根目录 AGENTS.md   ← 全局治理
     ↓
 .kimi/AGENTS.md    ← kimi-cli 专用补充
-    ↓
-.cursorrules       ← 通用代码规范
 ```
 
 > Claude Code 命令以 `.claude/commands/*.md` 为准；当命令与根 `AGENTS.md` 冲突时，以 `AGENTS.md` 顶层治理为准。
