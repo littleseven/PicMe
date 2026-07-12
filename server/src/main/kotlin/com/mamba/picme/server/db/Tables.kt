@@ -46,3 +46,31 @@ object LlmDailyCounters : Table("llm_daily_counter") {
     val blocked = integer("blocked").default(0)
     override val primaryKey = PrimaryKey(day)
 }
+
+// ── 邮箱注册 + 试用额度 ──────────────────────────────────
+
+object Accounts : Table("account") {
+    val id = integer("id").autoIncrement()
+    val email = varchar("email", 256)
+    val tokenHash = varchar("token_hash", 64)          // SHA-256(token)
+    val status = varchar("status", 16).default("active") // active | revoked
+    val llmCallsUsed = integer("llm_calls_used").default(0)
+    val llmCallsLimit = integer("llm_calls_limit").default(100) // 试用额度（次）
+    val createdAt = long("created_at")
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex(email)
+        uniqueIndex(tokenHash)
+    }
+}
+
+object EmailVerifications : Table("email_verification") {
+    val id = integer("id").autoIncrement()
+    val email = varchar("email", 256)
+    val code = varchar("code", 6)
+    val status = varchar("status", 16).default("pending") // pending | used | expired
+    val expiresAt = long("expires_at")
+    val createdAt = long("created_at")
+    override val primaryKey = PrimaryKey(id)
+}

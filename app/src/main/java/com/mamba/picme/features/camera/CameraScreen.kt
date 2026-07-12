@@ -655,30 +655,26 @@ fun CameraContent(
             ?: configs.getConfigByModelId(aiAgentSelectedRemoteModel)
     }
 
-    // 读取腾讯云 SCF Gateway Token（从 DataStore 或 BuildConfig）
-    val cloudflareGatewayToken by userPreferencesRepository.cloudflareGatewayTokenFlow.collectAsState(initial = "")
+    // 读取服务端认证 token（邮箱注册）
+    val serverAuthToken by userPreferencesRepository.serverAuthTokenFlow.collectAsState(initial = "")
 
     // 当关键配置变化时重新创建 UseCase（mode/remoteConfig/forceRemote/gatewayToken 等）
-    // 注意：aiAgentLocalModel 从 DataStore 异步加载，初始值为 ""，加载完成后变为具体模型 ID。
-    // 如果 remember key 包含 aiAgentLocalModel，会导致重组时重新创建 UseCase，
-    // 进而触发 LaunchedEffect 重新加载模型，造成重复加载。
-    // 因此 remember key 只包含稳定配置，模型 ID 通过 LaunchedEffect 动态设置。
     val aiAgentUseCase = remember(
         context,
         aiAgentMode,
         remoteConfig,
         aiAgentInferencePreference,
         aiAgentLocalUseOpencl,
-        cloudflareGatewayToken
+        serverAuthToken
     ) {
         AiAgentUseCase(
             context = context,
             agentMode = aiAgentMode,
-            localModelId = "qwen3_5_2b", // 初始默认值，LaunchedEffect 中会更新为实际值
+            localModelId = "qwen3_5_2b",
             localUseOpencl = aiAgentLocalUseOpencl,
             remoteConfig = remoteConfig,
             forceRemote = aiAgentInferencePreference == AiAgentInferencePreference.FORCE_REMOTE,
-            gatewayToken = cloudflareGatewayToken.takeIf { it.isNotBlank() }
+            gatewayToken = serverAuthToken.takeIf { it.isNotBlank() }
         )
     }
 

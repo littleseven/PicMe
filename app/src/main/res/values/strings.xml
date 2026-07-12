@@ -598,6 +598,8 @@
     <!-- Settings Categories -->
     <string name="personalization">Personalization</string>
     <string name="personalization_desc">Theme, language and interface preferences.</string>
+    <string name="account">Account</string>
+    <string name="account_desc">Email registration, quota and API key binding.</string>
     <string name="ai_assistant">AI Assistant</string>
     <string name="ai_assistant_desc">Agent mode, models, voice control and remote channel.</string>
     <string name="camera_and_beauty">Camera &amp; Beauty</string>

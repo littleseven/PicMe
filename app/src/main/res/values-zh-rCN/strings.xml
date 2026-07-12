@@ -592,6 +592,8 @@
     <!-- 设置分类 -->
     <string name="personalization">个性化</string>
     <string name="personalization_desc">主题、语言与界面偏好。</string>
+    <string name="account">账号</string>
+    <string name="account_desc">邮箱注册、额度与 API Key 绑定。</string>
     <string name="ai_assistant">AI 助手</string>
     <string name="ai_assistant_desc">Agent 模式、模型、语音控制与远程通道。</string>
     <string name="camera_and_beauty">相机与美颜</string>

@@ -31,8 +31,6 @@ val feishuAppId: String = localProperties.getProperty("picme.feishu.app.id")
     ?: System.getenv("PICME_FEISHU_APP_ID") ?: ""
 val feishuAppSecret: String = localProperties.getProperty("picme.feishu.app.secret")
     ?: System.getenv("PICME_FEISHU_APP_SECRET") ?: ""
-val tencentScfAppToken: String = localProperties.getProperty("tencent.scf.app.token")
-    ?: System.getenv("TENCENT_SCF_APP_TOKEN") ?: ""
 
 detekt {
     buildUponDefaultConfig = true
@@ -78,7 +76,6 @@ android {
         // 飞书远程控制默认值（从环境变量注入）
         buildConfigField("String", "FEISHU_APP_ID", "\"${feishuAppId}\"")
         buildConfigField("String", "FEISHU_APP_SECRET", "\"${feishuAppSecret}\"")
-        buildConfigField("String", "TENCENT_SCF_APP_TOKEN", "\"${tencentScfAppToken}\"")
         buildConfigField("String", "CLOUDFLARE_GATEWAY_TOKEN", "\"${System.getenv("CLOUDFLARE_GATEWAY_TOKEN") ?: ""}\"")
     }
 

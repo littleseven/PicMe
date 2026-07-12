@@ -146,6 +146,12 @@ interface UserSettingsRepository {
     val feishuAppSecretFlow: Flow<String>
     suspend fun updateFeishuAppId(appId: String)
     suspend fun updateFeishuAppSecret(appSecret: String)
+
+    // ── 服务端邮箱认证 ──────────────────────────────────────────
+    val serverAuthTokenFlow: Flow<String>
+    val serverAuthEmailFlow: Flow<String>
+    suspend fun updateServerAuth(token: String, email: String)
+    suspend fun clearServerAuth()
 }
 
 

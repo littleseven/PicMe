@@ -149,6 +149,10 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         // 飞书远程控制
         val FEISHU_APP_ID = stringPreferencesKey("feishu_app_id")
         val FEISHU_APP_SECRET = stringPreferencesKey("feishu_app_secret")
+
+        // 服务端邮箱认证
+        val SERVER_AUTH_TOKEN = stringPreferencesKey("server_auth_token")
+        val SERVER_AUTH_EMAIL = stringPreferencesKey("server_auth_email")
     }
 
     private fun parseMediaType(value: String?): MediaType {
@@ -1006,6 +1010,45 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateFeishuAppSecret(appSecret: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FEISHU_APP_SECRET] = appSecret
+        }
+    }
+
+    // ── 服务端邮箱认证 ──────────────────────────────────────────
+    override val serverAuthTokenFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SERVER_AUTH_TOKEN] ?: ""
+        }
+
+    override val serverAuthEmailFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SERVER_AUTH_EMAIL] ?: ""
+        }
+
+    override suspend fun updateServerAuth(token: String, email: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SERVER_AUTH_TOKEN] = token
+            preferences[PreferencesKeys.SERVER_AUTH_EMAIL] = email
+        }
+    }
+
+    override suspend fun clearServerAuth() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.SERVER_AUTH_TOKEN)
+            preferences.remove(PreferencesKeys.SERVER_AUTH_EMAIL)
         }
     }
 }

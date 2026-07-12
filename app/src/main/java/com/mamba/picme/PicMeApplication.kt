@@ -137,15 +137,13 @@ class PicMeApplication : Application(), ImageLoaderFactory {
         // 注册应用级 Capability（只注册一次，永不注销）
         initializeCapabilities()
 
-        // 预配置 AgentOrchestrator 默认远程推理配置（含网关 Token）
-        // 必须在飞书通道初始化之前执行，确保远程推理管道在首次使用时已有可用认证凭证
+        // 预配置 AgentOrchestrator 默认远程推理配置
+        // gatewayToken 异步从 DataStore 加载（syncRemoteModelConfigToOrchestrator）
         AgentOrchestrator.getInstance(this).configure(
             mode = AiAgentMode.REMOTE,
             modelId = "qwen3_5_2b",
             privacyLevel = AiAgentPrivacyLevel.STRICT,
-            remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
-                gatewayToken = BuildConfig.TENCENT_SCF_APP_TOKEN
-            )
+            remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT
         )
         Logger.i(TAG, "Orchestrator pre-configured with fallback remote config")
 
@@ -292,16 +290,16 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                 }.collect { (mode, localModel, privacyLevel, inferencePreference) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PicMeApplication)
                     val effectiveModel = localModel.takeIf { it.isNotBlank() } ?: "qwen3_5_2b"
-                    // 保留已有的远程配置，避免覆盖 gatewayToken 导致远程推理失败
-                    val existingRemoteConfig = orchestrator.getUserRemoteConfig()
+                    // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
+                    // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
                     orchestrator.configure(
                         mode = mode,
                         modelId = effectiveModel,
                         privacyLevel = privacyLevel,
-                        remoteConfig = existingRemoteConfig,
+                        remoteConfig = null,
                         inferencePreference = inferencePreference
                     )
-                    Logger.i(TAG, "Agent orchestrator synced: mode=$mode, model=$effectiveModel, inferencePreference=$inferencePreference, remoteConfig=${existingRemoteConfig?.modelId ?: "null"}")
+                    Logger.i(TAG, "Agent orchestrator synced: mode=$mode, model=$effectiveModel, inferencePreference=$inferencePreference")
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "Agent mode sync failed", e)
@@ -324,19 +322,20 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                 val repository = container.userPreferencesRepository
                 combine(
                     repository.aiAgentRemoteModelConfigsFlow,
-                    repository.aiAgentSelectedRemoteModelFlow
-                ) { configsJson, selectedModelId ->
-                    Pair(configsJson, selectedModelId)
-                }.collect { (configsJson, selectedModelId) ->
+                    repository.aiAgentSelectedRemoteModelFlow,
+                    repository.serverAuthTokenFlow
+                ) { configsJson, selectedModelId, serverToken ->
+                    Triple(configsJson, selectedModelId, serverToken)
+                }.collect { (configsJson, selectedModelId, serverToken) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PicMeApplication)
 
-                    // 使用新版 ProviderConfigs 格式解析（DataStore 已迁移到新格式）
                     val providerConfigs = ProviderConfigs.fromJson(configsJson)
                     val selectedProviderConfig = providerConfigs.configs
                         .find { it.modelId == selectedModelId && it.isConfigured }
                         ?: providerConfigs.configs.firstOrNull { it.isConfigured }
 
                     if (selectedProviderConfig != null && selectedProviderConfig.isConfigured) {
+                        // BYOK 模式：用户配置了自己的 API Key，直连 provider
                         val remoteConfig = selectedProviderConfig.toRemoteModelConfig()
                         orchestrator.configure(
                             mode = orchestrator.getAgentMode(),
@@ -344,11 +343,21 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                             privacyLevel = AiAgentPrivacyLevel.STRICT,
                             remoteConfig = remoteConfig
                         )
-                        // 配置变更后清除 Feishu Agent 缓存，确保下次使用新配置重建
                         orchestrator.clearFeishuAgent()
-                        Logger.i(TAG, "Remote model config synced: model=${remoteConfig.modelId}, provider=${remoteConfig.providerId}, baseUrl=${remoteConfig.baseUrl.take(40)}")
+                        Logger.i(TAG, "Remote model config synced: model=${remoteConfig.modelId}, provider=${remoteConfig.providerId}")
                     } else {
-                        Logger.d(TAG, "No configured remote model found, using fallback")
+                        // 服务端代理模式：使用邮箱注册的 token 认证
+                        val remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
+                            gatewayToken = serverToken
+                        )
+                        orchestrator.configure(
+                            mode = orchestrator.getAgentMode(),
+                            modelId = orchestrator.getCurrentModelId(),
+                            privacyLevel = AiAgentPrivacyLevel.STRICT,
+                            remoteConfig = remoteConfig
+                        )
+                        orchestrator.clearFeishuAgent()
+                        Logger.i(TAG, "Server proxy config synced: token=${if (serverToken.isNotBlank()) "set" else "empty"}")
                     }
                 }
             } catch (e: Exception) {

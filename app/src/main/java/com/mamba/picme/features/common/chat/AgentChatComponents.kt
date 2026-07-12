@@ -539,8 +539,8 @@ fun rememberAgentChatConfig(
             ?: configs.getConfigByModelId(aiAgentSelectedRemoteModel)
     }
 
-    // 读取腾讯云 SCF Gateway Token
-    val cloudflareGatewayToken by settingsRepository.cloudflareGatewayTokenFlow.collectAsState(initial = "")
+    // 读取服务端认证 token（邮箱注册）
+    val serverAuthToken by settingsRepository.serverAuthTokenFlow.collectAsState(initial = "")
 
     // AiAgentUseCase：根据设置动态配置 mode 和 forceRemote
     val aiAgentUseCase = remember(
@@ -548,7 +548,7 @@ fun rememberAgentChatConfig(
         aiAgentInferencePreference,
         aiAgentLocalUseOpencl,
         remoteConfig,
-        cloudflareGatewayToken
+        serverAuthToken
     ) {
         AiAgentUseCase(
             context = context,
@@ -557,7 +557,7 @@ fun rememberAgentChatConfig(
             localUseOpencl = aiAgentLocalUseOpencl,
             remoteConfig = remoteConfig,
             forceRemote = aiAgentInferencePreference == AiAgentInferencePreference.FORCE_REMOTE,
-            gatewayToken = cloudflareGatewayToken.takeIf { it.isNotBlank() }
+            gatewayToken = serverAuthToken.takeIf { it.isNotBlank() }
         )
     }
 

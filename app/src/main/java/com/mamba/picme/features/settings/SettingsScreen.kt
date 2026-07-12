@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storage
@@ -96,6 +97,7 @@ import kotlinx.coroutines.delay
  */
 enum class SettingsCategory {
     MAIN,           // 设置主菜单
+    ACCOUNT,        // 账号
     PERSONALIZATION,// 个性化
     AI_AGENT,       // AI 助手
     GALLERY,        // 相册功能
@@ -392,6 +394,7 @@ private fun SettingsContent(
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
+        SettingsCategory.ACCOUNT -> R.string.account
         SettingsCategory.PERSONALIZATION -> R.string.personalization
         SettingsCategory.AI_AGENT -> R.string.ai_assistant
         SettingsCategory.GALLERY -> R.string.gallery_features
@@ -432,6 +435,16 @@ private fun SettingsContent(
                     onNavigateToModelCenter = { onNavigateToModelCenter("") }
                 )
                 return@Column
+            }
+
+            // ── 0. 账号 ────────────────────────────────────────────
+            if (category == SettingsCategory.ACCOUNT) {
+                SettingsSection(
+                    title = stringResource(R.string.account),
+                    description = stringResource(R.string.account_desc)
+                ) {
+                    ServerAuthSection()
+                }
             }
 
             // ── 1. 个性化（主题与语言已迁移至设置页主菜单顶部）───
@@ -937,18 +950,18 @@ private fun SettingsMainMenu(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             SettingsCategoryCard(
+                title = stringResource(R.string.account),
+                description = stringResource(R.string.account_desc),
+                icon = Icons.Rounded.Person,
+                modifier = Modifier.weight(1f),
+                onClick = { onNavigateToCategory(SettingsCategory.ACCOUNT) }
+            )
+            SettingsCategoryCard(
                 title = stringResource(R.string.ai_assistant),
                 description = stringResource(R.string.ai_assistant_desc),
                 icon = Icons.Rounded.SmartToy,
                 modifier = Modifier.weight(1f),
                 onClick = { onNavigateToCategory(SettingsCategory.AI_AGENT) }
-            )
-            SettingsCategoryCard(
-                title = stringResource(R.string.gallery_features),
-                description = stringResource(R.string.gallery_features_desc),
-                icon = Icons.Rounded.PhotoLibrary,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.GALLERY) }
             )
         }
 
@@ -957,18 +970,18 @@ private fun SettingsMainMenu(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             SettingsCategoryCard(
+                title = stringResource(R.string.gallery_features),
+                description = stringResource(R.string.gallery_features_desc),
+                icon = Icons.Rounded.PhotoLibrary,
+                modifier = Modifier.weight(1f),
+                onClick = { onNavigateToCategory(SettingsCategory.GALLERY) }
+            )
+            SettingsCategoryCard(
                 title = stringResource(R.string.camera_and_beauty),
                 description = stringResource(R.string.camera_and_beauty_desc),
                 icon = Icons.Rounded.CameraAlt,
                 modifier = Modifier.weight(1f),
                 onClick = { onNavigateToCategory(SettingsCategory.CAMERA_BEAUTY) }
-            )
-            SettingsCategoryCard(
-                title = stringResource(R.string.system_and_permissions),
-                description = stringResource(R.string.system_and_permissions_desc),
-                icon = Icons.Rounded.Storage,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.SYSTEM) }
             )
         }
 

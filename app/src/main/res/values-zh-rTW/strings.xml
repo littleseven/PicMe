@@ -570,6 +570,8 @@
     <!-- 設定分類 -->
     <string name="personalization">個人化</string>
     <string name="personalization_desc">主題、語言與介面偏好。</string>
+    <string name="account">帳號</string>
+    <string name="account_desc">郵箱註冊、額度與 API Key 綁定。</string>
     <string name="ai_assistant">AI 助手</string>
     <string name="ai_assistant_desc">Agent 模式、模型、語音控制與遠端通道。</string>
     <string name="camera_and_beauty">相機與美顏</string>

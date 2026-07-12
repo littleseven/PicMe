@@ -1,13 +1,18 @@
 package com.mamba.picme.server
 
+import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.APP_TOKEN_HEADER
+import com.mamba.picme.server.auth.EmailService
 import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
 import com.mamba.picme.server.llm.LlmProxy
 import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
+import com.mamba.picme.server.routes.TokenHashKey
+import com.mamba.picme.server.routes.authRoute
 import com.mamba.picme.server.routes.healthzRoute
+import com.mamba.picme.server.routes.quotaRoute
 import com.mamba.picme.server.routes.recommendRoute
 import com.mamba.picme.server.routes.telemetryRoute
 import io.ktor.client.HttpClient
@@ -15,8 +20,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCallPipeline
-import io.ktor.server.application.install
 import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.BadRequestException
@@ -43,49 +48,54 @@ fun main() {
     }.start(wait = true)
 }
 
+// Public routes that don't require token auth
+private val publicRoutes = setOf("/healthz", "/auth/email/send", "/auth/email/verify")
+
 fun Application.module(config: AppConfig) {
     install(CallLogging) { level = Level.INFO }
     install(DefaultHeaders)
     install(ContentNegotiation) { json(appJson) }
     install(StatusPages) {
         exception<BadRequestException> { call, _ ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                mapOf("error" to "bad_request", "message" to "malformed request body"),
-            )
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "bad_request", "message" to "malformed request body"))
         }
         exception<IllegalArgumentException> { call, cause ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                mapOf("error" to "bad_request", "message" to (cause.message ?: "invalid argument")),
-            )
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "bad_request", "message" to (cause.message ?: "invalid argument")))
         }
         exception<Throwable> { call, cause ->
             logger.error("Unhandled exception in request", cause)
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                mapOf("error" to "internal_error", "message" to (cause.message ?: "internal error")),
-            )
+            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "internal_error", "message" to (cause.message ?: "internal error")))
         }
     }
 
-    // --- App-Token auth (skip for /healthz; skip entirely when appToken is blank = dev mode) ---
-    if (config.appToken.isNotBlank()) {
-        intercept(ApplicationCallPipeline.Plugins) {
-            val uri = call.request.local.uri.substringBefore("?")
-            if (uri == "/healthz") return@intercept
-            val token = call.request.headers[APP_TOKEN_HEADER]
-            if (token != config.appToken) {
-                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
-                finish()
-            }
+    // --- Auth interceptor ---
+    intercept(ApplicationCallPipeline.Plugins) {
+        val uri = call.request.local.uri.substringBefore("?")
+        if (uri in publicRoutes) return@intercept
+
+        val rawToken = call.request.headers[APP_TOKEN_HEADER]
+        if (rawToken == null) {
+            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
+            finish()
+            return@intercept
         }
+
+        val authResult = AccountService.validateToken(rawToken)
+        if (!authResult.valid) {
+            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
+            finish()
+            return@intercept
+        }
+
+        // Store token hash for downstream quota checks
+        authResult.tokenHash?.let { call.attributes.put(TokenHashKey, it) }
     }
 
-    // --- HttpClient for LLM proxy ---
+    // --- HttpClient (shared by LLM proxy + email) ---
     val httpClient = HttpClient(io.ktor.client.engine.cio.CIO) {
         engine { requestTimeout = 60_000 }
     }
+
     val llmProxy = LlmProxy(
         httpClient = httpClient,
         cloudflareUrl = config.cloudflareAigUrl,
@@ -96,11 +106,17 @@ fun Application.module(config: AppConfig) {
         maxTokensCap = config.maxTokensCap,
     )
     val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null
+    val emailService = EmailService(httpClient, config.resendApiKey, config.emailFrom)
 
     routing {
+        // Public
         healthzRoute()
+        authRoute(emailService, config.freeLlmQuota)
+
+        // Protected (auth interceptor above enforces token)
         recommendRoute(appJson)
         telemetryRoute()
+        quotaRoute()
         llmRoute(llmProxy, rateLimiter)
     }
 }

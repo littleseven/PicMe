@@ -7,7 +7,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object Migrations {
     fun run() {
         transaction(Db.instance) {
-            SchemaUtils.create(Rules, Assets, TelemetryEvents, LlmDailyCounters)
+            SchemaUtils.create(
+                Rules, Assets, TelemetryEvents, LlmDailyCounters,
+                Accounts, EmailVerifications,
+            )
             seedRules()
         }
     }

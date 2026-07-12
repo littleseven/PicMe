@@ -41,13 +41,13 @@ import kotlinx.coroutines.withContext
  * @param localUseOpencl 本地模型是否启用 OpenCL 后端
  * @param remoteConfig 用户自定义远程模型配置（完整配置，包含 modelId/apiKey/baseUrl/gatewayToken）
  * @param forceRemote 是否强制使用远程模型（绕过本地模型检查）
- * @param gatewayToken 腾讯云 SCF Gateway Token（兜底用）
+ * @param gatewayToken 邮箱注册获取的服务端认证 token
  */
 class AiAgentUseCase(
     context: Context,
     agentMode: AiAgentMode = AiAgentMode.REMOTE,
     privacyLevel: AiAgentPrivacyLevel = AiAgentPrivacyLevel.STRICT,
-    localModelId: String = "qwen3_5_2b", // 下划线格式，与 ModelManager 注册表一致
+    localModelId: String = "qwen3_5_2b",
     localUseOpencl: Boolean = false,
     remoteConfig: RemoteModelConfig? = null,
     forceRemote: Boolean = false,
@@ -70,12 +70,11 @@ class AiAgentUseCase(
 
     /**
      * 兜底远程模型配置（PicMe Server 代理，无需用户配置）
-     * 使用 BuildConfig 中内嵌的默认 Token
+     * gatewayToken 由 DataStore 异步注入（邮箱注册后的动态 token）
      */
     private val fallbackRemoteConfig: RemoteModelConfig =
         RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
-            gatewayToken = gatewayToken?.takeIf { it.isNotBlank() }
-                ?: BuildConfig.TENCENT_SCF_APP_TOKEN
+            gatewayToken = gatewayToken?.takeIf { it.isNotBlank() } ?: ""
         )
 
     /**
