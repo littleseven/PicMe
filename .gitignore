@@ -41,6 +41,9 @@ Desktop.ini
 .openclaw/workspace/
 USER.md
 
+# Claude Code local config (personal Bash permissions cache, not shared)
+.claude/settings.local.json
+
 # Quality check output
 output_quality_check/
 
