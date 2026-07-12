@@ -1,5 +1,7 @@
 package com.mamba.picme.server.llm
 
+import com.mamba.picme.server.analytics.TokenUsage
+import com.mamba.picme.server.analytics.fromUpstreamBytes
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsBytes
@@ -129,8 +131,15 @@ class LlmProxy(
             setBody(payload.toString())
         }
 
+        val bytes = resp.bodyAsBytes()
         logger.info("Cloudflare response status={}, ip={}", resp.status.value, clientIp)
-        return ProxyResult.Success(resp.status, resp.bodyAsBytes())
+        return ProxyResult.Success(
+            status = resp.status,
+            bytes = bytes,
+            model = upstreamModel,
+            provider = LlmProvider.CLOUDFLARE,
+            usage = fromUpstreamBytes(bytes),
+        )
     }
 
     private suspend fun forwardToTokenhub(
@@ -159,13 +168,26 @@ class LlmProxy(
             setBody(payload.toString())
         }
 
+        val bytes = resp.bodyAsBytes()
         logger.info("TokenHub response status={}, ip={}", resp.status.value, clientIp)
-        return ProxyResult.Success(resp.status, resp.bodyAsBytes())
+        return ProxyResult.Success(
+            status = resp.status,
+            bytes = bytes,
+            model = upstreamModel,
+            provider = LlmProvider.TOKENHUB,
+            usage = fromUpstreamBytes(bytes),
+        )
     }
 }
 
 sealed class ProxyResult {
-    data class Success(val status: HttpStatusCode, val bytes: ByteArray) : ProxyResult()
+    data class Success(
+        val status: HttpStatusCode,
+        val bytes: ByteArray,
+        val model: String,
+        val provider: LlmProvider,
+        val usage: TokenUsage?,
+    ) : ProxyResult()
     data class Error(val status: HttpStatusCode, val body: JsonObject) : ProxyResult()
 }
 

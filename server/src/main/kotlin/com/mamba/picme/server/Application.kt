@@ -117,6 +117,6 @@ fun Application.module(config: AppConfig) {
         recommendRoute(appJson)
         telemetryRoute()
         quotaRoute()
-        llmRoute(llmProxy, rateLimiter)
+        llmRoute(llmProxy, rateLimiter, config.llmPrices)
     }
 }
