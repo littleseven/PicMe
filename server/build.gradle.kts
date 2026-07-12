@@ -23,6 +23,8 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
     implementation("io.ktor:ktor-server-default-headers:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    // 管理后台：服务端渲染 HTML（kotlinx.html 由其传递依赖带入）
+    implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
     // Ktor client（LLM 流式代理）
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
@@ -38,6 +40,11 @@ dependencies {
     // 序列化 & 日志
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("ch.qos.logback:logback-classic:1.5.12")
+
+    // 测试（server 首次引入测试基建）
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
 }
 
 application {
