@@ -1032,21 +1032,21 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - 将人脸检测卸载触发条件从“引用计数”与“场景状态”解耦。
   - 相机离开（`CAMERA -> OTHER/CHAT/SETTINGS`）时可触发卸载，即使仍有 owner 存在。
 - **涉及文件**
-  - `agent-core/src/main/java/com/picme/agent/core/mnn/MnnResourceManager.kt`
-  - `app/src/main/java/com/picme/features/camera/CameraScreen.kt`
+  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt`
 - **验收标准**
   - 从相机页切到非相机场景后，5~10s 内触发 face unload 回调。
   - 不依赖手动 `manager.release()` 才能卸载。
 
 ### P0-2 增加监听器反注册，避免泄漏
 - **改造点**
-  - 给 `LocalLlmEngine` / `SherpaMnnAsrEngine` 增加 `close()/releaseAll()` 生命周期收口。
+  - 给 `LocalLlmEngine` / `SherpaOnnxAsrEngine` 增加 `close()/releaseAll()` 生命周期收口。
   - 在销毁时调用：
     - `unregisterSoftTrimListener`
     - `unregisterSafeUnloadListener`
 - **涉及文件**
-  - `agent-core/src/main/java/com/picme/agent/core/LocalLlmEngine.kt`
-  - `agent-core/src/main/java/com/picme/agent/core/voice/SherpaMnnAsrEngine.kt`
+  - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
+  - `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt`
 - **验收标准**
   - 反复进入/退出页面、切换 ASR/LLM 100 次后，监听器数量不增长。
 
@@ -1055,8 +1055,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - `OnlineRecognizer` / `OnlineStream` 改为 `Closeable/AutoCloseable` + 显式 `close()`。
   - 业务层统一在 `try/finally` 或 `use {}` 中释放。
 - **涉及文件**
-  - `agent-core/src/main/java/com/k2fsa/sherpa/mnn/OnlineRecognizer.kt`
-  - `agent-core/src/main/java/com/k2fsa/sherpa/mnn/OnlineStream.kt`
+  - `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt`
+  - （注：`OnlineRecognizer`/`OnlineStream` 为 sherpa-onnx `.aar` 库内类（`com.k2fsa.sherpa`），非本项目源码；Closeable 释放应在其封装层 `SherpaOnnxAsrEngine` 内用 try/finally 或 `use{}`）
 - **验收标准**
   - 不再依赖 GC 时机回收 native 资源。
   - 长时间运行 native 内存曲线稳定。
@@ -1069,9 +1069,9 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
     - `FULL`: 释放权重与解释器（彻底卸载）
   - 人脸、ASR、LLM 都对齐这三档语义。
 - **涉及文件**
-  - `agent-core/src/main/java/com/picme/agent/core/mnn/MnnResourceManager.kt`
-  - `agent-core/src/main/java/com/picme/agent/core/llm/MnnLlmClient.kt`
-  - `beauty-engine/src/main/java/com/picme/beauty/internal/facedetect/mnn/MnnFaceDetector.kt`
+  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt`
+  - `beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/mnn/MnnFaceDetector.kt`
   - `beauty-engine/src/main/cpp/mnn_jni_bridge.cpp`
 - **验收标准**
   - 设置页或调试页可独立触发某模块三档释放，行为一致。
@@ -1130,9 +1130,9 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
     - **WARM**：仅保留模型（Interpreter），无 Session，首 Token 延迟 ~500ms（中功耗 ~600MB）
     - **COLD**：模型未加载，首 Token 延迟 ~2s（低功耗 ~0MB native 额外占用）
 - **涉及文件**
-  - `agent-core/src/main/java/com/picme/agent/core/mnn/MnnResourceManager.kt`
-  - `agent-core/src/main/java/com/picme/agent/core/LocalLlmEngine.kt`
-  - `agent-core/src/main/java/com/picme/agent/core/model/AgentModels.kt`（新增 `ModelUsagePattern`）
+  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
+  - `runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/AgentModels.kt`（新增 `ModelUsagePattern`）
 - **验收标准**
   - 相机 → 相册 → 设置 → 聊天，LLM 全程保持 WARM+，不触发 FULL 卸载。
   - Face 离开相机页后正常卸载（不受 LLM 策略影响）。
@@ -1164,9 +1164,9 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - 预加载策略：App 启动时后台异步加载 LLM 到 WARM，无需等待首次交互。
   - LRU 驱逐：当 native 内存压力达到阈值时，优先 SOFT 降级 LLM（释放 KV Cache），其次 SESSION 降级（释放 Session），最后 FULL 卸载 Face（已离开相机页则直接卸载）。此驱逐顺序由手动或内存压力信号触发，**不依赖电量自动降级**。
 - **涉及文件**
-  - `agent-core/src/main/java/com/picme/agent/core/mnn/MnnResourceManager.kt`
-  - `app/src/main/java/com/picme/features/common/chat/AgentLoadingIndicator.kt`（新增或修改）
-  - `app/src/main/java/com/picme/domain/usecase/AiAgentUseCase.kt`
+  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `app/src/main/java/com/mamba/picme/features/common/chat/AgentLoadingIndicator.kt`（新增或修改）
+  - `app/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt`
 - **验收标准**
   - WARM → HOT 恢复延迟 < 500ms。
   - COLD → HOT 加载期间显示 loading UI，不阻塞主线程。
