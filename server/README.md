@@ -18,10 +18,12 @@ App 后端单体，支撑「推荐拍照 + 图片优化」。Monorepo 子工程�
 
 ## 本地开发
 ```bash
-./gradlew -p server run            # 起 127.0.0.1:8080
+./server/run-local.sh start        # 便捷：后台启动 + 等就绪 + 打印 curl 命令（stop/restart/run/status/logs 见脚本 -h）
+# 或裸启动：
+./gradlew -p server run            # 起 127.0.0.1:8080（前台）
 curl http://127.0.0.1:8080/healthz
 ```
-配置走环境变量（见 `.env.example`），DB 本地建为 `picme.db`（SQLite，SchemaUtils 自动建表）。
+配置走环境变量（见 `.env.example`）；`run-local.sh` 默认 DB 落 `server/build/picme.db`，不污染源码树。
 
 ## 构建
 ```bash
@@ -29,6 +31,6 @@ curl http://127.0.0.1:8080/healthz
 ```
 
 ## 部署
-`deploy.sh`（构建 → rsync → systemctl restart → curl healthz）+ `picme-api.service`（systemd，`MemoryMax=400M`，与 OpenClaw 共享 2G 盒子）。
+`deploy.sh`（构建 → rsync → systemctl restart → curl healthz）+ `picme-api.service`（systemd，`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`，与 OpenClaw 共享 2G 盒子）。
 
 架构与决策见 `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`。
