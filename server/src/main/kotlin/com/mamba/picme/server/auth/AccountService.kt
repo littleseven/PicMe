@@ -137,6 +137,14 @@ object AccountService {
         return AuthResult(true, hash)
     }
 
+    /** tokenHash → account.id；用于 llm_call_log 写入归属。 */
+    suspend fun idForTokenHash(tokenHash: String): Int? {
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            Accounts.selectAll().where { Accounts.tokenHash eq tokenHash }
+                .firstOrNull()?.let { it[Accounts.id] }
+        }
+    }
+
     // ── Quota ──
 
     data class QuotaInfo(val email: String, val llmCallsUsed: Int, val llmCallsLimit: Int)
