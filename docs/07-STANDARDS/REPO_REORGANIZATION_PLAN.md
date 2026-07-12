@@ -13,7 +13,7 @@
 | **A. 顶层杂乱** | 根目录堆 15+ 松散项：脚本、测试图、两个无服务器实验、重复文档、废弃目录 | 待整理（Tier 1） |
 | **B. 文档误归因模块** | 旧文档把 Agent Runtime 错误归到 `agent-core`；实际 `runtime-core`=本地 Agent Runtime、`agent-core`=langchain4j 适配 | ✅ 已改文档解决（**不改模块名**） |
 | **C. 文档重复** | 根 `DEVELOPMENT.md`(6KB) 与 `docs/05-DEVELOPMENT/DEVELOPMENT.md`(25KB) 并存 | 待处理（Tier 1） |
-| **D. 废弃残留** | `.qoder/`（已迁移到 `.claude/commands`）、`.claude/worktrees` 旧条目 | 待清理（Tier 1） |
+| **D. 失效残留** | `.claude/worktrees` 旧条目（`.qoder/` 是 Qoder AI 工具目录，**保留**） | 待清理（Tier 1） |
 
 **模块语义（保持现状，不改名）**：
 - `:runtime-core` = **本地 Agent Runtime**（编排本地 Qwen + 远程推理；包 `com.mamba.picme.agent.core`）。
@@ -33,7 +33,21 @@ langchain4android/
 ├── agent-core/              # langchain4j 的 Android 适配层（包 com.mamba.client）—— 不改名
 ├── mnn-core/                # MNN JNI
 ├── sentencepiece/           # tokenizer
-├── server/                  # 【新】Ktor 后端（已落地）
+├── server/                  # 【新】Ktor 后端（独立 Gradle build，见下展开）
+│   ├── settings.gradle.kts  # rootProject.name=picme-server，不纳入安卓 settings
+│   ├── build.gradle.kts
+│   ├── src/main/kotlin/com/mamba/picme/server/
+│   │   ├── Application.kt            # 入口 + 插件 + 路由装配
+│   │   ├── config/AppConfig.kt       # 环境变量配置
+│   │   ├── db/{Db,Tables,Migrations}.kt   # SQLite + Exposed
+│   │   ├── recommend/RuleEngine.kt   # 规则型推荐
+│   │   ├── routes/{Healthz,Recommend,Telemetry,Llm,Assets}Route.kt
+│   │   ├── llm/                      # OpenAiProxy（DeepSeek/TokenHub/CF，待实现）
+│   │   ├── cos/                      # CosSigner（COS 预签名，待实现）
+│   │   └── ratelimit/                # 100/min + 日预算¥20（待实现）
+│   ├── src/main/resources/logback.xml
+│   ├── migrations/{001_init.sql, seed_rules.sql}
+│   └── .env.example  deploy.sh  picme-api.service  README.md  .gitignore
 ├── shared/                  # 【新】端云共享 Kotlin（占位，将来 DTO/规则）
 ├── docs/
 │   ├── changelog/           # ← RELEASE_NOTE_*.md、CHANGELOG.md
@@ -43,6 +57,7 @@ langchain4android/
 ├── tools/                   # json-schema-to-gbnf + test-images/(← input_images/)
 ├── buildSrc/                # Gradle 构建逻辑（保留）
 ├── AGENTS.md  AI_TOOLS.md  CLAUDE.md  PRODUCT.md  README.md   # 约定，留根
+├── .claude/  .qoder/       # AI 协作工具目录（Claude Code / Qoder），保留
 ├── settings.gradle.kts  build.gradle.kts  gradle/  gradlew
 └── ...
 ```
@@ -64,7 +79,6 @@ langchain4android/
 | `RELEASE_NOTE_*.md`、`CHANGELOG.md` | `docs/changelog/` | 发版记录归位 |
 | `DEVELOPMENT.md`（根） | **删除**（docs/05-DEVELOPMENT 更全）或改一行指针 | 去重 |
 | `agents/*.md` | `docs/agents/`（可选） | AI persona 定义 |
-| `.qoder/` | **删除**（已迁移到 .claude/commands） | 废弃 |
 | `.claude/worktrees` | 清理失效条目 | |
 | `AGENTS.md`/`AI_TOOLS.md`/`CLAUDE.md`/`PRODUCT.md`/`README.md` | **留根** | AI 协作约定 |
 
@@ -112,7 +126,6 @@ langchain4android/
 > Tier 2（模块改名）已定**不做**。剩余决策：
 
 1. **`cloudflare/`、`tencentscf/`**（无服务器实验）：归 `infra/` 保留 / 删除（若已弃用）？
-2. **`.qoder/`**：确认可删？
-3. **根 `DEVELOPMENT.md`**：删 / 改指针？
-4. **`agents/*.md`**：留根 / 挪 `docs/agents/`？
-5. **范围**：只做 Tier 1（最稳）/ Tier 1 + Tier 4 的 `shared/` 占位？
+2. **根 `DEVELOPMENT.md`**：删 / 改指针？
+3. **`agents/*.md`**：留根 / 挪 `docs/agents/`？
+4. **范围**：只做 Tier 1（最稳）/ Tier 1 + Tier 4 的 `shared/` 占位？
