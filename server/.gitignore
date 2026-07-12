@@ -1,4 +1,5 @@
 build/
+.gradle/
 .env
 *.db
 *.db-journal
