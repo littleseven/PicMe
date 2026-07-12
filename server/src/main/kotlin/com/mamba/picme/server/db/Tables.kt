@@ -74,3 +74,27 @@ object EmailVerifications : Table("email_verification") {
     val createdAt = long("created_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+// ── LLM 调用日志（管理后台唯一事实源）──────────────────────
+// 每次 /v1/chat/completions（含被限流/超额拦截、上游错误）写一行。
+// account 表的 llm_calls_used 继续只管「额度计数」，与此处的「分析用量」职责分离。
+object LlmCallLogs : Table("llm_call_log") {
+    val id = long("id").autoIncrement()
+    val accountId = integer("account_id")
+    val model = varchar("model", 128)
+    val provider = varchar("provider", 32) // CLOUDFLARE | TOKENHUB
+    val promptTokens = integer("prompt_tokens").nullable()
+    val completionTokens = integer("completion_tokens").nullable()
+    val totalTokens = integer("total_tokens").nullable()
+    val costCny = double("cost_cny").default(0.0)
+    val respBytes = integer("resp_bytes").default(0)
+    val status = varchar("status", 24) // ok | upstream_error | blocked_quota | blocked_rate
+    val latencyMs = integer("latency_ms").nullable()
+    val createdAt = long("created_at")
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        index(isUnique = false, accountId, createdAt) // 用户详情按 account_id+时间查
+        index(isUnique = false, createdAt)            // 概览/流量按时间聚合
+    }
+}
