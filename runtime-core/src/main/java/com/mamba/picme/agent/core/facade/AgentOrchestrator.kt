@@ -439,7 +439,7 @@ class AgentOrchestrator private constructor(context: Context) {
         val preference = configurator.getInferencePreference()
         Logger.d(tag, "streamChat: preference=$preference, input='$input'")
 
-        return when (preference) {
+        val result = when (preference) {
             AiAgentInferencePreference.FORCE_LOCAL -> {
                 Logger.i(tag, "streamChat routing to LOCAL (FORCE_LOCAL)")
                 streamChatLocal(input, agentContext, onToken)
@@ -454,6 +454,18 @@ class AgentOrchestrator private constructor(context: Context) {
                 streamChatRemote(input, agentContext, onToken)
             }
         }
+
+        // 回写本轮到 MemoryManager：streamChatLocal/Remote 只经 buildContextMessages 读历史，
+        // 此前未回写 → MemoryManager 永远为空 → 多轮对话无记忆（每轮 promptTokens 不增长）。
+        // 成功才追加 [user, assistant]；await 以保证下一轮 loadHistory 能看到本轮。
+        if (agentContext.memorySessionId.isNotBlank()) {
+            result.getOrNull()?.let { streamResult ->
+                val replyText = (streamResult.commands.firstOrNull { it is AgentCommand.TextReply }
+                    as? AgentCommand.TextReply)?.message ?: streamResult.fullResponse
+                memoryManager.appendConversation(agentContext.memorySessionId, input, replyText)
+            }
+        }
+        return result
     }
 
     private suspend fun streamChatLocal(
