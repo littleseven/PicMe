@@ -64,12 +64,15 @@ captures/
 *.keystore
 app/keystore/
 
-# Kotlin compiler error logs
-.kotlin/errors/
+# Kotlin compiler cache
+.kotlin/
 
 # Python cache
 __pycache__/
 *.pyc
+
+# Generated visualization output
+output_images/
 
 # Temporary model download cache
 tmp_models/
