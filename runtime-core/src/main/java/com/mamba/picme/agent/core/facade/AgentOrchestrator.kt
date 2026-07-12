@@ -423,7 +423,7 @@ class AgentOrchestrator private constructor(context: Context) {
      *
      * 根据 [AiAgentInferencePreference] 决定使用本地还是远程推理：
      * - FORCE_LOCAL：本地 MNN-LLM 流式推理
-     * - FORCE_REMOTE：远程 API 流式推理（用户配置优先，无配置时用 TENCENT_SCF_DEFAULT 兜底）
+     * - FORCE_REMOTE：远程 API 流式推理（用户配置优先，无配置时用 PICME_SERVER_DEFAULT 兜底）
      * - AUTO：CHAT 场景默认使用远程推理
      *
      * @param input 用户输入
@@ -616,9 +616,9 @@ class AgentOrchestrator private constructor(context: Context) {
                 "hasApiKey=${userConfig.apiKey.isNotBlank()}")
             return userConfig
         }
-        // 最终兜底：无任何可用配置时使用 SCF 默认网关
-        Logger.w(tag, "resolveRemoteConfig: no stored config available, falling back to TENCENT_SCF_DEFAULT")
-        return RemoteModelConfig.TENCENT_SCF_DEFAULT
+        // 最终兜底：无任何可用配置时使用 Server 默认网关
+        Logger.w(tag, "resolveRemoteConfig: no stored config available, falling back to PICME_SERVER_DEFAULT")
+        return RemoteModelConfig.PICME_SERVER_DEFAULT
     }
 
     /**

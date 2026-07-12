@@ -187,7 +187,7 @@ class AgentConfigurator(private val context: Context) {
             .logRequests(true)
             .logResponses(true)
         if (config.gatewayToken.isNotBlank()) {
-            builder.customHeader("X-Gateway-Token", config.gatewayToken)
+            builder.customHeader("X-App-Token", config.gatewayToken)
         }
         Logger.i(tag, "RemoteChatModel created: model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
         return builder.build()
@@ -202,14 +202,14 @@ class AgentConfigurator(private val context: Context) {
 
     /**
      * 获取或创建飞书 ReAct Agent。
-     * 优先使用用户配置的远程模型，未配置时使用腾讯 SCF 默认兜底。
+     * 优先使用用户配置的远程模型，未配置时使用 PicMe Server 默认兜底。
      *
      * 当用户配置发生变更时（cachedFeishuAgentConfig != userRemoteConfig），
      * 自动重建 Agent 以确保使用最新的 API Key / baseUrl / model。
      */
     fun getFeishuAgent(windowManager: WindowManager, callback: RemoteReActAgentCallback): RemoteReActAgent? {
         val existing = cachedFeishuAgent
-        val currentConfig = userRemoteConfig ?: RemoteModelConfig.TENCENT_SCF_DEFAULT
+        val currentConfig = userRemoteConfig ?: RemoteModelConfig.PICME_SERVER_DEFAULT
 
         // 配置变更检测：如果用户修改了远程模型配置，重建 Agent
         if (existing != null && cachedFeishuAgentConfig != null) {

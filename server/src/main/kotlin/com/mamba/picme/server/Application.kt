@@ -1,15 +1,22 @@
 package com.mamba.picme.server
 
+import com.mamba.picme.server.auth.APP_TOKEN_HEADER
 import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
+import com.mamba.picme.server.llm.LlmProxy
+import com.mamba.picme.server.llm.llmRoute
+import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.healthzRoute
 import com.mamba.picme.server.routes.recommendRoute
 import com.mamba.picme.server.routes.telemetryRoute
+import io.ktor.client.HttpClient
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.install
+import io.ktor.server.application.call
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.BadRequestException
@@ -41,8 +48,6 @@ fun Application.module(config: AppConfig) {
     install(DefaultHeaders)
     install(ContentNegotiation) { json(appJson) }
     install(StatusPages) {
-        // 顺序敏感：具体异常先注册，Throwable 兜底放最后。统一返回 {error, message}，不泄露堆栈。
-        // Ktor 3 handler 形式为 suspend (call, cause) -> Unit。
         exception<BadRequestException> { call, _ ->
             call.respond(
                 HttpStatusCode.BadRequest,
@@ -63,9 +68,39 @@ fun Application.module(config: AppConfig) {
             )
         }
     }
+
+    // --- App-Token auth (skip for /healthz; skip entirely when appToken is blank = dev mode) ---
+    if (config.appToken.isNotBlank()) {
+        intercept(ApplicationCallPipeline.Plugins) {
+            val uri = call.request.local.uri.substringBefore("?")
+            if (uri == "/healthz") return@intercept
+            val token = call.request.headers[APP_TOKEN_HEADER]
+            if (token != config.appToken) {
+                call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
+                finish()
+            }
+        }
+    }
+
+    // --- HttpClient for LLM proxy ---
+    val httpClient = HttpClient(io.ktor.client.engine.cio.CIO) {
+        engine { requestTimeout = 60_000 }
+    }
+    val llmProxy = LlmProxy(
+        httpClient = httpClient,
+        cloudflareUrl = config.cloudflareAigUrl,
+        cloudflareAigToken = config.cloudflareAigToken,
+        tokenhubUrl = config.tokenhubUrl,
+        tokenhubApiToken = config.tokenhubApiToken,
+        forceProvider = config.forceProvider.takeIf { it.isNotBlank() },
+        maxTokensCap = config.maxTokensCap,
+    )
+    val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null
+
     routing {
         healthzRoute()
         recommendRoute(appJson)
         telemetryRoute()
+        llmRoute(llmProxy, rateLimiter)
     }
 }

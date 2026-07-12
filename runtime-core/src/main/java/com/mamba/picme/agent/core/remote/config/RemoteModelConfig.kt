@@ -47,13 +47,19 @@ data class RemoteModelConfig(
 
     companion object {
         /**
-         * 腾讯云 SCF AI Gateway 默认配置
+         * PicMe Server 默认配置（LLM 代理 + 密钥托管）
+         *
+         * 客户端通过 X-App-Token header 认证，服务端持有 Cloudflare/TokenHub 密钥。
+         * 老客户端仍可走 SCF (https://1412656811-f92agkf1y7.ap-guangzhou.tencentscf.com/)。
          */
-        val TENCENT_SCF_DEFAULT = RemoteModelConfig(
+        val PICME_SERVER_DEFAULT = RemoteModelConfig(
             modelId = "deepseek-v4-flash-202605",
             protocol = RemoteProtocol.OPENAI,
-            baseUrl = "https://1412656811-f92agkf1y7.ap-guangzhou.tencentscf.com/"
+            baseUrl = "https://api.polang.net/"
         )
+
+        @Deprecated("Use PICME_SERVER_DEFAULT", ReplaceWith("PICME_SERVER_DEFAULT"))
+        val TENCENT_SCF_DEFAULT: RemoteModelConfig get() = PICME_SERVER_DEFAULT
 
         /**
          * 预定义的远程模型供应商列表

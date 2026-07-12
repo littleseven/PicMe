@@ -11,11 +11,12 @@ import java.util.concurrent.TimeUnit
  * OpenAI 兼容 API 客户端工厂
  *
  * 创建配置好的 Retrofit 实例和 OpenAiApiService。
- * 用于连接 OpenAI 兼容接口（如 tokenhub.tencentmaas.com/v1/）。
+ * 默认连接 PicMe Server (api.polang.net)，也支持 BYOK 直连其他 OpenAI 兼容接口。
  *
- * @param apiKey API Key（以 Bearer 方式认证）
- * @param baseUrl API 基础地址，默认 https://tokenhub.tencentmaas.com/v1/
+ * @param apiKey API Key（以 Bearer 方式认证，BYOK 模式使用）
+ * @param baseUrl API 基础地址，默认 https://api.polang.net/
  * @param enableLogging 是否启用 HTTP 请求日志
+ * @param gatewayToken X-App-Token 认证值（PicMe Server 共享密钥）
  */
 class OpenAiApiClient(
     private val apiKey: String = "",
@@ -26,7 +27,7 @@ class OpenAiApiClient(
 
     companion object {
         private const val TAG = "OpenAi"
-        private const val DEFAULT_BASE_URL = "https://tokenhub.tencentmaas.com/v1/"
+        private const val DEFAULT_BASE_URL = "https://api.polang.net/"
         private const val CONNECT_TIMEOUT_SECONDS = 15L
         private const val READ_TIMEOUT_SECONDS = 60L
         private const val WRITE_TIMEOUT_SECONDS = 30L
@@ -48,7 +49,7 @@ class OpenAiApiClient(
                     requestBuilder.addHeader("Authorization", "Bearer $apiKey")
                 }
 
-                // 腾讯云 SCF / Cloudflare AI Gateway 认证头
+                // PicMe Server 认证头（X-App-Token，与 SCF / BuildConfig 共用同一个值）
                 gatewayToken?.takeIf { it.isNotBlank() }?.let { token ->
                     requestBuilder.addHeader("X-App-Token", token)
                 }

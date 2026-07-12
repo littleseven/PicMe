@@ -35,7 +35,7 @@ object RemoteModelFactory {
      * 设置所有公共远程推理参数，调用方可链式追加额外配置：
      * ```
      * val factory = RemoteModelFactory.createBuilder(config)
-     *     .customHeader("X-Gateway-Token", token)
+     *     .customHeader("X-App-Token", token)
      *     .listeners(myListener)
      *     .build()
      * ```

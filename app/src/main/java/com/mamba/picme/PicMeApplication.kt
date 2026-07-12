@@ -143,7 +143,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
             mode = AiAgentMode.REMOTE,
             modelId = "qwen3_5_2b",
             privacyLevel = AiAgentPrivacyLevel.STRICT,
-            remoteConfig = RemoteModelConfig.TENCENT_SCF_DEFAULT.copy(
+            remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
                 gatewayToken = BuildConfig.TENCENT_SCF_APP_TOKEN
             )
         )

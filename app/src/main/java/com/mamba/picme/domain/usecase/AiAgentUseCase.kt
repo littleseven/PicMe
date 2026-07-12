@@ -69,11 +69,11 @@ class AiAgentUseCase(
         remoteConfig?.takeIf { it.baseUrl.isNotBlank() && it.modelId.isNotBlank() }
 
     /**
-     * 兜底远程模型配置（腾讯云 SCF Gateway，无需用户配置）
+     * 兜底远程模型配置（PicMe Server 代理，无需用户配置）
      * 使用 BuildConfig 中内嵌的默认 Token
      */
     private val fallbackRemoteConfig: RemoteModelConfig =
-        RemoteModelConfig.TENCENT_SCF_DEFAULT.copy(
+        RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
             gatewayToken = gatewayToken?.takeIf { it.isNotBlank() }
                 ?: BuildConfig.TENCENT_SCF_APP_TOKEN
         )

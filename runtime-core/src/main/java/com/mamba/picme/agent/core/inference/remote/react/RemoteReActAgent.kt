@@ -54,7 +54,7 @@ class RemoteReActAgent(
             .logResponses(true)
 
         config.gatewayToken?.let {
-            builder.customHeader("X-Gateway-Token", it)
+            builder.customHeader("X-App-Token", it)
         }
 
         builder.listeners(object : ChatModelListener {
