@@ -1,0 +1,154 @@
+package com.mamba.picme.server.admin
+
+import com.mamba.picme.server.db.Accounts
+import com.mamba.picme.server.db.Db
+import com.mamba.picme.server.db.LlmCallLogs
+import com.mamba.picme.server.util.TestDb
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class AdminQueriesTest {
+
+    private val day = 86_400_000L
+    private val now = 1_700_000_000_000L
+    private val todayStart = now - (now % day)
+
+    @Test
+    fun `overview users detail recent and daily aggregates`() = runBlocking {
+        TestDb.init(Accounts, LlmCallLogs)
+
+        // 两个账户：A 5 天前注册，B 今日注册
+        account(1, "a@x.com", todayStart - 5 * day)
+        account(2, "b@x.com", todayStart + 10)
+
+        // 今日 A 成功
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 100, 50, 150, 1.0, 1024, "ok", todayStart + 1000)
+        // 今日 A 超额拦截
+        logRow(1, "deepseek-chat", "CLOUDFLARE", null, null, null, 0.0, 0, "blocked_quota", todayStart + 2000)
+        // 昨日 A 成功
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 200, 100, 300, 2.0, 2048, "ok", todayStart - day + 500)
+        // 今日 B 成功
+        logRow(2, "kimi-k2.6", "TOKENHUB", 10, 5, 15, 0.5, 100, "ok", todayStart + 3000)
+
+        // overview
+        val o = AdminQueries.overview(now)
+        assertEquals(2L, o.totalUsers)
+        assertEquals(1L, o.newUsersToday) // 仅 B
+        assertEquals(2L, o.callsToday) // 今日两个 ok
+        assertEquals(165L, o.tokensToday) // 150 + 15
+        assertEquals(1.5, o.costToday, 0.000001) // 1.0 + 0.5
+        assertEquals(1124L, o.bytesToday) // 1024 + 100
+        assertEquals(1L, o.blockedToday)
+
+        // users（按 createdAt desc：B 在前）
+        val users = AdminQueries.usersList()
+        assertEquals(2, users.size)
+        val bRow = users[0]
+        assertEquals("b@x.com", bRow.email)
+        assertEquals(1L, bRow.calls)
+        assertEquals(15L, bRow.totalTokens)
+        assertEquals(0.5, bRow.cost, 0.000001)
+        val aRow = users[1]
+        assertEquals("a@x.com", aRow.email)
+        assertEquals(2L, aRow.calls) // 今日 + 昨日 ok
+        assertEquals(450L, aRow.totalTokens) // 150 + 300
+        assertEquals(3.0, aRow.cost, 0.000001)
+        assertEquals(todayStart + 2000, aRow.lastActive) // 最后一条是今日 blocked
+
+        // detail for A
+        val a = AdminQueries.userDetail(1)!!
+        assertEquals(2L, a.calls)
+        assertEquals(450L, a.totalTokens)
+        assertEquals(3.0, a.cost, 0.000001)
+        assertEquals(1L, a.blocked)
+        assertEquals(3072L, a.bytes) // A 所有 respBytes：1024 + 0(blocked) + 2048 = 3072
+        assertEquals(todayStart + 2000, a.lastActive)
+
+        // detail for unknown
+        assertNull(AdminQueries.userDetail(999))
+
+        // recent calls for A（按时间 desc）
+        val aRecent = AdminQueries.recentCalls(1, 10)
+        assertEquals(3, aRecent.size)
+        assertEquals("blocked_quota", aRecent[0].status) // 最新在前
+        assertEquals("ok", aRecent[2].status)
+
+        // daily series 7 天：升序，今日 + 昨日有数据
+        val series = AdminQueries.dailySeries(7, now)
+        assertEquals(7, series.size)
+        val todayBucket = series.last()
+        assertEquals(2L, todayBucket.calls)
+        assertEquals(1L, todayBucket.blocked)
+        assertEquals(165L, todayBucket.totalTokens)
+        assertEquals(1.5, todayBucket.cost, 0.000001)
+        assertEquals(1124L, todayBucket.bytes)
+        val yBucket = series[5] // 倒数第二 = 昨天
+        assertEquals(1L, yBucket.calls)
+        assertEquals(300L, yBucket.totalTokens)
+        // 中间空日
+        assertTrue(series[0].calls == 0L && series[0].totalTokens == 0L)
+    }
+
+    @Test
+    fun `empty db overview is zeros and no exceptions`() = runBlocking {
+        TestDb.init(Accounts, LlmCallLogs)
+        val o = AdminQueries.overview(now)
+        assertEquals(0L, o.totalUsers)
+        assertEquals(0L, o.callsToday)
+        assertEquals(0L, o.tokensToday)
+        assertEquals(0.0, o.costToday, 0.0)
+        assertEquals(0L, o.blockedToday)
+        val users = AdminQueries.usersList()
+        assertTrue(users.isEmpty())
+        val series = AdminQueries.dailySeries(14, now)
+        assertEquals(14, series.size)
+    }
+
+    private suspend fun account(id: Int, email: String, createdAt: Long) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            Accounts.insert {
+                it[Accounts.id] = id
+                it[Accounts.email] = email
+                it[Accounts.tokenHash] = "hash$id"
+                it[Accounts.status] = "active"
+                it[Accounts.llmCallsUsed] = 0
+                it[Accounts.llmCallsLimit] = 100
+                it[Accounts.createdAt] = createdAt
+            }
+        }
+    }
+
+    private suspend fun logRow(
+        accountId: Int,
+        model: String,
+        provider: String,
+        prompt: Int?,
+        completion: Int?,
+        total: Int?,
+        cost: Double,
+        bytes: Int,
+        status: String,
+        createdAt: Long,
+    ) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            LlmCallLogs.insert {
+                it[LlmCallLogs.accountId] = accountId
+                it[LlmCallLogs.model] = model
+                it[LlmCallLogs.provider] = provider
+                it[LlmCallLogs.promptTokens] = prompt
+                it[LlmCallLogs.completionTokens] = completion
+                it[LlmCallLogs.totalTokens] = total
+                it[LlmCallLogs.costCny] = cost
+                it[LlmCallLogs.respBytes] = bytes
+                it[LlmCallLogs.status] = status
+                it[LlmCallLogs.createdAt] = createdAt
+            }
+        }
+    }
+}
