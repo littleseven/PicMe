@@ -25,6 +25,7 @@ data class ChannelRow(
     val enabled: Boolean,
     val isActive: Boolean,
     val defaultModel: String,
+    val hasToken: Boolean,
 )
 
 /** 创建/更新渠道的输入（后台表单）。apiToken 空串 = 更新时保持原值。 */
@@ -47,6 +48,11 @@ object ChannelRepository {
 
     suspend fun get(id: Int): ChannelRow? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         LlmChannels.selectAll().where { LlmChannels.id eq id }.firstOrNull()?.toRow()
+    }
+
+    /** 取渠道完整 token（仅供后台「复制」端点，鉴权后返回，不进列表 HTML）。 */
+    suspend fun rawToken(id: Int): String? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        LlmChannels.selectAll().where { LlmChannels.id eq id }.firstOrNull()?.let { it[LlmChannels.apiToken] }
     }
 
     /** 取生效渠道（含完整 token），供 ChannelRegistry 加载。 */
@@ -134,6 +140,7 @@ object ChannelRepository {
         enabled = this[LlmChannels.enabled] == 1,
         isActive = this[LlmChannels.isActive] == 1,
         defaultModel = this[LlmChannels.defaultModel],
+        hasToken = this[LlmChannels.apiToken].isNotEmpty(),
     )
 
     private fun ResultRow.toConfig(): ChannelConfig = ChannelConfig(
@@ -147,6 +154,9 @@ object ChannelRepository {
         defaultModel = this[LlmChannels.defaultModel],
     )
 
-    private fun maskToken(token: String): String =
-        if (token.length <= 4) "••••" else "••••" + token.takeLast(4)
+    private fun maskToken(token: String): String = when {
+        token.isEmpty() -> "（未配置）"
+        token.length <= 8 -> "••••" + token.takeLast(4)
+        else -> token.take(4) + "••••" + token.takeLast(4) // 前4位便于辨认 + 后4位
+    }
 }

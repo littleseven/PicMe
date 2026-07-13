@@ -34,7 +34,7 @@ class ChannelRepositoryTest {
         val rows = ChannelRepository.list()
         assertEquals(1, rows.size)
         assertEquals(id, rows[0].id)
-        assertEquals("••••3456", rows[0].apiTokenMasked)
+        assertEquals("tok-••••3456", rows[0].apiTokenMasked)
     }
 
     @Test
@@ -43,14 +43,14 @@ class ChannelRepositoryTest {
         ChannelRepository.update(id, input(name = "C2").copy(apiToken = ""))
         val row = ChannelRepository.get(id)!!
         assertEquals("C2", row.name)
-        assertEquals("••••3456", row.apiTokenMasked)
+        assertEquals("tok-••••3456", row.apiTokenMasked)
     }
 
     @Test
     fun `update with new token overwrites`() = runBlocking {
         val id = ChannelRepository.create(input())
         ChannelRepository.update(id, input().copy(apiToken = "new-tok-9999"))
-        assertEquals("••••9999", ChannelRepository.get(id)!!.apiTokenMasked)
+        assertEquals("new-••••9999", ChannelRepository.get(id)!!.apiTokenMasked)
     }
 
     @Test

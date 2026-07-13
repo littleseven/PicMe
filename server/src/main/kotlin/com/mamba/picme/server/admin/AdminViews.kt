@@ -8,7 +8,9 @@ import kotlinx.html.HTML
 import kotlinx.html.InputType
 import kotlinx.html.a
 import kotlinx.html.body
+import kotlinx.html.ButtonType
 import kotlinx.html.br
+import kotlinx.html.button
 import kotlinx.html.div
 import kotlinx.html.form
 import kotlinx.html.h1
@@ -20,6 +22,7 @@ import kotlinx.html.label
 import kotlinx.html.meta
 import kotlinx.html.option
 import kotlinx.html.p
+import kotlinx.html.script
 import kotlinx.html.select
 import kotlinx.html.span
 import kotlinx.html.style
@@ -199,39 +202,61 @@ object AdminViews {
             table {
                 tr {
                     th { +"名称" }
-                    th { +"类型" }
-                    th { +"BaseURL" }
                     th { +"Token" }
                     th { +"默认模型" }
-                    th { +"启用" }
-                    th { +"生效" }
-                    th { +"操作" }
+                    th(classes = "col-toggle") { +"启用" }
+                    th(classes = "col-active") { +"当前生效" }
+                    th(classes = "col-actions") { +"操作" }
                 }
                 channels.forEach { ch ->
                     tr {
                         td { +ch.name }
-                        td { +ch.kind }
-                        td { +ch.baseUrl }
-                        td { +ch.apiTokenMasked }
-                        td { +(ch.defaultModel.ifBlank { "严格" }) }
-                        td { +(if (ch.enabled) "启用" else "停用") }
-                        td { if (ch.isActive) span("active-badge") { +"生效中" } }
                         td {
-                            a("/admin/channels/${ch.id}/edit", classes = "btn-sm") { +"编辑" }
-                            +" "
-                            form(action = "/admin/channels/${ch.id}/activate", method = FormMethod.post, classes = "inline") {
-                                input(type = InputType.submit, classes = "btn-sm") { value = "设为生效" }
+                            span("tok") { +ch.apiTokenMasked }
+                            if (ch.hasToken) {
+                                +" "
+                                button(type = ButtonType.button, classes = "btn-sm tok-copy") {
+                                    attributes["onclick"] = "tokCopy(${ch.id}, this)"
+                                    +"复制"
+                                }
                             }
-                            +" "
+                        }
+                        td { +(ch.defaultModel.ifBlank { "严格" }) }
+                        td {
                             form(action = "/admin/channels/${ch.id}/toggle", method = FormMethod.post, classes = "inline") {
-                                input(type = InputType.submit, classes = "btn-sm") { value = if (ch.enabled) "停用" else "启用" }
+                                input(type = InputType.submit, classes = "btn-sm ${if (ch.enabled) "" else "btn-go"}") {
+                                    value = if (ch.enabled) "停用" else "启用"
+                                }
                             }
-                            +" "
-                            form(action = "/admin/channels/${ch.id}/delete", method = FormMethod.post, classes = "inline") {
-                                input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
+                        }
+                        td {
+                            when {
+                                ch.isActive -> span("active-badge") { +"● 生效中" }
+                                ch.enabled -> form(action = "/admin/channels/${ch.id}/activate", method = FormMethod.post, classes = "inline") {
+                                    input(type = InputType.submit, classes = "btn-sm btn-go") { value = "设为生效" }
+                                }
+                                else -> +"—"
+                            }
+                        }
+                        td {
+                            div("row-actions") {
+                                a("/admin/channels/${ch.id}/edit", classes = "btn-sm btn-primary") { +"编辑" }
+                                if (!ch.isActive) {
+                                    form(action = "/admin/channels/${ch.id}/delete", method = FormMethod.post, classes = "inline") {
+                                        attributes["onsubmit"] = "return confirm('确定删除该渠道？操作不可恢复。')"
+                                        input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
+                                    }
+                                }
                             }
                         }
                     }
+                }
+            }
+            script {
+                unsafe {
+                    raw(
+                        """function tokCopy(id,btn){fetch('/admin/channels/'+id+'/token',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){return navigator.clipboard.writeText(d.token)}).then(function(){var o=btn.textContent;btn.textContent='✓';setTimeout(function(){btn.textContent=o},1200)}).catch(function(){btn.textContent='失败';setTimeout(function(){btn.textContent='复制'},1200)})}""",
+                    )
                 }
             }
         }
@@ -320,15 +345,19 @@ object AdminViews {
                         placeholder = "如 deepseek-v4-flash"
                     }
                 }
-                p {
-                    label { +"启用" }
-                    input(type = InputType.checkBox, name = "enabled") {
-                        value = "1"
-                        if (existing?.enabled ?: true) checked = true
+                div("form-actions") {
+                    label("cb") {
+                        input(type = InputType.checkBox, name = "enabled") {
+                            value = "1"
+                            if (existing?.enabled ?: true) checked = true
+                        }
+                        +" 启用此渠道"
+                    }
+                    span("form-actions-right") {
+                        a("/admin/channels", classes = "btn-ghost") { +"取消" }
+                        input(type = InputType.submit, classes = "btn") { value = "保存" }
                     }
                 }
-                p { input(type = InputType.submit, classes = "btn") { value = "保存" } }
-                p { a("/admin/channels") { +"取消" } }
             }
         }
     }
@@ -378,9 +407,23 @@ object AdminViews {
                         .chan-form input[type=text],.chan-form input[type=password],.chan-form select,.chan-form textarea{padding:8px;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:14px;font-family:inherit}
                         .chan-form textarea{font-family:monospace}
                         .inline{display:inline}
-                        .btn-sm{padding:4px 10px;background:#6b7280;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer}
+                        .btn-sm{padding:4px 6px;background:#6b7280;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;min-width:40px;text-align:center;height:26px;line-height:18px;display:inline-block;vertical-align:middle}
+                        .btn-primary{background:#2563eb}
+                        .btn-go{background:#16a34a}
                         .btn-danger{background:#dc2626}
                         .active-badge{color:#16a34a;font-weight:600}
+                        .tok{font-family:monospace;font-size:12px;color:#4b5563}
+                        form{margin:0}
+                        .row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+                        .col-toggle{width:72px}
+                        .col-active{width:92px}
+                        .col-actions{width:112px}
+                        .chan-form input[type=checkbox]{width:auto;margin:0}
+                        .form-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid #eef0f3}
+                        .form-actions-right{display:inline-flex;gap:8px;align-items:center}
+                        .cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:#374151;cursor:pointer}
+                        .btn-ghost{padding:10px 16px;color:#6b7280;text-decoration:none;font-size:14px;border-radius:6px}
+                        .btn-ghost:hover{color:#374151;background:#f3f4f6}
                         @media (max-width:640px){
                         body>h1{font-size:18px}
                         body>h2{font-size:14px}
