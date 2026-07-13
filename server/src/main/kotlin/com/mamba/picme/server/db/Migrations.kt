@@ -21,6 +21,7 @@ object Migrations {
             seedRules()
         }
         seedChannels(config)
+        backfillDefaultModels()
     }
 
     /**
@@ -59,6 +60,7 @@ object Migrations {
                     "deepseek-chat" to "deepseek/deepseek-chat",
                     "deepseek-v4-flash" to "deepseek/deepseek-chat",
                 ))
+                it[LlmChannels.defaultModel] = CHANNEL_DEFAULT_MODEL.getValue("Cloudflare")
                 it[LlmChannels.enabled] = 1
                 it[LlmChannels.isActive] = 0
                 it[LlmChannels.createdAt] = now
@@ -74,6 +76,7 @@ object Migrations {
                 it[LlmChannels.modelMapJson] = serializeModelMap(
                     TOKENHUB_SEED_MODELS.associateWith { model -> model }
                 )
+                it[LlmChannels.defaultModel] = CHANNEL_DEFAULT_MODEL.getValue("TokenHub")
                 it[LlmChannels.enabled] = 1
                 it[LlmChannels.isActive] = 0
                 it[LlmChannels.createdAt] = now
@@ -90,6 +93,7 @@ object Migrations {
                     "deepseek-v4-flash" to "deepseek-v4-flash",
                     "deepseek-v4-pro" to "deepseek-v4-pro",
                 ))
+                it[LlmChannels.defaultModel] = CHANNEL_DEFAULT_MODEL.getValue("DeepSeek 直连")
                 it[LlmChannels.enabled] = 0
                 it[LlmChannels.isActive] = 0
                 it[LlmChannels.createdAt] = now
@@ -106,6 +110,7 @@ object Migrations {
                     "deepseek-chat" to "glm-5.2",
                     "kimi-k2.6" to "glm-5.2",
                 ))
+                it[LlmChannels.defaultModel] = CHANNEL_DEFAULT_MODEL.getValue("GLM 直连")
                 it[LlmChannels.enabled] = 0
                 it[LlmChannels.isActive] = 0
                 it[LlmChannels.createdAt] = now
@@ -122,6 +127,7 @@ object Migrations {
                     "kimi-k2.6" to "kimi-k2.7-code",
                     "deepseek-chat" to "kimi-k2.7-code",
                 ))
+                it[LlmChannels.defaultModel] = CHANNEL_DEFAULT_MODEL.getValue("Kimi 直连")
                 it[LlmChannels.enabled] = 0
                 it[LlmChannels.isActive] = 0
                 it[LlmChannels.createdAt] = now
@@ -136,6 +142,23 @@ object Migrations {
             LlmChannels.update({ LlmChannels.id eq activeId }) { it[LlmChannels.isActive] = 1 }
         }
     }
+
+    /**
+     * 幂等回填：现存渠道若 default_model 为空且名字命中 [CHANNEL_DEFAULT_MODEL]，则补默认值。
+     * 让 prod 老版本播种的渠道升级后立即有兜底。每版启动跑一次，已填则跳过。
+     */
+    internal fun backfillDefaultModels() {
+        transaction(Db.instance) {
+            LlmChannels.selectAll().toList().forEach { row ->
+                if (row[LlmChannels.defaultModel].isBlank()) {
+                    val dm = CHANNEL_DEFAULT_MODEL[row[LlmChannels.name]] ?: return@forEach
+                    LlmChannels.update({ LlmChannels.id eq row[LlmChannels.id] }) {
+                        it[LlmChannels.defaultModel] = dm
+                    }
+                }
+            }
+        }
+    }
 }
 
 private val TOKENHUB_SEED_MODELS = listOf(
@@ -145,4 +168,13 @@ private val TOKENHUB_SEED_MODELS = listOf(
     "hunyuan-role-latest", "deepseek-v4-pro", "hy3-preview", "glm-5.1",
     "glm-5v-turbo", "minimax-m2.7", "glm-5-turbo", "qwen3.5-flash",
     "qwen3.5-plus", "minimax-m2.5", "glm-5", "kimi-k2.5",
+)
+
+/** 渠道名 → 默认上游模型。播种与回填共用；用户新建渠道默认留空（strict）。 */
+private val CHANNEL_DEFAULT_MODEL = mapOf(
+    "Cloudflare" to "deepseek/deepseek-chat",
+    "TokenHub" to "deepseek-v4-flash-202605",
+    "DeepSeek 直连" to "deepseek-v4-flash",
+    "GLM 直连" to "glm-5.2",
+    "Kimi 直连" to "kimi-k2.7-code",
 )
