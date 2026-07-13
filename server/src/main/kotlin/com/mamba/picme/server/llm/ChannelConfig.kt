@@ -20,6 +20,7 @@ data class ChannelConfig(
     val authStyle: AuthStyle,
     val apiToken: String,
     val modelMap: Map<String, String>,
+    val defaultModel: String = "",
 )
 
 private val mapJson = Json { ignoreUnknownKeys = true }

@@ -20,6 +20,7 @@ class ChannelRepositoryTest {
         apiToken = "tok-123456",
         modelMap = mapOf("deepseek-chat" to "glm-5.2"),
         enabled = enabled,
+        defaultModel = "deepseek-v4-flash",
     )
 
     @Before
@@ -110,5 +111,16 @@ class ChannelRepositoryTest {
     fun `loadActive returns null when none active`() = runBlocking {
         ChannelRepository.create(input())
         assertNull(ChannelRepository.loadActive())
+    }
+
+    @Test
+    fun `create and update carry defaultModel`() = runBlocking {
+        val id = ChannelRepository.create(input())
+        assertEquals("deepseek-v4-flash", ChannelRepository.get(id)!!.defaultModel)
+        ChannelRepository.update(id, input().copy(defaultModel = "glm-5.2"))
+        assertEquals("glm-5.2", ChannelRepository.get(id)!!.defaultModel)
+        // 空串能清空
+        ChannelRepository.update(id, input().copy(defaultModel = ""))
+        assertEquals("", ChannelRepository.get(id)!!.defaultModel)
     }
 }

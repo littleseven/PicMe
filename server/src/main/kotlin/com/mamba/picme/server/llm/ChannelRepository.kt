@@ -24,6 +24,7 @@ data class ChannelRow(
     val modelMap: Map<String, String>,
     val enabled: Boolean,
     val isActive: Boolean,
+    val defaultModel: String,
 )
 
 /** 创建/更新渠道的输入（后台表单）。apiToken 空串 = 更新时保持原值。 */
@@ -35,6 +36,7 @@ data class ChannelInput(
     val apiToken: String,
     val modelMap: Map<String, String>,
     val enabled: Boolean,
+    val defaultModel: String = "",
 )
 
 object ChannelRepository {
@@ -63,6 +65,7 @@ object ChannelRepository {
             it[LlmChannels.authStyle] = input.authStyle
             it[LlmChannels.apiToken] = input.apiToken
             it[LlmChannels.modelMapJson] = serializeModelMap(input.modelMap)
+            it[LlmChannels.defaultModel] = input.defaultModel
             it[LlmChannels.enabled] = if (input.enabled) 1 else 0
             it[LlmChannels.isActive] = 0
             it[LlmChannels.createdAt] = now
@@ -79,6 +82,7 @@ object ChannelRepository {
             it[LlmChannels.authStyle] = input.authStyle
             if (input.apiToken.isNotEmpty()) it[LlmChannels.apiToken] = input.apiToken
             it[LlmChannels.modelMapJson] = serializeModelMap(input.modelMap)
+            it[LlmChannels.defaultModel] = input.defaultModel
             it[LlmChannels.enabled] = if (input.enabled) 1 else 0
             it[LlmChannels.updatedAt] = Instant.now().toEpochMilli()
         }
@@ -129,6 +133,7 @@ object ChannelRepository {
         modelMap = parseModelMap(this[LlmChannels.modelMapJson]),
         enabled = this[LlmChannels.enabled] == 1,
         isActive = this[LlmChannels.isActive] == 1,
+        defaultModel = this[LlmChannels.defaultModel],
     )
 
     private fun ResultRow.toConfig(): ChannelConfig = ChannelConfig(
@@ -139,6 +144,7 @@ object ChannelRepository {
         authStyle = AuthStyle.valueOf(this[LlmChannels.authStyle].uppercase()),
         apiToken = this[LlmChannels.apiToken],
         modelMap = parseModelMap(this[LlmChannels.modelMapJson]),
+        defaultModel = this[LlmChannels.defaultModel],
     )
 
     private fun maskToken(token: String): String =
