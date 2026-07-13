@@ -241,5 +241,6 @@ private suspend fun ApplicationCall.parseChannelInput(): ChannelInput? {
         apiToken = (params["api_token"] ?: "").trim(),
         modelMap = modelMap,
         enabled = (params["enabled"] ?: "0") == "1",
+        defaultModel = (params["default_model"] ?: "").trim(),
     )
 }

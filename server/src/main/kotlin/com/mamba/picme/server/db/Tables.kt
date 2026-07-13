@@ -108,6 +108,7 @@ object LlmChannels : Table("llm_channel") {
     val authStyle = varchar("auth_style", 16)      // bearer | cf_aig
     val apiToken = text("api_token")               // 明文；UI 掩码
     val modelMapJson = text("model_map_json")      // {"请求名":"上游名"}
+    val defaultModel = varchar("default_model", 128).default("")  // 兜底：model 不在 map 时回落到此上游模型；空=严格 400
     val enabled = integer("enabled").default(1)
     val isActive = integer("is_active").default(0) // 不变量：≤ 一个为 1
     val createdAt = long("created_at")

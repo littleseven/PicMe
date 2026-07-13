@@ -41,16 +41,26 @@ class LlmProxy(
                 logStatus = "bad_request",
             )
 
-        val upstreamModel = channel.modelMap[requestedModel]
-            ?: return ProxyResult.Error(
+        val mapped = channel.modelMap[requestedModel]
+        val upstreamModel: String = when {
+            mapped != null -> mapped
+            channel.defaultModel.isNotBlank() -> channel.defaultModel.also {
+                logger.info(
+                    "Model {} not in map of channel {}, fell back to default {}",
+                    requestedModel, channel.name, it,
+                )
+            }
+            else -> return ProxyResult.Error(
                 HttpStatusCode.BadRequest,
                 buildJsonObject {
                     put("error", "unsupported_model")
                     put("active_channel", channel.name)
                     put("supported", channel.modelMap.keys.sorted().joinToString(","))
+                    put("default_model", channel.defaultModel)
                 },
                 logStatus = "unsupported_model",
             )
+        }
 
         val maxTokens = (body["max_tokens"] as? JsonPrimitive)?.contentOrNullSafe()?.toIntOrNull()
         if (maxTokens != null && maxTokens > maxTokensCap) {
