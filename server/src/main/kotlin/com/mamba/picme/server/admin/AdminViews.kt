@@ -184,6 +184,7 @@ object AdminViews {
     private fun HTML.adminHead(title: String) {
         head {
             meta(charset = "utf-8")
+            meta(name = "viewport", content = "width=device-width, initial-scale=1")
             title { +title }
             style {
                 unsafe {
@@ -217,6 +218,19 @@ object AdminViews {
                         .pw{padding:10px;width:100%;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
                         .btn{padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
                         .chart{display:block;width:100%;max-width:760px;height:auto;margin:8px auto;background:#fff;border:1px solid #e3e6eb;border-radius:8px;padding:8px}
+                        @media (max-width:640px){
+                        body>h1{font-size:18px}
+                        body>h2{font-size:14px}
+                        .nav{padding:0 12px;height:46px;overflow-x:auto}
+                        .nav-brand{font-size:14px;margin-right:10px}
+                        .nav-link{padding:6px 8px;font-size:13px;white-space:nowrap}
+                        .cards{padding:12px;gap:8px}
+                        .card{min-width:0;flex:1 1 calc(50% - 8px);padding:10px 12px}
+                        .card-value{font-size:18px}
+                        table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+                        th,td{padding:6px 8px}
+                        .wrap{margin:24px auto;padding:16px}
+                        }
                         """.trimIndent(),
                     )
                 }
