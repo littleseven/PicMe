@@ -181,7 +181,7 @@ CREATE UNIQUE INDEX idx_llm_channel_name ON llm_channel(name);
 |---|---|---|---|---|---|---|
 | Cloudflare | gateway | `$CLOUDFLARE_AIG_URL`（env，缺省走 `AppConfig` 默认） | cf_aig | `$CLOUDFLARE_AIG_TOKEN` | `deepseek-chat→deepseek/deepseek-chat`、`deepseek-v4-flash→deepseek/deepseek-chat` | 1 |
 | TokenHub | gateway | `$TOKENHUB_URL` | bearer | `$TOKENHUB_API_TOKEN` | **恒等映射**（请求名=上游名），覆盖下方 TokenHub 模型清单全部 ID | 1 |
-| DeepSeek 直连 | direct | `https://api.deepseek.com/v1/chat/completions` | bearer | （空） | `deepseek-chat→deepseek-chat`、`deepseek-v4-flash→deepseek-chat` | 0 |
+| DeepSeek 直连 | direct | `https://api.deepseek.com/v1/chat/completions` | bearer | （空） | 恒等映射：`deepseek-v4-flash`、`deepseek-v4-pro` | 0 |
 | GLM 直连 | direct | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | bearer | （空） | `deepseek-chat→glm-5.2`、`kimi-k2.6→glm-5.2` | 0 |
 | Kimi 直连 | direct | `https://api.moonshot.cn/v1/chat/completions` | bearer | （空） | `kimi-k2.6→kimi-k2.7-code`、`deepseek-chat→kimi-k2.7-code` | 0 |
 
