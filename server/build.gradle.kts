@@ -51,6 +51,13 @@ application {
     mainClass.set("com.mamba.picme.server.ApplicationKt")
 }
 
+// 把 gradle version 注入 jar manifest，HealthzRoute 运行时读取，避免版本号硬编码漂移
+tasks.jar {
+    manifest {
+        attributes("Implementation-Version" to project.version.toString())
+    }
+}
+
 // migrations/ 下的 *.sql 进 classpath，运行时由 Migrations 读取执行
 sourceSets {
     main {
