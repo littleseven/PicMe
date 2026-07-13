@@ -180,10 +180,20 @@ CREATE UNIQUE INDEX idx_llm_channel_name ON llm_channel(name);
 | name | kind | base_url | auth_style | api_token 来源 | model_map | enabled |
 |---|---|---|---|---|---|---|
 | Cloudflare | gateway | `$CLOUDFLARE_AIG_URL`（env，缺省走 `AppConfig` 默认） | cf_aig | `$CLOUDFLARE_AIG_TOKEN` | `deepseek-chat→deepseek/deepseek-chat`、`deepseek-v4-flash→deepseek/deepseek-chat` | 1 |
-| TokenHub | gateway | `$TOKENHUB_URL` | bearer | `$TOKENHUB_API_TOKEN` | `deepseek-v4-flash→deepseek-v4-flash`、`kimi-k2.6→kimi-k2.6`、`kimi-k2.7-code→kimi-k2.7-code` | 1 |
+| TokenHub | gateway | `$TOKENHUB_URL` | bearer | `$TOKENHUB_API_TOKEN` | **恒等映射**（请求名=上游名），覆盖下方 TokenHub 模型清单全部 ID | 1 |
 | DeepSeek 直连 | direct | `https://api.deepseek.com/v1/chat/completions` | bearer | （空） | `deepseek-chat→deepseek-chat`、`deepseek-v4-flash→deepseek-chat` | 0 |
-| GLM 直连 | direct | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | bearer | （空） | `deepseek-chat→glm-4.6`、`kimi-k2.6→glm-4.6` | 0 |
-| Kimi 直连 | direct | `https://api.moonshot.cn/v1/chat/completions` | bearer | （空） | `kimi-k2.6→kimi-k2-0905-preview`、`deepseek-chat→kimi-k2-0905-preview` | 0 |
+| GLM 直连 | direct | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | bearer | （空） | `deepseek-chat→glm-5.2`、`kimi-k2.6→glm-5.2` | 0 |
+| Kimi 直连 | direct | `https://api.moonshot.cn/v1/chat/completions` | bearer | （空） | `kimi-k2.6→kimi-k2.7-code`、`deepseek-chat→kimi-k2.7-code` | 0 |
+
+### TokenHub 模型清单（model_map 恒等映射：`请求名=上游名`）
+
+TokenHub 是多模型聚合网关，已覆盖 DeepSeek / GLM / Kimi / Qwen / MiniMax / Hunyuan 全系。播种时把下列全部模型 ID 写入 TokenHub 渠道的 `model_map`（恒等映射），App 即可按模型名直接请求任意一个；TokenHub 侧的实际启用状态决定是否真可用，未启用的模型请求会回传上游错误，运营者按需在 TokenHub 控制台启用或从 map 删去。
+
+- **运行中**：`deepseek-v4-flash-202605`、`kimi-k2.7-code`、`kimi-k2.6`
+- **已停止**（额度用尽，TokenHub 侧停用）：`deepseek-v4-flash`
+- **未启用**（TokenHub 侧未开通，启用后即可用）：`hy3`、`kimi-k2.7-code-highspeed`、`glm-5.2`、`minimax-m3`、`hy-role`、`deepseek-v4-pro-202606`、`hy-mt2-pro`、`hy-mt2-lite`、`hy-mt2-plus`、`hunyuan-role-latest`、`deepseek-v4-pro`、`hy3-preview`、`glm-5.1`、`glm-5v-turbo`、`minimax-m2.7`、`glm-5-turbo`、`qwen3.5-flash`、`qwen3.5-plus`、`minimax-m2.5`、`glm-5`、`kimi-k2.5`
+
+> **直连渠道 vs TokenHub 的定位**：TokenHub 已聚合上述全部模型，故直连渠道（DeepSeek/GLM/Kimi 直连）主要用于 ① 绕开 TokenHub 免费额度限制、② 走「GLM Coding Plan」「Kimi Code」等订阅计费档、③ 取 TokenHub 未暴露的模型名（如 DeepSeek 直连提供 `deepseek-chat`，TokenHub 仅有 `deepseek-v4-*`）。三者并存，按需切换。
 
 **生效渠道播种**：若 `FORCE_PROVIDER` env 非空（`cloudflare`→Cloudflare，`tokenhub`→TokenHub）则对应渠道 `is_active=1`；否则第一个 `enabled=1` 渠道（Cloudflare）生效。**升级后行为与现状一致**。
 
@@ -251,5 +261,5 @@ CREATE UNIQUE INDEX idx_llm_channel_name ON llm_channel(name);
 - **热路径零 DB**：`ChannelRegistry` volatile 引用，切换瞬间生效；单实例部署无多实例缓存同步问题（YAGNI）。
 - **`stream=false` 不变**：usage 解析依赖完整响应体；直连供应商虽支持流式，本期不引入（避免 SSE 代理 + 流式 usage 计量复杂度）。
 - **无失败转移**：生效渠道上游故障即 `upstream_error`，需运营者手动切换。如需自动 failover，后续迭代。
-- **直连渠道默认值需校对**：DeepSeek/GLM/Kimi 的 base_url 与 model 名为最佳猜测默认（OpenAI 兼容端点）；运营者首次使用前在后台核对「Coding Plan」「Code」订阅的实际端点与模型名。
+- **直连渠道默认值需校对**：DeepSeek/GLM/Kimi 的 base_url 与 model 名为最佳猜测默认（OpenAI 兼容端点）。GLM→`glm-5.2`、Kimi→`kimi-k2.7-code` 已参照 TokenHub 目录对齐到当前代次，但各家直连 API 的确切模型字符串可能不同（如 Moonshot 直连或用 `kimi-k2-0711-preview` 式命名）；运营者首次使用前在后台核对「Coding Plan」「Code」订阅的实际端点与模型名。
 - **`FORCE_PROVIDER` 语义变更**：由「运行时强制」降级为「首次播种提示」。升级后若曾依赖运行时改 `FORCE_PROVIDER`+重启切换，现在改为后台 UI 切换（行为等价、更便捷）。
