@@ -5,6 +5,8 @@ import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelRepository
 import com.mamba.picme.server.llm.parseModelMapLines
 import io.ktor.http.ContentType
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import io.ktor.http.Cookie
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -128,6 +130,19 @@ fun Route.adminRoute(adminToken: String) {
                 return@get
             }
             call.respondText(AdminViews.channelFormPage(row), ContentType.Text.Html)
+        }
+
+        // 供列表「复制」按钮调用：返回完整 token（cookie 鉴权；不进列表 HTML）。
+        get("/channels/{id}/token") {
+            if (!call.adminGuard(adminToken)) return@get
+            val id = call.parameters["id"]?.toIntOrNull()
+            val token = if (id != null) ChannelRepository.rawToken(id) else null
+            if (token == null) {
+                call.respondText("not found", contentType = ContentType.Text.Plain, status = HttpStatusCode.NotFound)
+                return@get
+            }
+            val body = buildJsonObject { put("token", token) }.toString()
+            call.respondText(body, ContentType.Application.Json)
         }
 
         post("/channels") {

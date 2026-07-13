@@ -5,6 +5,7 @@ import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.db.LlmChannels
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.util.TestDb
+import io.ktor.client.request.accept
 import io.ktor.client.request.cookie
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -18,6 +19,7 @@ import io.ktor.server.application.application
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -74,9 +76,32 @@ class AdminChannelsRoutesTest {
         assertTrue("token 不得明文出现", !html.contains("sk-test-1234"))
         assertTrue("应显示掩码", html.contains("••••"))
         assertTrue("应显示默认模型", html.contains("deepseek-v4-flash"))
+        assertTrue("非生效渠道删除按钮应有二次确认", html.contains("确定删除该渠道"))
+        assertTrue("应有复制按钮", html.contains("复制"))
         // 编辑页回填默认模型
         val editHtml = c.get("/admin/channels/1/edit") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
         assertTrue(editHtml.contains("deepseek-v4-flash"))
+    }
+
+    @Test
+    fun `active row hides activate and delete buttons, keeps toggle`() = testApplication {
+        application { routing { adminRoute(token) } }
+        val c = createClient { followRedirects = false }
+        c.post("/admin/channels") {
+            cookie(AdminAuth.COOKIE_NAME, cookieVal)
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(formBody())
+        }
+        c.post("/admin/channels/1/activate") {
+            cookie(AdminAuth.COOKIE_NAME, cookieVal)
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("")
+        }
+        val html = c.get("/admin/channels") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
+        assertTrue(html.contains("生效中"))
+        assertFalse("生效行不应显示「设为生效」", html.contains("设为生效"))
+        assertFalse("生效行不应显示「删除」", html.contains("删除"))
+        assertTrue("应有「停用」toggle", html.contains("停用"))
     }
 
     @Test
@@ -126,5 +151,25 @@ class AdminChannelsRoutesTest {
         val c = createClient { followRedirects = false }
         val html = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
         assertTrue(html.contains("/admin/channels"))
+    }
+
+    @Test
+    fun `token endpoint returns full token for copy button`() = testApplication {
+        application { routing { adminRoute(token) } }
+        val c = createClient { followRedirects = false }
+        c.post("/admin/channels") {
+            cookie(AdminAuth.COOKIE_NAME, cookieVal)
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(formBody())
+        }
+        val resp = c.get("/admin/channels/1/token") {
+            cookie(AdminAuth.COOKIE_NAME, cookieVal)
+            accept(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, resp.status)
+        assertTrue("端点应返回完整 token", resp.bodyAsText().contains("sk-test-1234"))
+        // 未带 cookie → 跳登录（不泄露 token）
+        val noAuth = c.get("/admin/channels/1/token")
+        assertEquals(HttpStatusCode.Found, noAuth.status)
     }
 }
