@@ -59,8 +59,9 @@ object AdminViews {
                 statCard("今日出口字节", ov.bytesToday.toString())
                 statCard("今日 blocked", ov.blockedToday.toString())
             }
-            h2 { +"近 ${series.size} 天 调用数 / 成本 ¥" }
+            h2 { +"近 ${series.size} 天 调用数" }
             unsafe { raw(svgBars(series.map { it.calls.toDouble() }, series.map { it.day })) }
+            h2 { +"近 ${series.size} 天 成本 ¥" }
             unsafe { raw(svgBars(series.map { it.cost }, series.map { it.day })) }
         }
     }
@@ -188,21 +189,34 @@ object AdminViews {
                 unsafe {
                     raw(
                         """
-                        body{font-family:-apple-system,system-ui,sans-serif;margin:0;background:#f5f6f8;color:#111}
+                        *{box-sizing:border-box}
+                        body{font-family:-apple-system,system-ui,sans-serif;margin:0;background:#f5f6f8;color:#1f2937;padding-bottom:40px}
+                        body>h1,body>h2,body>.cards,body>table,body>p{max-width:1180px;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px}
+                        body>h1{font-size:22px;font-weight:600;margin-top:24px;margin-bottom:12px}
+                        body>h2{font-size:15px;font-weight:600;color:#374151;margin-top:24px;margin-bottom:8px}
                         .wrap{max-width:420px;margin:60px auto;padding:24px}
-                        .cards{display:flex;flex-wrap:wrap;gap:12px;padding:16px}
-                        .card{background:#fff;border:1px solid #e3e6eb;border-radius:10px;padding:14px 16px;min-width:130px}
-                        .card-label{font-size:12px;color:#666}
-                        .card-value{font-size:22px;font-weight:600;margin-top:4px}
-                        nav{background:#111;color:#fff;padding:10px 16px;display:flex;gap:16px}
-                        nav a{color:#fff;text-decoration:none}
-                        table{border-collapse:collapse;width:100%;background:#fff;font-size:13px}
-                        th,td{border:1px solid #e3e6eb;padding:6px 8px;text-align:left}
-                        th{background:#eef1f5}
-                        .err{color:#c00}
-                        .pw{padding:8px;width:100%}
-                        .btn{padding:8px 16px}
-                        .chart{max-width:100%;height:auto}
+                        .cards{display:flex;flex-wrap:wrap;gap:12px;padding:16px 20px}
+                        .card{background:#fff;border:1px solid #e3e6eb;border-radius:10px;padding:14px 16px;min-width:130px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+                        .card-label{font-size:12px;color:#6b7280}
+                        .card-value{font-size:22px;font-weight:600;margin-top:4px;color:#111827}
+                        .nav{background:#1f2937;color:#fff;padding:0 20px;display:flex;align-items:center;gap:4px;height:50px;border-bottom:1px solid #111827;position:sticky;top:0;z-index:10}
+                        .nav-brand{font-weight:600;font-size:15px;margin-right:20px;white-space:nowrap;color:#fff}
+                        .nav-links{display:flex;gap:2px}
+                        .nav-link{color:#d1d5db;text-decoration:none;padding:8px 12px;border-radius:6px;font-size:14px}
+                        .nav-link:hover{background:#374151;color:#fff}
+                        .nav-spacer{flex:1}
+                        .nav-logout{color:#fca5a5}
+                        .nav-logout:hover{background:#3f1d1d;color:#fca5a5}
+                        table{border-collapse:collapse;width:100%;background:#fff;font-size:13px;border:1px solid #e3e6eb;border-radius:8px;overflow:hidden}
+                        th,td{border-bottom:1px solid #eef0f3;padding:8px 10px;text-align:left}
+                        th{background:#f3f4f6;font-weight:600;color:#374151}
+                        tr:last-child td{border-bottom:none}
+                        td a{color:#2563eb;text-decoration:none}
+                        td a:hover{text-decoration:underline}
+                        .err{color:#dc2626}
+                        .pw{padding:10px;width:100%;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
+                        .btn{padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+                        .chart{display:block;width:100%;max-width:760px;height:auto;margin:8px auto;background:#fff;border:1px solid #e3e6eb;border-radius:8px;padding:8px}
                         """.trimIndent(),
                     )
                 }
@@ -212,10 +226,14 @@ object AdminViews {
 
     private fun FlowContent.navBar() {
         div("nav") {
-            a("/admin") { +"概览" }
-            a("/admin/users") { +"用户" }
-            a("/admin/traffic") { +"流量" }
-            a("/admin/logout") { +"退出" }
+            div("nav-brand") { +"PicMe 管理后台" }
+            div("nav-links") {
+                a("/admin", classes = "nav-link") { +"概览" }
+                a("/admin/users", classes = "nav-link") { +"用户" }
+                a("/admin/traffic", classes = "nav-link") { +"流量" }
+            }
+            div("nav-spacer") {}
+            a("/admin/logout", classes = "nav-link nav-logout") { +"退出" }
         }
     }
 
@@ -226,25 +244,37 @@ object AdminViews {
         }
     }
 
-    /** 简易 SVG 柱状图：values 与 labels 等长。 */
+    /** 简易 SVG 柱状图：日期标签旋转 -40° 防重叠，密集时稀疏标注；每柱 <title> 悬浮提示。 */
     private fun svgBars(values: List<Double>, labels: List<String>): String {
         if (values.isEmpty()) return "<p>无数据</p>"
         val maxV = values.max().coerceAtLeast(1.0)
-        val w = 720
-        val h = 140
+        val w = 760
+        val plotH = 110
+        val padBottom = 46
+        val h = plotH + padBottom
         val barW = (w / values.size).coerceAtLeast(2)
+        val step = if (values.size > 16) (values.size / 8).coerceAtLeast(1) else 1
         val sb = StringBuilder()
-        sb.append("""<svg class="chart" viewBox="0 0 $w $h" xmlns="http://www.w3.org/2000/svg">""")
+        sb.append("""<svg class="chart" viewBox="0 0 $w $h" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">""")
         values.forEachIndexed { i, v ->
-            val barH = (v / maxV * (h - 24)).toInt().coerceAtLeast(1)
+            val barH = (v / maxV * plotH).toInt().coerceAtLeast(1)
             val x = i * barW
-            val y = h - barH - 16
-            sb.append("""<rect x="$x" y="$y" width="${barW - 2}" height="$barH" rx="2" fill="#3b82f6"/>""")
-            sb.append("""<text x="${x + barW / 2}" y="${h - 4}" font-size="9" text-anchor="middle">${labels[i].takeLast(5)}</text>""")
+            val y = plotH - barH
+            val cx = x + barW / 2
+            sb.append("""<rect x="$x" y="$y" width="${(barW - 2).coerceAtLeast(1)}" height="$barH" rx="2" fill="#3b82f6"><title>${esc(labels[i])}: ${fmtVal(v)}</title></rect>""")
+            if (i % step == 0) {
+                sb.append("""<text x="$cx" y="${plotH + 8}" font-size="9" fill="#6b7280" text-anchor="end" transform="rotate(-40 $cx ${plotH + 8})">${esc(labels[i].takeLast(5))}</text>""")
+            }
         }
         sb.append("</svg>")
         return sb.toString()
     }
+
+    private fun fmtVal(v: Double): String =
+        if (v % 1.0 == 0.0) v.toLong().toString() else "%.2f".format(v)
+
+    private fun esc(s: String): String =
+        s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     private fun fmt(d: Double): String = "%.2f".format(d)
 
