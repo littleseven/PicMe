@@ -23,7 +23,8 @@ class LlmProxyChannelTest {
         authStyle: AuthStyle = AuthStyle.BEARER,
         token: String = "tok-abc",
         modelMap: Map<String, String> = mapOf("deepseek-chat" to "glm-5.2"),
-    ) = ChannelConfig(1, "TestChan", "direct", "http://up.example/chat", authStyle, token, modelMap)
+        defaultModel: String = "glm-5.2",
+    ) = ChannelConfig(1, "TestChan", "direct", "http://up.example/chat", authStyle, token, modelMap, defaultModel)
 
     private fun proxy(engine: MockEngine) = LlmProxy(HttpClient(engine), maxTokensCap = 4096)
 
@@ -80,14 +81,39 @@ class LlmProxyChannelTest {
     }
 
     @Test
-    fun `unsupported model returns 400 with logStatus unsupported_model`() = runBlocking {
+    fun `unsupported model with blank default returns 400`() = runBlocking {
         val engine = MockEngine { respond("""{}""", HttpStatusCode.OK) }
-        ChannelRegistry.setActiveForTesting(cfg(modelMap = mapOf("a" to "b")))
+        ChannelRegistry.setActiveForTesting(cfg(modelMap = mapOf("a" to "b"), defaultModel = ""))
         val result = proxy(engine).forward("1.2.3.4", buildJsonObject { put("model", "deepseek-chat") })
         assertTrue(result is ProxyResult.Error)
         result as ProxyResult.Error
         assertEquals(HttpStatusCode.BadRequest, result.status)
         assertEquals("unsupported_model", result.logStatus)
+    }
+
+    @Test
+    fun `unmapped model falls back to default_model`() = runBlocking {
+        var captured: HttpRequestData? = null
+        val engine = MockEngine { req ->
+            captured = req
+            respond(usageBody, HttpStatusCode.OK, headersOf("Content-Type", "application/json"))
+        }
+        ChannelRegistry.setActiveForTesting(cfg(modelMap = mapOf("a" to "b"), defaultModel = "glm-5.2"))
+        val result = proxy(engine).forward("1.2.3.4", buildJsonObject { put("model", "kimi-k2.6") })
+        assertTrue(result is ProxyResult.Success)
+        result as ProxyResult.Success
+        assertEquals("glm-5.2", result.model)
+        val sent = (captured!!.body as TextContent).text
+        assertTrue(sent.contains("\"model\":\"glm-5.2\""))
+    }
+
+    @Test
+    fun `mapped model takes precedence over default`() = runBlocking {
+        val engine = MockEngine { respond(usageBody, HttpStatusCode.OK, headersOf("Content-Type", "application/json")) }
+        ChannelRegistry.setActiveForTesting(cfg(modelMap = mapOf("deepseek-chat" to "mapped-x"), defaultModel = "fallback-y"))
+        val result = proxy(engine).forward("1.2.3.4", buildJsonObject { put("model", "deepseek-chat") })
+        assertTrue(result is ProxyResult.Success)
+        assertEquals("mapped-x", (result as ProxyResult.Success).model)
     }
 
     @Test
