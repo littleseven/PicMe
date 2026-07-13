@@ -103,11 +103,6 @@ fun Application.module(config: AppConfig) {
 
     val llmProxy = LlmProxy(
         httpClient = httpClient,
-        cloudflareUrl = config.cloudflareAigUrl,
-        cloudflareAigToken = config.cloudflareAigToken,
-        tokenhubUrl = config.tokenhubUrl,
-        tokenhubApiToken = config.tokenhubApiToken,
-        forceProvider = config.forceProvider.takeIf { it.isNotBlank() },
         maxTokensCap = config.maxTokensCap,
     )
     val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null
