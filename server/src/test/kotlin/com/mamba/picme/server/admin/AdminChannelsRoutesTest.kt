@@ -42,8 +42,9 @@ class AdminChannelsRoutesTest {
         apiToken: String = "sk-test-1234",
         modelMap: String = "deepseek-v4-flash=deepseek-v4-flash",
         enabled: String = "1",
+        defaultModel: String = "deepseek-v4-flash",
     ) = "name=$name&kind=$kind&base_url=$baseUrl&auth_style=$authStyle" +
-        "&api_token=$apiToken&model_map=$modelMap&enabled=$enabled"
+        "&api_token=$apiToken&model_map=$modelMap&enabled=$enabled&default_model=$defaultModel"
 
     @Test
     fun `channels page requires cookie`() = testApplication {
@@ -72,6 +73,10 @@ class AdminChannelsRoutesTest {
         assertTrue(html.contains("DeepSeek 直连"))
         assertTrue("token 不得明文出现", !html.contains("sk-test-1234"))
         assertTrue("应显示掩码", html.contains("••••"))
+        assertTrue("应显示默认模型", html.contains("deepseek-v4-flash"))
+        // 编辑页回填默认模型
+        val editHtml = c.get("/admin/channels/1/edit") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
+        assertTrue(editHtml.contains("deepseek-v4-flash"))
     }
 
     @Test

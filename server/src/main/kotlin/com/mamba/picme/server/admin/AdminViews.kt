@@ -202,6 +202,7 @@ object AdminViews {
                     th { +"类型" }
                     th { +"BaseURL" }
                     th { +"Token" }
+                    th { +"默认模型" }
                     th { +"启用" }
                     th { +"生效" }
                     th { +"操作" }
@@ -212,6 +213,7 @@ object AdminViews {
                         td { +ch.kind }
                         td { +ch.baseUrl }
                         td { +ch.apiTokenMasked }
+                        td { +(ch.defaultModel.ifBlank { "严格" }) }
                         td { +(if (ch.enabled) "启用" else "停用") }
                         td { if (ch.isActive) span("active-badge") { +"生效中" } }
                         td {
@@ -308,6 +310,14 @@ object AdminViews {
                         rows = "6"
                         cols = "50"
                         +(existing?.modelMap?.let { renderModelMapLines(it) } ?: "deepseek-chat=glm-5.2")
+                    }
+                }
+                p {
+                    label { +"默认模型（留空=严格校验，请求不支持的模型时返回 400）" }
+                    br()
+                    textInput(name = "default_model") {
+                        value = existing?.defaultModel ?: ""
+                        placeholder = "如 deepseek-v4-flash"
                     }
                 }
                 p {
