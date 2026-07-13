@@ -16,105 +16,60 @@ import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("picme-llm")
 
-enum class LlmProvider { CLOUDFLARE, TOKENHUB }
-
 /**
- * LLM proxy that forwards chat completion requests to the correct upstream provider.
- * Ports infra/tencentscf/index.js logic to Ktor.
- *
- * - Model routing is transparent to the client.
- * - Real API keys live only in server env vars.
- * - Forces stream=false (same as SCF).
+ * LLM 代理：把 chat completion 请求转发到当前生效渠道（[ChannelRegistry.active]）。
+ * - 模型路由对客户端透明：请求的 model 名按渠道 model_map 映射为上游名。
+ * - 真实 API key 只在 DB（渠道配置）里。
+ * - 强制 stream=false（usage 解析依赖完整响应体）。
  */
 class LlmProxy(
     private val httpClient: HttpClient,
-    private val cloudflareUrl: String,
-    private val cloudflareAigToken: String,
-    private val tokenhubUrl: String,
-    private val tokenhubApiToken: String,
-    private val forceProvider: String?,
     private val maxTokensCap: Int = 4096,
 ) {
-    companion object {
-        private val MODEL_ROUTES = mapOf(
-            "deepseek/deepseek-chat" to LlmProvider.CLOUDFLARE,
-            "deepseek-chat" to LlmProvider.CLOUDFLARE,
-            "deepseek-v4-flash-202605" to LlmProvider.TOKENHUB,
-            "deepseek-v4-flash" to LlmProvider.TOKENHUB,
-            "kimi-k2.6" to LlmProvider.TOKENHUB,
-            "kimi-k2.7-code" to LlmProvider.TOKENHUB,
-        )
+    suspend fun forward(clientIp: String, body: JsonObject): ProxyResult {
+        val channel = ChannelRegistry.active()
+            ?: return ProxyResult.Error(
+                HttpStatusCode.ServiceUnavailable,
+                buildJsonObject { put("error", "no_active_channel") },
+                logStatus = "no_active_channel",
+            )
 
-        private val MODEL_ALIASES = mapOf(
-            "deepseek-chat" to "deepseek/deepseek-chat",
-            "deepseek-v4-flash" to "deepseek-v4-flash",
-        )
-
-        private val TOKENHUB_MODELS = setOf(
-            "deepseek-v4-flash",
-            "deepseek-v4-flash-202605",
-            "kimi-k2.6",
-            "kimi-k2.7-code",
-        )
-    }
-
-    suspend fun forward(
-        clientIp: String,
-        body: JsonObject,
-    ): ProxyResult {
         val requestedModel = (body["model"] as? JsonPrimitive)?.contentOrNullSafe()
-            ?: return ProxyResult.Error(HttpStatusCode.BadRequest, buildJsonObject {
-                put("error", "missing model field")
-            })
+            ?: return ProxyResult.Error(
+                HttpStatusCode.BadRequest,
+                buildJsonObject { put("error", "missing model field") },
+                logStatus = "bad_request",
+            )
 
-        // max_tokens cap
+        val upstreamModel = channel.modelMap[requestedModel]
+            ?: return ProxyResult.Error(
+                HttpStatusCode.BadRequest,
+                buildJsonObject {
+                    put("error", "unsupported_model")
+                    put("active_channel", channel.name)
+                    put("supported", channel.modelMap.keys.sorted().joinToString(","))
+                },
+                logStatus = "unsupported_model",
+            )
+
         val maxTokens = (body["max_tokens"] as? JsonPrimitive)?.contentOrNullSafe()?.toIntOrNull()
         if (maxTokens != null && maxTokens > maxTokensCap) {
-            return ProxyResult.Error(HttpStatusCode.BadRequest, buildJsonObject {
-                put("error", "max_tokens exceeds limit of $maxTokensCap")
-            })
+            return ProxyResult.Error(
+                HttpStatusCode.BadRequest,
+                buildJsonObject { put("error", "max_tokens exceeds limit of $maxTokensCap") },
+                logStatus = "bad_request",
+            )
         }
 
-        // resolve provider
-        val provider = resolveProvider(requestedModel)
-            ?: return ProxyResult.Error(HttpStatusCode.BadRequest, buildJsonObject {
-                put("error", "Unsupported model: $requestedModel. Supported: ${MODEL_ROUTES.keys.joinToString(", ")}")
-            })
-
-        val upstreamModel = resolveUpstreamModel(requestedModel)
-
-        return when (provider) {
-            LlmProvider.CLOUDFLARE -> forwardToCloudflare(clientIp, body, upstreamModel)
-            LlmProvider.TOKENHUB -> {
-                if (upstreamModel !in TOKENHUB_MODELS) {
-                    return ProxyResult.Error(HttpStatusCode.BadRequest, buildJsonObject {
-                        put("error", "Unsupported model: $requestedModel. Supported: ${TOKENHUB_MODELS.joinToString(", ")}")
-                    })
-                }
-                forwardToTokenhub(clientIp, body, upstreamModel)
-            }
-        }
-    }
-
-    private fun resolveProvider(modelId: String): LlmProvider? {
-        if (forceProvider.equals("cloudflare", ignoreCase = true)) return LlmProvider.CLOUDFLARE
-        if (forceProvider.equals("tokenhub", ignoreCase = true)) return LlmProvider.TOKENHUB
-        return MODEL_ROUTES[modelId]
-    }
-
-    private fun resolveUpstreamModel(modelId: String): String =
-        MODEL_ALIASES[modelId] ?: modelId
-
-    private suspend fun forwardToCloudflare(
-        clientIp: String,
-        body: JsonObject,
-        upstreamModel: String,
-    ): ProxyResult {
-        if (cloudflareAigToken.isBlank()) {
-            logger.error("CLOUDFLARE_AIG_TOKEN not configured")
-            return ProxyResult.Error(HttpStatusCode.InternalServerError, buildJsonObject {
-                put("error", "Server configuration error: CLOUDFLARE_AIG_TOKEN missing")
-            })
+        if (channel.apiToken.isBlank()) {
+            return ProxyResult.Error(
+                HttpStatusCode.InternalServerError,
+                buildJsonObject {
+                    put("error", "channel_token_missing")
+                    put("channel", channel.name)
+                },
+                logStatus = "channel_token_missing",
+            )
         }
 
         val payload = buildJsonObject {
@@ -123,58 +78,26 @@ class LlmProxy(
             put("stream", false)
         }
 
-        logger.info("Forwarding to Cloudflare AI Gateway, model={}, ip={}", upstreamModel, clientIp)
+        val (headerName, headerValue) = when (channel.authStyle) {
+            AuthStyle.BEARER -> "Authorization" to "Bearer ${channel.apiToken}"
+            AuthStyle.CF_AIG -> "cf-aig-authorization" to "Bearer ${channel.apiToken}"
+        }
 
-        val resp = httpClient.post(cloudflareUrl) {
+        logger.info("Forwarding to channel={}, model={}, ip={}", channel.name, upstreamModel, clientIp)
+
+        val resp = httpClient.post(channel.baseUrl) {
             contentType(ContentType.Application.Json)
-            header("cf-aig-authorization", "Bearer $cloudflareAigToken")
+            header(headerName, headerValue)
             setBody(payload.toString())
         }
 
         val bytes = resp.bodyAsBytes()
-        logger.info("Cloudflare response status={}, ip={}", resp.status.value, clientIp)
+        logger.info("Channel {} response status={}, ip={}", channel.name, resp.status.value, clientIp)
         return ProxyResult.Success(
             status = resp.status,
             bytes = bytes,
             model = upstreamModel,
-            provider = LlmProvider.CLOUDFLARE,
-            usage = fromUpstreamBytes(bytes),
-        )
-    }
-
-    private suspend fun forwardToTokenhub(
-        clientIp: String,
-        body: JsonObject,
-        upstreamModel: String,
-    ): ProxyResult {
-        if (tokenhubApiToken.isBlank()) {
-            logger.error("TOKENHUB_API_TOKEN not configured")
-            return ProxyResult.Error(HttpStatusCode.InternalServerError, buildJsonObject {
-                put("error", "Server configuration error: TOKENHUB_API_TOKEN missing")
-            })
-        }
-
-        val payload = buildJsonObject {
-            body.forEach { (k, v) -> put(k, v) }
-            put("model", upstreamModel)
-            put("stream", false)
-        }
-
-        logger.info("Forwarding to TokenHub, model={}, ip={}", upstreamModel, clientIp)
-
-        val resp = httpClient.post(tokenhubUrl) {
-            contentType(ContentType.Application.Json)
-            header("Authorization", "Bearer $tokenhubApiToken")
-            setBody(payload.toString())
-        }
-
-        val bytes = resp.bodyAsBytes()
-        logger.info("TokenHub response status={}, ip={}", resp.status.value, clientIp)
-        return ProxyResult.Success(
-            status = resp.status,
-            bytes = bytes,
-            model = upstreamModel,
-            provider = LlmProvider.TOKENHUB,
+            provider = channel.name,
             usage = fromUpstreamBytes(bytes),
         )
     }
@@ -185,10 +108,15 @@ sealed class ProxyResult {
         val status: HttpStatusCode,
         val bytes: ByteArray,
         val model: String,
-        val provider: LlmProvider,
+        val provider: String,
         val usage: TokenUsage?,
     ) : ProxyResult()
-    data class Error(val status: HttpStatusCode, val body: JsonObject) : ProxyResult()
+
+    data class Error(
+        val status: HttpStatusCode,
+        val body: JsonObject,
+        val logStatus: String = "upstream_error",
+    ) : ProxyResult()
 }
 
 private fun JsonPrimitive.contentOrNullSafe(): String? =

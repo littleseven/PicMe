@@ -1,5 +1,9 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.llm.ChannelInput
+import com.mamba.picme.server.llm.ChannelRegistry
+import com.mamba.picme.server.llm.ChannelRepository
+import com.mamba.picme.server.llm.parseModelMapLines
 import io.ktor.http.ContentType
 import io.ktor.http.Cookie
 import io.ktor.http.HttpStatusCode
@@ -103,6 +107,99 @@ fun Route.adminRoute(adminToken: String) {
             val now = System.currentTimeMillis()
             call.respondText(AdminViews.trafficPage(AdminQueries.dailySeries(30, now)), ContentType.Text.Html)
         }
+
+        get("/channels") {
+            if (!call.adminGuard(adminToken)) return@get
+            val channels = ChannelRepository.list()
+            call.respondText(AdminViews.channelsPage(channels), ContentType.Text.Html)
+        }
+
+        get("/channels/new") {
+            if (!call.adminGuard(adminToken)) return@get
+            call.respondText(AdminViews.channelFormPage(), ContentType.Text.Html)
+        }
+
+        get("/channels/{id}/edit") {
+            if (!call.adminGuard(adminToken)) return@get
+            val id = call.parameters["id"]?.toIntOrNull()
+            val row = if (id != null) ChannelRepository.get(id) else null
+            if (id == null || row == null) {
+                call.respondText("not found", contentType = ContentType.Text.Plain, status = HttpStatusCode.NotFound)
+                return@get
+            }
+            call.respondText(AdminViews.channelFormPage(row), ContentType.Text.Html)
+        }
+
+        post("/channels") {
+            if (!call.adminGuard(adminToken)) return@post
+            val input = call.parseChannelInput()
+            if (input == null) {
+                call.respondText(
+                    AdminViews.channelsPage(ChannelRepository.list(), error = "表单参数错误：检查 model_map 格式（每行 请求名=上游名）"),
+                    ContentType.Text.Html,
+                    HttpStatusCode.BadRequest,
+                )
+                return@post
+            }
+            try {
+                ChannelRepository.create(input)
+            } catch (e: Exception) {
+                call.respondText(
+                    AdminViews.channelsPage(ChannelRepository.list(), error = "创建失败：名称可能重复"),
+                    ContentType.Text.Html,
+                    HttpStatusCode.BadRequest,
+                )
+                return@post
+            }
+            ChannelRegistry.reload()
+            call.respondRedirect("/admin/channels")
+        }
+
+        post("/channels/{id}") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            val input = call.parseChannelInput()
+            if (id != null && input != null) {
+                try {
+                    ChannelRepository.update(id, input)
+                } catch (e: Exception) {
+                    // 唯一约束冲突等：忽略，回列表
+                }
+                ChannelRegistry.reload()
+            }
+            call.respondRedirect("/admin/channels")
+        }
+
+        post("/channels/{id}/activate") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) {
+                ChannelRepository.setActive(id)
+                ChannelRegistry.reload()
+            }
+            call.respondRedirect("/admin/channels")
+        }
+
+        post("/channels/{id}/toggle") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) {
+                val current = ChannelRepository.get(id)
+                if (current != null) ChannelRepository.setEnabled(id, !current.enabled)
+                ChannelRegistry.reload()
+            }
+            call.respondRedirect("/admin/channels")
+        }
+
+        post("/channels/{id}/delete") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) {
+                ChannelRepository.delete(id)
+                ChannelRegistry.reload()
+            }
+            call.respondRedirect("/admin/channels")
+        }
     }
 }
 
@@ -123,3 +220,26 @@ private suspend fun ApplicationCall.adminGuard(adminToken: String): Boolean {
 /** 是否走 HTTPS：nginx 终止 TLS 时按 X-Forwarded-Proto 判断；本地 http dev 返回 false（cookie 不加 Secure）。 */
 private fun ApplicationCall.isHttps(): Boolean =
     request.headers["X-Forwarded-Proto"]?.equals("https", ignoreCase = true) == true
+
+/** 解析渠道表单为 ChannelInput；model_map 解析失败或校验不过返回 null。 */
+private suspend fun ApplicationCall.parseChannelInput(): ChannelInput? {
+    val params = receiveParameters()
+    val modelMap = try {
+        parseModelMapLines(params["model_map"] ?: "")
+    } catch (e: IllegalArgumentException) {
+        return null
+    }
+    val name = (params["name"] ?: "").trim()
+    val baseUrl = (params["base_url"] ?: "").trim()
+    if (name.isEmpty() || baseUrl.isEmpty()) return null
+    if (name.length > 32) return null
+    return ChannelInput(
+        name = name,
+        kind = (params["kind"] ?: "direct").trim(),
+        baseUrl = baseUrl,
+        authStyle = (params["auth_style"] ?: "bearer").trim(),
+        apiToken = (params["api_token"] ?: "").trim(),
+        modelMap = modelMap,
+        enabled = (params["enabled"] ?: "0") == "1",
+    )
+}

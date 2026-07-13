@@ -8,6 +8,7 @@ import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
 import com.mamba.picme.server.llm.LlmProxy
+import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.TokenHashKey
@@ -32,6 +33,7 @@ import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
@@ -43,7 +45,8 @@ val appJson = Json { prettyPrint = false; ignoreUnknownKeys = true; encodeDefaul
 fun main() {
     val config = AppConfig.load()
     Db.init(config.dbPath)
-    Migrations.run()
+    Migrations.run(config)
+    runBlocking { ChannelRegistry.reload() }
     embeddedServer(CIO, port = config.port, host = config.host) {
         module(config)
     }.start(wait = true)
@@ -100,11 +103,6 @@ fun Application.module(config: AppConfig) {
 
     val llmProxy = LlmProxy(
         httpClient = httpClient,
-        cloudflareUrl = config.cloudflareAigUrl,
-        cloudflareAigToken = config.cloudflareAigToken,
-        tokenhubUrl = config.tokenhubUrl,
-        tokenhubApiToken = config.tokenhubApiToken,
-        forceProvider = config.forceProvider.takeIf { it.isNotBlank() },
         maxTokensCap = config.maxTokensCap,
     )
     val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null

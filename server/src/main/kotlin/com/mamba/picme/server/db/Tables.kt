@@ -98,3 +98,23 @@ object LlmCallLogs : Table("llm_call_log") {
         index(isUnique = false, createdAt)            // 概览/流量按时间聚合
     }
 }
+
+// ── LLM 渠道配置（管理后台 /admin/channels 管理，运行时热切换）─────────
+object LlmChannels : Table("llm_channel") {
+    val id = integer("id").autoIncrement()
+    val name = varchar("name", 32)                 // 同时写入 llm_call_log.provider，故限 32
+    val kind = varchar("kind", 16)                 // gateway | direct
+    val baseUrl = varchar("base_url", 512)
+    val authStyle = varchar("auth_style", 16)      // bearer | cf_aig
+    val apiToken = text("api_token")               // 明文；UI 掩码
+    val modelMapJson = text("model_map_json")      // {"请求名":"上游名"}
+    val enabled = integer("enabled").default(1)
+    val isActive = integer("is_active").default(0) // 不变量：≤ 一个为 1
+    val createdAt = long("created_at")
+    val updatedAt = long("updated_at")
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex(name)
+    }
+}

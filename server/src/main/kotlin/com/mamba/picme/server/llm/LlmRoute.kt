@@ -61,7 +61,7 @@ fun Route.llmRoute(
                         UsageRecorder.log(
                             accountId = it,
                             model = result.model,
-                            provider = result.provider.name,
+                            provider = result.provider,
                             usage = result.usage,
                             respBytes = result.bytes.size,
                             status = "ok",
@@ -75,7 +75,7 @@ fun Route.llmRoute(
                     // LLM call failed — revert quota increment
                     AccountService.revertQuota(tokenHash)
                     accountId?.let {
-                        UsageRecorder.log(it, requestedModel, "", null, 0, "upstream_error", null, prices)
+                        UsageRecorder.log(it, requestedModel, "", null, 0, result.logStatus, null, prices)
                     }
                     call.respond(result.status, result.body)
                 }

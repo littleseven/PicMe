@@ -1,11 +1,14 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.llm.ChannelRow
+import com.mamba.picme.server.llm.renderModelMapLines
 import kotlinx.html.FlowContent
 import kotlinx.html.FormMethod
 import kotlinx.html.HTML
 import kotlinx.html.InputType
 import kotlinx.html.a
 import kotlinx.html.body
+import kotlinx.html.br
 import kotlinx.html.div
 import kotlinx.html.form
 import kotlinx.html.h1
@@ -13,11 +16,16 @@ import kotlinx.html.h2
 import kotlinx.html.head
 import kotlinx.html.html
 import kotlinx.html.input
+import kotlinx.html.label
 import kotlinx.html.meta
+import kotlinx.html.option
 import kotlinx.html.p
+import kotlinx.html.select
+import kotlinx.html.span
 import kotlinx.html.style
 import kotlinx.html.table
 import kotlinx.html.td
+import kotlinx.html.textArea
 import kotlinx.html.textInput
 import kotlinx.html.th
 import kotlinx.html.title
@@ -179,6 +187,142 @@ object AdminViews {
         }
     }
 
+    fun channelsPage(channels: List<ChannelRow>, error: String? = null): String = createHTML().html {
+        adminHead("渠道 · PicMe 管理后台")
+        body {
+            navBar()
+            h1 { +"渠道" }
+            if (error != null) p("err") { +error }
+            p {
+                a("/admin/channels/new", classes = "btn") { +"新增渠道" }
+            }
+            table {
+                tr {
+                    th { +"名称" }
+                    th { +"类型" }
+                    th { +"BaseURL" }
+                    th { +"Token" }
+                    th { +"启用" }
+                    th { +"生效" }
+                    th { +"操作" }
+                }
+                channels.forEach { ch ->
+                    tr {
+                        td { +ch.name }
+                        td { +ch.kind }
+                        td { +ch.baseUrl }
+                        td { +ch.apiTokenMasked }
+                        td { +(if (ch.enabled) "启用" else "停用") }
+                        td { if (ch.isActive) span("active-badge") { +"生效中" } }
+                        td {
+                            a("/admin/channels/${ch.id}/edit", classes = "btn-sm") { +"编辑" }
+                            +" "
+                            form(action = "/admin/channels/${ch.id}/activate", method = FormMethod.post, classes = "inline") {
+                                input(type = InputType.submit, classes = "btn-sm") { value = "设为生效" }
+                            }
+                            +" "
+                            form(action = "/admin/channels/${ch.id}/toggle", method = FormMethod.post, classes = "inline") {
+                                input(type = InputType.submit, classes = "btn-sm") { value = if (ch.enabled) "停用" else "启用" }
+                            }
+                            +" "
+                            form(action = "/admin/channels/${ch.id}/delete", method = FormMethod.post, classes = "inline") {
+                                input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun channelFormPage(existing: ChannelRow? = null): String = createHTML().html {
+        val title = if (existing == null) "新增渠道" else "编辑渠道"
+        val action = if (existing == null) "/admin/channels" else "/admin/channels/${existing.id}"
+        adminHead("$title · PicMe 管理后台")
+        body {
+            navBar()
+            h1 { +title }
+            form(action = action, method = FormMethod.post, classes = "chan-form") {
+                p {
+                    label { +"名称（≤32）" }
+                    br()
+                    textInput(name = "name") {
+                        value = existing?.name ?: ""
+                        placeholder = "如 DeepSeek 直连"
+                    }
+                }
+                p {
+                    label { +"类型" }
+                    br()
+                    select {
+                        name = "kind"
+                        option {
+                            value = "gateway"
+                            if (existing?.kind == "gateway") selected = true
+                            +"gateway"
+                        }
+                        option {
+                            value = "direct"
+                            if (existing == null || existing.kind == "direct") selected = true
+                            +"direct"
+                        }
+                    }
+                }
+                p {
+                    label { +"BaseURL" }
+                    br()
+                    textInput(name = "base_url") {
+                        value = existing?.baseUrl ?: ""
+                        placeholder = "https://..."
+                    }
+                }
+                p {
+                    label { +"鉴权方式" }
+                    br()
+                    select {
+                        name = "auth_style"
+                        option {
+                            value = "bearer"
+                            if (existing?.authStyle != "cf_aig") selected = true
+                            +"bearer (Authorization: Bearer)"
+                        }
+                        option {
+                            value = "cf_aig"
+                            if (existing?.authStyle == "cf_aig") selected = true
+                            +"cf_aig (cf-aig-authorization)"
+                        }
+                    }
+                }
+                p {
+                    label { +"API Token（编辑时留空=保持不变）" }
+                    br()
+                    input(type = InputType.password, name = "api_token") {
+                        placeholder = if (existing != null) "••••（留空不变）" else ""
+                    }
+                }
+                p {
+                    label { +"模型映射（每行 请求名=上游名）" }
+                    br()
+                    textArea {
+                        name = "model_map"
+                        rows = "6"
+                        cols = "50"
+                        +(existing?.modelMap?.let { renderModelMapLines(it) } ?: "deepseek-chat=glm-5.2")
+                    }
+                }
+                p {
+                    label { +"启用" }
+                    input(type = InputType.checkBox, name = "enabled") {
+                        value = "1"
+                        if (existing?.enabled ?: true) checked = true
+                    }
+                }
+                p { input(type = InputType.submit, classes = "btn") { value = "保存" } }
+                p { a("/admin/channels") { +"取消" } }
+            }
+        }
+    }
+
     // ── 公共片段 ──
 
     private fun HTML.adminHead(title: String) {
@@ -218,6 +362,15 @@ object AdminViews {
                         .pw{padding:10px;width:100%;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
                         .btn{padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
                         .chart{display:block;width:100%;max-width:760px;height:auto;margin:8px auto;background:#fff;border:1px solid #e3e6eb;border-radius:8px;padding:8px}
+                        .chan-form{max-width:640px;margin:16px auto;padding:0 20px}
+                        .chan-form p{margin:8px 0}
+                        .chan-form label{display:block;font-size:13px;color:#374151;margin-bottom:4px}
+                        .chan-form input[type=text],.chan-form input[type=password],.chan-form select,.chan-form textarea{padding:8px;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:14px;font-family:inherit}
+                        .chan-form textarea{font-family:monospace}
+                        .inline{display:inline}
+                        .btn-sm{padding:4px 10px;background:#6b7280;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer}
+                        .btn-danger{background:#dc2626}
+                        .active-badge{color:#16a34a;font-weight:600}
                         @media (max-width:640px){
                         body>h1{font-size:18px}
                         body>h2{font-size:14px}
@@ -245,6 +398,7 @@ object AdminViews {
                 a("/admin", classes = "nav-link") { +"概览" }
                 a("/admin/users", classes = "nav-link") { +"用户" }
                 a("/admin/traffic", classes = "nav-link") { +"流量" }
+                a("/admin/channels", classes = "nav-link") { +"渠道" }
             }
             div("nav-spacer") {}
             a("/admin/logout", classes = "nav-link nav-logout") { +"退出" }

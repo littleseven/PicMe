@@ -1,18 +1,24 @@
 package com.mamba.picme.server.db
 
+import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.llm.serializeModelMap
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Transaction
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 
 object Migrations {
-    fun run() {
+    fun run(config: AppConfig) {
         transaction(Db.instance) {
             SchemaUtils.create(
                 Rules, Assets, TelemetryEvents, LlmDailyCounters,
-                Accounts, EmailVerifications, LlmCallLogs,
+                Accounts, EmailVerifications, LlmCallLogs, LlmChannels,
             )
             seedRules()
         }
+        seedChannels(config)
     }
 
     /**
@@ -30,4 +36,111 @@ object Migrations {
             .filter { it.isNotEmpty() }
             .forEach { stmt -> exec(stmt) }
     }
+
+    /**
+     * 首次启动播种 5 个 LLM 渠道（2 网关 + 3 直连）。已有渠道则跳过（幂等）。
+     * 生效渠道：FORCE_PROVIDER=cloudflare|tokenhub 优先，否则首个 enabled（Cloudflare）。
+     * env 仅此处读一次；之后由后台 /admin/channels 管理。
+     */
+    internal fun seedChannels(config: AppConfig) {
+        transaction(Db.instance) {
+            if (LlmChannels.selectAll().count() > 0) return@transaction
+            val now = System.currentTimeMillis()
+
+            val cloudflareId = LlmChannels.insert {
+                it[LlmChannels.name] = "Cloudflare"
+                it[LlmChannels.kind] = "gateway"
+                it[LlmChannels.baseUrl] = config.cloudflareAigUrl
+                it[LlmChannels.authStyle] = "cf_aig"
+                it[LlmChannels.apiToken] = config.cloudflareAigToken
+                it[LlmChannels.modelMapJson] = serializeModelMap(mapOf(
+                    "deepseek-chat" to "deepseek/deepseek-chat",
+                    "deepseek-v4-flash" to "deepseek/deepseek-chat",
+                ))
+                it[LlmChannels.enabled] = 1
+                it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = now
+                it[LlmChannels.updatedAt] = now
+            }[LlmChannels.id]
+
+            val tokenhubId = LlmChannels.insert {
+                it[LlmChannels.name] = "TokenHub"
+                it[LlmChannels.kind] = "gateway"
+                it[LlmChannels.baseUrl] = config.tokenhubUrl
+                it[LlmChannels.authStyle] = "bearer"
+                it[LlmChannels.apiToken] = config.tokenhubApiToken
+                it[LlmChannels.modelMapJson] = serializeModelMap(
+                    TOKENHUB_SEED_MODELS.associateWith { model -> model }
+                )
+                it[LlmChannels.enabled] = 1
+                it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = now
+                it[LlmChannels.updatedAt] = now
+            }[LlmChannels.id]
+
+            LlmChannels.insert {
+                it[LlmChannels.name] = "DeepSeek 直连"
+                it[LlmChannels.kind] = "direct"
+                it[LlmChannels.baseUrl] = "https://api.deepseek.com/v1/chat/completions"
+                it[LlmChannels.authStyle] = "bearer"
+                it[LlmChannels.apiToken] = ""
+                it[LlmChannels.modelMapJson] = serializeModelMap(mapOf(
+                    "deepseek-v4-flash" to "deepseek-v4-flash",
+                    "deepseek-v4-pro" to "deepseek-v4-pro",
+                ))
+                it[LlmChannels.enabled] = 0
+                it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = now
+                it[LlmChannels.updatedAt] = now
+            }
+
+            LlmChannels.insert {
+                it[LlmChannels.name] = "GLM 直连"
+                it[LlmChannels.kind] = "direct"
+                it[LlmChannels.baseUrl] = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+                it[LlmChannels.authStyle] = "bearer"
+                it[LlmChannels.apiToken] = ""
+                it[LlmChannels.modelMapJson] = serializeModelMap(mapOf(
+                    "deepseek-chat" to "glm-5.2",
+                    "kimi-k2.6" to "glm-5.2",
+                ))
+                it[LlmChannels.enabled] = 0
+                it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = now
+                it[LlmChannels.updatedAt] = now
+            }
+
+            LlmChannels.insert {
+                it[LlmChannels.name] = "Kimi 直连"
+                it[LlmChannels.kind] = "direct"
+                it[LlmChannels.baseUrl] = "https://api.moonshot.cn/v1/chat/completions"
+                it[LlmChannels.authStyle] = "bearer"
+                it[LlmChannels.apiToken] = ""
+                it[LlmChannels.modelMapJson] = serializeModelMap(mapOf(
+                    "kimi-k2.6" to "kimi-k2.7-code",
+                    "deepseek-chat" to "kimi-k2.7-code",
+                ))
+                it[LlmChannels.enabled] = 0
+                it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = now
+                it[LlmChannels.updatedAt] = now
+            }
+
+            val activeId = when (config.forceProvider.trim().lowercase()) {
+                "tokenhub" -> tokenhubId
+                "cloudflare" -> cloudflareId
+                else -> cloudflareId
+            }
+            LlmChannels.update({ LlmChannels.id eq activeId }) { it[LlmChannels.isActive] = 1 }
+        }
+    }
 }
+
+private val TOKENHUB_SEED_MODELS = listOf(
+    "deepseek-v4-flash-202605", "kimi-k2.7-code", "kimi-k2.6", "deepseek-v4-flash",
+    "hy3", "kimi-k2.7-code-highspeed", "glm-5.2", "minimax-m3", "hy-role",
+    "deepseek-v4-pro-202606", "hy-mt2-pro", "hy-mt2-lite", "hy-mt2-plus",
+    "hunyuan-role-latest", "deepseek-v4-pro", "hy3-preview", "glm-5.1",
+    "glm-5v-turbo", "minimax-m2.7", "glm-5-turbo", "qwen3.5-flash",
+    "qwen3.5-plus", "minimax-m2.5", "glm-5", "kimi-k2.5",
+)
