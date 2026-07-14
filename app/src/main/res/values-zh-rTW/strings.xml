@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">覓影相冊</string>
+    <string name="app_name">破浪相冊</string>
     <string name="chat">聊天</string>
     <string name="camera">相機</string>
     <string name="gallery">相簿</string>
@@ -433,7 +433,7 @@
     <string name="floating_chat_notification_channel">AI 聊天氣泡</string>
     <string name="floating_chat_notification_channel_desc">保持懸浮聊天氣泡在背景執行</string>
     <string name="floating_chat_notification_title">AI 聊天氣泡執行中</string>
-    <string name="floating_chat_notification_content">點擊開啟 PicMe 或停止氣泡。</string>
+    <string name="floating_chat_notification_content">點擊開啟 破浪相冊 或停止氣泡。</string>
     <string name="chat_send">發送</string>
 
     <!-- AI 遠端控制無障礙服務 -->
@@ -442,7 +442,7 @@
     <string name="settings_accessibility_service_enabled">已開啟</string>
     <string name="settings_accessibility_service_disabled">未開啟</string>
     <string name="settings_accessibility_service_action_open">去開啟</string>
-    <string name="accessibility_service_description">開啟後 PicMe AI 助手可讀取螢幕內容並執行點擊、輸入等操作。</string>
+    <string name="accessibility_service_description">開啟後 破浪相冊 AI 助手可讀取螢幕內容並執行點擊、輸入等操作。</string>
 
     <!-- 媒體項無障礙標籤 -->
     <string name="media_type_photo">照片</string>
@@ -455,13 +455,13 @@
     <string name="settings_background_permission_title">背景執行權限</string>
     <string name="settings_background_permission_summary">在小米/紅米等 MIUI 裝置上需要開啟，否則 AI 服務容易被系統回收。</string>
     <string name="settings_battery_optimization_title">忽略電池最佳化</string>
-    <string name="settings_battery_optimization_summary">允許 PicMe 在背景執行而不被系統關閉。</string>
+    <string name="settings_battery_optimization_summary">允許 破浪相冊 在背景執行而不被系統關閉。</string>
     <string name="settings_battery_optimization_enabled">已允許</string>
     <string name="settings_battery_optimization_disabled">受限制</string>
     <string name="settings_miui_auto_start_title">MIUI 自啟動</string>
-    <string name="settings_miui_auto_start_summary">允許 PicMe 自啟動並在背景執行。</string>
+    <string name="settings_miui_auto_start_summary">允許 破浪相冊 自啟動並在背景執行。</string>
     <string name="settings_miui_permission_editor_title">MIUI 應用權限管理</string>
-    <string name="settings_miui_permission_editor_summary">為 PicMe 開啟「顯示懸浮窗」和「背景彈出介面」。</string>
+    <string name="settings_miui_permission_editor_summary">為 破浪相冊 開啟「顯示懸浮窗」和「背景彈出介面」。</string>
     <string name="settings_miui_action_open">去開啟</string>
 
     <!-- 智慧型相簿索引 -->
