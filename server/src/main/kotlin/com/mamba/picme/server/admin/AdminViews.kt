@@ -44,10 +44,10 @@ import kotlinx.html.stream.createHTML
 object AdminViews {
 
     fun loginPage(failed: Boolean = false): String = createHTML().html {
-        adminHead("登录 · PicMe 管理后台")
+        adminHead("登录 · PoLang 管理后台")
         body {
             div("wrap") {
-                h1 { +"PicMe 管理后台" }
+                h1 { +"PoLang 管理后台" }
                 if (failed) p("err") { +"密码错误" }
                 form(action = "/admin/login", method = FormMethod.post) {
                     p { textInput(name = "password", classes = "pw") { placeholder = "ADMIN_TOKEN" } }
@@ -58,7 +58,7 @@ object AdminViews {
     }
 
     fun overviewPage(ov: OverviewRow, series: List<DayBucket>): String = createHTML().html {
-        adminHead("概览 · PicMe 管理后台")
+        adminHead("概览 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"概览（今日，UTC 自然日）" }
@@ -79,7 +79,7 @@ object AdminViews {
     }
 
     fun usersPage(rows: List<UserRow>): String = createHTML().html {
-        adminHead("用户 · PicMe 管理后台")
+        adminHead("用户 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"用户（${rows.size}）" }
@@ -131,7 +131,7 @@ object AdminViews {
     }
 
     fun userDetailPage(d: UserDetail, calls: List<CallRow>): String = createHTML().html {
-        adminHead("用户详情 · PicMe 管理后台")
+        adminHead("用户详情 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"${d.email}（#${d.id}）" }
@@ -177,7 +177,7 @@ object AdminViews {
     }
 
     fun trafficPage(series: List<DayBucket>): String = createHTML().html {
-        adminHead("流量 · PicMe 管理后台")
+        adminHead("流量 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"流量（近 ${series.size} 天，UTC）" }
@@ -212,7 +212,7 @@ object AdminViews {
     }
 
     fun channelsPage(channels: List<ChannelRow>, error: String? = null): String = createHTML().html {
-        adminHead("渠道 · PicMe 管理后台")
+        adminHead("渠道 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"渠道" }
@@ -286,7 +286,7 @@ object AdminViews {
     fun channelFormPage(existing: ChannelRow? = null): String = createHTML().html {
         val title = if (existing == null) "新增渠道" else "编辑渠道"
         val action = if (existing == null) "/admin/channels" else "/admin/channels/${existing.id}"
-        adminHead("$title · PicMe 管理后台")
+        adminHead("$title · PoLang 管理后台")
         body {
             navBar()
             h1 { +title }
@@ -467,7 +467,7 @@ object AdminViews {
 
     private fun FlowContent.navBar() {
         div("nav") {
-            div("nav-brand") { +"PicMe 管理后台" }
+            div("nav-brand") { +"PoLang 管理后台" }
             div("nav-links") {
                 a("/admin", classes = "nav-link") { +"概览" }
                 a("/admin/users", classes = "nav-link") { +"用户" }

@@ -31,9 +31,9 @@ class EmailService(
                 setBody(buildJsonObject {
                     put("from", fromEmail)
                     put("to", email)
-                    put("subject", "PicMe 验证码")
+                    put("subject", "PoLang 验证码")
                     put("html", """
-                        <p>你的 PicMe 验证码是：</p>
+                        <p>你的 PoLang 验证码是：</p>
                         <h2 style="font-size:32px;letter-spacing:4px;">$code</h2>
                         <p>验证码 10 分钟内有效。</p>
                     """.trimIndent())
