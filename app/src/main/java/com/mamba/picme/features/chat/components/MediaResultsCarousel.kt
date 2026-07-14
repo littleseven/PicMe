@@ -4,22 +4,28 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -33,7 +39,7 @@ import java.util.Locale
  * 相册搜索结果横滑卡片 carousel，插入 chat 对话流。
  *
  * @param onCardClick 点击卡片，参数为在 assets 中的 index（用于 MediaPager initialIndex）
- * @param onViewAll 点击「在相册查看全部」
+ * @param onViewAll 点击「查看全部」
  */
 @Composable
 fun MediaResultsCarousel(
@@ -68,9 +74,7 @@ fun MediaResultsCarousel(
             }
             if (mr.totalCount > mr.assets.size) {
                 item {
-                    TextButton(onClick = onViewAll, modifier = Modifier.width(120.dp)) {
-                        Text("在相册查看全部")
-                    }
+                    ViewAllCard(onClick = onViewAll)
                 }
             }
         }
@@ -103,6 +107,38 @@ private fun MediaCard(asset: MediaAsset, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(4.dp)
+            )
+        }
+    }
+}
+
+/**
+ * 「查看全部」卡片：与 MediaCard 同尺寸，作为横滑末尾的入口瓦片，替代裸文本按钮。
+ */
+@Composable
+private fun ViewAllCard(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.size(width = 120.dp, height = 150.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.PhotoLibrary,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "查看全部",
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

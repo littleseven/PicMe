@@ -336,7 +336,7 @@ class LocalPromptBuilder(
     /**
      * 构建 L2 本地快速通道能力描述（简化版）
      */
-    private fun buildL2CapabilitiesSection(
+    internal fun buildL2CapabilitiesSection(
         scene: SceneManager.Scene? = null
     ): String {
         val includeCamera = scene == null || scene == SceneManager.Scene.CAMERA
@@ -356,6 +356,9 @@ class LocalPromptBuilder(
             }
             if (includeSystem) {
                 appendLine("launch_app(package_name|app_name), open_system_settings(setting)")
+            }
+            if (scene == null || scene == SceneManager.Scene.CHAT) {
+                appendLine("search_media(query), refine_media_search(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search")
             }
             appendLine("navigate_to(destination), go_back, text_reply(message)")
             appendLine()
