@@ -130,6 +130,13 @@ class AgentTestEngine(
                                     "Action: BatchResult - ${actionResult.results.size} sub-results, success=${actionResult.isSuccess}"
                                 )
                             }
+                            is AgentAction.MediaResults -> {
+                                Logger.i(TAG, "  │    🖼️ MediaResults: ${actionResult.totalCount}")
+                                context = context.addLog(
+                                    "Test",
+                                    "Action: MediaResults - ${actionResult.totalCount} results"
+                                )
+                            }
                         }
                     }
 

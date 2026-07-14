@@ -453,6 +453,9 @@ class ChatViewModel(
             is AgentAction.TextReply -> {
                 insertAgentMessage(sessionId, action.message, modelLabel, performance)
             }
+            is AgentAction.MediaResults -> {
+                insertAgentMessage(sessionId, "找到 ${action.totalCount} 张「${action.query}」的照片", "command")
+            }
             is AgentAction.Success -> {
                 insertAgentMessage(sessionId, describeCommandResult(action.command), "command", performance)
             }

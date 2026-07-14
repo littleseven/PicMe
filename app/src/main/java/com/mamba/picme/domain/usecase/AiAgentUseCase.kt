@@ -293,6 +293,7 @@ class AiAgentUseCase(
             is AgentCommand.ShareMedia -> AiAgentCommand.TextReply("请在相册中分享照片")
             is AgentCommand.SelectMedia -> AiAgentCommand.TextReply("请在相册中选择照片")
             is AgentCommand.SearchMedia -> AiAgentCommand.SearchMedia(command.query)
+            is AgentCommand.RefineMediaSearch -> AiAgentCommand.SearchMedia(command.constraint)
             is AgentCommand.SwitchViewMode -> AiAgentCommand.TextReply("切换相册视图")
             is AgentCommand.FavoriteMedia -> AiAgentCommand.TextReply("收藏照片")
             // 设置命令
@@ -354,6 +355,7 @@ class AiAgentUseCase(
                     is AgentCommand.ShareMedia -> AiAgentCommand.TextReply("请在相册中分享照片")
                     is AgentCommand.SelectMedia -> AiAgentCommand.TextReply("请在相册中选择照片")
                     is AgentCommand.SearchMedia -> AiAgentCommand.TextReply("搜索照片: ${cmd.query}")
+                    is AgentCommand.RefineMediaSearch -> AiAgentCommand.TextReply("细化搜索: ${cmd.constraint}")
                     is AgentCommand.SwitchViewMode -> AiAgentCommand.TextReply("切换相册视图")
                     is AgentCommand.FavoriteMedia -> AiAgentCommand.TextReply("收藏照片")
                     // 设置命令
@@ -375,6 +377,7 @@ class AiAgentUseCase(
                     is AgentCommand.Unknown -> AiAgentCommand.TextReply("未知命令: ${cmd.raw}")
                 }
             }
+            is AgentAction.MediaResults -> AiAgentCommand.TextReply("找到 ${action.totalCount} 张「${action.query}」的照片")
             is AgentAction.TextReply -> AiAgentCommand.TextReply(action.message)
             is AgentAction.Error -> AiAgentCommand.TextReply("处理出错了：${action.message}")
             is AgentAction.BatchResult -> {

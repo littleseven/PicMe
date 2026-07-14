@@ -416,6 +416,7 @@ private suspend fun sendMessage(
                     is AgentAction.TextReply -> action.message
                     is AgentAction.Error -> "抱歉，${action.message}"
                     is AgentAction.BatchResult -> "已执行批量操作 (${action.results.size} 个)"
+                    is AgentAction.MediaResults -> "找到 ${action.totalCount} 张「${action.query}」的照片"
                 }
                 state.addMessage(AgentMessage(content = responseText, isFromUser = false))
             },
