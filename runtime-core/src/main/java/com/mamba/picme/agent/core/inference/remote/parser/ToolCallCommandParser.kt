@@ -74,6 +74,7 @@ object ToolCallCommandParser {
             "share_media" -> parseShareMedia(args)
             "select_media" -> parseSelectMedia(args)
             "search_media" -> parseSearchMedia(args)
+            "refine_media_search" -> parseRefineMediaSearch(args)
             "switch_view_mode" -> parseSwitchViewMode(args)
             "favorite_media" -> parseFavoriteMedia(args)
             // 设置命令
@@ -226,6 +227,12 @@ object ToolCallCommandParser {
 
     private fun parseSearchMedia(args: JSONObject): AgentCommand.SearchMedia {
         return AgentCommand.SearchMedia(query = args.optString("query", ""))
+    }
+
+    private fun parseRefineMediaSearch(args: JSONObject): AgentCommand.RefineMediaSearch {
+        return AgentCommand.RefineMediaSearch(
+            constraint = args.optString("constraint", args.optString("query", ""))
+        )
     }
 
     private fun parseSwitchViewMode(args: JSONObject): AgentCommand.SwitchViewMode {

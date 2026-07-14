@@ -170,6 +170,15 @@ sealed class AgentCommand {
     ) : AgentCommand()
 
     /**
+     * 细化上一轮相册搜索结果（in-set 过滤）。
+     * 由 Agent 在识别到用户对上一轮结果收窄时发出；命中 id 集合由 ChatViewModel 按 session 持有。
+     */
+    data class RefineMediaSearch(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val constraint: String
+    ) : AgentCommand()
+
+    /**
      * 切换视图模式
      */
     data class SwitchViewMode(
@@ -366,6 +375,7 @@ sealed class AgentCommand {
             is ShareMedia -> "share_media"
             is SelectMedia -> "select_media"
             is SearchMedia -> "search_media"
+            is RefineMediaSearch -> "refine_media_search"
             is SwitchViewMode -> "switch_view_mode"
             is FavoriteMedia -> "favorite_media"
             is ChangeTheme -> "change_theme"
