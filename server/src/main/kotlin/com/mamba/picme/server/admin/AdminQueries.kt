@@ -42,6 +42,8 @@ data class UserRow(
     val totalTokens: Long,
     val cost: Double,
     val lastActive: Long?,
+    val apiTokenMasked: String,
+    val hasToken: Boolean,
 )
 
 data class UserDetail(
@@ -154,6 +156,8 @@ object AdminQueries {
                 totalTokens = tokens[id] ?: 0L,
                 cost = cost[id] ?: 0.0,
                 lastActive = lastActive[id],
+                apiTokenMasked = maskToken(a[Accounts.tokenPlain]),
+                hasToken = a[Accounts.tokenPlain].isNotEmpty(),
             )
         }
     }
@@ -221,5 +225,12 @@ object AdminQueries {
         var totalTokens = 0L
         var cost = 0.0
         var bytes = 0L
+    }
+
+    /** 与 ChannelRepository.maskToken 同形：前4+••••+后4 便于辨认；空 → 「—」。 */
+    private fun maskToken(token: String): String = when {
+        token.isEmpty() -> "—"
+        token.length <= 8 -> "••••" + token.takeLast(4)
+        else -> token.take(4) + "••••" + token.takeLast(4)
     }
 }

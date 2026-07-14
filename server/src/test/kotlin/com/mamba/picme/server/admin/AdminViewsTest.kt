@@ -16,11 +16,19 @@ class AdminViewsTest {
     }
 
     @Test
-    fun `users page lists emails and detail links`() {
-        val rows = listOf(UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null))
+    fun `users page lists emails, detail links and masked api tokens`() {
+        val rows = listOf(
+            UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null, "picm••••wxyz", true),
+            UserRow(2, "b@x.com", "active", 0L, 0L, 0L, 0.0, null, "—", false),
+        )
         val html = AdminViews.usersPage(rows)
         assertTrue(html.contains("a@x.com"))
         assertTrue(html.contains("/admin/users/1"))
+        // API Token 列：有明文者显示掩码 + 复制按钮；原用量列改名「Token 用量」消歧
+        assertTrue(html.contains("API Token"))
+        assertTrue(html.contains("picm••••wxyz"))
+        assertTrue(html.contains("tokCopy(1, this)"))
+        assertTrue(html.contains("Token 用量"))
     }
 
     @Test

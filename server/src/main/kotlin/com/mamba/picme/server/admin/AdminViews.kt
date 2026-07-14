@@ -87,10 +87,11 @@ object AdminViews {
                 tr {
                     th { +"ID" }
                     th { +"邮箱" }
+                    th { +"API Token" }
                     th { +"状态" }
                     th { +"注册时间" }
                     th { +"调用" }
-                    th { +"Token" }
+                    th { +"Token 用量" }
                     th { +"成本 ¥" }
                     th { +"最后活跃" }
                 }
@@ -98,6 +99,18 @@ object AdminViews {
                     tr {
                         td { +u.id.toString() }
                         td { a("/admin/users/${u.id}") { +u.email } }
+                        td {
+                            if (u.hasToken) {
+                                span("tok") { +u.apiTokenMasked }
+                                +" "
+                                button(type = ButtonType.button, classes = "btn-sm tok-copy") {
+                                    attributes["onclick"] = "tokCopy(${u.id}, this)"
+                                    +"复制"
+                                }
+                            } else {
+                                +"—"
+                            }
+                        }
                         td { +u.status }
                         td { +fmtTs(u.createdAt) }
                         td { +u.calls.toString() }
@@ -105,6 +118,13 @@ object AdminViews {
                         td { +fmt(u.cost) }
                         td { +(u.lastActive?.let { fmtTs(it) } ?: "—") }
                     }
+                }
+            }
+            script {
+                unsafe {
+                    raw(
+                        """function tokCopy(id,btn){fetch('/admin/users/'+id+'/token',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){return navigator.clipboard.writeText(d.token)}).then(function(){var o=btn.textContent;btn.textContent='✓';setTimeout(function(){btn.textContent=o},1200)}).catch(function(){btn.textContent='失败';setTimeout(function(){btn.textContent='复制'},1200)})}""",
+                    )
                 }
             }
         }

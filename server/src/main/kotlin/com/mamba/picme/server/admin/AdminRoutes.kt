@@ -1,5 +1,6 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelRepository
@@ -102,6 +103,19 @@ fun Route.adminRoute(adminToken: String) {
             }
             val calls = AdminQueries.recentCalls(id, 50)
             call.respondText(AdminViews.userDetailPage(detail, calls), ContentType.Text.Html)
+        }
+
+        // 供用户列表「复制」按钮调用：返回完整 token（cookie 鉴权；不进列表 HTML）。
+        get("/users/{id}/token") {
+            if (!call.adminGuard(adminToken)) return@get
+            val id = call.parameters["id"]?.toIntOrNull()
+            val token = if (id != null) AccountService.rawToken(id) else null
+            if (token == null) {
+                call.respondText("not found", contentType = ContentType.Text.Plain, status = HttpStatusCode.NotFound)
+                return@get
+            }
+            val body = buildJsonObject { put("token", token) }.toString()
+            call.respondText(body, ContentType.Application.Json)
         }
 
         get("/traffic") {

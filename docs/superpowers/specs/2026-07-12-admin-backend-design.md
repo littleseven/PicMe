@@ -132,8 +132,9 @@ kotlinx.html 渲染，内联 SVG 趋势图（无 CDN、离线可用）。4 个�
    - 近 14 天双折线（SVG）：调用数 vs token 成本。
 
 2. **用户列表 `GET /admin/users`**
-   - 表：email / 状态 / 注册时间 / 累计调用（log 计 `status=ok`）/ 累计 token / 累计成本 / 最后活跃。
+   - 表：ID / email / API Token（掩码 `前4+••••+后4`，复制按钮调 `GET /admin/users/{id}/token` 取完整明文）/ 状态 / 注册时间 / 累计调用（log 计 `status=ok`）/ 累计 token 用量 / 累计成本 / 最后活跃。
    - 行链接到 `/admin/users/{id}`。
+   - API Token 明文存于 `account.token_plain`（与 `llm_channel.api_token` 同法；老用户为空显示「—」），仅供后台 cookie 鉴权复制，不进列表 HTML。
 
 3. **用户详情 `GET /admin/users/{id}`**
    - 该用户累计汇总 + 最近 N（默认 50）条 `llm_call_log` 明细 + 近 14 天个人趋势。

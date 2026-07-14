@@ -104,6 +104,7 @@ object AccountService {
             if (existing != null) {
                 Accounts.update({ Accounts.id eq existing[Accounts.id] }) {
                     it[Accounts.tokenHash] = tokenHash
+                    it[Accounts.tokenPlain] = token
                     it[Accounts.status] = "active"
                     it[llmCallsUsed] = 0
                     it[llmCallsLimit] = freeQuota
@@ -112,6 +113,7 @@ object AccountService {
                 Accounts.insert {
                     it[Accounts.email] = email
                     it[Accounts.tokenHash] = tokenHash
+                    it[Accounts.tokenPlain] = token
                     it[Accounts.status] = "active"
                     it[llmCallsUsed] = 0
                     it[llmCallsLimit] = freeQuota
@@ -143,6 +145,12 @@ object AccountService {
             Accounts.selectAll().where { Accounts.tokenHash eq tokenHash }
                 .firstOrNull()?.let { it[Accounts.id] }
         }
+    }
+
+    /** 取账户完整 token（仅供后台用户列表「复制」端点；空明文返回 null）。 */
+    suspend fun rawToken(id: Int): String? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        Accounts.selectAll().where { Accounts.id eq id }.firstOrNull()
+            ?.let { it[Accounts.tokenPlain].takeIf { plain -> plain.isNotEmpty() } }
     }
 
     // ── Quota ──

@@ -53,6 +53,7 @@ object Accounts : Table("account") {
     val id = integer("id").autoIncrement()
     val email = varchar("email", 256)
     val tokenHash = varchar("token_hash", 64)          // SHA-256(token)
+    val tokenPlain = varchar("token_plain", 128).default("") // 明文（管理员后台可见）；老用户为空
     val status = varchar("status", 16).default("active") // active | revoked
     val llmCallsUsed = integer("llm_calls_used").default(0)
     val llmCallsLimit = integer("llm_calls_limit").default(100) // 试用额度（次）
