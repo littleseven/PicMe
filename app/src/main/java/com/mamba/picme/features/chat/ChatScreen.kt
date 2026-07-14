@@ -128,7 +128,14 @@ import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
+import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
+import com.mamba.picme.features.chat.capability.ChatSearchCapability
+import com.mamba.picme.features.chat.components.MediaResultsCarousel
+import com.mamba.picme.features.gallery.MediaViewModel
+import com.mamba.picme.features.gallery.components.MediaPager
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
+import androidx.compose.runtime.mutableIntStateOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.PushToTalkEngine
@@ -153,7 +160,8 @@ fun ChatScreen(
     viewModel: ChatViewModel = viewModel(),
     settingsViewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToGallery: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -169,6 +177,15 @@ fun ChatScreen(
     var isSidebarOpen by remember { mutableStateOf(false) }
     // 图片预览状态
     var previewImageUri by remember { mutableStateOf<Uri?>(null) }
+    // 相册搜索结果预览状态
+    var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
+    var previewIndex by remember { mutableIntStateOf(0) }
+
+    // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
+    DisposableEffect(Unit) {
+        ChatSearchCapability.getInstance().bindDelegate(viewModel)
+        onDispose { ChatSearchCapability.getInstance().unbindDelegate() }
+    }
 
     BackHandler(enabled = isSidebarOpen) {
         isSidebarOpen = false
@@ -232,10 +249,24 @@ fun ChatScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(messages, key = { it.id }) { message ->
-                        ChatMessageItem(
-                            message = message,
-                            onImageClick = { imageUri -> previewImageUri = imageUri }
-                        )
+                        val mr = message.mediaResults
+                        if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
+                            MediaResultsCarousel(
+                                mediaResults = mr,
+                                onCardClick = { index ->
+                                    previewAssets = mr.assets
+                                    previewIndex = index
+                                },
+                                onViewAll = {
+                                    onNavigateToGallery(java.net.URLEncoder.encode(mr.query, "UTF-8"))
+                                }
+                            )
+                        } else {
+                            ChatMessageItem(
+                                message = message,
+                                onImageClick = { imageUri -> previewImageUri = imageUri }
+                            )
+                        }
                     }
                 }
 
@@ -289,6 +320,23 @@ fun ChatScreen(
                 imageUri = previewImageUri,
                 onDismiss = { previewImageUri = null }
             )
+
+            // 相册搜索结果全屏预览（复用 MediaPager，非必要回调首版 stub）
+            if (previewAssets.isNotEmpty()) {
+                MediaPager(
+                    assets = previewAssets,
+                    initialIndex = previewIndex,
+                    onClose = { previewAssets = emptyList() },
+                    onDelete = { previewAssets = emptyList() },
+                    onStartOcr = {},
+                    onDismissOcr = {},
+                    ocrState = MutableStateFlow<MediaViewModel.OcrResult?>(null),
+                    onNavigateToEditor = {},
+                    onAiOptimize = {},
+                    voiceCoordinator = null,
+                    onReTag = {}
+                )
+            }
         }
     }
 
