@@ -462,8 +462,8 @@ fun GalleryScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             when {
-                isSearchActive && !isSelectionMode -> {
-                    // 搜索模式：显示搜索框
+                selectedMediaIndex == null && isSearchActive && !isSelectionMode -> {
+                    // 搜索模式：显示搜索框（预览打开时不显示，避免与预览顶栏重叠）
                     SearchTopBar(
                         searchQuery = searchQuery,
                         onQueryChange = { query ->
