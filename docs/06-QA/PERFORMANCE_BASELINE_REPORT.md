@@ -1,10 +1,10 @@
-# PicMe 性能基线报告合集
+# PoLang 性能基线报告合集
 
 > **文档类型**: 性能报告 (Performance Baseline Report)
 > **最后更新**: 2026-07-08
 > **维护者**: [QA] 质量专家
 
-本文档合并了 PicMe 项目的历史性能采集报告，保留原始数据表格供趋势分析使用。
+本文档合并了 PoLang 项目的历史性能采集报告，保留原始数据表格供趋势分析使用。
 
 ## 📋 目录
 
@@ -333,12 +333,12 @@
 | 线程名 | TID | 状态 | 说明 |
 |--------|-----|------|------|
 | `com.mamba.picme` (主线程) | 30590 | **R**unning | 主线程活跃 |
-| `PicMe-CameraAna` | 2227 | **R**unning | 相机分析线程忙碌 |
+| `PoLang-CameraAna` | 2227 | **R**unning | 相机分析线程忙碌 |
 | `Jit thread pool` | 420 | **R**unning | JIT 编译活跃 |
 | `Profile Saver` | 444 | **R**unning | ART Profile |
 | `RenderThread` | 457, 471 | **R**unning | 双渲染线程 |
-| `PicMe-CameraCap` | 564 | Sleeping | 相机采集 |
-| `PicMe-AgentStat` | 567 | Sleeping | Agent 状态 |
+| `PoLang-CameraCap` | 564 | Sleeping | 相机采集 |
+| `PoLang-AgentStat` | 567 | Sleeping | Agent 状态 |
 | `CameraPreviewRe` | 623 | Sleeping | 预览渲染 |
 | `AudioRecord` | 1476 | Sleeping | ASR 音频录制 |
 | `pool-3/5/6-thread-1` | 475, 481, 484 | Sleeping | 线程池（各1线程） |
@@ -347,7 +347,7 @@
 #### 发现
 
 - 没有显式的 `ncnn`、`mnn` 或 `mediapipe` 命名线程
-- NCNN 推理可能运行在 `PicMe-CameraAna` 或匿名线程中
+- NCNN 推理可能运行在 `PoLang-CameraAna` 或匿名线程中
 - `pool-*-thread-1` 各仅1线程，比之前 MediaPipe 的线程爆炸（10+）好很多
 
 ---
@@ -550,9 +550,9 @@ adb shell "perfetto --txt -c /data/misc/perfetto-configs/perfetto_config.pbtxt \
 | 线程特征 | 场景A（无LLM） | 场景B（+LLM） |
 |----------|---------------|---------------|
 | 总线程数 | 75 | 78 |
-| PicMe-CameraAna | Running | Sleeping |
-| PicMe-CameraCap | Sleeping | Sleeping |
-| PicMe-AgentStat | Sleeping | Sleeping |
+| PoLang-CameraAna | Running | Sleeping |
+| PoLang-CameraCap | Sleeping | Sleeping |
+| PoLang-AgentStat | Sleeping | Sleeping |
 | CameraPreviewRe | Sleeping | Sleeping |
 | AudioRecord | Sleeping | Sleeping |
 | RenderThread | 2 × Running | 2 × Sleeping |
@@ -636,7 +636,7 @@ adb shell "perfetto --txt -c /data/misc/perfetto-configs/perfetto_config.pbtxt \
 #### 9.2 事故分析
 
 - **6.24 GB PSS + 2.33 GB Swap** 超过了设备的 LMK 阈值
-- 当系统内存紧张时，PicMe 作为最大内存占用者成为首选 kill 目标
+- 当系统内存紧张时，PoLang 作为最大内存占用者成为首选 kill 目标
 - 即使高性能手机（2.75GHz CPU）也无法承受这种内存压力
 
 #### 9.3 业务影响

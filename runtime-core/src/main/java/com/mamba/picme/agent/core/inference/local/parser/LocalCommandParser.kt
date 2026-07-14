@@ -383,6 +383,11 @@ object LocalCommandParser {
                 val query = extractJsonField(json, "query") ?: ""
                 AgentCommand.SearchMedia(commandId = commandId, query = query)
             }
+            "refine_media_search" -> {
+                val constraint = extractJsonField(json, "constraint")
+                    ?: extractJsonField(json, "query") ?: ""
+                AgentCommand.RefineMediaSearch(commandId = commandId, constraint = constraint)
+            }
             "switch_view_mode" -> {
                 val mode = extractJsonField(json, "mode") ?: "grid"
                 AgentCommand.SwitchViewMode(commandId = commandId, mode = mode)

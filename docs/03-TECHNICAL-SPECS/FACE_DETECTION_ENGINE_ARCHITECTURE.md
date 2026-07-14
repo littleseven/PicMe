@@ -4,7 +4,7 @@
 
 ## 1. 概述
 
-PicMe 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
+PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 
 **零拷贝优化**（2026-06 新增，2026-07 调整为 MNN 独占）：
 - MediaPipe Image 路径：CameraX `ImageProxy` → `MPImage`，跳过 YUV→ARGB 转换，节省约 5ms

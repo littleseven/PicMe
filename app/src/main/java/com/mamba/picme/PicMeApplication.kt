@@ -29,6 +29,7 @@ import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.platform.logging.Logger as AgentCoreLogger
 import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
+import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 // 其他页面级 Capability 由各 Screen 自行创建
 import com.mamba.picme.domain.agent.remote.FeishuChannelHandler
@@ -528,6 +529,8 @@ class PicMeApplication : Application(), ImageLoaderFactory {
 
         val orchestrator = AgentOrchestrator.getInstance(this)
         orchestrator.registerCapability(GalleryCapability.getInstance())
+        orchestrator.registerCapability(ChatSearchCapability.getInstance())
+        Logger.i(TAG, "- ChatSearchCapability: CHAT-scoped gallery search")
         orchestrator.registerCapability(
             AiOptimizeCapability(
                 context = this,

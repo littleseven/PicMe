@@ -195,6 +195,7 @@ class RemoteCommandDispatcher(
     private fun formatActionReply(action: AgentAction): String {
         return when (action) {
             is AgentAction.TextReply -> action.message
+            is AgentAction.MediaResults -> "找到 ${action.totalCount} 张「${action.query}」的照片"
             is AgentAction.Success -> "✅ 操作已执行"
             is AgentAction.Error -> "❌ ${action.message}"
             is AgentAction.BatchResult -> {
@@ -204,6 +205,7 @@ class RemoteCommandDispatcher(
                         is AgentAction.TextReply -> "  💬 步骤${i + 1}: ${r.message}"
                         is AgentAction.Error -> "  ❌ 步骤${i + 1}: ${r.message}"
                         is AgentAction.BatchResult -> "  📦 步骤${i + 1}: 批量完成"
+                        is AgentAction.MediaResults -> "  🖼️ 步骤${i + 1}: 找到 ${r.totalCount} 张照片"
                     }
                 }
                 "📋 批量执行结果:\n${parts.joinToString("\n")}"

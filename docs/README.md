@@ -1,4 +1,4 @@
-# PicMe
+# PoLang
 
 > AI Agent + 相册 / 图像编辑 技术探索实验场。
 > 相册与图片编辑为核心产品，相机为辅助入口，端侧 AI 为中枢。
@@ -24,6 +24,6 @@
 
 ## 关于
 
-PicMe 不追求商业化，核心价值在于端侧 Agent 机制、自研音视频引擎（OpenGL ES + EGL）的工程探索。
+PoLang 不追求商业化，核心价值在于端侧 Agent 机制、自研音视频引擎（OpenGL ES + EGL）的工程探索。
 
 源码：[github.com/littleseven/langchain4android](https://github.com/littleseven/langchain4android)

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PicMe is a technology research project exploring two main tracks: **(1) AI Coding paradigm** — on-device Agent mechanisms and Agent-centric application architecture, and **(2) Audio/Video technology** — self-developed real-time beauty/filter/makeup engine ("BIG_BEAUTY") via OpenGL ES + EGL. The camera app serves as a concrete case study at the intersection of these two tracks. This project does not pursue commercialization; its core value lies in technical exploration and engineering practice.
+PoLang is a technology research project exploring two main tracks: **(1) AI Coding paradigm** — on-device Agent mechanisms and Agent-centric application architecture, and **(2) Audio/Video technology** — self-developed real-time beauty/filter/makeup engine ("BIG_BEAUTY") via OpenGL ES + EGL. The camera app serves as a concrete case study at the intersection of these two tracks. This project does not pursue commercialization; its core value lies in technical exploration and engineering practice.
 
 **Current focus (2026-06)** has shifted from camera-first to **remote inference framework + smart gallery** (相册/图片编辑为主入口, camera as auxiliary). See `PRODUCT.md` for the latest product roadmap.
 
@@ -40,7 +40,7 @@ Key technological decisions:
 # Install to device
 adb install -r app/build/outputs/apk/debug/picme-debug.apk
 
-# View PicMe logs
+# View PoLang logs
 adb logcat -s "PicMe:*"
 
 # Full dev verification loop (compile → install → launch → screenshot → logs)

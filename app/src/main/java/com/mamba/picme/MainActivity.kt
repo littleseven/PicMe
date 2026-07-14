@@ -215,7 +215,8 @@ class MainActivity : ComponentActivity() {
                                     viewModel = chatViewModel,
                                     settingsViewModel = settingsViewModel,
                                     onNavigateBack = { navController.popBackStack() },
-                                    onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) }
+                                    onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
+                                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route, navOptions { launchSingleTop = true }) }
                                 )
                             }
                             composable(Screen.Camera.route) {

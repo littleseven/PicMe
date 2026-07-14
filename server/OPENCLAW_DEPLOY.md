@@ -1,4 +1,4 @@
-# OpenClaw：发布 PicMe Server 指令
+# OpenClaw：发布 PoLang Server 指令
 
 > 当用户说「发布 picme」「上线 picme」「deploy picme」时，按本指令执行。
 > 服务器上的发布**一律走 `~/deploy-switch.sh`**（自带 healthz 校验 + 失败自动回滚），

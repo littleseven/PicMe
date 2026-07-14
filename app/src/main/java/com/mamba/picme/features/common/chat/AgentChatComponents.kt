@@ -238,6 +238,11 @@ fun AgentChatPanel(
                             is AgentAction.TextReply -> {
                                 messages.value = messages.value + AgentMessage.AgentText(content = action.message)
                             }
+                            is AgentAction.MediaResults -> {
+                                messages.value = messages.value + AgentMessage.AgentText(
+                                    content = "找到 ${action.totalCount} 张「${action.query}」的照片"
+                                )
+                            }
                             is AgentAction.Error -> {
                                 messages.value = messages.value + AgentMessage.AgentText(
                                     content = "抱歉，${action.message}"
@@ -371,6 +376,7 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.ShareMedia -> "分享照片"
         is AgentCommand.SelectMedia -> "选择照片"
         is AgentCommand.SearchMedia -> "搜索照片"
+        is AgentCommand.RefineMediaSearch -> "细化搜索"
         is AgentCommand.SwitchViewMode -> "切换视图"
         is AgentCommand.FavoriteMedia -> "收藏照片"
         is AgentCommand.AiOptimize -> "AI 一键优化"
@@ -411,6 +417,7 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.ShareMedia -> Icons.Rounded.Share
     is AgentCommand.SelectMedia -> Icons.Rounded.CheckCircle
     is AgentCommand.SearchMedia -> Icons.Rounded.Search
+    is AgentCommand.RefineMediaSearch -> Icons.Rounded.Search
     is AgentCommand.SwitchViewMode -> Icons.Rounded.GridView
     is AgentCommand.FavoriteMedia -> Icons.Rounded.Favorite
     is AgentCommand.AiOptimize -> Icons.Rounded.AutoFixHigh

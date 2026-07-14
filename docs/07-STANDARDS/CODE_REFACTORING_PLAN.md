@@ -1,4 +1,4 @@
-# PicMe 代码拆分与架构重构计划
+# PoLang 代码拆分与架构重构计划
 
 > 本文档基于 2026-06-07 的代码扫描结果，识别项目中超过 1000 行的大文件，分析架构问题，并给出拆分建议。
 > 重点关注 Agent 模块的独立库提取可行性。
@@ -207,7 +207,7 @@ agent-core/src/main/java/com/picme/agent/core/        # Agent Runtime 核心（�
 
 ### 3.3 `:agent-core` 模块定位与边界
 
-**定位：** `:agent-core` 是一个**内聚的 Agent 运行时模块**，不是过度抽象的框架，而是 PicMe Agent 系统的核心载体。
+**定位：** `:agent-core` 是一个**内聚的 Agent 运行时模块**，不是过度抽象的框架，而是 PoLang Agent 系统的核心载体。
 
 **设计原则：**
 - **不为了抽象而抽象**：直接使用具体类型（`AgentCommand`、`AgentContext` 等），而非泛型接口

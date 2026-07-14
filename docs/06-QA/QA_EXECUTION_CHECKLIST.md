@@ -1,4 +1,4 @@
-# PicMe QA 验收测试清单 (QA Execution Checklist)
+# PoLang QA 验收测试清单 (QA Execution Checklist)
 
 > **边界声明（Boundary Statement）**
 > - 本文档定义端到端验收测试清单、性能基线验证方法以及 QA/测试相关规范。
@@ -1191,7 +1191,7 @@ AccessibilityService 不会自动启用，需要手动在系统设置中打开�
 #### 方式 A：通过系统设置（推荐首次使用）
 
 1. 打开设备的 **设置 → 无障碍 → 已安装的服务**（路径可能因厂商而异）
-2. 找到 **PicMe Accessibility Service**
+2. 找到 **PoLang Accessibility Service**
 3. 打开开关
 4. 在弹出的权限确认对话框中点击 **允许**
 
@@ -1217,7 +1217,7 @@ com.mamba.picme/.accessibility.PicMeAccessibilityService
 
 ---
 
-### 4. 启动 PicMe 应用
+### 4. 启动 PoLang 应用
 
 ```bash
 adb shell am start -n com.mamba.picme/.MainActivity
@@ -1309,7 +1309,7 @@ python3 scripts/ui_driver.py long-click --content-description "搜索照片"
 
 #### 6.5 输入文本
 
-PicMe 的搜索框提示文字在 `EditText` 的子 `TextView` 上，因此直接通过 `--text` 定位不到 `EditText`。推荐先用 `dump` 获取搜索框的 bounds，再用 `--bounds` 输入：
+PoLang 的搜索框提示文字在 `EditText` 的子 `TextView` 上，因此直接通过 `--text` 定位不到 `EditText`。推荐先用 `dump` 获取搜索框的 bounds，再用 `--bounds` 输入：
 
 ```bash
 # 先点击搜索进入搜索模式
@@ -1415,7 +1415,7 @@ python3 scripts/verify_ui_driver.py
 
 - AccessibilityService 未启用 → 按第 3 步重新启用
 - adb forward 未建立 → 重新执行 `adb forward tcp:27183 tcp:27183`
-- 应用被杀死 → 重新启动 PicMe
+- 应用被杀死 → 重新启动 PoLang
 - 服务尚未初始化完成 → 等待 2-3 秒后重试
 
 #### 9.2 点击成功但界面没有反应
@@ -1487,7 +1487,7 @@ python3 scripts/verify_ui_driver.py
 | `SYSTEM_ALERT_WINDOW` | 悬浮聊天气泡 | ⭕ |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | 后台扫描不中断 | ⭕ |
 
-> **TAG 扫描需后台持续运行**：建议在系统设置中将 PicMe 加入电池优化白名单。
+> **TAG 扫描需后台持续运行**：建议在系统设置中将 PoLang 加入电池优化白名单。
 
 ---
 

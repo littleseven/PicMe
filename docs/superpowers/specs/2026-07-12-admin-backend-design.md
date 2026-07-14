@@ -1,4 +1,4 @@
-# PicMe 管理后台设计（Admin Backend）
+# PoLang 管理后台设计（Admin Backend）
 
 - **日期**：2026-07-12
 - **服务端版本**：0.4.0 → 0.5.0

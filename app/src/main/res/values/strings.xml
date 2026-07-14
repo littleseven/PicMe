@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PicMe</string>
+    <string name="app_name">PoLang</string>
     <string name="chat">Chat</string>
     <string name="camera">Camera</string>
     <string name="gallery">Gallery</string>
@@ -267,7 +267,7 @@
     <string name="landmark_loading">Detecting face landmarks…</string>
     <string name="landmark_no_face_detected">No face detected</string>
 <string name="landmark_compatibility">GPUPixel</string>
-<!-- /Users/guoshuai/AndroidStudioProjects/PicMe/app/src/main/res/values/strings.xml -->
+<!-- /Users/guoshuai/AndroidStudioProjects/PoLang/app/src/main/res/values/strings.xml -->
 
     <!-- ... 续接 confirm_delete -->
     <string name="ocr_recognize">Extract Text</string>
@@ -454,7 +454,7 @@
     <string name="floating_chat_notification_channel">AI Chat Bubble</string>
     <string name="floating_chat_notification_channel_desc">Keeps the floating chat bubble running in background</string>
     <string name="floating_chat_notification_title">AI Chat Bubble is running</string>
-    <string name="floating_chat_notification_content">Tap to open PicMe or stop the bubble.</string>
+    <string name="floating_chat_notification_content">Tap to open PoLang or stop the bubble.</string>
     <string name="chat_send">Send</string>
 
     <!-- AI Remote Control Accessibility Service -->
@@ -463,7 +463,7 @@
     <string name="settings_accessibility_service_enabled">Enabled</string>
     <string name="settings_accessibility_service_disabled">Not enabled</string>
     <string name="settings_accessibility_service_action_open">Open Settings</string>
-    <string name="accessibility_service_description">Enables PicMe AI Agent to read screen content and perform taps or text input.</string>
+    <string name="accessibility_service_description">Enables PoLang AI Agent to read screen content and perform taps or text input.</string>
 
     <!-- Media item accessibility labels -->
     <string name="media_type_photo">Photo</string>
@@ -476,13 +476,13 @@
     <string name="settings_background_permission_title">Background Running Permission</string>
     <string name="settings_background_permission_summary">Required on some ROMs like MIUI to keep AI services alive.</string>
     <string name="settings_battery_optimization_title">Ignore Battery Optimizations</string>
-    <string name="settings_battery_optimization_summary">Allow PicMe to run in the background without being killed.</string>
+    <string name="settings_battery_optimization_summary">Allow PoLang to run in the background without being killed.</string>
     <string name="settings_battery_optimization_enabled">Allowed</string>
     <string name="settings_battery_optimization_disabled">Restricted</string>
     <string name="settings_miui_auto_start_title">MIUI Auto-start</string>
-    <string name="settings_miui_auto_start_summary">Allow PicMe to auto-start and run in the background.</string>
+    <string name="settings_miui_auto_start_summary">Allow PoLang to auto-start and run in the background.</string>
     <string name="settings_miui_permission_editor_title">MIUI App Permissions</string>
-    <string name="settings_miui_permission_editor_summary">Enable "Display pop-up window" and "Background pop-up" for PicMe.</string>
+    <string name="settings_miui_permission_editor_summary">Enable "Display pop-up window" and "Background pop-up" for PoLang.</string>
     <string name="settings_miui_action_open">Open</string>
 
     <!-- Smart Gallery Index -->

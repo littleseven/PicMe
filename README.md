@@ -30,7 +30,7 @@
 
 库的核心是 `:agent-core` 模块，提供完整的 LLM 交互基础设施：ChatModel 抽象、OpenAI 兼容客户端、Tool 调用框架、ChatMemory 对话记忆、AiServices 代理构建器。开发者基于这些原语构建自己的 Agent 编排层。
 
-> 本仓库同时包含一个接近生产级复杂度的 Demo 工程 **PicMe（觅影相册）**，用于验证框架在真实场景中的可行性。PicMe 的 Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard 等）即基于 `:agent-core` 构建。
+> 本仓库同时包含一个接近生产级复杂度的 Demo 工程 **PoLang（破浪相册）**，用于验证框架在真实场景中的可行性。PoLang 的 Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard 等）即基于 `:agent-core` 构建。
 
 ---
 
@@ -183,7 +183,7 @@ com.mamba
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  :app（PicMe Demo 工程 · Kotlin · Jetpack Compose）                  │
+│  :app（PoLang Demo 工程 · Kotlin · Jetpack Compose）                  │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │ domain/agent/     Agent 编排层（Kotlin）                       │  │
 │  │  AgentOrchestrator  LocalInferencePipeline                    │  │
@@ -216,9 +216,9 @@ com.mamba
 
 ---
 
-## 🎮 Demo 工程：PicMe
+## 🎮 Demo 工程：PoLang
 
-**PicMe（觅影相册）** 是 langchain4android 的参考实现——一个接近生产级复杂度的 AI 智能相册应用，基于 `:agent-core` 构建了完整的 Agent 编排层。
+**PoLang（破浪相册）** 是 langchain4android 的参考实现——一个接近生产级复杂度的 AI 智能相册应用，基于 `:agent-core` 构建了完整的 Agent 编排层。
 
 ### Demo 特性
 
@@ -252,7 +252,7 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 | 模块 | 语言 | 说明 |
 |------|------|------|
 | `:agent-core` | **Java** | **框架核心** — ChatModel、Tool、AiServices、ChatMemory 等 LLM 基础设施 |
-| `:app` | Kotlin | **PicMe Demo** — Agent 编排层 + 智能相册 UI，验证框架在真实场景中的可行性 |
+| `:app` | Kotlin | **PoLang Demo** — Agent 编排层 + 智能相册 UI，验证框架在真实场景中的可行性 |
 | `:beauty-api` | Kotlin | 美颜接口契约层 |
 | `:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
 | `:runtime-core` | C++/Kotlin | 运行时基础设施 |

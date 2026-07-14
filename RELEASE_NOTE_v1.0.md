@@ -1,15 +1,15 @@
-# 觅影相册 PicMe v1.0 正式发布
+# 破浪相册 PoLang v1.0 正式发布
 
 > **发布日期**：2026-06-05
 > **版本**：v1.0
 > **包体积**：84MB（含端侧模型）
-> **GitHub**：https://github.com/littleseven/PicMe
+> **GitHub**：https://github.com/littleseven/PoLang
 
 ---
 
 ## 概述
 
-PicMe（觅影相册）是一款探索「端侧 AI Agent 驱动应用」的智能相册。用户可以通过**自然语言**与照片交互——说「调高美颜」「帮我把天空调蓝」「找出去年夏天的照片」即可控制相册浏览、图片编辑和相机功能，无需手动调节复杂参数。
+PoLang（破浪相册）是一款探索「端侧 AI Agent 驱动应用」的智能相册。用户可以通过**自然语言**与照片交互——说「调高美颜」「帮我把天空调蓝」「找出去年夏天的照片」即可控制相册浏览、图片编辑和相机功能，无需手动调节复杂参数。
 
 项目同时是一个**Agent First 工程试验场**，验证 Agent 作为研发流程第一公民的可行性，探索面向 Agent 的架构设计、协作机制与研发范式。
 
@@ -21,7 +21,7 @@ PicMe（觅影相册）是一款探索「端侧 AI Agent 驱动应用」的智�
 
 ### 自然语言交互
 
-| 你说 | PicMe 做 |
+| 你说 | PoLang 做 |
 |------|----------|
 | 「拍张照」 | 立即拍摄并保存 |
 | 「调高美颜」 | 平滑提升磨皮/美白强度 |
@@ -56,7 +56,7 @@ PicMe（觅影相册）是一款探索「端侧 AI Agent 驱动应用」的智�
 | 美颜渲染 | 本地 GPU | 零云端推理 |
 | 远程复杂编排 | 云端 LLM API（可选） | 仅非敏感指令 |
 
-PicMe 对隐私敏感数据采用**强制本地处理**策略；在远程模式下，仅非敏感指令允许走网络编排。
+PoLang 对隐私敏感数据采用**强制本地处理**策略；在远程模式下，仅非敏感指令允许走网络编排。
 
 ---
 
@@ -115,8 +115,8 @@ PicMe 对隐私敏感数据采用**强制本地处理**策略；在远程模式�
 
 ```bash
 # 克隆仓库
-git clone https://github.com/littleseven/PicMe.git
-cd PicMe
+git clone https://github.com/littleseven/PoLang.git
+cd PoLang
 
 # 构建 Debug APK
 ./gradlew :app:assembleDebug
@@ -133,7 +133,7 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 | `./gradlew connectedAndroidTest` | 运行仪器测试（需设备） |
 | `./gradlew lint` | 静态代码检查 |
 | `./scripts/ai-gate.sh` | 代码质量门禁 |
-| `adb logcat -s "PicMe:*"` | 查看 PicMe 日志 |
+| `adb logcat -s "PicMe:*"` | 查看 PoLang 日志 |
 
 ---
 
@@ -158,7 +158,7 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 
 ## Agent First 研发范式
 
-PicMe 不仅是一款应用，更是对「Agent 能否主导软件研发全流程」的系统性验证。
+PoLang 不仅是一款应用，更是对「Agent 能否主导软件研发全流程」的系统性验证。
 
 ### 三重实验维度
 
@@ -189,4 +189,4 @@ PicMe 不仅是一款应用，更是对「Agent 能否主导软件研发全流�
 
 ---
 
-<p align="center"><i>PicMe — 让相机听懂你说的话</i></p>
+<p align="center"><i>PoLang — 让相机听懂你说的话</i></p>

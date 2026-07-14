@@ -166,7 +166,7 @@ suspend fun safeModelInference(
 
 ### 2.1 背景与问题
 
-PicMe 使用 MNN 3.5.0 统一构建的 `libMNN.so`，同时承载两个独立子系统：
+PoLang 使用 MNN 3.5.0 统一构建的 `libMNN.so`，同时承载两个独立子系统：
 
 | 子系统 | MNN API | 内存占用 | 生命周期 |
 |--------|---------|----------|----------|
@@ -798,7 +798,7 @@ class MemoryMonitor {
 #### 硬件要求
 
 - Android 设备（API 24+）
-- 已安装 PicMe 调试版 APK
+- 已安装 PoLang 调试版 APK
 - LLM 模型（qwen3_5_2b）已下载
 - ASR 模型（sherpa-onnx-zipformer-zh-en）已下载
 
@@ -840,7 +840,7 @@ done
 
 | 步骤 | 操作 | 期望日志 |
 |------|------|----------|
-| 1 | 打开 PicMe，进入相机页 | `ASR acquired by SherpaMnnAsrEngine, refCount=1` |
+| 1 | 打开 PoLang，进入相机页 | `ASR acquired by SherpaMnnAsrEngine, refCount=1` |
 | 2 | 说一句话触发语音指令 | `LLM acquired by LocalLlmEngine, refCount=1` |
 | 3 | 按 Home 键回到桌面 | `App entered background, scheduling unload` |
 | 4 | 等待 30 秒 | `Background timeout, triggering soft trim for all` |
@@ -957,7 +957,7 @@ adb shell am send-trim-memory com.mamba.picme COMPLETE
 | 步骤 | 操作 | 期望日志 |
 |------|------|----------|
 | 1 | 后台 60s，确认模型已卸载 | `LLM fully unloaded` + `ASR fully unloaded` |
-| 2 | 重新打开 PicMe | `App entered foreground` |
+| 2 | 重新打开 PoLang | `App entered foreground` |
 | 3 | 进入相机页 | `ASR acquired, refCount=1` |
 | 4 | 发送语音指令 | `LLM acquired, refCount=1` |
 | 5 | 验证功能正常 | 语音识别成功，LLM 推理成功 |
@@ -1105,7 +1105,7 @@ echo "Full log: $LOG_FILE"
 #### 测试前检查
 
 - [ ] 设备已连接，`adb devices` 显示设备
-- [ ] PicMe 调试版已安装
+- [ ] PoLang 调试版已安装
 - [ ] LLM 模型已下载（设置 → AI 模型管理）
 - [ ] ASR 模型已下载
 - [ ] 日志过滤命令已运行

@@ -8,7 +8,7 @@
 
 > 本文档为**顶层治理文档**，定义 Agent First 的研发流程与协作规范。
 >
-> **langchain4android** 是面向 Android 的 AI Agent 基础库（Java），Demo 工程 **PicMe（觅影相册）** 验证其在真实场景中的可行性。
+> **langchain4android** 是面向 Android 的 AI Agent 基础库（Java），Demo 工程 **PoLang（破浪相册）** 验证其在真实场景中的可行性。
 
 ---
 
@@ -19,7 +19,7 @@ langchain4android 是一个元实验（meta-experiment），同时探索三个�
 | 层次 | 实验对象 | 核心问题 |
 |------|----------|----------|
 | **基础库** | langchain4android（:agent-core） | LangChain4j 风格 API 能否在 Android 高效运行？ |
-| **运行时** | PicMe Agent 编排层（:app） | LLM 能否成为应用的中枢神经系统？ |
+| **运行时** | PoLang Agent 编排层（:app） | LLM 能否成为应用的中枢神经系统？ |
 | **架构层** | Agent First 客户端框架 | 什么样的架构让 Agent 最高效？ |
 | **流程层** | Agent First 研发流程 | Agent 如何通过编排 Tools 完成开发？ |
 
@@ -112,7 +112,7 @@ Logger.log(AgentCommandParsedEvent(...))
 
 ## 3. Agent 角色与协作流程
 
-PicMe 采用**角色化协作模型**：每个 Agent 角色有明确的职责边界、输入输出契约。
+PoLang 采用**角色化协作模型**：每个 Agent 角色有明确的职责边界、输入输出契约。
 
 ### 3.1 角色定义
 

@@ -1,4 +1,4 @@
-# PicMe Agent Capability 注册表
+# PoLang Agent Capability 注册表
 
 > **边界声明（Boundary Statement）**
 > - 本文档定义所有 Agent Capability 的注册表、命令映射、执行逻辑、新增 Capability 实现指南以及生命周期规范。
@@ -694,7 +694,7 @@ class YourCapabilityIntegrationTest {
 ```kotlin
 class YourCapability : Capability {
     private val systemPrompt = """
-        你是 PicMe 助手...
+        你是 PoLang 助手...
         可用功能：your_feature
         • command_1
     """.trimIndent()

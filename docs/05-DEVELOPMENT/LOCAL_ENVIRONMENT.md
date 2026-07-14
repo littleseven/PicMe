@@ -10,7 +10,7 @@
 
 ## 1. 文档目的
 
-本文档记录本机（`guoshuai` 的 macOS 开发机）上**与 langchain4android / PicMe 相关的本地工具、源码与模型路径**。每次启动新会话时，AI Agent 应优先读取本文档，避免重复询问或猜测以下路径：
+本文档记录本机（`guoshuai` 的 macOS 开发机）上**与 langchain4android / PoLang 相关的本地工具、源码与模型路径**。每次启动新会话时，AI Agent 应优先读取本文档，避免重复询问或猜测以下路径：
 
 - MNN 源码目录
 - ModelScope / Hugging Face 工具与缓存目录

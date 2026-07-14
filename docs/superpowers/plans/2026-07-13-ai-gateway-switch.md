@@ -1712,7 +1712,7 @@ import kotlinx.html.textArea
 
 ```kotlin
     fun channelsPage(channels: List<ChannelRow>, error: String? = null): String = createHTML().html {
-        adminHead("渠道 · PicMe 管理后台")
+        adminHead("渠道 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"渠道" }
@@ -1762,7 +1762,7 @@ import kotlinx.html.textArea
     fun channelFormPage(existing: ChannelRow? = null): String = createHTML().html {
         val title = if (existing == null) "新增渠道" else "编辑渠道"
         val action = if (existing == null) "/admin/channels" else "/admin/channels/${existing.id}"
-        adminHead("$title · PicMe 管理后台")
+        adminHead("$title · PoLang 管理后台")
         body {
             navBar()
             h1 { +title }

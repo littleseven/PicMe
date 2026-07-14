@@ -12,7 +12,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
 > - **重要：`:agent-core` 是 Java 基础库**（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:runtime-core` 模块的 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 目录下。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
 
-**模块定位**: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PicMe）  
+**模块定位**: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PoLang）  
 **阅读对象**: RD、AI Agent
 
 ---
@@ -293,7 +293,7 @@ class SceneManager {
 // 本地 Prompt — 精简、结构化
 class LocalPromptBuilder {
     fun buildSystemPrompt(capabilities: List<Capability>, context: AgentContext): String = """
-        你是 PicMe AI 助手，运行在端侧设备。
+        你是 PoLang AI 助手，运行在端侧设备。
         请根据用户输入，输出 JSON 数组格式的命令。
 
         可用命令：

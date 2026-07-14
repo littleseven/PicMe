@@ -9,6 +9,8 @@ import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
+import com.mamba.picme.agent.core.model.context.MediaAsset
+import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
@@ -21,6 +23,8 @@ import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.features.chat.capability.ChatSearchCapability
+import com.mamba.picme.features.chat.capability.SearchOutcome
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +39,7 @@ import java.util.UUID
 private const val TAG = "ChatViewModel"
 private const val MAX_MESSAGES = 500
 private const val MAX_PREVIEW_LENGTH = 60
+private const val MAX_CARDS = 20
 
 /**
  * Chat 首页 ViewModel — 管理聊天状态与数据流
@@ -50,12 +55,16 @@ private const val MAX_PREVIEW_LENGTH = 60
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(
     dependencies: ChatViewModelDependencies
-) : ViewModel() {
+) : ViewModel(), ChatSearchCapability.Delegate {
 
     private val context = dependencies.context.applicationContext
     private val chatMessageDao = dependencies.chatMessageDao
     private val chatSessionDao = dependencies.chatSessionDao
     private val userSettingsRepository = dependencies.userSettingsRepository
+    private val mediaSearchEngine = dependencies.mediaSearchEngine
+
+    /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
+    private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
 
     private val orchestrator = AgentOrchestrator.getInstance(context)
 
@@ -453,6 +462,20 @@ class ChatViewModel(
             is AgentAction.TextReply -> {
                 insertAgentMessage(sessionId, action.message, modelLabel, performance)
             }
+            is AgentAction.MediaResults -> {
+                val assets = lastResultAssets[sessionId].orEmpty()
+                    .filter { it.id in action.mediaIds }
+                    .take(MAX_CARDS)
+                insertMediaResultsMessage(
+                    sessionId,
+                    MediaResultsUi(
+                        query = action.query,
+                        assets = assets,
+                        totalCount = action.totalCount,
+                        isRefinement = action.isRefinement
+                    )
+                )
+            }
             is AgentAction.Success -> {
                 insertAgentMessage(sessionId, describeCommandResult(action.command), "command", performance)
             }
@@ -493,6 +516,85 @@ class ChatViewModel(
             is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
             else -> "✅ 已执行 ${AgentCommand.getMethodName(command)}"
         }
+    }
+
+    // ── ChatSearchCapability.Delegate：相册搜索执行 ────────────────
+
+    override suspend fun onSearchMedia(query: String): SearchOutcome {
+        val sessionId = _currentSessionId.value
+        val result = runCatching { mediaSearchEngine.search(query) }.getOrElse {
+            return SearchOutcome(query, emptyList(), 0, isRefinement = false)
+        }
+        val photos = result.media.filter { it.type == MediaType.PHOTO }
+        lastResultAssets[sessionId] = photos
+        return SearchOutcome(query, photos.map { it.id }, photos.size, isRefinement = false)
+    }
+
+    override suspend fun onRefineMediaSearch(constraint: String): SearchOutcome {
+        val sessionId = _currentSessionId.value
+        val prior = lastResultAssets[sessionId].orEmpty()
+        // 无上一轮 → 当 fresh 全局搜
+        if (prior.isEmpty()) return onSearchMedia(constraint)
+        val refined = ChatGallerySearch.filterInSet(prior, constraint)
+        // in-set 空 → 回退全局重搜 constraint
+        if (refined.isEmpty()) {
+            val global = runCatching { mediaSearchEngine.search(constraint) }.getOrNull()
+            val photos = global?.media?.filter { it.type == MediaType.PHOTO }.orEmpty()
+            lastResultAssets[sessionId] = photos
+            return SearchOutcome(constraint, photos.map { it.id }, photos.size, isRefinement = true)
+        }
+        lastResultAssets[sessionId] = refined
+        return SearchOutcome(constraint, refined.map { it.id }, refined.size, isRefinement = true)
+    }
+
+    /**
+     * 回退直连：不经 Agent，直接把文本喂 MediaSearchEngine（LLM 不可用时可用）。单轮。
+     */
+    fun searchGalleryDirectly(text: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            val sessionId = _currentSessionId.value
+            try {
+                ensureSessionExists(sessionId)
+                _isProcessing.value = true
+                chatMessageDao.insertMessage(
+                    ChatMessageEntity(
+                        id = UUID.randomUUID().toString(),
+                        sessionId = sessionId,
+                        type = "user_text",
+                        content = text,
+                        modelUsed = null
+                    )
+                )
+                chatSessionDao.touchSession(sessionId)
+                val outcome = onSearchMedia(text)
+                val assets = lastResultAssets[sessionId].orEmpty().take(MAX_CARDS)
+                insertMediaResultsMessage(
+                    sessionId,
+                    MediaResultsUi(outcome.query, assets, outcome.totalCount, isRefinement = false)
+                )
+                cleanupIfNeeded(sessionId)
+            } catch (e: Exception) {
+                Logger.e(TAG, "Direct gallery search failed", e)
+                insertAgentMessage(sessionId, "搜索失败：${e.message ?: "未知错误"}", "error")
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
+    private suspend fun insertMediaResultsMessage(sessionId: String, ui: MediaResultsUi) {
+        chatMessageDao.insertMessage(
+            ChatMessageEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = sessionId,
+                type = "media_results",
+                content = ChatGallerySearch.serializeContent(ui.assets),
+                modelUsed = "gallery_search",
+                metadata = ChatGallerySearch.serializeMetadata(ui.query, ui.totalCount, ui.isRefinement)
+            )
+        )
+        chatSessionDao.touchSession(sessionId)
     }
 
     private suspend fun ensureSessionExists(sessionId: String) {
@@ -716,7 +818,9 @@ class ChatViewModel(
     }
 
     private fun ChatMessageEntity.toUiModel(): ChatMessageUi {
-        val performance = metadata?.let { parsePerformanceMetadata(it) }
+        val isMediaResults = type == "media_results"
+        val performance = if (isMediaResults) null else metadata?.let { parsePerformanceMetadata(it) }
+        val mediaResults = if (isMediaResults) ChatGallerySearch.deserialize(content, metadata) else null
         return ChatMessageUi(
             id = id,
             type = when (type) {
@@ -726,12 +830,14 @@ class ChatViewModel(
                 "agent_image" -> ChatMessageType.AGENT_IMAGE
                 "command" -> ChatMessageType.COMMAND
                 "plan_preview" -> ChatMessageType.PLAN_PREVIEW
+                "media_results" -> ChatMessageType.MEDIA_RESULTS
                 else -> ChatMessageType.AGENT_TEXT
             },
             content = content,
             modelUsed = modelUsed,
             timestamp = timestamp,
-            performance = performance
+            performance = performance,
+            mediaResults = mediaResults
         )
     }
 

@@ -431,7 +431,8 @@ class AppContainerImpl(
             context = context,
             chatMessageDao = database.chatMessageDao(),
             chatSessionDao = database.chatSessionDao(),
-            userSettingsRepository = userPreferencesRepository
+            userSettingsRepository = userPreferencesRepository,
+            mediaSearchEngine = mediaSearchEngine
         )
     }
 

@@ -1,4 +1,4 @@
-# PicMe Agent 命令参考手册 (Command Reference)
+# PoLang Agent 命令参考手册 (Command Reference)
 
 > **边界声明（Boundary Statement）**
 > - 本文档定义所有 Agent 命令的语法、参数与使用示例。
@@ -403,7 +403,7 @@ Agent: 你想调高哪个参数？磨皮、美白还是其他？
 ### 步骤 1: 构建 System Prompt
 
 ```
-你是 PicMe 的 AI 助手，帮助用户控制相机和照片管理。
+你是 PoLang 的 AI 助手，帮助用户控制相机和照片管理。
 
 当前页面：CAMERA
 

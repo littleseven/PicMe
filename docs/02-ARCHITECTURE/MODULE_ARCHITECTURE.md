@@ -1,7 +1,7 @@
 # langchain4android 模块架构图
 
 > **边界声明（Boundary Statement）**
-> - 本文档描述 PicMe Demo 工程当前的 Gradle 模块划分、依赖方向与 Native SO 归属。
+> - 本文档描述 PoLang Demo 工程当前的 Gradle 模块划分、依赖方向与 Native SO 归属。
 > - 产品目标与验收口径以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
 
@@ -18,7 +18,7 @@
 
 | 模块 | 类型 | 主要职责 | 关键产物 |
 |------|------|----------|----------|
-| `:app` | Android Application | PicMe 主应用：Compose UI、页面导航、手动 DI、模块组装 | `picme.apk` |
+| `:app` | Android Application | PoLang 主应用：Compose UI、页面导航、手动 DI、模块组装 | `picme.apk` |
 | `:agent-core` | Android Java Library | LangChain4j 风格 LLM 基础设施：ChatModel、@Tool、AiServices、ChatMemory、OpenAI 协议客户端 | `agent-core.aar` |
 | `:runtime-core` | Android Library | Agent Runtime：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、本地/远程推理管道、语音 ASR | `runtime-core.aar` |
 | `:beauty-api` | Android Library | 美颜系统纯契约层：BeautySettings、FaceDetector、FilterType 等 | `beauty-api.aar` |
@@ -35,7 +35,7 @@
 │                              应用层 (Application)                            │
 │                              ┌─────────────────┐                            │
 │                              │     :app        │                            │
-│                              │  PicMe 主应用   │                            │
+│                              │  PoLang 主应用   │                            │
 │                              └────────┬────────┘                            │
 └───────────────────────────────────────┼─────────────────────────────────────┘
         │              │                │               │              │
@@ -73,7 +73,7 @@
 - **无循环依赖**：所有模块依赖构成有向无环图（DAG）。
 - **`:beauty-engine` 不再依赖 `:runtime-core`**：通过 `:mnn-core` 共享 MNN 资源后，视觉引擎与 Agent Runtime 解耦。
 - **`:app` 直接依赖 `:mnn-core`**：因为 `PicMeApplication` 和 `CameraScreen` 直接调用 `MnnResourceManager`。
-- **`:agent-core` 零业务依赖**：不依赖任何 PicMe 业务模块，可独立作为 JitPack 库发布。
+- **`:agent-core` 零业务依赖**：不依赖任何 PoLang 业务模块，可独立作为 JitPack 库发布。
 
 ---
 
@@ -208,7 +208,7 @@
 | 红线 | 定义 | 验证方式 |
 |------|------|----------|
 | **视觉-运行时解耦** | `:beauty-engine` 不直接依赖 `:runtime-core` | `./gradlew :beauty-engine:dependencies` 无 `:runtime-core` |
-| **基础库独立** | `:agent-core` 不依赖 PicMe 业务模块 | 源码 import 扫描 |
+| **基础库独立** | `:agent-core` 不依赖 PoLang 业务模块 | 源码 import 扫描 |
 | **API 契约纯净** | `:beauty-api` 仅 Kotlin stdlib + Android graphics | 依赖树检查 |
 | **Native 共享收敛** | MNN SO 由 `:mnn-core` 唯一提供 | AAR 内容检查 |
 
