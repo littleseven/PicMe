@@ -62,4 +62,28 @@ class TokenUsageTest {
         assert(p.containsKey("deepseek-chat"))
         assert(p.containsKey("kimi-k2.6"))
     }
+
+    // ── formatCostCny：成本展示精度 ──
+    // 背景：DeepSeek 等低成本模型单次调用 cost 常在 ¥0.001 量级，
+    // 旧 fmt 的 %.2f 会四舍五入成 "0.00"，让后台看起来「计费没生效」。
+
+    @Test
+    fun `sub-cent cost is not rounded to zero`() {
+        assertEquals("0.0044", formatCostCny(0.0044))
+    }
+
+    @Test
+    fun `sub-cent per-call cost keeps four decimals`() {
+        assertEquals("0.0007", formatCostCny(0.0007))
+    }
+
+    @Test
+    fun `normal cost keeps two decimals`() {
+        assertEquals("12.34", formatCostCny(12.34))
+    }
+
+    @Test
+    fun `zero cost shows zero`() {
+        assertEquals("0.00", formatCostCny(0.0))
+    }
 }

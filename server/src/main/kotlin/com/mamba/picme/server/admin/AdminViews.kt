@@ -1,5 +1,6 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.analytics.formatCostCny
 import com.mamba.picme.server.llm.ChannelRow
 import com.mamba.picme.server.llm.renderModelMapLines
 import kotlinx.html.FlowContent
@@ -492,12 +493,12 @@ object AdminViews {
     }
 
     private fun fmtVal(v: Double): String =
-        if (v % 1.0 == 0.0) v.toLong().toString() else "%.2f".format(v)
+        if (v % 1.0 == 0.0) v.toLong().toString() else formatCostCny(v)
 
     private fun esc(s: String): String =
         s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-    private fun fmt(d: Double): String = "%.2f".format(d)
+    private fun fmt(d: Double): String = formatCostCny(d)
 
     private fun fmtTs(ms: Long): String =
         java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.UTC).toString().take(19).replace("T", " ")

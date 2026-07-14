@@ -53,7 +53,7 @@ data class RemoteModelConfig(
          * 老客户端仍可走 SCF (https://1412656811-f92agkf1y7.ap-guangzhou.tencentscf.com/)。
          */
         val PICME_SERVER_DEFAULT = RemoteModelConfig(
-            modelId = "deepseek-v4-flash-202605",
+            modelId = "deepseek-v4-flash",
             protocol = RemoteProtocol.OPENAI,
             baseUrl = "https://api.polang.net/"
         )

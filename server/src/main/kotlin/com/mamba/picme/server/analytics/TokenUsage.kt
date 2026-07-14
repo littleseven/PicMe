@@ -43,6 +43,17 @@ fun costCny(usage: TokenUsage?, model: String, prices: Map<String, Price>): Doub
 }
 
 /**
+ * 把成本（¥）格式化为展示串。DeepSeek 等低成本模型单次调用常在 ¥0.001 量级，
+ * %.2f 会四舍五入成 "0.00" 让计费看起来没生效；故 sub-cent 用 4 位小数，其余 2 位。
+ * AdminViews 所有成本展示都走这里。
+ */
+fun formatCostCny(d: Double): String = when {
+    d == 0.0 -> "0.00"
+    d < 0.01 -> "%.4f".format(d)
+    else -> "%.2f".format(d)
+}
+
+/**
  * 内置默认单价（¥ / 1M tokens）。**估算用**，实际随上游调价漂移，
  * 生产可用环境变量 LLM_PRICES_JSON 覆盖（见 AppConfig）。
  */

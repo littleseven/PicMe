@@ -38,4 +38,12 @@ class AdminViewsTest {
         assertTrue(html.contains("Total Token"))
         assertTrue(html.contains("2026-07-12"))
     }
+
+    @Test
+    fun `overview page renders sub-cent cost with precision not zero`() {
+        // 今日成本 0.0044 元：%.2f 会显示 "0.00"，计费看起来没生效
+        val ov = OverviewRow(1L, 0L, 5L, 7944L, 0.0044, 819L, 0L)
+        val html = AdminViews.overviewPage(ov, emptyList())
+        assertTrue("sub-cent cost must not round to 0.00", html.contains("0.0044"))
+    }
 }
