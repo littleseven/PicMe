@@ -127,6 +127,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
+import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
@@ -1137,7 +1138,8 @@ data class ChatMessageUi(
     val content: String,
     val modelUsed: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
-    val performance: LlmPerformance? = null
+    val performance: LlmPerformance? = null,
+    val mediaResults: MediaResultsUi? = null
 )
 
 enum class ChatMessageType {
@@ -1146,8 +1148,20 @@ enum class ChatMessageType {
     USER_IMAGE,
     AGENT_IMAGE,
     COMMAND,
-    PLAN_PREVIEW
+    PLAN_PREVIEW,
+    MEDIA_RESULTS
 }
+
+/**
+ * 相册搜索结果 carousel 的 UI 数据。
+ * assets 已截到展示上限（20）；totalCount 为全量命中数。
+ */
+data class MediaResultsUi(
+    val query: String,
+    val assets: List<MediaAsset>,
+    val totalCount: Int,
+    val isRefinement: Boolean
+)
 
 /**
  * 模型选项
