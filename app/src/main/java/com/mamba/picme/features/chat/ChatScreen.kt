@@ -131,8 +131,6 @@ import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.MediaPager
@@ -230,12 +228,15 @@ fun ChatScreen(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            ChatTopBar(
-                onNavigateBack = onNavigateBack,
-                onOpenSidebar = { isSidebarOpen = true },
-                onNavigateToSettings = onNavigateToSettings,
-                onClearChat = { viewModel.clearChat() }
-            )
+            // 预览打开时隐藏 chat 顶栏，让 MediaPager 覆盖整屏（避免 chat 顶栏透出）
+            if (previewAssets.isEmpty()) {
+                ChatTopBar(
+                    onNavigateBack = onNavigateBack,
+                    onOpenSidebar = { isSidebarOpen = true },
+                    onNavigateToSettings = onNavigateToSettings,
+                    onClearChat = { viewModel.clearChat() }
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -331,38 +332,30 @@ fun ChatScreen(
                 onDismiss = { previewImageUri = null }
             )
 
-            // 相册搜索结果全屏预览（全屏 Dialog 承载 MediaPager，保留相册预览的全部能力）
+            // 相册搜索结果全屏预览（覆盖整屏；预览期间隐藏 chat 顶栏，避免顶栏透出）
             if (previewAssets.isNotEmpty()) {
-                Dialog(
-                    onDismissRequest = { previewAssets = emptyList() },
-                    properties = DialogProperties(
-                        usePlatformDefaultWidth = false,
-                        decorFitsSystemWindows = false
-                    )
-                ) {
-                    MediaPager(
-                        assets = previewAssets,
-                        initialIndex = previewIndex,
-                        onClose = { previewAssets = emptyList() },
-                        onDelete = { asset ->
-                            mediaViewModel.deleteMediaByIds(listOf(asset.id))
-                            previewAssets = previewAssets.filter { it.id != asset.id }
-                        },
-                        onStartOcr = { uriString ->
-                            mediaViewModel.recognizeTextFromCurrentImage(context, uriString.toUri())
-                        },
-                        onDismissOcr = { mediaViewModel.clearOcrResult() },
-                        ocrState = mediaViewModel.ocrState,
-                        onNavigateToEditor = { asset -> onNavigateToPhotoEditor(asset.uri, false) },
-                        onAiOptimize = { asset -> onNavigateToPhotoEditor(asset.uri, true) },
-                        voiceCoordinator = null,
-                        onReTag = {
-                            context.startForegroundService(
-                                TagGenerationService.intentScanPass3Full(context)
-                            )
-                        }
-                    )
-                }
+                MediaPager(
+                    assets = previewAssets,
+                    initialIndex = previewIndex,
+                    onClose = { previewAssets = emptyList() },
+                    onDelete = { asset ->
+                        mediaViewModel.deleteMediaByIds(listOf(asset.id))
+                        previewAssets = previewAssets.filter { it.id != asset.id }
+                    },
+                    onStartOcr = { uriString ->
+                        mediaViewModel.recognizeTextFromCurrentImage(context, uriString.toUri())
+                    },
+                    onDismissOcr = { mediaViewModel.clearOcrResult() },
+                    ocrState = mediaViewModel.ocrState,
+                    onNavigateToEditor = { asset -> onNavigateToPhotoEditor(asset.uri, false) },
+                    onAiOptimize = { asset -> onNavigateToPhotoEditor(asset.uri, true) },
+                    voiceCoordinator = null,
+                    onReTag = {
+                        context.startForegroundService(
+                            TagGenerationService.intentScanPass3Full(context)
+                        )
+                    }
+                )
             }
         }
     }
