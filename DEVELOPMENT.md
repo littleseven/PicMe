@@ -1,7 +1,7 @@
-# PicMe 开发指南
+# PoLang 开发指南
 
 > **定位**：面向所有开发者（人类与 AI）的通用开发参考，包含环境配置、构建命令、调试技巧与发布流程。
-> **项目根目录**：`~/AndroidStudioProjects/langchain4android`（应用名 PicMe，仓库名 langchain4android）。
+> **项目根目录**：`~/AndroidStudioProjects/langchain4android`（应用名 PoLang，仓库名 langchain4android）。
 > **AI 工具配置**：各 AI 辅助工具的配置位置见 `AI_TOOLS.md`。
 
 ---
@@ -45,7 +45,7 @@ cd langchain4android
 # 安装到设备（APK 路径以实际输出为准）
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-# 查看 PicMe 日志
+# 查看 PoLang 日志
 adb logcat -s "PicMe:*"
 ```
 
@@ -114,7 +114,7 @@ adb devices
 # 安装 APK
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-# 查看 PicMe 日志
+# 查看 PoLang 日志
 adb logcat -s PicMe:*
 
 # 只看错误
@@ -231,7 +231,7 @@ kimi-cli chat
 source scripts/kimi-cli.sh
 kbuild    # 构建调试 APK
 ktest     # 运行单元测试
-klogs     # 查看 PicMe 日志
+klogs     # 查看 PoLang 日志
 ```
 
 ---

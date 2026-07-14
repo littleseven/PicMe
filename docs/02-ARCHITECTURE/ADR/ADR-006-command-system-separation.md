@@ -14,7 +14,7 @@
 
 ### 1.1 两套指令体系现状
 
-PicMe 存在两种完全不同的指令体系，分别服务于本地 LLM 和远程 LLM：
+PoLang 存在两种完全不同的指令体系，分别服务于本地 LLM 和远程 LLM：
 
 | 维度 | 自定义指令体系（本地） | OpenAI tool_calls 体系（远程） |
 |------|----------------------|-------------------------------|
@@ -396,7 +396,7 @@ agent.core
 ```
 agent.core
 ├── api/                    ★ 共享 API 层
-│   ├── command/            AgentCommands.kt（PicMe 业务命令）
+│   ├── command/            AgentCommands.kt（PoLang 业务命令）
 │   ├── context/            AgentContext, AgentAction, AgentScene
 │   ├── android/            RemoteModelConfig
 │   └── policy/             AiAgentMode, AiAgentPrivacyLevel

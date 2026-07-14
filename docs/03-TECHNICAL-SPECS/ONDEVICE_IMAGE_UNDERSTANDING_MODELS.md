@@ -8,13 +8,13 @@
 
 ## 1. 背景
 
-PicMe 当前使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Phase 1），覆盖 400+ 常见物体/场景标签。但 ML Kit 标签粒度有限，无法满足以下需求：
+PoLang 当前使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Phase 1），覆盖 400+ 常见物体/场景标签。但 ML Kit 标签粒度有限，无法满足以下需求：
 
 - **语义搜索**：跨模态查询（"温暖的照片""快乐的时光"）
 - **中文场景理解**：截图/文档/中文标签图片的深度理解
 - **人脸聚类**：按人物自动分组照片（`faceId` 字段已有但未实现聚类）
 
-本报告调研 3B 以内的开源模型，评估其在 PicMe 中的适用性。
+本报告调研 3B 以内的开源模型，评估其在 PoLang 中的适用性。
 
 ---
 
@@ -22,7 +22,7 @@ PicMe 当前使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Pha
 
 ### 2.1 现状
 
-PicMe 已有 MediaPipe Face Landmarker（468→106 点）、ML Kit Face Detection，Room DB `hasFace`/`faceId` 字段已预留，但聚类逻辑未实现。
+PoLang 已有 MediaPipe Face Landmarker（468→106 点）、ML Kit Face Detection，Room DB `hasFace`/`faceId` 字段已预留，但聚类逻辑未实现。
 
 ### 2.2 方案对比
 
@@ -73,7 +73,7 @@ data class FaceFeature(
 | 框架 | TFLite / NCNN / MNN |
 | 集成 | 需写适配器（遵循 beauty-engine 已有的人脸检测适配模式） |
 
-**与 PicMe 现有架构的契合度**:
+**与 PoLang 现有架构的契合度**:
 - beauty-engine 已有 MNN/NCNN/MediaPipe 多引擎适配器模式
 - 可新增 `FaceEmbeddingAdapter` 接口，类似已有 `FaceLandmarkAdapter`
 
@@ -119,7 +119,7 @@ Google 官方 [MediaPipe Face Embedder](https://ai.google.dev/edge/mediapipe/sol
       远处可以看到日落。照片左下角有日期水印 2025-08-15。"
 ```
 
-**PicMe 适用**: 批量离线标注（后台处理，用户不感知延迟）
+**PoLang 适用**: 批量离线标注（后台处理，用户不感知延迟）
 
 #### Qwen3-VL 2B（阿里，🔥 中文场景首选）
 
@@ -132,7 +132,7 @@ Google 官方 [MediaPipe Face Embedder](https://ai.google.dev/edge/mediapipe/sol
 | 物体定位 | 支持 bounding box 输出 |
 | 推理框架 | MNN（已有）/ llama.cpp |
 
-**PicMe 适用**: 中文截图、带中文标签的图片、中文自然语言描述生成。
+**PoLang 适用**: 中文截图、带中文标签的图片、中文自然语言描述生成。
 
 #### MiniCPM-V 2.0（面壁智能 + 清华）
 
@@ -199,7 +199,7 @@ CPU 实时图像标注模型，30M 参数。
 
 ## 5. 推理框架选择
 
-PicMe 已有的推理框架：
+PoLang 已有的推理框架：
 
 | 框架 | 当前用途 | VL 模型支持 |
 |------|---------|------------|

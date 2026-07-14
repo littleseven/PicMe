@@ -1,4 +1,4 @@
-# PicMe 语音栈
+# PoLang 语音栈
 
 > **文档编号**: TECH-SPEC-VOICE-001  
 > **关联模块**: `app/src/main/java/com/mamba/picme/features/camera/voice/`, `runtime-core/platform/voice/`  
@@ -13,7 +13,7 @@
 
 ## 1. 执行摘要
 
-PicMe 语音栈当前处于 **Phase 1（当前 ASR-based 唤醒词优化）→ Phase 2（Sherpa-ONNX KWS 迁移）** 的过渡阶段。
+PoLang 语音栈当前处于 **Phase 1（当前 ASR-based 唤醒词优化）→ Phase 2（Sherpa-ONNX KWS 迁移）** 的过渡阶段。
 
 | 维度 | Phase 1（当前） | Phase 2（目标） |
 |------|----------------|----------------|
@@ -796,7 +796,7 @@ dependencies {
 
 ## 6. 附录：ASR Language Model 说明
 
-本附录原载于 `ASR_LANGUAGE_MODEL_EXPLANATION.md`，说明 PicMe Phase 1 Sherpa-MNN ASR 中 Language Model（LM）文件的作用、当前部署状态及取舍依据。随着 Phase 2 迁移至 Sherpa-ONNX，LM 的概念仍适用于理解 ASR 解码行为，但具体文件格式与配置路径可能发生变化。
+本附录原载于 `ASR_LANGUAGE_MODEL_EXPLANATION.md`，说明 PoLang Phase 1 Sherpa-MNN ASR 中 Language Model（LM）文件的作用、当前部署状态及取舍依据。随着 Phase 2 迁移至 Sherpa-ONNX，LM 的概念仍适用于理解 ASR 解码行为，但具体文件格式与配置路径可能发生变化。
 
 ### 6.1 什么是 LM 文件
 
@@ -852,7 +852,7 @@ with-state-epoch-99-avg-1.int8.mnn
 
 #### 6.2.2 当前部署状态
 
-PicMe 当前部署的 Sherpa-MNN 模型包**不包含 LM 文件**。模型目录中只有：
+PoLang 当前部署的 Sherpa-MNN 模型包**不包含 LM 文件**。模型目录中只有：
 
 ```
 llm_models/sherpa-mnn-zipformer-zh-en/

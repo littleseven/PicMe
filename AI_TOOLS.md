@@ -1,4 +1,4 @@
-# PicMe AI 工具配置索引
+# PoLang AI 工具配置索引
 
 > **用途**：速查本项目所有 AI 辅助工具的配置位置与规范来源。
 > **维护**：新增 AI 工具或调整配置路径时，必须同步更新本文件。
@@ -93,9 +93,9 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 
 | Skill | 描述 |
 |-------|------|
-| `ui-driver` | PicMe UI 自动化（Accessibility 结构化文本驱动） |
+| `ui-driver` | PoLang UI 自动化（Accessibility 结构化文本驱动） |
 | `adb-bot` | ADB 基础控制与调试 |
-| `agent-test` | PicMe Agent JSON 命令驱动测试 |
+| `agent-test` | PoLang Agent JSON 命令驱动测试 |
 | `android-build-debug` | Android 编译、安装、日志调试 |
 | `dev-loop` | 编译→安装→验证→报告一键闭环 |
 | `av-gl-expert` | 音视频与 OpenGL 渲染专家 |
@@ -159,7 +159,7 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 # 运行单元测试
 ./gradlew :app:testDebugUnitTest
 
-# 查看 PicMe 日志
+# 查看 PoLang 日志
 adb logcat -s "PicMe:*"
 
 # 启动 kimi-cli
@@ -193,7 +193,7 @@ cd ~/AndroidStudioProjects/langchain4android && claude
 | 2026-05-03 | `.openclaw/skills/` 同步新增 skills 符号链接 | OpenClaw 可见完整 skills 列表 |
 | 2026-05-03 | 删除断裂的 `shader-debug` 符号链接 | 消除 OpenClaw 加载错误 |
 | 2026-05-03 | 精简 `AGENTS.md`（已合并入根 `AGENTS.md`） | 避免与根 `AGENTS.md` 重复 |
-| 2026-05-03 | 修正 `scripts/kimi-cli.sh` APK 路径 | `picme-debug` → `app-debug`；项目路径 `PicMe` → `langchain4android` |
+| 2026-05-03 | 修正 `scripts/kimi-cli.sh` APK 路径 | `picme-debug` → `app-debug`；项目路径 `PoLang` → `langchain4android` |
 | 2026-05-03 | 新增 `DEVELOPMENT.md` | 通用开发命令从 OpenClaw 独占迁移为全平台共用 |
 | 2026-05-03 | 新增 `AI_TOOLS.md` | 统一索引所有 AI 工具配置位置 |
 | 2026-05-20 | **Skills 唯一事实来源迁移** | `.lingma/skills/` → `.qoder/skills/`，Qoder 成为主力开发环境 |

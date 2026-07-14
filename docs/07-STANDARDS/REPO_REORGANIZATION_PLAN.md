@@ -1,4 +1,4 @@
-# PicMe 仓库整理方案
+# PoLang 仓库整理方案
 
 > **状态总览**
 > - ✅ 已完成：模块命名文档修正（`CLAUDE.md`/`PRODUCT.md`/`beauty-api/AGENTS.md`/`ON_DEVICE_INFERENCE_INVENTORY` 等）；`server/` 后端骨架落地；Tier 1 安全挪动（`analyze_commits.py`→`scripts/`、`cloudflare/`+`tencentscf/`→`infra/`）；移除空壳 `buildSrc/`、废弃 `tools/json-schema-to-gbnf`、移除 `.cursorrules`（未用 Cursor）。

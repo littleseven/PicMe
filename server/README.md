@@ -1,4 +1,4 @@
-# PicMe Server (Ktor)
+# PoLang Server (Ktor)
 
 App 后端单体，支撑「推荐拍照 + 图片优化 + LLM 代理」。Monorepo 子工程，**独立 Gradle build，不纳入安卓 `settings.gradle.kts`**。
 

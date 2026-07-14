@@ -1,7 +1,7 @@
 # 海外服务端部署技术方案（香港节点 + Cloudflare）
 
 > **文档类型**：技术方案 + 部署运维规格
-> **针对场景**：PicMe 出海 Google Play，面向海外用户的「推荐拍照 + 图片优化」服务端
+> **针对场景**：PoLang 出海 Google Play，面向海外用户的「推荐拍照 + 图片优化」服务端
 > **部署形态**：个人开发者 · 单机单体 · 香港机房 · Cloudflare 边缘加速与防护
 > **最后更新**：2026-07-11
 > **维护者**：RD Agent（技术实现）
@@ -11,7 +11,7 @@
 
 ## 1. 背景与目标
 
-PicMe 是「AI Agent + 相册/图像编辑」技术探索实验场。产品重心已迁移到相册与图片编辑（见 `PRODUCT.md`），其中「AI 一键优化」「智能场景模板」「对话式编辑」需要服务端能力支撑：可更新的推荐规则、模型/素材分发、远程 LLM 网关、匿名遥测。
+PoLang 是「AI Agent + 相册/图像编辑」技术探索实验场。产品重心已迁移到相册与图片编辑（见 `PRODUCT.md`），其中「AI 一键优化」「智能场景模板」「对话式编辑」需要服务端能力支撑：可更新的推荐规则、模型/素材分发、远程 LLM 网关、匿名遥测。
 
 面向**海外市场（Google Play）**的服务端方案目标：
 
@@ -117,7 +117,7 @@ PicMe 是「AI Agent + 相册/图像编辑」技术探索实验场。产品重�
 | Groq（Llama 系列） | 推理快、有免费层 | 免费/低价 |
 | DeepSeek | ❌ 仅用于国内市场；数据回流中国，海外用户隐私观感差 | — |
 
-> PicMe 远程推理已用 langchain4j + OpenAI Chat Completions 协议（见 `PRODUCT.md` ADR-005），切换 `baseUrl + apiKey` 即可指向 Gemini/OpenAI/Groq，**零代码改动**。
+> PoLang 远程推理已用 langchain4j + OpenAI Chat Completions 协议（见 `PRODUCT.md` ADR-005），切换 `baseUrl + apiKey` 即可指向 Gemini/OpenAI/Groq，**零代码改动**。
 
 ---
 

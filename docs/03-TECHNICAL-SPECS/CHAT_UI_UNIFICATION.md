@@ -8,7 +8,7 @@
 
 ## 背景
 
-PicMe 项目中存在两套 Chat UI 实现：
+PoLang 项目中存在两套 Chat UI 实现：
 1. **Camera 页面** (`AiAgentPanel.kt`) - 完整功能，设计精美
 2. **Gallery 页面** (`AiChatPanel.kt`) - 基础功能，设计简单
 

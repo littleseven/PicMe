@@ -8,7 +8,7 @@
 
 ## 📋 问题背景
 
-在 PicMe 项目中，"左/右"的描述存在歧义，主要体现在：
+在 PoLang 项目中，"左/右"的描述存在歧义，主要体现在：
 
 1. **基于图像的左右**（Image Space）：从观察者视角看屏幕，左侧 = x 坐标小的位置
 2. **基于人脸的左右**（Face Space）：从被拍摄者视角，其左手边 = 图像右侧（前置摄像头镜像后）
@@ -722,7 +722,7 @@ find app/src/ -name "*.kt" -exec grep -n "//.*左眼\|//.*右眼" {} +
 在新成员 onboarding 文档中加入本规范：
 
 ```markdown
-## PicMe 开发规范
+## PoLang 开发规范
 
 ### 坐标系与命名
 - 阅读 [人脸坐标系与左右命名规范](../02-ARCHITECTURE/ADR/ADR-003-coordinate-system-management.md)

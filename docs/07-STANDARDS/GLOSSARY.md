@@ -1,7 +1,7 @@
-# PicMe 术语词典 (Glossary)
+# PoLang 术语词典 (Glossary)
 
 > **边界声明（Boundary Statement）**
-> - 本文档定义 PicMe 项目统一术语，确保 Spec 语义一致性。
+> - 本文档定义 PoLang 项目统一术语，确保 Spec 语义一致性。
 > - 技术规范以各模块 `*_TECH_SPEC.md` 为准。
 > - 坐标系标准以 [`COORDINATE_SYSTEM.md`](./COORDINATE_SYSTEM.md) 为准。
 
@@ -27,7 +27,7 @@
 
 | 术语 | 英文 | 定义 | 禁用别名 |
 |------|------|------|---------|
-| **大美丽** | Big Beauty | PicMe 自研 OpenGL ES + EGL 美颜引擎 | 美颜引擎、自研引擎 |
+| **大美丽** | Big Beauty | PoLang 自研 OpenGL ES + EGL 美颜引擎 | 美颜引擎、自研引擎 |
 | **离屏渲染** | Offscreen Rendering | GPU 离屏纹理，用于拍照后处理 | 离线渲染、后台渲染 |
 | **Provider View** | BeautyPreviewProvider | 大美丽提供的预览容器组件 | Provider、预览容器 |
 | **降级** | Fallback | 引擎异常时自动回退到基础预览 | 回退、降级策略 |
@@ -41,7 +41,7 @@
 
 #### 大美丽 (Big Beauty)
 
-**定义**: PicMe 自研的基于 OpenGL ES + EGL 的美颜引擎，提供实时预览与拍照后处理能力。
+**定义**: PoLang 自研的基于 OpenGL ES + EGL 的美颜引擎，提供实时预览与拍照后处理能力。
 
 **核心特性**:
 - 完全 GPU 加速，零 CPU 拷贝

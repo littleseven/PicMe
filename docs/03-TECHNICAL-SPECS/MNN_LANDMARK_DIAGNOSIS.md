@@ -269,4 +269,4 @@ sleep 10 && adb logcat -d | grep "MNN vs Baseline"
 
 *文档版本: 1.0*
 *最后更新: 2026-05-23*
-*作者: PicMe AI Agent*
+*作者: PoLang AI Agent*

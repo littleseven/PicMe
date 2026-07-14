@@ -24,7 +24,7 @@
 
 ### 1.1 问题描述
 
-在 PicMe 项目中，人脸关键点坐标存在两种不同的参照系：
+在 PoLang 项目中，人脸关键点坐标存在两种不同的参照系：
 
 1. **图像坐标系**（Image Space）
    - 基于图像边界
@@ -323,7 +323,7 @@ fun convertImageToUserCoordinates(
 
 ```bash
 # 检测代码
-cd /Users/guoshuai/AndroidStudioProjects/PicMe
+cd /Users/guoshuai/AndroidStudioProjects/PoLang
 scripts/check-coordinate-annotation.sh
 
 # 检测文档

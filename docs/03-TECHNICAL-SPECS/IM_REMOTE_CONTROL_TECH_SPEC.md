@@ -21,7 +21,7 @@
 
 ```
 ┌──────────────┐     ┌──────────────────┐     ┌─────────────────────────┐
-│  用户(飞书)   │────→│  飞书开放平台     │←───→│  PicMe 设备端           │
+│  用户(飞书)   │────→│  飞书开放平台     │←───→│  PoLang 设备端           │
 │  发送消息     │     │  (Bot网关)       │     │  (Android)              │
 └──────────────┘     └──────────────────┘     │                         │
       ↑                                       │  ┌───────────────────┐  │
@@ -54,7 +54,7 @@
 ### 1.3 消息流转路径
 
 ```
-用户 → 飞书消息 → 飞书开放平台 → WebSocket 推送 → PicMe 设备端
+用户 → 飞书消息 → 飞书开放平台 → WebSocket 推送 → PoLang 设备端
     → FeishuChannelHandler → RemoteCommandDispatcher
         → LLM 解析意图 → CapabilityRegistry.dispatch()
         → 结果 → 飞书 OAPI HTTP 回复 → 用户
@@ -442,7 +442,7 @@ class RemoteCommandDispatcher(
 
 ## 11. 与 ApkClaw 方案对比
 
-| 维度 | ApkClaw | PicMe 方案 |
+| 维度 | ApkClaw | PoLang 方案 |
 |-------|---------|-----------|
 | **消息接收** | 飞书 WS SDK | 飞书 WS SDK（相同） |
 | **消息回复** | 飞书 OAPI HTTP | 飞书 OAPI HTTP（相同） |
@@ -450,7 +450,7 @@ class RemoteCommandDispatcher(
 | **LLM 集成** | LangChain4j (OpenAI/Anthropic) | **:agent-core OpenAiChatModel**（复用现有链路） |
 | **目标** | 通用 Android 自动化 | **专注相册+图片编辑**（核心能力更深） |
 
-**核心差异**：PicMe 不需要 AccessibilityService 来做通用 UI 自动化。我们的 Capability 系统直接操作相册/编辑内核，稳定性和响应速度优于无障碍节点遍历。
+**核心差异**：PoLang 不需要 AccessibilityService 来做通用 UI 自动化。我们的 Capability 系统直接操作相册/编辑内核，稳定性和响应速度优于无障碍节点遍历。
 
 ---
 

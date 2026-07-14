@@ -1,4 +1,4 @@
-# PicMe 服务端实现方案（Ktor）
+# PoLang 服务端实现方案（Ktor）
 
 > **文档状态**：Review 完成（PM/RD/CR/QA 四角色已审），文档与代码已对齐。据编码时以代码为事实来源。
 > **最后更新**：2026-07-12（Review 后修正：以代码为准统一限流/预算/厂商/构建命令；架构决策：/llm 降 P2、新增 /agent/config、历史消息不存服务端、飞书保持客户端接入）
@@ -10,7 +10,7 @@
 
 ## 1. 目标与范围
 
-**目标**：在已购的 HK 腾讯轻量服务器上部署一个 **Ktor 后端**，挂 `api.polang.net`，支撑 PicMe App 的「推荐拍照 + 图片优化」服务端能力。
+**目标**：在已购的 HK 腾讯轻量服务器上部署一个 **Ktor 后端**，挂 `api.polang.net`，支撑 PoLang App 的「推荐拍照 + 图片优化」服务端能力。
 
 **现状资源（均已就位，不再采购）**：
 - **服务器**：腾讯轻量 · 香港·三区 · **锐驰型** · 2C2G / 40G SSD / **200Mbps 峰值 · 无限流量**；公网 IP `43.161.201.142`；实例 `lhins-5u0t1f9f`；到期 2027-01-11。
@@ -230,7 +230,7 @@ COS_PRESIGN_TTL_MIN=60
 **`picme-api.service`**（systemd）：
 ```ini
 [Unit]
-Description=PicMe API (Ktor)
+Description=PoLang API (Ktor)
 After=network.target
 
 [Service]

@@ -214,11 +214,11 @@
 - docs(app): update AGENTS.md for ML Kit tag pass integration
 - docs(runtime-core): 添加 MNN-LLM 全局模型加载与多实例安全调研报告
 - docs(skills): 更新技能文档中的脚本路径和包名引用
-- docs(qa): 添加 PicMe 核心功能测试指南
-- docs(qa): 添加 PicMe 核心功能测试指引文档
+- docs(qa): 添加 PoLang 核心功能测试指南
+- docs(qa): 添加 PoLang 核心功能测试指引文档
 - docs: thumbnail LRU cache implementation plan
 - docs: thumbnail LRU cache design spec
-- docs: 更新项目文档以反映从 PicMe 到 langchain4android 的架构变更
+- docs: 更新项目文档以反映从 PoLang 到 langchain4android 的架构变更
 
 ### 🔧 Others
 - perf(ui-driver): add gallery_search.py one-shot script and extend wait_for

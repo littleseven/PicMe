@@ -274,7 +274,7 @@ User Input
 // 本地 Prompt — 精简、结构化
 class LocalPromptBuilder {
     fun buildSystemPrompt(capabilities: List<Capability>, context: AgentContext): String = """
-        你是 PicMe AI 助手，运行在端侧设备。
+        你是 PoLang AI 助手，运行在端侧设备。
         请根据用户输入，输出 JSON 数组格式的命令。
 
         可用命令：

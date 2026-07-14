@@ -1,4 +1,4 @@
-What's new in PicMe v1.0.10
+What's new in PoLang v1.0.10
 
 ✨ New Features
 • Photo Editor Filters: Added a filter panel in the photo editor with real-time style effect preview — Toon, Sketch, Posterize, Emboss, and Crosshatch.
@@ -16,4 +16,4 @@ What's new in PicMe v1.0.10
 • Removed unused native libraries (libncnn.so) to reduce APK size.
 • Aligned NDK versions and fixed KSP incremental cache corruption for more stable builds.
 
-Thank you for using PicMe! If you enjoy the app, please consider leaving a review.
+Thank you for using PoLang! If you enjoy the app, please consider leaving a review.

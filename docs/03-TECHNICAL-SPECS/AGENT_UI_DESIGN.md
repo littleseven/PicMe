@@ -11,7 +11,7 @@
 
 ## 1. 概述
 
-本文档定义 PicMe 远程 LLM 混合编排架构的 UI 层设计。将后端 `ExecutionPlan` 的执行流程可视化，以**内联聊天消息**的形式嵌入现有 `AiAgentPanel` 中。
+本文档定义 PoLang 远程 LLM 混合编排架构的 UI 层设计。将后端 `ExecutionPlan` 的执行流程可视化，以**内联聊天消息**的形式嵌入现有 `AiAgentPanel` 中。
 
 **核心原则**:
 - 保持现有聊天界面不变
@@ -348,4 +348,4 @@ class AgentPanelViewModel(
 
 ---
 
-*本文档遵循 PicMe 三层文档体系，实现时需同步更新模块 AGENTS.md。*
+*本文档遵循 PoLang 三层文档体系，实现时需同步更新模块 AGENTS.md。*
