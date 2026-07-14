@@ -23,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -91,19 +91,17 @@ private fun MediaCard(asset: MediaAsset, onClick: () -> Unit) {
         modifier = Modifier.size(width = 120.dp, height = 150.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
                 model = asset.uri,
                 contentDescription = asset.fileName,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .size(width = 120.dp, height = 120.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                modifier = Modifier.fillMaxSize()
             )
             Text(
                 text = dateText,
                 style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(4.dp)

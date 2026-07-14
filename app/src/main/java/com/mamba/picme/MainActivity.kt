@@ -216,7 +216,14 @@ class MainActivity : ComponentActivity() {
                                     settingsViewModel = settingsViewModel,
                                     onNavigateBack = { navController.popBackStack() },
                                     onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route, navOptions { launchSingleTop = true }) }
+                                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route, navOptions { launchSingleTop = true }) },
+                                    mediaViewModel = mediaViewModel,
+                                    onNavigateToPhotoEditor = { uri, autoOptimize ->
+                                        navController.navigate(
+                                            Screen.PhotoEditor.createRoute(sourceUri = uri, autoOptimize = autoOptimize),
+                                            navOptions { launchSingleTop = true }
+                                        )
+                                    }
                                 )
                             }
                             composable(Screen.Camera.route) {

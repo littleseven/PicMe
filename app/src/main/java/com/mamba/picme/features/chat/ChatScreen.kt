@@ -128,14 +128,17 @@ import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
-import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
+import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.MediaPager
+import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
 import androidx.compose.runtime.mutableIntStateOf
-import kotlinx.coroutines.flow.MutableStateFlow
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.PushToTalkEngine
@@ -161,7 +164,9 @@ fun ChatScreen(
     settingsViewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToGallery: (String) -> Unit = {}
+    onNavigateToGallery: (String) -> Unit = {},
+    mediaViewModel: MediaViewModel,
+    onNavigateToPhotoEditor: (uri: String, autoOptimize: Boolean) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -180,6 +185,11 @@ fun ChatScreen(
     // 相册搜索结果预览状态
     var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     var previewIndex by remember { mutableIntStateOf(0) }
+
+    // 注册到 Compose CapabilityHost（CHAT 场景），让命令分发命中本能力，
+    // 否则 findCapabilityForCommand 会回退到 registry 里的 GalleryCapability
+    // （GALLERY 场景）→ CHAT 场景不匹配 → "正在为您切换到对应页面执行操作..."
+    RegisterCapability(ChatSearchCapability.getInstance())
 
     // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
     DisposableEffect(Unit) {
@@ -321,21 +331,38 @@ fun ChatScreen(
                 onDismiss = { previewImageUri = null }
             )
 
-            // 相册搜索结果全屏预览（复用 MediaPager，非必要回调首版 stub）
+            // 相册搜索结果全屏预览（全屏 Dialog 承载 MediaPager，保留相册预览的全部能力）
             if (previewAssets.isNotEmpty()) {
-                MediaPager(
-                    assets = previewAssets,
-                    initialIndex = previewIndex,
-                    onClose = { previewAssets = emptyList() },
-                    onDelete = { previewAssets = emptyList() },
-                    onStartOcr = {},
-                    onDismissOcr = {},
-                    ocrState = MutableStateFlow<MediaViewModel.OcrResult?>(null),
-                    onNavigateToEditor = {},
-                    onAiOptimize = {},
-                    voiceCoordinator = null,
-                    onReTag = {}
-                )
+                Dialog(
+                    onDismissRequest = { previewAssets = emptyList() },
+                    properties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false
+                    )
+                ) {
+                    MediaPager(
+                        assets = previewAssets,
+                        initialIndex = previewIndex,
+                        onClose = { previewAssets = emptyList() },
+                        onDelete = { asset ->
+                            mediaViewModel.deleteMediaByIds(listOf(asset.id))
+                            previewAssets = previewAssets.filter { it.id != asset.id }
+                        },
+                        onStartOcr = { uriString ->
+                            mediaViewModel.recognizeTextFromCurrentImage(context, uriString.toUri())
+                        },
+                        onDismissOcr = { mediaViewModel.clearOcrResult() },
+                        ocrState = mediaViewModel.ocrState,
+                        onNavigateToEditor = { asset -> onNavigateToPhotoEditor(asset.uri, false) },
+                        onAiOptimize = { asset -> onNavigateToPhotoEditor(asset.uri, true) },
+                        voiceCoordinator = null,
+                        onReTag = {
+                            context.startForegroundService(
+                                TagGenerationService.intentScanPass3Full(context)
+                            )
+                        }
+                    )
+                }
             }
         }
     }
