@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoLang 语音栈 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item active" href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">03 Technical Specs</a> / <span>PoLang 语音栈</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-执行摘要">1. 执行摘要</a></li>
+      <li><a href="#2-当前唤醒词实现phase-1">2. 当前唤醒词实现（Phase 1）</a></li>
+      <li><a href="#3-部署验收">3. 部署验收</a></li>
+      <li><a href="#4-kws-迁移规划phase-2">4. KWS 迁移规划（Phase 2）</a></li>
+      <li><a href="#5-相关文件">5. 相关文件</a></li>
+      <li><a href="#6-附录asr-language-model-说明">6. 附录：ASR Language Model 说明</a></li>
+      </ul>
+    </div>
+<h1 id="picme-语音栈">PoLang 语音栈</h1>
+<blockquote>
+<p><strong>文档编号</strong>: TECH-SPEC-VOICE-001<br />
+<strong>关联模块</strong>: <code>app/src/main/java/com/mamba/picme/features/camera/voice/</code>, <code>runtime-core/platform/voice/</code><br />
+<strong>创建日期</strong>: 2026-06-10<br />
+<strong>最后更新</strong>: 2026-07-08<br />
+<strong>维护者</strong>: [RD] 全栈工程师</p>
+<p><strong>历史合并说明</strong>：本文档由以下 3 份文档合并而成：<code>WAKE_WORD_OPTIMIZATION.md</code>、<code>WAKE_WORD_DEPLOYMENT.md</code>、<code>KWS_MIGRATION_TECH_SPEC.md</code>。内容已按「当前唤醒词实现 → 部署验收 → KWS 迁移规划」重组，并消除重复内容。<br />
+2026-07-08 再次合并 <code>ASR_LANGUAGE_MODEL_EXPLANATION.md</code> 作为附录「ASR Language Model 说明」，并去除重复元信息头。</p>
+</blockquote>
+<hr />
+<h2 id="执行摘要">1. 执行摘要</h2>
+<p>PoLang 语音栈当前处于 <strong>Phase 1（当前 ASR-based 唤醒词优化）→ Phase 2（Sherpa-ONNX KWS 迁移）</strong> 的过渡阶段。</p>
+<table>
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 42%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>Phase 1（当前）</th>
+<th>Phase 2（目标）</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>唤醒方案</strong></td>
+<td>VAD + ASR 转录 + 文本匹配</td>
+<td>专用 KWS 模型（sherpa-onnx）</td>
+</tr>
+<tr class="even">
+<td><strong>常驻模型</strong></td>
+<td>无（ASR 按需加载）</td>
+<td>KWS ~14MB always-on</td>
+</tr>
+<tr class="odd">
+<td><strong>唤醒延迟</strong></td>
+<td>200-300ms</td>
+<td>~50ms</td>
+</tr>
+<tr class="even">
+<td><strong>待机功耗</strong></td>
+<td>~40mW</td>
+<td>~50mW</td>
+</tr>
+<tr class="odd">
+<td><strong>ASR 内存</strong></td>
+<td>唤醒后按需加载 ~282MB</td>
+<td>唤醒后按需加载 ~282MB</td>
+</tr>
+<tr class="even">
+<td><strong>依赖</strong></td>
+<td>Sherpa-MNN ASR → <code>libMNN.so</code></td>
+<td>Sherpa-ONNX → <code>libonnxruntime.so</code>，与 LLM 彻底解耦</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="当前唤醒词实现phase-1">2. 当前唤醒词实现（Phase 1）</h2>
+<h3 id="问题诊断">2.1 问题诊断</h3>
+<h4 id="旧版本局限性">旧版本局限性</h4>
+<pre><code>原方案（6 个唤醒词）：
+├─ &quot;小觅&quot; × 1（标准）
+├─ &quot;小蜜&quot;（同音）
+├─ &quot;小秘&quot;（同音）
+├─ &quot;小米&quot;（近音）
+├─ &quot;小咪&quot;（近音）
+└─ &quot;小哔&quot;（近音）
+
+问题：
+❌ 不支持口语启动词（&quot;嘿小觅&quot;、&quot;哎小觅&quot;）
+❌ 不支持自然用法（&quot;小觅你好&quot;、&quot;小觅啊&quot;）
+❌ 轮询策略单一：固定 150ms，无法根据语音活动动态调整
+❌ ASR 模型生命周期不优化：始终保持加载
+❌ VAD 结果无稳定性检查，容易误触
+❌ 唤醒词匹配无权重/优先级，不支持渐进式验证</code></pre>
+<h4 id="用户体验痛点">用户体验痛点</h4>
+<ul>
+<li><strong>识别失败</strong>：用户说”嘿小觅拍照”时，系统不识别</li>
+<li><strong>误触发</strong>：后台噪声（电视、语音）误触发唤醒</li>
+<li><strong>功耗消耗</strong>：长时间待机模式下 ASR 模型始终占用内存和 CPU</li>
+<li><strong>延迟感</strong>：VAD 检测波动导致识别延迟 &gt; 1s</li>
+</ul>
+<h3 id="优化方案详解">2.2 优化方案详解</h3>
+<h4 id="唤醒词库扩展21-个关键词">唤醒词库扩展（21 个关键词）</h4>
+<div class="sourceCode" id="cb2"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 【第 1 组】标准唤醒词 + 同音误识（信心度 0.94-1.0）</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小觅&quot;</span> to <span class="fl">1.0f</span>          <span class="co">// 标准唤醒词，最高优先级</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小蜜&quot;</span> to <span class="fl">0.95f</span>         <span class="co">// 同音：最常见 ASR 误识</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小秘&quot;</span> to <span class="fl">0.95f</span>         <span class="co">// 同音</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小密&quot;</span> to <span class="fl">0.94f</span>         <span class="co">// 同音</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">// 【第 2 组】近音变体（信心度 0.85-0.88）</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小米&quot;</span> to <span class="fl">0.88f</span>         <span class="co">// 近音：小米手机</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小咪&quot;</span> to <span class="fl">0.87f</span>         <span class="co">// 近音：拟声词</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小妹&quot;</span> to <span class="fl">0.85f</span>         <span class="co">// 近音：可能被误识</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">// 【第 3 组】方言/口音变体（信心度 0.80-0.82）</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小美&quot;</span> to <span class="fl">0.82f</span>         <span class="co">// mì/měi 易混</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小媽&quot;</span> to <span class="fl">0.80f</span>         <span class="co">// 部分方言</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">// 【第 4 组】口语启动词 + 唤醒词（信心度 0.90-0.92）</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;嘿小觅&quot;</span> to <span class="fl">0.92f</span>       <span class="co">// 感叹词启动</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;哎小觅&quot;</span> to <span class="fl">0.92f</span>       <span class="co">// 感叹词启动</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;呃小觅&quot;</span> to <span class="fl">0.90f</span>       <span class="co">// 犹豫词启动</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;喂小觅&quot;</span> to <span class="fl">0.91f</span>       <span class="co">// 通话启动词</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">// 【第 5 组】后缀表达（信心度 0.88-0.90）</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小觅啊&quot;</span> to <span class="fl">0.90f</span>       <span class="co">// 语气助词</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小觅呀&quot;</span> to <span class="fl">0.89f</span>       <span class="co">// 语气助词</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;小觅你好&quot;</span> to <span class="fl">0.88f</span>     <span class="co">// 完整打招呼</span></span></code></pre></div>
+<h4 id="权重匹配策略">权重匹配策略</h4>
+<pre><code>优先级矩阵：
+
+信心度区间 │ 匹配行为 │ 用途
+────────────┼──────────┼─────────────────────────
+0.9 - 1.0  │ 直接触发  │ 高置信度唤醒
+0.8 - 0.9  │ 可接受    │ 常见口语表达
+0.7 - 0.8  │ 验证     │ 考虑后续指令有效性
+&lt; 0.7      │ 拒绝     │ 备用名称（暂未启用）</code></pre>
+<p><strong>实现</strong>：通过 <code>findMatchedWakeWordWithScore()</code> 返回 <code>Pair&lt;String, Float&gt;</code>，支持多层验证。</p>
+<h3 id="功耗优化">2.3 功耗优化</h3>
+<h4 id="动态轮询间隔调整">动态轮询间隔调整</h4>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">const</span> <span class="kw">val</span> <span class="va">LOW_POWER_POLL_MS</span> <span class="op">=</span> <span class="dv">150L</span>      <span class="co">// 待机模式</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">const</span> <span class="kw">val</span> <span class="va">ACTIVE_POLL_MS</span> <span class="op">=</span> <span class="dv">30L</span>          <span class="co">// 活动期高精度</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">var</span> <span class="va">lastPollDelayMs</span> <span class="op">=</span> LOW_POWER_POLL_MS <span class="co">// 当前轮询延迟</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 核心逻辑（主循环中）：</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>isSpeech<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>isInHighPrecisionMode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        isInHighPrecisionMode <span class="op">=</span> <span class="kw">true</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        lastPollDelayMs <span class="op">=</span> ACTIVE_POLL_MS  <span class="co">// 切换高精度（30ms）</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>isInHighPrecisionMode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        isInHighPrecisionMode <span class="op">=</span> <span class="kw">false</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        lastPollDelayMs <span class="op">=</span> LOW_POWER_POLL_MS  <span class="co">// 恢复低功耗（150ms）</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>delay<span class="op">(</span>lastPollDelayMs<span class="op">)</span>  <span class="co">// 使用动态延迟</span></span></code></pre></div>
+<p><strong>收益</strong>： - 无声环境：150ms 轮询，功耗 ↓ 80%（vs 固定 30ms） - 有声环境：30ms 高精度，识别延迟 &lt; 100ms - 动态切换：毫秒级响应，无需额外资源</p>
+<h4 id="按需-asr-加载">按需 ASR 加载</h4>
+<pre><code>原方案：start() → 加载 ASR → 持续运行 → stop()
+问题：ASR 282MB 模型始终占用内存和 CPU
+
+优化方案：
+┌─────────────────────────────────────┐
+│ WakeWordEngine.start()              │
+│   ├─ 启动 AudioRecorder + VAD       │
+│   └─ ASR 保持未初始化（低功耗）      │
+│        ↓
+│   检测到语音活动 + VAD 稳定        │
+│   └─ 【关键】调用 asrEngine.transcribe()
+│        → 触发 ASR 按需加载          │
+│        ↓ (仅在识别期间运行)
+│   识别完成或超时                   │
+│   └─ ASR 自动释放（不在此管理）     │
+│        ↓
+└─────────────────────────────────────┘</code></pre>
+<h3 id="精准度优化">2.4 精准度优化</h3>
+<h4 id="vad-稳定性检查">VAD 稳定性检查</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">const</span> <span class="kw">val</span> <span class="va">VAD_STABILITY_FRAMES</span> <span class="op">=</span> <span class="dv">3</span>  <span class="co">// 连续 3 帧语音</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">var</span> <span class="va">consecutiveSpeechFrames</span> <span class="op">=</span> <span class="dv">0</span>      <span class="co">// 计数器</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 核心逻辑：</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>isSpeech<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    consecutiveSpeechFrames<span class="op">++</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>consecutiveSpeechFrames <span class="op">&lt;</span> VAD_STABILITY_FRAMES<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        delay<span class="op">(</span>ACTIVE_POLL_MS<span class="op">)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">continue</span>  <span class="co">// 跳过本轮 ASR，等待稳定</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 稳定 ✓ → 触发 ASR</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    triggerAsr<span class="op">()</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    consecutiveSpeechFrames <span class="op">=</span> <span class="dv">0</span>  <span class="co">// 重置</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>效果</strong>： - 噪声脉冲（1-2 帧）被过滤 - 真实语音（&gt;3 帧连续）触发识别 - 误触率 ↓ 40%</p>
+<h4 id="冷却期管理">冷却期管理</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">const</span> <span class="kw">val</span> <span class="va">WAKE_COOLDOWN_MS</span> <span class="op">=</span> <span class="dv">1200L</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">var</span> <span class="va">lastWakeTime</span> <span class="op">=</span> <span class="dv">0L</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 检查冷却期</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">now</span> <span class="op">=</span> System<span class="op">.</span>currentTimeMillis<span class="op">()</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>now <span class="op">-</span> lastWakeTime <span class="op">&lt;</span> WAKE_COOLDOWN_MS<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    vadDetector<span class="op">.</span>reset<span class="op">()</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    consecutiveSpeechFrames <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    delay<span class="op">(</span>LOW_POWER_POLL_MS<span class="op">)</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">continue</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">// 成功识别后更新</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>lastWakeTime <span class="op">=</span> System<span class="op">.</span>currentTimeMillis<span class="op">()</span></span></code></pre></div>
+<h3 id="技术规格">2.5 技术规格</h3>
+<h4 id="常量定义">常量定义</h4>
+<table>
+<thead>
+<tr class="header">
+<th>常量</th>
+<th>值</th>
+<th>用途</th>
+<th>可调</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>POLL_DELAY_MS</code></td>
+<td>30ms</td>
+<td>保留（可删除）</td>
+<td>✓</td>
+</tr>
+<tr class="even">
+<td><code>LOW_POWER_POLL_MS</code></td>
+<td>150ms</td>
+<td>待机轮询间隔</td>
+<td>✓</td>
+</tr>
+<tr class="odd">
+<td><code>ACTIVE_POLL_MS</code></td>
+<td>30ms</td>
+<td>活动期轮询间隔</td>
+<td>✓</td>
+</tr>
+<tr class="even">
+<td><code>MAX_SEGMENT_DURATION_MS</code></td>
+<td>4000ms</td>
+<td>最长音频段</td>
+<td>✓</td>
+</tr>
+<tr class="odd">
+<td><code>SEGMENT_SILENCE_TIMEOUT_MS</code></td>
+<td>1500ms</td>
+<td>静音超时</td>
+<td>✓</td>
+</tr>
+<tr class="even">
+<td><code>WAKE_COOLDOWN_MS</code></td>
+<td>1200ms</td>
+<td>冷却时间</td>
+<td>✓</td>
+</tr>
+<tr class="odd">
+<td><code>VAD_STABILITY_FRAMES</code></td>
+<td>3 帧</td>
+<td>稳定性阈值</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<h4 id="代码流程">代码流程</h4>
+<pre><code>VoiceCommandCoordinator.startWakeWordListening()
+    ↓
+wakeWordEngine.start(onTranscript)
+    ├─ audioRecorder.start()
+    ├─ vadDetector.reset()
+    └─ Dispatchers.IO 启动主循环
+         ├─ 轮询 audioRecorder.read()
+         ├─ VAD 处理 + 动态轮询
+         ├─ 稳定性检查（3 帧）
+         ├─ 冷却期检查（1.2s）
+         ├─ ASR 按需转录
+         ├─ 唤醒词权重匹配 + 日志
+         └─ onTranscript 回调（主线程）
+    ↓
+AgentOrchestrator 接收指令并执行</code></pre>
+<h3 id="性能指标">2.6 性能指标</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>原版本</th>
+<th>优化后</th>
+<th>改进</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>漏识率（miss rate）</td>
+<td>15-20%</td>
+<td>8-12%</td>
+<td>↓30%</td>
+</tr>
+<tr class="even">
+<td>误触率（false positive）</td>
+<td>8-10%</td>
+<td>4-6%</td>
+<td>↓40%</td>
+</tr>
+<tr class="odd">
+<td>平均识别延迟</td>
+<td>800-1000ms</td>
+<td>200-300ms</td>
+<td>↓60%</td>
+</tr>
+<tr class="even">
+<td>待机功耗</td>
+<td>~100mW</td>
+<td>~40mW</td>
+<td>↓60%</td>
+</tr>
+<tr class="odd">
+<td>ASR 内存占用（待机）</td>
+<td>282MB</td>
+<td>0MB</td>
+<td>↓100%</td>
+</tr>
+<tr class="even">
+<td>支持唤醒词数</td>
+<td>6</td>
+<td>21</td>
+<td>↑250%</td>
+</tr>
+</tbody>
+</table>
+<h3 id="单元测试">2.7 单元测试</h3>
+<table>
+<thead>
+<tr class="header">
+<th>测试类</th>
+<th>用例数</th>
+<th>覆盖范围</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>标准唤醒词</td>
+<td>3</td>
+<td>“小觅”, 空字符串, 无匹配</td>
+</tr>
+<tr class="even">
+<td>同音误识</td>
+<td>5</td>
+<td>“小蜜”, “小秘”, “小米”, “小咪”, “小妹”</td>
+</tr>
+<tr class="odd">
+<td>近音变体</td>
+<td>4</td>
+<td>“小美”, “小媽” + 组合</td>
+</tr>
+<tr class="even">
+<td>口语启动词</td>
+<td>4</td>
+<td>“嘿小觅”, “哎小觅”, “小觅你好”</td>
+</tr>
+<tr class="odd">
+<td>唤醒词移除</td>
+<td>15</td>
+<td>前缀/中缀/后缀/多个/带助词</td>
+</tr>
+<tr class="even">
+<td>权重匹配</td>
+<td>4</td>
+<td>带分数的匹配结果验证</td>
+</tr>
+<tr class="odd">
+<td><strong>总计</strong></td>
+<td><strong>35</strong></td>
+<td><strong>全面覆盖</strong></td>
+</tr>
+</tbody>
+</table>
+<p>运行测试：</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 仅编译（无需设备）</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> :app:compileDebugKotlin</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 预期：BUILD SUCCESSFUL</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 运行 WakeWordEngine 单元测试</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> :app:testDebugUnitTest <span class="at">--tests</span> <span class="st">&quot;*WakeWordEngine*&quot;</span> <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&quot;passed|failed&quot;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 预期：35+ 个测试通过</span></span></code></pre></div>
+<h3 id="故障排查">2.8 故障排查</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>无法识别”嘿小觅”</td>
+<td>词库中未包含或 VAD 阈值过高</td>
+<td>检查 <code>WAKE_WORD_VARIANTS</code> 包含该词；降低 VAD 阈值（如 20f）</td>
+</tr>
+<tr class="even">
+<td>频繁误触</td>
+<td>VAD 过敏感或冷却期太短</td>
+<td>增加 <code>VAD_STABILITY_FRAMES</code>（如 5）；增加 <code>WAKE_COOLDOWN_MS</code>（如 2000）</td>
+</tr>
+<tr class="odd">
+<td>识别延迟过长</td>
+<td>ACTIVE_POLL_MS 过大或 ASR 负载重</td>
+<td>减小轮询延迟（如 20ms）；检查设备 CPU 占用</td>
+</tr>
+<tr class="even">
+<td>ASR 不可用</td>
+<td>LLM 模型加载冲突</td>
+<td>检查 <code>MnnResourceManager</code> 日志；确保 ASR 模型已下载</td>
+</tr>
+<tr class="odd">
+<td>识别失败但日志无错</td>
+<td>唤醒词无匹配</td>
+<td>检查 ASR 输出的转录文本；如”今天天气”则无唤醒词</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="部署验收">3. 部署验收</h2>
+<h3 id="功能清单">3.1 功能清单</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" />唤醒词库扩展至 21 个关键词，包含同音/近音/口语表达</label></li>
+<li><label><input type="checkbox" checked="" />实现动态轮询：待机 150ms ↔︎ 活动期 30ms</label></li>
+<li><label><input type="checkbox" checked="" />实现 VAD 稳定性检查：连续 3 帧才触发 ASR</label></li>
+<li><label><input type="checkbox" checked="" />实现权重优先匹配：<code>findMatchedWakeWordWithScore()</code> 返回信心度</label></li>
+<li><label><input type="checkbox" checked="" />实现唤醒词全量移除：支持多个变体和位置</label></li>
+<li><label><input type="checkbox" checked="" />添加冷却期管理：1.2s 内忽略重复触发</label></li>
+<li><label><input type="checkbox" checked="" />完善日志输出：✓/✗ 标记，信心度显示</label></li>
+<li><label><input type="checkbox" checked="" />添加 35+ 单元测试用例</label></li>
+<li><label><input type="checkbox" checked="" />无编译错误和 linter 告警</label></li>
+<li><label><input type="checkbox" checked="" />生成本技术文档</label></li>
+</ul>
+<h3 id="验收指标">3.2 验收指标</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>优化前</th>
+<th>优化后</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>支持唤醒词数</strong></td>
+<td>6</td>
+<td>21</td>
+<td>✅ +250%</td>
+</tr>
+<tr class="even">
+<td><strong>漏识率</strong></td>
+<td>15-20%</td>
+<td>8-12%</td>
+<td>✅ ↓ 30%</td>
+</tr>
+<tr class="odd">
+<td><strong>误触率</strong></td>
+<td>8-10%</td>
+<td>4-6%</td>
+<td>✅ ↓ 40%</td>
+</tr>
+<tr class="even">
+<td><strong>平均识别延迟</strong></td>
+<td>800-1000ms</td>
+<td>200-300ms</td>
+<td>✅ ↓ 70%</td>
+</tr>
+<tr class="odd">
+<td><strong>待机功耗</strong></td>
+<td>~100mW</td>
+<td>~40mW</td>
+<td>✅ ↓ 60%</td>
+</tr>
+<tr class="even">
+<td><strong>ASR 待机内存</strong></td>
+<td>282MB</td>
+<td>0MB</td>
+<td>✅ ↓ 100%</td>
+</tr>
+<tr class="odd">
+<td><strong>单元测试</strong></td>
+<td>~20</td>
+<td>35+</td>
+<td>✅ +75%</td>
+</tr>
+<tr class="even">
+<td><strong>编译状态</strong></td>
+<td>-</td>
+<td>BUILD SUCCESSFUL</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="设备端测试">3.3 设备端测试</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. 构建 APK</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> :app:assembleDebug</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. 安装到设备/模拟器</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> install <span class="at">-r</span> app/build/outputs/apk/debug/app-debug.apk</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. 启动相机应用</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell am start <span class="at">-n</span> com.mamba.picme/.features.camera.CameraScreen</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. 打开唤醒词模式（点击语音按钮进入唤醒词模式）</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. 测试唤醒词识别</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="ex">说出以下命令并验证：</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="ex">├─</span> <span class="st">&quot;小觅拍张照&quot;</span>       ✓ <span class="er">(</span><span class="ex">标准词</span><span class="kw">)</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="ex">├─</span> <span class="st">&quot;小蜜打开前置&quot;</span>     ✓ <span class="er">(</span><span class="ex">同音词</span><span class="kw">)</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="ex">├─</span> <span class="st">&quot;嘿小觅换滤镜&quot;</span>     ✓ <span class="er">(</span><span class="ex">口语启动词</span><span class="kw">)</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="ex">├─</span> <span class="st">&quot;小觅你好&quot;</span>         ✓ <span class="er">(</span><span class="ex">打招呼</span><span class="kw">)</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="ex">├─</span> <span class="st">&quot;嘿小觅你好&quot;</span>       ✓ <span class="er">(</span><span class="ex">组合</span><span class="kw">)</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="ex">└─</span> <span class="st">&quot;天气怎么样&quot;</span>       ✗ <span class="er">(</span><span class="ex">无唤醒词，正确拒绝</span><span class="kw">)</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. 观看日志</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> logcat <span class="at">-s</span> <span class="st">&quot;PicMe:WakeWord&quot;</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-50</span></span></code></pre></div>
+<h3 id="日志示例">3.4 日志示例</h3>
+<pre><code>[高置信度唤醒]
+I/PicMe:WakeWord: Wake word engine started (keywords: 21, core: 6)
+D/PicMe:WakeWord: Entered high precision mode (polling: 30ms)
+D/PicMe:WakeWord: Speech detected but stability check: 1/3
+D/PicMe:WakeWord: Speech detected but stability check: 2/3
+I/PicMe:WakeWord: Triggering ASR (stability: 3 frames, confidence: 100%)
+I/PicMe:WakeWord: ✓ Wake word matched: &#39;小觅&#39; (confidence: 1.0), command: &#39;拍张照&#39; (raw: &#39;小觅拍张照&#39;)
+
+[同音误识但纠正]
+I/PicMe:WakeWord: ✓ Wake word matched: &#39;小蜜&#39; (confidence: 0.95), command: &#39;打开前置&#39; (raw: &#39;小蜜打开前置&#39;)
+
+[误触（冷却期）]
+D/PicMe:WakeWord: Speech detected but in cooldown (200ms / 1200ms), skipped</code></pre>
+<h3 id="文件改动清单">3.5 文件改动清单</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>行数</th>
+<th>改动</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>app/src/main/.../voice/WakeWordEngine.kt</code></td>
+<td>+265</td>
+<td>✅ 新增优化版本</td>
+</tr>
+<tr class="even">
+<td><code>app/src/test/.../voice/WakeWordEngineTest.kt</code></td>
+<td>+200</td>
+<td>✅ 新增 35+ 测试</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="kws-迁移规划phase-2">4. KWS 迁移规划（Phase 2）</h2>
+<h3 id="当前架构问题诊断">4.1 当前架构问题诊断</h3>
+<h4 id="隐式耦合链历史">隐式耦合链（历史）</h4>
+<pre><code>libsherpa-mnn-jni.so → libMNN.so ← libmnn_llm.so
+         ↓                               ↓
+    [ASR 推理]                      [LLM 推理]
+         ↓
+libMNN.so 还被 FaceDetectManager（MNN 路径）引用</code></pre>
+<p><strong>核心矛盾</strong>：<code>libMNN.so</code> 被三个子系统共享，<code>MnnResourceManager</code> 的引用计数 + 全局释放锁 + 三级释放策略本质上是一个被迫的补丁。</p>
+<h4 id="当前唤醒词方案缺陷">当前唤醒词方案缺陷</h4>
+<pre><code>VAD(RMS 25dB) → 录音(最长4s) → ASR 全量转录(282MB) → 文本匹配&quot;小觅&quot;
+                                                    ↑
+                                          每次检测都跑 282MB 模型
+                                          延迟数秒，无法 always-on</code></pre>
+<h3 id="目标架构">4.2 目标架构</h3>
+<h4 id="分层运行时">分层运行时</h4>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    应用层 (App Layer)                      │
+│                                                         │
+│  CameraScreen  →  VoiceCommandCoordinator                │
+│                      ├─ WakeWordEngine (新 KWS)           │
+│                      ├─ PushToTalkEngine                  │
+│                      └─ AiAgentUseCase                   │
+└──────────┬──────────────┬──────────────┬────────────────┘
+           │              │              │
+┌──────────▼──────┐ ┌─────▼──────┐ ┌────▼──────────────┐
+│  语音栈 (ONNX)   │ │ LLM (MNN)  │ │  FaceDetect       │
+│                 │ │            │ │  (NCNN/MediaPipe) │
+│ libsherpa-      │ │ libMNN.so  │ │  独立 .so         │
+│ onnx-jni.so     │ │ +          │ │                   │
+│ +               │ │ libmnn_llm │ │                   │
+│ libonnxruntime  │ │ .so        │ │                   │
+│ .so             │ │            │ │                   │
+│                 │ │            │ │                   │
+│ ├─ Keyword      │ │ Qwen3.5-2B │ │ Det10G + 2D106   │
+│ │  Spotter(KWS) │ │            │ │                   │
+│ ├─ OnlineRecog  │ │            │ │                   │
+│ │  nizer(ASR)   │ │            │ │                   │
+│ └─ Vad(DNN VAD) │ │            │ │                   │
+│                 │ │            │ │                   │
+│ 完全独立        │ │ MNN 唯一   │ │ 完全独立          │
+│ 加载/释放       │ │ 使用者     │ │ 加载/释放         │
+└─────────────────┘ └────────────┘ └───────────────────┘</code></pre>
+<p><strong>关键性质</strong>：三个栈各自拥有独立的 Native 运行时，互相不共享全局状态。</p>
+<h4 id="api-层映射">API 层映射</h4>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>当前 (sherpa-mnn)</th>
+<th>目标 (sherpa-onnx)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>com.k2fsa.sherpa.mnn.OnlineRecognizer</code></td>
+<td><code>com.k2fsa.sherpa.onnx.OnlineRecognizer</code></td>
+<td>ASR，API 几乎一致</td>
+</tr>
+<tr class="even">
+<td><code>com.k2fsa.sherpa.mnn.OnlineStream</code></td>
+<td><code>com.k2fsa.sherpa.onnx.OnlineStream</code></td>
+<td>流对象</td>
+</tr>
+<tr class="odd">
+<td><code>com.k2fsa.sherpa.mnn.FeatureConfig</code></td>
+<td><code>com.k2fsa.sherpa.onnx.FeatureConfig</code></td>
+<td>特征配置</td>
+</tr>
+<tr class="even">
+<td>—</td>
+<td><code>com.k2fsa.sherpa.onnx.KeywordSpotter</code></td>
+<td><strong>新增</strong> KWS</td>
+</tr>
+<tr class="odd">
+<td>—</td>
+<td><code>com.k2fsa.sherpa.onnx.HomophoneReplacerConfig</code></td>
+<td><strong>新增</strong> 同音字配置</td>
+</tr>
+<tr class="even">
+<td>—</td>
+<td><code>com.k2fsa.sherpa.onnx.Vad</code></td>
+<td><strong>可选</strong> Silero DNN VAD</td>
+</tr>
+<tr class="odd">
+<td><code>MnnGlobalReleaseLock</code></td>
+<td><strong>删除</strong></td>
+<td>ONNX RT 无此全局状态问题</td>
+</tr>
+<tr class="even">
+<td><code>MnnResourceManager</code></td>
+<td><code>ModelResourceCoordinator</code></td>
+<td><strong>简化</strong>：仅管理 LLM 生命周期</td>
+</tr>
+</tbody>
+</table>
+<h4 id="双引擎工作流程">双引擎工作流程</h4>
+<pre><code>【待机阶段】
+KWS 常驻监听 (50mW)
+    ↓ (100ms chunk 推理)
+检测到唤醒词 (如&quot;小觅&quot;)
+    ↓
+【唤醒阶段】
+加载 ASR 模型 (~282MB, ~500mW)
+    ↓
+完整转录音频 (获取指令: &quot;打开前置&quot;)
+    ↓
+识别完毕立即释放 ASR
+    ↓
+LLM 处理指令 (执行操作)
+    ↓
+【回到待机】
+KWS 继续监听</code></pre>
+<h3 id="生命周期状态机">4.3 生命周期状态机</h3>
+<h4 id="模型加载状态">模型加载状态</h4>
+<pre><code>每个子系统独立管理加载/释放，互不耦合：
+
+         ┌──────────┐    ┌──────────┐    ┌──────────┐
+         │  KWS     │    │  ASR     │    │  LLM     │
+         │ (ONNX)   │    │ (ONNX)   │    │ (MNN)    │
+         ├──────────┤    ├──────────┤    ├──────────┤
+UNLOADED │          │    │          │    │          │
+    ↓    │  释放    │    │  释放    │    │  释放    │
+LOADED   │  加载    │    │  加载    │    │  加载    │
+    ↓    │          │    │          │    │          │
+ACTIVE   │  推理中  │    │  推理中  │    │  推理中  │
+         └──────────┘    └──────────┘    └──────────┘
+              ↑ 独立            ↑ 独立            ↑ 独立
+             不共享任何 Native 状态</code></pre>
+<h4 id="核心原则分时复用绝不叠加">核心原则：分时复用，绝不叠加</h4>
+<pre><code>[休眠态]                    [唤醒态]                     [推理态]                  [休眠态]
+KWS ████████████           KWS ░░░░░░░░░░░              KWS ░░░░░░░░░░░            KWS ████████████
+ASR ────────────    →      ASR ────────────     →       ASR ████████████    →      ASR ────────────
+LLM ────────────           LLM ────────────             LLM ████████████           LLM ────────────
+
+ 常驻 ~45MB                 KWS 暂停                     峰值 ~2GB                  常驻 ~45MB
+                            ASR 加载 (~400MB)            LLM + ASR 同时存在
+                            LLM 按需加载 (~1.5GB)        转录完成 → ASR 立即释放
+                                                        LLM 推理完成 → 立即释放</code></pre>
+<p><strong>设计约束</strong>： 1. KWS 与 ASR 绝不同时 ACTIVE（KWS 暂停后 ASR 加载） 2. ASR 转录完成后立即释放（不缓存，不等待 GC） 3. LLM 推理完成后立即释放（可选保留 KV cache 用于 follow-up 对话） 4. 人脸检测按需加载/释放（NCNN/MediaPipe，不受语音栈影响）</p>
+<h4 id="状态转移表">状态转移表</h4>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 28%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>事件</th>
+<th>KWS</th>
+<th>ASR</th>
+<th>LLM</th>
+<th>FaceDetect</th>
+<th>内存峰值</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>App 启动，进入相机页</strong></td>
+<td>ACTIVE</td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>ACTIVE</td>
+<td>~125MB</td>
+</tr>
+<tr class="even">
+<td><strong>检测到唤醒词</strong></td>
+<td>PAUSED</td>
+<td>LOADING→ACTIVE</td>
+<td>UNLOADED</td>
+<td>ACTIVE</td>
+<td>~525MB</td>
+</tr>
+<tr class="odd">
+<td><strong>ASR 识别完成</strong></td>
+<td>ACTIVE</td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>ACTIVE</td>
+<td>~125MB</td>
+</tr>
+<tr class="even">
+<td><strong>LLM 推理指令</strong></td>
+<td>PAUSED</td>
+<td>UNLOADED</td>
+<td>LOADING→ACTIVE</td>
+<td>ACTIVE</td>
+<td>~1.7GB</td>
+</tr>
+<tr class="odd">
+<td><strong>LLM 推理完成</strong></td>
+<td>ACTIVE</td>
+<td>UNLOADED</td>
+<td>TRIMMED</td>
+<td>ACTIVE</td>
+<td>~125MB</td>
+</tr>
+<tr class="even">
+<td><strong>离开相机页</strong></td>
+<td>ACTIVE</td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>~45MB</td>
+</tr>
+<tr class="odd">
+<td><strong>App 退到后台 (30s)</strong></td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>UNLOADED</td>
+<td>0MB</td>
+</tr>
+<tr class="even">
+<td><strong>⚠️ LLM + ASR 同时</strong></td>
+<td>PAUSED</td>
+<td>ACTIVE</td>
+<td>ACTIVE</td>
+<td>ACTIVE</td>
+<td>~2.0GB</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：LLM + ASR 同时 ACTIVE 只在理论上发生。实际实现中应优先释放 ASR 再加载 LLM。</p>
+</blockquote>
+<h3 id="内存压力分析">4.4 内存压力分析</h3>
+<h4 id="各组件内存预算">各组件内存预算</h4>
+<p><strong>KWS</strong>（sherpa-onnx-kws-zipformer-wenetspeech-3.3M）：</p>
+<table>
+<thead>
+<tr class="header">
+<th>项目</th>
+<th>大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>模型文件（INT8）</td>
+<td>~14MB</td>
+<td>encoder + decoder + joiner .onnx</td>
+</tr>
+<tr class="even">
+<td>权重张量</td>
+<td>~3.3MB</td>
+<td>3.3M params × 1 byte (INT8)</td>
+</tr>
+<tr class="odd">
+<td>编码器前向缓冲区</td>
+<td>~15MB</td>
+<td>注意力矩阵 + CNN 中间层</td>
+</tr>
+<tr class="even">
+<td>解码器 + Joiner</td>
+<td>~5MB</td>
+<td>自回归解码状态</td>
+</tr>
+<tr class="odd">
+<td>ONNX Runtime 分摊</td>
+<td>~12MB</td>
+<td>线程池、Arena 分配器（与 ASR 共享）</td>
+</tr>
+<tr class="even">
+<td><strong>KWS 独占</strong></td>
+<td><strong>~25MB</strong></td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td><strong>KWS + ONNX RT 基础</strong></td>
+<td><strong>~45MB</strong></td>
+<td>always-on 休眠态</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ASR</strong>（sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20）：</p>
+<table>
+<thead>
+<tr class="header">
+<th>项目</th>
+<th>大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>模型文件（INT8）</td>
+<td>~282MB</td>
+<td>encoder + decoder + joiner .onnx</td>
+</tr>
+<tr class="even">
+<td>权重张量</td>
+<td>~282MB</td>
+<td>INT8 量化，与 ONNX RT 内部对齐</td>
+</tr>
+<tr class="odd">
+<td>编码器前向缓冲区</td>
+<td>~80-120MB</td>
+<td>流式 chunk（100ms），带上下文缓存</td>
+</tr>
+<tr class="even">
+<td>解码器 + Joiner</td>
+<td>~20-30MB</td>
+<td>波束搜索 / 贪婪解码状态</td>
+</tr>
+<tr class="odd">
+<td>CTC/RNNT 格</td>
+<td>~15MB</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><strong>ASR 总计</strong></td>
+<td><strong>~380-430MB</strong></td>
+<td>转录完成后释放</td>
+</tr>
+</tbody>
+</table>
+<p><strong>LLM</strong>（Qwen3.5-2B-MNN）：</p>
+<table>
+<thead>
+<tr class="header">
+<th>项目</th>
+<th>大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>模型文件</td>
+<td>~1.2GB</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td>权重张量</td>
+<td>~1.2GB</td>
+<td>MNN Interpreter 加载</td>
+</tr>
+<tr class="odd">
+<td>KV Cache（2048 tokens）</td>
+<td>~512MB</td>
+<td>按上下文长度增长</td>
+</tr>
+<tr class="even">
+<td>MNN Runtime</td>
+<td>~20MB</td>
+<td>libMNN.so + libmnn_llm.so</td>
+</tr>
+<tr class="odd">
+<td><strong>LLM 总计</strong></td>
+<td><strong>~1.8GB</strong></td>
+<td>推理完成后释放</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FaceDetect</strong>（NCNN 路径）：</p>
+<table>
+<thead>
+<tr class="header">
+<th>项目</th>
+<th>大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>模型文件</td>
+<td>~21MB</td>
+<td>Det10G + 2D106（NCNN 格式）</td>
+</tr>
+<tr class="even">
+<td>运行时</td>
+<td>~50MB</td>
+<td>CNN 中间激活 + 特征点缓存</td>
+</tr>
+<tr class="odd">
+<td><strong>FaceDetect 总计</strong></td>
+<td><strong>~70MB</strong></td>
+<td>相机页常驻</td>
+</tr>
+</tbody>
+</table>
+<h4 id="各阶段内存账本">各阶段内存账本</h4>
+<table>
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 6%" />
+<col style="width: 6%" />
+<col style="width: 6%" />
+<col style="width: 15%" />
+<col style="width: 11%" />
+<col style="width: 7%" />
+<col style="width: 20%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>KWS</th>
+<th>ASR</th>
+<th>LLM</th>
+<th>FaceDetect</th>
+<th>ONNX RT</th>
+<th>系统</th>
+<th><strong>Native 总计</strong></th>
+<th><strong>进程总计</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>① 休眠态</td>
+<td>25MB</td>
+<td>—</td>
+<td>—</td>
+<td>70MB</td>
+<td>35MB</td>
+<td>700MB</td>
+<td><strong>830MB</strong></td>
+<td>~1.5GB</td>
+</tr>
+<tr class="even">
+<td>② ASR 转录</td>
+<td>25MB(PAUSED)</td>
+<td>400MB</td>
+<td>—</td>
+<td>70MB</td>
+<td>35MB</td>
+<td>700MB</td>
+<td><strong>1.23GB</strong></td>
+<td>~1.9GB</td>
+</tr>
+<tr class="odd">
+<td>③ LLM 推理</td>
+<td>25MB(PAUSED)</td>
+<td>—</td>
+<td>1.8GB</td>
+<td>70MB</td>
+<td>35MB</td>
+<td>700MB</td>
+<td><strong>2.63GB</strong></td>
+<td>~3.3GB</td>
+</tr>
+<tr class="even">
+<td><strong>④ ⚠️ ASR+LLM</strong></td>
+<td><strong>25MB</strong></td>
+<td><strong>400MB</strong></td>
+<td><strong>1.8GB</strong></td>
+<td><strong>70MB</strong></td>
+<td><strong>35MB</strong></td>
+<td><strong>700MB</strong></td>
+<td><strong>3.03GB</strong></td>
+<td><strong>~3.7GB</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>进程总计 = Native 总计 + Java Heap (~200MB) + Graphics (~300-500MB for GL/CameraX)</p>
+</blockquote>
+<h4 id="设备分级评估">设备分级评估</h4>
+<table>
+<thead>
+<tr class="header">
+<th>设备</th>
+<th>RAM</th>
+<th>进程上限*</th>
+<th>休眠态</th>
+<th>ASR</th>
+<th>LLM</th>
+<th>ASR+LLM</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>低端 (4GB)</td>
+<td>4GB</td>
+<td>~1.5-2GB</td>
+<td>✅</td>
+<td>⚠️ 临界</td>
+<td>❌ OOM</td>
+<td>❌ OOM</td>
+</tr>
+<tr class="even">
+<td>中端 (6GB)</td>
+<td>6GB</td>
+<td>~2-2.5GB</td>
+<td>✅</td>
+<td>✅</td>
+<td>⚠️ 临界</td>
+<td>❌ OOM</td>
+</tr>
+<tr class="odd">
+<td>中高端 (8GB)</td>
+<td>8GB</td>
+<td>~3-3.5GB</td>
+<td>✅</td>
+<td>✅</td>
+<td>⚠️ 临界</td>
+<td>⚠️ 临界</td>
+</tr>
+<tr class="even">
+<td>高端 (12GB+)</td>
+<td>12GB</td>
+<td>~4-5GB</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>* Android 进程上限取决于厂商 ROM 配置和系统版本，并非固定值。上表为典型估算。</p>
+</blockquote>
+<h3 id="内存安全策略">4.5 内存安全策略</h3>
+<h4 id="设备分级策略">设备分级策略</h4>
+<div class="sourceCode" id="cb18"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="kw">class</span> DeviceTier <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    LOW<span class="op">,</span>      <span class="co">// &lt; 6GB RAM, LLM 使用远程推理, ASR 可能触发警告</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    MID<span class="op">,</span>      <span class="co">// 6-8GB, LLM 可用但监控 Native Heap, ASR 安全</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    HIGH<span class="op">,</span>     <span class="co">// &gt;= 8GB, 所有模型本地运行</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getDeviceTier</span><span class="op">():</span> <span class="dt">DeviceTier</span> <span class="op">{</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">totalRam</span> <span class="op">=</span> getTotalRamMb<span class="op">()</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="cf">when</span> <span class="op">{</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        totalRam <span class="op">&lt;</span> <span class="dv">6000</span> <span class="op">-&gt;</span> DeviceTier<span class="op">.</span>LOW</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        totalRam <span class="op">&lt;</span> <span class="dv">8000</span> <span class="op">-&gt;</span> DeviceTier<span class="op">.</span>MID</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> <span class="op">-&gt;</span> DeviceTier<span class="op">.</span>HIGH</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="llm-加载前检查">LLM 加载前检查</h4>
+<div class="sourceCode" id="cb19"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">canLoadLlm</span><span class="op">():</span> <span class="dt">Boolean</span> <span class="op">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">currentNativeHeap</span> <span class="op">=</span> Debug<span class="op">.</span>getNativeHeapAllocatedSize<span class="op">()</span> <span class="op">/</span> <span class="dv">1048576L</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">llmEstimatedMb</span> <span class="op">=</span> <span class="dv">1800L</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">availableMb</span> <span class="op">=</span> getAvailableNativeMemoryMb<span class="op">()</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>deviceTier<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>        DeviceTier<span class="op">.</span>LOW <span class="op">-&gt;</span> <span class="kw">false</span>  <span class="co">// 低端设备不使用本地 LLM</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        DeviceTier<span class="op">.</span>MID <span class="op">-&gt;</span> availableMb <span class="op">&gt;</span> llmEstimatedMb <span class="op">+</span> <span class="dv">200L</span>  <span class="co">// 留 200MB 缓冲</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>        DeviceTier<span class="op">.</span>HIGH <span class="op">-&gt;</span> <span class="kw">true</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="三级释放策略简化版">三级释放策略（简化版）</h4>
+<p>相比当前 <code>MnnResourceManager.ReleaseLevel(SOFT/SESSION/FULL)</code> 的复杂三级体系，解耦后简化为：</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>层级</th>
+<th>操作</th>
+<th>适用对象</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>TRIM</strong></td>
+<td>清 KV Cache / 停止流式 / 释放 Intermediate Tensors</td>
+<td>LLM / ASR</td>
+<td>立即</td>
+</tr>
+<tr class="even">
+<td><strong>UNLOAD</strong></td>
+<td>释放模型权重 + 销毁 Interpreter/Session</td>
+<td>LLM / ASR / KWS</td>
+<td>立即</td>
+</tr>
+</tbody>
+</table>
+<p>不再需要 “SESSION” 中间层级，因为不存在跨子系统的共享状态。</p>
+<h4 id="后台行为">后台行为</h4>
+<div class="sourceCode" id="cb20"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// App 后台 30s: TRIM 所有活跃模型</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// App 后台 60s: UNLOAD 所有模型（释放 KWS，停止 always-on）</span></span></code></pre></div>
+<h3 id="迁移实施计划">4.6 迁移实施计划</h3>
+<h4 id="改动范围">改动范围</h4>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>模块</th>
+<th>文件</th>
+<th>改动类型</th>
+<th>估时</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>runtime-core</strong></td>
+<td><code>SherpaMnnAsrEngine.kt</code> → <code>SherpaOnnxAsrEngine.kt</code></td>
+<td>重写（包名+模型格式）</td>
+<td>2h</td>
+</tr>
+<tr class="even">
+<td><strong>runtime-core</strong></td>
+<td>新增 <code>KeywordSpotterEngine.kt</code></td>
+<td>新建</td>
+<td>1.5h</td>
+</tr>
+<tr class="odd">
+<td><strong>runtime-core</strong></td>
+<td><code>MnnResourceManager.kt</code> → <code>ModelResourceCoordinator.kt</code></td>
+<td>简化</td>
+<td>1h</td>
+</tr>
+<tr class="even">
+<td><strong>runtime-core</strong></td>
+<td>删除 <code>MnnGlobalReleaseLock</code></td>
+<td>删除</td>
+<td>0.5h</td>
+</tr>
+<tr class="odd">
+<td><strong>app</strong></td>
+<td><code>WakeWordEngine.kt</code></td>
+<td>重写（KWS 集成）</td>
+<td>2h</td>
+</tr>
+<tr class="even">
+<td><strong>app</strong></td>
+<td><code>VoiceCommandCoordinator.kt</code></td>
+<td>适配</td>
+<td>1h</td>
+</tr>
+<tr class="odd">
+<td><strong>app</strong></td>
+<td><code>PushToTalkEngine.kt</code></td>
+<td>适配</td>
+<td>0.5h</td>
+</tr>
+<tr class="even">
+<td><strong>build</strong></td>
+<td><code>settings.gradle.kts</code> / <code>app/build.gradle.kts</code></td>
+<td>切换 AAR 依赖</td>
+<td>0.5h</td>
+</tr>
+<tr class="odd">
+<td><strong>数据</strong></td>
+<td><code>llm_models.json</code></td>
+<td>新增 KWS 模型 + 更新 ASR 模型源</td>
+<td>0.5h</td>
+</tr>
+<tr class="even">
+<td><strong>下载</strong></td>
+<td><code>LlmModelDownloadManager.kt</code></td>
+<td>新增 KWS 模型类型</td>
+<td>1h</td>
+</tr>
+<tr class="odd">
+<td><strong>测试</strong></td>
+<td>新增 <code>KeywordSpotterEngineTest.kt</code></td>
+<td>单元测试</td>
+<td>1.5h</td>
+</tr>
+<tr class="even">
+<td><strong>测试</strong></td>
+<td>更新 <code>WakeWordEngineTest.kt</code></td>
+<td>适配</td>
+<td>1h</td>
+</tr>
+</tbody>
+</table>
+<p><strong>总计</strong>: ~13 小时</p>
+<h4 id="实施顺序">实施顺序</h4>
+<pre><code>Phase 1: 基础迁移（2天）          Phase 2: KWS 集成（1天）        Phase 3: 解耦优化（1天）
+┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+│ 1. 添加 AAR 依赖      │    │ 5. 实现 KWS 引擎       │    │ 8. 简化资源管理器     │
+│ 2. 更新模型配置        │    │ 6. 重写 WakeWordEngine │    │ 9. 删除 MnnReleaseLock│
+│ 3. 重写 ASR 引擎       │    │ 7. KWS 单元测试        │    │ 10. 集成测试          │
+│ 4. 下载 ONNX ASR 模型  │    │                      │    │ 11. 全链路验证        │
+└──────────────────────┘    └──────────────────────┘    └──────────────────────┘
+         ↓                          ↓                          ↓
+    ASR 功能持平              唤醒词体验质变               代码质量提升</code></pre>
+<h3 id="模型配置">4.7 模型配置</h3>
+<h4 id="更新-llm_models.json">更新 <code>llm_models.json</code></h4>
+<div class="sourceCode" id="cb22"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;sherpa-onnx-zipformer-zh-en&quot;</span><span class="fu">,</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Sherpa-ONNX Zipformer 中英双语&quot;</span><span class="fu">,</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;ONNX Runtime 流式语音识别模型，支持中文+英文，端侧实时推理&quot;</span><span class="fu">,</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;ASR&quot;</span><span class="fu">,</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">295334441</span><span class="fu">,</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sources&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;ModelScope&quot;</span><span class="fu">:</span> <span class="st">&quot;csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20&quot;</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;files&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;encoder-epoch-99-avg-1.int8.onnx&quot;</span><span class="ot">,</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;decoder-epoch-99-avg-1.int8.onnx&quot;</span><span class="ot">,</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;joiner-epoch-99-avg-1.int8.onnx&quot;</span><span class="ot">,</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;tokens.txt&quot;</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;tags&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;ASR&quot;</span><span class="ot">,</span> <span class="st">&quot;speech&quot;</span><span class="ot">,</span> <span class="st">&quot;chinese&quot;</span><span class="ot">,</span> <span class="st">&quot;english&quot;</span><span class="ot">]</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;sherpa-onnx-kws-zipformer-zh&quot;</span><span class="fu">,</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Sherpa-ONNX KWS Zipformer 中文唤醒词&quot;</span><span class="fu">,</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;3.3M 参数关键词检测模型，支持自定义唤醒词，适合 always-on&quot;</span><span class="fu">,</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;KWS&quot;</span><span class="fu">,</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="dv">14000000</span><span class="fu">,</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sources&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;ModelScope&quot;</span><span class="fu">:</span> <span class="st">&quot;csukuangfj/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01&quot;</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;files&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;encoder-epoch-12-avg-2.int8.onnx&quot;</span><span class="ot">,</span></span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;decoder-epoch-12-avg-2.int8.onnx&quot;</span><span class="ot">,</span></span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;joiner-epoch-12-avg-2.int8.onnx&quot;</span><span class="ot">,</span></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;tokens.txt&quot;</span><span class="ot">,</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;keywords.txt&quot;</span></span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;tags&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;KWS&quot;</span><span class="ot">,</span> <span class="st">&quot;keyword&quot;</span><span class="ot">,</span> <span class="st">&quot;wake&quot;</span><span class="ot">,</span> <span class="st">&quot;chinese&quot;</span><span class="ot">]</span></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
+<h4 id="新增-keywords.txt">新增 <code>keywords.txt</code></h4>
+<pre><code>小觅
+小蜜
+小秘
+小米
+小咪</code></pre>
+<h4 id="aar-依赖">AAR 依赖</h4>
+<div class="sourceCode" id="cb24"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// app/build.gradle.kts</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 替换:</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// implementation(files(&quot;libs/libsherpa-mnn-jni.so&quot;))</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 为:</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    implementation<span class="op">(</span><span class="st">&quot;com.k2fsa:sherpa-onnx:1.13.2&quot;</span><span class="op">)</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="配置选项">4.8 配置选项</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>keywordsScore</code></td>
+<td>1.5f</td>
+<td>置信度阈值（1.0-2.0）</td>
+</tr>
+<tr class="even">
+<td><code>keywordsThreshold</code></td>
+<td>0.5f</td>
+<td>识别概率阈值（0.0-1.0）</td>
+</tr>
+<tr class="odd">
+<td><code>WAKE_COOLDOWN_MS</code></td>
+<td>1200L</td>
+<td>冷却期（防重复触发）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="常见故障排查">4.9 常见故障排查</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>KWS 引擎不可用</td>
+<td>模型文件缺失</td>
+<td>检查 <code>/data/data/com.mamba.picme/llm/sherpa-onnx-kws/</code></td>
+</tr>
+<tr class="even">
+<td>无法检测到唤醒词</td>
+<td>阈值过高</td>
+<td>降低 <code>keywordsThreshold</code> (如 0.3)</td>
+</tr>
+<tr class="odd">
+<td>误触发频繁</td>
+<td>阈值过低</td>
+<td>提高 <code>keywordsThreshold</code> (如 0.7)</td>
+</tr>
+<tr class="even">
+<td>冷却期内被跳过</td>
+<td>正常防重复</td>
+<td>预期行为，非故障</td>
+</tr>
+</tbody>
+</table>
+<h3 id="风险评估">4.10 风险评估</h3>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解措施</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ONNX ASR 模型精度与 MNN 不一致</td>
+<td>中</td>
+<td>高</td>
+<td>Phase 1 对比测试转录质量</td>
+</tr>
+<tr class="even">
+<td>ONNX Runtime 在低端设备崩溃</td>
+<td>低</td>
+<td>高</td>
+<td>设备分级 + 回退到 Android System ASR</td>
+</tr>
+<tr class="odd">
+<td>KWS 误触发率高于预期</td>
+<td>中</td>
+<td>中</td>
+<td>可调关键词分数 + 冷却期 + VAD 辅助</td>
+</tr>
+<tr class="even">
+<td>低端设备 LLM OOM</td>
+<td>高</td>
+<td>中</td>
+<td>设备分级：低端用远程推理</td>
+</tr>
+<tr class="odd">
+<td>AAR 54MB 导致 APK 过大</td>
+<td>中</td>
+<td>低</td>
+<td>AAB 按架构拆分的 .so 在实际安装中只包含 arm64</td>
+</tr>
+</tbody>
+</table>
+<h3 id="验收标准">4.11 验收标准</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />KWS always-on 在休眠态常驻 &lt; 45MB Native Heap</label></li>
+<li><label><input type="checkbox" />KWS 唤醒延迟 &lt; 100ms（从用户说话到检测到关键词）</label></li>
+<li><label><input type="checkbox" />KWS 误触发率 &lt; 1次/小时（正常环境）</label></li>
+<li><label><input type="checkbox" />ASR 转录质量不低于当前 MNN 版本（对比测试 ≥ 95% 字符准确率）</label></li>
+<li><label><input type="checkbox" />LLM 可以完全卸载（Native Heap 回落到休眠态水平）</label></li>
+<li><label><input type="checkbox" />多次 KWS→ASR→LLM 循环无内存泄漏（Native Heap 不持续增长）</label></li>
+<li><label><input type="checkbox" />低端设备（4GB）不触发 OOM（KWS + 远程 LLM）</label></li>
+<li><label><input type="checkbox" /><code>MnnGlobalReleaseLock</code> 完全删除，无残留引用</label></li>
+<li><label><input type="checkbox" />人脸检测（NCNN）不受语音栈切换影响</label></li>
+</ul>
+<hr />
+<h2 id="相关文件">5. 相关文件</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>app/src/main/java/com/mamba/picme/features/camera/voice/WakeWordEngine.kt</code></td>
+<td>当前唤醒词引擎</td>
+</tr>
+<tr class="even">
+<td><code>app/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt</code></td>
+<td>语音命令协调器</td>
+</tr>
+<tr class="odd">
+<td><code>app/src/main/java/com/mamba/picme/features/camera/voice/PushToTalkEngine.kt</code></td>
+<td>按住说话模式</td>
+</tr>
+<tr class="even">
+<td><code>runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/KeywordSpotterEngine.kt</code></td>
+<td>KWS 引擎（Phase 2）</td>
+</tr>
+<tr class="odd">
+<td><code>runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt</code></td>
+<td>ONNX ASR 引擎（Phase 2）</td>
+</tr>
+<tr class="even">
+<td><code>docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md</code></td>
+<td>MNN-LLM 运维与资源管理</td>
+</tr>
+<tr class="odd">
+<td><code>docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md</code></td>
+<td>相机预览技术规范</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="附录asr-language-model-说明">6. 附录：ASR Language Model 说明</h2>
+<p>本附录原载于 <code>ASR_LANGUAGE_MODEL_EXPLANATION.md</code>，说明 PoLang Phase 1 Sherpa-MNN ASR 中 Language Model（LM）文件的作用、当前部署状态及取舍依据。随着 Phase 2 迁移至 Sherpa-ONNX，LM 的概念仍适用于理解 ASR 解码行为，但具体文件格式与配置路径可能发生变化。</p>
+<h3 id="什么是-lm-文件">6.1 什么是 LM 文件</h3>
+<p><strong>LM = Language Model（语言模型）</strong></p>
+<p>在语音识别（ASR）流水线中，LM 负责根据<strong>语言规律</strong>修正声学模型的输出，提升识别准确率。</p>
+<h4 id="asr-流水线">6.1.1 ASR 流水线</h4>
+<pre><code>音频输入
+    │
+    ▼
+┌─────────────────┐
+│  声学模型 (AM)   │  ← encoder.mnn + decoder.mnn + joiner.mnn
+│  Acoustic Model │     将音频波形转为音素概率分布
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  语言模型 (LM)   │  ← with-state-epoch-*.mnn（可选）
+│  Language Model │     根据语法/语义规律选择最可能的文本
+└────────┬────────┘
+         │
+         ▼
+      文本输出</code></pre>
+<h4 id="lm-的作用举例">6.1.2 LM 的作用举例</h4>
+<table>
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 41%" />
+<col style="width: 47%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>场景</th>
+<th>无 LM（纯声学模型）</th>
+<th>有 LM（声学+语言模型）</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>用户说”我想拍照”</td>
+<td>“我象拍照”（同音错误）</td>
+<td>“我想拍照”（语义正确）</td>
+</tr>
+<tr class="even">
+<td>用户说”切换滤镜”</td>
+<td>“切花滤镜”（音近错误）</td>
+<td>“切换滤镜”（语义正确）</td>
+</tr>
+<tr class="odd">
+<td>用户说”去相册”</td>
+<td>“去相册”（正确，但无上下文）</td>
+<td>“去相册”（结合上下文更确定）</td>
+</tr>
+</tbody>
+</table>
+<p>LM 的核心价值：<strong>将声学相似的候选词，按语言规律排序，选择最合理的文本</strong>。</p>
+<h3 id="sherpa-mnn-中的-lm-文件">6.2 Sherpa-MNN 中的 LM 文件</h3>
+<h4 id="文件命名">6.2.1 文件命名</h4>
+<p>Sherpa-MNN 的 LM 文件通常命名为：</p>
+<pre><code>with-state-epoch-{N}-avg-{M}.int8.mnn</code></pre>
+<p>例如：</p>
+<pre><code>with-state-epoch-99-avg-1.int8.mnn</code></pre>
+<h4 id="当前部署状态">6.2.2 当前部署状态</h4>
+<p>PoLang 当前部署的 Sherpa-MNN 模型包<strong>不包含 LM 文件</strong>。模型目录中只有：</p>
+<pre><code>llm_models/sherpa-mnn-zipformer-zh-en/
+├── encoder-epoch-99-avg-1.int8.mnn   ← 声学模型：编码器
+├── decoder-epoch-99-avg-1.int8.mnn   ← 声学模型：解码器
+├── joiner-epoch-99-avg-1.int8.mnn    ← 声学模型：联合器
+└── tokens.txt                        ← 词表映射</code></pre>
+<p><strong>没有</strong>：<code>with-state-epoch-99-avg-1.int8.mnn</code></p>
+<h4 id="配置加载逻辑">6.2.3 配置加载逻辑</h4>
+<p><code>AsrConfigManager.getLmConfigFromDirectory()</code> 的加载顺序：</p>
+<ol type="1">
+<li>读取 <code>config.json</code> 中的 <code>lm</code> 字段（如果存在）</li>
+<li>如果不存在，调用 <code>getDefaultLmConfig()</code></li>
+<li><code>getDefaultLmConfig()</code> 检查模型目录名是否包含 <code>zh</code>/<code>bilingual</code>/<code>chinese</code></li>
+<li>如果是中文模型，尝试查找 <code>with-state-epoch-99-avg-1.int8.mnn</code></li>
+<li><strong>文件不存在 → 静默使用空 LM 配置</strong></li>
+</ol>
+<div class="sourceCode" id="cb29"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 当前行为：空 LM 配置</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>OnlineLMConfig<span class="op">()</span>  <span class="co">// model=&quot;&quot;, scale=0.0f</span></span></code></pre></div>
+<h3 id="有-lm-vs-无-lm-的差异">6.3 有 LM vs 无 LM 的差异</h3>
+<table>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>无 LM</th>
+<th>有 LM</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>识别准确率</strong></td>
+<td>中等，同音字易错</td>
+<td>较高，语义修正能力强</td>
+</tr>
+<tr class="even">
+<td><strong>内存占用</strong></td>
+<td>仅 AM（~100-200MB）</td>
+<td>AM + LM（~200-400MB）</td>
+</tr>
+<tr class="odd">
+<td><strong>推理延迟</strong></td>
+<td>较快</td>
+<td>略慢（需 LM 解码）</td>
+</tr>
+<tr class="even">
+<td><strong>模型包大小</strong></td>
+<td>较小</td>
+<td>较大（多一个 LM 文件）</td>
+</tr>
+<tr class="odd">
+<td><strong>离线能力</strong></td>
+<td>完全离线</td>
+<td>完全离线</td>
+</tr>
+</tbody>
+</table>
+<h3 id="是否需要-lm">6.4 是否需要 LM</h3>
+<h4 id="当前决策不部署-lm">6.4.1 当前决策：不部署 LM</h4>
+<p>原因： 1. <strong>模型包体积</strong>：LM 文件约 100-200MB，增加下载负担 2. <strong>当前准确率</strong>：纯 AM 对相机场景短指令（“拍照”、“切换滤镜”）已足够 3. <strong>内存预算</strong>：相机页本身占用大，ASR 应尽量轻量</p>
+<h4 id="未来可优化">6.4.2 未来可优化</h4>
+<p>如果用户反馈语音识别错误率高，可考虑： 1. 下载带 LM 的完整模型包 2. 在 <code>config.json</code> 中配置 <code>lm</code> 字段 3. <code>AsrConfigManager</code> 会自动加载</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;modelType&quot;</span><span class="fu">:</span> <span class="st">&quot;zipformer&quot;</span><span class="fu">,</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transducer&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;encoder&quot;</span><span class="fu">:</span> <span class="st">&quot;encoder-epoch-99-avg-1.int8.mnn&quot;</span><span class="fu">,</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;decoder&quot;</span><span class="fu">:</span> <span class="st">&quot;decoder-epoch-99-avg-1.int8.mnn&quot;</span><span class="fu">,</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;joiner&quot;</span><span class="fu">:</span> <span class="st">&quot;joiner-epoch-99-avg-1.int8.mnn&quot;</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tokens&quot;</span><span class="fu">:</span> <span class="st">&quot;tokens.txt&quot;</span><span class="fu">,</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lm&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;model&quot;</span><span class="fu">:</span> <span class="st">&quot;with-state-epoch-99-avg-1.int8.mnn&quot;</span><span class="fu">,</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;scale&quot;</span><span class="fu">:</span> <span class="fl">0.5</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="相关文件-1">6.5 相关文件</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>app/src/main/java/com/k2fsa/sherpa/mnn/AsrModelConfig.kt</code></td>
+<td>LM 配置加载逻辑</td>
+</tr>
+<tr class="even">
+<td><code>app/src/main/java/com/picme/features/camera/voice/SherpaMnnAsrEngine.kt</code></td>
+<td>ASR 引擎实现</td>
+</tr>
+</tbody>
+</table>
+<h3 id="参考">6.6 参考</h3>
+<ul>
+<li>Sherpa-ONNX 文档：https://k2-fsa.github.io/sherpa/onnx/</li>
+<li>MNN 模型格式：https://www.yuque.com/mnn/cn/model_convert</li>
+</ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

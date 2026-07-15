@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IM 远程控制技术规格 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item active" href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">03 Technical Specs</a> / <span>IM 远程控制技术规格</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-架构总览">1. 架构总览</a></li>
+      <li><a href="#2-飞书-sdk-集成">2. 飞书 SDK 集成</a></li>
+      <li><a href="#3-设备端组件设计">3. 设备端组件设计</a></li>
+      <li><a href="#4-设备绑定流程">4. 设备绑定流程</a></li>
+      <li><a href="#5-飞书-bot-设计">5. 飞书 Bot 设计</a></li>
+      <li><a href="#6-离线与异常处理">6. 离线与异常处理</a></li>
+      <li><a href="#7-隐私与安全">7. 隐私与安全</a></li>
+      <li><a href="#8-集成与扩展">8. 集成与扩展</a></li>
+      <li><a href="#9-任务拆分-agent-task">9. 任务拆分 [agent-task]</a></li>
+      <li><a href="#10-验收标准-ac">10. 验收标准 (AC)</a></li>
+      <li><a href="#11-与-apkclaw-方案对比">11. 与 ApkClaw 方案对比</a></li>
+      <li><a href="#12-远程推理与本地推理协议隔离">12. 远程推理与本地推理协议隔离</a></li>
+      <li><a href="#13-相关文档">13. 相关文档</a></li>
+      <li><a href="#13-react-agent-工具调用实现指引">13. ReAct Agent 工具调用实现指引</a></li>
+      </ul>
+    </div>
+<h1 id="im-远程控制技术规格">IM 远程控制技术规格</h1>
+<blockquote>
+<p><strong>版本</strong>: 1.0<br />
+<strong>状态</strong>: 实验线 / 参考文档<br />
+<strong>最后更新</strong>: 2026-07-06<br />
+<strong>维护者</strong>: RD Agent</p>
+</blockquote>
+<blockquote>
+<p><strong>新增产品线（2026-06-17）</strong>：通过飞书等 IM 即时通讯 + LLM 实现 App 远程控制的技术架构设计。</p>
+<p><strong>方案变更（2026-06-17）</strong>：从 SCF Relay Server 架构变更为设备端直连飞书 WebSocket，参考 <a href="https://github.com/apkclaw-team/ApkClaw">ApkClaw</a> 的 Feishu OAPI SDK 集成方案，去除云端中转服务，架构更简洁、零基础设施成本。</p>
+<p><strong>状态更新（2026-07-03）</strong>：IM 远程控制已从 P0 产品线降级为 P2 实验线。本文档中的实现细节仍可作为技术参考，但优先级与资源投入需以 <code>PRODUCT.md</code> 为准。</p>
+<p>产品定义见 <a href="../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2"><code>../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2</code></a></p>
+</blockquote>
+<hr />
+<h2 id="架构总览">1. 架构总览</h2>
+<h3 id="核心拓扑">1.1 核心拓扑</h3>
+<pre><code>┌──────────────┐     ┌──────────────────┐     ┌─────────────────────────┐
+│  用户(飞书)   │────→│  飞书开放平台     │←───→│  PoLang 设备端           │
+│  发送消息     │     │  (Bot网关)       │     │  (Android)              │
+└──────────────┘     └──────────────────┘     │                         │
+      ↑                                       │  ┌───────────────────┐  │
+      │                                       │  │ FeishuChannel     │  │
+      └───────────────────────────────────────┤  │ Handler           │  │
+             飞书 Bot API 回复结果              │  │ (WS+OAPI Client)  │  │
+                                               │  └────────┬──────────┘  │
+                                               │           │              │
+                                               │  ┌────────▼──────────┐  │
+                                               │  │ RemoteCommand     │  │
+                                               │  │ Dispatcher        │  │
+                                               │  │ (LLM+Capability)  │  │
+                                               │  └────────┬──────────┘  │
+                                               │           │              │
+                                               │  ┌────────▼──────────┐  │
+                                               │  │ CapabilityRegistry │  │
+                                               │  └───────────────────┘  │
+                                               └─────────────────────────┘</code></pre>
+<h3 id="关键变化去除-scf-relay-server">1.2 关键变化：去除 SCF Relay Server</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>之前（SCF 方案）</th>
+<th>之后（直连方案）</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>飞书 Webhook → SCF → 设备 WebSocket</td>
+<td>设备直连飞书 WebSocket（出站连接）</td>
+</tr>
+<tr class="even">
+<td>图片经 SCF 临时存储中转</td>
+<td>设备直接上传到飞书 OAPI</td>
+</tr>
+<tr class="odd">
+<td>SCF 管理设备在线状态</td>
+<td>飞书 SDK 内置 WS 连接管理</td>
+</tr>
+<tr class="even">
+<td>需维护 SCF/Workers 云函数</td>
+<td>零云端基础设施</td>
+</tr>
+</tbody>
+</table>
+<h3 id="消息流转路径">1.3 消息流转路径</h3>
+<pre><code>用户 → 飞书消息 → 飞书开放平台 → WebSocket 推送 → PoLang 设备端
+    → FeishuChannelHandler → RemoteCommandDispatcher
+        → LLM 解析意图 → CapabilityRegistry.dispatch()
+        → 结果 → 飞书 OAPI HTTP 回复 → 用户</code></pre>
+<h3 id="组件职责">1.4 组件职责</h3>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 35%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>组件</th>
+<th>位置</th>
+<th>职责</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>FeishuChannelHandler</strong></td>
+<td>Android 端 (<code>domain/agent/remote/</code>)</td>
+<td>飞书 WebSocket 连接、消息接收/回复、图片上传</td>
+<td>飞书 OAPI SDK (<code>com.larksuite.oapi:oapi-sdk:2.5.3</code>)</td>
+</tr>
+<tr class="even">
+<td><strong>RemoteCommandDispatcher</strong></td>
+<td>Android 端 (<code>domain/agent/remote/</code>)</td>
+<td>命令解析、LLM 意图理解、Capability 分派</td>
+<td>Kotlin + 现有 LLM 链路</td>
+</tr>
+<tr class="odd">
+<td><strong>RemoteControlCapability</strong></td>
+<td>Android 端 (<code>domain/agent/capability/</code>)</td>
+<td>设备绑定状态管理、操作审计</td>
+<td>Kotlin + Capability 接口</td>
+</tr>
+<tr class="even">
+<td><strong>RemoteInferencePipeline</strong></td>
+<td>Android 端（复用现有）</td>
+<td>复杂意图的 LLM 解析</td>
+<td>现有远程推理链路</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="飞书-sdk-集成">2. 飞书 SDK 集成</h2>
+<h3 id="依赖引入">2.1 依赖引入</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// build.gradle.kts</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    implementation<span class="op">(</span><span class="st">&quot;com.larksuite.oapi:oapi-sdk:2.5.3&quot;</span><span class="op">)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">// packaging 配置（避免 META-INF 冲突）</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>packaging <span class="op">{</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    resources <span class="op">{</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        excludes <span class="op">+=</span> setOf<span class="op">(</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;META-INF/DEPENDENCIES&quot;</span><span class="op">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;META-INF/LICENSE&quot;</span><span class="op">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;META-INF/LICENSE.txt&quot;</span><span class="op">,</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;META-INF/NOTICE&quot;</span><span class="op">,</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;META-INF/NOTICE.txt&quot;</span><span class="op">,</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="feishuchannelhandler">2.2 FeishuChannelHandler</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FeishuChannelHandler<span class="op">(</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">scope</span><span class="op">:</span> <span class="dt">CoroutineScope</span><span class="op">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">appId</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">appSecret</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 飞书 OAPI HTTP 客户端（用于回复消息/上传图片）</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">apiClient</span><span class="op">:</span> com<span class="op">.</span>lark<span class="op">.</span>oapi<span class="op">.</span>Client<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 飞书 WebSocket 客户端（接收消息事件）</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">wsClient</span><span class="op">:</span> com<span class="op">.</span>lark<span class="op">.</span>oapi<span class="op">.</span>ws<span class="op">.</span>Client<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 事件分发器</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">eventHandler</span><span class="op">:</span> EventDispatcher <span class="kw">by</span> lazy <span class="op">{</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        EventDispatcher<span class="op">.</span>newBuilder<span class="op">(</span><span class="st">&quot;&quot;</span><span class="op">,</span> <span class="st">&quot;&quot;</span><span class="op">)</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>onP2MessageReceiveV1 <span class="op">{</span> event <span class="op">-&gt;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>                handleMessageEvent<span class="op">(</span>event<span class="op">)</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>build<span class="op">()</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">init</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        apiClient <span class="op">=</span> com<span class="op">.</span>lark<span class="op">.</span>oapi<span class="op">.</span>Client<span class="op">.</span>newBuilder<span class="op">(</span>appId<span class="op">,</span> appSecret<span class="op">).</span>build<span class="op">()</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        wsClient <span class="op">=</span> com<span class="op">.</span>lark<span class="op">.</span>oapi<span class="op">.</span>ws<span class="op">.</span>Client<span class="op">.</span>Builder<span class="op">(</span>appId<span class="op">,</span> appSecret<span class="op">)</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>eventHandler<span class="op">(</span>eventHandler<span class="op">)</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>build<span class="op">()</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        scope<span class="op">.</span>launch <span class="op">{</span> wsClient<span class="op">?.</span>start<span class="op">()</span> <span class="op">}</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 回复文本消息（经飞书 OAPI HTTP）</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">sendMessage</span><span class="op">(</span><span class="va">content</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">messageId</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        scope<span class="op">.</span>launch <span class="op">{</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>            apiClient<span class="op">?.</span>im<span class="op">()?.</span>message<span class="op">()?.</span>reply<span class="op">(</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>                ReplyMessageReq<span class="op">.</span>newBuilder<span class="op">()</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span>messageId<span class="op">(</span>messageId<span class="op">)</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span>replyMessageReqBody<span class="op">(</span><span class="co">/* ... */</span><span class="op">)</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span>build<span class="op">()</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 回复图片（直接上传到飞书 OAPI）</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">sendImage</span><span class="op">(</span><span class="va">imageBytes</span><span class="op">:</span> <span class="dt">ByteArray</span><span class="op">,</span> <span class="va">messageId</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span> <span class="co">/* ... */</span> <span class="op">}</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">disconnect</span><span class="op">()</span> <span class="op">{</span> wsClient<span class="op">?.</span>let <span class="op">{</span> <span class="co">/* 关闭连接 */</span> <span class="op">}</span> <span class="op">}</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>机制说明</strong>： - <strong>WebSocket 接收</strong>：设备通过飞书 SDK 的 <code>ws.Client</code> 与飞书平台建立长连接，接收 <code>P2MessageReceiveV1</code> 事件 - <strong>OAPI HTTP 回复</strong>：通过飞书 REST API 回复消息、上传图片 - <strong>连接方向</strong>：出站连接（设备 → 飞书），无需公网 IP，不受 NAT 限制</p>
+<h3 id="飞书-bot-配置">2.3 飞书 Bot 配置</h3>
+<table>
+<colgroup>
+<col style="width: 53%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>配置项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>App ID / App Secret</strong></td>
+<td>飞书开放平台自建应用 -&gt; 凭证与基础信息</td>
+</tr>
+<tr class="even">
+<td><strong>事件订阅</strong></td>
+<td>无需配置 Webhook URL（使用 WebSocket 模式）</td>
+</tr>
+<tr class="odd">
+<td><strong>事件类型</strong></td>
+<td>订阅 <code>im.message.receive_v1</code></td>
+</tr>
+<tr class="even">
+<td><strong>Bot 权限</strong></td>
+<td><code>im:message</code>、<code>im:resource</code>（发送/接收消息、上传/下载图片）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="设备端组件设计">3. 设备端组件设计</h2>
+<h3 id="组件架构">3.1 组件架构</h3>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│                   Android 端                              │
+│                                                          │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │  FeishuChannelHandler                                │  │
+│  │  ├── ws.Client (飞书 WS, 接收消息事件)               │  │
+│  │  └── apiClient (飞书 OAPI HTTP, 回复/上传)           │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │                                  │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │  RemoteCommandDispatcher                             │  │
+│  │  (命令解析/LLM意图理解/分派到Capability)              │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │                                  │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │  CapabilityRegistry                                  │  │
+│  │  (GalleryCapability/EditorCapability/SystemCapability)│  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                          │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  RemoteControlCapability (设备绑定/状态管理)          │  │
+│  └──────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="remotecommanddispatcher">3.2 RemoteCommandDispatcher</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RemoteCommandDispatcher<span class="op">(</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">channelHandler</span><span class="op">:</span> <span class="dt">FeishuChannelHandler</span><span class="op">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">capabilityRegistry</span><span class="op">:</span> <span class="dt">CapabilityRegistry</span><span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">remoteOrchestrator</span><span class="op">:</span> <span class="dt">RemoteOrchestrator</span><span class="op">,</span>  <span class="co">// 使用 :agent-core OpenAiChatModel</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">     * 接收飞书消息并分派执行</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="fu">dispatch</span><span class="op">(</span><span class="va">message</span><span class="op">:</span> <span class="dt">FeishuMessage</span><span class="op">)</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">     * 执行流程：</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">     * 1. 解析消息意图（直接映射 / LLM 解析）</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">     * 2. 逐条调用 Capability 执行</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">     * 3. 收集结果 → 通过 FeishuChannelHandler 回复</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>命令解析策略</strong>：</p>
+<table>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 38%" />
+<col style="width: 23%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令类型</th>
+<th>解析方式</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>明确动作</strong></td>
+<td>直接映射</td>
+<td><code>action: "browse_recent"</code> → GalleryCapability</td>
+</tr>
+<tr class="even">
+<td><strong>自然语言</strong></td>
+<td>LLM 解析</td>
+<td><code>"帮我优化这张照片"</code> → LLM → <code>edit_image / ai_optimize</code></td>
+</tr>
+<tr class="odd">
+<td><strong>组合命令</strong></td>
+<td>LLM 分解</td>
+<td><code>"裁剪成1:1再调亮"</code> → LLM → <code>[crop(1:1), brightness(+20)]</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="remotecontrolcapability">3.3 RemoteControlCapability</h3>
+<p>与现有实现一致（见 <a href="../../app/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt">RemoteControlCapability.kt</a>），管理设备绑定状态、自动确认模式，不通过 AgentCommand 密封类分发。</p>
+<h3 id="图片回传流程">3.4 图片回传流程</h3>
+<pre><code>命令执行完成 → 生成结果图片 → 直接通过飞书 OAPI uploadImage()
+    → 获取 imageKey → ReplyMessage with msgType=&quot;image&quot; → 用户可见</code></pre>
+<p>无需经过任何云端中转，图片直接从设备上传到飞书平台。</p>
+<hr />
+<h2 id="设备绑定流程">4. 设备绑定流程</h2>
+<pre><code>1. App 内生成绑定码 → 在飞书 Bot 中输入绑定码（或扫码）
+2. FeishuChannelHandler 收到绑定消息 → RemoteControlCapability.updateBinding()
+3. RemoteControlCapability 记录绑定状态
+4. 通过飞书回复 &quot;设备 Xiaomi 15 Ultra 已绑定成功 ✅&quot;</code></pre>
+<p><strong>首次绑定的安全性</strong>： - 绑定码在 App 内生成，有效期内可配对 - 解绑操作需设备端确认（自动确认模式关闭时） - 支持远程解绑（双重确认）</p>
+<hr />
+<h2 id="飞书-bot-设计">5. 飞书 Bot 设计</h2>
+<h3 id="bot-能力">5.1 Bot 能力</h3>
+<table>
+<thead>
+<tr class="header">
+<th>能力</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>消息接收</strong></td>
+<td>通过 WebSocket 接收文本/图片消息</td>
+</tr>
+<tr class="even">
+<td><strong>消息发送</strong></td>
+<td>通过 OAPI HTTP 发送文本/图片/卡片消息</td>
+</tr>
+<tr class="odd">
+<td><strong>交互式卡片</strong></td>
+<td>按钮点击、下拉选择、滑块（卡片回调通过 WS 接收）</td>
+</tr>
+<tr class="even">
+<td><strong>文件上传</strong></td>
+<td>设备端直接上传图片到飞书（不走云端中转）</td>
+</tr>
+<tr class="odd">
+<td><strong>事件订阅</strong></td>
+<td>消息事件通过 WebSocket 实时推送</td>
+</tr>
+</tbody>
+</table>
+<h3 id="交互式卡片设计">5.2 交互式卡片设计</h3>
+<p>与之前方案一致（见飞书卡片设计部分），通过 OAPI 发送 <code>interactive</code> 消息卡片，回调事件经 WebSocket 返回设备处理。</p>
+<h3 id="命令确认流程">5.3 命令确认流程</h3>
+<pre><code>用户发送: &quot;删除模糊的照片&quot;
+    ↓ LLM 解析意图 → 需要确认
+    ↓ RemoteCommandDispatcher → 发送确认卡片
+用户点击确认 → 卡片回调经 WS 返回 → 执行删除 → 结果回复
+    ↓
+用户未操作 30s → 自动超时取消</code></pre>
+<p><strong>确认策略矩阵</strong>：</p>
+<table>
+<thead>
+<tr class="header">
+<th>操作类型</th>
+<th>确认要求</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>浏览/搜索</td>
+<td>不要求</td>
+<td>直接执行</td>
+</tr>
+<tr class="even">
+<td>图片编辑（非人像）</td>
+<td>不要求</td>
+<td>直接执行</td>
+</tr>
+<tr class="odd">
+<td>图片编辑（人像）</td>
+<td>确认</td>
+<td>发送交互式卡片</td>
+</tr>
+<tr class="even">
+<td>批量操作</td>
+<td>确认</td>
+<td>发送交互式卡片</td>
+</tr>
+<tr class="odd">
+<td>删除操作</td>
+<td>确认</td>
+<td>发送交互式卡片</td>
+</tr>
+<tr class="even">
+<td>设备解绑</td>
+<td>双重确认</td>
+<td>App 内确认 + 飞书确认</td>
+</tr>
+<tr class="odd">
+<td>系统设置修改</td>
+<td>确认</td>
+<td>发送交互式卡片</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="离线与异常处理">6. 离线与异常处理</h2>
+<h3 id="设备离线场景">6.1 设备离线场景</h3>
+<pre><code>用户发送命令 → 飞书平台 → WebSocket 推送
+    ↓ 设备在线？
+    ├── 是 → 立即执行
+    └── 否 → 飞书 WebSocket 连接断开
+        ↓
+    用户收到 &quot;设备离线，请稍后再试&quot;
+    ↓
+    设备上线后：飞书 SDK 自动重连 → 恢复可用</code></pre>
+<ul>
+<li>飞书 SDK 内置重连机制（指数退避）</li>
+<li>无离线命令队列（相比 SCF 方案，这是唯一的能力损失：设备离线期间的命令不会缓冲）</li>
+<li>可通过本地通知提醒用户打开 App</li>
+</ul>
+<h3 id="命令超时">6.2 命令超时</h3>
+<ul>
+<li>简单命令（浏览/搜索）：超时 15s</li>
+<li>编辑命令（单张）：超时 60s</li>
+<li>批量编辑命令：超时 5min + 每张加 30s</li>
+<li>超时后回复 “处理超时，请稍后重试”</li>
+</ul>
+<h3 id="图片大小限制">6.3 图片大小限制</h3>
+<table>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>限制</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>飞书接收</td>
+<td>20MB</td>
+<td>飞书平台限制</td>
+</tr>
+<tr class="even">
+<td>设备回复</td>
+<td>20MB</td>
+<td>设备端自动压缩（&gt; 10MB 压缩到 80% 质量）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="隐私与安全">7. 隐私与安全</h2>
+<h3 id="数据生命周期">7.1 数据生命周期</h3>
+<pre><code>图片 → 飞书平台 → 设备下载(经飞书) → 设备端处理 → 结果直接上传飞书
+                                                        ↓
+                                               飞书平台管理存储生命周期</code></pre>
+<ul>
+<li><strong>不再需要</strong>：额外的云端临时存储、24h TTL 清理逻辑</li>
+<li><strong>所有图片</strong>直接经飞书平台流转，不经过任何第三方服务器</li>
+<li>人脸数据强制设备端执行，不上传</li>
+</ul>
+<h3 id="安全红线">7.2 安全红线</h3>
+<table>
+<thead>
+<tr class="header">
+<th>红线</th>
+<th>实现方式</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>人脸数据不离开设备</strong></td>
+<td>人脸检测/美颜强制设备端执行</td>
+</tr>
+<tr class="even">
+<td><strong>传输加密</strong></td>
+<td>飞书平台全程 HTTPS + TLS</td>
+</tr>
+<tr class="odd">
+<td><strong>身份认证</strong></td>
+<td>App ID + App Secret，飞书平台标准鉴权</td>
+</tr>
+<tr class="even">
+<td><strong>设备授权</strong></td>
+<td>首次绑定需 App 内配对码确认</td>
+</tr>
+<tr class="odd">
+<td><strong>操作审计</strong></td>
+<td>所有远程命令记录本地日志</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="集成与扩展">8. 集成与扩展</h2>
+<h3 id="多-im-平台适配层规划中">8.1 多 IM 平台适配层（规划中）</h3>
+<pre><code>┌──────────────────────────────────────────┐
+│           IM Platform Adapter           │
+│  ├── FeishuAdapter (飞书) ✅ 首批       │
+│  ├── WecomAdapter (企业微信 - 规划中)    │
+│  └── DingtalkAdapter (钉钉 - 规划中)    │
+│                                          │
+│  统一接口：                                │
+│  interface ImPlatform {                  │
+│    fun connect(appId, appSecret)         │
+│    fun sendMessage(chatId, content)      │
+│    fun sendCard(chatId, card)            │
+│    fun uploadMedia(file)                 │
+│    fun disconnect()                      │
+│  }                                       │
+└──────────────────────────────────────────┘</code></pre>
+<h3 id="与现有远程推理链路的协同">8.2 与现有远程推理链路的协同</h3>
+<pre><code>飞书消息 → FeishuChannelHandler → RemoteCommandDispatcher
+    → LLM 解析意图（复用 :agent-core OpenAiChatModel）
+    → CapabilityRegistry.dispatch()
+    → 结果 → FeishuChannelHandler.sendMessage/sendImage</code></pre>
+<ul>
+<li>IM 远程的 LLM 调用与 App 内共享同一 <code>:agent-core OpenAiChatModel</code></li>
+<li>使用独立 System Prompt（IM 场景上下文不同）</li>
+<li>Capability 执行层完全复用</li>
+</ul>
+<hr />
+<h2 id="任务拆分-agent-task">9. 任务拆分 [agent-task]</h2>
+<h3 id="phase-1-飞书集成与基础能力-rd">Phase 1: 飞书集成与基础能力 (RD)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>agent-task:im-remote-001</code> 引入飞书 OAPI SDK 依赖，配置 packaging exclude</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-002</code> 实现 FeishuChannelHandler（WebSocket 连接 + OAPI 客户端）</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-003</code> 实现飞书消息接收与文本/图片回复</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-004</code> 实现 RemoteCommandDispatcher（命令接收/LLM解析/分派）</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-005</code> 实现设备绑定流程（配对码 + 状态管理）</label></li>
+</ul>
+<h3 id="phase-2-核心命令执行-rd">Phase 2: 核心命令执行 (RD)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>agent-task:im-remote-006</code> 实现远程相册浏览/搜索命令</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-007</code> 实现远程图片编辑命令（单张）</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-008</code> 实现结果图片直接上传飞书并回复</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-009</code> 实现远程相册管理命令（创建/移动/删除）</label></li>
+</ul>
+<h3 id="phase-3-进阶功能-rd">Phase 3: 进阶功能 (RD)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>agent-task:im-remote-010</code> 实现交互式卡片模板与确认流程</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-011</code> 实现多设备管理与@指定</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-012</code> 实现批量编辑命令</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-013</code> 实现操作审计日志</label></li>
+</ul>
+<h3 id="phase-4-集成与测试-qa">Phase 4: 集成与测试 (QA)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>agent-task:im-remote-014</code> 端到端测试：飞书消息 → 设备执行 → 结果回传</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-015</code> 性能基准：命令响应延迟、图片处理耗时</label></li>
+<li><label><input type="checkbox" /><code>agent-task:im-remote-016</code> 异常场景测试：设备离线、命令超时、网络断开</label></li>
+</ul>
+<hr />
+<h2 id="验收标准-ac">10. 验收标准 (AC)</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 40%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>验收项</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AC-IM-1</td>
+<td>飞书发送”最近有什么照片” → 返回设备相册结果卡片</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td>AC-IM-2</td>
+<td>飞书发送图片 + “帮我优化” → 设备端执行 AI 优化 → 返回处理后图片</td>
+<td>P0</td>
+</tr>
+<tr class="odd">
+<td>AC-IM-3</td>
+<td>设备离线时返回友好提示，不阻塞后续命令</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td>AC-IM-4</td>
+<td>飞书发送”黑白滤镜” → 设备端执行滤镜 → 返回效果图</td>
+<td>P1</td>
+</tr>
+<tr class="odd">
+<td>AC-IM-5</td>
+<td>多设备绑定后，支持@指定设备执行命令</td>
+<td>P1</td>
+</tr>
+<tr class="even">
+<td>AC-IM-6</td>
+<td>编辑参数交互式卡片支持增减调节</td>
+<td>P2</td>
+</tr>
+<tr class="odd">
+<td>AC-IM-7</td>
+<td>删除操作需用户确认后执行</td>
+<td>P1</td>
+</tr>
+<tr class="even">
+<td>AC-IM-8</td>
+<td>操作审计日志正确记录所有远程命令</td>
+<td>P2</td>
+</tr>
+<tr class="odd">
+<td>AC-IM-9</td>
+<td>飞书命令响应 &lt; 3s（含 LLM 推理 + 设备执行）</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td>AC-IM-10</td>
+<td>图片处理 &lt; 5s <span class="citation" data-cites="1080p">@1080p</span></td>
+<td>P1</td>
+</tr>
+<tr class="odd">
+<td>AC-IM-11</td>
+<td><strong>零云端基础设施</strong>：无需部署任何云函数/Relay Server</td>
+<td>P0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="与-apkclaw-方案对比">11. 与 ApkClaw 方案对比</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 33%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>ApkClaw</th>
+<th>PoLang 方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>消息接收</strong></td>
+<td>飞书 WS SDK</td>
+<td>飞书 WS SDK（相同）</td>
+</tr>
+<tr class="even">
+<td><strong>消息回复</strong></td>
+<td>飞书 OAPI HTTP</td>
+<td>飞书 OAPI HTTP（相同）</td>
+</tr>
+<tr class="odd">
+<td><strong>命令执行</strong></td>
+<td>AccessibilityService + ToolRegistry</td>
+<td><strong>Capability 系统</strong>（复用现有架构）</td>
+</tr>
+<tr class="even">
+<td><strong>LLM 集成</strong></td>
+<td>LangChain4j (OpenAI/Anthropic)</td>
+<td><strong>:agent-core OpenAiChatModel</strong>（复用现有链路）</td>
+</tr>
+<tr class="odd">
+<td><strong>目标</strong></td>
+<td>通用 Android 自动化</td>
+<td><strong>专注相册+图片编辑</strong>（核心能力更深）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>核心差异</strong>：PoLang 不需要 AccessibilityService 来做通用 UI 自动化。我们的 Capability 系统直接操作相册/编辑内核，稳定性和响应速度优于无障碍节点遍历。</p>
+<hr />
+<h2 id="远程推理与本地推理协议隔离">12. 远程推理与本地推理协议隔离</h2>
+<blockquote>
+<p><strong>核心设计原则（2026-06-18）</strong>：远程推理原生支持 OpenAI tool_calls 格式，与本地 LLM 的 method/params 格式完全隔离，不产生任何耦合。</p>
+</blockquote>
+<h3 id="协议分层">12.1 协议分层</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                     用户输入层                               │
+│         飞书消息 / 语音 / 本地语音唤醒                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┴─────────────────────┐
+        ▼                                           ▼
+┌───────────────┐                         ┌───────────────────┐
+│  远程推理链路  │                         │   本地推理链路     │
+│  (云端 LLM)   │                         │  (端侧 LLM)       │
+├───────────────┤                         ├───────────────────┤
+│ OpenAI        │                         │ 自定义 JSON 数组   │
+│ tool_calls    │                         │ method/params     │
+│ protocol      │                         │ protocol          │
+│               │                         │                   │
+│ ToolExecution │                         │ LocalCommand      │
+│ Request       │                         │ Parser            │
+│ (name +       │                         │ (method + params) │
+│ arguments)    │                         │                   │
+└───────┬───────┘                         └─────────┬─────────┘
+        │                                           │
+        ▼                                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│              ToolCallCommandParser                          │
+│         直接解析为 AgentCommand（共用命令模型）              │
+│              ↓ 与 LocalCommandParser 完全隔离                │
+├─────────────────────────────────────────────────────────────┤
+│              CapabilityRegistry.dispatch()                   │
+│                    统一执行层                                │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="关键隔离点">12.2 关键隔离点</h3>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>远程推理</th>
+<th>本地推理</th>
+<th>隔离方式</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>输入格式</strong></td>
+<td><code>{"tool_calls":[{"function":{"name":"...","arguments":"..."}}]}</code></td>
+<td><code>[{"method":"...","params":{}}]</code></td>
+<td>不同 Parser</td>
+</tr>
+<tr class="even">
+<td><strong>解析器</strong></td>
+<td><code>ToolCallCommandParser</code></td>
+<td><code>LocalCommandParser</code></td>
+<td>独立文件，无互相调用</td>
+</tr>
+<tr class="odd">
+<td><strong>命令模型</strong></td>
+<td><code>AgentCommand</code> (sealed class)</td>
+<td><code>AgentCommand</code> (sealed class)</td>
+<td>共用</td>
+</tr>
+<tr class="even">
+<td><strong>执行层</strong></td>
+<td><code>CapabilityRegistry.dispatch()</code></td>
+<td><code>CapabilityRegistry.dispatch()</code></td>
+<td>共用</td>
+</tr>
+<tr class="odd">
+<td><strong>Prompt 格式</strong></td>
+<td><code>name</code> + <code>arguments</code></td>
+<td><code>method</code> + <code>params</code></td>
+<td>不同 Builder</td>
+</tr>
+<tr class="even">
+<td><strong>LLM 输出</strong></td>
+<td>原生 function calling</td>
+<td>文本 JSON 数组</td>
+<td>不同协议</td>
+</tr>
+</tbody>
+</table>
+<h3 id="禁止的耦合模式">12.3 禁止的耦合模式</h3>
+<p>以下模式已被彻底移除，远程推理链路不再使用：</p>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 30%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>反模式</th>
+<th>说明</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>parseAgentCommand()</code></td>
+<td>将 method/params 转换为 AgentCommand</td>
+<td>已删除</td>
+</tr>
+<tr class="even">
+<td><code>mergeParamsIntoRoot()</code></td>
+<td>合并 params 到根对象</td>
+<td>已删除</td>
+</tr>
+<tr class="odd">
+<td>在 Prompt 中混合 <code>method</code>/<code>params</code></td>
+<td>L3 Plan 使用 <code>command</code> 字段</td>
+<td>已更新</td>
+</tr>
+<tr class="even">
+<td><code>CameraToolHelper</code> 调用 <code>LocalCommandParser</code></td>
+<td>直接构建 AgentCommand</td>
+<td>已重构</td>
+</tr>
+<tr class="odd">
+<td><code>parseToolCalls</code> 回退到 method/params</td>
+<td>直接使用 <code>ToolCallCommandParser</code></td>
+<td>已重构</td>
+</tr>
+</tbody>
+</table>
+<h3 id="实现文件">12.4 实现文件</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>职责</th>
+<th>协议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ToolCallCommandParser.kt</code></td>
+<td>远程 tool_calls 解析</td>
+<td><code>name</code> + <code>arguments</code> → <code>AgentCommand</code></td>
+</tr>
+<tr class="even">
+<td><code>LocalCommandParser.kt</code></td>
+<td>本地 method/params 解析</td>
+<td><code>method</code> + <code>params</code> → <code>AgentCommand</code></td>
+</tr>
+<tr class="odd">
+<td><code>RemoteOrchestrator.kt</code></td>
+<td>远程编排器</td>
+<td>调用 <code>ToolCallCommandParser</code></td>
+</tr>
+<tr class="even">
+<td><code>RemotePromptBuilder.kt</code></td>
+<td>远程 Prompt 构建</td>
+<td><code>name</code> + <code>arguments</code> 格式</td>
+</tr>
+<tr class="odd">
+<td><code>CameraToolHelper.kt</code></td>
+<td>相机命令辅助</td>
+<td>直接构建 <code>AgentCommand</code></td>
+</tr>
+<tr class="even">
+<td><code>InAppAgentConfig.kt</code></td>
+<td>本地 System Prompt</td>
+<td><code>method</code> + <code>params</code> 格式</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="相关文档">13. 相关文档</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文档</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>../../docs/01-PRODUCT/FEATURES.md#5-im-远程控制实验性融合入口---p2</code></td>
+<td>产品交互规范</td>
+</tr>
+<tr class="even">
+<td><code>../../PRODUCT.md</code></td>
+<td>产品路线图与里程碑</td>
+</tr>
+<tr class="odd">
+<td><code>../../docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></td>
+<td>Agent 架构详细设计</td>
+</tr>
+<tr class="even">
+<td><code>../../docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></td>
+<td>远程推理架构（LLM 复用层）</td>
+</tr>
+<tr class="odd">
+<td><code>../../app/.../domain/agent/remote/FeishuChannelHandler.kt</code></td>
+<td>飞书通道实现（待实现）</td>
+</tr>
+<tr class="even">
+<td><code>../../app/.../domain/agent/capability/RemoteControlCapability.kt</code></td>
+<td>远程控制管理 Capability</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>维护者</strong>：RD Agent <strong>最后更新</strong>：2026-06-19 <strong>方案变更</strong>：<del>SCF Relay Server</del> → 设备端直连飞书 WebSocket（参考 ApkClaw 方案） <strong>协议隔离</strong>：远程 tool_calls 与本地 method/params 已彻底解耦 <strong>DeepSeek 适配</strong>： - Prompt 移除具体 tool_calls JSON 示例，避免模型输出到 content 字段 - API 请求自动禁用 thinking 模式（DeepSeek V4 系列） - ToolSpec 自动添加 <code>additionalProperties: false</code> 以兼容 strict 模式 - 参考文档：https://api-docs.deepseek.com/zh-cn/guides/tool_calls <strong>状态</strong>：Phase 1 实现中 · ReAct Agent 工具调用已验证</p>
+</blockquote>
+<hr />
+<h2 id="react-agent-工具调用实现指引">13. ReAct Agent 工具调用实现指引</h2>
+<blockquote>
+<p><strong>来源</strong>：2026-06-18 飞书远程控制”打开相机”导航失败问题复盘</p>
+<p>本章节总结 ToolSpec 实现过程中的关键陷阱与最佳实践，供后续批量补充工具时参考。</p>
+</blockquote>
+<h3 id="问题复盘">13.1 问题复盘</h3>
+<p><strong>现象</strong>：用户通过飞书发送”打开相机”，LLM 输出了正确的 <code>navigate_to</code> 指令 JSON，但手机端未执行导航，而是把 JSON 文本直接回复给了飞书。</p>
+<p><strong>日志特征</strong>：</p>
+<pre><code>content: {&quot;tool_calls&quot;:[{&quot;id&quot;:&quot;call_1&quot;,...}]}  ← 工具调用 JSON 出现在 content 中
+task complete (no tool calls)                    ← 走了无工具调用路径</code></pre>
+<h3 id="根因分析三层陷阱">13.2 根因分析（三层陷阱）</h3>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 35%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>层级</th>
+<th>问题</th>
+<th>影响</th>
+<th>修复文件</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Prompt 误导</strong></td>
+<td>System Prompt 提供了完整的 <code>{"tool_calls":[...]}</code> JSON 示例，模型把这个 JSON 当作应该在 <code>content</code> 中输出的文本</td>
+<td>LLM 把 tool_calls 输出到 content 字段而非原生 function calling</td>
+<td><code>InAppAgentConfig.kt</code></td>
+</tr>
+<tr class="even">
+<td><strong>空字符串陷阱</strong></td>
+<td>API 返回的 <code>content</code> 为空字符串 <code>""</code>（而非 <code>null</code>），<code>isNullOrEmpty()</code> 判断失效</td>
+<td>空字符串被序列化到消息历史，污染后续推理；API 看到 content 存在可能忽略 tool_calls</td>
+<td><code>InAppLlmClient.kt</code>, <code>InAppAgentService.kt</code></td>
+</tr>
+<tr class="odd">
+<td><strong>解析缺失</strong></td>
+<td><code>parseResponse</code> 只检查原生 <code>tool_calls</code> 字段，没有处理嵌入 content 的情况</td>
+<td>即使 content 中有正确 JSON，也走”无工具调用”路径直接返回文本</td>
+<td><code>InAppLlmClient.kt</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="修复方案">13.3 修复方案</h3>
+<h4 id="prompt-设计原则deepseek-适配">13.3.1 Prompt 设计原则（DeepSeek 适配）</h4>
+<p><strong>核心认知</strong>：tool_calls 是 <code>message</code> 对象的独立字段，与 <code>content</code> 互斥。标准响应格式为：</p>
+<pre><code>choices[0].message: {
+  &quot;role&quot;: &quot;assistant&quot;,
+  &quot;content&quot;: null,
+  &quot;tool_calls&quot;: [...]
+}</code></pre>
+<p><strong>禁止</strong>：在 Prompt 中提供具体的 tool_calls JSON 格式示例</p>
+<pre><code>❌ 错误示例（会导致模型模仿输出到 content）：
+正确格式：
+```json
+{&quot;tool_calls&quot;:[{&quot;id&quot;:&quot;call_1&quot;,&quot;type&quot;:&quot;function&quot;,...}]}</code></pre>
+<pre><code>
+**正确**：描述 function calling 机制，让模型使用原生 API</code></pre>
+<p>✅ 正确示例： 本系统支持 OpenAI 格式的函数调用（function calling）。 当你需要执行工具时，直接发起函数调用，系统会自动解析并执行。 不要在回复文本中输出 JSON 格式的 tool_calls。</p>
+<pre><code>
+**DeepSeek 特殊要求**：
+- 使用 DeepSeek V4 系列模型时，API 请求必须禁用 thinking 模式（`thinking: {&quot;type&quot;: &quot;disabled&quot;}`）
+- 参考文档：https://api-docs.deepseek.com/zh-cn/guides/tool_calls
+- 禁用 thinking 可避免模型在 reasoning 中分析工具调用但最终不输出 tool_calls 字段的问题
+
+#### 13.3.2 空字符串处理规范
+
+所有涉及 `content` 字段解析/序列化的位置必须使用 `isNotBlank()`：
+
+| 位置 | 方法 | 修复前 | 修复后 |
+|------|------|--------|--------|
+| 解析响应 | `parseResponse` | `optString(&quot;content&quot;)` | `optString(&quot;content&quot;, &quot;&quot;).isNotBlank()` |
+| 序列化消息 | `convertMessage` | `!isNullOrEmpty()` | `!isNullOrBlank()` |
+| 推送思考 | `runAgentLoop` | `!isNullOrEmpty()` | `!isNullOrBlank()` |
+
+**关键区别**：
+- `isNullOrEmpty()`：`null` → true, `&quot;&quot;` → true, `&quot; &quot;` → false ❌
+- `isNullOrBlank()`：`null` → true, `&quot;&quot;` → true, `&quot; &quot;` → true ✅
+
+#### 13.3.3 Content 回退解析机制（DeepSeek 兼容）
+
+当 API 未返回原生 `tool_calls` 但 `content` 中包含 `{&quot;tool_calls&quot;:[...]}` 时，使用正则表达式提取并解析。
+
+**DeepSeek 文档提示**：某些情况下模型会将工具调用信息放入 content 字段，客户端需实现 fallback 解析。
+
+实现代码：
+
+```kotlin
+private fun extractToolCallsFromContent(content: String): List&lt;ToolExecutionRequest&gt; {
+    val result = mutableListOf&lt;ToolExecutionRequest&gt;()
+    try {
+        val toolCallsRegex = Regex(&quot;&quot;&quot;\{\s*&quot;tool_calls&quot;\s*:\s*(\[.*?\])\s*\}&quot;&quot;&quot;, RegexOption.DOT_MATCHES_ALL)
+        val match = toolCallsRegex.find(content)
+        if (match != null) {
+            val toolCallsJson = match.groupValues[1]
+            val array = JSONArray(toolCallsJson)
+            for (i in 0 until array.length()) {
+                val tc = array.getJSONObject(i)
+                val func = tc.getJSONObject(&quot;function&quot;)
+                val request = ToolExecutionRequest.builder()
+                    .id(tc.optString(&quot;id&quot;, &quot;call_$i&quot;))
+                    .name(func.getString(&quot;name&quot;))
+                    .arguments(func.optString(&quot;arguments&quot;, &quot;{}&quot;))
+                    .build()
+                result.add(request)
+            }
+        }
+    } catch (e: Exception) {
+        // 解析失败，忽略
+    }
+    return result
+}</code></pre>
+<p>在 <code>parseResponse</code> 中调用：</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 回退机制：如果 API 没有返回 tool_calls 但 content 中包含 tool_calls JSON，尝试解析</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>toolCalls<span class="op">.</span>isEmpty<span class="op">()</span> <span class="op">&amp;&amp;</span> text <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">extracted</span> <span class="op">=</span> extractToolCallsFromContent<span class="op">(</span>text<span class="op">)</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>extracted<span class="op">.</span>isNotEmpty<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        toolCalls<span class="op">.</span>addAll<span class="op">(</span>extracted<span class="op">)</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="新增-toolspec-的-checklist含-deepseek-strict-模式要求">13.4 新增 ToolSpec 的 checklist（含 DeepSeek strict 模式要求）</h3>
+<p>每实现一个新工具时，按以下清单检查：</p>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>工具名称唯一</strong>：在 <code>ToolRegistry</code> 中检查无重名</label></li>
+<li><label><input type="checkbox" /><strong>参数描述清晰</strong>：<code>description</code> 说明参数类型、取值范围、示例</label></li>
+<li><label><input type="checkbox" /><strong>参数类型正确</strong>：<code>string</code>/<code>integer</code>/<code>number</code>/<code>boolean</code>，与 <code>execute()</code> 中解析一致</label></li>
+<li><label><input type="checkbox" /><strong>必填参数标记</strong>：<code>isRequired = true</code> 的参数在 <code>execute()</code> 中校验</label></li>
+<li><label><input type="checkbox" /><strong>destination 枚举一致</strong>：导航类工具 <code>validDestinations</code> 与 <code>NavigationCapability</code> 路由表一致</label></li>
+<li><label><input type="checkbox" /><strong>错误处理完整</strong>：参数缺失/非法值返回 <code>ToolResult.error()</code> 而非抛异常</label></li>
+<li><label><input type="checkbox" /><strong>Capability 注册</strong>：新页面导航需在 <code>NavigationCapability.navigateTo()</code> 添加路由分支</label></li>
+<li><label><input type="checkbox" /><strong>测试覆盖</strong>：验证工具在 ReAct 循环中能被正确调用和执行</label></li>
+<li><label><input type="checkbox" /><strong>DeepSeek strict 模式兼容</strong>：<code>parameters</code> 中设置 <code>additionalProperties: false</code>（已由 <code>:agent-core OpenAiChatModel</code> 内部自动处理）</label></li>
+<li><label><input type="checkbox" /><strong>DeepSeek thinking 禁用</strong>：使用 DeepSeek V4 时 API 请求自动附加 <code>thinking: {"type": "disabled"}</code>（已由 <code>:agent-core OpenAiChatModel</code> 内部自动处理）</label></li>
+</ul>
+<h3 id="相关文件">13.5 相关文件</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>InAppAgentConfig.kt</code></td>
+<td>System Prompt 定义，工具描述</td>
+</tr>
+<tr class="even">
+<td><code>InAppLlmClient.kt</code></td>
+<td>API 请求/响应解析，content 回退解析</td>
+</tr>
+<tr class="odd">
+<td><code>InAppAgentService.kt</code></td>
+<td>ReAct 主循环，消息历史管理</td>
+</tr>
+<tr class="even">
+<td><code>LangChain4jToolBridge.kt</code></td>
+<td>ToolSpec ↔︎ LangChain4j 转换，工具执行分发</td>
+</tr>
+<tr class="odd">
+<td><code>ToolRegistry.kt</code></td>
+<td>工具注册中心</td>
+</tr>
+<tr class="even">
+<td><code>BaseUiTool.kt</code></td>
+<td>工具基类，参数辅助方法</td>
+</tr>
+<tr class="odd">
+<td><code>NavigateToTool.kt</code></td>
+<td>导航工具示例（参考实现）</td>
+</tr>
+<tr class="even">
+<td><code>NavigationCapability.kt</code></td>
+<td>页面路由 Capability</td>
+</tr>
+</tbody>
+</table>
+<hr />
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

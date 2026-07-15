@@ -1,0 +1,2787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoLang QA 验收测试清单 (QA Execution Checklist) | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item active" href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">06 Qa</a> / <span>PoLang QA 验收测试清单 (QA Execution Checklist)</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#目录">📋 目录</a></li>
+      <li><a href="#1-功能验收测试">1. 功能验收测试</a></li>
+      <li><a href="#2-语音交互专项验收">2. 语音交互专项验收</a></li>
+      <li><a href="#3-远程编排专项验收">3. 远程编排专项验收</a></li>
+      <li><a href="#4-帧同步专项验收">4. 帧同步专项验收</a></li>
+      <li><a href="#5-性能基线验证">5. 性能基线验证</a></li>
+      <li><a href="#6-稳定性测试">6. 稳定性测试</a></li>
+      <li><a href="#7-兼容性测试">7. 兼容性测试</a></li>
+      <li><a href="#8-隐私与安全验证">8. 隐私与安全验证</a></li>
+      <li><a href="#附录自动化测试脚本">附录：自动化测试脚本</a></li>
+      <li><a href="#9-基于-agent-命令的自动化测试">9. 基于 Agent 命令的自动化测试</a></li>
+      <li><a href="#10-accessibility-ui-driver-使用">10. Accessibility UI Driver 使用</a></li>
+      <li><a href="#11-核心功能测试指引">11. 核心功能测试指引</a></li>
+      </ul>
+    </div>
+<h1 id="picme-qa-验收测试清单-qa-execution-checklist">PoLang QA 验收测试清单 (QA Execution Checklist)</h1>
+<blockquote>
+<p><strong>边界声明（Boundary Statement）</strong> - 本文档定义端到端验收测试清单、性能基线验证方法以及 QA/测试相关规范。 - 本文档同时涵盖：基于 Agent 命令的自动化测试、Accessibility UI Driver 使用说明、核心功能测试指引。 - 性能指标以 <a href="../01-PRODUCT/NFR_SPEC.html"><code>../01-PRODUCT/NFR_SPEC.md</code></a> 为准。 - 技术规范以各模块 <code>*_TECH_SPEC.md</code> 为准。 - 历史性能基线报告见 <a href="./PERFORMANCE_BASELINE_REPORT.html"><code>PERFORMANCE_BASELINE_REPORT.md</code></a>。</p>
+</blockquote>
+<p><strong>模块定位</strong>: QA 验收测试标准<br />
+<strong>主要维护者</strong>: [QA] 质量专家<br />
+<strong>阅读对象</strong>: QA、RD<br />
+<strong>版本</strong>: 1.1 <strong>最后更新</strong>: 2026-06-08</p>
+<hr />
+<h2 id="目录">📋 目录</h2>
+<ol type="1">
+<li><a href="#1-功能验收测试">功能验收测试</a></li>
+<li><a href="#2-语音交互专项验收">语音交互专项验收</a></li>
+<li><a href="#3-远程编排专项验收">远程编排专项验收</a></li>
+<li><a href="#4-帧同步专项验收">帧同步专项验收</a></li>
+<li><a href="#5-性能基线验证">性能基线验证</a></li>
+<li><a href="#6-稳定性测试">稳定性测试</a></li>
+<li><a href="#7-兼容性测试">兼容性测试</a></li>
+<li><a href="#8-隐私与安全验证">隐私与安全验证</a></li>
+<li><a href="#9-基于-agent-命令的自动化测试">基于 Agent 命令的自动化测试</a></li>
+<li><a href="#10-accessibility-ui-driver-使用">Accessibility UI Driver 使用</a></li>
+<li><a href="#11-核心功能测试指引">核心功能测试指引</a></li>
+</ol>
+<hr />
+<h2 id="功能验收测试">1. 功能验收测试</h2>
+<h3 id="agent-交互">1.1 Agent 交互</h3>
+<h4 id="对话模式">1.1.1 对话模式</h4>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拍照指令</td>
+<td>输入”拍照”</td>
+<td>✅ 立即拍照，50ms 内反馈</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>美颜调节</td>
+<td>输入”磨皮 50”</td>
+<td>✅ 磨皮滑块调至 50，实时预览</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>滤镜切换</td>
+<td>输入”冷调滤镜”</td>
+<td>✅ 切换到冷调滤镜，视觉切换 &lt; 200ms</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>参数查询</td>
+<td>输入”当前美颜多少？”</td>
+<td>✅ 回复当前参数值</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>多轮对话</td>
+<td>“调高美颜” → “再高一点”</td>
+<td>✅ 连续理解上下文，逐步调整</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>澄清请求</td>
+<td>输入模糊指令”调高一点”</td>
+<td>✅ 返回澄清问题</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>闲聊</td>
+<td>输入”今天天气怎么样”</td>
+<td>✅ 友好回复 + 能力引导</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>性能要求</strong>: - Agent 回复首字 &lt; 500ms - 每个用户输入必须有可见反馈</p>
+<h4 id="快捷模式">1.1.2 快捷模式</h4>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>美颜面板开关</td>
+<td>点击美颜面板开关</td>
+<td>✅ 开启/关闭美颜总开关</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>参数调节</td>
+<td>拖动滑块调节参数</td>
+<td>✅ 实时预览，延迟 &lt; 100ms</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>对比功能</td>
+<td>长按预览区</td>
+<td>✅ 显示原图，松手恢复</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>滤镜滚动</td>
+<td>横向滚动滤镜列表</td>
+<td>✅ 流畅滚动，切换动画 &lt; 200ms</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="相机控制">1.2 相机控制</h3>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拍照</td>
+<td>点击快门按钮</td>
+<td>✅ 50ms 触感 + 音效 + 黑场闪烁同步</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>录像</td>
+<td>点击录像按钮</td>
+<td>✅ 开始/停止录制，指示灯变化</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>翻转镜头</td>
+<td>点击翻转按钮</td>
+<td>✅ 前后摄像头切换，无黑屏 &gt; 300ms</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>变焦</td>
+<td>双指缩放 / 点击 +/-</td>
+<td>✅ 平滑变焦，1x~10x 范围</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>曝光调节</td>
+<td>点击太阳图标拖动</td>
+<td>✅ 曝光补偿 -5~+5，实时预览</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>拍摄模式切换</td>
+<td>点击模式选项</td>
+<td>✅ 正常/夜景/人像/专业模式切换</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="美颜系统">1.3 美颜系统</h3>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>磨皮调节</td>
+<td>拖动磨皮滑块 0~100</td>
+<td>✅ 自然磨皮效果，不过度模糊</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>美白调节</td>
+<td>拖动美白滑块 0~100</td>
+<td>✅ 肤色自然提亮，不失真</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>瘦脸调节</td>
+<td>拖动瘦脸滑块 -50~+50</td>
+<td>✅ 推脸/拉脸效果，边缘过渡自然</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>大眼调节</td>
+<td>拖动大眼滑块 0~100</td>
+<td>✅ 眼睛放大，比例协调</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>唇色调节</td>
+<td>拖动唇色滑块 0~100</td>
+<td>✅ 唇色自然变化</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>腮红调节</td>
+<td>拖动腮红滑块 0~100</td>
+<td>✅ 腮红位置准确，不突兀</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>美颜总开关</td>
+<td>关闭开关</td>
+<td>✅ 跳过人脸检测，仅支持滤镜/调色</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>美颜总开关</td>
+<td>所有参数归零</td>
+<td>✅ 自动关闭美颜</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="相册管理">1.4 相册管理</h3>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>查看照片</td>
+<td>点击照片缩略图</td>
+<td>✅ 展开全屏查看，双指缩放可用</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>删除照片</td>
+<td>选择照片后点击删除</td>
+<td>✅ 确认对话框，删除后从列表消失</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>分享照片</td>
+<td>选择照片后点击分享</td>
+<td>✅ 唤起系统分享面板</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>OCR 提取</td>
+<td>点击”提取文字”</td>
+<td>✅ 原位浮层展示识别文字</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>图片编辑</td>
+<td>点击图片”编辑”</td>
+<td>✅ 进入编辑模式，可调节美颜参数</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>保存编辑</td>
+<td>编辑后点击保存</td>
+<td>✅ 保存为新文件，不覆盖原图</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="语音交互专项验收">2. 语音交互专项验收</h2>
+<blockquote>
+<p><strong>状态（2026-06）</strong>：语音控制为试验性功能，快速迭代验证中。</p>
+</blockquote>
+<h3 id="唤醒词检测">2.1 唤醒词检测</h3>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 20%" />
+<col style="width: 33%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>唤醒词触发</td>
+<td>在相机预览页说出唤醒词</td>
+<td>✅ 检测到唤醒词，进入语音输入模式</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>误触发抑制</td>
+<td>环境噪音/正常对话中不触发</td>
+<td>✅ 误触发率 &lt; 5%（非目标场景）</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>页面退出停止</td>
+<td>切换到其他页面</td>
+<td>✅ WakeWordEngine 自动停止，VAD 检测关闭</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>耳机模式适配</td>
+<td>蓝牙/有线耳机接入</td>
+<td>✅ 自动切换音源（MIC/VOICE_COMMUNICATION），AEC/NS 正确配置</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="语音指令识别">2.2 语音指令识别</h3>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 20%" />
+<col style="width: 33%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拍照指令</td>
+<td>说出”拍照”</td>
+<td>✅ 识别为拍摄命令，50ms 内执行快门</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>美颜调节</td>
+<td>说出”磨皮调高一点”</td>
+<td>✅ 识别为美颜调节，参数实时变化</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>滤镜切换</td>
+<td>说出”换个冷调滤镜”</td>
+<td>✅ 识别为滤镜切换，视觉变化 &lt; 200ms</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>推流模式</td>
+<td>长按语音按钮说话</td>
+<td>✅ 流式 ASR，识别结果实时显示</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>不支持命令</td>
+<td>说无关内容</td>
+<td>✅ 友好提示”暂不支持”或能力引导</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>性能要求</strong>: - 语音录入 → LLM 解析 → 命令执行 &lt; 500ms - ASR 首字延迟 &lt; 200ms</p>
+<hr />
+<h2 id="远程编排专项验收">3. 远程编排专项验收</h2>
+<blockquote>
+<p><strong>状态（2026-06）</strong>：远程 LLM 编排为可选功能，需用户配置 Token 后方可使用。</p>
+</blockquote>
+<h3 id="推理路由">3.1 推理路由</h3>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 20%" />
+<col style="width: 33%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>IntentCache 缓存命中</td>
+<td>输入预定义高频指令（如”拍照”）</td>
+<td>✅ L1 缓存直接命中，不触发 LLM 调用</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>本地 LLM 推理</td>
+<td>输入非敏感简单指令</td>
+<td>✅ 路由到本地 Qwen3.5-2B 推理</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>远程 LLM 推理</td>
+<td>配置 Token 后输入复杂指令</td>
+<td>✅ 路由到云端 LLM API（OpenAI 兼容）</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>隐私守卫拦截</td>
+<td>输入敏感指令（如人脸数据相关）</td>
+<td>✅ PrivacyGuard 强制本地执行，不发送远程</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>远程不可用时降级</td>
+<td>远程 API 超时/不可用</td>
+<td>✅ 自动降级到本地推理，不阻塞</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>性能要求</strong>: - 远程推理响应 &lt; 2000ms - 降级时间 &lt; 500ms</p>
+<h3 id="策略选择">3.2 策略选择</h3>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 20%" />
+<col style="width: 33%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AdaptiveStrategySelector</td>
+<td>连续输入不同复杂度指令</td>
+<td>✅ 根据指令特征自动选择 L1~L4 策略</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>上下文记忆</td>
+<td>多轮对话中连续指令</td>
+<td>✅ MemoryManager 正确维护上下文</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>详细架构设计见 <code>docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></p>
+</blockquote>
+<hr />
+<h2 id="帧同步专项验收">4. 帧同步专项验收</h2>
+<h3 id="预览场景---快转头测试">2.1 预览场景 - 快转头测试</h3>
+<p><strong>测试步骤</strong>: 1. 开启美颜系统 2. 快速转头（速度 &gt; 90°/s） 3. 录屏逐帧分析妆容偏差</p>
+<p><strong>验收标准</strong>: - 红线：妆容偏差 ≤ 16px <span class="citation" data-cites="1080p">@1080p</span> - 目标：妆容偏差 ≤ 8px <span class="citation" data-cites="1080p">@1080p</span></p>
+<p><strong>执行记录</strong>: | 测试次数 | 偏差像素 | 是否通过 | |———|———|———| | 1 | ___ px | ☐ | | 2 | ___ px | ☐ | | 3 | ___ px | ☐ |</p>
+<h3 id="预览场景---人脸出画测试">2.2 预览场景 - 人脸出画测试</h3>
+<p><strong>测试步骤</strong>: 1. 开启美颜系统 2. 人脸缓慢移出画面 3. 记录妆容消失时间</p>
+<p><strong>验收标准</strong>: - 红线：≤ 3 帧（~50ms@60fps） - 目标：≤ 2 帧</p>
+<p><strong>执行记录</strong>: | 测试次数 | 消失帧数 | 是否通过 | |———|———|———| | 1 | ___ 帧 | ☐ | | 2 | ___ 帧 | ☐ | | 3 | ___ 帧 | ☐ |</p>
+<h3 id="录制场景---快转头测试">2.3 录制场景 - 快转头测试</h3>
+<p><strong>测试步骤</strong>: 1. 开启美颜系统 + 录制 2. 快速转头（速度 &gt; 90°/s） 3. 回放视频逐帧分析妆容偏差</p>
+<p><strong>验收标准</strong>: - 红线：妆容偏差 ≤ 16px <span class="citation" data-cites="1080p">@1080p</span> - 目标：妆容偏差 ≤ 8px <span class="citation" data-cites="1080p">@1080p</span></p>
+<p><strong>执行记录</strong>: | 测试次数 | 偏差像素 | 是否通过 | |———|———|———| | 1 | ___ px | ☐ | | 2 | ___ px | ☐ | | 3 | ___ px | ☐ |</p>
+<h3 id="录制场景---匀速移动测试">2.4 录制场景 - 匀速移动测试</h3>
+<p><strong>测试步骤</strong>: 1. 开启美颜系统 + 录制 2. 匀速平移设备 3. 相邻帧妆容位移差分析</p>
+<p><strong>验收标准</strong>: - 红线：相邻帧位移差 ≤ 8px <span class="citation" data-cites="1080p">@1080p</span> - 目标：相邻帧位移差 ≤ 5px <span class="citation" data-cites="1080p">@1080p</span></p>
+<p><strong>执行记录</strong>: | 测试次数 | 最大位移差 | 是否通过 | |———|———–|———| | 1 | ___ px | ☐ | | 2 | ___ px | ☐ | | 3 | ___ px | ☐ |</p>
+<h3 id="预测补偿精度">2.5 预测补偿精度</h3>
+<p><strong>测试步骤</strong>: 1. 模拟人脸缺失 N 帧 2. 使用预测补偿算法计算位置 3. 验证预测位移约束</p>
+<p><strong>验收标准</strong>: - 预测计算耗时 ≤ 1ms / 帧 - 预测位移约束 ≤ 150% 上一帧位移</p>
+<p><strong>执行记录</strong>: | 测试项 | 实测值 | 是否通过 | |——–|——–|———| | 预测耗时 | ___ ms | ☐ | | 位移约束 | ___ % | ☐ |</p>
+<hr />
+<h2 id="性能基线验证">5. 性能基线验证</h2>
+<h3 id="启动性能">3.1 启动性能</h3>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 23%" />
+<col style="width: 19%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+<th>实测值</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>冷启动 → 首帧预览</td>
+<td>≤ 500ms</td>
+<td>≤ 400ms</td>
+<td><code>adb shell am start -W</code></td>
+<td>___ ms</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>启动阶段禁止项</td>
+<td>—</td>
+<td>零启动页 / 零数据库迁移阻塞</td>
+<td>人工检查 + Logcat</td>
+<td>___</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>执行命令</strong>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell am start <span class="at">-W</span> com.mamba.picme/com.mamba.picme.ui.MainActivity</span></code></pre></div>
+<h3 id="预览性能">3.2 预览性能</h3>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 23%" />
+<col style="width: 19%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+<th>实测值</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>预览帧率（高端机）</td>
+<td>≥ 30fps</td>
+<td>≥ 55fps</td>
+<td><code>BeautyPerfStats.fps</code></td>
+<td>___ fps</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>预览帧率（低端机）</td>
+<td>≥ 30fps</td>
+<td>≥ 30fps</td>
+<td><code>BeautyPerfStats.fps</code></td>
+<td>___ fps</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>单帧处理耗时</td>
+<td>≤ 16ms</td>
+<td>≤ 12ms</td>
+<td>Systrace / 自定义计时</td>
+<td>___ ms</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>调试工具</strong>: - 开启调试浮层：<code>adb shell setprop picme.debug.perf true</code> - 查看 Systrace: <code>python android/tools/systrace/systrace.py trace.html -t 10 camera SurfaceFlinger</code></p>
+<h3 id="参数响应">3.3 参数响应</h3>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 23%" />
+<col style="width: 19%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+<th>实测值</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>参数调节 → 画面变化</td>
+<td>≤ 100ms</td>
+<td>≤ 50ms</td>
+<td>人工体感 + 高速摄像</td>
+<td>___ ms</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>测试步骤</strong>: 1. 打开美颜面板 2. 拖动任意滑块 3. 使用高速摄像记录从拖动到画面变化的时间</p>
+<h3 id="拍照后处理">3.4 拍照后处理</h3>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 23%" />
+<col style="width: 19%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+<th>实测值</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1080p GPU 处理</td>
+<td>≤ 300ms</td>
+<td>≤ 200ms</td>
+<td><code>PhotoProcessorImpl</code> 耗时</td>
+<td>___ ms</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>4K GPU 处理</td>
+<td>≤ 800ms</td>
+<td>≤ 600ms</td>
+<td><code>PhotoProcessorImpl</code> 耗时</td>
+<td>___ ms</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>日志关键字</strong>:</p>
+<pre><code>PhotoProcessorImpl: processPhoto completed in ___ ms</code></pre>
+<h3 id="相册滚动">3.5 相册滚动</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+<th>实测值</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1000+ 照片滑动帧率</td>
+<td>≥ 120fps</td>
+<td>≥ 120fps</td>
+<td>GPU Profile</td>
+<td>___ fps</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>快速滑动停止后首图清晰</td>
+<td>≤ 100ms</td>
+<td>≤ 50ms</td>
+<td>人工体感</td>
+<td>___ ms</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="美颜引擎资源占用">3.6 美颜引擎资源占用</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+<th>实测值</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>内存占用</td>
+<td>≤ 30MB</td>
+<td>≤ 25MB</td>
+<td>Android Profiler</td>
+<td>___ MB</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>CPU 占用（美颜模块）</td>
+<td>≤ 15%</td>
+<td>≤ 10%</td>
+<td>Android Profiler</td>
+<td>___ %</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="稳定性测试">6. 稳定性测试</h2>
+<h3 id="崩溃率监控">4.1 崩溃率监控</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>监控方式</th>
+<th>近 7 天数据</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>整体崩溃率</td>
+<td>≤ 0.1%</td>
+<td>≤ 0.05%</td>
+<td>Crashlytics / 友盟</td>
+<td>___ %</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>美颜引擎崩溃率</td>
+<td>≤ 0.05%</td>
+<td>≤ 0.01%</td>
+<td>Crashlytics</td>
+<td>___ %</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>ANR 率</td>
+<td>≤ 0.1%</td>
+<td>≤ 0.05%</td>
+<td>Google Play Console</td>
+<td>___ %</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="降级恢复测试">4.2 降级恢复测试</h3>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 20%" />
+<col style="width: 33%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>EGL 初始化失败降级</td>
+<td>模拟 EGL 初始化失败</td>
+<td>✅ 降级到基础预览，不崩溃</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>冷却恢复成功率</td>
+<td>触发降级后等待 30s</td>
+<td>✅ ≥ 95% 成功率恢复</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>降级耗时</td>
+<td>记录降级触发到完成时间</td>
+<td>✅ ≤ 2s</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>拍照 fallback</td>
+<td>GPU 路径失败时</td>
+<td>✅ 100% 回退 CPU，不丢照片</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>模拟方法</strong>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 在测试代码中注入异常</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">object</span> TestInject <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">forceEglFailure</span> <span class="op">=</span> <span class="kw">false</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="长时间运行测试">4.3 长时间运行测试</h3>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>连续拍照 100 张</td>
+<td>连续拍照，不退出应用</td>
+<td>✅ 无崩溃，内存稳定</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>连续录像 30 分钟</td>
+<td>持续录像 30 分钟</td>
+<td>✅ 无崩溃，发热可控</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>美颜开关 50 次</td>
+<td>频繁开关美颜</td>
+<td>✅ 无泄漏，响应正常</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>监控指标</strong>: - 内存曲线（Android Profiler） - CPU 温度（<code>adb shell dumpsys battery</code>） - 帧率稳定性（调试浮层）</p>
+<hr />
+<h2 id="兼容性测试">7. 兼容性测试</h2>
+<h3 id="设备覆盖率">5.1 设备覆盖率</h3>
+<table>
+<thead>
+<tr class="header">
+<th>设备类型</th>
+<th>Android 版本</th>
+<th>测试项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>高端机（Flagship）</td>
+<td>Android 13+</td>
+<td>全部功能</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>中端机（Mid-range）</td>
+<td>Android 11+</td>
+<td>全部功能</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>低端机（Budget）</td>
+<td>Android 10+</td>
+<td>基础功能</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>折叠屏</td>
+<td>Android 12+</td>
+<td>页面适配</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="分辨率适配">5.2 分辨率适配</h3>
+<table>
+<thead>
+<tr class="header">
+<th>分辨率</th>
+<th>设备示例</th>
+<th>测试项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>720p</td>
+<td>入门机型</td>
+<td>预览清晰度</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>1080p</td>
+<td>主流机型</td>
+<td>美颜精度</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>2K+</td>
+<td>旗舰机型</td>
+<td>UI 渲染质量</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="隐私与安全验证">8. 隐私与安全验证</h2>
+<h3 id="权限检查">6.1 权限检查</h3>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 29%" />
+<col style="width: 29%" />
+<col style="width: 17%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>检查项</th>
+<th>验证方法</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>网络权限</td>
+<td><code>AndroidManifest.xml</code> 扫描</td>
+<td>INTERNET 仅用于远程编排（非敏感指令）</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>人脸数据上传</td>
+<td>网络抓包</td>
+<td>敏感数据未经用户授权不上云；授权后仅传输必要元数据</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>本地存储</td>
+<td>文件浏览器</td>
+<td>照片仅存本地</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<p><strong>执行命令</strong>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aapt</span> dump badging app-release.apk <span class="kw">|</span> <span class="fu">grep</span> uses-permission</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tcpdump</span> <span class="at">-i</span> any port 443 <span class="at">-w</span> capture.pcap  <span class="co"># 抓包验证</span></span></code></pre></div>
+<h3 id="离线可用性">6.2 离线可用性</h3>
+<table>
+<thead>
+<tr class="header">
+<th>测试项</th>
+<th>步骤</th>
+<th>预期结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>无网络拍照</td>
+<td>关闭 WiFi/移动数据，拍照</td>
+<td>✅ 核心功能可用</td>
+<td>☐</td>
+</tr>
+<tr class="even">
+<td>无网络美颜</td>
+<td>关闭网络，开启美颜</td>
+<td>✅ 端侧 AI 正常工作</td>
+<td>☐</td>
+</tr>
+<tr class="odd">
+<td>模型未下载引导</td>
+<td>首次安装无模型，调用 AI</td>
+<td>✅ 明确引导用户下载</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="附录自动化测试脚本">附录：自动化测试脚本</h2>
+<h3 id="adb-命令速查">ADB 命令速查</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 启动性能测试</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell am start <span class="at">-W</span> com.mamba.picme/com.mamba.picme.ui.MainActivity</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 开启调试浮层</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell setprop picme.debug.perf true</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 清除应用数据</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell pm clear com.mamba.picme</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 查看日志</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> logcat <span class="at">-s</span> PicMe:Agent PicMe:BeautyEngine PicMe:<span class="pp">*</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 截图</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell screencap <span class="at">-p</span> /sdcard/screenshot.png</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> pull /sdcard/screenshot.png</span></code></pre></div>
+<h3 id="性能测试脚本">性能测试脚本</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># perf_test.sh</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 冷启动测试</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="va">START_TIME</span><span class="op">=</span><span class="va">$(</span><span class="ex">adb</span> shell am start <span class="at">-W</span> com.mamba.picme/com.mamba.picme.ui.MainActivity <span class="kw">|</span> <span class="fu">grep</span> mTotalTime <span class="kw">|</span> <span class="fu">awk</span> <span class="at">-F</span><span class="op">=</span> <span class="st">&#39;{print $2}&#39;</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">&#39;{print $1}&#39;</span><span class="va">)</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;Cold startup: </span><span class="va">${START_TIME}</span><span class="st">ms&quot;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 帧率测试</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell dumpsys SurfaceFlinger <span class="at">--list</span> <span class="kw">|</span> <span class="fu">grep</span> CameraPreview <span class="kw">|</span> <span class="cf">while</span> <span class="bu">read</span> <span class="va">surface</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">adb</span> shell dumpsys SurfaceFlinger <span class="at">--stats</span> <span class="va">$surface</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 内存测试</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell dumpsys meminfo com.mamba.picme <span class="kw">|</span> <span class="fu">grep</span> Total PSS</span></code></pre></div>
+<h2 id="基于-agent-命令的自动化测试">9. 基于 Agent 命令的自动化测试</h2>
+<h3 id="现状分析广播测试方案的痛点">1. 现状分析：广播测试方案的痛点</h3>
+<h4 id="当前方案架构">1.1 当前方案架构</h4>
+<p>当前自动化测试通过 <code>adb shell am broadcast</code> 发送命令到设备端广播接收器，由 <code>CameraTestCommandReceiver</code> 接收后分发给 <code>CameraTestCommandDispatcher</code>，最终触发 CameraScreen 的回调执行。</p>
+<pre><code>测试脚本 (PC) → adb broadcast → CameraTestCommandReceiver → CameraTestCommandDispatcher → CameraScreen</code></pre>
+<h4 id="核心痛点">1.2 核心痛点</h4>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 45%" />
+<col style="width: 27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>痛点</th>
+<th>具体表现</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>语义丢失</strong></td>
+<td>广播仅传递字符串 action，参数类型不安全</td>
+<td>拼写错误、类型不匹配导致命令静默失败</td>
+</tr>
+<tr class="even">
+<td><strong>无执行反馈</strong></td>
+<td>广播是”发射后不管”，无法确认命令是否被消费</td>
+<td>测试脚本需轮询 logcat 猜测执行状态</td>
+</tr>
+<tr class="odd">
+<td><strong>场景感知缺失</strong></td>
+<td>广播不了解当前页面状态，命令可能发送到错误页面</td>
+<td>“拍照”命令在相册页面被丢弃，测试脚本不知情</td>
+</tr>
+<tr class="even">
+<td><strong>状态断言困难</strong></td>
+<td>无法直接查询应用内部状态，依赖截图+图像识别</td>
+<td>脆弱、慢、维护成本高</td>
+</tr>
+<tr class="odd">
+<td><strong>跨页面编排弱</strong></td>
+<td>多步骤测试需手动管理页面切换和等待</td>
+<td>脚本复杂、flaky 率高</td>
+</tr>
+<tr class="even">
+<td><strong>类型安全缺失</strong></td>
+<td>参数通过 Bundle 传递，无编译期检查</td>
+<td><code>smooth=80.5</code> 传入 Int 字段被截断</td>
+</tr>
+</tbody>
+</table>
+<h4 id="与-agent-命令体系的对比">1.3 与 Agent 命令体系的对比</h4>
+<table>
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 38%" />
+<col style="width: 44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>广播测试方案</th>
+<th>Agent 命令体系</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>命令定义</strong></td>
+<td>字符串 + Bundle</td>
+<td><code>sealed class AgentCommand</code>，编译期类型安全</td>
+</tr>
+<tr class="even">
+<td><strong>分发机制</strong></td>
+<td>广播接收器 + 手动解析</td>
+<td><code>CapabilityRegistry</code> 自动路由到对应 Capability</td>
+</tr>
+<tr class="odd">
+<td><strong>场景感知</strong></td>
+<td>无</td>
+<td><code>SceneManager</code> 自动过滤，跨页面命令自动排队</td>
+</tr>
+<tr class="even">
+<td><strong>执行反馈</strong></td>
+<td>无</td>
+<td><code>Result&lt;AgentAction&gt;</code> 明确返回 Success/Error/TextReply</td>
+</tr>
+<tr class="odd">
+<td><strong>状态查询</strong></td>
+<td>需单独实现 get_state 广播</td>
+<td><code>Capability.isAvailable()</code> + <code>PageContext</code> 实时状态</td>
+</tr>
+<tr class="even">
+<td><strong>批量执行</strong></td>
+<td>需脚本层手动编排</td>
+<td><code>BatchExecute</code> + <code>ExecutePlan</code> 原生支持</td>
+</tr>
+<tr class="odd">
+<td><strong>LLM 兼容</strong></td>
+<td>完全不兼容</td>
+<td>与 Agent 运行时共用同一套命令，LLM 可直接生成</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="设计方案agent-first-自动化测试架构">2. 设计方案：Agent-First 自动化测试架构</h3>
+<h4 id="核心设计原则">2.1 核心设计原则</h4>
+<ol type="1">
+<li><strong>复用而非重建</strong>: 测试直接复用 <code>AgentCommand</code> + <code>CapabilityRegistry</code> + <code>ExecutionEngine</code>，不引入新的命令体系</li>
+<li><strong>确定性优先</strong>: 每个测试步骤都有明确的执行结果和状态断言，拒绝”猜测式”验证</li>
+<li><strong>自描述测试</strong>: 测试用例本身是可被 LLM 理解的结构化数据，支持 AI 自动生成和诊断</li>
+<li><strong>分层隔离</strong>: 测试编排层、命令执行层、状态验证层、报告输出层完全解耦</li>
+</ol>
+<h4 id="架构分层">2.2 架构分层</h4>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│  Layer 4: 测试编排层 (Test Orchestration)                        │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  AgentTestOrchestrator                                   │   │
+│  │  - 解析测试计划 (JSON/YAML/DSL)                           │   │
+│  │  - 管理测试生命周期 (setup → run → teardown)              │   │
+│  │  - 协调多设备/多轮次测试                                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 3: 测试用例层 (Test Case Layer)                           │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  AgentTestCase&lt;T&gt; (已有)                                 │   │
+│  │  - 用例 ID、名称、优先级、分类                             │   │
+│  │  - 步骤列表 (List&lt;TestStep&gt;)                              │   │
+│  │  - 输出提供者 (outputProvider)                            │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 2: 命令执行层 (Command Execution)                         │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  CapabilityRegistry (已有) + ExecutionEngine (已有)      │   │
+│  │  - AgentCommand 分发到对应 Capability                     │   │
+│  │  - 场景匹配检查 + 跨页面排队                               │   │
+│  │  - 批量执行 (BatchExecute) / 计划执行 (ExecutePlan)       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 1: 状态验证层 (State Verification)                        │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  AgentStateProbe + TestAssertion                         │   │
+│  │  - 应用内部状态查询 (非 UI 截图)                           │   │
+│  │  - 结构化断言 (state/log/performance)                     │   │
+│  │  - 截屏作为辅助证据 (非主要验证手段)                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 0: 设备交互层 (Device Interaction)                        │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  DeviceTestController (已有，需重构)                      │   │
+│  │  - 应用启动/状态检查                                      │   │
+│  │  - 截屏 (screencap)                                      │   │
+│  │  - 日志收集 (logcat)                                     │   │
+│  │  - 性能数据 (gfxinfo, meminfo)                           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+<h4 id="关键组件设计">2.3 关键组件设计</h4>
+<h5 id="双模式输入设计核心">2.3.1 双模式输入设计（核心）</h5>
+<p>测试驱动支持两种输入形式，最终都 converges 到同一执行路径：</p>
+<pre><code>自然语言指令 ──→ [可选] LLM 解析 ──→ AgentCommand ──→ CapabilityRegistry
+                    ↓
+格式化指令 ───────→ 直接构造 ───────→ AgentCommand ──→ CapabilityRegistry</code></pre>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 18%" />
+<col style="width: 30%" />
+<col style="width: 24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>输入模式</th>
+<th>形式</th>
+<th>适用场景</th>
+<th>确定性</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>模式 A: 自然语言</strong></td>
+<td><code>"拍张照片并检查是否保存成功"</code></td>
+<td>探索性测试、LLM 生成用例、模糊需求</td>
+<td>中（依赖 LLM 解析）</td>
+</tr>
+<tr class="even">
+<td><strong>模式 B: 格式化指令</strong></td>
+<td><code>{"method":"capture","params":{},"assert":"photo_saved"}</code></td>
+<td>P0 回归、性能基线、CI 门禁</td>
+<td>高（直接构造命令）</td>
+</tr>
+</tbody>
+</table>
+<p>两种模式共享同一套 <code>AgentCommand</code> + <code>CapabilityRegistry</code> 执行路径，确保测试和生产代码路径一致。</p>
+<h5 id="agenttestorchestrator新增">2.3.2 AgentTestOrchestrator（新增）</h5>
+<p>测试编排器，负责将高层测试意图转换为 Agent 命令序列并执行验证。</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Agent 测试编排器</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 支持双模式输入：</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * - 自然语言模式：通过 LLM 解析为 AgentCommand 序列</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"> * - 格式化模式：直接解析 JSON/YAML 为 AgentCommand</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"> * 两种模式最终都通过 CapabilityRegistry 执行，并收集结果生成报告。</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AgentTestOrchestrator<span class="op">(</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">registry</span><span class="op">:</span> <span class="dt">CapabilityRegistry</span><span class="op">,</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">reporter</span><span class="op">:</span> <span class="dt">ExecutionReporter</span><span class="op">,</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">llmParser</span><span class="op">:</span> <span class="dt">AgentCommandParser</span><span class="op">?</span> <span class="op">=</span> null  <span class="co">// 自然语言模式需要</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">     * 模式 B: 执行格式化的测试用例（P0 回归首选）</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="op">&lt;</span><span class="dt">T</span><span class="op">&gt;</span> <span class="fu">execute</span><span class="op">(</span><span class="va">case</span><span class="op">:</span> <span class="dt">AgentTestCase</span>&lt;<span class="va">T</span>&gt;<span class="op">):</span> <span class="dt">AgentTestResult</span><span class="op">&lt;</span><span class="dt">T</span><span class="op">&gt;</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">     * 模式 A: 执行自然语言测试意图（探索性测试）</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suspend</span> <span class="kw">fun</span> <span class="fu">executeIntent</span><span class="op">(</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="va">naturalLanguage</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">AgentTestResult</span><span class="op">&lt;</span><span class="dt">String</span><span class="op">&gt;</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co">     * 执行测试套件</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suspend</span> <span class="kw">fun</span> <span class="fu">executeSuite</span><span class="op">(</span><span class="va">suite</span><span class="op">:</span> <span class="dt">TestSuite</span><span class="op">):</span> <span class="dt">SuiteReport</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="co">     * 从 JSON 测试描述生成并执行（支持混合模式）</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suspend</span> <span class="kw">fun</span> <span class="fu">executeFromJson</span><span class="op">(</span><span class="va">json</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">SuiteReport</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h5 id="agentstateprobe新增">2.3.3 AgentStateProbe（新增）</h5>
+<p>状态探针，提供应用内部状态的类型安全查询接口。</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Agent 状态探针</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 通过 CapabilityRegistry 查询应用内部状态，</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * 替代脆弱的截图+图像识别验证方式。</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AgentStateProbe<span class="op">(</span><span class="kw">private</span> <span class="kw">val</span> <span class="va">registry</span><span class="op">:</span> <span class="dt">CapabilityRegistry</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co">     * 查询当前场景</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">currentScene</span><span class="op">():</span> <span class="dt">SceneManager</span><span class="op">.</span><span class="fu">Scene</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">     * 查询指定 Capability 是否可用</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">isCapabilityAvailable</span><span class="op">(</span><span class="va">capabilityName</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">Boolean</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="co">     * 查询命令在当前场景是否可执行</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">isCommandAvailable</span><span class="op">(</span><span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">):</span> <span class="dt">Boolean</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a><span class="co">     * 获取当前页面状态快照</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suspend</span> <span class="kw">fun</span> <span class="fu">captureStateSnapshot</span><span class="op">():</span> <span class="dt">StateSnapshot</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a><span class="co">     * 等待条件满足（带超时）</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suspend</span> <span class="kw">fun</span> <span class="fu">waitFor</span><span class="op">(</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>        <span class="va">condition</span><span class="op">:</span> <span class="op">()</span> <span class="op">-&gt;</span> <span class="dt">Boolean</span><span class="op">,</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>        <span class="va">timeout</span><span class="op">:</span> <span class="dt">Duration</span> <span class="op">=</span> <span class="fl">10.</span>seconds<span class="op">,</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>        <span class="va">pollInterval</span><span class="op">:</span> <span class="dt">Duration</span> <span class="op">=</span> <span class="fl">500.</span>milliseconds</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Boolean</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="测试用例-dsl-与-agent-命令映射">3. 测试用例 DSL 与 Agent 命令映射</h3>
+<h4 id="测试用例的双模式编写">3.1 测试用例的双模式编写</h4>
+<h5 id="模式-b-格式化指令p0-回归首选-纯数据驱动">模式 B: 格式化指令（P0 回归首选）—— 纯数据驱动</h5>
+<p>测试用例以 JSON/YAML 文件定义，测试引擎动态加载并执行，无需编写 Kotlin 代码。</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;caseId&quot;</span><span class="fu">:</span> <span class="st">&quot;TC-CAMERA-03&quot;</span><span class="fu">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;拍照与 GPU 后处理验证&quot;</span><span class="fu">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;CAMERA&quot;</span><span class="fu">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;priority&quot;</span><span class="fu">:</span> <span class="st">&quot;P0&quot;</span><span class="fu">,</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;steps&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;确保在相机页面&quot;</span><span class="fu">,</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;if&quot;</span><span class="fu">:</span> <span class="st">&quot;scene != &#39;CAMERA&#39;&quot;</span><span class="fu">,</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;then&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span><span class="dt">&quot;method&quot;</span><span class="fu">:</span> <span class="st">&quot;navigate_to&quot;</span><span class="fu">,</span> <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;destination&quot;</span><span class="fu">:</span> <span class="st">&quot;camera&quot;</span><span class="fu">}}</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;assert&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;scene&quot;</span><span class="fu">:</span> <span class="st">&quot;CAMERA&quot;</span><span class="fu">}</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;确保后置摄像头&quot;</span><span class="fu">,</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;if&quot;</span><span class="fu">:</span> <span class="st">&quot;lensFacing == &#39;front&#39;&quot;</span><span class="fu">,</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;then&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span><span class="dt">&quot;method&quot;</span><span class="fu">:</span> <span class="st">&quot;flip_camera&quot;</span><span class="fu">,</span> <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{}}</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;assert&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;lensFacing&quot;</span><span class="fu">:</span> <span class="st">&quot;back&quot;</span><span class="fu">}</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;设置美颜参数&quot;</span><span class="fu">,</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;action&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;method&quot;</span><span class="fu">:</span> <span class="st">&quot;adjust_beauty&quot;</span><span class="fu">,</span> <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;smoothing&quot;</span><span class="fu">:</span> <span class="dv">80</span><span class="fu">,</span> <span class="dt">&quot;whitening&quot;</span><span class="fu">:</span> <span class="dv">60</span><span class="fu">}},</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;assert&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;beautySmooth&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;= 80&quot;</span><span class="fu">}</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;触发拍照&quot;</span><span class="fu">,</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;action&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;method&quot;</span><span class="fu">:</span> <span class="st">&quot;capture&quot;</span><span class="fu">,</span> <span class="dt">&quot;params&quot;</span><span class="fu">:</span> <span class="fu">{}},</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;assert&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;commandResult&quot;</span><span class="fu">:</span> <span class="st">&quot;success&quot;</span><span class="fu">}</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;验证 GPU 处理耗时&quot;</span><span class="fu">,</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;wait&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;processing == false&quot;</span><span class="fu">,</span> <span class="dt">&quot;timeout&quot;</span><span class="fu">:</span> <span class="dv">5000</span><span class="fu">},</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;assert&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="dt">&quot;gpuProcessTimeMs&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt; 1000&quot;</span><span class="fu">}</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>执行方式：</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 动态加载 JSON 测试用例执行</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./scripts/agent-tester</span> case scripts/tests/camera/tc-camera-03.json</span></code></pre></div>
+<h5 id="模式-a-自然语言指令探索性测试">模式 A: 自然语言指令（探索性测试）</h5>
+<p>测试脚本写自然语言，由 LLM 解析为 AgentCommand 序列。</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 自然语言测试意图</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">intent</span> <span class="op">=</span> <span class="st">&quot;拍张照片，然后切换到相册确认照片已保存&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 由 LLM 解析为命令序列</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">commands</span> <span class="op">=</span> llmParser<span class="op">.</span>parseIntent<span class="op">(</span>intent<span class="op">,</span> context<span class="op">)</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 返回: [AgentCommand.CapturePhoto, AgentCommand.NavigateTo(&quot;gallery&quot;)]</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co">// 顺序执行并验证</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>commands<span class="op">.</span>forEach <span class="op">{</span> command <span class="op">-&gt;</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> registry<span class="op">.</span>dispatch<span class="op">(</span>command<span class="op">,</span> context<span class="op">)</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 每步都有明确反馈</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="完整测试用例示例模式-b-格式化指令">3.2 完整测试用例示例（模式 B: 格式化指令）</h4>
+<div class="sourceCode" id="cb15"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * TC-CAMERA-03: 拍照与 GPU 后处理验证（Agent 命令版本）</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">tcCamera03CaptureAgent</span><span class="op">(</span><span class="va">registry</span><span class="op">:</span> <span class="dt">CapabilityRegistry</span><span class="op">,</span> <span class="va">probe</span><span class="op">:</span> <span class="dt">AgentStateProbe</span><span class="op">):</span> </span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">AgentTestCase</span><span class="op">&lt;</span><span class="dt">Map</span><span class="op">&lt;</span><span class="dt">String</span>, <span class="dt">Any</span><span class="op">&gt;&gt;</span> <span class="op">=</span> agentTestCase<span class="op">(</span><span class="st">&quot;TC-CAMERA-03-A&quot;</span><span class="op">,</span> <span class="st">&quot;拍照与 GPU 后处理验证(Agent)&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    category<span class="op">(</span>TestCategory<span class="op">.</span>CAMERA<span class="op">)</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    priority<span class="op">(</span>TestPriority<span class="op">.</span>P0<span class="op">)</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    step<span class="op">(</span><span class="st">&quot;确保在相机页面&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        action <span class="op">{</span> ctx<span class="op">,</span> _ <span class="op">-&gt;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>probe<span class="op">.</span>currentScene<span class="op">()</span> <span class="op">!=</span> SceneManager<span class="op">.</span>Scene<span class="op">.</span>CAMERA<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>                registry<span class="op">.</span>dispatch<span class="op">(</span>AgentCommand<span class="op">.</span>NavigateTo<span class="op">(</span><span class="st">&quot;camera&quot;</span><span class="op">),</span> context<span class="op">)</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        assertState<span class="op">(</span><span class="st">&quot;当前场景为相机&quot;</span><span class="op">)</span> <span class="op">{</span> _ <span class="op">-&gt;</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>            probe<span class="op">.</span>currentScene<span class="op">()</span> <span class="op">==</span> SceneManager<span class="op">.</span>Scene<span class="op">.</span>CAMERA</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    step<span class="op">(</span><span class="st">&quot;确保后置摄像头&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        action <span class="op">{</span> ctx<span class="op">,</span> _ <span class="op">-&gt;</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">state</span> <span class="op">=</span> probe<span class="op">.</span>captureStateSnapshot<span class="op">()</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>state<span class="op">.</span>cameraState<span class="op">?.</span>lensFacing <span class="op">==</span> <span class="st">&quot;front&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>                registry<span class="op">.</span>dispatch<span class="op">(</span>AgentCommand<span class="op">.</span>FlipCamera<span class="op">,</span> context<span class="op">)</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>        assertState<span class="op">(</span><span class="st">&quot;使用后置摄像头&quot;</span><span class="op">)</span> <span class="op">{</span> state <span class="op">-&gt;</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>            state<span class="op">[</span><span class="st">&quot;lensFacing&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="st">&quot;back&quot;</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    step<span class="op">(</span><span class="st">&quot;设置美颜参数&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>        action <span class="op">{</span> ctx<span class="op">,</span> _ <span class="op">-&gt;</span></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">settings</span> <span class="op">=</span> BeautySettings<span class="op">(</span>smoothing <span class="op">=</span> <span class="fl">80f</span><span class="op">,</span> whitening <span class="op">=</span> <span class="fl">60f</span><span class="op">)</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> registry<span class="op">.</span>dispatch<span class="op">(</span>AgentCommand<span class="op">.</span>AdjustBeauty<span class="op">(</span>settings<span class="op">),</span> context<span class="op">)</span></span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>            ctx<span class="op">.</span>setMetadata<span class="op">(</span><span class="st">&quot;beautyResult&quot;</span><span class="op">,</span> result<span class="op">.</span>isSuccess<span class="op">.</span>toString<span class="op">())</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>        assertCommandSuccess<span class="op">(</span><span class="st">&quot;美颜命令执行成功&quot;</span><span class="op">)</span></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>        assertState<span class="op">(</span><span class="st">&quot;美颜参数已应用&quot;</span><span class="op">)</span> <span class="op">{</span> state <span class="op">-&gt;</span></span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>            <span class="op">(</span>state<span class="op">[</span><span class="st">&quot;beautySmooth&quot;</span><span class="op">]</span> <span class="kw">as</span><span class="op">?</span> <span class="kw">Float</span><span class="op">)?.</span>let <span class="op">{</span> it <span class="op">&gt;=</span> <span class="fl">80f</span> <span class="op">}</span> <span class="op">==</span> <span class="kw">true</span></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    step<span class="op">(</span><span class="st">&quot;触发拍照&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>        action <span class="op">{</span> ctx<span class="op">,</span> _ <span class="op">-&gt;</span></span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> registry<span class="op">.</span>dispatch<span class="op">(</span>AgentCommand<span class="op">.</span>CapturePhoto<span class="op">,</span> context<span class="op">)</span></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>            ctx<span class="op">.</span>setMetadata<span class="op">(</span><span class="st">&quot;captureResult&quot;</span><span class="op">,</span> result<span class="op">.</span>isSuccess<span class="op">.</span>toString<span class="op">())</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 直接解析 AgentAction 获取反馈</span></span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>            result<span class="op">.</span>getOrNull<span class="op">()?.</span>let <span class="op">{</span> action <span class="op">-&gt;</span></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>                <span class="cf">when</span> <span class="op">(</span>action<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">is</span> AgentAction<span class="op">.</span>Success <span class="op">-&gt;</span> ctx<span class="op">.</span>addLog<span class="op">(</span><span class="st">&quot;Test&quot;</span><span class="op">,</span> <span class="st">&quot;拍照成功&quot;</span><span class="op">)</span></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">is</span> AgentAction<span class="op">.</span>Error <span class="op">-&gt;</span> ctx<span class="op">.</span>addLog<span class="op">(</span><span class="st">&quot;Test&quot;</span><span class="op">,</span> <span class="st">&quot;拍照错误: </span><span class="ss">${</span>action<span class="op">.</span>message<span class="ss">}</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">is</span> AgentAction<span class="op">.</span>TextReply <span class="op">-&gt;</span> ctx<span class="op">.</span>addLog<span class="op">(</span><span class="st">&quot;Test&quot;</span><span class="op">,</span> <span class="st">&quot;拍照回复: </span><span class="ss">${</span>action<span class="op">.</span>message<span class="ss">}</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>        assertCommandSuccess<span class="op">(</span><span class="st">&quot;拍照命令执行成功&quot;</span><span class="op">)</span></span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>    step<span class="op">(</span><span class="st">&quot;验证 GPU 处理耗时&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>        action <span class="op">{</span> ctx<span class="op">,</span> _ <span class="op">-&gt;</span></span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 等待处理完成，通过状态探针轮询</span></span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">completed</span> <span class="op">=</span> probe<span class="op">.</span>waitFor<span class="op">(</span></span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>                condition <span class="op">=</span> <span class="op">{</span> probe<span class="op">.</span>captureStateSnapshot<span class="op">().</span>isProcessing <span class="op">==</span> <span class="kw">false</span> <span class="op">},</span></span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a>                timeout <span class="op">=</span> <span class="fl">5.</span>seconds</span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>            ctx<span class="op">.</span>setMetadata<span class="op">(</span><span class="st">&quot;processingCompleted&quot;</span><span class="op">,</span> completed<span class="op">.</span>toString<span class="op">())</span></span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a>        assertState<span class="op">(</span><span class="st">&quot;GPU 处理已完成&quot;</span><span class="op">)</span> <span class="op">{</span> state <span class="op">-&gt;</span></span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a>            state<span class="op">[</span><span class="st">&quot;isProcessing&quot;</span><span class="op">]</span> <span class="op">==</span> <span class="kw">false</span></span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a>        assertPerformance<span class="op">(</span><span class="st">&quot;GPU 处理耗时 &lt; 1000ms&quot;</span><span class="op">)</span> <span class="op">{</span> perf <span class="op">-&gt;</span></span>
+<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a>            <span class="op">(</span>perf<span class="op">[</span><span class="st">&quot;gpuProcessTimeMs&quot;</span><span class="op">]</span> <span class="kw">as</span><span class="op">?</span> <span class="kw">Long</span><span class="op">)?.</span>let <span class="op">{</span> it <span class="op">&lt;</span> <span class="dv">1000</span> <span class="op">}</span> <span class="op">==</span> <span class="kw">true</span></span>
+<span id="cb15-76"><a href="#cb15-76" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-77"><a href="#cb15-77" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-78"><a href="#cb15-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-79"><a href="#cb15-79" aria-hidden="true" tabindex="-1"></a>    step<span class="op">(</span><span class="st">&quot;截屏记录最终状态&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-80"><a href="#cb15-80" aria-hidden="true" tabindex="-1"></a>        action <span class="op">{</span> ctx<span class="op">,</span> controller <span class="op">-&gt;</span></span>
+<span id="cb15-81"><a href="#cb15-81" aria-hidden="true" tabindex="-1"></a>            controller<span class="op">.</span>takeScreenshot<span class="op">(</span><span class="st">&quot;after_capture_agent&quot;</span><span class="op">,</span> ctx<span class="op">)</span></span>
+<span id="cb15-82"><a href="#cb15-82" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-83"><a href="#cb15-83" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-84"><a href="#cb15-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-85"><a href="#cb15-85" aria-hidden="true" tabindex="-1"></a>    output <span class="op">{</span> ctx <span class="op">-&gt;</span></span>
+<span id="cb15-86"><a href="#cb15-86" aria-hidden="true" tabindex="-1"></a>        mapOf<span class="op">(</span></span>
+<span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;captureSuccess&quot;</span> to <span class="op">(</span>ctx<span class="op">.</span>getMetadata<span class="op">(</span><span class="st">&quot;captureResult&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="st">&quot;true&quot;</span><span class="op">),</span></span>
+<span id="cb15-88"><a href="#cb15-88" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;beautyApplied&quot;</span> to <span class="op">(</span>ctx<span class="op">.</span>getMetadata<span class="op">(</span><span class="st">&quot;beautyResult&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="st">&quot;true&quot;</span><span class="op">),</span></span>
+<span id="cb15-89"><a href="#cb15-89" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;screenshotCount&quot;</span> to ctx<span class="op">.</span>screenshots<span class="op">.</span>size</span>
+<span id="cb15-90"><a href="#cb15-90" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb15-91"><a href="#cb15-91" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-92"><a href="#cb15-92" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="新增断言类型">3.3 新增断言类型</h4>
+<div class="sourceCode" id="cb16"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Agent 命令执行成功断言</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">TestStepBuilder</span><span class="op">.</span><span class="fu">assertCommandSuccess</span><span class="op">(</span><span class="va">description</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    assertions<span class="op">.</span>add<span class="op">(</span>TestAssertion <span class="op">{</span> context <span class="op">-&gt;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> context<span class="op">.</span>getMetadata<span class="op">(</span><span class="st">&quot;lastCommandResult&quot;</span><span class="op">)</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>result <span class="op">==</span> <span class="st">&quot;success&quot;</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Success</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Failure<span class="op">(</span><span class="st">&quot;命令执行未成功: </span><span class="ss">$description</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="co"> * Agent 命令返回特定 Action 类型断言</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">TestStepBuilder</span><span class="op">.</span><span class="fu">assertActionType</span><span class="op">(</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="va">description</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="va">expectedType</span><span class="op">:</span> <span class="dt">KClass</span>&lt;<span class="kw">out</span> <span class="va">AgentAction</span>&gt;</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    assertions<span class="op">.</span>add<span class="op">(</span>TestAssertion <span class="op">{</span> context <span class="op">-&gt;</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">typeName</span> <span class="op">=</span> context<span class="op">.</span>getMetadata<span class="op">(</span><span class="st">&quot;lastActionType&quot;</span><span class="op">)</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>typeName <span class="op">==</span> expectedType<span class="op">.</span>simpleName<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Success</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Failure<span class="op">(</span><span class="st">&quot;期望 Action 类型 </span><span class="ss">${</span>expectedType<span class="op">.</span>simpleName<span class="ss">}</span><span class="st">，实际为 </span><span class="ss">$typeName</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a><span class="co"> * 性能指标断言</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">TestStepBuilder</span><span class="op">.</span><span class="fu">assertPerformance</span><span class="op">(</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    <span class="va">description</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    <span class="va">check</span><span class="op">:</span> <span class="op">(</span><span class="dt">Map</span>&lt;<span class="dt">String</span><span class="op">,</span> <span class="dt">Any</span>&gt;<span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Boolean</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>    assertions<span class="op">.</span>add<span class="op">(</span>TestAssertion <span class="op">{</span> context <span class="op">-&gt;</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">perf</span> <span class="op">=</span> context<span class="op">.</span>toSnapshot<span class="op">().</span>metadata</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>filter <span class="op">{</span> it<span class="op">.</span>key<span class="op">.</span>startsWith<span class="op">(</span><span class="st">&quot;perf_&quot;</span><span class="op">)</span> <span class="op">}</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>mapKeys <span class="op">{</span> it<span class="op">.</span>key<span class="op">.</span>removePrefix<span class="op">(</span><span class="st">&quot;perf_&quot;</span><span class="op">)</span> <span class="op">}</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>check<span class="op">(</span>perf<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Success</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Failure<span class="op">(</span><span class="st">&quot;性能断言失败: </span><span class="ss">$description</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a><span class="co"> * 场景断言</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">TestStepBuilder</span><span class="op">.</span><span class="fu">assertScene</span><span class="op">(</span><span class="va">expectedScene</span><span class="op">:</span> <span class="dt">SceneManager</span>.<span class="va">Scene</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    assertions<span class="op">.</span>add<span class="op">(</span>TestAssertion <span class="op">{</span> context <span class="op">-&gt;</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">current</span> <span class="op">=</span> context<span class="op">.</span>getMetadata<span class="op">(</span><span class="st">&quot;currentScene&quot;</span><span class="op">)</span></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>current <span class="op">==</span> expectedScene<span class="op">.</span>name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Success</span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>            AssertionResult<span class="op">.</span>Failure<span class="op">(</span><span class="st">&quot;期望场景 </span><span class="ss">${</span>expectedScene<span class="op">.</span>name<span class="ss">}</span><span class="st">，实际为 </span><span class="ss">$current</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h3 id="状态断言与验证机制">4. 状态断言与验证机制</h3>
+<h4 id="三层验证模型">4.1 三层验证模型</h4>
+<pre><code>┌─────────────────────────────────────────────┐
+│  Layer 3: 业务语义验证                        │
+│  - &quot;照片已保存到相册&quot;                         │
+│  - &quot;美颜参数已生效&quot;                           │
+│  - &quot;GPU 处理在 50ms 内完成&quot;                   │
+├─────────────────────────────────────────────┤
+│  Layer 2: AgentAction 验证                    │
+│  - 命令返回 Success / Error / TextReply       │
+│  - 错误消息包含预期关键字                     │
+│  - 跨场景命令是否正确排队                     │
+├─────────────────────────────────────────────┤
+│  Layer 1: 命令执行验证                        │
+│  - Result.isSuccess == true                   │
+│  - 无异常抛出                                 │
+│  - 命令在超时内完成                           │
+└─────────────────────────────────────────────┘</code></pre>
+<h4 id="状态探针实现策略">4.2 状态探针实现策略</h4>
+<p>状态探针不直接访问 UI 组件，而是通过以下渠道获取状态：</p>
+<table>
+<thead>
+<tr class="header">
+<th>状态来源</th>
+<th>获取方式</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>SceneManager.currentScene</code></td>
+<td>直接读取 StateFlow</td>
+<td>验证当前页面</td>
+</tr>
+<tr class="even">
+<td><code>Capability.isAvailable()</code></td>
+<td>调用接口</td>
+<td>验证页面是否就绪</td>
+</tr>
+<tr class="odd">
+<td><code>CameraTestCommandDispatcher.currentState</code></td>
+<td>读取快照</td>
+<td>验证相机参数</td>
+</tr>
+<tr class="even">
+<td><code>ExecutionEngine.stateFlow</code></td>
+<td>收集 StateFlow</td>
+<td>验证计划执行状态</td>
+</tr>
+<tr class="odd">
+<td><code>AgentTestFramework.eventFlow</code></td>
+<td>收集事件流</td>
+<td>验证测试事件序列</td>
+</tr>
+<tr class="even">
+<td>结构化日志</td>
+<td>logcat 过滤</td>
+<td>验证业务事件</td>
+</tr>
+</tbody>
+</table>
+<h4 id="截屏的定位转变">4.3 截屏的定位转变</h4>
+<p>截屏从”主要验证手段”降级为”辅助诊断证据”：</p>
+<ul>
+<li><strong>不再用于</strong>: 判断按钮是否存在、判断是否黑屏、识别文字内容</li>
+<li><strong>仅用于</strong>: 失败时保留现场、人工复核时的视觉参考、UI 回归对比基线</li>
+</ul>
+<hr />
+<h3 id="测试报告与失败诊断">5. 测试报告与失败诊断</h3>
+<h4 id="报告结构">5.1 报告结构</h4>
+<div class="sourceCode" id="cb18"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;suiteName&quot;</span><span class="fu">:</span> <span class="st">&quot;Camera-P0-Agent&quot;</span><span class="fu">,</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="dv">1717603200000</span><span class="fu">,</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;totalCases&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;passedCount&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;failedCount&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;cases&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;caseId&quot;</span><span class="fu">:</span> <span class="st">&quot;TC-CAMERA-03-A&quot;</span><span class="fu">,</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;caseName&quot;</span><span class="fu">:</span> <span class="st">&quot;拍照与 GPU 后处理验证(Agent)&quot;</span><span class="fu">,</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;FAILED&quot;</span><span class="fu">,</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;failedStep&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;steps&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;确保在相机页面&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;PASSED&quot;</span><span class="fu">,</span> <span class="dt">&quot;durationMs&quot;</span><span class="fu">:</span> <span class="dv">1200</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;确保后置摄像头&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;PASSED&quot;</span><span class="fu">,</span> <span class="dt">&quot;durationMs&quot;</span><span class="fu">:</span> <span class="dv">800</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;设置美颜参数&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;PASSED&quot;</span><span class="fu">,</span> <span class="dt">&quot;durationMs&quot;</span><span class="fu">:</span> <span class="dv">600</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;触发拍照&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;FAILED&quot;</span><span class="fu">,</span> <span class="dt">&quot;durationMs&quot;</span><span class="fu">:</span> <span class="dv">5200</span><span class="fu">,</span> <span class="dt">&quot;reason&quot;</span><span class="fu">:</span> <span class="st">&quot;命令返回 Error: 相机页面未激活&quot;</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;验证 GPU 处理耗时&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;SKIPPED&quot;</span><span class="fu">,</span> <span class="dt">&quot;reason&quot;</span><span class="fu">:</span> <span class="st">&quot;前置步骤失败&quot;</span><span class="fu">}</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;agentActions&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;capture&quot;</span><span class="fu">,</span> <span class="dt">&quot;actionType&quot;</span><span class="fu">:</span> <span class="st">&quot;Error&quot;</span><span class="fu">,</span> <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;相机页面未激活，请先切换到相机页面&quot;</span><span class="fu">}</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;stateSnapshots&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;scene&quot;</span><span class="fu">:</span> <span class="st">&quot;GALLERY&quot;</span><span class="fu">,</span> <span class="dt">&quot;capabilities&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;GalleryCapability&quot;</span><span class="ot">,</span> <span class="st">&quot;NavigationCapability&quot;</span><span class="ot">]</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;scene&quot;</span><span class="fu">:</span> <span class="st">&quot;GALLERY&quot;</span><span class="fu">,</span> <span class="dt">&quot;capabilities&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;GalleryCapability&quot;</span><span class="ot">,</span> <span class="st">&quot;NavigationCapability&quot;</span><span class="ot">]</span><span class="fu">}</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;screenshots&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;after_capture_agent&quot;</span><span class="fu">,</span> <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;/sdcard/.../after_capture_agent_123456.png&quot;</span><span class="fu">}</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;logs&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;tag&quot;</span><span class="fu">:</span> <span class="st">&quot;CapabilityRegistry&quot;</span><span class="fu">,</span> <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;[CapturePhoto] Capability CameraCapability unavailable (delegate not bound)&quot;</span><span class="fu">,</span> <span class="dt">&quot;level&quot;</span><span class="fu">:</span> <span class="st">&quot;INFO&quot;</span><span class="fu">}</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;diagnosis&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;rootCause&quot;</span><span class="fu">:</span> <span class="st">&quot;相机页面未激活时执行拍照命令&quot;</span><span class="fu">,</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;suggestion&quot;</span><span class="fu">:</span> <span class="st">&quot;在步骤 0 中 navigateTo(camera) 后添加等待，确保 CameraCapability delegate 已绑定&quot;</span><span class="fu">,</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;confidence&quot;</span><span class="fu">:</span> <span class="st">&quot;HIGH&quot;</span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="自动诊断规则">5.2 自动诊断规则</h4>
+<div class="sourceCode" id="cb19"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 失败自动诊断引擎</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="kw">object</span> TestFailureDiagnosis <span class="op">{</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">diagnose</span><span class="op">(</span><span class="va">failure</span><span class="op">:</span> <span class="dt">AgentTestResult</span>.<span class="va">Failure</span>&lt;*&gt;<span class="op">):</span> <span class="dt">Diagnosis</span> <span class="op">{</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">step</span> <span class="op">=</span> failure<span class="op">.</span>failedStep</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">reason</span> <span class="op">=</span> failure<span class="op">.</span>reason</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">snapshots</span> <span class="op">=</span> failure<span class="op">.</span>context<span class="op">.</span>stateSnapshots</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">currentScene</span> <span class="op">=</span> snapshots<span class="op">.</span>lastOrNull<span class="op">()?.</span>state<span class="op">?.</span><span class="kw">get</span><span class="op">(</span><span class="st">&quot;scene&quot;</span><span class="op">)</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">{</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 诊断 1: 场景不匹配</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>            reason<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;未激活&quot;</span><span class="op">)</span> <span class="op">||</span> reason<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;页面未&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>                Diagnosis<span class="op">(</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>                    rootCause <span class="op">=</span> <span class="st">&quot;目标页面未激活时执行命令&quot;</span><span class="op">,</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>                    suggestion <span class="op">=</span> <span class="st">&quot;在导航命令后添加 waitForCapabilityAvailable 等待&quot;</span><span class="op">,</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>                    confidence <span class="op">=</span> DiagnosisConfidence<span class="op">.</span>HIGH<span class="op">,</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>                    category <span class="op">=</span> DiagnosisCategory<span class="op">.</span>SCENE_MISMATCH</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>                <span class="op">)</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 诊断 2: Capability 未注册</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>            reason<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;暂不支持&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>                Diagnosis<span class="op">(</span></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>                    rootCause <span class="op">=</span> <span class="st">&quot;Capability 未注册或命令映射错误&quot;</span><span class="op">,</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>                    suggestion <span class="op">=</span> <span class="st">&quot;检查 Application.onCreate 中是否注册了对应 Capability&quot;</span><span class="op">,</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>                    confidence <span class="op">=</span> DiagnosisConfidence<span class="op">.</span>HIGH<span class="op">,</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>                    category <span class="op">=</span> DiagnosisCategory<span class="op">.</span>CAPABILITY_MISSING</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>                <span class="op">)</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 诊断 3: 命令超时</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>            reason<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;timed out&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>                Diagnosis<span class="op">(</span></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>                    rootCause <span class="op">=</span> <span class="st">&quot;命令执行超时&quot;</span><span class="op">,</span></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>                    suggestion <span class="op">=</span> <span class="st">&quot;检查是否有阻塞操作，或增加 timeout 配置&quot;</span><span class="op">,</span></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>                    confidence <span class="op">=</span> DiagnosisConfidence<span class="op">.</span>MEDIUM<span class="op">,</span></span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>                    category <span class="op">=</span> DiagnosisCategory<span class="op">.</span>TIMEOUT</span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a>                <span class="op">)</span></span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 诊断 4: GPU 处理超时</span></span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>            reason<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;GPU&quot;</span><span class="op">)</span> <span class="op">&amp;&amp;</span> reason<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;超过&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>                Diagnosis<span class="op">(</span></span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>                    rootCause <span class="op">=</span> <span class="st">&quot;GPU 后处理性能不达标&quot;</span><span class="op">,</span></span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a>                    suggestion <span class="op">=</span> <span class="st">&quot;检查美颜参数是否过高，或检测模型是否降级到 CPU&quot;</span><span class="op">,</span></span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>                    confidence <span class="op">=</span> DiagnosisConfidence<span class="op">.</span>MEDIUM<span class="op">,</span></span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>                    category <span class="op">=</span> DiagnosisCategory<span class="op">.</span>PERF_REGRESSION</span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>                <span class="op">)</span></span>
+<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> Diagnosis<span class="op">(</span></span>
+<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>                rootCause <span class="op">=</span> <span class="st">&quot;未知原因: </span><span class="ss">$reason</span><span class="st">&quot;</span><span class="op">,</span></span>
+<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a>                suggestion <span class="op">=</span> <span class="st">&quot;请查看完整日志和截图进行人工分析&quot;</span><span class="op">,</span></span>
+<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a>                confidence <span class="op">=</span> DiagnosisConfidence<span class="op">.</span>LOW<span class="op">,</span></span>
+<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a>                category <span class="op">=</span> DiagnosisCategory<span class="op">.</span>UNKNOWN</span>
+<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb19-59"><a href="#cb19-59" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb19-60"><a href="#cb19-60" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-61"><a href="#cb19-61" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h3 id="迁移路径">6. 迁移路径</h3>
+<h4 id="阶段一桥接共存1-2-周">6.1 阶段一：桥接共存（1-2 周）</h4>
+<ul>
+<li>新增 <code>AgentTestCommandBridge</code>，将 <code>DeviceTestController</code> 的操作桥接到 <code>AgentCommand</code></li>
+<li>保留现有广播测试，新增 Agent 命令测试用例并行运行</li>
+<li>验证 Agent 命令的可靠性和反馈完整性</li>
+</ul>
+<h4 id="阶段二逐步替换2-3-周">6.2 阶段二：逐步替换（2-3 周）</h4>
+<ul>
+<li>将核心 P0 用例从广播命令迁移到 Agent 命令</li>
+<li>新增 <code>AgentStateProbe</code> 和诊断能力</li>
+<li>截屏从主要验证降级为辅助诊断</li>
+</ul>
+<h4 id="阶段三全面切换1-周">6.3 阶段三：全面切换（1 周）</h4>
+<ul>
+<li>移除 <code>CameraTestCommandReceiver</code> 和相关广播代码</li>
+<li><code>DeviceTestController</code> 仅保留设备级操作（截屏、日志、性能）</li>
+<li>所有测试用例通过 <code>AgentCommand</code> 执行</li>
+</ul>
+<h4 id="废弃代码清单">6.4 废弃代码清单</h4>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 45%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>操作</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CameraTestCommandReceiver.kt</code></td>
+<td>删除</td>
+<td><code>CapabilityRegistry.dispatch(AgentCommand, context)</code></td>
+</tr>
+<tr class="even">
+<td><code>CameraTestCommandDispatcher</code> 中的广播解析</td>
+<td>删除</td>
+<td><code>CapabilityRegistry.dispatch()</code></td>
+</tr>
+<tr class="odd">
+<td><code>AgentTestBroadcastReceiver.kt</code></td>
+<td>删除</td>
+<td>直接调用 <code>AgentTestOrchestrator</code></td>
+</tr>
+<tr class="even">
+<td><code>DeviceTestController.dispatchCommand()</code></td>
+<td>重构</td>
+<td>直接构造 <code>AgentCommand</code> 并 dispatch</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="与现有-agent-运行时的协同">7. 与现有 Agent 运行时的协同</h3>
+<h4 id="测试与生产的命令一致性">7.1 测试与生产的命令一致性</h4>
+<pre><code>用户语音输入 ──→ AgentOrchestrator ──→ CapabilityRegistry ──→ Capability.execute()
+                                                        ↑
+测试脚本输入 ──→ AgentTestOrchestrator ───────────────────┘</code></pre>
+<p>测试和生产使用完全相同的命令分发路径，确保： - 测试覆盖的就是用户实际触发的代码路径 - 新 Capability 注册后自动可被测试使用 - LLM 生成的命令可直接用于测试用例</p>
+<h4 id="测试专用-capability可选扩展">7.2 测试专用 Capability（可选扩展）</h4>
+<div class="sourceCode" id="cb21"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 测试专用 Capability</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 仅在测试模式下注册，提供生产环境不需要的诊断能力。</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> TestDiagnosticsCapability <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">name</span><span class="op">():</span> <span class="dt">String</span> <span class="op">=</span> <span class="st">&quot;TestDiagnostics&quot;</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">activeScenes</span><span class="op">():</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">SceneManager</span>.<span class="dt">Scene</span><span class="op">&gt;</span> <span class="op">=</span> emptyList<span class="op">()</span> <span class="co">// 全场景</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">supportedCommands</span><span class="op">():</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">String</span><span class="op">&gt;</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;get_internal_state&quot;</span><span class="op">,</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;trigger_gc&quot;</span><span class="op">,</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;dump_memory&quot;</span><span class="op">,</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;simulate_low_memory&quot;</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span><span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span> <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span> <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 实现诊断命令</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h3 id="收益总结">8. 收益总结</h3>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 27%" />
+<col style="width: 40%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>广播方案</th>
+<th>Agent 命令方案</th>
+<th>提升</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>类型安全</strong></td>
+<td>Bundle 字符串，运行时解析</td>
+<td><code>sealed class</code>，编译期检查</td>
+<td>消除参数错误</td>
+</tr>
+<tr class="even">
+<td><strong>执行反馈</strong></td>
+<td>无反馈，轮询 logcat</td>
+<td><code>Result&lt;AgentAction&gt;</code> 明确返回</td>
+<td>100% 可观测</td>
+</tr>
+<tr class="odd">
+<td><strong>场景感知</strong></td>
+<td>无</td>
+<td><code>SceneManager</code> + 自动排队</td>
+<td>跨页面测试可靠</td>
+</tr>
+<tr class="even">
+<td><strong>状态验证</strong></td>
+<td>截图+图像识别</td>
+<td>结构化状态探针</td>
+<td>速度快 10x+</td>
+</tr>
+<tr class="odd">
+<td><strong>失败诊断</strong></td>
+<td>人工分析日志</td>
+<td>自动诊断 + 建议</td>
+<td>诊断时间从小时到秒</td>
+</tr>
+<tr class="even">
+<td><strong>LLM 兼容</strong></td>
+<td>完全不兼容</td>
+<td>共用命令体系</td>
+<td>AI 可自动生成测试</td>
+</tr>
+<tr class="odd">
+<td><strong>维护成本</strong></td>
+<td>高（字符串易腐）</td>
+<td>低（类型重构安全）</td>
+<td>长期维护成本降低</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="交付审计清单">9. 交付审计清单</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>AgentTestOrchestrator</code> 双模式输入实现完成（自然语言 + 格式化指令）</label></li>
+<li><label><input type="checkbox" /><code>AgentStateProbe</code> 实现完成，支持场景/Capability/状态查询</label></li>
+<li><label><input type="checkbox" />新增断言类型 (<code>assertCommandSuccess</code>, <code>assertScene</code>, <code>assertPerformance</code>)</label></li>
+<li><label><input type="checkbox" />至少 3 个 P0 用例完成 Agent 命令迁移并验证通过（模式 B）</label></li>
+<li><label><input type="checkbox" />至少 1 个探索性测试用例验证自然语言模式（模式 A）</label></li>
+<li><label><input type="checkbox" />失败自动诊断引擎实现，覆盖常见失败模式</label></li>
+<li><label><input type="checkbox" />测试报告 JSON 格式更新，包含 <code>agentActions</code> 和 <code>diagnosis</code> 字段</label></li>
+<li><label><input type="checkbox" />废弃广播相关代码：<code>CameraTestCommandReceiver</code>, <code>AgentTestBroadcastReceiver</code></label></li>
+<li><label><input type="checkbox" />文档同步：本文档「9. 基于 Agent 命令的自动化测试」章节</label></li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>维护者</strong>: RD Agent <strong>评审者</strong>: CR Agent, QA Agent <strong>实验状态</strong>: 设计中 · 待评审</p>
+</blockquote>
+<h2 id="accessibility-ui-driver-使用">10. Accessibility UI Driver 使用</h2>
+<h3 id="前置条件">1. 前置条件</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>项目</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>代码分支</td>
+<td><code>main</code>（包含 <code>app/src/debug/java/com/mamba/picme/testing/accessibility/</code>）</td>
+</tr>
+<tr class="even">
+<td>构建工具</td>
+<td>Android Studio 或 <code>./gradlew</code></td>
+</tr>
+<tr class="odd">
+<td>Python</td>
+<td>3.8+（macOS/Linux 通常自带）</td>
+</tr>
+<tr class="even">
+<td>adb</td>
+<td>已配置并在 PATH 中</td>
+</tr>
+<tr class="odd">
+<td>设备</td>
+<td>Android 真机或模拟器，已开启开发者选项和 USB 调试</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="编译并安装-debug-apk">2. 编译并安装 Debug APK</h3>
+<p>在工程根目录执行：</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> :app:installDebug <span class="at">--no-daemon</span></span></code></pre></div>
+<p>成功后会看到 <code>BUILD SUCCESSFUL</code>，APK 会安装到当前连接的设备。</p>
+<p>验证安装：</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell pm list packages <span class="kw">|</span> <span class="fu">grep</span> com.mamba.picme</span></code></pre></div>
+<p>应输出：</p>
+<pre><code>package:com.mamba.picme</code></pre>
+<hr />
+<h3 id="启用-picmeaccessibilityservice">3. 启用 PicMeAccessibilityService</h3>
+<p>AccessibilityService 不会自动启用，需要手动在系统设置中打开，或通过 adb 命令开启。</p>
+<h4 id="方式-a通过系统设置推荐首次使用">方式 A：通过系统设置（推荐首次使用）</h4>
+<ol type="1">
+<li>打开设备的 <strong>设置 → 无障碍 → 已安装的服务</strong>（路径可能因厂商而异）</li>
+<li>找到 <strong>PoLang Accessibility Service</strong></li>
+<li>打开开关</li>
+<li>在弹出的权限确认对话框中点击 <strong>允许</strong></li>
+</ol>
+<h4 id="方式-b通过-adb适合自动化脚本">方式 B：通过 adb（适合自动化脚本）</h4>
+<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService</span></code></pre></div>
+<p>验证是否启用：</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell settings get secure enabled_accessibility_services</span></code></pre></div>
+<p>应包含：</p>
+<pre><code>com.mamba.picme/.accessibility.PicMeAccessibilityService</code></pre>
+<blockquote>
+<p>注意：部分国产 ROM 可能限制通过 adb 开启无障碍服务，若命令执行后未生效，请使用方式 A。</p>
+</blockquote>
+<hr />
+<h3 id="启动-picme-应用">4. 启动 PoLang 应用</h3>
+<div class="sourceCode" id="cb28"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell am start <span class="at">-n</span> com.mamba.picme/.MainActivity</span></code></pre></div>
+<p>等待应用进入主界面（相册网格）。</p>
+<hr />
+<h3 id="建立-pc-设备的通信通道">5. 建立 PC ↔︎ 设备的通信通道</h3>
+<p>AccessibilityService 在设备本地监听 <code>127.0.0.1:27183</code>。通过 adb forward 将该端口映射到开发机：</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> forward tcp:27183 tcp:27183</span></code></pre></div>
+<p>验证端口是否已转发：</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> forward <span class="at">--list</span></span></code></pre></div>
+<p>应输出类似：</p>
+<pre><code>&lt;device-serial&gt; tcp:27183 tcp:27183</code></pre>
+<blockquote>
+<p>每次重新插拔设备或重启 adb server 后，都需要重新执行 <code>adb forward</code>。</p>
+</blockquote>
+<hr />
+<h3 id="使用-ui_driver.py-手动操作">6. 使用 ui_driver.py 手动操作</h3>
+<p><code>scripts/ui_driver.py</code> 是 PC 端的 Python 客户端，通过 JSON-RPC 与设备上的 AccessibilityService 通信。</p>
+<h4 id="查看帮助">6.1 查看帮助</h4>
+<div class="sourceCode" id="cb32"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py <span class="at">--help</span></span></code></pre></div>
+<h4 id="获取当前界面结构dump">6.2 获取当前界面结构（dump）</h4>
+<div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py dump</span></code></pre></div>
+<p>输出示例（节选）：</p>
+<pre class="text"><code>[android.widget.FrameLayout] android.widget.FrameLayout bounds=(0,0,1200,2670)
+  [android.view.View] android.view.View bounds=(0,0,1200,2670)
+    ...
+    [android.view.View] android.view.View clickable, bounds=(719,166,875,322)
+      [android.view.View] 搜索照片 bounds=(758,205,836,283)
+      [android.widget.Button] android.widget.Button bounds=(732,179,862,309)</code></pre>
+<p>每一行格式：</p>
+<pre class="text"><code>[ClassName] text_or_contentDescription bounds=(left,top,right,bottom) [flags]</code></pre>
+<h4 id="点击元素">6.3 点击元素</h4>
+<p>支持通过 <code>text</code>、<code>content_description</code> 或 <code>bounds</code> 定位元素。</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 通过 contentDescription 点击搜索按钮</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py click <span class="at">--content-description</span> <span class="st">&quot;搜索照片&quot;</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 通过文本点击（会匹配包含该文本的节点）</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py click <span class="at">--text</span> <span class="st">&quot;2026-07-02&quot;</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 通过 bounds 点击（需要传入 JSON）</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py click <span class="at">--bounds</span> <span class="st">&#39;{&quot;left&quot;:758,&quot;top&quot;:205,&quot;right&quot;:836,&quot;bottom&quot;:283}&#39;</span></span></code></pre></div>
+<p>若目标节点本身不可点击，客户端会自动向上查找到可点击的父节点再执行点击。</p>
+<h4 id="长按">6.4 长按</h4>
+<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py long-click <span class="at">--content-description</span> <span class="st">&quot;搜索照片&quot;</span></span></code></pre></div>
+<h4 id="输入文本">6.5 输入文本</h4>
+<p>PoLang 的搜索框提示文字在 <code>EditText</code> 的子 <code>TextView</code> 上，因此直接通过 <code>--text</code> 定位不到 <code>EditText</code>。推荐先用 <code>dump</code> 获取搜索框的 bounds，再用 <code>--bounds</code> 输入：</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 先点击搜索进入搜索模式</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py click <span class="at">--content-description</span> <span class="st">&quot;搜索照片&quot;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 通过 bounds 在搜索框输入文本（bounds 从 dump 输出中复制）</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py input <span class="dt">\</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--bounds</span> <span class="st">&#39;{&quot;left&quot;:325,&quot;top&quot;:166,&quot;right&quot;:1135,&quot;bottom&quot;:322}&#39;</span> <span class="dt">\</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">--value</span> <span class="st">&quot;猫&quot;</span></span></code></pre></div>
+<blockquote>
+<p><code>input</code> 命令会聚焦目标节点并通过 <code>ACTION_SET_TEXT</code> 设置文本。它<strong>不会</strong>向上查找可点击父节点，因此请精确指向 <code>EditText</code> 本身。</p>
+</blockquote>
+<h4 id="返回键">6.6 返回键</h4>
+<div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py back</span></code></pre></div>
+<h4 id="滑动">6.7 滑动</h4>
+<div class="sourceCode" id="cb40"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py swipe <span class="dt">\</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--start-x</span> 600 <span class="at">--start-y</span> 2000 <span class="dt">\</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--end-x</span> 600 <span class="at">--end-y</span> 500 <span class="dt">\</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--duration</span> 300</span></code></pre></div>
+<h4 id="查找节点">6.8 查找节点</h4>
+<div class="sourceCode" id="cb41"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py find <span class="at">--content-description</span> <span class="st">&quot;关闭搜索&quot;</span></span></code></pre></div>
+<p>输出为 JSON 数组，包含匹配节点的完整信息。</p>
+<hr />
+<h3 id="运行集成验证脚本">7. 运行集成验证脚本</h3>
+<p><code>scripts/verify_ui_driver.py</code> 是一个端到端验证脚本，会自动：</p>
+<ol type="1">
+<li>如果当前在搜索模式，先按返回键回到主界面</li>
+<li>dump 主界面</li>
+<li>点击「搜索照片」</li>
+<li>dump 搜索界面</li>
+<li>验证是否出现「关闭搜索」，确认进入搜索模式</li>
+</ol>
+<p>执行：</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/verify_ui_driver.py</span></code></pre></div>
+<p>成功输出：</p>
+<pre class="text"><code>✅ Integration test passed: search mode entered</code></pre>
+<p>失败会输出：</p>
+<pre class="text"><code>❌ Integration test failed: search mode not detected after click</code></pre>
+<p>并返回非零退出码。</p>
+<hr />
+<h3 id="完整手动测试流程示例">8. 完整手动测试流程示例</h3>
+<div class="sourceCode" id="cb45"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. 安装 debug APK</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> :app:installDebug <span class="at">--no-daemon</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. 启用 AccessibilityService</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. 启动应用</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell am start <span class="at">-n</span> com.mamba.picme/.MainActivity</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. 等待应用启动</span></span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a><span class="fu">sleep</span> 3</span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. 建立端口转发</span></span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> forward tcp:27183 tcp:27183</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. 查看界面</span></span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ui_driver.py dump</span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 7. 执行集成验证</span></span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/verify_ui_driver.py</span></code></pre></div>
+<hr />
+<h3 id="常见问题">9. 常见问题</h3>
+<h4 id="connectionrefusederror-或-rpc-error">9.1 <code>ConnectionRefusedError</code> 或 <code>RPC error</code></h4>
+<p>可能原因：</p>
+<ul>
+<li>AccessibilityService 未启用 → 按第 3 步重新启用</li>
+<li>adb forward 未建立 → 重新执行 <code>adb forward tcp:27183 tcp:27183</code></li>
+<li>应用被杀死 → 重新启动 PoLang</li>
+<li>服务尚未初始化完成 → 等待 2-3 秒后重试</li>
+</ul>
+<h4 id="点击成功但界面没有反应">9.2 点击成功但界面没有反应</h4>
+<ul>
+<li>检查目标节点是否真实可交互（有些 View 只是装饰性容器）</li>
+<li>尝试使用更上层的 <code>contentDescription</code> 定位，或直接使用 <code>bounds</code></li>
+<li>某些自定义 View 可能不响应 Accessibility 点击，可改用 <code>swipe</code> 或 <code>input</code></li>
+</ul>
+<h4 id="dump-输出为空或只有-framelayout">9.3 dump 输出为空或只有 FrameLayout</h4>
+<ul>
+<li>应用可能不在前台 → 重新 <code>adb shell am start -n com.mamba.picme/.MainActivity</code></li>
+<li>当前窗口可能是系统弹窗/悬浮窗 → 关闭弹窗后再 dump</li>
+</ul>
+<h4 id="通过-adb-启用-accessibilityservice-后未生效">9.4 通过 adb 启用 AccessibilityService 后未生效</h4>
+<p>部分厂商 ROM 会拦截该设置，请改用系统设置界面手动开启。</p>
+<h4 id="脚本执行时提示找不到-ui_driver-模块">9.5 脚本执行时提示找不到 <code>ui_driver</code> 模块</h4>
+<p>确保在工程根目录执行脚本，或设置正确的 <code>PYTHONPATH</code>：</p>
+<div class="sourceCode" id="cb46"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PYTHONPATH</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span><span class="st">/scripts:</span><span class="va">$PYTHONPATH</span><span class="st">&quot;</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/verify_ui_driver.py</span></code></pre></div>
+<hr />
+<h3 id="安全与隐私提示">10. 安全与隐私提示</h3>
+<ul>
+<li>AccessibilityService 拥有较高的系统权限，仅用于 Debug 构建的自动化测试</li>
+<li>Release 构建不会包含该服务</li>
+<li>不要在生产环境或他人设备上随意开启此服务</li>
+</ul>
+<hr />
+<h3 id="下一步">11. 下一步</h3>
+<p>验证通过后，你可以：</p>
+<ul>
+<li>基于 <code>scripts/ui_driver.py</code> 编写更复杂的自动化测试用例</li>
+<li>将 <code>dump</code> 结果直接喂给 LLM，让 AI 基于结构化文本描述进行 UI 理解和操作决策</li>
+<li>探索 Phase 2：在 App 进程内直接消费 UI 结构化数据并本地调用大模型（无需经过 PC）</li>
+</ul>
+<h2 id="核心功能测试指引">11. 核心功能测试指引</h2>
+<h3 id="一环境准备">一、环境准备</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>项目</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Android 设备</td>
+<td>真机（arm64-v8a），API 24+</td>
+</tr>
+<tr class="even">
+<td>内存</td>
+<td>8GB+ 推荐（Qwen3.5-2B 端侧推理需要）</td>
+</tr>
+<tr class="odd">
+<td>存储</td>
+<td>5GB+ 可用空间（模型约 3GB + 照片库）</td>
+</tr>
+<tr class="even">
+<td>安装方式</td>
+<td><code>adb install -r app/build/outputs/apk/debug/picme-debug.apk</code></td>
+</tr>
+<tr class="odd">
+<td>API Key</td>
+<td>需配置 OpenAI 兼容 API（DeepSeek / 通义千问等）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="二需要授予的权限">二、需要授予的权限</h3>
+<p>首次启动时需依次授权，建议在系统设置中手动确认：</p>
+<table>
+<thead>
+<tr class="header">
+<th>权限</th>
+<th>用途</th>
+<th style="text-align: center;">必须</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CAMERA</code></td>
+<td>拍照、实时人脸检测</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr class="even">
+<td><code>POST_NOTIFICATIONS</code></td>
+<td>模型下载进度、TAG 扫描通知</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr class="odd">
+<td><code>READ_MEDIA_IMAGES</code></td>
+<td>读取相册已有照片</td>
+<td style="text-align: center;">✅</td>
+</tr>
+<tr class="even">
+<td><code>RECORD_AUDIO</code></td>
+<td>语音输入</td>
+<td style="text-align: center;">⭕</td>
+</tr>
+<tr class="odd">
+<td><code>SYSTEM_ALERT_WINDOW</code></td>
+<td>悬浮聊天气泡</td>
+<td style="text-align: center;">⭕</td>
+</tr>
+<tr class="even">
+<td><code>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</code></td>
+<td>后台扫描不中断</td>
+<td style="text-align: center;">⭕</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>TAG 扫描需后台持续运行</strong>：建议在系统设置中将 PoLang 加入电池优化白名单。</p>
+</blockquote>
+<hr />
+<h3 id="三必须下载的模型">三、必须下载的模型</h3>
+<p>进入 <strong><code>设置 → 模型中心</code></strong>，确保以下标记为 <strong>“必须”</strong> 的模型已下载：</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 26%" />
+<col style="width: 26%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>模型 ID</th>
+<th>名称</th>
+<th>用途</th>
+<th style="text-align: center;">大小（约）</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>qwen3_5_2b</code></td>
+<td>Qwen3.5-2B</td>
+<td>端侧图像理解与标签生成</td>
+<td style="text-align: center;">~2.5GB</td>
+</tr>
+<tr class="even">
+<td><code>sherpa-onnx-zipformer-zh-en</code></td>
+<td>Sherpa-ONNX Zipformer</td>
+<td>流式语音识别（语音输入）</td>
+<td style="text-align: center;">~280MB</td>
+</tr>
+<tr class="odd">
+<td><code>sherpa-onnx-kws-zipformer-wenetspeech</code></td>
+<td>Sherpa-ONNX KWS</td>
+<td>唤醒词检测</td>
+<td style="text-align: center;">~14MB</td>
+</tr>
+<tr class="even">
+<td><code>face-det-retina500m-mnn</code></td>
+<td>MNN ROI (Det500M)</td>
+<td>默认高精度人脸检测</td>
+<td style="text-align: center;">~5MB</td>
+</tr>
+<tr class="odd">
+<td><code>face-landmark-2d106-mnn</code></td>
+<td>MNN 2D106</td>
+<td>106 点人脸关键点定位</td>
+<td style="text-align: center;">~1MB</td>
+</tr>
+<tr class="even">
+<td><code>face-embedding-glint360k-r100-mnn</code></td>
+<td>Glint360K R100</td>
+<td>人脸特征向量提取（聚类/识别）</td>
+<td style="text-align: center;">~248MB</td>
+</tr>
+<tr class="odd">
+<td><code>mobileclip-onnx</code></td>
+<td>MobileCLIP-S2</td>
+<td>图像/文本语义编码（语义搜索/相册打标）</td>
+<td style="text-align: center;">~397MB</td>
+</tr>
+<tr class="even">
+<td><code>opus-mt-zh-en</code></td>
+<td>OPUS-MT</td>
+<td>中文→英文翻译（语义搜索查询翻译）</td>
+<td style="text-align: center;">~70MB</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>模型中心顶部 Tag 按”<strong>人脸检测</strong>”和”<strong>对话</strong>”排序，便于快速找到必须模型。</p>
+</blockquote>
+<hr />
+<h3 id="四核心页面与功能">四、核心页面与功能</h3>
+<h4 id="导航结构">4.1 导航结构</h4>
+<pre><code>┌──────────────────────────────────────┐
+│  Chat（对话）  ←→  Camera（拍照）    │
+│  Gallery（相册） ←→ Settings（设置）  │
+└──────────────────────────────────────┘</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>页面</th>
+<th>路由</th>
+<th>入口</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Camera（拍照）</td>
+<td><code>camera</code></td>
+<td>底部 Tab 第二个</td>
+</tr>
+<tr class="even">
+<td>Gallery（相册）</td>
+<td><code>gallery</code></td>
+<td>底部 Tab 第三个</td>
+</tr>
+<tr class="odd">
+<td>Chat（对话）</td>
+<td><code>chat</code></td>
+<td>底部 Tab 第一个</td>
+</tr>
+<tr class="even">
+<td>Settings（设置）</td>
+<td><code>settings</code></td>
+<td>Chat / Gallery 右上角齿轮图标</td>
+</tr>
+<tr class="odd">
+<td>Model Center</td>
+<td><code>model_center/{tag}</code></td>
+<td>设置页内部</td>
+</tr>
+<tr class="even">
+<td>TAG 控制页</td>
+<td><code>tag_control</code></td>
+<td>相册页内部入口</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="拍照页camera">4.2 拍照页（Camera）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>验证点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>点击快门按钮</td>
+<td>照片保存成功，有触觉反馈</td>
+</tr>
+<tr class="even">
+<td>切换前后摄像头</td>
+<td>预览画面正常切换，无黑屏</td>
+</tr>
+<tr class="odd">
+<td>美颜参数调节</td>
+<td>滑块实时生效：平滑、美白、瘦脸等</td>
+</tr>
+<tr class="even">
+<td>连续拍照</td>
+<td>5-10 张无卡顿、无 OOM</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="相册页gallery">4.3 相册页（Gallery）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>验证点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>照片网格加载</td>
+<td>缩略图正常显示，滚动流畅</td>
+</tr>
+<tr class="even">
+<td>点击照片</td>
+<td>进入大图预览，含人脸关键点标注</td>
+</tr>
+<tr class="odd">
+<td>按人物分组</td>
+<td>PERSON 模式下正确显示各人物簇</td>
+</tr>
+<tr class="even">
+<td>搜索照片</td>
+<td>输入标签关键词可过滤照片</td>
+</tr>
+<tr class="odd">
+<td>TAG 控制入口</td>
+<td>点击入口进入标签生成控制页</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="标签生成tag-控制页">4.4 标签生成（TAG 控制页）</h4>
+<h5 id="控制页布局">控制页布局</h5>
+<pre><code>┌──────────────────────────────────┐
+│     扫描进度卡片                  │
+│     数据库统计卡片                │
+│     ├ 总照片 / 含人脸 / 有标签 / 人物簇 │
+│     └ MFNet 模型状态              │
+│                                 │
+│     3-Pass 管道概览              │
+│                                 │
+│ ┌──────────────────────────┐     │
+│ │ 全量 3-Pass 扫描         │     │
+│ ├──────────────────────────┤     │
+│ │ Pass 1：人脸检测          │     │
+│ │ Pass 2：DBSCAN 聚类      │     │
+│ │ Pass 3：Qwen 标签        │     │
+│ │ Pass 3：重新生成标签      │     │
+│ │ ─────────────────────── │     │
+│ │ 增量扫描                 │     │
+│ │ 取消扫描                 │     │
+│ └──────────────────────────┘     │
+└──────────────────────────────────┘</code></pre>
+<h5 id="按钮功能说明">按钮功能说明</h5>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 45%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>按钮</th>
+<th>功能</th>
+<th>前置条件</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>全量 3-Pass 扫描</strong></td>
+<td>顺序执行 P1→P2→P3</td>
+<td>5 个必须模型已下载</td>
+</tr>
+<tr class="even">
+<td><strong>Pass 1：人脸检测</strong></td>
+<td>仅执行人脸检测 + Embedding 提取</td>
+<td>MNN ROI + 2D106 + Glint360K R100</td>
+</tr>
+<tr class="odd">
+<td><strong>Pass 2：DBSCAN 聚类</strong></td>
+<td>基于已有 embedding 重新聚类</td>
+<td>Pass 1 已执行过</td>
+</tr>
+<tr class="even">
+<td><strong>Pass 3：Qwen 标签</strong></td>
+<td>对无标签照片生成标签</td>
+<td>Pass 1 已执行过，Qwen 模型已下载</td>
+</tr>
+<tr class="odd">
+<td><strong>Pass 3：重新生成标签</strong></td>
+<td>清空全部标签后全量重标</td>
+<td>Qwen 模型已下载</td>
+</tr>
+<tr class="even">
+<td><strong>增量扫描</strong></td>
+<td>仅处理新增/未标记照片</td>
+<td>已有扫描基础</td>
+</tr>
+<tr class="odd">
+<td><strong>取消扫描</strong></td>
+<td>中断当前扫描任务</td>
+<td>扫描进行中</td>
+</tr>
+</tbody>
+</table>
+<h5 id="预期结果以-10-张含人脸照片为例">预期结果（以 10 张含人脸照片为例）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>Pass</th>
+<th style="text-align: center;">耗时（骁龙8 Gen3）</th>
+<th>预期输出</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>P1</td>
+<td style="text-align: center;">~30s</td>
+<td><code>含人脸: 10</code>，<code>Embedding: ≥10</code></td>
+</tr>
+<tr class="even">
+<td>P2</td>
+<td style="text-align: center;">~2s</td>
+<td><code>人物簇: 2-5</code>（取决于面孔数量）</td>
+</tr>
+<tr class="odd">
+<td>P3</td>
+<td style="text-align: center;">~2min</td>
+<td><code>有标签: 10</code>，每张照片含场景/活动/标签</td>
+</tr>
+</tbody>
+</table>
+<h5 id="重点验证">重点验证</h5>
+<ul class="task-list">
+<li><label><input type="checkbox" />P1 执行后”含人脸”数正确增长</label></li>
+<li><label><input type="checkbox" />P2 执行后人物簇数与实际面孔数匹配（不同人不会误合并）</label></li>
+<li><label><input type="checkbox" />P3 执行后每张照片可在相册中按标签搜索</label></li>
+<li><label><input type="checkbox" />锁屏/切换 App 后扫描持续进行（前台服务通知常驻）</label></li>
+<li><label><input type="checkbox" />取消扫描后状态正确停止</label></li>
+<li><label><input type="checkbox" />Pass 3 重新生成后旧标签被替换</label></li>
+</ul>
+<hr />
+<h4 id="chat-对话页">4.5 Chat 对话页</h4>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>验证点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>发送文字消息</td>
+<td>AI 回复正常，有输入中动画</td>
+</tr>
+<tr class="even">
+<td>发送图片</td>
+<td>拍照或从相册选择，AI 理解图片内容</td>
+</tr>
+<tr class="odd">
+<td>Markdown 渲染</td>
+<td>代码块、表格、列表格式正确</td>
+</tr>
+<tr class="even">
+<td>模型切换</td>
+<td>本地 Qwen / 云端模型正常切换</td>
+</tr>
+<tr class="odd">
+<td>侧边栏</td>
+<td>打开/关闭正常，历史对话记录</td>
+</tr>
+<tr class="even">
+<td>清空对话</td>
+<td>对话列表正确清空</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="模型中心">4.6 模型中心</h4>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>验证点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tag 排序</td>
+<td>“人脸检测”和”对话”排在前两位</td>
+</tr>
+<tr class="even">
+<td>“必须”标签</td>
+<td>MNN 系列 + Qwen 显示红色”必须”徽章</td>
+</tr>
+<tr class="odd">
+<td>下载模型</td>
+<td>有下载进度通知，完成后状态更新</td>
+</tr>
+<tr class="even">
+<td>轻量版标签</td>
+<td>&lt; 50MB 模型显示”轻量版”标签</td>
+</tr>
+<tr class="odd">
+<td>切换 Tab</td>
+<td>不同分类模型列表正常切换</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="五快速验证流程约-10-分钟">五、快速验证流程（约 10 分钟）</h3>
+<pre><code>1. 安装 APK → 打开应用 → 授予全部权限
+
+2. 设置 → 模型中心 → 优先下载 5 个&quot;必须&quot;模型
+   等待下载完成（Qwen3.5-2B 约 2.5GB，需 Wi-Fi）
+
+3. 拍照页 → 拍摄 3-5 张含人脸的样片（不同人物）
+
+4. 相册页 → TAG 控制 → &quot;全量 3-Pass 扫描&quot;
+   等待完成（约 2-5 分钟，首 Qwen 加载有额外开销）
+
+5. 相册页 → 验证：
+   ✓ 照片可正常浏览
+   ✓ 搜索标签可过滤到对应照片
+   ✓ PERSON 分组显示正确的人物簇
+
+6. Chat 页 → 发送含图片的消息
+   → 验证 AI 能正确理解图片内容并回复</code></pre>
+<hr />
+<h3 id="六常见问题">六、常见问题</h3>
+<table>
+<colgroup>
+<col style="width: 37%" />
+<col style="width: 62%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>排查步骤</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pass 1 结果为 0</td>
+<td>① 检查 MNN ROI + 2D106 模型是否已下载<br>② 确认相机权限已授予</td>
+</tr>
+<tr class="even">
+<td>Pass 2 人物簇不准确</td>
+<td>① 检查 Glint360K R100 模型是否已下载<br>② 聚类阈值在 <code>ClusteringConfig.kt</code>（当前余弦相似度阈值 0.72）</td>
+</tr>
+<tr class="odd">
+<td>Pass 3 标签为空</td>
+<td>① 检查 Qwen3.5-2B 模型是否已下载<br>② 确认 API Key 配置正确<br>③ 确认设备内存足够（需 4GB+ 空闲）</td>
+</tr>
+<tr class="even">
+<td>模型下载失败</td>
+<td>① 检查网络连接<br>② 确认存储空间 &gt; 5GB<br>③ 检查下载通知栏是否有错误提示</td>
+</tr>
+<tr class="odd">
+<td>扫描中途停止</td>
+<td>① 确认前台服务通知可见<br>② 检查电池优化白名单<br>③ 查看 logcat <code>PicMe:TagScheduler</code> 标签日志</td>
+</tr>
+<tr class="even">
+<td>Qwen 推理太慢</td>
+<td>① 当前为 CPU 推理，已禁用 OpenCL 回退<br>② 骁龙 8 Gen3 约为每张图 15-30s</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>参考文档</strong>: - <a href="../01-PRODUCT/NFR_SPEC.html">NFR_SPEC.md</a> — 非功能性需求规格 - <a href="../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.html">BEAUTY_ENGINE_TECH_SPEC.md</a> — 大美丽引擎技术规范（含帧同步美妆系统） - <a href="../05-DEVELOPMENT/DEVELOPMENT.html">DEVELOPMENT.md</a> — 开发规范（含代码审查检查清单）</p>
+</blockquote>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

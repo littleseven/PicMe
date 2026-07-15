@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>langchain4android Agent 架构设计 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item active" href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">02 Architecture</a> / <span>langchain4android Agent 架构设计</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#目录">目录</a></li>
+      <li><a href="#1-核心产品逻辑-core-product-logic">1. 核心产品逻辑 (Core Product Logic)</a></li>
+      <li><a href="#2-架构图">2. 架构图</a></li>
+      <li><a href="#3-核心组件设计">3. 核心组件设计</a></li>
+      <li><a href="#4-推理模式选型">4. 推理模式选型</a></li>
+      <li><a href="#5-命令扩展">5. 命令扩展</a></li>
+      <li><a href="#6-数据模型">6. 数据模型</a></li>
+      <li><a href="#7-agent-执行规约-execution-rules">7. Agent 执行规约 (Execution Rules)</a></li>
+      <li><a href="#8-常见陷阱检查清单-checklist">8. 常见陷阱检查清单 (Checklist)</a></li>
+      <li><a href="#9-验收标准">9. 验收标准</a></li>
+      <li><a href="#10-远程推理任务拆分-agent-task">10. 远程推理任务拆分 [agent-task]</a></li>
+      <li><a href="#11-架构演进路线图">11. 架构演进路线图</a></li>
+      <li><a href="#12-附录参考文档">12. 附录：参考文档</a></li>
+      </ul>
+    </div>
+<h1 id="langchain4android-agent-架构设计">langchain4android Agent 架构设计</h1>
+<blockquote>
+<p><strong>版本</strong>：4.0（合并版）<br />
+<strong>状态</strong>：已实施 / 迭代中<br />
+<strong>最后更新</strong>：2026-07-08<br />
+<strong>主要维护者</strong>：[RD] 全栈工程师<br />
+<strong>历史合并说明</strong>：本文档由 <code>AGENT_ARCHITECTURE.md</code> 与 <code>REMOTE_INFERENCE_ARCHITECTURE.md</code> 合并而成。远程推理相关的 OpenAI 协议、langchain4j 标准化、DeepSeek 适配、四层模型、性能成本与验收标准已并入“推理模式选型”与“远程推理”章节，原 <code>REMOTE_INFERENCE_ARCHITECTURE.md</code> 已删除。</p>
+</blockquote>
+<blockquote>
+<p><strong>边界声明（Boundary Statement）</strong> - 本文档定义 Agent 的运行时架构、Capability 模型与推理模式选型。 - 产品目标与验收口径以 <a href="../01-PRODUCT/FEATURES.html"><code>../01-PRODUCT/FEATURES.md</code></a> 为准。 - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 <a href="../../AGENTS.html"><code>AGENTS.md</code></a> 为准。 - <strong>重要：<code>:agent-core</code> 是 Java 基础库</strong>（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 <code>:runtime-core</code> 模块的 <code>runtime-core/src/main/java/com/mamba/picme/agent/core/</code> 目录下。详见 <a href="MODULE_ARCHITECTURE.html"><code>MODULE_ARCHITECTURE.md</code></a>。</p>
+</blockquote>
+<p><strong>模块定位</strong>: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PoLang）<br />
+<strong>阅读对象</strong>: RD、AI Agent</p>
+<hr />
+<h2 id="目录">目录</h2>
+<ol type="1">
+<li><a href="#1-核心产品逻辑-core-product-logic">核心产品逻辑</a></li>
+<li><a href="#2-架构图">架构图</a></li>
+<li><a href="#3-核心组件设计">核心组件设计</a></li>
+<li><a href="#4-推理模式选型">推理模式选型</a></li>
+<li><a href="#5-命令扩展">命令扩展</a></li>
+<li><a href="#6-数据模型">数据模型</a></li>
+<li><a href="#7-执行规约">执行规约</a></li>
+<li><a href="#8-常见陷阱检查清单">常见陷阱检查清单</a></li>
+<li><a href="#9-验收标准">验收标准</a></li>
+<li><a href="#10-远程推理任务拆分-agent-task">远程推理任务拆分</a></li>
+<li><a href="#11-架构演进路线图">架构演进路线图</a></li>
+<li><a href="#12-附录参考文档">附录：参考文档</a></li>
+</ol>
+<hr />
+<h2 id="核心产品逻辑-core-product-logic">1. 核心产品逻辑 (Core Product Logic)</h2>
+<h3 id="红线约束">1.1 红线约束</h3>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 45%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>约束</th>
+<th>定义</th>
+<th>验证方式</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>[PRIVACY]</strong></td>
+<td>敏感数据优先本地推理；确需云端处理时，必须获得用户授权且不得留存</td>
+<td>PrivacyGuard 拦截数据流 + 授权流程审计</td>
+</tr>
+<tr class="even">
+<td><strong>[PERF]</strong></td>
+<td>交互反馈 &lt; 100ms，LLM 推理后台完成</td>
+<td>端侧 Qwen3.5-2B 首 token 目标 &lt; 600ms</td>
+</tr>
+<tr class="odd">
+<td><strong>[I18N]</strong></td>
+<td>System Prompt 及用户可见回复禁止硬编码中文</td>
+<td>接入 string 资源</td>
+</tr>
+<tr class="even">
+<td><strong>[OFFLINE]</strong></td>
+<td>本地模型未下载时提供明确引导</td>
+<td>非静默失败</td>
+</tr>
+<tr class="odd">
+<td><strong>[TYPE_SAFE]</strong></td>
+<td>AgentCommand / AgentAction 必须使用 Sealed Class</td>
+<td>禁止字符串魔法值</td>
+</tr>
+</tbody>
+</table>
+<h3 id="当前架构模式adr-005-后">1.2 当前架构模式（ADR-005 后）</h3>
+<p><strong>本地链路</strong>：单轮 Function Calling（自定义 JSON 数组协议）<br />
+<strong>远程链路</strong>：标准 OpenAI Chat Completions API（原生 tool_calls + 流式 + 多轮对话）</p>
+<p>两条链路完全独立，无共享路由逻辑。</p>
+<pre><code>用户输入 → AgentOrchestrator.dispatch() → 模式选择
+    ├── LOCAL → LocalInferencePipeline → LocalLlmEngine → JSON 数组解析 → Capability 执行
+    └── REMOTE → RemoteInferencePipeline → RemoteOrchestrator → OpenAI tool_calls → Capability 执行</code></pre>
+<p><strong>核心组件状态</strong>:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>组件</th>
+<th>职责</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>AgentOrchestrator</code></td>
+<td>统一入口，管理本地/远程两条独立推理链路</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="even">
+<td><code>LocalInferencePipeline</code></td>
+<td>本地推理链路：L1 Cache + L2 Batch（自定义 JSON 数组协议）</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="odd">
+<td><code>RemoteInferencePipeline</code></td>
+<td>远程推理链路：OpenAI Chat Completions API（tool_calls·流式·多轮）</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="even">
+<td><code>LocalLlmEngine</code></td>
+<td>封装 MNN-LLM 客户端，Qwen3.5-2B 本地推理</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="odd">
+<td><code>RemoteOrchestrator</code></td>
+<td>远程推理编排：:agent-core OpenAiChatModel + ChatMemory</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="even">
+<td><code>:agent-core</code> (模块)</td>
+<td>Java Android Library，提供 LangChain4j 风格 API：ChatModel、<span class="citation" data-cites="Tool">@Tool</span>、AiServices、ChatMemory、OpenAiChatModel、OkHttp SSE 流式客户端</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="odd">
+<td><code>CapabilityRegistry</code></td>
+<td>Capability 注册与命令分发</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="even">
+<td><code>PrivacyGuard</code></td>
+<td>输入内容隐私分级与本地优先约束</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="odd">
+<td><code>MemoryManager</code></td>
+<td>DataStore 持久化对话历史，按 session 隔离</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="even">
+<td><code>KeywordSpotterEngine</code></td>
+<td>KWS 常驻低功耗唤醒词检测（Sherpa-ONNX，~14MB）</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="odd">
+<td><code>SherpaOnnxAsrEngine</code></td>
+<td>ASR 按需加载语音转录（Sherpa-ONNX，~282MB）</td>
+<td>✅ 已落地</td>
+</tr>
+<tr class="even">
+<td><code>FeishuRemoteChannel</code></td>
+<td>飞书 WebSocket 直连，IM 远程控制入口</td>
+<td>🔄 迭代中</td>
+</tr>
+<tr class="odd">
+<td><code>IntentCache</code></td>
+<td>L1 远程意图缓存，高频指令直接返回</td>
+<td>✅ 已落地</td>
+</tr>
+</tbody>
+</table>
+<p><strong>已移除组件（ADR-005/006，2026-06）</strong>： - <code>InferenceRouter</code> — 拆分为 <code>LocalInferencePipeline</code> + <code>RemoteInferencePipeline</code> 两条独立链路 - <code>ToolCallingChatLanguageModel</code> — 远程直接使用 langchain4j 原生 <code>OpenAiChatModel</code> - <code>ToolCallingOutputParser</code> — 远程使用标准 OpenAI <code>tool_calls</code> 响应格式 - <code>ToolPromptBuilder</code> — 拆分为 <code>LocalPromptBuilder</code> + <code>RemotePromptBuilder</code> - <code>AdaptiveStrategySelector</code> — 本地不再需要策略分级 - <code>ToolOrchestrator</code> — 编排逻辑合并入 <code>RemoteOrchestrator</code> - <code>SherpaMnnAsrEngine</code> + <code>com.k2fsa.sherpa.mnn.*</code> — 已迁移至 Sherpa-ONNX（<code>SherpaOnnxAsrEngine</code>） - <code>MnnAsrClient</code> — 占位死代码，同步移除 - 共清理 ~2,600 行冗余代码</p>
+<hr />
+<h2 id="架构图">2. 架构图</h2>
+<h3 id="系统全景架构">2.1 系统全景架构</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────────────┐
+│                               UI Layer (Compose)                               │
+│                                                                               │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐               │
+│  │   ChatScreen    │  │  GalleryScreen  │  │   CameraScreen  │               │
+│  │  🏠 默认首页     │  │  📸 智能相册     │  │  📷 辅助入口     │               │
+│  │  AI对话·模型切换  │  │  媒体浏览·AI搜索 │  │  美颜·滤镜·语音  │               │
+│  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘               │
+│           │                    │                    │                         │
+│           └────────────────────┼────────────────────┘                         │
+│                                ▼                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐    │
+│  │                   GlobalAgentPanel / AiAgentUseCase (Facade)           │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
+│  │  │ Chat UI  │ │Voice Btn │ │QuickActs │ │Model Sel │ │StatusBar │   │    │
+│  │  │(多线程)   │ │(KWS唤醒) │ │(快捷入口) │ │(本地/远程)│ │(推理状态) │   │    │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                       Agent Orchestration Layer (:app · Kotlin)                  │
+│                                                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐  │
+│  │                      AgentOrchestrator (编排器)                          │  │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐          │  │
+│  │  │SceneManager│ │PrivacyGuard│ │MemoryManager│ │IntentCache │          │  │
+│  │  │(场景感知)   │ │(隐私分级)   │ │(对话持久化)  │ │(L1远程缓存) │          │  │
+│  │  └────────────┘ └────────────┘ └────────────┘ └────────────┘          │  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
+│                    │                              │                           │
+│          LOCAL mode│                              │REMOTE mode                │
+│                    ▼                              ▼                           │
+│  ┌────────────────────────────┐  ┌──────────────────────────────────────┐   │
+│  │  LocalInferencePipeline    │  │  RemoteInferencePipeline              │   │
+│  │  ┌──────────────────────┐  │  │  ┌────────────────────────────────┐  │   │
+│  │  │ LocalLlmEngine       │  │  │  │ RemoteOrchestrator             │  │   │
+│  │  │ Qwen3.5-2B (MNN)     │  │  │  │ :agent-core OpenAiChatModel   │  │   │
+│  │  │ L1 Cache → L2 Batch  │  │  │  │ OpenAI Chat Completions API   │  │   │
+│  │  └──────────────────────┘  │  │  │ DeepSeek V4 适配               │  │   │
+│  └────────────────────────────┘  │  │ L2 Batch / L3 Plan / L4 Chat   │  │   │
+│                                  │  └────────────────────────────────┘  │   │
+│  ┌──────────────────────────┐    │                                      │   │
+│  │   Voice Pipeline (ONNX)  │    │  ┌────────────────────────────────┐  │   │
+│  │  ┌────────────────────┐  │    │  │ FeishuRemoteChannel            │  │   │
+│  │  │KeywordSpotterEngine│  │    │  │ 飞书 WebSocket 直连             │  │   │
+│  │  │ KWS always-on      │  │    │  │ IM消息→AgentCommand            │  │   │
+│  │  │ ~14MB · 50mW       │  │    │  │ 拍照回传·设备绑定·确认机制      │  │   │
+│  │  └─────────┬──────────┘  │    │  └────────────────────────────────┘  │   │
+│  │            │ 唤醒        │    │                                      │   │
+│  │  ┌─────────▼──────────┐  │    │  ┌────────────────────────────────┐  │   │
+│  │  │SherpaOnnxAsrEngine │  │    │  │ Cloudflare AI Gateway           │  │   │
+│  │  │ ASR on-demand      │  │    │  │ API Key 保护 · 速率限制          │  │   │
+│  │  │ ~282MB · 按需加载   │  │    │  │ DeepSeek / Claude 多模型路由    │  │   │
+│  │  └────────────────────┘  │    │  └────────────────────────────────┘  │   │
+│  └──────────────────────────┘    └──────────────────────────────────────┘   │
+│                                      │                                       │
+│                                      ▼                                       │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    CapabilityRegistry (能力注册表)                      │   │
+│  │                                                                       │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
+│  │  │ Camera   │ │ Gallery  │ │ Settings │ │ Navigate │ │ Editor   │  │   │
+│  │  │拍照/录像  │ │查看/删除  │ │主题/语言  │ │页面切换   │ │图片编辑  │  │   │
+│  │  │美颜/滤镜  │ │分享/搜索  │ │模型管理  │ │返回/退出  │ │AI 优化   │  │   │
+│  │  │变焦/曝光  │ │批量操作   │ │语音配置  │ │          │ │          │  │   │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
+│  │  ┌──────────┐                                                        │   │
+│  │  │ IMRemote │ 飞书远程控制 · 设备绑定 · 命令确认                        │   │
+│  │  └──────────┘                                                        │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          Domain / Data / Infra                                │
+│                                                                              │
+│  ┌────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
+│  │MediaRepo   │ │SettingsRepo  │ │ BeautyEngine │ │ MNN-LLM (本地模型)    │ │
+│  │(Room DB)   │ │(DataStore)   │ │ (OpenGL ES)  │ │ Qwen3.5-2B · 端侧推理 │ │
+│  └────────────┘ └──────────────┘ └──────────────┘ └──────────────────────┘ │
+│                                                                              │
+│  ┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐ │
+│  │ :agent-core (SDK)    │ │LlmModelDownloadManager│ │ FaceDetect Pipeline  │ │
+│  │ Java Library          │ │前台服务·断点续传       │ │ MediaPipe·MNN        │ │
+│  │ ChatModel·@Tool      │ └──────────────────────┘ └──────────────────────┘ │
+│  │ AiServices·SSE       │ ┌──────────────────────┐                           │
+│  └──────────────────────┘ │ Network Monitor      │                           │
+│                           │ 飞书重连·心跳保持     │                           │
+│                           └──────────────────────┘                           │
+└──────────────────────────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="推理链路数据流adr-005-后">2.2 推理链路数据流（ADR-005 后）</h3>
+<pre><code>用户输入 &quot;找出去年夏天的照片&quot; / &quot;磨皮50&quot;
+        │
+        ▼
+AgentOrchestrator.dispatch(input)
+        │
+        ├── PrivacyGuard.assess(input) → 敏感? → 强制 LOCAL
+        │
+        ├── LOCAL mode (默认端侧模型)
+        │   │
+        │   ├── IntentCache.lookup(input) → HIT? → 直接返回 (L1)
+        │   │
+        │   └── LocalLlmEngine.generate(messages)
+        │       └── MNN-LLM (Qwen3.5-2B) → JSON 数组解析 → Capability 执行
+        │
+        └── REMOTE mode (用户手动切换或隐私允许)
+            │
+            ├── IntentCache.lookup(input) → HIT? → 直接返回 (L1)
+            │
+            └── RemoteOrchestrator.chat(messages, tools)
+                └── :agent-core (Java Library)
+                    ├── OpenAiChatModel (ChatLanguageModel)
+                    ├── ToolSpecification (tool_calls 构建)
+                    └── OkHttp SSE Streaming (流式响应)
+                        └── Cloudflare Gateway → DeepSeek / Claude API
+                            → tool_calls 解析 → Capability 执行</code></pre>
+<h3 id="语音交互管线sherpa-onnx-双引擎">2.3 语音交互管线（Sherpa-ONNX 双引擎）</h3>
+<pre><code>[休眠态] Always-on KWS (~14MB · 50mW)
+    │
+    │ 用户说&quot;小觅拍张照&quot;
+    ▼
+KWS 检测到唤醒词 → 暂停 KWS
+    │
+    ▼
+加载 ASR (~282MB · ~500mW) → 转录 &quot;拍张照&quot;
+    │
+    ▼
+AgentOrchestrator.dispatch(&quot;拍张照&quot;) → Capability 执行
+    │
+    ▼
+释放 ASR → 恢复 KWS always-on</code></pre>
+<hr />
+<h2 id="核心组件设计">3. 核心组件设计</h2>
+<h3 id="scenemanager-场景管理器">3.1 SceneManager 场景管理器</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 场景管理器</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 负责：</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * 1. 跟踪当前活跃场景</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"> * 2. 根据场景获取对应的 Capability 集合</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"> * 3. 动态构建场景相关的 system prompt</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> SceneManager <span class="op">{</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">enum</span> <span class="kw">class</span> Scene <span class="op">{</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        GALLERY<span class="op">,</span>     <span class="co">// 相册首页（默认）</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        CHAT<span class="op">,</span>        <span class="co">// AI 对话二级页</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        CAMERA<span class="op">,</span>      <span class="co">// 相机页</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        SETTINGS<span class="op">,</span>    <span class="co">// 设置页</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        EDITOR<span class="op">,</span>      <span class="co">// 编辑页</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        DEBUG        <span class="co">// 调试页</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">_currentScene</span> <span class="op">=</span> MutableStateFlow<span class="op">(</span>Scene<span class="op">.</span>GALLERY<span class="op">)</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">currentScene</span><span class="op">:</span> StateFlow<span class="op">&lt;</span>Scene<span class="op">&gt;</span> <span class="op">=</span> _currentScene<span class="op">.</span>asStateFlow<span class="op">()</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">transitionTo</span><span class="op">(</span><span class="va">scene</span><span class="op">:</span> <span class="dt">Scene</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        _currentScene<span class="op">.</span>value <span class="op">=</span> scene</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co">     * 获取场景对应的 Capability 列表</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">getCapabilitiesForScene</span><span class="op">(</span><span class="va">scene</span><span class="op">:</span> <span class="dt">Scene</span><span class="op">):</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">String</span><span class="op">&gt;</span> <span class="op">=</span> <span class="cf">when</span> <span class="op">(</span>scene<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        Scene<span class="op">.</span>GALLERY <span class="op">-&gt;</span> listOf<span class="op">(</span><span class="st">&quot;gallery&quot;</span><span class="op">,</span> <span class="st">&quot;editor&quot;</span><span class="op">,</span> <span class="st">&quot;navigation&quot;</span><span class="op">)</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>        Scene<span class="op">.</span>CHAT <span class="op">-&gt;</span> listOf<span class="op">(</span><span class="st">&quot;chat&quot;</span><span class="op">,</span> <span class="st">&quot;navigation&quot;</span><span class="op">,</span> <span class="st">&quot;gallery&quot;</span><span class="op">,</span> <span class="st">&quot;editor&quot;</span><span class="op">)</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        Scene<span class="op">.</span>CAMERA <span class="op">-&gt;</span> listOf<span class="op">(</span><span class="st">&quot;camera&quot;</span><span class="op">,</span> <span class="st">&quot;navigation&quot;</span><span class="op">)</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>        Scene<span class="op">.</span>SETTINGS <span class="op">-&gt;</span> listOf<span class="op">(</span><span class="st">&quot;settings&quot;</span><span class="op">,</span> <span class="st">&quot;navigation&quot;</span><span class="op">)</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>        Scene<span class="op">.</span>EDITOR <span class="op">-&gt;</span> listOf<span class="op">(</span><span class="st">&quot;edit&quot;</span><span class="op">,</span> <span class="st">&quot;navigation&quot;</span><span class="op">)</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>        Scene<span class="op">.</span>DEBUG <span class="op">-&gt;</span> listOf<span class="op">(</span><span class="st">&quot;navigation&quot;</span><span class="op">)</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="分层-prompt-构建器adr-005-后">3.2 分层 Prompt 构建器（ADR-005 后）</h3>
+<p>本地和远程使用独立的 Prompt 构建器：</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 本地 Prompt — 精简、结构化</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> LocalPromptBuilder <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">buildSystemPrompt</span><span class="op">(</span><span class="va">capabilities</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">Capability</span>&gt;<span class="op">,</span> <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">):</span> <span class="dt">String</span> <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="st">        你是 PoLang AI 助手，运行在端侧设备。</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="st">        请根据用户输入，输出 JSON 数组格式的命令。</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="st">        可用命令：</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="st">        </span><span class="ss">${</span>capabilities<span class="op">.</span>joinToString<span class="op">(</span><span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span> <span class="op">{</span> <span class="st">&quot;- </span><span class="ss">${</span>it<span class="op">.</span>name<span class="ss">}</span><span class="st">: </span><span class="ss">${</span>it<span class="op">.</span>description<span class="ss">}</span><span class="st">&quot;</span> <span class="ss">}</span><span class="st">}</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="st">        输出格式：</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="st">        [{&quot;method&quot;:&quot;命令名称&quot;,&quot;args&quot;:{&quot;参数名&quot;:值}}]</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="st">        如果无法理解，输出：{&quot;method&quot;:&quot;text_reply&quot;,&quot;args&quot;:{&quot;text&quot;:&quot;回复内容&quot;}}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;&quot;&quot;</span><span class="op">.</span>trimIndent<span class="op">()</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">// 远程 Prompt — 标准 OpenAI 协议格式</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">// 通过 langchain4j 构建 ChatRequest，SDK 自动序列化为 OpenAI Chat Completions 请求体</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RemotePromptBuilder <span class="op">{</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">buildChatRequest</span><span class="op">(</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="va">systemPrompt</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="va">userInput</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        <span class="va">capabilities</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">Capability</span>&gt;</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">ChatRequest</span> <span class="op">{</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">toolSpecs</span> <span class="op">=</span> capabilities<span class="op">.</span>map <span class="op">{</span> cap <span class="op">-&gt;</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>            ToolSpecification<span class="op">.</span>builder<span class="op">()</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>                <span class="op">.</span>name<span class="op">(</span>cap<span class="op">.</span>name<span class="op">)</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>                <span class="op">.</span>description<span class="op">(</span>cap<span class="op">.</span>description<span class="op">)</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>                <span class="op">.</span>build<span class="op">()</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> ChatRequest<span class="op">.</span>builder<span class="op">()</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>messages<span class="op">(</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>                SystemMessage<span class="op">(</span>systemPrompt<span class="op">),</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>                UserMessage<span class="op">(</span>userInput<span class="op">)</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>toolSpecifications<span class="op">(</span>toolSpecs<span class="op">)</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span>build<span class="op">()</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>        <span class="co">// langchain4j 自动序列化为:</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        <span class="co">// POST /v1/chat/completions</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>        <span class="co">// {&quot;model&quot;:&quot;...&quot;,&quot;messages&quot;:[...],&quot;tools&quot;:[...]}</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="capability-接口扩展">3.3 Capability 接口扩展</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Capability 接口 V2</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 新增：</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * - 场景绑定：声明该 Capability 活跃的场景</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"> * - 上下文感知：接收页面特定的上下文数据</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">interface</span> Capability <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">name</span><span class="op">:</span> <span class="kw">String</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">description</span><span class="op">:</span> <span class="kw">String</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">     * 该 Capability 在哪些场景下可用</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">activeScenes</span><span class="op">():</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">SceneManager</span>.<span class="dt">Scene</span><span class="op">&gt;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">supportedCommands</span><span class="op">():</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">String</span><span class="op">&gt;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">     * 执行命令</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">     * @param command 解析后的命令</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">     * @param context 当前上下文</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">     * @param pageContext 页面特定上下文（如 Gallery 当前选中的照片）</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="co">     */</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">suspend</span> <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>        <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>        <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span> <span class="op">=</span> null</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="co"> * 页面上下文（页面特定状态）</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> <span class="fu">PageContext</span> <span class="op">{</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> GalleryContext<span class="op">(</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">currentMedia</span><span class="op">:</span> <span class="dt">MediaAsset</span><span class="op">?,</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">selectedItems</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">MediaAsset</span>&gt;<span class="op">,</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">isSelectionMode</span><span class="op">:</span> <span class="dt">Boolean</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">:</span> <span class="dt">PageContext</span><span class="op">()</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> SettingsContext<span class="op">(</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">currentCategory</span><span class="op">:</span> <span class="dt">String</span><span class="op">?</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">:</span> <span class="dt">PageContext</span><span class="op">()</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> EditorContext<span class="op">(</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">editingMedia</span><span class="op">:</span> <span class="dt">MediaAsset</span><span class="op">,</span></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">hasUnsavedChanges</span><span class="op">:</span> <span class="dt">Boolean</span></span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">:</span> <span class="dt">PageContext</span><span class="op">()</span></span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>    <span class="kw">object</span> None <span class="op">:</span> <span class="dt">PageContext</span><span class="op">()</span></span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="gallerycapability-示例">3.4 GalleryCapability 示例</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 相册控制 Capability</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> GalleryCapability<span class="op">(</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onViewMedia</span><span class="op">:</span> <span class="op">(</span>(<span class="dt">MediaAsset</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">)</span>? = null,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> onDeleteMedia<span class="op">:</span> <span class="op">(</span>(<span class="va">List</span>&lt;<span class="va">MediaAsset</span>&gt;<span class="op">)</span> -&gt; <span class="dt">Unit</span>)? = <span class="dt">null</span><span class="op">,</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onShareMedia</span><span class="op">:</span> <span class="op">((</span>List<span class="op">&lt;</span>MediaAsset<span class="op">&gt;)</span> <span class="op">-&gt;</span> <span class="kw">Unit</span><span class="op">)?</span> <span class="op">=</span> <span class="kw">null</span><span class="op">,</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onSelectMedia</span><span class="op">:</span> <span class="op">((</span>MediaAsset<span class="op">,</span> <span class="kw">Boolean</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="kw">Unit</span><span class="op">)?</span> <span class="op">=</span> <span class="kw">null</span><span class="op">,</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onSearch</span><span class="op">:</span> <span class="op">((</span><span class="kw">String</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="kw">Unit</span><span class="op">)?</span> <span class="op">=</span> <span class="kw">null</span><span class="op">,</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onSwitchViewMode</span><span class="op">:</span> <span class="op">((</span>ViewMode<span class="op">)</span> <span class="op">-&gt;</span> <span class="kw">Unit</span><span class="op">)?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">:</span> Capability <span class="op">{</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">name</span> <span class="op">=</span> <span class="st">&quot;gallery&quot;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">description</span> <span class="op">=</span> <span class="st">&quot;查看、删除、分享、搜索照片和视频&quot;</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">activeScenes</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span>SceneManager<span class="op">.</span>Scene<span class="op">.</span>GALLERY<span class="op">,</span> SceneManager<span class="op">.</span>Scene<span class="op">.</span>CHAT<span class="op">)</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">supportedCommands</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;view_media&quot;</span><span class="op">,</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;delete_media&quot;</span><span class="op">,</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;share_media&quot;</span><span class="op">,</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;select_media&quot;</span><span class="op">,</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;search_media&quot;</span><span class="op">,</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;switch_view&quot;</span><span class="op">,</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;text_reply&quot;</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">galleryContext</span> <span class="op">=</span> pageContext <span class="kw">as</span><span class="op">?</span> PageContext<span class="op">.</span>GalleryContext</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>ViewMedia <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>                <span class="kw">val</span> <span class="va">media</span> <span class="op">=</span> command<span class="op">.</span>mediaId<span class="op">?.</span>let <span class="op">{</span> findMediaById<span class="op">(</span>it<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>                    <span class="op">?:</span> galleryContext<span class="op">?.</span>currentMedia</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>                media<span class="op">?.</span>let <span class="op">{</span> onViewMedia<span class="op">?.</span>invoke<span class="op">(</span>it<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>DeleteMedia <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>                <span class="kw">val</span> <span class="va">items</span> <span class="op">=</span> command<span class="op">.</span>mediaIds<span class="op">.</span>mapNotNull <span class="op">{</span> findMediaById<span class="op">(</span>it<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span>ifEmpty <span class="op">{</span> galleryContext<span class="op">?.</span>selectedItems <span class="op">?:</span> emptyList<span class="op">()</span> <span class="op">}</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>                onDeleteMedia<span class="op">?.</span>invoke<span class="op">(</span>items<span class="op">)</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;不支持的命令&quot;</span><span class="op">))</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="navigationcapability-示例">3.5 NavigationCapability 示例</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 导航 Capability</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 在所有场景都可用，负责页面切换</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> NavigationCapability<span class="op">(</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onNavigate</span><span class="op">:</span> <span class="op">(</span><span class="dt">Screen</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onBack</span><span class="op">:</span> <span class="op">()</span> <span class="op">-&gt;</span> <span class="dt">Unit</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">name</span> <span class="op">=</span> <span class="st">&quot;navigation&quot;</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">description</span> <span class="op">=</span> <span class="st">&quot;页面导航：切换页面、返回上一页&quot;</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">activeScenes</span><span class="op">()</span> <span class="op">=</span> SceneManager<span class="op">.</span>Scene<span class="op">.</span>entries<span class="op">.</span>toList<span class="op">()</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">supportedCommands</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;navigate_to&quot;</span><span class="op">,</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;go_back&quot;</span><span class="op">,</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;text_reply&quot;</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>        <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>        <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>NavigateTo <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>                <span class="kw">val</span> <span class="va">screen</span> <span class="op">=</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">.</span>destination<span class="op">.</span>lowercase<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;camera&quot;</span><span class="op">,</span> <span class="st">&quot;相机&quot;</span> <span class="op">-&gt;</span> Screen<span class="op">.</span>Camera</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;gallery&quot;</span><span class="op">,</span> <span class="st">&quot;相册&quot;</span> <span class="op">-&gt;</span> Screen<span class="op">.</span>Gallery</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;settings&quot;</span><span class="op">,</span> <span class="st">&quot;设置&quot;</span> <span class="op">-&gt;</span> Screen<span class="op">.</span>Settings</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;editor&quot;</span><span class="op">,</span> <span class="st">&quot;编辑&quot;</span> <span class="op">-&gt;</span> Screen<span class="op">.</span>Editor</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;chat&quot;</span><span class="op">,</span> <span class="st">&quot;聊天&quot;</span> <span class="op">-&gt;</span> Screen<span class="op">.</span>Chat</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">else</span> <span class="op">-&gt;</span> <span class="kw">return</span> Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;未知页面：</span><span class="ss">${</span>command<span class="op">.</span>destination<span class="ss">}</span><span class="st">&quot;</span><span class="op">))</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>                onNavigate<span class="op">(</span>screen<span class="op">)</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>GoBack <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>                onBack<span class="op">()</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;不支持的导航命令&quot;</span><span class="op">))</span></span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="推理模式选型">4. 推理模式选型</h2>
+<h3 id="本地-vs-远程推理">4.1 本地 vs 远程推理</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 37%" />
+<col style="width: 37%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>本地推理</th>
+<th>远程推理</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>协议</strong></td>
+<td>自定义 JSON 数组</td>
+<td>标准 OpenAI Chat Completions API</td>
+</tr>
+<tr class="even">
+<td><strong>Library</strong></td>
+<td>无第三方依赖</td>
+<td>:agent-core (OpenAiChatModel)</td>
+</tr>
+<tr class="odd">
+<td><strong>Prompt</strong></td>
+<td>精简、结构化</td>
+<td>自然语言 + Tool Schema</td>
+</tr>
+<tr class="even">
+<td><strong>输出解析</strong></td>
+<td>简单 JSON 数组解析</td>
+<td>标准 JSON 反序列化（tool_calls）</td>
+</tr>
+<tr class="odd">
+<td><strong>约束方式</strong></td>
+<td>JSON 数组格式 Prompt 约束</td>
+<td>OpenAI 原生协议约束</td>
+</tr>
+<tr class="even">
+<td><strong>聊天/闲聊</strong></td>
+<td>通过 text_reply 命令兜底</td>
+<td>原生支持（流式 + 多轮）</td>
+</tr>
+<tr class="odd">
+<td><strong>Strategy</strong></td>
+<td>L1 Cache / L2 Batch</td>
+<td>L2 Batch / L3 Plan / L4 Chat</td>
+</tr>
+<tr class="even">
+<td><strong>延迟</strong></td>
+<td>&lt; 600ms</td>
+<td>500ms-2s</td>
+</tr>
+<tr class="odd">
+<td><strong>隐私</strong></td>
+<td>敏感数据本地处理，复杂推理可经用户授权后上云</td>
+<td>非敏感数据允许上云</td>
+</tr>
+</tbody>
+</table>
+<h3 id="端侧推理模式选型qwen3.5-2b">4.2 端侧推理模式选型（Qwen3.5-2B）</h3>
+<p><strong>不推荐完整 ReAct</strong>，原因： - 2B 模型 COT（链式思考）能力弱，Thought 质量不稳定 - AI 对话页要求 &lt; 500ms 首字延迟，多轮推理无法满足 <code>[PERF]</code> 红线 - 端侧电池/发热敏感</p>
+<p><strong>端侧能力边界（2026-06-12 验证）</strong>： | 能力 | 端侧支持 | 说明 | |——|———-|——| | 单条 Function Calling | 已验证 | 明确意图→JSON 命令，准确率 &gt; 90% | | 简单 Batch FC（2-3 条） | 部分支持 | JSON 数组格式需强 prompt 约束，偶有格式错误 | | 复杂组合指令（含条件/延迟） | 不支持 | 超出 2B 模型理解范围，明确走远程 | | 上下文推理（隐式引用） | 不支持 | “再亮一点”类指令需规则兜底 | | 开放式闲聊 | 不支持 | 生成质量差，应路由到远程 L4 |</p>
+<h3 id="远程推理模式选型">4.3 远程推理模式选型</h3>
+<p>远程模式下<strong>减少 LLM 调用次数</strong>比端侧更重要（RTT 成本主导）。</p>
+<p><strong>推荐分层自适应模式</strong>：</p>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 20%" />
+<col style="width: 13%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>层级</th>
+<th>模式</th>
+<th>适用场景</th>
+<th>协议</th>
+<th>输出格式</th>
+<th>执行位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Layer 1</td>
+<td>本地规则缓存</td>
+<td>高频指令命中缓存</td>
+<td>不走 LLM</td>
+<td>预定义命令</td>
+<td>端侧</td>
+</tr>
+<tr class="even">
+<td>Layer 2</td>
+<td>Batch Function Calling</td>
+<td>简单连续动作指令（2-3 步）</td>
+<td>OpenAI Chat Completions + tool_calls</td>
+<td><code>ToolExecutionRequest[]</code> → <code>AgentCommand[]</code></td>
+<td>远程</td>
+</tr>
+<tr class="odd">
+<td>Layer 3</td>
+<td>Plan-and-Execute</td>
+<td>条件/依赖/多步骤</td>
+<td>OpenAI Chat Completions + tool_calls</td>
+<td><code>ExecutionPlan</code> (含 command 字段)</td>
+<td>远程规划 + 本地执行</td>
+</tr>
+<tr class="even">
+<td>Layer 4</td>
+<td>流式 Chat</td>
+<td>开放式对话、闲聊</td>
+<td>OpenAI Chat Completions (stream=true)</td>
+<td>文本流 + 可选 tool_calls</td>
+<td>远程</td>
+</tr>
+</tbody>
+</table>
+<p><strong>远程优化策略</strong>： - 连接池 + Keep-Alive 复用 TCP - 100ms 防抖窗口合并请求 - 2s 超时降级到本地规则或文本提示 - 常见意图响应缓存（LruCache） - <strong>隐私分级</strong>：敏感数据（人脸/对话内容）强制本地；非敏感指令（天气/通用闲聊）允许远程</p>
+<h3 id="远程推理协议实现">4.4 远程推理协议实现</h3>
+<p>远程推理使用标准 OpenAI Chat Completions API 格式：</p>
+<p><strong>请求格式</strong>：</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="er">POST</span> <span class="er">/v1/chat/completions</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;model&quot;</span><span class="fu">:</span> <span class="st">&quot;deepseek-chat&quot;</span><span class="fu">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;messages&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">&quot;role&quot;</span><span class="fu">:</span> <span class="st">&quot;system&quot;</span><span class="fu">,</span> <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">&quot;role&quot;</span><span class="fu">:</span> <span class="st">&quot;user&quot;</span><span class="fu">,</span> <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="st">&quot;帮我优化这张照片&quot;</span><span class="fu">}</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tools&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;function&quot;</span><span class="fu">,</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;function&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;ai_optimize&quot;</span><span class="fu">,</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;AI 一键优化图片&quot;</span><span class="fu">,</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;parameters&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;properties&quot;</span><span class="fu">:</span> <span class="fu">{</span><span class="er">...</span><span class="fu">},</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;required&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="er">...</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;additionalProperties&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tool_choice&quot;</span><span class="fu">:</span> <span class="st">&quot;required&quot;</span><span class="fu">,</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;stream&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>响应格式（tool_calls）</strong>：</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;choices&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;role&quot;</span><span class="fu">:</span> <span class="st">&quot;assistant&quot;</span><span class="fu">,</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;tool_calls&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;call_xxx&quot;</span><span class="fu">,</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;function&quot;</span><span class="fu">,</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;function&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;ai_optimize&quot;</span><span class="fu">,</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;arguments&quot;</span><span class="fu">:</span> <span class="st">&quot;{</span><span class="ch">\&quot;</span><span class="st">image_id</span><span class="ch">\&quot;</span><span class="st">: </span><span class="ch">\&quot;</span><span class="st">img_123</span><span class="ch">\&quot;</span><span class="st">}&quot;</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span><span class="ot">]</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">]</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>关键规则</strong>： - <code>tool_calls</code> 是 <code>message</code> 对象的独立字段，与 <code>content</code> 互斥 - 当存在 <code>tool_calls</code> 时，<code>content</code> 必须为 <code>null</code> - 参数通过 <code>function.arguments</code> 传递，为标准 JSON 字符串</p>
+<p><strong>langchain4j 标准化实现</strong>：</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RemoteOrchestrator<span class="op">(</span><span class="va">config</span><span class="op">:</span> <span class="dt">RemoteModelConfig</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">openAiChatModel</span> <span class="op">=</span> OpenAiChatModel<span class="op">.</span>builder<span class="op">()</span>  <span class="co">// :agent-core</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>baseUrl<span class="op">(</span>config<span class="op">.</span>baseUrl<span class="op">)</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>apiKey<span class="op">(</span>config<span class="op">.</span>apiKey<span class="op">)</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>modelName<span class="op">(</span>config<span class="op">.</span>modelId<span class="op">)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>temperature<span class="op">(</span>config<span class="op">.</span>temperature<span class="op">)</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>maxTokens<span class="op">(</span>config<span class="op">.</span>maxTokens<span class="op">)</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>build<span class="op">()</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">chat</span><span class="op">(</span><span class="va">request</span><span class="op">:</span> <span class="dt">ChatRequest</span><span class="op">):</span> <span class="dt">ChatResponse</span> <span class="op">{</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 直接使用 :agent-core OpenAiChatModel，支持 tool_calls、流式、多轮</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>远程推理直接使用 <code>:agent-core OpenAiChatModel</code>，支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问等）；通过 <code>AiServices</code> 代理构建器 + <code>ChatMemory</code> 实现多轮对话。</p>
+<p><strong>命令解析（ToolCallCommandParser）</strong>：</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">object</span> ToolCallCommandParser <span class="op">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">parse</span><span class="op">(</span><span class="va">request</span><span class="op">:</span> <span class="dt">ToolExecutionRequest</span><span class="op">,</span> <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">):</span> <span class="dt">AgentCommand</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">name</span> <span class="op">=</span> request<span class="op">.</span>name<span class="op">()</span>      <span class="co">// 工具名 → 命令类型映射</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">args</span> <span class="op">=</span> request<span class="op">.</span>arguments<span class="op">()</span> <span class="co">// 标准 JSON 参数</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;switch_filter&quot;</span> <span class="op">-&gt;</span> AgentCommand<span class="op">.</span>SwitchFilter<span class="op">(</span>filterType <span class="op">=</span> parseFilterType<span class="op">(</span>args<span class="op">))</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;adjust_beauty&quot;</span> <span class="op">-&gt;</span> AgentCommand<span class="op">.</span>AdjustBeauty<span class="op">(</span>settings <span class="op">=</span> parseBeautySettings<span class="op">(</span>args<span class="op">))</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// ... 其他命令</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> AgentCommand<span class="op">.</span>TextReply<span class="op">(</span><span class="st">&quot;未知命令: </span><span class="ss">$name</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>远程解析器与本地解析器完全隔离： - 远程：<code>ToolCallCommandParser</code> — 解析 <code>name</code> + <code>arguments</code> → <code>AgentCommand</code> - 本地：<code>LocalCommandParser</code> — 解析 <code>method</code> + <code>params</code> → <code>AgentCommand</code></p>
+<h3 id="deepseek-适配">4.5 DeepSeek 适配</h3>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 30%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>适配项</th>
+<th>实现</th>
+<th>位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>禁用 thinking</td>
+<td>API 请求自动附加 <code>thinking: {"type": "disabled"}</code></td>
+<td><code>OpenAiChatModel</code> 内部处理</td>
+</tr>
+<tr class="even">
+<td>strict 模式兼容</td>
+<td>ToolSpec 自动添加 <code>additionalProperties: false</code></td>
+<td><code>OpenAiChatModel</code> 内部处理</td>
+</tr>
+<tr class="odd">
+<td>tool_choice 修复</td>
+<td><code>REQUIRED</code> 正确映射为 <code>"required"</code>（非 <code>"auto"</code>）</td>
+<td><code>OpenAiChatModel</code> 内部处理</td>
+</tr>
+<tr class="even">
+<td>content 回退解析</td>
+<td>当 API 未返回 tool_calls 但 content 含 tool_calls JSON 时，正则提取解析</td>
+<td><code>RemoteOrchestrator.parseFallbackToolCalls()</code></td>
+</tr>
+<tr class="odd">
+<td>Prompt 规范</td>
+<td>禁止在 Prompt 中提供具体 tool_calls JSON 示例，避免模型输出到 content</td>
+<td><code>RemotePromptBuilder</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="性能与成本考量">4.6 性能与成本考量</h3>
+<p><strong>Token 消耗估算</strong>：</p>
+<table>
+<thead>
+<tr class="header">
+<th>模式</th>
+<th>System Prompt</th>
+<th>User Input</th>
+<th>Output</th>
+<th>单次总 Token</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>L1 Cache</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>L2 Batch</td>
+<td>~800</td>
+<td>~50</td>
+<td>~200</td>
+<td>~1050</td>
+</tr>
+<tr class="odd">
+<td>L3 Plan</td>
+<td>~1000</td>
+<td>~100</td>
+<td>~500</td>
+<td>~1600</td>
+</tr>
+<tr class="even">
+<td>L4 Chat</td>
+<td>~800</td>
+<td>~50</td>
+<td>~300</td>
+<td>~1150</td>
+</tr>
+</tbody>
+</table>
+<p><strong>延迟估算</strong>：</p>
+<table>
+<thead>
+<tr class="header">
+<th>模式</th>
+<th>网络 RTT</th>
+<th>LLM 生成</th>
+<th>解析</th>
+<th>总延迟</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>L1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>&lt; 10ms</td>
+</tr>
+<tr class="even">
+<td>L2</td>
+<td>200-500ms</td>
+<td>200-500ms</td>
+<td>50ms</td>
+<td>450-1050ms</td>
+</tr>
+<tr class="odd">
+<td>L3</td>
+<td>200-500ms</td>
+<td>500-1000ms</td>
+<td>100ms</td>
+<td>800-1600ms</td>
+</tr>
+<tr class="even">
+<td>L4 (流式)</td>
+<td>200-500ms</td>
+<td>首 token 50-200ms</td>
+<td>50ms</td>
+<td>250-750ms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>优化策略</strong>： 1. <strong>L1 缓存预热</strong>：启动时预置 50+ 高频意图 2. <strong>L2 默认化</strong>：80% 场景走 L2，保持简单高效 3. <strong>L3 异步执行</strong>：计划生成后异步执行，不阻塞 UI 4. <strong>L4 流式</strong>：首 token 低延迟，提升对话体验 5. <strong>连接池 + Keep-Alive</strong>：复用 TCP 连接</p>
+<hr />
+<h2 id="命令扩展">5. 命令扩展</h2>
+<div class="sourceCode" id="cb14"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Agent 命令 V2</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 新增 Gallery、Settings、Navigation、Edit 相关命令</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> AgentCommand <span class="op">{</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ===== 相机命令（已有）=====</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> AdjustBeauty<span class="op">(</span><span class="kw">val</span> <span class="va">settings</span><span class="op">:</span> <span class="dt">BeautySettings</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> SwitchFilter<span class="op">(</span><span class="kw">val</span> <span class="va">filterType</span><span class="op">:</span> <span class="dt">FilterType</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ... 其他相机命令</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ===== Gallery 命令（新增）=====</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> ViewMedia<span class="op">(</span><span class="kw">val</span> <span class="va">mediaId</span><span class="op">:</span> <span class="dt">String</span><span class="op">?</span> <span class="op">=</span> null<span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> DeleteMedia<span class="op">(</span><span class="kw">val</span> <span class="va">mediaIds</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">String</span>&gt; <span class="op">=</span> emptyList<span class="op">())</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> ShareMedia<span class="op">(</span><span class="kw">val</span> <span class="va">mediaIds</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">String</span>&gt; <span class="op">=</span> emptyList<span class="op">())</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> SelectMedia<span class="op">(</span><span class="kw">val</span> <span class="va">mediaId</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="kw">val</span> <span class="va">selected</span><span class="op">:</span> <span class="dt">Boolean</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> SearchMedia<span class="op">(</span><span class="kw">val</span> <span class="va">query</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> SwitchViewMode<span class="op">(</span><span class="kw">val</span> <span class="va">mode</span><span class="op">:</span> <span class="dt">ViewMode</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ===== 设置命令（新增）=====</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> ChangeTheme<span class="op">(</span><span class="kw">val</span> <span class="va">theme</span><span class="op">:</span> <span class="dt">ThemeMode</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> ChangeLanguage<span class="op">(</span><span class="kw">val</span> <span class="va">language</span><span class="op">:</span> <span class="dt">AppLanguage</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> DownloadModel<span class="op">(</span><span class="kw">val</span> <span class="va">modelId</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> SwitchFaceEngine<span class="op">(</span><span class="kw">val</span> <span class="va">engine</span><span class="op">:</span> <span class="dt">FaceDetectionEngineMode</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> ToggleSetting<span class="op">(</span><span class="kw">val</span> <span class="va">settingKey</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="kw">val</span> <span class="va">enabled</span><span class="op">:</span> <span class="dt">Boolean</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ===== 导航命令（新增）=====</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> NavigateTo<span class="op">(</span><span class="kw">val</span> <span class="va">destination</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">object</span> GoBack <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ===== 编辑命令（新增）=====</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> ApplyEdit<span class="op">(</span><span class="kw">val</span> <span class="va">editType</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="kw">val</span> <span class="va">params</span><span class="op">:</span> <span class="dt">Map</span>&lt;<span class="va">String</span><span class="op">,</span> <span class="va">Any</span>&gt;<span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">object</span> SaveEdit <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">object</span> UndoEdit <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ===== 通用命令 =====</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> TextReply<span class="op">(</span><span class="kw">val</span> <span class="va">message</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Unknown<span class="op">(</span><span class="kw">val</span> <span class="va">raw</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Error<span class="op">(</span><span class="kw">val</span> <span class="va">reason</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="功能覆盖矩阵">5.1 功能覆盖矩阵</h3>
+<h4 id="当前已接入功能已验证">当前已接入功能（已验证）</h4>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 26%" />
+<col style="width: 13%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>功能域</th>
+<th>具体功能</th>
+<th>命令类型</th>
+<th>Capability</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>相机控制</strong></td>
+<td>拍照</td>
+<td><code>CapturePhoto</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>开始/停止录像</td>
+<td><code>ToggleRecording</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>翻转摄像头</td>
+<td><code>FlipCamera</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>变焦调节</td>
+<td><code>AdjustZoom</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>曝光调节</td>
+<td><code>AdjustExposure</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>切换拍摄模式</td>
+<td><code>SwitchMode</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td><strong>美颜</strong></td>
+<td>磨皮/美白调节</td>
+<td><code>AdjustBeauty</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>瘦脸/大眼调节</td>
+<td><code>AdjustBeauty</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>唇色/腮红调节</td>
+<td><code>AdjustBeauty</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td><strong>滤镜/风格</strong></td>
+<td>切换滤镜</td>
+<td><code>SwitchFilter</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>切换风格特效</td>
+<td><code>SwitchStyle</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>切换场景模式</td>
+<td><code>SwitchScene</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>切换画幅比例</td>
+<td><code>SwitchRatio</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="even">
+<td><strong>对话</strong></td>
+<td>文本回复/聊天</td>
+<td><code>TextReply</code></td>
+<td>CameraCapability</td>
+<td>已验证</td>
+</tr>
+<tr class="odd">
+<td><strong>远程控制</strong></td>
+<td>飞书消息处理</td>
+<td>多种</td>
+<td>RemoteControlCapability</td>
+<td>开发中</td>
+</tr>
+</tbody>
+</table>
+<h4 id="v2-新增功能开发中">V2 新增功能（开发中）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>功能域</th>
+<th>具体功能</th>
+<th>命令类型</th>
+<th>Capability</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Gallery</strong></td>
+<td>查看照片</td>
+<td><code>ViewMedia</code></td>
+<td>GalleryCapability</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>删除照片</td>
+<td><code>DeleteMedia</code></td>
+<td>GalleryCapability</td>
+<td>P0</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>分享照片</td>
+<td><code>ShareMedia</code></td>
+<td>GalleryCapability</td>
+<td>P1</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>照片搜索</td>
+<td><code>SearchMedia</code></td>
+<td>GalleryCapability</td>
+<td>P2</td>
+</tr>
+<tr class="odd">
+<td><strong>设置</strong></td>
+<td>切换主题</td>
+<td><code>ChangeTheme</code></td>
+<td>SettingsCapability</td>
+<td>P1</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>切换语言</td>
+<td><code>ChangeLanguage</code></td>
+<td>SettingsCapability</td>
+<td>P1</td>
+</tr>
+<tr class="odd">
+<td><strong>导航</strong></td>
+<td>切换页面</td>
+<td><code>NavigateTo</code></td>
+<td>NavigationCapability</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>返回上一页</td>
+<td><code>GoBack</code></td>
+<td>NavigationCapability</td>
+<td>P0</td>
+</tr>
+<tr class="odd">
+<td><strong>编辑</strong></td>
+<td>进入编辑</td>
+<td>预留</td>
+<td>EditorCapability</td>
+<td>P2</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="数据模型">6. 数据模型</h2>
+<h3 id="agentcommand-密封类">6.1 AgentCommand 密封类</h3>
+<p>见 <a href="#5-命令扩展">第 5 章</a>。</p>
+<h3 id="推理结果包装">6.2 推理结果包装</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> InferenceResult <span class="op">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Local<span class="op">(</span><span class="kw">val</span> <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">)</span> <span class="op">:</span> <span class="dt">InferenceResult</span><span class="op">()</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Remote<span class="op">(</span><span class="kw">val</span> <span class="va">commands</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">AgentCommand</span>&gt;<span class="op">)</span> <span class="op">:</span> <span class="dt">InferenceResult</span><span class="op">()</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Text<span class="op">(</span><span class="kw">val</span> <span class="va">message</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">InferenceResult</span><span class="op">()</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Plan<span class="op">(</span><span class="kw">val</span> <span class="va">plan</span><span class="op">:</span> <span class="dt">ExecutionPlan</span><span class="op">)</span> <span class="op">:</span> <span class="dt">InferenceResult</span><span class="op">()</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> Error<span class="op">(</span><span class="kw">val</span> <span class="va">reason</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">InferenceResult</span><span class="op">()</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="executionplanl3-plan-模式">6.3 ExecutionPlan（L3 Plan 模式）</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;plan_id&quot;</span><span class="fu">:</span> <span class="st">&quot;uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;steps&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;currentCamera == BACK&quot;</span><span class="fu">,</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;flip_camera&quot;</span><span class="fu">,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;arguments&quot;</span><span class="fu">:</span> <span class="st">&quot;{}&quot;</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;切换到前置摄像头&quot;</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="aiagentusecasefacade">6.4 AiAgentUseCase（Facade）</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AiAgentUseCase<span class="op">(</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">context</span><span class="op">:</span> <span class="dt">Context</span><span class="op">,</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">agentMode</span><span class="op">:</span> <span class="dt">AiAgentMode</span> <span class="op">=</span> AiAgentMode<span class="op">.</span>REMOTE<span class="op">,</span> <span class="co">// 默认 REMOTE（远程优先）</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">privacyLevel</span><span class="op">:</span> <span class="dt">AiAgentPrivacyLevel</span> <span class="op">=</span> AiAgentPrivacyLevel<span class="op">.</span>STRICT<span class="op">,</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="va">localModelId</span><span class="op">:</span> <span class="dt">String</span> <span class="op">=</span> <span class="st">&quot;qwen3_5_2b&quot;</span><span class="op">,</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="va">remoteConfig</span><span class="op">:</span> <span class="dt">RemoteModelConfig</span><span class="op">?</span> <span class="op">=</span> null<span class="op">,</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="va">forceRemote</span><span class="op">:</span> <span class="dt">Boolean</span> <span class="op">=</span> false</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">orchestrator</span> <span class="op">=</span> AgentOrchestrator<span class="op">(</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        localPipeline <span class="op">=</span> LocalInferencePipeline<span class="op">(...),</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        remotePipeline <span class="op">=</span> RemoteInferencePipeline<span class="op">(...)</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    suspend <span class="kw">fun</span> <span class="fu">processInput</span><span class="op">(</span><span class="va">userInput</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">):</span> <span class="dt">InferenceResult</span> <span class="op">{</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>configurator<span class="op">.</span>getAgentMode<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>            AiAgentMode<span class="op">.</span>LOCAL <span class="op">-&gt;</span> localPipeline<span class="op">.</span>process<span class="op">(</span>input<span class="op">)</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>            AiAgentMode<span class="op">.</span>REMOTE <span class="op">-&gt;</span> remotePipeline<span class="op">.</span>process<span class="op">(</span>input<span class="op">)</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>            AiAgentMode<span class="op">.</span>OFF <span class="op">-&gt;</span> Result<span class="op">.</span>failure<span class="op">(</span>AgentDisabledException<span class="op">())</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="im-远程控制集成">6.5 IM 远程控制集成</h3>
+<p>飞书远程控制复用同一 <code>RemoteOrchestrator</code> 和 <code>RemoteInferencePipeline</code>：</p>
+<pre><code>飞书消息 → FeishuChannelHandler → RemoteCommandDispatcher
+    → LLM 解析意图（复用 RemoteOrchestrator，独立 System Prompt）
+    → CapabilityRegistry.dispatch()
+    → 结果 → FeishuChannelHandler.sendMessage/sendImage</code></pre>
+<hr />
+<h2 id="agent-执行规约-execution-rules">7. Agent 执行规约 (Execution Rules)</h2>
+<ul>
+<li><strong>JSON 解析</strong>: 必须使用 <code>kotlinx.serialization.json</code>，严禁正则提取字段</li>
+<li><strong>System Prompt</strong>: 禁止硬编码在 <code>AgentOrchestrator</code> 内，需抽象为 <code>PromptBuilder</code> 策略接口</li>
+<li><strong>Capability 注册</strong>: 新增 Capability 必须同步更新 <code>CapabilityRegistry</code> 的命令映射，禁止遗漏</li>
+<li><strong>Memory 持久化</strong>: <code>appendConversation</code> 需引入内存缓存 + 批量刷盘，禁止每条消息 2 次 DataStore IO</li>
+<li><strong>ChatML 格式</strong>: <code>LocalLlmEngine</code> 禁止硬编码 Qwen ChatML，需抽象 <code>ChatFormat</code> 接口按模型注册</li>
+<li><strong>线程安全</strong>: <code>AgentOrchestrator</code> 的 <code>agentMode</code> / <code>currentModelId</code> 需同步控制，禁止并发修改</li>
+<li><strong>模型加载</strong>: 快速连续调用需加并发锁，避免触发多次加载</li>
+<li><strong>隐私拦截</strong>: <code>PrivacyGuard</code> 必须接入 LLM 输入输出流和 Capability 执行链路，禁止仅做断言</li>
+<li><strong>日志规范</strong>: 统一使用 <code>PicMe:[Module]</code> 前缀，禁止各组件标签不一致</li>
+<li><strong>协议隔离</strong>: 远程 tool_calls 与本地 method/params 必须彻底隔离，禁止混用</li>
+</ul>
+<hr />
+<h2 id="常见陷阱检查清单-checklist">8. 常见陷阱检查清单 (Checklist)</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />JSON 解析是否使用了正则？（必须用 kotlinx.serialization，正则无法处理嵌套/转义）</label></li>
+<li><label><input type="checkbox" />System Prompt 是否硬编码在类内？（需按场景插件化，违反 OCP）</label></li>
+<li><label><input type="checkbox" />新增 AgentCommand 子类后是否同步更新了 CapabilityRegistry 的映射？（易遗漏）</label></li>
+<li><label><input type="checkbox" />MemoryManager 是否存在 IO 放大问题？（每条消息 2 次 DataStore 读写需优化）</label></li>
+<li><label><input type="checkbox" />ChatML 格式是否与模型耦合？（换模型如 Llama/Gemma 需改代码）</label></li>
+<li><label><input type="checkbox" />CameraCapability 回调是否为 null？（11 个可选回调需 Builder 模式或统一接口）</label></li>
+<li><label><input type="checkbox" />模型加载是否有并发控制？（快速连续调用可能触发多次加载）</label></li>
+<li><label><input type="checkbox" />PrivacyGuard 是否实际拦截了数据流？（当前仅断言，未接入 LLM 和 Capability）</label></li>
+<li><label><input type="checkbox" />用户可见文案是否硬编码中文？（需接入 strings.xml 支持多语言）</label></li>
+<li><label><input type="checkbox" />AgentAction.Success 是否携带了语义冗余？（应携带执行结果数据，而非原命令）</label></li>
+<li><label><input type="checkbox" />远程 Prompt 是否包含 tool_calls JSON 示例？（会导致模型输出到 content 字段）</label></li>
+<li><label><input type="checkbox" />content 字段是否处理了空字符串陷阱？（需使用 <code>isNotBlank()</code> 而非 <code>isNullOrEmpty()</code>）</label></li>
+<li><label><input type="checkbox" />DeepSeek 请求是否禁用了 thinking 模式？（V4 系列必须禁用）</label></li>
+</ul>
+<hr />
+<h2 id="验收标准">9. 验收标准</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 40%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>验收项</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AC-1</td>
+<td>远程模式下，“磨皮 60 然后拍照” 能解析为两个 tool_calls 并依次执行</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td>AC-2</td>
+<td>远程模式下，“如果是后置就切前置再拍” 能正确执行条件判断</td>
+<td>P0</td>
+</tr>
+<tr class="odd">
+<td>AC-3</td>
+<td>本地模式下，所有现有功能保持 100% 兼容</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td>AC-4</td>
+<td>L1 缓存命中率 &gt; 60%（高频指令）</td>
+<td>P1</td>
+</tr>
+<tr class="odd">
+<td>AC-5</td>
+<td>远程推理平均延迟 &lt; 1.5s</td>
+<td>P1</td>
+</tr>
+<tr class="even">
+<td>AC-6</td>
+<td>支持对话式记忆（多轮上下文）</td>
+<td>P2</td>
+</tr>
+<tr class="odd">
+<td>AC-7</td>
+<td>DeepSeek 模型 tool_calls 成功率 &gt; 95%</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td>AC-8</td>
+<td>流式聊天首 token 延迟 &lt; 500ms</td>
+<td>P1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="远程推理任务拆分-agent-task">10. 远程推理任务拆分 [agent-task]</h2>
+<h3 id="phase-1-基础设施-rd-已完成">Phase 1: 基础设施 (RD) — 已完成</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-infra-001</code> 实现 <code>RemoteInferencePipeline</code>（标准 OpenAI 协议）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-infra-002</code> 引入 :agent-core <code>OpenAiChatModel</code> 标准化</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-infra-003</code> 实现 <code>ToolCallCommandParser</code>（tool_calls → AgentCommand）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-infra-004</code> 删除 <code>InferenceRouter</code>、<code>AdaptiveStrategySelector</code> 等冗余组件</label></li>
+</ul>
+<h3 id="phase-2-l2-batch-模式-rd-已完成">Phase 2: L2 Batch 模式 (RD) — 已完成</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l2-001</code> 实现 <code>RemoteOrchestrator.processBatch()</code>（tool_calls 解析）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l2-002</code> 设计 <code>RemotePromptBuilder</code>（ToolSpecification 格式）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l2-003</code> UI 层适配批量命令串行执行</label></li>
+</ul>
+<h3 id="phase-3-l3-plan-模式-rd-已完成">Phase 3: L3 Plan 模式 (RD) — 已完成</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l3-001</code> 实现 <code>ExecutionEngine</code> 执行引擎</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l3-002</code> 更新 Plan 格式为标准 tool_calls（command 字段）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l3-003</code> 条件求值器 (<code>evaluateCondition</code>)</label></li>
+</ul>
+<h3 id="phase-4-l4-流式-chat-rd-已完成">Phase 4: L4 流式 Chat (RD) — 已完成</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l4-001</code> 实现流式聊天（StreamingChatResponseHandler）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-l4-002</code> ChatMemory 历史管理（DataStoreChatMemoryStore）</label></li>
+</ul>
+<h3 id="phase-5-deepseek-适配-rd-已完成">Phase 5: DeepSeek 适配 (RD) — 已完成</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-ds-001</code> 禁用 thinking 模式</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-ds-002</code> strict 模式兼容（additionalProperties: false）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-ds-003</code> content 回退解析（fallback tool_calls 提取）</label></li>
+<li><label><input type="checkbox" checked="" /><code>agent-task:remote-ds-004</code> Prompt 移除 tool_calls JSON 示例</label></li>
+</ul>
+<h3 id="phase-6-集成与测试-qa">Phase 6: 集成与测试 (QA)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>agent-task:remote-qa-001</code> 端到端测试（多指令、条件、降级）</label></li>
+<li><label><input type="checkbox" /><code>agent-task:remote-qa-002</code> 性能基准（延迟、Token 消耗）</label></li>
+<li><label><input type="checkbox" /><code>agent-task:remote-qa-003</code> DeepSeek 工具调用成功率测试</label></li>
+</ul>
+<hr />
+<h2 id="架构演进路线图">11. 架构演进路线图</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│                        端侧推理演进路线                           │
+├─────────────────────────────────────────────────────────────────┤
+│  P0（已完成）:                                                    │
+│  1. JSON 解析改用 kotlinx.serialization                         │
+│  2. System Prompt 提取为 LocalPromptBuilder / RemotePromptBuilder │
+│  3. MemoryManager 引入内存缓存 + 批量刷盘                         │
+│  4. 本地/远程协议彻底分离（ADR-005）                              │
+│  5. 远程推理引入 langchain4j 标准化                               │
+│  6. DeepSeek 适配（thinking 禁用、strict 兼容）                   │
+│  7. Sherpa-MNN 语音栈清理，迁至 Sherpa-ONNX                      │
+│  8. 唤醒词引擎 Phase 1 完成（21 词 + 动态轮询 + VAD 稳定性）       │
+│                                                                 │
+│  P1（进行中）:                                                   │
+│  9. KWS always-on 迁移（Sherpa-ONNX KWS，Phase 2）               │
+│  10. 支持 Batch Function Calling（tool_calls 数组）               │
+│  11. ChatFormat 抽象，支持多模型切换                              │
+│  12. Capability 命令映射改为注解驱动或属性声明                      │
+│  13. IM 远程控制（飞书 WebSocket）全链路打通                       │
+│                                                                 │
+│  P2（中期）:                                                    │
+│  14. Plan-and-Execute 规则模板引擎（端侧不用 LLM 做规划）           │
+│  15. Token 预算管理与上下文压缩                                    │
+│  16. 隐私分级路由完善：敏感强制本地，非敏感允许远程                    │
+│                                                                 │
+│  P3（远期）:                                                    │
+│  17. 记忆摘要（长期对话不丢失上下文）                               │
+│  18. 多会话管理                                                   │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="附录参考文档">12. 附录：参考文档</h2>
+<ul>
+<li><a href="../../AGENTS.html">AGENTS.md</a> — 顶层治理规则</li>
+<li><a href="../01-PRODUCT/FEATURES.html">FEATURES.md</a> — 功能交互细节</li>
+<li><a href="../04-AGENT-CAPABILITIES/COMMAND_REFERENCE.html">COMMAND_REFERENCE.md</a> — 命令参考手册</li>
+<li><a href="../03-TECHNICAL-SPECS/AI_OPTIMIZATION.html">AI_OPTIMIZATION.md</a> — AI 一键优化</li>
+<li><a href="../03-TECHNICAL-SPECS/TAG_GENERATION.html">TAG_GENERATION.md</a> — TAG 生成</li>
+<li><a href="../03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.html">MNN_LLM_OPERATIONS.md</a> — MNN LLM 运维</li>
+<li><a href="../03-TECHNICAL-SPECS/VOICE_STACK.html">VOICE_STACK.md</a> — 语音栈</li>
+<li><a href="../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.html">IM_REMOTE_CONTROL_TECH_SPEC.md</a> — IM 远程控制技术规范</li>
+<li><code>runtime-core/src/main/java/com/mamba/picme/agent/core/</code> — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）</li>
+<li><code>agent-core/src/main/java/com/mamba/</code> — 源码目录（Java 基础库：ChatModel、OpenAiChatModel、Tool、AiServices 等）</li>
+<li><code>app/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt</code> — Facade 桥接层</li>
+</ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,2957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人脸关键点参考手册 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item active" href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">03 Technical Specs</a> / <span>人脸关键点参考手册</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-概述">1. 概述</a></li>
+      <li><a href="#2-火山引擎-106-点标准">2. 火山引擎 106 点标准</a></li>
+      <li><a href="#3-mediapipe-face-mesh-468-点参考">3. MediaPipe Face Mesh 468 点参考</a></li>
+      <li><a href="#4-mediapipe-468--火山-106-映射策略">4. MediaPipe 468 → 火山 106 映射策略</a></li>
+      <li><a href="#5-参考文件">5. 参考文件</a></li>
+      <li><a href="#6-参考资源">6. 参考资源</a></li>
+      </ul>
+    </div>
+<h1 id="人脸关键点参考手册">人脸关键点参考手册</h1>
+<blockquote>
+<p><strong>版本</strong>: 3.0<br />
+<strong>状态</strong>: 生效中<br />
+<strong>最后更新</strong>: 2026-07-08<br />
+<strong>维护者</strong>: RD Agent</p>
+<p><strong>历史合并说明</strong>：本文档由以下 3 份文档合并而成：<code>MEDIAPIPE_468_REFERENCE.md</code>、<code>MEDIAPIPE_468_TO_106_MAPPING_STRATEGY.md</code>、<code>VOLCANO_106_POINTS.md</code>。内容已合并为单一人脸关键点参考手册，交叉引用 <code>docs/07-STANDARDS/COORDINATE_SYSTEM.md</code>。</p>
+</blockquote>
+<hr />
+<h2 id="概述">1. 概述</h2>
+<p>本文档整合了两套主流人脸关键点标准：</p>
+<ul>
+<li><strong>MediaPipe Face Mesh</strong>：468 个 3D 人脸关键点，用于实时人脸网格检测。</li>
+<li><strong>火山引擎 106 点标准</strong>：与商汤/Face++ 106 点标准一致，是行业通用的人脸关键点检测规范，也是 PoLang 美颜/滤镜管线的内部标准。</li>
+</ul>
+<p>本文档同时提供 <strong>MediaPipe 468 → 火山 106 的映射策略</strong>，供 <code>MediaPipe468Adapter.kt</code> 与 <code>FaceLandmarkOverlay.kt</code> 参考实现。</p>
+<blockquote>
+<p><strong>坐标系说明</strong>：MediaPipe 与火山引擎均返回归一化坐标（0-1），原点(0,0)在左上角，x轴向右，y轴向下。前置摄像头需要水平镜像（<code>x = 1 - x</code>）。详见 <a href="../07-STANDARDS/COORDINATE_SYSTEM.html"><code>docs/07-STANDARDS/COORDINATE_SYSTEM.md</code></a>。</p>
+</blockquote>
+<hr />
+<h2 id="火山引擎-106-点标准">2. 火山引擎 106 点标准</h2>
+<h3 id="拓扑结构">2.1 拓扑结构</h3>
+<h4 id="轮廓0-32共33点">轮廓（0-32，共33点）</h4>
+<p><strong>开放曲线</strong>：从右脸鬓角（画面左侧）开始，经过下巴，到左脸鬓角（画面右侧）结束。</p>
+<table>
+<thead>
+<tr class="header">
+<th>索引范围</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0-16</td>
+<td>右轮廓（画面左侧，从右上到下巴右）</td>
+<td>共17点</td>
+</tr>
+<tr class="even">
+<td>0</td>
+<td>右鬓角/太阳穴</td>
+<td>轮廓起点（画面左侧）</td>
+</tr>
+<tr class="odd">
+<td>1-7</td>
+<td>右脸颊</td>
+<td>从上到下</td>
+</tr>
+<tr class="even">
+<td>8-15</td>
+<td>右下颌到下巴右侧</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td>下巴中心</td>
+<td>下巴最低点</td>
+</tr>
+<tr class="even">
+<td>17-32</td>
+<td>左轮廓（画面右侧，从下巴左到左上）</td>
+<td>共16点</td>
+</tr>
+<tr class="odd">
+<td>17-25</td>
+<td>下巴左侧到左下颌</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>26-31</td>
+<td>左脸颊</td>
+<td>从下到上</td>
+</tr>
+<tr class="odd">
+<td>32</td>
+<td>左鬓角/太阳穴</td>
+<td>轮廓终点（画面右侧）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="眉毛33-42-64-71共18点">眉毛（33-42, 64-71，共18点）</h4>
+<h5 id="上部眉毛33-42">上部眉毛（33-42）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>33-37</td>
+<td>右眉上部（画面左侧）</td>
+<td>从眉头到眉尾，5点</td>
+</tr>
+<tr class="even">
+<td>33</td>
+<td>右眉头</td>
+<td>靠近鼻梁</td>
+</tr>
+<tr class="odd">
+<td>34-36</td>
+<td>右眉腰</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>37</td>
+<td>右眉尾</td>
+<td>靠近太阳穴</td>
+</tr>
+<tr class="odd">
+<td>38-42</td>
+<td>左眉上部（画面右侧）</td>
+<td>从眉头到眉尾，5点</td>
+</tr>
+<tr class="even">
+<td>38</td>
+<td>左眉头</td>
+<td>靠近鼻梁</td>
+</tr>
+<tr class="odd">
+<td>39-41</td>
+<td>左眉腰</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>42</td>
+<td>左眉尾</td>
+<td>靠近太阳穴</td>
+</tr>
+<tr class="odd">
+<td>43</td>
+<td>眉心</td>
+<td>两眉之间中心</td>
+</tr>
+</tbody>
+</table>
+<h5 id="下部眉毛64-71">下部眉毛（64-71）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>64-67</td>
+<td>右眉下部（画面左侧）</td>
+<td>从眉头到眉尾，4点</td>
+</tr>
+<tr class="even">
+<td>68-71</td>
+<td>左眉下部（画面右侧）</td>
+<td>从眉尾到眉头，4点</td>
+</tr>
+</tbody>
+</table>
+<h4 id="鼻子44-51-78-83共12点">鼻子（44-51, 78-83，共12点）</h4>
+<h5 id="鼻梁44-46">鼻梁（44-46）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>44</td>
+<td>鼻梁上/山根</td>
+<td>两眼之间鼻梁起点</td>
+</tr>
+<tr class="even">
+<td>45</td>
+<td>鼻梁中</td>
+<td>鼻梁中段</td>
+</tr>
+<tr class="odd">
+<td>46</td>
+<td>鼻梁下</td>
+<td>鼻梁底部</td>
+</tr>
+</tbody>
+</table>
+<h5 id="鼻尖47-51">鼻尖（47-51）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>47</td>
+<td>左外</td>
+<td>275</td>
+<td>画面左侧，鼻尖左侧外部</td>
+</tr>
+<tr class="even">
+<td>48</td>
+<td>左内</td>
+<td>48</td>
+<td>画面左侧，鼻尖左侧内部</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td>鼻尖中心</td>
+<td>4</td>
+<td>鼻子最突出点</td>
+</tr>
+<tr class="even">
+<td>50</td>
+<td>右内</td>
+<td>51</td>
+<td>画面右侧，鼻尖右侧内部</td>
+</tr>
+<tr class="odd">
+<td>51</td>
+<td>右外</td>
+<td>357</td>
+<td>画面右侧，鼻尖右侧外部</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>对称性</strong>：47(275)↔︎51(357)关于鼻尖中心对称，48(48)↔︎50(51)关于鼻尖中心对称。</p>
+</blockquote>
+<h5 id="山根鼻梁底部78-79">山根/鼻梁底部（78-79）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>78</td>
+<td>山根右</td>
+<td>193</td>
+<td>画面左侧，眉心43(168)左侧下方点</td>
+</tr>
+<tr class="even">
+<td>79</td>
+<td>山根左</td>
+<td>419</td>
+<td>画面右侧，眉心43(168)右侧下方点</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>对称性</strong>：78(193)↔︎79(419) 关于眉心168对称。 <strong>验证</strong>：基于 face001_landmarks.png 标注，193/419 位于山根两侧，比 281/49 更准确。</p>
+</blockquote>
+<h5 id="鼻孔80-83">鼻孔（80-83）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>80</td>
+<td>右鼻孔左</td>
+<td>画面左侧</td>
+</tr>
+<tr class="even">
+<td>81</td>
+<td>右鼻孔右</td>
+<td>鼻中隔右侧</td>
+</tr>
+<tr class="odd">
+<td>82</td>
+<td>左鼻孔左</td>
+<td>鼻中隔左侧</td>
+</tr>
+<tr class="even">
+<td>83</td>
+<td>左鼻孔右</td>
+<td>画面右侧</td>
+</tr>
+</tbody>
+</table>
+<h4 id="眼睛52-77共26点">眼睛（52-77，共26点）</h4>
+<h5 id="右眼52-57画面左侧">右眼（52-57，画面左侧）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>52</td>
+<td>右眼外角</td>
+<td>362</td>
+<td>上眼睑起点，靠近太阳穴</td>
+</tr>
+<tr class="even">
+<td>53</td>
+<td>右眼上眼睑外</td>
+<td>363</td>
+<td>上眼睑外侧，不含眼角</td>
+</tr>
+<tr class="odd">
+<td>54</td>
+<td>右眼上眼睑中</td>
+<td>367</td>
+<td>上眼睑中心位置</td>
+</tr>
+<tr class="even">
+<td>55</td>
+<td>右眼上眼睑内</td>
+<td>370</td>
+<td>上眼睑内侧，不含眼角</td>
+</tr>
+<tr class="odd">
+<td>56</td>
+<td>右眼内角</td>
+<td>463</td>
+<td>上眼睑终点/下眼睑起点，靠近鼻梁</td>
+</tr>
+<tr class="even">
+<td>57</td>
+<td>右眼下眼睑内</td>
+<td>372</td>
+<td>下眼睑内侧，靠近内角</td>
+</tr>
+</tbody>
+</table>
+<h5 id="左眼58-63画面右侧">左眼（58-63，画面右侧）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>58</td>
+<td>左眼外角</td>
+<td>33</td>
+<td>上眼睑起点，靠近太阳穴</td>
+</tr>
+<tr class="even">
+<td>59</td>
+<td>左眼上眼睑外</td>
+<td>35</td>
+<td>上眼睑外侧，不含眼角</td>
+</tr>
+<tr class="odd">
+<td>60</td>
+<td>左眼上眼睑中</td>
+<td>38</td>
+<td>上眼睑中心位置</td>
+</tr>
+<tr class="even">
+<td>61</td>
+<td>左眼上眼睑内</td>
+<td>41</td>
+<td>上眼睑内侧，不含眼角</td>
+</tr>
+<tr class="odd">
+<td>62</td>
+<td>左眼内角</td>
+<td>133</td>
+<td>上眼睑终点/下眼睑起点，靠近鼻梁</td>
+</tr>
+<tr class="even">
+<td>63</td>
+<td>左眼下眼睑内</td>
+<td>43</td>
+<td>下眼睑内侧，靠近内角</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：眼周每眼8点轮廓 = 外角(52/58) + 上眼睑3点(53-55/59-61) + 内角(56/62) + 下眼睑内角(57/63)。上眼睑3点沿外轮廓均匀分布不含眼角。 <strong>对称性</strong>：左右眼严格对称，53(363)↔︎55(370)关于眼睛中心对称，59(35)↔︎61(41)关于眼睛中心对称。 <strong>MediaPipe路径</strong>：右眼外轮廓 362→363→364→365→366→367→368→369→370→371→463→372→373→374→375；左眼外轮廓 33→34→35→36→37→38→39→40→41→42→133→43→44→45→46。</p>
+</blockquote>
+<h5 id="右眼补充72-74画面左侧">右眼补充（72-74，画面左侧）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>72</td>
+<td>右眼下眼睑中</td>
+<td>374</td>
+<td>下眼睑中心位置</td>
+</tr>
+<tr class="even">
+<td>73</td>
+<td>右眼下眼睑外</td>
+<td>375</td>
+<td>下眼睑外侧，靠近外角</td>
+</tr>
+<tr class="odd">
+<td>74</td>
+<td>右瞳孔</td>
+<td>473</td>
+<td>瞳孔中心（478点模式）</td>
+</tr>
+</tbody>
+</table>
+<h5 id="左眼补充75-77画面右侧">左眼补充（75-77，画面右侧）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>75</td>
+<td>左眼下眼睑中</td>
+<td>44</td>
+<td>下眼睑中心位置</td>
+</tr>
+<tr class="even">
+<td>76</td>
+<td>左眼下眼睑外</td>
+<td>45</td>
+<td>下眼睑外侧，靠近外角</td>
+</tr>
+<tr class="odd">
+<td>77</td>
+<td>左瞳孔</td>
+<td>468</td>
+<td>瞳孔中心（478点模式）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：下眼睑3点(不含内角)为 72-74(右眼) / 75-77(左眼)。下眼睑内角在57/63位置，与72-74/75-77组成完整下眼睑轮廓。 <strong>对称性</strong>：72(374)↔︎75(44) 下眼睑中对称，73(375)↔︎76(45) 下眼睑外对称，74(473)↔︎77(468) 瞳孔对称。</p>
+</blockquote>
+<h4 id="嘴巴84-103共20点">嘴巴（84-103，共20点）</h4>
+<h5 id="嘴巴外轮廓84-95共12点">嘴巴外轮廓（84-95，共12点）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>84</td>
+<td>左嘴角</td>
+<td>61</td>
+<td>外唇起点（画面左侧）</td>
+</tr>
+<tr class="even">
+<td>85</td>
+<td>上唇左2</td>
+<td>40</td>
+<td>上唇外轮廓左部，距唇珠2步</td>
+</tr>
+<tr class="odd">
+<td>86</td>
+<td>上唇左1</td>
+<td>37</td>
+<td>上唇外轮廓左中部，距唇珠1步</td>
+</tr>
+<tr class="even">
+<td><strong>87</strong></td>
+<td><strong>唇珠/上唇中心</strong></td>
+<td><strong>0</strong></td>
+<td><strong>上唇最顶端中心点</strong></td>
+</tr>
+<tr class="odd">
+<td>88</td>
+<td>上唇右1</td>
+<td>267</td>
+<td>上唇外轮廓右中部，距唇珠1步</td>
+</tr>
+<tr class="even">
+<td>89</td>
+<td>上唇右2</td>
+<td>270</td>
+<td>上唇外轮廓右部，距唇珠2步</td>
+</tr>
+<tr class="odd">
+<td>90</td>
+<td>右嘴角</td>
+<td>291</td>
+<td>外唇终点（画面右侧）</td>
+</tr>
+<tr class="even">
+<td>91</td>
+<td>下唇右外</td>
+<td>321</td>
+<td>下唇外轮廓最右侧，距中心3步</td>
+</tr>
+<tr class="odd">
+<td>92</td>
+<td>下唇右内</td>
+<td>314</td>
+<td>下唇外轮廓右内侧，距中心1步</td>
+</tr>
+<tr class="even">
+<td><strong>93</strong></td>
+<td><strong>下唇中间对称点</strong></td>
+<td><strong>17</strong></td>
+<td><strong>下唇最底端中心点</strong></td>
+</tr>
+<tr class="odd">
+<td>94</td>
+<td>下唇左内</td>
+<td>84</td>
+<td>下唇外轮廓左内侧，距中心1步</td>
+</tr>
+<tr class="even">
+<td>95</td>
+<td>下唇左外</td>
+<td>91</td>
+<td>下唇外轮廓最左侧，距中心3步</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：外轮廓拓扑顺序为顺时针闭合曲线：84(左嘴角) → 85→86→87→88→89(上唇从左到右) → 90(右嘴角) → 91→92→93→94→95(下唇从右到左) → 84。 <strong>对称性</strong>： - 87为唇珠/上唇中心(MediaPipe 0)，位于上唇最顶端 - 93为下唇中间对称点(MediaPipe 17)，位于下唇最底端 - 86(37)与88(267)关于唇珠(87)对称 - 85(40)与89(270)关于唇珠(87)对称 - 92(314)与94(84)关于下唇中心(93)对称，距中心1步 - 91(321)与95(91)关于下唇中心(93)对称，距中心3步</p>
+</blockquote>
+<h5 id="嘴巴内轮廓96-103共8点">嘴巴内轮廓（96-103，共8点）</h5>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>MediaPipe映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>96</td>
+<td>左内角</td>
+<td>78</td>
+<td>内唇起点（画面左侧）</td>
+</tr>
+<tr class="even">
+<td>97</td>
+<td>上唇内左1</td>
+<td>81</td>
+<td>上唇内侧左部，距中心2步</td>
+</tr>
+<tr class="odd">
+<td><strong>98</strong></td>
+<td><strong>上唇内侧对称点</strong></td>
+<td><strong>13</strong></td>
+<td><strong>上唇内侧中心位置</strong></td>
+</tr>
+<tr class="even">
+<td>99</td>
+<td>上唇内右1</td>
+<td>311</td>
+<td>上唇内侧右部，距中心2步</td>
+</tr>
+<tr class="odd">
+<td>100</td>
+<td>右内角</td>
+<td>308</td>
+<td>内唇终点（画面右侧）</td>
+</tr>
+<tr class="even">
+<td>101</td>
+<td>下唇内右1</td>
+<td>178</td>
+<td>下唇内侧右部，距中心2步</td>
+</tr>
+<tr class="odd">
+<td><strong>102</strong></td>
+<td><strong>下唇内侧对称点</strong></td>
+<td><strong>14</strong></td>
+<td><strong>下唇内侧中心位置</strong></td>
+</tr>
+<tr class="even">
+<td>103</td>
+<td>下唇内左1</td>
+<td>402</td>
+<td>下唇内侧左部，距中心2步</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：内轮廓拓扑顺序为顺时针闭合曲线：96(左内角) → 97..99(上唇内侧从左到右) → 100(右内角) → 101..103(下唇内侧从右到左) → 96。 <strong>对称性</strong>： - 98为上唇内侧对称点(MediaPipe 13)，97(81)与99(311)关于98对称，距中心2步 - 102为下唇内侧对称点(MediaPipe 14)，101(178)与103(402)关于102对称，距中心2步</p>
+</blockquote>
+<h4 id="瞳孔104-105共2点">瞳孔（104-105，共2点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>104</td>
+<td>右瞳孔</td>
+<td>画面左侧，与74位置接近</td>
+</tr>
+<tr class="even">
+<td>105</td>
+<td>左瞳孔</td>
+<td>画面右侧，与77位置接近</td>
+</tr>
+</tbody>
+</table>
+<h3 id="火山-106-点完整映射表">2.2 火山 106 点完整映射表</h3>
+<h4 id="非轮廓区域-33-10573点">非轮廓区域 33-105（73点）</h4>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 30%" />
+<col style="width: 23%" />
+<col style="width: 15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>33-37</strong></td>
+<td><strong>70, 63, 105, 66, 107</strong></td>
+<td>右眉上部</td>
+<td>画面左侧=实际右脸，从眉头到眉尾</td>
+</tr>
+<tr class="even">
+<td><strong>38-42</strong></td>
+<td><strong>336, 296, 334, 293, 300</strong></td>
+<td>左眉上部</td>
+<td>画面右侧=实际左脸，从眉头到眉尾</td>
+</tr>
+<tr class="odd">
+<td><strong>43</strong></td>
+<td><strong>168</strong></td>
+<td>眉心</td>
+<td>两眉之间中点</td>
+</tr>
+<tr class="even">
+<td><strong>44-46</strong></td>
+<td><strong>197, 5, 4</strong></td>
+<td>鼻梁</td>
+<td>从上到下（鼻根→鼻梁中→鼻尖上）</td>
+</tr>
+<tr class="odd">
+<td><strong>47-51</strong></td>
+<td><strong>98, 241, 2, 461, 327</strong></td>
+<td>鼻尖</td>
+<td>从左到右，严格对称</td>
+</tr>
+<tr class="even">
+<td><strong>52-57</strong></td>
+<td><strong>226, 30, 56, 133, 26, 110</strong></td>
+<td>右眼外轮廓</td>
+<td>画面左侧=实际右脸，顺时针</td>
+</tr>
+<tr class="odd">
+<td><strong>58-63</strong></td>
+<td><strong>362, 286, 260, 446, 339, 256</strong></td>
+<td>左眼外轮廓</td>
+<td>画面右侧=实际左脸，顺时针</td>
+</tr>
+<tr class="even">
+<td><strong>64-67</strong></td>
+<td><strong>53, 52, 65, 55</strong></td>
+<td>右眉下部</td>
+<td>画面左侧=实际右脸，从眉头到眉尾</td>
+</tr>
+<tr class="odd">
+<td><strong>68-71</strong></td>
+<td><strong>285, 295, 282, 283</strong></td>
+<td>左眉下部</td>
+<td>画面右侧=实际左脸，从眉尾到眉头</td>
+</tr>
+<tr class="even">
+<td><strong>72-74</strong></td>
+<td><strong>27, 23, 473</strong></td>
+<td>右眼内/下</td>
+<td>74=右瞳孔</td>
+</tr>
+<tr class="odd">
+<td><strong>75-77</strong></td>
+<td><strong>257, 253, 468</strong></td>
+<td>左眼内/下</td>
+<td>77=左瞳孔</td>
+</tr>
+<tr class="even">
+<td><strong>78-79</strong></td>
+<td><strong>193, 417</strong></td>
+<td>山根</td>
+<td>193↔︎417 关于 168 对称</td>
+</tr>
+<tr class="odd">
+<td><strong>80-83</strong></td>
+<td><strong>198, 420, 49, 279</strong></td>
+<td>鼻孔</td>
+<td>左右鼻孔轮廓</td>
+</tr>
+<tr class="even">
+<td><strong>84-95</strong></td>
+<td><strong>61, 40, 37, 0, 267, 270, 291, 321, 314, 17, 84, 91</strong></td>
+<td>嘴巴外轮廓</td>
+<td>顺时针闭合曲线</td>
+</tr>
+<tr class="odd">
+<td><strong>96-103</strong></td>
+<td><strong>78, 81, 13, 311, 308, 178, 14, 402</strong></td>
+<td>嘴巴内轮廓</td>
+<td>顺时针闭合曲线</td>
+</tr>
+<tr class="even">
+<td><strong>104-105</strong></td>
+<td><strong>473, 468</strong></td>
+<td>瞳孔</td>
+<td>104=右瞳孔(同74), 105=左瞳孔(同77)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="火山-106-点注意事项">2.3 火山 106 点注意事项</h3>
+<ol type="1">
+<li><strong>镜像说明</strong>：本文档中的”左/右”是基于<strong>被摄者真实面部</strong>（前置摄像头镜像后）。画面左侧=实际右脸，画面右侧=实际左脸。</li>
+<li><strong>轮廓方向</strong>：轮廓 0-32 为开放曲线，从右脸鬓角（索引0，画面左侧）开始，经过下巴（索引16），到左脸鬓角（索引32，画面右侧）结束。</li>
+<li><strong>瞳孔位置</strong>：104/105 与 74/77 位置接近，用于需要瞳孔中心点的场景。</li>
+<li><strong>对称性</strong>：左右脸关键点应保持对称分布，映射时需确保左右对称性。</li>
+</ol>
+<hr />
+<h2 id="mediapipe-face-mesh-468-点参考">3. MediaPipe Face Mesh 468 点参考</h2>
+<h3 id="关键点区域分布">3.1 关键点区域分布</h3>
+<table>
+<thead>
+<tr class="header">
+<th>区域</th>
+<th>关键点数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>左眼</td>
+<td>71</td>
+<td>上眼睑、下眼睑、眼角</td>
+</tr>
+<tr class="even">
+<td>右眼</td>
+<td>71</td>
+<td>上眼睑、下眼睑、眼角</td>
+</tr>
+<tr class="odd">
+<td>嘴巴</td>
+<td>40</td>
+<td>上唇、下唇、嘴角</td>
+</tr>
+<tr class="even">
+<td>鼻子</td>
+<td>52</td>
+<td>鼻梁、鼻尖、鼻翼、鼻孔</td>
+</tr>
+<tr class="odd">
+<td>眉毛</td>
+<td>40</td>
+<td>左眉20点，右眉20点</td>
+</tr>
+<tr class="even">
+<td>脸部轮廓</td>
+<td>122</td>
+<td>额头、脸颊、下巴、耳朵</td>
+</tr>
+<tr class="odd">
+<td>脸部内部</td>
+<td>72</td>
+<td>脸部中心区域</td>
+</tr>
+<tr class="even">
+<td><strong>总计</strong></td>
+<td><strong>468</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="对称规则说明">3.2 对称规则说明</h3>
+<p>MediaPipe Face Mesh 的面部关键点关于<strong>面部中轴线</strong>（垂直中心线）对称。</p>
+<ul>
+<li><strong>左侧点</strong>：位于画面左侧（被摄者右脸）</li>
+<li><strong>右侧点</strong>：位于画面右侧（被摄者左脸）</li>
+<li><strong>中心点</strong>：位于面部中轴线上，无对称点</li>
+</ul>
+<p><strong>对称规律</strong>：大多数对称对满足 <code>左侧索引 + 右侧索引 ≈ 500</code>，但存在例外。</p>
+<h3 id="脸部轮廓face_oval0-35共36点">3.3 脸部轮廓（FACE_OVAL，0-35，共36点）</h3>
+<p>MediaPipe 的 FACE_OVAL 区域包含36个点，形成闭合曲线（含额头），与106点开放轮廓不同。</p>
+<h4 id="语义定义">语义定义</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>下巴中心</td>
+<td>下巴最低点</td>
+</tr>
+<tr class="even">
+<td>1-7</td>
+<td>左下颌</td>
+<td>从下巴到左耳下</td>
+</tr>
+<tr class="odd">
+<td>8-23</td>
+<td>左脸颊到额头</td>
+<td>左侧轮廓</td>
+</tr>
+<tr class="even">
+<td>24-35</td>
+<td>额头到右脸颊</td>
+<td>右侧轮廓（闭合）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>与106点对应关系</strong>： - 106点轮廓为开放曲线（33点），不包含额头 - 需要选取 MediaPipe 中不含额头的轮廓点</p>
+<h4 id="轮廓对称关系">轮廓对称关系</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>7</td>
+<td>左下颌</td>
+<td>397</td>
+<td>右下颌</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>左脸颊下</td>
+<td>396</td>
+<td>右脸颊下</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>左脸颊中</td>
+<td>395</td>
+<td>右脸颊中</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>左脸颊上</td>
+<td>394</td>
+<td>右脸颊上</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>左耳前</td>
+<td>393</td>
+<td>右耳前</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>左耳下</td>
+<td>392</td>
+<td>右耳下</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>13</td>
+<td>左鬓角</td>
+<td>391</td>
+<td>右鬓角</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>14</td>
+<td>左太阳穴</td>
+<td>390</td>
+<td>右太阳穴</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td>左额侧</td>
+<td>389</td>
+<td>右额侧</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>左额头</td>
+<td>388</td>
+<td>右额头</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>17</td>
+<td>左额中</td>
+<td>387</td>
+<td>右额中</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>18</td>
+<td>左额上</td>
+<td>386</td>
+<td>右额上</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>19</td>
+<td>左额顶</td>
+<td>385</td>
+<td>右额顶</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td>左发际线</td>
+<td>384</td>
+<td>右发际线</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>21</td>
+<td>左发际中</td>
+<td>383</td>
+<td>右发际中</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>22</td>
+<td>左发际上</td>
+<td>382</td>
+<td>右发际上</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>23</td>
+<td>左头顶</td>
+<td>381</td>
+<td>右头顶</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td>头顶中左</td>
+<td>380</td>
+<td>头顶中右</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>25</td>
+<td>头顶左</td>
+<td>379</td>
+<td>头顶右</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>26</td>
+<td>头顶后左</td>
+<td>378</td>
+<td>头顶后右</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>27</td>
+<td>后脑左</td>
+<td>377</td>
+<td>右脑右</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>28</td>
+<td>后脑下左</td>
+<td>376</td>
+<td>后脑下右</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>29</td>
+<td>颈后左</td>
+<td>375</td>
+<td>颈后右</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td>颈部左</td>
+<td>374</td>
+<td>颈部右</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>31</td>
+<td>鼻底左</td>
+<td>35</td>
+<td>鼻底右</td>
+<td>特殊对称</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td>下巴左</td>
+<td>361</td>
+<td>下巴右</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="轮廓中心点无对称">轮廓中心点（无对称）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>下巴中心</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>鼻尖下/鼻小柱</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>左鼻孔左</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>下巴偏左</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td>鼻尖中心</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>鼻底中</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>鼻根/山根</td>
+</tr>
+<tr class="even">
+<td>168</td>
+<td>眉心下方</td>
+</tr>
+<tr class="odd">
+<td>195</td>
+<td>鼻梁下</td>
+</tr>
+<tr class="even">
+<td>197</td>
+<td>鼻梁中</td>
+</tr>
+</tbody>
+</table>
+<h3 id="左眼区域索引-33-142共71点">3.4 左眼区域（索引 33-142，共71点）</h3>
+<h4 id="左眼关键点位">左眼关键点位</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>33</td>
+<td>外眼角</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>133</td>
+<td>内眼角</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>159</td>
+<td>上眼睑中</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>145</td>
+<td>下眼睑中</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>468</td>
+<td>左瞳孔</td>
+<td>478点模式下可用</td>
+</tr>
+</tbody>
+</table>
+<h4 id="左眼外轮廓对称">左眼外轮廓对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左眼索引</th>
+<th>语义位置</th>
+<th>右眼索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>33</td>
+<td>左眼外角</td>
+<td>362</td>
+<td>右眼外角</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td>左眼上眼睑外1</td>
+<td>363</td>
+<td>右眼上眼睑外1</td>
+</tr>
+<tr class="odd">
+<td>35</td>
+<td>左眼上眼睑外2</td>
+<td>364</td>
+<td>右眼上眼睑外2</td>
+</tr>
+<tr class="even">
+<td>36</td>
+<td>左眼上眼睑外3</td>
+<td>365</td>
+<td>右眼上眼睑外3</td>
+</tr>
+<tr class="odd">
+<td>37</td>
+<td>左眼上眼睑中1</td>
+<td>366</td>
+<td>右眼上眼睑中1</td>
+</tr>
+<tr class="even">
+<td>38</td>
+<td>左眼上眼睑中2</td>
+<td>367</td>
+<td>右眼上眼睑中2</td>
+</tr>
+<tr class="odd">
+<td>39</td>
+<td>左眼上眼睑中3</td>
+<td>368</td>
+<td>右眼上眼睑中3</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td>左眼上眼睑内1</td>
+<td>369</td>
+<td>右眼上眼睑内1</td>
+</tr>
+<tr class="odd">
+<td>41</td>
+<td>左眼上眼睑内2</td>
+<td>370</td>
+<td>右眼上眼睑内2</td>
+</tr>
+<tr class="even">
+<td>42</td>
+<td>左眼上眼睑内3</td>
+<td>371</td>
+<td>右眼上眼睑内3</td>
+</tr>
+<tr class="odd">
+<td>133</td>
+<td>左眼内角</td>
+<td>463</td>
+<td>右眼内角</td>
+</tr>
+<tr class="even">
+<td>144</td>
+<td>左眼下眼睑内1</td>
+<td>474</td>
+<td>右眼下眼睑内1</td>
+</tr>
+<tr class="odd">
+<td>145</td>
+<td>左眼下眼睑中</td>
+<td>374</td>
+<td>右眼下眼睑中</td>
+</tr>
+<tr class="even">
+<td>146</td>
+<td>左眼下眼睑外1</td>
+<td>375</td>
+<td>右眼下眼睑外1</td>
+</tr>
+<tr class="odd">
+<td>147</td>
+<td>左眼下眼睑外2</td>
+<td>376</td>
+<td>右眼下眼睑外2</td>
+</tr>
+<tr class="even">
+<td>148</td>
+<td>左眼下眼睑外3</td>
+<td>377</td>
+<td>右眼下眼睑外3</td>
+</tr>
+<tr class="odd">
+<td>149</td>
+<td>左眼下眼睑外4</td>
+<td>378</td>
+<td>右眼下眼睑外4</td>
+</tr>
+<tr class="even">
+<td>150</td>
+<td>左眼下眼睑外5</td>
+<td>379</td>
+<td>右眼下眼睑外5</td>
+</tr>
+<tr class="odd">
+<td>151</td>
+<td>左眼下眼睑外6</td>
+<td>380</td>
+<td>右眼下眼睑外6</td>
+</tr>
+<tr class="even">
+<td>152</td>
+<td>左眼下眼睑外7</td>
+<td>381</td>
+<td>右眼下眼睑外7</td>
+</tr>
+<tr class="odd">
+<td>153</td>
+<td>左眼下眼睑外8</td>
+<td>382</td>
+<td>右眼下眼睑外8</td>
+</tr>
+<tr class="even">
+<td>154</td>
+<td>左眼下眼睑外9</td>
+<td>383</td>
+<td>右眼下眼睑外9</td>
+</tr>
+</tbody>
+</table>
+<h4 id="瞳孔虹膜对称">瞳孔/虹膜对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左眼索引</th>
+<th>语义位置</th>
+<th>右眼索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>468</td>
+<td>左瞳孔中心</td>
+<td>473</td>
+<td>右瞳孔中心</td>
+</tr>
+<tr class="even">
+<td>469</td>
+<td>左虹膜上</td>
+<td>474</td>
+<td>右虹膜上</td>
+</tr>
+<tr class="odd">
+<td>470</td>
+<td>左虹膜右</td>
+<td>475</td>
+<td>右虹膜右</td>
+</tr>
+<tr class="even">
+<td>471</td>
+<td>左虹膜下</td>
+<td>476</td>
+<td>右虹膜下</td>
+</tr>
+<tr class="odd">
+<td>472</td>
+<td>左虹膜左</td>
+<td>477</td>
+<td>右虹膜左</td>
+</tr>
+</tbody>
+</table>
+<h3 id="右眼区域索引-362-471共71点">3.5 右眼区域（索引 362-471，共71点）</h3>
+<h4 id="右眼关键点位">右眼关键点位</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>362</td>
+<td>外眼角</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>463</td>
+<td>内眼角</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>386</td>
+<td>上眼睑中</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>374</td>
+<td>下眼睑中</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>473</td>
+<td>右瞳孔</td>
+<td>478点模式下可用</td>
+</tr>
+</tbody>
+</table>
+<p>右眼对称关系见 <strong>3.4 左眼对称关系</strong> 表格，左右互换即可。</p>
+<h3 id="左眉区域索引-70-106共20点">3.6 左眉区域（索引 70-106，共20点）</h3>
+<h4 id="关键点位">关键点位</h4>
+<ul>
+<li>70：眉头（靠近鼻梁）</li>
+<li>105：眉峰</li>
+<li>107：眉尾</li>
+</ul>
+<h4 id="左眉对称关系">左眉对称关系</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左眉索引</th>
+<th>语义位置</th>
+<th>右眉索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>70</td>
+<td>左眉头</td>
+<td>336</td>
+<td>右眉头</td>
+</tr>
+<tr class="even">
+<td>71</td>
+<td>左眉上1</td>
+<td>335</td>
+<td>右眉上1</td>
+</tr>
+<tr class="odd">
+<td>72</td>
+<td>左眉上2</td>
+<td>334</td>
+<td>右眉上2</td>
+</tr>
+<tr class="even">
+<td>73</td>
+<td>左眉上3</td>
+<td>333</td>
+<td>右眉上3</td>
+</tr>
+<tr class="odd">
+<td>74</td>
+<td>左眉上4</td>
+<td>332</td>
+<td>右眉上4</td>
+</tr>
+<tr class="even">
+<td>75</td>
+<td>左眉中1</td>
+<td>331</td>
+<td>右眉中1</td>
+</tr>
+<tr class="odd">
+<td>76</td>
+<td>左眉中2</td>
+<td>330</td>
+<td>右眉中2</td>
+</tr>
+<tr class="even">
+<td>77</td>
+<td>左眉中3</td>
+<td>329</td>
+<td>右眉中3</td>
+</tr>
+<tr class="odd">
+<td>78</td>
+<td>左眉下1</td>
+<td>328</td>
+<td>右眉下1</td>
+</tr>
+<tr class="even">
+<td>79</td>
+<td>左眉下2</td>
+<td>327</td>
+<td>右眉下2</td>
+</tr>
+<tr class="odd">
+<td>105</td>
+<td>左眉峰</td>
+<td>300</td>
+<td>右眉峰</td>
+</tr>
+<tr class="even">
+<td>107</td>
+<td>左眉尾</td>
+<td>296</td>
+<td>右眉尾</td>
+</tr>
+<tr class="odd">
+<td>108</td>
+<td>左眉尾下1</td>
+<td>297</td>
+<td>右眉尾下1</td>
+</tr>
+<tr class="even">
+<td>109</td>
+<td>左眉尾下2</td>
+<td>298</td>
+<td>右眉尾下2</td>
+</tr>
+<tr class="odd">
+<td>110</td>
+<td>左眉尾下3</td>
+<td>299</td>
+<td>右眉尾下3</td>
+</tr>
+<tr class="even">
+<td>111</td>
+<td>左眉尾下4</td>
+<td>301</td>
+<td>右眉尾下4</td>
+</tr>
+<tr class="odd">
+<td>112</td>
+<td>左眉尾下5</td>
+<td>302</td>
+<td>右眉尾下5</td>
+</tr>
+<tr class="even">
+<td>113</td>
+<td>左眉尾下6</td>
+<td>303</td>
+<td>右眉尾下6</td>
+</tr>
+</tbody>
+</table>
+<h3 id="右眉区域索引-296-336共20点">3.7 右眉区域（索引 296-336，共20点）</h3>
+<h4 id="关键点位-1">关键点位</h4>
+<ul>
+<li>336：眉头（靠近鼻梁）</li>
+<li>334：眉峰</li>
+<li>300：眉尾</li>
+</ul>
+<p>右眉对称关系见 <strong>3.6 左眉对称关系</strong> 表格，左右互换即可。</p>
+<h3 id="鼻子区域共52点">3.8 鼻子区域（共52点）</h3>
+<h4 id="鼻梁中心线无对称">鼻梁（中心线，无对称）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>6</td>
+<td>鼻根/山根</td>
+</tr>
+<tr class="even">
+<td>168</td>
+<td>眉心下方</td>
+</tr>
+<tr class="odd">
+<td>197</td>
+<td>鼻梁中</td>
+</tr>
+<tr class="even">
+<td>195</td>
+<td>鼻梁下</td>
+</tr>
+</tbody>
+</table>
+<h4 id="鼻尖对称">鼻尖对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+<th>火山引擎映射</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>48</td>
+<td>鼻尖左</td>
+<td>51</td>
+<td>鼻尖右</td>
+<td>48=241, 51=327</td>
+</tr>
+<tr class="even">
+<td>98</td>
+<td>左鼻翼下</td>
+<td>327</td>
+<td>右鼻翼上</td>
+<td>47=98, 51=327</td>
+</tr>
+<tr class="odd">
+<td>241</td>
+<td>鼻梁左</td>
+<td>461</td>
+<td>鼻梁右</td>
+<td>48=241, 50=461</td>
+</tr>
+</tbody>
+</table>
+<p><strong>对称说明</strong>： - <strong>47=98 ↔︎ 51=327</strong>：鼻翼下/上侧对称 - <strong>48=241 ↔︎ 50=461</strong>：鼻梁左右对称（已验证，241+461=702） - <strong>49=2</strong>：中心点（左鼻孔左），无对称</p>
+<h4 id="鼻孔对称">鼻孔对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2</td>
+<td>左鼻孔左</td>
+<td>326</td>
+<td>右鼻孔右</td>
+</tr>
+<tr class="even">
+<td>326</td>
+<td>左鼻孔右（鼻中隔左）</td>
+<td>327</td>
+<td>右鼻孔左（鼻中隔右）</td>
+</tr>
+<tr class="odd">
+<td>358</td>
+<td>右鼻孔右</td>
+<td>2</td>
+<td>左鼻孔左</td>
+</tr>
+</tbody>
+</table>
+<h4 id="鼻底对称">鼻底对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>31</td>
+<td>鼻底左</td>
+<td>35</td>
+<td>鼻底右</td>
+</tr>
+</tbody>
+</table>
+<h3 id="嘴巴区域索引-13-194共40点">3.9 嘴巴区域（索引 13-194，共40点）</h3>
+<h4 id="嘴巴关键点位">嘴巴关键点位</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>61</td>
+<td>左嘴角</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>0</td>
+<td>上唇中心/唇珠</td>
+<td>上唇最顶端</td>
+</tr>
+<tr class="odd">
+<td>291</td>
+<td>右嘴角</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>78</td>
+<td>上唇内左</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>308</td>
+<td>下唇内左</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4 id="嘴巴外轮廓对称">嘴巴外轮廓对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>61</td>
+<td>左嘴角</td>
+<td>291</td>
+<td>右嘴角</td>
+</tr>
+<tr class="even">
+<td>62</td>
+<td>上唇左外1</td>
+<td>292</td>
+<td>上唇右外1</td>
+</tr>
+<tr class="odd">
+<td>63</td>
+<td>上唇左外2</td>
+<td>293</td>
+<td>上唇右外2</td>
+</tr>
+<tr class="even">
+<td>64</td>
+<td>上唇左外3</td>
+<td>294</td>
+<td>上唇右外3</td>
+</tr>
+<tr class="odd">
+<td>65</td>
+<td>上唇左外4</td>
+<td>295</td>
+<td>上唇右外4</td>
+</tr>
+<tr class="even">
+<td>66</td>
+<td>上唇左中1</td>
+<td>296</td>
+<td>上唇右中1</td>
+</tr>
+<tr class="odd">
+<td>67</td>
+<td>上唇左中2</td>
+<td>297</td>
+<td>上唇右中2</td>
+</tr>
+<tr class="even">
+<td>68</td>
+<td>上唇左中3</td>
+<td>298</td>
+<td>上唇右中3</td>
+</tr>
+<tr class="odd">
+<td>69</td>
+<td>上唇左内1</td>
+<td>299</td>
+<td>上唇右内1</td>
+</tr>
+<tr class="even">
+<td>70</td>
+<td>上唇左内2</td>
+<td>300</td>
+<td>上唇右内2</td>
+</tr>
+<tr class="odd">
+<td>71</td>
+<td>上唇左内3</td>
+<td>301</td>
+<td>上唇右内3</td>
+</tr>
+<tr class="even">
+<td>72</td>
+<td>上唇左内4</td>
+<td>302</td>
+<td>上唇右内4</td>
+</tr>
+<tr class="odd">
+<td>73</td>
+<td>上唇左内5</td>
+<td>303</td>
+<td>上唇右内5</td>
+</tr>
+<tr class="even">
+<td>74</td>
+<td>上唇左内6</td>
+<td>304</td>
+<td>上唇右内6</td>
+</tr>
+<tr class="odd">
+<td>75</td>
+<td>上唇左内7</td>
+<td>305</td>
+<td>上唇右内7</td>
+</tr>
+<tr class="even">
+<td>76</td>
+<td>上唇左内8</td>
+<td>306</td>
+<td>上唇右内8</td>
+</tr>
+<tr class="odd">
+<td>77</td>
+<td>上唇左内9</td>
+<td>307</td>
+<td>上唇右内9</td>
+</tr>
+<tr class="even">
+<td>84</td>
+<td>下唇左外</td>
+<td>321</td>
+<td>下唇右外</td>
+</tr>
+<tr class="odd">
+<td>85</td>
+<td>下唇左中1</td>
+<td>322</td>
+<td>下唇右中1</td>
+</tr>
+<tr class="even">
+<td>86</td>
+<td>下唇左中2</td>
+<td>323</td>
+<td>下唇右中2</td>
+</tr>
+<tr class="odd">
+<td>87</td>
+<td>下唇左中3</td>
+<td>324</td>
+<td>下唇右中3</td>
+</tr>
+<tr class="even">
+<td>88</td>
+<td>下唇左中4</td>
+<td>325</td>
+<td>下唇右中4</td>
+</tr>
+<tr class="odd">
+<td>89</td>
+<td>下唇左中5</td>
+<td>326</td>
+<td>下唇右中5</td>
+</tr>
+<tr class="even">
+<td>90</td>
+<td>下唇左中6</td>
+<td>327</td>
+<td>下唇右中6</td>
+</tr>
+<tr class="odd">
+<td>91</td>
+<td>下唇左中7</td>
+<td>328</td>
+<td>下唇右中7</td>
+</tr>
+<tr class="even">
+<td>92</td>
+<td>下唇左中8</td>
+<td>329</td>
+<td>下唇右中8</td>
+</tr>
+<tr class="odd">
+<td>93</td>
+<td>下唇左中9</td>
+<td>330</td>
+<td>下唇右中9</td>
+</tr>
+<tr class="even">
+<td>94</td>
+<td>下唇左中10</td>
+<td>331</td>
+<td>下唇右中10</td>
+</tr>
+<tr class="odd">
+<td>95</td>
+<td>下唇左中11</td>
+<td>332</td>
+<td>下唇右中11</td>
+</tr>
+</tbody>
+</table>
+<h4 id="嘴巴内轮廓对称">嘴巴内轮廓对称</h4>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>78</td>
+<td>上唇内左</td>
+<td>308</td>
+<td>上唇内右</td>
+</tr>
+<tr class="even">
+<td>79</td>
+<td>上唇内左1</td>
+<td>309</td>
+<td>上唇内右1</td>
+</tr>
+<tr class="odd">
+<td>80</td>
+<td>上唇内左2</td>
+<td>310</td>
+<td>上唇内右2</td>
+</tr>
+<tr class="even">
+<td>81</td>
+<td>上唇内左3</td>
+<td>311</td>
+<td>上唇内右3</td>
+</tr>
+<tr class="odd">
+<td>82</td>
+<td>上唇内左4</td>
+<td>312</td>
+<td>上唇内右4</td>
+</tr>
+<tr class="even">
+<td>83</td>
+<td>上唇内左5</td>
+<td>313</td>
+<td>上唇内右5</td>
+</tr>
+<tr class="odd">
+<td>84</td>
+<td>上唇内左6</td>
+<td>314</td>
+<td>上唇内右6</td>
+</tr>
+<tr class="even">
+<td>85</td>
+<td>上唇内左7</td>
+<td>315</td>
+<td>上唇内右7</td>
+</tr>
+<tr class="odd">
+<td>86</td>
+<td>上唇内左8</td>
+<td>316</td>
+<td>上唇内右8</td>
+</tr>
+<tr class="even">
+<td>87</td>
+<td>上唇内左9</td>
+<td>317</td>
+<td>上唇内右9</td>
+</tr>
+<tr class="odd">
+<td>88</td>
+<td>上唇内中</td>
+<td>13</td>
+<td>上唇内中（对称点）</td>
+</tr>
+<tr class="even">
+<td>178</td>
+<td>下唇内右</td>
+<td>402</td>
+<td>下唇内左</td>
+</tr>
+<tr class="odd">
+<td>179</td>
+<td>下唇内右1</td>
+<td>403</td>
+<td>下唇内左1</td>
+</tr>
+<tr class="even">
+<td>180</td>
+<td>下唇内右2</td>
+<td>404</td>
+<td>下唇内左2</td>
+</tr>
+<tr class="odd">
+<td>181</td>
+<td>下唇内右3</td>
+<td>405</td>
+<td>下唇内左3</td>
+</tr>
+<tr class="even">
+<td>182</td>
+<td>下唇内右4</td>
+<td>406</td>
+<td>下唇内左4</td>
+</tr>
+<tr class="odd">
+<td>183</td>
+<td>下唇内右5</td>
+<td>407</td>
+<td>下唇内左5</td>
+</tr>
+<tr class="even">
+<td>184</td>
+<td>下唇内右6</td>
+<td>408</td>
+<td>下唇内左6</td>
+</tr>
+<tr class="odd">
+<td>185</td>
+<td>下唇内右7</td>
+<td>409</td>
+<td>下唇内左7</td>
+</tr>
+<tr class="even">
+<td>186</td>
+<td>下唇内右8</td>
+<td>410</td>
+<td>下唇内左8</td>
+</tr>
+<tr class="odd">
+<td>187</td>
+<td>下唇内右9</td>
+<td>411</td>
+<td>上唇内右9</td>
+</tr>
+<tr class="even">
+<td>14</td>
+<td>下唇内中</td>
+<td>17</td>
+<td>下唇内中（对称点）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="嘴唇中心点无对称">嘴唇中心点（无对称）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>上唇中心/唇珠</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td>上唇内侧中心</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td>下唇内侧中心</td>
+</tr>
+<tr class="even">
+<td>17</td>
+<td>下唇中心</td>
+</tr>
+</tbody>
+</table>
+<h3 id="瞳孔虹膜区域468-477共10点">3.10 瞳孔/虹膜区域（468-477，共10点）</h3>
+<p><strong>注意</strong>：瞳孔检测需要开启 <code>refine_landmarks=True</code></p>
+<table>
+<thead>
+<tr class="header">
+<th>索引</th>
+<th>语义位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>468-471</td>
+<td>左眼虹膜</td>
+<td>5点</td>
+</tr>
+<tr class="even">
+<td>472-475</td>
+<td>右眼虹膜</td>
+<td>5点</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键点位</strong>： - 468：左瞳孔中心 - 473：右瞳孔中心</p>
+<h3 id="脸部内部区域共72点">3.11 脸部内部区域（共72点）</h3>
+<p>这些点分布在脸部内部，用于表情检测和3D重建，在映射到106点时通常不使用。</p>
+<table>
+<thead>
+<tr class="header">
+<th>左侧索引</th>
+<th>语义位置</th>
+<th>右侧索引</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>100</td>
+<td>左脸颊内1</td>
+<td>329</td>
+<td>右脸颊内1</td>
+</tr>
+<tr class="even">
+<td>101</td>
+<td>左脸颊内2</td>
+<td>330</td>
+<td>右脸颊内2</td>
+</tr>
+<tr class="odd">
+<td>102</td>
+<td>左脸颊内3</td>
+<td>331</td>
+<td>右脸颊内3</td>
+</tr>
+<tr class="even">
+<td>103</td>
+<td>左脸颊内4</td>
+<td>332</td>
+<td>右脸颊内4</td>
+</tr>
+<tr class="odd">
+<td>104</td>
+<td>左脸颊内5</td>
+<td>333</td>
+<td>右脸颊内5</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<p><em>注：脸部内部点位较多，完整对称关系可通过 <code>左侧索引 + 右侧索引 ≈ 500</code> 推算。</em></p>
+<h3 id="mediapipe-注意事项">3.12 MediaPipe 注意事项</h3>
+<ol type="1">
+<li><strong>坐标系定义</strong>：
+<ul>
+<li>MediaPipe 返回的坐标为归一化坐标（0-1）</li>
+<li>原点(0,0)在左上角</li>
+<li>x轴向右，y轴向下</li>
+</ul></li>
+<li><strong>前置摄像头镜像</strong>：
+<ul>
+<li>使用前置摄像头时，需要水平镜像：<code>x = 1 - x</code></li>
+<li>镜像后，“左侧”和”右侧”互换</li>
+</ul></li>
+<li><strong>对称精度</strong>：
+<ul>
+<li>理想情况下，对称点的y坐标应该完全相同</li>
+<li>x坐标应该关于0.5对称（即 <code>x_left + x_right = 1.0</code>）</li>
+<li>实际检测中存在微小偏差是正常的</li>
+</ul></li>
+<li><strong>中心点处理</strong>：
+<ul>
+<li>位于面部中轴线上的点没有对称点</li>
+<li>包括：鼻尖(4)、鼻梁(6, 168, 195, 197)、唇珠(0)等</li>
+</ul></li>
+<li><strong>特殊情况</strong>：
+<ul>
+<li>某些对称对不严格遵循 <code>left + right = 500</code> 规律</li>
+<li>建议通过实际坐标验证对称性</li>
+</ul></li>
+<li><strong>轮廓差异</strong>：
+<ul>
+<li>MediaPipe FACE_OVAL 为36点闭合曲线（含额头）</li>
+<li>106点标准为33点开放曲线（不含额头）</li>
+<li>映射时需要选择不含额头的 MediaPipe 轮廓点</li>
+</ul></li>
+<li><strong>瞳孔检测</strong>：
+<ul>
+<li>需要开启 <code>refine_landmarks=True</code></li>
+<li>瞳孔点索引为 468-475（478点模式）</li>
+</ul></li>
+<li><strong>左右定义</strong>：
+<ul>
+<li>MediaPipe 中的”左/右”是基于<strong>观察者视角</strong>，与106点标准一致</li>
+</ul></li>
+<li><strong>深度信息</strong>：
+<ul>
+<li>MediaPipe 每个点包含 (x, y, z) 三维坐标，z轴以鼻尖为原点</li>
+</ul></li>
+</ol>
+<h3 id="对称性验证方法">3.13 对称性验证方法</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 检查两个点是否关于面部中轴线对称</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">isSymmetric</span><span class="op">(</span><span class="va">leftPoint</span><span class="op">:</span> <span class="dt">Pair</span>&lt;<span class="va">Float</span><span class="op">,</span> <span class="va">Float</span>&gt;<span class="op">,</span> <span class="va">rightPoint</span><span class="op">:</span> <span class="dt">Pair</span>&lt;<span class="va">Float</span><span class="op">,</span> <span class="va">Float</span>&gt;<span class="op">):</span> <span class="dt">Boolean</span> <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">centerX</span> <span class="op">=</span> <span class="fl">0.5f</span> <span class="co">// 面部中轴线x坐标</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">tolerance</span> <span class="op">=</span> <span class="fl">0.02f</span> <span class="co">// 容差</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// x坐标应该关于中心对称</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">xSymmetric</span> <span class="op">=</span> Math<span class="op">.</span>abs<span class="op">((</span>leftPoint<span class="op">.</span>first <span class="op">+</span> rightPoint<span class="op">.</span>first<span class="op">)</span> <span class="op">-</span> <span class="fl">1.0f</span><span class="op">)</span> <span class="op">&lt;</span> tolerance</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// y坐标应该接近</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">ySimilar</span> <span class="op">=</span> Math<span class="op">.</span>abs<span class="op">(</span>leftPoint<span class="op">.</span>second <span class="op">-</span> rightPoint<span class="op">.</span>second<span class="op">)</span> <span class="op">&lt;</span> tolerance</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> xSymmetric <span class="op">&amp;&amp;</span> ySimilar</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">// 大多数对称对满足：左侧索引 + 右侧索引 ≈ 500</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">checkSymmetryIndex</span><span class="op">(</span><span class="va">leftIndex</span><span class="op">:</span> <span class="dt">Int</span><span class="op">,</span> <span class="va">rightIndex</span><span class="op">:</span> <span class="dt">Int</span><span class="op">):</span> <span class="dt">Boolean</span> <span class="op">{</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">sum</span> <span class="op">=</span> leftIndex <span class="op">+</span> rightIndex</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> sum <span class="kw">in</span> <span class="fl">490..510</span> <span class="co">// 允许±10的误差</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="mediapipe-468-火山-106-映射策略">4. MediaPipe 468 → 火山 106 映射策略</h2>
+<h3 id="核心映射原则">4.1 核心映射原则</h3>
+<h4 id="第一性原理">第一性原理</h4>
+<p><strong>MediaPipe 468 点本身的拓扑结构不对称</strong>，因此不能简单使用几何镜像（<code>x = 1-x</code>），而必须：</p>
+<ol type="1">
+<li><strong>先确定语义对称的固定点</strong>：为每个 106 点找到 MediaPipe 中语义对应的固定点</li>
+<li><strong>再插值过渡点</strong>：在固定点之间使用 <code>midPoint</code> 插值</li>
+<li><strong>验证左右对称性</strong>：确保 M0-M15 与 M17-M32 关于 M16 对称</li>
+</ol>
+<h4 id="左右对称定义">左右对称定义</h4>
+<ul>
+<li><strong>中轴点</strong>：M16=152（下巴中心）</li>
+<li><strong>右半边</strong>：M0-M15（画面左侧=被摄者右脸，从上到下）</li>
+<li><strong>左半边</strong>：M17-M32（画面右侧=被摄者左脸，从下到上）</li>
+<li><strong>对称验证</strong>：每个 M_i 与 M_(32-i) 应关于中轴线对称</li>
+</ul>
+<h3 id="完整映射表">4.2 完整映射表</h3>
+<p>见 <a href="#22-火山-106-点完整映射表">2.2 火山 106 点完整映射表</a>。</p>
+<h3 id="眼部详细映射">4.3 眼部详细映射</h3>
+<h4 id="右眼-52-576点">右眼 52-57（6点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+<th>对称点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>52</td>
+<td>226</td>
+<td>外角</td>
+<td>↔︎ 58(362)</td>
+</tr>
+<tr class="even">
+<td>53</td>
+<td>30</td>
+<td>上眼睑外</td>
+<td>↔︎ 59(286)</td>
+</tr>
+<tr class="odd">
+<td>54</td>
+<td>56</td>
+<td>上眼睑中</td>
+<td>↔︎ 60(260)</td>
+</tr>
+<tr class="even">
+<td>55</td>
+<td>133</td>
+<td>上眼睑内</td>
+<td>↔︎ 61(446)</td>
+</tr>
+<tr class="odd">
+<td>56</td>
+<td>26</td>
+<td>内角</td>
+<td>↔︎ 62(339)</td>
+</tr>
+<tr class="even">
+<td>57</td>
+<td>110</td>
+<td>下眼睑内</td>
+<td>↔︎ 63(256)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="左眼-58-636点">左眼 58-63（6点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+<th>对称点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>58</td>
+<td>362</td>
+<td>外角</td>
+<td>↔︎ 52(226)</td>
+</tr>
+<tr class="even">
+<td>59</td>
+<td>286</td>
+<td>上眼睑外</td>
+<td>↔︎ 53(30)</td>
+</tr>
+<tr class="odd">
+<td>60</td>
+<td>260</td>
+<td>上眼睑中</td>
+<td>↔︎ 54(56)</td>
+</tr>
+<tr class="even">
+<td>61</td>
+<td>446</td>
+<td>上眼睑内</td>
+<td>↔︎ 55(133)</td>
+</tr>
+<tr class="odd">
+<td>62</td>
+<td>339</td>
+<td>内角</td>
+<td>↔︎ 56(26)</td>
+</tr>
+<tr class="even">
+<td>63</td>
+<td>256</td>
+<td>下眼睑内</td>
+<td>↔︎ 57(110)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="眉毛详细映射">4.4 眉毛详细映射</h3>
+<h4 id="右眉上部-33-375点">右眉上部 33-37（5点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>33</td>
+<td>70</td>
+<td>眉头</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td>63</td>
+<td>眉腰外</td>
+</tr>
+<tr class="odd">
+<td>35</td>
+<td>105</td>
+<td>眉腰中</td>
+</tr>
+<tr class="even">
+<td>36</td>
+<td>66</td>
+<td>眉腰内</td>
+</tr>
+<tr class="odd">
+<td>37</td>
+<td>107</td>
+<td>眉尾</td>
+</tr>
+</tbody>
+</table>
+<h4 id="左眉上部-38-425点">左眉上部 38-42（5点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>38</td>
+<td>336</td>
+<td>眉头</td>
+</tr>
+<tr class="even">
+<td>39</td>
+<td>296</td>
+<td>眉腰外</td>
+</tr>
+<tr class="odd">
+<td>40</td>
+<td>334</td>
+<td>眉腰中</td>
+</tr>
+<tr class="even">
+<td>41</td>
+<td>293</td>
+<td>眉腰内</td>
+</tr>
+<tr class="odd">
+<td>42</td>
+<td>300</td>
+<td>眉尾</td>
+</tr>
+</tbody>
+</table>
+<h4 id="右眉下部-64-674点">右眉下部 64-67（4点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>64</td>
+<td>53</td>
+<td>眉头下</td>
+</tr>
+<tr class="even">
+<td>65</td>
+<td>52</td>
+<td>眉腰下外</td>
+</tr>
+<tr class="odd">
+<td>66</td>
+<td>65</td>
+<td>眉腰下内</td>
+</tr>
+<tr class="even">
+<td>67</td>
+<td>55</td>
+<td>眉尾下</td>
+</tr>
+</tbody>
+</table>
+<h4 id="左眉下部-68-714点">左眉下部 68-71（4点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>68</td>
+<td>285</td>
+<td>眉尾下</td>
+</tr>
+<tr class="even">
+<td>69</td>
+<td>295</td>
+<td>眉腰下内</td>
+</tr>
+<tr class="odd">
+<td>70</td>
+<td>282</td>
+<td>眉腰下外</td>
+</tr>
+<tr class="even">
+<td>71</td>
+<td>283</td>
+<td>眉头下</td>
+</tr>
+</tbody>
+</table>
+<h3 id="鼻子详细映射">4.5 鼻子详细映射</h3>
+<h4 id="鼻梁-44-463点">鼻梁 44-46（3点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>44</td>
+<td>197</td>
+<td>鼻梁上</td>
+</tr>
+<tr class="even">
+<td>45</td>
+<td>5</td>
+<td>鼻梁中</td>
+</tr>
+<tr class="odd">
+<td>46</td>
+<td>4</td>
+<td>鼻尖上</td>
+</tr>
+</tbody>
+</table>
+<h4 id="鼻尖-47-515点">鼻尖 47-51（5点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+<th>对称关系</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>47</td>
+<td>98</td>
+<td>左外（左鼻翼下）</td>
+<td>↔︎ 51(327)</td>
+</tr>
+<tr class="even">
+<td>48</td>
+<td>241</td>
+<td>左内（鼻梁左）</td>
+<td>↔︎ 50(461) ✅</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td>2</td>
+<td>中心</td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td>50</td>
+<td>461</td>
+<td>右内（鼻梁右）</td>
+<td>↔︎ 48(241) ✅</td>
+</tr>
+<tr class="odd">
+<td>51</td>
+<td>327</td>
+<td>右外（右鼻翼上）</td>
+<td>↔︎ 47(98)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="山根-78-792点">山根 78-79（2点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+<th>对称关系</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>78</td>
+<td>193</td>
+<td>左鼻孔上</td>
+<td>↔︎ 79(417)</td>
+</tr>
+<tr class="even">
+<td>79</td>
+<td>417</td>
+<td>右鼻孔上</td>
+<td>↔︎ 78(193)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="鼻孔-80-834点">鼻孔 80-83（4点）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>80</td>
+<td>198</td>
+<td>左鼻孔</td>
+</tr>
+<tr class="even">
+<td>81</td>
+<td>420</td>
+<td>右鼻孔</td>
+</tr>
+<tr class="odd">
+<td>82</td>
+<td>49</td>
+<td>左鼻孔下</td>
+</tr>
+<tr class="even">
+<td>83</td>
+<td>279</td>
+<td>右鼻孔下</td>
+</tr>
+</tbody>
+</table>
+<h3 id="嘴巴详细映射">4.6 嘴巴详细映射</h3>
+<h4 id="嘴巴外轮廓-84-9512点顺时针">嘴巴外轮廓 84-95（12点，顺时针）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>84</td>
+<td>61</td>
+<td>左嘴角</td>
+</tr>
+<tr class="even">
+<td>85</td>
+<td>40</td>
+<td>上唇左外</td>
+</tr>
+<tr class="odd">
+<td>86</td>
+<td>37</td>
+<td>上唇左中</td>
+</tr>
+<tr class="even">
+<td>87</td>
+<td>0</td>
+<td>上唇中</td>
+</tr>
+<tr class="odd">
+<td>88</td>
+<td>267</td>
+<td>上唇右中</td>
+</tr>
+<tr class="even">
+<td>89</td>
+<td>270</td>
+<td>上唇右外</td>
+</tr>
+<tr class="odd">
+<td>90</td>
+<td>291</td>
+<td>右嘴角</td>
+</tr>
+<tr class="even">
+<td>91</td>
+<td>321</td>
+<td>下唇右外</td>
+</tr>
+<tr class="odd">
+<td>92</td>
+<td>314</td>
+<td>下唇右中</td>
+</tr>
+<tr class="even">
+<td>93</td>
+<td>17</td>
+<td>下唇中</td>
+</tr>
+<tr class="odd">
+<td>94</td>
+<td>84</td>
+<td>下唇左中</td>
+</tr>
+<tr class="even">
+<td>95</td>
+<td>91</td>
+<td>下唇左外</td>
+</tr>
+</tbody>
+</table>
+<h4 id="嘴巴内轮廓-96-1038点顺时针">嘴巴内轮廓 96-103（8点，顺时针）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>火山引擎索引</th>
+<th>MediaPipe点</th>
+<th>语义位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>96</td>
+<td>78</td>
+<td>左内角上</td>
+</tr>
+<tr class="even">
+<td>97</td>
+<td>81</td>
+<td>上唇内左</td>
+</tr>
+<tr class="odd">
+<td>98</td>
+<td>13</td>
+<td>上唇内中</td>
+</tr>
+<tr class="even">
+<td>99</td>
+<td>311</td>
+<td>上唇内右</td>
+</tr>
+<tr class="odd">
+<td>100</td>
+<td>308</td>
+<td>右内角下</td>
+</tr>
+<tr class="even">
+<td>101</td>
+<td>178</td>
+<td>下唇内右</td>
+</tr>
+<tr class="odd">
+<td>102</td>
+<td>14</td>
+<td>下唇内中</td>
+</tr>
+<tr class="even">
+<td>103</td>
+<td>402</td>
+<td>下唇内左</td>
+</tr>
+</tbody>
+</table>
+<h3 id="实施注意事项">4.7 实施注意事项</h3>
+<ol type="1">
+<li><strong>前置摄像头镜像</strong>：使用前置摄像头时，MediaPipe 返回的 x 坐标需要镜像：<code>x = 1 - x</code></li>
+<li><strong>归一化坐标</strong>：MediaPipe 返回的坐标为归一化坐标（0-1），直接使用即可</li>
+<li><strong>插值函数</strong>：使用 <code>midPoint(a, b)</code> 计算两点中点</li>
+<li><strong>调试方法</strong>：
+<ul>
+<li>在 CameraDebugOverlay 中显示 106 点（蓝色）</li>
+<li>对比 106 点与 MediaPipe 原始点的位置关系</li>
+<li>验证左右对称性</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="参考文件">5. 参考文件</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/adapter/MediaPipe468Adapter.kt</code></td>
+<td>生产环境 468→106 映射</td>
+</tr>
+<tr class="even">
+<td><code>app/src/main/java/com/mamba/picme/features/gallery/components/FaceLandmarkOverlay.kt</code></td>
+<td>静态图调试映射与可视化</td>
+</tr>
+<tr class="odd">
+<td><code>docs/07-STANDARDS/COORDINATE_SYSTEM.md</code></td>
+<td>坐标系标准</td>
+</tr>
+<tr class="even">
+<td><code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code></td>
+<td>大美丽技术规格</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="参考资源">6. 参考资源</h2>
+<ul>
+<li><a href="https://developers.google.com/mediapipe/solutions/vision/face_landmarker">MediaPipe Face Mesh 官方文档</a></li>
+<li><a href="https://github.com/google/mediapipe/issues/1615">Face Mesh 468点可视化</a></li>
+<li><a href="https://github.com/google/mediapipe/tree/master/mediapipe/modules/face_geometry">MediaPipe Face Geometry</a></li>
+<li>字节火山引擎人脸关键点检测API</li>
+<li>商汤人脸关键点106点标准</li>
+<li>Face++ 106点关键点检测</li>
+</ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

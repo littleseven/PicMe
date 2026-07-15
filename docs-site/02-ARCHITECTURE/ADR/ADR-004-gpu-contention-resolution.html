@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR-004: Adreno GPU 争抢问题分析与解决方案 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../../index.html">🏠 首页</a>
+  <a class="nav-item " href="../../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item active" href="../../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../../">02 Architecture</a> / <a href="../">Adr</a> / <span>ADR-004: Adreno GPU 争抢问题分析与解决方案</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-背景picme-的-gpu-消费者">1. 背景：PoLang 的 GPU 消费者</a></li>
+      <li><a href="#2-事件记录">2. 事件记录</a></li>
+      <li><a href="#3-决策llm-推理使用-cpu-onlygpu-仅用于渲染管线">3. 决策：LLM 推理使用 CPU-only，GPU 仅用于渲染管线</a></li>
+      <li><a href="#4-技术实现">4. 技术实现</a></li>
+      <li><a href="#5-后果分析">5. 后果分析</a></li>
+      <li><a href="#6-后续演进">6. 后续演进</a></li>
+      <li><a href="#7-相关文件">7. 相关文件</a></li>
+      <li><a href="#8-变更记录">8. 变更记录</a></li>
+      </ul>
+    </div>
+<h1 id="adr-004-adreno-gpu-争抢问题分析与解决方案">ADR-004: Adreno GPU 争抢问题分析与解决方案</h1>
+<blockquote>
+<p><strong>状态</strong>: 已接受 · <strong>优先级</strong>: P0 · <strong>最后更新</strong>: 2026-06-15</p>
+</blockquote>
+<hr />
+<h2 id="背景picme-的-gpu-消费者">1. 背景：PoLang 的 GPU 消费者</h2>
+<p>PoLang 是一个强视觉应用，同时使用 GPU 进行<strong>实时美颜渲染</strong>和<strong>端侧 LLM 推理</strong>。当前应用中有三个 GPU 消费者：</p>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│                          GPU 消费者分布                                │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  1. OpenGL ES 渲染管线 (beauty-engine)                               │
+│     ├── Camera Preview → SurfaceView (30fps 实时)                    │
+│     ├── BeautyRenderer 多 Pass（磨皮/美白/美型/妆容/滤镜）           │
+│     ├── PhotoProcessorImpl 离屏渲染（拍照）                          │
+│     └── 线程: 独立渲染线程 + EGL 上下文                              │
+│                                                                      │
+│  2. ncnn Vulkan 计算 (beauty-engine)                                 │
+│     ├── 人脸检测推理（Vulkan compute shader）                         │
+│     ├── net_.opt.use_vulkan_compute = true                           │
+│     └── 线程: 推理线程池                                              │
+│                                                                      │
+│  3. LLM 推理 (agent-core)                                            │
+│     ├── 引擎: llama.cpp / ggml                                       │
+│     ├── 后端选择: ggml-cpu (当前) / ggml-vulkan (曾尝试)              │
+│     └── 线程: LLM-Model-Thread (专用线程)                            │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘</code></pre>
+<p><strong>关键约束</strong>：三者运行在<strong>同一块 Adreno GPU</strong> 上，且 Android 的 GPU 调度器 (kgsl) 不支持跨 API 的细粒度优先级抢占。</p>
+<hr />
+<h2 id="事件记录">2. 事件记录</h2>
+<h3 id="事件-1-mnn-vulkan-与-opengl-es-冲突2026-05">事件 1: MNN Vulkan 与 OpenGL ES 冲突（~2026-05）</h3>
+<h4 id="现象">现象</h4>
+<p>MNN-LLM 使用 Vulkan 后端进行 LLM 推理时，出现 <code>vk::DeviceLostError</code>，与当前事件 2 类似。</p>
+<h4 id="当时的环境">当时的环境</h4>
+<table>
+<thead>
+<tr class="header">
+<th>组件</th>
+<th>GPU 使用</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>OpenGL ES 渲染管线</td>
+<td>✅ 持续占用</td>
+<td>Camera preview + Beauty Shader</td>
+</tr>
+<tr class="even">
+<td>ncnn Vulkan</td>
+<td>✅ 持续占用</td>
+<td>人脸检测</td>
+</tr>
+<tr class="odd">
+<td>MNN Vulkan (LLM)</td>
+<td>✅ 新增</td>
+<td>旧版 LLM 引擎，后迁移至 llama.cpp</td>
+</tr>
+<tr class="even">
+<td>ggml-vulkan</td>
+<td>❌ 未引入</td>
+<td>llama.cpp 尚未接入</td>
+</tr>
+</tbody>
+</table>
+<h4 id="当时的应对">当时的应对</h4>
+<p>在 <code>CMakeLists.txt</code> 中以注释记录：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ggml-vulkan 已禁用 — 与 MNN 的 GPU 上下文冲突 (Adreno 830)</span></span></code></pre></div>
+<p>后续 MNN 整体从仓库移除（包括 MNN-LLM 和 MNN 人脸检测），团队认为移除 MNN 后 GPU 冲突问题会自然解决。</p>
+<hr />
+<h3 id="事件-2-ggml-vulkan-ncnn-vulkan-egl-三方争抢2026-06-15">事件 2: ggml-vulkan + ncnn Vulkan + EGL 三方争抢（2026-06-15）</h3>
+<h4 id="触发条件">触发条件</h4>
+<p>MNN 移除后，重新为 llama.cpp 启用 <code>GGML_VULKAN=ON</code>，编译了 <code>libggml-vulkan.so</code>（79MB）。</p>
+<h4 id="崩溃日志关键信息">崩溃日志关键信息</h4>
+<pre><code>19:07:01.726 Fence: waitForever: fence 226 didn&#39;t signal in 3000 ms        ← GPU fence 超时
+19:07:01.726 Fence: Throttling EGL Production: fence 225 didn&#39;t signal      ← EGL 渲染被节流
+19:07:04.001 HWUI: Davey! duration=5279ms                                   ← 主线程卡顿 5 秒
+19:07:04.008 Choreographer: Skipped 255 frames!                             ← UI 丢帧 255 帧
+19:07:04.027 libggml-vulkan: vk::Queue::submit: ErrorDeviceLost             ← Vulkan 设备丢失
+19:07:04.028 libc: Fatal signal 6 (SIGABRT)                                 ← 进程崩溃</code></pre>
+<h4 id="崩溃链路">崩溃链路</h4>
+<pre><code>ncnn Vulkan compute 持续运行 (每帧人脸检测)
+        +
+OpenGL ES 渲染持续运行 (30fps 预览 + 美颜)
+        +
+ggml-vulkan submit LLM 计算任务
+        ↓
+GPU 过载 → fence 超时 (3s)
+        ↓
+kgsl 驱动重置 GPU
+        ↓
+vk::Queue::submit 返回 VK_ERROR_DEVICE_LOST
+        ↓
+libggml-vulkan C++ 异常 → SIGABRT</code></pre>
+<h4 id="根因分析">根因分析</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>因素</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>直接原因</strong></td>
+<td><code>vk::Queue::submit: ErrorDeviceLost</code>，Vulkan 设备被 GPU 驱动重置</td>
+</tr>
+<tr class="even">
+<td><strong>根本原因</strong></td>
+<td>Adreno 830 (Xiaomi 15) 的 kgsl 驱动无法同时协调 <strong>3 个 GPU 上下文</strong>（EGL + ncnn Vulkan + ggml Vulkan）</td>
+</tr>
+<tr class="odd">
+<td><strong>触发条件</strong></td>
+<td>LLM 推理（ggml-vulkan）在渲染 + 人脸检测的 GPU 负载高峰时提交计算任务</td>
+</tr>
+<tr class="even">
+<td><strong>本质问题</strong></td>
+<td>移动端 GPU 的多个上下文（OpenGL ES + Vulkan 多实例）并发访问同一硬件时，Adreno 驱动缺乏可靠的时间片调度机制</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="决策llm-推理使用-cpu-onlygpu-仅用于渲染管线">3. 决策：LLM 推理使用 CPU-only，GPU 仅用于渲染管线</h2>
+<h3 id="决策内容">3.1 决策内容</h3>
+<blockquote>
+<p><strong>所有 LLM 推理（llama.cpp）强制使用 CPU 后端，禁止启用任何 GPU 加速后端。</strong> GPU 资源完全留给 beauty-engine 的渲染管线（OpenGL ES + ncnn Vulkan）。</p>
+</blockquote>
+<h3 id="决策理由">3.2 决策理由</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>理由</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>稳定性优先</strong></td>
+<td>GPU 争抢导致的 DeviceLost 是致命的（进程崩溃），而 CPU 推理只是速度稍慢</td>
+</tr>
+<tr class="even">
+<td><strong>Qwen2.5 0.5B 模型小</strong></td>
+<td>0.5B 参数量在 CPU 上 + KleidiAI + NEON DOTPROD 已足够流畅</td>
+</tr>
+<tr class="odd">
+<td><strong>渲染不可降级</strong></td>
+<td>美颜渲染的实时性（30fps + &lt;100ms 交互延迟）比 LLM 推理速度更关键</td>
+</tr>
+<tr class="even">
+<td><strong>APK 体积收益</strong></td>
+<td>移除 <code>libggml-vulkan.so</code>（79MB），APK 减少 ~79MB</td>
+</tr>
+<tr class="odd">
+<td><strong>ncnn Vulkan 不可降级</strong></td>
+<td>人脸检测是每帧必需的，切换到 CPU 会显著增加推理耗时</td>
+</tr>
+</tbody>
+</table>
+<h3 id="不采纳方案">3.3 不采纳方案</h3>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 60%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>方案</th>
+<th>拒绝原因</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>让 ncnn 用 CPU</strong></td>
+<td>人脸检测每帧都要跑，CPU 推理耗时翻倍，影响 30fps 实时性</td>
+</tr>
+<tr class="even">
+<td><strong>分时使用 GPU</strong></td>
+<td>需要跨进程/跨 API 同步，Android 无标准方案，复杂度高</td>
+</tr>
+<tr class="odd">
+<td><strong>多个 Vulkan 实例共享 VkDevice</strong></td>
+<td>ncnn 和 ggml 各自管理自己的 VkDevice，无法共享</td>
+</tr>
+<tr class="even">
+<td><strong>降低 ggml-vulkan 优先级</strong></td>
+<td>Adreno 驱动不支持 Vulkan 队列优先级控制</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="技术实现">4. 技术实现</h2>
+<h3 id="编译配置cpu-only-neon">4.1 编译配置（CPU-only + NEON）</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># llama.cpp Android NDK 编译（Vulkan=OFF）</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DCMAKE_TOOLCHAIN_FILE</span><span class="op">=</span><span class="va">$ANDROID_NDK</span>/build/cmake/android.toolchain.cmake <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DANDROID_ABI</span><span class="op">=</span>arm64-v8a <span class="dt">\</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DANDROID_PLATFORM</span><span class="op">=</span>android-28 <span class="dt">\</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DBUILD_SHARED_LIBS</span><span class="op">=</span>ON <span class="dt">\</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DCMAKE_BUILD_TYPE</span><span class="op">=</span>Release <span class="dt">\</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DGGML_VULKAN</span><span class="op">=</span>OFF <span class="dt">\ </span>             <span class="co"># ← 关键：禁用 Vulkan</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">-DGGML_CPU=ON</span> <span class="dt">\</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DGGML_CPU_KLEIDIAI</span><span class="op">=</span>ON <span class="dt">\ </span>        <span class="co"># KleidiAI 矩阵乘优化</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">-DGGML_CPU_REPACK=ON</span> <span class="dt">\</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DGGML_LLAMAFILE</span><span class="op">=</span>ON <span class="dt">\ </span>           <span class="co"># 快速 token 生成</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="ex">-DGGML_OPENMP=OFF</span> <span class="dt">\</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DCMAKE_C_FLAGS</span><span class="op">=</span><span class="st">&quot;-march=armv8.2-a+dotprod&quot;</span> <span class="dt">\</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">-DCMAKE_CXX_FLAGS</span><span class="op">=</span><span class="st">&quot;-march=armv8.2-a+dotprod&quot;</span></span></code></pre></div>
+<h3 id="cmakelists.txt-变更">4.2 CMakeLists.txt 变更</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 移除 ggml_vulkan 导入（原样）</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="er">- set(GGML_VULKAN_SO_PATH &quot;...&quot;)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="er">- add_library(ggml_vulkan SHARED IMPORTED)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="er">- target_link_libraries(agent_native ggml_vulkan)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="er">- target_compile_definitions(agent_native GGML_USE_VULKAN=1)</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 保留 CPU 优化</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">target_compile_definitions</span>(<span class="bn">agent_native</span> <span class="ot">PRIVATE</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    GGML_USE_CPU_KLEIDIAI=1</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    GGML_USE_LLAMAFILE=1</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<h3 id="jnilibs-产物变更">4.3 jniLibs 产物变更</h3>
+<table>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>大小 (旧)</th>
+<th>大小 (新)</th>
+<th>变化</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>libllama.so</code></td>
+<td>34MB</td>
+<td>34MB</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><code>libggml-vulkan.so</code></td>
+<td><strong>79MB</strong></td>
+<td><strong>已删除</strong></td>
+<td>📉</td>
+</tr>
+<tr class="odd">
+<td><code>libggml-cpu.so</code></td>
+<td>5.2MB</td>
+<td>5.2MB</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><code>libggml-base.so</code></td>
+<td>5.3MB</td>
+<td>5.3MB</td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td><code>libggml.so</code></td>
+<td>477KB</td>
+<td>476KB</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><strong>合计</strong></td>
+<td><strong>~124MB</strong></td>
+<td><strong>~45MB</strong></td>
+<td><strong>-64%</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="后果分析">5. 后果分析</h2>
+<h3 id="正面影响">正面影响</h3>
+<ul>
+<li>✅ 彻底消除 GPU DeviceLost 崩溃（P0）</li>
+<li>✅ APK 体积减少 ~79MB</li>
+<li>✅ LLM 推理稳定性达到 100%（不再因 GPU 争抢崩溃）</li>
+<li>✅ 渲染管线保持 30fps 流畅</li>
+</ul>
+<h3 id="负面影响">负面影响</h3>
+<ul>
+<li>⚠️ LLM 推理速度下降（CPU 推理 vs GPU 推理 ~2-3x 差距）</li>
+<li>⚠️ 纯 CPU 推理增加电池消耗（但 Qwen2.5 0.5B 模型较小，影响有限）</li>
+</ul>
+<h3 id="性能预期">性能预期</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>GPU (Vulkan)</th>
+<th>CPU (NEON+KleidiAI)</th>
+<th>差异</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Prefill (首 token)</td>
+<td>~200ms</td>
+<td>~500ms</td>
+<td>~2.5x</td>
+</tr>
+<tr class="even">
+<td>Decode (生成)</td>
+<td>~15 tokens/s</td>
+<td>~6-8 tokens/s</td>
+<td>~2x</td>
+</tr>
+<tr class="odd">
+<td>稳定性</td>
+<td>❌ DeviceLost 崩溃</td>
+<td>✅ 无崩溃</td>
+<td>决定性差异</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="后续演进">6. 后续演进</h2>
+<h3 id="如果未来需要-gpu-llm-推理">6.1 如果未来需要 GPU LLM 推理</h3>
+<p>如果后续需要更大的模型（如 7B+），CPU 推理无法满足性能要求时，需采用以下方案之一：</p>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>方案</th>
+<th>可行性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>独占 GPU 模式</strong></td>
+<td>低</td>
+<td>LLM 推理时暂停美颜渲染 → 用户体验不可接受</td>
+</tr>
+<tr class="even">
+<td><strong>Vulkan VkDevice 共享</strong></td>
+<td>中</td>
+<td>让 ncnn 和 ggml 共享同一个 VkDevice 和 VkQueue</td>
+</tr>
+<tr class="odd">
+<td><strong>升级 Adreno 驱动</strong></td>
+<td>低</td>
+<td>厂商驱动更新不可控</td>
+</tr>
+<tr class="even">
+<td><strong>NPU/专用推理芯片</strong></td>
+<td>未来</td>
+<td>等待高通 AI Engine 的标准化移动端 LLM SDK</td>
+</tr>
+<tr class="odd">
+<td><strong>远程推理</strong></td>
+<td>已实现</td>
+<td>回退到 Cloudflare Gateway → Kimi API，已有完整链路</td>
+</tr>
+</tbody>
+</table>
+<h3 id="监控建议">6.2 监控建议</h3>
+<ul>
+<li>如果后续尝试重新启用任何 GPU 加速后端，<strong>必须先在 Adreno 830 上做 30 分钟压力测试</strong></li>
+<li>监控指标：<code>vk::Queue::submit</code> 返回码、GPU fence 超时日志、EGL 生产节流日志</li>
+<li>上述三个指标任何一个出现，都意味着 GPU 争抢问题复现</li>
+</ul>
+<hr />
+<h2 id="相关文件">7. 相关文件</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>agent-core/src/main/cpp/CMakeLists.txt</code></td>
+<td>C++ 编译配置，含 Vulkan 禁用注释</td>
+</tr>
+<tr class="even">
+<td><code>agent-core/src/main/jniLibs/arm64-v8a/</code></td>
+<td>编译产物目录</td>
+</tr>
+<tr class="odd">
+<td><code>beauty-engine/src/main/cpp/ncnn_face_detector.cpp</code></td>
+<td>ncnn Vulkan 配置（<code>net_.opt.use_vulkan_compute = true</code>）</td>
+</tr>
+<tr class="even">
+<td><code>docs/03-TECHNICAL-SPECS/LLM_ENGINE_MIGRATION_MNN_TO_LLAMACPP.md</code></td>
+<td>LLM 引擎迁移技术规范</td>
+</tr>
+<tr class="odd">
+<td><code>ADRs/ADR-001-beauty-engine-architecture.md</code></td>
+<td>美颜引擎架构（含 EGL 渲染线程设计）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="变更记录">8. 变更记录</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>日期</th>
+<th>版本</th>
+<th>变更内容</th>
+<th>作者</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2026-06-15</td>
+<td>v1.0</td>
+<td>初始版本，记录事件 1 + 事件 2 两次 GPU 争抢问题及决策</td>
+<td>RD</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>维护者</strong>：RD Agent <strong>最后更新</strong>：2026-06-15 <strong>状态</strong>：已接受</p>
+</blockquote>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>langchain4android 文档导航索引 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="index.html">🏠 首页</a>
+  <a class="nav-item active" href="00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><span>langchain4android 文档导航索引</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#文档地图">文档地图</a></li>
+      <li><a href="#技术规范速查">技术规范速查</a></li>
+      <li><a href="#快速导航">快速导航</a></li>
+      </ul>
+    </div>
+<h1 id="langchain4android-文档导航索引">langchain4android 文档导航索引</h1>
+<blockquote>
+<p><strong>维护者</strong>: CO Agent <strong>最后更新</strong>: 2026-07-08 <strong>版本</strong>: 2.1（第二轮精简版）</p>
+</blockquote>
+<hr />
+<h2 id="文档地图">文档地图</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>层级</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>顶层治理</strong></td>
+<td><a href="../AGENTS.html"><code>../AGENTS.md</code></a></td>
+<td>Agent First 研发流程、角色协作、全局红线</td>
+</tr>
+<tr class="even">
+<td><strong>产品定义</strong></td>
+<td><a href="../PRODUCT.html"><code>../PRODUCT.md</code></a></td>
+<td>产品目标、路线图、验收标准</td>
+</tr>
+<tr class="odd">
+<td><strong>交互规范</strong></td>
+<td><a href="./01-PRODUCT/FEATURES.html"><code>01-PRODUCT/FEATURES.md</code></a></td>
+<td>用户交互流程与体验规则</td>
+</tr>
+<tr class="even">
+<td><strong>性能红线</strong></td>
+<td><a href="./01-PRODUCT/NFR_SPEC.html"><code>01-PRODUCT/NFR_SPEC.md</code></a></td>
+<td>性能/稳定性/隐私量化指标</td>
+</tr>
+<tr class="odd">
+<td><strong>Agent 架构</strong></td>
+<td><a href="./02-ARCHITECTURE/AGENT_ARCHITECTURE.html"><code>02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></a></td>
+<td>Agent 运行时架构、本地/远程推理</td>
+</tr>
+<tr class="even">
+<td><strong>模块架构</strong></td>
+<td><a href="./02-ARCHITECTURE/MODULE_ARCHITECTURE.html"><code>02-ARCHITECTURE/MODULE_ARCHITECTURE.md</code></a></td>
+<td>Gradle 模块划分与依赖关系</td>
+</tr>
+<tr class="odd">
+<td><strong>架构决策</strong></td>
+<td><a href="./02-ARCHITECTURE/ADR/"><code>02-ARCHITECTURE/ADR/</code></a></td>
+<td>ADR-001 ~ ADR-007</td>
+</tr>
+<tr class="even">
+<td><strong>能力注册</strong></td>
+<td><a href="./04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.html"><code>04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md</code></a></td>
+<td>Capability 列表、命令映射、实现指南与生命周期规范</td>
+</tr>
+<tr class="odd">
+<td><strong>命令参考</strong></td>
+<td><a href="./04-AGENT-CAPABILITIES/COMMAND_REFERENCE.html"><code>04-AGENT-CAPABILITIES/COMMAND_REFERENCE.md</code></a></td>
+<td>命令语法与示例</td>
+</tr>
+<tr class="even">
+<td><strong>开发规范</strong></td>
+<td><a href="./05-DEVELOPMENT/DEVELOPMENT.html"><code>05-DEVELOPMENT/DEVELOPMENT.md</code></a></td>
+<td>双螺旋工作流、代码审查、任务标记规范、CI 规则</td>
+</tr>
+<tr class="odd">
+<td><strong>本地环境</strong></td>
+<td><a href="./05-DEVELOPMENT/LOCAL_ENVIRONMENT.html"><code>05-DEVELOPMENT/LOCAL_ENVIRONMENT.md</code></a></td>
+<td>本机开发路径与工具上下文</td>
+</tr>
+<tr class="even">
+<td><strong>QA 验收</strong></td>
+<td><a href="./06-QA/QA_EXECUTION_CHECKLIST.html"><code>06-QA/QA_EXECUTION_CHECKLIST.md</code></a></td>
+<td>端到端验收、自动化测试、Accessibility UI Driver、核心功能测试</td>
+</tr>
+<tr class="odd">
+<td><strong>性能基线</strong></td>
+<td><a href="./06-QA/PERFORMANCE_BASELINE_REPORT.html"><code>06-QA/PERFORMANCE_BASELINE_REPORT.md</code></a></td>
+<td>历史性能 trace 报告合集</td>
+</tr>
+<tr class="even">
+<td><strong>坐标系标准</strong></td>
+<td><a href="./07-STANDARDS/COORDINATE_SYSTEM.html"><code>07-STANDARDS/COORDINATE_SYSTEM.md</code></a></td>
+<td>图像/人脸坐标系与命名规范</td>
+</tr>
+<tr class="odd">
+<td><strong>术语词典</strong></td>
+<td><a href="./07-STANDARDS/GLOSSARY.html"><code>07-STANDARDS/GLOSSARY.md</code></a></td>
+<td>统一术语定义</td>
+</tr>
+<tr class="even">
+<td><strong>重构计划</strong></td>
+<td><a href="./07-STANDARDS/CODE_REFACTORING_PLAN.html"><code>07-STANDARDS/CODE_REFACTORING_PLAN.md</code></a></td>
+<td>代码债务与重构路线图</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="技术规范速查">技术规范速查</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文档</th>
+<th>主题</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/AI_OPTIMIZATION.html"><code>AI_OPTIMIZATION.md</code></a></td>
+<td>AI 一键图片优化方案与参数标准</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/TAG_GENERATION.html"><code>TAG_GENERATION.md</code></a></td>
+<td>相册自动 TAG 生成（5-Pass Pipeline）</td>
+</tr>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/GALLERY_SEARCH.html"><code>GALLERY_SEARCH.md</code></a></td>
+<td>相册自然语言搜索完整链路</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.html"><code>ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md</code></a></td>
+<td>端侧推理引擎与模型全景梳理（含优化评估与多模型生命周期改造清单）</td>
+</tr>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.html"><code>MNN_LLM_OPERATIONS.md</code></a></td>
+<td>MNN-LLM 运维与资源管理</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/MNN_LANDMARK_DIAGNOSIS.html"><code>MNN_LANDMARK_DIAGNOSIS.md</code></a></td>
+<td>MNN Landmark 检测路径诊断与修复方法论</td>
+</tr>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/ONDEVICE_IMAGE_UNDERSTANDING_MODELS.html"><code>ONDEVICE_IMAGE_UNDERSTANDING_MODELS.md</code></a></td>
+<td>端侧图片理解模型调研</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/VOICE_STACK.html"><code>VOICE_STACK.md</code></a></td>
+<td>语音栈：唤醒词优化、KWS 迁移与 ASR Language Model 说明</td>
+</tr>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.html"><code>BEAUTY_ENGINE_TECH_SPEC.md</code></a></td>
+<td>大美丽引擎技术规格（含相机预览比例、帧同步美妆、容灾降级）</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.html"><code>FACE_DETECTION_ENGINE_ARCHITECTURE.md</code></a></td>
+<td>人脸检测引擎架构</td>
+</tr>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/FACE_LANDMARKS.html"><code>FACE_LANDMARKS.md</code></a></td>
+<td>MediaPipe 468 / 火山 106 点参考与映射</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.html"><code>IM_REMOTE_CONTROL_TECH_SPEC.md</code></a></td>
+<td>IM（飞书）远程控制</td>
+</tr>
+<tr class="odd">
+<td><a href="./03-TECHNICAL-SPECS/AGENT_UI_DESIGN.html"><code>AGENT_UI_DESIGN.md</code></a></td>
+<td>远程 LLM 编排 UI 层设计</td>
+</tr>
+<tr class="even">
+<td><a href="./03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.html"><code>CHAT_UI_UNIFICATION.md</code></a></td>
+<td>Chat UI 统一化改造</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="快速导航">快速导航</h2>
+<ul>
+<li><strong>新人入门</strong> → <code>FEATURES.md</code> → <code>AGENT_ARCHITECTURE.md</code> → <code>COMMAND_REFERENCE.md</code></li>
+<li><strong>实现新功能</strong> → <code>FEATURES.md</code> → <code>CAPABILITY_REGISTRY.md</code> → 模块 <code>AGENTS.md</code></li>
+<li><strong>排查性能问题</strong> → <code>NFR_SPEC.md</code> → <code>ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md</code> → <code>BEAUTY_ENGINE_TECH_SPEC.md</code></li>
+<li><strong>执行 QA 验收</strong> → <code>QA_EXECUTION_CHECKLIST.md</code> → <code>BEAUTY_ENGINE_TECH_SPEC.md</code></li>
+</ul>
+<hr />
+<blockquote>
+<p>完整治理规则与文档维护顺序见 <a href="../AGENTS.html"><code>../AGENTS.md</code></a>。</p>
+</blockquote>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent UI 层设计：远程 LLM 编排可视化 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item active" href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">03 Technical Specs</a> / <span>Agent UI 层设计：远程 LLM 编排可视化</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-概述">1. 概述</a></li>
+      <li><a href="#2-设计目标">2. 设计目标</a></li>
+      <li><a href="#3-组件架构">3. 组件架构</a></li>
+      <li><a href="#4-组件详解">4. 组件详解</a></li>
+      <li><a href="#5-自动执行设置">5. 自动执行设置</a></li>
+      <li><a href="#6-数据流">6. 数据流</a></li>
+      <li><a href="#7-viewmodel-集成">7. ViewModel 集成</a></li>
+      <li><a href="#8-文件结构">8. 文件结构</a></li>
+      <li><a href="#9-实施计划">9. 实施计划</a></li>
+      </ul>
+    </div>
+<h1 id="agent-ui-层设计远程-llm-编排可视化">Agent UI 层设计：远程 LLM 编排可视化</h1>
+<blockquote>
+<p><strong>状态</strong>: 已批准<br />
+<strong>作者</strong>: Claude<br />
+<strong>日期</strong>: 2026-05-29<br />
+<strong>关联文档</strong>: - 远程 LLM 编排设计（已被 ADR-005/006 取代，详见 <code>docs/02-ARCHITECTURE/ADR/</code>） - <a href="../02-ARCHITECTURE/AGENT_ARCHITECTURE.html"><code>docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></a></p>
+</blockquote>
+<hr />
+<h2 id="概述">1. 概述</h2>
+<p>本文档定义 PoLang 远程 LLM 混合编排架构的 UI 层设计。将后端 <code>ExecutionPlan</code> 的执行流程可视化，以<strong>内联聊天消息</strong>的形式嵌入现有 <code>AiAgentPanel</code> 中。</p>
+<p><strong>核心原则</strong>: - 保持现有聊天界面不变 - 计划执行流程以特殊消息类型嵌入 - 支持自动执行（无需每步确认）</p>
+<hr />
+<h2 id="设计目标">2. 设计目标</h2>
+<table>
+<thead>
+<tr class="header">
+<th>目标</th>
+<th>优先级</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>计划预览展示</td>
+<td>P0</td>
+<td>PREVIEW 模式下展示 ExecutionPlan 步骤列表</td>
+</tr>
+<tr class="even">
+<td>实时进度展示</td>
+<td>P0</td>
+<td>AUTO 模式下展示执行进度和步骤状态</td>
+</tr>
+<tr class="odd">
+<td>执行结果报告</td>
+<td>P0</td>
+<td>完成后展示执行摘要</td>
+</tr>
+<tr class="even">
+<td>自动执行设置</td>
+<td>P0</td>
+<td>用户可设置默认自动执行，无需确认</td>
+</tr>
+<tr class="odd">
+<td>暂停/跳过/取消</td>
+<td>P1</td>
+<td>执行中提供控制按钮</td>
+</tr>
+<tr class="even">
+<td>步骤修改</td>
+<td>P2</td>
+<td>允许用户在执行前调整计划</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="组件架构">3. 组件架构</h2>
+<h3 id="消息类型密封类">3.1 消息类型密封类</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> AgentMessage <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> UserText<span class="op">(</span><span class="kw">val</span> <span class="va">text</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> AgentText<span class="op">(</span><span class="kw">val</span> <span class="va">text</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> PlanPreview<span class="op">(</span><span class="kw">val</span> <span class="va">plan</span><span class="op">:</span> <span class="dt">ExecutionPlan</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> PlanProgress<span class="op">(</span><span class="kw">val</span> <span class="va">plan</span><span class="op">:</span> <span class="dt">ExecutionPlan</span><span class="op">,</span> <span class="kw">val</span> <span class="va">state</span><span class="op">:</span> <span class="dt">ExecutionState</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> PlanResult<span class="op">(</span><span class="kw">val</span> <span class="va">result</span><span class="op">:</span> <span class="dt">ExecutionResult</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="核心-ui-组件">3.2 核心 UI 组件</h3>
+<pre><code>AiAgentPanel（现有）
+    └── LazyColumn（消息列表）
+        ├── UserTextBubble（现有）
+        ├── AgentTextBubble（现有）
+        ├── PlanPreviewBubble（新增）
+        ├── PlanProgressBubble（新增）
+        └── PlanResultBubble（新增）</code></pre>
+<hr />
+<h2 id="组件详解">4. 组件详解</h2>
+<h3 id="planpreviewbubble计划预览">4.1 PlanPreviewBubble（计划预览）</h3>
+<p><strong>触发</strong>: <code>InferenceResult.Plan</code> 且 <code>interactionMode == PREVIEW</code></p>
+<p><strong>UI 结构</strong>:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ 🤖 Agent                                │
+│                                         │
+│ 📋 执行计划（5步）                        │
+│ ┌─────────────────────────────────────┐ │
+│ │ 1. 切换人像模式                       │ │
+│ │ 2. 磨皮调至 60                       │ │
+│ │ 3. 拍照 1/3                         │ │
+│ │ 4. 拍照 2/3                         │ │
+│ │ 5. 拍照 3/3                         │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ [开始执行] [修改] [取消]                 │
+└─────────────────────────────────────────┘</code></pre>
+<p><strong>行为</strong>: - 用户点击「开始执行」→ 触发 <code>onConfirmPlan(plan)</code> → 消息变为 PlanProgressBubble - 用户点击「修改」→ 展开可编辑步骤列表（P2） - 用户点击「取消」→ 插入 AgentText(“已取消执行”)</p>
+<h3 id="planprogressbubble执行进度">4.2 PlanProgressBubble（执行进度）</h3>
+<p><strong>触发</strong>: <code>ExecutionEngine.stateFlow</code> 变为 <code>Running</code></p>
+<p><strong>UI 结构</strong>:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ 🤖 Agent                                │
+│                                         │
+│ ▓▓▓▓▓▓▓▓░░░░ 3/5 完成                   │
+│                                         │
+│ ✅ 切换人像模式                          │
+│ ✅ 磨皮调至 60                          │
+│ 🔄 拍照 2/3...                         │
+│ ⏸  拍照 3/3（待执行）                   │
+│                                         │
+│ [暂停] [跳过当前]                       │
+└─────────────────────────────────────────┘</code></pre>
+<p><strong>状态图标</strong>: | 状态 | 图标 | |——|——| | 已完成 | ✅ | | 执行中 | 🔄 | | 待执行 | ⏸ | | 已跳过 | ⏭ | | 失败 | ❌ |</p>
+<p><strong>行为</strong>: - 实时监听 <code>ExecutionEngine.stateFlow</code> - 每步完成后更新步骤状态 - 用户点击「暂停」→ <code>executionEngine.pause()</code> - 用户点击「跳过当前」→ 跳过当前步骤（需扩展 ExecutionEngine 支持）</p>
+<h3 id="planresultbubble执行结果">4.3 PlanResultBubble（执行结果）</h3>
+<p><strong>触发</strong>: <code>ExecutionEngine.stateFlow</code> 变为 <code>Completed</code></p>
+<p><strong>UI 结构</strong>:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ 🤖 Agent                                │
+│                                         │
+│ ✅ 计划执行完成（5/5 成功）               │
+│                                         │
+│ 📊 执行摘要                              │
+│ • 成功: 5 步                            │
+│ • 跳过: 0 步                            │
+│ • 失败: 0 步                            │
+│                                         │
+│ [查看详情]                              │
+└─────────────────────────────────────────┘</code></pre>
+<p><strong>失败状态</strong>:</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ 🤖 Agent                                │
+│                                         │
+│ ⚠️ 计划执行完成（3/5 成功）              │
+│                                         │
+│ ❌ 拍照 3/3: 相机被占用                 │
+│                                         │
+│ [重试失败步骤] [放弃]                    │
+└─────────────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="自动执行设置">5. 自动执行设置</h2>
+<h3 id="用户设置">5.1 用户设置</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 存储在 DataStore 中</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> AgentSettings<span class="op">(</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">autoExecutePlans</span><span class="op">:</span> <span class="dt">Boolean</span> <span class="op">=</span> true<span class="op">,</span>  <span class="co">// 默认自动执行</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">showPlanPreview</span><span class="op">:</span> <span class="dt">Boolean</span> <span class="op">=</span> false<span class="op">,</span>   <span class="co">// 是否总是展示预览</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h3 id="执行逻辑">5.2 执行逻辑</h3>
+<pre><code>收到 InferenceResult.Plan
+    │
+    ├─ autoExecutePlans == true ──→ 直接开始执行（插入 PlanProgressBubble）
+    │
+    └─ autoExecutePlans == false ──→ 展示 PlanPreviewBubble，等待用户确认</code></pre>
+<p><strong>设置入口</strong>: SettingsScreen → Agent 设置 → “自动执行多步骤计划”</p>
+<hr />
+<h2 id="数据流">6. 数据流</h2>
+<pre><code>用户输入
+    │
+    ▼
+AgentOrchestrator.processUserInput()
+    │
+    ▼
+InferenceRouter → InferenceResult.Plan(plan)
+    │
+    ▼
+ViewModel:
+  1. 判断 autoExecutePlans
+  2. true → 直接启动 ExecutionEngine
+  3. false → 插入 PlanPreviewBubble 到消息列表
+    │
+    ▼
+用户点击&quot;开始执行&quot; / autoExecute 直接触发
+    │
+    ▼
+ExecutionEngine.execute(plan)
+    │
+    ▼
+PlanPreviewBubble → PlanProgressBubble（替换消息）
+    │
+    ▼
+监听 stateFlow → 更新进度 UI
+    │
+    ▼
+执行完成 → PlanProgressBubble → PlanResultBubble（替换消息）</code></pre>
+<hr />
+<h2 id="viewmodel-集成">7. ViewModel 集成</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AgentPanelViewModel<span class="op">(</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">orchestrator</span><span class="op">:</span> <span class="dt">AgentOrchestrator</span><span class="op">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">executionEngine</span><span class="op">:</span> <span class="dt">ExecutionEngine</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">:</span> <span class="dt">ViewModel</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">_messages</span> <span class="op">=</span> MutableStateFlow<span class="op">&lt;</span>List<span class="op">&lt;</span>AgentMessage<span class="op">&gt;&gt;(</span>emptyList<span class="op">())</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">messages</span><span class="op">:</span> StateFlow<span class="op">&lt;</span>List<span class="op">&lt;</span>AgentMessage<span class="op">&gt;&gt;</span> <span class="op">=</span> _messages<span class="op">.</span>asStateFlow<span class="op">()</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">executionState</span><span class="op">:</span> StateFlow<span class="op">&lt;</span>ExecutionState<span class="op">&gt;</span> <span class="op">=</span> executionEngine<span class="op">.</span>stateFlow</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">sendUserInput</span><span class="op">(</span><span class="va">text</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        viewModelScope<span class="op">.</span>launch <span class="op">{</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 添加用户消息</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>            _messages<span class="op">.</span>value <span class="op">+=</span> AgentMessage<span class="op">.</span>UserText<span class="op">(</span>text<span class="op">)</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 调用编排器</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> orchestrator<span class="op">.</span>processUserInput<span class="op">(</span>text<span class="op">)</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">when</span> <span class="op">(</span>result<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> InferenceResult<span class="op">.</span>Local <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// 单命令，直接执行成功</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>                    _messages<span class="op">.</span>value <span class="op">+=</span> AgentMessage<span class="op">.</span>AgentText<span class="op">(</span><span class="st">&quot;已执行: </span><span class="ss">${</span>result<span class="op">.</span>command<span class="ss">}</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> InferenceResult<span class="op">.</span>Batch <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// 批量命令，自动执行</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>                    _messages<span class="op">.</span>value <span class="op">+=</span> AgentMessage<span class="op">.</span>AgentText<span class="op">(</span><span class="st">&quot;正在执行 </span><span class="ss">${</span>result<span class="op">.</span>commands<span class="op">.</span>size<span class="ss">}</span><span class="st"> 个操作...&quot;</span><span class="op">)</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> InferenceResult<span class="op">.</span>Plan <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>                    handlePlanResult<span class="op">(</span>result<span class="op">.</span>plan<span class="op">)</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> InferenceResult<span class="op">.</span>Chat <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>                    _messages<span class="op">.</span>value <span class="op">+=</span> AgentMessage<span class="op">.</span>AgentText<span class="op">(</span>result<span class="op">.</span>message<span class="op">)</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">fun</span> <span class="fu">handlePlanResult</span><span class="op">(</span><span class="va">plan</span><span class="op">:</span> <span class="dt">ExecutionPlan</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">settings</span> <span class="op">=</span> loadAgentSettings<span class="op">()</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>settings<span class="op">.</span>autoExecutePlans <span class="op">&amp;&amp;</span> plan<span class="op">.</span>interactionMode <span class="op">!=</span> InteractionMode<span class="op">.</span>PREVIEW<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 自动执行</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>            _messages<span class="op">.</span>value <span class="op">+=</span> AgentMessage<span class="op">.</span>PlanProgress<span class="op">(</span>plan<span class="op">,</span> ExecutionState<span class="op">.</span>Running<span class="op">(</span>plan<span class="op">.</span>steps<span class="op">.</span>size<span class="op">,</span> <span class="dv">0</span><span class="op">))</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>            viewModelScope<span class="op">.</span>launch <span class="op">{</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>                executionEngine<span class="op">.</span>execute<span class="op">(</span>plan<span class="op">)</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 展示预览，等待用户确认</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>            _messages<span class="op">.</span>value <span class="op">+=</span> AgentMessage<span class="op">.</span>PlanPreview<span class="op">(</span>plan<span class="op">)</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onConfirmPlan</span><span class="op">(</span><span class="va">plan</span><span class="op">:</span> <span class="dt">ExecutionPlan</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>        viewModelScope<span class="op">.</span>launch <span class="op">{</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 将 PlanPreview 替换为 PlanProgress</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>            replaceLastMessage<span class="op">(</span>AgentMessage<span class="op">.</span>PlanProgress<span class="op">(</span>plan<span class="op">,</span> ExecutionState<span class="op">.</span>Running<span class="op">(</span>plan<span class="op">.</span>steps<span class="op">.</span>size<span class="op">,</span> <span class="dv">0</span><span class="op">)))</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>            executionEngine<span class="op">.</span>execute<span class="op">(</span>plan<span class="op">)</span></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onPauseExecution</span><span class="op">()</span> <span class="op">=</span> executionEngine<span class="op">.</span>pause<span class="op">()</span></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onResumeExecution</span><span class="op">()</span> <span class="op">=</span> executionEngine<span class="op">.</span>resume<span class="op">()</span></span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onCancelExecution</span><span class="op">()</span> <span class="op">=</span> executionEngine<span class="op">.</span>cancel<span class="op">()</span></span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">fun</span> <span class="fu">replaceLastMessage</span><span class="op">(</span><span class="va">newMessage</span><span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>        _messages<span class="op">.</span>value <span class="op">=</span> _messages<span class="op">.</span>value<span class="op">.</span>dropLast<span class="op">(</span><span class="dv">1</span><span class="op">)</span> <span class="op">+</span> newMessage</span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="文件结构">8. 文件结构</h2>
+<h3 id="新增文件">新增文件</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>app/src/main/java/com/picme/features/camera/agent/PlanPreviewBubble.kt</code></td>
+<td>计划预览消息气泡</td>
+</tr>
+<tr class="even">
+<td><code>app/src/main/java/com/picme/features/camera/agent/PlanProgressBubble.kt</code></td>
+<td>执行进度消息气泡</td>
+</tr>
+<tr class="odd">
+<td><code>app/src/main/java/com/picme/features/camera/agent/PlanResultBubble.kt</code></td>
+<td>执行结果消息气泡</td>
+</tr>
+<tr class="even">
+<td><code>app/src/main/java/com/picme/features/camera/agent/AgentMessage.kt</code></td>
+<td>AgentMessage 密封类</td>
+</tr>
+</tbody>
+</table>
+<h3 id="修改文件">修改文件</h3>
+<table>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>修改内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>AiAgentPanel.kt</code></td>
+<td>消息列表支持新消息类型，集成 ViewModel</td>
+</tr>
+<tr class="even">
+<td><code>CameraAgentIntegration.kt</code></td>
+<td>传递 ExecutionEngine 到 ViewModel</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="实施计划">9. 实施计划</h2>
+<h3 id="phase-1-数据模型0.5-天">Phase 1: 数据模型（0.5 天）</h3>
+<ul>
+<li>创建 <code>AgentMessage</code> 密封类</li>
+<li>修改 ViewModel 支持新消息类型</li>
+</ul>
+<h3 id="phase-2-planpreviewbubble1-天">Phase 2: PlanPreviewBubble（1 天）</h3>
+<ul>
+<li>实现计划预览 UI</li>
+<li>添加确认/修改/取消按钮</li>
+<li>测试 PREVIEW 模式流程</li>
+</ul>
+<h3 id="phase-3-planprogressbubble1-天">Phase 3: PlanProgressBubble（1 天）</h3>
+<ul>
+<li>实现进度条和步骤状态列表</li>
+<li>监听 ExecutionEngine.stateFlow</li>
+<li>添加暂停/跳过按钮</li>
+</ul>
+<h3 id="phase-4-planresultbubble0.5-天">Phase 4: PlanResultBubble（0.5 天）</h3>
+<ul>
+<li>实现执行结果摘要</li>
+<li>成功/失败状态展示</li>
+<li>重试失败步骤按钮（P2）</li>
+</ul>
+<h3 id="phase-5-自动执行设置0.5-天">Phase 5: 自动执行设置（0.5 天）</h3>
+<ul>
+<li>添加 DataStore 设置项</li>
+<li>SettingsScreen 添加 Agent 设置入口</li>
+<li>集成到执行逻辑</li>
+</ul>
+<h3 id="phase-6-集成测试0.5-天">Phase 6: 集成测试（0.5 天）</h3>
+<ul>
+<li>测试完整执行流程</li>
+<li>验证状态切换正确性</li>
+<li>测试自动执行设置</li>
+</ul>
+<hr />
+<p><em>本文档遵循 PoLang 三层文档体系，实现时需同步更新模块 AGENTS.md。</em></p>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

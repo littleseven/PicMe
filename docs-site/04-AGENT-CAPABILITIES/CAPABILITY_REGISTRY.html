@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoLang Agent Capability 注册表 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item active" href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">04 Agent Capabilities</a> / <span>PoLang Agent Capability 注册表</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#目录">📋 目录</a></li>
+      <li><a href="#1-capability-概览">1. Capability 概览</a></li>
+      <li><a href="#2-cameracapability">2. CameraCapability</a></li>
+      <li><a href="#3-gallerycapability">3. GalleryCapability</a></li>
+      <li><a href="#4-settingscapability">4. SettingsCapability</a></li>
+      <li><a href="#5-navigationcapability">5. NavigationCapability</a></li>
+      <li><a href="#6-systemcapability">6. SystemCapability</a></li>
+      <li><a href="#7-autotagcapability">7. AutoTagCapability</a></li>
+      <li><a href="#8-aioptimizecapability">8. AiOptimizeCapability</a></li>
+      <li><a href="#9-remotecontrolcapability">9. RemoteControlCapability</a></li>
+      <li><a href="#10-beautycapability非-agent-编排">10. BeautyCapability（非 Agent 编排）</a></li>
+      <li><a href="#附录-a新增-capability-指南">附录 A：新增 Capability 指南</a></li>
+      <li><a href="#附录-bcapability-生命周期规范">附录 B：Capability 生命周期规范</a></li>
+      </ul>
+    </div>
+<h1 id="picme-agent-capability-注册表">PoLang Agent Capability 注册表</h1>
+<blockquote>
+<p><strong>边界声明（Boundary Statement）</strong> - 本文档定义所有 Agent Capability 的注册表、命令映射、执行逻辑、新增 Capability 实现指南以及生命周期规范。 - 架构设计以 <a href="../02-ARCHITECTURE/AGENT_ARCHITECTURE.html"><code>../02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></a> 为准。 - 交互规范以 <a href="../01-PRODUCT/FEATURES.html"><code>../01-PRODUCT/FEATURES.md</code></a> 为准。</p>
+</blockquote>
+<p><strong>模块定位</strong>: Agent 能力注册表、命令映射、实现指南与生命周期规范<br />
+<strong>主要维护者</strong>: [RD] 全栈工程师<br />
+<strong>阅读对象</strong>: RD、AI Agent<br />
+<strong>版本</strong>: 1.2<br />
+<strong>最后更新</strong>: 2026-07-08</p>
+<hr />
+<h2 id="目录">📋 目录</h2>
+<ol type="1">
+<li><a href="#capability-概览">Capability 概览</a></li>
+<li><a href="#2-cameracapability">CameraCapability</a></li>
+<li><a href="#3-gallerycapability">GalleryCapability</a></li>
+<li><a href="#4-settingscapability">SettingsCapability</a></li>
+<li><a href="#5-navigationcapability">NavigationCapability</a></li>
+<li><a href="#6-systemcapability">SystemCapability</a></li>
+<li><a href="#7-autotagcapability">AutoTagCapability</a></li>
+<li><a href="#8-aioptimizecapability">AiOptimizeCapability</a></li>
+<li><a href="#9-remotecontrolcapability">RemoteControlCapability</a></li>
+<li><a href="#10-beautycapability非-agent-编排">BeautyCapability（非 Agent 编排）</a></li>
+<li><a href="#附录-a新增-capability-指南">附录 A：新增 Capability 指南</a></li>
+<li><a href="#附录-bcapability-生命周期规范">附录 B：Capability 生命周期规范</a></li>
+</ol>
+<hr />
+<h2 id="capability-概览">1. Capability 概览</h2>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 11%" />
+<col style="width: 19%" />
+<col style="width: 15%" />
+<col style="width: 11%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>name</th>
+<th>活跃场景</th>
+<th>命令数</th>
+<th>状态</th>
+<th>生命周期</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>CameraCapability</strong></td>
+<td><code>camera</code></td>
+<td>CAMERA</td>
+<td>12</td>
+<td>✅ 已落地</td>
+<td>页面级（CameraScreen）</td>
+</tr>
+<tr class="even">
+<td><strong>GalleryCapability</strong></td>
+<td><code>gallery</code></td>
+<td>GALLERY</td>
+<td>7</td>
+<td>✅ 已落地</td>
+<td>应用级单例 + 页面 delegate</td>
+</tr>
+<tr class="odd">
+<td><strong>SettingsCapability</strong></td>
+<td><code>settings</code></td>
+<td>SETTINGS</td>
+<td>5</td>
+<td>✅ 已落地</td>
+<td>应用级单例 + 页面 delegate</td>
+</tr>
+<tr class="even">
+<td><strong>NavigationCapability</strong></td>
+<td><code>navigation</code></td>
+<td>ALL</td>
+<td>2</td>
+<td>✅ 已落地</td>
+<td>Activity 级（MainActivity）</td>
+</tr>
+<tr class="odd">
+<td><strong>SystemCapability</strong></td>
+<td><code>system</code></td>
+<td>ALL</td>
+<td>2</td>
+<td>✅ 已落地</td>
+<td>Activity/Service 级</td>
+</tr>
+<tr class="even">
+<td><strong>AutoTagCapability</strong></td>
+<td><code>auto_tag</code></td>
+<td>GALLERY</td>
+<td>4</td>
+<td>✅ 已落地</td>
+<td>应用级</td>
+</tr>
+<tr class="odd">
+<td><strong>AiOptimizeCapability</strong></td>
+<td><code>ai_optimize</code></td>
+<td>GALLERY, CHAT</td>
+<td>1</td>
+<td>✅ 已落地</td>
+<td>应用级</td>
+</tr>
+<tr class="even">
+<td><strong>RemoteControlCapability</strong></td>
+<td><code>remote_control</code></td>
+<td>ALL</td>
+<td>0</td>
+<td>✅ 已落地</td>
+<td>应用级单例，不走 AgentCommand 路由</td>
+</tr>
+<tr class="odd">
+<td><strong>BeautyCapability</strong></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅ 已落地</td>
+<td>测试/程序化 API，不注册到 Agent 编排</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>变更说明（2026-07-06）</strong>： - 新增 <code>AutoTagCapability</code>、<code>AiOptimizeCapability</code>、<code>RemoteControlCapability</code> - 移除 <code>AccessibilityCapability</code>（当前代码库中不存在对应实现） - 移除 <code>EditCapability</code>（编辑页独立路由尚未落地） - <code>CameraCapability</code> 命令从 11 个增加到 12 个（新增 <code>delay</code>）</p>
+</blockquote>
+<h3 id="场景---能力映射">1.1 场景 - 能力映射</h3>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 73%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>场景</th>
+<th>可用 Capability</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CAMERA</code></td>
+<td>CameraCapability, NavigationCapability, SystemCapability</td>
+</tr>
+<tr class="even">
+<td><code>GALLERY</code></td>
+<td>GalleryCapability, AutoTagCapability, AiOptimizeCapability, NavigationCapability, SystemCapability</td>
+</tr>
+<tr class="odd">
+<td><code>SETTINGS</code></td>
+<td>SettingsCapability, NavigationCapability, SystemCapability</td>
+</tr>
+<tr class="even">
+<td><code>CHAT</code></td>
+<td>AiOptimizeCapability, NavigationCapability, SystemCapability</td>
+</tr>
+<tr class="odd">
+<td><code>DEBUG</code></td>
+<td>NavigationCapability, SystemCapability</td>
+</tr>
+<tr class="even">
+<td><code>UNKNOWN</code></td>
+<td>NavigationCapability, SystemCapability, RemoteControlCapability</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cameracapability">2. CameraCapability</h2>
+<p><strong>职责</strong>: 相机控制、美颜调节、滤镜切换、拍摄模式管理、延迟拍照<br />
+<strong>活跃场景</strong>: <code>CAMERA</code><br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/features/camera/capability/CameraCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令">2.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>capture</code></td>
+<td>-</td>
+<td>拍照</td>
+<td>“拍照”</td>
+</tr>
+<tr class="even">
+<td><code>toggle_recording</code></td>
+<td>-</td>
+<td>开始/停止录像</td>
+<td>“开始录像”/“停止录像”</td>
+</tr>
+<tr class="odd">
+<td><code>flip_camera</code></td>
+<td>-</td>
+<td>翻转摄像头</td>
+<td>“翻转镜头”</td>
+</tr>
+<tr class="even">
+<td><code>adjust_zoom</code></td>
+<td><code>factor: Float</code></td>
+<td>变焦调节</td>
+<td>“放大两倍” → 2.0x</td>
+</tr>
+<tr class="odd">
+<td><code>adjust_exposure</code></td>
+<td><code>offset: Int</code></td>
+<td>曝光调节 (+/-)</td>
+<td>“调亮一点” → +2</td>
+</tr>
+<tr class="even">
+<td><code>switch_mode</code></td>
+<td><code>mode: String</code></td>
+<td>切换拍摄模式</td>
+<td>“夜景模式”</td>
+</tr>
+<tr class="odd">
+<td><code>adjust_beauty</code></td>
+<td><code>type: String, value: Int</code></td>
+<td>调节美颜参数</td>
+<td>“磨皮 50”</td>
+</tr>
+<tr class="even">
+<td><code>switch_filter</code></td>
+<td><code>filterType: String</code></td>
+<td>切换滤镜</td>
+<td>“冷调滤镜”</td>
+</tr>
+<tr class="odd">
+<td><code>switch_style</code></td>
+<td><code>styleType: String</code></td>
+<td>切换风格特效</td>
+<td>“卡通风格”</td>
+</tr>
+<tr class="even">
+<td><code>switch_scene</code></td>
+<td><code>scene: String</code></td>
+<td>切换场景模式</td>
+<td>“人像场景”</td>
+</tr>
+<tr class="odd">
+<td><code>switch_ratio</code></td>
+<td><code>ratio: String</code></td>
+<td>切换画幅比例</td>
+<td>“16:9”</td>
+</tr>
+<tr class="even">
+<td><code>delay</code></td>
+<td><code>delay_ms: Int</code></td>
+<td>延迟执行（可组合其他命令）</td>
+<td>“3秒后拍照”</td>
+</tr>
+</tbody>
+</table>
+<h3 id="美颜参数范围">2.2 美颜参数范围</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>范围</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>磨皮</td>
+<td>0-100</td>
+<td>35</td>
+</tr>
+<tr class="even">
+<td>美白</td>
+<td>0-100</td>
+<td>25</td>
+</tr>
+<tr class="odd">
+<td>瘦脸</td>
+<td>-50~+50</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>大眼</td>
+<td>0-100</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td>唇色</td>
+<td>0-100</td>
+<td>40</td>
+</tr>
+<tr class="even">
+<td>腮红</td>
+<td>0-100</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td>眉毛</td>
+<td>0-100</td>
+<td>15</td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期">2.3 生命周期</h3>
+<ul>
+<li><strong>页面级</strong>：由 <code>CameraScreen</code> 创建和持有</li>
+<li><code>CameraScreen Enter → CameraCapability() 创建 → 注册到 CapabilityHost</code></li>
+<li><code>CameraScreen Exit → CapabilityHost 注销 → CameraCapability 被 GC 回收</code></li>
+</ul>
+<hr />
+<h2 id="gallerycapability">3. GalleryCapability</h2>
+<p><strong>职责</strong>: 相册查看、删除、分享、搜索、批量选择、收藏<br />
+<strong>活跃场景</strong>: <code>GALLERY</code><br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/features/gallery/capability/GalleryCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-1">3.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>view_media</code></td>
+<td><code>media_id: String?</code></td>
+<td>查看照片/视频</td>
+<td>“看这张照片”</td>
+</tr>
+<tr class="even">
+<td><code>delete_media</code></td>
+<td><code>media_ids: List&lt;String&gt;</code></td>
+<td>删除照片/视频</td>
+<td>“删除这张”</td>
+</tr>
+<tr class="odd">
+<td><code>share_media</code></td>
+<td><code>media_ids: List&lt;String&gt;</code></td>
+<td>分享照片/视频</td>
+<td>“分享这张”</td>
+</tr>
+<tr class="even">
+<td><code>favorite_media</code></td>
+<td><code>media_id: String, favorite: Boolean</code></td>
+<td>收藏/取消收藏</td>
+<td>“收藏这张”</td>
+</tr>
+<tr class="odd">
+<td><code>search_media</code></td>
+<td><code>query: String</code></td>
+<td>搜索照片</td>
+<td>“找昨天的照片”</td>
+</tr>
+<tr class="even">
+<td><code>select_media</code></td>
+<td><code>media_id: String, selected: Boolean</code></td>
+<td>批量选择</td>
+<td>“多选这张”</td>
+</tr>
+<tr class="odd">
+<td><code>switch_view_mode</code></td>
+<td><code>mode: String</code></td>
+<td>切换视图模式</td>
+<td>“网格视图”</td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期-1">3.2 生命周期</h3>
+<ul>
+<li><strong>应用级单例 + 页面 delegate</strong>：在 <code>Application.onCreate()</code> 中注册一次</li>
+<li>相册页面激活时绑定 delegate，离开时解绑</li>
+<li>支持跨页面指令排队：页面再次激活时执行待处理命令</li>
+</ul>
+<hr />
+<h2 id="settingscapability">4. SettingsCapability</h2>
+<p><strong>职责</strong>: 主题切换、语言设置、模型管理、人脸引擎切换、调试选项<br />
+<strong>活跃场景</strong>: <code>SETTINGS</code><br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/features/settings/capability/SettingsCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-2">4.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>change_theme</code></td>
+<td><code>theme: String</code></td>
+<td>切换主题（light/dark/system）</td>
+<td>“深色模式”</td>
+</tr>
+<tr class="even">
+<td><code>change_language</code></td>
+<td><code>language: String</code></td>
+<td>切换语言（zh/en）</td>
+<td>“英文界面”</td>
+</tr>
+<tr class="odd">
+<td><code>download_model</code></td>
+<td><code>model_id: String</code></td>
+<td>下载 AI 模型</td>
+<td>“下载美颜模型”</td>
+</tr>
+<tr class="even">
+<td><code>switch_face_engine</code></td>
+<td><code>engine: String</code></td>
+<td>切换人脸引擎（mediapipe/mnn/custom）</td>
+<td>“用 MediaPipe”</td>
+</tr>
+<tr class="odd">
+<td><code>toggle_setting</code></td>
+<td><code>key: String, enabled: Boolean</code></td>
+<td>开关设置项</td>
+<td>“开启调试模式”</td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期-2">4.2 生命周期</h3>
+<ul>
+<li><strong>应用级单例 + 页面 delegate</strong></li>
+<li>设置页面激活时绑定 delegate，离开时解绑</li>
+</ul>
+<hr />
+<h2 id="navigationcapability">5. NavigationCapability</h2>
+<p><strong>职责</strong>: 页面切换、返回上一页<br />
+<strong>活跃场景</strong>: <code>ALL</code> (所有场景)<br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/domain/agent/capability/NavigationCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-3">5.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>navigate_to</code></td>
+<td><code>destination: String</code></td>
+<td>切换到指定页面</td>
+<td>“去相册”/“打开设置”</td>
+</tr>
+<tr class="even">
+<td><code>go_back</code></td>
+<td>-</td>
+<td>返回上一页</td>
+<td>“返回”/“回去”</td>
+</tr>
+</tbody>
+</table>
+<h3 id="页面映射">5.2 页面映射</h3>
+<table>
+<thead>
+<tr class="header">
+<th>意图关键词</th>
+<th>目标页面</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>“相机”, “拍照”</td>
+<td><code>camera</code></td>
+</tr>
+<tr class="even">
+<td>“相册”, “照片”, “gallery”</td>
+<td><code>gallery</code></td>
+</tr>
+<tr class="odd">
+<td>“设置”, “设定”</td>
+<td><code>settings</code></td>
+</tr>
+<tr class="even">
+<td>“聊天”, “对话”</td>
+<td><code>chat</code></td>
+</tr>
+<tr class="odd">
+<td>“调试”</td>
+<td><code>debug</code></td>
+</tr>
+<tr class="even">
+<td>“模型中心”</td>
+<td><code>model_center</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期-3">5.3 生命周期</h3>
+<ul>
+<li><strong>Activity 级</strong>：由 <code>MainActivity</code> 创建和持有</li>
+<li>同时在 <code>MainActivity</code> 中通过 <code>AgentOrchestrator.registerCapability()</code> 注册到全局 <code>CapabilityRegistry</code></li>
+</ul>
+<hr />
+<h2 id="systemcapability">6. SystemCapability</h2>
+<p><strong>职责</strong>: 启动其他应用、打开系统设置<br />
+<strong>活跃场景</strong>: <code>ALL</code> (所有场景)<br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/domain/agent/capability/SystemCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-4">6.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>launch_app</code></td>
+<td><code>package_name: String?</code>, <code>app_name: String?</code></td>
+<td>启动应用</td>
+<td>“打开微信”</td>
+</tr>
+<tr class="even">
+<td><code>open_system_settings</code></td>
+<td><code>setting: String</code></td>
+<td>打开系统设置</td>
+<td>“打开WiFi设置”</td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期-4">6.2 生命周期</h3>
+<ul>
+<li>在 <code>MainActivity</code> 和 <code>FloatingChatBubbleService</code> 中创建并注册</li>
+<li>构造函数注入 <code>Context</code></li>
+</ul>
+<hr />
+<h2 id="autotagcapability">7. AutoTagCapability</h2>
+<p><strong>职责</strong>: 将标签系统作为 Agent 可编排的 Capability 暴露，支持触发全量标签扫描、查询照片标签、获取进度、取消扫描<br />
+<strong>活跃场景</strong>: <code>GALLERY</code><br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/domain/agent/capability/AutoTagCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-5">7.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>scan_all_tags</code></td>
+<td>-</td>
+<td>触发全量标签扫描</td>
+<td>“扫描所有照片标签”</td>
+</tr>
+<tr class="even">
+<td><code>get_photo_tags</code></td>
+<td><code>photo_id: Long</code></td>
+<td>查询指定照片的标签</td>
+<td>“查看这张照片的标签”</td>
+</tr>
+<tr class="odd">
+<td><code>get_tag_progress</code></td>
+<td>-</td>
+<td>获取当前扫描进度</td>
+<td>“标签扫描进度”</td>
+</tr>
+<tr class="even">
+<td><code>cancel_tag_scan</code></td>
+<td>-</td>
+<td>取消当前扫描</td>
+<td>“取消标签扫描”</td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期-5">7.2 生命周期</h3>
+<ul>
+<li><strong>应用级</strong>：委托给 <code>TagScanOrchestrator</code> 执行</li>
+<li>所有扫描统一走 orchestrator，确保与 UI 控制页进度同源</li>
+</ul>
+<hr />
+<h2 id="aioptimizecapability">8. AiOptimizeCapability</h2>
+<p><strong>职责</strong>: AI 一键优化图片，分析照片场景并自动推荐美颜、滤镜、调节参数<br />
+<strong>活跃场景</strong>: <code>GALLERY</code>, <code>CHAT</code><br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/domain/agent/capability/optimize/AiOptimizeCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-6">8.1 支持命令</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>命令</th>
+<th>参数</th>
+<th>描述</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ai_optimize</code></td>
+<td><code>image_uri: String</code>, <code>mode: String?</code></td>
+<td>AI 一键优化图片</td>
+<td>“优化这张照片”</td>
+</tr>
+</tbody>
+</table>
+<p>参数说明： - <code>image_uri</code>: 待优化图片的本地文件 URI（必填） - <code>mode</code>: <code>fast</code>（本地场景分析 + 本地预设，默认）或 <code>smart</code>（云端视觉模型推荐，需用户授权）</p>
+<h3 id="生命周期-6">8.2 生命周期</h3>
+<ul>
+<li><strong>应用级</strong>：在 <code>Application.onCreate()</code> 中注册</li>
+<li>实际优化逻辑委托给 <code>AiOptimizeUseCase</code></li>
+</ul>
+<hr />
+<h2 id="remotecontrolcapability">9. RemoteControlCapability</h2>
+<p><strong>职责</strong>: IM 远程控制：管理设备绑定与远程命令执行状态<br />
+<strong>活跃场景</strong>: <code>ALL</code><br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持命令-7">9.1 支持命令</h3>
+<p><strong>无 AgentCommand 路由命令</strong>。<code>RemoteControlCapability</code> 不通过 <code>AgentCommand</code> 密封类分发命令；所有管理操作通过公开 API 由 <code>RemoteCommandDispatcher</code> 直接调用。</p>
+<p><code>execute()</code> 始终返回 <code>METHOD_NOT_FOUND</code>。</p>
+<h3 id="公开管理-api">9.2 公开管理 API</h3>
+<table>
+<colgroup>
+<col style="width: 45%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>API</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>updateBinding(token, relayUrl, userId, deviceName)</code></td>
+<td>更新设备绑定状态</td>
+</tr>
+<tr class="even">
+<td><code>clearBinding()</code></td>
+<td>清除设备绑定</td>
+</tr>
+<tr class="odd">
+<td><code>setAutoConfirm(enabled)</code></td>
+<td>设置自动确认模式</td>
+</tr>
+<tr class="even">
+<td><code>buildStatusString()</code></td>
+<td>构建设备状态描述</td>
+</tr>
+</tbody>
+</table>
+<h3 id="生命周期-7">9.3 生命周期</h3>
+<ul>
+<li><strong>应用级单例</strong>：在 <code>Application.onCreate()</code> 中创建，永不注销</li>
+<li>进程结束时 <code>onDestroy()</code> 清理状态</li>
+</ul>
+<hr />
+<h2 id="beautycapability非-agent-编排">10. BeautyCapability（非 Agent 编排）</h2>
+<p><strong>职责</strong>: 提供美颜调节的标准化程序化能力，支持生产代码和测试直接调用<br />
+<strong>文件</strong>: <code>app/src/main/java/com/mamba/picme/capability/BeautyCapability.kt</code><br />
+<strong>状态</strong>: ✅ 已落地</p>
+<h3 id="支持操作">10.1 支持操作</h3>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>adjustSmoothing</code></td>
+<td><code>smoothness: Float</code></td>
+<td>调整磨皮</td>
+</tr>
+<tr class="even">
+<td><code>adjustWhitening</code></td>
+<td><code>whitening: Float</code></td>
+<td>调整美白</td>
+</tr>
+<tr class="odd">
+<td><code>adjustSlimFace</code></td>
+<td><code>slimFace: Float</code></td>
+<td>调整瘦脸</td>
+</tr>
+<tr class="even">
+<td><code>adjustBigEyes</code></td>
+<td><code>bigEyes: Float</code></td>
+<td>调整大眼</td>
+</tr>
+<tr class="odd">
+<td><code>applyAllEffects</code></td>
+<td><code>settings: BeautySettings</code></td>
+<td>应用所有美颜效果</td>
+</tr>
+<tr class="even">
+<td><code>batchTest</code></td>
+<td><code>paramSets: List&lt;BeautySettings&gt;</code></td>
+<td>批量测试多组参数</td>
+</tr>
+</tbody>
+</table>
+<h3 id="说明">10.2 说明</h3>
+<ul>
+<li><code>BeautyCapability</code> <strong>不注册到 <code>CapabilityRegistry</code></strong>，不作为 Agent 可编排能力</li>
+<li>供测试引擎、自动化测试或业务代码直接调用</li>
+<li>若未来需要 Agent 控制美颜参数，应通过 <code>CameraCapability.adjust_beauty</code> 命令</li>
+</ul>
+<hr />
+<h2 id="附录-a新增-capability-指南">附录 A：新增 Capability 指南</h2>
+<h3 id="新增-capability-流程">1. 新增 Capability 流程</h3>
+<h4 id="步骤-1-定义-capability-接口实现">步骤 1: 定义 Capability 接口实现</h4>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourNewCapability <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 1. 定义能力标识</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">name</span> <span class="op">=</span> <span class="st">&quot;your_feature&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">description</span> <span class="op">=</span> <span class="st">&quot;功能的简短描述，用于 System Prompt&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 2. 声明活跃场景</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">activeScenes</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        SceneManager<span class="op">.</span>Scene<span class="op">.</span>YOUR_SCENE</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 3. 列出支持的命令</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">supportedCommands</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;command_1&quot;</span><span class="op">,</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;command_2&quot;</span><span class="op">,</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;text_reply&quot;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 4. 实现命令执行逻辑</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>        <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>YourCommand <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>                <span class="co">// 执行具体逻辑</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>                performYourAction<span class="op">(</span>command<span class="op">)</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>TextReply <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Text<span class="op">(</span>command<span class="op">.</span>message<span class="op">))</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;不支持的命令：</span><span class="ss">${</span>command<span class="op">::</span><span class="kw">class</span>.simpleName}&quot;))</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">fun</span> performYourAction<span class="op">(</span><span class="va">cmd</span><span class="op">:</span> <span class="dt">AgentCommand</span>.<span class="va">YourCommand</span><span class="op">):</span> <span class="dt">AgentAction</span> <span class="op">{</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>        <span class="co">// </span><span class="al">TODO</span><span class="co">: 实现你的业务逻辑</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 注意：不要直接依赖 UI 层，使用回调注入</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    <span class="ss">}</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="步骤-2-注册到-capabilityregistry">步骤 2: 注册到 CapabilityRegistry</h4>
+<div class="sourceCode" id="cb2"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 在 Application 或 ViewModel 初始化时</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">capabilityRegistry</span> <span class="op">=</span> CapabilityRegistry<span class="op">().</span>apply <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    register<span class="op">(</span>YourNewCapability<span class="op">())</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 确保 NavigationCapability 始终注册</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    register<span class="op">(</span>NavigationCapability<span class="op">(</span>onNavigate <span class="op">=</span> <span class="op">{...},</span> onBack <span class="op">=</span> <span class="op">{...}))</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="步骤-3-扩展-agentcommand">步骤 3: 扩展 AgentCommand</h4>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> AgentCommand <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ... 现有命令</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 新增命令</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> YourCommand<span class="op">(</span><span class="kw">val</span> <span class="va">param1</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="kw">val</span> <span class="va">param2</span><span class="op">:</span> <span class="dt">Int</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h4 id="步骤-4-更新-promptbuilder">步骤 4: 更新 PromptBuilder</h4>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PromptBuilder<span class="op">(</span><span class="kw">private</span> <span class="kw">val</span> <span class="va">sceneManager</span><span class="op">:</span> <span class="dt">SceneManager</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">buildSystemPrompt</span><span class="op">(</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">capabilities</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">Capability</span>&gt;<span class="op">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">String</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> buildString <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>            appendLine<span class="op">(</span>basePrompt<span class="op">)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            appendLine<span class="op">()</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            appendLine<span class="op">(</span><span class="st">&quot;当前页面：</span><span class="ss">${</span>sceneManager<span class="op">.</span>currentScene<span class="op">.</span>value<span class="op">.</span>name<span class="ss">}</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            appendLine<span class="op">()</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            appendLine<span class="op">(</span><span class="st">&quot;可用功能:&quot;</span><span class="op">)</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span>forEach <span class="op">{</span> cap <span class="op">-&gt;</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>                appendLine<span class="op">(</span><span class="st">&quot;- </span><span class="ss">${</span>cap<span class="op">.</span>name<span class="ss">}</span><span class="st">: </span><span class="ss">${</span>cap<span class="op">.</span>description<span class="ss">}</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>                cap<span class="op">.</span>supportedCommands<span class="op">().</span>forEach <span class="op">{</span> cmd <span class="op">-&gt;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>                    appendLine<span class="op">(</span><span class="st">&quot;  • </span><span class="ss">$cmd</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="步骤-5-添加自然语言映射可选">步骤 5: 添加自然语言映射（可选）</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">object</span> NaturalLanguageMapper <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">parseToCommand</span><span class="op">(</span><span class="va">input</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">AgentCommand</span><span class="op">?</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>            input<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;你的功能&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> AgentCommand<span class="op">.</span>YourCommand<span class="op">(</span><span class="st">&quot;default&quot;</span><span class="op">,</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>            input<span class="op">.</span>contains<span class="op">(</span><span class="st">&quot;参数 1&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> AgentCommand<span class="op">.</span>YourCommand<span class="op">(</span><span class="st">&quot;value1&quot;</span><span class="op">,</span> <span class="dv">42</span><span class="op">)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> <span class="kw">null</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="capability-接口详解">2. Capability 接口详解</h3>
+<h4 id="name-string"><code>name: String</code></h4>
+<p><strong>用途</strong>: 能力的唯一标识符<br />
+<strong>要求</strong>: 小写字母 + 下划线，无空格<br />
+<strong>示例</strong>: <code>"camera"</code>, <code>"gallery"</code>, <code>"your_feature"</code></p>
+<h4 id="description-string"><code>description: String</code></h4>
+<p><strong>用途</strong>: 用于 System Prompt 的自描述<br />
+<strong>要求</strong>: 简洁明了，不超过 50 字<br />
+<strong>示例</strong>: <code>"相机控制：拍照、录像、美颜、滤镜"</code></p>
+<h4 id="activescenes-listscenemanager.scene"><code>activeScenes(): List&lt;SceneManager.Scene&gt;</code></h4>
+<p><strong>用途</strong>: 声明该能力在哪些场景可用<br />
+<strong>要求</strong>: 必须返回非空列表<br />
+<strong>示例</strong>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">override</span> <span class="kw">fun</span> <span class="fu">activeScenes</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    SceneManager<span class="op">.</span>Scene<span class="op">.</span>CAMERA<span class="op">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    SceneManager<span class="op">.</span>Scene<span class="op">.</span>DEBUG</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h4 id="supportedcommands-liststring"><code>supportedCommands(): List&lt;String&gt;</code></h4>
+<p><strong>用途</strong>: 列出所有支持的命令名称<br />
+<strong>要求</strong>: 必须包含 <code>"text_reply"</code><br />
+<strong>示例</strong>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">override</span> <span class="kw">fun</span> <span class="fu">supportedCommands</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;perform_action&quot;</span><span class="op">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;cancel_action&quot;</span><span class="op">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;text_reply&quot;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h4 id="execute...-resultagentaction"><code>execute(...): Result&lt;AgentAction&gt;</code></h4>
+<p><strong>用途</strong>: 执行解析后的命令<br />
+<strong>参数</strong>: - <code>command</code>: 解析后的结构化命令 - <code>context</code>: 全局上下文（对话历史、用户信息等） - <code>pageContext</code>: 页面特定上下文（如当前选中的照片）</p>
+<p><strong>返回值</strong>: - <code>Result.success(AgentAction.Success)</code> - 执行成功 - <code>Result.success(AgentAction.Error(reason))</code> - 执行失败 - <code>Result.success(AgentAction.Text(message))</code> - 文本回复</p>
+<h3 id="命令解析器扩展">3. 命令解析器扩展</h3>
+<h4 id="扩展-sealed-class">扩展 Sealed Class</h4>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> AgentCommand <span class="op">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> YourCommand<span class="op">(</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">param1</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">param2</span><span class="op">:</span> <span class="dt">Int</span><span class="op">,</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">optionalParam</span><span class="op">:</span> <span class="dt">String</span><span class="op">?</span> <span class="op">=</span> null</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">()</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h4 id="json-解析规则">JSON 解析规则</h4>
+<p><strong>必须使用 <code>kotlinx.serialization</code>，禁止正则</strong>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">kotlinx</span><span class="op">.</span><span class="im">serialization</span><span class="op">.</span><span class="im">json</span><span class="op">.*</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">parseJsonResponse</span><span class="op">(</span><span class="va">jsonString</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">AgentCommand</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> Json<span class="op">.</span>decodeFromString<span class="op">&lt;</span>List<span class="op">&lt;</span>YourCommand<span class="op">&gt;&gt;(</span>jsonString<span class="op">)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>map <span class="op">{</span> AgentCommand<span class="op">.</span>YourCommand<span class="op">(</span>it<span class="op">.</span>param1<span class="op">,</span> it<span class="op">.</span>param2<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="错误处理">错误处理</h4>
+<div class="sourceCode" id="cb10"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>YourCommand <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                <span class="co">// 参数验证</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>command<span class="op">.</span>param2 <span class="op">&lt;</span> <span class="dv">0</span> <span class="op">||</span> command<span class="op">.</span>param2 <span class="op">&gt;</span> <span class="dv">100</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">return</span> Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;param2 必须在 0-100 范围&quot;</span><span class="op">))</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>                <span class="co">// 执行逻辑</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>                performAction<span class="op">(</span>command<span class="op">)</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span> <span class="op">-&gt;</span> Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;不支持的命令&quot;</span><span class="op">))</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span>e<span class="op">:</span> Exception<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        Log<span class="op">.</span>e<span class="op">(</span><span class="st">&quot;YourCapability&quot;</span><span class="op">,</span> <span class="st">&quot;执行失败&quot;</span><span class="op">,</span> e<span class="op">)</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;执行异常：</span><span class="ss">${</span>e<span class="op">.</span>message<span class="ss">}</span><span class="st">&quot;</span><span class="op">))</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="页面上下文集成">4. 页面上下文集成</h3>
+<h4 id="定义-pagecontext">定义 PageContext</h4>
+<div class="sourceCode" id="cb11"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> PageContext <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> YourContext<span class="op">(</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">currentData</span><span class="op">:</span> <span class="dt">YourData</span><span class="op">?,</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">selectedItems</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">YourItem</span>&gt;<span class="op">,</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">extraInfo</span><span class="op">:</span> <span class="dt">Map</span>&lt;<span class="va">String</span><span class="op">,</span> <span class="va">Any</span>&gt;?</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">:</span> <span class="dt">PageContext</span><span class="op">()</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">object</span> None <span class="op">:</span> <span class="dt">PageContext</span><span class="op">()</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h4 id="获取-pagecontext">获取 PageContext</h4>
+<div class="sourceCode" id="cb12"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">yourContext</span> <span class="op">=</span> pageContext <span class="kw">as</span><span class="op">?</span> PageContext<span class="op">.</span>YourContext</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">is</span> AgentCommand<span class="op">.</span>YourCommand <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">data</span> <span class="op">=</span> command<span class="op">.</span>param1<span class="op">?.</span>let <span class="op">{</span> findDataById<span class="op">(</span>it<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>                <span class="op">?:</span> yourContext<span class="op">?.</span>currentData</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>            <span class="kw">data</span><span class="op">?.</span>let <span class="op">{</span> performAction<span class="op">(</span>it<span class="op">,</span> command<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>            Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(</span>command<span class="op">))</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> <span class="op">-&gt;</span> Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Error<span class="op">(</span><span class="st">&quot;不支持的命令&quot;</span><span class="op">))</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="ui-层提供-context">UI 层提供 Context</h4>
+<div class="sourceCode" id="cb13"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">YourScreen</span><span class="op">(</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">viewModel</span><span class="op">:</span> <span class="dt">YourViewModel</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">pageContext</span> <span class="kw">by</span> viewModel<span class="op">.</span>pageContext<span class="op">.</span>collectAsState<span class="op">()</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    GlobalAgentPanel<span class="op">(</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        orchestrator <span class="op">=</span> agentOrchestrator<span class="op">,</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        pageContextProvider <span class="op">=</span> <span class="op">{</span> pageContext <span class="op">}</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="测试与验证">5. 测试与验证</h3>
+<h4 id="单元测试">单元测试</h4>
+<div class="sourceCode" id="cb14"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapabilityTest <span class="op">{</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">lateinit</span> <span class="kw">var</span> <span class="va">capability</span><span class="op">:</span> YourCapability</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Before</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">setup</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        capability <span class="op">=</span> YourCapability<span class="op">(</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>            onPerformAction <span class="op">=</span> <span class="op">{</span> param1<span class="op">,</span> param2 <span class="op">-&gt;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Mock 逻辑</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Test</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> `<span class="fu">test</span> <span class="fu">valid</span> <span class="fu">command</span> <span class="fu">executes</span> <span class="fu">successfully</span>`<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">command</span> <span class="op">=</span> AgentCommand<span class="op">.</span>YourCommand<span class="op">(</span><span class="st">&quot;valid&quot;</span><span class="op">,</span> <span class="dv">50</span><span class="op">)</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">context</span> <span class="op">=</span> AgentContext<span class="op">()</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">pageContext</span> <span class="op">=</span> PageContext<span class="op">.</span>None</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> capability<span class="op">.</span>execute<span class="op">(</span>command<span class="op">,</span> context<span class="op">,</span> pageContext<span class="op">)</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>        assert<span class="op">(</span>result<span class="op">.</span>getOrNull<span class="op">()</span> <span class="kw">is</span> AgentAction<span class="op">.</span>Success<span class="op">)</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Test</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> `<span class="fu">test</span> <span class="fu">invalid</span> <span class="fu">parameter</span> <span class="fu">returns</span> <span class="fu">error</span>`<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">command</span> <span class="op">=</span> AgentCommand<span class="op">.</span>YourCommand<span class="op">(</span><span class="st">&quot;valid&quot;</span><span class="op">,</span> <span class="dv">150</span><span class="op">)</span> <span class="co">// Out of range</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">context</span> <span class="op">=</span> AgentContext<span class="op">()</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">pageContext</span> <span class="op">=</span> PageContext<span class="op">.</span>None</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> capability<span class="op">.</span>execute<span class="op">(</span>command<span class="op">,</span> context<span class="op">,</span> pageContext<span class="op">)</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>        assert<span class="op">(</span>result<span class="op">.</span>getOrNull<span class="op">()</span> <span class="kw">is</span> AgentAction<span class="op">.</span>Error<span class="op">)</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>        assert<span class="op">(</span>result<span class="op">.</span>getOrNull<span class="op">()?.</span>message<span class="op">?.</span>contains<span class="op">(</span><span class="st">&quot;范围&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="kw">true</span><span class="op">)</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Test</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> `<span class="fu">test</span> <span class="fu">text_reply</span> <span class="fu">returns</span> <span class="fu">message</span>`<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">command</span> <span class="op">=</span> AgentCommand<span class="op">.</span>TextReply<span class="op">(</span><span class="st">&quot;Hello&quot;</span><span class="op">)</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">context</span> <span class="op">=</span> AgentContext<span class="op">()</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">pageContext</span> <span class="op">=</span> PageContext<span class="op">.</span>None</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> capability<span class="op">.</span>execute<span class="op">(</span>command<span class="op">,</span> context<span class="op">,</span> pageContext<span class="op">)</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>        assert<span class="op">(</span>result<span class="op">.</span>getOrNull<span class="op">()</span> <span class="kw">is</span> AgentAction<span class="op">.</span>Text<span class="op">)</span></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>        assert<span class="op">((</span>result<span class="op">.</span>getOrNull<span class="op">()</span> <span class="kw">as</span> AgentAction<span class="op">.</span>Text<span class="op">).</span>message <span class="op">==</span> <span class="st">&quot;Hello&quot;</span><span class="op">)</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="集成测试">集成测试</h4>
+<div class="sourceCode" id="cb15"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapabilityIntegrationTest <span class="op">{</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Test</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> `<span class="fu">test</span> <span class="fu">end</span>-<span class="fu">to</span>-<span class="fu">end</span> <span class="fu">command</span> <span class="fu">flow</span>`<span class="op">()</span> <span class="op">=</span> runTest <span class="op">{</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 1. 模拟用户输入</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">userInput</span> <span class="op">=</span> <span class="st">&quot;执行你的功能，参数 1 为 test，参数 2 为 75&quot;</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 2. 构建 Orchestrator</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">orchestrator</span> <span class="op">=</span> AgentOrchestrator<span class="op">(</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>            llmEngine <span class="op">=</span> mockLlmEngine<span class="op">,</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>            capabilityRegistry <span class="op">=</span> registry</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 3. 执行解析与执行</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> orchestrator<span class="op">.</span>processUserInput<span class="op">(</span>userInput<span class="op">,</span> createContext<span class="op">())</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 4. 验证结果</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        assertTrue<span class="op">(</span>result<span class="op">.</span>isSuccess<span class="op">)</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        verify<span class="op">(</span>mockService<span class="op">).</span>performAction<span class="op">(</span><span class="st">&quot;test&quot;</span><span class="op">,</span> <span class="dv">75</span><span class="op">)</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="qa-验收清单">QA 验收清单</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />命令能被 LLM 正确解析</label></li>
+<li><label><input type="checkbox" />参数验证生效</label></li>
+<li><label><input type="checkbox" />错误信息友好</label></li>
+<li><label><input type="checkbox" />文本回复符合预期</label></li>
+<li><label><input type="checkbox" />页面上下文正确传递</label></li>
+<li><label><input type="checkbox" />多场景切换不崩溃</label></li>
+<li><label><input type="checkbox" />性能达标（执行耗时 &lt; 100ms）</label></li>
+</ul>
+<h3 id="常见陷阱">6. 常见陷阱</h3>
+<h4 id="陷阱-1-硬编码-system-prompt">❌ 陷阱 1: 硬编码 System Prompt</h4>
+<p><strong>错误</strong>:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapability <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">systemPrompt</span> <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="st">        你是 PoLang 助手...</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="st">        可用功能：your_feature</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="st">        • command_1</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;&quot;&quot;</span><span class="op">.</span>trimIndent<span class="op">()</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>正确</strong>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PromptBuilder<span class="op">(</span><span class="kw">private</span> <span class="kw">val</span> <span class="va">sceneManager</span><span class="op">:</span> <span class="dt">SceneManager</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">buildSystemPrompt</span><span class="op">(</span><span class="va">capabilities</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">Capability</span>&gt;<span class="op">):</span> <span class="dt">String</span> <span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 动态构建，支持插件化</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="陷阱-2-直接依赖-ui-层">❌ 陷阱 2: 直接依赖 UI 层</h4>
+<p><strong>错误</strong>:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapability <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span>...<span class="op">,</span> <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?)</span> <span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ❌ 直接调用 UI 方法</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        uiController<span class="op">.</span>updateView<span class="op">(</span><span class="kw">data</span><span class="op">)</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>正确</strong>:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapability<span class="op">(</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">onUpdateView</span><span class="op">:</span> <span class="op">(</span>(<span class="dt">Data</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">)</span>? = null</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>) <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span>...<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ✅ 通过回调注入</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>        onUpdateView<span class="op">?.</span>invoke<span class="op">(</span><span class="kw">data</span><span class="op">)</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="陷阱-3-使用正则解析-json">❌ 陷阱 3: 使用正则解析 JSON</h4>
+<p><strong>错误</strong>:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">parseJson</span><span class="op">(</span><span class="va">json</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">YourCommand</span> <span class="op">{</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">param1</span> <span class="op">=</span> json Regex <span class="st">&quot;</span><span class="sc">\&quot;</span><span class="st">param1</span><span class="sc">\&quot;</span><span class="st">: </span><span class="sc">\&quot;</span><span class="st">([^</span><span class="sc">\&quot;</span><span class="st">]+)</span><span class="sc">\&quot;</span><span class="st">&quot;</span> groupValues<span class="op">[</span><span class="dv">1</span><span class="op">]</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ❌ 无法处理嵌套/转义</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>正确</strong>:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">parseJson</span><span class="op">(</span><span class="va">json</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">YourCommand</span> <span class="op">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> Json<span class="op">.</span>decodeFromString<span class="op">(</span>json<span class="op">)</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ✅ 类型安全，支持复杂结构</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="陷阱-4-忘记注册-command-映射">❌ 陷阱 4: 忘记注册 Command 映射</h4>
+<p><strong>错误</strong>:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 新增 YourCommand 后未更新 CapabilityRegistry</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CapabilityRegistry <span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">mapCommand</span><span class="op">(</span><span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">AgentCommand</span><span class="op">?</span> <span class="op">{</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;command_1&quot;</span> <span class="op">-&gt;</span> ExistingCommand<span class="op">()</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>            <span class="co">// ❌ 遗漏 YourCommand</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>正确</strong>:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CapabilityRegistry <span class="op">{</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">mapCommand</span><span class="op">(</span><span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">AgentCommand</span><span class="op">?</span> <span class="op">{</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>name<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;command_1&quot;</span> <span class="op">-&gt;</span> ExistingCommand<span class="op">()</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;your_command&quot;</span> <span class="op">-&gt;</span> YourCommand<span class="op">()</span> <span class="co">// ✅ 同步更新</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="陷阱-5-忽略线程安全">❌ 陷阱 5: 忽略线程安全</h4>
+<p><strong>错误</strong>:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapability <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">counter</span> <span class="op">=</span> <span class="dv">0</span> <span class="co">// ❌ 非线程安全</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span>...<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>        counter<span class="op">++</span> <span class="co">// 并发修改</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>正确</strong>:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YourCapability <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">counter</span> <span class="op">=</span> AtomicInteger<span class="op">(</span><span class="dv">0</span><span class="op">)</span> <span class="co">// ✅ 原子操作</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span>...<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>        counter<span class="op">.</span>incrementAndGet<span class="op">()</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="checklist">7. Checklist</h3>
+<h4 id="代码审查清单">代码审查清单</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />Capability 接口实现完整</label></li>
+<li><label><input type="checkbox" /><code>name</code> / <code>description</code> 清晰准确</label></li>
+<li><label><input type="checkbox" /><code>activeScenes()</code> 正确声明</label></li>
+<li><label><input type="checkbox" /><code>supportedCommands()</code> 包含所有命令</label></li>
+<li><label><input type="checkbox" /><code>execute()</code> 处理所有命令分支</label></li>
+<li><label><input type="checkbox" />参数验证与错误处理完善</label></li>
+<li><label><input type="checkbox" />不使用正则解析 JSON</label></li>
+<li><label><input type="checkbox" />不直接依赖 UI 层</label></li>
+<li><label><input type="checkbox" />已注册到 CapabilityRegistry</label></li>
+<li><label><input type="checkbox" />已更新 PromptBuilder</label></li>
+<li><label><input type="checkbox" />单元测试覆盖核心路径</label></li>
+<li><label><input type="checkbox" />日志规范（<code>PicMe:YourCapability</code>）</label></li>
+</ul>
+<h4 id="文档同步清单">文档同步清单</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />更新 <code>CAPABILITY_REGISTRY.md</code> 添加新能力</label></li>
+<li><label><input type="checkbox" />更新 <code>COMMAND_REFERENCE.md</code> 添加命令示例</label></li>
+<li><label><input type="checkbox" />更新 <code>FEATURES.md</code>（如有交互变更）</label></li>
+<li><label><input type="checkbox" />添加反向链接注释（<code>// Spec: ...</code>）</label></li>
+</ul>
+<hr />
+<h2 id="附录-bcapability-生命周期规范">附录 B：Capability 生命周期规范</h2>
+<blockquote>
+<p><strong>状态</strong>: 草案<br />
+<strong>创建</strong>: 2026-06-06<br />
+<strong>更新</strong>: 2026-06-06<br />
+<strong>作者</strong>: [RD] 全栈工程师<br />
+<strong>评审</strong>: [CR] 规范守护者</p>
+</blockquote>
+<h3 id="设计目标">1. 设计目标</h3>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>目标</th>
+<th>优先级</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>零内存泄漏</strong></td>
+<td>P0</td>
+<td>Capability 不得持有 Activity/Fragment/Screen 的强引用</td>
+</tr>
+<tr class="even">
+<td><strong>生命周期对齐</strong></td>
+<td>P0</td>
+<td>Capability 的生命周期必须与页面生命周期严格对齐</td>
+</tr>
+<tr class="odd">
+<td><strong>组合优于单例</strong></td>
+<td>P0</td>
+<td>优先使用依赖注入和组合，避免全局单例</td>
+</tr>
+<tr class="even">
+<td><strong>跨页面命令</strong></td>
+<td>P1</td>
+<td>支持从任意页面发送命令到目标页面</td>
+</tr>
+<tr class="odd">
+<td><strong>低功耗</strong></td>
+<td>P1</td>
+<td>避免后台轮询和无效状态检查</td>
+</tr>
+</tbody>
+</table>
+<h3 id="当前架构问题">2. 当前架构问题</h3>
+<h4 id="问题清单">2.1 问题清单</h4>
+<pre><code>┌──────────────────────────────────────────────────────────────┐
+│  问题 1: 单例持有页面引用（内存泄漏风险）                       │
+├──────────────────────────────────────────────────────────────┤
+│  CameraCapability.getInstance() ──► WeakReference&lt;Delegate&gt;  │
+│  ▲ 问题: WeakReference 只能缓解，不能根治                      │
+│  ▲ 问题: 匿名 Delegate 实现隐式持有 CameraScreen 的闭包变量     │
+│  ▲ 问题: 单例生命周期 &gt; Activity 生命周期                      │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│  问题 2: DisposableEffect 时序竞争（delegate 绑定后立即解绑）   │
+├──────────────────────────────────────────────────────────────┤
+│  CameraScreen 重组 ──► DisposableEffect.onDispose()          │
+│  ▲ 问题: Compose 重组频繁，onDispose 被过早调用                │
+│  ▲ 问题: 导航动画期间，旧页面 DisposableEffect 先 dispose      │
+│  ▲ 问题: 新页面 DisposableEffect 后 enter，存在时间窗口        │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│  问题 3: Application 级注册僵化（无法动态扩展）                 │
+├──────────────────────────────────────────────────────────────┤
+│  Application.onCreate() ──► registry.register(capability)    │
+│  ▲ 问题: 注册后无法注销，无法热插拔 Capability                 │
+│  ▲ 问题: 所有 Capability 常驻内存，增加基础内存占用              │
+│  ▲ 问题: 单元测试需要清理全局状态，增加测试复杂度                │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│  问题 4: SceneManager 与 Compose 生命周期脱节                   │
+├──────────────────────────────────────────────────────────────┤
+│  MainActivity 设置 scene ──► SceneManager.transitionTo()     │
+│  CameraScreen DisposableEffect ──► bindDelegate()            │
+│  ▲ 问题: 两个系统独立运行，存在状态不一致窗口                    │
+│  ▲ 问题: SceneManager 引用计数复杂，容易出错                   │
+└──────────────────────────────────────────────────────────────┘</code></pre>
+<h4 id="内存泄漏路径分析">2.2 内存泄漏路径分析</h4>
+<div class="sourceCode" id="cb27"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 当前代码（泄漏路径）</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CameraCapability <span class="op">:</span> <span class="dt">BaseCapability</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">companion</span> <span class="kw">object</span> <span class="op">{</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">private</span> <span class="kw">var</span> <span class="va">instance</span><span class="op">:</span> CameraCapability<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span>  <span class="co">// 静态引用，永不释放</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">fun</span> <span class="fu">getInstance</span><span class="op">()</span> <span class="op">=</span> instance<span class="op">!!</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">delegateRef</span><span class="op">:</span> WeakReference<span class="op">&lt;</span>Delegate<span class="op">&gt;?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="co">// CameraScreen.kt</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>DisposableEffect<span class="op">(</span><span class="kw">Unit</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">cameraCapability</span> <span class="op">=</span> CameraCapability<span class="op">.</span>getInstance<span class="op">()</span>  <span class="co">// 获取单例</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>    cameraCapability<span class="op">.</span>bindDelegate<span class="op">(</span><span class="kw">object</span> <span class="op">:</span> <span class="dt">CameraCapability</span>.<span class="dt">Delegate</span> <span class="op">{</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">onSwitchRatio</span><span class="op">(</span><span class="va">ratio</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>            aspectRatio <span class="op">=</span> ratio  <span class="co">// 匿名类隐式持有 CameraScreen 的 aspectRatio</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ... 其他方法同样持有 CameraScreen 的状态引用</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">})</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 即使 WeakReference 被清理，单例仍然存活，且匿名类的类加载器引用链复杂</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="新架构设计">3. 新架构设计</h3>
+<h4 id="核心原则">3.1 核心原则</h4>
+<h5 id="原则-1-页面级-capabilitypage-scoped-capability">原则 1: 页面级 Capability（Page-Scoped Capability）</h5>
+<div class="sourceCode" id="cb28"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 新设计: Capability 随页面创建和销毁</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">CameraScreen</span><span class="op">(</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">viewModel</span><span class="op">:</span> <span class="dt">MediaViewModel</span><span class="op">,</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Capability 通过参数注入，而非全局单例</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="va">cameraCapability</span><span class="op">:</span> <span class="dt">CameraCapability</span> <span class="op">=</span> remember <span class="op">{</span> CameraCapability<span class="op">()</span> <span class="op">}</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// CameraCapability 直接持有状态，无需 delegate 模式</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    DisposableEffect<span class="op">(</span><span class="kw">Unit</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 注册到当前页面的 Capability 集合</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>        LocalCapabilityHost<span class="op">.</span>current<span class="op">.</span>register<span class="op">(</span>cameraCapability<span class="op">)</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>        onDispose <span class="op">{</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>            LocalCapabilityHost<span class="op">.</span>current<span class="op">.</span>unregister<span class="op">(</span>cameraCapability<span class="op">)</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h5 id="原则-2-组合优于单例composition-over-singleton">原则 2: 组合优于单例（Composition over Singleton）</h5>
+<div class="sourceCode" id="cb29"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 旧设计: 单例访问</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">registry</span> <span class="op">=</span> CapabilityRegistry<span class="op">.</span>getInstance<span class="op">()</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>registry<span class="op">.</span>register<span class="op">(</span>CameraCapability<span class="op">.</span>getInstance<span class="op">())</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 新设计: 依赖注入</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MainActivity <span class="op">:</span> <span class="dt">ComponentActivity</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">navigationCapability</span> <span class="op">=</span> NavigationCapability<span class="op">()</span>  <span class="co">// Activity 级</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">onCreate</span><span class="op">(</span><span class="va">savedInstanceState</span><span class="op">:</span> <span class="dt">Bundle</span><span class="op">?)</span> <span class="op">{</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>        setContent <span class="op">{</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">capabilityHost</span> <span class="op">=</span> rememberCapabilityHost<span class="op">(</span>navigationCapability<span class="op">)</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>            CompositionLocalProvider<span class="op">(</span>LocalCapabilityHost provides capabilityHost<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>                NavHost<span class="op">(...)</span> <span class="op">{</span> <span class="op">...</span> <span class="op">}</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h5 id="原则-3-状态内聚state-cohesion">原则 3: 状态内聚（State Cohesion）</h5>
+<div class="sourceCode" id="cb30"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 旧设计: 状态分散在 Screen 和 Capability 之间</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CameraScreen <span class="op">{</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">aspectRatio</span> <span class="kw">by</span> remember <span class="op">{</span> mutableIntStateOf<span class="op">(</span>AspectRatio<span class="op">.</span>RATIO_FULL<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Capability 通过 delegate 回调修改 Screen 状态</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 新设计: Capability 持有自己的状态</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CameraCapability <span class="op">{</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">aspectRatio</span> <span class="kw">by</span> mutableIntStateOf<span class="op">(</span>AspectRatio<span class="op">.</span>RATIO_FULL<span class="op">)</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">private</span> <span class="kw">set</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">switchRatio</span><span class="op">(</span><span class="va">ratio</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>        aspectRatio <span class="op">=</span> parseRatio<span class="op">(</span>ratio<span class="op">)</span></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="架构分层">3.2 架构分层</h4>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1: Application（全局配置，无状态）                          │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  - LogModuleConfig 默认值                                │   │
+│  │  - BeautyEngine 全局初始化（仅一次）                      │   │
+│  │  - 不持有任何 Capability 实例                             │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 2: Activity（导航级 Capability）                           │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  NavigationCapability ── 绑定 NavController              │   │
+│  │  - 生命周期: Activity.onCreate() ~ Activity.onDestroy()  │   │
+│  │  - 作用域: 所有页面共享同一个 NavigationCapability        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 3: Screen（页面级 Capability）                             │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  CameraCapability ── 绑定 Camera 状态                    │   │
+│  │  - 生命周期: Screen Enter ~ Screen Exit                  │   │
+│  │  - 作用域: 仅当前 CameraScreen                           │   │
+│  │  - 状态: aspectRatio, lensFacing, beautySettings...      │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Layer 4: ViewModel（业务逻辑，跨配置变更存活）                     │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  MediaViewModel ── 媒体数据管理                           │   │
+│  │  - 生命周期: Activity 配置变更存活                         │   │
+│  │  - 不持有 Capability 引用（通过回调通信）                   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘</code></pre>
+<h4 id="capability-生命周期分类">3.3 Capability 生命周期分类</h4>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>类型</th>
+<th>生命周期</th>
+<th>典型示例</th>
+<th>创建位置</th>
+<th>销毁位置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>应用级</strong></td>
+<td>Application</td>
+<td><code>BeautyEngine</code></td>
+<td><code>Application.onCreate()</code></td>
+<td>永不销毁</td>
+</tr>
+<tr class="even">
+<td><strong>活动级</strong></td>
+<td>Activity</td>
+<td><code>NavigationCapability</code></td>
+<td><code>Activity.onCreate()</code></td>
+<td><code>Activity.onDestroy()</code></td>
+</tr>
+<tr class="odd">
+<td><strong>页面级</strong></td>
+<td>Screen</td>
+<td><code>CameraCapability</code></td>
+<td><code>Screen 首次重组</code></td>
+<td><code>Screen 从组合树移除</code></td>
+</tr>
+<tr class="even">
+<td><strong>用例级</strong></td>
+<td>UseCase</td>
+<td><code>AiAgentUseCase</code></td>
+<td><code>需要时创建</code></td>
+<td><code>不再使用时释放</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="详细设计">4. 详细设计</h3>
+<h4 id="capabilityhostcapability-容器">4.1 CapabilityHost（Capability 容器）</h4>
+<div class="sourceCode" id="cb32"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * Capability 宿主</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 管理当前作用域内所有 Capability 的注册和查询。</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * 支持层级查找：如果当前宿主找不到，会委托给父宿主。</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CapabilityHost<span class="op">(</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">parent</span><span class="op">:</span> <span class="dt">CapabilityHost</span><span class="op">?</span> <span class="op">=</span> null</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">capabilities</span> <span class="op">=</span> mutableMapOf<span class="op">&lt;</span><span class="kw">String</span><span class="op">,</span> Capability<span class="op">&gt;()</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">register</span><span class="op">(</span><span class="va">capability</span><span class="op">:</span> <span class="dt">Capability</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>        capabilities<span class="op">[</span>capability<span class="op">.</span>name<span class="op">]</span> <span class="op">=</span> capability</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">unregister</span><span class="op">(</span><span class="va">capability</span><span class="op">:</span> <span class="dt">Capability</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>        capabilities<span class="op">.</span>remove<span class="op">(</span>capability<span class="op">.</span>name<span class="op">)</span></span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">find</span><span class="op">(</span><span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">):</span> <span class="dt">Capability</span><span class="op">?</span> <span class="op">{</span></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> capabilities<span class="op">[</span>name<span class="op">]</span> <span class="op">?:</span> parent<span class="op">?.</span>find<span class="op">(</span>name<span class="op">)</span></span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">findForScene</span><span class="op">(</span><span class="va">scene</span><span class="op">:</span> <span class="dt">SceneManager</span>.<span class="va">Scene</span><span class="op">):</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">Capability</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> capabilities<span class="op">.</span>values<span class="op">.</span>filter <span class="op">{</span></span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>            it<span class="op">.</span>activeScenes<span class="op">().</span>contains<span class="op">(</span>scene<span class="op">)</span> <span class="op">||</span> it<span class="op">.</span>activeScenes<span class="op">().</span>isEmpty<span class="op">()</span></span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a><span class="co">// Compose 集成</span></span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">LocalCapabilityHost</span> <span class="op">=</span> compositionLocalOf<span class="op">&lt;</span>CapabilityHost<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>    error<span class="op">(</span><span class="st">&quot;CapabilityHost not provided&quot;</span><span class="op">)</span></span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">rememberCapabilityHost</span><span class="op">(</span><span class="kw">vararg</span> <span class="va">capabilities</span><span class="op">:</span> <span class="dt">Capability</span><span class="op">):</span> <span class="dt">CapabilityHost</span> <span class="op">{</span></span>
+<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">parent</span> <span class="op">=</span> LocalCapabilityHost<span class="op">.</span>current</span>
+<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> remember<span class="op">(</span>capabilities<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a>        CapabilityHost<span class="op">(</span>parent<span class="op">).</span>apply <span class="op">{</span></span>
+<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span>forEach <span class="op">{</span> register<span class="op">(</span>it<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb32-43"><a href="#cb32-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb32-44"><a href="#cb32-44" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="页面级-cameracapability">4.2 页面级 CameraCapability</h4>
+<div class="sourceCode" id="cb33"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 相机控制 Capability（页面级）</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 由 CameraScreen 创建和持有，Screen 销毁时自动释放。</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * 不再使用 delegate 模式，状态直接内聚在 Capability 中。</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CameraCapability <span class="op">:</span> <span class="dt">BaseCapability</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">name</span><span class="op">:</span> <span class="kw">String</span> <span class="op">=</span> <span class="st">&quot;camera&quot;</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">description</span><span class="op">:</span> <span class="kw">String</span> <span class="op">=</span> <span class="st">&quot;控制相机拍摄、美颜参数、滤镜...&quot;</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 状态直接内聚在 Capability 中</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">aspectRatio</span> <span class="kw">by</span> mutableIntStateOf<span class="op">(</span>AspectRatio<span class="op">.</span>RATIO_FULL<span class="op">)</span></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">private</span> <span class="kw">set</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">lensFacing</span> <span class="kw">by</span> mutableIntStateOf<span class="op">(</span>CameraSelector<span class="op">.</span>LENS_FACING_BACK<span class="op">)</span></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">private</span> <span class="kw">set</span></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> <span class="va">beautySettings</span> <span class="kw">by</span> mutableStateOf<span class="op">(</span>BeautySettings<span class="op">(</span>enabled <span class="op">=</span> <span class="kw">false</span><span class="op">))</span></span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">private</span> <span class="kw">set</span></span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 命令执行直接修改内部状态</span></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>        <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>        <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>SwitchRatio <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>                aspectRatio <span class="op">=</span> parseRatio<span class="op">(</span>command<span class="op">.</span>ratio<span class="op">)</span></span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(...))</span></span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>            <span class="co">// ... 其他命令</span></span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">isAvailable</span><span class="op">():</span> <span class="dt">Boolean</span> <span class="op">=</span> <span class="kw">true</span>  <span class="co">// 页面级 Capability 只要存在就可用</span></span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="screen-与-capability-的绑定">4.3 Screen 与 Capability 的绑定</h4>
+<div class="sourceCode" id="cb34"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">CameraScreen</span><span class="op">(</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">viewModel</span><span class="op">:</span> <span class="dt">MediaViewModel</span><span class="op">,</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">onNavigateToGallery</span><span class="op">:</span> <span class="op">()</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="va">onNavigateToSettings</span><span class="op">:</span> <span class="op">()</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 创建页面级 Capability</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">cameraCapability</span> <span class="op">=</span> remember <span class="op">{</span> CameraCapability<span class="op">()</span> <span class="op">}</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 注册到当前 CapabilityHost</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">host</span> <span class="op">=</span> LocalCapabilityHost<span class="op">.</span>current</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    DisposableEffect<span class="op">(</span>cameraCapability<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>        host<span class="op">.</span>register<span class="op">(</span>cameraCapability<span class="op">)</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>        onDispose <span class="op">{</span> host<span class="op">.</span>unregister<span class="op">(</span>cameraCapability<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 将 Capability 的状态绑定到 UI</span></span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">aspectRatio</span> <span class="op">=</span> cameraCapability<span class="op">.</span>aspectRatio</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">lensFacing</span> <span class="op">=</span> cameraCapability<span class="op">.</span>lensFacing</span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// UI 使用 Capability 状态</span></span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>    CameraPreviewContent<span class="op">(</span></span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a>        aspectRatio <span class="op">=</span> aspectRatio<span class="op">,</span></span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a>        lensFacing <span class="op">=</span> lensFacing<span class="op">,</span></span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="跨页面命令处理">4.4 跨页面命令处理</h4>
+<div class="sourceCode" id="cb35"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 跨页面命令由 NavigationCapability 统一处理</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * 导航到目标页面后，目标页面的 Capability 自然可用。</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * 无需复杂的排队和轮询机制。</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> NavigationCapability<span class="op">(</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">navController</span><span class="op">:</span> <span class="dt">NavController</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">:</span> <span class="dt">BaseCapability</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">name</span><span class="op">:</span> <span class="kw">String</span> <span class="op">=</span> <span class="st">&quot;navigation&quot;</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>        <span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>        <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">,</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>        <span class="va">pageContext</span><span class="op">:</span> <span class="dt">PageContext</span><span class="op">?</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>command<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>            <span class="kw">is</span> AgentCommand<span class="op">.</span>NavigateTo <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>                <span class="co">// 导航到目标页面</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>                navController<span class="op">.</span>navigate<span class="op">(</span>command<span class="op">.</span>destination<span class="op">)</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>                <span class="co">// 导航完成后，目标页面的 Capability 会自动接管后续命令</span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>                Result<span class="op">.</span>success<span class="op">(</span>AgentAction<span class="op">.</span>Success<span class="op">(...))</span></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>            <span class="co">// ...</span></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="迁移路径">5. 迁移路径</h3>
+<h4 id="阶段-1-引入-capabilityhost向后兼容">5.1 阶段 1: 引入 CapabilityHost（向后兼容）</h4>
+<div class="sourceCode" id="cb36"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. 添加 CapabilityHost 和 CompositionLocal</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. 修改 CapabilityRegistry 支持从 CapabilityHost 查询</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. CameraScreen 同时注册到单例和 CapabilityHost</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CapabilityRegistry <span class="op">{</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">dispatch</span><span class="op">(</span><span class="va">command</span><span class="op">:</span> <span class="dt">AgentCommand</span><span class="op">,</span> <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">):</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">AgentAction</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 优先从 CapabilityHost 查找</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">host</span> <span class="op">=</span> LocalCapabilityHost<span class="op">.</span>currentOrNull</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">capability</span> <span class="op">=</span> host<span class="op">?.</span>findForCommand<span class="op">(</span>command<span class="op">)</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">?:</span> findCapabilityForCommand<span class="op">(</span>command<span class="op">)</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="阶段-2-移除单例破坏性变更">5.2 阶段 2: 移除单例（破坏性变更）</h4>
+<div class="sourceCode" id="cb37"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. 移除 CameraCapability.getInstance()</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. 移除 Application 中的 initializeCapabilities()</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. MainActivity 创建 NavigationCapability 并注入</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. 各 Screen 创建自己的 Capability</span></span></code></pre></div>
+<h4 id="阶段-3-清理废弃代码">5.3 阶段 3: 清理废弃代码</h4>
+<div class="sourceCode" id="cb38"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. 移除 SceneManager 的引用计数机制</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. 移除 CapabilityRegistry 的命令队列</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. 移除所有 WeakReference delegate 模式</span></span></code></pre></div>
+<h3 id="内存影响评估">6. 内存影响评估</h3>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>旧架构</th>
+<th>新架构</th>
+<th>变化</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>常驻 Capability 数</td>
+<td>4（永不释放）</td>
+<td>1（Navigation）</td>
+<td>-75%</td>
+</tr>
+<tr class="even">
+<td>CameraCapability 内存占用</td>
+<td>常驻</td>
+<td>仅在相机页</td>
+<td>按需分配</td>
+</tr>
+<tr class="odd">
+<td>匿名 Delegate 实例</td>
+<td>1/页面（泄漏风险）</td>
+<td>0</td>
+<td>完全消除</td>
+</tr>
+<tr class="even">
+<td>命令队列轮询</td>
+<td>500ms 间隔</td>
+<td>无</td>
+<td>节省 CPU</td>
+</tr>
+<tr class="odd">
+<td>SceneManager 引用计数</td>
+<td>复杂</td>
+<td>简单</td>
+<td>降低复杂度</td>
+</tr>
+</tbody>
+</table>
+<h3 id="红线合规检查">7. 红线合规检查</h3>
+<table>
+<thead>
+<tr class="header">
+<th>红线</th>
+<th>合规状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>[PRIVACY]</td>
+<td>✅</td>
+<td>无变更</td>
+</tr>
+<tr class="even">
+<td>[PERF]</td>
+<td>✅</td>
+<td>减少常驻内存和后台轮询</td>
+</tr>
+<tr class="odd">
+<td>[I18N]</td>
+<td>✅</td>
+<td>无变更</td>
+</tr>
+<tr class="even">
+<td>[DOC-SYNC]</td>
+<td>✅</td>
+<td>本文档同步架构变更</td>
+</tr>
+<tr class="odd">
+<td>[AGENT-FIRST]</td>
+<td>✅</td>
+<td>显式生命周期、枚举状态、自描述类型</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>参考文档</strong>: - <a href="../../AGENTS.html">AGENTS.md</a> — Agent First 架构原则 - <a href="../02-ARCHITECTURE/AGENT_ARCHITECTURE.html">AGENT_ARCHITECTURE.md</a> — Agent 架构设计 - <a href="./COMMAND_REFERENCE.html">COMMAND_REFERENCE.md</a> — 命令语法参考</p>
+</blockquote>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoLang 开发、代码审查与任务标记规范（Development, CR & Task Markup） | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item active" href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">05 Development</a> / <span>PoLang 开发、代码审查与任务标记规范（Development, CR & Task Markup）</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#目录">目录</a></li>
+      <li><a href="#1-双螺旋演进工作流spec--code-co-evolution">1. 双螺旋演进工作流（Spec ↔︎ Code Co-Evolution）</a></li>
+      <li><a href="#2-反向链接注释规范spec-traceability">2. 反向链接注释规范（Spec Traceability）</a></li>
+      <li><a href="#3-ci-检查规则">3. CI 检查规则</a></li>
+      <li><a href="#4-代码审查检查清单">4. 代码审查检查清单</a></li>
+      <li><a href="#5-任务标记规范">5. 任务标记规范</a></li>
+      <li><a href="#6-术语词典glossary">6. 术语词典（Glossary）</a></li>
+      <li><a href="#7-更新历史">7. 更新历史</a></li>
+      </ul>
+    </div>
+<h1 id="picme-开发代码审查与任务标记规范development-cr-task-markup">PoLang 开发、代码审查与任务标记规范（Development, CR &amp; Task Markup）</h1>
+<blockquote>
+<p><strong>版本</strong>: 1.2<br />
+<strong>状态</strong>: 生效中<br />
+<strong>最后更新</strong>: 2026-07-08<br />
+<strong>维护者</strong>: CO / RD / CR / PM<br />
+<strong>上级文档</strong>: 根目录 <code>AGENTS.md</code>（Agent First 治理与角色协作）<br />
+<strong>范围</strong>: 本文档统一包含 PoLang 开发工作流、代码审查检查清单与 <code>[kimi-task]</code> 任务标记规范，是研发流程的唯一事实来源。</p>
+</blockquote>
+<hr />
+<h2 id="目录">目录</h2>
+<ol type="1">
+<li><a href="#1-双螺旋演进工作流-spec--code-co-evolution">双螺旋演进工作流（Spec ↔︎ Code Co-Evolution）</a></li>
+<li><a href="#2-反向链接注释规范-spec-traceability">反向链接注释规范（Spec Traceability）</a></li>
+<li><a href="#3-ci-检查规则">CI 检查规则</a></li>
+<li><a href="#4-代码审查检查清单">代码审查检查清单</a></li>
+<li><a href="#5-任务标记规范">任务标记规范</a></li>
+<li><a href="#6-术语词典-glossary">术语词典（Glossary）</a></li>
+<li><a href="#7-更新历史">更新历史</a></li>
+</ol>
+<hr />
+<h2 id="双螺旋演进工作流spec-code-co-evolution">1. 双螺旋演进工作流（Spec ↔︎ Code Co-Evolution）</h2>
+<h3 id="核心原则">1.1 核心原则</h3>
+<p>Spec 驱动开发（Spec-Driven Development, SDD）要求<strong>文档与代码始终保持同步</strong>，但在实践中允许”探索-固化”的双向演进：</p>
+<pre><code>Spec 文档（What &amp; How）
+    ↓ 驱动
+代码实现（Implementation）
+    ↓ 发现
+实现中的新问题 / 优化点
+    ↓ 反馈
+Spec 文档更新（Consensus）
+    ↓ 驱动下一轮...</code></pre>
+<h3 id="探索-固化规则">1.2 探索-固化规则</h3>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 30%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>规则</th>
+<th>责任人</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>探索期</strong></td>
+<td>当实现中发现 Spec 不明确时，允许先行探索代码实现，<strong>最多 1 个 Commit</strong></td>
+<td>RD</td>
+</tr>
+<tr class="even">
+<td><strong>固化期</strong></td>
+<td>探索完成后，必须在<strong>同一 PR / Commit</strong> 中更新对应 Spec 文档</td>
+<td>RD</td>
+</tr>
+<tr class="odd">
+<td><strong>审查期</strong></td>
+<td>CR 审查时同时审查代码 + 文档变更，文档缺失 = <strong>一票否决</strong></td>
+<td>CR</td>
+</tr>
+<tr class="even">
+<td><strong>验收期</strong></td>
+<td>QA 验收时验证代码行为与 Spec 验收条件（AC）一致</td>
+<td>QA</td>
+</tr>
+</tbody>
+</table>
+<h3 id="红线hard-limits">1.3 红线（Hard Limits）</h3>
+<ul>
+<li><strong>[NEVER]</strong> 禁止”先合并代码，后补文档”</li>
+<li><strong>[NEVER]</strong> 禁止文档更新与代码实现分离提交（必须同一 PR / Commit）</li>
+<li><strong>[MUST]</strong> 代码修改了 <code>beauty-engine/</code> 内部实现，必须同步修改 <code>beauty-engine/AGENTS.md</code>（或 PR 描述中说明原因）</li>
+<li><strong>[MUST]</strong> 代码修改了 <code>beauty-api/</code> 公开接口，必须同步修改 <code>beauty-engine/AGENTS.md</code> + <code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code> + 通知 App 层适配</li>
+<li><strong>[MUST]</strong> 新增功能必须在 <code>PRODUCT.md</code> / <code>FEATURES.md</code> 中有对应需求描述</li>
+<li><strong>[MUST]</strong> 修改相册搜索/TAG 生成相关代码，必须同步更新 <code>docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md</code> 或 <code>docs/03-TECHNICAL-SPECS/TAG_GENERATION.md</code></li>
+<li><strong>[MUST]</strong> 新增/修改 AI Capability 必须同步更新 <code>docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md</code> 与 <code>COMMAND_REFERENCE.md</code></li>
+</ul>
+<hr />
+<h2 id="反向链接注释规范spec-traceability">2. 反向链接注释规范（Spec Traceability）</h2>
+<h3 id="目的">2.1 目的</h3>
+<p>在关键接口和实现代码中嵌入 Spec 引用，实现： - 需求变更时快速定位受影响代码 - 代码审查时快速追溯设计意图 - 自动化工具生成 Traceability Matrix</p>
+<h3 id="注释格式">2.2 注释格式</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Spec: &lt;文档路径&gt;#&lt;章节/锚点&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Implements: &lt;AC-ID&gt;（如 AC-P0-3）</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Related: &lt;关联文档路径&gt;#&lt;章节&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// ChangeLog: &lt;日期&gt; &lt;变更描述&gt;（可选）</span></span></code></pre></div>
+<h3 id="必须添加反向链接的位置">2.3 必须添加反向链接的位置</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>位置</th>
+<th>示例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>公开 API 接口</td>
+<td><code>BeautyPreviewProvider</code></td>
+<td>关联 <code>beauty-engine/AGENTS.md</code> 接口定义</td>
+</tr>
+<tr class="even">
+<td>核心算法实现</td>
+<td><code>FrameSyncManager</code></td>
+<td>关联 <code>FRAME_SYNC_TECH_SPEC.md</code> 功能需求</td>
+</tr>
+<tr class="odd">
+<td>架构边界类</td>
+<td><code>api/</code> vs <code>internal/</code> 边界</td>
+<td>关联架构约束</td>
+</tr>
+<tr class="even">
+<td>性能关键路径</td>
+<td><code>CameraPreviewRenderer.render()</code></td>
+<td>关联 <code>NFR_SPEC.md</code> 指标</td>
+</tr>
+<tr class="odd">
+<td>降级/容灾逻辑</td>
+<td><code>onGlWarmUpFallback()</code></td>
+<td>关联 <code>BEAUTY_ENGINE_FALLBACK.md</code></td>
+</tr>
+<tr class="even">
+<td>搜索召回逻辑</td>
+<td><code>ExplicitFirstSearchPipeline</code></td>
+<td>关联 <code>GALLERY_SEARCH.md</code></td>
+</tr>
+<tr class="odd">
+<td>TAG 生成阶段</td>
+<td><code>TagGenerationPipeline</code></td>
+<td>关联 <code>AUTO_TAG_GENERATION_SPEC.md</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="完整示例">2.4 完整示例</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Spec: docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md#5-frame-sync</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Implements: AC-P0-3</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Related: beauty-engine/AGENTS.md</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// ChangeLog: 2026-06-30 新增 missingThresholdFrames 字段</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FrameSyncManager<span class="op">(</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">config</span><span class="op">:</span> <span class="dt">FrameSyncConfig</span> <span class="op">=</span> FrameSyncConfig<span class="op">.</span>DEFAULT</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="traceability-matrix">2.5 Traceability Matrix</h3>
+<p>维护可追溯性矩阵（Traceability Matrix），记录需求 → 代码 → 测试的映射关系：</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>需求 ID</th>
+<th>需求描述</th>
+<th>实现文件</th>
+<th>测试文件</th>
+<th>验收条件</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>FR-5</td>
+<td>严格缺失处理</td>
+<td><code>FrameSyncManager.kt</code></td>
+<td><code>FrameSyncMissingTest.kt</code></td>
+<td>AC-P0-3</td>
+</tr>
+<tr class="even">
+<td>FR-1</td>
+<td>FrameId 体系</td>
+<td><code>FrameId.kt</code></td>
+<td><code>FrameIdTest.kt</code></td>
+<td>AC-P0-1</td>
+</tr>
+<tr class="odd">
+<td>FR-Search-1</td>
+<td>自然语言相册搜索</td>
+<td><code>MediaSearchEngine.kt</code></td>
+<td><code>SearchIntegrationTest.kt</code></td>
+<td>AC-Search-1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ci-检查规则">3. CI 检查规则</h2>
+<h3 id="文档同步检查doc-sync-check">3.1 文档同步检查（Doc Sync Check）</h3>
+<p>在 CI 流水线中加入轻量级脚本（概念实现，当前以本地脚本为主）：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># .github/workflows/doc-sync-check.yml（参考）</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">doc-sync-check</span><span class="kw">:</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">script</span><span class="kw">:</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查 PR 中修改了 beauty-engine 内部实现时是否同步修改了 AGENTS.md</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_doc_sync.py \</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">        --code-path beauty-engine/src/main/java/ \</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">        --doc-path beauty-engine/AGENTS.md</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查 PR 中修改了 api/ 接口时是否同步修改了技术文档</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_doc_sync.py \</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">        --code-path beauty-api/src/main/java/ \</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">        --doc-path docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查文档间内部链接有效性</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_doc_links.py \</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="at">        --root docs/</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查 AGENTS.md 中提到的模块在代码中是否存在</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_spec_completeness.py \</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="at">        --spec beauty-engine/AGENTS.md \</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="at">        --src beauty-engine/src/</span></span></code></pre></div>
+<blockquote>
+<p><strong>当前落地状态</strong>：<code>scripts/check_doc_links.py</code> 等工具处于设计/局部脚本阶段，日常以 RD/CR 人工检查 + 自动化链接扫描为主。</p>
+</blockquote>
+<h3 id="架构合规检查architecture-compliance">3.2 架构合规检查（Architecture Compliance）</h3>
+<p>使用 detekt / ktlint 自动检查代码风格与基础架构红线：</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 代码风格</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> ktlintCheck</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 静态分析</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> detekt</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 组合检查（CI 推荐）</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="ex">./gradlew</span> :app:compileDebugKotlin :app:testDebugUnitTest ktlintCheck detekt</span></code></pre></div>
+<h3 id="性能基线检查performance-baseline">3.3 性能基线检查（Performance Baseline）</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 启动时间基准测试（需真机/模拟器）</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">adb</span> shell am start <span class="at">-W</span> com.mamba.picme/.MainActivity</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 与历史基线对比（退化 &gt; 5% 需关注）</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># python scripts/compare_perf_baseline.py \</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#     --current benchmark-results.json \</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#     --baseline perf-baseline.json \</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#     --threshold 5%</span></span></code></pre></div>
+<hr />
+<h2 id="代码审查检查清单">4. 代码审查检查清单</h2>
+<h3 id="cr-检查清单">4.1 CR 检查清单</h3>
+<h4 id="文档同步">文档同步</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />代码变更是否同步更新了对应 Spec 文档？</label></li>
+<li><label><input type="checkbox" />新增接口是否补充了 <code>api/</code> 文档说明？</label></li>
+<li><label><input type="checkbox" />新增验收条件是否关联了 <code>[kimi-task]</code> 标记？</label></li>
+<li><label><input type="checkbox" />反向链接注释是否正确（<code>// Spec: ...</code>）？</label></li>
+</ul>
+<h4 id="架构合规">架构合规</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>api/</code> 包是否引入了 <code>egl/</code> 依赖？</label></li>
+<li><label><input type="checkbox" />App 层是否直接实例化了 <code>egl/</code> 内部类？</label></li>
+<li><label><input type="checkbox" />新增公开 API 是否补充了默认值与向后兼容处理？</label></li>
+<li><label><input type="checkbox" />Domain 层是否纯净（无 UI 依赖）？</label></li>
+</ul>
+<h4 id="性能">性能</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />单帧处理耗时是否 ≤ 16ms？</label></li>
+<li><label><input type="checkbox" />参数变化时是否仅更新 uniform 而未重新编译 Shader？</label></li>
+<li><label><input type="checkbox" />预测补偿耗时是否 &lt; 0.5ms / 帧？</label></li>
+<li><label><input type="checkbox" />内存占用是否符合 NFR 要求？</label></li>
+</ul>
+<h4 id="资源管理">资源管理</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>release()</code> 是否完整释放了 EGL / GL / Surface / Thread 资源？</label></li>
+<li><label><input type="checkbox" />新增资源是否考虑了生命周期和异常路径？</label></li>
+<li><label><input type="checkbox" />是否存在资源泄漏风险（未关闭的 Stream/Connection）？</label></li>
+</ul>
+<h4 id="测试覆盖">测试覆盖</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />新增功能是否补充了单元测试？</label></li>
+<li><label><input type="checkbox" />边界条件是否覆盖？</label></li>
+<li><label><input type="checkbox" />性能退化是否通过基准测试验证？</label></li>
+<li><label><input type="checkbox" />核心模块覆盖率 ≥ 70%？</label></li>
+</ul>
+<h4 id="日志与可观测性">日志与可观测性</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />是否使用了正确的日志标签（<code>PicMe:ModuleName</code>）？</label></li>
+<li><label><input type="checkbox" />关键路径是否输出了结构化日志？</label></li>
+<li><label><input type="checkbox" />敏感信息（用户数据、模型路径）是否脱敏？</label></li>
+</ul>
+<h4 id="国际化-i18n">国际化 (I18N)</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />新增文案是否覆盖 EN / zh-CN / zh-TW？</label></li>
+<li><label><input type="checkbox" />禁止硬编码用户可见字符串？</label></li>
+<li><label><input type="checkbox" />复数/性别等语言特性是否考虑？</label></li>
+</ul>
+<h3 id="一票否决项">4.2 一票否决项</h3>
+<p>以下任一情况，CR 必须 <strong>Request Changes</strong>：</p>
+<h4 id="文档不同步">文档不同步</h4>
+<ul>
+<li>代码修改了实现但未更新对应 Spec</li>
+<li>新增 API 无文档说明</li>
+<li><code>[kimi-task]</code> 标记缺失或错误</li>
+</ul>
+<h4 id="架构越界">架构越界</h4>
+<ul>
+<li><code>api/</code> 依赖 <code>egl/</code></li>
+<li>App 直接实例化 <code>egl/</code> 类</li>
+<li>Domain 层引入 UI 依赖</li>
+</ul>
+<h4 id="性能退化">性能退化</h4>
+<ul>
+<li>单帧处理耗时 &gt; 20ms</li>
+<li>帧率下降 &gt; 5%</li>
+<li>内存占用超出 NFR 红线</li>
+</ul>
+<h4 id="资源泄漏">资源泄漏</h4>
+<ul>
+<li><code>release()</code> 未覆盖新增资源</li>
+<li>未关闭的 Stream/Connection</li>
+<li>静态集合无限增长（无清理机制）</li>
+</ul>
+<h4 id="无测试覆盖">无测试覆盖</h4>
+<ul>
+<li>新增功能无单元测试</li>
+<li>核心逻辑无集成测试</li>
+<li>边界条件未覆盖</li>
+</ul>
+<h4 id="i18n-缺失">I18N 缺失</h4>
+<ul>
+<li>新增文案未覆盖三语</li>
+<li>硬编码用户可见字符串</li>
+</ul>
+<h3 id="架构合规检查">4.3 架构合规检查</h3>
+<h4 id="archunit-规则">ArchUnit 规则</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// api/ 包不依赖 egl/</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">@ArchTest</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> `<span class="va">api</span> <span class="kw">package</span> <span class="im">should</span> <span class="im">not</span> <span class="im">depend</span> <span class="im">on</span> <span class="im">egl</span> <span class="im">package</span>` = <span class="im">noClasses</span>()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>that<span class="op">().</span>resideInAPackage<span class="op">(</span><span class="st">&quot;..api..&quot;</span><span class="op">)</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>should<span class="op">().</span>dependOnClassesThat<span class="op">().</span>resideInAPackage<span class="op">(</span><span class="st">&quot;..egl..&quot;</span><span class="op">)</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">// App 层不直接实例化 egl/ 内部类</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="at">@ArchTest</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> `<span class="va">app</span> should not instantiate egl classes directly` <span class="op">=</span> noClasses<span class="op">()</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>that<span class="op">().</span>resideInAPackage<span class="op">(</span><span class="st">&quot;..features..&quot;</span><span class="op">)</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>should<span class="op">().</span>callConstructorWhere<span class="op">(</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        target<span class="op">(</span>owner<span class="op">(</span>resideInAPackage<span class="op">(</span><span class="st">&quot;..egl..&quot;</span><span class="op">)))</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span></code></pre></div>
+<h4 id="detekt-规则">detekt 规则</h4>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 禁止在构造函数中启动渲染线程</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> NoRenderThreadInConstructor <span class="op">:</span> <span class="dt">Rule</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">visitClass</span><span class="op">(</span><span class="va">klass</span><span class="op">:</span> <span class="dt">KtClass</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>klass<span class="op">.</span>hasAnnotation<span class="op">(</span><span class="st">&quot;GlThread&quot;</span><span class="op">)</span> <span class="op">||</span> klass<span class="op">.</span>name<span class="op">?.</span>contains<span class="op">(</span><span class="st">&quot;Renderer&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="kw">true</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 检查构造函数中是否启动 Thread</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="手动检查项">手动检查项</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />查看 import 列表，确认无违规依赖</label></li>
+<li><label><input type="checkbox" />检查构造函数，确认无线程启动</label></li>
+<li><label><input type="checkbox" />验证包结构符合 Clean Architecture</label></li>
+</ul>
+<h3 id="性能基线检查">4.4 性能基线检查</h3>
+<h4 id="ci-检查脚本">CI 检查脚本</h4>
+<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">perf-baseline-check</span><span class="kw">:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">script</span><span class="kw">:</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">    # 启动时间基准测试</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> ./gradlew benchmark:coldStartupBenchmark</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">    # 单帧处理耗时基准测试</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> ./gradlew benchmark:frameProcessingBenchmark</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">    # 与基线对比，退化 &gt; 5% 则失败</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/compare_perf_baseline.py \</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="at">        --current benchmark-results.json \</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="at">        --baseline perf-baseline.json \</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="at">        --threshold 5%</span></span></code></pre></div>
+<h4 id="关键指标">关键指标</h4>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>红线</th>
+<th>目标</th>
+<th>测量方法</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>冷启动 → 首帧预览</td>
+<td>≤ 500ms</td>
+<td>≤ 400ms</td>
+<td><code>adb shell am start -W</code></td>
+</tr>
+<tr class="even">
+<td>预览帧率（高端机）</td>
+<td>≥ 30fps</td>
+<td>≥ 55fps</td>
+<td><code>BeautyPerfStats.fps</code></td>
+</tr>
+<tr class="odd">
+<td>单帧处理耗时</td>
+<td>≤ 16ms</td>
+<td>≤ 12ms</td>
+<td>Systrace / 自定义计时</td>
+</tr>
+<tr class="even">
+<td>参数响应延迟</td>
+<td>≤ 100ms</td>
+<td>≤ 50ms</td>
+<td>人工体感 + 高速摄像</td>
+</tr>
+<tr class="odd">
+<td>拍照后处理（1080p）</td>
+<td>≤ 300ms</td>
+<td>≤ 200ms</td>
+<td><code>PhotoProcessorImpl</code> 耗时</td>
+</tr>
+</tbody>
+</table>
+<h4 id="调试工具">调试工具</h4>
+<ul>
+<li><strong>Systrace</strong>: 分析主线程耗时</li>
+<li><strong>Android Profiler</strong>: 监控 CPU/内存</li>
+<li><strong>自定义计时器</strong>: <code>PerformanceTracker.start("tag")</code> / <code>.end()</code></li>
+<li><strong>调试浮层</strong>: 实时显示 FPS/耗时</li>
+</ul>
+<h3 id="文档同步检查">4.5 文档同步检查</h3>
+<h4 id="ci-检查脚本-1">CI 检查脚本</h4>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">doc-sync-check</span><span class="kw">:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">script</span><span class="kw">:</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查 PR 中修改了 egl/ 实现时是否同步修改了 AGENTS.md</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_doc_sync.py \</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="at">        --code-path beauty-engine/src/main/java/com/picme/beauty/egl/ \</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="at">        --doc-path beauty-engine/AGENTS.md</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查 PR 中修改了 api/ 接口时是否同步修改了技术文档</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_doc_sync.py \</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="at">        --code-path beauty-engine/src/main/java/com/picme/beauty/api/ \</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="at">        --doc-path docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查文档间内部链接有效性</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_doc_links.py \</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="at">        --root docs/</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">    # 检查 AGENTS.md 中提到的模块在代码中是否存在</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> python scripts/check_spec_completeness.py \</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="at">        --spec beauty-engine/AGENTS.md \</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="at">        --src beauty-engine/src/</span></span></code></pre></div>
+<h4 id="文档更新检查项">文档更新检查项</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>FEATURES.md</code> 已更新（如有交互变更）</label></li>
+<li><label><input type="checkbox" /><code>*_TECH_SPEC.md</code> 已更新（如实现细节变更）</label></li>
+<li><label><input type="checkbox" /><code>CAPABILITY_REGISTRY.md</code> 已更新（如新增 Capability）</label></li>
+<li><label><input type="checkbox" /><code>COMMAND_REFERENCE.md</code> 已更新（如新增命令）</label></li>
+<li><label><input type="checkbox" />反向链接注释已添加（<code>// Spec: ...</code>）</label></li>
+</ul>
+<h3 id="cr-评论模板">4.6 CR 评论模板</h3>
+<h4 id="通过">✅ 通过</h4>
+<div class="sourceCode" id="cb11"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## CR 结果：✅ Approved</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">### 亮点</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>代码结构清晰，命名规范</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>单元测试覆盖完善</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>性能优化到位</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">### 建议（非阻塞）</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>可考虑提取公共逻辑为扩展函数</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>日志标签可更统一</span></code></pre></div>
+<h4 id="需要修改">❌ 需要修改</h4>
+<div class="sourceCode" id="cb12"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## CR 结果：❌ Request Changes</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">### 阻塞问题</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 1. 文档不同步</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**位置**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**问题**: 修改了 <span class="in">`render()`</span> 实现但未更新 <span class="in">`AGENTS.md`</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**修复**: 同步更新 <span class="in">`beauty-engine/AGENTS.md#render-pipeline`</span> 章节</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 2. 性能退化</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**位置**: <span class="in">`FrameSyncManager.query()`</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**问题**: 新增锁导致单帧耗时从 12ms → 18ms</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**修复**: 改用 <span class="in">`ConcurrentHashMap`</span> 替代 synchronized</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 3. I18N 缺失</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**位置**: <span class="in">`strings.xml`</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**问题**: 新增文案 &quot;美颜总开关&quot; 未覆盖英文和繁体</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**修复**: 补充三语翻译</span></code></pre></div>
+<hr />
+<h2 id="任务标记规范">5. 任务标记规范</h2>
+<h3 id="目的-1">5.1 目的</h3>
+<p>本文档定义 <code>[kimi-task]</code> 结构化标记规范，用于在 Spec 文档（<code>PRODUCT.md</code>、<code>PRD-*.md</code>、<code>FEATURES.md</code>）中直接嵌入<strong>可执行、可追踪、可验证</strong>的任务描述。外层编排脚本可自动解析此类标记，生成标准化 Task JSON，直接驱动 RD/QA Agent 执行，实现”需求变更 → 开发任务”的自动转换。</p>
+<h3 id="标记格式">5.2 标记格式</h3>
+<h4 id="基本语法">基本语法</h4>
+<div class="sourceCode" id="cb13"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">### &lt;功能标题&gt; [kimi-task:&lt;task_id&gt;]</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: <span class="dt">&lt;</span><span class="kw">RD</span> <span class="er">|</span> <span class="er">QA</span> <span class="er">|</span> <span class="er">CR</span> <span class="er">|</span> <span class="er">PM</span><span class="dt">&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`&lt;文件路径1&gt;`</span>, <span class="in">`&lt;文件路径2&gt;`</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>&lt;具体变更描述&gt;</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>&lt;具体变更描述&gt;</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: <span class="dt">&lt;</span><span class="kw">task_id_1</span><span class="dt">&gt;</span>, <span class="dt">&lt;</span><span class="kw">task_id_2</span><span class="dt">&gt;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: <span class="dt">&lt;</span><span class="kw">Xd</span> <span class="er">|</span> <span class="er">Xh</span> <span class="er">|</span> <span class="er">Xw</span><span class="dt">&gt;</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: <span class="dt">&lt;</span><span class="kw">P0</span> <span class="er">|</span> <span class="er">P1</span> <span class="er">|</span> <span class="er">P2</span><span class="dt">&gt;</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: <span class="dt">&lt;</span><span class="kw">AC-P0-X</span> <span class="er">|</span> <span class="er">AC-P1-X</span><span class="dt">&gt;</span></span></code></pre></div>
+<h4 id="字段说明">字段说明</h4>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>字段</th>
+<th>必填</th>
+<th>格式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>task_id</code></td>
+<td>✅</td>
+<td><code>[a-z0-9-]+</code></td>
+<td>全局唯一任务标识，如 <code>fsm-001</code>、<code>beauty-042</code></td>
+</tr>
+<tr class="even">
+<td><code>Assignee</code></td>
+<td>✅</td>
+<td><code>RD</code> / <code>QA</code> / <code>CR</code> / <code>PM</code></td>
+<td>负责执行的角色</td>
+</tr>
+<tr class="odd">
+<td><code>Scope</code></td>
+<td>✅</td>
+<td>逗号分隔的文件路径</td>
+<td>预期修改的代码文件或模块</td>
+</tr>
+<tr class="even">
+<td><code>Expected Change</code></td>
+<td>✅</td>
+<td>有序列表</td>
+<td>具体的代码变更预期，RD Agent 据此执行</td>
+</tr>
+<tr class="odd">
+<td><code>DependsOn</code></td>
+<td>❌</td>
+<td>逗号分隔的 task_id</td>
+<td>前置依赖任务</td>
+</tr>
+<tr class="even">
+<td><code>EstimatedEffort</code></td>
+<td>❌</td>
+<td><code>Xd</code> / <code>Xh</code> / <code>Xw</code></td>
+<td>预估工作量（天/小时/周）</td>
+</tr>
+<tr class="odd">
+<td><code>Priority</code></td>
+<td>✅</td>
+<td><code>P0</code> / <code>P1</code> / <code>P2</code></td>
+<td>与验收标准对齐</td>
+</tr>
+<tr class="even">
+<td><code>Acceptance</code></td>
+<td>✅</td>
+<td><code>AC-P0-X</code> / <code>AC-P1-X</code></td>
+<td>关联的验收条件 ID</td>
+</tr>
+</tbody>
+</table>
+<h4 id="完整示例-1">完整示例</h4>
+<div class="sourceCode" id="cb14"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">### FR-5：严格缺失处理 [kimi-task:fsm-005]</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`</span>, <span class="in">`beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>在 <span class="in">`FrameSyncConfig`</span> 中新增 <span class="in">`missingThresholdFrames: Int = 3`</span> 字段</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>修改 <span class="in">`FrameSyncManager.query()`</span>，当 <span class="in">`syncMode = STRICT`</span> 且帧差 &gt; <span class="in">`missingThresholdFrames`</span> 时返回 <span class="in">`SyncStatus.MISSING`</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span>在 <span class="in">`CameraPreviewRenderer.applySyncResultToRenderer()`</span> 中，当 <span class="in">`syncStatus = MISSING`</span> 时设置 <span class="in">`uHasFace = 0f`</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="ss">  4. </span>更新 <span class="in">`BeautyPerfStats`</span>，增加 <span class="in">`framesSinceDetection`</span> 字段</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-001, fsm-002</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 2d</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-3</span></code></pre></div>
+<h3 id="使用位置">5.3 使用位置</h3>
+<h4 id="允许使用-kimi-task-的文档">允许使用 <code>[kimi-task]</code> 的文档</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文档</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>PRODUCT.md</code></td>
+<td>记录高层功能需求对应的开发任务</td>
+</tr>
+<tr class="even">
+<td><code>docs/01-PRODUCT/FEATURES.md</code></td>
+<td>记录具体功能需求的开发任务</td>
+</tr>
+<tr class="odd">
+<td><code>docs/01-PRODUCT/FEATURES.md</code></td>
+<td>记录交互变更对应的 UI/UX 任务</td>
+</tr>
+<tr class="even">
+<td><code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code></td>
+<td>记录技术实现任务</td>
+</tr>
+</tbody>
+</table>
+<h4 id="禁止使用-kimi-task-的位置">禁止使用 <code>[kimi-task]</code> 的位置</h4>
+<ul>
+<li><code>AGENTS.md</code>（模块级实现规范，不应包含任务分配）</li>
+<li><code>README.md</code>（对外文档）</li>
+<li>代码注释（使用反向链接注释规范，见第 2 节）</li>
+</ul>
+<h3 id="自动化解析规则">5.4 自动化解析规则</h3>
+<h4 id="解析脚本输入">解析脚本输入</h4>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/parse_kimi_tasks.py <span class="dt">\</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--input</span> docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md <span class="dt">\</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> tasks/frame-sync-tasks.json</span></code></pre></div>
+<h4 id="输出-json-格式">输出 JSON 格式</h4>
+<div class="sourceCode" id="cb16"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md&quot;</span><span class="fu">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;extracted_at&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-05-14T10:00:00Z&quot;</span><span class="fu">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tasks&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;task_id&quot;</span><span class="fu">:</span> <span class="st">&quot;fsm-005&quot;</span><span class="fu">,</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;FR-5：严格缺失处理&quot;</span><span class="fu">,</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;assignee&quot;</span><span class="fu">:</span> <span class="st">&quot;RD&quot;</span><span class="fu">,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;scope&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt&quot;</span><span class="ot">,</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt&quot;</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;expected_change&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;在 FrameSyncConfig 中新增 missingThresholdFrames: Int = 3 字段&quot;</span><span class="ot">,</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;修改 FrameSyncManager.query()...&quot;</span><span class="ot">,</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;在 CameraPreviewRenderer.applySyncResultToRenderer()...&quot;</span><span class="ot">,</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;更新 BeautyPerfStats...&quot;</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;depends_on&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;fsm-001&quot;</span><span class="ot">,</span> <span class="st">&quot;fsm-002&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;estimated_effort&quot;</span><span class="fu">:</span> <span class="st">&quot;2d&quot;</span><span class="fu">,</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;priority&quot;</span><span class="fu">:</span> <span class="st">&quot;P0&quot;</span><span class="fu">,</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;acceptance&quot;</span><span class="fu">:</span> <span class="st">&quot;AC-P0-3&quot;</span><span class="fu">,</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;pending&quot;</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="驱动执行流程">驱动执行流程</h4>
+<pre><code>Spec 文档（含 [kimi-task]）
+    ↓ parse_kimi_tasks.py
+Task JSON（标准化任务描述）
+    ↓ 编排脚本
+├─→ RD Agent: 执行代码变更
+├─→ QA Agent: 执行验收测试
+├─→ CR Agent: 执行代码审查
+└─→ PM Agent: 更新进度跟踪</code></pre>
+<h3 id="任务状态流转">5.5 任务状态流转</h3>
+<p>任务状态由自动化系统维护，不存储在 Spec 文档中：</p>
+<table>
+<thead>
+<tr class="header">
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>pending</code></td>
+<td>待分配，未开始</td>
+</tr>
+<tr class="even">
+<td><code>in_progress</code></td>
+<td>RD Agent 已认领，执行中</td>
+</tr>
+<tr class="odd">
+<td><code>review</code></td>
+<td>代码已完成，待 CR 审查</td>
+</tr>
+<tr class="even">
+<td><code>testing</code></td>
+<td>CR 通过，待 QA 验收</td>
+</tr>
+<tr class="odd">
+<td><code>done</code></td>
+<td>QA 验收通过，任务完成</td>
+</tr>
+<tr class="even">
+<td><code>blocked</code></td>
+<td>被依赖任务阻塞</td>
+</tr>
+<tr class="odd">
+<td><code>failed</code></td>
+<td>执行失败，需人工介入</td>
+</tr>
+</tbody>
+</table>
+<h3 id="约束与红线">5.6 约束与红线</h3>
+<ul>
+<li><strong>[MUST]</strong> 每个 <code>[kimi-task]</code> 必须关联至少一个 <code>Acceptance</code> ID（<code>AC-P0-X</code> 或 <code>AC-P1-X</code>）</li>
+<li><strong>[MUST]</strong> <code>task_id</code> 全局唯一，格式为 <code>&lt;模块缩写&gt;-&lt;三位数字&gt;</code></li>
+<li><strong>[MUST]</strong> <code>Scope</code> 中的文件路径必须真实存在于代码库中</li>
+<li><strong>[NEVER]</strong> 禁止在 <code>[kimi-task]</code> 中描述实现细节（如具体算法），实现细节应留在 <code>AGENTS.md</code></li>
+<li><strong>[NEVER]</strong> 禁止将 <code>[kimi-task]</code> 嵌入代码注释中</li>
+</ul>
+<h3 id="示例帧同步美妆系统任务集">5.7 示例：帧同步美妆系统任务集</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. 版本规划（含 [kimi-task]）</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 1：基础设施（1~2 周）</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">#### FrameId 体系 [kimi-task:fsm-001]</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/api/FrameId.kt`</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>创建 <span class="in">`@JvmInline value class FrameId(val value: Long)`</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>实现 <span class="in">`AtomicLong`</span> 计数器，<span class="in">`next()`</span> 方法</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span>定义 <span class="in">`INVALID = FrameId(0L)`</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 4h</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-1</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="fu">#### FrameSyncManager 骨架 [kimi-task:fsm-002]</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>创建 <span class="in">`FrameSyncManager`</span> 单例类</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>实现 <span class="in">`ResultStore`</span>（<span class="in">`ConcurrentHashMap&lt;FrameId, DetectionResult&gt;`</span>）</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span>实现 <span class="in">`MatchEngine`</span>：精确匹配 → 历史回退 → 预测补偿 → 缺失隐藏</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="ss">  4. </span>实现 <span class="in">`query(currentFrameId)`</span> 公共 API</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-001</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 2d</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-1, AC-P0-2</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a><span class="fu">#### DetectionQueue 改造 [kimi-task:fsm-003]</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; **⚠️ 审计备注（2026-06）**：DetectionQueue 未落地（</span><span class="in">`DetectionQueue.kt`</span><span class="at"> 不存在）。此 </span><span class="co">[</span><span class="ot">kimi-task</span><span class="co">]</span><span class="at"> 标记的目标文件路径无效。当前使用同步检测路径。如需实施异步检测改造，应先创建 DetectionQueue.kt 再更新此任务标记。</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/internal/framesync/DetectionQueue.kt`</span>（⏳ 设计中，未落地）</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>创建 <span class="in">`DetectionQueue`</span> 类，深度限制 2，超时 200ms</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>改造人脸检测线程为消费队列模式</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span>检测结果携带 <span class="in">`FrameId`</span> 存入 <span class="in">`FrameSyncManager`</span></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-002</span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 1d</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-1</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 2：时序对齐与严格缺失（1~2 周）</span></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 渲染管线集成 [kimi-task:fsm-004]</span></span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`</span>, <span class="in">`beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`</span></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span><span class="in">`CameraPreviewRenderer`</span> 渲染循环中调用 <span class="in">`FrameSyncManager.query(currentFrameId)`</span></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span><span class="in">`BeautyRenderer`</span> 新增 <span class="in">`updateSyncedFacePoints106()`</span> + <span class="in">`setHasFace()`</span></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span><span class="in">`FaceMakeupPass`</span> 新增 <span class="in">`updateFaceLandmarksSynced()`</span> 入口</span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-002, fsm-003</span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 2d</span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-2, AC-P0-3</span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 严格缺失处理 [kimi-task:fsm-005]</span></span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`</span>, <span class="in">`beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`</span></span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span><span class="in">`FrameSyncConfig`</span> 新增 <span class="in">`missingThresholdFrames: Int = 3`</span></span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span><span class="in">`query()`</span> 严格模式：帧差 &gt; 阈值时返回 <span class="in">`MISSING`</span></span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span><span class="in">`applySyncResultToRenderer()`</span>：<span class="in">`MISSING`</span> 时 <span class="in">`uHasFace = 0`</span></span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-004</span>
+<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 1d</span>
+<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-3</span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 调试指标接入 [kimi-task:fsm-006]</span></span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/api/BeautyPerfStats.kt`</span>, <span class="in">`app/src/main/java/com/mamba/picme/features/camera/debug/PerfOverlay.kt`</span></span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span><span class="in">`BeautyPerfStats`</span> 增加 <span class="in">`detectionLatencyMs`</span> / <span class="in">`syncStatus`</span> / <span class="in">`predictedOffsetPx`</span> / <span class="in">`framesSinceDetection`</span></span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>调试浮层展示新增指标</span>
+<span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-004</span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 1d</span>
+<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P1</span>
+<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P1-2</span>
+<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a><span class="fu">### Phase 3：预测补偿与录制专项（1~2 周）</span></span>
+<span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a><span class="fu">#### MotionTracker 速度外推 [kimi-task:fsm-007]</span></span>
+<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: RD</span>
+<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`beauty-engine/src/main/java/com/picme/beauty/internal/framesync/MotionTracker.kt`</span></span>
+<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>创建 <span class="in">`MotionTracker`</span> 类，保留最近 3 帧历史</span>
+<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>实现 <span class="in">`predict(fromFrameId, toFrameId, maxRatio)`</span> 速度外推</span>
+<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span>位移约束：不超过上一帧位移的 150%</span>
+<span id="cb18-90"><a href="#cb18-90" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-002</span>
+<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 2d</span>
+<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P1</span>
+<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P1-1</span>
+<span id="cb18-94"><a href="#cb18-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-95"><a href="#cb18-95" aria-hidden="true" tabindex="-1"></a><span class="fu">#### 录制场景帧同步验证 [kimi-task:fsm-008]</span></span>
+<span id="cb18-96"><a href="#cb18-96" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Assignee**: QA</span>
+<span id="cb18-97"><a href="#cb18-97" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Scope**: <span class="in">`app/src/androidTest/java/com/mamba/picme/camera/VideoRecordingSyncTest.kt`</span></span>
+<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Expected Change**:</span>
+<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a><span class="ss">  1. </span>编写录制快转头测试用例</span>
+<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a><span class="ss">  2. </span>编写录制人脸出画入画测试用例</span>
+<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a><span class="ss">  3. </span>逐帧分析录制视频，验证妆容偏差</span>
+<span id="cb18-102"><a href="#cb18-102" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DependsOn**: fsm-004, fsm-005</span>
+<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**EstimatedEffort**: 2d</span>
+<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Priority**: P0</span>
+<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Acceptance**: AC-P0-5</span></code></pre></div>
+<hr />
+<h2 id="术语词典glossary">6. 术语词典（Glossary）</h2>
+<p>维护统一的术语定义，确保 Spec 语义一致性：</p>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>术语</th>
+<th>英文</th>
+<th>定义</th>
+<th>禁用别名</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>大美丽</td>
+<td>Big Beauty</td>
+<td>PoLang 自研 OpenGL ES + EGL 美颜引擎</td>
+<td>美颜引擎、自研引擎</td>
+</tr>
+<tr class="even">
+<td>帧同步</td>
+<td>Frame Sync</td>
+<td>人脸检测帧与渲染帧的时间对齐机制</td>
+<td>同步系统、时序对齐</td>
+</tr>
+<tr class="odd">
+<td>妆容甩飞</td>
+<td>Makeup Detachment</td>
+<td>妆容与人脸位置不同步的分离现象</td>
+<td>妆容滞后、妆容漂移</td>
+</tr>
+<tr class="even">
+<td>悬空残留</td>
+<td>Hover</td>
+<td>人脸出画后妆容仍停留在屏幕上的现象</td>
+<td>妆容残留</td>
+</tr>
+<tr class="odd">
+<td>严格缺失</td>
+<td>Strict Missing</td>
+<td>无检测结果 N 帧后强制隐藏妆容的策略</td>
+<td>缺失隐藏、严格模式</td>
+</tr>
+<tr class="even">
+<td>预测补偿</td>
+<td>Prediction Compensation</td>
+<td>基于运动轨迹预测人脸位置的补偿算法</td>
+<td>运动预测、预测算法</td>
+</tr>
+<tr class="odd">
+<td>FaceId / FrameId</td>
+<td>FrameId</td>
+<td>全局单调递增帧标识符</td>
+<td>帧ID、frame_id</td>
+</tr>
+<tr class="even">
+<td>零拷贝</td>
+<td>Zero Copy</td>
+<td>GPU 管线中禁止 CPU-GPU 数据传输</td>
+<td>无拷贝、直通</td>
+</tr>
+<tr class="odd">
+<td>降级</td>
+<td>Fallback</td>
+<td>引擎异常时自动回退到基础预览</td>
+<td>回退、降级策略</td>
+</tr>
+<tr class="even">
+<td>库化</td>
+<td>Library-ization</td>
+<td>将引擎模块演进为独立发布库</td>
+<td>模块化、独立库</td>
+</tr>
+<tr class="odd">
+<td>TAG 生成</td>
+<td>Tag Generation</td>
+<td>本地 5-Pass 照片标签生成管道</td>
+<td>打标、标签扫描</td>
+</tr>
+<tr class="even">
+<td>语义召回</td>
+<td>Semantic Recall</td>
+<td>MobileCLIP 文本-图像相似度召回</td>
+<td>CLIP 搜索</td>
+</tr>
+<tr class="odd">
+<td>显式召回</td>
+<td>Explicit Recall</td>
+<td>基于结构化字段（时间/地点/人脸/TAG）的 SQL 召回</td>
+<td>规则召回</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="更新历史">7. 更新历史</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>版本</th>
+<th>日期</th>
+<th>变更</th>
+<th>作者</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1.0</td>
+<td>2026-05-14</td>
+<td>初版，定义双螺旋演进工作流、反向链接规范、CI 检查规则</td>
+<td>PM</td>
+</tr>
+<tr class="even">
+<td>1.1</td>
+<td>2026-06-30</td>
+<td>更新文档引用（GALLERY_SEARCH / AUTO_TAG / BEAUTY_ENGINE_TECH_SPEC），补充搜索/TAG 红线、I18N/隐私否决项、当前 CI 命令</td>
+<td>CO</td>
+</tr>
+<tr class="odd">
+<td>1.2</td>
+<td>2026-07-08</td>
+<td>合并 <code>CODE_REVIEW_CHECKLIST.md</code> 与 <code>TASK_MARKUP_SPEC.md</code>，统一为研发流程唯一事实来源；更新目录与元信息</td>
+<td>CO</td>
+</tr>
+</tbody>
+</table>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

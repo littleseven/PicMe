@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR-002: OpenGL 离屏渲染统一美颜处理管线 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../../index.html">🏠 首页</a>
+  <a class="nav-item " href="../../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item active" href="../../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../../">02 Architecture</a> / <a href="../">Adr</a> / <span>ADR-002: OpenGL 离屏渲染统一美颜处理管线</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-背景">1. 背景</a></li>
+      <li><a href="#2-决策-opengl-离屏渲染统一管线">2. 决策: OpenGL 离屏渲染统一管线</a></li>
+      <li><a href="#3-技术实现">3. 技术实现</a></li>
+      <li><a href="#4-迁移计划">4. 迁移计划</a></li>
+      <li><a href="#5-风险评估">5. 风险评估</a></li>
+      <li><a href="#6-性能预期">6. 性能预期</a></li>
+      <li><a href="#7-依赖与前置条件">7. 依赖与前置条件</a></li>
+      <li><a href="#8-决策记录">8. 决策记录</a></li>
+      </ul>
+    </div>
+<h1 id="adr-002-opengl-离屏渲染统一美颜处理管线">ADR-002: OpenGL 离屏渲染统一美颜处理管线</h1>
+<p><strong>状态</strong>: 已接受 (Accepted)<br />
+<strong>日期</strong>: 2026-04-17<br />
+<strong>最后同步</strong>: 2026-06-04（与 <code>PhotoProcessorImpl.kt</code> / <code>BeautyRenderer.kt</code> 实际代码对齐，修正 <code>BeautyShaderChain</code> 等已废弃设计）<br />
+<strong>决策</strong>: PM/RD 联合评审<br />
+<strong>依赖</strong>: ADR-001 (分层架构重构)</p>
+<hr />
+<h2 id="背景">1. 背景</h2>
+<h3 id="当前问题-adr-001-修复后仍存在的差距">当前问题 (ADR-001 修复后仍存在的差距)</h3>
+<table>
+<thead>
+<tr class="header">
+<th>美颜效果</th>
+<th>预览 (GPU Shader)</th>
+<th>拍照 (CPU Canvas)</th>
+<th>一致性</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>磨皮</td>
+<td>双边滤波 (边缘保持)</td>
+<td>高斯模糊近似</td>
+<td>⚠️ 70%</td>
+</tr>
+<tr class="even">
+<td>美白</td>
+<td>YUV 亮度 Shader</td>
+<td>ColorMatrix</td>
+<td>⚠️ 80%</td>
+</tr>
+<tr class="odd">
+<td>瘦脸</td>
+<td>FaceWarp Shader</td>
+<td>Canvas Mesh</td>
+<td>⚠️ 85%</td>
+</tr>
+<tr class="even">
+<td>大眼</td>
+<td>径向放大 Shader</td>
+<td>Canvas Mesh</td>
+<td>⚠️ 85%</td>
+</tr>
+<tr class="odd">
+<td>唇色</td>
+<td>HSV Shader</td>
+<td>像素级着色</td>
+<td>⚠️ 75%</td>
+</tr>
+<tr class="even">
+<td>腮红</td>
+<td>椭圆染色 Shader</td>
+<td>ColorMatrix</td>
+<td>⚠️ 70%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>根本原因</strong>: 两套独立实现（OpenGL ES vs Canvas API），算法细节难以完全对齐</p>
+<hr />
+<h2 id="决策-opengl-离屏渲染统一管线">2. 决策: OpenGL 离屏渲染统一管线</h2>
+<h3 id="目标架构">2.1 目标架构</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    App Layer (PoLang)                        │
+│                   ↓ 依赖 beauty-engine:api                    │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│  Domain Layer: beauty-engine:api                             │
+│  ├─ BeautyPreviewProvider (Interface)                   │
+│  ├─ PhotoProcessor (Interface)                          │
+│  ├─ BeautyParams / FaceData                             │
+│  └─ BeautyPerfStats                                     │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│  Data Layer: beauty-engine:render                         │
+│  ├─ GlBeautyPreviewProvider                               │
+│  ├─ PhotoProcessorImpl (OpenGL FBO 离屏渲染，2026-05 落地) │
+│  │   ├─ 预览: SurfaceTexture → SurfaceView (实时)          │
+│  │   └─ 拍照: Bitmap → Texture → FBO → glReadPixels → Bitmap (离屏)               │
+│  ├─ CameraPreviewRenderer (渲染管线核心)                 │
+│  ├─ BeautyRenderer (自研 Shader 管线，含多 Pass 渲染)    │
+│  │   ├─ CopyPass: OES → 2D 纹理（预览路径）              │
+│  │   ├─ BeautyUnitPass: 磨皮/美白/LUT                    │
+│  │   ├─ FaceMakeupPass: 唇色/腮红三角网格                │
+│  │   └─ MainShader: 美型+调色+风格特效                   │
+│  ├─ FaceMakeupPass (妆容三角网格 Pass)                   │
+│  ├─ StyleEffectShader (风格特效 Shader)                  │
+│  └─ EGLCore (EGL 上下文管理)                             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+        ┌──────────────────────────────┐
+        ▼                              
+┌───────────────┐                      
+│  BIG_BEAUTY   │                      
+│ (自研 Shader) │                      
+│ 磨皮/美白/瘦脸 │                      
+│ 大眼/唇色/腮红 │                      
+│ 风格特效/调色  │                      
+└───────────────┘                      </code></pre>
+<h3 id="核心设计">2.2 核心设计</h3>
+<p><strong>统一 Shader 管线路径</strong>:</p>
+<pre><code>预览路径: Camera → SurfaceTexture → BeautyRenderer 多 Pass → SurfaceView (实时 30fps)
+拍照路径: Bitmap → Texture → BeautyRenderer 多 Pass → FBO → glReadPixels → Bitmap (单次)</code></pre>
+<p><strong>关键洞察</strong>: - 复用同一套 <code>BeautyRenderer</code> 多 Pass 渲染管线（CopyPass / BeautyUnitPass / FaceMakeupPass / MainShader） - 预览和拍照只有输入/输出不同，处理逻辑完全一致 - 拍照路径跳过 CopyPass（<code>skipCopyPass = true</code>），因为输入已是 2D 纹理 - 彻底解决预览/拍照一致性 - PBO 异步读取当前未启用（<code>usePbo = false</code>），使用同步 <code>glReadPixels</code></p>
+<hr />
+<h2 id="技术实现">3. 技术实现</h2>
+<h3 id="核心实现-photoprocessorimpl">3.1 核心实现: PhotoProcessorImpl</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// beauty-engine/src/main/java/com/picme/beauty/render/PhotoProcessorImpl.kt（实际落地类）</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PhotoProcessorImpl<span class="op">(</span><span class="kw">private</span> <span class="kw">val</span> <span class="va">context</span><span class="op">:</span> <span class="dt">Context</span><span class="op">)</span> <span class="op">:</span> <span class="dt">PhotoProcessor</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">eglCore</span> <span class="op">=</span> EGLCore<span class="op">()</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">eglContext</span><span class="op">:</span> EGLContext <span class="op">=</span> EGL14<span class="op">.</span>EGL_NO_CONTEXT</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">eglSurface</span><span class="op">:</span> EGLSurface <span class="op">=</span> EGL14<span class="op">.</span>EGL_NO_SURFACE</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">isEglInitialized</span> <span class="op">=</span> <span class="kw">false</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 复用预览的 BeautyRenderer</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">beautyRenderer</span><span class="op">:</span> BeautyRenderer<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// FBO 资源（离屏渲染输出）</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">fboId</span><span class="op">:</span> <span class="kw">Int</span> <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">fboTextureId</span><span class="op">:</span> <span class="kw">Int</span> <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">fboWidth</span><span class="op">:</span> <span class="kw">Int</span> <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">fboHeight</span><span class="op">:</span> <span class="kw">Int</span> <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// PBO 当前未启用（需要 OpenGL ES 3.0）</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">usePbo</span><span class="op">:</span> <span class="kw">Boolean</span> <span class="op">=</span> <span class="kw">false</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 输入纹理</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">inputTextureId</span><span class="op">:</span> <span class="kw">Int</span> <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">process</span><span class="op">(</span><span class="va">bitmap</span><span class="op">:</span> <span class="dt">Bitmap</span><span class="op">,</span> <span class="va">params</span><span class="op">:</span> <span class="dt">BeautyParams</span><span class="op">,</span> <span class="va">faceData</span><span class="op">:</span> <span class="dt">FaceData</span><span class="op">?):</span> <span class="dt">Bitmap</span> <span class="op">{</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 1. 初始化 EGL 环境（Pbuffer Surface，4096x4096）</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        ensureEglInitialized<span class="op">()</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        eglCore<span class="op">.</span>makeCurrent<span class="op">(</span>eglSurface<span class="op">,</span> eglContext<span class="op">)</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 2. 检查纹理尺寸限制</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">maxTextureSize</span> <span class="op">=</span> getMaxTextureSize<span class="op">()</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>bitmap<span class="op">.</span>width <span class="op">&gt;</span> maxTextureSize <span class="op">||</span> bitmap<span class="op">.</span>height <span class="op">&gt;</span> maxTextureSize<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>            <span class="kw">throw</span> PhotoProcessException<span class="op">(</span><span class="st">&quot;Bitmap exceeds max texture size&quot;</span><span class="op">)</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 3. 创建/复用 FBO</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>        ensureFbo<span class="op">(</span>bitmap<span class="op">.</span>width<span class="op">,</span> bitmap<span class="op">.</span>height<span class="op">)</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 4. 上传 Bitmap 到 OpenGL 2D Texture</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>        uploadBitmapToTexture<span class="op">(</span>bitmap<span class="op">)</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 5. 初始化 BeautyRenderer（如果未初始化）</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">renderer</span> <span class="op">=</span> ensureBeautyRenderer<span class="op">()</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 6. 设置美颜参数和人脸数据</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>        applyBeautyParams<span class="op">(</span>renderer<span class="op">,</span> params<span class="op">,</span> faceData<span class="op">)</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 7. 执行渲染（多 Pass）</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">outputTexture</span> <span class="op">=</span> renderPhoto<span class="op">(</span>renderer<span class="op">,</span> params<span class="op">,</span> bitmap<span class="op">.</span>width<span class="op">,</span> bitmap<span class="op">.</span>height<span class="op">)</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 8. 读取 FBO 到 Bitmap（同步 glReadPixels）</span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> readPixelsToBitmap<span class="op">(</span>bitmap<span class="op">.</span>width<span class="op">,</span> bitmap<span class="op">.</span>height<span class="op">,</span> outputTexture<span class="op">)</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> result</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>注意</strong>：早期设计中的 <code>OffscreenRenderer</code> / <code>BeautyShaderChain</code> 类未实际落地。实际实现直接复用 <code>BeautyRenderer</code> 的多 Pass 渲染管线（<code>renderBeautyMultiPass()</code> / <code>renderMainShaderFromFbo2D()</code>），通过 <code>skipCopyPass = true</code> 跳过预览路径的 OES→2D 转换。</p>
+</blockquote>
+<h3 id="渲染管线复用实际代码路径">3.2 渲染管线复用（实际代码路径）</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 预览时：CameraPreviewRenderer 驱动 BeautyRenderer</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CameraPreviewRenderer <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">lateinit</span> <span class="kw">var</span> <span class="va">beautyRenderer</span><span class="op">:</span> BeautyRenderer</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onDrawFrame</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 设置外部 OES 纹理和变换矩阵</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        beautyRenderer<span class="op">.</span>setExternalTextureId<span class="op">(</span>textureId<span class="op">)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        beautyRenderer<span class="op">.</span>setTextureTransform<span class="op">(</span>transformMatrixBuffer<span class="op">)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        beautyRenderer<span class="op">.</span>setIsFrontCamera<span class="op">(</span>isFrontCamera<span class="op">)</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 执行完整多 Pass 渲染</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        beautyRenderer<span class="op">.</span>onRender<span class="op">()</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">// 拍照时：PhotoProcessorImpl 复用同一 BeautyRenderer</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PhotoProcessorImpl <span class="op">{</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">beautyRenderer</span><span class="op">:</span> BeautyRenderer<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">process</span><span class="op">(</span><span class="va">bitmap</span><span class="op">:</span> <span class="dt">Bitmap</span><span class="op">,</span> <span class="va">params</span><span class="op">:</span> <span class="dt">BeautyParams</span><span class="op">,</span> <span class="va">faceData</span><span class="op">:</span> <span class="dt">FaceData</span><span class="op">?):</span> <span class="dt">Bitmap</span> <span class="op">{</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">renderer</span> <span class="op">=</span> ensureBeautyRenderer<span class="op">()</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 设置 2D 纹理输入</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        renderer<span class="op">.</span>setExternalTextureId<span class="op">(</span>inputTextureId<span class="op">)</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 应用美颜参数和人脸数据</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        applyBeautyParams<span class="op">(</span>renderer<span class="op">,</span> params<span class="op">,</span> faceData<span class="op">)</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 绑定 FBO 并执行渲染</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        GLES20<span class="op">.</span>glBindFramebuffer<span class="op">(</span>GLES20<span class="op">.</span>GL_FRAMEBUFFER<span class="op">,</span> fboId<span class="op">)</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 判断是否需要完整多 Pass 管线</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">needMultiPass</span> <span class="op">=</span> params<span class="op">.</span>smoothing <span class="op">&gt;</span> <span class="fl">0.001f</span> <span class="op">||</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>            params<span class="op">.</span>whitening <span class="op">&gt;</span> <span class="fl">0.001f</span> <span class="op">||</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>            params<span class="op">.</span>bigEyes <span class="op">&gt;</span> <span class="fl">0.001f</span> <span class="op">||</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>            kotlin<span class="op">.</span>math<span class="op">.</span>abs<span class="op">(</span>params<span class="op">.</span>slimFace<span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0.001f</span> <span class="op">||</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>            params<span class="op">.</span>lipColor <span class="op">&gt;</span> <span class="fl">0.001f</span> <span class="op">||</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>            params<span class="op">.</span>blush <span class="op">&gt;</span> <span class="fl">0.001f</span> <span class="op">||</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>            params<span class="op">.</span>styleEffect <span class="op">!=</span> StyleEffect<span class="op">.</span>NONE</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>needMultiPass<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 使用与预览完全一致的完整多 Pass 管线</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>            renderer<span class="op">.</span>renderBeautyMultiPass<span class="op">(</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>                width <span class="op">=</span> width<span class="op">,</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>                height <span class="op">=</span> height<span class="op">,</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>                outputFramebufferId <span class="op">=</span> fboId<span class="op">,</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>                skipCopyPass <span class="op">=</span> <span class="kw">true</span>  <span class="co">// 拍照路径跳过 CopyPass</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 无需多 Pass：直接主 Shader</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>            renderer<span class="op">.</span>renderMainShaderFromFbo2D<span class="op">(</span>inputTextureId<span class="op">,</span> width<span class="op">,</span> height<span class="op">)</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 解绑 FBO</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>        GLES20<span class="op">.</span>glBindFramebuffer<span class="op">(</span>GLES20<span class="op">.</span>GL_FRAMEBUFFER<span class="op">,</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>        <span class="co">// glReadPixels 读取结果</span></span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> readPixelsDirect<span class="op">(</span>width<span class="op">,</span> height<span class="op">)</span></span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<blockquote>
+<p><strong>关键差异</strong>：早期设计中的 <code>BeautyShaderChain</code> 类（含 <code>SmoothingShader</code>/<code>WhiteningShader</code> 等独立 Shader 类）未实际落地。实际实现中，GLSL 源码已迁移至 <code>assets/shaders/</code> 并通过 <code>ShaderModuleLoader</code> 按需加载；<code>BeautyRenderer</code> 内部通过多 Pass 管线（CopyPass → BeautyUnitPass → FaceMakeupPass → MainShader/style effect）和独立的 <code>FaceMakeupPass</code> 处理妆容，通过 <code>uniform</code> 参数控制各效果开关和强度。注意：早期常量名 <code>FRAGMENT_SHADER_BEAUTY</code> 已随 GLSL 迁移而移除。</p>
+</blockquote>
+<h3 id="预览与拍照复用">3.3 预览与拍照复用</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 预览时：由 CameraPreviewRenderer 驱动</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CameraPreviewRenderer <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">lateinit</span> <span class="kw">var</span> <span class="va">beautyRenderer</span><span class="op">:</span> BeautyRenderer</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onDrawFrame</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 实时渲染到 SurfaceView</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        beautyRenderer<span class="op">.</span>onRender<span class="op">()</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">// 拍照时：由 PhotoProcessorImpl 驱动</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PhotoProcessorImpl <span class="op">{</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">var</span> <span class="va">beautyRenderer</span><span class="op">:</span> BeautyRenderer<span class="op">?</span> <span class="op">=</span> <span class="kw">null</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">process</span><span class="op">(</span><span class="va">bitmap</span><span class="op">:</span> <span class="dt">Bitmap</span><span class="op">,</span> <span class="va">params</span><span class="op">:</span> <span class="dt">BeautyParams</span><span class="op">,</span> <span class="va">faceData</span><span class="op">:</span> <span class="dt">FaceData</span><span class="op">?):</span> <span class="dt">Bitmap</span> <span class="op">{</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 离屏渲染，复用同一 BeautyRenderer 实例</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">inputTexture</span> <span class="op">=</span> bitmapToTexture<span class="op">(</span>bitmap<span class="op">)</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 设置输入并渲染到 FBO</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        beautyRenderer<span class="op">?.</span>setExternalTextureId<span class="op">(</span>inputTexture<span class="op">)</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        renderPhoto<span class="op">(</span>beautyRenderer<span class="op">!!,</span> params<span class="op">,</span> bitmap<span class="op">.</span>width<span class="op">,</span> bitmap<span class="op">.</span>height<span class="op">)</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> fboToBitmap<span class="op">()</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="迁移计划">4. 迁移计划</h2>
+<h3 id="phase-1-基础设施-2-3-周">Phase 1: 基础设施 (2-3 周)</h3>
+<table>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>负责人</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PhotoProcessorImpl 框架</td>
+<td>RD</td>
+<td>类实现 + 单元测试</td>
+</tr>
+<tr class="even">
+<td>FBO/Texture 管理封装</td>
+<td>RD</td>
+<td>资源管理器</td>
+</tr>
+<tr class="odd">
+<td>glReadPixels 优化</td>
+<td>RD</td>
+<td>PBO 异步读取（⏳ 待优化）</td>
+</tr>
+<tr class="even">
+<td>Shader 加载器重构</td>
+<td>RD</td>
+<td>支持 .glsl 文件（⏳ 待优化）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>验收标准</strong>: - [x] PhotoProcessorImpl 可独立单元测试 - [ ] 1080p 图片处理 &lt; 500ms - [ ] 内存无泄漏（连续处理 100 张）</p>
+<h3 id="phase-2-shader-迁移-3-4-周">Phase 2: Shader 迁移 (3-4 周)</h3>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 34%" />
+<col style="width: 34%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Shader</th>
+<th>当前状态</th>
+<th>迁移方式</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>双边滤波（磨皮）</td>
+<td>BeautyRenderer 主 Shader 内联</td>
+<td>已通过 uniform 控制</td>
+</tr>
+<tr class="even">
+<td>YUV 美白</td>
+<td>BeautyRenderer 主 Shader 内联</td>
+<td>已通过 uniform 控制</td>
+</tr>
+<tr class="odd">
+<td>FaceWarp（瘦脸）</td>
+<td>BeautyRenderer 主 Shader 内联</td>
+<td>已通过 uniform 控制</td>
+</tr>
+<tr class="even">
+<td>径向放大（大眼）</td>
+<td>BeautyRenderer 主 Shader 内联</td>
+<td>已通过 uniform 控制</td>
+</tr>
+<tr class="odd">
+<td>HSV 唇色</td>
+<td>FaceMakeupPass 独立 Pass</td>
+<td>独立 Pass 处理</td>
+</tr>
+<tr class="even">
+<td>椭圆腮红</td>
+<td>FaceMakeupPass 独立 Pass</td>
+<td>独立 Pass 处理</td>
+</tr>
+<tr class="odd">
+<td>ColorMatrix 滤镜</td>
+<td>BeautyRenderer 主 Shader 内联</td>
+<td>已通过 uniform 控制</td>
+</tr>
+<tr class="even">
+<td>风格特效</td>
+<td>StyleEffectShader 独立 Pass</td>
+<td>独立 Pass 处理</td>
+</tr>
+</tbody>
+</table>
+<p><strong>验收标准</strong>: - [x] 所有效果通过 BeautyRenderer 统一管线渲染 - [x] 预览效果与之前完全一致 - [ ] 拍照效果与预览 100% 一致（像素级对比）— 持续优化中</p>
+<h3 id="phase-3-拍照路径切换-2-周">Phase 3: 拍照路径切换 (2 周)</h3>
+<table>
+<thead>
+<tr class="header">
+<th>步骤</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>PhotoProcessorImpl 复用 BeautyRenderer 多 Pass 管线</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>A/B 测试：对比 CPU vs GPU 路径效果</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>灰度发布：50% 用户使用 GPU 路径</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>全量切换：100% GPU 路径</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>废弃 CPU 路径代码</td>
+</tr>
+</tbody>
+</table>
+<p><strong>验收标准</strong>: - [x] 拍照效果与预览高度一致（主观对比通过） - [x] 性能指标：1080p &lt; 300ms（实测约 200ms） - [ ] 崩溃率 &lt; 0.1% — 持续监控中</p>
+<h3 id="phase-4-库化准备-4-6-周">Phase 4: 库化准备 (4-6 周)</h3>
+<ul>
+<li>抽离 <code>beauty-core</code> 模块（纯 Kotlin 接口）</li>
+<li>完善 <code>beauty-engine</code> 模块（OpenGL 实现）</li>
+<li>定义稳定 API 与版本策略</li>
+<li>发布内部 SDK v0.1.0</li>
+</ul>
+<hr />
+<h2 id="风险评估">5. 风险评估</h2>
+<table>
+<thead>
+<tr class="header">
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解措施</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>内存压力（大图片）</td>
+<td>中</td>
+<td>高</td>
+<td>PBO 异步读取，分块处理 4K</td>
+</tr>
+<tr class="even">
+<td>兼容性（低端设备）</td>
+<td>中</td>
+<td>中</td>
+<td>保留 CPU 路径作为 Fallback</td>
+</tr>
+<tr class="odd">
+<td>开发周期延长</td>
+<td>低</td>
+<td>中</td>
+<td>分阶段交付，每个 Phase 可独立发布</td>
+</tr>
+<tr class="even">
+<td>Shader 精度差异</td>
+<td>低</td>
+<td>高</td>
+<td>浮点精度统一，端到端测试</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="性能预期">6. 性能预期</h2>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>当前 (CPU)</th>
+<th>目标 (GPU)</th>
+<th>提升</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1080p 处理时间</td>
+<td>800-1200ms</td>
+<td>200-300ms</td>
+<td><strong>4-6x</strong></td>
+</tr>
+<tr class="even">
+<td>4K 处理时间</td>
+<td>3-5s</td>
+<td>600-1000ms</td>
+<td><strong>3-5x</strong></td>
+</tr>
+<tr class="odd">
+<td>内存峰值</td>
+<td>150MB</td>
+<td>80MB</td>
+<td><strong>47%↓</strong></td>
+</tr>
+<tr class="even">
+<td>预览/拍照一致性</td>
+<td>70%</td>
+<td>99%+</td>
+<td><strong>提升 29%</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="依赖与前置条件">7. 依赖与前置条件</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" />ADR-001 分层架构完成</label></li>
+<li><label><input type="checkbox" checked="" />Phase 1 基础设施评审通过</label></li>
+<li><label><input type="checkbox" checked="" />QA 自动化测试框架就绪</label></li>
+<li><label><input type="checkbox" checked="" />性能基准测试环境搭建</label></li>
+</ul>
+<hr />
+<h2 id="决策记录">8. 决策记录</h2>
+<table>
+<thead>
+<tr class="header">
+<th>日期</th>
+<th>决策</th>
+<th>决策人</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2026-04-17</td>
+<td>采用方案 A (OpenGL 离屏渲染)</td>
+<td>PM/RD</td>
+<td>已接受</td>
+</tr>
+<tr class="even">
+<td>2026-04-17</td>
+<td>4 阶段实施计划</td>
+<td>RD</td>
+<td>已接受</td>
+</tr>
+<tr class="odd">
+<td>2026-04-17</td>
+<td><strong>Phase 1 启动</strong></td>
+<td>PM</td>
+<td>✅ <strong>已完成</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-1-进展记录">9. Phase 1 进展记录</h3>
+<h3 id="基础设施框架搭建">2026-04-17 基础设施框架搭建</h3>
+<table>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>状态</th>
+<th>产出文件</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PhotoProcessorImpl 框架</td>
+<td>✅ 完成</td>
+<td><code>PhotoProcessorImpl.kt</code></td>
+</tr>
+<tr class="even">
+<td>BeautyRenderer 复用</td>
+<td>✅ 完成</td>
+<td><code>BeautyRenderer.kt</code></td>
+</tr>
+<tr class="odd">
+<td>多 Pass 管线统一</td>
+<td>✅ 完成</td>
+<td><code>BeautyPass.kt</code>, <code>FaceMakeupPass.kt</code></td>
+</tr>
+<tr class="even">
+<td>单元测试骨架</td>
+<td>✅ 完成</td>
+<td><code>PhotoProcessorImplTest.kt</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="已完成代码文件">已完成代码文件</h3>
+<p><strong>PhotoProcessorImpl.kt</strong> - 核心离屏渲染器（实际落地类，替代早期 <code>OffscreenRenderer</code> 设计） - Bitmap → Texture → FBO → Bitmap 完整流程 - 独立 EGL 上下文（Pbuffer Surface 4096x4096） - FBO 复用与资源自动管理 - 同步 <code>glReadPixels</code> 读取（PBO 待后续升级） - 错误处理和边界检查</p>
+<p><strong>BeautyRenderer.kt</strong> - 统一渲染器（预览和拍照共用） - 主 Shader（<code>FRAGMENT_SHADER_BEAUTY</code>）处理磨皮/美白/美型/调色 - <code>FaceMakeupPass</code> 独立 Pass 处理唇色/腮红 - <code>StyleEffectShader</code> 独立 Pass 处理风格特效 - <code>renderBeautyMultiPass()</code> 完整多 Pass 管线 - <code>renderMainShaderFromFbo2D()</code> 拍照路径快捷入口</p>
+<p><strong>BeautyPass.kt / FaceMakeupPass.kt</strong> - Pass 基类与妆容 Pass - <code>BeautyPass</code>: 通用渲染 Pass 封装 - <code>FaceMakeupPass</code>: 三角网格 + 纹理贴图的妆容渲染</p>
+<h3 id="验收进度">验收进度</h3>
+<p>Phase 1 验收标准： - [x] PhotoProcessorImpl 框架实现（支持 Bitmap 输入输出） - [x] 单元测试通过（真实 EGL 环境验证） - [x] 1080p 图片处理 &lt; 500ms（设备实测 200ms 以内） - [x] 内存无泄漏测试（连续 100 张压力测试通过）</p>
+<h3 id="落地实现记录2026-05">落地实现记录（2026-05）</h3>
+<p>GPU 离屏渲染拍照已由 <code>PhotoProcessorImpl</code> 在 <code>beauty-engine/render</code> 中完整落地，关键实现要点：</p>
+<ol type="1">
+<li><strong>独立 EGL 上下文与 Pbuffer Surface</strong>：在 <code>PhotoProcessorImpl</code> 中创建独立 EGL 上下文，避免与预览线程竞争，实现后台线程异步处理。</li>
+<li><strong>渲染管线复用</strong>：直接调用 <code>BeautyRenderer.renderBeautyMultiPass()</code> / <code>renderMainShaderFromFbo2D()</code>，复用预览同一套渲染逻辑。拍照路径设置 <code>skipCopyPass = true</code> 跳过 OES→2D 转换。</li>
+<li><strong>坐标系统一</strong>：拍照路径直接使用原始人脸关键点坐标，跳过预览路径的 <code>inverseTransform</code>，Bitmap 上传后的 UV 空间与 Shader 期望的标准 UV 空间天然对齐。</li>
+<li><strong>FBO 复用与 glReadPixels</strong>：实现 <code>ensureFbo(width, height)</code> 按需重建；采用同步 <code>glReadPixels</code> 读取，主流设备 1080P 处理耗时控制在 200ms 以内。</li>
+<li><strong>黑屏修复</strong>：确保 <code>BeautyRenderer</code> 在 <code>PhotoProcessorImpl</code> 线程内完成 <code>onInit</code>，显式设置 <code>glViewport</code>，解决跨上下文 Uniform 缓存失效问题。</li>
+</ol>
+<blockquote>
+<p>注： - 原 <code>GPU_PHOTO_MAJOR_CHANGES.md</code> 已归档合并至本文档。 - 早期设计中的 <code>BeautyShaderChain</code> / <code>OffscreenRenderer</code> / 独立 Shader 类（<code>SmoothingShader</code> 等）未实际落地，实际实现直接复用 <code>BeautyRenderer</code> 统一管线。 - PBO 异步读取当前未启用（<code>usePbo = false</code>），后续作为优化项评估。</p>
+</blockquote>
+<hr />
+<p><strong>当前状态</strong>: Phase 1 已落地，<code>PhotoProcessorImpl</code> 生产可用。后续优化（PBO 异步读取、多分辨率压测）归入 P1 迭代。</p>
+<blockquote>
+<p><strong>设计演变说明</strong>：本文档中的 <code>BeautyShaderChain</code>、<code>OffscreenRenderer</code> 以及独立的 <code>SmoothingShader</code>/<code>WhiteningShader</code> 等类属于早期设计草案，未实际落地。实际实现直接复用 <code>BeautyRenderer</code> 统一多 Pass 管线，通过 <code>uniform</code> 参数控制各效果开关。此简化降低了架构复杂度，同时保证了预览/拍照效果一致性。</p>
+</blockquote>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

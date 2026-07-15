@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR-007: 端侧自然语言相册搜索 — CV 标签 + LLM 混合架构 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../../index.html">🏠 首页</a>
+  <a class="nav-item " href="../../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item active" href="../../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../../">02 Architecture</a> / <a href="../">Adr</a> / <span>ADR-007: 端侧自然语言相册搜索 — CV 标签 + LLM 混合架构</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-背景与问题陈述">1. 背景与问题陈述</a></li>
+      <li><a href="#2-决策">2. 决策</a></li>
+      <li><a href="#3-架构设计">3. 架构设计</a></li>
+      <li><a href="#4-实施状态">4. 实施状态</a></li>
+      <li><a href="#5-风险与缓解">5. 风险与缓解</a></li>
+      <li><a href="#6-相关文档">6. 相关文档</a></li>
+      </ul>
+    </div>
+<h1 id="adr-007-端侧自然语言相册搜索-cv-标签-llm-混合架构">ADR-007: 端侧自然语言相册搜索 — CV 标签 + LLM 混合架构</h1>
+<blockquote>
+<p><strong>状态</strong>: 已全面实施<br />
+<strong>日期</strong>: 2026-06-30<br />
+<strong>决策</strong>: RD<br />
+<strong>依赖</strong>: ADR-005（本地/远程推理协议分离，LLM 解析层复用 Agent Runtime）</p>
+<p><strong>实现详情见</strong>: <a href="../../03-TECHNICAL-SPECS/GALLERY_SEARCH.html"><code>docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md</code></a>（本 ADR 保留决策背景，具体链路以该文档为唯一事实来源）</p>
+</blockquote>
+<hr />
+<h2 id="背景与问题陈述">1. 背景与问题陈述</h2>
+<h3 id="产品需求">1.1 产品需求</h3>
+<p>PoLang 已从相机转向智能相册（ADR-005 产品重心迁移），需要支持自然语言搜索照片：</p>
+<table>
+<thead>
+<tr class="header">
+<th>查询类型</th>
+<th>示例</th>
+<th>所需能力</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>时间</td>
+<td>“去年夏天的照片”</td>
+<td>时间语义解析</td>
+</tr>
+<tr class="even">
+<td>物体/场景</td>
+<td>“猫”“海滩”“食物”</td>
+<td>图像内容理解</td>
+</tr>
+<tr class="odd">
+<td>文字</td>
+<td>“包含’会议’的截图”</td>
+<td>OCR 文字索引</td>
+</tr>
+<tr class="even">
+<td>地点</td>
+<td>“在上海拍的照片”</td>
+<td>GPS + 逆地理编码</td>
+</tr>
+<tr class="odd">
+<td>人名</td>
+<td>“我和妈妈的合照”</td>
+<td>人脸聚类</td>
+</tr>
+<tr class="even">
+<td>组合</td>
+<td>“去年在上海拍的猫”</td>
+<td>LLM 多条件推理</td>
+</tr>
+</tbody>
+</table>
+<h3 id="当前状态">1.2 当前状态</h3>
+<p>相册搜索功能为空骨架： - <code>GalleryCapability.search_media</code> 命令已定义但仅打印日志 - Room DB <code>media_assets</code> 表无文本/标签字段 - ML Kit OCR 已集成但结果从不存储 - Agent Runtime 已有 LLM（本地 Qwen3.5-2B + 远程 DeepSeek） - 没有任何图像标注/分类模型</p>
+<h3 id="约束">1.3 约束</h3>
+<ul>
+<li><strong>个人开发精力有限</strong>：不能引入需要大量调优的自研模型</li>
+<li><strong>隐私优先 (PRIVACY)</strong>：所有图像处理必须端侧完成，不上传任何照片数据</li>
+<li><strong>性能 (PERF)</strong>：搜索响应 &lt; 2s（规则匹配 &lt; 100ms，LLM 路径依赖远程延迟）</li>
+<li><strong>复用优先</strong>：尽量使用已有基础设施（Agent Runtime、ML Kit、Room DB）</li>
+</ul>
+<hr />
+<h2 id="决策">2. 决策</h2>
+<h3 id="总体方案cv-标签-llm-语义解析双层架构">2.1 总体方案：CV 标签 + LLM 语义解析双层架构</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────┐
+│                    离线索引（后台异步）                          │
+│  ML Kit Image Labeling ──┐                                   │
+│  ML Kit Text Recognition ─┼──→ Room DB (media_assets 扩展)    │
+│  EXIF GPS + Geocoder ────┘                                    │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              │ 标签/分类数据
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    在线搜索                                    │
+│                                                              │
+│  Layer 1: QueryParser 规则匹配（离线，&lt; 100ms）                │
+│  - 时间词：&quot;去年&quot;→年份-1，&quot;夏天&quot;→6-8月                         │
+│  - 关键词 → labels/ocrText/locationName LIKE 匹配              │
+│                                                              │
+│  Layer 2: Agent LLM 语义解析（需要时）                         │
+│  - 复杂混合查询：&quot;去年夏天在上海拍的猫&quot;                          │
+│  - LLM → StructuredFilter {timeRange, keywords}                │
+│  - 通过 AgentOrchestrator → search_media 命令执行              │
+└──────────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="决策-1使用-ml-kit-image-labeling-而非-clip">2.2 决策 1：使用 ML Kit Image Labeling 而非 CLIP</h3>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 44%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>ML Kit Image Labeling</th>
+<th>Chinese-CLIP (ONNX)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>模型大小</strong></td>
+<td>&lt; 10MB（Google Play Services 内置）</td>
+<td>~300MB（需单独下载）</td>
+</tr>
+<tr class="even">
+<td><strong>推理速度</strong></td>
+<td>&lt; 100ms/张</td>
+<td>~500ms+/张</td>
+</tr>
+<tr class="odd">
+<td><strong>标签语言</strong></td>
+<td>中文（400+ 标签）</td>
+<td>需中文微调版</td>
+</tr>
+<tr class="even">
+<td><strong>集成难度</strong></td>
+<td>一行依赖，API 简单</td>
+<td>ONNX 转换 + Runtime 集成</td>
+</tr>
+<tr class="odd">
+<td><strong>离线可用</strong></td>
+<td>✅（端侧模型）</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td><strong>维护成本</strong></td>
+<td>Google 维护</td>
+<td>自行维护模型更新</td>
+</tr>
+<tr class="odd">
+<td><strong>适用场景</strong></td>
+<td>常见物体/场景分类</td>
+<td>高精度语义相似度搜索</td>
+</tr>
+</tbody>
+</table>
+<p><strong>决策</strong>：选用 ML Kit Image Labeling 作为第一版图像标注方案。CLIP 作为后续迭代选项，当标签匹配无法满足用户需求时（如跨模态语义搜索）再引入。</p>
+<h3 id="决策-2搜索不单独建索引服务直接扩展-room-db">2.3 决策 2：搜索不单独建索引服务，直接扩展 Room DB</h3>
+<p>不引入独立的向量数据库或搜索引擎（如 Lucene/FTS5），而是直接在 <code>media_assets</code> 表上扩展字段：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> media_assets <span class="kw">ADD</span> <span class="kw">COLUMN</span> labels TEXT;        <span class="co">-- JSON数组</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> media_assets <span class="kw">ADD</span> <span class="kw">COLUMN</span> ocrText TEXT;       <span class="co">-- OCR文字</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> media_assets <span class="kw">ADD</span> <span class="kw">COLUMN</span> latitude <span class="dt">REAL</span>;      <span class="co">-- GPS</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> media_assets <span class="kw">ADD</span> <span class="kw">COLUMN</span> longitude <span class="dt">REAL</span>;</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> media_assets <span class="kw">ADD</span> <span class="kw">COLUMN</span> locationName TEXT;  <span class="co">-- 地名</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">TABLE</span> media_assets <span class="kw">ADD</span> <span class="kw">COLUMN</span> indexedAt <span class="dt">INTEGER</span>;  <span class="co">-- 索引时间</span></span></code></pre></div>
+<p><strong>理由</strong>： - 照片数量通常在数千到数万级别，Room SQL LIKE 查询完全够用 - 不引入额外依赖，降低维护成本 - 如需全文搜索，可在 <code>ocrText</code> 列上建 FTS5 虚拟表（Room 原生支持）</p>
+<h3 id="决策-3搜索与-llm-通过-agent-runtime-的-search_media-命令集成">2.4 决策 3：搜索与 LLM 通过 Agent Runtime 的 search_media 命令集成</h3>
+<p>不另建搜索接口，而是将搜索作为 Gallery Capability 的一个命令，通过现有 Agent Runtime 路由：</p>
+<pre><code>用户输入 &quot;找出去年夏天的猫&quot;
+    │
+    ▼
+AgentOrchestrator.dispatch()
+    │
+    ├── LOCAL mode → LocalLlmEngine → 输出 [{&quot;method&quot;:&quot;search_media&quot;,&quot;params&quot;:{&quot;query&quot;:&quot;...&quot;}}]
+    └── REMOTE mode → RemoteReActAgent → tool_calls → search_media
+    │
+    ▼
+LocalCommandParser / ToolCallCommandParser → AgentCommand.SearchMedia
+    │
+    ▼
+CapabilityRegistry.dispatch() → GalleryCapability.execute()
+    │
+    ▼
+MediaSearchEngine.search(query) → 结构化过滤 → MediaDao 查询</code></pre>
+<p><strong>理由</strong>： - 复用已有 Agent Runtime 基础设施 - LLM 对 <code>search_media</code> 的语义理解已通过 Prompt 示例增强 - 搜索结果可作为后续对话上下文（计划中）</p>
+<h3 id="决策-4后台索引使用协程而非-workmanager">2.5 决策 4：后台索引使用协程而非 WorkManager</h3>
+<p>不引入 WorkManager 依赖，使用简单的 <code>CoroutineScope(IO)</code> 后台批量处理：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MediaIndexingWorker<span class="op">(</span><span class="va">context</span><span class="op">:</span> <span class="dt">Context</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">start</span><span class="op">()</span> <span class="op">{</span> scope<span class="op">.</span>launch <span class="op">{</span> doIndex<span class="op">()</span> <span class="op">}</span> <span class="op">}</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">cancel</span><span class="op">()</span> <span class="op">{</span> currentJob<span class="op">?.</span>cancel<span class="op">()</span> <span class="op">}</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>理由</strong>： - 项目当前未使用 WorkManager，避免引入新依赖 - 索引任务简单（遍历未索引照片、调用 ML Kit、写 DB），不需要 WorkManager 的调度能力 - 未来如需要充电/WiFi 约束调度，可再迁移到 WorkManager</p>
+<hr />
+<h2 id="架构设计">3. 架构设计</h2>
+<h3 id="模块划分">3.1 模块划分</h3>
+<pre><code>app/
+├── data/indexing/
+│   ├── MetadataExtractor.kt      # ML Kit 标签+OCR+EXIF+地名提取
+│   └── MediaIndexingWorker.kt    # 后台协程批量索引
+├── domain/search/
+│   ├── QueryParser.kt            # 时间词/关键词规则解析
+│   └── MediaSearchEngine.kt      # 两层搜索策略
+├── data/model/MediaEntity.kt     # +6 元数据字段
+├── data/local/MediaDao.kt        # +10 搜索查询方法
+├── data/local/AppDatabase.kt     # v5→v6 migration
+└── features/gallery/capability/
+    └── GalleryCapability.kt      # 注入 MediaSearchEngine</code></pre>
+<h3 id="数据流">3.2 数据流</h3>
+<pre><code>[拍照/导入照片]
+    │
+    ▼
+MediaRepositoryImpl.refreshMediaLibrary()
+    │
+    ▼
+MediaIndexingWorker.start()
+    │
+    ├── 读取未索引照片 (indexedAt IS NULL)
+    ├── 每批 20 张
+    │   ├── ML Kit Image Labeling → labels JSON
+    │   ├── ML Kit Text Recognition → ocrText
+    │   ├── EXIF GPS → lat/lon
+    │   └── Geocoder → locationName
+    ├── 写入 Room DB
+    └── 标记 indexedAt
+
+[用户搜索]
+    │
+    ▼
+QueryParser.parse(&quot;猫&quot;)
+    ├── 无时间词，有关键词[&quot;猫&quot;]
+    └── → StructuredFilter(keywords=[&quot;猫&quot;])
+    │
+    ▼
+MediaSearchEngine.executeFilter()
+    ├── searchByLabel(&quot;猫&quot;) → 匹配标签
+    ├── searchByOcrText(&quot;猫&quot;) → 匹配OCR文字
+    └── 合并去重，按时间降序</code></pre>
+<h3 id="llm-prompt-集成">3.3 LLM Prompt 集成</h3>
+<p>search_media 在 System Prompt 中的描述：</p>
+<pre><code>- gallery: search_media(params.query)
+  search_media: 自然语言搜索照片。用户说&quot;找出去年夏天的照片&quot;&quot;猫的照片&quot;
+  &quot;上海的合照&quot;时，直接用原话作为 query 参数。
+  例：&quot;找出去年夏天的猫&quot; -&gt; {&quot;method&quot;:&quot;search_media&quot;,&quot;params&quot;:{&quot;query&quot;:&quot;去年夏天的猫&quot;}}</code></pre>
+<hr />
+<h2 id="实施状态">4. 实施状态</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>内容</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Phase 1</td>
+<td>DB 扩展 (v6 migration) + ML Kit 依赖</td>
+<td>✅ 已完成</td>
+</tr>
+<tr class="even">
+<td>Phase 2</td>
+<td>人脸 Embedding + DBSCAN 聚类 + Qwen 标签 + MobileCLIP 语义编码</td>
+<td>✅ 已完成</td>
+</tr>
+<tr class="odd">
+<td>Phase 3</td>
+<td>QueryParser + QuerySegmenter + ExplicitFirstSearchPipeline + MediaSearchEngine</td>
+<td>✅ 已完成</td>
+</tr>
+<tr class="even">
+<td>Phase 4</td>
+<td>Prompt 增强 + <code>search_media</code> Agent 命令</td>
+<td>✅ 已完成</td>
+</tr>
+<tr class="odd">
+<td>Phase 5</td>
+<td>Gallery 搜索 UI（搜索框 + 结果网格 + 选择/删除/分享）</td>
+<td>✅ 已完成</td>
+</tr>
+<tr class="even">
+<td>Phase 6</td>
+<td>MobileCLIP 语义召回集成</td>
+<td>✅ 已完成</td>
+</tr>
+<tr class="odd">
+<td>Phase 7</td>
+<td>语音搜索集成（KWS→ASR→搜索）</td>
+<td>⏳ 待启动</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="风险与缓解">5. 风险与缓解</h2>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解措施</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ML Kit 标签覆盖不足</td>
+<td>中</td>
+<td>中</td>
+<td>Layer 2 LLM 解析兜底；未来引入 CLIP</td>
+</tr>
+<tr class="even">
+<td>大批量索引时 ML Kit 限流</td>
+<td>低</td>
+<td>低</td>
+<td>分批处理（20 张/批），ML Kit 无请求限制</td>
+</tr>
+<tr class="odd">
+<td>OCR 误识别导致搜索结果噪音</td>
+<td>中</td>
+<td>低</td>
+<td>搜索时标签匹配权重 &gt; OCR 匹配</td>
+</tr>
+<tr class="even">
+<td>地名依赖 Geocoder 可用性</td>
+<td>低</td>
+<td>中</td>
+<td>Geocoder 失败时用 GPS 坐标作为 fallback</td>
+</tr>
+<tr class="odd">
+<td>LLM 不识别 search_media 命令</td>
+<td>低</td>
+<td>高</td>
+<td>Prompt 中已加入示例；规则匹配优先于 LLM</td>
+</tr>
+<tr class="even">
+<td>首次索引耗时过长</td>
+<td>中</td>
+<td>低</td>
+<td>分批处理 + 后台执行 + indexedAt 断点续扫</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="相关文档">6. 相关文档</h2>
+<ul>
+<li><code>docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md</code> — <strong>相册搜索完整实现链路（SSOT）</strong></li>
+<li><code>docs/02-ARCHITECTURE/ADR/ADR-005-local-remote-inference-split.md</code> — LLM 推理协议分离</li>
+<li><code>docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code> — Agent 运行时架构（search_media 路由）</li>
+<li><code>docs/01-PRODUCT/FEATURES.md</code> — 智能相册产品需求</li>
+<li><code>app/src/main/java/com/mamba/picme/domain/search/</code> — 搜索引擎实现</li>
+<li><code>app/src/main/java/com/mamba/picme/domain/tag/</code> — TAG 生成与语义编码实现</li>
+</ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>
