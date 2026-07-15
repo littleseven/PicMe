@@ -22,6 +22,7 @@ import com.mamba.picme.di.AppContainerImpl
 import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
+import com.mamba.picme.core.identity.DeviceIdProvider
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
@@ -317,6 +318,8 @@ class PicMeApplication : Application(), ImageLoaderFactory {
      * **注意**：DataStore 中存储的是新版 ProviderConfigs 格式（{"provider":"DEEPSEEK","modelId":"...","apiKey":"..."}），
      * 需先解析为 ProviderConfigs，再转换为 RemoteModelConfig 供推理引擎使用。
      */
+    private val deviceIdProvider = DeviceIdProvider(this)
+
     private fun syncRemoteModelConfigToOrchestrator() {
         applicationScope.launch {
             try {
@@ -349,7 +352,8 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                     } else {
                         // 服务端代理模式：使用邮箱注册的 token 认证
                         val remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
-                            gatewayToken = serverToken
+                            gatewayToken = serverToken,
+                            deviceId = deviceIdProvider.get(),
                         )
                         orchestrator.configure(
                             mode = orchestrator.getAgentMode(),
