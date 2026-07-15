@@ -659,4 +659,41 @@
     <string name="backup_export_failed">Export failed: %1$s</string>
     <string name="backup_import_failed">Import failed: %1$s</string>
     <string name="backup_result_summary">Matched %1$d · Tags %2$d · Tasks %3$d · Persons %4$d · Embeddings %5$d · Preferences %6$d</string>
+    <!-- Chat onboarding & guest mode -->
+    <string name="chat_empty_welcome">Hi, I\'m your PoLang assistant</string>
+    <string name="chat_empty_capabilities">I can search your gallery, edit photos, tweak beauty, and find people or scenes. Ask me anything!</string>
+    <string name="chat_empty_try_these">Try these:</string>
+    <string name="chat_guest_card_title">Trying without an account</string>
+    <string name="chat_guest_card_subtitle">Register for 1000 free AI calls</string>
+    <string name="chat_guest_card_button">Register with email</string>
+    <string name="chat_register_title">Sign in to keep chatting</string>
+    <string name="chat_register_subtitle">Register with email for 1000 free AI calls.</string>
+    <string name="chat_register_use_own_key">I have my own API key</string>
+    <string name="chat_register_use_local">Use on-device model</string>
+    <string name="chat_guest_quota_used_up">Trial quota used up. Register to get 1000 free calls.</string>
+    <string name="chat_inference_error">Inference error: %1$s</string>
+    <string-array name="chat_example_prompts">
+        <item>Find photos from last summer</item>
+        <item>Smooth the skin in this photo by 50</item>
+        <item>Switch to a warm filter</item>
+    </string-array>
+
+    <!-- Shared email-OTP auth form -->
+    <string name="auth_register_title">Email registration</string>
+    <string name="auth_register_desc">Register your email for 1000 free AI calls, or configure your own API key.</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_code_label">Verification code</string>
+    <string name="auth_send_code">Send code</string>
+    <string name="auth_verify">Verify</string>
+    <string name="auth_reenter_email">Re-enter email</string>
+    <string name="auth_email_empty">Please enter your email</string>
+    <string name="auth_code_empty">Please enter the code</string>
+    <string name="auth_send_failed">Failed to send code: %1$s</string>
+    <string name="auth_invalid_code">Incorrect code</string>
+    <string name="auth_code_expired">Code expired, please resend</string>
+    <string name="auth_verify_failed">Verification failed: %1$s</string>
+    <string name="auth_account_title">Server account</string>
+    <string name="auth_quota_label">AI quota: %1$d / %2$d calls</string>
+    <string name="auth_refresh">Refresh</string>
+    <string name="auth_logout">Sign out</string>
 </resources>
