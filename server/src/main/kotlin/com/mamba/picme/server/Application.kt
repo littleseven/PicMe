@@ -3,6 +3,7 @@ package com.mamba.picme.server
 import com.mamba.picme.server.admin.adminRoute
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.APP_TOKEN_HEADER
+import com.mamba.picme.server.auth.DEVICE_ID_HEADER
 import com.mamba.picme.server.auth.EmailService
 import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.cos.CosService
@@ -12,6 +13,7 @@ import com.mamba.picme.server.llm.LlmProxy
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
+import com.mamba.picme.server.routes.DeviceIdKey
 import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.authRoute
 import com.mamba.picme.server.routes.downloadRoute
@@ -81,21 +83,24 @@ fun Application.module(config: AppConfig) {
         if (uri in publicRoutes || uri == "/admin" || uri.startsWith("/admin/")) return@intercept
 
         val rawToken = call.request.headers[APP_TOKEN_HEADER]
-        if (rawToken == null) {
-            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
-            finish()
+        val authResult = rawToken?.let { AccountService.validateToken(it) }
+        if (authResult?.valid == true) {
+            // 有效账号 token → 存 hash 供下游额度校验
+            authResult.tokenHash?.let { call.attributes.put(TokenHashKey, it) }
             return@intercept
         }
 
-        val authResult = AccountService.validateToken(rawToken)
-        if (!authResult.valid) {
-            call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
-            finish()
+        // 无有效账号 token → 仅在 LLM 代理路径上允许设备级访客试用
+        val isLlmPath = uri == "/chat/completions" || uri == "/v1/chat/completions"
+        val deviceId = call.request.headers[DEVICE_ID_HEADER]
+        if (isLlmPath && !deviceId.isNullOrBlank()) {
+            call.attributes.put(DeviceIdKey, deviceId)
             return@intercept
         }
 
-        // Store token hash for downstream quota checks
-        authResult.tokenHash?.let { call.attributes.put(TokenHashKey, it) }
+        call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
+        finish()
+        return@intercept
     }
 
     // --- HttpClient (shared by LLM proxy + email) ---
@@ -122,7 +127,7 @@ fun Application.module(config: AppConfig) {
         recommendRoute(appJson)
         telemetryRoute()
         quotaRoute()
-        llmRoute(llmProxy, rateLimiter, config.llmPrices)
+        llmRoute(llmProxy, rateLimiter, config.llmPrices, config.guestLlmQuota)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService)
     }
