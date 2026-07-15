@@ -430,15 +430,11 @@ object AdminViews {
                 }
             }
             h2 { +"上传新版本" }
-            form(
-                action = "/admin/apk/upload",
-                method = FormMethod.post,
-                classes = "chan-form",
-            ) {
-                encType = kotlinx.html.FormEncType.multipartFormData
+            div("chan-form") {
                 p {
                     label { +"版本号（如 1.0.11）" }
                     input(type = InputType.text, name = "version") {
+                        attributes["id"] = "apk-version"
                         placeholder = "1.0.11"
                     }
                 }
@@ -446,11 +442,92 @@ object AdminViews {
                     label { +"选择 APK 文件（.apk）" }
                     br()
                     input(type = InputType.file, name = "apkfile") {
+                        attributes["id"] = "apk-file"
                         accept = ".apk"
                     }
                 }
+                // 进度条容器
+                div {
+                    attributes["id"] = "progress-container"
+                    style = "display:none;margin:12px 0"
+                    div {
+                        style = "background:#e5e7eb;border-radius:6px;height:20px;overflow:hidden"
+                        div {
+                            attributes["id"] = "progress-bar"
+                            style = "background:#2563eb;height:100%;width:0%;transition:width .2s ease;text-align:center;color:#fff;font-size:12px;line-height:20px"
+                            +"0%"
+                        }
+                    }
+                    p {
+                        attributes["id"] = "progress-text"
+                        style = "font-size:12px;color:#6b7280;margin:4px 0 0"
+                        +"准备上传..."
+                    }
+                }
                 p {
-                    input(type = InputType.submit, classes = "btn btn-primary") { value = "上传到 COS" }
+                    button(type = ButtonType.button, classes = "btn btn-primary") {
+                        attributes["id"] = "upload-btn"
+                        attributes["onclick"] = "uploadApk()"
+                        +"上传到 COS"
+                    }
+                }
+            }
+            script {
+                unsafe {
+                    raw(
+                        """
+                        function uploadApk(){
+                          var fileInput=document.getElementById('apk-file');
+                          var versionInput=document.getElementById('apk-version');
+                          var btn=document.getElementById('upload-btn');
+                          var bar=document.getElementById('progress-bar');
+                          var container=document.getElementById('progress-container');
+                          var text=document.getElementById('progress-text');
+                          var file=fileInput.files[0];
+                          if(!file){alert('请选择 APK 文件');return;}
+                          if(!file.name.endsWith('.apk')){alert('请上传 .apk 文件');return;}
+                          var form=new FormData();
+                          form.append('version',versionInput.value.trim()||'');
+                          form.append('apkfile',file);
+                          var xhr=new XMLHttpRequest();
+                          xhr.open('POST','/admin/apk/upload',true);
+                          xhr.upload.onprogress=function(e){
+                            if(e.lengthComputable){
+                              var pct=Math.round(e.loaded/e.total*100);
+                              bar.style.width=pct+'%';
+                              bar.textContent=pct+'%';
+                              text.textContent='已上传 '+formatBytes(e.loaded)+' / '+formatBytes(e.total);
+                            }
+                          };
+                          xhr.onload=function(){
+                            if(xhr.status===200||xhr.status===302){
+                              window.location.reload();
+                            }else{
+                              text.textContent='上传失败：'+xhr.statusText;
+                              text.style.color='#dc2626';
+                              btn.disabled=false;
+                              btn.textContent='上传到 COS';
+                            }
+                          };
+                          xhr.onerror=function(){
+                            text.textContent='网络错误，请重试';
+                            text.style.color='#dc2626';
+                            btn.disabled=false;
+                            btn.textContent='上传到 COS';
+                          };
+                          container.style.display='block';
+                          btn.disabled=true;
+                          btn.textContent='上传中...';
+                          xhr.send(form);
+                        }
+                        function formatBytes(b){
+                          if(b===0)return'0 B';
+                          var k=1024,s=['B','KB','MB','GB'];
+                          var i=Math.floor(Math.log(b)/Math.log(k));
+                          return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i];
+                        }
+                        """.trimIndent(),
+                    )
                 }
             }
         }

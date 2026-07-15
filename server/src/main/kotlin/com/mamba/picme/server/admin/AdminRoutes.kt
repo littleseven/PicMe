@@ -255,7 +255,8 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
 
         post("/apk/upload") {
             if (!call.adminGuard(adminToken)) return@post
-            val multipart = call.receiveMultipart()
+            // APK 通常 50-150MB，放宽 multipart 限制到 200MB
+            val multipart = call.receiveMultipart(200L * 1024 * 1024)
             var uploaded = false
             var errorMsg: String? = null
             var version = ""
