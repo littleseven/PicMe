@@ -76,6 +76,20 @@ object EmailVerifications : Table("email_verification") {
     override val primaryKey = PrimaryKey(id)
 }
 
+// ── 设备级匿名试用额度（未注册访客）─────────────────────────
+object AnonymousDevices : Table("anonymous_device") {
+    val id = integer("id").autoIncrement()
+    val deviceId = varchar("device_id", 128)
+    val llmCallsUsed = integer("llm_calls_used").default(0)
+    val createdAt = long("created_at")
+    val lastSeenAt = long("last_seen_at")
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex(deviceId)
+    }
+}
+
 // ── LLM 调用日志（管理后台唯一事实源）──────────────────────
 // 每次 /v1/chat/completions（含被限流/超额拦截、上游错误）写一行。
 // account 表的 llm_calls_used 继续只管「额度计数」，与此处的「分析用量」职责分离。
