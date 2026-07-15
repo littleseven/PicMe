@@ -42,11 +42,12 @@
     .card h3 { font-size: 17px; margin: 8px 0 6px; }
     .card p { font-size: 14px; color: #475569; }
 
-    .privacy { background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; border-radius: 16px; padding: 36px; }
-    .privacy .section-title, .privacy .section-sub { color: #fff; }
-    .privacy-list { max-width: 720px; margin: 0 auto; }
-    .privacy-list .item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; font-size: 16px; }
-    .privacy-list .check { font-size: 20px; }
+    .privacy { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px 32px; }
+    .privacy-h { font-size: 20px; font-weight: 700; margin-bottom: 18px; }
+    .privacy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .privacy-item { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #475569; }
+    .pi-icon { font-size: 22px; line-height: 1.2; }
+    .privacy-item strong { display: block; color: #1e293b; font-size: 15px; margin-bottom: 2px; }
 
     .shots { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; }
     .shots img { height: 440px; border-radius: 16px; border: 1px solid #e2e8f0; flex-shrink: 0; }
@@ -62,7 +63,8 @@
       .hero h1 { font-size: 26px; }
       .hero .tagline { font-size: 16px; }
       .grid { grid-template-columns: 1fr; }
-      .privacy { padding: 24px; }
+      .privacy { padding: 20px; }
+      .privacy-grid { grid-template-columns: 1fr; gap: 14px; }
       .shots img { height: 360px; }
       .nav-links { gap: 12px; }
     }
@@ -110,12 +112,11 @@
 
   <section id="privacy" class="container">
     <div class="privacy">
-      <h2 class="section-title">🔒 隐私优先,从架构开始</h2>
-      <p class="section-sub">你的照片,只属于你</p>
-      <div class="privacy-list">
-        <div class="item"><span class="check">✅</span><span>所有 AI 处理在设备本地完成 —— 人脸、照片、对话绝不上传云端。</span></div>
-        <div class="item"><span class="check">✅</span><span>不采集任何用户数据(对应 Google Play「数据安全」声明)。</span></div>
-        <div class="item"><span class="check">✅</span><span>本地 AI 模型离线可用,无网络也能搜索与编辑。</span></div>
+      <h2 class="privacy-h">🔒 隐私优先</h2>
+      <div class="privacy-grid">
+        <div class="privacy-item"><span class="pi-icon">📷</span><div><strong>照片不上传</strong>所有 AI 处理在本地</div></div>
+        <div class="privacy-item"><span class="pi-icon">🚫</span><div><strong>零数据采集</strong>不收集任何用户信息</div></div>
+        <div class="privacy-item"><span class="pi-icon">✈️</span><div><strong>离线可用</strong>无网络也能搜索编辑</div></div>
       </div>
     </div>
   </section>
