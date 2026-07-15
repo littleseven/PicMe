@@ -43,9 +43,16 @@
     .card h3 { font-size: 17px; margin: 8px 0 6px; }
     .card p { font-size: 14px; color: #475569; }
 
-    .download { text-align: center; }
-    .download .qr { width: 160px; height: 160px; border-radius: 12px; margin: 18px auto 8px; display: block; border: 1px solid #e2e8f0; object-fit: cover; }
-    .download .hint { color: #64748b; font-size: 13px; }
+    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .demo-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; }
+    .demo-card .say { font-size: 15px; color: #2563eb; font-weight: 600; margin-bottom: 6px; }
+    .demo-card .say::before { content: "💬 "; }
+    .demo-card .do { font-size: 14px; color: #475569; }
+    .faq { max-width: 820px; margin: 0 auto; }
+    .faq-item { border-bottom: 1px solid #e2e8f0; padding: 16px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-item h3 { font-size: 16px; margin-bottom: 6px; }
+    .faq-item p { font-size: 14px; color: #475569; }
 
     .shots { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; }
     .shots img { height: 440px; border-radius: 16px; border: 1px solid #e2e8f0; flex-shrink: 0; }
@@ -57,6 +64,7 @@
       .hero h1 { font-size: 26px; }
       .hero .tagline { font-size: 16px; }
       .grid { grid-template-columns: 1fr; }
+      .demo-grid { grid-template-columns: 1fr; }
       .shots img { height: 360px; }
       .nav-links { gap: 12px; }
     }
@@ -89,19 +97,6 @@
     </div>
   </header>
 
-  <section id="features" class="container">
-    <h2 class="section-title">核心功能</h2>
-    <p class="section-sub">一个会用自然语言沟通的智能相册</p>
-    <div class="grid">
-      <div class="card"><div class="icon">🤖</div><h3>对话式 AI 助手</h3><p>像聊天一样管理相册:"找去年夏天的照片""把这张调暖一点",AI 听懂就做。</p></div>
-      <div class="card"><div class="icon">🖼️</div><h3>智能相册</h3><p>自动给照片打标签(场景/人物/物体/活动),自然语言搜索,智能分类与 AI 相册。</p></div>
-      <div class="card"><div class="icon">✨</div><h3>AI 美颜编辑</h3><p>GPU 加速专业美颜:磨皮、美白、瘦脸、大眼、唇色、腮红,一键 AI 智能优化。</p></div>
-      <div class="card"><div class="icon">🎨</div><h3>创意滤镜</h3><p>徕卡(经典/鲜艳/黑白)、胶片(金/富士/复古)、实时 GPU 特效,支持批量。</p></div>
-      <div class="card"><div class="icon">🔒</div><h3>隐私优先</h3><p>所有 AI 与人脸处理在本地完成,照片不上传、不采集任何数据。</p></div>
-      <div class="card"><div class="icon">📱</div><h3>飞书远程控制(实验)</h3><p>在飞书 IM 里浏览、搜索、编辑相册,结果直接回到聊天。</p></div>
-    </div>
-  </section>
-
   <section class="container">
     <h2 class="section-title">一眼所见</h2>
     <p class="section-sub">左右滑动查看</p>
@@ -117,11 +112,39 @@
     </div>
   </section>
 
-  <section class="download container">
-    <h2 class="section-title">立即体验</h2>
-    <a class="btn btn-play" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener">▶ Google Play 下载</a>
-    <img class="qr" src="assets/winxin.jpg" alt="微信扫码下载">
-    <p class="hint">微信扫码 · 或在 Google Play 搜索「觅影相册」</p>
+  <section id="features" class="container">
+    <h2 class="section-title">核心功能</h2>
+    <p class="section-sub">一个会用自然语言沟通的智能相册</p>
+    <div class="grid">
+      <div class="card"><div class="icon">🤖</div><h3>对话式 AI 助手</h3><p>像聊天一样管理相册:"找去年夏天的照片""把这张调暖一点",AI 听懂就做。</p></div>
+      <div class="card"><div class="icon">🖼️</div><h3>智能相册</h3><p>自动给照片打标签(场景/人物/物体/活动),自然语言搜索,智能分类与 AI 相册。</p></div>
+      <div class="card"><div class="icon">✨</div><h3>AI 美颜编辑</h3><p>GPU 加速专业美颜:磨皮、美白、瘦脸、大眼、唇色、腮红,一键 AI 智能优化。</p></div>
+      <div class="card"><div class="icon">🎨</div><h3>创意滤镜</h3><p>徕卡(经典/鲜艳/黑白)、胶片(金/富士/复古)、实时 GPU 特效,支持批量。</p></div>
+      <div class="card"><div class="icon">🔒</div><h3>隐私优先</h3><p>所有 AI 与人脸处理在本地完成,照片不上传、不采集任何数据。</p></div>
+      <div class="card"><div class="icon">📱</div><h3>飞书远程控制(实验)</h3><p>在飞书 IM 里浏览、搜索、编辑相册,结果直接回到聊天。</p></div>
+    </div>
+  </section>
+
+  <section class="container">
+    <h2 class="section-title">说一句话,就能做到</h2>
+    <p class="section-sub">用自然语言指挥你的相册</p>
+    <div class="demo-grid">
+      <div class="demo-card"><p class="say">"找去年夏天在海边的照片"</p><p class="do">🗂️ 命中 12 张,按时间智能分组</p></div>
+      <div class="demo-card"><p class="say">"把这张调暖一点"</p><p class="do">🎨 已套用暖色滤镜,所见即所得</p></div>
+      <div class="demo-card"><p class="say">"磨皮 50、美白 30"</p><p class="do">✨ 美颜参数已应用</p></div>
+      <div class="demo-card"><p class="say">"这张图里有什么?"</p><p class="do">🤖 海滩、日落、两个人物(本地识别)</p></div>
+    </div>
+  </section>
+
+  <section class="container">
+    <h2 class="section-title">常见问题</h2>
+    <div class="faq">
+      <div class="faq-item"><h3>照片会上传到云端吗?</h3><p>不会。所有 AI 与人脸处理在设备本地完成,照片从不离开你的手机。</p></div>
+      <div class="faq-item"><h3>完全免费吗?</h3><p>是。无广告、无订阅、无内购,全部功能免费。</p></div>
+      <div class="faq-item"><h3>没有网络能用吗?</h3><p>本地 AI(Qwen)离线可用;远程 AI(DeepSeek)为可选项,需联网。</p></div>
+      <div class="faq-item"><h3>支持哪些机型?</h3><p>Android 7.0(API 24)及以上;美颜与本地推理推荐 arm64 机型。</p></div>
+      <div class="faq-item"><h3>数据会被收集吗?</h3><p>不会。不采集任何用户数据,详见<a href="privacy-policy/index.html">隐私政策</a>。</p></div>
+    </div>
   </section>
 
   <footer>
