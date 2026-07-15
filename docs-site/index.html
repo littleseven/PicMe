@@ -54,8 +54,9 @@
     .faq-item h3 { font-size: 16px; margin-bottom: 6px; }
     .faq-item p { font-size: 14px; color: #475569; }
 
-    .shots { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; }
-    .shots img { height: 440px; border-radius: 16px; border: 1px solid #e2e8f0; flex-shrink: 0; }
+    .showcase { background: #eef2f7; padding: 56px 0 72px; }
+    .shots { display: flex; gap: 16px; overflow-x: auto; padding: 10px 4px 14px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+    .shots img { height: 440px; border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 12px 30px rgba(15,23,42,.18); flex-shrink: 0; scroll-snap-align: center; }
 
     footer { background: #0f172a; color: #94a3b8; padding: 28px 0; margin-top: 32px; }
     footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
@@ -66,6 +67,7 @@
       .grid { grid-template-columns: 1fr; }
       .demo-grid { grid-template-columns: 1fr; }
       .shots img { height: 360px; }
+      .showcase { padding: 40px 0 52px; }
       .nav-links { gap: 12px; }
     }
   </style>
@@ -97,18 +99,20 @@
     </div>
   </header>
 
-  <section class="container">
-    <h2 class="section-title">一眼所见</h2>
-    <p class="section-sub">左右滑动查看</p>
-    <div class="shots">
-      <img src="assets/screenshot-1.jpg" alt="截图 1">
-      <img src="assets/screenshot-2.jpg" alt="截图 2">
-      <img src="assets/screenshot-3.jpg" alt="截图 3">
-      <img src="assets/screenshot-4.jpg" alt="截图 4">
-      <img src="assets/screenshot-5.jpg" alt="截图 5">
-      <img src="assets/screenshot-6.jpg" alt="截图 6">
-      <img src="assets/screenshot-7.jpg" alt="截图 7">
-      <img src="assets/screenshot-8.jpg" alt="截图 8">
+  <section class="showcase">
+    <div class="container">
+      <h2 class="section-title">一眼所见</h2>
+      <p class="section-sub">左右滑动查看</p>
+      <div class="shots">
+        <img src="assets/screenshot-1.jpg" alt="截图 1">
+        <img src="assets/screenshot-2.jpg" alt="截图 2">
+        <img src="assets/screenshot-3.jpg" alt="截图 3">
+        <img src="assets/screenshot-4.jpg" alt="截图 4">
+        <img src="assets/screenshot-5.jpg" alt="截图 5">
+        <img src="assets/screenshot-6.jpg" alt="截图 6">
+        <img src="assets/screenshot-7.jpg" alt="截图 7">
+        <img src="assets/screenshot-8.jpg" alt="截图 8">
+      </div>
     </div>
   </section>
 
