@@ -39,4 +39,44 @@ class LocalPromptBuilderChatSearchTest {
         val section = builder.buildL2CapabilitiesSection(SceneManager.Scene.GALLERY)
         assertTrue(section.contains("search_media"))
     }
+
+    @Test
+    fun `CHAT scene examples exclude camera capture commands`() {
+        val section = builder.buildL2CapabilitiesSection(SceneManager.Scene.CHAT)
+        assertTrue("CHAT 示例应包含 text_reply，实际:\n$section", section.contains("text_reply"))
+        assertTrue("CHAT 示例应包含 search_media，实际:\n$section", section.contains("search_media"))
+        assertTrue(
+            "CHAT 示例不应包含 capture（相机命令不应在聊天页示例中出现），实际:\n$section",
+            !section.contains("\"method\":\"capture\"")
+        )
+    }
+
+    @Test
+    fun `CAMERA scene examples still include capture commands`() {
+        val section = builder.buildL2CapabilitiesSection(SceneManager.Scene.CAMERA)
+        assertTrue(
+            "CAMERA 示例应保留 capture 命令，实际:\n$section",
+            section.contains("\"method\":\"capture\"")
+        )
+    }
+
+    @Test
+    fun `CHAT scene system prompt forbids camera commands`() {
+        val sceneManager = SceneManager.getInstance()
+        sceneManager.transitionTo(SceneManager.Scene.CHAT, saveToHistory = false)
+        try {
+            val prompt = builder.buildL2SystemPrompt(
+                emptyList(),
+                com.mamba.picme.agent.core.model.context.AgentContext(
+                    scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT
+                )
+            )
+            assertTrue(
+                "CHAT 场景 system prompt 应禁止输出相机命令，实际:\n$prompt",
+                prompt.contains("禁止在聊天页输出 capture") || prompt.contains("当前页面没有相机能力")
+            )
+        } finally {
+            sceneManager.leaveScene(SceneManager.Scene.CHAT)
+        }
+    }
 }

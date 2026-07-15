@@ -351,7 +351,14 @@ class ChatViewModel(
                             }
                             val action = orchestrator.getCapabilityRegistry()
                                 .dispatch(finalCommand, agentContext)
-                            handleAgentAction(action.getOrNull(), sessionId, currentModelLabel(), null)
+                            val actionValue = action.getOrNull()
+                            if (actionValue is AgentAction.Error) {
+                                // 聊天页命令分发失败时，优先展示模型原始回复，避免把"暂不支持此操作"抛给用户
+                                Logger.w(TAG, "Capability dispatch failed in chat, falling back to full response. error=${actionValue.message}, detail=${actionValue.detail}")
+                                insertAgentMessage(sessionId, streamResult.fullResponse.ifBlank { actionValue.message }, currentModelLabel(), null)
+                            } else {
+                                handleAgentAction(actionValue, sessionId, currentModelLabel(), null)
+                            }
                         } else {
                             // 纯文本回复：保存到 Room（REMOTE 场景或 LOCAL 的 text_reply）
                             val performance = streamResult.metrics?.let { metrics ->

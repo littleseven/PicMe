@@ -70,6 +70,8 @@ object LocalCommandParser {
 
     /**
      * 解析 JSON 数组为命令列表（内部方法）
+     *
+     * 扫描过程中跳过字符串字面量，避免 message/参数值中的 { 或 } 干扰大括号匹配。
      */
     private fun parseLlmResponseArrayToList(
         cleaned: String,
@@ -81,9 +83,10 @@ object LocalCommandParser {
         val commands = mutableListOf<AgentCommand>()
         var depth = 0
         var objectStart = -1
-
-        for (i in cleaned.indices) {
+        var i = 0
+        while (i < cleaned.length) {
             when (cleaned[i]) {
+                '"' -> i = skipJsonString(cleaned, i)
                 '{' -> {
                     if (depth == 0) objectStart = i
                     depth++
@@ -100,6 +103,7 @@ object LocalCommandParser {
                     }
                 }
             }
+            i++
         }
 
         Logger.i(TAG, "Parsed ${commands.size} commands from array to list")
@@ -108,6 +112,8 @@ object LocalCommandParser {
 
     /**
      * 解析 JSON 数组为 BatchExecute（内部方法）
+     *
+     * 扫描过程中跳过字符串字面量，避免 message/参数值中的 { 或 } 干扰大括号匹配。
      */
     private fun parseLlmResponseArray(
         cleaned: String,
@@ -119,9 +125,10 @@ object LocalCommandParser {
         val commands = mutableListOf<AgentCommand>()
         var depth = 0
         var objectStart = -1
-
-        for (i in cleaned.indices) {
+        var i = 0
+        while (i < cleaned.length) {
             when (cleaned[i]) {
+                '"' -> i = skipJsonString(cleaned, i)
                 '{' -> {
                     if (depth == 0) objectStart = i
                     depth++
@@ -138,6 +145,7 @@ object LocalCommandParser {
                     }
                 }
             }
+            i++
         }
 
         return if (commands.isNotEmpty()) {
@@ -147,6 +155,23 @@ object LocalCommandParser {
             Logger.w(TAG, "Array parsing yielded no valid commands, falling back")
             parseSingleCommand(cleaned, context, fallbackText)
         }
+    }
+
+    /**
+     * 跳过 JSON 字符串字面量（包含转义字符）。
+     *
+     * @return 字符串结束引号的索引；若未找到则返回字符串末尾。
+     */
+    private fun skipJsonString(text: String, start: Int): Int {
+        var i = start + 1
+        while (i < text.length) {
+            when (text[i]) {
+                '\\' -> i += 2 // 跳过转义字符
+                '"' -> return i
+                else -> i++
+            }
+        }
+        return text.length - 1
     }
 
     /**

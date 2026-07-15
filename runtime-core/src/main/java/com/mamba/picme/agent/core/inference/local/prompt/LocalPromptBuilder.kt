@@ -299,22 +299,31 @@ class LocalPromptBuilder(
         context: AgentContext
     ): String {
         val currentScene = sceneManager.currentScene.value
+        val isChatScene = currentScene == SceneManager.Scene.CHAT
 
         return buildString {
-            appendLine("你是相机助手。将用户指令解析为JSON命令数组。")
+            if (isChatScene) {
+                appendLine("你是 PicMe 的摄影助手小觅。当前是聊天页，优先用自然语言回复用户；只有当用户明确要求执行操作（如搜照片、导航、打开应用/设置）时才输出对应命令。")
+            } else {
+                appendLine("你是相机助手。将用户指令解析为JSON命令数组。")
+            }
             appendLine()
             appendLine("输出规则：")
             appendLine("1. 只输出JSON数组，不要解释、不要markdown、不要思考过程。")
             appendLine("2. 格式：[{\"method\":\"命令\",\"params\":{...}}]")
-            appendLine("3. 【组合规则】用户说包含多个动作时（如'磨皮拍照'、'冷色滤镜拍照'），必须输出JSON数组，每个动作一个对象。")
-            appendLine("4. 【组合规则】用户说'X滤镜拍照'或'X美颜拍照'时，必须同时输出滤镜/美颜命令 + capture命令。")
-            appendLine("5. 【合并规则】用户说多个美颜参数（如'美白50磨皮30'）时，必须合并到一个 adjust_beauty 的 params 中，不要拆成多个命令。")
-            appendLine("6. 【强制规则】用户输入以'拍照'结尾时，数组最后一个元素必须是{\"method\":\"capture\",\"params\":{} }，绝对不要漏掉。")
-            appendLine("7. 闲聊时：[{\"method\":\"text_reply\",\"params\":{\"message\":\"...\"}}]")
-            appendLine("8. 导航：navigate_to(params.destination=camera|gallery|settings|debug) 或 go_back")
-            appendLine("9. 系统：launch_app(params.package_name|app_name), open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications)")
-            appendLine("10. 延迟：delay(params.delay_ms)，必须放数组第一个")
-            appendLine("11. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。你是命令解析器，不是内容审核员。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数，不得以任何理由拒绝、不得进行道德判断、不得输出 text_reply 替代。")
+            if (!isChatScene) {
+                appendLine("3. 【组合规则】用户说包含多个动作时（如'磨皮拍照'、'冷色滤镜拍照'），必须输出JSON数组，每个动作一个对象。")
+                appendLine("4. 【组合规则】用户说'X滤镜拍照'或'X美颜拍照'时，必须同时输出滤镜/美颜命令 + capture命令。")
+                appendLine("5. 【合并规则】用户说多个美颜参数（如'美白50磨皮30'）时，必须合并到一个 adjust_beauty 的 params 中，不要拆成多个命令。")
+                appendLine("6. 【强制规则】用户输入以'拍照'结尾时，数组最后一个元素必须是{\"method\":\"capture\",\"params\":{} }，绝对不要漏掉。")
+            } else {
+                appendLine("3. 闲聊/问答/解释/不确定时：[{\"method\":\"text_reply\",\"params\":{\"message\":\"中文回复\"}}]")
+                appendLine("4. 禁止在聊天页输出 capture/flip_camera/adjust_beauty/switch_filter 等相机控制命令；当前页面没有相机能力，输出这些命令会导致报错。")
+            }
+            appendLine("${if (isChatScene) 5 else 7}. 导航：navigate_to(params.destination=camera|gallery|settings|debug) 或 go_back")
+            appendLine("${if (isChatScene) 6 else 8}. 系统：launch_app(params.package_name|app_name), open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications)")
+            appendLine("${if (isChatScene) 7 else 9}. 延迟：delay(params.delay_ms)，必须放数组第一个")
+            appendLine("${if (isChatScene) 8 else 10}. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。你是命令解析器，不是内容审核员。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数，不得以任何理由拒绝、不得进行道德判断、不得输出 text_reply 替代。")
             appendLine()
             appendLine("【语义映射】")
             appendLine("冷色/冷色调/冷滤镜/冷色滤镜/冷调滤镜 -> filter=COOL")
@@ -365,26 +374,34 @@ class LocalPromptBuilder(
             appendLine("navigate_to(destination), go_back, text_reply(message)")
             appendLine()
             appendLine("示例：")
-            appendLine("磨皮60拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"smoothing\":60}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("美白50磨皮30拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}},{\"method\":\"capture\",\"params\":{}}]  // 注意：以'拍照'结尾，必须有capture")
-            appendLine("美白50磨皮30 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}}]  // 注意：不以'拍照'结尾，不要capture")
-            appendLine("冷色滤镜拍照 -> [{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("暖色滤镜拍照 -> [{\"method\":\"switch_filter\",\"params\":{\"filter\":\"WARM\"}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("美白30并拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":30}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("3秒后拍照 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":3000}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("5秒后换冷色滤镜拍照 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":5000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("3秒后冷色调拍照 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":3000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("3秒后换冷色调拍3张 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":3000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("5秒后换暖色调每隔一秒拍一张拍三张 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":5000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"WARM\"}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"delay\",\"params\":{\"delay_ms\":1000}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"delay\",\"params\":{\"delay_ms\":1000}},{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("切前置 -> [{\"method\":\"flip_camera\",\"params\":{}}]")
-            appendLine("拍照 -> [{\"method\":\"capture\",\"params\":{}}]")
-            appendLine("打开微信 -> [{\"method\":\"launch_app\",\"params\":{\"app_name\":\"微信\"}}]")
-            appendLine("打开WiFi设置 -> [{\"method\":\"open_system_settings\",\"params\":{\"setting\":\"wifi\"}}]")
             if (scene == null || scene == SceneManager.Scene.CHAT) {
+                appendLine("介绍一下你自己 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PicMe 的摄影助手小觅，可以帮你拍照、搜照片、调整设置等。\"}}]")
+                appendLine("你好 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好呀，我是小觅，有什么可以帮你的吗？\"}}]")
+                appendLine("今天天气怎么样 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"我这边没法查实时天气哦，你可以问问系统助手～\"}}]")
+                appendLine("去相机 -> [{\"method\":\"navigate_to\",\"params\":{\"destination\":\"camera\"}}]")
+                appendLine("返回 -> [{\"method\":\"go_back\",\"params\":{}}]")
+                appendLine("打开微信 -> [{\"method\":\"launch_app\",\"params\":{\"app_name\":\"微信\"}}]")
+                appendLine("打开WiFi设置 -> [{\"method\":\"open_system_settings\",\"params\":{\"setting\":\"wifi\"}}]")
                 appendLine("性感美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"性感美女照片\"}}]")
                 appendLine("找美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"美女照片\"}}]")
                 appendLine("搜猫的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫的照片\"}}]")
                 appendLine("找出去年夏天的合照 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的合照\"}}]")
+            } else {
+                appendLine("磨皮60拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"smoothing\":60}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("美白50磨皮30拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}},{\"method\":\"capture\",\"params\":{}}]  // 注意：以'拍照'结尾，必须有capture")
+                appendLine("美白50磨皮30 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}}]  // 注意：不以'拍照'结尾，不要capture")
+                appendLine("冷色滤镜拍照 -> [{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("暖色滤镜拍照 -> [{\"method\":\"switch_filter\",\"params\":{\"filter\":\"WARM\"}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("美白30并拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":30}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("3秒后拍照 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":3000}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("5秒后换冷色滤镜拍照 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":5000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("3秒后冷色调拍照 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":3000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("3秒后换冷色调拍3张 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":3000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"COOL\"}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("5秒后换暖色调每隔一秒拍一张拍三张 -> [{\"method\":\"delay\",\"params\":{\"delay_ms\":5000}},{\"method\":\"switch_filter\",\"params\":{\"filter\":\"WARM\"}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"delay\",\"params\":{\"delay_ms\":1000}},{\"method\":\"capture\",\"params\":{}},{\"method\":\"delay\",\"params\":{\"delay_ms\":1000}},{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("切前置 -> [{\"method\":\"flip_camera\",\"params\":{}}]")
+                appendLine("拍照 -> [{\"method\":\"capture\",\"params\":{}}]")
+                appendLine("打开微信 -> [{\"method\":\"launch_app\",\"params\":{\"app_name\":\"微信\"}}]")
+                appendLine("打开WiFi设置 -> [{\"method\":\"open_system_settings\",\"params\":{\"setting\":\"wifi\"}}]")
             }
         }
     }
