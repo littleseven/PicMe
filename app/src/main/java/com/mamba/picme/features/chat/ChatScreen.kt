@@ -130,6 +130,8 @@ import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
+import com.mamba.picme.features.chat.components.ChatEmptyState
+import com.mamba.picme.features.chat.components.ChatRegistrationSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -174,6 +176,8 @@ fun ChatScreen(
     val threads by viewModel.filteredThreads.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val currentSessionId by viewModel.currentSessionId.collectAsState()
+    val isGuestMode by viewModel.isGuestMode.collectAsState()
+    val showRegistration by viewModel.showRegistrationSheet.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
@@ -250,33 +254,44 @@ fun ChatScreen(
                     .fillMaxSize()
                     .imePadding()
             ) {
-                // 消息列表
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(messages, key = { it.id }) { message ->
-                        val mr = message.mediaResults
-                        if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
-                            MediaResultsCarousel(
-                                mediaResults = mr,
-                                onCardClick = { index ->
-                                    previewAssets = mr.assets
-                                    previewIndex = index
-                                },
-                                onViewAll = {
-                                    onNavigateToGallery(mr.query)
-                                }
-                            )
-                        } else {
-                            ChatMessageItem(
-                                message = message,
-                                onImageClick = { imageUri -> previewImageUri = imageUri }
-                            )
+                // 消息列表 / 空状态引导
+                if (messages.isEmpty()) {
+                    ChatEmptyState(
+                        isGuestMode = isGuestMode,
+                        onExampleClick = { text -> viewModel.sendMessage(text) },
+                        onRegisterClick = { viewModel.openRegistrationSheet() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(messages, key = { it.id }) { message ->
+                            val mr = message.mediaResults
+                            if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
+                                MediaResultsCarousel(
+                                    mediaResults = mr,
+                                    onCardClick = { index ->
+                                        previewAssets = mr.assets
+                                        previewIndex = index
+                                    },
+                                    onViewAll = {
+                                        onNavigateToGallery(mr.query)
+                                    }
+                                )
+                            } else {
+                                ChatMessageItem(
+                                    message = message,
+                                    onImageClick = { imageUri -> previewImageUri = imageUri }
+                                )
+                            }
                         }
                     }
                 }
@@ -331,6 +346,23 @@ fun ChatScreen(
                 imageUri = previewImageUri,
                 onDismiss = { previewImageUri = null }
             )
+
+            // 注册引导弹层（访客试用用尽 / 用户主动注册）
+            if (showRegistration) {
+                ChatRegistrationSheet(
+                    onDismiss = { viewModel.dismissRegistrationSheet() },
+                    onUseOwnKey = {
+                        onNavigateToSettings()
+                        viewModel.dismissRegistrationSheet()
+                    },
+                    onUseLocal = {
+                        viewModel.switchModel(ChatModelOption.Local)
+                        viewModel.dismissRegistrationSheet()
+                    },
+                    sendCode = viewModel::sendVerificationCode,
+                    verifyCode = viewModel::verifyCode,
+                )
+            }
 
             // 相册搜索结果全屏预览（覆盖整屏；预览期间隐藏 chat 顶栏，避免顶栏透出）
             if (previewAssets.isNotEmpty()) {
