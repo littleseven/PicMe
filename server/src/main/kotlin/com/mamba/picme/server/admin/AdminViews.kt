@@ -422,7 +422,7 @@ object AdminViews {
                     }
                     div("apk-info-actions") {
                         a(href = "https://api.polang.net/download", target = "_blank", classes = "btn btn-sm btn-primary") { +"下载页" }
-                        a(href = cosUrl, target = "_blank", classes = "btn btn-sm btn-ghost") { +"COS 直链" }
+                        a(href = cosUrl, target = "_blank", classes = "btn btn-sm btn-primary") { +"COS 直链" }
                     }
                 }
             } else {
@@ -508,7 +508,7 @@ object AdminViews {
                     button(type = ButtonType.button, classes = "btn btn-primary btn-upload") {
                         attributes["id"] = "upload-btn"
                         attributes["onclick"] = "uploadApk()"
-                        +"上传到 COS"
+                        +"上传"
                     }
                 }
             }
