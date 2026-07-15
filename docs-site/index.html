@@ -29,7 +29,7 @@
     .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 15px; transition: transform .1s; }
     .btn:hover { transform: translateY(-1px); }
     .btn-play { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
-    .btn-github { background: #0f172a; color: #fff; }
+    .cta-row .btn { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: 0 4px 14px rgba(0,0,0,.08); flex: 1 1 0; max-width: 240px; justify-content: center; }
 
     section { padding: 48px 0; }
     .section-title { font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 8px; }
@@ -42,19 +42,12 @@
     .card h3 { font-size: 17px; margin: 8px 0 6px; }
     .card p { font-size: 14px; color: #475569; }
 
-    .privacy { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px 32px; }
-    .privacy-h { font-size: 20px; font-weight: 700; margin-bottom: 18px; }
-    .privacy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .privacy-item { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #475569; }
-    .pi-icon { font-size: 22px; line-height: 1.2; }
-    .privacy-item strong { display: block; color: #1e293b; font-size: 15px; margin-bottom: 2px; }
-
-    .shots { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; }
-    .shots img { height: 440px; border-radius: 16px; border: 1px solid #e2e8f0; flex-shrink: 0; }
-
     .download { text-align: center; }
     .download .qr { width: 160px; height: 160px; border-radius: 12px; margin: 18px auto 8px; display: block; border: 1px solid #e2e8f0; object-fit: cover; }
     .download .hint { color: #64748b; font-size: 13px; }
+
+    .shots { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; }
+    .shots img { height: 440px; border-radius: 16px; border: 1px solid #e2e8f0; flex-shrink: 0; }
 
     footer { background: #0f172a; color: #94a3b8; padding: 28px 0; margin-top: 32px; }
     footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
@@ -63,8 +56,6 @@
       .hero h1 { font-size: 26px; }
       .hero .tagline { font-size: 16px; }
       .grid { grid-template-columns: 1fr; }
-      .privacy { padding: 20px; }
-      .privacy-grid { grid-template-columns: 1fr; gap: 14px; }
       .shots img { height: 360px; }
       .nav-links { gap: 12px; }
     }
@@ -76,7 +67,6 @@
       <a class="brand" href="/"><img src="assets/icon.png" alt="PoLang">破浪相册</a>
       <div class="nav-links">
         <a href="#features">功能</a>
-        <a href="#privacy">隐私</a>
         <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
@@ -92,8 +82,9 @@
       <span class="badge">✓ 本地隐私</span>
     </div>
     <div class="cta-row">
-      <a class="btn btn-play" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener">▶ Google Play 下载</a>
-      <a class="btn btn-github" href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub 仓库</a>
+      <a class="btn" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener">Google Play 下载</a>
+      <a class="btn" href="https://api.polang.net/download" target="_blank" rel="noopener">APK 下载</a>
+      <a class="btn" href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub 仓库</a>
     </div>
   </header>
 
@@ -107,17 +98,6 @@
       <div class="card"><div class="icon">🎨</div><h3>创意滤镜</h3><p>徕卡(经典/鲜艳/黑白)、胶片(金/富士/复古)、实时 GPU 特效,支持批量。</p></div>
       <div class="card"><div class="icon">🔒</div><h3>隐私优先</h3><p>所有 AI 与人脸处理在本地完成,照片不上传、不采集任何数据。</p></div>
       <div class="card"><div class="icon">📱</div><h3>飞书远程控制(实验)</h3><p>在飞书 IM 里浏览、搜索、编辑相册,结果直接回到聊天。</p></div>
-    </div>
-  </section>
-
-  <section id="privacy" class="container">
-    <div class="privacy">
-      <h2 class="privacy-h">🔒 隐私优先</h2>
-      <div class="privacy-grid">
-        <div class="privacy-item"><span class="pi-icon">📷</span><div><strong>照片不上传</strong>所有 AI 处理在本地</div></div>
-        <div class="privacy-item"><span class="pi-icon">🚫</span><div><strong>零数据采集</strong>不收集任何用户信息</div></div>
-        <div class="privacy-item"><span class="pi-icon">✈️</span><div><strong>离线可用</strong>无网络也能搜索编辑</div></div>
-      </div>
     </div>
   </section>
 
