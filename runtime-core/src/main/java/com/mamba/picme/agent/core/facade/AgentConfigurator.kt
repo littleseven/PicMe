@@ -188,6 +188,9 @@ class AgentConfigurator(private val context: Context) {
             .logResponses(true)
         if (config.gatewayToken.isNotBlank()) {
             builder.customHeader("X-App-Token", config.gatewayToken)
+        } else if (config.deviceId.isNotBlank()) {
+            // 未注册访客：无账号 token 时改用设备级试用额度（X-Device-Id）
+            builder.customHeader("X-Device-Id", config.deviceId)
         }
         Logger.i(tag, "RemoteChatModel created: model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
         return builder.build()

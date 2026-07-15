@@ -31,7 +31,8 @@ data class RemoteModelConfig(
     val protocol: RemoteProtocol = RemoteProtocol.OPENAI,
     val apiKey: String = "",
     val baseUrl: String = "",
-    val gatewayToken: String = ""
+    val gatewayToken: String = "",
+    val deviceId: String = "",
 ) {
     /**
      * 是否已配置
