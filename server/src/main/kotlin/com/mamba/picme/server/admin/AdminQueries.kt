@@ -1,6 +1,7 @@
 package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.db.Accounts
+import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
 import kotlinx.coroutines.Dispatchers
@@ -226,6 +227,34 @@ object AdminQueries {
         var cost = 0.0
         var bytes = 0L
     }
+
+    data class ApkUploadRow(
+        val id: Int,
+        val version: String,
+        val fileName: String,
+        val fileSize: Long,
+        val status: String,
+        val message: String?,
+        val createdAt: Long,
+    )
+
+    suspend fun apkUploadHistory(limit: Int = 50): List<ApkUploadRow> =
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            ApkUploads.selectAll()
+                .orderBy(ApkUploads.createdAt to SortOrder.DESC)
+                .limit(limit)
+                .map { r ->
+                    ApkUploadRow(
+                        id = r[ApkUploads.id],
+                        version = r[ApkUploads.version],
+                        fileName = r[ApkUploads.fileName],
+                        fileSize = r[ApkUploads.fileSize],
+                        status = r[ApkUploads.status],
+                        message = r[ApkUploads.message],
+                        createdAt = r[ApkUploads.createdAt],
+                    )
+                }
+        }
 
     /** 与 ChannelRepository.maskToken 同形：前4+••••+后4 便于辨认；空 → 「—」。 */
     private fun maskToken(token: String): String = when {

@@ -120,3 +120,15 @@ object LlmChannels : Table("llm_channel") {
         uniqueIndex(name)
     }
 }
+
+// ── APK 上传历史 ──────────────────────────────────────
+object ApkUploads : Table("apk_upload") {
+    val id = integer("id").autoIncrement()
+    val version = varchar("version", 64)
+    val fileName = varchar("file_name", 256)
+    val fileSize = long("file_size")
+    val status = varchar("status", 16).default("success") // success | failed
+    val message = text("message").nullable()
+    val createdAt = long("created_at")
+    override val primaryKey = PrimaryKey(id)
+}

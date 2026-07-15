@@ -2,6 +2,8 @@ package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.cos.CosService
+import com.mamba.picme.server.db.ApkUploads
+import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelRepository
@@ -26,6 +28,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.util.date.GMTDate
 import io.ktor.utils.io.readAvailable
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * 管理后台路由：/admin 下全部页面。主 app-token 拦截器（Application.module）对 /admin 前缀放行，
@@ -239,6 +243,7 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
             if (!call.adminGuard(adminToken)) return@get
             val apkInfo = cosService.getApkInfo()
             val msg = call.request.queryParameters["msg"]
+            val history = AdminQueries.apkUploadHistory(30)
             call.respondText(
                 AdminViews.apkPage(
                     fileExists = apkInfo.exists,
@@ -248,6 +253,7 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
                     cosUrl = apkInfo.publicUrl,
                     cosConfigured = cosService.configured,
                     message = msg,
+                    history = history,
                 ),
                 ContentType.Text.Html,
             )
@@ -260,6 +266,8 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
             var uploaded = false
             var errorMsg: String? = null
             var version = ""
+            var fileName = ""
+            var fileSize = 0L
             val tmpFile = java.io.File.createTempFile("apk-upload-", ".apk")
             try {
                 multipart.forEachPart { part ->
@@ -268,7 +276,7 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
                             version = part.value.trim()
                         }
                         part is PartData.FileItem && part.name == "apkfile" -> {
-                            val fileName = part.originalFileName ?: ""
+                            fileName = part.originalFileName ?: ""
                             if (!fileName.endsWith(".apk", ignoreCase = true)) {
                                 errorMsg = "文件格式错误：请上传 .apk 文件"
                             } else {
@@ -282,7 +290,8 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
                                             output.write(buffer, 0, read)
                                         }
                                     }
-                                    uploaded = cosService.uploadApk(tmpFile.inputStream(), tmpFile.length(), version)
+                                    fileSize = tmpFile.length()
+                                    uploaded = cosService.uploadApk(tmpFile.inputStream(), fileSize, version)
                                     if (!uploaded && errorMsg == null) {
                                         errorMsg = "COS 上传失败：检查 COS 配置或凭证"
                                     }
@@ -301,6 +310,17 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
                 uploaded -> "成功上传 v$version 到 COS"
                 errorMsg != null -> errorMsg
                 else -> "未收到文件"
+            }
+            // 写入上传历史记录
+            transaction(Db.instance) {
+                ApkUploads.insert {
+                    it[ApkUploads.version] = version
+                    it[ApkUploads.fileName] = fileName
+                    it[ApkUploads.fileSize] = fileSize
+                    it[ApkUploads.status] = if (uploaded) "success" else "failed"
+                    it[ApkUploads.message] = if (uploaded) null else errorMsg
+                    it[ApkUploads.createdAt] = System.currentTimeMillis()
+                }
             }
             call.respondRedirect("/admin/apk?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }

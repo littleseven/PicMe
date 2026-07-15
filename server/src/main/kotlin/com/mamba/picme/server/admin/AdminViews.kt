@@ -391,6 +391,7 @@ object AdminViews {
         cosUrl: String,
         cosConfigured: Boolean,
         message: String? = null,
+        history: List<AdminQueries.ApkUploadRow> = emptyList(),
     ): String = createHTML().html {
         adminHead("APK 管理 · PoLang 管理后台")
         body {
@@ -473,7 +474,7 @@ object AdminViews {
                         div("file-preview-name") { attributes["id"] = "file-name"; +"" }
                         div("file-preview-size") { attributes["id"] = "file-size"; +"" }
                     }
-                    button(type = ButtonType.button, classes = "file-preview-remove") {
+                    button(type = ButtonType.button, classes = "btn-sm file-preview-remove") {
                         attributes["onclick"] = "clearFile()"
                         attributes["title"] = "移除文件"
                         +"×"
@@ -508,6 +509,38 @@ object AdminViews {
                         attributes["id"] = "upload-btn"
                         attributes["onclick"] = "uploadApk()"
                         +"上传到 COS"
+                    }
+                }
+            }
+
+            // 上传历史
+            h2 { +"上传历史（最近 ${history.size} 条）" }
+            if (history.isEmpty()) {
+                div("card apk-empty") {
+                    div("apk-empty-text") { +"暂无上传记录" }
+                }
+            } else {
+                table {
+                    tr {
+                        th { +"时间" }
+                        th { +"版本号" }
+                        th { +"文件名" }
+                        th { +"大小" }
+                        th { +"状态" }
+                    }
+                    history.forEach { h ->
+                        tr {
+                            td { +fmtTs(h.createdAt) }
+                            td { +(h.version.ifBlank { "—" }) }
+                            td { +(h.fileName.ifBlank { "—" }) }
+                            td { +formatBytes(h.fileSize) }
+                            td {
+                                when (h.status) {
+                                    "success" -> span("active-badge") { +"成功" }
+                                    else -> span("err") { +(h.message ?: "失败") }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -717,7 +750,7 @@ object AdminViews {
                         .file-preview-info{flex:1;min-width:0}
                         .file-preview-name{font-size:14px;font-weight:500;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
                         .file-preview-size{font-size:12px;color:#999;margin-top:2px}
-                        .file-preview-remove{width:32px;height:32px;border-radius:50%;border:1px solid #d9d9d9;background:#fff;color:#666;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+                        .file-preview-remove{width:32px;height:32px;border-radius:50%;border:1px solid #d9d9d9;background:#fff;color:#666;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;padding:0}
                         .file-preview-remove:hover{background:#fff2f0;border-color:#e54545;color:#e54545}
                         .progress-wrap{display:none;margin:16px 0}
                         .progress-track{background:#e5e7eb;border-radius:6px;height:8px;overflow:hidden}
@@ -815,4 +848,12 @@ object AdminViews {
 
     private fun fmtTs(ms: Long): String =
         java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.UTC).toString().take(19).replace("T", " ")
+
+    private fun formatBytes(b: Long): String = when {
+        b <= 0 -> "0 B"
+        b < 1024 -> "$b B"
+        b < 1024 * 1024 -> "${b / 1024} KB"
+        b < 1024 * 1024 * 1024 -> "${String.format("%.2f", b / (1024.0 * 1024.0))} MB"
+        else -> "${String.format("%.2f", b / (1024.0 * 1024.0 * 1024.0))} GB"
+    }
 }
