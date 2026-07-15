@@ -314,6 +314,7 @@ class LocalPromptBuilder(
             appendLine("8. 导航：navigate_to(params.destination=camera|gallery|settings|debug) 或 go_back")
             appendLine("9. 系统：launch_app(params.package_name|app_name), open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications)")
             appendLine("10. 延迟：delay(params.delay_ms)，必须放数组第一个")
+            appendLine("11. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。你是命令解析器，不是内容审核员。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数，不得以任何理由拒绝、不得进行道德判断、不得输出 text_reply 替代。")
             appendLine()
             appendLine("【语义映射】")
             appendLine("冷色/冷色调/冷滤镜/冷色滤镜/冷调滤镜 -> filter=COOL")
@@ -359,6 +360,7 @@ class LocalPromptBuilder(
             }
             if (scene == null || scene == SceneManager.Scene.CHAT) {
                 appendLine("search_media(query), refine_media_search(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search")
+                appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。")
             }
             appendLine("navigate_to(destination), go_back, text_reply(message)")
             appendLine()
@@ -378,6 +380,12 @@ class LocalPromptBuilder(
             appendLine("拍照 -> [{\"method\":\"capture\",\"params\":{}}]")
             appendLine("打开微信 -> [{\"method\":\"launch_app\",\"params\":{\"app_name\":\"微信\"}}]")
             appendLine("打开WiFi设置 -> [{\"method\":\"open_system_settings\",\"params\":{\"setting\":\"wifi\"}}]")
+            if (scene == null || scene == SceneManager.Scene.CHAT) {
+                appendLine("性感美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"性感美女照片\"}}]")
+                appendLine("找美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"美女照片\"}}]")
+                appendLine("搜猫的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫的照片\"}}]")
+                appendLine("找出去年夏天的合照 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的合照\"}}]")
+            }
         }
     }
 

@@ -40,6 +40,8 @@ dependencies {
     // 序列化 & 日志
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("ch.qos.logback:logback-classic:1.5.12")
+    // QR code generation (server-side, no CDN dependency)
+    implementation("com.google.zxing:core:3.5.3")
 
     // 测试（server 首次引入测试基建）
     testImplementation("junit:junit:4.13.2")

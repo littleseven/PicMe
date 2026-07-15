@@ -325,7 +325,22 @@ class ChatViewModel(
                         // 清除流式占位
                         _streamingMessage.value = null
 
-                        if (streamResult.commands.isNotEmpty()) {
+                        // 检测 LLM 安全对齐误触发：用户想搜相册但 LLM 拒绝了
+                        val replyText = (streamResult.commands.firstOrNull() as? AgentCommand.TextReply)?.message
+                            ?: streamResult.fullResponse
+                        if (isRefusedSearchRequest(text, replyText)) {
+                            Logger.w(TAG, "LLM refused search request, falling back to direct gallery search")
+                            val outcome = onSearchMedia(text)
+                            val assets = lastResultAssets[sessionId].orEmpty().take(MAX_CARDS)
+                            if (assets.isNotEmpty()) {
+                                insertMediaResultsMessage(
+                                    sessionId,
+                                    MediaResultsUi(outcome.query, assets, outcome.totalCount, isRefinement = false)
+                                )
+                            } else {
+                                insertAgentMessage(sessionId, "没有找到相关照片", currentModelLabel())
+                            }
+                        } else if (streamResult.commands.isNotEmpty()) {
                             // 有命令需要执行：通过 CapabilityRegistry 分发
                             Logger.i(TAG, "Executing ${streamResult.commands.size} commands from streaming response")
                             val commands = streamResult.commands
@@ -389,6 +404,25 @@ class ChatViewModel(
                 _isProcessing.value = false
             }
         }
+    }
+
+    /**
+     * 检测 LLM 是否拒绝了用户的相册搜索意图（安全对齐误触发）。
+     *
+     * 当用户输入包含搜索关键词（照片/图片/搜/找…）且 LLM 仅返回 TextReply
+     * 且回复包含拒绝关键词（不能/无法/抱歉…搜索/推荐/内容）时，
+     * 判定为安全对齐误触发，应回退到直接搜索本地相册。
+     */
+    private fun isRefusedSearchRequest(userInput: String, replyText: String): Boolean {
+        val searchKeywords = listOf("照片", "图片", "照", "搜", "找")
+        val refusalKeywords = listOf("不能", "无法", "抱歉", "不合适", "不当", "拒绝")
+        val refusalTargets = listOf("搜索", "推荐", "此类", "内容", "提供")
+
+        val hasSearchIntent = searchKeywords.any { keyword -> userInput.contains(keyword) }
+        val hasRefusal = refusalKeywords.any { keyword -> replyText.contains(keyword) } &&
+            refusalTargets.any { keyword -> replyText.contains(keyword) }
+
+        return hasSearchIntent && hasRefusal
     }
 
     private fun currentModelLabel(): String {

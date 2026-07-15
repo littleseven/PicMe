@@ -383,6 +383,79 @@ object AdminViews {
         }
     }
 
+    fun apkPage(
+        fileExists: Boolean,
+        fileSize: String,
+        lastModified: String,
+        version: String,
+        cosUrl: String,
+        cosConfigured: Boolean,
+        message: String? = null,
+    ): String = createHTML().html {
+        adminHead("APK 管理 · PoLang 管理后台")
+        body {
+            navBar()
+            h1 { +"APK 下载包管理" }
+            if (message != null) {
+                p {
+                    style = if (message.startsWith("成功")) "color:#16a34a;font-size:14px;margin:8px auto;max-width:640px;padding:0 20px" else "color:#dc2626;font-size:14px;margin:8px auto;max-width:640px;padding:0 20px"
+                    +message
+                }
+            }
+            if (!cosConfigured) {
+                p {
+                    style = "color:#dc2626;font-size:14px;margin:12px auto;max-width:640px;padding:0 20px"
+                    +"⚠ COS 未配置（COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET 为空），请在 /etc/picme/server.env 中填写后重启服务"
+                }
+            }
+            if (fileExists) {
+                h2 { +"当前 APK（COS）" }
+                table {
+                    tr { th { +"版本" }; td { +version.ifBlank { "—" } } }
+                    tr { th { +"大小" }; td { +fileSize } }
+                    tr { th { +"上传时间" }; td { +lastModified } }
+                    tr {
+                        th { +"操作" }
+                        td {
+                            a(href = "https://api.polang.net/download", target = "_blank") { +"下载页" }
+                            +" · "
+                            a(href = cosUrl, target = "_blank") { +"COS 直链" }
+                        }
+                    }
+                }
+            } else {
+                p {
+                    style = "color:#6b7280;font-size:14px;margin:12px auto;max-width:640px;padding:0 20px"
+                    +"COS 上暂无 APK 文件"
+                }
+            }
+            h2 { +"上传新版本" }
+            form(
+                action = "/admin/apk/upload",
+                method = FormMethod.post,
+                classes = "chan-form",
+            ) {
+                encType = kotlinx.html.FormEncType.multipartFormData
+                p {
+                    label { +"版本号（如 1.0.11）" }
+                    input(type = InputType.text, name = "version") {
+                        placeholder = "1.0.11"
+                    }
+                }
+                p {
+                    label { +"选择 APK 文件（.apk）" }
+                    br()
+                    input(type = InputType.file, name = "apkfile") {
+                        accept = ".apk"
+                    }
+                }
+                p {
+                    input(type = InputType.submit, classes = "btn btn-primary") { value = "上传到 COS" }
+                }
+            }
+        }
+    }
+
     // ── 公共片段 ──
 
     private fun HTML.adminHead(title: String) {
@@ -473,6 +546,7 @@ object AdminViews {
                 a("/admin/users", classes = "nav-link") { +"用户" }
                 a("/admin/traffic", classes = "nav-link") { +"流量" }
                 a("/admin/channels", classes = "nav-link") { +"渠道" }
+                a("/admin/apk", classes = "nav-link") { +"APK" }
             }
             div("nav-spacer") {}
             a("/admin/logout", classes = "nav-link nav-logout") { +"退出" }

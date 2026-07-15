@@ -5,6 +5,7 @@ import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.APP_TOKEN_HEADER
 import com.mamba.picme.server.auth.EmailService
 import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
 import com.mamba.picme.server.llm.LlmProxy
@@ -13,6 +14,7 @@ import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.authRoute
+import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
 import com.mamba.picme.server.routes.quotaRoute
 import com.mamba.picme.server.routes.recommendRoute
@@ -53,7 +55,7 @@ fun main() {
 }
 
 // Public routes that don't require token auth
-private val publicRoutes = setOf("/healthz", "/auth/email/send", "/auth/email/verify")
+private val publicRoutes = setOf("/healthz", "/auth/email/send", "/auth/email/verify", "/download")
 
 fun Application.module(config: AppConfig) {
     install(CallLogging) { level = Level.INFO }
@@ -108,8 +110,11 @@ fun Application.module(config: AppConfig) {
     val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null
     val emailService = EmailService(httpClient, config.resendApiKey, config.emailFrom)
 
+    val cosService = CosService(config)
+
     routing {
         // Public
+        downloadRoute(cosService)
         healthzRoute()
         authRoute(emailService, config.freeLlmQuota)
 
@@ -119,6 +124,6 @@ fun Application.module(config: AppConfig) {
         quotaRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
         // 管理后台（/admin/**，独立 cookie 认证）
-        adminRoute(config.adminToken)
+        adminRoute(config.adminToken, cosService)
     }
 }

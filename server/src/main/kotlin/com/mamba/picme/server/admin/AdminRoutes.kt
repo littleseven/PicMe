@@ -1,17 +1,21 @@
 package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.auth.AccountService
+import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelRepository
 import com.mamba.picme.server.llm.parseModelMapLines
 import io.ktor.http.ContentType
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import io.ktor.http.Cookie
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
@@ -21,12 +25,13 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.util.date.GMTDate
+import io.ktor.utils.io.readAvailable
 
 /**
  * 管理后台路由：/admin 下全部页面。主 app-token 拦截器（Application.module）对 /admin 前缀放行，
  * 由各受保护页面顶部的 adminGuard 接管认证（ADMIN_TOKEN 为空 → 503 禁用）。
  */
-fun Route.adminRoute(adminToken: String) {
+fun Route.adminRoute(adminToken: String, cosService: CosService) {
     route("/admin") {
         get("/login") {
             if (adminToken.isBlank()) {
@@ -228,6 +233,75 @@ fun Route.adminRoute(adminToken: String) {
                 ChannelRegistry.reload()
             }
             call.respondRedirect("/admin/channels")
+        }
+
+        get("/apk") {
+            if (!call.adminGuard(adminToken)) return@get
+            val apkInfo = cosService.getApkInfo()
+            val msg = call.request.queryParameters["msg"]
+            call.respondText(
+                AdminViews.apkPage(
+                    fileExists = apkInfo.exists,
+                    fileSize = apkInfo.size,
+                    lastModified = apkInfo.lastModified,
+                    version = apkInfo.version,
+                    cosUrl = apkInfo.publicUrl,
+                    cosConfigured = cosService.configured,
+                    message = msg,
+                ),
+                ContentType.Text.Html,
+            )
+        }
+
+        post("/apk/upload") {
+            if (!call.adminGuard(adminToken)) return@post
+            val multipart = call.receiveMultipart()
+            var uploaded = false
+            var errorMsg: String? = null
+            var version = ""
+            val tmpFile = java.io.File.createTempFile("apk-upload-", ".apk")
+            try {
+                multipart.forEachPart { part ->
+                    when {
+                        part is PartData.FormItem && part.name == "version" -> {
+                            version = part.value.trim()
+                        }
+                        part is PartData.FileItem && part.name == "apkfile" -> {
+                            val fileName = part.originalFileName ?: ""
+                            if (!fileName.endsWith(".apk", ignoreCase = true)) {
+                                errorMsg = "文件格式错误：请上传 .apk 文件"
+                            } else {
+                                try {
+                                    val channel = part.provider()
+                                    tmpFile.outputStream().use { output ->
+                                        val buffer = ByteArray(8192)
+                                        while (true) {
+                                            val read = channel.readAvailable(buffer)
+                                            if (read <= 0) break
+                                            output.write(buffer, 0, read)
+                                        }
+                                    }
+                                    uploaded = cosService.uploadApk(tmpFile.inputStream(), tmpFile.length(), version)
+                                    if (!uploaded && errorMsg == null) {
+                                        errorMsg = "COS 上传失败：检查 COS 配置或凭证"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMsg = "上传失败：${e.message}"
+                                }
+                            }
+                        }
+                    }
+                    part.dispose()
+                }
+            } finally {
+                tmpFile.delete()
+            }
+            val msg = when {
+                uploaded -> "成功上传 v$version 到 COS"
+                errorMsg != null -> errorMsg
+                else -> "未收到文件"
+            }
+            call.respondRedirect("/admin/apk?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
     }
 }
