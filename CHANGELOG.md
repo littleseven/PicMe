@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.11] - 2026-07-15
+
+### ✨ Features
+- feat: APK 分发迁移至腾讯云 COS
+- feat(chat): 相册搜索 + 横滑卡片 carousel + 「查看全部」跳转相册
+- feat(agent): AgentAction.MediaResults + RefineMediaSearch 支持搜索结果细化
+- chore(app): 品牌统一改名为 破浪相册 / PoLang
+
+### 🐛 Bug Fixes
+- fix(chat): 修复「介绍一下你自己」误触发「暂不支持此操作」
+- fix(chat): 搜索结果预览全功能化 + 修复顶/底栏叠加
+- fix(gallery): 搜索结果预览隐藏 SearchTopBar（修复双顶栏）
+- fix(server/admin): APK 上传增加 200MB 限制 + 进度条
+
 ## [1.0.10] - 2026-07-09
 
 ### ✨ Features
