@@ -545,68 +545,78 @@ object AdminViews {
                     raw(
                         """
                         *{box-sizing:border-box}
-                        body{font-family:-apple-system,system-ui,sans-serif;margin:0;background:#f5f6f8;color:#1f2937;padding-bottom:40px}
-                        body>h1,body>h2,body>.cards,body>table,body>p{max-width:1180px;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px}
-                        body>h1{font-size:22px;font-weight:600;margin-top:24px;margin-bottom:12px}
-                        body>h2{font-size:15px;font-weight:600;color:#374151;margin-top:24px;margin-bottom:8px}
-                        .wrap{max-width:420px;margin:60px auto;padding:24px}
-                        .cards{display:flex;flex-wrap:wrap;gap:12px;padding:16px 20px}
-                        .card{background:#fff;border:1px solid #e3e6eb;border-radius:10px;padding:14px 16px;min-width:130px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-                        .card-label{font-size:12px;color:#6b7280}
-                        .card-value{font-size:22px;font-weight:600;margin-top:4px;color:#111827}
-                        .nav{background:#1f2937;color:#fff;padding:0 20px;display:flex;align-items:center;gap:4px;height:50px;border-bottom:1px solid #111827;position:sticky;top:0;z-index:10}
-                        .nav-brand{font-weight:600;font-size:15px;margin-right:20px;white-space:nowrap;color:#fff}
-                        .nav-links{display:flex;gap:2px}
-                        .nav-link{color:#d1d5db;text-decoration:none;padding:8px 12px;border-radius:6px;font-size:14px}
-                        .nav-link:hover{background:#374151;color:#fff}
+                        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;background:#f0f2f5;color:#333;padding-bottom:40px}
+                        body>h1,body>h2,body>.cards,body>table,body>p{max-width:1200px;margin-left:auto;margin-right:auto;padding-left:24px;padding-right:24px}
+                        body>h1{font-size:24px;font-weight:600;margin-top:24px;margin-bottom:16px;color:#1f2d3d}
+                        body>h2{font-size:16px;font-weight:600;color:#333;margin-top:24px;margin-bottom:12px}
+                        .wrap{max-width:420px;margin:80px auto;padding:32px;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+                        .cards{display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px}
+                        .card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:16px 20px;min-width:140px;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .2s}
+                        .card:hover{transform:translateY(-2px)}
+                        .card-label{font-size:13px;color:#666;margin-bottom:4px}
+                        .card-value{font-size:24px;font-weight:600;color:#006eff}
+                        .nav{background:#1f2d3d;color:#fff;padding:0 24px;display:flex;align-items:center;gap:4px;height:56px;box-shadow:0 2px 8px rgba(0,0,0,.12);position:sticky;top:0;z-index:100}
+                        .nav-brand{font-weight:600;font-size:16px;margin-right:32px;white-space:nowrap;color:#fff}
+                        .nav-links{display:flex;gap:4px}
+                        .nav-link{color:#b0b8c4;text-decoration:none;padding:8px 16px;border-radius:4px;font-size:14px;transition:all .2s}
+                        .nav-link:hover{background:rgba(255,255,255,.1);color:#fff}
+                        .nav-link.active{background:#006eff;color:#fff}
                         .nav-spacer{flex:1}
-                        .nav-logout{color:#fca5a5}
-                        .nav-logout:hover{background:#3f1d1d;color:#fca5a5}
-                        table{border-collapse:collapse;width:100%;background:#fff;font-size:13px;border:1px solid #e3e6eb;border-radius:8px;overflow:hidden}
-                        th,td{border-bottom:1px solid #eef0f3;padding:8px 10px;text-align:left}
-                        th{background:#f3f4f6;font-weight:600;color:#374151}
+                        .nav-logout{color:#ff9c00}
+                        .nav-logout:hover{background:rgba(255,156,0,.1);color:#ff9c00}
+                        table{border-collapse:collapse;width:100%;background:#fff;font-size:13px;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+                        th,td{border-bottom:1px solid #f0f0f0;padding:12px 16px;text-align:left}
+                        th{background:#fafafa;font-weight:600;color:#666;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+                        tr:hover{background:#f5f7fa}
                         tr:last-child td{border-bottom:none}
-                        td a{color:#2563eb;text-decoration:none}
+                        td a{color:#006eff;text-decoration:none;font-weight:500}
                         td a:hover{text-decoration:underline}
-                        .err{color:#dc2626}
-                        .pw{padding:10px;width:100%;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
-                        .btn{padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
-                        .chart{display:block;width:100%;max-width:760px;height:auto;margin:8px auto;background:#fff;border:1px solid #e3e6eb;border-radius:8px;padding:8px}
-                        .chan-form{max-width:640px;margin:16px auto;padding:0 20px}
-                        .chan-form p{margin:8px 0}
-                        .chan-form label{display:block;font-size:13px;color:#374151;margin-bottom:4px}
-                        .chan-form input[type=text],.chan-form input[type=password],.chan-form select,.chan-form textarea{padding:8px;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:14px;font-family:inherit}
+                        .err{color:#e54545;background:#fff2f0;padding:8px 12px;border-radius:4px;border:1px solid #ffccc7}
+                        .pw{padding:10px 12px;width:100%;border:1px solid #d9d9d9;border-radius:4px;font-size:14px;transition:border-color .2s}
+                        .pw:focus{outline:none;border-color:#006eff}
+                        .btn{padding:10px 20px;background:#006eff;color:#fff;border:none;border-radius:4px;font-size:14px;cursor:pointer;transition:all .2s;font-weight:500}
+                        .btn:hover{background:#005ce6;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,110,255,.3)}
+                        .chart{display:block;width:100%;max-width:800px;height:auto;margin:16px auto;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+                        .chan-form{max-width:640px;margin:24px auto;padding:0 24px}
+                        .chan-form p{margin:12px 0}
+                        .chan-form label{display:block;font-size:13px;color:#666;margin-bottom:6px;font-weight:500}
+                        .chan-form input[type=text],.chan-form input[type=password],.chan-form select,.chan-form textarea{padding:10px 12px;border:1px solid #d9d9d9;border-radius:4px;width:100%;font-size:14px;font-family:inherit;transition:border-color .2s}
+                        .chan-form input[type=text]:focus,.chan-form select:focus,.chan-form textarea:focus{outline:none;border-color:#006eff}
                         .chan-form textarea{font-family:monospace}
                         .inline{display:inline}
-                        .btn-sm{padding:4px 6px;background:#6b7280;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;min-width:40px;text-align:center;height:26px;line-height:18px;display:inline-block;vertical-align:middle}
-                        .btn-primary{background:#2563eb}
-                        .btn-go{background:#16a34a}
-                        .btn-danger{background:#dc2626}
-                        .active-badge{color:#16a34a;font-weight:600}
-                        .tok{font-family:monospace;font-size:12px;color:#4b5563}
+                        .btn-sm{padding:4px 12px;background:#f5f5f5;color:#666;border:1px solid #d9d9d9;border-radius:4px;font-size:12px;cursor:pointer;min-width:40px;text-align:center;height:28px;line-height:20px;display:inline-block;vertical-align:middle;transition:all .2s}
+                        .btn-sm:hover{background:#e8e8e8}
+                        .btn-primary{background:#006eff;color:#fff;border-color:#006eff}
+                        .btn-primary:hover{background:#005ce6}
+                        .btn-go{background:#0abf5b;color:#fff;border-color:#0abf5b}
+                        .btn-go:hover{background:#09a94f}
+                        .btn-danger{background:#e54545;color:#fff;border-color:#e54545}
+                        .btn-danger:hover{background:#d13f3f}
+                        .active-badge{color:#0abf5b;font-weight:600}
+                        .tok{font-family:monospace;font-size:12px;color:#666;background:#f5f5f5;padding:2px 6px;border-radius:4px}
                         form{margin:0}
-                        .row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-                        .col-toggle{width:72px}
-                        .col-active{width:92px}
-                        .col-actions{width:112px}
+                        .row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+                        .col-toggle{width:80px}
+                        .col-active{width:100px}
+                        .col-actions{width:120px}
                         .chan-form input[type=checkbox]{width:auto;margin:0}
-                        .form-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid #eef0f3}
+                        .form-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0}
                         .form-actions-right{display:inline-flex;gap:8px;align-items:center}
-                        .cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:#374151;cursor:pointer}
-                        .btn-ghost{padding:10px 16px;color:#6b7280;text-decoration:none;font-size:14px;border-radius:6px}
-                        .btn-ghost:hover{color:#374151;background:#f3f4f6}
+                        .cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:#333;cursor:pointer}
+                        .btn-ghost{padding:10px 16px;color:#666;text-decoration:none;font-size:14px;border-radius:4px;border:1px solid #d9d9d9;background:#fff;transition:all .2s}
+                        .btn-ghost:hover{color:#333;background:#f5f5f5;border-color:#b0b8c4}
                         @media (max-width:640px){
-                        body>h1{font-size:18px}
+                        body>h1{font-size:20px}
                         body>h2{font-size:14px}
-                        .nav{padding:0 12px;height:46px;overflow-x:auto}
-                        .nav-brand{font-size:14px;margin-right:10px}
-                        .nav-link{padding:6px 8px;font-size:13px;white-space:nowrap}
-                        .cards{padding:12px;gap:8px}
-                        .card{min-width:0;flex:1 1 calc(50% - 8px);padding:10px 12px}
-                        .card-value{font-size:18px}
+                        .nav{padding:0 16px;height:50px}
+                        .nav-brand{font-size:14px;margin-right:16px}
+                        .nav-link{padding:6px 10px;font-size:13px;white-space:nowrap}
+                        .cards{padding:12px;gap:12px}
+                        .card{min-width:0;flex:1 1 calc(50% - 8px);padding:12px 14px}
+                        .card-value{font-size:20px}
                         table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
-                        th,td{padding:6px 8px}
-                        .wrap{margin:24px auto;padding:16px}
+                        th,td{padding:10px 12px}
+                        .wrap{margin:40px auto;padding:20px}
                         }
                         """.trimIndent(),
                     )
@@ -627,6 +637,13 @@ object AdminViews {
             }
             div("nav-spacer") {}
             a("/admin/logout", classes = "nav-link nav-logout") { +"退出" }
+        }
+        script {
+            unsafe {
+                raw(
+                    """document.addEventListener('DOMContentLoaded',function(){var path=window.location.pathname;var links=document.querySelectorAll('.nav-link');links.forEach(function(link){if(link.getAttribute('href')===path){link.classList.add('active');}});});""",
+                )
+            }
         }
     }
 
