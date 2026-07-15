@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat UI 统一化改造 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item active" href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">03 Technical Specs</a> / <span>Chat UI 统一化改造</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#背景">背景</a></li>
+      <li><a href="#改动内容">改动内容</a></li>
+      <li><a href="#特性对比">特性对比</a></li>
+      <li><a href="#视觉改进">视觉改进</a></li>
+      <li><a href="#使用指南">使用指南</a></li>
+      <li><a href="#维护说明">维护说明</a></li>
+      <li><a href="#测试建议">测试建议</a></li>
+      <li><a href="#已知问题">已知问题</a></li>
+      <li><a href="#后续优化">后续优化</a></li>
+      <li><a href="#参考资源">参考资源</a></li>
+      </ul>
+    </div>
+<h1 id="chat-ui-统一化改造">Chat UI 统一化改造</h1>
+<blockquote>
+<p><strong>版本</strong>: 1.0<br />
+<strong>状态</strong>: 生效中<br />
+<strong>最后更新</strong>: 2026-07-06<br />
+<strong>维护者</strong>: RD Agent</p>
+</blockquote>
+<h2 id="背景">背景</h2>
+<p>PoLang 项目中存在两套 Chat UI 实现： 1. <strong>Camera 页面</strong> (<code>AiAgentPanel.kt</code>) - 完整功能，设计精美 2. <strong>Gallery 页面</strong> (<code>AiChatPanel.kt</code>) - 基础功能，设计简单</p>
+<p>为了提供一致的用户体验，本次改造将 Gallery 页面的 Chat UI 升级为与 Camera 页面相同的统一设计。</p>
+<h2 id="改动内容">改动内容</h2>
+<h3 id="新增统一组件库">1. 新增统一组件库</h3>
+<p><strong>位置</strong>: <code>app/src/main/java/com/mamba/picme/features/common/chat/</code></p>
+<h4 id="文件列表">文件列表：</h4>
+<ul>
+<li><strong>AiChatScreen.kt</strong> - 主聊天界面组件</li>
+<li><strong>AgentMessage.kt</strong> - 消息类型定义</li>
+<li><strong>README.md</strong> - 使用文档</li>
+</ul>
+<h4 id="核心功能">核心功能：</h4>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 统一的聊天界面组件</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">AiChatScreen</span><span class="op">(</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">visible</span><span class="op">:</span> <span class="dt">Boolean</span><span class="op">,</span>              <span class="co">// 可见性控制</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="va">messages</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">AgentMessage</span>&gt;<span class="op">,</span>  <span class="co">// 消息列表</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="va">isProcessing</span><span class="op">:</span> <span class="dt">Boolean</span><span class="op">,</span>         <span class="co">// 处理中状态</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="va">onVisibleChange</span><span class="op">:</span> <span class="op">(</span><span class="dt">Boolean</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span>   <span class="co">// 可见性变化回调</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="va">onSendMessage</span><span class="op">:</span> <span class="op">(</span><span class="dt">String</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span>      <span class="co">// 发送消息回调</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="va">onCommand</span><span class="op">:</span> <span class="op">(</span><span class="dt">AiAgentCommand</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span>  <span class="co">// 执行命令回调</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="va">onPlanConfirm</span><span class="op">:</span> <span class="op">()</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span>            <span class="co">// 确认计划回调</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="va">onPlanCancel</span><span class="op">:</span> <span class="op">()</span> <span class="op">-&gt;</span> <span class="dt">Unit</span><span class="op">,</span>             <span class="co">// 取消计划回调</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="va">modifier</span><span class="op">:</span> <span class="dt">Modifier</span> <span class="op">=</span> Modifier</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h3 id="消息类型定义">2. 消息类型定义</h3>
+<p>支持 5 种消息类型：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">sealed</span> <span class="kw">class</span> AgentMessage <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> UserText<span class="op">(</span><span class="kw">val</span> <span class="va">content</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> AgentText<span class="op">(</span><span class="kw">val</span> <span class="va">content</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> PlanPreview<span class="op">(</span><span class="kw">val</span> <span class="va">content</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="kw">val</span> <span class="va">plan</span><span class="op">:</span> <span class="dt">ExecutionPlan</span><span class="op">?</span> <span class="op">=</span> null<span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> PlanProgress<span class="op">(</span><span class="kw">val</span> <span class="va">content</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">data</span> <span class="kw">class</span> PlanResult<span class="op">(</span><span class="kw">val</span> <span class="va">content</span><span class="op">:</span> <span class="dt">String</span><span class="op">)</span> <span class="op">:</span> <span class="dt">AgentMessage</span><span class="op">()</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="gallery-页面迁移">3. Gallery 页面迁移</h3>
+<p><strong>旧代码</strong> (<code>AiChatPanel.kt</code>):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Dialog<span class="op">(</span>onDismissRequest <span class="op">=</span> onDismiss<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    Surface<span class="op">(...)</span> <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        Column<span class="op">(...)</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>            <span class="co">// 简单的 Dialog 布局</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>新代码</strong>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>AiChatScreen<span class="op">(</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    visible <span class="op">=</span> isVisible<span class="op">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    messages <span class="op">=</span> messages<span class="op">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    isProcessing <span class="op">=</span> isProcessing<span class="op">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    onVisibleChange <span class="op">=</span> <span class="op">{</span> isVisible <span class="op">=</span> it <span class="op">},</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    onSendMessage <span class="op">=</span> <span class="op">{</span> input <span class="op">-&gt;</span> <span class="co">/* handle */</span> <span class="op">},</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    onCommand <span class="op">=</span> <span class="op">{</span> command <span class="op">-&gt;</span> <span class="co">/* execute */</span> <span class="op">}</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h2 id="特性对比">特性对比</h2>
+<table>
+<thead>
+<tr class="header">
+<th>特性</th>
+<th>旧版 Gallery</th>
+<th>Camera</th>
+<th>新版 Gallery</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ModalBottomSheet</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>折叠/展开</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td>拖拽把手</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>滑入滑出动画</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td>语音输入</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>文字 + 语音切换</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td>PlanPreview 按钮</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>PlanProgress 样式</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td>PlanResult 样式</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>Material3 主题适配</td>
+<td>⚠️ 部分</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h2 id="视觉改进">视觉改进</h2>
+<h3 id="气泡样式">气泡样式</h3>
+<ul>
+<li><strong>用户消息</strong>: 主题色半透明背景，右侧对齐</li>
+<li><strong>AI 回复</strong>: 深灰色半透明背景，左侧对齐</li>
+<li><strong>计划预览</strong>: 带确认/取消按钮的交互卡片</li>
+<li><strong>进度提示</strong>: 浅背景次要颜色文字</li>
+<li><strong>结果反馈</strong>: 中等背景第三颜色文字</li>
+</ul>
+<h3 id="输入栏">输入栏</h3>
+<ul>
+<li><strong>文字模式</strong>: 输入框 + 发送按钮 + 语音切换按钮</li>
+<li><strong>语音模式</strong>: 键盘切换按钮 + “按住说话”大按钮</li>
+<li><strong>动态反馈</strong>: 录音中变色，移出区域变红取消</li>
+</ul>
+<h3 id="头部设计">头部设计</h3>
+<ul>
+<li><strong>标题</strong>: “AI Agent” + 折叠/展开图标 + 关闭按钮</li>
+<li><strong>拖拽把手</strong>: 可点击折叠，提升交互直觉性</li>
+<li><strong>动画</strong>: 箭头旋转 180 度表示展开/收起状态</li>
+</ul>
+<h2 id="使用指南">使用指南</h2>
+<h3 id="基本用法">基本用法</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Composable</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">MyFeatureScreen</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">chatState</span> <span class="op">=</span> remember <span class="op">{</span> mutableStateOf<span class="op">(</span>listOf<span class="op">&lt;</span>AgentMessage<span class="op">&gt;())</span> <span class="op">}</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Your screen content</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    AiChatScreen<span class="op">(</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        visible <span class="op">=</span> chatState<span class="op">.</span>value<span class="op">.</span>isNotEmpty<span class="op">(),</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        messages <span class="op">=</span> chatState<span class="op">.</span>value<span class="op">,</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        isProcessing <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        onVisibleChange <span class="op">=</span> <span class="op">{</span> <span class="co">/* handle */</span> <span class="op">},</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        onSendMessage <span class="op">=</span> <span class="op">{</span> input <span class="op">-&gt;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Add user message</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>            chatState<span class="op">.</span>value <span class="op">=</span> chatState<span class="op">.</span>value <span class="op">+</span> AgentMessage<span class="op">.</span>UserText<span class="op">(</span>input<span class="op">)</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Simulate AI response</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>            CoroutineScope<span class="op">(</span>Dispatchers<span class="op">.</span>Main<span class="op">).</span>launch <span class="op">{</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>                delay<span class="op">(</span><span class="dv">1000</span><span class="op">)</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                chatState<span class="op">.</span>value <span class="op">=</span> chatState<span class="op">.</span>value <span class="op">+</span> </span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                    AgentMessage<span class="op">.</span>AgentText<span class="op">(</span><span class="st">&quot;Received: </span><span class="ss">$input</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">},</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        onCommand <span class="op">=</span> <span class="op">{</span> command <span class="op">-&gt;</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Execute the command</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="带计划执行的用法">带计划执行的用法</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>AiChatScreen<span class="op">(</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    visible <span class="op">=</span> visible<span class="op">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    messages <span class="op">=</span> messages<span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    isProcessing <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    onVisibleChange <span class="op">=</span> <span class="op">{</span> visible <span class="op">=</span> it <span class="op">},</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    onSendMessage <span class="op">=</span> <span class="op">{</span> input <span class="op">-&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Send message and get plan</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">plan</span> <span class="op">=</span> executePlan<span class="op">(</span>input<span class="op">)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        messages<span class="op">.</span>add<span class="op">(</span>AgentMessage<span class="op">.</span>PlanPreview<span class="op">(</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            content <span class="op">=</span> <span class="st">&quot;📋 执行计划（</span><span class="ss">${</span>plan<span class="op">.</span>steps<span class="op">.</span>size<span class="ss">}</span><span class="st">步）&quot;</span><span class="op">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            plan <span class="op">=</span> plan</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">))</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    onPlanConfirm <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Execute the confirmed plan</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        executePlanConfirmation<span class="op">()</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    onPlanCancel <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Cancel the plan</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        cancelPlan<span class="op">()</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h2 id="维护说明">维护说明</h2>
+<h3 id="添加新消息类型">添加新消息类型</h3>
+<ol type="1">
+<li>在 <code>AgentMessage.kt</code> 中添加新的 sealed class 分支</li>
+<li>在 <code>ChatBubble.kt</code> 的 when 表达式中添加对应处理</li>
+<li>在 <code>README.md</code> 中更新文档</li>
+</ol>
+<h3 id="自定义样式">自定义样式</h3>
+<p>所有颜色使用 <code>MaterialTheme.colorScheme</code>，无需硬编码：</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ Good</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>background<span class="op">(</span>MaterialTheme<span class="op">.</span>colorScheme<span class="op">.</span>primary<span class="op">.</span>copy<span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.9f</span><span class="op">))</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>color <span class="op">=</span> MaterialTheme<span class="op">.</span>colorScheme<span class="op">.</span>onSurface</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ Bad</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>background<span class="op">(</span>Color<span class="op">.</span>Blue<span class="op">)</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>color <span class="op">=</span> Color<span class="op">.</span>White</span></code></pre></div>
+<h3 id="多语言支持">多语言支持</h3>
+<p>所有文案必须提取到 <code>strings.xml</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ Good</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> stringResource<span class="op">(</span>R<span class="op">.</span>string<span class="op">.</span>ai_agent_input_hint<span class="op">)</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ Bad</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> <span class="st">&quot;Type a message...&quot;</span></span></code></pre></div>
+<h2 id="测试建议">测试建议</h2>
+<h3 id="ui-测试">UI 测试</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">aiChatScreen_showsMessages</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    composeTestRule<span class="op">.</span>setContent <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        AiChatScreen<span class="op">(</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>            visible <span class="op">=</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            messages <span class="op">=</span> listOf<span class="op">(</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>                AgentMessage<span class="op">.</span>UserText<span class="op">(</span><span class="st">&quot;Hello&quot;</span><span class="op">),</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                AgentMessage<span class="op">.</span>AgentText<span class="op">(</span><span class="st">&quot;Hi there!&quot;</span><span class="op">)</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">),</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>            isProcessing <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>            onVisibleChange <span class="op">=</span> <span class="op">{},</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>            onSendMessage <span class="op">=</span> <span class="op">{},</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>            onCommand <span class="op">=</span> <span class="op">{}</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    composeTestRule<span class="op">.</span>waitForIdle<span class="op">()</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    composeTestRule<span class="op">.</span>onNodeWithText<span class="op">(</span><span class="st">&quot;Hello&quot;</span><span class="op">).</span>assertIsDisplayed<span class="op">()</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    composeTestRule<span class="op">.</span>onNodeWithText<span class="op">(</span><span class="st">&quot;Hi there!&quot;</span><span class="op">).</span>assertIsDisplayed<span class="op">()</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="集成测试">集成测试</h3>
+<ul>
+<li>测试折叠/展开功能</li>
+<li>测试语音/文字切换</li>
+<li>测试 PlanPreview 确认/取消</li>
+<li>测试键盘弹出时的布局调整</li>
+</ul>
+<h2 id="已知问题">已知问题</h2>
+<p>无。</p>
+<h2 id="后续优化">后续优化</h2>
+<ol type="1">
+<li><strong>消息持久化</strong>: 将历史消息保存到本地数据库</li>
+<li><strong>快捷指令</strong>: 添加常用命令的快捷按钮</li>
+<li><strong>消息搜索</strong>: 支持在聊天记录中搜索</li>
+<li><strong>导出功能</strong>: 支持导出聊天记录</li>
+<li><strong>主题扩展</strong>: 支持更多 Material 3 色彩方案</li>
+</ol>
+<h2 id="参考资源">参考资源</h2>
+<ul>
+<li><a href="https://m3.material.io/components/sheets/overview">Material Design 3 - Sheets</a></li>
+<li><a href="https://developer.android.com/jetpack/compose/layouts">Jetpack Compose - Layouts</a></li>
+<li><a href="../../app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt">Camera Chat UI Implementation</a></li>
+</ul>
+<hr />
+<p><strong>创建日期</strong>: 2026-05-30<br />
+<strong>修改日期</strong>: 2026-05-30<br />
+<strong>负责人</strong>: RD Team<br />
+<strong>状态</strong>: ✅ 完成</p>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

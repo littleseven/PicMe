@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 一键图片优化 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item active" href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">03 Technical Specs</a> / <span>AI 一键图片优化</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-核心结论">1. 核心结论</a></li>
+      <li><a href="#2-产品定义">2. 产品定义</a></li>
+      <li><a href="#3-技术方案">3. 技术方案</a></li>
+      <li><a href="#4-参数标准与预设规范">4. 参数标准与预设规范</a></li>
+      <li><a href="#5-数据模型与-capability-接口">5. 数据模型与 Capability 接口</a></li>
+      <li><a href="#6-错误处理与降级策略">6. 错误处理与降级策略</a></li>
+      <li><a href="#7-性能要求">7. 性能要求</a></li>
+      <li><a href="#8-隐私与安全">8. 隐私与安全</a></li>
+      <li><a href="#9-验收指标">9. 验收指标</a></li>
+      <li><a href="#10-agent-task-拆解">10. Agent Task 拆解</a></li>
+      <li><a href="#11-相关文档索引">11. 相关文档索引</a></li>
+      </ul>
+    </div>
+<h1 id="ai-一键图片优化">AI 一键图片优化</h1>
+<blockquote>
+<p><strong>文档类型</strong>：产品 + 技术方案 + 参数标准<br />
+<strong>针对能力</strong>：AI 一键优化（AI One-Click Image Optimization）<br />
+<strong>最后更新</strong>：2026-07-08<br />
+<strong>维护者</strong>：PM Agent（产品定义）+ RD Agent（技术实现）+ CR Agent（合规审查）</p>
+<p><strong>历史合并说明</strong>：本文档由 <code>AI_ONE_CLICK_OPTIMIZATION_PROPOSAL.md</code> 与 <code>AI_OPTIMIZE_PARAMETER_STANDARD.md</code> 合并而成。参数预设以 <code>AI_OPTIMIZE_PARAMETER_STANDARD.md</code> 为准，已合并重复内容。</p>
+</blockquote>
+<hr />
+<h2 id="核心结论">1. 核心结论</h2>
+<p>AI 一键优化是新路线下最值得投入的 P0 能力之一：</p>
+<ul>
+<li><strong>用户价值清晰</strong>：“帮我让这张照片更好看”是相册/编辑场景的高频、低学习成本诉求</li>
+<li><strong>技术基础已具备</strong>：大美丽美颜管线、<code>EditRecipe</code> 非破坏性编辑、ML Kit 图像识别、本地 Qwen3.5-2B 多模态理解、远程 OpenAI 协议推理均已落地</li>
+<li><strong>可行性高</strong>：优先做「本地规则 + 远程增强」的混合方案，MVP 可在 2-3 周内验证核心体验</li>
+<li><strong>与新产品路线契合</strong>：入口自然（相册查看器/编辑器），不依赖聊天首页假设，也不强依赖 IM 远程</li>
+</ul>
+<p><strong>推荐策略</strong>： - <strong>MVP（Phase 1）</strong>：本地快速优化为主，覆盖 80% 常见场景，端到端 &lt; 1s - <strong>Phase 2</strong>：引入远程视觉模型做「智能推荐」，处理复杂/模糊场景，首次使用需用户授权 - <strong>Phase 3</strong>：对话式微调、批量优化、个性化学习</p>
+<p><strong>不做的事情</strong>： - 不做「AI 换脸/重绘」等生成式修改（超出美颜/滤镜/调节范围） - 不做「自动保存覆盖原图」（必须是非破坏性编辑） - 不做「无授权云端处理」（遵循新隐私红线）</p>
+<hr />
+<h2 id="产品定义">2. 产品定义</h2>
+<h3 id="一句话描述">2.1 一句话描述</h3>
+<p>用户一键触发，系统自动识别照片场景并应用最优美颜 + 滤镜 + 调节参数，生成更好看的新照片。</p>
+<h3 id="解决什么问题">2.2 解决什么问题</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>用户痛点</th>
+<th>当前做法</th>
+<th>AI 一键优化后</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>不知道参数怎么调</td>
+<td>手动滑块试错</td>
+<td>一键给出推荐，可在此基础上微调</td>
+</tr>
+<tr class="even">
+<td>修图步骤繁琐</td>
+<td>打开编辑 → 调美颜 → 调滤镜 → 保存</td>
+<td>一键完成，直接进入对比/保存</td>
+</tr>
+<tr class="odd">
+<td>不同场景参数差异大</td>
+<td>凭感觉调</td>
+<td>基于场景（人像/风景/美食/文档）自动匹配</td>
+</tr>
+<tr class="even">
+<td>批量修图累</td>
+<td>一张张手动调</td>
+<td>选中多图后批量应用同一套优化逻辑</td>
+</tr>
+</tbody>
+</table>
+<h3 id="入口与交互流程">2.3 入口与交互流程</h3>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>入口</th>
+<th>优先级</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>媒体查看器工具栏</strong></td>
+<td>P0</td>
+<td>查看单图时顶部工具栏「AI 优化」按钮，最自然的一键入口</td>
+</tr>
+<tr class="even">
+<td><strong>编辑器内「AI 一键优化」</strong></td>
+<td>P0</td>
+<td>编辑页顶部/BeautySelector 面板中的「AI 优化」按钮</td>
+</tr>
+<tr class="odd">
+<td><strong>相册多选批量操作</strong></td>
+<td>P1</td>
+<td>长按多选后底部操作栏「AI 优化」</td>
+</tr>
+<tr class="even">
+<td><strong>AI 对话命令</strong></td>
+<td>P1</td>
+<td>“帮我优化这张照片”，结果以图片消息返回</td>
+</tr>
+<tr class="odd">
+<td><strong>IM 远程控制</strong></td>
+<td>P2</td>
+<td>实验线，与 IM 远程控制同步推进</td>
+</tr>
+</tbody>
+</table>
+<h3 id="单图优化流程">2.4 单图优化流程</h3>
+<pre><code>用户点击「AI 优化」
+    ↓
+系统显示「正在分析照片…」（&lt; 500ms 本地路径可跳过 loading）
+    ↓
+本地场景识别（人脸/场景标签/光线）
+    ↓
+匹配预设配方（本地规则引擎）
+    ↓
+生成推荐卡片：
+  ┌─────────────────────────────┐
+  │  🌇 检测到风景照片            │
+  │  已提升通透度、增强天空色彩    │
+  │  [应用]  [微调]              │
+  └─────────────────────────────┘
+    ↓
+用户选择：
+  - 应用 → 直接保存为新文件，进入对比模式
+  - 微调 → 进入编辑器，参数已预填，用户可继续调整
+  - 换一换 → 调用远程视觉模型重新推荐（需授权）</code></pre>
+<hr />
+<h2 id="技术方案">3. 技术方案</h2>
+<h3 id="总体架构本地优先-云端增强">3.1 总体架构：本地优先 + 云端增强</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                      AiOptimizeCapability                    │
+│  输入：imageUri + mode(fast|smart) + source                   │
+│  输出：OptimizeRecommendation（场景 + 配方 + 说明）            │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+        ┌───────────────────┴───────────────────┐
+        ▼                                       ▼
+┌───────────────┐                       ┌───────────────────┐
+│ FastOptimize  │  默认路径，&lt; 500ms     │ SmartOptimize     │  增强路径，1-3s
+│ Engine（本地） │  无需网络              │ Engine（远程）    │  需用户授权
+└───────┬───────┘                       └─────────┬─────────┘
+        │                                         │
+        ▼                                         ▼
+┌───────────────┐                       ┌───────────────────┐
+│ SceneAnalyzer │                       │ VisionLlmClient   │
+│ - ML Kit 图像标签 │                   │ - OpenAI 兼容 API │
+│ - 人脸检测      │                       │ - GPT-4o / Qwen-VL│
+│ - 光线/色彩启发式│                      │ - 压缩图 base64   │
+└───────┬───────┘                       └─────────┬─────────┘
+        │                                         │
+        ▼                                         ▼
+┌───────────────┐                       ┌───────────────────┐
+│ PresetRepo    │                       │ ResponseParser    │
+│ 本地 JSON 预设库│                       │ 解析推荐参数        │
+└───────────────┘                       └───────────────────┘</code></pre>
+<h3 id="fast-路径本地默认">3.2 Fast 路径（本地，默认）</h3>
+<p><strong>为什么优先本地</strong>： - 符合新隐私红线「敏感数据优先本地」 - 速度最快，用户体验最好 - 不依赖网络，离线可用 - 80% 常见场景可用规则覆盖</p>
+<p><strong>场景识别输入</strong>：</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>信号</th>
+<th>来源</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>人脸数量/位置/大小</td>
+<td>MediaPipe / ML Kit Face Detection</td>
+<td>判断人像/自拍/合影</td>
+</tr>
+<tr class="even">
+<td>图像标签 Top-K</td>
+<td>ML Kit Image Labeling</td>
+<td>判断风景/食物/文档/动物/建筑等</td>
+</tr>
+<tr class="odd">
+<td>EXIF 信息</td>
+<td>MetadataExtractor</td>
+<td>判断白天/夜晚/逆光、焦距</td>
+</tr>
+<tr class="even">
+<td>直方图/亮度统计</td>
+<td>GPU 管线采样</td>
+<td>判断过曝/欠曝/低对比度</td>
+</tr>
+<tr class="odd">
+<td>色彩分布</td>
+<td>简单色彩直方图</td>
+<td>判断偏暖/偏冷/饱和度</td>
+</tr>
+</tbody>
+</table>
+<p><strong>规则引擎示例</strong>：</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">when</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    faceCount <span class="op">&gt;=</span> <span class="dv">2</span> <span class="op">&amp;&amp;</span> faceRatio <span class="op">&gt;</span> <span class="fl">0.1</span> <span class="op">-&gt;</span> <span class="st">&quot;group_portrait&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    faceCount <span class="op">==</span> <span class="dv">1</span> <span class="op">&amp;&amp;</span> faceRatio <span class="op">&gt;</span> <span class="fl">0.3</span> <span class="op">-&gt;</span> <span class="st">&quot;selfie&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    faceCount <span class="op">==</span> <span class="dv">1</span> <span class="op">&amp;&amp;</span> faceRatio <span class="op">&lt;</span> <span class="fl">0.3</span> <span class="op">-&gt;</span> <span class="st">&quot;portrait&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    labels<span class="op">.</span>containsAny<span class="op">(</span><span class="st">&quot;Food&quot;</span><span class="op">,</span> <span class="st">&quot;Meal&quot;</span><span class="op">,</span> <span class="st">&quot;Dish&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="st">&quot;food&quot;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    labels<span class="op">.</span>containsAny<span class="op">(</span><span class="st">&quot;Sky&quot;</span><span class="op">,</span> <span class="st">&quot;Mountain&quot;</span><span class="op">,</span> <span class="st">&quot;Sea&quot;</span><span class="op">,</span> <span class="st">&quot;Tree&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="st">&quot;landscape&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    labels<span class="op">.</span>containsAny<span class="op">(</span><span class="st">&quot;Document&quot;</span><span class="op">,</span> <span class="st">&quot;Text&quot;</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="st">&quot;document&quot;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    brightness <span class="op">&lt;</span> <span class="dv">40</span> <span class="op">-&gt;</span> <span class="st">&quot;low_light&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="op">-&gt;</span> <span class="st">&quot;general&quot;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="smart-路径远程增强">3.3 Smart 路径（远程，增强）</h3>
+<p><strong>触发条件</strong>： - 用户主动点击「换一换 / 智能推荐」 - Fast 路径置信度低于阈值（如 &lt; 0.6） - 用户设置了「智能推荐优先」</p>
+<p><strong>实现方式</strong>：</p>
+<ol type="1">
+<li><strong>图像编码</strong>：将原图缩放至 512px 长边，JPEG 质量 80，转 base64</li>
+<li><strong>模型选择</strong>：通过 OpenAI 兼容 API 调用视觉模型
+<ul>
+<li>推荐：GPT-4o-mini（成本可控）或 Qwen-VL-Max</li>
+<li>避免依赖 DeepSeek（当前公开版本无 vision 能力）</li>
+</ul></li>
+<li><strong>Prompt 设计</strong>：</li>
+</ol>
+<pre><code>你是一位手机修图专家。请分析这张图片，并返回 JSON 推荐修图参数。
+
+输出格式：
+{
+  &quot;scene&quot;: &quot;场景英文名&quot;,
+  &quot;scene_label_zh&quot;: &quot;中文场景名&quot;,
+  &quot;confidence&quot;: 0.0-1.0,
+  &quot;recipe&quot;: {
+    &quot;beauty&quot;: {&quot;smooth&quot;:0-100, &quot;whiten&quot;:0-100, &quot;slimFace&quot;:-50~50, &quot;bigEye&quot;:0-100, &quot;lipColor&quot;:0-100, &quot;blush&quot;:0-100, &quot;enabled&quot;:true|false},
+    &quot;filter&quot;: &quot;none|film_gold|vivid|natural|warm|cool|leica_classic|...&quot;,
+    &quot;adjustment&quot;: {&quot;brightness&quot;:-50~50, &quot;contrast&quot;:-50~50, &quot;saturation&quot;:-50~50, &quot;warmth&quot;:-50~50}
+  },
+  &quot;explanation&quot;: &quot;一句话说明做了什么优化&quot;
+}</code></pre>
+<ol start="4" type="1">
+<li><strong>隐私合规</strong>：
+<ul>
+<li>首次调用前弹窗告知「将上传压缩图片至云端模型，是否允许？」</li>
+<li>设置中提供「允许云端 AI 优化」开关</li>
+<li>不在云端存储用户图片</li>
+</ul></li>
+</ol>
+<h3 id="本地-qwen3.5-2b-多模态作为离线-fallback">3.4 本地 Qwen3.5-2B 多模态作为离线 fallback</h3>
+<p>项目已有的 <code>TagGenerationPipeline</code> Pass 3 使用 Qwen3.5-2B 做图像理解。可探索复用该路径：</p>
+<ul>
+<li>输入：压缩图</li>
+<li>输出：场景标签 + 简短描述</li>
+<li>映射到本地预设</li>
+</ul>
+<p><strong>当前限制</strong>： - 2B 模型输出 JSON 稳定性有限 - 推理速度约 1-3s（取决于设备） - 功耗/发热较高</p>
+<p><strong>建议</strong>：不作为默认路径，仅作为无网络且用户未禁用云端时的降级提示：“当前无法使用智能推荐，已应用本地优化”。</p>
+<hr />
+<h2 id="参数标准与预设规范">4. 参数标准与预设规范</h2>
+<h3 id="参数体系选择">4.1 参数体系选择</h3>
+<p><strong>不存在强制统一的二进制标准</strong>，但移动端修图领域有两套事实上的「用户心智」：</p>
+<table>
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 31%" />
+<col style="width: 18%" />
+<col style="width: 31%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>体系</th>
+<th>代表产品</th>
+<th>特点</th>
+<th>适用参数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Apple Photos 体系</strong></td>
+<td>iOS 相册、VSCO、Lightroom Mobile</td>
+<td>以 <code>-100 ~ +100</code> 或 <code>0 ~ 100</code> 为中心对称滑杆，0 为「无效果」</td>
+<td>曝光、亮度、对比度、饱和度、色温、色调</td>
+</tr>
+<tr class="even">
+<td><strong>国产美颜体系</strong></td>
+<td>小米相机、美图秀秀、轻颜相机</td>
+<td>以 <code>0 ~ 100</code> 表示强度，50 或 0 为「自然/关闭」</td>
+<td>磨皮、美白、瘦脸、大眼、唇色、腮红</td>
+</tr>
+</tbody>
+</table>
+<p><strong>PoLang 的选择</strong>： - <strong>美颜参数</strong>：对齐国产美颜体系，<code>0 ~ 100</code> 为强度，<code>0</code> 为关闭；瘦脸 <code>-50 ~ +50</code>，负值丰脸。 - <strong>调色参数</strong>：尽量对齐 Apple Photos 用户心智，但保留当前内部映射： - <code>brightness / exposure / tint</code>：<code>-100 ~ +100</code>，<code>0</code> 为原图。 - <code>contrast / saturation</code>：<code>0 ~ 200</code>，<code>50/100</code> 为原图（与 Apple 的 <code>-100 ~ +100</code> 等价，只是零点偏移）。 - <code>temperature</code>：<code>2000K ~ 8000K</code>，<code>5000K</code> 为原图（与 Apple Warmth 方向一致，但使用 Kelvin 标度）。</p>
+<blockquote>
+<p>这样选择的原因是：底层大美丽 Shader 已使用 <code>0~4</code> 对比度、<code>0~2</code> 饱和度映射，当前 <code>0~200</code> UI 范围可直接整除映射，改动最小；同时用户在滑杆上看到的「50 = 原图对比度、100 = 原图饱和度」与常见修图 App 的百分比概念接近。</p>
+</blockquote>
+<h3 id="参数语义范围与滑杆映射">4.2 参数语义、范围与滑杆映射</h3>
+<h4 id="美颜beauty">美颜（Beauty）</h4>
+<table>
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 17%" />
+<col style="width: 15%" />
+<col style="width: 11%" />
+<col style="width: 23%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>UI 范围</th>
+<th>默认值</th>
+<th>语义</th>
+<th>引擎归一化</th>
+<th>参考来源</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>smoothing</code> 磨皮</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最强磨皮</td>
+<td><code>smoothing / 100</code> → <code>0.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="even">
+<td><code>whitening</code> 美白</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最强美白</td>
+<td><code>whitening / 100</code> → <code>0.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="odd">
+<td><code>slimFace</code> 瘦脸</td>
+<td><code>-50 ~ +50</code></td>
+<td><code>0</code></td>
+<td>负值=丰脸，正值=瘦脸</td>
+<td><code>slimFace / 50 * 1.35</code> → <code>-1.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="even">
+<td><code>bigEyes</code> 大眼</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最大放大</td>
+<td><code>bigEyes / 100</code> → <code>0.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="odd">
+<td><code>lipColor</code> 唇色</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最强唇色</td>
+<td><code>lipColor / 100</code> → <code>0.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="even">
+<td><code>blush</code> 腮红</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最强腮红</td>
+<td><code>blush / 100</code> → <code>0.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="odd">
+<td><code>eyebrow</code> 眉毛</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最深</td>
+<td><code>eyebrow / 100</code> → <code>0.0 ~ 1.0</code></td>
+<td>小米/美图</td>
+</tr>
+<tr class="even">
+<td><code>bodyEnhancement</code> 美体</td>
+<td><code>-30 ~ +30</code></td>
+<td><code>0</code></td>
+<td>负值=压缩，正值=拉伸上半身</td>
+<td><code>strength / 30 * 0.15</code> → 拉伸系数</td>
+<td>国产美体</td>
+</tr>
+<tr class="odd">
+<td><code>legExtension</code> 长腿</td>
+<td><code>0 ~ 50</code></td>
+<td><code>0</code></td>
+<td>0=关闭，50=最大拉伸</td>
+<td><code>strength / 50 * 0.15</code> → 拉伸系数</td>
+<td>国产美体</td>
+</tr>
+</tbody>
+</table>
+<h4 id="调色adjustment">调色（Adjustment）</h4>
+<table>
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 17%" />
+<col style="width: 15%" />
+<col style="width: 11%" />
+<col style="width: 23%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数</th>
+<th>UI 范围</th>
+<th>默认值</th>
+<th>语义</th>
+<th>引擎归一化</th>
+<th>参考来源</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>brightness</code> 亮度</td>
+<td><code>-100 ~ +100</code></td>
+<td><code>0</code></td>
+<td>整体明暗偏移</td>
+<td><code>/ 100</code> → <code>-1.0 ~ +1.0</code></td>
+<td>Apple Photos</td>
+</tr>
+<tr class="even">
+<td><code>exposure</code> 曝光</td>
+<td><code>-100 ~ +100</code></td>
+<td><code>0</code></td>
+<td>模拟曝光补偿</td>
+<td><code>coerceIn(-10, +10)</code> → Shader 曝光</td>
+<td>Apple Photos</td>
+</tr>
+<tr class="odd">
+<td><code>contrast</code> 对比度</td>
+<td><code>0 ~ 200</code></td>
+<td><code>50</code></td>
+<td>50=原图，0=最低，200=最高</td>
+<td><code>/ 50</code> → <code>0.0 ~ 4.0</code></td>
+<td>等价 Apple <code>-100 ~ +100</code></td>
+</tr>
+<tr class="even">
+<td><code>saturation</code> 饱和度</td>
+<td><code>0 ~ 200</code></td>
+<td><code>100</code></td>
+<td>100=原图，0=灰度，200=最高</td>
+<td><code>/ 100</code> → <code>0.0 ~ 2.0</code></td>
+<td>等价 Apple <code>-100 ~ +100</code></td>
+</tr>
+<tr class="odd">
+<td><code>temperature</code> 色温</td>
+<td><code>2000K ~ 8000K</code></td>
+<td><code>5000K</code></td>
+<td>低=冷（蓝），高=暖（黄）</td>
+<td><code>(T-5000)/3000</code> → <code>-1.0 ~ +1.0</code></td>
+<td>Apple Warmth + Kelvin</td>
+</tr>
+<tr class="even">
+<td><code>tint</code> 色调</td>
+<td><code>-100 ~ +100</code></td>
+<td><code>0</code></td>
+<td>绿↔︎品红偏移</td>
+<td><code>/ 100</code> → <code>-1.0 ~ +1.0</code></td>
+<td>Apple Photos</td>
+</tr>
+<tr class="odd">
+<td><code>vignette</code> 暗角</td>
+<td><code>0 ~ 100</code></td>
+<td><code>0</code></td>
+<td>0=关闭，100=最强</td>
+<td>待 Phase 2 实现</td>
+<td>Apple Photos</td>
+</tr>
+</tbody>
+</table>
+<h4 id="滤镜filter">滤镜（Filter）</h4>
+<table>
+<thead>
+<tr class="header">
+<th>滤镜</th>
+<th>类型</th>
+<th>推荐场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>NONE</code></td>
+<td>无</td>
+<td>通用</td>
+<td>直通</td>
+</tr>
+<tr class="even">
+<td><code>LEICA_CLASSIC</code></td>
+<td>色调矩阵</td>
+<td>人像、街拍</td>
+<td>降低蓝绿通道，模拟德味</td>
+</tr>
+<tr class="odd">
+<td><code>LEICA_VIBRANT</code></td>
+<td>饱和度</td>
+<td>风景、美食</td>
+<td>饱和度 +30%</td>
+</tr>
+<tr class="even">
+<td><code>LEICA_BW</code></td>
+<td>饱和度=0</td>
+<td>人文、建筑</td>
+<td>黑白</td>
+</tr>
+<tr class="odd">
+<td><code>FILM_GOLD</code></td>
+<td>色调矩阵</td>
+<td>人像、日落</td>
+<td>暖黄胶片感</td>
+</tr>
+<tr class="even">
+<td><code>FILM_FUJI</code></td>
+<td>色调矩阵</td>
+<td>风景、绿植</td>
+<td>偏青绿胶片感</td>
+</tr>
+<tr class="odd">
+<td><code>VINTAGE</code></td>
+<td>色调矩阵</td>
+<td>复古主题</td>
+<td>褪色、暖调</td>
+</tr>
+<tr class="even">
+<td><code>COOL</code></td>
+<td>色调矩阵</td>
+<td>雪景、夜景</td>
+<td>增强蓝色</td>
+</tr>
+<tr class="odd">
+<td><code>WARM</code></td>
+<td>色调矩阵</td>
+<td>美食、日落</td>
+<td>增强红黄</td>
+</tr>
+</tbody>
+</table>
+<h3 id="推荐预设值mvp">4.3 推荐预设值（MVP）</h3>
+<blockquote>
+<p>所有预设以「自然、克制、可二次微调」为原则，避免一键后过曝、过磨、过饱和。</p>
+</blockquote>
+<h4 id="自拍selfie">自拍（SELFIE）</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;smoothing&quot;</span><span class="fu">:</span> <span class="dv">35</span><span class="fu">,</span> <span class="dt">&quot;whitening&quot;</span><span class="fu">:</span> <span class="dv">25</span><span class="fu">,</span> <span class="dt">&quot;slimFace&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span> <span class="dt">&quot;bigEyes&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span> <span class="dt">&quot;lipColor&quot;</span><span class="fu">:</span> <span class="dv">25</span><span class="fu">,</span> <span class="dt">&quot;blush&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span> <span class="dt">&quot;eyebrow&quot;</span><span class="fu">:</span> <span class="dv">10</span> <span class="fu">},</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">52</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">102</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5200</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">2</span> <span class="fu">}</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="人像portrait">人像（PORTRAIT）</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;smoothing&quot;</span><span class="fu">:</span> <span class="dv">25</span><span class="fu">,</span> <span class="dt">&quot;whitening&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span> <span class="dt">&quot;slimFace&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span> <span class="dt">&quot;bigEyes&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span> <span class="dt">&quot;lipColor&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span> <span class="dt">&quot;blush&quot;</span><span class="fu">:</span> <span class="dv">8</span><span class="fu">,</span> <span class="dt">&quot;eyebrow&quot;</span><span class="fu">:</span> <span class="dv">8</span> <span class="fu">},</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;FILM_GOLD&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">53</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">103</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5300</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">2</span> <span class="fu">}</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="合影group">合影（GROUP）</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;smoothing&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span> <span class="dt">&quot;whitening&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span> <span class="dt">&quot;slimFace&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;bigEyes&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;lipColor&quot;</span><span class="fu">:</span> <span class="dv">10</span><span class="fu">,</span> <span class="dt">&quot;blush&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span> <span class="dt">&quot;eyebrow&quot;</span><span class="fu">:</span> <span class="dv">5</span> <span class="fu">},</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">52</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">102</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5200</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">1</span> <span class="fu">}</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="美食food">美食（FOOD）</h4>
+<div class="sourceCode" id="cb8"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">},</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;LEICA_VIBRANT&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">55</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">110</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5400</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">3</span> <span class="fu">}</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="风景landscape">风景（LANDSCAPE）</h4>
+<div class="sourceCode" id="cb9"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">},</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;LEICA_VIBRANT&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">58</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">110</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5000</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">0</span> <span class="fu">}</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="夜景暗光low_light">夜景/暗光（LOW_LIGHT）</h4>
+<div class="sourceCode" id="cb10"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;smoothing&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span> <span class="dt">&quot;whitening&quot;</span><span class="fu">:</span> <span class="dv">10</span> <span class="fu">},</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;WARM&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">12</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">55</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">100</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5600</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">3</span> <span class="fu">}</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="文档document">文档（DOCUMENT）</h4>
+<div class="sourceCode" id="cb11"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">},</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">8</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">60</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">95</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5000</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">0</span> <span class="fu">}</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4 id="通用general">通用（GENERAL）</h4>
+<div class="sourceCode" id="cb12"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;beauty&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;smoothing&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span> <span class="dt">&quot;whitening&quot;</span><span class="fu">:</span> <span class="dv">10</span> <span class="fu">},</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;filter&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;colorFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span><span class="fu">,</span> <span class="dt">&quot;styleFilter&quot;</span><span class="fu">:</span> <span class="st">&quot;NONE&quot;</span> <span class="fu">},</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adjustment&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;brightness&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span> <span class="dt">&quot;exposure&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;contrast&quot;</span><span class="fu">:</span> <span class="dv">52</span><span class="fu">,</span> <span class="dt">&quot;saturation&quot;</span><span class="fu">:</span> <span class="dv">100</span><span class="fu">,</span> <span class="dt">&quot;temperature&quot;</span><span class="fu">:</span> <span class="dv">5000</span><span class="fu">,</span> <span class="dt">&quot;tint&quot;</span><span class="fu">:</span> <span class="dv">0</span> <span class="fu">}</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="数据模型与-capability-接口">5. 数据模型与 Capability 接口</h2>
+<h3 id="capability-注册">5.1 Capability 注册</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>Capability<span class="op">(</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    name <span class="op">=</span> <span class="st">&quot;ai_optimize&quot;</span><span class="op">,</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    description <span class="op">=</span> <span class="st">&quot;分析照片场景并自动推荐美颜/滤镜/调节参数，支持一键优化&quot;</span><span class="op">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    schema <span class="op">=</span> AiOptimizeCapabilitySchema</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h3 id="输入模型">5.2 输入模型</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> AiOptimizeRequest<span class="op">(</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">imageUri</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">mode</span><span class="op">:</span> <span class="dt">OptimizeMode</span> <span class="op">=</span> OptimizeMode<span class="op">.</span>FAST<span class="op">,</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">source</span><span class="op">:</span> <span class="dt">OptimizeSource</span> <span class="op">=</span> OptimizeSource<span class="op">.</span>GALLERY_VIEWER<span class="op">,</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">allowCloud</span><span class="op">:</span> <span class="dt">Boolean</span> <span class="op">=</span> false</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="kw">class</span> OptimizeMode <span class="op">{</span> FAST<span class="op">,</span> SMART <span class="op">}</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="kw">class</span> OptimizeSource <span class="op">{</span> GALLERY_VIEWER<span class="op">,</span> EDITOR<span class="op">,</span> CHAT<span class="op">,</span> BATCH<span class="op">,</span> IM_REMOTE <span class="op">}</span></span></code></pre></div>
+<h3 id="输出模型">5.3 输出模型</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> AiOptimizeResult<span class="op">(</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">scene</span><span class="op">:</span> <span class="dt">Scene</span><span class="op">,</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">confidence</span><span class="op">:</span> <span class="dt">Float</span><span class="op">,</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">preset</span><span class="op">:</span> <span class="dt">OptimizePreset</span><span class="op">,</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">explanation</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">usedCloud</span><span class="op">:</span> <span class="dt">Boolean</span><span class="op">,</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">processingTimeMs</span><span class="op">:</span> <span class="dt">Long</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h3 id="核心类设计">5.4 核心类设计</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AiOptimizeCapability<span class="op">(</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">sceneAnalyzer</span><span class="op">:</span> <span class="dt">SceneAnalyzer</span><span class="op">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">presetRepository</span><span class="op">:</span> <span class="dt">PresetRepository</span><span class="op">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">smartEngine</span><span class="op">:</span> <span class="dt">SmartOptimizeEngine</span><span class="op">?</span> <span class="op">=</span> null<span class="op">,</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">consentManager</span><span class="op">:</span> <span class="dt">CloudOptimizeConsentManager</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">:</span> <span class="dt">Capability</span> <span class="op">{</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">name</span><span class="op">:</span> <span class="kw">String</span> <span class="op">=</span> <span class="st">&quot;ai_optimize&quot;</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">val</span> <span class="va">description</span><span class="op">:</span> <span class="kw">String</span> <span class="op">=</span> <span class="st">&quot;分析照片场景并自动推荐美颜/滤镜/调节参数&quot;</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> suspend <span class="kw">fun</span> <span class="fu">execute</span><span class="op">(</span><span class="va">request</span><span class="op">:</span> <span class="dt">CapabilityRequest</span><span class="op">):</span> <span class="dt">CapabilityResponse</span> <span class="op">{</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">optimizeRequest</span> <span class="op">=</span> request<span class="op">.</span>parseAs<span class="op">&lt;</span>AiOptimizeRequest<span class="op">&gt;()</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">when</span> <span class="op">(</span>optimizeRequest<span class="op">.</span>mode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>                OptimizeMode<span class="op">.</span>FAST <span class="op">-&gt;</span> fastOptimize<span class="op">(</span>optimizeRequest<span class="op">)</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>                OptimizeMode<span class="op">.</span>SMART <span class="op">-&gt;</span> smartOptimize<span class="op">(</span>optimizeRequest<span class="op">)</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span>e<span class="op">:</span> Exception<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>            Logger<span class="op">.</span>e<span class="op">(</span><span class="st">&quot;AiOptimize&quot;</span><span class="op">,</span> <span class="st">&quot;Optimization failed&quot;</span><span class="op">,</span> e<span class="op">)</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>            fallbackFastOptimize<span class="op">(</span>optimizeRequest<span class="op">)</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> suspend <span class="kw">fun</span> <span class="fu">fastOptimize</span><span class="op">(</span><span class="va">request</span><span class="op">:</span> <span class="dt">AiOptimizeRequest</span><span class="op">):</span> <span class="dt">CapabilityResponse</span> <span class="op">{</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">startTime</span> <span class="op">=</span> SystemClock<span class="op">.</span>elapsedRealtime<span class="op">()</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">analysis</span> <span class="op">=</span> sceneAnalyzer<span class="op">.</span>analyze<span class="op">(</span>request<span class="op">.</span>imageUri<span class="op">)</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">preset</span> <span class="op">=</span> presetRepository<span class="op">.</span>getPreset<span class="op">(</span>analysis<span class="op">.</span>scene<span class="op">)</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">elapsed</span> <span class="op">=</span> SystemClock<span class="op">.</span>elapsedRealtime<span class="op">()</span> <span class="op">-</span> startTime</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> AiOptimizeResult<span class="op">(</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>            scene <span class="op">=</span> analysis<span class="op">.</span>scene<span class="op">,</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>            confidence <span class="op">=</span> analysis<span class="op">.</span>confidence<span class="op">,</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>            preset <span class="op">=</span> preset<span class="op">,</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>            explanation <span class="op">=</span> buildExplanation<span class="op">(</span>analysis<span class="op">.</span>scene<span class="op">),</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>            usedCloud <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>            processingTimeMs <span class="op">=</span> elapsed</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> CapabilityResponse<span class="op">.</span>Success<span class="op">(</span>result<span class="op">)</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> suspend <span class="kw">fun</span> <span class="fu">smartOptimize</span><span class="op">(</span><span class="va">request</span><span class="op">:</span> <span class="dt">AiOptimizeRequest</span><span class="op">):</span> <span class="dt">CapabilityResponse</span> <span class="op">{</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>consentManager<span class="op">.</span>isCloudOptimizeAllowed<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> CapabilityResponse<span class="op">.</span>NeedConsent<span class="op">(</span><span class="st">&quot;cloud_optimize&quot;</span><span class="op">)</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>smartEngine <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>            <span class="kw">return</span> fastOptimize<span class="op">(</span>request<span class="op">)</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> smartEngine<span class="op">.</span>optimize<span class="op">(</span>request<span class="op">)</span></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">fun</span> <span class="fu">fallbackFastOptimize</span><span class="op">(</span><span class="va">request</span><span class="op">:</span> <span class="dt">AiOptimizeRequest</span><span class="op">):</span> <span class="dt">CapabilityResponse</span> <span class="op">{</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">preset</span> <span class="op">=</span> presetRepository<span class="op">.</span>getPreset<span class="op">(</span>Scene<span class="op">.</span>GENERAL<span class="op">)</span></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> CapabilityResponse<span class="op">.</span>Success<span class="op">(</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>            AiOptimizeResult<span class="op">(</span></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>                scene <span class="op">=</span> Scene<span class="op">.</span>GENERAL<span class="op">,</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>                confidence <span class="op">=</span> <span class="fl">0.5f</span><span class="op">,</span></span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>                preset <span class="op">=</span> preset<span class="op">,</span></span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>                explanation <span class="op">=</span> context<span class="op">.</span>getString<span class="op">(</span>R<span class="op">.</span>string<span class="op">.</span>ai_optimize_fallback_explanation<span class="op">),</span></span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>                usedCloud <span class="op">=</span> <span class="kw">false</span><span class="op">,</span></span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>                processingTimeMs <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="与编辑器集成">5.5 与编辑器集成</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PhotoEditorViewModel<span class="op">(</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">aiOptimizeCapability</span><span class="op">:</span> <span class="dt">AiOptimizeCapability</span><span class="op">,</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">recipeApplier</span><span class="op">:</span> <span class="dt">RecipeApplier</span><span class="op">,</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">history</span><span class="op">:</span> <span class="dt">EditHistory</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">:</span> <span class="dt">ViewModel</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">onAiOptimizeClick</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        viewModelScope<span class="op">.</span>launch <span class="op">{</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>            _uiState<span class="op">.</span>value <span class="op">=</span> _uiState<span class="op">.</span>value<span class="op">.</span>copy<span class="op">(</span>isAiOptimizing <span class="op">=</span> <span class="kw">true</span><span class="op">)</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">request</span> <span class="op">=</span> AiOptimizeRequest<span class="op">(</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>                imageUri <span class="op">=</span> currentImageUri<span class="op">,</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>                mode <span class="op">=</span> OptimizeMode<span class="op">.</span>FAST<span class="op">,</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>                source <span class="op">=</span> OptimizeSource<span class="op">.</span>EDITOR</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>            <span class="op">)</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">when</span> <span class="op">(</span><span class="kw">val</span> <span class="va">response</span> <span class="op">=</span> aiOptimizeCapability<span class="op">.</span>execute<span class="op">(</span>CapabilityRequest<span class="op">(</span>request<span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> CapabilityResponse<span class="op">.</span>Success <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">val</span> <span class="va">result</span> <span class="op">=</span> response<span class="op">.</span><span class="kw">data</span> <span class="kw">as</span> AiOptimizeResult</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">val</span> <span class="va">newRecipe</span> <span class="op">=</span> OptimizeRecipeMapper<span class="op">.</span>toEditRecipe<span class="op">(</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>                        preset <span class="op">=</span> result<span class="op">.</span>preset<span class="op">,</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>                        baseRecipe <span class="op">=</span> history<span class="op">.</span>current</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>                    <span class="op">)</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>                    history<span class="op">.</span>push<span class="op">(</span>newRecipe<span class="op">)</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>                    renderPreview<span class="op">()</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> CapabilityResponse<span class="op">.</span>NeedConsent <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>                    _events<span class="op">.</span>emit<span class="op">(</span>EditorEvent<span class="op">.</span>ShowCloudConsentDialog<span class="op">)</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>                <span class="kw">is</span> CapabilityResponse<span class="op">.</span>Error <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>                    _events<span class="op">.</span>emit<span class="op">(</span>EditorEvent<span class="op">.</span>ShowError<span class="op">(</span>response<span class="op">.</span>message<span class="op">))</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>            _uiState<span class="op">.</span>value <span class="op">=</span> _uiState<span class="op">.</span>value<span class="op">.</span>copy<span class="op">(</span>isAiOptimizing <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="agent-tool-spec">5.6 Agent Tool Spec</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;function&quot;</span><span class="fu">,</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;function&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;ai_optimize&quot;</span><span class="fu">,</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;分析照片场景并自动推荐美颜、滤镜、调节参数，一键优化图片。&quot;</span><span class="fu">,</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;parameters&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;properties&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;image_uri&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;待优化图片的本地文件 URI&quot;</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">},</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;enum&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;fast&quot;</span><span class="ot">,</span> <span class="st">&quot;smart&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;优化模式：fast 为本地快速优化（默认），smart 为云端智能推荐&quot;</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;required&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;image_uri&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;additionalProperties&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="错误处理与降级策略">6. 错误处理与降级策略</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>错误场景</th>
+<th>处理策略</th>
+<th>用户反馈</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>本地分析超时</td>
+<td>使用 GENERAL preset</td>
+<td>“已应用通用优化”</td>
+</tr>
+<tr class="even">
+<td>ML Kit 不可用</td>
+<td>使用 GENERAL preset</td>
+<td>“已应用通用优化”</td>
+</tr>
+<tr class="odd">
+<td>远程模型超时</td>
+<td>fallback 到 FAST 路径</td>
+<td>“网络较慢，已使用本地优化”</td>
+</tr>
+<tr class="even">
+<td>远程模型返回非法 JSON</td>
+<td>fallback 到 FAST 路径</td>
+<td>“智能推荐失败，已使用本地优化”</td>
+</tr>
+<tr class="odd">
+<td>用户未授权云端</td>
+<td>返回 NeedConsent</td>
+<td>显示授权弹窗</td>
+</tr>
+<tr class="even">
+<td>图片加载失败</td>
+<td>返回 Error</td>
+<td>“无法加载图片，请重试”</td>
+</tr>
+<tr class="odd">
+<td>GPU 处理失败</td>
+<td>返回 Error</td>
+<td>“处理失败，请手动编辑”</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="性能要求">7. 性能要求</h2>
+<table>
+<thead>
+<tr class="header">
+<th>路径</th>
+<th>P50</th>
+<th>P95</th>
+<th>测量点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Fast 场景分析</td>
+<td>&lt; 200ms</td>
+<td>&lt; 400ms</td>
+<td>从点击到返回 SceneAnalysis</td>
+</tr>
+<tr class="even">
+<td>Fast 端到端</td>
+<td>&lt; 1s</td>
+<td>&lt; 1.5s</td>
+<td>从点击到显示推荐卡片</td>
+</tr>
+<tr class="odd">
+<td>媒体查看器应用保存</td>
+<td>&lt; 2s</td>
+<td>&lt; 3s</td>
+<td>从点击「应用」到进入对比模式</td>
+</tr>
+<tr class="even">
+<td>Smart 端到端</td>
+<td>&lt; 2s</td>
+<td>&lt; 4s</td>
+<td>从点击「换一换」到返回新推荐</td>
+</tr>
+<tr class="odd">
+<td>批量处理单张</td>
+<td>&lt; 1.5s</td>
+<td>&lt; 2.5s</td>
+<td>多选批量模式下单张平均</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="隐私与安全">8. 隐私与安全</h2>
+<ul>
+<li><strong>Fast 路径</strong>：所有分析在本地完成，敏感数据不出设备</li>
+<li><strong>Smart 路径</strong>：
+<ul>
+<li>图片缩放至最长边 512px，JPEG 质量 80</li>
+<li>通过 HTTPS 发送到用户配置的模型服务商</li>
+<li>不在 PoLang 任何服务端存储图片</li>
+<li>用户可在设置中随时关闭云端 AI 优化</li>
+</ul></li>
+<li><strong>批量处理</strong>：强制使用 Fast 路径，不上传任何图片</li>
+</ul>
+<hr />
+<h2 id="验收指标">9. 验收指标</h2>
+<table>
+<thead>
+<tr class="header">
+<th>指标</th>
+<th>MVP 目标</th>
+<th>测量方式</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AI 优化按钮点击率</td>
+<td>&gt; 30%（进入查看器/编辑器的用户）</td>
+<td>埋点</td>
+</tr>
+<tr class="even">
+<td>应用率（点击后保存）</td>
+<td>&gt; 60%</td>
+<td>埋点</td>
+</tr>
+<tr class="odd">
+<td>微调率（点击后进入编辑器调整）</td>
+<td>&lt; 40%</td>
+<td>埋点</td>
+</tr>
+<tr class="even">
+<td>本地路径处理时间</td>
+<td>&lt; 1s（P50）</td>
+<td>日志</td>
+</tr>
+<tr class="odd">
+<td>场景识别准确率</td>
+<td>&gt; 80%（5 个核心场景）</td>
+<td>人工标注样本</td>
+</tr>
+<tr class="even">
+<td>崩溃率</td>
+<td>0</td>
+<td>Crashlytics</td>
+</tr>
+</tbody>
+</table>
+<h3 id="代码侧改动清单">9.1 代码侧改动清单</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" checked="" /><code>PhotoProcessorImpl</code>：EGL 上下文失效后彻底释放 Shader/FBO/纹理，避免复用无效句柄导致黑屏。</label></li>
+<li><label><input type="checkbox" checked="" /><code>PhotoEditorViewModel</code>：为照片处理创建独立单线程调度器，避免 <code>Dispatchers.Default</code> 线程池切换导致 EGL 上下文丢失。</label></li>
+<li><label><input type="checkbox" checked="" /><code>RecipeApplier</code>：增加 GPU 输出全黑检测与 CPU 滤镜兜底，确保极端情况下不显示黑屏。</label></li>
+<li><label><input type="checkbox" checked="" /><code>AppContainer</code>：编辑器使用独立的 <code>PhotoProcessor</code> 实例，避免与相机拍照路径共享 EGL 上下文。</label></li>
+<li><label><input type="checkbox" checked="" /><code>optimize_presets.json</code>：按本节推荐值重新调整，降低美颜强度，使调色更自然。</label></li>
+<li><label><input type="checkbox" checked="" />新增本文档作为参数标准与预设规范的唯一事实来源。</label></li>
+</ul>
+<h3 id="验收标准">9.2 验收标准</h3>
+<ul>
+<li>AI 优化点击后 500ms 内完成预览，且不再出现全黑画面。</li>
+<li>各场景预设应用后，美颜强度可被普通用户感知但不夸张。</li>
+<li>对比度/饱和度/色温/亮度滑杆默认值与文档一致。</li>
+<li>后续新增参数必须在本文档中补充语义、范围、参考来源。</li>
+</ul>
+<hr />
+<h2 id="agent-task-拆解">10. Agent Task 拆解</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Task ID</th>
+<th>名称</th>
+<th>Assignee</th>
+<th>Priority</th>
+<th>依赖</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>aio-001</code></td>
+<td>场景分析器 SceneAnalyzer</td>
+<td>RD</td>
+<td>P0</td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td><code>aio-002</code></td>
+<td>本地预设库 PresetRepository</td>
+<td>RD</td>
+<td>P0</td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td><code>aio-003</code></td>
+<td>AI 优化 Capability</td>
+<td>RD</td>
+<td>P0</td>
+<td>aio-001, aio-002</td>
+</tr>
+<tr class="even">
+<td><code>aio-004</code></td>
+<td>媒体查看器 AI 优化入口</td>
+<td>RD</td>
+<td>P0</td>
+<td>aio-003</td>
+</tr>
+<tr class="odd">
+<td><code>aio-005</code></td>
+<td>编辑器 AI 一键优化入口</td>
+<td>RD</td>
+<td>P0</td>
+<td>aio-003</td>
+</tr>
+<tr class="even">
+<td><code>aio-006</code></td>
+<td>优化结果保存与对比模式</td>
+<td>RD</td>
+<td>P0</td>
+<td>aio-004, aio-005</td>
+</tr>
+<tr class="odd">
+<td><code>aio-007</code></td>
+<td>隐私授权与设置开关</td>
+<td>RD</td>
+<td>P1</td>
+<td>aio-003</td>
+</tr>
+<tr class="even">
+<td><code>aio-008</code></td>
+<td>远程 Smart 优化引擎</td>
+<td>RD</td>
+<td>P1</td>
+<td>aio-007</td>
+</tr>
+<tr class="odd">
+<td><code>aio-009</code></td>
+<td>AI 对话命令集成</td>
+<td>RD</td>
+<td>P1</td>
+<td>aio-003</td>
+</tr>
+<tr class="even">
+<td><code>aio-010</code></td>
+<td>批量 AI 优化</td>
+<td>RD</td>
+<td>P1</td>
+<td>aio-003, aio-006</td>
+</tr>
+<tr class="odd">
+<td><code>aio-011</code></td>
+<td>验收测试与性能基准</td>
+<td>QA</td>
+<td>P0</td>
+<td>aio-004, aio-005, aio-006</td>
+</tr>
+<tr class="even">
+<td><code>aio-012</code></td>
+<td>架构合规审查</td>
+<td>CR</td>
+<td>P0</td>
+<td>aio-003 完成后</td>
+</tr>
+</tbody>
+</table>
+<h3 id="agent-taskaio-001-场景分析器-sceneanalyzer">10.1 [agent-task:aio-001] 场景分析器 SceneAnalyzer</h3>
+<ul>
+<li><strong>Assignee</strong>: RD</li>
+<li><strong>Scope</strong>: <code>domain/agent/capability/optimize/analyzer/SceneAnalyzer.kt</code></li>
+<li><strong>Expected Change</strong>:
+<ol type="1">
+<li>定义 <code>Scene</code> 枚举（selfie, portrait, group, food, landscape, low_light, document, general）</li>
+<li>集成 ML Kit Image Labeling 获取 Top-K 标签</li>
+<li>复用 <code>FaceDetector</code> 获取人脸数量与占画面比例</li>
+<li>读取 EXIF 与亮度统计作为辅助信号</li>
+<li>实现规则引擎，将多路信号映射为 <code>Scene</code> + 置信度</li>
+<li>添加单元测试覆盖 5 个核心场景</li>
+</ol></li>
+<li><strong>Priority</strong>: P0</li>
+<li><strong>Acceptance</strong>:
+<ul>
+<li>5 个核心场景识别准确率 &gt; 80%（人工标注 50 张测试集）</li>
+<li>单张分析时间 &lt; 200ms（中端机）</li>
+<li>单元测试覆盖率 &gt; 60%</li>
+</ul></li>
+</ul>
+<h3 id="agent-taskaio-002-本地预设库-presetrepository">10.2 [agent-task:aio-002] 本地预设库 PresetRepository</h3>
+<ul>
+<li><strong>Assignee</strong>: RD</li>
+<li><strong>Scope</strong>: <code>domain/agent/capability/optimize/preset/PresetRepository.kt</code></li>
+<li><strong>Expected Change</strong>:
+<ol type="1">
+<li>定义 <code>OptimizePreset</code> 数据类（包含 beauty, filter, adjustment）</li>
+<li>在 <code>assets/presets/optimize_presets.json</code> 中配置 5 个 MVP 场景 preset</li>
+<li>实现从 JSON 加载并缓存到内存</li>
+<li>提供 <code>getPreset(scene: Scene): OptimizePreset</code> 接口</li>
+<li>添加单元测试验证 preset 可正确反序列化</li>
+</ol></li>
+<li><strong>Priority</strong>: P0</li>
+<li><strong>Acceptance</strong>:
+<ul>
+<li>5 个 MVP preset 可被正确加载</li>
+<li>preset 参数范围符合 <code>BeautySettings</code> / <code>AdjustmentRecipe</code> 约束</li>
+<li>PM + 设计师评审通过参数合理性</li>
+</ul></li>
+</ul>
+<h3 id="agent-taskaio-003-ai-优化-capability">10.3 [agent-task:aio-003] AI 优化 Capability</h3>
+<ul>
+<li><strong>Assignee</strong>: RD</li>
+<li><strong>Scope</strong>: <code>domain/agent/capability/optimize/AiOptimizeCapability.kt</code></li>
+<li><strong>Expected Change</strong>:
+<ol type="1">
+<li>实现 <code>Capability</code> 接口，name = <code>"ai_optimize"</code></li>
+<li>定义 <code>AiOptimizeRequest</code> / <code>AiOptimizeResult</code> 数据类</li>
+<li>组合 <code>SceneAnalyzer</code> + <code>PresetRepository</code> 实现 Fast 路径</li>
+<li>注册到 <code>CapabilityRegistry</code></li>
+<li>添加错误处理：分析失败时返回降级 preset</li>
+<li>添加单元测试</li>
+</ol></li>
+<li><strong>Priority</strong>: P0</li>
+<li><strong>Acceptance</strong>:
+<ul>
+<li>可被 AgentOrchestrator 通过 tool call 调用</li>
+<li>Fast 路径端到端 &lt; 500ms</li>
+<li>失败时 graceful 降级，不崩溃</li>
+</ul></li>
+</ul>
+<hr />
+<h2 id="相关文档索引">11. 相关文档索引</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文档</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>docs/01-PRODUCT/FEATURES.md#141-ai-一键优化</code></td>
+<td>交互 PRD</td>
+</tr>
+<tr class="even">
+<td><code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code></td>
+<td>大美丽美颜引擎</td>
+</tr>
+<tr class="odd">
+<td><code>docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md</code></td>
+<td>Agent 架构</td>
+</tr>
+<tr class="even">
+<td><code>app/src/main/java/com/mamba/picme/features/editor/AGENTS.md</code></td>
+<td>编辑器模块规范</td>
+</tr>
+<tr class="odd">
+<td><code>app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md</code></td>
+<td>相册模块规范</td>
+</tr>
+</tbody>
+</table>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

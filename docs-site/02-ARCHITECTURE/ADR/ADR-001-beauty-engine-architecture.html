@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR-001: 大美丽单引擎分层架构 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../../index.html">🏠 首页</a>
+  <a class="nav-item " href="../../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item active" href="../../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../../">02 Architecture</a> / <a href="../">Adr</a> / <span>ADR-001: 大美丽单引擎分层架构</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-背景与问题陈述">1. 背景与问题陈述</a></li>
+      <li><a href="#2-决策目标架构">2. 决策目标架构</a></li>
+      <li><a href="#3-关键决策">3. 关键决策</a></li>
+      <li><a href="#4-技术实现">4. 技术实现</a></li>
+      <li><a href="#5-后果分析">5. 后果分析</a></li>
+      <li><a href="#6-状态">6. 状态</a></li>
+      <li><a href="#7-相关文档">7. 相关文档</a></li>
+      </ul>
+    </div>
+<h1 id="adr-001-大美丽单引擎分层架构">ADR-001: 大美丽单引擎分层架构</h1>
+<p><strong>状态</strong>: 已接受 (Accepted)<br />
+<strong>日期</strong>: 2026-04-17 <strong>最后同步</strong>: 2026-06-04（与 <code>beauty-engine/src/main/java/com/picme/beauty/</code> 代码结构对齐）<br />
+<strong>决策</strong>: RD<br />
+<strong>PM Review</strong>: 已完成</p>
+<hr />
+<h2 id="背景与问题陈述">1. 背景与问题陈述</h2>
+<h3 id="重构前架构">重构前架构</h3>
+<pre><code>App Layer → 大美丽模块 (混合业务逻辑+GPU实现)</code></pre>
+<p><strong>核心问题</strong>: 1. <strong>层次越界</strong>: 大美丽直接包含 GPU 渲染代码，违反 Clean Architecture 2. <strong>强耦合</strong>: App 层直接依赖引擎内部类，无法 Mock 测试 3. <strong>复用阻塞</strong>: 渲染逻辑被业务逻辑污染，无法独立作为视觉能力库输出 4. <strong>性能风险</strong>: EGL Context 管理分散，线程模型混乱</p>
+<blockquote>
+<p><strong>演进说明</strong>: 架构经过多次迭代，最终沉淀为单引擎方案，当前仅保留自研大美丽（BIG_BEAUTY）引擎。</p>
+</blockquote>
+<hr />
+<h2 id="决策目标架构">2. 决策目标架构</h2>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    App Layer                            │
+│              ↓ 依赖 beauty-engine:api                   │
+└────────────────────┬──────────────────────────────────┘
+                     │
+┌────────────────────▼──────────────────────────────────┐
+│  Domain Layer: beauty-engine:api                        │
+│  ├─ BeautyPreviewProvider (Interface)                 │
+│  ├─ BeautyPreviewEngine (Interface)                   │
+│  ├─ PhotoProcessor (Interface)                        │
+│  ├─ BeautyParams / FaceData / FilterType              │
+│  └─ BeautyPerfStats / FrameSyncResult                 │
+└────────────────────┬──────────────────────────────────┘
+                     │
+┌────────────────────▼──────────────────────────────────┐
+│  Data Layer: beauty-engine:render                       │
+│  ├─ GlBeautyPreviewProvider (Provider 实现)           │
+│  ├─ CameraPreviewRenderer (自研 OpenGL ES 管线)      │
+│  ├─ BeautyRenderer (美颜 Shader 渲染器)              │
+│  ├─ PhotoProcessorImpl (拍照 GPU 离屏渲染)           │
+│  ├─ FaceMakeupPass (唇色/腮红三角网格 Pass)          │
+│  └─ EGLCore / WindowSurface                           │
+└────────────────────┬──────────────────────────────────┘
+                     │
+┌────────────────────▼──────────────────────────────────┐
+│              BIG_BEAUTY (自研引擎)                      │
+└─────────────────────────────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="关键决策">3. 关键决策</h2>
+<table>
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>决策项</th>
+<th>方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>分层策略</strong></td>
+<td>Domain(api) / Data(render) / External 三层分离</td>
+</tr>
+<tr class="even">
+<td><strong>依赖方向</strong></td>
+<td>App → api → render → 底层 GPU 驱动 (单向)</td>
+</tr>
+<tr class="odd">
+<td><strong>接口定义</strong></td>
+<td><code>BeautyPreviewProvider</code> / <code>BeautyPreviewEngine</code> / <code>PhotoProcessor</code> 接口类，对外唯一出口</td>
+</tr>
+<tr class="even">
+<td><strong>引擎封装</strong></td>
+<td>自研引擎统一走 <code>render/</code> 包，OpenGL ES 调用集中在 <code>CameraPreviewRenderer</code> / <code>BeautyRenderer</code></td>
+</tr>
+<tr class="odd">
+<td><strong>线程模型</strong></td>
+<td>独立渲染线程（<code>CameraPreviewRenderer</code>），<code>EGLCore</code> 管理 EGLContext；<code>PhotoProcessorImpl</code> 独立 EGL 上下文</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="技术实现">4. 技术实现</h2>
+<h3 id="模块结构">4.1 模块结构</h3>
+<pre><code>beauty-engine/src/main/java/com/picme/beauty/
+├── api/                    # Domain Layer - 实现层 API（依赖 :beauty-api 共享类型）
+│   ├── BeautyPreviewProvider.kt   # 预览 Provider 接口
+│   ├── BeautyPreviewEngine.kt     # 组合接口（Provider + Capability）
+│   ├── BeautyPreviewCapability.kt # GL 能力扩展（FaceWarp/LipMask）
+│   ├── PhotoProcessor.kt          # 拍照后处理接口
+│   ├── BeautyParams.kt            # Shader 参数（来自 :beauty-api）
+│   ├── BeautyPerfStats.kt         # 性能统计（来自 :beauty-api）
+│   ├── FilterTypeExt.kt           # FilterType 扩展（来自 :beauty-api）
+│   ├── StyleFilterExt.kt          # StyleFilter 扩展（来自 :beauty-api）
+│   ├── FrameId.kt                 # 帧同步标识（来自 :beauty-api）
+│   ├── FrameSyncConfig.kt         # 帧同步配置（来自 :beauty-api）
+│   └── FrameSyncResult.kt         # 帧同步结果（来自 :beauty-api）
+│   &gt; **Note**: `BeautyParams`, `FilterType`, `StyleFilter`, `FaceData`, `FrameId`, `FrameSyncConfig`, `FrameSyncResult`, `BeautyPerfStats` 等类型定义在 `:beauty-api` 模块，`beauty-engine:api/` 仅保留实现相关接口。
+└── render/                 # Data Layer - 自研引擎 GL 渲染实现
+    ├── GlBeautyPreviewProvider.kt   # Provider 接口实现
+    ├── CameraPreviewRenderer.kt     # 渲染管线核心
+    ├── BeautyRenderer.kt            # 美颜 Shader 渲染器
+    ├── BeautyPass.kt                # 通用渲染 Pass 基类
+    ├── FaceMakeupPass.kt            # 唇色/腮红三角网格 Pass
+    ├── StyleEffectShader.kt         # 风格特效 Shader
+    ├── PhotoProcessorImpl.kt        # 拍照 GPU 离屏渲染实现
+    ├── EGLCore.kt                   # EGL 上下文管理
+    ├── WindowSurface.kt             # EGL Window Surface 封装
+    ├── Framebuffer.kt               # FBO 封装
+    ├── FramebufferPool.kt           # FBO 对象池
+    └── ShaderProgram.kt             # Shader 编译与链接</code></pre>
+<h3 id="依赖规则-gradle">4.2 依赖规则 (Gradle)</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode groovy"><code class="sourceCode groovy"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// App 层（只允许依赖 api 层类型）</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    implementation <span class="fu">project</span><span class="op">(</span><span class="st">&#39;:beauty-api&#39;</span><span class="op">)</span>      <span class="co">// 共享类型契约（BeautySettings, FilterType, StyleFilter, Face 等）</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    implementation <span class="fu">project</span><span class="op">(</span><span class="st">&#39;:beauty-engine&#39;</span><span class="op">)</span>     <span class="co">// 实现层</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 禁止: implementation project(&#39;:beauty-engine:render&#39;)</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">// render 模块（内部实现）</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>dependencies <span class="op">{</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    api <span class="fu">project</span><span class="op">(</span><span class="st">&#39;:beauty-engine:api&#39;</span><span class="op">)</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="archunit-依赖检查">4.3 ArchUnit 依赖检查</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 规则: App 层严禁直接依赖 render 内部实现包</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>noClasses<span class="op">()</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>that<span class="op">().</span>resideInAPackage<span class="op">(</span><span class="st">&quot;..app..&quot;</span><span class="op">)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>should<span class="op">().</span>dependOnClassesThat<span class="op">()</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>resideInAPackage<span class="op">(</span><span class="st">&quot;..beautyengine.render..&quot;</span><span class="op">)</span></span></code></pre></div>
+<hr />
+<h2 id="后果分析">5. 后果分析</h2>
+<h3 id="正面影响">正面影响</h3>
+<ul>
+<li>✅ 接口契约稳定，支持版本化管理</li>
+<li>✅ 单元测试可 Mock BeautyEngine 接口</li>
+<li>✅ 引擎实现完全隔离，可独立演进</li>
+<li>✅ GL 线程独立，不阻塞主线程</li>
+<li>✅ 4K 大图分块处理，无 OOM 风险</li>
+</ul>
+<h3 id="负面影响">负面影响</h3>
+<ul>
+<li>⚠️ EGL Context 初始化约 50-100ms</li>
+<li>⚠️ Shader 编译首次加载约 100-200ms</li>
+</ul>
+<hr />
+<h2 id="状态">6. 状态</h2>
+<table>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>状态</th>
+<th>日期</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>接口提取 (Phase 1)</td>
+<td>✅ 完成</td>
+<td>2026-04-17</td>
+</tr>
+<tr class="even">
+<td>实现迁移 (Phase 2)</td>
+<td>✅ 完成</td>
+<td>2026-04-17</td>
+</tr>
+<tr class="odd">
+<td>App层适配 (Phase 3)</td>
+<td>✅ 完成</td>
+<td>2026-04-17</td>
+</tr>
+<tr class="even">
+<td>引擎归一 (单引擎化)</td>
+<td>✅ 完成</td>
+<td>2026-04-17</td>
+</tr>
+<tr class="odd">
+<td>编译验证</td>
+<td>✅ 通过</td>
+<td>2026-04-17</td>
+</tr>
+<tr class="even">
+<td>安装运行</td>
+<td>✅ 成功</td>
+<td>2026-04-17</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="相关文档">7. 相关文档</h2>
+<ul>
+<li><code>README.md</code> - 项目总览与架构图</li>
+<li><code>beauty-engine/AGENTS.md</code> - 模块详细规范</li>
+<li><code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code> - 大美丽引擎技术规范</li>
+</ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

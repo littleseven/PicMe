@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PoLang 破浪相册 · 隐私优先的智能相册</title>
+  <meta name="description" content="零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。AI 对话相册、智能搜索、专业美颜、创意滤镜,全部本地处理。">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #1e293b; background: #f8fafc; line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+    .topnav { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,.85); backdrop-filter: blur(8px); border-bottom: 1px solid #e2e8f0; }
+    .topnav-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
+    .brand img { width: 28px; height: 28px; border-radius: 7px; }
+    .nav-links { display: flex; gap: 18px; font-size: 14px; color: #475569; }
+    .nav-links a:hover { color: #2563eb; }
+
+    .hero { text-align: center; padding: 64px 20px 48px; }
+    .hero-icon { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+    .hero h1 { font-size: 34px; margin: 18px 0 6px; }
+    .hero h1 .en { color: #64748b; font-weight: 600; font-size: 22px; margin-left: 8px; }
+    .hero .tagline { font-size: 19px; color: #334155; max-width: 720px; margin: 0 auto; }
+    .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 16px 0 24px; }
+    .badge { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 600; }
+    .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 15px; transition: transform .1s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-play { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    .btn-github { background: #0f172a; color: #fff; }
+
+    section { padding: 48px 0; }
+    .section-title { font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+    .section-sub { text-align: center; color: #64748b; margin-bottom: 32px; }
+
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 22px; transition: box-shadow .15s; }
+    .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+    .card .icon { font-size: 28px; }
+    .card h3 { font-size: 17px; margin: 8px 0 6px; }
+    .card p { font-size: 14px; color: #475569; }
+
+    .privacy { background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; border-radius: 16px; padding: 36px; }
+    .privacy .section-title, .privacy .section-sub { color: #fff; }
+    .privacy-list { max-width: 720px; margin: 0 auto; }
+    .privacy-list .item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; font-size: 16px; }
+    .privacy-list .check { font-size: 20px; }
+
+    .shots { display: flex; gap: 14px; overflow-x: auto; padding: 8px 4px; }
+    .shots img { height: 440px; border-radius: 16px; border: 1px solid #e2e8f0; flex-shrink: 0; }
+
+    .download { text-align: center; }
+    .download .qr { width: 160px; height: 160px; border-radius: 12px; margin: 18px auto 8px; display: block; border: 1px solid #e2e8f0; object-fit: cover; }
+    .download .hint { color: #64748b; font-size: 13px; }
+
+    footer { background: #0f172a; color: #94a3b8; padding: 28px 0; margin-top: 32px; }
+    footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 26px; }
+      .hero .tagline { font-size: 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .privacy { padding: 24px; }
+      .shots img { height: 360px; }
+      .nav-links { gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="container topnav-inner">
+      <a class="brand" href="/"><img src="assets/icon.png" alt="PoLang">破浪相册</a>
+      <div class="nav-links">
+        <a href="#features">功能</a>
+        <a href="#privacy">隐私</a>
+        <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero container">
+    <img class="hero-icon" src="assets/icon.png" alt="破浪相册 PoLang">
+    <h1>破浪相册 <span class="en">PoLang</span></h1>
+    <p class="tagline">零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。</p>
+    <div class="badges">
+      <span class="badge">✓ 免费</span>
+      <span class="badge">✓ 无广告</span>
+      <span class="badge">✓ 本地隐私</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-play" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener">▶ Google Play 下载</a>
+      <a class="btn btn-github" href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub 仓库</a>
+    </div>
+  </header>
+
+  <section id="features" class="container">
+    <h2 class="section-title">核心功能</h2>
+    <p class="section-sub">一个会用自然语言沟通的智能相册</p>
+    <div class="grid">
+      <div class="card"><div class="icon">🤖</div><h3>对话式 AI 助手</h3><p>像聊天一样管理相册:"找去年夏天的照片""把这张调暖一点",AI 听懂就做。</p></div>
+      <div class="card"><div class="icon">🖼️</div><h3>智能相册</h3><p>自动给照片打标签(场景/人物/物体/活动),自然语言搜索,智能分类与 AI 相册。</p></div>
+      <div class="card"><div class="icon">✨</div><h3>AI 美颜编辑</h3><p>GPU 加速专业美颜:磨皮、美白、瘦脸、大眼、唇色、腮红,一键 AI 智能优化。</p></div>
+      <div class="card"><div class="icon">🎨</div><h3>创意滤镜</h3><p>徕卡(经典/鲜艳/黑白)、胶片(金/富士/复古)、实时 GPU 特效,支持批量。</p></div>
+      <div class="card"><div class="icon">📷</div><h3>实时美颜相机</h3><p>零延迟快门(&lt;50ms),人脸追踪,运动中妆容不飞。</p></div>
+      <div class="card"><div class="icon">📱</div><h3>飞书远程控制(实验)</h3><p>在飞书 IM 里浏览、搜索、编辑相册,结果直接回到聊天。</p></div>
+    </div>
+  </section>
+
+  <section id="privacy" class="container">
+    <div class="privacy">
+      <h2 class="section-title">🔒 隐私优先,从架构开始</h2>
+      <p class="section-sub">你的照片,只属于你</p>
+      <div class="privacy-list">
+        <div class="item"><span class="check">✅</span><span>所有 AI 处理在设备本地完成 —— 人脸、照片、对话绝不上传云端。</span></div>
+        <div class="item"><span class="check">✅</span><span>不采集任何用户数据(对应 Google Play「数据安全」声明)。</span></div>
+        <div class="item"><span class="check">✅</span><span>本地 AI 模型离线可用,无网络也能搜索与编辑。</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container">
+    <h2 class="section-title">一眼所见</h2>
+    <p class="section-sub">左右滑动查看</p>
+    <div class="shots">
+      <img src="assets/screenshot-1.jpg" alt="截图 1">
+      <img src="assets/screenshot-2.jpg" alt="截图 2">
+      <img src="assets/screenshot-3.jpg" alt="截图 3">
+      <img src="assets/screenshot-4.jpg" alt="截图 4">
+      <img src="assets/screenshot-5.jpg" alt="截图 5">
+      <img src="assets/screenshot-6.jpg" alt="截图 6">
+      <img src="assets/screenshot-7.jpg" alt="截图 7">
+      <img src="assets/screenshot-8.jpg" alt="截图 8">
+    </div>
+  </section>
+
+  <section class="download container">
+    <h2 class="section-title">立即体验</h2>
+    <a class="btn btn-play" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener">▶ Google Play 下载</a>
+    <img class="qr" src="assets/winxin.jpg" alt="微信扫码下载">
+    <p class="hint">微信扫码 · 或在 Google Play 搜索「觅影相册」</p>
+  </section>
+
+  <footer>
+    <div class="container inner">
+      <span>© PoLang — 雕刻时光,瞬间永恒。</span>
+      <div class="nav-links">
+        <a href="privacy-policy/index.html">隐私政策</a>
+        <a href="00-INDEX.html">技术文档</a>
+        <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

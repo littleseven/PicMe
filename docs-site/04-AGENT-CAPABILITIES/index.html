@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 Agent Capabilities | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item active" href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">04 Agent Capabilities</a> / <span>04 Agent Capabilities</span></div>
+
+    <h1>04 Agent Capabilities</h1>
+    <ul style="font-size:15px">
+      <li style="margin:8px 0"><a href="CAPABILITY_REGISTRY.html">📄 CAPABILITY REGISTRY</a></li>
+      <li style="margin:8px 0"><a href="COMMAND_REFERENCE.html">📄 COMMAND REFERENCE</a></li>
+    </ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

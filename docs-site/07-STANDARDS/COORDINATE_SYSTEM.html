@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人脸坐标系与左右命名规范 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item active" href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">07 Standards</a> / <span>人脸坐标系与左右命名规范</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#问题背景">📋 问题背景</a></li>
+      <li><a href="#统一标准">✅ 统一标准</a></li>
+      <li><a href="#具体规则">🎯 具体规则</a></li>
+      <li><a href="#坐标系对照表">📊 坐标系对照表</a></li>
+      <li><a href="#迁移指南">🔧 迁移指南</a></li>
+      <li><a href="#最佳实践">📝 最佳实践</a></li>
+      <li><a href="#常见陷阱">🚨 常见陷阱</a></li>
+      <li><a href="#验收检查清单">✅ 验收检查清单</a></li>
+      <li><a href="#参考资源">📚 参考资源</a></li>
+      <li><a href="#维护策略">🔄 维护策略</a></li>
+      </ul>
+    </div>
+<h1 id="人脸坐标系与左右命名规范">人脸坐标系与左右命名规范</h1>
+<p><strong>版本</strong>: 1.0<br />
+<strong>创建日期</strong>: 2026-05-03<br />
+<strong>状态</strong>: ✅ 强制执行标准</p>
+<hr />
+<h2 id="问题背景">📋 问题背景</h2>
+<p>在 PoLang 项目中，“左/右”的描述存在歧义，主要体现在：</p>
+<ol type="1">
+<li><strong>基于图像的左右</strong>（Image Space）：从观察者视角看屏幕，左侧 = x 坐标小的位置</li>
+<li><strong>基于人脸的左右</strong>（Face Space）：从被拍摄者视角，其左手边 = 图像右侧（前置摄像头镜像后）</li>
+</ol>
+<p>这种歧义导致： - 代码注释混乱（如 <code>// 右眉，画面左侧</code>） - 文档描述不一致 - 新成员理解困难 - Bug 修复时容易搞反方向</p>
+<hr />
+<h2 id="统一标准">✅ 统一标准</h2>
+<h3 id="核心原则允许两种坐标系但严禁混用">核心原则：<strong>允许两种坐标系，但严禁混用</strong></h3>
+<h4 id="强制要求">强制要求</h4>
+<p>⚠️ <strong>从本规范生效起，所有文档和代码必须满足以下要求</strong>：</p>
+<ol type="1">
+<li><strong>明确标注坐标系类型</strong>（<code>[图像坐标系]</code> 或 <code>[人脸坐标系]</code>）</li>
+<li><strong>同一作用域内禁止混用两种坐标系</strong></li>
+<li><strong>跨坐标系转换必须有明确的转换函数</strong></li>
+</ol>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 错误：混用两种坐标系</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">processFace</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> getImageLeftEye<span class="op">()</span>      <span class="co">// [图像坐标系]</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">userRightEye</span> <span class="op">=</span> getUserRightEye<span class="op">()</span>      <span class="co">// [人脸坐标系]</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">distance</span> <span class="op">=</span> calculateDistance<span class="op">(</span>imageLeftEye<span class="op">,</span> userRightEye<span class="op">)</span>  <span class="co">// ❌ 混用！</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：统一使用一种坐标系</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">processFace</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 方案 A：统一使用图像坐标系（推荐）</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> getImageLeftEye<span class="op">()</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">imageRightEye</span> <span class="op">=</span> getImageRightEye<span class="op">()</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">distance</span> <span class="op">=</span> calculateDistance<span class="op">(</span>imageLeftEye<span class="op">,</span> imageRightEye<span class="op">)</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 方案 B：统一使用人脸坐标系（需转换）</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">userLeftEye</span> <span class="op">=</span> getUserLeftEye<span class="op">(</span>isFrontCamera<span class="op">)</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">userRightEye</span> <span class="op">=</span> getUserRightEye<span class="op">(</span>isFrontCamera<span class="op">)</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">distance</span> <span class="op">=</span> calculateDistance<span class="op">(</span>userLeftEye<span class="op">,</span> userRightEye<span class="op">)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：跨坐标系转换有明确函数</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">convertUserToImageCoordinates</span><span class="op">(</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="va">userLandmarks</span><span class="op">:</span> <span class="dt">List</span>&lt;<span class="va">Point</span>&gt;<span class="op">,</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="va">isFrontCamera</span><span class="op">:</span> <span class="dt">Boolean</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="op">):</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">Point</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> userLandmarks<span class="op">.</span>map <span class="op">{</span> point <span class="op">-&gt;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>isFrontCamera<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>            Point<span class="op">(</span><span class="fl">1.0f</span> <span class="op">-</span> point<span class="op">.</span>x<span class="op">,</span> point<span class="op">.</span>y<span class="op">)</span>  <span class="co">// 前置镜像</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>            point</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="坐标系定义">坐标系定义</h4>
+<h4 id="坐标系定义-1">坐标系定义</h4>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>术语</th>
+<th>定义</th>
+<th>适用场景</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>图像坐标系</strong></td>
+<td>基于图像边界的坐标系统<br>• 原点：左上角 (0, 0)<br>• x 轴：向右增加<br>• y 轴：向下增加</td>
+<td>• GPU Shader 渲染<br>• OpenGL 纹理映射<br>• 图像处理算法<br>• 与显示系统对接</td>
+<td><code>imageLeftEye</code><br><code>imageRightEyebrow</code></td>
+</tr>
+<tr class="even">
+<td><strong>人脸坐标系</strong></td>
+<td>基于被拍摄者身体的坐标系统<br>• 左/右：以被拍摄者为参照<br>• 需要区分前后置摄像头</td>
+<td>• 业务逻辑层<br>• UI 文案显示<br>• 用户交互提示<br>• 与外部 SDK 对接</td>
+<td><code>userLeftEye</code><br><code>faceRightCheek</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键理解</strong>： - ✅ <strong>两种坐标系都允许使用</strong> - ⚠️ <strong>但必须在边界处明确转换</strong> - ❌ <strong>严禁在同一作用域内混用</strong></p>
+<h4 id="禁止使用的术语">禁止使用的术语</h4>
+<p>❌ <strong>禁止</strong>： - “左眼”、“右眼”（未指明是图像还是人脸视角） - “左侧脸”、“右侧脸” - “左眉毛”、“右眉毛”</p>
+<p>✅ <strong>必须使用</strong>： - “图像左侧的眼睛”（明确说明是图像坐标系） - “图像右侧的眼睛” - “图像左侧的脸部轮廓”</p>
+<hr />
+<h2 id="具体规则">🎯 具体规则</h2>
+<h3 id="规则-0-坐标系选择策略">规则 0: 坐标系选择策略</h3>
+<p><strong>项目推荐策略</strong>：</p>
+<pre><code>┌─────────────────────────────────────────┐
+│         坐标系分层架构                    │
+├─────────────────────────────────────────┤
+│                                         │
+│  UI / 业务层                             │
+│  ├── 可使用 [人脸坐标系]                 │
+│  ├── 便于用户理解                        │
+│  └── 需处理前后置差异                    │
+│                                         │
+│  ↓ 转换边界（明确函数）                  │
+│  convertUserToImageCoordinates()        │
+│  convertImageToUserCoordinates()        │
+│                                         │
+│  渲染 / 算法层                           │
+│  ├── 必须使用 [图像坐标系]               │
+│  ├── GPU Shader 处理                    │
+│  ├── OpenGL 纹理映射                    │
+│  └── 图像处理算法                        │
+│                                         │
+└─────────────────────────────────────────┘</code></pre>
+<p><strong>选择建议</strong>：</p>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 47%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>层级</th>
+<th>推荐坐标系</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>UI 展示层</strong></td>
+<td>人脸坐标系</td>
+<td>用户更容易理解“左眼”、“右眼”</td>
+</tr>
+<tr class="even">
+<td><strong>业务逻辑层</strong></td>
+<td>图像坐标系（推荐）或人脸坐标系</td>
+<td>根据团队习惯统一选择</td>
+</tr>
+<tr class="odd">
+<td><strong>渲染引擎层</strong></td>
+<td><strong>必须</strong>使用图像坐标系</td>
+<td>GPU Shader、OpenGL 原生支持</td>
+</tr>
+<tr class="even">
+<td><strong>算法处理层</strong></td>
+<td><strong>必须</strong>使用图像坐标系</td>
+<td>OpenCV、MediaPipe 等库的标准</td>
+</tr>
+</tbody>
+</table>
+<p><strong>重要原则</strong>： - ✅ 每个模块内部必须统一使用一种坐标系 - ✅ 模块间通过明确的转换函数交接 - ❌ 禁止在同一个函数/类中混用两种坐标系</p>
+<hr />
+<h3 id="规则-1-关键点命名">规则 1: 关键点命名</h3>
+<p><strong>标准格式</strong>：<code>{坐标系前缀}_{位置}_{部位}</code></p>
+<p><strong>坐标系前缀</strong>： - <code>image_</code> - 图像坐标系（观察者视角，x 向右增加） - <code>user_</code> 或 <code>face_</code> - 人脸坐标系（被拍摄者视角）</p>
+<table>
+<thead>
+<tr class="header">
+<th>正确命名</th>
+<th>错误命名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>imageLeftEye</code></td>
+<td><code>leftEye</code> / <code>userLeftEye</code></td>
+<td>明确指出是图像左侧</td>
+</tr>
+<tr class="even">
+<td><code>imageRightEye</code></td>
+<td><code>rightEye</code></td>
+<td>明确指出是图像右侧</td>
+</tr>
+<tr class="odd">
+<td><code>userLeftEye</code></td>
+<td><code>leftEye</code></td>
+<td>明确指出是被拍摄者左眼</td>
+</tr>
+<tr class="even">
+<td><code>imageLeftEyebrow</code></td>
+<td><code>leftEyebrow</code></td>
+<td>图像左侧的眉毛</td>
+</tr>
+<tr class="odd">
+<td><code>faceCenter</code></td>
+<td>-</td>
+<td>脸部中心（无歧义，可不加前缀）</td>
+</tr>
+<tr class="even">
+<td><code>noseTip</code></td>
+<td>-</td>
+<td>鼻尖（对称器官，无歧义）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="规则-2-文档描述">规则 2: 文档描述</h3>
+<p><strong>强制格式</strong>：<code>[{坐标系}] {位置描述}</code></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>❌ 错误（未标注坐标系）：</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;左眼外眼角&quot;</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;右眉眉头&quot;</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;下巴左侧&quot;</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>✅ 正确（明确标注）：</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;<span class="co">[</span><span class="ot">图像坐标系</span><span class="co">]</span> 图像左侧眼睛的外眼角&quot;</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;<span class="co">[</span><span class="ot">图像坐标系</span><span class="co">]</span> 图像右侧眉毛的眉头&quot;</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;<span class="co">[</span><span class="ot">人脸坐标系</span><span class="co">]</span> 被拍摄者左脸的下巴轮廓&quot;</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>&quot;<span class="co">[</span><span class="ot">图像坐标系</span><span class="co">]</span> 图像左侧的下巴轮廓（前置时对应被拍摄者右脸）&quot;</span></code></pre></div>
+<p><strong>文档章节开头必须添加坐标系声明</strong>：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. 人脸关键点映射</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; **坐标系说明**：本节所有坐标均基于**图像坐标系**（观察者视角）。</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; - 图像左侧 = x 坐标较小的一侧</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; - 图像右侧 = x 坐标较大的一侧</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; - 前置摄像头镜像后，图像左侧对应被拍摄者右脸</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>| 索引 | 部位 | 说明 |</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>|------|------|------|</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>| 52-57 | <span class="co">[</span><span class="ot">图像坐标系</span><span class="co">]</span> 图像右侧眼睛外轮廓 | 后置时对应被拍摄者右眼 |</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>| 58-63 | <span class="co">[</span><span class="ot">图像坐标系</span><span class="co">]</span> 图像左侧眼睛外轮廓 | 后置时对应被拍摄者左眼 |</span></code></pre></div>
+<h3 id="规则-3-代码注释">规则 3: 代码注释</h3>
+<p><strong>强制格式</strong>：<code>// [{坐标系}] {描述}</code></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 错误：未标注坐标系</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 右眼外轮廓（画面左侧）</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">rightEyeContour</span> <span class="op">=</span> landmarks<span class="op">.</span>slice<span class="op">(</span><span class="fl">52..57</span><span class="op">)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：明确标注坐标系</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">// [图像坐标系] 图像右侧的眼睛外轮廓（后置时对应被拍摄者右眼）</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">imageRightEyeContour</span> <span class="op">=</span> landmarks<span class="op">.</span>slice<span class="op">(</span><span class="fl">52..57</span><span class="op">)</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：语义标注（需说明转换关系）</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">// [人脸坐标系] 被拍摄者右眼（前置时位于图像右侧，后置时位于图像左侧）</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">userRightEye</span> <span class="op">=</span> <span class="cf">if</span> <span class="op">(</span>isFrontCamera<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    landmarks<span class="op">[</span>IMAGE_RIGHT_EYE_INDICES<span class="op">]</span>  <span class="co">// 前置：图像右侧</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    landmarks<span class="op">[</span>IMAGE_LEFT_EYE_INDICES<span class="op">]</span>   <span class="co">// 后置：图像左侧</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>函数注释必须包含坐标系说明</strong>：</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * [图像坐标系] 获取图像左侧眼睛的中心点</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * @return 图像坐标系中的点（原点在左上角，x 向右增加，y 向下增加）</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"> * @see COORDINATE_SYSTEM_STANDARD.md 坐标系规范</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getImageLeftEyeCenter</span><span class="op">():</span> <span class="dt">Point</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co"> * [人脸坐标系] 获取被拍摄者左眼的中心点</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co"> * @param isFrontCamera 是否为前置摄像头（影响坐标映射）</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co"> * @return 图像坐标系中的点（已根据前后置自动转换）</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co"> * @note 前置时返回图像右侧的点，后置时返回图像左侧的点</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getUserLeftEyeCenter</span><span class="op">(</span><span class="va">isFrontCamera</span><span class="op">:</span> <span class="dt">Boolean</span><span class="op">):</span> <span class="dt">Point</span> <span class="op">{</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="规则-4-变量命名">规则 4: 变量命名</h3>
+<p><strong>Kotlin 命名规范</strong>：</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 错误：未标注坐标系，存在歧义</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">leftEye</span> <span class="op">=</span> face<span class="op">.</span>leftEye</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">rightEye</span> <span class="op">=</span> face<span class="op">.</span>rightEye</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：图像坐标系（推荐，项目统一标准）</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> face<span class="op">.</span>getImageLeftEye<span class="op">()</span>    <span class="co">// 图像左侧的眼睛</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">imageRightEye</span> <span class="op">=</span> face<span class="op">.</span>getImageRightEye<span class="op">()</span>  <span class="co">// 图像右侧的眼睛</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 可接受：人脸坐标系（需明确标注，谨慎使用）</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">userLeftEye</span> <span class="op">=</span> face<span class="op">.</span>getUserLeftEye<span class="op">(</span>isFrontCamera<span class="op">)</span>    <span class="co">// 被拍摄者左眼</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">userRightEye</span> <span class="op">=</span> face<span class="op">.</span>getUserRightEye<span class="op">(</span>isFrontCamera<span class="op">)</span>  <span class="co">// 被拍摄者右眼</span></span></code></pre></div>
+<p><strong>枚举定义示例</strong>：</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 眼睛位置枚举（明确标注坐标系）</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="kw">class</span> EyePosition <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/** [图像坐标系] 图像左侧的眼睛（x 坐标较小） */</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    IMAGE_LEFT<span class="op">,</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">/** [图像坐标系] 图像右侧的眼睛（x 坐标较大） */</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    IMAGE_RIGHT<span class="op">,</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">/** [人脸坐标系] 被拍摄者左眼（前置时对应 IMAGE_RIGHT） */</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    USER_LEFT<span class="op">,</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">/** [人脸坐标系] 被拍摄者右眼（前置时对应 IMAGE_LEFT） */</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    USER_RIGHT</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="规则-5-禁止混用检查">规则 5: 禁止混用检查</h3>
+<p><strong>同一作用域内禁止混用两种坐标系</strong>：</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 错误：混用图像坐标系和人脸坐标系</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FaceProcessor <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">process</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> landmarks<span class="op">[</span>IMAGE_LEFT_EYE<span class="op">]</span>     <span class="co">// 图像坐标系</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">userRightEye</span> <span class="op">=</span> getUserRightEye<span class="op">()</span>              <span class="co">// 人脸坐标系</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ❌ 错误：两种坐标系混合计算</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">center</span> <span class="op">=</span> <span class="op">(</span>imageLeftEye <span class="op">+</span> userRightEye<span class="op">)</span> <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：统一使用图像坐标系</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FaceProcessor <span class="op">{</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">process</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> landmarks<span class="op">[</span>IMAGE_LEFT_EYE<span class="op">]</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">imageRightEye</span> <span class="op">=</span> landmarks<span class="op">[</span>IMAGE_RIGHT_EYE<span class="op">]</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ✅ 正确：同一种坐标系计算</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">center</span> <span class="op">=</span> <span class="op">(</span>imageLeftEye <span class="op">+</span> imageRightEye<span class="op">)</span> <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：如需转换，使用明确的转换函数</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FaceProcessor <span class="op">{</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">process</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 从人脸坐标系转换为图像坐标系</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">userLandmarks</span> <span class="op">=</span> getUserLandmarks<span class="op">()</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">imageLandmarks</span> <span class="op">=</span> convertUserToImageCoordinates<span class="op">(</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>            userLandmarks<span class="op">,</span> </span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>            isFrontCamera</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">)</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 统一使用图像坐标系处理</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> imageLandmarks<span class="op">[</span>IMAGE_LEFT_EYE<span class="op">]</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">imageRightEye</span> <span class="op">=</span> imageLandmarks<span class="op">[</span>IMAGE_RIGHT_EYE<span class="op">]</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">center</span> <span class="op">=</span> <span class="op">(</span>imageLeftEye <span class="op">+</span> imageRightEye<span class="op">)</span> <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Code Review 检查点</strong>： - [ ] 同一个函数内是否只使用一种坐标系？ - [ ] 如有坐标系转换，是否有明确的转换函数？ - [ ] 变量命名是否清晰体现坐标系类型？ - [ ] 注释是否说明了坐标系转换的原因？</p>
+<hr />
+<h2 id="坐标系对照表">📊 坐标系对照表</h2>
+<h3 id="前置摄像头镜像模式">前置摄像头（镜像模式）</h3>
+<pre><code>┌─────────────────────────────────┐
+│         屏幕显示区域             │
+│                                 │
+│   图像左侧          图像右侧     │
+│   (x 小)            (x 大)      │
+│                                 │
+│   👁️              👁️           │
+│   被拍摄者右眼      被拍摄者左眼  │
+│   (image_left)      (image_right)│
+│                                 │
+└─────────────────────────────────┘
+
+关键理解：
+- 图像左侧 = 观察者看到的左边 = 被拍摄者的右边（镜像后）
+- 图像右侧 = 观察者看到的右边 = 被拍摄者的左边（镜像后）</code></pre>
+<h3 id="后置摄像头非镜像模式">后置摄像头（非镜像模式）</h3>
+<pre><code>┌─────────────────────────────────┐
+│         屏幕显示区域             │
+│                                 │
+│   图像左侧          图像右侧     │
+│   (x 小)            (x 大)      │
+│                                 │
+│   👁️              👁️           │
+│   被拍摄者左眼      被拍摄者右眼  │
+│   (image_left)      (image_right)│
+│                                 │
+└─────────────────────────────────┘
+
+关键理解：
+- 图像左侧 = 观察者看到的左边 = 被拍摄者的左边（无镜像）
+- 图像右侧 = 观察者看到的右边 = 被拍摄者的右边（无镜像）</code></pre>
+<hr />
+<h2 id="迁移指南">🔧 迁移指南</h2>
+<h3 id="step-1-识别需要修改的位置">Step 1: 识别需要修改的位置</h3>
+<p>搜索以下模式：</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 搜索模糊的左右描述</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-r</span> <span class="st">&quot;左眼\|右眼\|左眉\|右眉&quot;</span> docs/ <span class="at">--include</span><span class="op">=</span><span class="st">&quot;*.md&quot;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-r</span> <span class="st">&quot;leftEye\|rightEye&quot;</span> app/src/ <span class="at">--include</span><span class="op">=</span><span class="st">&quot;*.kt&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;imageLeft\|imageRight&quot;</span></span></code></pre></div>
+<h3 id="step-2-按优先级修改">Step 2: 按优先级修改</h3>
+<h4 id="优先级-1-技术文档最高">优先级 1: 技术文档（最高）</h4>
+<p><strong>文件列表</strong>： - InsightFace 106 映射文档（已移除，2026-05） - <code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code>（含相机预览比例与坐标转换、人脸关键点使用） - <code>.qoder/skills/av-gl-expert/SKILL.md</code></p>
+<p><strong>修改示例</strong>：</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 修改前</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>| 33 | 右眉眉头（画面左侧） | 43 |</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>| 38 | 左眉眉头（画面右侧） | 101 |</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu"># 修改后</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>| 33 | 图像右侧眉毛的眉头（被拍摄者右眉） | 43 |</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>| 38 | 图像左侧眉毛的眉头（被拍摄者左眉） | 101 |</span></code></pre></div>
+<h4 id="优先级-2-代码注释">优先级 2: 代码注释</h4>
+<p><strong>文件列表</strong>： - <code>beauty-engine/src/main/java/com/picme/beauty/internal/facedetect/adapter/InsightFaceAdapter.kt</code> - <code>beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt</code> - <code>app/src/main/java/com/picme/core/image/ImageProcessor.kt</code></p>
+<p><strong>修改示例</strong>：</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 修改前</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 右眼外轮廓：统一 52-57（画面左侧）</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">rightEyeContour</span> <span class="op">=</span> unifiedLandmarks<span class="op">.</span>slice<span class="op">(</span><span class="fl">52..57</span><span class="op">)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 修改后</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 图像左侧的眼睛外轮廓（对应被拍摄者右眼）：统一索引 52-57</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">imageLeftEyeContour</span> <span class="op">=</span> unifiedLandmarks<span class="op">.</span>slice<span class="op">(</span><span class="fl">52..57</span><span class="op">)</span></span></code></pre></div>
+<h4 id="优先级-3-变量命名谨慎执行">优先级 3: 变量命名（谨慎执行）</h4>
+<p><strong>注意</strong>：变量命名修改影响范围大，建议分阶段进行：</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Phase 1: 添加别名（向后兼容）</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Deprecated</span><span class="op">(</span><span class="st">&quot;使用 imageLeftEye 替代&quot;</span><span class="op">,</span> ReplaceWith<span class="op">(</span><span class="st">&quot;imageLeftEye&quot;</span><span class="op">))</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">leftEye</span> <span class="op">=</span> imageLeftEye</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Phase 2: 逐步迁移调用方</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Phase 3: 移除旧命名</span></span></code></pre></div>
+<hr />
+<h2 id="最佳实践">📝 最佳实践</h2>
+<h3 id="始终明确坐标系">1. 始终明确坐标系</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"> * 获取图像左侧眼睛的中心点</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * @return 图像坐标系中的点（原点在左上角，x 向右增加，y 向下增加）</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getImageLeftEyeCenter</span><span class="op">():</span> <span class="dt">Point</span> <span class="op">{</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ...</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="使用枚举避免歧义">2. 使用枚举避免歧义</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="kw">class</span> EyePosition <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    IMAGE_LEFT<span class="op">,</span>   <span class="co">// 图像左侧的眼睛</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    IMAGE_RIGHT   <span class="co">// 图像右侧的眼睛</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getEyeCenter</span><span class="op">(</span><span class="va">position</span><span class="op">:</span> <span class="dt">EyePosition</span><span class="op">):</span> <span class="dt">Point</span> <span class="op">{</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>position<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        EyePosition<span class="op">.</span>IMAGE_LEFT <span class="op">-&gt;</span> landmarks<span class="op">[</span>IMAGE_LEFT_EYE_INDEX<span class="op">]</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        EyePosition<span class="op">.</span>IMAGE_RIGHT <span class="op">-&gt;</span> landmarks<span class="op">[</span>IMAGE_RIGHT_EYE_INDEX<span class="op">]</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="在函数名中体现坐标系">3. 在函数名中体现坐标系</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 不明确</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getLeftEye</span><span class="op">():</span> <span class="dt">Point</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 明确</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getImageLeftEye</span><span class="op">():</span> <span class="dt">Point</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="kw">fun</span> <span class="fu">getFaceSpaceLeftEye</span><span class="op">():</span> <span class="dt">Point</span>  <span class="co">// 如果确实需要人脸坐标系</span></span></code></pre></div>
+<h3 id="文档中添加坐标系图示">4. 文档中添加坐标系图示</h3>
+<div class="sourceCode" id="cb19"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## 坐标系说明</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>本文档中所有坐标均基于**图像坐标系**：</span></code></pre></div>
+<p>(0, 0) ───────────→ x 增加 │ │ 图像左侧 图像右侧 │ (x 小) (x 大) │ ↓ y 增加</p>
+<pre><code></code></pre>
+<hr />
+<h2 id="常见陷阱">🚨 常见陷阱</h2>
+<h3 id="陷阱-1-混淆前后置摄像头">陷阱 1: 混淆前后置摄像头</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 错误：假设前置和后置的&quot;左眼&quot;相同</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">leftEye</span> <span class="op">=</span> <span class="cf">if</span> <span class="op">(</span>isFrontCamera<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    face<span class="op">.</span>leftEye  <span class="co">// 前置：这是图像右侧！</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    face<span class="op">.</span>leftEye  <span class="co">// 后置：这是图像左侧</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：统一使用图像坐标系</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> face<span class="op">.</span>getImageLeftEye<span class="op">()</span>  <span class="co">// 永远是图像左侧</span></span></code></pre></div>
+<h3 id="陷阱-2-镜像翻转后忘记更新命名">陷阱 2: 镜像翻转后忘记更新命名</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ❌ 错误：镜像后仍然叫 leftEye</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">mirroredLeftEye</span> <span class="op">=</span> mirror<span class="op">(</span>face<span class="op">.</span>leftEye<span class="op">)</span>  <span class="co">// 实际已变成图像右侧</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// ✅ 正确：镜像后重新评估位置</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">imageLeftEye</span> <span class="op">=</span> <span class="cf">if</span> <span class="op">(</span>isMirrored<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    face<span class="op">.</span>originalRightEye  <span class="co">// 镜像后，原右眼变成图像左侧</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    face<span class="op">.</span>originalLeftEye</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="陷阱-3-文档与代码不一致">陷阱 3: 文档与代码不一致</h3>
+<div class="sourceCode" id="cb23"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 文档说：</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>&quot;左眼使用索引 58-63&quot;</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="fu"># 代码却是：</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>val imageLeftEye = landmarks<span class="co">[</span><span class="ot">58..63</span><span class="co">]</span>  // 实际是图像左侧</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu"># 问题：文档的&quot;左眼&quot;指什么？</span></span></code></pre></div>
+<p><strong>解决方案</strong>：文档必须与代码使用相同的术语。</p>
+<hr />
+<h2 id="验收检查清单">✅ 验收检查清单</h2>
+<h3 id="强制要求必须全部满足">🚨 强制要求（必须全部满足）</h3>
+<h4 id="文档审查">文档审查</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>所有“左/右”描述都明确标注了坐标系</strong>（<code>[图像坐标系]</code> 或 <code>[人脸坐标系]</code>）</label></li>
+<li><label><input type="checkbox" /><strong>文档章节开头添加了坐标系声明</strong>（使用引用块 <code>&gt;</code> 格式）</label></li>
+<li><label><input type="checkbox" />没有使用模糊的“左眼”、“右眼”等术语（必须带坐标系前缀）</label></li>
+<li><label><input type="checkbox" />前后置摄像头的差异有明确说明</label></li>
+<li><label><input type="checkbox" />添加了坐标系图示</label></li>
+</ul>
+<h4 id="代码审查">代码审查</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>所有变量名包含坐标系前缀</strong>（<code>imageLeft</code> / <code>imageRight</code> / <code>userLeft</code> / <code>userRight</code>）</label></li>
+<li><label><input type="checkbox" /><strong>所有注释明确标注坐标系</strong>（<code>// [图像坐标系]</code> 或 <code>// [人脸坐标系]</code>）</label></li>
+<li><label><input type="checkbox" /><strong>函数注释包含坐标系说明</strong>（KDoc 第一行必须标注）</label></li>
+<li><label><input type="checkbox" /><strong>同一作用域内未混用两种坐标系</strong>（关键检查点！）</label></li>
+<li><label><input type="checkbox" />跨坐标系转换有明确的转换函数</label></li>
+<li><label><input type="checkbox" />没有硬编码的 “left/right” 字符串用于 UI 显示</label></li>
+<li><label><input type="checkbox" />枚举定义中每个值都标注了坐标系</label></li>
+</ul>
+<h4 id="测试验证">测试验证</h4>
+<ul class="task-list">
+<li><label><input type="checkbox" />前置摄像头：图像左侧显示的是被拍摄者的右眼</label></li>
+<li><label><input type="checkbox" />后置摄像头：图像左侧显示的是被拍摄者的左眼</label></li>
+<li><label><input type="checkbox" />镜像切换后，UI 标注位置正确</label></li>
+<li><label><input type="checkbox" />关键点调试浮层显示的位置与预期一致</label></li>
+</ul>
+<hr />
+<h3 id="自动化检测脚本">🔍 自动化检测脚本</h3>
+<h4 id="检测未标注坐标系的注释">检测未标注坐标系的注释</h4>
+<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># scripts/check-coordinate-annotation.sh</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 检测代码中未标注坐标系的左右描述</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;🔍 检查未标注坐标系的注释...&quot;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 搜索常见的模糊描述</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="va">FUZZY_PATTERNS</span><span class="op">=</span><span class="va">(</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;左眼&quot;</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;右眼&quot;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;左眉&quot;</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;右眉&quot;</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;左侧脸&quot;</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;右侧脸&quot;</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="va">)</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> pattern <span class="kw">in</span> <span class="st">&quot;</span><span class="va">${FUZZY_PATTERNS</span><span class="op">[@]</span><span class="va">}</span><span class="st">&quot;</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;\n搜索: </span><span class="va">$pattern</span><span class="st">&quot;</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grep</span> <span class="at">-rn</span> <span class="st">&quot;</span><span class="va">$pattern</span><span class="st">&quot;</span> app/src/ <span class="at">--include</span><span class="op">=</span><span class="st">&quot;*.kt&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[图像坐标系\]&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[人脸坐标系\]&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;imageLeft&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;imageRight&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;userLeft&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;userRight&quot;</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;\n✅ 检查完成&quot;</span></span></code></pre></div>
+<h4 id="检测未标注坐标系的文档">检测未标注坐标系的文档</h4>
+<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># scripts/check-doc-coordinate-annotation.sh</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 检测文档中未标注坐标系的左右描述</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;🔍 检查文档中的坐标系标注...&quot;</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 搜索 Markdown 文件中的模糊描述</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-rn</span> <span class="st">&quot;左眼\|右眼\|左眉\|右眉&quot;</span> docs/ <span class="at">--include</span><span class="op">=</span><span class="st">&quot;*.md&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[图像坐标系\]&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[人脸坐标系\]&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;图像左侧&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;图像右侧&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;被拍摄者&quot;</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;\n✅ 检查完成&quot;</span></span></code></pre></div>
+<h4 id="git-pre-commit-hook可选">Git Pre-commit Hook（可选）</h4>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co"># .git/hooks/pre-commit</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 提交前自动检查坐标系标注</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;🔍 运行坐标系标注检查...&quot;</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 检查暂存的文件</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="va">STAGED_FILES</span><span class="op">=</span><span class="va">$(</span><span class="fu">git</span> diff <span class="at">--cached</span> <span class="at">--name-only</span> <span class="at">--diff-filter</span><span class="op">=</span>ACM <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&quot;\.(kt|md)$&quot;</span><span class="va">)</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$STAGED_FILES</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">exit</span> 0</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="va">ERRORS</span><span class="op">=</span>0</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> file <span class="kw">in</span> <span class="va">$STAGED_FILES</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 检查 Kotlin 文件</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">[[</span> <span class="va">$file</span> <span class="ot">==</span> <span class="pp">*</span>.kt <span class="kw">]];</span> <span class="cf">then</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">FUZZY_COMMENTS</span><span class="op">=</span><span class="va">$(</span><span class="fu">grep</span> <span class="at">-n</span> <span class="st">&quot;左眼\|右眼\|左眉\|右眉&quot;</span> <span class="st">&quot;</span><span class="va">$file</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[图像坐标系\]&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[人脸坐标系\]&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;imageLeft&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;imageRight&quot;</span><span class="va">)</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">[</span> <span class="ot">!</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$FUZZY_COMMENTS</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>            <span class="bu">echo</span> <span class="st">&quot;❌ </span><span class="va">$file</span><span class="st"> 中存在未标注坐标系的注释:&quot;</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>            <span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$FUZZY_COMMENTS</span><span class="st">&quot;</span></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>            <span class="va">ERRORS</span><span class="op">=</span><span class="va">$((ERRORS</span> <span class="op">+</span> <span class="dv">1</span><span class="va">))</span></span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">fi</span></span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">fi</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 检查 Markdown 文件</span></span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">[[</span> <span class="va">$file</span> <span class="ot">==</span> <span class="pp">*</span>.md <span class="kw">]];</span> <span class="cf">then</span></span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>        <span class="va">FUZZY_DOCS</span><span class="op">=</span><span class="va">$(</span><span class="fu">grep</span> <span class="at">-n</span> <span class="st">&quot;左眼\|右眼\|左眉\|右眉&quot;</span> <span class="st">&quot;</span><span class="va">$file</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[图像坐标系\]&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;\[人脸坐标系\]&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;图像左侧&quot;</span> <span class="kw">|</span> <span class="dt">\</span></span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a>            <span class="fu">grep</span> <span class="at">-v</span> <span class="st">&quot;图像右侧&quot;</span><span class="va">)</span></span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">[</span> <span class="ot">!</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$FUZZY_DOCS</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>            <span class="bu">echo</span> <span class="st">&quot;❌ </span><span class="va">$file</span><span class="st"> 中存在未标注坐标系的描述:&quot;</span></span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>            <span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$FUZZY_DOCS</span><span class="st">&quot;</span></span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>            <span class="va">ERRORS</span><span class="op">=</span><span class="va">$((ERRORS</span> <span class="op">+</span> <span class="dv">1</span><span class="va">))</span></span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">fi</span></span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">fi</span></span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="va">$ERRORS</span> <span class="ot">-gt</span> 0 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;\n❌ 发现 </span><span class="va">$ERRORS</span><span class="st"> 个文件存在坐标系标注问题&quot;</span></span>
+<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;请参考 docs/07-STANDARDS/COORDINATE_SYSTEM.md 修复&quot;</span></span>
+<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a>    <span class="bu">exit</span> 1</span>
+<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
+<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;✅ 坐标系标注检查通过&quot;</span></span>
+<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a><span class="bu">exit</span> 0</span></code></pre></div>
+<hr />
+<h2 id="参考资源">📚 参考资源</h2>
+<h3 id="内部文档">内部文档</h3>
+<ul>
+<li>InsightFace 106 映射文档（已移除，2026-05；坐标系规范不受影响）</li>
+<li><a href="../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.html">BEAUTY_ENGINE_TECH_SPEC.md</a> - 相机预览比例、坐标转换与人脸关键点使用</li>
+</ul>
+<h3 id="外部资源">外部资源</h3>
+<ul>
+<li><a href="https://docs.opencv.org/master/d2/d44/tutorial_py_image_basic_ops.html">OpenCV Coordinate System</a></li>
+<li><a href="https://google.github.io/mediapipe/solutions/face_mesh">MediaPipe Face Mesh Coordinates</a></li>
+</ul>
+<hr />
+<h2 id="维护策略">🔄 维护策略</h2>
+<h3 id="定期审计">定期审计</h3>
+<p>每季度执行一次全文档扫描：</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 查找潜在的歧义描述</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">find</span> docs/ <span class="at">-name</span> <span class="st">&quot;*.md&quot;</span> <span class="at">-exec</span> grep <span class="at">-l</span> <span class="st">&quot;左眼\|右眼\|左眉\|右眉&quot;</span> {} <span class="dt">\;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 检查代码注释</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">find</span> app/src/ <span class="at">-name</span> <span class="st">&quot;*.kt&quot;</span> <span class="at">-exec</span> grep <span class="at">-n</span> <span class="st">&quot;//.*左眼\|//.*右眼&quot;</span> {} +</span></code></pre></div>
+<h3 id="新人培训">新人培训</h3>
+<p>在新成员 onboarding 文档中加入本规范：</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## PoLang 开发规范</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">### 坐标系与命名</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>阅读 <span class="co">[</span><span class="ot">人脸坐标系与左右命名规范</span><span class="co">](../02-ARCHITECTURE/ADR/ADR-003-coordinate-system-management.md)</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>理解图像坐标系 vs 人脸坐标系的区别</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>掌握前置/后置摄像头的镜像差异</span></code></pre></div>
+<h3 id="cicd-集成可选">CI/CD 集成（可选）</h3>
+<p>添加 lint 规则检测模糊命名：</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// custom-lint-rules/AmbiguousNamingDetector.kt</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AmbiguousNamingDetector <span class="op">:</span> <span class="dt">Detector</span><span class="op">(),</span> <span class="dt">Detector</span>.<span class="dt">UastScanner</span> <span class="op">{</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">getApplicableUastTypes</span><span class="op">()</span> <span class="op">=</span> listOf<span class="op">&lt;</span>UClass<span class="op">&gt;(</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>        UVariableDeclaration<span class="op">::</span><span class="kw">class</span>.java</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">override</span> <span class="kw">fun</span> createUastHandler<span class="op">(</span><span class="va">context</span><span class="op">:</span> <span class="dt">JavaContext</span><span class="op">)</span> = <span class="kw">object</span> <span class="op">:</span> <span class="dt">UElementHandler</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">override</span> <span class="kw">fun</span> <span class="fu">visitVariable</span><span class="op">(</span><span class="va">node</span><span class="op">:</span> <span class="dt">UVariableDeclaration</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>            <span class="kw">val</span> <span class="va">name</span> <span class="op">=</span> node<span class="op">.</span>name</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>name<span class="op">.</span>matches<span class="op">(</span>Regex<span class="op">(</span><span class="st">&quot;^(left|right)(Eye|Eyebrow|Cheek)</span><span class="ss">$</span><span class="st">&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>                context<span class="op">.</span>report<span class="op">(</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>                    issue <span class="op">=</span> AMBIGUOUS_NAMING<span class="op">,</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>                    location <span class="op">=</span> context<span class="op">.</span>getLocation<span class="op">(</span>node<span class="op">),</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>                    message <span class="op">=</span> <span class="st">&quot;变量名 &#39;</span><span class="ss">$name</span><span class="st">&#39; 有歧义，请使用 &#39;imageLeft&#39; 或 &#39;imageRight&#39; 前缀&quot;</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>                <span class="op">)</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<p><strong>批准人</strong>: [RD] 全栈工程师 + [CR] 规范守护者<br />
+<strong>生效日期</strong>: 2026-05-03<br />
+<strong>下次审查</strong>: 2026-08-03</p>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

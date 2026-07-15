@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoLang 代码拆分与架构重构计划 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../index.html">🏠 首页</a>
+  <a class="nav-item " href="../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item " href="../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item active" href="../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../">07 Standards</a> / <span>PoLang 代码拆分与架构重构计划</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#一超大文件扫描结果gt1000-行">一、超大文件扫描结果（&gt;1000 行）</a></li>
+      <li><a href="#二逐文件拆分建议">二、逐文件拆分建议</a></li>
+      <li><a href="#三agent-模块深度分析与独立库提取方案">三、Agent 模块深度分析与独立库提取方案</a></li>
+      <li><a href="#四其他值得关注的问题">四、其他值得关注的问题</a></li>
+      <li><a href="#五实施优先级与阶段规划">五、实施优先级与阶段规划</a></li>
+      <li><a href="#六验收标准">六、验收标准</a></li>
+      </ul>
+    </div>
+<h1 id="picme-代码拆分与架构重构计划">PoLang 代码拆分与架构重构计划</h1>
+<blockquote>
+<p>本文档基于 2026-06-07 的代码扫描结果，识别项目中超过 1000 行的大文件，分析架构问题，并给出拆分建议。 重点关注 Agent 模块的独立库提取可行性。</p>
+</blockquote>
+<hr />
+<h2 id="一超大文件扫描结果1000-行">一、超大文件扫描结果（&gt;1000 行）</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 27%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>排名</th>
+<th>文件路径</th>
+<th>行数</th>
+<th>模块</th>
+<th>严重度</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><code>beauty-engine/.../BeautyRenderer.kt</code></td>
+<td>1687</td>
+<td>美颜引擎</td>
+<td>🔴 高</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><code>app/.../camera/CameraScreen.kt</code></td>
+<td>1505</td>
+<td>相机页面</td>
+<td>🔴 高</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><code>app/.../download/LlmModelDownloadManager.kt</code></td>
+<td>1326</td>
+<td>模型下载</td>
+<td>🔴 高</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><code>app/.../camera/CameraDebugOverlay.kt</code></td>
+<td>1148</td>
+<td>相机调试</td>
+<td>🟡 中</td>
+</tr>
+</tbody>
+</table>
+<h3 id="行文件需关注">500~1000 行文件（需关注）</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件路径</th>
+<th>行数</th>
+<th>模块</th>
+<th>严重度</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>app/.../gallery/components/MediaPager.kt</code></td>
+<td>991</td>
+<td>图库</td>
+<td>🟡 中</td>
+</tr>
+<tr class="even">
+<td><code>app/.../common/chat/AiChatScreen.kt</code></td>
+<td>987</td>
+<td>聊天 UI</td>
+<td>🟡 中</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../core/image/GpuBeautyProcessor.kt</code></td>
+<td>962</td>
+<td>图像处理</td>
+<td>🟡 中</td>
+</tr>
+<tr class="even">
+<td><code>app/.../core/image/ImageProcessor.kt</code></td>
+<td>944</td>
+<td>图像处理</td>
+<td>🟡 中</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../preferences/UserPreferencesRepository.kt</code></td>
+<td>867</td>
+<td>数据层</td>
+<td>🟡 中</td>
+</tr>
+<tr class="even">
+<td><code>app/.../agent/CapabilityRegistry.kt</code></td>
+<td>768</td>
+<td>Agent 核心</td>
+<td>🟡 中</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../settings/LlmModelManagerScreen.kt</code></td>
+<td>756</td>
+<td>设置 UI</td>
+<td>🟡 中</td>
+</tr>
+<tr class="even">
+<td><code>app/.../settings/SettingsViewModel.kt</code></td>
+<td>749</td>
+<td>设置 VM</td>
+<td>🟡 中</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../camera/CameraPreviewContent.kt</code></td>
+<td>683</td>
+<td>相机 UI</td>
+<td>🟢 低</td>
+</tr>
+<tr class="even">
+<td><code>app/.../settings/SettingsScreen.kt</code></td>
+<td>681</td>
+<td>设置 UI</td>
+<td>🟢 低</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../camera/components/CameraOverlays.kt</code></td>
+<td>674</td>
+<td>相机 UI</td>
+<td>🟢 低</td>
+</tr>
+<tr class="even">
+<td><code>app/.../usecase/AiAgentUseCase.kt</code></td>
+<td>618</td>
+<td>Agent 用例</td>
+<td>🟢 低</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../agent/AgentOrchestrator.kt</code></td>
+<td>601</td>
+<td>Agent 核心</td>
+<td>🟢 低</td>
+</tr>
+<tr class="even">
+<td><code>app/.../agent/AgentCommandParser.kt</code></td>
+<td>596</td>
+<td>Agent 核心</td>
+<td>🟢 低</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../debug/SampleDataGenerator.kt</code></td>
+<td>594</td>
+<td>调试工具</td>
+<td>🟢 低</td>
+</tr>
+<tr class="even">
+<td><code>app/.../settings/SettingsAiAgent.kt</code></td>
+<td>526</td>
+<td>设置 UI</td>
+<td>🟢 低</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../common/chat/AgentChatComponents.kt</code></td>
+<td>514</td>
+<td>聊天 UI</td>
+<td>🟢 低</td>
+</tr>
+<tr class="even">
+<td><code>app/.../testing/agent/bridge/AgentTestBroadcastReceiver.kt</code></td>
+<td>532</td>
+<td>测试框架</td>
+<td>🟢 低</td>
+</tr>
+<tr class="odd">
+<td><code>app/.../testing/agent/engine/AgentTestEngine.kt</code></td>
+<td>506</td>
+<td>测试框架</td>
+<td>🟢 低</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="二逐文件拆分建议">二、逐文件拆分建议</h2>
+<h3 id="beautyrenderer.kt1687-行--beauty-engine-模块">2.1 BeautyRenderer.kt（1687 行）- beauty-engine 模块</h3>
+<p><strong>问题分析：</strong> - 职责混杂：同时管理参数状态、多 Pass 渲染管线、Shader uniform 设置、错误处理、拍照离屏渲染 - 包含 4 个渲染 Pass 的逻辑（CopyPass / BeautyUnitPass / FaceMakeupPass / StyleEffectPass） - 两种渲染路径（预览 onRender / 拍照 renderBeautyMultiPass）耦合在一起 - 50+ 个 uniform location 字段堆积</p>
+<p><strong>拆分方案：</strong></p>
+<pre><code>beauty-engine/src/main/java/com/picme/beauty/render/
+├── BeautyRenderer.kt              # 保留：主入口 + 状态管理（~400 行）
+├── pass/
+│   ├── BeautyPassPipeline.kt      # 新增：多 Pass 管线编排（~350 行）
+│   ├── CopyPassExecutor.kt        # 新增：Pass 0 执行器（~80 行）
+│   ├── BeautyUnitPassExecutor.kt  # 新增：Pass 1 执行器（~120 行）
+│   └── FaceMakeupPassExecutor.kt  # 新增：Pass 4 执行器（~200 行）
+├── shader/
+│   └── UniformBinder.kt           # 新增：uniform 绑定辅助类（~150 行）
+└── photo/
+    └── PhotoRenderPipeline.kt     # 新增：拍照离屏渲染（~300 行）</code></pre>
+<p><strong>预期收益：</strong> - 每个文件控制在 400 行以内 - 渲染 Pass 可独立单元测试 - 新增 Pass 时无需修改主 Renderer</p>
+<hr />
+<h3 id="camerascreen.kt1505-行--app-模块">2.2 CameraScreen.kt（1505 行）- app 模块</h3>
+<p><strong>问题分析：</strong> - 典型的 “God Composable”：包含权限管理、相机绑定、AI Agent 初始化、语音协调器、状态机、传感器监听、内存持久化等 - <code>CameraContent</code> 内部声明了 50+ 个 <code>remember</code> 状态 - AI Agent 相关逻辑（~400 行）与相机核心逻辑耦合 - 命令处理（BatchExecute / Delay）直接写在 Composable 中</p>
+<p><strong>拆分方案：</strong></p>
+<pre><code>app/src/main/java/com/picme/features/camera/
+├── CameraScreen.kt                # 保留：权限壳 + 路由（~150 行）
+├── CameraContent.kt               # 已存在，需进一步瘦身
+├── state/
+│   └── CameraStateHolder.kt       # 新增：提取所有 remember 状态（~300 行）
+├── agent/
+│   ├── CameraAgentInitializer.kt  # 新增：AI Agent / UseCase / 语音初始化（~250 行）
+│   └── CameraAgentCommandExecutor.kt # 新增：BatchExecute/Delay 执行逻辑（~120 行）
+├── memory/
+│   └── CameraMemoryManager.kt     # 新增：DataStore 读写 + 状态恢复（~150 行）
+└── sensor/
+    └── CameraSensorManager.kt     # 新增：加速度计监听 + 稳定状态（~80 行）</code></pre>
+<p><strong>关键重构动作：</strong> 1. 将 <code>CameraContent</code> 中的状态提取为 <code>CameraStateHolder</code>（<code>remember</code> 聚合类） 2. AI Agent 初始化逻辑（<code>aiAgentUseCase</code> / <code>voiceCoordinator</code> / <code>asrEngine</code>）移至 <code>CameraAgentInitializer</code> 3. <code>CameraAgentCommandHandler</code> 已独立，但 Composable 中的命令执行逻辑仍需进一步剥离</p>
+<hr />
+<h3 id="llmmodeldownloadmanager.kt1326-行--app-模块">2.3 LlmModelDownloadManager.kt（1326 行）- app 模块</h3>
+<p><strong>问题分析：</strong> - 混合了多种职责：模型市场数据获取、本地模型配置解析、下载任务管理、断点续传、文件校验、Service 状态同步 - 包含 8 组硬编码的文件列表常量（LLM/ASR/TTS/人脸检测等） - 下载逻辑（<code>downloadModel</code> / <code>resumeDownload</code>）存在大量重复代码</p>
+<p><strong>拆分方案：</strong></p>
+<pre><code>app/src/main/java/com/picme/data/download/
+├── LlmModelDownloadManager.kt     # 保留：对外 API + 任务调度（~350 行）
+├── model/
+│   ├── ModelFileRegistry.kt       # 新增：文件列表常量 + 模型类型判断（~150 行）
+│   └── ModelMarketDataSource.kt   # 新增：市场数据获取 + 缓存（~200 行）
+├── download/
+│   ├── DownloadEngine.kt          # 新增：核心下载逻辑（~250 行）
+│   └── ResumeDownloadEngine.kt    # 新增：断点续传逻辑（~200 行）
+└── service/
+    └── DownloadServiceBridge.kt   # 新增：ForegroundService 状态同步（~80 行）</code></pre>
+<hr />
+<h3 id="cameradebugoverlay.kt1148-行--app-模块">2.4 CameraDebugOverlay.kt（1148 行）- app 模块</h3>
+<p><strong>问题分析：</strong> - 纯 UI 绘制文件，包含 4 种完全不同的绘制逻辑： - 人脸关键点 overlay（106 点） - ROI 矩形框 - 瘦脸控制点 + 方向箭头 - 腮红椭圆区域 - 大量数学计算（椭圆、三角函数、几何变换）与 Compose Canvas 绘制混在一起</p>
+<p><strong>拆分方案：</strong></p>
+<pre><code>app/src/main/java/com/picme/features/camera/debug/
+├── CameraDebugOverlay.kt          # 保留：入口分发（~150 行）
+├── draw/
+│   ├── FaceLandmarkDrawer.kt      # 新增：106 点绘制（~200 行）
+│   ├── RoiRectDrawer.kt           # 新增：ROI 矩形 + 角标（~120 行）
+│   ├── ThinFaceDebugDrawer.kt     # 新增：瘦脸控制点（~250 行）
+│   ├── BigEyeDebugDrawer.kt       # 新增：大眼控制点（~150 行）
+│   └── BlushDebugDrawer.kt        # 新增：腮红椭圆（~200 行）
+└── math/
+    └── FaceGeometryUtils.kt       # 新增：几何计算工具（~100 行）</code></pre>
+<hr />
+<h2 id="三agent-模块深度分析与独立库提取方案">三、Agent 模块深度分析与独立库提取方案</h2>
+<h3 id="当前-agent-模块结构">3.1 当前 Agent 模块结构</h3>
+<pre><code>app/src/main/java/com/picme/domain/agent/           # ~~~7939 行~~~ → 已迁移至 :agent-core（~5000 行），当前仅剩 Facade/AiAgentUseCase/CapabilityRegistry 等桥接层
+agent-core/src/main/java/com/picme/agent/core/        # Agent Runtime 核心（从 domain/agent/ 迁移）
+├── AgentCommandParser.kt       # 596 行 - 命令解析
+├── AgentOrchestrator.kt        # 601 行 - 编排器（单例）
+├── CapabilityRegistry.kt       # 768 行 - 能力注册表 + 队列
+├── ExecutionEngine.kt          # 401 行 - 执行引擎
+├── InferenceRouter.kt          # 153 行 - 推理路由
+├── LocalLlmEngine.kt           # 391 行 - 本地 LLM 引擎
+├── MemoryManager.kt            # 252 行 - 对话记忆
+├── MnnResourceManager.kt       # 317 行 - MNN 资源管理
+├── PrivacyGuard.kt             # 112 行 - 隐私守卫
+├── PromptBuilder.kt            # 323 行 - 提示词构建
+├── CapabilityHost.kt           # 172 行 - 能力宿主
+├── model/                      # 数据模型
+│   ├── AgentCommands.kt        # 345 行
+│   ├── AgentModels.kt          # 280 行
+│   ├── SceneManager.kt         # 150 行
+│   └── ...
+├── capability/                 # 能力实现
+│   ├── Capability.kt           # 121 行
+│   ├── CameraCapability.kt     # 286 行
+│   ├── GalleryCapability.kt    # 278 行
+│   ├── SettingsCapability.kt   # 248 行
+│   └── NavigationCapability.kt # 172 行
+└── remote/                     # 远程推理
+    ├── RemoteOrchestrator.kt   # 481 行
+    ├── RemoteInferenceEngine.kt # 392 行
+    ├── (UnifiedRemoteClient 已移除，远程推理现使用 :agent-core OpenAiChatModel)
+    ├── AdaptiveStrategySelector.kt # 182 行
+    ├── IntentCache.kt          # 287 行
+    └── ...</code></pre>
+<h3 id="架构问题诊断">3.2 架构问题诊断</h3>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 30%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>影响</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>CapabilityRegistry 过大</strong>（768 行）</td>
+<td>注册表 + 队列管理 + 命令分发 + 重试逻辑全部耦合</td>
+<td>P0</td>
+</tr>
+<tr class="even">
+<td><strong>AgentOrchestrator 职责过重</strong></td>
+<td>同时管理模型生命周期、推理路由、对话历史、场景策略</td>
+<td>P0</td>
+</tr>
+<tr class="odd">
+<td><strong>remote/ 包与本地引擎耦合</strong></td>
+<td><code>AgentOrchestrator</code> 直接依赖 <code>LocalLlmEngine</code> 和 <code>RemoteOrchestrator</code></td>
+<td>P1</td>
+</tr>
+<tr class="even">
+<td><strong>Capability 实现散落在 app 模块</strong></td>
+<td>Camera/Gallery/Settings Capability 在 domain 层却依赖 features 层</td>
+<td>P1</td>
+</tr>
+<tr class="odd">
+<td><strong>PromptBuilder 与业务耦合</strong></td>
+<td>提示词构建硬编码了相机/美颜等业务概念</td>
+<td>P2</td>
+</tr>
+<tr class="even">
+<td><strong>MnnResourceManager 在 Agent 包</strong></td>
+<td>资源管理是通用基础设施，不应属于 Agent 域</td>
+<td>P2</td>
+</tr>
+</tbody>
+</table>
+<h3 id="agent-core-模块定位与边界">3.3 <code>:agent-core</code> 模块定位与边界</h3>
+<p><strong>定位：</strong> <code>:agent-core</code> 是一个<strong>内聚的 Agent 运行时模块</strong>，不是过度抽象的框架，而是 PoLang Agent 系统的核心载体。</p>
+<p><strong>设计原则：</strong> - <strong>不为了抽象而抽象</strong>：直接使用具体类型（<code>AgentCommand</code>、<code>AgentContext</code> 等），而非泛型接口 - <strong>允许业务依赖</strong>：可以依赖 <code>beauty-engine</code>，可以定义相机/美颜相关的数据结构 - <strong>允许平台依赖</strong>：可以包含 MNN-LLM、Android 导航等特定平台内容 - <strong>代码简单明了</strong>：优先可读性和可维护性，而非极致解耦</p>
+<p><strong>模块边界：</strong></p>
+<pre><code>:agent-core                    # android-library，依赖 beauty-engine
+├── Capability.kt              # Capability 接口 + BaseCapability 基类
+├── CommandExecutor.kt         # 命令执行器（超时 + 异常处理）
+├── CrossPageCommandQueue.kt   # 跨页面命令队列（TTL + 重试）
+├── SceneManager.kt            # 场景管理单例
+├── AgentLogger.kt             # 日志抽象接口
+├── model/                     # Agent 核心数据模型
+│   ├── AgentCommands.kt       # AgentCommand 密封类
+│   ├── AgentModels.kt         # AgentContext / AgentAction / PageContext
+│   ├── ExecutionState.kt      # 执行状态
+│   ├── InferenceResult.kt     # 推理结果
+│   ├── MediaAsset.kt          # 媒体资源模型
+│   ├── PageContext.kt         # 页面上下文
+│   └── SceneContext.kt        # 场景上下文
+└── remote/                    # 远程推理相关
+    └── ExecutionPlan.kt       # 执行计划</code></pre>
+<p><strong>已迁移文件（从 app 模块下沉）：</strong></p>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>原位置</th>
+<th>新位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Capability.kt</code></td>
+<td><code>app/.../domain/agent/capability/</code></td>
+<td><code>:agent-core</code></td>
+<td>接口 + BaseCapability</td>
+</tr>
+<tr class="even">
+<td><code>CommandExecutor.kt</code></td>
+<td><code>app/.../domain/agent/executor/</code></td>
+<td><code>:agent-core</code></td>
+<td>命令执行器</td>
+</tr>
+<tr class="odd">
+<td><code>CrossPageCommandQueue.kt</code></td>
+<td><code>app/.../domain/agent/queue/</code></td>
+<td><code>:agent-core</code></td>
+<td>跨页面队列</td>
+</tr>
+<tr class="even">
+<td><code>AgentCommands.kt</code></td>
+<td><code>app/.../domain/agent/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>命令密封类</td>
+</tr>
+<tr class="odd">
+<td><code>AgentModels.kt</code></td>
+<td><code>app/.../domain/agent/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>核心模型</td>
+</tr>
+<tr class="even">
+<td><code>ExecutionState.kt</code></td>
+<td><code>app/.../domain/agent/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>执行状态</td>
+</tr>
+<tr class="odd">
+<td><code>InferenceResult.kt</code></td>
+<td><code>app/.../domain/agent/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>推理结果</td>
+</tr>
+<tr class="even">
+<td><code>MediaAsset.kt</code></td>
+<td><code>app/.../domain/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>媒体资源</td>
+</tr>
+<tr class="odd">
+<td><code>PageContext.kt</code></td>
+<td><code>app/.../domain/agent/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>页面上下文</td>
+</tr>
+<tr class="even">
+<td><code>SceneContext.kt</code></td>
+<td><code>app/.../domain/agent/model/</code></td>
+<td><code>:agent-core/model/</code></td>
+<td>场景上下文</td>
+</tr>
+<tr class="odd">
+<td><code>ExecutionPlan.kt</code></td>
+<td><code>app/.../domain/agent/remote/</code></td>
+<td><code>:agent-core/remote/</code></td>
+<td>执行计划</td>
+</tr>
+</tbody>
+</table>
+<p><strong>留在 app 模块的文件：</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+<blockquote>
+<p><strong>迁移状态（2026-06 审计）</strong>：以上迁移均已落地。<code>Capability.kt</code>, <code>CommandExecutor.kt</code>, <code>CrossPageCommandQueue.kt</code>, <code>AgentCommands.kt</code>, <code>AgentModels.kt</code>, <code>ExecutionState.kt</code>, <code>InferenceResult.kt</code>, <code>MediaAsset.kt</code>, <code>PageContext.kt</code>, <code>SceneContext.kt</code>, <code>ExecutionPlan.kt</code> 均已在 <code>agent-core/</code> 中。<code>CapabilityRegistry.kt</code>, <code>AgentOrchestrator.kt</code>, <code>AgentConfigurator.kt</code> 仍在 app/ 中（Facade/策略路由层）。</p>
+</blockquote>
+<p><code>CapabilityRegistry.kt</code> | <code>app/.../domain/agent/</code> | 使用 <code>:agent-core</code> 的 <code>CommandExecutor</code> + <code>CrossPageCommandQueue</code> |<br />
+<code>AgentOrchestrator.kt</code> | <code>app/.../domain/agent/</code> | 使用 <code>:agent-core</code> 的模型和接口 |<br />
+<code>AgentConfigurator.kt</code> | <code>app/.../domain/agent/</code> | 平台特定组件配置 |<br />
+<code>CameraCapability.kt</code> | <code>app/.../features/camera/capability/</code> | 业务 Capability |<br />
+<code>GalleryCapability.kt</code> | <code>app/.../features/gallery/capability/</code> | 业务 Capability |<br />
+<code>SettingsCapability.kt</code> | <code>app/.../features/settings/capability/</code> | 业务 Capability |<br />
+<code>NavigationCapability.kt</code> | <code>app/.../domain/agent/capability/</code> | 通用导航 Capability |</p>
+<p><strong>依赖关系：</strong></p>
+<pre><code>:app
+├── :agent-core                 # Agent 运行时核心（已包含模型 + 基础设施）
+├── :beauty-engine              # 美颜引擎（已有）
+└── app-features/
+    ├── camera/                 # CameraCapability + 相机页面
+    ├── gallery/                # GalleryCapability + 图库页面
+    └── settings/               # SettingsCapability + 设置页面</code></pre>
+<hr />
+<h2 id="四其他值得关注的问题">四、其他值得关注的问题</h2>
+<h3 id="包结构不合理">4.1 包结构不合理</h3>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 45%" />
+<col style="width: 27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>当前状态</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>domain.agent.capability</code> 包含 UI 相关 Capability</td>
+<td>CameraCapability 在 domain 层却操作相机状态</td>
+<td>将业务 Capability 下放到 <code>features.xxx.agent</code></td>
+</tr>
+<tr class="even">
+<td><code>features.common.chat</code> 被多处引用</td>
+<td>AiChatScreen 在 common 包，但包含语音/ASR 初始化逻辑</td>
+<td>拆分为 <code>ui-chat</code>（纯 UI）和 <code>chat-integration</code>（业务绑定）</td>
+</tr>
+<tr class="odd">
+<td><code>data.preferences</code> 过大</td>
+<td>UserPreferencesRepository 867 行，管理 40+ 个 DataStore Key</td>
+<td>按领域拆分为 <code>CameraPreferences</code>、<code>AgentPreferences</code>、<code>AppearancePreferences</code></td>
+</tr>
+<tr class="even">
+<td><code>testing.agent</code> 与生产代码混置</td>
+<td>测试框架在生产源码目录</td>
+<td>考虑拆分为 <code>:testing</code> 独立模块</td>
+</tr>
+</tbody>
+</table>
+<h3 id="重复代码">4.2 重复代码</h3>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 45%" />
+<col style="width: 27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>位置</th>
+<th>重复内容</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CameraScreen.kt</code> + <code>AgentChatComponents.kt</code></td>
+<td>ASR 引擎初始化逻辑（~60 行）几乎相同</td>
+<td>提取到 <code>AsrEngineFactory</code></td>
+</tr>
+<tr class="even">
+<td><code>ImageProcessor.kt</code> + <code>GpuBeautyProcessor.kt</code></td>
+<td><code>createFaceMaskBitmap</code> 方法重复</td>
+<td>提取到通用工具类</td>
+</tr>
+<tr class="odd">
+<td><code>AgentOrchestrator.kt</code> + <code>AiAgentUseCase.kt</code></td>
+<td>都包含远程/本地推理路由逻辑</td>
+<td><code>AiAgentUseCase</code> 应完全委托给 <code>AgentOrchestrator</code>，删除重复逻辑</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="五实施优先级与阶段规划">五、实施优先级与阶段规划</h2>
+<h3 id="phase-1agent-核心重构已完成">Phase 1：Agent 核心重构（已完成 ✅）</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>文件</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拆分 CapabilityRegistry</td>
+<td><code>CapabilityRegistry.kt</code></td>
+<td>✅</td>
+<td>拆出 <code>CommandExecutor</code> + <code>CrossPageCommandQueue</code>，注册表降至 470 行</td>
+</tr>
+<tr class="even">
+<td>拆分 AgentOrchestrator</td>
+<td><code>AgentOrchestrator.kt</code></td>
+<td>✅</td>
+<td>拆出 <code>AgentConfigurator</code>，编排器降至 515 行</td>
+</tr>
+<tr class="odd">
+<td>Capability 位置调整</td>
+<td><code>capability/*.kt</code></td>
+<td>✅</td>
+<td>Camera/Gallery/Settings 移至 <code>features.xxx.capability</code></td>
+</tr>
+<tr class="even">
+<td>创建 <code>:agent-core</code> 模块</td>
+<td>新建模块</td>
+<td>✅</td>
+<td>android-library，依赖 beauty-engine，已迁移 11 个文件</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 1 关键成果：</strong> - <code>:agent-core</code> 模块已激活，包含 Agent 核心运行时（接口 + 模型 + 基础设施） - <code>Capability</code> 接口统一在 <code>:agent-core</code>，app 模块直接复用 - <code>CommandExecutor</code> + <code>CrossPageCommandQueue</code> 统一在 <code>:agent-core</code>，删除 app 重复实现 - 业务 Capability（Camera/Gallery/Settings）已下放到 <code>features</code> 层 - 所有模块编译通过</p>
+<h3 id="phase-2大文件拆分待执行">Phase 2：大文件拆分（待执行）</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>文件</th>
+<th>预计工作量</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拆分 CapabilityRegistry</td>
+<td><code>CapabilityRegistry.kt</code></td>
+<td>2d</td>
+<td>中：队列逻辑需仔细测试</td>
+</tr>
+<tr class="even">
+<td>拆分 AgentOrchestrator</td>
+<td><code>AgentOrchestrator.kt</code></td>
+<td>2d</td>
+<td>中：单例生命周期需保持</td>
+</tr>
+<tr class="odd">
+<td>Capability 位置调整</td>
+<td><code>capability/*.kt</code></td>
+<td>1d</td>
+<td>低：纯移动</td>
+</tr>
+<tr class="even">
+<td>创建 <code>:agent-core</code> 模块</td>
+<td>新建模块</td>
+<td>1d</td>
+<td>低：Gradle 配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-2大文件拆分">Phase 2：大文件拆分</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>文件</th>
+<th>预计工作量</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拆分 BeautyRenderer</td>
+<td><code>BeautyRenderer.kt</code></td>
+<td>3d</td>
+<td>高：渲染管线复杂，需视觉回归测试</td>
+</tr>
+<tr class="even">
+<td>拆分 CameraScreen</td>
+<td><code>CameraScreen.kt</code></td>
+<td>2d</td>
+<td>中：状态管理重构</td>
+</tr>
+<tr class="odd">
+<td>拆分 LlmModelDownloadManager</td>
+<td><code>LlmModelDownloadManager.kt</code></td>
+<td>2d</td>
+<td>低：逻辑清晰</td>
+</tr>
+<tr class="even">
+<td>拆分 CameraDebugOverlay</td>
+<td><code>CameraDebugOverlay.kt</code></td>
+<td>1d</td>
+<td>低：纯 UI 拆分</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-3架构清理">Phase 3：架构清理</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>范围</th>
+<th>预计工作量</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拆分 UserPreferencesRepository</td>
+<td><code>data/preferences/</code></td>
+<td>2d</td>
+<td>中：DataStore Key 分散</td>
+</tr>
+<tr class="even">
+<td>提取 ASR 工厂</td>
+<td><code>CameraScreen.kt</code> / <code>AgentChatComponents.kt</code></td>
+<td>0.5d</td>
+<td>低</td>
+</tr>
+<tr class="odd">
+<td>合并 ImageProcessor 重复代码</td>
+<td><code>core/image/</code></td>
+<td>1d</td>
+<td>中：需测试拍照路径</td>
+</tr>
+<tr class="even">
+<td>测试框架独立模块</td>
+<td><code>testing/</code></td>
+<td>1d</td>
+<td>低</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="六验收标准">六、验收标准</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />所有文件行数控制在 500 行以内（除数据模型/常量定义文件）</label></li>
+<li><label><input type="checkbox" /><code>:agent-core</code> 模块可独立编译，不依赖 <code>:app</code> 任何代码</label></li>
+<li><label><input type="checkbox" /><code>:agent-core</code> 单元测试覆盖率 &gt; 60%</label></li>
+<li><label><input type="checkbox" />原有功能零回归（通过 Agent Test V2 自动化测试验证）</label></li>
+<li><label><input type="checkbox" />文档同步更新（AGENTS.md / 模块 AGENTS.md）</label></li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>维护者</strong>：CO Agent <strong>最后更新</strong>：2026-06-07 <strong>状态</strong>：Phase 1 已完成，Phase 2 待启动</p>
+</blockquote>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

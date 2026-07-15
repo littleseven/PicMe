@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR-006: 本地/远程指令体系包级隔离 | PoLang Docs</title>
+<style>
+  :root {
+    --sidebar-width: 220px;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    text-align: center;
+  }
+  .sidebar-header a {
+    text-decoration: none; color: inherit;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .nav-item:hover {
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: #dbeafe;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  .main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  h1 { font-size: 28px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin: 28px 0 12px; color: var(--primary-dark); }
+  h3 { font-size: 18px; margin: 20px 0 8px; }
+  h4 { font-size: 16px; margin: 16px 0 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    background: #eff6ff;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fafafa; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  img { max-width: 100%; border-radius: 6px; }
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover { color: var(--primary); }
+  a.github-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.github-link:hover { background: var(--primary-dark); color: #fff; text-decoration: none; }
+  .toc {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--primary-dark);
+  }
+  .toc ul { margin-left: 16px; }
+  .toc li { margin: 2px 0; }
+  .toc a { font-size: 14px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 0; width: 100%; height: auto;
+      border-right: none; border-bottom: 1px solid var(--border);
+      padding: 10px 12px; display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; white-space: nowrap; z-index: 20;
+    }
+    .sidebar-header { margin: 0 8px 0 0; padding: 0; border: none; font-size: 15px; flex-shrink: 0; }
+    .nav-item { display: inline-block; padding: 6px 10px; margin: 0; font-size: 13px; flex-shrink: 0; }
+    .main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    pre { font-size: 12px; padding: 12px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header"><a href="../../index.html">📷 PoLang Docs</a></div>
+  <a class="nav-item " href="../../index.html">🏠 首页</a>
+  <a class="nav-item " href="../../00-INDEX.html">📋 文档索引</a>
+  <a class="nav-item " href="../../privacy-policy/index.html">📱 隐私政策</a>
+  <a class="nav-item " href="../../01-PRODUCT/">📦 产品</a>
+  <a class="nav-item active" href="../../02-ARCHITECTURE/">🏗️ 架构</a>
+  <a class="nav-item " href="../../03-TECHNICAL-SPECS/">⚙️ 技术规范</a>
+  <a class="nav-item " href="../../04-AGENT-CAPABILITIES/">🤖 Agent 能力</a>
+  <a class="nav-item " href="../../05-DEVELOPMENT/">🔧 开发规范</a>
+  <a class="nav-item " href="../../06-QA/">🔬 QA 测试</a>
+  <a class="nav-item " href="../../07-STANDARDS/">📐 标准规范</a>
+  </nav>
+  <main class="main">
+    <div class="breadcrumb"><a href="../../">02 Architecture</a> / <a href="../">Adr</a> / <span>ADR-006: 本地/远程指令体系包级隔离</span></div>
+    <div class="toc">
+      <div class="toc-title">📑 目录</div>
+      <ul>
+      <li><a href="#1-背景与问题陈述">1. 背景与问题陈述</a></li>
+      <li><a href="#2-决策">2. 决策</a></li>
+      <li><a href="#3-技术实现">3. 技术实现</a></li>
+      <li><a href="#4-包视图总览">4. 包视图总览</a></li>
+      <li><a href="#5-迁移计划">5. 迁移计划</a></li>
+      <li><a href="#6-后果分析">6. 后果分析</a></li>
+      <li><a href="#7-状态">7. 状态</a></li>
+      <li><a href="#8-相关文档">8. 相关文档</a></li>
+      </ul>
+    </div>
+<h1 id="adr-006-本地远程指令体系包级隔离">ADR-006: 本地/远程指令体系包级隔离</h1>
+<p><strong>状态</strong>: 已实施 (Implemented)<br />
+<strong>日期</strong>: 2026-06-16<br />
+<strong>更新日期</strong>: 2026-06-18<br />
+<strong>决策</strong>: RD<br />
+<strong>依赖</strong>: ADR-005（本地/远程推理协议分离） &gt; &gt; <strong>实现详情与远程编排规格见</strong>: <a href="../../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.html"><code>docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md</code></a>（本 ADR 保留决策背景，具体远程指令与飞书链路以该技术规范为唯一事实来源）</p>
+<hr />
+<h2 id="背景与问题陈述">1. 背景与问题陈述</h2>
+<h3 id="两套指令体系现状">1.1 两套指令体系现状</h3>
+<p>PoLang 存在两种完全不同的指令体系，分别服务于本地 LLM 和远程 LLM：</p>
+<table>
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 37%" />
+<col style="width: 52%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>自定义指令体系（本地）</th>
+<th>OpenAI tool_calls 体系（远程）</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>协议格式</strong></td>
+<td><code>[{"method":"...","params":{...}}]</code> JSON 数组</td>
+<td><code>{"tool_calls":[{"id":"call_x","type":"function","function":{"name":"...","arguments":{...}}}]}</code></td>
+</tr>
+<tr class="even">
+<td><strong>LLM 型号</strong></td>
+<td>Qwen3.5-2B（端侧 MNN-LLM）</td>
+<td>云端 LLM（OpenAI 兼容 API）</td>
+</tr>
+<tr class="odd">
+<td><strong>约束方式</strong></td>
+<td>JSON 数组 Prompt 约束 + 精简 System Prompt</td>
+<td>OpenAI 原生协议约束</td>
+</tr>
+<tr class="even">
+<td><strong>核心解析器</strong></td>
+<td><code>AgentCommandParser</code>（method/params → AgentCommand）</td>
+<td><code>ToolCallingOutputParser</code>（tool_calls → ToolExecutionRequest）</td>
+</tr>
+<tr class="odd">
+<td><strong>Prompt 构造</strong></td>
+<td><code>PromptBuilder.buildSystemPrompt/buildL2SystemPrompt</code></td>
+<td><code>PromptBuilder.buildBatchPrompt</code> + <code>ToolPromptBuilder</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="混用问题adr-005-已解决">1.2 混用问题（ADR-005 已解决）</h3>
+<blockquote>
+<p><strong>2026-06 更新</strong>：下述混用问题已在 ADR-005 Phase 1 中全部解决。<code>InferenceRouter</code>、<code>ToolCallingOutputParser</code>、<code>ToolCallingChatLanguageModel</code>、<code>ToolPromptBuilder</code>、<code>ToolOrchestrator</code>、<code>ToolCallingConfig</code>、<code>ToolCallingMode</code> 均已删除。</p>
+</blockquote>
+<p>尽管 ADR-005 已从推理链路层面分离了本地/远程，但<strong>指令体系层面曾存在严重混用</strong>：</p>
+<pre><code>agent-core/.../runtime/
+├── parsing/                  ← 混用
+│   ├── AgentCommandParser.kt  # method/params 解析（本地专用）
+│   └── PromptBuilder.kt       # 混用了本地 Prompt 和远程 Prompt（~570行）
+├── tool/                     ← 混用
+│   ├── ToolCallingOutputParser.kt  # 主要解析 tool_calls，但兜底解析 method/params
+│   ├── ToolCallingChatLanguageModel.kt  # 远程包装层（含 Prompt 注入）
+│   ├── ToolPromptBuilder.kt   # Tool Schema → Prompt 字符串
+│   ├── ToolCallingConfig.kt   # 配置类
+│   ├── ToolCallingMode.kt     # OPENAI_TOOLS / REACT 枚举
+│   └── ToolOrchestrator.kt    # 工具调用编排
+├── inference/                ← 汇聚耦合点
+│   └── InferenceRouter.kt     # 同时桥接本地/远程两套指令体系</code></pre>
+<p><strong>具体问题</strong>：</p>
+<ol type="1">
+<li><p><strong><code>PromptBuilder.kt</code> 单体膨胀</strong>：同一文件包含面向本地小模型的 <code>buildSystemPrompt</code>/<code>buildL2SystemPrompt</code>（method/params 格式）和面向远程模型的 <code>buildBatchPrompt</code>（tool_calls 格式），双方 Prompt 互相干扰。</p></li>
+<li><p><strong><code>ToolCallingOutputParser.kt</code> 跨格式兜底</strong>：<code>parseFallbackToolCalls()</code> 中第 337-350 行显式解析 method/params JSON 数组作为 tool_calls 的兜底方案，这是本不该存在的跨体系耦合。</p></li>
+<li><p><strong><code>RemoteOrchestrator.kt</code> 双向污染</strong>：远程编排器内含 <code>parseFallbackToolCalls()</code> 方法，既解析 tool_calls（核心职责），又兜底解析 method/params（兼容旧格式），增加了维护成本和认知负担。</p></li>
+<li><p><strong><code>InferenceRouter.kt</code> 桥接逻辑</strong>：第 83-91 行的 <code>processInputWithTools()</code> 方法需同时在本地和远程引擎间切换，且需将 tool_calls 请求通过 <code>toolRequestToAgentCommand()</code> 转译为内部 method/params 格式（第 274-290 行），增加了不必要的适配层。</p></li>
+<li><p><strong>无包名/文件名隔离</strong>：两套体系的文件混在 <code>runtime/parsing/</code>、<code>runtime/tool/</code>、<code>runtime/inference/</code> 等包中，无法通过文件系统路径直观判断归属哪个指令体系。</p></li>
+</ol>
+<h3 id="混用风险">1.3 混用风险</h3>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 23%" />
+<col style="width: 30%" />
+<col style="width: 23%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>风险</th>
+<th>场景</th>
+<th>可能性</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>本地 Prompt 误改影响远程</td>
+<td><code>PromptBuilder.kt</code> 中本地和远程 Prompt 共处一文件</td>
+<td>中</td>
+<td>远程推理异常</td>
+</tr>
+<tr class="even">
+<td>回退解析掩盖远程 Bug</td>
+<td><code>ToolCallingOutputParser</code> 兜底解析 method/params 成功，但 tool_calls 实际已失效</td>
+<td>高</td>
+<td>Bug 延迟发现</td>
+</tr>
+<tr class="odd">
+<td>新人混淆开发</td>
+<td>新开发者不清楚哪个解析器服务于哪个链路</td>
+<td>高</td>
+<td>错误修改</td>
+</tr>
+<tr class="even">
+<td>测试覆盖遗漏</td>
+<td>本地/远程使用同一测试数据格式，无法独立验证</td>
+<td>中</td>
+<td>回归风险</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="决策">2. 决策</h2>
+<h3 id="决策-1-包级隔离-两条指令体系分配独立包路径">决策 1: 包级隔离 — 两条指令体系分配独立包路径</h3>
+<h4 id="目标包结构">目标包结构</h4>
+<pre><code>agent-core/src/main/java/com/mamba/picme/agent/core/
+├── api/                              # 共享 API 层（不变）
+│   └── command/
+│       └── AgentCommands.kt          # AgentCommand 模型（两体系共享）
+│
+├── local/                            ★ 新增：本地指令体系
+│   ├── model/
+│   │   └── LocalCommand.kt           # 本地 method/params 协议模型
+│   ├── prompt/
+│   │   └── LocalPromptBuilder.kt     # 本地 Prompt 构造（从 PromptBuilder 拆分）
+│   ├── parser/
+│   │   └── LocalCommandParser.kt     # 本地 method/params → AgentCommand 解析
+│   └── pipeline/
+│       └── LocalInferencePipeline.kt # 本地推理链路（替代 InferenceRouter 中部分逻辑）
+│
+├── remote/                           ★ 新增：远程指令体系
+│   ├── model/
+│   │   ├── OpenAiToolCall.kt         # tool_calls 协议模型
+│   │   └── ToolSpec.kt               # ToolSpecification 相关模型
+│   ├── prompt/
+│   │   └── RemotePromptBuilder.kt    # 远程 Prompt 构造（从 PromptBuilder 拆分）
+│   ├── parser/
+│   │   └── ToolCallParser.kt         # 纯 tool_calls 解析（不含 method/params 兜底）
+│   ├── client/
+│   │   ├── UnifiedRemoteClient.kt    # OpenAI 协议客户端（从 LangChain4jOpenAiClient 迁移）
+│   │   └── OpenAiProtocol.kt         # OpenAI 协议常量与工具函数
+│   └── pipeline/
+│       └── RemoteInferencePipeline.kt# 远程推理链路
+│
+├── runtime/                          ★ 清理后保留逻辑
+│   ├── capability/                   # Capability 注册、分发（不变）
+│   ├── execution/                    # ExecutionPlan、PlanStep（不变）
+│   ├── policy/                       # PrivacyGuard（不变）
+│   └── state/                        # SceneManager（不变）
+│
+├── platform/llm/                     ★ 保留 LLM 引擎实现
+│   ├── local/
+│   │   └── LocalLlmEngine.kt        # 本地 LLM 引擎（不变）
+│   └── remote/
+│       └── RemoteOrchestrator.kt     # 远程编排器（简化，移除 method/params 兜底）
+│
+└── facade/
+    └── AgentOrchestrator.kt          # 顶层编排（简化路由）</code></pre>
+<h4 id="包名策略">包名策略</h4>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 47%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>体系</th>
+<th>包路径范式</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>本地指令体系</strong></td>
+<td><code>*.agent.core.local.*</code></td>
+<td><code>com.mamba.picme.agent.core.local.parser.LocalCommandParser</code></td>
+</tr>
+<tr class="even">
+<td><strong>远程指令体系</strong></td>
+<td><code>*.agent.core.remote.*</code></td>
+<td><code>com.mamba.picme.agent.core.remote.parser.ToolCallParser</code></td>
+</tr>
+<tr class="odd">
+<td><strong>LLM 引擎</strong></td>
+<td><code>*.agent.core.platform.llm.*</code></td>
+<td>保持原包路径不变</td>
+</tr>
+<tr class="even">
+<td><strong>共享模型</strong></td>
+<td><code>*.agent.core.api.*</code></td>
+<td>保持原包路径不变</td>
+</tr>
+</tbody>
+</table>
+<h4 id="文件名命名规范">文件名命名规范</h4>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 52%" />
+<col style="width: 24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>体系</th>
+<th>前缀/后缀规则</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>本地指令体系</strong></td>
+<td>类名以 <code>Local</code> 开头</td>
+<td><code>LocalPromptBuilder</code>, <code>LocalCommandParser</code></td>
+</tr>
+<tr class="even">
+<td><strong>远程指令体系</strong></td>
+<td>类名以 <code>ToolCall</code>/<code>Remote</code>/<code>OpenAi</code> 开头</td>
+<td><code>ToolCallParser</code>, <code>RemotePromptBuilder</code></td>
+</tr>
+<tr class="odd">
+<td><strong>协议模型</strong></td>
+<td>反映协议名称</td>
+<td><code>LocalCommand</code>(method/params), <code>OpenAiToolCall</code>(tool_calls)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="决策-2-文件级拆分-拆分混杂文件">决策 2: 文件级拆分 — 拆分混杂文件</h3>
+<h4 id="promptbuilder.kt-拆分为两个">2.1 <code>PromptBuilder.kt</code> → 拆分为两个</h4>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 38%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>原文件</th>
+<th>本地体系归属</th>
+<th>远程体系归属</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>PromptBuilder.kt</code>（570 行，本地+远程混用）</td>
+<td><code>local/prompt/LocalPromptBuilder.kt</code></td>
+<td><code>remote/prompt/RemotePromptBuilder.kt</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>LocalPromptBuilder.kt</code> 职责</strong>： - <code>buildSystemPrompt()</code> — 面向本地小模型的完整 System Prompt（method/params 格式） - <code>buildL2SystemPrompt()</code> — 面向本地小模型的精简 System Prompt - 输出约束：JSON 数组 <code>[{"method":"...","params":{...}}]</code> - 适用场景：<code>LocalInferencePipeline</code> 调用</p>
+<p><strong><code>RemotePromptBuilder.kt</code> 职责</strong>： - <code>buildSystemPrompt()</code> — 面向远程模型的完整 System Prompt（tool_calls 格式） - <code>buildBatchPrompt()</code> — L2 批量命令 Prompt（含 Tool Schema 说明） - <code>buildPlanPrompt()</code> — L3 计划 Prompt - <code>buildChatPrompt()</code> — L4 聊天 Prompt - 输出约束：通过 <code>ToolSpecification</code> 定义 tools，模型以 <code>tool_calls</code> 返回 - 适用场景：<code>RemoteInferencePipeline</code> 调用</p>
+<h4 id="toolcallingoutputparser.kt-拆分出纯-tool_calls-解析器">2.2 <code>ToolCallingOutputParser.kt</code> → 拆分出纯 tool_calls 解析器</h4>
+<table>
+<thead>
+<tr class="header">
+<th>原文件</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ToolCallingOutputParser.kt</code>（573 行，含 method/params 兜底）</td>
+<td>删除</td>
+</tr>
+</tbody>
+</table>
+<p><strong>新文件</strong>：<code>remote/parser/ToolCallParser.kt</code> - 职责：仅解析标准 OpenAI <code>tool_calls</code> 格式 → <code>ToolExecutionRequest</code> - 移除：<code>SimpleToolCall</code> 解析（method/params 格式） - 移除：<code>&lt;tool_call&gt;</code> 标签解析（旧版兼容） - 保留：<code>parseOpenAiTools()</code> / <code>parseReAct()</code> / <code>parseOpenAiToolsByRegex()</code> - 保留：<code>repairJson()</code> / <code>balanceBraces()</code>（JSON 修复仍适用于小模型输出 tool_calls 场景） - 保留：<code>fuzzyExtractToolCall()</code>（兜底提取仍需要）</p>
+<p><strong>删除的兜底逻辑</strong>（原文件第 71-77 行）：</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. &lt;tool_call&gt;...&lt;/tool_call&gt; 标签（兼容旧格式）← 删除：本地指令不再进入此解析器</span></span></code></pre></div>
+<h4 id="toolcallingchatlanguagemodel.kt-删除">2.3 <code>ToolCallingChatLanguageModel.kt</code> → 删除</h4>
+<table>
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>原文件</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ToolCallingChatLanguageModel.kt</code>（通过 Prompt 注入模拟 tool_calls）</td>
+<td>删除</td>
+</tr>
+</tbody>
+</table>
+<p><strong>理由</strong>：ADR-005 已决策删除此包装层。远程链路直接通过 <code>UnifiedRemoteClient</code>（LangChain4j SDK）发出标准 OpenAI 请求并接收标准响应，SDK 原生支持 <code>tool_calls</code>。</p>
+<blockquote>
+<p><strong>实现说明（2026-06-22）</strong>：<code>UnifiedRemoteClient</code> 已在后续重构中被移除，当前远程链路通过 <code>:agent-core</code> 的 <code>OpenAiChatModel</code> 直接调用 OpenAI API。</p>
+</blockquote>
+<h4 id="toolpromptbuilder.kt-并入-remotepromptbuilder">2.4 <code>ToolPromptBuilder.kt</code> → 并入 RemotePromptBuilder</h4>
+<table>
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>原文件</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ToolPromptBuilder.kt</code>（将 ToolSpecification 转为 Prompt 字符串）</td>
+<td>删除，功能并入 <code>RemotePromptBuilder</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>理由</strong>：远程模型应通过标准 <code>tool_calls</code> 协议传递工具 Schema，而非通过字符串注入到 Prompt 中。<code>RemotePromptBuilder</code> 只需构建基础的 System Prompt 文本，Tool Schema 通过 ChatRequest 的 <code>toolSpecifications</code> 参数传递。</p>
+<h4 id="inferencerouter.kt-拆分为两条-pipeline">2.5 <code>InferenceRouter.kt</code> → 拆分为两条 Pipeline</h4>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 38%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>原文件</th>
+<th>本地体系归属</th>
+<th>远程体系归属</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>InferenceRouter.kt</code>（595 行，双向路由）</td>
+<td><code>local/pipeline/LocalInferencePipeline.kt</code></td>
+<td><code>remote/pipeline/RemoteInferencePipeline.kt</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>LocalInferencePipeline.kt</code> 职责</strong>： - L1 Cache 命令 - L1.5 Template 匹配 - L2 Batch（本地快速推理） - 所有本地推理逻辑集中管理</p>
+<p><strong><code>RemoteInferencePipeline.kt</code> 职责</strong>： - L2 Batch（远程 tool_calls） - L3 Plan（远程计划执行） - L4 ReAct Chat（远程对话） - 所有远程推理逻辑集中管理</p>
+<p><strong>顶层路由</strong>移至 <code>AgentOrchestrator</code>：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AgentOrchestrator<span class="op">(</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">localPipeline</span><span class="op">:</span> <span class="dt">LocalInferencePipeline</span><span class="op">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">val</span> <span class="va">remotePipeline</span><span class="op">:</span> <span class="dt">RemoteInferencePipeline</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">fun</span> <span class="fu">dispatch</span><span class="op">(</span><span class="va">input</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span> <span class="va">context</span><span class="op">:</span> <span class="dt">AgentContext</span><span class="op">):</span> <span class="dt">InferenceResult</span> <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">return</span> <span class="cf">when</span> <span class="op">(</span>agentMode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>            AiAgentMode<span class="op">.</span>LOCAL <span class="op">-&gt;</span> localPipeline<span class="op">.</span>process<span class="op">(</span>input<span class="op">,</span> context<span class="op">)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>            AiAgentMode<span class="op">.</span>REMOTE <span class="op">-&gt;</span> remotePipeline<span class="op">.</span>process<span class="op">(</span>input<span class="op">,</span> context<span class="op">)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="remoteorchestrator.kt-移除-methodparams-兜底">2.6 <code>RemoteOrchestrator.kt</code> → 移除 method/params 兜底</h4>
+<table>
+<colgroup>
+<col style="width: 60%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>当前行为</th>
+<th>变更</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>parseFallbackToolCalls()</code> 方法第 337-350 行解析 method/params JSON 数组</td>
+<td><strong>删除</strong>：远程链路不再兜底解析本地协议格式</td>
+</tr>
+</tbody>
+</table>
+<p><strong>理由</strong>：ADR-005 已完成协议分离，远程链路应仅处理标准 OpenAI 协议。如果远程 API 未返回 <code>tool_calls</code>、也未返回 <code>content</code>，应直接报错返回，而非尝试解析 method/params。</p>
+<hr />
+<h3 id="决策-3-测试模型隔离">决策 3: 测试模型隔离</h3>
+<h4 id="datadriventestmodels.kt-中的-actionjson">3.1 <code>DataDrivenTestModels.kt</code> 中的 <code>ActionJson</code></h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>当前</th>
+<th>变更</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ActionJson(method, params)</code> 作为通用测试模型</td>
+<td><strong>标记为本地测试专用</strong>：仅由 <code>LocalTestEngine</code> 使用</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb5"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 新增：远程测试协议模型（独立文件）</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonClass</span><span class="op">(</span>generateAdapter <span class="op">=</span> <span class="kw">true</span><span class="op">)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> RemoteActionJson<span class="op">(</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    @<span class="va">Json</span>(<span class="va">name</span> <span class="op">=</span> <span class="st">&quot;tool_calls&quot;</span><span class="op">)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> toolCalls<span class="op">:</span> <span class="dt">List</span><span class="op">&lt;</span><span class="dt">RemoteToolCall</span><span class="op">&gt;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>@<span class="dt">JsonClass</span><span class="op">(</span><span class="va">generateAdapter</span> <span class="op">=</span> true<span class="op">)</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> RemoteToolCall<span class="op">(</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">id</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">type</span><span class="op">:</span> <span class="dt">String</span> <span class="op">=</span> <span class="st">&quot;function&quot;</span><span class="op">,</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">function</span><span class="op">:</span> <span class="dt">RemoteFunction</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>@JsonClass<span class="op">(</span><span class="va">generateAdapter</span> <span class="op">=</span> true<span class="op">)</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="kw">class</span> RemoteFunction<span class="op">(</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">name</span><span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">arguments</span><span class="op">:</span> <span class="dt">String</span>   <span class="co">// JSON string</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+<h4 id="测试文件分离">3.2 测试文件分离</h4>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>当前</th>
+<th>变更</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>agent/test/</code> 测试混用本地/远程</td>
+<td>按包拆分为 <code>local/</code> 和 <code>remote/</code></td>
+</tr>
+<tr class="even">
+<td><code>app/src/test/.../AgentTestEngine.kt</code> 使用 method 映射</td>
+<td>按包拆分为 <code>LocalTestEngine</code> 和 <code>RemoteTestEngine</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="技术实现">3. 技术实现</h2>
+<h3 id="包迁移映射表">3.1 包迁移映射表</h3>
+<p>以下列出所有受影响文件的迁移路径：</p>
+<table>
+<colgroup>
+<col style="width: 32%" />
+<col style="width: 32%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>原文件</th>
+<th>新位置</th>
+<th>变更类型</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>runtime/parsing/PromptBuilder.kt</code></td>
+<td>→ <code>local/prompt/LocalPromptBuilder.kt</code></td>
+<td>拆分</td>
+</tr>
+<tr class="even">
+<td>（新文件）</td>
+<td>→ <code>remote/prompt/RemotePromptBuilder.kt</code></td>
+<td>新增</td>
+</tr>
+<tr class="odd">
+<td><code>runtime/parsing/AgentCommandParser.kt</code></td>
+<td>→ <code>local/parser/LocalCommandParser.kt</code></td>
+<td>重命名+迁移</td>
+</tr>
+<tr class="even">
+<td><code>runtime/tool/ToolCallingOutputParser.kt</code></td>
+<td>→ <code>remote/parser/ToolCallParser.kt</code></td>
+<td>重命名+简化（移除 method/params 分支）</td>
+</tr>
+<tr class="odd">
+<td><code>runtime/tool/ToolCallingChatLanguageModel.kt</code></td>
+<td>删除</td>
+<td>删除</td>
+</tr>
+<tr class="even">
+<td><code>runtime/tool/ToolPromptBuilder.kt</code></td>
+<td>删除，功能并入 <code>RemotePromptBuilder</code></td>
+<td>删除</td>
+</tr>
+<tr class="odd">
+<td><code>runtime/tool/ToolCallingConfig.kt</code></td>
+<td>删除（远程配置通过 <code>RemoteLlmConfig</code> 管理）</td>
+<td>删除</td>
+</tr>
+<tr class="even">
+<td><code>runtime/tool/ToolCallingMode.kt</code></td>
+<td>删除</td>
+<td>删除</td>
+</tr>
+<tr class="odd">
+<td><code>runtime/tool/ToolOrchestrator.kt</code></td>
+<td>→ <code>remote/pipeline/ToolOrchestrator.kt</code></td>
+<td>迁移</td>
+</tr>
+<tr class="even">
+<td><code>runtime/inference/InferenceRouter.kt</code></td>
+<td>拆分 → <code>local/pipeline/LocalInferencePipeline.kt</code> + <code>remote/pipeline/RemoteInferencePipeline.kt</code></td>
+<td>拆分</td>
+</tr>
+<tr class="odd">
+<td><code>runtime/inference/AdaptiveStrategySelector.kt</code></td>
+<td>删除（策略逻辑分散到两条 Pipeline）</td>
+<td>删除</td>
+</tr>
+<tr class="even">
+<td><code>platform/llm/remote/RemoteOrchestrator.kt</code></td>
+<td>保留（移除 method/params 兜底）</td>
+<td>简化</td>
+</tr>
+<tr class="odd">
+<td><code>facade/AgentConfigurator.kt</code></td>
+<td>保留（更新注入逻辑）</td>
+<td>修改</td>
+</tr>
+<tr class="even">
+<td><code>runtime/parsing/AgentCommandParser.kt</code> 中的 <code>parseCommandByMethod</code></td>
+<td>移至 <code>api/command/</code> 下作为共享工具</td>
+<td>迁移</td>
+</tr>
+</tbody>
+</table>
+<h3 id="删除依赖关系图">3.2 删除依赖关系图</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode diff"><code class="sourceCode diff"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="st">- runtime/tool/ToolCallingChatLanguageModel.kt</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    - 被 inference/InferenceRouter.kt 引用 → 改为直接调用 Platform.chat()</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="st">- runtime/tool/ToolPromptBuilder.kt</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    - 被 ToolCallingChatLanguageModel.kt 引用 → 自然删除</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="st">- runtime/tool/ToolCallingConfig.kt</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    - 被 ToolCallingChatLanguageModel.kt + InferenceRouter.kt 引用 → 移除</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="st">- runtime/tool/ToolCallingMode.kt</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    - 被 ToolCallingConfig.kt 引用 → 自然删除</span></code></pre></div>
+<h3 id="保留的组件">3.3 保留的组件</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>组件</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>api/command/AgentCommands.kt</code></td>
+<td>共享领域模型，两套体系都使用</td>
+</tr>
+<tr class="even">
+<td><code>api/command/AgentCommand.kt</code></td>
+<td>共享领域模型</td>
+</tr>
+<tr class="odd">
+<td><code>api/context/AgentContext.kt</code></td>
+<td>共享上下文</td>
+</tr>
+<tr class="even">
+<td><code>api/ToolSpecification.kt</code></td>
+<td>远程体系使用（OpenAI tool schema 定义）</td>
+</tr>
+<tr class="odd">
+<td><code>api/ToolExecutionRequest.kt</code></td>
+<td>远程体系使用（OpenAI tool_calls 产物）</td>
+</tr>
+<tr class="even">
+<td><code>api/ToolProvider.kt</code></td>
+<td>远程体系使用（工具提供者接口）</td>
+</tr>
+<tr class="odd">
+<td><code>api/ChatLanguageModel.kt</code></td>
+<td>两套体系共享的 LLM 调用接口</td>
+</tr>
+<tr class="even">
+<td><code>platform/llm/local/LocalLlmEngine.kt</code></td>
+<td>本地引擎实现（不变）</td>
+</tr>
+<tr class="odd">
+<td><code>platform/llm/remote/RemoteOrchestrator.kt</code></td>
+<td>远程编排器（简化后保留）</td>
+</tr>
+<tr class="even">
+<td><code>platform/llm/remote/LangChain4jOpenAiClient.kt</code></td>
+<td><code>RemoteOrchestrator</code> 内部依赖</td>
+</tr>
+</tbody>
+</table>
+<h3 id="移除的相互引用">3.4 移除的相互引用</h3>
+<p><strong><code>ToolCallingOutputParser</code> 中需要删除的 method/params 兜底代码</strong>：</p>
+<p>原始文件 <code>ToolCallingOutputParser.kt</code> 第 71-77 行：</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. &lt;tool_call&gt;...&lt;/tool_call&gt; 标签（兼容旧格式）← 删除</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">tagRegex</span> <span class="op">=</span> Regex<span class="op">(</span><span class="st">&quot;&lt;tool_call&gt;(.*?)&lt;/tool_call&gt;&quot;</span><span class="op">,</span> RegexOption<span class="op">.</span>DOT_MATCHES_ALL<span class="op">)</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">val</span> <span class="va">tagRequests</span> <span class="op">=</span> tagRegex<span class="op">.</span>findAll<span class="op">(</span>text<span class="op">).</span>mapNotNull <span class="op">{</span> match <span class="op">-&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    parseSimple<span class="op">(</span>match<span class="op">.</span>groupValues<span class="op">[</span><span class="dv">1</span><span class="op">].</span>trim<span class="op">())</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">}.</span>toList<span class="op">()</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>tagRequests<span class="op">.</span>isNotEmpty<span class="op">())</span> <span class="kw">return</span> tagRequests</span></code></pre></div>
+<p><strong><code>RemoteOrchestrator.kt</code> 中需要删除的 method/params 兜底代码</strong>：</p>
+<p>原始文件 <code>RemoteOrchestrator.kt</code> 第 337-350 行：</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 尝试 2: 解析为 method/params JSON 数组（兼容旧格式）← 删除</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">val</span> <span class="va">jsonArray</span> <span class="op">=</span> JSONArray<span class="op">(</span>cleaned<span class="op">)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>jsonArray<span class="op">.</span>length<span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">val</span> <span class="va">commands</span> <span class="op">=</span> mutableListOf<span class="op">&lt;</span>AgentCommand<span class="op">&gt;()</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>i <span class="kw">in</span> <span class="dv">0</span> until jsonArray<span class="op">.</span>length<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                <span class="kw">val</span> <span class="va">item</span> <span class="op">=</span> jsonArray<span class="op">.</span>getJSONObject<span class="op">(</span>i<span class="op">)</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                commands<span class="op">.</span>add<span class="op">(</span>parseAgentCommand<span class="op">(</span>item<span class="op">,</span> context<span class="op">))</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span>e<span class="op">:</span> Exception<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>                Logger<span class="op">.</span>e<span class="op">(</span>tag<span class="op">,</span> <span class="st">&quot;[Fallback] Failed to parse array item #</span><span class="ss">$i</span><span class="st">&quot;</span><span class="op">,</span> e<span class="op">)</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>commands<span class="op">.</span>isNotEmpty<span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>            <span class="op">...</span></span></code></pre></div>
+<hr />
+<h2 id="包视图总览">4. 包视图总览</h2>
+<h3 id="变更前">4.1 变更前</h3>
+<pre><code>agent.core
+├── api/command/       AgentCommands.kt
+├── runtime/parsing/   PromptBuilder.kt      ← 混用本地/远程
+│                      AgentCommandParser.kt ← 本地 method/params
+├── runtime/tool/      ToolCallingOutputParser.kt  ← 含 method/params 兜底
+│                      ToolCallingChatLanguageModel.kt
+│                      ToolPromptBuilder.kt
+│                      ToolCallingConfig.kt
+│                      ToolCallingMode.kt
+│                      ToolOrchestrator.kt
+├── runtime/inference/ InferenceRouter.kt    ← 双向桥接
+│                      AdaptiveStrategySelector.kt
+├── platform/llm/      local/LocalLlmEngine.kt
+│                      remote/RemoteOrchestrator.kt
+│                      remote/LangChain4jOpenAiClient.kt</code></pre>
+<h3 id="变更后已实施">4.2 变更后（已实施）</h3>
+<pre><code>agent.core
+├── api/                    ★ 共享 API 层
+│   ├── command/            AgentCommands.kt（PoLang 业务命令）
+│   ├── context/            AgentContext, AgentAction, AgentScene
+│   ├── android/            RemoteModelConfig
+│   └── policy/             AiAgentMode, AiAgentPrivacyLevel
+├── local/                  ★ 本地推理链路（MNN-LLM + 自定义 JSON 协议）
+│   ├── prompt/             LocalPromptBuilder.kt
+│   ├── parser/             LocalCommandParser.kt（method/params → AgentCommand）
+│   └── pipeline/           LocalInferencePipeline.kt
+├── remote/                 ★ 远程推理链路（OpenAI API + tool_calls）
+│   ├── prompt/             RemotePromptBuilder.kt
+│   ├── parser/             ToolCallParser.kt（tool_calls → AgentCommand）
+│   ├── client/             UnifiedRemoteClient.kt
+│   └── pipeline/           RemoteInferencePipeline.kt
+├── react/                  ★ 飞书 ReAct 循环（独立指令体系）
+│   ├── InAppAgentService.kt
+│   └── tool/               ReAct 专用 Tool（apkclaw 风格）
+├── runtime/                ★ 运行时基础设施
+│   ├── capability/         CapabilityRegistry, CapabilityHost
+│   ├── execution/          InferenceResult, ExecutionPlan
+│   ├── inference/          IntentCache（L1 缓存，本地/远程共用）
+│   ├── policy/             PrivacyGuard
+│   └── state/            SceneManager
+├── platform/llm/
+│   ├── local/              LocalLlmEngine.kt（MNN-LLM 引擎）
+│   └── remote/             RemoteOrchestrator.kt（精简版）
+│                            LangChain4jOpenAiClient.kt
+└── facade/                 AgentOrchestrator.kt（顶层路由）</code></pre>
+<h3 id="物理隔离架构图">4.3 物理隔离架构图</h3>
+<pre class="mermaid"><code>graph TB
+    subgraph Shared[&quot;共享层 (api/ + runtime/)&quot;]
+        API[&quot;api/command/&lt;br/&gt;AgentCommands.kt&quot;]
+        CTX[&quot;api/context/&lt;br/&gt;AgentContext, AgentAction&quot;]
+        CAP[&quot;runtime/capability/&lt;br/&gt;CapabilityRegistry&quot;]
+        CACHE[&quot;runtime/inference/&lt;br/&gt;IntentCache&quot;]
+    end
+
+    subgraph LocalChain[&quot;本地推理链路 (local/)&quot;]
+        LP[&quot;local/prompt/&lt;br/&gt;LocalPromptBuilder&quot;]
+        LC[&quot;local/parser/&lt;br/&gt;LocalCommandParser&quot;]
+        LI[&quot;local/pipeline/&lt;br/&gt;LocalInferencePipeline&quot;]
+        MNN[&quot;platform/llm/local/&lt;br/&gt;LocalLlmEngine&lt;br/&gt;(MNN-LLM)&quot;]
+    end
+
+    subgraph RemoteChain[&quot;远程推理链路 (remote/)&quot;]
+        RP[&quot;remote/prompt/&lt;br/&gt;RemotePromptBuilder&quot;]
+        RC[&quot;remote/parser/&lt;br/&gt;ToolCallParser&quot;]
+        RI[&quot;remote/pipeline/&lt;br/&gt;RemoteInferencePipeline&quot;]
+        UNI[&quot;remote/client/&lt;br/&gt;UnifiedRemoteClient&quot;]
+        REM[&quot;platform/llm/remote/&lt;br/&gt;RemoteOrchestrator&quot;]
+    end
+
+    subgraph ReActChain[&quot;飞书 ReAct 链路 (react/)&quot;]
+        REACT[&quot;react/&lt;br/&gt;InAppAgentService&quot;]
+        TOOL[&quot;react/tool/&lt;br/&gt;ReAct Tools&quot;]
+    end
+
+    subgraph Facade[&quot;门面层 (facade/)&quot;]
+        ORCH[&quot;AgentOrchestrator&quot;]
+    end
+
+    ORCH --&gt;|LOCAL 模式| LI
+    ORCH --&gt;|REMOTE 模式| RI
+    ORCH --&gt;|FEISHU 模式| REACT
+
+    LI --&gt;|method/params JSON| LC
+    LC --&gt;|AgentCommand| API
+    LP --&gt;|精简 System Prompt| MNN
+    MNN --&gt;|JSON 数组输出| LC
+
+    RI --&gt;|tool_calls| RC
+    RC --&gt;|AgentCommand| API
+    RP --&gt;|Tool Schema + Prompt| REM
+    REM --&gt;|OpenAI Chat Completions| UNI
+    UNI --&gt;|tool_calls JSON| RC
+
+    REACT --&gt;|LangChain4j&lt;br/&gt;ToolExecutionRequest| TOOL
+    TOOL -.-&gt;|独立执行&lt;br/&gt;不经过 CapabilityRegistry| CAP
+
+    API --&gt;|命令分发| CAP
+    CACHE --&gt;|L1 缓存| LI
+    CACHE --&gt;|L1 缓存| RI</code></pre>
+<hr />
+<h2 id="迁移计划">5. 迁移计划</h2>
+<h3 id="phase-1-包结构重组1-2-天">Phase 1: 包结构重组（1-2 天）</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>说明</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>创建 <code>local/</code> 和 <code>remote/</code> 包</td>
+<td>建立新包目录</td>
+<td>路径存在</td>
+</tr>
+<tr class="even">
+<td><code>PromptBuilder.kt</code> 拆分</td>
+<td>本地 Prompt → <code>local/prompt/LocalPromptBuilder.kt</code>，远程 Prompt → <code>remote/prompt/RemotePromptBuilder.kt</code></td>
+<td>编译通过</td>
+</tr>
+<tr class="odd">
+<td><code>AgentCommandParser.kt</code> 迁移</td>
+<td>重命名为 <code>LocalCommandParser.kt</code>，迁至 <code>local/parser/</code></td>
+<td>编译通过</td>
+</tr>
+<tr class="even">
+<td><code>ToolCallingOutputParser.kt</code> 迁移+简化</td>
+<td>重命名为 <code>ToolCallParser.kt</code>，迁至 <code>remote/parser/</code>，移除 method/params 兜底</td>
+<td>编译通过</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-2-冗余删除1-天">Phase 2: 冗余删除（1 天）</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>说明</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>删除 <code>ToolCallingChatLanguageModel.kt</code></td>
+<td>远程链路直接使用 SDK 原生工具调用</td>
+<td>编译通过</td>
+</tr>
+<tr class="even">
+<td>删除 <code>ToolPromptBuilder.kt</code></td>
+<td>功能并入 <code>RemotePromptBuilder</code></td>
+<td>编译通过</td>
+</tr>
+<tr class="odd">
+<td>删除 <code>ToolCallingConfig.kt</code></td>
+<td>配置由远程链路独立管理</td>
+<td>编译通过</td>
+</tr>
+<tr class="even">
+<td>删除 <code>ToolCallingMode.kt</code></td>
+<td>不再需要模式枚举</td>
+<td>编译通过</td>
+</tr>
+<tr class="odd">
+<td><code>RemoteOrchestrator.kt</code> 简化</td>
+<td>移除 <code>parseFallbackToolCalls()</code> 中的 method/params 分支</td>
+<td>编译通过 + 远程链路测试通过</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-3-pipeline-重构2-天">Phase 3: Pipeline 重构（2 天）</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 28%" />
+<col style="width: 42%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>任务</th>
+<th>说明</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>拆分 <code>InferenceRouter.kt</code></td>
+<td>本地逻辑 → <code>LocalInferencePipeline.kt</code>，远程逻辑 → <code>RemoteInferencePipeline.kt</code></td>
+<td>编译通过</td>
+</tr>
+<tr class="even">
+<td>更新 <code>AgentOrchestrator.kt</code></td>
+<td>直接调度两条 Pipeline</td>
+<td>本地/远程入口均正常工作</td>
+</tr>
+<tr class="odd">
+<td>删除 <code>AdaptiveStrategySelector.kt</code></td>
+<td>策略逻辑分散到两条 Pipeline</td>
+<td>编译通过</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="后果分析">6. 后果分析</h2>
+<h3 id="正面影响">正面影响</h3>
+<ul>
+<li>✅ <strong>直观分隔</strong>：通过 <code>local/</code> ↔︎ <code>remote/</code> 包名即刻区分指令体系，无需深入阅读代码</li>
+<li>✅ <strong>文件名自我描述</strong>：<code>LocalCommandParser</code> 处理 method/params，<code>ToolCallParser</code> 处理 tool_calls，语义清晰</li>
+<li>✅ <strong>跨体系污染消除</strong>：远程链路不再兜底解析 method/params，本地链路不包含 tool_calls 逻辑</li>
+<li>✅ <strong>新人上手成本降低</strong>：包路径即文档，直观理解代码归属</li>
+<li>✅ <strong>修改安全</strong>：修改本地解析逻辑不用担心影响远程，反之亦然</li>
+<li>✅ <strong>测试独立</strong>：本地测试和远程测试使用各自协议模型，互不干扰</li>
+<li>✅ <strong>与 ADR-005 一脉相承</strong>：协议分离 → 代码分离，逻辑一致</li>
+</ul>
+<h3 id="负面影响">负面影响</h3>
+<ul>
+<li>⚠️ <strong>短期改动量较大</strong>：多个文件和引用的导入路径需同步更新，约 15-20 个文件受影响</li>
+<li>⚠️ <strong>git blame 信息丢失</strong>：重命名和迁移后，git 历史追溯需使用 <code>--follow</code> 参数</li>
+<li>⚠️ <strong>第三方代码集成需适配</strong>：如 <code>LangChain4j</code> 集成代码的导入路径可能需要调整</li>
+</ul>
+<h3 id="风险评估">风险评估</h3>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>风险</th>
+<th>概率</th>
+<th>影响</th>
+<th>缓解措施</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>导入路径遗漏导致编译失败</td>
+<td>高</td>
+<td>高</td>
+<td>逐一文件验证，编译检查</td>
+</tr>
+<tr class="even">
+<td><code>RemoteOrchestrator</code> method/params 兜底删除后远程出现兼容性问题</td>
+<td>中</td>
+<td>高</td>
+<td>确保远程 API 正确返回 tool_calls，CF/SFC 网关配置检查</td>
+</tr>
+<tr class="odd">
+<td><code>InferenceRouter</code> 拆分遗漏逻辑分支</td>
+<td>中</td>
+<td>中</td>
+<td>逐行比对拆分前后的条件分支</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="状态">7. 状态</h2>
+<table>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>状态</th>
+<th>日期</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>提议</td>
+<td>✅ 已实施</td>
+<td>2026-06-18</td>
+</tr>
+<tr class="even">
+<td>Phase 1: 包结构重组</td>
+<td>✅ 已完成</td>
+<td>2026-06-18</td>
+</tr>
+<tr class="odd">
+<td>Phase 2: 冗余删除</td>
+<td>✅ 已完成</td>
+<td>2026-06-18</td>
+</tr>
+<tr class="even">
+<td>Phase 3: Pipeline 重构</td>
+<td>✅ 已完成</td>
+<td>2026-06-18</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>实现差异说明（2026-06-22）</strong>：本 ADR 的核心原则（本地/远程包物理隔离）已完全落实，但实际实现与提议的目标包结构存在以下差异： - <strong>包路径</strong>：实际使用 <code>inference/local/</code> 和 <code>inference/remote/</code> 而非提议的 <code>local/</code> 和 <code>remote/</code> 直铺（保留 <code>inference/</code> 父级以便代码导航） - <strong>文件名</strong>：<code>ToolCallParser.kt</code> → 实际为 <code>ToolCallCommandParser.kt</code> - <strong>已移除的类</strong>：本 ADR 中引用的 <code>UnifiedRemoteClient</code>、<code>LangChain4jOpenAiClient</code> 已不存在。当前远程推理架构为：<code>:agent-core</code>（Java 库）提供 <code>OpenAiChatModel</code>/<code>OpenAiStreamingChatModel</code>，<code>:app</code> 模块的 <code>RemoteOrchestrator</code> 直接使用 <code>:agent-core</code> API 编排，无独立的客户端包装层 - <strong>react 包</strong>：位于 <code>inference/remote/react/</code> 而非提议的 <code>react/</code> 顶层包 - <strong>GBNF Grammar</strong>：提议中列为本地约束方式，实际已尝试后放弃</p>
+</blockquote>
+<hr />
+<h2 id="相关文档">8. 相关文档</h2>
+<ul>
+<li><code>ADR-005</code> — 本地/远程推理协议分离（本 ADR 的前置决策）</li>
+<li><code>agent-core/AGENTS.md</code> — Agent Core 模块规范（需同步更新）</li>
+<li><code>docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md</code> — 大美丽美颜引擎（含帧同步美妆系统）</li>
+<li><code>docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md</code> — Capability 注册表与生命周期规范</li>
+</ul>
+
+    <div class="footer">
+      <a href="https://github.com/littleseven/langchain4android" target="_blank" class="github-link">🔗 GitHub 仓库</a>
+      <p style="margin-top:12px">© PoLang — 雕刻时光，瞬间永恒。</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>
