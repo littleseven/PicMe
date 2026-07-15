@@ -48,6 +48,15 @@ private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
 
 /**
+ * 流式生成期间的占位文案。
+ *
+ * L2 协议下本地/远程输出恒为 JSON 指令（如 search_media / text_reply），不可直接展示原始 token；
+ * 且远程推理为同步一次性返回（onToken 只回调一次），流式期间无可增量展示的文本。
+ * 因此生成阶段统一展示该友好提示，待解析完成后再替换为最终文本/卡片消息。
+ */
+private const val STREAMING_THINKING_HINT = "正在思考..."
+
+/**
  * Chat 首页 ViewModel — 管理聊天状态与数据流
  *
  * 职责：
@@ -344,12 +353,12 @@ class ChatViewModel(
                 // 2. 触发处理状态
                 _isProcessing.value = true
 
-                // 3. 创建流式占位消息
+                // 3. 创建流式占位消息（立即展示「思考中」提示，避免空气泡）
                 val streamingId = "streaming_${System.currentTimeMillis()}"
                 _streamingMessage.value = ChatMessageUi(
                     id = streamingId,
                     type = ChatMessageType.AGENT_TEXT,
-                    content = "",
+                    content = STREAMING_THINKING_HINT,
                     modelUsed = currentModelLabel()
                 )
 
@@ -361,24 +370,17 @@ class ChatViewModel(
                 )
 
                 // 5. 调用流式推理
-                val accumulatedContent = StringBuilder()
-                val isLocalInference = orchestrator.getInferencePreference() == AiAgentInferencePreference.FORCE_LOCAL
+                //
+                // 流式期间占位文案保持「正在思考...」不变：
+                // - 修复「先闪现 JSON 指令再出卡片」：本地/远程 L2 输出恒为 JSON 指令
+                //   （如 search_media / text_reply），不能把原始 token 直接展示到气泡。
+                // - 修复「空气泡过段时间才有内容」：占位一开始即为非空提示；远程推理为
+                //   同步一次性返回（onToken 仅回调一次），本来就没有可增量展示的文本。
                 val result = orchestrator.streamChat(
                     input = text,
                     agentContext = agentContext,
-                    onToken = { token ->
-                        accumulatedContent.append(token)
-                        val current = _streamingMessage.value
-                        if (current != null && current.id == streamingId) {
-                            // LOCAL 模式输出 JSON 命令，流式期间展示友好提示而非原始 JSON
-                            val displayText = if (isLocalInference) {
-                                "正在处理请求..."
-                            } else {
-                                accumulatedContent.toString()
-                            }
-                            _streamingMessage.value = current.copy(content = displayText)
-                        }
-                    }
+                    // 占位文案已在创建时设好并保持不变，故逐 token 无需更新气泡。
+                    onToken = { _ -> }
                 )
 
                 // 6. 处理结果
