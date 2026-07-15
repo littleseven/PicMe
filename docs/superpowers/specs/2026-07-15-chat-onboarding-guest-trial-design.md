@@ -85,7 +85,10 @@ shared token, no client-side quota guessing, server is the single source of trut
   server-config limit (not per-row):
   - `checkAndIncrementQuota(deviceId, limit): Boolean`
   - `revertQuota(deviceId)`
-- **Config** (`config/AppConfig.kt`): `guestLlmQuota` (default `10`).
+- **Config** (`config/AppConfig.kt`): new `guestLlmQuota = envInt("GUEST_LLM_QUOTA", 100)`; and raise
+  the registered quota `freeLlmQuota` default `100` → `1000` (`envInt("FREE_LLM_QUOTA", 1000)`).
+  Deployments may still override either via env var.
+  - **Quotas:** guest = **100 / device**, registered = **1000 / account** (reset on re-verify).
 - **Auth interceptor** (`Application.kt`): keep the 401 path for everything; **additionally**, when
   there is no valid app token **and** the URI is an LLM proxy path (`/chat/completions`,
   `/v1/chat/completions`) **and** `X-Device-Id` is present → stash `DeviceIdKey` and allow through.
@@ -139,7 +142,7 @@ New `features/chat/components/ChatEmptyState.kt`, shown by `ChatScreen` when
 - Capability bubble (搜相册 · 修图 · 调美颜 · 找人找场景).
 - Tappable example chips (`找去年夏天的照片` / `把这张图磨皮50` / …) → on tap, fill the input and
   **send** (default; chips reuse `viewModel.sendMessage`).
-- **Guest card** when `isGuestMode`: "🚀 免登录试用中（剩余 N 次）· 注册获取 100 次免费额度" +
+- **Guest card** when `isGuestMode`: "🚀 免登录试用中（剩余 N 次）· 注册获取 1000 次免费额度" +
   `[邮箱注册]` button → opens `ChatRegistrationSheet`. (`N` omitted when `guestRemaining == null`.)
 - Registered users: no card (quota display stays in Settings; top-bar quota is out of scope).
 
@@ -206,7 +209,7 @@ New `features/chat/components/ChatEmptyState.kt`, shown by `ChatScreen` when
 - `server/src/main/kotlin/.../admin/AdminAuth.kt` — `COOKIE_NAME = "pl_admin"`.
 - `server/src/main/kotlin/.../Application.kt` — interceptor guest branch + `DeviceIdKey`.
 - `server/src/main/kotlin/.../llm/LlmRoute.kt` — guest quota branch + `X-Guest-Remaining`.
-- `server/src/main/kotlin/.../config/AppConfig.kt` — `guestLlmQuota`.
+- `server/src/main/kotlin/.../config/AppConfig.kt` — `guestLlmQuota` (100) + `freeLlmQuota` default 100→1000.
 
 **App:**
 - `app/src/main/java/.../features/chat/ChatViewModel.kt` — guest state, soft nudge, registration
