@@ -269,7 +269,7 @@ fun ChatScreen(
                                     previewIndex = index
                                 },
                                 onViewAll = {
-                                    onNavigateToGallery(java.net.URLEncoder.encode(mr.query, "UTF-8"))
+                                    onNavigateToGallery(mr.query)
                                 }
                             )
                         } else {

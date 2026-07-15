@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
                                     settingsViewModel = settingsViewModel,
                                     onNavigateBack = { navController.popBackStack() },
                                     onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route, navOptions { launchSingleTop = true }) },
+                                    onNavigateToGallery = { query -> navController.navigate(Screen.Gallery.createRoute(query), navOptions { launchSingleTop = true }) },
                                     mediaViewModel = mediaViewModel,
                                     onNavigateToPhotoEditor = { uri, autoOptimize ->
                                         navController.navigate(
@@ -241,7 +241,15 @@ class MainActivity : ComponentActivity() {
                                     settingsViewModel = settingsViewModel
                                 )
                             }
-                            composable(Screen.Gallery.route) {
+                            composable(
+                                route = Screen.Gallery.ROUTE_WITH_QUERY,
+                                arguments = listOf(
+                                    navArgument(Screen.Gallery.ARG_QUERY) {
+                                        type = NavType.StringType
+                                        defaultValue = ""
+                                    }
+                                )
+                            ) { backStackEntry ->
                                 // 场景管理：进入 Gallery 页面
                                 DisposableEffect(Unit) {
                                     SceneManager.getInstance().transitionTo(SceneManager.Scene.GALLERY)
@@ -249,10 +257,13 @@ class MainActivity : ComponentActivity() {
                                         SceneManager.getInstance().leaveScene(SceneManager.Scene.GALLERY)
                                     }
                                 }
+                                val initialSearchQuery = backStackEntry.arguments
+                                    ?.getString(Screen.Gallery.ARG_QUERY).orEmpty()
                                 GalleryScreen(
                                     navController = navController,
                                     viewModel = mediaViewModel,
                                     settingsViewModel = settingsViewModel,
+                                    initialSearchQuery = initialSearchQuery,
                                     onNavigateToChat = { navController.navigate(Screen.Chat.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToCamera = { navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },

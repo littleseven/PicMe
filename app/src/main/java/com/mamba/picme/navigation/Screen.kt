@@ -3,7 +3,13 @@ package com.mamba.picme.navigation
 sealed class Screen(val route: String) {
     data object Chat : Screen("chat")
     data object Camera : Screen("camera")
-    data object Gallery : Screen("gallery")
+    data object Gallery : Screen("gallery") {
+        const val ROUTE_WITH_QUERY = "gallery?query={query}"
+        const val ARG_QUERY = "query"
+        fun createRoute(query: String): String =
+            if (query.isBlank()) route
+            else "gallery?query=${java.net.URLEncoder.encode(query, "UTF-8")}"
+    }
     data object TagControl : Screen("tag_control")
     data object Settings : Screen("settings")
     data object SettingsCategory : Screen("settings/{category}") {

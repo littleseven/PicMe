@@ -117,7 +117,8 @@ fun GalleryScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDebug: () -> Unit,
-    onNavigateToTagControl: () -> Unit = {}
+    onNavigateToTagControl: () -> Unit = {},
+    initialSearchQuery: String = ""
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
     val groupingMode by viewModel.groupingMode.collectAsState()
@@ -126,10 +127,10 @@ fun GalleryScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedIds = remember { mutableStateListOf<Long>() }
 
-    // 搜索状态
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
-    var isSearchLoading by remember { mutableStateOf(false) }
+    // 搜索状态(支持从「查看全部」带入初始 query,立即搜索)
+    var searchQuery by remember { mutableStateOf(initialSearchQuery) }
+    var isSearchActive by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
+    var isSearchLoading by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
     var searchResultMedia by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     val searchEngine = remember { GalleryCapability.getInstance().searchEngine }
     val searchScope = rememberCoroutineScope()
