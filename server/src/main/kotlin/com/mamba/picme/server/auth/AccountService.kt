@@ -20,7 +20,7 @@ object AccountService {
 
     private val random = SecureRandom()
 
-    const val TOKEN_PREFIX = "picme_at_"
+    const val TOKEN_PREFIX = "pl-"
     private const val CODE_EXPIRY_MS = 10 * 60 * 1000L
 
     fun generateToken(): String {
