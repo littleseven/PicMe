@@ -646,4 +646,17 @@
     <string name="aspect_ratio_3_4">3:4</string>
     <string name="aspect_ratio_16_9">16:9</string>
     <string name="aspect_ratio_9_16">9:16</string>
+
+    <!-- Backup & Restore -->
+    <string name="backup_and_restore">Backup &amp; Restore</string>
+    <string name="backup_and_restore_desc">Export or import TAG scans, face clusters, OCR and settings.</string>
+    <string name="backup_export">Export Backup</string>
+    <string name="backup_import">Import Backup</string>
+    <string name="backup_exporting">Exporting backup…</string>
+    <string name="backup_importing">Importing backup…</string>
+    <string name="backup_export_success">Backup exported successfully</string>
+    <string name="backup_import_success">Restore complete. Matched %1$d media.</string>
+    <string name="backup_export_failed">Export failed: %1$s</string>
+    <string name="backup_import_failed">Import failed: %1$s</string>
+    <string name="backup_result_summary">Matched %1$d · Tags %2$d · Tasks %3$d · Persons %4$d · Embeddings %5$d · Preferences %6$d</string>
 </resources>

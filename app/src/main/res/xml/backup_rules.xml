@@ -1,13 +1,16 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   PicMe 数据备份规则（Android 6-11 / API 23-30）
+
+   用途：控制 Auto Backup 与 adb backup/restore 的数据范围。
+
+   规则：
+   - 包含 Room 数据库、SharedPreferences、DataStore（files/datastore）。
+   - 只显式包含 files/datastore，因此 files/llm_models 等可重新下载的大文件
+     不会被备份；缓存与外部存储也不在备份范围内。
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <include domain="database" path="."/>
+    <include domain="sharedpref" path="."/>
+    <include domain="file" path="datastore"/>
 </full-backup-content>

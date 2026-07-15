@@ -640,4 +640,17 @@
     <string name="aspect_ratio_3_4">3:4</string>
     <string name="aspect_ratio_16_9">16:9</string>
     <string name="aspect_ratio_9_16">9:16</string>
+
+    <!-- 备份与恢复 -->
+    <string name="backup_and_restore">备份与恢复</string>
+    <string name="backup_and_restore_desc">导出或导入 TAG 扫描、人脸聚类、OCR 与设置。</string>
+    <string name="backup_export">导出备份</string>
+    <string name="backup_import">导入备份</string>
+    <string name="backup_exporting">正在导出备份…</string>
+    <string name="backup_importing">正在导入备份…</string>
+    <string name="backup_export_success">备份导出成功</string>
+    <string name="backup_import_success">恢复完成，匹配 %1$d 个媒体。</string>
+    <string name="backup_export_failed">导出失败：%1$s</string>
+    <string name="backup_import_failed">导入失败：%1$s</string>
+    <string name="backup_result_summary">匹配 %1$d · 标签 %2$d · 任务 %3$d · 人物 %4$d · 人脸 %5$d · 偏好 %6$d</string>
 </resources>

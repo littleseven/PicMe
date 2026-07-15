@@ -51,6 +51,12 @@
             android:label="Agent Test"
             android:theme="@style/Theme.PicMe" />
 
+        <activity
+            android:name=".features.backuprestore.BackupRestoreActivity"
+            android:exported="false"
+            android:label="@string/backup_and_restore"
+            android:theme="@style/Theme.PicMe" />
+
         <receiver
             android:name=".testing.agent.bridge.AgentTestBroadcastReceiver"
             android:exported="true">

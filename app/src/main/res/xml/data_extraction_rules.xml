@@ -1,19 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   PicMe 数据备份规则（Android 12+ / API 31+）
+
+   用途：
+   1. 控制 Google 云备份与设备间传输的范围。
+   2. 控制 release 包通过 `adb backup/restore` 能导出的数据范围。
+
+   规则：
+   - 包含 Room 数据库（databases/*）、DataStore（files/datastore/*）、SharedPreferences。
+   - 不主动包含 files 下其它目录，因此可重新下载的模型文件（files/llm_models/*）
+     与缓存不会被备份。
+   - 外部媒体目录（/sdcard/Android/media/.../PicMeBackup/）中的手动备份文件
+     不在 adb backup 范围内，避免重复并让用户通过 SAF 或 adb pull/push 自行管理。
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <include domain="database" path="."/>
+        <include domain="sharedpref" path="."/>
+        <include domain="file" path="datastore"/>
     </cloud-backup>
-    <!--
+
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="database" path="."/>
+        <include domain="sharedpref" path="."/>
+        <include domain="file" path="datastore"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

@@ -17,6 +17,9 @@ interface LocationDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMediaLocation(ml: MediaLocationEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertMediaLocations(mls: List<MediaLocationEntity>): List<Long>
+
     @Query(
         """
         SELECT DISTINCT m.* FROM media_assets m
@@ -64,4 +67,7 @@ interface LocationDao {
         """
     )
     suspend fun getMediaByLocation(locationId: Long): List<MediaEntity>
+
+    @Query("SELECT * FROM media_locations")
+    suspend fun getAllMediaLocations(): List<MediaLocationEntity>
 }

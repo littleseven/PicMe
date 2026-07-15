@@ -19,6 +19,8 @@ import com.mamba.picme.domain.tag.FaceClusterEngine
 import com.mamba.picme.testing.agent.cases.BeautyAgentTestCases
 import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.testing.agent.cases.CameraAgentTestCases
+import com.mamba.picme.PicMeApplication
+import org.json.JSONArray
 import com.mamba.picme.testing.agent.core.AgentTestCase
 import com.mamba.picme.testing.agent.core.AgentTestResult
 import com.mamba.picme.testing.agent.device.DeviceTestController
@@ -488,6 +490,8 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
      * - scan_all：全量 3-Pass 扫描
      * - cancel：取消扫描
      * - dump_face_embeddings [path]：导出所有 face embeddings 到 JSONL（默认 externalCacheDir/face_embeddings.jsonl）
+     * - backup_tag_data [path]：备份 TAG 数据到 JSON（默认 externalFilesDir/backups/tag_data_backup.json）
+     * - restore_tag_data [path] [--dry-run]：从 JSON 还原 TAG 数据
      *
      * @return true 如果 cmd 是 TAG 扫描命令并已处理
      */
@@ -514,6 +518,77 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
                     } catch (e: Exception) {
                         Logger.e(TAG, "dump_face_embeddings failed", e)
                         sendResponse(context, createErrorResponse("dump_face_embeddings failed: ${e.message}"))
+                    }
+                }
+                return true
+            }
+            "backup_tag_data" -> {
+                scope.launch {
+                    try {
+                        val app = context.applicationContext as PicMeApplication
+                        val customPath = params?.optString("path")
+                        val customFile = customPath?.let { File(it) }
+                        val result = app.container.backupTagDataUseCase(customFile)
+                        val resultJson = JSONObject().apply {
+                            put("type", "cmd_result")
+                            put("cmd", cmd)
+                            put("status", "success")
+                            put("path", result.file.absolutePath)
+                            put("tagCount", result.tagCount)
+                            put("mediaCount", result.mediaCount)
+                            put("crossRefCount", result.crossRefCount)
+                            put("scanTaskCount", result.scanTaskCount)
+                            put("personCount", result.personCount)
+                            put("faceEmbeddingCount", result.faceEmbeddingCount)
+                            put("ocrWordCount", result.ocrWordCount)
+                            put("ocrWordOccurrenceCount", result.ocrWordOccurrenceCount)
+                            put("locationCount", result.locationCount)
+                            put("mediaLocationCount", result.mediaLocationCount)
+                            put("preferenceCount", result.preferenceCount)
+                        }.toString()
+                        writeOperationResult(context, result.file, resultJson)
+                        sendResponse(context, resultJson)
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "backup_tag_data failed", e)
+                        sendResponse(context, createErrorResponse("backup_tag_data failed: ${e.message}"))
+                    }
+                }
+                return true
+            }
+            "restore_tag_data" -> {
+                scope.launch {
+                    try {
+                        val app = context.applicationContext as PicMeApplication
+                        val customPath = params?.optString("path")
+                        val customFile = customPath?.let { File(it) }
+                        val dryRun = params?.optBoolean("dryRun", false) ?: false
+                        val result = app.container.restoreTagDataUseCase(customFile, dryRun)
+                        val resultJson = JSONObject().apply {
+                            put("type", "cmd_result")
+                            put("cmd", cmd)
+                            put("status", "success")
+                            put("dryRun", dryRun)
+                            put("matchedMediaCount", result.matchedMediaCount)
+                            put("unmatchedMediaCount", result.unmatchedUris.size)
+                            put("restoredTagCount", result.restoredTagCount)
+                            put("restoredCrossRefCount", result.restoredCrossRefCount)
+                            put("restoredScanTaskCount", result.restoredScanTaskCount)
+                            put("restoredMetadataCount", result.restoredMetadataCount)
+                            put("restoredPersonCount", result.restoredPersonCount)
+                            put("restoredFaceEmbeddingCount", result.restoredFaceEmbeddingCount)
+                            put("restoredOcrWordCount", result.restoredOcrWordCount)
+                            put("restoredOcrWordOccurrenceCount", result.restoredOcrWordOccurrenceCount)
+                            put("restoredLocationCount", result.restoredLocationCount)
+                            put("restoredMediaLocationCount", result.restoredMediaLocationCount)
+                            put("restoredPreferenceCount", result.restoredPreferenceCount)
+                            put("unmatchedUris", JSONArray(result.unmatchedUris))
+                        }.toString()
+                        val backupFile = customFile ?: app.container.backupTagDataUseCase.defaultBackupFile()
+                        writeOperationResult(context, backupFile, resultJson)
+                        sendResponse(context, resultJson)
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "restore_tag_data failed", e)
+                        sendResponse(context, createErrorResponse("restore_tag_data failed: ${e.message}"))
                     }
                 }
                 return true
@@ -605,6 +680,20 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         allCases.addAll(CameraAgentTestCases.allCases(controller))
         allCases.addAll(BeautyAgentTestCases.allCases(controller))
         return allCases.find { it.id == caseId }
+    }
+
+    /**
+     * 将操作结果写入备份文件同目录的 *.result.json，便于 PC 端脚本轮询检测完成状态。
+     */
+    private fun writeOperationResult(context: Context, backupFile: File, resultJson: String) {
+        try {
+            val resultFile = File(backupFile.parentFile, backupFile.name + ".result.json")
+            resultFile.parentFile?.mkdirs()
+            resultFile.writeText(resultJson)
+            Logger.i(TAG, "Operation result written to ${resultFile.absolutePath}")
+        } catch (e: Exception) {
+            Logger.w(TAG, "Failed to write operation result file", e)
+        }
     }
 
     private fun sendResponse(context: Context, json: String) {

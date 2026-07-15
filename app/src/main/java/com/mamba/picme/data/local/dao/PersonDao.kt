@@ -54,6 +54,9 @@ interface PersonDao {
     @Insert
     suspend fun insertEmbedding(embedding: FaceEmbeddingEntity): Long
 
+    @Insert
+    suspend fun insertEmbeddings(embeddings: List<FaceEmbeddingEntity>): List<Long>
+
     @Query("SELECT * FROM face_embeddings WHERE personId = :personId")
     suspend fun getEmbeddingsByPerson(personId: Long): List<FaceEmbeddingEntity>
 

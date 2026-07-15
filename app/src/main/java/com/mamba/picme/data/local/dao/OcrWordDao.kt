@@ -55,4 +55,10 @@ interface OcrWordDao {
         """
     )
     suspend fun cleanupOrphanWords()
+
+    @Query("SELECT * FROM ocr_words")
+    suspend fun getAllWords(): List<OcrWordEntity>
+
+    @Query("SELECT * FROM ocr_word_occurrences")
+    suspend fun getAllOccurrences(): List<OcrWordOccurrence>
 }

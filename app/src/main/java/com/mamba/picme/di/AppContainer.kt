@@ -22,6 +22,7 @@ import com.mamba.picme.data.indexing.IndexingTaskQueue
 import com.mamba.picme.data.indexing.MediaIndexingWorker
 import com.mamba.picme.data.indexing.MediaStoreObserver
 import com.mamba.picme.data.preferences.UserPreferencesRepository
+import com.mamba.picme.data.preferences.dataStore
 import com.mamba.picme.data.repository.MediaRepositoryImpl
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.repository.MediaRepository
@@ -294,9 +295,14 @@ class AppContainerImpl(
 
     private val tagDataBackupRepository: TagDataBackupRepository by lazy {
         TagDataBackupRepository(
+            database = database,
             mediaDao = database.mediaDao(),
             tagDao = database.tagDao(),
-            tagScanTaskDao = database.tagScanTaskDao()
+            tagScanTaskDao = database.tagScanTaskDao(),
+            personDao = database.personDao(),
+            ocrWordDao = database.ocrWordDao(),
+            locationDao = database.locationDao(),
+            dataStore = context.dataStore
         )
     }
 

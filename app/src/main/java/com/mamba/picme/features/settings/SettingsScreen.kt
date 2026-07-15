@@ -86,6 +86,7 @@ import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.settings.agent.SettingsAgentPanel
 import com.mamba.picme.features.settings.agent.rememberSettingsAgentIntegration
+import com.mamba.picme.features.backuprestore.BackupRestoreActivity
 import com.mamba.picme.features.settings.capability.SettingsCapability
 import com.mamba.picme.service.chat.FloatingChatBubbleService
 import com.mamba.picme.util.permission.BatteryOptimizationUtils
@@ -891,6 +892,7 @@ private fun SettingsMainMenu(
     onNavigateToCategory: (SettingsCategory) -> Unit,
     onNavigateToModelCenter: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -1003,6 +1005,20 @@ private fun SettingsMainMenu(
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToModelCenter
             )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SettingsCategoryCard(
+                title = stringResource(R.string.backup_and_restore),
+                description = stringResource(R.string.backup_and_restore_desc),
+                icon = Icons.Rounded.Storage,
+                modifier = Modifier.weight(1f),
+                onClick = { context.startActivity(BackupRestoreActivity.intent(context)) }
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

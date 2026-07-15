@@ -6,7 +6,37 @@
 
 ## 📋 脚本分类
 
-### 1. 坐标系规范检测脚本
+### 1. 应用数据备份脚本
+
+用于在 release/debug 包切换或卸载重装时，快速备份/恢复 PicMe TAG 数据，避免重新执行耗时的 TAG 扫描。
+
+| 脚本 | 说明 | 用法 |
+|------|------|------|
+| `app-data-backup.sh` | 备份/恢复 TAG 数据快照 | `./app-data-backup.sh backup before_release` |
+
+**示例**：
+```bash
+# 备份当前 TAG 数据
+./scripts/app-data-backup.sh backup before_release
+
+# 切换包并重装后，恢复 TAG 数据
+./scripts/app-data-backup.sh restore before_release
+
+# 先 dry-run，查看媒体 URI 匹配情况
+./scripts/app-data-backup.sh dry-run before_release
+
+# 列出所有快照
+./scripts/app-data-backup.sh list
+```
+
+**说明**：
+- 备份内容为 Room DB 中的 TAG 相关数据（标签、媒体-标签关联、扫描任务、TAG 元数据），以媒体 URI 为跨安装匹配键。
+- 该脚本通过 adb 调用应用内测试广播接收器，无需 root。
+- 恢复前请确保已安装目标 APK 并授予媒体读取权限，否则 URI 无法匹配。
+
+---
+
+### 2. 坐标系规范检测脚本
 
 用于检查代码和文档中的坐标系标注是否符合规范。
 
@@ -21,7 +51,7 @@
 
 ---
 
-### 2. 人脸关键点可视化脚本
+### 3. 人脸关键点可视化脚本
 
 用于可视化和分析人脸关键点。
 
@@ -43,7 +73,7 @@ python scripts/visualize_eyes_landmarks.py
 
 ---
 
-### 3. 轮廓映射脚本
+### 4. 轮廓映射脚本
 
 用于生成和分析人脸轮廓映射关系。
 
@@ -61,7 +91,7 @@ python scripts/generate_contour_mapping.py --input input_images/face.jpg
 
 ---
 
-### 4. 坐标提取脚本
+### 5. 坐标提取脚本
 
 用于从现有数据中提取坐标信息。
 
@@ -72,7 +102,7 @@ python scripts/generate_contour_mapping.py --input input_images/face.jpg
 
 ---
 
-### 5. 相机调试脚本
+### 6. 相机调试脚本
 
 用于调试相机相关问题。
 
@@ -82,7 +112,7 @@ python scripts/generate_contour_mapping.py --input input_images/face.jpg
 
 ---
 
-### 6. Kimi CLI 工具
+### 7. Kimi CLI 工具
 
 Kimi AI 助手的命令行工具。AI 工具配置详见 [`AI_TOOLS.md`](../AI_TOOLS.md)。
 
@@ -92,7 +122,7 @@ Kimi AI 助手的命令行工具。AI 工具配置详见 [`AI_TOOLS.md`](../AI_T
 
 ---
 
-### 7. 测试脚本
+### 8. 测试脚本
 
 | 脚本 | 说明 | 用途 |
 |------|------|------|

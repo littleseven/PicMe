@@ -618,4 +618,17 @@
     <string name="aspect_ratio_3_4">3:4</string>
     <string name="aspect_ratio_16_9">16:9</string>
     <string name="aspect_ratio_9_16">9:16</string>
+
+    <!-- 備份與還原 -->
+    <string name="backup_and_restore">備份與還原</string>
+    <string name="backup_and_restore_desc">匯出或匯入 TAG 掃描、人臉聚類、OCR 與設定。</string>
+    <string name="backup_export">匯出備份</string>
+    <string name="backup_import">匯入備份</string>
+    <string name="backup_exporting">正在匯出備份…</string>
+    <string name="backup_importing">正在匯入備份…</string>
+    <string name="backup_export_success">備份匯出成功</string>
+    <string name="backup_import_success">還原完成，匹配 %1$d 個媒體。</string>
+    <string name="backup_export_failed">匯出失敗：%1$s</string>
+    <string name="backup_import_failed">匯入失敗：%1$s</string>
+    <string name="backup_result_summary">匹配 %1$d · 標籤 %2$d · 任務 %3$d · 人物 %4$d · 人臉 %5$d · 偏好 %6$d</string>
 </resources>
