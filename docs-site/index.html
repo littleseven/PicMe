@@ -18,7 +18,7 @@
       --radius: 16px;
       --shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 2px 6px rgba(15,23,42,.05);
       --shadow-md: 0 14px 34px rgba(15,23,42,.10);
-      --section-py: 96px;
+      --section-py: 72px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -40,7 +40,7 @@
     .nav-links a:hover { color: var(--primary); }
 
     /* Hero */
-    .hero { padding: 100px 24px 84px; text-align: center; background: radial-gradient(125% 100% at 50% 0%, #efeefe 0%, #ffffff 60%); }
+    .hero { padding: 76px 24px 60px; text-align: center; background: radial-gradient(125% 100% at 50% 0%, #efeefe 0%, #ffffff 60%); }
     .hero-icon { width: 92px; height: 92px; border-radius: 22px; box-shadow: var(--shadow-md); }
     .hero h1 { font-size: 40px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800; margin: 22px 0 12px; }
     .hero h1 .zh { color: var(--text-muted); font-weight: 600; font-size: 24px; margin-left: 14px; }
@@ -58,7 +58,7 @@
     section { padding: var(--section-py) 0; }
     .alt { background: var(--bg-alt); }
     .section-title { font-size: 30px; font-weight: 800; text-align: center; letter-spacing: -.02em; margin-bottom: 12px; }
-    .section-sub { text-align: center; color: var(--text-muted); font-size: 16px; margin-bottom: 48px; }
+    .section-sub { text-align: center; color: var(--text-muted); font-size: 16px; margin-bottom: 36px; }
 
     /* 核心功能 */
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -95,14 +95,14 @@
     footer .nav-links a:hover { color: #fff; }
 
     @media (max-width: 768px) {
-      :root { --section-py: 64px; }
+      :root { --section-py: 52px; }
       .container { padding: 0 18px; }
-      .hero { padding: 60px 18px 52px; }
+      .hero { padding: 48px 18px 44px; }
       .hero h1 { font-size: 28px; }
       .hero h1 .zh { font-size: 18px; }
       .hero .tagline { font-size: 16px; }
       .section-title { font-size: 24px; }
-      .section-sub { font-size: 15px; margin-bottom: 34px; }
+      .section-sub { font-size: 15px; margin-bottom: 28px; }
       .grid, .demo-grid { grid-template-columns: 1fr; }
       .shots img { height: 380px; }
       .nav-links { gap: 14px; }
