@@ -397,127 +397,205 @@ object AdminViews {
             navBar()
             h1 { +"APK 下载包管理" }
             if (message != null) {
-                p {
-                    style = if (message.startsWith("成功")) "color:#16a34a;font-size:14px;margin:8px auto;max-width:640px;padding:0 20px" else "color:#dc2626;font-size:14px;margin:8px auto;max-width:640px;padding:0 20px"
-                    +message
-                }
+                div("toast ${if (message.startsWith("成功")) "toast-ok" else "toast-err"}") { +message }
             }
             if (!cosConfigured) {
-                p {
-                    style = "color:#dc2626;font-size:14px;margin:12px auto;max-width:640px;padding:0 20px"
-                    +"⚠ COS 未配置（COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET 为空），请在 /etc/picme/server.env 中填写后重启服务"
+                div("toast toast-err") {
+                    +"COS 未配置（COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET 为空），请在 /etc/picme/server.env 中填写后重启服务"
                 }
             }
+
+            // 当前 APK 信息卡片
             if (fileExists) {
-                h2 { +"当前 APK（COS）" }
-                table {
-                    tr { th { +"版本" }; td { +version.ifBlank { "—" } } }
-                    tr { th { +"大小" }; td { +fileSize } }
-                    tr { th { +"上传时间" }; td { +lastModified } }
-                    tr {
-                        th { +"操作" }
-                        td {
-                            a(href = "https://api.polang.net/download", target = "_blank") { +"下载页" }
-                            +" · "
-                            a(href = cosUrl, target = "_blank") { +"COS 直链" }
+                div("card apk-info-card") {
+                    div("apk-info-header") {
+                        div("apk-info-title") {
+                            span("apk-badge") { +"当前版本" }
+                            +version.ifBlank { "未命名版本" }
                         }
+                        div("apk-info-meta") {
+                            span { +fileSize }
+                            span("apk-meta-sep") { +"·" }
+                            span { +lastModified }
+                        }
+                    }
+                    div("apk-info-actions") {
+                        a(href = "https://api.polang.net/download", target = "_blank", classes = "btn btn-sm btn-primary") { +"下载页" }
+                        a(href = cosUrl, target = "_blank", classes = "btn btn-sm btn-ghost") { +"COS 直链" }
                     }
                 }
             } else {
-                p {
-                    style = "color:#6b7280;font-size:14px;margin:12px auto;max-width:640px;padding:0 20px"
-                    +"COS 上暂无 APK 文件"
+                div("card apk-info-card apk-empty") {
+                    div("apk-empty-icon") { +"📦" }
+                    div("apk-empty-text") { +"COS 上暂无 APK 文件" }
                 }
             }
+
+            // 上传区域
             h2 { +"上传新版本" }
-            div("chan-form") {
-                p {
-                    label { +"版本号（如 1.0.11）" }
-                    input(type = InputType.text, name = "version") {
+            div("card upload-card") {
+                // 版本号输入
+                div("form-row") {
+                    label { +"版本号" }
+                    input(type = InputType.text, name = "version", classes = "form-input") {
                         attributes["id"] = "apk-version"
-                        placeholder = "1.0.11"
+                        placeholder = "如 1.0.11"
                     }
                 }
-                p {
-                    label { +"选择 APK 文件（.apk）" }
-                    br()
+
+                // 拖拽上传区
+                div("drop-zone") {
+                    attributes["id"] = "drop-zone"
+                    div("drop-zone-inner") {
+                        div("drop-zone-icon") { +"☁" }
+                        div("drop-zone-text") {
+                            +"拖拽 APK 文件到此处，或 "
+                            span("drop-zone-link") {
+                                attributes["onclick"] = "document.getElementById('apk-file').click()"
+                                +"点击选择"
+                            }
+                        }
+                        div("drop-zone-hint") { +"支持 .apk 格式，最大 200MB" }
+                    }
                     input(type = InputType.file, name = "apkfile") {
                         attributes["id"] = "apk-file"
                         accept = ".apk"
+                        style = "display:none"
                     }
                 }
-                // 进度条容器
-                div {
-                    attributes["id"] = "progress-container"
-                    style = "display:none;margin:12px 0"
-                    div {
-                        style = "background:#e5e7eb;border-radius:6px;height:20px;overflow:hidden"
-                        div {
-                            attributes["id"] = "progress-bar"
-                            style = "background:#2563eb;height:100%;width:0%;transition:width .2s ease;text-align:center;color:#fff;font-size:12px;line-height:20px"
-                            +"0%"
+
+                // 文件信息预览
+                div("file-preview") {
+                    attributes["id"] = "file-preview"
+                    style = "display:none"
+                    div("file-preview-icon") { +"📱" }
+                    div("file-preview-info") {
+                        div("file-preview-name") { attributes["id"] = "file-name"; +"" }
+                        div("file-preview-size") { attributes["id"] = "file-size"; +"" }
+                    }
+                    button(type = ButtonType.button, classes = "file-preview-remove") {
+                        attributes["onclick"] = "clearFile()"
+                        attributes["title"] = "移除文件"
+                        +"×"
+                    }
+                }
+
+                // 进度条
+                div("progress-wrap") {
+                    attributes["id"] = "progress-wrap"
+                    style = "display:none"
+                    div("progress-track") {
+                        div("progress-fill") {
+                            attributes["id"] = "progress-fill"
+                            +""
                         }
                     }
-                    p {
-                        attributes["id"] = "progress-text"
-                        style = "font-size:12px;color:#6b7280;margin:4px 0 0"
-                        +"准备上传..."
+                    div("progress-meta") {
+                        span {
+                            attributes["id"] = "progress-pct"
+                            +"0%"
+                        }
+                        span {
+                            attributes["id"] = "progress-size"
+                            +""
+                        }
                     }
                 }
-                p {
-                    button(type = ButtonType.button, classes = "btn btn-primary") {
+
+                // 上传按钮
+                div("upload-actions") {
+                    button(type = ButtonType.button, classes = "btn btn-primary btn-upload") {
                         attributes["id"] = "upload-btn"
                         attributes["onclick"] = "uploadApk()"
                         +"上传到 COS"
                     }
                 }
             }
+
             script {
                 unsafe {
                     raw(
                         """
-                        function uploadApk(){
-                          var fileInput=document.getElementById('apk-file');
-                          var versionInput=document.getElementById('apk-version');
-                          var btn=document.getElementById('upload-btn');
-                          var bar=document.getElementById('progress-bar');
-                          var container=document.getElementById('progress-container');
-                          var text=document.getElementById('progress-text');
-                          var file=fileInput.files[0];
-                          if(!file){alert('请选择 APK 文件');return;}
+                        var selectedFile=null;
+                        var dropZone=document.getElementById('drop-zone');
+                        var fileInput=document.getElementById('apk-file');
+                        var preview=document.getElementById('file-preview');
+                        var previewName=document.getElementById('file-name');
+                        var previewSize=document.getElementById('file-size');
+                        var versionInput=document.getElementById('apk-version');
+                        var uploadBtn=document.getElementById('upload-btn');
+                        var progressWrap=document.getElementById('progress-wrap');
+                        var progressFill=document.getElementById('progress-fill');
+                        var progressPct=document.getElementById('progress-pct');
+                        var progressSize=document.getElementById('progress-size');
+
+                        function setFile(file){
                           if(!file.name.endsWith('.apk')){alert('请上传 .apk 文件');return;}
+                          selectedFile=file;
+                          previewName.textContent=file.name;
+                          previewSize.textContent=formatBytes(file.size);
+                          preview.style.display='flex';
+                          dropZone.style.display='none';
+                          uploadBtn.disabled=false;
+                          uploadBtn.textContent='上传到 COS';
+                        }
+                        function clearFile(){
+                          selectedFile=null;
+                          fileInput.value='';
+                          preview.style.display='none';
+                          dropZone.style.display='block';
+                          uploadBtn.disabled=true;
+                        }
+                        fileInput.addEventListener('change',function(e){
+                          if(e.target.files.length) setFile(e.target.files[0]);
+                        });
+                        dropZone.addEventListener('dragover',function(e){
+                          e.preventDefault();
+                          dropZone.classList.add('drop-zone-active');
+                        });
+                        dropZone.addEventListener('dragleave',function(e){
+                          e.preventDefault();
+                          dropZone.classList.remove('drop-zone-active');
+                        });
+                        dropZone.addEventListener('drop',function(e){
+                          e.preventDefault();
+                          dropZone.classList.remove('drop-zone-active');
+                          if(e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+                        });
+                        function uploadApk(){
+                          if(!selectedFile){alert('请选择 APK 文件');return;}
                           var form=new FormData();
                           form.append('version',versionInput.value.trim()||'');
-                          form.append('apkfile',file);
+                          form.append('apkfile',selectedFile);
                           var xhr=new XMLHttpRequest();
                           xhr.open('POST','/admin/apk/upload',true);
                           xhr.upload.onprogress=function(e){
                             if(e.lengthComputable){
                               var pct=Math.round(e.loaded/e.total*100);
-                              bar.style.width=pct+'%';
-                              bar.textContent=pct+'%';
-                              text.textContent='已上传 '+formatBytes(e.loaded)+' / '+formatBytes(e.total);
+                              progressFill.style.width=pct+'%';
+                              progressPct.textContent=pct+'%';
+                              progressSize.textContent=formatBytes(e.loaded)+' / '+formatBytes(e.total);
                             }
                           };
                           xhr.onload=function(){
                             if(xhr.status===200||xhr.status===302){
                               window.location.reload();
                             }else{
-                              text.textContent='上传失败：'+xhr.statusText;
-                              text.style.color='#dc2626';
-                              btn.disabled=false;
-                              btn.textContent='上传到 COS';
+                              progressPct.textContent='失败';
+                              progressPct.style.color='#e54545';
+                              uploadBtn.disabled=false;
+                              uploadBtn.textContent='重试上传';
                             }
                           };
                           xhr.onerror=function(){
-                            text.textContent='网络错误，请重试';
-                            text.style.color='#dc2626';
-                            btn.disabled=false;
-                            btn.textContent='上传到 COS';
+                            progressPct.textContent='网络错误';
+                            progressPct.style.color='#e54545';
+                            uploadBtn.disabled=false;
+                            uploadBtn.textContent='重试上传';
                           };
-                          container.style.display='block';
-                          btn.disabled=true;
-                          btn.textContent='上传中...';
+                          progressWrap.style.display='block';
+                          uploadBtn.disabled=true;
+                          uploadBtn.textContent='上传中...';
                           xhr.send(form);
                         }
                         function formatBytes(b){
@@ -526,6 +604,7 @@ object AdminViews {
                           var i=Math.floor(Math.log(b)/Math.log(k));
                           return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i];
                         }
+                        uploadBtn.disabled=true;
                         """.trimIndent(),
                     )
                 }
@@ -605,6 +684,48 @@ object AdminViews {
                         .cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:#333;cursor:pointer}
                         .btn-ghost{padding:10px 16px;color:#666;text-decoration:none;font-size:14px;border-radius:4px;border:1px solid #d9d9d9;background:#fff;transition:all .2s}
                         .btn-ghost:hover{color:#333;background:#f5f5f5;border-color:#b0b8c4}
+                        /* APK 页面专用样式 */
+                        .toast{max-width:1200px;margin:16px auto;padding:12px 20px;border-radius:6px;font-size:14px}
+                        .toast-ok{color:#0abf5b;background:#e6f9f0;border:1px solid #b3ebd0}
+                        .toast-err{color:#e54545;background:#fff2f0;border:1px solid #ffccc7}
+                        .apk-info-card{max-width:1200px;margin:16px auto;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+                        .apk-empty{text-align:center;padding:40px 24px;justify-content:center;flex-direction:column}
+                        .apk-empty-icon{font-size:48px;margin-bottom:12px}
+                        .apk-empty-text{color:#999;font-size:14px}
+                        .apk-info-header{flex:1;min-width:200px}
+                        .apk-info-title{font-size:18px;font-weight:600;color:#1f2d3d;display:flex;align-items:center;gap:10px}
+                        .apk-badge{background:#006eff;color:#fff;font-size:12px;padding:2px 10px;border-radius:12px;font-weight:500}
+                        .apk-info-meta{color:#999;font-size:13px;margin-top:6px;display:flex;align-items:center;gap:8px}
+                        .apk-meta-sep{color:#ccc}
+                        .apk-info-actions{display:flex;gap:10px;align-items:center}
+                        .upload-card{max-width:1200px;margin:16px auto;padding:24px}
+                        .form-row{margin-bottom:16px}
+                        .form-row label{display:block;font-size:13px;color:#666;margin-bottom:6px;font-weight:500}
+                        .form-input{padding:10px 12px;border:1px solid #d9d9d9;border-radius:4px;width:100%;max-width:300px;font-size:14px;transition:border-color .2s}
+                        .form-input:focus{outline:none;border-color:#006eff}
+                        .drop-zone{border:2px dashed #d9d9d9;border-radius:8px;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;background:#fafafa;margin:16px 0}
+                        .drop-zone:hover{border-color:#006eff;background:#f0f7ff}
+                        .drop-zone-active{border-color:#006eff;background:#e6f2ff;transform:scale(1.01)}
+                        .drop-zone-icon{font-size:48px;color:#b0b8c4;margin-bottom:12px;transition:color .2s}
+                        .drop-zone:hover .drop-zone-icon{color:#006eff}
+                        .drop-zone-text{font-size:15px;color:#333;margin-bottom:8px}
+                        .drop-zone-link{color:#006eff;cursor:pointer;font-weight:500}
+                        .drop-zone-link:hover{text-decoration:underline}
+                        .drop-zone-hint{font-size:12px;color:#999}
+                        .file-preview{display:none;align-items:center;gap:16px;padding:16px;background:#f5f7fa;border-radius:8px;margin:16px 0;border:1px solid #e5e5e5}
+                        .file-preview-icon{font-size:32px}
+                        .file-preview-info{flex:1;min-width:0}
+                        .file-preview-name{font-size:14px;font-weight:500;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+                        .file-preview-size{font-size:12px;color:#999;margin-top:2px}
+                        .file-preview-remove{width:32px;height:32px;border-radius:50%;border:1px solid #d9d9d9;background:#fff;color:#666;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+                        .file-preview-remove:hover{background:#fff2f0;border-color:#e54545;color:#e54545}
+                        .progress-wrap{display:none;margin:16px 0}
+                        .progress-track{background:#e5e7eb;border-radius:6px;height:8px;overflow:hidden}
+                        .progress-fill{background:#006eff;height:100%;width:0%;transition:width .2s ease;border-radius:6px}
+                        .progress-meta{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#666}
+                        .upload-actions{margin-top:20px;text-align:right}
+                        .btn-upload{min-width:140px}
+                        .btn-upload:disabled{background:#b0b8c4;cursor:not-allowed;transform:none;box-shadow:none}
                         @media (max-width:640px){
                         body>h1{font-size:20px}
                         body>h2{font-size:14px}
@@ -617,6 +738,10 @@ object AdminViews {
                         table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
                         th,td{padding:10px 12px}
                         .wrap{margin:40px auto;padding:20px}
+                        .apk-info-card{flex-direction:column;align-items:flex-start}
+                        .apk-info-actions{width:100%;justify-content:flex-start}
+                        .drop-zone{padding:32px 16px}
+                        .upload-actions{text-align:left}
                         }
                         """.trimIndent(),
                     )
