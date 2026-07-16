@@ -23,6 +23,8 @@ import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.search.FeedbackAction
+import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
 import org.json.JSONObject
@@ -62,9 +64,15 @@ class ChatViewModel(
     private val chatSessionDao = dependencies.chatSessionDao
     private val userSettingsRepository = dependencies.userSettingsRepository
     private val mediaSearchEngine = dependencies.mediaSearchEngine
+    private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
+
+    private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
 
     /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
     private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
+
+    /** 防止用户快速重复点击同一反馈按钮。 */
+    private val pendingFeedbackActions = mutableSetOf<String>()
 
     private val orchestrator = AgentOrchestrator.getInstance(context)
 
@@ -556,6 +564,120 @@ class ChatViewModel(
                 ?: "✅ 已执行 AI 一键优化"
             is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
             else -> "✅ 已执行 ${AgentCommand.getMethodName(command)}"
+        }
+    }
+
+    /**
+     * 用户点击搜索结果卡片上的反馈按钮。
+     */
+    fun onMediaFeedback(mediaId: String, query: String, action: FeedbackAction) {
+        val key = "$mediaId-$query-${action.name}"
+        if (pendingFeedbackActions.contains(key)) return
+        pendingFeedbackActions.add(key)
+
+        viewModelScope.launch {
+            try {
+                when (action) {
+                    FeedbackAction.LIKE, FeedbackAction.DISLIKE -> {
+                        mediaFeedbackUseCase.record(
+                            mediaId = mediaId,
+                            queryText = query,
+                            sessionId = _currentSessionId.value,
+                            action = action
+                        )
+                        updateCurrentResultsFeedback(mediaId, action, query)
+                    }
+                    FeedbackAction.MORE_LIKE_THIS -> {
+                        triggerMoreLikeThis(mediaId, query)
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to record media feedback", e)
+            } finally {
+                pendingFeedbackActions.remove(key)
+            }
+        }
+    }
+
+    private suspend fun updateCurrentResultsFeedback(mediaId: String, action: FeedbackAction, query: String) {
+        val currentMessages = _messages.value
+        val updatedMessages = currentMessages.map { message ->
+            val mr = message.mediaResults
+            if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null && mr.query == query) {
+                val updatedState = mr.feedbackState.toMutableMap().apply {
+                    when (action) {
+                        FeedbackAction.LIKE -> put(mediaId, FeedbackAction.LIKE)
+                        FeedbackAction.DISLIKE -> put(mediaId, FeedbackAction.DISLIKE)
+                        else -> { /* no-op */ }
+                    }
+                }
+                val reorderedAssets = reorderAssetsByFeedback(mr.assets, updatedState, query)
+                message.copy(
+                    mediaResults = mr.copy(
+                        assets = reorderedAssets,
+                        feedbackState = updatedState
+                    )
+                )
+            } else {
+                message
+            }
+        }
+        _messages.value = updatedMessages
+    }
+
+    private suspend fun reorderAssetsByFeedback(
+        assets: List<MediaAsset>,
+        feedbackState: Map<String, FeedbackAction>,
+        query: String
+    ): List<MediaAsset> {
+        val scores = mediaFeedbackUseCase.getScoresForQuery(query)
+        return assets.sortedByDescending { asset ->
+            val score = scores[asset.id.toString()]
+            val delta = mediaFeedbackUseCase.calculateScoreDelta(score)
+            val baseIndex = assets.indexOf(asset)
+            val baseScore = (assets.size - baseIndex).toFloat()
+            baseScore + delta * 100f
+        }
+    }
+
+    private suspend fun triggerMoreLikeThis(mediaId: String, query: String) {
+        val sessionId = _currentSessionId.value
+        val asset = lastResultAssets[sessionId]?.find { it.id.toString() == mediaId }
+            ?: return
+        val tags = asset.labels?.let { parseLabels(it) }?.take(3) ?: emptyList()
+        val constraint = if (tags.isNotEmpty()) {
+            "和这张照片类似的：${tags.joinToString("、")}"
+        } else {
+            "更多类似这张照片的"
+        }
+        val outcome = onRefineMediaSearch(constraint)
+        val refinedAssets = lastResultAssets[sessionId].orEmpty().take(MAX_CARDS)
+        if (refinedAssets.isNotEmpty()) {
+            insertMediaResultsMessage(
+                sessionId,
+                MediaResultsUi(
+                    query = constraint,
+                    assets = refinedAssets,
+                    totalCount = outcome.totalCount,
+                    isRefinement = true
+                )
+            )
+        } else {
+            insertAgentMessage(
+                sessionId,
+                "没有找到更多类似的照片",
+                "gallery_search"
+            )
+        }
+    }
+
+    private fun parseLabels(labelsJson: String): List<String> {
+        return try {
+            val json = org.json.JSONObject(labelsJson)
+            val tags = json.optJSONArray("tags")
+            (0 until (tags?.length() ?: 0)).map { tags!!.getString(it) }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 

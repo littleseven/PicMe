@@ -271,6 +271,9 @@ fun ChatScreen(
                                 },
                                 onViewAll = {
                                     onNavigateToGallery(mr.query)
+                                },
+                                onFeedback = { mediaId, action ->
+                                    viewModel.onMediaFeedback(mediaId, mr.query, action)
                                 }
                             )
                         } else {

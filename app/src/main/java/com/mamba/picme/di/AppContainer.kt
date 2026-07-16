@@ -23,11 +23,14 @@ import com.mamba.picme.data.indexing.MediaIndexingWorker
 import com.mamba.picme.data.indexing.MediaStoreObserver
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.data.preferences.dataStore
+import com.mamba.picme.data.repository.MediaFeedbackRepository
+import com.mamba.picme.data.repository.MediaFeedbackRepositoryImpl
 import com.mamba.picme.data.repository.MediaRepositoryImpl
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.ExplicitFirstSearchPipeline
+import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.search.QueryBuilder
 import com.mamba.picme.domain.search.SemanticSearchEngine
@@ -201,7 +204,8 @@ class AppContainerImpl(
             userSettingsRepository = userPreferencesRepository,
             tagTranslator = TagTranslator(bilingualVocab, opusMtTranslator, controlledVocab),
             semanticSearchEngine = semanticSearchEngine,
-            explicitFirstPipeline = explicitFirstSearchPipeline
+            explicitFirstPipeline = explicitFirstSearchPipeline,
+            mediaFeedbackUseCase = mediaFeedbackUseCase
         )
     }
 
@@ -219,6 +223,16 @@ class AppContainerImpl(
 
     /** 双级缩略图缓存（LRU 内存 + 磁盘） */
     override val thumbnailCache: ThumbnailCache = thumbnailCacheParam
+
+    /** 图片反馈 Repository */
+    private val mediaFeedbackRepository: MediaFeedbackRepository by lazy {
+        MediaFeedbackRepositoryImpl(database.mediaFeedbackDao())
+    }
+
+    /** 图片反馈 UseCase */
+    private val mediaFeedbackUseCase: MediaFeedbackUseCase by lazy {
+        MediaFeedbackUseCase(mediaFeedbackRepository)
+    }
 
     /** 媒体元数据索引器（ML Kit 标签+OCR+EXIF） */
     override val mediaIndexingWorker: MediaIndexingWorker by lazy {
@@ -438,7 +452,8 @@ class AppContainerImpl(
             chatMessageDao = database.chatMessageDao(),
             chatSessionDao = database.chatSessionDao(),
             userSettingsRepository = userPreferencesRepository,
-            mediaSearchEngine = mediaSearchEngine
+            mediaSearchEngine = mediaSearchEngine,
+            mediaFeedbackRepository = mediaFeedbackRepository
         )
     }
 
