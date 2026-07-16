@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mamba.picme.data.local.dao.LocationDao
+import com.mamba.picme.data.local.dao.MediaFeedbackDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
@@ -14,6 +15,7 @@ import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.dao.TagScanTaskDao
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.LocationHierarchyEntity
+import com.mamba.picme.data.local.entity.MediaFeedbackEntity
 import com.mamba.picme.data.local.entity.MediaLocationEntity
 import com.mamba.picme.data.local.entity.MediaTagCrossRef
 import com.mamba.picme.data.local.entity.OcrWordEntity
@@ -38,9 +40,10 @@ import com.mamba.picme.data.model.MediaEntity
         OcrWordOccurrence::class,
         LocationHierarchyEntity::class,
         MediaLocationEntity::class,
-        TagScanTaskEntity::class
+        TagScanTaskEntity::class,
+        MediaFeedbackEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -54,6 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun personDao(): PersonDao
     abstract fun locationDao(): LocationDao
     abstract fun photoEditRecipeDao(): PhotoEditRecipeDao
+    abstract fun mediaFeedbackDao(): MediaFeedbackDao
 
     companion object {
         @Volatile
@@ -66,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "picme_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .build()
                 INSTANCE = instance
                 instance
@@ -200,6 +204,29 @@ abstract class AppDatabase : RoomDatabase() {
                         `updatedAt` INTEGER NOT NULL
                     )
                     """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * Migration 9 → 10：新增 media_feedback 表，保存用户对搜索结果的点赞/点踩反馈
+         */
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `media_feedback` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `media_id` TEXT NOT NULL,
+                        `feedback_type` TEXT NOT NULL,
+                        `query_text` TEXT NOT NULL,
+                        `session_id` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_media_feedback_lookup` ON `media_feedback` (`media_id`, `query_text`, `feedback_type`)"
                 )
             }
         }
