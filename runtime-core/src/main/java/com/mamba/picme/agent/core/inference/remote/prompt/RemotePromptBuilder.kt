@@ -100,7 +100,7 @@ class RemotePromptBuilder(
         history: List<String> = emptyList()
     ): String {
         return buildString {
-            appendLine("你是 PicMe 的摄影助手小觅。当前是聊天模式。")
+            appendLine("你是 PicMe 的摄影助手小浪。当前是聊天模式。")
             appendLine()
             appendLine("回复规则：")
             appendLine("1. 只输出中文自然语言，不要 JSON，不要 markdown。")

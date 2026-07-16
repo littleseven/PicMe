@@ -114,7 +114,7 @@ class AiAgentUseCaseParseTest {
      */
     private fun buildSystemPromptForTest(): String {
         return buildString {
-            appendLine("你是PicMe相机的AI助手小觅。你必须用中文回复用户。")
+            appendLine("你是PicMe相机的AI助手小浪。你必须用中文回复用户。")
             appendLine()
             appendLine("当前相机状态: 美颜=false, 磨皮=0, 美白=0, 瘦脸=0, 大眼=0, 唇色=0, 腮红=0, 眉毛=0, 滤镜=NONE, 风格=NONE, 变焦=1.0x, 曝光=0, 模式=PHOTO")
             appendLine()

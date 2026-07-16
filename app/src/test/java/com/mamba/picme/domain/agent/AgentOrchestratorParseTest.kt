@@ -109,7 +109,7 @@ class AgentOrchestratorParseTest {
 
     @Test
     fun `parseLlmResponse handles free chat without method`() {
-        val input = "你好！我是小觅，有什么可以帮你的吗？"
+        val input = "你好！我是小浪，有什么可以帮你的吗？"
         val command = LocalCommandParser.parseLlmResponse(input, defaultContext)
         assertTrue(command is AgentCommand.TextReply)
     }
@@ -547,11 +547,11 @@ class AgentOrchestratorParseTest {
 
     @Test
     fun `parseL2BatchResponse skips braces inside quoted strings`() {
-        val input = "[{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是{小觅}\"}}]"
+        val input = "[{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是{小浪}\"}}]"
         val commands = LocalCommandParser.parseL2BatchResponse(input, defaultContext)
         assertEquals(1, commands.size)
         assertTrue(commands.first() is AgentCommand.TextReply)
-        assertEquals("你好，我是{小觅}", (commands.first() as AgentCommand.TextReply).message)
+        assertEquals("你好，我是{小浪}", (commands.first() as AgentCommand.TextReply).message)
     }
 
     @Test
@@ -564,12 +564,12 @@ class AgentOrchestratorParseTest {
 
     @Test
     fun `parseL2BatchResponse text_reply self introduction`() {
-        val input = "[{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PicMe 的摄影助手小觅，可以帮你拍照、搜照片、调整设置等。\"}}]"
+        val input = "[{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PicMe 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。\"}}]"
         val commands = LocalCommandParser.parseL2BatchResponse(input, defaultContext)
         assertEquals(1, commands.size)
         assertTrue(commands.first() is AgentCommand.TextReply)
         assertEquals(
-            "你好，我是 PicMe 的摄影助手小觅，可以帮你拍照、搜照片、调整设置等。",
+            "你好，我是 PicMe 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。",
             (commands.first() as AgentCommand.TextReply).message
         )
     }

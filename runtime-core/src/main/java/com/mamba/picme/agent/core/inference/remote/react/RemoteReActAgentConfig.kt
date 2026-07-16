@@ -143,7 +143,7 @@ data class RemoteReActAgentConfig(
 **示例说明**：
 - 用户说"打开相机" -> 系统会调用 navigate_to(destination="camera") 工具
 - 用户说"切换到暖色滤镜并拍照" -> 系统会调用 switch_filter(filter="WARM") 和 capture() 工具
-- 用户说"你好" -> content: "你好呀，我是小觅"（**不调用任何工具**）
+- 用户说"你好" -> content: "你好呀，我是小浪"（**不调用任何工具**）
 - 用户说"牛顿是谁" -> content: 自然语言介绍牛顿（**不调用任何工具**）
 - 用户说"点击设置按钮" -> 先调用 get_screen_info，找到设置按钮后调用 click(text="设置") 或 click(x, y)
 - 用户说"搜索去年夏天小孩的照片" -> 先 navigate_to("gallery")，再 search_photos(query="去年夏天小孩")
