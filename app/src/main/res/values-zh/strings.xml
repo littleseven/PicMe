@@ -478,6 +478,13 @@
     <string name="feedback_like">喜欢</string>
     <string name="feedback_dislike">不喜欢</string>
     <string name="feedback_more_like_this">更多类似</string>
+    <string name="feedback_confirmed_like">已标记为喜欢</string>
+    <string name="feedback_confirmed_dislike">已标记为不喜欢</string>
+    <string name="feedback_excluded">已排除「%1$s」</string>
+    <string name="feedback_resolve_failure">没找准你想反馈的照片</string>
+    <string name="feedback_resolve_failure_ordinal">找不到第 %1$d 张</string>
+    <string name="feedback_resolve_failure_description">找不到符合「%1$s」的照片</string>
+    <string name="feedback_no_more_results">没有找到更多类似的照片</string>
     <string name="clear_chat">清空聊天</string>
     <string name="chat_input_hint">向 AI 助手提问…</string>
 

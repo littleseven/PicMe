@@ -600,7 +600,11 @@ class ChatViewModel(
                 insertAgentMessage(sessionId, describeCommandResult(action.command), "command", performance)
             }
             is AgentAction.Error -> {
-                insertAgentMessage(sessionId, "❌ ${action.message}", "error", performance)
+                val message = when (action.message) {
+                    "feedback_resolve_failure" -> context.getString(R.string.feedback_resolve_failure)
+                    else -> action.message
+                }
+                insertAgentMessage(sessionId, "❌ $message", "error", performance)
             }
             is AgentAction.BatchResult -> {
                 val summary = action.results.joinToString("\n") { subAction ->
@@ -635,11 +639,11 @@ class ChatViewModel(
                 ?: "✅ 已执行 AI 一键优化"
             is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
             is AgentCommand.RecordMediaFeedback -> when (command.action) {
-                FeedbackAction.LIKE -> "✅ 已标记为喜欢"
-                FeedbackAction.DISLIKE -> "✅ 已标记为不喜欢"
+                FeedbackAction.LIKE -> "✅ ${context.getString(R.string.feedback_confirmed_like)}"
+                FeedbackAction.DISLIKE -> "✅ ${context.getString(R.string.feedback_confirmed_dislike)}"
                 else -> "✅ 已记录反馈"
             }
-            is AgentCommand.ExcludeConstraint -> "✅ 已排除「${command.constraint}」"
+            is AgentCommand.ExcludeConstraint -> "✅ ${context.getString(R.string.feedback_excluded, command.constraint)}"
             else -> "✅ 已执行 ${AgentCommand.getMethodName(command)}"
         }
     }
@@ -742,7 +746,7 @@ class ChatViewModel(
         } else {
             insertAgentMessage(
                 sessionId,
-                "没有找到更多类似的照片",
+                context.getString(R.string.feedback_no_more_results),
                 "gallery_search"
             )
         }

@@ -106,7 +106,7 @@ class ChatSearchCapability private constructor() : BaseCapability() {
                             AgentAction.Error(
                                 commandId = command.commandId,
                                 errorCode = AgentErrorCode.INVALID_PARAMS,
-                                message = "无法定位要反馈的图片"
+                                message = "feedback_resolve_failure"
                             )
                         )
                     }
@@ -123,7 +123,7 @@ class ChatSearchCapability private constructor() : BaseCapability() {
                             AgentAction.Error(
                                 commandId = command.commandId,
                                 errorCode = AgentErrorCode.INVALID_PARAMS,
-                                message = "当前没有可过滤的搜索结果"
+                                message = "feedback_resolve_failure"
                             )
                         )
                     }
