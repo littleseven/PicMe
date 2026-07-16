@@ -1,5 +1,6 @@
 package com.mamba.picme.domain.search
 
+import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 
 class MediaFeedbackUseCase(

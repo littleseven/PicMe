@@ -2,7 +2,7 @@ package com.mamba.picme.data.repository
 
 import com.mamba.picme.data.local.dao.MediaFeedbackDao
 import com.mamba.picme.data.local.entity.MediaFeedbackEntity
-import com.mamba.picme.domain.search.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.domain.search.FeedbackScore
 
 class MediaFeedbackRepositoryImpl(

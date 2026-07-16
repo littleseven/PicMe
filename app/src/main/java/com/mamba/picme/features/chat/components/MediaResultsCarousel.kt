@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
-import com.mamba.picme.domain.search.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.MediaResultsUi
 import java.text.SimpleDateFormat
 import java.util.Date

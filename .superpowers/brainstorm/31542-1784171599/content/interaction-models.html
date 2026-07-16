@@ -1,0 +1,41 @@
+<h2>多轮找图：你想主推哪种交互形态？</h2>
+<p class="subtitle">当前已有横滑卡片结果 + 文本细化；现在要决定“多轮”主要靠对话、靠卡片反馈，还是两者结合</p>
+
+<div class="options">
+  <div class="option" data-choice="conversation" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>对话驱动</h3>
+      <p>Agent 主动追问，用户用文本回答。<br>例：用户说“找旅行照片” → Agent 返回卡片并问“是海边还是山里？” → 用户回答 → 再返回卡片。</p>
+      <ul>
+        <li>自然语言交互负担低</li>
+        <li>Agent 可解释“为什么推荐这些”</li>
+        <li>需要较强 prompt 和上下文管理</li>
+      </ul>
+    </div>
+  </div>
+  <div class="option" data-choice="card-feedback" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>卡片反馈（类 Tinder）</h3>
+      <p>结果以单张大卡片呈现，用户左右滑动表示喜欢/不喜欢，系统据此重新推荐。</p>
+      <ul>
+        <li>交互直观、决策快</li>
+        <li>可沉淀明确的正负反馈信号</li>
+        <li>需要新的 UI 组件和反馈存储</li>
+      </ul>
+    </div>
+  </div>
+  <div class="option" data-choice="hybrid" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>混合模式</h3>
+      <p>第一轮用横滑卡片快速展示候选；用户可点击“喜欢/不喜欢”或接着说“再多一点类似的”。Agent 同时理解文本和卡片反馈。</p>
+      <ul>
+        <li>保留现有横滑卡片</li>
+        <li>兼容文本细化和卡片反馈</li>
+        <li>实现复杂度最高</li>
+      </ul>
+    </div>
+  </div>
+</div>
