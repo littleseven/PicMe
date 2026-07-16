@@ -631,6 +631,12 @@ class ChatViewModel(
             is AgentCommand.AiOptimize -> command.explanation?.let { "✅ $it" }
                 ?: "✅ 已执行 AI 一键优化"
             is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
+            is AgentCommand.RecordMediaFeedback -> when (command.action) {
+                FeedbackAction.LIKE -> "✅ 已标记为喜欢"
+                FeedbackAction.DISLIKE -> "✅ 已标记为不喜欢"
+                else -> "✅ 已记录反馈"
+            }
+            is AgentCommand.ExcludeConstraint -> "✅ 已排除「${command.constraint}」"
             else -> "✅ 已执行 ${AgentCommand.getMethodName(command)}"
         }
     }
@@ -820,8 +826,18 @@ class ChatViewModel(
     }
 
     override suspend fun onRecordMediaFeedback(target: FeedbackTarget, action: FeedbackAction): Boolean {
-        // TODO: Task 10 实现
-        return false
+        val sessionId = _currentSessionId.value
+        val asset = resolveTarget(target, sessionId) ?: return false
+        val mediaId = asset.id.toString()
+        val query = sessionSearchSnapshots[sessionId]?.lastOrNull()?.query ?: ""
+        mediaFeedbackUseCase.record(
+            mediaId = mediaId,
+            queryText = query,
+            sessionId = sessionId,
+            action = action
+        )
+        updateCurrentResultsFeedback(mediaId, action, query)
+        return true
     }
 
     override suspend fun onMoreLikeThis(target: FeedbackTarget): SearchOutcome {
