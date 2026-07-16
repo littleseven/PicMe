@@ -50,7 +50,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 | 文件 | 职责 |
 |------|------|
-| `PicMeApplication.kt` | Application 初始化：DI 容器、Native 库加载、飞书远程控制、AgentOrchestrator 预配置 |
+| `PicMeApplication.kt` | Application 初始化：DI 容器、Native 库加载、AgentOrchestrator 预配置 |
 | `MainActivity.kt` | 单 Activity：Compose NavHost、主题/语言管理、CapabilityHost、模型下载弹窗 |
 | `navigation/Screen.kt` | sealed class 定义所有路由 |
 
@@ -131,7 +131,6 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 远程推理 | `RemoteReActAgent`（:runtime-core） | OpenAI Chat Completions API + tool_calls |
 | TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine` | Layer 0.5 显式约束优先分段检索（时间/地点/人脸→内容关键词）；Layer 1 QueryParser 规则；Layer 2 LLM；Layer 2.5 MobileCLIP 语义；Layer 3 融合排序 |
-| 飞书远程控制 | `PicMeApplication` → Feishu SDK | IM 远程命令与照片回传 |
 
 ---
 
@@ -167,8 +166,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 - `features/camera/AGENTS.md` — 相机模块实现规范
 - `features/gallery/AGENTS.md` — 相册模块实现规范
-- `features/chat/` — Chat UI 复用组件规范
-- `features/common/chat/AGENTS.md` — 共享 Chat 组件
+- `features/common/chat/AGENTS.md` — Chat UI 共享组件规范（Camera/Gallery 复用）
 - `features/editor/AGENTS.md` — 图片编辑模块
 - `features/settings/AGENTS.md` — 设置模块
 - `features/debug/AGENTS.md` — 调试工具模块
@@ -193,5 +191,5 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ---
 
 > **维护者**：[RD] 全栈工程师
-> **最后更新**：2026-06-30
+> **最后更新**：2026-07-15
 > **状态**：生效中

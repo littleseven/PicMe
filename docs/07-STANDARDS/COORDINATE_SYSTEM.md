@@ -392,7 +392,6 @@ grep -r "leftEye\|rightEye" app/src/ --include="*.kt" | grep -v "imageLeft\|imag
 #### 优先级 1: 技术文档（最高）
 
 **文件列表**：
-- InsightFace 106 映射文档（已移除，2026-05）
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（含相机预览比例与坐标转换、人脸关键点使用）
 - `.qoder/skills/av-gl-expert/SKILL.md`
 
@@ -411,7 +410,6 @@ grep -r "leftEye\|rightEye" app/src/ --include="*.kt" | grep -v "imageLeft\|imag
 #### 优先级 2: 代码注释
 
 **文件列表**：
-- `beauty-engine/src/main/java/com/picme/beauty/internal/facedetect/adapter/InsightFaceAdapter.kt`
 - `beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
 - `app/src/main/java/com/picme/core/image/ImageProcessor.kt`
 
@@ -694,7 +692,6 @@ exit 0
 ## 📚 参考资源
 
 ### 内部文档
-- InsightFace 106 映射文档（已移除，2026-05；坐标系规范不受影响）
 - [BEAUTY_ENGINE_TECH_SPEC.md](../03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 相机预览比例、坐标转换与人脸关键点使用
 
 ### 外部资源

@@ -1,11 +1,14 @@
 # Agent UI 层设计：远程 LLM 编排可视化
 
-> **状态**: 已批准  
+> **状态**: 已归档（被 ADR-005/006 取代）  
 > **作者**: Claude  
 > **日期**: 2026-05-29  
+> **最后更新**: 2026-07-16（标记为已归档）  
 > **关联文档**:
-> - 远程 LLM 编排设计（已被 ADR-005/006 取代，详见 `docs/02-ARCHITECTURE/ADR/`）
+> - 远程 LLM 编排设计已被 ADR-005/006 取代，详见 `docs/02-ARCHITECTURE/ADR/`
 > - [`docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](../02-ARCHITECTURE/AGENT_ARCHITECTURE.md)
+> 
+> ⚠️ **注意**：本文档保留为历史参考。当前实现以 ADR-005（本地/远程推理协议拆分）和 ADR-006（命令系统分离）为准。
 
 ---
 

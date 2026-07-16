@@ -70,11 +70,11 @@ data class FaceFeature(
 | 模型大小 | ~4MB（TFLite 量化版） |
 | 输出 | 128/256/512 维 embedding |
 | 推理速度 | ~20ms/张（ARM CPU） |
-| 框架 | TFLite / NCNN / MNN |
+| 框架 | TFLite / MNN |
 | 集成 | 需写适配器（遵循 beauty-engine 已有的人脸检测适配模式） |
 
 **与 PoLang 现有架构的契合度**:
-- beauty-engine 已有 MNN/NCNN/MediaPipe 多引擎适配器模式
+- beauty-engine 已有 MNN/MediaPipe 多引擎适配器模式
 - 可新增 `FaceEmbeddingAdapter` 接口，类似已有 `FaceLandmarkAdapter`
 
 ### 2.5 方案三：MediaPipe Face Embedder
@@ -203,11 +203,7 @@ PoLang 已有的推理框架：
 
 | 框架 | 当前用途 | VL 模型支持 |
 |------|---------|------------|
-| **MNN** | LLM (Qwen3.5-2B) + 人脸检测备选 | 可支持 Qwen3-VL |
-| **MediaPipe** | 人脸 Landmark（主力） | Face Embedder |
-| **ONNX Runtime** | 语音 ASR/KWS（Sherpa-ONNX） | Chinese-CLIP、MobileCLIP |
-| **TFLite** | 未直接使用（通过 ML Kit） | MobileFaceNet、LightCap |
-| **NCNN** | 人脸检测备选 | 部分模型支持 |
+| **MNN** | LLM (Qwen3.5-2B) + 人脸检测 | 可支持 Qwen3-VL |
 
 **推荐**:
 - VL 模型：**MNN** 或 **llama.cpp**（已有 MNN LLM 经验）

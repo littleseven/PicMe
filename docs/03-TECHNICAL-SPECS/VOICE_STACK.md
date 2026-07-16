@@ -406,7 +406,7 @@ VAD(RMS 25dB) → 录音(最长4s) → ASR 全量转录(282MB) → 文本匹配"
            │              │              │
 ┌──────────▼──────┐ ┌─────▼──────┐ ┌────▼──────────────┐
 │  语音栈 (ONNX)   │ │ LLM (MNN)  │ │  FaceDetect       │
-│                 │ │            │ │  (NCNN/MediaPipe) │
+│                 │ │            │ │  (MNN)            │
 │ libsherpa-      │ │ libMNN.so  │ │  独立 .so         │
 │ onnx-jni.so     │ │ +          │ │                   │
 │ +               │ │ libmnn_llm │ │                   │
@@ -499,7 +499,7 @@ LLM ────────────           LLM ────────�
 1. KWS 与 ASR 绝不同时 ACTIVE（KWS 暂停后 ASR 加载）
 2. ASR 转录完成后立即释放（不缓存，不等待 GC）
 3. LLM 推理完成后立即释放（可选保留 KV cache 用于 follow-up 对话）
-4. 人脸检测按需加载/释放（NCNN/MediaPipe，不受语音栈影响）
+4. 人脸检测按需加载/释放（MNN，不受语音栈影响）
 
 #### 状态转移表
 
@@ -553,11 +553,11 @@ LLM ────────────           LLM ────────�
 | MNN Runtime | ~20MB | libMNN.so + libmnn_llm.so |
 | **LLM 总计** | **~1.8GB** | 推理完成后释放 |
 
-**FaceDetect**（NCNN 路径）：
+**FaceDetect**（MNN 路径）：
 
 | 项目 | 大小 | 说明 |
 |------|------|------|
-| 模型文件 | ~21MB | Det10G + 2D106（NCNN 格式） |
+| 模型文件 | ~21MB | Det10G + 2D106（MNN 格式） |
 | 运行时 | ~50MB | CNN 中间激活 + 特征点缓存 |
 | **FaceDetect 总计** | **~70MB** | 相机页常驻 |
 
@@ -776,7 +776,7 @@ dependencies {
 - [ ] 多次 KWS→ASR→LLM 循环无内存泄漏（Native Heap 不持续增长）
 - [ ] 低端设备（4GB）不触发 OOM（KWS + 远程 LLM）
 - [ ] `MnnGlobalReleaseLock` 完全删除，无残留引用
-- [ ] 人脸检测（NCNN）不受语音栈切换影响
+- [ ] 人脸检测（MNN）不受语音栈切换影响
 
 ---
 

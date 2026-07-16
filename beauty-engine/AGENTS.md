@@ -13,6 +13,10 @@
 
 **阅读对象**：CO、PM、RD、CR、QA、AI Agent
 
+**版本**：1.0
+**最后更新**：2026-07-15
+**状态**：生效中
+
 ---
 
 ## 1. 核心产品逻辑 (Core Product Logic)
@@ -21,7 +25,7 @@
 - **[PERF] 单帧处理 ≤ 16ms**：目标 60fps；低端机保底 30fps
 - **[PERF] 参数响应延迟 < 100ms**：美颜参数通过 `uniform` 实时传递，无需重新编译 Shader
 - **[PRIVACY] 本地渲染**：所有图像处理在设备本地完成，严禁上传任何图像数据到云端
-- **[STABILITY] 容灾降级**：引擎初始化失败或运行异常时，通过 `BeautyPreviewProvider` 向 App 层报告。详细的兜底策略与状态记录机制请参阅 `docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md`
+- **[STABILITY] 容灾降级**：引擎初始化失败或运行异常时，通过 `BeautyPreviewProvider` 向 App 层报告。详细的兜底策略与状态记录机制请参阅 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`
 - **[API_STABILITY] 库化演进**：App 仅依赖 `api/` 包下的能力契约，禁止直接引用 `render/` 内部实现类
 - **[INTEGRATION] 单引擎架构**：仅保留自研 `beauty-engine`（BIG_BEAUTY）引擎，GPUPixel 已于 2026-05 完全移除
 - **[ROADMAP] 拍照 GPU 化（2026-05 已落地）**：`PhotoProcessorImpl` 已实现拍照后处理 GPU 离屏渲染，复用预览同一套 Shader 管线，彻底解决预览/拍照效果不一致问题。GPU 路径失败时自动回退 CPU 路径。详见 `docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md`
@@ -78,7 +82,7 @@ beauty-engine/src/main/java/com/picme/beauty/
 │   │   ├── FrameSyncBridge.kt
 │   │   ├── FrameSyncManager.kt
 │   │   └── MotionTracker.kt
-  │   └── facedetect/                    # 人脸检测实现（MNN/MediaPipe）
+  │   └── facedetect/                    # 人脸检测实现（MediaPipe/MNN）
   │       ├── FaceDetectorManager.kt       # 双引擎调度 + 零拷贝路径（detectFromImage/detectRoiFromNv21/detectLandmarksWithRoi）
   │       ├── DetectionPipelineFactory.kt
   │       ├── MediaPipeFaceDetector.kt     # 含 detect(mediaImage: Image) 零拷贝重载
@@ -118,7 +122,7 @@ beauty-engine/src/main/java/com/picme/beauty/
   - `release()` — 资源释放
   - `isReady(): Boolean` — 判断引擎是否已就绪
   - `getPerfStats(): BeautyPerfStats` — 获取实时性能统计（默认返回 `EMPTY`）
-- 初始化异常应通过抛出异常或状态查询供 App 层触发兜底。详见 `docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md`
+- 初始化异常应通过抛出异常或状态查询供 App 层触发兜底。详见 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`
 
 #### PhotoProcessor（拍照 GPU 化接口，2026-05 新增）
 - **定位**：拍照后处理的统一入口，将 Bitmap 通过 GPU 离屏渲染处理，复用预览同一套 Shader 管线
@@ -454,7 +458,7 @@ if (fps < 25 || processingMs > 20) {
 
 ---
 
-## 5. 帧同步系统规范（Frame-Sync Makeup System，2026-05）— 解决妆容甩飞
+## 6. 帧同步系统规范（Frame-Sync Makeup System，2026-05）— 解决妆容甩飞
 
 ### 5.1 架构定位
 帧同步是 beauty-engine 的**横切能力**，核心目标是**解决妆容甩飞问题**（妆容粘屏幕不跟脸、悬空残留、录制跳变）。沉淀在 `internal/framesync/` 包下：

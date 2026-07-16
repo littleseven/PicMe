@@ -171,13 +171,13 @@ PoLang 使用 MNN 3.5.0 统一构建的 `libMNN.so`，同时承载两个独立�
 | 子系统 | MNN API | 内存占用 | 生命周期 |
 |--------|---------|----------|----------|
 | **LLM** | `MNN::Transformer::Llm` | Qwen3.5-2B 约 1.5-2.5GB | 加载后常驻，无自动卸载 |
-| **ASR** | `MNN::Express::Module` (via Sherpa-MNN) | Zipformer 约 100-300MB | 相机页初始化，页面退出不释放 |
+| **ASR** | `MNN::Express::Module` (via Sherpa-MNN，已迁移至 Sherpa-ONNX) | Zipformer 约 100-300MB | 相机页初始化，页面退出不释放 |
 
 > **注意**：当前语音栈已迁移至 Sherpa-ONNX（见 [VOICE_STACK.md](VOICE_STACK.md)），ASR 不再依赖 `libMNN.so`，LLM 成为 `libMNN.so` 唯一使用者。本节保留历史设计用于理解 `MnnResourceManager` 的演进。
 
 ### 2.2 核心冲突（历史）
 
-`MNN::Transformer::Llm::destroy()` 在释放 LLM 独占内存时，会触及 MNN 全局内存分配器状态，导致**同一进程内仍在运行的 Sherpa-MNN ASR 崩溃**。
+`MNN::Transformer::Llm::destroy()` 在释放 LLM 独占内存时，会触及 MNN 全局内存分配器状态，导致**同一进程内仍在运行的 Sherpa-MNN ASR 崩溃**（历史问题，ASR 已迁移至 Sherpa-ONNX，不再依赖 MNN）。
 
 现有规避方案（`AgentOrchestrator.applySceneDrivenModelPolicy`）：
 

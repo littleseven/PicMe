@@ -16,9 +16,9 @@
 |------|------|
 | [01 产品](01-PRODUCT/FEATURES.md) | 产品定义、功能交互、非功能性需求 |
 | [02 架构](02-ARCHITECTURE/AGENT_ARCHITECTURE.md) | Agent 架构、模块架构 |
-| [03 技术规格](03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) | 大美丽引擎、帧同步、人脸检测、海外服务端部署等 |
+| [03 技术规格](03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) | 大美丽引擎、帧同步、人脸检测、服务端部署等 |
 | [04 Agent 能力](04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md) | 能力注册表、命令参考 |
-| [05 开发](05-DEVELOPMENT/DEVELOPMENT.md) | 开发流程、本地环境 |
+| [05 开发](05-DEVELOPMENT/DEVELOPMENT.md) | 开发流程、本地环境、备份恢复 |
 | [06 QA](06-QA/QA_EXECUTION_CHECKLIST.md) | 性能基线、验收清单 |
 | [07 标准](07-STANDARDS/GLOSSARY.md) | 坐标系、术语、重构计划 |
 

@@ -10,7 +10,7 @@
 **主要维护者**：[RD] 全栈工程师  
 **阅读对象**：RD、AI Agent  
 **版本**：1.0  
-**最后更新**：2026-07-06  
+**最后更新**：2026-07-15  
 **状态**：生效中  
 
 ---
@@ -34,10 +34,10 @@
 | `StreamingChatModel` | `com.mamba.model.chat` | 流式聊天模型接口 |
 | `OpenAiChatModel` | `com.mamba.model.openai` | OpenAI 协议聊天模型实现 |
 | `OpenAiStreamingChatModel` | `com.mamba.model.openai` | OpenAI 协议流式聊天模型实现 |
-| `ToolSpecification` | `com.mamba.agent.tool` | Tool 规格定义 |
+| `ToolSpecification` | `com.mamba.tool` | Tool 规格定义 |
 | `ChatMessage` / `AiMessage` / `SystemMessage` / `UserMessage` | `com.mamba.data.message` | 聊天消息类型 |
-| `ServiceHelper` | `com.mamba.spi` | SPI 工厂加载工具 |
-| `Json` / `JsonCodecFactory` | `com.mamba.internal` / `com.mamba.spi.json` | JSON 编解码 |
+| `ServiceHelper` | `com.mamba.service` | SPI 工厂加载工具 |
+| `Json` / `JsonCodecFactory` | `com.mamba.internal` | JSON 编解码 |
 
 ---
 
@@ -92,10 +92,9 @@ String response = chatModel.chat("Hello");
 ## 5. 相关文档
 
 - [`LANGCHAIN4J_MIGRATION.md`](./LANGCHAIN4J_MIGRATION.md) — 模块合并与改造历史
-- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构（含远程推理）
 
 ---
 
 > **维护者**：RD Agent
-> **最后更新**：2026-07-06
+> **最后更新**：2026-07-15

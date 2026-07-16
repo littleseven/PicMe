@@ -1,5 +1,7 @@
 # PoLang 管理后台 Implementation Plan
 
+> **状态**：✅ 已完成（server v0.5.0+ 已落地）
+> **实现位置**：`server/src/main/kotlin/com/mamba/picme/server/admin/`
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 `server/` 内新增 LLM 用量采集 + 服务端渲染 HTML 管理后台，让运营者可看用户邮箱、token 使用、总流量。

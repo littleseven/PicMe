@@ -188,8 +188,6 @@ agent-core/src/main/java/com/picme/agent/core/        # Agent Runtime 核心（�
 └── remote/                     # 远程推理
     ├── RemoteOrchestrator.kt   # 481 行
     ├── RemoteInferenceEngine.kt # 392 行
-    ├── (UnifiedRemoteClient 已移除，远程推理现使用 :agent-core OpenAiChatModel)
-    ├── AdaptiveStrategySelector.kt # 182 行
     ├── IntentCache.kt          # 287 行
     └── ...
 ```

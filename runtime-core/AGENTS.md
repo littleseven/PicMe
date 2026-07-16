@@ -13,6 +13,10 @@
 
 **语言**：Kotlin
 
+**版本**：1.0
+**最后更新**：2026-07-15
+**状态**：生效中
+
 **关键职责**：
 - `AgentOrchestrator`（`facade`）：应用级 Agent 入口，管理本地/远程两条推理链路
 - `CapabilityRegistry`（`runtime.capability`）：Capability 注册、查询、命令分发
@@ -105,7 +109,7 @@
 >   - `tool_choice: REQUIRED` 正确映射为 `"required"`（之前错误映射为 `"auto"`）
 >   - 增强 content fallback 解析，支持从 content 字段回退提取 tool_calls JSON
 > - 空字符串处理统一使用 `isNotBlank()`
-> - 远程推理通过 `:mamba-agent`（langchain4j 合并单库）消费标准 OpenAI 协议
+> - 远程推理通过 `:agent-core` 消费标准 OpenAI 协议
 > - 新增 `ToolCallCommandParser`：标准 tool_calls 解析器
 > - 远程推理支持 L2 Batch / L3 Plan / L4 ReAct Chat 分层模式
 

@@ -1,8 +1,8 @@
 # PoLang 仓库整理方案
 
 > **状态总览**
-> - ✅ 已完成：模块命名文档修正（`CLAUDE.md`/`PRODUCT.md`/`beauty-api/AGENTS.md`/`ON_DEVICE_INFERENCE_INVENTORY` 等）；`server/` 后端骨架落地；Tier 1 安全挪动（`analyze_commits.py`→`scripts/`、`cloudflare/`+`tencentscf/`→`infra/`）；移除空壳 `buildSrc/`、废弃 `tools/json-schema-to-gbnf`、移除 `.cursorrules`（未用 Cursor）。
-> - ⏳ 待定：根 `DEVELOPMENT.md` 去留（§6 #1）；`shared/` 占位（可选）。
+> - ✅ 已完成：模块命名文档修正；`server/` 后端骨架落地；Tier 1 安全挪动；根 `DEVELOPMENT.md` 删除（与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复）；移除空壳 `buildSrc/`、废弃 `tools/json-schema-to-gbnf`、移除 `.cursorrules`。
+> - ⏳ 待定：`shared/` 占位（可选）。
 > - ❌ 不做：模块改名（Tier 2，已否决）。
 > - ➖ 留根（有原因）：`CHANGELOG.md`/`RELEASE_NOTE_*`（`release-automation.sh` 写死路径）、`input_images/`（4 个 viz 脚本使用）、`agents/`（AI 工具约定）。
 >
@@ -45,9 +45,9 @@ langchain4android/
 │   │   ├── Application.kt · config/AppConfig.kt
 │   │   ├── db/{Db,Tables,Migrations}.kt          # ✅ SQLite + Exposed
 │   │   ├── recommend/RuleEngine.kt                # ✅ 规则型推荐
-│   │   ├── routes/{Healthz,Recommend,Telemetry}Route.kt   # ✅ 已实现
-│   │   ├── routes/{Llm,Assets}Route.kt            # 🚧 待实现
-│   │   ├── llm/ · cos/ · ratelimit/               # 🚧 待实现（DeepSeek 代理 / COS 预签名 / 100·min+¥20·day）
+│   │   ├── routes/{Healthz,Recommend,Telemetry,Auth,Download}Route.kt   # ✅ 已实现
+│   │   ├── routes/LlmRoute.kt            # ✅ /v1/chat/completions + /chat/completions 流式 SSE
+│   │   ├── llm/ · cos/ · ratelimit/      # ✅ 已实现（ChannelRegistry / LlmProxy / CosService / RateLimiter）
 │   ├── src/main/resources/logback.xml
 │   ├── migrations/{001_init.sql, seed_rules.sql}
 │   └── .env.example · deploy.sh · picme-api.service · README.md · .gitignore
@@ -75,7 +75,7 @@ langchain4android/
 | `CHANGELOG.md`、`RELEASE_NOTE_*.md` | **留根** | `scripts/release-automation.sh` 写死 `$PROJECT_ROOT/CHANGELOG.md`，挪了会断 |
 | `input_images/` | **留根** | `scripts/visualize_eyes_landmarks.py` 等 4 个脚本使用 |
 | `agents/*.md` | **留根** | AI 工具约定（与根 `AGENTS.md` 同级） |
-| 根 `DEVELOPMENT.md` | 待定 | 见 §6 #1（删 / 指针 / 留） |
+| 根 `DEVELOPMENT.md` | ~~待定~~ **已删除** | 与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复，已删除 |
 | `.claude/worktrees`、`.qoder/`、`.claude/` | **保留** | 工具目录（worktrees 由 EnterWorktree 工具管理） |
 
 **风险**：`grep` 引用（CI、脚本路径、文档相对链接）避免断链——本次挪动的 3 项均仅文档提及、无脚本/CI 引用，已验证安全。
@@ -114,9 +114,8 @@ langchain4android/
 
 ## 5. 执行顺序
 
-1. ✅ Tier 1 安全挪动已执行（`analyze_commits.py` / `cloudflare/` / `tencentscf/`）。
-2. ⏳ 根 `DEVELOPMENT.md` 去留（§6 #1 定后处理）。
-3. `shared/` 占位（可选，按需）。
+1. ✅ Tier 1 安全挪动已执行（`analyze_commits.py` / `cloudflare/` / `tencentscf/` / 根 `DEVELOPMENT.md` 删除）。
+2. `shared/` 占位（可选，按需）。
 
 > Tier 2 已否决；Tier 3 已完成；`server/` 已落地（`/llm`、`/assets` 另行实现）。
 
@@ -124,7 +123,7 @@ langchain4android/
 
 ## 6. 待拍板 ⚠️
 
-> `cloudflare/`/`tencentscf/` 已挪入 `infra/`（保留）；`agents/`、`CHANGELOG`/`RELEASE_NOTE`、`input_images/` 经评估**留根**（见 §3 理由）。
+> `cloudflare/`/`tencentscf/` 已挪入 `infra/`（保留）；`agents/`、`CHANGELOG`/`RELEASE_NOTE`、`input_images/` 经评估**留根**（见 §3 理由）。根 `DEVELOPMENT.md` 已删除。
 
-1. **根 `DEVELOPMENT.md`**（6KB，与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 25KB 重复）：删除 / 改一行指针 / 保留？
+1. ~~根 `DEVELOPMENT.md`~~ **已删除**（与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复）。
 2. **`shared/` 占位**：现在建 / 等端云真有共享需求再建？

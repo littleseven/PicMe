@@ -1,5 +1,7 @@
 # AI 网关开关 / 渠道管理 Implementation Plan
 
+> **状态**：✅ 已完成（server v0.6.0+ 已落地）
+> **实现位置**：`server/src/main/kotlin/com/mamba/picme/server/llm/ChannelRegistry.kt` 等
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 `server/` 管理后台新增「渠道」管理，支持运行时切换 AI 上游（TokenHub / CloudFlare 网关 + DeepSeek / GLM / Kimi 直连），无需重启。

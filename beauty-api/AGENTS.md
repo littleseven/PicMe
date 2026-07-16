@@ -50,9 +50,9 @@ API 变更必须保证源级兼容（source-compatible）。破坏性变更需�
 |------|------|------|
 | `FaceDetector` | `FaceDetector.kt` | **人脸检测公共接口** — `detect()`（预览）、`detectPhoto()`（拍照）、`setEngineMode()`、`updatePipelineConfig()`、`release()` |
 | `FaceDetectionResult` | `FaceDetectionResult.kt` | **检测输出** — `landmarks106`（FloatArray）、`detectionSource`、roi 矩形、检测器名称和 GPU 标志 |
-| `FaceDetectionSource` | `FaceDetectionSource.kt` | **检测来源枚举** — NONE、MEDIAPIPE、MNN、NCNN |
-| `EngineType` | `EngineType.kt` | **引擎模式枚举** — MEDIAPIPE、MNN、NCNN（供外部设置） |
-| `DetectionPipelineConfig` | `DetectionPipelineConfig.kt` | **检测管线配置** — 组合 ROI 检测器类型、Landmark 检测器类型、推理后端（ONNX/MNN/NCNN/TFLITE）、设备偏好（AUTO/CPU/GPU） |
+| `FaceDetectionSource` | `FaceDetectionSource.kt` | **检测来源枚举** — NONE、MEDIAPIPE、MNN |
+| `EngineType` | `EngineType.kt` | **引擎模式枚举** — MEDIAPIPE、MNN（供外部设置） |
+| `DetectionPipelineConfig` | `DetectionPipelineConfig.kt` | **检测管线配置** — 组合 ROI 检测器类型、Landmark 检测器类型、推理后端（ONNX/MNN/TFLITE）、设备偏好（AUTO/CPU/GPU） |
 | `FaceWarpParams` | `FaceWarpParams.kt` | **人脸变形参数** — GPU Shader 归一化坐标（0.0-1.0），供美颜渲染使用 |
 | `GpuPixelLandmarks` | `GpuPixelLandmarks.kt` | **GPU 关键点数据** — 106 点 FloatArray 原始访问（热路径优化），附带 PointF 列表用于调试覆盖层 |
 | `FaceContourData` | `FaceContourData.kt` | **人脸轮廓数据** — 15 个轮廓区域（脸型、眉毛、眼睛、嘴唇、鼻子、脸颊） |
@@ -115,7 +115,7 @@ beauty-engine/
     │   ├── BeautyPreviewProvider   ← 预览引擎接口
     │   └── PhotoProcessor          ← 拍照处理接口
     ├── render/                     ← OpenGL ES + EGL 渲染实现
-    └── internal/facedetect/        ← 人脸检测适配器（MediaPipe/MNN/NCNN → 统一 106 点）
+    └── internal/facedetect/        ← 人脸检测适配器（MediaPipe/MNN → 统一 106 点）
 ```
 
 > **关键规则**：App 代码**只能**依赖 `beauty-api/` 和 `beauty-engine:api/`。禁止直接引用 `beauty-engine:render/` 或 `beauty-engine:internal/`。
@@ -135,5 +135,5 @@ beauty-engine/
 ---
 
 > **维护者**：[RD] 全栈工程师
-> **最后更新**：2026-06-21
+> **最后更新**：2026-07-15
 > **状态**：生效中

@@ -1,5 +1,7 @@
 # 渠道默认模型兜底 Implementation Plan
 
+> **状态**：✅ 已完成（server v0.6.1+ 已落地）
+> **实现位置**：`server/src/main/kotlin/com/mamba/picme/server/llm/LlmProxy.kt` 等
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** 给每个 LLM 渠道加 `default_model`；App 请求的 model 不在渠道 `model_map` 里时，回落到默认模型转发而非 400；后台可编辑。只改服务端，不发 App。

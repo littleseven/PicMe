@@ -65,7 +65,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
 ### 2.2 美颜引擎动态切换
 
-> 跨模块容灾降级流程的完整说明请参阅 `docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md`。本节仅保留 DI 层的实现代码与关键约束。
+> 跨模块容灾降级流程的完整说明请参阅 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`。本节仅保留 DI 层的实现代码与关键约束。
 
 **当前引擎现状（2026-04）**：
 
@@ -75,7 +75,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 > 注意：当前为单引擎架构，DI 层不硬编引擎类型。
 
 **技术规范**:
-- **实时预览引擎切换**：通过 `rememberGlBeautyPreviewProvider(context, beautyStrategy)` Composable 庇数唡建/释放，DI 层不参与
+- **实时预览引擎切换**：通过 `rememberGlBeautyPreviewProvider(context, beautyStrategy)` Composable 创建/释放，DI 层不参与
 - **拍照后处理器**：`PhotoProcessorImpl`（GPU 离屏渲染，复用多 Pass Shader 管线）作为静态 Bitmap 处理器，生产可用；GPU 路径失败时回退到 `GpuBeautyProcessor`（Canvas + ColorMatrix）
 - **容灾降级**：大美丽初始化失败时记录异常并降级为无美颜预览（CameraX `PreviewView` 直出）
 - **运行时状态**：使用 `BeautyEngineRuntimeState` 单例记录初始化异常原因，支持 UI 层查询并提示用户

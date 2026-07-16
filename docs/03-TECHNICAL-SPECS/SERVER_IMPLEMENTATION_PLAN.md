@@ -1,7 +1,7 @@
 # PoLang 服务端实现方案（Ktor）
 
-> **文档状态**：Review 完成（PM/RD/CR/QA 四角色已审），文档与代码已对齐。据编码时以代码为事实来源。
-> **最后更新**：2026-07-12（Review 后修正：以代码为准统一限流/预算/厂商/构建命令；架构决策：/llm 降 P2、新增 /agent/config、历史消息不存服务端、飞书保持客户端接入）
+> **文档状态**：已上线（v0.6.3），服务端已在 `api.polang.net` 运行。文档与代码已对齐，编码时以代码为事实来源。
+> **最后更新**：2026-07-15（v0.6.3 对齐：管理后台、邮箱认证、LLM 代理、用量采集、AI 网关渠道管理均已上线）
 > **P0 阻断项**：✅ 已修复并本地端到端验证（2026-07-12）——WAL/busy_timeout/poolSize=1、seed 幂等加载（补 `rule(scene,locale,version)` 唯一索引让 `INSERT OR IGNORE` 真正生效）、StatusPages（Ktor 3 `(call,cause)` 双参数 handler）、`newSuspendedTransaction(Dispatchers.IO)`、systemd `JAVA_OPTS=-Xmx256m`。
 > **维护者**：RD Agent
 > **关联**：`PRODUCT.md`、`OVERSEAS_SERVER_DEPLOYMENT.md`、`AI_OPTIMIZATION.md`
@@ -19,19 +19,24 @@
 - **对象存储**：腾讯 COS **100GB 标准存储包**（HK，`ap-hongkong`）。
 - **同机另一租户**：OpenClaw（龙虾 AI 助手）——与后端共享 2G 内存，后端须设 `MemoryMax`。
 
-**本轮交付（MVP）**：
-- 3 个 P0 路由：`/healthz`（✅ 已实现）、`/recommend`（✅ 已实现）、`/telemetry`（✅ 已实现）
+**本轮交付（MVP + v0.5.0 扩展）**：
+- 3 个 P0 路由：`/healthz`（✅）、`/recommend`（✅）、`/telemetry`（✅）
+- 2 个 P0 路由（v0.5.0 新增）：`/v1/chat/completions`（✅ LLM 代理）、`/auth/email/{send,verify}`（✅ 邮箱认证）
+- 1 个 P1 能力（v0.5.0 新增）：`/admin/**`（✅ 管理后台 SSR）
 - 2 个 P1 路由：`/assets`（🚧）、`/agent/config`（🚧，供应商适配参数下发）
-- SQLite（规则/元数据/遥测/计数）
+- SQLite（规则/元数据/遥测/计数/账号/LLM 日志）
 - 腾讯 COS 预签名下发
 - systemd + Nginx 反代 + certbot 上线
 
-**P2（MVP 不含，待验证后实施）**：
-- `/llm` LLM 流式代理——**混合模式**：仅 Keyless 用户走 Server，BYOK 用户直连 TokenHub
+**P2（待验证后实施）**：
+- `/assets` 完整实现 — COS 预签名 + 素材清单
+- `/agent/config` 供应商适配参数下发
 
 > **架构定位**：Server 是**配置中心 + 分发管道 + 遥测收集**，不做 Agent 编排。ReAct 循环、tool 执行、ChatMemory 永远在客户端。历史消息不存服务端（客户端 Room + DataStore 已有持久化）。
 
-**本轮不做（Out of scope）**：账号体系、计费、GPU 云端图像处理、多 region、CI/CD 流水线、端云共享 Kotlin 模块、正式 WAF/监控仪表盘、飞书服务端接入（保持客户端直连）。
+**本轮不做（Out of scope）**：GPU 云端图像处理、多 region、CI/CD 流水线、端云共享 Kotlin 模块、正式 WAF/监控仪表盘、飞书服务端接入（保持客户端直连）。
+
+> **架构演进**：账号体系（v0.4.0）和管理后台（v0.5.0）已从 "Out of scope" 升级为已上线功能。
 
 ---
 
@@ -76,29 +81,45 @@ server/   # = langchain4android/server/（rootProject.name = "picme-server"）
 ├── settings.gradle.kts
 ├── src/main/
 │   ├── kotlin/com/mamba/picme/server/
-│   │   ├── Application.kt          # ✅ 入口 + 插件装配（Routing/ContentNegotiation/CallLogging）
-│   │   ├── config/AppConfig.kt     # ✅ 读环境变量（非 HOCON，无 application.conf）
+│   │   ├── Application.kt          # ✅ 入口 + 插件装配
+│   │   ├── config/AppConfig.kt     # ✅ 读环境变量
 │   │   ├── routes/
 │   │   │   ├── HealthzRoute.kt     # ✅ P0
 │   │   │   ├── RecommendRoute.kt   # ✅ P0
 │   │   │   ├── TelemetryRoute.kt   # ✅ P0
+│   │   │   ├── AuthRoute.kt        # ✅ P0（邮箱认证）
+│   │   │   ├── LlmRoute.kt         # ✅ P0（LLM 代理）
+│   │   │   ├── DownloadRoute.kt    # ✅ P0
 │   │   │   ├── AssetsRoute.kt      # 🚧 P1 待实现
-│   │   │   ├── AgentConfigRoute.kt # 🚧 P1 待实现（供应商适配参数下发）
-│   │   │   └── LlmRoute.kt         # 🚧 P2 待实现
-│   │   ├── recommend/RuleEngine.kt # ✅ 规则查询 + 组装参数
-│   │   ├── cos/CosSigner.kt        # 🚧 P1 待实现
-│   │   ├── llm/OpenAiProxy.kt      # 🚧 P2 待实现
-│   │   ├── ratelimit/RateLimiter.kt # 🚧 P2 待实现
-│   │   └── db/{Db.kt, Tables.kt, Migrations.kt}  # ✅（注：文件名是 Db.kt 非 Database.kt）
-│   └── resources/
-│       └── logback.xml             # ✅（无 application.conf，host/port 走环境变量）
-├── migrations/
-│   ├── 001_init.sql                # 建表参考（代码用 Exposed SchemaUtils）
-│   └── seed_rules.sql              # 初始推荐规则（⚠️ 当前 Migrations 未调用，需修）
+│   │   │   └── AgentConfigRoute.kt # 🚧 P1 待实现
+│   │   ├── auth/
+│   │   │   ├── AccountService.kt   # ✅ 账号 CRUD
+│   │   │   ├── AppTokenAuth.kt     # ✅ X-App-Token 认证
+│   │   │   └── EmailService.kt     # ✅ 验证码发送
+│   │   ├── admin/
+│   │   │   ├── AdminRoutes.kt      # ✅ 管理后台路由
+│   │   │   ├── AdminAuth.kt        # ✅ ADMIN_TOKEN 认证
+│   │   │   ├── AdminViews.kt       # ✅ SSR HTML 页面
+│   │   │   └── AdminQueries.kt     # ✅ 运营数据查询
+│   │   ├── llm/
+│   │   │   ├── ChannelConfig.kt    # ✅ 供应商配置
+│   │   │   ├── ChannelRegistry.kt  # ✅ 多供应商注册表
+│   │   │   ├── ChannelRepository.kt# ✅ 配置持久化
+│   │   │   ├── LlmProxy.kt         # ✅ 流式代理
+│   │   │   └── LlmRoute.kt         # ✅ /v1/chat/completions
+│   │   ├── recommend/RuleEngine.kt # ✅ 规则查询
+│   │   ├── cos/CosService.kt       # ✅ COS 预签名
+│   │   ├── ratelimit/RateLimiter.kt# ✅ 内存令牌桶
+│   │   ├── analytics/
+│   │   │   ├── UsageRecorder.kt    # ✅ LLM 调用日志
+│   │   │   └── TokenUsage.kt       # ✅ Token 用量解析
+│   │   └── db/{Db,Tables,Migrations}.kt  # ✅
+│   └── resources/logback.xml       # ✅
+├── migrations/                     # 001_init ~ 005_account_token_plain
 ├── .env.example
-├── deploy.sh
-├── picme-api.service               # systemd unit
-└── README.md
+├── deploy.sh · deploy-switch.sh · run-local.sh
+├── picme-api.service
+└── README.md · OPENCLAW_DEPLOY.md
 ```
 
 > **构建命令**：`server/` 无独立 `gradlew`，须用根目录 wrapper：`./gradlew -p server run`（开发）或 `./gradlew -p server installDist`（构建）。

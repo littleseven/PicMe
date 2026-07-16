@@ -1,5 +1,7 @@
 # Chat 相册搜索 + 卡片 Carousel 实现计划
 
+> **状态**：✅ 已完成（App 已落地）
+> **实现位置**：`app/src/main/java/com/mamba/picme/features/chat/capability/ChatSearchCapability.kt`
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在独立 ChatScreen 中支持自然语言搜索相册照片，结果以横滑卡片 carousel 插入对话，点击进 MediaPager 预览，支持多轮 in-set 细化。

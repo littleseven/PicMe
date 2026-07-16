@@ -30,11 +30,11 @@
 
 库的核心是 `:agent-core` 模块，提供完整的 LLM 交互基础设施：ChatModel 抽象、OpenAI 兼容客户端、Tool 调用框架、ChatMemory 对话记忆、AiServices 代理构建器。开发者基于这些原语构建自己的 Agent 编排层。
 
-> 本仓库同时包含一个接近生产级复杂度的 Demo 工程 **PoLang（破浪相册）**，用于验证框架在真实场景中的可行性。PoLang 的 Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard 等）即基于 `:agent-core` 构建。
+> 本仓库同时包含一个接近生产级复杂度的 Demo 工程 **PoLang（破浪相册）**，用于验证框架在真实场景中的可行性。PoLang 的 Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard 等）位于 `:runtime-core` 模块，基于 `:agent-core` 提供的原语构建。
 
 ---
 
-## 🚀 快速集成
+## 快速集成
 
 ### Step 1. 添加 JitPack 仓库
 
@@ -99,9 +99,9 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
 
 ---
 
-## ✨ 核心特性
+## 核心特性
 
-### 🤖 ChatModel 抽象
+### ChatModel 抽象
 
 | 接口 | 说明 |
 |------|------|
@@ -112,7 +112,7 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
 
 支持 `tool_calls`、`response_format`、`tool_choice`、`logprobs` 等完整 OpenAI API 参数。
 
-### 🔌 Tool 调用框架
+### Tool 调用框架
 
 - `@Tool` 注解标记方法为可调用的工具
 - `@P` 注解标记参数描述
@@ -120,20 +120,20 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
 - `AiServices` 自动代理 Tool 调用与结果回填
 - 支持 `ToolChoice`（auto / required / none）
 
-### 🧠 对话记忆
+### 对话记忆
 
 - `ChatMemory` 接口 + `MessageWindowChatMemory` 实现
 - 按 `memoryId` 多会话隔离
 - `@MemoryId` 注解标记会话标识参数
 
-### 📦 数据模型
+### 数据模型
 
 - 完整消息类型：`UserMessage`、`AiMessage`、`SystemMessage`、`ToolExecutionResultMessage`
 - `ChatRequest` / `ChatResponse` / `TokenUsage`
 - `Embedding` 向量模型接口
 - `Document` / `TextSegment` 文档处理
 
-### 🔒 Android 优化
+### Android 优化
 
 - **无 SPI**：不使用 `ServiceLoader` / `META-INF/services`，所有依赖通过 Builder 显式注入
 - **OkHttp 客户端**：内置连接池、超时、重试
@@ -142,41 +142,39 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
 
 ---
 
-## 🏗 架构
+## 架构
 
 ### agent-core 模块结构
 
-`:agent-core` 是一个 **Java Android Library**，包结构如下：
+`:agent-core` 是一个 **Java Android Library**，包根为 `com.mamba`，核心 API 按功能域组织：
 
 ```
 com.mamba
 ├── model/
-│   ├── chat/          # ChatModel / StreamingChatModel 接口
-│   │   ├── request/   # ChatRequest, ToolChoice, ResponseFormat
-│   │   ├── response/  # ChatResponse
-│   │   └── listener/  # ChatModelListener
+│   ├── chat/          # ChatModel / StreamingChatModel 接口与请求/响应模型
 │   ├── openai/        # OpenAiChatModel / OpenAiStreamingChatModel 实现
-│   │   └── internal/  # OpenAI API 请求/响应 DTO
 │   ├── embedding/     # EmbeddingModel 接口
 │   ├── image/         # ImageModel 接口
 │   ├── language/      # LanguageModel 接口
-│   └── moderation/    # ModerationModel 接口
+│   ├── moderation/    # ModerationModel 接口
+│   ├── input/         # 结构化输入（Text / Image / Audio / Video）
+│   └── output/        # 结构化输出（Text / JSON / Enum / List / 实体）
 ├── data/
-│   ├── message/       # AiMessage, UserMessage, SystemMessage, ToolExecutionResultMessage
-│   ├── document/      # Document
-│   ├── segment/       # TextSegment
-│   └── embedding/     # Embedding
-├── tool/              # @Tool, @P, ToolSpecification, ToolExecutionRequest
+│   ├── message/       # UserMessage / AiMessage / SystemMessage / ToolExecutionResultMessage
+│   ├── document/      # Document / TextSegment
+│   ├── embedding/     # Embedding
+│   ├── image/         # Image 数据类
+│   ├── audio/         # Audio 数据类
+│   └── video/         # Video 数据类
+├── tool/              # @Tool / @P / ToolSpecification / ToolExecutionRequest
 ├── service/           # AiServices（LangChain4j 风格代理构建器）
-├── memory/            # ChatMemory, MessageWindowChatMemory
+├── memory/            # ChatMemory / MessageWindowChatMemory
 ├── client/
 │   ├── okhttp/        # OkHttp 客户端封装
 │   └── sse/           # Server-Sent Events 客户端
-├── agent/
-│   ├── agent/         # Agent 基础
-│   ├── http/          # HTTP 工具
-│   └── store/memory/  # InMemoryStore
-└── spi/               # SPI 工厂接口（JSON codec, PromptTemplate 等）
+├── agent/             # Agent 基础与 HTTP 工具
+├── exception/         # 异常体系
+└── internal/          # 内部工具（JSON codec / PromptTemplate / 反射工具）
 ```
 
 ### 与 Demo 工程的分层关系
@@ -185,15 +183,14 @@ com.mamba
 ┌─────────────────────────────────────────────────────────────────────┐
 │  :app（PoLang Demo 工程 · Kotlin · Jetpack Compose）                  │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ domain/agent/     Agent 编排层（Kotlin）                       │  │
-│  │  AgentOrchestrator  LocalInferencePipeline                    │  │
-│  │  RemoteInferencePipeline  PrivacyGuard                        │  │
-│  │  CapabilityRegistry  MemoryManager  SceneManager              │  │
-│  │  AiAgentUseCase (Facade)                                      │  │
+│  │ :runtime-core（Agent Runtime 核心 · Kotlin）                  │  │
+│  │  AgentOrchestrator  CapabilityRegistry  PrivacyGuard        │  │
+│  │  MemoryManager  SceneManager  LocalLlmEngine               │  │
+│  │  AiAgentUseCase (Facade，位于 :app，委托给 AgentOrchestrator) │  │
 │  ├───────────────────────────────────────────────────────────────┤  │
 │  │ features/         功能模块（Capability 实现）                   │  │
 │  │  CameraCapability  GalleryCapability  SettingsCapability      │  │
-│  │  NavigationCapability  SystemCapability  RemoteControlCapability│ │
+│  │  NavigationCapability  SystemCapability  ChatSearchCapability   │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                            ↓ 使用                                    │
 │  ┌───────────────────────────────────────────────────────────────┐  │
@@ -203,7 +200,11 @@ com.mamba
 │  │  ChatMemory · ChatRequest/Response · SSE Client               │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────────────┤
-│  :beauty-api (Kotlin)  :beauty-engine (Android)  :runtime-core      │
+│  :beauty-api (Kotlin)  :beauty-engine (C++/Kotlin)  :mnn-core       │
+│  :sentencepiece (JNI)                                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  server/（Ktor 后端 · 独立 Gradle 工程）                              │
+│  AI 网关 / 账号体系 / 管理后台 / 推荐引擎 / 遥测收集                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -216,20 +217,20 @@ com.mamba
 
 ---
 
-## 🎮 Demo 工程：PoLang
+## Demo 工程：PoLang
 
-**PoLang（破浪相册）** 是 langchain4android 的参考实现——一个接近生产级复杂度的 AI 智能相册应用，基于 `:agent-core` 构建了完整的 Agent 编排层。
+**PoLang（破浪相册）** 是 langchain4android 的参考实现——一个接近生产级复杂度的 AI 智能相册应用，基于 `:agent-core` 和 `:runtime-core` 构建了完整的 Agent 编排层。
 
 ### Demo 特性
 
 | 功能 | 说明 |
 |------|------|
 | **自然语言交互** | "帮我把天空调蓝"、"找出去年夏天的照片"、"这张照片磨皮 50" |
-| **自然语言相册搜索** | 规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，全端侧执行 |
+| **自然语言相册搜索** | 规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，端侧执行 |
 | **Agent 编排** | AgentOrchestrator + CapabilityRegistry + PrivacyGuard 完整架构 |
-| **本地/远程双推理** | 本地 MNN-LLM（Qwen） + 远程 OpenAI 标准协议 |
+| **本地/远程双推理** | 本地 MNN-LLM（Qwen）+ 远程 PoLang Server（OpenAI 标准协议） |
 | **自研美颜引擎** | 全自研 OpenGL ES + EGL 渲染管线 |
-| **飞书远程控制** | 通过 IM + LLM 实现 App 远程控制 |
+| **语音交互** | 唤醒词 + 流式 ASR + 端侧 LLM 指令解析（Sherpa-ONNX） |
 
 ### 运行 Demo
 
@@ -252,14 +253,40 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 | 模块 | 语言 | 说明 |
 |------|------|------|
 | `:agent-core` | **Java** | **框架核心** — ChatModel、Tool、AiServices、ChatMemory 等 LLM 基础设施 |
-| `:app` | Kotlin | **PoLang Demo** — Agent 编排层 + 智能相册 UI，验证框架在真实场景中的可行性 |
+| `:app` | Kotlin | **PoLang Demo** — Agent 编排层 + 智能相册 UI |
+| `:runtime-core` | Kotlin | **Agent Runtime** — AgentOrchestrator、CapabilityRegistry、PrivacyGuard、SceneManager |
 | `:beauty-api` | Kotlin | 美颜接口契约层 |
 | `:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
-| `:runtime-core` | C++/Kotlin | 运行时基础设施 |
+| `:mnn-core` | C++ | MNN 推理运行时共享库（`:runtime-core` 和 `:beauty-engine` 共用） |
+| `:sentencepiece` | C++/JNI | SentencePiece tokenizer JNI 封装 |
+| `server/` | Kotlin | **Ktor 后端**（独立 Gradle 工程）— AI 网关、账号体系、管理后台 |
 
 ---
 
-## 📚 文档
+## 服务端：PoLang Server
+
+`server/` 是独立的 Ktor 后端工程（`rootProject.name = "picme-server"`），**不纳入 Android `settings.gradle.kts`**，通过 `./gradlew -p server` 独立构建。
+
+| 能力 | 说明 |
+|------|------|
+| **AI 网关** | `LlmProxy` + `ChannelRegistry` — 按模型自动路由到 Cloudflare AI Gateway 或腾讯 TokenHub |
+| **账号体系** | 邮箱注册、动态 Token、SHA-256 校验、免费额度管控 |
+| **管理后台** | kotlinx.html SSR 运营后台（概览 / 用户 / 流量 / 渠道配置） |
+| **推荐引擎** | 纯规则型场景推荐（规避算法备案） |
+| **遥测收集** | 批量匿名事件写入 SQLite |
+| **COS 存储** | 腾讯 COS 预签名 URL 生成 |
+
+```bash
+# 本地开发
+./gradlew -p server run
+
+# 构建分发包
+./gradlew -p server installDist
+```
+
+---
+
+## 文档
 
 | 层级 | 文档 | 内容 |
 |------|------|------|
@@ -267,13 +294,13 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 | **产品** | [`PRODUCT.md`](PRODUCT.md) | 产品定义、核心命题 |
 | **架构** | [`docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md) | Agent 架构设计 |
 | **决策** | [`docs/02-ARCHITECTURE/ADR/`](docs/02-ARCHITECTURE/ADR/) | 架构决策记录（ADR-001 ~ ADR-007） |
-| **技术规范** | [`docs/03-TECHNICAL-SPECS/`](docs/03-TECHNICAL-SPECS/) | 相册搜索、TAG 生成、美颜引擎、帧同步、人脸检测、远程推理 |
+| **技术规范** | [`docs/03-TECHNICAL-SPECS/`](docs/03-TECHNICAL-SPECS/) | 相册搜索、TAG 生成、美颜引擎、帧同步、人脸检测、语音栈、服务端部署 |
 | **Agent 能力** | [`docs/04-AGENT-CAPABILITIES/`](docs/04-AGENT-CAPABILITIES/) | Capability 实现指南、命令参考 |
-| **开发规范** | [`docs/05-DEVELOPMENT/`](docs/05-DEVELOPMENT/) | 工作流、CR 检查清单 |
+| **开发规范** | [`docs/05-DEVELOPMENT/`](docs/05-DEVELOPMENT/) | 工作流、CR 检查清单、Release 包备份恢复 |
 
 ---
 
-## 🔬 Agent First 研发范式
+## Agent First 研发范式
 
 本项目同时验证「Agent 能否主导软件研发全流程」——让 Agent 通过编排原子化 Tools，从辅助工具进化为研发主导力量。
 
@@ -289,9 +316,9 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 ### 实践关键发现
 
 - **指令格式：自定义优于通用规范** — 端侧小模型对 OpenAI tool_calls 嵌套结构支持不稳定，自定义简洁 JSON（method + params 平铺）可靠性更高
-- **GBNF 有限约束力** — 适合格式约束但非银弹，提示词工程仍是兜底主力
 - **云端推理缓存** — IntentCache 机制一次成功永久受益，大幅降低延迟与 API 成本
-- **多引擎资源隔离** — MNN/NCNN/MediaPipe 共存时 Vulkan/EGL 资源竞争是隐形崩溃源
+- **多引擎资源隔离** — MNN/MediaPipe 共存时 Vulkan/EGL 资源竞争是隐形崩溃源（NCNN 路径已移除）
+- **服务端优先** — 端侧小模型能力边界为「指令路由器 + 轻量对话」，复杂推理明确上云
 
 ### 度量指标
 
@@ -306,16 +333,16 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 
 ---
 
-## 🛠 自动化工具链
+## 自动化工具链
 
 | 脚本 | 功能 |
 |------|------|
-| [`auto-dev-loop.sh`](scripts/auto-dev-loop.sh) | 编译 → 安装 → 截屏 → 日志 → 报告 |
+| [`auto-dev-loop.sh`](scripts/auto-dev-loop.sh) | 编译 -> 安装 -> 截屏 -> 日志 -> 报告 |
 | [`ai-gate.sh`](scripts/ai-gate.sh) | 代码质量门禁 |
 | [`publish-mamba-agent.sh`](scripts/publish-mamba-agent.sh) | agent-core 发布到 JitPack |
 | [`screenshot-diff.py`](scripts/screenshot-diff.py) | UI 回归像素级对比 |
 
-## 📄 许可
+## 许可
 
 MIT License — 研究、学习、二次开发均可自由使用。
 

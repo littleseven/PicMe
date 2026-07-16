@@ -8,8 +8,8 @@
 **模块定位**：模块分层与依赖关系可视化
 **主要维护者**：[RD] 全栈工程师 / [CR] 规范守护者
 **阅读对象**：CO、PM、RD、CR、QA、AI Agent
-**版本**：1.0
-**最后更新**：2026-07-06
+**版本**：1.1（服务端对齐版）
+**最后更新**：2026-07-15
 **状态**：生效中
 
 ---
@@ -25,6 +25,7 @@
 | `:beauty-engine` | Android Library | 自研 GPU 美颜引擎：OpenGL ES + EGL 渲染管线、人脸检测适配器 | `beauty-engine.aar` |
 | `:mnn-core` | Android Library | MNN 推理运行时共享模块：`libMNN.so`、`libOpenCL.so`、MnnResourceManager、MnnGlobalReleaseLock | `mnn-core.aar` |
 | `:sentencepiece` | Android Library | SentencePiece tokenizer JNI 封装：`libsentencepiece_android.so` | `sentencepiece.aar` |
+| `server/` | Ktor Application | AI 网关、账号体系、管理后台、推荐引擎、限流、COS 存储 | `picme-server.jar` |
 
 ---
 
@@ -65,6 +66,7 @@
 │  • :beauty-engine 不再依赖 :runtime-core，二者通过 :mnn-core 共享 MNN 资源   │
 │  • :app 直接依赖 :mnn-core（PicMeApplication / CameraScreen 使用 MnnResourceManager）│
 │  • :agent-core 零业务依赖，可独立作为 JitPack 库发布                          │
+│  • server/ 为独立 Ktor 工程，不纳入 Android settings.gradle，Monorepo 管理      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

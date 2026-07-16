@@ -1,8 +1,8 @@
 # langchain4android 文档导航索引
 
 > **维护者**: CO Agent
-> **最后更新**: 2026-07-08
-> **版本**: 2.1（第二轮精简版）
+> **最后更新**: 2026-07-15
+> **版本**: 2.2（服务端对齐版）
 
 ---
 
@@ -15,8 +15,8 @@
 | **交互规范** | [`01-PRODUCT/FEATURES.md`](./01-PRODUCT/FEATURES.md) | 用户交互流程与体验规则 |
 | **性能红线** | [`01-PRODUCT/NFR_SPEC.md`](./01-PRODUCT/NFR_SPEC.md) | 性能/稳定性/隐私量化指标 |
 | **Agent 架构** | [`02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](./02-ARCHITECTURE/AGENT_ARCHITECTURE.md) | Agent 运行时架构、本地/远程推理 |
-| **模块架构** | [`02-ARCHITECTURE/MODULE_ARCHITECTURE.md`](./02-ARCHITECTURE/MODULE_ARCHITECTURE.md) | Gradle 模块划分与依赖关系 |
-| **架构决策** | [`02-ARCHITECTURE/ADR/`](./02-ARCHITECTURE/ADR/) | ADR-001 ~ ADR-007 |
+| **模块架构** | [`02-ARCHITECTURE/MODULE_ARCHITECTURE.md`](./02-ARCHITECTURE/MODULE_ARCHITECTURE.md) | Gradle 模块划分与依赖关系（含 Android 模块 + Ktor Server） |
+| **架构决策** | [`02-ARCHITECTURE/ADR/`](./02-ARCHITECTURE/ADR/) | ADR-001 ~ ADR-007（已实施） |
 | **能力注册** | [`04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`](./04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md) | Capability 列表、命令映射、实现指南与生命周期规范 |
 | **命令参考** | [`04-AGENT-CAPABILITIES/COMMAND_REFERENCE.md`](./04-AGENT-CAPABILITIES/COMMAND_REFERENCE.md) | 命令语法与示例 |
 | **开发规范** | [`05-DEVELOPMENT/DEVELOPMENT.md`](./05-DEVELOPMENT/DEVELOPMENT.md) | 双螺旋工作流、代码审查、任务标记规范、CI 规则 |
@@ -25,7 +25,8 @@
 | **性能基线** | [`06-QA/PERFORMANCE_BASELINE_REPORT.md`](./06-QA/PERFORMANCE_BASELINE_REPORT.md) | 历史性能 trace 报告合集 |
 | **坐标系标准** | [`07-STANDARDS/COORDINATE_SYSTEM.md`](./07-STANDARDS/COORDINATE_SYSTEM.md) | 图像/人脸坐标系与命名规范 |
 | **术语词典** | [`07-STANDARDS/GLOSSARY.md`](./07-STANDARDS/GLOSSARY.md) | 统一术语定义 |
-| **重构计划** | [`07-STANDARDS/CODE_REFACTORING_PLAN.md`](./07-STANDARDS/CODE_REFACTORING_PLAN.md) | 代码债务与重构路线图 |
+| **重构计划** | [`07-STANDARDS/CODE_REFACTORING_PLAN.md`](./07-STANDARDS/CODE_REFACTORING_PLAN.md) | 代码债务与重构路线图（Phase 1 已完成） |
+| **仓库整理** | [`07-STANDARDS/REPO_REORGANIZATION_PLAN.md`](./07-STANDARDS/REPO_REORGANIZATION_PLAN.md) | Monorepo 决策与执行记录（已完成） |
 
 ---
 
@@ -43,12 +44,13 @@
 | [`VOICE_STACK.md`](./03-TECHNICAL-SPECS/VOICE_STACK.md) | 语音栈：唤醒词优化、KWS 迁移与 ASR Language Model 说明 |
 | [`BEAUTY_ENGINE_TECH_SPEC.md`](./03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) | 大美丽引擎技术规格（含相机预览比例、帧同步美妆、容灾降级） |
 | [`FACE_DETECTION_ENGINE_ARCHITECTURE.md`](./03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md) | 人脸检测引擎架构 |
-| [`OVERSEAS_SERVER_DEPLOYMENT.md`](./03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md) | 海外服务端部署（香港 + Cloudflare）：架构、选型、Cloudflare 详解、安全、成本与运维 |
-| [`SERVER_IMPLEMENTATION_PLAN.md`](./03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md) | 服务端实现方案（Ktor）Review 版：技术栈、仓库策略、API/DB、部署、决策点 |
+| [`SERVER_IMPLEMENTATION_PLAN.md`](./03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md) | Ktor 服务端实现方案（AI 网关、账号、管理后台）— 已上线 |
+| [`OVERSEAS_SERVER_DEPLOYMENT.md`](./03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md) | 海外服务端部署（香港 VPS + Nginx + certbot，DNS-only 无 Cloudflare 代理）— 已上线 |
 | [`FACE_LANDMARKS.md`](./03-TECHNICAL-SPECS/FACE_LANDMARKS.md) | MediaPipe 468 / 火山 106 点参考与映射 |
-| [`IM_REMOTE_CONTROL_TECH_SPEC.md`](./03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) | IM（飞书）远程控制 |
-| [`AGENT_UI_DESIGN.md`](./03-TECHNICAL-SPECS/AGENT_UI_DESIGN.md) | 远程 LLM 编排 UI 层设计 |
-| [`CHAT_UI_UNIFICATION.md`](./03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md) | Chat UI 统一化改造 |
+| [`IM_REMOTE_CONTROL_TECH_SPEC.md`](./03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) | IM（飞书）远程控制 — **已冻结**，服务端替代方案优先 |
+| [`AGENT_UI_DESIGN.md`](./03-TECHNICAL-SPECS/AGENT_UI_DESIGN.md) | 远程 LLM 编排 UI 层设计 — **已归档**，被 ADR-005/006 取代 |
+| [`CHAT_UI_UNIFICATION.md`](./03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md) | Chat UI 统一化改造（已完成） |
+| [`RELEASE_PACKAGE_BACKUP_RESTORE.md`](./05-DEVELOPMENT/RELEASE_PACKAGE_BACKUP_RESTORE.md) | Release 包数据备份与恢复 |
 
 ---
 

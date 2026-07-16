@@ -6,7 +6,7 @@
 
 ## 1. 背景：PoLang 的 GPU 消费者
 
-PoLang 是一个强视觉应用，同时使用 GPU 进行**实时美颜渲染**和**端侧 LLM 推理**。当前应用中有三个 GPU 消费者：
+PoLang 是一个强视觉应用，同时使用 GPU 进行**实时美颜渲染**和**端侧 LLM 推理**。当前应用中有两个 GPU 消费者：
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -19,20 +19,17 @@ PoLang 是一个强视觉应用，同时使用 GPU 进行**实时美颜渲染**�
 │     ├── PhotoProcessorImpl 离屏渲染（拍照）                          │
 │     └── 线程: 独立渲染线程 + EGL 上下文                              │
 │                                                                      │
-│  2. ncnn Vulkan 计算 (beauty-engine)                                 │
-│     ├── 人脸检测推理（Vulkan compute shader）                         │
-│     ├── net_.opt.use_vulkan_compute = true                           │
-│     └── 线程: 推理线程池                                              │
-│                                                                      │
-│  3. LLM 推理 (agent-core)                                            │
-│     ├── 引擎: llama.cpp / ggml                                       │
-│     ├── 后端选择: ggml-cpu (当前) / ggml-vulkan (曾尝试)              │
+│  2. LLM 推理 (runtime-core)                                          │
+│     ├── 引擎: MNN-LLM / ggml                                         │
+│     ├── 后端选择: OpenCL (当前) / CPU (降级)                          │
 │     └── 线程: LLM-Model-Thread (专用线程)                            │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**关键约束**：三者运行在**同一块 Adreno GPU** 上，且 Android 的 GPU 调度器 (kgsl) 不支持跨 API 的细粒度优先级抢占。
+> **历史说明**：2026-07-05 前曾有第三个消费者 `ncnn Vulkan`（人脸检测），NCNN 路径已按激进策略完全移除。当前人脸检测走 MediaPipe / MNN，均不占用 Vulkan compute 队列。本 ADR 的争抢分析框架仍适用于 OpenGL ES + OpenCL 双 GPU 消费者场景。
+
+**关键约束**：两者运行在**同一块 Adreno GPU** 上，且 Android 的 GPU 调度器 (kgsl) 不支持跨 API 的细粒度优先级抢占。
 
 ---
 

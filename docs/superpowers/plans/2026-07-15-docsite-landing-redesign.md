@@ -1,5 +1,7 @@
 # polang.net 官网改造 实现计划
 
+> **状态**：✅ 已完成（docs-site/ 已落地，部署脚本已就绪）
+> **实现位置**：`docs-site/` + `scripts/deploy-docs-site.sh`
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 polang.net 从「技术文档站」改造成「面向用户的产品落地页」,静态文件纳入 repo `docs-site/`,并用 rsync 脚本部署到腾讯云 HK 服务器。

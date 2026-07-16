@@ -2,7 +2,7 @@
 
 > **版本**：4.0（合并版）  
 > **状态**：已实施 / 迭代中  
-> **最后更新**：2026-07-08  
+> **最后更新**：2026-07-15  
 > **主要维护者**：[RD] 全栈工程师  
 > **历史合并说明**：本文档由 `AGENT_ARCHITECTURE.md` 与 `REMOTE_INFERENCE_ARCHITECTURE.md` 合并而成。远程推理相关的 OpenAI 协议、langchain4j 标准化、DeepSeek 适配、四层模型、性能成本与验收标准已并入“推理模式选型”与“远程推理”章节，原 `REMOTE_INFERENCE_ARCHITECTURE.md` 已删除。
 
@@ -74,7 +74,7 @@
 | `MemoryManager` | DataStore 持久化对话历史，按 session 隔离 | ✅ 已落地 |
 | `KeywordSpotterEngine` | KWS 常驻低功耗唤醒词检测（Sherpa-ONNX，~14MB） | ✅ 已落地 |
 | `SherpaOnnxAsrEngine` | ASR 按需加载语音转录（Sherpa-ONNX，~282MB） | ✅ 已落地 |
-| `FeishuRemoteChannel` | 飞书 WebSocket 直连，IM 远程控制入口 | 🔄 迭代中 |
+| `FeishuRemoteChannel` | 飞书 WebSocket 直连，IM 远程控制入口 | 🔄 冻结（IM 远程控制线冻结，服务端替代方案优先） |
 | `IntentCache` | L1 远程意图缓存，高频指令直接返回 | ✅ 已落地 |
 
 **已移除组件（ADR-005/006，2026-06）**：
@@ -100,7 +100,7 @@
 │                                                                               │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐               │
 │  │   ChatScreen    │  │  GalleryScreen  │  │   CameraScreen  │               │
-│  │  🏠 默认首页     │  │  📸 智能相册     │  │  📷 辅助入口     │               │
+│  │  💬 二级页        │  │  🏠 默认首页     │  │  📷 辅助入口     │               │
 │  │  AI对话·模型切换  │  │  媒体浏览·AI搜索 │  │  美颜·滤镜·语音  │               │
 │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘               │
 │           │                    │                    │                         │
@@ -147,9 +147,9 @@
 │  │  └─────────┬──────────┘  │    │  └────────────────────────────────┘  │   │
 │  │            │ 唤醒        │    │                                      │   │
 │  │  ┌─────────▼──────────┐  │    │  ┌────────────────────────────────┐  │   │
-│  │  │SherpaOnnxAsrEngine │  │    │  │ Cloudflare AI Gateway           │  │   │
-│  │  │ ASR on-demand      │  │    │  │ API Key 保护 · 速率限制          │  │   │
-│  │  │ ~282MB · 按需加载   │  │    │  │ DeepSeek / Claude 多模型路由    │  │   │
+│  │  │SherpaOnnxAsrEngine │  │    │  │ PoLang Server (Ktor)            │  │   │
+│  │  │ ASR on-demand      │  │    │  │ AI 网关 · 账号 · 管理后台        │  │   │
+│  │  │ ~282MB · 按需加载   │  │    │  │ Channel 路由 · LLM 代理         │  │   │
 │  │  └────────────────────┘  │    │  └────────────────────────────────┘  │   │
 │  └──────────────────────────┘    └──────────────────────────────────────┘   │
 │                                      │                                       │
@@ -215,7 +215,7 @@ AgentOrchestrator.dispatch(input)
                     ├── OpenAiChatModel (ChatLanguageModel)
                     ├── ToolSpecification (tool_calls 构建)
                     └── OkHttp SSE Streaming (流式响应)
-                        └── Cloudflare Gateway → DeepSeek / Claude API
+                        └── PoLang Server / DeepSeek / Claude API
                             → tool_calls 解析 → Capability 执行
 ```
 
