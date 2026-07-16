@@ -129,6 +129,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.agent.RegisterCapability
+import com.mamba.picme.domain.search.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
@@ -1228,7 +1229,8 @@ data class MediaResultsUi(
     val query: String,
     val assets: List<MediaAsset>,
     val totalCount: Int,
-    val isRefinement: Boolean
+    val isRefinement: Boolean,
+    val feedbackState: Map<String, FeedbackAction> = emptyMap()
 )
 
 /**
