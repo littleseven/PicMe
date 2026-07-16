@@ -256,6 +256,9 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.OpenSystemSettings -> "打开设置"
         is AgentCommand.Unknown -> "未知命令"
         is AgentCommand.Error -> "执行错误"
+        is AgentCommand.RecordMediaFeedback -> "媒体反馈"
+        is AgentCommand.MoreLikeThis -> "更多相似"
+        is AgentCommand.ExcludeConstraint -> "排除约束"
     }
 
 /**
@@ -297,6 +300,9 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.OpenSystemSettings -> Icons.Rounded.Settings
     is AgentCommand.Unknown -> Icons.AutoMirrored.Rounded.Help
     is AgentCommand.Error -> Icons.Rounded.Error
+    is AgentCommand.RecordMediaFeedback -> Icons.Rounded.Favorite
+    is AgentCommand.MoreLikeThis -> Icons.Rounded.Search
+    is AgentCommand.ExcludeConstraint -> Icons.Rounded.Delete
 }
 
 private fun getAgentCommandDetail(command: AgentCommand): String =

@@ -312,6 +312,10 @@ class AiAgentUseCase(
             // 错误/未知命令 —— 明确报告，不允许掩盖
             is AgentCommand.Error -> AiAgentCommand.TextReply("命令错误: ${command.reason}")
             is AgentCommand.Unknown -> AiAgentCommand.TextReply("未知命令: ${command.raw}")
+            // Feedback 命令无 legacy 对应，统一转文本提示
+            is AgentCommand.RecordMediaFeedback -> AiAgentCommand.TextReply("记录媒体反馈")
+            is AgentCommand.MoreLikeThis -> AiAgentCommand.TextReply("查找更多相似")
+            is AgentCommand.ExcludeConstraint -> AiAgentCommand.TextReply("排除约束")
         }
     }
 
@@ -374,6 +378,10 @@ class AiAgentUseCase(
                     // 错误/未知 —— 明确报告，不允许掩盖
                     is AgentCommand.Error -> AiAgentCommand.TextReply("命令错误: ${cmd.reason}")
                     is AgentCommand.Unknown -> AiAgentCommand.TextReply("未知命令: ${cmd.raw}")
+                    // Feedback 命令无 legacy 对应
+                    is AgentCommand.RecordMediaFeedback -> AiAgentCommand.TextReply("记录媒体反馈")
+                    is AgentCommand.MoreLikeThis -> AiAgentCommand.TextReply("查找更多相似")
+                    is AgentCommand.ExcludeConstraint -> AiAgentCommand.TextReply("排除约束")
                 }
             }
             is AgentAction.MediaResults -> AiAgentCommand.TextReply("找到 ${action.totalCount} 张「${action.query}」的照片")
