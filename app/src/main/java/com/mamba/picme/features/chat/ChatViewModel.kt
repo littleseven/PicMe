@@ -862,6 +862,7 @@ class ChatViewModel(
         if (lastResultAssets[sessionId].isNullOrEmpty()) return false
         sessionExcludes.getOrPut(sessionId) { mutableSetOf() }.add(constraint)
         reapplyFiltersToCurrentResults(sessionId)
+        mediaFeedbackUseCase.recordExclude(constraint, sessionId)
         return true
     }
 
