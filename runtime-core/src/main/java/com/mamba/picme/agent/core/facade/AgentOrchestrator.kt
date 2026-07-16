@@ -191,6 +191,9 @@ class AgentOrchestrator private constructor(context: Context) {
      */
     fun getUserRemoteConfig(): RemoteModelConfig? = configurator.getUserRemoteConfig()
 
+    /** 设置设备级标识（访客试用额度 X-Device-Id），独立于 remoteConfig 持有，不被后续 configure 覆盖。 */
+    fun setDeviceId(id: String) = configurator.setDeviceId(id)
+
     /**
      * 获取当前 Agent 运行模式（含临时覆盖）
      */

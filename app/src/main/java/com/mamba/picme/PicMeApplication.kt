@@ -332,6 +332,8 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                     Triple(configsJson, selectedModelId, serverToken)
                 }.collect { (configsJson, selectedModelId, serverToken) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PicMeApplication)
+                    // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
+                    orchestrator.setDeviceId(deviceIdProvider.get())
 
                     val providerConfigs = ProviderConfigs.fromJson(configsJson)
                     val selectedProviderConfig = providerConfigs.configs
