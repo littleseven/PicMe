@@ -2,6 +2,8 @@ package com.mamba.picme.features.chat.capability
 
 import com.mamba.picme.agent.core.capability.BaseCapability
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.command.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentErrorCode
@@ -39,6 +41,9 @@ class ChatSearchCapability private constructor() : BaseCapability() {
     interface Delegate {
         suspend fun onSearchMedia(query: String): SearchOutcome
         suspend fun onRefineMediaSearch(constraint: String): SearchOutcome
+        suspend fun onRecordMediaFeedback(target: FeedbackTarget, action: FeedbackAction): Boolean
+        suspend fun onMoreLikeThis(target: FeedbackTarget): SearchOutcome
+        suspend fun onExcludeConstraint(constraint: String): Boolean
     }
 
     private var delegateRef: WeakReference<Delegate>? = null
@@ -57,11 +62,20 @@ class ChatSearchCapability private constructor() : BaseCapability() {
 
     override fun activeScenes(): List<SceneManager.Scene> = listOf(SceneManager.Scene.CHAT)
 
-    override fun supportedCommands(): List<String> = listOf("search_media", "refine_media_search")
+    override fun supportedCommands(): List<String> = listOf(
+        "search_media",
+        "refine_media_search",
+        "feedback",
+        "more",
+        "exclude"
+    )
 
     override fun getCommandDescription(command: String): String = when (command) {
         "search_media" -> "搜索相册照片，参数: query (自然语言，如'去年夏天'、'海边的')"
         "refine_media_search" -> "在上一轮相册搜索结果中细化筛选，参数: constraint (如'海边的'、'夜景')"
+        "feedback" -> "记录用户对某张图片的反馈，参数: target (last/ordinal:N/desc:xxx/mediaId:xxx), action (like/dislike)"
+        "more" -> "基于指定图片推荐更多相似照片，参数: target (last/ordinal:N/desc:xxx/mediaId:xxx)"
+        "exclude" -> "在后续搜索中排除某类约束，参数: constraint (如'夜景'、'室内')"
         else -> "未知命令"
     }
 
@@ -79,28 +93,49 @@ class ChatSearchCapability private constructor() : BaseCapability() {
                 )
             )
         return try {
-            val outcome: SearchOutcome = when (command) {
-                is AgentCommand.SearchMedia -> d.onSearchMedia(command.query)
+            when (command) {
+                is AgentCommand.SearchMedia -> d.onSearchMedia(command.query).toMediaResults(command.commandId)
                 is AgentCommand.RefineMediaSearch -> d.onRefineMediaSearch(command.constraint)
-                else -> {
-                    return Result.success(
-                        AgentAction.Error(
-                            commandId = command.commandId,
-                            errorCode = AgentErrorCode.METHOD_NOT_FOUND,
-                            message = "ChatSearchCapability 不支持此命令"
+                    .toMediaResults(command.commandId)
+                is AgentCommand.RecordMediaFeedback -> {
+                    val success = d.onRecordMediaFeedback(command.target, command.action)
+                    if (success) {
+                        Result.success(AgentAction.Success(commandId = command.commandId, command = command))
+                    } else {
+                        Result.success(
+                            AgentAction.Error(
+                                commandId = command.commandId,
+                                errorCode = AgentErrorCode.INVALID_ARGUMENT,
+                                message = "无法定位要反馈的图片"
+                            )
                         )
-                    )
+                    }
                 }
-            }
-            Result.success(
-                AgentAction.MediaResults(
-                    commandId = command.commandId,
-                    query = outcome.query,
-                    mediaIds = outcome.mediaIds,
-                    totalCount = outcome.totalCount,
-                    isRefinement = outcome.isRefinement
+                is AgentCommand.MoreLikeThis -> d.onMoreLikeThis(command.target)
+                    .copy(isRefinement = false)
+                    .toMediaResults(command.commandId)
+                is AgentCommand.ExcludeConstraint -> {
+                    val success = d.onExcludeConstraint(command.constraint)
+                    if (success) {
+                        Result.success(AgentAction.Success(commandId = command.commandId, command = command))
+                    } else {
+                        Result.success(
+                            AgentAction.Error(
+                                commandId = command.commandId,
+                                errorCode = AgentErrorCode.INVALID_ARGUMENT,
+                                message = "当前没有可过滤的搜索结果"
+                            )
+                        )
+                    }
+                }
+                else -> Result.success(
+                    AgentAction.Error(
+                        commandId = command.commandId,
+                        errorCode = AgentErrorCode.METHOD_NOT_FOUND,
+                        message = "ChatSearchCapability 不支持此命令"
+                    )
                 )
-            )
+            }
         } catch (e: Exception) {
             Logger.e(tag, "Search failed", e)
             Result.success(
@@ -122,4 +157,14 @@ data class SearchOutcome(
     val mediaIds: List<Long>,
     val totalCount: Int,
     val isRefinement: Boolean
-)
+) {
+    fun toMediaResults(commandId: Int): Result<AgentAction> = Result.success(
+        AgentAction.MediaResults(
+            commandId = commandId,
+            query = query,
+            mediaIds = mediaIds,
+            totalCount = totalCount,
+            isRefinement = isRefinement
+        )
+    )
+}
