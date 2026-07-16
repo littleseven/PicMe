@@ -87,3 +87,6 @@ beauty-engine/src/main/assets/models/llm/
 *.qwen
 .worktrees/
 worktrees/
+
+# 调试快照产物
+scripts/app-data-snapshots/
