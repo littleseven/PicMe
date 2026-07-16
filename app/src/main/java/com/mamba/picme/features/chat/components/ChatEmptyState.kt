@@ -2,6 +2,7 @@ package com.mamba.picme.features.chat.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +34,7 @@ import com.mamba.picme.R
 
 /**
  * 聊天空状态：中央 logo + 居中欢迎/能力 + 注册引导 + 底部搜索示例。
- * 取代曾经的「大白屏」。视觉参考豆包 / 元宝等主流 AI 对话 App 的空状态：
- * 一个居中的品牌焦点 + 简短文案，示例入口贴近底部输入栏。
+ * 取代曾经的「大白屏」。视觉参考豆包 / 元宝等主流 AI 对话 App 的空状态。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -52,18 +52,21 @@ fun ChatEmptyState(
     ) {
         Spacer(Modifier.height(40.dp))
 
-        // 中央 logo：ic_launcher_foreground 是 vector drawable（painterResource 可加载），
-        // 放在圆形品牌色背景上作为视觉焦点（不可用 mipmap adaptive icon——非 vector 会 crash）。
+        // 中央 logo：mipmap/ic_launcher_foreground.webp（与 launcher 一致，透明前景）。
+        // 置于白色圆 + 细边框容器内；Image 放大（112dp）让 adaptive 前景（占 ~66%）填满 76dp 圆。
         Box(
             modifier = Modifier
-                .size(76.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .size(64.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_launcher_foreground),
+                painter = painterResource(R.mipmap.ic_launcher_foreground),
                 contentDescription = null,
+                // requiredSize 绕过父 Box 约束，真正放大；Box 的圆角 clip 裁掉超出部分（adaptive 透明边距）
+                modifier = Modifier.requiredSize(104.dp),
             )
         }
 
