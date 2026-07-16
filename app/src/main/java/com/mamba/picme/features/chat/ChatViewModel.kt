@@ -3,6 +3,7 @@ package com.mamba.picme.features.chat
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mamba.picme.R
@@ -745,6 +746,29 @@ class ChatViewModel(
             (0 until (tags?.length() ?: 0)).map { tags!!.getString(it) }
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    @VisibleForTesting
+    internal fun resolveTarget(target: FeedbackTarget, sessionId: String? = null): MediaAsset? {
+        val sid = sessionId ?: _currentSessionId.value
+        val assets = lastResultAssets[sid].orEmpty()
+        if (assets.isEmpty()) return null
+        return when (target) {
+            is FeedbackTarget.LastShown -> assets.firstOrNull()
+            is FeedbackTarget.Ordinal -> assets.getOrNull((target.index - 1).coerceAtLeast(0))
+            is FeedbackTarget.MediaId -> assets.find { it.id.toString() == target.id }
+            is FeedbackTarget.Description -> assets.find { matchesTags(it, target.text) }
+        }
+    }
+
+    private fun matchesTags(asset: MediaAsset, description: String): Boolean {
+        val labels = asset.labels?.let { parseLabels(it) } ?: emptyList()
+        val terms = description.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (terms.isEmpty()) return false
+        return terms.any { term ->
+            labels.any { label -> label.contains(term, ignoreCase = true) } ||
+                asset.fileName.contains(term, ignoreCase = true)
         }
     }
 
