@@ -11,6 +11,7 @@ import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.MediaAsset
+import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
@@ -25,6 +26,7 @@ import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.agent.core.model.command.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
@@ -72,6 +74,9 @@ class ChatViewModel(
 
     /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
     private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
+
+    /** session -> 最近搜索快照（多轮对话指代用）。 */
+    private val sessionSearchSnapshots = mutableMapOf<String, MutableList<SearchResultSnapshot>>()
 
     /** 防止用户快速重复点击同一反馈按钮。 */
     private val pendingFeedbackActions = mutableSetOf<String>()
@@ -347,7 +352,8 @@ class ChatViewModel(
                 // 4. 构建 Agent 上下文
                 val agentContext = AgentContext(
                     scene = AgentScene.CHAT,
-                    memorySessionId = sessionId
+                    memorySessionId = sessionId,
+                    recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty()
                 )
 
                 // 5. 调用流式推理
@@ -751,6 +757,7 @@ class ChatViewModel(
         }
         val photos = result.media.filter { it.type == MediaType.PHOTO }
         lastResultAssets[sessionId] = photos
+        recordSearchSnapshot(sessionId, query, photos.size, isRefinement = false)
         return SearchOutcome(query, photos.map { it.id }, photos.size, isRefinement = false)
     }
 
@@ -768,7 +775,39 @@ class ChatViewModel(
             return SearchOutcome(constraint, photos.map { it.id }, photos.size, isRefinement = true)
         }
         lastResultAssets[sessionId] = refined
+        recordSearchSnapshot(sessionId, constraint, refined.size, isRefinement = true)
         return SearchOutcome(constraint, refined.map { it.id }, refined.size, isRefinement = true)
+    }
+
+    private fun recordSearchSnapshot(
+        sessionId: String,
+        query: String,
+        totalCount: Int,
+        isRefinement: Boolean
+    ) {
+        val assets = lastResultAssets[sessionId].orEmpty().take(MAX_CARDS)
+        if (assets.isEmpty()) return
+        val snapshot = SearchSnapshotBuilder.build(assets, query, totalCount, isRefinement)
+        val list = sessionSearchSnapshots.getOrPut(sessionId) { mutableListOf() }
+        list.add(snapshot)
+        if (list.size > SearchSnapshotBuilder.MAX_ROUNDS) {
+            list.removeAt(0)
+        }
+    }
+
+    override suspend fun onRecordMediaFeedback(target: FeedbackTarget, action: FeedbackAction): Boolean {
+        // TODO: Task 10 实现
+        return false
+    }
+
+    override suspend fun onMoreLikeThis(target: FeedbackTarget): SearchOutcome {
+        // TODO: Task 11 实现
+        return SearchOutcome("", emptyList(), 0, isRefinement = false)
+    }
+
+    override suspend fun onExcludeConstraint(constraint: String): Boolean {
+        // TODO: Task 11 实现
+        return false
     }
 
     /**
