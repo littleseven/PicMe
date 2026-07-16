@@ -1,6 +1,8 @@
 package com.mamba.picme.agent.core.inference.remote.parser
 
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.command.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.platform.logging.Logger
@@ -75,6 +77,9 @@ object ToolCallCommandParser {
             "select_media" -> parseSelectMedia(args)
             "search_media" -> parseSearchMedia(args)
             "refine_media_search" -> parseRefineMediaSearch(args)
+            "feedback" -> parseRecordMediaFeedback(args)
+            "more" -> parseMoreLikeThis(args)
+            "exclude" -> parseExcludeConstraint(args)
             "switch_view_mode" -> parseSwitchViewMode(args)
             "favorite_media" -> parseFavoriteMedia(args)
             // 设置命令
@@ -233,6 +238,49 @@ object ToolCallCommandParser {
         return AgentCommand.RefineMediaSearch(
             constraint = args.optString("constraint", args.optString("query", ""))
         )
+    }
+
+    private fun parseRecordMediaFeedback(args: JSONObject): AgentCommand.RecordMediaFeedback {
+        val targetStr = args.optString("target", "last")
+        val actionStr = args.optString("action", "like")
+        val action = runCatching {
+            FeedbackAction.valueOf(actionStr.uppercase())
+        }.getOrDefault(FeedbackAction.LIKE)
+        return AgentCommand.RecordMediaFeedback(
+            target = parseFeedbackTarget(targetStr),
+            action = action,
+            queryHint = args.optString("query_hint", "").takeIf { it.isNotEmpty() }
+        )
+    }
+
+    private fun parseMoreLikeThis(args: JSONObject): AgentCommand.MoreLikeThis {
+        val targetStr = args.optString("target", "last")
+        return AgentCommand.MoreLikeThis(
+            target = parseFeedbackTarget(targetStr),
+            queryHint = args.optString("query_hint", "").takeIf { it.isNotEmpty() }
+        )
+    }
+
+    private fun parseExcludeConstraint(args: JSONObject): AgentCommand.ExcludeConstraint {
+        return AgentCommand.ExcludeConstraint(constraint = args.optString("constraint", ""))
+    }
+
+    /**
+     * 解析反馈目标字符串为 FeedbackTarget。
+     *
+     * 支持格式：ordinal:3, desc:海边, last, mediaId:img_001
+     */
+    private fun parseFeedbackTarget(target: String): FeedbackTarget {
+        return when {
+            target == "last" -> FeedbackTarget.LastShown
+            target.startsWith("ordinal:") ->
+                FeedbackTarget.Ordinal(target.removePrefix("ordinal:").toInt())
+            target.startsWith("desc:") ->
+                FeedbackTarget.Description(target.removePrefix("desc:"))
+            target.startsWith("mediaId:") ->
+                FeedbackTarget.MediaId(target.removePrefix("mediaId:"))
+            else -> FeedbackTarget.Description(target)
+        }
     }
 
     private fun parseSwitchViewMode(args: JSONObject): AgentCommand.SwitchViewMode {
