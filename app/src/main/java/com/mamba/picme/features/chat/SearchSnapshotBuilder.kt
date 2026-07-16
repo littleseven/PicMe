@@ -3,6 +3,8 @@ package com.mamba.picme.features.chat
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.ResultItem
 import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
+import com.mamba.picme.core.common.Logger
+import org.json.JSONException
 import org.json.JSONObject
 
 /**
@@ -51,7 +53,8 @@ internal object SearchSnapshotBuilder {
             } else {
                 emptyList()
             }
-        } catch (e: Exception) {
+        } catch (e: JSONException) {
+            Logger.w("SearchSnapshotBuilder", "Failed to parse labels JSON", e)
             emptyList()
         }
     }

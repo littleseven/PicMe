@@ -600,9 +600,10 @@ class ChatViewModel(
                 insertAgentMessage(sessionId, describeCommandResult(action.command), "command", performance)
             }
             is AgentAction.Error -> {
-                val message = when (action.message) {
-                    "feedback_resolve_failure" -> context.getString(R.string.feedback_resolve_failure)
-                    else -> action.message
+                val message = if (action.message == "feedback_resolve_failure") {
+                    context.getString(R.string.feedback_resolve_failure)
+                } else {
+                    action.message
                 }
                 insertAgentMessage(sessionId, "❌ $message", "error", performance)
             }
