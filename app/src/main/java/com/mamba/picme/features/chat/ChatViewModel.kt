@@ -427,10 +427,11 @@ class ChatViewModel(
                     onFailure = { error ->
                         // 清除流式占位
                         _streamingMessage.value = null
+                        // langchain4j 异常 message = HTTP 响应体（OkHttpClient→HttpException→AuthenticationException 全程透传，状态码不进 message）。
+                        // guest 配额耗尽时 server 返回 403 body={"error":"quota_exceeded",...}（见 LlmRoute），据此识别。
                         val errorBody = error.message.orEmpty()
                         val isGuestQuota = isGuestMode.value &&
-                            (errorBody.contains("quota_exceeded", ignoreCase = true) ||
-                                errorBody.contains("403", ignoreCase = true))
+                            errorBody.contains("quota_exceeded", ignoreCase = true)
                         if (isGuestQuota) {
                             // 访客试用额度用完 → 友好提示 + 打开注册引导（软引导，非硬阻断）
                             insertAgentMessage(

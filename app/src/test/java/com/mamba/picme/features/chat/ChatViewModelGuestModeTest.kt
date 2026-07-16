@@ -143,9 +143,12 @@ class ChatViewModelGuestModeTest {
     fun `guest 403 opens registration sheet and inserts exhaustion bubble`() = runTest {
         preferenceFlow.value = AiAgentInferencePreference.FORCE_REMOTE
         tokenFlow.value = ""
+        // 模拟 server 真实 403 body（LlmRoute：guest 配额耗尽）—— 异常 message 即此 body
         coEvery {
             orchestrator.streamChat(any(), any(), any())
-        } returns Result.failure(RuntimeException("HTTP 403 : quota_exceeded"))
+        } returns Result.failure(
+            RuntimeException("""{"error":"quota_exceeded","tier":"guest","message":"guest quota used up"}""")
+        )
 
         val vm = newViewModel()
         advanceUntilIdle()
@@ -162,9 +165,12 @@ class ChatViewModelGuestModeTest {
     fun `registered user 403 does not open guest sheet`() = runTest {
         preferenceFlow.value = AiAgentInferencePreference.FORCE_REMOTE
         tokenFlow.value = "pl-abc123token"
+        // account 配额耗尽：body 同样含 quota_exceeded，但 isGuestMode=false → 不应弹 guest sheet
         coEvery {
             orchestrator.streamChat(any(), any(), any())
-        } returns Result.failure(RuntimeException("HTTP 403 : quota_exceeded"))
+        } returns Result.failure(
+            RuntimeException("""{"error":"quota_exceeded","tier":"account","message":"free quota used up"}""")
+        )
 
         val vm = newViewModel()
         advanceUntilIdle()
