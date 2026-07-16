@@ -1,5 +1,10 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.mamba.picme.features.chat.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,21 +20,29 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ThumbDown
+import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
+import com.mamba.picme.domain.search.FeedbackAction
 import com.mamba.picme.features.chat.MediaResultsUi
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -38,14 +51,16 @@ import java.util.Locale
 /**
  * 相册搜索结果横滑卡片 carousel，插入 chat 对话流。
  *
- * @param onCardClick 点击卡片，参数为在 assets 中的 index（用于 MediaPager initialIndex）
+ * @param onCardClick 点击卡片主体，参数为在 assets 中的 index（用于 MediaPager initialIndex）
  * @param onViewAll 点击「查看全部」
+ * @param onFeedback 用户点击 👍 / 👎 / 🔁 反馈按钮
  */
 @Composable
 fun MediaResultsCarousel(
     mediaResults: MediaResultsUi,
     onCardClick: (Int) -> Unit,
-    onViewAll: () -> Unit = {}
+    onViewAll: () -> Unit = {},
+    onFeedback: (mediaId: String, action: FeedbackAction) -> Unit = { _, _ -> }
 ) {
     val mr = mediaResults
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
@@ -69,8 +84,14 @@ fun MediaResultsCarousel(
             contentPadding = PaddingValues(vertical = 8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            itemsIndexed(mr.assets) { index, asset ->
-                MediaCard(asset = asset, onClick = { onCardClick(index) })
+            itemsIndexed(mr.assets, key = { _, asset -> asset.id }) { index, asset ->
+                MediaCard(
+                    asset = asset,
+                    selectedAction = mr.feedbackState[asset.id.toString()],
+                    onClick = { onCardClick(index) },
+                    onFeedback = { action -> onFeedback(asset.id.toString(), action) },
+                    modifier = Modifier
+                )
             }
             if (mr.totalCount > mr.assets.size) {
                 item {
@@ -82,13 +103,19 @@ fun MediaResultsCarousel(
 }
 
 @Composable
-private fun MediaCard(asset: MediaAsset, onClick: () -> Unit) {
+private fun MediaCard(
+    asset: MediaAsset,
+    selectedAction: FeedbackAction?,
+    onClick: () -> Unit,
+    onFeedback: (FeedbackAction) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val dateText = runCatching {
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(asset.captureDate))
     }.getOrDefault("")
+
     Card(
-        onClick = onClick,
-        modifier = Modifier.size(width = 120.dp, height = 150.dp),
+        modifier = modifier.size(width = 120.dp, height = 150.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -96,8 +123,41 @@ private fun MediaCard(asset: MediaAsset, onClick: () -> Unit) {
                 model = asset.uri,
                 contentDescription = asset.fileName,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick
+                    )
             )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                FeedbackIconButton(
+                    icon = Icons.Rounded.ThumbUp,
+                    contentDescription = stringResource(R.string.feedback_like),
+                    isSelected = selectedAction == FeedbackAction.LIKE,
+                    onClick = { onFeedback(FeedbackAction.LIKE) }
+                )
+                FeedbackIconButton(
+                    icon = Icons.Rounded.ThumbDown,
+                    contentDescription = stringResource(R.string.feedback_dislike),
+                    isSelected = selectedAction == FeedbackAction.DISLIKE,
+                    onClick = { onFeedback(FeedbackAction.DISLIKE) }
+                )
+                FeedbackIconButton(
+                    icon = Icons.Rounded.Refresh,
+                    contentDescription = stringResource(R.string.feedback_more_like_this),
+                    isSelected = false,
+                    onClick = { onFeedback(FeedbackAction.MORE_LIKE_THIS) }
+                )
+            }
+
             Text(
                 text = dateText,
                 style = MaterialTheme.typography.labelSmall,
@@ -107,6 +167,38 @@ private fun MediaCard(asset: MediaAsset, onClick: () -> Unit) {
                 modifier = Modifier.align(Alignment.BottomCenter).padding(4.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun FeedbackIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.Black.copy(alpha = 0.4f)
+    }
+
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 

@@ -493,6 +493,9 @@
     <string name="delete_chat">刪除聊天</string>
     <string name="delete_chat_title">刪除聊天</string>
     <string name="delete_chat_confirm">刪除「%1$s」？此操作不可復原。</string>
+    <string name="feedback_like">喜歡</string>
+    <string name="feedback_dislike">不喜歡</string>
+    <string name="feedback_more_like_this">更多類似</string>
     <string name="clear_chat">清空聊天</string>
     <string name="chat_input_hint">向 AI 助手提問…</string>
 

@@ -349,6 +349,9 @@
     <string name="delete_chat">Delete chat</string>
     <string name="delete_chat_title">Delete Chat</string>
     <string name="delete_chat_confirm">Delete "%1$s"? This cannot be undone.</string>
+    <string name="feedback_like">Like</string>
+    <string name="feedback_dislike">Dislike</string>
+    <string name="feedback_more_like_this">More like this</string>
     <string name="ai_model_manager">AI Model Manager</string>
     <string name="ai_model_manager_desc">Manage on-device AI models.</string>
     <string name="model_center">Model Center</string>
