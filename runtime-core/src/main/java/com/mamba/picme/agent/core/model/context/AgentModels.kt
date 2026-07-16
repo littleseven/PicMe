@@ -30,7 +30,36 @@ data class AgentContext(
     val exposureCompensation: Int = 0,
     val captureMode: MediaType = MediaType.PHOTO,
     val isRecording: Boolean = false,
-    val memorySessionId: String = scene.name.lowercase()
+    val memorySessionId: String = scene.name.lowercase(),
+    val recentSearchResults: List<SearchResultSnapshot> = emptyList()
+)
+
+/**
+ * 最近搜索结果快照，用于 LLM 解析跨轮指代。
+ *
+ * @property query 该轮搜索的自然语言查询
+ * @property results 展示给用户的媒体项（含 tags，用于自然语言指代）
+ * @property totalCount 命中总数
+ * @property isRefinement 是否为上轮结果的细化
+ * @property timestamp 快照时间戳
+ */
+data class SearchResultSnapshot(
+    val query: String,
+    val results: List<ResultItem>,
+    val totalCount: Int,
+    val isRefinement: Boolean,
+    val timestamp: Long
+)
+
+/**
+ * 搜索结果项快照。
+ *
+ * @property mediaId 媒体唯一标识
+ * @property tags 用于指代的标签（如"海","日落"）
+ */
+data class ResultItem(
+    val mediaId: String,
+    val tags: List<String>
 )
 
 /**
