@@ -79,6 +79,9 @@ class ChatViewModel(
     /** session -> 最近搜索快照（多轮对话指代用）。 */
     private val sessionSearchSnapshots = mutableMapOf<String, MutableList<SearchResultSnapshot>>()
 
+    /** session -> 当前生效的排除约束（内存实现，跟随当前搜索结果）。 */
+    private val sessionExcludes = mutableMapOf<String, MutableSet<String>>()
+
     /** 防止用户快速重复点击同一反馈按钮。 */
     private val pendingFeedbackActions = mutableSetOf<String>()
 
@@ -841,13 +844,43 @@ class ChatViewModel(
     }
 
     override suspend fun onMoreLikeThis(target: FeedbackTarget): SearchOutcome {
-        // TODO: Task 11 实现
-        return SearchOutcome("", emptyList(), 0, isRefinement = false)
+        val sessionId = _currentSessionId.value
+        val asset = resolveTarget(target, sessionId)
+            ?: return SearchOutcome("", emptyList(), 0, isRefinement = false)
+        val tags = asset.labels?.let { parseLabels(it) }?.take(3) ?: emptyList()
+        val constraint = if (tags.isNotEmpty()) {
+            "和这张照片类似的：${tags.joinToString("、")}"
+        } else {
+            "更多类似这张照片的"
+        }
+        return onRefineMediaSearch(constraint)
     }
 
     override suspend fun onExcludeConstraint(constraint: String): Boolean {
-        // TODO: Task 11 实现
-        return false
+        if (constraint.isBlank()) return false
+        val sessionId = _currentSessionId.value
+        if (lastResultAssets[sessionId].isNullOrEmpty()) return false
+        sessionExcludes.getOrPut(sessionId) { mutableSetOf() }.add(constraint)
+        reapplyFiltersToCurrentResults(sessionId)
+        return true
+    }
+
+    private fun reapplyFiltersToCurrentResults(sessionId: String) {
+        val current = lastResultAssets[sessionId] ?: return
+        val excludes = sessionExcludes[sessionId] ?: return
+        if (excludes.isEmpty()) return
+        val filtered = current.filter { asset ->
+            val labels = asset.labels?.let { parseLabels(it) } ?: emptyList()
+            val text = (labels + asset.fileName).joinToString(" ")
+            excludes.none { constraint -> text.contains(constraint, ignoreCase = true) }
+        }
+        lastResultAssets[sessionId] = filtered
+        recordSearchSnapshot(
+            sessionId = sessionId,
+            query = sessionSearchSnapshots[sessionId]?.lastOrNull()?.query ?: "",
+            totalCount = filtered.size,
+            isRefinement = true
+        )
     }
 
     /**
