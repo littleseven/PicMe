@@ -79,4 +79,31 @@ class LocalPromptBuilderChatSearchTest {
             sceneManager.leaveScene(SceneManager.Scene.CHAT)
         }
     }
+
+    @Test
+    fun `CHAT scene advertises feedback more and exclude commands`() {
+        val section = builder.buildL2CapabilitiesSection(SceneManager.Scene.CHAT)
+        assertTrue("CHAT 应广告 feedback 命令，实际:\n$section", section.contains("feedback"))
+        assertTrue("CHAT 应广告 more 命令，实际:\n$section", section.contains("more"))
+        assertTrue("CHAT 应广告 exclude 命令，实际:\n$section", section.contains("exclude"))
+    }
+
+    @Test
+    fun `buildStateSection includes recentSearchResults when present`() {
+        val snapshot = com.mamba.picme.agent.core.model.context.SearchResultSnapshot(
+            query = "海边日落",
+            results = listOf(com.mamba.picme.agent.core.model.context.ResultItem("img_001", listOf("海", "日落", "沙滩"))),
+            totalCount = 8,
+            isRefinement = false,
+            timestamp = 0L
+        )
+        val ctx = com.mamba.picme.agent.core.model.context.AgentContext(
+            scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT,
+            recentSearchResults = listOf(snapshot)
+        )
+        val state = builder.buildStateSection(ctx, SceneManager.Scene.CHAT)
+        assertTrue("状态片段应包含 query，实际:\n$state", state.contains("海边日落"))
+        assertTrue("状态片段应包含 mediaId，实际:\n$state", state.contains("img_001"))
+        assertTrue("状态片段应包含 tags，实际:\n$state", state.contains("日落"))
+    }
 }
