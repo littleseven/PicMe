@@ -84,8 +84,6 @@ import com.mamba.picme.domain.model.StageConfig
 import com.mamba.picme.domain.model.ThemeMode
 import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
-import com.mamba.picme.features.settings.agent.SettingsAgentPanel
-import com.mamba.picme.features.settings.agent.rememberSettingsAgentIntegration
 import com.mamba.picme.features.backuprestore.BackupRestoreActivity
 import com.mamba.picme.features.settings.capability.SettingsCapability
 import com.mamba.picme.service.chat.FloatingChatBubbleService
@@ -188,22 +186,6 @@ fun SettingsScreen(
         }
     }
 
-    val agentIntegration = rememberSettingsAgentIntegration(
-        context = context,
-        onNavigateTo = { destination ->
-            when (destination.lowercase()) {
-                "camera", "gallery", "debug" -> onNavigateBack()
-                "settings" -> { /* already on settings */ }
-                "model_center" -> onNavigateToModelCenter("")
-                "llm_model_manager" -> onNavigateToModelCenter("Chat")
-                "asr_model_manager" -> onNavigateToModelCenter("Audio")
-                "face_detection_model_manager" -> onNavigateToModelCenter("Vision")
-                else -> Logger.w(TAG, "Unknown navigation destination: $destination")
-            }
-        },
-        onNavigateBack = onNavigateBack
-    )
-
     DisposableEffect(Unit) {
         Logger.i(TAG, "Binding SettingsCapability delegate")
         val settingsCapability = SettingsCapability.getInstance()
@@ -243,7 +225,6 @@ fun SettingsScreen(
         }
     }
 
-    val pageContext = agentIntegration.buildPageContext()
 
     Box(modifier = Modifier.fillMaxSize()) {
         SettingsContent(
@@ -313,12 +294,6 @@ fun SettingsScreen(
             onNavigateToTagControl = onNavigateToTagControl,
             onNavigateToDebug = onNavigateToDebug,
             onNavigateToSearchTest = onNavigateToSearchTest
-        )
-
-        SettingsAgentPanel(
-            pageContext = pageContext,
-            voiceCoordinator = voiceCoordinator,
-            modifier = Modifier.align(Alignment.BottomEnd)
         )
     }
 }

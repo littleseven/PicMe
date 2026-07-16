@@ -54,7 +54,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.mamba.picme.core.common.Logger
 
-import com.mamba.picme.features.gallery.agent.rememberGalleryAgentIntegration
 import com.mamba.picme.features.gallery.components.EmptyGalleryMessage
 import com.mamba.picme.features.gallery.components.GallerySplashPlaceholder
 import com.mamba.picme.features.gallery.components.GalleryPermissionMessage
@@ -66,7 +65,6 @@ import com.mamba.picme.features.gallery.components.hasGalleryPermission
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.components.shareMediaAssets
 import com.mamba.picme.features.gallery.components.SearchTopBar
-import com.mamba.picme.features.gallery.agent.GalleryAgentPanel
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.components.FloatingBottomTab
 import com.mamba.picme.features.common.components.FloatingBottomTabItem
@@ -359,24 +357,6 @@ fun GalleryScreen(
         }
     }
 
-    // ===== Agent 集成 =====
-    val agentIntegration = rememberGalleryAgentIntegration(
-        context = context,
-        onNavigateTo = { destination ->
-            when (destination.lowercase()) {
-                "chat" -> onNavigateToChat()
-                "camera" -> onNavigateToCamera()
-                "gallery" -> { /* 已在相册页，无需导航 */ }
-                "settings" -> onNavigateToSettings()
-                "debug" -> onNavigateToDebug()
-                "model_center" -> onNavigateToModelCenter()
-                "llm_model_manager", "asr_model_manager" -> onNavigateToModelCenter()
-                else -> Logger.w(TAG, "Unknown navigation destination: $destination")
-            }
-        },
-        onNavigateBack = {}
-    )
-
     // 绑定 GalleryCapability 的 delegate，确保生命周期绑定
     // 使用 Unit 作为 key，确保只在页面进入/离开时绑定/解绑
     DisposableEffect(Unit) {
@@ -451,12 +431,6 @@ fun GalleryScreen(
 
     val currentMedia = selectedMediaIndex?.let { allFlatMedia.getOrNull(it) }
     val selectedItems = selectedIds.mapNotNull { mediaById[it] }
-    val pageContext = agentIntegration.buildPageContext(
-        currentMedia = currentMedia,
-        selectedItems = selectedItems,
-        isSelectionMode = isSelectionMode,
-        allMedia = allFlatMedia
-    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -747,19 +721,6 @@ fun GalleryScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 16.dp)
-                        .navigationBarsPadding()
-                )
-            }
-
-            // Agent Chat 入口 - 右下角浮动按钮（位于底部 Tab 上方）
-            if (selectedMediaIndex == null) {
-                GalleryAgentPanel(
-                    integration = agentIntegration,
-                    pageContext = pageContext,
-                    voiceCoordinator = voiceCoordinator,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = 84.dp)
                         .navigationBarsPadding()
                 )
             }
