@@ -1,0 +1,45 @@
+<h2>反馈数据流</h2>
+<p class="subtitle">一次 👍 / 👎 / 🔁 从 UI 到持久化，再到排序重排的完整路径</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">1. 用户在 Chat 卡片上点击反馈</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="width:60px;height:80px;background:#ccc;border-radius:8px"></div>
+        <div>
+          <p>👍 / 👎 / 🔁</p>
+          <p class="subtitle">onFeedback(mediaId, action)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">2. ChatViewModel 分发</div>
+    <div class="mockup-body" style="padding:12px">
+      <p>• 👍/👎 → MediaFeedbackUseCase.record()</p>
+      <p>• 🔁 → 调用 Agent refine / more_like_this</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">3. 本地持久化</div>
+    <div class="mockup-body" style="padding:12px">
+      <p>media_feedback 表：media_id, feedback_type, query, timestamp</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">4. 排序影响</div>
+    <div class="mockup-body" style="padding:12px">
+      <p>MediaSearchEngine.mergeAndRank() 读取 feedback 表，对当前查询结果加减分。</p>
+    </div>
+  </div>
+</div>

@@ -7,7 +7,6 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import com.mamba.picme.core.common.Logger
-import org.json.JSONArray
 
 /**
  * ML Kit Image Labeler 标签提取器

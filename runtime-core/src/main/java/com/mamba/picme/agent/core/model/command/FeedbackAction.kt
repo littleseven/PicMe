@@ -1,4 +1,4 @@
-package com.mamba.picme.domain.search
+package com.mamba.picme.agent.core.model.command
 
 enum class FeedbackAction {
     LIKE,

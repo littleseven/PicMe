@@ -24,7 +24,7 @@ import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
-import com.mamba.picme.domain.search.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome

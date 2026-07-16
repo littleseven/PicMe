@@ -1,0 +1,44 @@
+<h2>卡片 UI 示意</h2>
+<p class="subtitle">在现有横滑卡片右上角叠加反馈按钮，不破坏现有布局和点击预览</p>
+
+<div class="section">
+  <div class="mockup" style="max-width:320px;margin:0 auto">
+    <div class="mockup-header">Chat 消息气泡中的 MediaResultsCarousel</div>
+    <div class="mockup-body" style="padding:16px">
+      <p style="margin-bottom:8px">找到 12 张「海边日落」的照片</p>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding:4px 0">
+        <!-- Card 1 -->
+        <div style="flex:0 0 120px;height:150px;background:linear-gradient(135deg,#ff9a56,#ff6b6b);border-radius:12px;position:relative">
+          <div style="position:absolute;top:4px;right:4px;display:flex;flex-direction:column;gap:2px;background:rgba(0,0,0,0.4);border-radius:8px;padding:2px">
+            <span style="font-size:12px">👍</span>
+            <span style="font-size:12px">👎</span>
+            <span style="font-size:12px">🔁</span>
+          </div>
+          <div style="position:absolute;bottom:4px;left:4px;color:white;font-size:10px">2025-08-12</div>
+        </div>
+        <!-- Card 2 -->
+        <div style="flex:0 0 120px;height:150px;background:linear-gradient(135deg,#4facfe,#00f2fe);border-radius:12px;position:relative">
+          <div style="position:absolute;top:4px;right:4px;display:flex;flex-direction:column;gap:2px;background:rgba(0,0,0,0.4);border-radius:8px;padding:2px">
+            <span style="font-size:12px">👍</span>
+            <span style="font-size:12px">👎</span>
+            <span style="font-size:12px">🔁</span>
+          </div>
+        </div>
+        <!-- View all -->
+        <div style="flex:0 0 120px;height:150px;background:#e5e5e7;border-radius:12px;display:flex;align-items:center;justify-content:center">
+          <p style="font-size:12px;text-align:center">查看全部<br>→</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>交互说明</h3>
+  <ul>
+    <li>卡片主体点击：仍进入 MediaPager 大图预览</li>
+    <li>👍 选中后高亮；再次点击取消</li>
+    <li>👎 与 👍 互斥</li>
+    <li>🔁 触发“更多类似”，点击后收起并显示 loading</li>
+  </ul>
+</div>

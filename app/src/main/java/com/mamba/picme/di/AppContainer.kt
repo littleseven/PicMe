@@ -41,7 +41,6 @@ import com.mamba.picme.domain.tag.i18n.OpusMtTranslator
 import com.mamba.picme.domain.tag.i18n.TagTranslator
 import com.mamba.picme.data.download.LlmModelDownloadManager
 import com.mamba.picme.data.download.ModelPathConfig
-import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
 import com.mamba.picme.domain.backup.BackupTagDataUseCase
 import com.mamba.picme.domain.backup.RestoreTagDataUseCase
 import com.mamba.picme.domain.backup.TagDataBackupRepository

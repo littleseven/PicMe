@@ -7,10 +7,8 @@ import android.graphics.Matrix
 import android.graphics.RectF
 import android.net.Uri
 import android.util.Log
-import androidx.camera.core.CameraSelector
 import androidx.exifinterface.media.ExifInterface
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
-import com.mamba.picme.beauty.api.facedetect.FaceDetection
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionResult
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.domain.model.AppLanguage

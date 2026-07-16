@@ -128,14 +128,29 @@ style:
       - '0'
       - '1'
       - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '8'
+      - '10'
+      - '12'
+      - '16'
+      - '24'
+      - '60'
       - '100'
+      - '255'
+      - '360'
+      - '500'
       - '1000'
     ignoreHashCodeFunction: true
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
+    ignoreEnums: true
+    ignoreAnnotated:
+      - 'Composable'
   MaxLineLength:
     active: true
-    maxLineLength: 140
+    maxLineLength: 160
   MayBeConst:
     active: true
   ModifierOrder:

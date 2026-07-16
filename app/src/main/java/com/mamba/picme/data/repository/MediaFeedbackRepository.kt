@@ -1,6 +1,6 @@
 package com.mamba.picme.data.repository
 
-import com.mamba.picme.domain.search.FeedbackAction
+import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.domain.search.FeedbackScore
 
 interface MediaFeedbackRepository {

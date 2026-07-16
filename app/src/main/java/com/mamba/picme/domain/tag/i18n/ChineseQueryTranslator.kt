@@ -2,7 +2,6 @@ package com.mamba.picme.domain.tag.i18n
 
 import android.content.Context
 import android.util.Log
-import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.tag.ControlledVocab
 
 /**

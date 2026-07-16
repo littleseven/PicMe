@@ -8,6 +8,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.remote.picme.PicMeAuthClient
+import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
 import io.mockk.coEvery
@@ -50,6 +51,7 @@ class ChatViewModelGuestModeTest {
     private val chatMessageDao: ChatMessageDao = mockk(relaxed = true)
     private val chatSessionDao: ChatSessionDao = mockk(relaxed = true)
     private val mediaSearchEngine: MediaSearchEngine = mockk(relaxed = true)
+    private val mediaFeedbackRepository: MediaFeedbackRepository = mockk(relaxed = true)
     private val authClient: PicMeAuthClient = mockk(relaxed = true)
     private val userSettingsRepository: UserSettingsRepository = mockk(relaxed = true)
 
@@ -104,6 +106,7 @@ class ChatViewModelGuestModeTest {
             chatSessionDao = chatSessionDao,
             userSettingsRepository = userSettingsRepository,
             mediaSearchEngine = mediaSearchEngine,
+            mediaFeedbackRepository = mediaFeedbackRepository,
             picMeAuthClient = authClient,
         )
     )

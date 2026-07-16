@@ -1,6 +1,5 @@
 package com.mamba.picme.data.remote.picme
 
-import com.mamba.picme.core.common.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType

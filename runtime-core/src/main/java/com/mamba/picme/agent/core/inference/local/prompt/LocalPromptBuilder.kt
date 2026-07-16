@@ -2,6 +2,7 @@ package com.mamba.picme.agent.core.inference.local.prompt
 
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.context.AgentContext
+import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 
 /**
@@ -55,9 +56,12 @@ class LocalPromptBuilder(
 - launch_app: {"method":"launch_app","params":{"package_name":"com.example.app","app_name":"微信"}}
 - open_system_settings: {"method":"open_system_settings","params":{"setting":"wifi|bluetooth|display|location|app_notifications"}}
 - text_reply: {"method":"text_reply","params":{"message":"中文回复"}}
+- feedback: {"method":"feedback","params":{"target":"ordinal:3|desc:海边|last","action":"like|dislike"}}
+- more: {"method":"more","params":{"target":"ordinal:3|desc:海边|last"}}
+- exclude: {"method":"exclude","params":{"constraint":"夜景"}}
 
 【字段约束】
-- params 中只允许这些键：smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow, filter, style, scene, ratio, exposure, zoom, mode, destination, package_name, app_name, activity_class, setting, action, target, text, message, delay_ms。
+- params 中只允许这些键：smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow, filter, style, scene, ratio, exposure, zoom, mode, destination, package_name, app_name, activity_class, setting, action, target, text, message, delay_ms, constraint。
 - 不要输出未定义字段；不需要的参数不要输出。
 - 数字不要加引号，字符串必须加引号。
 
@@ -79,6 +83,10 @@ class LocalPromptBuilder(
 - 打开前置/切前置/前置 → flip_camera
 - 调高美颜/增强美颜/美颜 → adjust_beauty(smoothing=65,whitening=65)
 - 关闭美颜/不要美颜 → adjust_beauty(smoothing=0,whitening=0)
+- 第三张不错/喜欢第三张 → feedback(target="ordinal:3", action="like")
+- 不喜欢有人物的 → exclude(constraint="人物")
+- 再来点这种/类似的 → more(target="last")
+- 前面海边的再多来点 → more(target="desc:海边")
 
 【组合与合并规则】
 - 用户说多个动作时（如"磨皮拍照"），必须输出 JSON 数组，每个动作一个对象，按顺序执行。
@@ -107,6 +115,11 @@ class LocalPromptBuilder(
 「你好」→ [{"method":"text_reply","params":{"message":"你好呀，我是小浪"}}]
 「打开微信」→ [{"method":"launch_app","params":{"app_name":"微信"}}]
 「打开WiFi设置」→ [{"method":"open_system_settings","params":{"setting":"wifi"}}]
+「第三张不错」→ [{"method":"feedback","params":{"target":"ordinal:3","action":"like"}}]
+「不喜欢有人物的」→ [{"method":"exclude","params":{"constraint":"人物"}}]
+「再来点这种」→ [{"method":"more","params":{"target":"last"}}]
+「前面海边的再多来点」→ [{"method":"more","params":{"target":"desc:海边"}}]
+「第三张不错，再来点类似的」→ [{"method":"feedback","params":{"target":"ordinal:3","action":"like"}},{"method":"more","params":{"target":"ordinal:3"}}]
 """.trimIndent()
 
     /**
@@ -368,7 +381,7 @@ class LocalPromptBuilder(
                 appendLine("launch_app(package_name|app_name), open_system_settings(setting)")
             }
             if (scene == null || scene == SceneManager.Scene.CHAT) {
-                appendLine("search_media(query), refine_media_search(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search")
+                appendLine("search_media(query), refine_media_search(constraint), feedback(target,action), more(target), exclude(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search；\"第三张不错\"用 feedback，\"再来点这种\"用 more，\"不要夜景\"用 exclude")
                 appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。")
             }
             appendLine("navigate_to(destination), go_back, text_reply(message)")
@@ -408,7 +421,7 @@ class LocalPromptBuilder(
 
     // ── 内部辅助方法 ────────────────────────────────────────────
 
-    private fun buildStateSection(
+    internal fun buildStateSection(
         context: AgentContext,
         currentScene: SceneManager.Scene? = null
     ): String {
@@ -444,6 +457,21 @@ class LocalPromptBuilder(
             append(context.captureMode.name)
             append(", recording=")
             append(if (context.isRecording) "1" else "0")
+            append(buildSearchResultsSection(context.recentSearchResults))
+        }
+    }
+
+    private fun buildSearchResultsSection(recentSearchResults: List<SearchResultSnapshot>): String {
+        if (recentSearchResults.isEmpty()) return ""
+        return buildString {
+            appendLine()
+            appendLine("【最近搜索结果】")
+            recentSearchResults.forEachIndexed { index, snapshot ->
+                appendLine("- 第 ${index + 1} 轮 (query=\"${snapshot.query}\", 共 ${snapshot.totalCount} 张${if (snapshot.isRefinement) ", 细化" else ""}):")
+                snapshot.results.forEachIndexed { i, item ->
+                    appendLine("  [${i + 1}] id=${item.mediaId} tags=[${item.tags.joinToString(", ")}]")
+                }
+            }
         }
     }
 
