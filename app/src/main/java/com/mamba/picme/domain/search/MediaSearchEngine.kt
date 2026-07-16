@@ -41,7 +41,8 @@ class MediaSearchEngine(
     private val userSettingsRepository: UserSettingsRepository? = null,
     private val tagTranslator: TagTranslator = TagTranslator(BilingualVocab.empty()),
     private val semanticSearchEngine: SemanticSearchEngine? = null,
-    private val explicitFirstPipeline: ExplicitFirstSearchPipeline? = null
+    private val explicitFirstPipeline: ExplicitFirstSearchPipeline? = null,
+    private val mediaFeedbackUseCase: MediaFeedbackUseCase? = null
 ) {
 
     /** 翻译结果 LRU 缓存：避免重复搜索时反复做词表查找 + OPUS-MT 推理（~50ms） */
@@ -104,7 +105,7 @@ class MediaSearchEngine(
             }
 
             // Layer 3: 融合排序
-            val merged = mergeAndRank(results, semanticResults)
+            val merged = mergeAndRank(results, semanticResults, query)
             return SearchResult(merged, query)
         }
 
@@ -123,7 +124,7 @@ class MediaSearchEngine(
                     sqlDeferred.await() to semanticDeferred.await()
                 }
 
-                val merged = mergeAndRank(results, semanticResults)
+                val merged = mergeAndRank(results, semanticResults, query)
                 return SearchResult(merged, query)
             }
         }
@@ -144,7 +145,7 @@ class MediaSearchEngine(
             sqlDeferred.await() to semanticDeferred.await()
         }
 
-        val merged = mergeAndRank(sqlResults, semanticResults)
+        val merged = mergeAndRank(sqlResults, semanticResults, query)
         return SearchResult(merged, query)
     }
 
@@ -185,17 +186,19 @@ class MediaSearchEngine(
      *
      * 综合分 = 结构化分 * 0.3 + 标签分 * 0.2 + 语义分 * 0.4 + 时间衰减 * 0.1
      */
-    private fun mergeAndRank(
+    private suspend fun mergeAndRank(
         sqlResults: List<MediaAsset>,
-        semanticResults: List<SemanticScoredMedia>
-    ): List<MediaAsset> = mergeAndRankWithScores(sqlResults, semanticResults).map { it.media }
+        semanticResults: List<SemanticScoredMedia>,
+        query: String = ""
+    ): List<MediaAsset> = mergeAndRankWithScores(sqlResults, semanticResults, query).map { it.media }
 
     /**
      * 融合排序并返回带分数的结果（搜索测试页观测用）。
      */
-    private fun mergeAndRankWithScores(
+    private suspend fun mergeAndRankWithScores(
         sqlResults: List<MediaAsset>,
-        semanticResults: List<SemanticScoredMedia>
+        semanticResults: List<SemanticScoredMedia>,
+        query: String = ""
     ): List<ScoredMediaAsset> {
         val scoreMap = mutableMapOf<Long, Float>()
         val mediaMap = mutableMapOf<Long, MediaAsset>()
@@ -224,9 +227,36 @@ class MediaSearchEngine(
             scoreMap[id] = scoreMap.getOrDefault(id, 0f) + timeBoost * TIME_SCORE_WEIGHT
         }
 
+        // 叠加反馈权重
+        applyFeedbackScores(scoreMap, mediaMap, query)
+
         return scoreMap.entries
             .sortedByDescending { it.value }
             .mapNotNull { mediaMap[it.key]?.let { media -> ScoredMediaAsset(media, it.value) } }
+    }
+
+    @androidx.annotation.VisibleForTesting
+    internal suspend fun applyFeedbackScores(
+        scoreMap: MutableMap<Long, Float>,
+        mediaMap: Map<Long, MediaAsset>,
+        query: String
+    ) {
+        if (query.isBlank() || mediaFeedbackUseCase == null) return
+
+        try {
+            val scores = mediaFeedbackUseCase.getScoresForQuery(query)
+
+            scoreMap.keys.forEach { id ->
+                val mediaId = mediaMap[id]?.id?.toString() ?: return@forEach
+                val score = scores[mediaId]
+                val delta = mediaFeedbackUseCase.calculateScoreDelta(score)
+                if (delta != 0f) {
+                    scoreMap[id] = scoreMap.getOrDefault(id, 0f) + delta
+                }
+            }
+        } catch (e: Exception) {
+            Logger.w(TAG, "Failed to apply feedback scores", e)
+        }
     }
 
     /**
@@ -563,7 +593,8 @@ Notes:
         val mergeStart = System.currentTimeMillis()
         val scoredMerged = mergeAndRankWithScores(
             sqlResults.map { it.media },
-            semanticResults.map { SemanticScoredMedia(it.media, it.score) }
+            semanticResults.map { SemanticScoredMedia(it.media, it.score) },
+            query
         )
         val mergeTimeMs = System.currentTimeMillis() - mergeStart
 
