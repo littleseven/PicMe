@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
@@ -67,6 +68,7 @@ class ChatViewModel(
     private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
+    private val authClient = dependencies.picMeAuthClient
 
     /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
     private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
@@ -100,6 +102,48 @@ class ChatViewModel(
 
     private val _currentModel = MutableStateFlow<ChatModelOption>(ChatModelOption.Local)
     val currentModel: StateFlow<ChatModelOption> = _currentModel.asStateFlow()
+
+    // ── 访客模式与注册引导 ──────────────────────────────────
+    private val _serverAuthToken = MutableStateFlow("")
+
+    init {
+        viewModelScope.launch {
+            userSettingsRepository.serverAuthTokenFlow.collect { token ->
+                _serverAuthToken.value = token
+            }
+        }
+    }
+
+    /** 远程模式且未注册（无 server token）→ 访客试用，由服务端设备级额度放行。 */
+    val isGuestMode: StateFlow<Boolean> = combine(_currentModel, _serverAuthToken) { model, token ->
+        model is ChatModelOption.Remote && token.isBlank()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private val _showRegistrationSheet = MutableStateFlow(false)
+    val showRegistrationSheet: StateFlow<Boolean> = _showRegistrationSheet.asStateFlow()
+
+    fun openRegistrationSheet() {
+        _showRegistrationSheet.value = true
+    }
+
+    fun dismissRegistrationSheet() {
+        _showRegistrationSheet.value = false
+    }
+
+    fun sendVerificationCode(email: String, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch { authClient.sendVerificationCode(email).also(onResult) }
+    }
+
+    fun verifyCode(email: String, code: String, onResult: (Result<*>) -> Unit) {
+        viewModelScope.launch {
+            val result = authClient.verifyCode(email, code)
+            result.onSuccess { auth ->
+                userSettingsRepository.updateServerAuth(auth.token, email)
+                _showRegistrationSheet.value = false
+            }
+            onResult(result)
+        }
+    }
 
     private val _threads = MutableStateFlow<List<ChatThreadUi>>(emptyList())
     val threads: StateFlow<List<ChatThreadUi>> = _threads.asStateFlow()
@@ -391,12 +435,29 @@ class ChatViewModel(
                     onFailure = { error ->
                         // 清除流式占位
                         _streamingMessage.value = null
-                        // 保存错误消息
-                        insertAgentMessage(
-                            sessionId = sessionId,
-                            content = "推理出错：${error.message ?: "未知错误"}",
-                            modelUsed = "error"
-                        )
+                        // langchain4j 异常 message = HTTP 响应体（OkHttpClient→HttpException→AuthenticationException 全程透传，状态码不进 message）。
+                        // guest 配额耗尽时 server 返回 403 body={"error":"quota_exceeded",...}（见 LlmRoute），据此识别。
+                        val errorBody = error.message.orEmpty()
+                        val isGuestQuota = isGuestMode.value &&
+                            errorBody.contains("quota_exceeded", ignoreCase = true)
+                        if (isGuestQuota) {
+                            // 访客试用额度用完 → 友好提示 + 打开注册引导（软引导，非硬阻断）
+                            insertAgentMessage(
+                                sessionId = sessionId,
+                                content = context.getString(R.string.chat_guest_quota_used_up),
+                                modelUsed = currentModelLabel(),
+                            )
+                            _showRegistrationSheet.value = true
+                        } else {
+                            insertAgentMessage(
+                                sessionId = sessionId,
+                                content = context.getString(
+                                    R.string.chat_inference_error,
+                                    error.message ?: "unknown",
+                                ),
+                                modelUsed = "error",
+                            )
+                        }
                     }
                 )
 

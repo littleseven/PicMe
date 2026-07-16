@@ -271,7 +271,7 @@ object LocalCommandParser {
                     return keywordCommand
                 }
                 Logger.d(TAG, "No JSON method found, treating as free chat")
-                return AgentCommand.TextReply(message = localCleaned.ifBlank { "你好，我是小觅，有什么可以帮你的吗？" })
+                return AgentCommand.TextReply(message = localCleaned.ifBlank { "你好，我是小浪，有什么可以帮你的吗？" })
             }
         }
 

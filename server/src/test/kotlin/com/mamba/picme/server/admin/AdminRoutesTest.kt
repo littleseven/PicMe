@@ -1,5 +1,7 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
@@ -25,6 +27,7 @@ import org.junit.Test
 class AdminRoutesTest {
 
     private val token = "test-admin-token"
+    private val cos = CosService(AppConfig.load())
     private val cookieVal get() = AdminAuth.expectedCookieValue(token)
 
     private fun seed() {
@@ -57,7 +60,7 @@ class AdminRoutesTest {
     @Test
     fun `full admin auth and view flow`() = testApplication {
         seed()
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
 
         // 1. no cookie → redirect to login
@@ -68,7 +71,7 @@ class AdminRoutesTest {
         // 2. login page reachable
         val r2 = c.get("/admin/login")
         assertEquals(HttpStatusCode.OK, r2.status)
-        assertTrue(r2.bodyAsText().contains("PicMe 管理后台"))
+        assertTrue(r2.bodyAsText().contains("PoLang 管理后台"))
 
         // 3. wrong password → 401
         val r3 = c.post("/admin/login") {
@@ -115,7 +118,7 @@ class AdminRoutesTest {
     @Test
     fun `disabled admin token returns 503`() = testApplication {
         seed()
-        application { routing { adminRoute("") } } // 空 token → 禁用
+        application { routing { adminRoute("", cos) } } // 空 token → 禁用
         val c = createClient { followRedirects = false }
         val r = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, "anything") }
         assertEquals(HttpStatusCode.ServiceUnavailable, r.status)

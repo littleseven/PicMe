@@ -15,7 +15,7 @@ object Migrations {
             SchemaUtils.create(
                 Rules, Assets, TelemetryEvents, LlmDailyCounters,
                 Accounts, EmailVerifications, LlmCallLogs, LlmChannels,
-                ApkUploads,
+                ApkUploads, AnonymousDevices,
             )
             // 给现存表补缺失列（如 llm_channel.default_model），幂等
             SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels)

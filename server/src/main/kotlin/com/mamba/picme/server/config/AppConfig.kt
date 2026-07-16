@@ -13,6 +13,7 @@ data class AppConfig(
     val dbPath: String,
     // Auth
     val freeLlmQuota: Int,
+    val guestLlmQuota: Int,
     // LLM proxy
     val cloudflareAigUrl: String,
     val cloudflareAigToken: String,
@@ -40,7 +41,8 @@ data class AppConfig(
             host = env("HOST", "127.0.0.1"),
             port = envInt("PORT", 8080),
             dbPath = env("DB_PATH", "picme.db"),
-            freeLlmQuota = envInt("FREE_LLM_QUOTA", 100),
+            freeLlmQuota = envInt("FREE_LLM_QUOTA", 1000),
+            guestLlmQuota = envInt("GUEST_LLM_QUOTA", 100),
             // Cloudflare AI Gateway (DeepSeek)
             cloudflareAigUrl = env(
                 "CLOUDFLARE_AIG_URL",

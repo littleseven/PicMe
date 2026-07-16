@@ -7,7 +7,7 @@ import com.mamba.picme.server.auth.AccountService
  * ADMIN_TOKEN 为空 → 后台禁用（isValid 一律 false）。
  */
 object AdminAuth {
-    const val COOKIE_NAME = "picme_admin"
+    const val COOKIE_NAME = "pl_admin"
 
     fun expectedCookieValue(adminToken: String): String =
         if (adminToken.isBlank()) "" else AccountService.sha256(adminToken)

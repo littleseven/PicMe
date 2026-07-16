@@ -61,6 +61,17 @@ class AgentConfigurator(private val context: Context) {
     private var agentMode: AiAgentMode = AiAgentMode.REMOTE
     private var currentModelId: String = "qwen3_5_2b"
     private var userRemoteConfig: RemoteModelConfig? = null
+
+    /**
+     * 设备级标识（访客试用额度 X-Device-Id）。独立于 [userRemoteConfig] 持有，
+     * 避免被多次 configure 覆盖丢失（例如 AiAgentUseCase init 用 fallback 重配 remoteConfig 时，
+     * 带 deviceId 的 config 被裸 PICME_SERVER_DEFAULT 覆盖，导致 guest 请求无 X-Device-Id → 401）。
+     */
+    private var deviceId: String = ""
+
+    fun setDeviceId(id: String) {
+        if (id.isNotBlank()) deviceId = id
+    }
     private var localInferencePipeline: LocalInferencePipeline? = null
     private var localUseOpencl: Boolean = false
     private var inferencePreference: AiAgentInferencePreference = AiAgentInferencePreference.FORCE_REMOTE
@@ -188,6 +199,13 @@ class AgentConfigurator(private val context: Context) {
             .logResponses(true)
         if (config.gatewayToken.isNotBlank()) {
             builder.customHeader("X-App-Token", config.gatewayToken)
+        } else {
+            // 未注册访客：无账号 token 时改用设备级试用额度（X-Device-Id）。
+            // 优先用 config.deviceId；若被 fallback 覆盖为空，回退到独立持有的 [deviceId]。
+            val effectiveDeviceId = config.deviceId.ifBlank { deviceId }
+            if (effectiveDeviceId.isNotBlank()) {
+                builder.customHeader("X-Device-Id", effectiveDeviceId)
+            }
         }
         Logger.i(tag, "RemoteChatModel created: model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
         return builder.build()

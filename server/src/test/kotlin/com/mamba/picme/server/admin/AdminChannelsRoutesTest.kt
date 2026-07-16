@@ -1,5 +1,7 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.db.LlmChannels
@@ -27,6 +29,7 @@ import org.junit.Test
 class AdminChannelsRoutesTest {
 
     private val token = "test-admin-token"
+    private val cos = CosService(AppConfig.load())
     private val cookieVal get() = AdminAuth.expectedCookieValue(token)
 
     @Before
@@ -50,7 +53,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `channels page requires cookie`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
         val r = c.get("/admin/channels")
         assertEquals(HttpStatusCode.Found, r.status)
@@ -59,7 +62,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `create channel then it appears and token is masked`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
 
         val r = c.post("/admin/channels") {
@@ -85,7 +88,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `active row hides activate and delete buttons, keeps toggle`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
         c.post("/admin/channels") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)
@@ -106,7 +109,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `activate sets channel active`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
         c.post("/admin/channels") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)
@@ -124,7 +127,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `delete active channel is rejected`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
         c.post("/admin/channels") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)
@@ -147,7 +150,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `nav has channels link`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
         val html = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
         assertTrue(html.contains("/admin/channels"))
@@ -155,7 +158,7 @@ class AdminChannelsRoutesTest {
 
     @Test
     fun `token endpoint returns full token for copy button`() = testApplication {
-        application { routing { adminRoute(token) } }
+        application { routing { adminRoute(token, cos) } }
         val c = createClient { followRedirects = false }
         c.post("/admin/channels") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)

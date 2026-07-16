@@ -63,7 +63,7 @@ class KeywordSpotterEngineTest {
         val modelDir = tempFolder.newFolder("kws-with-keywords")
         File(modelDir, "keywords.txt").writeText(
             """
-            小觅
+            小浪
             小蜜
             小秘
             # 这是注释，应被忽略
@@ -75,7 +75,7 @@ class KeywordSpotterEngineTest {
         val engine = KeywordSpotterEngine(modelDir.absolutePath)
         val keywords = engine.getKeywords()
 
-        assertEquals("应正确解析并过滤空行和注释", listOf("小觅", "小蜜", "小秘", "小米"), keywords)
+        assertEquals("应正确解析并过滤空行和注释", listOf("小浪", "小蜜", "小秘", "小米"), keywords)
     }
 
     @Test
@@ -83,7 +83,7 @@ class KeywordSpotterEngineTest {
         val modelDir = tempFolder.newFolder("kws-whitespace")
         File(modelDir, "keywords.txt").writeText(
             """
-              小觅  
+              小浪  
 
               小蜜
             """.trimIndent()
@@ -92,14 +92,14 @@ class KeywordSpotterEngineTest {
         val engine = KeywordSpotterEngine(modelDir.absolutePath)
         val keywords = engine.getKeywords()
 
-        assertEquals("应去除空白并忽略空行", listOf("小觅", "小蜜"), keywords)
+        assertEquals("应去除空白并忽略空行", listOf("小浪", "小蜜"), keywords)
     }
 
     @Test
     fun `getKeywords caches loaded result`() {
         val modelDir = tempFolder.newFolder("kws-cache")
         val keywordsFile = File(modelDir, "keywords.txt").apply {
-            writeText("小觅\n小蜜\n")
+            writeText("小浪\n小蜜\n")
         }
 
         val engine = KeywordSpotterEngine(modelDir.absolutePath)

@@ -28,7 +28,7 @@ class LocalPromptBuilder(
      * - 精简 JSON 风格：method + params 结构
      */
     private val basePrompt = """
-你是 PicMe 的本地 AI 助手小觅（端侧小模型）。
+你是 PicMe 的本地 AI 助手小浪（端侧小模型）。
 任务：把用户输入转成 JSON 命令数组，只输出数组，不要任何其他文本。
 
 【输出格式硬规则】
@@ -104,7 +104,7 @@ class LocalPromptBuilder(
 「3秒后拍照」→ [{"method":"delay","params":{"delay_ms":3000}},{"method":"capture","params":{}}]
 「5秒后换暖色滤镜拍照」→ [{"method":"delay","params":{"delay_ms":5000}},{"method":"switch_filter","params":{"filter":"WARM"}},{"method":"capture","params":{}}]
 「3秒后冷色调拍3张」→ [{"method":"delay","params":{"delay_ms":3000}},{"method":"switch_filter","params":{"filter":"COOL"}},{"method":"capture","params":{}},{"method":"capture","params":{}},{"method":"capture","params":{}}]
-「你好」→ [{"method":"text_reply","params":{"message":"你好呀，我是小觅"}}]
+「你好」→ [{"method":"text_reply","params":{"message":"你好呀，我是小浪"}}]
 「打开微信」→ [{"method":"launch_app","params":{"app_name":"微信"}}]
 「打开WiFi设置」→ [{"method":"open_system_settings","params":{"setting":"wifi"}}]
 """.trimIndent()
@@ -128,7 +128,7 @@ class LocalPromptBuilder(
      * 让自由聊天和系统控制（打开应用等）更稳定。
      */
     private val chatBasePrompt = """
-你是 PicMe 的 AI 助手小觅（端侧小模型）。
+你是 PicMe 的 AI 助手小浪（端侧小模型）。
 任务：理解用户意图，输出 JSON 命令数组；如果是闲聊或不确定，用 text_reply 友好回复。
 
 【输出格式硬规则】
@@ -152,7 +152,7 @@ class LocalPromptBuilder(
 - 数字不要加引号，字符串必须加引号。
 
 【示例】
-「你好」→ [{"method":"text_reply","params":{"message":"你好呀，我是小觅，有什么可以帮你的吗？"}}]
+「你好」→ [{"method":"text_reply","params":{"message":"你好呀，我是小浪，有什么可以帮你的吗？"}}]
 「今天天气怎么样」→ [{"method":"text_reply","params":{"message":"我这边没法查实时天气哦，你可以问问系统助手～"}}]
 「打开微信的指令是什么」→ [{"method":"text_reply","params":{"message":"打开微信的指令是 launch_app，参数为 app_name='微信'。"}}]
 「怎么打开微信」→ [{"method":"text_reply","params":{"message":"你可以直接说'打开微信'，我会执行 launch_app(app_name='微信')。"}}]
@@ -269,7 +269,7 @@ class LocalPromptBuilder(
         context: AgentContext
     ): String {
         return buildString {
-            appendLine("你是 PicMe 的摄影助手小觅，当前是聊天模式。")
+            appendLine("你是 PicMe 的摄影助手小浪，当前是聊天模式。")
             appendLine()
             appendLine("回复规则：")
             appendLine("1. 只输出自然语言，不要 JSON，不要 markdown。")
@@ -303,7 +303,7 @@ class LocalPromptBuilder(
 
         return buildString {
             if (isChatScene) {
-                appendLine("你是 PicMe 的摄影助手小觅。当前是聊天页，优先用自然语言回复用户；只有当用户明确要求执行操作（如搜照片、导航、打开应用/设置）时才输出对应命令。")
+                appendLine("你是 PicMe 的摄影助手小浪。当前是聊天页，优先用自然语言回复用户；只有当用户明确要求执行操作（如搜照片、导航、打开应用/设置）时才输出对应命令。")
             } else {
                 appendLine("你是相机助手。将用户指令解析为JSON命令数组。")
             }
@@ -375,8 +375,8 @@ class LocalPromptBuilder(
             appendLine()
             appendLine("示例：")
             if (scene == null || scene == SceneManager.Scene.CHAT) {
-                appendLine("介绍一下你自己 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PicMe 的摄影助手小觅，可以帮你拍照、搜照片、调整设置等。\"}}]")
-                appendLine("你好 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好呀，我是小觅，有什么可以帮你的吗？\"}}]")
+                appendLine("介绍一下你自己 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PicMe 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。\"}}]")
+                appendLine("你好 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好呀，我是小浪，有什么可以帮你的吗？\"}}]")
                 appendLine("今天天气怎么样 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"我这边没法查实时天气哦，你可以问问系统助手～\"}}]")
                 appendLine("去相机 -> [{\"method\":\"navigate_to\",\"params\":{\"destination\":\"camera\"}}]")
                 appendLine("返回 -> [{\"method\":\"go_back\",\"params\":{}}]")

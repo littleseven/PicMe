@@ -53,6 +53,7 @@ import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
 import com.mamba.picme.features.chat.ChatViewModel
+import com.mamba.picme.data.remote.picme.PicMeAuthClient
 import com.mamba.picme.features.chat.ChatViewModelDependencies
 import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -453,7 +454,8 @@ class AppContainerImpl(
             chatSessionDao = database.chatSessionDao(),
             userSettingsRepository = userPreferencesRepository,
             mediaSearchEngine = mediaSearchEngine,
-            mediaFeedbackRepository = mediaFeedbackRepository
+            mediaFeedbackRepository = mediaFeedbackRepository,
+            picMeAuthClient = PicMeAuthClient()
         )
     }
 

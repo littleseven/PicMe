@@ -22,7 +22,7 @@ class WakeWordEngineTest {
     @Test
     fun `findMatchedWakeWord matches standard wake word`() {
         val engine = createEngine()
-        assertEquals("小觅", engine.findMatchedWakeWord("小觅拍张照"))
+        assertEquals("小浪", engine.findMatchedWakeWord("小浪拍张照"))
     }
 
     @Test
@@ -68,70 +68,70 @@ class WakeWordEngineTest {
     @Test
     fun `stripWakeWord removes wake word prefix`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅拍张照", "小觅")
+        val result = engine.stripWakeWord("小浪拍张照", "小浪")
         assertEquals("拍张照", result)
     }
 
     @Test
     fun `stripWakeWord removes wake word suffix`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("拍张照小觅", "小觅")
+        val result = engine.stripWakeWord("拍张照小浪", "小浪")
         assertEquals("拍张照", result)
     }
 
     @Test
     fun `stripWakeWord removes wake word infix`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("帮我小觅拍张照", "小觅")
+        val result = engine.stripWakeWord("帮我小浪拍张照", "小浪")
         assertEquals("帮我拍张照", result)
     }
 
     @Test
     fun `stripWakeWord removes multiple wake words`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅小觅拍张照", "小觅")
+        val result = engine.stripWakeWord("小浪小浪拍张照", "小浪")
         assertEquals("拍张照", result)
     }
 
     @Test
     fun `stripWakeWord handles wake word only`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅", "小觅")
+        val result = engine.stripWakeWord("小浪", "小浪")
         assertEquals("", result)
     }
 
     @Test
     fun `stripWakeWord returns original when no wake word`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("拍张照", "小觅")
+        val result = engine.stripWakeWord("拍张照", "小浪")
         assertEquals("拍张照", result)
     }
 
     @Test
     fun `stripWakeWord handles empty string`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("", "小觅")
+        val result = engine.stripWakeWord("", "小浪")
         assertEquals("", result)
     }
 
     @Test
     fun `stripWakeWord handles transcript with whitespace around wake word`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅 拍张照", "小觅")
+        val result = engine.stripWakeWord("小浪 拍张照", "小浪")
         assertEquals("拍张照", result)
     }
 
     @Test
     fun `stripWakeWord handles complex command`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅调高美颜磨皮80", "小觅")
+        val result = engine.stripWakeWord("小浪调高美颜磨皮80", "小浪")
         assertEquals("调高美颜磨皮80", result)
     }
 
     @Test
     fun `stripWakeWord handles wake word at both ends`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅拍张照小觅", "小觅")
+        val result = engine.stripWakeWord("小浪拍张照小浪", "小浪")
         assertEquals("拍张照", result)
     }
 
@@ -154,7 +154,7 @@ class WakeWordEngineTest {
     @Test
     fun `stripWakeWord uses default variant when not specified`() {
         val engine = createEngine()
-        val result = engine.stripWakeWord("小觅拍张照")
+        val result = engine.stripWakeWord("小浪拍张照")
         assertEquals("拍张照", result)
     }
 
@@ -163,9 +163,9 @@ class WakeWordEngineTest {
     @Test
     fun `findMatchedWakeWordWithScore returns standard wake word with perfect score`() {
         val engine = createEngine()
-        val result = engine.findMatchedWakeWordWithScore("小觅拍张照")
-        assertNotNull("应该匹配到小觅", result)
-        assertEquals("小觅", result?.first)
+        val result = engine.findMatchedWakeWordWithScore("小浪拍张照")
+        assertNotNull("应该匹配到小浪", result)
+        assertEquals("小浪", result?.first)
         assertEquals(1.0f, result?.second)
     }
 
@@ -202,29 +202,29 @@ class WakeWordEngineTest {
     @Test
     fun `findMatchedWakeWord matches oral prefix variant hey`() {
         val engine = createEngine()
-        // 嘿小觅 - 口语启动词 + 唤醒词
-        assertEquals("嘿小觅", engine.findMatchedWakeWord("嘿小觅拍照"))
+        // 嘿小浪 - 口语启动词 + 唤醒词
+        assertEquals("嘿小浪", engine.findMatchedWakeWord("嘿小浪拍照"))
     }
 
     @Test
     fun `findMatchedWakeWord matches oral prefix variant call`() {
         val engine = createEngine()
-        // 哎小觅 - 口语启动词
-        assertEquals("哎小觅", engine.findMatchedWakeWord("哎小觅换个美颜"))
+        // 哎小浪 - 口语启动词
+        assertEquals("哎小浪", engine.findMatchedWakeWord("哎小浪换个美颜"))
     }
 
     @Test
     fun `findMatchedWakeWord matches greeting variant`() {
         val engine = createEngine()
-        // 小觅你好 - 打招呼表达
-        assertEquals("小觅你好", engine.findMatchedWakeWord("小觅你好拍张照"))
+        // 小浪你好 - 打招呼表达
+        assertEquals("小浪你好", engine.findMatchedWakeWord("小浪你好拍张照"))
     }
 
     @Test
     fun `stripWakeWord removes oral prefix variant`() {
         val engine = createEngine()
-        // 嘿小觅拍照 → 拍照
-        val result = engine.stripWakeWord("嘿小觅拍照", "嘿小觅")
+        // 嘿小浪拍照 → 拍照
+        val result = engine.stripWakeWord("嘿小浪拍照", "嘿小浪")
         assertEquals("拍照", result)
     }
 
@@ -232,8 +232,8 @@ class WakeWordEngineTest {
     fun `stripWakeWord handles mixed wake word variants`() {
         val engine = createEngine()
         // 复杂场景：同时有前缀和唤醒词
-        // 嘿小觅 被识别为唤醒词，需要彻底移除
-        val result = engine.stripWakeWord("嘿小觅拍照", "嘿小觅")
+        // 嘿小浪 被识别为唤醒词，需要彻底移除
+        val result = engine.stripWakeWord("嘿小浪拍照", "嘿小浪")
         assertEquals("拍照", result)
     }
 
@@ -250,8 +250,8 @@ class WakeWordEngineTest {
     @Test
     fun `stripWakeWord handles variant with tone particle`() {
         val engine = createEngine()
-        // 小觅啊 - 带语气助词的唤醒词
-        val result = engine.stripWakeWord("小觅啊拍张照", "小觅啊")
+        // 小浪啊 - 带语气助词的唤醒词
+        val result = engine.stripWakeWord("小浪啊拍张照", "小浪啊")
         assertEquals("拍张照", result)
     }
 
