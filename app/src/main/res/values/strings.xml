@@ -674,8 +674,9 @@
     <string name="chat_inference_error">Inference error: %1$s</string>
     <string-array name="chat_example_prompts">
         <item>Find photos from last summer</item>
-        <item>Smooth the skin in this photo by 50</item>
-        <item>Switch to a warm filter</item>
+        <item>Search for beach photos</item>
+        <item>Find photos with people</item>
+        <item>Search for night scene photos</item>
     </string-array>
 
     <!-- Shared email-OTP auth form -->

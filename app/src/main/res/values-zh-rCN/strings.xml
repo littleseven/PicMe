@@ -668,8 +668,9 @@
     <string name="chat_inference_error">推理出错：%1$s</string>
     <string-array name="chat_example_prompts">
         <item>找去年夏天的照片</item>
-        <item>把这张图磨皮 50</item>
-        <item>切换到暖色滤镜</item>
+        <item>搜索海边的照片</item>
+        <item>找有人物的照片</item>
+        <item>搜索夜景照片</item>
     </string-array>
 
     <!-- 共享邮箱验证码表单 -->

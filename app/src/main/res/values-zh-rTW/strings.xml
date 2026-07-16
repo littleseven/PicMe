@@ -646,8 +646,9 @@
     <string name="chat_inference_error">推論錯誤：%1$s</string>
     <string-array name="chat_example_prompts">
         <item>找去年夏天的照片</item>
-        <item>把這張圖磨皮 50</item>
-        <item>切換到暖色濾鏡</item>
+        <item>搜尋海邊的照片</item>
+        <item>找有人物的照片</item>
+        <item>搜尋夜景照片</item>
     </string-array>
 
     <!-- 共享信箱驗證碼表單 -->
