@@ -3,7 +3,6 @@ package com.mamba.picme.domain.tag
 import android.content.Context
 import android.util.Log
 import com.mamba.picme.data.download.ModelPathConfig
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.Normalizer

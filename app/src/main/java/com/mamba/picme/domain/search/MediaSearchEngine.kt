@@ -11,7 +11,6 @@ import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.TagTranslator
-import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.async
