@@ -413,6 +413,26 @@ object LocalCommandParser {
                     ?: extractJsonField(json, "query") ?: ""
                 AgentCommand.RefineMediaSearch(commandId = commandId, constraint = constraint)
             }
+            "feedback" -> {
+                val targetStr = extractJsonField(json, "target") ?: "last"
+                val actionStr = extractJsonField(json, "action") ?: "like"
+                AgentCommand.RecordMediaFeedback(
+                    commandId = commandId,
+                    target = parseFeedbackTarget(targetStr),
+                    action = com.mamba.picme.agent.core.model.command.FeedbackAction.valueOf(actionStr.uppercase())
+                )
+            }
+            "more" -> {
+                val targetStr = extractJsonField(json, "target") ?: "last"
+                AgentCommand.MoreLikeThis(
+                    commandId = commandId,
+                    target = parseFeedbackTarget(targetStr)
+                )
+            }
+            "exclude" -> {
+                val constraint = extractJsonField(json, "constraint") ?: ""
+                AgentCommand.ExcludeConstraint(commandId = commandId, constraint = constraint)
+            }
             "switch_view_mode" -> {
                 val mode = extractJsonField(json, "mode") ?: "grid"
                 AgentCommand.SwitchViewMode(commandId = commandId, mode = mode)
@@ -814,5 +834,20 @@ object LocalCommandParser {
         }
 
         return result
+    }
+
+    /**
+     * 解析反馈目标字符串为 FeedbackTarget。
+     *
+     * 支持格式：ordinal:3, desc:海边, last, mediaId:img_001
+     */
+    private fun parseFeedbackTarget(target: String): com.mamba.picme.agent.core.model.command.FeedbackTarget {
+        return when {
+            target == "last" -> com.mamba.picme.agent.core.model.command.FeedbackTarget.LastShown
+            target.startsWith("ordinal:") -> com.mamba.picme.agent.core.model.command.FeedbackTarget.Ordinal(target.removePrefix("ordinal:").toInt())
+            target.startsWith("desc:") -> com.mamba.picme.agent.core.model.command.FeedbackTarget.Description(target.removePrefix("desc:"))
+            target.startsWith("mediaId:") -> com.mamba.picme.agent.core.model.command.FeedbackTarget.MediaId(target.removePrefix("mediaId:"))
+            else -> com.mamba.picme.agent.core.model.command.FeedbackTarget.Description(target)
+        }
     }
 }
