@@ -79,6 +79,20 @@ class PicMeAuthClient(
         }
     }
 
+    suspend fun deleteAccount(token: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = Request.Builder()
+                .url("$baseUrl/auth/account")
+                .header("X-App-Token", token)
+                .delete()
+                .build()
+            val resp = client.newCall(req).execute()
+            if (!resp.isSuccessful) {
+                throw PicMeAuthException(resp.code, errorBody(resp.body?.string()))
+            }
+        }
+    }
+
     private fun errorBody(raw: String?): String {
         return try {
             JSONObject(raw ?: "").optString("error", "unknown_error")
