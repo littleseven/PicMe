@@ -728,4 +728,9 @@
     <string name="data_privacy_contact_title">Contact</string>
     <string name="data_privacy_contact_body">For privacy or deletion requests, contact: %1$s</string>
     <string name="data_privacy_view_full_policy">View full privacy policy</string>
+    <string name="data_privacy_device_title">Device identifier</string>
+    <string name="data_privacy_device_body">For guest (unregistered) LLM trial quota, the app generates a device identifier (from the Android device ID or a locally generated ID) and sends it to api.polang.net solely to count your free trial usage. It is not used to identify you personally and is not shared with third parties. Tap \"Clear guest data\" below to erase your server-side guest record.</string>
+    <string name="data_privacy_clear_guest">Clear guest data</string>
+    <string name="data_privacy_clear_guest_success">Guest data cleared</string>
+    <string name="data_privacy_clear_guest_failed">Failed to clear guest data</string>
 </resources>

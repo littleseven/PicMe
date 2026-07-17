@@ -700,4 +700,9 @@
     <string name="data_privacy_contact_title">聯絡我們</string>
     <string name="data_privacy_contact_body">如需隱私或刪除請求，請聯絡：%1$s</string>
     <string name="data_privacy_view_full_policy">查看完整隱私權政策</string>
+    <string name="data_privacy_device_title">裝置識別碼</string>
+    <string name="data_privacy_device_body">為統計未註冊訪客的 LLM 試用額度，應用程式會產生一個裝置識別碼（來自 Android 裝置 ID 或本地產生的 ID）並傳送至 api.polang.net，僅用於統計免費試用次數。該識別碼不用於識別您的個人身份，也不與第三方共享。點擊下方「清除訪客資料」可刪除伺服器端的訪客記錄。</string>
+    <string name="data_privacy_clear_guest">清除訪客資料</string>
+    <string name="data_privacy_clear_guest_success">訪客資料已清除</string>
+    <string name="data_privacy_clear_guest_failed">清除訪客資料失敗</string>
 </resources>

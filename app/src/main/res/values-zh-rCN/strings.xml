@@ -722,4 +722,9 @@
     <string name="data_privacy_contact_title">联系我们</string>
     <string name="data_privacy_contact_body">如需隐私或删除请求，请联系：%1$s</string>
     <string name="data_privacy_view_full_policy">查看完整隐私政策</string>
+    <string name="data_privacy_device_title">设备标识</string>
+    <string name="data_privacy_device_body">为统计未注册访客的 LLM 试用额度，应用会生成一个设备标识（来自 Android 设备 ID 或本地生成的 ID）并发送至 api.polang.net，仅用于统计免费试用次数。该标识不用于识别您的个人身份，也不与第三方共享。点击下方「清除访客数据」可删除服务端的访客记录。</string>
+    <string name="data_privacy_clear_guest">清除访客数据</string>
+    <string name="data_privacy_clear_guest_success">访客数据已清除</string>
+    <string name="data_privacy_clear_guest_failed">清除访客数据失败</string>
 </resources>
