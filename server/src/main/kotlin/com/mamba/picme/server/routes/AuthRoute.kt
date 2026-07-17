@@ -6,6 +6,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.util.AttributeKey
@@ -76,5 +77,13 @@ fun Route.quotaRoute() {
                 )
             )
         }
+    }
+}
+
+fun Route.accountDeletionRoute() {
+    delete("/auth/account") {
+        val tokenHash = call.attributes[TokenHashKey]   // 由 auth interceptor 注入
+        val ok = AccountService.softDelete(tokenHash)
+        call.response.status(if (ok) HttpStatusCode.OK else HttpStatusCode.NotFound)
     }
 }
