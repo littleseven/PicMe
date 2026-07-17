@@ -54,4 +54,21 @@ class AdminViewsTest {
         val html = AdminViews.overviewPage(ov, emptyList())
         assertTrue("sub-cent cost must not round to 0.00", html.contains("0.0044"))
     }
+
+    @Test
+    fun `bar charts render compact labels on top of each bar`() {
+        val series = listOf(
+            DayBucket("2026-07-10", 1_500_000L, 0L, 800_000L, 700_000L, 1_500_000L, 1_234.56, 4096L),
+            DayBucket("2026-07-11", 1_200L, 0L, 600L, 600L, 1_200L, 0.0044, 2048L),
+            DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L),
+        )
+        val html = AdminViews.overviewPage(
+            OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L),
+            series,
+        ) + AdminViews.trafficPage(series)
+        assertTrue("compact count label for millions", html.contains(">1.5M</text>"))
+        assertTrue("compact count label for thousands", html.contains(">1.2k</text>"))
+        assertTrue("compact cost label for thousands", html.contains(">1.23k</text>"))
+        assertTrue("plain count label", html.contains(">5</text>"))
+    }
 }

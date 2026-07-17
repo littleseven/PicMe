@@ -72,9 +72,9 @@ object AdminViews {
                 statCard("今日 blocked", ov.blockedToday.toString())
             }
             h2 { +"近 ${series.size} 天 调用数" }
-            unsafe { raw(svgBars(series.map { it.calls.toDouble() }, series.map { it.day })) }
+            unsafe { raw(svgBars(series.map { it.calls.toDouble() }, series.map { it.day }, labelFormatter = ::compactCount)) }
             h2 { +"近 ${series.size} 天 成本 ¥" }
-            unsafe { raw(svgBars(series.map { it.cost }, series.map { it.day })) }
+            unsafe { raw(svgBars(series.map { it.cost }, series.map { it.day }, labelFormatter = ::compactCost)) }
         }
     }
 
@@ -182,7 +182,7 @@ object AdminViews {
             navBar()
             h1 { +"流量（近 ${series.size} 天，UTC）" }
             h2 { +"每日 Token 总量" }
-            unsafe { raw(svgBars(series.map { it.totalTokens.toDouble() }, series.map { it.day })) }
+            unsafe { raw(svgBars(series.map { it.totalTokens.toDouble() }, series.map { it.day }, labelFormatter = ::compactCount)) }
             h2 { +"每日明细" }
             table {
                 tr {
@@ -812,14 +812,19 @@ object AdminViews {
         }
     }
 
-    /** 简易 SVG 柱状图：日期标签旋转 -40° 防重叠，密集时稀疏标注；每柱 <title> 悬浮提示。 */
-    private fun svgBars(values: List<Double>, labels: List<String>): String {
+    /** 简易 SVG 柱状图：日期标签旋转 -40° 防重叠，密集时稀疏标注；每柱 <title> 悬浮提示；柱顶显示 compact 数值。 */
+    private fun svgBars(
+        values: List<Double>,
+        labels: List<String>,
+        labelFormatter: (Double) -> String = ::fmtVal,
+    ): String {
         if (values.isEmpty()) return "<p>无数据</p>"
         val maxV = values.max().coerceAtLeast(1.0)
         val w = 760
-        val plotH = 110
+        val topPad = 18
+        val plotH = 100
         val padBottom = 46
-        val h = plotH + padBottom
+        val h = topPad + plotH + padBottom
         val barW = (w / values.size).coerceAtLeast(2)
         val step = if (values.size > 16) (values.size / 8).coerceAtLeast(1) else 1
         val sb = StringBuilder()
@@ -827,11 +832,13 @@ object AdminViews {
         values.forEachIndexed { i, v ->
             val barH = (v / maxV * plotH).toInt().coerceAtLeast(1)
             val x = i * barW
-            val y = plotH - barH
+            val y = topPad + plotH - barH
             val cx = x + barW / 2
+            val label = esc(labelFormatter(v))
             sb.append("""<rect x="$x" y="$y" width="${(barW - 2).coerceAtLeast(1)}" height="$barH" rx="2" fill="#3b82f6"><title>${esc(labels[i])}: ${fmtVal(v)}</title></rect>""")
+            sb.append("""<text x="$cx" y="${y - 4}" font-size="8" fill="#374151" text-anchor="middle">$label</text>""")
             if (i % step == 0) {
-                sb.append("""<text x="$cx" y="${plotH + 8}" font-size="9" fill="#6b7280" text-anchor="end" transform="rotate(-40 $cx ${plotH + 8})">${esc(labels[i].takeLast(5))}</text>""")
+                sb.append("""<text x="$cx" y="${topPad + plotH + 10}" font-size="9" fill="#6b7280" text-anchor="end" transform="rotate(-40 $cx ${topPad + plotH + 10})">${esc(labels[i].takeLast(5))}</text>""")
             }
         }
         sb.append("</svg>")
@@ -840,6 +847,32 @@ object AdminViews {
 
     private fun fmtVal(v: Double): String =
         if (v % 1.0 == 0.0) v.toLong().toString() else formatCostCny(v)
+
+    /** 整数类指标（调用数、Token 数）compact 显示：≥1M 用 M，≥1k 用 k，否则原值。 */
+    private fun compactCount(v: Double): String = when {
+        kotlin.math.abs(v) >= 1_000_000 -> {
+            val m = v / 1_000_000.0
+            if (m % 1.0 == 0.0) "${m.toLong()}M" else "%.1fM".format(m)
+        }
+        kotlin.math.abs(v) >= 1_000 -> {
+            val k = v / 1_000.0
+            if (k % 1.0 == 0.0) "${k.toLong()}k" else "%.1fk".format(k)
+        }
+        else -> v.toLong().toString()
+    }
+
+    /** 成本 compact 显示：≥1k 用 k，≥1M 用 M；低于 1k 保留原精度。 */
+    private fun compactCost(v: Double): String = when {
+        kotlin.math.abs(v) >= 1_000_000 -> {
+            val m = v / 1_000_000.0
+            if (m % 1.0 == 0.0) "${m.toLong()}M" else "%.2fM".format(m)
+        }
+        kotlin.math.abs(v) >= 1_000 -> {
+            val k = v / 1_000.0
+            if (k % 1.0 == 0.0) "${k.toLong()}k" else "%.2fk".format(k)
+        }
+        else -> formatCostCny(v)
+    }
 
     private fun esc(s: String): String =
         s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
