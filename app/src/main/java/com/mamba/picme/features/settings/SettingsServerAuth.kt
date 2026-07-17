@@ -4,11 +4,20 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -16,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +59,19 @@ internal fun ServerAuthSection(onNavigateToDataPrivacy: () -> Unit = {}) {
     val authClient = remember { PicMeAuthClient() }
 
     var quotaUsed by remember { mutableStateOf(0) }
-    var quotaLimit by remember { mutableStateOf(1000) }
+    var quotaLimit by remember { mutableStateOf(0) }
+
+    // 已登录：进入即拉取真实额度，避免显示假占位
+    LaunchedEffect(serverToken) {
+        if (serverToken.isNotBlank()) {
+            authClient.getQuota(serverToken)
+                .onSuccess {
+                    quotaUsed = it.llmCallsUsed
+                    quotaLimit = it.llmCallsLimit
+                }
+                .onFailure { Logger.w(TAG, "Initial quota load failed: ${it.message}") }
+        }
+    }
 
     if (serverToken.isNotBlank()) {
         QuotaDisplay(
@@ -127,12 +149,13 @@ private fun QuotaDisplay(
     var deleting by remember { mutableStateOf(false) }
     val progress = if (limit > 0) (used.toFloat() / limit).coerceIn(0f, 1f) else 0f
     val nearLimit = progress >= 0.9f
+    val remaining = (limit - used).coerceAtLeast(0)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // 账号标题 + 邮箱（突出）+ 配额徽章
         Row(
@@ -173,25 +196,26 @@ private fun QuotaDisplay(
             }
         }
 
-        // 用量进度条
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth(),
-            color = if (nearLimit) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
+        // 用量进度条 + 剩余说明（单行，不再与徽章重复总量）
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+                color = if (nearLimit) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.auth_quota_remaining, remaining),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (nearLimit) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
 
-        Text(
-            text = stringResource(R.string.auth_quota_label, used, limit),
-            style = MaterialTheme.typography.bodySmall,
-            color = if (nearLimit) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-
-        // 主操作：刷新 + 登出（等宽成对）
+        // 主操作：刷新 + 登出（等宽成对，带图标）
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -200,22 +224,29 @@ private fun QuotaDisplay(
                 onClick = onRefresh,
                 modifier = Modifier.weight(1f),
             ) {
+                Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.auth_refresh))
             }
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.weight(1f),
             ) {
+                Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.auth_logout))
             }
         }
 
-        // 危险操作：删除账号
+        // 危险操作分组
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         TextButton(
             onClick = { showDeleteDialog = true },
             enabled = !deleting,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
             Text(
                 text = stringResource(R.string.auth_delete_account),
                 color = MaterialTheme.colorScheme.error,

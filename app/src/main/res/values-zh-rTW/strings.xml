@@ -677,6 +677,7 @@
     <string name="auth_verify_failed">驗證失敗：%1$s</string>
     <string name="auth_account_title">伺服器帳戶</string>
     <string name="auth_quota_label">LLM 額度：%1$d / %2$d 次</string>
+    <string name="auth_quota_remaining">剩餘 %1$d 次</string>
     <string name="auth_refresh">重新整理</string>
     <string name="auth_logout">登出</string>
     <string name="auth_delete_account">刪除帳號</string>

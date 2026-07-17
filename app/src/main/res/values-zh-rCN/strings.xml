@@ -699,6 +699,7 @@
     <string name="auth_verify_failed">验证失败：%1$s</string>
     <string name="auth_account_title">服务端账户</string>
     <string name="auth_quota_label">LLM 额度：%1$d / %2$d 次</string>
+    <string name="auth_quota_remaining">剩余 %1$d 次</string>
     <string name="auth_refresh">刷新</string>
     <string name="auth_logout">退出登录</string>
     <string name="auth_delete_account">删除账号</string>
