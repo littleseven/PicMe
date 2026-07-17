@@ -3,6 +3,7 @@ package com.mamba.picme.server.auth
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.EmailVerifications
+import com.mamba.picme.server.db.LlmCallLogs
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
@@ -152,6 +153,25 @@ object AccountService {
                 it[email] = "deleted_${id}__${origEmail}"
             }
             true
+        }
+    }
+
+    /**
+     * 物理清理超过保留期的已软删账号 + 其 llm_call_log。
+     * 在 server 启动时调用一次（见 Application.kt）；返回清理条数。
+     */
+    suspend fun purgeExpiredDeleted(retentionMs: Long): Int {
+        val cutoff = Instant.now().toEpochMilli() - retentionMs
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val ids = Accounts.selectAll().where {
+                (Accounts.status eq "deleted") and (Accounts.deletedAt less cutoff)
+            }.map { it[Accounts.id] }
+            // deleteWhere lambda 内需显式 SqlExpressionBuilder scope（见 ChannelRepository 既有写法）
+            ids.forEach { id ->
+                LlmCallLogs.deleteWhere { with(SqlExpressionBuilder) { LlmCallLogs.accountId eq id } }
+                Accounts.deleteWhere { with(SqlExpressionBuilder) { Accounts.id eq id } }
+            }
+            ids.size
         }
     }
 
