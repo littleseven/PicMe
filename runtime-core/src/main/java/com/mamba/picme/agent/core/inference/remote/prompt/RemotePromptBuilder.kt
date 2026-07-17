@@ -2,6 +2,8 @@ package com.mamba.picme.agent.core.inference.remote.prompt
 
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import java.time.LocalDate
+import java.time.LocalTime
 
 /**
  * 远程 LLM Prompt 构建器
@@ -123,13 +125,22 @@ class RemotePromptBuilder(
 
     // ── 内部辅助方法 ────────────────────────────────────────────
 
+    private fun nowString(): String {
+        val date = LocalDate.now()
+        val week = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")[date.dayOfWeek.value - 1]
+        val time = LocalTime.now().withSecond(0).withNano(0)
+        return "$date $week $time"
+    }
+
     private fun buildStateSection(
         context: AgentContext,
         currentScene: SceneManager.Scene? = null
     ): String {
         val sceneName = currentScene?.name ?: context.scene.name
         return buildString {
-            append("scene=")
+            append("now=")
+            append(nowString())
+            append(", scene=")
             append(sceneName)
             append(", beauty=")
             append(if (context.beautySettings.enabled) "on" else "off")
