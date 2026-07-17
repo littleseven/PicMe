@@ -93,3 +93,6 @@ worktrees/
 
 # 调试快照产物
 scripts/app-data-snapshots/
+
+# docsify 文档站产物（由 scripts/sync-docs.sh 从 docs/ 同步生成，不入库）
+docs-site/docs/

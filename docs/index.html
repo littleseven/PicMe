@@ -5,7 +5,31 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PoLang 文档</title>
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="stylesheet" href="//fastly.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    /* 主色对齐落地页 #4f46e5 */
+    :root {
+      --polang-primary: #4f46e5;
+      --polang-primary-dark: #4338ca;
+      --polang-primary-soft: #eef2ff;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .app-nav a:hover, .app-nav a.active { color: var(--polang-primary); }
+    .app-name-link { color: var(--polang-primary); }
+    .sidebar ul li.active > a { color: var(--polang-primary); border-color: var(--polang-primary); }
+    .sidebar ul li a:hover { color: var(--polang-primary); }
+    .markdown-section a { color: var(--polang-primary); font-weight: 500; }
+    .markdown-section a:hover { color: var(--polang-primary-dark); }
+    .markdown-section blockquote { border-left-color: var(--polang-primary); }
+    .markdown-section code { background: var(--polang-primary-soft); color: var(--polang-primary-dark); }
+    .markdown-section pre > code { background: transparent; color: inherit; }
+    .markdown-section hr { border-color: var(--polang-primary-soft); }
+    .search input:focus { box-shadow: 0 0 5px var(--polang-primary); border-color: var(--polang-primary); }
+    .search a.result:hover, .search a.result.active { background: var(--polang-primary-soft); }
+    .btn { background-color: var(--polang-primary); }
+    .sidebar-toggle span { background-color: var(--polang-primary); }
+    .docsify-copy-code-button { background: var(--polang-primary); }
+  </style>
 </head>
 <body>
   <div id="app">正在加载 PoLang 文档…</div>
@@ -20,10 +44,16 @@
         placeholder: '搜索文档',
         noData: '无匹配结果',
         depth: 3
+      },
+      copyCode: {
+        buttonText: '复制',
+        errorText: '复制失败',
+        successText: '已复制'
       }
     }
   </script>
-  <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
-  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="//fastly.jsdelivr.net/npm/docsify@4"></script>
+  <script src="//fastly.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="//fastly.jsdelivr.net/npm/docsify-copy-code@2"></script>
 </body>
 </html>

@@ -12,6 +12,9 @@ LOCAL_DIR="$(cd "$(dirname "$0")/.." && pwd)/docs-site"
 TS="$(date +%Y%m%d-%H%M%S)"
 MARKER="零图片上传隐私安全"
 
+echo "==> [0/3] 同步 docs/ -> docs-site/docs/ (docsify 文档站)"
+bash "$(dirname "$0")/sync-docs.sh"
+
 echo "==> [1/3] 备份远端 $REMOTE_DIR -> $BACKUP_ROOT/docs-site.bak.$TS"
 ssh -o ConnectTimeout=15 "$HOST" "mkdir -p $BACKUP_ROOT && cp -r $REMOTE_DIR $BACKUP_ROOT/docs-site.bak.$TS"
 
