@@ -135,9 +135,9 @@ object AdminViews {
         body {
             navBar()
             h1 { +"${d.email}（#${d.id}）" }
+            p("meta") { +"注册于 ${fmtTs(d.createdAt)}" }
             div("cards") {
                 statCard("状态", d.status)
-                statCard("注册时间", fmtTs(d.createdAt))
                 statCard("成功调用", d.calls.toString())
                 statCard("Token", d.totalTokens.toString())
                 statCard("成本 ¥", fmt(d.cost))
@@ -661,6 +661,7 @@ object AdminViews {
                         body>h1,body>h2,body>.cards,body>table,body>p{max-width:1200px;margin-left:auto;margin-right:auto;padding-left:24px;padding-right:24px}
                         body>h1{font-size:24px;font-weight:600;margin-top:24px;margin-bottom:16px;color:#1f2d3d}
                         body>h2{font-size:16px;font-weight:600;color:#333;margin-top:24px;margin-bottom:12px}
+                        .meta{font-size:13px;color:#999;margin-top:-8px;margin-bottom:16px}
                         .wrap{max-width:420px;margin:80px auto;padding:32px;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
                         .cards{display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px}
                         .card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:16px 20px;min-width:140px;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:transform .2s}
