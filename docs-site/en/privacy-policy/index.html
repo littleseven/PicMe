@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoLang Privacy Policy</title>
+    <link rel="alternate" hreflang="en" href="https://polang.net/en/privacy-policy/">
+    <link rel="alternate" hreflang="zh-CN" href="https://polang.net/privacy-policy/">
+    <link rel="alternate" hreflang="x-default" href="https://polang.net/">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 28px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .lang-switch {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        h2 {
+            font-size: 20px;
+            color: #222;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8e8e8;
+        }
+        h3 {
+            font-size: 16px;
+            color: #333;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
+        p, li {
+            font-size: 15px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+        ul, ol {
+            margin-left: 24px;
+            margin-bottom: 12px;
+        }
+        li { margin-bottom: 6px; }
+        .highlight-box {
+            background: #f0f7ff;
+            border-left: 4px solid #4a90d9;
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .highlight-box p { margin-bottom: 0; }
+        .permission-tag {
+            display: inline-block;
+            background: #e8f0e8;
+            color: #2d6a2d;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 2px 4px 2px 0;
+        }
+        .data-type {
+            display: inline-block;
+            background: #fff3e0;
+            color: #8c5e00;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 2px 4px 2px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background: #f8f8f8;
+            font-weight: 600;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e8e8e8;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+        a { color: #4a90d9; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PoLang Privacy Policy</h1>
+        <p class="subtitle">Last updated: July 17, 2026 | Effective: July 17, 2026</p>
+        <p class="lang-switch"><a href="../../privacy-policy/index.html" hreflang="zh-Hans" lang="zh-Hans">查看中文版</a></p>
+
+        <div class="highlight-box">
+            <p><strong>Core promise:</strong> PoLang is a smart camera app built privacy-first. We believe your photos, face data, and voice are highly sensitive personal information. That's why PoLang adopts an <strong>On-Device First</strong> architecture — all sensitive data is processed locally on your device and <strong>never uploaded to any cloud server</strong>.</p>
+        </div>
+
+        <h2>1. Information We Collect</h2>
+        <p>PoLang accesses your device and data only to the minimum extent necessary for each feature. Depending on the features you use, the following types of information may be involved:</p>
+
+        <h3>1.1 Camera & Image Data</h3>
+        <table>
+            <tr>
+                <th>Data type</th>
+                <th>Purpose</th>
+                <th>Handling</th>
+            </tr>
+            <tr>
+                <td><span class="data-type">Camera preview frames</span></td>
+                <td>Real-time beauty preview, capture</td>
+                <td>Local GPU only, never uploaded</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">Captured photos</span></td>
+                <td>Saved to gallery, local editing</td>
+                <td>Stored in the device gallery, never uploaded</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">Face landmarks</span></td>
+                <td>Drive beauty effects (slim face, enlarge eyes, etc.)</td>
+                <td>Local MediaPipe/NCNN real-time, never uploaded</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">Gallery photos / videos</span></td>
+                <td>Browse and edit existing photos</td>
+                <td>Local read only, never uploaded</td>
+            </tr>
+        </table>
+
+        <h3>1.2 Voice Data</h3>
+        <table>
+            <tr>
+                <th>Data type</th>
+                <th>Purpose</th>
+                <th>Handling</th>
+            </tr>
+            <tr>
+                <td><span class="data-type">Voice command recordings</span></td>
+                <td>Voice camera control</td>
+                <td>Discarded immediately after local ASR, never uploaded</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">Wake-word audio</span></td>
+                <td>Trigger voice interaction</td>
+                <td>Local real-time detection, never uploaded</td>
+            </tr>
+        </table>
+
+        <h3>1.3 Device & Network Information</h3>
+        <table>
+            <tr>
+                <th>Data type</th>
+                <th>Purpose</th>
+                <th>Handling</th>
+            </tr>
+            <tr>
+                <td><span class="data-type">Network connection state</span></td>
+                <td>Decide whether remote LLM orchestration is available (optional)</td>
+                <td>Local check only, no network details collected</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">Bluetooth state</span></td>
+                <td>Detect Bluetooth accessories (e.g. remote shutter)</td>
+                <td>Local detection only, never uploaded</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">Device storage space</span></td>
+                <td>Check free space before model download</td>
+                <td>Local check only, never uploaded</td>
+            </tr>
+        </table>
+
+        <h3>1.4 Account Data (Email Registration)</h3>
+        <table>
+            <tr><th>Data type</th><th>Purpose</th><th>Handling</th></tr>
+            <tr>
+                <td><span class="data-type">Email address</span></td>
+                <td>Account registration & login identifier, LLM free-trial quota billing (default 100 calls/account)</td>
+                <td>Stored on <strong>api.polang.net</strong>; only the email and the SHA-256 hash of the login token are kept; <strong>no plaintext password is collected</strong> (verification-code login)</td>
+            </tr>
+        </table>
+
+        <h3>1.5 Device Identifier (Guest Trial Quota)</h3>
+        <table>
+            <tr><th>Data type</th><th>Purpose</th><th>Handling</th></tr>
+            <tr>
+                <td><span class="data-type">Device identifier (Android device ID / locally generated ID)</span></td>
+                <td>LLM free-trial call counting for unregistered guests</td>
+                <td>Sent to <strong>api.polang.net</strong>; only call counts are tallied by identifier; not used to identify individuals, not shared with third parties. Deletable in Settings → Data & Privacy → Clear guest data</td>
+            </tr>
+        </table>
+
+        <h2>2. App Permissions</h2>
+        <p>PoLang requests the following Android system permissions, each tied directly to a specific feature:</p>
+
+        <table>
+            <tr>
+                <th>Permission</th>
+                <th>Level</th>
+                <th>Purpose</th>
+                <th>Required</th>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">CAMERA</span></td>
+                <td>Dangerous</td>
+                <td>Camera preview, capture, recording</td>
+                <td>Yes (core feature)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">RECORD_AUDIO</span></td>
+                <td>Dangerous</td>
+                <td>Voice command recording, video audio</td>
+                <td>No (voice optional)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">READ_MEDIA_IMAGES</span></td>
+                <td>Dangerous</td>
+                <td>Read gallery images for editing</td>
+                <td>No (gallery optional)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">READ_MEDIA_VIDEO</span></td>
+                <td>Dangerous</td>
+                <td>Read gallery videos for editing</td>
+                <td>No (gallery optional)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">READ_EXTERNAL_STORAGE</span></td>
+                <td>Dangerous</td>
+                <td>Read gallery on Android 12 and below</td>
+                <td>No (gallery optional)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">WRITE_EXTERNAL_STORAGE</span></td>
+                <td>Dangerous</td>
+                <td>Save photos on Android 9 and below</td>
+                <td>No (legacy only)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">BLUETOOTH_CONNECT</span></td>
+                <td>Normal</td>
+                <td>Connect Bluetooth accessories (e.g. shutter remote)</td>
+                <td>No (accessory optional)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">INTERNET</span></td>
+                <td>Normal</td>
+                <td>Remote LLM orchestration (user-configured)</td>
+                <td>No (fully offline capable)</td>
+            </tr>
+            <tr>
+                <td><span class="permission-tag">FOREGROUND_SERVICE</span></td>
+                <td>Normal</td>
+                <td>Background model download service</td>
+                <td>Yes (model download)</td>
+            </tr>
+        </table>
+
+        <h2>3. How We Process Data</h2>
+
+        <h3>3.1 On-Device First Principle</h3>
+        <p>PoLang's core architecture follows the <strong>On-Device First</strong> principle:</p>
+        <ul>
+            <li><strong>Local LLM inference:</strong> the Qwen3.5-2B large language model runs on-device via MNN-LLM; your conversations never leave the device</li>
+            <li><strong>Local face detection:</strong> MediaPipe / NCNN / MNN multi-engine face detection all execute locally on GPU/CPU</li>
+            <li><strong>Local OCR:</strong> ML Kit text recognition runs on-device</li>
+            <li><strong>Local beauty rendering:</strong> the OpenGL ES pipeline runs entirely on-device</li>
+        </ul>
+
+        <h3>3.2 Privacy-Tier Guard</h3>
+        <p>PoLang has a built-in PrivacyGuard tiering system that automatically classifies and routes each command:</p>
+        <table>
+            <tr>
+                <th>Tier</th>
+                <th>Data type</th>
+                <th>Policy</th>
+            </tr>
+            <tr>
+                <td><span class="data-type">RESTRICTED</span></td>
+                <td>Coordinates, face data</td>
+                <td><strong>Forced local execution</strong>; network transfer never allowed</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">SENSITIVE</span></td>
+                <td>Photos, OCR content</td>
+                <td><strong>Forced local execution</strong>; network transfer never allowed</td>
+            </tr>
+            <tr>
+                <td><span class="data-type">PUBLIC</span></td>
+                <td>Camera control commands (e.g. "take a photo")</td>
+                <td>Local-first; user may opt into remote orchestration</td>
+            </tr>
+        </table>
+
+        <h3>3.3 Remote Mode (Optional)</h3>
+        <p>PoLang lets users <strong>opt in</strong> to a remote LLM API (e.g. Kimi / an OpenAI-compatible endpoint):</p>
+        <ul>
+            <li>Remote mode is <strong>off by default</strong> and requires you to manually configure an API token in Settings</li>
+            <li>Even with remote mode on, <strong>RESTRICTED and SENSITIVE commands still run locally</strong></li>
+            <li>Only PUBLIC commands (e.g. camera control) may route to the remote endpoint</li>
+            <li>Remote API calls use your own token; PoLang neither holds nor relays any API credentials</li>
+            <li>After signing in to a PoLang account, you may use the official <strong>api.polang.net</strong> gateway for a free LLM trial quota; the gateway records only call counts and token usage — <strong>it never stores conversation content</strong></li>
+        </ul>
+
+        <h2>4. Data Storage & Retention</h2>
+
+        <h3>4.1 Photos & Videos</h3>
+        <ul>
+            <li>Captured photos and videos are saved to the system gallery, managed by Android</li>
+            <li>PoLang keeps no extra copies of photos in its private directory</li>
+            <li>You can delete photos anytime via the system gallery</li>
+        </ul>
+
+        <h3>4.2 Conversation Memory</h3>
+        <ul>
+            <li>Agent conversation context is stored in the on-device database</li>
+            <li>At most the last 10 turns of history are retained</li>
+            <li>You can clear all conversation memory in Settings</li>
+            <li>Uninstalling the app clears all local data</li>
+        </ul>
+
+        <h3>4.3 Model Files</h3>
+        <ul>
+            <li>AI model files (LLM, face detection, ASR, etc.) are stored in the app's private directory after download</li>
+            <li>Model files are used only for local inference and never uploaded</li>
+            <li>You can delete downloaded models in Settings to free up space</li>
+        </ul>
+
+        <h3>4.4 Account Data Retention</h3>
+        <ul>
+            <li>After you delete your account, the data is <strong>retained for 90 days</strong> (for anti-fraud and recovery from accidental deletion), then <strong>permanently deleted</strong>, including usage logs</li>
+            <li>To delete, go to Settings → Account → Delete account, or email <a href="mailto:budao.gs@gmail.com">budao.gs@gmail.com</a> to request deletion</li>
+        </ul>
+
+        <h2>5. Data Sharing & Third Parties</h2>
+
+        <div class="highlight-box">
+            <p><strong>Important: PoLang never sells, rents, or shares any of your data with third parties.</strong></p>
+        </div>
+
+        <p>Third-party open-source components used by PoLang and how they handle data:</p>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Purpose</th>
+                <th>Handling</th>
+            </tr>
+            <tr>
+                <td>MediaPipe</td>
+                <td>Face landmark detection</td>
+                <td>Fully local, no network communication</td>
+            </tr>
+            <tr>
+                <td>MNN / NCNN</td>
+                <td>Neural-network inference engine</td>
+                <td>Fully local, no network communication</td>
+            </tr>
+            <tr>
+                <td>ML Kit</td>
+                <td>OCR text recognition</td>
+                <td>Fully local, no network communication</td>
+            </tr>
+            <tr>
+                <td>Sherpa-ONNX</td>
+                <td>Speech recognition (ASR)</td>
+                <td>Fully local, no network communication</td>
+            </tr>
+        </table>
+
+        <h2>6. Your Rights</h2>
+        <p>As a PoLang user, you have the following rights:</p>
+        <ul>
+            <li><strong>Access:</strong> all photos and videos you capture are stored locally and accessible anytime</li>
+            <li><strong>Deletion:</strong> delete photos, clear conversation memory, or remove downloaded models anytime; signed-in users can delete their account at Settings → Account → Delete account; unregistered guests can clear device-level guest records at Settings → Data & Privacy → Clear guest data; deletion can also be requested by email</li>
+            <li><strong>Withdraw consent:</strong> revoke any granted permission in system settings anytime</li>
+            <li><strong>Offline use:</strong> core features work fully without a network</li>
+            <li><strong>Data portability:</strong> your photos live in the standard gallery and can be freely exported</li>
+        </ul>
+
+        <h2>7. Children's Privacy</h2>
+        <p>PoLang is not directed at children under 13. We do not knowingly collect personal information from children under 13. If you believe we may have collected a child's information, contact us and we will delete it promptly.</p>
+
+        <h2>8. Security Measures</h2>
+        <p>PoLang takes the following technical and organizational measures to protect your data:</p>
+        <ul>
+            <li><strong>Local processing architecture:</strong> sensitive data never leaves the device, reducing exposure at the root</li>
+            <li><strong>Least-privilege principle:</strong> only permissions necessary for a feature are requested</li>
+            <li><strong>Open-source & auditable:</strong> core code is open for community security review</li>
+            <li><strong>Account data minimization:</strong> email registration stores only the email and a SHA-256 hash of the token, with no plaintext password (verification-code login), and provides an account-deletion entry point</li>
+        </ul>
+
+        <h2>9. Policy Updates</h2>
+        <p>We may update this privacy policy from time to time. Material changes will be announced via in-app notice or the changelog. Continued use of PoLang constitutes acceptance of the revised policy.</p>
+
+        <h2>10. Contact Us</h2>
+        <p>If you have any questions or suggestions about this privacy policy, reach us at:</p>
+        <ul>
+            <li>GitHub Issues: <a href="https://github.com/littleseven/langchain4android/issues" target="_blank">https://github.com/littleseven/langchain4android/issues</a></li>
+            <li>Project homepage: <a href="https://github.com/littleseven/langchain4android" target="_blank">https://github.com/littleseven/langchain4android</a></li>
+            <li>Email: <a href="mailto:budao.gs@gmail.com">budao.gs@gmail.com</a></li>
+        </ul>
+
+        <div class="footer">
+            <p>PoLang — Carving time, capturing the eternal.</p>
+            <p>This privacy policy is prepared in line with the Google Play Data Safety form requirements</p>
+        </div>
+    </div>
+</body>
+</html>

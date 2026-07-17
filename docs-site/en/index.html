@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PoLang · A Privacy-First Smart Photo Gallery</title>
+  <meta name="description" content="Zero photo uploads. Your privacy stays on-device. Search your local gallery and edit photos in natural language — AI chat gallery, smart search, pro beauty, creative filters, all processed locally.">
+  <link rel="alternate" hreflang="en" href="https://polang.net/en/">
+  <link rel="alternate" hreflang="zh-CN" href="https://polang.net/">
+  <link rel="alternate" hreflang="x-default" href="https://polang.net/">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f7f8fb;
+      --text: #0f172a;
+      --text-soft: #334155;
+      --text-muted: #64748b;
+      --border: #e6e8ee;
+      --primary: #4f46e5;
+      --primary-soft: #eef2ff;
+      --radius: 16px;
+      --shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 2px 6px rgba(15,23,42,.05);
+      --shadow-md: 0 14px 34px rgba(15,23,42,.10);
+      --section-py: 56px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text); background: var(--bg); line-height: 1.7;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* Top nav */
+    .topnav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.82); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid var(--border); }
+    .topnav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; }
+    .nav-links { display: flex; gap: 24px; font-size: 14px; color: var(--text-muted); font-weight: 500; align-items: center; }
+    .nav-links a { transition: color .12s; }
+    .nav-links a:hover { color: var(--primary); }
+    .lang-switch { border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; color: var(--text-soft); }
+
+    /* Hero */
+    .hero { padding: 56px 24px 44px; text-align: center; background: radial-gradient(125% 100% at 50% 0%, #efeefe 0%, #ffffff 60%); }
+    .hero-icon { width: 92px; height: 92px; border-radius: 22px; box-shadow: var(--shadow-md); }
+    .hero h1 { font-size: 40px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800; margin: 22px 0 12px; }
+    .hero h1 .zh { color: var(--text-muted); font-weight: 600; font-size: 24px; margin-left: 14px; }
+    .hero .tagline { font-size: 19px; color: var(--text-soft); max-width: 680px; margin: 0 auto; }
+    .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 24px 0 32px; }
+    .badge { background: var(--primary-soft); color: var(--primary); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+    .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 12px; font-weight: 600; font-size: 15px; transition: transform .12s, box-shadow .12s, border-color .12s; }
+    .btn:hover { transform: translateY(-1px); }
+    .cta-row .btn { background: #fff; color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-sm); flex: 1 1 0; max-width: 230px; justify-content: center; }
+    .cta-row .btn:hover { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+    .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* Sections */
+    section { padding: var(--section-py) 0; }
+    .alt { background: var(--bg-alt); }
+    .section-title { font-size: 30px; font-weight: 800; text-align: center; letter-spacing: -.02em; margin-bottom: 12px; }
+    .section-sub { text-align: center; color: var(--text-muted); font-size: 16px; margin-bottom: 28px; }
+
+    /* Features */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px; transition: box-shadow .18s, transform .18s; }
+    .card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+    .card .icon { font-size: 30px; }
+    .card h3 { font-size: 17px; font-weight: 700; margin: 12px 0 8px; }
+    .card p { font-size: 14.5px; color: var(--text-muted); line-height: 1.65; }
+
+    /* Screenshots */
+    .shots { display: flex; gap: 18px; overflow-x: auto; padding: 6px 4px 18px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+    .shots img { height: 460px; border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-md); flex-shrink: 0; scroll-snap-align: center; }
+
+    /* Demos */
+    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .demo-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
+    .demo-card .say { font-size: 15px; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+    .demo-card .say::before { content: "💬 "; }
+    .demo-card .do { font-size: 14.5px; color: var(--text-muted); }
+
+    /* FAQ */
+    .faq { max-width: 760px; margin: 0 auto; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-item:first-child { padding-top: 0; }
+    .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .faq-item h3 { font-size: 16.5px; font-weight: 700; margin-bottom: 8px; }
+    .faq-item p { font-size: 14.5px; color: var(--text-muted); line-height: 1.7; }
+    .faq-item a { color: var(--primary); font-weight: 500; }
+
+    /* Footer */
+    footer { background: #0b1220; color: #94a3b8; padding: 40px 0; }
+    footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+    footer .nav-links a { transition: color .12s; }
+    footer .nav-links a:hover { color: #fff; }
+
+    @media (max-width: 768px) {
+      :root { --section-py: 40px; }
+      .container { padding: 0 18px; }
+      .hero { padding: 40px 18px 36px; }
+      .hero h1 { font-size: 28px; }
+      .hero h1 .zh { font-size: 18px; }
+      .hero .tagline { font-size: 16px; }
+      .section-title { font-size: 24px; }
+      .section-sub { font-size: 15px; margin-bottom: 24px; }
+      .grid, .demo-grid { grid-template-columns: 1fr; }
+      .shots img { height: 380px; }
+      .nav-links { gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="container topnav-inner">
+      <a class="brand" href="index.html"><img src="../assets/icon.png" alt="PoLang">PoLang</a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a class="lang-switch" href="../index.html" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+        <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <img class="hero-icon" src="../assets/icon.png" alt="PoLang">
+      <h1>PoLang</h1>
+      <p class="tagline">Zero photo uploads. Your privacy stays on-device. Search your local gallery and edit photos — all in natural language.</p>
+      <div class="badges">
+        <span class="badge">✓ Free</span>
+        <span class="badge">✓ No ads</span>
+        <span class="badge">✓ On-device privacy</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg>Google Play</a>
+        <a class="btn" href="https://api.polang.net/download" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#3DDC84" d="M18.4395 5.5586c-.675 1.1664-1.352 2.3318-2.0274 3.498-.0366-.0155-.0742-.0286-.1113-.043-1.8249-.6957-3.484-.8-4.42-.787-1.8551.0185-3.3544.4643-4.2597.8203-.084-.1494-1.7526-3.021-2.0215-3.4864a1.1451 1.1451 0 0 0-.1406-.1914c-.3312-.364-.9054-.4859-1.379-.203-.475.282-.7136.9361-.3886 1.5019 1.9466 3.3696-.0966-.2158 1.9473 3.3593.0172.031-.4946.2642-1.3926 1.0177C2.8987 12.176.452 14.772 0 18.9902h24c-.119-1.1108-.3686-2.099-.7461-3.0683-.7438-1.9118-1.8435-3.2928-2.7402-4.1836a12.1048 12.1048 0 0 0-2.1309-1.6875c.6594-1.122 1.312-2.2559 1.9649-3.3848.2077-.3615.1886-.7956-.0079-1.1191a1.1001 1.1001 0 0 0-.8515-.5332c-.5225-.0536-.9392.3128-1.0488.5449zm-.0391 8.461c.3944.5926.324 1.3306-.1563 1.6503-.4799.3197-1.188.0985-1.582-.4941-.3944-.5927-.324-1.3307.1563-1.6504.4727-.315 1.1812-.1086 1.582.4941zM7.207 13.5273c.4803.3197.5506 1.0577.1563 1.6504-.394.5926-1.1038.8138-1.584.4941-.48-.3197-.5503-1.0577-.1563-1.6504.4008-.6021 1.1087-.8106 1.584-.4941z"/></svg>APK</a>
+        <a class="btn" href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#181717" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="alt">
+    <div class="container">
+      <h2 class="section-title">At a Glance</h2>
+      <p class="section-sub">Swipe to view</p>
+      <div class="shots">
+        <img src="../assets/screenshot-1.jpg" alt="Screenshot 1">
+        <img src="../assets/screenshot-2.jpg" alt="Screenshot 2">
+        <img src="../assets/screenshot-3.jpg" alt="Screenshot 3">
+        <img src="../assets/screenshot-4.jpg" alt="Screenshot 4">
+        <img src="../assets/screenshot-5.jpg" alt="Screenshot 5">
+        <img src="../assets/screenshot-6.jpg" alt="Screenshot 6">
+        <img src="../assets/screenshot-7.jpg" alt="Screenshot 7">
+        <img src="../assets/screenshot-8.jpg" alt="Screenshot 8">
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="container">
+      <h2 class="section-title">Core Features</h2>
+      <p class="section-sub">A smart gallery that speaks your language</p>
+      <div class="grid">
+        <div class="card"><div class="icon">🤖</div><h3>Conversational AI Assistant</h3><p>Manage your gallery by chatting: "Find last summer's photos" or "Make this one warmer." PoLang understands and does it.</p></div>
+        <div class="card"><div class="icon">🖼️</div><h3>Smart Gallery</h3><p>Auto-tags every photo (scene / people / objects / activity), with natural-language search, smart albums, and AI collections.</p></div>
+        <div class="card"><div class="icon">✨</div><h3>AI Beauty Editor</h3><p>GPU-accelerated pro tools: smooth skin, brighten, slim face, enlarge eyes, lip color, blush. One-tap AI enhancement.</p></div>
+        <div class="card"><div class="icon">🎨</div><h3>Creative Filters</h3><p>Leica (classic / vivid / mono), film (gold / Fuji / vintage), real-time GPU effects, with batch support.</p></div>
+        <div class="card"><div class="icon">🔒</div><h3>Privacy First</h3><p>All AI and face processing happens locally. Your photos are never uploaded, and we collect no data.</p></div>
+        <div class="card"><div class="icon">📱</div><h3>Feishu Remote Control (Experimental)</h3><p>Browse, search, and edit your gallery from Feishu IM — results land right back in the chat.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="container">
+      <h2 class="section-title">Just Say the Word</h2>
+      <p class="section-sub">Drive your gallery with natural language</p>
+      <div class="demo-grid">
+        <div class="demo-card"><p class="say">"Find last summer's beach photos"</p><p class="do">🗂️ 12 matches, grouped smartly by time</p></div>
+        <div class="demo-card"><p class="say">"Make this one warmer"</p><p class="do">🎨 Warm filter applied — what you see is what you get</p></div>
+        <div class="demo-card"><p class="say">"Smooth skin 50, brighten 30"</p><p class="do">✨ Beauty params applied</p></div>
+        <div class="demo-card"><p class="say">"What's in this photo?"</p><p class="do">🤖 Beach, sunset, two people (recognized on-device)</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2 class="section-title">FAQ</h2>
+      <div class="faq">
+        <div class="faq-item"><h3>Are my photos uploaded to the cloud?</h3><p>No. All AI and face processing runs on your device. Your photos never leave your phone.</p></div>
+        <div class="faq-item"><h3>Is it really free?</h3><p>Yes. No ads, no subscriptions, no in-app purchases — every feature is free.</p></div>
+        <div class="faq-item"><h3>Does it work offline?</h3><p>The on-device AI (Qwen) works offline. The remote AI (DeepSeek) is optional and requires a network.</p></div>
+        <div class="faq-item"><h3>Which devices are supported?</h3><p>Android 7.0 (API 24) and above. Beauty and on-device inference run best on arm64 devices.</p></div>
+        <div class="faq-item"><h3>Is any data collected?</h3><p>No. We collect no user data. See the <a href="privacy-policy/index.html">Privacy Policy</a>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container inner">
+      <span>© PoLang — Carving time, capturing the eternal.</span>
+      <div class="nav-links">
+        <a href="privacy-policy/index.html">Privacy Policy</a>
+        <a href="../00-INDEX.html">Technical Docs (中文)</a>
+        <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

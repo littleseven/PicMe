@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PoLang 破浪相册 · 隐私优先的智能相册</title>
   <meta name="description" content="零图片上传隐私安全,用自然语言搜索本地相册、编辑照片。AI 对话相册、智能搜索、专业美颜、创意滤镜,全部本地处理。">
+  <link rel="alternate" hreflang="zh-CN" href="https://polang.net/">
+  <link rel="alternate" hreflang="en" href="https://polang.net/en/">
+  <link rel="alternate" hreflang="x-default" href="https://polang.net/">
   <style>
     :root {
       --bg: #ffffff;
@@ -35,9 +38,10 @@
     .topnav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
     .brand img { width: 30px; height: 30px; border-radius: 8px; }
-    .nav-links { display: flex; gap: 24px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+    .nav-links { display: flex; align-items: center; gap: 24px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
     .nav-links a { transition: color .12s; }
     .nav-links a:hover { color: var(--primary); }
+    .lang-switch { border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; color: var(--text-soft); }
 
     /* Hero */
     .hero { padding: 56px 24px 44px; text-align: center; background: radial-gradient(125% 100% at 50% 0%, #efeefe 0%, #ffffff 60%); }
@@ -115,6 +119,7 @@
       <a class="brand" href="/"><img src="assets/icon.png" alt="PoLang">PoLang</a>
       <div class="nav-links">
         <a href="#features">功能</a>
+        <a class="lang-switch" href="en/index.html" hreflang="en" lang="en">English</a>
         <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
