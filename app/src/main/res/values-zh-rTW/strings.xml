@@ -679,4 +679,25 @@
     <string name="auth_quota_label">LLM 額度：%1$d / %2$d 次</string>
     <string name="auth_refresh">重新整理</string>
     <string name="auth_logout">登出</string>
+    <string name="auth_delete_account">刪除帳號</string>
+    <string name="auth_delete_account_confirm_title">刪除帳號？</string>
+    <string name="auth_delete_account_confirm_body">帳號將立即停用。帳號資料將保留 90 天，隨後徹底刪除。您仍可使用同一信箱重新註冊。</string>
+    <string name="auth_delete_account_confirm">刪除</string>
+    <string name="auth_delete_account_success">帳號已刪除</string>
+    <string name="auth_delete_account_failed">刪除帳號失敗，請檢查網路後重試。</string>
+    <string name="data_privacy_title">資料與隱私</string>
+    <string name="data_privacy_entry">資料與隱私</string>
+    <string name="data_privacy_account_title">帳號資料</string>
+    <string name="data_privacy_account_body">我們僅收集您的電子郵件地址，用於帳號登入及 LLM 免費試用額度計費（預設 100 次）。我們不收集您的密碼——登入使用郵件驗證碼。</string>
+    <string name="data_privacy_retention_title">資料保留</string>
+    <string name="data_privacy_retention_body">刪除帳號後，資料將保留 90 天（用於反詐欺與找回），隨後徹底刪除，包括用量日誌。</string>
+    <string name="data_privacy_delete_title">刪除您的帳號</string>
+    <string name="data_privacy_delete_body">前往「設定 → 帳號 → 刪除帳號」，或來信申請刪除。</string>
+    <string name="data_privacy_local_title">本機處理</string>
+    <string name="data_privacy_local_body">照片、美顏渲染、人臉特徵點、OCR 文字、媒體地理位置及對話記憶均在您的裝置本機處理，絕不上傳伺服器。可透過系統「清除應用程式資料」或解除安裝清除。</string>
+    <string name="data_privacy_remote_title">遠端推理</string>
+    <string name="data_privacy_remote_body">登入後，遠端 LLM 對話經 api.polang.net 代理轉發至 LLM 供應商，僅用於本次請求。伺服器僅記錄呼叫次數與 Token 用量，不儲存對話內容。</string>
+    <string name="data_privacy_contact_title">聯絡我們</string>
+    <string name="data_privacy_contact_body">如需隱私或刪除請求，請聯絡：%1$s</string>
+    <string name="data_privacy_view_full_policy">查看完整隱私權政策</string>
 </resources>

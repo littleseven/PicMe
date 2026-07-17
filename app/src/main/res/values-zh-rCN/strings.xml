@@ -701,4 +701,25 @@
     <string name="auth_quota_label">LLM 额度：%1$d / %2$d 次</string>
     <string name="auth_refresh">刷新</string>
     <string name="auth_logout">退出登录</string>
+    <string name="auth_delete_account">删除账号</string>
+    <string name="auth_delete_account_confirm_title">删除账号？</string>
+    <string name="auth_delete_account_confirm_body">账号将立即停用。账号数据将保留 90 天，随后彻底删除。您仍可使用同一邮箱重新注册。</string>
+    <string name="auth_delete_account_confirm">删除</string>
+    <string name="auth_delete_account_success">账号已删除</string>
+    <string name="auth_delete_account_failed">删除账号失败，请检查网络后重试。</string>
+    <string name="data_privacy_title">数据与隐私</string>
+    <string name="data_privacy_entry">数据与隐私</string>
+    <string name="data_privacy_account_title">账号数据</string>
+    <string name="data_privacy_account_body">我们仅收集您的邮箱地址，用于账号登录及 LLM 免费试用额度计费（默认 100 次）。我们不收集您的密码——登录使用邮箱验证码。</string>
+    <string name="data_privacy_retention_title">数据保留</string>
+    <string name="data_privacy_retention_body">删除账号后，数据将保留 90 天（用于反欺诈与找回），随后彻底删除，包括用量日志。</string>
+    <string name="data_privacy_delete_title">删除您的账号</string>
+    <string name="data_privacy_delete_body">前往「设置 → 账号 → 删除账号」，或邮件联系我们申请删除。</string>
+    <string name="data_privacy_local_title">本地处理</string>
+    <string name="data_privacy_local_body">照片、美颜渲染、人脸关键点、OCR 文字、媒体地理位置及对话记忆均在您的设备本地处理，绝不上传服务器。可通过系统「清除应用数据」或卸载清除。</string>
+    <string name="data_privacy_remote_title">远程推理</string>
+    <string name="data_privacy_remote_body">登录后，远程 LLM 对话经 api.polang.net 代理转发至 LLM 供应商，仅用于本次请求。服务端仅记录调用次数与 Token 用量，不存储对话内容。</string>
+    <string name="data_privacy_contact_title">联系我们</string>
+    <string name="data_privacy_contact_body">如需隐私或删除请求，请联系：%1$s</string>
+    <string name="data_privacy_view_full_policy">查看完整隐私政策</string>
 </resources>

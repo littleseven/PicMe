@@ -707,4 +707,25 @@
     <string name="auth_quota_label">AI quota: %1$d / %2$d calls</string>
     <string name="auth_refresh">Refresh</string>
     <string name="auth_logout">Sign out</string>
+    <string name="auth_delete_account">Delete account</string>
+    <string name="auth_delete_account_confirm_title">Delete account?</string>
+    <string name="auth_delete_account_confirm_body">Your account will be deactivated immediately. Account data is retained for 90 days, then permanently deleted. You can register again with the same email.</string>
+    <string name="auth_delete_account_confirm">Delete</string>
+    <string name="auth_delete_account_success">Account deleted</string>
+    <string name="auth_delete_account_failed">Failed to delete account. Check your network and try again.</string>
+    <string name="data_privacy_title">Data &amp; privacy</string>
+    <string name="data_privacy_entry">Data &amp; privacy</string>
+    <string name="data_privacy_account_title">Account data</string>
+    <string name="data_privacy_account_body">We only collect your email address, for sign-in and to meter your free LLM trial quota (100 calls by default). We do not collect your password — sign-in uses an email verification code.</string>
+    <string name="data_privacy_retention_title">Retention</string>
+    <string name="data_privacy_retention_body">After deletion, your data is retained for 90 days (for abuse prevention and recovery), then permanently deleted, including usage logs.</string>
+    <string name="data_privacy_delete_title">Delete your account</string>
+    <string name="data_privacy_delete_body">Go to Settings → Account → Delete account, or email us to request deletion.</string>
+    <string name="data_privacy_local_title">On-device processing</string>
+    <string name="data_privacy_local_body">Photos, beauty rendering, face landmarks, OCR text, media locations, and chat memory are all processed on your device and never uploaded to our servers. Clear them via system \"Clear app data\" or by uninstalling.</string>
+    <string name="data_privacy_remote_title">Remote inference</string>
+    <string name="data_privacy_remote_body">When signed in, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server records call counts and token usage, but does not store conversation content.</string>
+    <string name="data_privacy_contact_title">Contact</string>
+    <string name="data_privacy_contact_body">For privacy or deletion requests, contact: %1$s</string>
+    <string name="data_privacy_view_full_policy">View full privacy policy</string>
 </resources>
