@@ -15,6 +15,7 @@ import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
 import com.mamba.picme.server.routes.TokenHashKey
+import com.mamba.picme.server.routes.accountDeletionRoute
 import com.mamba.picme.server.routes.authRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
@@ -51,6 +52,10 @@ fun main() {
     Db.init(config.dbPath)
     Migrations.run(config)
     runBlocking { ChannelRegistry.reload() }
+    runBlocking {
+        val purged = AccountService.purgeExpiredDeleted(AccountService.RETENTION_MS)
+        logger.info("Purged $purged expired deleted accounts (retention=${AccountService.RETENTION_MS}ms)")
+    }
     embeddedServer(CIO, port = config.port, host = config.host) {
         module(config)
     }.start(wait = true)
@@ -127,6 +132,7 @@ fun Application.module(config: AppConfig) {
         recommendRoute(appJson)
         telemetryRoute()
         quotaRoute()
+        accountDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices, config.guestLlmQuota)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService)
