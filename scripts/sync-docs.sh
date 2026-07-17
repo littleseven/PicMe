@@ -8,15 +8,16 @@ cd "$(dirname "$0")/.."
 SRC="docs"
 DST="docs-site/docs"
 
-rsync -a --delete \
+rsync -a --delete --delete-excluded \
   --exclude 'superpowers/' \
   --exclude '03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md' \
   --exclude '03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md' \
   --exclude '07-STANDARDS/REPO_REORGANIZATION_PLAN.md' \
   --exclude '07-STANDARDS/CODE_REFACTORING_PLAN.md' \
   --exclude '05-DEVELOPMENT/RELEASE_PACKAGE_BACKUP_RESTORE.md' \
+  --exclude 'privacy-policy/' \
   "$SRC/" "$DST/"
 
-echo "✓ 已同步 $SRC -> $DST（docsify 文档站）"
-echo "  上线文档数: $(find "$DST" -name '*.md' | wc -l | tr -d ' ')"
-echo "  确认排除: superpowers/ 与含服务器敏感信息的部署/内部计划文档"
+echo "sync-docs: ${SRC} -> ${DST} (docsify site)"
+echo "  online docs: $(find "${DST}" -name '*.md' | wc -l | tr -d ' ')"
+echo "  excluded: superpowers/ + server deploy/internal-plan docs + privacy-policy/ (landing page has it)"
