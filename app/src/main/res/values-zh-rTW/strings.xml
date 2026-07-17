@@ -677,6 +677,7 @@
     <string name="auth_code_expired">驗證碼已過期，請重新發送</string>
     <string name="auth_verify_failed">驗證失敗：%1$s</string>
     <string name="auth_account_title">伺服器帳戶</string>
+    <string name="auth_quota_title">本月額度</string>
     <string name="auth_quota_label">LLM 額度：%1$d / %2$d 次</string>
     <string name="auth_quota_remaining">剩餘 %1$d 次</string>
     <string name="auth_refresh">重新整理</string>
@@ -689,6 +690,7 @@
     <string name="auth_delete_account_failed">刪除帳號失敗，請檢查網路後重試。</string>
     <string name="data_privacy_title">資料與隱私</string>
     <string name="data_privacy_entry">資料與隱私</string>
+    <string name="data_privacy_desc">隱私政策、資料保留與刪除方式。</string>
     <string name="data_privacy_account_title">帳號資料</string>
     <string name="data_privacy_account_body">我們僅收集您的電子郵件地址，用於帳號登入及 LLM 免費試用額度計費（預設 100 次）。我們不收集您的密碼——登入使用郵件驗證碼。</string>
     <string name="data_privacy_retention_title">資料保留</string>

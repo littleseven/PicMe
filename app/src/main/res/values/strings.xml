@@ -705,6 +705,7 @@
     <string name="auth_code_expired">Code expired, please resend</string>
     <string name="auth_verify_failed">Verification failed: %1$s</string>
     <string name="auth_account_title">Server account</string>
+    <string name="auth_quota_title">Quota</string>
     <string name="auth_quota_label">AI quota: %1$d / %2$d calls</string>
     <string name="auth_quota_remaining">Remaining: %1$d calls</string>
     <string name="auth_refresh">Refresh</string>
@@ -717,6 +718,7 @@
     <string name="auth_delete_account_failed">Failed to delete account. Check your network and try again.</string>
     <string name="data_privacy_title">Data &amp; privacy</string>
     <string name="data_privacy_entry">Data &amp; privacy</string>
+    <string name="data_privacy_desc">Privacy policy, data retention and deletion.</string>
     <string name="data_privacy_account_title">Account data</string>
     <string name="data_privacy_account_body">We only collect your email address, for sign-in and to meter your free LLM trial quota (100 calls by default). We do not collect your password — sign-in uses an email verification code.</string>
     <string name="data_privacy_retention_title">Retention</string>

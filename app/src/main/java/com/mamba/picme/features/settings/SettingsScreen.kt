@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Terminal
@@ -406,7 +407,8 @@ private fun SettingsContent(
                     appLanguage = appLanguage,
                     onAppLanguageSelected = onAppLanguageSelected,
                     onNavigateToCategory = onNavigateToCategory,
-                    onNavigateToModelCenter = { onNavigateToModelCenter("") }
+                    onNavigateToModelCenter = { onNavigateToModelCenter("") },
+                    onNavigateToDataPrivacy = onNavigateToDataPrivacy
                 )
                 return@Column
             }
@@ -417,16 +419,7 @@ private fun SettingsContent(
                     title = stringResource(R.string.account),
                     description = stringResource(R.string.account_desc)
                 ) {
-                    ServerAuthSection(onNavigateToDataPrivacy = onNavigateToDataPrivacy)
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    )
-                    SettingsClickableRow(
-                        title = stringResource(R.string.data_privacy_entry),
-                        leadingIcon = Icons.Rounded.Person,
-                        onClick = onNavigateToDataPrivacy,
-                    )
+                    ServerAuthSection()
                 }
             }
 
@@ -872,9 +865,9 @@ private fun SettingsMainMenu(
     appLanguage: AppLanguage,
     onAppLanguageSelected: (AppLanguage) -> Unit,
     onNavigateToCategory: (SettingsCategory) -> Unit,
-    onNavigateToModelCenter: () -> Unit
+    onNavigateToModelCenter: () -> Unit,
+    onNavigateToDataPrivacy: () -> Unit
 ) {
-    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -929,78 +922,71 @@ private fun SettingsMainMenu(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SettingsCategoryCard(
-                title = stringResource(R.string.account),
-                description = stringResource(R.string.account_desc),
-                icon = Icons.Rounded.Person,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.ACCOUNT) }
-            )
-            SettingsCategoryCard(
-                title = stringResource(R.string.ai_assistant),
-                description = stringResource(R.string.ai_assistant_desc),
-                icon = Icons.Rounded.SmartToy,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.AI_AGENT) }
-            )
-        }
+        // ── 功能分类网格 ──
+        SettingsCategoryGrid(
+            onNavigateToCategory = onNavigateToCategory,
+            onNavigateToModelCenter = onNavigateToModelCenter,
+            onNavigateToDataPrivacy = onNavigateToDataPrivacy,
+        )
+    }
+}
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SettingsCategoryCard(
-                title = stringResource(R.string.gallery_features),
-                description = stringResource(R.string.gallery_features_desc),
-                icon = Icons.Rounded.PhotoLibrary,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.GALLERY) }
-            )
-            SettingsCategoryCard(
-                title = stringResource(R.string.camera_and_beauty),
-                description = stringResource(R.string.camera_and_beauty_desc),
-                icon = Icons.Rounded.CameraAlt,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.CAMERA_BEAUTY) }
-            )
-        }
+private data class CategoryGridItem(
+    val titleRes: Int,
+    val descriptionRes: Int,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SettingsCategoryCard(
-                title = stringResource(R.string.developer_options),
-                description = stringResource(R.string.developer_options_desc),
-                icon = Icons.Rounded.Terminal,
-                modifier = Modifier.weight(1f),
-                onClick = { onNavigateToCategory(SettingsCategory.DEVELOPER) }
-            )
-            SettingsCategoryCard(
-                title = stringResource(R.string.model_center),
-                description = stringResource(R.string.model_center_desc),
-                icon = Icons.Rounded.CloudDownload,
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToModelCenter
-            )
-        }
+/**
+ * 设置页功能分类网格（2 列卡片）。
+ */
+@Composable
+private fun SettingsCategoryGrid(
+    onNavigateToCategory: (SettingsCategory) -> Unit,
+    onNavigateToModelCenter: () -> Unit,
+    onNavigateToDataPrivacy: () -> Unit,
+) {
+    val context = LocalContext.current
+    val items = listOf(
+        CategoryGridItem(R.string.account, R.string.account_desc, Icons.Rounded.Person) {
+            onNavigateToCategory(SettingsCategory.ACCOUNT)
+        },
+        CategoryGridItem(R.string.ai_assistant, R.string.ai_assistant_desc, Icons.Rounded.SmartToy) {
+            onNavigateToCategory(SettingsCategory.AI_AGENT)
+        },
+        CategoryGridItem(R.string.gallery_features, R.string.gallery_features_desc, Icons.Rounded.PhotoLibrary) {
+            onNavigateToCategory(SettingsCategory.GALLERY)
+        },
+        CategoryGridItem(R.string.camera_and_beauty, R.string.camera_and_beauty_desc, Icons.Rounded.CameraAlt) {
+            onNavigateToCategory(SettingsCategory.CAMERA_BEAUTY)
+        },
+        CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
+            onNavigateToCategory(SettingsCategory.DEVELOPER)
+        },
+        CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
+        CategoryGridItem(R.string.backup_and_restore, R.string.backup_and_restore_desc, Icons.Rounded.Storage) {
+            context.startActivity(BackupRestoreActivity.intent(context))
+        },
+        CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
+    )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SettingsCategoryCard(
-                title = stringResource(R.string.backup_and_restore),
-                description = stringResource(R.string.backup_and_restore_desc),
-                icon = Icons.Rounded.Storage,
-                modifier = Modifier.weight(1f),
-                onClick = { context.startActivity(BackupRestoreActivity.intent(context)) }
-            )
-            Spacer(modifier = Modifier.weight(1f))
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.chunked(2).forEach { pair ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                pair.forEach { item ->
+                    SettingsCategoryCard(
+                        title = stringResource(item.titleRes),
+                        description = stringResource(item.descriptionRes),
+                        icon = item.icon,
+                        modifier = Modifier.weight(1f),
+                        onClick = item.onClick
+                    )
+                }
+            }
         }
     }
 }
