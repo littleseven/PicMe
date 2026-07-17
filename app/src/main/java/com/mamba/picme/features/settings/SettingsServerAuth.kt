@@ -1,10 +1,12 @@
 package com.mamba.picme.features.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +51,8 @@ internal fun ServerAuthSection() {
             email = serverEmail,
             used = quotaUsed,
             limit = quotaLimit,
+            token = serverToken,
+            authClient = authClient,
             onRefresh = {
                 scope.launch {
                     authClient.getQuota(serverToken)
@@ -106,6 +110,8 @@ private fun QuotaDisplay(
     email: String,
     used: Int,
     limit: Int,
+    token: String,
+    authClient: PicMeAuthClient,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -150,6 +156,76 @@ private fun QuotaDisplay(
             TextButton(onClick = onLogout) {
                 Text(stringResource(R.string.auth_logout))
             }
+        }
+
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        var showDeleteDialog by remember { mutableStateOf(false) }
+        var deleting by remember { mutableStateOf(false) }
+
+        TextButton(
+            onClick = { showDeleteDialog = true },
+            enabled = !deleting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = stringResource(R.string.auth_delete_account),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { if (!deleting) showDeleteDialog = false },
+                title = { Text(stringResource(R.string.auth_delete_account_confirm_title)) },
+                text = { Text(stringResource(R.string.auth_delete_account_confirm_body)) },
+                confirmButton = {
+                    TextButton(
+                        enabled = !deleting,
+                        onClick = {
+                            deleting = true
+                            scope.launch {
+                                authClient.deleteAccount(token)
+                                    .onSuccess {
+                                        onLogout()
+                                        showDeleteDialog = false
+                                        Toast.makeText(
+                                            context,
+                                            R.string.auth_delete_account_success,
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                    .onFailure { e ->
+                                        val code = (e as? PicMeAuthClient.PicMeAuthException)?.code
+                                        if (code == 401 || code == 404) {
+                                            onLogout()
+                                            showDeleteDialog = false
+                                        }
+                                        Toast.makeText(
+                                            context,
+                                            R.string.auth_delete_account_failed,
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                deleting = false
+                            }
+                        },
+                    ) {
+                        Text(
+                            stringResource(R.string.auth_delete_account_confirm),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        enabled = !deleting,
+                        onClick = { showDeleteDialog = false },
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
         }
     }
 }
