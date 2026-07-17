@@ -58,6 +58,7 @@ object Accounts : Table("account") {
     val llmCallsUsed = integer("llm_calls_used").default(0)
     val llmCallsLimit = integer("llm_calls_limit").default(100) // 试用额度（次）
     val createdAt = long("created_at")
+    val deletedAt = long("deleted_at").nullable()   // 软删除时间戳；NULL=未删除
     override val primaryKey = PrimaryKey(id)
 
     init {

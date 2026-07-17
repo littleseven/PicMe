@@ -124,6 +124,37 @@ object AccountService {
         return AccountInfo(token, email, 0, freeQuota)
     }
 
+    // ── Account deletion（软删除 + 保留期清理）──
+
+    /** 账号软删除后的保留期：90 天，期满由 purgeExpiredDeleted 物理清理。 */
+    const val RETENTION_MS = 90L * 24 * 60 * 60 * 1000
+
+    /**
+     * 软删除当前 tokenHash 对应的 active 账号：
+     * - status -> "deleted"，deleted_at 记录时间
+     * - token_plain 清空（明文 token 不再需要）
+     * - email 改写为 "deleted_<id>__<原email>"，释放 uniqueIndex(email)，
+     *   使同邮箱可重新注册为全新账号
+     * 返回是否命中 active 账号（false = tokenHash 无对应 active 账号，幂等）。
+     */
+    suspend fun softDelete(tokenHash: String): Boolean {
+        val now = Instant.now().toEpochMilli()
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = Accounts.selectAll().where {
+                Accounts.tokenHash eq tokenHash and (Accounts.status eq "active")
+            }.firstOrNull() ?: return@newSuspendedTransaction false
+            val id = row[Accounts.id]
+            val origEmail = row[Accounts.email]
+            Accounts.update({ Accounts.id eq id }) {
+                it[status] = "deleted"
+                it[deletedAt] = now
+                it[tokenPlain] = ""
+                it[email] = "deleted_${id}__${origEmail}"
+            }
+            true
+        }
+    }
+
     // ── Auth check ──
 
     data class AuthResult(val valid: Boolean, val tokenHash: String? = null)
