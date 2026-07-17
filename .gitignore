@@ -88,5 +88,8 @@ beauty-engine/src/main/assets/models/llm/
 .worktrees/
 worktrees/
 
+# Superpowers skill 本地状态（brainstorm mockup/state，不入库）
+.superpowers/
+
 # 调试快照产物
 scripts/app-data-snapshots/
