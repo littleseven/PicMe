@@ -41,19 +41,22 @@ data class ControlledVocab(
     val natureEn: List<String> = emptyList(),
     val transport: List<String> = emptyList(),
     val transportEn: List<String> = emptyList(),
+    /** 风格/氛围标签，如「性感」 */
+    val style: List<String> = emptyList(),
+    val styleEn: List<String> = emptyList(),
     /** 同义词映射：非标准词 → 标准词（用于一语义覆盖多搜索词） */
     val synonyms: Map<String, String> = emptyMap()
 ) {
     /** 返回所有类别的标签并集（用于跨类别模糊匹配） */
     val allCategories: List<String> by lazy {
         scene + activity + objects + atmosphere + people +
-            clothing + animal + foodDrink + architecture + nature + transport
+            clothing + animal + foodDrink + architecture + nature + transport + style
     }
 
     /** 返回所有英文类别的标签并集（用于跨类别模糊匹配） */
     val allCategoriesEn: List<String> by lazy {
         sceneEn + activityEn + objectsEn + atmosphereEn + peopleEn +
-            clothingEn + animalEn + foodDrinkEn + architectureEn + natureEn + transportEn
+            clothingEn + animalEn + foodDrinkEn + architectureEn + natureEn + transportEn + styleEn
     }
 
     /** MobileCLIP scene 字段候选：直接取 scene 类别 */
@@ -72,13 +75,13 @@ data class ControlledVocab(
     val objectCandidatesEn: List<String>
         get() = objectsEn
 
-    /** MobileCLIP tags 字段候选：跨人物、服饰、动物、食物、建筑、自然、交通工具、氛围等类别 */
+    /** MobileCLIP tags 字段候选：跨人物、服饰、动物、食物、建筑、自然、交通工具、氛围、风格等类别 */
     val tagCandidates: List<String>
-        get() = people + clothing + animal + foodDrink + architecture + nature + transport + atmosphere
+        get() = people + clothing + animal + foodDrink + architecture + nature + transport + atmosphere + style
 
     /** MobileCLIP tags 字段英文候选 */
     val tagCandidatesEn: List<String>
-        get() = peopleEn + clothingEn + animalEn + foodDrinkEn + architectureEn + natureEn + transportEn + atmosphereEn
+        get() = peopleEn + clothingEn + animalEn + foodDrinkEn + architectureEn + natureEn + transportEn + atmosphereEn + styleEn
 
     /**
      * 语言感知的 MobileCLIP scene 候选。
@@ -181,6 +184,8 @@ data class ControlledVocab(
                 natureEn = parseArray(root, "nature_en"),
                 transport = parseArray(root, "transport"),
                 transportEn = parseArray(root, "transport_en"),
+                style = parseArray(root, "style"),
+                styleEn = parseArray(root, "style_en"),
                 synonyms = synonymsMap
             )
         }

@@ -35,6 +35,8 @@ class ControlledVocabTest {
               "nature_en": ["tree"],
               "transport": ["汽车"],
               "transport_en": ["car"],
+              "style": ["性感"],
+              "style_en": ["sexy"],
               "synonyms": { "帅哥": "男性" }
             }
         """.trimIndent()
@@ -45,6 +47,8 @@ class ControlledVocabTest {
         assertEquals(listOf("indoor", "outdoor"), vocab.sceneEn)
         assertEquals(listOf("猫", "狗"), vocab.objects)
         assertEquals(listOf("cat", "dog"), vocab.objectsEn)
+        assertEquals(listOf("性感"), vocab.style)
+        assertEquals(listOf("sexy"), vocab.styleEn)
         assertEquals(mapOf("帅哥" to "男性"), vocab.synonyms)
     }
 
@@ -78,10 +82,12 @@ class ControlledVocabTest {
             people = listOf("男性"),
             peopleEn = listOf("male"),
             atmosphere = listOf("白天"),
-            atmosphereEn = listOf("daytime")
+            atmosphereEn = listOf("daytime"),
+            style = listOf("性感"),
+            styleEn = listOf("sexy")
         )
 
-        assertEquals(listOf("男性", "白天"), vocab.tagCandidates(AppLanguage.CHINESE))
-        assertEquals(listOf("male", "daytime"), vocab.tagCandidates(AppLanguage.ENGLISH))
+        assertEquals(listOf("男性", "白天", "性感"), vocab.tagCandidates(AppLanguage.CHINESE))
+        assertEquals(listOf("male", "daytime", "sexy"), vocab.tagCandidates(AppLanguage.ENGLISH))
     }
 }

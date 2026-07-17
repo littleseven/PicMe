@@ -350,6 +350,12 @@ class ChatViewModel(
                 chatMessageDao.insertMessage(userMessage)
                 chatSessionDao.touchSession(sessionId)
 
+                // 1.5 自动命名：根据用户的第一条消息生成会话标题
+                val messageCount = chatMessageDao.getMessageCount(sessionId)
+                if (messageCount == 1) {
+                    updateSessionTitleIfDefault(sessionId, generateAutoTitle(userMessage))
+                }
+
                 // 2. 触发处理状态
                 _isProcessing.value = true
 
@@ -954,6 +960,46 @@ class ChatViewModel(
     }
 
     /**
+     * 根据用户的第一条消息自动生成会话标题。
+     *
+     * - 文本消息：取内容前 [ChatTitleGenerator.MAX_AUTO_TITLE_LENGTH] 个字符，去除首尾标点，合并换行/连续空白。
+     * - 图片消息：统一显示为图片对话标题。
+     */
+    private fun generateAutoTitle(firstUserMessage: ChatMessageEntity): String {
+        return ChatTitleGenerator.generateTitle(
+            firstUserMessageType = firstUserMessage.type,
+            textContent = firstUserMessage.content,
+            imageTitle = context.getString(R.string.chat_title_image_first),
+            fallbackTitle = context.getString(R.string.new_chat)
+        )
+    }
+
+    /**
+     * 如果当前标题仍是系统默认值，则将其更新为自动生成的标题。
+     *
+     * 保护用户手动重命名的标题不被覆盖。
+     */
+    private suspend fun updateSessionTitleIfDefault(
+        sessionId: String,
+        candidateTitle: String
+    ) {
+        val session = chatSessionDao.getSession(sessionId) ?: return
+        if (!isDefaultTitle(session.title)) return
+        chatSessionDao.updateTitle(sessionId, candidateTitle)
+        Logger.i(TAG, "Auto-updated session title to: $candidateTitle")
+    }
+
+    /**
+     * 判断标题是否为系统默认标题。
+     */
+    private fun isDefaultTitle(title: String): Boolean {
+        if (title.isBlank()) return true
+        if (title == "New Chat" || title == "Chat") return true
+        if (title == context.getString(R.string.new_chat)) return true
+        return false
+    }
+
+    /**
      * 插入 AI 回复/命令结果到 Room
      */
     private suspend fun insertAgentMessage(
@@ -1012,6 +1058,12 @@ class ChatViewModel(
                 )
                 chatMessageDao.insertMessage(userMessage)
                 chatSessionDao.touchSession(sessionId)
+
+                // 1.5 自动命名：根据用户的第一条消息生成会话标题
+                val messageCount = chatMessageDao.getMessageCount(sessionId)
+                if (messageCount == 1) {
+                    updateSessionTitleIfDefault(sessionId, generateAutoTitle(userMessage))
+                }
 
                 // 2. 创建流式占位
                 val streamingId = "streaming_${System.currentTimeMillis()}"

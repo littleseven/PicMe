@@ -343,6 +343,7 @@
     <string name="sidebar_title">Chat History</string>
     <string name="sidebar_empty">No chat history</string>
     <string name="new_chat">New Chat</string>
+    <string name="chat_title_image_first">Image Chat</string>
     <string name="search_history">Search history</string>
     <string name="chat_options">Chat options</string>
     <string name="rename_chat">Rename</string>

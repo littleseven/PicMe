@@ -487,6 +487,7 @@
     <string name="sidebar_title">聊天歷史</string>
     <string name="sidebar_empty">暫無聊天記錄</string>
     <string name="new_chat">新建聊天</string>
+    <string name="chat_title_image_first">圖片對話</string>
     <string name="search_history">搜尋歷史</string>
     <string name="chat_options">聊天選項</string>
     <string name="rename_chat">重新命名</string>

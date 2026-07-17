@@ -65,7 +65,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 功能 | 路径 | 核心文件 | 说明 |
 |------|------|---------|------|
 | **Agent** | `features/agent/` | `GlobalAgentPanel.kt` | 全局悬浮 Agent 面板 |
-| **Chat** | `features/chat/` | `ChatScreen`, `ChatViewModel`, `ChatThreadSidebar` | AI 对话二级页，从相册首页进入，支持多线程 |
+| **Chat** | `features/chat/` | `ChatScreen`, `ChatViewModel`, `ChatThreadSidebar`, `ChatTitleGenerator` | AI 对话二级页，从相册首页进入，支持多线程；首条消息自动生成会话标题 |
 | **Camera** | `features/camera/` | `CameraScreen`, `CameraPreviewContent`, `CameraAgentCommandHandler` | 相机预览、美颜实时渲染、Agent 命令处理 |
 | **Common** | `features/common/chat/` | `AgentChatComponents`, `AgentMessage`, `AiChatScreen` | Chat UI 共享组件库（Camera/Gallery 复用） |
 | **Gallery** | `features/gallery/` | `GalleryScreen`, `MediaViewModel` | 智能相册浏览、AI 搜索 |

@@ -32,12 +32,13 @@
 ### 2.1 智能聚类引擎 (Grouping Engine)
 
 **技术规范**:
-- **分组模式**: 
+- **分组模式**:
   - `NONE`: 按时间倒序平铺
   - `DATE`: 按日期分组（今天、昨天、本周、本月）
   - `PERSON`: 按人物聚类（基于 ML Kit 人脸检测）
-  - `LANDSCAPE`: 风景照片单独分组
-  - `SWIMWEAR` / `SEXY`: 特殊场景分类
+  - `LANDSCAPE`: 风景照片单独分组，匹配 `labels` 中的风景相关 `scene` 或 `tags`（如「风景」「山脉」「海边」「landscape」等）
+  - `SWIMWEAR`: 匹配 `labels` 中的泳装相关标签（如「泳衣」「比基尼」「swimsuit」「bikini」）
+  - `SEXY`: 匹配 `labels` 中的风格标签（如「性感」「sexy」）
 - **UseCase 层**: 通过 `GetGroupedMediaUseCase` 封装分组逻辑，ViewModel 仅负责状态管理
 - **Flow 组合**: 使用 `combine(repository.allMedia, _groupingMode)` 响应式更新分组结果
 - **性能优化**: 分组计算在 `Dispatchers.Default` 线程执行，避免阻塞 UI

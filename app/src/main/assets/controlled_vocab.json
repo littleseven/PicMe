@@ -2,6 +2,7 @@
   "scene": [
     "室内",
     "户外",
+    "风景",
     "办公室",
     "公园",
     "街道",
@@ -69,6 +70,7 @@
   "scene_en": [
     "indoor",
     "outdoor",
+    "landscape",
     "office",
     "park",
     "street",
@@ -1738,6 +1740,12 @@
     "bulldozer",
     "road roller",
     "crane"
+  ],
+  "style": [
+    "性感"
+  ],
+  "style_en": [
+    "sexy"
   ],
   "synonyms": {
     "美女": "女性",

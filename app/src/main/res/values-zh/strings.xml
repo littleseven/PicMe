@@ -469,6 +469,7 @@
     <string name="sidebar_title">聊天历史</string>
     <string name="sidebar_empty">暂无聊天记录</string>
     <string name="new_chat">新建聊天</string>
+    <string name="chat_title_image_first">图片对话</string>
     <string name="search_history">搜索历史</string>
     <string name="chat_options">聊天选项</string>
     <string name="rename_chat">重命名</string>

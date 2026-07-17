@@ -22,7 +22,8 @@ class GetGroupedMediaUseCaseTest {
         captureDate: Long,
         hasFace: Boolean = false,
         faceId: String? = null,
-        fileName: String = "IMG_$id.jpg"
+        fileName: String = "IMG_$id.jpg",
+        labels: String? = null
     ): MediaAsset {
         return MediaAsset(
             id = id,
@@ -31,8 +32,20 @@ class GetGroupedMediaUseCaseTest {
             captureDate = captureDate,
             fileName = fileName,
             hasFace = hasFace,
-            faceId = faceId
+            faceId = faceId,
+            labels = labels
         )
+    }
+
+    private fun labelsJson(
+        scene: String = "",
+        activity: String = "",
+        objects: List<String> = emptyList(),
+        tags: List<String> = emptyList()
+    ): String {
+        val objectsStr = objects.joinToString(",") { "\"$it\"" }
+        val tagsStr = tags.joinToString(",") { "\"$it\"" }
+        return """{"scene":"$scene","activity":"$activity","objects":[$objectsStr],"tags":[$tagsStr],"qwenSummary":""}"""
     }
 
     // ==================== NONE 模式测试 ====================
@@ -232,11 +245,11 @@ class GetGroupedMediaUseCaseTest {
     // ==================== LANDSCAPE 模式测试 ====================
 
     @Test
-    fun `invoke with LANDSCAPE mode filters by filename`() {
+    fun `invoke with LANDSCAPE mode filters by scene label`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "TEST_LANDSCAPE_001.jpg"),
-            createMediaAsset(2, 2000L, fileName = "TEST_LANDSCAPE_002.jpg"),
-            createMediaAsset(3, 3000L, fileName = "regular_photo.jpg")
+            createMediaAsset(1, 1000L, labels = labelsJson(scene = "山脉")),
+            createMediaAsset(2, 2000L, labels = labelsJson(scene = "海边")),
+            createMediaAsset(3, 3000L, labels = labelsJson(scene = "室内"))
         )
 
         val result = useCase(media, GroupingMode.LANDSCAPE)
@@ -247,10 +260,24 @@ class GetGroupedMediaUseCaseTest {
     }
 
     @Test
+    fun `invoke with LANDSCAPE mode matches landscape tag in tags list`() {
+        val media = listOf(
+            createMediaAsset(1, 1000L, labels = labelsJson(tags = listOf("风景", "白天"))),
+            createMediaAsset(2, 2000L, labels = labelsJson(tags = listOf("人物", "室内")))
+        )
+
+        val result = useCase(media, GroupingMode.LANDSCAPE)
+
+        assertEquals(1, result.size)
+        assertEquals(1, result[0].items.size)
+        assertEquals(1L, result[0].items[0].id)
+    }
+
+    @Test
     fun `invoke with LANDSCAPE mode with no matches returns empty`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "photo1.jpg"),
-            createMediaAsset(2, 2000L, fileName = "photo2.jpg")
+            createMediaAsset(1, 1000L, labels = labelsJson(scene = "室内")),
+            createMediaAsset(2, 2000L, labels = labelsJson(scene = "办公室"))
         )
 
         val result = useCase(media, GroupingMode.LANDSCAPE)
@@ -261,8 +288,8 @@ class GetGroupedMediaUseCaseTest {
     @Test
     fun `invoke with LANDSCAPE mode is case insensitive`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "test_landscape_001.jpg"),
-            createMediaAsset(2, 2000L, fileName = "TEST_LANDSCAPE_002.JPG")
+            createMediaAsset(1, 1000L, labels = labelsJson(scene = "Landscape")),
+            createMediaAsset(2, 2000L, labels = labelsJson(scene = "MOUNTAINS"))
         )
 
         val result = useCase(media, GroupingMode.LANDSCAPE)
@@ -274,23 +301,24 @@ class GetGroupedMediaUseCaseTest {
     // ==================== SWIMWEAR 模式测试 ====================
 
     @Test
-    fun `invoke with SWIMWEAR mode filters by filename`() {
+    fun `invoke with SWIMWEAR mode filters by clothing or tags`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "TEST_SWIMWEAR_001.jpg"),
-            createMediaAsset(2, 2000L, fileName = "regular_photo.jpg")
+            createMediaAsset(1, 1000L, labels = labelsJson(objects = listOf("泳衣"))),
+            createMediaAsset(2, 2000L, labels = labelsJson(tags = listOf("比基尼"))),
+            createMediaAsset(3, 3000L, labels = labelsJson(tags = listOf("风景")))
         )
 
         val result = useCase(media, GroupingMode.SWIMWEAR)
 
         assertEquals(1, result.size)
         assertEquals(GroupTitleType.SWIMWEAR, result[0].titleType)
-        assertEquals(1, result[0].items.size)
+        assertEquals(2, result[0].items.size)
     }
 
     @Test
     fun `invoke with SWIMWEAR mode with no matches returns empty`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "photo1.jpg")
+            createMediaAsset(1, 1000L, labels = labelsJson(scene = "室内"))
         )
 
         val result = useCase(media, GroupingMode.SWIMWEAR)
@@ -301,23 +329,24 @@ class GetGroupedMediaUseCaseTest {
     // ==================== SEXY 模式测试 ====================
 
     @Test
-    fun `invoke with SEXY mode filters by filename`() {
+    fun `invoke with SEXY mode filters by style tag`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "TEST_SEXY_001.jpg"),
-            createMediaAsset(2, 2000L, fileName = "regular_photo.jpg")
+            createMediaAsset(1, 1000L, labels = labelsJson(tags = listOf("性感"))),
+            createMediaAsset(2, 2000L, labels = labelsJson(tags = listOf("sexy"))),
+            createMediaAsset(3, 3000L, labels = labelsJson(tags = listOf("风景")))
         )
 
         val result = useCase(media, GroupingMode.SEXY)
 
         assertEquals(1, result.size)
         assertEquals(GroupTitleType.SEXY, result[0].titleType)
-        assertEquals(1, result[0].items.size)
+        assertEquals(2, result[0].items.size)
     }
 
     @Test
     fun `invoke with SEXY mode with no matches returns empty`() {
         val media = listOf(
-            createMediaAsset(1, 1000L, fileName = "photo1.jpg")
+            createMediaAsset(1, 1000L, labels = labelsJson(scene = "室内"))
         )
 
         val result = useCase(media, GroupingMode.SEXY)
