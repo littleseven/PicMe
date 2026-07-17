@@ -6,9 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -18,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -73,7 +78,7 @@ internal fun ServerAuthSection(onNavigateToDataPrivacy: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
@@ -116,54 +121,96 @@ private fun QuotaDisplay(
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    val progress = if (limit > 0) used.toFloat() / limit else 0f
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    val progress = if (limit > 0) (used.toFloat() / limit).coerceIn(0f, 1f) else 0f
+    val nearLimit = progress >= 0.9f
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = stringResource(R.string.auth_account_title),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = email,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // 账号标题 + 邮箱（突出）+ 配额徽章
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.auth_account_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = email,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = if (nearLimit) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                },
+            ) {
+                Text(
+                    text = "$used / $limit",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (nearLimit) {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+            }
+        }
 
+        // 用量进度条
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier.fillMaxWidth(),
+            color = if (nearLimit) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
         )
 
         Text(
             text = stringResource(R.string.auth_quota_label, used, limit),
             style = MaterialTheme.typography.bodySmall,
-            color = if (progress >= 0.9f) {
+            color = if (nearLimit) {
                 MaterialTheme.colorScheme.error
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onRefresh) {
+        // 主操作：刷新 + 登出（等宽成对）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilledTonalButton(
+                onClick = onRefresh,
+                modifier = Modifier.weight(1f),
+            ) {
                 Text(stringResource(R.string.auth_refresh))
             }
-            TextButton(onClick = onLogout) {
+            OutlinedButton(
+                onClick = onLogout,
+                modifier = Modifier.weight(1f),
+            ) {
                 Text(stringResource(R.string.auth_logout))
             }
         }
 
-        val context = LocalContext.current
-        val scope = rememberCoroutineScope()
-        var showDeleteDialog by remember { mutableStateOf(false) }
-        var deleting by remember { mutableStateOf(false) }
-
+        // 危险操作：删除账号
         TextButton(
             onClick = { showDeleteDialog = true },
             enabled = !deleting,
