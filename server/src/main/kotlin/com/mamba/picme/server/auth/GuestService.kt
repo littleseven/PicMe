@@ -4,6 +4,7 @@ import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Db
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -73,6 +74,13 @@ object GuestService {
                 .where { AnonymousDevices.deviceId eq deviceId }
                 .firstOrNull()?.get(AnonymousDevices.llmCallsUsed) ?: 0
             (limit - used).coerceAtLeast(0)
+        }
+    }
+
+    /** 删除某 deviceId 的访客记录（数据删除合规：用户可清除其设备级访客数据）。 */
+    suspend fun deleteByDeviceId(deviceId: String) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            AnonymousDevices.deleteWhere { with(SqlExpressionBuilder) { AnonymousDevices.deviceId eq deviceId } }
         }
     }
 }

@@ -16,6 +16,7 @@ import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
 import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.accountDeletionRoute
+import com.mamba.picme.server.routes.guestDeletionRoute
 import com.mamba.picme.server.routes.authRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
@@ -62,7 +63,7 @@ fun main() {
 }
 
 // Public routes that don't require token auth
-private val publicRoutes = setOf("/healthz", "/auth/email/send", "/auth/email/verify", "/download")
+private val publicRoutes = setOf("/healthz", "/auth/email/send", "/auth/email/verify", "/download", "/guest/device")
 
 fun Application.module(config: AppConfig) {
     install(CallLogging) { level = Level.INFO }
@@ -133,6 +134,7 @@ fun Application.module(config: AppConfig) {
         telemetryRoute()
         quotaRoute()
         accountDeletionRoute()
+        guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices, config.guestLlmQuota)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService)

@@ -1,7 +1,9 @@
 package com.mamba.picme.server.routes
 
 import com.mamba.picme.server.auth.AccountService
+import com.mamba.picme.server.auth.DEVICE_ID_HEADER
 import com.mamba.picme.server.auth.EmailService
+import com.mamba.picme.server.auth.GuestService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -85,5 +87,16 @@ fun Route.accountDeletionRoute() {
         val tokenHash = call.attributes[TokenHashKey]   // 由 auth interceptor 注入
         val ok = AccountService.softDelete(tokenHash)
         call.response.status(if (ok) HttpStatusCode.OK else HttpStatusCode.NotFound)
+    }
+}
+
+fun Route.guestDeletionRoute() {
+    delete("/guest/device") {
+        val deviceId = call.request.headers[DEVICE_ID_HEADER]
+        val ok = !deviceId.isNullOrBlank()
+        if (ok) {
+            GuestService.deleteByDeviceId(deviceId!!)
+        }
+        call.response.status(if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest)
     }
 }
