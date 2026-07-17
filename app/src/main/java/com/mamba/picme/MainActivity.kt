@@ -46,6 +46,7 @@ import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
 import com.mamba.picme.features.translation.SentencePieceTestScreen
+import com.mamba.picme.features.settings.DataPrivacyScreen
 import com.mamba.picme.features.settings.ModelCenterScreen
 import com.mamba.picme.features.settings.SettingsCategory
 import com.mamba.picme.features.settings.SettingsScreen
@@ -347,6 +348,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToCategory = { target ->
                                         navController.navigate(Screen.SettingsCategory.createRoute(target.name.lowercase()), navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToDataPrivacy = {
+                                        navController.navigate(Screen.DataPrivacy.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -390,6 +394,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToCategory = { target ->
                                         navController.navigate(Screen.SettingsCategory.createRoute(target.name.lowercase()), navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToDataPrivacy = {
+                                        navController.navigate(Screen.DataPrivacy.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -415,6 +422,9 @@ class MainActivity : ComponentActivity() {
                                     initialCategoryTag = categoryTag,
                                     onNavigateBack = { navController.popBackStack() }
                                 )
+                            }
+                            composable(Screen.DataPrivacy.route) {
+                                DataPrivacyScreen(onNavigateBack = { navController.popBackStack() })
                             }
                             composable(Screen.Debug.route) {
                                 // 场景管理：进入 Debug 页面

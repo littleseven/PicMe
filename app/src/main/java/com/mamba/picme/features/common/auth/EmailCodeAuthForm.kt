@@ -35,6 +35,7 @@ fun EmailCodeAuthForm(
     sendCode: (email: String, onResult: (Result<Unit>) -> Unit) -> Unit,
     verifyCode: (email: String, code: String, onResult: (Result<*>) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenDataPrivacy: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var emailInput by remember { mutableStateOf("") }
@@ -146,6 +147,13 @@ fun EmailCodeAuthForm(
                     Text(stringResource(R.string.auth_reenter_email))
                 }
             }
+        }
+
+        TextButton(
+            onClick = onOpenDataPrivacy,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.data_privacy_entry))
         }
     }
 }

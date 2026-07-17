@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "ServerAuth"
 
 @Composable
-internal fun ServerAuthSection() {
+internal fun ServerAuthSection(onNavigateToDataPrivacy: () -> Unit = {}) {
     val context = LocalContext.current
     val app = context.applicationContext as PicMeApplication
     val repo = app.container.userPreferencesRepository
@@ -101,6 +101,7 @@ internal fun ServerAuthSection() {
                     onResult(result)
                 }
             },
+            onOpenDataPrivacy = onNavigateToDataPrivacy,
         )
     }
 }

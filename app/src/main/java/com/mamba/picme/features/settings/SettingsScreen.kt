@@ -111,7 +111,8 @@ fun SettingsScreen(
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
-    onNavigateToCategory: (SettingsCategory) -> Unit = {}
+    onNavigateToCategory: (SettingsCategory) -> Unit = {},
+    onNavigateToDataPrivacy: () -> Unit = {}
 ) {
     val view = LocalView.current
     val context = LocalContext.current
@@ -288,7 +289,8 @@ fun SettingsScreen(
             onNavigateBack = onNavigateBack,
             onNavigateToTagControl = onNavigateToTagControl,
             onNavigateToDebug = onNavigateToDebug,
-            onNavigateToSearchTest = onNavigateToSearchTest
+            onNavigateToSearchTest = onNavigateToSearchTest,
+            onNavigateToDataPrivacy = onNavigateToDataPrivacy
         )
     }
 }
@@ -361,7 +363,8 @@ private fun SettingsContent(
     onNavigateBack: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
-    onNavigateToSearchTest: () -> Unit = {}
+    onNavigateToSearchTest: () -> Unit = {},
+    onNavigateToDataPrivacy: () -> Unit = {}
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
@@ -414,7 +417,16 @@ private fun SettingsContent(
                     title = stringResource(R.string.account),
                     description = stringResource(R.string.account_desc)
                 ) {
-                    ServerAuthSection()
+                    ServerAuthSection(onNavigateToDataPrivacy = onNavigateToDataPrivacy)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+                    SettingsClickableRow(
+                        title = stringResource(R.string.data_privacy_entry),
+                        leadingIcon = Icons.Rounded.Person,
+                        onClick = onNavigateToDataPrivacy,
+                    )
                 }
             }
 
