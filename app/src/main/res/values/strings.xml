@@ -116,6 +116,8 @@
     <string name="ai_optimize">AI Optimize</string>
     <string name="ai_optimize_not_available">AI optimization is not available</string>
     <string name="ai_optimize_failed">AI optimization failed: %1$s</string>
+    <string name="remove_background">Remove background</string>
+    <string name="remove_background_failed">Failed to remove background</string>
     <string name="processing">Processing...</string>
     <string name="analyzing_face">Analyzing face...</string>
     <string name="doodle">Doodle</string>

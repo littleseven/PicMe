@@ -113,6 +113,8 @@
     <string name="ai_optimize">AI 一鍵優化</string>
     <string name="ai_optimize_not_available">AI 優化暫不可用</string>
     <string name="ai_optimize_failed">AI 優化失敗：%1$s</string>
+    <string name="remove_background">去背景</string>
+    <string name="remove_background_failed">去背景失敗</string>
     <string name="processing">處理中...</string>
     <string name="analyzing_face">分析人臉中...</string>
     <string name="doodle">塗鴉</string>
