@@ -4,6 +4,7 @@ import android.content.Context
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.command.summarizeCommandsForMemory
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentErrorCode
@@ -461,10 +462,12 @@ class AgentOrchestrator private constructor(context: Context) {
         // 回写本轮到 MemoryManager：streamChatLocal/Remote 只经 buildContextMessages 读历史，
         // 此前未回写 → MemoryManager 永远为空 → 多轮对话无记忆（每轮 promptTokens 不增长）。
         // 成功才追加 [user, assistant]；await 以保证下一轮 loadHistory 能看到本轮。
+        // assistant 用自然语言摘要（summarizeCommandsForMemory）而非原始 JSON，让小模型能
+        // 从历史里读出"上一轮搜了/筛选了什么"，支撑多轮 refine 收敛。
         if (agentContext.memorySessionId.isNotBlank()) {
             result.getOrNull()?.let { streamResult ->
-                val replyText = (streamResult.commands.firstOrNull { it is AgentCommand.TextReply }
-                    as? AgentCommand.TextReply)?.message ?: streamResult.fullResponse
+                val replyText = summarizeCommandsForMemory(streamResult.commands)
+                    ?: streamResult.fullResponse
                 memoryManager.appendConversation(agentContext.memorySessionId, input, replyText)
             }
         }
@@ -571,6 +574,12 @@ class AgentOrchestrator private constructor(context: Context) {
 
         val capabilities = _capabilityRegistry.getCapabilitiesForCurrentScene()
         val systemPrompt = promptBuilder.buildL2SystemPrompt(capabilities, agentContext)
+        Logger.i(
+            tag,
+            "streamChatRemote prompt: hasMultiTurnRule=${systemPrompt.contains("多轮找图硬规则")} " +
+                "recentSnaps=${agentContext.recentSearchResults.size} " +
+                "snapQueries=[${agentContext.recentSearchResults.joinToString(",") { snap -> snap.query }}]"
+        )
         val messages = memoryManager.buildContextMessages(
             agentContext.memorySessionId, systemPrompt, input
         )

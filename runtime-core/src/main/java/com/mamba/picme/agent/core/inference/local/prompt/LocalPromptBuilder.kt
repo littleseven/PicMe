@@ -352,6 +352,14 @@ class LocalPromptBuilder(
             appendLine()
             appendLine("【当前状态】")
             appendLine(buildStateSection(context, currentScene))
+            // 多轮找图收敛：已有搜索结果时强制后续条件走 refine_media_search（in-set 过滤），
+            // 避免小模型反复输出 search_media 触发全库重搜、用无关结果覆盖已有结果集。
+            if (isChatScene && context.recentSearchResults.isNotEmpty()) {
+                appendLine()
+                appendLine("【多轮找图硬规则】（上方【最近搜索结果】非空，当前已有搜索结果）")
+                appendLine("- 用户的后续追加/收窄条件（如\"其中的\"\"只要\"\"排除\"\"再来点\"\"人少的\"等）必须输出 refine_media_search(constraint=用户原话条件)，禁止输出 search_media。")
+                appendLine("- search_media 会清空已有结果做全新全库搜索，仅当用户明确换主题（与既有结果无关的新搜索）时才用。")
+            }
             appendLine()
             appendLine("【可用命令】")
             appendLine(buildL2CapabilitiesSection(currentScene))
@@ -401,6 +409,11 @@ class LocalPromptBuilder(
                 appendLine("找美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"美女照片\"}}]")
                 appendLine("搜猫的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫的照片\"}}]")
                 appendLine("找出去年夏天的合照 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的合照\"}}]")
+                appendLine("（多轮找图示例：首轮用 search_media，后续追加条件用 refine_media_search）")
+                appendLine("找海边的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"海边的\"}}]")
+                appendLine("其中有日落的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"日落\"}}]")
+                appendLine("不要人物多的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"人少\"}}]")
+                appendLine("换一个，搜猫 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫\"}}]")
             } else {
                 appendLine("磨皮60拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"smoothing\":60}},{\"method\":\"capture\",\"params\":{}}]")
                 appendLine("美白50磨皮30拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}},{\"method\":\"capture\",\"params\":{}}]  // 注意：以'拍照'结尾，必须有capture")

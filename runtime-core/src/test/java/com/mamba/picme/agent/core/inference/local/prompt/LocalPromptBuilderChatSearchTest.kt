@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.inference.local.prompt
 
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -105,5 +106,65 @@ class LocalPromptBuilderChatSearchTest {
         assertTrue("状态片段应包含 query，实际:\n$state", state.contains("海边日落"))
         assertTrue("状态片段应包含 mediaId，实际:\n$state", state.contains("img_001"))
         assertTrue("状态片段应包含 tags，实际:\n$state", state.contains("日落"))
+    }
+
+    // ── 多轮找图收敛：已有结果时强制 refine_media_search ──────────
+
+    @Test
+    fun `multi-turn hard rule injected when recentSearchResults non-empty`() {
+        val snapshot = com.mamba.picme.agent.core.model.context.SearchResultSnapshot(
+            query = "海边",
+            results = listOf(com.mamba.picme.agent.core.model.context.ResultItem("img_1", listOf("海"))),
+            totalCount = 3,
+            isRefinement = false,
+            timestamp = 0L
+        )
+        val ctx = com.mamba.picme.agent.core.model.context.AgentContext(
+            scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT,
+            recentSearchResults = listOf(snapshot)
+        )
+        val sceneManager = SceneManager.getInstance()
+        sceneManager.transitionTo(SceneManager.Scene.CHAT, saveToHistory = false)
+        try {
+            val prompt = builder.buildL2SystemPrompt(emptyList(), ctx)
+            assertTrue(
+                "已有搜索结果时，L2 prompt 应注入多轮找图硬规则，实际:\n$prompt",
+                prompt.contains("多轮找图硬规则")
+            )
+            assertTrue(
+                "硬规则应明确禁止在已有结果时输出 search_media，实际:\n$prompt",
+                prompt.contains("禁止") && prompt.contains("search_media")
+            )
+        } finally {
+            sceneManager.leaveScene(SceneManager.Scene.CHAT)
+        }
+    }
+
+    @Test
+    fun `no multi-turn hard rule when recentSearchResults empty`() {
+        val ctx = com.mamba.picme.agent.core.model.context.AgentContext(
+            scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT,
+            recentSearchResults = emptyList()
+        )
+        val sceneManager = SceneManager.getInstance()
+        sceneManager.transitionTo(SceneManager.Scene.CHAT, saveToHistory = false)
+        try {
+            val prompt = builder.buildL2SystemPrompt(emptyList(), ctx)
+            assertFalse(
+                "首轮无搜索结果时不应注入多轮硬规则（避免误强制 refine），实际:\n$prompt",
+                prompt.contains("多轮找图硬规则")
+            )
+        } finally {
+            sceneManager.leaveScene(SceneManager.Scene.CHAT)
+        }
+    }
+
+    @Test
+    fun `CHAT capabilities include multi-turn refine few-shot`() {
+        val section = builder.buildL2CapabilitiesSection(SceneManager.Scene.CHAT)
+        assertTrue(
+            "CHAT 能力描述应含多轮 refine few-shot 正例，实际:\n$section",
+            section.contains("其中有日落的")
+        )
     }
 }

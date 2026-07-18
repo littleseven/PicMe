@@ -80,7 +80,7 @@ fun GalleryTopBar(
                         onNavigateBack?.invoke()
                     }
                 }) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             }
         },
@@ -102,7 +102,7 @@ fun GalleryTopBar(
                 IconButton(onClick = onNavigateToTagControl) {
                     Icon(
                         Icons.Rounded.Sell,
-                        contentDescription = "TAG 扫描控制",
+                        contentDescription = stringResource(R.string.tag_scan_control),
                         tint = iconTint
                     )
                 }
@@ -110,14 +110,14 @@ fun GalleryTopBar(
                 IconButton(onClick = onToggleScan) {
                     Icon(
                         imageVector = if (isScanning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (isScanning) "暂停扫描" else "开始扫描",
+                        contentDescription = if (isScanning) stringResource(R.string.pause) else stringResource(R.string.start_scan),
                         tint = iconTint
                     )
                 }
                 IconButton(onClick = onSearchClick) {
                     Icon(
                         Icons.Rounded.Search,
-                        contentDescription = "搜索照片"
+                        contentDescription = stringResource(R.string.search_photos)
                     )
                 }
                 GroupingMenu(
@@ -146,12 +146,12 @@ fun DuplicateManagerTopBar(
         title = { Text(stringResource(R.string.manage_duplicates)) },
         navigationIcon = {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Rounded.Close, contentDescription = null)
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
             }
         },
         actions = {
             IconButton(onClick = onDeleteAllDuplicates) {
-                Icon(Icons.Rounded.Delete, contentDescription = "Delete All Duplicates")
+                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete_all_duplicates))
             }
         }
     )
@@ -165,7 +165,7 @@ private fun GroupingMenu(
     var showMenu by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { showMenu = true }) {
-            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = null)
+            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.group_by))
         }
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             GroupingMode.entries.forEach { mode ->

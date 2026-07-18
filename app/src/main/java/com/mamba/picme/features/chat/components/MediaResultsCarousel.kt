@@ -65,7 +65,7 @@ fun MediaResultsCarousel(
     val mr = mediaResults
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
         Text(
-            text = if (mr.isRefinement) "细化：${mr.query}（${mr.assets.size} 张）"
+            text = if (mr.isRefinement) "细化：${mr.query}（${mr.totalCount} 张）"
                    else "找到 ${mr.totalCount} 张「${mr.query}」的照片",
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary

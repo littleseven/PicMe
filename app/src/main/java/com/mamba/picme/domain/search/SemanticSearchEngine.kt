@@ -27,6 +27,15 @@ import com.mamba.picme.domain.tag.i18n.ChineseQueryTranslator
  */
 private const val SEMANTIC_EMBEDDING_DIM = 512
 
+/**
+ * 语义召回最低余弦相似度阈值：低于此值视为噪声丢弃。
+ *
+ * MobileCLIP 真相关通常 >0.3；无相关时 topK 会被低相似度噪声（如 0.05~0.25 的
+ * 「推土机」对「动物」）填满。此阈值过滤噪声，避免「没找到」时返回垃圾误导用户。
+ * 实测「动物」噪声 top 在 0.24x，定为 0.23 过滤大部分噪声；可按实测调整。
+ */
+private const val MIN_SIMILARITY = 0.23f
+
 class SemanticSearchEngine(
     private val context: Context,
     private val mediaDao: MediaDao,
@@ -163,6 +172,7 @@ class SemanticSearchEngine(
                 SemanticScoredMedia(entity.toDomain(), maxSimilarity)
             }
             .sortedByDescending { it.score }
+            .filter { scored -> scored.score >= MIN_SIMILARITY }
             .take(topK)
 
         // 日志：展示召回结果详情与相似度分布
@@ -222,6 +232,7 @@ class SemanticSearchEngine(
                 SemanticScoredMedia(entity.toDomain(), similarity)
             }
             .sortedByDescending { it.score }
+            .filter { scored -> scored.score >= MIN_SIMILARITY }
             .take(topK)
             .also {
                 Log.d(TAG, "Image search: candidates=${candidates.size}, results=${it.size}")

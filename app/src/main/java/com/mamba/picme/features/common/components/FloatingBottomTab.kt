@@ -24,12 +24,14 @@ import androidx.compose.ui.unit.dp
  * 悬浮底部 Tab 项
  *
  * @param icon 图标
- * @param label 文字标签
+ * @param label 文字标签（显示在图标下方）
+ * @param contentDescription 无障碍描述（不显示于界面；为空时回退 label，供 ui-driver/TalkBack 定位）
  * @param onClick 点击回调
  */
 data class FloatingBottomTabItem(
     val icon: ImageVector,
     val label: String? = null,
+    val contentDescription: String? = null,
     val onClick: () -> Unit
 )
 
@@ -70,7 +72,7 @@ fun FloatingBottomTab(
                 ) {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.label ?: "",
+                        contentDescription = item.contentDescription ?: item.label,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )

@@ -10,10 +10,10 @@ class ChatGallerySearchTest {
 
     private fun asset(
         id: Long, labels: String? = null, ocr: String? = null,
-        loc: String? = null, name: String = "f$id.jpg"
+        loc: String? = null, name: String = "f$id.jpg", hasFace: Boolean = false
     ) = MediaAsset(
         id = id, uri = "u$id", type = MediaType.PHOTO, captureDate = id * 1000L, fileName = name,
-        labels = labels, ocrText = ocr, locationName = loc
+        labels = labels, ocrText = ocr, locationName = loc, hasFace = hasFace
     )
 
     // ── in-set 过滤 ──────────────────────────────────────────────
@@ -75,5 +75,108 @@ class ChatGallerySearchTest {
         assertEquals("", parsed.query)
         assertEquals(false, parsed.isRefinement)
         assertEquals(2, parsed.assets.size)
+    }
+
+    // ── 人脸意图：用 hasFace 结构化字段，不依赖标签子串 ─────────
+
+    @Test
+    fun `filter matches hasFace when constraint expresses face intent`() {
+        val faceSet = listOf(
+            asset(1, labels = "beach", hasFace = true),
+            asset(2, labels = "beach", hasFace = false),
+            asset(3, labels = "sunset", hasFace = true)
+        )
+        assertEquals(
+            listOf(1L, 3L),
+            ChatGallerySearch.filterInSet(faceSet, "有人脸").map { a -> a.id }
+        )
+    }
+
+    @Test
+    fun `face intent matches english face keyword`() {
+        val faceSet = listOf(
+            asset(1, hasFace = true),
+            asset(2, hasFace = false)
+        )
+        assertEquals(
+            listOf(1L),
+            ChatGallerySearch.filterInSet(faceSet, "face").map { a -> a.id }
+        )
+    }
+
+    @Test
+    fun `filter ignores hasFace when constraint is not face-related`() {
+        val mixed = listOf(
+            asset(1, labels = "beach", hasFace = true),
+            asset(2, labels = "beach", hasFace = false),
+            asset(3, labels = "mountain", hasFace = true)
+        )
+        assertEquals(
+            listOf(1L, 2L),
+            ChatGallerySearch.filterInSet(mixed, "beach").map { a -> a.id }
+        )
+    }
+
+    // ── resolveRefine：searchEngine 命中 ∩ prior，空则 filterInSet 兜底 ──
+
+    @Test
+    fun `resolveRefine returns intersection when searchHits overlap prior`() {
+        val prior = listOf(
+            asset(1, labels = "beach"),
+            asset(2, labels = "sunset"),
+            asset(3, labels = "mountain")
+        )
+        // searchEngine 命中 2（在 prior 内）和 4（不在 prior 内）
+        val searchHits = listOf(asset(2, labels = "sunset"), asset(4, labels = "sunset"))
+        val result = ChatGallerySearch.resolveRefine(prior, searchHits, "日落")
+        assertEquals(listOf(2L), result.map { a -> a.id })
+    }
+
+    @Test
+    fun `resolveRefine falls back to filterInSet when intersection empty`() {
+        val prior = listOf(asset(1, labels = "beach"), asset(2, labels = "sunset"))
+        // searchHits 都不在 prior 内 → 交集空 → 回退 filterInSet(prior, "sunset") 命中 2
+        val searchHits = listOf(asset(3, labels = "sunset"))
+        val result = ChatGallerySearch.resolveRefine(prior, searchHits, "sunset")
+        assertEquals(listOf(2L), result.map { a -> a.id })
+    }
+
+    @Test
+    fun `resolveRefine returns empty when both intersection and filterInSet miss`() {
+        val prior = listOf(asset(1, labels = "beach"))
+        val searchHits = listOf(asset(2, labels = "sunset"))
+        val result = ChatGallerySearch.resolveRefine(prior, searchHits, "太空")
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `resolveRefine prefers filterInSet hits over searchEngine intersection`() {
+        val prior = listOf(asset(1, labels = "sunset"), asset(2, labels = "beach"))
+        // searchEngine 交集是 asset(2)，但 filterInSet(prior,"sunset") 命中 asset(1) 应优先
+        val searchHits = listOf(asset(2, labels = "beach"))
+        val result = ChatGallerySearch.resolveRefine(prior, searchHits, "sunset")
+        assertEquals(listOf(1L), result.map { a -> a.id })
+    }
+
+    // ── cleanConstraint：去口语词，提取核心词 ─────────────────────
+
+    @Test
+    fun `cleanConstraint strips colloquial prefixes and suffixes`() {
+        assertEquals("日落", ChatGallerySearch.cleanConstraint("其中的日落"))
+    }
+
+    @Test
+    fun `cleanConstraint leaves keyword-only constraint unchanged`() {
+        assertEquals("有人脸", ChatGallerySearch.cleanConstraint("有人脸"))
+        assertEquals("海边", ChatGallerySearch.cleanConstraint("海边"))
+    }
+
+    @Test
+    fun `cleanConstraint normalizes gender terms to single char for label match`() {
+        // 标签体系用单字「女/男」（qwenSummary「一位女士」等），归一后 filterInSet 才能命中
+        assertEquals("女", ChatGallerySearch.cleanConstraint("女性"))
+        assertEquals("女", ChatGallerySearch.cleanConstraint("只保留女性"))
+        assertEquals("女", ChatGallerySearch.cleanConstraint("只要女人的照片"))
+        assertEquals("男", ChatGallerySearch.cleanConstraint("男人"))
     }
 }

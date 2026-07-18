@@ -59,7 +59,7 @@ class MediaSearchEngine(
     private fun cachedExpandForSearch(query: String, uiLang: AppLanguage): Set<String> {
         val key = "$query|$uiLang"
         return translationCache.getOrPut(key) {
-            tagTranslator.expandForSearch(query, uiLang)
+            SearchSynonyms.expand(query) + tagTranslator.expandForSearch(query, uiLang)
         }
     }
 
@@ -74,9 +74,14 @@ class MediaSearchEngine(
     suspend fun search(
         query: String,
         llmSearch: (suspend (String) -> StructuredFilter?)? = null,
-        enableSemanticSearch: Boolean = true
+        enableSemanticSearch: Boolean = true,
+        limitToIds: Set<Long>? = null
     ): SearchResult {
         if (query.isBlank()) return SearchResult(emptyList(), query)
+
+        // refine（in-set）时把搜索结果限定在上一轮结果集 prior 内；全库搜索时为 null 不生效。
+        fun limitToIdsFilter(list: List<MediaAsset>): List<MediaAsset> =
+            if (limitToIds != null) list.filter { asset -> asset.id in limitToIds } else list
 
         val uiLang = userSettingsRepository?.getAppLanguageBlocking() ?: AppLanguage.CHINESE
 
@@ -85,7 +90,7 @@ class MediaSearchEngine(
         if (segmentedQuery.hasExplicit && explicitFirstPipeline != null) {
             val explicitResults = explicitFirstPipeline.search(segmentedQuery, uiLang)
             if (explicitResults.media.isNotEmpty()) {
-                return SearchResult(explicitResults.media, query)
+                return SearchResult(limitToIdsFilter(explicitResults.media), query)
             }
         }
 
@@ -105,7 +110,7 @@ class MediaSearchEngine(
 
             // Layer 3: 融合排序
             val merged = mergeAndRank(results, semanticResults, query)
-            return SearchResult(merged, query)
+            return SearchResult(limitToIdsFilter(merged), query)
         }
 
         // Layer 2: LLM 解析
@@ -124,7 +129,7 @@ class MediaSearchEngine(
                 }
 
                 val merged = mergeAndRank(results, semanticResults, query)
-                return SearchResult(merged, query)
+                return SearchResult(limitToIdsFilter(merged), query)
             }
         }
 
@@ -145,7 +150,7 @@ class MediaSearchEngine(
         }
 
         val merged = mergeAndRank(sqlResults, semanticResults, query)
-        return SearchResult(merged, query)
+        return SearchResult(limitToIdsFilter(merged), query)
     }
 
     /**

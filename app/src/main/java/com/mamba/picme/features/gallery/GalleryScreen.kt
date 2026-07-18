@@ -701,14 +701,17 @@ fun GalleryScreen(
                 val tabItems = listOf(
                     FloatingBottomTabItem(
                         icon = Icons.Rounded.CameraAlt,
+                        contentDescription = stringResource(R.string.camera),
                         onClick = onNavigateToCamera
                     ),
                     FloatingBottomTabItem(
                         icon = Icons.Rounded.ChatBubble,
+                        contentDescription = stringResource(R.string.chat),
                         onClick = onNavigateToChat
                     ),
                     FloatingBottomTabItem(
                         icon = Icons.Rounded.CloudDownload,
+                        contentDescription = stringResource(R.string.model_center),
                         onClick = onNavigateToModelCenter
                     )
                 )

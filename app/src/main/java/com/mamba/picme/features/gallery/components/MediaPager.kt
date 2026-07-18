@@ -388,7 +388,7 @@ fun MediaPager(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.KeyboardVoice,
-                            contentDescription = "AI Agent",
+                            contentDescription = stringResource(R.string.ai_agent),
                             tint = Color.White
                         )
                     }
@@ -961,7 +961,7 @@ private fun mediaPagerTopControls(
                 ) {
                     Icon(
                         Icons.Rounded.Info,
-                        contentDescription = "图片信息",
+                        contentDescription = stringResource(R.string.image_info),
                         tint = Color.White,
                         modifier = Modifier.size(22.dp)
                     )
@@ -975,7 +975,7 @@ private fun mediaPagerTopControls(
                 ) {
                     Icon(
                         Icons.Rounded.Refresh,
-                        contentDescription = "重新生成TAG",
+                        contentDescription = stringResource(R.string.regenerate_tag),
                         tint = Color.White,
                         modifier = Modifier.size(22.dp)
                     )
@@ -1024,7 +1024,7 @@ private fun mediaPagerBottomBar(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.AutoMirrored.Rounded.Send,
-                        contentDescription = "发送",
+                        contentDescription = stringResource(R.string.send),
                         tint = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.size(22.dp)
                     )
@@ -1068,7 +1068,7 @@ private fun mediaPagerBottomBar(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Rounded.AutoAwesome,
-                        contentDescription = "图像理解",
+                        contentDescription = stringResource(R.string.image_understand),
                         tint = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.size(22.dp)
                     )
@@ -1091,7 +1091,7 @@ private fun mediaPagerBottomBar(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             Icons.Rounded.MoreHoriz,
-                            contentDescription = "更多",
+                            contentDescription = stringResource(R.string.more),
                             tint = Color.White.copy(alpha = 0.9f),
                             modifier = Modifier.size(22.dp)
                         )
@@ -1323,7 +1323,7 @@ private fun PhotoInfoDialog(
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                         Icon(
                             Icons.Rounded.Close,
-                            contentDescription = "关闭",
+                            contentDescription = stringResource(R.string.close),
                             tint = Color.Gray,
                             modifier = Modifier.size(20.dp)
                         )

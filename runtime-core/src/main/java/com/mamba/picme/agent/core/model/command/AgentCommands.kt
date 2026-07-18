@@ -452,3 +452,27 @@ sealed class AgentCommand {
         fun getCommandId(command: AgentCommand): Int = command.commandId
     }
 }
+
+/**
+ * 将一轮 Agent 命令转换为写入对话记忆的自然语言摘要。
+ *
+ * streamChat 回写 MemoryManager 时使用：媒体/反馈命令生成可读摘要，避免把原始 JSON
+ * 当作 assistant 历史喂回端侧小模型——小模型从 `[{"method":"search_media",...}]` 里
+ * 读不出"上一轮搜了/筛选了什么"，导致多轮找图无法收敛。
+ *
+ * - 含 [AgentCommand.TextReply] → 优先用其 message（保留既有行为）
+ * - 否则含媒体/反馈命令 → 拼接各命令摘要
+ * - 都不是（如纯导航/相机命令）→ 返回 null，由调用方兜底原始响应
+ */
+fun summarizeCommandsForMemory(commands: List<AgentCommand>): String? {
+    if (commands.isEmpty()) return null
+    val textReplies = commands.filterIsInstance<AgentCommand.TextReply>()
+    if (textReplies.isNotEmpty()) {
+        return textReplies.joinToString(" ") { reply -> reply.message }
+    }
+    // 媒体/反馈命令不生成摘要——回退 streamResult.fullResponse（原始 JSON）。
+    // 历史 assistant 保持标准 JSON 格式，LLM 模仿输出 JSON（parser 可解析）；
+    // 此前用「[method] X」摘要会 100% 诱导 LLM 照搬该非标准格式导致解析失败。
+    // 远程模型能读懂 JSON 历史，无需自然语言摘要。
+    return null
+}

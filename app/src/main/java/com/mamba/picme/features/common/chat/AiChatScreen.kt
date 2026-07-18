@@ -328,7 +328,7 @@ private fun AiChatHeader(
             ) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    contentDescription = if (isExpanded) stringResource(R.string.cd_collapse) else stringResource(R.string.cd_expand),
                     tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -610,7 +610,12 @@ private fun CommandExecutionBubble(
             // 执行状态图标
             Icon(
                 imageVector = statusIcon,
-                contentDescription = message.status.name,
+                contentDescription = when (message.status) {
+                    AgentMessage.CommandExecution.Status.PENDING -> stringResource(R.string.cd_status_pending)
+                    AgentMessage.CommandExecution.Status.RUNNING -> stringResource(R.string.cd_status_running)
+                    AgentMessage.CommandExecution.Status.SUCCESS -> stringResource(R.string.cd_status_success)
+                    AgentMessage.CommandExecution.Status.FAILED -> stringResource(R.string.cd_status_failed)
+                },
                 tint = statusColor,
                 modifier = Modifier.size(18.dp)
             )

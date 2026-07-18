@@ -737,4 +737,17 @@
     <string name="data_privacy_clear_guest">Clear guest data</string>
     <string name="data_privacy_clear_guest_success">Guest data cleared</string>
     <string name="data_privacy_clear_guest_failed">Failed to clear guest data</string>
+    <string name="tag_scan_control">TAG Scan Control</string>
+    <string name="start_scan">Start Scan</string>
+    <string name="search_photos">Search Photos</string>
+    <string name="group_by">Group By</string>
+    <string name="image_info">Image Info</string>
+    <string name="regenerate_tag">Regenerate TAG</string>
+    <string name="send">Send</string>
+    <string name="image_understand">Understand Image</string>
+    <string name="more">More</string>
+    <string name="cd_status_pending">Pending</string>
+    <string name="cd_status_running">Running</string>
+    <string name="cd_status_success">Success</string>
+    <string name="cd_status_failed">Failed</string>
 </resources>

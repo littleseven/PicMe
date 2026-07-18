@@ -741,8 +741,8 @@ class ChatViewModel(
             "更多类似这张照片的"
         }
         val outcome = onRefineMediaSearch(constraint)
-        val refinedAssets = lastResultAssets[sessionId].orEmpty().take(MAX_CARDS)
-        if (refinedAssets.isNotEmpty()) {
+        if (outcome.mediaIds.isNotEmpty()) {
+            val refinedAssets = lastResultAssets[sessionId].orEmpty().take(MAX_CARDS)
             insertMediaResultsMessage(
                 sessionId,
                 MediaResultsUi(
@@ -812,13 +812,21 @@ class ChatViewModel(
         val prior = lastResultAssets[sessionId].orEmpty()
         // 无上一轮 → 当 fresh 全局搜
         if (prior.isEmpty()) return onSearchMedia(constraint)
-        val refined = ChatGallerySearch.filterInSet(prior, constraint)
-        // in-set 空 → 回退全局重搜 constraint
+        val cleaned = ChatGallerySearch.cleanConstraint(constraint)
+        val priorIds = prior.map { asset -> asset.id }.toSet()
+        val searchHits = runCatching { mediaSearchEngine.search(cleaned, limitToIds = priorIds).media }
+            .getOrDefault(emptyList())
+        val refined = ChatGallerySearch.resolveRefine(prior, searchHits, cleaned)
+        val faceInPrior = prior.count { a -> a.hasFace }
+        Logger.i(
+            TAG,
+            "onRefineMediaSearch prior=${prior.size} hasFaceInPrior=$faceInPrior " +
+                "constraint='$constraint' cleaned='$cleaned' searchHits=${searchHits.size} refined=${refined.size}"
+        )
+        // in-set 空 → 保留上一轮结果集不变，返回空细化结果。不再全局重搜 constraint：
+        // 那会用与既有条件无关的新结果覆盖状态，破坏多轮收敛（用户会看到无关照片）。
         if (refined.isEmpty()) {
-            val global = runCatching { mediaSearchEngine.search(constraint) }.getOrNull()
-            val photos = global?.media?.filter { it.type == MediaType.PHOTO }.orEmpty()
-            lastResultAssets[sessionId] = photos
-            return SearchOutcome(constraint, photos.map { it.id }, photos.size, isRefinement = true)
+            return SearchOutcome(constraint, emptyList(), 0, isRefinement = true)
         }
         lastResultAssets[sessionId] = refined
         recordSearchSnapshot(sessionId, constraint, refined.size, isRefinement = true)
