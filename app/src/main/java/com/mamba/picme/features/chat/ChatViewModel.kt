@@ -112,6 +112,16 @@ class ChatViewModel(
     val streamingMessage: StateFlow<ChatMessageUi?> = _streamingMessage.asStateFlow()
 
     /**
+     * AI 优化命令触发后需要导航到编辑器的目标 URI。
+     */
+    private val _pendingAiOptimizeNavigation = MutableStateFlow<String?>(null)
+    val pendingAiOptimizeNavigation: StateFlow<String?> = _pendingAiOptimizeNavigation.asStateFlow()
+
+    fun consumeAiOptimizeNavigation() {
+        _pendingAiOptimizeNavigation.value = null
+    }
+
+    /**
      * UI 实际展示的消息列表：已持久化消息 + 流式临时消息。
      */
     val displayMessages: StateFlow<List<ChatMessageUi>> = combine(_messages, _streamingMessage) { messages, streaming ->
@@ -609,7 +619,22 @@ class ChatViewModel(
                 )
             }
             is AgentAction.Success -> {
-                insertAgentMessage(sessionId, describeCommandResult(action.command), "command", performance)
+                when (val cmd = action.command) {
+                    is AgentCommand.AiOptimize -> {
+                        val targetUri = cmd.imageUri.takeIf { it.isNotBlank() }
+                            ?: _lastUserImageUri.value
+                        if (targetUri.isNullOrBlank()) {
+                            insertAgentMessage(sessionId, "请先发送一张图片，再说“帮我优化这张照片”", currentModelLabel(), performance)
+                        } else {
+                            // 先给出文本反馈，再触发导航到编辑器自动优化
+                            insertAgentMessage(sessionId, cmd.explanation ?: "✅ 已为你优化这张照片", currentModelLabel(), performance)
+                            _pendingAiOptimizeNavigation.value = targetUri
+                        }
+                    }
+                    else -> {
+                        insertAgentMessage(sessionId, describeCommandResult(cmd), "command", performance)
+                    }
+                }
             }
             is AgentAction.Error -> {
                 val message = if (action.message == "feedback_resolve_failure") {
