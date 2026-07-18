@@ -15,6 +15,10 @@ import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.beauty.api.toAndroidColorMatrix
 import com.mamba.picme.beauty.api.toBeautyParams
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.domain.matting.BackgroundComposer
+import com.mamba.picme.domain.matting.CutoutComposer
+import com.mamba.picme.domain.matting.MattingEngine
+import com.mamba.picme.domain.matting.MaskPostProcessor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,7 +27,8 @@ private const val TAG = "RecipeApplier"
 
 class RecipeApplier(
     private val photoProcessor: PhotoProcessor,
-    private val processingDispatcher: CoroutineDispatcher = Dispatchers.Default
+    private val processingDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val mattingEngine: MattingEngine? = null
 ) {
     /**
      * Apply crop/rotate/flip to a bitmap.
@@ -147,6 +152,28 @@ class RecipeApplier(
         paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
         canvas.drawBitmap(bitmap, 0f, 0f, paint)
         return output
+    }
+
+    /**
+     * 去背景阶段：u2netp/MODNet 出 Alpha，按 bgMode 生成透明抠图或合成纯色背景。
+     * 纯 CPU 像素操作，不绑定 EGL 上下文，可在普通调度器执行。cutout 为 null 或未注入 mattingEngine 时原样返回。
+     */
+    suspend fun applyCutout(bitmap: Bitmap, cutout: CutoutRecipe?): Bitmap {
+        if (cutout == null || mattingEngine == null) return bitmap
+        val result = mattingEngine.removeBackground(bitmap) ?: return bitmap
+        val alpha = if (cutout.feather > 0) {
+            MaskPostProcessor.feather(result.alpha, result.width, result.height, cutout.feather)
+        } else {
+            result.alpha
+        }
+        return when (cutout.bgMode) {
+            CutoutRecipe.BgMode.TRANSPARENT ->
+                CutoutComposer.apply(bitmap, alpha, result.width, result.height)
+            CutoutRecipe.BgMode.COLOR ->
+                BackgroundComposer.apply(bitmap, alpha, result.width, result.height, cutout.bgColor ?: 0xFFFFFFFF.toInt())
+            CutoutRecipe.BgMode.BLUR ->
+                BackgroundComposer.apply(bitmap, alpha, result.width, result.height, cutout.bgColor ?: 0xFFFFFFFF.toInt())
+        }
     }
 
     /**
