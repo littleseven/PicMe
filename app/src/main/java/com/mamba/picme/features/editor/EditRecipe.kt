@@ -5,7 +5,7 @@ import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 
-private const val RECIPE_VERSION = 1
+private const val RECIPE_VERSION = 2
 
 data class EditRecipe(
     val sourceUri: String,
@@ -15,6 +15,7 @@ data class EditRecipe(
     val colorFilter: FilterType = FilterType.NONE,
     val styleFilter: StyleFilter = StyleFilter.NONE,
     val markup: List<MarkupAction> = emptyList(),
+    val cutout: CutoutRecipe? = null,
     val version: Int = RECIPE_VERSION
 ) {
     companion object

@@ -6,9 +6,11 @@ import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
 import com.mamba.picme.data.local.entity.PhotoEditRecipeEntity
+import com.mamba.picme.domain.matting.MaskSource
 import com.mamba.picme.features.editor.AdjustmentRecipe
 import com.mamba.picme.features.editor.AspectRatio
 import com.mamba.picme.features.editor.CropRecipe
+import com.mamba.picme.features.editor.CutoutRecipe
 import com.mamba.picme.features.editor.EditRecipe
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -83,8 +85,20 @@ class PhotoEditRecipeRepository(
             put("colorFilter", colorFilter.name)
             put("styleFilter", styleFilter.name)
             put("markup", emptyList<String>()) // Phase 2: serialize markup actions
+            cutout?.let {
+                put("cutout", JSONObject().apply {
+                    put("maskSource", it.maskSource.name)
+                    put("threshold", it.threshold)
+                    put("bgMode", it.bgMode.name)
+                    if (it.bgColor != null) put("bgColor", it.bgColor)
+                    put("feather", it.feather)
+                })
+            }
         }.toString()
     }
+
+    /** 测试可见的序列化入口。 */
+    internal fun toJsonForTest(recipe: EditRecipe): String = recipe.toJson()
 
     companion object {
         fun EditRecipe.Companion.fromJson(json: String, fallbackSourceUri: String): EditRecipe {
@@ -100,6 +114,25 @@ class PhotoEditRecipeRepository(
                     cropObj.getDouble("cropRectTop").toFloat(),
                     cropObj.getDouble("cropRectRight").toFloat(),
                     cropObj.getDouble("cropRectBottom").toFloat()
+                )
+            } else null
+
+            val cutout = if (root.has("cutout")) {
+                val c = root.getJSONObject("cutout")
+                CutoutRecipe(
+                    maskSource = try {
+                        MaskSource.valueOf(c.optString("maskSource", "U2NETP"))
+                    } catch (_: IllegalArgumentException) {
+                        MaskSource.U2NETP
+                    },
+                    threshold = c.optDouble("threshold", 0.5).toFloat(),
+                    bgMode = try {
+                        CutoutRecipe.BgMode.valueOf(c.optString("bgMode", "TRANSPARENT"))
+                    } catch (_: IllegalArgumentException) {
+                        CutoutRecipe.BgMode.TRANSPARENT
+                    },
+                    bgColor = if (c.has("bgColor")) c.optInt("bgColor") else null,
+                    feather = c.optInt("feather", 0)
                 )
             } else null
 
@@ -141,8 +174,12 @@ class PhotoEditRecipeRepository(
                 } catch (_: IllegalArgumentException) {
                     StyleFilter.NONE
                 },
+                cutout = cutout,
                 version = root.optInt("version", 1)
             )
         }
+
+        internal fun fromJsonForTest(json: String, fallbackSourceUri: String): EditRecipe =
+            EditRecipe.fromJson(json, fallbackSourceUri)
     }
 }
