@@ -434,6 +434,21 @@ class ChatViewModel(
                         // 清除流式占位
                         _streamingMessage.value = null
 
+                        // 性能数据统一在此计算并透传给所有回复路径（文本/命令），
+                        // 让 remote(DeepSeek) 响应气泡也展示 prompt/decode tokens、延迟、速度。
+                        // 此前仅纯文本路径填 performance，命令路径（remote ReAct 常走）传 null。
+                        val performance = streamResult.metrics?.let { metrics ->
+                            LlmPerformance(
+                                promptLen = metrics.promptTokens ?: 0,
+                                decodeLen = metrics.completionTokens ?: 0,
+                                prefillTimeMs = 0,
+                                decodeTimeMs = metrics.latencyMs,
+                                prefillSpeed = 0f,
+                                decodeSpeed = if (metrics.latencyMs > 0 && (metrics.completionTokens ?: 0) > 0)
+                                    (metrics.completionTokens!!.toFloat() / metrics.latencyMs * 1000) else 0f
+                            )
+                        }
+
                         // 检测 LLM 安全对齐误触发：用户想搜相册但 LLM 拒绝了
                         val replyText = (streamResult.commands.firstOrNull() as? AgentCommand.TextReply)?.message
                             ?: streamResult.fullResponse
@@ -464,23 +479,12 @@ class ChatViewModel(
                             if (actionValue is AgentAction.Error) {
                                 // 聊天页命令分发失败时，优先展示模型原始回复，避免把"暂不支持此操作"抛给用户
                                 Logger.w(TAG, "Capability dispatch failed in chat, falling back to full response. error=${actionValue.message}, detail=${actionValue.detail}")
-                                insertAgentMessage(sessionId, streamResult.fullResponse.ifBlank { actionValue.message }, currentModelLabel(), null)
+                                insertAgentMessage(sessionId, streamResult.fullResponse.ifBlank { actionValue.message }, currentModelLabel(), performance)
                             } else {
-                                handleAgentAction(actionValue, sessionId, currentModelLabel(), null)
+                                handleAgentAction(actionValue, sessionId, currentModelLabel(), performance)
                             }
                         } else {
                             // 纯文本回复：保存到 Room（REMOTE 场景或 LOCAL 的 text_reply）
-                            val performance = streamResult.metrics?.let { metrics ->
-                                LlmPerformance(
-                                    promptLen = metrics.promptTokens ?: 0,
-                                    decodeLen = metrics.completionTokens ?: 0,
-                                    prefillTimeMs = 0,
-                                    decodeTimeMs = metrics.latencyMs,
-                                    prefillSpeed = 0f,
-                                    decodeSpeed = if (metrics.latencyMs > 0 && (metrics.completionTokens ?: 0) > 0)
-                                        (metrics.completionTokens!!.toFloat() / metrics.latencyMs * 1000) else 0f
-                                )
-                            }
                             insertAgentMessage(
                                 sessionId = sessionId,
                                 content = streamResult.fullResponse,

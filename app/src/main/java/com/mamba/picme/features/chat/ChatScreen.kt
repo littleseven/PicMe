@@ -719,7 +719,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     )
                 }
             }
-            if (message.modelUsed != null) {
+            if (message.modelUsed != null && message.performance == null) {
                 Text(
                     text = message.modelUsed,
                     color = if (isUser) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
@@ -750,11 +750,13 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                         value = "${perf.decodeLen}",
                         tint = metricTint
                     )
-                    PerformanceMetric(
-                        icon = Icons.Rounded.Bolt,
-                        value = "${perf.prefillTimeMs}ms",
-                        tint = metricTint
-                    )
+                    if (perf.prefillTimeMs > 0) {
+                        PerformanceMetric(
+                            icon = Icons.Rounded.Bolt,
+                            value = "${perf.prefillTimeMs}ms",
+                            tint = metricTint
+                        )
+                    }
                     PerformanceMetric(
                         icon = Icons.Rounded.Timer,
                         value = "${perf.decodeTimeMs}ms",
