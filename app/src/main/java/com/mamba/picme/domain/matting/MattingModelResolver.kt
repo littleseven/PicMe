@@ -25,7 +25,7 @@ class AssetMattingModelResolver(context: Context) : MattingModelResolver {
     private val appContext = context.applicationContext
     private val modelDirRoot: File = File(appContext.filesDir, "llm_models")
     private val provider = AssetBytesProvider { path ->
-        appContext.assets.open(path).use { it.readBytes() }
+        appContext.assets.open(path).use { stream -> stream.readBytes() }
     }
 
     override suspend fun resolve(modelId: String): File? = withContext(Dispatchers.IO) {

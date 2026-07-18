@@ -80,7 +80,7 @@ class U2NetOnnxBackend(
     private fun flattenFloats(value: Any): FloatArray {
         val out = ArrayList<Float>()
         walkFloats(value, out)
-        return FloatArray(out.size) { out[it] }
+        return FloatArray(out.size) { i -> out[i] }
     }
 
     private fun walkFloats(v: Any?, out: ArrayList<Float>) {

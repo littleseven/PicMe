@@ -8,7 +8,7 @@ object MaskPostProcessor {
 
     /** 概率 >= threshold 记为 1（前景），否则 0。 */
     fun binarize(probabilities: FloatArray, threshold: Float): FloatArray =
-        FloatArray(probabilities.size) { if (probabilities[it] >= threshold) 1f else 0f }
+        FloatArray(probabilities.size) { i -> if (probabilities[i] >= threshold) 1f else 0f }
 
     /** 双线性上采样 (srcW,srcH) -> (dstW,dstH)，半像素中心 + 边缘钳制（与 TF/PyTorch 默认一致，掩码精确覆盖到图像边缘）。尺寸相同则返回拷贝。 */
     fun upsample(alpha: FloatArray, srcW: Int, srcH: Int, dstW: Int, dstH: Int): FloatArray {
