@@ -351,7 +351,7 @@ class ChatViewModel(
      * 6. 调用 [AgentOrchestrator.streamChat] 流式推理
      * 7. 推理完成后保存完整结果到 Room
      */
-    fun sendMessage(text: String) {
+    fun sendMessage(text: String, imageUri: String? = null) {
         if (text.isBlank()) return
 
         viewModelScope.launch {
@@ -360,13 +360,19 @@ class ChatViewModel(
                 // 0. 确保会话元数据存在
                 ensureSessionExists(sessionId)
 
+                // 携带图片时，把图片 uri 作为上下文并写入 metadata，供 UI 图文混排展示
+                if (imageUri != null) {
+                    _lastUserImageUri.value = imageUri
+                }
+
                 // 1. 保存用户消息
                 val userMessage = ChatMessageEntity(
                     id = UUID.randomUUID().toString(),
                     sessionId = sessionId,
-                    type = "user_text",
+                    type = if (imageUri != null) "user_image_text" else "user_text",
                     content = text,
-                    modelUsed = null
+                    modelUsed = null,
+                    metadata = imageUri?.let { """{"imageUri":"$it"}""" }
                 )
                 chatMessageDao.insertMessage(userMessage)
                 chatSessionDao.touchSession(sessionId)
@@ -1109,7 +1115,7 @@ class ChatViewModel(
             try {
                 ensureSessionExists(sessionId)
                 when {
-                    !text.isNullOrBlank() -> sendMessage(text)
+                    !text.isNullOrBlank() -> sendMessage(text, uri)
                     intent == ImageIntent.FIND_SIMILAR -> {
                         _isProcessing.value = true
                         val bitmap = runCatching {
@@ -1393,6 +1399,12 @@ class ChatViewModel(
         }
     }
 
+    private fun parseImageUri(metadata: String): String? = try {
+        org.json.JSONObject(metadata).optString("imageUri").takeIf { it.isNotBlank() }
+    } catch (e: Exception) {
+        null
+    }
+
     private fun ChatMessageEntity.toUiModel(): ChatMessageUi {
         val isMediaResults = type == "media_results"
         val performance = if (isMediaResults) null else metadata?.let { parsePerformanceMetadata(it) }
@@ -1403,6 +1415,7 @@ class ChatViewModel(
                 "user_text" -> ChatMessageType.USER_TEXT
                 "agent_text" -> ChatMessageType.AGENT_TEXT
                 "user_image" -> ChatMessageType.USER_IMAGE
+                "user_image_text" -> ChatMessageType.USER_IMAGE_TEXT
                 "agent_image" -> ChatMessageType.AGENT_IMAGE
                 "command" -> ChatMessageType.COMMAND
                 "plan_preview" -> ChatMessageType.PLAN_PREVIEW
@@ -1410,6 +1423,7 @@ class ChatViewModel(
                 else -> ChatMessageType.AGENT_TEXT
             },
             content = content,
+            imageUri = if (type == "user_image_text") metadata?.let { parseImageUri(it) } else null,
             modelUsed = modelUsed,
             timestamp = timestamp,
             performance = performance,

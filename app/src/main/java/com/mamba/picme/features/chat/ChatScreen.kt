@@ -607,8 +607,11 @@ private fun ChatTopBar(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit = {}) {
-    val isUser = message.type == ChatMessageType.USER_TEXT || message.type == ChatMessageType.USER_IMAGE
+    val isUser = message.type == ChatMessageType.USER_TEXT ||
+        message.type == ChatMessageType.USER_IMAGE ||
+        message.type == ChatMessageType.USER_IMAGE_TEXT
     val isImage = message.type == ChatMessageType.AGENT_IMAGE || message.type == ChatMessageType.USER_IMAGE
+    val isImageText = message.type == ChatMessageType.USER_IMAGE_TEXT
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     val copySuccess = stringResource(R.string.copy_success)
@@ -647,6 +650,31 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                 }
         ) {
             when {
+                isImageText -> {
+                    // 用户「图 + 文字意图」：图在上、文字在下
+                    AsyncImage(
+                        model = message.imageUri,
+                        contentDescription = stringResource(R.string.photo),
+                        contentScale = ContentScale.FillHeight,
+                        modifier = Modifier
+                            .height(160.dp)
+                            .widthIn(max = 240.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                val iu = Uri.parse(message.imageUri)
+                                val resolvedUri = if (iu.scheme != null) iu
+                                    else java.io.File(message.imageUri).toUri()
+                                onImageClick(resolvedUri)
+                            }
+                    )
+                    Text(
+                        text = message.content,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
                 isImage -> {
                     // 显示图片（可点击进入全屏预览）
                     // 高度固定 200dp，宽度按原始比例自适应，不超 260dp
@@ -1442,13 +1470,16 @@ data class ChatMessageUi(
     val modelUsed: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     val performance: LlmPerformance? = null,
-    val mediaResults: MediaResultsUi? = null
+    val mediaResults: MediaResultsUi? = null,
+    /** 图文混排（USER_IMAGE_TEXT）时携带的图片 uri；其余类型为 null。 */
+    val imageUri: String? = null
 )
 
 enum class ChatMessageType {
     USER_TEXT,
     AGENT_TEXT,
     USER_IMAGE,
+    USER_IMAGE_TEXT,
     AGENT_IMAGE,
     COMMAND,
     PLAN_PREVIEW,
