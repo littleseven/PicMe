@@ -74,8 +74,8 @@ android {
         applicationId = "com.mamba.picme"
         minSdk = 24
         targetSdk = 35
-        versionCode = 10013
-        versionName = "1.0.13"
+        versionCode = 10014
+        versionName = "1.0.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
