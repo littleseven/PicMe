@@ -85,9 +85,10 @@ class TagScanOrchestrator(
             if (lastTagScanPasses.isNullOrBlank()) return false
             val content = lastTagScanPasses.trim()
             if (content == "{}") return false
-            // 避免在 JVM 单元测试中依赖 Android 的 org.json stub，使用键名正则匹配
+            // 使用简单字符串查找：pass 键以 "<number>" 形式出现在 JSON 中，值是数字时间戳，不会误命中。
+            // 避免在循环中反复实例化 Regex，也避免依赖 Android 的 org.json stub。
             return requested.all { pass ->
-                Regex(""""$pass"\s*:""").containsMatchIn(content)
+                content.contains("\"$pass\"")
             }
         }
 
@@ -118,7 +119,7 @@ class TagScanOrchestrator(
             val withSemantic = db.mediaDao().getMediaWithSemanticEmbeddingCount()
             val unlabeledCount = db.mediaDao().getUnlabeledMediaCount()
             val withLabels = totalMedia - unlabeledCount
-            val personCount = db.personDao().getAllPersons().size
+            val personCount = db.personDao().getPersonCount()
             val faceEmbeddingCount = db.personDao().getAllEmbeddingCount()
             val remainingForPass1 = db.mediaDao().getMediaWithoutFaceRoiCount()
             // Pass 3 剩余独立统计：所有无 labels 的媒体，不强制要求已有 faceRoiResult
@@ -196,21 +197,25 @@ class TagScanOrchestrator(
         val before = System.currentTimeMillis() - policy.skipRecentlyTaggedMs
         val requestedPassNumbers = policy.passes.map { it.toPassNumber() }.toSet()
 
-        // 按排序策略从数据库拉取候选，确保方向正确且不会被另一方向的记录截断
-        val candidates = when (policy.order) {
-            QueueOrder.OLDEST_FIRST -> db.mediaDao().getMediaForIncrementalScanOldest(before, policy.maxBatchSize * 2)
-            QueueOrder.NEWEST_FIRST -> db.mediaDao().getMediaForIncrementalScanNewest(before, policy.maxBatchSize * 2)
+        // 按排序策略从数据库拉取轻量候选（仅 id + lastTagScanPasses），
+        // 避免一次性加载 faceRoiResult/semanticEmbedding 等大字段到 Java Heap。
+        val projections = when (policy.order) {
+            QueueOrder.OLDEST_FIRST -> db.mediaDao().getMediaForIncrementalScanOldestProjection(before, policy.maxBatchSize * 2)
+            QueueOrder.NEWEST_FIRST -> db.mediaDao().getMediaForIncrementalScanNewestProjection(before, policy.maxBatchSize * 2)
         }
-        val media = candidates.filter { entity ->
-            !isPassesCovered(entity.lastTagScanPasses, requestedPassNumbers)
-        }.let { filtered ->
-            when (policy.order) {
-                QueueOrder.OLDEST_FIRST -> filtered.sortedWith(
-                    compareBy({ it.lastTagScanAt ?: 0L }, { it.captureDate })
-                )
-                QueueOrder.NEWEST_FIRST -> filtered.sortedByDescending { it.captureDate }
+        val filteredIds = projections
+            .filter { !isPassesCovered(it.lastTagScanPasses, requestedPassNumbers) }
+            .take(policy.maxBatchSize)
+            .map { it.id }
+
+        // 仅对最终入选的媒体加载完整实体，保持与投影查询一致的顺序。
+        val media = if (filteredIds.isEmpty()) {
+            emptyList()
+        } else {
+            db.mediaDao().getMediaByIds(filteredIds).sortedBy { media ->
+                filteredIds.indexOf(media.id)
             }
-        }.take(policy.maxBatchSize)
+        }
 
         if (media.isEmpty()) {
             logInfo(sessionId, "没有需要增量扫描的媒体")
@@ -616,6 +621,7 @@ class TagScanOrchestrator(
         acquireWakeLock()
 
         var qwenModelPrepared = false
+        var mobileClipClassifierPrepared = false
 
         try {
             while (currentCoroutineContext().isActive) {
@@ -628,6 +634,12 @@ class TagScanOrchestrator(
                         break
                     }
                     qwenModelPrepared = true
+                }
+
+                // 在 Pass 3 首个任务前预热 MobileCLIP 分类器，避免 per-image warmUp 开销。
+                if (task.pass == TagScanPass.QWEN_TAGGING && !mobileClipClassifierPrepared) {
+                    scheduler.warmUpMobileClipClassifier()
+                    mobileClipClassifierPrepared = true
                 }
 
                 val startMs = System.currentTimeMillis()

@@ -29,6 +29,9 @@ interface PersonDao {
     @Query("SELECT * FROM persons ORDER BY faceCount DESC")
     suspend fun getAllPersons(): List<PersonEntity>
 
+    @Query("SELECT COUNT(*) FROM persons")
+    suspend fun getPersonCount(): Int
+
     @Query("SELECT * FROM persons WHERE personId = :personId")
     suspend fun getPerson(personId: Long): PersonEntity?
 

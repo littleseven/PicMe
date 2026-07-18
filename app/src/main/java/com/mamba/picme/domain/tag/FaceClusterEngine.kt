@@ -55,6 +55,13 @@ class FaceClusterEngine(private val context: Context) {
 
     private val personDao = AppDatabase.getDatabase(context).personDao()
 
+    /**
+     * 人物质心缓存：personId -> (centroid, embeddingCount)。
+     * 避免 matchCluster() 每次把某个人物的全部 embedding 从 DB 读出再重新计算质心。
+     * 所有通过本类修改簇的操作（createCluster / addToCluster / mergeClusters）都会同步更新缓存。
+     */
+    private val centroidCache = mutableMapOf<Long, Pair<FloatArray, Int>>()
+
     /** Glint360K R100 嵌入提取器（懒加载，模型缺失时为 null） */
     private val embeddingExtractor: MnnEmbeddingExtractor? by lazy {
         val modelDir = ModelPathConfig.getModelDir(context, "face-embedding-glint360k-r100-mnn")
@@ -286,7 +293,7 @@ class FaceClusterEngine(private val context: Context) {
         var bestSimilarity = ClusteringConfig.COSINE_THRESHOLD
 
         for (person in persons) {
-            val centroid = getPersonCentroid(person.personId) ?: continue
+            val centroid = getPersonCentroidCached(person.personId) ?: continue
             val similarity = cosineSimilarity(feature, centroid)
             if (similarity > bestSimilarity) {
                 bestSimilarity = similarity
@@ -320,6 +327,9 @@ class FaceClusterEngine(private val context: Context) {
         )
         personDao.insertEmbedding(embeddingEntity)
 
+        // 同步缓存质心
+        centroidCache[personId] = feature.clone() to 1
+
         return personId
     }
 
@@ -337,6 +347,17 @@ class FaceClusterEngine(private val context: Context) {
 
         // 更新人脸计数
         personDao.incrementFaceCount(personId)
+
+        // 增量更新缓存质心，避免下次 matchCluster 全量读取 DB。
+        centroidCache[personId]?.let { (oldCentroid, oldCount) ->
+            val newCount = oldCount + 1
+            val newCentroid = FloatArray(EMBEDDING_DIM)
+            for (i in 0 until EMBEDDING_DIM) {
+                newCentroid[i] = (oldCentroid[i] * oldCount + feature[i]) / newCount
+            }
+            centroidCache[personId] = newCentroid to newCount
+        }
+
         Log.d(TAG, "Added to cluster: personId=$personId, mediaId=$mediaId")
     }
 
@@ -353,6 +374,24 @@ class FaceClusterEngine(private val context: Context) {
         // 更新 personA faceCount
         repeat(countB) { personDao.incrementFaceCount(personA) }
 
+        // 合并缓存质心：personA = (centroidA * countA + centroidB * countB) / (countA + countB)
+        val cachedA = centroidCache[personA]
+        val cachedB = centroidCache[personB]
+        if (cachedA != null && cachedB != null) {
+            val (centroidA, countA) = cachedA
+            val (centroidB, countBFromCache) = cachedB
+            val totalCount = countA + countBFromCache
+            val mergedCentroid = FloatArray(EMBEDDING_DIM)
+            for (i in 0 until EMBEDDING_DIM) {
+                mergedCentroid[i] = (centroidA[i] * countA + centroidB[i] * countBFromCache) / totalCount
+            }
+            centroidCache[personA] = mergedCentroid to totalCount
+        } else {
+            // 缓存不一致时移除 personA 缓存，下次 matchCluster 会从 DB 重新计算。
+            centroidCache.remove(personA)
+        }
+        centroidCache.remove(personB)
+
         // 删除 personB
         personDao.unlinkEmbeddings(personB)
         personDao.deletePerson(personB)
@@ -361,9 +400,28 @@ class FaceClusterEngine(private val context: Context) {
     }
 
     /**
-     * 获取某个簇的质心特征向量（所有 embedding 的算术平均值）
+     * 获取某个簇的质心特征向量（优先读缓存，缓存失效或缺失时从 DB 重新计算）。
      */
-    private suspend fun getPersonCentroid(personId: Long): FloatArray? {
+    private suspend fun getPersonCentroidCached(personId: Long): FloatArray? {
+        // 用 DB 中的 embedding 数量校验缓存是否仍然有效。
+        val dbCount = personDao.getEmbeddingCount(personId)
+        if (dbCount == 0) return null
+
+        val cached = centroidCache[personId]
+        if (cached != null && cached.second == dbCount) {
+            return cached.first
+        }
+
+        // 缓存缺失或数量不一致：从 DB 重新计算并回填缓存。
+        val centroid = computePersonCentroidFromDb(personId) ?: return null
+        centroidCache[personId] = centroid to dbCount
+        return centroid
+    }
+
+    /**
+     * 从数据库计算某个簇的质心特征向量（所有 embedding 的算术平均值）。
+     */
+    private suspend fun computePersonCentroidFromDb(personId: Long): FloatArray? {
         val embeddings = personDao.getEmbeddingsByPerson(personId)
         if (embeddings.isEmpty()) return null
 

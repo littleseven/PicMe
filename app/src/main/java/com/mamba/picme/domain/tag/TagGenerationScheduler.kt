@@ -915,14 +915,16 @@ class TagGenerationScheduler(
         // 先清除该媒体旧 embedding，避免全量重扫时产生重复记录
         personDao.deleteEmbeddingsByMedia(entity.id)
 
-        for (embedding in result.embeddings) {
-            personDao.insertEmbedding(
+        // 批量写入 embedding，减少 Room WAL checkpoint 和事务开销。
+        if (result.embeddings.isNotEmpty()) {
+            val embeddingEntities = result.embeddings.map { embedding ->
                 com.mamba.picme.data.local.entity.FaceEmbeddingEntity(
                     mediaId = entity.id,
                     personId = null,
                     embedding = floatArrayToByteArray(embedding)
                 )
-            )
+            }
+            personDao.insertEmbeddings(embeddingEntities)
         }
 
         // MobileCLIP 语义编码已在 stage1WithEmbeddings 中复用 faceBitmap 完成
@@ -935,7 +937,8 @@ class TagGenerationScheduler(
             }
         }
 
-        delay(getThrottleMs())
+        // 固定轮询间隔（TagScanOrchestrator.POLL_INTERVAL_MS）已提供任务间散热间隙，
+        // 原子任务内部不再额外节流，避免把 Pass 1 实际推理时间放大数倍。
     }
 
     /**
@@ -1008,9 +1011,6 @@ class TagGenerationScheduler(
             throw IllegalStateException("LLM model not loaded")
         }
 
-        // 预热 MobileCLIP 分类器（首次会预计算候选标签文本 embedding）
-        pipeline.warmUpMobileClipClassifier()
-
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return
         val faceRoiJson = dao.getFaceRoiResult(entity.id)
@@ -1035,7 +1035,8 @@ class TagGenerationScheduler(
         Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, durationMs=$durationMs, " +
             "jsonOk=${normalized.jsonParsed}, scene=${normalized.scene}, tags=${normalized.tags}")
 
-        delay(getThrottleMs())
+        // Pass 3 的实际 Qwen 推理耗时是瓶颈，由 Orchestrator 的 POLL_INTERVAL_MS 提供任务间最小间隙，
+        // 此处不再叠加额外 throttle。
     }
 
     /**
@@ -1057,8 +1058,6 @@ class TagGenerationScheduler(
         if (embedding != null) {
             dao.updateSemanticEmbedding(entity.id, embedding)
         }
-
-        delay(getThrottleMs())
     }
 
     /**
@@ -1079,14 +1078,20 @@ class TagGenerationScheduler(
         // 同时存储中文翻译，使中文搜索可直接命中 ML Kit 标签
         val labelsZhJson = mlKitLabelTranslator.translateToZhJson(labels)
         dao.updateMlKitLabelsZh(entity.id, labelsZhJson)
-
-        delay(getThrottleMs())
     }
 
     /**
      * 批量 Pass 3 前准备：确保 Qwen 模型已加载
      */
     suspend fun prepareQwenModel(): Boolean = ensureModelLoaded()
+
+    /**
+     * 预热 MobileCLIP 标签分类器。
+     * 应在 Pass 3 会话开始前调用一次，避免每张图片都重复初始化/预计算文本 embedding。
+     */
+    fun warmUpMobileClipClassifier(): Boolean {
+        return pipeline.warmUpMobileClipClassifier()
+    }
 
     /**
      * 卸载 LLM 模型释放 ~4GB 内存

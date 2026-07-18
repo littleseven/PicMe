@@ -106,7 +106,10 @@ class OpenClGuardian(
     }
 
     /**
-     * 单次 Pass 3 推理，带超时与自动降级
+     * 单次 Pass 3 推理，带超时与自动降级。
+     *
+     * 注意：CPU 路径的实际推理在锁外执行，避免 CPU fallback 时被 Guardian 串行阻塞；
+     * OpenCL 路径仍保持串行，以便准确统计连续失败并安全降级。
      */
     suspend fun inference(
         bitmap: Bitmap,
@@ -114,16 +117,25 @@ class OpenClGuardian(
         userPrompt: String,
         maxTokens: Int = 256
     ): OpenClInferenceResult {
-        guardianMutex.withLock {
-            // 如果已降级或用户关闭 OpenCL，直接走 CPU
-            val useCpu = shouldUseCpu()
-            if (useCpu) {
+        // 1. 在锁内快速判定策略（读连续失败、降级冷却、用户偏好）。
+        val useCpu = guardianMutex.withLock { shouldUseCpu() }
+
+        if (useCpu) {
+            // 2a. CPU 路径：确保模型切换到 CPU（锁内），然后释放锁执行实际推理。
+            guardianMutex.withLock { ensureCpuLoaded() }
+            val response = engine.imageInference(bitmap, systemPrompt, userPrompt, maxTokens)
+            return OpenClInferenceResult.Success(response, backend = "CPU")
+        }
+
+        // 2b. OpenCL 路径：保持串行，便于失败后更新 Guardian 状态。
+        return guardianMutex.withLock {
+            // 双重检查：在等锁期间可能已被其他任务降级。
+            if (shouldUseCpu()) {
                 ensureCpuLoaded()
                 val response = engine.imageInference(bitmap, systemPrompt, userPrompt, maxTokens)
-                return OpenClInferenceResult.Success(response, backend = "CPU")
+                return@withLock OpenClInferenceResult.Success(response, backend = "CPU")
             }
 
-            // OpenCL 路径
             val backend = "OpenCL"
             val response = engine.imageInferenceWithTimeout(
                 bitmap = bitmap,
@@ -133,7 +145,7 @@ class OpenClGuardian(
                 timeoutMs = INFERENCE_TIMEOUT_MS
             )
 
-            return when {
+            when {
                 response.startsWith("__ERROR_OPENCL_TIMEOUT__") -> {
                     consecutiveFailures++
                     if (consecutiveFailures >= DEGRADE_THRESHOLD) {

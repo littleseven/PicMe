@@ -21,28 +21,23 @@ class TagNormalizer(private val vocab: ControlledVocab) {
      * 规范化 Qwen 输出的原始标签
      */
     fun normalize(raw: QwenTags): QwenTagsNormalized {
-        val normalizedTags = raw.tags.map { bestMatchWithSynonyms(it) }
-        val normalizedObjects = raw.objects.map { bestMatchWithSynonyms(it) }
-
+        val allCategories = vocab.allCategories
         val nonStandard = mutableListOf<String>()
 
-        // 收集未匹配词
-        raw.tags.forEach { tag ->
-            val matched = bestMatchWithSynonyms(tag)
-            if (matched == tag && matched !in vocab.allCategories) {
-                nonStandard.add(tag)
-            } else if (matched != tag) {
-                Log.d(TAG, "Normalized tag: '$tag' -> '$matched'")
+        // 一次遍历同时得到 normalized 结果和未匹配词，避免对同一张图重复遍历 700+ 词词表。
+        fun normalizeItem(item: String, logLabel: String): String {
+            if (item.isBlank()) return item
+            val matched = bestMatchWithSynonyms(item)
+            if (matched == item && item !in allCategories) {
+                nonStandard.add(item)
+            } else if (matched != item) {
+                Log.d(TAG, "Normalized $logLabel: '$item' -> '$matched'")
             }
+            return matched
         }
-        raw.objects.forEach { obj ->
-            val matched = bestMatchWithSynonyms(obj)
-            if (matched == obj && matched !in vocab.allCategories) {
-                nonStandard.add(obj)
-            } else if (matched != obj) {
-                Log.d(TAG, "Normalized object: '$obj' -> '$matched'")
-            }
-        }
+
+        val normalizedTags = raw.tags.map { normalizeItem(it, "tag") }
+        val normalizedObjects = raw.objects.map { normalizeItem(it, "object") }
 
         return QwenTagsNormalized(
             scene = bestMatchWithSynonyms(raw.scene),

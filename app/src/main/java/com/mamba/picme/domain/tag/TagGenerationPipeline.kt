@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.graphics.RectF
 import android.net.Uri
 import android.util.Log
+import android.util.LruCache
 import androidx.exifinterface.media.ExifInterface
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionResult
@@ -65,6 +66,12 @@ class TagGenerationPipeline(
 
         /** Qwen Stage 3 最大输出 token 数（activity + summary 模式下 128 足够） */
         private const val QWEN_MAX_TOKENS = 128
+
+        /**
+         * EXIF 旋转角度缓存：URI -> rotationDegrees。
+         * 在 Pass 1 与 Pass 3 分离执行时，避免对同一张图重复读取 EXIF。
+         */
+        private val exifRotationCache = LruCache<String, Int>(200)
     }
 
     /** 当前生成目标语言，由用户设置决定 */
@@ -89,7 +96,7 @@ class TagGenerationPipeline(
     ): String {
         Log.d(TAG, "=== Pipeline start: mediaId=$mediaId ===")
 
-        // 一次性加载 640px Bitmap，Stage 1 和 Stage 2 共用
+        // 一次性加载 640px Bitmap，Stage 1 / Stage 2 / Stage 3 共用
         val faceBitmap = loadBitmap(uri, MAX_FACE_DETECT_SIZE)
         if (faceBitmap == null) {
             Log.w(TAG, "Failed to load bitmap for mediaId=$mediaId")
@@ -98,6 +105,7 @@ class TagGenerationPipeline(
 
         val stage1Result: Stage1Result
         val stage2Result: Stage2Result?
+        val stage3Result: QwenTagsNormalized
 
         try {
             // ── Stage 1: 轻量人脸 ROI 检测（复用 faceBitmap）───
@@ -111,13 +119,17 @@ class TagGenerationPipeline(
                 null
             }
             Log.d(TAG, "Stage 2 done: personIds=${stage2Result?.personIds ?: "N/A"}")
+
+            // ── Stage 3: Qwen 图像理解（复用已旋转/解码的 faceBitmap，缩放到 512px）───
+            // 避免重新走 ContentResolver.openInputStream + BitmapFactory + EXIF 旋转。
+            val stage3Bitmap = scaleBitmapToMaxSize(faceBitmap, MAX_VISION_SIZE)
+            val faceRoiJson = faceRoiToJson(stage1Result)
+            stage3Result = stage3QwenTagging(stage3Bitmap, faceRoiJson)
+            stage3Bitmap.recycle()
+            Log.d(TAG, "Stage 3 done: scene=${stage3Result.scene}, tags=${stage3Result.tags}")
         } finally {
             faceBitmap.recycle()
         }
-
-        // ── Stage 3: Qwen 图像理解（独立加载 512px Bitmap，尺寸要求不同）───
-        val stage3Result = stage3QwenTagging(uri, stage1Result, stage2Result)
-        Log.d(TAG, "Stage 3 done: scene=${stage3Result.scene}, tags=${stage3Result.tags}")
 
         // ── 组装最终结果 ───────────────────────────────────
         val faceIds = stage2Result?.personIds ?: emptyList()
@@ -233,17 +245,29 @@ class TagGenerationPipeline(
         }
 
         return try {
-            val combined = runStage3Combined(bitmap, faceRoiJson)
-            QwenTags(
-                scene = combined.scene,
-                activity = combined.activity,
-                objects = combined.objects,
-                tags = combined.tags,
-                summary = combined.summary
-            ).let { normalizer.normalize(it) }
+            stage3QwenTagging(bitmap, faceRoiJson)
         } finally {
             bitmap.recycle()
         }
+    }
+
+    /**
+     * [Pass 3] Qwen3.5-2B 图像理解标签生成（Bitmap 重载）。
+     *
+     * 供 [processPhoto] 复用已加载/已旋转的 Bitmap，避免二次 ContentResolver 解码。
+     */
+    suspend fun stage3QwenTagging(
+        bitmap: Bitmap,
+        faceRoiJson: String?
+    ): QwenTagsNormalized {
+        val combined = runStage3Combined(bitmap, faceRoiJson)
+        return QwenTags(
+            scene = combined.scene,
+            activity = combined.activity,
+            objects = combined.objects,
+            tags = combined.tags,
+            summary = combined.summary
+        ).let { normalizer.normalize(it) }
     }
 
     /**
@@ -802,18 +826,23 @@ class TagGenerationPipeline(
     /**
      * 从 Content URI 加载 Bitmap，缩放到指定最长边，并校正 EXIF 方向。
      *
+     * 优化：先一次性把图片数据读入内存 byte[]，再从中做 bounds 和 decode，
+     * 避免 ContentResolver.openInputStream 被打开两次。
+     *
      * inSampleSize 会被 BitmapFactory 向下取整到 2 的幂次，因此实际尺寸可能略大于 maxSize。
      * 注意：返回的 Bitmap 需要调用方负责回收。
      */
     private fun loadBitmap(uri: String, maxSize: Int): Bitmap? {
         return try {
             val contentUri = Uri.parse(uri)
+            val bytes = context.contentResolver.openInputStream(contentUri)?.use { stream ->
+                stream.readBytes()
+            } ?: return null
+
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
-            context.contentResolver.openInputStream(contentUri)?.use { stream ->
-                BitmapFactory.decodeStream(stream, null, options)
-            }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
 
             val scale = if (maxOf(options.outWidth, options.outHeight) > maxSize) {
                 maxOf(options.outWidth, options.outHeight) / maxSize
@@ -826,9 +855,7 @@ class TagGenerationPipeline(
                 inSampleSize = sampleSize
                 inPreferredConfig = Bitmap.Config.ARGB_8888
             }.let { decodeOptions ->
-                context.contentResolver.openInputStream(contentUri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream, null, decodeOptions)
-                }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
             } ?: return null
 
             // 校正 EXIF 方向，避免竖拍/旋转照片编码错误
@@ -842,16 +869,26 @@ class TagGenerationPipeline(
     /**
      * 根据 EXIF 方向标签旋转 Bitmap。
      *
+     * 使用 LruCache 缓存同一 URI 的旋转角度，避免 Pass 1 与 Pass 3 分离执行时重复读取 EXIF。
+     *
      * @return 旋转后的新 Bitmap；无需旋转时返回原 Bitmap
      */
     private fun applyExifRotation(uri: Uri, bitmap: Bitmap): Bitmap {
-        val rotationDegrees = try {
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                ExifInterface(stream).rotationDegrees
-            } ?: 0
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to read EXIF orientation: ${e.message}")
-            0
+        val uriString = uri.toString()
+        val cached = exifRotationCache.get(uriString)
+        val rotationDegrees = if (cached != null) {
+            cached
+        } else {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    ExifInterface(stream).rotationDegrees.also {
+                        exifRotationCache.put(uriString, it)
+                    }
+                } ?: 0
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to read EXIF orientation: ${e.message}")
+                0
+            }
         }
 
         if (rotationDegrees == 0) return bitmap
@@ -865,5 +902,20 @@ class TagGenerationPipeline(
             Log.w(TAG, "Failed to rotate bitmap: ${e.message}")
             bitmap
         }
+    }
+
+    /**
+     * 将 Bitmap 等比缩放到指定最长边，保持宽高比。
+     *
+     * @return 缩放后的新 Bitmap；若已满足尺寸则返回原 Bitmap
+     */
+    private fun scaleBitmapToMaxSize(source: Bitmap, maxSize: Int): Bitmap {
+        val maxDimension = maxOf(source.width, source.height)
+        if (maxDimension <= maxSize) return source
+
+        val scale = maxSize.toFloat() / maxDimension
+        val scaledWidth = (source.width * scale).toInt()
+        val scaledHeight = (source.height * scale).toInt()
+        return Bitmap.createScaledBitmap(source, scaledWidth, scaledHeight, true)
     }
 }

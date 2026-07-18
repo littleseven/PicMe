@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.mamba.picme.data.download.ModelPathConfig
 import java.io.File
+import java.nio.FloatBuffer
 
 /**
  * MobileCLIP ONNX Runtime 后端（MobileCLIP-S2 fp16）
@@ -102,7 +103,8 @@ class MobileClipOnnxBackend(
 
         return try {
             val inputArray = preprocessImage(bitmap)
-            val tensor = OnnxTensor.createTensor(env, inputArray)
+            val shape = longArrayOf(1, 3, VISION_INPUT_SIZE.toLong(), VISION_INPUT_SIZE.toLong())
+            val tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(inputArray), shape)
             try {
                 val inputs = mapOf(VISION_INPUT_NAME to tensor)
                 session.run(inputs).use { results ->
@@ -157,9 +159,9 @@ class MobileClipOnnxBackend(
      * 1. 保持宽高比，短边缩放到 256
      * 2. 中心裁剪 256x256
      * 3. RGB 像素除以 255
-     * 4. 排列为 NCHW [1, 3, 256, 256]
+     * 4. 排列为一维 NCHW [1, 3, 256, 256] FloatArray，减少嵌套对象分配与 GC 压力。
      */
-    private fun preprocessImage(source: Bitmap): Array<Array<Array<FloatArray>>> {
+    private fun preprocessImage(source: Bitmap): FloatArray {
         val cropped = createCenterCroppedBitmap(source, VISION_INPUT_SIZE)
         val width = cropped.width
         val height = cropped.height
@@ -167,11 +169,8 @@ class MobileClipOnnxBackend(
         cropped.getPixels(pixels, 0, width, 0, 0, width, height)
 
         // NCHW layout: [batch=1, channels=3, height, width]
-        val result = Array(1) {
-            Array(3) {
-                Array(height) { FloatArray(width) }
-            }
-        }
+        val result = FloatArray(1 * 3 * height * width)
+        val channelStride = height * width
 
         for (y in 0 until height) {
             for (x in 0 until width) {
@@ -180,9 +179,9 @@ class MobileClipOnnxBackend(
                 val r = (pixel shr 16 and 0xFF) / 255.0f
                 val g = (pixel shr 8 and 0xFF) / 255.0f
                 val b = (pixel and 0xFF) / 255.0f
-                result[0][0][y][x] = r
-                result[0][1][y][x] = g
-                result[0][2][y][x] = b
+                result[0 * channelStride + i] = r
+                result[1 * channelStride + i] = g
+                result[2 * channelStride + i] = b
             }
         }
 

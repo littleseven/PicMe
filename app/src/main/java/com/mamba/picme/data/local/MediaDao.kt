@@ -349,6 +349,43 @@ interface MediaDao {
     )
     suspend fun getMediaForIncrementalScanOldest(before: Long, limit: Int): List<MediaEntity>
 
+    /**
+     * 仅获取 id + lastTagScanPasses 的轻量投影，用于自动增量扫描的去重过滤。
+     * 避免一次性加载 faceRoiResult / semanticEmbedding 等大字段到 Java Heap。
+     */
+    data class TagScanCandidateProjection(
+        val id: Long,
+        val lastTagScanPasses: String?
+    )
+
+    /** 按拍摄时间降序获取候选媒体 ID 与已扫描 Passes（newest-first） */
+    @Query(
+        """
+        SELECT id, lastTagScanPasses FROM media_assets
+        WHERE (lastTagScanAt IS NULL OR lastTagScanAt < :before)
+        ORDER BY captureDate DESC, lastTagScanAt ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getMediaForIncrementalScanNewestProjection(
+        before: Long,
+        limit: Int
+    ): List<TagScanCandidateProjection>
+
+    /** 按拍摄时间升序获取候选媒体 ID 与已扫描 Passes（oldest-first） */
+    @Query(
+        """
+        SELECT id, lastTagScanPasses FROM media_assets
+        WHERE (lastTagScanAt IS NULL OR lastTagScanAt < :before)
+        ORDER BY captureDate ASC, lastTagScanAt ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getMediaForIncrementalScanOldestProjection(
+        before: Long,
+        limit: Int
+    ): List<TagScanCandidateProjection>
+
     /** 获取指定 ID 中最近扫描时间早于阈值的照片 */
     @Query(
         """
