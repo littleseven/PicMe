@@ -13,6 +13,8 @@ import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
+import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
+import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -98,6 +100,8 @@ class ChatViewModelTitleUpdateTest {
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
             picMeAuthClient = authClient,
+            getGallerySummaryUseCase = mockk(relaxed = true),
+            startTagScanUseCase = StartTagScanUseCase(context)
         )
     )
 

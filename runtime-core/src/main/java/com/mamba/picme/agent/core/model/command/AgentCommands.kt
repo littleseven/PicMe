@@ -331,6 +331,20 @@ sealed class AgentCommand {
         val includeDetails: Boolean = false
     ) : AgentCommand()
 
+    /**
+     * 启动/控制/查询 TAG 扫描任务
+     *
+     * @property action 动作：start, pause, resume, cancel, query
+     * @property taskType 扫描类别：face, scene, activity, objects, tags, summary, mlkit, auto
+     * @property mode 扫描模式：full, incremental（仅 start 有效）
+     */
+    data class StartTagScan(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val action: String,
+        val taskType: String? = null,
+        val mode: String? = null
+    ) : AgentCommand()
+
     // ==================== 系统/外部 App 命令 ====================
 
     /**
@@ -448,6 +462,7 @@ sealed class AgentCommand {
             is GoBack -> "go_back"
             is AiOptimize -> "ai_optimize"
             is GetGallerySummary -> "get_gallery_summary"
+            is StartTagScan -> "start_tag_scan"
             is LaunchApp -> "launch_app"
             is OpenSystemSettings -> "open_system_settings"
             is BatchExecute -> "batch_execute"

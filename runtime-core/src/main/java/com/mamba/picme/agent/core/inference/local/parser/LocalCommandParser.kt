@@ -466,6 +466,19 @@ object LocalCommandParser {
                 )
             }
 
+            // ===== TAG 扫描控制命令 =====
+            "start_tag_scan" -> {
+                val action = extractJsonField(json, "action") ?: "query"
+                val taskType = extractJsonField(json, "task_type")
+                val mode = extractJsonField(json, "mode")
+                AgentCommand.StartTagScan(
+                    commandId = commandId,
+                    action = action,
+                    taskType = taskType,
+                    mode = mode
+                )
+            }
+
             // ===== 设置命令 =====
             "change_theme" -> {
                 val theme = extractJsonField(json, "theme") ?: "system"

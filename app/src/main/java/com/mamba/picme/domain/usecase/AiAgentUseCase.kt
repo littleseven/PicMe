@@ -296,6 +296,7 @@ class AiAgentUseCase(
             is AgentCommand.SwitchViewMode -> AiAgentCommand.TextReply("切换相册视图")
             is AgentCommand.FavoriteMedia -> AiAgentCommand.TextReply("收藏照片")
             is AgentCommand.GetGallerySummary -> AiAgentCommand.TextReply("相册摘要")
+            is AgentCommand.StartTagScan -> AiAgentCommand.TextReply("TAG 扫描控制: ${command.action}")
             // 设置命令
             is AgentCommand.ChangeTheme -> AiAgentCommand.TextReply("切换主题: ${command.theme}")
             is AgentCommand.ChangeLanguage -> AiAgentCommand.TextReply("切换语言: ${command.language}")
@@ -363,6 +364,7 @@ class AiAgentUseCase(
                     is AgentCommand.SwitchViewMode -> AiAgentCommand.TextReply("切换相册视图")
                     is AgentCommand.FavoriteMedia -> AiAgentCommand.TextReply("收藏照片")
                     is AgentCommand.GetGallerySummary -> AiAgentCommand.TextReply("相册摘要")
+                    is AgentCommand.StartTagScan -> AiAgentCommand.TextReply("TAG 扫描控制: ${cmd.action}")
                     // 设置命令
                     is AgentCommand.ChangeTheme -> AiAgentCommand.TextReply("切换主题: ${cmd.theme}")
                     is AgentCommand.ChangeLanguage -> AiAgentCommand.TextReply("切换语言: ${cmd.language}")

@@ -64,7 +64,7 @@ class LocalPromptBuilder(
 - exclude: {"method":"exclude","params":{"constraint":"夜景"}}
 
 【字段约束】
-- params 中只允许这些键：smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow, filter, style, scene, ratio, exposure, zoom, mode, destination, package_name, app_name, activity_class, setting, action, target, text, message, delay_ms, constraint, image_uri。
+- params 中只允许这些键：smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow, filter, style, scene, ratio, exposure, zoom, mode, destination, package_name, app_name, activity_class, setting, action, target, text, message, delay_ms, constraint, image_uri, task_type。
 - 不要输出未定义字段；不需要的参数不要输出。
 - 数字不要加引号，字符串必须加引号。
 
@@ -166,9 +166,10 @@ class LocalPromptBuilder(
 - go_back: 返回上一页
 - launch_app(params.package_name|app_name): 打开本机应用
 - open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications): 打开系统设置
+- start_tag_scan(params.action, params.task_type, params.mode): 启动/控制/查询 TAG 扫描
 
 【字段约束】
-- params 只允许：destination, package_name, app_name, setting, message。
+- params 只允许：destination, package_name, app_name, setting, message, action, task_type, mode。
 - 不要输出未定义字段；不需要的参数不要输出。
 - 数字不要加引号，字符串必须加引号。
 
@@ -181,6 +182,10 @@ class LocalPromptBuilder(
 「返回」→ [{"method":"go_back","params":{}}]
 「打开微信」→ [{"method":"launch_app","params":{"app_name":"微信"}}]
 「打开WiFi设置」→ [{"method":"open_system_settings","params":{"setting":"wifi"}}]
+「帮我扫描照片」→ [{"method":"start_tag_scan","params":{"action":"start","task_type":"auto","mode":"incremental"}}]
+「扫描进度怎么样」→ [{"method":"start_tag_scan","params":{"action":"query"}}]
+「暂停扫描」→ [{"method":"start_tag_scan","params":{"action":"pause"}}]
+「恢复扫描」→ [{"method":"start_tag_scan","params":{"action":"resume"}}]
 """.trimIndent()
 
     /**
@@ -401,6 +406,7 @@ class LocalPromptBuilder(
                 appendLine("search_media(query), refine_media_search(constraint), feedback(target,action), more(target), exclude(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search；\"第三张不错\"用 feedback，\"再来点这种\"用 more，\"不要夜景\"用 exclude")
                 appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。")
                 appendLine("ai_optimize(image_uri, mode=fast|smart): AI一键优化图片。用户发送图片后说'帮我优化这张照片/修好看点'时调用；image_uri 使用最近图片 URI 或用户指定的 URI；mode 默认 fast（本地），用户要求更智能推荐时用 smart（需授权）。")
+                appendLine("start_tag_scan(action=start|pause|resume|cancel|query, task_type=face|scene|activity|objects|tags|summary|mlkit|auto, mode=full|incremental): 启动或控制本地 TAG 扫描。用户说'扫描照片''开始人脸分组''继续扫描''取消扫描''扫描进度'时调用。未指定类别用 auto，未指定模式用 incremental。")
             }
             appendLine("navigate_to(destination), go_back, text_reply(message)")
             appendLine()

@@ -130,6 +130,7 @@ import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
+import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
@@ -283,6 +284,7 @@ fun ChatScreen(
     // （GALLERY 场景）→ CHAT 场景不匹配 → "正在为您切换到对应页面执行操作..."
     RegisterCapability(ChatSearchCapability.getInstance())
     RegisterCapability(ChatGallerySummaryCapability.getInstance())
+    RegisterCapability(ChatStartTagScanCapability.getInstance())
 
     // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
     DisposableEffect(Unit) {
@@ -294,6 +296,12 @@ fun ChatScreen(
     DisposableEffect(Unit) {
         ChatGallerySummaryCapability.getInstance().bindDelegate(viewModel)
         onDispose { ChatGallerySummaryCapability.getInstance().unbindDelegate() }
+    }
+
+    // 绑定 ChatStartTagScanCapability Delegate
+    DisposableEffect(Unit) {
+        ChatStartTagScanCapability.getInstance().bindDelegate(viewModel)
+        onDispose { ChatStartTagScanCapability.getInstance().unbindDelegate() }
     }
 
     BackHandler(enabled = isSidebarOpen) {
