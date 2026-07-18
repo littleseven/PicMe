@@ -20,6 +20,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
+ * 判断 MIME 是否为图片类型。
+ *
+ * 供 [TagGenerationPipeline.loadBitmap] 在解码前拦截非图片媒体（视频/音频等），
+ * 避免对大文件（如屏录视频）做无意义且可能 OOM 的图像解码。
+ * mime 为 null 时返回 false（无法判定为图片），由调用方决定是否放行。
+ */
+internal fun isImageMimeType(mime: String?): Boolean =
+    mime != null && mime.startsWith("image/", ignoreCase = true)
+
+/**
  * 三阶段 Tag 生成管道
  *
  * ```
@@ -826,36 +836,58 @@ class TagGenerationPipeline(
     /**
      * 从 Content URI 加载 Bitmap，缩放到指定最长边，并校正 EXIF 方向。
      *
-     * 优化：先一次性把图片数据读入内存 byte[]，再从中做 bounds 和 decode，
-     * 避免 ContentResolver.openInputStream 被打开两次。
+     * 内存安全（修复 OOM 闪退）：不再用 readBytes() 把整个文件一次性读入 byte[]——否则遇到
+     * 大文件（实测 187MB 屏录视频）会直接撑爆 Java Heap。改为：
+     * 1. 先按 MIME 拦截非图片（视频/音频等）——图像阶段对它们本就无意义，且避免任何字节读取；
+     * 2. 流式两遍 decodeStream（bounds + 真正解码），内存占用仅与解码后 Bitmap 尺寸成正比，
+     *    不再与文件大小成正比。代价是开两次 ContentResolver 流，其开销远小于物化整个文件。
      *
      * inSampleSize 会被 BitmapFactory 向下取整到 2 的幂次，因此实际尺寸可能略大于 maxSize。
      * 注意：返回的 Bitmap 需要调用方负责回收。
      */
     private fun loadBitmap(uri: String, maxSize: Int): Bitmap? {
-        return try {
-            val contentUri = Uri.parse(uri)
-            val bytes = context.contentResolver.openInputStream(contentUri)?.use { stream ->
-                stream.readBytes()
-            } ?: return null
+        val contentUri = Uri.parse(uri)
 
-            val options = BitmapFactory.Options().apply {
+        // 1. MIME 拦截：非图片（视频/音频等）直接跳过，避免对大视频 readBytes 导致 OOM。
+        //    getType 命中 MediaProvider 缓存且不打开流，开销极小。
+        //    mime 为 null 时不拦截（个别 URI 无 mime 信息），交给下方流式解码兜底。
+        val mime = try {
+            context.contentResolver.getType(contentUri)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to query mime type for $uri: ${e.message}")
+            null
+        }
+        if (mime != null && !isImageMimeType(mime)) {
+            Log.d(TAG, "Skip non-image media (mime=$mime) at $uri")
+            return null
+        }
+
+        return try {
+            // 2. 流式两遍解码：先读 bounds 计算 inSampleSize，再真正解码
+            val bounds = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+            context.contentResolver.openInputStream(contentUri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, bounds)
+            }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
-            val scale = if (maxOf(options.outWidth, options.outHeight) > maxSize) {
-                maxOf(options.outWidth, options.outHeight) / maxSize
+            val scale = if (maxOf(bounds.outWidth, bounds.outHeight) > maxSize) {
+                maxOf(bounds.outWidth, bounds.outHeight) / maxSize
             } else 1
 
             // inSampleSize 必须是 2 的幂次
             val sampleSize = Integer.highestOneBit(scale).coerceAtLeast(1)
 
-            val decoded = BitmapFactory.Options().apply {
-                inSampleSize = sampleSize
-                inPreferredConfig = Bitmap.Config.ARGB_8888
-            }.let { decodeOptions ->
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+            val decoded = context.contentResolver.openInputStream(contentUri)?.use { stream ->
+                BitmapFactory.decodeStream(
+                    stream,
+                    null,
+                    BitmapFactory.Options().apply {
+                        inSampleSize = sampleSize
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
+                    }
+                )
             } ?: return null
 
             // 校正 EXIF 方向，避免竖拍/旋转照片编码错误
