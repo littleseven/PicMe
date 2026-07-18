@@ -41,6 +41,14 @@ class MobileClipTagClassifier(
         /** tags 字段：Top-5，阈值 0.20 */
         private const val TAG_TOP_K = 5
         private const val TAG_THRESHOLD = 0.20f
+
+        /**
+         * 质量门控：top 标签/场景/物体必须达到的最低置信度。
+         * 低于该值说明 MobileCLIP 对这张图的判断不可靠，应回退到 Qwen 全量输出。
+         */
+        private const val SCENE_MIN_CONFIDENCE = 0.40f
+        private const val OBJECT_MIN_CONFIDENCE = 0.32f
+        private const val TAG_MIN_CONFIDENCE = 0.32f
     }
 
     private var isReady = false
@@ -135,15 +143,38 @@ class MobileClipTagClassifier(
 
         val embeddings = if (lang == AppLanguage.ENGLISH) textEmbeddingsEn else textEmbeddingsZh
         val blocked = if (lang == AppLanguage.ENGLISH) vocab.blockedTagsEn else vocab.blockedTags
-        val scene = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(lang), imageEmbedding, embeddings, blocked).firstOrNull() ?: ""
-        val objects = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(lang), imageEmbedding, embeddings, blocked)
-        val tags = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(lang), imageEmbedding, embeddings, blocked)
+
+        val sceneResults = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(lang), imageEmbedding, embeddings, blocked)
+        val objectResults = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(lang), imageEmbedding, embeddings, blocked)
+        val tagResults = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(lang), imageEmbedding, embeddings, blocked)
+
+        val scene = sceneResults.firstOrNull()?.first ?: ""
+        val sceneScore = sceneResults.firstOrNull()?.second ?: 0f
+        val objects = objectResults.map { it.first }
+        val objectScore = objectResults.firstOrNull()?.second ?: 0f
+        val tags = tagResults.map { it.first }
+        val tagScore = tagResults.firstOrNull()?.second ?: 0f
+
+        // 质量门控：top 匹配分数过低时，说明 MobileCLIP 对当前图像不可靠，回退 Qwen 全量输出
+        val qualityOk = sceneScore >= SCENE_MIN_CONFIDENCE &&
+            (objectResults.isEmpty() || objectScore >= OBJECT_MIN_CONFIDENCE) &&
+            (tagResults.isEmpty() || tagScore >= TAG_MIN_CONFIDENCE)
+        Log.d(
+            TAG,
+            "MobileCLIP scores: scene=$scene($sceneScore), " +
+                "topObject=$objectScore, topTag=$tagScore, tags=$tags, qualityOk=$qualityOk"
+        )
+        if (!qualityOk) {
+            Log.w(TAG, "MobileCLIP quality gate failed, falling back to Qwen full output")
+            return null
+        }
 
         return MobileClipTags(scene = scene, objects = objects, tags = tags)
     }
 
     /**
-     * 从指定候选集中选取与图像相似度最高的 Top-K 标签，过滤低于阈值或被屏蔽的标签
+     * 从指定候选集中选取与图像相似度最高的 Top-K 标签，过滤低于阈值或被屏蔽的标签。
+     * 返回带分数的结果，供质量门控使用。
      */
     private fun topK(
         k: Int,
@@ -152,7 +183,7 @@ class MobileClipTagClassifier(
         imageEmbedding: FloatArray,
         embeddings: Map<String, FloatArray>,
         blocked: List<String>
-    ): List<String> {
+    ): List<Pair<String, Float>> {
         val scored = candidates.mapNotNull { label ->
             if (label in blocked) return@mapNotNull null
             val textEmbedding = embeddings[label] ?: return@mapNotNull null
@@ -161,7 +192,6 @@ class MobileClipTagClassifier(
         }
         return scored.sortedByDescending { it.second }
             .take(k)
-            .map { it.first }
     }
 
     /**
