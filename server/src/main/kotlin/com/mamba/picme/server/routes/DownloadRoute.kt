@@ -25,6 +25,10 @@ import java.util.EnumMap
 
 private const val APP_VERSION = "1.0.10"
 
+/** X（推特）官方 logo SVG，黑标，用于联系作者区块。 */
+private const val X_LOGO_SVG =
+    """<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" viewBox="0 0 24 24"><path fill="#000" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>"""
+
 fun Routing.downloadRoute(cosService: CosService) {
     get("/download") {
         val apkInfo = cosService.getApkInfo()
@@ -66,8 +70,6 @@ private fun createDownloadPage(downloadUrl: String, version: String, size: Strin
                         .contact-qr{background:#fff;border-radius:12px;padding:8px;width:124px;height:124px;display:flex;align-items:center;justify-content:center}
                         .contact-qr img{width:108px;height:108px;display:block}
                         .contact-label{font-size:12px;color:#94a3b8}
-                        .x-link{display:inline-flex;align-items:center;justify-content:center;color:#e2e8f0;text-decoration:none;font-size:13px;height:124px;min-width:124px;padding:0 16px;border:1px solid #334155;border-radius:12px}
-                        .x-link:hover{background:#1e293b}
                         """.trimIndent(),
                     )
                 }
@@ -101,8 +103,10 @@ private fun createDownloadPage(downloadUrl: String, version: String, size: Strin
                             div("contact-label") { +"微信扫码" }
                         }
                         div("contact-item") {
-                            a("https://x.com/shuiguo007", target = "_blank", classes = "x-link") { +"X @shuiguo007" }
-                            div("contact-label") { +"关注 X" }
+                            a("https://x.com/shuaiguo007", target = "_blank", classes = "contact-qr") {
+                                unsafe { raw(X_LOGO_SVG) }
+                            }
+                            div("contact-label") { +"@shuaiguo007" }
                         }
                     }
                 }
