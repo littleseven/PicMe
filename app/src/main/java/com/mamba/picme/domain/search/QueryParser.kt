@@ -36,40 +36,30 @@ object QueryParser {
         if (trimmed.isEmpty()) return null
 
         val timeRange = parseTimeRange(trimmed)
-        val (contentKeywords, locationKeywords) = extractCategorizedKeywords(trimmed, lang)
+        val (rawContentKeywords, locationKeywords) = extractCategorizedKeywords(trimmed, lang)
 
-        // 只有时间条件且无复杂语义 → 规则匹配
-        if (timeRange != null && contentKeywords.isEmpty() && locationKeywords.isEmpty()) {
-            return StructuredFilter(
-                timeRange = timeRange,
-                keywords = emptyList(),
-                locationKeywords = emptyList(),
-                needsLlm = false
-            )
+        // 通用人物触发词（如“人脸”“自拍”）只用于触发人脸列查询，
+        // 不应再作为内容关键词去标签/OCR 中匹配。
+        val genericPersonTriggers = SearchVocabulary.PERSON_GENERIC_TRIGGERS
+        val contentKeywords = rawContentKeywords.filter { it !in genericPersonTriggers }
+
+        // 人物相关搜索（含具体人物词如“宝宝”）统一开启人脸列查询
+        val isPeople = isPeopleSearch(trimmed)
+
+        // 没有任何可规则解析的约束 → 需要 LLM
+        val hasConstraint = timeRange != null || contentKeywords.isNotEmpty() ||
+            locationKeywords.isNotEmpty() || isPeople
+        if (!hasConstraint) {
+            return null
         }
 
-        // 纯关键词（无时间词）→ 规则匹配
-        if (timeRange == null && (contentKeywords.isNotEmpty() || locationKeywords.isNotEmpty())) {
-            return StructuredFilter(
-                timeRange = null,
-                keywords = contentKeywords,
-                locationKeywords = locationKeywords,
-                needsLlm = false
-            )
-        }
-
-        // 有时间 + 有关键词 → 规则匹配
-        if (timeRange != null && (contentKeywords.isNotEmpty() || locationKeywords.isNotEmpty())) {
-            return StructuredFilter(
-                timeRange = timeRange,
-                keywords = contentKeywords,
-                locationKeywords = locationKeywords,
-                needsLlm = false
-            )
-        }
-
-        // 无法规则解析 → 需要 LLM
-        return null
+        return StructuredFilter(
+            timeRange = timeRange,
+            keywords = contentKeywords,
+            locationKeywords = locationKeywords,
+            hasFaces = if (isPeople) true else null,
+            needsLlm = false
+        )
     }
 
     /**

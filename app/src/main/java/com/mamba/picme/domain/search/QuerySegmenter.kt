@@ -89,8 +89,11 @@ object QuerySegmenter {
         val contentKeywords = mutableListOf<String>()
         val ocrKeywords = mutableListOf<String>()
 
-        // 人物关键词同时作为内容关键词，支持在标签/OCR 中命中
-        contentKeywords.addAll(explicit.personKeywords)
+        // 通用人物触发词只用于 hasFaces，不再作为内容关键词去标签/OCR 中匹配，
+        // 避免搜“人脸”时只在标签里找“人脸”而漏掉大部分人脸照片。
+        // 具体人物词（如“宝宝”“老人”）保留为内容关键词，避免把所有人脸照都返回。
+        val genericPersonTriggers = SearchVocabulary.PERSON_GENERIC_TRIGGERS
+        contentKeywords.addAll(explicit.personKeywords.filter { it !in genericPersonTriggers })
 
         for (segment in segmented.contentSegments) {
             when (segment.type) {
