@@ -198,6 +198,16 @@ fun ChatScreen(
         isSidebarOpen = false
     }
 
+    // 预览打开时拦截系统返回键：关闭预览并回到 chat 页（保留横滑卡片），
+    // 而非直接 pop 到相册（Gallery 为 startDestination，栈底为 [Gallery, Chat]）。
+    // 与 GalleryScreen 的预览 BackHandler 行为对齐。
+    BackHandler(enabled = previewAssets.isNotEmpty() || previewImageUri != null) {
+        when {
+            previewAssets.isNotEmpty() -> previewAssets = emptyList()
+            previewImageUri != null -> previewImageUri = null
+        }
+    }
+
     // AI 优化命令触发后导航到编辑器
     val pendingOptimizeUri by viewModel.pendingAiOptimizeNavigation.collectAsState()
     LaunchedEffect(pendingOptimizeUri) {
