@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Redo
+import androidx.compose.material.icons.outlined.LayersClear
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +38,7 @@ fun EditorTopBar(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onCompare: (pressed: Boolean) -> Unit,
+    onRemoveBackground: () -> Unit,
     onAiOptimize: () -> Unit,
     onDone: () -> Unit
 ) {
@@ -67,6 +69,13 @@ fun EditorTopBar(
                 color = colors.titleContentColor,
                 modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = onRemoveBackground, enabled = !isSaving) {
+                Icon(
+                    imageVector = Icons.Outlined.LayersClear,
+                    contentDescription = stringResource(R.string.remove_background),
+                    tint = colors.actionIconContentColor
+                )
+            }
             IconButton(onClick = onAiOptimize, enabled = !isSaving) {
                 Icon(
                     imageVector = Icons.Default.AutoFixHigh,

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.features.camera.components.BeautyPanel
 import com.mamba.picme.features.editor.components.AdjustPanel
+import com.mamba.picme.features.editor.components.CheckerboardBackground
 import com.mamba.picme.features.editor.components.CropPanel
 import com.mamba.picme.features.editor.components.EditorBottomBar
 import com.mamba.picme.features.editor.components.EditorTopBar
@@ -74,6 +75,7 @@ fun PhotoEditorScreen(
                 onUndo = viewModel::undo,
                 onRedo = viewModel::redo,
                 onCompare = { /* handled in preview */ },
+                onRemoveBackground = viewModel::removeBackground,
                 onAiOptimize = viewModel::aiOptimize,
                 onDone = {
                     val ready = state as? PhotoEditorViewModel.State.Ready ?: return@EditorTopBar
@@ -96,13 +98,18 @@ fun PhotoEditorScreen(
             }
         }
     ) { padding ->
+        val transparent = (state as? PhotoEditorViewModel.State.Ready)
+            ?.recipe?.cutout?.bgMode == CutoutRecipe.BgMode.TRANSPARENT
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.Black),
+                .background(if (transparent) Color.Transparent else Color.Black),
             contentAlignment = Alignment.Center
         ) {
+            if (transparent) {
+                CheckerboardBackground(Modifier.fillMaxSize())
+            }
             when (val s = state) {
                 is PhotoEditorViewModel.State.Loading -> {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
