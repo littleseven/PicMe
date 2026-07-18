@@ -29,8 +29,10 @@ import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
+import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
+import com.mamba.picme.agent.core.model.context.GallerySummary
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -70,7 +72,7 @@ private const val STREAMING_THINKING_HINT = "正在思考..."
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(
     dependencies: ChatViewModelDependencies
-) : ViewModel(), ChatSearchCapability.Delegate {
+) : ViewModel(), ChatSearchCapability.Delegate, ChatGallerySummaryCapability.Delegate {
 
     private val context = dependencies.context.applicationContext
     private val chatMessageDao = dependencies.chatMessageDao
@@ -78,6 +80,7 @@ class ChatViewModel(
     private val userSettingsRepository = dependencies.userSettingsRepository
     private val mediaSearchEngine = dependencies.mediaSearchEngine
     private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
+    private val getGallerySummaryUseCase = dependencies.getGallerySummaryUseCase
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -338,10 +341,12 @@ class ChatViewModel(
      *
      * 流程：
      * 1. 保存用户消息到 Room
-     * 2. 构建 Agent 上下文
+     * 2. 触发处理状态
      * 3. 创建流式占位消息，实时展示 token
-     * 4. 调用 [AgentOrchestrator.streamChat] 流式推理
-     * 5. 推理完成后保存完整结果到 Room
+     * 4. 获取相册摘要
+     * 5. 构建 Agent 上下文
+     * 6. 调用 [AgentOrchestrator.streamChat] 流式推理
+     * 7. 推理完成后保存完整结果到 Room
      */
     fun sendMessage(text: String) {
         if (text.isBlank()) return
@@ -381,12 +386,16 @@ class ChatViewModel(
                     modelUsed = currentModelLabel()
                 )
 
+                // 3.5 获取相册摘要并注入上下文
+                val gallerySummary = getGallerySummaryUseCase(includeDetails = false)
+
                 // 4. 构建 Agent 上下文
                 val agentContext = AgentContext(
                     scene = AgentScene.CHAT,
                     memorySessionId = sessionId,
                     recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty(),
-                    lastUserImageUri = _lastUserImageUri.value
+                    lastUserImageUri = _lastUserImageUri.value,
+                    gallerySummary = gallerySummary
                 )
 
                 // 5. 调用流式推理
@@ -914,6 +923,12 @@ class ChatViewModel(
         reapplyFiltersToCurrentResults(sessionId)
         mediaFeedbackUseCase.recordExclude(constraint, sessionId)
         return true
+    }
+
+    // ── ChatGallerySummaryCapability.Delegate：相册摘要 ─────────────
+
+    override suspend fun onGetGallerySummary(includeDetails: Boolean): GallerySummary? {
+        return getGallerySummaryUseCase(includeDetails)
     }
 
     private fun reapplyFiltersToCurrentResults(sessionId: String) {

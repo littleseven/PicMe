@@ -33,7 +33,9 @@ data class AgentContext(
     val memorySessionId: String = scene.name.lowercase(),
     val recentSearchResults: List<SearchResultSnapshot> = emptyList(),
     /** 最近一条用户图片消息的持久化路径，供模型指代「这张照片」 */
-    val lastUserImageUri: String? = null
+    val lastUserImageUri: String? = null,
+    /** 当前相册摘要，供 LLM 回答「有多少照片/人脸/是否需扫描」等问题 */
+    val gallerySummary: GallerySummary? = null
 )
 
 /**

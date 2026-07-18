@@ -1,0 +1,66 @@
+package com.mamba.picme.domain.usecase
+
+import android.content.Context
+import com.mamba.picme.agent.core.model.context.GallerySummary
+import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
+import com.mamba.picme.service.tag.TagGenerationService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * 获取本地相册摘要。
+ *
+ * - 读取-only，不写数据库，不触发扫描。
+ * - 全部使用 COUNT(*) 查询 + StateFlow 读取，目标耗时 < 50ms。
+ * - 返回 null 表示读取失败（如 Room 异常），上层应按“无数据”处理。
+ */
+class GetGallerySummaryUseCase(
+    private val context: Context,
+    private val db: AppDatabase
+) {
+    suspend operator fun invoke(includeDetails: Boolean = false): GallerySummary? = withContext(Dispatchers.IO) {
+        runCatching {
+            val stats = TagScanOrchestrator.getDbStats(db)
+            val progress = TagGenerationService.sessionProgress.value
+            val isScanning = TagGenerationService.isScanning.value
+
+            val recommendation = when {
+                stats.totalMedia > 0 && stats.remainingForPass1 > stats.totalMedia * 0.1 ->
+                    GallerySummary.ScanRecommendation.PASS1_FIRST
+                stats.totalMedia > 0 && stats.remainingForPass3 > stats.totalMedia * 0.3 ->
+                    GallerySummary.ScanRecommendation.PASS3_FULL
+                stats.remainingForPass3 > 0 ->
+                    GallerySummary.ScanRecommendation.INCREMENTAL
+                else ->
+                    GallerySummary.ScanRecommendation.NONE
+            }
+
+            val currentPass = progress?.currentPass?.name
+            val scanProgressText = if (isScanning && progress != null) {
+                "${progress.processed}/${progress.total}"
+            } else null
+
+            GallerySummary(
+                totalPhotos = db.mediaDao().getPhotoCount(),
+                totalVideos = db.mediaDao().getVideoCount(),
+                totalMedia = stats.totalMedia,
+                hasFaceCount = stats.withFace,
+                personClusterCount = stats.personCount,
+                namedPersonCount = stats.namedPersonCount,
+                labeledCount = stats.withLabels,
+                unlabeledCount = stats.remainingForPass3,
+                mlKitLabeledCount = stats.withMlKitLabels,
+                semanticEncodedCount = stats.withSemantic,
+                remainingPass1 = stats.remainingForPass1,
+                remainingPass3 = stats.remainingForPass3,
+                remainingMlKit = stats.remainingForMlKit,
+                isScanning = isScanning,
+                currentPass = currentPass,
+                scanProgressText = scanProgressText,
+                recommendation = recommendation,
+                includeDetails = includeDetails
+            )
+        }.getOrNull()
+    }
+}

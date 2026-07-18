@@ -405,6 +405,13 @@ class PoLangToolService(
         return dispatchResult
     }
 
+    @Tool(name = "get_gallery_summary", value = ["获取本地相册摘要，包括照片数、人脸数、人物数、已/未打标数量以及扫描建议。参数 include_details 为 true 时返回剩余 Pass 1/Pass 3/ML Kit 任务数。"])
+    fun getGallerySummary(
+        @P(name = "include_details", value = "是否返回包含剩余任务数的完整摘要，默认 false") includeDetails: Boolean = false
+    ): String {
+        return dispatchCommand(AgentCommand.GetGallerySummary(includeDetails = includeDetails))
+    }
+
     @Tool(name = "click_gallery_item", value = ["点击相册网格中的第 N 个媒体项。必须先进入相册并完成搜索。index 从 1 开始，按屏幕可见项的顺序计数。"])
     fun clickGalleryItem(
         @P(name = "index", value = "从 1 开始的照片序号") index: Int
@@ -661,6 +668,9 @@ class PoLangToolService(
             )
             "navigate_to" -> navigateTo(args.optString("destination", ""))
             "search_photos" -> searchPhotos(args.optString("query", ""))
+            "get_gallery_summary" -> getGallerySummary(
+                includeDetails = args.optBoolean("include_details", false)
+            )
             "click_gallery_item" -> clickGalleryItem(args.optInt("index", 0))
             "go_back" -> goBack()
             "capture" -> capture()

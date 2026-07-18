@@ -321,6 +321,16 @@ sealed class AgentCommand {
         val resultRecipe: String? = null
     ) : AgentCommand()
 
+    /**
+     * 获取本地相册摘要
+     *
+     * @property includeDetails 是否返回包含剩余任务数的完整摘要
+     */
+    data class GetGallerySummary(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val includeDetails: Boolean = false
+    ) : AgentCommand()
+
     // ==================== 系统/外部 App 命令 ====================
 
     /**
@@ -437,6 +447,7 @@ sealed class AgentCommand {
             is NavigateTo -> "navigate_to"
             is GoBack -> "go_back"
             is AiOptimize -> "ai_optimize"
+            is GetGallerySummary -> "get_gallery_summary"
             is LaunchApp -> "launch_app"
             is OpenSystemSettings -> "open_system_settings"
             is BatchExecute -> "batch_execute"

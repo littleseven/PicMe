@@ -457,6 +457,15 @@ object LocalCommandParser {
                 AgentCommand.AiOptimize(commandId = commandId, imageUri = imageUri, mode = mode)
             }
 
+            // ===== 相册摘要命令 =====
+            "get_gallery_summary" -> {
+                val includeDetails = extractJsonBoolean(json, "include_details") ?: false
+                AgentCommand.GetGallerySummary(
+                    commandId = commandId,
+                    includeDetails = includeDetails
+                )
+            }
+
             // ===== 设置命令 =====
             "change_theme" -> {
                 val theme = extractJsonField(json, "theme") ?: "system"

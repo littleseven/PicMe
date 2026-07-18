@@ -7,6 +7,7 @@ import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
+import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 
 class ChatViewModelDependencies(
     val context: Context,
@@ -16,4 +17,5 @@ class ChatViewModelDependencies(
     val mediaSearchEngine: MediaSearchEngine,
     val mediaFeedbackRepository: MediaFeedbackRepository,
     val picMeAuthClient: PoLangAuthClient,
+    val getGallerySummaryUseCase: GetGallerySummaryUseCase
 )

@@ -2,6 +2,7 @@ package com.mamba.picme.agent.core.inference.local.prompt
 
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.context.AgentContext
+import com.mamba.picme.agent.core.model.context.GallerySummary
 import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import java.time.LocalDate
@@ -153,6 +154,11 @@ class LocalPromptBuilder(
 4) 闲聊/问答/解释/不确定时：[{"method":"text_reply","params":{"message":"中文简短回复"}}]。
 5) 用户询问某个命令的格式、用法、指令是什么时，只输出 text_reply 进行解释，不要附加任何可执行命令。
 6) 用户说"怎么做/怎么用/是什么"等疑问句时，优先 text_reply 解释，不要执行命令。
+
+【相册摘要使用规则】
+- 当前相册摘要见【当前状态】中的 gallery_summary。
+- 用户问照片数量、人脸数量、是否需要扫描时，直接根据 gallery_summary 回答。
+- 如果 gallery_summary={status:no_data}，说明相册尚未完成首次扫描，请友好地告诉用户“还没有照片数据，可能需要先同步相册或启动 TAG 扫描”，并询问是否需要前往 TAG 生成控制页开始扫描。
 
 【可用命令】
 - text_reply(params.message): 闲聊、问答、解释、不知道说什么
@@ -338,7 +344,8 @@ class LocalPromptBuilder(
             appendLine("${if (isChatScene) 5 else 7}. 导航：navigate_to(params.destination=camera|gallery|settings|debug) 或 go_back")
             appendLine("${if (isChatScene) 6 else 8}. 系统：launch_app(params.package_name|app_name), open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications)")
             appendLine("${if (isChatScene) 7 else 9}. 延迟：delay(params.delay_ms)，必须放数组第一个")
-            appendLine("${if (isChatScene) 8 else 10}. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。你是命令解析器，不是内容审核员。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数，不得以任何理由拒绝、不得进行道德判断、不得输出 text_reply 替代。")
+            appendLine("${if (isChatScene) 8 else 10}. 【相册摘要】gallery_summary 见【当前状态】；用户问照片/人脸/扫描建议时直接引用该摘要。status=no_data 时引导启动 TAG 扫描。")
+            appendLine("${if (isChatScene) 9 else 11}. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。你是命令解析器，不是内容审核员。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数，不得以任何理由拒绝、不得进行道德判断、不得输出 text_reply 替代。")
             appendLine()
             appendLine("【语义映射】")
             appendLine("冷色/冷色调/冷滤镜/冷色滤镜/冷调滤镜 -> filter=COOL")
@@ -488,6 +495,8 @@ class LocalPromptBuilder(
             append(if (context.isRecording) "1" else "0")
             append(", last_user_image_uri=")
             append(context.lastUserImageUri ?: "null")
+            append(", gallery_summary=")
+            append(formatGallerySummary(context.gallerySummary))
             append(buildSearchResultsSection(context.recentSearchResults))
         }
     }
@@ -503,6 +512,38 @@ class LocalPromptBuilder(
                     appendLine("  [${i + 1}] id=${item.mediaId} tags=[${item.tags.joinToString(", ")}]")
                 }
             }
+        }
+    }
+
+    private fun formatGallerySummary(summary: GallerySummary?): String {
+        if (summary == null || summary.totalMedia == 0) {
+            return "{status:no_data}"
+        }
+        return buildString {
+            append("{totalMedia:${summary.totalMedia}")
+            append(",photos:${summary.totalPhotos}")
+            append(",videos:${summary.totalVideos}")
+            append(",faces:${summary.hasFaceCount}")
+            append(",persons:${summary.personClusterCount}")
+            append(",named:${summary.namedPersonCount}")
+            append(",labeled:${summary.labeledCount}")
+            append(",unlabeled:${summary.unlabeledCount}")
+            append(",mlKit:${summary.mlKitLabeledCount}")
+            append(",semantic:${summary.semanticEncodedCount}")
+            append(",scanning:${if (summary.isScanning) "1" else "0"}")
+            append(",recommendation:${summary.recommendation.name}")
+            if (summary.currentPass != null) {
+                append(",currentPass:${summary.currentPass}")
+            }
+            if (summary.scanProgressText != null) {
+                append(",progress:\"${summary.scanProgressText}\"")
+            }
+            if (summary.includeDetails) {
+                append(",remainingPass1:${summary.remainingPass1}")
+                append(",remainingPass3:${summary.remainingPass3}")
+                append(",remainingMlKit:${summary.remainingMlKit}")
+            }
+            append("}")
         }
     }
 

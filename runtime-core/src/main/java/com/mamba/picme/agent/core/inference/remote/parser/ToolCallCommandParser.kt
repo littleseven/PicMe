@@ -67,6 +67,7 @@ object ToolCallCommandParser {
             "navigate_to" -> parseNavigateTo(args)
             "go_back" -> AgentCommand.GoBack()
             "ai_optimize" -> parseAiOptimize(args)
+            "get_gallery_summary" -> parseGetGallerySummary(args)
             "text_reply" -> parseTextReply(args)
             "launch_app" -> parseLaunchApp(args)
             "open_system_settings" -> parseOpenSystemSettings(args)
@@ -177,6 +178,12 @@ object ToolCallCommandParser {
         val imageUri = args.optString("image_uri", "")
         val mode = args.optString("mode", "fast")
         return AgentCommand.AiOptimize(imageUri = imageUri, mode = mode)
+    }
+
+    private fun parseGetGallerySummary(args: JSONObject): AgentCommand.GetGallerySummary {
+        return AgentCommand.GetGallerySummary(
+            includeDetails = args.optBoolean("include_details", false)
+        )
     }
 
     private fun parseTextReply(args: JSONObject): AgentCommand.TextReply {

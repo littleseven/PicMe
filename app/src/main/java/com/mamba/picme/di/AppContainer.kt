@@ -49,6 +49,7 @@ import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeCon
 import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
+import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
 import com.mamba.picme.features.chat.ChatViewModel
@@ -419,6 +420,10 @@ class AppContainerImpl(
         MlKitOcrProcessor()
     }
 
+    private val getGallerySummaryUseCase: GetGallerySummaryUseCase by lazy {
+        GetGallerySummaryUseCase(context = context, db = database)
+    }
+
     private val mediaViewModelDependencies: MediaViewModelDependencies by lazy {
         MediaViewModelDependencies(
             repository = repository,
@@ -454,7 +459,8 @@ class AppContainerImpl(
             userSettingsRepository = userPreferencesRepository,
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
-            picMeAuthClient = PoLangAuthClient()
+            picMeAuthClient = PoLangAuthClient(),
+            getGallerySummaryUseCase = getGallerySummaryUseCase
         )
     }
 

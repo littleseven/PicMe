@@ -109,6 +109,14 @@ interface MediaDao {
     @Query("SELECT COUNT(*) FROM media_assets")
     suspend fun getTotalCount(): Int
 
+    /** 获取照片数量 */
+    @Query("SELECT COUNT(*) FROM media_assets WHERE type = 'PHOTO'")
+    suspend fun getPhotoCount(): Int
+
+    /** 获取视频数量 */
+    @Query("SELECT COUNT(*) FROM media_assets WHERE type = 'VIDEO'")
+    suspend fun getVideoCount(): Int
+
     // ── 人脸聚类查询 ──────────────────────────────────────────
 
     /** 获取所有媒体（非 Flow，用于后台） */

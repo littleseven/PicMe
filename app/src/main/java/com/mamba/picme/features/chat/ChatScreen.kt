@@ -126,6 +126,7 @@ import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.agent.core.model.command.FeedbackAction
+import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
@@ -279,11 +280,18 @@ fun ChatScreen(
     // 否则 findCapabilityForCommand 会回退到 registry 里的 GalleryCapability
     // （GALLERY 场景）→ CHAT 场景不匹配 → "正在为您切换到对应页面执行操作..."
     RegisterCapability(ChatSearchCapability.getInstance())
+    RegisterCapability(ChatGallerySummaryCapability.getInstance())
 
     // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
     DisposableEffect(Unit) {
         ChatSearchCapability.getInstance().bindDelegate(viewModel)
         onDispose { ChatSearchCapability.getInstance().unbindDelegate() }
+    }
+
+    // 绑定 ChatGallerySummaryCapability Delegate
+    DisposableEffect(Unit) {
+        ChatGallerySummaryCapability.getInstance().bindDelegate(viewModel)
+        onDispose { ChatGallerySummaryCapability.getInstance().unbindDelegate() }
     }
 
     BackHandler(enabled = isSidebarOpen) {
