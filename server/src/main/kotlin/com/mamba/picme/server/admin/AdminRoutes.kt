@@ -127,6 +127,28 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
             call.respondText(body, ContentType.Application.Json)
         }
 
+        post("/users/{id}/revoke") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) AccountService.setStatus(id, "revoked")
+            call.respondRedirect("/admin/users")
+        }
+
+        post("/users/{id}/unrevoke") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) AccountService.setStatus(id, "active")
+            call.respondRedirect("/admin/users")
+        }
+
+        // 管理后台「删除账户及数据」：立即物理删除账号 + 调用日志（隐私合规「立即删除」）。
+        post("/users/{id}/delete") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) AccountService.purgeAccount(id)
+            call.respondRedirect("/admin/users")
+        }
+
         get("/traffic") {
             if (!call.adminGuard(adminToken)) return@get
             val now = System.currentTimeMillis()

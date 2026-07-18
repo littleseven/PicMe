@@ -833,18 +833,23 @@ class TagGenerationScheduler(
             return false
         }
 
-        // 如果模型已加载（可能来自 AI Agent 的 OpenCL 加载或其他扫描残留），
-        // 先完整卸载再重新加载，确保后端与 Guardian 策略一致。
+        // 由 OpenClGuardian 决定使用 OpenCL 还是 CPU（含黑名单、降级冷却、用户偏好）
+        val useCpu = openClGuardian.shouldUseCpu()
+
+        // 如果已按 Guardian 策略加载了正确后端，直接复用，避免 Pass 3 每张照片都卸载重装。
+        if (engine.isLoaded && engine.isLoadedAs(MODEL_KEY, useOpencl = !useCpu)) {
+            Log.i(TAG, "Model already loaded with requested backend, reusing")
+            return true
+        }
+
+        // 如果已加载但后端不匹配（如 OpenCL 与 CPU 切换），先完整卸载再重新加载。
         if (engine.isLoaded) {
-            Log.i(TAG, "Model already loaded, unloading before reload")
+            Log.i(TAG, "Model loaded with different backend, unloading before reload")
             engine.unload()
             // unload 通过 backgroundScope.launch 投递到 modelDispatcher 异步执行，
             // 给 modelDispatcher 时间处理 unload 后再投递 loadModel
             delay(1000)
         }
-
-        // 由 OpenClGuardian 决定使用 OpenCL 还是 CPU（含黑名单、降级冷却、用户偏好）
-        val useCpu = openClGuardian.shouldUseCpu()
 
         // OpenCL GPU 路径（如果允许）→ 失败后降级 CPU
         if (!useCpu) {

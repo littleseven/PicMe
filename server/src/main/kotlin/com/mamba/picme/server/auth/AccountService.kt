@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.update
@@ -202,6 +203,63 @@ object AccountService {
     suspend fun rawToken(id: Int): String? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         Accounts.selectAll().where { Accounts.id eq id }.firstOrNull()
             ?.let { it[Accounts.tokenPlain].takeIf { plain -> plain.isNotEmpty() } }
+    }
+
+    // ── Admin lifecycle ──
+
+    /**
+     * 管理员变更账号状态：active / revoked。
+     * 不可用于删除（删除请用 [adminSoftDelete] 或 [purgeAccount]）。
+     * 返回是否命中并更新（false = 账号不存在或已是该状态）。
+     */
+    suspend fun setStatus(id: Int, status: String): Boolean {
+        require(status in setOf("active", "revoked")) { "status must be active or revoked" }
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = Accounts.selectAll().where { Accounts.id eq id }.firstOrNull()
+                ?: return@newSuspendedTransaction false
+            if (row[Accounts.status] == status) return@newSuspendedTransaction false
+            Accounts.update({ Accounts.id eq id }) {
+                it[Accounts.status] = status
+            }
+            true
+        }
+    }
+
+    /**
+     * 管理员软删除：按账号 ID 执行与用户自删除相同的匿名化逻辑。
+     * 同时删除该账号的 llm_call_log（仅含元数据，但保留 account_id 关联已无意义）。
+     * 返回是否命中 active/revoked 账号。
+     */
+    suspend fun adminSoftDelete(id: Int): Boolean {
+        val now = Instant.now().toEpochMilli()
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = Accounts.selectAll().where {
+                Accounts.id eq id and ((Accounts.status eq "active") or (Accounts.status eq "revoked"))
+            }.firstOrNull() ?: return@newSuspendedTransaction false
+            val origEmail = row[Accounts.email]
+            LlmCallLogs.deleteWhere { with(SqlExpressionBuilder) { LlmCallLogs.accountId eq id } }
+            Accounts.update({ Accounts.id eq id }) {
+                it[status] = "deleted"
+                it[deletedAt] = now
+                it[tokenPlain] = ""
+                it[email] = "deleted_${id}__${origEmail}"
+            }
+            true
+        }
+    }
+
+    /**
+     * 管理员立即彻底删除账号及其全部调用日志（隐私合规「立即删除」）。
+     * 返回是否命中并删除。
+     */
+    suspend fun purgeAccount(id: Int): Boolean {
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val exists = Accounts.selectAll().where { Accounts.id eq id }.firstOrNull() != null
+            if (!exists) return@newSuspendedTransaction false
+            LlmCallLogs.deleteWhere { with(SqlExpressionBuilder) { LlmCallLogs.accountId eq id } }
+            Accounts.deleteWhere { with(SqlExpressionBuilder) { Accounts.id eq id } }
+            true
+        }
     }
 
     // ── Quota ──

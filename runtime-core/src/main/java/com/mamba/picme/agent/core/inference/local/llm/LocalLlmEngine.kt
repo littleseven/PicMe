@@ -74,6 +74,13 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
     private var currentModelId: String? = null
 
     /**
+     * 当前加载是否使用 OpenCL 后端
+     *
+     * **注意**：仅在 [modelDispatcher] 线程上读写，通过 [engineMutex] 保护。
+     */
+    private var currentUseOpencl: Boolean = false
+
+    /**
      * 模型是否已加载
      */
     val isLoaded: Boolean
@@ -115,18 +122,19 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
      */
     suspend fun loadModel(modelId: String, useOpencl: Boolean = false): Result<Unit> = withContext(modelDispatcher) {
         engineMutex.withLock {
-            // 双重检查：已加载且是同一模型，直接返回
-            if (client.isLoaded && currentModelId == modelId) {
+            // 双重检查：已加载且是同一模型、同一后端，直接返回
+            if (client.isLoaded && currentModelId == modelId && currentUseOpencl == useOpencl) {
                 ensureRegistered()
-                Logger.d(tag, "Model $modelId already loaded")
+                Logger.d(tag, "Model $modelId already loaded (useOpencl=$useOpencl)")
                 return@withLock Result.success(Unit)
             }
 
-            // 如果已加载的是其他模型，先卸载
+            // 如果已加载的是其他模型或不同后端，先卸载
             if (client.isLoaded) {
-                Logger.d(tag, "Unloading previous model: $currentModelId")
+                Logger.d(tag, "Unloading previous model: $currentModelId (useOpencl=$currentUseOpencl)")
                 client.unload()
                 currentModelId = null
+                currentUseOpencl = false
                 isRegistered.set(false)
             }
 
@@ -136,6 +144,7 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
                 if (success) {
                     // 原子性设置：nativeHandle 和 currentModelId 在同一把锁内完成
                     currentModelId = modelId
+                    currentUseOpencl = useOpencl
                     ensureRegistered()
                     Logger.i(tag, "Model $modelId loaded successfully")
                     Result.success(Unit)
@@ -172,6 +181,17 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
      */
     fun isModelAvailable(modelId: String, context: Context): Boolean {
         return LlmModelManager(context).isModelCached(modelId)
+    }
+
+    /**
+     * 检查指定模型与后端是否已加载
+     *
+     * 供调用方在加载前快速判断是否可以复用当前模型，避免不必要的 unload/reload。
+     */
+    suspend fun isLoadedAs(modelId: String, useOpencl: Boolean): Boolean = withContext(modelDispatcher) {
+        engineMutex.withLock {
+            client.isLoaded && currentModelId == modelId && currentUseOpencl == useOpencl
+        }
     }
 
     /**
@@ -564,6 +584,7 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
                         client.releaseNative(NativeReleaseTarget.WEIGHTS_INTERPRETER_TENSORS)
                     }
                     currentModelId = null
+                    currentUseOpencl = false
                     Logger.i(tag, "LLM fully unloaded")
                 }
             } finally {
@@ -609,6 +630,7 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
         try {
             client.releaseNative(NativeReleaseTarget.WEIGHTS_INTERPRETER_TENSORS)
             currentModelId = null
+            currentUseOpencl = false
             Logger.i(tag, "LLM fully unloaded (sync)")
         } catch (e: Exception) {
             Logger.e(tag, "LLM sync unload failed", e)

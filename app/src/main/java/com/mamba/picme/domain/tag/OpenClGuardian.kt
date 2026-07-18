@@ -195,7 +195,10 @@ class OpenClGuardian(
     }
 
     private suspend fun ensureCpuLoaded() {
-        // 如果当前模型不是 CPU 加载，则切换
+        // 如果当前已经是 CPU 加载的同一模型，直接复用，避免每次 CPU fallback 都重装。
+        if (engine.isLoadedAs("qwen3_5_2b", useOpencl = false)) {
+            return
+        }
         engine.unload()
         val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
         orchestrator.ensureModelLoaded(

@@ -95,10 +95,14 @@ class AdminRoutesTest {
         assertEquals(HttpStatusCode.OK, r5.status)
         assertTrue(r5.bodyAsText().contains("概览"))
 
-        // 6. users page lists the seeded email
+        // 6. users page lists the seeded email and lifecycle action forms
         val r6 = c.get("/admin/users") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.OK, r6.status)
-        assertTrue(r6.bodyAsText().contains("a@x.com"))
+        val usersHtml = r6.bodyAsText()
+        assertTrue(usersHtml.contains("a@x.com"))
+        assertTrue(usersHtml.contains("/admin/users/1/revoke"))
+        assertTrue(usersHtml.contains("/admin/users/1/delete"))
+        assertTrue(usersHtml.contains("badge-active"))
 
         // 7. user detail
         val r7 = c.get("/admin/users/1") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
@@ -113,6 +117,20 @@ class AdminRoutesTest {
         val r9 = c.get("/admin/traffic") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.OK, r9.status)
         assertTrue(r9.bodyAsText().contains("Total Token"))
+
+        // 10. revoke user
+        val r10 = c.post("/admin/users/1/revoke") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, r10.status)
+        assertEquals("/admin/users", r10.headers[HttpHeaders.Location])
+
+        // 11. unrevoke user
+        val r11 = c.post("/admin/users/1/unrevoke") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, r11.status)
+
+        // 12. delete user (immediate purge)
+        val r12 = c.post("/admin/users/1/delete") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, r12.status)
+        assertEquals("/admin/users", r12.headers[HttpHeaders.Location])
     }
 
     @Test

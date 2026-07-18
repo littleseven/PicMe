@@ -94,6 +94,7 @@ object AdminViews {
                     th { +"Token 用量" }
                     th { +"成本 ¥" }
                     th { +"最后活跃" }
+                    th(classes = "col-actions") { +"操作" }
                 }
                 rows.forEach { u ->
                     tr {
@@ -111,12 +112,32 @@ object AdminViews {
                                 +"—"
                             }
                         }
-                        td { +u.status }
+                        td { statusBadge(u.status) }
                         td { +fmtTs(u.createdAt) }
                         td { +u.calls.toString() }
                         td { +u.totalTokens.toString() }
                         td { +fmt(u.cost) }
                         td { +(u.lastActive?.let { fmtTs(it) } ?: "—") }
+                        td {
+                            div("row-actions") {
+                                if (u.status == "active") {
+                                    form(action = "/admin/users/${u.id}/revoke", method = FormMethod.post, classes = "inline") {
+                                        attributes["onsubmit"] = "return confirm('确定禁用该用户？禁用后 token 立即失效。')"
+                                        input(type = InputType.submit, classes = "btn-sm") { value = "禁用" }
+                                    }
+                                } else if (u.status == "revoked") {
+                                    form(action = "/admin/users/${u.id}/unrevoke", method = FormMethod.post, classes = "inline") {
+                                        input(type = InputType.submit, classes = "btn-sm btn-go") { value = "恢复" }
+                                    }
+                                }
+                                if (u.status != "deleted") {
+                                    form(action = "/admin/users/${u.id}/delete", method = FormMethod.post, classes = "inline") {
+                                        attributes["onsubmit"] = "return confirm('确定删除该用户及其全部数据？\\n\\n此操作不可恢复，账号与调用日志将被立即物理删除。')"
+                                        input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -136,6 +157,24 @@ object AdminViews {
             navBar()
             h1 { +"${d.email}（#${d.id}）" }
             p("meta") { +"注册于 ${fmtTs(d.createdAt)}" }
+            div("actions-bar") {
+                if (d.status == "active") {
+                    form(action = "/admin/users/${d.id}/revoke", method = FormMethod.post, classes = "inline") {
+                        attributes["onsubmit"] = "return confirm('确定禁用该用户？禁用后 token 立即失效。')"
+                        input(type = InputType.submit, classes = "btn") { value = "禁用账户" }
+                    }
+                } else if (d.status == "revoked") {
+                    form(action = "/admin/users/${d.id}/unrevoke", method = FormMethod.post, classes = "inline") {
+                        input(type = InputType.submit, classes = "btn btn-go") { value = "恢复账户" }
+                    }
+                }
+                if (d.status != "deleted") {
+                    form(action = "/admin/users/${d.id}/delete", method = FormMethod.post, classes = "inline") {
+                        attributes["onsubmit"] = "return confirm('确定删除该用户及其全部数据？\\n\\n此操作不可恢复，账号与调用日志将被立即物理删除。')"
+                        input(type = InputType.submit, classes = "btn btn-danger") { value = "删除账户及数据" }
+                    }
+                }
+            }
             div("cards") {
                 statCard("状态", d.status)
                 statCard("成功调用", d.calls.toString())
@@ -711,7 +750,12 @@ object AdminViews {
                         .row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
                         .col-toggle{width:80px}
                         .col-active{width:100px}
-                        .col-actions{width:120px}
+                        .col-actions{width:140px}
+                        .actions-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:1200px;margin:16px auto;padding:0 24px}
+                        .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500}
+                        .badge-active{color:#0abf5b;background:#e6f9f0;border:1px solid #b3ebd0}
+                        .badge-revoked{color:#ff9c00;background:#fff7e6;border:1px solid #ffd699}
+                        .badge-deleted{color:#999;background:#f5f5f5;border:1px solid #d9d9d9}
                         .chan-form input[type=checkbox]{width:auto;margin:0}
                         .form-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0}
                         .form-actions-right{display:inline-flex;gap:8px;align-items:center}
@@ -780,6 +824,23 @@ object AdminViews {
                         """.trimIndent(),
                     )
                 }
+            }
+        }
+    }
+
+    private fun FlowContent.statusBadge(status: String) {
+        val classes = when (status) {
+            "active" -> "badge badge-active"
+            "revoked" -> "badge badge-revoked"
+            "deleted" -> "badge badge-deleted"
+            else -> "badge"
+        }
+        div(classes) {
+            +when (status) {
+                "active" -> "正常"
+                "revoked" -> "已禁用"
+                "deleted" -> "已删除"
+                else -> status
             }
         }
     }
