@@ -170,6 +170,12 @@ class TagScanOrchestrator(
     /** 当前会话中被标记为全量重跑的 Pass 集合，供 executeTask 读取 */
     private val fullRescanPasses = mutableSetOf<TagScanPass>()
 
+    /**
+     * 自动扫描会话的策略缓存：sessionId -> ScanQueuePolicy。
+     * 用于当前批次完成后自动调度下一批；手动触发的会话不缓存，避免意外连锁。
+     */
+    private val sessionPolicies = mutableMapOf<String, ScanQueuePolicy>()
+
     init {
         // 启动时恢复被异常中断的 RUNNING 任务
         scope.launch {
@@ -228,6 +234,7 @@ class TagScanOrchestrator(
         }
 
         createTasks(sessionId, media.map { it.id }, TagCategory.ALL, policy.passes, policy)
+        sessionPolicies[sessionId] = policy
         startSession(sessionId)
         return sessionId
     }
@@ -662,13 +669,22 @@ class TagScanOrchestrator(
             }
 
             finalizeSession(sessionId)
+
+            // 自动扫描批次链式调度：当前批次正常完成后，继续调度下一批
+            val policy = sessionPolicies.remove(sessionId)
+            if (policy != null && _progress.value?.state == ScanSessionState.COMPLETED) {
+                logInfo(sessionId, "当前批次完成，继续调度下一批")
+                scheduleAutoScan(policy)
+            }
         } catch (e: CancellationException) {
             logInfo(sessionId, "会话被取消")
             updateProgressState(sessionId, ScanSessionState.CANCELLED)
+            sessionPolicies.remove(sessionId)
             throw e
         } catch (e: Exception) {
             logError(sessionId, "会话异常: ${e.message}")
             updateProgressState(sessionId, ScanSessionState.PAUSED)
+            sessionPolicies.remove(sessionId)
         } finally {
             releaseWakeLock()
         }
