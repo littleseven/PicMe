@@ -126,6 +126,7 @@ import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
+import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
@@ -330,7 +331,8 @@ fun ChatScreen(
                     },
                     onImagePicked = { uri ->
                         viewModel.sendImageMessage(uri)
-                    }
+                    },
+                    mediaViewModel = mediaViewModel
                 )
             }
 
@@ -676,7 +678,8 @@ private fun ChatInputArea(
     isProcessing: Boolean,
     onModelSwitch: (ChatModelOption) -> Unit,
     onSendMessage: (String) -> Unit,
-    onImagePicked: (Uri) -> Unit = {}
+    onImagePicked: (Uri) -> Unit = {},
+    mediaViewModel: MediaViewModel
 ) {
     var text by remember { mutableStateOf("") }
     var showModelMenu by remember { mutableStateOf(false) }
@@ -804,11 +807,11 @@ private fun ChatInputArea(
         }
     }
 
-    // 内置相册选取底部弹窗
+    // 内置相册选取底部弹窗（可搜索 + 复用 MediaGrid）
     if (showPhotoPicker) {
-        InAppPhotoPicker(
+        ChatPhotoPickerSheet(
             sheetState = sheetState,
-            context = context,
+            mediaViewModel = mediaViewModel,
             onImageSelected = { uri ->
                 onImagePicked(uri)
                 showPhotoPicker = false
@@ -1341,90 +1344,5 @@ private fun ImagePreviewOverlay(
                 )
             }
         }
-    }
-}
-
-/**
- * 内置相册选取器 — 底部弹出网格，从 MediaStore 加载最近照片
- *
- * 替代系统图片选择器，保持应用内一致的视觉体验。
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun InAppPhotoPicker(
-    sheetState: androidx.compose.material3.SheetState,
-    context: android.content.Context,
-    onImageSelected: (Uri) -> Unit,
-    onDismiss: () -> Unit
-) {
-    // 加载最近照片
-    val photos = remember {
-        val uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
-            MediaStore.Images.Media._ID,
-            MediaStore.Images.Media.DATE_ADDED
-        )
-        val cursor = context.contentResolver.query(
-            uri,
-            projection,
-            null,
-            null,
-            "${MediaStore.Images.Media.DATE_ADDED} DESC"
-        )
-        val uris = mutableListOf<Uri>()
-        cursor?.use {
-            val idCol = it.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-            while (it.moveToNext()) {
-                val id = it.getLong(idCol)
-                uris.add(Uri.withAppendedPath(uri, id.toString()))
-            }
-        }
-        uris
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Text(
-            text = "选择图片",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(320.dp)
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(photos) { photoUri ->
-                Card(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .clickable { onImageSelected(photoUri) },
-                    shape = RoundedCornerShape(6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(photoUri)
-                            .size(256)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
