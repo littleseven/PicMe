@@ -134,24 +134,27 @@ class MobileClipTagClassifier(
         }
 
         val embeddings = if (lang == AppLanguage.ENGLISH) textEmbeddingsEn else textEmbeddingsZh
-        val scene = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(lang), imageEmbedding, embeddings).firstOrNull() ?: ""
-        val objects = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(lang), imageEmbedding, embeddings)
-        val tags = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(lang), imageEmbedding, embeddings)
+        val blocked = if (lang == AppLanguage.ENGLISH) vocab.blockedTagsEn else vocab.blockedTags
+        val scene = topK(SCENE_TOP_K, SCENE_THRESHOLD, vocab.sceneCandidates(lang), imageEmbedding, embeddings, blocked).firstOrNull() ?: ""
+        val objects = topK(OBJECT_TOP_K, OBJECT_THRESHOLD, vocab.objectCandidates(lang), imageEmbedding, embeddings, blocked)
+        val tags = topK(TAG_TOP_K, TAG_THRESHOLD, vocab.tagCandidates(lang), imageEmbedding, embeddings, blocked)
 
         return MobileClipTags(scene = scene, objects = objects, tags = tags)
     }
 
     /**
-     * 从指定候选集中选取与图像相似度最高的 Top-K 标签，过滤低于阈值的标签
+     * 从指定候选集中选取与图像相似度最高的 Top-K 标签，过滤低于阈值或被屏蔽的标签
      */
     private fun topK(
         k: Int,
         threshold: Float,
         candidates: List<String>,
         imageEmbedding: FloatArray,
-        embeddings: Map<String, FloatArray>
+        embeddings: Map<String, FloatArray>,
+        blocked: List<String>
     ): List<String> {
         val scored = candidates.mapNotNull { label ->
+            if (label in blocked) return@mapNotNull null
             val textEmbedding = embeddings[label] ?: return@mapNotNull null
             val sim = cosineSimilarity(imageEmbedding, textEmbedding)
             if (sim >= threshold) label to sim else null

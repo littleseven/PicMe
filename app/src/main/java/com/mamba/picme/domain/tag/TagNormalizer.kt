@@ -22,6 +22,7 @@ class TagNormalizer(private val vocab: ControlledVocab) {
      */
     fun normalize(raw: QwenTags): QwenTagsNormalized {
         val allCategories = vocab.allCategories
+        val blockedSet = vocab.blockedTags.toSet() + vocab.blockedTagsEn.toSet()
         val nonStandard = mutableListOf<String>()
 
         // 一次遍历同时得到 normalized 结果和未匹配词，避免对同一张图重复遍历 700+ 词词表。
@@ -36,12 +37,12 @@ class TagNormalizer(private val vocab: ControlledVocab) {
             return matched
         }
 
-        val normalizedTags = raw.tags.map { normalizeItem(it, "tag") }
-        val normalizedObjects = raw.objects.map { normalizeItem(it, "object") }
+        val normalizedTags = raw.tags.map { normalizeItem(it, "tag") }.filter { it !in blockedSet }
+        val normalizedObjects = raw.objects.map { normalizeItem(it, "object") }.filter { it !in blockedSet }
 
         return QwenTagsNormalized(
-            scene = bestMatchWithSynonyms(raw.scene),
-            activity = bestMatchWithSynonyms(raw.activity),
+            scene = bestMatchWithSynonyms(raw.scene).takeIf { it !in blockedSet } ?: "",
+            activity = bestMatchWithSynonyms(raw.activity).takeIf { it !in blockedSet } ?: "",
             objects = normalizedObjects,
             tags = normalizedTags,
             summary = raw.summary,

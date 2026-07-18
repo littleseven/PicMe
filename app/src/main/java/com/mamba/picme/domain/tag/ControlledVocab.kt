@@ -45,7 +45,10 @@ data class ControlledVocab(
     val style: List<String> = emptyList(),
     val styleEn: List<String> = emptyList(),
     /** 同义词映射：非标准词 → 标准词（用于一语义覆盖多搜索词） */
-    val synonyms: Map<String, String> = emptyMap()
+    val synonyms: Map<String, String> = emptyMap(),
+    /** 需要屏蔽的标签：MobileCLIP 候选中直接排除，Qwen 输出经规范化后过滤 */
+    val blockedTags: List<String> = emptyList(),
+    val blockedTagsEn: List<String> = emptyList()
 ) {
     /** 返回所有类别的标签并集（用于跨类别模糊匹配） */
     val allCategories: List<String> by lazy {
@@ -111,6 +114,15 @@ data class ControlledVocab(
         AppLanguage.CHINESE -> tagCandidates
         AppLanguage.ENGLISH -> tagCandidatesEn
         else -> emptyList()
+    }
+
+    /**
+     * 判断给定标签（按当前语言）是否被屏蔽
+     */
+    fun isBlocked(label: String, lang: AppLanguage): Boolean = when (lang) {
+        AppLanguage.CHINESE -> label in blockedTags
+        AppLanguage.ENGLISH -> label in blockedTagsEn
+        else -> false
     }
 
     /**
@@ -186,7 +198,9 @@ data class ControlledVocab(
                 transportEn = parseArray(root, "transport_en"),
                 style = parseArray(root, "style"),
                 styleEn = parseArray(root, "style_en"),
-                synonyms = synonymsMap
+                synonyms = synonymsMap,
+                blockedTags = parseArray(root, "blocked_tags"),
+                blockedTagsEn = parseArray(root, "blocked_tags_en")
             )
         }
 
