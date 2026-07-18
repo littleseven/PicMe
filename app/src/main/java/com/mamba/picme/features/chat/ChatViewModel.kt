@@ -49,6 +49,9 @@ private const val MAX_MESSAGES = 500
 private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
 
+/** Chat 选图后的用户意图。EDIT 在 UI 层直接跳 PhotoEditor，不会进入 VM 的 sendImageWithIntent。 */
+enum class ImageIntent { UNDERSTAND, FIND_SIMILAR, EDIT }
+
 /**
  * 流式生成期间的占位文案。
  *
@@ -1081,6 +1084,69 @@ class ChatViewModel(
             )
         )
         chatSessionDao.touchSession(sessionId)
+    }
+
+    /**
+     * 仅暂存图片：复制到内部存储 + 设 [_lastUserImageUri]，**不**插入消息、**不**触发推理。
+     * 返回持久化后的路径字符串；失败返回 null。供 Chat 输入框「缩略图预览」用。
+     */
+    fun stageImage(uri: Uri): String? {
+        val persisted = persistImage(uri) ?: return null
+        _lastUserImageUri.value = persisted
+        return persisted
+    }
+
+    /**
+     * 按 [intent] 发送「图 + 意图/文字」。`uri` 为已通过 [stageImage] 持久化的内部存储路径。
+     * - 文字非空：作为 Agent 指令，图片经 [_lastUserImageUri] 作为上下文（[sendMessage]）。
+     * - [ImageIntent.FIND_SIMILAR]：以图搜图，命中则插 media-results 轮播，否则提示无结果。
+     * - [ImageIntent.UNDERSTAND]（默认）：复用 [sendImageMessage] 的图像理解链路。
+     * 注意：[ImageIntent.EDIT] 由 UI 直接跳 PhotoEditor，不应进入本方法。
+     */
+    fun sendImageWithIntent(uri: String, intent: ImageIntent, text: String?) {
+        viewModelScope.launch {
+            val sessionId = _currentSessionId.value
+            try {
+                ensureSessionExists(sessionId)
+                when {
+                    !text.isNullOrBlank() -> sendMessage(text)
+                    intent == ImageIntent.FIND_SIMILAR -> {
+                        _isProcessing.value = true
+                        val bitmap = runCatching {
+                            android.graphics.BitmapFactory.decodeFile(uri)
+                        }.getOrNull()
+                        val assets = if (bitmap != null) {
+                            mediaSearchEngine.searchByImage(bitmap)
+                        } else {
+                            emptyList()
+                        }
+                        _isProcessing.value = false
+                        if (assets.isNotEmpty()) {
+                            insertMediaResultsMessage(
+                                sessionId,
+                                MediaResultsUi(
+                                    query = context.getString(R.string.chat_intent_find_similar),
+                                    assets = assets.take(MAX_CARDS),
+                                    totalCount = assets.size,
+                                    isRefinement = false
+                                )
+                            )
+                        } else {
+                            insertAgentMessage(
+                                sessionId,
+                                context.getString(R.string.gallery_search_no_results),
+                                "gallery_search"
+                            )
+                        }
+                    }
+                    else -> sendImageMessage(Uri.fromFile(java.io.File(uri)))
+                }
+                chatSessionDao.touchSession(sessionId)
+            } catch (e: Exception) {
+                Logger.e(TAG, "sendImageWithIntent failed", e)
+                _isProcessing.value = false
+            }
+        }
     }
 
     /**
