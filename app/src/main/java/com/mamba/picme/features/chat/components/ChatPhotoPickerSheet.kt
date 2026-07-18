@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.mamba.picme.PoLangApplication
@@ -89,12 +88,6 @@ fun ChatPhotoPickerSheet(
                 .height(560.dp)
                 .padding(horizontal = 4.dp)
         ) {
-            Text(
-                text = stringResource(R.string.chat_photo_picker_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
             if (!searchAvailable) {
                 Text(
                     text = stringResource(R.string.chat_photo_picker_search_unavailable),

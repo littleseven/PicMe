@@ -746,7 +746,6 @@
     <string name="cd_status_failed">失败</string>
 
     <!-- Chat photo picker -->
-    <string name="chat_photo_picker_title">选择图片</string>
     <string name="chat_photo_picker_search_hint">搜索照片（如：海滩、人物）</string>
     <string name="chat_photo_picker_search_unavailable">搜索暂不可用，仅显示最近照片</string>
     <string name="chat_photo_picker_no_results">未找到相关图片</string>
