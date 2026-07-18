@@ -97,6 +97,14 @@
     footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
     footer .nav-links a { transition: color .12s; }
     footer .nav-links a:hover { color: #fff; }
+    footer .contact-author { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 28px; }
+    footer .contact-title { font-size: 13px; color: #64748b; letter-spacing: .04em; }
+    footer .contact-items { display: flex; gap: 36px; align-items: flex-start; }
+    footer .contact-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; text-decoration: none; transition: color .12s; }
+    footer .contact-item:hover { color: #fff; }
+    footer .contact-qr { width: 88px; height: 88px; border-radius: 10px; background: #fff; padding: 4px; box-sizing: border-box; display: block; }
+    footer .x-logo { width: 88px; height: 88px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; }
+    footer .x-logo svg { width: 56px; height: 56px; }
 
     @media (max-width: 768px) {
       :root { --section-py: 40px; }
@@ -202,6 +210,19 @@
   </section>
 
   <footer>
+    <div class="container contact-author">
+      <span class="contact-title">联系作者</span>
+      <div class="contact-items">
+        <div class="contact-item">
+          <img src="assets/winxin.jpg" alt="微信二维码" class="contact-qr">
+          <span>微信扫码</span>
+        </div>
+        <a class="contact-item" href="https://x.com/shuaiguo007" target="_blank" rel="noopener">
+          <span class="x-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
+          <span>@shuaiguo007</span>
+        </a>
+      </div>
+    </div>
     <div class="container inner">
       <span>© PoLang — 雕刻时光,瞬间永恒。</span>
       <div class="nav-links">
