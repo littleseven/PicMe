@@ -31,7 +31,9 @@ data class AgentContext(
     val captureMode: MediaType = MediaType.PHOTO,
     val isRecording: Boolean = false,
     val memorySessionId: String = scene.name.lowercase(),
-    val recentSearchResults: List<SearchResultSnapshot> = emptyList()
+    val recentSearchResults: List<SearchResultSnapshot> = emptyList(),
+    /** 最近一条用户图片消息的持久化路径，供模型指代「这张照片」 */
+    val lastUserImageUri: String? = null
 )
 
 /**

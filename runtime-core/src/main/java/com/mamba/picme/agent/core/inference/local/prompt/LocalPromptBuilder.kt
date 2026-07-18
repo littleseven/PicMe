@@ -63,7 +63,7 @@ class LocalPromptBuilder(
 - exclude: {"method":"exclude","params":{"constraint":"夜景"}}
 
 【字段约束】
-- params 中只允许这些键：smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow, filter, style, scene, ratio, exposure, zoom, mode, destination, package_name, app_name, activity_class, setting, action, target, text, message, delay_ms, constraint。
+- params 中只允许这些键：smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow, filter, style, scene, ratio, exposure, zoom, mode, destination, package_name, app_name, activity_class, setting, action, target, text, message, delay_ms, constraint, image_uri。
 - 不要输出未定义字段；不需要的参数不要输出。
 - 数字不要加引号，字符串必须加引号。
 
@@ -393,6 +393,7 @@ class LocalPromptBuilder(
             if (scene == null || scene == SceneManager.Scene.CHAT) {
                 appendLine("search_media(query), refine_media_search(constraint), feedback(target,action), more(target), exclude(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search；\"第三张不错\"用 feedback，\"再来点这种\"用 more，\"不要夜景\"用 exclude")
                 appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。")
+                appendLine("ai_optimize(image_uri, mode=fast|smart): AI一键优化图片。用户发送图片后说'帮我优化这张照片/修好看点'时调用；image_uri 使用最近图片 URI 或用户指定的 URI；mode 默认 fast（本地），用户要求更智能推荐时用 smart（需授权）。")
             }
             appendLine("navigate_to(destination), go_back, text_reply(message)")
             appendLine()
@@ -414,6 +415,10 @@ class LocalPromptBuilder(
                 appendLine("其中有日落的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"日落\"}}]")
                 appendLine("不要人物多的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"人少\"}}]")
                 appendLine("换一个，搜猫 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫\"}}]")
+                appendLine("（假设最近图片 URI 为 /data/data/.../img_123.jpg）")
+                appendLine("帮我优化这张照片 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\"}}]")
+                appendLine("把这张照片修好看点 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\"}}]")
+                appendLine("用云端模型优化这张照片 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\",\"mode\":\"smart\"}}]")
             } else {
                 appendLine("磨皮60拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"smoothing\":60}},{\"method\":\"capture\",\"params\":{}}]")
                 appendLine("美白50磨皮30拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}},{\"method\":\"capture\",\"params\":{}}]  // 注意：以'拍照'结尾，必须有capture")
@@ -481,6 +486,8 @@ class LocalPromptBuilder(
             append(context.captureMode.name)
             append(", recording=")
             append(if (context.isRecording) "1" else "0")
+            append(", last_user_image_uri=")
+            append(context.lastUserImageUri ?: "null")
             append(buildSearchResultsSection(context.recentSearchResults))
         }
     }

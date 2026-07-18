@@ -198,6 +198,15 @@ fun ChatScreen(
         isSidebarOpen = false
     }
 
+    // AI 优化命令触发后导航到编辑器
+    val pendingOptimizeUri by viewModel.pendingAiOptimizeNavigation.collectAsState()
+    LaunchedEffect(pendingOptimizeUri) {
+        pendingOptimizeUri?.let { uri ->
+            onNavigateToPhotoEditor(uri, true)
+            viewModel.consumeAiOptimizeNavigation()
+        }
+    }
+
     // 自动滚动到底部：列表条数变化或最后一条内容变化时触发（支持流式打字效果）
     LaunchedEffect(messages.size, messages.lastOrNull()?.content) {
         if (messages.isNotEmpty()) {

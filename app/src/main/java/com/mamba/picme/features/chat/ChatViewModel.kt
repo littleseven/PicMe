@@ -94,6 +94,9 @@ class ChatViewModel(
     /** 防止用户快速重复点击同一反馈按钮。 */
     private val pendingFeedbackActions = mutableSetOf<String>()
 
+    /** 当前会话最近一条用户图片消息的持久化 URI，供 ai_optimize 指代「这张照片」。 */
+    private val _lastUserImageUri = MutableStateFlow<String?>(null)
+
     private val orchestrator = AgentOrchestrator.getInstance(context)
 
     private val _currentSessionId = MutableStateFlow("default")
@@ -107,6 +110,16 @@ class ChatViewModel(
      */
     private val _streamingMessage = MutableStateFlow<ChatMessageUi?>(null)
     val streamingMessage: StateFlow<ChatMessageUi?> = _streamingMessage.asStateFlow()
+
+    /**
+     * AI 优化命令触发后需要导航到编辑器的目标 URI。
+     */
+    private val _pendingAiOptimizeNavigation = MutableStateFlow<String?>(null)
+    val pendingAiOptimizeNavigation: StateFlow<String?> = _pendingAiOptimizeNavigation.asStateFlow()
+
+    fun consumeAiOptimizeNavigation() {
+        _pendingAiOptimizeNavigation.value = null
+    }
 
     /**
      * UI 实际展示的消息列表：已持久化消息 + 流式临时消息。
@@ -372,7 +385,8 @@ class ChatViewModel(
                 val agentContext = AgentContext(
                     scene = AgentScene.CHAT,
                     memorySessionId = sessionId,
-                    recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty()
+                    recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty(),
+                    lastUserImageUri = _lastUserImageUri.value
                 )
 
                 // 5. 调用流式推理
@@ -605,7 +619,22 @@ class ChatViewModel(
                 )
             }
             is AgentAction.Success -> {
-                insertAgentMessage(sessionId, describeCommandResult(action.command), "command", performance)
+                when (val cmd = action.command) {
+                    is AgentCommand.AiOptimize -> {
+                        val targetUri = cmd.imageUri.takeIf { it.isNotBlank() }
+                            ?: _lastUserImageUri.value
+                        if (targetUri.isNullOrBlank()) {
+                            insertAgentMessage(sessionId, "请先发送一张图片，再说“帮我优化这张照片”", currentModelLabel(), performance)
+                        } else {
+                            // 先给出文本反馈，再触发导航到编辑器自动优化
+                            insertAgentMessage(sessionId, cmd.explanation ?: "✅ 已为你优化这张照片", currentModelLabel(), performance)
+                            _pendingAiOptimizeNavigation.value = targetUri
+                        }
+                    }
+                    else -> {
+                        insertAgentMessage(sessionId, describeCommandResult(cmd), "command", performance)
+                    }
+                }
             }
             is AgentAction.Error -> {
                 val message = if (action.message == "feedback_resolve_failure") {
@@ -1065,6 +1094,7 @@ class ChatViewModel(
                     modelUsed = null
                 )
                 chatMessageDao.insertMessage(userMessage)
+                _lastUserImageUri.value = persistedUri
                 chatSessionDao.touchSession(sessionId)
 
                 // 1.5 自动命名：根据用户的第一条消息生成会话标题
