@@ -51,6 +51,7 @@ import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
+import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
@@ -424,6 +425,10 @@ class AppContainerImpl(
         GetGallerySummaryUseCase(context = context, db = database)
     }
 
+    private val startTagScanUseCase: StartTagScanUseCase by lazy {
+        StartTagScanUseCase(context = context)
+    }
+
     private val mediaViewModelDependencies: MediaViewModelDependencies by lazy {
         MediaViewModelDependencies(
             repository = repository,
@@ -460,7 +465,8 @@ class AppContainerImpl(
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
             picMeAuthClient = PoLangAuthClient(),
-            getGallerySummaryUseCase = getGallerySummaryUseCase
+            getGallerySummaryUseCase = getGallerySummaryUseCase,
+            startTagScanUseCase = startTagScanUseCase
         )
     }
 

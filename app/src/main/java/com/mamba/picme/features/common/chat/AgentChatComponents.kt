@@ -252,6 +252,7 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.SwitchViewMode -> "切换视图"
         is AgentCommand.FavoriteMedia -> "收藏照片"
         is AgentCommand.GetGallerySummary -> "相册摘要"
+        is AgentCommand.StartTagScan -> "TAG 扫描"
         is AgentCommand.AiOptimize -> "AI 一键优化"
         is AgentCommand.LaunchApp -> "打开应用"
         is AgentCommand.OpenSystemSettings -> "打开设置"
@@ -297,6 +298,7 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.SwitchViewMode -> Icons.Rounded.GridView
     is AgentCommand.FavoriteMedia -> Icons.Rounded.Favorite
     is AgentCommand.GetGallerySummary -> Icons.Rounded.PhotoLibrary
+    is AgentCommand.StartTagScan -> Icons.Rounded.Sync
     is AgentCommand.AiOptimize -> Icons.Rounded.AutoFixHigh
     is AgentCommand.LaunchApp -> Icons.AutoMirrored.Rounded.Launch
     is AgentCommand.OpenSystemSettings -> Icons.Rounded.Settings

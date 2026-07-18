@@ -29,8 +29,11 @@ import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
+import com.mamba.picme.domain.usecase.StartTagScanResult
+import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
+import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
 import com.mamba.picme.agent.core.model.context.GallerySummary
 import org.json.JSONObject
@@ -75,7 +78,10 @@ private const val STREAMING_THINKING_HINT = "正在思考..."
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(
     dependencies: ChatViewModelDependencies
-) : ViewModel(), ChatSearchCapability.Delegate, ChatGallerySummaryCapability.Delegate {
+) : ViewModel(),
+    ChatSearchCapability.Delegate,
+    ChatGallerySummaryCapability.Delegate,
+    ChatStartTagScanCapability.Delegate {
 
     private val context = dependencies.context.applicationContext
     private val chatMessageDao = dependencies.chatMessageDao
@@ -84,6 +90,7 @@ class ChatViewModel(
     private val mediaSearchEngine = dependencies.mediaSearchEngine
     private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
     private val getGallerySummaryUseCase = dependencies.getGallerySummaryUseCase
+    private val startTagScanUseCase = dependencies.startTagScanUseCase
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -687,6 +694,7 @@ class ChatViewModel(
             is AgentCommand.OpenSystemSettings -> "✅ 已打开 ${command.setting} 设置"
             is AgentCommand.AiOptimize -> command.explanation?.let { "✅ $it" }
                 ?: "✅ 已执行 AI 一键优化"
+            is AgentCommand.StartTagScan -> "✅ 已执行 TAG 扫描控制"
             is AgentCommand.BatchExecute -> "✅ 已执行批量操作"
             is AgentCommand.RecordMediaFeedback -> when (command.action) {
                 FeedbackAction.LIKE -> "✅ ${context.getString(R.string.feedback_confirmed_like)}"
@@ -932,6 +940,16 @@ class ChatViewModel(
 
     override suspend fun onGetGallerySummary(includeDetails: Boolean): GallerySummary? {
         return getGallerySummaryUseCase(includeDetails)
+    }
+
+    // ── ChatStartTagScanCapability.Delegate：TAG 扫描控制 ─────────────
+
+    override suspend fun onStartTagScan(
+        action: String,
+        taskType: String?,
+        mode: String?
+    ): StartTagScanResult {
+        return startTagScanUseCase(action = action, taskType = taskType, mode = mode)
     }
 
     private fun reapplyFiltersToCurrentResults(sessionId: String) {

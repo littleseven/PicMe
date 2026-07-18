@@ -96,10 +96,15 @@ class TagGenerationService : Service() {
         const val ACTION_CANCEL = "com.mamba.picme.tag.CANCEL"
         const val ACTION_RETRY_FAILED = "com.mamba.picme.tag.RETRY_FAILED"
 
+        /** 按用户友好的类别启动 TAG 扫描 */
+        const val ACTION_START_TAG_SCAN = "com.mamba.picme.tag.START_TAG_SCAN"
+
         // Intent extras
         private const val EXTRA_CATEGORIES = "categories"
         private const val EXTRA_START_TIME_MS = "start_time_ms"
         private const val EXTRA_FULL_MODE = "full_mode"
+        private const val EXTRA_TASK_TYPE = "task_type"
+        private const val EXTRA_MODE = "mode"
 
         /** 创建用于启动 Service 的 Intent（首次需 [startForegroundService]） */
         private fun intent(context: Context, action: String): Intent =
@@ -139,6 +144,20 @@ class TagGenerationService : Service() {
         fun intentResume(context: Context) = intent(context, ACTION_RESUME)
         fun intentCancel(context: Context) = intent(context, ACTION_CANCEL)
         fun intentRetryFailed(context: Context) = intent(context, ACTION_RETRY_FAILED)
+
+        /**
+         * 按类别启动 TAG 扫描。
+         *
+         * @param taskType 逗号分隔的类别名，或 "AUTO"
+         * @param mode "full" 或 "incremental"
+         */
+        fun intentStartTagScan(
+            context: Context,
+            taskType: String,
+            mode: String
+        ): Intent = intent(context, ACTION_START_TAG_SCAN)
+            .putExtra(EXTRA_TASK_TYPE, taskType)
+            .putExtra(EXTRA_MODE, mode)
 
         /** 启动前台 Service（UI 进入 TAG 控制页时调用） */
         fun startForeground(context: Context) {
@@ -374,6 +393,31 @@ class TagGenerationService : Service() {
                             com.mamba.picme.domain.tag.scan.ScanMode.INCREMENTAL
                         }
                         orch.scheduleRegenerateByQuery(query, categories, mode)
+                    }
+                }
+                ACTION_START_TAG_SCAN -> {
+                    val taskType = intent.getStringExtra(EXTRA_TASK_TYPE) ?: "AUTO"
+                    val modeName = intent.getStringExtra(EXTRA_MODE) ?: "incremental"
+                    val mode = if (modeName.equals("full", ignoreCase = true)) {
+                        com.mamba.picme.domain.tag.scan.ScanMode.FULL
+                    } else {
+                        com.mamba.picme.domain.tag.scan.ScanMode.INCREMENTAL
+                    }
+
+                    if (taskType.equals("AUTO", ignoreCase = true)) {
+                        orch.scheduleAutoScan(com.mamba.picme.domain.tag.scan.ScanQueuePolicy())
+                    } else {
+                        val categoryNames = taskType.split(",").map { it.trim().uppercase() }
+                        val categories = categoryNames.mapNotNull { name ->
+                            runCatching { com.mamba.picme.domain.tag.TagCategory.valueOf(name) }.getOrNull()
+                        }.toSet()
+                        if (categories.isNotEmpty()) {
+                            orch.scheduleRegenerateByQuery(
+                                query = com.mamba.picme.domain.tag.scan.TagScanQuery(),
+                                categories = categories,
+                                mode = mode
+                            )
+                        }
                     }
                 }
                 ACTION_PAUSE -> orch.pause()
