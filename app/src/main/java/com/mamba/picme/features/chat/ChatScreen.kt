@@ -7,6 +7,7 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
+import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -68,6 +69,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -428,10 +430,9 @@ fun ChatScreen(
                     onSendMessage = { text ->
                         viewModel.sendMessage(text)
                     },
-                    onImagePicked = { uri ->
-                        viewModel.sendImageMessage(uri)
-                    },
-                    mediaViewModel = mediaViewModel
+                    mediaViewModel = mediaViewModel,
+                    viewModel = viewModel,
+                    onNavigateToPhotoEditor = onNavigateToPhotoEditor
                 )
             }
 
@@ -778,12 +779,15 @@ private fun ChatInputArea(
     isProcessing: Boolean,
     onModelSwitch: (ChatModelOption) -> Unit,
     onSendMessage: (String) -> Unit,
-    onImagePicked: (Uri) -> Unit = {},
-    mediaViewModel: MediaViewModel
+    mediaViewModel: MediaViewModel,
+    viewModel: ChatViewModel,
+    onNavigateToPhotoEditor: (String, Boolean) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
     var showModelMenu by remember { mutableStateOf(false) }
     var showPhotoPicker by remember { mutableStateOf(false) }
+    var pendingImage by remember { mutableStateOf<Uri?>(null) }
+    var selectedIntent by remember { mutableStateOf<ImageIntent?>(null) }
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -866,10 +870,31 @@ private fun ChatInputArea(
                     currentModel = currentModel,
                     isProcessing = isProcessing,
                     onSend = {
-                        if (text.isNotBlank() && !isProcessing) {
-                            onSendMessage(text.trim())
-                            text = ""
-                            keyboardController?.hide()
+                        if (!isProcessing) {
+                            val img = pendingImage
+                            when {
+                                img != null && selectedIntent == ImageIntent.EDIT -> {
+                                    onNavigateToPhotoEditor(img.toString(), false)
+                                    pendingImage = null
+                                    selectedIntent = null
+                                }
+                                img != null -> {
+                                    viewModel.sendImageWithIntent(
+                                        uri = img.toString(),
+                                        intent = selectedIntent ?: ImageIntent.UNDERSTAND,
+                                        text = text.trim().takeIf { it.isNotBlank() }
+                                    )
+                                    pendingImage = null
+                                    selectedIntent = null
+                                    text = ""
+                                    keyboardController?.hide()
+                                }
+                                text.isNotBlank() -> {
+                                    onSendMessage(text.trim())
+                                    text = ""
+                                    keyboardController?.hide()
+                                }
+                            }
                         }
                     },
                     onModelMenuToggle = { showModelMenu = !showModelMenu },
@@ -884,7 +909,14 @@ private fun ChatInputArea(
                             settingsRepository.updateChatInputMode("voice")
                         }
                     },
-                    onShowPhotoPicker = { showPhotoPicker = true }
+                    onShowPhotoPicker = { showPhotoPicker = true },
+                    pendingImage = pendingImage,
+                    selectedIntent = selectedIntent,
+                    onSelectIntent = { selectedIntent = it },
+                    onRemovePendingImage = {
+                        pendingImage = null
+                        selectedIntent = null
+                    }
                 )
 
                 ChatInputMode.VOICE -> ChatVoiceInputMode(
@@ -913,12 +945,30 @@ private fun ChatInputArea(
             sheetState = sheetState,
             mediaViewModel = mediaViewModel,
             onImageSelected = { uri ->
-                onImagePicked(uri)
+                viewModel.stageImage(uri)?.let { persisted ->
+                    pendingImage = Uri.parse(persisted)
+                    selectedIntent = null
+                }
                 showPhotoPicker = false
             },
             onDismiss = { showPhotoPicker = false }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImageIntentChip(
+    @StringRes labelRes: Int,
+    intent: ImageIntent,
+    selected: ImageIntent?,
+    onSelect: (ImageIntent) -> Unit
+) {
+    FilterChip(
+        selected = selected == intent,
+        onClick = { onSelect(intent) },
+        label = { Text(stringResource(labelRes), fontSize = 12.sp) }
+    )
 }
 
 @Composable
@@ -934,15 +984,48 @@ private fun ChatTextInputMode(
     showModelMenu: Boolean,
     onModelSwitch: (ChatModelOption) -> Unit,
     onSwitchToVoice: () -> Unit,
-    onShowPhotoPicker: () -> Unit
+    onShowPhotoPicker: () -> Unit,
+    pendingImage: Uri? = null,
+    selectedIntent: ImageIntent? = null,
+    onSelectIntent: (ImageIntent) -> Unit = {},
+    onRemovePendingImage: () -> Unit = {}
 ) {
-    val hasContent = text.isNotBlank()
+    val hasContent = text.isNotBlank() || pendingImage != null
 
     // 输入框内容区域（外层已由 ChatInputArea 统一包裹白色卡片）
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        if (pendingImage != null) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(pendingImage).size(256).crossfade(true).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
+                )
+                IconButton(
+                    onClick = onRemovePendingImage,
+                    modifier = Modifier.align(Alignment.TopEnd).size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.cd_remove_pending_image),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ImageIntentChip(R.string.chat_intent_understand, ImageIntent.UNDERSTAND, selectedIntent, onSelectIntent)
+                ImageIntentChip(R.string.chat_intent_find_similar, ImageIntent.FIND_SIMILAR, selectedIntent, onSelectIntent)
+                ImageIntentChip(R.string.chat_intent_edit, ImageIntent.EDIT, selectedIntent, onSelectIntent)
+            }
+        }
         // 第一行：输入框（无独立边框，融入卡片）
         Box(
             modifier = Modifier.fillMaxWidth(),
