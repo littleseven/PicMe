@@ -86,8 +86,10 @@ class MediaSearchEngine(
         val uiLang = userSettingsRepository?.getAppLanguageBlocking() ?: AppLanguage.CHINESE
 
         // Layer 0.5: 显式约束优先分段搜索（如"去年3月在室内小孩"）
+        // 仅当存在时间/地点这类真正的收窄约束时才短路；纯人物/概念查询（如"小孩"）
+        // 不在此短路，回落到 Layer 1/兜底的 SQL + 语义融合，避免丢失 MobileCLIP 语义召回。
         val segmentedQuery = QuerySegmenter.segment(query)
-        if (segmentedQuery.hasExplicit && explicitFirstPipeline != null) {
+        if (segmentedQuery.hasNarrowingExplicit && explicitFirstPipeline != null) {
             val explicitResults = explicitFirstPipeline.search(segmentedQuery, uiLang)
             if (explicitResults.media.isNotEmpty()) {
                 return SearchResult(limitToIdsFilter(explicitResults.media), query)

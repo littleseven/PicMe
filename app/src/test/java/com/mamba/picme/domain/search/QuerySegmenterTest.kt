@@ -1,6 +1,7 @@
 package com.mamba.picme.domain.search
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -168,5 +169,27 @@ class QuerySegmenterTest {
         val (explicit, _) = QuerySegmenter.toFilters(segmented)
 
         assertNull(explicit.hasFaces)
+    }
+
+    @Test
+    fun `hasNarrowingExplicit is false for pure person query`() {
+        // "小孩" 属 PERSON（explicit 段）→ hasExplicit=true，但无时间/地点收窄约束。
+        // 此类纯人物/概念查询不应触发 Layer 0.5 短路，需回落到 SQL + MobileCLIP 语义融合，
+        // 否则只返回"有人脸 ∩ 显式 child 标签"的少量结果（回归表现：搜"小孩"只剩 1 张）。
+        val result = QuerySegmenter.segment("小孩")
+        assertTrue("人物词应被识别为 explicit 段", result.hasExplicit)
+        assertFalse("纯人物查询不应有收窄型 explicit 约束", result.hasNarrowingExplicit)
+    }
+
+    @Test
+    fun `hasNarrowingExplicit is true for time plus location plus person compound query`() {
+        val result = QuerySegmenter.segment("去年3月在室内小孩的照片")
+        assertTrue(result.hasNarrowingExplicit)
+    }
+
+    @Test
+    fun `hasNarrowingExplicit is true for location plus person compound query`() {
+        val result = QuerySegmenter.segment("北京公园里的小孩")
+        assertTrue(result.hasNarrowingExplicit)
     }
 }
