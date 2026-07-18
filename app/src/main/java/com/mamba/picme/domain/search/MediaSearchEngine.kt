@@ -64,6 +64,17 @@ class MediaSearchEngine(
     }
 
     /**
+     * 以图搜图（公共入口）：委托给 [semanticSearchEngine]，把打分结果映射为 [MediaAsset] 列表。
+     * 用于 Chat「找相似」意图——对用户刚选中的图片做 embedding 近邻召回。
+     * 引擎未就绪/未注入时返回空列表。
+     */
+    suspend fun searchByImage(
+        bitmap: android.graphics.Bitmap,
+        topK: Int = 50
+    ): List<MediaAsset> =
+        semanticSearchEngine?.searchByImage(bitmap, null, topK)?.map { it.media } ?: emptyList()
+
+    /**
      * 执行搜索（三层混合检索）
      *
      * @param query 自然语言查询（如"猫""去年的照片""上海""温馨的家庭聚餐"）
