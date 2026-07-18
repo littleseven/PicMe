@@ -100,7 +100,7 @@ sealed class State {
 **技术规范**:
 - `load(context, sourceUri, recipeUri)` 在 `Dispatchers.IO` 解码预览图，并尝试从 `recipeUri` 恢复配方
 - 预览通过 `_recipeChanges.debounce(200)` 自动触发，避免滑动过程中频繁重算
-- 保存时使用完整分辨率原图，按同一配方处理，输出 JPEG（质量 95）到 `Pictures/PicMe`
+- 保存时使用完整分辨率原图，按同一配方处理，输出 JPEG（质量 95）到 `Pictures/PoLang`
 - 保存成功后调用 `PhotoEditRecipeRepository.save(outputUri, sourceUri, recipe)` 持久化配方
 
 ### 2.5 UI 结构
@@ -137,7 +137,7 @@ sealed class State {
 - **线程管理**: 预览处理在独立单线程调度器（PhotoProcessor EGL 上下文绑定），裁剪/标记在 `Dispatchers.Default`，保存写入在 `Dispatchers.IO`
 - **I18N**: 所有用户可见文案必须提取到 strings.xml，禁止硬编码
 - **权限检查**: 保存前无需显式检查存储权限（Android 10+ Scoped Storage）
-- **日志规范**: 关键操作（加载、保存、撤销、预览失败）需记录 `PicMe:Editor` 日志
+- **日志规范**: 关键操作（加载、保存、撤销、预览失败）需记录 `PoLang:Editor` 日志
 - **配方一致性**: 预览与保存必须基于同一份 `EditRecipe`，禁止在保存路径中单独构造参数
 
 ## 4. 常见陷阱检查清单 (Checklist)

@@ -1,4 +1,4 @@
-# PicMe AI Gateway - 腾讯云 SCF
+# PoLang AI Gateway - 腾讯云 SCF
 
 腾讯云云函数（SCF）Web 函数代理服务，将端侧请求转发到 Cloudflare AI Gateway，隐藏 DeepSeek API Key。
 

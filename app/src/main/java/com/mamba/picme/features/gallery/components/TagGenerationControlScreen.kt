@@ -21,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.TagScanPass
@@ -47,7 +47,7 @@ fun TagGenerationControlScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val db = remember { AppDatabase.getDatabase(context) }
     val coroutineScope = rememberCoroutineScope()
 

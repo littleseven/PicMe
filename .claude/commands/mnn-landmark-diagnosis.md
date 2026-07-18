@@ -201,7 +201,7 @@ init {
 ```bash
 ./gradlew :beauty-engine:assembleDebug
 ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/picme-debug.apk
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
 ```
 
 ### Step 2: 启动对比测试
@@ -234,7 +234,7 @@ adb logcat -d | grep "MNN vs ONNX"
 - 编译结果
 - 安装状态
 - 设备截屏（关键点覆盖层）
-- PicMe 日志（检测耗时、稳定性）
+- PoLang 日志（检测耗时、稳定性）
 
 ---
 

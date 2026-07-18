@@ -382,7 +382,7 @@ case "$COMMAND" in
         log_ok "JSON 命令已发送: $ARG"
         ;;
     *)
-        echo "PicMe Agent Tester - PC端主导测试（JSON驱动）"
+        echo "PoLang Agent Tester - PC端主导测试（JSON驱动）"
         echo ""
         echo "用法: ./scripts/agent-tester <command> [arg]"
         echo ""

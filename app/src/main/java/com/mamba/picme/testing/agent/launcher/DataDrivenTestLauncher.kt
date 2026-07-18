@@ -21,7 +21,7 @@ class DataDrivenTestLauncher(private val context: Context) {
 
     companion object {
         private const val TAG = "DataDrivenTestLauncher"
-        private const val REPORT_DIR = "PicMe_Agent_Test/reports"
+        private const val REPORT_DIR = "PoLang_Agent_Test/reports"
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)

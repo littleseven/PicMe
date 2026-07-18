@@ -528,7 +528,7 @@ M0=(0.119,0.380)  M1=(0.125,0.391)  ...  M16=(0.500,0.552)  ...  M31=(0.875,0.39
 ```kotlin
 // 当 FPS < 25 或处理耗时 > 20ms 时发出告警
 if (fps < 25 || processingMs > 20) {
-    Log.w("PicMe:BeautyEngine", "Performance warning: fps=$fps, processing=${processingMs}ms")
+    Log.w("PoLang:BeautyEngine", "Performance warning: fps=$fps, processing=${processingMs}ms")
 }
 ```
 
@@ -1661,7 +1661,7 @@ PoLang 当前引擎策略如下：
    - 调用 `BeautyEngineRuntimeState.markGlEngineFallback(reason)` 记录回退原因与冷却时间；
    - 切换至 `useProviderRenderView = false`，使用 CameraX 原生 `PreviewView` 继续预览；
    - 仅持久化 `gl_engine_recovery_available_at_ms` 冷却窗口，不再写入任何已删除的旧兜底引擎状态；
-   - 输出 `PicMe:Camera` 级别日志，确保问题可追踪。
+   - 输出 `PoLang:Camera` 级别日志，确保问题可追踪。
 3. 若超过 `PROVIDER_VIEW_BIND_TIMEOUT_MS` 超时仍未绑定成功，同样触发上述回退流程。
 
 ```kotlin
@@ -1670,14 +1670,14 @@ private fun onGlWarmUpFallback(reason: String) {
     BeautyEngineRuntimeState.markGlEngineFallback(reason)
     // 切换到 PreviewView
     _uiState.update { state -> state.copy(useProviderRenderView = false) }
-    Logger.w("PicMe:Camera", "大美丽 warm-up failed: $reason, fallback to PreviewView")
+    Logger.w("PoLang:Camera", "大美丽 warm-up failed: $reason, fallback to PreviewView")
 }
 ```
 
 #### 2.2 运行时异常回退
 
 - `beauty-engine` 内部运行异常（如渲染线程崩溃、FBO 失效、妆容 Pass 渲染失败）会直接抛出。
-- `BeautyRenderer` 会同步输出 `PicMe:BeautyRenderer` 分类日志，例如 `shader_compile`、`fbo_pipeline`、`texture_input`、`face_makeup`、`style_effect`。
+- `BeautyRenderer` 会同步输出 `PoLang:BeautyRenderer` 分类日志，例如 `shader_compile`、`fbo_pipeline`、`texture_input`、`face_makeup`、`style_effect`。
 - `CameraPreviewRenderer` 会把最近一次分类与原因聚合进 `BeautyPerfStats.errorCategory/errorReason`，供调试浮层直接展示。
 - `:app` 层在接收到异常后，通过 `BeautyEngineRuntimeState` 标记状态，并在下一次页面重建时回落至 `PreviewView`。
 - 详细的运行时冷却与重试机制，请参阅 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`。

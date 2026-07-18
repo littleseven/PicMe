@@ -358,7 +358,7 @@ data class AgentChatConfig(
  * ```
  * val config = rememberAgentChatConfig(
  *     context = context,
- *     logTag = "PicMe:Gallery",
+ *     logTag = "PoLang:Gallery",
  *     onCommand = { command -> /* 处理命令 */ },
  *     onTranscript = { transcript -> /* 处理识别文本 */ },
  *     onAgentResponse = { result -> /* 处理 Agent 响应 */ }

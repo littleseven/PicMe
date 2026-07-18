@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR="/tmp/picme_quality_check"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-echo "=== PicMe 图片质量验证 ==="
+echo "=== PoLang 图片质量验证 ==="
 echo ""
 
 # 检查设备连接
@@ -46,7 +46,7 @@ echo ""
 if [ $ANALYSIS_RESULT -ne 0 ]; then
     echo "[3/3] 检测到问题，收集诊断日志..."
     LOG_PATH="$OUTPUT_DIR/logcat_${TIMESTAMP}.txt"
-    adb logcat -d | grep -i "PicMe" > "$LOG_PATH" || true
+    adb logcat -d | grep -i "PoLang" > "$LOG_PATH" || true
     echo "✓ 日志已保存: $LOG_PATH"
     echo ""
     echo "⚠ 建议查看日志排查问题"

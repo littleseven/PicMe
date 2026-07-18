@@ -24,7 +24,7 @@ class IndexingTaskQueue(
     private val onProcessBatch: suspend (List<MediaChangeEvent>) -> Unit
 ) {
     companion object {
-        private const val TAG = "PicMe:IndexQueue"
+        private const val TAG = "PoLang:IndexQueue"
         private const val BATCH_SIZE = 20
         private const val PROCESS_INTERVAL_MS = 5000L
     }

@@ -19,7 +19,7 @@ import com.mamba.picme.domain.tag.FaceClusterEngine
 import com.mamba.picme.testing.agent.cases.BeautyAgentTestCases
 import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.testing.agent.cases.CameraAgentTestCases
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import org.json.JSONArray
 import com.mamba.picme.testing.agent.core.AgentTestCase
 import com.mamba.picme.testing.agent.core.AgentTestResult
@@ -525,7 +525,7 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             "backup_tag_data" -> {
                 scope.launch {
                     try {
-                        val app = context.applicationContext as PicMeApplication
+                        val app = context.applicationContext as PoLangApplication
                         val customPath = params?.optString("path")
                         val customFile = customPath?.let { File(it) }
                         val result = app.container.backupTagDataUseCase(customFile)
@@ -558,7 +558,7 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             "restore_tag_data" -> {
                 scope.launch {
                     try {
-                        val app = context.applicationContext as PicMeApplication
+                        val app = context.applicationContext as PoLangApplication
                         val customPath = params?.optString("path")
                         val customFile = customPath?.let { File(it) }
                         val dryRun = params?.optBoolean("dryRun", false) ?: false

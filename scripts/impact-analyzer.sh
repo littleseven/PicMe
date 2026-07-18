@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Impact Analyzer - PicMe 代码变更影响分析脚本
+# Impact Analyzer - PoLang 代码变更影响分析脚本
 # 用途: 分析代码变更的影响范围，输出模块依赖、API兼容性风险、需更新文档、测试缺口
 # 调用: ./scripts/impact-analyzer.sh [options] [files...]
 #
@@ -202,7 +202,7 @@ generate_text_report() {
     
     echo ""
     echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║           📊 PicMe Impact Analyzer - 影响分析报告        ║${NC}"
+    echo -e "${CYAN}║           📊 PoLang Impact Analyzer - 影响分析报告        ║${NC}"
     echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}分析模式:${NC} $MODE"
@@ -286,7 +286,7 @@ generate_md_report() {
     local files="$1"
     
     cat << EOF
-# PicMe Impact Analysis Report
+# PoLang Impact Analysis Report
 
 **分析模式**: $MODE  
 **变更文件数**: $(echo "$files" | grep -c '^' || echo 0)  

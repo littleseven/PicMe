@@ -82,9 +82,9 @@ val cropScale = modelConfig.postProcess.faceCropScale // 1.2f for InsightFace
 ```
 
 ## 日志规范
-- 模型预处理：`PicMe:ModelPreproc` - 记录输入尺寸、颜色顺序、归一化参数
-- 模型推理：`PicMe:ModelInfer` - 记录输入 shape、输出 shape、推理耗时
-- 后处理：`PicMe:ModelPostProc` - 记录 NMS 前/后框数、最终输出
+- 模型预处理：`PoLang:ModelPreproc` - 记录输入尺寸、颜色顺序、归一化参数
+- 模型推理：`PoLang:ModelInfer` - 记录输入 shape、输出 shape、推理耗时
+- 后处理：`PoLang:ModelPostProc` - 记录 NMS 前/后框数、最终输出
 
 ## 审查清单（CR 必须检查）
 - [ ] 是否已提供官方 Python/C++ reference implementation 链接？

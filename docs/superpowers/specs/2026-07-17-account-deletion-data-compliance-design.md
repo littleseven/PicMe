@@ -59,7 +59,7 @@ App 在本地新增了「邮箱注册 + 账号」功能（邮箱验证码登录�
 ```
 设置页「数据与隐私」 / 已登录账号区 → 点「删除账号」
 → AlertDialog 二次确认（账号立即停用 / 数据保留 90 天后彻底删除 / 可同邮箱重新注册为全新账号）
-→ PicMeAuthClient.deleteAccount(token) → DELETE /auth/account   (header: X-App-Token: <pl-*>)
+→ PoLangAuthClient.deleteAccount(token) → DELETE /auth/account   (header: X-App-Token: <pl-*>)
 → AppTokenAuth interceptor 校验 token → 注入 tokenHash 到 TokenHashKey
 → AccountService.softDelete(tokenHash)
 → 200 {deleted:true} → 客户端 clearServerAuth() → UI 回到注册态 + Toast「账号已删除」
@@ -146,9 +146,9 @@ runBlocking {
 
 ## 6. Client 端改动（`:app`）
 
-### 6.1 PicMeAuthClient 新增删除方法
+### 6.1 PoLangAuthClient 新增删除方法
 
-在 `app/src/main/java/com/mamba/picme/data/remote/picme/PicMeAuthClient.kt` 新增：
+在 `app/src/main/java/com/mamba/picme/data/remote/picme/PoLangAuthClient.kt` 新增：
 
 ```kotlin
 suspend fun deleteAccount(token: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -160,13 +160,13 @@ suspend fun deleteAccount(token: String): Result<Unit> = withContext(Dispatchers
             .build()
         val resp = client.newCall(req).execute()
         if (!resp.isSuccessful) {
-            throw PicMeAuthException(resp.code, errorBody(resp.body?.string()))
+            throw PoLangAuthException(resp.code, errorBody(resp.body?.string()))
         }
     }
 }
 ```
 
-复用现有 `errorBody` / `PicMeAuthException` 模式。
+复用现有 `errorBody` / `PoLangAuthException` 模式。
 
 ### 6.2 SettingsServerAuth 删除入口 + 确认框
 
@@ -242,7 +242,7 @@ suspend fun deleteAccount(token: String): Result<Unit> = withContext(Dispatchers
 
 参考既有 client 测试风格（`app/src/test/`）。
 
-- **`PicMeAuthClientDeleteAccountTest`**（如存在 mockwebserver 基础设施）：验证请求方法 `DELETE`、URL `$baseUrl/auth/account`、`X-App-Token` header；成功返回 `Result.success`；非 2xx 抛 `PicMeAuthException` 含正确 code/errorType
+- **`PoLangAuthClientDeleteAccountTest`**（如存在 mockwebserver 基础设施）：验证请求方法 `DELETE`、URL `$baseUrl/auth/account`、`X-App-Token` header；成功返回 `Result.success`；非 2xx 抛 `PoLangAuthException` 含正确 code/errorType
 
 ## 10. i18n（三语言同步）
 

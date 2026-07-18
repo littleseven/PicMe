@@ -1,5 +1,5 @@
 #!/bin/bash
-# PicMe 批量拍照测试脚本
+# PoLang 批量拍照测试脚本
 # 用法: ./batch_capture.sh [前置/后置] [滤镜列表]
 
 set -e
@@ -15,7 +15,7 @@ PACKAGE="com.picme"
 ACTIVITY="${PACKAGE}/.MainActivity"
 ACTION="com.picme.TEST_COMMAND"
 
-echo "=== PicMe 批量拍照测试 ==="
+echo "=== PoLang 批量拍照测试 ==="
 echo "摄像头: ${CAMERA}"
 echo "滤镜: ${FILTERS}"
 echo "美颜: smooth=${BEAUTY_SMOOTH}, whiten=${BEAUTY_WHITEN}"
@@ -79,4 +79,4 @@ echo "=== 批量拍照完成 ==="
 echo "共拍摄 ${COUNT} 张照片"
 echo ""
 echo "查看相册:"
-echo "  adb shell ls /sdcard/DCIM/PicMe/"
+echo "  adb shell ls /sdcard/DCIM/PoLang/"

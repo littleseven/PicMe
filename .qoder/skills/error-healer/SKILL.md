@@ -1,7 +1,7 @@
 ---
 name: error-healer
 description: |
-  PicMe 编译错误自动分类与修复策略。将 Kotlin/Gradle 编译错误映射到标准化修复方案。
+  PoLang 编译错误自动分类与修复策略。将 Kotlin/Gradle 编译错误映射到标准化修复方案。
 version: 1.1.0
 created: 2026-05-03
 updated: 2026-05-25
@@ -18,7 +18,7 @@ tags:
 
 # Error Healer - 编译错误自动分类与修复
 
-> **定位**：PicMe 编译错误自动分类与修复策略，将 Kotlin/Gradle 编译错误映射到标准化修复方案。
+> **定位**：PoLang 编译错误自动分类与修复策略，将 Kotlin/Gradle 编译错误映射到标准化修复方案。
 > **触发时机**：用户报告编译错误、构建失败或需要修复 Kotlin/Gradle 错误时自动启用。
 
 
@@ -97,7 +97,7 @@ tags:
 5. 快速编译验证
 ```
 
-**PicMe 特定导入规则**：
+**PoLang 特定导入规则**：
 ```kotlin
 // beauty-engine 模块的公开 API
 import com.mamba.picme.beauty.api.*              // 禁止（AGENTS.md 规则）
@@ -167,7 +167,7 @@ import com.mamba.picme.beauty.internal.*          // 错误（app 模块不应�
 | 资源冲突 | `Duplicate resources` | 检查 res/ 目录重复文件 | 65% |
 | NDK/CMake | `CMake Error\|NDK not configured` | 检查 local.properties + NDK 路径 | 55% |
 
-### Class H: PicMe 特定错误 (Project-Specific)
+### Class H: PoLang 特定错误 (Project-Specific)
 
 | 错误模式 | 来源 | 修复策略 | 成功率 |
 |----------|------|----------|--------|

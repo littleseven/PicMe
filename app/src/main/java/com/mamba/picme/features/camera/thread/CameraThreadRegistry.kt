@@ -11,8 +11,8 @@ import com.mamba.picme.core.common.Logger
  * | 线程名                | 类型          | 职责                          |
  * |----------------------|---------------|------------------------------|
  * | main                 | UI 线程       | Compose 渲染、用户交互          |
- * | PicMe-CameraCapture  | HandlerThread | 拍照回调 + 图像后处理            |
- * | PicMe-AgentState     | HandlerThread | Agent 命令解析 + 状态机          |
+ * | PoLang-CameraCapture  | HandlerThread | 拍照回调 + 图像后处理            |
+ * | PoLang-AgentState     | HandlerThread | Agent 命令解析 + 状态机          |
  * | CameraPreviewRender  | Thread        | GL 渲染（已有，不修改）          |
  *
  * 验收标准：用 Thread.currentThread().name 打印日志，确认四个线程物理分离
@@ -38,8 +38,8 @@ object CameraThreadRegistry {
             return
         }
 
-        cameraHandlerThread = CameraHandlerThread("PicMe-CameraCapture")
-        analysisHandlerThread = CameraHandlerThread("PicMe-CameraAnalysis")
+        cameraHandlerThread = CameraHandlerThread("PoLang-CameraCapture")
+        analysisHandlerThread = CameraHandlerThread("PoLang-CameraAnalysis")
         agentHandlerThread = AgentHandlerThread()
         isInitialized = true
 
@@ -87,9 +87,9 @@ object CameraThreadRegistry {
         val name = Thread.currentThread().name
         return when {
             name == "main" || Looper.myLooper() == Looper.getMainLooper() -> ThreadRole.MAIN
-            name == "PicMe-CameraCapture" -> ThreadRole.CAMERA_CAPTURE
-            name == "PicMe-CameraAnalysis" -> ThreadRole.ANALYSIS
-            name == "PicMe-AgentState" -> ThreadRole.AGENT_STATE
+            name == "PoLang-CameraCapture" -> ThreadRole.CAMERA_CAPTURE
+            name == "PoLang-CameraAnalysis" -> ThreadRole.ANALYSIS
+            name == "PoLang-AgentState" -> ThreadRole.AGENT_STATE
             name.startsWith("CameraPreviewRender") -> ThreadRole.GL_RENDER
             else -> ThreadRole.UNKNOWN
         }

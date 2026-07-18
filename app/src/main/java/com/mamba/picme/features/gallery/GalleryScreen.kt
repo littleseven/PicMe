@@ -81,7 +81,7 @@ import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.navigation.Screen
 import com.mamba.picme.service.tag.TagGenerationService
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -175,7 +175,7 @@ fun GalleryScreen(
         }
     }
     val context = LocalContext.current
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val thumbnailCache = remember { app.container.thumbnailCache }
     val deleteAuthRequest by viewModel.deleteAuthRequest.collectAsState()
 

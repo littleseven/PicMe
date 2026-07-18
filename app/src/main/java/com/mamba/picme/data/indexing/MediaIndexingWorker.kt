@@ -35,7 +35,7 @@ class MediaIndexingWorker(
 ) {
 
     companion object {
-        private const val TAG = "PicMe:MediaIndex"
+        private const val TAG = "PoLang:MediaIndex"
         private const val BATCH_SIZE = 20
     }
 

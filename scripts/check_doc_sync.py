@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Document Sync Guardian - 文档一致性自动检查器
-检查 PicMe 三层文档体系中的不一致问题：
+检查 PoLang 三层文档体系中的不一致问题：
 1. 对已删除文件的引用
 2. "进行中" vs "已落地" 状态标记不一致
 3. 无效的内部链接

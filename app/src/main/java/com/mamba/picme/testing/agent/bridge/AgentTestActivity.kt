@@ -75,7 +75,7 @@ private fun AgentTestScreen(runner: AgentTestRunner, controller: DeviceTestContr
             .padding(16.dp)
     ) {
         Text(
-            text = "PicMe Agent 测试控制台",
+            text = "PoLang Agent 测试控制台",
             style = MaterialTheme.typography.headlineSmall
         )
 

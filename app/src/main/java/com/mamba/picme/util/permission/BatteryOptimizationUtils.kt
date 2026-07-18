@@ -12,7 +12,7 @@ import com.mamba.picme.core.common.Logger
  * 电池优化白名单辅助类
  *
  * 无障碍服务和前台悬浮窗服务在国产 ROM（尤其是 MIUI）上容易被系统省电策略杀死，
- * 引导用户将 PicMe 加入电池优化白名单可显著提升可用性。
+ * 引导用户将 PoLang 加入电池优化白名单可显著提升可用性。
  */
 object BatteryOptimizationUtils {
 

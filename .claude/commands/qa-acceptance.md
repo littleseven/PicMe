@@ -1,6 +1,6 @@
-# PicMe QA 验收
+# PoLang QA 验收
 
-> **定位**：PicMe QA 质量验收专家，执行端到端验收、边界测试、性能基线对比与红线合规检查。
+> **定位**：PoLang QA 质量验收专家，执行端到端验收、边界测试、性能基线对比与红线合规检查。
 > **触发时机**：用户需要 QA 验收、边界测试、性能基线对比或红线合规检查时自动启用。
 
 
@@ -64,7 +64,7 @@ QA 角色专属 Skill。在 RD 完成代码修改后执行验收，确保交付�
 | `report.md` | 汇总报告，首先阅读 |
 | `screen_startup.png` | 启动画面是否正常 |
 | `screen_after_capture.png` | 拍照后画面是否正常 |
-| `logcat_picme.txt` | PicMe 标签日志，搜索 ERROR/FATAL |
+| `logcat_picme.txt` | PoLang 标签日志，搜索 ERROR/FATAL |
 | `build.log` | 编译是否成功 |
 | `install.log` | 安装是否成功 |
 
@@ -148,7 +148,7 @@ grep -r "http\|HttpClient\|OkHttp\|Retrofit" app/src/main/java/com/mamba/picme/ 
 **验证方法**：
 ```bash
 # 从日志提取性能数据
-adb logcat -d | grep -E "PicMe:.*perf|PicMe:.*elapsed|PicMe:.*FPS"
+adb logcat -d | grep -E "PoLang:.*perf|PoLang:.*elapsed|PoLang:.*FPS"
 
 # 检查是否有超时警告
 grep -i "timeout\|slow\|jank" scripts/auto_test_output/*/logcat_picme.txt
@@ -250,7 +250,7 @@ adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadc
 ./scripts/ai-gate.sh
 
 # 性能日志提取
-adb logcat -d | grep -E "PicMe:.*perf|PicMe:.*elapsed"
+adb logcat -d | grep -E "PoLang:.*perf|PoLang:.*elapsed"
 
 # I18N 检查
 python3 scripts/check_i18n_sync.py

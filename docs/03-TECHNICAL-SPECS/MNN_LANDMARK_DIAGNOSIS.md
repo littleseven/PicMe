@@ -207,7 +207,7 @@ output->copyToHostTensor(&tmpOutput);
 
 ```bash
 # 1. 编译安装
-./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/picme-debug.apk
+./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/polang-debug.apk
 
 # 2. 启动应用并收集日志
 adb logcat -c && adb shell am start -n com.mamba.picme/.MainActivity

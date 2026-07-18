@@ -818,7 +818,7 @@ class YourCapability : Capability {
 - [ ] 已注册到 CapabilityRegistry
 - [ ] 已更新 PromptBuilder
 - [ ] 单元测试覆盖核心路径
-- [ ] 日志规范（`PicMe:YourCapability`）
+- [ ] 日志规范（`PoLang:YourCapability`）
 
 #### 文档同步清单
 

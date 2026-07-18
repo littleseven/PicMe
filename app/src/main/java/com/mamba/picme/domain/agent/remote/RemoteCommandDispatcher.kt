@@ -8,7 +8,7 @@ import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
+import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
@@ -342,7 +342,7 @@ class RemoteCommandDispatcher(
      */
     private fun executeDirectGallerySearch(query: String, previewIndex: Int?, wm: WindowManager): String {
         return try {
-            val toolService = PicMeToolService(wm)
+            val toolService = PoLangToolService(wm)
             val navigateResult = toolService.navigateTo("gallery")
             if (navigateResult.startsWith("Error:")) {
                 return "❌ 进入相册失败：$navigateResult"

@@ -26,7 +26,7 @@ import com.mamba.picme.domain.agent.remote.FeishuPhotoTracker
 import com.mamba.picme.features.camera.state.CameraStateMachine
 import com.mamba.picme.features.camera.state.CameraStateManager
 import com.mamba.picme.features.gallery.MediaViewModel
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
 import android.content.ContentValues
@@ -93,7 +93,7 @@ internal fun handleCaptureClick(
                 if (pendingMessageId != null) {
                     Logger.w(TAG, "Feishu photo capture failed: ImageCapture not ready, messageId=$pendingMessageId")
                     try {
-                        val app = context.applicationContext as? PicMeApplication
+                        val app = context.applicationContext as? PoLangApplication
                         app?.feishuChannelHandler?.sendMessage(
                             "抱歉，相机还没准备好，请稍等片刻再试",
                             pendingMessageId
@@ -134,7 +134,7 @@ internal fun handleCaptureClick(
                                 Logger.w(TAG, "Feishu photo capture failed, notifying user: messageId=$pendingMessageId")
                                 // 通知飞书用户拍照失败 - 通过应用容器获取 FeishuChannelHandler
                                 try {
-                                    val app = context.applicationContext as? PicMeApplication
+                                    val app = context.applicationContext as? PoLangApplication
                                     app?.feishuChannelHandler?.sendMessage(
                                         "抱歉，拍照失败了，请再试一次",
                                         pendingMessageId
@@ -180,7 +180,7 @@ internal fun handleCaptureClick(
         && glPreviewProvider.isReady()
         && beautyVideoRecorder != null
 
-    val name = "PicMe_" + System.currentTimeMillis() + ".mp4"
+    val name = "PoLang_" + System.currentTimeMillis() + ".mp4"
 
     if (canUseBeautyRecording) {
         // 美颜录制路径：通过 OpenGL 管线直接输出到编码器
@@ -253,7 +253,7 @@ internal fun handleCaptureClick(
     val contentValues = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, name)
         put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-        put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PicMe")
+        put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PoLang")
     }
     val mediaStoreOutputOptions = MediaStoreOutputOptions.Builder(
         context.contentResolver,
@@ -294,7 +294,7 @@ private fun insertVideoToMediaStore(context: Context, file: File, displayName: S
             put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
             put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PicMe")
+                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PoLang")
             }
         }
         val uri = context.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)

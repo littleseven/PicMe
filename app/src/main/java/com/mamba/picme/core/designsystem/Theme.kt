@@ -58,7 +58,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun PicMeTheme(
+fun PoLangTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit

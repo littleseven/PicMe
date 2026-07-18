@@ -361,7 +361,7 @@ class ImageProcessorImpl(
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PicMe")
+                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PoLang")
             }
         }
         val mediaStoreOutputOptions = MediaStoreOutputOptions.Builder(
@@ -470,7 +470,7 @@ class ImageProcessorImpl(
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PicMe")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PoLang")
             }
         }
         var saveSucceeded = false

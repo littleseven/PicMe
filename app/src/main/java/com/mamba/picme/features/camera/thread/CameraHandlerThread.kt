@@ -9,8 +9,8 @@ import com.mamba.picme.core.common.Logger
  * [Day1 线程隔离] 相机 HandlerThread 基类
  *
  * 职责边界：
- * - PicMe-CameraCapture：ImageCapture.takePicture() 回调 + 拍照后处理
- * - PicMe-CameraAnalysis：ImageAnalysis 帧分析（人脸检测等）
+ * - PoLang-CameraCapture：ImageCapture.takePicture() 回调 + 拍照后处理
+ * - PoLang-CameraAnalysis：ImageAnalysis 帧分析（人脸检测等）
  * - 禁止：调用任何 CameraX API（bind/unbind）、GL API、Agent 状态机
  *
  * 优先级：THREAD_PRIORITY_BACKGROUND + THREAD_PRIORITY_MORE_FAVORABLE

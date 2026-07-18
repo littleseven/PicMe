@@ -9,7 +9,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
-import com.mamba.picme.data.remote.picme.PicMeAuthClient
+import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
@@ -46,7 +46,7 @@ class ChatViewModelTitleUpdateTest {
     private val chatSessionDao: ChatSessionDao = mockk(relaxed = true)
     private val mediaSearchEngine: MediaSearchEngine = mockk(relaxed = true)
     private val mediaFeedbackRepository: MediaFeedbackRepository = mockk(relaxed = true)
-    private val authClient: PicMeAuthClient = mockk(relaxed = true)
+    private val authClient: PoLangAuthClient = mockk(relaxed = true)
     private val userSettingsRepository: UserSettingsRepository = mockk(relaxed = true)
 
     private val tokenFlow = MutableStateFlow("")

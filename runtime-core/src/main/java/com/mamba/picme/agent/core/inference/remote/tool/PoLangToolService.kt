@@ -33,16 +33,16 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * PicMe 应用工具服务。
+ * PoLang 应用工具服务。
  *
  * 使用 @Tool 注解定义所有可被远程 LLM 调用的工具，直接通过方法签名生成 ToolSpecification。
  */
-class PicMeToolService(
+class PoLangToolService(
     private val windowManager: WindowManager
 ) {
 
     companion object {
-        private const val TAG = "PicMeToolService"
+        private const val TAG = "PoLangToolService"
 
         /** UI 操作后等待屏幕稳定的时间（毫秒） */
         private const val UI_SETTLE_DELAY_MS = 300L

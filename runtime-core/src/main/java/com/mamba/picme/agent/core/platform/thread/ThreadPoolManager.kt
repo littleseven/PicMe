@@ -9,14 +9,14 @@ import java.util.concurrent.TimeUnit
 /**
  * 集中化线程池管理器
  *
- * **设计目标**：将 PicMe 应用中所有专有线程池（DataStore、LLM 推理、网络、编排）
+ * **设计目标**：将 PoLang 应用中所有专有线程池（DataStore、LLM 推理、网络、编排）
  * 集中到一处管理，避免各模块各自创建和管理线程池带来的生命周期不一致问题。
  *
  * **线程模型**（沿用现有四线程池架构）：
- * - **DataStore 线程**（PicMe-DataStore-Thread）：单线程，串行化所有 DataStore 读写
- * - **LLM 推理线程**（PicMe-LLM-Model-Thread）：单线程，串行化所有模型操作
- * - **网络线程**（PicMe-Network-Thread）：单线程，隔离同步 HTTP 调用
- * - **编排线程**（PicMe-Orchestrator-Thread）：双线程，处理用户输入编排生命周期
+ * - **DataStore 线程**（PoLang-DataStore-Thread）：单线程，串行化所有 DataStore 读写
+ * - **LLM 推理线程**（PoLang-LLM-Model-Thread）：单线程，串行化所有模型操作
+ * - **网络线程**（PoLang-Network-Thread）：单线程，隔离同步 HTTP 调用
+ * - **编排线程**（PoLang-Orchestrator-Thread）：双线程，处理用户输入编排生命周期
  *
  * 四者完全隔离，无直接依赖关系。数据持久化为 fire-and-forget 异步操作。
  *
@@ -46,7 +46,7 @@ class ThreadPoolManager private constructor() {
     // ── DataStore 线程池 ────────────────────────────────────────
 
     private val dataStoreExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "PicMe-DataStore-Thread").apply { isDaemon = true }
+        Thread(runnable, "PoLang-DataStore-Thread").apply { isDaemon = true }
     }
 
     /**
@@ -59,7 +59,7 @@ class ThreadPoolManager private constructor() {
     // ── LLM 推理线程池 ──────────────────────────────────────────
 
     private val modelExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "PicMe-LLM-Model-Thread").apply { isDaemon = true }
+        Thread(runnable, "PoLang-LLM-Model-Thread").apply { isDaemon = true }
     }
 
     /**
@@ -72,7 +72,7 @@ class ThreadPoolManager private constructor() {
     // ── 网络线程池 ──────────────────────────────────────────────
 
     private val networkExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "PicMe-Network-Thread").apply { isDaemon = true }
+        Thread(runnable, "PoLang-Network-Thread").apply { isDaemon = true }
     }
 
     /**
@@ -85,7 +85,7 @@ class ThreadPoolManager private constructor() {
     // ── 编排线程池 ──────────────────────────────────────────────
 
     private val orchestratorExecutor: ExecutorService = Executors.newFixedThreadPool(2) { runnable ->
-        Thread(runnable, "PicMe-Orchestrator-Thread").apply { isDaemon = true }
+        Thread(runnable, "PoLang-Orchestrator-Thread").apply { isDaemon = true }
     }
 
     /**

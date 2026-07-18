@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a device-bound anonymous guest trial quota (100/device) to the PicMe server so unregistered clients can try the Remote LLM, and raise the registered quota to 1000/account; also rebrand the auth token prefix `picme_at_` → `pl-` and admin cookie `picme_admin` → `pl_admin`.
+**Goal:** Add a device-bound anonymous guest trial quota (100/device) to the PoLang server so unregistered clients can try the Remote LLM, and raise the registered quota to 1000/account; also rebrand the auth token prefix `picme_at_` → `pl-` and admin cookie `picme_admin` → `pl_admin`.
 
 **Architecture:** A new `AnonymousDevices` table + `GuestService` mirror the existing account-quota mechanism. The auth interceptor allows `X-Device-Id` only on `/chat/completions` paths when no account token is present; `LlmRoute` branches account-quota vs guest-quota. Quotas: guest 100/device, registered 1000/account.
 

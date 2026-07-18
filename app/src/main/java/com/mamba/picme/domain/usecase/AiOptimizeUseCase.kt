@@ -24,7 +24,7 @@ class AiOptimizeUseCase(
 ) {
 
     companion object {
-        private const val TAG = "PicMe:AiOptimizeUseCase"
+        private const val TAG = "PoLang:AiOptimizeUseCase"
     }
 
     /**

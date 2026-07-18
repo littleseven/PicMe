@@ -122,7 +122,7 @@ cd PoLang
 ./gradlew :app:assembleDebug
 
 # 安装到设备
-adb install -r app/build/outputs/apk/debug/picme-debug.apk
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
 ```
 
 ### 常用命令
@@ -133,7 +133,7 @@ adb install -r app/build/outputs/apk/debug/picme-debug.apk
 | `./gradlew connectedAndroidTest` | 运行仪器测试（需设备） |
 | `./gradlew lint` | 静态代码检查 |
 | `./scripts/ai-gate.sh` | 代码质量门禁 |
-| `adb logcat -s "PicMe:*"` | 查看 PoLang 日志 |
+| `adb logcat -s "PoLang:*"` | 查看 PoLang 日志 |
 
 ---
 

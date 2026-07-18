@@ -7,7 +7,7 @@
 > - 美颜引擎实现细节见 `beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `runtime-core/AGENTS.md`。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：`:app` 是 PicMe 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:app` 负责将 `:runtime-core`、`:beauty-api`、`:beauty-engine`、`:sentencepiece` 四个独立库组装为完整应用（`:agent-core` 的能力已下沉到 `:runtime-core` 中，由 `:runtime-core` 以 `api` 方式透出）。
+**模块定位**：`:app` 是 PoLang 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:app` 负责将 `:runtime-core`、`:beauty-api`、`:beauty-engine`、`:sentencepiece` 四个独立库组装为完整应用（`:agent-core` 的能力已下沉到 `:runtime-core` 中，由 `:runtime-core` 以 `api` 方式透出）。
 
 **主要维护者**：[RD] 全栈工程师
 
@@ -50,7 +50,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 | 文件 | 职责 |
 |------|------|
-| `PicMeApplication.kt` | Application 初始化：DI 容器、Native 库加载、AgentOrchestrator 预配置 |
+| `PoLangApplication.kt` | Application 初始化：DI 容器、Native 库加载、AgentOrchestrator 预配置 |
 | `MainActivity.kt` | 单 Activity：Compose NavHost、主题/语言管理、CapabilityHost、模型下载弹窗 |
 | `navigation/Screen.kt` | sealed class 定义所有路由 |
 
@@ -104,7 +104,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `core/designsystem/` | `Color`、`Theme`、`Typography` | Compose 设计系统 |
 | `core/image/` | `CoilConfig`、`GpuBeautyProcessor`、`ImageProcessor` | 图片加载与处理 |
 | `service/chat/` | `FloatingChatBubbleService` | 悬浮聊天气泡 |
-| `service/accessibility/` | `PicMeAccessibilityService` | Agent 自动化辅助服务 |
+| `service/accessibility/` | `PoLangAccessibilityService` | Agent 自动化辅助服务 |
 | `testing/` | Agent 自动化测试框架 | 测试基础设施 |
 
 ---
@@ -141,7 +141,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 - **包名**：禁止 `com.mamba.picme.*` 完全限定名（使用 import）
 - **导入**：禁止通配符导入（`import com.mamba.picme.*`）
 - **Lambda**：参数必须显式命名（禁止 `it`）
-- **日志标签**：格式 `PicMe:[FeatureName]`（如 `PicMe:Camera`、`PicMe:Chat`）
+- **日志标签**：格式 `PoLang:[FeatureName]`（如 `PoLang:Camera`、`PoLang:Chat`）
 - **缩进**：Kotlin 4 空格；XML/JSON/MD 2 空格
 
 ### 4.2 I18N（强制）
@@ -184,7 +184,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 - [ ] 新增数据表已更新 `AppDatabase.kt` + DAO + 版本迁移
 - [ ] 新增依赖已通过 `libs.versions.toml` 管理
 - [ ] UI 字符串已三语同步
-- [ ] 日志标签遵循 `PicMe:[FeatureName]` 格式
+- [ ] 日志标签遵循 `PoLang:[FeatureName]` 格式
 - [ ] 不跨层引用：features 不直接引用 data 实现类
 - [ ] 跨模块调用使用接口（`beauty-api` / `agent-core` 公开 API）
 

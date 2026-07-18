@@ -60,7 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.features.gallery.MediaViewModel
 import kotlinx.coroutines.launch
@@ -73,7 +73,7 @@ fun DebugScreen(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val scope = app.applicationScope
 
     val isGenerating by SampleDataGenerator.isGenerating.collectAsState()

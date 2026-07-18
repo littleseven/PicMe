@@ -25,7 +25,7 @@ object CameraAgentTestCases {
             category(TestCategory.CAMERA)
             priority(TestPriority.P0)
 
-            step("启动 PicMe 应用") {
+            step("启动 PoLang 应用") {
                 action { ctx ->
                     val success = controller.launchApp()
                     ctx.setMetadata("launchSuccess", success.toString())

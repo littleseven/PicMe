@@ -20,7 +20,7 @@ import java.io.File
  * 飞书通道处理器
  *
  * 基于飞书 OAPI SDK，通过 WebSocket 直连飞书平台。
- * 参考 ApkClaw 的实现模式，适配 PicMe 项目。
+ * 参考 ApkClaw 的实现模式，适配 PoLang 项目。
  *
  * **职责**：
  * - 建立与飞书平台的 WebSocket 长连接（出站连接，无需公网 IP）

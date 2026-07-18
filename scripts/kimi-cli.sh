@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Kimi CLI 快捷命令脚本 for PicMe 项目
+# Kimi CLI 快捷命令脚本 for PoLang 项目
 # 用法: source scripts/kimi-cli.sh 或 ./scripts/kimi-cli.sh <命令>
 #
 
@@ -37,13 +37,13 @@ kclean() {
 # 安装调试 APK 到设备
 kinstall() {
     echo "📱 安装调试 APK..."
-    adb install -r app/build/outputs/apk/debug/app-debug.apk
+    adb install -r app/build/outputs/apk/debug/polang-debug.apk
 }
 
 # 查看日志
 klogs() {
-    echo "📋 查看 PicMe 日志..."
-    adb logcat -s "PicMe:*"
+    echo "📋 查看 PoLang 日志..."
+    adb logcat -s "PoLang:*"
 }
 
 # 打开 Android Studio
@@ -61,20 +61,20 @@ kcd() {
 # 显示帮助
 khelp() {
     cat << 'EOF'
-Kimi CLI for PicMe - 快捷命令
+Kimi CLI for PoLang - 快捷命令
 
 命令列表:
   kbuild     - 构建调试 APK
   ktest      - 运行单元测试
   kclean     - 清理构建
   kinstall   - 安装调试 APK 到设备
-  klogs      - 查看 PicMe 日志
+  klogs      - 查看 PoLang 日志
   kstudio    - 打开 Android Studio
   kcd        - 切换到项目目录
   khelp      - 显示此帮助
 
 环境变量:
-  PICME_PATH - 项目路径 (默认: ~/AndroidStudioProjects/PicMe)
+  PICME_PATH - 项目路径 (默认: ~/AndroidStudioProjects/PoLang)
 
 使用示例:
   source scripts/kimi-cli.sh  # 加载函数
@@ -100,7 +100,7 @@ if [ $# -gt 0 ]; then
     esac
 else
     # 交互模式（合并原 start-kimi-cli.sh 的引导输出）
-    echo "🤖 Kimi CLI for PicMe"
+    echo "🤖 Kimi CLI for PoLang"
     echo "====================="
     echo ""
     echo "📁 项目路径: $PICME_PATH"

@@ -1,11 +1,11 @@
-# PicMe — kimi-cli 项目配置
+# PoLang — kimi-cli 项目配置
 
 > **定位**：本文件为 kimi-cli 专用项目级配置，与项目根目录 `AGENTS.md` 共同构成规范体系。  
 > **优先级**：根目录 `AGENTS.md` > 本文件。模块级 `AGENTS.md` 在其管辖范围内优先。
 
 ## 项目速览
 
-- **名称**: PicMe
+- **名称**: PoLang
 - **类型**: Android 相机应用（Kotlin + Jetpack Compose）
 - **包名**: com.mamba.picme
 - **架构**: Clean Architecture + MVVM
@@ -34,7 +34,7 @@
 ### 构建与验证
 - 代码修改后必须执行 `./gradlew assembleDebug` 验证编译
 - 构建失败时基于日志自主修复，单任务最多自愈 2 次
-- 使用 `adb logcat -s "PicMe:*"` 查看运行时日志
+- 使用 `adb logcat -s "PoLang:*"` 查看运行时日志
 
 ### 多语言同步（I18N）
 - 新增或修改用户可见字符串时，必须同步更新以下三个文件：
@@ -43,8 +43,8 @@
   - `app/src/main/res/values-zh-rTW/strings.xml`（繁体中文）
 
 ### 日志规范
-- 统一标签格式：`PicMe:[ModuleName]`
-- 示例：`private const val TAG = "PicMe:Camera"`
+- 统一标签格式：`PoLang:[ModuleName]`
+- 示例：`private const val TAG = "PoLang:Camera"`
 
 ## 项目文档索引
 
@@ -62,7 +62,7 @@
 ```bash
 ./gradlew :app:assembleDebug    # 构建调试 APK
 ./gradlew test                   # 运行单元测试
-adb logcat -s "PicMe:*"          # 查看 PicMe 日志
+adb logcat -s "PoLang:*"          # 查看 PoLang 日志
 ```
 
 > 完整开发指南（环境配置、IDE 快捷键、性能分析、发布流程）：`DEVELOPMENT.md`

@@ -862,7 +862,7 @@ class AiAgentUseCase(
 - **线程安全**: `AgentOrchestrator` 的 `agentMode` / `currentModelId` 需同步控制，禁止并发修改
 - **模型加载**: 快速连续调用需加并发锁，避免触发多次加载
 - **隐私拦截**: `PrivacyGuard` 必须接入 LLM 输入输出流和 Capability 执行链路，禁止仅做断言
-- **日志规范**: 统一使用 `PicMe:[Module]` 前缀，禁止各组件标签不一致
+- **日志规范**: 统一使用 `PoLang:[Module]` 前缀，禁止各组件标签不一致
 - **协议隔离**: 远程 tool_calls 与本地 method/params 必须彻底隔离，禁止混用
 
 ---

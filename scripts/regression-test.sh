@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Regression Test - PicMe 端到端回归测试
+# Regression Test - PoLang 端到端回归测试
 # 用途: 在真机上自动执行 P0 核心用例验证，输出可量化的回归报告
 # 调用: ./scripts/regression-test.sh [options]
 #
@@ -137,7 +137,7 @@ tc_camera_01_startup() {
 
     # 检查预览帧（通过日志判断）
     sleep 2
-    if adb logcat -d -s PicMe:Camera | grep -q "preview\|frame\|surface"; then
+    if adb logcat -d -s PoLang:Camera | grep -q "preview\|frame\|surface"; then
         log_pass "相机预览有日志活动"
     else
         # 无日志不代表失败，仅警告
@@ -187,7 +187,7 @@ tc_camera_03_capture() {
 
     # 验证 GPU 处理日志
     local logfile="$OUTPUT_DIR/tc03_log.txt"
-    adb logcat -d -s PicMe:PhotoProcessor > "$logfile" 2>&1
+    adb logcat -d -s PoLang:PhotoProcessor > "$logfile" 2>&1
 
     if grep -q "process DONE" "$logfile"; then
         local elapsed=$(grep "process DONE" "$logfile" | grep -oE "[0-9]+ms" | head -1)
@@ -198,7 +198,7 @@ tc_camera_03_capture() {
 
     # 验证照片文件生成
     sleep 1
-    local latest_photo=$(adb shell ls -t /sdcard/DCIM/PicMe/ 2>/dev/null | head -1 || echo "")
+    local latest_photo=$(adb shell ls -t /sdcard/DCIM/PoLang/ 2>/dev/null | head -1 || echo "")
     if [ -n "$latest_photo" ]; then
         log_pass "照片已保存: $latest_photo"
     else
@@ -228,7 +228,7 @@ tc_beauty_01_slider() {
 
     # 检查日志中是否有参数变更记录
     local logfile="$OUTPUT_DIR/tc_beauty_log.txt"
-    adb logcat -d -s PicMe:Beauty > "$logfile" 2>&1 || true
+    adb logcat -d -s PoLang:Beauty > "$logfile" 2>&1 || true
 
     log_pass "美颜参数设置测试完成"
 }
@@ -291,7 +291,7 @@ generate_report() {
 
     local report_file="$OUTPUT_DIR/regression_report.md"
     cat > "$report_file" << EOF
-# PicMe 回归测试报告
+# PoLang 回归测试报告
 
 **时间**: $(date '+%Y-%m-%d %H:%M:%S')  
 **输出目录**: $OUTPUT_DIR
@@ -350,7 +350,7 @@ EOF
 # ============================================
 echo ""
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     🔬 PicMe Regression Test - 端到端回归测试            ║${NC}"
+echo -e "${CYAN}║     🔬 PoLang Regression Test - 端到端回归测试            ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 

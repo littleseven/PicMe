@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# run-local.sh - PicMe Server 本地开发启动脚本
+# run-local.sh - PoLang Server 本地开发启动脚本
 # 用途: 本地启动 Ktor 后端用于测试，自动配好测试用 DB/端口，等就绪后打印 curl 示例。
 # 调用: ./server/run-local.sh [命令]
 #

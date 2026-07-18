@@ -1,13 +1,13 @@
 ---
 name: ui-driver
-description: Use when automating PicMe UI interactions through structured accessibility data, replacing screenshot-based image recognition with precise text, contentDescription, or bounds-driven actions
+description: Use when automating PoLang UI interactions through structured accessibility data, replacing screenshot-based image recognition with precise text, contentDescription, or bounds-driven actions
 ---
 
 # UI Driver
 
 ## Overview
 
-Drive PicMe UI automation through structured accessibility node data instead of screenshots. The PC-side Python client `scripts/ui_driver.py` talks to `PicMeAccessibilityService` over a local JSON-RPC socket forwarded by adb.
+Drive PoLang UI automation through structured accessibility node data instead of screenshots. The PC-side Python client `scripts/ui_driver.py` talks to `PoLangAccessibilityService` over a local JSON-RPC socket forwarded by adb.
 
 ## When to Use
 
@@ -30,9 +30,9 @@ Drive PicMe UI automation through structured accessibility node data instead of 
 
 ## Recommended Approaches (in order)
 
-### 1. PicMe JSON Commands（首选，功能触发）
+### 1. PoLang JSON Commands（首选，功能触发）
 
-For PicMe-specific actions like capture, switch camera, navigate, use [agent-test](/agent-test):
+For PoLang-specific actions like capture, switch camera, navigate, use [agent-test](/agent-test):
 
 ```bash
 adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"capture\",\"params\":{}}'"
@@ -73,12 +73,12 @@ onView(withText("确认")).check(matches(isDisplayed()))
 
 # 2. Enable the accessibility service
 adb shell settings put secure enabled_accessibility_services \
-  com.mamba.picme/.accessibility.PicMeAccessibilityService
+  com.mamba.picme/.accessibility.PoLangAccessibilityService
 
 # 3. Forward the RPC port
 adb forward tcp:27183 tcp:27183
 
-# 4. Start PicMe
+# 4. Start PoLang
 adb shell am start -n com.mamba.picme/.MainActivity
 ```
 
@@ -144,7 +144,7 @@ python3 scripts/ui_driver.py find --content-description "关闭搜索"
 
 | Mistake | Fix |
 |---------|-----|
-| `ConnectionRefusedError` / `RPC error` | Re-run `adb forward tcp:27183 tcp:27183`; check that AccessibilityService is enabled and PicMe is in foreground |
+| `ConnectionRefusedError` / `RPC error` | Re-run `adb forward tcp:27183 tcp:27183`; check that AccessibilityService is enabled and PoLang is in foreground |
 | `Target node not found` | Run `dump` first; the app may already be in a different state; press back if needed |
 | Input fails silently | Target the `EditText` node itself, not a parent container; use `bounds` if `text`/`contentDescription` are ambiguous |
 | Using `client._call(...)` | Prefer public helpers; `input_text` now accepts `bounds` |

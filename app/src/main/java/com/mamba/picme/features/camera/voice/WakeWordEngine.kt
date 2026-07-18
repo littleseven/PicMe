@@ -123,7 +123,7 @@ class WakeWordEngine(
     context: android.content.Context? = null
 ) {
 
-    private val tag = "PicMe:WakeWord"
+    private val tag = "PoLang:WakeWord"
     private val audioRecorder = AudioRecorder(context)
 
     // 【灵敏度优化参数】

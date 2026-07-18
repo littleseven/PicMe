@@ -22,10 +22,10 @@ class BackupTagDataUseCase(
     }
 
     fun defaultBackupFile(): File {
-        // 使用外部媒体目录（/sdcard/Android/media/<package>/PicMeBackup/）。
+        // 使用外部媒体目录（/sdcard/Android/media/<package>/PoLangBackup/）。
         // 该目录属于应用自身存储区域，无需额外权限即可读写，且 adb 可以直接 pull/push，
         // 因此同时支持 debug 与 release 包。
-        val baseDir = File(context.externalMediaDirs.firstOrNull() ?: File(context.filesDir, "backups"), "PicMeBackup")
+        val baseDir = File(context.externalMediaDirs.firstOrNull() ?: File(context.filesDir, "backups"), "PoLangBackup")
         return File(baseDir, "tag_data_backup.json")
     }
 }

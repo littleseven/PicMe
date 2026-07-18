@@ -67,7 +67,7 @@ Modifier.clickable { }.padding(16.dp)
 Slider(
     value = sliderValue,
     onValueChange = { newValue ->
-        Log.d("PicMe:Slider", "onValueChange: $newValue")
+        Log.d("PoLang:Slider", "onValueChange: $newValue")
         sliderValue = newValue
     }
 )
@@ -76,7 +76,7 @@ Slider(
 @Composable
 fun MyComponent() {
     SideEffect {
-        Log.d("PicMe:Recompose", "MyComponent recomposed")
+        Log.d("PoLang:Recompose", "MyComponent recomposed")
     }
 }
 ```

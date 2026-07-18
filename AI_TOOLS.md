@@ -160,7 +160,7 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 ./gradlew :app:testDebugUnitTest
 
 # 查看 PoLang 日志
-adb logcat -s "PicMe:*"
+adb logcat -s "PoLang:*"
 
 # 启动 kimi-cli
 cd ~/AndroidStudioProjects/langchain4android && kimi-cli chat

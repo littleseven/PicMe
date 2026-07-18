@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   PicMe 数据备份规则（Android 12+ / API 31+）
+   PoLang 数据备份规则（Android 12+ / API 31+）
 
    用途：
    1. 控制 Google 云备份与设备间传输的范围。
@@ -10,7 +10,7 @@
    - 包含 Room 数据库（databases/*）、DataStore（files/datastore/*）、SharedPreferences。
    - 不主动包含 files 下其它目录，因此可重新下载的模型文件（files/llm_models/*）
      与缓存不会被备份。
-   - 外部媒体目录（/sdcard/Android/media/.../PicMeBackup/）中的手动备份文件
+   - 外部媒体目录（/sdcard/Android/media/.../PoLangBackup/）中的手动备份文件
      不在 adb backup 范围内，避免重复并让用户通过 SAF 或 adb pull/push 自行管理。
 -->
 <data-extraction-rules>

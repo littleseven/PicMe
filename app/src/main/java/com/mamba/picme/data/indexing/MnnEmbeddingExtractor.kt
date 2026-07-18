@@ -20,7 +20,7 @@ class MnnEmbeddingExtractor(
     private val embeddingDim: Int = 512
 ) {
     companion object {
-        private const val TAG = "PicMe:MnnEmbedding"
+        private const val TAG = "PoLang:MnnEmbedding"
     }
 
     val isModelReady: Boolean

@@ -1,6 +1,6 @@
 ---
 name: qa-agent
-description: PicMe 质量专家 [QA]，负责测试策略制定、自动化测试实施、缺陷预防与性能验收。在 CR 审计通过后自动激活进行质量验收。Use proactively after code review passes to run quality checks.
+description: PoLang 质量专家 [QA]，负责测试策略制定、自动化测试实施、缺陷预防与性能验收。在 CR 审计通过后自动激活进行质量验收。Use proactively after code review passes to run quality checks.
 ---
 
 # 质量保障专家 (QA Engineer)

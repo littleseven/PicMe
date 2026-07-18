@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Perf Baseline - PicMe 性能基线提取与对比工具
+# Perf Baseline - PoLang 性能基线提取与对比工具
 # 用途: 从 logcat 提取性能指标，与基线对比，自动告警性能回归
 # 调用: ./scripts/perf-baseline.sh [options]
 #
@@ -49,12 +49,12 @@ BASELINE_FILE="$PROJECT_ROOT/scripts/auto_test_output/baseline/perf_baseline.jso
 # 性能指标定义
 # 格式: 指标名|日志标签|提取正则|单位|基线值|告警阈值(>基线*阈值)
 declare -a METRICS=(
-    "gpu_photo_process|PicMe:PhotoProcessor|process DONE: elapsed=([0-9]+)|ms|200|1.5"
-    "preview_fps|PicMe:Camera|fps=([0-9.]+)|fps|30|0.8"
-    "frame_delay|PicMe:BeautyRenderer|delay=([0-9]+)|ms|50|2.0"
-    "processing_time|PicMe:BeautyRenderer|processingMs=([0-9]+)|ms|33|2.0"
-    "face_detect_time|PicMe:FaceDetector|detect elapsed=([0-9]+)|ms|100|2.0"
-    "startup_time|PicMe:App|cold start elapsed=([0-9]+)|ms|500|1.5"
+    "gpu_photo_process|PoLang:PhotoProcessor|process DONE: elapsed=([0-9]+)|ms|200|1.5"
+    "preview_fps|PoLang:Camera|fps=([0-9.]+)|fps|30|0.8"
+    "frame_delay|PoLang:BeautyRenderer|delay=([0-9]+)|ms|50|2.0"
+    "processing_time|PoLang:BeautyRenderer|processingMs=([0-9]+)|ms|33|2.0"
+    "face_detect_time|PoLang:FaceDetector|detect elapsed=([0-9]+)|ms|100|2.0"
+    "startup_time|PoLang:App|cold start elapsed=([0-9]+)|ms|500|1.5"
 )
 
 # 从 logcat 提取性能数据
@@ -101,7 +101,7 @@ compare_with_baseline() {
     
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}  📊 PicMe 性能基线对比报告${NC}"
+    echo -e "${CYAN}  📊 PoLang 性能基线对比报告${NC}"
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     
@@ -207,7 +207,7 @@ capture_perf_data() {
     
     # 收集日志
     local logcat_file="$OUTPUT_DIR/logcat_perf.txt"
-    adb logcat -d -s PicMe:* > "$logcat_file" 2>&1
+    adb logcat -d -s PoLang:* > "$logcat_file" 2>&1
     
     # 提取性能数据
     local perf_json="$OUTPUT_DIR/perf_data.json"

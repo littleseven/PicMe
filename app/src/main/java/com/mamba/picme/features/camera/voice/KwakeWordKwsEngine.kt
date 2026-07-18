@@ -51,7 +51,7 @@ class KwakeWordKwsEngine(
     context: android.content.Context? = null
 ) {
 
-    private val tag = "PicMe:WakeWordKWS"
+    private val tag = "PoLang:WakeWordKWS"
     private val audioRecorder = AudioRecorder(context)
     private var isRunning = false
     private var lastWakeTime = 0L

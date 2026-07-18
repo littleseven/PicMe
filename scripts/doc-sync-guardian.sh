@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Doc Sync Guardian - PicMe 文档变更自动识别与同步提醒
+# Doc Sync Guardian - PoLang 文档变更自动识别与同步提醒
 # 用途: 根据 git diff 自动识别代码变更对应的文档，生成同步提醒报告
 # 调用: ./scripts/doc-sync-guardian.sh [options]
 #

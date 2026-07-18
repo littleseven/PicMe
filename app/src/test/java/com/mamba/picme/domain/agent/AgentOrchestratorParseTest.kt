@@ -564,12 +564,12 @@ class AgentOrchestratorParseTest {
 
     @Test
     fun `parseL2BatchResponse text_reply self introduction`() {
-        val input = "[{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PicMe 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。\"}}]"
+        val input = "[{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PoLang 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。\"}}]"
         val commands = LocalCommandParser.parseL2BatchResponse(input, defaultContext)
         assertEquals(1, commands.size)
         assertTrue(commands.first() is AgentCommand.TextReply)
         assertEquals(
-            "你好，我是 PicMe 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。",
+            "你好，我是 PoLang 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。",
             (commands.first() as AgentCommand.TextReply).message
         )
     }

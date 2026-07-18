@@ -14,7 +14,7 @@
 
 自本版本起，release 与 debug 包均在「设置 → 备份与恢复」提供入口：
 
-1. **导出备份**：点击「导出备份」，选择保存位置（如 Downloads/PicMe），应用会把当前 TAG 数据、人脸聚类、OCR 索引、地理位置关系与 DataStore 设置写入 JSON。
+1. **导出备份**：点击「导出备份」，选择保存位置（如 Downloads/PoLang），应用会把当前 TAG 数据、人脸聚类、OCR 索引、地理位置关系与 DataStore 设置写入 JSON。
 2. **导入备份**：重装应用后，进入同一入口，点击「导入备份」，选择之前保存的 JSON 文件，等待恢复完成。
 
 ### 限制
@@ -50,7 +50,7 @@ adb backup -f picme-backup.ab -noapk com.mamba.picme
 - 执行后请在设备上点击「备份我的数据」并输入密码（可选）。如果未确认，输出文件大小会是 0 B。
 - 如需包含共享存储中的手动备份文件，可单独用 `adb pull`：
   ```bash
-  adb pull /sdcard/Android/media/com.mamba.picme/PicMeBackup/ ./picme-external-backup/
+  adb pull /sdcard/Android/media/com.mamba.picme/PoLangBackup/ ./picme-external-backup/
   ```
 
 ### 2.3 恢复

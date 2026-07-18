@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Screenshot Diff - PicMe 截图像素级对比工具
+Screenshot Diff - PoLang 截图像素级对比工具
 用途: 对比当前截图与基准截图，检测 UI 回归、渲染异常、布局偏移
 调用: python3 scripts/screenshot-diff.py --baseline <path> --current <path> [options]
 
@@ -154,7 +154,7 @@ def generate_diff_image(baseline: np.ndarray, current: np.ndarray, output_path: 
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PicMe Screenshot Diff Tool")
+    parser = argparse.ArgumentParser(description="PoLang Screenshot Diff Tool")
     parser.add_argument("--baseline", required=True, help="基准截图路径")
     parser.add_argument("--current", required=True, help="当前截图路径")
     parser.add_argument("--threshold", type=float, default=0.95, help="相似度阈值 (默认: 0.95)")
@@ -209,7 +209,7 @@ def main():
         print(json.dumps(result, indent=2))
     else:
         print("=" * 50)
-        print("📊 PicMe Screenshot Diff Report")
+        print("📊 PoLang Screenshot Diff Report")
         print("=" * 50)
         print(f"基准: {args.baseline}")
         print(f"当前: {args.current}")

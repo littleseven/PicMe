@@ -8,7 +8,7 @@
 
 ## 1. 改造目标
 
-将 langchain4j 的以下三个模块合并为 PicMe 项目的单个 Android Library 模块 `:agent-core`：
+将 langchain4j 的以下三个模块合并为 PoLang 项目的单个 Android Library 模块 `:agent-core`：
 
 | 原模块 | 来源 | 合并方式 |
 |--------|------|----------|

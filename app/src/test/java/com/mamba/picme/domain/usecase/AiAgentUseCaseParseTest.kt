@@ -60,8 +60,8 @@ class AiAgentUseCaseParseTest {
 
     @Test
     fun `cleanThinkTags preserves Chinese free chat`() {
-        val input = "你好！我是 PicMe 的 AI 助手。"
-        assertEquals("你好！我是 PicMe 的 AI 助手。", cleanThinkTags(input))
+        val input = "你好！我是 PoLang 的 AI 助手。"
+        assertEquals("你好！我是 PoLang 的 AI 助手。", cleanThinkTags(input))
     }
 
     @Test
@@ -81,10 +81,10 @@ class AiAgentUseCaseParseTest {
 
     @Test
     fun `full parse Chinese free chat with think tags`() {
-        val raw = "<think>\n用户问\"你是谁\"\n</think>\n你好！我是 PicMe 的 AI 助手。"
+        val raw = "<think>\n用户问\"你是谁\"\n</think>\n你好！我是 PoLang 的 AI 助手。"
         val cleaned = cleanThinkTags(raw)
         assertFalse("Should not detect JSON action in Chinese text", hasJsonAction(cleaned))
-        assertEquals("你好！我是 PicMe 的 AI 助手。", cleaned)
+        assertEquals("你好！我是 PoLang 的 AI 助手。", cleaned)
     }
 
     @Test
@@ -114,7 +114,7 @@ class AiAgentUseCaseParseTest {
      */
     private fun buildSystemPromptForTest(): String {
         return buildString {
-            appendLine("你是PicMe相机的AI助手小浪。你必须用中文回复用户。")
+            appendLine("你是PoLang相机的AI助手小浪。你必须用中文回复用户。")
             appendLine()
             appendLine("当前相机状态: 美颜=false, 磨皮=0, 美白=0, 瘦脸=0, 大眼=0, 唇色=0, 腮红=0, 眉毛=0, 滤镜=NONE, 风格=NONE, 变焦=1.0x, 曝光=0, 模式=PHOTO")
             appendLine()

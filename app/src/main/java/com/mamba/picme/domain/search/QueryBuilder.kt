@@ -34,7 +34,7 @@ class QueryBuilder(
     private val tagTranslator: TagTranslator = TagTranslator(BilingualVocab.empty())
 ) {
     companion object {
-        private const val TAG = "PicMe:QueryBuilder"
+        private const val TAG = "PoLang:QueryBuilder"
     }
 
     private val ranker = SearchRanker()

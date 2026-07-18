@@ -155,7 +155,7 @@ class TagScanOrchestrator(
     /** 扫描期间持有 partial wake lock，防止息屏后 CPU 休眠导致任务挂起 */
     private val wakeLock: PowerManager.WakeLock by lazy {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PicMe:TagScanWakeLock").apply {
+        pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PoLang:TagScanWakeLock").apply {
             setReferenceCounted(false)
         }
     }

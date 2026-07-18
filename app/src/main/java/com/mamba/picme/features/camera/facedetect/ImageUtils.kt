@@ -13,7 +13,7 @@ import java.nio.ByteBuffer
  * YUV_420_888 直接转 ARGB_8888 Bitmap，降低 CPU→GPU 传输延迟。
  */
 object ImageUtils {
-    private const val TAG = "PicMe:ImageUtils"
+    private const val TAG = "PoLang:ImageUtils"
 
     // [常量定义] 旋转角度
     internal const val ROTATION_90 = 90

@@ -15,7 +15,7 @@ class AssetPresetRepository(
 ) : PresetRepository {
 
     companion object {
-        private const val TAG = "PicMe:AssetPresetRepository"
+        private const val TAG = "PoLang:AssetPresetRepository"
         private const val PRESETS_ASSET_PATH = "presets/optimize_presets.json"
     }
 

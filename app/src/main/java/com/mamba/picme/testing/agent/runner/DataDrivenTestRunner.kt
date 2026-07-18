@@ -30,7 +30,7 @@ class DataDrivenTestRunner(private val context: Context) {
 
     companion object {
         private const val TAG = "DataDrivenTestRunner"
-        private const val TEST_BASE_DIR = "PicMe_Agent_Test/tests"
+        private const val TEST_BASE_DIR = "PoLang_Agent_Test/tests"
     }
 
     private val moshi = Moshi.Builder()

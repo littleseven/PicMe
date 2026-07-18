@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Generator - PicMe 单元测试骨架自动生成工具
+Test Generator - PoLang 单元测试骨架自动生成工具
 用途: 基于 Kotlin 源码中的 public 类/方法，自动生成 mockk 测试骨架
 调用: python3 scripts/test-generator.py <source_file> [options]
 
@@ -329,7 +329,7 @@ def infer_template_type(class_info: dict) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PicMe Test Generator")
+    parser = argparse.ArgumentParser(description="PoLang Test Generator")
     parser.add_argument("source", help="Kotlin 源码文件路径")
     parser.add_argument("--output", help="输出测试文件路径")
     parser.add_argument("--class", dest="class_name", help="只生成指定类的测试")
@@ -375,7 +375,7 @@ def main():
     
     # 输出结果
     print("=" * 60)
-    print("🧪 PicMe Test Generator")
+    print("🧪 PoLang Test Generator")
     print("=" * 60)
     print(f"源文件: {args.source}")
     print(f"解析到 {len(parsed['classes'])} 个类")

@@ -1,6 +1,6 @@
 # Scripts 目录
 
-本目录包含 PicMe 项目的各种工具脚本。
+本目录包含 PoLang 项目的各种工具脚本。
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 1. 应用数据备份脚本
 
-用于在 release/debug 包切换或卸载重装时，快速备份/恢复 PicMe TAG 数据，避免重新执行耗时的 TAG 扫描。
+用于在 release/debug 包切换或卸载重装时，快速备份/恢复 PoLang TAG 数据，避免重新执行耗时的 TAG 扫描。
 
 | 脚本 | 说明 | 用法 |
 |------|------|------|
@@ -158,7 +158,7 @@ pip install mediapipe tensorflow torch
 ### 示例 1: 运行坐标系检测
 
 ```bash
-cd /Users/guoshuai/AndroidStudioProjects/PicMe
+cd /Users/guoshuai/AndroidStudioProjects/PoLang
 
 # 检测代码
 ./scripts/check-coordinate-annotation.sh
@@ -268,4 +268,4 @@ python scripts/generate_contour_mapping.py \
 ---
 
 **最后更新**: 2026-05-03  
-**维护者**: PicMe AI Team
+**维护者**: PoLang AI Team

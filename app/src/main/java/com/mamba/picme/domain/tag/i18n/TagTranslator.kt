@@ -26,7 +26,7 @@ class TagTranslator(
     private val controlledVocab: ControlledVocab? = null
 ) {
     companion object {
-        private const val TAG = "PicMe:TagTranslator"
+        private const val TAG = "PoLang:TagTranslator"
     }
 
     /**

@@ -63,7 +63,7 @@ Application.onCreate() → getInstance() 创建 → 注册到 CapabilityRegistry
 `NavigationCapability` 与 `SystemCapability` 除了在 `MainActivity` 的 `ComposeCapabilityHost` 中注册外，还需通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`。
 
 **原因**：
-- 飞书直接搜索快速通道在后台线程通过 `PicMeToolService` 调用 `CapabilityRegistry.dispatch()`。
+- 飞书直接搜索快速通道在后台线程通过 `PoLangToolService` 调用 `CapabilityRegistry.dispatch()`。
 - `CapabilityRegistry` 优先查询 `CapabilityHost.get()`（Compose 树中设置的全局 host），当 `MainActivity` 重建或 host 被清空时，会回退到全局 registry。
 - 若 `NavigationCapability` 未注册到全局 registry，host 不可用时 `navigate_to` 会报 `No capability found`。
 
@@ -147,7 +147,7 @@ Application.onCreate() → FeishuChannelHandler.init(appId, appSecret)
 - **RemoteControlCapability 修改**：只能修改 `app` 模块代码，严禁修改 `agent-core`/`AgentCommands.kt`
 - **单例访问**：通过 `RemoteControlCapability.getInstance()` 获取实例，禁止直接构造
 - **线程安全**：所有状态字段使用 `@Volatile` 修饰，读写操作不涉及复合操作则无需同步
-- **状态回传**：任何绑定状态变更后必须记录日志（`PicMe:RemoteControl` TAG）
+- **状态回传**：任何绑定状态变更后必须记录日志（`PoLang:RemoteControl` TAG）
 - **飞书 SDK 重连**：飞书 SDK 内置重连机制，设备端无需额外实现
 - **结果回传**：命令执行结果（含错误）必须通过飞书回复，不能静默失败
 - **LLM 调用**：IM 远程的 LLM 调用共享 `UnifiedRemoteClient`，但使用独立的 System Prompt
@@ -164,7 +164,7 @@ Application.onCreate() → FeishuChannelHandler.init(appId, appSecret)
 - [ ] 人脸相关操作是否强制设备端执行？（隐私红线）
 - [ ] 命令执行结果是否总是回传？（即使失败）
 - [ ] `execute()` 方法是否始终返回 `METHOD_NOT_FOUND`？（不走 AgentCommand 路由）
-- [ ] 是否使用了 `PicMe:RemoteControl` TAG 记录关键日志？
+- [ ] 是否使用了 `PoLang:RemoteControl` TAG 记录关键日志？
 
 ## 5. 与产品文档对照 (Product Alignment)
 

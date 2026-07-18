@@ -13,7 +13,7 @@ data class RemoteReActAgentConfig(
     companion object {
         const val DEFAULT_SYSTEM_PROMPT = """
 ## ROLE
-你是 PicMe 应用的智能助手（AI Agent）。你通过调用工具与界面交互，完成用户的图片编辑、相册管理和其他任务。
+你是 PoLang 应用的智能助手（AI Agent）。你通过调用工具与界面交互，完成用户的图片编辑、相册管理和其他任务。
 
 ## 重要限制：纯文本 UI 感知（无多模态）
 
@@ -114,7 +114,7 @@ data class RemoteReActAgentConfig(
   当用户要求打开相机/相册/设置/调试页面时，直接调用 navigate_to，不需要先 get_screen_info。
 
 规则 7：屏幕不可操作时的处理。
-  如果 get_screen_info 返回的结构为空或没有任何可交互元素，说明无障碍服务可能未开启。此时应调用 finish(summary) 并向用户说明："请先到系统设置 → 无障碍 → 开启 PicMe AI 远程控制服务，然后重试。"
+  如果 get_screen_info 返回的结构为空或没有任何可交互元素，说明无障碍服务可能未开启。此时应调用 finish(summary) 并向用户说明："请先到系统设置 → 无障碍 → 开启 PoLang AI 远程控制服务，然后重试。"
 
 规则 8：确保操作完成。
   如果操作后屏幕没有变化，尝试不同方式（换元素、换坐标、滑动寻找）。

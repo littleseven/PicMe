@@ -13,7 +13,7 @@ import com.mamba.picme.core.common.Logger
  * - 禁止：调用任何 CameraX API、GL API、直接操作 Bitmap/图像处理
  * - 与 CameraHandlerThread 通信：仅通过 Handler/Channel 发消息，禁止直接调用
  *
- * 线程名：PicMe-AgentState
+ * 线程名：PoLang-AgentState
  * 优先级：THREAD_PRIORITY_DEFAULT
  */
 class AgentHandlerThread : HandlerThread(
@@ -22,7 +22,7 @@ class AgentHandlerThread : HandlerThread(
 ) {
 
     companion object {
-        private const val THREAD_NAME = "PicMe-AgentState"
+        private const val THREAD_NAME = "PoLang-AgentState"
         private const val TAG = "Thread"
     }
 

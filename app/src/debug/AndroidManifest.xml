@@ -6,7 +6,7 @@
 
     <application>
         <service
-            android:name=".accessibility.PicMeAccessibilityService"
+            android:name=".accessibility.PoLangAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
             <intent-filter>

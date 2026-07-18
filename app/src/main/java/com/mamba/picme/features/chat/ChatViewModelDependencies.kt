@@ -3,7 +3,7 @@ package com.mamba.picme.features.chat
 import android.content.Context
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
-import com.mamba.picme.data.remote.picme.PicMeAuthClient
+import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
@@ -15,5 +15,5 @@ class ChatViewModelDependencies(
     val userSettingsRepository: UserSettingsRepository,
     val mediaSearchEngine: MediaSearchEngine,
     val mediaFeedbackRepository: MediaFeedbackRepository,
-    val picMeAuthClient: PicMeAuthClient,
+    val picMeAuthClient: PoLangAuthClient,
 )

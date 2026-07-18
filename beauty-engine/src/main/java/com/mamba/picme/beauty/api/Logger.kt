@@ -39,7 +39,7 @@ object Logger {
     /**
      * Debug 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun d(tag: String, message: String) {
@@ -50,7 +50,7 @@ object Logger {
     /**
      * Info 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun i(tag: String, message: String) {
@@ -61,7 +61,7 @@ object Logger {
     /**
      * Warning 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun w(tag: String, message: String) {
@@ -72,7 +72,7 @@ object Logger {
     /**
      * Warning 级别日志（带异常）
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      * @param throwable 异常对象
      */
@@ -84,7 +84,7 @@ object Logger {
     /**
      * Error 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      * @param throwable 异常对象（可选）
      */

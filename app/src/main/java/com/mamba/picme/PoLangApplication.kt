@@ -9,7 +9,7 @@ import android.net.NetworkRequest
 import android.os.Bundle
 import coil.ImageLoader
 import coil.ImageLoaderFactory
-import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
+import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.CoilConfig
@@ -49,7 +49,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-class PicMeApplication : Application(), ImageLoaderFactory {
+class PoLangApplication : Application(), ImageLoaderFactory {
 
     companion object {
         private const val TAG = "Application"
@@ -290,7 +290,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                 ) { mode, localModel, privacyLevel, inferencePreference ->
                     SyncConfig(mode, localModel, privacyLevel, inferencePreference)
                 }.collect { (mode, localModel, privacyLevel, inferencePreference) ->
-                    val orchestrator = AgentOrchestrator.getInstance(this@PicMeApplication)
+                    val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
                     val effectiveModel = localModel.takeIf { it.isNotBlank() } ?: "qwen3_5_2b"
                     // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
                     // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
@@ -331,7 +331,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
                 ) { configsJson, selectedModelId, serverToken ->
                     Triple(configsJson, selectedModelId, serverToken)
                 }.collect { (configsJson, selectedModelId, serverToken) ->
-                    val orchestrator = AgentOrchestrator.getInstance(this@PicMeApplication)
+                    val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
                     // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
                     orchestrator.setDeviceId(deviceIdProvider.get())
 
@@ -384,8 +384,8 @@ class PicMeApplication : Application(), ImageLoaderFactory {
     private fun observeFeishuPhotoCapture() {
         applicationScope.launch {
             try {
-                val chatMessageDao = AppDatabase.getDatabase(this@PicMeApplication).chatMessageDao()
-                val chatSessionDao = AppDatabase.getDatabase(this@PicMeApplication).chatSessionDao()
+                val chatMessageDao = AppDatabase.getDatabase(this@PoLangApplication).chatMessageDao()
+                val chatSessionDao = AppDatabase.getDatabase(this@PoLangApplication).chatSessionDao()
                 val feishuSessionId = "feishu"
 
                 repository.allMedia.collect { mediaList ->
@@ -483,7 +483,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
         override fun onActivityStarted(activity: Activity) {
             if (activityCount == 0) {
                 Logger.i(TAG, "App 回到前台")
-                MnnResourceManager.getInstance(this@PicMeApplication).onAppForeground()
+                MnnResourceManager.getInstance(this@PoLangApplication).onAppForeground()
                 // App 回到前台时检查飞书连接，断开则自动重连
                 applicationScope.launch {
                     delay(1000) // 等待系统稳定
@@ -494,7 +494,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
         }
         override fun onActivityResumed(activity: Activity) {
             currentActivity = activity
-            PicMeToolService.currentActivity = activity
+            PoLangToolService.currentActivity = activity
             Logger.d(TAG, "Activity resumed: ${activity.javaClass.simpleName}")
         }
         override fun onActivityPaused(activity: Activity) {
@@ -505,7 +505,7 @@ class PicMeApplication : Application(), ImageLoaderFactory {
         override fun onActivityStopped(activity: Activity) {
             activityCount--
             if (activityCount == 0) {
-                MnnResourceManager.getInstance(this@PicMeApplication).onAppBackground()
+                MnnResourceManager.getInstance(this@PoLangApplication).onAppBackground()
             }
         }
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}

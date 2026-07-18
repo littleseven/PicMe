@@ -14,7 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.beauty.api.BeautyPreviewEngine
 import com.mamba.picme.beauty.api.facedetect.DevicePreference
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
@@ -85,7 +85,7 @@ internal data class CameraRuntimeContext(
 
 @Composable
 internal fun rememberCameraRuntimeContext(context: Context): CameraRuntimeContext {
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val imageProcessor = app.container.imageProcessor
     val userPreferencesRepository = app.container.userPreferencesRepository
     val faceDetectorManager = app.container.faceDetector

@@ -7,7 +7,7 @@
 > - 大美丽 渲染链路、容灾回退、冷却恢复与观测指标：见 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：`beauty-engine` 是 PicMe 美颜引擎的独立 Android Library 模块，承载自研 OpenGL ES + EGL 渲染管线（大美丽引擎），对外暴露稳定 API，对内封装 GPU 加速实现。长期演进为可独立发布的视觉能力基础库。
+**模块定位**：`beauty-engine` 是 PoLang 美颜引擎的独立 Android Library 模块，承载自研 OpenGL ES + EGL 渲染管线（大美丽引擎），对外暴露稳定 API，对内封装 GPU 加速实现。长期演进为可独立发布的视觉能力基础库。
 
 **主要维护者**：[RD] 全栈工程师
 
@@ -144,7 +144,7 @@ beauty-engine/src/main/java/com/picme/beauty/
 #### BeautyPerfStats
 - 统一输出字段：`fps`, `processingMs`, `delayMs`, `cpuUsage`, `nullFrames`, `errorCategory`, `errorReason`
 - 数据由 `render/` 渲染线程每秒聚合一次，通过回调或状态流暴露给 App 层调试浮层
-- `errorCategory` 用于输出 `PicMe:BeautyRenderer` 分类错误（如 `shader_compile`、`fbo_pipeline`、`texture_input`、`face_makeup`、`style_effect`）
+- `errorCategory` 用于输出 `PoLang:BeautyRenderer` 分类错误（如 `shader_compile`、`fbo_pipeline`、`texture_input`、`face_makeup`、`style_effect`）
 
 ### 2.3 内部实现层 (`render/`)
 
@@ -291,7 +291,7 @@ SurfaceView Surface
 ```kotlin
 // 渲染线程内每秒聚合
 if (fps < 25 || processingMs > 20) {
-    Log.w("PicMe:BeautyEngine", "Performance warning: fps=$fps, processing=${processingMs}ms")
+    Log.w("PoLang:BeautyEngine", "Performance warning: fps=$fps, processing=${processingMs}ms")
 }
 ```
 
@@ -314,7 +314,7 @@ if (fps < 25 || processingMs > 20) {
 - **缩进**：Kotlin 4 空格
 - **Lambda 规范**：显式命名参数，禁止隐式 `it`
 - **导入规范**：禁止通配符导入（`*`）
-- **日志标签**：统一使用 `PicMe:BeautyEngine`
+- **日志标签**：统一使用 `PoLang:BeautyEngine`
 - **异常处理**：EGL/GL 操作必须包在 `runCatching` 中，失败时向上层返回 `Result.failure`
 
 ### 3.2 API 变更约束
@@ -400,7 +400,7 @@ if (fps < 25 || processingMs > 20) {
 - [ ] 处理耗时是否满足 1080p < 300ms, 4K < 800ms 目标？
 
 ### 4.7 代码风格
-- [ ] 日志是否使用了 `PicMe:BeautyEngine` 标签？
+- [ ] 日志是否使用了 `PoLang:BeautyEngine` 标签？
 - [ ] 是否避免了通配符导入？
 - [ ] Lambda 参数是否显式命名？
 - [ ] Shader 源码是否集中管理并带有性能注释？

@@ -387,7 +387,7 @@ object TestInject {
 
 **执行命令**:
 ```bash
-aapt dump badging app-release.apk | grep uses-permission
+aapt dump badging polang-release.apk | grep uses-permission
 tcpdump -i any port 443 -w capture.pcap  # 抓包验证
 ```
 
@@ -416,7 +416,7 @@ adb shell setprop picme.debug.perf true
 adb shell pm clear com.mamba.picme
 
 # 查看日志
-adb logcat -s PicMe:Agent PicMe:BeautyEngine PicMe:*
+adb logcat -s PoLang:Agent PoLang:BeautyEngine PoLang:*
 
 # 截图
 adb shell screencap -p /sdcard/screenshot.png
@@ -1183,7 +1183,7 @@ package:com.mamba.picme
 
 ---
 
-### 3. 启用 PicMeAccessibilityService
+### 3. 启用 PoLangAccessibilityService
 
 AccessibilityService 不会自动启用，需要手动在系统设置中打开，或通过 adb 命令开启。
 
@@ -1197,7 +1197,7 @@ AccessibilityService 不会自动启用，需要手动在系统设置中打开�
 #### 方式 B：通过 adb（适合自动化脚本）
 
 ```bash
-adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService
+adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PoLangAccessibilityService
 ```
 
 验证是否启用：
@@ -1209,7 +1209,7 @@ adb shell settings get secure enabled_accessibility_services
 应包含：
 
 ```
-com.mamba.picme/.accessibility.PicMeAccessibilityService
+com.mamba.picme/.accessibility.PoLangAccessibilityService
 ```
 
 > 注意：部分国产 ROM 可能限制通过 adb 开启无障碍服务，若命令执行后未生效，请使用方式 A。
@@ -1386,7 +1386,7 @@ python3 scripts/verify_ui_driver.py
 ./gradlew :app:installDebug --no-daemon
 
 # 2. 启用 AccessibilityService
-adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService
+adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PoLangAccessibilityService
 
 # 3. 启动应用
 adb shell am start -n com.mamba.picme/.MainActivity
@@ -1468,7 +1468,7 @@ python3 scripts/verify_ui_driver.py
 | Android 设备 | 真机（arm64-v8a），API 24+ |
 | 内存 | 8GB+ 推荐（Qwen3.5-2B 端侧推理需要） |
 | 存储 | 5GB+ 可用空间（模型约 3GB + 照片库） |
-| 安装方式 | `adb install -r app/build/outputs/apk/debug/picme-debug.apk` |
+| 安装方式 | `adb install -r app/build/outputs/apk/debug/polang-debug.apk` |
 | API Key | 需配置 OpenAI 兼容 API（DeepSeek / 通义千问等） |
 
 ---
@@ -1669,7 +1669,7 @@ python3 scripts/verify_ui_driver.py
 | Pass 2 人物簇不准确 | ① 检查 Glint360K R100 模型是否已下载<br>② 聚类阈值在 `ClusteringConfig.kt`（当前余弦相似度阈值 0.72） |
 | Pass 3 标签为空 | ① 检查 Qwen3.5-2B 模型是否已下载<br>② 确认 API Key 配置正确<br>③ 确认设备内存足够（需 4GB+ 空闲） |
 | 模型下载失败 | ① 检查网络连接<br>② 确认存储空间 > 5GB<br>③ 检查下载通知栏是否有错误提示 |
-| 扫描中途停止 | ① 确认前台服务通知可见<br>② 检查电池优化白名单<br>③ 查看 logcat `PicMe:TagScheduler` 标签日志 |
+| 扫描中途停止 | ① 确认前台服务通知可见<br>② 检查电池优化白名单<br>③ 查看 logcat `PoLang:TagScheduler` 标签日志 |
 | Qwen 推理太慢 | ① 当前为 CPU 推理，已禁用 OpenCL 回退<br>② 骁龙 8 Gen3 约为每张图 15-30s |
 
 ---

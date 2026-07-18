@@ -1,7 +1,7 @@
 {
   "name": "picme",
   "version": "1.0.0",
-  "description": "PicMe AI Gateway proxy via Cloudflare Worker",
+  "description": "PoLang AI Gateway proxy via Cloudflare Worker",
   "main": "src/index.js",
   "scripts": {
     "dev": "wrangler dev",
@@ -14,7 +14,7 @@
     "ai-gateway",
     "deepseek"
   ],
-  "author": "PicMe",
+  "author": "PoLang",
   "license": "MIT",
   "devDependencies": {
     "wrangler": "^3.0.0"

@@ -22,7 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
-import com.mamba.picme.data.remote.picme.PicMeAuthClient
+import com.mamba.picme.data.remote.picme.PoLangAuthClient
 
 /**
  * 共享的「邮箱 + 验证码」认证表单。设置页与聊天注册弹层共用。
@@ -120,7 +120,7 @@ fun EmailCodeAuthForm(
                         verifyCode(emailInput, codeInput) { result ->
                             loading = false
                             result.onFailure { e ->
-                                errorMsg = if (e is PicMeAuthClient.PicMeAuthException) {
+                                errorMsg = if (e is PoLangAuthClient.PoLangAuthException) {
                                     when (e.errorType) {
                                         "invalid_code" -> context.getString(R.string.auth_invalid_code)
                                         "code_expired" -> context.getString(R.string.auth_code_expired)

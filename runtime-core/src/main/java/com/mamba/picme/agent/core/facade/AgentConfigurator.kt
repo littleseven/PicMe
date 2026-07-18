@@ -220,7 +220,7 @@ class AgentConfigurator(private val context: Context) {
 
     /**
      * 获取或创建飞书 ReAct Agent。
-     * 优先使用用户配置的远程模型，未配置时使用 PicMe Server 默认兜底。
+     * 优先使用用户配置的远程模型，未配置时使用 PoLang Server 默认兜底。
      *
      * 当用户配置发生变更时（cachedFeishuAgentConfig != userRemoteConfig），
      * 自动重建 Agent 以确保使用最新的 API Key / baseUrl / model。

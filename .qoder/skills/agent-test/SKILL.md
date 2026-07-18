@@ -1,6 +1,6 @@
 ---
 name: agent-test
-description: Use when running PicMe automated tests via JSON commands sent through AgentTestBroadcastReceiver, including test suites, single test cases, camera/agent feature verification, or performance/log collection
+description: Use when running PoLang automated tests via JSON commands sent through AgentTestBroadcastReceiver, including test suites, single test cases, camera/agent feature verification, or performance/log collection
 version: 2.0.0
 created: 2026-06-06
 updated: 2026-07-02
@@ -108,7 +108,7 @@ adb logcat -c
 # 发送命令（示例：导航到相机页）
 scripts/agent-tester cmd '{"method":"navigate_to","params":{"destination":"camera"}}'
 
-# 查看 PicMe 相关日志
+# 查看 PoLang 相关日志
 adb logcat -d | grep -iE "AgentTestReceiver|NavigationCapability|CapabilityRegistry|CameraCapability|scene"
 ```
 

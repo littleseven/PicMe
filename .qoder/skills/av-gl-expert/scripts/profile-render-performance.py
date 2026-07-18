@@ -17,7 +17,7 @@ def parse_logcat(device_id: str = ""):
     if device_id:
         adb_cmd.extend(["-s", device_id])
     
-    adb_cmd.extend(["logcat", "-s", "PicMe:BeautyRenderer:D", "PicMe:CameraPreviewRenderer:D"])
+    adb_cmd.extend(["logcat", "-s", "PoLang:BeautyRenderer:D", "PoLang:CameraPreviewRenderer:D"])
     
     print("📊 开始捕获渲染性能数据...")
     print("   提示: 请在应用中操作 10-20 秒，然后按 Ctrl+C 停止\n")
@@ -95,7 +95,7 @@ def calculate_stats(data: list) -> dict:
 def generate_report(stats: dict):
     """生成性能报告"""
     print("=" * 70)
-    print("📊 PicMe 渲染性能分析报告")
+    print("📊 PoLang 渲染性能分析报告")
     print("=" * 70)
     print(f"分析时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()

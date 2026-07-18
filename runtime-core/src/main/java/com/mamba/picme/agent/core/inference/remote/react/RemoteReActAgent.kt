@@ -7,7 +7,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.DataStoreChatMemoryStore
-import com.mamba.picme.agent.core.inference.remote.tool.PicMeToolService
+import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
 import com.mamba.service.AiServices
 import com.mamba.data.message.SystemMessage
 import com.mamba.model.chat.listener.ChatModelListener
@@ -39,7 +39,7 @@ class RemoteReActAgent(
         private const val TAG = "RemoteReActAgent"
     }
 
-    private val toolService = PicMeToolService(windowManager)
+    private val toolService = PoLangToolService(windowManager)
 
     private val chatModel by lazy {
         val remoteModelConfig = RemoteModelConfig(
@@ -102,12 +102,12 @@ class RemoteReActAgent(
     private val sessionMemories = mutableMapOf<String, ChatMemory>()
 
     /** AiServices 代理缓存 */
-    private var assistant: PicMeAssistant? = null
+    private var assistant: PoLangAssistant? = null
 
     /**
-     * PicMe AI 助手接口契约（内联，避免单独文件）。
+     * PoLang AI 助手接口契约（内联，避免单独文件）。
      */
-    private interface PicMeAssistant {
+    private interface PoLangAssistant {
         fun chat(message: String): String
     }
 
@@ -125,12 +125,12 @@ class RemoteReActAgent(
     }
 
     /**
-     * 获取或创建 PicMeAssistant（AiServices 代理）。
+     * 获取或创建 PoLangAssistant（AiServices 代理）。
      */
-    private fun getOrCreateAssistant(): PicMeAssistant {
+    private fun getOrCreateAssistant(): PoLangAssistant {
         return assistant ?: run {
             val memory = getOrCreateMemory(feishuSessionId)
-            val newAssistant = AiServices.builder(PicMeAssistant::class.java)
+            val newAssistant = AiServices.builder(PoLangAssistant::class.java)
                 .builder()
                 .chatModel(chatModel)
                 .chatMemory(memory)

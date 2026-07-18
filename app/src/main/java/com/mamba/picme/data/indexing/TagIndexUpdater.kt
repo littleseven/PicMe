@@ -15,7 +15,7 @@ import org.json.JSONArray
 class TagIndexUpdater(private val tagDao: TagDao) {
 
     companion object {
-        private const val TAG = "PicMe:TagIndex"
+        private const val TAG = "PoLang:TagIndex"
 
         // 简易标签分类映射（基于常见 ML Kit 标签）
         private val CATEGORY_MAP = mapOf(

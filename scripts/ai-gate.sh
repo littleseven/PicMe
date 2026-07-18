@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# AI Gate - PicMe AI Coding 自动化验证脚本
+# AI Gate - PoLang AI Coding 自动化验证脚本
 # 用途：AI 提交代码前的一键完整验证（代码级 + 设备级自动闭环）
 # 调用：./scripts/ai-gate.sh [options]
 #
@@ -66,7 +66,7 @@ run_warn() {
     WARN_COUNT=$((WARN_COUNT + 1))
 }
 
-echo "🤖 PicMe AI Gate - 自动化验证开始"
+echo "🤖 PoLang AI Gate - 自动化验证开始"
 echo "===================================="
 echo "项目路径: $PROJECT_ROOT"
 echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
@@ -137,8 +137,8 @@ if [ "$DEVICE_CHECK" = true ]; then
         PASS_COUNT=$((PASS_COUNT + 1))
 
         # 收集日志
-        adb logcat -d -s PicMe:* > "$OUTPUT_DIR/logcat_picme.txt" 2>&1
-        echo -e "${BLUE}ℹ️ INFO${NC}: PicMe 日志已保存到 $OUTPUT_DIR/logcat_picme.txt"
+        adb logcat -d -s PoLang:* > "$OUTPUT_DIR/logcat_picme.txt" 2>&1
+        echo -e "${BLUE}ℹ️ INFO${NC}: PoLang 日志已保存到 $OUTPUT_DIR/logcat_picme.txt"
     fi
 fi
 

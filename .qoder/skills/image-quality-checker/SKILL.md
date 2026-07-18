@@ -66,8 +66,8 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action "capture"
 sleep 2
 
 # 2. 拉取最新照片分析
-adb shell ls /sdcard/DCIM/PicMe/ | tail -1
-adb pull /sdcard/DCIM/PicMe/latest_photo.jpg ./output.jpg
+adb shell ls /sdcard/DCIM/PoLang/ | tail -1
+adb pull /sdcard/DCIM/PoLang/latest_photo.jpg ./output.jpg
 
 # 3. 分析亮度
 python3 -c "from PIL import Image; import numpy as np; arr=np.array(Image.open('output.jpg')); print(f'Brightness: {arr.mean():.1f}/255')"
@@ -94,8 +94,8 @@ python3 -c "from PIL import Image; import numpy as np; arr=np.array(Image.open('
 
 GPU 拍照日志摘要:
 ==================================================
-D PicMe:PhotoProcessor: process DONE: elapsed=181ms
-D PicMe:ImageProcessor: GPU photo processing succeeded
+D PoLang:PhotoProcessor: process DONE: elapsed=181ms
+D PoLang:ImageProcessor: GPU photo processing succeeded
 
 ✅ 检查完成！
 ```
@@ -107,8 +107,8 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action "capture"
 sleep 2
 
 # 2. 拉取相册最新照片
-adb shell ls /sdcard/DCIM/PicMe/ | tail -1
-adb pull /sdcard/DCIM/PicMe/latest_photo.jpg ./output.jpg
+adb shell ls /sdcard/DCIM/PoLang/ | tail -1
+adb pull /sdcard/DCIM/PoLang/latest_photo.jpg ./output.jpg
 
 # 3. 分析
 python3 -c "from PIL import Image; import numpy as np; arr=np.array(Image.open('output.jpg')); print(f'Brightness: {arr.mean():.1f}/255')"
@@ -153,7 +153,7 @@ done
 ## 故障排除
 
 ### 检测到黑屏
-- 检查 `adb logcat | grep PicMe:PhotoProcessor` 是否有 GL 错误
+- 检查 `adb logcat | grep PoLang:PhotoProcessor` 是否有 GL 错误
 - 验证 FBO 状态：`glCheckFramebufferStatus`
 - 确认 EGL 上下文是否正确绑定
 

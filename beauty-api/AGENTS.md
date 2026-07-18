@@ -6,7 +6,7 @@
 > - 实现由 `:beauty-engine` 提供；消费方为 `:app`、`:runtime-core` 与 `:beauty-engine`。
 > - 美颜引擎实现细节见 `beauty-engine/AGENTS.md`；架构决策背景见 `docs/02-ARCHITECTURE/ADR/`。
 
-**模块定位**：`:beauty-api` 是 PicMe 美颜系统的**接口契约层**，为 `:app`、`:runtime-core`、`:beauty-engine` 三个模块提供稳定的共享类型定义。该模块不包含任何实现代码，仅定义跨模块通信的"语言"。
+**模块定位**：`:beauty-api` 是 PoLang 美颜系统的**接口契约层**，为 `:app`、`:runtime-core`、`:beauty-engine` 三个模块提供稳定的共享类型定义。该模块不包含任何实现代码，仅定义跨模块通信的"语言"。
 
 **主要维护者**：[RD] 全栈工程师
 

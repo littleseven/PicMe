@@ -27,7 +27,7 @@ class MetadataExtractor(
     private val idCardRecognizer: IdCardRecognizer? = null
 ) {
 
-    private val tag = "PicMe:MetadataExtractor"
+    private val tag = "PoLang:MetadataExtractor"
 
     /**
      * ML Kit 图像标注客户端。

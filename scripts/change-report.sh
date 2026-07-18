@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Change Report - PicMe 变更影响报告自动生成
+# Change Report - PoLang 变更影响报告自动生成
 # 用途: 统计代码变更范围、影响模块、测试覆盖、风险项，生成结构化报告
 # 调用: ./scripts/change-report.sh [options]
 #
@@ -129,7 +129,7 @@ generate_md_report() {
     local risks=$(analyze_risks "$since")
     
     {
-        echo "# PicMe Change Impact Report"
+        echo "# PoLang Change Impact Report"
         echo ""
         echo "**时间范围**: $since .. HEAD"
         echo "**生成时间**: $(date '+%Y-%m-%d %H:%M:%S')"

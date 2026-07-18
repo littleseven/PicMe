@@ -128,11 +128,11 @@ try {
 
 ## 状态机日志标签
 
-所有 EGL 操作必须使用 `PicMe:EGL` 标签，格式：
+所有 EGL 操作必须使用 `PoLang:EGL` 标签，格式：
 ```kotlin
-Log.d("PicMe:EGL", "[makeCurrent] thread=${Thread.currentThread().name}, context=$context, surface=$surface")
-Log.d("PicMe:EGL", "[release] thread=${Thread.currentThread().name}, context=$context")
-Log.d("PicMe:EGL", "[createContext] shareContext=$shareContext, newContext=$newContext")
+Log.d("PoLang:EGL", "[makeCurrent] thread=${Thread.currentThread().name}, context=$context, surface=$surface")
+Log.d("PoLang:EGL", "[release] thread=${Thread.currentThread().name}, context=$context")
+Log.d("PoLang:EGL", "[createContext] shareContext=$shareContext, newContext=$newContext")
 ```
 
 ## 拍照 GPU 化检查清单
@@ -161,7 +161,7 @@ Log.d("PicMe:EGL", "[createContext] shareContext=$shareContext, newContext=$newC
 ```
 问题：渲染失败/黑屏/崩溃
     |
-    +-- 检查日志中是否有 "PicMe:EGL makeCurrent failed"?
+    +-- 检查日志中是否有 "PoLang:EGL makeCurrent failed"?
     |       +-- YES -> 上下文已被其他线程绑定，检查线程隔离
     |       +-- NO  -> 继续
     |

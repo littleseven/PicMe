@@ -171,7 +171,7 @@ adb shell run-as com.mamba.picme cat files/llm_models/qwen3-0-6b/config.json
 ### Step 3: 检查 Native 层日志
 
 ```bash
-adb logcat -s PicMe:LlmJNI:D *:S
+adb logcat -s PoLang:LlmJNI:D *:S
 ```
 
 关注：

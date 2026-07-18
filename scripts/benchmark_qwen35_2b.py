@@ -6,7 +6,7 @@
 
 前置条件:
     1. 设备已连接 adb
-    2. PicMe 已安装并至少有 [count] 张未打标照片，或之前已完成 Pass 1/2
+    2. PoLang 已安装并至少有 [count] 张未打标照片，或之前已完成 Pass 1/2
     3. Qwen3.5-2B-MNN 模型已下载到设备
 
 本脚本通过启动 TagGenerationService.ACTION_SCAN_PASS_3_FULL 触发全量 Pass 3，

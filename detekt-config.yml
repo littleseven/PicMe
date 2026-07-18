@@ -1,4 +1,4 @@
-# PicMe Detekt 配置
+# PoLang Detekt 配置
 # 基于默认配置，针对 AI Coding 场景优化
 # 目标：拦截 AI 易犯的错误（复杂度爆炸、空安全、过度嵌套）
 

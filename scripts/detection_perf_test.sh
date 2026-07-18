@@ -91,7 +91,7 @@ test_detection_performance() {
         total_time=$((total_time + elapsed))
         
         # 提取检测耗时日志
-        local detect_log=$(adb logcat -d -s PicMe:* 2>/dev/null | grep -E "detect elapsed|Face detected" | tail -5 || echo "")
+        local detect_log=$(adb logcat -d -s PoLang:* 2>/dev/null | grep -E "detect elapsed|Face detected" | tail -5 || echo "")
         
         if [ -n "$detect_log" ]; then
             echo "$detect_log" | while read line; do
@@ -102,7 +102,7 @@ test_detection_performance() {
     
     # 收集完整日志
     local log_file="$OUTPUT_DIR/${test_name}_logcat.txt"
-    adb logcat -d -s PicMe:* > "$log_file" 2>&1
+    adb logcat -d -s PoLang:* > "$log_file" 2>&1
     
     # 从日志中提取详细性能数据
     local roi_time=$(grep -oE "ROI.*elapsed=([0-9]+)" "$log_file" 2>/dev/null | tail -1 | grep -oE "[0-9]+" || echo "0")
@@ -157,7 +157,7 @@ import json
 import os
 from datetime import datetime
 
-output_dir = os.environ.get('OUTPUT_DIR', '/Users/guoshuai/AndroidStudioProjects/PicMe/scripts/auto_test_output')
+output_dir = os.environ.get('OUTPUT_DIR', '/Users/guoshuai/AndroidStudioProjects/PoLang/scripts/auto_test_output')
 results = []
 
 # 读取所有结果文件
@@ -214,7 +214,7 @@ import json
 import os
 from datetime import datetime
 
-output_dir = os.environ.get('OUTPUT_DIR', '/Users/guoshuai/AndroidStudioProjects/PicMe/scripts/auto_test_output')
+output_dir = os.environ.get('OUTPUT_DIR', '/Users/guoshuai/AndroidStudioProjects/PoLang/scripts/auto_test_output')
 results = []
 
 # 读取所有结果文件

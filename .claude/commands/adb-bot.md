@@ -1,10 +1,10 @@
-# PicMe ADB 参考
+# PoLang ADB 参考
 
-> **定位**：通过 adb 命令自动化控制 PicMe 相机应用并调试 Android 设备。
+> **定位**：通过 adb 命令自动化控制 PoLang 相机应用并调试 Android 设备。
 > **触发时机**：用户需要 adb 自动化控制、截屏分析、日志过滤或性能监控时自动启用。
 
 
-综合 adb 控制与调试能力，支持 PicMe 相机应用的自动化测试和设备状态诊断。
+综合 adb 控制与调试能力，支持 PoLang 相机应用的自动化测试和设备状态诊断。
 
 ## 快速开始
 
@@ -23,7 +23,7 @@ adb pull /sdcard/screen.png /tmp/screen.png
 
 ### 3. 过滤日志
 ```bash
-adb logcat -s PicMe:* *:S
+adb logcat -s PoLang:* *:S
 ```
 
 ---
@@ -166,16 +166,16 @@ adb logcat -c
 adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action "capture"
 sleep 1
 
-# 查看 PicMe:CameraTest / PicMe:GalleryTest 标签日志
-adb logcat -d | grep -E "PicMe:(CameraTest|GalleryTest)"
+# 查看 PoLang:CameraTest / PoLang:GalleryTest 标签日志
+adb logcat -d | grep -E "PoLang:(CameraTest|GalleryTest)"
 ```
 
 预期输出：
 ```
-PicMe:CameraTest: Broadcast received: capture
-PicMe:CameraTest: Dispatching command: Capture
-PicMe:CameraTest: Command emitted successfully: Capture
-PicMe:CameraTest: Executing command: 拍照
+PoLang:CameraTest: Broadcast received: capture
+PoLang:CameraTest: Dispatching command: Capture
+PoLang:CameraTest: Command emitted successfully: Capture
+PoLang:CameraTest: Executing command: 拍照
 ```
 
 ---
@@ -204,16 +204,16 @@ done
 #### 实时过滤日志
 ```bash
 # 过滤特定标签
-adb logcat -s PicMe:* *:S
+adb logcat -s PoLang:* *:S
 
 # 过滤多个标签
-adb logcat -s PicMe:BeautyRenderer:FaceMakeupPass:* *:S
+adb logcat -s PoLang:BeautyRenderer:FaceMakeupPass:* *:S
 
 # 清除后重新捕获
 adb logcat -c
 adb shell am force-stop com.mamba.picme
 adb shell am start -n com.mamba.picme/.MainActivity
-adb logcat -s PicMe:*
+adb logcat -s PoLang:*
 ```
 
 #### 导出日志到文件
@@ -335,7 +335,7 @@ adb logcat -d > /tmp/logcat.txt
 ### 命令无响应
 1. 确认应用在前台运行：`adb shell pidof com.mamba.picme`
 2. 清除日志后重试：`adb logcat -c && adb shell am broadcast ... && sleep 1 && adb logcat -d`
-3. 检查 `adb logcat | grep PicMe:(CameraTest|GalleryTest)` 是否有接收日志
+3. 检查 `adb logcat | grep PoLang:(CameraTest|GalleryTest)` 是否有接收日志
 4. 如果显示 `Background execution not allowed`，说明静态接收器被限制——**GalleryScreen 和 CameraScreen 各自通过 DisposableEffect 动态注册接收器，导航切换时必须确保目标 Screen 已挂载**
 5. **常见陷阱**：修改代码后只运行 `compileDebugKotlin` 不会重新生成 APK，必须运行 `assembleDebug`
 6. **常见陷阱**：`GalleryScreen` 的 `LaunchedEffect` 闭包不能读取 `remember` 局部变量（会被捕获旧值），命令处理时须用 `viewModel.allMedia.value` 读取最新状态

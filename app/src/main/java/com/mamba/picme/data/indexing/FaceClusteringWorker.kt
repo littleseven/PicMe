@@ -43,7 +43,7 @@ class FaceClusteringWorker(
 ) {
 
     companion object {
-        private const val TAG = "PicMe:FaceCluster"
+        private const val TAG = "PoLang:FaceCluster"
         private const val FACE_INPUT_SIZE = 112
 
         // 聚类参数统一引用 ClusteringConfig（已废弃，实际使用 TagGenerationScheduler）

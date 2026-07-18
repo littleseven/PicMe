@@ -38,10 +38,10 @@ Key technological decisions:
 ./gradlew clean
 
 # Install to device
-adb install -r app/build/outputs/apk/debug/picme-debug.apk
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
 
 # View PoLang logs
-adb logcat -s "PicMe:*"
+adb logcat -s "PoLang:*"
 
 # Full dev verification loop (compile → install → launch → screenshot → logs)
 ./scripts/auto-dev-loop.sh
@@ -165,7 +165,7 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 - **No fully-qualified names** for `com.mamba.picme.*` in source (custom Gradle task `checkNoFullyQualifiedName`); use imports.
 - **No wildcard imports** (`*`).
 - **Lambda parameters must be explicitly named**; implicit `it` is prohibited.
-- **Log tags** must follow `PicMe:[ModuleName]` (e.g., `PicMe:Camera`, `PicMe:BeautyEngine`).
+- **Log tags** must follow `PoLang:[ModuleName]` (e.g., `PoLang:Camera`, `PoLang:BeautyEngine`).
 - **Indentation**: Kotlin/Java 4 spaces; XML/JSON/MD 2 spaces.
 
 ### I18N (Mandatory)

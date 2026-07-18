@@ -82,7 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import com.mamba.picme.MainActivity
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.agent.capability.SystemCapability
@@ -178,7 +178,7 @@ class FloatingChatBubbleService : Service() {
      * 直接构造 [ChatViewModel]。Service 没有 LifecycleOwner，因此不通过 ViewModelProvider 创建。
      */
     private fun createChatViewModel(): ChatViewModel {
-        val app = application as PicMeApplication
+        val app = application as PoLangApplication
         val factory = app.container.createChatViewModelFactory()
         @Suppress("UNCHECKED_CAST")
         val vm = (factory as androidx.lifecycle.ViewModelProvider.Factory)

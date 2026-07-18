@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object BeautyLogProxy : BeautyLog {
 
-    private const val TAG_PREFIX = "PicMe:"
+    private const val TAG_PREFIX = "PoLang:"
 
     /** 反射缓存的 Logger 对象 */
     @Volatile

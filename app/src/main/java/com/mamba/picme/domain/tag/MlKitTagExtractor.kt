@@ -21,7 +21,7 @@ class MlKitTagExtractor(
 ) {
 
     companion object {
-        private const val TAG = "PicMe:MlKitTagExtractor"
+        private const val TAG = "PoLang:MlKitTagExtractor"
 
         /**
          * 纯函数：过滤并排序标签

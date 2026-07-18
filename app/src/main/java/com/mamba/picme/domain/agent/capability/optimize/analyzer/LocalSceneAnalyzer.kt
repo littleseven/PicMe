@@ -29,7 +29,7 @@ class LocalSceneAnalyzer(
 ) : SceneAnalyzer {
 
     companion object {
-        private const val TAG = "PicMe:LocalSceneAnalyzer"
+        private const val TAG = "PoLang:LocalSceneAnalyzer"
 
         /**
          * 小图分析尺寸：降采样以提升速度

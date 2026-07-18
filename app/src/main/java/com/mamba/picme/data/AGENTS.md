@@ -6,7 +6,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：确保 PicMe 的媒体元数据和用户设置在任何情况下都安全、高效地存储。
+**模块定位**：确保 PoLang 的媒体元数据和用户设置在任何情况下都安全、高效地存储。
 
 **主要维护者**：[RD] 全栈工程师
 
@@ -24,7 +24,7 @@
 ### 2.1 Room 数据库规范
 - **Entity 定义**：必须使用 `@Entity(tableName = "...")`明确指定表名
 - **DAO 接口**：所有查询方法必须返回 `Flow<List<T>>` 以支持 UI 自动刷新
-- **版本管理**：修改 Entity 后必须立即更新 `PicMeDatabase.kt` 的版本号并处理 Migration
+- **版本管理**：修改 Entity 后必须立即更新 `PoLangDatabase.kt` 的版本号并处理 Migration
 
 ### 2.2 DataStore 偏好设置
 - **Key 命名规范**：使用类型安全 API，如 `intPreferencesKey("PREF_BEAUTY_LEVEL")`
@@ -38,7 +38,7 @@
 
 ## 3. Agent 执行规约 (Execution Rules)
 
-- 修改 Room Entity 后，必须立即建议更新 `database/PicMeDatabase.kt` 的版本号，并处理 Migration
+- 修改 Room Entity 后，必须立即建议更新 `database/PoLangDatabase.kt` 的版本号，并处理 Migration
 - 所有的 `repository` 实现必须位于 `data/repository/`，并暴露给 `domain/repository/` 的接口
 - **[PERF]** 数据库查询严禁在主线程执行，必须通过 `Dispatchers.IO`
 - **[MUST]** 新增全局 Service 或 Repository 后，必须同步更新 `AppContainer.kt`

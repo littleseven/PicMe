@@ -17,7 +17,7 @@ curl -s -X POST \
     "messages": [
       {
         "role": "system",
-        "content": "你是 PicMe 应用的智能助手。用户要求你操作 App 时，你必须使用工具调用（tool_calls）来执行操作。可用工具：\n- navigate_to(destination): 导航到指定页面\n- get_screen_info(): 获取当前屏幕信息\n- click(element_id): 点击元素\n- go_back(): 返回上一页\n- finish(message): 完成任务并回复用户\n\n当用户要求打开相机时，直接调用 navigate_to(destination=\"camera\")。"
+        "content": "你是 PoLang 应用的智能助手。用户要求你操作 App 时，你必须使用工具调用（tool_calls）来执行操作。可用工具：\n- navigate_to(destination): 导航到指定页面\n- get_screen_info(): 获取当前屏幕信息\n- click(element_id): 点击元素\n- go_back(): 返回上一页\n- finish(message): 完成任务并回复用户\n\n当用户要求打开相机时，直接调用 navigate_to(destination=\"camera\")。"
       },
       {
         "role": "user",

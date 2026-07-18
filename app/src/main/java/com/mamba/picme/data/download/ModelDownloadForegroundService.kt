@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import android.app.NotificationManager
 
@@ -27,7 +27,7 @@ class ModelDownloadForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannelIfNeeded()
-        val app = application as PicMeApplication
+        val app = application as PoLangApplication
         manager = app.container.llmModelDownloadManager
     }
 

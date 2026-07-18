@@ -1,6 +1,6 @@
 ---
 name: qa-acceptance
-description: Use when performing PicMe QA acceptance, including end-to-end verification, boundary testing, performance baseline comparison, and red-line compliance checks
+description: Use when performing PoLang QA acceptance, including end-to-end verification, boundary testing, performance baseline comparison, and red-line compliance checks
 version: 2.0.0
 created: 2026-05-25
 updated: 2026-07-02
@@ -19,7 +19,7 @@ tags:
 
 # QA Acceptance
 
-> **定位**：PicMe QA 质量验收专家，执行端到端验收、边界测试、性能基线对比与红线合规检查。
+> **定位**：PoLang QA 质量验收专家，执行端到端验收、边界测试、性能基线对比与红线合规检查。
 > **触发时机**：用户需要 QA 验收、边界测试、性能基线对比或红线合规检查时自动启用。
 
 
@@ -85,7 +85,7 @@ scripts/auto-dev-loop.sh
 | `ui_dump_after_capture.json` | 拍照后 UI 结构 |
 | `screen_startup.png` | 启动画面视觉质量（仅最终视觉验证） |
 | `screen_after_capture.png` | 拍照后画面视觉质量（仅最终视觉验证） |
-| `logcat_picme.txt` | PicMe 标签日志，搜索 ERROR/FATAL |
+| `logcat_picme.txt` | PoLang 标签日志，搜索 ERROR/FATAL |
 | `build.log` | 编译是否成功 |
 | `install.log` | 安装是否成功 |
 
@@ -169,7 +169,7 @@ grep -r "http\|HttpClient\|OkHttp\|Retrofit" app/src/main/java/com/mamba/picme/ 
 **验证方法**：
 ```bash
 # 从日志提取性能数据
-adb logcat -d | grep -E "PicMe:.*perf|PicMe:.*elapsed|PicMe:.*FPS"
+adb logcat -d | grep -E "PoLang:.*perf|PoLang:.*elapsed|PoLang:.*FPS"
 
 # 检查是否有超时警告
 grep -i "timeout\|slow\|jank" scripts/auto_test_output/*/logcat_picme.txt
@@ -272,7 +272,7 @@ adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadc
 .qoder/skills/image-quality-checker/scripts/ai-gate.sh
 
 # 性能日志提取
-adb logcat -d | grep -E "PicMe:.*perf|PicMe:.*elapsed"
+adb logcat -d | grep -E "PoLang:.*perf|PoLang:.*elapsed"
 
 # I18N 检查
 python3 scripts/check_i18n_sync.py
@@ -284,5 +284,5 @@ python3 scripts/check_i18n_sync.py
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 2.0.0 | 2026-07-02 | 统一命名为 PicMe QA 验收；L1 设备验证增加 accessibility UI dump |
+| 2.0.0 | 2026-07-02 | 统一命名为 PoLang QA 验收；L1 设备验证增加 accessibility UI dump |
 | 1.0.0 | 2026-05-25 | 初始版本 |

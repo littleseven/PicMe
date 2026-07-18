@@ -11,12 +11,12 @@ import java.util.concurrent.TimeUnit
  * OpenAI 兼容 API 客户端工厂
  *
  * 创建配置好的 Retrofit 实例和 OpenAiApiService。
- * 默认连接 PicMe Server (api.polang.net)，也支持 BYOK 直连其他 OpenAI 兼容接口。
+ * 默认连接 PoLang Server (api.polang.net)，也支持 BYOK 直连其他 OpenAI 兼容接口。
  *
  * @param apiKey API Key（以 Bearer 方式认证，BYOK 模式使用）
  * @param baseUrl API 基础地址，默认 https://api.polang.net/
  * @param enableLogging 是否启用 HTTP 请求日志
- * @param gatewayToken X-App-Token 认证值（PicMe Server 共享密钥）
+ * @param gatewayToken X-App-Token 认证值（PoLang Server 共享密钥）
  */
 class OpenAiApiClient(
     private val apiKey: String = "",
@@ -49,7 +49,7 @@ class OpenAiApiClient(
                     requestBuilder.addHeader("Authorization", "Bearer $apiKey")
                 }
 
-                // PicMe Server 认证头（X-App-Token，与 SCF / BuildConfig 共用同一个值）
+                // PoLang Server 认证头（X-App-Token，与 SCF / BuildConfig 共用同一个值）
                 gatewayToken?.takeIf { it.isNotBlank() }?.let { token ->
                     requestBuilder.addHeader("X-App-Token", token)
                 }

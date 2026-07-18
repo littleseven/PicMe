@@ -30,7 +30,7 @@ class DeviceTestController(private val context: Context) {
 
     companion object {
         private const val TAG = "AgentDeviceController"
-        private const val SCREENSHOT_DIR = "/sdcard/PicMe_Agent_Test"
+        private const val SCREENSHOT_DIR = "/sdcard/PoLang_Agent_Test"
     }
 
     private var lastScreenshotPath: String? = null
@@ -40,7 +40,7 @@ class DeviceTestController(private val context: Context) {
     // ============================================
 
     /**
-     * 启动 PicMe 应用
+     * 启动 PoLang 应用
      */
     suspend fun launchApp(): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -288,11 +288,11 @@ class DeviceTestController(private val context: Context) {
     // ============================================
 
     /**
-     * 收集 PicMe 相关日志
+     * 收集 PoLang 相关日志
      */
     fun collectLogs(ctx: AgentTestContext, lines: Int = 200) {
         try {
-            val process = Runtime.getRuntime().exec("logcat -d -s PicMe:* *:S")
+            val process = Runtime.getRuntime().exec("logcat -d -s PoLang:* *:S")
             val output = process.inputStream.bufferedReader().readText()
 
             output.lines().take(lines).forEach { line ->
@@ -302,7 +302,7 @@ class DeviceTestController(private val context: Context) {
                     line.contains(" D ") -> LogLevel.DEBUG
                     else -> LogLevel.INFO
                 }
-                ctx.addLog("PicMe", line, level)
+                ctx.addLog("PoLang", line, level)
             }
         } catch (e: Exception) {
             Logger.e(TAG, "Failed to collect logs", e)

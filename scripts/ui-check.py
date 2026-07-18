@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-UI Check - PicMe UI 布局自动校验工具
+UI Check - PoLang UI 布局自动校验工具
 用途: 通过像素分析验证截图中关键 UI 元素是否存在、位置是否正确
 调用: python3 scripts/ui-check.py --screenshot <path> --check <check_type> [options]
 
@@ -217,7 +217,7 @@ CHECK_FUNCTIONS = {
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PicMe UI Check Tool")
+    parser = argparse.ArgumentParser(description="PoLang UI Check Tool")
     parser.add_argument("--screenshot", required=True, help="截图路径")
     parser.add_argument("--check", required=True, help="检查类型，逗号分隔: " + ",".join(CHECK_FUNCTIONS.keys()))
     parser.add_argument("--output", help="输出标注后的截图路径")
@@ -257,7 +257,7 @@ def main():
         }, indent=2))
     else:
         print("=" * 50)
-        print("📱 PicMe UI Check Report")
+        print("📱 PoLang UI Check Report")
         print("=" * 50)
         print(f"截图: {args.screenshot}")
         print(f"分辨率: {img.size[0]}x{img.size[1]}")

@@ -6,7 +6,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：确保 PicMe 的相机模块实现零延迟拍摄、智能场景识别和实时 HDR 处理。
+**模块定位**：确保 PoLang 的相机模块实现零延迟拍摄、智能场景识别和实时 HDR 处理。
 
 **主要维护者**：[RD] 全栈工程师
 
@@ -213,8 +213,8 @@ val screenY = adjustedY * previewHeight
     - 在 `CameraScreen` 的 `DisposableEffect` 中配置
     - 页面退出时必须恢复系统栏显示（`show(WindowInsetsCompat.Type.systemBars())`）
   - **日志记录**：
-    - 进入沉浸式：`PicMeLogger.d("PicMe:Camera", "Immersive mode enabled")`
-    - 退出沉浸式：`PicMeLogger.d("PicMe:Camera", "Immersive mode disabled")`
+    - 进入沉浸式：`PoLangLogger.d("PoLang:Camera", "Immersive mode enabled")`
+    - 退出沉浸式：`PoLangLogger.d("PoLang:Camera", "Immersive mode disabled")`
   - **注意事项**：
     - 不需要手动调整UI元素的padding（EdgeToEdge已在MainActivity配置）
     - 确保获取到Activity窗口引用（需要类型转换 `context as? Activity`）

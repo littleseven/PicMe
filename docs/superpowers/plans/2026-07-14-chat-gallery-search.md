@@ -34,7 +34,7 @@
 - `app/.../data/local/ChatMessageEntity.kt` — 确认字段（type/content/metadata），序列化在 VM 侧处理。
 - `app/.../features/chat/components/QuickActionBar.kt` — 加「搜相册」chip。
 - `app/.../di/AppContainer.kt` — deps 注入 `mediaSearchEngine`。
-- `app/.../PicMeApplication.kt` — 注册 `ChatSearchCapability`。
+- `app/.../PoLangApplication.kt` — 注册 `ChatSearchCapability`。
 - `app/.../features/gallery/GalleryScreen.kt` + 导航 — `initialQuery` 参数。
 
 ---
@@ -336,11 +336,11 @@ git commit -m "feat(chat): add ChatSearchCapability with delegate pattern"
 ### Task 4: 注册 `ChatSearchCapability`
 
 **Files:**
-- Modify: `app/src/main/java/com/mamba/picme/PicMeApplication.kt`（`GalleryCapability` 注册在 ~530 行：`orchestrator.registerCapability(GalleryCapability.getInstance())`）
+- Modify: `app/src/main/java/com/mamba/picme/PoLangApplication.kt`（`GalleryCapability` 注册在 ~530 行：`orchestrator.registerCapability(GalleryCapability.getInstance())`）
 
 - [ ] **Step 1: Add registration**
 
-在 `PicMeApplication.kt` 顶部 import 区加：
+在 `PoLangApplication.kt` 顶部 import 区加：
 
 ```kotlin
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
@@ -361,7 +361,7 @@ Expected: BUILD SUCCESSFUL
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/main/java/com/mamba/picme/PicMeApplication.kt
+git add app/src/main/java/com/mamba/picme/PoLangApplication.kt
 git commit -m "feat(chat): register ChatSearchCapability globally"
 ```
 

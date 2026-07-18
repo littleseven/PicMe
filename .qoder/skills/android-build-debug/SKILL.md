@@ -31,12 +31,12 @@ tags:
 
 ### 2. 安装到设备
 ```bash
-adb install -r app/build/outputs/apk/debug/picme-debug.apk
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
 ```
 
-### 3. 查看日志（过滤 PicMe 标签）
+### 3. 查看日志（过滤 PoLang 标签）
 ```bash
-adb logcat -s PicMe:* *:S
+adb logcat -s PoLang:* *:S
 ```
 
 ### 4. 清除日志后重新启动
@@ -111,10 +111,10 @@ adb shell am start -n com.mamba.picme/.MainActivity
 
 ## 项目特定路径
 
-- APK 输出：`app/build/outputs/apk/debug/picme-debug.apk`
+- APK 输出：`app/build/outputs/apk/debug/polang-debug.apk`
 - Shader 目录：`beauty-engine/src/main/assets/shaders/`
 - Java/Kotlin 源码：`app/src/main/java/com/mamba/picme/`
-- 日志标签过滤：`adb logcat -s PicMe:* *:S`
+- 日志标签过滤：`adb logcat -s PoLang:* *:S`
 
 ## 相关文件
 

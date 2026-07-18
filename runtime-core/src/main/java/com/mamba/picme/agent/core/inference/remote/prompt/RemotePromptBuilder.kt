@@ -31,7 +31,7 @@ class RemotePromptBuilder(
      */
     fun buildBatchPrompt(userInput: String, context: AgentContext): String {
         return buildString {
-            appendLine("你是 PicMe 的指令解析器。使用 function calling 调用工具来响应用户指令。")
+            appendLine("你是 PoLang 的指令解析器。使用 function calling 调用工具来响应用户指令。")
             appendLine()
             appendLine("规则：")
             appendLine("1. 当需要执行工具时，直接发起函数调用（function calling），系统会自动解析并执行。")
@@ -65,7 +65,7 @@ class RemotePromptBuilder(
      */
     fun buildPlanPrompt(userInput: String, context: AgentContext): String {
         return buildString {
-            appendLine("你是 PicMe 的任务编排器。把用户复杂请求转成 ExecutionPlan JSON。")
+            appendLine("你是 PoLang 的任务编排器。把用户复杂请求转成 ExecutionPlan JSON。")
             appendLine()
             appendLine("输出硬规则：")
             appendLine("1. 只能输出一个 JSON 对象，禁止解释、禁止 markdown、禁止 <thinking>。")
@@ -102,7 +102,7 @@ class RemotePromptBuilder(
         history: List<String> = emptyList()
     ): String {
         return buildString {
-            appendLine("你是 PicMe 的摄影助手小浪。当前是聊天模式。")
+            appendLine("你是 PoLang 的摄影助手小浪。当前是聊天模式。")
             appendLine()
             appendLine("回复规则：")
             appendLine("1. 只输出中文自然语言，不要 JSON，不要 markdown。")

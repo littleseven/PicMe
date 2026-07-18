@@ -1,7 +1,7 @@
 {
   "name": "picme-ai-gateway-scf",
   "version": "1.0.0",
-  "description": "PicMe AI Gateway proxy via Tencent Cloud SCF",
+  "description": "PoLang AI Gateway proxy via Tencent Cloud SCF",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
@@ -12,7 +12,7 @@
     "ai-gateway",
     "deepseek"
   ],
-  "author": "PicMe",
+  "author": "PoLang",
   "license": "MIT",
   "engines": {
     "node": ">=18.15.0"

@@ -48,10 +48,10 @@ import kotlin.coroutines.suspendCoroutine
  *
  * **线程模型**：
  * 所有专有线程池由 [ThreadPoolManager] 集中管理，四线程池完全隔离：
- * - **编排线程**（PicMe-Orchestrator-Thread）：双线程，处理用户输入的整个生命周期
- * - **LLM 推理线程**（PicMe-LLM-Model-Thread）：单线程，模型加载和推理
- * - **DataStore 线程**（PicMe-DataStore-Thread）：单线程，对话历史持久化
- * - **网络线程**（PicMe-Network-Thread）：单线程，远程 HTTP API 调用
+ * - **编排线程**（PoLang-Orchestrator-Thread）：双线程，处理用户输入的整个生命周期
+ * - **LLM 推理线程**（PoLang-LLM-Model-Thread）：单线程，模型加载和推理
+ * - **DataStore 线程**（PoLang-DataStore-Thread）：单线程，对话历史持久化
+ * - **网络线程**（PoLang-Network-Thread）：单线程，远程 HTTP API 调用
  *
  * 各线程池完全隔离，无直接依赖关系。数据持久化为 fire-and-forget 异步操作，
  * 不阻塞推理与编排流程。
@@ -111,7 +111,7 @@ class AgentOrchestrator private constructor(context: Context) {
     val currentScene = sceneManager.currentScene
 
     /**
-     * 注册 Capability（应用级，通常由 PicMeApplication 调用）
+     * 注册 Capability（应用级，通常由 PoLangApplication 调用）
      */
     fun registerCapability(capability: Capability) {
         _capabilityRegistry.register(capability)
@@ -625,7 +625,7 @@ class AgentOrchestrator private constructor(context: Context) {
     /**
      * 解析远程模型配置
      *
-     * 优先使用已存储的远程配置（可能已被 [PicMeApplication] 预配置了 gatewayToken）。
+     * 优先使用已存储的远程配置（可能已被 [PoLangApplication] 预配置了 gatewayToken）。
      * [RemoteModelConfig.isConfigured] 要求 apiKey 或 gatewayToken 非空，
      * 但在 debug 构建中 BuildConfig token 可能为空，导致预配置的兜底 config 被误判为无效。
      * 因此这里只检查 baseUrl 和 modelId，不检查认证字段——认证由 SCF 网关层处理。

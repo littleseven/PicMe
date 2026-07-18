@@ -28,7 +28,7 @@ class MediaStoreObserver(
     private val onChange: (List<MediaChangeEvent>) -> Unit
 ) {
     companion object {
-        private const val TAG = "PicMe:MediaObs"
+        private const val TAG = "PoLang:MediaObs"
         private const val DEBOUNCE_MS = 2000L
     }
 

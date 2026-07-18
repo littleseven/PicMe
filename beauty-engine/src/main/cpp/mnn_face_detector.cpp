@@ -7,7 +7,7 @@
 #include <cstring>
 #include <fstream>
 
-#define LOG_TAG "PicMe:MnnFaceDetect"
+#define LOG_TAG "PoLang:MnnFaceDetect"
 #define LOGD(...) do { if (picme::MnnFaceDetector::isLogEnabled()) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__); } while(0)
 #define LOGI(...) do { if (picme::MnnFaceDetector::isLogEnabled()) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__); } while(0)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)

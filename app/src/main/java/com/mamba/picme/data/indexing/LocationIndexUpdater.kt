@@ -15,7 +15,7 @@ import com.mamba.picme.data.local.entity.MediaLocationEntity
 class LocationIndexUpdater(private val locationDao: LocationDao) {
 
     companion object {
-        private const val TAG = "PicMe:LocIndex"
+        private const val TAG = "PoLang:LocIndex"
         // 约 11m 精度，足以区分不同建筑物
         private const val COORDINATE_PRECISION = 0.0001
     }

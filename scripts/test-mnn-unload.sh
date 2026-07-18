@@ -7,7 +7,7 @@
 #
 # 前置条件:
 #   - Android 设备已连接
-#   - PicMe 调试版已安装
+#   - PoLang 调试版已安装
 #   - LLM 和 ASR 模型已下载
 
 set -e

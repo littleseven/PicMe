@@ -1,4 +1,4 @@
-# PicMe 文档一致性守护者 (DocSync Guardian)
+# PoLang 文档一致性守护者 (DocSync Guardian)
 
 > **定位**：自动维护 PRODUCT.md → FEATURES.md → 模块 AGENTS.md 文档体系的一致性。
 > **触发时机**：用户修改文档、检查文档同步或涉及文档一致性审计时自动启用。
@@ -6,7 +6,7 @@
 
 ## 📋 Skill 概述
 
-本 Skill 用于在 PicMe 项目迭代过程中自动维护和检查三层文档体系的一致性，确保 `PRODUCT.md` → `docs/01-PRODUCT/FEATURES.md` → 模块 `AGENTS.md` 的单向引用链完整、准确、同步。
+本 Skill 用于在 PoLang 项目迭代过程中自动维护和检查三层文档体系的一致性，确保 `PRODUCT.md` → `docs/01-PRODUCT/FEATURES.md` → 模块 `AGENTS.md` 的单向引用链完整、准确、同步。
 
 **核心价值**：
 - 🔍 **自动检测**：识别文档与代码的不一致

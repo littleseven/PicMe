@@ -242,7 +242,7 @@ cd langchain4android
 ./gradlew :app:assembleDebug
 
 # 安装到设备
-adb install -r app/build/outputs/apk/debug/picme-debug.apk
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
 
 # 一键开发闭环
 ./scripts/auto-dev-loop.sh

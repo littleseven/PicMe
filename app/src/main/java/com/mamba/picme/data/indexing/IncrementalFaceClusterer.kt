@@ -29,7 +29,7 @@ class IncrementalFaceClusterer(
     private val personDao: PersonDao
 ) {
     companion object {
-        private const val TAG = "PicMe:FaceClusterInc"
+        private const val TAG = "PoLang:FaceClusterInc"
         private const val FACE_INPUT_SIZE = 112
         private const val EPS = 0.55f
         /** 每 N 个增量 embedding 触发全量重聚 */

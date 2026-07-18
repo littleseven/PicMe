@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Smart Commit - PicMe 智能 Commit Message 生成工具
+# Smart Commit - PoLang 智能 Commit Message 生成工具
 # 用途: 基于 git diff 自动生成符合 Conventional Commits 规范的结构化 commit message
 # 调用: ./scripts/smart-commit.sh [options]
 #

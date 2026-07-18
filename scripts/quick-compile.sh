@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Quick Compile - PicMe 分层快速编译脚本
+# Quick Compile - PoLang 分层快速编译脚本
 # 用途: 编码过程中快速验证编译状态，分层递进，失败即停，最大化修复效率
 # 调用: ./scripts/quick-compile.sh [options] [module]
 #
@@ -300,7 +300,7 @@ classify_compile_errors() {
         echo -e "   ${YELLOW}建议: 删除未使用的导入，替换通配符导入为显式导入${NC}"
     fi
     
-    # 分类 7: Shader/GLSL 错误（PicMe 特定）
+    # 分类 7: Shader/GLSL 错误（PoLang 特定）
     if echo "$gradle_log" | grep -qi "shader\|glsl\|vertex\|fragment"; then
         echo -e "   ${RED}类型: Shader 编译错误${NC}"
         echo -e "   ${YELLOW}建议: 检查 GLSL 语法、varying/uniform 一致性、精度修饰符${NC}"
@@ -365,7 +365,7 @@ run_watch() {
 }
 
 # 主流程
-print_header "🚀 PicMe Quick Compile - 分层快速编译"
+print_header "🚀 PoLang Quick Compile - 分层快速编译"
 echo ""
 echo "模式: ${MODE}${TARGET_MODULE:+ | 目标模块: $TARGET_MODULE}${CLEAN:+ | clean}"
 echo ""

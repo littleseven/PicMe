@@ -48,7 +48,7 @@ data class RemoteModelConfig(
 
     companion object {
         /**
-         * PicMe Server 默认配置（LLM 代理 + 密钥托管）
+         * PoLang Server 默认配置（LLM 代理 + 密钥托管）
          *
          * 客户端通过 X-App-Token header 认证，服务端持有 Cloudflare/TokenHub 密钥。
          * 老客户端仍可走 SCF (https://1412656811-f92agkf1y7.ap-guangzhou.tencentscf.com/)。

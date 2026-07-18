@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Auto Dev Loop - PicMe 开发自循环脚本（Tool 化版本）
+# Auto Dev Loop - PoLang 开发自循环脚本（Tool 化版本）
 # 用途：代码修改后一键完成 编译→安装→设备验证→质量检查→报告 完整闭环
 # 调用：./scripts/auto-dev-loop.sh [options]
 #
@@ -242,8 +242,8 @@ run_phase3() {
 # ============================================
 setup_accessibility_service() {
     echo ""
-    echo "→ 启用 PicMeAccessibilityService..."
-    adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService > /dev/null 2>&1 || true
+    echo "→ 启用 PoLangAccessibilityService..."
+    adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PoLangAccessibilityService > /dev/null 2>&1 || true
     adb shell settings put secure accessibility_enabled 1 > /dev/null 2>&1 || true
 
     echo "→ 设置 adb forward tcp:27183..."
@@ -286,9 +286,9 @@ run_phase4() {
         sleep 2
         if python3 "$PROJECT_ROOT/scripts/ui_driver.py" dump --package com.mamba.picme > "$OUTPUT_DIR/ui_dump_startup.txt" 2>"$OUTPUT_DIR/ui_dump_startup.err"; then
             if grep -q "com.mamba.picme" "$OUTPUT_DIR/ui_dump_startup.txt" 2>/dev/null; then
-                log_ok "检测到 PicMe 界面节点"
+                log_ok "检测到 PoLang 界面节点"
             else
-                log_warn "未检测到 PicMe 界面节点"
+                log_warn "未检测到 PoLang 界面节点"
             fi
         else
             log_warn "UI dump 失败"
@@ -303,9 +303,9 @@ run_phase4() {
     if python3 "$PROJECT_ROOT/scripts/ui_driver.py" dump --package com.mamba.picme > "$OUTPUT_DIR/ui_dump_startup.txt" 2>"$OUTPUT_DIR/ui_dump_startup.err"; then
         log_ok "启动后 UI dump 已保存：$OUTPUT_DIR/ui_dump_startup.txt"
         if grep -q "com.mamba.picme" "$OUTPUT_DIR/ui_dump_startup.txt" 2>/dev/null; then
-            log_ok "检测到 PicMe 界面节点"
+            log_ok "检测到 PoLang 界面节点"
         else
-            log_warn "未检测到 PicMe 界面节点"
+            log_warn "未检测到 PoLang 界面节点"
         fi
     else
         log_warn "启动后 UI dump 失败 (错误日志：$OUTPUT_DIR/ui_dump_startup.err)"
@@ -313,8 +313,8 @@ run_phase4() {
 
     # 4.2 收集日志
     echo ""
-    echo "→ 收集 PicMe 日志..."
-    adb logcat -d -s "PicMe:*" > "$OUTPUT_DIR/logcat_picme.txt" 2>&1 || \
+    echo "→ 收集 PoLang 日志..."
+    adb logcat -d -s "PoLang:*" > "$OUTPUT_DIR/logcat_picme.txt" 2>&1 || \
     adb logcat -d > "$OUTPUT_DIR/logcat_full.txt" 2>&1
     log_ok "日志已保存：$OUTPUT_DIR/logcat_picme.txt"
 
@@ -396,7 +396,7 @@ run_phase5() {
     local report_file="$OUTPUT_DIR/report.md"
 
     cat > "$report_file" << EOF
-# PicMe Auto Dev Loop 报告
+# PoLang Auto Dev Loop 报告
 
 **时间**: $(date '+%Y-%m-%d %H:%M:%S')  
 **输出目录**: $OUTPUT_DIR  
@@ -447,7 +447,7 @@ EOF
 # ============================================
 echo ""
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     🤖 PicMe Auto Dev Loop - 开发自循环                  ║${NC}"
+echo -e "${CYAN}║     🤖 PoLang Auto Dev Loop - 开发自循环                  ║${NC}"
 echo -e "${CYAN}║     Tool 化测试版本（基于 Capability 接口）              ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""

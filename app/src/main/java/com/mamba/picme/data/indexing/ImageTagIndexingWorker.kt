@@ -47,7 +47,7 @@ class ImageTagIndexingWorker(
 ) {
 
     companion object {
-        private const val TAG = "PicMe:ImageTag"
+        private const val TAG = "PoLang:ImageTag"
         private const val MAX_IMAGE_SIZE = 420
         private const val THROTTLE_MS = 200L
 

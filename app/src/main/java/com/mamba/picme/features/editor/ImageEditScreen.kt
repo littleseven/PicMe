@@ -69,7 +69,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.mamba.picme.R
-import com.mamba.picme.core.designsystem.PicMeTheme
+import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -435,7 +435,7 @@ private fun saveEditedImage(
         put(MediaStore.MediaColumns.DISPLAY_NAME, name)
         put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PicMe")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PoLang")
         }
     }
     val uri =
@@ -469,7 +469,7 @@ fun ImageEditScreenPreview() {
         paint.color = android.graphics.Color.BLUE
         canvas.drawCircle(400f, 600f, 200f, paint)
     }
-    PicMeTheme {
+    PoLangTheme {
         ImageEditContent(
             originalBitmap = bitmap,
             mosaicShader = null,

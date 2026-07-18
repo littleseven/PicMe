@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   PicMe 数据备份规则（Android 6-11 / API 23-30）
+   PoLang 数据备份规则（Android 6-11 / API 23-30）
 
    用途：控制 Auto Backup 与 adb backup/restore 的数据范围。
 

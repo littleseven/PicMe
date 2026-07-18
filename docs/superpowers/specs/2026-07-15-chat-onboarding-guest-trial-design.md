@@ -11,7 +11,7 @@ Today the Chat page has two UX gaps when a user first opens it:
 
 1. **Blank screen ("大白屏").** `ChatScreen` renders `LazyColumn { items(messages) }` with no
    empty-state, so a first-time user sees a blank background with only the input bar.
-2. **Remote is blocked without registration.** The Remote model routes through the PicMe server
+2. **Remote is blocked without registration.** The Remote model routes through the PoLang server
    proxy (`/chat/completions`) which requires an `X-App-Token` (issued by email-OTP registration).
    An unregistered user cannot use Remote at all, and there is no in-chat guidance to register.
 3. **Google Play review.** The app has an account system, so review policy asks for test
@@ -54,13 +54,13 @@ Today the Chat page has two UX gaps when a user first opens it:
 - `admin/AdminAuth.kt:10` — `COOKIE_NAME = "picme_admin"`.
 
 **App** (`app/`):
-- `data/remote/picme/PicMeAuthClient.kt` — `sendVerificationCode` / `verifyCode` / `getQuota`;
+- `data/remote/picme/PoLangAuthClient.kt` — `sendVerificationCode` / `verifyCode` / `getQuota`;
   base URL `https://api.polang.net`. (Client does **not** validate the token prefix — it stores and
   re-sends the opaque token, so a prefix change is server-side only and client-safe.)
 - `data/preferences/UserPreferencesRepository.kt:1017` — `serverAuthTokenFlow` / `serverAuthEmailFlow`
   / `updateServerAuth` / `clearServerAuth` (DataStore).
 - `data/remote/openai/OpenAiApiClient.kt:52` — adds `X-App-Token` header when token non-blank.
-- `PicMeApplication.kt:320-361` — observes `serverAuthTokenFlow` + remote model config and syncs the
+- `PoLangApplication.kt:320-361` — observes `serverAuthTokenFlow` + remote model config and syncs the
   effective `RemoteModelConfig` (incl. `gatewayToken = serverToken`) into the orchestrator. So after
   `repo.updateServerAuth(...)`, the orchestrator's remote config is updated automatically.
 - `features/chat/ChatScreen.kt:254-282` — message `LazyColumn`; **no empty-state branch**.
@@ -69,7 +69,7 @@ Today the Chat page has two UX gaps when a user first opens it:
 - `features/settings/SettingsServerAuth.kt` — a working email + code login form (`ServerAuthSection`),
   but `internal` to settings and with hardcoded Chinese strings.
 - `agent.core.remote.config.RemoteModelConfig` — `isConfigured = baseUrl.isNotBlank() &&
-  (apiKey.isNotBlank() || gatewayToken.isNotBlank())`. The PicMe-server default becomes configured
+  (apiKey.isNotBlank() || gatewayToken.isNotBlank())`. The PoLang-server default becomes configured
   once `gatewayToken` (= `serverAuthToken`) is set; a user's own provider key is configured on its own.
 
 ## 4. Design
@@ -155,7 +155,7 @@ New `features/chat/components/ChatEmptyState.kt`, shown by `ChatScreen` when
 - New `features/chat/components/ChatRegistrationSheet.kt` (`ModalBottomSheet`) hosting
   `EmailCodeAuthForm`, driven by `ChatViewModel` actions:
   - `sendVerificationCode(email)` / `verifyCode(email, code)` → on success
-    `repo.updateServerAuth(token, email)` → the existing `PicMeApplication` observer re-syncs the
+    `repo.updateServerAuth(token, email)` → the existing `PoLangApplication` observer re-syncs the
     orchestrator's `gatewayToken`, so the next Remote call uses the account token. (Plan must verify
     the observer fires on `updateServerAuth`; if not, add an explicit re-sync trigger.)
   - Secondary actions: "我已有 API Key，去配置" → `onNavigateToSettings` (existing remote-models
@@ -178,7 +178,7 @@ New `features/chat/components/ChatEmptyState.kt`, shown by `ChatScreen` when
   `values-zh-rCN/strings.xml`, `values-zh-rTW/strings.xml`. The `SettingsServerAuth` extraction
   also moves its existing hardcoded Chinese into strings (in scope).
 - **Code rules.** No fully-qualified `com.mamba.picme.*` names; no wildcard imports; lambda params
-  named explicitly; Android log tag `PicMe:Chat`; server uses its existing per-module loggers.
+  named explicitly; Android log tag `PoLang:Chat`; server uses its existing per-module loggers.
 - **`RemoteModelConfig.isConfigured`** semantics are unchanged; guest mode is purely a transport
   concern (`X-Device-Id`), not a new model-config state — no coupling.
 

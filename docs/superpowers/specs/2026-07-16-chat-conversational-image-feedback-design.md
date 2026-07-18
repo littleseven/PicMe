@@ -76,7 +76,7 @@ ChatViewModel Delegate
 | `runtime-core/.../model/command/AgentCommands.kt` | 新增 `RecordMediaFeedback`、`MoreLikeThis`、`ExcludeConstraint`；`FeedbackTarget` sealed class |
 | `runtime-core/.../inference/local/prompt/LocalPromptBuilder.kt` | 新增短命令 schema、示例、搜索结果状态片段 |
 | `runtime-core/.../inference/remote/prompt/RemotePromptBuilder.kt` | 新增工具说明和状态片段 |
-| `runtime-core/.../inference/remote/tool/PicMeToolService.kt` | 如需要，补充 `@Tool` 方法 |
+| `runtime-core/.../inference/remote/tool/PoLangToolService.kt` | 如需要，补充 `@Tool` 方法 |
 | `runtime-core/.../inference/local/parser/LocalCommandParser.kt` | 解析 `feedback` / `more` / `exclude` |
 | `runtime-core/.../inference/remote/parser/ToolCallCommandParser.kt` | 解析对应 tool_calls |
 | `app/.../features/chat/capability/ChatSearchCapability.kt` | 支持新命令，扩展 `Delegate` |

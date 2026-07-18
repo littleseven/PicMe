@@ -1,6 +1,6 @@
-# PicMe Beauty Engine
+# PoLang Beauty Engine
 
-`beauty-engine` 是 PicMe 的实时美颜预览引擎，以独立 Android Library 模块存在，长期演进为可独立发布的视觉能力基础库。
+`beauty-engine` 是 PoLang 的实时美颜预览引擎，以独立 Android Library 模块存在，长期演进为可独立发布的视觉能力基础库。
 
 ---
 
@@ -228,7 +228,7 @@ override fun onCleared() {
 1. `BeautyPreviewEngine` 内部不会自动回退，异常会向上抛出。
 2. **调用方**（`GlBeautyPreviewStrategy`）捕获异常，降级为 CameraX `PreviewView` 直出，并通过 `onWarmUpFallback` 通知 UI 层。
 3. `BeautyEngineRuntimeState` 记录回退原因，供 UI 层消费展示提示。
-4. `BeautyPerfStats` 会额外暴露 `errorCategory` / `errorReason`，用于调试浮层展示最近一次 `PicMe:BeautyRenderer` 错误分类。
+4. `BeautyPerfStats` 会额外暴露 `errorCategory` / `errorReason`，用于调试浮层展示最近一次 `PoLang:BeautyRenderer` 错误分类。
 5. 详细的兜底策略与冷却恢复机制请参阅 `docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md`。
 
 ---

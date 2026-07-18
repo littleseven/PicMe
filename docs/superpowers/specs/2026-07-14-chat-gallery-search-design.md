@@ -97,7 +97,7 @@
 
 ### 注册点
 
-`PicMeApplication.onCreate()` 注册 `ChatSearchCapability` 单例（参照 `GalleryCapability.getInstance()`）。`ChatScreen` 进入时 `bindDelegate(viewModel)`，离开 `onDispose` 时 `unbindDelegate()`。
+`PoLangApplication.onCreate()` 注册 `ChatSearchCapability` 单例（参照 `GalleryCapability.getInstance()`）。`ChatScreen` 进入时 `bindDelegate(viewModel)`，离开 `onDispose` 时 `unbindDelegate()`。
 
 ## 5. 消息模型与持久化
 

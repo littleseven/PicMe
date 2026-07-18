@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# PicMe Wiki 文档生成脚本
+# PoLang Wiki 文档生成脚本
 # 用途: 从 docs/ 目录提取关键内容生成 Wiki 页面
 
 set -e
 
-WIKI_DIR="/Users/guoshuai/AndroidStudioProjects/PicMe/wiki"
+WIKI_DIR="/Users/guoshuai/AndroidStudioProjects/PoLang/wiki"
 
-echo "📝 生成 PicMe Wiki 文档..."
+echo "📝 生成 PoLang Wiki 文档..."
 
 # 1. 人脸检测双引擎
 cat > "$WIKI_DIR/Face-Detection-Engines.md" << 'EOF'
 # 人脸检测双引擎架构
 
-PicMe 采用 **InsightFace 2D106 (默认首选)** + **MediaPipe Face Mesh 468→106 (备选)** 的双引擎架构,通过统一的适配层实现无缝切换与自动容灾。
+PoLang 采用 **InsightFace 2D106 (默认首选)** + **MediaPipe Face Mesh 468→106 (备选)** 的双引擎架构,通过统一的适配层实现无缝切换与自动容灾。
 
 ## 🎯 设计目标
 
@@ -158,7 +158,7 @@ fun getOrConvertBitmap(imageProxy: ImageProxy): Bitmap {
 ---
 
 **最后更新**: 2026-05-05  
-**维护者**: PicMe RD Team
+**维护者**: PoLang RD Team
 EOF
 
 echo "✅ Face-Detection-Engines.md 已生成"
@@ -167,7 +167,7 @@ echo "✅ Face-Detection-Engines.md 已生成"
 cat > "$WIKI_DIR/Beauty-Engine.md" << 'EOF'
 # 实时美颜系统 (大美丽引擎)
 
-大美丽 (Big Beauty) 是 PicMe 自研的 OpenGL ES + EGL 实时美颜引擎,支持磨皮、美白、瘦脸、大眼、唇色、腮红等完整美颜链路。
+大美丽 (Big Beauty) 是 PoLang 自研的 OpenGL ES + EGL 实时美颜引擎,支持磨皮、美白、瘦脸、大眼、唇色、腮红等完整美颜链路。
 
 ## 🎨 核心能力
 
@@ -318,7 +318,7 @@ PhotoRepository.save() → MediaStore
 ---
 
 **最后更新**: 2026-05-05  
-**维护者**: PicMe RD Team
+**维护者**: PoLang RD Team
 EOF
 
 echo "✅ Beauty-Engine.md 已生成"
@@ -327,7 +327,7 @@ echo "✅ Beauty-Engine.md 已生成"
 cat > "$WIKI_DIR/Architecture-Decisions.md" << 'EOF'
 # 架构决策记录 (ADR)
 
-本文档记录 PicMe 项目的关键技术决策及其理由。
+本文档记录 PoLang 项目的关键技术决策及其理由。
 
 ## 📋 ADR 列表
 
@@ -438,7 +438,7 @@ if (isFrontCamera) {
 ---
 
 **最后更新**: 2026-05-05  
-**维护者**: PicMe RD Team
+**维护者**: PoLang RD Team
 EOF
 
 echo "✅ Architecture-Decisions.md 已生成"

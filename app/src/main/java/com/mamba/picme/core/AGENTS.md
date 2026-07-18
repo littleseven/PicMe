@@ -6,7 +6,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：提供 PicMe 的核心组件（DesignSystem、图像处理、工具类）统一、高效的基础能力。
+**模块定位**：提供 PoLang 的核心组件（DesignSystem、图像处理、工具类）统一、高效的基础能力。
 
 **主要维护者**：[RD] 全栈工程师
 
@@ -23,7 +23,7 @@
 ### 2.1 Design System 实现
 
 **主题系统规范**：
-- **PicMeTheme 颜色方案**：
+- **PoLangTheme 颜色方案**：
   - 深色模式：primary 使用科技蓝 (#00E5FF)，surface 使用深灰 (#1E1E1E)
   - 浅色模式：对应调整明度，保持对比度符合 WCAG 标准
 - **毛玻璃效果**：通过 `Modifier.blur(20.dp)`配合半透明白色背景，圆角统一为 28dp
@@ -75,7 +75,7 @@ core/image/
 **GpuBeautyProcessor（CPU 路径）注意事项**：
 - 磨皮：原 RenderScript API 已废弃（Android API 31+），现改为 Canvas + ColorMatrix 亮度近似
 - 实时预览磨皮的双边滤波 Shader 效果仍在 `beauty-engine` 中保留，CPU 路径为轻量兼容实现
-- 日志 TAG：`PicMe:ImageProc`
+- 日志 TAG：`PoLang:ImageProc`
 
 **滤镜 ColorMatrix（`FilterType.toAndroidColorMatrix()`）**：
 - 每个 `FilterType` 枚举值实现 `toAndroidColorMatrix(): android.graphics.ColorMatrix` 方法
@@ -91,7 +91,7 @@ core/image/
 ### 2.3 工具类与扩展函数
 
 **Logger 统一日志规范**：
-- **结构化 Tag 设计**：基础 Tag 为 "PicMe"，模块 Tag 格式为`PicMe:[Module]`
+- **结构化 Tag 设计**：基础 Tag 为 "PoLang"，模块 Tag 格式为`PoLang:[Module]`
 - **日志缓冲机制**：维护最多 500 条内存缓存（FIFO），支持调试浮窗实时检索
 - **使用示例**：
   - `Logger.d("Camera", "Capture triggered")` - 记录相机快门触发
@@ -115,7 +115,7 @@ core/image/
 - **DesignSystem 组件**：必须支持深色模式，使用 colorScheme 动态适配
 - **滤镜处理**：必须在后台线程执行（Dispatchers.Default），避免阻塞 UI
 - **Bitmap 管理**：必须及时回收（recycle() 或在 using 块中），避免 OOM
-- **Logger 使用**：必须使用正确的 Tag 格式（`PicMe:Module`），便于检索；`GpuBeautyProcessor` 使用 `PicMe:ImageProc`
+- **Logger 使用**：必须使用正确的 Tag 格式（`PoLang:Module`），便于检索；`GpuBeautyProcessor` 使用 `PoLang:ImageProc`
 - **扩展函数**：必须使用明确的前缀，避免命名冲突
 - **Hilt 依赖**：必须标注正确的生命周期（@Singleton / @ViewModelScoped）
 - **Coil 缓存**：大小必须合理（避免 OOM），占可用内存 25% 以内
@@ -126,7 +126,7 @@ core/image/
 - [ ] DesignSystem 组件是否支持深色模式？（使用 colorScheme）
 - [ ] 滤镜处理是否在后台线程？（Dispatchers.Default）
 - [ ] Bitmap 是否正确回收？（recycle() 或在 using 块中）
-- [ ] Logger 是否使用了正确的 Tag 格式？（`PicMe:Module`；`GpuBeautyProcessor` 用 `PicMe:ImageProc`）
+- [ ] Logger 是否使用了正确的 Tag 格式？（`PoLang:Module`；`GpuBeautyProcessor` 用 `PoLang:ImageProc`）
 - [ ] 扩展函数是否避免了命名冲突？（使用明确的前缀）
 - [ ] Hilt 依赖是否标注了正确的生命周期？（@Singleton / @ViewModelScoped）
 - [ ] Coil 缓存大小是否合理？（避免 OOM）

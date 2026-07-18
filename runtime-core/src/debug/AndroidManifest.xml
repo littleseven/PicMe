@@ -6,7 +6,7 @@
 
     <application>
         <service
-            android:name=".tool.accessibility.PicMeAccessibilityService"
+            android:name=".tool.accessibility.PoLangAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true"
             android:label="@string/picme_accessibility_service_label"

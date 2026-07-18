@@ -18,7 +18,7 @@ import com.mamba.picme.data.local.entity.OcrWordOccurrence
 class OcrIndexUpdater(private val ocrWordDao: OcrWordDao) {
 
     companion object {
-        private const val TAG = "PicMe:OcrIndex"
+        private const val TAG = "PoLang:OcrIndex"
     }
 
     /**

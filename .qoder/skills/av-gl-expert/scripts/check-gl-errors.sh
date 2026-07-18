@@ -22,7 +22,7 @@ echo "   提示: 请在应用中触发需要调试的操作，按 Ctrl+C 停止�
 echo ""
 
 # 捕获 GL 错误
-$ADB_CMD logcat | grep -E "(GL Error|glGetError|PicMe:.*Renderer|EGL)" --line-buffered | while read line; do
+$ADB_CMD logcat | grep -E "(GL Error|glGetError|PoLang:.*Renderer|EGL)" --line-buffered | while read line; do
     # 高亮错误
     if echo "$line" | grep -q "Error\|error\|ERROR"; then
         echo -e "\033[31m❌ $line\033[0m"

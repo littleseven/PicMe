@@ -4,7 +4,7 @@
 
 **Goal:** 补齐 Google Play 数据安全合规——为邮箱注册账号提供「软删除（90 天保留期）」能力、app 内「数据与隐私」说明页、删除入口与二次确认，并修正官网隐私政策的冲突声明。
 
-**Architecture:** Server 新增 `AccountService.softDelete` + `purgeExpiredDeleted` + `DELETE /auth/account`（复用现有 `X-App-Token` 鉴权 interceptor，注入 `tokenHash`）。Client 新增 `PicMeAuthClient.deleteAccount`、设置页删除按钮 + 二次确认 `AlertDialog`、独立 `DataPrivacyScreen`。官网隐私政策页修正「无账户系统」冲突声明、补账号数据/删除方式/联系邮箱。
+**Architecture:** Server 新增 `AccountService.softDelete` + `purgeExpiredDeleted` + `DELETE /auth/account`（复用现有 `X-App-Token` 鉴权 interceptor，注入 `tokenHash`）。Client 新增 `PoLangAuthClient.deleteAccount`、设置页删除按钮 + 二次确认 `AlertDialog`、独立 `DataPrivacyScreen`。官网隐私政策页修正「无账户系统」冲突声明、补账号数据/删除方式/联系邮箱。
 
 **Tech Stack:** Kotlin、Ktor + Exposed（server）、Jetpack Compose + Material3 + OkHttp（app）、HTML（docs-site）。Server 用 TDD（`TestDb` + `testApplication`）；Client UI 因无 mockwebserver 依赖，用 server 集成测试 + 手动验证覆盖。
 
@@ -12,7 +12,7 @@
 
 **全局约定：**
 - 提交信息用 Conventional Commits，结尾附 `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`。
-- 不得使用全限定名（`com.mamba.picme.*`）、通配符 import、隐式 `it` lambda 参数；日志 tag 形如 `PicMe:ServerAuth`。
+- 不得使用全限定名（`com.mamba.picme.*`）、通配符 import、隐式 `it` lambda 参数；日志 tag 形如 `PoLang:ServerAuth`。
 - Task 1–4（server）必须在 Task 5（client）之前完成，因 client 依赖 server 的 `DELETE /auth/account` 契约。
 
 ---
@@ -34,7 +34,7 @@
 ### Client（`:app`）
 | 文件 | 责任 |
 |------|------|
-| Modify `app/src/main/java/com/mamba/picme/data/remote/picme/PicMeAuthClient.kt` | `deleteAccount(token)` |
+| Modify `app/src/main/java/com/mamba/picme/data/remote/picme/PoLangAuthClient.kt` | `deleteAccount(token)` |
 | Modify `app/src/main/java/com/mamba/picme/features/settings/SettingsServerAuth.kt` | 删除按钮 + 二次确认对话框 |
 | Create `app/src/main/java/com/mamba/picme/features/settings/DataPrivacyScreen.kt` | 数据与隐私说明页 |
 | Modify `app/src/main/java/com/mamba/picme/navigation/Screen.kt` | `DataPrivacy` route |
@@ -472,12 +472,12 @@ git commit -m "feat(server): wire account deletion route + startup purge" -m "Co
 
 ---
 
-## Task 5: Client — `PicMeAuthClient.deleteAccount`
+## Task 5: Client — `PoLangAuthClient.deleteAccount`
 
 **Files:**
-- Modify: `app/src/main/java/com/mamba/picme/data/remote/picme/PicMeAuthClient.kt`
+- Modify: `app/src/main/java/com/mamba/picme/data/remote/picme/PoLangAuthClient.kt`
 
-- [ ] **Step 1: 实现 `deleteAccount`** — 在 `PicMeAuthClient.kt` 的 `getQuota` 函数之后追加（复用现有 `errorBody` / `PicMeAuthException` / `baseUrl` / `client` / `jsonMedia`）：
+- [ ] **Step 1: 实现 `deleteAccount`** — 在 `PoLangAuthClient.kt` 的 `getQuota` 函数之后追加（复用现有 `errorBody` / `PoLangAuthException` / `baseUrl` / `client` / `jsonMedia`）：
 
 ```kotlin
     suspend fun deleteAccount(token: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -489,7 +489,7 @@ git commit -m "feat(server): wire account deletion route + startup purge" -m "Co
                 .build()
             val resp = client.newCall(req).execute()
             if (!resp.isSuccessful) {
-                throw PicMeAuthException(resp.code, errorBody(resp.body?.string()))
+                throw PoLangAuthException(resp.code, errorBody(resp.body?.string()))
             }
         }
     }
@@ -505,8 +505,8 @@ Expected: BUILD SUCCESSFUL。
 - [ ] **Step 3: 提交**
 
 ```bash
-git add app/src/main/java/com/mamba/picme/data/remote/picme/PicMeAuthClient.kt
-git commit -m "feat(app): add PicMeAuthClient.deleteAccount" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
+git add app/src/main/java/com/mamba/picme/data/remote/picme/PoLangAuthClient.kt
+git commit -m "feat(app): add PoLangAuthClient.deleteAccount" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -630,7 +630,7 @@ private fun QuotaDisplay(
     used: Int,
     limit: Int,
     token: String,
-    authClient: PicMeAuthClient,
+    authClient: PoLangAuthClient,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -677,7 +677,7 @@ private fun QuotaDisplay(
                                         ).show()
                                     }
                                     .onFailure { e ->
-                                        val code = (e as? PicMeAuthClient.PicMeAuthException)?.code
+                                        val code = (e as? PoLangAuthClient.PoLangAuthException)?.code
                                         // token 已失效（401/404）→ 也清本地，避免卡死
                                         if (code == 401 || code == 404) {
                                             onLogout()
@@ -787,7 +787,7 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 
 private const val PRIVACY_POLICY_URL = "https://polang.net/privacy-policy/"
-private const val TAG = "PicMe:DataPrivacy"
+private const val TAG = "PoLang:DataPrivacy"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1073,16 +1073,16 @@ Expected: 全绿（detekt/ktlint 无新增违规；若 `DataPrivacyScreen` 的 `
 - [ ] **Step 3: 构建 debug APK**
 
 Run: `./gradlew :app:assembleDebug`
-Expected: BUILD SUCCESSFUL，产出 `app/build/outputs/apk/debug/picme-debug.apk`。
+Expected: BUILD SUCCESSFUL，产出 `app/build/outputs/apk/debug/polang-debug.apk`。
 
-- [ ] **Step 4: 安装并手动验证**（`adb install -r app/build/outputs/apk/debug/picme-debug.apk`，server 指向可访问的 `api.polang.net`）：
+- [ ] **Step 4: 安装并手动验证**（`adb install -r app/build/outputs/apk/debug/polang-debug.apk`，server 指向可访问的 `api.polang.net`）：
 
 1. 设置 → 账号：邮箱注册登录成功，看到邮箱 + 配额 + 「刷新/登出」+ 红色「删除账号」
 2. 账号区出现「数据与隐私」入口；注册表单底部出现「数据与隐私」链接
 3. 点「数据与隐私」→ 说明页正常，含 90 天保留、删除方式、邮箱 `budao.gs@gmail.com`、「查看完整隐私政策」可打开浏览器
 4. 点「删除账号」→ 对话框明示 90 天保留 → 确认 → Toast「账号已删除」→ 回到注册态
 5. 删除后远程 LLM 对话不可用（回退 guest 模式）；同邮箱可重新注册为新账号
-6. `adb logcat -s "PicMe:*"` 无异常
+6. `adb logcat -s "PoLang:*"` 无异常
 
 - [ ] **Step 5: 验收标准对照**（spec §12 的 8 条逐条确认；可勾选记录在 PR 描述）。
 
@@ -1098,7 +1098,7 @@ Expected: BUILD SUCCESSFUL，产出 `app/build/outputs/apk/debug/picme-debug.apk
 - §5.2 softDelete + purgeExpiredDeleted + RETENTION_MS → Task 1/2 ✓
 - §5.3 DELETE 路由 → Task 3 ✓
 - §5.4 路由注册 + 启动清理 → Task 4 ✓
-- §6.1 PicMeAuthClient.deleteAccount → Task 5 ✓
+- §6.1 PoLangAuthClient.deleteAccount → Task 5 ✓
 - §6.2 删除按钮 + 二次确认 + 错误码处理（401/404 清本地）→ Task 7 ✓
 - §6.3 DataPrivacyScreen（6 段 + 邮箱 + 政策链接）→ Task 8 ✓
 - §6.4 入口（SettingsScreen + EmailCodeAuthForm + NavHost）→ Task 9 ✓
@@ -1119,7 +1119,7 @@ Expected: BUILD SUCCESSFUL，产出 `app/build/outputs/apk/debug/picme-debug.apk
 - `purgeExpiredDeleted(retentionMs: Long): Int` — Task 2 定义、Task 4 调用一致 ✓
 - `RETENTION_MS` — Task 1 定义、Task 4 用 `AccountService.RETENTION_MS` 一致 ✓
 - `accountDeletionRoute()` — Task 3 定义、Task 4 注册一致 ✓
-- `PicMeAuthClient.deleteAccount(token)` — Task 5 定义、Task 7 调用一致 ✓
+- `PoLangAuthClient.deleteAccount(token)` — Task 5 定义、Task 7 调用一致 ✓
 - `DataPrivacyScreen(onNavigateBack)` — Task 8 定义、Task 9 NavHost 调用一致 ✓
 - `Screen.DataPrivacy.route` — Task 9 定义、NavHost 与 `onNavigateToDataPrivacy` 调用一致 ✓
 - `ServerAuthSection(onNavigateToDataPrivacy)` — Task 9 Step 5 定义、Step 4 调用一致 ✓

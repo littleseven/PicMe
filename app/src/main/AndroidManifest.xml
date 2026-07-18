@@ -21,7 +21,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
-        android:name="com.mamba.picme.PicMeApplication"
+        android:name="com.mamba.picme.PoLangApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -30,12 +30,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.PicMe">
+        android:theme="@style/Theme.PoLang">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.PicMe"
+            android:theme="@style/Theme.PoLang"
             android:windowSoftInputMode="stateUnspecified|adjustNothing"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
             <intent-filter>
@@ -49,13 +49,13 @@
             android:name=".testing.agent.bridge.AgentTestActivity"
             android:exported="true"
             android:label="Agent Test"
-            android:theme="@style/Theme.PicMe" />
+            android:theme="@style/Theme.PoLang" />
 
         <activity
             android:name=".features.backuprestore.BackupRestoreActivity"
             android:exported="false"
             android:label="@string/backup_and_restore"
-            android:theme="@style/Theme.PicMe" />
+            android:theme="@style/Theme.PoLang" />
 
         <receiver
             android:name=".testing.agent.bridge.AgentTestBroadcastReceiver"

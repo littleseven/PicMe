@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""最小验证脚本：确保回到 PicMe 主界面，点击搜索，验证进入搜索模式."""
+"""最小验证脚本：确保回到 PoLang 主界面，点击搜索，验证进入搜索模式."""
 
 import time
 import sys
@@ -15,7 +15,7 @@ def is_search_mode_active(client: UiDriverClient) -> bool:
 
 
 def main():
-    print("Connecting to PicMeAccessibilityService...")
+    print("Connecting to PoLangAccessibilityService...")
     with UiDriverClient() as client:
         # Ensure we start from the main screen.
         if is_search_mode_active(client):

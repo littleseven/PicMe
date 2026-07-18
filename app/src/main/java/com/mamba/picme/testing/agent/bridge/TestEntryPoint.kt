@@ -2,7 +2,7 @@ package com.mamba.picme.testing.agent.bridge
 
 import android.app.Activity
 import android.os.Bundle
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.testing.agent.launcher.DataDrivenTestLauncher
 import kotlinx.coroutines.CoroutineScope
@@ -47,7 +47,7 @@ class TestEntryPoint(private val activity: Activity) {
          * 将绝对路径转换为相对路径（基于 TEST_BASE_DIR）
          */
         private fun normalizeTestPath(path: String): String {
-            val baseDirMarker = "PicMe_Agent_Test/tests"
+            val baseDirMarker = "PoLang_Agent_Test/tests"
             return if (path.contains(baseDirMarker)) {
                 path.substringAfter("$baseDirMarker/")
             } else {
@@ -80,7 +80,7 @@ class TestEntryPoint(private val activity: Activity) {
         Logger.i(TAG, "App ready, launching data-driven test: $path")
 
         // 使用应用级 Scope 避免 Activity 重建导致测试被取消
-        val app = activity.application as PicMeApplication
+        val app = activity.application as PoLangApplication
         testJob = app.applicationScope.launch(Dispatchers.Main) {
             Logger.i(TAG, "Test coroutine started")
             try {

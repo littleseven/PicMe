@@ -522,7 +522,7 @@ object SampleDataGenerator {
             put(MediaStore.Images.Media.DATE_TAKEN, captureDate)
             put(MediaStore.MediaColumns.DATE_ADDED, captureDate / 1000)
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PicMe")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PoLang")
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
         }

@@ -39,7 +39,7 @@ class ThumbnailCache(
     private val maxDiskSizeBytes: Long = 100L * 1024 * 1024
 ) {
     companion object {
-        private const val TAG = "PicMe:ThumbCache"
+        private const val TAG = "PoLang:ThumbCache"
         private const val THUMBNAIL_SIZE_PX = 360
         private const val JPEG_QUALITY = 80
         private const val DISK_CACHE_DIR = "thumbnails"

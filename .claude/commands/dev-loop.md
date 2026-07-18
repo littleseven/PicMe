@@ -1,6 +1,6 @@
 # Dev Loop
 
-> **定位**：PicMe 开发自循环自动化，一键完成编译到报告完整闭环。
+> **定位**：PoLang 开发自循环自动化，一键完成编译到报告完整闭环。
 > **触发时机**：用户需要快速验证改动、执行完整开发闭环或 CI 检查时自动启用。
 
 
@@ -98,7 +98,7 @@ scripts/auto_test_output/
     ├── install.log                     # 安装日志
     ├── screen_startup.png              # 启动截屏
     ├── screen_after_capture.png        # 拍照后截屏
-    ├── logcat_picme.txt                # PicMe 标签日志
+    ├── logcat_picme.txt                # PoLang 标签日志
     └── instrumented_test.log           # Instrumented test 日志
 ```
 

@@ -13,7 +13,7 @@ import com.mamba.picme.domain.model.LogModuleConfig
  * 日志条目数据模型
  *
  * @property timestamp 时间戳（格式：HH:mm:ss.SSS）
- * @property tag 日志标签（自动添加 PicMe: 前缀）
+ * @property tag 日志标签（自动添加 PoLang: 前缀）
  * @property level 日志级别
  * @property message 日志内容
  */
@@ -36,10 +36,10 @@ enum class LogLevel {
 }
 
 /**
- * PicMe 统一日志系统
+ * PoLang 统一日志系统
  *
  * 职责：
- * 1. 统一日志格式（PicMe:[ModuleName]）
+ * 1. 统一日志格式（PoLang:[ModuleName]）
  * 2. 缓存日志供调试界面展示（最多 500 条）
  * 3. 封装 Android Log API
  *
@@ -57,7 +57,7 @@ enum class LogLevel {
  * - 关键状态流转必须记录日志
  */
 object Logger {
-    private const val TAG_PREFIX = "PicMe:"
+    private const val TAG_PREFIX = "PoLang:"
     private const val MAX_LOG_ENTRIES = 500
 
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
@@ -124,7 +124,7 @@ object Logger {
     /**
      * Verbose 级别日志（最详细，用于调试追踪）
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun v(tag: String, message: String) {
@@ -140,7 +140,7 @@ object Logger {
     /**
      * Debug 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun d(tag: String, message: String) {
@@ -156,7 +156,7 @@ object Logger {
     /**
      * Info 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun i(tag: String, message: String) {
@@ -172,7 +172,7 @@ object Logger {
     /**
      * Warning 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      */
     fun w(tag: String, message: String) {
@@ -188,7 +188,7 @@ object Logger {
     /**
      * Warning 级别日志（带异常）
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      * @param throwable 异常对象
      */
@@ -207,7 +207,7 @@ object Logger {
     /**
      * Error 级别日志
      *
-     * @param tag 模块标签（不含 PicMe: 前缀）
+     * @param tag 模块标签（不含 PoLang: 前缀）
      * @param message 日志内容
      * @param throwable 异常对象（可选）
      */
@@ -271,4 +271,4 @@ object Logger {
     replaceWith = ReplaceWith("Logger", "Logger"),
     level = DeprecationLevel.WARNING
 )
-typealias PicMeLogger = Logger
+typealias PoLangLogger = Logger

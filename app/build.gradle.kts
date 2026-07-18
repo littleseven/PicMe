@@ -10,26 +10,36 @@ import java.util.Properties
 
 // Release signing config from environment variables (secure)
 // 本地构建时请在 ~/.gradle/gradle.properties 中配置：
-//   PICME_RELEASE_STORE_FILE=/path/to/keystore
-//   PICME_RELEASE_STORE_PASSWORD=your_password
-//   PICME_RELEASE_KEY_ALIAS=your_alias
-//   PICME_RELEASE_KEY_PASSWORD=your_password
-val releaseStoreFile: String = System.getenv("PICME_RELEASE_STORE_FILE") ?: ""
-val releaseStorePassword: String = System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
-val releaseKeyAlias: String = System.getenv("PICME_RELEASE_KEY_ALIAS") ?: ""
-val releaseKeyPassword: String = System.getenv("PICME_RELEASE_KEY_PASSWORD") ?: ""
+//   POLANG_RELEASE_STORE_FILE=/path/to/keystore
+//   POLANG_RELEASE_STORE_PASSWORD=your_password
+//   POLANG_RELEASE_KEY_ALIAS=your_alias
+//   POLANG_RELEASE_KEY_PASSWORD=your_password
+// 兼容旧命名 PICME_RELEASE_*（即将废弃）
+val releaseStoreFile: String = System.getenv("POLANG_RELEASE_STORE_FILE")
+    ?: System.getenv("PICME_RELEASE_STORE_FILE") ?: ""
+val releaseStorePassword: String = System.getenv("POLANG_RELEASE_STORE_PASSWORD")
+    ?: System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
+val releaseKeyAlias: String = System.getenv("POLANG_RELEASE_KEY_ALIAS")
+    ?: System.getenv("PICME_RELEASE_KEY_ALIAS") ?: ""
+val releaseKeyPassword: String = System.getenv("POLANG_RELEASE_KEY_PASSWORD")
+    ?: System.getenv("PICME_RELEASE_KEY_PASSWORD") ?: ""
 
 // 飞书远程控制 AppId/AppSecret（编译时从 local.properties 或环境变量注入。默认空字符串）
-// local.properties: picme.feishu.app.id=cli_xxxxx, picme.feishu.app.secret=yyyyy
-// 环境变量: PICME_FEISHU_APP_ID=cli_xxxxx PICME_FEISHU_APP_SECRET=yyyyy
+// local.properties: polang.feishu.app.id=cli_xxxxx, polang.feishu.app.secret=yyyyy
+// 环境变量: POLANG_FEISHU_APP_ID=cli_xxxxx POLANG_FEISHU_APP_SECRET=yyyyy
+// 兼容旧命名 picme.feishu.app.* / PICME_FEISHU_APP_*（即将废弃）
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
-val feishuAppId: String = localProperties.getProperty("picme.feishu.app.id")
+val feishuAppId: String = localProperties.getProperty("polang.feishu.app.id")
+    ?: localProperties.getProperty("picme.feishu.app.id")
+    ?: System.getenv("POLANG_FEISHU_APP_ID")
     ?: System.getenv("PICME_FEISHU_APP_ID") ?: ""
-val feishuAppSecret: String = localProperties.getProperty("picme.feishu.app.secret")
+val feishuAppSecret: String = localProperties.getProperty("polang.feishu.app.secret")
+    ?: localProperties.getProperty("picme.feishu.app.secret")
+    ?: System.getenv("POLANG_FEISHU_APP_SECRET")
     ?: System.getenv("PICME_FEISHU_APP_SECRET") ?: ""
 
 detekt {
@@ -109,7 +119,11 @@ android {
     buildTypes {
         release {
             // 通过 project property 控制是否启用混淆，release-plain 模式不混淆
-            isMinifyEnabled = !(project.findProperty("picme.release.plain")?.toString()?.toBoolean() ?: false)
+            isMinifyEnabled = !(
+                project.findProperty("polang.release.plain")?.toString()?.toBoolean()
+                    ?: project.findProperty("picme.release.plain")?.toString()?.toBoolean()
+                    ?: false
+                )
             isShrinkResources = isMinifyEnabled
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -166,7 +180,7 @@ android {
 }
 
 base {
-    archivesName.set("picme")
+    archivesName.set("polang")
 }
 
 dependencies {

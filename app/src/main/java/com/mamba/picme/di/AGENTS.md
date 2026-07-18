@@ -168,7 +168,7 @@ class MediaViewModelFactory(
 - **依赖封装**: ViewModel 依赖必须通过 `MediaViewModelDependencies` 数据结构聚合
 - **Factory 模式**: 禁止直接在 Activity/Fragment 中实例化 ViewModel，必须使用 Factory
 - **I18N**: 回退提示文案必须提取到 strings.xml，支持多语言
-- **日志规范**: 引擎切换、回退事件需记录 `PicMe:DI` 日志
+- **日志规范**: 引擎切换、回退事件需记录 `PoLang:DI` 日志
 - **生命周期对齐**: OCR Processor 必须在 ViewModel `onCleared()` 时释放资源
 
 ## 4. 常见陷阱检查清单 (Checklist)

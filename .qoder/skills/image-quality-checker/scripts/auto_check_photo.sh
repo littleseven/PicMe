@@ -1,5 +1,5 @@
 #!/bin/bash
-# PicMe 拍照质量自动化检查脚本
+# PoLang 拍照质量自动化检查脚本
 # 用途：每次代码修改后自动触发拍照并验证图片质量
 
 set -e
@@ -10,7 +10,7 @@ OUTPUT_DIR="$PROJECT_ROOT/output_quality_check"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 echo "=================================================="
-echo "PicMe 拍照质量自动化检查"
+echo "PoLang 拍照质量自动化检查"
 echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "=================================================="
 
@@ -30,14 +30,14 @@ sleep 3
 # 4. 获取最新照片（按修改时间排序）
 echo "[3/6] 获取最新照片..."
 # [关键修复] 使用 ls -lt 按时间排序，而不是字母排序
-LATEST_PHOTO=$(adb shell ls -lt /sdcard/Pictures/PicMe/*.jpg 2>/dev/null | grep -v "total" | head -1 | awk '{print $NF}' | xargs basename)
+LATEST_PHOTO=$(adb shell ls -lt /sdcard/Pictures/PoLang/*.jpg 2>/dev/null | grep -v "total" | head -1 | awk '{print $NF}' | xargs basename)
 if [ -z "$LATEST_PHOTO" ]; then
     echo "❌ 错误：未找到照片"
     exit 1
 fi
 
 echo "   最新照片: $LATEST_PHOTO"
-adb pull "/sdcard/Pictures/PicMe/$LATEST_PHOTO" "$OUTPUT_DIR/photo_$TIMESTAMP.jpg" > /dev/null 2>&1
+adb pull "/sdcard/Pictures/PoLang/$LATEST_PHOTO" "$OUTPUT_DIR/photo_$TIMESTAMP.jpg" > /dev/null 2>&1
 
 # 5. 分析照片质量
 echo "[4/6] 分析照片质量..."

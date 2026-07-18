@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# PicMe 应用数据备份/恢复脚本
+# PoLang 应用数据备份/恢复脚本
 #
 # 用途：
 #   同一部测试机反复安装 release/debug 包时，签名不同导致必须卸载重装，
@@ -9,7 +9,7 @@
 #   重装后一键恢复，避免重新花大量时间生成。
 #
 # 注意：
-#   - 备份文件存放在外部媒体目录 /sdcard/Android/media/<package>/PicMeBackup/，
+#   - 备份文件存放在外部媒体目录 /sdcard/Android/media/<package>/PoLangBackup/，
 #     该目录属于应用自身存储区域，adb 可直接 pull/push，同时支持 debug 与 release 包。
 #   - 恢复依赖媒体 URI 匹配（content://media/external/...），恢复前请确保：
 #     1) 已安装目标 APK 并授予媒体读取权限；
@@ -25,7 +25,7 @@ readonly DEFAULT_PACKAGE_NAME="com.mamba.picme"
 readonly AGENT_TEST_ACTION="com.mamba.picme.AGENT_TEST"
 readonly RECEIVER_CLASS=".testing.agent.bridge.AgentTestBroadcastReceiver"
 readonly MAIN_ACTIVITY=".MainActivity"
-readonly BACKUP_SUBDIR="PicMeBackup"
+readonly BACKUP_SUBDIR="PoLangBackup"
 readonly BACKUP_FILENAME="tag_data_backup.json"
 readonly DEFAULT_WAIT_TIMEOUT_SEC=300
 
@@ -56,7 +56,7 @@ die() {
 
 usage() {
   cat <<EOF
-PicMe 应用数据备份/恢复脚本
+PoLang 应用数据备份/恢复脚本
 
 用法：
   $(basename "$0") backup [snapshot-name]

@@ -16,7 +16,7 @@
 
 ### [Android] BroadcastReceiver 动态注册
 - [ ] **检查目标 Screen 是否有动态 receiver**：如果命令需要在多个 Screen 间切换，每个 Screen 都必须通过 `DisposableEffect` 动态注册
-- [ ] **验证 receiver 注册/注销日志**：`PicMe:CameraTest` / `PicMe:GalleryTest` 标签中应有 "registered/unregistered dynamically"
+- [ ] **验证 receiver 注册/注销日志**：`PoLang:CameraTest` / `PoLang:GalleryTest` 标签中应有 "registered/unregistered dynamically"
 
 **关联经验**: [2026-05-10] Gallery adb 命令扩展 — CameraScreen 注销后 GalleryScreen 未注册，广播被吞
 

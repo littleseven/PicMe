@@ -107,7 +107,7 @@ Logger.log(AgentCommandParsedEvent(...))
 
 **收益**：结构化日志可被 AI 消费，实现自我诊断和自我改进。
 
-> **实现状态（2026-07）**：结构化可观测性为架构设计愿景。实际代码中目前以 `PicMe:` 前缀标签 + `Log.d/w/e` 为主要日志形式，结构化事件（如 `AgentCommandParsedEvent`）尚未在全局范围强制要求。这是后续 Phase 3 的重点推进方向。
+> **实现状态（2026-07）**：结构化可观测性为架构设计愿景。实际代码中目前以 `PoLang:` 前缀标签 + `Log.d/w/e` 为主要日志形式，结构化事件（如 `AgentCommandParsedEvent`）尚未在全局范围强制要求。这是后续 Phase 3 的重点推进方向。
 
 ---
 

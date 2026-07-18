@@ -12,7 +12,7 @@ import java.util.Date
 import java.util.Locale
 
 object ScreenshotUtil {
-    private const val SCREENSHOT_DIR = "PicMe_Debug_Screenshots"
+    private const val SCREENSHOT_DIR = "PoLang_Debug_Screenshots"
 
     fun captureAndSave(view: View, context: Context): String? {
         return try {

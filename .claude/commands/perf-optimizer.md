@@ -13,7 +13,7 @@
 | 快门延迟 | < 50ms | 点击 → 触感/音效触发 |
 | 交互反馈 | < 100ms | 滑杆变更 → 画面变化 |
 | 预览帧率 | ≥ 55fps | 调试浮层 FPS 计数 |
-| GPU 处理 | < 300ms (1080p) | `PicMe:PhotoProcessor` 日志 |
+| GPU 处理 | < 300ms (1080p) | `PoLang:PhotoProcessor` 日志 |
 | 相册滑动 | 120fps 目标 | `dumpsys gfxinfo` jank 计数 |
 
 ---
@@ -26,7 +26,7 @@
 # 收集基础性能数据
 adb shell dumpsys meminfo com.mamba.picme
 adb shell dumpsys gfxinfo com.mamba.picme | grep -i "jank\|frame"
-adb logcat -d | grep -E "PicMe:.*elapsed|PicMe:.*FPS|PicMe:.*perf"
+adb logcat -d | grep -E "PoLang:.*elapsed|PoLang:.*FPS|PoLang:.*perf"
 ```
 
 | 症状 | 瓶颈类型 | 工具 |
@@ -55,7 +55,7 @@ adb logcat -d | grep -E "PicMe:.*elapsed|PicMe:.*FPS|PicMe:.*perf"
 
 ```bash
 # 提取性能相关日志
-adb logcat -d | grep -E "PicMe:.*elapsed|PicMe:.*FPS|PicMe:.*perf|PicMe:.*memory"
+adb logcat -d | grep -E "PoLang:.*elapsed|PoLang:.*FPS|PoLang:.*perf|PoLang:.*memory"
 
 # 检查是否有超时警告
 grep -i "timeout\|slow\|jank\|dropped" scripts/auto_test_output/*/logcat_picme.txt

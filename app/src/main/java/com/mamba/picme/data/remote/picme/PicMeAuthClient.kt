@@ -9,7 +9,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-class PicMeAuthClient(
+class PoLangAuthClient(
     private val baseUrl: String = DEFAULT_BASE_URL,
 ) {
 
@@ -29,7 +29,7 @@ class PicMeAuthClient(
                 .build()
             val resp = client.newCall(req).execute()
             if (!resp.isSuccessful) {
-                throw PicMeAuthException(resp.code, errorBody(resp.body?.string()))
+                throw PoLangAuthException(resp.code, errorBody(resp.body?.string()))
             }
         }
     }
@@ -47,7 +47,7 @@ class PicMeAuthClient(
             val resp = client.newCall(req).execute()
             val respBody = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
-                throw PicMeAuthException(resp.code, errorBody(respBody))
+                throw PoLangAuthException(resp.code, errorBody(respBody))
             }
             val json = JSONObject(respBody)
             AuthResult(
@@ -68,7 +68,7 @@ class PicMeAuthClient(
             val resp = client.newCall(req).execute()
             val respBody = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
-                throw PicMeAuthException(resp.code, errorBody(respBody))
+                throw PoLangAuthException(resp.code, errorBody(respBody))
             }
             val json = JSONObject(respBody)
             QuotaInfo(
@@ -88,7 +88,7 @@ class PicMeAuthClient(
                 .build()
             val resp = client.newCall(req).execute()
             if (!resp.isSuccessful) {
-                throw PicMeAuthException(resp.code, errorBody(resp.body?.string()))
+                throw PoLangAuthException(resp.code, errorBody(resp.body?.string()))
             }
         }
     }
@@ -102,7 +102,7 @@ class PicMeAuthClient(
                 .build()
             val resp = client.newCall(req).execute()
             if (!resp.isSuccessful) {
-                throw PicMeAuthException(resp.code, errorBody(resp.body?.string()))
+                throw PoLangAuthException(resp.code, errorBody(resp.body?.string()))
             }
         }
     }
@@ -127,10 +127,10 @@ class PicMeAuthClient(
         val llmCallsLimit: Int,
     )
 
-    class PicMeAuthException(val code: Int, val errorType: String) : Exception("HTTP $code: $errorType")
+    class PoLangAuthException(val code: Int, val errorType: String) : Exception("HTTP $code: $errorType")
 
     companion object {
-        private const val TAG = "PicMeAuth"
+        private const val TAG = "PoLangAuth"
         private const val DEFAULT_BASE_URL = "https://api.polang.net"
     }
 }

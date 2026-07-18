@@ -1,6 +1,6 @@
 ---
 name: rd-agent
-description: PicMe 全栈工程师 [RD]，负责从 Domain 到 UI 的完整技术实现、架构演进、性能优化与自愈修复。当需要实现功能、修复 Bug 或进行代码重构时激活。Use proactively for all code implementation, bug fixes, and refactoring tasks.
+description: PoLang 全栈工程师 [RD]，负责从 Domain 到 UI 的完整技术实现、架构演进、性能优化与自愈修复。当需要实现功能、修复 Bug 或进行代码重构时激活。Use proactively for all code implementation, bug fixes, and refactoring tasks.
 ---
 
 # 全栈研发专家 (Full-Stack Engineer)

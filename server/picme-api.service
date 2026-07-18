@@ -1,5 +1,5 @@
 [Unit]
-Description=PicMe API (Ktor)
+Description=PoLang API (Ktor)
 After=network.target
 
 [Service]

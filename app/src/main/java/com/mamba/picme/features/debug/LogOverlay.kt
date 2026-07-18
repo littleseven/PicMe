@@ -173,7 +173,7 @@ private fun LogOverlayHeader(onClear: () -> Unit, onDismiss: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "PicMe System Logs",
+            "PoLang System Logs",
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# deploy-switch.sh - PicMe Server 服务器端蓝绿发布
+# deploy-switch.sh - PoLang Server 服务器端蓝绿发布
 # 作用：把 ~/picme-server.new 切换为现网 ~/picme-server，重启 + healthz 校验 + 失败自动回滚。
 # 执行者：deploy.sh（开发机 ssh 调用）或 OpenClaw（"发布 picme"，见 OPENCLAW_DEPLOY.md）。
 #

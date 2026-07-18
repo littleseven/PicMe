@@ -32,7 +32,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navOptions
-import com.mamba.picme.core.designsystem.PicMeTheme
+import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.features.camera.CameraScreen
@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
         testEntryPoint = TestEntryPoint.fromIntent(this, savedInstanceState)
 
         setContent {
-            val app = application as PicMeApplication
+            val app = application as PoLangApplication
             val context = LocalContext.current
             val chatViewModel: ChatViewModel = viewModel(
                 factory = app.container.createChatViewModelFactory()
@@ -133,7 +133,7 @@ class MainActivity : ComponentActivity() {
                     setLocale(getLocaleFromLanguage(appLanguage))
                 }
             ) {
-                PicMeTheme(themeMode = themeMode) {
+                PoLangTheme(themeMode = themeMode) {
                     val navController = rememberNavController()
 
                     // 创建 Activity 级 CapabilityHost，注入 NavigationCapability、SystemCapability

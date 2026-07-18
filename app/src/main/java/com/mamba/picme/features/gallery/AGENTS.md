@@ -251,7 +251,7 @@ SearchTopBar(
   - **长按图片区域**：直接进入编辑器（带 `HapticFeedbackType.LongPress` 触感反馈）
   - 两者均通过 `onNavigateToEditor(asset)` 回调导航到 `Screen.PhotoEditor(sourceUri, recipeUri?)`
 - **导航路由**: `MainActivity` NavHost 注册 `photo_editor/{sourceUri}`，可选参数 `recipeUri` 用于重新编辑已保存的副本
-- **非破坏性编辑**: 原图始终不动；保存时生成新文件写入 MediaStore（`Pictures/PicMe/EDITED_${timestamp}.jpg`），并将本次完整配方持久化到 `photo_edit_recipes` 表
+- **非破坏性编辑**: 原图始终不动；保存时生成新文件写入 MediaStore（`Pictures/PoLang/EDITED_${timestamp}.jpg`），并将本次完整配方持久化到 `photo_edit_recipes` 表
 - **配方数据模型**: `EditRecipe`
   - `crop: CropRecipe` — 裁剪比例、旋转角度、水平翻转
   - `adjustments: AdjustmentRecipe` — 亮度、曝光、对比度、饱和度、色温、色调
@@ -382,7 +382,7 @@ context.startForegroundService(
 
 **验证方式**:
 ```bash
-adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PicMeAccessibilityService
+adb shell settings put secure enabled_accessibility_services com.mamba.picme/.accessibility.PoLangAccessibilityService
 adb forward tcp:27183 tcp:27183
 python3 scripts/ui_driver.py dump
 ```
@@ -447,7 +447,7 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 - **手势冲突**: 放大态必须禁用 HorizontalPager 翻页 (`userScrollEnabled = false`)
 - **资源释放**: OCR Detector、Bitmap 使用后必须调用 `close()` / `recycle()`
 - **I18N**: 所有分组标题、操作按钮、搜索空态文案必须提取到 strings.xml
-- **日志规范**: 关键操作（分组切换、删除、OCR、搜索）需记录 `PicMe:Gallery` 日志
+- **日志规范**: 关键操作（分组切换、删除、OCR、搜索）需记录 `PoLang:Gallery` 日志
 - **权限处理**: 读取相册需申请 `READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE` 权限
 - **状态持久化**: 分组模式切换后无需持久化，应用重启恢复默认 `NONE`
 - **搜索注入**: `GalleryCapability.searchEngine` 必须由 `AppContainer` 在应用启动时注入，禁止直接 `new MediaSearchEngine(...)`

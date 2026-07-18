@@ -15,7 +15,7 @@
 
 #include <MNN/llm/llm.hpp>
 
-#define LOG_TAG "PicMe:LlmJNI"
+#define LOG_TAG "PoLang:LlmJNI"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 

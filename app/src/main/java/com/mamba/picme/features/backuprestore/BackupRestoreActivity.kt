@@ -43,10 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
-import com.mamba.picme.core.designsystem.PicMeTheme
+import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.domain.model.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,7 +71,7 @@ class BackupRestoreActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PicMeTheme(themeMode = ThemeMode.SYSTEM) {
+            PoLangTheme(themeMode = ThemeMode.SYSTEM) {
                 BackupRestoreScreen(onBack = ::finish)
             }
         }
@@ -86,7 +86,7 @@ class BackupRestoreActivity : ComponentActivity() {
 @Composable
 private fun BackupRestoreScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 

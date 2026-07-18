@@ -8,7 +8,7 @@ import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.core.common.Logger
 
 /**
- * PicMe 无障碍服务（release / debug 共用）。
+ * PoLang 无障碍服务（release / debug 共用）。
  *
  * 该服务本身不执行任何 UI 自动化动作，仅向系统注册并持有 AccessibilityService
  * 实例，使 App 内部件（如 ReAct Agent 的 get_screen_info、click、input_text）
@@ -19,10 +19,10 @@ import com.mamba.picme.core.common.Logger
  * debug 模式下通过反射启动 `com.mamba.picme.testing.accessibility.UiAutomationRpcServer`，
  * 供 PC 端 ui-driver 技能调用；release 模式不启动 RPC 服务器，避免暴露本地端口。
  */
-class PicMeAccessibilityService : AccessibilityService() {
+class PoLangAccessibilityService : AccessibilityService() {
 
     companion object {
-        private const val TAG = "PicMeAccessibilityService"
+        private const val TAG = "PoLangAccessibilityService"
         private const val RPC_SERVER_CLASS = "com.mamba.picme.testing.accessibility.UiAutomationRpcServer"
         private const val DEFAULT_RPC_PORT = 27183
     }

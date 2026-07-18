@@ -1,7 +1,7 @@
 ---
 name: co-agent
 description: |
-  PicMe 协调者 [CO]，是所有用户请求的**默认入口**和**流程引擎**。
+  PoLang 协调者 [CO]，是所有用户请求的**默认入口**和**流程引擎**。
   
   **核心行为**：
   1. 每个用户消息首先由CO分析任务类型和复杂度（L1/L2/L3）
@@ -25,7 +25,7 @@ description: |
 **激活方式**：**所有用户请求默认激活**，无需特定口令  
 **参考文档**：`AGENTS.md` (全局规范与角色定义)
 
-**项目语境**：PicMe 是以 AI Coding 范式与音视频技术为探索目标的技术研究项目——App 实验端侧 Agent 架构，beauty-engine 实验音视频美颜技术。本角色体系是 AI Coding 范式的组织形式。
+**项目语境**：PoLang 是以 AI Coding 范式与音视频技术为探索目标的技术研究项目——App 实验端侧 Agent 架构，beauty-engine 实验音视频美颜技术。本角色体系是 AI Coding 范式的组织形式。
 
 ---
 

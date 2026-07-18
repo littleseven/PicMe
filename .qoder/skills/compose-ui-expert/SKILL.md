@@ -1,7 +1,7 @@
 ---
 name: compose-ui-expert
 description: |
-  PicMe Jetpack Compose UI 专家。诊断布局异常、状态管理问题、重组性能瓶颈，确保 HyperOS 视觉风格一致。
+  PoLang Jetpack Compose UI 专家。诊断布局异常、状态管理问题、重组性能瓶颈，确保 HyperOS 视觉风格一致。
 version: 1.0.0
 created: 2026-05-25
 updated: 2026-05-25
@@ -29,7 +29,7 @@ tags:
 1. **状态优先使用 Sealed Class**：UI 状态必须用 `sealed class` 建模，禁止用多个独立 Boolean。
 2. **显式命名 Lambda 参数**：禁止隐式 `it`，必须显式命名。
 3. **禁止通配符导入**：所有 import 必须显式列出。
-4. **日志标签统一**：`PicMe:UX` 用于 UI 状态变更结构化日志。
+4. **日志标签统一**：`PoLang:UX` 用于 UI 状态变更结构化日志。
 
 ---
 

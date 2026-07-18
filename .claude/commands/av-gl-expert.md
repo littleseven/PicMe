@@ -1,10 +1,10 @@
-# AV-GL Expert (PicMe)
+# AV-GL Expert (PoLang)
 
-> **定位**：PicMe OpenGL/CameraX 专家，诊断黑屏、Shader 错误、EGL 上下文及性能瓶颈。
+> **定位**：PoLang OpenGL/CameraX 专家，诊断黑屏、Shader 错误、EGL 上下文及性能瓶颈。
 > **触发时机**：用户报告黑屏、渲染异常、Shader 编译失败或 CameraX 相关问题时自动启用。
 
 
-## 🚀 PicMe CLI 快速执行指南
+## 🚀 PoLang CLI 快速执行指南
 
 ### 核心指令集
 | 触发词 | 动作 |
@@ -392,7 +392,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 
 ### 4. 日志规范
 
-统一使用 `PicMe:[ModuleName]` 标签，如 `PicMe:BeautyRenderer`。
+统一使用 `PoLang:[ModuleName]` 标签，如 `PoLang:BeautyRenderer`。
 
 完整代码示例见 [reference.md](reference.md) §6。
 
@@ -402,7 +402,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 **创建日期**: 2026-05-03  
 **更新日期**: 2026-05-25  
 **维护者**: [RD] 全栈工程师 + [CR] 规范守护者  
-**适用范围**: PicMe 项目音视频与 OpenGL 相关开发
+**适用范围**: PoLang 项目音视频与 OpenGL 相关开发
 
 ## 相关文件
 

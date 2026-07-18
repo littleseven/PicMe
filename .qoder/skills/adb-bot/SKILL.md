@@ -16,7 +16,7 @@ tags:
 
 > **定位**：通用 Android adb 调试与设备控制。
 > **触发时机**：需要连接设备、启动/停止应用、收集日志、截屏、查看性能指标等基础 adb 操作时启用。
-> **PicMe 专属命令**：使用 [agent-test](/agent-test)（Agent Test）。
+> **PoLang 专属命令**：使用 [agent-test](/agent-test)（Agent Test）。
 > **UI 自动化**：使用 [ui-driver](/ui-driver)（UI Driver）。
 
 ---
@@ -27,14 +27,14 @@ tags:
 # 检查设备
 adb devices
 
-# 启动 PicMe
+# 启动 PoLang
 adb shell am start -n com.mamba.picme/.MainActivity
 
 # 强制停止
 adb shell am force-stop com.mamba.picme
 
-# 过滤 PicMe 日志
-adb logcat -s PicMe:* *:S
+# 过滤 PoLang 日志
+adb logcat -s PoLang:* *:S
 
 # 截屏（仅用于最终视觉验证，UI 状态优先用 accessibility dump）
 adb shell screencap -p /sdcard/screen.png
@@ -67,13 +67,13 @@ adb shell pm clear com.mamba.picme                    # 清除应用数据
 ## 日志
 
 ```bash
-# 实时过滤 PicMe 标签
-adb logcat -s PicMe:* *:S
+# 实时过滤 PoLang 标签
+adb logcat -s PoLang:* *:S
 
 # 清除后重新捕获
 adb logcat -c
 adb shell am start -n com.mamba.picme/.MainActivity
-adb logcat -s PicMe:*
+adb logcat -s PoLang:*
 
 # 导出到文件并搜索异常
 adb logcat -d > /tmp/logcat.txt
@@ -183,6 +183,6 @@ adb shell dumpsys window displays
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 2.0.0 | 2026-07-02 | 统一标题为 ADB Bot；移除 PicMe 专属 TEST_COMMAND 内容，改为通用 adb 参考；指向 Agent Test 和 UI Driver |
+| 2.0.0 | 2026-07-02 | 统一标题为 ADB Bot；移除 PoLang 专属 TEST_COMMAND 内容，改为通用 adb 参考；指向 Agent Test 和 UI Driver |
 | 1.1.0 | 2026-05-31 | 统一格式，添加定位块 |
 | 1.0.0 | 2026-05-03 | 初始版本 |

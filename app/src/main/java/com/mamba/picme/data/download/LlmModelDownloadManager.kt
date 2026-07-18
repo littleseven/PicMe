@@ -124,7 +124,7 @@ class LlmModelDownloadManager(context: Context) {
         )
 
         /**
-         * 默认标签翻译（按 PicMe 服务功能划分的分类标签）
+         * 默认标签翻译（按 PoLang 服务功能划分的分类标签）
          */
         val DEFAULT_TAG_TRANSLATIONS = mapOf(
             "must-have" to "必须",
@@ -191,7 +191,7 @@ class LlmModelDownloadManager(context: Context) {
      * 加载模型市场数据（包含标签翻译）
      *
      * 仅从本地 llm_models.json 加载模型，不再从 MNN 官方市场获取。
-     * 用户模型统一托管在 ModelScope PicMe 合集中。
+     * 用户模型统一托管在 ModelScope PoLang 合集中。
      */
     suspend fun loadMarketData(): ModelMarketData = withContext(Dispatchers.IO) {
         val localModels = loadLocalModels()
@@ -215,7 +215,7 @@ class LlmModelDownloadManager(context: Context) {
         return try {
             val request = Request.Builder()
                 .url(MODEL_MARKET_URL)
-                .header("User-Agent", "PicMe-Android/1.0")
+                .header("User-Agent", "PoLang-Android/1.0")
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -740,7 +740,7 @@ fun isModelDownloaded(modelId: String): Boolean {
                 // 部分下载的文件：使用 Range 请求断点续传
                 val requestBuilder = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "PicMe-Android/1.0")
+                    .header("User-Agent", "PoLang-Android/1.0")
 
                 if (fileIndex == resumeFileIndex && resumeFileOffset > 0 && destFile.exists()) {
                     requestBuilder.header("Range", "bytes=$resumeFileOffset-")
@@ -960,7 +960,7 @@ fun isModelDownloaded(modelId: String): Boolean {
 
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "PicMe-Android/1.0")
+                    .header("User-Agent", "PoLang-Android/1.0")
                     .build()
                 val call = client.newCall(request)
                 activeDownloads[modelId] = call
@@ -1182,7 +1182,7 @@ fun isModelDownloaded(modelId: String): Boolean {
 
             val request = Request.Builder()
                 .url(apiUrl)
-                .header("User-Agent", "PicMe-Android/1.0")
+                .header("User-Agent", "PoLang-Android/1.0")
                 .header("Accept", "application/json")
                 .build()
 

@@ -48,7 +48,7 @@
     <ID>CyclomaticComplexMethod:TagGenerationScheduler.kt$TagGenerationScheduler$private suspend fun runDbscanClustering( dao: com.mamba.picme.data.local.MediaDao, namedPersonSnapshots: List&lt;NamedPersonSnapshot&gt; = emptyList() )</ID>
     <ID>CyclomaticComplexMethod:TagGenerationService.kt$TagGenerationService$override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int</ID>
     <ID>CyclomaticComplexMethod:WakeWordEngine.kt$WakeWordEngine$fun start(onTranscript: (String) -&gt; Unit)</ID>
-    <ID>DestructuringDeclarationWithTooManyEntries:PicMeApplication.kt$PicMeApplication$(mode, localModel, privacyLevel, inferencePreference)</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:PoLangApplication.kt$PoLangApplication$(mode, localModel, privacyLevel, inferencePreference)</ID>
     <ID>ExplicitGarbageCollectionCall:CameraScreen.kt$gc()</ID>
     <ID>ExplicitGarbageCollectionCall:CameraScreen.kt$runFinalization()</ID>
     <ID>ForbiddenComment:AiChatPanel.kt$* 模拟 AI 命令处理（TODO: 集成真实的 AiAgentUseCase）</ID>
@@ -543,10 +543,10 @@
     <ID>MagicNumber:PhotoEditRecipeRepository.kt$PhotoEditRecipeRepository.Companion$5000.0</ID>
     <ID>MagicNumber:PhotoEditorViewModel.kt$PhotoEditorViewModel$200</ID>
     <ID>MagicNumber:PhotoEditorViewModel.kt$PhotoEditorViewModel$95</ID>
-    <ID>MagicNumber:PicMeApplication.kt$PicMeApplication$1024</ID>
-    <ID>MagicNumber:PicMeApplication.kt$PicMeApplication$2048</ID>
-    <ID>MagicNumber:PicMeApplication.kt$PicMeApplication$85</ID>
-    <ID>MagicNumber:PicMeApplication.kt$PicMeApplication.&lt;no name provided&gt;$2000</ID>
+    <ID>MagicNumber:PoLangApplication.kt$PoLangApplication$1024</ID>
+    <ID>MagicNumber:PoLangApplication.kt$PoLangApplication$2048</ID>
+    <ID>MagicNumber:PoLangApplication.kt$PoLangApplication$85</ID>
+    <ID>MagicNumber:PoLangApplication.kt$PoLangApplication.&lt;no name provided&gt;$2000</ID>
     <ID>MagicNumber:QueryParser.kt$QueryParser$11</ID>
     <ID>MagicNumber:QueryParser.kt$QueryParser$2</ID>
     <ID>MagicNumber:QueryParser.kt$QueryParser$23</ID>
@@ -769,7 +769,7 @@
     <ID>TooGenericExceptionCaught:OpenClGuardian.kt$OpenClGuardian$e: Exception</ID>
     <ID>TooGenericExceptionCaught:OpusMtTranslator.kt$OpusMtTranslator$e: Exception</ID>
     <ID>TooGenericExceptionCaught:PhotoEditorViewModel.kt$PhotoEditorViewModel$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:PicMeApplication.kt$PicMeApplication$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PoLangApplication.kt$PoLangApplication$e: Exception</ID>
     <ID>TooGenericExceptionCaught:RemoteCommandDispatcher.kt$RemoteCommandDispatcher$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SampleDataGenerator.kt$SampleDataGenerator$error: Exception</ID>
     <ID>TooGenericExceptionCaught:ScreenshotUtil.kt$ScreenshotUtil$e: Exception</ID>
@@ -838,7 +838,7 @@
     <ID>UnusedImports:MiuiPermissionUtils.kt$import android.os.Build</ID>
     <ID>UnusedImports:ModelSelector.kt$import androidx.compose.foundation.layout.fillMaxWidth</ID>
     <ID>UnusedImports:ModelSelector.kt$import androidx.compose.ui.graphics.Color</ID>
-    <ID>UnusedImports:PicMeApplication.kt$import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs</ID>
+    <ID>UnusedImports:PoLangApplication.kt$import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs</ID>
     <ID>UnusedImports:QuickActionBar.kt$import androidx.compose.ui.graphics.Color</ID>
     <ID>UnusedImports:SearchTopBar.kt$import androidx.compose.foundation.layout.padding</ID>
     <ID>UnusedImports:SettingsBaseComponents.kt$import androidx.compose.foundation.layout.width</ID>
@@ -918,7 +918,7 @@
     <ID>UnusedPrivateProperty:CameraPreviewContent.kt$val roiEngineLabel = uiState.roiStageConfig.engineType.name</ID>
     <ID>UnusedPrivateProperty:CameraScreen.kt$val captureExecutor = remember { Executor { CameraThreadRegistry.getCameraHandler().post(it) } }</ID>
     <ID>UnusedPrivateProperty:CameraScreen.kt$var isShutterFlashing by remember { mutableStateOf(false) }</ID>
-    <ID>UnusedPrivateProperty:DataDrivenTestLauncher.kt$DataDrivenTestLauncher.Companion$private const val REPORT_DIR = "PicMe_Agent_Test/reports"</ID>
+    <ID>UnusedPrivateProperty:DataDrivenTestLauncher.kt$DataDrivenTestLauncher.Companion$private const val REPORT_DIR = "PoLang_Agent_Test/reports"</ID>
     <ID>UnusedPrivateProperty:FaceClusteringWorker.kt$FaceClusteringWorker$index</ID>
     <ID>UnusedPrivateProperty:FloatingChatBubbleService.kt$val scope = rememberCoroutineScope()</ID>
     <ID>UnusedPrivateProperty:GalleryScreen.kt$val currentMedia = selectedMediaIndex?.let { allFlatMedia.getOrNull(it) }</ID>
@@ -932,7 +932,7 @@
     <ID>UnusedPrivateProperty:MobileClipOnnxBackend.kt$MobileClipOnnxBackend.Companion$private const val TEXT_OUTPUT_NAME = "text_embeds"</ID>
     <ID>UnusedPrivateProperty:MobileClipOnnxBackend.kt$MobileClipOnnxBackend.Companion$private const val VISION_OUTPUT_NAME = "image_embeds"</ID>
     <ID>UnusedPrivateProperty:MobileClipTokenizer.kt$MobileClipTokenizer$val postProcessor = json.getJSONObject("post_processor")</ID>
-    <ID>UnusedPrivateProperty:PicMeAuthClient.kt$PicMeAuthClient.Companion$private const val TAG = "PicMeAuth"</ID>
+    <ID>UnusedPrivateProperty:PoLangAuthClient.kt$PoLangAuthClient.Companion$private const val TAG = "PoLangAuth"</ID>
     <ID>UnusedPrivateProperty:RestoreTagDataUseCase.kt$RestoreTagDataUseCase$private val context: Context</ID>
     <ID>UnusedPrivateProperty:TagGenerationControlScreen.kt$val isCancelled = currentState == ScanSessionState.CANCELLED</ID>
     <ID>UnusedPrivateProperty:TagGenerationControlScreen.kt$val isCancelling = currentState == ScanSessionState.CANCELLING</ID>

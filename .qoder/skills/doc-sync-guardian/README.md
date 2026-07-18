@@ -2,7 +2,7 @@
 
 ## 🎯 Skill 概述
 
-**DocSync Guardian** 是 PicMe 项目专用的文档一致性维护工具，自动化管理三层文档体系（PRODUCT.md → FEATURES.md → 模块 AGENTS.md）的同步与审计。
+**DocSync Guardian** 是 PoLang 项目专用的文档一致性维护工具，自动化管理三层文档体系（PRODUCT.md → FEATURES.md → 模块 AGENTS.md）的同步与审计。
 
 ### 核心价值
 
@@ -212,7 +212,7 @@ python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
 ### 报告结构
 
 ```markdown
-# 📊 PicMe 项目综合审计报告
+# 📊 PoLang 项目综合审计报告
 
 ## 🔍 审计范围
 ## 📋 执行检查
@@ -348,7 +348,7 @@ echo "🔍 检查文档一致性..."
 ## 📚 相关文档
 
 - [SKILL.md](SKILL.md) - 完整的 Skill 使用指南
-- [AGENTS.md](../../AGENTS.md) - PicMe 顶层 Agent 治理规范
+- [AGENTS.md](../../AGENTS.md) - PoLang 顶层 Agent 治理规范
 - [AGENTS.md](../../AGENTS.md) - 顶层 Agent 治理规范
 - [PRODUCT.md](../../PRODUCT.md) - 产品需求规格说明书
 - [docs/01-PRODUCT/FEATURES.md](../../docs/01-PRODUCT/FEATURES.md) - 功能交互细节规范
@@ -369,7 +369,7 @@ echo "🔍 检查文档一致性..."
 
 ## 📝 许可证
 
-本 Skill 遵循 PicMe 项目许可证。
+本 Skill 遵循 PoLang 项目许可证。
 
 ---
 

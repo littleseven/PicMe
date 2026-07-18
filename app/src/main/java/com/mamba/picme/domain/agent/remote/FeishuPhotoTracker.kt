@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * 用于桥接飞书远程控制命令与照片拍摄完成事件。
  * 当飞书发送"拍照"命令时，[RemoteCommandDispatcher] 设置 pendingMessageId，
- * 照片保存完成后，[PicMeApplication] 监听媒体库变化并检查此状态，
+ * 照片保存完成后，[PoLangApplication] 监听媒体库变化并检查此状态，
  * 若存在 pending ID，则将照片发送到飞书并写入聊天记录。
  *
  * **线程安全**：所有操作通过 StateFlow 实现，线程安全。

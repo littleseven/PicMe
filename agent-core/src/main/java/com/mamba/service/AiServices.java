@@ -40,11 +40,11 @@ import org.slf4j.LoggerFactory;
  *
  * <p>使用示例：</p>
  * <pre>{@code
- * PicMeAssistant assistant = AiServices.builder(PicMeAssistant.class)
+ * PoLangAssistant assistant = AiServices.builder(PoLangAssistant.class)
  *     .chatModel(chatModel)
  *     .chatMemory(chatMemory)
- *     .tools(new PicMeToolService(windowManager))
- *     .systemMessageProvider(sessionId -> SystemMessage.from("你是 PicMe 助手..."))
+ *     .tools(new PoLangToolService(windowManager))
+ *     .systemMessageProvider(sessionId -> SystemMessage.from("你是 PoLang 助手..."))
  *     .build();
  *
  * String result = assistant.chat("打开相机并拍照");
@@ -66,7 +66,7 @@ public class AiServices<T> {
     /**
      * 创建新的 AiServices Builder。
      *
-     * @param assistantClass 服务接口类（如 PicMeAssistant.class）
+     * @param assistantClass 服务接口类（如 PoLangAssistant.class）
      * @param <T>            接口类型
      * @return AiServices 实例（用于链式调用 builder()）
      */
@@ -499,7 +499,7 @@ public class AiServices<T> {
          * @return 工具执行结果，如果未找到匹配方法则返回 null
          */
         private String tryInvokeTool(Object tool, String toolName, String arguments) {
-            // 优先使用 callTool 方法（PicMeToolService 等已有此约定）
+            // 优先使用 callTool 方法（PoLangToolService 等已有此约定）
             try {
                 Method callToolMethod = tool.getClass().getMethod("callTool", String.class, String.class);
                 Object result = callToolMethod.invoke(tool, toolName, arguments);

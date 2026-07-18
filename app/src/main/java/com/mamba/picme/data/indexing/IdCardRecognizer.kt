@@ -41,7 +41,7 @@ class IdCardRecognizer(
 ) {
 
     companion object {
-        private const val TAG = "PicMe:IdCardRec"
+        private const val TAG = "PoLang:IdCardRec"
 
         /** OCR 产出低于此字符数时触发身份证智能识别 */
         private const val MIN_OCR_LENGTH_FOR_TRIGGER = 20

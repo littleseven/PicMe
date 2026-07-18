@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Crash Detector - PicMe Crash 自动检测工具
+# Crash Detector - PoLang Crash 自动检测工具
 # 用途: 扫描 logcat 中的崩溃、异常、ANR，生成崩溃报告
 # 调用: ./scripts/crash-detector.sh [options]
 #
@@ -124,7 +124,7 @@ generate_report() {
     crash_count=$(grep -c "^LINE:" "$crash_file" 2>/dev/null | head -1 || echo 0)
     
     {
-        echo "# PicMe Crash Detection Report"
+        echo "# PoLang Crash Detection Report"
         echo ""
         echo "**生成时间**: $(date '+%Y-%m-%d %H:%M:%S')"
         echo "**分析模式**: $MODE"

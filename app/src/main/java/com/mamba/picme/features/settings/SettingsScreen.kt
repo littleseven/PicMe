@@ -65,7 +65,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.core.common.Logger
-import com.mamba.picme.core.designsystem.PicMeTheme
+import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.ModelConfig
 import com.mamba.picme.domain.model.AppLanguage
@@ -1213,7 +1213,7 @@ private fun ShaderDebugModeSelection(
 @Preview(showBackground = true)
 @Composable
 fun SettingsScreenPreview() {
-    PicMeTheme {
+    PoLangTheme {
         SettingsContent(
             category = SettingsCategory.MAIN,
             themeMode = ThemeMode.SYSTEM,

@@ -26,7 +26,7 @@ data class CosApkInfo(
 class CosService(config: AppConfig) {
     private val bucket = config.cosBucket
     private val region = config.cosRegion
-    private val cosKey = "apk/picme-release.apk"
+    private val cosKey = "apk/polang-release.apk"
 
     private val client: COSClient? = run {
         if (config.cosSecretId.isBlank() || config.cosSecretKey.isBlank() || bucket.isBlank()) {

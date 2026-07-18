@@ -97,7 +97,7 @@ class UiDriverClient:
         self._connect()
         if not self.ping():
             raise UiDriverError(
-                "Ping PicMeAccessibilityService failed. "
+                "Ping PoLangAccessibilityService failed. "
                 "Make sure the app is in the foreground and the accessibility service is running."
             )
         return self
@@ -115,7 +115,7 @@ class UiDriverClient:
             raise UiDriverError(f"adb forward failed: {result.stderr}")
 
     def _ensure_accessibility_service_enabled(self) -> None:
-        expected_service = "com.mamba.picme/.accessibility.PicMeAccessibilityService"
+        expected_service = "com.mamba.picme/.accessibility.PoLangAccessibilityService"
 
         def run_adb(*args: str) -> subprocess.CompletedProcess[str]:
             cmd = ["adb"]
@@ -138,7 +138,7 @@ class UiDriverClient:
         )
         if result.returncode != 0:
             raise UiDriverError(
-                f"PicMeAccessibilityService is not enabled and auto-enable failed: {result.stderr}\n"
+                f"PoLangAccessibilityService is not enabled and auto-enable failed: {result.stderr}\n"
                 f"Please enable it manually:\n"
                 f"  adb shell settings put secure enabled_accessibility_services {expected_service}"
             )

@@ -10,8 +10,8 @@ import java.lang.ref.WeakReference
 /**
  * AccessibilityService 持有者。
  *
- * PicMeAccessibilityService 在连接/断开时向此 Holder 注册/注销，
- * PicMeToolService 等消费者无需关心服务生命周期，只需通过本对象读取当前窗口节点。
+ * PoLangAccessibilityService 在连接/断开时向此 Holder 注册/注销，
+ * PoLangToolService 等消费者无需关心服务生命周期，只需通过本对象读取当前窗口节点。
  */
 object AccessibilityServiceHolder {
 

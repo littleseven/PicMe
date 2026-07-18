@@ -31,7 +31,7 @@ private val Context.agentMemoryDataStore: DataStore<Preferences> by preferencesD
  * 负责对话历史的持久化、上下文窗口管理和记忆隔离。
  * 按场景分 session 存储，支持跨会话记忆恢复。
  * **线程模型**：所有 DataStore 读写操作由 [ThreadPoolManager] 集中管理的专用单线程
- *（PicMe-DataStore-Thread）串行执行，与本地 LLM 推理和网络请求完全隔离，
+ *（PoLang-DataStore-Thread）串行执行，与本地 LLM 推理和网络请求完全隔离，
  * 不会相互阻塞或竞争。
  *
  * @param context Application Context

@@ -5,7 +5,7 @@ package com.mamba.picme.beauty.api
  *
  * 通过 [BeautyPreviewProvider.getPerfStats] 获取，
  * 供调试浮层实时展示 FPS、处理耗时、预览延迟、CPU 占用、空帧计数，以及最近一次
- * `PicMe:BeautyRenderer` 渲染失败的分类与原因。
+ * `PoLang:BeautyRenderer` 渲染失败的分类与原因。
  *
  * @param fps 渲染帧率（帧/秒）
  * @param processingMs 单帧美颜处理耗时（毫秒）

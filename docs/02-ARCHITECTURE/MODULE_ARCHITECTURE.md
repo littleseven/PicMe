@@ -64,7 +64,7 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  说明                                                                        │
 │  • :beauty-engine 不再依赖 :runtime-core，二者通过 :mnn-core 共享 MNN 资源   │
-│  • :app 直接依赖 :mnn-core（PicMeApplication / CameraScreen 使用 MnnResourceManager）│
+│  • :app 直接依赖 :mnn-core（PoLangApplication / CameraScreen 使用 MnnResourceManager）│
 │  • :agent-core 零业务依赖，可独立作为 JitPack 库发布                          │
 │  • server/ 为独立 Ktor 工程，不纳入 Android settings.gradle，Monorepo 管理      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -74,7 +74,7 @@
 
 - **无循环依赖**：所有模块依赖构成有向无环图（DAG）。
 - **`:beauty-engine` 不再依赖 `:runtime-core`**：通过 `:mnn-core` 共享 MNN 资源后，视觉引擎与 Agent Runtime 解耦。
-- **`:app` 直接依赖 `:mnn-core`**：因为 `PicMeApplication` 和 `CameraScreen` 直接调用 `MnnResourceManager`。
+- **`:app` 直接依赖 `:mnn-core`**：因为 `PoLangApplication` 和 `CameraScreen` 直接调用 `MnnResourceManager`。
 - **`:agent-core` 零业务依赖**：不依赖任何 PoLang 业务模块，可独立作为 JitPack 库发布。
 
 ---

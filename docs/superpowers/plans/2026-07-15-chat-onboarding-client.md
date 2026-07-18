@@ -4,9 +4,9 @@
 
 **Goal:** Give the blank chat screen an onboarding empty-state (intro bubbles + tappable examples), let unregistered users try the Remote model via device-id guest mode (no hard block), and surface email-OTP registration in-chat when needed.
 
-**Architecture:** Device id is threaded into `RemoteModelConfig` and injected as `X-Device-Id` by `AgentConfigurator` (the real langchain4j header injection point) when there is no account token. `ChatViewModel` derives `isGuestMode`, reacts to the server's guest-quota-exhausted 403 by opening a registration sheet (soft nudge), and drives registration via the existing `PicMeAuthClient`. A reusable `EmailCodeAuthForm` is shared between Settings and the new chat sheet.
+**Architecture:** Device id is threaded into `RemoteModelConfig` and injected as `X-Device-Id` by `AgentConfigurator` (the real langchain4j header injection point) when there is no account token. `ChatViewModel` derives `isGuestMode`, reacts to the server's guest-quota-exhausted 403 by opening a registration sheet (soft nudge), and drives registration via the existing `PoLangAuthClient`. A reusable `EmailCodeAuthForm` is shared between Settings and the new chat sheet.
 
-**Tech Stack:** Kotlin, Jetpack Compose, Material3, DataStore, MVVM (`ChatViewModel`), langchain4j (remote), OkHttp (`PicMeAuthClient`).
+**Tech Stack:** Kotlin, Jetpack Compose, Material3, DataStore, MVVM (`ChatViewModel`), langchain4j (remote), OkHttp (`PoLangAuthClient`).
 
 **Spec:** `docs/superpowers/specs/2026-07-15-chat-onboarding-guest-trial-design.md` §4.3–4.5.
 
@@ -24,7 +24,7 @@
 - **Modify** `runtime-core/.../agent/core/facade/AgentConfigurator.kt:185-192` — add `X-Device-Id` header branch.
 - **Create** `app/.../core/identity/DeviceIdProvider.kt` — stable per-device id (ANDROID_ID + DataStore UUID fallback).
 - **Modify** `app/.../features/chat/ChatViewModelDependencies.kt` — add `picMeAuthClient` + `deviceIdProvider`.
-- **Modify** `app/.../PicMeApplication.kt` — construct `DeviceIdProvider`, set `deviceId` on effective remote config; wire new deps into `ChatViewModel`.
+- **Modify** `app/.../PoLangApplication.kt` — construct `DeviceIdProvider`, set `deviceId` on effective remote config; wire new deps into `ChatViewModel`.
 - **Modify** `app/.../features/chat/ChatViewModel.kt` — `isGuestMode`, `showRegistrationSheet`, registration actions, 403 nudge, example-send.
 - **Modify** `app/.../features/chat/ChatScreen.kt` — mount empty-state + registration sheet.
 - **Create** `app/.../features/chat/components/ChatEmptyState.kt`.
@@ -146,10 +146,10 @@ git commit -m "feat(app): add DeviceIdProvider for guest trial"
 
 ---
 
-### Task B3: Wire device id into the effective remote config (`PicMeApplication`)
+### Task B3: Wire device id into the effective remote config (`PoLangApplication`)
 
 **Files:**
-- Modify: `app/src/main/java/com/mamba/picme/PicMeApplication.kt` (syncRemoteModelConfigToOrchestrator ~line 320-361)
+- Modify: `app/src/main/java/com/mamba/picme/PoLangApplication.kt` (syncRemoteModelConfigToOrchestrator ~line 320-361)
 
 - [ ] **Step 1: Construct a `DeviceIdProvider` and set `deviceId` on the guest config**
 
@@ -163,13 +163,13 @@ val remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT.copy(
 )
 ```
 
-Add a lazy `private val deviceIdProvider = DeviceIdProvider(this)` field on `PicMeApplication` (the combine block is already a suspend coroutine, so `.get()` is fine).
+Add a lazy `private val deviceIdProvider = DeviceIdProvider(this)` field on `PoLangApplication` (the combine block is already a suspend coroutine, so `.get()` is fine).
 
 - [ ] **Step 2: Compile + commit**
 
 ```bash
 ./gradlew :app:compileDebugKotlin 2>&1 | tail -5
-git add app/src/main/java/com/mamba/picme/PicMeApplication.kt
+git add app/src/main/java/com/mamba/picme/PoLangApplication.kt
 git commit -m "feat(app): attach device id to remote config for guest mode"
 ```
 
@@ -191,10 +191,10 @@ class ChatViewModelDependencies(
     val chatSessionDao: ChatSessionDao,
     val userSettingsRepository: UserSettingsRepository,
     val mediaSearchEngine: MediaSearchEngine,
-    val picMeAuthClient: PicMeAuthClient,
+    val picMeAuthClient: PoLangAuthClient,
 )
 ```
-Add `import com.mamba.picme.data.remote.picme.PicMeAuthClient`.
+Add `import com.mamba.picme.data.remote.picme.PoLangAuthClient`.
 
 - [ ] **Step 2: Guest state + registration in `ChatViewModel`**
 
@@ -422,4 +422,4 @@ git commit -m "feat(chat): i18n strings (en/zh-rCN/zh-rTW) for onboarding + regi
 
 ## Sequencing
 
-B1 (runtime-core) → B2 (DeviceIdProvider) → B3 (PicMeApplication wiring) → B4 (ViewModel) → B5 (empty state) → B6 (registration sheet + form) → B7 (i18n). Compile after each; full `:app:testDebugUnitTest` at the end. Server must be deployed before guest mode actually works; until then guest calls 401 → client nudges registration (graceful).
+B1 (runtime-core) → B2 (DeviceIdProvider) → B3 (PoLangApplication wiring) → B4 (ViewModel) → B5 (empty state) → B6 (registration sheet + form) → B7 (i18n). Compile after each; full `:app:testDebugUnitTest` at the end. Server must be deployed before guest mode actually works; until then guest calls 401 → client nudges registration (graceful).

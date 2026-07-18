@@ -68,7 +68,7 @@ class AiAgentUseCase(
         remoteConfig?.takeIf { it.baseUrl.isNotBlank() && it.modelId.isNotBlank() }
 
     /**
-     * 兜底远程模型配置（PicMe Server 代理，无需用户配置）
+     * 兜底远程模型配置（PoLang Server 代理，无需用户配置）
      * gatewayToken 由 DataStore 异步注入（邮箱注册后的动态 token）
      */
     private val fallbackRemoteConfig: RemoteModelConfig =

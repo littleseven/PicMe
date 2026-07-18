@@ -30,7 +30,7 @@ def main():
     
     print("📊 开始生成综合审计报告...")
     
-    report = f"""# 📊 PicMe 项目综合审计报告
+    report = f"""# 📊 PoLang 项目综合审计报告
 
 **审计时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
 **审计工具**: DocSync Guardian Skill  

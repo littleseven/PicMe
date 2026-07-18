@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Release Automation - PicMe 版本发布自动化脚本
+# Release Automation - PoLang 版本发布自动化脚本
 # 用途: 自动化版本号更新、CHANGELOG 生成、签名构建、Git tag 打标
 # 调用: ./scripts/release-automation.sh [options]
 #

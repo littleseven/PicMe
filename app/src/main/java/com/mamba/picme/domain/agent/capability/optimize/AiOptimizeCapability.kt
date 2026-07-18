@@ -34,7 +34,7 @@ class AiOptimizeCapability(
 ) : Capability {
 
     companion object {
-        private const val TAG = "PicMe:AiOptimizeCapability"
+        private const val TAG = "PoLang:AiOptimizeCapability"
         private const val COMMAND_NAME = "ai_optimize"
 
         private val moshi: Moshi = Moshi.Builder()

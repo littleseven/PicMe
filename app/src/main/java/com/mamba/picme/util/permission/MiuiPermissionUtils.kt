@@ -58,7 +58,7 @@ object MiuiPermissionUtils {
     }
 
     /**
-     * 打开 MIUI 自启动管理页（允许 PicMe 自启动/后台运行）。
+     * 打开 MIUI 自启动管理页（允许 PoLang 自启动/后台运行）。
      */
     fun openMiuiAutoStart(context: Context): Boolean {
         return try {

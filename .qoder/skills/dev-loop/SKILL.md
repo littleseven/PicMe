@@ -1,6 +1,6 @@
 ---
 name: dev-loop
-description: Use when running the full PicMe development self-heal loop from code check through install, device verification, and report generation
+description: Use when running the full PoLang development self-heal loop from code check through install, device verification, and report generation
 version: 2.2.0
 created: 2026-05-03
 updated: 2026-07-02
@@ -120,7 +120,7 @@ scripts/auto_test_output/
     ├── install.log                     # 安装日志
     ├── ui_dump_startup.txt             # 启动后 accessibility UI dump（结构化文本）
     ├── ui_dump_startup.err             # UI dump 错误日志（如有）
-    ├── logcat_picme.txt                # PicMe 标签日志
+    ├── logcat_picme.txt                # PoLang 标签日志
     └── instrumented_test.log           # Instrumented test 日志
 ```
 

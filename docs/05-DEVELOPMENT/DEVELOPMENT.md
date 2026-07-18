@@ -217,7 +217,7 @@ adb shell am start -W com.mamba.picme/.MainActivity
 
 #### 日志与可观测性
 
-- [ ] 是否使用了正确的日志标签（`PicMe:ModuleName`）？
+- [ ] 是否使用了正确的日志标签（`PoLang:ModuleName`）？
 - [ ] 关键路径是否输出了结构化日志？
 - [ ] 敏感信息（用户数据、模型路径）是否脱敏？
 

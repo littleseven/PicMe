@@ -3,7 +3,7 @@ package com.mamba.picme.features.search
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.search.SearchDiagnosticsResult
 import java.text.SimpleDateFormat
@@ -30,7 +30,7 @@ class SearchTestViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private val searchEngine: MediaSearchEngine by lazy {
-        (application as PicMeApplication).container.mediaSearchEngine
+        (application as PoLangApplication).container.mediaSearchEngine
     }
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)

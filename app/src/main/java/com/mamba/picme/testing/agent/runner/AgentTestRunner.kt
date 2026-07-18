@@ -38,7 +38,7 @@ class AgentTestRunner(context: Context) {
 
     companion object {
         private const val TAG = "AgentTestRunner"
-        private const val REPORT_DIR = "/sdcard/PicMe_Agent_Test/reports"
+        private const val REPORT_DIR = "/sdcard/PoLang_Agent_Test/reports"
     }
 
     private val controller = DeviceTestController(context)
@@ -183,7 +183,7 @@ class AgentTestRunner(context: Context) {
         }
 
         return buildString {
-            appendLine("# PicMe Agent 测试报告")
+            appendLine("# PoLang Agent 测试报告")
             appendLine()
             appendLine("**套件**: ${report.suiteName}")
             appendLine("**时间**: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(java.util.Date(report.timestamp))}")

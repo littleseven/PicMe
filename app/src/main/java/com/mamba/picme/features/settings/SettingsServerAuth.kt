@@ -44,10 +44,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
-import com.mamba.picme.data.remote.picme.PicMeAuthClient
+import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.common.auth.EmailCodeAuthForm
 import kotlinx.coroutines.launch
 
@@ -56,14 +56,14 @@ private const val TAG = "ServerAuth"
 @Composable
 internal fun ServerAuthSection(onNavigateToDataPrivacy: () -> Unit = {}) {
     val context = LocalContext.current
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val repo = app.container.userPreferencesRepository
     val scope = rememberCoroutineScope()
 
     val serverToken by repo.serverAuthTokenFlow.collectAsState(initial = "")
     val serverEmail by repo.serverAuthEmailFlow.collectAsState(initial = "")
 
-    val authClient = remember { PicMeAuthClient() }
+    val authClient = remember { PoLangAuthClient() }
 
     var quotaUsed by remember { mutableStateOf(0) }
     var quotaLimit by remember { mutableStateOf(0) }
@@ -147,7 +147,7 @@ private fun QuotaDisplay(
     used: Int,
     limit: Int,
     token: String,
-    authClient: PicMeAuthClient,
+    authClient: PoLangAuthClient,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -194,7 +194,7 @@ private fun QuotaDisplay(
 @Composable
 private fun DeleteAccountDialog(
     token: String,
-    authClient: PicMeAuthClient,
+    authClient: PoLangAuthClient,
     onDeleted: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -222,7 +222,7 @@ private fun DeleteAccountDialog(
                                 ).show()
                             }
                             .onFailure { e ->
-                                val code = (e as? PicMeAuthClient.PicMeAuthException)?.code
+                                val code = (e as? PoLangAuthClient.PoLangAuthException)?.code
                                 if (code == 401 || code == 404) {
                                     onDeleted()
                                 }
@@ -318,7 +318,7 @@ private fun AuthActionButtons(
 @Composable
 private fun DangerZone(
     token: String,
-    authClient: PicMeAuthClient,
+    authClient: PoLangAuthClient,
     onLogout: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -365,7 +365,7 @@ private fun ClearGuestDataButton() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var clearing by remember { mutableStateOf(false) }
-    val authClient = remember { PicMeAuthClient() }
+    val authClient = remember { PoLangAuthClient() }
 
     TextButton(
         onClick = {

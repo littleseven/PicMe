@@ -59,7 +59,7 @@ PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 
 ### 2.4 App 集成层
 
-- `app/src/main/java/com/mamba/picme/PicMeApplication.kt`
+- `app/src/main/java/com/mamba/picme/PoLangApplication.kt`
   - 启动时执行 `FaceLandmarkAdapterRegistry.initDefaults()`
 - `app/src/main/java/com/mamba/picme/features/camera/CameraRuntimeState.kt`
   - 监听用户设置，将 ROI/Landmark 检测器类型转为 `DetectionPipelineConfig`

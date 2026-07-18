@@ -318,7 +318,7 @@ AgentOrchestrator 接收指令并执行
 ./gradlew :app:assembleDebug
 
 # 2. 安装到设备/模拟器
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
 
 # 3. 启动相机应用
 adb shell am start -n com.mamba.picme/.features.camera.CameraScreen
@@ -335,25 +335,25 @@ adb shell am start -n com.mamba.picme/.features.camera.CameraScreen
 └─ "天气怎么样"       ✗ (无唤醒词，正确拒绝)
 
 # 6. 观看日志
-adb logcat -s "PicMe:WakeWord" | head -50
+adb logcat -s "PoLang:WakeWord" | head -50
 ```
 
 ### 3.4 日志示例
 
 ```
 [高置信度唤醒]
-I/PicMe:WakeWord: Wake word engine started (keywords: 21, core: 6)
-D/PicMe:WakeWord: Entered high precision mode (polling: 30ms)
-D/PicMe:WakeWord: Speech detected but stability check: 1/3
-D/PicMe:WakeWord: Speech detected but stability check: 2/3
-I/PicMe:WakeWord: Triggering ASR (stability: 3 frames, confidence: 100%)
-I/PicMe:WakeWord: ✓ Wake word matched: '小觅' (confidence: 1.0), command: '拍张照' (raw: '小觅拍张照')
+I/PoLang:WakeWord: Wake word engine started (keywords: 21, core: 6)
+D/PoLang:WakeWord: Entered high precision mode (polling: 30ms)
+D/PoLang:WakeWord: Speech detected but stability check: 1/3
+D/PoLang:WakeWord: Speech detected but stability check: 2/3
+I/PoLang:WakeWord: Triggering ASR (stability: 3 frames, confidence: 100%)
+I/PoLang:WakeWord: ✓ Wake word matched: '小觅' (confidence: 1.0), command: '拍张照' (raw: '小觅拍张照')
 
 [同音误识但纠正]
-I/PicMe:WakeWord: ✓ Wake word matched: '小蜜' (confidence: 0.95), command: '打开前置' (raw: '小蜜打开前置')
+I/PoLang:WakeWord: ✓ Wake word matched: '小蜜' (confidence: 0.95), command: '打开前置' (raw: '小蜜打开前置')
 
 [误触（冷却期）]
-D/PicMe:WakeWord: Speech detected but in cooldown (200ms / 1200ms), skipped
+D/PoLang:WakeWord: Speech detected but in cooldown (200ms / 1200ms), skipped
 ```
 
 ### 3.5 文件改动清单

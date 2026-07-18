@@ -1,5 +1,5 @@
 #!/bin/bash
-# PicMe 快速功能验证脚本
+# PoLang 快速功能验证脚本
 # 依次测试所有主要功能
 
 set -e
@@ -7,7 +7,7 @@ set -e
 PACKAGE="com.picme"
 ACTION="com.picme.TEST_COMMAND"
 
-echo "=== PicMe 功能快速验证 ==="
+echo "=== PoLang 功能快速验证 ==="
 
 # 检查设备
 if ! adb devices | grep -q "device$"; then
@@ -69,4 +69,4 @@ echo ""
 echo "=== 验证完成 ==="
 echo ""
 echo "查看日志确认结果:"
-echo "  adb logcat -d | grep PicMe:CameraTest"
+echo "  adb logcat -d | grep PoLang:CameraTest"

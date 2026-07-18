@@ -116,7 +116,7 @@ import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import com.mamba.picme.features.common.chat.AgentMessage
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
-import com.mamba.picme.PicMeApplication
+import com.mamba.picme.PoLangApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -810,7 +810,7 @@ fun CameraContent(
     }
 
     val onCommandRef = remember { mutableStateOf<(AiAgentCommand) -> Unit>({}) }
-    val app = context.applicationContext as PicMeApplication
+    val app = context.applicationContext as PoLangApplication
     val kwsEngine = remember { app.container.kwsEngine }
     val voiceCoordinator = remember(asrEngine, aiAgentUseCase, kwsEngine) {
         VoiceCommandCoordinator(
@@ -856,7 +856,7 @@ fun CameraContent(
 // 而应该只进行"软释放"（停止监听但保留引擎）
 DisposableEffect(voiceCoordinator) {
 onDispose {
-Logger.i("PicMe:Camera", "Camera screen disposed - performing soft release of voice coordinator")
+Logger.i("PoLang:Camera", "Camera screen disposed - performing soft release of voice coordinator")
 voiceCoordinator.stopWakeWordListening()
 voiceCoordinator.stopPushToTalk()
 // 注意：不调用 voiceCoordinator.release() 以避免破坏 ASR 引擎状态

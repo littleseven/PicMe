@@ -7,7 +7,7 @@
 
 ## 模块定位
 
-`:runtime-core` 是 **PicMe Agent Runtime 核心模块**，为 Android Library（`com.android.library` + `kotlin-compose` 插件），承载 Agent 编排、本地/远程推理管道、Capability 注册、隐私策略、对话记忆、场景管理等能力。
+`:runtime-core` 是 **PoLang Agent Runtime 核心模块**，为 Android Library（`com.android.library` + `kotlin-compose` 插件），承载 Agent 编排、本地/远程推理管道、Capability 注册、隐私策略、对话记忆、场景管理等能力。
 
 **插件类型**：`com.android.library` + `org.jetbrains.kotlin.plugin.compose`
 
@@ -70,7 +70,7 @@
 | `RemoteReActAgentConfig` | ReAct 配置 | `agent.core.inference.remote.react` |
 | `RemotePromptBuilder` | 远程模型 Tool Schema + ChatRequest 构建 | `agent.core.inference.remote.prompt` |
 | `ToolCallCommandParser` | tool_calls 命令解析器（name + arguments → AgentCommand） | `agent.core.inference.remote.parser` |
-| `PicMeToolService` | 远程推理 @Tool 注解工具集 | `agent.core.inference.remote.tool` |
+| `PoLangToolService` | 远程推理 @Tool 注解工具集 | `agent.core.inference.remote.tool` |
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
 | `Logger` | 日志接口 | `agent.core.platform.logging` |
 | `ThreadPoolManager` | 线程池管理 | `agent.core.platform.thread` |
@@ -168,7 +168,7 @@
 - `RemoteReActAgentConfig.kt` — ReAct 配置
 
 ### `inference/remote/tool/`
-- `PicMeToolService.kt` — 远程推理 @Tool 注解工具集
+- `PoLangToolService.kt` — 远程推理 @Tool 注解工具集
 
 ### `local/llm/`
 - `ChatResponseMetadata.kt` — 响应元数据
@@ -251,7 +251,7 @@
 > **已移除（ADR-005 + 2026-06 清理）**：
 > - `InferenceRouter.kt`, `AdaptiveStrategySelector.kt`, `ToolCallingChatLanguageModel.kt`
 > - `ToolCallingOutputParser.kt`, `ToolPromptBuilder.kt`, `ToolCallingConfig.kt`, `ToolCallingMode.kt`, `ToolOrchestrator.kt`
-> - `UnifiedRemoteClient.kt`, `LangChain4jOpenAiClient.kt`, `RemoteCameraTools.kt`（功能已整合入 `RemoteReActAgent` + `PicMeToolService`）
+> - `UnifiedRemoteClient.kt`, `LangChain4jOpenAiClient.kt`, `RemoteCameraTools.kt`（功能已整合入 `RemoteReActAgent` + `PoLangToolService`）
 > - `SherpaMnnAsrEngine.kt`, `MnnAsrClient.kt`, `com.k2fsa.sherpa.mnn.*`（已迁移至 Sherpa-ONNX）
 > - `ToolCallParser.kt`（合并入 `ToolCallCommandParser.kt`）
 > - 累计清理 ~2,600 行冗余代码

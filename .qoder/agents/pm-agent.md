@@ -1,6 +1,6 @@
 ---
 name: pm-agent
-description: PicMe 产品经理 [PM]，负责需求定义、UX 愿景和 I18N 治理。当用户提出新功能需求、体验优化或文案相关任务时激活。Use proactively when receiving feature requests or UX-related tasks.
+description: PoLang 产品经理 [PM]，负责需求定义、UX 愿景和 I18N 治理。当用户提出新功能需求、体验优化或文案相关任务时激活。Use proactively when receiving feature requests or UX-related tasks.
 ---
 
 # 产品专家 (Product Manager)

@@ -260,7 +260,7 @@ ASR 请求释放  →  releaseAsr()
 | `SherpaMnnAsrEngine` | `app/.../camera/voice/SherpaMnnAsrEngine.kt` | `tryInitRecognizer()` 成功后调用 `acquireAsr()`；`release()` 改为调用 `releaseAsr()` |
 | `VoiceCommandCoordinator` | `app/.../camera/voice/VoiceCommandCoordinator.kt` | `release()` 中新增 `(asrEngine as? SherpaMnnAsrEngine)?.release()` |
 | `CameraScreen` | `app/.../camera/CameraScreen.kt` | 监听 ON_RESUME / ON_PAUSE，联动 `MnnResourceManager` |
-| `PicMeApplication` | `app/.../PicMeApplication.kt` | `ActivityTracker` 计数，前后台切换通知 `MnnResourceManager` |
+| `PoLangApplication` | `app/.../PoLangApplication.kt` | `ActivityTracker` 计数，前后台切换通知 `MnnResourceManager` |
 
 ### 2.8 线程安全
 
@@ -331,12 +331,12 @@ releaseAsr()
 
 ### 3.3 App 前后台切换
 
-**触发位置**: `PicMeApplication.ActivityTracker`
+**触发位置**: `PoLangApplication.ActivityTracker`
 
 ```kotlin
 override fun onActivityStarted(activity: Activity) {
     if (activityCount == 0) {
-        MnnResourceManager.getInstance(this@PicMeApplication).onAppForeground()
+        MnnResourceManager.getInstance(this@PoLangApplication).onAppForeground()
     }
     activityCount++
 }
@@ -344,7 +344,7 @@ override fun onActivityStarted(activity: Activity) {
 override fun onActivityStopped(activity: Activity) {
     activityCount--
     if (activityCount == 0) {
-        MnnResourceManager.getInstance(this@PicMeApplication).onAppBackground()
+        MnnResourceManager.getInstance(this@PoLangApplication).onAppBackground()
     }
 }
 ```
@@ -1193,6 +1193,6 @@ echo "Full log: $LOG_FILE"
 | `app/src/main/java/com/mamba/picme/features/camera/voice/SherpaMnnAsrEngine.kt` | ASR 引擎（历史） |
 | `app/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt` | 语音协调器 |
 | `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` | 相机页面 |
-| `app/src/main/java/com/mamba/picme/PicMeApplication.kt` | 应用入口 |
+| `app/src/main/java/com/mamba/picme/PoLangApplication.kt` | 应用入口 |
 | `scripts/test-mnn-unload.sh` | 自动化测试脚本 |
 | `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` | 语音栈迁移后架构 |

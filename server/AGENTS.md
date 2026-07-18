@@ -7,7 +7,7 @@
 > - 部署与运维细节见 `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md`。
 > - API 契约与实现方案见 `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`。
 
-**模块定位**：`server/` 是 PicMe 的 **Ktor 后端单体服务**，独立 Gradle 工程，与 Android 客户端通过 Monorepo 管理。提供 AI 网关、账号体系、管理后台、推荐引擎、遥测收集、COS 对象存储等能力。
+**模块定位**：`server/` 是 PoLang 的 **Ktor 后端单体服务**，独立 Gradle 工程，与 Android 客户端通过 Monorepo 管理。提供 AI 网关、账号体系、管理后台、推荐引擎、遥测收集、COS 对象存储等能力。
 
 **主要维护者**：[RD] 全栈工程师
 
