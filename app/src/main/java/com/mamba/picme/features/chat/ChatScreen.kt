@@ -2,8 +2,11 @@ package com.mamba.picme.features.chat
 
 import android.app.Activity
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -40,7 +43,6 @@ import coil.request.ImageRequest
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import android.provider.MediaStore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -183,6 +185,95 @@ fun ChatScreen(
     // 相册搜索结果预览状态
     var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     var previewIndex by remember { mutableIntStateOf(0) }
+    // 已点删除但等待媒体库刷新确认的图片 ID
+    var pendingDeletedIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+
+    // 媒体库全量数据：用于感知删除完成并同步清理 preview/chat 消息
+    val allMedia by mediaViewModel.allMedia.collectAsState()
+    val deleteAuthRequest by mediaViewModel.deleteAuthRequest.collectAsState()
+
+    // Android 10 (API 29) 恢复性删除权限请求 launcher
+    val api29DeleteLauncher = if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                Logger.d(TAG, "User granted API 29 delete permission")
+                mediaViewModel.executePendingDeletes()
+            } else {
+                Logger.w(TAG, "User denied API 29 delete permission")
+                mediaViewModel.clearPendingRecoverable()
+                mediaViewModel.clearPendingDeleteUris()
+            }
+        }
+    } else {
+        null
+    }
+
+    // Android 11+ 删除权限请求 launcher
+    val deletePermissionLauncher = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                Logger.d(TAG, "User granted delete permission")
+                mediaViewModel.executePendingDeletes()
+            } else {
+                Logger.w(TAG, "User denied delete permission")
+                mediaViewModel.clearPendingDeleteUris()
+            }
+        }
+    } else {
+        null
+    }
+
+    LaunchedEffect(deleteAuthRequest) {
+        deleteAuthRequest?.let { request ->
+            when (request) {
+                is MediaViewModel.DeleteAuthRequest.Api29 -> {
+                    api29DeleteLauncher?.launch(
+                        IntentSenderRequest.Builder(request.intentSender).build()
+                    )
+                }
+                is MediaViewModel.DeleteAuthRequest.Api30 -> {
+                    val intent = MediaStore.createDeleteRequest(
+                        context.contentResolver,
+                        request.uris
+                    )
+                    deletePermissionLauncher?.launch(
+                        IntentSenderRequest.Builder(intent).build()
+                    )
+                }
+            }
+            mediaViewModel.consumeDeleteAuthRequest()
+        }
+    }
+
+    // 当媒体库刷新后发现 preview 中的某张图已被物理删除，同步清理 preview 列表和 chat 消息
+    LaunchedEffect(allMedia) {
+        if (allMedia.isEmpty()) return@LaunchedEffect
+        val existingIds = allMedia.map { it.id }.toSet()
+
+        // 确认 pending 删除已实际生效（物理文件 + Room 记录已清理）
+        if (pendingDeletedIds.isNotEmpty()) {
+            val confirmedRemoved = pendingDeletedIds.filter { it > 0L && it !in existingIds }.toSet()
+            if (confirmedRemoved.isNotEmpty()) {
+                confirmedRemoved.forEach { viewModel.removeMediaResultAsset(it) }
+                pendingDeletedIds = pendingDeletedIds - confirmedRemoved
+            }
+        }
+
+        // 兜底：其他途径导致 previewAssets 中的图片已不在媒体库时，也清理 preview
+        if (previewAssets.isNotEmpty()) {
+            val removedIds = previewAssets
+                .map { it.id }
+                .filter { it > 0L && it !in existingIds }
+                .toSet()
+            if (removedIds.isNotEmpty()) {
+                previewAssets = previewAssets.filter { it.id in existingIds }
+            }
+        }
+    }
 
     // 注册到 Compose CapabilityHost（CHAT 场景），让命令分发命中本能力，
     // 否则 findCapabilityForCommand 会回退到 registry 里的 GalleryCapability
@@ -390,8 +481,9 @@ fun ChatScreen(
                     initialIndex = previewIndex,
                     onClose = { previewAssets = emptyList() },
                     onDelete = { asset ->
-                        mediaViewModel.deleteMediaByIds(listOf(asset.id))
                         previewAssets = previewAssets.filter { it.id != asset.id }
+                        pendingDeletedIds = pendingDeletedIds + asset.id
+                        mediaViewModel.deleteMediaByIds(listOf(asset.id))
                     },
                     onStartOcr = { uriString ->
                         mediaViewModel.recognizeTextFromCurrentImage(context, uriString.toUri())

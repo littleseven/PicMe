@@ -1219,6 +1219,67 @@ class ChatViewModel(
     }
 
     /**
+     * 当图片从媒体库中被删除后，同步把对应 media_results 消息里的该图片移除。
+     * 如果某条 media_results 消息的所有图片都被删光，则整条消息一起删掉。
+     */
+    fun removeMediaResultAsset(mediaId: Long) {
+        viewModelScope.launch {
+            try {
+                val currentMessages = _messages.value
+                val updatedMessages = currentMessages.mapNotNull { message ->
+                    val mr = message.mediaResults
+                    if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null &&
+                        mr.assets.any { it.id == mediaId }
+                    ) {
+                        val newAssets = mr.assets.filter { it.id != mediaId }
+                        if (newAssets.isEmpty()) {
+                            chatMessageDao.getMessageById(message.id)?.let { entity ->
+                                chatMessageDao.insertMessage(
+                                    entity.copy(
+                                        type = "agent_text",
+                                        content = "结果中的照片已被删除",
+                                        metadata = null
+                                    )
+                                )
+                            }
+                            return@mapNotNull message.copy(
+                                type = ChatMessageType.AGENT_TEXT,
+                                content = "结果中的照片已被删除",
+                                mediaResults = null
+                            )
+                        }
+                        val newTotal = (mr.totalCount - 1).coerceAtLeast(newAssets.size)
+                        chatMessageDao.getMessageById(message.id)?.let { entity ->
+                            chatMessageDao.insertMessage(
+                                entity.copy(
+                                    content = ChatGallerySearch.serializeContent(newAssets),
+                                    metadata = ChatGallerySearch.serializeMetadata(
+                                        mr.query,
+                                        newTotal,
+                                        mr.isRefinement
+                                    )
+                                )
+                            )
+                        }
+                        message.copy(
+                            mediaResults = mr.copy(
+                                assets = newAssets,
+                                totalCount = newTotal
+                            )
+                        )
+                    } else {
+                        message
+                    }
+                }
+                _messages.value = updatedMessages
+                Logger.i(TAG, "Removed media result asset $mediaId from chat UI")
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to remove media result asset $mediaId", e)
+            }
+        }
+    }
+
+    /**
      * 清空当前会话
      */
     fun clearChat() {
