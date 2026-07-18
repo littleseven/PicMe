@@ -15,8 +15,8 @@ class SearchSynonymsTest {
     fun `expand animal term includes common pet labels`() {
         val expanded = SearchSynonyms.expand("动物")
         assertTrue(
-            "动物应扩展到常见宠物标签，实际: $expanded",
-            expanded.contains("猫") || expanded.contains("狗") || expanded.contains("宠物")
+            "动物应扩展到英文动物标签（匹配 mlKitLabels），实际: $expanded",
+            expanded.contains("cat") || expanded.contains("dog") || expanded.contains("bird")
         )
     }
 

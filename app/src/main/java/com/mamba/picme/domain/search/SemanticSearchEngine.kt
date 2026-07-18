@@ -32,9 +32,9 @@ private const val SEMANTIC_EMBEDDING_DIM = 512
  *
  * MobileCLIP 真相关通常 >0.3；无相关时 topK 会被低相似度噪声（如 0.05~0.25 的
  * 「推土机」对「动物」）填满。此阈值过滤噪声，避免「没找到」时返回垃圾误导用户。
- * 实测「动物」噪声 top 在 0.24x，定为 0.23 过滤大部分噪声；可按实测调整。
+ * 定为 0.22：过滤明显噪声，保留一定语义召回余量。
  */
-private const val MIN_SIMILARITY = 0.23f
+private const val MIN_SIMILARITY = 0.22f
 
 class SemanticSearchEngine(
     private val context: Context,
@@ -245,8 +245,14 @@ class SemanticSearchEngine(
     fun encodeTextQuery(query: String): FloatArray? {
         if (!isReady && !initialize()) return null
 
+        // CLIP 训练用的是完整 caption（如 "a photo of a cat"），裸词（如 "Animals."）
+        // 处于分布外，余弦相似度会系统性偏低。包成标准 prompt 对齐训练分布，提升召回相似度。
+        val concept = query.trim().trimEnd('.', ' ').lowercase()
+            .removePrefix("a ").removePrefix("an ").removePrefix("the ")
+        val prompted = if (concept.isEmpty()) query else "a photo of a $concept"
+
         // 1. Tokenizer → tokenIds
-        val tokenIds = tokenizer.encode(query) ?: return null
+        val tokenIds = tokenizer.encode(prompted) ?: return null
 
         // 2. MobileClipEngine → textEmbedding
         return engine.encodeText(tokenIds)

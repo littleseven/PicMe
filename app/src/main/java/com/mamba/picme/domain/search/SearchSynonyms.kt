@@ -17,8 +17,10 @@ object SearchSynonyms {
         // 性别（标签用单字「女/男」，qwenSummary 里是「一位女士」等）
         "女性" to listOf("女"), "女人" to listOf("女"), "女孩" to listOf("女"), "少女" to listOf("女"), "女生" to listOf("女"),
         "男性" to listOf("男"), "男人" to listOf("男"), "男孩" to listOf("男"), "少年" to listOf("男"), "男生" to listOf("男"),
-        // 动物 / 宠物
-        "动物" to listOf("猫", "狗", "宠物"), "宠物" to listOf("猫", "狗"),
+        // 动物 / 宠物：仅扩英文（匹配 mlKitLabels 英文标签）。
+        // 不扩中文「狗/猫」——避免命中 labels.activity「遛狗」等（人遛狗照片，人/车为主，非动物特写）。
+        "动物" to listOf("cat", "dog", "pet", "bird", "fish", "horse"),
+        "宠物" to listOf("cat", "dog", "pet"),
         // 场景 / 时间
         "夜景" to listOf("夜"), "夜晚" to listOf("夜"),
         "海边" to listOf("海", "沙滩"), "海滩" to listOf("沙滩"),

@@ -214,12 +214,12 @@ interface MediaDao {
     @Query("UPDATE media_assets SET mlKitLabelsZh = NULL")
     suspend fun resetAllMlKitLabelsZh()
 
-    /** 按 ML Kit 英文标签搜索 */
-    @Query("SELECT * FROM media_assets WHERE mlKitLabels LIKE '%' || :label || '%' ORDER BY captureDate DESC")
+    /** 按 ML Kit 英文标签搜索（精确匹配 JSON 数组元素，避免 Vacation 命中 cat 等子串误匹配） */
+    @Query("SELECT * FROM media_assets WHERE mlKitLabels LIKE '%' || '\"' || :label || '\"' || '%' ORDER BY captureDate DESC")
     suspend fun searchByMlKitLabel(label: String): List<MediaEntity>
 
-    /** 按 ML Kit 中文标签搜索（中文用户直接命中） */
-    @Query("SELECT * FROM media_assets WHERE mlKitLabelsZh LIKE '%' || :label || '%' ORDER BY captureDate DESC")
+    /** 按 ML Kit 中文标签搜索（精确匹配 JSON 数组元素） */
+    @Query("SELECT * FROM media_assets WHERE mlKitLabelsZh LIKE '%' || '\"' || :label || '\"' || '%' ORDER BY captureDate DESC")
     suspend fun searchByMlKitLabelZh(label: String): List<MediaEntity>
 
     /** 未生成 ML Kit 标签的媒体 */
