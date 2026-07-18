@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
+import com.mamba.picme.domain.matting.MattingEngineImpl
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
@@ -28,7 +29,8 @@ class PhotoEditorViewModelFactory(
                 recipeRepository = recipeRepository,
                 mediaRepository = mediaRepository,
                 userSettingsRepository = userSettingsRepository,
-                aiOptimizeUseCase = aiOptimizeUseCase
+                aiOptimizeUseCase = aiOptimizeUseCase,
+                mattingEngine = MattingEngineImpl(appContext)
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

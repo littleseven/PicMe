@@ -14,6 +14,8 @@ import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
+import com.mamba.picme.domain.matting.MaskSource
+import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
@@ -47,7 +49,8 @@ class PhotoEditorViewModel(
     private val recipeRepository: PhotoEditRecipeRepository,
     private val mediaRepository: MediaRepository,
     private val userSettingsRepository: UserSettingsRepository? = null,
-    private val aiOptimizeUseCase: AiOptimizeUseCase? = null
+    private val aiOptimizeUseCase: AiOptimizeUseCase? = null,
+    private val mattingEngine: MattingEngine? = null
 ) : ViewModel() {
 
     sealed class State {
@@ -196,6 +199,19 @@ class PhotoEditorViewModel(
         _recipeChanges.value = recipe
     }
 
+    /** 一键去背景：写入 cutout 配方（默认透明抠图），可撤销/重做，复用 [updateRecipe] 触发预览。 */
+    fun removeBackground() {
+        val current = _state.value as? State.Ready ?: return
+        updateRecipe(
+            current.recipe.copy(
+                cutout = CutoutRecipe(
+                    maskSource = MaskSource.U2NETP,
+                    bgMode = CutoutRecipe.BgMode.TRANSPARENT
+                )
+            )
+        )
+    }
+
     val canUndo: Boolean
         get() = history.canUndo
 
@@ -255,10 +271,11 @@ class PhotoEditorViewModel(
             val current = _state.value as? State.Ready ?: return@launch
             _state.value = current.copy(isProcessing = true)
             try {
-                val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher)
+                val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher, mattingEngine)
                 val cropped = withContext(Dispatchers.Default) { applier.applyCrop(base, recipe.crop) }
                 val processed = applier.applyGpuEffects(cropped, recipe, cachedFaceData)
-                val marked = withContext(Dispatchers.Default) { applier.applyMarkup(processed, recipe.markup) }
+                val cutout = withContext(Dispatchers.Default) { applier.applyCutout(processed, recipe.cutout) }
+                val marked = withContext(Dispatchers.Default) { applier.applyMarkup(cutout, recipe.markup) }
                 _state.value = current.copy(
                     previewBitmap = marked,
                     isProcessing = false
@@ -279,11 +296,13 @@ class PhotoEditorViewModel(
             _state.value = current.copy(isSaving = true)
             try {
                 val fullBitmap = decodeFullBitmap(context, Uri.parse(recipe.sourceUri)) ?: return@launch
-                val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher)
+                val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher, mattingEngine)
                 val cropped = withContext(Dispatchers.Default) { applier.applyCrop(fullBitmap, recipe.crop) }
                 val processed = applier.applyGpuEffects(cropped, recipe, cachedFaceData)
-                val finalBitmap = withContext(Dispatchers.Default) { applier.applyMarkup(processed, recipe.markup) }
-                val outputUri = saveBitmapToMediaStore(context, finalBitmap)
+                val afterCutout = withContext(Dispatchers.Default) { applier.applyCutout(processed, recipe.cutout) }
+                val finalBitmap = withContext(Dispatchers.Default) { applier.applyMarkup(afterCutout, recipe.markup) }
+                val transparent = recipe.cutout?.bgMode == CutoutRecipe.BgMode.TRANSPARENT
+                val outputUri = saveBitmapToMediaStore(context, finalBitmap, transparent)
                 if (outputUri != null) {
                     recipeRepository.save(outputUri, recipe.sourceUri, recipe)
                     mediaRepository.refreshMediaLibrary()
@@ -311,11 +330,13 @@ class PhotoEditorViewModel(
         }
     }
 
-    private fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap): String? {
-        val name = "EDITED_${System.currentTimeMillis()}.jpg"
+    private fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap, transparent: Boolean): String? {
+        val ext = if (transparent) "png" else "jpg"
+        val mime = if (transparent) "image/png" else "image/jpeg"
+        val name = "EDITED_${System.currentTimeMillis()}.$ext"
         val values = android.content.ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, name)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.MIME_TYPE, mime)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PoLang")
             }
@@ -323,7 +344,11 @@ class PhotoEditorViewModel(
         val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
         return uri?.also {
             context.contentResolver.openOutputStream(it)?.use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                if (transparent) {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                } else {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
             }
         }?.toString()
     }
