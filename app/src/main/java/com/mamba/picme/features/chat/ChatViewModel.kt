@@ -94,6 +94,9 @@ class ChatViewModel(
     /** 防止用户快速重复点击同一反馈按钮。 */
     private val pendingFeedbackActions = mutableSetOf<String>()
 
+    /** 当前会话最近一条用户图片消息的持久化 URI，供 ai_optimize 指代「这张照片」。 */
+    private val _lastUserImageUri = MutableStateFlow<String?>(null)
+
     private val orchestrator = AgentOrchestrator.getInstance(context)
 
     private val _currentSessionId = MutableStateFlow("default")
@@ -372,7 +375,8 @@ class ChatViewModel(
                 val agentContext = AgentContext(
                     scene = AgentScene.CHAT,
                     memorySessionId = sessionId,
-                    recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty()
+                    recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty(),
+                    lastUserImageUri = _lastUserImageUri.value
                 )
 
                 // 5. 调用流式推理
@@ -1057,6 +1061,7 @@ class ChatViewModel(
                     modelUsed = null
                 )
                 chatMessageDao.insertMessage(userMessage)
+                _lastUserImageUri.value = persistedUri
                 chatSessionDao.touchSession(sessionId)
 
                 // 1.5 自动命名：根据用户的第一条消息生成会话标题
