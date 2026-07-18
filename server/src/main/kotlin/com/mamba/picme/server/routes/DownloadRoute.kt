@@ -59,6 +59,15 @@ private fun createDownloadPage(downloadUrl: String, version: String, size: Strin
                         .download-btn:hover{opacity:.9}
                         .info{margin-top:20px;font-size:13px;color:#64748b}
                         .scan-tip{font-size:13px;color:#94a3b8;margin-bottom:16px}
+                        .contact{margin-top:32px;padding-top:20px;border-top:1px solid #1e293b}
+                        .contact-title{font-size:14px;color:#94a3b8;margin-bottom:14px}
+                        .contact-grid{display:flex;gap:28px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+                        .contact-item{display:flex;flex-direction:column;align-items:center;gap:8px}
+                        .contact-qr{background:#fff;border-radius:12px;padding:8px;width:124px;height:124px;display:flex;align-items:center;justify-content:center}
+                        .contact-qr img{width:108px;height:108px;display:block}
+                        .contact-label{font-size:12px;color:#94a3b8}
+                        .x-link{display:inline-flex;align-items:center;justify-content:center;color:#e2e8f0;text-decoration:none;font-size:13px;height:124px;min-width:124px;padding:0 16px;border:1px solid #334155;border-radius:12px}
+                        .x-link:hover{background:#1e293b}
                         """.trimIndent(),
                     )
                 }
@@ -80,6 +89,21 @@ private fun createDownloadPage(downloadUrl: String, version: String, size: Strin
                     }
                     div("info") {
                         +"版本 $version · $size · Android 10+"
+                    }
+                }
+                div("contact") {
+                    div("contact-title") { +"联系作者" }
+                    div("contact-grid") {
+                        div("contact-item") {
+                            div("contact-qr") {
+                                img(src = "data:image/jpeg;base64,${wechatQrBase64()}", alt = "微信二维码")
+                            }
+                            div("contact-label") { +"微信扫码" }
+                        }
+                        div("contact-item") {
+                            a("https://x.com/shuiguo007", target = "_blank", classes = "x-link") { +"X @shuiguo007" }
+                            div("contact-label") { +"关注 X" }
+                        }
                     }
                 }
             }
@@ -114,3 +138,8 @@ private fun generateQrCodeSvgBase64(text: String, size: Int): String {
 
     return java.util.Base64.getEncoder().encodeToString(svgBuilder.toString().toByteArray())
 }
+
+private fun wechatQrBase64(): String = runCatching {
+    Thread.currentThread().contextClassLoader
+        .getResourceAsStream("static/wechat-qr.jpg")?.use { it.readBytes() }
+}.getOrNull()?.let { java.util.Base64.getEncoder().encodeToString(it) } ?: ""
