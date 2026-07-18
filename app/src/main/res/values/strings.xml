@@ -755,4 +755,10 @@
     <string name="chat_photo_picker_search_hint">Search photos (e.g. beach, person)</string>
     <string name="chat_photo_picker_search_unavailable">Search unavailable — showing recent photos</string>
     <string name="chat_photo_picker_no_results">No matching photos</string>
+
+    <!-- Chat image intent chips -->
+    <string name="chat_intent_understand">Understand</string>
+    <string name="chat_intent_find_similar">Find Similar</string>
+    <string name="chat_intent_edit">Edit</string>
+    <string name="cd_remove_pending_image">Remove selected image</string>
 </resources>

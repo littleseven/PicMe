@@ -727,4 +727,10 @@
     <string name="chat_photo_picker_search_hint">搜尋照片（如：海灘、人物）</string>
     <string name="chat_photo_picker_search_unavailable">搜尋暫不可用，僅顯示最近照片</string>
     <string name="chat_photo_picker_no_results">未找到相關圖片</string>
+
+    <!-- Chat image intent chips -->
+    <string name="chat_intent_understand">圖像理解</string>
+    <string name="chat_intent_find_similar">找相似</string>
+    <string name="chat_intent_edit">編輯</string>
+    <string name="cd_remove_pending_image">移除已選圖片</string>
 </resources>
