@@ -48,7 +48,9 @@ import com.mamba.picme.domain.backup.TagDataBackupRepository
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.LocalSceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
 import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
+import com.mamba.picme.domain.agent.capability.ImageEditCapability
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
+import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
@@ -56,6 +58,7 @@ import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
+import com.mamba.picme.features.chat.ChatEditStateHolder
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.chat.ChatImageRenderer
@@ -145,6 +148,9 @@ interface AppContainer {
 
     val photoEditRecipeRepository: PhotoEditRecipeRepository
     val aiOptimizeUseCase: AiOptimizeUseCase
+
+    /** 对话式图片编辑 Capability（全局注册） */
+    val imageEditCapability: ImageEditCapability
 
     /** TAG 数据库备份用例 */
     val backupTagDataUseCase: BackupTagDataUseCase
@@ -379,6 +385,26 @@ class AppContainerImpl(
         return GlBeautyPreviewProviderFactory().createPhotoProcessor(ctx)
     }
 
+    private val chatEditStateHolder: ChatEditStateHolder by lazy {
+        ChatEditStateHolder()
+    }
+
+    private val chatEditProcessor: ChatEditProcessor by lazy {
+        ChatEditProcessor(
+            photoProcessor = photoProcessor,
+            faceDetector = faceDetector,
+            mediaRepository = repository
+        )
+    }
+
+    override val imageEditCapability: ImageEditCapability by lazy {
+        ImageEditCapability(
+            context = context,
+            chatEditProcessor = chatEditProcessor,
+            stateHolder = chatEditStateHolder
+        )
+    }
+
     override val imageProcessor: ImageProcessor by lazy {
         ImageProcessorImpl(beautyProcessor, photoProcessor, faceDetector)
     }
@@ -530,6 +556,8 @@ class AppContainerImpl(
             startTagScanUseCase = startTagScanUseCase,
             personDao = database.personDao(),
             controlledVocab = controlledVocab,
+            chatEditStateHolder = chatEditStateHolder,
+            chatEditProcessor = chatEditProcessor,
             chatImageRenderer = chatImageRenderer
         )
     }

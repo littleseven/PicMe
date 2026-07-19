@@ -758,6 +758,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
         message.type == ChatMessageType.USER_IMAGE_TEXT
     val isImage = message.type == ChatMessageType.AGENT_IMAGE || message.type == ChatMessageType.USER_IMAGE
     val isImageText = message.type == ChatMessageType.USER_IMAGE_TEXT
+    val isEditResult = message.type == ChatMessageType.AGENT_EDIT_RESULT
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     val copySuccess = stringResource(R.string.copy_success)
@@ -840,6 +841,36 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                                 onImageClick(resolvedUri)
                             }
                     )
+                }
+                isEditResult -> {
+                    // 对话式编辑结果：图片 + 说明文字
+                    val imageUri = message.imageUri.orEmpty()
+                    if (imageUri.isNotBlank()) {
+                        AsyncImage(
+                            model = imageUri,
+                            contentDescription = stringResource(R.string.photo),
+                            contentScale = ContentScale.FillHeight,
+                            modifier = Modifier
+                                .height(200.dp)
+                                .widthIn(max = 260.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    val uri = Uri.parse(imageUri)
+                                    val resolvedUri = if (uri.scheme != null) uri
+                                        else java.io.File(imageUri).toUri()
+                                    onImageClick(resolvedUri)
+                                }
+                        )
+                    }
+                    if (message.content.isNotBlank()) {
+                        Text(
+                            text = message.content,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
                 }
                 isUser -> {
                     Text(
@@ -1643,6 +1674,7 @@ enum class ChatMessageType {
     USER_IMAGE,
     USER_IMAGE_TEXT,
     AGENT_IMAGE,
+    AGENT_EDIT_RESULT,
     COMMAND,
     PLAN_PREVIEW,
     MEDIA_RESULTS,

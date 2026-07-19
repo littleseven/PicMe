@@ -2,18 +2,14 @@ package com.mamba.picme.features.chat
 
 import android.content.Context
 import android.util.Log
-import com.mamba.picme.R
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
-import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
-import com.mamba.picme.domain.tag.ControlledVocab
 import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
@@ -23,6 +19,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkObject
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.Dispatchers
@@ -33,17 +30,15 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.json.JSONObject
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 
-/**
- * [ChatViewModel] 会话标题自动更新行为测试。
- *
- * 覆盖：首条消息触发自动命名、用户已自定义标题时不覆盖、非首条消息不覆盖。
- */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class ChatViewModelTitleUpdateTest {
+class ChatViewModelEditResultTest {
 
     private val context: Context = mockk(relaxed = true)
     private val chatMessageDao: ChatMessageDao = mockk(relaxed = true)
@@ -71,8 +66,6 @@ class ChatViewModelTitleUpdateTest {
         every { Log.e(any(), any<String>(), any()) } returns 0
 
         every { context.applicationContext } returns context
-        every { context.getString(R.string.new_chat) } returns "New Chat"
-        every { context.getString(R.string.chat_title_image_first) } returns "Image Chat"
 
         every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
         every { userSettingsRepository.aiAgentInferencePreferenceFlow } returns preferenceFlow
@@ -101,72 +94,42 @@ class ChatViewModelTitleUpdateTest {
             userSettingsRepository = userSettingsRepository,
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
-            mediaRepository = mockk(relaxed = true),
             picMeAuthClient = authClient,
             getGallerySummaryUseCase = mockk(relaxed = true),
-            queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context),
-            personDao = mockk(relaxed = true),
-            controlledVocab = ControlledVocab(),
             chatEditStateHolder = ChatEditStateHolder(),
             chatEditProcessor = mockk(relaxed = true)
         )
     )
 
     @Test
-    fun `first text message updates default title`() = runTest {
-        coEvery { chatSessionDao.getSession("default") } returns ChatSessionEntity(
-            sessionId = "default",
-            title = "New Chat"
-        )
-        coEvery { chatMessageDao.getMessageCount("default") } returns 1
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
-            StreamChatResult(fullResponse = "好的")
-        )
-
+    fun `insertEditResultMessage persists agent_edit_result with metadata`() = runTest {
         val vm = newViewModel()
         advanceUntilIdle()
-        vm.sendMessage("帮我找去年冬天的照片")
+
+        val sessionId = "session-edit"
+        val imageUri = "content://media/external/images/media/42"
+        val explanation = "✅ 已调亮并加滤镜"
+
+        vm.insertEditResultMessage(sessionId, imageUri, explanation, "remote_deepseek")
         advanceUntilIdle()
 
-        coVerify { chatSessionDao.updateTitle("default", "帮我找去年冬天的照片", any()) }
-    }
+        val slot = slot<com.mamba.picme.data.local.ChatMessageEntity>()
+        coVerify { chatMessageDao.insertMessage(capture(slot)) }
 
-    @Test
-    fun `first text message does not overwrite custom title`() = runTest {
-        coEvery { chatSessionDao.getSession("default") } returns ChatSessionEntity(
-            sessionId = "default",
-            title = "我的自定义标题"
-        )
-        coEvery { chatMessageDao.getMessageCount("default") } returns 1
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
-            StreamChatResult(fullResponse = "好的")
-        )
+        val entity = slot.captured
+        assertEquals("agent_edit_result", entity.type)
+        assertEquals(explanation, entity.content)
+        assertEquals(sessionId, entity.sessionId)
+        assertEquals("remote_deepseek", entity.modelUsed)
 
-        val vm = newViewModel()
-        advanceUntilIdle()
-        vm.sendMessage("帮我找去年冬天的照片")
-        advanceUntilIdle()
+        val metadata = entity.metadata
+        assertNotNull(metadata)
+        val json = JSONObject(metadata!!)
+        assertEquals(imageUri, json.getString("imageUri"))
+        assertEquals(explanation, json.getString("explanation"))
+        assertNotNull(json.getJSONArray("suggestions"))
 
-        coVerify(exactly = 0) { chatSessionDao.updateTitle(any(), any()) }
-    }
-
-    @Test
-    fun `second message does not update title`() = runTest {
-        coEvery { chatSessionDao.getSession("default") } returns ChatSessionEntity(
-            sessionId = "default",
-            title = "New Chat"
-        )
-        coEvery { chatMessageDao.getMessageCount("default") } returns 2
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
-            StreamChatResult(fullResponse = "好的")
-        )
-
-        val vm = newViewModel()
-        advanceUntilIdle()
-        vm.sendMessage("再帮我找一张")
-        advanceUntilIdle()
-
-        coVerify(exactly = 0) { chatSessionDao.updateTitle(any(), any()) }
+        coVerify { chatSessionDao.touchSession(eq(sessionId), any()) }
     }
 }

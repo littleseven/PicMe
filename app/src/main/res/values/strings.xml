@@ -373,6 +373,7 @@
     <string name="feedback_resolve_failure_ordinal">Couldn\'t find photo #%1$d</string>
     <string name="feedback_resolve_failure_description">Couldn\'t find a photo matching "%1$s"</string>
     <string name="feedback_no_more_results">No more similar photos found</string>
+    <string name="chat_edit_result_default">✅ Edited this photo for you</string>
     <string name="ai_model_manager">AI Model Manager</string>
     <string name="ai_model_manager_desc">Manage on-device AI models.</string>
     <string name="model_center">Model Center</string>
