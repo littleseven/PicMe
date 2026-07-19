@@ -14,8 +14,8 @@ import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
-import com.mamba.picme.domain.matting.MaskSource
 import com.mamba.picme.domain.matting.MattingEngine
+import com.mamba.picme.domain.matting.MattingRouter
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
@@ -199,13 +199,14 @@ class PhotoEditorViewModel(
         _recipeChanges.value = recipe
     }
 
-    /** 一键去背景：写入 cutout 配方（默认透明抠图），可撤销/重做，复用 [updateRecipe] 触发预览。 */
+    /** 一键去背景：按是否人像路由写入 cutout 配方（默认透明抠图），可撤销/重做，复用 [updateRecipe] 触发预览。 */
     fun removeBackground() {
         val current = _state.value as? State.Ready ?: return
+        val source = MattingRouter.choose(cachedFaceData != null)
         updateRecipe(
             current.recipe.copy(
                 cutout = CutoutRecipe(
-                    maskSource = MaskSource.U2NETP,
+                    maskSource = source,
                     bgMode = CutoutRecipe.BgMode.TRANSPARENT
                 )
             )
