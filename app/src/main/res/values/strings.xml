@@ -118,6 +118,16 @@
     <string name="ai_optimize_failed">AI optimization failed: %1$s</string>
     <string name="remove_background">Remove background</string>
     <string name="remove_background_failed">Failed to remove background</string>
+    <string name="id_photo_title">ID Photo</string>
+    <string name="id_photo_matting_failed">Portrait matting failed</string>
+    <string name="id_photo_action">ID Photo</string>
+    <string name="id_photo_size_1in">1 inch</string>
+    <string name="id_photo_size_2in">2 inch</string>
+    <string name="id_photo_size_small_1in">Small 1 inch</string>
+    <string name="id_photo_size_small_2in">Small 2 inch</string>
+    <string name="id_photo_color_blue">Blue</string>
+    <string name="id_photo_color_red">Red</string>
+    <string name="id_photo_color_white">White</string>
     <string name="processing">Processing...</string>
     <string name="analyzing_face">Analyzing face...</string>
     <string name="doodle">Doodle</string>

@@ -115,6 +115,16 @@
     <string name="ai_optimize_failed">AI 優化失敗：%1$s</string>
     <string name="remove_background">去背景</string>
     <string name="remove_background_failed">去背景失敗</string>
+    <string name="id_photo_title">證件照</string>
+    <string name="id_photo_matting_failed">人像去背失敗</string>
+    <string name="id_photo_action">證件照</string>
+    <string name="id_photo_size_1in">1寸</string>
+    <string name="id_photo_size_2in">2寸</string>
+    <string name="id_photo_size_small_1in">小1寸</string>
+    <string name="id_photo_size_small_2in">小2寸</string>
+    <string name="id_photo_color_blue">標準藍</string>
+    <string name="id_photo_color_red">標準紅</string>
+    <string name="id_photo_color_white">白</string>
     <string name="processing">處理中...</string>
     <string name="analyzing_face">分析人臉中...</string>
     <string name="doodle">塗鴉</string>
