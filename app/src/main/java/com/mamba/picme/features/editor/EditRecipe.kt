@@ -14,6 +14,7 @@ data class EditRecipe(
     val beauty: BeautySettings = BeautySettings(enabled = true),
     val colorFilter: FilterType = FilterType.NONE,
     val styleFilter: StyleFilter = StyleFilter.NONE,
+    val filterIntensity: Float = 1.0f,
     val markup: List<MarkupAction> = emptyList(),
     val cutout: CutoutRecipe? = null,
     val version: Int = RECIPE_VERSION

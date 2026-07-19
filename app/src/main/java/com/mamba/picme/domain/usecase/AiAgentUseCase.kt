@@ -308,6 +308,8 @@ class AiAgentUseCase(
                 command.resultRecipe?.let { AiAgentCommand.ApplyEditRecipe(it) }
                     ?: AiAgentCommand.TextReply("AI 优化图片: ${command.imageUri}")
             }
+            // 对话式图片编辑（Chat 路径在 ChatViewModel 处理，legacy 映射先兜底为文本）
+            is AgentCommand.EditImage -> AiAgentCommand.TextReply(command.explanation ?: "对话式编辑图片")
             // 系统/外部 App 命令
             is AgentCommand.LaunchApp -> AiAgentCommand.TextReply("打开应用: ${command.appName ?: command.packageName}")
             is AgentCommand.OpenSystemSettings -> AiAgentCommand.TextReply("打开设置: ${command.setting}")
@@ -378,6 +380,8 @@ class AiAgentUseCase(
                         cmd.resultRecipe?.let { AiAgentCommand.ApplyEditRecipe(it) }
                             ?: AiAgentCommand.TextReply("AI 优化图片: ${cmd.imageUri}")
                     }
+                    // 对话式图片编辑（Chat 路径在 ChatViewModel 处理，legacy 映射先兜底为文本）
+                    is AgentCommand.EditImage -> AiAgentCommand.TextReply(cmd.explanation ?: "对话式编辑图片")
                     // 系统/外部 App 命令
                     is AgentCommand.LaunchApp -> AiAgentCommand.TextReply("打开应用: ${cmd.appName ?: cmd.packageName}")
                     is AgentCommand.OpenSystemSettings -> AiAgentCommand.TextReply("打开设置: ${cmd.setting}")

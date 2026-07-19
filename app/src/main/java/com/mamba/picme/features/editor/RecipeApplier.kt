@@ -150,7 +150,15 @@ class RecipeApplier(
             colorMatrix.postConcat(recipe.colorFilter.toAndroidColorMatrix())
         }
         paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
-        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+
+        val intensity = recipe.filterIntensity.coerceIn(0f, 1f)
+        if (intensity >= 0.99f) {
+            canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        } else {
+            canvas.drawBitmap(bitmap, 0f, 0f, null)
+            paint.alpha = (intensity * 255).toInt()
+            canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        }
         return output
     }
 
