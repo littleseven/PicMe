@@ -518,6 +518,9 @@
     <string name="feedback_resolve_failure_description">找不到符合「%1$s」的照片</string>
     <string name="feedback_no_more_results">没有找到更多类似的照片</string>
     <string name="chat_edit_result_default">✅ 已为你编辑这张照片</string>
+    <string name="chat_edit_unsupported_erase">智能消除正在开发中，你可以先在编辑页手动处理。</string>
+    <string name="chat_edit_unsupported_local_beauty">局部美颜暂不支持。</string>
+    <string name="chat_edit_hint">试试：磨皮 30、胶片风、调亮一点</string>
     <string name="clear_chat">清空聊天</string>
     <string name="chat_input_hint">向 AI 助手提问…</string>
 

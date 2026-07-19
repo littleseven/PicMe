@@ -1,6 +1,7 @@
 package com.mamba.picme.domain.agent.capability
 
 import android.content.Context
+import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.command.EditParams
 import com.mamba.picme.agent.core.model.context.AgentAction
@@ -11,6 +12,7 @@ import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.features.chat.ChatEditStateHolder
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
@@ -136,5 +138,42 @@ class ImageEditCapabilityTest {
     fun `activeScenes returns CHAT only`() {
         val capability = ImageEditCapability(mockk(relaxed = true), mockk(relaxed = true), ChatEditStateHolder())
         assertEquals(listOf(com.mamba.picme.agent.core.runtime.state.SceneManager.Scene.CHAT), capability.activeScenes())
+    }
+
+    @Test
+    fun `execute returns TextReply for unsupported erase`() = runTest {
+        val context = mockk<Context>(relaxed = true)
+        every { context.getString(R.string.chat_edit_unsupported_erase) } returns " erase unsupported "
+        val capability = ImageEditCapability(context, mockk(relaxed = true), ChatEditStateHolder())
+        val command = AgentCommand.EditImage(
+            imageUri = "file:///input.jpg",
+            params = EditParams(),
+            explanation = "[unsupported:erase]"
+        )
+
+        val result = capability.execute(command, AgentContext(scene = AgentScene.CHAT), null)
+
+        assertTrue(result.isSuccess)
+        val action = result.getOrThrow() as AgentAction.TextReply
+        assertEquals(command.commandId, action.commandId)
+        assertEquals(" erase unsupported ", action.message)
+    }
+
+    @Test
+    fun `execute returns TextReply for unsupported local beauty`() = runTest {
+        val context = mockk<Context>(relaxed = true)
+        every { context.getString(R.string.chat_edit_unsupported_local_beauty) } returns " local beauty unsupported "
+        val capability = ImageEditCapability(context, mockk(relaxed = true), ChatEditStateHolder())
+        val command = AgentCommand.EditImage(
+            imageUri = "file:///input.jpg",
+            params = EditParams(),
+            explanation = "[unsupported:local_beauty]"
+        )
+
+        val result = capability.execute(command, AgentContext(scene = AgentScene.CHAT), null)
+
+        assertTrue(result.isSuccess)
+        val action = result.getOrThrow() as AgentAction.TextReply
+        assertEquals(" local beauty unsupported ", action.message)
     }
 }
