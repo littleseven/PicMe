@@ -332,6 +332,20 @@ sealed class AgentCommand {
     ) : AgentCommand()
 
     /**
+     * 对话式图片编辑
+     *
+     * @property params 结构化编辑意图（美颜/滤镜/调色 delta）
+     * @property imageUri 待编辑图片 URI；为空时使用会话最近一张用户图片
+     * @property explanation 给用户的一句话说明
+     */
+    data class EditImage(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val params: EditParams,
+        val imageUri: String = "",
+        val explanation: String? = null
+    ) : AgentCommand()
+
+    /**
      * 获取本地相册摘要
      *
      * @property includeDetails 是否返回包含剩余任务数的完整摘要
@@ -498,6 +512,7 @@ sealed class AgentCommand {
             is NavigateTo -> "navigate_to"
             is GoBack -> "go_back"
             is AiOptimize -> "ai_optimize"
+            is EditImage -> "edit_image"
             is GetGallerySummary -> "get_gallery_summary"
             is StartTagScan -> "start_tag_scan"
             is ExecuteScript -> "run_gallery_script"
