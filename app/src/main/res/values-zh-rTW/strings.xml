@@ -746,4 +746,15 @@
     <string name="chat_intent_find_similar">找相似</string>
     <string name="chat_intent_edit">編輯</string>
     <string name="cd_remove_pending_image">移除已選圖片</string>
+    <string name="tag_viewer_title">標籤查看</string>
+    <string name="tag_viewer_tab_photos">照片</string>
+    <string name="tag_viewer_tab_tags">標籤聚合</string>
+    <string name="tag_viewer_search_hint">搜尋檔名或標籤</string>
+    <string name="tag_viewer_no_labels">未打標</string>
+    <string name="tag_viewer_no_photos">暫無照片</string>
+    <string name="tag_viewer_no_tags">暫無</string>
+    <string name="tag_viewer_section_scenes">場景</string>
+    <string name="tag_viewer_section_objects">物體</string>
+    <string name="tag_viewer_section_tags_field">標籤</string>
+    <string name="tag_viewer_raw_json">原始 JSON</string>
 </resources>

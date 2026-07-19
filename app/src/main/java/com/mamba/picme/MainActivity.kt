@@ -48,6 +48,7 @@ import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
 import com.mamba.picme.features.translation.SentencePieceTestScreen
+import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
 import com.mamba.picme.features.settings.ModelCenterScreen
 import com.mamba.picme.features.settings.SettingsCategory
@@ -474,6 +475,9 @@ class MainActivity : ComponentActivity() {
                                     SentencePieceTestScreen(
                                         onNavigateBack = { navController.popBackStack() }
                                     )
+                                }
+                                composable(Screen.TagViewer.route) {
+                                    TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
                                 }
                             }
                             }

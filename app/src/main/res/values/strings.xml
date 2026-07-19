@@ -774,4 +774,15 @@
     <string name="chat_intent_find_similar">Find Similar</string>
     <string name="chat_intent_edit">Edit</string>
     <string name="cd_remove_pending_image">Remove selected image</string>
+    <string name="tag_viewer_title">Tag Viewer</string>
+    <string name="tag_viewer_tab_photos">Photos</string>
+    <string name="tag_viewer_tab_tags">Tags</string>
+    <string name="tag_viewer_search_hint">Search file name or tag</string>
+    <string name="tag_viewer_no_labels">Not tagged</string>
+    <string name="tag_viewer_no_photos">No photos</string>
+    <string name="tag_viewer_no_tags">None</string>
+    <string name="tag_viewer_section_scenes">Scenes</string>
+    <string name="tag_viewer_section_objects">Objects</string>
+    <string name="tag_viewer_section_tags_field">Tags</string>
+    <string name="tag_viewer_raw_json">Raw JSON</string>
 </resources>
