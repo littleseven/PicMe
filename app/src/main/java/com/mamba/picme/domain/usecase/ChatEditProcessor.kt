@@ -41,7 +41,8 @@ class ChatEditProcessor(
     suspend fun execute(context: Context, sourceUri: String, recipe: EditRecipe): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
-                val fullBitmap = decodeFullBitmap(context, Uri.parse(sourceUri))
+                val normalizedUri = normalizeSourceUri(sourceUri)
+                val fullBitmap = decodeFullBitmap(context, Uri.parse(normalizedUri))
                     ?: return@withContext Result.failure(IllegalStateException("无法加载原图: $sourceUri"))
 
                 val applier = recipeApplierFactory(photoProcessor, photoProcessingDispatcher)
@@ -71,6 +72,19 @@ class ChatEditProcessor(
         } catch (e: Exception) {
             Logger.e(TAG, "Decode full bitmap failed", e)
             null
+        }
+    }
+
+    /**
+     * 兼容 ChatViewModel.persistImage 返回的绝对路径（无 scheme）。
+     * 将裸路径转换为 file:// URI，以便 ContentResolver 或 BitmapFactory 正确加载。
+     */
+    private fun normalizeSourceUri(sourceUri: String): String {
+        return when {
+            sourceUri.startsWith("file://") || sourceUri.startsWith("content://") ||
+                sourceUri.startsWith("android.resource://") -> sourceUri
+            sourceUri.startsWith("/") -> "file://$sourceUri"
+            else -> sourceUri
         }
     }
 

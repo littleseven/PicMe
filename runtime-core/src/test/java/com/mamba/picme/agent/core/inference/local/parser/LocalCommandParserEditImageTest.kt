@@ -48,4 +48,19 @@ class LocalCommandParserEditImageTest {
         assertEquals(EditParams.AbsoluteString("COOL"), edit.params.filterName)
         assertEquals(0.4f, edit.params.filterIntensity)
     }
+
+    @Test
+    fun `parse edit_image with standard method-params format`() {
+        val json = """
+            {"method":"edit_image","params":{"image_uri":"file:///params.jpg","brightness_delta":20,"filter_name":"WARM","filter_intensity":0.6,"explanation":"调亮并加暖色滤镜"}}
+        """.trimIndent()
+        val command = LocalCommandParser.parseLlmResponse(json, context)
+        assertTrue(command is AgentCommand.EditImage)
+        val edit = command as AgentCommand.EditImage
+        assertEquals("file:///params.jpg", edit.imageUri)
+        assertEquals(20f, (edit.params.brightness as EditParams.Delta).value, 0.001f)
+        assertEquals(EditParams.AbsoluteString("WARM"), edit.params.filterName)
+        assertEquals(0.6f, edit.params.filterIntensity)
+        assertEquals("调亮并加暖色滤镜", edit.explanation)
+    }
 }

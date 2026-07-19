@@ -474,6 +474,7 @@ class LocalPromptBuilder(
                 appendLine("search_media(query, intent?), refine_media_search(constraint, intent?), feedback(target,action), more(target), exclude(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search；\"第三张不错\"用 feedback，\"再来点这种\"用 more，\"不要夜景\"用 exclude")
                 appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。当查询含时间/地点/人物等可结构化条件时，必须同时输出 intent 对象做标准化。")
                 appendLine("ai_optimize(image_uri, mode=fast|smart): AI一键优化图片。用户发送图片后说'帮我优化这张照片/修好看点'时调用；image_uri 使用最近图片 URI 或用户指定的 URI；mode 默认 fast（本地），用户要求更智能推荐时用 smart（需授权）。")
+                appendLine("edit_image(params.image_uri?, params.params): 对话式图片编辑。用户发送图片后说'调亮/磨皮/加滤镜/胶片风'等编辑意图时调用；image_uri 可选，缺省时使用最近图片；params 字段：brightness（亮度，-50~50，正值变亮）、contrast（对比度，-50~50）、saturation（饱和度，-50~50）、smoothing（磨皮，0~100）、whitening（美白，0~100）、filter_name（滤镜，同 switch_filter 的 filter 枚举）、filter_intensity（滤镜强度，0~100）、style_name（风格，同 switch_style 的 style 枚举）。支持相对调整：brightness_delta/contrast_delta/saturation_delta/smoothing_delta/whitening_delta 等 *_delta 字段。不支持的编辑请求（如消除物体/局部美颜）不要在 params 中编造，应在 explanation 中返回 [unsupported:erase] 或 [unsupported:local_beauty]。")
                 appendLine("start_tag_scan(action=start|pause|resume|cancel|query, task_type=face|scene|activity|objects|tags|summary|mlkit|auto, mode=full|incremental): 启动或控制本地 TAG 扫描。用户说'扫描照片''开始人脸分组''继续扫描''取消扫描''扫描进度'时调用。未指定类别用 auto，未指定模式用 incremental。")
             }
             appendLine("navigate_to(destination), go_back, text_reply(message)")
@@ -504,6 +505,9 @@ class LocalPromptBuilder(
                 appendLine("帮我优化这张照片 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\"}}]")
                 appendLine("把这张照片修好看点 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\"}}]")
                 appendLine("用云端模型优化这张照片 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\",\"mode\":\"smart\"}}]")
+                appendLine("把这张照片调亮一点 -> [{\"method\":\"edit_image\",\"params\":{\"brightness_delta\":20}}]")
+                appendLine("磨皮 30 并换成胶片风 -> [{\"method\":\"edit_image\",\"params\":{\"smoothing\":30,\"filter_name\":\"FILM_GOLD\",\"filter_intensity\":70}}]")
+                appendLine("加冷色滤镜 -> [{\"method\":\"edit_image\",\"params\":{\"filter_name\":\"COOL\",\"filter_intensity\":60}}]")
             } else {
                 appendLine("磨皮60拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"smoothing\":60}},{\"method\":\"capture\",\"params\":{}}]")
                 appendLine("美白50磨皮30拍照 -> [{\"method\":\"adjust_beauty\",\"params\":{\"whitening\":50,\"smoothing\":30}},{\"method\":\"capture\",\"params\":{}}]  // 注意：以'拍照'结尾，必须有capture")

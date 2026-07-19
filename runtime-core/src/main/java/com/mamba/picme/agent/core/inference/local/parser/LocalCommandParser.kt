@@ -462,7 +462,11 @@ object LocalCommandParser {
                 AgentCommand.AiOptimize(commandId = commandId, imageUri = imageUri, mode = mode)
             }
             "edit_image" -> {
-                val argsJson = extractJsonObject(json, "args") ?: "{}"
+                // 兼容两种调用形式：
+                // 1) 测试/历史格式：{"method":"edit_image","args":{...}}
+                // 2) L2 Prompt 标准 method/params 格式：{"method":"edit_image","params":{...}}
+                //    params 已在 parseSingleCommand 中扁平化合并到 json，因此无 args 时直接使用 json。
+                val argsJson = extractJsonObject(json, "args") ?: json
                 AgentCommand.EditImage(
                     commandId = commandId,
                     params = EditParams(
