@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.inference.local.parser
 
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.command.EditParams
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentIdGenerator
 import com.mamba.picme.agent.core.model.context.MediaType
@@ -459,6 +460,32 @@ object LocalCommandParser {
                 val imageUri = extractJsonField(json, "image_uri") ?: ""
                 val mode = extractJsonField(json, "mode") ?: "fast"
                 AgentCommand.AiOptimize(commandId = commandId, imageUri = imageUri, mode = mode)
+            }
+            "edit_image" -> {
+                val argsJson = extractJsonObject(json, "args") ?: "{}"
+                AgentCommand.EditImage(
+                    commandId = commandId,
+                    params = EditParams(
+                        smoothing = parseEditValue(argsJson, "smoothing"),
+                        whitening = parseEditValue(argsJson, "whitening"),
+                        slimFace = parseEditValue(argsJson, "slim_face"),
+                        bigEyes = parseEditValue(argsJson, "big_eyes"),
+                        lipColor = parseEditValue(argsJson, "lip_color"),
+                        blush = parseEditValue(argsJson, "blush"),
+                        eyebrow = parseEditValue(argsJson, "eyebrow"),
+                        brightness = parseEditValue(argsJson, "brightness"),
+                        exposure = parseEditValue(argsJson, "exposure"),
+                        contrast = parseEditValue(argsJson, "contrast"),
+                        saturation = parseEditValue(argsJson, "saturation"),
+                        temperature = parseEditValue(argsJson, "temperature"),
+                        tint = parseEditValue(argsJson, "tint"),
+                        filterName = parseEditValue(argsJson, "filter_name"),
+                        filterIntensity = extractJsonFloat(argsJson, "filter_intensity"),
+                        styleName = parseEditValue(argsJson, "style_name")
+                    ),
+                    imageUri = extractJsonField(argsJson, "image_uri") ?: "",
+                    explanation = extractJsonField(argsJson, "explanation")?.takeIf { it.isNotBlank() }
+                )
             }
 
             // ===== 相册摘要命令 =====
@@ -931,6 +958,28 @@ object LocalCommandParser {
     private fun extractJsonLong(json: String, key: String): Long? {
         val regex = """"$key"\s*:\s*(-?\d+)""".toRegex()
         return regex.find(json)?.groupValues?.get(1)?.toLongOrNull()
+    }
+
+    /**
+     * 解析 edit_image 的单个编辑参数。
+     *
+     * 支持三种形式：
+     * - `"key": 数值` -> [EditParams.Absolute]
+     * - `"key": "字符串"` -> [EditParams.AbsoluteString]
+     * - `"key_delta": 数值` -> [EditParams.Delta]
+     * - 不存在 -> [EditParams.Unchanged]
+     */
+    private fun parseEditValue(argsJson: String, key: String): EditParams.Value {
+        val absoluteNumber = extractJsonFloat(argsJson, key)
+        if (absoluteNumber != null) return EditParams.Absolute(absoluteNumber)
+
+        val absoluteString = extractJsonField(argsJson, key)
+        if (absoluteString != null) return EditParams.AbsoluteString(absoluteString)
+
+        val delta = extractJsonFloat(argsJson, "${key}_delta")
+        if (delta != null) return EditParams.Delta(delta)
+
+        return EditParams.Unchanged
     }
 
     /**
