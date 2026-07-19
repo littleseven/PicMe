@@ -223,6 +223,12 @@ class MainActivity : ComponentActivity() {
                                             Screen.PhotoEditor.createRoute(sourceUri = uri, autoOptimize = autoOptimize),
                                             navOptions { launchSingleTop = true }
                                         )
+                                    },
+                                    onNavigateToIDPhoto = { uri ->
+                                        navController.navigate(
+                                            Screen.IDPhoto.createRoute(sourceUri = uri),
+                                            navOptions { launchSingleTop = true }
+                                        )
                                     }
                                 )
                             }

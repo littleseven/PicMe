@@ -47,6 +47,7 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.rounded.AutoFixHigh
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Badge
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -147,6 +148,7 @@ fun MediaPager(
     ocrState: StateFlow<MediaViewModel.OcrResult?>,
     onNavigateToEditor: (MediaAsset) -> Unit,
     onAiOptimize: (MediaAsset) -> Unit,
+    onIdPhoto: (MediaAsset) -> Unit = {},
     voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: () -> Unit = {}
 ) {
@@ -268,6 +270,12 @@ fun MediaPager(
                         if (asset != null && asset.type == MediaType.PHOTO) {
                             Log.d(TAG, "Navigate to photo editor")
                             onNavigateToEditor(asset)
+                        }
+                    },
+                    onStartIdPhoto = {
+                        val asset = assets.getOrNull(pagerState.currentPage)
+                        if (asset != null && asset.type == MediaType.PHOTO) {
+                            onIdPhoto(asset)
                         }
                     },
                     onStartVision = {
@@ -992,6 +1000,7 @@ private fun mediaPagerBottomBar(
     showInfo: Boolean,
     onShare: () -> Unit,
     onStartEdit: () -> Unit,
+    onStartIdPhoto: () -> Unit,
     onStartVision: () -> Unit,
     onToggleLandmarks: () -> Unit,
     onToggleInfo: () -> Unit,
@@ -1052,6 +1061,28 @@ private fun mediaPagerBottomBar(
                     )
                     Text(
                         "编辑",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            // 证件照
+            IconButton(
+                onClick = onStartIdPhoto,
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Transparent
+                )
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Rounded.Badge,
+                        contentDescription = stringResource(R.string.id_photo_action),
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        stringResource(R.string.id_photo_action),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )

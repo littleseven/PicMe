@@ -783,6 +783,12 @@ fun GalleryScreen(
                                 navOptions { launchSingleTop = true }
                             )
                         },
+                        onIdPhoto = { asset ->
+                            navController.navigate(
+                                Screen.IDPhoto.createRoute(sourceUri = asset.uri),
+                                navOptions { launchSingleTop = true }
+                            )
+                        },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = {
                             searchScope.launch {

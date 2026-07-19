@@ -168,7 +168,8 @@ fun ChatScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToGallery: (String) -> Unit = {},
     mediaViewModel: MediaViewModel,
-    onNavigateToPhotoEditor: (uri: String, autoOptimize: Boolean) -> Unit = { _, _ -> }
+    onNavigateToPhotoEditor: (uri: String, autoOptimize: Boolean) -> Unit = { _, _ -> },
+    onNavigateToIDPhoto: (uri: String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -440,7 +441,8 @@ fun ChatScreen(
                     },
                     mediaViewModel = mediaViewModel,
                     viewModel = viewModel,
-                    onNavigateToPhotoEditor = onNavigateToPhotoEditor
+                    onNavigateToPhotoEditor = onNavigateToPhotoEditor,
+                    onNavigateToIDPhoto = onNavigateToIDPhoto
                 )
             }
 
@@ -509,6 +511,7 @@ fun ChatScreen(
                     ocrState = mediaViewModel.ocrState,
                     onNavigateToEditor = { asset -> onNavigateToPhotoEditor(asset.uri, false) },
                     onAiOptimize = { asset -> onNavigateToPhotoEditor(asset.uri, true) },
+                    onIdPhoto = { asset -> onNavigateToIDPhoto(asset.uri) },
                     voiceCoordinator = null,
                     onReTag = {
                         context.startForegroundService(
@@ -819,7 +822,8 @@ private fun ChatInputArea(
     onSendMessage: (String) -> Unit,
     mediaViewModel: MediaViewModel,
     viewModel: ChatViewModel,
-    onNavigateToPhotoEditor: (String, Boolean) -> Unit
+    onNavigateToPhotoEditor: (String, Boolean) -> Unit,
+    onNavigateToIDPhoto: (String) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
     var showModelMenu by remember { mutableStateOf(false) }
