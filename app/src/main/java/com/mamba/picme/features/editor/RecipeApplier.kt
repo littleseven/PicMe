@@ -160,7 +160,7 @@ class RecipeApplier(
      */
     suspend fun applyCutout(bitmap: Bitmap, cutout: CutoutRecipe?): Bitmap {
         if (cutout == null || mattingEngine == null) return bitmap
-        val result = mattingEngine.removeBackground(bitmap) ?: return bitmap
+        val result = mattingEngine.removeBackground(bitmap, cutout.maskSource) ?: return bitmap
         val alpha = if (cutout.feather > 0) {
             MaskPostProcessor.feather(result.alpha, result.width, result.height, cutout.feather)
         } else {

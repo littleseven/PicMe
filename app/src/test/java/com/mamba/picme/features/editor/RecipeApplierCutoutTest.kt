@@ -2,6 +2,7 @@ package com.mamba.picme.features.editor
 
 import android.graphics.Bitmap
 import com.mamba.picme.beauty.api.PhotoProcessor
+import com.mamba.picme.domain.matting.MaskSource
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.matting.MattingResult
 import io.mockk.mockk
@@ -32,7 +33,7 @@ class RecipeApplierCutoutTest {
     fun `applyCutout transparent removes background where mask is zero`() = runBlocking {
         // 全 0 alpha（背景）-> 抠图后像素全透明
         val engine = object : MattingEngine {
-            override suspend fun removeBackground(bitmap: Bitmap): MattingResult =
+            override suspend fun removeBackground(bitmap: Bitmap, maskSource: MaskSource): MattingResult =
                 MattingResult(FloatArray(bitmap.width * bitmap.height) { 0f }, bitmap.width, bitmap.height)
         }
         val applier = RecipeApplier(processor, mattingEngine = engine)
@@ -44,7 +45,7 @@ class RecipeApplierCutoutTest {
     @Test
     fun `applyCutout color mode composites on solid color`() = runBlocking {
         val engine = object : MattingEngine {
-            override suspend fun removeBackground(bitmap: Bitmap): MattingResult =
+            override suspend fun removeBackground(bitmap: Bitmap, maskSource: MaskSource): MattingResult =
                 MattingResult(FloatArray(bitmap.width * bitmap.height) { 0f }, bitmap.width, bitmap.height)
         }
         val applier = RecipeApplier(processor, mattingEngine = engine)
