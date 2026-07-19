@@ -35,7 +35,8 @@ class AssetMattingModelResolver(context: Context) : MattingModelResolver {
 
     companion object {
         private val MODEL_ASSET_PATHS = mapOf(
-            "u2netp-onnx" to ("matting/u2netp.onnx" to "u2netp.onnx")
+            "u2netp-onnx" to ("matting/u2netp.onnx" to "u2netp.onnx"),
+            "modnet-onnx" to ("matting/modnet.onnx" to "modnet.onnx")
         )
 
         /** 测试可见：把 bytes 写入 modelDirRoot/<modelId>/<fileName>，命中缓存（已存在且非空）则直接返回。 */
