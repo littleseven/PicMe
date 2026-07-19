@@ -69,7 +69,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun DebugScreen(
     onNavigateBack: () -> Unit,
-    mediaViewModel: MediaViewModel
+    mediaViewModel: MediaViewModel,
+    onNavigateToTagViewer: () -> Unit
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -88,6 +89,7 @@ fun DebugScreen(
         progress = progress,
         logs = logs,
         onNavigateBack = onNavigateBack,
+        onNavigateToTagViewer = onNavigateToTagViewer,
         onPauseResume = {
             if (isPaused) {
                 SampleDataGenerator.resume()
@@ -147,7 +149,8 @@ private fun DebugContent(
     onPopulateSwimwear: () -> Unit,
     onPopulateSexy: () -> Unit,
     onClearData: () -> Unit,
-    onScreenshot: () -> Unit
+    onScreenshot: () -> Unit,
+    onNavigateToTagViewer: () -> Unit
 ) {
     var filterText by remember { mutableStateOf("") }
     val filteredLogs = remember(logs, filterText) {
@@ -220,6 +223,25 @@ private fun DebugContent(
                 Icon(Icons.Default.Save, null)
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.screenshot))
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
+            Text(
+                stringResource(R.string.tag_viewer_debug_section),
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            Button(
+                onClick = onNavigateToTagViewer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Search, null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.tag_viewer_open_entry))
             }
 
             HorizontalDivider(

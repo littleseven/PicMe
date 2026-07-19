@@ -462,7 +462,8 @@ class MainActivity : ComponentActivity() {
                                 }
                                 DebugScreen(
                                     onNavigateBack = { navController.popBackStack() },
-                                    mediaViewModel = mediaViewModel
+                                    mediaViewModel = mediaViewModel,
+                                    onNavigateToTagViewer = { navController.navigate(Screen.TagViewer.route) }
                                 )
                             }
                             if (BuildConfig.DEBUG) {

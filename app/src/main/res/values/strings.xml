@@ -785,4 +785,6 @@
     <string name="tag_viewer_section_objects">Objects</string>
     <string name="tag_viewer_section_tags_field">Tags</string>
     <string name="tag_viewer_raw_json">Raw JSON</string>
+    <string name="tag_viewer_debug_section">Dev Test Pages</string>
+    <string name="tag_viewer_open_entry">View generated tags</string>
 </resources>
