@@ -118,6 +118,7 @@
     <string name="id_photo_title">證件照</string>
     <string name="id_photo_matting_failed">人像去背失敗</string>
     <string name="id_photo_action">證件照</string>
+    <string name="id_photo_action_short">證照</string>
     <string name="id_photo_size_1in">1寸</string>
     <string name="id_photo_size_2in">2寸</string>
     <string name="id_photo_size_small_1in">小1寸</string>

@@ -217,6 +217,65 @@ fun MediaPager(
                 } ?: ""
             }
 
+            // 更多菜单回调（菜单已从底部栏移至顶部栏，提取为局部 val 供顶部栏引用）
+            val onStartVisionClick: () -> Unit = {
+                val asset = assets.getOrNull(pagerState.currentPage)
+                if (asset?.type == MediaType.PHOTO) {
+                    Log.d("Gallery", "Trigger vision inference for asset: ${asset.id}")
+                    visionResult = null
+                    isVisionLoading = true
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val bitmap = context.contentResolver.openInputStream(asset.uri.toUri())?.use {
+                                BitmapFactory.decodeStream(it)
+                            }
+                            if (bitmap != null) {
+                                val orchestrator = AgentOrchestrator.getInstance(context)
+
+                                // 确保模型已加载并执行图像推理
+                                val inferenceResult = orchestrator.withModelLoaded(
+                                    modelId = "qwen3_5_2b",
+                                    useOpencl = false,
+                                    caller = "MediaPager:imageInference"
+                                ) { engine ->
+                                    engine.imageInference(
+                                        bitmap = bitmap,
+                                        systemPrompt = "你是一个图像理解助手。请用简洁的中文描述这张图片的内容，包括主要对象、场景、颜色和氛围。",
+                                        userPrompt = "请描述这张图片",
+                                        maxTokens = 256
+                                    )
+                                }
+
+                                val result = if (inferenceResult.isSuccess) {
+                                    inferenceResult.getOrThrow()
+                                } else {
+                                    val error = inferenceResult.exceptionOrNull()
+                                    Log.e("Gallery", "Vision inference failed", error)
+                                    visionResult = "模型加载失败: ${error?.message ?: "未知错误"}"
+                                    bitmap.recycle()
+                                    isVisionLoading = false
+                                    return@launch
+                                }
+                                visionResult = result.ifEmpty { "模型返回了空结果" }
+                                bitmap.recycle()
+                            } else {
+                                visionResult = "无法加载图片"
+                            }
+                        } catch (e: Exception) {
+                            Log.e("Gallery", "Vision inference failed", e)
+                            visionResult = "推理失败: ${e.message}"
+                        }
+                        isVisionLoading = false
+                    }
+                }
+            }
+            val onToggleLandmarksClick: () -> Unit = { showLandmarkOverlay = !showLandmarkOverlay }
+            val onStartOcrClick: () -> Unit = {
+                val selectedAsset = assets.getOrNull(pagerState.currentPage)
+                Log.d("Gallery", "Trigger OCR via toolbar button for asset: ${selectedAsset?.id}")
+                selectedAsset?.let { onStartOcr(it.uri) }
+            }
+
             // Top Controls with animated visibility
             AnimatedVisibility(
                 visible = showBarsVisible && !currentPageZoomed,
@@ -237,7 +296,10 @@ fun MediaPager(
                         Log.d("Gallery", "Toggle info visibility via top bar")
                         showInfo = !showInfo
                     },
-                    onReTag = onReTag
+                    onStartVision = onStartVisionClick,
+                    onToggleLandmarks = onToggleLandmarksClick,
+                    onStartOcr = onStartOcrClick,
+                    showLandmarkAction = currentAsset?.type == MediaType.PHOTO
                 )
             }
 
@@ -250,9 +312,6 @@ fun MediaPager(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     mediaPagerBottomBar(
-                        showLandmarkAction = currentAsset?.type == MediaType.PHOTO,
-                        showLandmarkOverlay = showLandmarkOverlay,
-                        showInfo = showInfo,
                     onShare = {
                         val selectedAsset = assets.getOrNull(pagerState.currentPage)
                         Log.d("Gallery", "Share media from pager: ${selectedAsset?.id}")
@@ -278,68 +337,6 @@ fun MediaPager(
                             onIdPhoto(asset)
                         }
                     },
-                    onStartVision = {
-                        val asset = assets.getOrNull(pagerState.currentPage)
-                        if (asset?.type != MediaType.PHOTO) return@mediaPagerBottomBar
-                        Log.d("Gallery", "Trigger vision inference for asset: ${asset.id}")
-                        visionResult = null
-                        isVisionLoading = true
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val bitmap = context.contentResolver.openInputStream(asset.uri.toUri())?.use {
-                                    BitmapFactory.decodeStream(it)
-                                }
-                                if (bitmap != null) {
-                                    val orchestrator = AgentOrchestrator.getInstance(context)
-
-                                    // 确保模型已加载并执行图像推理
-                                    val inferenceResult = orchestrator.withModelLoaded(
-                                        modelId = "qwen3_5_2b",
-                                        useOpencl = false,
-                                        caller = "MediaPager:imageInference"
-                                    ) { engine ->
-                                        engine.imageInference(
-                                            bitmap = bitmap,
-                                            systemPrompt = "你是一个图像理解助手。请用简洁的中文描述这张图片的内容，包括主要对象、场景、颜色和氛围。",
-                                            userPrompt = "请描述这张图片",
-                                            maxTokens = 256
-                                        )
-                                    }
-
-                                    val result = if (inferenceResult.isSuccess) {
-                                        inferenceResult.getOrThrow()
-                                    } else {
-                                        val error = inferenceResult.exceptionOrNull()
-                                        Log.e("Gallery", "Vision inference failed", error)
-                                        visionResult = "模型加载失败: ${error?.message ?: "未知错误"}"
-                                        bitmap.recycle()
-                                        isVisionLoading = false
-                                        return@launch
-                                    }
-                                    visionResult = result.ifEmpty { "模型返回了空结果" }
-                                    bitmap.recycle()
-                                } else {
-                                    visionResult = "无法加载图片"
-                                }
-                            } catch (e: Exception) {
-                                Log.e("Gallery", "Vision inference failed", e)
-                                visionResult = "推理失败: ${e.message}"
-                            }
-                            isVisionLoading = false
-                        }
-                    },
-                    onToggleLandmarks = {
-                        showLandmarkOverlay = !showLandmarkOverlay
-                    },
-                    onToggleInfo = {
-                        Log.d("Gallery", "Toggle info visibility via button")
-                        showInfo = !showInfo
-                    },
-                    onStartOcr = {
-                        val selectedAsset = assets.getOrNull(pagerState.currentPage)
-                        Log.d("Gallery", "Trigger OCR via toolbar button for asset: ${selectedAsset?.id}")
-                        selectedAsset?.let { onStartOcr(it.uri) }
-                    },
                     onDelete = {
                         val selectedAsset = assets.getOrNull(pagerState.currentPage)
                         if (selectedAsset != null) {
@@ -359,7 +356,8 @@ fun MediaPager(
             if (showInfo && currentAsset != null && !showLandmarkOverlay) {
                 PhotoInfoDialog(
                     asset = currentAsset,
-                    onDismiss = { showInfo = false }
+                    onDismiss = { showInfo = false },
+                    onReTag = onReTag
                 )
             }
 
@@ -910,9 +908,13 @@ private fun mediaPagerTopControls(
     onClose: () -> Unit,
     dateText: String,
     onToggleInfo: () -> Unit,
-    onReTag: () -> Unit,
+    onStartVision: () -> Unit,
+    onToggleLandmarks: () -> Unit,
+    onStartOcr: () -> Unit,
+    showLandmarkAction: Boolean,
     modifier: Modifier = Modifier
 ) {
+    var showMoreMenu by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Color.Black.copy(alpha = 0.85f)
@@ -956,7 +958,7 @@ private fun mediaPagerTopControls(
                 }
             }
 
-            // Right: Info + Refresh TAG
+            // Right: Info + 更多（图像理解/OCR/人脸关键点）
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -975,18 +977,82 @@ private fun mediaPagerTopControls(
                     )
                 }
 
-                IconButton(
-                    onClick = onReTag,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.Transparent
-                    )
-                ) {
-                    Icon(
-                        Icons.Rounded.Refresh,
-                        contentDescription = stringResource(R.string.regenerate_tag),
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
+                Box {
+                    IconButton(
+                        onClick = { showMoreMenu = true },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = Color.Transparent
+                        )
+                    ) {
+                        Icon(
+                            Icons.Rounded.MoreHoriz,
+                            contentDescription = stringResource(R.string.more),
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMoreMenu,
+                        onDismissRequest = { showMoreMenu = false },
+                        modifier = Modifier.background(Color.DarkGray.copy(alpha = 0.95f))
+                    ) {
+                        // 图像理解
+                        DropdownMenuItem(
+                            text = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Icon(
+                                        Icons.Rounded.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text("图像理解", color = Color.White, fontSize = 14.sp)
+                                }
+                            },
+                            onClick = {
+                                showMoreMenu = false
+                                onStartVision()
+                            }
+                        )
+                        // OCR 文字识别
+                        DropdownMenuItem(
+                            text = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.TextSnippet,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text("OCR 文字识别", color = Color.White, fontSize = 14.sp)
+                                }
+                            },
+                            onClick = {
+                                showMoreMenu = false
+                                onStartOcr()
+                            }
+                        )
+                        // 人脸关键点
+                        if (showLandmarkAction) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Icon(
+                                            Icons.Rounded.Face,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Text("人脸关键点", color = Color.White, fontSize = 14.sp)
+                                    }
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    onToggleLandmarks()
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -995,20 +1061,12 @@ private fun mediaPagerTopControls(
 
 @Composable
 private fun mediaPagerBottomBar(
-    showLandmarkAction: Boolean,
-    showLandmarkOverlay: Boolean,
-    showInfo: Boolean,
     onShare: () -> Unit,
     onStartEdit: () -> Unit,
     onStartIdPhoto: () -> Unit,
-    onStartVision: () -> Unit,
-    onToggleLandmarks: () -> Unit,
-    onToggleInfo: () -> Unit,
-    onStartOcr: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showMoreMenu by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier
@@ -1082,143 +1140,31 @@ private fun mediaPagerBottomBar(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        stringResource(R.string.id_photo_action),
+                        stringResource(R.string.id_photo_action_short),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
                 }
             }
 
-            // 图片理解
+            // 删除
             IconButton(
-                onClick = onStartVision,
+                onClick = onDelete,
                 colors = IconButtonDefaults.iconButtonColors(
                     containerColor = Color.Transparent
                 )
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Rounded.AutoAwesome,
-                        contentDescription = stringResource(R.string.image_understand),
-                        tint = Color.White.copy(alpha = 0.9f),
+                        Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.delete),
+                        tint = Color(0xFFFF5252),
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        "理解",
-                        color = Color.White.copy(alpha = 0.7f),
+                        "删除",
+                        color = Color(0xFFFF5252),
                         fontSize = 10.sp
-                    )
-                }
-            }
-
-            // 更多
-            Box {
-                IconButton(
-                    onClick = { showMoreMenu = true },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.Transparent
-                    )
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Rounded.MoreHoriz,
-                            contentDescription = stringResource(R.string.more),
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Text(
-                            "更多",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 10.sp
-                        )
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = showMoreMenu,
-                    onDismissRequest = { showMoreMenu = false },
-                    modifier = Modifier.background(Color.DarkGray.copy(alpha = 0.95f))
-                ) {
-                    // OCR
-                    DropdownMenuItem(
-                        text = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Icon(
-                                    Icons.AutoMirrored.Rounded.TextSnippet,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text("OCR 文字识别", color = Color.White, fontSize = 14.sp)
-                            }
-                        },
-                        onClick = {
-                            showMoreMenu = false
-                            onStartOcr()
-                        }
-                    )
-
-                    // 人脸关键点
-                    if (showLandmarkAction) {
-                        DropdownMenuItem(
-                            text = {
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Icon(
-                                        Icons.Rounded.Face,
-                                        contentDescription = null,
-                                        tint = if (showLandmarkOverlay) Color(0xFF4FC3F7) else Color.White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Text(
-                                        if (showLandmarkOverlay) "人脸关键点 (已开启)" else "人脸关键点",
-                                        color = Color.White,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            },
-                            onClick = {
-                                showMoreMenu = false
-                                onToggleLandmarks()
-                            }
-                        )
-                    }
-
-                    // 图片信息
-                    DropdownMenuItem(
-                        text = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Icon(
-                                    Icons.Rounded.Info,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text("图片信息", color = Color.White, fontSize = 14.sp)
-                            }
-                        },
-                        onClick = {
-                            showMoreMenu = false
-                            onToggleInfo()
-                        }
-                    )
-
-                    // 删除
-                    DropdownMenuItem(
-                        text = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Icon(
-                                    Icons.Rounded.Delete,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFF5252),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text("删除", color = Color(0xFFFF5252), fontSize = 14.sp)
-                            }
-                        },
-                        onClick = {
-                            showMoreMenu = false
-                            onDelete()
-                        }
                     )
                 }
             }
@@ -1229,7 +1175,8 @@ private fun mediaPagerBottomBar(
 @Composable
 private fun PhotoInfoDialog(
     asset: MediaAsset,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onReTag: () -> Unit
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -1349,6 +1296,14 @@ private fun PhotoInfoDialog(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
+                        )
+                    }
+                    IconButton(onClick = onReTag, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Rounded.Refresh,
+                            contentDescription = stringResource(R.string.regenerate_tag),
+                            tint = Color.Gray,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {

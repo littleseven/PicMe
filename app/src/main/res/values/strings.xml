@@ -121,6 +121,7 @@
     <string name="id_photo_title">ID Photo</string>
     <string name="id_photo_matting_failed">Portrait matting failed</string>
     <string name="id_photo_action">ID Photo</string>
+    <string name="id_photo_action_short">ID</string>
     <string name="id_photo_size_1in">1 inch</string>
     <string name="id_photo_size_2in">2 inch</string>
     <string name="id_photo_size_small_1in">Small 1 inch</string>
