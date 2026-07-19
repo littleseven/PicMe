@@ -51,4 +51,11 @@ sealed class Screen(val route: String) {
             }
         }
     }
+
+    data object IDPhoto : Screen("id_photo/{sourceUri}") {
+        fun createRoute(sourceUri: String): String {
+            val encoded = java.net.URLEncoder.encode(sourceUri, "UTF-8")
+            return "id_photo/$encoded"
+        }
+    }
 }

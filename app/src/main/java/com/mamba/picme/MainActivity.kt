@@ -41,6 +41,8 @@ import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.debug.DebugScreen
 import com.mamba.picme.features.editor.PhotoEditorScreen
 import com.mamba.picme.features.editor.PhotoEditorViewModel
+import com.mamba.picme.features.idphoto.IDPhotoScreen
+import com.mamba.picme.features.idphoto.IDPhotoViewModel
 import com.mamba.picme.features.gallery.GalleryScreen
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -309,6 +311,23 @@ class MainActivity : ComponentActivity() {
                                             ?.set("photo_editor_output_uri", outputUri)
                                         navController.popBackStack()
                                     }
+                                )
+                            }
+                            composable(
+                                route = Screen.IDPhoto.route,
+                                arguments = listOf(
+                                    navArgument("sourceUri") { type = NavType.StringType }
+                                )
+                            ) { backStackEntry ->
+                                val encodedSource = backStackEntry.arguments?.getString("sourceUri") ?: ""
+                                val sourceUri = java.net.URLDecoder.decode(encodedSource, "UTF-8")
+                                val factory = app.container.createIDPhotoViewModelFactory()
+                                val viewModel: IDPhotoViewModel = viewModel(factory = factory)
+                                IDPhotoScreen(
+                                    sourceUri = sourceUri,
+                                    viewModel = viewModel,
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onSaved = { navController.popBackStack() }
                                 )
                             }
                             composable(Screen.TagControl.route) {

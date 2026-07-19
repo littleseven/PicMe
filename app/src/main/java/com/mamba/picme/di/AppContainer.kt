@@ -56,7 +56,9 @@ import com.mamba.picme.domain.usecase.OcrProcessor
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.chat.ChatViewModelDependencies
+import com.mamba.picme.domain.matting.MattingEngineImpl
 import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
+import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
 import androidx.lifecycle.ViewModel
 import com.mamba.picme.domain.tag.TagScanProgress
@@ -142,6 +144,8 @@ interface AppContainer {
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
     fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory
+
+    fun createIDPhotoViewModelFactory(): ViewModelProvider.Factory
 
     /** 创建 MediaStoreObserver（需要 ContentResolver，按需创建） */
     fun createMediaStoreObserver(onChange: (List<MediaChangeEvent>) -> Unit): MediaStoreObserver
@@ -456,6 +460,14 @@ class AppContainerImpl(
         )
     }
 
+    private val idPhotoViewModelFactory: ViewModelProvider.Factory by lazy {
+        IDPhotoViewModelFactory(
+            appContext = context,
+            mattingEngineFactory = { ctx -> MattingEngineImpl(ctx) },
+            mediaRepository = repository
+        )
+    }
+
     private val chatViewModelDependencies: ChatViewModelDependencies by lazy {
         ChatViewModelDependencies(
             context = context,
@@ -480,6 +492,10 @@ class AppContainerImpl(
 
     override fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory {
         return photoEditorViewModelFactory
+    }
+
+    override fun createIDPhotoViewModelFactory(): ViewModelProvider.Factory {
+        return idPhotoViewModelFactory
     }
 
     override fun createChatViewModelFactory(): ViewModelProvider.Factory {
