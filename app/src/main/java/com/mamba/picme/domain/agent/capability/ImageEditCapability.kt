@@ -75,7 +75,7 @@ class ImageEditCapability(
                 AgentAction.Error(
                     commandId = command.commandId,
                     errorCode = AgentErrorCode.METHOD_NOT_FOUND,
-                    message = "ImageEditCapability 仅支持 edit_image 命令"
+                    message = this.context.getString(R.string.chat_edit_method_not_found)
                 )
             )
 
@@ -104,7 +104,7 @@ class ImageEditCapability(
                 AgentAction.Error(
                     commandId = editCommand.commandId,
                     errorCode = AgentErrorCode.INVALID_PARAMS,
-                    message = "未找到可编辑的图片，请先发送或选择一张照片"
+                    message = this.context.getString(R.string.chat_edit_no_image)
                 )
             )
         }
@@ -132,7 +132,7 @@ class ImageEditCapability(
                             AgentAction.Error(
                                 commandId = editCommand.commandId,
                                 errorCode = AgentErrorCode.INTERNAL_ERROR,
-                                message = "图片编辑失败：${e.message ?: "未知错误"}"
+                                message = this.context.getString(R.string.chat_edit_render_failed, e.message ?: this.context.getString(R.string.unknown))
                             )
                         )
                     }
@@ -143,7 +143,7 @@ class ImageEditCapability(
                 AgentAction.Error(
                     commandId = editCommand.commandId,
                     errorCode = AgentErrorCode.INTERNAL_ERROR,
-                    message = "图片编辑执行异常：${e.message ?: "未知错误"}"
+                    message = this.context.getString(R.string.chat_edit_execution_failed, e.message ?: this.context.getString(R.string.unknown))
                 )
             )
         }

@@ -521,6 +521,12 @@
     <string name="chat_edit_unsupported_erase">智能消除正在开发中，你可以先在编辑页手动处理。</string>
     <string name="chat_edit_unsupported_local_beauty">局部美颜暂不支持。</string>
     <string name="chat_edit_hint">试试：磨皮 30、胶片风、调亮一点</string>
+    <string name="chat_edit_method_not_found">ImageEditCapability 仅支持 edit_image 命令。</string>
+    <string name="chat_edit_no_image">未找到可编辑的图片，请先发送或选择一张照片。</string>
+    <string name="chat_edit_render_failed">图片编辑失败：%1$s</string>
+    <string name="chat_edit_execution_failed">图片编辑执行异常：%1$s</string>
+    <string name="chat_edit_suggestion_brighter">再亮一点</string>
+    <string name="chat_edit_suggestion_fine_tune">去编辑页微调</string>
     <string name="clear_chat">清空聊天</string>
     <string name="chat_input_hint">向 AI 助手提问…</string>
 

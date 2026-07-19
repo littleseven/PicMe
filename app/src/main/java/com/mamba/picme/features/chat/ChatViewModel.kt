@@ -1708,7 +1708,10 @@ class ChatViewModel(
         val metadata = JSONObject().apply {
             put("imageUri", imageUri)
             put("explanation", explanation)
-            put("suggestions", JSONArray(listOf("再亮一点", "去编辑页微调")))
+            put("suggestions", JSONArray(listOf(
+                context.getString(R.string.chat_edit_suggestion_brighter),
+                context.getString(R.string.chat_edit_suggestion_fine_tune)
+            )))
             performance?.let {
                 put("prompt_len", it.promptLen)
                 put("decode_len", it.decodeLen)

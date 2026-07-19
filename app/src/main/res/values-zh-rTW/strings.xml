@@ -521,6 +521,12 @@
     <string name="chat_edit_unsupported_erase">智慧消除正在開發中，你可以先在編輯頁手動處理。</string>
     <string name="chat_edit_unsupported_local_beauty">局部美顏暫不支援。</string>
     <string name="chat_edit_hint">試試：磨皮 30、膠片風、調亮一點</string>
+    <string name="chat_edit_method_not_found">ImageEditCapability 僅支援 edit_image 命令。</string>
+    <string name="chat_edit_no_image">未找到可編輯的圖片，請先傳送或選擇一張照片。</string>
+    <string name="chat_edit_render_failed">圖片編輯失敗：%1$s</string>
+    <string name="chat_edit_execution_failed">圖片編輯執行異常：%1$s</string>
+    <string name="chat_edit_suggestion_brighter">再亮一點</string>
+    <string name="chat_edit_suggestion_fine_tune">去編輯頁微調</string>
     <string name="clear_chat">清空聊天</string>
     <string name="chat_input_hint">向 AI 助手提問…</string>
 

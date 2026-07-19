@@ -377,6 +377,12 @@
     <string name="chat_edit_unsupported_erase">Object removal is in development. You can use the editor manually.</string>
     <string name="chat_edit_unsupported_local_beauty">Per-area beauty adjustment is not supported yet.</string>
     <string name="chat_edit_hint">Try: smooth skin 30, film filter, brighter</string>
+    <string name="chat_edit_method_not_found">ImageEditCapability only supports the edit_image command.</string>
+    <string name="chat_edit_no_image">No editable image found. Please send or select a photo first.</string>
+    <string name="chat_edit_render_failed">Image editing failed: %1$s</string>
+    <string name="chat_edit_execution_failed">Image editing execution error: %1$s</string>
+    <string name="chat_edit_suggestion_brighter">Make it brighter</string>
+    <string name="chat_edit_suggestion_fine_tune">Fine-tune in editor</string>
     <string name="ai_model_manager">AI Model Manager</string>
     <string name="ai_model_manager_desc">Manage on-device AI models.</string>
     <string name="model_center">Model Center</string>
