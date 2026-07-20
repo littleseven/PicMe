@@ -643,11 +643,8 @@ class TagScanOrchestrator(
                     qwenModelPrepared = true
                 }
 
-                // 在 Pass 3 首个任务前预热 MobileCLIP 分类器，避免 per-image warmUp 开销。
-                if (task.pass == TagScanPass.QWEN_TAGGING && !mobileClipClassifierPrepared) {
-                    scheduler.warmUpMobileClipClassifier()
-                    mobileClipClassifierPrepared = true
-                }
+                // MobileCLIP 不参与 Pass3 打标（已移除 MobileClipTagClassifier.classify），无需预热。
+                // MobileCLIP 语义向量在 Pass1 内联编码供语义搜索，与此处无关。
 
                 val startMs = System.currentTimeMillis()
                 db.tagScanTaskDao().markRunning(task.id)

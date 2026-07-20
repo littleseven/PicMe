@@ -302,44 +302,21 @@ class TagGenerationPipeline(
         val faceCount = if (faceRoi?.hasFace == true) faceRoi.faceCount else 0
         val isGroupPhoto = faceRoi?.isGroupPhoto ?: false
 
-        // 1. 先尝试 MobileCLIP 分类（仅中英语言；其他语言自动回退到 Qwen 全量输出）
-        val mobileClipTags = mobileClipTagClassifier?.classify(bitmap, targetLanguage)
-
-        // 2. MobileCLIP 成功时：Qwen 只输出 activity + summary
-        //    MobileCLIP 失败时：Qwen 输出全量字段作为回退
-        return if (mobileClipTags != null) {
-            val qwenActivitySummary = runQwenActivityAndSummary(bitmap, faceCount, isGroupPhoto)
-            if (qwenActivitySummary != null) {
-                Stage3CombinedResult(
-                    scene = mobileClipTags.scene,
-                    activity = qwenActivitySummary.activity,
-                    objects = mobileClipTags.objects,
-                    tags = mobileClipTags.tags,
-                    summary = qwenActivitySummary.summary,
-                    fromMobileClip = true
-                )
-            } else {
-                Stage3CombinedResult(
-                    scene = mobileClipTags.scene,
-                    objects = mobileClipTags.objects,
-                    tags = mobileClipTags.tags,
-                    fromMobileClip = true
-                )
-            }
+        // MobileCLIP 不参与打标：实测 MobileClipTagClassifier qualityOk=false（全乱标），
+        // 且每张白跑一次 classify 浪费算力。Pass3 直接 SmolVLM 全量输出。
+        // MobileCLIP 语义向量（Pass1 semanticEmbedding）保留，仅供语义搜索。
+        val qwenTags = runQwenFull(bitmap, faceCount, isGroupPhoto)
+        return if (qwenTags != null) {
+            Stage3CombinedResult(
+                scene = qwenTags.scene,
+                activity = qwenTags.activity,
+                objects = qwenTags.objects,
+                tags = qwenTags.tags,
+                summary = qwenTags.summary,
+                fromMobileClip = false
+            )
         } else {
-            val qwenTags = runQwenFull(bitmap, faceCount, isGroupPhoto)
-            if (qwenTags != null) {
-                Stage3CombinedResult(
-                    scene = qwenTags.scene,
-                    activity = qwenTags.activity,
-                    objects = qwenTags.objects,
-                    tags = qwenTags.tags,
-                    summary = qwenTags.summary,
-                    fromMobileClip = false
-                )
-            } else {
-                Stage3CombinedResult()
-            }
+            Stage3CombinedResult()
         }
     }
 
