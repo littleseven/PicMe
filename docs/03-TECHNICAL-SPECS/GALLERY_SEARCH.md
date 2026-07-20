@@ -1,9 +1,9 @@
 # PoLang 相册自然语言搜索技术方案
 
-> **状态**: 已实施  
-> **最后更新**: 2026-07-05  
+> **状态**: 已实施 / 已补充 LLM 意图标准化  
+> **最后更新**: 2026-07-20  
 > **维护者**: RD Agent  
-> **关联代码**: `app/src/main/java/com/mamba/picme/domain/search/`、`app/src/main/java/com/mamba/picme/domain/tag/`、`app/src/main/java/com/mamba/picme/features/gallery/`
+> **关联代码**: `app/src/main/java/com/mamba/picme/domain/search/`、`app/src/main/java/com/mamba/picme/features/chat/capability/`、`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/`
 
 ---
 
@@ -38,14 +38,22 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 0: QuerySegmenter 语义分段                                │
+│  Layer 0: LLM 意图标准化（Chat 场景优先）                         │
+│  search_media / refine_media_search 携带 SearchIntent             │
+│  近半年/去年/上个月 → TimeRange {startMs, endMs}                  │
+│  小孩/海边/上海/自拍 → keywords / locationKeywords / hasFaces     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (Gallery 搜索框入口)
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 0.5: QuerySegmenter 语义分段                              │
 │  时间 / 地点 / 人物 / 物体 / 场景 / 活动 / OCR / 未知             │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Layer 1: QueryParser 规则解析                                   │
-│  去年/今年/夏天/本周/五月 → TimeRange                             │
+│  去年/今年/夏天/本周/五月/近半年 → TimeRange                      │
 │  北京/室内/海边 → locationKeywords                                │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -71,10 +79,15 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  UI: GalleryScreen 搜索结果网格                                  │
+│  UI: GalleryScreen / Chat 消息卡片                               │
 │  长按选择、批量删除/分享、删除后自动刷新搜索结果                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**双入口说明**：
+
+- **Chat 对话入口**：用户输入先由本地/远程 LLM 解析为 `AgentCommand.SearchMedia(query, intent)`。若 `intent` 非空，直接构造 `StructuredFilter` 调用 `MediaSearchEngine.search(filter)`，跳过分词/规则解析；若 LLM 未输出 `intent`，则回退到 `Layer 0.5 ~ Layer 3` 的规则路径。
+- **Gallery 搜索框入口**：不经过 LLM，直接走 `QuerySegmenter → QueryParser → ExplicitFirstSearchPipeline → SemanticSearchEngine → MediaSearchEngine`。
 
 ---
 
@@ -120,6 +133,67 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 
 ## 4. 在线查询层
 
+### 4.0 LLM 意图标准化（新增）
+
+`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/SearchIntent.kt`
+
+在 Chat 场景下，搜索不再依赖纯规则解析。LLM 在解析 `search_media` / `refine_media_search` 命令时，同时输出一个标准化的 `SearchIntent`：
+
+```kotlin
+data class SearchIntent(
+    val query: String,
+    val timeRange: TimeRange? = null,
+    val keywords: List<String> = emptyList(),
+    val ocrKeywords: List<String> = emptyList(),
+    val locationKeywords: List<String> = emptyList(),
+    val personName: String? = null,
+    val hasFaces: Boolean? = null
+)
+
+data class TimeRange(
+    val startMs: Long,
+    val endMs: Long
+)
+```
+
+**关键规则**：
+
+- **时间标准化**：Prompt 明确告知 LLM 当前时间（`now=`），要求把“近半年”“去年”“上个月”“近 3 个月”等相对表达换算为毫秒时间戳。例如 `近半年小孩的照片` → `TimeRange(startMs=1735689600000, endMs=1751327999999)`。
+- **与本地字段对齐**：`keywords` 对应 `labels/mlKitLabels/ocrText/fileName`；`locationKeywords` 对应 `locationName`；`hasFaces` 对应 `hasFace`；`personName` 对应人脸聚类后的 `persons`。
+- **命令层传递**：本地链路在 `LocalPromptBuilder` 中输出 `params.intent`；远程链路在 `RemotePromptBuilder` 的 Tool Spec 中定义 `intent` 参数；`LocalCommandParser` / `ToolCallCommandParser` 负责把 JSON 反序列化为 `SearchIntent`。
+- **退化策略**：当 LLM 未输出 `intent` 或所有结构化字段为空时，`SearchIntent? = null`，下游自动回退到 `QueryParser` 规则解析。
+
+**Chat 链路**：
+
+```
+用户输入 "近半年小孩的照片"
+    │
+    ▼
+AgentOrchestrator.streamChat()
+    │
+    ▼
+Local/Remote LLM → AgentCommand.SearchMedia(
+    query = "近半年小孩的照片",
+    intent = SearchIntent(
+        timeRange = TimeRange(...),   // 近半年
+        keywords = ["小孩"],
+        hasFaces = true
+    )
+)
+    │
+    ▼
+ChatSearchCapability.execute()
+    │
+    ▼
+ChatViewModel.onSearchMedia(query, intent)
+    │
+    ▼
+searchIntentToStructuredFilter(intent) → StructuredFilter
+    │
+    ▼
+MediaSearchEngine.search(filter)
+```
+
 ### 4.1 QuerySegmenter 语义分段
 
 `app/src/main/java/com/mamba/picme/domain/search/QuerySegmenter.kt`
@@ -144,9 +218,12 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 - 绝对年月：`2024年3月`
 - 中文月份：`五月`、`十一月`
 - 季节：`夏天`、`春天`、`秋天`、`冬天`
-- 相对：`上个月`、`本周`、`上周`、`昨天`、`今天`、`前天`
+- 相对天/周/月：`上个月`、`本周`、`上周`、`昨天`、`今天`、`前天`
+- 相对 N 个月：`近半年`、`最近半年`、`半年内`、`近一年`、`近3个月`、`近三个月`（2026-07 补齐，作为 LLM 标准化失败时的兜底）
 
 输出 `StructuredFilter { timeRange, keywords, ocrKeywords, locationKeywords, hasFaces, personName }`。
+
+> **注意**：规则层是 LLM 标准化的兜底，不是主路径。Chat 场景下优先以 LLM 输出的 `SearchIntent.timeRange` 为准，避免“近半年”被规则或模型错误解释为其他时间范围。
 
 ### 4.3 ExplicitFirstSearchPipeline 显式约束优先召回
 
@@ -169,7 +246,9 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 
 `app/src/main/java/com/mamba/picme/domain/search/MediaSearchEngine.kt`
 
-搜索入口 `search(query)` 的执行顺序：
+搜索入口分为两个：
+
+#### `search(query)` — 字符串入口（Gallery 搜索框、无 LLM 标准化时）
 
 1. 尝试 `QuerySegmenter` + `ExplicitFirstSearchPipeline`。
 2. 同时调用 `SemanticSearchEngine.searchByText()` 做语义召回。
@@ -178,6 +257,17 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
    - 语义相似度分 × `SEMANTIC_SCORE_WEIGHT`
    - 时间衰减分 × `TIME_SCORE_WEIGHT`
 4. 规则失败时回退到 LLM 解析；LLM 失败时回退到全字段模糊搜索。
+
+#### `search(filter, limitToIds?)` — 结构化入口（Chat LLM 标准化后）
+
+直接接收 `StructuredFilter`，跳过 `QueryParser` 和 `QuerySegmenter`：
+
+1. `executeFilter(filter)` 并行查询时间范围、关键词、OCR、地点、人脸。
+2. 若 `limitToIds` 非空（如多轮细化），在上一步结果集中按 ID 过滤。
+3. 调用 `SemanticSearchEngine.searchByText(query, filter, topK=50)` 做语义召回。
+4. `mergeAndRank()` 融合排序后返回。
+
+**多轮细化**：`RefineMediaSearch` 通过 `limitToIds = priorResultIds` 在上一轮结果集内执行 in-set 过滤，避免“只要近半年的”这类追加条件触发全库重搜。
 
 ### 4.6 中文查询翻译（ChineseQueryTranslator）
 
@@ -239,6 +329,14 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 | 单阶段执行 | `domain/tag/TagGenerationScheduler.kt` | Pass 1/2/3/5 原子任务 |
 | 数据访问 | `data/local/MediaDao.kt` | 搜索相关 DAO 方法 |
 | UI | `features/gallery/GalleryScreen.kt` | 搜索状态、结果展示、批量操作 |
+| **LLM 意图模型** | `runtime-core/.../model/context/SearchIntent.kt` | `SearchIntent` / `TimeRange` 定义 |
+| **命令定义** | `runtime-core/.../model/command/AgentCommands.kt` | `SearchMedia` / `RefineMediaSearch` 等 |
+| **本地 Prompt** | `runtime-core/.../inference/local/prompt/LocalPromptBuilder.kt` | Chat 场景搜索意图 Prompt 与示例 |
+| **本地解析器** | `runtime-core/.../inference/local/parser/LocalCommandParser.kt` | `params.intent` → `SearchIntent` |
+| **远程 Prompt** | `runtime-core/.../inference/remote/prompt/RemotePromptBuilder.kt` | Tool Spec 中定义 `intent` 参数 |
+| **远程解析器** | `runtime-core/.../inference/remote/parser/ToolCallCommandParser.kt` | `arguments.intent` → `SearchIntent` |
+| **Chat 搜索能力** | `features/chat/capability/ChatSearchCapability.kt` | CHAT 场景搜索命令分发 |
+| **Chat 执行层** | `features/chat/ChatViewModel.kt` | `SearchIntent` → `StructuredFilter` → `MediaSearchEngine.search(filter)` |
 
 ---
 

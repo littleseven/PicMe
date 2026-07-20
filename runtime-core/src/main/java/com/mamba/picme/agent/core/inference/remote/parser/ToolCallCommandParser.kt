@@ -5,6 +5,8 @@ import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.agent.core.model.context.SearchIntent
+import com.mamba.picme.agent.core.model.context.TimeRange
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
@@ -247,12 +249,58 @@ object ToolCallCommandParser {
     }
 
     private fun parseSearchMedia(args: JSONObject): AgentCommand.SearchMedia {
-        return AgentCommand.SearchMedia(query = args.optString("query", ""))
+        val query = args.optString("query", "")
+        val intent = parseSearchIntent(args.optJSONObject("intent"))
+        return AgentCommand.SearchMedia(query = query, intent = intent)
     }
 
     private fun parseRefineMediaSearch(args: JSONObject): AgentCommand.RefineMediaSearch {
-        return AgentCommand.RefineMediaSearch(
-            constraint = args.optString("constraint", args.optString("query", ""))
+        val constraint = args.optString("constraint", args.optString("query", ""))
+        val intent = parseSearchIntent(args.optJSONObject("intent"))
+        return AgentCommand.RefineMediaSearch(constraint = constraint, intent = intent)
+    }
+
+    private fun parseSearchIntent(intentObj: JSONObject?): SearchIntent? {
+        if (intentObj == null) return null
+        val timeRangeObj = intentObj.optJSONObject("time_range")
+        val timeRange = if (timeRangeObj != null) {
+            val startMs = timeRangeObj.optLong("start_ms", timeRangeObj.optLong("startMs", 0L))
+            val endMs = timeRangeObj.optLong("end_ms", timeRangeObj.optLong("endMs", 0L))
+            if (startMs > 0 && endMs > 0) TimeRange(startMs = startMs, endMs = endMs) else null
+        } else null
+
+        val keywords = intentObj.optJSONArray("keywords")?.let { arr ->
+            List(arr.length()) { arr.optString(it, "") }.filter { it.isNotEmpty() }
+        } ?: emptyList()
+
+        val ocrKeywords = intentObj.optJSONArray("ocr_keywords")?.let { arr ->
+            List(arr.length()) { arr.optString(it, "") }.filter { it.isNotEmpty() }
+        } ?: emptyList()
+
+        val locationKeywords = intentObj.optJSONArray("location_keywords")?.let { arr ->
+            List(arr.length()) { arr.optString(it, "") }.filter { it.isNotEmpty() }
+        } ?: emptyList()
+
+        val personName = intentObj.optString("person_name", intentObj.optString("personName", ""))
+            .takeIf { it.isNotEmpty() }
+        val hasFaces = if (intentObj.has("has_faces") || intentObj.has("hasFaces")) {
+            intentObj.optBoolean("has_faces", intentObj.optBoolean("hasFaces", false))
+        } else null
+
+        if (timeRange == null && keywords.isEmpty() && ocrKeywords.isEmpty() &&
+            locationKeywords.isEmpty() && personName.isNullOrBlank() && hasFaces == null
+        ) {
+            return null
+        }
+
+        return SearchIntent(
+            query = intentObj.optString("query", ""),
+            timeRange = timeRange,
+            keywords = keywords,
+            ocrKeywords = ocrKeywords,
+            locationKeywords = locationKeywords,
+            personName = personName,
+            hasFaces = hasFaces
         )
     }
 

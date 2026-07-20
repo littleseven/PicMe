@@ -707,12 +707,31 @@ sealed class AgentCommand {
     data class SwitchFilter(val filterType: FilterType) : AgentCommand()
     // ... 其他相机命令
     
-    // ===== Gallery 命令（新增）=====
+    // ===== Gallery / Chat 相册搜索命令（新增）=====
     data class ViewMedia(val mediaId: String? = null) : AgentCommand()
     data class DeleteMedia(val mediaIds: List<String> = emptyList()) : AgentCommand()
     data class ShareMedia(val mediaIds: List<String> = emptyList()) : AgentCommand()
     data class SelectMedia(val mediaId: String, val selected: Boolean) : AgentCommand()
-    data class SearchMedia(val query: String) : AgentCommand()
+    /**
+     * 搜索媒体
+     *
+     * @property query 原始查询文本，必填；用于展示与语义召回兜底。
+     * @property intent 可选的标准化搜索意图。当 LLM 能可靠拆出时间/关键词/地点/人物时填充，
+     *                  下游可直接用结构化过滤执行精确 Room 查询；为 null 时退回到字符串解析。
+     */
+    data class SearchMedia(
+        val query: String,
+        val intent: SearchIntent? = null
+    ) : AgentCommand()
+
+    /**
+     * 细化上一轮相册搜索结果（in-set 过滤）。
+     */
+    data class RefineMediaSearch(
+        val constraint: String,
+        val intent: SearchIntent? = null
+    ) : AgentCommand()
+
     data class SwitchViewMode(val mode: ViewMode) : AgentCommand()
     
     // ===== 设置命令（新增）=====
@@ -758,6 +777,8 @@ sealed class AgentCommand {
 | | 切换场景模式 | `SwitchScene` | CameraCapability | 已验证 |
 | | 切换画幅比例 | `SwitchRatio` | CameraCapability | 已验证 |
 | **对话** | 文本回复/聊天 | `TextReply` | CameraCapability | 已验证 |
+| **相册搜索** | 自然语言搜照片（含 LLM 意图标准化） | `SearchMedia` | GalleryCapability / ChatSearchCapability | 已验证 |
+| **相册搜索** | 多轮结果细化（in-set 过滤） | `RefineMediaSearch` | ChatSearchCapability | 已验证 |
 | **远程控制** | 飞书消息处理 | 多种 | RemoteControlCapability | 开发中 |
 
 #### V2 新增功能（开发中）
@@ -767,7 +788,6 @@ sealed class AgentCommand {
 | **Gallery** | 查看照片 | `ViewMedia` | GalleryCapability | P0 |
 | | 删除照片 | `DeleteMedia` | GalleryCapability | P0 |
 | | 分享照片 | `ShareMedia` | GalleryCapability | P1 |
-| | 照片搜索 | `SearchMedia` | GalleryCapability | P2 |
 | **设置** | 切换主题 | `ChangeTheme` | SettingsCapability | P1 |
 | | 切换语言 | `ChangeLanguage` | SettingsCapability | P1 |
 | **导航** | 切换页面 | `NavigateTo` | NavigationCapability | P0 |
@@ -781,6 +801,27 @@ sealed class AgentCommand {
 ### 6.1 AgentCommand 密封类
 
 见 [第 5 章](#5-命令扩展)。
+
+新增的标准化搜索意图模型（位于 `runtime-core`）：
+
+```kotlin
+data class SearchIntent(
+    val query: String,
+    val timeRange: TimeRange? = null,
+    val keywords: List<String> = emptyList(),
+    val ocrKeywords: List<String> = emptyList(),
+    val locationKeywords: List<String> = emptyList(),
+    val personName: String? = null,
+    val hasFaces: Boolean? = null
+)
+
+data class TimeRange(
+    val startMs: Long,
+    val endMs: Long
+)
+```
+
+`SearchIntent` 由 LLM 在解析 `SearchMedia` / `RefineMediaSearch` 时生成，用于把“近半年”“去年”等相对时间词直接转换为绝对时间戳，避免规则解析遗漏或错误。
 
 ### 6.2 推理结果包装
 

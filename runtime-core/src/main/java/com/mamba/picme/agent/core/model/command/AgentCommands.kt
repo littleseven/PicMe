@@ -2,6 +2,7 @@ package com.mamba.picme.agent.core.model.command
 
 import com.mamba.picme.agent.core.model.context.AgentIdGenerator
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.agent.core.model.context.SearchIntent
 import com.mamba.picme.agent.core.model.plan.ExecutionPlan
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
@@ -178,19 +179,28 @@ sealed class AgentCommand {
 
     /**
      * 搜索媒体
+     *
+     * @property query 原始查询文本，必填；用于展示与语义召回兜底。
+     * @property intent 可选的标准化搜索意图。当 LLM 能可靠拆出时间/关键词/地点/人物时填充，
+     *                  下游可直接用结构化过滤执行精确 Room 查询；为 null 时退回到字符串解析。
      */
     data class SearchMedia(
         override val commandId: Int = AgentIdGenerator.nextId(),
-        val query: String
+        val query: String,
+        val intent: SearchIntent? = null
     ) : AgentCommand()
 
     /**
      * 细化上一轮相册搜索结果（in-set 过滤）。
      * 由 Agent 在识别到用户对上一轮结果收窄时发出；命中 id 集合由 ChatViewModel 按 session 持有。
+     *
+     * @property constraint 原始细化条件文本，必填。
+     * @property intent 可选的标准化搜索意图；与 [SearchMedia.intent] 语义一致。
      */
     data class RefineMediaSearch(
         override val commandId: Int = AgentIdGenerator.nextId(),
-        val constraint: String
+        val constraint: String,
+        val intent: SearchIntent? = null
     ) : AgentCommand()
 
     /**

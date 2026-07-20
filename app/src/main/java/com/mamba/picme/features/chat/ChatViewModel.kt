@@ -12,8 +12,10 @@ import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.MediaAsset
-import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.agent.core.model.context.SearchIntent
+import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
+import com.mamba.picme.agent.core.model.context.TimeRange
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
@@ -28,6 +30,7 @@ import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
+import com.mamba.picme.domain.model.StructuredFilter
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.domain.usecase.StartTagScanResult
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
@@ -855,32 +858,58 @@ class ChatViewModel(
 
     // ── ChatSearchCapability.Delegate：相册搜索执行 ────────────────
 
-    override suspend fun onSearchMedia(query: String): SearchOutcome {
+    override suspend fun onSearchMedia(query: String, intent: SearchIntent?): SearchOutcome {
         val sessionId = _currentSessionId.value
-        val result = runCatching { mediaSearchEngine.search(query) }.getOrElse {
+        val start = System.currentTimeMillis()
+        val result = runCatching {
+            if (intent != null) {
+                val filter = searchIntentToStructuredFilter(intent)
+                mediaSearchEngine.search(filter = filter)
+            } else {
+                mediaSearchEngine.search(query)
+            }
+        }.getOrElse {
+            Logger.w(TAG, "onSearchMedia failed for '$query'", it)
             return SearchOutcome(query, emptyList(), 0, isRefinement = false)
         }
+        Logger.i(TAG, "onSearchMedia query='$query' intent=$intent total=${result.media.size} time=${System.currentTimeMillis() - start}ms")
         val photos = result.media.filter { it.type == MediaType.PHOTO }
         lastResultAssets[sessionId] = photos
         recordSearchSnapshot(sessionId, query, photos.size, isRefinement = false)
         return SearchOutcome(query, photos.map { it.id }, photos.size, isRefinement = false)
     }
 
-    override suspend fun onRefineMediaSearch(constraint: String): SearchOutcome {
+    override suspend fun onRefineMediaSearch(constraint: String, intent: SearchIntent?): SearchOutcome {
         val sessionId = _currentSessionId.value
         val prior = lastResultAssets[sessionId].orEmpty()
         // 无上一轮 → 当 fresh 全局搜
-        if (prior.isEmpty()) return onSearchMedia(constraint)
-        val cleaned = ChatGallerySearch.cleanConstraint(constraint)
+        if (prior.isEmpty()) return onSearchMedia(constraint, intent)
+
+        val start = System.currentTimeMillis()
         val priorIds = prior.map { asset -> asset.id }.toSet()
-        val searchHits = runCatching { mediaSearchEngine.search(cleaned, limitToIds = priorIds).media }
-            .getOrDefault(emptyList())
-        val refined = ChatGallerySearch.resolveRefine(prior, searchHits, cleaned)
+        val result = runCatching {
+            if (intent != null) {
+                // LLM 已给出标准化意图：直接在 prior 内执行结构化过滤
+                val filter = searchIntentToStructuredFilter(intent)
+                mediaSearchEngine.search(filter = filter, limitToIds = priorIds).media
+            } else {
+                // 兜底：字符串解析 + in-set 过滤
+                val cleaned = ChatGallerySearch.cleanConstraint(constraint)
+                val searchHits = mediaSearchEngine.search(cleaned, limitToIds = priorIds).media
+                ChatGallerySearch.resolveRefine(prior, searchHits, cleaned)
+            }
+        }.getOrElse {
+            Logger.w(TAG, "onRefineMediaSearch failed for '$constraint'", it)
+            return SearchOutcome(constraint, emptyList(), 0, isRefinement = true)
+        }
+
+        val refined = result
         val faceInPrior = prior.count { a -> a.hasFace }
         Logger.i(
             TAG,
             "onRefineMediaSearch prior=${prior.size} hasFaceInPrior=$faceInPrior " +
-                "constraint='$constraint' cleaned='$cleaned' searchHits=${searchHits.size} refined=${refined.size}"
+                "constraint='$constraint' intent=$intent refined=${refined.size} " +
+                "time=${System.currentTimeMillis() - start}ms"
         )
         // in-set 空 → 保留上一轮结果集不变，返回空细化结果。不再全局重搜 constraint：
         // 那会用与既有条件无关的新结果覆盖状态，破坏多轮收敛（用户会看到无关照片）。
@@ -890,6 +919,23 @@ class ChatViewModel(
         lastResultAssets[sessionId] = refined
         recordSearchSnapshot(sessionId, constraint, refined.size, isRefinement = true)
         return SearchOutcome(constraint, refined.map { it.id }, refined.size, isRefinement = true)
+    }
+
+    /**
+     * 将 runtime-core 的 [SearchIntent] 转换为 app 层的 [StructuredFilter]。
+     */
+    private fun searchIntentToStructuredFilter(intent: SearchIntent): StructuredFilter {
+        return StructuredFilter(
+            timeRange = intent.timeRange?.let {
+                com.mamba.picme.domain.model.TimeRange(startMs = it.startMs, endMs = it.endMs)
+            },
+            keywords = intent.keywords,
+            ocrKeywords = intent.ocrKeywords,
+            locationKeywords = intent.locationKeywords,
+            personName = intent.personName,
+            hasFaces = intent.hasFaces,
+            needsLlm = false
+        )
     }
 
     private fun recordSearchSnapshot(

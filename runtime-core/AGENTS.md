@@ -14,7 +14,7 @@
 **语言**：Kotlin
 
 **版本**：1.0
-**最后更新**：2026-07-15
+**最后更新**：2026-07-20
 **状态**：生效中
 
 **关键职责**：
@@ -77,6 +77,7 @@
 | `MnnResourceManager` / `MnnGlobalReleaseLock` | MNN 资源管理 | `:mnn-core`（已下沉） |
 | `ExecutionEngine` / `ExecutionReporter` / `ExecutionState` / `InferenceResult` | 执行引擎与执行状态 | `agent.core.runtime.execution` |
 | `AgentCommands` / `AgentModels` / `AiAgentConfig` / `MediaAsset` / `PageContext` / `SceneContext` / `ExecutionPlan` | 数据模型 | `agent.core.model.*` |
+| `SearchIntent` / `TimeRange` | 搜索意图标准化模型（LLM 输出 → 本地结构化过滤） | `agent.core.model.context` |
 | `AsrEngine` / `AudioRecorder` / `VadDetector` / `SherpaOnnxAsrEngine` / `KeywordSpotterEngine` | 语音交互（Sherpa-ONNX） | `agent.core.platform.voice` |
 | `LlmChatLanguageModel` / `StreamingLlmChatLanguageModel` 等 | LangChain4j 风格本地对话模型接口 | `agent.core.local.llm` |
 
@@ -112,6 +113,23 @@
 > - 远程推理通过 `:agent-core` 消费标准 OpenAI 协议
 > - 新增 `ToolCallCommandParser`：标准 tool_calls 解析器
 > - 远程推理支持 L2 Batch / L3 Plan / L4 ReAct Chat 分层模式
+>
+> **2026-07-20 Chat 相册搜索意图标准化**：
+> - 新增 `SearchIntent` / `TimeRange`（`agent.core.model.context`），作为 LLM 与本地搜索之间的结构化桥梁
+> - `AgentCommand.SearchMedia` 扩展 `intent: SearchIntent? = null`；新增 `AgentCommand.RefineMediaSearch`
+> - `LocalPromptBuilder` / `RemotePromptBuilder` 增加搜索意图 Prompt 与示例（如“近半年小孩的照片”→`intent.time_range`）
+> - `LocalCommandParser` / `ToolCallCommandParser` 支持解析 `params.intent` / `arguments.intent`
+> - `:app` 层通过 `ChatSearchCapability` 接收命令，`ChatViewModel` 将 `SearchIntent` 转换为 `StructuredFilter` 后执行精确搜索
+>
+> **2026-07-20 Chat 搜索 Prompt 性能优化（二次）**：
+> - `LocalPromptBuilder.buildChatL2StaticPrompt` 压缩 CHAT 场景 L2 Prompt：剔除冗余命令说明与示例，prompt tokens 从 ~3400 降至 ~1400
+> - `LocalPromptBuilder.buildStateSection` 对 CHAT/UNKNOWN 场景省略相机/美颜状态，仅保留 `now`、`scene`、`last_user_image_uri`、`gallery_summary` 与最近搜索结果
+> - `LocalPromptBuilder.buildSearchResultsSection` 对最近搜索结果每轮最多展示 10 条，降低多轮对话上下文膨胀
+> - 静态 Prompt 按 `scene + capabilityNames` 缓存，动态状态每轮拼接（静态+动态变量拼接）
+>
+> **2026-07-20 远程模型 reasoning_content 空内容防护**：
+> - `AgentOrchestrator.streamChatRemote` 在 `response.aiMessage().text()` 为空时，检查 `thinking()`（reasoning_content）
+> - 若仅返回 reasoning 内容，抛出带明确描述的 `IllegalStateException`，避免 `onToken(null)` 触发 NPE，UI 显示具体错误信息而非 `unknown`
 
 ## 设计原则
 
@@ -190,6 +208,7 @@
 - `MediaAsset.kt` — 媒体资产
 - `PageContext.kt` — 页面上下文
 - `SceneContext.kt` — 场景上下文
+- `SearchIntent.kt` — 搜索意图标准化模型（含 `TimeRange`）
 
 ### `model/plan/`
 - `ExecutionPlan.kt` — 执行计划

@@ -167,6 +167,44 @@ class MediaSearchEngine(
     }
 
     /**
+     * 使用已标准化的 [StructuredFilter] 直接搜索，跳过 QueryParser 规则解析。
+     *
+     * 供 chat 等已由 LLM 完成意图标准化的路径使用。
+     *
+     * @param filter 结构化过滤条件
+     * @param limitToIds 可选的 ID 集合，用于 refine 时在 prior 结果集内过滤
+     * @param enableSemanticSearch 是否启用 MobileCLIP 语义召回
+     * @return 匹配的媒体列表
+     */
+    suspend fun search(
+        filter: StructuredFilter,
+        limitToIds: Set<Long>? = null,
+        enableSemanticSearch: Boolean = true
+    ): SearchResult {
+        fun limitToIdsFilter(list: List<MediaAsset>): List<MediaAsset> =
+            if (limitToIds != null) list.filter { asset -> asset.id in limitToIds } else list
+
+        val query = filter.keywords.firstOrNull()
+            ?: filter.ocrKeywords.firstOrNull()
+            ?: filter.locationKeywords.firstOrNull()
+            ?: filter.personName
+            ?: ""
+
+        val (results, semanticResults) = coroutineScope {
+            val sqlDeferred = async { executeFilter(filter) }
+            val semanticDeferred = async {
+                if (enableSemanticSearch && semanticSearchEngine != null && query.isNotBlank()) {
+                    searchSemantic(query, filter)
+                } else emptyList()
+            }
+            sqlDeferred.await() to semanticDeferred.await()
+        }
+
+        val merged = mergeAndRank(results, semanticResults, query)
+        return SearchResult(limitToIdsFilter(merged), query)
+    }
+
+    /**
      * 执行 MobileCLIP 语义召回
      *
      * @param query 用户原始查询
@@ -277,118 +315,150 @@ class MediaSearchEngine(
     }
 
     /**
-     * 执行结构化过滤（支持新 DAO 的多维度查询）
+     * 执行结构化过滤。
+     *
+     * 语义：维度之间取**交集**（AND），同一维度内不同关键词取**并集**（OR）。
+     * 例如 "近半年小孩的照片" → 时间范围 ∩ (标签/文件名/OCR 命中 "小孩" 之一) ∩ 有人脸。
+     *
+     * 修复历史：此前实现把各维度结果累积到同一个 map 中，导致时间约束与关键词约束变成
+     * 并集，旧照片只要命中关键词就会被召回，从而出现 2003 年/2023 年等非半年内结果。
      */
     private suspend fun executeFilter(filter: StructuredFilter): List<MediaAsset> {
-        val resultMap = mutableMapOf<Long, MediaAsset>()
         val uiLang = userSettingsRepository?.getAppLanguageBlocking() ?: AppLanguage.CHINESE
+        val totalStart = System.currentTimeMillis()
 
-        applyTimeRange(filter, resultMap)
-        applyContentKeywords(filter.keywords, uiLang, resultMap)
-        applyOcrKeywords(filter.ocrKeywords, resultMap)
-        applyLocationKeywords(filter.locationKeywords, resultMap)
-        applyFaceFilter(filter.hasFaces, resultMap)
+        // 1. 显式约束候选集（时间 / 地点 / 人脸）—— 维度间交集
+        val explicitStart = System.currentTimeMillis()
+        val explicitCandidateSets = mutableListOf<Set<Long>>()
 
-        return resultMap.values.sortedByDescending { it.captureDate }
-    }
+        filter.timeRange?.let { range ->
+            explicitCandidateSets.add(mediaDao.getMediaIdsByTimeRange(range.startMs, range.endMs).toSet())
+        }
 
-    private suspend fun applyTimeRange(
-        filter: StructuredFilter,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        val timeRange = filter.timeRange ?: return
-        val timeResults = mediaDao.searchByTimeRange(timeRange.startMs, timeRange.endMs)
-        timeResults.forEach { resultMap[it.id] = it.toDomain() }
-    }
+        if (filter.locationKeywords.isNotEmpty()) {
+            val locationIds = mutableSetOf<Long>()
+            for (keyword in filter.locationKeywords) {
+                locationDao?.searchByPlace(keyword)?.mapTo(locationIds) { it.id }
+                mediaDao.getMediaIdsByLocationKeyword(keyword).mapTo(locationIds) { it }
+            }
+            explicitCandidateSets.add(locationIds)
+        }
 
-    /**
-     * 内容关键词搜索（标签 + OCR + 文件名），带跨语言扩展。
-     */
-    private suspend fun applyContentKeywords(
-        keywords: List<String>,
-        uiLang: AppLanguage,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        for (keyword in keywords) {
-            val candidates = cachedExpandForSearch(keyword, uiLang)
-            for (candidate in candidates) {
-                searchByCandidate(candidate, resultMap)
+        if (filter.hasFaces == true) {
+            explicitCandidateSets.add(mediaDao.getHasFaceIds().toSet())
+        }
+
+        val explicitCandidateIds = if (explicitCandidateSets.isEmpty()) {
+            null
+        } else {
+            explicitCandidateSets.reduce { acc, set -> acc.intersect(set) }
+        }
+        val explicitTime = System.currentTimeMillis() - explicitStart
+
+        // 2. 内容关键词候选集（标签 / ML Kit / OCR / 文件名）—— 关键词间并集
+        val contentStart = System.currentTimeMillis()
+        val contentIds = mutableSetOf<Long>()
+        val hasContentKeywords = filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty()
+
+        if (hasContentKeywords) {
+            for (keyword in filter.keywords) {
+                val candidates = cachedExpandForSearch(keyword, uiLang)
+                for (candidate in candidates) {
+                    contentIds.addAll(searchCandidateIds(candidate, explicitCandidateIds))
+                }
+            }
+            for (keyword in filter.ocrKeywords) {
+                val candidates = cachedExpandForSearch(keyword, uiLang)
+                for (candidate in candidates) {
+                    contentIds.addAll(searchOcrCandidateIds(candidate, explicitCandidateIds))
+                }
             }
         }
+        val contentTime = System.currentTimeMillis() - contentStart
+
+        // 3. 最终 ID = 显式约束 ∩ 内容关键词
+        val finalIds = when {
+            explicitCandidateIds == null && !hasContentKeywords -> emptySet()
+            explicitCandidateIds == null -> contentIds
+            !hasContentKeywords -> explicitCandidateIds
+            else -> explicitCandidateIds.intersect(contentIds)
+        }
+
+        if (finalIds.isEmpty()) {
+            Logger.d(TAG, "executeFilter empty result explicit=${explicitTime}ms content=${contentTime}ms total=${System.currentTimeMillis() - totalStart}ms")
+            return emptyList()
+        }
+        val fetchStart = System.currentTimeMillis()
+        val result = mediaDao.getMediaByIds(finalIds.toList())
+            .map { it.toDomain() }
+            .sortedByDescending { it.captureDate }
+        val fetchTime = System.currentTimeMillis() - fetchStart
+        Logger.d(
+            TAG,
+            "executeFilter result=${result.size} explicit=${explicitTime}ms content=${contentTime}ms " +
+                "fetch=${fetchTime}ms total=${System.currentTimeMillis() - totalStart}ms " +
+                "candidateIds=${explicitCandidateIds?.size ?: "null"} finalIds=${finalIds.size}"
+        )
+        return result
     }
 
     /**
-     * 按候选词搜索所有文本字段。
+     * 搜索单个候选词在所有文本字段中的命中 ID。
      *
-     * 策略：
-     * 1. 辅助表（tags/ocr_words）精确匹配
-     * 2. 主表 LIKE 查询（labels/mlKitLabels/mlKitLabelsZh/ocrText/fileName）
+     * @param candidateIds 若不为 null，则在这些 ID 内搜索并返回子集；否则全局搜索。
      */
-    private suspend fun searchByCandidate(
+    private suspend fun searchCandidateIds(
         candidate: String,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        // 辅助表查询：tags 精确匹配 + OCR word 前缀
+        candidateIds: Set<Long>?
+    ): Set<Long> {
+        val matched = mutableSetOf<Long>()
+
+        // 辅助表精确匹配（先全局查，再与候选集取交集，避免缺少 in-ID 接口）
         if (tagDao != null) {
-            tagDao.searchByExactTag(candidate).forEach { resultMap[it.id] = it.toDomain() }
+            tagDao.searchByExactTag(candidate).mapTo(matched) { it.id }
         }
         if (ocrWordDao != null) {
-            ocrWordDao.searchByWordPrefix(candidate.lowercase()).forEach { resultMap[it.id] = it.toDomain() }
+            ocrWordDao.searchByWordPrefix(candidate.lowercase()).mapTo(matched) { it.id }
         }
 
         // 主表 LIKE 查询
-        searchByLikeFallback(candidate, resultMap)
+        if (candidateIds != null) {
+            val ids = candidateIds.toList()
+            matched.addAll(mediaDao.searchLabelsInIds(ids, candidate).map { it.id })
+            matched.addAll(mediaDao.searchMlKitLabelsInIds(ids, candidate).map { it.id })
+            matched.addAll(mediaDao.searchMlKitLabelsZhInIds(ids, candidate).map { it.id })
+            matched.addAll(mediaDao.searchFileNameInIds(ids, candidate).map { it.id })
+        } else {
+            matched.addAll(mediaDao.searchByLabel(candidate).map { it.id })
+            matched.addAll(mediaDao.searchByMlKitLabel(candidate).map { it.id })
+            matched.addAll(mediaDao.searchByMlKitLabelZh(candidate).map { it.id })
+            matched.addAll(mediaDao.searchByFileName(candidate).map { it.id })
+        }
+
+        return if (candidateIds != null) matched.intersect(candidateIds) else matched
     }
 
-    /** LIKE 搜索所有文本字段 */
-    private suspend fun searchByLikeFallback(
+    /**
+     * 搜索单个 OCR 候选词的命中 ID。
+     */
+    private suspend fun searchOcrCandidateIds(
         candidate: String,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        val labelResults = mediaDao.searchByLabel(candidate)
-        val mlKitResults = mediaDao.searchByMlKitLabel(candidate)
-        val mlKitZhResults = mediaDao.searchByMlKitLabelZh(candidate)
-        val ocrResults = mediaDao.searchByOcrText(candidate)
-        val nameResults = mediaDao.searchByFileName(candidate)
-        (labelResults + mlKitResults + mlKitZhResults + ocrResults + nameResults).forEach {
-            resultMap[it.id] = it.toDomain()
-        }
-    }
+        candidateIds: Set<Long>?
+    ): Set<Long> {
+        val matched = mutableSetOf<Long>()
 
-    private suspend fun applyOcrKeywords(
-        ocrKeywords: List<String>,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        for (keyword in ocrKeywords) {
-            if (ocrWordDao != null) {
-                ocrWordDao.searchByExactWord(keyword.lowercase()).forEach { resultMap[it.id] = it.toDomain() }
-            }
-            mediaDao.searchByOcrText(keyword).forEach { resultMap[it.id] = it.toDomain() }
+        if (ocrWordDao != null) {
+            ocrWordDao.searchByExactWord(candidate.lowercase()).mapTo(matched) { it.id }
         }
-    }
 
-    private suspend fun applyLocationKeywords(
-        locationKeywords: List<String>,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        for (keyword in locationKeywords) {
-            if (locationDao != null) {
-                locationDao.searchByPlace(keyword).forEach { resultMap[it.id] = it.toDomain() }
-            }
-            mediaDao.searchByLocation(keyword).forEach { resultMap[it.id] = it.toDomain() }
+        if (candidateIds != null) {
+            val ids = candidateIds.toList()
+            matched.addAll(mediaDao.searchOcrInIds(ids, candidate).map { it.id })
+        } else {
+            matched.addAll(mediaDao.searchByOcrText(candidate).map { it.id })
         }
-    }
 
-    private suspend fun applyFaceFilter(
-        hasFaces: Boolean?,
-        resultMap: MutableMap<Long, MediaAsset>
-    ) {
-        if (hasFaces != true) return
-        // 使用 ID-based 方法避免 OOM（searchByHasFace 已废弃）
-        val ids = mediaDao.getHasFaceIds()
-        if (ids.isNotEmpty()) {
-            mediaDao.getMediaByIds(ids).forEach { resultMap[it.id] = it.toDomain() }
-        }
+        return if (candidateIds != null) matched.intersect(candidateIds) else matched
     }
 
     /**

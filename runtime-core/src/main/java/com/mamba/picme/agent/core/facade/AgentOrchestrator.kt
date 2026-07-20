@@ -594,6 +594,18 @@ class AgentOrchestrator private constructor(context: Context) {
             }
             val latencyMs = System.currentTimeMillis() - startTime
             val responseText = response.aiMessage().text()
+            if (responseText.isNullOrBlank()) {
+                val reasoning = response.aiMessage().thinking()
+                Logger.w(
+                    tag,
+                    "streamChatRemote returned empty content (reasoning=${reasoning != null}), " +
+                        "latency=${latencyMs}ms"
+                )
+                throw IllegalStateException(
+                    "Remote model returned empty response content" +
+                        if (reasoning != null) " (only reasoning content present)" else ""
+                )
+            }
             // 一次性回调完整响应
             onToken(responseText)
             val tokenUsage = response.tokenUsage()

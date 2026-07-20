@@ -8,8 +8,8 @@
 **模块定位**: Agent 命令语法与使用示例  
 **主要维护者**: [RD] 全栈工程师  
 **阅读对象**: RD、PM、AI Agent  
-**版本**: 1.1  
-**最后更新**: 2026-07-06  
+**版本**: 1.2  
+**最后更新**: 2026-07-20  
 
 ---
 
@@ -190,19 +190,37 @@ Agent: ✅ 已为你拍照
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
-| "找昨天的照片" | `SearchMedia("昨天")` | 按时间搜索 |
+| "找昨天的照片" | `SearchMedia("昨天")` | 按时间搜索（规则解析） |
 | "找有文字的照片" | `SearchMedia("文字")` | 按 OCR 内容搜索 |
 | "找自拍" | `SearchMedia("自拍")` | 按标签搜索 |
 | "搜索7月的美女" | `SearchMedia("7月的美女")` | 复合语义搜索 |
+| "近半年小孩的照片" | `SearchMedia("近半年小孩的照片", SearchIntent(timeRange=近半年, keywords=["小孩"], hasFaces=true))` | Chat 场景 LLM 直接输出结构化意图 |
+| "去年夏天的合照" | `SearchMedia("去年夏天的合照", SearchIntent(timeRange=去年夏天, keywords=["合照"], hasFaces=true))` | Chat 场景 LLM 标准化时间 |
 
-### 3.6 批量选择
+### 3.6 Chat 相册搜索细化（CHAT 场景）
+
+**Capability**: `chat_gallery_search`  
+**活跃场景**: `CHAT`
+
+用于在 Chat 页对上一轮相册搜索结果进行多轮追加、收窄或反馈。
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "只要近半年的" | `RefineMediaSearch("只要近半年的", SearchIntent(timeRange=近半年))` | 在上一轮结果内按时间过滤 |
+| "其中的日落" | `RefineMediaSearch("日落", SearchIntent(keywords=["日落"]))` | 在上一轮结果内追加关键词 |
+| "第三张不错" | `RecordMediaFeedback(Ordinal(3), LIKE)` | 记录正反馈 |
+| "不喜欢这张" | `RecordMediaFeedback(LastShown, DISLIKE)` | 记录负反馈 |
+| "再来点这种" | `MoreLikeThis(LastShown)` | 基于上一张推荐相似照片 |
+| "不要夜景" | `ExcludeConstraint("夜景")` | 在后续搜索中排除夜景 |
+
+### 3.7 批量选择
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
 | "选这张" | `SelectMedia(mediaId, selected=true)` | 选择当前媒体 |
 | "取消选择" | `SelectMedia(mediaId, selected=false)` | 取消选择 |
 
-### 3.7 视图模式切换
+### 3.8 视图模式切换
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|

@@ -8,6 +8,7 @@ import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentErrorCode
 import com.mamba.picme.agent.core.model.context.PageContext
+import com.mamba.picme.agent.core.model.context.SearchIntent
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.core.common.Logger
 import java.lang.ref.WeakReference
@@ -39,8 +40,8 @@ class ChatSearchCapability private constructor() : BaseCapability() {
      * 执行委托：由 ChatViewModel 实现并绑定。返回 [SearchOutcome]（全量命中 id）。
      */
     interface Delegate {
-        suspend fun onSearchMedia(query: String): SearchOutcome
-        suspend fun onRefineMediaSearch(constraint: String): SearchOutcome
+        suspend fun onSearchMedia(query: String, intent: SearchIntent? = null): SearchOutcome
+        suspend fun onRefineMediaSearch(constraint: String, intent: SearchIntent? = null): SearchOutcome
         suspend fun onRecordMediaFeedback(target: FeedbackTarget, action: FeedbackAction): Boolean
         suspend fun onMoreLikeThis(target: FeedbackTarget): SearchOutcome
         suspend fun onExcludeConstraint(constraint: String): Boolean
@@ -94,8 +95,9 @@ class ChatSearchCapability private constructor() : BaseCapability() {
             )
         return try {
             when (command) {
-                is AgentCommand.SearchMedia -> d.onSearchMedia(command.query).toMediaResults(command.commandId)
-                is AgentCommand.RefineMediaSearch -> d.onRefineMediaSearch(command.constraint)
+                is AgentCommand.SearchMedia -> d.onSearchMedia(command.query, command.intent)
+                    .toMediaResults(command.commandId)
+                is AgentCommand.RefineMediaSearch -> d.onRefineMediaSearch(command.constraint, command.intent)
                     .toMediaResults(command.commandId)
                 is AgentCommand.RecordMediaFeedback -> {
                     val success = d.onRecordMediaFeedback(command.target, command.action)

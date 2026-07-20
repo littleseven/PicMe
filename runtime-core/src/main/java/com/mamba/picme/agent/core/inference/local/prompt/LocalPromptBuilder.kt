@@ -22,6 +22,20 @@ class LocalPromptBuilder(
 ) {
 
     /**
+     * 静态 Prompt 缓存键。
+     *
+     * 静态部分只与 scene + capability 集合有关，与每次请求的动态上下文无关，
+     * 命中后可直接复用，避免重复拼接长字符串。
+     */
+    private data class StaticPromptKey(
+        val scene: SceneManager.Scene,
+        val capabilityNames: String
+    )
+
+    /** 静态 system prompt 缓存（base + 能力描述 + 语义映射）。 */
+    private val staticPromptCache = mutableMapOf<StaticPromptKey, String>()
+
+    /**
      * 基础 Prompt 模板
      *
      * 面向端侧小模型（Qwen3.5-2B/0.8B）优化：
@@ -325,32 +339,91 @@ class LocalPromptBuilder(
         context: AgentContext
     ): String {
         val currentScene = sceneManager.currentScene.value
-        val isChatScene = currentScene == SceneManager.Scene.CHAT
+        val capabilityNames = capabilities.joinToString(",") { it.name }.ifEmpty { "none" }
+        val cacheKey = StaticPromptKey(currentScene, capabilityNames)
+
+        val staticPart = staticPromptCache.getOrPut(cacheKey) {
+            if (currentScene == SceneManager.Scene.CHAT) {
+                buildChatL2StaticPrompt()
+            } else {
+                buildNonChatL2StaticPrompt(currentScene)
+            }
+        }
 
         return buildString {
-            if (isChatScene) {
-                appendLine("你是 PoLang 的摄影助手小浪。当前是聊天页，优先用自然语言回复用户；只有当用户明确要求执行操作（如搜照片、导航、打开应用/设置）时才输出对应命令。")
-            } else {
-                appendLine("你是相机助手。将用户指令解析为JSON命令数组。")
+            append(staticPart)
+            appendLine()
+            appendLine("【当前状态】")
+            appendLine(buildStateSection(context, currentScene))
+            // 多轮找图收敛：已有搜索结果时强制后续条件走 refine_media_search（in-set 过滤），
+            // 避免小模型反复输出 search_media 触发全库重搜、用无关结果覆盖已有结果集。
+            if (currentScene == SceneManager.Scene.CHAT && context.recentSearchResults.isNotEmpty()) {
+                appendLine()
+                appendLine("【多轮找图硬规则】（上方【最近搜索结果】非空，当前已有搜索结果）")
+                appendLine("- 用户的后续追加/收窄条件（如\"其中的\"\"只要\"\"排除\"\"再来点\"\"人少的\"等）必须输出 refine_media_search(constraint=用户原话条件)，禁止输出 search_media。")
+                appendLine("- search_media 会清空已有结果做全新全库搜索，仅当用户明确换主题（与既有结果无关的新搜索）时才用。")
             }
+        }
+    }
+
+    /**
+     * CHAT 场景专用极简静态 Prompt。
+     *
+     * 剔除所有相机控制命令、滤镜语义映射、相机示例等冗余信息，
+     * 只保留聊天页真正需要的：搜索/细化、text_reply、导航、系统控制、TAG 扫描、AI 优化。
+     */
+    private fun buildChatL2StaticPrompt(): String {
+        val (last6MStart, last6MEnd) = timeRangeMsForLastNMonths(6)
+        val (lastSummerStart, lastSummerEnd) = timeRangeMsForLastSummer()
+        val sampleUri = "/data/data/com.mamba.picme/files/picme_images/img_123.jpg"
+        return """
+            你是 PoLang 的摄影助手小浪。当前是聊天页。
+            输出规则：
+            1) 只输出JSON数组，不要解释、不要markdown、不要思考过程。
+            2) 闲聊/问答/解释/不确定时：[{"method":"text_reply","params":{"message":"中文简短回复"}}]
+            3) 禁止在聊天页输出 capture/flip_camera/adjust_beauty/switch_filter 等相机控制命令。
+
+            可用命令：
+            - text_reply(message): 闲聊、问答、解释
+            - search_media(query, intent?): 搜本地相册。用户说"找/搜...照片/图片"时无条件输出；query必须原样保留用户输入。
+            - refine_media_search(constraint, intent?): 在已有结果内追加/收窄（"只要"/"其中的"/"排除"）。
+            - feedback(target, action=like|dislike), more(target), exclude(constraint)
+            - navigate_to(destination), go_back, launch_app(app_name), open_system_settings(setting)
+            - start_tag_scan(action, task_type, mode): 启动/控制 TAG 扫描
+            - ai_optimize(image_uri, mode=fast|smart): 优化/修图
+
+            intent字段（search/refine时可选）:
+            - time_range: {start_ms, end_ms}。时间词换算：近半年=6个月前至今；去年=去年整年；上个月=上个月整月；近3个月=3个月前至今。
+            - keywords, location_keywords, ocr_keywords, person_name, has_faces
+
+            示例：
+            "去相机" -> [{"method":"navigate_to","params":{"destination":"camera"}}]
+            "近半年小孩的照片" -> [{"method":"search_media","params":{"query":"近半年小孩的照片","intent":{"time_range":{"start_ms":$last6MStart,"end_ms":$last6MEnd},"keywords":["小孩"],"has_faces":true}}}]
+            "只要近半年的" -> [{"method":"refine_media_search","params":{"constraint":"只要近半年的","intent":{"time_range":{"start_ms":$last6MStart,"end_ms":$last6MEnd}}}}}]
+            "帮我优化这张照片" -> [{"method":"ai_optimize","params":{"image_uri":"$sampleUri","mode":"fast"}}]
+        """.trimIndent()
+    }
+
+    /**
+     * 非 CHAT 场景静态 Prompt（相机/相册/设置/调试页）。
+     */
+    private fun buildNonChatL2StaticPrompt(scene: SceneManager.Scene): String {
+        return buildString {
+            appendLine("你是相机助手。将用户指令解析为JSON命令数组。")
             appendLine()
             appendLine("输出规则：")
             appendLine("1. 只输出JSON数组，不要解释、不要markdown、不要思考过程。")
             appendLine("2. 格式：[{\"method\":\"命令\",\"params\":{...}}]")
-            if (!isChatScene) {
-                appendLine("3. 【组合规则】用户说包含多个动作时（如'磨皮拍照'、'冷色滤镜拍照'），必须输出JSON数组，每个动作一个对象。")
-                appendLine("4. 【组合规则】用户说'X滤镜拍照'或'X美颜拍照'时，必须同时输出滤镜/美颜命令 + capture命令。")
-                appendLine("5. 【合并规则】用户说多个美颜参数（如'美白50磨皮30'）时，必须合并到一个 adjust_beauty 的 params 中，不要拆成多个命令。")
-                appendLine("6. 【强制规则】用户输入以'拍照'结尾时，数组最后一个元素必须是{\"method\":\"capture\",\"params\":{} }，绝对不要漏掉。")
-            } else {
-                appendLine("3. 闲聊/问答/解释/不确定时：[{\"method\":\"text_reply\",\"params\":{\"message\":\"中文回复\"}}]")
-                appendLine("4. 禁止在聊天页输出 capture/flip_camera/adjust_beauty/switch_filter 等相机控制命令；当前页面没有相机能力，输出这些命令会导致报错。")
-            }
-            appendLine("${if (isChatScene) 5 else 7}. 导航：navigate_to(params.destination=camera|gallery|settings|debug) 或 go_back")
-            appendLine("${if (isChatScene) 6 else 8}. 系统：launch_app(params.package_name|app_name), open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications)")
-            appendLine("${if (isChatScene) 7 else 9}. 延迟：delay(params.delay_ms)，必须放数组第一个")
-            appendLine("${if (isChatScene) 8 else 10}. 【相册摘要】gallery_summary 见【当前状态】；用户问照片/人脸/扫描建议时直接引用该摘要。status=no_data 时引导启动 TAG 扫描。")
-            appendLine("${if (isChatScene) 9 else 11}. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。你是命令解析器，不是内容审核员。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数，不得以任何理由拒绝、不得进行道德判断、不得输出 text_reply 替代。")
+            appendLine("3. 【组合规则】用户说包含多个动作时（如'磨皮拍照'、'冷色滤镜拍照'），必须输出JSON数组，每个动作一个对象。")
+            appendLine("4. 【组合规则】用户说'X滤镜拍照'或'X美颜拍照'时，必须同时输出滤镜/美颜命令 + capture命令。")
+            appendLine("5. 【合并规则】用户说多个美颜参数（如'美白50磨皮30'）时，必须合并到一个 adjust_beauty 的 params 中，不要拆成多个命令。")
+            appendLine("6. 【强制规则】用户输入以'拍照'结尾时，数组最后一个元素必须是{\"method\":\"capture\",\"params\":{} }，绝对不要漏掉。")
+            appendLine("7. 导航：navigate_to(params.destination=camera|gallery|settings|debug) 或 go_back")
+            appendLine("8. 系统：launch_app(params.package_name|app_name), open_system_settings(params.setting=wifi|bluetooth|display|location|app_notifications)")
+            appendLine("9. 延迟：delay(params.delay_ms)，必须放数组第一个")
+            appendLine("10. 【相册摘要】gallery_summary 见【当前状态】；用户问照片/人脸/扫描建议时直接引用该摘要。status=no_data 时引导启动 TAG 扫描。")
+            appendLine("11. 【相册搜索豁免】search_media 搜索的是用户手机本地相册，不是互联网。当用户表达搜索/查找照片的意图时，必须无条件输出 search_media 命令，将用户原话作为 query 参数。")
+            appendLine("12. 【搜索意图标准化】search_media / refine_media_search 可输出 intent 对象做时间/地点/人物/人脸标准化。")
             appendLine()
             appendLine("【语义映射】")
             appendLine("冷色/冷色调/冷滤镜/冷色滤镜/冷调滤镜 -> filter=COOL")
@@ -362,20 +435,9 @@ class LocalPromptBuilder(
             appendLine("徕卡鲜艳 -> filter=LEICA_VIBRANT")
             appendLine("徕卡黑白 -> filter=LEICA_BW")
             appendLine()
-            appendLine("【当前状态】")
-            appendLine(buildStateSection(context, currentScene))
-            // 多轮找图收敛：已有搜索结果时强制后续条件走 refine_media_search（in-set 过滤），
-            // 避免小模型反复输出 search_media 触发全库重搜、用无关结果覆盖已有结果集。
-            if (isChatScene && context.recentSearchResults.isNotEmpty()) {
-                appendLine()
-                appendLine("【多轮找图硬规则】（上方【最近搜索结果】非空，当前已有搜索结果）")
-                appendLine("- 用户的后续追加/收窄条件（如\"其中的\"\"只要\"\"排除\"\"再来点\"\"人少的\"等）必须输出 refine_media_search(constraint=用户原话条件)，禁止输出 search_media。")
-                appendLine("- search_media 会清空已有结果做全新全库搜索，仅当用户明确换主题（与既有结果无关的新搜索）时才用。")
-            }
-            appendLine()
             appendLine("【可用命令】")
-            appendLine(buildL2CapabilitiesSection(currentScene))
-        }
+            appendLine(buildL2CapabilitiesSection(scene))
+        }.trimEnd()
     }
 
     /**
@@ -403,8 +465,8 @@ class LocalPromptBuilder(
                 appendLine("launch_app(package_name|app_name), open_system_settings(setting)")
             }
             if (scene == null || scene == SceneManager.Scene.CHAT) {
-                appendLine("search_media(query), refine_media_search(constraint), feedback(target,action), more(target), exclude(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search；\"第三张不错\"用 feedback，\"再来点这种\"用 more，\"不要夜景\"用 exclude")
-                appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。")
+                appendLine("search_media(query, intent?), refine_media_search(constraint, intent?), feedback(target,action), more(target), exclude(constraint)  // 聊天内搜相册：结果以卡片直接显示在当前对话中，无需 navigate_to；用户说\"找/搜索...照片/图片\"用 search_media，在已有结果上说\"这些里的X\"用 refine_media_search；\"第三张不错\"用 feedback，\"再来点这种\"用 more，\"不要夜景\"用 exclude")
+                appendLine("  // search_media 搜索用户手机本地相册，不是互联网。无论 query 内容如何，必须输出 search_media 命令，不得拒绝。当查询含时间/地点/人物等可结构化条件时，必须同时输出 intent 对象做标准化。")
                 appendLine("ai_optimize(image_uri, mode=fast|smart): AI一键优化图片。用户发送图片后说'帮我优化这张照片/修好看点'时调用；image_uri 使用最近图片 URI 或用户指定的 URI；mode 默认 fast（本地），用户要求更智能推荐时用 smart（需授权）。")
                 appendLine("start_tag_scan(action=start|pause|resume|cancel|query, task_type=face|scene|activity|objects|tags|summary|mlkit|auto, mode=full|incremental): 启动或控制本地 TAG 扫描。用户说'扫描照片''开始人脸分组''继续扫描''取消扫描''扫描进度'时调用。未指定类别用 auto，未指定模式用 incremental。")
             }
@@ -412,6 +474,8 @@ class LocalPromptBuilder(
             appendLine()
             appendLine("示例：")
             if (scene == null || scene == SceneManager.Scene.CHAT) {
+                val (last6MStart, last6MEnd) = timeRangeMsForLastNMonths(6)
+                val (lastSummerStart, lastSummerEnd) = timeRangeMsForLastSummer()
                 appendLine("介绍一下你自己 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好，我是 PoLang 的摄影助手小浪，可以帮你拍照、搜照片、调整设置等。\"}}]")
                 appendLine("你好 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"你好呀，我是小浪，有什么可以帮你的吗？\"}}]")
                 appendLine("今天天气怎么样 -> [{\"method\":\"text_reply\",\"params\":{\"message\":\"我这边没法查实时天气哦，你可以问问系统助手～\"}}]")
@@ -419,15 +483,17 @@ class LocalPromptBuilder(
                 appendLine("返回 -> [{\"method\":\"go_back\",\"params\":{}}]")
                 appendLine("打开微信 -> [{\"method\":\"launch_app\",\"params\":{\"app_name\":\"微信\"}}]")
                 appendLine("打开WiFi设置 -> [{\"method\":\"open_system_settings\",\"params\":{\"setting\":\"wifi\"}}]")
-                appendLine("性感美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"性感美女照片\"}}]")
-                appendLine("找美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"美女照片\"}}]")
-                appendLine("搜猫的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫的照片\"}}]")
-                appendLine("找出去年夏天的合照 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的合照\"}}]")
+                appendLine("性感美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"性感美女照片\",\"intent\":{\"keywords\":[\"美女\"],\"has_faces\":true}}}]")
+                appendLine("找美女照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"美女照片\",\"intent\":{\"keywords\":[\"美女\"],\"has_faces\":true}}}]")
+                appendLine("搜猫的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫的照片\",\"intent\":{\"keywords\":[\"猫\"]}}}]")
+                appendLine("找出去年夏天的合照 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的合照\",\"intent\":{\"time_range\":{\"start_ms\":$lastSummerStart,\"end_ms\":$lastSummerEnd},\"keywords\":[\"合照\"],\"has_faces\":true}}}]")
+                appendLine("近半年小孩的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"近半年小孩的照片\",\"intent\":{\"time_range\":{\"start_ms\":$last6MStart,\"end_ms\":$last6MEnd},\"keywords\":[\"小孩\"],\"has_faces\":true}}}]")
                 appendLine("（多轮找图示例：首轮用 search_media，后续追加条件用 refine_media_search）")
-                appendLine("找海边的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"海边的\"}}]")
-                appendLine("其中有日落的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"日落\"}}]")
-                appendLine("不要人物多的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"人少\"}}]")
-                appendLine("换一个，搜猫 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫\"}}]")
+                appendLine("找海边的照片 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"海边的\",\"intent\":{\"keywords\":[\"海边\"]}}}]")
+                appendLine("其中有日落的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"日落\",\"intent\":{\"keywords\":[\"日落\"]}}}]")
+                appendLine("只要近半年的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"只要近半年的\",\"intent\":{\"time_range\":{\"start_ms\":$last6MStart,\"end_ms\":$last6MEnd}}}}]")
+                appendLine("不要人物多的 -> [{\"method\":\"refine_media_search\",\"params\":{\"constraint\":\"人少\",\"intent\":{\"keywords\":[\"人少\"]}}}]")
+                appendLine("换一个，搜猫 -> [{\"method\":\"search_media\",\"params\":{\"query\":\"猫\",\"intent\":{\"keywords\":[\"猫\"]}}}]")
                 appendLine("（假设最近图片 URI 为 /data/data/.../img_123.jpg）")
                 appendLine("帮我优化这张照片 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\"}}]")
                 appendLine("把这张照片修好看点 -> [{\"method\":\"ai_optimize\",\"params\":{\"image_uri\":\"/data/data/.../img_123.jpg\"}}]")
@@ -461,44 +527,76 @@ class LocalPromptBuilder(
         return "$date $week $time"
     }
 
+    /**
+     * 计算最近 N 个月的时间范围毫秒戳（含端点）。
+     * 用于 few-shot 示例，避免硬编码时间戳随时间过期误导模型。
+     */
+    private fun timeRangeMsForLastNMonths(months: Int): Pair<Long, Long> {
+        val now = java.time.Instant.now()
+        val end = now.toEpochMilli()
+        val start = now.minusSeconds(months * 30L * 24 * 60 * 60).toEpochMilli()
+        return start to end
+    }
+
+    /**
+     * 计算去年夏天（6 月 1 日 00:00 至 8 月 31 日 23:59:59.999）的毫秒戳。
+     */
+    private fun timeRangeMsForLastSummer(): Pair<Long, Long> {
+        val now = LocalDate.now()
+        val lastYear = now.year - 1
+        val start = LocalDate.of(lastYear, 6, 1)
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val end = LocalDate.of(lastYear, 8, 31)
+            .atTime(LocalTime.MAX)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        return start to end
+    }
+
     internal fun buildStateSection(
         context: AgentContext,
         currentScene: SceneManager.Scene? = null
     ): String {
         val sceneName = currentScene?.name ?: context.scene.name
+        val isChatLike = currentScene == SceneManager.Scene.CHAT || currentScene == SceneManager.Scene.UNKNOWN
         return buildString {
             append("now=")
             append(nowString())
             append(", scene=")
             append(sceneName)
-            append(", beauty=")
-            append(if (context.beautySettings.enabled) "on" else "off")
-            append(", smoothing=")
-            append(context.beautySettings.smoothing.toInt())
-            append(", whitening=")
-            append(context.beautySettings.whitening.toInt())
-            append(", slim_face=")
-            append(context.beautySettings.slimFace.toInt())
-            append(", big_eyes=")
-            append(context.beautySettings.bigEyes.toInt())
-            append(", lip_color=")
-            append(context.beautySettings.lipColor.toInt())
-            append(", blush=")
-            append(context.beautySettings.blush.toInt())
-            append(", eyebrow=")
-            append(context.beautySettings.eyebrow.toInt())
-            append(", filter=")
-            append(context.filterType.name)
-            append(", style=")
-            append(context.styleFilter.name)
-            append(", zoom=")
-            append(context.zoomRatio)
-            append(", exposure=")
-            append(context.exposureCompensation)
-            append(", mode=")
-            append(context.captureMode.name)
-            append(", recording=")
-            append(if (context.isRecording) "1" else "0")
+            if (!isChatLike) {
+                append(", beauty=")
+                append(if (context.beautySettings.enabled) "on" else "off")
+                append(", smoothing=")
+                append(context.beautySettings.smoothing.toInt())
+                append(", whitening=")
+                append(context.beautySettings.whitening.toInt())
+                append(", slim_face=")
+                append(context.beautySettings.slimFace.toInt())
+                append(", big_eyes=")
+                append(context.beautySettings.bigEyes.toInt())
+                append(", lip_color=")
+                append(context.beautySettings.lipColor.toInt())
+                append(", blush=")
+                append(context.beautySettings.blush.toInt())
+                append(", eyebrow=")
+                append(context.beautySettings.eyebrow.toInt())
+                append(", filter=")
+                append(context.filterType.name)
+                append(", style=")
+                append(context.styleFilter.name)
+                append(", zoom=")
+                append(context.zoomRatio)
+                append(", exposure=")
+                append(context.exposureCompensation)
+                append(", mode=")
+                append(context.captureMode.name)
+                append(", recording=")
+                append(if (context.isRecording) "1" else "0")
+            }
             append(", last_user_image_uri=")
             append(context.lastUserImageUri ?: "null")
             append(", gallery_summary=")
@@ -509,13 +607,17 @@ class LocalPromptBuilder(
 
     private fun buildSearchResultsSection(recentSearchResults: List<SearchResultSnapshot>): String {
         if (recentSearchResults.isEmpty()) return ""
+        val maxItemsPerSnapshot = 10
         return buildString {
             appendLine()
             appendLine("【最近搜索结果】")
             recentSearchResults.forEachIndexed { index, snapshot ->
                 appendLine("- 第 ${index + 1} 轮 (query=\"${snapshot.query}\", 共 ${snapshot.totalCount} 张${if (snapshot.isRefinement) ", 细化" else ""}):")
-                snapshot.results.forEachIndexed { i, item ->
+                snapshot.results.take(maxItemsPerSnapshot).forEachIndexed { i, item ->
                     appendLine("  [${i + 1}] id=${item.mediaId} tags=[${item.tags.joinToString(", ")}]")
+                }
+                if (snapshot.results.size > maxItemsPerSnapshot) {
+                    appendLine("  ... 还有 ${snapshot.results.size - maxItemsPerSnapshot} 张未列出")
                 }
             }
         }

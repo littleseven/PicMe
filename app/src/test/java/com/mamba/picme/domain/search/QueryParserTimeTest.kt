@@ -125,4 +125,75 @@ class QueryParserTimeTest {
         assertEquals(2024, cal.get(Calendar.YEAR))
         assertEquals(4, cal.get(Calendar.MONTH))
     }
+
+    @Test
+    fun `parse past half year`() {
+        QueryParser.currentYear = 2025
+        QueryParser.currentMonth = 6
+
+        val range = QueryParser.parseTimeRange("近半年")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2024, cal.get(Calendar.YEAR))
+        assertEquals(11, cal.get(Calendar.MONTH))
+
+        cal.timeInMillis = range.endMs
+        assertEquals(2025, cal.get(Calendar.YEAR))
+        assertEquals(5, cal.get(Calendar.MONTH))
+        assertEquals(23, cal.get(Calendar.HOUR_OF_DAY))
+        assertEquals(59, cal.get(Calendar.MINUTE))
+    }
+
+    @Test
+    fun `parse recent half year variants`() {
+        QueryParser.currentYear = 2025
+        QueryParser.currentMonth = 6
+
+        assertNotNull(QueryParser.parseTimeRange("最近半年"))
+        assertNotNull(QueryParser.parseTimeRange("半年内"))
+    }
+
+    @Test
+    fun `parse past year`() {
+        QueryParser.currentYear = 2025
+        QueryParser.currentMonth = 6
+
+        val range = QueryParser.parseTimeRange("近一年")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2024, cal.get(Calendar.YEAR))
+        assertEquals(5, cal.get(Calendar.MONTH))
+    }
+
+    @Test
+    fun `parse past n months`() {
+        QueryParser.currentYear = 2025
+        QueryParser.currentMonth = 6
+
+        val range = QueryParser.parseTimeRange("近3个月")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2025, cal.get(Calendar.YEAR))
+        assertEquals(2, cal.get(Calendar.MONTH))
+    }
+
+    @Test
+    fun `parse past n months with chinese digits`() {
+        QueryParser.currentYear = 2025
+        QueryParser.currentMonth = 6
+
+        val range = QueryParser.parseTimeRange("近三个月")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2025, cal.get(Calendar.YEAR))
+        assertEquals(2, cal.get(Calendar.MONTH))
+    }
 }

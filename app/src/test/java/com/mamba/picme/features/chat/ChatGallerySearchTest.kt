@@ -10,9 +10,10 @@ class ChatGallerySearchTest {
 
     private fun asset(
         id: Long, labels: String? = null, ocr: String? = null,
-        loc: String? = null, name: String = "f$id.jpg", hasFace: Boolean = false
+        loc: String? = null, name: String = "f$id.jpg", hasFace: Boolean = false,
+        captureDate: Long = id * 1000L
     ) = MediaAsset(
-        id = id, uri = "u$id", type = MediaType.PHOTO, captureDate = id * 1000L, fileName = name,
+        id = id, uri = "u$id", type = MediaType.PHOTO, captureDate = captureDate, fileName = name,
         labels = labels, ocrText = ocr, locationName = loc, hasFace = hasFace
     )
 
@@ -178,5 +179,28 @@ class ChatGallerySearchTest {
         assertEquals("女", ChatGallerySearch.cleanConstraint("只保留女性"))
         assertEquals("女", ChatGallerySearch.cleanConstraint("只要女人的照片"))
         assertEquals("男", ChatGallerySearch.cleanConstraint("男人"))
+    }
+
+    @Test
+    fun `cleanConstraint extracts time keyword from refinement`() {
+        // 用户第二轮细化「只要近半年的」应被清洗为时间词「近半年」，
+        // 供 MediaSearchEngine 解析为时间范围过滤，而不是作为标签子串匹配。
+        assertEquals("近半年", ChatGallerySearch.cleanConstraint("只要近半年的"))
+        assertEquals("近半年", ChatGallerySearch.cleanConstraint("只保留近半年的照片"))
+    }
+
+    @Test
+    fun `resolveRefine falls back to searchEngine intersection for time-only constraint`() {
+        // 时间词不会命中任何标签子串，filterInSet 为空；
+        // 应回退到 searchEngine 命中 ∩ prior。
+        val prior = listOf(
+            asset(1, labels = "child", captureDate = 1_700_000_000_000L),
+            asset(2, labels = "child", captureDate = 1_600_000_000_000L),
+            asset(3, labels = "child", captureDate = 1_500_000_000_000L)
+        )
+        // searchEngine 已按「近半年」过滤后只剩 asset(1)
+        val searchHits = listOf(asset(1, labels = "child", captureDate = 1_700_000_000_000L))
+        val result = ChatGallerySearch.resolveRefine(prior, searchHits, "近半年")
+        assertEquals(listOf(1L), result.map { it.id })
     }
 }

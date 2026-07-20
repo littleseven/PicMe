@@ -8,8 +8,8 @@
 **模块定位**: Agent 能力注册表、命令映射、实现指南与生命周期规范  
 **主要维护者**: [RD] 全栈工程师  
 **阅读对象**: RD、AI Agent  
-**版本**: 1.2  
-**最后更新**: 2026-07-08  
+**版本**: 1.3  
+**最后更新**: 2026-07-20  
 
 ---
 
@@ -18,15 +18,16 @@
 1. [Capability 概览](#capability-概览)
 2. [CameraCapability](#2-cameracapability)
 3. [GalleryCapability](#3-gallerycapability)
-4. [SettingsCapability](#4-settingscapability)
-5. [NavigationCapability](#5-navigationcapability)
-6. [SystemCapability](#6-systemcapability)
-7. [AutoTagCapability](#7-autotagcapability)
-8. [AiOptimizeCapability](#8-aioptimizecapability)
-9. [RemoteControlCapability](#9-remotecontrolcapability)
-10. [BeautyCapability（非 Agent 编排）](#10-beautycapability非-agent-编排)
-11. [附录 A：新增 Capability 指南](#附录-a新增-capability-指南)
-12. [附录 B：Capability 生命周期规范](#附录-bcapability-生命周期规范)
+4. [ChatSearchCapability](#4-chatsearchcapability)
+5. [SettingsCapability](#5-settingscapability)
+6. [NavigationCapability](#6-navigationcapability)
+7. [SystemCapability](#7-systemcapability)
+8. [AutoTagCapability](#8-autotagcapability)
+9. [AiOptimizeCapability](#9-aioptimizecapability)
+10. [RemoteControlCapability](#10-remotecontrolcapability)
+11. [BeautyCapability（非 Agent 编排）](#11-beautycapability非-agent-编排)
+12. [附录 A：新增 Capability 指南](#附录-a新增-capability-指南)
+13. [附录 B：Capability 生命周期规范](#附录-bcapability-生命周期规范)
 
 ---
 
@@ -36,6 +37,7 @@
 |------------|------|----------|--------|------|----------|
 | **CameraCapability** | `camera` | CAMERA | 12 | ✅ 已落地 | 页面级（CameraScreen） |
 | **GalleryCapability** | `gallery` | GALLERY | 7 | ✅ 已落地 | 应用级单例 + 页面 delegate |
+| **ChatSearchCapability** | `chat_gallery_search` | CHAT | 5 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate |
 | **SettingsCapability** | `settings` | SETTINGS | 5 | ✅ 已落地 | 应用级单例 + 页面 delegate |
 | **NavigationCapability** | `navigation` | ALL | 2 | ✅ 已落地 | Activity 级（MainActivity） |
 | **SystemCapability** | `system` | ALL | 2 | ✅ 已落地 | Activity/Service 级 |
@@ -49,6 +51,10 @@
 > - 移除 `AccessibilityCapability`（当前代码库中不存在对应实现）
 > - 移除 `EditCapability`（编辑页独立路由尚未落地）
 > - `CameraCapability` 命令从 11 个增加到 12 个（新增 `delay`）
+>
+> **变更说明（2026-07-20）**：
+> - 新增 `ChatSearchCapability`，支持 Chat 场景自然语言相册搜索与多轮细化（`search_media` / `refine_media_search` 携带 `SearchIntent`）
+> - `GalleryCapability.search_media` 参数扩展为 `query: String, intent: SearchIntent?`
 
 ### 1.1 场景 - 能力映射
 
@@ -57,7 +63,7 @@
 | `CAMERA` | CameraCapability, NavigationCapability, SystemCapability |
 | `GALLERY` | GalleryCapability, AutoTagCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `SETTINGS` | SettingsCapability, NavigationCapability, SystemCapability |
-| `CHAT` | AiOptimizeCapability, NavigationCapability, SystemCapability |
+| `CHAT` | ChatSearchCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `DEBUG` | NavigationCapability, SystemCapability |
 | `UNKNOWN` | NavigationCapability, SystemCapability, RemoteControlCapability |
 
@@ -122,7 +128,7 @@
 | `delete_media` | `media_ids: List<String>` | 删除照片/视频 | "删除这张" |
 | `share_media` | `media_ids: List<String>` | 分享照片/视频 | "分享这张" |
 | `favorite_media` | `media_id: String, favorite: Boolean` | 收藏/取消收藏 | "收藏这张" |
-| `search_media` | `query: String` | 搜索照片 | "找昨天的照片" |
+| `search_media` | `query: String`, `intent: SearchIntent?` | 搜索照片（Chat 场景优先使用 `intent` 做标准化） | "找昨天的照片" |
 | `select_media` | `media_id: String, selected: Boolean` | 批量选择 | "多选这张" |
 | `switch_view_mode` | `mode: String` | 切换视图模式 | "网格视图" |
 
@@ -134,7 +140,38 @@
 
 ---
 
-## 4. SettingsCapability
+## 4. ChatSearchCapability
+
+**职责**: 在 Chat 对话页提供相册自然语言搜索与多轮细化能力  
+**活跃场景**: `CHAT`  
+**文件**: `app/src/main/java/com/mamba/picme/features/chat/capability/ChatSearchCapability.kt`  
+**状态**: ✅ 已落地
+
+### 4.1 支持命令
+
+| 命令 | 参数 | 描述 | 示例 |
+|------|------|------|------|
+| `search_media` | `query: String`, `intent: SearchIntent?` | 搜索相册照片 | "近半年小孩的照片" |
+| `refine_media_search` | `constraint: String`, `intent: SearchIntent?` | 在上一轮结果内细化 | "只要近半年的" |
+| `feedback` | `target: String`, `action: String` | 记录用户对某张图片的反馈 | "第三张不错" |
+| `more` | `target: String` | 基于指定图片推荐相似照片 | "再来点这种" |
+| `exclude` | `constraint: String` | 在后续搜索中排除某类约束 | "不要夜景" |
+
+### 4.2 关键设计
+
+- 通过 `WeakReference<Delegate>` 绑定到 `ChatViewModel`，避免页面销毁后内存泄漏。
+- `SearchIntent` 由本地/远程 LLM 生成，`ChatViewModel` 负责将其转换为 `StructuredFilter` 后调用 `MediaSearchEngine.search(filter)`。
+- `refine_media_search` 在上轮结果集的 ID 集合内执行 in-set 过滤，避免全库重搜破坏多轮收敛。
+
+### 4.3 生命周期
+
+- **应用级单例**：通过 `ChatSearchCapability.getInstance()` 持有
+- `ChatViewModel.init` 中绑定 delegate；`onCleared()` 中解绑
+- 页面未激活时命令返回 `CAPABILITY_UNAVAILABLE`
+
+---
+
+## 5. SettingsCapability
 
 **职责**: 主题切换、语言设置、模型管理、人脸引擎切换、调试选项  
 **活跃场景**: `SETTINGS`  
@@ -158,7 +195,7 @@
 
 ---
 
-## 5. NavigationCapability
+## 6. NavigationCapability
 
 **职责**: 页面切换、返回上一页  
 **活跃场景**: `ALL` (所有场景)  
@@ -190,7 +227,7 @@
 
 ---
 
-## 6. SystemCapability
+## 7. SystemCapability
 
 **职责**: 启动其他应用、打开系统设置  
 **活跃场景**: `ALL` (所有场景)  
@@ -211,7 +248,7 @@
 
 ---
 
-## 7. AutoTagCapability
+## 8. AutoTagCapability
 
 **职责**: 将标签系统作为 Agent 可编排的 Capability 暴露，支持触发全量标签扫描、查询照片标签、获取进度、取消扫描  
 **活跃场景**: `GALLERY`  
@@ -234,7 +271,7 @@
 
 ---
 
-## 8. AiOptimizeCapability
+## 9. AiOptimizeCapability
 
 **职责**: AI 一键优化图片，分析照片场景并自动推荐美颜、滤镜、调节参数  
 **活跃场景**: `GALLERY`, `CHAT`  
@@ -258,7 +295,7 @@
 
 ---
 
-## 9. RemoteControlCapability
+## 10. RemoteControlCapability
 
 **职责**: IM 远程控制：管理设备绑定与远程命令执行状态  
 **活跃场景**: `ALL`  
@@ -287,7 +324,7 @@
 
 ---
 
-## 10. BeautyCapability（非 Agent 编排）
+## 11. BeautyCapability（非 Agent 编排）
 
 **职责**: 提供美颜调节的标准化程序化能力，支持生产代码和测试直接调用  
 **文件**: `app/src/main/java/com/mamba/picme/capability/BeautyCapability.kt`  

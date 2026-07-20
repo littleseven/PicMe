@@ -4,6 +4,8 @@ import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentIdGenerator
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.agent.core.model.context.SearchIntent
+import com.mamba.picme.agent.core.model.context.TimeRange
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
@@ -406,12 +408,14 @@ object LocalCommandParser {
             }
             "search_media" -> {
                 val query = extractJsonField(json, "query") ?: ""
-                AgentCommand.SearchMedia(commandId = commandId, query = query)
+                val intent = parseSearchIntent(json)
+                AgentCommand.SearchMedia(commandId = commandId, query = query, intent = intent)
             }
             "refine_media_search" -> {
                 val constraint = extractJsonField(json, "constraint")
                     ?: extractJsonField(json, "query") ?: ""
-                AgentCommand.RefineMediaSearch(commandId = commandId, constraint = constraint)
+                val intent = parseSearchIntent(json)
+                AgentCommand.RefineMediaSearch(commandId = commandId, constraint = constraint, intent = intent)
             }
             "feedback" -> {
                 val targetStr = extractJsonField(json, "target") ?: "last"
@@ -856,6 +860,77 @@ object LocalCommandParser {
         }
 
         return result
+    }
+
+    /**
+     * 从 JSON 中解析可选的 search/refine 结构化意图 [SearchIntent]。
+     *
+     * 优先从 params.intent 嵌套对象解析；也支持平铺字段（如 time_range/keywords/location_keywords
+     * /ocr_keywords/person_name/has_faces）作为兜底。
+     */
+    private fun parseSearchIntent(json: String): SearchIntent? {
+        // 优先从 params.intent 读取（nested object 场景下 mergeParamsIntoJson 可能破坏结构）
+        val paramsObj = extractJsonObject(json, "params")
+        val intentFromParams = paramsObj?.let { parseSearchIntentFields(it, it) }
+        if (intentFromParams != null) return intentFromParams
+
+        // 兜底：从顶层（已合并 params 的字段）读取
+        return parseSearchIntentFields(json, json)
+    }
+
+    private fun parseSearchIntentFields(intentSource: String, querySource: String): SearchIntent? {
+        val intentObj = extractJsonObject(intentSource, "intent")
+            ?: run {
+                // 没有 intent 字段，但源可能直接包含平铺字段
+                if (intentSource.contains("\"time_range\"") || intentSource.contains("\"timeRange\"") ||
+                    intentSource.contains("\"keywords\"")
+                ) intentSource else null
+            }
+            ?: return null
+
+        val query = extractJsonField(intentObj, "query")
+            ?: extractJsonField(querySource, "query") ?: ""
+
+        val timeRange = extractJsonObject(intentObj, "time_range")?.let { parseTimeRange(it) }
+            ?: extractJsonObject(intentObj, "timeRange")?.let { parseTimeRange(it) }
+
+        val keywords = extractJsonStringList(intentObj, "keywords")
+        val ocrKeywords = extractJsonStringList(intentObj, "ocr_keywords")
+            .ifEmpty { extractJsonStringList(intentObj, "ocrKeywords") }
+        val locationKeywords = extractJsonStringList(intentObj, "location_keywords")
+            .ifEmpty { extractJsonStringList(intentObj, "locationKeywords") }
+        val personName = extractJsonField(intentObj, "person_name")
+            ?: extractJsonField(intentObj, "personName")
+        val hasFaces = extractJsonBoolean(intentObj, "has_faces")
+            ?: extractJsonBoolean(intentObj, "hasFaces")
+
+        // 如果所有结构化字段都为空，则返回 null，让下游走字符串解析兜底。
+        if (timeRange == null && keywords.isEmpty() && ocrKeywords.isEmpty() &&
+            locationKeywords.isEmpty() && personName.isNullOrBlank() && hasFaces == null
+        ) {
+            return null
+        }
+
+        return SearchIntent(
+            query = query,
+            timeRange = timeRange,
+            keywords = keywords,
+            ocrKeywords = ocrKeywords,
+            locationKeywords = locationKeywords,
+            personName = personName,
+            hasFaces = hasFaces
+        )
+    }
+
+    private fun parseTimeRange(timeRangeJson: String): TimeRange? {
+        val startMs = extractJsonLong(timeRangeJson, "start_ms") ?: extractJsonLong(timeRangeJson, "startMs")
+        val endMs = extractJsonLong(timeRangeJson, "end_ms") ?: extractJsonLong(timeRangeJson, "endMs")
+        return if (startMs != null && endMs != null) TimeRange(startMs = startMs, endMs = endMs) else null
+    }
+
+    private fun extractJsonLong(json: String, key: String): Long? {
+        val regex = """"$key"\s*:\s*(-?\d+)""".toRegex()
+        return regex.find(json)?.groupValues?.get(1)?.toLongOrNull()
     }
 
     /**

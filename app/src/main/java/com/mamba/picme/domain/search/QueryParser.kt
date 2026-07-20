@@ -282,7 +282,72 @@ object QueryParser {
             }
         }
 
+        // 7. 近半年 / 近一年 / 近两年 / 近N个月 等相对时间段
+        val relativeMonthRange = parseRelativeMonthRange(query)
+        if (relativeMonthRange != null) return relativeMonthRange
+
         return null
+    }
+
+    /**
+     * 解析相对时间段：近半年、近一年、近两年、近N个月、N个月内、最近N个月等。
+     */
+    private fun parseRelativeMonthRange(query: String): TimeRange? {
+        // 半年 / 一年 / 两年 / 三年
+        val yearLikeMap = mapOf(
+            "半年" to 6,
+            "一年" to 12,
+            "两年" to 24,
+            "三年" to 36
+        )
+        for ((word, months) in yearLikeMap) {
+            if (query.contains("近$word") || query.contains("最近$word") || query.contains("${word}内")) {
+                return monthsAgoRange(months)
+            }
+        }
+
+        // 近3个月 / 最近3个月 / 3个月内
+        val digitMatch = Regex("""(?:近|最近)(\d{1,2})个月|(\d{1,2})个月内""").find(query)
+        if (digitMatch != null) {
+            val months = digitMatch.groupValues[1].ifEmpty { digitMatch.groupValues[2] }
+                .toIntOrNull()?.coerceIn(1, 99) ?: return null
+            return monthsAgoRange(months)
+        }
+
+        // 近三个月 / 最近三个月
+        val chineseMatch = Regex("""(?:近|最近)([一二三四五六七八九十]{1,3})个月""").find(query)
+        if (chineseMatch != null) {
+            val months = chineseMatch.groupValues[1].let(::chineseMonthToInt) ?: return null
+            return monthsAgoRange(months)
+        }
+
+        return null
+    }
+
+    private fun monthsAgoRange(months: Int): TimeRange {
+        // 与现有可测试设计保持一致：以 currentYear/currentMonth 为锚点
+        val endCal = Calendar.getInstance()
+        endCal.set(Calendar.YEAR, currentYear)
+        endCal.set(Calendar.MONTH, currentMonth - 1)
+        endCal.set(Calendar.DAY_OF_MONTH, endCal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        endCal.set(Calendar.HOUR_OF_DAY, 23)
+        endCal.set(Calendar.MINUTE, 59)
+        endCal.set(Calendar.SECOND, 59)
+        endCal.set(Calendar.MILLISECOND, 999)
+        val endMs = endCal.timeInMillis
+
+        val startCal = Calendar.getInstance()
+        startCal.set(Calendar.YEAR, currentYear)
+        startCal.set(Calendar.MONTH, currentMonth - 1)
+        startCal.set(Calendar.DAY_OF_MONTH, 1)
+        startCal.add(Calendar.MONTH, -months)
+        startCal.set(Calendar.HOUR_OF_DAY, 0)
+        startCal.set(Calendar.MINUTE, 0)
+        startCal.set(Calendar.SECOND, 0)
+        startCal.set(Calendar.MILLISECOND, 0)
+        val startMs = startCal.timeInMillis
+
+        return TimeRange(startMs = startMs, endMs = endMs)
     }
 
     // ── 关键词提取（分类为内容词和地点词） ──────────────────
@@ -346,12 +411,22 @@ object QueryParser {
     private fun removeTimeWords(query: String): String {
         val timeWords = listOf(
             "去年", "今年", "上个月", "本周", "上周", "今天", "昨天", "前天",
-            "春天", "夏天", "秋天", "冬天"
+            "春天", "夏天", "秋天", "冬天",
+            "近半年", "最近半年", "半年内",
+            "近一年", "最近一年", "一年内",
+            "近两年", "最近两年", "两年内"
         )
         var text = query
         for (word in timeWords) {
             text = text.replace(word, "")
         }
+        // 近3个月 / 最近3个月 / 3个月内 / 近三个月 / 最近三个月 / 三个月内
+        text = text.replace(
+            Regex(
+                """(?:近|最近)\\d{1,2}个月|\\d{1,2}个月内|(?:近|最近)[一二三四五六七八九十]{1,3}个月|[一二三四五六七八九十]{1,3}个月内"""
+            ),
+            ""
+        )
         return text.trim()
     }
 

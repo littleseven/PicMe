@@ -193,9 +193,16 @@ class RemotePromptBuilder(
             }
 
             if (includeGallery) {
-                appendLine("- gallery: view_media, delete_media, share_media, select_media, search_media(params.query), switch_view_mode, favorite_media")
-                appendLine("  search_media: 自然语言搜索照片。用户说\"找出去年夏天的照片\"\"猫的照片\"\"上海的合照\"时，直接用原话作为 query 参数。")
-                appendLine("    例：\"找出去年夏天的猫\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的猫\"}}")
+                appendLine("- gallery: view_media, delete_media, share_media, select_media, search_media(params.query, params.intent), switch_view_mode, favorite_media")
+                appendLine("  search_media: 自然语言搜索照片。query 参数填用户原话；当查询含时间/地点/人物/人脸等可结构化条件时，必须在 params.intent 中输出标准化条件：")
+                appendLine("    - intent.time_range: {start_ms: 开始时间戳, end_ms: 结束时间戳}。当前时间见【当前状态】now=。必须把近半年/去年/上个月等相对时间换算成时间戳。")
+                appendLine("    - intent.keywords: 场景/物体/标签词数组。")
+                appendLine("    - intent.location_keywords: 地点词数组。")
+                appendLine("    - intent.ocr_keywords: OCR 文字词数组。")
+                appendLine("    - intent.person_name: 具体人物名，不确定时省略。")
+                appendLine("    - intent.has_faces: true/false，用户明确找有人脸/合影/自拍时填 true。")
+                appendLine("    例：\"找出去年夏天的猫\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的猫\",\"intent\":{\"time_range\":{\"start_ms\":1717171200000,\"end_ms\":1725148799999},\"keywords\":[\"猫\"]}}}")
+                appendLine("    例：\"近半年小孩的照片\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"近半年小孩的照片\",\"intent\":{\"time_range\":{\"start_ms\":1735689600000,\"end_ms\":1751327999999},\"keywords\":[\"小孩\"],\"has_faces\":true}}}")
             }
 
             if (includeSettings) {

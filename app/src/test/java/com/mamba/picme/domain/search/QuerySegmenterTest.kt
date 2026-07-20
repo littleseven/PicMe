@@ -2,6 +2,7 @@ package com.mamba.picme.domain.search
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -191,5 +192,42 @@ class QuerySegmenterTest {
     fun `hasNarrowingExplicit is true for location plus person compound query`() {
         val result = QuerySegmenter.segment("北京公园里的小孩")
         assertTrue(result.hasNarrowingExplicit)
+    }
+
+    @Test
+    fun `segment splits past half year child photo`() {
+        val result = QuerySegmenter.segment("近半年小孩的照片")
+
+        assertEquals(
+            listOf(
+                Segment(SegmentType.TIME, "近半年"),
+                Segment(SegmentType.PERSON, "小孩"),
+                Segment(SegmentType.UNKNOWN, "照片")
+            ),
+            result.segments
+        )
+        assertTrue(result.hasNarrowingExplicit)
+    }
+
+    @Test
+    fun `segment splits recent half year variants`() {
+        assertEquals(
+            listOf(Segment(SegmentType.TIME, "最近半年")),
+            QuerySegmenter.segment("最近半年").segments
+        )
+        assertEquals(
+            listOf(Segment(SegmentType.TIME, "半年内")),
+            QuerySegmenter.segment("半年内").segments
+        )
+    }
+
+    @Test
+    fun `toFilters converts past half year child query`() {
+        val segmented = QuerySegmenter.segment("近半年小孩的照片")
+        val (explicit, content) = QuerySegmenter.toFilters(segmented)
+
+        assertNotNull(explicit.timeRange)
+        assertEquals(true, explicit.hasFaces)
+        assertEquals(listOf("小孩"), content.keywords)
     }
 }
