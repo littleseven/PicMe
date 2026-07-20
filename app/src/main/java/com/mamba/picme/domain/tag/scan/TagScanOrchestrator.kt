@@ -634,14 +634,8 @@ class TagScanOrchestrator(
             while (currentCoroutineContext().isActive) {
                 val task = db.tagScanTaskDao().pollNextPendingBySession(sessionId) ?: break
 
-                if (task.pass == TagScanPass.QWEN_TAGGING && !qwenModelPrepared) {
-                    if (!prepareQwenModel()) {
-                        logError(sessionId, "Qwen 模型加载失败，终止会话")
-                        db.tagScanTaskDao().markFailed(task.id, "LLM model not loaded", null)
-                        break
-                    }
-                    qwenModelPrepared = true
-                }
+                // Pass3 (QWEN_TAGGING) 改用 ML Kit，不加载 SmolVLM（治发热）。
+                // summary 由照片详情按需触发 SmolVLM（GenerateSummaryOnDemandUseCase）。
 
                 // MobileCLIP 不参与 Pass3 打标（已移除 MobileClipTagClassifier.classify），无需预热。
                 // MobileCLIP 语义向量在 Pass1 内联编码供语义搜索，与此处无关。

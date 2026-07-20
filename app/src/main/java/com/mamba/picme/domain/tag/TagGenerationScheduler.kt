@@ -1012,36 +1012,29 @@ class TagGenerationScheduler(
      * [原子任务] Pass 3：单张媒体的 Qwen 标签生成
      */
     suspend fun executeQwenTagging(mediaId: Long) {
-        if (!ensureModelLoaded()) {
-            throw IllegalStateException("LLM model not loaded")
-        }
-
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return
-        val faceRoiJson = dao.getFaceRoiResult(entity.id)
 
-        Log.d(TAG, "[Benchmark] Pass 3 start: mediaId=$mediaId")
         val startMs = System.currentTimeMillis()
-        val normalized = pipeline.stage3QwenTagging(entity.uri, faceRoiJson)
-        val durationMs = System.currentTimeMillis() - startMs
+        // 批量 Pass3 改用 ML Kit（不加载 SmolVLM → 不发热）。
+        // ML Kit 英文标签 → translateToZh 中文 → 全放 labels.tags。
+        // scene/objects/activity/summary 留空（summary 由照片详情按需 SmolVLM 生成）。
+        val labelsEn = pipeline.extractMlKitLabels(entity.uri)
+        val labelsZh = mlKitLabelTranslator.translateToZh(labelsEn)
 
-        // 若任务已被取消，丢弃本次推理结果
         currentCoroutineContext().ensureActive()
 
         val unified = UnifiedTagResult(
-            scene = normalized.scene,
-            activity = normalized.activity,
-            objects = normalized.objects,
-            tags = normalized.tags,
-            qwenSummary = normalized.summary
+            scene = "",
+            activity = "",
+            objects = emptyList(),
+            tags = labelsZh,
+            qwenSummary = ""
         )
         dao.updateLabels(entity.id, unifiedTagToJson(unified))
 
-        Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, durationMs=$durationMs, " +
-            "jsonOk=${normalized.jsonParsed}, scene=${normalized.scene}, tags=${normalized.tags}")
-
-        // Pass 3 的实际 Qwen 推理耗时是瓶颈，由 Orchestrator 的 POLL_INTERVAL_MS 提供任务间最小间隙，
-        // 此处不再叠加额外 throttle。
+        Log.d(TAG, "[Benchmark] Pass 3 (ML Kit) done: mediaId=$mediaId, " +
+            "durationMs=${System.currentTimeMillis() - startMs}, tags=$labelsZh")
     }
 
     /**
