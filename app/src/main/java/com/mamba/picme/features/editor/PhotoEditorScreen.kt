@@ -25,15 +25,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import kotlinx.coroutines.withTimeoutOrNull
 import com.mamba.picme.features.camera.components.BeautyPanel
 import com.mamba.picme.features.editor.components.AdjustPanel
 import com.mamba.picme.features.editor.components.CheckerboardBackground
@@ -104,6 +109,7 @@ fun PhotoEditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .clipToBounds()
                 .background(if (transparent) Color.Transparent else Color.Black),
             contentAlignment = Alignment.Center
         ) {
@@ -126,6 +132,8 @@ fun PhotoEditorScreen(
                     var scale by remember { mutableFloatStateOf(1f) }
                     var offsetX by remember { mutableFloatStateOf(0f) }
                     var offsetY by remember { mutableFloatStateOf(0f) }
+                    var viewSize by remember { mutableStateOf(IntSize.Zero) }
+                    val viewConfiguration = LocalViewConfiguration.current
 
                     // 切换编辑 tab 或更换源图时重置缩放/平移，避免用户在不同工具间跳转时
                     // 仍保留上一状态的放大视图，导致预览图只显示局部而误以为被裁剪。
@@ -135,18 +143,45 @@ fun PhotoEditorScreen(
                         offsetY = 0f
                     }
 
+                    val bitmap = s.previewBitmap
+                    val bitmapRatio = bitmap.width.toFloat() / bitmap.height
+
+                    fun clampOffsets(nextScale: Float = scale) {
+                        val viewW = viewSize.width.toFloat()
+                        val viewH = viewSize.height.toFloat()
+                        if (viewW <= 0f || viewH <= 0f) return
+                        val viewRatio = viewW / viewH
+                        val (fitW, fitH) = if (bitmapRatio > viewRatio) {
+                            viewW to (viewW / bitmapRatio)
+                        } else {
+                            (viewH * bitmapRatio) to viewH
+                        }
+                        val scaledW = fitW * nextScale
+                        val scaledH = fitH * nextScale
+                        val maxX = maxOf(0f, (scaledW - viewW) / 2f)
+                        val maxY = maxOf(0f, (scaledH - viewH) / 2f)
+                        offsetX = offsetX.coerceIn(-maxX, maxX)
+                        offsetY = offsetY.coerceIn(-maxY, maxY)
+                    }
+
                     val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
-                        scale = (scale * zoomChange).coerceIn(1f, 4f)
+                        val nextScale = (scale * zoomChange).coerceIn(1f, 4f)
+                        scale = nextScale
                         offsetX += panChange.x
                         offsetY += panChange.y
+                        clampOffsets(nextScale)
                     }
-                    val displayBitmap = if (comparing) s.originalBitmap else s.previewBitmap
+                    val displayBitmap = if (comparing) s.originalBitmap else bitmap
                     Image(
                         bitmap = displayBitmap.asImageBitmap(),
                         contentDescription = stringResource(R.string.cd_image_preview),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
+                            .onGloballyPositioned {
+                                viewSize = it.size
+                                clampOffsets()
+                            }
                             .graphicsLayer {
                                 scaleX = scale
                                 scaleY = scale
@@ -162,9 +197,17 @@ fun PhotoEditorScreen(
                                         offsetY = 0f
                                     },
                                     onPress = {
-                                        comparing = true
-                                        tryAwaitRelease()
-                                        comparing = false
+                                        val releasedInTime = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                            tryAwaitRelease()
+                                        }
+                                        if (releasedInTime == null) {
+                                            comparing = true
+                                            try {
+                                                tryAwaitRelease()
+                                            } finally {
+                                                comparing = false
+                                            }
+                                        }
                                     }
                                 )
                             }
