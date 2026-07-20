@@ -26,6 +26,12 @@ interface MediaFeedbackDao {
 
     @Query("SELECT * FROM media_feedback WHERE media_id = :mediaId AND query_text = :queryText")
     suspend fun getFeedbackForMediaAndQuery(mediaId: String, queryText: String): List<MediaFeedbackEntity>
+
+    @Query("SELECT * FROM media_feedback WHERE media_id IN (:mediaIds) AND query_text = :queryText")
+    suspend fun getFeedbackForMediaIds(mediaIds: List<String>, queryText: String): List<MediaFeedbackEntity>
+
+    @Query("DELETE FROM media_feedback WHERE media_id = :mediaId AND feedback_type = :feedbackType AND query_text = :queryText")
+    suspend fun deleteFeedback(mediaId: String, feedbackType: String, queryText: String)
 }
 
 data class FeedbackScoreRow(

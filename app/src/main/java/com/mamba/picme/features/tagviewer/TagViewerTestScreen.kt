@@ -13,9 +13,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -123,12 +129,22 @@ private fun PhotosTab(
             placeholder = { Text(stringResource(R.string.tag_viewer_search_hint)) },
             singleLine = true
         )
-        if (state.photos.isEmpty()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            FilterChip(
+                selected = state.showOnlyDisliked,
+                onClick = { viewModel.setShowOnlyDisliked(!state.showOnlyDisliked) },
+                label = { Text(stringResource(R.string.tag_viewer_filter_inaccurate)) }
+            )
+        }
+        if (state.filteredPhotos.isEmpty()) {
             EmptyText(stringResource(R.string.tag_viewer_no_photos))
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(state.filteredPhotos, key = { item -> item.mediaId }) { item ->
-                    PhotoRow(item)
+                    PhotoRow(item, onDislike = { viewModel.toggleDislike(item.mediaId) })
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -137,7 +153,10 @@ private fun PhotosTab(
 }
 
 @Composable
-private fun PhotoRow(item: PhotoTagsItem) {
+private fun PhotoRow(
+    item: PhotoTagsItem,
+    onDislike: () -> Unit
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val notTagged = stringResource(R.string.tag_viewer_no_labels)
     Column(
@@ -150,13 +169,26 @@ private fun PhotoRow(item: PhotoTagsItem) {
                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp))
             )
             Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(item.fileName, style = MaterialTheme.typography.bodyLarge)
                 val sceneText = if (item.hasLabels) item.parsed?.scene.orEmpty() else notTagged
                 Text(
                     text = sceneText.ifBlank { notTagged },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onDislike) {
+                Icon(
+                    imageVector = if (item.isDisliked) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                    contentDescription = stringResource(
+                        if (item.isDisliked) R.string.tag_viewer_disliked else R.string.tag_viewer_dislike
+                    ),
+                    tint = if (item.isDisliked) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    }
                 )
             }
         }

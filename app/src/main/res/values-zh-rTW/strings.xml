@@ -759,4 +759,7 @@
     <string name="tag_viewer_raw_json">原始 JSON</string>
     <string name="tag_viewer_debug_section">開發測試頁</string>
     <string name="tag_viewer_open_entry">查看生成標籤</string>
+    <string name="tag_viewer_dislike">標記不準</string>
+    <string name="tag_viewer_disliked">已標記為不準</string>
+    <string name="tag_viewer_filter_inaccurate">只看標記不準</string>
 </resources>

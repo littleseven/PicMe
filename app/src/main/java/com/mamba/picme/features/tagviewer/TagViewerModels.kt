@@ -24,9 +24,11 @@ data class PhotoTagsItem(
     val uri: String,
     val fileName: String,
     val parsed: ParsedTags?,
-    val rawJson: String
+    val rawJson: String,
+    val feedbackType: String? = null
 ) {
     val hasLabels: Boolean get() = parsed != null
+    val isDisliked: Boolean get() = feedbackType == "dislike"
 }
 
 /** 单个标签的聚合计数 */
@@ -45,7 +47,8 @@ sealed interface TagViewerUiState {
     data class Ready(
         val photos: List<PhotoTagsItem>,
         val filteredPhotos: List<PhotoTagsItem>,
-        val aggregates: TagAggregates
+        val aggregates: TagAggregates,
+        val showOnlyDisliked: Boolean = false
     ) : TagViewerUiState
     data class Error(val message: String) : TagViewerUiState
 }
