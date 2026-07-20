@@ -150,7 +150,8 @@ fun MediaPager(
     onAiOptimize: (MediaAsset) -> Unit,
     onIdPhoto: (MediaAsset) -> Unit = {},
     voiceCoordinator: VoiceCommandCoordinator? = null,
-    onReTag: () -> Unit = {}
+    onReTag: () -> Unit = {},
+    onTriggerSummary: (Long) -> Unit = {}
 ) {
     key(initialIndex) {
         val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { assets.size })
@@ -176,6 +177,8 @@ fun MediaPager(
             if (currentAsset?.type != MediaType.PHOTO) {
                 showLandmarkOverlay = false
             }
+            // 按需触发 summary：批量用 ML Kit（无 summary），此处单张 SmolVLM 生成并缓存
+            currentAsset?.let { asset -> onTriggerSummary(asset.id) }
         }
 
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {

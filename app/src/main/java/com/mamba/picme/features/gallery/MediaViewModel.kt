@@ -14,6 +14,7 @@ import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
+import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,8 @@ class MediaViewModel(
     private val findDuplicateMediaUseCase: FindDuplicateMediaUseCase,
     private val ocrUseCase: OcrProcessor,
     private val photoProcessor: PhotoProcessor,
-    private val faceDetector: FaceDetector
+    private val faceDetector: FaceDetector,
+    private val generateSummaryOnDemandUseCase: GenerateSummaryOnDemandUseCase
 ) : ViewModel() {
 
     companion object {
@@ -64,6 +66,16 @@ class MediaViewModel(
     fun clearOcrResult() {
         Logger.d(TAG, "Clearing OCR result")
         _ocrState.value = null
+    }
+
+    /**
+     * 按需触发 summary 生成：照片详情打开时，若 labels.summary 为空，
+     * 加载 SmolVLM 单张生成并写回（缓存）。批量扫描不触发（批量用 ML Kit）。
+     */
+    fun triggerSummaryOnDemand(mediaId: Long) {
+        viewModelScope.launch {
+            generateSummaryOnDemandUseCase.generateIfMissing(mediaId)
+        }
     }
 
     override fun onCleared() {

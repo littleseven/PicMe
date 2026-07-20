@@ -751,6 +751,7 @@ fun GalleryScreen(
                     MediaPager(
                         assets = previewMediaList,
                         initialIndex = selectedMediaIndex!!,
+                        onTriggerSummary = viewModel::triggerSummaryOnDemand,
                         onClose = { selectedMediaIndex = null },
                         onDelete = { asset ->
                             viewModel.deleteMediaByIds(listOf(asset.id))
