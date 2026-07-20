@@ -126,6 +126,16 @@ class LlmModelDownloadManager(context: Context) {
         )
 
         /**
+         * MODNet 人像抠图 ONNX 模型文件列表
+         */
+        private val MODNET_MODEL_FILES = listOf("modnet.onnx")
+
+        /**
+         * U2NetP 轻量抠图 ONNX 模型文件列表
+         */
+        private val U2NETP_MODEL_FILES = listOf("u2netp.onnx")
+
+        /**
          * MNN-LLM 模型可选文件列表（存在则下载，404则跳过）
          */
         private val LLM_MODEL_OPTIONAL_FILES = listOf(
@@ -478,6 +488,8 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
+            modelId == "modnet-onnx" -> MODNET_MODEL_FILES
+            modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
             else -> LLM_MODEL_FILES
         }
@@ -500,6 +512,8 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
+            modelId == "modnet-onnx" -> MODNET_MODEL_FILES
+            modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
             else -> LLM_MODEL_FILES
         }

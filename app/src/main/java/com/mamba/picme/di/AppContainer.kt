@@ -464,14 +464,15 @@ class AppContainerImpl(
             recipeRepository = photoEditRecipeRepository,
             mediaRepository = repository,
             userSettingsRepository = userPreferencesRepository,
-            aiOptimizeUseCase = aiOptimizeUseCase
+            aiOptimizeUseCase = aiOptimizeUseCase,
+            downloadManager = llmModelDownloadManager
         )
     }
 
     private val idPhotoViewModelFactory: ViewModelProvider.Factory by lazy {
         IDPhotoViewModelFactory(
             appContext = context,
-            mattingEngineFactory = { ctx -> MattingEngineImpl(ctx) },
+            downloadManager = llmModelDownloadManager,
             mediaRepository = repository
         )
     }

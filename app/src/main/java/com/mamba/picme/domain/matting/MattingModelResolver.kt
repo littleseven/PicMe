@@ -25,7 +25,12 @@ class AssetMattingModelResolver(context: Context) : MattingModelResolver {
     private val appContext = context.applicationContext
     private val modelDirRoot: File = File(appContext.filesDir, "llm_models")
     private val provider = AssetBytesProvider { path ->
-        appContext.assets.open(path).use { stream -> stream.readBytes() }
+        try {
+            appContext.assets.open(path).use { stream -> stream.readBytes() }
+        } catch (e: Exception) {
+            // 模型已从 APK assets 移除，改为 ModelScope 下载；assets 不存在时直接返回 null
+            null
+        }
     }
 
     override suspend fun resolve(modelId: String): File? = withContext(Dispatchers.IO) {

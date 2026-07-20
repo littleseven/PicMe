@@ -169,5 +169,33 @@
       "target.spm"
     ],
     "tags": ["must-have", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
+  },
+  {
+    "id": "modnet-onnx",
+    "name": "MODNet ONNX",
+    "description": "MODNet 人像抠图 ONNX 模型，用于去背景/证件照，~26MB",
+    "type": "MATTING",
+    "size": 25969398,
+    "sources": {
+      "ModelScope": "budaoshou/ModNet-ONNX"
+    },
+    "files": [
+      "modnet.onnx"
+    ],
+    "tags": ["matting", "onnx", "editor"]
+  },
+  {
+    "id": "u2netp-onnx",
+    "name": "U2NetP ONNX",
+    "description": "U2NetP 轻量抠图 ONNX 模型，用于去背景/证件照，~4.6MB",
+    "type": "MATTING",
+    "size": 4574861,
+    "sources": {
+      "ModelScope": "budaoshou/U2NetP-ONNX"
+    },
+    "files": [
+      "u2netp.onnx"
+    ],
+    "tags": ["matting", "onnx", "editor"]
   }
 ]
