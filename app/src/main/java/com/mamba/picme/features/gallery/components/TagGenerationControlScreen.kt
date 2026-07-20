@@ -317,34 +317,17 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Pass 3: Qwen 图像理解标签", style = MaterialTheme.typography.bodyMedium)
+                            Text("Pass 3: 图片标签（ML Kit，不发热）", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "Qwen3.5-2B → $withLabels / $totalMedia 张",
+                                "ML Kit Image Labeler（中英标签）→ $withLabels / $totalMedia 张",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (withMlKitLabels > 0 || !isScanning) Icons.Rounded.CheckCircle else Icons.Rounded.HourglassEmpty,
-                            null,
-                            modifier = Modifier.size(20.dp),
-                            tint = if (withMlKitLabels > 0 || !isScanning) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Pass 4: ML Kit 英文标签", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "ML Kit Image Labeler → $withMlKitLabels / $totalMedia 张 · 剩余 $remainingMlKit 张",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
+                    // Pass 4（ML Kit 英文标签，独立 mlKitLabels 字段）已与 Pass 3 重复：
+                    // Task1 起 Pass 3（executeQwenTagging）改用 ML Kit → labels.tags，故 Pass 4 不再单独显示。
                 }
             }
 
@@ -430,8 +413,8 @@ fun TagGenerationControlScreen(
                     Spacer(Modifier.height(8.dp))
 
                     PassControlCard(
-                        title = "Qwen 图像理解标签",
-                        subtitle = "生成场景、物体、活动、摘要等标签：$withLabels / $totalMedia 张 · 剩余 $remainingPass3 张",
+                        title = "图片标签（ML Kit，不发热）",
+                        subtitle = "ML Kit 中英标签（summary 由详情按需 SmolVLM 补）：$withLabels / $totalMedia 张 · 剩余 $remainingPass3 张",
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass3(context))
@@ -442,35 +425,9 @@ fun TagGenerationControlScreen(
                         }
                     )
 
-                    Spacer(Modifier.height(8.dp))
-
-                    PassControlCard(
-                        title = "MobileCLIP 语义编码",
-                        subtitle = "单独重新生成语义向量：$withSemantic / $totalMedia 张。常规扫描已内联合并到「人脸检测」阶段",
-                        onIncremental = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass4(context))
-                        },
-                        onFull = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPass4Full(context))
-                        }
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    PassControlCard(
-                        title = "ML Kit 英文标签",
-                        subtitle = "ML Kit Image Labeler 快速英文标签：$withMlKitLabels / $totalMedia 张 · 剩余 $remainingMlKit 张",
-                        onIncremental = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPassMlKit(context))
-                        },
-                        onFull = {
-                            refreshStats()
-                            context.startForegroundService(TagGenerationService.intentScanPassMlKitFull(context))
-                        }
-                    )
+                    // MobileCLIP 语义编码（Pass4）：常规已内联到 Pass1（人脸检测），单独重编码是历史遗留，移除入口。
+                    // ML Kit 英文标签（Pass5）：Task1 起 Pass3 已改用 ML Kit → labels.tags，与此重复，移除入口。
+                    // 如需单独重跑，仍可用 agent-test 的 scan_pass4 / scan_mlkit 命令。
 
                     Spacer(Modifier.height(8.dp))
                     HorizontalDivider()
@@ -708,7 +665,7 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
 private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
     TagScanPass.FACE_DETECTION -> "Pass 1: 人脸检测 + 编码 + MobileCLIP"
     TagScanPass.DBSCAN -> "Pass 2: 密度自适应聚类"
-    TagScanPass.QWEN_TAGGING -> "Pass 3: Qwen 标签"
+    TagScanPass.QWEN_TAGGING -> "Pass 3: ML Kit 标签"
     TagScanPass.MOBILE_CLIP_ENCODING -> "MobileCLIP 语义编码（单独）"
     TagScanPass.ML_KIT_TAGGING -> "ML Kit 英文标签"
     null -> "准备中"
