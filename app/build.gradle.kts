@@ -99,6 +99,13 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    testOptions {
+        unitTests {
+            // 让 android.util.Log 等 Android stub 方法在 JVM 单测中返回默认值，而非抛 "not mocked"。
+            isReturnDefaultValues = true
+        }
+    }
+
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

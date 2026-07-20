@@ -116,16 +116,10 @@ class TagNormalizer(private val vocab: ControlledVocab) {
             }
         }
 
-        // 3. 编辑距离 ≤ 1 容错（仅对长度 ≥ 2 的词做容错）
-        if (trimmed.length >= 2) {
-            for (candidate in candidates) {
-                if (levenshteinDistance(trimmed, candidate) <= 1) {
-                    return candidate
-                }
-            }
-        }
-
-        // 4. 未匹配
+        // 3. 未匹配：保留原词。
+        // 曾用「编辑距离≤1容错」，但对中文 2 字词替换 1 字语义全变（"珠宝"→"宝宝"、"职场"→"商场"、
+        // "人像"→"佛像"、"专业"→"毕业"、"执行"→"旅行"），对中文弊大于利，已移除。
+        // SmolVLM/Qwen 输出的规范标签应保留原词，而非强行映射到词表里的近形词。
         return trimmed
     }
 
