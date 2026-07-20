@@ -72,8 +72,8 @@ class TagGenerationScheduler(
     companion object {
         private const val TAG = "TagScheduler"
 
-        /** Qwen 模型 ID */
-        private const val MODEL_KEY = "qwen3_5_2b"
+        /** 打标模型 ID：SmolVLM-500M 纯图像多模态（中文标签质量优于 Qwen3.5-2B/0.8B，CPU ~13s/张）*/
+        private const val MODEL_KEY = "smolvlm_500m"
 
         /** 批次大小：每处理此数量照片后强制冷却 */
         private const val BATCH_SIZE = 10
