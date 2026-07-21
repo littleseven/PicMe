@@ -19,5 +19,6 @@ class ChatViewModelDependencies(
     val mediaFeedbackRepository: MediaFeedbackRepository,
     val picMeAuthClient: PoLangAuthClient,
     val getGallerySummaryUseCase: GetGallerySummaryUseCase,
-    val startTagScanUseCase: StartTagScanUseCase
+    val startTagScanUseCase: StartTagScanUseCase,
+    val chatImageRenderer: ChatImageRenderer? = null
 )

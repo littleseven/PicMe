@@ -94,6 +94,7 @@ class ChatViewModel(
     private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
     private val getGallerySummaryUseCase = dependencies.getGallerySummaryUseCase
     private val startTagScanUseCase = dependencies.startTagScanUseCase
+    private val chatImageRenderer = dependencies.chatImageRenderer
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -658,9 +659,24 @@ class ChatViewModel(
                         if (targetUri.isNullOrBlank()) {
                             insertAgentMessage(sessionId, "请先发送一张图片，再说“帮我优化这张照片”", currentModelLabel(), performance)
                         } else {
-                            // 先给出文本反馈，再触发导航到编辑器自动优化
-                            insertAgentMessage(sessionId, cmd.explanation ?: "✅ 已为你优化这张照片", currentModelLabel(), performance)
-                            _pendingAiOptimizeNavigation.value = targetUri
+                            // chat 内执行优化渲染，结果直接作为图片消息返回（不再跳转编辑器）
+                            val renderer = chatImageRenderer
+                            if (renderer == null) {
+                                insertAgentMessage(sessionId, "⚠️ 图像优化暂不可用", currentModelLabel(), performance)
+                            } else {
+                                val outcome = renderer.aiOptimize(targetUri)
+                                if (outcome.imageUri != null) {
+                                    insertAgentImageMessage(
+                                        sessionId = sessionId,
+                                        imageUri = outcome.imageUri,
+                                        content = cmd.explanation ?: outcome.explanation,
+                                        modelUsed = currentModelLabel(),
+                                        performance = performance
+                                    )
+                                } else {
+                                    insertAgentMessage(sessionId, outcome.explanation, currentModelLabel(), performance)
+                                }
+                            }
                         }
                     }
                     else -> {
@@ -1161,6 +1177,40 @@ class ChatViewModel(
     }
 
     /**
+     * 插入一条带结果图的 AI 消息（type=agent_image）。用于 chat 内执行图像编辑后直接返回结果。
+     */
+    private suspend fun insertAgentImageMessage(
+        sessionId: String,
+        imageUri: String,
+        content: String,
+        modelUsed: String,
+        performance: LlmPerformance? = null
+    ) {
+        val metadata = JSONObject().apply {
+            put("imageUri", imageUri)
+            performance?.let { p ->
+                put("prompt_len", p.promptLen)
+                put("decode_len", p.decodeLen)
+                put("prefill_time_ms", p.prefillTimeMs)
+                put("decode_time_ms", p.decodeTimeMs)
+                put("prefill_speed", p.prefillSpeed.toDouble())
+                put("decode_speed", p.decodeSpeed.toDouble())
+            }
+        }.toString()
+        chatMessageDao.insertMessage(
+            ChatMessageEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = sessionId,
+                type = "agent_image",
+                content = content,
+                modelUsed = modelUsed,
+                metadata = metadata
+            )
+        )
+        chatSessionDao.touchSession(sessionId)
+    }
+
+    /**
      * 仅暂存图片：复制到内部存储 + 设 [_lastUserImageUri]，**不**插入消息、**不**触发推理。
      * 返回持久化后的路径字符串；失败返回 null。供 Chat 输入框「缩略图预览」用。
      */
@@ -1491,7 +1541,7 @@ class ChatViewModel(
                 else -> ChatMessageType.AGENT_TEXT
             },
             content = content,
-            imageUri = if (type == "user_image_text") metadata?.let { parseImageUri(it) } else null,
+            imageUri = if (type == "user_image_text" || type == "agent_image") metadata?.let { m -> parseImageUri(m) } else null,
             modelUsed = modelUsed,
             timestamp = timestamp,
             performance = performance,

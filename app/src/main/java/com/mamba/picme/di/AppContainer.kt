@@ -56,7 +56,9 @@ import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
+import com.mamba.picme.features.chat.ChatImageRenderer
 import com.mamba.picme.features.chat.ChatViewModelDependencies
+import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.matting.MattingEngineImpl
 import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
@@ -477,6 +479,14 @@ class AppContainerImpl(
         )
     }
 
+    private val mattingEngine: MattingEngine by lazy {
+        MattingEngineImpl(context, llmModelDownloadManager)
+    }
+
+    private val chatImageRenderer: ChatImageRenderer by lazy {
+        ChatImageRenderer(context, photoProcessor, mattingEngine, aiOptimizeUseCase)
+    }
+
     private val chatViewModelDependencies: ChatViewModelDependencies by lazy {
         ChatViewModelDependencies(
             context = context,
@@ -487,7 +497,8 @@ class AppContainerImpl(
             mediaFeedbackRepository = mediaFeedbackRepository,
             picMeAuthClient = PoLangAuthClient(),
             getGallerySummaryUseCase = getGallerySummaryUseCase,
-            startTagScanUseCase = startTagScanUseCase
+            startTagScanUseCase = startTagScanUseCase,
+            chatImageRenderer = chatImageRenderer
         )
     }
 
