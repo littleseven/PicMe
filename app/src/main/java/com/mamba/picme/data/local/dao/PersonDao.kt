@@ -35,6 +35,10 @@ interface PersonDao {
     @Query("SELECT * FROM persons WHERE personId = :personId")
     suspend fun getPerson(personId: Long): PersonEntity?
 
+    /** 按人物名称模糊匹配（用于自然语言搜索中按人名找照片） */
+    @Query("SELECT * FROM persons WHERE name LIKE '%' || :name || '%' LIMIT 1")
+    suspend fun findPersonByName(name: String): PersonEntity?
+
     @Query("UPDATE persons SET faceCount = faceCount + 1, updatedAt = :now WHERE personId = :personId")
     suspend fun incrementFaceCount(personId: Long, now: Long = System.currentTimeMillis())
 

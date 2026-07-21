@@ -212,6 +212,7 @@ class AppContainerImpl(
             tagDao = database.tagDao(),
             ocrWordDao = database.ocrWordDao(),
             locationDao = database.locationDao(),
+            personDao = database.personDao(),
             userSettingsRepository = userPreferencesRepository,
             tagTranslator = TagTranslator(bilingualVocab, opusMtTranslator, controlledVocab),
             semanticSearchEngine = semanticSearchEngine,
@@ -227,6 +228,7 @@ class AppContainerImpl(
             tagDao = database.tagDao(),
             ocrWordDao = database.ocrWordDao(),
             locationDao = database.locationDao(),
+            personDao = database.personDao(),
             userSettingsRepository = userPreferencesRepository,
             tagTranslator = TagTranslator(BilingualVocab.loadFromAssets(context), opusMtTranslator)
         )

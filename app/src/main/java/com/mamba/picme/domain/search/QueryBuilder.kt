@@ -3,6 +3,7 @@ package com.mamba.picme.domain.search
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
+import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.model.MediaEntity
@@ -30,6 +31,7 @@ class QueryBuilder(
     private val tagDao: TagDao,
     private val ocrWordDao: OcrWordDao,
     private val locationDao: LocationDao,
+    private val personDao: PersonDao? = null,
     private val userSettingsRepository: UserSettingsRepository? = null,
     private val tagTranslator: TagTranslator = TagTranslator(BilingualVocab.empty())
 ) {
@@ -142,9 +144,17 @@ class QueryBuilder(
         personName: String?,
         deferredQueries: MutableList<kotlinx.coroutines.Deferred<List<MediaEntity>>>
     ) {
-        if (personName != null) {
-            deferredQueries += async { mediaDao.searchByFileName(personName) }
+        if (personName.isNullOrBlank()) return
+        personDao?.let { dao ->
+            deferredQueries += async {
+                dao.findPersonByName(personName)?.let { person ->
+                    dao.getMediaByPerson(person.personId).also {
+                        if (it.isNotEmpty()) Logger.d(TAG, "Person match '$personName': ${it.size}")
+                    }
+                } ?: emptyList()
+            }
         }
+        deferredQueries += async { mediaDao.searchByFileName(personName) }
     }
 
     private fun CoroutineScope.addFaceFilterQuery(

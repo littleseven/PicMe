@@ -4,6 +4,7 @@ import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
+import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.StructuredFilter
@@ -37,6 +38,7 @@ class MediaSearchEngine(
     private val tagDao: TagDao? = null,
     private val ocrWordDao: OcrWordDao? = null,
     private val locationDao: LocationDao? = null,
+    private val personDao: PersonDao? = null,
     private val userSettingsRepository: UserSettingsRepository? = null,
     private val tagTranslator: TagTranslator = TagTranslator(BilingualVocab.empty()),
     private val semanticSearchEngine: SemanticSearchEngine? = null,
@@ -355,12 +357,22 @@ class MediaSearchEngine(
         }
         val explicitTime = System.currentTimeMillis() - explicitStart
 
-        // 2. 内容关键词候选集（标签 / ML Kit / OCR / 文件名）—— 关键词间并集
+        // 2. 内容关键词候选集（标签 / ML Kit / OCR / 文件名 / 人物名）—— 维度内并集
         val contentStart = System.currentTimeMillis()
         val contentIds = mutableSetOf<Long>()
-        val hasContentKeywords = filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty()
+        val hasPersonName = !filter.personName.isNullOrBlank()
+        val hasContentKeywords = filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty() || hasPersonName
 
-        if (hasContentKeywords) {
+        if (hasPersonName) {
+            val name = filter.personName!!.trim()
+            personDao?.findPersonByName(name)?.let { person ->
+                val personMedia = personDao.getMediaByPerson(person.personId)
+                Logger.d(TAG, "personName='$name' matched personId=${person.personId}, media=${personMedia.size}")
+                contentIds.addAll(personMedia.map { it.id })
+            } ?: Logger.d(TAG, "personName='$name' found no matching person")
+        }
+
+        if (filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty()) {
             for (keyword in filter.keywords) {
                 val candidates = cachedExpandForSearch(keyword, uiLang)
                 for (candidate in candidates) {

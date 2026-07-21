@@ -3,6 +3,8 @@ package com.mamba.picme.domain.search
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.data.local.MediaDao
+import com.mamba.picme.data.local.dao.PersonDao
+import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.StructuredFilter
 import com.mamba.picme.domain.model.TimeRange
@@ -112,6 +114,45 @@ class MediaSearchEngineFilterTest {
         val result = engine.search(filter)
 
         assertEquals(listOf(2L), result.media.map { it.id })
+    }
+
+    @Test
+    fun `person name filter returns media linked to matched person`() = runTest {
+        val personDao: PersonDao = mockk(relaxed = true)
+        val engineWithPerson = MediaSearchEngine(mediaDao = mediaDao, personDao = personDao)
+
+        val filter = StructuredFilter(personName = "古力娜扎")
+        val person = PersonEntity(personId = 19L, name = "古力娜扎")
+
+        coEvery { personDao.findPersonByName("古力娜扎") } returns person
+        coEvery { personDao.getMediaByPerson(19L) } returns listOf(mediaEntity(100L), mediaEntity(101L))
+        coEvery { mediaDao.getMediaByIds(listOf(100L, 101L)) } returns listOf(mediaEntity(100L), mediaEntity(101L))
+
+        val result = engineWithPerson.search(filter)
+
+        assertEquals(setOf(100L, 101L), result.media.map { it.id }.toSet())
+    }
+
+    @Test
+    fun `person name filter intersects with time range`() = runTest {
+        val personDao: PersonDao = mockk(relaxed = true)
+        val engineWithPerson = MediaSearchEngine(mediaDao = mediaDao, personDao = personDao)
+
+        val timeRange = TimeRange(startMs = 0, endMs = 1000)
+        val filter = StructuredFilter(
+            timeRange = timeRange,
+            personName = "古力娜扎"
+        )
+        val person = PersonEntity(personId = 19L, name = "古力娜扎")
+
+        coEvery { mediaDao.getMediaIdsByTimeRange(timeRange.startMs, timeRange.endMs) } returns listOf(100L, 200L)
+        coEvery { personDao.findPersonByName("古力娜扎") } returns person
+        coEvery { personDao.getMediaByPerson(19L) } returns listOf(mediaEntity(100L), mediaEntity(300L))
+        coEvery { mediaDao.getMediaByIds(listOf(100L)) } returns listOf(mediaEntity(100L))
+
+        val result = engineWithPerson.search(filter)
+
+        assertEquals(listOf(100L), result.media.map { it.id })
     }
 
     private fun mediaEntity(id: Long): MediaEntity {
