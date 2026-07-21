@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val TAG = "PoLang:IDPhoto"
+private const val DECODE_MAX_DIM = 1024
 
 class IDPhotoViewModel(
     private val mattingEngine: MattingEngine,
@@ -59,7 +60,7 @@ class IDPhotoViewModel(
                         _state.value = State.Error(context.getString(R.string.editor_load_failed))
                         return@launch
                     }
-                val result = mattingEngine.removeBackground(bitmap, MaskSource.SELFIE_SEGMENTATION)
+                val result = mattingEngine.removeBackground(bitmap, MaskSource.MODNET)
                 if (result == null) {
                     _state.value = State.Error(context.getString(R.string.id_photo_matting_failed))
                     return@launch
@@ -149,7 +150,15 @@ class IDPhotoViewModel(
     }
 
     private fun decodePreview(context: Context, uri: Uri): Bitmap? {
-        return context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+        // 限制解码长边到 DECODE_MAX_DIM：证件照输出仅数百像素，无需原图分辨率；
+        // 且可避免原图全尺寸 alpha 合成（BackgroundComposer）在大图上 OOM。
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream, null, bounds) }
+        val maxDim = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
+        val sample = if (maxDim > DECODE_MAX_DIM) maxDim / DECODE_MAX_DIM else 1
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        return resolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream, null, opts) }
     }
 
     var onSaveComplete: ((String) -> Unit)? = null

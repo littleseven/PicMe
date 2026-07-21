@@ -96,7 +96,14 @@ class MattingEngineImpl(
             val upsampled = MaskPostProcessor.upsample(
                 alpha, srcW = maskSize, srcH = maskSize, dstW = bitmap.width, dstH = bitmap.height
             )
-            MattingResult(alpha = upsampled, width = bitmap.width, height = bitmap.height)
+            // selfie_segmenter 软边宽：温和 alpha 锐化收窄过渡（其分割明确、身体 alpha≈1，
+            // 锐化只压边缘，不会像 MODNet 那样把身体边缘压成背景）。contrast 可调：虚边残留则调大。
+            val refined = if (maskSource == MaskSource.SELFIE_SEGMENTATION) {
+                MaskPostProcessor.sharpenAlpha(upsampled, contrast = 3.0f)
+            } else {
+                upsampled
+            }
+            MattingResult(alpha = refined, width = bitmap.width, height = bitmap.height)
         }
 
     fun release() {
