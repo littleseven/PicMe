@@ -39,3 +39,8 @@
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.android.gms.internal.mlkit.** { *; }
 -dontwarn com.google.mlkit.**
+
+# TAG 数据备份/还原：Moshi 通过反射/Kotlin 元数据解析，R8 会裁剪字段导致列表为 null
+-keep class com.mamba.picme.domain.backup.model.** { *; }
+-keepclassmembers class com.mamba.picme.domain.backup.model.** { *; }
+-keepattributes RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations, RuntimeVisibleParameterAnnotations, RuntimeInvisibleParameterAnnotations, AnnotationDefault
