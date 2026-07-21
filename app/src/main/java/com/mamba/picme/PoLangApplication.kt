@@ -15,6 +15,7 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.di.AppContainer
@@ -43,10 +44,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.UUID
 
 class PoLangApplication : Application(), ImageLoaderFactory {
@@ -205,6 +209,36 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         // 监听媒体库变化：飞书远程拍照完成后自动发送照片到飞书
         observeFeishuPhotoCapture()
+
+        // 预下载必须模型资源（已从 APK assets 迁移到 ModelScope 以减小包体积）
+        prefetchEssentialModels()
+    }
+
+    /**
+     * 后台静默预下载已从 APK 移除、迁移到 ModelScope 的必需模型。
+     * 失败时保留 assets fallback，不影响功能。
+     */
+    private fun prefetchEssentialModels() {
+        applicationScope.launch {
+            try {
+                val modelId = "mediapipe-face-landmarker"
+                val modelFile = File(filesDir, "llm_models/$modelId/face_landmarker.task")
+                if (modelFile.exists() && modelFile.length() > 0) {
+                    Logger.i(TAG, "Essential model already exists: $modelId")
+                    return@launch
+                }
+                Logger.i(TAG, "Prefetching essential model from ModelScope: $modelId")
+                container.llmModelDownloadManager.downloadModel(modelId)
+                    .catch { e -> Logger.w(TAG, "Failed to prefetch essential model: $modelId", e) }
+                    .collect { progress ->
+                        if (progress.status == DownloadStatus.COMPLETED) {
+                            Logger.i(TAG, "Essential model downloaded: $modelId")
+                        }
+                    }
+            } catch (e: Exception) {
+                Logger.w(TAG, "Prefetch essential models failed", e)
+            }
+        }
     }
 
     /**

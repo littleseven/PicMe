@@ -197,5 +197,19 @@
       "u2netp.onnx"
     ],
     "tags": ["matting", "onnx", "editor"]
+  },
+  {
+    "id": "mediapipe-face-landmarker",
+    "name": "MediaPipe Face Landmarker",
+    "description": "MediaPipe 人脸 468 点关键点检测模型，用于相册人脸标记预览",
+    "type": "FACE_LANDMARKER",
+    "size": 3758596,
+    "sources": {
+      "ModelScope": "budaoshou/google-model"
+    },
+    "files": [
+      "face_landmarker.task"
+    ],
+    "tags": ["must-have", "photo-tagging", "face", "landmark", "mediapipe"]
   }
 ]

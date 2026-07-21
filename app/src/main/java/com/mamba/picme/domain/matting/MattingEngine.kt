@@ -25,6 +25,8 @@ class MattingEngineImpl(
     private val modnetBackend = ModNetOnnxBackend(context, AssetMattingModelResolver(context))
     private var u2netReady = false
     private var modnetReady = false
+    private val selfieBackend = MediaPipeSegmentationBackend(context)
+    private var selfieReady = false
 
     private suspend fun ensureBackend(source: MaskSource): Boolean = when (source) {
         MaskSource.U2NETP -> {
@@ -38,6 +40,10 @@ class MattingEngineImpl(
                 modnetBackend.initialize()
             }
             modnetReady
+        }
+        MaskSource.SELFIE_SEGMENTATION -> {
+            if (!selfieReady) selfieReady = selfieBackend.initialize()
+            selfieReady
         }
     }
 
@@ -74,11 +80,12 @@ class MattingEngineImpl(
             val raw = when (maskSource) {
                 MaskSource.U2NETP -> u2netBackend.infer(bitmap)
                 MaskSource.MODNET -> modnetBackend.infer(bitmap)
+                MaskSource.SELFIE_SEGMENTATION -> selfieBackend.infer(bitmap)
             } ?: return@withContext null
-            val maskSize = if (maskSource == MaskSource.U2NETP) {
-                U2NetPreprocessor.INPUT_SIZE
-            } else {
-                ModNetPreprocessor.INPUT_SIZE
+            val maskSize = when (maskSource) {
+                MaskSource.U2NETP -> U2NetPreprocessor.INPUT_SIZE
+                MaskSource.MODNET -> ModNetPreprocessor.INPUT_SIZE
+                MaskSource.SELFIE_SEGMENTATION -> MediaPipeSegmentationBackend.OUTPUT_SIZE
             }
             // u2netp：二值化；MODNet：连续 Alpha 直传
             val alpha = if (maskSource == MaskSource.U2NETP) {
@@ -95,5 +102,6 @@ class MattingEngineImpl(
     fun release() {
         u2netBackend.release()
         modnetBackend.release()
+        selfieBackend.release()
     }
 }

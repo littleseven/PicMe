@@ -40,6 +40,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.graphics.Paint
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+import java.io.File
+import java.nio.ByteBuffer
 
 private const val TAG = "GalleryLandmark"
 
@@ -272,12 +274,20 @@ fun FaceLandmarkCanvasOverlay(
 }
 
 private fun createFaceLandmarker(context: Context, delegate: Delegate): FaceLandmarker {
-    val baseOptions = BaseOptions.builder()
+    val baseOptionsBuilder = BaseOptions.builder()
         .setDelegate(delegate)
-        .setModelAssetPath("mediapipe/face_landmarker.task")
-        .build()
+
+    val modelFile = File(context.filesDir, "llm_models/mediapipe-face-landmarker/face_landmarker.task")
+    if (modelFile.exists() && modelFile.length() > 0) {
+        val buffer = modelFile.readBytes().let { ByteBuffer.wrap(it) }
+        baseOptionsBuilder.setModelAssetBuffer(buffer)
+    } else {
+        // Fallback to bundled asset before first download completes
+        baseOptionsBuilder.setModelAssetPath("mediapipe/face_landmarker.task")
+    }
+
     val options = FaceLandmarker.FaceLandmarkerOptions.builder()
-        .setBaseOptions(baseOptions)
+        .setBaseOptions(baseOptionsBuilder.build())
         .setMinFaceDetectionConfidence(0.5f)
         .setMinTrackingConfidence(0.5f)
         .setMinFacePresenceConfidence(0.5f)
