@@ -10,6 +10,7 @@ import com.mamba.picme.agent.core.inference.local.prompt.LocalPromptBuilder
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.MemoryManager
+import com.mamba.data.message.UserMessage
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.cache.IntentCache
@@ -143,7 +144,10 @@ class LocalInferencePipeline(
         val systemPrompt = promptBuilder.buildL2SystemPrompt(capabilities, context)
 
         // 构建带历史上下文的 messages
-        val messages = memoryManager.buildContextMessages(context.memorySessionId, systemPrompt, userInput)
+        // P1: user 末尾钉一次格式（近端锚点）——小模型在长 system 后易丢格式，最近一条 user 后
+        // 再强调"只输出JSON数组"，显著提升遵从率。仅追加到本次推理 messages，不写入 memory。
+        val messages = memoryManager.buildContextMessages(context.memorySessionId, systemPrompt, userInput) +
+            UserMessage.from("只输出JSON数组，不要任何其他文字。")
 
         val result = try {
             Result.success(
@@ -210,7 +214,10 @@ class LocalInferencePipeline(
         val systemPrompt = promptBuilder.buildL2SystemPrompt(capabilities, context)
 
         // 构建带历史上下文的 messages
-        val messages = memoryManager.buildContextMessages(context.memorySessionId, systemPrompt, userInput)
+        // P1: user 末尾钉一次格式（近端锚点）——小模型在长 system 后易丢格式，最近一条 user 后
+        // 再强调"只输出JSON数组"，显著提升遵从率。仅追加到本次推理 messages，不写入 memory。
+        val messages = memoryManager.buildContextMessages(context.memorySessionId, systemPrompt, userInput) +
+            UserMessage.from("只输出JSON数组，不要任何其他文字。")
 
         val result = try {
             Result.success(
@@ -287,7 +294,10 @@ class LocalInferencePipeline(
         val systemPrompt = promptBuilder.buildSystemPrompt(capabilities, context)
 
         // 构建带历史上下文的 messages
-        val messages = memoryManager.buildContextMessages(context.memorySessionId, systemPrompt, userInput)
+        // P1: user 末尾钉一次格式（近端锚点）——小模型在长 system 后易丢格式，最近一条 user 后
+        // 再强调"只输出JSON数组"，显著提升遵从率。仅追加到本次推理 messages，不写入 memory。
+        val messages = memoryManager.buildContextMessages(context.memorySessionId, systemPrompt, userInput) +
+            UserMessage.from("只输出JSON数组，不要任何其他文字。")
 
         val result = try {
             Result.success(
