@@ -192,10 +192,14 @@ class MediaSearchEngine(
             ?: filter.personName
             ?: ""
 
+        // 人物名查询是精确约束：人脸聚类已能准确召回该人物的所有照片，
+        // 不应再启用 MobileCLIP 语义召回，否则全库“长得像”的图片会混入结果。
+        val enableSemanticForFilter = enableSemanticSearch && filter.personName.isNullOrBlank()
+
         val (results, semanticResults) = coroutineScope {
             val sqlDeferred = async { executeFilter(filter) }
             val semanticDeferred = async {
-                if (enableSemanticSearch && semanticSearchEngine != null && query.isNotBlank()) {
+                if (enableSemanticForFilter && semanticSearchEngine != null && query.isNotBlank()) {
                     searchSemantic(query, filter)
                 } else emptyList()
             }
