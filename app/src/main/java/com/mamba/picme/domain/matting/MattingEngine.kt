@@ -45,6 +45,8 @@ class MattingEngineImpl(
             if (!selfieReady) selfieReady = selfieBackend.initialize()
             selfieReady
         }
+        // FUSION 由 fusionMatting() 分别 ensure selfie + modnet，不在此处理
+        MaskSource.FUSION -> false
     }
 
     /**
@@ -76,16 +78,20 @@ class MattingEngineImpl(
 
     override suspend fun removeBackground(bitmap: Bitmap, maskSource: MaskSource): MattingResult? =
         withContext(Dispatchers.Default) {
+            if (maskSource == MaskSource.FUSION) return@withContext fusionMatting(bitmap)
             if (!ensureBackend(maskSource)) return@withContext null
             val raw = when (maskSource) {
                 MaskSource.U2NETP -> u2netBackend.infer(bitmap)
                 MaskSource.MODNET -> modnetBackend.infer(bitmap)
                 MaskSource.SELFIE_SEGMENTATION -> selfieBackend.infer(bitmap)
+                // FUSION 在 removeBackground 开头已早返回到 fusionMatting，此处不可达
+                MaskSource.FUSION -> null
             } ?: return@withContext null
             val maskSize = when (maskSource) {
                 MaskSource.U2NETP -> U2NetPreprocessor.INPUT_SIZE
                 MaskSource.MODNET -> ModNetPreprocessor.INPUT_SIZE
                 MaskSource.SELFIE_SEGMENTATION -> MediaPipeSegmentationBackend.OUTPUT_SIZE
+                MaskSource.FUSION -> 0
             }
             // u2netp：二值化；MODNet：连续 Alpha 直传
             val alpha = if (maskSource == MaskSource.U2NETP) {
@@ -105,6 +111,31 @@ class MattingEngineImpl(
             }
             MattingResult(alpha = refined, width = bitmap.width, height = bitmap.height)
         }
+
+    /**
+     * selfie + MODNet 双模型融合：逐像素 max（服装区取 selfie、面部区取 MODNet），
+     * 再 alpha 锐化收窄融合边缘。证件照专用（双推理，离线可接受）。
+     */
+    private suspend fun fusionMatting(bitmap: Bitmap): MattingResult? {
+        if (!ensureBackend(MaskSource.SELFIE_SEGMENTATION) || !ensureBackend(MaskSource.MODNET)) {
+            return null
+        }
+        val rawSelfie = selfieBackend.infer(bitmap) ?: return null
+        val rawModnet = modnetBackend.infer(bitmap) ?: return null
+        val alphaSelfie = MaskPostProcessor.upsample(
+            rawSelfie,
+            srcW = MediaPipeSegmentationBackend.OUTPUT_SIZE, srcH = MediaPipeSegmentationBackend.OUTPUT_SIZE,
+            dstW = bitmap.width, dstH = bitmap.height
+        )
+        val alphaModnet = MaskPostProcessor.upsample(
+            rawModnet,
+            srcW = ModNetPreprocessor.INPUT_SIZE, srcH = ModNetPreprocessor.INPUT_SIZE,
+            dstW = bitmap.width, dstH = bitmap.height
+        )
+        val fused = FloatArray(alphaSelfie.size) { i -> maxOf(alphaSelfie[i], alphaModnet[i]) }
+        val refined = MaskPostProcessor.sharpenAlpha(fused, contrast = 2.5f)
+        return MattingResult(alpha = refined, width = bitmap.width, height = bitmap.height)
+    }
 
     fun release() {
         u2netBackend.release()

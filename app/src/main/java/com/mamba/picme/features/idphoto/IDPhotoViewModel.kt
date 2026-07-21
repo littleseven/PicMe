@@ -60,7 +60,7 @@ class IDPhotoViewModel(
                         _state.value = State.Error(context.getString(R.string.editor_load_failed))
                         return@launch
                     }
-                val result = mattingEngine.removeBackground(bitmap, MaskSource.MODNET)
+                val result = mattingEngine.removeBackground(bitmap, MaskSource.FUSION)
                 if (result == null) {
                     _state.value = State.Error(context.getString(R.string.id_photo_matting_failed))
                     return@launch
