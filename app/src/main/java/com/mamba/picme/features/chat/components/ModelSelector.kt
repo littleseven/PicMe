@@ -85,26 +85,7 @@ fun ModelSelector(
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
-            DropdownMenuItem(
-                text = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(ChatModelOption.Local.indicatorColor)
-                        )
-                        Text("本地模型 (Qwen3.5-2B)")
-                    }
-                },
-                onClick = {
-                    onModelSelected(ChatModelOption.Local)
-                    expanded = false
-                }
-            )
+            // chat 页仅远程：下拉只保留远程模型（本地 LLM 已从 chat 移除，仅其他场景保留）
             DropdownMenuItem(
                 text = {
                     Row(

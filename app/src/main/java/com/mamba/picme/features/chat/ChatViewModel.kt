@@ -218,11 +218,8 @@ class ChatViewModel(
         viewModelScope.launch {
             try {
                 userSettingsRepository.aiAgentInferencePreferenceFlow.collect { preference ->
-                    _currentModel.value = when (preference) {
-                        AiAgentInferencePreference.FORCE_LOCAL -> ChatModelOption.Local
-                        AiAgentInferencePreference.FORCE_REMOTE,
-                        AiAgentInferencePreference.AUTO -> ChatModelOption.Remote
-                    }
+                    // chat 页仅远程：无论全局偏好如何（含 FORCE_LOCAL），chat 都用远程模型
+                    _currentModel.value = ChatModelOption.Remote
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to sync inference preference from settings", e)
@@ -1398,6 +1395,11 @@ class ChatViewModel(
      * 同步到 AgentOrchestrator（控制实际推理路由）和 DataStore（设置中心同步更新）。
      */
     fun switchModel(model: ChatModelOption) {
+        // chat 页仅远程：忽略切换到本地（保留接口兼容，UI 已不暴露本地选项）
+        if (model !is ChatModelOption.Remote) {
+            Logger.i(TAG, "switchModel ignored non-Remote option (chat is remote-only): $model")
+            return
+        }
         _currentModel.value = model
         viewModelScope.launch {
             try {

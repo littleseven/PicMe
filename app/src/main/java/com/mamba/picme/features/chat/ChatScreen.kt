@@ -484,10 +484,6 @@ fun ChatScreen(
                         onNavigateToSettings()
                         viewModel.dismissRegistrationSheet()
                     },
-                    onUseLocal = {
-                        viewModel.switchModel(ChatModelOption.Local)
-                        viewModel.dismissRegistrationSheet()
-                    },
                     sendCode = viewModel::sendVerificationCode,
                     verifyCode = viewModel::verifyCode,
                 )

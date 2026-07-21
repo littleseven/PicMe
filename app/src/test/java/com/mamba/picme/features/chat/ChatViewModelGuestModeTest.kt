@@ -136,12 +136,13 @@ class ChatViewModelGuestModeTest {
     }
 
     @Test
-    fun `isGuestMode false on local model even without token`() = runTest {
+    fun `chat ignores FORCE_LOCAL and stays remote - guest when no token`() = runTest {
+        // chat 页已移除本地 LLM：即使全局偏好 FORCE_LOCAL，chat 仍用远程模型（访客由 PICME_SERVER_DEFAULT 兜底）
         preferenceFlow.value = AiAgentInferencePreference.FORCE_LOCAL
         tokenFlow.value = ""
         val vm = newViewModel()
         advanceUntilIdle()
-        assertFalse("本地模型不进入访客模式", vm.isGuestMode.value)
+        assertTrue("chat 忽略 FORCE_LOCAL 仍远程，无 token 为访客", vm.isGuestMode.value)
     }
 
     // ── 403 配额耗尽分流 ──────────────────────────────────────────

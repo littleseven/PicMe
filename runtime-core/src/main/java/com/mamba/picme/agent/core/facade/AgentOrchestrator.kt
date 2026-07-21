@@ -443,18 +443,20 @@ class AgentOrchestrator private constructor(context: Context) {
         val preference = configurator.getInferencePreference()
         Logger.d(tag, "streamChat: preference=$preference, input='$input'")
 
+        // 产品决策（chat-only remote）：chat 页仅保留远程模型；本地 LLM 留给相机 Agent / 隐私等
+        // 其他场景。因此无论全局 inferencePreference 如何（含 FORCE_LOCAL），chat 都走远程。
+        // 访客（无 token）由 PICME_SERVER_DEFAULT 兜底，仍可聊天。
         val result = when (preference) {
             AiAgentInferencePreference.FORCE_LOCAL -> {
-                Logger.i(tag, "streamChat routing to LOCAL (FORCE_LOCAL)")
-                streamChatLocal(input, agentContext, onToken)
+                Logger.i(tag, "streamChat routing to REMOTE (chat-only policy, FORCE_LOCAL ignored)")
+                streamChatRemote(input, agentContext, onToken)
             }
             AiAgentInferencePreference.FORCE_REMOTE -> {
                 Logger.i(tag, "streamChat routing to REMOTE (FORCE_REMOTE)")
                 streamChatRemote(input, agentContext, onToken)
             }
             AiAgentInferencePreference.AUTO -> {
-                // CHAT 场景默认使用远程推理
-                Logger.i(tag, "streamChat routing to REMOTE (AUTO, default for CHAT)")
+                Logger.i(tag, "streamChat routing to REMOTE (AUTO)")
                 streamChatRemote(input, agentContext, onToken)
             }
         }

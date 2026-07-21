@@ -18,14 +18,13 @@ import com.mamba.picme.R
 import com.mamba.picme.features.common.auth.EmailCodeAuthForm
 
 /**
- * 聊天页注册引导弹层：复用 [EmailCodeAuthForm]，并提供「自配 API Key」「用本地模型」两条旁路。
+ * 聊天页注册引导弹层：复用 [EmailCodeAuthForm]，并提供「自配 API Key」旁路。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatRegistrationSheet(
     onDismiss: () -> Unit,
     onUseOwnKey: () -> Unit,
-    onUseLocal: () -> Unit,
     sendCode: (String, (Result<Unit>) -> Unit) -> Unit,
     verifyCode: (String, String, (Result<*>) -> Unit) -> Unit,
 ) {
@@ -52,9 +51,6 @@ fun ChatRegistrationSheet(
             HorizontalDivider()
             TextButton(onClick = onUseOwnKey) {
                 Text(stringResource(R.string.chat_register_use_own_key))
-            }
-            TextButton(onClick = onUseLocal) {
-                Text(stringResource(R.string.chat_register_use_local))
             }
         }
     }
