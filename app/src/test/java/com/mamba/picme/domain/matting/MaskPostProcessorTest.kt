@@ -48,4 +48,19 @@ class MaskPostProcessorTest {
         assertEquals(2f / 3f, out[1], 0.01f)
         assertEquals(1f / 3f, out[2], 0.01f)
     }
+
+    @Test
+    fun `sharpenAlpha narrows soft edge and keeps 0 and 1 ends`() {
+        // contrast=2 关于 0.5 拉伸：0->0, 0.25->0, 0.5->0.5, 0.75->1, 1->1
+        val alpha = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
+        val out = MaskPostProcessor.sharpenAlpha(alpha, contrast = 2f)
+        assertArrayEquals(floatArrayOf(0f, 0f, 0.5f, 1f, 1f), out, 1e-5f)
+    }
+
+    @Test
+    fun `sharpenAlpha contrast 1 returns copy`() {
+        val alpha = floatArrayOf(0.2f, 0.8f)
+        val out = MaskPostProcessor.sharpenAlpha(alpha, contrast = 1f)
+        assertArrayEquals(alpha, out, 1e-6f)
+    }
 }

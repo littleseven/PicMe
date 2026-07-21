@@ -77,4 +77,22 @@ object MaskPostProcessor {
         }
         return out
     }
+
+    /**
+     * Alpha 对比度锐化：把软边过渡带收窄，消除抠图边缘的半透明“虚边/光晕”。
+     * 仅对中间过渡区做关于 0.5 的对比度拉伸，alpha=0 与 alpha=1 的区域钳制后不变，
+     * 因此不会像二值化那样引入锯齿，也不会吃掉发丝（发丝的连续 alpha 被同步增强对比度）。
+     * @param contrast 1 = 原样返回；>1 锐化（证件照推荐 2.0 附近，过大会逼近二值化重新出现锯齿）。
+     */
+    fun sharpenAlpha(alpha: FloatArray, contrast: Float): FloatArray {
+        if (contrast == 1f) return alpha.copyOf()
+        return FloatArray(alpha.size) { i ->
+            val v = (alpha[i] - 0.5f) * contrast + 0.5f
+            when {
+                v <= 0f -> 0f
+                v >= 1f -> 1f
+                else -> v
+            }
+        }
+    }
 }

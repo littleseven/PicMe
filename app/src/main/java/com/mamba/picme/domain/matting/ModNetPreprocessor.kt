@@ -2,9 +2,9 @@ package com.mamba.picme.domain.matting
 
 import android.graphics.Bitmap
 
-/** MODNet 输入预处理：256×256 RGB → (x/255-0.5)/0.5 归一化 NCHW。核心 [toNchw] 基于数组，可 JVM 单测。 */
+/** MODNet 输入预处理：768×768 RGB → (x/255-0.5)/0.5 归一化 NCHW。核心 [toNchw] 基于数组，可 JVM 单测。 */
 object ModNetPreprocessor {
-    const val INPUT_SIZE = 256
+    const val INPUT_SIZE = 768
     private const val MEAN = 0.5f
     private const val STD = 0.5f
 
