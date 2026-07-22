@@ -60,7 +60,8 @@ class SettingsViewModel(
             "face-det-retina500m-mnn", // 人脸 ROI 检测
             "face-landmark-2d106-mnn", // 人脸 2D106 关键点
             "face-embedding-glint360k-r100-mnn", // 人脸特征 embedding
-            "mobileclip-onnx", // 语义搜索/相册打标
+            "mobileclip-onnx", // 语义搜索
+            "smolvlm_256m", // 图片标签生成（Pass 3）
             "opus-mt-zh-en" // 中文查询翻译
         )
 

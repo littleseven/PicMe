@@ -164,8 +164,6 @@ enum class PipelineStage {
      * 注意：常规扫描已将该阶段内联到 [FACE_ROI]。
      */
     MOBILE_CLIP,
-    /** ML Kit Image Labeler 英文标签提取 */
-    ML_KIT_TAGGING,
     COMPLETE
 }
 

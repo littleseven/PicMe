@@ -61,7 +61,6 @@ class TagGenerationPipeline(
     private val userSettingsRepository: UserSettingsRepository? = null,
     private val promptProvider: TagPromptProvider = DefaultTagPromptProvider(),
     private val mobileClipEngine: MobileClipEngine? = null,
-    private val mlKitTagExtractor: MlKitTagExtractor? = null,
     private val mobileClipTagClassifier: MobileClipTagClassifier? = null
 ) {
 
@@ -74,8 +73,8 @@ class TagGenerationPipeline(
         /** Qwen 图像推理的图片最长边缩放 */
         private const val MAX_VISION_SIZE = 512
 
-        /** Qwen Stage 3 最大输出 token 数（activity + summary 模式下 128 足够） */
-        private const val QWEN_MAX_TOKENS = 128
+        /** Qwen Stage 3 最大输出 token 数。SmolVLM-256M 输出 JSON 需要 256 tokens 才能完整闭合。 */
+        private const val QWEN_MAX_TOKENS = 256
 
         /**
          * EXIF 旋转角度缓存：URI -> rotationDegrees。
@@ -385,20 +384,6 @@ class TagGenerationPipeline(
      */
     fun warmUpMobileClipClassifier(): Boolean {
         return mobileClipTagClassifier?.warmUp() ?: false
-    }
-
-    /**
-     * 提取 ML Kit Image Labeler 英文标签
-     *
-     * @param uri 照片 Content URI
-     * @return 英文标签列表，失败返回空列表
-     */
-    fun extractMlKitLabels(uri: String): List<String> {
-        val extractor = mlKitTagExtractor ?: run {
-            Log.w(TAG, "[ML Kit] MlKitTagExtractor not available")
-            return emptyList()
-        }
-        return extractor.extract(uri)
     }
 
     // ═══════════════════════════════════════════════════
@@ -766,13 +751,37 @@ class TagGenerationPipeline(
 
     /**
      * 从 LLM 返回中提取 JSON 对象
+     *
+     * prompt 工程要求模型把 JSON 放在回答末尾，因此优先从最后一个 `{` 开始匹配；
+     * 若解析失败则回退到第一个 `{` ... 最后一个 `}` 的兜底策略。
      */
     private fun extractJson(text: String): String? {
-        val start = text.indexOf('{')
+        // 策略 1：JSON 在末尾 → 取最后一个 `{` 到其后的最后一个 `}`
+        val lastStart = text.lastIndexOf('{')
+        if (lastStart != -1) {
+            val endAfterLastStart = text.lastIndexOf('}')
+            if (endAfterLastStart > lastStart) {
+                val candidate = text.substring(lastStart, endAfterLastStart + 1)
+                if (isValidJsonObject(candidate)) return candidate
+            }
+        }
+
+        // 策略 2：兜底，取第一个 `{` 到全文最后一个 `}`
+        val firstStart = text.indexOf('{')
         val end = text.lastIndexOf('}')
-        return if (start != -1 && end > start) {
-            text.substring(start, end + 1)
+        return if (firstStart != -1 && end > firstStart) {
+            val candidate = text.substring(firstStart, end + 1)
+            if (isValidJsonObject(candidate)) candidate else null
         } else null
+    }
+
+    private fun isValidJsonObject(text: String): Boolean {
+        return try {
+            org.json.JSONObject(text)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**

@@ -122,8 +122,8 @@ class ChatGallerySummaryCapability private constructor() : BaseCapability() {
             when (summary.recommendation) {
                 GallerySummary.ScanRecommendation.NONE -> append("。目前状态良好，无需扫描。")
                 GallerySummary.ScanRecommendation.INCREMENTAL -> append("。建议运行增量扫描补齐未打标照片。")
-                GallerySummary.ScanRecommendation.PASS3_FULL -> append("。未打标比例较高，建议执行 Pass 3 全量扫描。")
-                GallerySummary.ScanRecommendation.PASS1_FIRST -> append("。大量照片尚未完成人脸检测，建议先执行 Pass 1 扫描。")
+                GallerySummary.ScanRecommendation.PASS3_FULL -> append("。未打标比例较高，建议执行内容标签全量扫描。")
+                GallerySummary.ScanRecommendation.PASS1_FIRST -> append("。大量照片尚未完成人脸检测，建议先执行人脸检测扫描。")
             }
             if (summary.isScanning) {
                 append(" [当前扫描中")

@@ -112,7 +112,6 @@ class StartTagScanUseCase(
         "objects" -> "物体"
         "tags" -> "标签"
         "summary" -> "摘要"
-        "mlkit" -> "ML Kit 标签"
         else -> taskType
     }
 

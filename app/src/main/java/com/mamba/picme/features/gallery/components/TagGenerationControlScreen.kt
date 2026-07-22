@@ -36,9 +36,8 @@ import kotlinx.coroutines.launch
 /**
  * TAG 生成精细控制子页面
  *
- * 显示 3-Pass 混合管道的各阶段进度和数据库统计。
- * Pass 1 已内联整合：RetinaFace 人脸检测 / 2D106 ROI 对齐 / Glint360K R100 人脸编码 / MobileCLIP 语义编码。
- * MobileCLIP 不再作为独立 Pass 4 显示。
+ * 显示三阶段混合管道的各阶段进度和数据库统计。
+ * 语义编码已内联到人脸检测阶段，不再作为独立阶段显示。
  * 所有操作通过 TagGenerationService → TagScanOrchestrator 统一管理。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,8 +76,6 @@ fun TagGenerationControlScreen(
     var embeddingCount by remember { mutableIntStateOf(0) }
     var remainingPass1 by remember { mutableIntStateOf(0) }
     var remainingPass3 by remember { mutableIntStateOf(0) }
-    var withMlKitLabels by remember { mutableIntStateOf(0) }
-    var remainingMlKit by remember { mutableIntStateOf(0) }
 
     // 精细控制：类别 / 时间范围 / 模式
     var selectedCategories by remember { mutableStateOf(setOf<TagCategory>()) }
@@ -102,8 +99,6 @@ fun TagGenerationControlScreen(
                 embeddingCount = stats.faceEmbeddingCount
                 remainingPass1 = stats.remainingForPass1
                 remainingPass3 = stats.remainingForPass3
-                withMlKitLabels = stats.withMlKitLabels
-                remainingMlKit = stats.remainingForMlKit
             } catch (e: Exception) {
                 android.util.Log.e("TagGenControl", "refreshStats failed", e)
             }
@@ -253,16 +248,14 @@ fun TagGenerationControlScreen(
                 namedPersonCount = namedPersonCount,
                 embeddingCount = embeddingCount,
                 remainingPass1 = remainingPass1,
-                remainingPass3 = remainingPass3,
-                withMlKitLabels = withMlKitLabels,
-                remainingMlKit = remainingMlKit
+                remainingPass3 = remainingPass3
             )
 
             // ── 混合管道概览（只读状态展示） ────────────────
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "混合管道概览",
+                        "处理阶段概览",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -277,9 +270,9 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Pass 1: 人脸检测 + 人脸编码 + MobileCLIP 语义编码（内联）", style = MaterialTheme.typography.bodyMedium)
+                            Text("第一步：人脸检测与语义编码", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "RetinaFace + 2D106 对齐 + Glint360K R100 + MobileCLIP-S2 → $withFace / $totalMedia 张 · 有语义 $withSemantic 张",
+                                "识别照片中的人脸并提取语义特征，用于人物归类与智能搜索 · $withFace / $totalMedia 张已完成 · 有语义 $withSemantic 张",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -297,9 +290,9 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Pass 2: 密度自适应人脸聚类（方案 B）", style = MaterialTheme.typography.bodyMedium)
+                            Text("第二步：人物聚类", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "k-NN 图连通分量 → $personCount 个人物簇",
+                                "将相似人脸归为同一个人，方便按人物浏览和搜索 · 已识别 $personCount 个人物",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -317,17 +310,16 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Pass 3: 图片标签（ML Kit，不发热）", style = MaterialTheme.typography.bodyMedium)
+                            Text("第三步：图片内容理解", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "ML Kit Image Labeler（中英标签）→ $withLabels / $totalMedia 张",
+                                "分析画面内容，生成场景、活动、物体等标签与摘要 · $withLabels / $totalMedia 张已完成",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
                     }
 
-                    // Pass 4（ML Kit 英文标签，独立 mlKitLabels 字段）已与 Pass 3 重复：
-                    // Task1 起 Pass 3（executeQwenTagging）改用 ML Kit → labels.tags，故 Pass 4 不再单独显示。
+                    // 语义编码已内联到人脸检测阶段，此处不再显示。
                 }
             }
 
@@ -383,8 +375,8 @@ fun TagGenerationControlScreen(
                     Spacer(Modifier.height(8.dp))
 
                     PassControlCard(
-                        title = "人脸检测与编码",
-                        subtitle = "RetinaFace ROI + 2D106 对齐 + Glint360K R100：$withFace / $totalMedia 张 · 剩余 $remainingPass1 张",
+                        title = "人脸检测与语义编码",
+                        subtitle = "为未处理照片识别面孔并提取语义特征 · $withFace / $totalMedia 张已完成 · 剩余 $remainingPass1 张",
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass1(context))
@@ -398,8 +390,8 @@ fun TagGenerationControlScreen(
                     Spacer(Modifier.height(8.dp))
 
                     PassControlCard(
-                        title = "人脸聚类",
-                        subtitle = "密度自适应 k-NN 图聚类：$personCount 个人物簇 · $embeddingCount 条 embedding",
+                        title = "人物聚类",
+                        subtitle = "按面部特征将照片分组到不同人物 · 已识别 $personCount 个人物 · $embeddingCount 条特征",
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass2(context))
@@ -413,8 +405,8 @@ fun TagGenerationControlScreen(
                     Spacer(Modifier.height(8.dp))
 
                     PassControlCard(
-                        title = "图片标签（ML Kit，不发热）",
-                        subtitle = "ML Kit 中英标签（summary 由详情按需 SmolVLM 补）：$withLabels / $totalMedia 张 · 剩余 $remainingPass3 张",
+                        title = "图片内容理解",
+                        subtitle = "为未处理照片生成场景、活动、物体等描述标签 · $withLabels / $totalMedia 张已完成 · 剩余 $remainingPass3 张",
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass3(context))
@@ -425,9 +417,8 @@ fun TagGenerationControlScreen(
                         }
                     )
 
-                    // MobileCLIP 语义编码（Pass4）：常规已内联到 Pass1（人脸检测），单独重编码是历史遗留，移除入口。
-                    // ML Kit 英文标签（Pass5）：Task1 起 Pass3 已改用 ML Kit → labels.tags，与此重复，移除入口。
-                    // 如需单独重跑，仍可用 agent-test 的 scan_pass4 / scan_mlkit 命令。
+                    // 语义编码已内联到人脸检测阶段，此处不再提供独立入口。
+                    // ML Kit 英文标签已并入内容理解阶段，不再单独生成。
 
                     Spacer(Modifier.height(8.dp))
                     HorizontalDivider()
@@ -491,13 +482,6 @@ fun TagGenerationControlScreen(
                             selected = TagCategory.SUMMARY in selectedCategories,
                             onClick = {
                                 selectedCategories = selectedCategories.toggle(TagCategory.SUMMARY)
-                            }
-                        )
-                        CategoryChip(
-                            label = "ML Kit",
-                            selected = TagCategory.ML_KIT_LABELS in selectedCategories,
-                            onClick = {
-                                selectedCategories = selectedCategories.toggle(TagCategory.ML_KIT_LABELS)
                             }
                         )
                     }
@@ -663,11 +647,10 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
 }
 
 private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
-    TagScanPass.FACE_DETECTION -> "Pass 1: 人脸检测 + 编码 + MobileCLIP"
-    TagScanPass.DBSCAN -> "Pass 2: 密度自适应聚类"
-    TagScanPass.QWEN_TAGGING -> "Pass 3: ML Kit 标签"
-    TagScanPass.MOBILE_CLIP_ENCODING -> "MobileCLIP 语义编码（单独）"
-    TagScanPass.ML_KIT_TAGGING -> "ML Kit 英文标签"
+    TagScanPass.FACE_DETECTION -> "第一步：人脸检测与语义编码"
+    TagScanPass.DBSCAN -> "第二步：人物聚类"
+    TagScanPass.QWEN_TAGGING -> "第三步：图片内容理解"
+    TagScanPass.MOBILE_CLIP_ENCODING -> "语义编码（单独）"
     null -> "准备中"
 }
 
@@ -801,9 +784,7 @@ private fun StatsCard(
     namedPersonCount: Int,
     embeddingCount: Int,
     remainingPass1: Int,
-    remainingPass3: Int,
-    withMlKitLabels: Int,
-    remainingMlKit: Int
+    remainingPass3: Int
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -864,13 +845,12 @@ private fun StatsCard(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
-            // ── Pass 进度（三列表格） ─────────────────
-            StatsSectionTitle("Pass 进度")
+            // ── 各阶段进度（三列表格） ─────────────────
+            StatsSectionTitle("阶段进度")
             StatsPassTableHeader()
             HorizontalDivider()
-            StatsPassTableRow("Pass 1", "$withFace / $totalMedia", remainingPass1.toString())
-            StatsPassTableRow("Pass 3", "$withLabels / $totalMedia", remainingPass3.toString())
-            StatsPassTableRow("ML Kit", "$withMlKitLabels / $totalMedia", remainingMlKit.toString())
+            StatsPassTableRow("人脸检测", "$withFace / $totalMedia", remainingPass1.toString())
+            StatsPassTableRow("内容标签", "$withLabels / $totalMedia", remainingPass3.toString())
         }
     }
 }

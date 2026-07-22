@@ -45,6 +45,9 @@ class RemotePromptBuilder(
             appendLine("7. 如果用户是闲聊或无法用现有函数表达，调用 text_reply 回复。")
             appendLine("8. 不要在回复文本中输出 JSON 格式的工具调用，也不要使用 <think> 标签。")
             appendLine("9. 禁止输出 method/params 格式的 JSON 数组（如 [{\"method\":\"...\",\"params\":{}}]）。")
+            if (context.scene == com.mamba.picme.agent.core.model.context.AgentScene.CHAT) {
+                appendLine("10. 【聊天页导航硬规则】当前是聊天页。除非用户明确说\"去相机/去相册/去设置/返回/上一页/后退\"，否则不要调用 navigate_to / go_back；模糊表述（如\"我想看看相册\"）请调用 text_reply 回复，禁止自动跳转。")
+            }
             appendLine()
             appendLine("【当前状态】")
             appendLine(buildStateSection(context, sceneManager.currentScene.value))

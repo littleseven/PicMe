@@ -43,7 +43,7 @@ import com.mamba.picme.data.model.MediaEntity
         TagScanTaskEntity::class,
         MediaFeedbackEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -70,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "picme_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .build()
                 INSTANCE = instance
                 instance
@@ -228,6 +228,29 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_media_feedback_lookup` ON `media_feedback` (`media_id`, `query_text`, `feedback_type`)"
                 )
+            }
+        }
+
+        /**
+         * Migration 10 → 11：清理 ML Kit 图像标注遗留数据
+         *
+         * ML Kit Image Labeler 已移除，不再生成新标签。本次 migration：
+         * 1. 清空 media_assets.mlKitLabels / mlKitLabelsZh
+         * 2. 清空旧 ML Kit 写入的 labels（JSON 数组格式，Qwen 标签为 JSON 对象）
+         * 3. 清空规范化标签表 tags / media_tag_cross_ref（旧 ML Kit 与废弃 ImageTagIndexingWorker 数据）
+         */
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 清空 ML Kit 专属列
+                database.execSQL("UPDATE `media_assets` SET `mlKitLabels` = NULL, `mlKitLabelsZh` = NULL")
+
+                // 清空旧 ML Kit 写入的 labels（JSON 数组格式）
+                // Qwen/SmolVLM 当前写入的是 JSON 对象，以 '{' 开头，不受影响
+                database.execSQL("UPDATE `media_assets` SET `labels` = NULL WHERE `labels` LIKE '[%]'")
+
+                // 清空规范化标签表（旧 ML Kit / 废弃 ImageTagIndexingWorker 数据）
+                database.execSQL("DELETE FROM `media_tag_cross_ref`")
+                database.execSQL("DELETE FROM `tags`")
             }
         }
     }

@@ -15,7 +15,6 @@ import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
-import com.mamba.picme.domain.tag.i18n.MlKitLabelTranslator
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,8 +71,8 @@ class TagGenerationScheduler(
     companion object {
         private const val TAG = "TagScheduler"
 
-        /** 打标模型 ID：SmolVLM-500M 纯图像多模态（中文标签质量优于 Qwen3.5-2B/0.8B，CPU ~13s/张）*/
-        private const val MODEL_KEY = "smolvlm_500m"
+        /** 打标模型 ID：Qwen3-VL-2B-Instruct-MNN（视觉语言模型，打标质量优先方案） */
+        private const val MODEL_KEY = "qwen3_vl_2b"
 
         /** 批次大小：每处理此数量照片后强制冷却 */
         private const val BATCH_SIZE = 10
@@ -117,13 +116,13 @@ class TagGenerationScheduler(
     private val vocab = ControlledVocab.loadFromAssets(context)
     private val normalizer = TagNormalizer(vocab)
     private val faceClusterEngine = FaceClusterEngine(context)
-    private val mlKitLabelTranslator = MlKitLabelTranslator.loadFromAssets(context)
 
     private val openClGuardian: OpenClGuardian by lazy {
         OpenClGuardian(
             context = context,
             engine = AgentOrchestrator.getInstance(context).getLlmEngine(),
-            prefs = userSettingsRepository
+            prefs = userSettingsRepository,
+            modelId = MODEL_KEY
         )
     }
 
@@ -153,7 +152,6 @@ class TagGenerationScheduler(
             openClGuardian = openClGuardian,
             userSettingsRepository = userSettingsRepository,
             mobileClipEngine = mobileClip,
-            mlKitTagExtractor = MlKitTagExtractor(context),
             mobileClipTagClassifier = classifier
         )
     }
@@ -1010,31 +1008,71 @@ class TagGenerationScheduler(
 
     /**
      * [原子任务] Pass 3：单张媒体的 Qwen 标签生成
+     *
+     * 质量优先方案：使用 SmolVLM/Qwen 视觉语言模型生成 scene/activity/objects/tags/summary。
+     * 相比 ML Kit，标签语义更准确，能区分"纸"、"墙"等无意义背景与真实主体。
      */
     suspend fun executeQwenTagging(mediaId: Long) {
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return
 
         val startMs = System.currentTimeMillis()
-        // 批量 Pass3 改用 ML Kit（不加载 SmolVLM → 不发热）。
-        // ML Kit 英文标签 → translateToZh 中文 → 全放 labels.tags。
-        // scene/objects/activity/summary 留空（summary 由照片详情按需 SmolVLM 生成）。
-        val labelsEn = pipeline.extractMlKitLabels(entity.uri)
-        val labelsZh = mlKitLabelTranslator.translateToZh(labelsEn)
+
+        if (!ensureModelLoaded()) {
+            // 模型未就绪时抛出异常，使任务标记为 FAILED 并可重试，避免静默跳过导致照片永远未打标。
+            throw IllegalStateException("[Pass 3] Model not loaded for mediaId=$mediaId")
+        }
+
+        val qwenResult = pipeline.stage3QwenTagging(
+            uri = entity.uri,
+            faceRoiJson = entity.faceRoiResult
+        )
 
         currentCoroutineContext().ensureActive()
 
+        val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
+
         val unified = UnifiedTagResult(
-            scene = "",
-            activity = "",
-            objects = emptyList(),
-            tags = labelsZh,
-            qwenSummary = ""
+            face = faceInfo,
+            scene = qwenResult.scene,
+            activity = qwenResult.activity,
+            objects = qwenResult.objects,
+            tags = qwenResult.tags,
+            qwenSummary = qwenResult.summary
         )
         dao.updateLabels(entity.id, unifiedTagToJson(unified))
 
-        Log.d(TAG, "[Benchmark] Pass 3 (ML Kit) done: mediaId=$mediaId, " +
-            "durationMs=${System.currentTimeMillis() - startMs}, tags=$labelsZh")
+        if (qwenResult.tags.isEmpty() && qwenResult.scene.isBlank() && qwenResult.summary.isBlank()) {
+            Log.w(TAG, "[Pass 3] SmolVLM returned empty result for mediaId=$mediaId, " +
+                "but labels JSON still written with face info")
+        }
+
+        Log.d(TAG, "[Benchmark] Pass 3 (Qwen) done: mediaId=$mediaId, " +
+            "durationMs=${System.currentTimeMillis() - startMs}, tags=${qwenResult.tags}")
+    }
+
+    /**
+     * 从 Pass 1 持久化的 faceRoiResult 恢复人脸上下文，并结合 Pass 2 写入的 faceId
+     * 组装最终 labels.face 字段。
+     */
+    private fun parseFaceRoiForUnifiedResult(
+        faceRoiJson: String?,
+        faceId: String?
+    ): FaceTagInfo {
+        if (faceRoiJson.isNullOrEmpty()) return FaceTagInfo()
+        return try {
+            val obj = JSONObject(faceRoiJson)
+            val personIds = faceId?.split(",")?.mapNotNull { it.trim().toLongOrNull() } ?: emptyList()
+            FaceTagInfo(
+                count = obj.optInt("faceCount", 0),
+                selfie = obj.optBoolean("isSelfie", false),
+                groupPhoto = obj.optBoolean("isGroupPhoto", false),
+                personIds = personIds
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse faceRoi JSON: ${e.message}")
+            FaceTagInfo()
+        }
     }
 
     /**
@@ -1056,26 +1094,6 @@ class TagGenerationScheduler(
         if (embedding != null) {
             dao.updateSemanticEmbedding(entity.id, embedding)
         }
-    }
-
-    /**
-     * [原子任务] ML Kit Image Labeler 英文标签提取
-     */
-    suspend fun executeMlKitTagging(mediaId: Long) {
-        val dao = db.mediaDao()
-        val entity = dao.getMediaById(mediaId) ?: return
-
-        val labels = pipeline.extractMlKitLabels(entity.uri)
-
-        // 若任务已被取消，丢弃本次结果
-        currentCoroutineContext().ensureActive()
-
-        val labelsJson = MlKitTagExtractor.toJsonArray(labels)
-        dao.updateMlKitLabels(entity.id, labelsJson)
-
-        // 同时存储中文翻译，使中文搜索可直接命中 ML Kit 标签
-        val labelsZhJson = mlKitLabelTranslator.translateToZhJson(labels)
-        dao.updateMlKitLabelsZh(entity.id, labelsZhJson)
     }
 
     /**

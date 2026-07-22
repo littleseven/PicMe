@@ -76,9 +76,7 @@ enum class TagScanPass {
      * MobileCLIP 语义编码（保留以兼容历史任务/单独重编码场景）。
      * 常规扫描已将该阶段内联合并到 [FACE_DETECTION]。
      */
-    MOBILE_CLIP_ENCODING,
-    /** ML Kit Image Labeler 快速英文标签提取 */
-    ML_KIT_TAGGING
+    MOBILE_CLIP_ENCODING
 }
 
 enum class TagScanTaskStatus {

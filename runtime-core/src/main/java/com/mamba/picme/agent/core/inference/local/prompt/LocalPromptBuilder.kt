@@ -168,6 +168,7 @@ class LocalPromptBuilder(
 4) 闲聊/问答/解释/不确定时：[{"method":"text_reply","params":{"message":"中文简短回复"}}]。
 5) 用户询问某个命令的格式、用法、指令是什么时，只输出 text_reply 进行解释，不要附加任何可执行命令。
 6) 用户说"怎么做/怎么用/是什么"等疑问句时，优先 text_reply 解释，不要执行命令。
+7) 【聊天页导航硬规则】当前是聊天页。navigate_to / go_back 仅在用户明确说"去相机/去相册/去设置/返回/上一页/后退"等跳转口令时才允许输出；对于"我想看看照片/相册""帮我打开相机""想去拍照"等模糊表述，优先用 text_reply 回复，禁止自动跳转。
 
 【相册摘要使用规则】
 - 当前相册摘要见【当前状态】中的 gallery_summary。
@@ -192,6 +193,7 @@ class LocalPromptBuilder(
 「今天天气怎么样」→ [{"method":"text_reply","params":{"message":"我这边没法查实时天气哦，你可以问问系统助手～"}}]
 「打开微信的指令是什么」→ [{"method":"text_reply","params":{"message":"打开微信的指令是 launch_app，参数为 app_name='微信'。"}}]
 「怎么打开微信」→ [{"method":"text_reply","params":{"message":"你可以直接说'打开微信'，我会执行 launch_app(app_name='微信')。"}}]
+「我想看看相册」→ [{"method":"text_reply","params":{"message":"你可以在聊天里直接搜照片，或者说'去相册'跳转。"}}]
 「去相机」→ [{"method":"navigate_to","params":{"destination":"camera"}}]
 「返回」→ [{"method":"go_back","params":{}}]
 「打开微信」→ [{"method":"launch_app","params":{"app_name":"微信"}}]
@@ -382,6 +384,7 @@ class LocalPromptBuilder(
             1) 只输出JSON数组，不要解释、不要markdown、不要思考过程。
             2) 闲聊/问答/解释/不确定时：[{"method":"text_reply","params":{"message":"中文简短回复"}}]
             3) 禁止在聊天页输出 capture/flip_camera/adjust_beauty/switch_filter 等相机控制命令。
+            4) 【导航硬规则】navigate_to / go_back 仅在用户明确说"去相机/去相册/去设置/返回/上一页/后退"时才允许输出；模糊表述（如"我想看看相册"）必须输出 text_reply，禁止自动跳转。
 
             可用命令：
             - text_reply(message): 闲聊、问答、解释
@@ -399,6 +402,7 @@ class LocalPromptBuilder(
 
             示例：
             "去相机" -> [{"method":"navigate_to","params":{"destination":"camera"}}]
+            "我想看看相册" -> [{"method":"text_reply","params":{"message":"你可以在聊天里直接搜照片，或者说'去相册'跳转。"}}]
             "去年夏天的照片" -> [{"method":"search_media","params":{"query":"去年夏天的照片","intent":{"time_range":{"start_ms":$lastSummerStart,"end_ms":$lastSummerEnd},"keywords":[]}}}]
             "近半年小孩的照片" -> [{"method":"search_media","params":{"query":"近半年小孩的照片","intent":{"time_range":{"start_ms":$last6MStart,"end_ms":$last6MEnd},"keywords":["小孩"],"has_faces":true}}}]
             "只要近半年的" -> [{"method":"refine_media_search","params":{"constraint":"只要近半年的","intent":{"time_range":{"start_ms":$last6MStart,"end_ms":$last6MEnd}}}}}]

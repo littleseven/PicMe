@@ -24,9 +24,7 @@ enum class TagCategory {
     TAGS,
 
     /** 一句话摘要 */
-    SUMMARY,
-    /** ML Kit Image Labeler 输出的英文标签 */
-    ML_KIT_LABELS;
+    SUMMARY;
 
     companion object {
         /** 全部类别 */
@@ -40,9 +38,6 @@ enum class TagCategory {
             if (categories.contains(FACE)) {
                 passes += TagScanPass.FACE_DETECTION
                 passes += TagScanPass.DBSCAN
-            }
-            if (categories.contains(ML_KIT_LABELS)) {
-                passes += TagScanPass.ML_KIT_TAGGING
             }
             if (categories.any { it in setOf(SCENE, ACTIVITY, OBJECTS, TAGS, SUMMARY) }) {
                 passes += TagScanPass.QWEN_TAGGING

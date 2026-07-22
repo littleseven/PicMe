@@ -487,6 +487,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
+            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
@@ -511,6 +512,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
+            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
@@ -1317,7 +1319,8 @@ data class ModelConfig(
             "face-det-retina500m-mnn",  // MNN ROI (Det500M)
             "face-landmark-2d106-mnn",  // MNN 2D106
             "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
-            "mobileclip-onnx",          // 语义搜索/相册打标
+            "mobileclip-onnx",          // 语义搜索
+            "smolvlm_256m",             // 图片标签生成（Pass 3）
             "opus-mt-zh-en"             // 中文查询翻译
         )
 

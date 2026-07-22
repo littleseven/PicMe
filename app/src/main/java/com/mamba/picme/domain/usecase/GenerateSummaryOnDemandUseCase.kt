@@ -15,7 +15,7 @@ import org.json.JSONObject
  * 用户点开照片详情时，若 labels.summary 为空，触发 SmolVLM 单张推理生成中文描述并写回
  * labels.summary（缓存，后续秒开）。
  *
- * 批量扫描不调用此 UseCase（批量 Pass3 用 ML Kit 标签，不加载 SmolVLM → 不发热）。
+ * 批量 Pass3 已使用 SmolVLM-256M 生成完整标签与 summary；此处保留作为 summary 缺失时的兜底。
  */
 class GenerateSummaryOnDemandUseCase(private val context: Context) {
 
@@ -35,17 +35,17 @@ class GenerateSummaryOnDemandUseCase(private val context: Context) {
             return null
         }
 
-        // 按需加载 SmolVLM（批量扫描不加载，仅此处按需）
+        // 按需加载 SmolVLM-256M（批量扫描不加载，仅此处按需）
         val orchestrator = AgentOrchestrator.getInstance(context)
         val engine = orchestrator.getLlmEngine()
         if (!engine.isLoaded) {
             val result = orchestrator.ensureModelLoaded(
-                modelId = "smolvlm_500m",
+                modelId = "smolvlm_256m",
                 useOpencl = false,
                 caller = "GenerateSummaryOnDemand"
             )
             if (result.isFailure) {
-                Logger.w(tag, "SmolVLM load failed: ${result.exceptionOrNull()?.message}")
+                Logger.w(tag, "SmolVLM-256M load failed: ${result.exceptionOrNull()?.message}")
                 return null
             }
         }
@@ -62,7 +62,7 @@ class GenerateSummaryOnDemandUseCase(private val context: Context) {
             return null
         }
 
-        // 写回 labels.summary（合并到现有 labels JSON，保留 ML Kit tags）
+        // 写回 labels.summary（合并到现有 labels JSON，保留已有 tags）
         val merged = mergeSummaryIntoLabels(entity.labels, summary)
         dao.updateLabels(mediaId, merged)
         Logger.i(tag, "Summary generated for mediaId=$mediaId: ${summary.take(60)}")

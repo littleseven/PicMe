@@ -7,8 +7,6 @@ import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.label.ImageLabeling
-import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.mamba.picme.core.common.Logger
@@ -17,7 +15,8 @@ import java.io.IOException
 /**
  * 媒体元数据提取器
  *
- * 为单张图片提取：ML Kit 标签、OCR 文字、EXIF GPS、逆地理编码地名。
+ * 为单张图片提取：OCR 文字、EXIF GPS、逆地理编码地名。
+ * 标签生成已迁移到 TagGenerationScheduler 的 Qwen/SmolVLM 管线。
  * 所有提取均为端侧执行，不上传任何数据。
  *
  * @param idCardRecognizer 身份证智能识别器，null 时降级为纯 ML Kit OCR
@@ -29,21 +28,6 @@ class MetadataExtractor(
 
     private val tag = "PoLang:MetadataExtractor"
 
-    /**
-     * ML Kit 图像标注客户端。
-     *
-     * 延迟初始化并在失败时降级为 null，避免 Worker 构造阶段因 ML Kit 内部初始化异常
-     * （如 R8 构建下 MultiFlavorDetectorCreator NPE）导致崩溃。
-     */
-    private val labeler by lazy {
-        try {
-            ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
-        } catch (e: Exception) {
-            Logger.w(tag, "Failed to initialize ML Kit image labeler, label extraction disabled", e)
-            null
-        }
-    }
-
     private val textRecognizer =
         TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
 
@@ -51,41 +35,10 @@ class MetadataExtractor(
      * 提取单张图片的全部元数据
      */
     suspend fun extract(imageUri: Uri, inputImage: InputImage): ExtractionResult {
-        val labels = extractLabels(inputImage)
         val ocrText = extractOcrWithIdCardFallback(inputImage)
         val (latitude, longitude, locationName) = extractLocation(imageUri)
 
-        return ExtractionResult(labels, ocrText, latitude, longitude, locationName)
-    }
-
-    /**
-     * ML Kit 图像标注：返回前 5 个置信度最高的标签
-     */
-    internal fun extractLabels(inputImage: InputImage): List<String> {
-        val currentLabeler = labeler ?: run {
-            Logger.w(tag, "Image labeler unavailable, skipping label extraction")
-            return emptyList()
-        }
-        return try {
-            val result = Tasks.await(currentLabeler.process(inputImage))
-            result
-                .sortedByDescending { label -> label.confidence }
-                .take(5)
-                .filter { label -> label.confidence >= 0.5f }
-                .map { label -> label.text }
-                .also { Logger.d(tag, "Labels extracted: $it") }
-        } catch (e: com.google.mlkit.common.MlKitException) {
-            // 模型尚未下载，跳过（Play Services 后台下载后下次索引会重试）
-            if (e.message?.contains("download") == true || e.message?.contains("optional module") == true) {
-                Logger.w(tag, "ML Kit label model not ready yet, skipping (will retry later)")
-            } else {
-                Logger.e(tag, "ML Kit label error", e)
-            }
-            emptyList()
-        } catch (e: Exception) {
-            Logger.e(tag, "Label extraction failed", e)
-            emptyList()
-        }
+        return ExtractionResult(emptyList(), ocrText, latitude, longitude, locationName)
     }
 
     /**
@@ -171,7 +124,6 @@ class MetadataExtractor(
 
     fun close() {
         try {
-            labeler?.close()
             textRecognizer.close()
         } catch (e: Exception) {
             Logger.w(tag, "Error closing extractors", e)

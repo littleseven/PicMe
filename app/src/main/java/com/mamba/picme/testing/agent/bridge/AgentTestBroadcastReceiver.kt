@@ -486,7 +486,6 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
      * - scan_pass2_full / scan_pass2：全量 Pass 2 DBSCAN 聚类
      * - scan_pass3_full / scan_pass3：全量 Pass 3 Qwen 标签生成
      * - scan_pass4_full / scan_pass4：全量 MobileCLIP 语义编码
-     * - scan_mlkit_full / scan_mlkit：全量 ML Kit 标签提取
      * - scan_all：全量 3-Pass 扫描
      * - cancel：取消扫描
      * - dump_face_embeddings [path]：导出所有 face embeddings 到 JSONL（默认 externalCacheDir/face_embeddings.jsonl）
@@ -593,6 +592,24 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
                 }
                 return true
             }
+            "reset_opencl_blacklist" -> {
+                scope.launch {
+                    try {
+                        val prefs = com.mamba.picme.data.preferences.UserPreferencesRepository(context)
+                        prefs.updateOpenClDegradedDevices("[]")
+                        Logger.i(TAG, "OpenCL degraded devices blacklist cleared")
+                        sendResponse(context, JSONObject().apply {
+                            put("type", "cmd_result")
+                            put("cmd", cmd)
+                            put("status", "success")
+                        }.toString())
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "reset_opencl_blacklist failed", e)
+                        sendResponse(context, createErrorResponse("reset_opencl_blacklist failed: ${e.message}"))
+                    }
+                }
+                return true
+            }
         }
 
         val serviceIntent = when (cmd.lowercase()) {
@@ -604,8 +621,6 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             "scan_pass3_incremental" -> TagGenerationService.intentScanPass3(context)
             "scan_pass4_full", "scan_pass4" -> TagGenerationService.intentScanPass4Full(context)
             "scan_pass4_incremental" -> TagGenerationService.intentScanPass4(context)
-            "scan_mlkit_full", "scan_mlkit" -> TagGenerationService.intentScanPassMlKitFull(context)
-            "scan_mlkit_incremental" -> TagGenerationService.intentScanPassMlKit(context)
             "scan_all" -> TagGenerationService.intentScanAll(context)
             "scan_incremental" -> TagGenerationService.intentScanIncremental(context)
             "cancel" -> TagGenerationService.intentCancel(context)

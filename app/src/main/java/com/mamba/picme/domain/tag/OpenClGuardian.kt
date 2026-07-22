@@ -24,14 +24,15 @@ import org.json.JSONArray
 class OpenClGuardian(
     private val context: Context,
     private val engine: LocalLlmEngine,
-    private val prefs: UserSettingsRepository
+    private val prefs: UserSettingsRepository,
+    private val modelId: String = "qwen3_5_2b"
 ) {
 
     companion object {
         private const val TAG = "OpenClGuardian"
 
-        /** Warmup 超时（毫秒） */
-        private const val WARMUP_TIMEOUT_MS = 5_000
+        /** Warmup 超时（毫秒）。Qwen3-VL-2B 在 OpenCL 上首次编译 kernel 可能超过 5s，放宽到 20s。 */
+        private const val WARMUP_TIMEOUT_MS = 20_000
 
         /** 单次推理超时（毫秒） */
         private const val INFERENCE_TIMEOUT_MS = 30_000
@@ -59,16 +60,22 @@ class OpenClGuardian(
      */
     suspend fun shouldUseCpu(): Boolean {
         // 1. 全局黑名单检查
-        if (isDeviceBlacklisted()) return true
+        if (isDeviceBlacklisted()) {
+            Logger.i(TAG, "shouldUseCpu=true: device blacklisted")
+            return true
+        }
 
         // 2. 本次会话降级冷却期检查
         val degraded = degradedAtMs
         if (degraded != null && System.currentTimeMillis() - degraded < DEGRADE_COOLDOWN_MS) {
+            Logger.i(TAG, "shouldUseCpu=true: cooldown active since $degraded")
             return true
         }
 
         // 3. 用户显式关闭 OpenCL
-        return !prefs.tagGenerationUseOpencl.first()
+        val useOpencl = prefs.tagGenerationUseOpencl.first()
+        Logger.i(TAG, "shouldUseCpu=${!useOpencl}: user preference useOpencl=$useOpencl")
+        return !useOpencl
     }
 
     /**
@@ -196,13 +203,13 @@ class OpenClGuardian(
 
     private suspend fun ensureCpuLoaded() {
         // 如果当前已经是 CPU 加载的同一模型，直接复用，避免每次 CPU fallback 都重装。
-        if (engine.isLoadedAs("qwen3_5_2b", useOpencl = false)) {
+        if (engine.isLoadedAs(modelId, useOpencl = false)) {
             return
         }
         engine.unload()
         val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
         orchestrator.ensureModelLoaded(
-            modelId = "qwen3_5_2b",
+            modelId = modelId,
             useOpencl = false,
             caller = "OpenClGuardian:ensureCpuLoaded"
         )

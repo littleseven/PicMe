@@ -634,7 +634,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             }
         }
         .map { preferences ->
-            preferences[PreferencesKeys.TAG_GENERATION_USE_OPENCL] ?: false
+            preferences[PreferencesKeys.TAG_GENERATION_USE_OPENCL] ?: true
         }
 
     override suspend fun updateTagGenerationUseOpencl(enabled: Boolean) {

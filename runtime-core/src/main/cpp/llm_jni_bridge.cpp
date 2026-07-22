@@ -12,6 +12,7 @@
 #include <android/bitmap.h>
 #include <future>
 #include <thread>
+#include <cstdint>
 
 #include <MNN/llm/llm.hpp>
 
@@ -85,6 +86,66 @@ static jobject createErrorHashMap(JNIEnv* env, const char* errorMsg) {
     env->CallObjectMethod(hashMap, putMethod, env->NewStringUTF("error"),
                           env->NewStringUTF(errorMsg));
     return hashMap;
+}
+
+/**
+ * 将字节串清理为 JNI NewStringUTF 可接受的 Modified UTF-8。
+ *
+ * 部分端侧模型（如 SmolVLM-256M）在特定输入下会输出含 0x00 或非法 UTF-8
+ * 续字节的字节流，直接调用 NewStringUTF 会触发 JNI 致命错误：
+ *   "JNI DETECTED ERROR IN APPLICATION: input is not valid Modified UTF-8"
+ *
+ * 该函数把非法字节替换为 '?'，保留合法 UTF-8 内容，避免崩溃。
+ */
+static std::string sanitizeModifiedUtf8(const std::string& input) {
+    std::string output;
+    output.reserve(input.size());
+    for (size_t i = 0; i < input.size(); ) {
+        unsigned char c = static_cast<unsigned char>(input[i]);
+        // 0x00 在 Modified UTF-8 中非法
+        if (c == 0x00) {
+            output.push_back('?');
+            ++i;
+            continue;
+        }
+        // ASCII
+        if (c < 0x80) {
+            output.push_back(static_cast<char>(c));
+            ++i;
+            continue;
+        }
+        // 多字节 UTF-8 序列长度与初始码点
+        size_t seqLen = 0;
+        uint32_t codePoint = 0;
+        if ((c & 0xE0) == 0xC0) { seqLen = 2; codePoint = c & 0x1F; }
+        else if ((c & 0xF0) == 0xE0) { seqLen = 3; codePoint = c & 0x0F; }
+        else if ((c & 0xF8) == 0xF0) { seqLen = 4; codePoint = c & 0x07; }
+        else { output.push_back('?'); ++i; continue; }
+
+        bool valid = true;
+        for (size_t j = 1; j < seqLen && (i + j) < input.size(); ++j) {
+            unsigned char cc = static_cast<unsigned char>(input[i + j]);
+            if ((cc & 0xC0) != 0x80) { valid = false; break; }
+            codePoint = (codePoint << 6) | (cc & 0x3F);
+        }
+        if (!valid || (i + seqLen) > input.size()) {
+            output.push_back('?');
+            ++i;
+            continue;
+        }
+        // 码点范围校验，防止 overlong / 超出 Unicode
+        if (seqLen == 2 && codePoint < 0x80) valid = false;
+        if (seqLen == 3 && codePoint < 0x800) valid = false;
+        if (seqLen == 4 && (codePoint < 0x10000 || codePoint > 0x10FFFF)) valid = false;
+        if (!valid) {
+            output.push_back('?');
+            ++i;
+            continue;
+        }
+        output.append(input, i, seqLen);
+        i += seqLen;
+    }
+    return output;
 }
 
 // ── 性能指标结构 ──────────────────────────────────────
@@ -286,7 +347,7 @@ static void streamTokensToJava(
     if (progressListener == nullptr || onTokenMethod == nullptr) {
         return;
     }
-    jstring tokenStr = isEop ? nullptr : env->NewStringUTF(token.c_str());
+    jstring tokenStr = isEop ? nullptr : env->NewStringUTF(sanitizeModifiedUtf8(token).c_str());
     jboolean shouldStop = env->CallBooleanMethod(progressListener, onTokenMethod, tokenStr, isEop);
     if (tokenStr != nullptr) {
         env->DeleteLocalRef(tokenStr);
@@ -378,7 +439,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerate(
         llm->response(promptStr, &oss, nullptr, maxNewTokens);
     }
 
-    std::string result = oss.str();
+    std::string result = sanitizeModifiedUtf8(oss.str());
 
     // 分段打印长 response，避免 Android 日志长度限制截断
     const size_t LOG_CHUNK_SIZE = 1024;
@@ -454,7 +515,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
         metrics.audio_time = ctx->audio_us;
     }
 
-    std::string result = oss.str();
+    std::string result = sanitizeModifiedUtf8(oss.str());
     // 分段打印长 response，避免 Android 日志长度限制截断
     const size_t LOG_CHUNK_SIZE = 1024;
     if (result.length() <= LOG_CHUNK_SIZE) {
@@ -675,7 +736,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
         metrics.audio_time = ctx->audio_us;
     }
 
-    std::string result = oss.str();
+    std::string result = sanitizeModifiedUtf8(oss.str());
 
     // 移除 <eop> 结束标记（MNN 通过 ostream 输出时可能包含该标记）
     size_t eopPos = result.find("<eop>");
@@ -996,7 +1057,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateS
         }
     }
 
-    std::string result = response_buffer.str();
+    std::string result = sanitizeModifiedUtf8(response_buffer.str());
     LOGD("Stream generation complete. len=%zu, prompt=%ld, decode=%ld, prefill_time=%ldus, decode_time=%ldus",
          result.length(), metrics.prompt_len, metrics.decode_len,
          metrics.prefill_time, metrics.decode_time);
@@ -1117,7 +1178,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
         metrics.audio_time = ctx->audio_us;
     }
 
-    std::string result = oss.str();
+    std::string result = sanitizeModifiedUtf8(oss.str());
     const size_t LOG_CHUNK_SIZE = 1024;
     if (result.length() <= LOG_CHUNK_SIZE) {
         LOGD("History sync generated (len=%zu): %s", result.length(), result.c_str());
@@ -1340,7 +1401,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
         }
     }
 
-    std::string result = response_buffer.str();
+    std::string result = sanitizeModifiedUtf8(response_buffer.str());
     LOGD("History stream generation complete. len=%zu, prompt=%ld, decode=%ld",
          result.length(), metrics.prompt_len, metrics.decode_len);
 

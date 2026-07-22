@@ -60,9 +60,8 @@ class TagScanOrchestrator(
         private val DEFAULT_PASS_DURATION_MS = mapOf(
             TagScanPass.FACE_DETECTION to 800L,
             TagScanPass.DBSCAN to 5_000L,
-            TagScanPass.QWEN_TAGGING to 4_000L,
-            TagScanPass.MOBILE_CLIP_ENCODING to 1_000L,
-            TagScanPass.ML_KIT_TAGGING to 300L
+            TagScanPass.QWEN_TAGGING to 7_000L,
+            TagScanPass.MOBILE_CLIP_ENCODING to 1_000L
         )
 
         /** ETA 上限：超过 24 小时按 24 小时显示，避免异常值 */
@@ -100,7 +99,6 @@ class TagScanOrchestrator(
             TagScanPass.DBSCAN -> "2"
             TagScanPass.QWEN_TAGGING -> "3"
             TagScanPass.MOBILE_CLIP_ENCODING -> "4"
-            TagScanPass.ML_KIT_TAGGING -> "5"
         }
 
         /**
@@ -124,8 +122,6 @@ class TagScanOrchestrator(
             val remainingForPass1 = db.mediaDao().getMediaWithoutFaceRoiCount()
             // Pass 3 剩余独立统计：所有无 labels 的媒体，不强制要求已有 faceRoiResult
             val remainingForPass3 = unlabeledCount
-            val withMlKitLabels = db.mediaDao().getMlKitLabeledCount()
-            val remainingForMlKit = db.mediaDao().getUnlabeledMlKitMediaCount()
             val namedPersonCount = db.personDao().getNamedPersonCount()
 
             TagScanDbStats(
@@ -137,9 +133,7 @@ class TagScanOrchestrator(
                 namedPersonCount = namedPersonCount,
                 faceEmbeddingCount = faceEmbeddingCount,
                 remainingForPass1 = remainingForPass1,
-                remainingForPass3 = remainingForPass3,
-                withMlKitLabels = withMlKitLabels,
-                remainingForMlKit = remainingForMlKit
+                remainingForPass3 = remainingForPass3
             )
         }
     }
@@ -358,12 +352,6 @@ class TagScanOrchestrator(
             db.mediaDao().resetAllSemanticEmbeddings()
         }
 
-        if (pass == TagScanPass.ML_KIT_TAGGING && mode == ScanMode.FULL) {
-            // 全量重跑 ML Kit 标签：清空已有 ML Kit 中英文标签
-            db.mediaDao().resetAllMlKitLabels()
-            db.mediaDao().resetAllMlKitLabelsZh()
-        }
-
         // 手动 Pass 增量：按阶段特征过滤，不受时间窗口限制
         if (mode == ScanMode.INCREMENTAL && pass != TagScanPass.DBSCAN) {
             ids = ids.filter { mediaId ->
@@ -510,21 +498,6 @@ class TagScanOrchestrator(
             )
         }
 
-        // Pass 2.5: ML Kit 英文标签提取（每张媒体一个独立任务）
-        if (passes.contains(TagScanPass.ML_KIT_TAGGING)) {
-            tasks += mediaIds.map { mediaId ->
-                TagScanTaskEntity(
-                    sessionId = sessionId,
-                    mediaId = mediaId,
-                    pass = TagScanPass.ML_KIT_TAGGING,
-                    tagCategories = categoriesJson,
-                    status = TagScanTaskStatus.PENDING,
-                    priority = 1,
-                    createdAt = System.currentTimeMillis()
-                )
-            }
-        }
-
         // Pass 3: 每张媒体一个独立任务
         if (passes.contains(TagScanPass.QWEN_TAGGING)) {
             tasks += mediaIds.map { mediaId ->
@@ -591,16 +564,6 @@ class TagScanOrchestrator(
                     createdAt = System.currentTimeMillis()
                 )
             }
-            TagScanPass.ML_KIT_TAGGING -> mediaIds.map { mediaId ->
-                TagScanTaskEntity(
-                    sessionId = sessionId,
-                    mediaId = mediaId,
-                    pass = TagScanPass.ML_KIT_TAGGING,
-                    status = TagScanTaskStatus.PENDING,
-                    priority = 0,
-                    createdAt = System.currentTimeMillis()
-                )
-            }
         }
         db.tagScanTaskDao().insertAll(tasks)
         logInfo(sessionId, "创建 ${tasks.size} 个任务 (pass=$pass)")
@@ -634,8 +597,8 @@ class TagScanOrchestrator(
             while (currentCoroutineContext().isActive) {
                 val task = db.tagScanTaskDao().pollNextPendingBySession(sessionId) ?: break
 
-                // Pass3 (QWEN_TAGGING) 改用 ML Kit，不加载 SmolVLM（治发热）。
-                // summary 由照片详情按需触发 SmolVLM（GenerateSummaryOnDemandUseCase）。
+                // Pass 3 (QWEN_TAGGING) 使用 SmolVLM/Qwen 视觉语言模型（质量优先方案）。
+                // 由 scheduler.executeQwenTagging 内部负责 ensureModelLoaded() 与推理。
 
                 // MobileCLIP 不参与 Pass3 打标（已移除 MobileClipTagClassifier.classify），无需预热。
                 // MobileCLIP 语义向量在 Pass1 内联编码供语义搜索，与此处无关。
@@ -691,7 +654,6 @@ class TagScanOrchestrator(
                 )
                 TagScanPass.QWEN_TAGGING -> scheduler.executeQwenTagging(task.mediaId)
                 TagScanPass.MOBILE_CLIP_ENCODING -> scheduler.executeMobileClipEncoding(task.mediaId)
-                TagScanPass.ML_KIT_TAGGING -> scheduler.executeMlKitTagging(task.mediaId)
             }
             true
         } catch (e: CancellationException) {
@@ -998,7 +960,6 @@ class TagScanOrchestrator(
             TagScanPass.FACE_DETECTION -> entity.faceRoiResult.isNullOrEmpty()
             TagScanPass.QWEN_TAGGING -> entity.labels.isNullOrEmpty()
             TagScanPass.MOBILE_CLIP_ENCODING -> entity.semanticEmbedding.isNullOrEmpty()
-            TagScanPass.ML_KIT_TAGGING -> entity.mlKitLabels.isNullOrEmpty()
             TagScanPass.DBSCAN -> false // DBSCAN 是全局任务，不针对单媒体
         }
     }
@@ -1012,7 +973,6 @@ class TagScanOrchestrator(
                 TagCategory.OBJECTS -> hasQwenArrayField(entity.labels, "objects")
                 TagCategory.TAGS -> hasQwenArrayField(entity.labels, "tags")
                 TagCategory.SUMMARY -> hasQwenField(entity.labels, "qwenSummary")
-                TagCategory.ML_KIT_LABELS -> !entity.mlKitLabels.isNullOrEmpty()
             }
         }
     }
@@ -1062,9 +1022,7 @@ class TagScanOrchestrator(
         val namedPersonCount: Int = 0,
         val faceEmbeddingCount: Int,
         val remainingForPass1: Int,
-        val remainingForPass3: Int,
-        val withMlKitLabels: Int = 0,
-        val remainingForMlKit: Int = 0
+        val remainingForPass3: Int
     )
 
     private fun List<StatusCount>.count(status: TagScanTaskStatus): Int {

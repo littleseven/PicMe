@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Terminal
@@ -110,6 +111,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToModelCenter: (String) -> Unit = {},
     onNavigateToTagControl: () -> Unit = {},
+    onNavigateToTagViewer: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToCategory: (SettingsCategory) -> Unit = {},
@@ -210,6 +212,7 @@ fun SettingsScreen(
                         if (enabled) AiAgentMode.LOCAL else AiAgentMode.OFF
                     )
                     "agent_local_opencl" -> viewModel.setAiAgentLocalUseOpencl(enabled)
+                    "tag_generation_opencl" -> viewModel.setTagGenerationUseOpencl(enabled)
                     else -> Logger.w(TAG, "Unknown setting key: $key")
                 }
             }
@@ -363,6 +366,7 @@ private fun SettingsContent(
     onFeishuAppSecretChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
+    onNavigateToTagViewer: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {}
@@ -574,6 +578,12 @@ private fun SettingsContent(
                         subtitle = stringResource(R.string.tag_control_subtitle),
                         leadingIcon = Icons.AutoMirrored.Rounded.Label,
                         onClick = onNavigateToTagControl
+                    )
+                    SettingsClickableRow(
+                        title = stringResource(R.string.tag_viewer_title),
+                        subtitle = stringResource(R.string.tag_viewer_open_entry),
+                        leadingIcon = Icons.Rounded.Search,
+                        onClick = onNavigateToTagViewer
                     )
                 }
 

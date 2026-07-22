@@ -7,20 +7,19 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
-import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * 媒体元数据索引器
  *
  * 后台扫描未索引的图片（indexedAt IS NULL），
- * 提取 ML Kit 标签、OCR 文字、GPS 位置并写入 Room DB。
+ * 提取 OCR 文字、GPS 位置并写入 Room DB。
+ * 图像标签生成已迁移到 TagGenerationScheduler 的 Qwen/SmolVLM 管线。
  *
  * 支持两种模式：
  * - 全量模式：扫描所有 indexedAt IS NULL 的记录
@@ -105,7 +104,6 @@ class MediaIndexingWorker(
 
         val extractor = MetadataExtractor(context, idCardRecognizer)
         val ocrIndexUpdater = OcrIndexUpdater(db.ocrWordDao())
-        val tagIndexUpdater = TagIndexUpdater(db.tagDao())
         val locationIndexUpdater = LocationIndexUpdater(db.locationDao())
 
         try {
@@ -141,8 +139,7 @@ class MediaIndexingWorker(
                             indexedAt = now
                         )
 
-                        // 同步更新规范化索引表
-                        tagIndexUpdater.updateIndex(entity.id, result.labelsJson)
+                        // 同步更新地理位置索引表
                         locationIndexUpdater.updateIndex(
                             mediaId = entity.id,
                             latitude = result.latitude,
@@ -185,7 +182,6 @@ class MediaIndexingWorker(
 
         val extractor = MetadataExtractor(context, idCardRecognizer)
         val ocrIdxUpdater = OcrIndexUpdater(db.ocrWordDao())
-        val tagIdxUpdater = TagIndexUpdater(db.tagDao())
         val locationIdxUpdater = LocationIndexUpdater(db.locationDao())
 
         try {
@@ -224,8 +220,7 @@ class MediaIndexingWorker(
                 dao.insertMedia(entity)
             }
 
-            // 同步更新规范化索引表
-            tagIdxUpdater.updateIndex(mediaId, result.labelsJson)
+            // 同步更新地理位置索引表
             locationIdxUpdater.updateIndex(
                 mediaId = mediaId,
                 latitude = result.latitude,
@@ -246,43 +241,10 @@ class MediaIndexingWorker(
 
     // ── 模型预热 ──────────────────────────────────────────
 
-    private suspend fun waitForModelReady(): Boolean {
-        val db = AppDatabase.getDatabase(context)
-        val dao = db.mediaDao()
-        val tempExtractor = MetadataExtractor(context)
-        try {
-            val firstMediaId = dao.getUnindexedMediaIds().firstOrNull() ?: return true
-            val firstMedia = dao.getMediaById(firstMediaId) ?: return true
-            val uri = Uri.parse(firstMedia.uri)
-            val image = try {
-                InputImage.fromFilePath(context, uri)
-            } catch (e: Exception) {
-                return true
-            }
-
-            repeat(10) { attempt ->
-                try {
-                    tempExtractor.extractLabels(image)
-                    Logger.i(TAG, "ML Kit model ready (attempt ${attempt + 1})")
-                    return true
-                } catch (e: Exception) {
-                    val msg = e.message ?: ""
-                    val causeMsg = e.cause?.message ?: ""
-                    if (msg.contains("download") || msg.contains("optional module") ||
-                        causeMsg.contains("download") || causeMsg.contains("optional module")
-                    ) {
-                        Logger.d(TAG, "Waiting for model download (attempt ${attempt + 1}/10)...")
-                        delay(3000)
-                    } else {
-                        Logger.w(TAG, "Model warm-up failed: $msg")
-                        return false
-                    }
-                }
-            }
-            Logger.w(TAG, "ML Kit model not ready after 10 attempts")
-            return false
-        } finally {
-            tempExtractor.close()
-        }
+    /**
+     * ML Kit 图像标注已移除，OCR 模型按需使用，无需阻塞索引等待下载。
+     */
+    private fun waitForModelReady(): Boolean {
+        return true
     }
 }
