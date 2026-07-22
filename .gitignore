@@ -94,5 +94,8 @@ worktrees/
 # 调试快照产物
 scripts/app-data-snapshots/
 
+# 仓库根目录调试截图（adb-bot / image-quality-checker 产物，不入库）
+/polang_*.png
+
 # docsify 文档站产物（由 scripts/sync-docs.sh 从 docs/ 同步生成，不入库）
 docs-site/docs/
