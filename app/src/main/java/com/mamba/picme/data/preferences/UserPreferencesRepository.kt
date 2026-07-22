@@ -85,6 +85,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
 
         // TAG 生成
         val TAG_GENERATION_USE_OPENCL = booleanPreferencesKey("tag_generation_use_opencl")
+        val TAGGER_MODEL_KEY = stringPreferencesKey("tagger_model_key")
         val OPENCL_DEGRADED_DEVICES = stringPreferencesKey("opencl_degraded_devices")
 
         // 远程模型配置（供应商维度 JSON + 当前选中模型ID）
@@ -640,6 +641,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateTagGenerationUseOpencl(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.TAG_GENERATION_USE_OPENCL] = enabled
+        }
+    }
+
+    override val taggerModelKeyFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.TAGGER_MODEL_KEY] ?: "smolvlm_256m"
+        }
+
+    override suspend fun updateTaggerModelKey(key: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TAGGER_MODEL_KEY] = key
         }
     }
 
