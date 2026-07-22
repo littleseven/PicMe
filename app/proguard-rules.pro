@@ -44,3 +44,9 @@
 -keep class com.mamba.picme.domain.backup.model.** { *; }
 -keepclassmembers class com.mamba.picme.domain.backup.model.** { *; }
 -keepattributes RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations, RuntimeVisibleParameterAnnotations, RuntimeInvisibleParameterAnnotations, AnnotationDefault
+
+# Feishu/Lark OAPI SDK: FeishuChannelHandler 通过反射访问 ws.Client 的 protected 成员
+# (autoReconnect 字段 / disconnect() 方法 / executor 线程池) 做断连清理——SDK 未公开 stop API。
+# 这些 protected 成员会被 R8 混淆导致 NoSuchFieldException/NoSuchMethodException，需保留原名。
+# 验证：release 包 logcat 不再出现 PoLang:FeishuHandler NoSuchFieldException autoReconnect。
+-keep class com.lark.oapi.ws.Client { *; }
