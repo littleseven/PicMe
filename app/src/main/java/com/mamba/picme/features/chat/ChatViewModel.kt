@@ -179,6 +179,17 @@ class ChatViewModel(
     val selectedModel: ChatRemoteModel
         get() = _availableModels.value.find { it.id == _selectedModelId.value } ?: officialModel
 
+    /**
+     * 官方模型注入账户 token（gatewayToken → X-App-Token，走 PoLang Server 账户额度）；
+     * 用户自配模型用其 apiKey 直连，无需注入。
+     */
+    private fun effectiveRemoteConfig(model: ChatRemoteModel): RemoteModelConfig =
+        if (model.id == officialModel.id) {
+            model.remoteConfig.copy(gatewayToken = _serverAuthToken.value)
+        } else {
+            model.remoteConfig
+        }
+
     /** 用户是否配了自配 Key（决定是否显示模型切换胶囊）。从设置中心 flow 实时更新。 */
     private val _hasUserKey = MutableStateFlow(false)
     val hasUserKey: StateFlow<Boolean> = _hasUserKey.asStateFlow()
@@ -477,7 +488,7 @@ class ChatViewModel(
                     mode = orchestrator.getAgentMode(),
                     modelId = orchestrator.getCurrentModelId(),
                     privacyLevel = AiAgentPrivacyLevel.STRICT,
-                    remoteConfig = selectedModel.remoteConfig,
+                    remoteConfig = effectiveRemoteConfig(selectedModel),
                     inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
                 )
                 Logger.i(
@@ -1499,7 +1510,7 @@ class ChatViewModel(
                     mode = orchestrator.getAgentMode(),
                     modelId = orchestrator.getCurrentModelId(),
                     privacyLevel = AiAgentPrivacyLevel.STRICT,
-                    remoteConfig = model.remoteConfig,
+                    remoteConfig = effectiveRemoteConfig(model),
                     inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
                 )
                 Logger.i(TAG, "chat model switched: ${model.displayName} (${model.remoteConfig.baseUrl})")
