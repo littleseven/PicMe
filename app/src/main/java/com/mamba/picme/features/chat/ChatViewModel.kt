@@ -560,7 +560,8 @@ class ChatViewModel(
                         } else if (streamResult.commands.isNotEmpty()) {
                             // 有命令需要执行：通过 CapabilityRegistry 分发
                             Logger.i(TAG, "Executing ${streamResult.commands.size} commands from streaming response")
-                            val commands = streamResult.commands
+                            // 聊天页拦截模糊跳转：只有明确说"去相机/去相册/去设置/返回"等口令时才放行
+                            val commands = sanitizeNavigationCommands(streamResult.commands, text)
                             val finalCommand = if (commands.size > 1) {
                                 AgentCommand.BatchExecute(commands = commands)
                             } else {
@@ -690,24 +691,31 @@ class ChatViewModel(
                 insertAgentMessage(sessionId, inferenceResult.message, modelLabel, performance)
             }
             is InferenceResult.Local -> {
+                val safeCommands = sanitizeNavigationCommands(listOf(inferenceResult.command), text)
                 val action = orchestrator.getCapabilityRegistry()
-                    .dispatch(inferenceResult.command, agentContext)
+                    .dispatch(safeCommands.first(), agentContext)
                 handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
             }
             is InferenceResult.Batch -> {
-                val commands = inferenceResult.commands
-                val finalCommand = if (commands.size > 1) {
-                    AgentCommand.BatchExecute(commands = commands)
+                val safeCommands = sanitizeNavigationCommands(inferenceResult.commands, text)
+                val finalCommand = if (safeCommands.size > 1) {
+                    AgentCommand.BatchExecute(commands = safeCommands)
                 } else {
-                    commands.firstOrNull() ?: AgentCommand.TextReply(message = "没有可执行的命令")
+                    safeCommands.firstOrNull() ?: AgentCommand.TextReply(message = "没有可执行的命令")
                 }
                 val action = orchestrator.getCapabilityRegistry()
                     .dispatch(finalCommand, agentContext)
                 handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
             }
             is InferenceResult.Plan -> {
+                val sanitizedPlan = inferenceResult.plan.copy(
+                    steps = inferenceResult.plan.steps.map { step ->
+                        val safe = sanitizeNavigationCommands(listOf(step.action), text)
+                        step.copy(action = safe.firstOrNull() ?: step.action)
+                    }
+                )
                 val action = orchestrator.getCapabilityRegistry()
-                    .dispatch(AgentCommand.ExecutePlan(plan = inferenceResult.plan), agentContext)
+                    .dispatch(AgentCommand.ExecutePlan(plan = sanitizedPlan), agentContext)
                 handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
             }
         }
@@ -1734,6 +1742,51 @@ class ChatViewModel(
         } catch (e: Exception) {
             Logger.e(TAG, "Failed to persist image", e)
             null
+        }
+    }
+
+    /**
+     * 判断用户输入是否包含明确的页面跳转口令。
+     *
+     * 仅当匹配以下模式时才允许在 chat 页执行 navigate_to / go_back：
+     * - "去/回/打开 + 相机/相册/设置/调试/模型中心"
+     * - "返回/后退/上一页"
+     *
+     * 模糊表述（如"我想看看相册""帮我打开相机""想去拍照"）应被拦截。
+     */
+    private fun isExplicitNavigationRequest(input: String): Boolean {
+        val trimmed = input.trim()
+        if (trimmed.isEmpty()) return false
+        val explicitPatterns = listOf(
+            Regex("""(去|回|打开)\s*(相机|相册|设置|调试|模型中心|model_center)"""),
+            Regex("""(返回|后退|上一页|回去)""")
+        )
+        return explicitPatterns.any { it.containsMatchIn(trimmed) }
+    }
+
+    /**
+     * 在 chat 页拦截模糊跳转命令。
+     *
+     * 如果命令是 navigate_to / go_back 但用户输入不匹配明确跳转口令，
+     * 则将其替换为 text_reply，避免聊天中因 LLM 误判而突然跳转页面。
+     */
+    private fun sanitizeNavigationCommands(
+        commands: List<AgentCommand>,
+        userInput: String
+    ): List<AgentCommand> {
+        if (commands.isEmpty()) return commands
+        val hasNavigation = commands.any { it is AgentCommand.NavigateTo || it is AgentCommand.GoBack }
+        if (!hasNavigation) return commands
+        // 明确跳转口令：放行
+        if (isExplicitNavigationRequest(userInput)) return commands
+        // 否则把所有导航命令替换为提示文本
+        return commands.map { cmd ->
+            when (cmd) {
+                is AgentCommand.NavigateTo, is AgentCommand.GoBack -> AgentCommand.TextReply(
+                    message = "在聊天页我不会自动跳转页面，请直接说\"去相机/去相册/去设置/返回\"，或点击底部 tab 切换。"
+                )
+                else -> cmd
+            }
         }
     }
 }
