@@ -122,8 +122,27 @@ class ChatViewModel(
     /** 防止用户快速重复点击同一反馈按钮。 */
     private val pendingFeedbackActions = mutableSetOf<String>()
 
-    /** 当前会话最近一条用户图片消息的持久化 URI，供 ai_optimize 指代「这张照片」。 */
+    /** 当前会话最近一条用户图片消息的持久化 URI，供 ai_optimize 指代「这张照片】。 */
     private val _lastUserImageUri = MutableStateFlow<String?>(null)
+
+    /**
+     * 时间专属词集合。当 [SearchIntent.timeRange] 已经表达了时间范围时，
+     * 这些词不应再作为内容关键词去匹配标签/OCR/文件名，否则会导致时间候选集与空标签候选集交集为空。
+     */
+    private val timeOnlyKeywords = setOf(
+        "去年", "今年", "明年", "前年", "后年",
+        "春天", "夏天", "秋天", "冬天", "春季", "夏季", "秋季", "冬季",
+        "上半年", "下半年", "近半年", "最近半年", "半年",
+        "近一年", "最近一年", "一年", "近几年", "最近几年",
+        "最近", "近三个月", "近3个月",
+        "今天", "昨天", "前天", "明天", "后天",
+        "上周", "本周", "下周",
+        "上星期", "这星期", "下星期", "上个星期", "这个星期", "下个星期",
+        "上个月", "这个月", "下个月", "上月", "今月", "下月"
+    )
+
+    /** 匹配“3月”“12月”“五月”等月份表达。 */
+    private val monthKeywordRegex = Regex("""^(\d{1,2}月|[一二三四五六七八九十]{1,3}月)$""")
 
     private val orchestrator = AgentOrchestrator.getInstance(context)
 
@@ -1009,18 +1028,37 @@ class ChatViewModel(
 
     /**
      * 将 runtime-core 的 [SearchIntent] 转换为 app 层的 [StructuredFilter]。
+     *
+     * 转换前先做时间词清洗：只要 [SearchIntent.timeRange] 已给出，就把“夏天”“去年”等
+     * 时间专属词从 keywords / ocrKeywords / locationKeywords 中剔除，避免引擎把
+     * 时间约束与空内容候选集取交集导致 0 结果。
      */
     private fun searchIntentToStructuredFilter(intent: SearchIntent): StructuredFilter {
+        val sanitized = sanitizeTimeKeywords(intent)
         return StructuredFilter(
-            timeRange = intent.timeRange?.let {
+            timeRange = sanitized.timeRange?.let {
                 com.mamba.picme.domain.model.TimeRange(startMs = it.startMs, endMs = it.endMs)
             },
-            keywords = intent.keywords,
-            ocrKeywords = intent.ocrKeywords,
-            locationKeywords = intent.locationKeywords,
-            personName = intent.personName,
-            hasFaces = intent.hasFaces,
+            keywords = sanitized.keywords,
+            ocrKeywords = sanitized.ocrKeywords,
+            locationKeywords = sanitized.locationKeywords,
+            personName = sanitized.personName,
+            hasFaces = sanitized.hasFaces,
             needsLlm = false
+        )
+    }
+
+    /**
+     * 当意图中同时存在 [timeRange] 和时间专属词时，剔除这些时间专属词。
+     * 这是 Prompt 约束之外的第二层保险，防止小模型/远程模型仍把“夏天”当成内容关键词。
+     */
+    private fun sanitizeTimeKeywords(intent: SearchIntent): SearchIntent {
+        if (intent.timeRange == null) return intent
+        fun isTimeOnly(word: String): Boolean = word in timeOnlyKeywords || monthKeywordRegex.matches(word)
+        return intent.copy(
+            keywords = intent.keywords.filterNot(::isTimeOnly),
+            ocrKeywords = intent.ocrKeywords.filterNot(::isTimeOnly),
+            locationKeywords = intent.locationKeywords.filterNot(::isTimeOnly)
         )
     }
 

@@ -167,4 +167,32 @@ class LocalPromptBuilderChatSearchTest {
             section.contains("其中有日落的")
         )
     }
+
+    @Test
+    fun `CHAT L2 prompt forbids time words in keywords when time_range is used`() {
+        val sceneManager = SceneManager.getInstance()
+        sceneManager.transitionTo(SceneManager.Scene.CHAT, saveToHistory = false)
+        try {
+            val prompt = builder.buildL2SystemPrompt(
+                emptyList(),
+                com.mamba.picme.agent.core.model.context.AgentContext(
+                    scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT
+                )
+            )
+            assertTrue(
+                "L2 CHAT prompt 应明确禁止时间词进入 keywords，实际:\n$prompt",
+                prompt.contains("时间词") && prompt.contains("不要再放进 keywords")
+            )
+            assertTrue(
+                "L2 CHAT prompt 应提供 '去年夏天的照片' 示例，实际:\n$prompt",
+                prompt.contains("去年夏天的照片")
+            )
+            assertTrue(
+                "示例中应展示 keywords 为空数组，实际:\n$prompt",
+                prompt.contains("\"keywords\":[]")
+            )
+        } finally {
+            sceneManager.leaveScene(SceneManager.Scene.CHAT)
+        }
+    }
 }

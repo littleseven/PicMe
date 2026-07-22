@@ -394,10 +394,12 @@ class LocalPromptBuilder(
 
             intent字段（search/refine时可选）:
             - time_range: {start_ms, end_ms}。时间词换算：近半年=6个月前至今；去年=去年整年；上个月=上个月整月；近3个月=3个月前至今。
-            - keywords, location_keywords, ocr_keywords, person_name, has_faces
+            - keywords: 场景/物体/标签内容词。注意：时间词（去年、夏天、近半年、上个月等）一旦用 time_range 表达，就不要再放进 keywords / location_keywords / ocr_keywords；keywords 只保留非时间内容词。若整句只有时间词，keywords 应为空数组 []。
+            - location_keywords, ocr_keywords, person_name, has_faces
 
             示例：
             "去相机" -> [{"method":"navigate_to","params":{"destination":"camera"}}]
+            "去年夏天的照片" -> [{"method":"search_media","params":{"query":"去年夏天的照片","intent":{"time_range":{"start_ms":$lastSummerStart,"end_ms":$lastSummerEnd},"keywords":[]}}}]
             "近半年小孩的照片" -> [{"method":"search_media","params":{"query":"近半年小孩的照片","intent":{"time_range":{"start_ms":$last6MStart,"end_ms":$last6MEnd},"keywords":["小孩"],"has_faces":true}}}]
             "只要近半年的" -> [{"method":"refine_media_search","params":{"constraint":"只要近半年的","intent":{"time_range":{"start_ms":$last6MStart,"end_ms":$last6MEnd}}}}}]
             "帮我优化这张照片" -> [{"method":"ai_optimize","params":{"image_uri":"$sampleUri","mode":"fast"}}]
@@ -636,7 +638,6 @@ class LocalPromptBuilder(
             append(",named:${summary.namedPersonCount}")
             append(",labeled:${summary.labeledCount}")
             append(",unlabeled:${summary.unlabeledCount}")
-            append(",mlKit:${summary.mlKitLabeledCount}")
             append(",semantic:${summary.semanticEncodedCount}")
             append(",scanning:${if (summary.isScanning) "1" else "0"}")
             append(",recommendation:${summary.recommendation.name}")
@@ -649,7 +650,6 @@ class LocalPromptBuilder(
             if (summary.includeDetails) {
                 append(",remainingPass1:${summary.remainingPass1}")
                 append(",remainingPass3:${summary.remainingPass3}")
-                append(",remainingMlKit:${summary.remainingMlKit}")
             }
             append("}")
         }

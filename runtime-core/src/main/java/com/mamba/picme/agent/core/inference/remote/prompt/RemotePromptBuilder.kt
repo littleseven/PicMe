@@ -4,6 +4,8 @@ import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * 远程 LLM Prompt 构建器
@@ -125,6 +127,30 @@ class RemotePromptBuilder(
 
     // ── 内部辅助方法 ────────────────────────────────────────────
 
+    /**
+     * Prompt 示例中的动态时间戳生成器。
+     * 避免写死时间戳导致 LLM 在不同年份照搬过期数值。
+     */
+    private val exampleTimestamps = object {
+        private val zone = ZoneId.systemDefault()
+
+        fun lastYearSummer(): Pair<Long, Long> {
+            val lastYear = LocalDate.now().year - 1
+            val start = ZonedDateTime.of(lastYear, 6, 1, 0, 0, 0, 0, zone).toInstant().toEpochMilli()
+            val end = ZonedDateTime.of(lastYear, 8, 31, 23, 59, 59, 999_000_000, zone).toInstant().toEpochMilli()
+            return start to end
+        }
+
+        fun pastHalfYear(): Pair<Long, Long> {
+            val now = LocalDate.now()
+            val start = now.minusMonths(6).withDayOfMonth(1)
+                .atStartOfDay(zone).toInstant().toEpochMilli()
+            val end = now.atTime(23, 59, 59, 999_000_000)
+                .atZone(zone).toInstant().toEpochMilli()
+            return start to end
+        }
+    }
+
     private fun nowString(): String {
         val date = LocalDate.now()
         val week = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")[date.dayOfWeek.value - 1]
@@ -196,13 +222,16 @@ class RemotePromptBuilder(
                 appendLine("- gallery: view_media, delete_media, share_media, select_media, search_media(params.query, params.intent), switch_view_mode, favorite_media")
                 appendLine("  search_media: 自然语言搜索照片。query 参数填用户原话；当查询含时间/地点/人物/人脸等可结构化条件时，必须在 params.intent 中输出标准化条件：")
                 appendLine("    - intent.time_range: {start_ms: 开始时间戳, end_ms: 结束时间戳}。当前时间见【当前状态】now=。必须把近半年/去年/上个月等相对时间换算成时间戳。")
-                appendLine("    - intent.keywords: 场景/物体/标签词数组。")
+                appendLine("    - intent.keywords: 场景/物体/标签内容词数组。注意：时间词（去年、夏天、近半年、上个月等）一旦用 time_range 表达，就不要再放进 keywords / location_keywords / ocr_keywords；keywords 只保留非时间内容词，整句只有时间词时可填 [] 或省略。")
                 appendLine("    - intent.location_keywords: 地点词数组。")
                 appendLine("    - intent.ocr_keywords: OCR 文字词数组。")
                 appendLine("    - intent.person_name: 具体人物名，不确定时省略。")
                 appendLine("    - intent.has_faces: true/false，用户明确找有人脸/合影/自拍时填 true。")
-                appendLine("    例：\"找出去年夏天的猫\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的猫\",\"intent\":{\"time_range\":{\"start_ms\":1717171200000,\"end_ms\":1725148799999},\"keywords\":[\"猫\"]}}}")
-                appendLine("    例：\"近半年小孩的照片\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"近半年小孩的照片\",\"intent\":{\"time_range\":{\"start_ms\":1735689600000,\"end_ms\":1751327999999},\"keywords\":[\"小孩\"],\"has_faces\":true}}}")
+                val (lastSummerStart, lastSummerEnd) = exampleTimestamps.lastYearSummer()
+                val (pastHalfYearStart, pastHalfYearEnd) = exampleTimestamps.pastHalfYear()
+                appendLine("    例：\"去年夏天的照片\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的照片\",\"intent\":{\"time_range\":{\"start_ms\":$lastSummerStart,\"end_ms\":$lastSummerEnd},\"keywords\":[]}}}")
+                appendLine("    例：\"找出去年夏天的猫\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"去年夏天的猫\",\"intent\":{\"time_range\":{\"start_ms\":$lastSummerStart,\"end_ms\":$lastSummerEnd},\"keywords\":[\"猫\"]}}}")
+                appendLine("    例：\"近半年小孩的照片\" -> {\"method\":\"search_media\",\"params\":{\"query\":\"近半年小孩的照片\",\"intent\":{\"time_range\":{\"start_ms\":$pastHalfYearStart,\"end_ms\":$pastHalfYearEnd},\"keywords\":[\"小孩\"],\"has_faces\":true}}}")
             }
 
             if (includeSettings) {

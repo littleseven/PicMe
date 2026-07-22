@@ -11,6 +11,9 @@ import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.model.context.SearchIntent
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.core.common.Logger
+import com.mamba.model.chat.request.json.JsonArraySchema
+import com.mamba.model.chat.request.json.JsonObjectSchema
+import com.mamba.model.chat.request.json.JsonStringSchema
 import java.lang.ref.WeakReference
 
 /**
@@ -70,6 +73,53 @@ class ChatSearchCapability private constructor() : BaseCapability() {
         "more",
         "exclude"
     )
+
+    override fun getCommandParameterSchema(command: String): JsonObjectSchema {
+        val queryParamName = if (command == "refine_media_search") "constraint" else "query"
+        val queryDescription = if (command == "refine_media_search") {
+            "细化条件自然语言文本，如'海边的'、'夜景'"
+        } else {
+            "自然语言搜索文本，如'去年夏天'、'海边的'"
+        }
+        val timeRangeSchema = JsonObjectSchema.builder()
+            .addIntegerProperty("start_ms", "时间范围开始时间戳（毫秒，UTC）")
+            .addIntegerProperty("end_ms", "时间范围结束时间戳（毫秒，UTC）")
+            .required("start_ms", "end_ms")
+            .build()
+        val intentSchema = JsonObjectSchema.builder()
+            .description("标准化搜索意图；当查询包含时间/地点/人物/人脸等可结构化条件时填充。注意：时间词（去年、夏天、近半年、上个月等）一旦用 time_range 表达，就不要再放进 keywords / location_keywords / ocr_keywords；keywords 只保留非时间内容词。")
+            .addProperty("time_range", timeRangeSchema)
+            .addProperty(
+                "keywords",
+                JsonArraySchema.builder()
+                    .description("场景/物体/标签内容词数组。时间词已用 time_range 表达时不得再放入；整句只有时间词时可填 [] 或省略。")
+                    .items(JsonStringSchema.builder().build())
+                    .build()
+            )
+            .addProperty(
+                "ocr_keywords",
+                JsonArraySchema.builder()
+                    .description("图片中可能出现的文字关键词数组")
+                    .items(JsonStringSchema.builder().build())
+                    .build()
+            )
+            .addProperty(
+                "location_keywords",
+                JsonArraySchema.builder()
+                    .description("地点关键词数组")
+                    .items(JsonStringSchema.builder().build())
+                    .build()
+            )
+            .addStringProperty("person_name", "具体人物名，不确定时省略")
+            .addBooleanProperty("has_faces", "是否明确找有人脸/合影/自拍的照片")
+            .build()
+        return JsonObjectSchema.builder()
+            .description(if (command == "refine_media_search") "在上一轮相册搜索结果中细化筛选" else "在聊天中搜索相册照片")
+            .addStringProperty(queryParamName, queryDescription)
+            .addProperty("intent", intentSchema)
+            .required(queryParamName)
+            .build()
+    }
 
     override fun getCommandDescription(command: String): String = when (command) {
         "search_media" -> "搜索相册照片，参数: query (自然语言，如'去年夏天'、'海边的')"
