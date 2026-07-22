@@ -20,6 +20,8 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
+import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
@@ -31,6 +33,7 @@ import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.model.StructuredFilter
+import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.domain.usecase.StartTagScanResult
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
@@ -57,6 +60,14 @@ private const val MAX_CARDS = 20
 
 /** Chat 选图后的用户意图。EDIT 在 UI 层直接跳 PhotoEditor，不会进入 VM 的 sendImageWithIntent。 */
 enum class ImageIntent { UNDERSTAND, FIND_SIMILAR, EDIT }
+
+/**
+ * chat 远程模型来源（chat 已移除本地 LLM、仅远程；用户配了自配 Key 时可「默认服务器/自配 Key」切换）。
+ */
+enum class RemoteModelSource(val label: String) {
+    DEFAULT("官方LLM"),
+    USER_KEY("自配 Key")
+}
 
 /**
  * 流式生成期间的占位文案。
@@ -148,8 +159,29 @@ class ChatViewModel(
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
-    private val _currentModel = MutableStateFlow<ChatModelOption>(ChatModelOption.Local)
+    private val _currentModel = MutableStateFlow<ChatModelOption>(ChatModelOption.Remote)
     val currentModel: StateFlow<ChatModelOption> = _currentModel.asStateFlow()
+
+    /** chat 可选远程模型项（官方 / 用户自配）。 */
+    data class ChatRemoteModel(val id: String, val displayName: String, val remoteConfig: RemoteModelConfig)
+
+    private val officialModel = ChatRemoteModel("official", "官方LLM", RemoteModelConfig.PICME_SERVER_DEFAULT)
+
+    /** 可选模型列表：官方 + 用户自配（已配置 apiKey 的）。 */
+    private val _availableModels = MutableStateFlow<List<ChatRemoteModel>>(listOf(officialModel))
+    val availableModels: StateFlow<List<ChatRemoteModel>> = _availableModels.asStateFlow()
+
+    /** 当前选中模型 id（默认官方）。 */
+    private val _selectedModelId = MutableStateFlow(officialModel.id)
+    val selectedModelId: StateFlow<String> = _selectedModelId.asStateFlow()
+
+    /** 当前选中模型。 */
+    val selectedModel: ChatRemoteModel
+        get() = _availableModels.value.find { it.id == _selectedModelId.value } ?: officialModel
+
+    /** 用户是否配了自配 Key（决定是否显示模型切换胶囊）。从设置中心 flow 实时更新。 */
+    private val _hasUserKey = MutableStateFlow(false)
+    val hasUserKey: StateFlow<Boolean> = _hasUserKey.asStateFlow()
 
     // ── 访客模式与注册引导 ──────────────────────────────────
     private val _serverAuthToken = MutableStateFlow("")
@@ -223,6 +255,23 @@ class ChatViewModel(
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to sync inference preference from settings", e)
+            }
+        }
+        // 实时监听用户自配 Key：决定是否显示「默认服务器/自配 Key」切换（配 key 后即时刷新）
+        viewModelScope.launch {
+            try {
+                userSettingsRepository.aiAgentRemoteModelConfigsFlow.collect { json ->
+                    val userConfigs = RemoteModelConfigs.fromJson(json).configs.filter { cfg -> cfg.isConfigured }
+                    val userModels = userConfigs.map { cfg -> ChatRemoteModel(cfg.uniqueKey, cfg.modelId, cfg) }
+                    _availableModels.value = listOf(officialModel) + userModels
+                    _hasUserKey.value = userModels.isNotEmpty()
+                    Logger.i(
+                        TAG,
+                        "availableModels: official + ${userModels.size} user = ${userModels.map { it.displayName }}"
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to observe remote model configs", e)
             }
         }
         loadMessages()
@@ -422,6 +471,19 @@ class ChatViewModel(
                 //   （如 search_media / text_reply），不能把原始 token 直接展示到气泡。
                 // - 修复「空气泡过段时间才有内容」：占位一开始即为非空提示；远程推理为
                 //   同步一次性返回（onToken 仅回调一次），本来就没有可增量展示的文本。
+                // chat 推理前同步配置 remoteConfig：确保用当前 _remoteSource 对应的远程源，
+                // 避免其他场景（AiAgentUseCase/PoLangApplication）注入的 userRemoteConfig 残留导致走错服务器。
+                orchestrator.configure(
+                    mode = orchestrator.getAgentMode(),
+                    modelId = orchestrator.getCurrentModelId(),
+                    privacyLevel = AiAgentPrivacyLevel.STRICT,
+                    remoteConfig = selectedModel.remoteConfig,
+                    inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
+                )
+                Logger.i(
+                    TAG,
+                    "chat inference: model=${selectedModel.displayName}, baseUrl=${selectedModel.remoteConfig.baseUrl}"
+                )
                 val result = orchestrator.streamChat(
                     input = text,
                     agentContext = agentContext,
@@ -1421,6 +1483,28 @@ class ChatViewModel(
                 Logger.i(TAG, "Model switched to: ${model.label}, inferencePreference=$preference")
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to sync inference preference switch", e)
+            }
+        }
+    }
+
+    /**
+     * 切换 chat 远程模型（官方 / 用户自配某项）。chat 仅远程：配置 orchestrator 用对应 RemoteModelConfig。
+     */
+    fun switchModel(modelId: String) {
+        val model = _availableModels.value.find { it.id == modelId } ?: return
+        _selectedModelId.value = modelId
+        viewModelScope.launch {
+            try {
+                orchestrator.configure(
+                    mode = orchestrator.getAgentMode(),
+                    modelId = orchestrator.getCurrentModelId(),
+                    privacyLevel = AiAgentPrivacyLevel.STRICT,
+                    remoteConfig = model.remoteConfig,
+                    inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
+                )
+                Logger.i(TAG, "chat model switched: ${model.displayName} (${model.remoteConfig.baseUrl})")
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to switch chat model", e)
             }
         }
     }

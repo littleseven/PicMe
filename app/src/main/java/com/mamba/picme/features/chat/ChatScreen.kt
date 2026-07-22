@@ -832,6 +832,11 @@ private fun ChatInputArea(
     val scope = rememberCoroutineScope()
     val settingsRepository = remember { UserPreferencesRepository(context) }
     val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "voice")
+    // 提到顶层稳定订阅（避免在 when(inputMode) 分支内 collectAsState 导致重组不稳定/漏订阅）
+    val hasUserKey by viewModel.hasUserKey.collectAsState()
+    val availableModels by viewModel.availableModels.collectAsState()
+    val selectedModelId by viewModel.selectedModelId.collectAsState()
+    val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
     var inputMode by remember(savedInputMode) {
         mutableStateOf(
             if (savedInputMode == "text") ChatInputMode.TEXT else ChatInputMode.VOICE
@@ -940,6 +945,10 @@ private fun ChatInputArea(
                     onDismissModelMenu = { showModelMenu = false },
                     showModelMenu = showModelMenu,
                     onModelSwitch = onModelSwitch,
+                    hasUserKey = hasUserKey,
+                    availableModels = availableModels,
+                    selectedModel = selectedModel,
+                    onSwitchModel = viewModel::switchModel,
                     onSwitchToVoice = {
                         inputMode = ChatInputMode.VOICE
                         keyboardController?.hide()
@@ -1021,6 +1030,10 @@ private fun ChatTextInputMode(
     onDismissModelMenu: () -> Unit,
     showModelMenu: Boolean,
     onModelSwitch: (ChatModelOption) -> Unit,
+    hasUserKey: Boolean,
+    availableModels: List<ChatViewModel.ChatRemoteModel>,
+    selectedModel: ChatViewModel.ChatRemoteModel?,
+    onSwitchModel: (String) -> Unit,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
     pendingImage: Uri? = null,
@@ -1103,57 +1116,42 @@ private fun ChatTextInputMode(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 模型切换胶囊按钮
-                Box {
-                    ModelCapsuleButton(
-                        currentModel = currentModel,
-                        onClick = onShowModelMenu
-                    )
-                    DropdownMenu(
-                        expanded = showModelMenu,
-                        onDismissRequest = onDismissModelMenu,
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(ChatModelOption.Local.indicatorColor)
-                                    )
-                                    Text("本地模型 (Qwen3.5-2B)")
-                                }
-                            },
-                            onClick = {
-                                onModelSwitch(ChatModelOption.Local)
-                                onDismissModelMenu()
-                            }
+                // 模型切换胶囊按钮：仅当用户配了自配 Key 时显示（可在「默认服务器/自配 Key」切换）；
+                // 未配 Key 时 chat 只用默认远程，不显示模型标签（避免无意义的固定「远程」文字）。
+                if (hasUserKey) {
+                    Box {
+                        ModelCapsuleButton(
+                            selectedModel = selectedModel,
+                            onClick = onShowModelMenu
                         )
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(ChatModelOption.Remote.indicatorColor)
-                                    )
-                                    Text("远程模型 (DeepSeek)")
-                                }
-                            },
-                            onClick = {
-                                onModelSwitch(ChatModelOption.Remote)
-                                onDismissModelMenu()
+                        DropdownMenu(
+                            expanded = showModelMenu,
+                            onDismissRequest = onDismissModelMenu,
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            availableModels.forEach { model ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(modelDotColor(model))
+                                            )
+                                            Text(model.displayName)
+                                        }
+                                    },
+                                    onClick = {
+                                        onSwitchModel(model.id)
+                                        onDismissModelMenu()
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
 
@@ -1237,7 +1235,7 @@ private fun CapsuleButton(
  */
 @Composable
 private fun ModelCapsuleButton(
-    currentModel: ChatModelOption,
+    selectedModel: ChatViewModel.ChatRemoteModel?,
     onClick: () -> Unit
 ) {
     Row(
@@ -1253,10 +1251,10 @@ private fun ModelCapsuleButton(
             modifier = Modifier
                 .size(8.dp)
                 .clip(CircleShape)
-                .background(currentModel.indicatorColor)
+                .background(modelDotColor(selectedModel))
         )
         Text(
-            text = currentModel.label,
+            text = selectedModel?.displayName ?: "官方LLM",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -1268,6 +1266,10 @@ private fun ModelCapsuleButton(
         )
     }
 }
+
+/** 模型圆点颜色（官方=蓝、自配=橙）。 */
+private fun modelDotColor(model: ChatViewModel.ChatRemoteModel?): Color =
+    if (model?.id == "official") Color(0xFF2196F3) else Color(0xFFFF9800)
 
 /**
  * 圆形图标按钮
