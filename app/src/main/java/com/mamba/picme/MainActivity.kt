@@ -348,6 +348,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
+                            composable(Screen.TagViewer.route) {
+                                TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
+                            }
                             composable(Screen.Settings.route) {
                                 // 场景管理：进入 Settings 主页面
                                 DisposableEffect(Unit) {
@@ -365,6 +368,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToTagControl = {
                                         navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToTagViewer = {
+                                        navController.navigate(Screen.TagViewer.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToDebug = {
                                         navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true })
@@ -411,6 +417,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToTagControl = {
                                         navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToTagViewer = {
+                                        navController.navigate(Screen.TagViewer.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToDebug = {
                                         navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true })
@@ -476,9 +485,6 @@ class MainActivity : ComponentActivity() {
                                     SentencePieceTestScreen(
                                         onNavigateBack = { navController.popBackStack() }
                                     )
-                                }
-                                composable(Screen.TagViewer.route) {
-                                    TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
                                 }
                             }
                             }

@@ -80,4 +80,21 @@ class TagJsonParserTest {
         assertEquals("", tags.scene)
         assertEquals("", tags.activity)
     }
+
+    @Test
+    fun `legacy json array labels are parsed into tags`() {
+        val json = """["猫","户外","食物"]"""
+
+        val parsed = TagJsonParser.parse(json)
+        assertNotNull(parsed)
+        val tags = parsed!!
+        assertEquals("", tags.scene)
+        assertEquals(emptyList<String>(), tags.objects)
+        assertEquals(listOf("猫", "户外", "食物"), tags.tags)
+    }
+
+    @Test
+    fun `empty json array returns null`() {
+        assertNull(TagJsonParser.parse("[]"))
+    }
 }

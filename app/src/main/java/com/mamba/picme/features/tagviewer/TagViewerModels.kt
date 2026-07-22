@@ -29,6 +29,20 @@ data class PhotoTagsItem(
 ) {
     val hasLabels: Boolean get() = parsed != null
     val isDisliked: Boolean get() = feedbackType == "dislike"
+
+    /**
+     * 用于照片列表主标题下方的标签摘要。
+     * 优先显示 scene；scene 为空时依次取 tags / objects 拼接，
+     * 避免 ML-Kit-only 或旧数组格式数据被误判为"未打标"。
+     */
+    val labelSummary: String
+        get() {
+            val p = parsed ?: return ""
+            return p.scene.takeIf { it.isNotBlank() }
+                ?: p.tags.joinToString(" · ").takeIf { it.isNotBlank() }
+                ?: p.objects.joinToString(" · ").takeIf { it.isNotBlank() }
+                ?: ""
+        }
 }
 
 /** 单个标签的聚合计数 */

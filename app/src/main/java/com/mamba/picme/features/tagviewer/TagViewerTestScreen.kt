@@ -55,6 +55,7 @@ fun TagViewerTestScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var selectedTab by rememberSaveable { mutableStateOf(0) }
+    var photoQuery by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -83,7 +84,23 @@ fun TagViewerTestScreen(
                 is TagViewerUiState.Loading -> LoadingView()
                 is TagViewerUiState.Error -> ErrorView(current.message)
                 is TagViewerUiState.Ready -> {
-                    if (selectedTab == 0) PhotosTab(current, viewModel) else TagsTab(current.aggregates)
+                    if (selectedTab == 0) {
+                        PhotosTab(
+                            state = current,
+                            viewModel = viewModel,
+                            query = photoQuery,
+                            onQueryChange = { photoQuery = it }
+                        )
+                    } else {
+                        TagsTab(
+                            aggregates = current.aggregates,
+                            onTagClick = { label ->
+                                photoQuery = label
+                                viewModel.setQuery(label)
+                                selectedTab = 0
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -115,14 +132,15 @@ private fun ErrorView(message: String) {
 @Composable
 private fun PhotosTab(
     state: TagViewerUiState.Ready,
-    viewModel: TagViewerViewModel
+    viewModel: TagViewerViewModel,
+    query: String,
+    onQueryChange: (String) -> Unit
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
             value = query,
             onValueChange = { text ->
-                query = text
+                onQueryChange(text)
                 viewModel.setQuery(text)
             },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -171,9 +189,9 @@ private fun PhotoRow(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.fileName, style = MaterialTheme.typography.bodyLarge)
-                val sceneText = if (item.hasLabels) item.parsed?.scene.orEmpty() else notTagged
+                val labelText = if (item.hasLabels) item.labelSummary else notTagged
                 Text(
-                    text = sceneText.ifBlank { notTagged },
+                    text = labelText.ifBlank { notTagged },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -241,25 +259,28 @@ private fun DetailLine(label: String, value: String) {
 }
 
 @Composable
-private fun TagsTab(aggregates: TagAggregates) {
+private fun TagsTab(
+    aggregates: TagAggregates,
+    onTagClick: (String) -> Unit
+) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         item {
             SectionHeader(stringResource(R.string.tag_viewer_section_scenes), aggregates.scenes.size)
         }
         items(aggregates.scenes, key = { tag -> "scene-${tag.label}" }) { tagCount ->
-            TagCountRow(tagCount)
+            TagCountRow(tagCount, onClick = onTagClick)
         }
         item {
             SectionHeader(stringResource(R.string.tag_viewer_section_objects), aggregates.objects.size)
         }
         items(aggregates.objects, key = { tag -> "object-${tag.label}" }) { tagCount ->
-            TagCountRow(tagCount)
+            TagCountRow(tagCount, onClick = onTagClick)
         }
         item {
             SectionHeader(stringResource(R.string.tag_viewer_section_tags_field), aggregates.tags.size)
         }
         items(aggregates.tags, key = { tag -> "tag-${tag.label}" }) { tagCount ->
-            TagCountRow(tagCount)
+            TagCountRow(tagCount, onClick = onTagClick)
         }
     }
 }
@@ -274,9 +295,15 @@ private fun SectionHeader(title: String, count: Int) {
 }
 
 @Composable
-private fun TagCountRow(tagCount: TagCount) {
+private fun TagCountRow(
+    tagCount: TagCount,
+    onClick: (String) -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(tagCount.label) }
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(tagCount.label, style = MaterialTheme.typography.bodyMedium)

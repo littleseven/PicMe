@@ -15,23 +15,31 @@ object TagJsonParser {
 
     fun parse(labels: String?): ParsedTags? {
         if (labels.isNullOrBlank()) return null
+        val trimmed = labels.trim()
         return try {
-            val obj = JSONObject(labels)
-            ParsedTags(
-                scene = obj.optString("scene").trim(),
-                activity = obj.optString("activity").trim(),
-                objects = obj.optJSONArray("objects").toStringList(),
-                tags = obj.optJSONArray("tags").toStringList(),
-                summary = obj.optString("qwenSummary").trim(),
-                face = obj.optJSONObject("face")?.let { faceObj ->
-                    ParsedFaceInfo(
-                        count = faceObj.optInt("count", 0),
-                        selfie = faceObj.optBoolean("selfie", false),
-                        groupPhoto = faceObj.optBoolean("groupPhoto", false),
-                        personIds = faceObj.optJSONArray("personIds").toLongList()
-                    )
-                }
-            )
+            if (trimmed.startsWith("[")) {
+                // 兼容旧版 MediaIndexingWorker 写入的 JSON 数组格式，如 ["猫","户外","食物"]
+                val tags = JSONArray(trimmed).toStringList()
+                if (tags.isEmpty()) return null
+                ParsedTags(tags = tags)
+            } else {
+                val obj = JSONObject(trimmed)
+                ParsedTags(
+                    scene = obj.optString("scene").trim(),
+                    activity = obj.optString("activity").trim(),
+                    objects = obj.optJSONArray("objects").toStringList(),
+                    tags = obj.optJSONArray("tags").toStringList(),
+                    summary = obj.optString("qwenSummary").trim(),
+                    face = obj.optJSONObject("face")?.let { faceObj ->
+                        ParsedFaceInfo(
+                            count = faceObj.optInt("count", 0),
+                            selfie = faceObj.optBoolean("selfie", false),
+                            groupPhoto = faceObj.optBoolean("groupPhoto", false),
+                            personIds = faceObj.optJSONArray("personIds").toLongList()
+                        )
+                    }
+                )
+            }
         } catch (e: org.json.JSONException) {
             null
         }
