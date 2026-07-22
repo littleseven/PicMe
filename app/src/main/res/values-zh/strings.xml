@@ -134,6 +134,10 @@
     <string name="generating">正在生成…</string>
     <string name="debug_tools">调试工具</string>
     <string name="show_debug_tools">显示调试入口</string>
+    <string name="jsbridge_debug_section">JS Bridge（MVP）</string>
+    <string name="jsbridge_debug_run_demo">运行 JS Bridge 演示</string>
+    <string name="jsbridge_debug_done">JS 演示完成：%1$s</string>
+    <string name="jsbridge_debug_failed">JS 演示失败：%1$s</string>
     <string name="test_data_tools">测试数据工具</string>
     <string name="face_landmark_mode">人脸关键点模式（更快）</string>
     <string name="adaptive_face_detect_interval">动态人脸检测间隔</string>

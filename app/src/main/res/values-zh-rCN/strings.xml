@@ -781,6 +781,10 @@
     <string name="tag_viewer_raw_json">原始 JSON</string>
     <string name="tag_viewer_debug_section">开发测试页</string>
     <string name="tag_viewer_open_entry">查看生成标签</string>
+    <string name="jsbridge_debug_section">JS Bridge（MVP）</string>
+    <string name="jsbridge_debug_run_demo">运行 JS Bridge 演示</string>
+    <string name="jsbridge_debug_done">JS 演示完成：%1$s</string>
+    <string name="jsbridge_debug_failed">JS 演示失败：%1$s</string>
     <string name="tag_viewer_dislike">打标不准</string>
     <string name="tag_viewer_disliked">已标记为不准</string>
     <string name="tag_viewer_filter_inaccurate">只看打标不准</string>

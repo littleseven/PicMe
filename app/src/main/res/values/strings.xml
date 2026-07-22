@@ -787,6 +787,10 @@
     <string name="tag_viewer_raw_json">Raw JSON</string>
     <string name="tag_viewer_debug_section">Dev Test Pages</string>
     <string name="tag_viewer_open_entry">View generated tags</string>
+    <string name="jsbridge_debug_section">JS Bridge (MVP)</string>
+    <string name="jsbridge_debug_run_demo">Run JS Bridge demo</string>
+    <string name="jsbridge_debug_done">JS demo finished: %1$s</string>
+    <string name="jsbridge_debug_failed">JS demo failed: %1$s</string>
     <string name="tag_viewer_dislike">Tag inaccurate</string>
     <string name="tag_viewer_disliked">Marked inaccurate</string>
     <string name="tag_viewer_filter_inaccurate">Inaccurate only</string>
