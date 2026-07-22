@@ -162,12 +162,42 @@ object QueryParser {
         return Calendar.getInstance().apply {
             set(Calendar.YEAR, year)
             set(Calendar.MONTH, month)
-            set(Calendar.DAY_OF_MONTH, 31)
+            set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
             set(Calendar.HOUR_OF_DAY, 23)
             set(Calendar.MINUTE, 59)
             set(Calendar.SECOND, 59)
             set(Calendar.MILLISECOND, 999)
         }.timeInMillis
+    }
+
+    /**
+     * 解析相对年份 + 季节，如"去年夏天""今年夏天""前年冬天"。
+     * 季节定义：春天3-5月、夏天6-8月、秋天9-11月、冬天12-2月。
+     */
+    private fun parseRelativeYearSeason(query: String): TimeRange? {
+        val markers = listOf("去年" to -1, "今年" to 0, "前年" to -2)
+        val seasonMap = mapOf(
+            "春天" to 2,
+            "夏天" to 5,
+            "秋天" to 8,
+            "冬天" to 11
+        )
+
+        for ((marker, yearOffset) in markers) {
+            if (!query.contains(marker)) continue
+            for ((season, startMonth) in seasonMap) {
+                if (query.contains(season)) {
+                    val year = currentYear + yearOffset
+                    val endMonth = (startMonth + 2) % 12
+                    val endYear = if (endMonth < startMonth) year + 1 else year
+                    return TimeRange(
+                        startMs = monthStartMs(year, startMonth),
+                        endMs = monthEndMs(endYear, endMonth)
+                    )
+                }
+            }
+        }
+        return null
     }
 
     /**
@@ -184,6 +214,10 @@ object QueryParser {
         // 1.5 独立中文月份：五月 / 十一月
         val standaloneChineseMonth = parseStandaloneChineseMonth(query)
         if (standaloneChineseMonth != null) return standaloneChineseMonth
+
+        // 1.6 相对年份 + 季节：去年夏天 / 今年夏天 / 前年冬天
+        val relativeYearSeason = parseRelativeYearSeason(query)
+        if (relativeYearSeason != null) return relativeYearSeason
 
         // 2. 整年：去年 / 今年 / 前年 / 2024年
         val yearMatch = Regex("(\\d{4})年").find(query)

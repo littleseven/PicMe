@@ -230,4 +230,34 @@ class QuerySegmenterTest {
         assertEquals(true, explicit.hasFaces)
         assertEquals(listOf("小孩"), content.keywords)
     }
+
+    @Test
+    fun `segment splits last year summer photo`() {
+        val result = QuerySegmenter.segment("去年夏天的照片")
+
+        assertEquals(
+            listOf(
+                Segment(SegmentType.TIME, "去年夏天"),
+                Segment(SegmentType.UNKNOWN, "照片")
+            ),
+            result.segments
+        )
+        assertTrue(result.hasNarrowingExplicit)
+    }
+
+    @Test
+    fun `toFilters converts last year summer query`() {
+        QueryParser.currentYear = 2026
+        QueryParser.currentMonth = 7
+
+        val segmented = QuerySegmenter.segment("去年夏天的照片")
+        val (explicit, content) = QuerySegmenter.toFilters(segmented)
+
+        assertNotNull(explicit.timeRange)
+        val cal = java.util.Calendar.getInstance()
+        cal.timeInMillis = explicit.timeRange!!.startMs
+        assertEquals(2025, cal.get(java.util.Calendar.YEAR))
+        assertEquals(5, cal.get(java.util.Calendar.MONTH)) // June
+        assertEquals(emptyList<String>(), content.keywords)
+    }
 }

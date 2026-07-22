@@ -39,9 +39,10 @@ object QuerySegmenter {
 
     private val TIME_PATTERN = Regex(
         "^(\\d{4}年\\d{1,2}月|\\d{4}年" + CHINESE_MONTH + "月"
-            + "|去年\\d{1,2}月|去年" + CHINESE_MONTH + "月"
-            + "|今年\\d{1,2}月|今年" + CHINESE_MONTH + "月"
-            + "|前年\\d{1,2}月|前年" + CHINESE_MONTH + "月"
+            + "|去年" + CHINESE_MONTH + "月|去年\\d{1,2}月"
+            + "|今年" + CHINESE_MONTH + "月|今年\\d{1,2}月"
+            + "|前年" + CHINESE_MONTH + "月|前年\\d{1,2}月"
+            + "|去年[春夏秋冬]天|今年[春夏秋冬]天|前年[春夏秋冬]天"
             + "|" + CHINESE_MONTH + "月"
             + "|" + RELATIVE_YEAR_LIKE
             + "|" + RELATIVE_MONTHS

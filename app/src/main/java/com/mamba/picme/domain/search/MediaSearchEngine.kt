@@ -441,13 +441,9 @@ class MediaSearchEngine(
         if (candidateIds != null) {
             val ids = candidateIds.toList()
             matched.addAll(mediaDao.searchLabelsInIds(ids, candidate).map { it.id })
-            matched.addAll(mediaDao.searchMlKitLabelsInIds(ids, candidate).map { it.id })
-            matched.addAll(mediaDao.searchMlKitLabelsZhInIds(ids, candidate).map { it.id })
             matched.addAll(mediaDao.searchFileNameInIds(ids, candidate).map { it.id })
         } else {
             matched.addAll(mediaDao.searchByLabel(candidate).map { it.id })
-            matched.addAll(mediaDao.searchByMlKitLabel(candidate).map { it.id })
-            matched.addAll(mediaDao.searchByMlKitLabelZh(candidate).map { it.id })
             matched.addAll(mediaDao.searchByFileName(candidate).map { it.id })
         }
 
@@ -899,17 +895,6 @@ Notes:
             resultMap[entity.id] = media to dims
         }
 
-        // ML Kit 标签（中英文）
-        mediaDao.searchByMlKitLabel(candidate).forEach { entity ->
-            val (media, dims) = resultMap.getOrPut(entity.id) { entity.toDomain() to mutableSetOf() }
-            dims.add("mlkit_label")
-            resultMap[entity.id] = media to dims
-        }
-        mediaDao.searchByMlKitLabelZh(candidate).forEach { entity ->
-            val (media, dims) = resultMap.getOrPut(entity.id) { entity.toDomain() to mutableSetOf() }
-            dims.add("mlkit_label_zh")
-            resultMap[entity.id] = media to dims
-        }
     }
 
     @Suppress("LongParameterList")

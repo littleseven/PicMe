@@ -196,4 +196,79 @@ class QueryParserTimeTest {
         assertEquals(2025, cal.get(Calendar.YEAR))
         assertEquals(2, cal.get(Calendar.MONTH))
     }
+
+    @Test
+    fun `parse last year summer`() {
+        QueryParser.currentYear = 2026
+        QueryParser.currentMonth = 7
+
+        val range = QueryParser.parseTimeRange("去年夏天")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2025, cal.get(Calendar.YEAR))
+        assertEquals(5, cal.get(Calendar.MONTH)) // 0-based: June
+        assertEquals(1, cal.get(Calendar.DAY_OF_MONTH))
+
+        cal.timeInMillis = range.endMs
+        assertEquals(2025, cal.get(Calendar.YEAR))
+        assertEquals(7, cal.get(Calendar.MONTH)) // 0-based: August
+        assertEquals(31, cal.get(Calendar.DAY_OF_MONTH))
+    }
+
+    @Test
+    fun `parse this year summer`() {
+        QueryParser.currentYear = 2026
+        QueryParser.currentMonth = 7
+
+        val range = QueryParser.parseTimeRange("今年夏天")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2026, cal.get(Calendar.YEAR))
+        assertEquals(5, cal.get(Calendar.MONTH))
+
+        cal.timeInMillis = range.endMs
+        assertEquals(2026, cal.get(Calendar.YEAR))
+        assertEquals(7, cal.get(Calendar.MONTH))
+    }
+
+    @Test
+    fun `parse year before last summer`() {
+        QueryParser.currentYear = 2026
+        QueryParser.currentMonth = 7
+
+        val range = QueryParser.parseTimeRange("前年夏天")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2024, cal.get(Calendar.YEAR))
+        assertEquals(5, cal.get(Calendar.MONTH))
+
+        cal.timeInMillis = range.endMs
+        assertEquals(2024, cal.get(Calendar.YEAR))
+        assertEquals(7, cal.get(Calendar.MONTH))
+    }
+
+    @Test
+    fun `parse last year winter`() {
+        QueryParser.currentYear = 2026
+        QueryParser.currentMonth = 7
+
+        val range = QueryParser.parseTimeRange("去年冬天")
+        assertNotNull(range)
+
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = range!!.startMs
+        assertEquals(2025, cal.get(Calendar.YEAR))
+        assertEquals(11, cal.get(Calendar.MONTH)) // 0-based: December
+
+        cal.timeInMillis = range.endMs
+        assertEquals(2026, cal.get(Calendar.YEAR)) // Winter spans into next year
+        assertEquals(1, cal.get(Calendar.MONTH)) // 0-based: February
+        assertEquals(28, cal.get(Calendar.DAY_OF_MONTH))
+    }
 }

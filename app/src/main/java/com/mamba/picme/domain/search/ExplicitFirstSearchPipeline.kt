@@ -16,7 +16,7 @@ import com.mamba.picme.domain.tag.i18n.TagTranslator
  * 3. 若无显式约束，直接在全局执行内容关键词搜索。
  *
  * 通过 [TagTranslator] 支持跨语言搜索扩展：
- * 中文查询 → 英文候选词（命中 ML Kit 英文标签）
+ * 中文查询 → 英文候选词（命中 Qwen/SmolVLM 生成的英文标签）
  */
 class ExplicitFirstSearchPipeline(
     private val mediaDao: MediaDao,
@@ -102,8 +102,6 @@ class ExplicitFirstSearchPipeline(
             val candidates = tagTranslator.expandForSearch(keyword, uiLang)
             for (candidate in candidates) {
                 matchedIds.addAll(mediaDao.searchLabelsInIds(ids, candidate).map { it.id })
-                matchedIds.addAll(mediaDao.searchMlKitLabelsInIds(ids, candidate).map { it.id })
-                matchedIds.addAll(mediaDao.searchMlKitLabelsZhInIds(ids, candidate).map { it.id })
                 matchedIds.addAll(mediaDao.searchFileNameInIds(ids, candidate).map { it.id })
             }
         }
@@ -134,8 +132,6 @@ class ExplicitFirstSearchPipeline(
             val candidates = tagTranslator.expandForSearch(keyword, uiLang)
             for (candidate in candidates) {
                 matchedIds.addAll(mediaDao.searchByLabel(candidate).map { it.id })
-                matchedIds.addAll(mediaDao.searchByMlKitLabel(candidate).map { it.id })
-                matchedIds.addAll(mediaDao.searchByMlKitLabelZh(candidate).map { it.id })
             }
         }
         for (keyword in content.ocrKeywords) {
