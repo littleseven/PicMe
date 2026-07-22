@@ -73,9 +73,9 @@ android {
     defaultConfig {
         applicationId = "com.mamba.picme"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 10019
-        versionName = "1.0.19"
+        targetSdk = 36
+        versionCode = 10020
+        versionName = "1.0.20"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
