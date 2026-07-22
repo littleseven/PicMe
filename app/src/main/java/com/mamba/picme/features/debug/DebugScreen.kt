@@ -1,6 +1,5 @@
 package com.mamba.picme.features.debug
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.Landscape
@@ -64,11 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
-import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.features.gallery.MediaViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,42 +130,6 @@ fun DebugScreen(
                 ).show()
                 SampleDataGenerator.addLog("Screenshot failed")
             }
-        },
-        onRunJsDemo = {
-            // 加载包内 assets/js/picme_bridge_demo.js，用 JsRuntime 执行，
-            // JS 仅能通过 bridge 间接访问原生（ClassShutter deny-all 沙箱）。
-            scope.launch(Dispatchers.IO) {
-                val tag = "PoLang:Js"
-                val runtime = JsRuntime(
-                    scope = app.applicationScope,
-                    onLog = { msg -> Log.i(tag, msg) }
-                )
-                try {
-                    val script = context.assets.open("js/picme_bridge_demo.js")
-                        .bufferedReader()
-                        .use { reader -> reader.readText() }
-                    val result = runtime.eval(script)
-                    Log.i(tag, "demo result: ${result.toJson()}")
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.jsbridge_debug_done, result.toJson()),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                } catch (e: Throwable) {
-                    Log.e(tag, "demo failed", e)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.jsbridge_debug_failed, e.message ?: "unknown"),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                } finally {
-                    runtime.close()
-                }
-            }
         }
     )
 }
@@ -191,8 +150,7 @@ private fun DebugContent(
     onPopulateSexy: () -> Unit,
     onClearData: () -> Unit,
     onScreenshot: () -> Unit,
-    onNavigateToTagViewer: () -> Unit,
-    onRunJsDemo: () -> Unit
+    onNavigateToTagViewer: () -> Unit
 ) {
     var filterText by remember { mutableStateOf("") }
     val filteredLogs = remember(logs, filterText) {
@@ -296,14 +254,7 @@ private fun DebugContent(
                 style = MaterialTheme.typography.titleSmall
             )
 
-            Button(
-                onClick = onRunJsDemo,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Code, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.jsbridge_debug_run_demo))
-            }
+            JsBridgeDebugSection()
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 4.dp),
