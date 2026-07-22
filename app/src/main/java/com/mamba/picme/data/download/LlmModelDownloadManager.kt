@@ -65,6 +65,24 @@ class LlmModelDownloadManager(context: Context) {
         )
 
         /**
+         * LFM2-VL-450M 多模态模型文件（Mamba2 骨干 + SigLIP2 视觉塔）
+         *
+         * tie_word_embeddings=true，权重与 lm_head 共享，无独立 embeddings_bf16.bin。
+         * llm.mnn.json 为 MNN 图描述（与 Qwen3-VL-2B-MNN 同构）。
+         * 来源：ModelScope `MNN/LFM2-VL-450M-MNN`（现成 int4 转换版）。
+         */
+        private val LFM2_VL_450M_MODEL_FILES = listOf(
+            "config.json",
+            "llm_config.json",
+            "llm.mnn",
+            "llm.mnn.json",
+            "llm.mnn.weight",
+            "tokenizer.txt",
+            "visual.mnn",
+            "visual.mnn.weight"
+        )
+
+        /**
          * ASR 模型固定文件列表（Sherpa-ONNX Zipformer）
          */
         private val ASR_MODEL_FILES = listOf(
@@ -166,6 +184,30 @@ class LlmModelDownloadManager(context: Context) {
             "wake-word" to "唤醒词",
             "keyword" to "关键词"
         )
+
+        /**
+         * 根据模型 ID 解析其文件清单（纯函数，供 [getModelFiles] 复用，便于单测）。
+         *
+         * 新增模型时在此与 [getModelFilesByTags] 同步加分支。
+         */
+        fun modelFilesForId(modelId: String): List<String> = when {
+            modelId.contains("kws", ignoreCase = true) -> KWS_MODEL_FILES
+            modelId.contains("zipformer", ignoreCase = true) -> ASR_MODEL_FILES
+            modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
+            modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
+            modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
+            modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
+            modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
+            modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
+            modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
+            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
+            modelId == "lfm2_vl_450m" -> LFM2_VL_450M_MODEL_FILES
+            modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
+            modelId == "modnet-onnx" -> MODNET_MODEL_FILES
+            modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
+            modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
+            else -> LLM_MODEL_FILES
+        }
     }
 
     private val appContext = context.applicationContext
@@ -474,27 +516,9 @@ fun isModelDownloaded(modelId: String): Boolean {
 }
 
     /**
-     * 根据模型 ID 获取对应的文件列表
+     * 根据模型 ID 获取对应的文件列表（委托 [modelFilesForId]，复用同一映射便于单测）
      */
-    private fun getModelFiles(modelId: String): List<String> {
-        return when {
-            modelId.contains("kws", ignoreCase = true) -> KWS_MODEL_FILES
-            modelId.contains("zipformer", ignoreCase = true) -> ASR_MODEL_FILES
-            modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
-            modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
-            modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
-            modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
-            modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
-            modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
-            modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
-            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
-            modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
-            modelId == "modnet-onnx" -> MODNET_MODEL_FILES
-            modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
-            modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
-            else -> LLM_MODEL_FILES
-        }
-    }
+    private fun getModelFiles(modelId: String): List<String> = modelFilesForId(modelId)
 
     /**
      * 根据模型标签推断文件列表
@@ -513,6 +537,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
+            modelId == "lfm2_vl_450m" -> LFM2_VL_450M_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
