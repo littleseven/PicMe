@@ -292,6 +292,7 @@ fun SettingsScreen(
             onFeishuAppSecretChange = viewModel::setFeishuAppSecret,
             onNavigateBack = onNavigateBack,
             onNavigateToTagControl = onNavigateToTagControl,
+            onNavigateToTagViewer = onNavigateToTagViewer,
             onNavigateToDebug = onNavigateToDebug,
             onNavigateToSearchTest = onNavigateToSearchTest,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy
