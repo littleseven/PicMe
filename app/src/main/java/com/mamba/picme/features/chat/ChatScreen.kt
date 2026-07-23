@@ -674,10 +674,10 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     AsyncImage(
                         model = message.imageUri,
                         contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.FillWidth,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 200.dp)
+                            .heightIn(max = 240.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 val iu = Uri.parse(message.imageUri)
@@ -699,10 +699,10 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     AsyncImage(
                         model = message.imageUri ?: message.content,
                         contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.FillWidth,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 240.dp)
+                            .heightIn(max = 300.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 val imgSrc = message.imageUri ?: message.content
