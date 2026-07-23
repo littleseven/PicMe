@@ -13,6 +13,7 @@ import com.mamba.picme.agent.core.inference.local.prompt.LocalPromptBuilder
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
+import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.MemoryManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -218,6 +219,22 @@ class AgentConfigurator(private val context: Context) {
     /** 缓存的 Feishu Agent 对应的配置，用于检测配置变更 */
     private var cachedFeishuAgentConfig: RemoteModelConfig? = null
 
+    // ── chat ReAct Agent（懒创建）────────────────────────────────────
+
+    private var cachedChatAgent: RemoteReActAgent? = null
+    private var cachedChatAgentConfig: RemoteModelConfig? = null
+
+    /** chat ReAct 专属 system prompt：强调用工具调度相册能力，含 run_gallery_script 用法 */
+    private val chatSystemPrompt = """
+        你是 PoLang 相册 AI 助手，通过调用工具帮助用户管理、搜索、分析本地相册。
+        可用工具：search_media（搜索）、refine_media_search（细化）、get_gallery_summary（摘要）、
+        start_tag_scan（打标）、ai_optimize（修图）、record_feedback/more_like_this/exclude_constraint（反馈）、
+        run_gallery_script（执行 JS 做组合计算/盘点）、view_media/delete_media/share_media/favorite_media、
+        change_theme/change_language/toggle_setting 等设置、navigate_to/go_back。
+        对于"盘点/统计/分析相册"类请求，优先用 run_gallery_script：生成一段 JS，调用 bridge.call('gallery.summary') 取数据、在 JS 内计算（比率/占比/分布）、return 一个结果对象，该对象会回传给你做自然语言总结。
+        完成后用 finish 给用户简洁的中文摘要。只读操作直接做，不要让用户额外确认。
+    """.trimIndent()
+
     /**
      * 获取或创建飞书 ReAct Agent。
      * 优先使用用户配置的远程模型，未配置时使用 PoLang Server 默认兜底。
@@ -264,6 +281,55 @@ class AgentConfigurator(private val context: Context) {
         cachedFeishuAgent = agent
         cachedFeishuAgentConfig = currentConfig
         Logger.i("AgentConfigurator", "Feishu ReAct Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
+        return agent
+    }
+
+    /**
+     * 获取或创建 chat ReAct Agent（用 ChatToolService，chat 场域能力工具，不含 UI/相机）。
+     * 配置变更时重建（同 getFeishuAgent）。
+     */
+    fun getChatAgent(callback: RemoteReActAgentCallback): RemoteReActAgent? {
+        val existing = cachedChatAgent
+        val currentConfig = userRemoteConfig ?: RemoteModelConfig.PICME_SERVER_DEFAULT
+        if (existing != null && cachedChatAgentConfig != null) {
+            val configChanged = cachedChatAgentConfig?.modelId != currentConfig.modelId
+                || cachedChatAgentConfig?.baseUrl != currentConfig.baseUrl
+                || cachedChatAgentConfig?.apiKey != currentConfig.apiKey
+                || cachedChatAgentConfig?.gatewayToken != currentConfig.gatewayToken
+            if (configChanged) {
+                Logger.i(tag, "Remote config changed (model=${currentConfig.modelId}), rebuilding Chat Agent")
+                existing.shutdown()
+                cachedChatAgent = null
+                cachedChatAgentConfig = null
+            } else {
+                return existing
+            }
+        } else if (existing != null) {
+            return existing
+        }
+        val cfg = try {
+            RemoteReActAgentConfig.Builder()
+                .apiKey(currentConfig.apiKey)
+                .baseUrl(currentConfig.baseUrl)
+                .modelName(currentConfig.modelId)
+                .gatewayToken(currentConfig.gatewayToken)
+                .systemPrompt(chatSystemPrompt)
+                .build()
+        } catch (e: Exception) {
+            Logger.w(tag, "Failed to build ChatAgent config", e)
+            return null
+        }
+        val agent = RemoteReActAgent(
+            config = cfg,
+            windowManager = null,
+            callback = callback,
+            appContext = context,
+            toolService = ChatToolService()
+        )
+        agent.initialize()
+        cachedChatAgent = agent
+        cachedChatAgentConfig = currentConfig
+        Logger.i(tag, "Chat ReAct Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
         return agent
     }
 
