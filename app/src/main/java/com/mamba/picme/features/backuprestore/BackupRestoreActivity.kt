@@ -150,7 +150,8 @@ private fun BackupRestoreScreen(onBack: () -> Unit) {
                     result.restoredScanTaskCount,
                     result.restoredPersonCount,
                     result.restoredFaceEmbeddingCount,
-                    result.restoredPreferenceCount
+                    result.restoredPreferenceCount,
+                    result.restoredMediaFeedbackCount
                 )
                 snackbarHostState.showSnackbar(
                     context.getString(R.string.backup_import_success, result.matchedMediaCount)

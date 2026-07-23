@@ -50,4 +50,23 @@ class MediaFeedbackDaoTest {
         assertEquals(2, score1.likeCount)
         assertEquals(1, score1.dislikeCount)
     }
+
+    @Test
+    fun `getAll returns all feedback rows`() = runTest {
+        dao.insert(MediaFeedbackEntity(mediaId = "1", feedbackType = "like", queryText = "猫", sessionId = "s", createdAt = 1))
+        dao.insert(MediaFeedbackEntity(mediaId = "2", feedbackType = "dislike", queryText = "狗", sessionId = "s", createdAt = 2))
+        assertEquals(2, dao.getAll().size)
+    }
+
+    @Test
+    fun `insertAll inserts multiple rows`() = runTest {
+        dao.insertAll(
+            listOf(
+                MediaFeedbackEntity(mediaId = "10", feedbackType = "like", queryText = "海边", sessionId = "s", createdAt = 1),
+                MediaFeedbackEntity(mediaId = "20", feedbackType = "dislike", queryText = "海边", sessionId = "s", createdAt = 2),
+                MediaFeedbackEntity(mediaId = "30", feedbackType = "like", queryText = "山", sessionId = "s", createdAt = 3),
+            )
+        )
+        assertEquals(3, dao.getAll().size)
+    }
 }

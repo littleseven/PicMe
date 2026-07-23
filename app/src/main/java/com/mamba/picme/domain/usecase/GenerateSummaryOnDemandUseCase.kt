@@ -15,7 +15,7 @@ import org.json.JSONObject
  * 用户点开照片详情时，若 labels.summary 为空，触发 SmolVLM 单张推理生成中文描述并写回
  * labels.summary（缓存，后续秒开）。
  *
- * 批量 Pass3 已使用 SmolVLM-256M 生成完整标签与 summary；此处保留作为 summary 缺失时的兜底。
+ * 批量 Pass3 已用当前 tagger（默认 Qwen3-VL-2B）生成完整标签与 summary；此处保留作为 summary 缺失时的兜底，按需加载 SmolVLM-500M（较轻）。
  */
 class GenerateSummaryOnDemandUseCase(private val context: Context) {
 
@@ -35,17 +35,17 @@ class GenerateSummaryOnDemandUseCase(private val context: Context) {
             return null
         }
 
-        // 按需加载 SmolVLM-256M（批量扫描不加载，仅此处按需）
+        // 按需加载 SmolVLM-500M（若引擎已加载当前 tagger 则直接复用，不重复加载）
         val orchestrator = AgentOrchestrator.getInstance(context)
         val engine = orchestrator.getLlmEngine()
         if (!engine.isLoaded) {
             val result = orchestrator.ensureModelLoaded(
-                modelId = "smolvlm_256m",
+                modelId = "smolvlm_500m",
                 useOpencl = false,
                 caller = "GenerateSummaryOnDemand"
             )
             if (result.isFailure) {
-                Logger.w(tag, "SmolVLM-256M load failed: ${result.exceptionOrNull()?.message}")
+                Logger.w(tag, "SmolVLM-500M load failed: ${result.exceptionOrNull()?.message}")
                 return null
             }
         }

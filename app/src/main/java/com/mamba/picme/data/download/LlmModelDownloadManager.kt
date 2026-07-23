@@ -39,7 +39,8 @@ class LlmModelDownloadManager(context: Context) {
 
     companion object {
         private const val TAG = "Download"
-        private const val DEFAULT_BUFFER_SIZE = 8192
+        // 下载读写缓冲：256KB（原 8KB syscall 过密，大文件如 1.4GB llm.mnn.weight 明显拖速）
+        private const val DEFAULT_BUFFER_SIZE = 262144
         private const val MODEL_MARKET_URL = "https://meta.alicdn.com/data/mnn/apis/model_market.json"
 
         /**
@@ -166,6 +167,28 @@ class LlmModelDownloadManager(context: Context) {
             "wake-word" to "唤醒词",
             "keyword" to "关键词"
         )
+
+        /**
+         * 根据模型 ID 解析其文件清单（纯函数，供 [getModelFiles] 复用，便于单测）。
+         *
+         * 新增模型时在此与 [getModelFilesByTags] 同步加分支。
+         */
+        fun modelFilesForId(modelId: String): List<String> = when {
+            modelId.contains("kws", ignoreCase = true) -> KWS_MODEL_FILES
+            modelId.contains("zipformer", ignoreCase = true) -> ASR_MODEL_FILES
+            modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
+            modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
+            modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
+            modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
+            modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
+            modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
+            modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
+            modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
+            modelId == "modnet-onnx" -> MODNET_MODEL_FILES
+            modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
+            modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
+            else -> LLM_MODEL_FILES
+        }
     }
 
     private val appContext = context.applicationContext
@@ -474,27 +497,9 @@ fun isModelDownloaded(modelId: String): Boolean {
 }
 
     /**
-     * 根据模型 ID 获取对应的文件列表
+     * 根据模型 ID 获取对应的文件列表（委托 [modelFilesForId]，复用同一映射便于单测）
      */
-    private fun getModelFiles(modelId: String): List<String> {
-        return when {
-            modelId.contains("kws", ignoreCase = true) -> KWS_MODEL_FILES
-            modelId.contains("zipformer", ignoreCase = true) -> ASR_MODEL_FILES
-            modelId.contains("whisper", ignoreCase = true) -> ASR_MODEL_FILES
-            modelId == "face-det-retina10g-mnn" -> FACE_DETECTION_ROI_MNN_FILES
-            modelId == "face-landmark-2d106-mnn" -> FACE_DETECTION_LANDMARK_MNN_FILES
-            modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
-            modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
-            modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
-            modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
-            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
-            modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
-            modelId == "modnet-onnx" -> MODNET_MODEL_FILES
-            modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
-            modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
-            else -> LLM_MODEL_FILES
-        }
-    }
+    private fun getModelFiles(modelId: String): List<String> = modelFilesForId(modelId)
 
     /**
      * 根据模型标签推断文件列表
@@ -512,7 +517,6 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
-            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
@@ -1320,7 +1324,7 @@ data class ModelConfig(
             "face-landmark-2d106-mnn",  // MNN 2D106
             "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
             "mobileclip-onnx",          // 语义搜索
-            "smolvlm_256m",             // 图片标签生成（Pass 3）
+            "qwen3_vl_2b",              // 图片标签生成（Pass 3，默认 tagger）
             "opus-mt-zh-en"             // 中文查询翻译
         )
 

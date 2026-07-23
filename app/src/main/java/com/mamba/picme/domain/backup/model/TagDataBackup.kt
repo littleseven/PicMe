@@ -13,10 +13,11 @@ import com.squareup.moshi.JsonClass
  * - v1：标签、媒体 TAG 元数据、关联、扫描任务
  * - v2：新增人脸 Embedding、人物聚类、OCR 倒排索引、地理位置关系
  * - v3：新增 DataStore 用户偏好（账号、Token、设置等）
+ * - v4：新增媒体反馈（media_feedback，用户 like/dislike 训练数据）
  */
 @JsonClass(generateAdapter = true)
 data class TagDataBackup(
-    val version: Int = 3,
+    val version: Int = 4,
     val exportedAt: Long,
     val tags: List<BackupTag>,
     val mediaTagMetadata: List<BackupMediaTagMetadata>,
@@ -28,6 +29,7 @@ data class TagDataBackup(
     val ocrWordOccurrences: List<BackupOcrWordOccurrence> = emptyList(),
     val locationHierarchy: List<BackupLocationHierarchy> = emptyList(),
     val mediaLocations: List<BackupMediaLocation> = emptyList(),
+    val mediaFeedback: List<BackupMediaFeedback> = emptyList(),
     val preferences: BackupPreferences = BackupPreferences()
 )
 
@@ -155,4 +157,19 @@ data class BackupMediaLocation(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val accuracy: Float? = null
+)
+
+/**
+ * 媒体反馈（用户 like/dislike，影响搜索排序）。
+ *
+ * media_feedback 表的 media_id 存的是 MediaEntity.id（Long）的字符串形式，
+ * 故此处以 mediaUri 作跨安装稳定键，restore 时重定位回新 mediaId。
+ */
+@JsonClass(generateAdapter = true)
+data class BackupMediaFeedback(
+    val mediaUri: String,
+    val feedbackType: String,
+    val queryText: String,
+    val sessionId: String,
+    val createdAt: Long
 )
