@@ -297,6 +297,11 @@ class ChatViewModel(
                             .filter { it.id in action.mediaIds }
                             .take(MAX_CARDS)
                         if (assets.isNotEmpty()) {
+                            // ReAct 多轮搜索只保留最后一个卡片：替换上一个 MediaResultsUi
+                            val currentMsgs = _messages.value
+                            if (currentMsgs.lastOrNull() is MediaResultsUi) {
+                                _messages.value = currentMsgs.dropLast(1)
+                            }
                             insertMediaResultsMessage(
                                 sid,
                                 MediaResultsUi(
