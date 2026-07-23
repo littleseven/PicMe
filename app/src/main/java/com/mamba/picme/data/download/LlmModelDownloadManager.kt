@@ -65,13 +65,13 @@ class LlmModelDownloadManager(context: Context) {
         )
 
         /**
-         * LFM2-VL-450M 多模态模型文件（Mamba2 骨干 + SigLIP2 视觉塔）
+         * LFM2-VL 多模态模型文件（Mamba2 骨干 + SigLIP2 视觉塔；450M / 1.6B 同构）
          *
          * tie_word_embeddings=true，权重与 lm_head 共享，无独立 embeddings_bf16.bin。
          * llm.mnn.json 为 MNN 图描述（与 Qwen3-VL-2B-MNN 同构）。
-         * 来源：ModelScope `MNN/LFM2-VL-450M-MNN`（现成 int4 转换版）。
+         * 来源：ModelScope `MNN/LFM2-VL-450M-MNN` / `MNN/LFM2-VL-1.6B-MNN`（现成 int4 转换版）。
          */
-        private val LFM2_VL_450M_MODEL_FILES = listOf(
+        private val LFM2_VL_MODEL_FILES = listOf(
             "config.json",
             "llm_config.json",
             "llm.mnn",
@@ -201,7 +201,8 @@ class LlmModelDownloadManager(context: Context) {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
-            modelId == "lfm2_vl_450m" -> LFM2_VL_450M_MODEL_FILES
+            modelId == "lfm2_vl_450m" -> LFM2_VL_MODEL_FILES
+            modelId == "lfm2_vl_1_6b" -> LFM2_VL_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
@@ -537,7 +538,8 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
-            modelId == "lfm2_vl_450m" -> LFM2_VL_450M_MODEL_FILES
+            modelId == "lfm2_vl_450m" -> LFM2_VL_MODEL_FILES
+            modelId == "lfm2_vl_1_6b" -> LFM2_VL_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES

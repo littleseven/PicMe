@@ -140,6 +140,27 @@
     "tags": ["chat", "vision", "tagging", "multilingual"]
   },
   {
+    "id": "lfm2_vl_1_6b",
+    "name": "LFM2-VL-1.6B-MNN",
+    "description": "Liquid AI LFM2-VL-1.6B 多模态（MNN int4 版：Mamba2 混合骨干 + SigLIP2 视觉塔），1.6B 参数，打标质量优于 450M，体积约 1.17GB",
+    "type": "LLM",
+    "size": 1169000000,
+    "sources": {
+      "ModelScope": "MNN/LFM2-VL-1.6B-MNN"
+    },
+    "files": [
+      "config.json",
+      "llm_config.json",
+      "llm.mnn",
+      "llm.mnn.json",
+      "llm.mnn.weight",
+      "tokenizer.txt",
+      "visual.mnn",
+      "visual.mnn.weight"
+    ],
+    "tags": ["chat", "vision", "tagging", "multilingual"]
+  },
+  {
     "id": "face-det-retina10g-mnn",
     "name": "RetinaFace Det10G",
     "description": "RetinaFace 人脸检测模型 (MNN 格式)，用于 ROI 区域检测，GPU 加速",

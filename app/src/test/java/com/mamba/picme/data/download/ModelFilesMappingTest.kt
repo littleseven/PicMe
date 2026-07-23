@@ -31,6 +31,16 @@ class ModelFilesMappingTest {
     }
 
     @Test
+    fun lfm2_vl_1_6b_maps_to_same_multimodal_files_as_450m() {
+        // LFM2-VL-1.6B-MNN 与 450M 同构（同文件清单）
+        val files450 = LlmModelDownloadManager.modelFilesForId("lfm2_vl_450m")
+        val files1_6b = LlmModelDownloadManager.modelFilesForId("lfm2_vl_1_6b")
+        assertEquals(files450, files1_6b)
+        assertTrue("1.6B 须含 visual.mnn", files1_6b.contains("visual.mnn"))
+        assertTrue("1.6B 须含 llm.mnn.json", files1_6b.contains("llm.mnn.json"))
+    }
+
+    @Test
     fun smolvlm_mapping_unchanged_regression_guard() {
         // 回归保护：既有 SmolVLM 映射（带 embeddings_bf16.bin）不被破坏
         val files = LlmModelDownloadManager.modelFilesForId("smolvlm_256m")
