@@ -313,6 +313,14 @@ class ChatViewModel(
                             )
                         }
                     }
+                    is AgentAction.Success -> {
+                        when (action.command) {
+                            is AgentCommand.AiOptimize -> {
+                                handleAgentAction(action, "default", currentModelLabel())
+                            }
+                            else -> {}
+                        }
+                    }
                     else -> {}
                 }
             }

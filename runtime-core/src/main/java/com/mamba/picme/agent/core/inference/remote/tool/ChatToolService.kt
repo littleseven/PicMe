@@ -273,7 +273,10 @@ class ChatToolService private constructor() {
                         is AgentAction.MediaResults ->
                             "找到 ${action.totalCount} 张「${action.query}」的照片，已展示在卡片中"
                         is AgentAction.TextReply -> action.message
-                        is AgentAction.Success -> "OK"
+                        is AgentAction.Success -> when (action.command) {
+                            is AgentCommand.AiOptimize -> "图片已优化，结果已展示在聊天中"
+                            else -> "OK"
+                        }
                         is AgentAction.Error -> "Error: ${action.message}"
                         else -> "OK: ${action::class.simpleName}"
                     }
