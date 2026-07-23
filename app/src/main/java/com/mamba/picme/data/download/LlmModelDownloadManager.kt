@@ -673,15 +673,23 @@ fun isModelDownloaded(modelId: String): Boolean {
 
     private fun updateServiceState() {
         val intent = Intent(appContext, ModelDownloadForegroundService::class.java)
+        intent.action = if (hasAnyRunningTask()) {
+            ModelDownloadForegroundService.ACTION_START_OR_UPDATE
+        } else {
+            ModelDownloadForegroundService.ACTION_STOP
+        }
+        // Android 13+ 需通知权限才能 startForeground。无权限时降级为普通 startService，
+        // 避免 ForegroundServiceDidNotStartInTimeException 闪退。
+        val hasNotificationPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+            appContext, android.Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         runCatching {
-            intent.action = if (hasAnyRunningTask()) {
-                ModelDownloadForegroundService.ACTION_START_OR_UPDATE
-            } else {
-                ModelDownloadForegroundService.ACTION_STOP
+            if (hasNotificationPermission) {
+                ContextCompat.startForegroundService(appContext, intent)
+            } else if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
+                appContext.startService(intent)
             }
-            // 前台服务的所有后续 Intent 都必须使用 startForegroundService()，
-            // 否则在 API 34+ 上会导致 onStartCommand 无法正常执行
-            ContextCompat.startForegroundService(appContext, intent)
+            // Android 8+ 无通知权限时不启动 Service（下载在协程中继续）
         }.onFailure { throwable ->
             Logger.w(TAG, "Failed to sync foreground service state", throwable)
         }

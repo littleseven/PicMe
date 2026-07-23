@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.mamba.picme.PoLangApplication
+import com.mamba.picme.core.common.Logger
 import com.mamba.picme.R
 import android.app.NotificationManager
 
@@ -28,8 +29,6 @@ class ModelDownloadForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannelIfNeeded()
-        // Android 14+ (API 34+) 要求 startForeground 必须在 onCreate 中尽早调用，
-        // 且必须传 foregroundServiceType，否则 ForegroundServiceDidNotStartInTimeException。
         val notification = buildEmptyNotification()
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -38,7 +37,10 @@ class ModelDownloadForegroundService : Service() {
                 startForeground(NOTIFICATION_ID, notification)
             }
         } catch (e: Exception) {
-            // 通知权限被拒等边界情况：不 crash，降级为普通 Service
+            // startForeground 失败（通知权限被拒等）：立即停止，避免超时闪退
+            Logger.w("ModelDownloadFGS", "startForeground failed, stopping: ${e.message}")
+            stopSelf()
+            return
         }
         val app = application as PoLangApplication
         manager = app.container.llmModelDownloadManager
