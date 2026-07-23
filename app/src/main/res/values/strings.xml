@@ -682,7 +682,7 @@
     <string name="backup_import_success">Restore complete. Matched %1$d media.</string>
     <string name="backup_export_failed">Export failed: %1$s</string>
     <string name="backup_import_failed">Import failed: %1$s</string>
-    <string name="backup_result_summary">Matched %1$d · Tags %2$d · Tasks %3$d · Persons %4$d · Embeddings %5$d · Preferences %6$d</string>
+    <string name="backup_result_summary">Matched %1$d · Tags %2$d · Tasks %3$d · Persons %4$d · Embeddings %5$d · Preferences %6$d · Feedback %7$d</string>
     <!-- Chat onboarding & guest mode -->
     <string name="chat_empty_welcome">Hi, I\'m Xiaolang, your smart assistant</string>
     <string name="chat_empty_capabilities">I can search your gallery, edit photos, tweak beauty, and find people or scenes. Ask me anything!</string>

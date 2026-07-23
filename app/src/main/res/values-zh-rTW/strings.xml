@@ -654,7 +654,7 @@
     <string name="backup_import_success">還原完成，匹配 %1$d 個媒體。</string>
     <string name="backup_export_failed">匯出失敗：%1$s</string>
     <string name="backup_import_failed">匯入失敗：%1$s</string>
-    <string name="backup_result_summary">匹配 %1$d · 標籤 %2$d · 任務 %3$d · 人物 %4$d · 人臉 %5$d · 偏好 %6$d</string>
+    <string name="backup_result_summary">匹配 %1$d · 標籤 %2$d · 任務 %3$d · 人物 %4$d · 人臉 %5$d · 偏好 %6$d · 回饋 %7$d</string>
     <!-- 聊天引導與訪客模式 -->
     <string name="chat_empty_welcome">你好，我是智能助手小浪</string>
     <string name="chat_empty_capabilities">我能搜相簿·修圖·調美顏·找人找場景，隨便問！</string>

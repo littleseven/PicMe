@@ -676,7 +676,7 @@
     <string name="backup_import_success">恢复完成，匹配 %1$d 个媒体。</string>
     <string name="backup_export_failed">导出失败：%1$s</string>
     <string name="backup_import_failed">导入失败：%1$s</string>
-    <string name="backup_result_summary">匹配 %1$d · 标签 %2$d · 任务 %3$d · 人物 %4$d · 人脸 %5$d · 偏好 %6$d</string>
+    <string name="backup_result_summary">匹配 %1$d · 标签 %2$d · 任务 %3$d · 人物 %4$d · 人脸 %5$d · 偏好 %6$d · 反馈 %7$d</string>
     <!-- 聊天引导与访客模式 -->
     <string name="chat_empty_welcome">你好，我是智能助手小浪</string>
     <string name="chat_empty_capabilities">我能搜相册·修图·调美颜·找人找场景，随便问！</string>

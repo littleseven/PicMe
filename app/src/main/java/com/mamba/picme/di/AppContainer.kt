@@ -329,6 +329,7 @@ class AppContainerImpl(
             personDao = database.personDao(),
             ocrWordDao = database.ocrWordDao(),
             locationDao = database.locationDao(),
+            mediaFeedbackDao = database.mediaFeedbackDao(),
             dataStore = context.dataStore
         )
     }

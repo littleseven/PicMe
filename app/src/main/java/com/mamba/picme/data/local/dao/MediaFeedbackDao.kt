@@ -12,6 +12,12 @@ interface MediaFeedbackDao {
     @Insert
     suspend fun insert(feedback: MediaFeedbackEntity)
 
+    @Query("SELECT * FROM media_feedback")
+    suspend fun getAll(): List<MediaFeedbackEntity>
+
+    @Insert
+    suspend fun insertAll(feedback: List<MediaFeedbackEntity>)
+
     @Query(
         """
         SELECT media_id, 

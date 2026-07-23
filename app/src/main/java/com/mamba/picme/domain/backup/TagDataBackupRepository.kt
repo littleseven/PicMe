@@ -14,12 +14,14 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.local.dao.LocationDao
+import com.mamba.picme.data.local.dao.MediaFeedbackDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.dao.TagScanTaskDao
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.LocationHierarchyEntity
+import com.mamba.picme.data.local.entity.MediaFeedbackEntity
 import com.mamba.picme.data.local.entity.MediaLocationEntity
 import com.mamba.picme.data.local.entity.MediaTagCrossRef
 import com.mamba.picme.data.local.entity.OcrWordEntity
@@ -31,6 +33,7 @@ import com.mamba.picme.data.local.entity.TagScanTaskEntity
 import com.mamba.picme.data.local.entity.TagScanTaskStatus
 import com.mamba.picme.domain.backup.model.BackupFaceEmbedding
 import com.mamba.picme.domain.backup.model.BackupLocationHierarchy
+import com.mamba.picme.domain.backup.model.BackupMediaFeedback
 import com.mamba.picme.domain.backup.model.BackupMediaLocation
 import com.mamba.picme.domain.backup.model.BackupMediaTagCrossRef
 import com.mamba.picme.domain.backup.model.BackupMediaTagMetadata
@@ -73,6 +76,7 @@ class TagDataBackupRepository(
     private val personDao: PersonDao,
     private val ocrWordDao: OcrWordDao,
     private val locationDao: LocationDao,
+    private val mediaFeedbackDao: MediaFeedbackDao,
     private val dataStore: DataStore<Preferences>,
     moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 ) {
@@ -91,6 +95,7 @@ class TagDataBackupRepository(
         val ocrWordOccurrenceCount: Int,
         val locationCount: Int,
         val mediaLocationCount: Int,
+        val mediaFeedbackCount: Int,
         val preferenceCount: Int
     )
 
@@ -107,6 +112,7 @@ class TagDataBackupRepository(
         val restoredOcrWordOccurrenceCount: Int,
         val restoredLocationCount: Int,
         val restoredMediaLocationCount: Int,
+        val restoredMediaFeedbackCount: Int,
         val restoredPreferenceCount: Int
     )
 
@@ -223,6 +229,18 @@ class TagDataBackupRepository(
             )
         }
 
+        val mediaFeedback = mediaFeedbackDao.getAll().mapNotNull { fb ->
+            // media_feedback.media_id 存的是 MediaEntity.id(Long) 的字符串 → 转 uri 作跨安装键
+            val uri = fb.mediaId.toLongOrNull()?.let { mediaIdToUri[it] } ?: return@mapNotNull null
+            BackupMediaFeedback(
+                mediaUri = uri,
+                feedbackType = fb.feedbackType,
+                queryText = fb.queryText,
+                sessionId = fb.sessionId,
+                createdAt = fb.createdAt
+            )
+        }
+
         val preferences = exportPreferences()
 
         val backup = TagDataBackup(
@@ -237,6 +255,7 @@ class TagDataBackupRepository(
             ocrWordOccurrences = ocrOccurrences,
             locationHierarchy = locations,
             mediaLocations = mediaLocations,
+            mediaFeedback = mediaFeedback,
             preferences = preferences
         )
 
@@ -257,6 +276,7 @@ class TagDataBackupRepository(
             ocrWordOccurrenceCount = ocrOccurrences.size,
             locationCount = locations.size,
             mediaLocationCount = mediaLocations.size,
+            mediaFeedbackCount = mediaFeedback.size,
             preferenceCount = preferences.entries.size
         )
     }
@@ -316,6 +336,7 @@ class TagDataBackupRepository(
             backup.faceEmbeddings.mapTo(this) { it.mediaUri }
             backup.ocrWordOccurrences.mapTo(this) { it.mediaUri }
             backup.mediaLocations.mapTo(this) { it.mediaUri }
+            backup.mediaFeedback.mapTo(this) { it.mediaUri }
         }
 
         val unmatchedUris = allBackupUris.filter { it !in uriToMediaId }
@@ -335,6 +356,7 @@ class TagDataBackupRepository(
                 restoredOcrWordOccurrenceCount = 0,
                 restoredLocationCount = 0,
                 restoredMediaLocationCount = 0,
+                restoredMediaFeedbackCount = 0,
                 restoredPreferenceCount = 0
             )
         }
@@ -539,6 +561,23 @@ class TagDataBackupRepository(
             }
             val restoredMediaLocationCount = mediaLocationsToInsert.size
 
+            // 10. 恢复媒体反馈（media_id 重定位：uri → 新 mediaId 字符串）
+            val feedbackToInsert = backup.mediaFeedback.mapNotNull { fb ->
+                val mediaId = uriToMediaId[fb.mediaUri] ?: return@mapNotNull null
+                MediaFeedbackEntity(
+                    id = 0,
+                    mediaId = mediaId.toString(),
+                    feedbackType = fb.feedbackType,
+                    queryText = fb.queryText,
+                    sessionId = fb.sessionId,
+                    createdAt = fb.createdAt
+                )
+            }
+            if (feedbackToInsert.isNotEmpty()) {
+                mediaFeedbackDao.insertAll(feedbackToInsert)
+            }
+            val restoredMediaFeedbackCount = feedbackToInsert.size
+
             result = RestoreResult(
                 matchedMediaCount = matchedMediaCount,
                 unmatchedUris = unmatchedUris,
@@ -552,6 +591,7 @@ class TagDataBackupRepository(
                 restoredOcrWordOccurrenceCount = restoredOcrWordOccurrenceCount,
                 restoredLocationCount = restoredLocationCount,
                 restoredMediaLocationCount = restoredMediaLocationCount,
+                restoredMediaFeedbackCount = restoredMediaFeedbackCount,
                 restoredPreferenceCount = 0 // 在 SQLite 事务外恢复
             )
             database.setTransactionSuccessful()
