@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -637,6 +638,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
     ) {
         Column(
             modifier = Modifier
+                .widthIn(max = if (isImage || isImageText) 280.dp else 360.dp)
                 .clip(
                     if (isUser) {
                         RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
@@ -645,15 +647,17 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     }
                 )
                 .background(
-                    if (isUser) {
+                    if (isImage) {
+                        Color.Transparent
+                    } else if (isUser) {
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
                     }
                 )
                 .padding(
-                    horizontal = if (isImage) 6.dp else 16.dp,
-                    vertical = if (isImage) 4.dp else 12.dp
+                    horizontal = if (isImage || isImageText) 4.dp else 16.dp,
+                    vertical = if (isImage || isImageText) 4.dp else 12.dp
                 )
                 .pointerInput(Unit) {
                     detectTapGestures(
@@ -670,10 +674,10 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     AsyncImage(
                         model = message.imageUri,
                         contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.FillHeight,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
-                            .height(160.dp)
-                            .widthIn(max = 240.dp)
+                            .fillMaxWidth()
+                            .heightIn(max = 200.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 val iu = Uri.parse(message.imageUri)
@@ -692,14 +696,13 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                 }
                 isImage -> {
                     // 显示图片（可点击进入全屏预览）
-                    // 高度固定 200dp，宽度按原始比例自适应，不超 260dp
                     AsyncImage(
                         model = message.imageUri ?: message.content,
                         contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.FillHeight,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
-                            .height(200.dp)
-                            .widthIn(max = 260.dp)
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 val imgSrc = message.imageUri ?: message.content
