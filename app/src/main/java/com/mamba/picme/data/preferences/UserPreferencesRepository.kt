@@ -653,12 +653,20 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             }
         }
         .map { preferences ->
-            preferences[PreferencesKeys.TAGGER_MODEL_KEY] ?: "smolvlm_256m"
+            preferences[PreferencesKeys.TAGGER_MODEL_KEY] ?: "qwen3_vl_2b"
         }
 
     override suspend fun updateTaggerModelKey(key: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.TAGGER_MODEL_KEY] = key
+        }
+    }
+
+    override fun getTaggerModelKeyBlocking(): String = runBlocking {
+        try {
+            context.dataStore.data.first()[PreferencesKeys.TAGGER_MODEL_KEY] ?: ""
+        } catch (_: Exception) {
+            ""
         }
     }
 

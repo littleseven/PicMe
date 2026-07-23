@@ -68,11 +68,12 @@ class TagGenerationScheduler(
     private val userSettingsRepository: UserSettingsRepository = UserPreferencesRepository(context)
 ) {
 
+    /** 当前打标模型 key（由用户设置解析；默认 qwen3_vl_2b，Debug 可切 smolvlm_500m） */
+    private val taggerModelKey: String
+        get() = TaggerModelSelector.resolve(userSettingsRepository.getTaggerModelKeyBlocking())
+
     companion object {
         private const val TAG = "TagScheduler"
-
-        /** 打标模型 ID：Qwen3-VL-2B-Instruct-MNN（视觉语言模型，打标质量优先方案） */
-        private const val MODEL_KEY = "qwen3_vl_2b"
 
         /** 批次大小：每处理此数量照片后强制冷却 */
         private const val BATCH_SIZE = 10
@@ -122,7 +123,7 @@ class TagGenerationScheduler(
             context = context,
             engine = AgentOrchestrator.getInstance(context).getLlmEngine(),
             prefs = userSettingsRepository,
-            modelId = MODEL_KEY
+            modelId = taggerModelKey
         )
     }
 
@@ -826,8 +827,8 @@ class TagGenerationScheduler(
         val orchestrator = AgentOrchestrator.getInstance(context)
         val engine = orchestrator.getLlmEngine()
 
-        if (!engine.isModelAvailable(MODEL_KEY, context)) {
-            Log.w(TAG, "Model not downloaded: $MODEL_KEY")
+        if (!engine.isModelAvailable(taggerModelKey, context)) {
+            Log.w(TAG, "Model not downloaded: $taggerModelKey")
             return false
         }
 
@@ -835,7 +836,7 @@ class TagGenerationScheduler(
         val useCpu = openClGuardian.shouldUseCpu()
 
         // 如果已按 Guardian 策略加载了正确后端，直接复用，避免 Pass 3 每张照片都卸载重装。
-        if (engine.isLoaded && engine.isLoadedAs(MODEL_KEY, useOpencl = !useCpu)) {
+        if (engine.isLoaded && engine.isLoadedAs(taggerModelKey, useOpencl = !useCpu)) {
             Log.i(TAG, "Model already loaded with requested backend, reusing")
             return true
         }
@@ -851,9 +852,9 @@ class TagGenerationScheduler(
 
         // OpenCL GPU 路径（如果允许）→ 失败后降级 CPU
         if (!useCpu) {
-            Log.i(TAG, "Loading LLM model with OpenCL (GPU): $MODEL_KEY")
+            Log.i(TAG, "Loading LLM model with OpenCL (GPU): $taggerModelKey")
             val openclResult = orchestrator.ensureModelLoaded(
-                modelId = MODEL_KEY,
+                modelId = taggerModelKey,
                 useOpencl = true,
                 caller = "TagGenerationScheduler:OpenCL"
             )
@@ -874,9 +875,9 @@ class TagGenerationScheduler(
         }
 
         // CPU 加载（默认路径 + OpenCL 失败/降级）
-        Log.i(TAG, "Loading LLM model with CPU: $MODEL_KEY")
+        Log.i(TAG, "Loading LLM model with CPU: $taggerModelKey")
         val cpuResult = orchestrator.ensureModelLoaded(
-            modelId = MODEL_KEY,
+            modelId = taggerModelKey,
             useOpencl = false,
             caller = "TagGenerationScheduler:CPU"
         )

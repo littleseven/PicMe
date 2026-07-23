@@ -96,9 +96,10 @@ interface UserSettingsRepository {
     val tagGenerationUseOpencl: Flow<Boolean>
     suspend fun updateTagGenerationUseOpencl(enabled: Boolean)
 
-    /** 相册打标模型 key（由 [com.mamba.picme.domain.tag.TaggerModelSelector] 解析为有效值，默认 smolvlm_256m） */
+    /** 相册打标模型 key（由 [com.mamba.picme.domain.tag.TaggerModelSelector] 解析为有效值，默认 qwen3_vl_2b） */
     val taggerModelKeyFlow: Flow<String>
     suspend fun updateTaggerModelKey(key: String)
+    fun getTaggerModelKeyBlocking(): String
 
     val openClDegradedDevices: Flow<String>
     suspend fun updateOpenClDegradedDevices(devicesJson: String)

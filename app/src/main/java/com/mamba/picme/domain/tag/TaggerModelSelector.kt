@@ -3,20 +3,19 @@ package com.mamba.picme.domain.tag
 /**
  * 打标模型选择器：把用户设置解析为有效的 tagger model key。
  *
- * - 默认 [defaultKey] = `smolvlm_256m`
+ * - 默认 [defaultKey] = `qwen3_vl_2b`（Qwen3-VL-2B-Instruct，质量优先）
+ * - 备选 `smolvlm_500m`（SmolVLM-500M）
  * - 空白 / 未识别 → 回退默认
- * - 白名单内 key 原样返回
  *
- * 新增打标模型时在 [knownKeys] 注册。
+ * LFM2-VL（450M/1.6B）经测试打标效果不佳，已下线。
  */
 object TaggerModelSelector {
-    const val defaultKey = "smolvlm_256m"
+    /** 默认打标模型：Qwen3-VL-2B-Instruct */
+    const val defaultKey = "qwen3_vl_2b"
 
     private val knownKeys = setOf(
-        "smolvlm_256m",
-        "smolvlm_500m",
         "qwen3_vl_2b",
-        "lfm2_vl_450m"
+        "smolvlm_500m"
     )
 
     /**

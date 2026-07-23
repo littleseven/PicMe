@@ -1,50 +1,27 @@
 package com.mamba.picme.data.download
 
-import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * 校验 [LlmModelDownloadManager.modelFilesForId] 的模型→文件清单映射。
  *
- * 重点保护：新增 LFM2-VL-450M-MNN（lfm2_vl_450m）映射正确，且既有 SmolVLM 映射不被破坏。
+ * 当前打标模型仅保留 Qwen3-VL-2B（默认）与 SmolVLM-500M；LFM2-VL、SmolVLM-256M 已下线。
  */
 class ModelFilesMappingTest {
 
     @Test
-    fun lfm2_vl_450m_maps_to_multimodal_files_without_separate_embedding() {
-        // LFM2-VL-450M-MNN: Mamba2 骨干 + SigLIP2 视觉塔，tie_word_embeddings → 无 embeddings_bf16.bin
+    fun smolvlm_500m_maps_to_multimodal_files_with_embedding() {
+        val files = LlmModelDownloadManager.modelFilesForId("smolvlm_500m")
+        assertTrue("SmolVLM-500M 须含 visual.mnn", files.contains("visual.mnn"))
+        assertTrue("SmolVLM-500M 须含 embeddings_bf16.bin", files.contains("embeddings_bf16.bin"))
+    }
+
+    @Test
+    fun removed_models_fall_back_to_default_llm_files() {
+        // 已下线模型不再有专属映射，回退到默认 LLM_MODEL_FILES（不含视觉/嵌入文件，且不崩溃）
         val files = LlmModelDownloadManager.modelFilesForId("lfm2_vl_450m")
-        assertEquals(
-            listOf(
-                "config.json",
-                "llm_config.json",
-                "llm.mnn",
-                "llm.mnn.json",
-                "llm.mnn.weight",
-                "tokenizer.txt",
-                "visual.mnn",
-                "visual.mnn.weight"
-            ),
-            files
-        )
-    }
-
-    @Test
-    fun lfm2_vl_1_6b_maps_to_same_multimodal_files_as_450m() {
-        // LFM2-VL-1.6B-MNN 与 450M 同构（同文件清单）
-        val files450 = LlmModelDownloadManager.modelFilesForId("lfm2_vl_450m")
-        val files1_6b = LlmModelDownloadManager.modelFilesForId("lfm2_vl_1_6b")
-        assertEquals(files450, files1_6b)
-        assertTrue("1.6B 须含 visual.mnn", files1_6b.contains("visual.mnn"))
-        assertTrue("1.6B 须含 llm.mnn.json", files1_6b.contains("llm.mnn.json"))
-    }
-
-    @Test
-    fun smolvlm_mapping_unchanged_regression_guard() {
-        // 回归保护：既有 SmolVLM 映射（带 embeddings_bf16.bin）不被破坏
-        val files = LlmModelDownloadManager.modelFilesForId("smolvlm_256m")
-        assertTrue("SmolVLM 须含 visual.mnn", files.contains("visual.mnn"))
-        assertTrue("SmolVLM 须含 embeddings_bf16.bin", files.contains("embeddings_bf16.bin"))
+        assertFalse("已下线 LFM2 不应再返回 visual.mnn", files.contains("visual.mnn"))
     }
 }

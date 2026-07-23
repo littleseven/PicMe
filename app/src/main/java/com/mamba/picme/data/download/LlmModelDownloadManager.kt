@@ -65,24 +65,6 @@ class LlmModelDownloadManager(context: Context) {
         )
 
         /**
-         * LFM2-VL 多模态模型文件（Mamba2 骨干 + SigLIP2 视觉塔；450M / 1.6B 同构）
-         *
-         * tie_word_embeddings=true，权重与 lm_head 共享，无独立 embeddings_bf16.bin。
-         * llm.mnn.json 为 MNN 图描述（与 Qwen3-VL-2B-MNN 同构）。
-         * 来源：ModelScope `MNN/LFM2-VL-450M-MNN` / `MNN/LFM2-VL-1.6B-MNN`（现成 int4 转换版）。
-         */
-        private val LFM2_VL_MODEL_FILES = listOf(
-            "config.json",
-            "llm_config.json",
-            "llm.mnn",
-            "llm.mnn.json",
-            "llm.mnn.weight",
-            "tokenizer.txt",
-            "visual.mnn",
-            "visual.mnn.weight"
-        )
-
-        /**
          * ASR 模型固定文件列表（Sherpa-ONNX Zipformer）
          */
         private val ASR_MODEL_FILES = listOf(
@@ -200,9 +182,6 @@ class LlmModelDownloadManager(context: Context) {
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
-            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
-            modelId == "lfm2_vl_450m" -> LFM2_VL_MODEL_FILES
-            modelId == "lfm2_vl_1_6b" -> LFM2_VL_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
@@ -537,9 +516,6 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
-            modelId == "smolvlm_256m" -> SMOLVLM_MODEL_FILES
-            modelId == "lfm2_vl_450m" -> LFM2_VL_MODEL_FILES
-            modelId == "lfm2_vl_1_6b" -> LFM2_VL_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
@@ -1347,7 +1323,7 @@ data class ModelConfig(
             "face-landmark-2d106-mnn",  // MNN 2D106
             "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
             "mobileclip-onnx",          // 语义搜索
-            "smolvlm_256m",             // 图片标签生成（Pass 3）
+            "qwen3_vl_2b",              // 图片标签生成（Pass 3，默认 tagger）
             "opus-mt-zh-en"             // 中文查询翻译
         )
 
