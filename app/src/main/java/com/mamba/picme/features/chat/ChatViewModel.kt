@@ -555,8 +555,14 @@ class ChatViewModel(
                     TAG,
                     "chat inference: model=${selectedModel.displayName}, baseUrl=${selectedModel.remoteConfig.baseUrl}"
                 )
+                // 用户选了图片时，把 URI 注入 input 让 ReAct LLM 知道（ai_optimize 需 image_uri）
+                val effectiveInput = if (imageUri != null) {
+                    "[用户选择了图片：$imageUri，请基于这张图片处理] $text"
+                } else {
+                    text
+                }
                 val result = orchestrator.streamChat(
-                    input = text,
+                    input = effectiveInput,
                     agentContext = agentContext,
                     // 占位文案已在创建时设好并保持不变，故逐 token 无需更新气泡。
                     onToken = { _ -> }
