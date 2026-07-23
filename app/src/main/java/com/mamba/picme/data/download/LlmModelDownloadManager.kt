@@ -41,6 +41,9 @@ class LlmModelDownloadManager(context: Context) {
         private const val TAG = "Download"
         // 下载读写缓冲：256KB（原 8KB syscall 过密，大文件如 1.4GB llm.mnn.weight 明显拖速）
         private const val DEFAULT_BUFFER_SIZE = 262144
+
+        /** 单文件大于此阈值走分块并行下载（默认 32MB）；小于则单连接 */
+        private const val PARALLEL_DOWNLOAD_THRESHOLD = 32L * 1024 * 1024
         private const val MODEL_MARKET_URL = "https://meta.alicdn.com/data/mnn/apis/model_market.json"
 
         /**
@@ -201,6 +204,12 @@ class LlmModelDownloadManager(context: Context) {
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
+
+    /** 大文件分块并行下载器（复用同一 OkHttpClient 连接池） */
+    private val parallelDownloader by lazy { ParallelFileDownloader(client) }
+
+    /** 并行下载的取消标志（按 modelId）；cancelDownload 时置 true，各分块轮询退出 */
+    private val cancelFlags = ConcurrentHashMap<String, Boolean>()
 
     private val downloadDir: File
         get() = File(appContext.filesDir, "llm_models").also { it.mkdirs() }
@@ -566,6 +575,7 @@ fun isModelDownloaded(modelId: String): Boolean {
      */
     fun cancelDownload(modelId: String) {
         pausedDownloads.remove(modelId)
+        cancelFlags[modelId] = true // 并行分块轮询退出（单连接另由 job.cancel 取消）
         activeDownloads[modelId]?.cancel()
         activeDownloads.remove(modelId)
         activeJobs.remove(modelId)?.cancel()
@@ -926,7 +936,32 @@ fun isModelDownloaded(modelId: String): Boolean {
         _downloadStates.update { it + (modelId to DownloadState(modelId, DownloadStatus.DOWNLOADING, 0, actualTotalBytes)) }
         updateServiceState()
 
-        var totalDownloaded = 0L
+        val totalDownloaded = java.util.concurrent.atomic.AtomicLong(0L)
+        cancelFlags[modelId] = false
+        val progressLock = Any()
+        var lastEmitTime = System.currentTimeMillis()
+        var lastEmitBytes = 0L
+
+        /**
+         * 线程安全地把 [delta] 累加进总进度，并节流更新 [_downloadStates]（UI 实时进度源）。
+         *
+         * 不调用 flow 的 emit：并行分块下无法安全并发 emit，而 UI 走 [_downloadStates] StateFlow
+         * （[enqueueDownload] 收集器也只关心终态 COMPLETED/FAILED/CANCELLED）。500ms 或 1MB 触发。
+         */
+        fun reportProgress(delta: Long) {
+            val total = totalDownloaded.addAndGet(delta)
+            synchronized(progressLock) {
+                val now = System.currentTimeMillis()
+                if (now - lastEmitTime > 500 || total - lastEmitBytes > 1_048_576) {
+                    _downloadStates.update {
+                        it + (modelId to DownloadState(modelId, DownloadStatus.DOWNLOADING, total, actualTotalBytes))
+                    }
+                    updateServiceState()
+                    lastEmitTime = now
+                    lastEmitBytes = total
+                }
+            }
+        }
 
         try {
             Logger.i(TAG, "Downloading model $modelId from ModelScope: $repoPath")
@@ -955,8 +990,7 @@ fun isModelDownloaded(modelId: String): Boolean {
                         if (!expectedSha256.isNullOrEmpty()) {
                             if (verifyFileSha256(destFile, expectedSha256)) {
                                 Logger.d(TAG, "File verified (size + SHA256): $fileName ($actualSize bytes)")
-                                totalDownloaded += actualSize
-                                emit(DownloadProgress(modelId, totalDownloaded, actualTotalBytes, DownloadStatus.DOWNLOADING))
+                                reportProgress(actualSize)
                                 continue
                             } else {
                                 Logger.w(TAG, "SHA256 mismatch for $fileName, re-downloading")
@@ -965,8 +999,7 @@ fun isModelDownloaded(modelId: String): Boolean {
                         } else {
                             // 没有 SHA256，仅大小校验通过
                             Logger.d(TAG, "File size matches: $fileName ($actualSize bytes)")
-                            totalDownloaded += actualSize
-                            emit(DownloadProgress(modelId, totalDownloaded, actualTotalBytes, DownloadStatus.DOWNLOADING))
+                            reportProgress(actualSize)
                             continue
                         }
                     } else if (expectedSize > 0 && actualSize != expectedSize) {
@@ -977,20 +1010,32 @@ fun isModelDownloaded(modelId: String): Boolean {
                         // API 没有返回大小信息，尝试 SHA256 校验
                         if (!expectedSha256.isNullOrEmpty() && verifyFileSha256(destFile, expectedSha256)) {
                             Logger.d(TAG, "File verified (SHA256 only): $fileName ($actualSize bytes)")
-                            totalDownloaded += actualSize
-                            emit(DownloadProgress(modelId, totalDownloaded, actualTotalBytes, DownloadStatus.DOWNLOADING))
+                            reportProgress(actualSize)
                             continue
                         } else {
                             // 无法校验，假设文件完整
                             Logger.d(TAG, "File exists (unknown size): $fileName ($actualSize bytes)")
-                            totalDownloaded += actualSize
-                            emit(DownloadProgress(modelId, totalDownloaded, actualTotalBytes, DownloadStatus.DOWNLOADING))
+                            reportProgress(actualSize)
                             continue
                         }
                     }
                 }
 
                 Logger.d(TAG, "Downloading $fileName from $url (expected: $expectedSize bytes)")
+
+                // 大文件：分块并行下载（单连接受 CDN 单流限速，多段并发提速）
+                if (expectedSize > PARALLEL_DOWNLOAD_THRESHOLD) {
+                    parallelDownloader.download(
+                        url = url,
+                        destFile = destFile,
+                        totalSize = expectedSize,
+                        onBytes = { delta ->
+                            reportProgress(delta)
+                        },
+                        isCancelled = { cancelFlags[modelId] == true }
+                    )
+                    continue
+                }
 
                 val request = Request.Builder()
                     .url(url)
@@ -1018,25 +1063,13 @@ fun isModelDownloaded(modelId: String): Boolean {
                         destFile.outputStream().use { output ->
                             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                             var bytesRead: Int
-                            var lastEmitTime = System.currentTimeMillis()
-                            var lastEmitBytes = totalDownloaded
 
                             while (input.read(buffer).also { bytesRead = it } != -1) {
                                 if (call.isCanceled()) {
                                     throw IOException("Download cancelled")
                                 }
                                 output.write(buffer, 0, bytesRead)
-                                totalDownloaded += bytesRead
-
-                                val now = System.currentTimeMillis()
-                                val bytesSinceLastEmit = totalDownloaded - lastEmitBytes
-                                if (now - lastEmitTime > 500 || bytesSinceLastEmit > 1_048_576) {
-                                    _downloadStates.update { it + (modelId to DownloadState(modelId, DownloadStatus.DOWNLOADING, totalDownloaded, actualTotalBytes)) }
-                                    updateServiceState()
-                                    emit(DownloadProgress(modelId, totalDownloaded, actualTotalBytes, DownloadStatus.DOWNLOADING))
-                                    lastEmitTime = now
-                                    lastEmitBytes = totalDownloaded
-                                }
+                                reportProgress(bytesRead.toLong())
                             }
                         }
                     }
