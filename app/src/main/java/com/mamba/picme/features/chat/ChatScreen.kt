@@ -638,7 +638,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = if (isImage || isImageText) 280.dp else 360.dp)
+                .widthIn(max = if (isImage || isImageText) 240.dp else 360.dp)
                 .clip(
                     if (isUser) {
                         RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
@@ -648,7 +648,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                 )
                 .background(
                     if (isImage) {
-                        Color.Transparent
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                     } else if (isUser) {
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                     } else {
@@ -656,8 +656,8 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     }
                 )
                 .padding(
-                    horizontal = if (isImage || isImageText) 4.dp else 16.dp,
-                    vertical = if (isImage || isImageText) 4.dp else 12.dp
+                    horizontal = if (isImage || isImageText) 6.dp else 16.dp,
+                    vertical = if (isImage || isImageText) 6.dp else 12.dp
                 )
                 .pointerInput(Unit) {
                     detectTapGestures(
@@ -674,10 +674,9 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     AsyncImage(
                         model = message.imageUri,
                         contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 240.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 val iu = Uri.parse(message.imageUri)
@@ -695,14 +694,13 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     )
                 }
                 isImage -> {
-                    // 显示图片（可点击进入全屏预览）
+                    // 显示图片（可点击进入全屏预览）：宽度撑满气泡、高度按比例自适应、不裁切
                     AsyncImage(
                         model = message.imageUri ?: message.content,
                         contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 300.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 val imgSrc = message.imageUri ?: message.content

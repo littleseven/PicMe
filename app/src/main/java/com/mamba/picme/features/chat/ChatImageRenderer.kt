@@ -96,6 +96,35 @@ class ChatImageRenderer(
         val dir = java.io.File(context.filesDir, "picme_images").apply { mkdirs() }
         val file = java.io.File(dir, "edit_${UUID.randomUUID()}.jpg")
         java.io.FileOutputStream(file).use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out) }
+        // 同时写入系统相册（MediaStore），让用户在相册中可见
+        val displayName = "PoLang_edit_${UUID.randomUUID()}.jpg"
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, displayName)
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PoLang")
+                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+        val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            android.provider.MediaStore.Images.Media.getContentUri(
+                android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY
+            )
+        } else {
+            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val itemUri = context.contentResolver.insert(collection, values)
+        if (itemUri != null) {
+            context.contentResolver.openOutputStream(itemUri)?.use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+                context.contentResolver.update(itemUri, values, null, null)
+            }
+            Logger.i(TAG, "Saved to gallery: $itemUri")
+        }
         "file://${file.absolutePath}"
     } catch (e: Exception) {
         Logger.e(TAG, "saveBitmap failed", e)
