@@ -152,6 +152,7 @@ fun SettingsScreen(
     val aiAgentL1CacheEnabled by viewModel.aiAgentL1CacheEnabled.collectAsState()
     val aiAgentLocalUseOpencl by viewModel.aiAgentLocalUseOpencl.collectAsState()
     val tagGenerationUseOpencl by viewModel.tagGenerationUseOpencl.collectAsState()
+    val taggerModelKey by viewModel.taggerModelKey.collectAsState()
     val voiceCommandMode by viewModel.voiceCommandMode.collectAsState()
     val localAsrModel by viewModel.localAsrModel.collectAsState()
     val localKwsModel by viewModel.localKwsModel.collectAsState()
@@ -271,6 +272,8 @@ fun SettingsScreen(
             onAiAgentLocalUseOpenclChange = { viewModel.setAiAgentLocalUseOpencl(it) },
             tagGenerationUseOpencl = tagGenerationUseOpencl,
             onTagGenerationUseOpenclChange = { viewModel.setTagGenerationUseOpencl(it) },
+            taggerModelKey = taggerModelKey,
+            onTaggerModelKeyChange = { viewModel.setTaggerModelKey(it) },
             voiceCommandMode = voiceCommandMode,
             onVoiceCommandModeChange = { viewModel.setVoiceCommandMode(it) },
             localAsrModel = localAsrModel,
@@ -332,6 +335,8 @@ private fun SettingsContent(
     onAiAgentLocalUseOpenclChange: (Boolean) -> Unit,
     tagGenerationUseOpencl: Boolean,
     onTagGenerationUseOpenclChange: (Boolean) -> Unit,
+    taggerModelKey: String,
+    onTaggerModelKeyChange: (String) -> Unit,
     voiceCommandMode: VoiceCommandMode,
     onVoiceCommandModeChange: (VoiceCommandMode) -> Unit,
     localAsrModel: String,
@@ -585,6 +590,17 @@ private fun SettingsContent(
                         subtitle = stringResource(R.string.tag_viewer_open_entry),
                         leadingIcon = Icons.Rounded.Search,
                         onClick = onNavigateToTagViewer
+                    )
+                    SettingsClickableRow(
+                        title = stringResource(R.string.tag_model_selector_title),
+                        subtitle = if (taggerModelKey == "smolvlm_500m") "SmolVLM-500M" else "Qwen3-VL-2B",
+                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
+                        onClick = {
+                            // 二者切换：当前是 qwen3_vl_2b → 切 smolvlm_500m；否则切回 qwen3_vl_2b
+                            onTaggerModelKeyChange(
+                                if (taggerModelKey == "qwen3_vl_2b") "smolvlm_500m" else "qwen3_vl_2b"
+                            )
+                        }
                     )
                 }
 
@@ -1269,6 +1285,8 @@ fun SettingsScreenPreview() {
             onAiAgentLocalUseOpenclChange = {},
             tagGenerationUseOpencl = false,
             onTagGenerationUseOpenclChange = {},
+            taggerModelKey = "qwen3_vl_2b",
+            onTaggerModelKeyChange = {},
             voiceCommandMode = VoiceCommandMode.DISABLED,
             onVoiceCommandModeChange = {},
             localAsrModel = "",

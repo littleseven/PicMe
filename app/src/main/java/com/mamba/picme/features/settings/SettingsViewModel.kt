@@ -230,6 +230,14 @@ class SettingsViewModel(
             initialValue = false
         )
 
+    /** 相册打标模型 key（qwen3_vl_2b 默认 / smolvlm_500m 备选） */
+    val taggerModelKey: StateFlow<String> = repository.taggerModelKeyFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "qwen3_vl_2b"
+        )
+
     val voiceCommandMode: StateFlow<VoiceCommandMode> = repository.voiceCommandModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -961,6 +969,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             Logger.d("UX", "TAG generation OpenCL changed: $enabled")
             repository.updateTagGenerationUseOpencl(enabled)
+        }
+    }
+
+    fun setTaggerModelKey(key: String) {
+        viewModelScope.launch {
+            Logger.d("UX", "Tagger model changed: $key")
+            repository.updateTaggerModelKey(key)
         }
     }
 

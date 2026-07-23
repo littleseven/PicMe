@@ -39,7 +39,8 @@ class LlmModelDownloadManager(context: Context) {
 
     companion object {
         private const val TAG = "Download"
-        private const val DEFAULT_BUFFER_SIZE = 8192
+        // 下载读写缓冲：256KB（原 8KB syscall 过密，大文件如 1.4GB llm.mnn.weight 明显拖速）
+        private const val DEFAULT_BUFFER_SIZE = 262144
         private const val MODEL_MARKET_URL = "https://meta.alicdn.com/data/mnn/apis/model_market.json"
 
         /**
