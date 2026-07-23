@@ -68,7 +68,11 @@ class ChatImageRenderer(
 
     private fun decodeBitmap(imageUri: String): Bitmap? = try {
         val resolver = context.contentResolver
-        val uri = Uri.parse(imageUri)
+        val uri = if (imageUri.startsWith("/")) {
+            Uri.fromFile(java.io.File(imageUri))
+        } else {
+            Uri.parse(imageUri)
+        }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         resolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream, null, bounds) }
         val maxDim = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
