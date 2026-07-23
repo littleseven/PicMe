@@ -261,6 +261,7 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.RecordMediaFeedback -> "媒体反馈"
         is AgentCommand.MoreLikeThis -> "更多相似"
         is AgentCommand.ExcludeConstraint -> "排除约束"
+        is AgentCommand.ExecuteScript -> "执行脚本"
     }
 
 /**
@@ -307,6 +308,7 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.RecordMediaFeedback -> Icons.Rounded.Favorite
     is AgentCommand.MoreLikeThis -> Icons.Rounded.Search
     is AgentCommand.ExcludeConstraint -> Icons.Rounded.Delete
+    is AgentCommand.ExecuteScript -> Icons.Rounded.Code
 }
 
 private fun getAgentCommandDetail(command: AgentCommand): String =

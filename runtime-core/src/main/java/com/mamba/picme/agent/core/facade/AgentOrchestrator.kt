@@ -443,23 +443,11 @@ class AgentOrchestrator private constructor(context: Context) {
         val preference = configurator.getInferencePreference()
         Logger.d(tag, "streamChat: preference=$preference, input='$input'")
 
-        // 产品决策（chat-only remote）：chat 页仅保留远程模型；本地 LLM 留给相机 Agent / 隐私等
-        // 其他场景。因此无论全局 inferencePreference 如何（含 FORCE_LOCAL），chat 都走远程。
+        // 产品决策（chat-only remote + ReAct）：chat 页走远程 ReAct（tool_calls），无论 preference。
+        // 替代旧 streamChatRemote（文本协议 + LocalCommandParser）——符合 ADR-005 远程协议分离。
         // 访客（无 token）由 PICME_SERVER_DEFAULT 兜底，仍可聊天。
-        val result = when (preference) {
-            AiAgentInferencePreference.FORCE_LOCAL -> {
-                Logger.i(tag, "streamChat routing to REMOTE (chat-only policy, FORCE_LOCAL ignored)")
-                streamChatRemote(input, agentContext, onToken)
-            }
-            AiAgentInferencePreference.FORCE_REMOTE -> {
-                Logger.i(tag, "streamChat routing to REMOTE (FORCE_REMOTE)")
-                streamChatRemote(input, agentContext, onToken)
-            }
-            AiAgentInferencePreference.AUTO -> {
-                Logger.i(tag, "streamChat routing to REMOTE (AUTO)")
-                streamChatRemote(input, agentContext, onToken)
-            }
-        }
+        Logger.i(tag, "streamChat routing to Chat ReAct (preference=$preference)")
+        val result = streamChatReAct(input, agentContext, onToken)
 
         // 回写本轮到 MemoryManager：streamChatLocal/Remote 只经 buildContextMessages 读历史，
         // 此前未回写 → MemoryManager 永远为空 → 多轮对话无记忆（每轮 promptTokens 不增长）。
@@ -474,6 +462,40 @@ class AgentOrchestrator private constructor(context: Context) {
             }
         }
         return result
+    }
+
+    /**
+     * chat 远程 ReAct：调 [processChatReAct] 拿 summary，包成 TextReply 命令回 chat。
+     * ReAct 内部已执行 tool 调用（dispatchCommand → Capability），summary 即最终自然语言回复。
+     */
+    private suspend fun streamChatReAct(
+        input: String,
+        agentContext: AgentContext,
+        onToken: (String) -> Unit
+    ): Result<StreamChatResult> {
+        val startTime = System.currentTimeMillis()
+        return try {
+            processChatReAct(input).fold(
+                onSuccess = { summary ->
+                    onToken(summary)
+                    val latencyMs = System.currentTimeMillis() - startTime
+                    val commands = if (summary.isNotBlank()) {
+                        listOf(AgentCommand.TextReply(message = summary))
+                    } else {
+                        emptyList()
+                    }
+                    val base = StreamChatResult(
+                        fullResponse = summary,
+                        metrics = StreamMetrics(latencyMs = latencyMs, promptTokens = null, completionTokens = null)
+                    )
+                    Result.success(base.copy(commands = commands))
+                },
+                onFailure = { Result.failure(it) },
+            )
+        } catch (e: Exception) {
+            Logger.e(tag, "streamChatReAct error", e)
+            Result.failure(e)
+        }
     }
 
     private suspend fun streamChatLocal(
@@ -1066,6 +1088,82 @@ class AgentOrchestrator private constructor(context: Context) {
             Result.failure(RuntimeException("⏰ 处理超时（${timeoutMs / 1000}秒），请稍后重试"))
         } catch (e: Exception) {
             Logger.e(tag, "processFeishuInput error", e)
+            Result.failure(e)
+        }
+    }
+
+    // ── chat ReAct 入口 ───────────────────────────────────────────
+
+    /**
+     * chat 远程推理（ReAct tool_calls 循环）。
+     *
+     * 用 [AgentConfigurator.getChatAgent]（ChatToolService，chat 场域能力工具）执行多轮
+     * tool 调用，完成后返回自然语言 summary。替代旧 streamChatRemote 的「文本协议 + LocalCommandParser」。
+     */
+    suspend fun processChatReAct(
+        input: String,
+        timeoutMs: Long = 120_000L
+    ): Result<String> = withContext(Dispatchers.IO) {
+        Logger.d(tag, "processChatReAct: input='$input', timeout=${timeoutMs}ms")
+
+        val agent = configurator.getChatAgent(object : RemoteReActAgentCallback {
+            override fun onLoopStart(iteration: Int) {}
+            override fun onContent(iteration: Int, content: String) {}
+            override fun onToolCall(iteration: Int, toolName: String, args: String) {}
+            override fun onToolResult(iteration: Int, toolName: String, result: String) {}
+            override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
+            override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
+        }) ?: return@withContext Result.failure(
+            IllegalStateException("Chat ReAct Agent 初始化失败")
+        )
+
+        if (agent.isRunning()) {
+            return@withContext Result.failure(IllegalStateException("Agent 正在执行其他任务"))
+        }
+
+        return@withContext try {
+            val job = coroutineContext[kotlinx.coroutines.Job]
+            val summary = withTimeout(timeoutMs) {
+                suspendCoroutine<String> { continuation ->
+                    val callback = object : RemoteReActAgentCallback {
+                        override fun onLoopStart(iteration: Int) {
+                            Logger.d(tag, "Chat ReAct iteration #$iteration")
+                        }
+                        override fun onContent(iteration: Int, content: String) {
+                            Logger.d(tag, "Chat ReAct content: ${content.take(200)}")
+                        }
+                        override fun onToolCall(iteration: Int, toolName: String, args: String) {
+                            Logger.d(tag, "Chat ReAct toolCall: $toolName(${args.take(100)})")
+                        }
+                        override fun onToolResult(iteration: Int, toolName: String, result: String) {
+                            Logger.d(tag, "Chat ReAct toolResult: $toolName → ${result.take(80)}")
+                        }
+                        override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {
+                            Logger.i(tag, "Chat ReAct complete: $iteration rounds, $totalTokens tokens")
+                            continuation.resume(summary)
+                        }
+                        override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {
+                            Logger.e(tag, "Chat ReAct error: ${error.message}")
+                            continuation.resume("出错了：${error.message ?: "未知错误"}")
+                        }
+                    }
+                    job?.invokeOnCompletion { cause ->
+                        if (cause != null) {
+                            Logger.d(tag, "Chat ReAct coroutine cancelled: ${cause.message}")
+                            agent.cancel()
+                        }
+                    }
+                    agent.executeTask(input, callback)
+                    Logger.d(tag, "Chat ReAct executeTask submitted, waiting for callback...")
+                }
+            }
+            Result.success(summary)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Logger.e(tag, "processChatReAct timeout after ${timeoutMs}ms")
+            agent.cancel()
+            Result.failure(RuntimeException("处理超时（${timeoutMs / 1000}秒），请稍后重试"))
+        } catch (e: Exception) {
+            Logger.e(tag, "processChatReAct error", e)
             Result.failure(e)
         }
     }

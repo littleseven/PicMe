@@ -129,6 +129,7 @@ import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
+import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
@@ -285,6 +286,7 @@ fun ChatScreen(
     // （GALLERY 场景）→ CHAT 场景不匹配 → "正在为您切换到对应页面执行操作..."
     RegisterCapability(ChatSearchCapability.getInstance())
     RegisterCapability(ChatGallerySummaryCapability.getInstance())
+    RegisterCapability(ChatRunScriptCapability.getInstance())
     RegisterCapability(ChatStartTagScanCapability.getInstance())
 
     // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
@@ -297,6 +299,12 @@ fun ChatScreen(
     DisposableEffect(Unit) {
         ChatGallerySummaryCapability.getInstance().bindDelegate(viewModel)
         onDispose { ChatGallerySummaryCapability.getInstance().unbindDelegate() }
+    }
+
+    // 绑定 ChatRunScriptCapability Delegate（端侧 JS 执行）
+    DisposableEffect(Unit) {
+        ChatRunScriptCapability.getInstance().bindDelegate(viewModel)
+        onDispose { ChatRunScriptCapability.getInstance().unbindDelegate() }
     }
 
     // 绑定 ChatStartTagScanCapability Delegate

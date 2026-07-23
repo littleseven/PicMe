@@ -249,6 +249,18 @@ private fun DebugContent(
                 color = MaterialTheme.colorScheme.outlineVariant
             )
 
+            Text(
+                stringResource(R.string.jsbridge_debug_section),
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            JsBridgeDebugSection()
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
             LogWindow(
                 filterText = filterText,
                 onFilterTextChange = { filterText = it },

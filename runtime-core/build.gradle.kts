@@ -61,6 +61,10 @@ dependencies {
     // agent-core: 合并后的 langchain4j 单库模块（core + open-ai + okhttp）
     api(project(":agent-core"))
 
+    // JS 引擎：Rhino（纯 Java，无 .so）。rhino-runtime 剥离了 Android 缺失的 javax.script 包装。
+    // 作为 JsEngine 的实现细节（引擎无关接口隔离），仅 runtime-core 内部使用。
+    implementation(libs.mozilla.rhino.runtime)
+
 
     // RecyclerView（ScrollTool 滚动检测）
     implementation(libs.androidx.recyclerview)

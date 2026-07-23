@@ -31,15 +31,19 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class RemoteReActAgent(
     private val config: RemoteReActAgentConfig,
-    private val windowManager: WindowManager,
+    private val windowManager: WindowManager? = null,
     private val callback: RemoteReActAgentCallback,
-    private val appContext: android.content.Context? = null
+    private val appContext: android.content.Context? = null,
+    private val toolService: Any? = null
 ) {
     companion object {
         private const val TAG = "RemoteReActAgent"
     }
 
-    private val toolService = PoLangToolService(windowManager)
+    // 飞书（远程控制 RPA）默认用 PoLangToolService(windowManager)；chat 注入 ChatToolService（不需 windowManager）。
+    // 当 toolService=null 时要求 windowManager 非 null（飞书路径）。
+    private val effectiveToolService: Any =
+        toolService ?: PoLangToolService(windowManager!!)
 
     private val chatModel by lazy {
         val remoteModelConfig = RemoteModelConfig(
@@ -134,7 +138,7 @@ class RemoteReActAgent(
                 .builder()
                 .chatModel(chatModel)
                 .chatMemory(memory)
-                .tools(toolService)
+                .tools(effectiveToolService)
                 .systemMessageProvider { SystemMessage.from(config.systemPrompt) }
                 .toolChoice(ToolChoice.AUTO)
                 .maxIterations(config.maxIterations)

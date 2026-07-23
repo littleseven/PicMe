@@ -37,11 +37,18 @@ import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.domain.usecase.StartTagScanResult
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
+import android.util.Log
+import com.mamba.picme.agent.core.js.JsRuntime
+import com.mamba.picme.agent.core.js.JsValue
+import com.mamba.picme.agent.core.js.syncHandler
+import com.mamba.picme.agent.core.js.toJsValue
+import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
+import com.mamba.picme.agent.core.model.context.GallerySummary
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
+import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
-import com.mamba.picme.agent.core.model.context.GallerySummary
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,7 +57,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 private const val TAG = "ChatViewModel"
@@ -95,6 +105,7 @@ class ChatViewModel(
 ) : ViewModel(),
     ChatSearchCapability.Delegate,
     ChatGallerySummaryCapability.Delegate,
+    ChatRunScriptCapability.Delegate,
     ChatStartTagScanCapability.Delegate {
 
     private val context = dependencies.context.applicationContext
@@ -276,6 +287,36 @@ class ChatViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        // chat ReAct tool 双通道：collect ChatToolService.uiActions → 渲染搜索卡片/编辑跳转
+        viewModelScope.launch {
+            ChatToolService.getInstance().uiActions.collect { action ->
+                when (action) {
+                    is AgentAction.MediaResults -> {
+                        val sid = "default"
+                        val assets = lastResultAssets[sid].orEmpty()
+                            .filter { it.id in action.mediaIds }
+                            .take(MAX_CARDS)
+                        if (assets.isNotEmpty()) {
+                            // ReAct 多轮搜索只保留最后一个卡片：替换上一个 MediaResultsUi
+                            val currentMsgs = _messages.value
+                            if (currentMsgs.lastOrNull() is MediaResultsUi) {
+                                _messages.value = currentMsgs.dropLast(1)
+                            }
+                            insertMediaResultsMessage(
+                                sid,
+                                MediaResultsUi(
+                                    query = action.query,
+                                    assets = assets,
+                                    totalCount = action.totalCount,
+                                    isRefinement = action.isRefinement
+                                )
+                            )
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
         // 从设置中心同步推理偏好到 UI 的 ModelSelector
         viewModelScope.launch {
             try {
@@ -1128,6 +1169,26 @@ class ChatViewModel(
 
     override suspend fun onGetGallerySummary(includeDetails: Boolean): GallerySummary? {
         return getGallerySummaryUseCase(includeDetails)
+    }
+
+    // ── ChatRunScriptCapability.Delegate：执行 JS 脚本（端侧沙箱）─────────────
+
+    override suspend fun onRunScript(code: String): String {
+        return withContext(Dispatchers.Default) {
+            JsRuntime(
+                scope = viewModelScope,
+                evalTimeoutMs = 3_000,
+                onLog = { msg -> Log.i("PoLang:Js", msg) }
+            ).use { rt ->
+                // gallery.summary：同步 handler，runBlocking 读本地相册摘要（~50ms，切 IO 不死锁）
+                rt.register(syncHandler("gallery.summary") {
+                    runBlocking { getGallerySummaryUseCase(includeDetails = true)?.toJsValue() ?: JsValue.Null }
+                })
+                // 包成 IIFE：(function(){ <code> })() —— Rhino evaluateString 不允许顶层
+                // return（LLM 生成 code 常含顶层 return），IIFE 让 return 合法并返回其值。
+                rt.eval("(function() {\n" + code + "\n})()").toJson()
+            }
+        }
     }
 
     // ── ChatStartTagScanCapability.Delegate：TAG 扫描控制 ─────────────

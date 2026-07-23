@@ -70,6 +70,7 @@ object ToolCallCommandParser {
             "go_back" -> AgentCommand.GoBack()
             "ai_optimize" -> parseAiOptimize(args)
             "get_gallery_summary" -> parseGetGallerySummary(args)
+            "run_gallery_script" -> parseExecuteScript(args)
             "start_tag_scan" -> parseStartTagScan(args)
             "text_reply" -> parseTextReply(args)
             "launch_app" -> parseLaunchApp(args)
@@ -187,6 +188,10 @@ object ToolCallCommandParser {
         return AgentCommand.GetGallerySummary(
             includeDetails = args.optBoolean("include_details", false)
         )
+    }
+
+    private fun parseExecuteScript(args: JSONObject): AgentCommand.ExecuteScript {
+        return AgentCommand.ExecuteScript(code = args.optString("code"))
     }
 
     private fun parseStartTagScan(args: JSONObject): AgentCommand.StartTagScan {
