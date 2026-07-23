@@ -682,7 +682,7 @@ private fun ChatInputBar(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settingsRepository = remember { UserPreferencesRepository(context) }
-    val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "voice")
+    val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "text")
     var inputMode by remember(savedInputMode) {
         mutableStateOf(
             if (savedInputMode == "text") InputMode.TEXT else InputMode.VOICE

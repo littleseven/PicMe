@@ -994,7 +994,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             }
         }
         .map { preferences ->
-            preferences[PreferencesKeys.CHAT_INPUT_MODE] ?: "voice"
+            preferences[PreferencesKeys.CHAT_INPUT_MODE] ?: "text"
         }
 
     override suspend fun updateChatInputMode(mode: String) {

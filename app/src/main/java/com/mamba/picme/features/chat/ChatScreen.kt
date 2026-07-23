@@ -831,7 +831,7 @@ private fun ChatInputArea(
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val settingsRepository = remember { UserPreferencesRepository(context) }
-    val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "voice")
+    val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "text")
     // 提到顶层稳定订阅（避免在 when(inputMode) 分支内 collectAsState 导致重组不稳定/漏订阅）
     val hasUserKey by viewModel.hasUserKey.collectAsState()
     val availableModels by viewModel.availableModels.collectAsState()
