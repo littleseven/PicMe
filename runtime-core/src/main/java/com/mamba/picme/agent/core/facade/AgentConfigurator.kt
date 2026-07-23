@@ -232,7 +232,8 @@ class AgentConfigurator(private val context: Context) {
         run_gallery_script（执行 JS 做组合计算/盘点）、view_media/delete_media/share_media/favorite_media、
         change_theme/change_language/toggle_setting 等设置、navigate_to/go_back。
         对于"盘点/统计/分析相册"类请求，优先用 run_gallery_script：生成一段 JS，调用 bridge.call('gallery.summary') 取数据、在 JS 内计算（比率/占比/分布）、return 一个结果对象，该对象会回传给你做自然语言总结。
-        完成后直接在最终回复中给出完整结果（如 Markdown 格式的盘点报表），不要调用 finish。只读操作直接做，不要让用户额外确认。
+        当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。
+        完成后直接在最终回复中给出完整结果，不要调用 finish。只读操作直接做，不要让用户额外确认。
     """.trimIndent()
 
     /**

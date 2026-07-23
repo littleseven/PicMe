@@ -46,6 +46,14 @@ class ChatToolService private constructor() {
     /** UI 事件流：dispatchCommand 执行后的原始 AgentAction 发到此 flow，ChatViewModel collect 渲染卡片/跳转。 */
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
 
+    /**
+     * 指令驱动图片调整 handler（由 ChatViewModel 注入）。
+     *
+     * 参数：imageUri, brightness(-100~100), contrast(0~200, 默认50), saturation(0~200, 默认100), temperature(2000~8000, 默认5000)
+     * 返回：结果描述（成功时含 file:// URI；失败时含错误信息）
+     */
+    var adjustImageHandler: (suspend (String, Float?, Float?, Float?, Float?) -> String)? = null
+
     // ── 相册 ──────────────────────────────────────────────────────
 
     @Tool(name = "get_gallery_summary", value = ["获取本地相册摘要：照片/视频/媒体总数、含人脸数、人物聚类数、已/未打标数、语义向量数、扫描建议。"])
@@ -134,6 +142,27 @@ class ChatToolService private constructor() {
         @P(name = "image_uri", value = "图片 URI") imageUri: String,
         @P(name = "mode", value = "fast 或 smart") mode: String
     ): String = dispatchCommand(AgentCommand.AiOptimize(imageUri = imageUri, mode = mode))
+
+    @Tool(
+        name = "adjust_image",
+        value = ["按显式参数调整图片亮度/对比度/饱和度/色温，返回调整后的图片。用户说「调亮」「增加对比度」「提高饱和度」等指令时使用。brightness: -100(暗)~100(亮)，0=不变。contrast: 0~200，50=默认。saturation: 0~200，100=默认。temperature: 2000(冷蓝)~8000(暖黄)，5000=默认。未指定的参数留空串表示不调整。"]
+    )
+    fun adjustImage(
+        @P(name = "image_uri", value = "图片 URI") imageUri: String,
+        @P(name = "brightness", value = "亮度 -100~100，0=不变，留空=不调") brightness: String,
+        @P(name = "contrast", value = "对比度 0~200，50=默认，留空=不调") contrast: String,
+        @P(name = "saturation", value = "饱和度 0~200，100=默认，留空=不调") saturation: String,
+        @P(name = "temperature", value = "色温 2000(冷)~8000(暖)，5000=默认，留空=不调") temperature: String
+    ): String {
+        val handler = adjustImageHandler ?: return "Error: 图片调整暂不可用"
+        val b = brightness.toFloatOrNull()
+        val c = contrast.toFloatOrNull()
+        val s = saturation.toFloatOrNull()
+        val t = temperature.toFloatOrNull()
+        return kotlinx.coroutines.runBlocking {
+            handler.invoke(imageUri, b, c, s, t)
+        }
+    }
 
     @Tool(
         name = "run_gallery_script",
@@ -238,6 +267,13 @@ class ChatToolService private constructor() {
             "exclude_constraint" -> excludeConstraint(args.optString("constraint", ""))
             "start_tag_scan" -> startTagScan()
             "ai_optimize" -> aiOptimize(args.optString("image_uri", ""), args.optString("mode", "fast"))
+            "adjust_image" -> adjustImage(
+                args.optString("image_uri", ""),
+                args.optString("brightness", ""),
+                args.optString("contrast", ""),
+                args.optString("saturation", ""),
+                args.optString("temperature", "")
+            )
             "run_gallery_script" -> runGalleryScript(args.optString("code", ""))
             "change_theme" -> changeTheme(args.optString("theme", "system"))
             "change_language" -> changeLanguage(args.optString("language", "zh"))

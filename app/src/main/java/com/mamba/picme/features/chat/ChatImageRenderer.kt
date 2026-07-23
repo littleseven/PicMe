@@ -8,6 +8,7 @@ import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
+import com.mamba.picme.features.editor.AdjustmentRecipe
 import com.mamba.picme.features.editor.EditRecipe
 import com.mamba.picme.features.editor.RecipeApplier
 import kotlinx.coroutines.CoroutineDispatcher
@@ -37,6 +38,51 @@ class ChatImageRenderer(
 ) {
 
     data class Outcome(val imageUri: String?, val explanation: String)
+
+    /**
+     * 指令驱动调整：按 brightness/contrast/saturation/temperature 等显式参数渲染 → 落盘。
+     *
+     * 与 [aiOptimize]（场景检测+预设）不同——本方法直接把 LLM 传来的参数应用到 AdjustmentRecipe。
+     *
+     * @param brightness -100(暗)..100(亮)，0=不变
+     * @param contrast 0..200，50=默认（不变）
+     * @param saturation 0..200，100=默认（不变）
+     * @param temperature 2000(冷)..8000(暖)，5000=默认（不变）
+     */
+    suspend fun adjustImage(
+        imageUri: String,
+        brightness: Float? = null,
+        contrast: Float? = null,
+        saturation: Float? = null,
+        temperature: Float? = null
+    ): Outcome = withContext(dispatcher) {
+        try {
+            val recipe = EditRecipe(
+                sourceUri = imageUri,
+                adjustments = AdjustmentRecipe(
+                    brightness = brightness ?: 0f,
+                    contrast = contrast ?: 50f,
+                    saturation = saturation ?: 100f,
+                    temperature = temperature ?: 5000f
+                )
+            )
+            val rendered = renderRecipe(imageUri, recipe)
+            val desc = buildString {
+                brightness?.takeIf { it != 0f }?.let { append("亮度${if (it > 0) "+" else ""}${it.toInt()} ") }
+                contrast?.takeIf { it != 50f }?.let { append("对比度${it.toInt()} ") }
+                saturation?.takeIf { it != 100f }?.let { append("饱和度${it.toInt()} ") }
+                temperature?.takeIf { it != 5000f }?.let {
+                    append(if (it > 5000f) "暖色" else "冷色")
+                    append(" ")
+                }
+            }.trim().ifBlank { "已调整" }
+            Logger.i(TAG, "adjustImage: uri=$imageUri, rendered=$rendered, desc=$desc")
+            Outcome(rendered, desc)
+        } catch (e: Exception) {
+            Logger.e(TAG, "adjustImage failed", e)
+            Outcome(null, "调整失败：${e.message ?: "未知错误"}")
+        }
+    }
 
     /** AI 一键优化：分析场景 → 生成 recipe → 渲染 → 落盘，返回结果 uri 与说明。 */
     suspend fun aiOptimize(imageUri: String): Outcome = withContext(dispatcher) {

@@ -325,6 +325,27 @@ class ChatViewModel(
                 }
             }
         }
+        // adjust_image handler：ChatToolService → ChatImageRenderer.adjustImage → chat 内渲染
+        ChatToolService.getInstance().adjustImageHandler = { uri, brightness, contrast, saturation, temperature ->
+            val renderer = chatImageRenderer
+            if (renderer == null) {
+                "Error: 图片渲染器暂不可用"
+            } else {
+                val outcome = renderer.adjustImage(uri, brightness, contrast, saturation, temperature)
+                Logger.i(TAG, "adjustImage outcome: imageUri=${outcome.imageUri}, explanation=${outcome.explanation}")
+                if (outcome.imageUri != null) {
+                    insertAgentImageMessage(
+                        sessionId = "default",
+                        imageUri = outcome.imageUri,
+                        content = outcome.explanation,
+                        modelUsed = currentModelLabel()
+                    )
+                    outcome.explanation
+                } else {
+                    outcome.explanation
+                }
+            }
+        }
         // 从设置中心同步推理偏好到 UI 的 ModelSelector
         viewModelScope.launch {
             try {
