@@ -30,7 +30,16 @@ import java.util.concurrent.TimeUnit
  * 编译出 DefaultConstructorMarker 合成方法，导致反射"Wrong number of arguments"。所有参数必填，
  * 可选语义用空串/默认值由调用方传入（@P 描述说明）。
  */
-class ChatToolService {
+class ChatToolService private constructor() {
+
+    companion object {
+        @Volatile
+        private var instance: ChatToolService? = null
+        fun getInstance(): ChatToolService =
+            instance ?: synchronized(this) {
+                instance ?: ChatToolService().also { instance = it }
+            }
+    }
 
     private val tag = "ChatToolService"
 
