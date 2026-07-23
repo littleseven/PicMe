@@ -88,7 +88,7 @@ class ChatImageRenderer(
         val dir = java.io.File(context.filesDir, "picme_images").apply { mkdirs() }
         val file = java.io.File(dir, "edit_${UUID.randomUUID()}.jpg")
         java.io.FileOutputStream(file).use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out) }
-        file.absolutePath
+        "file://${file.absolutePath}"
     } catch (e: Exception) {
         Logger.e(TAG, "saveBitmap failed", e)
         null
