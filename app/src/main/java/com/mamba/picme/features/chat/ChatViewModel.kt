@@ -1153,7 +1153,9 @@ class ChatViewModel(
                 rt.register(syncHandler("gallery.summary") {
                     runBlocking { getGallerySummaryUseCase(includeDetails = true)?.toJsValue() ?: JsValue.Null }
                 })
-                rt.eval(code).toJson()
+                // 包成 IIFE：(function(){ <code> })() —— Rhino evaluateString 不允许顶层
+                // return（LLM 生成 code 常含顶层 return），IIFE 让 return 合法并返回其值。
+                rt.eval("(function() {\n" + code + "\n})()").toJson()
             }
         }
     }
