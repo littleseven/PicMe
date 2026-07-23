@@ -61,7 +61,7 @@ class SettingsViewModel(
             "face-landmark-2d106-mnn", // 人脸 2D106 关键点
             "face-embedding-glint360k-r100-mnn", // 人脸特征 embedding
             "mobileclip-onnx", // 语义搜索
-            "smolvlm_256m", // 图片标签生成（Pass 3）
+            "qwen3_vl_2b", // 图片标签生成（Pass 3，默认 tagger）
             "opus-mt-zh-en" // 中文查询翻译
         )
 
@@ -228,6 +228,14 @@ class SettingsViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = false
+        )
+
+    /** 相册打标模型 key（qwen3_vl_2b 默认 / smolvlm_500m 备选） */
+    val taggerModelKey: StateFlow<String> = repository.taggerModelKeyFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "qwen3_vl_2b"
         )
 
     val voiceCommandMode: StateFlow<VoiceCommandMode> = repository.voiceCommandModeFlow
@@ -961,6 +969,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             Logger.d("UX", "TAG generation OpenCL changed: $enabled")
             repository.updateTagGenerationUseOpencl(enabled)
+        }
+    }
+
+    fun setTaggerModelKey(key: String) {
+        viewModelScope.launch {
+            Logger.d("UX", "Tagger model changed: $key")
+            repository.updateTaggerModelKey(key)
         }
     }
 

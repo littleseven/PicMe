@@ -77,27 +77,6 @@
     "tags": ["chat", "vision", "tagging", "multilingual"]
   },
   {
-    "id": "smolvlm_256m",
-    "name": "SmolVLM-256M-Instruct-MNN",
-    "description": "HuggingFace SmolVLM-256M 纯图像多模态（MNN 版），当前默认打标模型，通过 prompt 工程强制末尾输出 JSON，体积减半、速度更快",
-    "type": "LLM",
-    "size": 320000000,
-    "sources": {
-      "ModelScope": "MNN/SmolVLM-256M-Instruct-MNN"
-    },
-    "files": [
-      "config.json",
-      "llm_config.json",
-      "llm.mnn",
-      "llm.mnn.weight",
-      "visual.mnn",
-      "visual.mnn.weight",
-      "tokenizer.txt",
-      "embeddings_bf16.bin"
-    ],
-    "tags": ["chat", "vision", "tagging", "multilingual"]
-  },
-  {
     "id": "qwen3_vl_2b",
     "name": "Qwen3-VL-2B-Instruct-MNN",
     "description": "阿里通义千问 Qwen3-VL-2B-Instruct 多模态版（MNN 4bit 量化），Vision-Language 能力更强，用于替代 SmolVLM 提升打标质量",
