@@ -3,6 +3,7 @@ package com.mamba.picme.data.download
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.Service
+import android.content.pm.ServiceInfo
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
@@ -27,14 +28,23 @@ class ModelDownloadForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannelIfNeeded()
+        // Android 14+ (API 34+) 要求 startForeground 必须在 onCreate 中尽早调用，
+        // 且必须传 foregroundServiceType，否则 ForegroundServiceDidNotStartInTimeException。
+        val notification = buildEmptyNotification()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            // 通知权限被拒等边界情况：不 crash，降级为普通 Service
+        }
         val app = application as PoLangApplication
         manager = app.container.llmModelDownloadManager
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // startForegroundService() 要求必须在 5 秒内调用 startForeground()，
-        // 因此无论什么 action 都先立即调用，再处理具体逻辑
-        startForeground(NOTIFICATION_ID, buildEmptyNotification())
 
         when (intent?.action) {
             ACTION_STOP -> {
