@@ -412,6 +412,16 @@ class PoLangToolService(
         return dispatchCommand(AgentCommand.GetGallerySummary(includeDetails = includeDetails))
     }
 
+    @Tool(
+        name = "run_gallery_script",
+        value = ["在端侧沙箱执行一段 JavaScript，用于相册盘点/统计分析等需要组合计算的场景（只读，数据不出端）。脚本通过 bridge.call('gallery.summary') 取相册聚合统计：返回对象含 totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation。在 JS 内做计算（如打标率=labeledCount/totalMedia、未打标占比、人物媒体比），最后 return 一个结果对象——该对象会回传给你做自然语言总结。示例：var s=bridge.call('gallery.summary'); return {total:s.totalMedia, labeledRatio: s.totalMedia>0 ? s.labeledCount/s.totalMedia : 0};"]
+    )
+    fun runGalleryScript(
+        @P(name = "code", value = "JavaScript 源码；用 bridge.call('gallery.summary') 取数据，在 JS 内计算后 return 结果对象") code: String
+    ): String {
+        return dispatchCommand(AgentCommand.ExecuteScript(code = code))
+    }
+
     @Tool(name = "click_gallery_item", value = ["点击相册网格中的第 N 个媒体项。必须先进入相册并完成搜索。index 从 1 开始，按屏幕可见项的顺序计数。"])
     fun clickGalleryItem(
         @P(name = "index", value = "从 1 开始的照片序号") index: Int

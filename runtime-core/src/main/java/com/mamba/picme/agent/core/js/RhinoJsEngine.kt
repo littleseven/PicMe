@@ -26,9 +26,14 @@ import java.util.concurrent.Executors
 class RhinoJsEngine(
     private val scope: kotlinx.coroutines.CoroutineScope,
     private val onLog: (String) -> Unit = {},
+    private val evalTimeoutMs: Long = DEFAULT_EVAL_TIMEOUT_MS,
 ) : JsEngine, Closeable {
 
-    private val executor = Executors.newSingleThreadExecutor { r ->
+    companion object {
+        const val DEFAULT_EVAL_TIMEOUT_MS = 3_000L
+    }
+
+    private var executor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "PoLang-JsEngine").apply { isDaemon = true }
     }
 
@@ -49,9 +54,29 @@ class RhinoJsEngine(
             }
         }
         return try {
-            future.get()
+            future.get(evalTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            // 死循环/超时：丢弃卡死的 JS 线程与可能不一致的 rootScope，重建 executor 使引擎可继续使用。
+            // 注：被中断的旧线程若仍占用 CPU（Rhino 解释模式未必响应中断），属异常路径下的已知代价。
+            resetEngine()
+            throw JsBridgeException(
+                JsBridgeException.SCRIPT_TIMEOUT,
+                "script timed out after ${evalTimeoutMs}ms",
+            )
         } catch (e: java.util.concurrent.ExecutionException) {
             throw e.cause ?: e
+        }
+    }
+
+    /**
+     * 超时熔断：关停卡死的 JS 线程、丢弃 rootScope、重建 executor。
+     * 熔断后 bridge 不会自动重装（需重新 installBridge）；onRunScript 用法下熔断即 close，不受影响。
+     */
+    private fun resetEngine() {
+        runCatching { executor.shutdownNow() }
+        rootScope = null
+        executor = Executors.newSingleThreadExecutor { r ->
+            Thread(r, "PoLang-JsEngine").apply { isDaemon = true }
         }
     }
 

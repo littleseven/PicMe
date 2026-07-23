@@ -2,6 +2,7 @@ package com.mamba.picme.agent.core.js
 
 import kotlinx.coroutines.test.TestScope
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -47,6 +48,26 @@ class RhinoJsEngineTest {
                 JsValue.Num(9.0),
                 engine.callFunction("add", JsValue.Num(4.0), JsValue.Num(5.0)),
             )
+        }
+    }
+
+    @Test
+    fun `eval times out on infinite loop`() {
+        RhinoJsEngine(scope = TestScope(), onLog = {}, evalTimeoutMs = 200).use { engine ->
+            val ex = runCatching { engine.eval("while(true){}") }.exceptionOrNull()
+            assertNotNull(ex)
+            val jsEx = ex as? JsBridgeException
+            assertTrue("expected JsBridgeException, got ${ex?.javaClass?.name}", jsEx != null)
+            assertEquals(JsBridgeException.SCRIPT_TIMEOUT, jsEx?.errorCode)
+        }
+    }
+
+    @Test
+    fun `engine recovers after timeout`() {
+        RhinoJsEngine(scope = TestScope(), onLog = {}, evalTimeoutMs = 200).use { engine ->
+            runCatching { engine.eval("while(true){}") }
+            // 熔断重建 executor 后，纯算术（不依赖 bridge）应正常
+            assertEquals(JsValue.Num(2.0), engine.eval("1 + 1"))
         }
     }
 }

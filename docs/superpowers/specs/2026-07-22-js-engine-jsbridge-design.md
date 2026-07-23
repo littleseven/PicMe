@@ -287,3 +287,31 @@ native: engine.callFunction("onAgentEvent", payload)
 - **抽离 `:jsbridge` 模块**：API 稳定后从 runtime-core 抽出，clean boundary。
 - **JS→Capability dispatch**：实现 `AgentCapabilityHandler`，让 JS 触发 `CapabilityRegistry.dispatch`（需构造 `AgentContext`，按场景灰度）。
 - **远程 JS（高合规门槛）**：若确需，须第一方 HTTPS 白名单 + 完整性校验 + 强沙箱 + 数据安全申报；默认不开启。
+
+---
+
+## 12. 实用 Case：相册盘点（远程 LLM 生成 JS → 端侧执行，ReAct）
+
+**目标**：把 Agent 从"选预定义命令"升级到"远程生成程序调度端侧能力"（code-interpreter 范式）。JS 可做组合计算（打标率=已打标/总数、人物媒体比等），单条 `get_gallery_summary` 做不到。
+
+**数据流**：
+```
+用户(chat): "盘点下相册"
+ → 远程 LLM(ReAct) 调 run_gallery_script(code)   [@Tool, PoLangToolService]
+ → dispatchCommand(ExecuteScript(code))          [统一 CapabilityRegistry]
+ → ChatRunScriptCapability → ChatViewModel.onRunScript(code)
+ → JsRuntime(超时熔断): register(gallery.summary) + eval(code)
+      └─ bridge.call('gallery.summary') → runBlocking{GetGallerySummaryUseCase()} → GallerySummary → JsValue
+      └─ JS 算比率/占比 → return 结构化结果
+ → 结果 JSON = observation 回传远程 LLM → 自然语言总结回复
+```
+
+**关键决策**：
+- **gallery.summary handler 用 Sync + runBlocking**（非 Async）：远程 `@Tool` 同步返回，LLM 生成同步 JS 时序确定、最可靠；读 DB ~50ms，切 IO 不死锁。
+- **eval 超时熔断**（§补，接 LLM 前置条件）：死循环 → `SCRIPT_TIMEOUT` + 重建 executor，引擎可复用。
+- **隐私边界**（用户确认 = 标准 ReAct）：图片/人脸/OCR 原始内容 100% 端侧；仅聚合 counts 以文本 observation 回传远程用于总结，不触碰 `[PRIVACY]` 红线。
+- **过审**：仍属"解释器间接访问"豁免；deny-all 沙箱 + 只读 handler 白名单；code 来自 LLM 文本、沙箱内执行、不可逃逸、不持久化下发（区别于游戏引擎式热更）。
+
+**接入点**：`AgentCommand.ExecuteScript`（model）/ `run_gallery_script` @Tool + `ToolCallCommandParser.parseExecuteScript`（远程 JSONObject 解析）/ `ChatRunScriptCapability`（CHAT 场景 Capability）/ `ChatViewModel.onRunScript`（JsRuntime 装配）。
+
+**演示脚本**：`app/src/main/assets/js/gallery_inventory_demo.js`（盘点打标率/未打标占比/人物比）。

@@ -19,10 +19,11 @@ import kotlinx.coroutines.CoroutineScope
 class JsRuntime(
     scope: CoroutineScope,
     private val onLog: (String) -> Unit = {},
+    evalTimeoutMs: Long = RhinoJsEngine.DEFAULT_EVAL_TIMEOUT_MS,
 ) : JsEngine, AutoCloseable {
 
     private val tag = "JsRuntime"
-    private val engine: RhinoJsEngine = RhinoJsEngine(scope, onLog)
+    private val engine: RhinoJsEngine = RhinoJsEngine(scope, onLog, evalTimeoutMs)
     private val bridge: JsBridge = JsBridge(scope)
 
     init {
