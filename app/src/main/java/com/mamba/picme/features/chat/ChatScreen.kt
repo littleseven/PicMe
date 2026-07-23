@@ -694,7 +694,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     // 显示图片（可点击进入全屏预览）
                     // 高度固定 200dp，宽度按原始比例自适应，不超 260dp
                     AsyncImage(
-                        model = message.content,
+                        model = message.imageUri ?: message.content,
                         contentDescription = stringResource(R.string.photo),
                         contentScale = ContentScale.FillHeight,
                         modifier = Modifier
@@ -702,9 +702,10 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                             .widthIn(max = 260.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
-                                val uri = Uri.parse(message.content)
+                                val imgSrc = message.imageUri ?: message.content
+                                val uri = Uri.parse(imgSrc)
                                 val resolvedUri = if (uri.scheme != null) uri
-                                    else java.io.File(message.content).toUri()
+                                    else java.io.File(imgSrc).toUri()
                                 onImageClick(resolvedUri)
                             }
                     )

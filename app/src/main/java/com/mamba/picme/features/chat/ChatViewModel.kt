@@ -817,6 +817,7 @@ class ChatViewModel(
                                 insertAgentMessage(sessionId, "⚠️ 图像优化暂不可用", currentModelLabel(), performance)
                             } else {
                                 val outcome = renderer.aiOptimize(targetUri)
+                                Logger.i(TAG, "AiOptimize outcome: imageUri=${outcome.imageUri}, explanation=${outcome.explanation}")
                                 if (outcome.imageUri != null) {
                                     insertAgentImageMessage(
                                         sessionId = sessionId,

@@ -43,6 +43,7 @@ class ChatImageRenderer(
         try {
             val result = optimizeUseCase.fastOptimize(imageUri)
             val rendered = renderRecipe(imageUri, result.editRecipe)
+            Logger.i(TAG, "aiOptimize: uri=$imageUri, rendered=$rendered, explanation=${result.explanation}")
             Outcome(rendered, result.explanation)
         } catch (e: Exception) {
             Logger.e(TAG, "aiOptimize failed", e)
@@ -53,13 +54,20 @@ class ChatImageRenderer(
     /** 按 [recipe] 渲染原图 → 落盘 → 返回结果文件路径；任一步失败返回 null。 */
     suspend fun renderRecipe(imageUri: String, recipe: EditRecipe): String? = withContext(dispatcher) {
         try {
-            val bitmap = decodeBitmap(imageUri) ?: return@withContext null
+            val bitmap = decodeBitmap(imageUri)
+            Logger.i(TAG, "renderRecipe: decodeBitmap=${bitmap?.width}x${bitmap?.height}")
+            if (bitmap == null) return@withContext null
             val applier = RecipeApplier(photoProcessor, dispatcher, mattingEngine)
             val cropped = applier.applyCrop(bitmap, recipe.crop)
+            Logger.i(TAG, "renderRecipe: afterCrop=${cropped.width}x${cropped.height}")
             val processed = applier.applyGpuEffects(cropped, recipe, faceData = null)
+            Logger.i(TAG, "renderRecipe: afterGpu=${processed?.width}x${processed?.height}")
+            if (processed == null) return@withContext null
             val cutout = applier.applyCutout(processed, recipe.cutout)
             val marked = applier.applyMarkup(cutout, recipe.markup)
-            saveBitmap(marked)
+            val saved = saveBitmap(marked)
+            Logger.i(TAG, "renderRecipe: saved=$saved")
+            saved
         } catch (e: Exception) {
             Logger.e(TAG, "renderRecipe failed", e)
             null
