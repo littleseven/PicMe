@@ -42,6 +42,7 @@ import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.js.syncHandler
 import com.mamba.picme.agent.core.js.toJsValue
+import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.model.context.GallerySummary
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
@@ -286,6 +287,31 @@ class ChatViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        // chat ReAct tool 双通道：collect ChatToolService.uiActions → 渲染搜索卡片/编辑跳转
+        viewModelScope.launch {
+            ChatToolService.getInstance().uiActions.collect { action ->
+                when (action) {
+                    is AgentAction.MediaResults -> {
+                        val sid = "default"
+                        val assets = lastResultAssets[sid].orEmpty()
+                            .filter { it.id in action.mediaIds }
+                            .take(MAX_CARDS)
+                        if (assets.isNotEmpty()) {
+                            insertMediaResultsMessage(
+                                sid,
+                                MediaResultsUi(
+                                    query = action.query,
+                                    assets = assets,
+                                    totalCount = action.totalCount,
+                                    isRefinement = action.isRefinement
+                                )
+                            )
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
         // 从设置中心同步推理偏好到 UI 的 ModelSelector
         viewModelScope.launch {
             try {
