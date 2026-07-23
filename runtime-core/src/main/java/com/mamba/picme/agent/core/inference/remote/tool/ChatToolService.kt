@@ -24,6 +24,10 @@ import java.util.concurrent.TimeUnit
  *
  * 每个 @Tool 是 [dispatchCommand] 的薄封装：命令统一进 [CapabilityRegistry]（scene=CHAT），
  * 复用既有 chat Capability（ChatSearchCapability/ChatGallerySummaryCapability/ChatRunScriptCapability 等）。
+ *
+ * **重要**：@Tool 参数**不能用 Kotlin 默认值**——langchain4j 用 Java 反射调用，Kotlin 默认参数会
+ * 编译出 DefaultConstructorMarker 合成方法，导致反射"Wrong number of arguments"。所有参数必填，
+ * 可选语义用空串/默认值由调用方传入（@P 描述说明）。
  */
 class ChatToolService {
 
@@ -31,10 +35,9 @@ class ChatToolService {
 
     // ── 相册 ──────────────────────────────────────────────────────
 
-    @Tool(name = "get_gallery_summary", value = ["获取本地相册摘要：照片/视频/媒体总数、含人脸数、人物聚类数、已/未打标数、语义向量数、扫描建议。include_details=true 时附剩余 Pass1/Pass3 任务数。"])
-    fun getGallerySummary(
-        @P(name = "include_details", value = "是否返回剩余任务数，默认 false") includeDetails: Boolean = false
-    ): String = dispatchCommand(AgentCommand.GetGallerySummary(includeDetails = includeDetails))
+    @Tool(name = "get_gallery_summary", value = ["获取本地相册摘要：照片/视频/媒体总数、含人脸数、人物聚类数、已/未打标数、语义向量数、扫描建议。"])
+    fun getGallerySummary(): String =
+        dispatchCommand(AgentCommand.GetGallerySummary(includeDetails = false))
 
     @Tool(name = "search_media", value = ["搜索本地相册。query 为自然语言搜索词，如'去年夏天海边的小孩'。返回匹配照片。"])
     fun searchMedia(
@@ -46,50 +49,50 @@ class ChatToolService {
         @P(name = "constraint", value = "细化条件") constraint: String
     ): String = dispatchCommand(AgentCommand.RefineMediaSearch(constraint = constraint))
 
-    @Tool(name = "view_media", value = ["查看指定媒体。media_id 为媒体 URI 或 id。"])
+    @Tool(name = "view_media", value = ["查看指定媒体。media_id 为媒体 URI 或 id，无则留空串。"])
     fun viewMedia(
-        @P(name = "media_id", value = "媒体 id/URI") mediaId: String = ""
+        @P(name = "media_id", value = "媒体 id/URI，无则空串") mediaId: String
     ): String = dispatchCommand(AgentCommand.ViewMedia(mediaId = mediaId.ifBlank { null }))
 
-    @Tool(name = "delete_media", value = ["删除媒体。media_ids 为 id 列表（逗号分隔或数组）。"])
+    @Tool(name = "delete_media", value = ["删除媒体。media_ids 为 id 列表逗号分隔，无则空串。"])
     fun deleteMedia(
-        @P(name = "media_ids", value = "媒体 id 列表，逗号分隔") mediaIds: String = ""
+        @P(name = "media_ids", value = "媒体 id 列表逗号分隔，无则空串") mediaIds: String
     ): String {
         val ids = mediaIds.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         return dispatchCommand(AgentCommand.DeleteMedia(mediaIds = ids))
     }
 
-    @Tool(name = "share_media", value = ["分享媒体。media_ids 为 id 列表（逗号分隔）。"])
+    @Tool(name = "share_media", value = ["分享媒体。media_ids 为 id 列表逗号分隔，无则空串。"])
     fun shareMedia(
-        @P(name = "media_ids", value = "媒体 id 列表，逗号分隔") mediaIds: String = ""
+        @P(name = "media_ids", value = "媒体 id 列表逗号分隔，无则空串") mediaIds: String
     ): String {
         val ids = mediaIds.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         return dispatchCommand(AgentCommand.ShareMedia(mediaIds = ids))
     }
 
-    @Tool(name = "select_media", value = ["选择/取消选择媒体。selected 默认 true。"])
+    @Tool(name = "select_media", value = ["选择/取消选择媒体。selected 为 true 选中 / false 取消。"])
     fun selectMedia(
         @P(name = "media_id", value = "媒体 id") mediaId: String,
-        @P(name = "selected", value = "true 选中 / false 取消") selected: Boolean = true
+        @P(name = "selected", value = "true 选中 / false 取消") selected: Boolean
     ): String = dispatchCommand(AgentCommand.SelectMedia(mediaId = mediaId, selected = selected))
 
-    @Tool(name = "favorite_media", value = ["收藏/取消收藏媒体。favorite 默认 true。"])
+    @Tool(name = "favorite_media", value = ["收藏/取消收藏媒体。favorite 为 true 收藏 / false 取消。"])
     fun favoriteMedia(
         @P(name = "media_id", value = "媒体 id") mediaId: String,
-        @P(name = "favorite", value = "true 收藏 / false 取消") favorite: Boolean = true
+        @P(name = "favorite", value = "true 收藏 / false 取消") favorite: Boolean
     ): String = dispatchCommand(AgentCommand.FavoriteMedia(mediaId = mediaId, favorite = favorite))
 
-    @Tool(name = "switch_view_mode", value = ["切换相册视图。mode: grid(网格)/list(列表) 等。"])
+    @Tool(name = "switch_view_mode", value = ["切换相册视图。mode: grid(网格)/list(列表)。"])
     fun switchViewMode(
-        @P(name = "mode", value = "视图模式") mode: String = "grid"
+        @P(name = "mode", value = "视图模式：grid/list") mode: String
     ): String = dispatchCommand(AgentCommand.SwitchViewMode(mode = mode))
 
     // ── 反馈 ──────────────────────────────────────────────────────
 
     @Tool(name = "record_feedback", value = ["记录用户对搜索结果的反馈。action: like/dislike。target: last(上次结果)/ordinal:N(第N张)/desc:描述/mediaId:id。"])
     fun recordFeedback(
-        @P(name = "target", value = "反馈目标：last / ordinal:N / desc:文本 / mediaId:id") target: String = "last",
-        @P(name = "action", value = "like 或 dislike") action: String = "like"
+        @P(name = "target", value = "反馈目标：last / ordinal:N / desc:文本 / mediaId:id") target: String,
+        @P(name = "action", value = "like 或 dislike") action: String
     ): String = dispatchCommand(
         AgentCommand.RecordMediaFeedback(
             target = parseFeedbackTarget(target),
@@ -99,7 +102,7 @@ class ChatToolService {
 
     @Tool(name = "more_like_this", value = ["基于指定图片推荐更多相似照片。target 同 record_feedback。"])
     fun moreLikeThis(
-        @P(name = "target", value = "目标：last / ordinal:N / desc:文本 / mediaId:id") target: String = "last"
+        @P(name = "target", value = "目标：last / ordinal:N / desc:文本 / mediaId:id") target: String
     ): String = dispatchCommand(AgentCommand.MoreLikeThis(target = parseFeedbackTarget(target)))
 
     @Tool(name = "exclude_constraint", value = ["在后续搜索中排除某类约束，如'不要夜景'。constraint 为排除条件。"])
@@ -109,23 +112,14 @@ class ChatToolService {
 
     // ── 打标 / 修图 ───────────────────────────────────────────────
 
-    @Tool(name = "start_tag_scan", value = ["启动/查询 TAG 扫描（为人脸/标签/语义建立索引）。action: query(查询状态)/start(启动)。task_type/mode 可选。"])
-    fun startTagScan(
-        @P(name = "action", value = "query 或 start，默认 query") action: String = "query",
-        @P(name = "task_type", value = "可选任务类型") taskType: String = "",
-        @P(name = "mode", value = "可选模式") mode: String = ""
-    ): String = dispatchCommand(
-        AgentCommand.StartTagScan(
-            action = action,
-            taskType = taskType.ifBlank { null },
-            mode = mode.ifBlank { null }
-        )
-    )
+    @Tool(name = "start_tag_scan", value = ["查询 TAG 扫描状态（人脸/标签/语义索引进度）。无需参数。"])
+    fun startTagScan(): String =
+        dispatchCommand(AgentCommand.StartTagScan(action = "query", taskType = null, mode = null))
 
-    @Tool(name = "ai_optimize", value = ["AI 一键优化图片。image_uri 为图片 URI。mode: fast(本地快速,默认)/smart(智能)。"])
+    @Tool(name = "ai_optimize", value = ["AI 一键优化图片。image_uri 为图片 URI。mode: fast(本地快速)/smart(智能)。"])
     fun aiOptimize(
         @P(name = "image_uri", value = "图片 URI") imageUri: String,
-        @P(name = "mode", value = "fast 或 smart，默认 fast") mode: String = "fast"
+        @P(name = "mode", value = "fast 或 smart") mode: String
     ): String = dispatchCommand(AgentCommand.AiOptimize(imageUri = imageUri, mode = mode))
 
     @Tool(
@@ -140,18 +134,18 @@ class ChatToolService {
 
     @Tool(name = "change_theme", value = ["切换主题。theme: system/light/dark。"])
     fun changeTheme(
-        @P(name = "theme", value = "system/light/dark") theme: String = "system"
+        @P(name = "theme", value = "system/light/dark") theme: String
     ): String = dispatchCommand(AgentCommand.ChangeTheme(theme = theme))
 
     @Tool(name = "change_language", value = ["切换语言。language: zh/en。"])
     fun changeLanguage(
-        @P(name = "language", value = "zh 或 en") language: String = "zh"
+        @P(name = "language", value = "zh 或 en") language: String
     ): String = dispatchCommand(AgentCommand.ChangeLanguage(language = language))
 
     @Tool(name = "toggle_setting", value = ["切换开关型设置。key 为设置键，enabled 为开/关。"])
     fun toggleSetting(
         @P(name = "key", value = "设置键") key: String,
-        @P(name = "enabled", value = "true/false") enabled: Boolean = true
+        @P(name = "enabled", value = "true/false") enabled: Boolean
     ): String = dispatchCommand(AgentCommand.ToggleSetting(settingKey = key, enabled = enabled))
 
     @Tool(name = "download_model", value = ["下载模型。model_id 为模型标识。"])
@@ -161,7 +155,7 @@ class ChatToolService {
 
     @Tool(name = "switch_face_engine", value = ["切换人脸检测引擎。engine: mediapipe/mnn/ncnn/mlkit。"])
     fun switchFaceEngine(
-        @P(name = "engine", value = "引擎名") engine: String = "mlkit"
+        @P(name = "engine", value = "引擎名") engine: String
     ): String = dispatchCommand(AgentCommand.SwitchFaceEngine(engine = engine))
 
     // ── 导航 / 系统 ───────────────────────────────────────────────
@@ -174,10 +168,10 @@ class ChatToolService {
     @Tool(name = "go_back", value = ["返回上一页。"])
     fun goBack(): String = dispatchCommand(AgentCommand.GoBack())
 
-    @Tool(name = "launch_app", value = ["打开外部应用。package_name 或 app_name 至少给一个。"])
+    @Tool(name = "launch_app", value = ["打开外部应用。package_name 或 app_name 至少给一个，另一个空串。"])
     fun launchApp(
-        @P(name = "package_name", value = "包名，可选") packageName: String = "",
-        @P(name = "app_name", value = "应用名，可选") appName: String = ""
+        @P(name = "package_name", value = "包名，无则空串") packageName: String,
+        @P(name = "app_name", value = "应用名，无则空串") appName: String
     ): String = dispatchCommand(
         AgentCommand.LaunchApp(
             packageName = packageName.ifBlank { null },
@@ -188,14 +182,14 @@ class ChatToolService {
 
     @Tool(name = "open_system_settings", value = ["打开系统设置页。setting: wifi/bluetooth/location 等。"])
     fun openSystemSettings(
-        @P(name = "setting", value = "设置项") setting: String = ""
+        @P(name = "setting", value = "设置项") setting: String
     ): String = dispatchCommand(AgentCommand.OpenSystemSettings(setting = setting))
 
     // ── 通用 ──────────────────────────────────────────────────────
 
     @Tool(name = "delay", value = ["等待指定毫秒。delay_ms 1~300000。"])
     fun delay(
-        @P(name = "delay_ms", value = "延迟毫秒") delayMs: Long = 1000L
+        @P(name = "delay_ms", value = "延迟毫秒") delayMs: Long
     ): String = dispatchCommand(
         AgentCommand.Delay(delayMs = delayMs.coerceIn(1, 300000))
     )
@@ -204,6 +198,48 @@ class ChatToolService {
     fun finish(
         @P(name = "summary", value = "给用户的完成摘要") summary: String
     ): String = summary
+
+    /**
+     * langchain4j AiServices 约定的统一工具入口（解析 argsJson + 分发到 @Tool 方法）。
+     * AiServices.tryInvokeTool 优先调 callTool(toolName, argsJson)；无此方法才 fallback
+     * 到 tryInvokeByMethodName（不支持带参 → got 0）。故必须实现 callTool。
+     */
+    fun callTool(toolName: String, argsJson: String): String {
+        val args = try {
+            org.json.JSONObject(argsJson)
+        } catch (_: Exception) {
+            org.json.JSONObject()
+        }
+        return when (toolName) {
+            "get_gallery_summary" -> getGallerySummary()
+            "search_media" -> searchMedia(args.optString("query", ""))
+            "refine_media_search" -> refineMediaSearch(args.optString("constraint", ""))
+            "view_media" -> viewMedia(args.optString("media_id", ""))
+            "delete_media" -> deleteMedia(args.optString("media_ids", ""))
+            "share_media" -> shareMedia(args.optString("media_ids", ""))
+            "select_media" -> selectMedia(args.optString("media_id", ""), args.optBoolean("selected", true))
+            "favorite_media" -> favoriteMedia(args.optString("media_id", ""), args.optBoolean("favorite", true))
+            "switch_view_mode" -> switchViewMode(args.optString("mode", "grid"))
+            "record_feedback" -> recordFeedback(args.optString("target", "last"), args.optString("action", "like"))
+            "more_like_this" -> moreLikeThis(args.optString("target", "last"))
+            "exclude_constraint" -> excludeConstraint(args.optString("constraint", ""))
+            "start_tag_scan" -> startTagScan()
+            "ai_optimize" -> aiOptimize(args.optString("image_uri", ""), args.optString("mode", "fast"))
+            "run_gallery_script" -> runGalleryScript(args.optString("code", ""))
+            "change_theme" -> changeTheme(args.optString("theme", "system"))
+            "change_language" -> changeLanguage(args.optString("language", "zh"))
+            "toggle_setting" -> toggleSetting(args.optString("key", ""), args.optBoolean("enabled", true))
+            "download_model" -> downloadModel(args.optString("model_id", ""))
+            "switch_face_engine" -> switchFaceEngine(args.optString("engine", "mlkit"))
+            "navigate_to" -> navigateTo(args.optString("destination", ""))
+            "go_back" -> goBack()
+            "launch_app" -> launchApp(args.optString("package_name", ""), args.optString("app_name", ""))
+            "open_system_settings" -> openSystemSettings(args.optString("setting", ""))
+            "delay" -> delay(args.optLong("delay_ms", 1000))
+            "finish" -> finish(args.optString("summary", "任务完成"))
+            else -> "Error: Unknown tool: $toolName"
+        }
+    }
 
     // ── 内部：命令分发（复用 PoLangToolService.dispatchCommand 范式，scene=CHAT）────
 
