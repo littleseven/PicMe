@@ -12,6 +12,7 @@ import com.mamba.tool.P
 import com.mamba.tool.Tool
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.future.future
 import java.util.concurrent.TimeUnit
 
@@ -32,6 +33,9 @@ import java.util.concurrent.TimeUnit
 class ChatToolService {
 
     private val tag = "ChatToolService"
+
+    /** UI 事件流：dispatchCommand 执行后的原始 AgentAction 发到此 flow，ChatViewModel collect 渲染卡片/跳转。 */
+    val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
 
     // ── 相册 ──────────────────────────────────────────────────────
 
@@ -253,7 +257,12 @@ class ChatToolService {
             val result = deferred.get(5, TimeUnit.SECONDS)
             result.fold(
                 onSuccess = { action ->
+                    // UI 通道：把原始 AgentAction 发给 ChatViewModel 渲染（卡片/跳转等）
+                    uiActions.tryEmit(action)
+                    // LLM observation：基于真实执行结果生成（而非 "OK"）
                     when (action) {
+                        is AgentAction.MediaResults ->
+                            "找到 ${action.totalCount} 张「${action.query}」的照片，已展示在卡片中"
                         is AgentAction.TextReply -> action.message
                         is AgentAction.Success -> "OK"
                         is AgentAction.Error -> "Error: ${action.message}"
