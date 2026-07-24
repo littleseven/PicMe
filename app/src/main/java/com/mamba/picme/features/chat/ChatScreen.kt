@@ -56,6 +56,7 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.ChatBubble
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
@@ -776,6 +777,13 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                         value = "${String.format(Locale.ROOT, "%.1f", perf.decodeSpeed)}",
                         tint = metricTint
                     )
+                    if (perf.usedSandbox) {
+                        PerformanceMetric(
+                            icon = Icons.Rounded.Code,
+                            value = "沙箱",
+                            tint = metricTint
+                        )
+                    }
                 }
             }
         }
@@ -1479,7 +1487,8 @@ data class LlmPerformance(
     val prefillTimeMs: Long,
     val decodeTimeMs: Long,
     val prefillSpeed: Float,
-    val decodeSpeed: Float
+    val decodeSpeed: Float,
+    val usedSandbox: Boolean = false
 )
 
 /**

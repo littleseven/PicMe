@@ -125,6 +125,10 @@ class ChatViewModel(
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
 
+    /** 本条回复是否走了 JS 动态沙箱（onRunScript 被调过）；每次 sendMessage 重置。 */
+    @Volatile
+    private var replyUsedSandbox = false
+
     /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
     private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
 
@@ -517,6 +521,7 @@ class ChatViewModel(
 
         viewModelScope.launch {
             val sessionId = _currentSessionId.value
+            replyUsedSandbox = false
             try {
                 // 0. 确保会话元数据存在
                 ensureSessionExists(sessionId)
@@ -618,7 +623,8 @@ class ChatViewModel(
                                 decodeTimeMs = metrics.latencyMs,
                                 prefillSpeed = 0f,
                                 decodeSpeed = if (metrics.latencyMs > 0 && (metrics.completionTokens ?: 0) > 0)
-                                    (metrics.completionTokens!!.toFloat() / metrics.latencyMs * 1000) else 0f
+                                    (metrics.completionTokens!!.toFloat() / metrics.latencyMs * 1000) else 0f,
+                                usedSandbox = replyUsedSandbox
                             )
                         }
 
@@ -1214,6 +1220,7 @@ class ChatViewModel(
     // ── ChatRunScriptCapability.Delegate：执行 JS 脚本（端侧沙箱）─────────────
 
     override suspend fun onRunScript(code: String): String {
+        replyUsedSandbox = true
         return withContext(Dispatchers.Default) {
             JsRuntime(
                 scope = viewModelScope,
@@ -1393,6 +1400,7 @@ class ChatViewModel(
                 put("decode_time_ms", it.decodeTimeMs)
                 put("prefill_speed", it.prefillSpeed.toDouble())
                 put("decode_speed", it.decodeSpeed.toDouble())
+                put("used_sandbox", it.usedSandbox)
             }.toString()
         }
         chatMessageDao.insertMessage(
@@ -1427,6 +1435,7 @@ class ChatViewModel(
                 put("decode_time_ms", p.decodeTimeMs)
                 put("prefill_speed", p.prefillSpeed.toDouble())
                 put("decode_speed", p.decodeSpeed.toDouble())
+                put("used_sandbox", p.usedSandbox)
             }
         }.toString()
         chatMessageDao.insertMessage(
@@ -1820,7 +1829,8 @@ class ChatViewModel(
                 prefillTimeMs = json.optLong("prefill_time_ms", 0),
                 decodeTimeMs = json.optLong("decode_time_ms", 0),
                 prefillSpeed = json.optDouble("prefill_speed", 0.0).toFloat(),
-                decodeSpeed = json.optDouble("decode_speed", 0.0).toFloat()
+                decodeSpeed = json.optDouble("decode_speed", 0.0).toFloat(),
+                usedSandbox = json.optBoolean("used_sandbox", false)
             )
         } catch (e: Exception) {
             Logger.w(TAG, "Failed to parse performance metadata", e)
