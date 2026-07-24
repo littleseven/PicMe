@@ -146,6 +146,10 @@ interface UserSettingsRepository {
     val chatInputModeFlow: Flow<String>
     suspend fun updateChatInputMode(mode: String)
 
+    // ── Chat 当前会话记忆 ────────────────────────────────────
+    val chatCurrentSessionIdFlow: Flow<String>
+    suspend fun updateChatCurrentSessionId(sessionId: String)
+
     // ── 飞书远程控制 ──────────────────────────────────────────
     val feishuAppIdFlow: Flow<String>
     val feishuAppSecretFlow: Flow<String>

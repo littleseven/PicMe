@@ -147,6 +147,9 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         // Chat 输入模式记忆（文字/语音）
         val CHAT_INPUT_MODE = stringPreferencesKey("chat_input_mode")
 
+        // Chat 当前会话 ID 记忆（恢复上次打开的对话）
+        val CHAT_CURRENT_SESSION_ID = stringPreferencesKey("chat_current_session_id")
+
         // 飞书远程控制
         val FEISHU_APP_ID = stringPreferencesKey("feishu_app_id")
         val FEISHU_APP_SECRET = stringPreferencesKey("feishu_app_secret")
@@ -1000,6 +1003,25 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateChatInputMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.CHAT_INPUT_MODE] = mode
+        }
+    }
+
+    // ── Chat 当前会话记忆 ────────────────────────────────────
+    override val chatCurrentSessionIdFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.CHAT_CURRENT_SESSION_ID] ?: "default"
+        }
+
+    override suspend fun updateChatCurrentSessionId(sessionId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CHAT_CURRENT_SESSION_ID] = sessionId
         }
     }
 
