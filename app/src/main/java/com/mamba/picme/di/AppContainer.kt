@@ -51,6 +51,7 @@ import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
+import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
@@ -437,6 +438,10 @@ class AppContainerImpl(
         GetGallerySummaryUseCase(context = context, db = database)
     }
 
+    private val queryGalleryMediaUseCase: QueryGalleryMediaUseCase by lazy {
+        QueryGalleryMediaUseCase(db = database)
+    }
+
     private val startTagScanUseCase: StartTagScanUseCase by lazy {
         StartTagScanUseCase(context = context)
     }
@@ -500,6 +505,7 @@ class AppContainerImpl(
             mediaFeedbackRepository = mediaFeedbackRepository,
             picMeAuthClient = PoLangAuthClient(),
             getGallerySummaryUseCase = getGallerySummaryUseCase,
+            queryGalleryMediaUseCase = queryGalleryMediaUseCase,
             startTagScanUseCase = startTagScanUseCase,
             chatImageRenderer = chatImageRenderer
         )
