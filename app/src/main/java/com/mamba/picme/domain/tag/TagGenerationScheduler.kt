@@ -65,6 +65,7 @@ class TagGenerationScheduler(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val guard: suspend () -> GuardResult = { GuardResult.ALLOW },
     private val getThrottleMs: () -> Long = { 1000L },
+    private val getPass3CooldownMs: () -> Long = { 800L },
     private val userSettingsRepository: UserSettingsRepository = UserPreferencesRepository(context)
 ) {
 
@@ -1014,6 +1015,12 @@ class TagGenerationScheduler(
      * 相比 ML Kit，标签语义更准确，能区分"纸"、"墙"等无意义背景与真实主体。
      */
     suspend fun executeQwenTagging(mediaId: Long) {
+        // 接回守卫：热 SEVERE / 电量危机时 ABORT，抛异常 → 任务 FAILED → handleTaskFailure 退避重试（自带散热窗口）。
+        // 热 MODERATE / 电量低时 guardCheck 内部已 delay(getThrottleMs())，不抛异常。
+        if (!guardCheck()) {
+            throw IllegalStateException("[Pass 3] Guard ABORT (thermal/battery) mediaId=$mediaId")
+        }
+
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return
 
@@ -1050,6 +1057,10 @@ class TagGenerationScheduler(
 
         Log.d(TAG, "[Benchmark] Pass 3 (Qwen) done: mediaId=$mediaId, " +
             "durationMs=${System.currentTimeMillis() - startMs}, tags=${qwenResult.tags}")
+
+        // Pass3 连续执行发热严重：每张推理后自适应散热（热状态越高间歇越长）。
+        // SEVERE 及以上已由上面的 guardCheck ABORT 兜底，不会走到这里。
+        delay(getPass3CooldownMs())
     }
 
     /**

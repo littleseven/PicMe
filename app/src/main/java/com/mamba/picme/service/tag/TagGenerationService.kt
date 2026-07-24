@@ -73,6 +73,15 @@ class TagGenerationService : Service() {
         /** 电池电量阈值：低于此值终止扫描 */
         private const val BATTERY_CRITICAL_THRESHOLD = 5
 
+        /** Pass3 流控：每张推理后的散热间歇（毫秒），随热状态递增（平衡档）。
+         *  SEVERE 及以上由 [checkGuard] ABORT 兜底，不在此表。 */
+        val PASS3_COOLDOWN_BY_THERMAL: Map<Int, Long> = mapOf(
+            PowerManager.THERMAL_STATUS_NONE to 800L,
+            PowerManager.THERMAL_STATUS_LIGHT to 1_500L,
+            PowerManager.THERMAL_STATUS_MODERATE to 3_000L
+        )
+        const val PASS3_COOLDOWN_DEFAULT_MS = 800L
+
         // ── Intent Action 常量 ──────────────────────────────
         const val ACTION_SCAN_ALL = "com.mamba.picme.tag.SCAN_ALL"
         const val ACTION_SCAN_INCREMENTAL = "com.mamba.picme.tag.SCAN_INCREMENTAL"
@@ -269,7 +278,8 @@ class TagGenerationService : Service() {
             context = this,
             dispatcher = taskDispatcher,
             guard = { checkGuard() },
-            getThrottleMs = { getAdaptiveThrottleMs() }
+            getThrottleMs = { getAdaptiveThrottleMs() },
+            getPass3CooldownMs = { getPass3CooldownMs() }
         )
         scheduler = sched
 
@@ -454,6 +464,18 @@ class TagGenerationService : Service() {
             }
         }
         return 50L
+    }
+
+    /**
+     * Pass3 每张推理后的散热间歇：随热状态递增。
+     * 凉机轻间歇（控温为主），发热明显拉长；SEVERE 及以上由 [checkGuard] ABORT。
+     */
+    private fun getPass3CooldownMs(): Long {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val pm = getSystemService(PowerManager::class.java)
+            return PASS3_COOLDOWN_BY_THERMAL[pm.currentThermalStatus] ?: PASS3_COOLDOWN_DEFAULT_MS
+        }
+        return PASS3_COOLDOWN_DEFAULT_MS
     }
 
     private fun checkGuard(): TagGenerationScheduler.GuardResult {
