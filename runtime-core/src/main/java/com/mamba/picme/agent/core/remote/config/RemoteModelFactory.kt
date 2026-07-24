@@ -65,9 +65,14 @@ object RemoteModelFactory {
             .baseUrl(config.baseUrl)
             .model(config.modelId)
             .temperature(clampTemperature(config.modelId))
-            .maxTokens(2048)
+            .maxTokens(4096)
             .timeout(Duration.ofSeconds(60))
             .maxRetries(2)
+        // DeepSeek reasoning 模型默认产生 reasoning_content（消耗 max_tokens 预算），
+        // 导致 content 为空、tool_calls 缺失。通过 thinking.type=disabled 禁用推理模式，
+        // 确保模型直接输出 content 或 tool_calls。
+        // 非 DeepSeek 模型忽略此参数（customParameters 平铺到请求体顶层）。
+        builder.customParameters(mapOf("thinking" to mapOf("type" to "disabled")))
         // 注入调用记录 listener（仅当 app 侧提供了 recorder，且仅在 DEBUG 构建中注入）。
         // 与调用方后续追加的 listener 累加共存（Builder.listeners(varargs) 为累加语义）。
         val rec = recorder

@@ -404,7 +404,20 @@ public class AiServices<T> {
 
                 // 添加 AI 消息到 memory
                 if (chatMemory != null) {
-                    chatMemory.add(aiMessage);
+                    // DeepSeek 等模型可能返回 content="" 且无 tool_calls（仅有 reasoning_content），
+                    // 此时 AiMessage.text()=null。直接加入 memory 会导致后续请求被 API 拒绝
+                    // （"Invalid assistant message: content or tool_calls must be set"）。
+                    // 用占位文本替换，保证消息序列合法。
+                    AiMessage safeMessage = aiMessage;
+                    if (!aiMessage.hasToolExecutionRequests()) {
+                        String msgText = aiMessage.text();
+                        if (msgText == null || msgText.isEmpty()) {
+                            safeMessage = AiMessage.from("(模型未返回有效内容)");
+                            log.warn("AiServices: LLM returned empty content (reasoning only), "
+                                    + "substituted with placeholder for memory safety");
+                        }
+                    }
+                    chatMemory.add(safeMessage);
                 }
 
                 List<ToolExecutionRequest> toolRequests = aiMessage.toolExecutionRequests();
@@ -412,8 +425,22 @@ public class AiServices<T> {
                 // 没有工具调用，直接返回结果
                 if (toolRequests == null || toolRequests.isEmpty()) {
                     String text = aiMessage.text();
-                    log.debug("AiServices: no tool calls, returning text");
-                    return text != null ? text : "任务完成";
+                    if (text != null && !text.isEmpty()) {
+                        log.debug("AiServices: no tool calls, returning text");
+                        return text;
+                    }
+                    // LLM 返回空 content（仅有 reasoning_content 或完全为空）。
+                    // 不应视为任务完成——模型可能只是 token 耗尽未生成实际输出。
+                    // 重试本轮（不追加消息），给模型第二次机会生成 content 或 tool_calls。
+                    if (iteration < maxIterations) {
+                        log.warn("AiServices: empty content with no tool_calls at iteration {}, "
+                                + "retrying (reasoning-only response)", iteration);
+                        // 刷新消息列表（memory 中已加入占位 assistant 消息），给模型第二次机会
+                        messages = buildMessagesFromMemory();
+                        continue;
+                    }
+                    log.warn("AiServices: reached max iterations with empty responses");
+                    return "任务完成";
                 }
 
                 // 处理工具调用
