@@ -92,6 +92,21 @@ class TagScanOrchestrator(
         }
 
         /**
+         * 计算自动扫描的阶段切换策略。
+         *
+         * - [ScanQueuePolicy.deferredPasses] 非空：返回第二阶段 policy（passes=deferredPasses，
+         *   deferredPasses 清空）。第二阶段再调用必返回 null，保证只会切换一次（防死循环）。
+         * - [ScanQueuePolicy.deferredPasses] 为空：返回 null，表示无后续阶段。
+         */
+        fun nextPhasePolicy(policy: ScanQueuePolicy): ScanQueuePolicy? {
+            if (policy.deferredPasses.isEmpty()) return null
+            return policy.copy(
+                passes = policy.deferredPasses,
+                deferredPasses = emptyList()
+            )
+        }
+
+        /**
          * Pass 阶段 → 数字编号（与 media_assets.lastTagScanPasses 约定一致）
          */
         fun TagScanPass.toPassNumber(): String = when (this) {
