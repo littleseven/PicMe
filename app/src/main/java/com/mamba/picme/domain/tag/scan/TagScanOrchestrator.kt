@@ -223,16 +223,13 @@ class TagScanOrchestrator(
             .take(policy.maxBatchSize)
             .map { it.id }
 
-        // 仅对最终入选的媒体加载完整实体，保持与投影查询一致的顺序。
-        val media = if (filteredIds.isEmpty()) {
-            emptyList()
-        } else {
-            db.mediaDao().getMediaByIds(filteredIds).sortedBy { media ->
-                filteredIds.indexOf(media.id)
+        if (filteredIds.isEmpty()) {
+            // 第一阶段全量完成：若有延迟阶段，切换到第二阶段（递归一层，第二阶段 deferredPasses 已空 → 不会死循环）
+            val nextPolicy = nextPhasePolicy(policy)
+            if (nextPolicy != null) {
+                logInfo(sessionId, "延迟阶段切换: ${policy.passes} 全量完成 → 进入 ${nextPolicy.passes}")
+                return scheduleAutoScan(nextPolicy)
             }
-        }
-
-        if (media.isEmpty()) {
             logInfo(sessionId, "没有需要增量扫描的媒体")
             _progress.value = TagScanSessionProgress(
                 sessionId = sessionId,
@@ -242,7 +239,8 @@ class TagScanOrchestrator(
             return sessionId
         }
 
-        createTasks(sessionId, media.map { it.id }, TagCategory.ALL, policy.passes, policy)
+        // createTasks 只需 mediaId；不再加载完整 MediaEntity（含 faceRoiResult/semanticEmbedding 大字段），降低 Heap 峰值。
+        createTasks(sessionId, filteredIds, TagCategory.ALL, policy.passes, policy)
         sessionPolicies[sessionId] = policy
         startSession(sessionId)
         return sessionId
