@@ -27,7 +27,7 @@ class TagJsonParserTest {
             {"face":{"count":2,"selfie":false,"groupPhoto":true,"personIds":[10,20]},
              "scene":"海滩","activity":"游泳",
              "objects":["人","伞"],"tags":["夏天","度假"],
-             "qwenSummary":"海边游泳的人"}
+             "summary":"海边游泳的人"}
         """.trimIndent()
 
         val parsed = TagJsonParser.parse(json)

@@ -153,7 +153,7 @@ class TagGenerationPipeline(
             activity = stage3Result.activity,
             objects = stage3Result.objects,
             tags = stage3Result.tags,
-            qwenSummary = stage3Result.summary
+            summary = stage3Result.summary
         )
 
         val resultJson = toJsonString(unified)
@@ -745,7 +745,7 @@ class TagGenerationPipeline(
         obj.put("activity", result.activity)
         obj.put("objects", JSONArray(result.objects))
         obj.put("tags", JSONArray(result.tags))
-        obj.put("qwenSummary", result.qwenSummary)
+        obj.put("summary", result.summary)
         return obj.toString()
     }
 

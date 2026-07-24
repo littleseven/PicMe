@@ -14,7 +14,7 @@ package com.mamba.picme.domain.search
 object SearchSynonyms {
 
     private val map: Map<String, List<String>> = mapOf(
-        // 性别（标签用单字「女/男」，qwenSummary 里是「一位女士」等）
+        // 性别（标签用单字「女/男」，summary 里是「一位女士」等）
         "女性" to listOf("女"), "女人" to listOf("女"), "女孩" to listOf("女"), "少女" to listOf("女"), "女生" to listOf("女"),
         "男性" to listOf("男"), "男人" to listOf("男"), "男孩" to listOf("男"), "少年" to listOf("男"), "男生" to listOf("男"),
         // 动物 / 宠物：仅扩英文（匹配 Qwen/SmolVLM 生成的英文标签）。

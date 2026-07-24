@@ -126,7 +126,7 @@ class GetGroupedMediaUseCase {
     /**
      * 从 labels JSON 中提取所有用于分组的文本标签。
      *
-     * labels 格式：{"scene":"...","activity":"...","objects":["..."],"tags":["..."],"qwenSummary":"..."}
+     * labels 格式：{"scene":"...","activity":"...","objects":["..."],"tags":["..."],"summary":"..."}
      */
     private fun extractLabels(labelsJson: String): GroupingLabels {
         return try {

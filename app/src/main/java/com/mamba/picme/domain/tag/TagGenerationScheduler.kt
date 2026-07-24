@@ -819,7 +819,7 @@ class TagGenerationScheduler(
         obj.put("activity", result.activity)
         obj.put("objects", JSONArray(result.objects))
         obj.put("tags", JSONArray(result.tags))
-        obj.put("qwenSummary", result.qwenSummary)
+        obj.put("summary", result.summary)
         return obj.toString()
     }
 
@@ -1039,7 +1039,7 @@ class TagGenerationScheduler(
             activity = qwenResult.activity,
             objects = qwenResult.objects,
             tags = qwenResult.tags,
-            qwenSummary = qwenResult.summary
+            summary = qwenResult.summary
         )
         dao.updateLabels(entity.id, unifiedTagToJson(unified))
 

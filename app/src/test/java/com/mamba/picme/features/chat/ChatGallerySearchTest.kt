@@ -174,7 +174,7 @@ class ChatGallerySearchTest {
 
     @Test
     fun `cleanConstraint normalizes gender terms to single char for label match`() {
-        // 标签体系用单字「女/男」（qwenSummary「一位女士」等），归一后 filterInSet 才能命中
+        // 标签体系用单字「女/男」（summary「一位女士」等），归一后 filterInSet 才能命中
         assertEquals("女", ChatGallerySearch.cleanConstraint("女性"))
         assertEquals("女", ChatGallerySearch.cleanConstraint("只保留女性"))
         assertEquals("女", ChatGallerySearch.cleanConstraint("只要女人的照片"))

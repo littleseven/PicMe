@@ -72,7 +72,7 @@ class GenerateSummaryOnDemandUseCase(private val context: Context) {
     private fun parseSummary(labelsJson: String?): String {
         if (labelsJson.isNullOrBlank()) return ""
         return try {
-            JSONObject(labelsJson).optString("qwenSummary", "")
+            JSONObject(labelsJson).optString("summary", "")
         } catch (e: Exception) {
             ""
         }
@@ -80,7 +80,7 @@ class GenerateSummaryOnDemandUseCase(private val context: Context) {
 
     private fun mergeSummaryIntoLabels(labelsJson: String?, summary: String): String {
         val obj = if (labelsJson.isNullOrBlank()) JSONObject() else JSONObject(labelsJson)
-        obj.put("qwenSummary", summary)
+        obj.put("summary", summary)
         return obj.toString()
     }
 

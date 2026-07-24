@@ -45,7 +45,7 @@ class GetGroupedMediaUseCaseTest {
     ): String {
         val objectsStr = objects.joinToString(",") { "\"$it\"" }
         val tagsStr = tags.joinToString(",") { "\"$it\"" }
-        return """{"scene":"$scene","activity":"$activity","objects":[$objectsStr],"tags":[$tagsStr],"qwenSummary":""}"""
+        return """{"scene":"$scene","activity":"$activity","objects":[$objectsStr],"tags":[$tagsStr],"summary":""}"""
     }
 
     // ==================== NONE 模式测试 ====================

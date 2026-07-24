@@ -74,7 +74,7 @@ object ChatGallerySearch {
                 break
             }
         }
-        // 性别归一：标签体系用单字「女/男」（labels/qwenSummary 里是「一位女士」「女」等），
+        // 性别归一：标签体系用单字「女/男」（labels/summary 里是「一位女士」「女」等），
         // 把「女性/女人/女孩」等归一到单字，使 filterInSet 标签子串命中（否则「女性」≠「女」漏报）。
         val genderMap = mapOf(
             "女性" to "女", "女人" to "女", "女孩" to "女", "少女" to "女", "女生" to "女",

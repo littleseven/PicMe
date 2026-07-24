@@ -139,7 +139,7 @@ data class UnifiedTagResult(
     val activity: String = "",
     val objects: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
-    val qwenSummary: String = ""
+    val summary: String = ""
 )
 
 data class FaceTagInfo(

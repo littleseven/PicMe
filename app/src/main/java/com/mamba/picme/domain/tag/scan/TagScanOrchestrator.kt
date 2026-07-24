@@ -968,11 +968,11 @@ class TagScanOrchestrator(
         return categories.all { category ->
             when (category) {
                 TagCategory.FACE -> hasFaceCategory(entity.labels)
-                TagCategory.SCENE -> hasQwenField(entity.labels, "scene")
-                TagCategory.ACTIVITY -> hasQwenField(entity.labels, "activity")
+                TagCategory.SCENE -> hasLabelField(entity.labels, "scene")
+                TagCategory.ACTIVITY -> hasLabelField(entity.labels, "activity")
                 TagCategory.OBJECTS -> hasQwenArrayField(entity.labels, "objects")
                 TagCategory.TAGS -> hasQwenArrayField(entity.labels, "tags")
-                TagCategory.SUMMARY -> hasQwenField(entity.labels, "qwenSummary")
+                TagCategory.SUMMARY -> hasLabelField(entity.labels, "summary")
             }
         }
     }
@@ -986,7 +986,7 @@ class TagScanOrchestrator(
         }
     }
 
-    private fun hasQwenField(labelsJson: String?, field: String): Boolean {
+    private fun hasLabelField(labelsJson: String?, field: String): Boolean {
         if (labelsJson.isNullOrEmpty()) return false
         return try {
             JSONObject(labelsJson).optString(field).isNotEmpty()

@@ -7,7 +7,7 @@ import org.json.JSONObject
  * 将 [com.mamba.picme.data.model.MediaEntity.labels] 中的 JSON 字符串解析为 [ParsedTags]。
  *
  * 字段名对齐 TagGenerationScheduler.unifiedTagToJson 的输出：
- * face / scene / activity / objects / tags / qwenSummary。
+ * face / scene / activity / objects / tags / summary。
  *
  * 容错：null / 空 / 非 JSON / 缺字段均不抛异常，返回 null（表示未打标或解析失败）。
  */
@@ -29,7 +29,7 @@ object TagJsonParser {
                     activity = obj.optString("activity").trim(),
                     objects = obj.optJSONArray("objects").toStringList(),
                     tags = obj.optJSONArray("tags").toStringList(),
-                    summary = obj.optString("qwenSummary").trim(),
+                    summary = obj.optString("summary").trim(),
                     face = obj.optJSONObject("face")?.let { faceObj ->
                         ParsedFaceInfo(
                             count = faceObj.optInt("count", 0),
