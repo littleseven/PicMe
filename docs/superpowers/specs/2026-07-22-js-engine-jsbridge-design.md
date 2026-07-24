@@ -315,3 +315,9 @@ native: engine.callFunction("onAgentEvent", payload)
 **接入点**：`AgentCommand.ExecuteScript`（model）/ `run_gallery_script` @Tool + `ToolCallCommandParser.parseExecuteScript`（远程 JSONObject 解析）/ `ChatRunScriptCapability`（CHAT 场景 Capability）/ `ChatViewModel.onRunScript`（JsRuntime 装配）。
 
 **演示脚本**：`app/src/main/assets/js/gallery_inventory_demo.js`（盘点打标率/未打标占比/人物比）。
+
+> **P0 扩展（2026-07-24）**：新增两个只读 handler，与 `gallery.summary` 形成「全局统计 / 子集过滤 / 单张细节」三层闭环：
+> - `gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?})` → `{ids:[...], total:N}`（多维 AND；复用 `MediaDao` 结构化查询，规避 deprecated 全量方法 `searchByHasFace`/`getAllMediaNow` 的 OOM 风险）。落地 `QueryGalleryMediaUseCase` + `applyFilter` 纯函数。
+> - `media.meta(id)` → 白名单元数据 `{id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}`（不含 uri/GPS/OCR/向量）。
+>
+> 转换层在 app 层（`features/chat/js/GalleryJs.kt`，因 `MediaEntity` 在 app/data 层，runtime-core 不可见）；`GalleryQueryResult.toResultJsValue()` 重命名以避开与 runtime-core `GallerySummary.toJsValue()` 的同名 import 冲突。`run_gallery_script` @Tool 描述已同步列出全部 handler（LLM 唯一感知渠道）。
