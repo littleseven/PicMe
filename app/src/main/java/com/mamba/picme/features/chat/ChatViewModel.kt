@@ -49,9 +49,11 @@ import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
+import com.mamba.picme.features.chat.js.QuickJsEngine
 import com.mamba.picme.features.chat.js.parseQueryFilter
 import com.mamba.picme.features.chat.js.toMetaJsValue
 import com.mamba.picme.features.chat.js.toResultJsValue
+import com.mamba.picme.features.chat.js.toTagsJsValue
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -1223,9 +1225,11 @@ class ChatViewModel(
         replyUsedSandbox = true
         return withContext(Dispatchers.Default) {
             JsRuntime(
+                engine = QuickJsEngine(
+                    onLog = { msg -> Log.i("PoLang:Js", msg) },
+                    evalTimeoutMs = 3_000,
+                ),
                 scope = viewModelScope,
-                evalTimeoutMs = 3_000,
-                onLog = { msg -> Log.i("PoLang:Js", msg) }
             ).use { rt ->
                 // gallery.summary：同步 handler，runBlocking 读本地相册摘要（~50ms，切 IO 不死锁）
                 rt.register(syncHandler("gallery.summary") {
@@ -1235,6 +1239,10 @@ class ChatViewModel(
                 rt.register(syncHandler("gallery.query") { args ->
                     val filter = parseQueryFilter(args)
                     runBlocking { queryGalleryMediaUseCase(filter).toResultJsValue() }
+                })
+                // gallery.tags：实际打标标签分布 → {标签:照片数}（让 LLM 拿真实标签，不瞎猜 query）
+                rt.register(syncHandler("gallery.tags") {
+                    runBlocking { queryGalleryMediaUseCase.tags().toTagsJsValue() }
                 })
                 // media.meta：单张白名单元数据（不回 uri/GPS/ocr/向量）
                 rt.register(syncHandler("media.meta") { args ->

@@ -15,6 +15,7 @@ dependencyResolutionManagement {
     repositories {
         if (System.getenv("JITPACK") != "true") {
             maven { url = uri("https://maven.aliyun.com/repository/public") } // 阿里云镜像
+            maven { url = uri("https://maven.aliyun.com/repository/central") } // 阿里云 central（dokar3 等 public 未同步的库）
             maven { url = uri("https://maven.aliyun.com/repository/google") } // 阿里云 Google 镜像
         }
         google()

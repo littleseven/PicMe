@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -69,8 +71,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DebugScreen(
     onNavigateBack: () -> Unit,
-    mediaViewModel: MediaViewModel,
-    onNavigateToTagViewer: () -> Unit
+    mediaViewModel: MediaViewModel
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -89,7 +90,6 @@ fun DebugScreen(
         progress = progress,
         logs = logs,
         onNavigateBack = onNavigateBack,
-        onNavigateToTagViewer = onNavigateToTagViewer,
         onPauseResume = {
             if (isPaused) {
                 SampleDataGenerator.resume()
@@ -149,8 +149,7 @@ private fun DebugContent(
     onPopulateSwimwear: () -> Unit,
     onPopulateSexy: () -> Unit,
     onClearData: () -> Unit,
-    onScreenshot: () -> Unit,
-    onNavigateToTagViewer: () -> Unit
+    onScreenshot: () -> Unit
 ) {
     var filterText by remember { mutableStateOf("") }
     val filteredLogs = remember(logs, filterText) {
@@ -180,6 +179,7 @@ private fun DebugContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -224,37 +224,6 @@ private fun DebugContent(
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.screenshot))
             }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            Text(
-                stringResource(R.string.tag_viewer_debug_section),
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            Button(
-                onClick = onNavigateToTagViewer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Search, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.tag_viewer_open_entry))
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            Text(
-                stringResource(R.string.jsbridge_debug_section),
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            JsBridgeDebugSection()
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 4.dp),
@@ -387,7 +356,7 @@ private fun LogWindow(
     onFilterTextChange: (String) -> Unit,
     filteredLogs: List<String>
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxWidth().height(220.dp)) {
         OutlinedTextField(
             value = filterText,
             onValueChange = onFilterTextChange,
@@ -402,7 +371,7 @@ private fun LogWindow(
         Spacer(Modifier.height(8.dp))
 
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             color = Color.Black.copy(alpha = 0.05f),
             shape = RoundedCornerShape(8.dp),
             border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f))

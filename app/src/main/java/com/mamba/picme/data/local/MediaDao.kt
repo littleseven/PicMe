@@ -128,6 +128,10 @@ interface MediaDao {
     @Query("SELECT id FROM media_assets ORDER BY captureDate DESC")
     suspend fun getAllMediaIds(): List<Long>
 
+    /** 所有非空 labels（JSON 数组字符串），供 gallery.tags 聚合标签分布。轻量：只取 labels 列。 */
+    @Query("SELECT labels FROM media_assets WHERE labels IS NOT NULL AND labels != ''")
+    suspend fun getAllLabels(): List<String>
+
     /** 更新 hasFace */
     @Query("UPDATE media_assets SET hasFace = :hasFace WHERE id = :mediaId")
     suspend fun updateHasFace(mediaId: Long, hasFace: Boolean)

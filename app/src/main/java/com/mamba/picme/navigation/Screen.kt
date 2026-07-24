@@ -16,6 +16,7 @@ sealed class Screen(val route: String) {
         fun createRoute(category: String): String = "settings/$category"
     }
     data object Debug : Screen("debug")
+    data object JsBridge : Screen("jsbridge")
     data object SearchTest : Screen("search_test")
     data object DataPrivacy : Screen("data_privacy")
     data object SentencePieceTest : Screen("sentencepiece_test")

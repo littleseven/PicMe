@@ -61,6 +61,11 @@ fun MediaEntity.toMetaJsValue(): JsValue.Obj = JsValue.Obj(
     )
 )
 
+/** Map<标签, 照片数> → gallery.tags 结果（标签→计数，调用前应已按计数降序）。 */
+fun Map<String, Int>.toTagsJsValue(): JsValue.Obj = JsValue.Obj(
+    linkedMapOf(*entries.map { it.key to JsValue.Num(it.value.toDouble()) }.toTypedArray())
+)
+
 /** 解析 MediaEntity.labels 的 JSON 数组字符串（存储格式 `["猫","户外"]`）→ JsValue.Arr；空/异常 → 空数组。 */
 private fun parseStringArray(raw: String?): JsValue {
     if (raw.isNullOrBlank()) return JsValue.Arr(emptyList())

@@ -234,6 +234,7 @@ class AgentConfigurator(private val context: Context) {
         对于"盘点/统计/分析相册"类请求，优先用 run_gallery_script：生成一段 JS，调用 bridge.call('gallery.summary') 取数据、在 JS 内计算（比率/占比/分布）、return 一个结果对象，该对象会回传给你做自然语言总结。
         当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。
         完成后直接在最终回复中给出完整结果，不要调用 finish。只读操作直接做，不要让用户额外确认。
+        【重要·收敛规则】拿到工具返回的结果后，必须立即用自然语言总结回复用户，禁止再次调用任何工具。每次用户请求最多调用 2 次工具；若某工具已返回所需数据，直接基于它总结，绝不重复调用同一工具或换参数反复试探。搜索类（search_media）调用 1 次拿到结果即回复；盘点类（run_gallery_script）调用 1 次（一次 JS 内用 gallery.summary + gallery.tags）拿到结果即回复。
     """.trimIndent()
 
     /**

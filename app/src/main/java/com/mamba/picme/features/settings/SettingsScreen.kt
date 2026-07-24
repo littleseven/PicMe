@@ -113,6 +113,7 @@ fun SettingsScreen(
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
+    onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToCategory: (SettingsCategory) -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {}
@@ -297,6 +298,7 @@ fun SettingsScreen(
             onNavigateToTagControl = onNavigateToTagControl,
             onNavigateToTagViewer = onNavigateToTagViewer,
             onNavigateToDebug = onNavigateToDebug,
+            onNavigateToJsBridge = onNavigateToJsBridge,
             onNavigateToSearchTest = onNavigateToSearchTest,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy
         )
@@ -374,6 +376,7 @@ private fun SettingsContent(
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
+    onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {}
 ) {
@@ -604,39 +607,21 @@ private fun SettingsContent(
                     )
                 }
 
-                if (BuildConfig.DEBUG) {
-                    SettingsSection(
-                        title = stringResource(R.string.gallery_debug_features),
-                        description = stringResource(R.string.gallery_debug_features_desc)
-                    ) {
-                        SettingsClickableRow(
-                            title = stringResource(R.string.debug_image_download),
-                            subtitle = stringResource(R.string.debug_image_download_desc),
-                            valueText = stringResource(R.string.enter),
-                            onClick = onNavigateToDebug
-                        )
-
-                        SettingsClickableRow(
-                            title = stringResource(R.string.search_test_entry_title),
-                            subtitle = stringResource(R.string.search_test_entry_subtitle),
-                            valueText = stringResource(R.string.enter),
-                            onClick = onNavigateToSearchTest
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OpenClBackendSelection(
-                            useOpencl = tagGenerationUseOpencl,
-                            onToggle = onTagGenerationUseOpenclChange,
-                            title = stringResource(R.string.tag_gen_use_opencl_title)
-                        )
-                        Text(
-                            text = stringResource(R.string.tag_gen_use_opencl_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                        )
-                    }
+                // TAG 生成 GPU 加速是真实性能配置（非调试项），作为相册常规配置项展示
+                SettingsSection(
+                    title = stringResource(R.string.gallery_advanced)
+                ) {
+                    OpenClBackendSelection(
+                        useOpencl = tagGenerationUseOpencl,
+                        onToggle = onTagGenerationUseOpenclChange,
+                        title = stringResource(R.string.tag_gen_use_opencl_title)
+                    )
+                    Text(
+                        text = stringResource(R.string.tag_gen_use_opencl_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                    )
                 }
             }
 
@@ -748,40 +733,6 @@ private fun SettingsContent(
                     )
                 }
 
-                // ── AI 远程控制无障碍服务（仅 debug 构建） ───────────────
-                if (BuildConfig.DEBUG) {
-                    var isAccessibilityEnabled by remember {
-                        mutableStateOf(AccessibilityServiceHolder.isActive())
-                    }
-
-                    LaunchedEffect(Unit) {
-                        while (true) {
-                            isAccessibilityEnabled = AccessibilityServiceHolder.isActive()
-                            delay(1000)
-                        }
-                    }
-
-                    SettingsSection(
-                        title = stringResource(R.string.settings_accessibility_service_title),
-                        description = stringResource(R.string.settings_accessibility_service_summary)
-                    ) {
-                        SettingsClickableRow(
-                            title = stringResource(R.string.settings_accessibility_service_title),
-                            subtitle = stringResource(R.string.settings_accessibility_service_summary),
-                            valueText = stringResource(
-                                if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled
-                            ),
-                            leadingIcon = Icons.Rounded.Accessibility,
-                            onClick = {
-                                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(intent)
-                            }
-                        )
-                    }
-                }
-
                 var isIgnoringBatteryOptimizations by remember {
                     mutableStateOf(BatteryOptimizationUtils.isIgnoringBatteryOptimizations(context))
                 }
@@ -836,6 +787,7 @@ private fun SettingsContent(
 
             // ── 6. 开发者选项 ─────────────────────────────────────
             if (category == SettingsCategory.DEVELOPER) {
+                // ── 6.1 调试浮层：相机预览上的可视化叠加层 ──────────────
                 SettingsSection(
                     title = stringResource(R.string.debug_tools),
                     description = stringResource(R.string.settings_debug_tools_desc)
@@ -866,15 +818,70 @@ private fun SettingsContent(
                             onModeSelected = onDebugShaderModeSelected
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                // ── 6.2 测试工具与服务（仅 debug 构建） ────────────────
+                if (BuildConfig.DEBUG) {
+                    val context = LocalContext.current
 
-                    Text(
-                        text = stringResource(R.string.log_management),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
-                    )
+                    SettingsSection(
+                        title = stringResource(R.string.developer_debug_entries)
+                    ) {
+                        SettingsClickableRow(
+                            title = stringResource(R.string.debug_image_download),
+                            subtitle = stringResource(R.string.debug_image_download_desc),
+                            valueText = stringResource(R.string.enter),
+                            onClick = onNavigateToDebug
+                        )
+                        SettingsClickableRow(
+                            title = stringResource(R.string.search_test_entry_title),
+                            subtitle = stringResource(R.string.search_test_entry_subtitle),
+                            valueText = stringResource(R.string.enter),
+                            onClick = onNavigateToSearchTest
+                        )
+                        SettingsClickableRow(
+                            title = stringResource(R.string.jsbridge_entry_title),
+                            subtitle = stringResource(R.string.jsbridge_entry_subtitle),
+                            valueText = stringResource(R.string.enter),
+                            onClick = onNavigateToJsBridge
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // AI 远程控制无障碍服务
+                        var isAccessibilityEnabled by remember {
+                            mutableStateOf(AccessibilityServiceHolder.isActive())
+                        }
+
+                        LaunchedEffect(Unit) {
+                            while (true) {
+                                isAccessibilityEnabled = AccessibilityServiceHolder.isActive()
+                                delay(1000)
+                            }
+                        }
+
+                        SettingsClickableRow(
+                            title = stringResource(R.string.settings_accessibility_service_title),
+                            subtitle = stringResource(R.string.settings_accessibility_service_summary),
+                            valueText = stringResource(
+                                if (isAccessibilityEnabled) R.string.settings_accessibility_service_enabled else R.string.settings_accessibility_service_disabled
+                            ),
+                            leadingIcon = Icons.Rounded.Accessibility,
+                            onClick = {
+                                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
+
+                // ── 6.3 日志配置：按模块控制日志输出 ──────────────────
+                SettingsSection(
+                    title = stringResource(R.string.log_management),
+                    description = stringResource(R.string.log_management_desc)
+                ) {
                     LogModuleConfigSection(
                         config = logModuleConfig,
                         onConfigChange = onLogModuleConfigChange
@@ -1307,6 +1314,7 @@ fun SettingsScreenPreview() {
             onFeishuAppSecretChange = {},
             onNavigateBack = {},
             onNavigateToDebug = {},
+            onNavigateToJsBridge = {},
             onNavigateToSearchTest = {}
         )
     }

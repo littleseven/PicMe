@@ -248,6 +248,7 @@ dependencies {
     // Media3 dependencies
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
+    implementation(libs.quickjs.kt)
     implementation(libs.androidx.media3.common)
 
     implementation(libs.google.mlkit.text.recognition)

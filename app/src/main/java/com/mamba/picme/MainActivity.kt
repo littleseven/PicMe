@@ -39,6 +39,7 @@ import com.mamba.picme.features.camera.CameraScreen
 import com.mamba.picme.features.chat.ChatScreen
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.debug.DebugScreen
+import com.mamba.picme.features.debug.JsBridgeScreen
 import com.mamba.picme.features.editor.PhotoEditorScreen
 import com.mamba.picme.features.editor.PhotoEditorViewModel
 import com.mamba.picme.features.idphoto.IDPhotoScreen
@@ -375,6 +376,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToDebug = {
                                         navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true })
                                     },
+                                    onNavigateToJsBridge = {
+                                        navController.navigate(Screen.JsBridge.route, navOptions { launchSingleTop = true })
+                                    },
                                     onNavigateToSearchTest = {
                                         navController.navigate(Screen.SearchTest.route, navOptions { launchSingleTop = true })
                                     },
@@ -424,6 +428,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToDebug = {
                                         navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true })
                                     },
+                                    onNavigateToJsBridge = {
+                                        navController.navigate(Screen.JsBridge.route, navOptions { launchSingleTop = true })
+                                    },
                                     onNavigateToSearchTest = {
                                         navController.navigate(Screen.SearchTest.route, navOptions { launchSingleTop = true })
                                     },
@@ -471,11 +478,15 @@ class MainActivity : ComponentActivity() {
                                 }
                                 DebugScreen(
                                     onNavigateBack = { navController.popBackStack() },
-                                    mediaViewModel = mediaViewModel,
-                                    onNavigateToTagViewer = { navController.navigate(Screen.TagViewer.route) }
+                                    mediaViewModel = mediaViewModel
                                 )
                             }
                             if (BuildConfig.DEBUG) {
+                                composable(Screen.JsBridge.route) {
+                                    JsBridgeScreen(
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
+                                }
                                 composable(Screen.SearchTest.route) {
                                     SearchTestScreen(
                                         onNavigateBack = { navController.popBackStack() }

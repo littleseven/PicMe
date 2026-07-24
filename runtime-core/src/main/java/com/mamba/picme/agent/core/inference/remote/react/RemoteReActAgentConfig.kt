@@ -5,7 +5,7 @@ data class RemoteReActAgentConfig(
     val baseUrl: String,
     val modelName: String = "",
     val systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
-    val maxIterations: Int = 30,
+    val maxIterations: Int = 10,
     val temperature: Double = 0.1,
     val streaming: Boolean = false,
     val gatewayToken: String? = null
@@ -160,7 +160,7 @@ data class RemoteReActAgentConfig(
         private var baseUrl: String = ""
         private var modelName: String = ""
         private var systemPrompt: String = DEFAULT_SYSTEM_PROMPT
-        private var maxIterations: Int = 30
+        private var maxIterations: Int = 10
         private var temperature: Double = 0.1
         private var streaming: Boolean = false
         private var gatewayToken: String? = null

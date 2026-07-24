@@ -43,7 +43,7 @@ class DataStoreChatMemoryStore(private val context: Context) : ChatMemoryStore {
             if (jsonStr == "[]") {
                 mutableListOf()
             } else {
-                parseMessages(jsonStr)
+                sanitizeMessages(parseMessages(jsonStr))
             }
         } catch (e: Exception) {
             Logger.w(tag, "Failed to load messages for memoryId=$memoryId", e)
@@ -162,5 +162,58 @@ class DataStoreChatMemoryStore(private val context: Context) : ChatMemoryStore {
             Logger.w(tag, "Failed to parse messages JSON", e)
             mutableListOf()
         }
+    }
+
+    /**
+     * 清理「悬空 tool_call」：assistant 消息含 toolExecutionRequests 但无对应 ToolExecutionResultMessage
+     * （如工具执行崩溃、超时未产出结果），OpenAI 协议会拒绝（assistant tool_calls 后必须跟 tool message）。
+     * 在加载层剔除这类悬空 tool_call，避免一次崩溃永久卡死整个会话。
+     */
+    private fun sanitizeMessages(messages: MutableList<ChatMessage>): MutableList<ChatMessage> {
+        if (messages.isEmpty()) return messages
+        val assistantToolCallIds = mutableSetOf<String>()
+        messages.forEach { msg ->
+            if (msg is AiMessage && msg.hasToolExecutionRequests()) {
+                msg.toolExecutionRequests().forEach { assistantToolCallIds.add(it.id()) }
+            }
+        }
+        val toolMessageIds = messages
+            .filterIsInstance<ToolExecutionResultMessage>()
+            .map { it.id() }
+            .toSet()
+        // 双向配对：assistant tool_call 必须有对应 tool message，且 tool message 必须有对应 assistant tool_call。
+        // 任一方向缺失（崩溃未产出结果 / 窗口截断 / 历史污染）都剔除，避免 OpenAI 协议拒绝。
+        val validIds = assistantToolCallIds.intersect(toolMessageIds)
+        val sanitized = mutableListOf<ChatMessage>()
+        for (msg in messages) {
+            when {
+                msg is AiMessage && msg.hasToolExecutionRequests() -> {
+                    val requests = msg.toolExecutionRequests()
+                    val valid = requests.filter { it.id() in validIds }
+                    when {
+                        // 全部 tool_call 都配对：原样保留
+                        valid.size == requests.size -> sanitized.add(msg)
+                        // 全部悬空：丢弃 toolCalls；若还有文本则保留文本消息
+                        valid.isEmpty() -> {
+                            val text = msg.text()
+                            if (!text.isNullOrBlank()) sanitized.add(AiMessage.from(text))
+                        }
+                        // 部分悬空：重建 assistant，只保留配对的 toolCalls
+                        else -> {
+                            val builder = AiMessage.builder()
+                            msg.text()?.let { builder.text(it) }
+                            builder.toolExecutionRequests(valid)
+                            sanitized.add(builder.build())
+                        }
+                    }
+                }
+                msg is ToolExecutionResultMessage -> {
+                    // 丢弃悬空 tool message（无配对 assistant tool_call）
+                    if (msg.id() in validIds) sanitized.add(msg)
+                }
+                else -> sanitized.add(msg)
+            }
+        }
+        return sanitized
     }
 }

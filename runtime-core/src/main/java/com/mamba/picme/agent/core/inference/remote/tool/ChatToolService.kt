@@ -166,10 +166,10 @@ class ChatToolService private constructor() {
 
     @Tool(
         name = "run_gallery_script",
-        value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（只读，数据不出端）。可用 bridge.call： gallery.summary() → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）。 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia），return 结果对象回传给你做总结。 示例：var s=bridge.call('gallery.summary'); var c=bridge.call('gallery.query',{label:'猫'}); return {catPhotos:c.total, ratio: s.totalMedia>0 ? c.total/s.totalMedia : 0};"]
+        value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（只读，数据不出端）。可用 bridge.call： gallery.summary() → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）； gallery.tags() → 实际打标标签分布 {标签:照片数}（按计数降序 top 50；盘点标签分类直接用它，不要用臆测的 label 去 gallery.query）。 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia），return 结果对象回传给你做总结。 示例：var s=bridge.call('gallery.summary'); var t=bridge.call('gallery.tags'); return {total:s.totalMedia, topTags:t};"]
     )
     fun runGalleryScript(
-        @P(name = "code", value = "JavaScript 源码；用 bridge.call('gallery.summary' | 'gallery.query', filter | 'media.meta', id) 取数据，return 结果对象") code: String
+        @P(name = "code", value = "JavaScript 源码；用 bridge.call('gallery.summary' | 'gallery.tags' | 'gallery.query', filter | 'media.meta', id) 取数据，return 结果对象") code: String
     ): String = dispatchCommand(AgentCommand.ExecuteScript(code = code))
 
     // ── 设置 ──────────────────────────────────────────────────────

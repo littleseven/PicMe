@@ -54,4 +54,24 @@ class QueryGalleryMediaUseCase(
     /** 单张媒体元数据（只读），供 JS `media.meta`。 */
     suspend fun meta(id: Long): MediaEntity? =
         withContext(Dispatchers.IO) { db.mediaDao().getMediaById(id) }
+
+    /**
+     * 聚合打标标签的计数分布（标签 → 含该标签的照片数），按计数降序取 top [limit]。
+     * 供 JS `gallery.tags`：让 LLM 拿到相册实际有哪些标签，盘点不再瞎猜 label。
+     */
+    suspend fun tags(limit: Int = 50): Map<String, Int> = withContext(Dispatchers.IO) {
+        val counts = mutableMapOf<String, Int>()
+        db.mediaDao().getAllLabels().forEach { raw ->
+            parseLabelArray(raw).forEach { counts[it] = (counts[it] ?: 0) + 1 }
+        }
+        counts.entries.sortedByDescending { it.value }.take(limit).associate { it.key to it.value }
+    }
+
+    private fun parseLabelArray(raw: String?): List<String> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching {
+            val arr = org.json.JSONArray(raw)
+            (0 until arr.length()).map { arr.getString(it) }
+        }.getOrDefault(emptyList())
+    }
 }

@@ -302,23 +302,23 @@ private class DataStoreChatMemory(
 
     override fun id(): Any = memoryId
 
-    override fun messages(): MutableList<com.mamba.data.message.ChatMessage> {
-        return store.getMessages(memoryId)
-    }
+    // 内存缓存：messages() 直接返回，避免每次 add 都 read DataStore 导致写/读时序丢失 tool 历史
+    private val cache: MutableList<com.mamba.data.message.ChatMessage> =
+        store.getMessages(memoryId).toMutableList()
+
+    override fun messages(): MutableList<com.mamba.data.message.ChatMessage> = cache
 
     override fun add(message: com.mamba.data.message.ChatMessage) {
-        val messages = store.getMessages(memoryId)
-
-        // System message 必须始终位于对话开头，且唯一
+        // 内存缓存更新（DataStore 仅持久化，不再每次 read，避免写/读时序丢失 tool 历史）
         if (message is com.mamba.data.message.SystemMessage) {
-            messages.removeAll { it is com.mamba.data.message.SystemMessage }
-            messages.add(0, message)
+            cache.removeAll { it is com.mamba.data.message.SystemMessage }
+            cache.add(0, message)
         } else {
-            messages.add(message)
+            cache.add(message)
         }
 
-        trimToMaxMessages(messages)
-        store.updateMessages(memoryId, messages)
+        trimToMaxMessages(cache)
+        store.updateMessages(memoryId, cache)
     }
 
     /**

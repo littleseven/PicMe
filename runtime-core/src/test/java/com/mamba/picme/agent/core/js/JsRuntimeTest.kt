@@ -12,7 +12,7 @@ import org.junit.Test
 class JsRuntimeTest {
 
     private fun newRuntime(scope: TestScope): JsRuntime =
-        JsRuntime(scope = scope, onLog = {})
+        JsRuntime(engine = RhinoJsEngine(scope = scope, onLog = {}), scope = scope)
 
     @Test
     fun `builtin math add works via runtime`() = runTest {
