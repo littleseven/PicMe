@@ -28,7 +28,7 @@ object BuiltInHandlers {
         JsValue.Obj(
             mapOf(
                 "app" to JsValue.Str("picme"),
-                "engine" to JsValue.Str("rhino"),
+                "engine" to JsValue.Str("quickjs"),
             )
         )
     }

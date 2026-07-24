@@ -412,7 +412,7 @@ sealed class AgentCommand {
     /**
      * 执行一段 JavaScript（端侧沙箱；code 由远程 LLM 生成）。
      *
-     * 用于相册盘点/统计等需组合计算的场景：JS 在 Rhino 沙箱内执行，经 JSBridge
+     * 用于相册盘点/统计等需组合计算的场景：JS 在 QuickJS 沙箱内执行，经 JSBridge
      * 调只读原生能力（如 gallery.summary），结构化结果回传 LLM 做自然语言总结。
      */
     data class ExecuteScript(

@@ -7,7 +7,7 @@ import java.io.Closeable
 /**
  * JS 运行时门面：装配引擎 + bridge + 内置 handler，提供 [eval]/[callFunction]。
  *
- * 引擎由调用方注入（[engine]）：app 层注入 QuickJsEngine（生产），测试可注入 RhinoJsEngine（纯 JVM 可单测）。
+ * 引擎由调用方注入（[engine]）：app 层注入 QuickJsEngine（生产）。
  * 这解决了「JsRuntime hardcode 某个引擎实现」的耦合——bridge/handler/JsValue 全引擎无关，
  * 换引擎只换注入的实现。
  *

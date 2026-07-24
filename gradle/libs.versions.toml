@@ -50,7 +50,6 @@ oapi = "2.5.3"
 ktlint = "1.3.1"
 detekt = "1.23.6"
 composeMarkdown = "0.5.4"
-rhinoRuntime = "1.7.14.1"
 dokar3Quickjs = "1.0.5"
 
 [libraries]
@@ -113,7 +112,6 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerView" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
-mozilla-rhino-runtime = { group = "org.mozilla", name = "rhino-runtime", version.ref = "rhinoRuntime" }
 quickjs-kt = { group = "io.github.dokar3", name = "quickjs-kt", version.ref = "dokar3Quickjs" }
 ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }

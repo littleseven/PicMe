@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 /**
  * JS ↔ Native 路由（引擎无关）。
  *
- * 引擎层（如 RhinoJsEngine）将 JS 的 `bridge.call(name,args)` 翻译为 [dispatchSync]，
+ * 引擎层（如 app 层的 QuickJsEngine）将 JS 的 `bridge.call(name,args)` 翻译为 [dispatchSync]，
  * 将 `bridge.callAsync(name,args,cb)` 翻译为 [dispatchAsync]。
  *
  * @param scope 用于异步 handler 的协程作用域（建议绑定到 App 或页面生命周期）。

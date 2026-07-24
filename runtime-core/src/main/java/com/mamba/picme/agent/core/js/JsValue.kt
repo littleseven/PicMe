@@ -2,7 +2,7 @@ package com.mamba.picme.agent.core.js
 
 /**
  * JS 值的引擎无关投影。bridge 与 handler 之间只交换 JsValue，
- * 避免泄漏 Rhino/QuickJS 等引擎特定类型。
+ * 避免泄漏引擎特定类型。
  */
 sealed class JsValue {
     data object Null : JsValue()

@@ -18,14 +18,14 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 
 /**
- * dokar3/quickjs-kt 1.0.5（com.dokar.quickjs.*）实现的 JS 引擎。与 [RhinoJsEngine] 对称，实现同一 [JsEngine] 契约。
+ * dokar3/quickjs-kt 1.0.5（com.dokar.quickjs.*）实现的 JS 引擎，实现 [JsEngine] 契约。
  *
  * - dokar3 的 evaluate 是 suspend，这里用 runBlocking 适配同步的 [JsEngine.eval]；超时用协程 [withTimeout]
- *   （1.0.5 未暴露 evaluationTimeoutMillis）。dokar3 的协程取消能**真正中断** C 死循环（优于 Rhino 的外层 Future）。
+ *   （1.0.5 未暴露 evaluationTimeoutMillis）。dokar3 的协程取消能**真正中断** C 死循环。
  * - **沙箱**：QuickJS 无 LiveConnect，JS 碰不到 Java/反射；唯一 native 通道是注入的 bridge。
  *   native 库 16KB page 对齐（满足 Google Play 16KB 合规）。
  * - async：dokar3 是 Promise/await 模型；`bridge.callAsync` 返回 Promise，JS 侧 `await`。
- * - bridge 注入采用「全局函数 + bootstrap JS 包装」，让 JS 侧 API（bridge.call/callAsync/list）与 Rhino 实现一致。
+ * - bridge 注入采用「全局函数 + bootstrap JS 包装」，定义 JS 侧 API（bridge.call/callAsync/list）。
  *
  * @param onLog `console.log` 输出回调。
  * @param evalTimeoutMs evaluate 超时（withTimeout）。
@@ -82,7 +82,7 @@ class QuickJsEngine(
         quickjs.defineBinding("__consoleLog", FunctionBinding<Unit> { args ->
             onLog(args.joinToString(" ") { QuickJsConverter.toJsValue(it).toJson() })
         })
-        // bootstrap：把全局函数包装成 bridge/console 对象（JS 侧 API 与 Rhino 一致）
+        // bootstrap：把全局函数包装成 bridge/console 对象
         runBlocking { quickjs.evaluate<Any?>(BOOTSTRAP_JS) }
         Logger.i(TAG, "QuickJsEngine bridge installed (handlers=${bridge.names()})")
     }

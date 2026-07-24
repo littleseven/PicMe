@@ -14,7 +14,7 @@ import java.lang.ref.WeakReference
  * Chat 场景「执行 JS 脚本」Capability。
  *
  * 职责：在 CHAT 场景暴露 `run_gallery_script`，把命令回调给 [Delegate]（ChatViewModel），
- * 由其在端侧 Rhino 沙箱执行（gallery.summary 等只读 handler），结果字符串回传给远程 LLM 做总结。
+ * 由其在端侧 QuickJS 沙箱执行（gallery.summary 等只读 handler），结果字符串回传给远程 LLM 做总结。
  */
 class ChatRunScriptCapability private constructor() : BaseCapability() {
 

@@ -7,7 +7,7 @@ import com.mamba.picme.agent.core.js.JsValue
  * dokar3/quickjs-kt（com.dokar.quickjs.*）↔ JsValue 双向转换。
  *
  * dokar3 类型映射：JS object → [JsObject]（实现 Map），JS Array → List，原始 → Kotlin 原始。
- * 与 RhinoConverter/旧 QuickJsConverter(taoweiji) 对称：bridge 与 handler 只交换 JsValue（引擎无关）。
+ * bridge 与 handler 只交换 JsValue（引擎无关）。
  */
 object QuickJsConverter {
 

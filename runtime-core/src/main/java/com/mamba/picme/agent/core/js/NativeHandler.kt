@@ -6,7 +6,7 @@ package com.mamba.picme.agent.core.js
  * - [Sync]：同步返回结果。
  * - [Async]：挂起完成后通过 [JsCallback] 回调（用于耗时/协程操作）。
  *
- * 引擎无关：handler 只处理 [JsValue]，不感知 Rhino/QuickJS 类型。
+ * 引擎无关：handler 只处理 [JsValue]，不感知引擎特定类型。
  * 用 [syncHandler] / [asyncHandler] 工厂构造实例。
  */
 sealed interface NativeHandler {

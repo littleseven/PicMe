@@ -1254,7 +1254,7 @@ class ChatViewModel(
                         runBlocking { queryGalleryMediaUseCase.meta(id)?.toMetaJsValue() ?: JsValue.Null }
                     }
                 })
-                // 包成 IIFE：(function(){ <code> })() —— Rhino evaluateString 不允许顶层
+                // 包成 IIFE：(function(){ <code> })() —— 顶层 return 需 IIFE 包裹才合法
                 // return（LLM 生成 code 常含顶层 return），IIFE 让 return 合法并返回其值。
                 rt.eval("(function() {\n" + code + "\n})()").toJson()
             }
