@@ -628,6 +628,8 @@
     <string name="developer_options_desc">调试浮层与高级诊断。</string>
     <string name="developer_debug_entries">调试工具入口</string>
     <string name="gallery_advanced">高级</string>
+    <string name="gallery_debug_features">相册调试功能</string>
+    <string name="gallery_debug_features_desc">相册功能的测试工具与后端模式切换。</string>
     <string name="debug_image_download">图片下载页</string>
     <string name="debug_image_download_desc">测试数据生成与图片下载。</string>
 

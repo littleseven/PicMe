@@ -634,6 +634,8 @@
     <string name="developer_options_desc">Debug overlays and advanced diagnostics.</string>
     <string name="developer_debug_entries">Debug Tool Entries</string>
     <string name="gallery_advanced">Advanced</string>
+    <string name="gallery_debug_features">Gallery Debug Features</string>
+    <string name="gallery_debug_features_desc">Testing tools and backend mode switches for gallery features.</string>
     <string name="debug_image_download">Image Download</string>
     <string name="debug_image_download_desc">Generate test data and download images.</string>
 
