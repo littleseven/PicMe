@@ -49,7 +49,7 @@ import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
-import com.mamba.picme.features.chat.js.CHART_BOOTSTRAP_JS
+import com.mamba.picme.features.chat.js.loadChartBootstrapJs
 import com.mamba.picme.features.chat.js.QuickJsEngine
 import com.mamba.picme.features.chat.js.computeIntersect
 import com.mamba.picme.features.chat.js.intersectResult
@@ -319,7 +319,7 @@ class ChatViewModel(
             ChatToolService.getInstance().uiActions.collect { action ->
                 when (action) {
                     is AgentAction.MediaResults -> {
-                        val sid = "default"
+                        val sid = _currentSessionId.value
                         val assets = lastResultAssets[sid].orEmpty()
                             .filter { it.id in action.mediaIds }
                             .take(MAX_CARDS)
@@ -1354,7 +1354,7 @@ class ChatViewModel(
                 scope = viewModelScope,
             )
             // 注入 Chart 图表生成器（bar/line/pie → SVG）。失败仅告警，不阻断脚本能力。
-            runCatching { rt.eval(CHART_BOOTSTRAP_JS) }
+            runCatching { rt.eval(loadChartBootstrapJs(context)) }
                 .onFailure { Logger.w(TAG, "Chart bootstrap failed", it) }
             // gallery.summary
             rt.register(syncHandler("gallery.summary") {
