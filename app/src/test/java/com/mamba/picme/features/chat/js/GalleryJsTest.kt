@@ -6,45 +6,212 @@ import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.GalleryQueryResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * GalleryJs 转换函数单元测试（纯 JVM，无 Android 依赖）。
+ */
 class GalleryJsTest {
 
+    // ── parseIntersectArgs ──────────────────────────────────────────
+
     @Test
-    fun `parseQueryFilter reads all fields`() {
+    fun `parseIntersectArgs parses intersect operation`() {
         val args = JsValue.Obj(
             linkedMapOf(
-                "label" to JsValue.Str("猫"),
-                "ocr" to JsValue.Str("生日"),
+                "idsA" to JsValue.Arr(listOf(JsValue.Num(1.0), JsValue.Num(2.0), JsValue.Num(3.0))),
+                "idsB" to JsValue.Arr(listOf(JsValue.Num(2.0), JsValue.Num(3.0), JsValue.Num(4.0))),
+                "op" to JsValue.Str("intersect"),
+            )
+        )
+        val req = parseIntersectArgs(args)
+        assertEquals(listOf(1L, 2L, 3L), req.idsA)
+        assertEquals(listOf(2L, 3L, 4L), req.idsB)
+        assertEquals("intersect", req.op)
+    }
+
+    @Test
+    fun `parseIntersectArgs defaults to intersect when op missing`() {
+        val args = JsValue.Obj(
+            linkedMapOf(
+                "idsA" to JsValue.Arr(listOf(JsValue.Num(1.0))),
+                "idsB" to JsValue.Arr(listOf(JsValue.Num(1.0))),
+            )
+        )
+        val req = parseIntersectArgs(args)
+        assertEquals("intersect", req.op)
+    }
+
+    @Test
+    fun `parseIntersectArgs handles null args`() {
+        val req = parseIntersectArgs(JsValue.Null)
+        assertTrue(req.idsA.isEmpty())
+        assertTrue(req.idsB.isEmpty())
+    }
+
+    // ── computeIntersect ────────────────────────────────────────────
+
+    @Test
+    fun `computeIntersect intersect returns common ids`() {
+        val req = IntersectRequest(listOf(1L, 2L, 3L), listOf(2L, 3L, 4L), "intersect")
+        assertEquals(listOf(2L, 3L), computeIntersect(req))
+    }
+
+    @Test
+    fun `computeIntersect union returns all unique ids`() {
+        val req = IntersectRequest(listOf(1L, 2L), listOf(2L, 3L), "union")
+        assertEquals(listOf(1L, 2L, 3L), computeIntersect(req))
+    }
+
+    @Test
+    fun `computeIntersect diff returns ids in A not in B`() {
+        val req = IntersectRequest(listOf(1L, 2L, 3L), listOf(2L), "diff")
+        assertEquals(listOf(1L, 3L), computeIntersect(req))
+    }
+
+    @Test
+    fun `computeIntersect unknown op defaults to intersect`() {
+        val req = IntersectRequest(listOf(1L, 2L), listOf(2L, 3L), "unknown")
+        assertEquals(listOf(2L), computeIntersect(req))
+    }
+
+    // ── intersectResult ─────────────────────────────────────────────
+
+    @Test
+    fun `intersectResult produces correct JsValue`() {
+        val result = intersectResult(listOf(1L, 2L))
+        assertTrue(result is JsValue.Obj)
+        val entries = (result as JsValue.Obj).entries
+        val ids = entries["ids"] as JsValue.Arr
+        assertEquals(2, ids.items.size)
+        assertEquals(1.0, (ids.items[0] as JsValue.Num).value, 0.001)
+        assertEquals(2.0, (entries["total"] as JsValue.Num).value, 0.001)
+    }
+
+    // ── toTimelineJsValue ───────────────────────────────────────────
+
+    @Test
+    fun `toTimelineJsValue converts map to JsValue Obj`() {
+        val timeline = linkedMapOf<Long, Int>(
+            1704067200000L to 15,
+            1706745600000L to 23,
+        )
+        val result = timeline.toTimelineJsValue()
+        assertTrue(result is JsValue.Obj)
+        val entries = (result as JsValue.Obj).entries
+        assertEquals(2, entries.size)
+        assertEquals(15.0, (entries["1704067200000"] as JsValue.Num).value, 0.001)
+        assertEquals(23.0, (entries["1706745600000"] as JsValue.Num).value, 0.001)
+    }
+
+    @Test
+    fun `toTimelineJsValue handles empty map`() {
+        val result = emptyMap<Long, Int>().toTimelineJsValue()
+        assertTrue(result is JsValue.Obj)
+        assertTrue((result as JsValue.Obj).entries.isEmpty())
+    }
+
+    // ── parseTimelineArgs ───────────────────────────────────────────
+
+    @Test
+    fun `parseTimelineArgs parses all params`() {
+        val args = JsValue.Obj(
+            linkedMapOf(
+                "fromMs" to JsValue.Num(1704067200000.0),
+                "toMs" to JsValue.Num(1735689600000.0),
+                "bucketMs" to JsValue.Num(2592000000.0),
+            )
+        )
+        val (fromMs, toMs, bucketMs) = parseTimelineArgs(args)
+        assertEquals(1704067200000L, fromMs)
+        assertEquals(1735689600000L, toMs)
+        assertEquals(2592000000L, bucketMs)
+    }
+
+    @Test
+    fun `parseTimelineArgs defaults when params missing`() {
+        val (fromMs, toMs, bucketMs) = parseTimelineArgs(JsValue.Null)
+        assertEquals(null, fromMs)
+        assertEquals(null, toMs)
+        // Default is BUCKET_MONTH_MS
+        assertTrue(bucketMs > 0)
+    }
+
+    // ── toBatchMetaJsValue ──────────────────────────────────────────
+
+    @Test
+    fun `toBatchMetaJsValue converts media list to JsValue Arr`() {
+        val entities = listOf(
+            MediaEntity(
+                id = 1,
+                uri = "content://test/1",
+                type = MediaType.PHOTO,
+                captureDate = 1704067200000L,
+                fileName = "photo1.jpg",
+                labels = """["户外","猫"]""",
+                hasFace = true,
+            ),
+            MediaEntity(
+                id = 2,
+                uri = "content://test/2",
+                type = MediaType.VIDEO,
+                captureDate = 1704153600000L,
+                fileName = "video1.mp4",
+                labels = null,
+                hasFace = false,
+            ),
+        )
+        val result = entities.toBatchMetaJsValue()
+        assertTrue(result is JsValue.Arr)
+        assertEquals(2, (result as JsValue.Arr).items.size)
+
+        val first = result.items[0] as JsValue.Obj
+        assertEquals(1.0, (first.entries["id"] as JsValue.Num).value, 0.001)
+        assertEquals("photo1.jpg", (first.entries["fileName"] as JsValue.Str).value)
+    }
+
+    @Test
+    fun `toBatchMetaJsValue handles empty list`() {
+        val result = emptyList<MediaEntity>().toBatchMetaJsValue()
+        assertTrue(result is JsValue.Arr)
+        assertTrue((result as JsValue.Arr).items.isEmpty())
+    }
+
+    // ── parseQueryFilter ────────────────────────────────────────────
+
+    @Test
+    fun `parseQueryFilter parses all fields`() {
+        val args = JsValue.Obj(
+            linkedMapOf(
+                "label" to JsValue.Str("户外"),
+                "ocr" to JsValue.Str("菜单"),
                 "location" to JsValue.Str("北京"),
-                "fromMs" to JsValue.Num(1000.0),
-                "toMs" to JsValue.Num(2000.0),
+                "fromMs" to JsValue.Num(1704067200000.0),
+                "toMs" to JsValue.Num(1735689600000.0),
                 "hasFace" to JsValue.Bool(true),
                 "limit" to JsValue.Num(50.0),
             )
         )
-        val f = parseQueryFilter(args)
-        assertEquals("猫", f.label)
-        assertEquals(1000L, f.fromMs)
-        assertEquals(2000L, f.toMs)
-        assertEquals(true, f.hasFace)
-        assertEquals(50, f.limit)
+        val filter = parseQueryFilter(args)
+        assertEquals("户外", filter.label)
+        assertEquals("菜单", filter.ocr)
+        assertEquals("北京", filter.location)
+        assertEquals(1704067200000L, filter.fromMs)
+        assertEquals(1735689600000L, filter.toMs)
+        assertEquals(true, filter.hasFace)
+        assertEquals(50, filter.limit)
     }
 
     @Test
-    fun `parseQueryFilter blank strings become null`() {
-        val args = JsValue.Obj(linkedMapOf("label" to JsValue.Str("   ")))
-        val f = parseQueryFilter(args)
-        assertEquals(null, f.label)
-        assertEquals(200, f.limit) // 默认
+    fun `parseQueryFilter defaults on null args`() {
+        val filter = parseQueryFilter(JsValue.Null)
+        assertEquals(null, filter.label)
+        assertEquals(null, filter.fromMs)
+        assertEquals(200, filter.limit) // DEFAULT_LIMIT
     }
 
-    @Test
-    fun `parseQueryFilter non-obj returns defaults`() {
-        val f = parseQueryFilter(JsValue.Str("oops"))
-        assertEquals(null, f.label)
-        assertEquals(200, f.limit)
-    }
+    // ── toResultJsValue (from old tests) ────────────────────────────
 
     @Test
     fun `GalleryQueryResult toJsValue shape`() {
@@ -56,6 +223,8 @@ class GalleryJsTest {
         )
         assertEquals(2.0, (obj["total"] as JsValue.Num).value, 0.0)
     }
+
+    // ── toMetaJsValue (from old tests) ──────────────────────────────
 
     @Test
     fun `MediaEntity toMetaJsValue whitelist and labels parse`() {

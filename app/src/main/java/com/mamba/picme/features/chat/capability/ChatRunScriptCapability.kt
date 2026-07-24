@@ -58,7 +58,12 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
     override fun supportedCommands(): List<String> = listOf("run_gallery_script")
 
     override fun getCommandDescription(command: String): String = when (command) {
-        "run_gallery_script" -> "执行 JS 脚本（端侧沙箱）。参数: code (string, JS 源码)"
+        "run_gallery_script" -> "执行 JS 脚本（端侧沙箱，只读）。参数: code (string, JS 源码)。" +
+            "脚本可调 bridge.call('gallery.summary'|'gallery.query'|'gallery.tags'|" +
+            "'gallery.timeline'|'gallery.intersect'|'media.meta'|'media.batch_meta') 取数据并在 JS 内组合计算。" +
+            "需要画图时 return Chart.bar({title,labels,values,unit?}) / Chart.line(...) / " +
+            "Chart.pie({title,labels,values})——会自动渲染成图卡（勿手动输出 SVG）；" +
+            "return 其它值则原样作为 observation 回传给你做文字总结。"
         else -> "未知命令"
     }
 

@@ -424,6 +424,8 @@ fun ChatScreen(
                                         viewModel.onMediaFeedback(mediaId, mr.query, action)
                                     }
                                 )
+                            } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
+                                ChartSvgCard(svg = message.chartSvg)
                             } else {
                                 ChatMessageItem(
                                     message = message,
@@ -1503,7 +1505,9 @@ data class ChatMessageUi(
     val performance: LlmPerformance? = null,
     val mediaResults: MediaResultsUi? = null,
     /** 图文混排（USER_IMAGE_TEXT）时携带的图片 uri；其余类型为 null。 */
-    val imageUri: String? = null
+    val imageUri: String? = null,
+    /** CHART 类型：端侧 JS 生成的 SVG 字符串，由 AndroidSVG 渲染成图。 */
+    val chartSvg: String? = null
 )
 
 enum class ChatMessageType {
@@ -1514,7 +1518,8 @@ enum class ChatMessageType {
     AGENT_IMAGE,
     COMMAND,
     PLAN_PREVIEW,
-    MEDIA_RESULTS
+    MEDIA_RESULTS,
+    CHART
 }
 
 /**

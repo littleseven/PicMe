@@ -72,6 +72,44 @@ fun JsBridgeDebugSection() {
     val output = remember { mutableStateListOf<String>() }
     var running by remember { mutableStateOf(false) }
 
+    // 预置脚本快捷加载
+    Text("预置脚本", style = MaterialTheme.typography.titleSmall)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        PresetScriptButton("Bridge 演示", app.applicationScope, context) { loaded ->
+            script = loaded
+        }
+        PresetScriptButton("相册盘点", app.applicationScope, context, "js/gallery_inventory_demo.js") { loaded ->
+            script = loaded
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        PresetScriptButton("时间线分析", app.applicationScope, context, "js/gallery_timeline_analysis.js") { loaded ->
+            script = loaded
+        }
+        PresetScriptButton("健康度报告", app.applicationScope, context, "js/gallery_health_report.js") { loaded ->
+            script = loaded
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        PresetScriptButton("智能清理", app.applicationScope, context, "js/gallery_smart_cleanup.js") { loaded ->
+            script = loaded
+        }
+        PresetScriptButton("交叉分析", app.applicationScope, context, "js/gallery_cross_analysis.js") { loaded ->
+            script = loaded
+        }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
     OutlinedTextField(
         value = script,
         onValueChange = { script = it },
@@ -175,6 +213,38 @@ private fun runJsBridgeDemo(
             runtime.close()
             onDone()
         }
+    }
+}
+
+/**
+ * 预置脚本快捷按钮：点击后从 assets 加载脚本内容，回调 [onLoaded]。
+ *
+ * @param assetPath assets 内相对路径（如 `js/gallery_timeline_analysis.js`）；
+ *                  null 时加载内置 [DEFAULT_DEMO_SCRIPT]。
+ */
+@Composable
+private fun PresetScriptButton(
+    label: String,
+    scope: CoroutineScope,
+    context: android.content.Context,
+    assetPath: String? = null,
+    onLoaded: (String) -> Unit,
+) {
+    OutlinedButton(
+        onClick = {
+            if (assetPath == null) {
+                onLoaded(DEFAULT_DEMO_SCRIPT)
+                return@OutlinedButton
+            }
+            scope.launch(Dispatchers.IO) {
+                val loaded = runCatching {
+                    context.assets.open(assetPath).bufferedReader().use { it.readText() }
+                }.getOrDefault("// 加载失败: $assetPath")
+                onLoaded(loaded)
+            }
+        },
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 

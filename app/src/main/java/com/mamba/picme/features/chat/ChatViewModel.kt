@@ -49,11 +49,18 @@ import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
+import com.mamba.picme.features.chat.js.CHART_BOOTSTRAP_JS
 import com.mamba.picme.features.chat.js.QuickJsEngine
+import com.mamba.picme.features.chat.js.computeIntersect
+import com.mamba.picme.features.chat.js.intersectResult
+import com.mamba.picme.features.chat.js.parseIntersectArgs
 import com.mamba.picme.features.chat.js.parseQueryFilter
+import com.mamba.picme.features.chat.js.parseTimelineArgs
+import com.mamba.picme.features.chat.js.toBatchMetaJsValue
 import com.mamba.picme.features.chat.js.toMetaJsValue
 import com.mamba.picme.features.chat.js.toResultJsValue
 import com.mamba.picme.features.chat.js.toTagsJsValue
+import com.mamba.picme.features.chat.js.toTimelineJsValue
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -65,6 +72,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -130,6 +138,13 @@ class ChatViewModel(
     /** 本条回复是否走了 JS 动态沙箱（onRunScript 被调过）；每次 sendMessage 重置。 */
     @Volatile
     private var replyUsedSandbox = false
+
+    /** 持久化 JS Runtime（懒加载，复用避免 QuickJsEngine 重复创建开销）。 */
+    @Volatile
+    private var persistentJsRuntime: JsRuntime? = null
+
+    /** JS eval 互斥锁（QuickJS 非线程安全，需串行化 eval）。 */
+    private val jsEvalMutex = kotlinx.coroutines.sync.Mutex()
 
     /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
     private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
@@ -1224,41 +1239,122 @@ class ChatViewModel(
     override suspend fun onRunScript(code: String): String {
         replyUsedSandbox = true
         return withContext(Dispatchers.Default) {
-            JsRuntime(
-                engine = QuickJsEngine(
-                    onLog = { msg -> Log.i("PoLang:Js", msg) },
-                    evalTimeoutMs = 3_000,
-                ),
-                scope = viewModelScope,
-            ).use { rt ->
-                // gallery.summary：同步 handler，runBlocking 读本地相册摘要（~50ms，切 IO 不死锁）
-                rt.register(syncHandler("gallery.summary") {
-                    runBlocking { getGallerySummaryUseCase(includeDetails = true)?.toJsValue() ?: JsValue.Null }
-                })
-                // gallery.query：结构化过滤 → {ids,total}（只读；守隐私：只回 id+计数）
-                rt.register(syncHandler("gallery.query") { args ->
-                    val filter = parseQueryFilter(args)
-                    runBlocking { queryGalleryMediaUseCase(filter).toResultJsValue() }
-                })
-                // gallery.tags：实际打标标签分布 → {标签:照片数}（让 LLM 拿真实标签，不瞎猜 query）
-                rt.register(syncHandler("gallery.tags") {
-                    runBlocking { queryGalleryMediaUseCase.tags().toTagsJsValue() }
-                })
-                // media.meta：单张白名单元数据（不回 uri/GPS/ocr/向量）
-                rt.register(syncHandler("media.meta") { args ->
-                    val id = (args as? JsValue.Num)?.value?.toLong()
-                        ?: (((args as? JsValue.Arr)?.items?.firstOrNull() as? JsValue.Num)?.value?.toLong())
-                    if (id == null) {
-                        JsValue.Null
-                    } else {
-                        runBlocking { queryGalleryMediaUseCase.meta(id)?.toMetaJsValue() ?: JsValue.Null }
-                    }
-                })
+            val rt = getOrCreateJsRuntime()
+            jsEvalMutex.withLock {
                 // 包成 IIFE：(function(){ <code> })() —— 顶层 return 需 IIFE 包裹才合法
                 // return（LLM 生成 code 常含顶层 return），IIFE 让 return 合法并返回其值。
-                rt.eval("(function() {\n" + code + "\n})()").toJson()
+                val result = rt.eval("(function() {\n" + code + "\n})()")
+                // 图表拦截：脚本 return Chart.x({...}) → 结果 {chart:<svg>, summary:<text>}。
+                // SVG 直接渲染成图卡（不喂回 LLM），summary 回传 LLM 做文字总结（省 token）。
+                val obj = result as? JsValue.Obj
+                val chart = obj?.entries?.get("chart") as? JsValue.Str
+                if (chart != null) {
+                    emitChartMessage(chart.value)
+                    (obj.entries["summary"] as? JsValue.Str)?.value ?: "已生成图表"
+                } else {
+                    result.toJson()
+                }
             }
         }
+    }
+
+    /**
+     * 把端侧 JS 生成的图表 SVG 作为一条 [ChatMessageType.CHART] 消息插入聊天。
+     *
+     * 仅内存态（不落库），随会话存活；重启后历史图表消失（文字总结仍保留）。
+     */
+    private fun emitChartMessage(svg: String) {
+        _messages.value = _messages.value + ChatMessageUi(
+            id = "chart_" + System.currentTimeMillis(),
+            type = ChatMessageType.CHART,
+            content = "",
+            chartSvg = svg,
+        )
+    }
+
+    /**
+     * 获取或创建持久化 JsRuntime，注册全部 gallery/media handler（只注册一次）。
+     */
+    private fun getOrCreateJsRuntime(): JsRuntime {
+        persistentJsRuntime?.let { return it }
+        return synchronized(this) {
+            persistentJsRuntime?.let { return it }
+            val rt = JsRuntime(
+                engine = QuickJsEngine(
+                    onLog = { msg -> Log.i("PoLang:Js", msg) },
+                    evalTimeoutMs = 5_000,
+                ),
+                scope = viewModelScope,
+            )
+            // 注入 Chart 图表生成器（bar/line/pie → SVG）。失败仅告警，不阻断脚本能力。
+            runCatching { rt.eval(CHART_BOOTSTRAP_JS) }
+                .onFailure { Logger.w(TAG, "Chart bootstrap failed", it) }
+            // gallery.summary
+            rt.register(syncHandler("gallery.summary") {
+                runBlocking { getGallerySummaryUseCase(includeDetails = true)?.toJsValue() ?: JsValue.Null }
+            })
+            // gallery.query
+            rt.register(syncHandler("gallery.query") { args ->
+                val filter = parseQueryFilter(args)
+                runBlocking { queryGalleryMediaUseCase(filter).toResultJsValue() }
+            })
+            // gallery.tags
+            rt.register(syncHandler("gallery.tags") {
+                runBlocking { queryGalleryMediaUseCase.tags().toTagsJsValue() }
+            })
+            // media.meta
+            rt.register(syncHandler("media.meta") { args ->
+                val id = (args as? JsValue.Num)?.value?.toLong()
+                    ?: (((args as? JsValue.Arr)?.items?.firstOrNull() as? JsValue.Num)?.value?.toLong())
+                if (id == null) {
+                    JsValue.Null
+                } else {
+                    runBlocking { queryGalleryMediaUseCase.meta(id)?.toMetaJsValue() ?: JsValue.Null }
+                }
+            })
+            // gallery.timeline
+            rt.register(syncHandler("gallery.timeline") { args ->
+                val (fromMs, toMs, bucketMs) = parseTimelineArgs(args)
+                runBlocking {
+                    queryGalleryMediaUseCase.timeline(fromMs, toMs, bucketMs).toTimelineJsValue()
+                }
+            })
+            // gallery.intersect
+            rt.register(syncHandler("gallery.intersect") { args ->
+                val req = parseIntersectArgs(args)
+                intersectResult(computeIntersect(req))
+            })
+            // media.batch_meta
+            rt.register(syncHandler("media.batch_meta") { args ->
+                val ids = when (args) {
+                    is JsValue.Arr -> args.items.mapNotNull { (it as? JsValue.Num)?.value?.toLong() }
+                    is JsValue.Obj -> {
+                        (args.entries["ids"] as? JsValue.Arr)?.items
+                            ?.mapNotNull { (it as? JsValue.Num)?.value?.toLong() } ?: emptyList()
+                    }
+                    else -> emptyList()
+                }
+                if (ids.isEmpty()) {
+                    JsValue.Arr(emptyList())
+                } else {
+                    runBlocking { queryGalleryMediaUseCase.batchMeta(ids).toBatchMetaJsValue() }
+                }
+            })
+            // gallery.stats_by_tag
+            rt.register(syncHandler("gallery.stats_by_tag") { args ->
+                val filter = parseQueryFilter(args)
+                runBlocking { queryGalleryMediaUseCase.tagsByFilter(filter).toTagsJsValue() }
+            })
+            Log.i(TAG, "Persistent JsRuntime created with ${rt.handlerNames()} handlers")
+            persistentJsRuntime = rt
+            rt
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        persistentJsRuntime?.close()
+        persistentJsRuntime = null
     }
 
     // ── ChatStartTagScanCapability.Delegate：TAG 扫描控制 ─────────────

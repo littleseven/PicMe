@@ -93,7 +93,7 @@ class QuickJsEngine(
     }
 
     companion object {
-        const val DEFAULT_EVAL_TIMEOUT_MS = 3_000L
+        const val DEFAULT_EVAL_TIMEOUT_MS = 5_000L
         private const val TAG = "PoLang:QuickJS"
         private const val BOOTSTRAP_JS = """globalThis.bridge = {
   call: function(n, a) { return __bridgeCall(n, a); },

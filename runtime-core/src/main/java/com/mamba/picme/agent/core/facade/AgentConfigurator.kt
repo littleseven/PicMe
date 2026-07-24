@@ -231,10 +231,42 @@ class AgentConfigurator(private val context: Context) {
         start_tag_scan（打标）、ai_optimize（修图）、record_feedback/more_like_this/exclude_constraint（反馈）、
         run_gallery_script（执行 JS 做组合计算/盘点）、view_media/delete_media/share_media/favorite_media、
         change_theme/change_language/toggle_setting 等设置、navigate_to/go_back。
-        对于"盘点/统计/分析相册"类请求，优先用 run_gallery_script：生成一段 JS，调用 bridge.call('gallery.summary') 取数据、在 JS 内计算（比率/占比/分布）、return 一个结果对象，该对象会回传给你做自然语言总结。
+
+        【run_gallery_script 能力总览】
+        run_gallery_script 在端侧 QuickJS 沙箱执行 JS（只读，数据不出端），可用 bridge.call 调用以下 handler：
+        - gallery.summary() → 相册聚合统计
+        - gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤 {ids,total}
+        - gallery.tags() → 全局标签分布 {标签:照片数}
+        - gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {桶起始时间戳:照片数}（默认按月）
+        - gallery.intersect({idsA:[...],idsB:[...],op:"intersect|union|diff"}) → 集合交并差 {ids,total}
+        - gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布
+        - media.meta(id) → 单张元数据
+        - media.batch_meta([id1,id2,...]) → 批量元数据（上限50）
+        在 JS 内组合多个 bridge.call 做一次计算，return 结果对象回传给你做总结。
+
+        【何时用 run_gallery_script vs 单独 tool】
+        必须用 run_gallery_script 的场景：
+        1. 涉及 2+ 维度组合查询（如「旅行+人脸」→ 两次 gallery.query + gallery.intersect）
+        2. 趋势/时间分析（如「每月拍照趋势」→ gallery.timeline）
+        3. 占比/比率/交叉统计（如「人像照片里最常见场景」→ gallery.stats_by_tag）
+        4. 任何需要数学计算的场景（占比/环比/同比在 JS 内算，不自己算）
+        用单独 tool 的场景：
+        - 简单搜索（search_media 一次搞定）
+        - 简单摘要（get_gallery_summary）
+        - 修图/打标/设置等写操作
+
+        示例 1：「我相册拍照趋势如何」
+        JS: var t=bridge.call('gallery.timeline'); var s=bridge.call('gallery.summary'); var keys=Object.keys(t).sort(); var peak=keys.reduce(function(a,b){return t[b]>t[a]?b:a;}); return {total:s.totalMedia, months:keys.length, peakMonth:peak, peakCount:t[peak]};
+
+        示例 2：「旅行照片里有多少是人像」
+        JS: var q1=bridge.call('gallery.query',{label:'旅行',limit:200}); var q2=bridge.call('gallery.query',{label:'人像',hasFace:true,limit:200}); var inter=bridge.call('gallery.intersect',{idsA:q1.ids,idsB:q2.ids,op:'intersect'}); return {travelTotal:q1.total, faceInTravel:inter.total, ratio:q1.total>0?Math.round(inter.total/q1.total*1000)/10:0};
+
+        示例 3：「人像照片里最常见的场景标签」
+        JS: var tags=bridge.call('gallery.stats_by_tag',{hasFace:true}); var keys=Object.keys(tags).sort(function(a,b){return tags[b]-tags[a];}); return {topTags:keys.slice(0,5).map(function(k){return {tag:k,count:tags[k]};})};
+
         当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。
         完成后直接在最终回复中给出完整结果，不要调用 finish。只读操作直接做，不要让用户额外确认。
-        【重要·收敛规则】拿到工具返回的结果后，必须立即用自然语言总结回复用户，禁止再次调用任何工具。每次用户请求最多调用 2 次工具；若某工具已返回所需数据，直接基于它总结，绝不重复调用同一工具或换参数反复试探。搜索类（search_media）调用 1 次拿到结果即回复；盘点类（run_gallery_script）调用 1 次（一次 JS 内用 gallery.summary + gallery.tags）拿到结果即回复。
+        【重要·收敛规则】拿到工具返回的结果后，必须立即用自然语言总结回复用户，禁止再次调用任何工具。每次用户请求最多调用 2 次工具；若某工具已返回所需数据，直接基于它总结，绝不重复调用同一工具或换参数反复试探。搜索类（search_media）调用 1 次拿到结果即回复；盘点类（run_gallery_script）调用 1 次（一次 JS 内组合多个 bridge.call）拿到结果即回复。
     """.trimIndent()
 
     /**

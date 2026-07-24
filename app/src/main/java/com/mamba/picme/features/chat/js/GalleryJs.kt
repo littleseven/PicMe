@@ -4,6 +4,7 @@ import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.GalleryQueryResult
 import com.mamba.picme.domain.model.QueryFilter
+import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 import org.json.JSONArray
 
 /**
@@ -66,6 +67,66 @@ fun Map<String, Int>.toTagsJsValue(): JsValue.Obj = JsValue.Obj(
     linkedMapOf(*entries.map { it.key to JsValue.Num(it.value.toDouble()) }.toTypedArray())
 )
 
+/** Map<桶起始时间戳, 照片数> → gallery.timeline 结果（时间升序）。 */
+fun Map<Long, Int>.toTimelineJsValue(): JsValue.Obj = JsValue.Obj(
+    linkedMapOf(
+        *entries.map { (bucketMs, count) ->
+            bucketMs.toString() to JsValue.Num(count.toDouble())
+        }.toTypedArray()
+    )
+)
+
+// ── gallery.intersect：集合交并差 ────────────────────────────────
+
+/** JS 传入的集合运算请求。 */
+data class IntersectRequest(
+    val idsA: List<Long>,
+    val idsB: List<Long>,
+    val op: String, // intersect / union / diff
+)
+
+/** JS `{idsA:[...], idsB:[...], op:"intersect"}` → IntersectRequest。 */
+fun parseIntersectArgs(args: JsValue): IntersectRequest {
+    val obj = args as? JsValue.Obj ?: return IntersectRequest(emptyList(), emptyList(), "intersect")
+    val e = obj.entries
+    val idsA = parseJsIdList(e["idsA"])
+    val idsB = parseJsIdList(e["idsB"])
+    val op = (e["op"] as? JsValue.Str)?.value?.lowercase() ?: "intersect"
+    return IntersectRequest(idsA, idsB, op)
+}
+
+/** JsValue → Long 列表（JS array `[1,2,3]`）。 */
+private fun parseJsIdList(v: JsValue?): List<Long> = when (v) {
+    is JsValue.Arr -> v.items.mapNotNull { (it as? JsValue.Num)?.value?.toLong() }
+    else -> emptyList()
+}
+
+/** 集合运算结果 → `{ids:[...], total:N}`。 */
+fun intersectResult(ids: List<Long>): JsValue.Obj = JsValue.Obj(
+    linkedMapOf(
+        "ids" to JsValue.Arr(ids.map { JsValue.Num(it.toDouble()) }),
+        "total" to JsValue.Num(ids.size.toDouble()),
+    )
+)
+
+/** 执行集合运算，返回结果 id 列表。 */
+fun computeIntersect(req: IntersectRequest): List<Long> {
+    val setA = LinkedHashSet(req.idsA)
+    val setB = LinkedHashSet(req.idsB)
+    return when (req.op) {
+        "intersect" -> setA.filter { it in setB }
+        "union" -> (setA + setB).toList()
+        "diff" -> setA.filter { it !in setB }
+        else -> setA.filter { it in setB }
+    }
+}
+
+// ── media.batch_meta：批量元数据 ─────────────────────────────────
+
+/** List<MediaEntity> → media.batch_meta 结果（JsValue.Arr）。 */
+fun List<MediaEntity>.toBatchMetaJsValue(): JsValue.Arr =
+    JsValue.Arr(map { it.toMetaJsValue() })
+
 /** 解析 MediaEntity.labels 的 JSON 数组字符串（存储格式 `["猫","户外"]`）→ JsValue.Arr；空/异常 → 空数组。 */
 private fun parseStringArray(raw: String?): JsValue {
     if (raw.isNullOrBlank()) return JsValue.Arr(emptyList())
@@ -73,4 +134,17 @@ private fun parseStringArray(raw: String?): JsValue {
         val arr = JSONArray(raw)
         JsValue.Arr((0 until arr.length()).map { JsValue.Str(arr.getString(it)) })
     }.getOrDefault(JsValue.Arr(emptyList()))
+}
+
+// ── gallery.timeline：参数解析 ────────────────────────────────────
+
+/** JS `{fromMs?, toMs?, bucketMs?}` → 三元组（fromMs, toMs, bucketMs）。 */
+fun parseTimelineArgs(args: JsValue): Triple<Long?, Long?, Long> {
+    val obj = args as? JsValue.Obj ?: return Triple(null, null, QueryGalleryMediaUseCase.BUCKET_MONTH_MS)
+    val e = obj.entries
+    val fromMs = (e["fromMs"] as? JsValue.Num)?.value?.toLong()
+    val toMs = (e["toMs"] as? JsValue.Num)?.value?.toLong()
+    val bucketMs = (e["bucketMs"] as? JsValue.Num)?.value?.toLong()
+        ?: QueryGalleryMediaUseCase.BUCKET_MONTH_MS
+    return Triple(fromMs, toMs, bucketMs)
 }
