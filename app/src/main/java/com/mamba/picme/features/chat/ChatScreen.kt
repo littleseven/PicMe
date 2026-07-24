@@ -1,6 +1,9 @@
 package com.mamba.picme.features.chat
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -33,6 +36,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -90,6 +94,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -190,6 +197,7 @@ fun ChatScreen(
     var isSidebarOpen by remember { mutableStateOf(false) }
     // 图片预览状态
     var previewImageUri by remember { mutableStateOf<Uri?>(null) }
+    var previewChartSvg by remember { mutableStateOf<String?>(null) }
     // 相册搜索结果预览状态
     var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     var previewIndex by remember { mutableIntStateOf(0) }
@@ -322,10 +330,11 @@ fun ChatScreen(
     // 预览打开时拦截系统返回键：关闭预览并回到 chat 页（保留横滑卡片），
     // 而非直接 pop 到相册（Gallery 为 startDestination，栈底为 [Gallery, Chat]）。
     // 与 GalleryScreen 的预览 BackHandler 行为对齐。
-    BackHandler(enabled = previewAssets.isNotEmpty() || previewImageUri != null) {
+    BackHandler(enabled = previewAssets.isNotEmpty() || previewImageUri != null || previewChartSvg != null) {
         when {
             previewAssets.isNotEmpty() -> previewAssets = emptyList()
             previewImageUri != null -> previewImageUri = null
+            previewChartSvg != null -> previewChartSvg = null
         }
     }
 
@@ -367,8 +376,8 @@ fun ChatScreen(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            // 预览打开时隐藏 chat 顶栏，让 MediaPager 覆盖整屏（避免 chat 顶栏透出）
-            if (previewAssets.isEmpty()) {
+            // 预览（照片轮播 / 图片 / 图表全屏）打开时隐藏 chat 顶栏，让覆盖层占满整屏
+            if (previewAssets.isEmpty() && previewImageUri == null && previewChartSvg == null) {
                 ChatTopBar(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
@@ -425,7 +434,7 @@ fun ChatScreen(
                                     }
                                 )
                             } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
-                                ChartSvgCard(svg = message.chartSvg)
+                                ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
                             } else {
                                 ChatMessageItem(
                                     message = message,
@@ -486,6 +495,12 @@ fun ChatScreen(
             ImagePreviewOverlay(
                 imageUri = previewImageUri,
                 onDismiss = { previewImageUri = null }
+            )
+
+            // 图表全屏预览
+            ChartPreviewOverlay(
+                svg = previewChartSvg,
+                onDismiss = { previewChartSvg = null }
             )
 
             // 注册引导弹层（访客试用用尽 / 用户主动注册）
@@ -1540,6 +1555,90 @@ data class MediaResultsUi(
 sealed class ChatModelOption(val label: String, val indicatorColor: Color) {
     data object Local : ChatModelOption("本地", Color(0xFF4CAF50))
     data object Remote : ChatModelOption("远程", Color(0xFF2196F3))
+}
+
+/**
+ * 图表全屏预览（in-content 整屏覆盖层；顶栏由调用方在打开时隐藏，整屏留给图）。
+ * - 图按 contain-fit 等比缩放，整图可见、清晰。
+ * - 双指缩放（1x~5x）+ 单指拖动平移；缩放回到 ~1x 自动回正。
+ * - 点空白 / 返回键 / 左上角关闭键 均可关闭。
+ * - 宽图强制横屏，关闭时恢复系统默认方向（MainActivity 已声明 configChanges，旋转不重建）。
+ */
+@Composable
+private fun ChartPreviewOverlay(
+    svg: String?,
+    onDismiss: () -> Unit
+) {
+    if (svg == null) return
+    val context = LocalContext.current
+    val landscape = chartIsLandscape(svg)
+    DisposableEffect(Unit) {
+        context.findActivity()?.requestedOrientation =
+            if (landscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        onDispose {
+            context.findActivity()?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+    var scale by remember(svg) { mutableStateOf(1f) }
+    var offset by remember(svg) { mutableStateOf(Offset.Zero) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        ChartSvgImage(
+            svg = svg,
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(svg) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                        scale = nextScale
+                        // 缩放回到 ~1x 时复位偏移，避免图被拖飞
+                        offset = if (nextScale <= 1.01f) Offset.Zero else offset + pan
+                    }
+                }
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                }
+        )
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .offset(x = (-80).dp)
+                .padding(8.dp)
+                .size(48.dp)
+                .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Close,
+                contentDescription = "关闭",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+    }
+}
+
+/** 解析 SVG 的 width/height，判断是否为宽图（width > height）。 */
+private fun chartIsLandscape(svg: String?): Boolean {
+    if (svg == null) return false
+    val w = Regex("""width="(\d+)"""").find(svg)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+    val h = Regex("""height="(\d+)"""").find(svg)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+    return w > 0 && h > 0 && w > h
+}
+
+/** 从 Context 链中取出 Activity（LocalContext 可能是 ContextWrapper）。 */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /**

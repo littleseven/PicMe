@@ -32,6 +32,7 @@ internal val CHART_BOOTSTRAP_JS: String = """
     if (Number.isInteger(n)) return String(n);
     return (Math.round(n * 100) / 100).toString();
   }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function niceMax(v) {
     if (v <= 0) return 1;
     var pow = Math.pow(10, Math.floor(Math.log10(v)));
@@ -157,6 +158,24 @@ internal val CHART_BOOTSTRAP_JS: String = """
     return { chart: header(spec.title) + slices + legend + FOOTER, summary: '共' + parts.length + '类；' + top3 };
   }
 
-  globalThis.Chart = { bar: bar, line: line, pie: pie };
+  /**
+   * 时间趋势快捷图：把 gallery.timeline 返回的 {时间戳:数量} 直接画成折线/柱状。
+   * 自动把时间戳桶格式化为 YYYY-MM 标签，免去 LLM 手写日期格式化。
+   * Chart.timeline(timelineObj, {title, unit?, type?}) —— type 默认 'line'，可 'bar'。
+   */
+  function timelineChart(obj, opts) {
+    opts = opts || {};
+    var keys = Object.keys(obj || {}).sort();
+    var labels = keys.map(function (k) {
+      var d = new Date(Number(k));
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+    });
+    var values = keys.map(function (k) { return obj[k]; });
+    var s = { title: opts.title || '趋势', labels: labels, values: values };
+    if (opts.unit) s.unit = opts.unit;
+    return (opts.type === 'bar' ? bar : line)(s);
+  }
+
+  globalThis.Chart = { bar: bar, line: line, pie: pie, timeline: timelineChart };
 })();
 """.trimIndent()

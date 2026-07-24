@@ -172,6 +172,30 @@ class ChatToolService private constructor() {
         @P(name = "code", value = "JS 源码；用 bridge.call 取数据（gallery.summary/tags/timeline/query/stats_by_tag, gallery.intersect, media.meta/batch_meta），return 结果对象") code: String
     ): String = dispatchCommand(AgentCommand.ExecuteScript(code = code))
 
+    @Tool(
+        name = "draw_chart",
+        value = ["画出图表并渲染成真实图片展示给用户——这是展示图表的唯一方式，严禁用文字、Markdown 表格、ASCII/emoji 画图（文字画的图用户看不到效果）。先用 run_gallery_script 拿到数据，再把数据传给本工具画图。"]
+    )
+    fun drawChart(
+        @P(name = "type", value = "图表类型：bar(柱状)/line(折线)/pie(饼图)") type: String,
+        @P(name = "title", value = "图表标题") title: String,
+        @P(name = "labels", value = "分类/x 轴标签，英文逗号分隔，如 '1月,2月,3月' 或 '人像,风景,美食'") labels: String,
+        @P(name = "values", value = "每个标签对应的数值，英文逗号分隔，与 labels 等长，如 '12,8,21'") values: String,
+        @P(name = "unit", value = "数值单位，如 '张'；无则空串") unit: String
+    ): String {
+        val labelList = labels.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val valueList = values.split(",").mapNotNull { it.trim().toDoubleOrNull() }
+        return dispatchCommand(
+            AgentCommand.DrawChart(
+                type = type,
+                title = title,
+                labels = labelList,
+                values = valueList,
+                unit = unit.ifBlank { null }
+            )
+        )
+    }
+
     // ── 设置 ──────────────────────────────────────────────────────
 
     @Tool(name = "change_theme", value = ["切换主题。theme: system/light/dark。"])
@@ -275,6 +299,13 @@ class ChatToolService private constructor() {
                 args.optString("temperature", "")
             )
             "run_gallery_script" -> runGalleryScript(args.optString("code", ""))
+            "draw_chart" -> drawChart(
+                type = args.optString("type", "bar"),
+                title = args.optString("title", ""),
+                labels = args.optString("labels", ""),
+                values = args.optString("values", ""),
+                unit = args.optString("unit", "")
+            )
             "change_theme" -> changeTheme(args.optString("theme", "system"))
             "change_language" -> changeLanguage(args.optString("language", "zh"))
             "toggle_setting" -> toggleSetting(args.optString("key", ""), args.optBoolean("enabled", true))

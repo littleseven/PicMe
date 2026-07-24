@@ -420,6 +420,22 @@ sealed class AgentCommand {
         val code: String
     ) : AgentCommand()
 
+    /**
+     * 画一张图表（端侧渲染成真实图片插入聊天）。
+     *
+     * 远程 LLM 把已得到的统计数据经此命令交给端侧 Chart 生成器（bar/line/pie），
+     * 渲染结果作为 CHART 消息显示；summary 回传 LLM 做文字总结。
+     * 这是给用户展示图表的唯一途径（不要用文字/表格画图）。
+     */
+    data class DrawChart(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val type: String,
+        val title: String,
+        val labels: List<String>,
+        val values: List<Double>,
+        val unit: String? = null
+    ) : AgentCommand()
+
     // ==================== 通用命令 ====================
 
     /**
@@ -485,6 +501,7 @@ sealed class AgentCommand {
             is GetGallerySummary -> "get_gallery_summary"
             is StartTagScan -> "start_tag_scan"
             is ExecuteScript -> "run_gallery_script"
+            is DrawChart -> "draw_chart"
             is LaunchApp -> "launch_app"
             is OpenSystemSettings -> "open_system_settings"
             is BatchExecute -> "batch_execute"

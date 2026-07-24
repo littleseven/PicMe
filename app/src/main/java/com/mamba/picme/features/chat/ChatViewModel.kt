@@ -61,12 +61,14 @@ import com.mamba.picme.features.chat.js.toMetaJsValue
 import com.mamba.picme.features.chat.js.toResultJsValue
 import com.mamba.picme.features.chat.js.toTagsJsValue
 import com.mamba.picme.features.chat.js.toTimelineJsValue
+import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
@@ -399,8 +401,31 @@ class ChatViewModel(
                 Logger.e(TAG, "Failed to observe remote model configs", e)
             }
         }
+        // 从 DataStore 恢复上次选中的会话 ID；校验该会话是否仍存在，不存在则回退 default
+        restoreLastSessionId()
         loadMessages()
         loadThreads()
+    }
+
+    private fun restoreLastSessionId() {
+        viewModelScope.launch {
+            try {
+                val savedId = userSettingsRepository.chatCurrentSessionIdFlow.first()
+                if (savedId.isNotBlank() && savedId != "default") {
+                    // 校验会话是否仍存在于数据库（可能已被删除）
+                    val exists = chatSessionDao.getSession(savedId) != null
+                    val target = if (exists) savedId else "default"
+                    if (!exists) {
+                        // 会话已被删除，同步修正 DataStore
+                        userSettingsRepository.updateChatCurrentSessionId("default")
+                    }
+                    _currentSessionId.value = target
+                    Logger.i(TAG, "Restored last session: $target (saved=$savedId, exists=$exists)")
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to restore last session id", e)
+            }
+        }
     }
 
     private fun loadMessages() {
@@ -457,6 +482,9 @@ class ChatViewModel(
     fun switchSession(sessionId: String) {
         _currentSessionId.value = sessionId
         Logger.i(TAG, "Switched to session: $sessionId")
+        viewModelScope.launch {
+            userSettingsRepository.updateChatCurrentSessionId(sessionId)
+        }
     }
 
     /**
@@ -474,6 +502,7 @@ class ChatViewModel(
                 )
                 _currentSessionId.value = sessionId
                 Logger.i(TAG, "Created new session: $sessionId")
+                userSettingsRepository.updateChatCurrentSessionId(sessionId)
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to create session", e)
             }
@@ -506,6 +535,7 @@ class ChatViewModel(
                 chatSessionDao.deleteSession(sessionId)
                 if (_currentSessionId.value == sessionId) {
                     _currentSessionId.value = "default"
+                    userSettingsRepository.updateChatCurrentSessionId("default")
                 }
                 Logger.i(TAG, "Deleted session: $sessionId")
             } catch (e: Exception) {
@@ -1259,17 +1289,54 @@ class ChatViewModel(
     }
 
     /**
-     * 把端侧 JS 生成的图表 SVG 作为一条 [ChatMessageType.CHART] 消息插入聊天。
+     * 把端侧 JS 生成的图表 SVG 作为一条 [ChatMessageType.CHART] 消息**落库**。
      *
-     * 仅内存态（不落库），随会话存活；重启后历史图表消失（文字总结仍保留）。
+     * 聊天消息列表由 DB Flow 驱动，每次写入都会整体重载；若图卡只在内存，会被后续消息
+     * 的重载冲掉（表现为“图先出现又消失”）。落库后图卡随会话持久，跨重载/重启均保留。
      */
-    private fun emitChartMessage(svg: String) {
-        _messages.value = _messages.value + ChatMessageUi(
-            id = "chart_" + System.currentTimeMillis(),
-            type = ChatMessageType.CHART,
-            content = "",
-            chartSvg = svg,
+    private suspend fun emitChartMessage(svg: String) {
+        chatMessageDao.insertMessage(
+            ChatMessageEntity(
+                id = "chart_" + System.currentTimeMillis(),
+                sessionId = _currentSessionId.value,
+                type = "chart",
+                content = svg,
+                timestamp = System.currentTimeMillis(),
+                modelUsed = "chart"
+            )
         )
+    }
+
+    /**
+     * draw_chart 工具落点：用端侧 Chart 生成器把 [labels]/[values] 画成 [type] 图，
+     * 渲染结果插入聊天；返回 summary（回传 LLM 做文字总结）。
+     */
+    override suspend fun onDrawChart(
+        type: String,
+        title: String,
+        labels: List<String>,
+        values: List<Double>,
+        unit: String?
+    ): String = withContext(Dispatchers.Default) {
+        val rt = getOrCreateJsRuntime()
+        jsEvalMutex.withLock {
+            val fn = when (type.lowercase().trim()) {
+                "line" -> "line"
+                "pie" -> "pie"
+                else -> "bar"
+            }
+            val args = JSONObject()
+                .put("title", title)
+                .put("labels", JSONArray(labels))
+                .put("values", JSONArray(values))
+                .apply { if (!unit.isNullOrBlank()) put("unit", unit) }
+                .toString()
+            val result = rt.eval("Chart." + fn + "(" + args + ")")
+            val obj = result as? JsValue.Obj
+            val chart = obj?.entries?.get("chart") as? JsValue.Str
+            if (chart != null) emitChartMessage(chart.value)
+            (obj?.entries?.get("summary") as? JsValue.Str)?.value ?: "已生成图表"
+        }
     }
 
     /**
@@ -1910,9 +1977,11 @@ class ChatViewModel(
                 "command" -> ChatMessageType.COMMAND
                 "plan_preview" -> ChatMessageType.PLAN_PREVIEW
                 "media_results" -> ChatMessageType.MEDIA_RESULTS
+                "chart" -> ChatMessageType.CHART
                 else -> ChatMessageType.AGENT_TEXT
             },
             content = content,
+            chartSvg = if (type == "chart") content else null,
             imageUri = if (type == "user_image_text" || type == "agent_image") metadata?.let { m -> parseImageUri(m) } else null,
             modelUsed = modelUsed,
             timestamp = timestamp,

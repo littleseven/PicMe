@@ -319,6 +319,7 @@ class AiAgentUseCase(
             is AgentCommand.MoreLikeThis -> AiAgentCommand.TextReply("查找更多相似")
             is AgentCommand.ExcludeConstraint -> AiAgentCommand.TextReply("排除约束")
             is AgentCommand.ExecuteScript -> AiAgentCommand.TextReply("执行脚本")
+            is AgentCommand.DrawChart -> AiAgentCommand.TextReply("画图表")
         }
     }
 
@@ -388,6 +389,7 @@ class AiAgentUseCase(
                     is AgentCommand.MoreLikeThis -> AiAgentCommand.TextReply("查找更多相似")
                     is AgentCommand.ExcludeConstraint -> AiAgentCommand.TextReply("排除约束")
                     is AgentCommand.ExecuteScript -> AiAgentCommand.TextReply("执行脚本")
+            is AgentCommand.DrawChart -> AiAgentCommand.TextReply("画图表")
                 }
             }
             is AgentAction.MediaResults -> AiAgentCommand.TextReply("找到 ${action.totalCount} 张「${action.query}」的照片")

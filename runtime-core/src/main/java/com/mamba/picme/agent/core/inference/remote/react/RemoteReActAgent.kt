@@ -92,8 +92,19 @@ class RemoteReActAgent(
     /** 每个 session 最多保留最近 10 轮对话（5 个 user+assistant 对） */
     private val maxMemoryMessages = 10
 
-    /** 飞书 p2p 会话固定 session ID */
-    private val feishuSessionId = "feishu_p2p"
+    /**
+     * 当前会话的 memory ID。飞书默认 "feishu_p2p"；chat 经 [setSessionId] 按会话切换，
+     * 使每段聊天对话拥有独立 ChatMemory，避免历史互相污染（旧文字图 / 大数据不会带进新会话）。
+     */
+    private var sessionId: String = "feishu_p2p"
+
+    /** 切换会话：换 memory ID 并废弃缓存的 assistant，下次重建时绑定新 memory。 */
+    fun setSessionId(id: String) {
+        if (id.isNotBlank() && id != sessionId) {
+            sessionId = id
+            assistant = null
+        }
+    }
 
     /** DataStore 持久化存储 */
     private val chatMemoryStore by lazy {
@@ -133,7 +144,7 @@ class RemoteReActAgent(
      */
     private fun getOrCreateAssistant(): PoLangAssistant {
         return assistant ?: run {
-            val memory = getOrCreateMemory(feishuSessionId)
+            val memory = getOrCreateMemory(sessionId)
             val newAssistant = AiServices.builder(PoLangAssistant::class.java)
                 .builder()
                 .chatModel(chatModel)
@@ -278,7 +289,7 @@ class RemoteReActAgent(
      */
     fun resetSession() {
         assistant = null
-        sessionMemories[feishuSessionId]?.clear()
+        sessionMemories[sessionId]?.clear()
         Logger.d(TAG, "Session reset")
     }
 }

@@ -232,6 +232,12 @@ class AgentConfigurator(private val context: Context) {
         run_gallery_script（执行 JS 做组合计算/盘点）、view_media/delete_media/share_media/favorite_media、
         change_theme/change_language/toggle_setting 等设置、navigate_to/go_back。
 
+        【最高优先级·画图规则】凡统计/盘点类问题（趋势、变化、占比、分布、数量对比，或用户说"画/图/走势/分布/占比/对比/柱状/折线/饼图"），必须调用 draw_chart 工具把数据画成真实图片图表——这是给用户看图的唯一方式。严禁用任何文字方式画图（Markdown 表格、ASCII 字符块如 █▓▏│、emoji 柱、空格缩进等"伪图表"），文字画的图用户根本看不到效果。
+        标准流程（严格三步，绝不多取数）：① run_gallery_script 取数（只调 1 次，不要分段/重复调用，数据再大也一次拿完）→ ② 立即调 draw_chart 画图 → ③ 一句话总结。
+        draw_chart 参数：type(bar=柱状 / line=折线 / pie=饼图)、title、labels(逗号分隔的分类或 x 轴标签)、values(逗号分隔的数值，与 labels 等长)、unit(如"张"，可空串)。
+        类型选择：时间趋势→line 或 bar；占比/分布→pie；数量对比→bar。
+        示例：用户"每月拍照数量柱状图" → run_gallery_script 取 monthlyTrend → draw_chart(type="bar", title="每月拍照数量", labels="2024年8月,2024年9月,2024年10月", values="12,17,30", unit="张")。
+
         【run_gallery_script 能力总览】
         run_gallery_script 在端侧 QuickJS 沙箱执行 JS（只读，数据不出端），可用 bridge.call 调用以下 handler：
         - gallery.summary() → 相册聚合统计
@@ -242,7 +248,9 @@ class AgentConfigurator(private val context: Context) {
         - gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布
         - media.meta(id) → 单张元数据
         - media.batch_meta([id1,id2,...]) → 批量元数据（上限50）
-        在 JS 内组合多个 bridge.call 做一次计算，return 结果对象回传给你做总结。
+        在 JS 内组合多个 bridge.call 做一次计算，return 结果对象回传给你做总结（需要画图则另外调 draw_chart 工具，见上「画图规则」）。
+
+        【关于图表】画图一律用 draw_chart 工具（见上「画图规则」）。它内部已实现柱/折/饼渲染，你只需传 type/title/labels/values/unit，无需自己写 SVG，也不用在脚本里 return Chart。
 
         【何时用 run_gallery_script vs 单独 tool】
         必须用 run_gallery_script 的场景：
@@ -255,18 +263,20 @@ class AgentConfigurator(private val context: Context) {
         - 简单摘要（get_gallery_summary）
         - 修图/打标/设置等写操作
 
-        示例 1：「我相册拍照趋势如何」
-        JS: var t=bridge.call('gallery.timeline'); var s=bridge.call('gallery.summary'); var keys=Object.keys(t).sort(); var peak=keys.reduce(function(a,b){return t[b]>t[a]?b:a;}); return {total:s.totalMedia, months:keys.length, peakMonth:peak, peakCount:t[peak]};
+        示例 1：「我相册每月拍照趋势」（取数 + 画图，两次工具）
+        第 1 次 run_gallery_script：return bridge.call('gallery.timeline');  // 得到 {时间戳:数量}
+        第 2 次 draw_chart：type="line", title="每月拍照趋势", labels=<月份逗号分隔>, values=<对应数量逗号分隔>, unit="张"
 
         示例 2：「旅行照片里有多少是人像」
         JS: var q1=bridge.call('gallery.query',{label:'旅行',limit:200}); var q2=bridge.call('gallery.query',{label:'人像',hasFace:true,limit:200}); var inter=bridge.call('gallery.intersect',{idsA:q1.ids,idsB:q2.ids,op:'intersect'}); return {travelTotal:q1.total, faceInTravel:inter.total, ratio:q1.total>0?Math.round(inter.total/q1.total*1000)/10:0};
 
-        示例 3：「人像照片里最常见的场景标签」
-        JS: var tags=bridge.call('gallery.stats_by_tag',{hasFace:true}); var keys=Object.keys(tags).sort(function(a,b){return tags[b]-tags[a];}); return {topTags:keys.slice(0,5).map(function(k){return {tag:k,count:tags[k]};})};
+        示例 3：「人像照片里最常见的场景标签」（分布 → 柱状图）
+        第 1 次 run_gallery_script：var tags=bridge.call('gallery.stats_by_tag',{hasFace:true}); var keys=Object.keys(tags).sort(function(a,b){return tags[b]-tags[a];}).slice(0,8); return {labels:keys, values:keys.map(function(k){return tags[k];})};
+        第 2 次 draw_chart：type="bar", title="人像照片场景分布", labels=<keys 逗号拼接>, values=<数量逗号拼接>, unit="张"
 
         当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。
         完成后直接在最终回复中给出完整结果，不要调用 finish。只读操作直接做，不要让用户额外确认。
-        【重要·收敛规则】拿到工具返回的结果后，必须立即用自然语言总结回复用户，禁止再次调用任何工具。每次用户请求最多调用 2 次工具；若某工具已返回所需数据，直接基于它总结，绝不重复调用同一工具或换参数反复试探。搜索类（search_media）调用 1 次拿到结果即回复；盘点类（run_gallery_script）调用 1 次（一次 JS 内组合多个 bridge.call）拿到结果即回复。
+        【重要·收敛规则】拿到数据类工具（search_media / run_gallery_script / get_gallery_summary）的结果后，若用户要看图，可再调一次 draw_chart 把数据画成图（draw_chart 属于渲染，不算数据查询），随后立即用自然语言总结回复、不再调用其它工具。除"画图那次 draw_chart"外，禁止拿到结果后再调任何数据工具。每次请求最多 2 次工具调用（取数 1 次 + draw_chart 1 次）；绝不重复调用同一工具或换参数反复试探。
     """.trimIndent()
 
     /**

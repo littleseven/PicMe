@@ -37,6 +37,18 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
     interface Delegate {
         /** 在端侧沙箱执行 [code]，返回结果（JSON 文本，会作为 observation 回传远程 LLM）。 */
         suspend fun onRunScript(code: String): String
+
+        /**
+         * 端侧渲染一张图表：用 Chart 生成器把 [labels]/[values] 画成 [type] 图（bar/line/pie），
+         * 渲染结果作为 CHART 消息显示；返回 summary（回传 LLM 做文字总结）。
+         */
+        suspend fun onDrawChart(
+            type: String,
+            title: String,
+            labels: List<String>,
+            values: List<Double>,
+            unit: String?
+        ): String
     }
 
     private var delegateRef: WeakReference<Delegate>? = null
@@ -55,15 +67,18 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
 
     override fun activeScenes(): List<SceneManager.Scene> = listOf(SceneManager.Scene.CHAT)
 
-    override fun supportedCommands(): List<String> = listOf("run_gallery_script")
+    override fun supportedCommands(): List<String> = listOf("run_gallery_script", "draw_chart")
 
     override fun getCommandDescription(command: String): String = when (command) {
         "run_gallery_script" -> "执行 JS 脚本（端侧沙箱，只读）。参数: code (string, JS 源码)。" +
             "脚本可调 bridge.call('gallery.summary'|'gallery.query'|'gallery.tags'|" +
             "'gallery.timeline'|'gallery.intersect'|'media.meta'|'media.batch_meta') 取数据并在 JS 内组合计算。" +
-            "需要画图时 return Chart.bar({title,labels,values,unit?}) / Chart.line(...) / " +
-            "Chart.pie({title,labels,values})——会自动渲染成图卡（勿手动输出 SVG）；" +
+            "需要画图时 return Chart.timeline(...)（时间趋势，最省事）/ Chart.bar(...) / Chart.line(...) / " +
+            "Chart.pie(...)——会自动渲染成图卡（勿手动输出 SVG，勿用 Markdown 表格画图）；" +
             "return 其它值则原样作为 observation 回传给你做文字总结。"
+        "draw_chart" -> "画图表（柱状/折线/饼图）并渲染成真实图片。" +
+            "参数: type(bar/line/pie)、title、labels(英文逗号分隔)、values(逗号分隔数值,与 labels 等长)、unit。" +
+            "这是展示图表的唯一方式，禁止用文字/表格画图。"
         else -> "未知命令"
     }
 
@@ -84,6 +99,21 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
             when (command) {
                 is AgentCommand.ExecuteScript -> {
                     val result = delegate.onRunScript(command.code)
+                    Result.success(
+                        AgentAction.TextReply(
+                            commandId = command.commandId,
+                            message = result
+                        )
+                    )
+                }
+                is AgentCommand.DrawChart -> {
+                    val result = delegate.onDrawChart(
+                        type = command.type,
+                        title = command.title,
+                        labels = command.labels,
+                        values = command.values,
+                        unit = command.unit
+                    )
                     Result.success(
                         AgentAction.TextReply(
                             commandId = command.commandId,

@@ -475,7 +475,7 @@ class AgentOrchestrator private constructor(context: Context) {
     ): Result<StreamChatResult> {
         val startTime = System.currentTimeMillis()
         return try {
-            processChatReAct(input).fold(
+            processChatReAct(input, agentContext.memorySessionId).fold(
                 onSuccess = { summary ->
                     onToken(summary)
                     val latencyMs = System.currentTimeMillis() - startTime
@@ -1102,9 +1102,10 @@ class AgentOrchestrator private constructor(context: Context) {
      */
     suspend fun processChatReAct(
         input: String,
+        sessionId: String,
         timeoutMs: Long = 120_000L
     ): Result<String> = withContext(Dispatchers.IO) {
-        Logger.d(tag, "processChatReAct: input='$input', timeout=${timeoutMs}ms")
+        Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
         val agent = configurator.getChatAgent(object : RemoteReActAgentCallback {
             override fun onLoopStart(iteration: Int) {}
@@ -1120,6 +1121,8 @@ class AgentOrchestrator private constructor(context: Context) {
         if (agent.isRunning()) {
             return@withContext Result.failure(IllegalStateException("Agent 正在执行其他任务"))
         }
+
+        agent.setSessionId(sessionId)
 
         return@withContext try {
             val job = coroutineContext[kotlinx.coroutines.Job]

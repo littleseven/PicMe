@@ -262,6 +262,7 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.MoreLikeThis -> "更多相似"
         is AgentCommand.ExcludeConstraint -> "排除约束"
         is AgentCommand.ExecuteScript -> "执行脚本"
+        is AgentCommand.DrawChart -> "画图表"
     }
 
 /**
@@ -309,6 +310,7 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.MoreLikeThis -> Icons.Rounded.Search
     is AgentCommand.ExcludeConstraint -> Icons.Rounded.Delete
     is AgentCommand.ExecuteScript -> Icons.Rounded.Code
+    is AgentCommand.DrawChart -> Icons.Rounded.Code
 }
 
 private fun getAgentCommandDetail(command: AgentCommand): String =
