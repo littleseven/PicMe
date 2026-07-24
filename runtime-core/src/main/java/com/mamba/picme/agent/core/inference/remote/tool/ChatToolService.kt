@@ -166,10 +166,10 @@ class ChatToolService private constructor() {
 
     @Tool(
         name = "run_gallery_script",
-        value = ["在端侧沙箱执行一段 JavaScript，用于相册盘点/统计分析等需要组合计算的场景（只读，数据不出端）。脚本通过 bridge.call('gallery.summary') 取相册聚合统计（返回对象含 totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）。在 JS 内做计算（如打标率=labeledCount/totalMedia、未打标占比），最后 return 一个结果对象——该对象会回传给你做自然语言总结。示例：var s=bridge.call('gallery.summary'); return {total:s.totalMedia, labeledRatio: s.totalMedia>0 ? s.labeledCount/s.totalMedia : 0};"]
+        value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（只读，数据不出端）。可用 bridge.call： gallery.summary() → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）。 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia），return 结果对象回传给你做总结。 示例：var s=bridge.call('gallery.summary'); var c=bridge.call('gallery.query',{label:'猫'}); return {catPhotos:c.total, ratio: s.totalMedia>0 ? c.total/s.totalMedia : 0};"]
     )
     fun runGalleryScript(
-        @P(name = "code", value = "JavaScript 源码；用 bridge.call('gallery.summary') 取数据，return 结果对象") code: String
+        @P(name = "code", value = "JavaScript 源码；用 bridge.call('gallery.summary' | 'gallery.query', filter | 'media.meta', id) 取数据，return 结果对象") code: String
     ): String = dispatchCommand(AgentCommand.ExecuteScript(code = code))
 
     // ── 设置 ──────────────────────────────────────────────────────
