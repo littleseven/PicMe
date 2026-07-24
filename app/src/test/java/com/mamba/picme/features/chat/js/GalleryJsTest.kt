@@ -48,7 +48,7 @@ class GalleryJsTest {
 
     @Test
     fun `GalleryQueryResult toJsValue shape`() {
-        val v = GalleryQueryResult(ids = listOf(1L, 2L), total = 2).toJsValue()
+        val v = GalleryQueryResult(ids = listOf(1L, 2L), total = 2).toResultJsValue()
         val obj = (v as JsValue.Obj).entries
         assertEquals(
             listOf(1.0, 2.0),

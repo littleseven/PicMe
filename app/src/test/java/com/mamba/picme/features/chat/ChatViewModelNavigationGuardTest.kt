@@ -133,6 +133,7 @@ class ChatViewModelNavigationGuardTest {
             getGallerySummaryUseCase = mockk<GetGallerySummaryUseCase>(relaxed = true).apply {
                 coEvery { this@apply(any<Boolean>()) } returns emptyGallerySummary()
             },
+            queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context)
         )
     )

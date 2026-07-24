@@ -49,6 +49,9 @@ import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
+import com.mamba.picme.features.chat.js.parseQueryFilter
+import com.mamba.picme.features.chat.js.toMetaJsValue
+import com.mamba.picme.features.chat.js.toResultJsValue
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -115,6 +118,7 @@ class ChatViewModel(
     private val mediaSearchEngine = dependencies.mediaSearchEngine
     private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
     private val getGallerySummaryUseCase = dependencies.getGallerySummaryUseCase
+    private val queryGalleryMediaUseCase = dependencies.queryGalleryMediaUseCase
     private val startTagScanUseCase = dependencies.startTagScanUseCase
     private val chatImageRenderer = dependencies.chatImageRenderer
 
@@ -1219,6 +1223,21 @@ class ChatViewModel(
                 // gallery.summary：同步 handler，runBlocking 读本地相册摘要（~50ms，切 IO 不死锁）
                 rt.register(syncHandler("gallery.summary") {
                     runBlocking { getGallerySummaryUseCase(includeDetails = true)?.toJsValue() ?: JsValue.Null }
+                })
+                // gallery.query：结构化过滤 → {ids,total}（只读；守隐私：只回 id+计数）
+                rt.register(syncHandler("gallery.query") { args ->
+                    val filter = parseQueryFilter(args)
+                    runBlocking { queryGalleryMediaUseCase(filter).toResultJsValue() }
+                })
+                // media.meta：单张白名单元数据（不回 uri/GPS/ocr/向量）
+                rt.register(syncHandler("media.meta") { args ->
+                    val id = (args as? JsValue.Num)?.value?.toLong()
+                        ?: (((args as? JsValue.Arr)?.items?.firstOrNull() as? JsValue.Num)?.value?.toLong())
+                    if (id == null) {
+                        JsValue.Null
+                    } else {
+                        runBlocking { queryGalleryMediaUseCase.meta(id)?.toMetaJsValue() ?: JsValue.Null }
+                    }
                 })
                 // 包成 IIFE：(function(){ <code> })() —— Rhino evaluateString 不允许顶层
                 // return（LLM 生成 code 常含顶层 return），IIFE 让 return 合法并返回其值。

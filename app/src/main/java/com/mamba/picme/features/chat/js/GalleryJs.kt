@@ -10,10 +10,10 @@ import org.json.JSONArray
  * JS ↔ 只读查询模型的双向转换（app 层）。
  *
  * 落在 app 层的原因：依赖 [MediaEntity]（app/data 层），runtime-core 不可见
- * （对照 GallerySummary.toJsValue() 能放 runtime-core，因 GallerySummary 本就在 runtime-core）。
+ * （对照 GallerySummary.toResultJsValue() 能放 runtime-core，因 GallerySummary 本就在 runtime-core）。
  *
  * - [parseQueryFilter]：JS `bridge.call('gallery.query', {...})` 的第二参 → [QueryFilter]。
- * - [toJsValue]：结果/元数据 → JsValue（回传 JS）。
+ * - [toResultJsValue]：结果/元数据 → JsValue（回传 JS）。
  * 字段名小驼峰；数值转 Double（JS number）。
  */
 
@@ -37,7 +37,7 @@ fun parseQueryFilter(args: JsValue): QueryFilter {
 }
 
 /** GalleryQueryResult → `{ids:[...], total:N}`。 */
-fun GalleryQueryResult.toJsValue(): JsValue.Obj = JsValue.Obj(
+fun GalleryQueryResult.toResultJsValue(): JsValue.Obj = JsValue.Obj(
     linkedMapOf(
         "ids" to JsValue.Arr(ids.map { JsValue.Num(it.toDouble()) }),
         "total" to JsValue.Num(total.toDouble()),

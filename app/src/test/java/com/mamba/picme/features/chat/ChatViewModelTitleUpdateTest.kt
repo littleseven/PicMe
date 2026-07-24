@@ -101,6 +101,7 @@ class ChatViewModelTitleUpdateTest {
             mediaFeedbackRepository = mediaFeedbackRepository,
             picMeAuthClient = authClient,
             getGallerySummaryUseCase = mockk(relaxed = true),
+            queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context)
         )
     )
