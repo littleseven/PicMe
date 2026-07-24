@@ -195,7 +195,7 @@ class AgentConfigurator(private val context: Context) {
      * @return 同步聊天模型实例
      */
     fun createRemoteChatModel(config: RemoteModelConfig): ChatModel {
-        val builder = RemoteModelFactory.createBuilder(config)
+        val builder = RemoteModelFactory.createBuilder(config, "agent_stream")
             .logRequests(true)
             .logResponses(true)
         if (config.gatewayToken.isNotBlank()) {

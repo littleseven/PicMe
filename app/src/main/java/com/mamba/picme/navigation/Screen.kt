@@ -18,6 +18,7 @@ sealed class Screen(val route: String) {
     data object Debug : Screen("debug")
     data object JsBridge : Screen("jsbridge")
     data object SearchTest : Screen("search_test")
+    data object LlmLog : Screen("llm_log")
     data object DataPrivacy : Screen("data_privacy")
     data object SentencePieceTest : Screen("sentencepiece_test")
     data object TagViewer : Screen("tag_viewer")

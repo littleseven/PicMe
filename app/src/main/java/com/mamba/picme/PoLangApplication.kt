@@ -9,12 +9,14 @@ import android.net.NetworkRequest
 import android.os.Bundle
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import com.mamba.picme.BuildConfig
 import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.local.llmlog.RoomLlmCallRecorder
 import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
@@ -23,6 +25,7 @@ import com.mamba.picme.di.AppContainerImpl
 import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
+import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.core.identity.DeviceIdProvider
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
@@ -152,6 +155,15 @@ class PoLangApplication : Application(), ImageLoaderFactory {
             remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT
         )
         Logger.i(TAG, "Orchestrator pre-configured with fallback remote config")
+
+        // 安装远程 LLM 调用日志记录器（仅 DEBUG 构建）。
+        // runtime-core 的 RemoteModelFactory 创建远程模型时会自动挂上 CapturingChatModelListener，
+        // 把每次调用的 req/res 摘要落库到独立 DB（polang_llm_log），便于排查问题。
+        // release 构建不安装 → recorder 保持 null → 生产环境零录制、零痕迹。
+        if (BuildConfig.DEBUG) {
+            RemoteModelFactory.recorder = RoomLlmCallRecorder(this)
+            Logger.i(TAG, "LLM call log recorder installed (DEBUG only)")
+        }
 
         // 注册 Activity 生命周期回调，跟踪当前活跃 Activity
         registerActivityLifecycleCallbacks(ActivityTracker())

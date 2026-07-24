@@ -1,6 +1,8 @@
 package com.mamba.picme.agent.core.remote.config
 
 import com.mamba.android.MambaAgentFactory
+import com.mamba.picme.agent.core.inference.remote.log.CapturingChatModelListener
+import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
 import java.time.Duration
 
 /**
@@ -14,6 +16,16 @@ import java.time.Duration
  * 此类约束在此集中管理，新增模型兼容逻辑只需修改此文件。
  */
 object RemoteModelFactory {
+
+    /**
+     * 远程 LLM 调用记录接收端。由 :app 在 Application 启动时注入（仅 DEBUG 构建）。
+     * 为 null 时不录制（release 构建保持 null → 生产零痕迹）。
+     */
+    @Volatile
+    var recorder: LlmCallRecorder? = null
+
+    /** 默认来源标签（调用方未显式指定 sourceLabel 时使用）。 */
+    const val DEFAULT_SOURCE = "remote"
 
     /**
      * 根据模型 ID 获取合法 temperature 值。
@@ -43,9 +55,12 @@ object RemoteModelFactory {
      * @param config 远程模型配置
      * @return MambaAgentFactory Builder，可继续追加配置后调用 [MambaAgentFactory.Builder.build]
      */
-    fun createBuilder(config: RemoteModelConfig): MambaAgentFactory.Builder {
+    fun createBuilder(
+        config: RemoteModelConfig,
+        sourceLabel: String = DEFAULT_SOURCE
+    ): MambaAgentFactory.Builder {
         val effectiveApiKey = config.apiKey.ifEmpty { "gateway-auth" }
-        return MambaAgentFactory.builder()
+        val builder = MambaAgentFactory.builder()
             .apiKey(effectiveApiKey)
             .baseUrl(config.baseUrl)
             .model(config.modelId)
@@ -53,5 +68,12 @@ object RemoteModelFactory {
             .maxTokens(2048)
             .timeout(Duration.ofSeconds(60))
             .maxRetries(2)
+        // 注入调用记录 listener（仅当 app 侧提供了 recorder，且仅在 DEBUG 构建中注入）。
+        // 与调用方后续追加的 listener 累加共存（Builder.listeners(varargs) 为累加语义）。
+        val rec = recorder
+        if (rec != null) {
+            builder.listeners(CapturingChatModelListener(sourceLabel, rec))
+        }
+        return builder
     }
 }

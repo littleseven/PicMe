@@ -53,7 +53,7 @@ class RemoteReActAgent(
             gatewayToken = config.gatewayToken ?: ""
         )
 
-        val builder = RemoteModelFactory.createBuilder(remoteModelConfig)
+        val builder = RemoteModelFactory.createBuilder(remoteModelConfig, "react")
             .logRequests(true)
             .logResponses(true)
 

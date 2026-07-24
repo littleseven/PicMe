@@ -40,6 +40,7 @@ import com.mamba.picme.features.chat.ChatScreen
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.debug.DebugScreen
 import com.mamba.picme.features.debug.JsBridgeScreen
+import com.mamba.picme.features.debug.LlmCallLogScreen
 import com.mamba.picme.features.editor.PhotoEditorScreen
 import com.mamba.picme.features.editor.PhotoEditorViewModel
 import com.mamba.picme.features.idphoto.IDPhotoScreen
@@ -382,6 +383,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToSearchTest = {
                                         navController.navigate(Screen.SearchTest.route, navOptions { launchSingleTop = true })
                                     },
+                                    onNavigateToLlmLog = {
+                                        navController.navigate(Screen.LlmLog.route, navOptions { launchSingleTop = true })
+                                    },
                                     onNavigateToCategory = { target ->
                                         navController.navigate(Screen.SettingsCategory.createRoute(target.name.lowercase()), navOptions { launchSingleTop = true })
                                     },
@@ -433,6 +437,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToSearchTest = {
                                         navController.navigate(Screen.SearchTest.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToLlmLog = {
+                                        navController.navigate(Screen.LlmLog.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToCategory = { target ->
                                         navController.navigate(Screen.SettingsCategory.createRoute(target.name.lowercase()), navOptions { launchSingleTop = true })
@@ -489,6 +496,11 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable(Screen.SearchTest.route) {
                                     SearchTestScreen(
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
+                                }
+                                composable(Screen.LlmLog.route) {
+                                    LlmCallLogScreen(
                                         onNavigateBack = { navController.popBackStack() }
                                     )
                                 }

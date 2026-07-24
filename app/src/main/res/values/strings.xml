@@ -638,6 +638,18 @@
     <string name="gallery_debug_features_desc">Testing tools and backend mode switches for gallery features.</string>
     <string name="debug_image_download">Image Download</string>
     <string name="debug_image_download_desc">Generate test data and download images.</string>
+    <string name="llm_call_log">LLM Call Logs</string>
+    <string name="llm_call_log_desc">View the latest 200 remote LLM requests/responses</string>
+    <string name="llm_call_log_detail">LLM Call Detail</string>
+    <string name="llm_call_log_empty">No records yet</string>
+    <string name="llm_call_log_clear">Clear</string>
+    <string name="llm_call_log_clear_confirm">Clear all LLM call logs?</string>
+    <string name="llm_call_log_request">Request</string>
+    <string name="llm_call_log_response">Response</string>
+    <string name="llm_call_log_error">Error</string>
+    <string name="llm_call_log_copied">Copied</string>
+    <string name="llm_call_log_success">Success</string>
+    <string name="llm_call_log_failed">Failed</string>
 
     <!-- Photo Editor -->
     <string name="editor_tab_crop">Crop</string>

@@ -610,6 +610,18 @@
     <string name="gallery_debug_features_desc">相簿功能的測試工具與後端模式切換。</string>
     <string name="debug_image_download">圖片下載頁</string>
     <string name="debug_image_download_desc">測試數據生成與圖片下載。</string>
+    <string name="llm_call_log">LLM 呼叫記錄</string>
+    <string name="llm_call_log_desc">檢視最近 200 條遠端 LLM 請求/回應</string>
+    <string name="llm_call_log_detail">LLM 呼叫詳情</string>
+    <string name="llm_call_log_empty">暫無記錄</string>
+    <string name="llm_call_log_clear">清空</string>
+    <string name="llm_call_log_clear_confirm">確認清空所有 LLM 呼叫記錄？</string>
+    <string name="llm_call_log_request">請求</string>
+    <string name="llm_call_log_response">回應</string>
+    <string name="llm_call_log_error">錯誤</string>
+    <string name="llm_call_log_copied">已複製</string>
+    <string name="llm_call_log_success">成功</string>
+    <string name="llm_call_log_failed">失敗</string>
 
     <!-- 圖片編輯器 -->
     <string name="editor_tab_crop">構圖</string>

@@ -115,6 +115,7 @@ fun SettingsScreen(
     onNavigateToDebug: () -> Unit = {},
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
+    onNavigateToLlmLog: () -> Unit = {},
     onNavigateToCategory: (SettingsCategory) -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {}
 ) {
@@ -300,6 +301,7 @@ fun SettingsScreen(
             onNavigateToDebug = onNavigateToDebug,
             onNavigateToJsBridge = onNavigateToJsBridge,
             onNavigateToSearchTest = onNavigateToSearchTest,
+            onNavigateToLlmLog = onNavigateToLlmLog,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy
         )
     }
@@ -378,6 +380,7 @@ private fun SettingsContent(
     onNavigateToDebug: () -> Unit = {},
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
+    onNavigateToLlmLog: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {}
 ) {
     val titleRes = when (category) {
@@ -844,6 +847,12 @@ private fun SettingsContent(
                             subtitle = stringResource(R.string.jsbridge_entry_subtitle),
                             valueText = stringResource(R.string.enter),
                             onClick = onNavigateToJsBridge
+                        )
+                        SettingsClickableRow(
+                            title = stringResource(R.string.llm_call_log),
+                            subtitle = stringResource(R.string.llm_call_log_desc),
+                            valueText = stringResource(R.string.enter),
+                            onClick = onNavigateToLlmLog
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))

@@ -632,6 +632,18 @@
     <string name="gallery_debug_features_desc">相册功能的测试工具与后端模式切换。</string>
     <string name="debug_image_download">图片下载页</string>
     <string name="debug_image_download_desc">测试数据生成与图片下载。</string>
+    <string name="llm_call_log">LLM 调用日志</string>
+    <string name="llm_call_log_desc">查看最近 200 条远程 LLM 请求/响应</string>
+    <string name="llm_call_log_detail">LLM 调用详情</string>
+    <string name="llm_call_log_empty">暂无记录</string>
+    <string name="llm_call_log_clear">清空</string>
+    <string name="llm_call_log_clear_confirm">确认清空所有 LLM 调用记录？</string>
+    <string name="llm_call_log_request">请求</string>
+    <string name="llm_call_log_response">响应</string>
+    <string name="llm_call_log_error">错误</string>
+    <string name="llm_call_log_copied">已复制</string>
+    <string name="llm_call_log_success">成功</string>
+    <string name="llm_call_log_failed">失败</string>
 
     <!-- 图片编辑器 -->
     <string name="editor_tab_crop">构图</string>
