@@ -26,10 +26,15 @@ data class ScanQueuePolicy(
     /** 最大重试次数 */
     val maxRetryAttempts: Int = DEFAULT_MAX_RETRY_ATTEMPTS,
 
-    /** 本次扫描覆盖的 Pass 阶段 */
+    /** 本次扫描第一阶段立即执行的 Pass */
     val passes: List<TagScanPass> = listOf(
         TagScanPass.FACE_DETECTION,
-        TagScanPass.DBSCAN,
+        TagScanPass.DBSCAN
+    ),
+
+    /** 第一阶段全量完成后才执行的 Pass（延迟阶段）。
+     *  阶段切换由 TagScanOrchestrator.scheduleAutoScan 在第一批次链式耗尽时自动触发。 */
+    val deferredPasses: List<TagScanPass> = listOf(
         TagScanPass.QWEN_TAGGING
     )
 ) {
