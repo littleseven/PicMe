@@ -1,6 +1,7 @@
 package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.analytics.formatCostCny
+import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.llm.ChannelRow
 import com.mamba.picme.server.llm.renderModelMapLines
 import kotlinx.html.FlowContent
@@ -327,6 +328,46 @@ object AdminViews {
                         td { +b.totalTokens.toString() }
                         td { +fmt(b.cost) }
                         td { +b.bytes.toString() }
+                    }
+                }
+            }
+        }
+    }
+
+    fun settingsPage(snap: SettingsService.Snapshot, message: String? = null): String = createHTML().html {
+        adminHead("设置 · PoLang 管理后台")
+        body {
+            navBar()
+            h1 { +"额度默认值（全局）" }
+            if (message != null) p("err") { +message }
+            div("card apk-info-card") {
+                p("meta") {
+                    +"影响：free 用于新注册账号初始上限；guest 用于未注册访客设备上限。"
+                    br(); +"已注册账号的上限按行独立，请在「用户详情」页单独调整。"
+                }
+            }
+            form(action = "/admin/settings", method = FormMethod.post, classes = "chan-form") {
+                p {
+                    label { +"新注册账号上限（free，>0）" }
+                    br()
+                    input(type = InputType.number, name = "free_llm_quota") {
+                        value = snap.freeLlmQuota.toString()
+                        attributes["min"] = "1"
+                        style = "width:160px"
+                    }
+                }
+                p {
+                    label { +"访客设备上限（guest，>0）" }
+                    br()
+                    input(type = InputType.number, name = "guest_llm_quota") {
+                        value = snap.guestLlmQuota.toString()
+                        attributes["min"] = "1"
+                        style = "width:160px"
+                    }
+                }
+                div("form-actions") {
+                    span("form-actions-right") {
+                        input(type = InputType.submit, classes = "btn") { value = "保存" }
                     }
                 }
             }
@@ -940,6 +981,7 @@ object AdminViews {
                 a("/admin/users", classes = "nav-link") { +"用户" }
                 a("/admin/traffic", classes = "nav-link") { +"流量" }
                 a("/admin/channels", classes = "nav-link") { +"渠道" }
+                a("/admin/settings", classes = "nav-link") { +"设置" }
                 a("/admin/apk", classes = "nav-link") { +"APK" }
             }
             div("nav-spacer") {}

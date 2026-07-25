@@ -222,6 +222,29 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             call.respondText(AdminViews.trafficPage(AdminQueries.dailySeries(30, now)), ContentType.Text.Html)
         }
 
+        get("/settings") {
+            if (!call.adminGuard(adminToken)) return@get
+            val msg = call.request.queryParameters["err"]
+            call.respondText(AdminViews.settingsPage(SettingsService.snapshot(), msg), ContentType.Text.Html)
+        }
+
+        post("/settings") {
+            if (!call.adminGuard(adminToken)) return@post
+            val params = call.receiveParameters()
+            val free = params["free_llm_quota"]?.toIntOrNull()
+            val guest = params["guest_llm_quota"]?.toIntOrNull()
+            if (free == null || guest == null || free <= 0 || guest <= 0) {
+                call.respondText(
+                    AdminViews.settingsPage(SettingsService.snapshot(), "参数错误：两个值都必须是正整数"),
+                    ContentType.Text.Html,
+                    HttpStatusCode.BadRequest,
+                )
+                return@post
+            }
+            SettingsService.update(free, guest)
+            call.respondRedirect("/admin/settings")
+        }
+
         get("/channels") {
             if (!call.adminGuard(adminToken)) return@get
             val channels = ChannelRepository.list()

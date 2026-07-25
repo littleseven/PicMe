@@ -1,11 +1,13 @@
 package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
+import com.mamba.picme.server.db.ServerSettings
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.util.TestDb
 import io.ktor.client.HttpClient
@@ -264,5 +266,27 @@ class AdminRoutesTest {
             AnonymousDevices.selectAll().where { AnonymousDevices.id eq 5 }.single()[AnonymousDevices.llmCallsUsed]
         }
         assertEquals(0, used)
+    }
+
+    @Test
+    fun `settings page round-trips free and guest quota`() = testApplication {
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices, ServerSettings)
+        SettingsService.load()
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        val get = c.get("/admin/settings") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, get.status)
+        assertTrue(get.bodyAsText().contains("额度默认值"))
+
+        val post = c.post("/admin/settings") {
+            cookie(AdminAuth.COOKIE_NAME, cookieVal)
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("free_llm_quota=888&guest_llm_quota=66")
+        }
+        assertEquals(HttpStatusCode.Found, post.status)
+        assertEquals("/admin/settings", post.headers[HttpHeaders.Location])
+        assertEquals(888, SettingsService.snapshot().freeLlmQuota)
+        assertEquals(66, SettingsService.snapshot().guestLlmQuota)
     }
 }
