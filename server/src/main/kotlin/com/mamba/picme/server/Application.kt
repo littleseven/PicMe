@@ -6,11 +6,13 @@ import com.mamba.picme.server.auth.APP_TOKEN_HEADER
 import com.mamba.picme.server.auth.DEVICE_ID_HEADER
 import com.mamba.picme.server.auth.EmailService
 import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
 import com.mamba.picme.server.llm.LlmProxy
 import com.mamba.picme.server.llm.ChannelRegistry
+import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
@@ -53,6 +55,7 @@ fun main() {
     Db.init(config.dbPath)
     Migrations.run(config)
     runBlocking { ChannelRegistry.reload() }
+    runBlocking { SettingsService.load() }
     runBlocking {
         val purged = AccountService.purgeExpiredDeleted(AccountService.RETENTION_MS)
         logger.info("Purged $purged expired deleted accounts (retention=${AccountService.RETENTION_MS}ms)")
@@ -126,12 +129,13 @@ fun Application.module(config: AppConfig) {
     val emailService = EmailService(httpClient, config.resendApiKey, config.emailFrom)
 
     val cosService = CosService(config)
+    val balanceService = ChannelBalanceService(httpClient)
 
     routing {
         // Public
         downloadRoute(cosService)
         healthzRoute()
-        authRoute(emailService, config.freeLlmQuota)
+        authRoute(emailService)
 
         // Protected (auth interceptor above enforces token)
         recommendRoute(appJson)
@@ -139,8 +143,8 @@ fun Application.module(config: AppConfig) {
         quotaRoute()
         accountDeletionRoute()
         guestDeletionRoute()
-        llmRoute(llmProxy, rateLimiter, config.llmPrices, config.guestLlmQuota)
+        llmRoute(llmProxy, rateLimiter, config.llmPrices)
         // 管理后台（/admin/**，独立 cookie 认证）
-        adminRoute(config.adminToken, cosService, config.guestLlmQuota)
+        adminRoute(config.adminToken, cosService, balanceService)
     }
 }

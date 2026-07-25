@@ -4,6 +4,7 @@ import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.DEVICE_ID_HEADER
 import com.mamba.picme.server.auth.EmailService
 import com.mamba.picme.server.auth.GuestService
+import com.mamba.picme.server.config.SettingsService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -32,7 +33,6 @@ data class QuotaResponse(val email: String, val llmCallsUsed: Int, val llmCallsL
 
 fun Route.authRoute(
     emailService: EmailService,
-    freeLlmQuota: Int,
 ) {
     post("/auth/email/send") {
         val req = call.receive<EmailSendRequest>()
@@ -53,7 +53,7 @@ fun Route.authRoute(
             call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "invalid_code"))
             return@post
         }
-        val account = AccountService.createOrRefresh(req.email, freeLlmQuota)
+        val account = AccountService.createOrRefresh(req.email, SettingsService.snapshot().freeLlmQuota)
         call.respond(
             TokenResponse(
                 token = account.token,

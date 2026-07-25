@@ -2,9 +2,11 @@ package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.GuestService
+import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
+import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelRepository
@@ -36,7 +38,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
  * 管理后台路由：/admin 下全部页面。主 app-token 拦截器（Application.module）对 /admin 前缀放行，
  * 由各受保护页面顶部的 adminGuard 接管认证（ADMIN_TOKEN 为空 → 503 禁用）。
  */
-fun Route.adminRoute(adminToken: String, cosService: CosService, guestLlmQuota: Int = 100) {
+fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService: ChannelBalanceService) {
     route("/admin") {
         get("/login") {
             if (adminToken.isBlank()) {
@@ -107,7 +109,7 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, guestLlmQuota: 
             if (!call.adminGuard(adminToken)) return@get
             val rows = AdminQueries.devicesList()
             call.respondText(
-                AdminViews.devicesPage(rows, AdminQueries.usersCount(), guestLlmQuota),
+                AdminViews.devicesPage(rows, AdminQueries.usersCount(), SettingsService.snapshot().guestLlmQuota),
                 ContentType.Text.Html,
             )
         }

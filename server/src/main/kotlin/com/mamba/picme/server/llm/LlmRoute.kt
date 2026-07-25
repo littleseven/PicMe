@@ -4,6 +4,7 @@ import com.mamba.picme.server.analytics.Price
 import com.mamba.picme.server.analytics.UsageRecorder
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.GuestService
+import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
 import com.mamba.picme.server.routes.TokenHashKey
@@ -23,7 +24,6 @@ fun Route.llmRoute(
     proxy: LlmProxy,
     rateLimiter: RateLimiter?,
     prices: Map<String, Price>,
-    guestLlmQuota: Int,
 ) {
     listOf("/v1/chat/completions", "/chat/completions").forEach { path ->
         post(path) {
@@ -49,6 +49,7 @@ fun Route.llmRoute(
             val requestedModel = (body["model"] as? JsonPrimitive)?.content ?: ""
             val isGuest = tokenHash == null
             val accountId = tokenHash?.let { AccountService.idForTokenHash(it) }
+            val guestLlmQuota = SettingsService.snapshot().guestLlmQuota
 
             // Quota check — account OR guest（各只增量一次）
             if (isGuest) {

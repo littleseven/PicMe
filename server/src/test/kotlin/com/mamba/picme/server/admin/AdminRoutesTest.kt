@@ -6,7 +6,10 @@ import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
+import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.util.TestDb
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.cookie
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -29,6 +32,7 @@ class AdminRoutesTest {
 
     private val token = "test-admin-token"
     private val cos = CosService(AppConfig.load())
+    private val balance = ChannelBalanceService(HttpClient(CIO))
     private val cookieVal get() = AdminAuth.expectedCookieValue(token)
 
     private fun seed() {
@@ -61,7 +65,7 @@ class AdminRoutesTest {
     @Test
     fun `full admin auth and view flow`() = testApplication {
         seed()
-        application { routing { adminRoute(token, cos) } }
+        application { routing { adminRoute(token, cos, balance) } }
         val c = createClient { followRedirects = false }
 
         // 1. no cookie → redirect to login
@@ -137,7 +141,7 @@ class AdminRoutesTest {
     @Test
     fun `disabled admin token returns 503`() = testApplication {
         seed()
-        application { routing { adminRoute("", cos) } } // 空 token → 禁用
+        application { routing { adminRoute("", cos, balance) } } // 空 token → 禁用
         val c = createClient { followRedirects = false }
         val r = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, "anything") }
         assertEquals(HttpStatusCode.ServiceUnavailable, r.status)
@@ -164,7 +168,7 @@ class AdminRoutesTest {
                 it[AnonymousDevices.lastSeenAt] = 1_700_000_001_000L
             }
         }
-        application { routing { adminRoute(token, cos, 100) } }
+        application { routing { adminRoute(token, cos, balance) } }
         val c = createClient { followRedirects = false }
 
         // 列表
