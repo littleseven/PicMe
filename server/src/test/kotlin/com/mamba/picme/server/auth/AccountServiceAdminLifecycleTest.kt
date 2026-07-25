@@ -7,7 +7,9 @@ import com.mamba.picme.server.util.TestDb
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -124,5 +126,49 @@ class AccountServiceAdminLifecycleTest {
     fun `purgeAccount returns false for missing account`() = runBlocking {
         seedAccount()
         assertFalse(AccountService.purgeAccount(9999))
+    }
+
+    @Test
+    fun `resetQuota zeroes used but keeps limit and call logs`() = runBlocking {
+        val (id, _) = seedAccount()
+        transaction(Db.instance) {
+            Accounts.update({ Accounts.id eq id }) {
+                with(SqlExpressionBuilder) { it[llmCallsUsed] = llmCallsUsed + 30 }
+            }
+        }
+
+        assertTrue(AccountService.resetQuota(id))
+
+        transaction(Db.instance) {
+            val acc = Accounts.selectAll().where { Accounts.id eq id }.single()
+            assertEquals(0, acc[Accounts.llmCallsUsed])
+            assertEquals(100, acc[Accounts.llmCallsLimit]) // limit 不变
+            assertEquals(1L, LlmCallLogs.selectAll().where { LlmCallLogs.accountId eq id }.count())
+        }
+    }
+
+    @Test
+    fun `resetQuota returns false for missing account`() = runBlocking {
+        assertFalse(AccountService.resetQuota(9999))
+    }
+
+    @Test
+    fun `setLimit updates limit`() = runBlocking {
+        val (id, _) = seedAccount()
+        assertTrue(AccountService.setLimit(id, 500))
+        transaction(Db.instance) {
+            assertEquals(500, Accounts.selectAll().where { Accounts.id eq id }.single()[Accounts.llmCallsLimit])
+        }
+    }
+
+    @Test
+    fun `setLimit rejects negative limit`() = runBlocking {
+        seedAccount()
+        try {
+            AccountService.setLimit(1, -1)
+            org.junit.Assert.fail("expected IllegalArgumentException")
+        } catch (_: IllegalArgumentException) {
+            // expected
+        }
     }
 }

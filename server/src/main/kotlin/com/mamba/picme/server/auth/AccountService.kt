@@ -309,4 +309,29 @@ object AccountService {
             }
         }
     }
+
+    /**
+     * 管理员重置已用额度：仅清零 llm_calls_used，保留 llm_calls_limit 与 llm_call_log 历史。
+     * 返回是否命中账号（false = id 不存在）。
+     */
+    suspend fun resetQuota(id: Int): Boolean {
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = Accounts.selectAll().where { Accounts.id eq id }.firstOrNull()
+                ?: return@newSuspendedTransaction false
+            Accounts.update({ Accounts.id eq id }) { it[llmCallsUsed] = 0 }
+            true
+        }
+    }
+
+    /**
+     * 管理员修改单账号调用上限。limit=0 即「禁用」（checkAndIncrementQuota: used(0) >= limit(0) → 恒拦截），
+     * 等价于 revoke 但不失效 token。返回是否命中。
+     */
+    suspend fun setLimit(id: Int, limit: Int): Boolean {
+        require(limit >= 0) { "limit must be >= 0" }
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val rows = Accounts.update({ Accounts.id eq id }) { it[llmCallsLimit] = limit }
+            rows > 0
+        }
+    }
 }
