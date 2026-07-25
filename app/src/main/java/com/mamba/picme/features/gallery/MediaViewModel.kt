@@ -137,6 +137,8 @@ class MediaViewModel(
         }
     }
 
+    fun refreshLabels() = repository.refreshLabels()
+
     fun refreshMediaLibrary() {
         viewModelScope.launch {
             Logger.d(TAG, "Refreshing media library")

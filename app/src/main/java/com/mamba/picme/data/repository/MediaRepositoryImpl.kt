@@ -232,6 +232,10 @@ class MediaRepositoryImpl(
         return allMedia.first().firstOrNull { asset -> asset.id == id }
     }
 
+    override fun refreshLabels() {
+        refreshVersion.value = refreshVersion.value + 1
+    }
+
     override suspend fun refreshMediaLibrary() {
         withContext(Dispatchers.IO) {
             val systemMedia = loadSystemMedia()

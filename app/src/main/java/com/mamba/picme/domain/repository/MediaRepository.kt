@@ -18,6 +18,9 @@ interface MediaRepository {
 
     suspend fun refreshMediaLibrary()
 
+    /** 轻量刷新:bump refreshVersion 触发 allMedia 重 emit(不重载 MediaStore)。单张 retag 后用。 */
+    fun refreshLabels()
+
     /**
      * 获取需要用户授权删除的 URI 列表（Android 11+）
      */
