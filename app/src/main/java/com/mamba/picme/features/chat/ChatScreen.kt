@@ -63,6 +63,7 @@ import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.AddComment
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.KeyboardVoice
@@ -381,6 +382,7 @@ fun ChatScreen(
                 ChatTopBar(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
+                    onNewChat = { viewModel.newSession() },
                     onNavigateToSettings = onNavigateToSettings,
                     onClearChat = { viewModel.clearChat() }
                 )
@@ -588,6 +590,7 @@ fun ChatScreen(
 private fun ChatTopBar(
     onNavigateBack: () -> Unit,
     onOpenSidebar: () -> Unit,
+    onNewChat: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onClearChat: () -> Unit
 ) {
@@ -624,6 +627,13 @@ private fun ChatTopBar(
                 Icon(
                     imageVector = Icons.Rounded.DeleteSweep,
                     contentDescription = stringResource(R.string.clear_chat),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            IconButton(onClick = onNewChat, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    imageVector = Icons.Rounded.AddComment,
+                    contentDescription = stringResource(R.string.new_chat),
                     modifier = Modifier.size(22.dp)
                 )
             }
