@@ -409,7 +409,10 @@ class ChatViewModel(
                     is AgentAction.Success -> {
                         when (action.command) {
                             is AgentCommand.AiOptimize -> {
-                                handleAgentAction(action, "default", currentModelLabel())
+                                handleAgentAction(action, _currentSessionId.value, currentModelLabel())
+                            }
+                            is AgentCommand.EditImage -> {
+                                handleAgentAction(action, _currentSessionId.value, currentModelLabel())
                             }
                             else -> {}
                         }

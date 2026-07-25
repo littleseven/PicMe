@@ -71,4 +71,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    // 让 JVM 单元测试能使用真实的 org.json 实现，而非 Android stub
+    testImplementation("org.json:json:20231013")
 }

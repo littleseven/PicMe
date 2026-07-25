@@ -280,6 +280,7 @@ class AgentConfigurator(private val context: Context) {
         第 2 次 draw_chart：type="bar", title="人像照片场景分布", labels=<keys 逗号拼接>, values=<数量逗号拼接>, unit="张"
 
         当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。
+        【图片编辑·不跳页】当用户要求美颜（磨皮/美白/瘦脸/大眼/唇色）、滤镜/风格（胶片风/冷调）、或多轮相对调整（再亮一点/再白一点）时，使用 edit_image：它在后台完成渲染并把结果图直接发到聊天中，**严禁为这些需求调用 navigate_to 跳转编辑页**。edit_image 的 edits 传 JSON 字符串，绝对值如 {"smoothing":30,"filter_name":"FILM_GOLD","filter_intensity":70}，相对调整用 *_delta 如 {"brightness_delta":20}；image_uri 留空即编辑用户最近发的图。多轮对话中用户连续调整同一张图时，用 *_delta 在上次结果上叠加。不支持的编辑（消除物体、局部美颜）不要编造参数，explanation 填 [unsupported:erase] 或 [unsupported:local_beauty]。
         完成后直接在最终回复中给出完整结果，不要调用 finish。只读操作直接做，不要让用户额外确认。
         【重要·收敛规则】拿到数据类工具（search_media / run_gallery_script / get_gallery_summary）的结果后，若用户要看图，可再调一次 draw_chart 把数据画成图（draw_chart 属于渲染，不算数据查询），随后立即用自然语言总结回复、不再调用其它工具。除"画图那次 draw_chart"外，禁止拿到结果后再调任何数据工具。每次请求最多 2 次工具调用（取数 1 次 + draw_chart 1 次）；绝不重复调用同一工具或换参数反复试探。
     """.trimIndent()

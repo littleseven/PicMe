@@ -7,16 +7,23 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import com.mamba.picme.beauty.api.PhotoProcessor
+import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.beauty.api.toBeautyParams
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.features.camera.toDevicePreference
+import com.mamba.picme.features.camera.toInferenceBackendType
+import com.mamba.picme.features.camera.toLandmarkDetectorType
+import com.mamba.picme.features.camera.toRoiDetectorType
 import com.mamba.picme.features.editor.EditRecipe
 import com.mamba.picme.features.editor.FaceDataConverter
 import com.mamba.picme.features.editor.RecipeApplier
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
@@ -26,12 +33,45 @@ class ChatEditProcessor(
     private val photoProcessor: PhotoProcessor,
     private val faceDetector: FaceDetector,
     private val mediaRepository: MediaRepository,
+    private val userSettingsRepository: UserSettingsRepository? = null,
     private val outputCollectionUri: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
     private val recipeApplierFactory: (PhotoProcessor, CoroutineDispatcher) -> RecipeApplier = ::RecipeApplier
 ) {
 
     private val photoProcessingDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+
+    /** 人脸管线只需配置一次（进程级），未配置时 detectPhoto 会静默返回 null。 */
+    @Volatile
+    private var facePipelineConfigured = false
+
+    /**
+     * 确保人脸检测管线已初始化（镜像 PhotoEditorViewModel 的做法）。
+     *
+     * 关键背景：FaceDetectorFactory.create() 后必须调 updatePipelineConfig()，
+     * 否则 isPipelineInitialized=false，detectPhoto() 静默返回 null，
+     * 导致瘦脸/大眼/唇色等依赖人脸关键点的效果被静默跳过。
+     */
+    private suspend fun ensureFacePipeline() {
+        if (facePipelineConfigured) return
+        val repository = userSettingsRepository ?: return
+        runCatching {
+            val roiStageConfig = repository.roiStageConfigFlow.first()
+            val landmarkStageConfig = repository.landmarkStageConfigFlow.first()
+            faceDetector.updatePipelineConfig(
+                DetectionPipelineConfig(
+                    roiDetector = roiStageConfig.modelType.toRoiDetectorType(),
+                    landmarkDetector = landmarkStageConfig.modelType.toLandmarkDetectorType(),
+                    roiEngine = roiStageConfig.engineType.toInferenceBackendType(),
+                    landmarkEngine = landmarkStageConfig.engineType.toInferenceBackendType(),
+                    roiDevice = roiStageConfig.devicePreference.toDevicePreference(),
+                    landmarkDevice = landmarkStageConfig.devicePreference.toDevicePreference()
+                )
+            )
+            facePipelineConfigured = true
+            Logger.d(TAG, "Face detection pipeline initialized for chat edit")
+        }.onFailure { Logger.e(TAG, "Failed to initialize face detection pipeline for chat edit", it) }
+    }
 
     /**
      * 执行编辑并保存结果图。
@@ -41,6 +81,7 @@ class ChatEditProcessor(
     suspend fun execute(context: Context, sourceUri: String, recipe: EditRecipe): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
+                ensureFacePipeline()
                 val normalizedUri = normalizeSourceUri(sourceUri)
                 val fullBitmap = decodeFullBitmap(context, Uri.parse(normalizedUri))
                     ?: return@withContext Result.failure(IllegalStateException("无法加载原图: $sourceUri"))
@@ -92,6 +133,10 @@ class ChatEditProcessor(
         runCatching {
             faceDetector.detectPhoto(bitmap, lensFacing = 1)?.landmarks106?.let { landmarks ->
                 FaceDataConverter.fromLandmarks106(landmarks, bitmap.width, bitmap.height)
+            }
+        }.onSuccess { faceData ->
+            if (faceData == null) {
+                Logger.w(TAG, "Face detection returned null, face-driven effects (slimFace/lipColor 等) 将被跳过")
             }
         }.getOrNull()
     }

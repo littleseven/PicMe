@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.tool
 
 import com.mamba.picme.agent.core.model.command.AgentCommand
+import com.mamba.picme.agent.core.model.command.EditParams
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.agent.core.model.context.AgentAction
@@ -165,6 +166,29 @@ class ChatToolService private constructor() {
     }
 
     @Tool(
+        name = "edit_image",
+        value = ["对话式图片编辑（美颜/滤镜/调色），后台完成并把结果图发到聊天中，**绝不跳转到编辑页**。用户说「磨皮 30」「瘦脸」「美白一点」「换胶片风」「再亮一点」等编辑意图时使用（含 adjust_image 覆盖不了的场景）。edits 为 JSON 字符串，字段（均可选，只传要改的）：smoothing/whitening/slim_face/big_eyes/lip_color/blush/eyebrow（美颜 0~100，slim_face -50~50）、brightness/exposure/contrast/saturation（-50~50）、temperature/tint（-50~50）、filter_name（滤镜枚举，如 FILM_GOLD/COOL）、filter_intensity（0~100）、style_name（风格枚举）。相对调整用 *_delta 字段（如 {\"brightness_delta\":20} 表示再亮一点）。不支持的编辑（消除物体/局部美颜）不要编造参数，在 explanation 返回 [unsupported:erase] 或 [unsupported:local_beauty]。"]
+    )
+    fun editImage(
+        @P(name = "image_uri", value = "目标图片 URI，留空串表示用最近发送的图片") imageUri: String,
+        @P(name = "edits", value = "编辑参数 JSON 字符串，如 {\"smoothing\":30,\"filter_name\":\"FILM_GOLD\",\"filter_intensity\":70}") edits: String,
+        @P(name = "explanation", value = "给用户的一句话说明；未支持请求填 [unsupported:erase] 或 [unsupported:local_beauty]，无则留空串") explanation: String
+    ): String {
+        val params = try {
+            EditParams.fromJson(org.json.JSONObject(edits.ifBlank { "{}" }))
+        } catch (e: Exception) {
+            return "Error: edits JSON 解析失败: ${e.message}"
+        }
+        return dispatchCommand(
+            AgentCommand.EditImage(
+                params = params,
+                imageUri = imageUri,
+                explanation = explanation.ifBlank { null }
+            )
+        )
+    }
+
+    @Tool(
         name = "run_gallery_script",
         value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（取数类 handler 只读、数据不出端；删除/收藏等写操作走 capability.dispatch，会弹窗经用户确认）。所有 handler 均为异步，**必须用 await bridge.callAsync(name, args) 调用**（bridge.call 已禁用，调用会报错）。可用 handler： gallery.summary → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； gallery.tags → 实际打标标签分布 {标签:照片数}（按计数降序 top 50）； gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {\"桶起始时间戳\":照片数}（默认按月，bucketMs=2592000000=月/31536000000=年）； gallery.intersect({idsA:[...],idsB:[...],op:\"intersect|union|diff\"}) → 集合交并差，返回 {ids:[...],total:N}（用于多次 query 结果交叉，如旅行+人脸）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）； media.batch_meta([id1,id2,...]) → 批量元数据 [{...},...]（上限 50，避免循环调 media.meta）； gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布（如人像照片内的场景标签）； face.cluster({topN?}) → 人脸聚类盘点 {clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}（topN 默认 10 上限 50，不含 embedding 原始数据）； tag.audit({topN?}) → 打标覆盖审计 {totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}（词表外标签 topN 默认 10 上限 50）。 可并发取数：var r=await Promise.all([bridge.callAsync('gallery.summary',{}),bridge.callAsync('gallery.tags',{})]); var s=r[0],t=r[1]; 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia；环比 = 本月/上月-1），return 结果对象回传给你做总结。 示例：var s=await bridge.callAsync('gallery.summary',{}); var t=await bridge.callAsync('gallery.tags',{}); return {total:s.totalMedia, topTags:t}; 写操作（删除/收藏/选中）：用 await bridge.callAsync('capability.dispatch',{method,params})，写操作会在端侧弹窗等用户确认（拒绝或超时 Promise 会 reject，必须 try/catch）。支持的 method 仅此四种： delete_media {ids:[数字id,...]}（删除，不可恢复）、favorite_media {id:数字id, favorite:true/false}、select_media {id:数字id, selected:true/false}、get_gallery_summary {}（只读直通）；其余 method 会报错。 完整示例（找出截图标签照片并批量删除）：var q=await bridge.callAsync('gallery.query',{label:'截图',limit:200}); if(q.ids.length===0){return {deleted:0};} try{var r=await bridge.callAsync('capability.dispatch',{method:'delete_media',params:{ids:q.ids}}); return {deleted:q.total, result:r};}catch(e){return {deleted:0, cancelled:true, reason:String(e)};}"]
     )
@@ -299,6 +323,11 @@ class ChatToolService private constructor() {
                 args.optString("temperature", "")
             )
             "run_gallery_script" -> runGalleryScript(args.optString("code", ""))
+            "edit_image" -> editImage(
+                args.optString("image_uri", ""),
+                args.optString("edits", ""),
+                args.optString("explanation", "")
+            )
             "draw_chart" -> drawChart(
                 type = args.optString("type", "bar"),
                 title = args.optString("title", ""),
@@ -342,6 +371,7 @@ class ChatToolService private constructor() {
                         is AgentAction.TextReply -> action.message
                         is AgentAction.Success -> when (action.command) {
                             is AgentCommand.AiOptimize -> "图片已优化，结果已展示在聊天中"
+                            is AgentCommand.EditImage -> "图片已编辑完成，结果图已发到聊天中"
                             else -> "OK"
                         }
                         is AgentAction.Error -> "Error: ${action.message}"

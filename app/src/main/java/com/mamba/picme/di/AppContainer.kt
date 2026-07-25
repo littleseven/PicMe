@@ -393,7 +393,8 @@ class AppContainerImpl(
         ChatEditProcessor(
             photoProcessor = photoProcessor,
             faceDetector = faceDetector,
-            mediaRepository = repository
+            mediaRepository = repository,
+            userSettingsRepository = userPreferencesRepository
         )
     }
 
