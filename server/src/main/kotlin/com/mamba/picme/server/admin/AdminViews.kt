@@ -1018,7 +1018,7 @@ object AdminViews {
     private fun fmt(d: Double): String = formatCostCny(d)
 
     private fun fmtTs(ms: Long): String =
-        java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.UTC).toString().take(19).replace("T", " ")
+        java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.ofHours(8)).toString().take(19).replace("T", " ")
 
     private fun formatBytes(b: Long): String = when {
         b <= 0 -> "0 B"
