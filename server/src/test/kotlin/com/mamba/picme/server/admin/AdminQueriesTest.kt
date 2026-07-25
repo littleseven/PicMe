@@ -157,6 +157,22 @@ class AdminQueriesTest {
         assertEquals("device••••1234", users[0].deviceIdMasked)
     }
 
+    @Test
+    fun `channelUsage aggregates by provider for ok calls`() = runBlocking {
+        TestDb.init(LlmCallLogs)
+        logRow(1, "deepseek-chat", "DeepSeek 直连", 100, 50, 150, 1.0, 100, "ok", 1_000L)
+        logRow(1, "deepseek-chat", "DeepSeek 直连", 10, 5, 15, 0.1, 50, "ok", 2_000L)
+        logRow(1, "deepseek-chat", "DeepSeek 直连", null, null, null, 0.0, 0, "blocked_quota", 3_000L)
+        logRow(1, "kimi-k2.6", "Kimi 直连", 10, 5, 15, 0.5, 80, "ok", 4_000L)
+
+        val usage = AdminQueries.channelUsage()
+        val ds = usage.getValue("DeepSeek 直连")
+        assertEquals(2L, ds.calls) // 不计 blocked
+        assertEquals(165L, ds.tokens) // 150 + 15
+        assertEquals(1.1, ds.cost, 0.000001)
+        assertEquals(1L, usage.getValue("Kimi 直连").calls)
+    }
+
     private suspend fun account(id: Int, email: String, createdAt: Long) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             Accounts.insert {

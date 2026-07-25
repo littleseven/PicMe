@@ -93,6 +93,13 @@ data class DeviceRow(
     val lastSeenAt: Long,
 )
 
+data class ChannelUsage(
+    val provider: String,
+    val calls: Long,
+    val tokens: Long,
+    val cost: Double,
+)
+
 // ── Queries（自然日按 UTC；内部后台够用。聚合在内存做，trial 规模毫秒级）──
 
 object AdminQueries {
@@ -149,6 +156,20 @@ object AdminQueries {
             totalTokens = totalTokens,
             totalCost = totalCost,
         )
+    }
+
+    /** 按 provider 聚合成功调用消耗（全量）。供渠道页展示。 */
+    suspend fun channelUsage(): Map<String, ChannelUsage> = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        val acc = HashMap<String, ChannelUsage>()
+        LlmCallLogs.selectAll().where { LlmCallLogs.status eq "ok" }.forEach { r ->
+            val p = r[LlmCallLogs.provider]
+            val tokens = r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
+            val cost = r[LlmCallLogs.costCny]
+            val cur = acc[p]
+            acc[p] = if (cur == null) ChannelUsage(p, 1, tokens, cost)
+            else ChannelUsage(p, cur.calls + 1, cur.tokens + tokens, cur.cost + cost)
+        }
+        acc
     }
 
     suspend fun dailySeries(days: Int, now: Long): List<DayBucket> =
