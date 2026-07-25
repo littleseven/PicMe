@@ -1197,7 +1197,7 @@ private fun PhotoInfoDialog(
     val tagTranslator = remember(context) { TagTranslator(BilingualVocab.loadFromAssets(context)) }
     var tags by remember(asset.labels) {
         mutableStateOf(
-            parseLabelsToHumanReadable(
+            parseTagsGrouped(
                 labels = asset.labels,
                 translator = tagTranslator,
                 lang = appLanguage,
@@ -1314,7 +1314,7 @@ private fun PhotoInfoDialog(
                                 scope.launch {
                                     val resultJson = onReTag(asset.uri.toUri())
                                     if (resultJson != null) {
-                                        tags = parseLabelsToHumanReadable(
+                                        tags = parseTagsGrouped(
                                             labels = resultJson,
                                             translator = tagTranslator,
                                             lang = appLanguage,
@@ -1428,34 +1428,72 @@ private fun PhotoInfoDialog(
                 }
 
                 // 标签
-                if (tags.isNotEmpty()) {
+                if (tags.totalCount > 0) {
                     Divider(
                         modifier = Modifier.padding(vertical = 6.dp),
                         color = Color.White.copy(alpha = 0.1f)
                     )
                     Text(
-                        text = stringResource(R.string.tag_label_title, tags.size),
+                        text = stringResource(R.string.tag_label_title, tags.totalCount),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                     )
-                    // 标签列表
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        tags.forEach { tag ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
+                    // 摘要(第一行)
+                    if (tags.summary.isNotBlank()) {
+                        Text(
+                            text = tags.summary,
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                        )
+                    }
+                    // 场景 / 活动 / 对象(第二行起)
+                    val metaTags = buildList {
+                        if (tags.scene.isNotBlank()) add(tags.scene)
+                        if (tags.activity.isNotBlank()) add(tags.activity)
+                        addAll(tags.objects)
+                    }
+                    if (metaTags.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        ) {
+                            metaTags.forEach { tag ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        fontSize = 12.sp,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // tags(新起一行,放最后)
+                    if (tags.tags.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            tags.tags.forEach { tag ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        fontSize = 12.sp,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -1537,6 +1575,67 @@ private fun parseLabelsToHumanReadable(
         }
     } catch (e: Exception) {
         listOf(translator.display(labels, lang).take(100))
+    }
+}
+
+/** 照片信息弹窗用的分组标签(按字段分行渲染)。 */
+private data class ParsedTags(
+    val summary: String = "",
+    val scene: String = "",
+    val activity: String = "",
+    val objects: List<String> = emptyList(),
+    val tags: List<String> = emptyList()
+) {
+    val totalCount: Int
+        get() = (if (summary.isNotBlank()) 1 else 0) +
+            (if (scene.isNotBlank()) 1 else 0) +
+            (if (activity.isNotBlank()) 1 else 0) +
+            objects.size + tags.size
+}
+
+/**
+ * 解析 labels(JSON Object 或 Array)为分组标签,按当前语言翻译。
+ *
+ * Object(Pass3):summary / scene / activity / objects / tags 各字段;
+ * Array(旧):全部归入 tags。供 PhotoInfoDialog 分行渲染。
+ */
+private fun parseTagsGrouped(
+    labels: String?,
+    translator: TagTranslator,
+    lang: AppLanguage,
+    scenePrefix: String,
+    activityPrefix: String,
+    summaryPrefix: String
+): ParsedTags {
+    if (labels.isNullOrBlank()) return ParsedTags()
+    return try {
+        val trimmed = labels.trim()
+        when {
+            trimmed.startsWith("{") -> {
+                val obj = JSONObject(trimmed)
+                ParsedTags(
+                    summary = obj.optString("summary").takeIf { it.isNotBlank() }
+                        ?.let { summaryPrefix.format(translator.display(it, lang)) }.orEmpty(),
+                    scene = obj.optString("scene").takeIf { it.isNotBlank() }
+                        ?.let { scenePrefix.format(translator.display(it, lang)) }.orEmpty(),
+                    activity = obj.optString("activity").takeIf { it.isNotBlank() }
+                        ?.let { activityPrefix.format(translator.display(it, lang)) }.orEmpty(),
+                    objects = obj.optJSONArray("objects")
+                        ?.let { arr -> (0 until arr.length()).map { translator.display(arr.getString(it), lang) } }
+                        ?: emptyList(),
+                    tags = obj.optJSONArray("tags")
+                        ?.let { arr -> (0 until arr.length()).map { translator.display(arr.getString(it), lang) } }
+                        ?: emptyList()
+                )
+            }
+            trimmed.startsWith("[") -> {
+                val arr = JSONArray(trimmed)
+                ParsedTags(tags = (0 until arr.length()).map { translator.display(arr.getString(it), lang) })
+            }
+            else -> ParsedTags()
+        }
+    } catch (e: Exception) {
+        ParsedTags()
     }
 }
 
