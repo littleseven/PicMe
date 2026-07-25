@@ -83,4 +83,11 @@ object GuestService {
             AnonymousDevices.deleteWhere { with(SqlExpressionBuilder) { AnonymousDevices.deviceId eq deviceId } }
         }
     }
+
+    /** 按 database id 删除访客记录（管理后台用;与 [deleteByDeviceId] 并列）。 */
+    suspend fun deleteById(id: Int) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            AnonymousDevices.deleteWhere { with(SqlExpressionBuilder) { AnonymousDevices.id eq id } }
+        }
+    }
 }

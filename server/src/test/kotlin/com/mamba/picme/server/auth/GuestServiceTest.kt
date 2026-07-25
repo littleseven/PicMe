@@ -59,4 +59,15 @@ class GuestServiceTest {
         GuestService.revertQuota("never-seen") // must not throw / not go negative
         assertEquals(0L, transaction { AnonymousDevices.selectAll().count() })
     }
+
+    @Test
+    fun `deleteById removes the row and ignores unknown id`() = runBlocking {
+        TestDb.init(AnonymousDevices)
+        GuestService.checkAndIncrementQuota("dev-x", limit) // 插入 id=1, used=1
+        GuestService.deleteById(1)
+        assertEquals(0L, transaction { AnonymousDevices.selectAll().count() })
+        // unknown id 无副作用、不抛异常
+        GuestService.deleteById(999)
+        assertEquals(0L, transaction { AnonymousDevices.selectAll().count() })
+    }
 }
