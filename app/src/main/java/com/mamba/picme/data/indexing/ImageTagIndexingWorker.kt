@@ -123,7 +123,7 @@ class ImageTagIndexingWorker(
      *
      * @return 新标签列表(成功);null 表示失败(模型未加载 / 媒体不存在 / 推理空 / 解析空)。
      */
-    suspend fun reTagSingle(uri: Uri): List<String>? = withContext(Dispatchers.IO) {
+    suspend fun reTagSingle(uri: Uri, modelKey: String): List<String>? = withContext(Dispatchers.IO) {
         val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
         val loadResult = orchestrator.ensureModelLoaded(
             modelId = modelKey,

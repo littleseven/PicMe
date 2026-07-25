@@ -91,6 +91,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CameraAlt
@@ -793,7 +794,8 @@ fun GalleryScreen(
                         },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = { uri ->
-                            app.container.imageTagIndexingWorker.reTagSingle(uri)
+                            val taggerKey = app.container.userPreferencesRepository.taggerModelKeyFlow.first()
+                            app.container.imageTagIndexingWorker.reTagSingle(uri, taggerKey)
                         }
                     )
                 }
