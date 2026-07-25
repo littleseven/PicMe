@@ -1,5 +1,6 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
@@ -72,6 +73,14 @@ data class CallRow(
     val status: String,
     val latencyMs: Int?,
     val createdAt: Long,
+)
+
+data class DeviceRow(
+    val id: Int,
+    val deviceIdMasked: String,
+    val llmCallsUsed: Int,
+    val createdAt: Long,
+    val lastSeenAt: Long,
 )
 
 // ── Queries（自然日按 UTC；内部后台够用。聚合在内存做，trial 规模毫秒级）──
@@ -218,6 +227,27 @@ object AdminQueries {
                 }
         }
 
+    suspend fun devicesList(limit: Int = 1000): List<DeviceRow> =
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            AnonymousDevices.selectAll()
+                .orderBy(AnonymousDevices.lastSeenAt to SortOrder.DESC)
+                .limit(limit)
+                .map { r ->
+                    DeviceRow(
+                        id = r[AnonymousDevices.id],
+                        deviceIdMasked = maskDeviceId(r[AnonymousDevices.deviceId]),
+                        llmCallsUsed = r[AnonymousDevices.llmCallsUsed],
+                        createdAt = r[AnonymousDevices.createdAt],
+                        lastSeenAt = r[AnonymousDevices.lastSeenAt],
+                    )
+                }
+        }
+
+    suspend fun deviceRawId(id: Int): String? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        AnonymousDevices.selectAll().where { AnonymousDevices.id eq id }
+            .firstOrNull()?.get(AnonymousDevices.deviceId)
+    }
+
     private class DayAcc {
         var calls = 0L
         var blocked = 0L
@@ -261,5 +291,11 @@ object AdminQueries {
         token.isEmpty() -> "—"
         token.length <= 8 -> "••••" + token.takeLast(4)
         else -> token.take(4) + "••••" + token.takeLast(4)
+    }
+
+    /** device_id 掩码:前 6 + •••• + 后 4;长度 ≤ 10 时只露后 4。与 [maskToken] 同形。 */
+    private fun maskDeviceId(deviceId: String): String = when {
+        deviceId.length <= 10 -> "••••" + deviceId.takeLast(4)
+        else -> deviceId.take(6) + "••••" + deviceId.takeLast(4)
     }
 }

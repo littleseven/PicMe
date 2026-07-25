@@ -1,5 +1,6 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
@@ -110,6 +111,30 @@ class AdminQueriesTest {
         assertEquals(14, series.size)
     }
 
+    @Test
+    fun `devicesList orders by lastSeenAt desc masks deviceId and limits`() = runBlocking {
+        TestDb.init(AnonymousDevices)
+        device(1, "abcdef1234567890", 1, 1_000L, 1_000L)
+        device(2, "zzzzzz0000001111", 5, 2_000L, 5_000L)
+        val rows = AdminQueries.devicesList(100)
+        assertEquals(2, rows.size)
+        assertEquals(2, rows[0].id) // lastSeenAt 5000 在前
+        assertEquals(1, rows[1].id)
+        assertEquals("abcdef••••7890", rows.first { it.id == 1 }.deviceIdMasked)
+        assertEquals(5, rows[0].llmCallsUsed)
+        assertEquals(1_000L, rows[1].createdAt)
+        // limit 截断
+        assertEquals(1, AdminQueries.devicesList(1).size)
+    }
+
+    @Test
+    fun `deviceRawId hits and misses`() = runBlocking {
+        TestDb.init(AnonymousDevices)
+        device(1, "dev-full-id-xyz", 1, 1L, 1L)
+        assertEquals("dev-full-id-xyz", AdminQueries.deviceRawId(1))
+        assertNull(AdminQueries.deviceRawId(999))
+    }
+
     private suspend fun account(id: Int, email: String, createdAt: Long) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             Accounts.insert {
@@ -148,6 +173,18 @@ class AdminQueriesTest {
                 it[LlmCallLogs.respBytes] = bytes
                 it[LlmCallLogs.status] = status
                 it[LlmCallLogs.createdAt] = createdAt
+            }
+        }
+    }
+
+    private suspend fun device(id: Int, deviceId: String, used: Int, createdAt: Long, lastSeenAt: Long) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            AnonymousDevices.insert {
+                it[AnonymousDevices.id] = id
+                it[AnonymousDevices.deviceId] = deviceId
+                it[AnonymousDevices.llmCallsUsed] = used
+                it[AnonymousDevices.createdAt] = createdAt
+                it[AnonymousDevices.lastSeenAt] = lastSeenAt
             }
         }
     }
