@@ -29,6 +29,8 @@ class AdminViewsTest {
         assertTrue(html.contains("picm••••wxyz"))
         assertTrue(html.contains("tokCopy(1, this)"))
         assertTrue(html.contains("Token 用量"))
+        assertTrue(html.contains("Device ID"))
+        assertTrue(html.contains("device••••1234"))
         assertTrue(html.contains("未注册设备")) // 二级 Tab 出现
     }
 
