@@ -238,16 +238,22 @@ class AgentConfigurator(private val context: Context) {
         示例：用户"每月拍照数量柱状图" → run_gallery_script 取 monthlyTrend → draw_chart(type="bar", title="每月拍照数量", labels="2024年8月,2024年9月,2024年10月", values="12,17,30", unit="张")。
 
         【run_gallery_script 能力总览】
-        run_gallery_script 在端侧 QuickJS 沙箱执行 JS（只读，数据不出端），可用 bridge.call 调用以下 handler：
-        - gallery.summary() → 相册聚合统计
+        run_gallery_script 在端侧 QuickJS 沙箱执行 JS（取数类 handler 只读、数据不出端；写操作走 capability.dispatch，经用户确认）。所有 handler 均为异步：**必须用 await bridge.callAsync(name, args) 调用**（bridge.call 已禁用，调用会报错）：
+        - gallery.summary → 相册聚合统计
         - gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤 {ids,total}
-        - gallery.tags() → 全局标签分布 {标签:照片数}
+        - gallery.tags → 全局标签分布 {标签:照片数}
         - gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {桶起始时间戳:照片数}（默认按月）
         - gallery.intersect({idsA:[...],idsB:[...],op:"intersect|union|diff"}) → 集合交并差 {ids,total}
         - gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布
         - media.meta(id) → 单张元数据
         - media.batch_meta([id1,id2,...]) → 批量元数据（上限50）
-        在 JS 内组合多个 bridge.call 做一次计算，return 结果对象回传给你做总结（需要画图则另外调 draw_chart 工具，见上「画图规则」）。
+        - face.cluster({topN?}) → 人脸聚类盘点 {clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}（topN 默认 10 上限 50）
+        - tag.audit({topN?}) → 打标覆盖审计 {totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}（词表外标签 topN 默认 10 上限 50）
+        多个取数可用 Promise.all 并发：var r=await Promise.all([bridge.callAsync('gallery.summary',{}),bridge.callAsync('gallery.tags',{})]); var s=r[0],t=r[1];
+        在 JS 内组合多个 callAsync 做一次计算，return 结果对象回传给你做总结（需要画图则另外调 draw_chart 工具，见上「画图规则」）。
+
+        【capability.dispatch 写通路】JS 内可用 await bridge.callAsync('capability.dispatch',{method,params}) 调度 App 写操作。写操作会在端侧弹窗等用户确认，确认后才执行；用户拒绝或超时 Promise 会 reject，必须用 try/catch 处理（catch 后如实告知用户"操作已取消"）。支持的 method 仅此四种：delete_media {ids:[数字id,...]}（删除，不可恢复，还会触发系统授权框）、favorite_media {id:数字id, favorite:true/false}、select_media {id:数字id, selected:true/false}、get_gallery_summary {}（只读直通，不弹确认）；其余 method 会报错。删除前务必先用 gallery.query 等只读 handler 取到准确 ids。
+        示例（找出截图标签照片并批量删除）：var q=await bridge.callAsync('gallery.query',{label:'截图',limit:200}); if(q.ids.length===0){return {deleted:0};} try{var r=await bridge.callAsync('capability.dispatch',{method:'delete_media',params:{ids:q.ids}}); return {deleted:q.total, result:r};}catch(e){return {deleted:0, cancelled:true, reason:String(e)};}
 
         【关于图表】画图一律用 draw_chart 工具（见上「画图规则」）。它内部已实现柱/折/饼渲染，你只需传 type/title/labels/values/unit，无需自己写 SVG，也不用在脚本里 return Chart。
 
@@ -263,14 +269,14 @@ class AgentConfigurator(private val context: Context) {
         - 修图/打标/设置等写操作
 
         示例 1：「我相册每月拍照趋势」（取数 + 画图，两次工具）
-        第 1 次 run_gallery_script：return bridge.call('gallery.timeline');  // 得到 {时间戳:数量}
+        第 1 次 run_gallery_script：return await bridge.callAsync('gallery.timeline', {});  // 得到 {时间戳:数量}
         第 2 次 draw_chart：type="line", title="每月拍照趋势", labels=<月份逗号分隔>, values=<对应数量逗号分隔>, unit="张"
 
         示例 2：「旅行照片里有多少是人像」
-        JS: var q1=bridge.call('gallery.query',{label:'旅行',limit:200}); var q2=bridge.call('gallery.query',{label:'人像',hasFace:true,limit:200}); var inter=bridge.call('gallery.intersect',{idsA:q1.ids,idsB:q2.ids,op:'intersect'}); return {travelTotal:q1.total, faceInTravel:inter.total, ratio:q1.total>0?Math.round(inter.total/q1.total*1000)/10:0};
+        JS: var r=await Promise.all([bridge.callAsync('gallery.query',{label:'旅行',limit:200}), bridge.callAsync('gallery.query',{label:'人像',hasFace:true,limit:200})]); var q1=r[0], q2=r[1]; var inter=await bridge.callAsync('gallery.intersect',{idsA:q1.ids,idsB:q2.ids,op:'intersect'}); return {travelTotal:q1.total, faceInTravel:inter.total, ratio:q1.total>0?Math.round(inter.total/q1.total*1000)/10:0};
 
         示例 3：「人像照片里最常见的场景标签」（分布 → 柱状图）
-        第 1 次 run_gallery_script：var tags=bridge.call('gallery.stats_by_tag',{hasFace:true}); var keys=Object.keys(tags).sort(function(a,b){return tags[b]-tags[a];}).slice(0,8); return {labels:keys, values:keys.map(function(k){return tags[k];})};
+        第 1 次 run_gallery_script：var tags=await bridge.callAsync('gallery.stats_by_tag',{hasFace:true}); var keys=Object.keys(tags).sort(function(a,b){return tags[b]-tags[a];}).slice(0,8); return {labels:keys, values:keys.map(function(k){return tags[k];})};
         第 2 次 draw_chart：type="bar", title="人像照片场景分布", labels=<keys 逗号拼接>, values=<数量逗号拼接>, unit="张"
 
         当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。

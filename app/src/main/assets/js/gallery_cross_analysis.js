@@ -2,15 +2,15 @@
 // 在条件过滤后的结果集内统计标签分布，实现多维交叉分析。
 // 示例场景："人像照片里最常见的场景标签是什么"
 // 由 Debug 页运行 / 远程 LLM 生成参考。
-(function () {
-    var s = bridge.call("gallery.summary");
+(async function () {
+    var s = await bridge.callAsync("gallery.summary", {});
     var total = s.totalMedia;
 
     // 全局标签分布
-    var globalTags = bridge.call("gallery.tags");
+    var globalTags = await bridge.callAsync("gallery.tags", {});
 
     // 人像照片（hasFace=true）内的标签分布
-    var faceTags = bridge.call("gallery.stats_by_tag", { hasFace: true });
+    var faceTags = await bridge.callAsync("gallery.stats_by_tag", { hasFace: true });
 
     // 非人像照片的标签分布（通过差集推断）
     var nonFaceTags = {};

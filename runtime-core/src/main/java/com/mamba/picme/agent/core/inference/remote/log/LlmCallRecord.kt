@@ -7,9 +7,11 @@ package com.mamba.picme.agent.core.inference.remote.log
  * 再由 :app 侧的 RoomLlmCallRecorder 持久化到独立数据库 llm_call_log。
  *
  * @param source 调用来源标签（如 "agent_stream" / "react"），便于在 Debug 页筛选。
- * @param requestJson 序列化后的请求摘要（model / 参数 / tools 数量 / 完整 messages JSON）。
- * @param responseJson 序列化后的响应摘要（text / thinking / toolCalls / finishReason / usage）。
- * @param errorMessage 失败时（onError）的异常信息；成功时为 null。
+ * @param requestJson 序列化后的请求摘要。DEBUG 含完整 messages JSON；
+ *   release（captureContent=false）只含 model / toolsCount / messageCount / hasSystemPrompt 纯指标。
+ * @param responseJson 序列化后的响应摘要。DEBUG 含 text / thinking / toolCalls 全文；
+ *   release 只含 finishReason / toolCallNames / textLength / usage 纯指标。
+ * @param errorMessage 失败时（onError）的异常信息；成功时为 null。release 下截断到 500 字符。
  */
 data class LlmCallRecord(
     val createdAt: Long,

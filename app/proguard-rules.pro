@@ -51,12 +51,9 @@
 # 验证：release 包 logcat 不再出现 PoLang:FeishuHandler NoSuchFieldException autoReconnect。
 -keep class com.lark.oapi.ws.Client { *; }
 
-# === JS 引擎 + JSBridge（Rhino）===
-# Rhino 引用 java.beans.*（Android 无此 API），R8 报 missing class；运行时不触发该路径
--dontwarn java.beans.**
-# Rhino 大量反射（ClassShutter / Context / BaseFunction / NativeObject），整体保留防 R8 裁剪
--keep class org.mozilla.javascript.** { *; }
-# JS bridge：NativeHandler 工厂 object、JsBridge、RhinoJsEngine 内匿名 BaseFunction 经反射装配
+# === JS 引擎 + JSBridge（QuickJS）===
+# JS bridge：NativeHandler 工厂 object、JsBridge、JsEngine 实现经反射装配
 -keep class com.mamba.picme.agent.core.js.** { *; }
-# 远程 @Tool 方法被 langchain4j 反射扫描生成 ToolSpecification（含 run_gallery_script）
+# 远程 @Tool 方法被 langchain4j 反射扫描生成 ToolSpecification（含 run_gallery_script / draw_chart）
 -keep class com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService { *; }
+-keep class com.mamba.picme.agent.core.inference.remote.tool.ChatToolService { *; }

@@ -12,6 +12,7 @@ import com.mamba.picme.core.image.ImageProcessorImpl
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
 import com.mamba.picme.data.local.MlKitOcrProcessor
@@ -150,6 +151,15 @@ interface AppContainer {
     /** TAG 数据库还原用例 */
     val restoreTagDataUseCase: RestoreTagDataUseCase
 
+    /** 相册摘要查询（chat JS handler / Debug 演示共用） */
+    val getGallerySummaryUseCase: GetGallerySummaryUseCase
+    /** 相册结构化查询（chat JS handler / Debug 演示共用） */
+    val queryGalleryMediaUseCase: QueryGalleryMediaUseCase
+    /** 人物/人脸聚类 DAO（chat JS handler face.cluster / Debug 演示共用） */
+    val personDao: PersonDao
+    /** 受控词表（chat JS handler tag.audit 词表外标签比对 / Debug 演示共用） */
+    val controlledVocab: ControlledVocab
+
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
     fun createPhotoEditorViewModelFactory(): ViewModelProvider.Factory
@@ -173,9 +183,12 @@ class AppContainerImpl(
     }
 
     /** 受控词表（标签规范化 + 搜索同义词扩展） */
-    private val controlledVocab: ControlledVocab by lazy {
+    override val controlledVocab: ControlledVocab by lazy {
         ControlledVocab.loadFromAssets(context)
     }
+
+    override val personDao: PersonDao
+        get() = database.personDao()
 
     /** OPUS-MT 翻译引擎（SentencePiece + ONNX Runtime） */
     private val opusMtTranslator: OpusMtTranslator by lazy {
@@ -441,11 +454,11 @@ class AppContainerImpl(
         MlKitOcrProcessor()
     }
 
-    private val getGallerySummaryUseCase: GetGallerySummaryUseCase by lazy {
+    override val getGallerySummaryUseCase: GetGallerySummaryUseCase by lazy {
         GetGallerySummaryUseCase(context = context, db = database)
     }
 
-    private val queryGalleryMediaUseCase: QueryGalleryMediaUseCase by lazy {
+    override val queryGalleryMediaUseCase: QueryGalleryMediaUseCase by lazy {
         QueryGalleryMediaUseCase(db = database)
     }
 
@@ -510,10 +523,13 @@ class AppContainerImpl(
             userSettingsRepository = userPreferencesRepository,
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
+            mediaRepository = repository,
             picMeAuthClient = PoLangAuthClient(),
             getGallerySummaryUseCase = getGallerySummaryUseCase,
             queryGalleryMediaUseCase = queryGalleryMediaUseCase,
             startTagScanUseCase = startTagScanUseCase,
+            personDao = database.personDao(),
+            controlledVocab = controlledVocab,
             chatImageRenderer = chatImageRenderer
         )
     }

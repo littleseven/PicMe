@@ -633,7 +633,7 @@
     <string name="debug_image_download">图片下载页</string>
     <string name="debug_image_download_desc">测试数据生成与图片下载。</string>
     <string name="llm_call_log">LLM 调用日志</string>
-    <string name="llm_call_log_desc">查看最近 200 条远程 LLM 请求/响应</string>
+    <string name="llm_call_log_desc">查看最近 200 条 LLM 与工具调用记录（release 构建仅记录指标，不含消息内容）</string>
     <string name="llm_call_log_detail">LLM 调用详情</string>
     <string name="llm_call_log_empty">暂无记录</string>
     <string name="llm_call_log_clear">清空</string>
@@ -644,6 +644,10 @@
     <string name="llm_call_log_copied">已复制</string>
     <string name="llm_call_log_success">成功</string>
     <string name="llm_call_log_failed">失败</string>
+    <string name="diagnostics_entries">诊断</string>
+    <string name="llm_call_log_tab_llm">LLM</string>
+    <string name="llm_call_log_tab_tool">工具调用</string>
+    <string name="llm_call_log_release_no_content">Release 构建不记录消息内容</string>
 
     <!-- 图片编辑器 -->
     <string name="editor_tab_crop">构图</string>
@@ -709,6 +713,8 @@
         <item>搜索海边的照片</item>
         <item>找有人物的照片</item>
         <item>搜索夜景照片</item>
+        <item>给我一份相册健康度报告</item>
+        <item>按标签和时间交叉分析我的照片</item>
     </string-array>
 
     <!-- 共享邮箱验证码表单 -->
@@ -809,4 +815,13 @@
     <string name="tag_viewer_dislike">打标不准</string>
     <string name="tag_viewer_disliked">已标记为不准</string>
     <string name="tag_viewer_filter_inaccurate">只看打标不准</string>
+    <!-- JS 写操作确认（capability.dispatch） -->
+    <string name="chat_write_confirm_title">确认操作</string>
+    <string name="chat_write_confirm_delete">从相册删除 %1$d 项媒体</string>
+    <string name="chat_write_confirm_favorite">收藏/取消收藏 %1$d 项媒体</string>
+    <string name="chat_write_confirm_select">选中/取消选中 %1$d 项媒体</string>
+    <string name="chat_write_confirm_ai_source">由 AI 生成的脚本发起</string>
+    <string name="chat_write_confirm_risk_destructive">高风险操作，不可恢复</string>
+    <string name="chat_write_confirm_risk_reversible">此操作可撤销</string>
+    <string name="chat_write_confirm_ok">确认</string>
 </resources>

@@ -414,12 +414,36 @@ class PoLangToolService(
 
     @Tool(
         name = "run_gallery_script",
-        value = ["在端侧沙箱执行一段 JavaScript，用于相册盘点/统计分析等需要组合计算的场景（只读，数据不出端）。脚本通过 bridge.call('gallery.summary') 取相册聚合统计：返回对象含 totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation。在 JS 内做计算（如打标率=labeledCount/totalMedia、未打标占比、人物媒体比），最后 return 一个结果对象——该对象会回传给你做自然语言总结。示例：var s=bridge.call('gallery.summary'); return {total:s.totalMedia, labeledRatio: s.totalMedia>0 ? s.labeledCount/s.totalMedia : 0};"]
+        value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（取数类 handler 只读、数据不出端；删除/收藏等写操作走 capability.dispatch，会弹窗经用户确认）。所有 handler 均为异步，**必须用 await bridge.callAsync(name, args) 调用**（bridge.call 已禁用，调用会报错）。可用 handler： gallery.summary → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； gallery.tags → 实际打标标签分布 {标签:照片数}（按计数降序 top 50）； gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {\"桶起始时间戳\":照片数}（默认按月，bucketMs=2592000000=月/31536000000=年）； gallery.intersect({idsA:[...],idsB:[...],op:\"intersect|union|diff\"}) → 集合交并差，返回 {ids:[...],total:N}（用于多次 query 结果交叉，如旅行+人脸）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）； media.batch_meta([id1,id2,...]) → 批量元数据 [{...},...]（上限 50，避免循环调 media.meta）； gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布（如人像照片内的场景标签）； face.cluster({topN?}) → 人脸聚类盘点 {clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}（topN 默认 10 上限 50，不含 embedding 原始数据）； tag.audit({topN?}) → 打标覆盖审计 {totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}（词表外标签 topN 默认 10 上限 50）。 可并发取数：var r=await Promise.all([bridge.callAsync('gallery.summary',{}),bridge.callAsync('gallery.tags',{})]); var s=r[0],t=r[1]; 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia；环比 = 本月/上月-1），return 结果对象回传给你做总结。 示例：var s=await bridge.callAsync('gallery.summary',{}); var t=await bridge.callAsync('gallery.tags',{}); return {total:s.totalMedia, topTags:t};"]
     )
     fun runGalleryScript(
-        @P(name = "code", value = "JavaScript 源码；用 bridge.call('gallery.summary') 取数据，在 JS 内计算后 return 结果对象") code: String
+        @P(name = "code", value = "JS 源码；用 await bridge.callAsync 取数据（gallery.summary/tags/timeline/query/stats_by_tag/intersect, media.meta/batch_meta, face.cluster, tag.audit），return 结果对象") code: String
     ): String {
         return dispatchCommand(AgentCommand.ExecuteScript(code = code))
+    }
+
+    @Tool(
+        name = "draw_chart",
+        value = ["画出图表并渲染成真实图片展示给用户——这是展示图表的唯一方式，严禁用文字、Markdown 表格、ASCII/emoji 画图（文字画的图用户看不到效果）。先用 run_gallery_script 拿到数据，再把数据传给本工具画图。"]
+    )
+    fun drawChart(
+        @P(name = "type", value = "图表类型：bar(柱状)/line(折线)/pie(饼图)") type: String,
+        @P(name = "title", value = "图表标题") title: String,
+        @P(name = "labels", value = "分类/x 轴标签，英文逗号分隔，如 '1月,2月,3月' 或 '人像,风景,美食'") labels: String,
+        @P(name = "values", value = "每个标签对应的数值，英文逗号分隔，与 labels 等长，如 '12,8,21'") values: String,
+        @P(name = "unit", value = "数值单位，如 '张'；无则空串") unit: String
+    ): String {
+        val labelList = labels.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val valueList = values.split(",").mapNotNull { it.trim().toDoubleOrNull() }
+        return dispatchCommand(
+            AgentCommand.DrawChart(
+                type = type,
+                title = title,
+                labels = labelList,
+                values = valueList,
+                unit = unit.ifBlank { null }
+            )
+        )
     }
 
     @Tool(name = "click_gallery_item", value = ["点击相册网格中的第 N 个媒体项。必须先进入相册并完成搜索。index 从 1 开始，按屏幕可见项的顺序计数。"])

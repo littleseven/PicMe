@@ -125,6 +125,30 @@ class QueryGalleryMediaUseCase(
                 .associate { it.key to it.value }
         }
 
+    /**
+     * TAG 扫描覆盖审计统计（只读 COUNT 聚合），供 JS `tag.audit`。
+     *
+     * 均为轻量 COUNT/MAX 查询，不加载实体。
+     */
+    suspend fun tagScanAudit(): TagScanAudit = withContext(Dispatchers.IO) {
+        TagScanAudit(
+            totalMedia = db.mediaDao().getTotalCount(),
+            unlabeledCount = db.mediaDao().getUnlabeledMediaCount(),
+            neverScannedCount = db.mediaDao().getNeverTagScannedCount(),
+            lastScanAt = db.mediaDao().getLatestTagScanAt(),
+        )
+    }
+
+    /** [tagScanAudit] 的返回结构。 */
+    data class TagScanAudit(
+        val totalMedia: Int,
+        val unlabeledCount: Int,
+        /** 从未成功扫描（lastTagScanAt IS NULL）的媒体数 */
+        val neverScannedCount: Int,
+        /** 最近一次扫描成功时间戳；从未扫描过为 null */
+        val lastScanAt: Long?,
+    )
+
     companion object {
         /** 30 天（近似月分桶粒度）。 */
         const val BUCKET_MONTH_MS = 30L * 24 * 60 * 60 * 1000

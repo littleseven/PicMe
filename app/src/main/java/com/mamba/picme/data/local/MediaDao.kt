@@ -329,6 +329,14 @@ interface MediaDao {
 
     // ── TAG 扫描去重字段（3-Pass 混合管道）────────────────────
 
+    /** 从未成功 TAG 扫描的媒体数量（lastTagScanAt 为 NULL），供 tag.audit 统计扫描覆盖 */
+    @Query("SELECT COUNT(*) FROM media_assets WHERE lastTagScanAt IS NULL")
+    suspend fun getNeverTagScannedCount(): Int
+
+    /** 最近一次 TAG 扫描成功时间戳（全表 MAX；无记录返回 null），供 tag.audit */
+    @Query("SELECT MAX(lastTagScanAt) FROM media_assets")
+    suspend fun getLatestTagScanAt(): Long?
+
     /** 更新最近一次 TAG 扫描成功记录 */
     @Query(
         """

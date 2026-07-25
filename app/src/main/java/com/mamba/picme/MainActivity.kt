@@ -499,16 +499,17 @@ class MainActivity : ComponentActivity() {
                                         onNavigateBack = { navController.popBackStack() }
                                     )
                                 }
-                                composable(Screen.LlmLog.route) {
-                                    LlmCallLogScreen(
-                                        onNavigateBack = { navController.popBackStack() }
-                                    )
-                                }
                                 composable(Screen.SentencePieceTest.route) {
                                     SentencePieceTestScreen(
                                         onNavigateBack = { navController.popBackStack() }
                                     )
                                 }
+                            }
+                            // 诊断页全构建可用：release 下仅展示纯指标，不含消息内容
+                            composable(Screen.LlmLog.route) {
+                                LlmCallLogScreen(
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
                             }
                             }
                         }

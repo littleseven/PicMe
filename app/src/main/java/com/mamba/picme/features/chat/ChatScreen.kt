@@ -140,6 +140,8 @@ import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
+import com.mamba.picme.features.chat.capability.ChatMediaWriteCapability
+import com.mamba.picme.agent.core.model.command.CommandRisk
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
@@ -266,6 +268,30 @@ fun ChatScreen(
         }
     }
 
+    // ChatViewModel 侧（JS capability.dispatch 删除）触发的系统授权请求，复用上面的 launcher
+    val chatWriteDeleteAuthRequest by viewModel.deleteAuthRequest.collectAsState()
+    LaunchedEffect(chatWriteDeleteAuthRequest) {
+        chatWriteDeleteAuthRequest?.let { request ->
+            when (request) {
+                is MediaViewModel.DeleteAuthRequest.Api29 -> {
+                    api29DeleteLauncher?.launch(
+                        IntentSenderRequest.Builder(request.intentSender).build()
+                    )
+                }
+                is MediaViewModel.DeleteAuthRequest.Api30 -> {
+                    val intent = MediaStore.createDeleteRequest(
+                        context.contentResolver,
+                        request.uris
+                    )
+                    deletePermissionLauncher?.launch(
+                        IntentSenderRequest.Builder(intent).build()
+                    )
+                }
+            }
+            viewModel.consumeDeleteAuthRequest()
+        }
+    }
+
     // 当媒体库刷新后发现 preview 中的某张图已被物理删除，同步清理 preview 列表和 chat 消息
     LaunchedEffect(allMedia) {
         if (allMedia.isEmpty()) return@LaunchedEffect
@@ -299,6 +325,8 @@ fun ChatScreen(
     RegisterCapability(ChatGallerySummaryCapability.getInstance())
     RegisterCapability(ChatRunScriptCapability.getInstance())
     RegisterCapability(ChatStartTagScanCapability.getInstance())
+    // JS 写通路（capability.dispatch）的 CHAT 场景写操作落点：删除/收藏/选中
+    RegisterCapability(ChatMediaWriteCapability.getInstance())
 
     // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
     DisposableEffect(Unit) {
@@ -322,6 +350,12 @@ fun ChatScreen(
     DisposableEffect(Unit) {
         ChatStartTagScanCapability.getInstance().bindDelegate(viewModel)
         onDispose { ChatStartTagScanCapability.getInstance().unbindDelegate() }
+    }
+
+    // 绑定 ChatMediaWriteCapability Delegate（JS 写通路：删除/收藏/选中）
+    DisposableEffect(Unit) {
+        ChatMediaWriteCapability.getInstance().bindDelegate(viewModel)
+        onDispose { ChatMediaWriteCapability.getInstance().unbindDelegate() }
     }
 
     BackHandler(enabled = isSidebarOpen) {
@@ -546,6 +580,74 @@ fun ChatScreen(
                 )
             }
         }
+    }
+
+    // ── JS 写操作确认（capability.dispatch 触发，删除/收藏/选中）──────────────
+    val pendingWriteConfirmation by viewModel.pendingWriteConfirmation.collectAsState()
+    pendingWriteConfirmation?.let { req ->
+        val operationText = when (req.method) {
+            "delete_media" -> stringResource(R.string.chat_write_confirm_delete, req.targetCount)
+            "favorite_media" -> stringResource(R.string.chat_write_confirm_favorite, req.targetCount)
+            "select_media" -> stringResource(R.string.chat_write_confirm_select, req.targetCount)
+            else -> req.method
+        }
+        AlertDialog(
+            onDismissRequest = { viewModel.resolveWriteConfirmation(false) },
+            title = {
+                Text(text = stringResource(R.string.chat_write_confirm_title))
+            },
+            text = {
+                Column {
+                    Text(text = operationText)
+                    // 条目缩略图预览：让用户核实 LLM 选出的删除/操作目标
+                    if (req.previewUris.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            req.previewUris.forEach { uri ->
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = stringResource(R.string.chat_write_confirm_ai_source),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (req.risk == CommandRisk.DESTRUCTIVE) {
+                        Text(
+                            text = stringResource(R.string.chat_write_confirm_risk_destructive),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.chat_write_confirm_risk_reversible),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.resolveWriteConfirmation(true) }) {
+                    Text(text = stringResource(R.string.chat_write_confirm_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.resolveWriteConfirmation(false) }) {
+                    Text(text = stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     // ── 聊天/语音/本地 LLM 模型下载提示 ────────────────────────────

@@ -2,6 +2,7 @@ package com.mamba.picme.agent.core.inference.remote.log
 
 import com.mamba.data.message.AiMessage
 import com.mamba.data.message.ChatMessageSerializer
+import com.mamba.data.message.ChatMessageType
 import com.mamba.model.chat.listener.ChatModelErrorContext
 import com.mamba.model.chat.listener.ChatModelListener
 import com.mamba.model.chat.listener.ChatModelRequestContext
@@ -26,10 +27,13 @@ import com.mamba.picme.agent.core.platform.logging.Logger
  *
  * @param source 调用来源标签，写入记录便于 Debug 页筛选。
  * @param recorder 落库接收端。
+ * @param captureContent true（DEBUG）时记录 request/response 全文；
+ *   false（release）时只落纯指标（model/latency/tokens/消息数等），**绝不序列化消息内容**（隐私红线）。
  */
 class CapturingChatModelListener(
     private val source: String,
-    private val recorder: LlmCallRecorder
+    private val recorder: LlmCallRecorder,
+    private val captureContent: Boolean = true
 ) : ChatModelListener {
 
     override fun onRequest(requestContext: ChatModelRequestContext) {
@@ -84,8 +88,10 @@ class CapturingChatModelListener(
                     totalTokens = null,
                     requestJson = buildRequestJson(request),
                     responseJson = null,
-                    errorMessage = errorContext.error()?.message
-                        ?: errorContext.error()?.javaClass?.simpleName
+                    errorMessage = capErrorMessage(
+                        errorContext.error()?.message
+                            ?: errorContext.error()?.javaClass?.simpleName
+                    )
                 )
             )
         } catch (e: Exception) {
@@ -94,26 +100,41 @@ class CapturingChatModelListener(
     }
 
     /**
-     * 构造请求摘要 JSON：model / temperature / maxTokens / tools 数量 + 完整 messages（复用
-     * agent-core 的 [ChatMessageSerializer]）。messages 是排查 prompt 问题的核心信息。
+     * 构造请求摘要 JSON。
+     *
+     * - [captureContent] = true（DEBUG）：model / temperature / maxTokens / tools 数量 +
+     *   完整 messages（复用 agent-core 的 [ChatMessageSerializer]），messages 是排查 prompt 问题的核心信息。
+     * - [captureContent] = false（release）：只落 model / toolsCount / messageCount /
+     *   hasSystemPrompt 纯指标，**绝不序列化消息内容**。
      */
     private fun buildRequestJson(request: ChatRequest?): String {
         val sb = StringBuilder("{")
         if (request != null) {
             sb.append("\"model\":").append(jsonStr(request.modelName())).append(',')
-            sb.append("\"temperature\":").append(request.temperature() ?: "null").append(',')
-            sb.append("\"maxTokens\":").append(request.maxOutputTokens() ?: "null").append(',')
-            sb.append("\"toolsCount\":").append(request.toolSpecifications()?.size ?: 0).append(',')
-            val messages = runCatching { ChatMessageSerializer.messagesToJson(request.messages()) }
-                .getOrElse { "[]" }
-            sb.append("\"messages\":").append(messages)
+            sb.append("\"toolsCount\":").append(request.toolSpecifications()?.size ?: 0)
+            if (captureContent) {
+                sb.append(",\"temperature\":").append(request.temperature() ?: "null")
+                sb.append(",\"maxTokens\":").append(request.maxOutputTokens() ?: "null")
+                val messages = runCatching { ChatMessageSerializer.messagesToJson(request.messages()) }
+                    .getOrElse { "[]" }
+                sb.append(",\"messages\":").append(messages)
+            } else {
+                val messages = request.messages() ?: emptyList()
+                sb.append(",\"messageCount\":").append(messages.size)
+                sb.append(",\"hasSystemPrompt\":")
+                    .append(messages.any { it.type() == ChatMessageType.SYSTEM })
+            }
         }
         sb.append('}')
         return LlmCallRecord.cap(sb.toString()) ?: "{}"
     }
 
     /**
-     * 构造响应摘要 JSON：text / thinking / toolCalls / finishReason / usage。
+     * 构造响应摘要 JSON。
+     *
+     * - [captureContent] = true（DEBUG）：text / thinking / toolCalls(含 arguments) / finishReason / usage。
+     * - [captureContent] = false（release）：只保留 finishReason / toolCallNames / textLength /
+     *   usage 纯指标，剔除 text / thinking / arguments 全文。
      * 三者全为空时返回 null（不写响应段）。
      */
     private fun buildResponseJson(
@@ -123,17 +144,26 @@ class CapturingChatModelListener(
     ): String? {
         if (ai == null && finishReason == null && usage == null) return null
         val sb = StringBuilder("{")
-        sb.append("\"text\":").append(jsonStr(ai?.text())).append(',')
-        val thinking = ai?.thinking()
-        if (thinking != null) {
-            sb.append("\"thinking\":").append(jsonStr(thinking)).append(',')
-        }
-        if (ai?.hasToolExecutionRequests() == true) {
-            val tools = ai.toolExecutionRequests().joinToString(",", "[", "]") { req ->
-                "{\"id\":${jsonStr(req.id())},\"name\":${jsonStr(req.name())}," +
-                    "\"arguments\":${jsonStr(req.arguments())}}"
+        if (captureContent) {
+            sb.append("\"text\":").append(jsonStr(ai?.text())).append(',')
+            val thinking = ai?.thinking()
+            if (thinking != null) {
+                sb.append("\"thinking\":").append(jsonStr(thinking)).append(',')
             }
-            sb.append("\"toolCalls\":").append(tools).append(',')
+            if (ai?.hasToolExecutionRequests() == true) {
+                val tools = ai.toolExecutionRequests().joinToString(",", "[", "]") { req ->
+                    "{\"id\":${jsonStr(req.id())},\"name\":${jsonStr(req.name())}," +
+                        "\"arguments\":${jsonStr(req.arguments())}}"
+                }
+                sb.append("\"toolCalls\":").append(tools).append(',')
+            }
+        } else {
+            if (ai?.hasToolExecutionRequests() == true) {
+                val names = ai.toolExecutionRequests()
+                    .joinToString(",", "[", "]") { jsonStr(it.name()) }
+                sb.append("\"toolCallNames\":").append(names).append(',')
+            }
+            sb.append("\"textLength\":").append(ai?.text()?.length ?: 0).append(',')
         }
         sb.append("\"finishReason\":").append(jsonStr(finishReason?.name)).append(',')
         sb.append("\"usage\":{\"promptTokens\":").append(usage?.inputTokenCount() ?: 0)
@@ -142,6 +172,10 @@ class CapturingChatModelListener(
         sb.append('}')
         return LlmCallRecord.cap(sb.toString())
     }
+
+    /** 指标模式下 errorMessage 截断到 [ERROR_MESSAGE_MAX_CHARS] 字符，防止超长堆栈撑爆本地库。 */
+    private fun capErrorMessage(message: String?): String? =
+        if (captureContent) message else LlmCallRecord.cap(message, ERROR_MESSAGE_MAX_CHARS)
 
     private fun jsonStr(s: String?): String =
         if (s == null) {
@@ -156,5 +190,8 @@ class CapturingChatModelListener(
     companion object {
         private const val TAG = "LlmCallLog"
         private val START_TIME_KEY = "polang.llmlog.startTime"
+
+        /** 指标模式（release）下 errorMessage 的最大字符数。 */
+        const val ERROR_MESSAGE_MAX_CHARS = 500
     }
 }

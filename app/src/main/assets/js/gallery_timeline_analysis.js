@@ -1,9 +1,9 @@
 // 相册时间线趋势分析（包内 JS，只读，不触网）
 // 按月分桶统计拍照数量，计算环比趋势，找出高峰月份。
 // 由 Debug 页运行 / 远程 LLM 生成参考。
-(function () {
-    var timeline = bridge.call("gallery.timeline");
-    var summary = bridge.call("gallery.summary");
+(async function () {
+    var timeline = await bridge.callAsync("gallery.timeline", {});
+    var summary = await bridge.callAsync("gallery.summary", {});
     var total = summary.totalMedia;
 
     // 提取月份数据并排序

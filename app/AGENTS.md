@@ -66,12 +66,21 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 |------|------|---------|------|
 | **Agent** | `features/agent/` | `GlobalAgentPanel.kt` | 全局悬浮 Agent 面板 |
 | **Chat** | `features/chat/` | `ChatScreen`, `ChatViewModel`, `ChatThreadSidebar`, `ChatTitleGenerator` | AI 对话二级页，从相册首页进入，支持多线程；首条消息自动生成会话标题 |
+| **Chat JS** | `features/chat/js/` | `QuickJsEngine`, `QuickJsConverter`, `GalleryScriptHandlers`, `GalleryJs`, `ChartJs`, `CapabilityDispatchHandler` | QuickJS 沙箱引擎与 JSBridge 应用层（见下方 JS Engine 说明） |
 | **Camera** | `features/camera/` | `CameraScreen`, `CameraPreviewContent`, `CameraAgentCommandHandler` | 相机预览、美颜实时渲染、Agent 命令处理 |
 | **Common** | `features/common/chat/` | `AgentChatComponents`, `AgentMessage`, `AiChatScreen` | Chat UI 共享组件库（Camera/Gallery 复用） |
 | **Gallery** | `features/gallery/` | `GalleryScreen`, `MediaViewModel` | 智能相册浏览、AI 搜索 |
 | **Editor** | `features/editor/` | `ImageEditScreen` | 图片编辑（美颜/滤镜/风格） |
 | **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `ModelCenterScreen` | 设置与模型管理 |
 | **Debug** | `features/debug/` | `DebugScreen`, `LogOverlay`, `ScreenshotUtil` | 开发调试工具 |
+
+> **2026-07-25 JS Engine（QuickJS 沙箱，`features/chat/js/`）**：
+> - `QuickJsEngine` / `QuickJsConverter`：dokar3 quickjs-kt 1.0.5 引擎适配器（唯一生产引擎实现，QuickJS 依赖仅 `:app` 引入），实现 `:runtime-core` 引擎无关的 `JsEngine` 接口；eval 带超时（默认 5s），bridge 经 `__bridgeCall`/`__bridgeCallAsync` 绑定 + bootstrap JS 注入
+> - `GalleryScriptHandlers.registerGalleryHandlers`：gallery/media/face/tag **10 个只读取数 handler 的唯一注册点**（全部 async，JS 侧必须 `await bridge.callAsync`），ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 共用，新增/修改 handler 只改这里
+> - `GalleryJs`：JS ↔ 查询模型字段转换（parseQueryFilter / toResultJsValue 等），media.meta 白名单不回 uri/GPS/ocrText/embedding
+> - `ChartJs` + `assets/js/chart_bootstrap.js`：Chart.bar/line/pie/timeline → SVG，图卡落库为 CHART 消息，summary 回传 LLM
+> - `CapabilityDispatchHandler`：`capability.dispatch` 写通路（delete_media/favorite_media/select_media/get_gallery_summary 白名单），按 `CommandRisk` 分级，写操作经 `WriteConfirmationController`（`features/chat/`）弹确认框——缩略图预览、120s 超时按拒绝、并发确认互斥串行、脚本结束在途确认失效；落点 `ChatMediaWriteCapability`（CHAT 场景，删除走 MediaStore 授权，favorite/select 会话级无持久化）
+> - 完整规格见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 
 ### 2.2 领域层 (`domain/`)
 
@@ -131,6 +140,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 远程推理 | `RemoteReActAgent`（:runtime-core） | OpenAI Chat Completions API + tool_calls |
 | TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：本地/远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
+| JS 沙箱脚本 | `ChatRunScriptCapability` → `ChatViewModel.onRunScript/onDrawChart` → `JsRuntime`（QuickJS） | LLM tool_call（run_gallery_script/draw_chart）经 CapabilityRegistry（CHAT 场景）落入持久 JsRuntime；`jsEvalMutex` 串行 eval，超时 5s（含 capability.dispatch 写脚本放宽至 180s）；写操作经 CommandRisk 分级 + 用户确认 → `ChatMediaWriteCapability` |
 
 ---
 
@@ -191,5 +201,5 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ---
 
 > **维护者**：[RD] 全栈工程师
-> **最后更新**：2026-07-20
+> **最后更新**：2026-07-25
 > **状态**：生效中

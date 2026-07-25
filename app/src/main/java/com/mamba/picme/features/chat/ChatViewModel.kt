@@ -40,27 +40,21 @@ import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import android.util.Log
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.js.JsValue
-import com.mamba.picme.agent.core.js.syncHandler
-import com.mamba.picme.agent.core.js.toJsValue
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.model.context.GallerySummary
+import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
+import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
+import com.mamba.picme.features.chat.capability.ChatMediaWriteCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.capability.SearchOutcome
+import com.mamba.picme.features.chat.js.CapabilityDispatchHandler
 import com.mamba.picme.features.chat.js.loadChartBootstrapJs
 import com.mamba.picme.features.chat.js.QuickJsEngine
-import com.mamba.picme.features.chat.js.computeIntersect
-import com.mamba.picme.features.chat.js.intersectResult
-import com.mamba.picme.features.chat.js.parseIntersectArgs
-import com.mamba.picme.features.chat.js.parseQueryFilter
-import com.mamba.picme.features.chat.js.parseTimelineArgs
-import com.mamba.picme.features.chat.js.toBatchMetaJsValue
-import com.mamba.picme.features.chat.js.toMetaJsValue
-import com.mamba.picme.features.chat.js.toResultJsValue
-import com.mamba.picme.features.chat.js.toTagsJsValue
-import com.mamba.picme.features.chat.js.toTimelineJsValue
+import com.mamba.picme.features.chat.js.registerGalleryHandlers
+import com.mamba.picme.features.gallery.MediaViewModel
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +67,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -82,6 +75,12 @@ private const val TAG = "ChatViewModel"
 private const val MAX_MESSAGES = 500
 private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
+
+/** 只读 JS 脚本 eval 超时。 */
+private const val DEFAULT_EVAL_TIMEOUT_MS = 5_000L
+
+/** 含 capability.dispatch 的脚本 eval 超时（挂起等用户确认 + 系统授权提示）。 */
+private const val WRITE_EVAL_TIMEOUT_MS = 180_000L
 
 /** Chat 选图后的用户意图。EDIT 在 UI 层直接跳 PhotoEditor，不会进入 VM 的 sendImageWithIntent。 */
 enum class ImageIntent { UNDERSTAND, FIND_SIMILAR, EDIT }
@@ -121,7 +120,8 @@ class ChatViewModel(
     ChatSearchCapability.Delegate,
     ChatGallerySummaryCapability.Delegate,
     ChatRunScriptCapability.Delegate,
-    ChatStartTagScanCapability.Delegate {
+    ChatStartTagScanCapability.Delegate,
+    ChatMediaWriteCapability.Delegate {
 
     private val context = dependencies.context.applicationContext
     private val chatMessageDao = dependencies.chatMessageDao
@@ -131,8 +131,11 @@ class ChatViewModel(
     private val mediaFeedbackRepository = dependencies.mediaFeedbackRepository
     private val getGallerySummaryUseCase = dependencies.getGallerySummaryUseCase
     private val queryGalleryMediaUseCase = dependencies.queryGalleryMediaUseCase
+    private val personDao = dependencies.personDao
+    private val controlledVocab = dependencies.controlledVocab
     private val startTagScanUseCase = dependencies.startTagScanUseCase
     private val chatImageRenderer = dependencies.chatImageRenderer
+    private val mediaRepository = dependencies.mediaRepository
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -147,6 +150,66 @@ class ChatViewModel(
 
     /** JS eval 互斥锁（QuickJS 非线程安全，需串行化 eval）。 */
     private val jsEvalMutex = kotlinx.coroutines.sync.Mutex()
+
+    // ── capability.dispatch（JS → CapabilityRegistry 写通路）─────────────────
+
+    /**
+     * 写确认状态管理（纯 Kotlin，可单测）：维护「脚本已死，确认不再生效」不变式。
+     * pending 弹窗 StateFlow 直接透传给 UI。
+     */
+    private val writeConfirmationController = WriteConfirmationController()
+    val pendingWriteConfirmation: StateFlow<PendingWriteConfirmation?> =
+        writeConfirmationController.pending
+
+    /** 系统删除授权请求（复用 [MediaViewModel.DeleteAuthRequest] 与 ChatScreen 既有 launcher）。 */
+    private val _deleteAuthRequest = MutableStateFlow<MediaViewModel.DeleteAuthRequest?>(null)
+    val deleteAuthRequest: StateFlow<MediaViewModel.DeleteAuthRequest?> = _deleteAuthRequest.asStateFlow()
+
+    /** chat 会话级收藏集合（App 尚无持久化收藏路径，与 Gallery favorite 先例一致）。 */
+    private val _favoriteMediaIds = MutableStateFlow<Set<String>>(emptySet())
+    val favoriteMediaIds: StateFlow<Set<String>> = _favoriteMediaIds.asStateFlow()
+
+    /** chat 会话级选中集合。 */
+    private val _selectedMediaIds = MutableStateFlow<Set<String>>(emptySet())
+    val selectedMediaIds: StateFlow<Set<String>> = _selectedMediaIds.asStateFlow()
+
+    /** capability.dispatch handler：确认交互走 [WriteConfirmationController]，dispatch 走 CHAT 场景注册表。 */
+    private val capabilityDispatchHandler = CapabilityDispatchHandler(
+        dispatch = { command ->
+            CapabilityRegistry.getInstance()
+                .dispatch(command, AgentContext(scene = AgentScene.CHAT), null)
+        },
+        requestConfirmation = { method, risk, targetCount, previewIds ->
+            writeConfirmationController.request(
+                method = method,
+                risk = risk,
+                targetCount = targetCount,
+                previewUris = resolvePreviewUris(previewIds),
+            )
+        },
+    )
+
+    /** UI 确认/拒绝入口（ChatScreen 确认框按钮回调）。 */
+    fun resolveWriteConfirmation(confirmed: Boolean) =
+        writeConfirmationController.resolve(confirmed)
+
+    fun consumeDeleteAuthRequest() {
+        _deleteAuthRequest.value = null
+    }
+
+    /**
+     * 把确认预览的媒体 id 解析为缩略图 URI（供确认框网格展示）。
+     * 解析失败（id 失效/媒体已删）返回空列表，确认框退化为纯文本。
+     */
+    private suspend fun resolvePreviewUris(previewIds: List<String>): List<String> {
+        val idSet = previewIds.mapNotNull { it.toLongOrNull() }.toSet()
+        if (idSet.isEmpty()) return emptyList()
+        return runCatching {
+            mediaRepository.allMedia.first()
+                .filter { it.id in idSet }
+                .map { it.uri }
+        }.getOrDefault(emptyList())
+    }
 
     /** session -> 上一轮搜索全量命中（供 in-set 细化）。 */
     private val lastResultAssets = mutableMapOf<String, List<MediaAsset>>()
@@ -1271,9 +1334,20 @@ class ChatViewModel(
         return withContext(Dispatchers.Default) {
             val rt = getOrCreateJsRuntime()
             jsEvalMutex.withLock {
-                // 包成 IIFE：(function(){ <code> })() —— 顶层 return 需 IIFE 包裹才合法
-                // return（LLM 生成 code 常含顶层 return），IIFE 让 return 合法并返回其值。
-                val result = rt.eval("(function() {\n" + code + "\n})()")
+                // 含 capability.dispatch 的脚本会挂起等用户确认（最长 120s），放宽 eval 超时
+                val evalTimeoutMs =
+                    if (code.contains("capability.dispatch")) WRITE_EVAL_TIMEOUT_MS else DEFAULT_EVAL_TIMEOUT_MS
+                // 包成 async IIFE：(async function(){ <code> })() —— 顶层 return 需 IIFE 包裹才合法；
+                // async 使 LLM 代码可 await bridge.callAsync(...)（全部 gallery handler 均为 async），
+                // 返回的 Promise 由 dokar3 evaluate 自动 await 后给出结果。
+                writeConfirmationController.onScriptStarted()
+                val result = try {
+                    rt.eval("(async function() {\n" + code + "\n})()", evalTimeoutMs)
+                } finally {
+                    // 脚本结束（正常/超时/取消）：在途写确认一律拒绝——
+                    // 「脚本已死，确认不再生效」，防孤儿确认在 SCRIPT_TIMEOUT 后仍执行写操作
+                    writeConfirmationController.onScriptEnded()
+                }
                 // 图表拦截：脚本 return Chart.x({...}) → 结果 {chart:<svg>, summary:<text>}。
                 // SVG 直接渲染成图卡（不喂回 LLM），summary 回传 LLM 做文字总结（省 token）。
                 val obj = result as? JsValue.Obj
@@ -1356,62 +1430,10 @@ class ChatViewModel(
             // 注入 Chart 图表生成器（bar/line/pie → SVG）。失败仅告警，不阻断脚本能力。
             runCatching { rt.eval(loadChartBootstrapJs(context)) }
                 .onFailure { Logger.w(TAG, "Chart bootstrap failed", it) }
-            // gallery.summary
-            rt.register(syncHandler("gallery.summary") {
-                runBlocking { getGallerySummaryUseCase(includeDetails = true)?.toJsValue() ?: JsValue.Null }
-            })
-            // gallery.query
-            rt.register(syncHandler("gallery.query") { args ->
-                val filter = parseQueryFilter(args)
-                runBlocking { queryGalleryMediaUseCase(filter).toResultJsValue() }
-            })
-            // gallery.tags
-            rt.register(syncHandler("gallery.tags") {
-                runBlocking { queryGalleryMediaUseCase.tags().toTagsJsValue() }
-            })
-            // media.meta
-            rt.register(syncHandler("media.meta") { args ->
-                val id = (args as? JsValue.Num)?.value?.toLong()
-                    ?: (((args as? JsValue.Arr)?.items?.firstOrNull() as? JsValue.Num)?.value?.toLong())
-                if (id == null) {
-                    JsValue.Null
-                } else {
-                    runBlocking { queryGalleryMediaUseCase.meta(id)?.toMetaJsValue() ?: JsValue.Null }
-                }
-            })
-            // gallery.timeline
-            rt.register(syncHandler("gallery.timeline") { args ->
-                val (fromMs, toMs, bucketMs) = parseTimelineArgs(args)
-                runBlocking {
-                    queryGalleryMediaUseCase.timeline(fromMs, toMs, bucketMs).toTimelineJsValue()
-                }
-            })
-            // gallery.intersect
-            rt.register(syncHandler("gallery.intersect") { args ->
-                val req = parseIntersectArgs(args)
-                intersectResult(computeIntersect(req))
-            })
-            // media.batch_meta
-            rt.register(syncHandler("media.batch_meta") { args ->
-                val ids = when (args) {
-                    is JsValue.Arr -> args.items.mapNotNull { (it as? JsValue.Num)?.value?.toLong() }
-                    is JsValue.Obj -> {
-                        (args.entries["ids"] as? JsValue.Arr)?.items
-                            ?.mapNotNull { (it as? JsValue.Num)?.value?.toLong() } ?: emptyList()
-                    }
-                    else -> emptyList()
-                }
-                if (ids.isEmpty()) {
-                    JsValue.Arr(emptyList())
-                } else {
-                    runBlocking { queryGalleryMediaUseCase.batchMeta(ids).toBatchMetaJsValue() }
-                }
-            })
-            // gallery.stats_by_tag
-            rt.register(syncHandler("gallery.stats_by_tag") { args ->
-                val filter = parseQueryFilter(args)
-                runBlocking { queryGalleryMediaUseCase.tagsByFilter(filter).toTagsJsValue() }
-            })
+            // gallery.*/media.* 只读 handler（唯一注册点，与 Debug 演示共用）
+            registerGalleryHandlers(rt, getGallerySummaryUseCase, queryGalleryMediaUseCase, personDao, controlledVocab)
+            // capability.dispatch：JS → CapabilityRegistry 写通路（写操作经用户确认；仅 chat 链路注册）
+            rt.register(capabilityDispatchHandler.asNativeHandler())
             Log.i(TAG, "Persistent JsRuntime created with ${rt.handlerNames()} handlers")
             persistentJsRuntime = rt
             rt
@@ -1432,6 +1454,43 @@ class ChatViewModel(
         mode: String?
     ): StartTagScanResult {
         return startTagScanUseCase(action = action, taskType = taskType, mode = mode)
+    }
+
+    // ── ChatMediaWriteCapability.Delegate：媒体写操作（删除/收藏/选中）─────────
+
+    /**
+     * 删除：复用 [MediaRepository] 删除路径；API 29/30+ 需系统授权时，
+     * 通过 [deleteAuthRequest] 交给 ChatScreen 既有 launcher 弹系统授权框。
+     */
+    override suspend fun onDeleteMedia(mediaIds: List<String>): String {
+        val ids = mediaIds.mapNotNull { it.toLongOrNull() }
+        if (ids.isEmpty()) return "没有有效的媒体 id"
+        mediaRepository.deleteMediaByIds(ids)
+
+        mediaRepository.getPendingRecoverableIntentSender()?.let { sender ->
+            _deleteAuthRequest.value = MediaViewModel.DeleteAuthRequest.Api29(sender)
+            return "已发起删除 ${ids.size} 项，等待系统授权"
+        }
+        val pendingUris = mediaRepository.getPendingDeleteUris()
+        if (pendingUris.isNotEmpty()) {
+            _deleteAuthRequest.value = MediaViewModel.DeleteAuthRequest.Api30(pendingUris)
+            return "已发起删除 ${ids.size} 项，等待系统授权"
+        }
+        return "已删除 ${ids.size} 项"
+    }
+
+    override suspend fun onFavoriteMedia(mediaId: String, favorite: Boolean): String {
+        _favoriteMediaIds.value =
+            if (favorite) _favoriteMediaIds.value + mediaId else _favoriteMediaIds.value - mediaId
+        Logger.d(TAG, "Favorite media $mediaId = $favorite (session level)")
+        return if (favorite) "已收藏 1 项" else "已取消收藏 1 项"
+    }
+
+    override suspend fun onSelectMedia(mediaId: String, selected: Boolean): String {
+        _selectedMediaIds.value =
+            if (selected) _selectedMediaIds.value + mediaId else _selectedMediaIds.value - mediaId
+        Logger.d(TAG, "Select media $mediaId = $selected (session level)")
+        return if (selected) "已选中 1 项" else "已取消选中 1 项"
     }
 
     private fun reapplyFiltersToCurrentResults(sessionId: String) {

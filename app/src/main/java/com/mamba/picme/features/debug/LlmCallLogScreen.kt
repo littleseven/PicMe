@@ -34,6 +34,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -54,8 +56,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mamba.picme.R
+import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.data.local.llmlog.LlmCallLogEntity
 import com.mamba.picme.data.local.llmlog.LlmLogDatabase
+import com.mamba.picme.data.local.llmlog.ToolCallLogEntity
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -65,11 +69,15 @@ import java.util.Locale
 @Composable
 fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
-    val dao = remember { LlmLogDatabase.getDatabase(context).llmCallLogDao() }
-    val vm: LlmCallLogViewModel = viewModel(factory = LlmCallLogViewModelFactory(dao))
+    val db = remember { LlmLogDatabase.getDatabase(context) }
+    val vm: LlmCallLogViewModel = viewModel(
+        factory = LlmCallLogViewModelFactory(db.llmCallLogDao(), db.toolCallLogDao())
+    )
     val items by vm.items.collectAsState()
+    val toolItems by vm.toolItems.collectAsState()
 
     var selected by remember { mutableStateOf<LlmCallLogEntity?>(null) }
+    var selectedTab by remember { mutableStateOf(LogTab.LLM) }
     var showClearDialog by remember { mutableStateOf(false) }
 
     val selectedItem = selected
@@ -105,22 +113,45 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     ) { padding ->
         when (val item = selectedItem) {
             null -> {
-                if (items.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.llm_call_log_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    TabRow(selectedTabIndex = selectedTab.ordinal) {
+                        Tab(
+                            selected = selectedTab == LogTab.LLM,
+                            onClick = { selectedTab = LogTab.LLM },
+                            text = { Text(stringResource(R.string.llm_call_log_tab_llm)) }
+                        )
+                        Tab(
+                            selected = selectedTab == LogTab.TOOL,
+                            onClick = { selectedTab = LogTab.TOOL },
+                            text = { Text(stringResource(R.string.llm_call_log_tab_tool)) }
                         )
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(padding),
-                        contentPadding = PaddingValues(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(items, key = { it.id }) { row ->
-                            LlmCallLogRow(row = row) { selected = it }
+                    val currentItems = when (selectedTab) {
+                        LogTab.LLM -> items
+                        LogTab.TOOL -> toolItems
+                    }
+                    if (currentItems.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(R.string.llm_call_log_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            when (selectedTab) {
+                                LogTab.LLM -> items(items, key = { it.id }) { row ->
+                                    LlmCallLogRow(row = row) { selected = it }
+                                }
+                                LogTab.TOOL -> items(toolItems, key = { it.id }) { row ->
+                                    ToolCallLogRow(row = row)
+                                }
+                            }
                         }
                     }
                 }
@@ -147,6 +178,54 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                 TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
+    }
+}
+
+/** 诊断页列表分区：LLM 调用记录 / tool 执行指标。 */
+private enum class LogTab { LLM, TOOL }
+
+@Composable
+private fun ToolCallLogRow(row: ToolCallLogEntity) {
+    val timeFormat = remember { SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (row.success) Icons.Rounded.Check else Icons.Rounded.Close,
+                    contentDescription = null,
+                    tint = if (row.success) Color(0xFF2E7D32) else Color(0xFFC62828),
+                    modifier = Modifier.height(18.dp)
+                )
+                Text(
+                    text = timeFormat.format(Date(row.createdAt)),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
+                Spacer(Modifier.weight(1f))
+                SourceChip(source = row.capability)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = row.commandType,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = buildString {
+                    append("${row.latencyMs}ms")
+                    if (!row.success) {
+                        row.errorCode?.let { append("  ·  code=$it") }
+                        row.errorMessage?.let { append("  ·  ${it.take(40)}") }
+                    }
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -247,17 +326,29 @@ private fun LlmCallLogDetail(item: LlmCallLogEntity, modifier: Modifier) {
 
         HorizontalDivider()
 
-        JsonSection(
-            title = stringResource(R.string.llm_call_log_request),
-            content = prettyJson(item.requestJson),
-            onCopy = { copy(item.requestJson) }
-        )
-        item.responseJson?.let {
+        if (RemoteModelFactory.captureContent) {
             JsonSection(
-                title = stringResource(R.string.llm_call_log_response),
-                content = prettyJson(it),
-                onCopy = { copy(it) }
+                title = stringResource(R.string.llm_call_log_request),
+                content = prettyJson(item.requestJson),
+                onCopy = { copy(item.requestJson) }
             )
+            item.responseJson?.let {
+                JsonSection(
+                    title = stringResource(R.string.llm_call_log_response),
+                    content = prettyJson(it),
+                    onCopy = { copy(it) }
+                )
+            }
+        } else {
+            // release 构建（captureContent=false）：只落纯指标，绝不展示消息内容
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.llm_call_log_release_no_content),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
         }
         item.errorMessage?.let {
             JsonSection(

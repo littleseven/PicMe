@@ -639,7 +639,7 @@
     <string name="debug_image_download">Image Download</string>
     <string name="debug_image_download_desc">Generate test data and download images.</string>
     <string name="llm_call_log">LLM Call Logs</string>
-    <string name="llm_call_log_desc">View the latest 200 remote LLM requests/responses</string>
+    <string name="llm_call_log_desc">View the latest 200 LLM and tool call records (release builds record metrics only, no message content)</string>
     <string name="llm_call_log_detail">LLM Call Detail</string>
     <string name="llm_call_log_empty">No records yet</string>
     <string name="llm_call_log_clear">Clear</string>
@@ -650,6 +650,10 @@
     <string name="llm_call_log_copied">Copied</string>
     <string name="llm_call_log_success">Success</string>
     <string name="llm_call_log_failed">Failed</string>
+    <string name="diagnostics_entries">Diagnostics</string>
+    <string name="llm_call_log_tab_llm">LLM</string>
+    <string name="llm_call_log_tab_tool">Tool Calls</string>
+    <string name="llm_call_log_release_no_content">Release builds do not record message content</string>
 
     <!-- Photo Editor -->
     <string name="editor_tab_crop">Crop</string>
@@ -715,6 +719,8 @@
         <item>Search for beach photos</item>
         <item>Find photos with people</item>
         <item>Search for night scene photos</item>
+        <item>Give me a gallery health report</item>
+        <item>Cross-analyze my photos by tag and time</item>
     </string-array>
 
     <!-- Shared email-OTP auth form -->
@@ -815,4 +821,13 @@
     <string name="tag_viewer_dislike">Tag inaccurate</string>
     <string name="tag_viewer_disliked">Marked inaccurate</string>
     <string name="tag_viewer_filter_inaccurate">Inaccurate only</string>
+    <!-- JS 写操作确认（capability.dispatch） -->
+    <string name="chat_write_confirm_title">Confirm operation</string>
+    <string name="chat_write_confirm_delete">Delete %1$d media item(s) from your gallery</string>
+    <string name="chat_write_confirm_favorite">Favorite / unfavorite %1$d media item(s)</string>
+    <string name="chat_write_confirm_select">Select / deselect %1$d media item(s)</string>
+    <string name="chat_write_confirm_ai_source">Requested by an AI-generated script</string>
+    <string name="chat_write_confirm_risk_destructive">High risk: this cannot be undone</string>
+    <string name="chat_write_confirm_risk_reversible">This can be changed later</string>
+    <string name="chat_write_confirm_ok">Confirm</string>
 </resources>

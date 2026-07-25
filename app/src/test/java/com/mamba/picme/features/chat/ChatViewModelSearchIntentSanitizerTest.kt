@@ -14,6 +14,7 @@ import com.mamba.picme.domain.model.StructuredFilter
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.search.SearchResult
+import com.mamba.picme.domain.tag.ControlledVocab
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import io.mockk.coEvery
@@ -109,10 +110,13 @@ class ChatViewModelSearchIntentSanitizerTest {
             userSettingsRepository = userSettingsRepository,
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
+            mediaRepository = mockk(relaxed = true),
             picMeAuthClient = authClient,
             getGallerySummaryUseCase = mockk(relaxed = true),
             queryGalleryMediaUseCase = mockk(relaxed = true),
-            startTagScanUseCase = StartTagScanUseCase(context)
+            startTagScanUseCase = StartTagScanUseCase(context),
+            personDao = mockk(relaxed = true),
+            controlledVocab = ControlledVocab()
         )
     )
 

@@ -10,6 +10,12 @@ interface JsEngine {
     /** 执行脚本，返回结果（JsValue 投影）。 */
     fun eval(script: String): JsValue
 
+    /**
+     * 执行脚本并自定义超时（如脚本内含 `capability.dispatch` 需等用户确认时放宽）。
+     * 默认实现退化为 [eval]（引擎自身默认超时）。
+     */
+    fun eval(script: String, timeoutMs: Long): JsValue = eval(script)
+
     /** 调用全局函数。 */
     fun callFunction(name: String, vararg args: JsValue): JsValue
 
