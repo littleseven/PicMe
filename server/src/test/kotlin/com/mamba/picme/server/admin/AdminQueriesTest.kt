@@ -135,6 +135,18 @@ class AdminQueriesTest {
         assertNull(AdminQueries.deviceRawId(999))
     }
 
+    @Test
+    fun `usersList picks latest non-null device_id per user`() = runBlocking {
+        TestDb.init(Accounts, LlmCallLogs)
+        account(1, "a@x.com", todayStart - day)
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 10, 5, 15, 0.1, 100, "ok", todayStart - day + 100, deviceId = "device-old-1234567890")
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 10, 5, 15, 0.1, 100, "ok", todayStart + 500, deviceId = "device-aaaa-bbbb-1234")
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 10, 5, 15, 0.1, 100, "ok", todayStart + 900, deviceId = null)
+        val users = AdminQueries.usersList()
+        assertEquals(1, users.size)
+        assertEquals("device••••1234", users[0].deviceIdMasked)
+    }
+
     private suspend fun account(id: Int, email: String, createdAt: Long) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             Accounts.insert {
@@ -160,6 +172,7 @@ class AdminQueriesTest {
         bytes: Int,
         status: String,
         createdAt: Long,
+        deviceId: String? = null,
     ) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             LlmCallLogs.insert {
@@ -172,6 +185,7 @@ class AdminQueriesTest {
                 it[LlmCallLogs.costCny] = cost
                 it[LlmCallLogs.respBytes] = bytes
                 it[LlmCallLogs.status] = status
+                it[LlmCallLogs.deviceId] = deviceId
                 it[LlmCallLogs.createdAt] = createdAt
             }
         }

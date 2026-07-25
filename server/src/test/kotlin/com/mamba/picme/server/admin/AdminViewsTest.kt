@@ -18,8 +18,8 @@ class AdminViewsTest {
     @Test
     fun `users page lists emails, detail links and masked api tokens`() {
         val rows = listOf(
-            UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null, "picm••••wxyz", true),
-            UserRow(2, "b@x.com", "active", 0L, 0L, 0L, 0.0, null, "—", false),
+            UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null, "picm••••wxyz", true, "device••••1234"),
+            UserRow(2, "b@x.com", "active", 0L, 0L, 0L, 0.0, null, "—", false, "—"),
         )
         val html = AdminViews.usersPage(rows, devicesCount = 0L)
         assertTrue(html.contains("a@x.com"))
