@@ -327,6 +327,10 @@ class ImageTagIndexingWorker(
                     .removePrefix("- ")
                     .removePrefix("* ")
                     .replace(Regex("^\\d+[.、．]\\s*"), "")
+                    .removeSuffix("。")
+                    .removeSuffix(".")
+                    .removeSuffix("．")
+                    .trim()
             }
             .filter { label ->
                 label.isNotEmpty() &&
