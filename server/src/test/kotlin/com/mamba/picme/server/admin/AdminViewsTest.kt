@@ -92,4 +92,21 @@ class AdminViewsTest {
         assertTrue(html.contains("100 / 100")) // 超额行
         assertTrue(html.contains("btn-danger")) // 删除按钮
     }
+
+    @Test
+    fun `limit-card has centered css so the quota card does not span full viewport width`() {
+        // 修复前 .limit-card 无任何 CSS：div("card limit-card") 是 body 直接子元素，
+        // 而 body>.cards 居中规则只覆盖 .cards 容器、不覆盖裸 .card，导致「改上限」卡片整宽贴边显示。
+        // 此处锁定 .limit-card 必须带居中规则（max-width + auto margin），防回归。
+        val html = AdminViews.overviewPage(
+            OverviewRow(0L, 0L, 0L, 0L, 0.0, 0L, 0L, 0L, 0L, 0L, 0.0),
+            emptyList(),
+        )
+        val rule = Regex("\\.limit-card\\{[^}]*\\}").find(html)?.value ?: ""
+        assertTrue("expected a .limit-card CSS rule to exist", rule.isNotEmpty())
+        assertTrue(
+            "limit-card must be centered (max-width:1200px + margin auto): ${rule.take(80)}",
+            rule.contains("max-width:1200px") && rule.contains("margin:") && rule.contains("auto"),
+        )
+    }
 }

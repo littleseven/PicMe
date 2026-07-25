@@ -923,6 +923,7 @@ object AdminViews {
                         .meta-inline{font-size:11px;color:#999}
                         .col-actions{width:140px}
                         .actions-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:1200px;margin:16px auto;padding:0 24px}
+.limit-card{max-width:1200px;margin:16px auto;padding:16px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
                         .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500}
                         .badge-active{color:#0abf5b;background:#e6f9f0;border:1px solid #b3ebd0}
                         .badge-revoked{color:#ff9c00;background:#fff7e6;border:1px solid #ffd699}
