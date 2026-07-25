@@ -13,9 +13,9 @@
 
 **阅读对象**：RD、CR、AI Agent
 
-**版本**：0.6.3
+**版本**：0.6.4
 
-**最后更新**：2026-07-15
+**最后更新**：2026-07-25
 
 **状态**：生效中 / 已上线
 
@@ -114,6 +114,12 @@ server/
 | GET | `/admin/devices` | P1 | ✅ | ADMIN_TOKEN | 未注册设备列表（anonymous_device） |
 | GET | `/admin/devices/{id}/raw` | P1 | ✅ | ADMIN_TOKEN | 设备 id 复制（返回完整 device_id） |
 | POST | `/admin/devices/{id}/delete` | P1 | ✅ | ADMIN_TOKEN | 删除单条设备访客记录 |
+| GET | `/admin/settings` | P1 | ✅ | ADMIN_TOKEN | 全局额度默认值（free/guest）表单 |
+| POST | `/admin/settings` | P1 | ✅ | ADMIN_TOKEN | 更新全局额度默认值 |
+| POST | `/admin/users/{id}/reset-quota` | P1 | ✅ | ADMIN_TOKEN | 清零单账号已用额度（保留 llm_call_log 历史） |
+| POST | `/admin/users/{id}/limit` | P1 | ✅ | ADMIN_TOKEN | 改单账号调用上限（0=禁用但保留 token） |
+| POST | `/admin/devices/{id}/reset-quota` | P1 | ✅ | ADMIN_TOKEN | 清零访客设备已用额度 |
+| POST | `/admin/channels/{id}/refresh-balance` | P1 | ✅ | ADMIN_TOKEN | 刷新渠道上游余额缓存（DeepSeek 等） |
 | GET | `/assets/{manifest,url}` | P1 | 🚧 | X-App-Token | COS 预签名 — 待实现 |
 | GET | `/agent/config` | P1 | 🚧 | X-App-Token | 供应商适配参数下发 — 待实现 |
 
@@ -133,6 +139,7 @@ App → 后续请求带 X-App-Token: <picme_at_*>
 - `/healthz`、`/auth/email/send`、`/auth/email/verify` 免鉴权
 - 注册用户请求亦带 `X-Device-Id`,用于管理后台 device 维度展示（访客用 X-Device-Id 记设备级试用额度）
 - 每账户有 `FREE_LLM_QUOTA` 免费试用额度（默认 100 次），用尽返回 403
+- 额度默认值持久化于 `server_setting` 表（`free_llm_quota` / `guest_llm_quota`）；env 仅在首次启动播种，之后由 `/admin/settings` 管理，运行时经 `SettingsService` 内存快照下发（热路径零 DB 读）。单账号上限可在「用户详情」页单独覆盖（`account.llm_calls_limit`，0=禁用）
 - Token 持久化在 `account` 表，`token_hash` 字段 SHA-256 存储
 
 ### 4.2 管理后台认证

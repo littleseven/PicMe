@@ -1,7 +1,7 @@
 # PoLang 服务端实现方案（Ktor）
 
 > **文档状态**：已上线（v0.6.3），服务端已在 `api.polang.net` 运行。文档与代码已对齐，编码时以代码为事实来源。
-> **最后更新**：2026-07-15（v0.6.3 对齐：管理后台、邮箱认证、LLM 代理、用量采集、AI 网关渠道管理均已上线）
+> **最后更新**：2026-07-25（v0.6.4 对齐：管理后台额度/上限/概览累计/渠道余额扩展上线）
 > **P0 阻断项**：✅ 已修复并本地端到端验证（2026-07-12）——WAL/busy_timeout/poolSize=1、seed 幂等加载（补 `rule(scene,locale,version)` 唯一索引让 `INSERT OR IGNORE` 真正生效）、StatusPages（Ktor 3 `(call,cause)` 双参数 handler）、`newSuspendedTransaction(Dispatchers.IO)`、systemd `JAVA_OPTS=-Xmx256m`。
 > **维护者**：RD Agent
 > **关联**：`PRODUCT.md`、`OVERSEAS_SERVER_DEPLOYMENT.md`、`AI_OPTIMIZATION.md`
@@ -25,6 +25,7 @@
 - 1 个 P1 能力（v0.5.0 新增）：`/admin/**`（✅ 管理后台 SSR）
 - 2 个 P1 路由：`/assets`（🚧）、`/agent/config`（🚧，供应商适配参数下发）
 - 管理后台 v0.6.4 扩展：`/admin/devices`（未注册设备列表 + id 复制 + 单条删除，对应 `anonymous_device` 表）
+- 管理后台 v0.6.4 扩展（额度/概览/渠道）：`/admin/settings`（全局额度默认值，持久化 `server_setting` 表 + `SettingsService` 内存快照）；`/admin/users/{id}/{reset-quota,limit}` 与 `/admin/devices/{id}/reset-quota`（清零计数、保留历史；单用户改上限）；概览页累计指标（用户/设备/Token/调用/成本）；`/admin/channels` 增消耗聚合 + 上游余额缓存（`llm_channel.balance_*` 列，`/admin/channels/{id}/refresh-balance`）
 - SQLite（规则/元数据/遥测/计数/账号/LLM 日志）
 - 腾讯 COS 预签名下发
 - systemd + Nginx 反代 + certbot 上线
