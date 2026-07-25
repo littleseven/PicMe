@@ -79,9 +79,17 @@ class GenerateSummaryOnDemandUseCase(private val context: Context) {
     }
 
     private fun mergeSummaryIntoLabels(labelsJson: String?, summary: String): String {
-        val obj = if (labelsJson.isNullOrBlank()) JSONObject() else JSONObject(labelsJson)
-        obj.put("summary", summary)
-        return obj.toString()
+        if (labelsJson.isNullOrBlank()) {
+            return JSONObject().put("summary", summary).toString()
+        }
+        return try {
+            JSONObject(labelsJson).apply { put("summary", summary) }.toString()
+        } catch (e: org.json.JSONException) {
+            // labels 非 Object 格式(如 Pass3/reTagSingle 写的 JSONArray tags)——summary 无法合并,
+            // 保留原 labels 避免破坏 tags 与崩溃。根本修复需统一 labels schema(另任务)。
+            Logger.w(tag, "mergeSummaryIntoLabels: labels 非 Object 格式, summary 未写入: $labelsJson")
+            labelsJson
+        }
     }
 
     private fun loadBitmap(uri: String): Bitmap? = try {

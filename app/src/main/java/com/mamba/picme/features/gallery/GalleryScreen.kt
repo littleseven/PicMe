@@ -87,6 +87,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
@@ -792,7 +793,7 @@ fun GalleryScreen(
                         },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = { uri ->
-                            searchScope.launch {
+                            searchScope.launch(Dispatchers.IO) {
                                 app.container.imageTagIndexingWorker.reTagSingle(uri)
                             }
                         }
