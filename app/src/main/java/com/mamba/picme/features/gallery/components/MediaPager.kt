@@ -1195,7 +1195,7 @@ private fun PhotoInfoDialog(
     val locale = configuration.locales[0]
     val appLanguage = remember(locale) { locale.toAppLanguage() }
     val tagTranslator = remember(context) { TagTranslator(BilingualVocab.loadFromAssets(context)) }
-    var tags by remember(asset.labels) {
+    var tags by remember(asset.id) {
         mutableStateOf(
             parseTagsGrouped(
                 labels = asset.labels,
