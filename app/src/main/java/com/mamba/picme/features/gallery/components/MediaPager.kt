@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -1176,6 +1178,7 @@ private fun mediaPagerBottomBar(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoInfoDialog(
     asset: MediaAsset,
@@ -1438,7 +1441,10 @@ private fun PhotoInfoDialog(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                     )
                     // 标签列表
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         tags.forEach { tag ->
                             Surface(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
@@ -1447,7 +1453,7 @@ private fun PhotoInfoDialog(
                                 Text(
                                     text = tag,
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = Color.White,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
