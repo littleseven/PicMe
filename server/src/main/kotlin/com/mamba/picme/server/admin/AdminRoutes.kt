@@ -95,7 +95,11 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
 
         get("/users") {
             if (!call.adminGuard(adminToken)) return@get
-            call.respondText(AdminViews.usersPage(AdminQueries.usersList()), ContentType.Text.Html)
+            val rows = AdminQueries.usersList()
+            call.respondText(
+                AdminViews.usersPage(rows, AdminQueries.devicesCount()),
+                ContentType.Text.Html,
+            )
         }
 
         get("/users/{id}") {

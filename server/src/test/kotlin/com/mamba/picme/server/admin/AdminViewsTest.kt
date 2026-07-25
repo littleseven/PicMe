@@ -21,7 +21,7 @@ class AdminViewsTest {
             UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null, "picm••••wxyz", true),
             UserRow(2, "b@x.com", "active", 0L, 0L, 0L, 0.0, null, "—", false),
         )
-        val html = AdminViews.usersPage(rows)
+        val html = AdminViews.usersPage(rows, devicesCount = 0L)
         assertTrue(html.contains("a@x.com"))
         assertTrue(html.contains("/admin/users/1"))
         // API Token 列：有明文者显示掩码 + 复制按钮；原用量列改名「Token 用量」消歧
@@ -29,6 +29,7 @@ class AdminViewsTest {
         assertTrue(html.contains("picm••••wxyz"))
         assertTrue(html.contains("tokCopy(1, this)"))
         assertTrue(html.contains("Token 用量"))
+        assertTrue(html.contains("未注册设备")) // 二级 Tab 出现
     }
 
     @Test
@@ -70,5 +71,23 @@ class AdminViewsTest {
         assertTrue("compact count label for thousands", html.contains(">1.2k</text>"))
         assertTrue("compact cost label for thousands", html.contains(">1.23k</text>"))
         assertTrue("plain count label", html.contains(">5</text>"))
+    }
+
+    @Test
+    fun `devices page lists masked ids quota and delete action`() {
+        val rows = listOf(
+            DeviceRow(1, "abcdef••••7890", 5, 1_700_000_000_000L, 1_700_000_001_000L),
+            DeviceRow(2, "zzzzzz••••1111", 100, 1_700_000_000_000L, 1_700_000_002_000L),
+        )
+        val html = AdminViews.devicesPage(rows, usersCount = 3L, guestLimit = 100)
+        assertTrue(html.contains("未注册设备"))
+        assertTrue(html.contains("注册用户 (3)")) // 二级 Tab 计数
+        assertTrue(html.contains("未注册设备 (2)")) // 二级 Tab 计数
+        assertTrue(html.contains("abcdef••••7890"))
+        assertTrue(html.contains("devCopy(1, this)"))
+        assertTrue(html.contains("/admin/devices/1/delete"))
+        assertTrue(html.contains("5 / 100"))
+        assertTrue(html.contains("100 / 100")) // 超额行
+        assertTrue(html.contains("btn-danger")) // 删除按钮
     }
 }

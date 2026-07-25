@@ -2,6 +2,7 @@ package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.cos.CosService
+import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
@@ -31,7 +32,7 @@ class AdminRoutesTest {
     private val cookieVal get() = AdminAuth.expectedCookieValue(token)
 
     private fun seed() {
-        TestDb.init(Accounts, LlmCallLogs)
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
         transaction(Db.instance) {
             Accounts.insert {
                 it[Accounts.id] = 1

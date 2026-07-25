@@ -78,10 +78,11 @@ object AdminViews {
         }
     }
 
-    fun usersPage(rows: List<UserRow>): String = createHTML().html {
+    fun usersPage(rows: List<UserRow>, devicesCount: Long): String = createHTML().html {
         adminHead("用户 · PoLang 管理后台")
         body {
             navBar()
+            userTabs(rows.size.toLong(), devicesCount, "/admin/users")
             h1 { +"用户（${rows.size}）" }
             table {
                 tr {
@@ -146,6 +147,64 @@ object AdminViews {
                     raw(
                         """function tokCopy(id,btn){fetch('/admin/users/'+id+'/token',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){return navigator.clipboard.writeText(d.token)}).then(function(){var o=btn.textContent;btn.textContent='✓';setTimeout(function(){btn.textContent=o},1200)}).catch(function(){btn.textContent='失败';setTimeout(function(){btn.textContent='复制'},1200)})}""",
                     )
+                }
+            }
+        }
+    }
+
+    fun devicesPage(rows: List<DeviceRow>, usersCount: Long, guestLimit: Int): String = createHTML().html {
+        adminHead("未注册设备 · PoLang 管理后台")
+        body {
+            navBar()
+            userTabs(usersCount, rows.size.toLong(), "/admin/devices")
+            h1 { +"未注册设备（${rows.size}）" }
+            p("meta") { +"按最后活跃倒序;数据量大时仅展示最近 1000 条" }
+            if (rows.isEmpty()) {
+                div("card apk-empty") {
+                    div("apk-empty-text") { +"暂无未注册设备" }
+                }
+            } else {
+                table {
+                    tr {
+                        th { +"ID" }
+                        th { +"Device ID" }
+                        th { +"额度（已用 / 上限）" }
+                        th { +"首次出现" }
+                        th { +"最后活跃" }
+                        th(classes = "col-actions") { +"操作" }
+                    }
+                    rows.forEach { d ->
+                        tr {
+                            td { +d.id.toString() }
+                            td {
+                                span("tok") { +d.deviceIdMasked }
+                                +" "
+                                button(type = ButtonType.button, classes = "btn-sm tok-copy") {
+                                    attributes["onclick"] = "devCopy(${d.id}, this)"
+                                    +"复制"
+                                }
+                            }
+                            td {
+                                val text = "${d.llmCallsUsed} / $guestLimit"
+                                if (d.llmCallsUsed >= guestLimit) span("err") { +text } else +text
+                            }
+                            td { +fmtTs(d.createdAt) }
+                            td { +fmtTs(d.lastSeenAt) }
+                            td {
+                                form(action = "/admin/devices/${d.id}/delete", method = FormMethod.post, classes = "inline") {
+                                    attributes["onsubmit"] = "return confirm('确定删除该设备记录？\\n\\n将清除其访客用量计数,操作不可恢复。')"
+                                    input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
+                                }
+                            }
+                        }
+                    }
+                }
+                script {
+                    unsafe {
+                        raw(
+                            """function devCopy(id,btn){fetch('/admin/devices/'+id+'/raw',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){return navigator.clipboard.writeText(d.device_id)}).then(function(){var o=btn.textContent;btn.textContent='✓';setTimeout(function(){btn.textContent=o},1200)}).catch(function(){btn.textContent='失败';setTimeout(function(){btn.textContent='复制'},1200)})}""",
+                        )
+                    }
                 }
             }
         }
@@ -804,6 +863,10 @@ object AdminViews {
                         .upload-actions{margin-top:20px;text-align:right}
                         .btn-upload{min-width:140px}
                         .btn-upload:disabled{background:#b0b8c4;cursor:not-allowed;transform:none;box-shadow:none}
+                        .subtabs{display:flex;gap:4px;max-width:1200px;margin:16px auto 0;padding:0 24px;border-bottom:1px solid #e5e5e5}
+                        .subtab{color:#666;text-decoration:none;padding:10px 16px;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+                        .subtab:hover{color:#006eff}
+                        .subtab.active{color:#006eff;border-bottom-color:#006eff;font-weight:500}
                         @media (max-width:640px){
                         body>h1{font-size:20px}
                         body>h2{font-size:14px}
@@ -863,6 +926,17 @@ object AdminViews {
                 raw(
                     """document.addEventListener('DOMContentLoaded',function(){var path=window.location.pathname;var links=document.querySelectorAll('.nav-link');links.forEach(function(link){if(link.getAttribute('href')===path){link.classList.add('active');}});});""",
                 )
+            }
+        }
+    }
+
+    private fun FlowContent.userTabs(usersCount: Long, devicesCount: Long, currentPath: String) {
+        div("subtabs") {
+            a("/admin/users", classes = if (currentPath == "/admin/users") "subtab active" else "subtab") {
+                +"注册用户 ($usersCount)"
+            }
+            a("/admin/devices", classes = if (currentPath == "/admin/devices") "subtab active" else "subtab") {
+                +"未注册设备 ($devicesCount)"
             }
         }
     }
