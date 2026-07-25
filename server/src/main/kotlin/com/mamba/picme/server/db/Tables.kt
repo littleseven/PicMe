@@ -148,3 +148,11 @@ object ApkUploads : Table("apk_upload") {
     val createdAt = long("created_at")
     override val primaryKey = PrimaryKey(id)
 }
+
+// ── 服务端运行时设置（key-value；当前仅额度默认值，env 仅作首次播种）──
+object ServerSettings : Table("server_setting") {
+    val key = varchar("key", 48)
+    val value = integer("value")
+    val updatedAt = long("updated_at")
+    override val primaryKey = PrimaryKey(key)
+}

@@ -1,6 +1,7 @@
 package com.mamba.picme.server.db
 
 import com.mamba.picme.server.config.AppConfig
+import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.llm.serializeModelMap
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Transaction
@@ -15,14 +16,15 @@ object Migrations {
             SchemaUtils.create(
                 Rules, Assets, TelemetryEvents, LlmDailyCounters,
                 Accounts, EmailVerifications, LlmCallLogs, LlmChannels,
-                ApkUploads, AnonymousDevices,
+                ApkUploads, AnonymousDevices, ServerSettings,
             )
             // 给现存表补缺失列（如 llm_channel.default_model），幂等
-            SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels, LlmCallLogs)
+            SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels, LlmCallLogs, ServerSettings)
             seedRules()
         }
         seedChannels(config)
         backfillDefaultModels()
+        seedSettings(config)
     }
 
     /**
@@ -157,6 +159,28 @@ object Migrations {
                         it[LlmChannels.defaultModel] = dm
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * 幂等播种额度默认值：仅当对应行缺失时写入 env 值。之后由后台 /admin/settings 管理，env 降级为「首次默认」。
+     */
+    internal fun seedSettings(config: AppConfig) {
+        transaction(Db.instance) {
+            val now = System.currentTimeMillis()
+            seedIfAbsent(SettingsService.KEY_FREE, config.freeLlmQuota, now)
+            seedIfAbsent(SettingsService.KEY_GUEST, config.guestLlmQuota, now)
+        }
+    }
+
+    private fun org.jetbrains.exposed.sql.Transaction.seedIfAbsent(key: String, value: Int, now: Long) {
+        val exists = ServerSettings.selectAll().where { ServerSettings.key eq key }.firstOrNull() != null
+        if (!exists) {
+            ServerSettings.insert {
+                it[ServerSettings.key] = key
+                it[ServerSettings.value] = value
+                it[ServerSettings.updatedAt] = now
             }
         }
     }
