@@ -248,7 +248,9 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
         get("/channels") {
             if (!call.adminGuard(adminToken)) return@get
             val channels = ChannelRepository.list()
-            call.respondText(AdminViews.channelsPage(channels), ContentType.Text.Html)
+            val usage = AdminQueries.channelUsage()
+            val balances = channels.associate { it.id to balanceService.cached(it.id) }
+            call.respondText(AdminViews.channelsPage(channels, usage, balances), ContentType.Text.Html)
         }
 
         get("/channels/new") {
@@ -285,7 +287,10 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             val input = call.parseChannelInput()
             if (input == null) {
                 call.respondText(
-                    AdminViews.channelsPage(ChannelRepository.list(), error = "表单参数错误：检查 model_map 格式（每行 请求名=上游名）"),
+                    AdminViews.channelsPage(
+                        ChannelRepository.list(), AdminQueries.channelUsage(), emptyMap(),
+                        error = "表单参数错误：检查 model_map 格式（每行 请求名=上游名）",
+                    ),
                     ContentType.Text.Html,
                     HttpStatusCode.BadRequest,
                 )
@@ -295,7 +300,10 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
                 ChannelRepository.create(input)
             } catch (e: Exception) {
                 call.respondText(
-                    AdminViews.channelsPage(ChannelRepository.list(), error = "创建失败：名称可能重复"),
+                    AdminViews.channelsPage(
+                        ChannelRepository.list(), AdminQueries.channelUsage(), emptyMap(),
+                        error = "创建失败：名称可能重复",
+                    ),
                     ContentType.Text.Html,
                     HttpStatusCode.BadRequest,
                 )
@@ -327,6 +335,14 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
                 ChannelRepository.setActive(id)
                 ChannelRegistry.reload()
             }
+            call.respondRedirect("/admin/channels")
+        }
+
+        // 刷新上游余额（缓存+手动刷新策略）。失败不报错，列表显「—」。
+        post("/channels/{id}/refresh-balance") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) balanceService.refresh(id)
             call.respondRedirect("/admin/channels")
         }
 
@@ -478,5 +494,6 @@ private suspend fun ApplicationCall.parseChannelInput(): ChannelInput? {
         modelMap = modelMap,
         enabled = (params["enabled"] ?: "0") == "1",
         defaultModel = (params["default_model"] ?: "").trim(),
+        balanceUrl = (params["balance_url"] ?: "").trim(),
     )
 }

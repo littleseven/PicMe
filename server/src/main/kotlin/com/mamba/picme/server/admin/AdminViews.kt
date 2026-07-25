@@ -2,6 +2,7 @@ package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.analytics.formatCostCny
 import com.mamba.picme.server.config.SettingsService
+import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelRow
 import com.mamba.picme.server.llm.renderModelMapLines
 import kotlinx.html.FlowContent
@@ -382,7 +383,12 @@ object AdminViews {
         }
     }
 
-    fun channelsPage(channels: List<ChannelRow>, error: String? = null): String = createHTML().html {
+    fun channelsPage(
+        channels: List<ChannelRow>,
+        usage: Map<String, ChannelUsage>,
+        balances: Map<Int, ChannelBalanceService.Cached>,
+        error: String? = null,
+    ): String = createHTML().html {
         adminHead("渠道 · PoLang 管理后台")
         body {
             navBar()
@@ -396,6 +402,8 @@ object AdminViews {
                     th { +"名称" }
                     th { +"Token" }
                     th { +"默认模型" }
+                    th { +"消耗(调用/Token/¥)" }
+                    th(classes = "col-balance") { +"余额" }
                     th(classes = "col-toggle") { +"启用" }
                     th(classes = "col-active") { +"当前生效" }
                     th(classes = "col-actions") { +"操作" }
@@ -415,6 +423,22 @@ object AdminViews {
                         }
                         td { +(ch.defaultModel.ifBlank { "严格" }) }
                         td {
+                            val u = usage[ch.name]
+                            if (u == null) {
+                                +"0 / 0 / 0.00"
+                            } else {
+                                +"${u.calls} / ${compactCount(u.tokens.toDouble())} / ${compactCost(u.cost)}"
+                            }
+                        }
+                        td {
+                            val b = balances[ch.id]
+                            val display = b?.display ?: "—"
+                            if (display != "—") span("active-badge") { +display } else +display
+                            b?.checkedAt?.let {
+                                br(); span("meta-inline") { +fmtTs(it) }
+                            }
+                        }
+                        td {
                             form(action = "/admin/channels/${ch.id}/toggle", method = FormMethod.post, classes = "inline") {
                                 input(type = InputType.submit, classes = "btn-sm ${if (ch.enabled) "" else "btn-go"}") {
                                     value = if (ch.enabled) "停用" else "启用"
@@ -432,6 +456,11 @@ object AdminViews {
                         }
                         td {
                             div("row-actions") {
+                                if (ch.balanceUrl.isNotBlank()) {
+                                    form(action = "/admin/channels/${ch.id}/refresh-balance", method = FormMethod.post, classes = "inline") {
+                                        input(type = InputType.submit, classes = "btn-sm") { value = "刷新余额" }
+                                    }
+                                }
                                 a("/admin/channels/${ch.id}/edit", classes = "btn-sm btn-primary") { +"编辑" }
                                 if (!ch.isActive) {
                                     form(action = "/admin/channels/${ch.id}/delete", method = FormMethod.post, classes = "inline") {
@@ -535,6 +564,14 @@ object AdminViews {
                     textInput(name = "default_model") {
                         value = existing?.defaultModel ?: ""
                         placeholder = "如 deepseek-v4-flash"
+                    }
+                }
+                p {
+                    label { +"余额 URL（留空=不支持余额查询）" }
+                    br()
+                    textInput(name = "balance_url") {
+                        value = existing?.balanceUrl ?: ""
+                        placeholder = "https://api.deepseek.com/user/balance"
                     }
                 }
                 div("form-actions") {
@@ -882,6 +919,8 @@ object AdminViews {
                         .row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
                         .col-toggle{width:80px}
                         .col-active{width:100px}
+                        .col-balance{width:120px}
+                        .meta-inline{font-size:11px;color:#999}
                         .col-actions{width:140px}
                         .actions-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:1200px;margin:16px auto;padding:0 24px}
                         .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500}

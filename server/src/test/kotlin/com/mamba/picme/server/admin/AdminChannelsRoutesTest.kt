@@ -3,6 +3,8 @@ package com.mamba.picme.server.admin
 import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Accounts
+import com.mamba.picme.server.db.AnonymousDevices
+import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.db.LlmChannels
 import com.mamba.picme.server.llm.ChannelBalanceService
@@ -23,6 +25,8 @@ import io.ktor.http.contentType
 import io.ktor.server.application.application
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,8 +42,8 @@ class AdminChannelsRoutesTest {
 
     @Before
     fun setUp() {
-        // /admin 概览页查 Accounts/LlmCallLogs，故一并建表；渠道测试只需 LlmChannels。
-        TestDb.init(Accounts, LlmCallLogs, LlmChannels)
+        // /admin 概览页查 Accounts/LlmCallLogs/AnonymousDevices，故一并建表；渠道测试只需 LlmChannels。
+        TestDb.init(Accounts, LlmCallLogs, LlmChannels, AnonymousDevices)
         ChannelRegistry.setActiveForTesting(null)
     }
 
@@ -178,5 +182,63 @@ class AdminChannelsRoutesTest {
         // 未带 cookie → 跳登录（不泄露 token）
         val noAuth = c.get("/admin/channels/1/token")
         assertEquals(HttpStatusCode.Found, noAuth.status)
+    }
+
+    @Test
+    fun `channels page shows consumption columns and balance header`() = testApplication {
+        TestDb.init(Accounts, LlmCallLogs, LlmChannels)
+        transaction(Db.instance) {
+            Accounts.insert {
+                it[Accounts.id] = 1; it[Accounts.email] = "a@x.com"; it[Accounts.tokenHash] = "h1"
+                it[Accounts.status] = "active"; it[Accounts.llmCallsUsed] = 0; it[Accounts.llmCallsLimit] = 100
+                it[Accounts.createdAt] = 1L
+            }
+            LlmChannels.insert {
+                it[LlmChannels.name] = "DeepSeek 直连"; it[LlmChannels.kind] = "direct"
+                it[LlmChannels.baseUrl] = "https://api.deepseek.com/v1/chat/completions"
+                it[LlmChannels.authStyle] = "bearer"; it[LlmChannels.apiToken] = "sk-1"
+                it[LlmChannels.modelMapJson] = "{}"; it[LlmChannels.enabled] = 1; it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = 1L; it[LlmChannels.updatedAt] = 1L
+                it[LlmChannels.balanceUrl] = "https://api.deepseek.com/user/balance"
+            }
+            LlmCallLogs.insert {
+                it[LlmCallLogs.accountId] = 1; it[LlmCallLogs.model] = "deepseek-chat"
+                it[LlmCallLogs.provider] = "DeepSeek 直连"; it[LlmCallLogs.totalTokens] = 200
+                it[LlmCallLogs.costCny] = 1.5; it[LlmCallLogs.respBytes] = 0; it[LlmCallLogs.status] = "ok"
+                it[LlmCallLogs.createdAt] = 2L
+            }
+        }
+        ChannelRegistry.reload()
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        val r = c.get("/admin/channels") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, r.status)
+        val html = r.bodyAsText()
+        assertTrue(html.contains("余额"))
+        assertTrue(html.contains("消耗"))
+        assertTrue(html.contains("refresh-balance")) // DeepSeek 渠道有 balance_url → 渲染刷新按钮
+    }
+
+    @Test
+    fun `refresh balance redirects back to channels`() = testApplication {
+        TestDb.init(Accounts, LlmCallLogs, LlmChannels)
+        transaction(Db.instance) {
+            LlmChannels.insert {
+                it[LlmChannels.name] = "DeepSeek 直连"; it[LlmChannels.kind] = "direct"
+                it[LlmChannels.baseUrl] = "https://api.deepseek.com/v1/chat/completions"
+                it[LlmChannels.authStyle] = "bearer"; it[LlmChannels.apiToken] = ""
+                it[LlmChannels.modelMapJson] = "{}"; it[LlmChannels.enabled] = 1; it[LlmChannels.isActive] = 0
+                it[LlmChannels.createdAt] = 1L; it[LlmChannels.updatedAt] = 1L
+                it[LlmChannels.balanceUrl] = "https://api.deepseek.com/user/balance"
+            }
+        }
+        ChannelRegistry.reload()
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+        // 没有真实上游 / 无 token → refresh 返回 false，但路由仍 302 回列表（不报错）
+        val r = c.post("/admin/channels/1/refresh-balance") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, r.status)
+        assertEquals("/admin/channels", r.headers[HttpHeaders.Location])
     }
 }
