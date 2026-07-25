@@ -25,6 +25,7 @@ object Migrations {
         seedChannels(config)
         backfillDefaultModels()
         seedSettings(config)
+        backfillBalanceUrls()
     }
 
     /**
@@ -184,6 +185,22 @@ object Migrations {
             }
         }
     }
+
+    /**
+     * 幂等回填：DeepSeek 直连渠道若 balance_url 为空则补上，让老库升级后即可用余额刷新。
+     */
+    internal fun backfillBalanceUrls() {
+        transaction(Db.instance) {
+            LlmChannels.selectAll().toList().forEach { row ->
+                if (row[LlmChannels.balanceUrl].isBlank()) {
+                    val url = CHANNEL_BALANCE_URL[row[LlmChannels.name]] ?: return@forEach
+                    LlmChannels.update({ LlmChannels.id eq row[LlmChannels.id] }) {
+                        it[LlmChannels.balanceUrl] = url
+                    }
+                }
+            }
+        }
+    }
 }
 
 private val TOKENHUB_SEED_MODELS = listOf(
@@ -196,6 +213,10 @@ private val TOKENHUB_SEED_MODELS = listOf(
 )
 
 /** 渠道名 → 默认上游模型。播种与回填共用；用户新建渠道默认留空（strict）。 */
+private val CHANNEL_BALANCE_URL = mapOf(
+    "DeepSeek 直连" to "https://api.deepseek.com/user/balance",
+)
+
 private val CHANNEL_DEFAULT_MODEL = mapOf(
     "Cloudflare" to "deepseek/deepseek-chat",
     "TokenHub" to "deepseek-v4-flash-202605",

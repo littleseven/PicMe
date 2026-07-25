@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LlmChannelsTableTest {
@@ -51,5 +52,26 @@ class LlmChannelsTableTest {
         }
         val row = transaction(Db.instance) { LlmChannels.selectAll().first() }
         assertEquals("deepseek-v4-flash", row[LlmChannels.defaultModel])
+    }
+
+    @Test
+    fun `balance columns default empty and nullable checked_at`() {
+        TestDb.init(LlmChannels)
+        transaction(Db.instance) {
+            val id = LlmChannels.insert {
+                it[LlmChannels.name] = "T"
+                it[LlmChannels.kind] = "direct"
+                it[LlmChannels.baseUrl] = "https://x"
+                it[LlmChannels.authStyle] = "bearer"
+                it[LlmChannels.apiToken] = ""
+                it[LlmChannels.modelMapJson] = "{}"
+                it[LlmChannels.createdAt] = 1L
+                it[LlmChannels.updatedAt] = 1L
+            } get LlmChannels.id
+            val row = LlmChannels.selectAll().where { LlmChannels.id eq id }.single()
+            assertEquals("", row[LlmChannels.balanceUrl])
+            assertEquals("", row[LlmChannels.balanceJson])
+            assertNull(row[LlmChannels.balanceCheckedAt])
+        }
     }
 }
