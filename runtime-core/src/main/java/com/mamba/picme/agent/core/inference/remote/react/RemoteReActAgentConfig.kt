@@ -8,7 +8,8 @@ data class RemoteReActAgentConfig(
     val maxIterations: Int = 10,
     val temperature: Double = 0.1,
     val streaming: Boolean = false,
-    val gatewayToken: String? = null
+    val gatewayToken: String? = null,
+    val deviceId: String = ""
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT = """
@@ -164,6 +165,7 @@ data class RemoteReActAgentConfig(
         private var temperature: Double = 0.1
         private var streaming: Boolean = false
         private var gatewayToken: String? = null
+        private var deviceId: String = ""
 
         fun apiKey(apiKey: String) = apply {
             this.apiKey = apiKey
@@ -175,10 +177,11 @@ data class RemoteReActAgentConfig(
         fun temperature(temperature: Double) = apply { this.temperature = temperature }
         fun streaming(streaming: Boolean) = apply { this.streaming = streaming }
         fun gatewayToken(token: String) = apply { this.gatewayToken = token }
+        fun deviceId(deviceId: String) = apply { this.deviceId = deviceId }
 
         fun build(): RemoteReActAgentConfig {
             require(apiKey.isNotEmpty() || gatewayToken != null) { "API key or gateway token is required" }
-            return RemoteReActAgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, streaming, gatewayToken)
+            return RemoteReActAgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, streaming, gatewayToken, deviceId)
         }
     }
 }

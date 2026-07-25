@@ -313,6 +313,7 @@ class AgentConfigurator(private val context: Context) {
                 .baseUrl(currentConfig.baseUrl)
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
+                .deviceId(deviceId)
                 .build()
         } catch (e: Exception) {
             Logger.w("AgentConfigurator", "Failed to build FeishuAgent config", e)
@@ -356,6 +357,7 @@ class AgentConfigurator(private val context: Context) {
                 .baseUrl(currentConfig.baseUrl)
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
+                .deviceId(deviceId)
                 .systemPrompt(chatSystemPrompt + "\n\n当前日期：${java.time.LocalDate.now()}。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。")
                 .build()
         } catch (e: Exception) {

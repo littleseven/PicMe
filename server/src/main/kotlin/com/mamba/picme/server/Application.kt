@@ -93,6 +93,10 @@ fun Application.module(config: AppConfig) {
         if (authResult?.valid == true) {
             // 有效账号 token → 存 hash 供下游额度校验
             authResult.tokenHash?.let { call.attributes.put(TokenHashKey, it) }
+            // 注册用户请求若带 X-Device-Id,亦存 DeviceIdKey 供后台 device 维度展示(device_id 列)
+            call.request.headers[DEVICE_ID_HEADER]?.takeIf { it.isNotBlank() }?.let {
+                call.attributes.put(DeviceIdKey, it)
+            }
             return@intercept
         }
 

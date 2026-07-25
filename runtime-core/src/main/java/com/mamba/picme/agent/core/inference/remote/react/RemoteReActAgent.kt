@@ -60,6 +60,10 @@ class RemoteReActAgent(
         config.gatewayToken?.let {
             builder.customHeader("X-App-Token", it)
         }
+        // 注册与访客均带 X-Device-Id：注册用户用于后台 device 维度展示,访客用于设备级试用额度。
+        if (config.deviceId.isNotBlank()) {
+            builder.customHeader("X-Device-Id", config.deviceId)
+        }
 
         builder.listeners(object : ChatModelListener {
             override fun onResponse(responseContext: ChatModelResponseContext) {
