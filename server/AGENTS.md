@@ -131,6 +131,7 @@ App → 后续请求带 X-App-Token: <picme_at_*>
 ```
 
 - `/healthz`、`/auth/email/send`、`/auth/email/verify` 免鉴权
+- 注册用户请求亦带 `X-Device-Id`,用于管理后台 device 维度展示（访客用 X-Device-Id 记设备级试用额度）
 - 每账户有 `FREE_LLM_QUOTA` 免费试用额度（默认 100 次），用尽返回 403
 - Token 持久化在 `account` 表，`token_hash` 字段 SHA-256 存储
 
