@@ -26,6 +26,9 @@ data class ChannelRow(
     val isActive: Boolean,
     val defaultModel: String,
     val hasToken: Boolean,
+    val balanceUrl: String,
+    val balanceJson: String,
+    val balanceCheckedAt: Long?,
 )
 
 /** 创建/更新渠道的输入（后台表单）。apiToken 空串 = 更新时保持原值。 */
@@ -38,7 +41,19 @@ data class ChannelInput(
     val modelMap: Map<String, String>,
     val enabled: Boolean,
     val defaultModel: String = "",
+    val balanceUrl: String = "",
 )
+
+/** 余额调用所需的最小配置（明文 token，仅供 ChannelBalanceService）。 */
+data class BalanceConfig(
+    val kind: String,
+    val balanceUrl: String,
+    val apiToken: String,
+    val authStyle: AuthStyle,
+)
+
+/** 缓存的余额响应。 */
+data class BalanceCache(val json: String, val checkedAt: Long?)
 
 object ChannelRepository {
 
@@ -53,6 +68,35 @@ object ChannelRepository {
     /** 取渠道完整 token（仅供后台「复制」端点，鉴权后返回，不进列表 HTML）。 */
     suspend fun rawToken(id: Int): String? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         LlmChannels.selectAll().where { LlmChannels.id eq id }.firstOrNull()?.let { it[LlmChannels.apiToken] }
+    }
+
+    /** 取余额调用所需配置（明文 token）；balance_url 空时 balanceUrl 为空，调用方据此跳过。 */
+    suspend fun balanceConfig(id: Int): BalanceConfig? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        LlmChannels.selectAll().where { LlmChannels.id eq id }.firstOrNull()?.let {
+            BalanceConfig(
+                kind = it[LlmChannels.kind],
+                balanceUrl = it[LlmChannels.balanceUrl],
+                apiToken = it[LlmChannels.apiToken],
+                authStyle = AuthStyle.valueOf(it[LlmChannels.authStyle].uppercase()),
+            )
+        }
+    }
+
+    /** 落缓存：写 balance_json + balance_checked_at。 */
+    suspend fun saveBalanceCache(id: Int, json: String, checkedAt: Long): Boolean =
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val rows = LlmChannels.update({ LlmChannels.id eq id }) {
+                it[LlmChannels.balanceJson] = json
+                it[LlmChannels.balanceCheckedAt] = checkedAt
+            }
+            rows > 0
+        }
+
+    /** 读缓存。 */
+    suspend fun cachedBalance(id: Int): BalanceCache? = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        LlmChannels.selectAll().where { LlmChannels.id eq id }.firstOrNull()?.let {
+            BalanceCache(it[LlmChannels.balanceJson], it[LlmChannels.balanceCheckedAt])
+        }
     }
 
     /** 取生效渠道（含完整 token），供 ChannelRegistry 加载。 */
@@ -72,6 +116,7 @@ object ChannelRepository {
             it[LlmChannels.apiToken] = input.apiToken
             it[LlmChannels.modelMapJson] = serializeModelMap(input.modelMap)
             it[LlmChannels.defaultModel] = input.defaultModel
+            it[LlmChannels.balanceUrl] = input.balanceUrl
             it[LlmChannels.enabled] = if (input.enabled) 1 else 0
             it[LlmChannels.isActive] = 0
             it[LlmChannels.createdAt] = now
@@ -89,6 +134,7 @@ object ChannelRepository {
             if (input.apiToken.isNotEmpty()) it[LlmChannels.apiToken] = input.apiToken
             it[LlmChannels.modelMapJson] = serializeModelMap(input.modelMap)
             it[LlmChannels.defaultModel] = input.defaultModel
+            it[LlmChannels.balanceUrl] = input.balanceUrl
             it[LlmChannels.enabled] = if (input.enabled) 1 else 0
             it[LlmChannels.updatedAt] = Instant.now().toEpochMilli()
         }
@@ -141,6 +187,9 @@ object ChannelRepository {
         isActive = this[LlmChannels.isActive] == 1,
         defaultModel = this[LlmChannels.defaultModel],
         hasToken = this[LlmChannels.apiToken].isNotEmpty(),
+        balanceUrl = this[LlmChannels.balanceUrl],
+        balanceJson = this[LlmChannels.balanceJson],
+        balanceCheckedAt = this[LlmChannels.balanceCheckedAt],
     )
 
     private fun ResultRow.toConfig(): ChannelConfig = ChannelConfig(

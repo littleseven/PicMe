@@ -5,6 +5,7 @@ import com.mamba.picme.server.util.TestDb
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -122,5 +123,37 @@ class ChannelRepositoryTest {
         // 空串能清空
         ChannelRepository.update(id, input().copy(defaultModel = ""))
         assertEquals("", ChannelRepository.get(id)!!.defaultModel)
+    }
+
+    @Test
+    fun `create and update carry balanceUrl`() = runBlocking {
+        val id = ChannelRepository.create(input().copy(balanceUrl = "https://api.deepseek.com/user/balance"))
+        assertEquals("https://api.deepseek.com/user/balance", ChannelRepository.get(id)!!.balanceUrl)
+
+        ChannelRepository.update(id, input().copy(balanceUrl = ""))
+        assertEquals("", ChannelRepository.get(id)!!.balanceUrl)
+    }
+
+    @Test
+    fun `balanceConfig returns url token and authStyle for balance call`() = runBlocking {
+        val id = ChannelRepository.create(input().copy(apiToken = "sk-bal-1234"))
+        val cfg = ChannelRepository.balanceConfig(id)
+        assertNotNull(cfg)
+        assertEquals("sk-bal-1234", cfg!!.apiToken)
+        assertEquals(AuthStyle.BEARER, cfg.authStyle)
+    }
+
+    @Test
+    fun `balanceConfig returns null for missing channel`() = runBlocking {
+        assertNull(ChannelRepository.balanceConfig(9999))
+    }
+
+    @Test
+    fun `saveBalanceCache writes json and checkedAt and cached reads back`() = runBlocking {
+        val id = ChannelRepository.create(input())
+        ChannelRepository.saveBalanceCache(id, """{"x":1}""", 1_700_000_000_000L)
+        val cached = ChannelRepository.cachedBalance(id)
+        assertEquals("""{"x":1}""", cached?.json)
+        assertEquals(1_700_000_000_000L, cached?.checkedAt)
     }
 }
