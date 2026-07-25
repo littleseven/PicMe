@@ -23,7 +23,10 @@ import io.ktor.server.application.application
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -195,5 +198,71 @@ class AdminRoutesTest {
         val del = c.post("/admin/devices/5/delete") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.Found, del.status)
         assertEquals("/admin/devices", del.headers[HttpHeaders.Location])
+    }
+
+    @Test
+    fun `reset user quota zeroes used and redirects to detail`() = testApplication {
+        seed()
+        transaction(Db.instance) {
+            Accounts.update({ Accounts.id eq 1 }) {
+                with(SqlExpressionBuilder) { it[llmCallsUsed] = llmCallsUsed + 20 }
+            }
+        }
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        val r = c.post("/admin/users/1/reset-quota") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, r.status)
+        assertEquals("/admin/users/1", r.headers[HttpHeaders.Location])
+
+        val used = transaction(Db.instance) {
+            Accounts.selectAll().where { Accounts.id eq 1 }.single()[Accounts.llmCallsUsed]
+        }
+        assertEquals(0, used)
+    }
+
+    @Test
+    fun `set user limit updates limit and redirects`() = testApplication {
+        seed()
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        val r = c.post("/admin/users/1/limit") {
+            cookie(AdminAuth.COOKIE_NAME, cookieVal)
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("limit=250")
+        }
+        assertEquals(HttpStatusCode.Found, r.status)
+        assertEquals("/admin/users/1", r.headers[HttpHeaders.Location])
+        val limit = transaction(Db.instance) {
+            Accounts.selectAll().where { Accounts.id eq 1 }.single()[Accounts.llmCallsLimit]
+        }
+        assertEquals(250, limit)
+    }
+
+    @Test
+    fun `reset guest device quota redirects to devices`() = testApplication {
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
+        transaction(Db.instance) {
+            Accounts.insert {
+                it[Accounts.id] = 1; it[Accounts.email] = "a@x.com"; it[Accounts.tokenHash] = "h1"
+                it[Accounts.status] = "active"; it[Accounts.llmCallsUsed] = 0; it[Accounts.llmCallsLimit] = 100
+                it[Accounts.createdAt] = 1_700_000_000_000L
+            }
+            AnonymousDevices.insert {
+                it[AnonymousDevices.id] = 5; it[AnonymousDevices.deviceId] = "abcdef1234567890"
+                it[AnonymousDevices.llmCallsUsed] = 9; it[AnonymousDevices.createdAt] = 1L; it[AnonymousDevices.lastSeenAt] = 2L
+            }
+        }
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        val r = c.post("/admin/devices/5/reset-quota") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, r.status)
+        assertEquals("/admin/devices", r.headers[HttpHeaders.Location])
+        val used = transaction(Db.instance) {
+            AnonymousDevices.selectAll().where { AnonymousDevices.id eq 5 }.single()[AnonymousDevices.llmCallsUsed]
+        }
+        assertEquals(0, used)
     }
 }

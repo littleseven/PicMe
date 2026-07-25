@@ -138,6 +138,14 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             call.respondRedirect("/admin/devices")
         }
 
+        // 重置访客设备已用额度。
+        post("/devices/{id}/reset-quota") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) GuestService.resetQuota(id)
+            call.respondRedirect("/admin/devices")
+        }
+
         get("/users/{id}") {
             if (!call.adminGuard(adminToken)) return@get
             val id = call.parameters["id"]?.toIntOrNull()
@@ -179,6 +187,25 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             val id = call.parameters["id"]?.toIntOrNull()
             if (id != null) AccountService.setStatus(id, "active")
             call.respondRedirect("/admin/users")
+        }
+
+        // 重置单账号已用额度（清零计数、保留 llm_call_log 历史）。
+        post("/users/{id}/reset-quota") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) AccountService.resetQuota(id)
+            call.respondRedirect("/admin/users/$id")
+        }
+
+        // 修改单账号调用上限（limit=0 等价禁用但保留 token）。
+        post("/users/{id}/limit") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            val limit = call.receiveParameters()["limit"]?.toIntOrNull()
+            if (id != null && limit != null && limit >= 0) {
+                AccountService.setLimit(id, limit)
+            }
+            call.respondRedirect("/admin/users/$id")
         }
 
         // 管理后台「删除账户及数据」：立即物理删除账号 + 调用日志（隐私合规「立即删除」）。

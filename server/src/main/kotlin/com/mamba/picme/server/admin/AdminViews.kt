@@ -193,6 +193,10 @@ object AdminViews {
                             td { +fmtTs(d.createdAt) }
                             td { +fmtTs(d.lastSeenAt) }
                             td {
+                                form(action = "/admin/devices/${d.id}/reset-quota", method = FormMethod.post, classes = "inline") {
+                                    attributes["onsubmit"] = "return confirm('重置该设备已用额度？')"
+                                    input(type = InputType.submit, classes = "btn-sm") { value = "重置" }
+                                }
                                 form(action = "/admin/devices/${d.id}/delete", method = FormMethod.post, classes = "inline") {
                                     attributes["onsubmit"] = "return confirm('确定删除该设备记录？\\n\\n将清除其访客用量计数,操作不可恢复。')"
                                     input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
@@ -230,6 +234,12 @@ object AdminViews {
                     }
                 }
                 if (d.status != "deleted") {
+                    form(action = "/admin/users/${d.id}/reset-quota", method = FormMethod.post, classes = "inline") {
+                        attributes["onsubmit"] = "return confirm('重置已用额度？\\n\\n仅清零当前计数器（${d.llmCallsUsed}/${d.llmCallsLimit}），历史调用记录保留。')"
+                        input(type = InputType.submit, classes = "btn") { value = "重置已用额度" }
+                    }
+                }
+                if (d.status != "deleted") {
                     form(action = "/admin/users/${d.id}/delete", method = FormMethod.post, classes = "inline") {
                         attributes["onsubmit"] = "return confirm('确定删除该用户及其全部数据？\\n\\n此操作不可恢复，账号与调用日志将被立即物理删除。')"
                         input(type = InputType.submit, classes = "btn btn-danger") { value = "删除账户及数据" }
@@ -243,6 +253,18 @@ object AdminViews {
                 statCard("成本 ¥", fmt(d.cost))
                 statCard("blocked", d.blocked.toString())
                 statCard("出口字节", d.bytes.toString())
+            }
+            div("card limit-card") {
+                div("card-label") { +"额度上限（当前 ${d.llmCallsUsed} / ${d.llmCallsLimit}）" }
+                form(action = "/admin/users/${d.id}/limit", method = FormMethod.post, classes = "inline") {
+                    input(type = InputType.number, name = "limit") {
+                        value = d.llmCallsLimit.toString()
+                        attributes["min"] = "0"
+                        style = "width:96px"
+                    }
+                    +" "
+                    input(type = InputType.submit, classes = "btn-sm btn-primary") { value = "改上限" }
+                }
             }
             h2 { +"最近调用（${calls.size}）" }
             table {
