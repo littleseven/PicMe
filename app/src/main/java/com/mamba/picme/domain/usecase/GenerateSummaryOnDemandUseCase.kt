@@ -1,103 +1,89 @@
 package com.mamba.picme.domain.usecase
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
-import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.domain.tag.TagGenerationScheduler
 import org.json.JSONObject
 
 /**
- * 按需生成照片 summary。
+ * 按需为单张照片生成「统一规格」标签。
  *
- * 用户点开照片详情时，若 labels.summary 为空，触发 SmolVLM 单张推理生成中文描述并写回
- * labels.summary（缓存，后续秒开）。
+ * 照片详情打开时触发：若 labels 不满足统一规格（face/scene/activity/objects/tags/summary），
+ * 走与批量 Pass3、「重新打标」同源的 [TagGenerationScheduler.processSingleSync] 全量管道，
+ * 产出完整统一 JSON 并写回 labels；已具备统一 tags + summary 的照片直接缓存返回，不重复推理。
  *
- * 批量 Pass3 已用当前 tagger（默认 Qwen3-VL-2B）生成完整标签与 summary；此处保留作为 summary 缺失时的兜底，按需加载 SmolVLM-500M（较轻）。
+ * 历史背景：本 UseCase 曾（已回退的 ML Kit 方案）只写 `{"summary":"…"}` 自然语言桩，
+ * 导致新增/生成图片的标签只有摘要、不符合统一规格——现统一改走完整管道。
+ *
+ * @param tagGenerationScheduler 统一打标调度器。为 null（未注入）时无法生成统一标签，
+ * 返回 null 且不写半成品，留待批量扫描或模型就绪后再打标。
  */
-class GenerateSummaryOnDemandUseCase(private val context: Context) {
+class GenerateSummaryOnDemandUseCase(
+    private val context: Context,
+    private val tagGenerationScheduler: TagGenerationScheduler? = null
+) {
 
     private val tag = "PoLang:SummaryOnDemand"
 
+    /**
+     * 若 [mediaId] 尚未具备统一规格标签，则按需生成并写回。
+     *
+     * @return 写入后的 summary 文本；已缓存时直接返回；管道不可用/失败返回 null（不写半成品）。
+     */
     suspend fun generateIfMissing(mediaId: Long): String? {
         val dao = AppDatabase.getDatabase(context).mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return null
 
-        // 缓存命中：已有 summary 直接返回
-        val existing = parseSummary(entity.labels)
-        if (existing.isNotBlank()) return existing
+        // 缓存命中：已具备统一 tags 结构且 summary 非空。
+        if (isFullyTagged(entity.labels)) {
+            return parseSummary(entity.labels)
+        }
 
         val uri = entity.uri
-        val bitmap = loadBitmap(uri) ?: run {
-            Logger.w(tag, "Failed to load bitmap for mediaId=$mediaId")
+        val scheduler = tagGenerationScheduler
+        if (scheduler == null) {
+            Logger.w(tag, "TagGenerationScheduler not wired, skip unified tagging for mediaId=$mediaId")
             return null
         }
 
-        // 按需加载 SmolVLM-500M（若引擎已加载当前 tagger 则直接复用，不重复加载）
-        val orchestrator = AgentOrchestrator.getInstance(context)
-        val engine = orchestrator.getLlmEngine()
-        if (!engine.isLoaded) {
-            val result = orchestrator.ensureModelLoaded(
-                modelId = "smolvlm_500m",
-                useOpencl = false,
-                caller = "GenerateSummaryOnDemand"
-            )
-            if (result.isFailure) {
-                Logger.w(tag, "SmolVLM-500M load failed: ${result.exceptionOrNull()?.message}")
-                return null
+        // 走完整统一规格管道（与 Pass3 / 重新打标同源），产出
+        // {face,scene,activity,objects,tags,summary} 并写回 labels。
+        val unifiedJson = scheduler.processSingleSync(uri)
+        if (unifiedJson == null) {
+            Logger.w(tag, "processSingleSync returned null for mediaId=$mediaId (model unavailable?)")
+            return null
+        }
+        Logger.i(tag, "Unified tags generated for mediaId=$mediaId: ${unifiedJson.take(80)}")
+        return parseSummary(unifiedJson)
+    }
+
+    companion object {
+        /**
+         * 判断 labels 是否已满足「统一规格」：含 tags 数组且 summary 非空。
+         *
+         * 用于区分：
+         * - 统一规格（Pass3/processSingleSync 产物）→ 含 tags 数组；
+         * - summary-only 半成品桩（`{"summary":"…"}`）→ 无 tags 数组 → 需重打标。
+         */
+        internal fun isFullyTagged(labelsJson: String?): Boolean {
+            if (labelsJson.isNullOrBlank()) return false
+            return try {
+                val obj = JSONObject(labelsJson)
+                obj.optJSONArray("tags") != null && obj.optString("summary", "").isNotBlank()
+            } catch (e: Exception) {
+                false
             }
         }
 
-        val summary = engine.imageInference(
-            bitmap = bitmap,
-            systemPrompt = "你是一个照片描述助手，用一句流畅的中文描述照片的主要内容。",
-            userPrompt = "请描述这张照片。",
-            maxTokens = 128
-        )
-
-        if (summary.isBlank()) {
-            Logger.w(tag, "Empty summary for mediaId=$mediaId")
-            return null
+        /** 从统一规格 labels JSON 中提取 summary 字段（缺失/异常返回空串）。 */
+        internal fun parseSummary(labelsJson: String?): String {
+            if (labelsJson.isNullOrBlank()) return ""
+            return try {
+                JSONObject(labelsJson).optString("summary", "")
+            } catch (e: Exception) {
+                ""
+            }
         }
-
-        // 写回 labels.summary（合并到现有 labels JSON，保留已有 tags）
-        val merged = mergeSummaryIntoLabels(entity.labels, summary)
-        dao.updateLabels(mediaId, merged)
-        Logger.i(tag, "Summary generated for mediaId=$mediaId: ${summary.take(60)}")
-        return summary
-    }
-
-    private fun parseSummary(labelsJson: String?): String {
-        if (labelsJson.isNullOrBlank()) return ""
-        return try {
-            JSONObject(labelsJson).optString("summary", "")
-        } catch (e: Exception) {
-            ""
-        }
-    }
-
-    private fun mergeSummaryIntoLabels(labelsJson: String?, summary: String): String {
-        if (labelsJson.isNullOrBlank()) {
-            return JSONObject().put("summary", summary).toString()
-        }
-        return try {
-            JSONObject(labelsJson).apply { put("summary", summary) }.toString()
-        } catch (e: org.json.JSONException) {
-            // labels 非 Object 格式(如 Pass3/reTagSingle 写的 JSONArray tags)——summary 无法合并,
-            // 保留原 labels 避免破坏 tags 与崩溃。根本修复需统一 labels schema(另任务)。
-            Logger.w(tag, "mergeSummaryIntoLabels: labels 非 Object 格式, summary 未写入: $labelsJson")
-            labelsJson
-        }
-    }
-
-    private fun loadBitmap(uri: String): Bitmap? = try {
-        val contentUri = Uri.parse(uri)
-        context.contentResolver.openInputStream(contentUri)?.use { input ->
-            BitmapFactory.decodeStream(input)
-        }
-    } catch (e: Exception) {
-        null
     }
 }

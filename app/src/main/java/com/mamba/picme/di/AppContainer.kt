@@ -494,7 +494,12 @@ class AppContainerImpl(
     }
 
     val generateSummaryOnDemandUseCase: GenerateSummaryOnDemandUseCase by lazy {
-        GenerateSummaryOnDemandUseCase(context = context)
+        // 注入容器内单例 scheduler，使 on-demand 路径走与 Pass3/「重新打标」同源的统一规格管道，
+        // 而非只写 summary 自然语言桩。两者均 by lazy，首次访问时才解析，无循环依赖。
+        GenerateSummaryOnDemandUseCase(
+            context = context,
+            tagGenerationScheduler = tagGenerationScheduler
+        )
     }
 
     private val mediaViewModelDependencies: MediaViewModelDependencies by lazy {
