@@ -1301,21 +1301,23 @@ private fun PhotoInfoDialog(
                             color = Color.White
                         )
                     }
-                    IconButton(onClick = onReTag, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            Icons.Rounded.Refresh,
-                            contentDescription = stringResource(R.string.regenerate_tag),
-                            tint = Color.Gray,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = stringResource(R.string.close),
-                            tint = Color.Gray,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconButton(onClick = onReTag, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                Icons.Rounded.Refresh,
+                                contentDescription = stringResource(R.string.regenerate_tag),
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.close),
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
 
