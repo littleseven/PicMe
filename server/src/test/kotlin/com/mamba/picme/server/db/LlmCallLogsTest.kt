@@ -55,4 +55,20 @@ class LlmCallLogsTest {
             assertEquals(0.0, row[LlmCallLogs.costCny], 0.0) // default
         }
     }
+
+    @Test
+    fun `device_id column is nullable and round-trips`() {
+        TestDb.init(LlmCallLogs)
+        transaction(Db.instance) {
+            LlmCallLogs.insert {
+                it[accountId] = 3
+                it[model] = "m"
+                it[provider] = "P"
+                it[status] = "ok"
+                it[LlmCallLogs.deviceId] = "device-aaaa-bbbb-1234"
+                it[createdAt] = 1L
+            }
+            assertEquals("device-aaaa-bbbb-1234", LlmCallLogs.selectAll().single()[LlmCallLogs.deviceId])
+        }
+    }
 }

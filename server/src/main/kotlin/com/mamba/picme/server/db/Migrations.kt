@@ -18,7 +18,7 @@ object Migrations {
                 ApkUploads, AnonymousDevices,
             )
             // 给现存表补缺失列（如 llm_channel.default_model），幂等
-            SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels)
+            SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels, LlmCallLogs)
             seedRules()
         }
         seedChannels(config)
