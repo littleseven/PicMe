@@ -428,7 +428,13 @@ class MediaRepositoryImpl(
                 duration = systemAsset.duration ?: dbAsset.duration,
                 hasFace = dbAsset.hasFace,
                 faceId = dbAsset.faceId,
-                source = dbAsset.source
+                source = dbAsset.source,
+                labels = dbAsset.labels,
+                ocrText = dbAsset.ocrText,
+                latitude = dbAsset.latitude,
+                longitude = dbAsset.longitude,
+                locationName = dbAsset.locationName,
+                indexedAt = dbAsset.indexedAt
             )
         }
 
