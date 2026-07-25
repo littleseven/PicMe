@@ -153,8 +153,9 @@ Expected: `Unresolved reference: DeviceRow / devicesList / deviceRawId`。
 
 ```kotlin
 import com.mamba.picme.server.db.AnonymousDevices
-import org.jetbrains.exposed.sql.limit
 ```
+
+> 注:`.limit(n)` 是 Exposed `SizedIterable` 接口方法（`recentCalls` 一直这么用），无需额外 import。
 
 3b. 在 DTO 区(如 `data class CallRow(...)` 之后)追加:
 

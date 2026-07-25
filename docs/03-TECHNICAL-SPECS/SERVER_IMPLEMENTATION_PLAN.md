@@ -24,6 +24,7 @@
 - 2 个 P0 路由（v0.5.0 新增）：`/v1/chat/completions`（✅ LLM 代理）、`/auth/email/{send,verify}`（✅ 邮箱认证）
 - 1 个 P1 能力（v0.5.0 新增）：`/admin/**`（✅ 管理后台 SSR）
 - 2 个 P1 路由：`/assets`（🚧）、`/agent/config`（🚧，供应商适配参数下发）
+- 管理后台 v0.6.4 扩展：`/admin/devices`（未注册设备列表 + id 复制 + 单条删除，对应 `anonymous_device` 表）
 - SQLite（规则/元数据/遥测/计数/账号/LLM 日志）
 - 腾讯 COS 预签名下发
 - systemd + Nginx 反代 + certbot 上线

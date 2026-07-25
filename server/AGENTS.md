@@ -111,6 +111,9 @@ server/
 | POST | `/auth/email/send` | P0 | ✅ | 无 | 发送验证码 |
 | POST | `/auth/email/verify` | P0 | ✅ | 无 | 校验码换 token |
 | GET | `/admin/**` | P1 | ✅ | ADMIN_TOKEN | 管理后台 SSR |
+| GET | `/admin/devices` | P1 | ✅ | ADMIN_TOKEN | 未注册设备列表（anonymous_device） |
+| GET | `/admin/devices/{id}/raw` | P1 | ✅ | ADMIN_TOKEN | 设备 id 复制（返回完整 device_id） |
+| POST | `/admin/devices/{id}/delete` | P1 | ✅ | ADMIN_TOKEN | 删除单条设备访客记录 |
 | GET | `/assets/{manifest,url}` | P1 | 🚧 | X-App-Token | COS 预签名 — 待实现 |
 | GET | `/agent/config` | P1 | 🚧 | X-App-Token | 供应商适配参数下发 — 待实现 |
 
