@@ -248,6 +248,10 @@ object AdminQueries {
             .firstOrNull()?.get(AnonymousDevices.deviceId)
     }
 
+    suspend fun usersCount(): Long = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        Accounts.selectAll().count()
+    }
+
     suspend fun devicesCount(): Long = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         AnonymousDevices.selectAll().count()
     }

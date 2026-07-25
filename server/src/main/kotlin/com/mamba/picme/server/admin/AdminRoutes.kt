@@ -1,6 +1,7 @@
 package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.auth.AccountService
+import com.mamba.picme.server.auth.GuestService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
@@ -35,7 +36,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
  * 管理后台路由：/admin 下全部页面。主 app-token 拦截器（Application.module）对 /admin 前缀放行，
  * 由各受保护页面顶部的 adminGuard 接管认证（ADMIN_TOKEN 为空 → 503 禁用）。
  */
-fun Route.adminRoute(adminToken: String, cosService: CosService) {
+fun Route.adminRoute(adminToken: String, cosService: CosService, guestLlmQuota: Int = 100) {
     route("/admin") {
         get("/login") {
             if (adminToken.isBlank()) {
@@ -100,6 +101,39 @@ fun Route.adminRoute(adminToken: String, cosService: CosService) {
                 AdminViews.usersPage(rows, AdminQueries.devicesCount()),
                 ContentType.Text.Html,
             )
+        }
+
+        get("/devices") {
+            if (!call.adminGuard(adminToken)) return@get
+            val rows = AdminQueries.devicesList()
+            call.respondText(
+                AdminViews.devicesPage(rows, AdminQueries.usersCount(), guestLlmQuota),
+                ContentType.Text.Html,
+            )
+        }
+
+        // 供设备列表「复制」按钮调用:返回完整 device_id(cookie 鉴权;不进 HTML)。
+        get("/devices/{id}/raw") {
+            if (!call.adminGuard(adminToken)) return@get
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null) {
+                call.respondText("bad request", contentType = ContentType.Text.Plain, status = HttpStatusCode.BadRequest)
+                return@get
+            }
+            val deviceId = AdminQueries.deviceRawId(id)
+            if (deviceId == null) {
+                call.respondText("not found", contentType = ContentType.Text.Plain, status = HttpStatusCode.NotFound)
+                return@get
+            }
+            val body = buildJsonObject { put("device_id", deviceId) }.toString()
+            call.respondText(body, ContentType.Application.Json)
+        }
+
+        post("/devices/{id}/delete") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) GuestService.deleteById(id)
+            call.respondRedirect("/admin/devices")
         }
 
         get("/users/{id}") {

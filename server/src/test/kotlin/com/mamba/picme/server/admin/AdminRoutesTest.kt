@@ -142,4 +142,54 @@ class AdminRoutesTest {
         val r = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, "anything") }
         assertEquals(HttpStatusCode.ServiceUnavailable, r.status)
     }
+
+    @Test
+    fun `devices page lists anonymous devices raw and delete by id`() = testApplication {
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
+        transaction(Db.instance) {
+            Accounts.insert {
+                it[Accounts.id] = 1
+                it[Accounts.email] = "a@x.com"
+                it[Accounts.tokenHash] = "h1"
+                it[Accounts.status] = "active"
+                it[Accounts.llmCallsUsed] = 0
+                it[Accounts.llmCallsLimit] = 100
+                it[Accounts.createdAt] = 1_700_000_000_000L
+            }
+            AnonymousDevices.insert {
+                it[AnonymousDevices.id] = 5
+                it[AnonymousDevices.deviceId] = "abcdef1234567890"
+                it[AnonymousDevices.llmCallsUsed] = 7
+                it[AnonymousDevices.createdAt] = 1_700_000_000_000L
+                it[AnonymousDevices.lastSeenAt] = 1_700_000_001_000L
+            }
+        }
+        application { routing { adminRoute(token, cos, 100) } }
+        val c = createClient { followRedirects = false }
+
+        // 列表
+        val list = c.get("/admin/devices") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, list.status)
+        val html = list.bodyAsText()
+        assertTrue(html.contains("未注册设备"))
+        assertTrue(html.contains("注册用户 (1)")) // 二级 Tab 计数
+        assertTrue(html.contains("未注册设备 (1)")) // 二级 Tab 计数
+        assertTrue(html.contains("abcdef••••7890")) // 掩码
+        assertTrue(html.contains("7 / 100")) // 额度
+        assertTrue(html.contains("/admin/devices/5/delete"))
+
+        // raw 返回完整 device_id（cookie 鉴权）
+        val raw = c.get("/admin/devices/5/raw") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, raw.status)
+        assertTrue(raw.bodyAsText().contains("\"device_id\":\"abcdef1234567890\""))
+
+        // 未知 id → 404
+        val nf = c.get("/admin/devices/999/raw") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.NotFound, nf.status)
+
+        // 删除 → 重定向回列表
+        val del = c.post("/admin/devices/5/delete") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, del.status)
+        assertEquals("/admin/devices", del.headers[HttpHeaders.Location])
+    }
 }
