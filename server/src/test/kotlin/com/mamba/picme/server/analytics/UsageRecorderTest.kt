@@ -62,4 +62,32 @@ class UsageRecorderTest {
             assertEquals("blocked_quota", row[LlmCallLogs.status])
         }
     }
+
+    @Test
+    fun `log writes device id when provided and leaves null when absent`() = runBlocking {
+        TestDb.init(LlmCallLogs)
+        UsageRecorder.log(
+            accountId = 1,
+            model = "m",
+            provider = "P",
+            usage = null,
+            respBytes = 0,
+            status = "ok",
+            latencyMs = null,
+            prices = emptyMap(),
+            deviceId = "device-aaaa-bbbb-1234",
+            now = 1L,
+        )
+        val row = transaction(Db.instance) { LlmCallLogs.selectAll().single() }
+        assertEquals("device-aaaa-bbbb-1234", row[LlmCallLogs.deviceId])
+
+        // 默认 null(现有调用不传 deviceId)
+        TestDb.init(LlmCallLogs)
+        UsageRecorder.log(
+            accountId = 1, model = "m", provider = "P", usage = null,
+            respBytes = 0, status = "ok", latencyMs = null, prices = emptyMap(), now = 2L,
+        )
+        val row2 = transaction(Db.instance) { LlmCallLogs.selectAll().single() }
+        assertEquals(null, row2[LlmCallLogs.deviceId])
+    }
 }

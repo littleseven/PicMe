@@ -21,6 +21,7 @@ object UsageRecorder {
         status: String,
         latencyMs: Int?,
         prices: Map<String, Price>,
+        deviceId: String? = null,
         now: Long = Instant.now().toEpochMilli(),
     ) {
         // insert{} 的接收者是 LlmCallLogs 表，bare costCny 会指向列；这里先算好成本。
@@ -37,6 +38,7 @@ object UsageRecorder {
                 it[LlmCallLogs.respBytes] = respBytes
                 it[LlmCallLogs.status] = status
                 it[LlmCallLogs.latencyMs] = latencyMs
+                it[LlmCallLogs.deviceId] = deviceId
                 it[LlmCallLogs.createdAt] = now
             }
         }
