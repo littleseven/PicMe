@@ -200,13 +200,12 @@ class AgentConfigurator(private val context: Context) {
             .logResponses(true)
         if (config.gatewayToken.isNotBlank()) {
             builder.customHeader("X-App-Token", config.gatewayToken)
-        } else {
-            // 未注册访客：无账号 token 时改用设备级试用额度（X-Device-Id）。
-            // 优先用 config.deviceId；若被 fallback 覆盖为空，回退到独立持有的 [deviceId]。
-            val effectiveDeviceId = config.deviceId.ifBlank { deviceId }
-            if (effectiveDeviceId.isNotBlank()) {
-                builder.customHeader("X-Device-Id", effectiveDeviceId)
-            }
+        }
+        // 注册与访客均带 X-Device-Id：访客用于设备级试用额度；注册用户用于后台 device 维度展示。
+        // 优先用 config.deviceId；若被 fallback 覆盖为空，回退到独立持有的 [deviceId]。
+        val effectiveDeviceId = config.deviceId.ifBlank { deviceId }
+        if (effectiveDeviceId.isNotBlank()) {
+            builder.customHeader("X-Device-Id", effectiveDeviceId)
         }
         Logger.i(tag, "RemoteChatModel created: model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
         return builder.build()
