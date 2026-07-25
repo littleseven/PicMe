@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -150,7 +151,7 @@ fun MediaPager(
     onAiOptimize: (MediaAsset) -> Unit,
     onIdPhoto: (MediaAsset) -> Unit = {},
     voiceCoordinator: VoiceCommandCoordinator? = null,
-    onReTag: () -> Unit = {},
+    onReTag: (Uri) -> Unit = {},
     onTriggerSummary: (Long) -> Unit = {}
 ) {
     key(initialIndex) {
@@ -1179,7 +1180,7 @@ private fun mediaPagerBottomBar(
 private fun PhotoInfoDialog(
     asset: MediaAsset,
     onDismiss: () -> Unit,
-    onReTag: () -> Unit
+    onReTag: (Uri) -> Unit
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -1302,7 +1303,14 @@ private fun PhotoInfoDialog(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        IconButton(onClick = onReTag, modifier = Modifier.size(32.dp)) {
+                        IconButton(
+                            onClick = {
+                                Toast.makeText(context, context.getString(R.string.retag_in_progress), Toast.LENGTH_SHORT).show()
+                                onReTag(asset.uri.toUri())
+                                onDismiss()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
                             Icon(
                                 Icons.Rounded.Refresh,
                                 contentDescription = stringResource(R.string.regenerate_tag),

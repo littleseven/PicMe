@@ -791,9 +791,9 @@ fun GalleryScreen(
                             )
                         },
                         voiceCoordinator = voiceCoordinator,
-                        onReTag = {
+                        onReTag = { uri ->
                             searchScope.launch {
-                                context.startForegroundService(TagGenerationService.intentScanPass3Full(context))
+                                app.container.imageTagIndexingWorker.reTagSingle(uri)
                             }
                         }
                     )

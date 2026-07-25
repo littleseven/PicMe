@@ -770,6 +770,7 @@
     <string name="group_by">Group By</string>
     <string name="image_info">Image Info</string>
     <string name="regenerate_tag">Regenerate TAG</string>
+    <string name="retag_in_progress">Retagging…</string>
     <string name="send">Send</string>
     <string name="image_understand">Understand Image</string>
     <string name="more">More</string>

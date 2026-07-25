@@ -764,6 +764,7 @@
     <string name="group_by">分组</string>
     <string name="image_info">图片信息</string>
     <string name="regenerate_tag">重新生成TAG</string>
+    <string name="retag_in_progress">正在重新打标…</string>
     <string name="send">发送</string>
     <string name="image_understand">图像理解</string>
     <string name="more">更多</string>
