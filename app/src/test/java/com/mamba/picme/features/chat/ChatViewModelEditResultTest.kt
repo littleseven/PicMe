@@ -10,6 +10,7 @@ import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
+import com.mamba.picme.domain.tag.ControlledVocab
 import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
@@ -94,9 +95,13 @@ class ChatViewModelEditResultTest {
             userSettingsRepository = userSettingsRepository,
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
+            mediaRepository = mockk(relaxed = true),
             picMeAuthClient = authClient,
             getGallerySummaryUseCase = mockk(relaxed = true),
+            queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context),
+            personDao = mockk(relaxed = true),
+            controlledVocab = ControlledVocab(),
             chatEditStateHolder = ChatEditStateHolder(),
             chatEditProcessor = mockk(relaxed = true)
         )

@@ -116,7 +116,9 @@ class ChatViewModelSearchIntentSanitizerTest {
             queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context),
             personDao = mockk(relaxed = true),
-            controlledVocab = ControlledVocab()
+            controlledVocab = ControlledVocab(),
+            chatEditStateHolder = ChatEditStateHolder(),
+            chatEditProcessor = mockk(relaxed = true)
         )
     )
 
