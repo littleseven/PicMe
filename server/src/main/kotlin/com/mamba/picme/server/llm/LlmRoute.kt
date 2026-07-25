@@ -62,7 +62,7 @@ fun Route.llmRoute(
                 }
             } else if (!AccountService.checkAndIncrementQuota(tokenHash)) {
                 accountId?.let {
-                    UsageRecorder.log(it, requestedModel, "", null, 0, "blocked_quota", null, prices)
+                    UsageRecorder.log(it, requestedModel, "", null, 0, "blocked_quota", null, prices, deviceId = deviceId)
                 }
                 call.respond(
                     HttpStatusCode.Forbidden,
@@ -86,6 +86,7 @@ fun Route.llmRoute(
                             status = "ok",
                             latencyMs = latencyMs,
                             prices = prices,
+                            deviceId = deviceId,
                         )
                     }
                     if (isGuest) {
@@ -100,7 +101,7 @@ fun Route.llmRoute(
                     // LLM call failed — revert quota increment
                     if (isGuest) GuestService.revertQuota(deviceId!!) else AccountService.revertQuota(tokenHash)
                     accountId?.let {
-                        UsageRecorder.log(it, requestedModel, "", null, 0, result.logStatus, null, prices)
+                        UsageRecorder.log(it, requestedModel, "", null, 0, result.logStatus, null, prices, deviceId = deviceId)
                     }
                     call.respond(result.status, result.body)
                 }
