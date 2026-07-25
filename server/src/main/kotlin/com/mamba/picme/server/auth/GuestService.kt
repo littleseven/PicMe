@@ -90,4 +90,13 @@ object GuestService {
             AnonymousDevices.deleteWhere { with(SqlExpressionBuilder) { AnonymousDevices.id eq id } }
         }
     }
+
+    /** 管理员重置某访客设备的已用额度（按数据库 id）。与账号 resetQuota 同义：清零计数、保留设备记录。 */
+    suspend fun resetQuota(id: Int) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            AnonymousDevices.update({ AnonymousDevices.id eq id }) {
+                it[AnonymousDevices.llmCallsUsed] = 0
+            }
+        }
+    }
 }

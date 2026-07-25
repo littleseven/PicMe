@@ -3,6 +3,7 @@ package com.mamba.picme.server.auth
 import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.util.TestDb
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Assert.assertEquals
@@ -69,5 +70,27 @@ class GuestServiceTest {
         // unknown id 无副作用、不抛异常
         GuestService.deleteById(999)
         assertEquals(0L, transaction { AnonymousDevices.selectAll().count() })
+    }
+
+    @Test
+    fun `resetQuota zeroes used for a device by id`() = runBlocking {
+        TestDb.init(AnonymousDevices)
+        val id = transaction {
+            AnonymousDevices.insert {
+                it[AnonymousDevices.deviceId] = "dev-reset-id-1234"
+                it[AnonymousDevices.llmCallsUsed] = 42
+                it[AnonymousDevices.createdAt] = 1_000L
+                it[AnonymousDevices.lastSeenAt] = 2_000L
+            } get AnonymousDevices.id
+        }
+        GuestService.resetQuota(id)
+        val used = transaction { AnonymousDevices.selectAll().single()[AnonymousDevices.llmCallsUsed] }
+        assertEquals(0, used)
+    }
+
+    @Test
+    fun `resetQuota on missing id is a no-op`() = runBlocking {
+        TestDb.init(AnonymousDevices)
+        GuestService.resetQuota(9999) // 不抛
     }
 }
