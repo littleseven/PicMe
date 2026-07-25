@@ -65,6 +65,7 @@ import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
 import androidx.lifecycle.ViewModel
+import com.mamba.picme.domain.tag.TagGenerationScheduler
 import com.mamba.picme.domain.tag.TagScanProgress
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import com.mamba.picme.data.indexing.MediaChangeEvent
@@ -126,6 +127,8 @@ interface AppContainer {
     val faceClusteringWorker: FaceClusteringWorker
     /** AI 图片标签索引器（本地 Vision LLM → 标签） */
     val imageTagIndexingWorker: ImageTagIndexingWorker
+    /** TAG 生成调度器(单张 retag 走 Pass3 pipeline,与集中扫描同源) */
+    val tagGenerationScheduler: TagGenerationScheduler
     /** TAG 生成扫描状态（只读，从 TagGenerationService 获取） */
     val tagGenerationIsScanning: kotlinx.coroutines.flow.StateFlow<Boolean>
     /** TAG 生成扫描进度（旧版兼容） */
@@ -264,6 +267,10 @@ class AppContainerImpl(
     override val imageTagIndexingWorker: ImageTagIndexingWorker by lazy {
         val llmEngine = AgentOrchestrator.getInstance(context).getLlmEngine()
         ImageTagIndexingWorker(context, llmEngine)
+    }
+
+    override val tagGenerationScheduler: TagGenerationScheduler by lazy {
+        TagGenerationScheduler(context)
     }
 
     /** TAG 生成扫描状态（从 TagGenerationService 获取） */

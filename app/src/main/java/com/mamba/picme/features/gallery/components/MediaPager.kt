@@ -153,7 +153,7 @@ fun MediaPager(
     onAiOptimize: (MediaAsset) -> Unit,
     onIdPhoto: (MediaAsset) -> Unit = {},
     voiceCoordinator: VoiceCommandCoordinator? = null,
-    onReTag: suspend (Uri) -> List<String>? = { null },
+    onReTag: suspend (Uri) -> String? = { null },
     onTriggerSummary: (Long) -> Unit = {}
 ) {
     key(initialIndex) {
@@ -1183,7 +1183,7 @@ private fun mediaPagerBottomBar(
 private fun PhotoInfoDialog(
     asset: MediaAsset,
     onDismiss: () -> Unit,
-    onReTag: suspend (Uri) -> List<String>?
+    onReTag: suspend (Uri) -> String?
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -1312,10 +1312,10 @@ private fun PhotoInfoDialog(
                             onClick = {
                                 Toast.makeText(context, context.getString(R.string.retag_in_progress), Toast.LENGTH_SHORT).show()
                                 scope.launch {
-                                    val newLabels = onReTag(asset.uri.toUri())
-                                    if (newLabels != null) {
+                                    val resultJson = onReTag(asset.uri.toUri())
+                                    if (resultJson != null) {
                                         tags = parseLabelsToHumanReadable(
-                                            labels = JSONArray(newLabels).toString(),
+                                            labels = resultJson,
                                             translator = tagTranslator,
                                             lang = appLanguage,
                                             scenePrefix = context.getString(R.string.tag_scene_prefix),

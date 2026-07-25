@@ -197,6 +197,29 @@ class TagGenerationScheduler(
     }
 
     /**
+     * 单张同步处理(照片信息弹窗「重新打标」用):走完整 Pass3 pipeline(与集中扫描同源),
+     * 返回结构化标签 JSON(scene/activity/objects/tags/summary),并写入 db。
+     *
+     * 与 [processSingle] 区别:同步 suspend 返回 resultJson(供 UI 即时刷新),
+     * 不经 dispatcher 队列/批控节流(单张用户显式触发)。
+     *
+     * @return resultJson(结构化 Object);null 表示失败(模型未加载 / 媒体不存在 / 空结果)。
+     */
+    suspend fun processSingleSync(uri: String): String? {
+        if (!ensureModelLoaded()) return null
+        val entity = db.mediaDao().getMediaByUri(uri) ?: return null
+        val resultJson = pipeline.processPhoto(
+            uri = uri,
+            lensFacing = CameraSelector.LENS_FACING_BACK,
+            mediaId = entity.id
+        )
+        if (resultJson.isNotEmpty()) {
+            db.mediaDao().updateLabels(entity.id, resultJson)
+        }
+        return resultJson.ifEmpty { null }
+    }
+
+    /**
      * 取消进行中的扫描
      *
      * @deprecated 已迁移到 [TagScanOrchestrator.cancel]。

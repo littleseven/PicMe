@@ -794,10 +794,9 @@ fun GalleryScreen(
                         },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = { uri ->
-                            val taggerKey = app.container.userPreferencesRepository.taggerModelKeyFlow.first()
-                            val newLabels = app.container.imageTagIndexingWorker.reTagSingle(uri, taggerKey)
-                            if (newLabels != null) viewModel.refreshLabels()
-                            newLabels
+                            val resultJson = app.container.tagGenerationScheduler.processSingleSync(uri.toString())
+                            if (resultJson != null) viewModel.refreshLabels()
+                            resultJson
                         }
                     )
                 }
