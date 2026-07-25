@@ -538,10 +538,10 @@ fun ChatScreen(
                     onAiOptimize = { asset -> onNavigateToPhotoEditor(asset.uri, true) },
                     onIdPhoto = { asset -> onNavigateToIDPhoto(asset.uri) },
                     voiceCoordinator = null,
-                    onReTag = {
-                        context.startForegroundService(
-                            TagGenerationService.intentScanPass3Full(context)
-                        )
+                    onReTag = { _ ->
+                        // chat 页 photo info 暂用全量扫描(无 container 直拿 worker);相册页已是单张 reTagSingle
+                        context.startForegroundService(TagGenerationService.intentScanPass3Full(context))
+                        null
                     }
                 )
             }

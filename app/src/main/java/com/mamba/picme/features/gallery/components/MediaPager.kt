@@ -151,7 +151,7 @@ fun MediaPager(
     onAiOptimize: (MediaAsset) -> Unit,
     onIdPhoto: (MediaAsset) -> Unit = {},
     voiceCoordinator: VoiceCommandCoordinator? = null,
-    onReTag: (Uri) -> Unit = {},
+    onReTag: suspend (Uri) -> List<String>? = { null },
     onTriggerSummary: (Long) -> Unit = {}
 ) {
     key(initialIndex) {
@@ -1180,7 +1180,7 @@ private fun mediaPagerBottomBar(
 private fun PhotoInfoDialog(
     asset: MediaAsset,
     onDismiss: () -> Unit,
-    onReTag: (Uri) -> Unit
+    onReTag: suspend (Uri) -> List<String>?
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -1192,14 +1192,16 @@ private fun PhotoInfoDialog(
     val locale = configuration.locales[0]
     val appLanguage = remember(locale) { locale.toAppLanguage() }
     val tagTranslator = remember(context) { TagTranslator(BilingualVocab.loadFromAssets(context)) }
-    val tags = remember(asset.labels, appLanguage) {
-        parseLabelsToHumanReadable(
-            labels = asset.labels,
-            translator = tagTranslator,
-            lang = appLanguage,
-            scenePrefix = context.getString(R.string.tag_scene_prefix),
-            activityPrefix = context.getString(R.string.tag_activity_prefix),
-            summaryPrefix = context.getString(R.string.tag_summary_prefix)
+    var tags by remember(asset.labels) {
+        mutableStateOf(
+            parseLabelsToHumanReadable(
+                labels = asset.labels,
+                translator = tagTranslator,
+                lang = appLanguage,
+                scenePrefix = context.getString(R.string.tag_scene_prefix),
+                activityPrefix = context.getString(R.string.tag_activity_prefix),
+                summaryPrefix = context.getString(R.string.tag_summary_prefix)
+            )
         )
     }
 
@@ -1306,8 +1308,19 @@ private fun PhotoInfoDialog(
                         IconButton(
                             onClick = {
                                 Toast.makeText(context, context.getString(R.string.retag_in_progress), Toast.LENGTH_SHORT).show()
-                                onReTag(asset.uri.toUri())
-                                onDismiss()
+                                scope.launch {
+                                    val newLabels = onReTag(asset.uri.toUri())
+                                    if (newLabels != null) {
+                                        tags = parseLabelsToHumanReadable(
+                                            labels = JSONArray(newLabels).toString(),
+                                            translator = tagTranslator,
+                                            lang = appLanguage,
+                                            scenePrefix = context.getString(R.string.tag_scene_prefix),
+                                            activityPrefix = context.getString(R.string.tag_activity_prefix),
+                                            summaryPrefix = context.getString(R.string.tag_summary_prefix)
+                                        )
+                                    }
+                                }
                             },
                             modifier = Modifier.size(32.dp)
                         ) {

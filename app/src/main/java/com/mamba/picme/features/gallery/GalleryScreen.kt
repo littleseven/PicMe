@@ -793,9 +793,7 @@ fun GalleryScreen(
                         },
                         voiceCoordinator = voiceCoordinator,
                         onReTag = { uri ->
-                            searchScope.launch(Dispatchers.IO) {
-                                app.container.imageTagIndexingWorker.reTagSingle(uri)
-                            }
+                            app.container.imageTagIndexingWorker.reTagSingle(uri)
                         }
                     )
                 }
