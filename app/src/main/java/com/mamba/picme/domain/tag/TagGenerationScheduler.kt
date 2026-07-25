@@ -28,6 +28,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.sqrt
@@ -205,9 +206,9 @@ class TagGenerationScheduler(
      *
      * @return resultJson(结构化 Object);null 表示失败(模型未加载 / 媒体不存在 / 空结果)。
      */
-    suspend fun processSingleSync(uri: String): String? {
-        if (!ensureModelLoaded()) return null
-        val entity = db.mediaDao().getMediaByUri(uri) ?: return null
+    suspend fun processSingleSync(uri: String): String? = withContext(Dispatchers.IO) {
+        if (!ensureModelLoaded()) return@withContext null
+        val entity = db.mediaDao().getMediaByUri(uri) ?: return@withContext null
         val resultJson = pipeline.processPhoto(
             uri = uri,
             lensFacing = CameraSelector.LENS_FACING_BACK,
@@ -216,7 +217,7 @@ class TagGenerationScheduler(
         if (resultJson.isNotEmpty()) {
             db.mediaDao().updateLabels(entity.id, resultJson)
         }
-        return resultJson.ifEmpty { null }
+        resultJson.ifEmpty { null }
     }
 
     /**
