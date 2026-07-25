@@ -17,6 +17,7 @@ import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.llmlog.RoomLlmCallRecorder
+import com.mamba.picme.data.local.llmlog.RoomToolCallRecorder
 import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
@@ -31,6 +32,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.picme.agent.core.platform.logging.Logger as AgentCoreLogger
 import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
@@ -156,14 +158,15 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         )
         Logger.i(TAG, "Orchestrator pre-configured with fallback remote config")
 
-        // 安装远程 LLM 调用日志记录器（仅 DEBUG 构建）。
+        // 安装 LLM 调用 / tool 执行指标记录器（全构建注入）。
+        // release 构建仅落纯指标（model/latency/tokens/success/errorMessage 等），
+        // 绝不记录消息内容（隐私红线）；DEBUG 构建额外记录 request/response 全文。
         // runtime-core 的 RemoteModelFactory 创建远程模型时会自动挂上 CapturingChatModelListener，
-        // 把每次调用的 req/res 摘要落库到独立 DB（polang_llm_log），便于排查问题。
-        // release 构建不安装 → recorder 保持 null → 生产环境零录制、零痕迹。
-        if (BuildConfig.DEBUG) {
-            RemoteModelFactory.recorder = RoomLlmCallRecorder(this)
-            Logger.i(TAG, "LLM call log recorder installed (DEBUG only)")
-        }
+        // CommandExecutor 汇聚全部 tool 执行并上报指标，均落库到独立 DB（polang_llm_log）。
+        RemoteModelFactory.captureContent = BuildConfig.DEBUG
+        RemoteModelFactory.recorder = RoomLlmCallRecorder(this)
+        CommandExecutor.recorder = RoomToolCallRecorder(this)
+        Logger.i(TAG, "LLM/tool call metrics recorder installed (captureContent=${BuildConfig.DEBUG})")
 
         // 注册 Activity 生命周期回调，跟踪当前活跃 Activity
         registerActivityLifecycleCallbacks(ActivityTracker())

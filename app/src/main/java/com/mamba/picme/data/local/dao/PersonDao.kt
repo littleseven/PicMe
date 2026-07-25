@@ -76,6 +76,10 @@ interface PersonDao {
     @Query("UPDATE face_embeddings SET personId = :personId WHERE embeddingId = :embeddingId")
     suspend fun assignEmbedding(embeddingId: Long, personId: Long)
 
+    /** 未分配人物的 embedding 数量（内存友好的 COUNT，替代 getUnassignedEmbeddings().size） */
+    @Query("SELECT COUNT(*) FROM face_embeddings WHERE personId IS NULL")
+    suspend fun getUnassignedEmbeddingCount(): Int
+
     @Query("SELECT COUNT(*) FROM face_embeddings")
     suspend fun getAllEmbeddingCount(): Int
 

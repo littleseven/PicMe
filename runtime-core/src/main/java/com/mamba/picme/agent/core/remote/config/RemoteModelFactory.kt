@@ -18,11 +18,19 @@ import java.time.Duration
 object RemoteModelFactory {
 
     /**
-     * 远程 LLM 调用记录接收端。由 :app 在 Application 启动时注入（仅 DEBUG 构建）。
-     * 为 null 时不录制（release 构建保持 null → 生产零痕迹）。
+     * 远程 LLM 调用记录接收端。由 :app 在 Application 启动时注入（全构建注入）。
+     * 为 null 时不录制。
      */
     @Volatile
     var recorder: LlmCallRecorder? = null
+
+    /**
+     * 是否记录消息全文（request messages / response text 等）。
+     * DEBUG 构建置 true 记录全文；release 构建置 false 只落纯指标，
+     * **绝不落消息内容**（隐私红线）。由 :app 注入 recorder 时一并设置。
+     */
+    @Volatile
+    var captureContent: Boolean = true
 
     /** 默认来源标签（调用方未显式指定 sourceLabel 时使用）。 */
     const val DEFAULT_SOURCE = "remote"
@@ -73,11 +81,12 @@ object RemoteModelFactory {
         // 确保模型直接输出 content 或 tool_calls。
         // 非 DeepSeek 模型忽略此参数（customParameters 平铺到请求体顶层）。
         builder.customParameters(mapOf("thinking" to mapOf("type" to "disabled")))
-        // 注入调用记录 listener（仅当 app 侧提供了 recorder，且仅在 DEBUG 构建中注入）。
+        // 注入调用记录 listener（仅当 app 侧提供了 recorder）。
+        // release 构建 captureContent=false → 只落纯指标，不记录消息内容。
         // 与调用方后续追加的 listener 累加共存（Builder.listeners(varargs) 为累加语义）。
         val rec = recorder
         if (rec != null) {
-            builder.listeners(CapturingChatModelListener(sourceLabel, rec))
+            builder.listeners(CapturingChatModelListener(sourceLabel, rec, captureContent))
         }
         return builder
     }

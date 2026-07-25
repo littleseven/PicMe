@@ -16,6 +16,8 @@ import org.json.JSONObject
 /**
  * Tool Calls 命令解析器（远程推理专用）
  *
+ * **状态：无生产调用方，仅测试引用，保留为备用解析器。**
+ *
  * 将标准 OpenAI tool_calls 格式的 [ToolExecutionRequest] 直接解析为 [AgentCommand]。
  * 不经过 method/params 中间格式，与本地 LLM 的 [LocalCommandParser] 完全隔离。
  *

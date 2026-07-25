@@ -41,7 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.js.JsRuntime
+import com.mamba.picme.di.AppContainer
 import com.mamba.picme.features.chat.js.QuickJsEngine
+import com.mamba.picme.features.chat.js.registerGalleryHandlers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -135,6 +137,7 @@ fun JsBridgeDebugSection() {
                 running = true
                 runJsBridgeDemo(
                     scope = app.applicationScope,
+                    container = app.container,
                     script = script,
                     onOutput = { line -> uiScope.launch { output += line } },
                     onDone = { uiScope.launch { running = false } },
@@ -192,9 +195,13 @@ fun JsBridgeDebugSection() {
 
 /**
  * 在端侧 QuickJS 沙箱执行 [script]：console.log 与 eval 结果通过 [onOutput] 回传（供 UI 展示）。
+ *
+ * 通过 [registerGalleryHandlers] 注册与 chat 链路一致的 gallery/media 只读 handler
+ * （取自 [container]），assets/js 下的相册演示脚本因此可直接运行。
  */
 private fun runJsBridgeDemo(
     scope: CoroutineScope,
+    container: AppContainer,
     script: String,
     onOutput: (String) -> Unit,
     onDone: () -> Unit,
@@ -205,6 +212,13 @@ private fun runJsBridgeDemo(
             scope = scope,
         )
         try {
+            registerGalleryHandlers(
+                runtime,
+                container.getGallerySummaryUseCase,
+                container.queryGalleryMediaUseCase,
+                container.personDao,
+                container.controlledVocab,
+            )
             val result = runtime.eval(script)
             onOutput("✓ result: ${result.toJson()}")
         } catch (e: Throwable) {

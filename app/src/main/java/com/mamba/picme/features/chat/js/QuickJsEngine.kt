@@ -11,6 +11,7 @@ import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.platform.logging.Logger
 import java.io.Closeable
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -37,14 +38,16 @@ class QuickJsEngine(
 
     private val quickjs: QuickJs = QuickJs.create(Dispatchers.Default)
 
-    override fun eval(script: String): JsValue = runBlocking {
+    override fun eval(script: String): JsValue = eval(script, evalTimeoutMs)
+
+    override fun eval(script: String, timeoutMs: Long): JsValue = runBlocking {
         try {
-            val result = withTimeout(evalTimeoutMs) { quickjs.evaluate<Any?>(script) }
+            val result = withTimeout(timeoutMs) { quickjs.evaluate<Any?>(script) }
             QuickJsConverter.toJsValue(result)
         } catch (e: TimeoutCancellationException) {
             throw JsBridgeException(
                 JsBridgeException.SCRIPT_TIMEOUT,
-                "script timed out after ${evalTimeoutMs}ms",
+                "script timed out after ${timeoutMs}ms",
             )
         }
     }
@@ -73,7 +76,19 @@ class QuickJsEngine(
                 val handlerName = args.getOrNull(0)?.toString() ?: ""
                 val jsArgs = QuickJsConverter.toJsValue(args.getOrNull(1))
                 val result = suspendCoroutine<JsValue?> { cont ->
-                    bridge.dispatchAsync(handlerName, jsArgs, JsCallback { _, res -> cont.resume(res) })
+                    bridge.dispatchAsync(handlerName, jsArgs, JsCallback { err, res ->
+                        // handler 失败（含用户拒绝写操作）→ reject Promise，JS 侧可 try/catch
+                        if (err != null) {
+                            cont.resumeWithException(
+                                JsBridgeException(
+                                    JsBridgeException.HANDLER_ERROR,
+                                    (err as? JsValue.Str)?.value ?: "handler error",
+                                )
+                            )
+                        } else {
+                            cont.resume(res)
+                        }
+                    })
                 }
                 return result?.let { QuickJsConverter.toQuickJS(it) }
             }

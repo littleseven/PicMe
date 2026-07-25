@@ -45,6 +45,8 @@ class JsRuntime(
 
     override fun eval(script: String): JsValue = engine.eval(script)
 
+    override fun eval(script: String, timeoutMs: Long): JsValue = engine.eval(script, timeoutMs)
+
     override fun callFunction(name: String, vararg args: JsValue): JsValue =
         engine.callFunction(name, *args)
 

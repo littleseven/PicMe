@@ -2,6 +2,7 @@ package com.mamba.picme.features.chat.js
 
 import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.GalleryQueryResult
 import org.junit.Assert.assertEquals
@@ -265,5 +266,56 @@ class GalleryJsTest {
         assertEquals(JsValue.Null, obj["labels"])
         assertEquals(JsValue.Null, obj["locationName"])
         assertEquals(JsValue.Null, obj["faceId"])
+    }
+
+    // ── toPersonJsValue（face.cluster）──────────────────────────────
+
+    @Test
+    fun `PersonEntity toPersonJsValue shape and privacy whitelist`() {
+        val p = PersonEntity(personId = 7, name = "小明", coverMediaId = 42, faceCount = 15)
+        val obj = p.toPersonJsValue().entries
+        assertEquals(7.0, (obj["personId"] as JsValue.Num).value, 0.0)
+        assertEquals("小明", (obj["name"] as JsValue.Str).value)
+        assertEquals(15.0, (obj["faceCount"] as JsValue.Num).value, 0.0)
+        assertEquals(42.0, (obj["coverMediaId"] as JsValue.Num).value, 0.0)
+        // 隐私白名单：不含 embedding 原始数据
+        assertFalse(obj.containsKey("embedding"))
+    }
+
+    @Test
+    fun `PersonEntity toPersonJsValue null name and cover`() {
+        val p = PersonEntity(personId = 3, name = null, coverMediaId = null, faceCount = 2)
+        val obj = p.toPersonJsValue().entries
+        assertEquals(JsValue.Null, obj["name"])
+        assertEquals(JsValue.Null, obj["coverMediaId"])
+    }
+
+    // ── outOfVocabTags（tag.audit）──────────────────────────────────
+
+    @Test
+    fun `outOfVocabTags filters vocab tags and sorts desc`() {
+        val dist = linkedMapOf(
+            "户外" to 10,
+            "奇怪的标签" to 7,
+            "猫" to 5,
+            "另一个非标" to 3,
+        )
+        val result = outOfVocabTags(dist, listOf("户外", "猫"), limit = 10)
+        assertEquals(linkedMapOf("奇怪的标签" to 7, "另一个非标" to 3), result)
+    }
+
+    @Test
+    fun `outOfVocabTags respects limit`() {
+        val dist = (1..20).associate { "非标$it" to it }
+        val result = outOfVocabTags(dist, emptyList(), limit = 5)
+        assertEquals(5, result.size)
+        // 计数降序
+        assertEquals(listOf(20, 19, 18, 17, 16), result.values.toList())
+    }
+
+    @Test
+    fun `outOfVocabTags empty when all in vocab`() {
+        val dist = linkedMapOf("户外" to 10, "猫" to 5)
+        assertTrue(outOfVocabTags(dist, listOf("户外", "猫"), limit = 10).isEmpty())
     }
 }

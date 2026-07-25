@@ -823,7 +823,19 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.2 测试工具与服务（仅 debug 构建） ────────────────
+                // ── 6.2 诊断（全构建可见；release 仅展示纯指标） ──────────
+                SettingsSection(
+                    title = stringResource(R.string.diagnostics_entries)
+                ) {
+                    SettingsClickableRow(
+                        title = stringResource(R.string.llm_call_log),
+                        subtitle = stringResource(R.string.llm_call_log_desc),
+                        valueText = stringResource(R.string.enter),
+                        onClick = onNavigateToLlmLog
+                    )
+                }
+
+                // ── 6.3 测试工具与服务（仅 debug 构建） ────────────────
                 if (BuildConfig.DEBUG) {
                     val context = LocalContext.current
 
@@ -847,12 +859,6 @@ private fun SettingsContent(
                             subtitle = stringResource(R.string.jsbridge_entry_subtitle),
                             valueText = stringResource(R.string.enter),
                             onClick = onNavigateToJsBridge
-                        )
-                        SettingsClickableRow(
-                            title = stringResource(R.string.llm_call_log),
-                            subtitle = stringResource(R.string.llm_call_log_desc),
-                            valueText = stringResource(R.string.enter),
-                            onClick = onNavigateToLlmLog
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -886,7 +892,7 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.3 日志配置：按模块控制日志输出 ──────────────────
+                // ── 6.4 日志配置：按模块控制日志输出 ──────────────────
                 SettingsSection(
                     title = stringResource(R.string.log_management),
                     description = stringResource(R.string.log_management_desc)

@@ -611,7 +611,7 @@
     <string name="debug_image_download">圖片下載頁</string>
     <string name="debug_image_download_desc">測試數據生成與圖片下載。</string>
     <string name="llm_call_log">LLM 呼叫記錄</string>
-    <string name="llm_call_log_desc">檢視最近 200 條遠端 LLM 請求/回應</string>
+    <string name="llm_call_log_desc">檢視最近 200 條 LLM 與工具呼叫記錄（release 版本僅記錄指標，不含訊息內容）</string>
     <string name="llm_call_log_detail">LLM 呼叫詳情</string>
     <string name="llm_call_log_empty">暫無記錄</string>
     <string name="llm_call_log_clear">清空</string>
@@ -622,6 +622,10 @@
     <string name="llm_call_log_copied">已複製</string>
     <string name="llm_call_log_success">成功</string>
     <string name="llm_call_log_failed">失敗</string>
+    <string name="diagnostics_entries">診斷</string>
+    <string name="llm_call_log_tab_llm">LLM</string>
+    <string name="llm_call_log_tab_tool">工具呼叫</string>
+    <string name="llm_call_log_release_no_content">Release 版本不記錄訊息內容</string>
 
     <!-- 圖片編輯器 -->
     <string name="editor_tab_crop">構圖</string>
@@ -687,6 +691,8 @@
         <item>搜尋海邊的照片</item>
         <item>找有人物的照片</item>
         <item>搜尋夜景照片</item>
+        <item>給我一份相簿健康度報告</item>
+        <item>按標籤和時間交叉分析我的照片</item>
     </string-array>
 
     <!-- 共享信箱驗證碼表單 -->
@@ -787,4 +793,13 @@
     <string name="tag_viewer_dislike">標記不準</string>
     <string name="tag_viewer_disliked">已標記為不準</string>
     <string name="tag_viewer_filter_inaccurate">只看標記不準</string>
+    <!-- JS 写操作确认（capability.dispatch） -->
+    <string name="chat_write_confirm_title">確認操作</string>
+    <string name="chat_write_confirm_delete">從相簿刪除 %1$d 項媒體</string>
+    <string name="chat_write_confirm_favorite">收藏/取消收藏 %1$d 項媒體</string>
+    <string name="chat_write_confirm_select">選取/取消選取 %1$d 項媒體</string>
+    <string name="chat_write_confirm_ai_source">由 AI 生成的指令碼發起</string>
+    <string name="chat_write_confirm_risk_destructive">高風險操作，無法復原</string>
+    <string name="chat_write_confirm_risk_reversible">此操作可撤銷</string>
+    <string name="chat_write_confirm_ok">確認</string>
 </resources>

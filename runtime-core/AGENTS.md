@@ -14,7 +14,7 @@
 **语言**：Kotlin
 
 **版本**：1.0
-**最后更新**：2026-07-20
+**最后更新**：2026-07-25
 **状态**：生效中
 
 **关键职责**：
@@ -44,7 +44,7 @@
 
 所有 Agent Runtime 组件位于 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 下。
 
-### 核心组件与文件分布（61 个文件，9 个一级子包）
+### 核心组件与文件分布（78 个文件，10 个一级子包）
 
 | 组件 | 职责 | 包路径 |
 |------|------|--------|
@@ -88,6 +88,7 @@
 | `capability/` | `Capability`, `CapabilityHost`, `FaceDetectionProvider` | 泛型 Capability 接口与宿主绑定 |
 | `facade/` | `AgentOrchestrator`, `AgentConfigurator` | 应用级入口与配置 |
 | `inference/` | `local/...`, `remote/...` | 本地/远程推理管道（pipeline、llm、parser、prompt、react、tool） |
+| `js/` | `JsEngine`, `JsValue`, `JsBridge`, `JsRuntime`, `NativeHandler`, `BuiltInHandlers`, `JsBridgeException`, `GallerySummaryJs` | JS 沙箱引擎无关层（JsEngine 接口 + bridge 路由 + handler SPI；QuickJS 实现在 `:app`，详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`） |
 | `local/` | `llm/ChatModel`, `StreamingChatModel`, `ChatMessage`, `ChatRequest`, `ChatResponse`, 等 | 与 LangChain4j API 对齐的自定义纯 Kotlin 模型层（为本地/远程推理提供标准化接口） |
 | `model/` | `command/`, `config/`, `context/`, `plan/` | 数据模型 |
 | `platform/` | `logging/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、存储、线程、语音 |
@@ -130,6 +131,13 @@
 > **2026-07-20 远程模型 reasoning_content 空内容防护**：
 > - `AgentOrchestrator.streamChatRemote` 在 `response.aiMessage().text()` 为空时，检查 `thinking()`（reasoning_content）
 > - 若仅返回 reasoning 内容，抛出带明确描述的 `IllegalStateException`，避免 `onToken(null)` 触发 NPE，UI 显示具体错误信息而非 `unknown`
+>
+> **2026-07-25 JS Engine（QuickJS 沙箱）**：
+> - 新增 `js/` 子包（`agent.core.js`）：引擎无关的 JS 沙箱抽象——`JsEngine` 接口、`JsValue` 值投影、`JsBridge` 路由、`JsRuntime` 门面、`NativeHandler` SPI（Sync/Async，`asyncHandler`/`syncHandler` 工厂）、`BuiltInHandlers`（math.add/string.upper/echo/device.info 演示 handler）、`JsBridgeException`（错误码）
+> - 本包**不依赖任何具体 JS 引擎**：QuickJS 实现（`QuickJsEngine`）与 gallery/media 应用 handler 均在 `:app` `features/chat/js/`，引擎由调用方注入 `JsRuntime`
+> - 全部取数 handler 为 async（JS 侧 `await bridge.callAsync`；对 async handler 调 `bridge.call` 抛 `HANDLER_NOT_ASYNC_CALLABLE`）
+> - `capability.dispatch` 写通路的风险分级表在 `model/command/CommandRisk.kt`（READ_ONLY / REVERSIBLE_WRITE / DESTRUCTIVE）
+> - 完整规格见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 
 ## 设计原则
 
@@ -188,6 +196,17 @@
 ### `inference/remote/tool/`
 - `PoLangToolService.kt` — 远程推理 @Tool 注解工具集
 
+### `js/`
+- `JsEngine.kt` — 引擎无关 JS 引擎接口（eval / callFunction / installBridge / close）
+- `JsValue.kt` — JS 值的 Kotlin 投影（sealed：Null/Bool/Num/Str/Obj/Arr）
+- `JsBridge.kt` — JS ↔ Native 路由（register / dispatchSync / dispatchAsync）
+- `JsRuntime.kt` — 门面：装配引擎 + bridge + 内置 handler（引擎由调用方注入）
+- `NativeHandler.kt` — handler SPI（Sync/Async）与 `syncHandler`/`asyncHandler` 工厂
+- `BuiltInHandlers.kt` — 内置演示 handler（math.add / string.upper / echo / device.info）
+- `JsBridgeException.kt` — 错误码（HANDLER_NOT_FOUND / HANDLER_ERROR / SCRIPT_TIMEOUT 等）
+- `JsCallback.kt` — 异步 handler 完成回调
+- `GallerySummaryJs.kt` — GallerySummary → JsValue 转换（gallery.summary handler 用）
+
 ### `local/llm/`
 - `ChatResponseMetadata.kt` — 响应元数据
 - `LlmChatLanguageModel.kt` — 同步对话模型接口
@@ -199,6 +218,7 @@
 
 ### `model/command/`
 - `AgentCommands.kt` — 命令定义
+- `CommandRisk.kt` — 命令风险分级表（READ_ONLY / REVERSIBLE_WRITE / DESTRUCTIVE，供 capability.dispatch 写通路确认分级）
 
 ### `model/config/`
 - `AiAgentConfig.kt` — Agent 配置数据

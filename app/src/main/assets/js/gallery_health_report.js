@@ -1,9 +1,9 @@
 // 相册健康度报告（包内 JS，只读，不触网）
 // 综合评估相册的打标覆盖、人脸覆盖、标签分布，给出健康度评分和建议。
 // 由 Debug 页运行 / 远程 LLM 生成参考。
-(function () {
-    var s = bridge.call("gallery.summary");
-    var tags = bridge.call("gallery.tags");
+(async function () {
+    var s = await bridge.callAsync("gallery.summary", {});
+    var tags = await bridge.callAsync("gallery.tags", {});
     var total = s.totalMedia;
 
     if (total === 0) {

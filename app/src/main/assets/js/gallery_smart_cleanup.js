@@ -1,9 +1,9 @@
 // 智能清理建议（包内 JS，只读，不触网）
 // 分析相册中可能需要清理的照片：旧截图、低标签覆盖等。
 // 由 Debug 页运行 / 远程 LLM 生成参考。
-(function () {
-    var s = bridge.call("gallery.summary");
-    var tags = bridge.call("gallery.tags");
+(async function () {
+    var s = await bridge.callAsync("gallery.summary", {});
+    var tags = await bridge.callAsync("gallery.tags", {});
     var total = s.totalMedia;
 
     if (total === 0) {
@@ -39,7 +39,7 @@
     var unlabeledCount = s.unlabeledCount;
 
     // 时间线：查找很久没拍照或集中某时段
-    var timeline = bridge.call("gallery.timeline");
+    var timeline = await bridge.callAsync("gallery.timeline", {});
     var months = Object.keys(timeline).sort();
     var staleMonths = 0;
     if (months.length > 0) {
@@ -55,7 +55,7 @@
     // 查询截图实际 id（供清理使用，限制数量）
     var screenshotIds = [];
     if (screenshotTags.length > 0) {
-        var q = bridge.call("gallery.query", {
+        var q = await bridge.callAsync("gallery.query", {
             label: screenshotTags[0],
             limit: 50
         });

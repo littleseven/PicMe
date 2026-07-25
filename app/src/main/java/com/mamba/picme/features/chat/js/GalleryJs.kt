@@ -1,6 +1,7 @@
 package com.mamba.picme.features.chat.js
 
 import com.mamba.picme.agent.core.js.JsValue
+import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.GalleryQueryResult
 import com.mamba.picme.domain.model.QueryFilter
@@ -13,7 +14,7 @@ import org.json.JSONArray
  * 落在 app 层的原因：依赖 [MediaEntity]（app/data 层），runtime-core 不可见
  * （对照 GallerySummary.toResultJsValue() 能放 runtime-core，因 GallerySummary 本就在 runtime-core）。
  *
- * - [parseQueryFilter]：JS `bridge.call('gallery.query', {...})` 的第二参 → [QueryFilter]。
+ * - [parseQueryFilter]：JS `bridge.callAsync('gallery.query', {...})` 的第二参 → [QueryFilter]。
  * - [toResultJsValue]：结果/元数据 → JsValue（回传 JS）。
  * 字段名小驼峰；数值转 Double（JS number）。
  */
@@ -134,6 +135,38 @@ private fun parseStringArray(raw: String?): JsValue {
         val arr = JSONArray(raw)
         JsValue.Arr((0 until arr.length()).map { JsValue.Str(arr.getString(it)) })
     }.getOrDefault(JsValue.Arr(emptyList()))
+}
+
+// ── face.cluster / tag.audit ──────────────────────────────────────
+
+/**
+ * PersonEntity → face.cluster 的 topPersons 元素。
+ * **不回** embedding 原始数据（隐私红线）；coverMediaId 仅作封面引用 id。
+ */
+fun PersonEntity.toPersonJsValue(): JsValue.Obj = JsValue.Obj(
+    linkedMapOf(
+        "personId" to JsValue.Num(personId.toDouble()),
+        "name" to (name?.takeIf { it.isNotBlank() }?.let { JsValue.Str(it) } ?: JsValue.Null),
+        "faceCount" to JsValue.Num(faceCount.toDouble()),
+        "coverMediaId" to (coverMediaId?.let { JsValue.Num(it.toDouble()) } ?: JsValue.Null),
+    )
+)
+
+/**
+ * 词表外标签过滤：从 [tagDistribution]（标签→照片数）中挑出不在 [vocabTags] 里的标签，
+ * 按计数降序取 top [limit]。供 tag.audit 的 outOfVocabTags。
+ */
+fun outOfVocabTags(
+    tagDistribution: Map<String, Int>,
+    vocabTags: Collection<String>,
+    limit: Int,
+): Map<String, Int> {
+    val vocab = vocabTags.toSet()
+    return tagDistribution.entries
+        .filter { it.key !in vocab }
+        .sortedByDescending { it.value }
+        .take(limit)
+        .associate { it.key to it.value }
 }
 
 // ── gallery.timeline：参数解析 ────────────────────────────────────
