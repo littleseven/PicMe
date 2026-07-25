@@ -62,14 +62,22 @@ object AdminViews {
         adminHead("概览 · PoLang 管理后台")
         body {
             navBar()
-            h1 { +"概览（今日，UTC 自然日）" }
+            h1 { +"概览" }
+            h2 { +"累计" }
             div("cards") {
                 statCard("总用户数", ov.totalUsers.toString())
+                statCard("总设备数", ov.totalDevices.toString())
+                statCard("累计调用", compactCount(ov.totalCalls.toDouble()))
+                statCard("累计 Token", compactCount(ov.totalTokens.toDouble()))
+                statCard("累计成本 ¥", compactCost(ov.totalCost))
+            }
+            h2 { +"今日（UTC 自然日）" }
+            div("cards") {
                 statCard("今日新增", ov.newUsersToday.toString())
                 statCard("今日调用", ov.callsToday.toString())
-                statCard("今日 Token", ov.tokensToday.toString())
-                statCard("今日成本 ¥", fmt(ov.costToday))
-                statCard("今日出口字节", ov.bytesToday.toString())
+                statCard("今日 Token", compactCount(ov.tokensToday.toDouble()))
+                statCard("今日成本 ¥", compactCost(ov.costToday))
+                statCard("今日出口字节", compactCount(ov.bytesToday.toDouble()))
                 statCard("今日 blocked", ov.blockedToday.toString())
             }
             h2 { +"近 ${series.size} 天 调用数" }

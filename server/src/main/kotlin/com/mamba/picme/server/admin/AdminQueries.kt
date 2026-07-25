@@ -6,6 +6,7 @@ import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
 import kotlinx.coroutines.Dispatchers
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -15,6 +16,7 @@ import java.time.ZoneOffset
 // ── DTO ──────────────────────────────────────────────
 
 data class OverviewRow(
+    // 今日
     val totalUsers: Long,
     val newUsersToday: Long,
     val callsToday: Long,
@@ -22,6 +24,11 @@ data class OverviewRow(
     val costToday: Double,
     val bytesToday: Long,
     val blockedToday: Long,
+    // 累计（新增）
+    val totalDevices: Long,
+    val totalCalls: Long,
+    val totalTokens: Long,
+    val totalCost: Double,
 )
 
 data class DayBucket(
@@ -98,22 +105,50 @@ object AdminQueries {
 
     suspend fun overview(now: Long): OverviewRow = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         val startToday = startOfTodayMs(now)
-        val totalUsers = Accounts.selectAll().count()
+        val totalUsers = Accounts.selectAll().where {
+            (Accounts.status eq "active") or (Accounts.status eq "revoked")
+        }.count()
+        val totalDevices = AnonymousDevices.selectAll().count()
         val newToday = Accounts.selectAll().where { Accounts.createdAt greaterEq startToday }.count()
-        var calls = 0L
-        var blocked = 0L
-        var tokens = 0L
-        var cost = 0.0
-        var bytes = 0L
+
+        // 今日（与原逻辑一致：跨所有今日行累加 tokens/cost/bytes）
+        var callsToday = 0L
+        var blockedToday = 0L
+        var tokensToday = 0L
+        var costToday = 0.0
+        var bytesToday = 0L
         LlmCallLogs.selectAll().where { LlmCallLogs.createdAt greaterEq startToday }.forEach { r ->
             val s = r[LlmCallLogs.status]
-            if (s == "ok") calls += 1
-            if (s.startsWith("blocked_")) blocked += 1
-            tokens += r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
-            cost += r[LlmCallLogs.costCny]
-            bytes += r[LlmCallLogs.respBytes].toLong()
+            if (s == "ok") callsToday += 1
+            if (s.startsWith("blocked_")) blockedToday += 1
+            tokensToday += r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
+            costToday += r[LlmCallLogs.costCny]
+            bytesToday += r[LlmCallLogs.respBytes].toLong()
         }
-        OverviewRow(totalUsers, newToday, calls, tokens, cost, bytes, blocked)
+
+        // 累计（仅 ok 行，全量）
+        var totalCalls = 0L
+        var totalTokens = 0L
+        var totalCost = 0.0
+        LlmCallLogs.selectAll().where { LlmCallLogs.status eq "ok" }.forEach { r ->
+            totalCalls += 1
+            totalTokens += r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
+            totalCost += r[LlmCallLogs.costCny]
+        }
+
+        OverviewRow(
+            totalUsers = totalUsers,
+            newUsersToday = newToday,
+            callsToday = callsToday,
+            tokensToday = tokensToday,
+            costToday = costToday,
+            bytesToday = bytesToday,
+            blockedToday = blockedToday,
+            totalDevices = totalDevices,
+            totalCalls = totalCalls,
+            totalTokens = totalTokens,
+            totalCost = totalCost,
+        )
     }
 
     suspend fun dailySeries(days: Int, now: Long): List<DayBucket> =

@@ -22,7 +22,7 @@ class AdminQueriesTest {
 
     @Test
     fun `overview users detail recent and daily aggregates`() = runBlocking {
-        TestDb.init(Accounts, LlmCallLogs)
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
 
         // 两个账户：A 5 天前注册，B 今日注册
         account(1, "a@x.com", todayStart - 5 * day)
@@ -46,6 +46,12 @@ class AdminQueriesTest {
         assertEquals(1.5, o.costToday, 0.000001) // 1.0 + 0.5
         assertEquals(1124L, o.bytesToday) // 1024 + 100
         assertEquals(1L, o.blockedToday)
+        // 累计（两账号均 active；3 条 ok 全量；tokens 150+300+15；cost 1.0+2.0+0.5）
+        assertEquals(2L, o.totalUsers)
+        assertEquals(0L, o.totalDevices)
+        assertEquals(3L, o.totalCalls)
+        assertEquals(465L, o.totalTokens)
+        assertEquals(3.5, o.totalCost, 0.000001)
 
         // users（按 createdAt desc：B 在前）
         val users = AdminQueries.usersList()
@@ -98,13 +104,17 @@ class AdminQueriesTest {
 
     @Test
     fun `empty db overview is zeros and no exceptions`() = runBlocking {
-        TestDb.init(Accounts, LlmCallLogs)
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
         val o = AdminQueries.overview(now)
         assertEquals(0L, o.totalUsers)
         assertEquals(0L, o.callsToday)
         assertEquals(0L, o.tokensToday)
         assertEquals(0.0, o.costToday, 0.0)
         assertEquals(0L, o.blockedToday)
+        assertEquals(0L, o.totalDevices)
+        assertEquals(0L, o.totalCalls)
+        assertEquals(0L, o.totalTokens)
+        assertEquals(0.0, o.totalCost, 0.0)
         val users = AdminQueries.usersList()
         assertTrue(users.isEmpty())
         val series = AdminQueries.dailySeries(14, now)
@@ -137,7 +147,7 @@ class AdminQueriesTest {
 
     @Test
     fun `usersList picks latest non-null device_id per user`() = runBlocking {
-        TestDb.init(Accounts, LlmCallLogs)
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
         account(1, "a@x.com", todayStart - day)
         logRow(1, "deepseek-chat", "CLOUDFLARE", 10, 5, 15, 0.1, 100, "ok", todayStart - day + 100, deviceId = "device-old-1234567890")
         logRow(1, "deepseek-chat", "CLOUDFLARE", 10, 5, 15, 0.1, 100, "ok", todayStart + 500, deviceId = "device-aaaa-bbbb-1234")

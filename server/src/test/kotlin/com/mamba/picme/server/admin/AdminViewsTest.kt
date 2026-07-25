@@ -7,7 +7,7 @@ class AdminViewsTest {
 
     @Test
     fun `overview page renders stat cards and an svg chart`() {
-        val ov = OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L)
+        val ov = OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L, 0L, 0L, 0L, 0.0)
         val series = listOf(DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L))
         val html = AdminViews.overviewPage(ov, series)
         assertTrue(html.contains("总用户数"))
@@ -53,7 +53,7 @@ class AdminViewsTest {
     @Test
     fun `overview page renders sub-cent cost with precision not zero`() {
         // 今日成本 0.0044 元：%.2f 会显示 "0.00"，计费看起来没生效
-        val ov = OverviewRow(1L, 0L, 5L, 7944L, 0.0044, 819L, 0L)
+        val ov = OverviewRow(1L, 0L, 5L, 7944L, 0.0044, 819L, 0L, 0L, 0L, 0L, 0.0)
         val html = AdminViews.overviewPage(ov, emptyList())
         assertTrue("sub-cent cost must not round to 0.00", html.contains("0.0044"))
     }
@@ -66,7 +66,7 @@ class AdminViewsTest {
             DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L),
         )
         val html = AdminViews.overviewPage(
-            OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L),
+            OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L, 0L, 0L, 0L, 0.0),
             series,
         ) + AdminViews.trafficPage(series)
         assertTrue("compact count label for millions", html.contains(">1.5M</text>"))
