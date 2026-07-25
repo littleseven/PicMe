@@ -592,6 +592,8 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                 optimizeUseCase = container.aiOptimizeUseCase
             )
         )
+        orchestrator.registerCapability(container.imageEditCapability)
+        Logger.i(TAG, "- ImageEditCapability: CHAT-scoped image editing")
     }
 
     override fun newImageLoader(): ImageLoader {

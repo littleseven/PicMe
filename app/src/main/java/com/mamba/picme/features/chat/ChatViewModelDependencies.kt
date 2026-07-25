@@ -10,6 +10,7 @@ import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.tag.ControlledVocab
+import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
@@ -28,5 +29,7 @@ class ChatViewModelDependencies(
     val startTagScanUseCase: StartTagScanUseCase,
     val personDao: PersonDao,
     val controlledVocab: ControlledVocab,
+    val chatEditStateHolder: ChatEditStateHolder,
+    val chatEditProcessor: ChatEditProcessor,
     val chatImageRenderer: ChatImageRenderer? = null
 )

@@ -35,6 +35,7 @@ import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.model.StructuredFilter
 import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
+import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.StartTagScanResult
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import android.util.Log
@@ -136,6 +137,8 @@ class ChatViewModel(
     private val startTagScanUseCase = dependencies.startTagScanUseCase
     private val chatImageRenderer = dependencies.chatImageRenderer
     private val mediaRepository = dependencies.mediaRepository
+    private val chatEditStateHolder = dependencies.chatEditStateHolder
+    private val chatEditProcessor = dependencies.chatEditProcessor
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -973,6 +976,12 @@ class ChatViewModel(
                             }
                         }
                     }
+                    is AgentCommand.EditImage -> {
+                        val outputUri = cmd.imageUri
+                        val explanation = cmd.explanation
+                            ?: context.getString(R.string.chat_edit_result_default)
+                        insertEditResultMessage(sessionId, outputUri, explanation, currentModelLabel(), performance)
+                    }
                     else -> {
                         insertAgentMessage(sessionId, describeCommandResult(cmd), "command", performance)
                     }
@@ -1682,6 +1691,50 @@ class ChatViewModel(
     }
 
     /**
+     * 插入对话式图片编辑结果消息。
+     *
+     * - content：给用户的说明文本
+     * - metadata.imageUri：编辑后的结果图 URI
+     * - metadata.suggestions：可继续执行的推荐话术
+     */
+    @VisibleForTesting
+    internal suspend fun insertEditResultMessage(
+        sessionId: String,
+        imageUri: String,
+        explanation: String,
+        modelUsed: String,
+        performance: LlmPerformance? = null
+    ) {
+        val metadata = JSONObject().apply {
+            put("imageUri", imageUri)
+            put("explanation", explanation)
+            put("suggestions", JSONArray(listOf(
+                context.getString(R.string.chat_edit_suggestion_brighter),
+                context.getString(R.string.chat_edit_suggestion_fine_tune)
+            )))
+            performance?.let {
+                put("prompt_len", it.promptLen)
+                put("decode_len", it.decodeLen)
+                put("prefill_time_ms", it.prefillTimeMs)
+                put("decode_time_ms", it.decodeTimeMs)
+                put("prefill_speed", it.prefillSpeed.toDouble())
+                put("decode_speed", it.decodeSpeed.toDouble())
+            }
+        }.toString()
+        chatMessageDao.insertMessage(
+            ChatMessageEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = sessionId,
+                type = "agent_edit_result",
+                content = explanation,
+                modelUsed = modelUsed,
+                metadata = metadata
+            )
+        )
+        chatSessionDao.touchSession(sessionId)
+    }
+
+    /**
      * 仅暂存图片：复制到内部存储 + 设 [_lastUserImageUri]，**不**插入消息、**不**触发推理。
      * 返回持久化后的路径字符串；失败返回 null。供 Chat 输入框「缩略图预览」用。
      */
@@ -2037,11 +2090,12 @@ class ChatViewModel(
                 "plan_preview" -> ChatMessageType.PLAN_PREVIEW
                 "media_results" -> ChatMessageType.MEDIA_RESULTS
                 "chart" -> ChatMessageType.CHART
+                "agent_edit_result" -> ChatMessageType.AGENT_EDIT_RESULT
                 else -> ChatMessageType.AGENT_TEXT
             },
             content = content,
             chartSvg = if (type == "chart") content else null,
-            imageUri = if (type == "user_image_text" || type == "agent_image") metadata?.let { m -> parseImageUri(m) } else null,
+            imageUri = if (type == "user_image_text" || type == "agent_image" || type == "agent_edit_result") metadata?.let { m -> parseImageUri(m) } else null,
             modelUsed = modelUsed,
             timestamp = timestamp,
             performance = performance,

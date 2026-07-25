@@ -60,7 +60,7 @@ Application.onCreate() → getInstance() 创建 → 注册到 CapabilityRegistry
 
 ### 2.2 Capability 全局注册（2026-07 补充）
 
-`NavigationCapability` 与 `SystemCapability` 除了在 `MainActivity` 的 `ComposeCapabilityHost` 中注册外，还需通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`。
+`NavigationCapability`、`SystemCapability` 与 `ImageEditCapability` 除了在 `MainActivity` 的 `ComposeCapabilityHost` 中注册外，还需通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`。
 
 **原因**：
 - 飞书直接搜索快速通道在后台线程通过 `PoLangToolService` 调用 `CapabilityRegistry.dispatch()`。
