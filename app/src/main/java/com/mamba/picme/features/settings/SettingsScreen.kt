@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -51,18 +53,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.mamba.picme.BuildConfig
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
@@ -71,6 +76,7 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.ModelConfig
+import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.DetectionModelType
 import com.mamba.picme.domain.model.DetectionStage
@@ -424,7 +430,8 @@ private fun SettingsContent(
                     onNavigateToCategory = onNavigateToCategory,
                     onNavigateToModelCenter = { onNavigateToModelCenter("") },
                     onNavigateToDataPrivacy = onNavigateToDataPrivacy,
-                    onNavigateToCommunicationChannel = onNavigateToCommunicationChannel
+                    onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
+                    onNavigateToMemoryFacts = onNavigateToMemoryFacts
                 )
                 return@Column
             }
@@ -526,19 +533,6 @@ private fun SettingsContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-
-                    // 「AI 记忆」事实记忆管理页入口
-                    SettingsClickableRow(
-                        title = stringResource(R.string.settings_ai_memory),
-                        subtitle = stringResource(R.string.settings_ai_memory_desc),
-                        leadingIcon = Icons.Rounded.Psychology,
-                        onClick = onNavigateToMemoryFacts
                     )
                 }
 
@@ -912,12 +906,16 @@ private fun SettingsMainMenu(
     onNavigateToCategory: (SettingsCategory) -> Unit,
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDataPrivacy: () -> Unit,
-    onNavigateToCommunicationChannel: () -> Unit
+    onNavigateToCommunicationChannel: () -> Unit,
+    onNavigateToMemoryFacts: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // ── 账号（置顶全宽卡，反映登录态）──
+        SettingsAccountHeroCard(onClick = { onNavigateToCategory(SettingsCategory.ACCOUNT) })
+
         // ── 主题 ──
         Card(
             modifier = Modifier
@@ -974,7 +972,97 @@ private fun SettingsMainMenu(
             onNavigateToModelCenter = onNavigateToModelCenter,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy,
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
+            onNavigateToMemoryFacts = onNavigateToMemoryFacts,
         )
+    }
+}
+
+/**
+ * 账号置顶全宽卡：已登录显示邮箱与「服务端账户」，未登录显示「账号」+ 注册引导。
+ */
+@Composable
+private fun SettingsAccountHeroCard(onClick: () -> Unit) {
+    val context = LocalContext.current
+    val app = context.applicationContext as PoLangApplication
+    val repo = app.container.userPreferencesRepository
+    val serverToken by repo.serverAuthTokenFlow.collectAsState(initial = "")
+    val serverEmail by repo.serverAuthEmailFlow.collectAsState(initial = "")
+    val loggedIn = serverToken.isNotBlank()
+
+    val authClient = remember { PoLangAuthClient() }
+    var quotaUsed by remember { mutableStateOf(0) }
+    var quotaLimit by remember { mutableStateOf(0) }
+    var quotaLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(serverToken) {
+        if (loggedIn) {
+            authClient.getQuota(serverToken)
+                .onSuccess {
+                    quotaUsed = it.llmCallsUsed
+                    quotaLimit = it.llmCallsLimit
+                    quotaLoaded = true
+                }
+                .onFailure { Logger.w(TAG, "Hero card quota load failed: ${it.message}") }
+        } else {
+            quotaLoaded = false
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = if (loggedIn) serverEmail else stringResource(R.string.account),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = when {
+                        !loggedIn -> stringResource(R.string.account_desc)
+                        quotaLoaded -> stringResource(
+                            R.string.auth_quota_summary,
+                            quotaUsed,
+                            quotaLimit
+                        )
+                        else -> stringResource(R.string.auth_account_title)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 
@@ -994,14 +1082,16 @@ private fun SettingsCategoryGrid(
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDataPrivacy: () -> Unit,
     onNavigateToCommunicationChannel: () -> Unit,
+    onNavigateToMemoryFacts: () -> Unit,
 ) {
     val context = LocalContext.current
     val items = listOf(
-        CategoryGridItem(R.string.account, R.string.account_desc, Icons.Rounded.Person) {
-            onNavigateToCategory(SettingsCategory.ACCOUNT)
-        },
         CategoryGridItem(R.string.ai_assistant, R.string.ai_assistant_desc, Icons.Rounded.SmartToy) {
             onNavigateToCategory(SettingsCategory.AI_AGENT)
+        },
+        CategoryGridItem(R.string.settings_ai_memory, R.string.settings_ai_memory_desc, Icons.Rounded.Psychology, onNavigateToMemoryFacts),
+        CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
+            onNavigateToCommunicationChannel()
         },
         CategoryGridItem(R.string.gallery_features, R.string.gallery_features_desc, Icons.Rounded.PhotoLibrary) {
             onNavigateToCategory(SettingsCategory.GALLERY)
@@ -1009,17 +1099,14 @@ private fun SettingsCategoryGrid(
         CategoryGridItem(R.string.camera_and_beauty, R.string.camera_and_beauty_desc, Icons.Rounded.CameraAlt) {
             onNavigateToCategory(SettingsCategory.CAMERA_BEAUTY)
         },
+        CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
         CategoryGridItem(R.string.developer_options, R.string.developer_options_desc, Icons.Rounded.Terminal) {
             onNavigateToCategory(SettingsCategory.DEVELOPER)
         },
-        CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
         CategoryGridItem(R.string.backup_and_restore, R.string.backup_and_restore_desc, Icons.Rounded.Storage) {
             context.startActivity(BackupRestoreActivity.intent(context))
         },
         CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
-        CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
-            onNavigateToCommunicationChannel()
-        },
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
