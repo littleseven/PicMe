@@ -142,6 +142,7 @@ class LlmModelDownloadManager(context: Context) {
          */
         val DEFAULT_TAG_TRANSLATIONS = mapOf(
             "must-have" to "必须",
+            "recommended" to "推荐",
             "chat" to "聊天",
             "photo-tagging" to "相册打标",
             "beauty-camera" to "美颜相机",
@@ -1426,7 +1427,7 @@ data class ModelMarketData(
      * 服务功能分类标签集合（用于顶部 Tab 分类）
      * 语音助手已合并入聊天分类。
      */
-    private val serviceCategoryTags = listOf("must-have", "chat", "photo-tagging", "beauty-camera")
+    private val serviceCategoryTags = listOf("must-have", "recommended", "chat", "photo-tagging", "beauty-camera")
 
     /**
      * 获取所有可用的服务功能分类标签
@@ -1439,10 +1440,10 @@ data class ModelMarketData(
 
         // 未分类的模型放入 "All"
         val assignedIds = categories.flatMap { category ->
-            if (category.tag == "must-have") {
-                models.filter { it.isRequired }.map { it.id }
-            } else {
-                models.filter { category.tag in it.tags }.map { it.id }
+            when (category.tag) {
+                "must-have" -> models.filter { it.isRequired }.map { it.id }
+                "recommended" -> models.filter { it.isRecommended }.map { it.id }
+                else -> models.filter { category.tag in it.tags }.map { it.id }
             }
         }.toSet()
         val unassigned = models.filter { it.id !in assignedIds }
@@ -1461,10 +1462,10 @@ data class ModelMarketData(
         val result = mutableMapOf<ModelCategory, List<ModelConfig>>()
 
         for (categoryTag in serviceCategoryTags) {
-            val categoryModels = if (categoryTag == "must-have") {
-                models.filter { it.isRequired }
-            } else {
-                models.filter { categoryTag in it.tags }
+            val categoryModels = when (categoryTag) {
+                "must-have" -> models.filter { it.isRequired }
+                "recommended" -> models.filter { it.isRecommended }
+                else -> models.filter { categoryTag in it.tags }
             }
             if (categoryModels.isNotEmpty()) {
                 result[ModelCategory(categoryTag)] = categoryModels

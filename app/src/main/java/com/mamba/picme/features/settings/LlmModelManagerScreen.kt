@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -109,6 +110,7 @@ import com.mamba.picme.data.download.DownloadState
 internal fun getCategoryIcon(tag: String): ImageVector {
     return when (tag.lowercase()) {
         "must-have" -> Icons.Outlined.Star
+        "recommended" -> Icons.Outlined.Download
         "chat" -> Icons.AutoMirrored.Outlined.Chat
         "photo-tagging" -> Icons.Outlined.Photo
         "beauty-camera" -> Icons.Outlined.CameraAlt
@@ -427,6 +429,7 @@ internal fun MustHaveHeaderCard(
 internal fun getTagColor(tag: String): Color {
     return when (tag.lowercase()) {
         "must-have" -> Color(0xFFE53935)
+        "recommended" -> MaterialTheme.colorScheme.tertiary
         "chat" -> MaterialTheme.colorScheme.primary
         "photo-tagging" -> Color(0xFF9C27B0)
         "beauty-camera" -> MaterialTheme.colorScheme.tertiary
