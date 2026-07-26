@@ -18,6 +18,15 @@ import com.mamba.picme.features.editor.EditRecipe
  */
 object ChatEditRecipeBuilder {
 
+    /**
+     * 瘦脸单次变化上限（全量程的 5%）。
+     *
+     * 用户在聊天中请求瘦脸时，照片通常已经处于较好状态，只需要微调；
+     * 因此将 LLM 返回的 slim_face_delta 限制在 ±5（0~100 全量程的 5%），
+     * 避免一次调整过度导致不自然。
+     */
+    private const val SLIM_FACE_DELTA_MAX = 5f
+
     fun build(currentRecipe: EditRecipe, command: AgentCommand.EditImage): EditRecipe {
         val params = command.params
         return currentRecipe.copy(
@@ -35,7 +44,7 @@ object ChatEditRecipeBuilder {
             enabled = true,
             smoothing = resolveAbsolute(current.smoothing, params.smoothing, max = 100f),
             whitening = resolveAbsolute(current.whitening, params.whitening, max = 100f),
-            slimFace = resolveAbsolute(current.slimFace, params.slimFace, min = -50f, max = 50f),
+            slimFace = resolveAbsolute(current.slimFace, params.slimFace, min = -50f, max = 50f, deltaMax = SLIM_FACE_DELTA_MAX),
             bigEyes = resolveAbsolute(current.bigEyes, params.bigEyes, max = 100f),
             lipColor = resolveAbsolute(current.lipColor, params.lipColor, max = 100f),
             blush = resolveAbsolute(current.blush, params.blush, max = 100f),
@@ -72,10 +81,14 @@ object ChatEditRecipeBuilder {
         current: Float,
         value: EditParams.Value,
         min: Float = 0f,
-        max: Float = 100f
+        max: Float = 100f,
+        deltaMax: Float? = null
     ): Float = when (value) {
         is EditParams.Absolute -> value.value.coerceIn(min, max)
-        is EditParams.Delta -> (current + value.value).coerceIn(min, max)
+        is EditParams.Delta -> {
+            val clampedDelta = deltaMax?.let { value.value.coerceIn(-it, it) } ?: value.value
+            (current + clampedDelta).coerceIn(min, max)
+        }
         EditParams.Unchanged -> current
         is EditParams.AbsoluteString -> current
     }

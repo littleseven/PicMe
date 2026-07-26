@@ -65,4 +65,43 @@ class ChatEditRecipeBuilderTest {
         )
         assertEquals(5300f, result.adjustments.temperature, 0.001f)
     }
+
+    @Test
+    fun `slim face positive delta is capped to 5 percent of full scale`() {
+        val current = base.copy(beauty = base.beauty.copy(slimFace = 0f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(slimFace = EditParams.Delta(20f)))
+        )
+        assertEquals(5f, result.beauty.slimFace, 0.001f)
+    }
+
+    @Test
+    fun `slim face negative delta is capped to 5 percent of full scale`() {
+        val current = base.copy(beauty = base.beauty.copy(slimFace = 0f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(slimFace = EditParams.Delta(-20f)))
+        )
+        assertEquals(-5f, result.beauty.slimFace, 0.001f)
+    }
+
+    @Test
+    fun `slim face small delta is preserved`() {
+        val current = base.copy(beauty = base.beauty.copy(slimFace = 10f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(slimFace = EditParams.Delta(3f)))
+        )
+        assertEquals(13f, result.beauty.slimFace, 0.001f)
+    }
+
+    @Test
+    fun `slim face absolute value is not capped`() {
+        val result = ChatEditRecipeBuilder.build(
+            base,
+            AgentCommand.EditImage(params = EditParams(slimFace = EditParams.Absolute(30f)))
+        )
+        assertEquals(30f, result.beauty.slimFace, 0.001f)
+    }
 }
