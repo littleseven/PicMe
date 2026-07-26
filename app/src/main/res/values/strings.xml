@@ -441,6 +441,8 @@
     <string name="download_all">Download All</string>
     <string name="download_all_missing">Download Missing</string>
     <string name="must_have_models_summary">%1$d required models, %2$d not downloaded</string>
+    <string name="auto_download_recommended_title">Auto-download recommended models</string>
+    <string name="auto_download_recommended_summary">Download recommended models automatically on Wi-Fi</string>
     <string name="model_downloaded">Downloaded</string>
     <string name="no_models_available">No models available</string>
     <string name="no_asr_models_available">No ASR models available. Check your network connection.</string>

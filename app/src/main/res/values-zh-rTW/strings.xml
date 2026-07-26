@@ -404,6 +404,8 @@
     <string name="download_all">全部下載</string>
     <string name="download_all_missing">下載缺失</string>
     <string name="must_have_models_summary">共 %1$d 個必須模型，%2$d 個未下載</string>
+    <string name="auto_download_recommended_title">自動下載推薦模型</string>
+    <string name="auto_download_recommended_summary">在 Wi-Fi 下自動下載推薦模型</string>
     <string name="model_downloaded">已下載</string>
     <string name="no_models_available">暫無可用模型</string>
     <string name="no_asr_models_available">暫無 ASR 模型，請檢查網絡連接</string>

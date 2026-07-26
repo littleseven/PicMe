@@ -69,6 +69,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -145,6 +146,8 @@ fun ModelCenterScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
     val isMustHaveTab = currentTab.tag.equals("must-have", ignoreCase = true)
+    val isRecommendedTab = currentTab.tag.equals("recommended", ignoreCase = true)
+    val autoDownloadRecommended by viewModel.autoDownloadRecommendedOnWifi.collectAsState()
 
     // 根据传入的初始标签设置当前 Tab（按服务功能映射）
     LaunchedEffect(initialCategoryTag, modelTypeLabels) {
@@ -211,6 +214,15 @@ fun ModelCenterScreen(
                                 requiredCount = currentModels.size,
                                 missingCount = missingCount,
                                 onDownloadAll = { viewModel.downloadAllRequiredModels() }
+                            )
+                        }
+                    }
+
+                    if (isRecommendedTab) {
+                        item(key = "recommended-header") {
+                            RecommendedHeaderCard(
+                                checked = autoDownloadRecommended,
+                                onCheckedChange = { enabled -> viewModel.setAutoDownloadRecommendedOnWifi(enabled) }
                             )
                         }
                     }
@@ -418,6 +430,50 @@ internal fun MustHaveHeaderCard(
                     Text(stringResource(R.string.download_all_missing))
                 }
             }
+        }
+    }
+}
+
+/**
+ * 推荐 Tab 顶部卡片：WiFi 静默预下载开关。
+ */
+@Composable
+internal fun RecommendedHeaderCard(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.auto_download_recommended_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.auto_download_recommended_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Switch(
+                checked = checked,
+                onCheckedChange = { enabled -> onCheckedChange(enabled) }
+            )
         }
     }
 }

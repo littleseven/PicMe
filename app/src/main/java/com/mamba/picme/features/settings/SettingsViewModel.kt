@@ -225,7 +225,15 @@ class SettingsViewModel(
             initialValue = false
         )
 
-    /** 相册打标模型 key（qwen3_vl_2b 默认 / smolvlm_500m 备选） */
+    /** WiFi 下静默预下载推荐模型（默认开启）。 */
+    val autoDownloadRecommendedOnWifi: StateFlow<Boolean> = repository.autoDownloadRecommendedOnWifiFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
+
+    /** 相册打标模型 key（默认 AUTO → Florence-2 首选；显式 florence2_base / qwen3_vl_2b） */
     val taggerModelKey: StateFlow<String> = repository.taggerModelKeyFlow
         .stateIn(
             scope = viewModelScope,
@@ -964,6 +972,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             Logger.d("UX", "TAG generation OpenCL changed: $enabled")
             repository.updateTagGenerationUseOpencl(enabled)
+        }
+    }
+
+    fun setAutoDownloadRecommendedOnWifi(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "Auto-download recommended on WiFi changed: $enabled")
+            repository.updateAutoDownloadRecommendedOnWifi(enabled)
         }
     }
 
