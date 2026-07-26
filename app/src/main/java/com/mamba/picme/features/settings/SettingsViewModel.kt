@@ -54,16 +54,11 @@ class SettingsViewModel(
 
         /**
          * Tier 1：相册扫描/创建 TAG 必须的模型（最高优先）。
+         * 单一事实来源：派生自 [ModelConfig.REQUIRED_MODEL_IDS]。
          * 进入相册且自动扫描任务启动前必须全部已下载，否则弹出下载提醒。
          */
-        val GALLERY_REQUIRED_MODEL_IDS = listOf(
-            "face-det-retina500m-mnn", // 人脸 ROI 检测
-            "face-landmark-2d106-mnn", // 人脸 2D106 关键点
-            "face-embedding-glint360k-r100-mnn", // 人脸特征 embedding
-            "mobileclip-onnx", // 语义搜索
-            "qwen3_vl_2b", // 图片标签生成（Pass 3，默认 tagger）
-            "opus-mt-zh-en" // 中文查询翻译
-        )
+        val GALLERY_REQUIRED_MODEL_IDS: List<String> =
+            ModelConfig.REQUIRED_MODEL_IDS.toList()
 
         /**
          * Tier 2：聊天/语音/本地 LLM 相关模型（次高优先）。
