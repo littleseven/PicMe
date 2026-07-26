@@ -14,7 +14,7 @@
       "joiner-epoch-99-avg-1.int8.onnx",
       "tokens.txt"
     ],
-    "tags": ["chat", "ASR", "speech", "chinese", "english", "onnx"]
+    "tags": ["chat", "ASR", "speech", "chinese", "english", "onnx", "recommended"]
   },
   {
     "id": "sherpa-onnx-kws-zipformer-wenetspeech",
@@ -32,7 +32,7 @@
       "tokens.txt",
       "keywords.txt"
     ],
-    "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx"]
+    "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx", "recommended"]
   },
   {
     "id": "qwen3_5_2b",
@@ -53,28 +53,7 @@
       "visual.mnn",
       "visual.mnn.weight"
     ],
-    "tags": ["chat", "reasoning", "multilingual", "vision"]
-  },
-  {
-    "id": "smolvlm_500m",
-    "name": "SmolVLM-500M-Instruct-MNN",
-    "description": "HuggingFace SmolVLM-500M 纯图像多模态（MNN 版），质量优先备选，能稳定输出结构化 JSON，CPU ~13s/张",
-    "type": "LLM",
-    "size": 598000000,
-    "sources": {
-      "ModelScope": "MNN/SmolVLM-500M-Instruct-MNN"
-    },
-    "files": [
-      "config.json",
-      "llm_config.json",
-      "llm.mnn",
-      "llm.mnn.weight",
-      "visual.mnn",
-      "visual.mnn.weight",
-      "tokenizer.txt",
-      "embeddings_bf16.bin"
-    ],
-    "tags": ["chat", "vision", "tagging", "multilingual"]
+    "tags": ["chat", "reasoning", "multilingual", "vision", "recommended"]
   },
   {
     "id": "qwen3_vl_2b",
@@ -209,7 +188,7 @@
       "source.spm",
       "target.spm"
     ],
-    "tags": ["recommended", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
+    "tags": ["must-have", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
   },
   {
     "id": "florence2_base",
@@ -235,7 +214,7 @@
       "added_tokens.json",
       "special_tokens_map.json"
     ],
-    "tags": ["recommended", "photo-tagging", "vision-llm", "onnx", "structured-output"]
+    "tags": ["must-have", "photo-tagging", "vision-llm", "onnx", "structured-output"]
   },
   {
     "id": "modnet-onnx",
@@ -249,7 +228,7 @@
     "files": [
       "modnet.onnx"
     ],
-    "tags": ["matting", "onnx", "editor"]
+    "tags": ["matting", "onnx", "editor", "recommended"]
   },
   {
     "id": "u2netp-onnx",
@@ -263,7 +242,7 @@
     "files": [
       "u2netp.onnx"
     ],
-    "tags": ["matting", "onnx", "editor"]
+    "tags": ["matting", "onnx", "editor", "recommended"]
   },
   {
     "id": "mediapipe-face-landmarker",
@@ -277,6 +256,6 @@
     "files": [
       "face_landmarker.task"
     ],
-    "tags": ["must-have", "photo-tagging", "face", "landmark", "mediapipe"]
+    "tags": ["recommended", "photo-tagging", "face", "landmark", "mediapipe"]
   }
 ]
