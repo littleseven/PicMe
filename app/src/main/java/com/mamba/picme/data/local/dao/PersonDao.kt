@@ -58,6 +58,35 @@ interface PersonDao {
     )
     suspend fun getMediaByPerson(personId: Long): List<MediaEntity>
 
+    /**
+     * 多人物共现查询：返回同时包含所有指定人物的媒体
+     * （HAVING COUNT(DISTINCT personId) = 传入 ids 数，确保每人都出现）
+     */
+    @Query(
+        """
+        SELECT m.* FROM media_assets m
+        WHERE m.id IN (
+            SELECT mediaId FROM face_embeddings
+            WHERE personId IN (:personIds)
+            GROUP BY mediaId
+            HAVING COUNT(DISTINCT personId) = :personCount
+        )
+        ORDER BY m.captureDate DESC
+        """
+    )
+    suspend fun getMediaByPersonsCooccurrence(personIds: List<Long>, personCount: Int): List<MediaEntity>
+
+    /** 标记/取消"我"本人（is_self 列） */
+    @Query("UPDATE persons SET is_self = :isSelf, updatedAt = :now WHERE personId = :personId")
+    suspend fun setSelf(personId: Long, isSelf: Boolean, now: Long = System.currentTimeMillis())
+
+    /** 全局唯一"我"约束：设置新 self 前清除旧标记 */
+    @Query("UPDATE persons SET is_self = 0 WHERE is_self = 1")
+    suspend fun clearSelfFlags()
+
+    @Query("SELECT * FROM persons WHERE is_self = 1 LIMIT 1")
+    suspend fun getSelfPerson(): PersonEntity?
+
     @Insert
     suspend fun insertEmbedding(embedding: FaceEmbeddingEntity): Long
 

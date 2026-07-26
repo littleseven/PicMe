@@ -256,4 +256,99 @@ class CapabilityDispatchHandlerTest {
         assertEquals(2, dispatched.size)
         assertEquals("确认框不允许并发弹出", 1, maxConcurrentConfirmations)
     }
+
+    // ── 记忆 method（remember_fact / forget_fact / recall_memory）──────────
+
+    @Test
+    fun `remember_fact maps params, marks JS_DISPATCH source and requires confirmation`() = runTest {
+        val probe = Probe()
+        val params = JsValue.Obj(
+            linkedMapOf(
+                "content" to JsValue.Str("小宝对花粉过敏"),
+                "category" to JsValue.Str("健康"),
+            )
+        )
+        probe.handler().invoke(argsOf("remember_fact", params))
+
+        val call = probe.confirmationArgs.single()
+        assertEquals("remember_fact", call.method)
+        assertEquals(CommandRisk.REVERSIBLE_WRITE, call.risk)
+        val command = probe.dispatched.single() as AgentCommand.RememberFact
+        assertEquals("小宝对花粉过敏", command.content)
+        assertEquals("健康", command.category)
+        assertEquals("JS_DISPATCH", command.source)
+    }
+
+    @Test
+    fun `remember_fact without content throws before confirmation`() = runTest {
+        val probe = Probe()
+        try {
+            probe.handler().invoke(argsOf("remember_fact"))
+            fail("expected JsBridgeException")
+        } catch (e: JsBridgeException) {
+            assertTrue(e.message!!.contains("content"))
+        }
+        assertTrue(probe.dispatched.isEmpty())
+        assertEquals(0, probe.confirmationArgs.size)
+    }
+
+    @Test
+    fun `forget_fact maps fact_id and query variants`() = runTest {
+        val probe = Probe()
+        val handler = probe.handler()
+        handler.invoke(
+            argsOf("forget_fact", JsValue.Obj(linkedMapOf("fact_id" to JsValue.Num(7.0))))
+        )
+        handler.invoke(
+            argsOf("forget_fact", JsValue.Obj(linkedMapOf("query" to JsValue.Str("花粉"))))
+        )
+
+        val byId = probe.dispatched[0] as AgentCommand.ForgetFact
+        assertEquals(7L, byId.factId)
+        assertEquals(null, byId.query)
+        val byQuery = probe.dispatched[1] as AgentCommand.ForgetFact
+        assertEquals(null, byQuery.factId)
+        assertEquals("花粉", byQuery.query)
+        assertEquals("两次均为 REVERSIBLE_WRITE 需确认", 2, probe.confirmationArgs.size)
+        assertTrue(probe.confirmationArgs.all { it.risk == CommandRisk.REVERSIBLE_WRITE })
+    }
+
+    @Test
+    fun `forget_fact without fact_id and query throws`() = runTest {
+        val probe = Probe()
+        try {
+            probe.handler().invoke(argsOf("forget_fact"))
+            fail("expected JsBridgeException")
+        } catch (e: JsBridgeException) {
+            assertTrue(e.message!!.contains("fact_id") || e.message!!.contains("query"))
+        }
+        assertTrue(probe.dispatched.isEmpty())
+    }
+
+    @Test
+    fun `recall_memory is READ_ONLY and dispatches without confirmation`() = runTest {
+        val probe = Probe()
+        val params = JsValue.Obj(linkedMapOf("query" to JsValue.Str("过敏")))
+        val result = probe.handler().invoke(argsOf("recall_memory", params)) as JsValue.Obj
+
+        assertEquals(0, probe.confirmationArgs.size)
+        val command = probe.dispatched.single() as AgentCommand.RecallMemory
+        assertEquals("过敏", command.query)
+        assertEquals(true, (result.entries["ok"] as JsValue.Bool).value)
+        // TextReply 透传 message 供 JS 读取
+        assertEquals("done", (result.entries["message"] as JsValue.Str).value)
+    }
+
+    @Test
+    fun `rejected remember_fact throws and never dispatches`() = runTest {
+        val probe = Probe()
+        val params = JsValue.Obj(linkedMapOf("content" to JsValue.Str("秘密")))
+        try {
+            probe.handler(answer = { false }).invoke(argsOf("remember_fact", params))
+            fail("expected JsBridgeException")
+        } catch (e: JsBridgeException) {
+            assertTrue(e.message!!.contains("rejected"))
+        }
+        assertTrue(probe.dispatched.isEmpty())
+    }
 }

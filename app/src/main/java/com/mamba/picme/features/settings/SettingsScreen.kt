@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Storage
@@ -119,7 +120,8 @@ fun SettingsScreen(
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToLlmLog: () -> Unit = {},
     onNavigateToCategory: (SettingsCategory) -> Unit = {},
-    onNavigateToDataPrivacy: () -> Unit = {}
+    onNavigateToDataPrivacy: () -> Unit = {},
+    onNavigateToMemoryFacts: () -> Unit = {}
 ) {
     val view = LocalView.current
     val context = LocalContext.current
@@ -304,7 +306,8 @@ fun SettingsScreen(
             onNavigateToJsBridge = onNavigateToJsBridge,
             onNavigateToSearchTest = onNavigateToSearchTest,
             onNavigateToLlmLog = onNavigateToLlmLog,
-            onNavigateToDataPrivacy = onNavigateToDataPrivacy
+            onNavigateToDataPrivacy = onNavigateToDataPrivacy,
+            onNavigateToMemoryFacts = onNavigateToMemoryFacts
         )
     }
 }
@@ -384,7 +387,8 @@ private fun SettingsContent(
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToLlmLog: () -> Unit = {},
-    onNavigateToDataPrivacy: () -> Unit = {}
+    onNavigateToDataPrivacy: () -> Unit = {},
+    onNavigateToMemoryFacts: () -> Unit = {}
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
@@ -529,6 +533,19 @@ private fun SettingsContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    // 「AI 记忆」事实记忆管理页入口
+                    SettingsClickableRow(
+                        title = stringResource(R.string.settings_ai_memory),
+                        subtitle = stringResource(R.string.settings_ai_memory_desc),
+                        leadingIcon = Icons.Rounded.Psychology,
+                        onClick = onNavigateToMemoryFacts
                     )
                 }
 

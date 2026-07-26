@@ -25,7 +25,9 @@ enum class CommandRisk {
          */
         fun ofMethod(method: String): CommandRisk = when (method) {
             "delete_media", "share_media" -> DESTRUCTIVE
-            "favorite_media", "select_media" -> REVERSIBLE_WRITE
+            "favorite_media", "select_media",
+            "remember_person_relation", "forget_person_relation",
+            "remember_fact", "forget_fact" -> REVERSIBLE_WRITE
             else -> READ_ONLY
         }
     }

@@ -52,6 +52,8 @@ import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
 import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
+import com.mamba.picme.features.settings.MemoryFactsScreen
+import com.mamba.picme.features.settings.MemoryFactsViewModel
 import com.mamba.picme.features.settings.ModelCenterScreen
 import com.mamba.picme.features.settings.SettingsCategory
 import com.mamba.picme.features.settings.SettingsScreen
@@ -391,6 +393,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToDataPrivacy = {
                                         navController.navigate(Screen.DataPrivacy.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToMemoryFacts = {
+                                        navController.navigate(Screen.MemoryFacts.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -446,6 +451,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToDataPrivacy = {
                                         navController.navigate(Screen.DataPrivacy.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToMemoryFacts = {
+                                        navController.navigate(Screen.MemoryFacts.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -474,6 +482,18 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(Screen.DataPrivacy.route) {
                                 DataPrivacyScreen(onNavigateBack = { navController.popBackStack() })
+                            }
+                            composable(Screen.MemoryFacts.route) {
+                                val memoryFactsViewModel: MemoryFactsViewModel = viewModel(
+                                    factory = MemoryFactsViewModel.factory(
+                                        app.container.memoryRepository,
+                                        app.container.personRepository
+                                    )
+                                )
+                                MemoryFactsScreen(
+                                    viewModel = memoryFactsViewModel,
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
                             }
                             composable(Screen.Debug.route) {
                                 // 场景管理：进入 Debug 页面

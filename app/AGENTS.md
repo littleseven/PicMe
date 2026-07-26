@@ -41,6 +41,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `Settings` | `settings` | 设置 — 主菜单，展示 6 个分类入口 |
 | `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera_beauty`、`system`、`developer` |
 | `DuplicateManager` | `duplicate_manager` | 相册功能子页 — 重复/相似照片扫描与删除，从 Settings「相册功能」卡片进入 |
+| `MemoryFacts` | `memory_facts` | 设置子页 — AI 记忆（人物关系区 + 事实记忆区的查看/编辑/删除/清空），从 Settings「AI 助手」卡片进入 |
 | `Debug` | `debug` | 开发工具 — 日志、截图、样本数据生成 |
 
 > **2026-06 产品重心转移**：Gallery 为默认首页，Camera/Chat/ModelCenter 作为纯图标入口从 Gallery 底部悬浮 Tab 进入，Settings 从顶部栏进入；设置页已拆分为 6 个二级分类页，主菜单保持一屏可见；Model Center 内置于 Settings 的 AI 助手卡片第一项，分类按服务功能（必须/聊天/相册打标/美颜相机）重排，聊天分类聚合文字与语音模型，并提供必须模型一键下载；重复照片管理内置于 Settings 的相册功能卡片；Camera 页已移除设置入口。
@@ -71,7 +72,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | **Common** | `features/common/chat/` | `AgentChatComponents`, `AgentMessage`, `AiChatScreen` | Chat UI 共享组件库（Camera/Gallery 复用） |
 | **Gallery** | `features/gallery/` | `GalleryScreen`, `MediaViewModel` | 智能相册浏览、AI 搜索 |
 | **Editor** | `features/editor/` | `ImageEditScreen` | 图片编辑（美颜/滤镜/风格） |
-| **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `ModelCenterScreen` | 设置与模型管理 |
+| **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `ModelCenterScreen`, `MemoryFactsScreen` | 设置与模型管理；`MemoryFactsScreen` 为「AI 记忆」管理二级页（人物关系区查看/删除 + 事实记忆区查看/编辑/删除/清空） |
 | **Debug** | `features/debug/` | `DebugScreen`, `LogOverlay`, `ScreenshotUtil` | 开发调试工具 |
 
 > **2026-07-25 JS Engine（QuickJS 沙箱，`features/chat/js/`）**：
@@ -79,7 +80,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 > - `GalleryScriptHandlers.registerGalleryHandlers`：gallery/media/face/tag **10 个只读取数 handler 的唯一注册点**（全部 async，JS 侧必须 `await bridge.callAsync`），ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 共用，新增/修改 handler 只改这里
 > - `GalleryJs`：JS ↔ 查询模型字段转换（parseQueryFilter / toResultJsValue 等），media.meta 白名单不回 uri/GPS/ocrText/embedding
 > - `ChartJs` + `assets/js/chart_bootstrap.js`：Chart.bar/line/pie/timeline → SVG，图卡落库为 CHART 消息，summary 回传 LLM
-> - `CapabilityDispatchHandler`：`capability.dispatch` 写通路（delete_media/favorite_media/select_media/get_gallery_summary 白名单），按 `CommandRisk` 分级，写操作经 `WriteConfirmationController`（`features/chat/`）弹确认框——缩略图预览、120s 超时按拒绝、并发确认互斥串行、脚本结束在途确认失效；落点 `ChatMediaWriteCapability`（CHAT 场景，删除走 MediaStore 授权，favorite/select 会话级无持久化）
+> - `CapabilityDispatchHandler`：`capability.dispatch` 写通路（delete_media/favorite_media/select_media/get_gallery_summary/remember_fact/forget_fact/recall_memory 白名单），按 `CommandRisk` 分级，写操作经 `WriteConfirmationController`（`features/chat/`）弹确认框——缩略图预览、120s 超时按拒绝、并发确认互斥串行、脚本结束在途确认失效；落点 `ChatMediaWriteCapability`（CHAT 场景，删除走 MediaStore 授权，favorite/select 会话级无持久化）与 `MemoryCapability`（remember/forget_fact 落 `memory_facts`，recall_memory 只读直通）
 > - 完整规格见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 
 ### 2.2 领域层 (`domain/`)
@@ -91,13 +92,15 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `model/` | `AiAgentCommand`, `LlmProviderConfig`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe` |
 | `search/` | `MediaSearchEngine`, `ExplicitFirstSearchPipeline`, `QuerySegmenter`, `QueryParser`, `SegmentedQuery`, `ExplicitFilter`, `ContentFilter` | 自然语言图片搜索：显式约束优先分段检索 + 规则/LLM/语义混合排序；Chat 场景由 `SearchIntent` 直接驱动 `MediaSearchEngine.search(filter)` |
 | `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory`, `MlKitTagExtractor` | TAG 生成编排、OpenCL 守护、类别定义、ML Kit 英文标签提取 |
+| `person/` | `RelationPredicate`, `KinshipLexicon`, `PersonRepository`, `PersonQueryResolver`, `RelationSnapshotRestorer` | 人物关系图谱：谓词封闭枚举（中/英/日标签）、亲属称谓词表、关系与"我"标记收口仓库、查询串→personId 解析器、重聚快照恢复纯函数 |
+| `memory/` | `MemoryRepository` | 通用事实记忆仓库（"帮我记住…"收口，remember/update/forget/唯一匹配删/observeAll） |
 | `preview/` | `BeautyPreviewProvider` | 美颜预览提供者接口 |
 
 ### 2.3 数据层 (`data/`)
 
 | 子包 | 内容 | 说明 |
 |------|------|------|
-| `local/` | `AppDatabase`（Room）、`MediaDao`、`ChatMessageDao`、`ChatSessionDao` | Room 数据库 + DAO |
+| `local/` | `AppDatabase`（Room v13）、`MediaDao`、`ChatMessageDao`、`ChatSessionDao`、`PersonRelationDao`、`MemoryFactDao` | Room 数据库 + DAO；v13 新增 `person_relations`（人物关系边，FK→persons CASCADE）与 `memory_facts`（事实记忆），`persons` 加 `is_self` 列 |
 | `remote/openai/` | OpenAI API 客户端（Retrofit） | 远程 LLM 网络层 |
 | `remote/anthropic/` | Anthropic/Claude API 客户端（Retrofit） | 备用远程 LLM |
 | `download/` | `LlmModelDownloadManager`、`ModelDownloadForegroundService` | LLM 模型下载管理 + 前台服务 |
@@ -142,6 +145,10 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：本地/远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
 | JS 沙箱脚本 | `ChatRunScriptCapability` → `ChatViewModel.onRunScript/onDrawChart` → `JsRuntime`（QuickJS） | LLM tool_call（run_gallery_script/draw_chart）经 CapabilityRegistry（CHAT 场景）落入持久 JsRuntime；`jsEvalMutex` 串行 eval，超时 5s（含 capability.dispatch 写脚本放宽至 180s）；写操作经 CommandRisk 分级 + 用户确认 → `ChatMediaWriteCapability` |
 | Chat 对话式图片编辑 | `ImageEditCapability` → `ChatEditProcessor` | 复用 PhotoEditor 的 Recipe → Bitmap 渲染链路；`ChatEditStateHolder` 维护会话级 Recipe 支持多轮 delta；`AGENT_EDIT_RESULT` 消息 inline 展示结果图与说明 |
+| 人物关系图谱 | 命名对话框（GalleryScreen 人物分组标题点击）/ 聊天 `remember_person_relation` → `PersonRelationCapability` → `PersonRepository` → `person_relations` | 「X 是我 Y」双通路声明（对话框 RENAME_DIALOG / 聊天 CHAT_DECLARATION），声明幂等覆盖即纠错；"这是我"标记存 `persons.is_self`（全局唯一）；Pass 2 全量重聚经 `NamedPersonSnapshot` + `RelationSnapshotRestorer` 按名字/isSelf 恢复关系。**附修复**：全量重聚 `clearAllPersons` 后复用分支原仅 `updatePersonStats`（对已删行为 no-op，命名/is_self 实际丢失），已改为按原 personId 显式 `insertPerson` 重建人物行，使命名保留真正生效 |
+| 多人物共现搜索 | `MediaSearchEngine.collectPersonMediaIds` → `PersonQueryResolver` → `PersonDao.getMediaByPersonsCooccurrence` | 原始 query 命中已命名人物/亲属称谓（`KinshipLexicon`）/合拍 Pattern 的"我"：≥2 personId 走共现查询（同框合照），恰好 1 个走单人物查询，0 个回落原人名 LIKE 兜底；chat 与 Gallery 搜索路径自动获得 |
+| 事实记忆 | 聊天 `remember_fact`/`recall_memory`/`forget_fact` / JS `capability.dispatch` → `MemoryCapability` → `MemoryRepository` → `memory_facts`；设置页「AI 记忆」（`MemoryFactsScreen`：人物关系区查看/删除 + 事实区查看/编辑/删除/清空） | LIKE 召回（v1 无 FTS）；遗忘按 factId 或唯一匹配（多候选不删）；JS 写操作走确认门控，chat 直调不弹窗 |
+| 工具执行指标（tool_call_log） | `CommandExecutor`（:runtime-core）→ `CommandExecutionRecorder` → `RoomToolCallRecorder` → `polang_llm_log.db` | Capability 业务失败以 `Result.success(AgentAction.Error)` 返回（如引导性错误），记账按 action 语义：`AgentAction.Error` 记 `success=0` + errorCode/errorMessage，其余 action 记 `success=1`；只记纯指标（capability/method/耗时/结果），不含命令参数（隐私红线） |
 
 ---
 
@@ -202,5 +209,5 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ---
 
 > **维护者**：[RD] 全栈工程师
-> **最后更新**：2026-07-25
+> **最后更新**：2026-07-26
 > **状态**：生效中

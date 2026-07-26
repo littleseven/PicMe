@@ -849,4 +849,40 @@
     <string name="a11y_reset_camera">重置相机状态</string>
     <string name="a11y_photo_desc">照片</string>
     <string name="a11y_video_desc">视频</string>
+
+    <!-- 人物分组编辑对话框（命名 + 关系声明） -->
+    <string name="person_edit_title">编辑人物</string>
+    <string name="person_edit_name_label">名称</string>
+    <string name="person_relation_label">TA 是我的…</string>
+    <string name="person_relation_none">不设置</string>
+    <string name="person_relation_spouse">配偶</string>
+    <string name="person_relation_child">子女</string>
+    <string name="person_relation_parent">父母</string>
+    <string name="person_relation_sibling">兄弟姐妹</string>
+    <string name="person_relation_grandparent">祖辈</string>
+    <string name="person_relation_grandchild">孙辈</string>
+    <string name="person_relation_other_family">其他亲属</string>
+    <string name="person_relation_friend">朋友</string>
+    <string name="person_relation_colleague">同事</string>
+    <string name="person_relation_other">其他</string>
+    <string name="person_is_self">这是我</string>
+
+    <!-- AI 记忆（事实记忆管理页） -->
+    <string name="settings_ai_memory">AI 记忆</string>
+    <string name="settings_ai_memory_desc">查看、编辑、删除 AI 记住的事实</string>
+    <string name="memory_facts_empty">还没有记忆。在聊天中对小浪说“帮我记住…”即可添加</string>
+    <string name="memory_facts_clear_all">清空全部</string>
+    <string name="memory_facts_clear_confirm_title">清空全部记忆？</string>
+    <string name="memory_facts_clear_confirm_message">将删除全部 %1$d 条记忆，此操作不可撤销。</string>
+    <string name="memory_facts_edit_title">编辑记忆</string>
+    <string name="memory_facts_content_label">内容</string>
+    <string name="memory_facts_category_label">分类（可选）</string>
+    <string name="memory_facts_source_chat">对话</string>
+    <string name="memory_facts_source_js">脚本</string>
+    <string name="memory_facts_edit_desc">编辑</string>
+    <string name="memory_facts_delete_desc">删除</string>
+    <string name="memory_facts_relations_section">人物关系</string>
+    <string name="memory_facts_facts_section">事实记忆</string>
+    <string name="memory_facts_relations_empty">还没有人物关系。在人物分组对话框或聊天中对小浪说“X 是我 Y”即可添加</string>
+    <string name="memory_relation_item_format">%1$s 是我的%2$s</string>
 </resources>

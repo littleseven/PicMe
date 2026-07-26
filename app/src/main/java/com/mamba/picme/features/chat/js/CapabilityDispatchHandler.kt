@@ -44,6 +44,7 @@ class CapabilityDispatchHandler(
         /** 支持的 method 列表（写操作 + 只读直通示例），用于错误提示与 LLM 指引对齐。 */
         val SUPPORTED_METHODS = listOf(
             "delete_media", "favorite_media", "select_media", "get_gallery_summary",
+            "remember_fact", "forget_fact", "recall_memory",
         )
     }
 
@@ -119,6 +120,32 @@ class CapabilityDispatchHandler(
             selected = boolParam(params, "selected", default = true),
         )
         "get_gallery_summary" -> AgentCommand.GetGallerySummary(includeDetails = true)
+        "remember_fact" -> {
+            val content = strParam(params, "content")
+                ?: throw JsBridgeException(
+                    JsBridgeException.HANDLER_ERROR,
+                    "remember_fact requires params.content (string)",
+                )
+            AgentCommand.RememberFact(
+                content = content,
+                category = strParam(params, "category"),
+                source = "JS_DISPATCH",
+            )
+        }
+        "forget_fact" -> {
+            val factId = (params?.entries?.get("fact_id") as? JsValue.Num)?.value?.toLong()
+            val query = strParam(params, "query")
+            if (factId == null && query == null) {
+                throw JsBridgeException(
+                    JsBridgeException.HANDLER_ERROR,
+                    "forget_fact requires params.fact_id (number) or params.query (string)",
+                )
+            }
+            AgentCommand.ForgetFact(factId = factId, query = query)
+        }
+        "recall_memory" -> AgentCommand.RecallMemory(
+            query = strParam(params, "query").orEmpty(),
+        )
         else -> throw JsBridgeException(
             JsBridgeException.HANDLER_ERROR,
             "unsupported method '$method' (supported: ${SUPPORTED_METHODS.joinToString()})",
@@ -136,6 +163,9 @@ class CapabilityDispatchHandler(
 
     private fun boolParam(params: JsValue.Obj?, name: String, default: Boolean): Boolean =
         (params?.entries?.get(name) as? JsValue.Bool)?.value ?: default
+
+    private fun strParam(params: JsValue.Obj?, name: String): String? =
+        (params?.entries?.get(name) as? JsValue.Str)?.value?.ifBlank { null }
 
     private fun targetCountOf(command: AgentCommand): Int =
         if (command is AgentCommand.DeleteMedia) command.mediaIds.size else 1

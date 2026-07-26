@@ -6,9 +6,9 @@ import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.TagDao
-import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.StructuredFilter
+import com.mamba.picme.domain.person.PersonQueryResolver
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
@@ -44,7 +44,8 @@ class MediaSearchEngine(
     private val tagTranslator: TagTranslator = TagTranslator(BilingualVocab.empty()),
     private val semanticSearchEngine: SemanticSearchEngine? = null,
     private val explicitFirstPipeline: ExplicitFirstSearchPipeline? = null,
-    private val mediaFeedbackUseCase: MediaFeedbackUseCase? = null
+    private val mediaFeedbackUseCase: MediaFeedbackUseCase? = null,
+    private val personQueryResolver: PersonQueryResolver? = null
 ) {
 
     /** 翻译结果 LRU 缓存：避免重复搜索时反复做词表查找 + OPUS-MT 推理（~50ms） */
@@ -115,7 +116,7 @@ class MediaSearchEngine(
         if (filter != null && !filter.needsLlm) {
             // SQL 搜索与语义召回并行执行
             val (results, semanticResults) = coroutineScope {
-                val sqlDeferred = async { executeFilter(filter) }
+                val sqlDeferred = async { executeFilter(filter, rawQuery = query) }
                 val semanticDeferred = async {
                     if (enableSemanticSearch && semanticSearchEngine != null) {
                         searchSemantic(query, filter)
@@ -135,7 +136,7 @@ class MediaSearchEngine(
             if (llmFilter != null) {
                 // SQL 搜索与语义召回并行执行
                 val (results, semanticResults) = coroutineScope {
-                    val sqlDeferred = async { executeFilter(llmFilter) }
+                    val sqlDeferred = async { executeFilter(llmFilter, rawQuery = query) }
                     val semanticDeferred = async {
                         if (enableSemanticSearch && semanticSearchEngine != null) {
                             searchSemantic(query, llmFilter)
@@ -198,7 +199,7 @@ class MediaSearchEngine(
         val enableSemanticForFilter = enableSemanticSearch && filter.personName.isNullOrBlank()
 
         val (results, semanticResults) = coroutineScope {
-            val sqlDeferred = async { executeFilter(filter) }
+            val sqlDeferred = async { executeFilter(filter, rawQuery = query) }
             val semanticDeferred = async {
                 if (enableSemanticForFilter && semanticSearchEngine != null && query.isNotBlank()) {
                     searchSemantic(query, filter)
@@ -331,7 +332,7 @@ class MediaSearchEngine(
      * 并集，旧照片只要命中关键词就会被召回，从而出现 2003 年/2023 年等非半年内结果。
      */
     @Suppress("CyclomaticComplexMethod")
-    private suspend fun executeFilter(filter: StructuredFilter): List<MediaAsset> {
+    private suspend fun executeFilter(filter: StructuredFilter, rawQuery: String = ""): List<MediaAsset> {
         val uiLang = userSettingsRepository?.getAppLanguageBlocking() ?: AppLanguage.CHINESE
         val totalStart = System.currentTimeMillis()
 
@@ -370,7 +371,7 @@ class MediaSearchEngine(
             !filter.personName.isNullOrBlank()
 
         // 人物名匹配：显式 personName + 每个关键词都可能命中自定义分组名称
-        contentIds.addAll(collectPersonMediaIds(filter))
+        contentIds.addAll(collectPersonMediaIds(filter, rawQuery))
 
         if (filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty()) {
             for (keyword in filter.keywords) {
@@ -472,15 +473,44 @@ class MediaSearchEngine(
     /**
      * 收集所有人物名匹配相关的媒体 ID。
      *
-     * 包括：
+     * 解析优先级（依赖注入 [personQueryResolver] 时生效）：
+     * 1. 原始查询经 PersonQueryResolver 命中 ≥2 个不同人物 → 共现查询（同框照片）
+     * 2. 恰好命中 1 个 → 该人物全部媒体（含亲属称谓命中，如"我女儿"）
+     * 3. 0 命中 → 回落下方人名 LIKE 兜底（逻辑不变）
+     *
+     * LIKE 兜底包括：
      * 1. [StructuredFilter.personName] 显式指定的人名
      * 2. [StructuredFilter.keywords] 中命中人物分组名称的关键词
-     *
-     * 用户可在人物分组（PERSON 模式）中为聚类簇自定义名称（如"大宝"），
-     * 搜索时若关键词命中 [PersonEntity.name]，则返回该人物下所有媒体 ID。
      */
-    private suspend fun collectPersonMediaIds(filter: StructuredFilter): Set<Long> {
+    private suspend fun collectPersonMediaIds(filter: StructuredFilter, rawQuery: String = ""): Set<Long> {
         val dao = personDao ?: return emptySet()
+
+        if (personQueryResolver != null && rawQuery.isNotBlank()) {
+            val resolved = personQueryResolver.resolve(rawQuery)
+            when {
+                resolved.personIds.size >= 2 -> {
+                    val ids = resolved.personIds.toList()
+                    val media = dao.getMediaByPersonsCooccurrence(ids, ids.size)
+                    Logger.d(
+                        TAG,
+                        "personCooccur query='$rawQuery' persons=${resolved.descriptions} " +
+                            "ambiguous=${resolved.isAmbiguous} media=${media.size}"
+                    )
+                    return media.mapTo(mutableSetOf()) { it.id }
+                }
+                resolved.personIds.size == 1 -> {
+                    val personId = resolved.personIds.first()
+                    val media = dao.getMediaByPerson(personId)
+                    Logger.d(
+                        TAG,
+                        "personResolved query='$rawQuery' persons=${resolved.descriptions} media=${media.size}"
+                    )
+                    return media.mapTo(mutableSetOf()) { it.id }
+                }
+                else -> Unit // 0 命中：回落人名 LIKE 兜底
+            }
+        }
+
         val names = mutableSetOf<String>()
         filter.personName?.trim()?.takeIf { it.isNotBlank() }?.let { names.add(it) }
         names.addAll(filter.keywords.map { it.trim() })

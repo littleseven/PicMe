@@ -625,6 +625,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         )
         orchestrator.registerCapability(container.imageEditCapability)
         Logger.i(TAG, "- ImageEditCapability: CHAT-scoped image editing")
+        orchestrator.registerCapability(container.personRelationCapability)
+        Logger.i(TAG, "- PersonRelationCapability: CHAT-scoped person relation declaration")
+        orchestrator.registerCapability(container.memoryCapability)
+        Logger.i(TAG, "- MemoryCapability: CHAT-scoped fact memory (chat tool + JS dispatch)")
     }
 
     override fun newImageLoader(): ImageLoader {

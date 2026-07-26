@@ -43,6 +43,8 @@
 | **SystemCapability** | `system` | ALL | 2 | ✅ 已落地 | Activity/Service 级 |
 | **AutoTagCapability** | `auto_tag` | GALLERY | 4 | ✅ 已落地 | 应用级 |
 | **AiOptimizeCapability** | `ai_optimize` | GALLERY, CHAT | 1 | ✅ 已落地 | 应用级 |
+| **PersonRelationCapability** | `person_relation` | CHAT | 2 | ✅ 已落地 | 应用级（AppContainer 注入 PersonRepository） |
+| **MemoryCapability** | `memory_facts` | CHAT | 3 | ✅ 已落地 | 应用级（AppContainer 注入 MemoryRepository） |
 | **RemoteControlCapability** | `remote_control` | ALL | 0 | ✅ 已落地 | 应用级单例，不走 AgentCommand 路由 |
 | **BeautyCapability** | — | — | — | ✅ 已落地 | 测试/程序化 API，不注册到 Agent 编排 |
 
@@ -55,6 +57,11 @@
 > **变更说明（2026-07-20）**：
 > - 新增 `ChatSearchCapability`，支持 Chat 场景自然语言相册搜索与多轮细化（`search_media` / `refine_media_search` 携带 `SearchIntent`）
 > - `GalleryCapability.search_media` 参数扩展为 `query: String, intent: SearchIntent?`
+>
+> **变更说明（2026-07-26）**：
+> - 新增 `PersonRelationCapability`（人物关系声明/遗忘，`remember_person_relation` / `forget_person_relation`）
+> - 新增 `MemoryCapability`（事实记忆，`remember_fact` / `forget_fact` / `recall_memory`）
+> - 两者均为应用级、构造注入仓库（`PersonRepository` / `MemoryRepository`），同时服务聊天工具直调与 JS `capability.dispatch` 写通路；remember/forget 系在 `CommandRisk` 登记为 `REVERSIBLE_WRITE`，`recall_memory` 为 `READ_ONLY`
 
 ### 1.1 场景 - 能力映射
 
@@ -63,7 +70,7 @@
 | `CAMERA` | CameraCapability, NavigationCapability, SystemCapability |
 | `GALLERY` | GalleryCapability, AutoTagCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `SETTINGS` | SettingsCapability, NavigationCapability, SystemCapability |
-| `CHAT` | ChatSearchCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
+| `CHAT` | ChatSearchCapability, AiOptimizeCapability, PersonRelationCapability, MemoryCapability, NavigationCapability, SystemCapability |
 | `DEBUG` | NavigationCapability, SystemCapability |
 | `UNKNOWN` | NavigationCapability, SystemCapability, RemoteControlCapability |
 
@@ -346,6 +353,60 @@
 - `BeautyCapability` **不注册到 `CapabilityRegistry`**，不作为 Agent 可编排能力
 - 供测试引擎、自动化测试或业务代码直接调用
 - 若未来需要 Agent 控制美颜参数，应通过 `CameraCapability.adjust_beauty` 命令
+
+---
+
+## 12. PersonRelationCapability
+
+**职责**: 在 Chat 中声明/遗忘人物与「我」的关系（"小宝是我女儿"），声明后支持称谓/合照搜索  
+**活跃场景**: `CHAT`  
+**文件**: `app/src/main/java/com/mamba/picme/features/chat/capability/PersonRelationCapability.kt`  
+**状态**: ✅ 已落地
+
+### 12.1 支持命令
+
+| 命令 | 参数 | 风险级 | 描述 | 示例 |
+|------|------|--------|------|------|
+| `remember_person_relation` | `name: String, relation: String` | REVERSIBLE_WRITE | 声明人物关系（幂等覆盖=纠错）；relation 支持谓词枚举名（CHILD 等）或中文称谓（女儿 等） | "记住小宝是我女儿" |
+| `forget_person_relation` | `name: String` | REVERSIBLE_WRITE | 遗忘与某人物的全部关系（幂等） | "忘掉小宝的关系" |
+
+### 12.2 关键设计
+
+- 构造注入 `PersonRepository`（数据收口在 `domain/person`，不直调 DAO）；"我"端取 `persons.is_self` 全局唯一标记，未标记返回引导性 Error（先去人物分组打开"这是我"）。
+- 人名未解析（`persons.name` LIKE 无命中）返回引导性 Error："还没有叫「X」的人物，请先在相册人物分组里给 TA 命名"——LLM 须如实转告，不得假装已记住。
+- 关系图谱同时供查询侧使用：`PersonQueryResolver` 把称谓解到 personId，`MediaSearchEngine` 据此走共现查询（"我和小宝的合照"）。
+- Pass 2 全量重聚时关系随 `NamedPersonSnapshot` 导出（按两端名字+isSelf），重聚后按名解析写回（`RelationSnapshotRestorer` 纯函数）。
+
+### 12.3 生命周期
+
+- **应用级**：`PoLangApplication.initializeCapabilities()` 注册（`AppContainer.personRelationCapability` lazy 单例），CHAT 场景常驻可用。
+
+---
+
+## 13. MemoryCapability
+
+**职责**: 通用事实记忆（"帮我记住…"）的写入 / 检索 / 遗忘  
+**活跃场景**: `CHAT`  
+**文件**: `app/src/main/java/com/mamba/picme/features/chat/capability/MemoryCapability.kt`  
+**状态**: ✅ 已落地
+
+### 13.1 支持命令
+
+| 命令 | 参数 | 风险级 | 描述 | 示例 |
+|------|------|--------|------|------|
+| `remember_fact` | `content: String, category: String?, source: String` | REVERSIBLE_WRITE | 记住一条事实（落 `memory_facts`，source 区分 CHAT_TOOL / JS_DISPATCH） | "帮我记住小宝对花粉过敏" |
+| `forget_fact` | `factId: Long?, query: String?` | REVERSIBLE_WRITE | 按 factId 精确删，或按 query 唯一匹配删（多候选返回列表不删） | "忘掉花粉过敏那条" |
+| `recall_memory` | `query: String` | READ_ONLY | LIKE 检索事实（返回含 factId 的列表，供 forget 精确删除）；空串返回全部 | "我对什么过敏？" |
+
+### 13.2 关键设计
+
+- 构造注入 `MemoryRepository`；同一 Capability 同时服务聊天工具直调（不弹确认，LLM 文本回复即确认）与 JS `capability.dispatch`（REVERSIBLE_WRITE 自动走弹窗确认），两通路语义一致、确认强度不同。
+- 管理界面：设置页「AI 记忆」（`MemoryFactsScreen`）查看/编辑/删除/清空，与 recall 结果实时一致（Room Flow）。
+- v1 召回为 LIKE（无 FTS）；事实内容可经 recall 进入远程上下文属设计内行为（最小必要、按需取回，无常驻注入）。
+
+### 13.3 生命周期
+
+- **应用级**：`PoLangApplication.initializeCapabilities()` 注册（`AppContainer.memoryCapability` lazy 单例），CHAT 场景常驻可用。
 
 ---
 

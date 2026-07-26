@@ -20,6 +20,7 @@ sealed class Screen(val route: String) {
     data object SearchTest : Screen("search_test")
     data object LlmLog : Screen("llm_log")
     data object DataPrivacy : Screen("data_privacy")
+    data object MemoryFacts : Screen("memory_facts")
     data object SentencePieceTest : Screen("sentencepiece_test")
     data object TagViewer : Screen("tag_viewer")
     data object ModelCenter : Screen("model_center/{categoryTag}") {

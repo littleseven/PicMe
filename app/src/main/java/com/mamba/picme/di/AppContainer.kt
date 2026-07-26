@@ -63,8 +63,13 @@ import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.chat.ChatImageRenderer
 import com.mamba.picme.features.chat.ChatViewModelDependencies
+import com.mamba.picme.features.chat.capability.MemoryCapability
+import com.mamba.picme.features.chat.capability.PersonRelationCapability
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.matting.MattingEngineImpl
+import com.mamba.picme.domain.memory.MemoryRepository
+import com.mamba.picme.domain.person.PersonQueryResolver
+import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -163,6 +168,15 @@ interface AppContainer {
     val queryGalleryMediaUseCase: QueryGalleryMediaUseCase
     /** 人物/人脸聚类 DAO（chat JS handler face.cluster / Debug 演示共用） */
     val personDao: PersonDao
+    /** 人物领域仓库（命名 / "我"标记 / 人物关系图谱收口，命名对话框与聊天工具共用） */
+    val personRepository: PersonRepository
+    /** 通用事实记忆仓库（"帮我记住…"事实的收口，聊天工具 / JS 通路 / 设置页共用） */
+    val memoryRepository: MemoryRepository
+
+    /** 人物关系声明 Capability（CHAT 场景，聊天 remember/forget_person_relation 落点） */
+    val personRelationCapability: PersonRelationCapability
+    /** 事实记忆 Capability（CHAT 场景，聊天工具直调与 JS dispatch 共用落点） */
+    val memoryCapability: MemoryCapability
     /** 受控词表（chat JS handler tag.audit 词表外标签比对 / Debug 演示共用） */
     val controlledVocab: ControlledVocab
 
@@ -195,6 +209,25 @@ class AppContainerImpl(
 
     override val personDao: PersonDao
         get() = database.personDao()
+
+    override val personRepository: PersonRepository by lazy {
+        PersonRepository(
+            personDao = database.personDao(),
+            relationDao = database.personRelationDao()
+        )
+    }
+
+    override val memoryRepository: MemoryRepository by lazy {
+        MemoryRepository(memoryFactDao = database.memoryFactDao())
+    }
+
+    override val personRelationCapability: PersonRelationCapability by lazy {
+        PersonRelationCapability(personRepository = personRepository)
+    }
+
+    override val memoryCapability: MemoryCapability by lazy {
+        MemoryCapability(memoryRepository = memoryRepository)
+    }
 
     /** OPUS-MT 翻译引擎（SentencePiece + ONNX Runtime） */
     private val opusMtTranslator: OpusMtTranslator by lazy {
@@ -229,6 +262,11 @@ class AppContainerImpl(
         )
     }
 
+    /** 人物查询解析器（人名/亲属称谓/“我” → personId，MediaSearchEngine 共现查询依赖） */
+    private val personQueryResolver: PersonQueryResolver by lazy {
+        PersonQueryResolver(personRepository)
+    }
+
     /** 媒体搜索引擎（自然语言图片搜索） */
     override val mediaSearchEngine: MediaSearchEngine by lazy {
         MediaSearchEngine(
@@ -241,7 +279,8 @@ class AppContainerImpl(
             tagTranslator = TagTranslator(bilingualVocab, opusMtTranslator, controlledVocab),
             semanticSearchEngine = semanticSearchEngine,
             explicitFirstPipeline = explicitFirstSearchPipeline,
-            mediaFeedbackUseCase = mediaFeedbackUseCase
+            mediaFeedbackUseCase = mediaFeedbackUseCase,
+            personQueryResolver = personQueryResolver
         )
     }
 

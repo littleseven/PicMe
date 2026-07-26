@@ -132,7 +132,6 @@
 - **隐私级别**：`STRICT` / `PERMISSIVE`；运行时输入分级为 `PUBLIC` / `SENSITIVE` / `RESTRICTED`
 
 ### 2.7 相册功能入口（2026-06 新增）
-
 **入口位置**：设置页「相册功能」卡片（`SettingsScreen` 中非 Debug 区域）
 
 **当前功能**：
@@ -149,6 +148,16 @@
 - 相册功能卡片对所有构建类型可见（非 Debug 限定）
 - Debug 构建额外显示「相册调试功能」区域（图片下载页、搜索测试、OpenCL 后端切换）
 - 图标统一使用 `SettingsClickableRow` 的 `leadingIcon` + 右侧箭头，保持可点击心智
+
+### 2.7.1 AI 记忆（管理页，2026-07 新增）
+
+- **入口**：设置页「AI 助手」卡片「AI 记忆」项（`SettingsClickableRow`），导航到 `Screen.MemoryFacts.route = "memory_facts"`（`MainActivity` 注册，参照 DataPrivacyScreen 二级页模式）
+- **页面**：`MemoryFactsScreen` + `MemoryFactsViewModel`（工厂手动 DI，注入 `AppContainer.memoryRepository` + `personRepository`）
+- **功能**（双 section）：
+  - **人物关系区**（上）：`PersonRepository.observeRelationsToSelf()` Flow 驱动，每行"X 是我的 Y"（谓词标签复用 `features/common/personRelationLabelRes` 资源映射）+ 单条删除（`removeRelationById`）；纠错走重新声明，不做编辑
+  - **事实记忆区**（下）：`MemoryRepository.observeAllFacts()` Flow 驱动，显示内容/来源标签（对话/脚本）/分类/创建时间；单条编辑（对话框改 content+category，`updateFact`）、单条删除（`forgetFact`）、顶部「清空全部」（AlertDialog 二次确认，`clearAllFacts`）
+  - 两区皆空显示整页空态引导；单区为空显示该区一行空态
+- **写入来源**：聊天工具（`remember_fact`，source=CHAT_TOOL）与 JS 沙盒 `capability.dispatch`（source=JS_DISPATCH），本页改动即时反映到 `recall_memory` 结果
 
 ### 2.8 设置页二级分类（2026-06 拆分）
 

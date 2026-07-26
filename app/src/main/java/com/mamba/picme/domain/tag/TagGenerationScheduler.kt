@@ -14,8 +14,12 @@ import com.mamba.picme.beauty.api.facedetect.RoiDetectorType
 import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
+import com.mamba.picme.data.local.entity.PersonRelationEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AppLanguage
+import com.mamba.picme.domain.person.PersonRepository
+import com.mamba.picme.domain.person.RelationSnapshotEntry
+import com.mamba.picme.domain.person.RelationSnapshotRestorer
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.LabelSinicizer
@@ -44,13 +48,15 @@ import kotlin.math.sqrt
  * 用于全量重聚类时保留命名人信息的快照。
  *
  * @param personId 原人物 ID
- * @param name 用户为该人物设置的名称
+ * @param name 用户为该人物设置的名称（未命名的"我"本人也进快照，name 可为 null）
  * @param centroid 该人物所有 face embedding 的质心
+ * @param isSelf 是否为"我"本人（is_self 标记需随快照恢复）
  */
 data class NamedPersonSnapshot(
     val personId: Long,
-    val name: String,
-    val centroid: FloatArray
+    val name: String?,
+    val centroid: FloatArray,
+    val isSelf: Boolean = false
 )
 
 /**
@@ -141,6 +147,11 @@ class TagGenerationScheduler(
 
     private val db = AppDatabase.getDatabase(context)
     private val personDao = db.personDao()
+
+    /** 人物领域仓库（关系图谱快照导出/恢复走其收口 API） */
+    private val personRepository by lazy {
+        PersonRepository(personDao = db.personDao(), relationDao = db.personRelationDao())
+    }
     private val vocab = ControlledVocab.loadFromAssets(context)
     private val enToZhTranslator: OpusMtTranslator by lazy {
         // 双语 opus-mt-en-zh 不需要 `>>eng<<` 语言标签前缀（那是多语模型的用法）；
@@ -614,11 +625,26 @@ class TagGenerationScheduler(
 
         return if (bestIndex >= 0 && bestSim >= ClusteringConfig.NAME_PRESERVE_MIN_SIMILARITY) {
             val snapshot = availableSnapshots.removeAt(bestIndex)
-            personDao.updatePersonStats(
-                personId = snapshot.personId,
-                faceCount = totalFaces,
-                coverMediaId = coverMediaId
-            )
+            if (personDao.getPerson(snapshot.personId) == null) {
+                // 全量重聚已清表：UPDATE 是 no-op，必须按原 personId 显式重建人物行，
+                // 否则 name/is_self 丢失、face_embeddings/person_relations 指向悬挂 id
+                personDao.insertPerson(
+                    com.mamba.picme.data.local.entity.PersonEntity(
+                        personId = snapshot.personId,
+                        name = snapshot.name,
+                        faceCount = totalFaces,
+                        coverMediaId = coverMediaId,
+                        isSelf = snapshot.isSelf
+                    )
+                )
+            } else {
+                // 增量聚类：人物行仍在，仅更新统计
+                personDao.updatePersonStats(
+                    personId = snapshot.personId,
+                    faceCount = totalFaces,
+                    coverMediaId = coverMediaId
+                )
+            }
             Log.i(TAG, "Reused named person id=${snapshot.personId} name=${snapshot.name} " +
                 "for new cluster (sim=${String.format("%.3f", bestSim)})")
             snapshot.personId
@@ -1079,6 +1105,8 @@ class TagGenerationScheduler(
     suspend fun executeDbscan(preserveNamedPersons: Boolean = false, isFullRescan: Boolean = false) {
         val dao = db.mediaDao()
         val snapshots = if (preserveNamedPersons) buildNamedPersonSnapshots() else emptyList()
+        // 关系表随人物快照一起导出：clearAllPersons 会 CASCADE 清空 person_relations
+        val relationSnapshots = if (preserveNamedPersons) buildRelationSnapshots() else emptyList()
 
         if (isFullRescan) {
             Log.i(TAG, "DBSCAN full rescan: clearing old persons/assignments/faceIds after snapshot capture")
@@ -1088,13 +1116,91 @@ class TagGenerationScheduler(
         }
 
         runDbscanClustering(dao, snapshots)
+
+        if (relationSnapshots.isNotEmpty()) {
+            restorePersonRelations(relationSnapshots)
+        }
+    }
+
+    /**
+     * 导出全部人物关系为按名字 + isSelf 标记的快照（重聚清表前调用）。
+     * 两端人物查不到（脏数据）的关系直接丢弃并打日志。
+     */
+    private suspend fun buildRelationSnapshots(): List<RelationSnapshotEntry> {
+        val relations = personRepository.exportAllRelations()
+        if (relations.isEmpty()) return emptyList()
+
+        val personsById = personDao.getAllPersons().associateBy { person -> person.personId }
+        val snapshots = mutableListOf<RelationSnapshotEntry>()
+        for (relation in relations) {
+            val subject = personsById[relation.subjectPersonId]
+            val obj = personsById[relation.objectPersonId]
+            if (subject == null || obj == null) {
+                Log.w(TAG, "Relation snapshot dropped: relationId=${relation.relationId} " +
+                    "references missing person (subject=${relation.subjectPersonId}, object=${relation.objectPersonId})")
+                continue
+            }
+            snapshots.add(
+                RelationSnapshotEntry(
+                    subjectName = subject.name,
+                    subjectIsSelf = subject.isSelf,
+                    objectName = obj.name,
+                    objectIsSelf = obj.isSelf,
+                    predicate = relation.predicate,
+                    source = relation.source
+                )
+            )
+        }
+        Log.i(TAG, "Built ${snapshots.size} person relation snapshots for re-clustering preservation")
+        return snapshots
+    }
+
+    /**
+     * 重聚收尾：按名字 / isSelf 标记把关系快照解析回新 personId 并批量写回。
+     * 无法解析的（人物在重聚中消失）打日志丢弃。
+     */
+    private suspend fun restorePersonRelations(snapshots: List<RelationSnapshotEntry>) {
+        // 预取重聚后的 persons，映射保持纯函数（lambda 内不能调 suspend DAO）
+        val persons = personDao.getAllPersons()
+        val selfPersonId = persons.firstOrNull { person -> person.isSelf }?.personId
+        val plan = RelationSnapshotRestorer.buildRestorePlan(snapshots) { name, isSelf ->
+            when {
+                // SELF 以 is_self 标记为准，不依赖名字
+                isSelf -> selfPersonId
+                name.isNullOrBlank() -> null
+                // 精确匹配，不用 LIKE 避免"宝"误中"小宝"
+                else -> persons.firstOrNull { person -> person.name == name }?.personId
+            }
+        }
+
+        if (plan.restored.isNotEmpty()) {
+            personRepository.restoreRelations(
+                plan.restored.map { resolved ->
+                    PersonRelationEntity(
+                        subjectPersonId = resolved.subjectPersonId,
+                        objectPersonId = resolved.objectPersonId,
+                        predicate = resolved.predicate,
+                        source = resolved.source
+                    )
+                }
+            )
+        }
+        for (entry in plan.dropped) {
+            Log.w(TAG, "Person relation dropped after re-clustering: " +
+                "subject=${entry.subjectName}(self=${entry.subjectIsSelf}) " +
+                "predicate=${entry.predicate} object=${entry.objectName}(self=${entry.objectIsSelf})")
+        }
+        Log.i(TAG, "Person relations restored: ${plan.restored.size}, dropped: ${plan.dropped.size}")
     }
 
     /**
      * 构建已命名人物质心快照，供全量重聚类时复用 personId/name。
+     *
+     * "我"本人（is_self = 1）即使未命名也进快照，否则重聚后 is_self 标记与
+     * 指向"我"的人物关系将丢失。
      */
     private suspend fun buildNamedPersonSnapshots(): List<NamedPersonSnapshot> {
-        val persons = personDao.getAllPersons().filter { !it.name.isNullOrBlank() }
+        val persons = personDao.getAllPersons().filter { !it.name.isNullOrBlank() || it.isSelf }
         if (persons.isEmpty()) return emptyList()
 
         val snapshots = mutableListOf<NamedPersonSnapshot>()
@@ -1105,8 +1211,9 @@ class TagGenerationScheduler(
             snapshots.add(
                 NamedPersonSnapshot(
                     personId = person.personId,
-                    name = person.name!!,
-                    centroid = centroid
+                    name = person.name,
+                    centroid = centroid,
+                    isSelf = person.isSelf
                 )
             )
         }

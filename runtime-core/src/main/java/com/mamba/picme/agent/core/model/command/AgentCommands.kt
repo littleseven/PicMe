@@ -450,6 +450,59 @@ sealed class AgentCommand {
         val unit: String? = null
     ) : AgentCommand()
 
+    // ==================== 记忆命令（人物关系 + 事实记忆） ====================
+
+    /**
+     * 声明人物关系："X 是我的 Y"（如"小宝是我女儿"）。
+     *
+     * @property name 已命名人物的名字（须已在相册人物分组命名）
+     * @property relation 关系谓词：RelationPredicate 枚举名（如 CHILD）
+     *                    或中文称谓（如"女儿"，由 Capability 经 KinshipLexicon 归一）
+     */
+    data class RememberPersonRelation(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val name: String,
+        val relation: String
+    ) : AgentCommand()
+
+    /**
+     * 遗忘某人物与"我"之间的全部关系。
+     */
+    data class ForgetPersonRelation(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val name: String
+    ) : AgentCommand()
+
+    /**
+     * 记住一条事实（"帮我记住…"）。
+     *
+     * @property source 声明来源：CHAT_TOOL（聊天工具直调）/ JS_DISPATCH（JS 沙盒写通路）
+     */
+    data class RememberFact(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val content: String,
+        val category: String? = null,
+        val source: String = "CHAT_TOOL"
+    ) : AgentCommand()
+
+    /**
+     * 遗忘一条事实：[factId] 精确删除优先；否则按 [query] 唯一匹配删除
+     * （多条命中不删，返回候选由用户选择）。
+     */
+    data class ForgetFact(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val factId: Long? = null,
+        val query: String? = null
+    ) : AgentCommand()
+
+    /**
+     * 检索事实记忆（LIKE 模糊召回，返回含 factId 的列表供后续 forget）。
+     */
+    data class RecallMemory(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val query: String
+    ) : AgentCommand()
+
     // ==================== 通用命令 ====================
 
     /**
@@ -517,6 +570,11 @@ sealed class AgentCommand {
             is StartTagScan -> "start_tag_scan"
             is ExecuteScript -> "run_gallery_script"
             is DrawChart -> "draw_chart"
+            is RememberPersonRelation -> "remember_person_relation"
+            is ForgetPersonRelation -> "forget_person_relation"
+            is RememberFact -> "remember_fact"
+            is ForgetFact -> "forget_fact"
+            is RecallMemory -> "recall_memory"
             is LaunchApp -> "launch_app"
             is OpenSystemSettings -> "open_system_settings"
             is BatchExecute -> "batch_execute"

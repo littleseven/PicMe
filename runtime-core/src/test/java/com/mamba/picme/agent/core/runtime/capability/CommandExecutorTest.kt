@@ -4,6 +4,7 @@ import com.mamba.picme.agent.core.capability.BaseCapability
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
+import com.mamba.picme.agent.core.model.context.AgentErrorCode
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.PageContext
 import kotlinx.coroutines.delay
@@ -110,6 +111,45 @@ class CommandExecutorTest {
         assertFalse(r.success)
         assertEquals(CommandExecutor.ERROR_CODE_TIMEOUT, r.errorCode)
         assertNotNull(r.errorMessage)
+    }
+
+    @Test
+    fun `error action inside success result records as failure with error message`() = runTest {
+        installRecorder()
+        // Capability 业务失败以 Result.success(AgentAction.Error) 返回（如引导性错误）
+        val capability = fakeCapability { command ->
+            Result.success(
+                AgentAction.Error(
+                    commandId = command.commandId,
+                    errorCode = AgentErrorCode.INVALID_PARAMS,
+                    message = "还没有标记哪个人物是你本人"
+                )
+            )
+        }
+
+        val result = CommandExecutor().execute(AgentCommand.FlipCamera(), context, null, capability)
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, recorded.size)
+        val r = recorded.first()
+        assertFalse("AgentAction.Error 必须记 success=0", r.success)
+        assertEquals(AgentErrorCode.INVALID_PARAMS, r.errorCode)
+        assertEquals("还没有标记哪个人物是你本人", r.errorMessage)
+    }
+
+    @Test
+    fun `text reply action records as success`() = runTest {
+        installRecorder()
+        val capability = fakeCapability { command ->
+            Result.success(AgentAction.TextReply(command.commandId, "已记住"))
+        }
+
+        CommandExecutor().execute(AgentCommand.FlipCamera(), context, null, capability)
+
+        val r = recorded.single()
+        assertTrue(r.success)
+        assertNull(r.errorCode)
+        assertNull(r.errorMessage)
     }
 
     @Test

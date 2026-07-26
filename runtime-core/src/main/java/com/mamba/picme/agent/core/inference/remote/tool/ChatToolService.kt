@@ -190,7 +190,7 @@ class ChatToolService private constructor() {
 
     @Tool(
         name = "run_gallery_script",
-        value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（取数类 handler 只读、数据不出端；删除/收藏等写操作走 capability.dispatch，会弹窗经用户确认）。所有 handler 均为异步，**必须用 await bridge.callAsync(name, args) 调用**（bridge.call 已禁用，调用会报错）。可用 handler： gallery.summary → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； gallery.tags → 实际打标标签分布 {标签:照片数}（按计数降序 top 50）； gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {\"桶起始时间戳\":照片数}（默认按月，bucketMs=2592000000=月/31536000000=年）； gallery.intersect({idsA:[...],idsB:[...],op:\"intersect|union|diff\"}) → 集合交并差，返回 {ids:[...],total:N}（用于多次 query 结果交叉，如旅行+人脸）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）； media.batch_meta([id1,id2,...]) → 批量元数据 [{...},...]（上限 50，避免循环调 media.meta）； gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布（如人像照片内的场景标签）； face.cluster({topN?}) → 人脸聚类盘点 {clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}（topN 默认 10 上限 50，不含 embedding 原始数据）； tag.audit({topN?}) → 打标覆盖审计 {totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}（词表外标签 topN 默认 10 上限 50）。 可并发取数：var r=await Promise.all([bridge.callAsync('gallery.summary',{}),bridge.callAsync('gallery.tags',{})]); var s=r[0],t=r[1]; 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia；环比 = 本月/上月-1），return 结果对象回传给你做总结。 示例：var s=await bridge.callAsync('gallery.summary',{}); var t=await bridge.callAsync('gallery.tags',{}); return {total:s.totalMedia, topTags:t}; 写操作（删除/收藏/选中）：用 await bridge.callAsync('capability.dispatch',{method,params})，写操作会在端侧弹窗等用户确认（拒绝或超时 Promise 会 reject，必须 try/catch）。支持的 method 仅此四种： delete_media {ids:[数字id,...]}（删除，不可恢复）、favorite_media {id:数字id, favorite:true/false}、select_media {id:数字id, selected:true/false}、get_gallery_summary {}（只读直通）；其余 method 会报错。 完整示例（找出截图标签照片并批量删除）：var q=await bridge.callAsync('gallery.query',{label:'截图',limit:200}); if(q.ids.length===0){return {deleted:0};} try{var r=await bridge.callAsync('capability.dispatch',{method:'delete_media',params:{ids:q.ids}}); return {deleted:q.total, result:r};}catch(e){return {deleted:0, cancelled:true, reason:String(e)};}"]
+        value = ["在端侧沙箱执行 JavaScript 做相册盘点/统计分析（取数类 handler 只读、数据不出端；删除/收藏等写操作走 capability.dispatch，会弹窗经用户确认）。所有 handler 均为异步，**必须用 await bridge.callAsync(name, args) 调用**（bridge.call 已禁用，调用会报错）。可用 handler： gallery.summary → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； gallery.tags → 实际打标标签分布 {标签:照片数}（按计数降序 top 50）； gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {\"桶起始时间戳\":照片数}（默认按月，bucketMs=2592000000=月/31536000000=年）； gallery.intersect({idsA:[...],idsB:[...],op:\"intersect|union|diff\"}) → 集合交并差，返回 {ids:[...],total:N}（用于多次 query 结果交叉，如旅行+人脸）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）； media.batch_meta([id1,id2,...]) → 批量元数据 [{...},...]（上限 50，避免循环调 media.meta）； gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布（如人像照片内的场景标签）； face.cluster({topN?}) → 人脸聚类盘点 {clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}（topN 默认 10 上限 50，不含 embedding 原始数据）； tag.audit({topN?}) → 打标覆盖审计 {totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}（词表外标签 topN 默认 10 上限 50）。 可并发取数：var r=await Promise.all([bridge.callAsync('gallery.summary',{}),bridge.callAsync('gallery.tags',{})]); var s=r[0],t=r[1]; 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia；环比 = 本月/上月-1），return 结果对象回传给你做总结。 示例：var s=await bridge.callAsync('gallery.summary',{}); var t=await bridge.callAsync('gallery.tags',{}); return {total:s.totalMedia, topTags:t}; 写操作（删除/收藏/选中）：用 await bridge.callAsync('capability.dispatch',{method,params})，写操作会在端侧弹窗等用户确认（拒绝或超时 Promise 会 reject，必须 try/catch）。支持的 method： delete_media {ids:[数字id,...]}（删除，不可恢复）、favorite_media {id:数字id, favorite:true/false}、select_media {id:数字id, selected:true/false}、remember_fact {content:文本, category?:文本}、forget_fact {fact_id?:数字id, query?:文本}、get_gallery_summary {}、recall_memory {query:文本}（后两者只读直通）；其余 method 会报错。 完整示例（找出截图标签照片并批量删除）：var q=await bridge.callAsync('gallery.query',{label:'截图',limit:200}); if(q.ids.length===0){return {deleted:0};} try{var r=await bridge.callAsync('capability.dispatch',{method:'delete_media',params:{ids:q.ids}}); return {deleted:q.total, result:r};}catch(e){return {deleted:0, cancelled:true, reason:String(e)};}"]
     )
     fun runGalleryScript(
         @P(name = "code", value = "JS 源码；用 await bridge.callAsync 取数据（gallery.summary/tags/timeline/query/stats_by_tag/intersect, media.meta/batch_meta, face.cluster, tag.audit）；写操作（删除/收藏/选中）用 await bridge.callAsync('capability.dispatch',{method,params})（会弹窗等用户确认，需 try/catch 处理拒绝），return 结果对象") code: String
@@ -219,6 +219,62 @@ class ChatToolService private constructor() {
             )
         )
     }
+
+    // ── 记忆（人物关系 + 事实） ─────────────────────────────────────
+
+    @Tool(
+        name = "remember_person_relation",
+        value = ["记住人物与「我」的关系，如用户说「小宝是我女儿」「记住我老婆是阿珍」。name 为已命名人物名（须已在相册人物分组命名，未命名会返回引导提示），relation 为关系谓词（spouse/child/parent/sibling/grandparent/grandchild/other_family/friend/colleague/other）或中文称谓（女儿/老公/爸爸等）。重复声明自动覆盖旧关系。"]
+    )
+    fun rememberPersonRelation(
+        @P(name = "name", value = "已命名人物名") name: String,
+        @P(name = "relation", value = "关系谓词或中文称谓") relation: String
+    ): String = dispatchCommand(AgentCommand.RememberPersonRelation(name = name, relation = relation))
+
+    @Tool(
+        name = "forget_person_relation",
+        value = ["忘记与某人物的全部关系，如用户说「忘掉小宝的关系」。name 为人物名。"]
+    )
+    fun forgetPersonRelation(
+        @P(name = "name", value = "人物名") name: String
+    ): String = dispatchCommand(AgentCommand.ForgetPersonRelation(name = name))
+
+    @Tool(
+        name = "remember_fact",
+        value = ["记住一条事实，如用户说「帮我记住小宝对花粉过敏」「记住我喜欢低饱和度滤镜」。content 为原子化事实内容（一条一个事实），category 为可选分类（如 健康/偏好），无则空串。"]
+    )
+    fun rememberFact(
+        @P(name = "content", value = "事实内容") content: String,
+        @P(name = "category", value = "可选分类，无则空串") category: String
+    ): String = dispatchCommand(
+        AgentCommand.RememberFact(
+            content = content,
+            category = category.ifBlank { null },
+            source = "CHAT_TOOL"
+        )
+    )
+
+    @Tool(
+        name = "forget_fact",
+        value = ["忘记一条事实，如用户说「忘掉花粉过敏那条」。fact_id 优先（先用 recall_memory 拿到），无则空串；query 为内容模糊匹配（恰好一条才删，多条返回候选）。"]
+    )
+    fun forgetFact(
+        @P(name = "fact_id", value = "事实 id，无则空串") factId: String,
+        @P(name = "query", value = "内容模糊匹配，无则空串") query: String
+    ): String = dispatchCommand(
+        AgentCommand.ForgetFact(
+            factId = factId.toLongOrNull(),
+            query = query.ifBlank { null }
+        )
+    )
+
+    @Tool(
+        name = "recall_memory",
+        value = ["检索已记住的事实记忆，如用户问「我对什么过敏」「我喜欢什么」。query 为模糊匹配关键词，空串返回全部。返回列表含 factId，供 forget_fact 精确删除。"]
+    )
+    fun recallMemory(
+        @P(name = "query", value = "模糊匹配关键词，空串返回全部") query: String
+    ): String = dispatchCommand(AgentCommand.RecallMemory(query = query))
 
     // ── 设置 ──────────────────────────────────────────────────────
 
@@ -314,6 +370,20 @@ class ChatToolService private constructor() {
             "more_like_this" -> moreLikeThis(args.optString("target", "last"))
             "exclude_constraint" -> excludeConstraint(args.optString("constraint", ""))
             "start_tag_scan" -> startTagScan()
+            "remember_person_relation" -> rememberPersonRelation(
+                args.optString("name", ""),
+                args.optString("relation", "")
+            )
+            "forget_person_relation" -> forgetPersonRelation(args.optString("name", ""))
+            "remember_fact" -> rememberFact(
+                args.optString("content", ""),
+                args.optString("category", "")
+            )
+            "forget_fact" -> forgetFact(
+                args.optString("fact_id", ""),
+                args.optString("query", "")
+            )
+            "recall_memory" -> recallMemory(args.optString("query", ""))
             "ai_optimize" -> aiOptimize(args.optString("image_uri", ""), args.optString("mode", "fast"))
             "adjust_image" -> adjustImage(
                 args.optString("image_uri", ""),

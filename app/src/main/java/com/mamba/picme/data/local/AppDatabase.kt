@@ -8,8 +8,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.MediaFeedbackDao
+import com.mamba.picme.data.local.dao.MemoryFactDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
+import com.mamba.picme.data.local.dao.PersonRelationDao
 import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.dao.TagScanTaskDao
@@ -18,9 +20,11 @@ import com.mamba.picme.data.local.entity.LocationHierarchyEntity
 import com.mamba.picme.data.local.entity.MediaFeedbackEntity
 import com.mamba.picme.data.local.entity.MediaLocationEntity
 import com.mamba.picme.data.local.entity.MediaTagCrossRef
+import com.mamba.picme.data.local.entity.MemoryFactEntity
 import com.mamba.picme.data.local.entity.OcrWordEntity
 import com.mamba.picme.data.local.entity.OcrWordOccurrence
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.data.local.entity.PersonRelationEntity
 import com.mamba.picme.data.local.entity.PhotoEditRecipeEntity
 import com.mamba.picme.data.local.entity.TagEntity
 import com.mamba.picme.data.local.entity.TagScanTaskEntity
@@ -41,9 +45,11 @@ import com.mamba.picme.data.model.MediaEntity
         LocationHierarchyEntity::class,
         MediaLocationEntity::class,
         TagScanTaskEntity::class,
-        MediaFeedbackEntity::class
+        MediaFeedbackEntity::class,
+        PersonRelationEntity::class,
+        MemoryFactEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -58,6 +64,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun locationDao(): LocationDao
     abstract fun photoEditRecipeDao(): PhotoEditRecipeDao
     abstract fun mediaFeedbackDao(): MediaFeedbackDao
+    abstract fun personRelationDao(): PersonRelationDao
+    abstract fun memoryFactDao(): MemoryFactDao
 
     companion object {
         @Volatile
@@ -74,7 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-                        MIGRATION_11_12
+                        MIGRATION_11_12, MIGRATION_12_13
                     )
                     .build()
                 INSTANCE = instance
@@ -253,6 +261,61 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `labelsEn` TEXT")
                 database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `labelsZh` TEXT")
+            }
+        }
+
+        /**
+         * Migration 12 → 13：人物关系图谱 + 通用事实记忆库
+         *
+         * 1. 新增 person_relations 表（人物关系边，FK→persons CASCADE，
+         *    (subject, predicate, object) 唯一索引支持幂等覆盖）
+         * 2. 新增 memory_facts 表（用户显式声明的事实记忆）
+         * 3. persons 表新增 is_self 列（标记"我"本人）
+         */
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `person_relations` (
+                        `relationId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `subjectPersonId` INTEGER NOT NULL,
+                        `objectPersonId` INTEGER NOT NULL,
+                        `predicate` TEXT NOT NULL,
+                        `source` TEXT NOT NULL,
+                        `confidence` REAL NOT NULL DEFAULT 1.0,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`subjectPersonId`) REFERENCES `persons`(`personId`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`objectPersonId`) REFERENCES `persons`(`personId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_person_relations_subjectPersonId_predicate_objectPersonId` ON `person_relations` (`subjectPersonId`, `predicate`, `objectPersonId`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_person_relations_subjectPersonId` ON `person_relations` (`subjectPersonId`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_person_relations_objectPersonId` ON `person_relations` (`objectPersonId`)"
+                )
+
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `memory_facts` (
+                        `factId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `content` TEXT NOT NULL,
+                        `category` TEXT,
+                        `source` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+
+                database.execSQL(
+                    "ALTER TABLE `persons` ADD COLUMN `is_self` INTEGER NOT NULL DEFAULT 0"
+                )
             }
         }
 

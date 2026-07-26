@@ -49,11 +49,14 @@ class CommandExecutor(
             val result = withTimeout(timeoutMs) {
                 capability.execute(command, context, pageContext)
             }
+            // Capability 业务失败以 Result.success(AgentAction.Error) 返回（如引导性错误），
+            // 必须按 action 语义记 success=0，否则 tool_call_log 会把失败记成成功。
+            val errorAction = result.getOrNull() as? AgentAction.Error
             notifyRecorder(
                 capability.name, commandType, startMs,
-                success = result.isSuccess,
-                errorCode = null,
-                errorMessage = result.exceptionOrNull()?.message
+                success = result.isSuccess && errorAction == null,
+                errorCode = errorAction?.errorCode,
+                errorMessage = errorAction?.message ?: result.exceptionOrNull()?.message
             )
             result
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {

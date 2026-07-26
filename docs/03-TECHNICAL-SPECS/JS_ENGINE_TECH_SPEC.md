@@ -133,7 +133,7 @@ QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 
 | Handler | 参数 | 说明 |
 |---------|------|------|
-| `capability.dispatch` | `{method, params}` | JS → CapabilityRegistry 写通路，详见 §6。method 白名单：`delete_media {ids:[...]}` / `favorite_media {id,favorite}` / `select_media {id,selected}` / `get_gallery_summary {}`（只读直通示例）；其余 method 抛错 |
+| `capability.dispatch` | `{method, params}` | JS → CapabilityRegistry 写通路，详见 §6。method 白名单：`delete_media {ids:[...]}` / `favorite_media {id,favorite}` / `select_media {id,selected}` / `remember_fact {content,category?}` / `forget_fact {fact_id?,query?}` / `get_gallery_summary {}` / `recall_memory {query}`（后两者只读直通）；其余 method 抛错 |
 
 ### 4.3 内置演示 handler（4 个）
 
@@ -197,8 +197,8 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 | 级别 | method | 处理 |
 |------|--------|------|
-| `READ_ONLY` | 未列出的所有 method（如 get_gallery_summary） | 直接 dispatch，无需确认 |
-| `REVERSIBLE_WRITE` | `favorite_media`、`select_media` | 需用户确认 |
+| `READ_ONLY` | 未列出的所有 method（如 get_gallery_summary、recall_memory） | 直接 dispatch，无需确认 |
+| `REVERSIBLE_WRITE` | `favorite_media`、`select_media`、`remember_person_relation`、`forget_person_relation`、`remember_fact`、`forget_fact` | 需用户确认 |
 | `DESTRUCTIVE` | `delete_media`、`share_media` | 需用户确认，UI 用警示色 |
 
 **维护约定**（见 CommandRisk.kt 注释）：新增破坏型 method 必须同步登记两处——① `CommandRisk.ofMethod` 分级表；② `CapabilityDispatchHandler` 的 method 白名单（`buildCommand` when 分支与 `SUPPORTED_METHODS`）。漏登分级表会被默认 READ_ONLY 直通，漏登白名单则 JS 调不通。
@@ -214,6 +214,8 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 - `delete_media`：`ChatMediaWriteCapability`（CHAT 场景）→ 复用 `MediaRepository` 的**系统 MediaStore 授权流**（可能弹系统授权框），不可恢复；
 - `favorite_media` / `select_media`：当前为 **chat 会话级 StateFlow 状态，无持久化**（App 尚无持久化收藏路径，与 GalleryCapability 的 favorite 先例一致）；
+- `remember_fact` / `forget_fact`：`MemoryCapability`（CHAT 场景）→ `MemoryRepository` 落 `memory_facts` 表（source=JS_DISPATCH，设置页「AI 记忆」可见来源标签）；
+- `recall_memory`：`MemoryCapability` READ_ONLY 直通，返回含 factId 的事实列表文本；
 - `share_media` 不在本 Capability（ChatToolService 已有通路，避免重复注册冲突）；
 - ChatViewModel 未激活（chat 页不在前台）时 Capability 报 `CAPABILITY_UNAVAILABLE`，Promise reject。
 
