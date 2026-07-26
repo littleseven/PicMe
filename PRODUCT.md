@@ -1,11 +1,11 @@
 # PoLang 产品定义与路线图
 
 > **试验性应用** | 以 AI Agent 对话为核心，以相册+图像编辑为技术试验场  
-> **版本**：3.0（破浪相册）  
+> **版本**：3.0（破浪相册）· 应用版本 v1.0.26 (10026)  
 > **状态**：生效中  
-**最后更新**：2026-06-19
+**最后更新**：2026-07-26
 **维护者**：PM Agent（产品定义）+ RD Agent（技术实现）
-**实验状态**：进行中 · Phase 4 架构升级（本地/远程推理协议分离 + langchain4j 标准化 + DeepSeek 适配 · 产品重心迁移至相册+图片编辑）
+**实验状态**：进行中 · 相册核心能力已大规模落地（自然语言搜索、对话式图片编辑、智能抠图、证件照、Florence-2 标签扫描、JS 沙盒脚本、相册摘要）· 人物记忆与关系图谱开发中（🔄 未合并 main）
 
 > **2026-06-17 IM 远程控制产品线新增**：新增 IM 远程控制产品线，通过飞书等 IM + LLM 实现 App 远程控制。智能相册功能全量规划完成（智能分类、相册管理、AI 编辑进阶、视频管理等）。
 
@@ -85,17 +85,30 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 - 静态图美颜编辑：复用相机美颜管线，GPU 离屏渲染（PhotoProcessorImpl）
 - AI 一键优化：智能识别场景，一键推荐参数
 - 精准局部美颜：左眼/右眼/左脸/右脸独立调节
-- **对话式编辑**：通过聊天指令调节编辑参数（"磨皮再强一点"）
+- **对话式编辑** ✅：通过聊天指令调节编辑参数（"磨皮再强一点"），经远程 ReAct（edit_image）执行，结果回渲染至对话（`ChatEditProcessor` / `ImageEditCapability`）
+- **智能抠图 / 背景去除** ✅：三后端路由（U2Netp 通用抠图 / ModNet 人像 / MediaPipe 自拍分割，`MattingRouter`），支持纯背景、换背景
+- **证件照制作** ✅：基于 `IDPhotoComposer` + `IDPhotoSpecs`，一寸/二寸/签证等多规格 + 背景色，入口 `features/idphoto`
 - **批量处理**：多图批量应用同一套美颜/滤镜参数
-- **智能搜索**：按日期/地点/内容自然语言搜索相册
+- **智能搜索** ✅：按日期/地点/内容/人物自然语言搜索相册（`ExplicitFirstSearchPipeline` + `QueryParser`，详见 ADR-007 / `GALLERY_SEARCH.md`）
 
 **AI 对话层（二级页，相册内的助手能力）**
 - 用户通过自然语言与 AI 进行多轮对话，作为相册/编辑操作的自然语言加速器
 - 支持本地模型（Qwen3.5-2B）/ 远程模型（DeepSeek 等）实时切换，系统根据任务复杂度与网络状态智能选择，用户也可在设置中设定偏好
-- 对话历史持久化，支持跨会话查看历史记录
-- 支持发送图片进行 AI 分析/编辑建议
+- 对话历史持久化（Room `ChatMessageDao`），支持跨会话查看历史记录 ✅
+- **发送图片进行 AI 分析 / 对话式编辑** ✅：图片选择器 → edit_image 远程 ReAct → 编辑结果回渲染（`AGENT_EDIT_RESULT` / `MediaResultsCarousel`）
+- **相册摘要工具** ✅：自然语言生成相册概况（`GetGallerySummaryUseCase` / `ChatGallerySummaryCapability`）
+- **标签扫描** ✅：Florence-2 端侧打标 5-Pass 链路，可由对话触发（`ChatStartTagScanCapability`，详见 `TAG_GENERATION.md`）
+- **JS 沙盒脚本** ✅：QuickJS 沙箱 + JSBridge，对话内运行相册分析/健康报告脚本（`run_script`，详见 `JS_ENGINE_TECH_SPEC.md`）
 - 对话式反馈：操作确认、错误澄清、建议推荐、结果展示
 - 从相册首页底部 Tab 或 plus 菜单进入，顶部栏提供返回相册按钮
+
+**人物记忆与关系层（🔄 开发中，未合并 main）**
+- **事实记忆**：用户通过「帮我记住…」显式声明的事实，统一收口于 `MemoryRepository`（`memory_facts` 表）；来源含聊天工具（CHAT_TOOL）与 JS 沙盒写通路（JS_DISPATCH）
+- **人物命名 / "我"标记**：为人脸聚类命名，全局唯一"我"标记（`PersonRepository`）
+- **人物关系图谱**：声明「subject 是我的 predicate」（配偶/子女/父母/兄弟姐妹/祖辈/孙辈/其他亲属），幂等覆盖、级联删除（`person_relations` 表，AppDatabase v13）
+- **亲属称谓词表**：中文称谓 ↔ 关系谓词映射（`KinshipLexicon`），查询侧与声明侧共用
+- **自然语言人物检索**：支撑「我女儿的照片」「老婆的合照」式查询，由称谓词表 → 关系图谱 → 人脸簇解析
+- 数据层不依赖领域枚举，DAO 存枚举名、Repository 完成映射；关系快照支持备份导出/恢复
 
 **相机能力层（辅助入口）**
 - 实时美颜（磨皮、美白、瘦脸、大眼、唇色、腮红）
@@ -213,9 +226,19 @@ AgentOrchestrator (runtime-core/)
 | 对话记忆 | ✅ | 多轮上下文维护 |
 | 统一聊天界面 | ✅ | Camera/Gallery/Settings 共享 Chat UI，支持折叠/展开 |
 | 帧同步美妆 | ✅ | 解决快速移动时的妆容甩飞问题 |
-| **相册首页** | 🔄 开发中 | 默认首页改为 GalleryScreen，聊天作为二级页 |
-| **对话持久化** | 🔄 开发中 | Room 数据库存储多轮对话历史 |
-| **模型切换** | 🔄 开发中 | 系统智能选择本地(Qwen3.5-2B)/远程(DeepSeek)，支持用户偏好设置 |
+| **相册首页** | ✅ | GalleryScreen 作为应用默认首页，聊天为二级页 |
+| **对话持久化** | ✅ | Room（`ChatMessageDao`）存储多轮对话历史，重启自动恢复 |
+| **模型切换** | ✅ | 系统智能选择本地(Qwen3.5-2B)/远程(DeepSeek)，支持用户偏好设置 |
+| **自然语言相册搜索** | ✅ | `ExplicitFirstSearchPipeline` + `QueryParser`，时间/地点/内容/人物（ADR-007） |
+| **对话式图片编辑** | ✅ | `edit_image` 远程 ReAct，`ChatEditProcessor` / `ImageEditCapability` |
+| **图片消息** | ✅ | 聊天发送图片 → AI 分析 / 对话式编辑 |
+| **智能抠图 / 背景去除** | ✅ | U2Netp / ModNet / MediaPipe 三后端 + `MattingRouter` |
+| **证件照制作** | ✅ | `IDPhotoComposer` + `IDPhotoSpecs` 多规格，`features/idphoto` |
+| **标签自动生成** | ✅ | Florence-2 端侧打标 5-Pass（`domain/tag/florence2`，详见 `TAG_GENERATION.md`） |
+| **JS 沙盒脚本** | ✅ | QuickJS + JSBridge，对话内运行相册分析脚本（`run_script`） |
+| **相册摘要** | ✅ | `GetGallerySummaryUseCase` / `ChatGallerySummaryCapability` |
+| **备份 / 恢复** | ✅ | `features/backuprestore` + `domain/backup`（含标签/人物关系快照） |
+| **事实记忆 + 人物关系图谱** | 🔄 开发中 | `MemoryRepository` + `PersonRepository`（`memory_facts` / `person_relations`，AppDatabase v13，未合并 main） |
 | 复杂意图理解 | ⚠️ | 多参数同时调节依赖远程 LLM 或规则模板；端侧仅胜任单参数明确指令 |
 | 上下文推理 | ⚠️ | 基于对话历史的隐式引用（"再亮一点"）准确率有限，需规则兜底 |
 | 语音控制 | ✅ | Push-to-Talk 默认开启，WakeWord 作为设置项可选 |
@@ -229,9 +252,7 @@ AgentOrchestrator (runtime-core/)
 |------|--------|----------|
 | 主动建议 | P2 | Agent 根据场景主动推荐（"光线较暗，是否开启夜景？"）|
 | 视频美颜录制 | P1 | 实时美颜 + 帧同步在视频场景的稳定性 |
-| **对话持久化** | P0 | Room 数据库实现多轮对话存储与恢复 |
-| **模型切换 UI** | P0 | 输入框下拉组件，本地/远程实时切换 |
-| **图片消息** | P1 | 聊天中发送图片给 AI 分析/编辑建议 |
+| 事实记忆 + 人物关系图谱 | P1 | 当前 🔄 开发中：记忆召回准确率、称谓→人脸簇解析、关系快照备份/重聚恢复 |
 
 ### 5.3 长期问题
 
@@ -270,18 +291,22 @@ PoLang 以技术探索与能力验证为核心目标，**聚焦 Gallery/Editor +
 | 功能 | 状态 | 优先级 | 说明 |
 |------|------|--------|------|
 | **聊天首页** | ❌ 已取消 | 不再作为应用首页，ChatScreen 降级为二级页 |
-| **相册首页内的 AI 助手入口** | 🔄 开发中 | P0 | 相册首页提供 AI 助手图标，一键唤起对话 |
+| **相册首页内的 AI 助手入口** | ✅ 已落地 | P0 | 相册首页提供 AI 助手图标，一键唤起对话 |
 | **本地模型对话** | ✅ 已落地 | P1 | Qwen3.5-2B 端侧推理，基础对话+指令解析 |
 | **远程模型对话** | ✅ 已落地 | P0 | DeepSeek 等远程 LLM，复杂推理，默认优先使用 |
-| **模型切换（下拉）** | 🔄 开发中 | P1 | 输入框显示当前模式，支持用户手动覆盖或设置偏好 |
-| **对话持久化** | 🔄 开发中 | P0 | Room 数据库存储多轮对话历史 |
-| **图片消息** | 📋 规划中 | P1 | 聊天中发送图片给 AI 分析/编辑建议 |
+| **模型切换（下拉）** | ✅ 已落地 | P1 | 输入框显示当前模式，支持用户手动覆盖或设置偏好 |
+| **对话持久化** | ✅ 已落地 | P0 | Room（`ChatMessageDao`）存储多轮对话历史 |
+| **图片消息** | ✅ 已落地 | P1 | 聊天中发送图片给 AI 分析 / 对话式编辑 |
+| **对话式图片编辑** | ✅ 已落地 | P1 | `edit_image` 远程 ReAct，结果回渲染（`ChatEditProcessor`） |
+| **相册摘要** | ✅ 已落地 | P1 | `GetGallerySummaryUseCase` / `ChatGallerySummaryCapability` |
+| **标签扫描（对话触发）** | ✅ 已落地 | P1 | Florence-2 5-Pass，`ChatStartTagScanCapability` |
+| **JS 沙盒脚本** | ✅ 已落地 | P2 | QuickJS + JSBridge，`run_script` 运行相册分析脚本 |
 | **语音输入** | ✅ 已落地 | P1 | Push-to-Talk 默认开启，WakeWord 作为设置项可选 |
 | **快捷入口栏** | ❌ 已取消 | 聊天页不再提供底部快捷入口栏，统一从相册首页进入 |
 
 **演进路线**：
-- **Phase 1（近期）**：相册首页 AI 助手入口；对话持久化；模型状态可视化
-- **Phase 2（中期）**：图片消息支持；相册/编辑能力通过对话触发；主动建议
+- **Phase 1（近期）✅ 基本完成**：相册首页 AI 助手入口；对话持久化；模型状态可视化；图片消息；标签扫描；相册摘要
+- **Phase 2（中期）🔄 部分提前**：对话式编辑 ✅ 已提前；JS 沙盒脚本 ✅ 已提前；相册/编辑能力通过对话触发；主动建议
 - **Phase 3（长期）**：多会话管理；对话搜索；导出聊天记录；个性化对话风格
 
 ### 6.3 拍照线（Camera）— 降级为辅助线
@@ -330,21 +355,22 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 |------|------|--------|------|
 | 相册浏览 | ✅ 已落地 | P0 | 时间轴 + 缩略图，120fps 滑动，应用默认首页 |
 | 静态图美颜编辑 | ✅ 已落地 | P0 | 复用相机美颜管线，GPU 离屏渲染 |
-| **AI 一键优化** | 🔄 开发中 | P0 | 智能识别场景，一键推荐参数（AI 相册优先能力）|
+| **AI 一键优化** | 🔄 部分落地 | P0 | fastOptimize（场景分类→固定 recipe）✅；smartOptimize（VLM 看图推荐）待实现（设计稿 `SMART_OPTIMIZE_VLM_DESIGN.md`）|
 | **精准局部美颜** | 🔄 开发中 | P0 | 左眼/右眼/左脸/右脸 独立调节 |
 | **智能消除** | 🔄 开发中 | P1 | 圈选物体自动消除，AI 填充 |
-| 智能分组 | ✅ 已落地 | P1 | 人脸聚类 + 场景标签 |
-| **智能搜索** | 📋 规划中 | P1 | 自然语言搜索相册（"找出去年夏天的照片"）|
+| **智能抠图 / 背景去除** | ✅ 已落地 | P1 | U2Netp / ModNet / MediaPipe 三后端 + `MattingRouter`，纯背景/换背景 |
+| 智能分组 | ✅ 已落地 | P1 | 人脸聚类 + Florence-2 场景标签 |
+| **智能搜索** | ✅ 已落地 | P1 | 自然语言搜索相册（"找出去年夏天的照片"，`ExplicitFirstSearchPipeline`）|
 | 专业调色面板 | 📋 规划中 | P1 | 曲线、HSL、分区调色 |
 | 批量编辑 | 📋 规划中 | P1 | 多图批量应用同一套参数 |
-| **对话式编辑** | 📋 规划中 | P1 | 通过聊天指令调节编辑参数（"磨皮再强一点"）|
-| 证件照制作 | 📋 规划中 | P2 | 自动抠图换背景、合规检测 |
+| **对话式编辑** | ✅ 已落地 | P1 | 通过聊天指令调节编辑参数（"磨皮再强一点"，`edit_image` 远程 ReAct）|
+| 证件照制作 | ✅ 已落地 | P2 | `IDPhotoComposer` 自动抠图换背景 + 多规格（`features/idphoto`）|
 | 拼图/排版 | 📋 规划中 | P2 | 多图拼接、创意排版 |
 
 **演进路线**：
-- **Phase 1（近期）**：相册首页作为默认入口；AI 一键优化落地；精准局部美颜；智能消除 Beta；自然语言搜索基础能力
-- **Phase 2（中期）**：专业调色面板；批量编辑；对话式编辑完整体验
-- **Phase 3（长期）**：证件照制作；拼图/排版；创作者工具集
+- **Phase 1（近期）✅ 基本完成**：相册首页作为默认入口；自然语言搜索基础能力；对话式编辑；智能抠图/背景去除；标签自动生成（Florence-2）
+- **Phase 2（中期）🔄 部分提前**：AI 一键优化（VLM smart 路径）；精准局部美颜；智能消除；专业调色面板；批量编辑
+- **Phase 3（长期）**：证件照制作 ✅ 已提前落地；拼图/排版；创作者工具集
 
 ### 6.6 IM 远程控制线（IM Remote Control）— ❄️ 冻结（Phase 3+ 按需解冻）
 
@@ -373,9 +399,9 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 
 | 阶段 | 时间 | 目标 | 关键交付 |
 |------|------|------|----------|
-| **Phase 1** | 近期（2-4 周） | 相册首页 + 编辑核心体验 + 对话基础设施 | 相册首页默认化；AI 助手入口；AI 一键优化 + 精准局部美颜；对话持久化；模型状态可视化；相机入口迁移至相册底部 Tab |
-| **Phase 2** | 中期（4-8 周） | 智能体验升级 + 对话式编辑 | 图片消息支持；对话式编辑；智能消除；专业调色；自然语言搜索；批量编辑 |
-| **Phase 3** | 长期（8-16 周） | 冻结线按需解冻 | Camera 维持；Video / IM 远程控制根据实际需求评估是否投入 |
+| **Phase 1** ✅ 基本完成 | 近期（2-4 周） | 相册首页 + 编辑核心体验 + 对话基础设施 | 相册首页默认化 ✅；AI 助手入口 ✅；对话持久化 ✅；模型状态可视化 ✅；自然语言搜索 ✅；智能抠图/背景去除 ✅；标签自动生成 ✅；相机入口迁移至相册底部 Tab ✅ |
+| **Phase 2** 🔄 进行中 | 中期（4-8 周） | 智能体验升级 + 对话式编辑 | 对话式编辑 ✅ 提前；图片消息 ✅ 提前；智能消除（待）；专业调色（待）；批量编辑（待）；AI 一键优化 VLM 路径（待） |
+| **Phase 3** | 长期（8-16 周） | 冻结线按需解冻 | 证件照制作 ✅ 已提前；Camera 维持；Video / IM 远程控制根据实际需求评估是否投入 |
 
 **资源分配建议**：
 - Phase 1：编辑 55% / 对话 35% / 其他 10%（核心资源投向相册首页与编辑体验）
@@ -443,12 +469,16 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/01-PRODUCT/FEATURES.md` | 功能交互细节（传统 PRD 内容） |
 | `docs/01-PRODUCT/NFR_SPEC.md` | 非功能性需求规格（性能/稳定性量化指标） |
 | `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | Agent 架构详细设计 |
+| `docs/02-ARCHITECTURE/ADR/ADR-007-natural-language-photo-search.md` | 自然语言相册搜索架构决策 |
 | `docs/03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md` | Chat UI 统一化技术规格 |
-| `docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md` | 帧同步美妆技术规格 |
-| `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 大美丽引擎技术规范 |
+| `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 大美丽引擎技术规范（含帧同步美妆、容灾降级） |
 | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md` | AI 一键图片优化方案与参数标准 |
-| `domain/agent/AGENTS.md` | Agent Runtime 实现规范 |
-| `app/src/main/java/com/mamba/picme/features/chat/AGENTS.md` | Chat 二级页模块实现规范 |
+| `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` | 相册自动 TAG 生成（Florence-2 5-Pass） |
+| `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` | 相册自然语言搜索完整链路 |
+| `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md` | JS 沙盒引擎（QuickJS + JSBridge） |
+| `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 人脸检测引擎架构 |
+| `runtime-core/AGENTS.md` | Agent Runtime 实现规范（本地/远程推理、Capability、JS 沙盒） |
+| `app/src/main/java/com/mamba/picme/features/common/chat/AGENTS.md` | Chat 二级页模块实现规范 |
 | `AGENTS.md` | AI 协作开发角色定义 |
 
 ---
