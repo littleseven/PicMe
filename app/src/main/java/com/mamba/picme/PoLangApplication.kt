@@ -18,7 +18,8 @@ import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.llmlog.RoomLlmCallRecorder
 import com.mamba.picme.data.local.llmlog.RoomToolCallRecorder
-import com.mamba.picme.data.download.DownloadStatus
+import com.mamba.picme.data.download.ModelPathConfig
+import com.mamba.picme.data.download.RecommendedModelAutoDownloader
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.di.AppContainer
@@ -77,6 +78,15 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         get() = container.repository
 
     val feishuChannelHandler: FeishuChannelHandler by lazy { FeishuChannelHandler(applicationScope) }
+
+    /** 推荐模型 WiFi 静默预下载器（依赖 container，故 lazy）。 */
+    private val recommendedAutoDownloader: RecommendedModelAutoDownloader by lazy {
+        RecommendedModelAutoDownloader(
+            context = this,
+            settings = container.userPreferencesRepository,
+            downloader = container.llmModelDownloadManager
+        )
+    }
 
     val remoteCommandDispatcher: RemoteCommandDispatcher by lazy {
         val database = AppDatabase.getDatabase(this)
@@ -225,34 +235,49 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 监听媒体库变化：飞书远程拍照完成后自动发送照片到飞书
         observeFeishuPhotoCapture()
 
-        // 预下载必须模型资源（已从 APK assets 迁移到 ModelScope 以减小包体积）
-        prefetchEssentialModels()
+        // 推荐模型 WiFi 静默预下载：注册网络监听 + 启动时初始检查
+        registerRecommendedAutoDownloadMonitor()
+        applicationScope.launch { recommendedAutoDownloader.triggerIfEligible() }
+
+        // 一次性清理已下线的 smolvlm_500m 模型目录（幂等：不存在则空操作）
+        purgeSmolVlmIfFirstRun()
     }
 
     /**
-     * 后台静默预下载已从 APK 移除、迁移到 ModelScope 的必需模型。
-     * 失败时保留 assets fallback，不影响功能。
+     * 注册 WiFi 网络监听：WiFi 可用时静默预下载推荐模型。
+     * 受 autoDownloadRecommendedOnWifi 开关与 downloader 内部 AtomicBoolean 防重入控制。
      */
-    private fun prefetchEssentialModels() {
-        applicationScope.launch {
-            try {
-                val modelId = "mediapipe-face-landmarker"
-                val modelFile = File(filesDir, "llm_models/$modelId/face_landmarker.task")
-                if (modelFile.exists() && modelFile.length() > 0) {
-                    Logger.i(TAG, "Essential model already exists: $modelId")
-                    return@launch
-                }
-                Logger.i(TAG, "Prefetching essential model from ModelScope: $modelId")
-                container.llmModelDownloadManager.downloadModel(modelId)
-                    .catch { e -> Logger.w(TAG, "Failed to prefetch essential model: $modelId", e) }
-                    .collect { progress ->
-                        if (progress.status == DownloadStatus.COMPLETED) {
-                            Logger.i(TAG, "Essential model downloaded: $modelId")
-                        }
+    private fun registerRecommendedAutoDownloadMonitor() {
+        try {
+            val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+            val request = NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager.registerNetworkCallback(
+                request,
+                object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
+                        applicationScope.launch { recommendedAutoDownloader.triggerIfEligible() }
                     }
-            } catch (e: Exception) {
-                Logger.w(TAG, "Prefetch essential models failed", e)
-            }
+                }
+            )
+            Logger.i(TAG, "推荐模型 WiFi 预下载监听已注册")
+        } catch (e: Exception) {
+            Logger.e(TAG, "注册推荐模型预下载监听失败", e)
+        }
+    }
+
+    /** 一次性清理已下线的 smolvlm_500m 模型目录（幂等：不存在则空操作）。 */
+    private fun purgeSmolVlmIfFirstRun() {
+        applicationScope.launch {
+            runCatching {
+                val dir = ModelPathConfig.getModelDir(this@PoLangApplication, "smolvlm_500m")
+                if (dir.exists()) {
+                    dir.deleteRecursively()
+                    Logger.i(TAG, "已清理下线模型 smolvlm_500m（${dir.absolutePath}）")
+                }
+            }.onFailure { err -> Logger.w(TAG, "smolvlm 清理失败: ${err.message}") }
         }
     }
 
