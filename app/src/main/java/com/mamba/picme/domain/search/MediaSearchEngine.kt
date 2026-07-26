@@ -6,6 +6,7 @@ import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.TagDao
+import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.StructuredFilter
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -32,7 +33,7 @@ import org.json.JSONException
  * 支持跨语言搜索：通过 [TagTranslator] 把用户输入的英文查询扩展为中文 canonical 词，
  * 从而命中已有中文 TAG，无需全量重生成。
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
 class MediaSearchEngine(
     private val mediaDao: MediaDao,
     private val tagDao: TagDao? = null,
@@ -329,6 +330,7 @@ class MediaSearchEngine(
      * 修复历史：此前实现把各维度结果累积到同一个 map 中，导致时间约束与关键词约束变成
      * 并集，旧照片只要命中关键词就会被召回，从而出现 2003 年/2023 年等非半年内结果。
      */
+    @Suppress("CyclomaticComplexMethod")
     private suspend fun executeFilter(filter: StructuredFilter): List<MediaAsset> {
         val uiLang = userSettingsRepository?.getAppLanguageBlocking() ?: AppLanguage.CHINESE
         val totalStart = System.currentTimeMillis()
@@ -354,7 +356,7 @@ class MediaSearchEngine(
             explicitCandidateSets.add(mediaDao.getHasFaceIds().toSet())
         }
 
-        val explicitCandidateIds = if (explicitCandidateSets.isEmpty()) {
+        val explicitCandidateIds: Set<Long>? = if (explicitCandidateSets.isEmpty()) {
             null
         } else {
             explicitCandidateSets.reduce { acc, set -> acc.intersect(set) }
@@ -364,17 +366,11 @@ class MediaSearchEngine(
         // 2. 内容关键词候选集（标签 / ML Kit / OCR / 文件名 / 人物名）—— 维度内并集
         val contentStart = System.currentTimeMillis()
         val contentIds = mutableSetOf<Long>()
-        val hasPersonName = !filter.personName.isNullOrBlank()
-        val hasContentKeywords = filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty() || hasPersonName
+        val hasContentKeywords = filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty() ||
+            !filter.personName.isNullOrBlank()
 
-        if (hasPersonName) {
-            val name = filter.personName!!.trim()
-            personDao?.findPersonByName(name)?.let { person ->
-                val personMedia = personDao.getMediaByPerson(person.personId)
-                Logger.d(TAG, "personName='$name' matched personId=${person.personId}, media=${personMedia.size}")
-                contentIds.addAll(personMedia.map { it.id })
-            } ?: Logger.d(TAG, "personName='$name' found no matching person")
-        }
+        // 人物名匹配：显式 personName + 每个关键词都可能命中自定义分组名称
+        contentIds.addAll(collectPersonMediaIds(filter))
 
         if (filter.keywords.isNotEmpty() || filter.ocrKeywords.isNotEmpty()) {
             for (keyword in filter.keywords) {
@@ -471,6 +467,36 @@ class MediaSearchEngine(
         }
 
         return if (candidateIds != null) matched.intersect(candidateIds) else matched
+    }
+
+    /**
+     * 收集所有人物名匹配相关的媒体 ID。
+     *
+     * 包括：
+     * 1. [StructuredFilter.personName] 显式指定的人名
+     * 2. [StructuredFilter.keywords] 中命中人物分组名称的关键词
+     *
+     * 用户可在人物分组（PERSON 模式）中为聚类簇自定义名称（如"大宝"），
+     * 搜索时若关键词命中 [PersonEntity.name]，则返回该人物下所有媒体 ID。
+     */
+    private suspend fun collectPersonMediaIds(filter: StructuredFilter): Set<Long> {
+        val dao = personDao ?: return emptySet()
+        val names = mutableSetOf<String>()
+        filter.personName?.trim()?.takeIf { it.isNotBlank() }?.let { names.add(it) }
+        names.addAll(filter.keywords.map { it.trim() })
+
+        val ids = mutableSetOf<Long>()
+        for (name in names) {
+            dao.findPersonByName(name)?.let { person ->
+                val media = dao.getMediaByPerson(person.personId)
+                Logger.d(
+                    TAG,
+                    "personName='$name' matched personId=${person.personId}, media=${media.size}"
+                )
+                ids.addAll(media.map { it.id })
+            }
+        }
+        return ids
     }
 
     /**

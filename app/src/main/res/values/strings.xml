@@ -846,4 +846,13 @@
     <string name="chat_write_confirm_risk_destructive">High risk: this cannot be undone</string>
     <string name="chat_write_confirm_risk_reversible">This can be changed later</string>
     <string name="chat_write_confirm_ok">Confirm</string>
+    <!-- Accessibility content descriptions (a11y_) -->
+    <string name="a11y_log_overlay">Log overlay</string>
+    <string name="a11y_release_llm">Release LLM</string>
+    <string name="a11y_release_face">Release face detection</string>
+    <string name="a11y_filter">Filter</string>
+    <string name="a11y_switch_camera">Switch camera</string>
+    <string name="a11y_reset_camera">Reset camera state</string>
+    <string name="a11y_photo_desc">Photo</string>
+    <string name="a11y_video_desc">Video</string>
 </resources>

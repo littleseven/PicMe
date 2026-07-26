@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -195,6 +197,7 @@ private fun ShutterButton(isRecording: Boolean, mode: MediaType, onClick: () -> 
     val color = if (mode == MediaType.VIDEO) Color.Red else Color.White
     var lastClickTime by remember { mutableLongStateOf(0L) }
     val debounceIntervalMs = 500L
+    val shutterDesc = stringResource(R.string.shutter)
 
     Box(
         modifier = Modifier
@@ -209,7 +212,8 @@ private fun ShutterButton(isRecording: Boolean, mode: MediaType, onClick: () -> 
                     lastClickTime = now
                     onClick()
                 }
-            },
+            }
+            .semantics { contentDescription = shutterDesc },
         contentAlignment = Alignment.Center
     ) {
         if (isRecording) {
@@ -225,12 +229,14 @@ private fun ShutterButton(isRecording: Boolean, mode: MediaType, onClick: () -> 
 
 @Composable
 private fun GalleryThumbnail(lastMedia: MediaAsset?, onClick: () -> Unit) {
+    val galleryDesc = stringResource(R.string.gallery)
     Box(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
             .background(Color.DarkGray)
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .semantics { contentDescription = galleryDesc },
         contentAlignment = Alignment.Center
     ) {
         if (lastMedia != null) {
@@ -257,6 +263,6 @@ private fun FlipCameraButton(onClick: () -> Unit) {
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Icon(Icons.Rounded.Cameraswitch, contentDescription = null, tint = Color.White)
+        Icon(Icons.Rounded.Cameraswitch, contentDescription = stringResource(R.string.a11y_switch_camera), tint = Color.White)
     }
 }

@@ -207,7 +207,7 @@ fun MediaItem(
         MediaType.DOCUMENT -> context.getString(R.string.media_type_document)
         else -> context.getString(R.string.media_type_photo)
     }
-    val contentDescription = "$mediaTypeLabel，${asset.fileName}"
+    val contentDescription = mediaTypeLabel
     val selectionStateDescription = when {
         isSelectionMode && isSelected -> context.getString(R.string.media_state_selected)
         isSelectionMode -> context.getString(R.string.media_state_unselected)
