@@ -10,6 +10,7 @@ import android.util.Log
 import android.util.LruCache
 import androidx.exifinterface.media.ExifInterface
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
+import com.mamba.picme.domain.tag.florence2.Florence2Tagger
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionResult
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.domain.model.AppLanguage
@@ -831,8 +832,13 @@ class TagGenerationPipeline(
      * inSampleSize 会被 BitmapFactory 向下取整到 2 的幂次，因此实际尺寸可能略大于 maxSize。
      * 注意：返回的 Bitmap 需要调用方负责回收。
      */
-    /** [公开] 加载 Bitmap（Florence-2 等外部调用者用）。 */
-    fun loadBitmapPublic(uri: String, maxSize: Int = MAX_VISION_SIZE): Bitmap? = loadBitmap(uri, maxSize)
+    /**
+     * [公开] 加载 Bitmap（Florence-2 打标等外部调用者用）。
+     *
+     * maxSize 默认对齐 Florence-2 输入尺寸（[Florence2Tagger.IMAGE_SIZE]=768，当前默认打标器）。
+     * Qwen/MobileCLIP 等内部路径走 [loadBitmap] 显式传 [MAX_VISION_SIZE]，不受影响。
+     */
+    fun loadBitmapPublic(uri: String, maxSize: Int = Florence2Tagger.IMAGE_SIZE): Bitmap? = loadBitmap(uri, maxSize)
 
     private fun loadBitmap(uri: String, maxSize: Int): Bitmap? {
         val contentUri = Uri.parse(uri)

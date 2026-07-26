@@ -57,9 +57,15 @@ class Florence2Tagger(
         private const val DECODER_FIXED_SIZE = 98178346L
 
         // 图像预处理（from preprocessor_config.json — resize + ImageNet normalization）
-        private const val IMAGE_SIZE = 768
+        // 公开常量：调用方解码时应按 ≥IMAGE_SIZE 取图，避免低分辨率解码后再放大（无损信息、白耗缩放）
+        const val IMAGE_SIZE = 768
         private val IMAGE_MEAN = floatArrayOf(0.485f, 0.456f, 0.406f)
         private val IMAGE_STD = floatArrayOf(0.229f, 0.224f, 0.225f)
+
+        // 归一化 LUT（256 项/通道，见 Florence2Preprocess.kt）：替代逐像素浮点除法
+        private val R_LUT = buildNormalizeLut(IMAGE_MEAN[0], IMAGE_STD[0])
+        private val G_LUT = buildNormalizeLut(IMAGE_MEAN[1], IMAGE_STD[1])
+        private val B_LUT = buildNormalizeLut(IMAGE_MEAN[2], IMAGE_STD[2])
 
         // 生成参数（from generation_config.json）
         private const val DECODER_START_TOKEN_ID = 2L
@@ -98,6 +104,11 @@ class Florence2Tagger(
     private val initialized = AtomicBoolean(false)
 
     val isInit: Boolean get() = initialized.get()
+
+    // 预处理复用缓冲（像素 2.3MB + 张量 7MB）：Pass 3 批量扫描逐张调用 tag()，
+    // 每张新分配会产生 ~9.4MB GC 压力。tag() 与 OrtSession 一样非线程安全，串行调用下可安全复用。
+    private val pixelScratch = IntArray(IMAGE_SIZE * IMAGE_SIZE)
+    private val tensorScratch = FloatArray(3 * IMAGE_SIZE * IMAGE_SIZE)
 
     /**
      * 加载 4 个 OrtSession + tokenizer vocab。任一失败则释放已加载的并返回 false。
@@ -151,8 +162,11 @@ class Florence2Tagger(
         check(initialized.get()) { "Florence2Tagger not initialized" }
 
         // ── 1. 图像预处理 → vision encoder（每张图只跑一次）──
+        val t0 = System.currentTimeMillis()
         val pixelValues = preprocessBitmap(bitmap)
+        val preprocessMs = System.currentTimeMillis() - t0
         val imageFeatures = runVisionEncoder(pixelValues)
+        val visionMs = System.currentTimeMillis() - t0 - preprocessMs
 
         // ── 2. OD 任务（物体检测 → objects/tags）──
         val odText = runTask(imageFeatures, TASK_OD)
@@ -161,6 +175,8 @@ class Florence2Tagger(
         // ── 3. MORE_DETAILED_CAPTION 任务（→ summary + scene/activity）──
         val captionText = runTask(imageFeatures, TASK_MORE_DETAILED_CAPTION)
         val summary = captionText
+        Log.d(TAG, "[Benchmark] preprocess=${preprocessMs}ms, vision=${visionMs}ms, " +
+            "total=${System.currentTimeMillis() - t0}ms")
 
         // ── 4. 组装 UnifiedTagResult ──
         val tags = objects.toMutableList()
@@ -185,6 +201,8 @@ class Florence2Tagger(
     /**
      * Bitmap → resize 到 768×768 → ImageNet normalize → [1, 3, 768, 768] float tensor。
      * 注意：Florence-2 的 preprocessor 是 resize（非 center crop）+ ImageNet mean/std。
+     *
+     * 性能：归一化走 LUT 查表（Florence2Preprocess.kt），像素/张量缓冲实例级复用。
      */
     private fun preprocessBitmap(bitmap: Bitmap): FloatArray {
         val resized = if (bitmap.width == IMAGE_SIZE && bitmap.height == IMAGE_SIZE) {
@@ -192,22 +210,12 @@ class Florence2Tagger(
         } else {
             Bitmap.createScaledBitmap(bitmap, IMAGE_SIZE, IMAGE_SIZE, true)
         }
-        val pixels = IntArray(IMAGE_SIZE * IMAGE_SIZE)
+        val pixels = pixelScratch
         resized.getPixels(pixels, 0, IMAGE_SIZE, 0, 0, IMAGE_SIZE, IMAGE_SIZE)
         if (resized !== bitmap) resized.recycle()
 
-        // ImageNet normalize: CHW, (pixel/255 - mean) / std
-        val tensor = FloatArray(3 * IMAGE_SIZE * IMAGE_SIZE)
-        for (i in pixels.indices) {
-            val px = pixels[i]
-            val r = ((px shr 16) and 0xFF) / 255f
-            val g = ((px shr 8) and 0xFF) / 255f
-            val b = (px and 0xFF) / 255f
-            tensor[i] = (r - IMAGE_MEAN[0]) / IMAGE_STD[0]
-            tensor[IMAGE_SIZE * IMAGE_SIZE + i] = (g - IMAGE_MEAN[1]) / IMAGE_STD[1]
-            tensor[2 * IMAGE_SIZE * IMAGE_SIZE + i] = (b - IMAGE_MEAN[2]) / IMAGE_STD[2]
-        }
-        return tensor
+        normalizePixelsToPlanes(pixels, tensorScratch, R_LUT, G_LUT, B_LUT)
+        return tensorScratch
     }
 
     // ═══════════════════════════════════════════════════

@@ -1115,6 +1115,7 @@ class TagGenerationScheduler(
             if (tagger == null || !tagger.isInit) {
                 throw IllegalStateException("[Pass 3] Florence-2 not available for mediaId=$mediaId")
             }
+            // 按 Florence-2 输入尺寸解码（loadBitmapPublic 默认值即 Florence2Tagger.IMAGE_SIZE=768）
             val bitmap = pipeline.loadBitmapPublic(entity.uri)
             if (bitmap == null) {
                 throw IllegalStateException("[Pass 3] Failed to load bitmap for mediaId=$mediaId")
