@@ -64,17 +64,13 @@ object ChatEditRecipeBuilder {
     }
 
     private fun buildFilterType(current: FilterType, params: EditParams): FilterType {
-        return when (val value = params.filterName) {
-            is EditParams.AbsoluteString -> resolveFilterType(value.value)
-            else -> current
-        }
+        val value = params.filterName
+        return if (value is EditParams.AbsoluteString) resolveFilterType(value.value) else current
     }
 
     private fun buildStyleFilter(current: StyleFilter, params: EditParams): StyleFilter {
-        return when (val value = params.styleName) {
-            is EditParams.AbsoluteString -> resolveStyleFilter(value.value)
-            else -> current
-        }
+        val value = params.styleName
+        return if (value is EditParams.AbsoluteString) resolveStyleFilter(value.value) else current
     }
 
     private fun resolveAbsolute(

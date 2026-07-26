@@ -130,7 +130,6 @@ class PoLangAuthClient(
     class PoLangAuthException(val code: Int, val errorType: String) : Exception("HTTP $code: $errorType")
 
     companion object {
-        private const val TAG = "PoLangAuth"
         private const val DEFAULT_BASE_URL = "https://api.polang.net"
     }
 }

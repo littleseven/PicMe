@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.tag
 
 import android.content.Context
@@ -14,7 +15,6 @@ import com.mamba.picme.domain.tag.florence2.Florence2Tagger
 import com.mamba.picme.beauty.api.facedetect.FaceDetectionResult
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.domain.model.AppLanguage
-import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.tag.prompt.DefaultTagPromptProvider
 import com.mamba.picme.domain.tag.prompt.TagPromptProvider
 import org.json.JSONArray
@@ -47,11 +47,11 @@ internal fun isImageMimeType(mime: String?): Boolean =
  * - [faceClusterEngine]：Stage 2 使用，Glint360K R100 + 增量聚类
  * - [normalizer]：标签后处理规范化
  * - [openClGuardian]：OpenCL 超时守卫（可选）
- * - [userSettingsRepository]：用户设置（语言偏好等）
  * - [promptProvider]：Prompt 生成策略
  * - [mobileClipEngine]：MobileCLIP 语义编码（可选）
  * - [mobileClipTagClassifier]：MobileCLIP 零 shot 标签分类器（可选）
  */
+@Suppress("LongParameterList") // 待重构：依赖容器，考虑分组
 class TagGenerationPipeline(
     private val context: Context,
     private val faceDetector: FaceDetector,
@@ -59,7 +59,6 @@ class TagGenerationPipeline(
     private val faceClusterEngine: FaceClusterEngine,
     private val normalizer: TagNormalizer,
     private val openClGuardian: OpenClGuardian? = null,
-    private val userSettingsRepository: UserSettingsRepository? = null,
     private val promptProvider: TagPromptProvider = DefaultTagPromptProvider(),
     private val mobileClipEngine: MobileClipEngine? = null,
     private val mobileClipTagClassifier: MobileClipTagClassifier? = null
@@ -317,40 +316,6 @@ class TagGenerationPipeline(
             )
         } else {
             Stage3CombinedResult()
-        }
-    }
-
-    private data class QwenActivitySummary(
-        val activity: String,
-        val summary: String
-    )
-
-    private suspend fun runQwenActivityAndSummary(
-        bitmap: Bitmap,
-        faceCount: Int,
-        isGroupPhoto: Boolean
-    ): QwenActivitySummary? {
-        if (!llmEngine.isLoaded) return null
-
-        val systemPrompt = promptProvider.systemPromptForActivityAndSummary(targetLanguage)
-        val userPrompt = promptProvider.userPromptForActivityAndSummary(targetLanguage, faceCount, isGroupPhoto)
-        val response = runVisionInference(bitmap, systemPrompt, userPrompt)
-
-        if (response.isBlank()) return null
-        val jsonPart = extractJson(response) ?: return null
-        return parseQwenActivitySummary(jsonPart)
-    }
-
-    private fun parseQwenActivitySummary(jsonStr: String): QwenActivitySummary? {
-        return try {
-            val obj = JSONObject(jsonStr)
-            QwenActivitySummary(
-                activity = obj.optString("activity", ""),
-                summary = obj.optString("summary", "")
-            )
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse activity+summary JSON: ${e.message}")
-            null
         }
     }
 
@@ -781,6 +746,7 @@ class TagGenerationPipeline(
             org.json.JSONObject(text)
             true
         } catch (e: Exception) {
+            Log.w(TAG, "Invalid JSON object: ${e.message}")
             false
         }
     }

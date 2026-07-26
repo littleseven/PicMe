@@ -87,7 +87,11 @@ class ChatSearchCapability private constructor() : BaseCapability() {
             .required("start_ms", "end_ms")
             .build()
         val intentSchema = JsonObjectSchema.builder()
-            .description("标准化搜索意图；当查询包含时间/地点/人物/人脸等可结构化条件时填充。注意：时间词（去年、夏天、近半年、上个月等）一旦用 time_range 表达，就不要再放进 keywords / location_keywords / ocr_keywords；keywords 只保留非时间内容词。")
+            .description(
+                "标准化搜索意图；当查询包含时间/地点/人物/人脸等可结构化条件时填充。" +
+                    "注意：时间词（去年、夏天、近半年、上个月等）一旦用 time_range 表达，" +
+                    "就不要再放进 keywords / location_keywords / ocr_keywords；keywords 只保留非时间内容词。"
+            )
             .addProperty("time_range", timeRangeSchema)
             .addProperty(
                 "keywords",

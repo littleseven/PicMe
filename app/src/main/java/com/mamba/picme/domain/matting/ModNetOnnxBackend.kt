@@ -1,16 +1,15 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.matting
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import java.nio.FloatBuffer
 
 /** MODNet ONNX Runtime 推理后端。返回连续 Alpha FloatArray（长度 INPUT_SIZE^2，0..1），失败返回 null。 */
 class ModNetOnnxBackend(
-    context: Context,
     private val resolver: MattingModelResolver
 ) {
     companion object {
@@ -18,7 +17,6 @@ class ModNetOnnxBackend(
         private const val MODEL_ID = "modnet-onnx"
     }
 
-    private val appContext = context.applicationContext
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
     private var session: OrtSession? = null
 

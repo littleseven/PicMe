@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.features.chat.capability
 
 import com.mamba.picme.agent.core.capability.BaseCapability
@@ -58,10 +59,13 @@ class ChatStartTagScanCapability private constructor() : BaseCapability() {
 
     override fun supportedCommands(): List<String> = listOf("start_tag_scan")
 
-    override fun getCommandDescription(command: String): String = when (command) {
-        "start_tag_scan" -> "启动/控制/查询 TAG 扫描。参数: action=start|pause|resume|cancel|query, task_type=face|scene|activity|objects|tags|summary|mlkit|auto, mode=full|incremental"
-        else -> "未知命令"
-    }
+    override fun getCommandDescription(command: String): String =
+        if (command == "start_tag_scan") {
+            "启动/控制/查询 TAG 扫描。参数: action=start|pause|resume|cancel|query, " +
+                "task_type=face|scene|activity|objects|tags|summary|mlkit|auto, mode=full|incremental"
+        } else {
+            "未知命令"
+        }
 
     override suspend fun execute(
         command: AgentCommand,
@@ -78,16 +82,15 @@ class ChatStartTagScanCapability private constructor() : BaseCapability() {
             )
 
         return try {
-            when (command) {
-                is AgentCommand.StartTagScan -> {
-                    val result = d.onStartTagScan(
-                        action = command.action,
-                        taskType = command.taskType,
-                        mode = command.mode
-                    )
-                    Result.success(result.toAgentAction(command.commandId))
-                }
-                else -> Result.success(
+            if (command is AgentCommand.StartTagScan) {
+                val result = d.onStartTagScan(
+                    action = command.action,
+                    taskType = command.taskType,
+                    mode = command.mode
+                )
+                Result.success(result.toAgentAction(command.commandId))
+            } else {
+                Result.success(
                     AgentAction.Error(
                         commandId = command.commandId,
                         errorCode = AgentErrorCode.METHOD_NOT_FOUND,

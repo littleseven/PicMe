@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.usecase
 
 import android.content.Context
@@ -54,11 +55,12 @@ class GenerateSummaryOnDemandUseCase(
             Logger.w(tag, "processSingleSync returned null for mediaId=$mediaId (model unavailable?)")
             return null
         }
-        Logger.i(tag, "Unified tags generated for mediaId=$mediaId: ${unifiedJson.take(80)}")
+        Logger.i(tag, "Unified tags generated for mediaId=$mediaId: ${unifiedJson.take(LOG_PREVIEW_CHARS)}")
         return parseSummary(unifiedJson)
     }
 
     companion object {
+        private const val LOG_PREVIEW_CHARS = 80
         /**
          * 判断 labels 是否已满足「统一规格」：含 tags 数组且 summary 非空。
          *
@@ -72,6 +74,7 @@ class GenerateSummaryOnDemandUseCase(
                 val obj = JSONObject(labelsJson)
                 obj.optJSONArray("tags") != null && obj.optString("summary", "").isNotBlank()
             } catch (e: Exception) {
+                Logger.w("PoLang:SummaryOnDemand", "isFullyTagged parse failed: ${e.message}")
                 false
             }
         }
@@ -82,6 +85,7 @@ class GenerateSummaryOnDemandUseCase(
             return try {
                 JSONObject(labelsJson).optString("summary", "")
             } catch (e: Exception) {
+                Logger.w("PoLang:SummaryOnDemand", "parseSummary failed: ${e.message}")
                 ""
             }
         }

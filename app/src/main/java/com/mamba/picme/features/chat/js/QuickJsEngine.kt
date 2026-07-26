@@ -78,6 +78,7 @@ class QuickJsEngine(
             throw JsBridgeException(
                 JsBridgeException.SCRIPT_TIMEOUT,
                 "script timed out after ${timeoutMs}ms",
+                e,
             )
         } catch (e: QuickJsException) {
             throw JsBridgeException(

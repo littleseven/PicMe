@@ -139,6 +139,7 @@ import kotlin.math.abs
 
 private const val TAG = "Gallery"
 
+@Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod") // 待重构：MediaPager 抽 PagerState holder
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaPager(
@@ -909,6 +910,7 @@ private fun VisionResultOverlay(
     }
 }
 
+@Suppress("LongMethod", "LongParameterList") // 待重构：顶部控制栏抽子组件
 @Composable
 private fun mediaPagerTopControls(
     onClose: () -> Unit,
@@ -1065,6 +1067,7 @@ private fun mediaPagerTopControls(
     }
 }
 
+@Suppress("LongMethod") // 待重构：底部操作栏抽子组件
 @Composable
 private fun mediaPagerBottomBar(
     onShare: () -> Unit,
@@ -1178,6 +1181,7 @@ private fun mediaPagerBottomBar(
     }
 }
 
+@Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：照片信息弹窗抽字段渲染器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoInfoDialog(
@@ -1533,50 +1537,6 @@ private fun Locale.toAppLanguage(): AppLanguage = when (this.language) {
     else -> AppLanguage.CHINESE
 }
 
-private fun parseLabelsToHumanReadable(
-    labels: String?,
-    translator: TagTranslator,
-    lang: AppLanguage,
-    scenePrefix: String,
-    activityPrefix: String,
-    summaryPrefix: String
-): List<String> {
-    if (labels.isNullOrBlank()) return emptyList()
-    return try {
-        val trimmed = labels.trim()
-        when {
-            trimmed.startsWith("[") -> {
-                // 旧格式: JSON 数组 ["tag1","tag2"]
-                val arr = JSONArray(trimmed)
-                (0 until arr.length()).map { translator.display(arr.getString(it), lang) }
-            }
-            trimmed.startsWith("{") -> {
-                // 新格式: QwenTags JSON 对象
-                val obj = JSONObject(trimmed)
-                val result = mutableListOf<String>()
-                if (obj.has("scene") && obj.getString("scene").isNotBlank()) {
-                    result.add(scenePrefix.format(translator.display(obj.getString("scene"), lang)))
-                }
-                if (obj.has("activity") && obj.getString("activity").isNotBlank()) {
-                    result.add(activityPrefix.format(translator.display(obj.getString("activity"), lang)))
-                }
-                if (obj.has("tags")) {
-                    val tagsArr = obj.getJSONArray("tags")
-                    for (i in 0 until tagsArr.length()) {
-                        result.add(translator.display(tagsArr.getString(i), lang))
-                    }
-                }
-                if (obj.has("summary") && obj.getString("summary").isNotBlank()) {
-                    result.add(summaryPrefix.format(translator.display(obj.getString("summary"), lang)))
-                }
-                result
-            }
-            else -> listOf(translator.display(trimmed, lang).take(100))
-        }
-    } catch (e: Exception) {
-        listOf(translator.display(labels, lang).take(100))
-    }
-}
 
 /** 照片信息弹窗用的分组标签(按字段分行渲染)。 */
 private data class ParsedTags(

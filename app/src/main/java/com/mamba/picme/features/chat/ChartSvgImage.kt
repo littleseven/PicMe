@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,9 +69,9 @@ fun ChartSvgImage(
  * 解析 SVG 的 width/height，返回宽高比（width / height）。解析失败回退 640/380。
  */
 fun chartAspect(svg: String): Float {
-    val w = Regex("""width="(\d+)"""").find(svg)?.groupValues?.get(1)?.toFloatOrNull() ?: 640f
-    val h = Regex("""height="(\d+)"""").find(svg)?.groupValues?.get(1)?.toFloatOrNull() ?: 380f
-    return if (w > 0f && h > 0f) w / h else (640f / 380f)
+    val w = Regex("""width="(\d+)"""").find(svg)?.groupValues?.get(1)?.toFloatOrNull() ?: CHART_DEFAULT_WIDTH
+    val h = Regex("""height="(\d+)"""").find(svg)?.groupValues?.get(1)?.toFloatOrNull() ?: CHART_DEFAULT_HEIGHT
+    return if (w > 0f && h > 0f) w / h else (CHART_DEFAULT_WIDTH / CHART_DEFAULT_HEIGHT)
 }
 
 /**
@@ -80,8 +79,8 @@ fun chartAspect(svg: String): Float {
  */
 private fun renderChartHighRes(svg: String): Bitmap {
     val parsed = SVG.getFromString(svg)
-    val sw = parsed.documentWidth.takeIf { it > 0f } ?: 640f
-    val sh = parsed.documentHeight.takeIf { it > 0f } ?: 380f
+    val sw = parsed.documentWidth.takeIf { it > 0f } ?: CHART_DEFAULT_WIDTH
+    val sh = parsed.documentHeight.takeIf { it > 0f } ?: CHART_DEFAULT_HEIGHT
     val rw = (sw * SCALE).toInt().coerceAtLeast(1)
     val rh = (sh * SCALE).toInt().coerceAtLeast(1)
     val bmp = Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888)
@@ -92,6 +91,8 @@ private fun renderChartHighRes(svg: String): Bitmap {
 }
 
 private const val SCALE = 2.5f
+private const val CHART_DEFAULT_WIDTH = 640f
+private const val CHART_DEFAULT_HEIGHT = 380f
 
 /**
  * 聊天里的图表卡片：圆角卡片 + 按图宽高比给高度，整图铺满、不变形。

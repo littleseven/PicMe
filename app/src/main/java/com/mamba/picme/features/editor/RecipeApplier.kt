@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private const val TAG = "RecipeApplier"
+private const val FULL_INTENSITY_THRESHOLD = 0.99f
 
 class RecipeApplier(
     private val photoProcessor: PhotoProcessor,
@@ -152,7 +153,7 @@ class RecipeApplier(
         paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
 
         val intensity = recipe.filterIntensity.coerceIn(0f, 1f)
-        if (intensity >= 0.99f) {
+        if (intensity >= FULL_INTENSITY_THRESHOLD) {
             canvas.drawBitmap(bitmap, 0f, 0f, paint)
         } else {
             canvas.drawBitmap(bitmap, 0f, 0f, null)

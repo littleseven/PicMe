@@ -101,6 +101,7 @@ class PhotoEditRecipeRepository(
     internal fun toJsonForTest(recipe: EditRecipe): String = recipe.toJson()
 
     companion object {
+        private const val DEFAULT_CUTOUT_THRESHOLD = 0.5
         fun EditRecipe.Companion.fromJson(json: String, fallbackSourceUri: String): EditRecipe {
             val moshi = Moshi.Builder()
                 .addLast(KotlinJsonAdapterFactory())
@@ -125,7 +126,7 @@ class PhotoEditRecipeRepository(
                     } catch (_: IllegalArgumentException) {
                         MaskSource.U2NETP
                     },
-                    threshold = c.optDouble("threshold", 0.5).toFloat(),
+                    threshold = c.optDouble("threshold", DEFAULT_CUTOUT_THRESHOLD).toFloat(),
                     bgMode = try {
                         CutoutRecipe.BgMode.valueOf(c.optString("bgMode", "TRANSPARENT"))
                     } catch (_: IllegalArgumentException) {

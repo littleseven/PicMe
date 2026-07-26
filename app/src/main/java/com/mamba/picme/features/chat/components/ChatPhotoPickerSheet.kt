@@ -46,6 +46,7 @@ import com.mamba.picme.features.gallery.components.MediaGrid
  * `searchEngine` 为 null（语义索引未就绪）时隐藏搜索框、显示回退提示并只展示最近照片。
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod") // 待重构：抽 sheet content 子组件
 @Composable
 fun ChatPhotoPickerSheet(
     sheetState: SheetState,

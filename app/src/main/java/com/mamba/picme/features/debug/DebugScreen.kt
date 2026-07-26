@@ -135,6 +135,7 @@ fun DebugScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod") // 待重构：Debug 页按区块拆子组件
 @Composable
 private fun DebugContent(
     isGenerating: Boolean,

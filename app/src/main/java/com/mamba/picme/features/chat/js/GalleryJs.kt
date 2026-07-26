@@ -64,18 +64,14 @@ fun MediaEntity.toMetaJsValue(): JsValue.Obj = JsValue.Obj(
 )
 
 /** Map<标签, 照片数> → gallery.tags 结果（标签→计数，调用前应已按计数降序）。 */
-fun Map<String, Int>.toTagsJsValue(): JsValue.Obj = JsValue.Obj(
-    linkedMapOf(*entries.map { it.key to JsValue.Num(it.value.toDouble()) }.toTypedArray())
-)
+fun Map<String, Int>.toTagsJsValue(): JsValue.Obj =
+    JsValue.Obj(entries.associate { it.key to JsValue.Num(it.value.toDouble()) })
 
 /** Map<桶起始时间戳, 照片数> → gallery.timeline 结果（时间升序）。 */
-fun Map<Long, Int>.toTimelineJsValue(): JsValue.Obj = JsValue.Obj(
-    linkedMapOf(
-        *entries.map { (bucketMs, count) ->
-            bucketMs.toString() to JsValue.Num(count.toDouble())
-        }.toTypedArray()
-    )
-)
+fun Map<Long, Int>.toTimelineJsValue(): JsValue.Obj =
+    JsValue.Obj(entries.associate { (bucketMs, count) ->
+        bucketMs.toString() to JsValue.Num(count.toDouble())
+    })
 
 // ── gallery.intersect：集合交并差 ────────────────────────────────
 
@@ -97,10 +93,9 @@ fun parseIntersectArgs(args: JsValue): IntersectRequest {
 }
 
 /** JsValue → Long 列表（JS array `[1,2,3]`）。 */
-private fun parseJsIdList(v: JsValue?): List<Long> = when (v) {
-    is JsValue.Arr -> v.items.mapNotNull { (it as? JsValue.Num)?.value?.toLong() }
-    else -> emptyList()
-}
+private fun parseJsIdList(v: JsValue?): List<Long> =
+    if (v is JsValue.Arr) v.items.mapNotNull { (it as? JsValue.Num)?.value?.toLong() }
+    else emptyList()
 
 /** 集合运算结果 → `{ids:[...], total:N}`。 */
 fun intersectResult(ids: List<Long>): JsValue.Obj = JsValue.Obj(

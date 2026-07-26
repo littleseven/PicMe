@@ -21,8 +21,8 @@ class MattingEngineImpl(
         private const val TAG = "PoLang:Matting"
     }
 
-    private val u2netBackend = U2NetOnnxBackend(context, AssetMattingModelResolver(context))
-    private val modnetBackend = ModNetOnnxBackend(context, AssetMattingModelResolver(context))
+    private val u2netBackend = U2NetOnnxBackend(AssetMattingModelResolver(context))
+    private val modnetBackend = ModNetOnnxBackend(AssetMattingModelResolver(context))
     private var u2netReady = false
     private var modnetReady = false
     private val selfieBackend = MediaPipeSegmentationBackend(context)

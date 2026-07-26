@@ -67,6 +67,7 @@ import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod") // 待重构：抽日志列表/详情子组件
 @Composable
 fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current

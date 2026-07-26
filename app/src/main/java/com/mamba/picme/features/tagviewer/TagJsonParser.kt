@@ -1,3 +1,5 @@
+@file:Suppress("SwallowedException") // 解析失败返回 null 是预期行为
+
 package com.mamba.picme.features.tagviewer
 
 import org.json.JSONArray

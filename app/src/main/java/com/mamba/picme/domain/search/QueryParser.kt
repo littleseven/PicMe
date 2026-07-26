@@ -16,6 +16,9 @@ import java.util.Calendar
  */
 object QueryParser {
 
+    private const val THREE_YEARS_IN_MONTHS = 36
+    private const val MAX_RELATIVE_MONTHS = 99
+
     /** 当前年份偏移（用于测试注入） */
     var currentYear: Int = Calendar.getInstance().get(Calendar.YEAR)
     /** 当前月份偏移 */
@@ -203,6 +206,7 @@ object QueryParser {
     /**
      * 解析查询中的时间范围（公开给 QuerySegmenter 复用）
      */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount") // 待重构：时间范围解析，按粒度拆分
     fun parseTimeRange(query: String): TimeRange? {
         // 1. 精确到月：去年3月 / 今年5月 / 前年8月 / 2024年3月
         val relativeYearMonth = parseRelativeYearMonth(query)
@@ -332,7 +336,7 @@ object QueryParser {
             "半年" to 6,
             "一年" to 12,
             "两年" to 24,
-            "三年" to 36
+            "三年" to THREE_YEARS_IN_MONTHS
         )
         for ((word, months) in yearLikeMap) {
             if (query.contains("近$word") || query.contains("最近$word") || query.contains("${word}内")) {
@@ -344,7 +348,7 @@ object QueryParser {
         val digitMatch = Regex("""(?:近|最近)(\d{1,2})个月|(\d{1,2})个月内""").find(query)
         if (digitMatch != null) {
             val months = digitMatch.groupValues[1].ifEmpty { digitMatch.groupValues[2] }
-                .toIntOrNull()?.coerceIn(1, 99) ?: return null
+                .toIntOrNull()?.coerceIn(1, MAX_RELATIVE_MONTHS) ?: return null
             return monthsAgoRange(months)
         }
 

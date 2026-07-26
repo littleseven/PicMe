@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.features.chat
 
 import android.content.Context
@@ -18,6 +19,9 @@ import java.util.UUID
 
 private const val TAG = "PoLang:ChatImageRenderer"
 private const val MAX_DECODE_DIM = 2048
+private const val CONTRAST_DEFAULT = 50f
+private const val TEMPERATURE_NEUTRAL = 5000f
+private const val JPEG_QUALITY = 95
 
 /**
  * Chat 内图像渲染器：把编辑 recipe 直接渲染成结果图并落盘，返回可展示的本地路径。
@@ -69,10 +73,10 @@ class ChatImageRenderer(
             val rendered = renderRecipe(imageUri, recipe)
             val desc = buildString {
                 brightness?.takeIf { it != 0f }?.let { append("亮度${if (it > 0) "+" else ""}${it.toInt()} ") }
-                contrast?.takeIf { it != 50f }?.let { append("对比度${it.toInt()} ") }
+                contrast?.takeIf { it != CONTRAST_DEFAULT }?.let { append("对比度${it.toInt()} ") }
                 saturation?.takeIf { it != 100f }?.let { append("饱和度${it.toInt()} ") }
-                temperature?.takeIf { it != 5000f }?.let {
-                    append(if (it > 5000f) "暖色" else "冷色")
+                temperature?.takeIf { it != TEMPERATURE_NEUTRAL }?.let {
+                    append(if (it > TEMPERATURE_NEUTRAL) "暖色" else "冷色")
                     append(" ")
                 }
             }.trim().ifBlank { "已调整" }
@@ -141,7 +145,7 @@ class ChatImageRenderer(
     private fun saveBitmap(bitmap: Bitmap): String? = try {
         val dir = java.io.File(context.filesDir, "picme_images").apply { mkdirs() }
         val file = java.io.File(dir, "edit_${UUID.randomUUID()}.jpg")
-        java.io.FileOutputStream(file).use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out) }
+        java.io.FileOutputStream(file).use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out) }
         // 同时写入系统相册（MediaStore），让用户在相册中可见
         val displayName = "PoLang_edit_${UUID.randomUUID()}.jpg"
         val values = android.content.ContentValues().apply {
@@ -162,7 +166,7 @@ class ChatImageRenderer(
         val itemUri = context.contentResolver.insert(collection, values)
         if (itemUri != null) {
             context.contentResolver.openOutputStream(itemUri)?.use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
             }
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 values.clear()

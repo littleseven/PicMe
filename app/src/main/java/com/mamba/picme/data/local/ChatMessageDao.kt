@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Room DAO：聊天消息数据访问对象
  */
+@Suppress("ComplexInterface") // Room DAO，方法数由表操作决定，不宜拆分
 @Dao
 interface ChatMessageDao {
 

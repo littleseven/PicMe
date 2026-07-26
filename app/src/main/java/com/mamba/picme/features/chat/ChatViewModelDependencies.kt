@@ -15,6 +15,7 @@ import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 
+@Suppress("LongParameterList") // 待重构：依赖容器，考虑分组或 builder
 class ChatViewModelDependencies(
     val context: Context,
     val chatMessageDao: ChatMessageDao,

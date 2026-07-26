@@ -73,7 +73,7 @@ class TagGenerationScheduler(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val guard: suspend () -> GuardResult = { GuardResult.ALLOW },
     private val getThrottleMs: () -> Long = { 1000L },
-    private val getPass3CooldownMs: () -> Long = { 800L },
+    private val getPass3CooldownMs: () -> Long = { DEFAULT_PASS3_COOLDOWN_MS },
     private val userSettingsRepository: UserSettingsRepository = UserPreferencesRepository(context)
 ) {
 
@@ -99,6 +99,7 @@ class TagGenerationScheduler(
         }
 
     companion object {
+        private const val DEFAULT_PASS3_COOLDOWN_MS = 800L
         private const val TAG = "TagScheduler"
 
         /** 批次大小：每处理此数量照片后强制冷却 */
@@ -170,7 +171,7 @@ class TagGenerationScheduler(
         val dir = ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_FLORENCE2)
         if (dir.exists() && (dir.listFiles()?.size ?: 0) >= 10) {
             Florence2Tokenizer.load(dir)
-            Florence2Tagger(context, dir).also { it.init() }
+            Florence2Tagger(dir).also { it.init() }
         } else {
             null
         }
@@ -211,7 +212,6 @@ class TagGenerationScheduler(
             faceClusterEngine = faceClusterEngine,
             normalizer = normalizer,
             openClGuardian = openClGuardian,
-            userSettingsRepository = userSettingsRepository,
             mobileClipEngine = mobileClip,
             mobileClipTagClassifier = classifier
         )
@@ -1139,8 +1139,8 @@ class TagGenerationScheduler(
     suspend fun executeQwenTagging(mediaId: Long) {
         // 接回守卫：热 SEVERE / 电量危机时 ABORT，抛异常 → 任务 FAILED → handleTaskFailure 退避重试（自带散热窗口）。
         // 热 MODERATE / 电量低时 guardCheck 内部已 delay(getThrottleMs())，不抛异常。
-        if (!guardCheck()) {
-            throw IllegalStateException("[Pass 3] Guard ABORT (thermal/battery) mediaId=$mediaId")
+        check(guardCheck()) {
+            "[Pass 3] Guard ABORT (thermal/battery) mediaId=$mediaId"
         }
 
         val dao = db.mediaDao()
@@ -1153,13 +1153,13 @@ class TagGenerationScheduler(
         val unified = if (isFlorence2) {
             // Florence-2 ORT 路径
             val tagger = florence2Tagger
-            if (tagger == null || !tagger.isInit) {
-                throw IllegalStateException("[Pass 3] Florence-2 not available for mediaId=$mediaId")
+            check(tagger != null && tagger.isInit) {
+                "[Pass 3] Florence-2 not available for mediaId=$mediaId"
             }
             // 按 Florence-2 输入尺寸解码（loadBitmapPublic 默认值即 Florence2Tagger.IMAGE_SIZE=768）
             val bitmap = pipeline.loadBitmapPublic(entity.uri)
-            if (bitmap == null) {
-                throw IllegalStateException("[Pass 3] Failed to load bitmap for mediaId=$mediaId")
+            checkNotNull(bitmap) {
+                "[Pass 3] Failed to load bitmap for mediaId=$mediaId"
             }
             val result = tagger.tag(bitmap)
             bitmap.recycle()
@@ -1168,8 +1168,8 @@ class TagGenerationScheduler(
             result
         } else {
             // MNN Qwen/SmolVLM 路径
-            if (!ensureModelLoaded()) {
-                throw IllegalStateException("[Pass 3] Model not loaded for mediaId=$mediaId")
+            check(ensureModelLoaded()) {
+                "[Pass 3] Model not loaded for mediaId=$mediaId"
             }
             val qwenResult = pipeline.stage3QwenTagging(
                 uri = entity.uri,

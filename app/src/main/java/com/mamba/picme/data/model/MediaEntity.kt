@@ -55,8 +55,6 @@ data class MediaEntity(
      * 按 UI 语言取对应标签 JSON：英文 UI→[labelsEn]，其余→[labelsZh]；
      * 目标字段为空（老数据未回填）时回退 [labels]。供展示/搜索读取。
      */
-    fun labelsForLanguage(lang: AppLanguage): String? = when (lang) {
-        AppLanguage.ENGLISH -> labelsEn ?: labels
-        else -> labelsZh ?: labels
-    }
+    fun labelsForLanguage(lang: AppLanguage): String? =
+        if (lang == AppLanguage.ENGLISH) labelsEn ?: labels else labelsZh ?: labels
 }

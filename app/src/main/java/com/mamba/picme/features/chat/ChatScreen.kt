@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // 待重构：ChatScreen 拆分为多个子文件以降低文件级函数数
+
 package com.mamba.picme.features.chat
 
 import android.app.Activity
@@ -23,13 +25,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -46,15 +46,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
@@ -174,7 +168,7 @@ private const val TAG = "ChatScreen"
  * - 输入区：ModelSelector + 输入框 + 发送按钮
  * - 快捷入口：相机 / 设置 / 模型中心
  */
-@Suppress("LongMethod") // Top-level Compose screen: scaffold + list + input + sidebar
+@Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod") // 待重构：Top-level Compose screen，scaffold+list+input+sidebar，后续按区域拆子组件
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = viewModel(),
@@ -485,23 +479,13 @@ fun ChatScreen(
 
                 // 输入区
                 ChatInputArea(
-                    currentModel = currentModel,
                     isProcessing = isProcessing,
-                    onModelSwitch = { option ->
-                        viewModel.switchModel(option)
-                        if (option is ChatModelOption.Local) {
-                            scope.launch {
-                                settingsViewModel.checkChatModelsOnFeatureEnabled()
-                            }
-                        }
-                    },
                     onSendMessage = { text ->
                         viewModel.sendMessage(text)
                     },
                     mediaViewModel = mediaViewModel,
                     viewModel = viewModel,
                     onNavigateToPhotoEditor = onNavigateToPhotoEditor,
-                    onNavigateToIDPhoto = onNavigateToIDPhoto
                 )
             }
 
@@ -752,6 +736,7 @@ private fun ChatTopBar(
     }
 }
 
+@Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：消息项多类型分支，抽分发器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit = {}) {
@@ -989,17 +974,15 @@ private enum class ChatInputMode {
     VOICE
 }
 
+@Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod") // 待重构：输入区抽 state holder 降复杂度
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChatInputArea(
-    currentModel: ChatModelOption,
     isProcessing: Boolean,
-    onModelSwitch: (ChatModelOption) -> Unit,
     onSendMessage: (String) -> Unit,
     mediaViewModel: MediaViewModel,
     viewModel: ChatViewModel,
     onNavigateToPhotoEditor: (String, Boolean) -> Unit,
-    onNavigateToIDPhoto: (String) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
     var showModelMenu by remember { mutableStateOf(false) }
@@ -1090,7 +1073,6 @@ private fun ChatInputArea(
                 ChatInputMode.TEXT -> ChatTextInputMode(
                     text = text,
                     onTextChange = { text = it },
-                    currentModel = currentModel,
                     isProcessing = isProcessing,
                     onSend = {
                         if (!isProcessing) {
@@ -1124,7 +1106,6 @@ private fun ChatInputArea(
                     onShowModelMenu = { showModelMenu = true },
                     onDismissModelMenu = { showModelMenu = false },
                     showModelMenu = showModelMenu,
-                    onModelSwitch = onModelSwitch,
                     hasUserKey = hasUserKey,
                     availableModels = availableModels,
                     selectedModel = selectedModel,
@@ -1198,18 +1179,17 @@ private fun ImageIntentChip(
     )
 }
 
+@Suppress("LongMethod", "LongParameterList") // 待重构：文本输入模式，抽 state holder
 @Composable
 private fun ChatTextInputMode(
     text: String,
     onTextChange: (String) -> Unit,
-    currentModel: ChatModelOption,
     isProcessing: Boolean,
     onSend: () -> Unit,
     onModelMenuToggle: () -> Unit,
     onShowModelMenu: () -> Unit,
     onDismissModelMenu: () -> Unit,
     showModelMenu: Boolean,
-    onModelSwitch: (ChatModelOption) -> Unit,
     hasUserKey: Boolean,
     availableModels: List<ChatViewModel.ChatRemoteModel>,
     selectedModel: ChatViewModel.ChatRemoteModel?,
@@ -1451,8 +1431,11 @@ private fun ModelCapsuleButton(
 }
 
 /** 模型圆点颜色（官方=蓝、自配=橙）。 */
+private val OFFICIAL_MODEL_COLOR = Color(0xFF2196F3)
+private val FALLBACK_MODEL_COLOR = Color(0xFFFF9800)
+
 private fun modelDotColor(model: ChatViewModel.ChatRemoteModel?): Color =
-    if (model?.id == "official") Color(0xFF2196F3) else Color(0xFFFF9800)
+    if (model?.id == "official") OFFICIAL_MODEL_COLOR else FALLBACK_MODEL_COLOR
 
 /**
  * 圆形图标按钮

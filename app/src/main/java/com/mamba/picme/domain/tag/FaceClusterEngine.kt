@@ -32,6 +32,7 @@ import kotlin.math.sqrt
  *
  * @param context Android Context（用于 Room 数据库访问和模型目录）
  */
+@Suppress("TooManyFunctions") // 待重构：聚类引擎，按职责拆分
 class FaceClusterEngine(private val context: Context) {
 
     companion object {

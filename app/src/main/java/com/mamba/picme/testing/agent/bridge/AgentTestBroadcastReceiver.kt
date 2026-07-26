@@ -72,11 +72,14 @@ import org.json.JSONObject
  * }
  * ```
  */
+@Suppress("LargeClass") // 待重构：测试 BroadcastReceiver，按命令族拆 handler
 class AgentTestBroadcastReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "AgentTestReceiver"
         const val ACTION_AGENT_TEST = "com.mamba.picme.AGENT_TEST"
+        private const val TEST_SAMPLE_COUNT = 30
+        private const val SUMMARY_MAX_CHARS = 400
 
         // 命令字段
         private const val EXTRA_SUITE = "suite"
@@ -305,6 +308,7 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
      *
      * 已废弃：保留用于兼容旧调用方式，新代码请使用 --es json 传递完整 JSON。
      */
+    @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：按命令族分发
     private fun handleSingleCommand(intent: Intent, context: Context) {
         val cmd = intent.getStringExtra(EXTRA_CMD) ?: return
         val param = intent.getStringExtra(EXTRA_PARAM)
@@ -824,12 +828,12 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         com.mamba.picme.domain.tag.florence2.Florence2Tokenizer.load(modelDir)
 
         // 创建 tagger + init
-        val tagger = com.mamba.picme.domain.tag.florence2.Florence2Tagger(context, modelDir)
+        val tagger = com.mamba.picme.domain.tag.florence2.Florence2Tagger(modelDir)
         if (!tagger.init()) return "Florence2Tagger init failed"
 
         // 取 DB 第一张未打标的「图片」（跳过视频——视频 URI 解不出 bitmap）
         val db = com.mamba.picme.data.local.AppDatabase.getDatabase(context)
-        val ids = db.mediaDao().getUnlabeledMediaIds().take(30)
+        val ids = db.mediaDao().getUnlabeledMediaIds().take(TEST_SAMPLE_COUNT)
         val media = db.mediaDao().getMediaByIds(ids)
         val entity = media.firstOrNull { it.type == MediaType.PHOTO }
             ?: return "No unlabeled image media found (checked ${media.size} items)"
@@ -880,12 +884,12 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             put("activity", result.activity)
             put("objects", org.json.JSONArray(result.objects))
             put("tags", org.json.JSONArray(result.tags))
-            put("summary", result.summary.take(400))
+            put("summary", result.summary.take(SUMMARY_MAX_CHARS))
             put("zh_scene", zh.scene)
             put("zh_activity", zh.activity)
             put("zh_objects", org.json.JSONArray(zh.objects))
             put("zh_tags", org.json.JSONArray(zh.tags))
-            put("zh_summary", zh.summary.take(400))
+            put("zh_summary", zh.summary.take(SUMMARY_MAX_CHARS))
         }.also { Logger.i(TAG, "[Florence2] full result: $it") }.toString()
     }
 }

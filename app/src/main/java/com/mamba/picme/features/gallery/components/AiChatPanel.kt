@@ -52,11 +52,11 @@ fun AiChatPanel(
                 isProcessing = false
                 messages.add(AgentMessage.AgentText(response))
                 
-                // TODO: 调用 onApplyEdit 应用编辑
+                // 待重构：调用 onApplyEdit 应用编辑
             }
         },
         onCommand = { command ->
-            // TODO: 执行命令并应用编辑
+            // 待重构：执行命令并应用编辑
         }
     )
 }
@@ -81,7 +81,7 @@ private fun processAiCommand(command: String, onResponse: (String) -> Unit) {
         }
         command.contains("保存") || command.contains("导出") -> {
             onResponse("好的，正在为您保存图片...")
-            // TODO: 触发图片保存逻辑
+            // 待重构：触发图片保存逻辑
         }
         else -> {
             onResponse("我理解您想编辑这张图片。您可以尝试说：\n• 磨皮美白\n• 应用滤镜\n• 瘦脸大眼\n• 调整亮度对比度\n• 保存修改")

@@ -6,6 +6,9 @@ package com.mamba.picme.domain.matting
  */
 object MaskPostProcessor {
 
+    private const val HALF_PIXEL = 0.5f
+    private const val ALPHA_MIDPOINT = 0.5f
+
     /** 概率 >= threshold 记为 1（前景），否则 0。 */
     fun binarize(probabilities: FloatArray, threshold: Float): FloatArray =
         FloatArray(probabilities.size) { i -> if (probabilities[i] >= threshold) 1f else 0f }
@@ -19,12 +22,12 @@ object MaskPostProcessor {
         val maxSx = (srcW - 1).toFloat()
         val maxSy = (srcH - 1).toFloat()
         for (y in 0 until dstH) {
-            val sy = ((y + 0.5f) * yScale - 0.5f).coerceIn(0f, maxSy)
+            val sy = ((y + HALF_PIXEL) * yScale - HALF_PIXEL).coerceIn(0f, maxSy)
             val y0 = sy.toInt()
             val y1 = (y0 + 1).coerceAtMost(srcH - 1)
             val fy = sy - y0
             for (x in 0 until dstW) {
-                val sx = ((x + 0.5f) * xScale - 0.5f).coerceIn(0f, maxSx)
+                val sx = ((x + HALF_PIXEL) * xScale - HALF_PIXEL).coerceIn(0f, maxSx)
                 val x0 = sx.toInt()
                 val x1 = (x0 + 1).coerceAtMost(srcW - 1)
                 val fx = sx - x0
@@ -87,7 +90,7 @@ object MaskPostProcessor {
     fun sharpenAlpha(alpha: FloatArray, contrast: Float): FloatArray {
         if (contrast == 1f) return alpha.copyOf()
         return FloatArray(alpha.size) { i ->
-            val v = (alpha[i] - 0.5f) * contrast + 0.5f
+            val v = (alpha[i] - ALPHA_MIDPOINT) * contrast + ALPHA_MIDPOINT
             when {
                 v <= 0f -> 0f
                 v >= 1f -> 1f

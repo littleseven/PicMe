@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.features.chat.capability
 
 import com.mamba.picme.agent.core.capability.BaseCapability
@@ -55,10 +56,12 @@ class ChatGallerySummaryCapability private constructor() : BaseCapability() {
 
     override fun supportedCommands(): List<String> = listOf("get_gallery_summary")
 
-    override fun getCommandDescription(command: String): String = when (command) {
-        "get_gallery_summary" -> "获取本地相册摘要，参数: include_details (boolean, 默认 false)"
-        else -> "未知命令"
-    }
+    override fun getCommandDescription(command: String): String =
+        if (command == "get_gallery_summary") {
+            "获取本地相册摘要，参数: include_details (boolean, 默认 false)"
+        } else {
+            "未知命令"
+        }
 
     override suspend fun execute(
         command: AgentCommand,
@@ -74,19 +77,18 @@ class ChatGallerySummaryCapability private constructor() : BaseCapability() {
                 )
             )
         return try {
-            when (command) {
-                is AgentCommand.GetGallerySummary -> {
-                    val summary = d.onGetGallerySummary(command.includeDetails)
-                    val message = summary?.let { formatSummaryForReply(it) }
-                        ?: "我还没拿到你的相册数据，可能是首次使用或尚未完成同步。我可以帮你启动 TAG 扫描，让人脸、场景和物体标签都生成出来。要开始吗？"
-                    Result.success(
-                        AgentAction.TextReply(
-                            commandId = command.commandId,
-                            message = message
-                        )
+            if (command is AgentCommand.GetGallerySummary) {
+                val summary = d.onGetGallerySummary(command.includeDetails)
+                val message = summary?.let { formatSummaryForReply(it) }
+                    ?: "我还没拿到你的相册数据，可能是首次使用或尚未完成同步。我可以帮你启动 TAG 扫描，让人脸、场景和物体标签都生成出来。要开始吗？"
+                Result.success(
+                    AgentAction.TextReply(
+                        commandId = command.commandId,
+                        message = message
                     )
-                }
-                else -> Result.success(
+                )
+            } else {
+                Result.success(
                     AgentAction.Error(
                         commandId = command.commandId,
                         errorCode = AgentErrorCode.METHOD_NOT_FOUND,

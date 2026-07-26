@@ -68,6 +68,7 @@ import java.io.IOException
  *   (normalizedWord → newWordId)、(lat/lon → newLocationId) 映射，再批量写入。
  * - 扫描任务统一重置为 PENDING，由调度器根据 lastTagScanAt 去重。
  */
+@Suppress("LongParameterList") // 待重构：依赖容器，考虑分组
 class TagDataBackupRepository(
     private val database: AppDatabase,
     private val mediaDao: MediaDao,

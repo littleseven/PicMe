@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.agent.capability
 
 import android.content.Context
@@ -44,10 +45,12 @@ class ImageEditCapability(
 
     override fun supportedCommands(): List<String> = listOf("edit_image")
 
-    override fun getCommandDescription(command: String): String = when (command) {
-        "edit_image" -> "根据自然语言描述编辑图片，参数: params (结构化编辑意图), image_uri (可选，目标图片 URI)"
-        else -> "未知命令"
-    }
+    override fun getCommandDescription(command: String): String =
+        if (command == "edit_image") {
+            "根据自然语言描述编辑图片，参数: params (结构化编辑意图), image_uri (可选，目标图片 URI)"
+        } else {
+            "未知命令"
+        }
 
     /**
      * 识别 LLM 标记的未支持编辑意图。

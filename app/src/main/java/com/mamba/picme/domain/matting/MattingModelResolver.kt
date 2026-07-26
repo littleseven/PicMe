@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught", "SwallowedException") // assets 不存在返回 null 是预期（已迁移到 ModelScope 下载）
 package com.mamba.picme.domain.matting
 
 import android.content.Context

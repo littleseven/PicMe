@@ -18,12 +18,8 @@ object QuickJsConverter {
         is Number -> JsValue.Num(o.toDouble())
         is String -> JsValue.Str(o)
         is List<*> -> JsValue.Arr(o.map { toJsValue(it) })
-        is JsObject -> JsValue.Obj(
-            linkedMapOf(*o.entries.map { it.key to toJsValue(it.value) }.toTypedArray())
-        )
-        is Map<*, *> -> JsValue.Obj(
-            linkedMapOf(*o.entries.map { it.key.toString() to toJsValue(it.value) }.toTypedArray())
-        )
+        is JsObject -> JsValue.Obj(o.entries.associate { it.key to toJsValue(it.value) })
+        is Map<*, *> -> JsValue.Obj(o.entries.associate { it.key.toString() to toJsValue(it.value) })
         else -> JsValue.Str(o.toString())
     }
 
@@ -34,8 +30,6 @@ object QuickJsConverter {
         is JsValue.Num -> v.value
         is JsValue.Str -> v.value
         is JsValue.Arr -> v.items.map { toQuickJS(it) }
-        is JsValue.Obj -> JsObject(
-            linkedMapOf(*v.entries.entries.map { it.key to toQuickJS(it.value) }.toTypedArray())
-        )
+        is JsValue.Obj -> JsObject(v.entries.mapValues { toQuickJS(it.value) })
     }
 }

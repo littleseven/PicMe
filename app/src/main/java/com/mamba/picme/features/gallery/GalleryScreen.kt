@@ -36,7 +36,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -87,11 +86,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CameraAlt
@@ -129,7 +126,6 @@ fun GalleryScreen(
     var isSearchLoading by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
     var searchResultMedia by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     val searchEngine = remember { GalleryCapability.getInstance().searchEngine }
-    val searchScope = rememberCoroutineScope()
 
     // 媒体库整体列表：用于在删除/授权完成后自动刷新搜索结果
     val allMedia by viewModel.allMedia.collectAsState()

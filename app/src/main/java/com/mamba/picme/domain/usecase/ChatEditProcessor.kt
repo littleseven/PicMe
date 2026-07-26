@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.usecase
 
 import android.content.Context
@@ -9,7 +10,6 @@ import android.provider.MediaStore
 import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
-import com.mamba.picme.beauty.api.toBeautyParams
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
 private const val TAG = "ChatEditProcessor"
+private const val JPEG_QUALITY = 95
 
 class ChatEditProcessor(
     private val photoProcessor: PhotoProcessor,
@@ -153,7 +154,7 @@ class ChatEditProcessor(
         val uri = context.contentResolver.insert(outputCollectionUri, values)
         return uri?.also {
             context.contentResolver.openOutputStream(it)?.use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
             }
         }?.toString()
     }

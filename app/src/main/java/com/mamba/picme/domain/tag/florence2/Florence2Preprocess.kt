@@ -1,5 +1,8 @@
 package com.mamba.picme.domain.tag.florence2
 
+private const val LUT_SIZE = 256
+private const val CHANNEL_MASK = 0xFF
+
 /**
  * Florence-2 图像预处理的纯函数部分（无 Android 依赖，JVM 可单测）：
  * ARGB_8888 像素 → ImageNet 归一化的 CHW float planes。
@@ -12,7 +15,7 @@ package com.mamba.picme.domain.tag.florence2
 /** 单通道 256 项归一化查找表：lut[v] = (v/255f - mean) / std。 */
 internal fun buildNormalizeLut(mean: Float, std: Float): FloatArray {
     val invStd = 1f / std
-    return FloatArray(256) { v -> (v / 255f - mean) * invStd }
+    return FloatArray(LUT_SIZE) { v -> (v / 255f - mean) * invStd }
 }
 
 /**
@@ -32,8 +35,8 @@ internal fun normalizePixelsToPlanes(
     val plane = pixels.size
     for (i in 0 until plane) {
         val px = pixels[i]
-        out[i] = rLut[(px shr 16) and 0xFF]
-        out[plane + i] = gLut[(px shr 8) and 0xFF]
-        out[2 * plane + i] = bLut[px and 0xFF]
+        out[i] = rLut[(px shr 16) and CHANNEL_MASK]
+        out[plane + i] = gLut[(px shr 8) and CHANNEL_MASK]
+        out[2 * plane + i] = bLut[px and CHANNEL_MASK]
     }
 }

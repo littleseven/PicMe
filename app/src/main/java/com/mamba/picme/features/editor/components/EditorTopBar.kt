@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongParameterList") // 待重构：抽 EditorTopBarState
 @Composable
 fun EditorTopBar(
     title: String,

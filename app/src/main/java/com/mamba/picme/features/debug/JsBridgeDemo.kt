@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.features.debug
 
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +65,7 @@ return { sum: sum, upper: up };"""
  * 可视化：console.log 与 eval 结果都展示在输出区（不再只进 logcat / Toast 一闪而过）。
  * JS 仅能通过 bridge 间接访问原生（QuickJS 沙箱：无 LiveConnect，仅 bridge 通道）。
  */
+@Suppress("LongMethod") // 待重构：抽 demo 项子组件
 @Composable
 fun JsBridgeDebugSection() {
     val context = LocalContext.current

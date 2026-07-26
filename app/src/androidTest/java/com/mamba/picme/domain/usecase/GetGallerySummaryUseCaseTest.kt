@@ -25,7 +25,7 @@ class GetGallerySummaryUseCaseTest {
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
-        useCase = GetGallerySummaryUseCase(context, db)
+        useCase = GetGallerySummaryUseCase(db)
     }
 
     @After

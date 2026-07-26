@@ -115,10 +115,8 @@ class StartTagScanUseCase(
         else -> taskType
     }
 
-    private fun displayMode(mode: String): String = when (mode.lowercase()) {
-        "full" -> "全量"
-        else -> "增量"
-    }
+    private fun displayMode(mode: String): String =
+        if (mode.lowercase() == "full") "全量" else "增量"
 }
 
 sealed class StartTagScanResult {

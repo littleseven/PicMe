@@ -774,6 +774,7 @@ private fun CategoryChip(
     )
 }
 
+@Suppress("LongParameterList") // 待重构：抽 stats 数据类
 @Composable
 private fun StatsCard(
     totalMedia: Int,

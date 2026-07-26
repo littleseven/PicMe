@@ -105,6 +105,7 @@ enum class SettingsCategory {
 
 private const val TAG = "Settings"
 
+@Suppress("LongMethod", "LongParameterList") // 待重构：SettingsScreen 抽 SettingsNav holder
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -308,6 +309,7 @@ fun SettingsScreen(
     }
 }
 
+@Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod") // 待重构：SettingsContent 按分类拆子屏
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsContent(

@@ -52,7 +52,12 @@ class DefaultTagPromptProvider : TagPromptProvider {
                 appendLine()
                 appendLine("Output ONLY a single valid JSON object. No explanation. No markdown. No extra text before or after.")
                 appendLine()
-                appendLine("{\"scene\":\"indoor or outdoor place\",\"activity\":\"what people are doing\",\"objects\":[\"object1\",\"object2\",\"object3\"],\"tags\":[\"tag1\",\"tag2\",\"tag3\",\"tag4\",\"tag5\",\"tag6\",\"tag7\",\"tag8\"],\"summary\":\"one sentence description\"}")
+                appendLine(
+                    "{\"scene\":\"indoor or outdoor place\",\"activity\":\"what people are doing\"," +
+                        "\"objects\":[\"object1\",\"object2\",\"object3\"]," +
+                        "\"tags\":[\"tag1\",\"tag2\",\"tag3\",\"tag4\",\"tag5\",\"tag6\",\"tag7\",\"tag8\"]," +
+                        "\"summary\":\"one sentence description\"}"
+                )
                 appendLine()
                 appendLine("Requirements:")
                 appendLine("- scene: one word, e.g. park, street, restaurant, office, home, beach, mountain")
@@ -69,7 +74,12 @@ class DefaultTagPromptProvider : TagPromptProvider {
                 appendLine()
                 appendLine("只输出一个合法的 JSON 对象。不要解释。不要用 markdown。JSON 前后不要有任何文字。")
                 appendLine()
-                appendLine("{\"scene\":\"室内或室外地点\",\"activity\":\"人物活动\",\"objects\":[\"物体1\",\"物体2\",\"物体3\"],\"tags\":[\"标签1\",\"标签2\",\"标签3\",\"标签4\",\"标签5\",\"标签6\",\"标签7\",\"标签8\"],\"summary\":\"一句话描述\"}")
+                appendLine(
+                    "{\"scene\":\"室内或室外地点\",\"activity\":\"人物活动\"," +
+                        "\"objects\":[\"物体1\",\"物体2\",\"物体3\"]," +
+                        "\"tags\":[\"标签1\",\"标签2\",\"标签3\",\"标签4\",\"标签5\",\"标签6\",\"标签7\",\"标签8\"]," +
+                        "\"summary\":\"一句话描述\"}"
+                )
                 appendLine()
                 appendLine("要求：")
                 appendLine("- scene：一个词，例如公园、街道、餐厅、办公室、家中、海边、山区")

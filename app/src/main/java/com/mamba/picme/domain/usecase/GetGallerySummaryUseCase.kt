@@ -1,6 +1,5 @@
 package com.mamba.picme.domain.usecase
 
-import android.content.Context
 import com.mamba.picme.agent.core.model.context.GallerySummary
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
@@ -16,9 +15,13 @@ import kotlinx.coroutines.withContext
  * - 返回 null 表示读取失败（如 Room 异常），上层应按“无数据”处理。
  */
 class GetGallerySummaryUseCase(
-    private val context: Context,
     private val db: AppDatabase
 ) {
+    companion object {
+        private const val PASS1_RATIO_THRESHOLD = 0.1
+        private const val PASS3_RATIO_THRESHOLD = 0.3
+    }
+
     suspend operator fun invoke(includeDetails: Boolean = false): GallerySummary? = withContext(Dispatchers.IO) {
         runCatching {
             val stats = TagScanOrchestrator.getDbStats(db)
@@ -26,9 +29,9 @@ class GetGallerySummaryUseCase(
             val isScanning = TagGenerationService.isScanning.value
 
             val recommendation = when {
-                stats.totalMedia > 0 && stats.remainingForPass1 > stats.totalMedia * 0.1 ->
+                stats.totalMedia > 0 && stats.remainingForPass1 > stats.totalMedia * PASS1_RATIO_THRESHOLD ->
                     GallerySummary.ScanRecommendation.PASS1_FIRST
-                stats.totalMedia > 0 && stats.remainingForPass3 > stats.totalMedia * 0.3 ->
+                stats.totalMedia > 0 && stats.remainingForPass3 > stats.totalMedia * PASS3_RATIO_THRESHOLD ->
                     GallerySummary.ScanRecommendation.PASS3_FULL
                 stats.remainingForPass3 > 0 ->
                     GallerySummary.ScanRecommendation.INCREMENTAL

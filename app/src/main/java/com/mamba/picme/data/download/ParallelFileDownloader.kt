@@ -28,6 +28,7 @@ class ParallelFileDownloader(private val client: OkHttpClient) {
      * @param isCancelled 调用方取消检测（取消时抛 IOException）
      * @throws IOException 区段 HTTP 非 206/200、响应体空、或最终大小不符
      */
+    @Suppress("ThrowsCount") // 多区段下载错误需抛 IOException 触发重试/失败
     suspend fun download(
         url: String,
         destFile: File,
@@ -56,7 +57,7 @@ class ParallelFileDownloader(private val client: OkHttpClient) {
                         .build()
                     val call = client.newCall(req)
                     call.execute().use { response ->
-                        if (response.code != 206 && response.code != 200) {
+                        if (response.code != HTTP_PARTIAL_CONTENT && response.code != HTTP_OK) {
                             throw IOException("Chunk $index HTTP ${response.code} for ${destFile.name} (Range 不支持?)")
                         }
                         val body = response.body ?: throw IOException("Empty body, chunk $index ${destFile.name}")
@@ -87,6 +88,8 @@ class ParallelFileDownloader(private val client: OkHttpClient) {
 
     companion object {
         private const val TAG = "Download"
+        private const val HTTP_PARTIAL_CONTENT = 206
+        private const val HTTP_OK = 200
 
         /** 单 chunk 读写缓冲 */
         private const val BUFFER_SIZE = 262144 // 256KB

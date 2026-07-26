@@ -1,9 +1,9 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.tag.florence2
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.mamba.picme.domain.tag.UnifiedTagResult
@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @param modelDir Florence-2 模型目录（含 4 个 INT8 ONNX + config/tokenizer 文件）。
  */
 class Florence2Tagger(
-    private val context: Context,
     private val modelDir: File
 ) {
     companion object {
@@ -520,7 +519,8 @@ class Florence2Tagger(
         val generatedIds = mutableListOf<Long>()
         val seq = mutableListOf(DECODER_START_TOKEN_ID)
 
-        for (step in 0 until MAX_NEW_TOKENS) {
+        var step = 0
+        while (step < MAX_NEW_TOKENS) {
             // embed 当前完整序列 [DEC_START, *gen]
             val seqArr = seq.toLongArray()
             val decLen = seqArr.size
@@ -559,6 +559,7 @@ class Florence2Tagger(
 
             generatedIds.add(bestId)
             seq.add(bestId)
+            step++
         }
 
         return generatedIds.toLongArray()

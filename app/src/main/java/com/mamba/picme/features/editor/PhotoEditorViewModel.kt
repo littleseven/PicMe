@@ -42,6 +42,7 @@ import java.util.concurrent.Executors
 private const val TAG = "PhotoEditorViewModel"
 private const val PREVIEW_MAX_DIM = 2048
 
+@Suppress("TooManyFunctions") // 待重构：编辑器 ViewModel，按工具组拆 delegate
 @OptIn(FlowPreview::class)
 class PhotoEditorViewModel(
     private val photoProcessor: PhotoProcessor,

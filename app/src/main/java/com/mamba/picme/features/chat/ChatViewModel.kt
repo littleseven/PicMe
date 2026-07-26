@@ -33,11 +33,8 @@ import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.model.StructuredFilter
-import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
-import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.StartTagScanResult
-import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import android.util.Log
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.js.JsValue
@@ -113,7 +110,7 @@ private const val STREAMING_THINKING_HINT = "正在思考..."
  * - 提供处理中状态（isProcessing）
  * - 管理会话列表和当前会话切换
  */
-@Suppress("TooManyFunctions") // UI 状态协调器，函数数量由会话管理辅助方法驱动
+@Suppress("TooManyFunctions", "LargeClass") // 待重构：UI 状态协调器，按职责拆分为多个 ViewModel/Delegate
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(
     dependencies: ChatViewModelDependencies
@@ -632,6 +629,7 @@ class ChatViewModel(
      * 6. 调用 [AgentOrchestrator.streamChat] 流式推理
      * 7. 推理完成后保存完整结果到 Room
      */
+    @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：sendMessage 按阶段拆分为 send/parse/persist
     fun sendMessage(text: String, imageUri: String? = null) {
         if (text.isBlank()) return
 
@@ -926,6 +924,7 @@ class ChatViewModel(
     /**
      * 将 AgentAction 渲染为聊天消息
      */
+    @Suppress("LongMethod", "NestedBlockDepth") // 待重构：handleAgentAction 按 Action 类型分发
     private suspend fun handleAgentAction(
         action: AgentAction?,
         sessionId: String,
@@ -2078,6 +2077,7 @@ class ChatViewModel(
         null
     }
 
+    @Suppress("CyclomaticComplexMethod") // 待重构：toUiModel 按消息类型映射抽表
     private fun ChatMessageEntity.toUiModel(): ChatMessageUi {
         val isMediaResults = type == "media_results"
         val performance = if (isMediaResults) null else metadata?.let { parsePerformanceMetadata(it) }

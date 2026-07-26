@@ -603,8 +603,6 @@ class TagScanOrchestrator(
         logInfo(sessionId, "会话开始运行")
         acquireWakeLock()
 
-        var qwenModelPrepared = false
-        var mobileClipClassifierPrepared = false
 
         try {
             while (currentCoroutineContext().isActive) {

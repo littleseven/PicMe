@@ -7,6 +7,7 @@ object ModNetPreprocessor {
     const val INPUT_SIZE = 1024
     private const val MEAN = 0.5f
     private const val STD = 0.5f
+    private const val CHANNEL_MASK = 0xFF
 
     /** pixels：ARGB IntArray，长度 = size*size。返回 NCHW [3*size*size]。 */
     fun toNchw(pixels: IntArray, size: Int = INPUT_SIZE): FloatArray {
@@ -14,9 +15,9 @@ object ModNetPreprocessor {
         val out = FloatArray(3 * plane)
         for (i in 0 until plane) {
             val p = pixels[i]
-            val r = (((p shr 16) and 0xFF) / 255f - MEAN) / STD
-            val g = (((p shr 8) and 0xFF) / 255f - MEAN) / STD
-            val b = ((p and 0xFF) / 255f - MEAN) / STD
+            val r = (((p shr 16) and CHANNEL_MASK) / 255f - MEAN) / STD
+            val g = (((p shr 8) and CHANNEL_MASK) / 255f - MEAN) / STD
+            val b = ((p and CHANNEL_MASK) / 255f - MEAN) / STD
             out[i] = r
             out[plane + i] = g
             out[2 * plane + i] = b

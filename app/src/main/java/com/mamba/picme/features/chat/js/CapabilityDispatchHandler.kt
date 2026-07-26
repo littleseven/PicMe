@@ -53,6 +53,7 @@ class CapabilityDispatchHandler(
     /** 注册到 JsRuntime 的 NativeHandler 形态。 */
     fun asNativeHandler(): NativeHandler.Async = asyncHandler("capability.dispatch") { args -> invoke(args) }
 
+    @Suppress("ThrowsCount") // 多个参数校验 throw 是必要的前置检查
     suspend fun invoke(args: JsValue): JsValue {
         val obj = args as? JsValue.Obj
             ?: throw JsBridgeException(
@@ -136,10 +137,8 @@ class CapabilityDispatchHandler(
     private fun boolParam(params: JsValue.Obj?, name: String, default: Boolean): Boolean =
         (params?.entries?.get(name) as? JsValue.Bool)?.value ?: default
 
-    private fun targetCountOf(command: AgentCommand): Int = when (command) {
-        is AgentCommand.DeleteMedia -> command.mediaIds.size
-        else -> 1
-    }
+    private fun targetCountOf(command: AgentCommand): Int =
+        if (command is AgentCommand.DeleteMedia) command.mediaIds.size else 1
 
     /** 确认框预览用的媒体 id（前 [MAX_PREVIEW_IDS] 个；由调用方解析为缩略图）。 */
     private fun previewIdsOf(command: AgentCommand): List<String> = when (command) {

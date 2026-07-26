@@ -30,6 +30,7 @@ import com.mamba.picme.data.remote.picme.PoLangAuthClient
  * @param sendCode 发送验证码；回调在主线程触发，携带结果。
  * @param verifyCode 校验验证码；调用方在成功分支里自行持久化 token。
  */
+@Suppress("LongMethod") // 待重构：抽表单字段子组件
 @Composable
 fun EmailCodeAuthForm(
     sendCode: (email: String, onResult: (Result<Unit>) -> Unit) -> Unit,

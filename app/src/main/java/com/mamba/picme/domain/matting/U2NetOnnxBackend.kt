@@ -1,16 +1,15 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.matting
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import java.nio.FloatBuffer
 
 /** u2netp ONNX Runtime 推理后端。返回概率图 FloatArray（长度 INPUT_SIZE^2，0..1），失败返回 null。 */
 class U2NetOnnxBackend(
-    context: Context,
     private val resolver: MattingModelResolver
 ) {
     companion object {
@@ -18,7 +17,6 @@ class U2NetOnnxBackend(
         private const val MODEL_ID = "u2netp-onnx"
     }
 
-    private val appContext = context.applicationContext
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
     private var session: OrtSession? = null
 

@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.features.tagviewer
 
 import android.app.Application
@@ -135,11 +136,10 @@ class TagViewerViewModel(application: Application) : AndroidViewModel(applicatio
     private fun PhotoTagsItem.matches(keyword: String): Boolean {
         if (fileName.lowercase().contains(keyword)) return true
         val parsed = this.parsed ?: return false
-        if (parsed.scene.lowercase().contains(keyword)) return true
-        if (parsed.activity.lowercase().contains(keyword)) return true
-        if (parsed.tags.any { label -> label.lowercase().contains(keyword) }) return true
-        if (parsed.objects.any { label -> label.lowercase().contains(keyword) }) return true
-        return false
+        return parsed.scene.lowercase().contains(keyword) ||
+            parsed.activity.lowercase().contains(keyword) ||
+            parsed.tags.any { label -> label.lowercase().contains(keyword) } ||
+            parsed.objects.any { label -> label.lowercase().contains(keyword) }
     }
 
     private fun MediaEntity.toItem(feedbackType: String? = null): PhotoTagsItem = PhotoTagsItem(

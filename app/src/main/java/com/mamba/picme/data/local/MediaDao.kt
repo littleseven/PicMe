@@ -37,7 +37,11 @@ interface MediaDao {
     suspend fun searchByLabel(label: String): List<MediaEntity>
 
     /** 按标签搜索（labels/labelsEn/labelsZh 三字段 OR：中英文直查 + 覆盖新老数据） */
-    @Query("SELECT * FROM media_assets WHERE labels LIKE '%' || :keyword || '%' OR labelsEn LIKE '%' || :keyword || '%' OR labelsZh LIKE '%' || :keyword || '%' ORDER BY captureDate DESC")
+    @Query(
+        "SELECT * FROM media_assets WHERE labels LIKE '%' || :keyword || '%' " +
+            "OR labelsEn LIKE '%' || :keyword || '%' " +
+            "OR labelsZh LIKE '%' || :keyword || '%' ORDER BY captureDate DESC"
+    )
     suspend fun searchByLabelAllFields(keyword: String): List<MediaEntity>
 
     /** 按 OCR 文本搜索 */
@@ -448,7 +452,12 @@ interface MediaDao {
     suspend fun searchLabelsInIds(ids: List<Long>, keyword: String): List<MediaEntity>
 
     /** 在指定 ID 列表中按标签搜索（labels/labelsEn/labelsZh 三字段 OR） */
-    @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND (labels LIKE '%' || :keyword || '%' OR labelsEn LIKE '%' || :keyword || '%' OR labelsZh LIKE '%' || :keyword || '%')")
+    @Query(
+        "SELECT * FROM media_assets WHERE id IN (:ids) AND (" +
+            "labels LIKE '%' || :keyword || '%' " +
+            "OR labelsEn LIKE '%' || :keyword || '%' " +
+            "OR labelsZh LIKE '%' || :keyword || '%')"
+    )
     suspend fun searchLabelsAllFieldsInIds(ids: List<Long>, keyword: String): List<MediaEntity>
 
     /** 在指定 ID 列表中搜索 ML Kit 英文标签 */
@@ -502,6 +511,7 @@ interface MediaDao {
         WHERE id = :mediaId
         """
     )
+    @Suppress("LongParameterList") // 待重构：改为 data class 入参
     suspend fun updateTagMetadataFromBackup(
         mediaId: Long,
         labels: String?,

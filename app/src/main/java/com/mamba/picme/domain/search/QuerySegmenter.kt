@@ -31,10 +31,10 @@ object QuerySegmenter {
     /** 中文月份数字（一～十二） */
     private const val CHINESE_MONTH = "[一二三四五六七八九十]{1,3}"
 
-    private val RELATIVE_YEAR_LIKE =
+    private const val RELATIVE_YEAR_LIKE =
         "近半年|最近半年|半年内|近一年|最近一年|一年内|近两年|最近两年|两年内"
 
-    private val RELATIVE_MONTHS =
+    private const val RELATIVE_MONTHS =
         "(?:近|最近)\\d{1,2}个月|\\d{1,2}个月内|(?:近|最近)[一二三四五六七八九十]{1,3}个月"
 
     private val TIME_PATTERN = Regex(

@@ -97,11 +97,6 @@ class MediaIndexingWorker(
         val db = AppDatabase.getDatabase(context)
         val dao = db.mediaDao()
 
-        if (!waitForModelReady()) {
-            Logger.w(TAG, "ML Kit model not ready, deferring indexing")
-            return
-        }
-
         val extractor = MetadataExtractor(context, idCardRecognizer)
         val ocrIndexUpdater = OcrIndexUpdater(db.ocrWordDao())
         val locationIndexUpdater = LocationIndexUpdater(db.locationDao())
@@ -241,10 +236,4 @@ class MediaIndexingWorker(
 
     // ── 模型预热 ──────────────────────────────────────────
 
-    /**
-     * ML Kit 图像标注已移除，OCR 模型按需使用，无需阻塞索引等待下载。
-     */
-    private fun waitForModelReady(): Boolean {
-        return true
-    }
 }

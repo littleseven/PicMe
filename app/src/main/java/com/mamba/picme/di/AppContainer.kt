@@ -483,7 +483,7 @@ class AppContainerImpl(
     }
 
     override val getGallerySummaryUseCase: GetGallerySummaryUseCase by lazy {
-        GetGallerySummaryUseCase(context = context, db = database)
+        GetGallerySummaryUseCase(db = database)
     }
 
     override val queryGalleryMediaUseCase: QueryGalleryMediaUseCase by lazy {

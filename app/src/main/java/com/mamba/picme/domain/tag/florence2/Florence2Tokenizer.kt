@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.domain.tag.florence2
 
 import android.util.Log
@@ -66,19 +67,16 @@ object Florence2Tokenizer {
         val sb = StringBuilder()
         for (id in tokenIds) {
             val token = idToToken[id.toInt()] ?: continue
-            when {
-                token.startsWith("<") && token.endsWith(">") -> {
-                    // 特殊 token：保留原样（parser 处理）
-                    sb.append(token)
-                }
-                else -> {
-                    // BPE 子词：Ġ→空格，Ċ→换行
-                    val decoded = token
-                        .replace("Ġ", " ")
-                        .replace("Ċ", "\n")
-                        .replace("▁", " ") // 备用
-                    sb.append(decoded)
-                }
+            if (token.startsWith("<") && token.endsWith(">")) {
+                // 特殊 token：保留原样（parser 处理）
+                sb.append(token)
+            } else {
+                // BPE 子词：Ġ→空格，Ċ→换行
+                val decoded = token
+                    .replace("Ġ", " ")
+                    .replace("Ċ", "\n")
+                    .replace("▁", " ") // 备用
+                sb.append(decoded)
             }
         }
         return sb.toString().trim()
@@ -87,7 +85,7 @@ object Florence2Tokenizer {
     /**
      * 占位方法（task prompt 的 token ids 已在 Tagger 中硬编码）。
      */
-    fun tokenizeTask(task: String): LongArray {
+    fun tokenizeTask(): LongArray {
         throw UnsupportedOperationException("Task token ids are hardcoded in Florence2Tagger")
     }
 }

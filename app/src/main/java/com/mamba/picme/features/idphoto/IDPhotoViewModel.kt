@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught") // 通用兜底：catch(Exception) 防崩溃，已记录日志
 package com.mamba.picme.features.idphoto
 
 import android.content.Context
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "PoLang:IDPhoto"
 private const val DECODE_MAX_DIM = 1024
+private const val JPEG_QUALITY = 95
 
 class IDPhotoViewModel(
     private val mattingEngine: MattingEngine,
@@ -144,7 +146,7 @@ class IDPhotoViewModel(
         val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
         return uri?.also {
             context.contentResolver.openOutputStream(it)?.use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
             }
         }?.toString()
     }

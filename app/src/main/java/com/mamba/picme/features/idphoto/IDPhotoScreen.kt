@@ -41,6 +41,7 @@ import com.mamba.picme.features.idphoto.components.ColorSwatchRow
 import com.mamba.picme.features.idphoto.components.SizeChipRow
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod") // 待重构：抽 IDPhoto 控制面板子组件
 @Composable
 fun IDPhotoScreen(
     sourceUri: String,
