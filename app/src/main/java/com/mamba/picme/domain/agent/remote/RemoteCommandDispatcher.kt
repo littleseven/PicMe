@@ -23,12 +23,12 @@ import java.util.UUID
 /**
  * 远程命令调度器
  *
- * 接收飞书消息，统一通过 [AgentOrchestrator.processFeishuInput] 处理，
+ * 接收飞书消息，统一通过 [AgentOrchestrator.processRemoteImInput] 处理，
  * 使用 ReAct 循环完成应用内 UI 自动化，并将结果通过 [FeishuChannelHandler] 回复给用户。
  *
  * **架构（2026-06-18，ADR-006 Phase 5）**：
  * - ReAct Agent 生命周期由 [AgentConfigurator] 管理（懒创建、缓存、清理）
- * - [AgentOrchestrator] 提供统一的 `processFeishuInput()` 入口
+ * - [AgentOrchestrator] 提供统一的 `processRemoteImInput()` 入口
  * - 本调度器仅负责：消息接收 → 调用 Orchestrator → 结果回复
  *
  * **聊天记录同步（2026-06-19）**：
@@ -64,7 +64,7 @@ class RemoteCommandDispatcher(
     /**
      * 接收飞书消息并启动 ReAct Agent 处理
      *
-     * 统一通过 [AgentOrchestrator.processFeishuInput] 执行 ReAct 循环，
+     * 统一通过 [AgentOrchestrator.processRemoteImInput] 执行 ReAct 循环，
      * 当 Agent 不可用时回退到原有 [AgentOrchestrator.processUserInput] 路径。
      * 所有收发消息同步写入本地聊天记录。
      *
@@ -114,7 +114,7 @@ class RemoteCommandDispatcher(
                 // ── ReAct Agent 路径（统一走 AgentOrchestrator）──
                 try {
                     val result = withTimeout(TIMEOUT_MS) {
-                        orchestrator.processFeishuInput(text, wm, TIMEOUT_MS)
+                        orchestrator.processRemoteImInput(text, wm, TIMEOUT_MS)
                     }
                     val reply = result.fold(
                         onSuccess = { it },
