@@ -1354,8 +1354,8 @@ data class ModelConfig(
             "face-det-retina500m-mnn",  // MNN ROI (Det500M)
             "face-landmark-2d106-mnn",  // MNN 2D106
             "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
+            "florence2_base",           // 图片打标（默认 tagger，Pass 3）
             "mobileclip-onnx",          // 语义搜索
-            "qwen3_vl_2b",              // 图片标签生成（Pass 3，默认 tagger）
             "opus-mt-zh-en",            // 中文查询翻译
             "opus-mt-en-zh"             // 英文 summary 汉化（labelsZh）
         )
@@ -1370,6 +1370,17 @@ data class ModelConfig(
             "sherpa-onnx-zipformer-zh-en", // ASR（语音输入）
             "sherpa-onnx-kws-zipformer-wenetspeech" // KWS（唤醒词）
         )
+
+        /**
+         * 推荐模型 ID 集合（Tier 2：非核心，WiFi 下可静默预下载）。
+         *
+         * 含本地 LLM/语音（[CHAT_MODEL_IDS]）、证件照抠图、相册人脸标记预览。
+         */
+        val RECOMMENDED_MODEL_IDS: Set<String> = CHAT_MODEL_IDS + setOf(
+            "modnet-onnx",                  // 证件照/抠图
+            "u2netp-onnx",                  // 证件照/抠图（轻量）
+            "mediapipe-face-landmarker"     // 相册人脸标记预览
+        )
     }
 
     /**
@@ -1381,6 +1392,9 @@ data class ModelConfig(
      * 该模型是否为必须下载的核心模型
      */
     val isRequired: Boolean get() = id in REQUIRED_MODEL_IDS
+
+    /** 该模型是否为推荐（非必须）模型。 */
+    val isRecommended: Boolean get() = id in RECOMMENDED_MODEL_IDS
 
     /**
      * 获取模型的第一个分类标签，用于确定所属 Tab
