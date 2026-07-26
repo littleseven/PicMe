@@ -40,7 +40,7 @@ import java.io.File
  */
 class FeishuChannelHandler(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-) {
+) : RemoteChannel {
     private var apiClient: com.lark.oapi.Client? = null
     private var wsClient: FeishuWsClient? = null
     private var appId: String = ""
@@ -51,7 +51,7 @@ class FeishuChannelHandler(
      * 用于 UI 展示和 reconnectIfNeeded 决策
      */
     @Volatile
-    var isConnected: Boolean = false
+    override var isConnected: Boolean = false
         private set
 
     /**
@@ -64,12 +64,12 @@ class FeishuChannelHandler(
     /**
      * 连接状态回调（供 UI/日志使用）
      */
-    var onConnectionStateChanged: ((connected: Boolean) -> Unit)? = null
+    override var onConnectionStateChanged: ((connected: Boolean) -> Unit)? = null
 
     /**
      * 消息接收回调（供 RemoteCommandDispatcher 使用）
      */
-    var onMessageReceived: ((text: String, messageId: String) -> Unit)? = null
+    override var onMessageReceived: ((text: String, replyToken: String) -> Unit)? = null
 
 
     private val eventHandler: EventDispatcher by lazy {
@@ -212,7 +212,7 @@ class FeishuChannelHandler(
      * @param content 文本内容
      * @param messageId 要回复的消息 ID
      */
-    fun sendMessage(content: String, messageId: String) {
+    override fun sendMessage(text: String, replyToken: String) {
         val client = apiClient
         if (client == null) {
             Logger.w(TAG, "发送消息失败：客户端未初始化")
@@ -221,13 +221,13 @@ class FeishuChannelHandler(
 
         scope.launch {
             try {
-                val isMarkdown = containsMarkdown(content)
+                val isMarkdown = containsMarkdown(text)
                 val msgType = if (isMarkdown) "post" else "text"
-                val jsonContent = if (isMarkdown) buildPostJson(content) else buildTextJson(content)
+                val jsonContent = if (isMarkdown) buildPostJson(text) else buildTextJson(text)
 
                 val resp = client.im().message().reply(
                     ReplyMessageReq.newBuilder()
-                        .messageId(messageId)
+                        .messageId(replyToken)
                         .replyMessageReqBody(
                             ReplyMessageReqBody.newBuilder()
                                 .msgType(msgType)
@@ -251,12 +251,12 @@ class FeishuChannelHandler(
      * @param imageBytes 图片字节数组
      * @param messageId 要回复的消息 ID
      */
-    fun sendImage(imageBytes: ByteArray, messageId: String) {
+    override fun sendImage(bytes: ByteArray, replyToken: String) {
         scope.launch {
             try {
-                val imageKey = uploadImage(imageBytes)
+                val imageKey = uploadImage(bytes)
                 if (imageKey != null) {
-                    replyImage(imageKey, messageId)
+                    replyImage(imageKey, replyToken)
                 } else {
                     Logger.e(TAG, "图片上传失败，imageKey 为空")
                 }
@@ -468,6 +468,8 @@ class FeishuChannelHandler(
 
     private fun buildTextJson(content: String): String =
         JSONObject().put("text", content).toString()
+
+    override val channelId: String = "feishu"
 
     companion object {
         private const val TAG = "FeishuHandler"
