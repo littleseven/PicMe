@@ -224,7 +224,7 @@ class ChatToolService private constructor() {
 
     @Tool(
         name = "remember_person_relation",
-        value = ["记住人物与「我」的关系，如用户说「小宝是我女儿」「记住我老婆是阿珍」。name 为已命名人物名（须已在相册人物分组命名，未命名会返回引导提示），relation 为关系谓词（spouse/child/parent/sibling/grandparent/grandchild/other_family/friend/colleague/other）或中文称谓（女儿/老公/爸爸等）。重复声明自动覆盖旧关系。"]
+        value = ["记住人物与「我」的关系，如用户说「小宝是我女儿」「大宝是我发小」。name 为已命名人物名（须已在相册人物分组命名，未命名会返回引导提示），relation 为关系谓词（spouse/partner/son/daughter/child/father/mother/parent/elder_brother/elder_sister/younger_brother/younger_sister/sibling/grandfather/grandmother/grandparent/other_family/friend/classmate/colleague/other）、中文称谓（女儿/老公/对象等）或任意自定义称呼原话（发小/闺蜜等，按原话记住）。重复声明自动覆盖旧关系。"]
     )
     fun rememberPersonRelation(
         @P(name = "name", value = "已命名人物名") name: String,
