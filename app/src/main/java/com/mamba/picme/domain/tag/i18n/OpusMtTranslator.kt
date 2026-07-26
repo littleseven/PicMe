@@ -13,14 +13,15 @@ import java.nio.LongBuffer
 class OpusMtTranslator(
     private val context: Context,
     private val modelDir: File? = null,
-    initialSrcTag: String = ">>zho<<"
+    initialSrcTag: String = ">>zho<<",
+    private val useLangTag: Boolean = true
 ) {
     companion object {
         private const val TAG = "OpusMtTranslator"
         private const val ENCODER_MODEL = "encoder_model_quantized.onnx"
         private const val DECODER_MODEL = "decoder_model_quantized.onnx"
         private const val DECODER_PAST_MODEL = "decoder_with_past_model_quantized.onnx"
-        private const val MAX_OUTPUT = 32
+        private const val MAX_OUTPUT = 200
         private const val NUM_LAYERS = 6
         private val ortEnv by lazy { OrtEnvironment.getEnvironment() }
     }
@@ -92,7 +93,19 @@ class OpusMtTranslator(
     fun translate(text: String): String {
         if (!isInit) init()
         if (!isInit || text.isBlank()) return text
-        return try { translateInternal(text.trim()) } catch (e: Exception) { Log.w(TAG, "Translation failed", e); text }
+        return try {
+            // MarianMT 贪心解码在长输入上倾向提前 EOS 截断（只翻第一句）。
+            // 按句切分逐句独立解码再拼接，每句短输入更完整、更准。
+            val trimmed = text.trim()
+            val sentences = trimmed.split(Regex("(?<=[.!?。！？])\\s+"))
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            if (sentences.size <= 1) {
+                translateInternal(trimmed)
+            } else {
+                sentences.joinToString("") { translateInternal(it).trim() }
+            }
+        } catch (e: Exception) { Log.w(TAG, "Translation failed", e); text }
     }
 
     fun release() {
@@ -107,7 +120,7 @@ class OpusMtTranslator(
         val src = srcTok!!; val tgt = tgtTok!!
 
         // SP encode → HF 映射 → encoder input（末尾加 EOS=0）
-        val useLangTag = true
+        // 双语 opus-mt 不需要语言标签前缀（>>eng<< 是多语模型的用法）；useLangTag=false 时不加。
         val fullInput = if (useLangTag) "$srcTag $input" else input
         val spIds = src.encode(fullInput)
         val inputIds = spToHf?.let { s2h ->
@@ -217,8 +230,10 @@ class OpusMtTranslator(
             }
         } else resultIds.filter { it < tgt.vocabSize() }.map { it.toInt() }
         var result = if (spOut.isEmpty()) "" else tgt.decode(spOut.toIntArray())
-        // 清理 SentencePiece 空格标记 → 普通空格 + 去前导非字母字符
-        result = result.replace('▁', ' ').replace(Regex("^[^a-zA-Z0-9]*"), "").trim()
+        // 清理 SentencePiece 空格标记（▁→空格）+ 去首尾空白。
+        // ⚠️ 不能用 `^[^a-zA-Z0-9]*` 之类去前导非字母——en→zh 输出全是中文字符（非 ASCII 字母数字），
+        // 会被整体清空（曾导致中文 summary 为 ""）。噪音字符（▁/♪/⁇）已在上面 spOut 映射时过滤。
+        result = result.replace('▁', ' ').trim()
         return result
     }
 }

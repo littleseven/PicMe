@@ -10,18 +10,21 @@ import com.mamba.picme.domain.tag.UnifiedTagResult
  * 使中文 UI 展示与中文搜索直接命中（无需运行时翻译）。
  *
  * - **主路径**：[ControlledVocab] 平行数组（scene/sceneEn … 同下标=同概念）。它本就是双语，
- *   canonical 英文命中即 100% 有对应中文（验证：720 canonical 对，常见照片标签覆盖 ~90%）。
- * - **兜底**：[BilingualVocab.enToZh]（free-form 翻译，补 canonical 之外）。
- * - **未命中**：保留英文原词（中文搜索该词落空，但英文搜索仍命中 `labels_en`）。
+ *   canonical 英文命中即 100% 有对应中文。
+ * - **兜底 1**：[BilingualVocab.enToZh]（free-form 词表，补 canonical 之外）。
+ * - **兜底 2**：[translateLabel]（en→zh MT；Florence-2 等开放词汇模型会产出词表外的标签，
+ *   词表未命中时走 MT 兜底，避免留英文。缺省 identity = 留英文）。
  * - **summary**：走注入的 [translateSummary]（en→zh MT；缺省 identity，summary_zh 留英文）。
  * - **face**：语言无关，原样复制。
  *
  * @param translateSummary en→zh 整句翻译（如 OpusMtTranslator(en→zh)）；默认不翻译。
+ * @param translateLabel en→zh 单标签翻译（词表未命中兜底）；默认不翻译（留英文）。
  */
 class LabelSinicizer(
     private val controlledVocab: ControlledVocab,
     private val bilingualVocab: BilingualVocab = BilingualVocab.empty(),
-    private val translateSummary: (String) -> String = { it }
+    private val translateSummary: (String) -> String = { it },
+    private val translateLabel: (String) -> String = { it }
 ) {
 
     private val enToZh: Map<String, String> by lazy { buildEnToZh() }
@@ -59,7 +62,9 @@ class LabelSinicizer(
 
     private fun toZh(en: String): String {
         if (en.isBlank()) return en
-        return enToZh[en.trim().lowercase()] ?: en
+        val key = en.trim().lowercase()
+        // 词表命中（curated，高质量）优先；未命中走 MT 兜底（开放词汇模型的自由标签）
+        return enToZh[key] ?: translateLabel(en.trim()).ifBlank { en }
     }
 
     /**

@@ -141,11 +141,13 @@ class TagGenerationScheduler(
     private val personDao = db.personDao()
     private val vocab = ControlledVocab.loadFromAssets(context)
     private val enToZhTranslator: OpusMtTranslator by lazy {
-        // initialSrcTag=">>eng<<"：en→zh 源语是英文（Marian 语言标签决定输出语种，必须正确）
+        // 双语 opus-mt-en-zh 不需要 `>>eng<<` 语言标签前缀（那是多语模型的用法）；
+        // 实测加 tag 会诱发幻觉（"白马王子"），故 useLangTag=false。
         OpusMtTranslator(
             context,
             ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_OPUS_MT_EN_ZH),
-            initialSrcTag = ">>eng<<"
+            initialSrcTag = ">>eng<<",
+            useLangTag = false
         )
     }
 
@@ -155,7 +157,10 @@ class TagGenerationScheduler(
             bilingualVocab = BilingualVocab.loadFromAssets(context),
             // en→zh summary：opus-mt-en-zh 翻译整句。
             // 模型未下载/初始化失败时 translate 原样返回英文（OpusMtTranslator 内部兜底），summary_zh 暂留英文。
-            translateSummary = { en -> enToZhTranslator.translate(en) }
+            translateSummary = { en -> enToZhTranslator.translate(en) },
+            // en→zh 单标签兜底：Florence-2 等开放词汇模型会产出词表外的自由标签（portrait/pendant/...），
+            // 词表未命中时走 MT，避免 labelsZh 留一堆英文。
+            translateLabel = { en -> enToZhTranslator.translate(en) }
         )
     }
 

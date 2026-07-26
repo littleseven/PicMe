@@ -53,14 +53,29 @@ class LabelSinicizerTest {
 
     @Test
     fun keeps_english_when_no_mapping_exists() {
+        // 未注入 translateLabel 时，词表未命中保留英文（默认 identity）
         val zh = LabelSinicizer(vocab, bilingual).sinicize(en())
         // walking 无任何映射 -> 保留英文
         assertEquals("walking", zh.activity)
     }
 
     @Test
+    fun translates_unmapped_label_via_injected_translator() {
+        // Florence-2 出自由词汇（portrait/young/...），词表命中率低；
+        // 词表未命中时应走注入的 translateLabel（英→中 MT）兜底，而不是留英文。
+        val zh = LabelSinicizer(
+            controlledVocab = vocab,
+            bilingualVocab = bilingual,
+            translateLabel = { en -> "[$en]" }
+        ).sinicize(en().copy(activity = "walking", objects = listOf("cat", "pendant")))
+        // walking 词表未命中 -> 走 translateLabel；cat 词表命中 -> 猫（不走 MT）
+        assertEquals("[walking]", zh.activity)
+        assertEquals(listOf("猫", "[pendant]"), zh.objects)
+    }
+
+    @Test
     fun translates_summary_via_injected_translator() {
-        val zh = LabelSinicizer(vocab, bilingual) { "$it[ZH]" }.sinicize(en())
+        val zh = LabelSinicizer(vocab, bilingual, translateSummary = { "$it[ZH]" }).sinicize(en())
         assertEquals("a cat indoors at sunset[ZH]", zh.summary)
     }
 

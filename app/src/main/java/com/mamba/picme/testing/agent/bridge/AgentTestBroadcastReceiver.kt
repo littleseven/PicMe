@@ -334,6 +334,30 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             return
         }
 
+        // opus-mt en→zh 翻译验证：加载模型 + 翻译 param（缺省用 Florence-2 风格 summary）+ 返回结果
+        if (cmd.equals("test_opus_mt", ignoreCase = true)) {
+            scope.launch {
+                try {
+                    val result = testOpusMt(context, param)
+                    sendResponse(context, JSONObject().apply {
+                        put("type", "cmd_result")
+                        put("cmd", "test_opus_mt")
+                        put("status", "success")
+                        put("result", result)
+                    }.toString())
+                } catch (e: Exception) {
+                    Logger.e(TAG, "opus-mt test failed", e)
+                    sendResponse(context, JSONObject().apply {
+                        put("type", "cmd_result")
+                        put("cmd", "test_opus_mt")
+                        put("status", "error")
+                        put("error", e.message ?: "Unknown")
+                    }.toString())
+                }
+            }
+            return
+        }
+
         // TAG 扫描命令：直接启动 TagGenerationService，不经过 CapabilityRegistry
         if (handleTagScanCommand(cmd, context)) {
             sendResponse(context, JSONObject().apply {
@@ -756,6 +780,36 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
     }
 
     /**
+     * opus-mt en→zh 翻译验证：加载 en-zh 模型 + 翻译 [text] + 返回 {init, input, output}。
+     * 缺省 text 用 Florence-2 风格 summary，便于诊断汉化质量/截断。
+     */
+    private suspend fun testOpusMt(context: Context, text: String?): String {
+        val dir = com.mamba.picme.data.download.ModelPathConfig.getModelDir(
+            context, com.mamba.picme.data.download.ModelPathConfig.MODEL_ID_OPUS_MT_EN_ZH
+        )
+        val input = if (text.isNullOrBlank()) {
+            "The image is a portrait of a young woman with a serious expression. She has dark hair and is wearing a necklace."
+        } else {
+            text
+        }
+        val tr = com.mamba.picme.domain.tag.i18n.OpusMtTranslator(
+            context, dir, initialSrcTag = ">>eng<<", useLangTag = false
+        )
+        val ok = tr.init()
+        if (!ok) { tr.release(); return JSONObject().put("init", false).toString() }
+        val startMs = System.currentTimeMillis()
+        val output = tr.translate(input)
+        val durationMs = System.currentTimeMillis() - startMs
+        tr.release()
+        return JSONObject().apply {
+            put("input", input)
+            put("output", output)
+            put("output_len", output.length)
+            put("duration_ms", durationMs)
+        }.also { Logger.i(TAG, "[opus-mt] result: $it") }.toString()
+    }
+
+    /**
      * Florence-2 打标验证：加载模型 + 取 DB 第一张图 + tag() + 返回结果 JSON。
      */
     private suspend fun testFlorence2(context: Context): String {
@@ -798,6 +852,27 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         bitmap.recycle()
         tagger.release()
 
+        // 汉化（镜像 TagGenerationScheduler 的 labelSinicizer 配置）
+        val zh = try {
+            val mtDir = com.mamba.picme.data.download.ModelPathConfig.getModelDir(
+                context, com.mamba.picme.data.download.ModelPathConfig.MODEL_ID_OPUS_MT_EN_ZH
+            )
+            val mt = com.mamba.picme.domain.tag.i18n.OpusMtTranslator(
+                context, mtDir, initialSrcTag = ">>eng<<", useLangTag = false
+            )
+            mt.init()
+            val s = com.mamba.picme.domain.tag.i18n.LabelSinicizer(
+                controlledVocab = com.mamba.picme.domain.tag.ControlledVocab.loadFromAssets(context),
+                bilingualVocab = com.mamba.picme.domain.tag.i18n.BilingualVocab.loadFromAssets(context),
+                translateSummary = { e -> mt.translate(e) },
+                translateLabel = { e -> mt.translate(e) }
+            ).sinicize(result)
+            mt.release()
+            s
+        } catch (e: Exception) {
+            Logger.e(TAG, "sinicize failed", e); result
+        }
+
         return JSONObject().apply {
             put("mediaId", entity.id)
             put("duration_ms", durationMs)
@@ -806,6 +881,11 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             put("objects", org.json.JSONArray(result.objects))
             put("tags", org.json.JSONArray(result.tags))
             put("summary", result.summary.take(400))
+            put("zh_scene", zh.scene)
+            put("zh_activity", zh.activity)
+            put("zh_objects", org.json.JSONArray(zh.objects))
+            put("zh_tags", org.json.JSONArray(zh.tags))
+            put("zh_summary", zh.summary.take(400))
         }.also { Logger.i(TAG, "[Florence2] full result: $it") }.toString()
     }
 }
