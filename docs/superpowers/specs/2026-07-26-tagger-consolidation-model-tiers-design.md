@@ -132,15 +132,17 @@ LFM2-VL 已无目录条目，仅在注释/测试/文档中残留引用，本次�
 - `val autoDownloadRecommendedOnWifiFlow: Flow<Boolean>`（默认 true）。
 - 设置页（模型/AI 区块，`SettingsAiAgent` 或模型相关 Section）新增开关；i18n ×3。
 
-### 7.2 Worker
-新增 `RecommendedModelDownloadWorker`（`CoroutineWorker`，`data/download/`）：
-- `Constraints`：`NetworkType.UNMETERED`（WiFi/非计费）+ `StorageNotLow`。
-- `doWork()`：
-  1. 读 `autoDownloadRecommendedOnWifiFlow`，`false` → `Result.success()` 直接返回。
-  2. 遍历 `RECOMMENDED_MODEL_IDS`：跳过已下载、跳过正在下载（查 `downloadStates`）。
-  3. 对缺失项调用既有 `LlmModelDownloadManager` 下载入口（串行或受控并发，避免与用户手动下载抢资源）。
-  4. 不做失败重试；单模型失败不中断其余。
-- 入口：`PoLangApplication.onCreate()` 以 `ExistingWorkPolicy.KEEP` 唯一入队 `OneTimeWorkRequest`（tag `recommended-auto-download`）。系统在满足 UNMETERED 约束时择机执行——即「WiFi 触发」。
+### 7.2 自动下载器（ConnectivityManager 触发，非 WorkManager）
+> 项目未引入 `androidx.work`（既有「Worker」类为 `IndexingTaskQueue` 驱动的进程内任务，非 WorkManager）。故采用既有网络设施的最小实现。
+
+新增 `RecommendedModelAutoDownloader`（`data/download/`，普通类，便于单测）：
+- **纯逻辑**（可单测）：`computeMissing(downloadedIds: Set<String>, inProgressIds: Set<String>): List<String>` = `RECOMMENDED_MODEL_IDS - downloadedIds - inProgressIds`，保持稳定顺序。
+- **触发**：`suspend fun triggerIfEligible(context, settings, downloader)`：
+  1. `settings.autoDownloadRecommendedOnWifiFlow` 首个值若 `false` → 直接返回。
+  2. `NetworkUtils.isWifi(context) == false` → 直接返回。
+  3. 计算 `computeMissing(...)`；为空 → 返回。
+  4. 对每个缺失 id 调用既有 `LlmModelDownloadManager.downloadModel(id)`（收集 Flow 驱动下载）；串行，单模型失败不中断其余；不自动重试。
+- **入口**：复用 `PoLangApplication` 既有的 `ConnectivityManager.NetworkCallback`（onCapabilitiesChanged/onAvailable）——WiFi 可用时调用 `triggerIfEligible`；并在 `onCreate` 末尾做一次初始检查。用 `AtomicBoolean` 防重入（避免回调多次触发重复下载）。
 
 ### 7.3 可见性
 「静默」= 无弹窗、无提示音；下载进度**可见**于模型中心「推荐」Tab（复用既有 `downloadStates`/进度条）。用户可在该 Tab 取消/暂停。
@@ -156,8 +158,8 @@ LFM2-VL 已无目录条目，仅在注释/测试/文档中残留引用，本次�
 | `features/settings/LlmModelManagerScreen.kt` | 推荐 Tab 图标/颜色 |
 | `features/settings/SettingsViewModel.kt` | `GALLERY_REQUIRED_MODEL_IDS` 派生 |
 | `data/preferences/UserPreferencesRepository.kt` + `UserSettingsRepository.kt` + `domain/model/UserPreferences.kt` | auto-download 设置项 |
-| `data/download/RecommendedModelDownloadWorker.kt`（新） | WiFi 预下载 Worker |
-| `PoLangApplication.kt` | 入队 Worker + SmolVLM 迁移调用 |
+| `data/download/RecommendedModelAutoDownloader.kt`（新） | WiFi 预下载（纯逻辑 + 触发器） |
+| `PoLangApplication.kt` | 既有 NetworkCallback 中接入触发器 + 初始检查 + SmolVLM 迁移调用 |
 | `data/download/ModelPathConfig.kt` | 若无 `smolvlm_500m` 路径常量，迁移按字面 id 复用 `getModelDir` |
 
 **测试（2）**
@@ -166,7 +168,7 @@ LFM2-VL 已无目录条目，仅在注释/测试/文档中残留引用，本次�
 | `app/src/test/.../tag/TaggerModelSelectionTest.kt` | 重写：Florence-2 默认/首选，Qwen fallback；删 smolvlm 用例 |
 | `app/src/test/.../download/ModelFilesMappingTest.kt` | 删 lfm2/smolvlm 文件断言（lfm2 已无条目、smolvlm 移除） |
 
-新增（可选）：`RecommendedModelDownloadWorker` 的纯逻辑测试（候选计算：给定已下载集合 → 应下载集合），Worker 实例化用 Robolectric/隔离。
+新增（可选）：`RecommendedModelAutoDownloader.computeMissing` 的纯逻辑测试（给定已下载/进行中集合 → 应下载集合）。
 
 **文档（4，与代码原子提交）**
 | 文件 | 改动 |
