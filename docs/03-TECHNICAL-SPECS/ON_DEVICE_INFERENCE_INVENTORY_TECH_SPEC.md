@@ -91,7 +91,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 
 | 功能 | 引擎/模型 | 作用 | 备注 |
 |------|-----------|------|------|
-| 模型下载管理 | 所有上述模型 | 从 ModelScope 下载到 `files/llm_models/{modelId}/` | 按服务功能分类：必须/聊天/相册打标/美颜相机 |
+| 模型下载管理 | 所有上述模型 | 从 ModelScope 下载到 `files/llm_models/{modelId}/` | 按服务功能分类：必须/推荐/聊天/相册打标/美颜相机；推荐项 Wi-Fi 下默认静默预下载（设置可关） |
 | Agent 模式切换 | 远程/本地 LLM | 本地/远程/关闭 | 默认远程优先 |
 
 ### 3.7 IM 远程控制（飞书）
@@ -108,7 +108,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 
 | 模型 | 引擎 | 大小 | 量化 | 运行时内存 | 用途 |
 |------|------|------|------|------------|------|
-| **Qwen3.5-2B-MNN** | MNN-LLM | 1.32GB (weight ~1.8GB) | **未量化**（FP16/FP32） | ~4.2GB | 默认本地 LLM，聊天/图像理解/Tag Pass 3 |
+| **Qwen3.5-2B-MNN** | MNN-LLM | 1.32GB (weight ~1.8GB) | **未量化**（FP16/FP32） | ~4.2GB | 默认本地 LLM，聊天/图像理解（推荐模型） |
 
 > 问题：2B 模型未做 INT4 量化，内存占用过大，与相机美颜叠加后易 OOM。
 
@@ -135,7 +135,10 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 | 模型 | 引擎 | 大小 | 量化 | 用途 |
 |------|------|------|------|------|
 | **MobileCLIP-S2-ONNX** | ONNX Runtime | 397MB | **FP32**（fp16 在 CPU 上 NaN/Inf） | 图像/文本编码，语义搜索 |
-| **OPUS-MT Zh→En** | ONNX Runtime | 70MB | **INT8 量化** | 中文查询翻译 |
+| **OPUS-MT Zh→En** | ONNX Runtime | 70MB | **INT8 量化** | 中文查询翻译（必须） |
+| **OPUS-MT En→Zh** | ONNX Runtime | 443MB | **INT8 量化** | 英文 summary→中文汉化 labelsZh（必须） |
+| **Florence-2-base** (ONNX) | ONNX Runtime | 260MB | **INT8** | 默认打标 tagger（结构化标签 + summary，必须） |
+| **Qwen3-VL-2B-Instruct** (MNN) | MNN-LLM | 1.4GB | INT4 | 备选打标 tagger（Florence-2 未下载时回退，普通可选） |
 | **Qwen3.5-2B visual encoder** | MNN-LLM | 含于 LLM | 否 | 图像理解视觉编码 |
 
 ### 4.5 其他模型

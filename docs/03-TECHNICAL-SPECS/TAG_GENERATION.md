@@ -620,6 +620,12 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 
 ### 6.3 模型选择的核心问题
 
+> **决策（2026-07-26）**：打标 tagger 已收敛为 **Florence-2-base（ONNX INT8，~260MB，默认首选）**，
+> 备选 **Qwen3-VL-2B-Instruct-MNN（`qwen3_vl_2b`）**。SmolVLM-500M、LFM2-VL 已下线移除。
+> 选择见 `TaggerModelSelector`（首选 `florence2_base` → 未下载回退 `qwen3_vl_2b`）。
+> 下文「用 2B 做标签抽取是过度设计」的批评即由此而来——结构化标签抽取改走 Florence-2，
+> 不再用 2B 生成模型打标；以下为历史背景，保留作参考。
+
 #### 命名与版本不一致
 
 代码中模型 key 为 `qwen3_5_2b`：

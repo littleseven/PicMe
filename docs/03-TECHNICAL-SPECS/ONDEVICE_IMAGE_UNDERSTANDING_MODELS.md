@@ -6,6 +6,19 @@
 
 ---
 
+## 决策（2026-07-26）
+
+经多轮端侧实测，**图片打标（TAG）方案已定型**：
+
+- **默认首选**：Florence-2-base（ONNX INT8，~260MB，`florence2_base`）——结构化物体检测 + 图像描述，轻量稳定。
+- **备选**：Qwen3-VL-2B-Instruct（MNN 4bit，`qwen3_vl_2b`）——未下载 Florence-2 时的回退。
+
+以下方案经评估**出局，不再考虑**：SmolVLM-500M / SmolVLM-2.2B / LFM2-VL / MiniCPM-V / MobileVLM / LightCap。
+
+> 本文其余内容为历史调研记录，保留作参考；打标落地实现见 `TAG_GENERATION.md`。
+
+---
+
 ## 1. 背景
 
 PoLang 当前使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Phase 1），覆盖 400+ 常见物体/场景标签。但 ML Kit 标签粒度有限，无法满足以下需求：
