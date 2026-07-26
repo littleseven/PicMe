@@ -26,27 +26,35 @@ class ComposeCapabilityHost(
     private val parent: ComposeCapabilityHost? = null
 ) : CapabilityHost {
     private val tag = "CapabilityHost"
-    private val capabilities = mutableMapOf<String, Capability>()
+    // 使用同步包装，避免主线程注册/注销与后台线程查询之间的并发问题。
+    // CapabilityRegistry 的工具调用链路会在后台线程读取此 Host，因此必须保证可见性。
+    private val capabilities = java.util.Collections.synchronizedMap(
+        LinkedHashMap<String, Capability>()
+    )
 
     /**
      * 注册 Capability
      */
     fun register(capability: Capability) {
-        val existing = capabilities[capability.name]
-        if (existing != null) {
-            Logger.w(tag, "Capability '${capability.name}' already registered, replacing")
+        synchronized(capabilities) {
+            val existing = capabilities[capability.name]
+            if (existing != null) {
+                Logger.w(tag, "Capability '${capability.name}' already registered, replacing")
+            }
+            capabilities[capability.name] = capability
+            Logger.i(tag, "Registered: ${capability.name} (total: ${capabilities.size})")
         }
-        capabilities[capability.name] = capability
-        Logger.i(tag, "Registered: ${capability.name} (total: ${capabilities.size})")
     }
 
     /**
      * 注销 Capability
      */
     fun unregister(capability: Capability) {
-        val removed = capabilities.remove(capability.name)
-        if (removed != null) {
-            Logger.i(tag, "Unregistered: ${capability.name} (total: ${capabilities.size})")
+        synchronized(capabilities) {
+            val removed = capabilities.remove(capability.name)
+            if (removed != null) {
+                Logger.i(tag, "Unregistered: ${capability.name} (total: ${capabilities.size})")
+            }
         }
     }
 
@@ -54,23 +62,26 @@ class ComposeCapabilityHost(
      * 按名称查找 Capability（支持层级查找）
      */
     fun find(name: String): Capability? {
-        return capabilities[name] ?: parent?.find(name)
+        return synchronized(capabilities) { capabilities[name] } ?: parent?.find(name)
     }
 
     /**
      * 查找支持指定命令的 Capability（支持层级查找）
      */
     override fun findForCommand(commandName: String): Capability? {
-        return capabilities.values.find { it.supportedCommands().contains(commandName) }
-            ?: parent?.findForCommand(commandName)
+        return synchronized(capabilities) {
+            capabilities.values.find { it.supportedCommands().contains(commandName) }
+        } ?: parent?.findForCommand(commandName)
     }
 
     /**
      * 获取指定场景下活跃的 Capability 列表
      */
     override fun findForScene(scene: SceneManager.Scene): List<Capability> {
-        val local = capabilities.values.filter {
-            it.activeScenes().contains(scene) || it.activeScenes().isEmpty()
+        val local = synchronized(capabilities) {
+            capabilities.values.filter {
+                it.activeScenes().contains(scene) || it.activeScenes().isEmpty()
+            }
         }
         val parentCapabilities = parent?.findForScene(scene) ?: emptyList()
         // 本地 Capability 优先（覆盖父级同名 Capability）
@@ -82,10 +93,10 @@ class ComposeCapabilityHost(
      * 获取所有 Capability（包含父级）
      */
     fun getAll(): List<Capability> {
+        val local = synchronized(capabilities) { capabilities.values.toList() }
         val parentCapabilities = parent?.getAll() ?: emptyList()
-        val localNames = capabilities.keys
-        return capabilities.values.toList() +
-            parentCapabilities.filter { it.name !in localNames }
+        val localNames = local.map { it.name }.toSet()
+        return local + parentCapabilities.filter { it.name !in localNames }
     }
 }
 
