@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
  *
  * 后台扫描未索引的图片（indexedAt IS NULL），
  * 提取 OCR 文字、GPS 位置并写入 Room DB。
- * 图像标签生成已迁移到 TagGenerationScheduler 的 Qwen/SmolVLM 管线。
+ * 图像标签生成已迁移到 TagGenerationScheduler 的 tagger 管线（默认 Florence-2，备选 Qwen3-VL-2B）。
  *
  * 支持两种模式：
  * - 全量模式：扫描所有 indexedAt IS NULL 的记录

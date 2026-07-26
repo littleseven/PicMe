@@ -33,6 +33,7 @@ import com.mamba.picme.domain.model.TagTranslations
 import com.mamba.picme.domain.model.ThemeMode
 import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.tag.TaggerModelSelector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -238,7 +239,7 @@ class SettingsViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = "qwen3_vl_2b"
+            initialValue = TaggerModelSelector.AUTO
         )
 
     val voiceCommandMode: StateFlow<VoiceCommandMode> = repository.voiceCommandModeFlow

@@ -257,7 +257,7 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("UPDATE `media_assets` SET `mlKitLabels` = NULL, `mlKitLabelsZh` = NULL")
 
                 // 清空旧 ML Kit 写入的 labels（JSON 数组格式）
-                // Qwen/SmolVLM 当前写入的是 JSON 对象，以 '{' 开头，不受影响
+                // tagger 当前写入的是 JSON 对象，以 '{' 开头，不受影响
                 database.execSQL("UPDATE `media_assets` SET `labels` = NULL WHERE `labels` LIKE '[%]'")
 
                 // 清空规范化标签表（旧 ML Kit / 废弃 ImageTagIndexingWorker 数据）

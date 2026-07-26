@@ -602,18 +602,16 @@ private fun SettingsContent(
                     SettingsClickableRow(
                         title = stringResource(R.string.tag_model_selector_title),
                         subtitle = when (taggerModelKey) {
-                            "smolvlm_500m" -> "SmolVLM-500M"
-                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
                             "florence2_base" -> "Florence-2-Base"
+                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
                             else -> taggerAutoLabel
                         },
                         leadingIcon = Icons.AutoMirrored.Rounded.Label,
                         onClick = {
-                            // 四态循环：跟随语言 → Qwen3-VL-2B → SmolVLM-500M → Florence-2 → 跟随语言
+                            // 三态循环：自动(→Florence-2 首选) → Florence-2 → Qwen3-VL-2B(备选) → 自动
                             val next = when (taggerModelKey) {
-                                TaggerModelSelector.AUTO -> "qwen3_vl_2b"
-                                "qwen3_vl_2b" -> "smolvlm_500m"
-                                "smolvlm_500m" -> "florence2_base"
+                                TaggerModelSelector.AUTO -> "florence2_base"
+                                "florence2_base" -> "qwen3_vl_2b"
                                 else -> TaggerModelSelector.AUTO
                             }
                             onTaggerModelKeyChange(next)
@@ -1318,7 +1316,7 @@ fun SettingsScreenPreview() {
             onAiAgentLocalUseOpenclChange = {},
             tagGenerationUseOpencl = false,
             onTagGenerationUseOpenclChange = {},
-            taggerModelKey = "qwen3_vl_2b",
+            taggerModelKey = TaggerModelSelector.AUTO,
             onTaggerModelKeyChange = {},
             voiceCommandMode = VoiceCommandMode.DISABLED,
             onVoiceCommandModeChange = {},

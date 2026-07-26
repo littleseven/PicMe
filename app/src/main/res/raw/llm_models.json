@@ -58,7 +58,7 @@
   {
     "id": "qwen3_vl_2b",
     "name": "Qwen3-VL-2B-Instruct-MNN",
-    "description": "阿里通义千问 Qwen3-VL-2B-Instruct 多模态版（MNN 4bit 量化），Vision-Language 能力更强，用于替代 SmolVLM 提升打标质量",
+    "description": "阿里通义千问 Qwen3-VL-2B-Instruct 多模态版（MNN 4bit 量化），Vision-Language 能力更强，作为 Florence-2 的备选打标模型",
     "type": "LLM",
     "size": 1475226821,
     "sources": {

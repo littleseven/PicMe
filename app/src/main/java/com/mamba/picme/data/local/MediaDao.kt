@@ -218,7 +218,7 @@ interface MediaDao {
     @Query("UPDATE media_assets SET mlKitLabelsZh = :labels WHERE id = :mediaId")
     suspend fun updateMlKitLabelsZh(mediaId: Long, labels: String)
 
-    /** 更新媒体的英文统一标签 JSON（labelsEn，SmolVLM 原语） */
+    /** 更新媒体的英文统一标签 JSON（labelsEn，tagger 原语） */
     @Query("UPDATE media_assets SET labelsEn = :labels WHERE id = :mediaId")
     suspend fun updateLabelsEn(mediaId: Long, labels: String)
 

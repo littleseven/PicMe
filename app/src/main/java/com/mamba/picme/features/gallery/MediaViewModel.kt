@@ -70,7 +70,7 @@ class MediaViewModel(
 
     /**
      * 按需触发 summary 生成：照片详情打开时，若 labels.summary 为空，
-     * 加载 SmolVLM 单张生成并写回（缓存）。批量扫描不触发（批量用 ML Kit）。
+     * 用当前 tagger（默认 Florence-2）单张生成并写回（缓存）。批量扫描不触发（批量用 ML Kit）。
      */
     fun triggerSummaryOnDemand(mediaId: Long) {
         viewModelScope.launch {

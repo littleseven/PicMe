@@ -26,7 +26,7 @@ data class MediaEntity(
     val source: String? = null,
     // 元数据索引字段（Phase 1 自然语言搜索）
     val labels: String? = null,           // JSON 数组：["猫","户外","食物"]
-    /** 打标统一规格英文 JSON（SmolVLM 原语；英文搜索/展示来源） */
+    /** 打标统一规格英文 JSON（tagger 原语，默认 Florence-2；英文搜索/展示来源） */
     val labelsEn: String? = null,
     /** 打标统一规格中文 JSON（由 labelsEn 离线汉化派生：tags 词表映射 + summary MT；中文搜索/展示来源） */
     val labelsZh: String? = null,
