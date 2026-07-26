@@ -648,4 +648,13 @@
     <string name="backup_export_failed">导出失败：%1$s</string>
     <string name="backup_import_failed">导入失败：%1$s</string>
     <string name="backup_result_summary">匹配 %1$d · 标签 %2$d · 任务 %3$d · 人物 %4$d · 人脸 %5$d · 偏好 %6$d · 反馈 %7$d</string>
+    <!-- 无障碍内容描述 (a11y_) -->
+    <string name="a11y_log_overlay">日志浮层</string>
+    <string name="a11y_release_llm">释放 LLM</string>
+    <string name="a11y_release_face">释放人脸检测</string>
+    <string name="a11y_filter">滤镜</string>
+    <string name="a11y_switch_camera">切换镜头</string>
+    <string name="a11y_reset_camera">重置相机状态</string>
+    <string name="a11y_photo_desc">照片</string>
+    <string name="a11y_video_desc">视频</string>
 </resources>

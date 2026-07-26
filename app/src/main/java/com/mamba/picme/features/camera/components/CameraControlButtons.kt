@@ -36,7 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.mamba.picme.R
 
 @Composable
 fun CameraLeftControls(
@@ -55,12 +57,21 @@ fun CameraLeftControls(
             .statusBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ControlButton(icon = Icons.AutoMirrored.Rounded.ArrowBack, onClick = onNavigateBack)
-        ControlButton(icon = Icons.Rounded.Refresh, onClick = onResetCameraMemoryState)
+        ControlButton(
+            icon = Icons.AutoMirrored.Rounded.ArrowBack,
+            onClick = onNavigateBack,
+            contentDescription = stringResource(R.string.back)
+        )
+        ControlButton(
+            icon = Icons.Rounded.Refresh,
+            onClick = onResetCameraMemoryState,
+            contentDescription = stringResource(R.string.a11y_reset_camera)
+        )
         if (debugUiEnabled) {
             ControlButton(
                 icon = Icons.Rounded.Terminal,
                 onClick = onToggleLogOverlay,
+                contentDescription = stringResource(R.string.a11y_log_overlay),
                 isActive = showLogOverlay
             )
 
@@ -68,6 +79,7 @@ fun CameraLeftControls(
             ControlButton(
                 icon = Icons.Rounded.Psychology,
                 onClick = onLlmRelease,
+                contentDescription = stringResource(R.string.a11y_release_llm),
                 tint = Color(0xFF64B5F6),
                 modifier = Modifier.size(36.dp)
             )
@@ -76,6 +88,7 @@ fun CameraLeftControls(
             ControlButton(
                 icon = Icons.Rounded.Face,
                 onClick = onFaceDetectRelease,
+                contentDescription = stringResource(R.string.a11y_release_face),
                 tint = Color(0xFF81C784),
                 modifier = Modifier.size(36.dp)
             )
@@ -113,7 +126,8 @@ fun CameraRightControls(
             isEnabled = isBeautyEnabled,
             isPanelOpen = isBeautySelected,
             onTogglePanel = onToggleBeauty,
-            onToggleEnabled = onToggleBeautyEnabled
+            onToggleEnabled = onToggleBeautyEnabled,
+            contentDescription = stringResource(R.string.beauty)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -126,11 +140,13 @@ fun CameraRightControls(
                 else -> Icons.Rounded.CropFree
             },
             onClick = onToggleRatio,
+            contentDescription = stringResource(R.string.aspect_ratio),
             isActive = isRatioSelected
         )
         ControlButton(
             icon = Icons.Rounded.GridOn,
             onClick = onToggleGrid,
+            contentDescription = stringResource(R.string.grid),
             isActive = isGridActive
         )
 
@@ -139,11 +155,13 @@ fun CameraRightControls(
         ControlButton(
             icon = Icons.Rounded.Landscape,
             onClick = onToggleScene,
+            contentDescription = stringResource(R.string.scene),
             isActive = isSceneActive
         )
         ControlButton(
             icon = Icons.Rounded.FilterBAndW,
             onClick = onToggleFilter,
+            contentDescription = stringResource(R.string.a11y_filter),
             isActive = isFilterSelected
         )
 
@@ -152,6 +170,7 @@ fun CameraRightControls(
         ControlButton(
             icon = Icons.Filled.Tune,
             onClick = onToggleProPanel,
+            contentDescription = stringResource(R.string.pro_mode),
             isActive = isProPanelOpen
         )
     }
@@ -162,7 +181,8 @@ private fun BeautyEntryButton(
     isEnabled: Boolean,
     isPanelOpen: Boolean,
     onTogglePanel: () -> Unit,
-    onToggleEnabled: () -> Unit
+    onToggleEnabled: () -> Unit,
+    contentDescription: String
 ) {
     Box(contentAlignment = Alignment.TopEnd) {
         FilledIconButton(
@@ -183,7 +203,7 @@ private fun BeautyEntryButton(
         ) {
             Icon(
                 imageVector = Icons.Rounded.AutoFixHigh,
-                contentDescription = null,
+                contentDescription = contentDescription,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -205,6 +225,7 @@ private fun BeautyEntryButton(
 fun ControlButton(
     icon: ImageVector,
     onClick: () -> Unit,
+    contentDescription: String,
     isActive: Boolean = false,
     tint: Color? = null,
     modifier: Modifier = Modifier
@@ -221,6 +242,6 @@ fun ControlButton(
             contentColor = tint ?: if (isActive) Color.Black else Color.White
         )
     ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(24.dp))
+        Icon(imageVector = icon, contentDescription = contentDescription, modifier = Modifier.size(24.dp))
     }
 }

@@ -36,12 +36,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
+import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.MediaResultsUi
 import java.text.SimpleDateFormat
@@ -121,7 +124,11 @@ private fun MediaCard(
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
                 model = asset.uri,
-                contentDescription = asset.fileName,
+                contentDescription = when (asset.type) {
+                    MediaType.VIDEO -> stringResource(R.string.a11y_video_desc)
+                    MediaType.DOCUMENT -> stringResource(R.string.media_type_document)
+                    else -> stringResource(R.string.a11y_photo_desc)
+                },
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
@@ -190,12 +197,13 @@ private fun FeedbackIconButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
-            ),
+            )
+            .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = contentDescription,
+            contentDescription = null,
             tint = Color.White,
             modifier = Modifier.size(16.dp)
         )

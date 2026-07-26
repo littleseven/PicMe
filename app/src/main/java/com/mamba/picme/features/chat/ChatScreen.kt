@@ -104,6 +104,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -1260,9 +1262,10 @@ private fun ChatTextInputMode(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.CenterStart
         ) {
+            val inputHint = stringResource(R.string.chat_input_hint)
             if (text.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.chat_input_hint),
+                    text = inputHint,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                 )
@@ -1271,7 +1274,9 @@ private fun ChatTextInputMode(
             androidx.compose.foundation.text.BasicTextField(
                 value = text,
                 onValueChange = onTextChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = inputHint },
                 maxLines = 5,
                 textStyle = TextStyle(
                     fontSize = 16.sp,
