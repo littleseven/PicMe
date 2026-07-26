@@ -88,6 +88,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val TAG_GENERATION_USE_OPENCL = booleanPreferencesKey("tag_generation_use_opencl")
         val TAGGER_MODEL_KEY = stringPreferencesKey("tagger_model_key")
         val OPENCL_DEGRADED_DEVICES = stringPreferencesKey("opencl_degraded_devices")
+        val AUTO_DOWNLOAD_RECOMMENDED_ON_WIFI = booleanPreferencesKey("auto_download_recommended_on_wifi")
 
         // 远程模型配置（供应商维度 JSON + 当前选中模型ID）
         val AI_AGENT_REMOTE_MODEL_CONFIGS = stringPreferencesKey("ai_agent_remote_model_configs_v2")
@@ -657,7 +658,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             }
         }
         .map { preferences ->
-            // 默认跟随 UI 语言路由（中文→Qwen，英文→SmolVLM）；用户可手动覆盖。
+            // 默认 AUTO（由 TaggerModelSelector 解析为首选 Florence-2）；用户可手动覆盖。
             preferences[PreferencesKeys.TAGGER_MODEL_KEY] ?: TaggerModelSelector.AUTO
         }
 
@@ -672,6 +673,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             context.dataStore.data.first()[PreferencesKeys.TAGGER_MODEL_KEY] ?: ""
         } catch (_: Exception) {
             ""
+        }
+    }
+
+    override val autoDownloadRecommendedOnWifiFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.AUTO_DOWNLOAD_RECOMMENDED_ON_WIFI] ?: true
+        }
+
+    override suspend fun updateAutoDownloadRecommendedOnWifi(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_DOWNLOAD_RECOMMENDED_ON_WIFI] = enabled
         }
     }
 

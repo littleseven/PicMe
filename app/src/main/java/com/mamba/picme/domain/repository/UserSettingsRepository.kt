@@ -96,13 +96,18 @@ interface UserSettingsRepository {
     val tagGenerationUseOpencl: Flow<Boolean>
     suspend fun updateTagGenerationUseOpencl(enabled: Boolean)
 
-    /** 相册打标模型 key（AUTO=跟随 UI 语言 / qwen3_vl_2b / smolvlm_500m；默认 AUTO，由 TaggerModelSelector 解析） */
+    /** 相册打标模型 key（AUTO / florence2_base / qwen3_vl_2b；默认 AUTO，由 TaggerModelSelector 解析为首选 Florence-2） */
     val taggerModelKeyFlow: Flow<String>
     suspend fun updateTaggerModelKey(key: String)
     fun getTaggerModelKeyBlocking(): String
 
     val openClDegradedDevices: Flow<String>
     suspend fun updateOpenClDegradedDevices(devicesJson: String)
+
+    // ── 模型预下载 ──────────────────────────────────────────
+    /** WiFi 下静默预下载推荐模型（默认开启）。 */
+    val autoDownloadRecommendedOnWifiFlow: Flow<Boolean>
+    suspend fun updateAutoDownloadRecommendedOnWifi(enabled: Boolean)
 
     // ── 远程模型配置（供应商维度） ────────────────────────────────
     val aiAgentRemoteModelConfigsFlow: Flow<String>
