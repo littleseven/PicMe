@@ -14,7 +14,7 @@ import java.nio.LongBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Florence-2-base (231M) ONNX ORT 打标器（INT8 量化，no-cache 全量重算管道）。
+ * Florence-2-base (231M) ONNX ORT 打标器（INT8 量化）。
  *
  * 四模型管道（独立于 OpusMtTranslator，不继承）：
  * 1. vision_encoder (INT8): Bitmap → 768×768 pixel_values → image_features [577, 768]
@@ -22,12 +22,15 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 3. encoder        (INT8): [image_features ⊕ text_embeds] + attention_mask → encoder_hidden_states [T, 768]
  * 4. decoder (merged, INT8): encoder_hidden_states + 自回归生成 token ids
  *
- * ⚠️ **decoder 用 no-cache 全量重算模式**：每步 `use_cache_branch=false`，把
- * `[DEC_START, *已生成]` 整个序列重新 embed 喂入，取 logits 最后一位 argmax。
- *
- * 原因：merged decoder 的 `use_cache_branch=true` 缓存分支在 ORT 上有 cross-attn
- * `MatMul dim0` bug（INT8/q4f16 都坏，PC 1.23 + Android 待验）。no-cache 路径已验证
- * 与 PyTorch 输出一致。O(n²) 但 231M 小模型 + 几十个 token 可接受。
+ * decoder 两种模式（按文件大小自动选择，见 [DecoderMode]）：
+ * - **KV cache**：fixed 版 `decoder_model_merged_quantized.onnx`（当前 catalog 分发版）。
+ *   旧版 merged decoder 的 `use_cache_branch=true` 缓存分支是 optimum 导出 bug——
+ *   If(then) 子图把 12 个 `present.{L}.encoder.{key,value}` 输出导成了 shape=(0,12,1,64)
+ *   的空 Constant（fp32/INT8/q4 全坏），fixed 版由 `scripts/florence2_fix_merged_decoder.py`
+ *   图手术改为 past 直通（cross-attn K/V 来自 encoder，decode 全程不变）。
+ *   PC 验证：与 no-cache 输出一致，解码加速 ~4x。
+ * - **no-cache 兜底**：旧版文件（大小不同，如未更新的本地副本）时，
+ *   每步 `use_cache_branch=false` 全量重算（O(n²)，正确但慢）。
  *
  * 任务 prompt（**注意：processor 会把 `<OD>` 展开成完整指令句再 BPE 分词，不是裸 special token**）：
  * - `<OD>` → objects/tags（+ bbox loc 坐标）
@@ -47,6 +50,11 @@ class Florence2Tagger(
         private const val TEXT_ENCODER = "encoder_model_quantized.onnx"
         private const val DECODER = "decoder_model_merged_quantized.onnx"
         private const val EMBED_TOKENS = "embed_tokens_int8.onnx"
+
+        // decoder 同名两版按文件大小区分：旧版 98,177,854 B（use_cache_branch 有 optimum 导出 bug，
+        // 只能走 no-cache）；fixed 版 98,178,346 B（+492B，12 个空 Constant → Identity 直通，
+        // 走 KV cache）。下载管理器按远端 size 校验，会自动把旧版重下为 fixed 版。
+        private const val DECODER_FIXED_SIZE = 98178346L
 
         // 图像预处理（from preprocessor_config.json — resize + ImageNet normalization）
         private const val IMAGE_SIZE = 768
@@ -78,10 +86,14 @@ class Florence2Tagger(
         private val ortEnv by lazy { OrtEnvironment.getEnvironment() }
     }
 
+    /** decoder 解码模式：fixed 模型文件存在 → KV cache；否则 no-cache 全量重算兜底。 */
+    private enum class DecoderMode { CACHE, NO_CACHE }
+
     private var visionEnc: OrtSession? = null
     private var textEnc: OrtSession? = null
     private var decoder: OrtSession? = null
     private var embedder: OrtSession? = null
+    private var decoderMode = DecoderMode.NO_CACHE
 
     private val initialized = AtomicBoolean(false)
 
@@ -101,11 +113,14 @@ class Florence2Tagger(
             }
             visionEnc = ortEnv.createSession(File(modelDir, VISION_ENCODER).absolutePath, opt)
             textEnc = ortEnv.createSession(File(modelDir, TEXT_ENCODER).absolutePath, opt)
-            decoder = ortEnv.createSession(File(modelDir, DECODER).absolutePath, opt)
+            // 同名 decoder 按大小区分版本：fixed 版走 KV cache，旧版（未更新的副本）退回 no-cache
+            val decoderFile = File(modelDir, DECODER)
+            decoderMode = if (decoderFile.length() == DECODER_FIXED_SIZE) DecoderMode.CACHE else DecoderMode.NO_CACHE
+            decoder = ortEnv.createSession(decoderFile.absolutePath, opt)
             embedder = ortEnv.createSession(File(modelDir, EMBED_TOKENS).absolutePath, opt)
             Florence2Tokenizer.load(modelDir)
             initialized.set(true)
-            Log.i(TAG, "Florence2Tagger initialized (4 INT8 sessions, no-cache decoder)")
+            Log.i(TAG, "Florence2Tagger initialized (4 INT8 sessions, decoder=$decoderMode)")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Florence2Tagger init failed", e)
@@ -314,15 +329,12 @@ class Florence2Tagger(
     }
 
     // ═══════════════════════════════════════════════════
-    //  Decoder 自回归生成（no-cache 全量重算）
+    //  Decoder 自回归生成（KV cache 优先，no-cache 兜底）
     // ═══════════════════════════════════════════════════
 
     /**
-     * no-cache 自回归生成。
-     *
-     * 每步把 `[DEC_START, *已生成 token]` 整个序列重新 embed 喂给 merged decoder，
-     * `use_cache_branch=false`（避开坏掉的 KV-cache If 子图），取 logits 最后一位 argmax。
-     * encoder_hidden_states / attention_mask / 24 个 dummy past_key_values 每步复用同一份。
+     * 自回归生成入口：准备共享张量（encoder_hidden_states / mask / dummy past），
+     * 按 [decoderMode] 分发到 KV-cache 或 no-cache 循环。
      *
      * @return 生成的 token ids（不含 decoder_start_token_id）
      */
@@ -330,9 +342,6 @@ class Florence2Tagger(
         encoderHiddenStates: Array<FloatArray>,
         encoderLen: Int
     ): LongArray {
-        val session = decoder!!
-        val generatedIds = mutableListOf<Long>()
-
         // encoder_hidden_states → flat [1, encoderLen, 768]（每步复用）
         val encFlat = FloatArray(encoderLen * HIDDEN_SIZE)
         for (i in encoderHiddenStates.indices) {
@@ -361,61 +370,10 @@ class Florence2Tagger(
             longArrayOf(1L, NUM_HEADS.toLong(), encoderLen.toLong(), HEAD_DIM.toLong())
         )
 
-        val seq = mutableListOf(DECODER_START_TOKEN_ID)
-
         try {
-            for (step in 0 until MAX_NEW_TOKENS) {
-                // embed 当前完整序列 [DEC_START, *gen]
-                val seqArr = seq.toLongArray()
-                val decLen = seqArr.size
-                val decEmbeds = runEmbedTokens(seqArr) // [decLen, 768]
-                val decFlat = FloatArray(decLen * HIDDEN_SIZE)
-                for (i in 0 until decLen) {
-                    System.arraycopy(decEmbeds[i], 0, decFlat, i * HIDDEN_SIZE, HIDDEN_SIZE)
-                }
-                val decTensor = OnnxTensor.createTensor(
-                    ortEnv, FloatBuffer.wrap(decFlat),
-                    longArrayOf(1L, decLen.toLong(), HIDDEN_SIZE.toLong())
-                )
-                val useCacheTensor = OnnxTensor.createTensor(ortEnv, booleanArrayOf(false))
-
-                val inputs = HashMap<String, OnnxTensor>().apply {
-                    put("encoder_attention_mask", encMaskTensor)
-                    put("encoder_hidden_states", encHsTensor)
-                    put("inputs_embeds", decTensor)
-                    put("use_cache_branch", useCacheTensor)
-                    for (layer in 0 until NUM_LAYERS) {
-                        put("past_key_values.$layer.decoder.key", dummyDecTensor)
-                        put("past_key_values.$layer.decoder.value", dummyDecTensor)
-                        put("past_key_values.$layer.encoder.key", dummyEncTensor)
-                        put("past_key_values.$layer.encoder.value", dummyEncTensor)
-                    }
-                }
-
-                val outputs = session.run(inputs)
-                decTensor.close()
-                useCacheTensor.close()
-
-                // logits [1, decLen, VOCAB] → 只读最后一位（FloatBuffer 直读，避免物化整张）
-                @Suppress("UNCHECKED_CAST")
-                val logitsTensor = outputs[0] as OnnxTensor
-                val fb = logitsTensor.floatBuffer
-                val rowOffset = (decLen - 1) * VOCAB_SIZE
-                var bestId = 0L
-                var bestScore = Float.NEGATIVE_INFINITY
-                for (i in 0 until VOCAB_SIZE) {
-                    val v = fb.get(rowOffset + i)
-                    if (v > bestScore) {
-                        bestScore = v
-                        bestId = i.toLong()
-                    }
-                }
-                outputs.close()
-
-                if (bestId == EOS_TOKEN_ID) break
-
-                generatedIds.add(bestId)
-                seq.add(bestId)
+            return when (decoderMode) {
+                DecoderMode.CACHE -> runDecoderWithCache(encHsTensor, encMaskTensor, dummyDecTensor, dummyEncTensor)
+                DecoderMode.NO_CACHE -> runDecoderNoCache(encHsTensor, encMaskTensor, dummyDecTensor, dummyEncTensor)
             }
         } finally {
             encHsTensor.close()
@@ -423,7 +381,194 @@ class Florence2Tagger(
             dummyDecTensor.close()
             dummyEncTensor.close()
         }
+    }
+
+    /** 单 token embed → [1, 1, 768] OnnxTensor（调用方负责 close）。 */
+    private fun embedOneToken(tokenId: Long): OnnxTensor {
+        val embeds = runEmbedTokens(longArrayOf(tokenId))[0]
+        return OnnxTensor.createTensor(
+            ortEnv, FloatBuffer.wrap(embeds),
+            longArrayOf(1L, 1L, HIDDEN_SIZE.toLong())
+        )
+    }
+
+    /**
+     * KV-cache 自回归生成（修复版 merged decoder，PC 验证与 no-cache 输出一致、~4x 加速）。
+     *
+     * prefill 用 `use_cache_branch=false` + dummy past 产出首个 token 与 24 份 present KV；
+     * 之后每步只 embed 最新 token，`use_cache_branch=true` 增量解码。
+     * cross-attn 的 encoder KV 来自 encoder，decode 全程不变（fixed 模型中是 past 直通），
+     * 所以每步只请求 logits + 12 份 decoder present，encoder past 复用 prefill 的张量。
+     * 张量生命周期参照 OpusMtTranslator：旧 past 在新 present 到手后 close。
+     */
+    private fun runDecoderWithCache(
+        encHsTensor: OnnxTensor,
+        encMaskTensor: OnnxTensor,
+        dummyDecTensor: OnnxTensor,
+        dummyEncTensor: OnnxTensor
+    ): LongArray {
+        val session = decoder!!
+        val generatedIds = mutableListOf<Long>()
+
+        val decPast = arrayOfNulls<OnnxTensor>(NUM_LAYERS * 2)  // 每步滚动替换
+        val encPast = arrayOfNulls<OnnxTensor>(NUM_LAYERS * 2)  // prefill 产出后全程复用
+        val useCacheFalse = OnnxTensor.createTensor(ortEnv, booleanArrayOf(false))
+        val useCacheTrue = OnnxTensor.createTensor(ortEnv, booleanArrayOf(true))
+
+        // 每步只请求 logits + decoder present（encoder present 是 past 直通，不必再物化）
+        val stepOutputs = HashSet<String>().apply {
+            add("logits")
+            for (layer in 0 until NUM_LAYERS) {
+                add("present.$layer.decoder.key")
+                add("present.$layer.decoder.value")
+            }
+        }
+
+        try {
+            // ── prefill：use_cache_branch=false + 全零 dummy past ──
+            var stepTensor = embedOneToken(DECODER_START_TOKEN_ID)
+            val prefillInputs = HashMap<String, OnnxTensor>().apply {
+                put("encoder_attention_mask", encMaskTensor)
+                put("encoder_hidden_states", encHsTensor)
+                put("inputs_embeds", stepTensor)
+                put("use_cache_branch", useCacheFalse)
+                for (layer in 0 until NUM_LAYERS) {
+                    put("past_key_values.$layer.decoder.key", dummyDecTensor)
+                    put("past_key_values.$layer.decoder.value", dummyDecTensor)
+                    put("past_key_values.$layer.encoder.key", dummyEncTensor)
+                    put("past_key_values.$layer.encoder.value", dummyEncTensor)
+                }
+            }
+            val prefillOut = session.run(prefillInputs)
+            stepTensor.close()
+            var nextId = argmaxLast(prefillOut[0] as OnnxTensor)
+            (prefillOut[0] as OnnxTensor).close()
+            // 取出 24 份 present KV 持有（不能 close prefillOut，否则连带释放）。
+            // 输出顺序固定：0=logits，之后每层 decoder.key/value + encoder.key/value。
+            // 注意：ORT 1.24 的 Result.get(String) 返回 Optional，这里用位置索引取。
+            for (layer in 0 until NUM_LAYERS) {
+                val b = 1 + layer * 4
+                decPast[layer * 2] = prefillOut[b] as OnnxTensor
+                decPast[layer * 2 + 1] = prefillOut[b + 1] as OnnxTensor
+                encPast[layer * 2] = prefillOut[b + 2] as OnnxTensor
+                encPast[layer * 2 + 1] = prefillOut[b + 3] as OnnxTensor
+            }
+
+            // ── decode：use_cache_branch=true 增量解码 ──
+            while (nextId != EOS_TOKEN_ID && generatedIds.size < MAX_NEW_TOKENS) {
+                generatedIds.add(nextId)
+                if (generatedIds.size >= MAX_NEW_TOKENS) break
+
+                stepTensor = embedOneToken(nextId)
+                val inputs = HashMap<String, OnnxTensor>().apply {
+                    put("encoder_attention_mask", encMaskTensor)
+                    put("encoder_hidden_states", encHsTensor)
+                    put("inputs_embeds", stepTensor)
+                    put("use_cache_branch", useCacheTrue)
+                    for (layer in 0 until NUM_LAYERS) {
+                        put("past_key_values.$layer.decoder.key", decPast[layer * 2]!!)
+                        put("past_key_values.$layer.decoder.value", decPast[layer * 2 + 1]!!)
+                        put("past_key_values.$layer.encoder.key", encPast[layer * 2]!!)
+                        put("past_key_values.$layer.encoder.value", encPast[layer * 2 + 1]!!)
+                    }
+                }
+                val out = session.run(inputs, stepOutputs)
+                stepTensor.close()
+                // Result.get(String) 返回 Optional<OnnxValue>（ORT 1.24），取 OnnxTensor 需 .get()
+                val logits = out.get("logits").get() as OnnxTensor
+                nextId = argmaxLast(logits)
+                logits.close()
+                for (layer in 0 until NUM_LAYERS) {
+                    decPast[layer * 2]?.close()
+                    decPast[layer * 2 + 1]?.close()
+                    decPast[layer * 2] = out.get("present.$layer.decoder.key").get() as OnnxTensor
+                    decPast[layer * 2 + 1] = out.get("present.$layer.decoder.value").get() as OnnxTensor
+                }
+            }
+        } finally {
+            useCacheFalse.close()
+            useCacheTrue.close()
+            for (t in decPast) t?.close()
+            for (t in encPast) t?.close()
+        }
 
         return generatedIds.toLongArray()
+    }
+
+    /**
+     * no-cache 自回归生成（旧版 decoder 模型文件的兜底路径）。
+     *
+     * 每步把 `[DEC_START, *已生成 token]` 整个序列重新 embed 喂给 merged decoder，
+     * `use_cache_branch=false`（旧文件的 KV-cache If 子图有 optimum 导出 bug，不能用），
+     * 取 logits 最后一位 argmax。O(n²)，正确但慢。
+     */
+    private fun runDecoderNoCache(
+        encHsTensor: OnnxTensor,
+        encMaskTensor: OnnxTensor,
+        dummyDecTensor: OnnxTensor,
+        dummyEncTensor: OnnxTensor
+    ): LongArray {
+        val session = decoder!!
+        val generatedIds = mutableListOf<Long>()
+        val seq = mutableListOf(DECODER_START_TOKEN_ID)
+
+        for (step in 0 until MAX_NEW_TOKENS) {
+            // embed 当前完整序列 [DEC_START, *gen]
+            val seqArr = seq.toLongArray()
+            val decLen = seqArr.size
+            val decEmbeds = runEmbedTokens(seqArr) // [decLen, 768]
+            val decFlat = FloatArray(decLen * HIDDEN_SIZE)
+            for (i in 0 until decLen) {
+                System.arraycopy(decEmbeds[i], 0, decFlat, i * HIDDEN_SIZE, HIDDEN_SIZE)
+            }
+            val decTensor = OnnxTensor.createTensor(
+                ortEnv, FloatBuffer.wrap(decFlat),
+                longArrayOf(1L, decLen.toLong(), HIDDEN_SIZE.toLong())
+            )
+            val useCacheTensor = OnnxTensor.createTensor(ortEnv, booleanArrayOf(false))
+
+            val inputs = HashMap<String, OnnxTensor>().apply {
+                put("encoder_attention_mask", encMaskTensor)
+                put("encoder_hidden_states", encHsTensor)
+                put("inputs_embeds", decTensor)
+                put("use_cache_branch", useCacheTensor)
+                for (layer in 0 until NUM_LAYERS) {
+                    put("past_key_values.$layer.decoder.key", dummyDecTensor)
+                    put("past_key_values.$layer.decoder.value", dummyDecTensor)
+                    put("past_key_values.$layer.encoder.key", dummyEncTensor)
+                    put("past_key_values.$layer.encoder.value", dummyEncTensor)
+                }
+            }
+
+            val outputs = session.run(inputs)
+            decTensor.close()
+            useCacheTensor.close()
+
+            val bestId = argmaxLast(outputs[0] as OnnxTensor, decLen)
+            outputs.close()
+
+            if (bestId == EOS_TOKEN_ID) break
+
+            generatedIds.add(bestId)
+            seq.add(bestId)
+        }
+
+        return generatedIds.toLongArray()
+    }
+
+    /** logits [1, seqLen, VOCAB] 最后一位的 argmax（FloatBuffer 直读，避免物化整张）。 */
+    private fun argmaxLast(logitsTensor: OnnxTensor, seqLen: Int = 1): Long {
+        val fb = logitsTensor.floatBuffer
+        val rowOffset = (seqLen - 1) * VOCAB_SIZE
+        var bestId = 0L
+        var bestScore = Float.NEGATIVE_INFINITY
+        for (i in 0 until VOCAB_SIZE) {
+            val v = fb.get(rowOffset + i)
+            if (v > bestScore) {
+                bestScore = v
+                bestId = i.toLong()
+            }
+        }
+        return bestId
     }
 }
