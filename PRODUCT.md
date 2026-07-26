@@ -125,6 +125,13 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 - 多设备管理：同一账号绑定多台设备，支持@指定
 - 结果回传：编辑后图片直接通过飞书返回
 
+**后端服务层（PoLang Server，支撑远程推理与账号）**
+- 独立 Ktor 工程（`server/`，不纳入 Android `settings.gradle.kts`），部署 `api.polang.net`
+- 定位：**配置中心 + LLM 代理 + 分发管道 + 遥测收集**，不做 Agent 编排（ReAct 循环在客户端）
+- AI 网关：`/v1/chat/completions` 按模型路由 Cloudflare AI Gateway（DeepSeek）/ 腾讯 TokenHub，内置 per-IP 限流、`max_tokens` 校验
+- 账号体系：邮箱注册动态 Token（`picme_at_*`，SHA-256 校验）+ 免费额度管控；管理后台 `/admin`（SSR，用量/成本/流量）
+- 推荐引擎：纯规则型场景推荐（规避算法备案）；遥测：批量匿名事件
+
 ### 2.2 体验红线
 
 | 红线 | 定义 | 验证方式 |
@@ -204,7 +211,7 @@ AgentOrchestrator (runtime-core/)
 
 ### 4.3 端侧优先与云端增强
 
-- **LLM**：默认远程模型（DeepSeek 等）以获得最佳复杂推理体验；本地模型 Qwen3.5-2B 作为离线/隐私偏好 fallback
+- **LLM**：默认远程模型（DeepSeek 等）以获得最佳复杂推理体验；本地模型 Qwen3.5-2B 作为离线/隐私偏好 fallback。远程推理经**自建 Ktor 网关**（`api.polang.net`）代理：按模型自动路由（Cloudflare AI Gateway / 腾讯 TokenHub），邮箱注册动态 Token + 免费额度管控，上游密钥仅在服务端持有（详见 `server/README.md`）
 - 人脸检测：MediaPipe Face Mesh / MNN / NCNN 端侧模型（106 点统一输出）
 - OCR：ML Kit 端侧识别
 - 图像编辑：端侧 GPU 处理为主
@@ -479,6 +486,9 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 人脸检测引擎架构 |
 | `runtime-core/AGENTS.md` | Agent Runtime 实现规范（本地/远程推理、Capability、JS 沙盒） |
 | `app/src/main/java/com/mamba/picme/features/common/chat/AGENTS.md` | Chat 二级页模块实现规范 |
+| `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md` | PoLang Server（Ktor 后端）实现计划：AI 网关、账号、管理后台 |
+| `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md` | 服务端海外部署（香港 VPS + Nginx + certbot） |
+| `server/README.md` | 服务端现状与路由（v0.5.0） |
 | `AGENTS.md` | AI 协作开发角色定义 |
 
 ---

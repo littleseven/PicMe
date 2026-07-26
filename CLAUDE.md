@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PoLang is a technology research project exploring two main tracks: **(1) AI Coding paradigm** — on-device Agent mechanisms and Agent-centric application architecture, and **(2) Audio/Video technology** — self-developed real-time beauty/filter/makeup engine ("BIG_BEAUTY") via OpenGL ES + EGL. The camera app serves as a concrete case study at the intersection of these two tracks. This project does not pursue commercialization; its core value lies in technical exploration and engineering practice.
+PoLang is a technology research project centered on an AI-Agent-driven smart gallery (破浪相册). It explores three technical tracks in one codebase: **(1) On-device Agent Runtime + local/remote inference** — `AgentOrchestrator` + `CapabilityRegistry` map natural language to device capabilities, with local MNN-LLM (Qwen) and remote OpenAI-compatible inference via langchain4j; **(2) Smart gallery & image editing** — natural-language search, conversational editing, matting/ID-photo, Florence-2 auto-tagging, JS sandbox; **(3) Self-developed OpenGL ES + EGL beauty/filter engine** plus a self-hosted Ktor backend (remote-inference gateway, account system, admin console). This project does not pursue commercialization; its core value lies in technical exploration and engineering practice.
 
-**Current focus (2026-06)** has shifted from camera-first to **remote inference framework + smart gallery** (相册/图片编辑为主入口, camera as auxiliary). See `PRODUCT.md` for the latest product roadmap.
+**Current focus (2026-07, app v1.0.26)** is the smart gallery as the default home with AI chat as the core assistant capability (相册/图片编辑为主入口, camera as auxiliary). Shipped: natural-language search, conversational image editing, matting/ID-photo, Florence-2 auto-tagging, JS sandbox; in progress: fact memory + person-relationship graph. See `PRODUCT.md` for the latest product roadmap.
 
 Key technological decisions:
 - **On-device Agent**: `runtime-core/` (package `com.mamba.picme.agent.core`) implements an Agent Runtime (AgentOrchestrator, LocalLlmEngine, CapabilityRegistry, etc.) that maps natural language to device capabilities via Qwen3.5-2B running on MNN-LLM.
@@ -137,13 +137,13 @@ User Input ("找出去年夏天的照片" / "磨皮50")
         ├── RemoteOrchestrator (OpenAI Chat Completions API)
         └── tool_calls · streaming · multi-turn
     → CapabilityRegistry (route to Capability)
-    → GalleryCapability / EditorCapability (execute)
+    → ImageEditCapability / AutoTagCapability / NavigationCapability / SystemCapability / RemoteControlCapability + Chat*Capability (execute)
 ```
 
 - **Module**: `:runtime-core` — independent pure Kotlin module containing all Agent Runtime components (package `com.mamba.picme.agent.core`).
 - **Local model**: Qwen3.5-2B-MNN with custom JSON array protocol (method + args).
 - **Remote protocol**: Standard OpenAI Chat Completions API (tool_calls, streaming, multi-turn dialogue). langchain4j SDK as consumer layer.
-- **Capabilities**: `AdjustBeauty` (smooth/whiten/slim/eye/lip/blush/brow), `SwitchFilter`, `SwitchStyle`, `SwitchScene`, `SwitchRatio`, `AdjustExposure`, `AdjustZoom`, `FlipCamera`, `Capture`, `ToggleRecording`, `GallerySearch`, `EditImage`.
+- **Capabilities**: Registered `Capability` classes — `ImageEditCapability` (conversational `edit_image`), `AutoTagCapability` (Florence-2 tagging), `NavigationCapability`, `SystemCapability` (app/settings launch + cross-app a11y), `RemoteControlCapability`, plus chat-side `ChatSearchCapability` / `ChatGallerySummaryCapability` / `ChatStartTagScanCapability` / `ChatRunScriptCapability` / `ChatMediaWriteCapability`. Command→Capability routing SSOT: `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`.
 - **Privacy**: `PrivacyGuard` grades operations; RESTRICTED/SENSITIVE → local only.
 - **Memory**: `MemoryManager` maintains conversation context for multi-turn dialogue.
 - **Voice**: Voice interaction support via `voice/` sub-package (ASR, VAD, AudioRecorder, SherpaMnnAsrEngine).

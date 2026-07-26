@@ -227,10 +227,15 @@ com.mamba
 |------|------|
 | **自然语言交互** | "帮我把天空调蓝"、"找出去年夏天的照片"、"这张照片磨皮 50" |
 | **自然语言相册搜索** | 规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，端侧执行 |
+| **对话式图片编辑** | 聊天发送图片 + 指令 → 远程 ReAct（edit_image）→ 结果回渲染 |
+| **智能抠图 / 证件照** | U2Netp / ModNet / MediaPipe 三后端 + MattingRouter；IDPhoto 多规格 |
+| **Florence-2 标签扫描** | 端侧 INT8 打标 5-Pass + 中英双字段汉化（opus-mt） |
+| **JS 沙盒脚本** | QuickJS + JSBridge，对话内运行相册分析/健康报告脚本 |
 | **Agent 编排** | AgentOrchestrator + CapabilityRegistry + PrivacyGuard 完整架构 |
 | **本地/远程双推理** | 本地 MNN-LLM（Qwen）+ 远程 PoLang Server（OpenAI 标准协议） |
 | **自研美颜引擎** | 全自研 OpenGL ES + EGL 渲染管线 |
 | **语音交互** | 唤醒词 + 流式 ASR + 端侧 LLM 指令解析（Sherpa-ONNX） |
+| **人物记忆与关系图谱** 🔄 | 事实记忆 + 人物命名/"我"标记 + 关系图谱，支撑「我女儿的照片」式检索（开发中） |
 
 ### 运行 Demo
 

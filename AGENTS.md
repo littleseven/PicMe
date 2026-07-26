@@ -307,7 +307,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 ```markdown
 ### 调节美颜参数 [agent-task:beauty-001]
 - **Assignee**: RD
-- **Scope**: `domain/agent/capability/AdjustBeautyCapability.kt`
+- **Scope**: `domain/agent/capability/ImageEditCapability.kt`
 - **Expected Change**:
   1. 实现 Capability 接口
   2. 注册到 CapabilityRegistry
