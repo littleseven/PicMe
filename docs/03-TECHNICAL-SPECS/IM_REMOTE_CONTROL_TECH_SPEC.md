@@ -1,17 +1,32 @@
 # IM 远程控制技术规格
 
-> **版本**: 1.0  
-> **状态**: 已冻结 / 历史参考  
-> **最后更新**: 2026-07-16（状态标记为已冻结）  
+> **版本**: 1.1  
+> **状态**: 重新激活（多通道）  
+> **最后更新**: 2026-07-27（从「已冻结」重新激活，新增 Telegram + 单通道选择 + release 凭据隔离）  
 > **维护者**: RD Agent  
 
-> ⚠️ **重要**：IM 远程控制线已冻结。服务端替代方案优先。详见根目录 `AGENTS.md` 文档索引。
+> ℹ️ 本线于 2026-07-16 冻结、2026-07-27 重新激活以承载多通道能力。端侧直连（飞书 WebSocket / Telegram 长轮询）与服务端中转方案并行存在，互不替代。
 >
 > **历史变更**：
 > - 2026-06-17：新增产品线，通过飞书等 IM + LLM 实现 App 远程控制
 > - 2026-06-17：架构从 SCF Relay Server 变更为设备端直连飞书 WebSocket
 > - 2026-07-03：从 P0 降级为 P2 实验线
 > - 2026-07-16：正式冻结，资源投入以 `PRODUCT.md` 为准，服务端方案优先
+> - 2026-07-27：重新激活；抽象 RemoteChannel 接口 + RemoteChannelManager 单通道激活，新增 Telegram（Pengrad 长轮询 + chatId 白名单 fail-closed），release 不再打包飞书凭据，通道配置迁出独立设置页
+
+---
+
+## 0. 多通道扩展（2026-07-27 重新激活）
+
+> 详细设计与实现计划见 `docs/superpowers/specs/2026-07-26-multi-channel-remote-control-design.md` 与 `docs/superpowers/plans/2026-07-26-multi-channel-remote-control.md`。
+
+- **`RemoteChannel` 接口**（`domain/agent/remote/RemoteChannel.kt`）：统一 `channelId / isConnected / onMessageReceived / sendMessage(text, replyToken) / sendImage`。`replyToken` 通道不透明（飞书=messageId，Telegram=chatId）。
+- **`RemoteChannelManager`**：单通道管理器，按 `selected_remote_channel`（FEISHU/TELEGRAM/NONE）激活；先断旧再连新；重连 = 重新 activate；发送/回调委托激活通道。
+- **`TelegramChannelHandler`**：Pengrad `java-telegram-bot-api:5.5.0` 长轮询（getUpdates），出站、无需公网 IP；仅处理 `allowedChatId` 白名单内消息（fail-closed，未配置则拒绝全部）。
+- **`FeishuChannelHandler`**：实现 `RemoteChannel`，行为不变（出站 WebSocket + OAPI HTTP）。
+- **调度器去飞书化**：`RemoteCommandDispatcher` 持 `RemoteChannel`，会话 ID 动态取 `channel.channelId`；`AgentOrchestrator.processFeishuInput` 改名 `processRemoteImInput`。
+- **release 凭据隔离**：`FEISHU_APP_ID/SECRET` 的 `buildConfigField` 仅在 `buildTypes.debug` 注入；`defaultConfig` 空串 → release 不打包开发者凭据，用户在「设置 → 通信通道」页自行配置。
+- **配置页**：设置主页网格一级入口「通信通道」→ 独立二级页（通道选择 chips + 飞书/Telegram 凭据 + 连接状态）。
 
 ---
 
