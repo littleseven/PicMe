@@ -10,33 +10,144 @@
 <h1 align="center">langchain4android</h1>
 
 <p align="center">
-  <b>Android 端侧 AI Agent 框架</b><br>
-  <i>LangChain4j 风格 API · OpenAI 兼容协议 · 无 SPI 纯显式注入</i>
+  <b>PoLang（破浪相册）</b> — AI Agent 驱动的智能相册应用<br>
+  <i>同仓库沉淀出 Android 端侧 AI Agent 框架 <b>langchain4android</b>（LangChain4j 风格 API · OpenAI 兼容 · 无 SPI 纯显式注入）</i>
 </p>
 
 <p align="center">
-  <a href="#-快速集成">快速集成</a> ·
-  <a href="#-核心特性">特性</a> ·
-  <a href="#-架构">架构</a> ·
-  <a href="#-demo-工程-picme">Demo 工程</a> ·
-  <a href="#-agent-first-研发范式">Agent 范式</a>
+  <a href="#polang-产品特性">PoLang 特性</a> ·
+  <a href="#polang-架构一览">架构</a> ·
+  <a href="#运行-polang">运行</a> ·
+  <a href="#作为库使用langchain4android">作为库使用</a> ·
+  <a href="#agent-first-研发范式">Agent 范式</a>
 </p>
 
 ---
 
 ## 概览
 
-**langchain4android** 是一个面向 Android 平台的 AI Agent 基础库，提供 LangChain4j 风格的 ChatModel / Tool / AiServices API，专为 Android 环境优化——无 SPI（ServiceLoader）、纯显式依赖注入、兼容 Java 标准反射。
+本仓库包含两件事：
 
-库的核心是 `:agent-core` 模块，提供完整的 LLM 交互基础设施：ChatModel 抽象、OpenAI 兼容客户端、Tool 调用框架、ChatMemory 对话记忆、AiServices 代理构建器。开发者基于这些原语构建自己的 Agent 编排层。
+- **PoLang（破浪相册）** —— 一个接近生产级复杂度的 **AI Agent 驱动的智能相册应用**，是本项目的应用与研究主体。以相册首页为默认入口，通过自然语言对话调度搜索 / 编辑 / 抠图 / 证件照 / 标签等能力，端侧 Qwen3.5-2B + 远程 DeepSeek 双推理，自研 OpenGL ES 美颜引擎，自建 Ktor 后端。
+- **langchain4android** —— 从 PoLang 中沉淀出的 **Android 端侧 AI Agent 基础库**（`:agent-core`，LangChain4j 风格 ChatModel / Tool / AiServices / ChatMemory），无 SPI、纯显式注入，已发布 JitPack，可独立用于自己的 Agent 编排。
 
-> 本仓库同时包含一个接近生产级复杂度的 Demo 工程 **PoLang（破浪相册）**，用于验证框架在真实场景中的可行性。PoLang 的 Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard 等）位于 `:runtime-core` 模块，基于 `:agent-core` 提供的原语构建。
+PoLang 的 Agent 编排层（`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard` 等）位于 `:runtime-core`，基于 `:agent-core` 的原语构建。先看 [PoLang 产品特性](#polang-产品特性)，或直接跳到 [作为库使用](#作为库使用langchain4android)。
 
 ---
 
-## 快速集成
+## PoLang 产品特性
 
-### Step 1. 添加 JitPack 仓库
+PoLang 以「对话即操作」为核心：用户用自然语言与相册交互，Agent 把意图路由到端侧或云端能力执行。以下能力大多已落地（标 🔄 者开发中）。
+
+### AI Agent 对话中枢
+🤖 自然语言 → 能力调度：`AgentOrchestrator` + `CapabilityRegistry` + `PrivacyGuard` 完整架构，Capability 可热插拔。
+- **本地 / 远程双推理**：端侧 MNN-LLM（Qwen3.5-2B，离线/隐私）+ 远程 DeepSeek（复杂推理），输入框下拉切换
+- **多轮对话记忆**：Room 持久化，重启自动恢复；本地 L1 缓存命中直返
+- **隐私分级**：`PrivacyGuard` 把敏感操作（人脸/OCR/图片）钉在端侧，非敏感复杂推理才上云
+
+### 智能相册搜索
+🔍 「找出去年夏天的照片」「我和小明的合照」「最近一个月的视频」——规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，**端侧执行**，结果可交互媒体网格。
+
+### 对话式图片编辑
+🎨 聊天里发图 + 指令（「磨皮再强一点」「换成冷色调」）→ 远程 ReAct（`edit_image`）解析为编辑 recipe 并执行 → 结果回渲染至对话，支持媒体结果轮播查看。
+
+### 智能抠图 / 证件照
+✂️ 三后端 + 路由器自动选择：**U2Netp**（通用抠图）/ **ModNet**（人像）/ **MediaPipe Selfie Segmentation**（自拍分割），由 `MattingRouter` 按场景路由；支持纯背景、换背景。
+📇 **证件照制作**：`IDPhotoComposer` + `IDPhotoSpecs`，一寸/二寸/签证等多规格 + 背景色。
+
+### 自动标签
+🏷️ **Florence-2 端侧 INT8 打标**，5-Pass 链路 + 中英双字段 + opus-mt 汉化；可由对话触发批量扫描。
+
+### JS 沙盒脚本
+📜 QuickJS 沙箱 + JSBridge，对话内运行相册分析 / 健康报告脚本（`run_script`），结果以图表 SVG / 结构化文本回显。
+
+### 人物记忆与关系图谱 🔄
+👥 事实记忆（「帮我记住…」）+ 人物命名 /「我」标记 + 关系图谱（配偶/子女/父母/…），支撑「我女儿的照片」「老婆的合照」式自然语言人物检索。（开发中，未合并 main）
+
+### 自研美颜引擎
+📷 全自研 **OpenGL ES + EGL** 渲染管线（磨皮/美白/瘦脸/大眼/唇色/腮红 + 风格滤镜），无第三方美颜 SDK；帧同步美妆解决快速移动妆容甩飞；GPU 离屏渲染保证预览/拍照一致。
+
+### 语音交互
+🎙️ 唤醒词 + 流式 ASR + 端侧 LLM 指令解析（Sherpa-ONNX），Push-to-Talk 默认开启。
+
+### 自建 Ktor 后端
+🌐 独立 `server/` 工程（部署 `api.polang.net`）：AI 网关（按模型路由 Cloudflare AI Gateway / 腾讯 TokenHub）+ 邮箱注册账号 + 免费额度 + 管理后台 + 遥测。**不做 Agent 编排**（ReAct 循环在客户端）。
+
+> **核心特点**：端侧优先 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 本地 + 远程双推理 ｜ 7 模块 monorepo（app / runtime-core / agent-core / beauty-engine / beauty-api / mnn-core / sentencepiece + server）
+
+---
+
+## PoLang 架构一览
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  :app（PoLang 应用 · Kotlin · Jetpack Compose）                        │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ :runtime-core（Agent Runtime 核心 · Kotlin）                  │  │
+│  │  AgentOrchestrator  CapabilityRegistry  PrivacyGuard        │  │
+│  │  MemoryManager  SceneManager  LocalLlmEngine               │  │
+│  │  AiAgentUseCase (Facade，位于 :app，委托给 AgentOrchestrator) │  │
+│  ├───────────────────────────────────────────────────────────────┤  │
+│  │ features/         功能模块（Capability 实现）                   │  │
+│  │  ImageEditCapability  AutoTagCapability  NavigationCapability  │  │
+│  │  SystemCapability  RemoteControlCapability  Chat*Capability   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                            ↓ 使用                                    │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ :agent-core（Java Library · LLM 基础设施）                     │  │
+│  │  ChatModel · OpenAiChatModel · StreamingChatModel              │  │
+│  │  @Tool · ToolSpecification · AiServices                       │  │
+│  │  ChatMemory · ChatRequest/Response · SSE Client               │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────────────┤
+│  :beauty-api (Kotlin)  :beauty-engine (C++/Kotlin)  :mnn-core       │
+│  :sentencepiece (JNI)                                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  server/（Ktor 后端 · 独立 Gradle 工程）                              │
+│  AI 网关 / 账号体系 / 管理后台 / 推荐引擎 / 遥测收集                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 项目模块
+
+| 模块 | 语言 | 说明 |
+|------|------|------|
+| `:app` | Kotlin | **PoLang 应用** — Agent 编排层 + 智能相册 UI（Jetpack Compose） |
+| `:runtime-core` | Kotlin | **Agent Runtime** — AgentOrchestrator、CapabilityRegistry、PrivacyGuard、SceneManager、JS 沙盒 |
+| `:agent-core` | **Java** | **框架核心** — ChatModel、Tool、AiServices、ChatMemory 等 LLM 基础设施 |
+| `:beauty-api` | Kotlin | 美颜接口契约层 |
+| `:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
+| `:mnn-core` | C++ | MNN 推理运行时共享库（`:runtime-core` 和 `:beauty-engine` 共用） |
+| `:sentencepiece` | C++/JNI | SentencePiece tokenizer JNI 封装 |
+| `server/` | Kotlin | **Ktor 后端**（独立 Gradle 工程）— AI 网关、账号体系、管理后台 |
+
+---
+
+## 运行 PoLang
+
+```bash
+git clone https://github.com/littleseven/langchain4android.git
+cd langchain4android
+
+# 构建 Demo APK
+./gradlew :app:assembleDebug
+
+# 安装到设备
+adb install -r app/build/outputs/apk/debug/polang-debug.apk
+
+# 一键开发闭环
+./scripts/auto-dev-loop.sh
+```
+
+---
+
+## 作为库使用：langchain4android
+
+`:agent-core` 是一个面向 Android 平台的 AI Agent 基础库，提供 LangChain4j 风格的 ChatModel / Tool / AiServices API，专为 Android 环境优化——无 SPI（ServiceLoader）、纯显式依赖注入、兼容 Java 标准反射。开发者基于这些原语构建自己的 Agent 编排层。
+
+### 快速集成
+
+#### Step 1. 添加 JitPack 仓库
 
 ```groovy
 dependencyResolutionManagement {
@@ -47,7 +158,7 @@ dependencyResolutionManagement {
 }
 ```
 
-### Step 2. 添加依赖
+#### Step 2. 添加依赖
 
 ```groovy
 dependencies {
@@ -55,7 +166,7 @@ dependencies {
 }
 ```
 
-### Step 3. 使用
+#### Step 3. 使用
 
 ```java
 // 1. 创建 ChatModel
@@ -97,11 +208,9 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
     .build();
 ```
 
----
+### 核心特性
 
-## 核心特性
-
-### ChatModel 抽象
+#### ChatModel 抽象
 
 | 接口 | 说明 |
 |------|------|
@@ -112,7 +221,7 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
 
 支持 `tool_calls`、`response_format`、`tool_choice`、`logprobs` 等完整 OpenAI API 参数。
 
-### Tool 调用框架
+#### Tool 调用框架
 
 - `@Tool` 注解标记方法为可调用的工具
 - `@P` 注解标记参数描述
@@ -120,29 +229,25 @@ MyAssistant assistantWithTools = AiServices.builder(MyAssistant.class)
 - `AiServices` 自动代理 Tool 调用与结果回填
 - 支持 `ToolChoice`（auto / required / none）
 
-### 对话记忆
+#### 对话记忆
 
 - `ChatMemory` 接口 + `MessageWindowChatMemory` 实现
 - 按 `memoryId` 多会话隔离
 - `@MemoryId` 注解标记会话标识参数
 
-### 数据模型
+#### 数据模型
 
 - 完整消息类型：`UserMessage`、`AiMessage`、`SystemMessage`、`ToolExecutionResultMessage`
 - `ChatRequest` / `ChatResponse` / `TokenUsage`
 - `Embedding` 向量模型接口
 - `Document` / `TextSegment` 文档处理
 
-### Android 优化
+#### Android 优化
 
 - **无 SPI**：不使用 `ServiceLoader` / `META-INF/services`，所有依赖通过 Builder 显式注入
 - **OkHttp 客户端**：内置连接池、超时、重试
 - **SSE 流式**：原生 Server-Sent Events 支持
 - **coreLibraryDesugaring**：兼容 minSdk 24
-
----
-
-## 架构
 
 ### agent-core 模块结构
 
@@ -177,94 +282,12 @@ com.mamba
 └── internal/          # 内部工具（JSON codec / PromptTemplate / 反射工具）
 ```
 
-### 与 Demo 工程的分层关系
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  :app（PoLang Demo 工程 · Kotlin · Jetpack Compose）                  │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ :runtime-core（Agent Runtime 核心 · Kotlin）                  │  │
-│  │  AgentOrchestrator  CapabilityRegistry  PrivacyGuard        │  │
-│  │  MemoryManager  SceneManager  LocalLlmEngine               │  │
-│  │  AiAgentUseCase (Facade，位于 :app，委托给 AgentOrchestrator) │  │
-│  ├───────────────────────────────────────────────────────────────┤  │
-│  │ features/         功能模块（Capability 实现）                   │  │
-│  │  CameraCapability  GalleryCapability  SettingsCapability      │  │
-│  │  NavigationCapability  SystemCapability  ChatSearchCapability   │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                            ↓ 使用                                    │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ :agent-core（Java Library · LLM 基础设施）                     │  │
-│  │  ChatModel · OpenAiChatModel · StreamingChatModel              │  │
-│  │  @Tool · ToolSpecification · AiServices                       │  │
-│  │  ChatMemory · ChatRequest/Response · SSE Client               │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────────┤
-│  :beauty-api (Kotlin)  :beauty-engine (C++/Kotlin)  :mnn-core       │
-│  :sentencepiece (JNI)                                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│  server/（Ktor 后端 · 独立 Gradle 工程）                              │
-│  AI 网关 / 账号体系 / 管理后台 / 推荐引擎 / 遥测收集                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
 ### 关键设计决策
 
 - **无 SPI 纯显式注入**：所有依赖（ChatModel、ChatMemory、Tools）通过 Builder 传入，不依赖 ServiceLoader
 - **OpenAI 协议兼容**：`OpenAiChatModel` 支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问、Moonshot 等）
 - **DeepSeek 适配**：API 请求自动禁用 thinking 模式；ToolSpec 自动添加 `additionalProperties: false`；`tool_choice: REQUIRED` 正确映射
 - **Android 兼容反射**：使用 Java 标准动态代理（`java.lang.reflect.Proxy`），避免 Android 不支持的 JVM 特性
-
----
-
-## Demo 工程：PoLang
-
-**PoLang（破浪相册）** 是 langchain4android 的参考实现——一个接近生产级复杂度的 AI 智能相册应用，基于 `:agent-core` 和 `:runtime-core` 构建了完整的 Agent 编排层。
-
-### Demo 特性
-
-| 功能 | 说明 |
-|------|------|
-| **自然语言交互** | "帮我把天空调蓝"、"找出去年夏天的照片"、"这张照片磨皮 50" |
-| **自然语言相册搜索** | 规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，端侧执行 |
-| **对话式图片编辑** | 聊天发送图片 + 指令 → 远程 ReAct（edit_image）→ 结果回渲染 |
-| **智能抠图 / 证件照** | U2Netp / ModNet / MediaPipe 三后端 + MattingRouter；IDPhoto 多规格 |
-| **Florence-2 标签扫描** | 端侧 INT8 打标 5-Pass + 中英双字段汉化（opus-mt） |
-| **JS 沙盒脚本** | QuickJS + JSBridge，对话内运行相册分析/健康报告脚本 |
-| **Agent 编排** | AgentOrchestrator + CapabilityRegistry + PrivacyGuard 完整架构 |
-| **本地/远程双推理** | 本地 MNN-LLM（Qwen）+ 远程 PoLang Server（OpenAI 标准协议） |
-| **自研美颜引擎** | 全自研 OpenGL ES + EGL 渲染管线 |
-| **语音交互** | 唤醒词 + 流式 ASR + 端侧 LLM 指令解析（Sherpa-ONNX） |
-| **人物记忆与关系图谱** 🔄 | 事实记忆 + 人物命名/"我"标记 + 关系图谱，支撑「我女儿的照片」式检索（开发中） |
-
-### 运行 Demo
-
-```bash
-git clone https://github.com/littleseven/langchain4android.git
-cd langchain4android
-
-# 构建 Demo APK
-./gradlew :app:assembleDebug
-
-# 安装到设备
-adb install -r app/build/outputs/apk/debug/polang-debug.apk
-
-# 一键开发闭环
-./scripts/auto-dev-loop.sh
-```
-
-### 项目模块
-
-| 模块 | 语言 | 说明 |
-|------|------|------|
-| `:agent-core` | **Java** | **框架核心** — ChatModel、Tool、AiServices、ChatMemory 等 LLM 基础设施 |
-| `:app` | Kotlin | **PoLang Demo** — Agent 编排层 + 智能相册 UI |
-| `:runtime-core` | Kotlin | **Agent Runtime** — AgentOrchestrator、CapabilityRegistry、PrivacyGuard、SceneManager |
-| `:beauty-api` | Kotlin | 美颜接口契约层 |
-| `:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
-| `:mnn-core` | C++ | MNN 推理运行时共享库（`:runtime-core` 和 `:beauty-engine` 共用） |
-| `:sentencepiece` | C++/JNI | SentencePiece tokenizer JNI 封装 |
-| `server/` | Kotlin | **Ktor 后端**（独立 Gradle 工程）— AI 网关、账号体系、管理后台 |
 
 ---
 
@@ -354,5 +377,5 @@ MIT License — 研究、学习、二次开发均可自由使用。
 ---
 
 <p align="center">
-  <b>langchain4android</b> — 为 Android 提供 LangChain4j 风格的 AI Agent 基础设施
+  <b>PoLang（破浪相册）</b> · AI Agent 驱动的智能相册 ｜ <b>langchain4android</b> · Android 端侧 AI Agent 基础设施
 </p>
