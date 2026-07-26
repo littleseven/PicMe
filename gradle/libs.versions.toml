@@ -47,6 +47,7 @@ kotlinxCoroutinesPlayServices = "1.10.2"
 recyclerView = "1.4.0"
 mockk = "1.13.8"
 oapi = "2.5.3"
+telegramBot = "5.5.0"
 ktlint = "1.3.1"
 detekt = "1.23.6"
 composeMarkdown = "0.5.4"
@@ -95,6 +96,7 @@ androidx-camera-video = { group = "androidx.camera", name = "camera-video", vers
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "loggingInterceptor" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 oapi-sdk = { module = "com.larksuite.oapi:oapi-sdk", version.ref = "oapi" }
+telegram-bot = { module = "com.github.pengrad:java-telegram-bot-api", version.ref = "telegramBot" }
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshiKotlin" }
 moshi-kotlin-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshiKotlinCodegen" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }

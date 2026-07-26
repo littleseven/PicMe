@@ -248,6 +248,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.material)
     implementation(libs.oapi.sdk)
+    implementation(libs.telegram.bot)
 
     // Media3 dependencies
     implementation(libs.androidx.media3.exoplayer)
