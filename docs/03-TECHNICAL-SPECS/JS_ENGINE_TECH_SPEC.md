@@ -104,7 +104,8 @@ QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 
 - 所有 gallery/media/face/tag 取数 handler 与 `capability.dispatch` 均为 **async**：JS 侧必须 `await bridge.callAsync(name, args)`；对 async handler 调 `bridge.call` 会抛 `HANDLER_NOT_ASYNC_CALLABLE`。
 - 链路：`bridge.callAsync` → `__bridgeCallAsync`（dokar3 `AsyncFunctionBinding`，返回 Promise）→ `JsBridge.dispatchAsync`（在注入的 CoroutineScope 内 launch，handler 内可直接 suspend 调 UseCase/DAO）→ 完成后 resume；**handler 失败（含用户拒绝写操作）→ Promise reject**，JS 可 try/catch。
-- LLM 脚本由 `ChatViewModel.onRunScript` 包成 async IIFE `(async function(){ <code> })()` 执行——顶层 return 合法，且可 await；dokar3 evaluate 自动 await 返回的 Promise 给出最终结果。
+- LLM 脚本与包内演示脚本由 `JsEngine.evalAsync(code, timeoutMs)` 按「async 函数体」语义执行——顶层 `return`/`await` 合法，无需自包 IIFE。`ChatViewModel.onRunScript` 与 Debug 页（JsBridgeDemo）均走此入口。
+- **dokar3 1.0.5 不会解包顶层 Promise 的值**（evaluate 只 pump 完 pending job，`getEvaluateResult` 返回 Promise 对象本身，字符串化为 `Promise { <state>: "fulfilled" }`）。`QuickJsEngine.evalAsync` 因此采用**两段式 eval**：① async IIFE + `.then` 把 resolved value / rejection 写入全局变量（evaluate 返回前 job 已 pump 完）；② 第二段同步读回——rejection 转为 throw（真实 JS 错误回传 LLM），resolved value（`undefined` 归一为 `null`）作为结果。直接使用 `eval` 执行返回 Promise 的脚本只会拿到 Promise 字符串，属于用法错误。
 - 并发取数支持 `Promise.all`（多个 callAsync 并行）；脚本级并发由 `ChatViewModel.jsEvalMutex` 串行（QuickJS 实例单线程，不可并发 eval）。
 
 ---
@@ -259,7 +260,28 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 ---
 
-## 10. 未来演进
+## 10. 运行可观测性（Agent 终端运行感知层）
+
+JS 沙盒是 **Agent 终端运行感知层**的端侧执行层：与 `llm_call_log`（推理层）、`tool_call_log`（行动层）并列，
+每次沙盒执行产生一条结构化事件（Agent First §2.4：事件可被 AI 消费），落 `polang_llm_log.db` 的 **`js_run_log`** 表，
+三表按时间对齐即可还原一次请求的完整端侧链路。设计详见 `docs/superpowers/specs/2026-07-26-js-sandbox-observability-design.md`。
+
+- **事件模型**：`JsRunEvent`（`:runtime-core` `agent/core/js/`，引擎无关）：`source`（chat/debug_page）、`kind`（eval/evalAsync/callFunction）、
+  `script`（仅 DEBUG，cap 4000）、`scriptLength`、`success`、`errorCode`、`errorMessage`（含 JS 栈，cap 500）、`resultPreview`（仅 DEBUG，cap 1000）、`latencyMs`。
+- **埋点**：`JsRuntime.runRecorded` 统一包裹三个执行入口——计时 + 记录 + **错误原样重抛**（执行语义不变）；
+  recorder 异常被吞（双保险：`runCatching` + Room 实现自吞）。
+- **注入**：`JsRuntime.recorder` / `JsRuntime.captureContent` 静态装配（镜像 `RemoteModelFactory.recorder`），
+  `PoLangApplication` 启动时注入 `RoomJsRunRecorder`（`captureContent = BuildConfig.DEBUG`）。
+- **错误归一**：`QuickJsEngine.runEval` 把 dokar3 `QuickJsException` 包装为 `JsBridgeException(SCRIPT_ERROR)`，
+  超时为 `SCRIPT_TIMEOUT`，其余异常归 `UNKNOWN`（runtime-core 不可见 dokar3 类型）。
+- **三环感知**：环内（错误即时回传 LLM 自愈，已具备）→ 环外（本表，人/QA Agent 事后消费）→ 自我感知（预留 `diag.*` 只读 handler 环内查询运行史）。
+- **保留策略**：保留最近 200 条、日级 guard prune；release 构建 `script`/`resultPreview` 为 null（仅落指标，隐私红线）。
+- **Debug 查看页**：LLM 调用日志页第三 Tab「JS 运行」：列表（时间/来源/kind/耗时/错误码）+ 详情（脚本/错误栈/结果预览，可复制）。
+- **已知限制**：① 脚本内创建但未 await 的游离 Promise，其 rejection 无法捕获（dokar3 1.0.5 不暴露 host promise rejection tracker）；② C 层死循环（`while(true){}`）不可被 `withTimeout` 中断（dokar3 1.0.5 未暴露 `evaluationTimeoutMillis`/中断 handler，2026-07-26 实测确认）——该次执行永不产生事件，且 chat 链路 `jsEvalMutex` 被占死需重启 App。
+
+---
+
+## 11. 未来演进
 
 | 方向 | 说明 | 前置条件 |
 |------|------|---------|
@@ -271,8 +293,8 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 ---
 
-## 11. 测试
+## 12. 测试
 
-- **JVM 单测**（引擎无关层 + 应用 handler 层，不依赖 QuickJS native）：`CapabilityDispatchHandler`（解析/分级/确认/拒绝/超时/并发互斥）、`WriteConfirmationController`（孤儿确认防护）、`ChatRunScriptCapability` / `ChatMediaWriteCapability`（命令路由与错误路径）、`CommandRisk`（分级表）。
-- **真机验证**：Debug 页 JsBridge 演示入口（与 chat 共用 `registerGalleryHandlers`）；chat 页实测 `run_gallery_script` / `draw_chart` / 写确认弹窗全流程。
+- **JVM 单测**（引擎无关层 + 应用 handler 层，不依赖 QuickJS native）：`CapabilityDispatchHandler`（解析/分级/确认/拒绝/超时/并发互斥）、`WriteConfirmationController`（孤儿确认防护）、`ChatRunScriptCapability` / `ChatMediaWriteCapability`（命令路由与错误路径）、`CommandRisk`（分级表）、`JsRuntimeObservabilityTest`（运行事件埋点：成功/失败/错误分类/captureContent/recorder 异常隔离）、`EvalAsyncContractTest`（evalAsync 契约）、`JsRunLogDaoTest`（js_run_log 读写/prune）。
+- **真机验证**：Debug 页 JsBridge 演示入口（与 chat 共用 `registerGalleryHandlers`）；chat 页实测 `run_gallery_script` / `draw_chart` / 写确认弹窗全流程；Debug「JS 运行」Tab 核查成功/失败事件落库。
 - QuickJS 引擎层（`QuickJsEngine`/`QuickJsConverter`）依赖 native .so，不在 JVM 单测覆盖范围，经真机回归验证。

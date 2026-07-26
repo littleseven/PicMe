@@ -16,6 +16,7 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.local.llmlog.RoomJsRunRecorder
 import com.mamba.picme.data.local.llmlog.RoomLlmCallRecorder
 import com.mamba.picme.data.local.llmlog.RoomToolCallRecorder
 import com.mamba.picme.data.download.ModelPathConfig
@@ -33,6 +34,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.picme.agent.core.platform.logging.Logger as AgentCoreLogger
 import com.mamba.picme.mnn.MnnResourceManager
@@ -176,7 +178,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         RemoteModelFactory.captureContent = BuildConfig.DEBUG
         RemoteModelFactory.recorder = RoomLlmCallRecorder(this)
         CommandExecutor.recorder = RoomToolCallRecorder(this)
-        Logger.i(TAG, "LLM/tool call metrics recorder installed (captureContent=${BuildConfig.DEBUG})")
+        // Agent 终端运行感知层·端侧执行层：JS 沙盒运行事件（js_run_log）。
+        // 与上面同一约定：release 仅落指标，DEBUG 额外记录脚本文本与结果预览。
+        JsRuntime.captureContent = BuildConfig.DEBUG
+        JsRuntime.recorder = RoomJsRunRecorder(this)
+        Logger.i(TAG, "LLM/tool/js-run metrics recorder installed (captureContent=${BuildConfig.DEBUG})")
 
         // 注册 Activity 生命周期回调，跟踪当前活跃 Activity
         registerActivityLifecycleCallbacks(ActivityTracker())

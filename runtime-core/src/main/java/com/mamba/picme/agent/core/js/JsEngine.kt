@@ -16,6 +16,16 @@ interface JsEngine {
      */
     fun eval(script: String, timeoutMs: Long): JsValue = eval(script)
 
+    /**
+     * 以「async 函数体」语义执行 [code]：允许顶层 `await` / `return`；
+     * 若求值结果是 Promise，等待其 settle 并返回 resolved value（rejected 则抛出 JS 错误）。
+     *
+     * 默认实现：包 async IIFE 后走 [eval]，适用于能自动解包 Promise 的引擎；
+     * 不能解包的引擎（如 dokar3 QuickJS）必须覆写，否则调用方拿到的只是 Promise 对象的字符串。
+     */
+    fun evalAsync(code: String, timeoutMs: Long): JsValue =
+        eval("(async function() {\n$code\n})()", timeoutMs)
+
     /** 调用全局函数。 */
     fun callFunction(name: String, vararg args: JsValue): JsValue
 

@@ -48,16 +48,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/** 默认演示脚本（同步 handler，结果可立即可视化；可在输入框编辑）。 */
-private const val DEFAULT_DEMO_SCRIPT = """(function () {
-    console.log("demo start");
-    var sum = bridge.call("math.add", [18, 24]);
-    console.log("math.add =>", sum);
-    var up = bridge.call("string.upper", "polang");
-    console.log("string.upper =>", up);
-    console.log("handlers =>", bridge.list());
-    return { sum: sum, upper: up };
-})();"""
+/** 默认演示脚本（同步 handler，结果可立即可视化；可在输入框编辑）。
+ *  按「async 函数体」语义执行（evalAsync）：顶层 return/await 合法，无需自包 IIFE。 */
+private const val DEFAULT_DEMO_SCRIPT = """console.log("demo start");
+var sum = bridge.call("math.add", [18, 24]);
+console.log("math.add =>", sum);
+var up = bridge.call("string.upper", "polang");
+console.log("string.upper =>", up);
+console.log("handlers =>", bridge.list());
+return { sum: sum, upper: up };"""
 
 /**
  * Debug 页「JS Bridge」区块：可编辑脚本 + 运行按钮 + 输出区。
@@ -210,6 +209,7 @@ private fun runJsBridgeDemo(
         val runtime = JsRuntime(
             engine = QuickJsEngine(onLog = { msg -> onOutput("console: $msg") }),
             scope = scope,
+            source = "debug_page",
         )
         try {
             registerGalleryHandlers(
@@ -219,7 +219,7 @@ private fun runJsBridgeDemo(
                 container.personDao,
                 container.controlledVocab,
             )
-            val result = runtime.eval(script)
+            val result = runtime.evalAsync(script, QuickJsEngine.DEFAULT_EVAL_TIMEOUT_MS)
             onOutput("✓ result: ${result.toJson()}")
         } catch (e: Throwable) {
             onOutput("✗ ${e.message ?: "unknown error"}")

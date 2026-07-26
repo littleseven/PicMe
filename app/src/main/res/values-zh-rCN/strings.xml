@@ -659,6 +659,9 @@
     <string name="diagnostics_entries">诊断</string>
     <string name="llm_call_log_tab_llm">LLM</string>
     <string name="llm_call_log_tab_tool">工具调用</string>
+    <string name="llm_call_log_tab_js">JS 运行</string>
+    <string name="js_run_log_script">脚本</string>
+    <string name="js_run_log_result">结果预览</string>
     <string name="llm_call_log_release_no_content">Release 构建不记录消息内容</string>
 
     <!-- 图片编辑器 -->

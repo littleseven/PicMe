@@ -107,7 +107,7 @@ Logger.log(AgentCommandParsedEvent(...))
 
 **收益**：结构化日志可被 AI 消费，实现自我诊断和自我改进。
 
-> **实现状态（2026-07）**：结构化可观测性为架构设计愿景。实际代码中目前以 `PoLang:` 前缀标签 + `Log.d/w/e` 为主要日志形式，结构化事件（如 `AgentCommandParsedEvent`）尚未在全局范围强制要求。这是后续 Phase 3 的重点推进方向。
+> **实现状态（2026-07-26）**：结构化可观测性已有首个落地件——Agent 终端运行感知层三件套（`polang_llm_log.db` 的 `llm_call_log` 推理层 / `tool_call_log` 行动层 / `js_run_log` 端侧 JS 沙盒执行层），事件模型引擎无关、可被 AI 消费（详见 `docs/superpowers/specs/2026-07-26-js-sandbox-observability-design.md`）。其余模块仍以 `PoLang:` 前缀标签 + `Log.d/w/e` 为主，结构化事件（如 `AgentCommandParsedEvent`）尚未在全局范围强制要求，是后续 Phase 3 的推进方向。
 
 ---
 

@@ -2,27 +2,26 @@
 // 调 await bridge.callAsync('gallery.summary', {}) 取端侧聚合统计，在 JS 内做组合计算（比率/占比/分布），
 // return 结构化结果对象。该对象经 ChatRunScriptCapability 回传远程 LLM 做自然语言总结。
 // Debug 页运行 / 远程 LLM 生成参考。
-(async function () {
-    var s = await bridge.callAsync("gallery.summary", {});
-    var total = s.totalMedia;
-    var pct = function (n) {
-        return total > 0 ? Math.round((n / total) * 1000) / 10 : 0; // 保留 1 位小数的百分比
-    };
-    var namedRatio = s.personClusterCount > 0
-        ? Math.round((s.namedPersonCount / s.personClusterCount) * 1000) / 10
-        : 0;
-    return {
-        totalMedia: total,
-        photos: s.totalPhotos,
-        videos: s.totalVideos,
-        labeledRatioPct: pct(s.labeledCount),
-        unlabeledRatioPct: pct(s.unlabeledCount),
-        faceRatioPct: pct(s.hasFaceCount),
-        semanticEncodedRatioPct: pct(s.semanticEncodedCount),
-        personClusterCount: s.personClusterCount,
-        namedPersonRatioPct: namedRatio,
-        personPerMedia: total > 0 ? Math.round((s.personClusterCount / total) * 1000) / 1000 : 0,
-        recommendation: s.recommendation,
-        isScanning: s.isScanning
-    };
-})();
+// （按「async 函数体」语义经 evalAsync 执行：顶层 await/return 合法，无需自包 IIFE）
+var s = await bridge.callAsync("gallery.summary", {});
+var total = s.totalMedia;
+var pct = function (n) {
+    return total > 0 ? Math.round((n / total) * 1000) / 10 : 0; // 保留 1 位小数的百分比
+};
+var namedRatio = s.personClusterCount > 0
+    ? Math.round((s.namedPersonCount / s.personClusterCount) * 1000) / 10
+    : 0;
+return {
+    totalMedia: total,
+    photos: s.totalPhotos,
+    videos: s.totalVideos,
+    labeledRatioPct: pct(s.labeledCount),
+    unlabeledRatioPct: pct(s.unlabeledCount),
+    faceRatioPct: pct(s.hasFaceCount),
+    semanticEncodedRatioPct: pct(s.semanticEncodedCount),
+    personClusterCount: s.personClusterCount,
+    namedPersonRatioPct: namedRatio,
+    personPerMedia: total > 0 ? Math.round((s.personClusterCount / total) * 1000) / 1000 : 0,
+    recommendation: s.recommendation,
+    isScanning: s.isScanning
+};

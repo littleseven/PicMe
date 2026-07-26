@@ -637,6 +637,9 @@
     <string name="diagnostics_entries">診斷</string>
     <string name="llm_call_log_tab_llm">LLM</string>
     <string name="llm_call_log_tab_tool">工具呼叫</string>
+    <string name="llm_call_log_tab_js">JS 執行</string>
+    <string name="js_run_log_script">腳本</string>
+    <string name="js_run_log_result">結果預覽</string>
     <string name="llm_call_log_release_no_content">Release 版本不記錄訊息內容</string>
 
     <!-- 圖片編輯器 -->

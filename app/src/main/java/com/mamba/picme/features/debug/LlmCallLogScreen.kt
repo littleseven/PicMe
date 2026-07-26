@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
+import com.mamba.picme.data.local.llmlog.JsRunLogEntity
 import com.mamba.picme.data.local.llmlog.LlmCallLogEntity
 import com.mamba.picme.data.local.llmlog.LlmLogDatabase
 import com.mamba.picme.data.local.llmlog.ToolCallLogEntity
@@ -71,26 +72,32 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val db = remember { LlmLogDatabase.getDatabase(context) }
     val vm: LlmCallLogViewModel = viewModel(
-        factory = LlmCallLogViewModelFactory(db.llmCallLogDao(), db.toolCallLogDao())
+        factory = LlmCallLogViewModelFactory(db.llmCallLogDao(), db.toolCallLogDao(), db.jsRunLogDao())
     )
     val items by vm.items.collectAsState()
     val toolItems by vm.toolItems.collectAsState()
+    val jsRunItems by vm.jsRunItems.collectAsState()
 
     var selected by remember { mutableStateOf<LlmCallLogEntity?>(null) }
+    var selectedJs by remember { mutableStateOf<JsRunLogEntity?>(null) }
     var selectedTab by remember { mutableStateOf(LogTab.LLM) }
     var showClearDialog by remember { mutableStateOf(false) }
 
     val selectedItem = selected
+    val selectedJsItem = selectedJs
+    val inDetail = selectedItem != null || selectedJsItem != null
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (selectedItem != null) stringResource(R.string.llm_call_log_detail) else stringResource(R.string.llm_call_log))
+                    Text(if (inDetail) stringResource(R.string.llm_call_log_detail) else stringResource(R.string.llm_call_log))
                 },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (selectedItem != null) {
                             selected = null
+                        } else if (selectedJsItem != null) {
+                            selectedJs = null
                         } else {
                             onNavigateBack()
                         }
@@ -102,7 +109,7 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                     IconButton(onClick = { vm.refresh() }) {
                         Icon(Icons.Rounded.Refresh, contentDescription = null)
                     }
-                    if (selectedItem == null) {
+                    if (!inDetail) {
                         IconButton(onClick = { showClearDialog = true }) {
                             Icon(Icons.Rounded.DeleteSweep, contentDescription = null)
                         }
@@ -111,8 +118,16 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
             )
         }
     ) { padding ->
-        when (val item = selectedItem) {
-            null -> {
+        when {
+            selectedItem != null -> LlmCallLogDetail(
+                item = selectedItem,
+                modifier = Modifier.fillMaxSize().padding(padding)
+            )
+            selectedJsItem != null -> JsRunLogDetail(
+                item = selectedJsItem,
+                modifier = Modifier.fillMaxSize().padding(padding)
+            )
+            else -> {
                 Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                     TabRow(selectedTabIndex = selectedTab.ordinal) {
                         Tab(
@@ -125,12 +140,18 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                             onClick = { selectedTab = LogTab.TOOL },
                             text = { Text(stringResource(R.string.llm_call_log_tab_tool)) }
                         )
+                        Tab(
+                            selected = selectedTab == LogTab.JS,
+                            onClick = { selectedTab = LogTab.JS },
+                            text = { Text(stringResource(R.string.llm_call_log_tab_js)) }
+                        )
                     }
-                    val currentItems = when (selectedTab) {
-                        LogTab.LLM -> items
-                        LogTab.TOOL -> toolItems
+                    val isEmpty = when (selectedTab) {
+                        LogTab.LLM -> items.isEmpty()
+                        LogTab.TOOL -> toolItems.isEmpty()
+                        LogTab.JS -> jsRunItems.isEmpty()
                     }
-                    if (currentItems.isEmpty()) {
+                    if (isEmpty) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 text = stringResource(R.string.llm_call_log_empty),
@@ -151,15 +172,14 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                                 LogTab.TOOL -> items(toolItems, key = { it.id }) { row ->
                                     ToolCallLogRow(row = row)
                                 }
+                                LogTab.JS -> items(jsRunItems, key = { it.id }) { row ->
+                                    JsRunLogRow(row = row) { selectedJs = it }
+                                }
                             }
                         }
                     }
                 }
             }
-            else -> LlmCallLogDetail(
-                item = item,
-                modifier = Modifier.fillMaxSize().padding(padding)
-            )
         }
     }
 
@@ -181,8 +201,122 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     }
 }
 
-/** 诊断页列表分区：LLM 调用记录 / tool 执行指标。 */
-private enum class LogTab { LLM, TOOL }
+/** 诊断页列表分区：LLM 调用记录 / tool 执行指标 / JS 沙盒运行事件。 */
+private enum class LogTab { LLM, TOOL, JS }
+
+@Composable
+private fun JsRunLogRow(row: JsRunLogEntity, onClick: (JsRunLogEntity) -> Unit) {
+    val timeFormat = remember { SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick(row) },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (row.success) Icons.Rounded.Check else Icons.Rounded.Close,
+                    contentDescription = null,
+                    tint = if (row.success) Color(0xFF2E7D32) else Color(0xFFC62828),
+                    modifier = Modifier.height(18.dp)
+                )
+                Text(
+                    text = timeFormat.format(Date(row.createdAt)),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
+                Spacer(Modifier.weight(1f))
+                SourceChip(source = row.source)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = row.kind + "  ·  " + (row.script?.lineSequence()?.firstOrNull()?.take(60) ?: "(${row.scriptLength} chars)"),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = buildString {
+                    append("${row.latencyMs}ms")
+                    if (!row.success) {
+                        row.errorCode?.let { append("  ·  $it") }
+                        row.errorMessage?.let { append("  ·  ${it.take(40)}") }
+                    }
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun JsRunLogDetail(item: JsRunLogEntity, modifier: Modifier) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val timeFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
+    val successLabel = stringResource(R.string.llm_call_log_success)
+    val failedLabel = stringResource(R.string.llm_call_log_failed)
+
+    fun copy(text: String) {
+        clipboard.setText(AnnotatedString(text))
+        Toast.makeText(context, R.string.llm_call_log_copied, Toast.LENGTH_SHORT).show()
+    }
+
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "${timeFormat.format(Date(item.createdAt))}  ·  ${item.kind}  ·  ${item.source}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = (if (item.success) successLabel else failedLabel) +
+                "  ·  ${item.latencyMs}ms" +
+                (item.errorCode?.let { "  ·  $it" } ?: ""),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (item.success) Color(0xFF2E7D32) else Color(0xFFC62828)
+        )
+
+        HorizontalDivider()
+
+        if (item.script == null && item.resultPreview == null) {
+            // release 构建（captureContent=false）：只落纯指标，绝不展示脚本内容
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.llm_call_log_release_no_content),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        } else {
+            item.script?.let {
+                JsonSection(
+                    title = stringResource(R.string.js_run_log_script),
+                    content = it,
+                    onCopy = { copy(it) }
+                )
+            }
+            item.resultPreview?.let {
+                JsonSection(
+                    title = stringResource(R.string.js_run_log_result),
+                    content = prettyJson(it),
+                    onCopy = { copy(it) }
+                )
+            }
+        }
+        item.errorMessage?.let {
+            JsonSection(
+                title = stringResource(R.string.llm_call_log_error),
+                content = it,
+                onCopy = { copy(it) }
+            )
+        }
+    }
+}
 
 @Composable
 private fun ToolCallLogRow(row: ToolCallLogEntity) {

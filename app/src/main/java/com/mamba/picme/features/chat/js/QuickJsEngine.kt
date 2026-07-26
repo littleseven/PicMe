@@ -1,6 +1,7 @@
 package com.mamba.picme.features.chat.js
 
 import com.dokar.quickjs.QuickJs
+import com.dokar.quickjs.QuickJsException
 import com.dokar.quickjs.binding.AsyncFunctionBinding
 import com.dokar.quickjs.binding.FunctionBinding
 import com.mamba.picme.agent.core.js.JsBridge
@@ -40,27 +41,49 @@ class QuickJsEngine(
 
     override fun eval(script: String): JsValue = eval(script, evalTimeoutMs)
 
-    override fun eval(script: String, timeoutMs: Long): JsValue = runBlocking {
+    override fun eval(script: String, timeoutMs: Long): JsValue = runEval(timeoutMs) {
+        QuickJsConverter.toJsValue(quickjs.evaluate<Any?>(script))
+    }
+
+    /**
+     * 两段式 async 执行（dokar3 1.0.5 不会解包顶层 Promise 的值，只返回 Promise 对象本身）：
+     *
+     * 1. 把 [code] 包成 async IIFE 执行，`.then` 把 resolved value / rejection 写入全局变量。
+     *    dokar3 的 evaluate 返回前会 pump 完所有 pending job，此时结果已落定；
+     *    第一段自身返回的 Promise 字符串被丢弃。
+     * 2. 第二段同步读取全局变量：rejection 转为 throw（调用方拿到真实 JS 错误），
+     *    否则返回 resolved value（`undefined` 归一为 `null`）。
+     */
+    override fun evalAsync(code: String, timeoutMs: Long): JsValue = runEval(timeoutMs) {
+        quickjs.evaluate<Any?>(
+            ASYNC_WRAPPER_HEAD + code + ASYNC_WRAPPER_TAIL,
+        )
+        QuickJsConverter.toJsValue(quickjs.evaluate<Any?>(READ_ASYNC_RESULT_JS))
+    }
+
+    override fun callFunction(name: String, vararg args: JsValue): JsValue = runEval(evalTimeoutMs) {
+        val argsJs = args.joinToString(",") { it.toJson() }
+        QuickJsConverter.toJsValue(quickjs.evaluate<Any?>("$name($argsJs)"))
+    }
+
+    /**
+     * 统一执行入口：runBlocking + withTimeout；异常归一为 [JsBridgeException]——
+     * 超时 → [JsBridgeException.SCRIPT_TIMEOUT]，dokar3 JS 执行错误 → [JsBridgeException.SCRIPT_ERROR]
+     * （runtime-core 埋点按 errorCode 分类，不可见 dokar3 类型）。
+     */
+    private fun runEval(timeoutMs: Long, block: suspend () -> JsValue): JsValue = runBlocking {
         try {
-            val result = withTimeout(timeoutMs) { quickjs.evaluate<Any?>(script) }
-            QuickJsConverter.toJsValue(result)
+            withTimeout(timeoutMs) { block() }
         } catch (e: TimeoutCancellationException) {
             throw JsBridgeException(
                 JsBridgeException.SCRIPT_TIMEOUT,
                 "script timed out after ${timeoutMs}ms",
             )
-        }
-    }
-
-    override fun callFunction(name: String, vararg args: JsValue): JsValue = runBlocking {
-        val argsJs = args.joinToString(",") { it.toJson() }
-        try {
-            val result = withTimeout(evalTimeoutMs) { quickjs.evaluate<Any?>("$name($argsJs)") }
-            QuickJsConverter.toJsValue(result)
-        } catch (e: TimeoutCancellationException) {
+        } catch (e: QuickJsException) {
             throw JsBridgeException(
-                JsBridgeException.SCRIPT_TIMEOUT,
-                "script timed out after ${evalTimeoutMs}ms",
+                JsBridgeException.SCRIPT_ERROR,
+                e.message ?: "js evaluation failed",
+                e,
             )
         }
     }
@@ -110,6 +133,33 @@ class QuickJsEngine(
     companion object {
         const val DEFAULT_EVAL_TIMEOUT_MS = 5_000L
         private const val TAG = "PoLang:QuickJS"
+
+        /** [evalAsync] 第一段：执行用户代码并把 Promise 落定结果写入全局变量。 */
+        private const val ASYNC_WRAPPER_HEAD = """globalThis.__asyncResult = undefined;
+globalThis.__asyncError = undefined;
+(async function() {
+"""
+
+        private const val ASYNC_WRAPPER_TAIL = """
+})().then(
+  function(r) { globalThis.__asyncResult = r === undefined ? null : r; },
+  function(e) { globalThis.__asyncError = String((e && e.stack) || e); }
+);
+"""
+
+        /** [evalAsync] 第二段：同步读回结果；rejection 转为 throw（暴露真实 JS 错误）。 */
+        private const val READ_ASYNC_RESULT_JS = """(function() {
+  if (globalThis.__asyncError !== undefined) {
+    var m = globalThis.__asyncError;
+    globalThis.__asyncError = undefined;
+    throw new Error(m);
+  }
+  var r = globalThis.__asyncResult === undefined ? null : globalThis.__asyncResult;
+  globalThis.__asyncResult = undefined;
+  return r;
+})()
+"""
+
         private const val BOOTSTRAP_JS = """globalThis.bridge = {
   call: function(n, a) { return __bridgeCall(n, a); },
   callAsync: function(n, a) { return __bridgeCallAsync(n, a); },

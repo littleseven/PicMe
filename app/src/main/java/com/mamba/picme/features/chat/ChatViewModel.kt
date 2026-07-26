@@ -1349,12 +1349,12 @@ class ChatViewModel(
                 // 含 capability.dispatch 的脚本会挂起等用户确认（最长 120s），放宽 eval 超时
                 val evalTimeoutMs =
                     if (code.contains("capability.dispatch")) WRITE_EVAL_TIMEOUT_MS else DEFAULT_EVAL_TIMEOUT_MS
-                // 包成 async IIFE：(async function(){ <code> })() —— 顶层 return 需 IIFE 包裹才合法；
-                // async 使 LLM 代码可 await bridge.callAsync(...)（全部 gallery handler 均为 async），
-                // 返回的 Promise 由 dokar3 evaluate 自动 await 后给出结果。
+                // evalAsync 按「async 函数体」语义执行：顶层 return/await 合法；
+                // 返回的 Promise 由引擎两段式 eval 解包（dokar3 不会自动解包顶层 Promise），
+                // resolved value 作为结果，rejected 则抛出真实 JS 错误回传 LLM。
                 writeConfirmationController.onScriptStarted()
                 val result = try {
-                    rt.eval("(async function() {\n" + code + "\n})()", evalTimeoutMs)
+                    rt.evalAsync(code, evalTimeoutMs)
                 } finally {
                     // 脚本结束（正常/超时/取消）：在途写确认一律拒绝——
                     // 「脚本已死，确认不再生效」，防孤儿确认在 SCRIPT_TIMEOUT 后仍执行写操作
@@ -1438,6 +1438,7 @@ class ChatViewModel(
                     evalTimeoutMs = 5_000,
                 ),
                 scope = viewModelScope,
+                source = "chat",
             )
             // 注入 Chart 图表生成器（bar/line/pie → SVG）。失败仅告警，不阻断脚本能力。
             runCatching { rt.eval(loadChartBootstrapJs(context)) }
