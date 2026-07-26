@@ -862,15 +862,32 @@
     <string name="person_relation_label">This person is my…</string>
     <string name="person_relation_none">Not set</string>
     <string name="person_relation_spouse">Spouse</string>
+    <string name="person_relation_partner">Partner</string>
     <string name="person_relation_child">Child</string>
+    <string name="person_relation_son">Son</string>
+    <string name="person_relation_daughter">Daughter</string>
     <string name="person_relation_parent">Parent</string>
+    <string name="person_relation_father">Father</string>
+    <string name="person_relation_mother">Mother</string>
     <string name="person_relation_sibling">Sibling</string>
+    <string name="person_relation_elder_brother">Elder brother</string>
+    <string name="person_relation_elder_sister">Elder sister</string>
+    <string name="person_relation_younger_brother">Younger brother</string>
+    <string name="person_relation_younger_sister">Younger sister</string>
     <string name="person_relation_grandparent">Grandparent</string>
+    <string name="person_relation_grandfather">Grandfather</string>
+    <string name="person_relation_grandmother">Grandmother</string>
     <string name="person_relation_grandchild">Grandchild</string>
     <string name="person_relation_other_family">Other family</string>
     <string name="person_relation_friend">Friend</string>
+    <string name="person_relation_classmate">Classmate</string>
     <string name="person_relation_colleague">Colleague</string>
     <string name="person_relation_other">Other</string>
+    <string name="person_relation_custom_label">Custom relation</string>
+    <string name="person_relation_custom_hint">e.g. childhood buddy, second son</string>
+    <string name="person_relation_custom_supporting">Custom text takes priority when filled</string>
+    <string name="person_relation_group_family">Family</string>
+    <string name="person_relation_group_social">Social</string>
     <string name="person_is_self">This is me</string>
 
     <!-- AI 记忆（事实记忆管理页） -->
@@ -891,4 +908,5 @@
     <string name="memory_facts_facts_section">Facts</string>
     <string name="memory_facts_relations_empty">No relations yet. Edit a person group in Gallery, or tell XiaoLang \"X is my Y\" in chat.</string>
     <string name="memory_relation_item_format">%1$s is my %2$s</string>
+    <string name="memory_relation_edit_title">Edit relation with %1$s</string>
 </resources>

@@ -125,17 +125,51 @@ class PersonRepositoryTest {
     }
 
     @Test
-    fun `resolveByKinship returns union of persons for one term`() = runTest {
+    fun `resolveByKinship specific term hits specific value plus unspecified bucket`() = runTest {
         val selfId = insertPerson("我")
-        val firstId = insertPerson("大宝")
-        val secondId = insertPerson("二宝")
+        val daughterId = insertPerson("小宝")
+        val childId = insertPerson("豆豆")
+        val sonId = insertPerson("石头")
         repository.setSelf(selfId)
-        repository.declareRelation(firstId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION)
-        repository.declareRelation(secondId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION)
+        repository.declareRelation(daughterId, RelationPredicate.DAUGHTER, RelationSource.CHAT_DECLARATION)
+        repository.declareRelation(childId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION)
+        repository.declareRelation(sonId, RelationPredicate.SON, RelationSource.CHAT_DECLARATION)
 
         val daughters = repository.resolveByKinship("女儿")
-        assertEquals(setOf(firstId, secondId), daughters.map { it.personId }.toSet())
+        assertEquals(
+            "女儿 → {DAUGHTER, CHILD}：具体值 + 未指定桶，不含儿子",
+            setOf(daughterId, childId),
+            daughters.map { it.personId }.toSet()
+        )
         assertTrue("非受控称谓返回空", repository.resolveByKinship("表妹").isEmpty())
+    }
+
+    @Test
+    fun `resolveByKinship general term covers whole family`() = runTest {
+        val selfId = insertPerson("我")
+        val daughterId = insertPerson("小宝")
+        val childId = insertPerson("豆豆")
+        val sonId = insertPerson("石头")
+        val fatherId = insertPerson("老头")
+        repository.setSelf(selfId)
+        repository.declareRelation(daughterId, RelationPredicate.DAUGHTER, RelationSource.CHAT_DECLARATION)
+        repository.declareRelation(childId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION)
+        repository.declareRelation(sonId, RelationPredicate.SON, RelationSource.CHAT_DECLARATION)
+        repository.declareRelation(fatherId, RelationPredicate.FATHER, RelationSource.CHAT_DECLARATION)
+
+        val children = repository.resolveByKinship("孩子")
+        assertEquals(
+            "孩子 → 整族 {SON, DAUGHTER, CHILD}",
+            setOf(daughterId, childId, sonId),
+            children.map { it.personId }.toSet()
+        )
+
+        val parents = repository.resolveByKinship("父母")
+        assertEquals(
+            "父母 → 整族 {FATHER, MOTHER, PARENT}",
+            setOf(fatherId),
+            parents.map { it.personId }.toSet()
+        )
     }
 
     @Test
@@ -187,5 +221,101 @@ class PersonRepositoryTest {
         assertTrue(repository.removeRelationById(relationId))
         assertTrue(db.personRelationDao().getAll().isEmpty())
         assertFalse("重复删除幂等", repository.removeRelationById(relationId))
+    }
+
+    @Test
+    fun `declareRelation stores customLabel and re-declaration overwrites it`() = runTest {
+        val selfId = insertPerson("我")
+        val childId = insertPerson("二宝")
+        repository.setSelf(selfId)
+
+        repository.declareRelation(
+            childId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION,
+            customLabel = " 二儿子 "
+        )
+        var relation = db.personRelationDao().getAll().single()
+        assertEquals("customLabel 归一（trim）后落库", "二儿子", relation.customLabel)
+
+        // 重复声明覆盖：谓词与 customLabel 同步更新
+        repository.declareRelation(
+            childId, RelationPredicate.OTHER, RelationSource.RENAME_DIALOG,
+            customLabel = "发小"
+        )
+        relation = db.personRelationDao().getAll().single()
+        assertEquals(RelationPredicate.OTHER.name, relation.predicate)
+        assertEquals("发小", relation.customLabel)
+
+        // 空白 customLabel 归一为 null（清除旧称呼）
+        repository.declareRelation(childId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION)
+        relation = db.personRelationDao().getAll().single()
+        assertNull(relation.customLabel)
+    }
+
+    @Test
+    fun `resolveByCustomLabels matches query contains and requires self`() = runTest {
+        val selfId = insertPerson("我")
+        val firstId = insertPerson("大宝")
+        val secondId = insertPerson("二宝")
+        repository.setSelf(selfId)
+        repository.declareRelation(
+            firstId, RelationPredicate.OTHER, RelationSource.CHAT_DECLARATION,
+            customLabel = "发小"
+        )
+        repository.declareRelation(
+            secondId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION,
+            customLabel = "二儿子"
+        )
+
+        val hits = repository.resolveByCustomLabels("我和二儿子的合照")
+        assertEquals(1, hits.size)
+        assertEquals("二儿子", hits[0].label)
+        assertEquals(secondId, hits[0].person.personId)
+
+        assertTrue("未出现的称呼不命中", repository.resolveByCustomLabels("猫咪的照片").isEmpty())
+
+        repository.clearSelf()
+        assertTrue("未标记我本人时返回空", repository.resolveByCustomLabels("二儿子").isEmpty())
+    }
+
+    @Test
+    fun `updateRelation updates predicate and customLabel but keeps source`() = runTest {
+        val selfId = insertPerson("我")
+        val childId = insertPerson("二宝")
+        repository.setSelf(selfId)
+        repository.declareRelation(childId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION)
+        val before = db.personRelationDao().getAll().single()
+
+        val updated = repository.updateRelation(
+            relationId = before.relationId,
+            predicate = RelationPredicate.OTHER,
+            customLabel = "发小"
+        )
+
+        assertTrue(updated)
+        val after = db.personRelationDao().getAll().single()
+        assertEquals(RelationPredicate.OTHER.name, after.predicate)
+        assertEquals("发小", after.customLabel)
+        assertEquals("source 保留", RelationSource.CHAT_DECLARATION.name, after.source)
+        assertEquals("createdAt 保留", before.createdAt, after.createdAt)
+        assertTrue("updatedAt 刷新", after.updatedAt >= before.updatedAt)
+
+        assertFalse("不存在的 relationId 返回 false", repository.updateRelation(999L, RelationPredicate.FRIEND, null))
+    }
+
+    @Test
+    fun `observeRelationsToSelf carries customLabel`() = runTest {
+        val selfId = insertPerson("我")
+        val childId = insertPerson("二宝")
+        repository.setSelf(selfId)
+        repository.declareRelation(
+            childId, RelationPredicate.CHILD, RelationSource.CHAT_DECLARATION,
+            customLabel = "二儿子"
+        )
+
+        val items = repository.observeRelationsToSelf().first()
+
+        assertEquals(1, items.size)
+        assertEquals("二儿子", items[0].customLabel)
+        assertEquals(RelationPredicate.CHILD, items[0].predicate)
     }
 }

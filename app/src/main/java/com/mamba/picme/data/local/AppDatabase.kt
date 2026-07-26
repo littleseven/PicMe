@@ -49,7 +49,7 @@ import com.mamba.picme.data.model.MediaEntity
         PersonRelationEntity::class,
         MemoryFactEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -82,7 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-                        MIGRATION_11_12, MIGRATION_12_13
+                        MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
                     )
                     .build()
                 INSTANCE = instance
@@ -315,6 +315,20 @@ abstract class AppDatabase : RoomDatabase() {
 
                 database.execSQL(
                     "ALTER TABLE `persons` ADD COLUMN `is_self` INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
+        /**
+         * Migration 13 → 14：两层关系模型 —— person_relations 新增 customLabel 列
+         *
+         * 用户自由输入的称呼（如"发小""二儿子"），可空；
+         * 非空时优先于谓词用于查询解析与展示。
+         */
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE `person_relations` ADD COLUMN `customLabel` TEXT"
                 )
             }
         }

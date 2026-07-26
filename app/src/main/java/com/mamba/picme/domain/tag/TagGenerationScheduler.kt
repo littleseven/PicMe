@@ -1147,7 +1147,8 @@ class TagGenerationScheduler(
                     objectName = obj.name,
                     objectIsSelf = obj.isSelf,
                     predicate = relation.predicate,
-                    source = relation.source
+                    source = relation.source,
+                    customLabel = relation.customLabel
                 )
             )
         }
@@ -1180,7 +1181,8 @@ class TagGenerationScheduler(
                         subjectPersonId = resolved.subjectPersonId,
                         objectPersonId = resolved.objectPersonId,
                         predicate = resolved.predicate,
-                        source = resolved.source
+                        source = resolved.source,
+                        customLabel = resolved.customLabel
                     )
                 }
             )

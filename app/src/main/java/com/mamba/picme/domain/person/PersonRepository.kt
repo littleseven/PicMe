@@ -49,12 +49,15 @@ class PersonRepository(
     /**
      * 声明"subject 是我的 predicate"（如：小宝 是我的 女儿）。
      *
-     * 幂等覆盖：同一对人物已存在任意旧关系时先删除再写入新关系。
+     * 幂等覆盖：同一对人物已存在任意旧关系时先删除再写入新关系（customLabel 同步覆盖）。
+     *
+     * @param customLabel 用户自由输入的称呼（如"发小""二儿子"），空白归一为 null
      */
     suspend fun declareRelation(
         subjectPersonId: Long,
         predicate: RelationPredicate,
-        source: RelationSource
+        source: RelationSource,
+        customLabel: String? = null
     ): DeclareRelationResult {
         val subject = personDao.getPerson(subjectPersonId)
             ?: return DeclareRelationResult.SubjectNotFound
@@ -66,7 +69,8 @@ class PersonRepository(
             subjectPersonId = subject.personId,
             objectPersonId = self.personId,
             predicate = predicate.name,
-            source = source.name
+            source = source.name,
+            customLabel = customLabel?.trim()?.ifEmpty { null }
         )
         val relationId = relationDao.upsert(relation)
         return DeclareRelationResult.Declared(relation.copy(relationId = relationId))
@@ -105,17 +109,52 @@ class PersonRepository(
     }
 
     /**
-     * 按亲属称谓解析人物集合（"我女儿" → 所有 predicate=CHILD 指向我的人物）。
+     * 按亲属称谓解析人物集合（"我女儿" → 谓词族 {DAUGHTER, CHILD} 指向我的人物）。
+     * 查询按谓词族扩展：具体称谓含同族未指定桶，泛化称谓含整族；
      * 一个称谓可能命中多条关系（多个孩子），返回并集由调用方决定是否歧义。
      */
     suspend fun resolveByKinship(term: String): List<PersonEntity> {
-        val predicate = KinshipLexicon.predicateFor(term) ?: return emptyList()
+        val predicates = KinshipLexicon.queryPredicatesFor(term) ?: return emptyList()
         val self = personDao.getSelfPerson() ?: return emptyList()
-        val relations = relationDao.getByObjectAndPredicate(
+        val relations = relationDao.getByObjectAndPredicates(
             objectPersonId = self.personId,
-            predicate = predicate.name
+            predicates = predicates.map { predicate -> predicate.name }
         )
         return relations.mapNotNull { relation -> personDao.getPerson(relation.subjectPersonId) }
+    }
+
+    /**
+     * 自定义称呼匹配（查询解析最高优先级）：query 包含某条指向"我"的关系的 customLabel
+     * （如"二儿子""发小"）→ 精确命中对应人物。按称呼长度降序返回（优先长匹配）。
+     */
+    suspend fun resolveByCustomLabels(query: String): List<CustomLabelHit> {
+        val self = personDao.getSelfPerson() ?: return emptyList()
+        return relationDao.getByObjectWithCustomLabel(self.personId)
+            .mapNotNull { relation ->
+                val label = relation.customLabel?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: return@mapNotNull null
+                if (!query.contains(label)) return@mapNotNull null
+                val person = personDao.getPerson(relation.subjectPersonId) ?: return@mapNotNull null
+                CustomLabelHit(label = label, person = person)
+            }
+            .sortedByDescending { hit -> hit.label.length }
+    }
+
+    /**
+     * 单条更新关系（「AI 记忆」页编辑入口）：只改谓词与自定义称呼，
+     * 保留 source / createdAt，刷新 updatedAt。返回是否命中。
+     */
+    suspend fun updateRelation(
+        relationId: Long,
+        predicate: RelationPredicate,
+        customLabel: String?
+    ): Boolean {
+        return relationDao.updateRelation(
+            relationId = relationId,
+            predicate = predicate.name,
+            customLabel = customLabel?.trim()?.ifEmpty { null },
+            updatedAt = System.currentTimeMillis()
+        ) > 0
     }
 
     /** 快照导出（Pass 2 重聚前调用，按 personId 原样导出，由调度器翻译成名字） */
@@ -151,21 +190,32 @@ class PersonRepository(
                     relationId = relation.relationId,
                     subjectPersonId = subject.personId,
                     subjectName = subject.name ?: "#${subject.personId}",
-                    predicate = predicate
+                    predicate = predicate,
+                    customLabel = relation.customLabel?.trim()?.ifEmpty { null }
                 )
             }
         }
 }
 
 /**
+ * 自定义称呼命中项：[resolveByCustomLabels][PersonRepository.resolveByCustomLabels] 的返回元素
+ */
+data class CustomLabelHit(
+    val label: String,
+    val person: PersonEntity
+)
+
+/**
  * 人物关系展示项（「AI 记忆」页用）："X 是我的 Y"
  *
  * @property subjectName 人名（subject 端，未命名退化为 "#personId"）
  * @property predicate 关系谓词（本地化标签由 UI 层映射）
+ * @property customLabel 自定义称呼；非空时 UI 优先展示它而非谓词标签
  */
 data class RelationDisplayItem(
     val relationId: Long,
     val subjectPersonId: Long,
     val subjectName: String,
-    val predicate: RelationPredicate
+    val predicate: RelationPredicate,
+    val customLabel: String? = null
 )

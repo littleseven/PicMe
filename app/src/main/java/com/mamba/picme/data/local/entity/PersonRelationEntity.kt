@@ -13,6 +13,9 @@ import androidx.room.PrimaryKey
  *
  * [predicate] 存储领域层 RelationPredicate 枚举名；[source] 存储 RelationSource 枚举名，
  * 数据层不依赖领域枚举，映射由 PersonRepository 完成。
+ *
+ * [customLabel] 为用户自由输入的称呼（如"发小""二儿子"），可空：
+ * 非空时优先于谓词用于查询解析与展示（两层关系模型：粗谓词 + 自定义称呼）。
  */
 @Entity(
     tableName = "person_relations",
@@ -43,6 +46,7 @@ data class PersonRelationEntity(
     val objectPersonId: Long,
     val predicate: String,
     val source: String,
+    val customLabel: String? = null,
     val confidence: Float = 1.0f,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()

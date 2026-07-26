@@ -31,6 +31,18 @@ interface PersonRelationDao {
     @Query("SELECT * FROM person_relations WHERE objectPersonId = :objectPersonId AND predicate = :predicate")
     suspend fun getByObjectAndPredicate(objectPersonId: Long, predicate: String): List<PersonRelationEntity>
 
+    /** 以 object 端按谓词集合反查（谓词族扩展查询：女儿 → {DAUGHTER, CHILD}） */
+    @Query("SELECT * FROM person_relations WHERE objectPersonId = :objectPersonId AND predicate IN (:predicates)")
+    suspend fun getByObjectAndPredicates(objectPersonId: Long, predicates: List<String>): List<PersonRelationEntity>
+
+    /** 指向某人物且带自定义称呼的关系（查询解析的自定义称呼匹配源） */
+    @Query("SELECT * FROM person_relations WHERE objectPersonId = :objectPersonId AND customLabel IS NOT NULL AND customLabel != ''")
+    suspend fun getByObjectWithCustomLabel(objectPersonId: Long): List<PersonRelationEntity>
+
+    /** 管理界面单条编辑：只改谓词与自定义称呼，保留 source / createdAt */
+    @Query("UPDATE person_relations SET predicate = :predicate, customLabel = :customLabel, updatedAt = :updatedAt WHERE relationId = :relationId")
+    suspend fun updateRelation(relationId: Long, predicate: String, customLabel: String?, updatedAt: Long): Int
+
     /** 按 subject 人物名字模糊反查关系 */
     @Query(
         """

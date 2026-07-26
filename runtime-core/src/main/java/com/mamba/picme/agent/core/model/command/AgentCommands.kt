@@ -457,7 +457,8 @@ sealed class AgentCommand {
      *
      * @property name 已命名人物的名字（须已在相册人物分组命名）
      * @property relation 关系谓词：RelationPredicate 枚举名（如 CHILD）
-     *                    或中文称谓（如"女儿"，由 Capability 经 KinshipLexicon 归一）
+     *                    或中文称谓（如"女儿"，由 Capability 经 KinshipLexicon 归一）；
+     *                    都不匹配时原话作为自定义称呼存入 customLabel、谓词记 OTHER
      */
     data class RememberPersonRelation(
         override val commandId: Int = AgentIdGenerator.nextId(),

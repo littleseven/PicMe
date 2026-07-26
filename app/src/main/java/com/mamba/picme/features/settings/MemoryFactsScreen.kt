@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
@@ -39,6 +41,8 @@ import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.MemoryFactEntity
 import com.mamba.picme.domain.memory.MemorySource
 import com.mamba.picme.domain.person.RelationDisplayItem
+import com.mamba.picme.domain.person.RelationPredicate
+import com.mamba.picme.features.common.PersonRelationPicker
 import com.mamba.picme.features.common.personRelationLabelRes
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,6 +63,7 @@ fun MemoryFactsScreen(
     val facts by viewModel.facts.collectAsState()
     val relations by viewModel.relations.collectAsState()
     var editingFact by remember { mutableStateOf<MemoryFactEntity?>(null) }
+    var editingRelation by remember { mutableStateOf<RelationDisplayItem?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -107,7 +112,7 @@ fun MemoryFactsScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // ── 人物关系 section（纠错走重新声明，故只查看+删除） ──
+                // ── 人物关系 section（可编辑谓词/自定义称呼 + 删除） ──
                 item(key = "relations_header") {
                     MemorySectionHeader(titleRes = R.string.memory_facts_relations_section)
                 }
@@ -119,7 +124,12 @@ fun MemoryFactsScreen(
                     items(items = relations, key = { relation -> "relation_${relation.relationId}" }) { relation ->
                         PersonRelationRow(
                             relation = relation,
+                            onEdit = { editingRelation = relation },
                             onDelete = { viewModel.removeRelation(relation.relationId) }
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -194,6 +204,54 @@ fun MemoryFactsScreen(
         )
     }
 
+    // ── 关系编辑对话框（谓词/自定义称呼，不改人名；与人物编辑对话框共用 Picker） ──
+    editingRelation?.let { relation ->
+        var predicate by remember(relation.relationId) { mutableStateOf<RelationPredicate?>(relation.predicate) }
+        var customLabel by remember(relation.relationId) { mutableStateOf(relation.customLabel.orEmpty()) }
+        AlertDialog(
+            onDismissRequest = { editingRelation = null },
+            title = {
+                Text(stringResource(R.string.memory_relation_edit_title, relation.subjectName))
+            },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    PersonRelationPicker(
+                        selectedPredicate = predicate,
+                        customLabel = customLabel,
+                        onPredicateChange = { predicate = it },
+                        onCustomLabelChange = { customLabel = it }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val trimmedLabel = customLabel.trim()
+                        // 自定义称呼非空时以其为准（谓词记 OTHER）；谓词也未选则视为"其他"
+                        val newPredicate = if (trimmedLabel.isNotEmpty()) {
+                            RelationPredicate.OTHER
+                        } else {
+                            predicate ?: RelationPredicate.OTHER
+                        }
+                        viewModel.updateRelation(
+                            relationId = relation.relationId,
+                            predicate = newPredicate,
+                            customLabel = trimmedLabel.ifEmpty { null }
+                        )
+                        editingRelation = null
+                    }
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingRelation = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
     // ── 清空全部二次确认 ────────────────────────────────────────
     if (showClearConfirm) {
         AlertDialog(
@@ -246,10 +304,11 @@ private fun MemorySectionEmptyRow(textRes: Int) {
     )
 }
 
-/** 单条人物关系："X 是我的 Y" + 删除 */
+/** 单条人物关系："X 是我的 Y"（有自定义称呼时显示原话）+ 编辑/删除 */
 @Composable
 private fun PersonRelationRow(
     relation: RelationDisplayItem,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Row(
@@ -262,11 +321,18 @@ private fun PersonRelationRow(
             text = stringResource(
                 R.string.memory_relation_item_format,
                 relation.subjectName,
-                stringResource(personRelationLabelRes(relation.predicate))
+                relation.customLabel ?: stringResource(personRelationLabelRes(relation.predicate))
             ),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f)
         )
+        IconButton(onClick = onEdit) {
+            Icon(
+                Icons.Outlined.Edit,
+                contentDescription = stringResource(R.string.memory_facts_edit_desc),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         IconButton(onClick = onDelete) {
             Icon(
                 Icons.Outlined.Delete,

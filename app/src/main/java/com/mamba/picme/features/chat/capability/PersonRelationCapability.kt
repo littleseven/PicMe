@@ -38,7 +38,7 @@ class PersonRelationCapability(
     )
 
     override fun getCommandDescription(command: String): String = when (command) {
-        "remember_person_relation" -> "声明人物关系，参数: name (已命名人物名), relation (谓词枚举名或中文称谓)"
+        "remember_person_relation" -> "声明人物关系，参数: name (已命名人物名), relation (谓词枚举名/中文称谓/任意自定义称呼)"
         "forget_person_relation" -> "遗忘与某人物的全部关系，参数: name (人物名)"
         else -> "未知命令"
     }
@@ -48,7 +48,7 @@ class PersonRelationCapability(
             "remember_person_relation" -> JsonObjectSchema.builder()
                 .description("声明人物与「我」的关系")
                 .addStringProperty("name", "已命名人物的名字")
-                .addStringProperty("relation", "关系谓词：spouse/child/parent/sibling/grandparent/grandchild/other_family/friend/colleague/other，或中文称谓如 女儿/老公")
+                .addStringProperty("relation", "关系：谓词枚举名（spouse/partner/son/daughter/child/father/mother/parent/elder_brother/elder_sister/younger_brother/younger_sister/sibling/grandfather/grandmother/grandparent/grandchild/other_family/friend/classmate/colleague/other）、中文称谓（如 女儿/老公/爸爸/女朋友/同学，归一后存具体谓词），或任意自定义称呼（如 发小/二儿子，会原样记住）")
                 .required("name", "relation")
                 .build()
             "forget_person_relation" -> JsonObjectSchema.builder()
@@ -91,13 +91,13 @@ class PersonRelationCapability(
     private suspend fun rememberRelation(
         command: AgentCommand.RememberPersonRelation
     ): Result<AgentAction> {
-        // 关系归一：优先枚举名，再试中文称谓词表
-        val predicate = RelationPredicate.fromStored(command.relation.trim().uppercase())
-            ?: KinshipLexicon.predicateFor(command.relation.trim())
-            ?: return error(
-                command,
-                "无法识别关系「${command.relation}」，支持：配偶/子女/父母/兄弟姐妹/祖辈/孙辈/其他亲属/朋友/同事/其他"
-            )
+        // 关系归一：枚举名 → 中文称谓词表 → 都不匹配则原话存 customLabel、谓词记 OTHER（不再报错）
+        val rawRelation = command.relation.trim()
+        val normalizedPredicate = RelationPredicate.fromStored(rawRelation.uppercase())
+            ?: KinshipLexicon.predicateFor(rawRelation)
+        val predicate = normalizedPredicate ?: RelationPredicate.OTHER
+        // 仅在归一失败时携带 customLabel（称谓已归一到谓词的，查询走词表即可）
+        val customLabel = if (normalizedPredicate == null) rawRelation.ifEmpty { null } else null
 
         val person = personRepository.resolveByName(command.name.trim())
             ?: return error(
@@ -108,15 +108,18 @@ class PersonRelationCapability(
         return when (val result = personRepository.declareRelation(
             subjectPersonId = person.personId,
             predicate = predicate,
-            source = RelationSource.CHAT_DECLARATION
+            source = RelationSource.CHAT_DECLARATION,
+            customLabel = customLabel
         )) {
             is PersonRepository.DeclareRelationResult.Declared -> {
                 val personName = person.name ?: command.name
-                Logger.i(tag, "relation declared: $personName is user's ${predicate.name}")
+                // 确认文本用用户原话（"已记住：大宝是你的发小"）
+                val displayLabel = customLabel ?: predicate.labelZh
+                Logger.i(tag, "relation declared: $personName is user's ${predicate.name} customLabel=$customLabel")
                 Result.success(
                     AgentAction.TextReply(
                         commandId = command.commandId,
-                        message = "已记住：${personName}是你的${predicate.labelZh}"
+                        message = "已记住：${personName}是你的${displayLabel}"
                     )
                 )
             }

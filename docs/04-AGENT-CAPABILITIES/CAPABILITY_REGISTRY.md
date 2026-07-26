@@ -367,15 +367,17 @@
 
 | 命令 | 参数 | 风险级 | 描述 | 示例 |
 |------|------|--------|------|------|
-| `remember_person_relation` | `name: String, relation: String` | REVERSIBLE_WRITE | 声明人物关系（幂等覆盖=纠错）；relation 支持谓词枚举名（CHILD 等）或中文称谓（女儿 等） | "记住小宝是我女儿" |
+| `remember_person_relation` | `name: String, relation: String` | REVERSIBLE_WRITE | 声明人物关系（幂等覆盖=纠错，customLabel 同步覆盖）；relation 归一顺序：谓词枚举名（DAUGHTER 等）→ 中文称谓（女儿 等，归一后存**具体谓词**）→ 原话存 `customLabel`、谓词记 OTHER（不再报错，"大宝是我发小"可用） | "记住小宝是我女儿" |
 | `forget_person_relation` | `name: String` | REVERSIBLE_WRITE | 遗忘与某人物的全部关系（幂等） | "忘掉小宝的关系" |
 
 ### 12.2 关键设计
 
 - 构造注入 `PersonRepository`（数据收口在 `domain/person`，不直调 DAO）；"我"端取 `persons.is_self` 全局唯一标记，未标记返回引导性 Error（先去人物分组打开"这是我"）。
 - 人名未解析（`persons.name` LIKE 无命中）返回引导性 Error："还没有叫「X」的人物，请先在相册人物分组里给 TA 命名"——LLM 须如实转告，不得假装已记住。
-- 关系图谱同时供查询侧使用：`PersonQueryResolver` 把称谓解到 personId，`MediaSearchEngine` 据此走共现查询（"我和小宝的合照"）。
-- Pass 2 全量重聚时关系随 `NamedPersonSnapshot` 导出（按两端名字+isSelf），重聚后按名解析写回（`RelationSnapshotRestorer` 纯函数）。
+- **谓词枚举**（两层关系模型的粗谓词层）：SPOUSE / PARTNER / SON / DAUGHTER / CHILD / FATHER / MOTHER / PARENT / ELDER_BROTHER / ELDER_SISTER / YOUNGER_BROTHER / YOUNGER_SISTER / SIBLING / GRANDFATHER / GRANDMOTHER / GRANDPARENT / GRANDCHILD / OTHER_FAMILY / FRIEND / CLASSMATE / COLLEAGUE / OTHER；其中 CHILD/PARENT/SIBLING/GRANDPARENT 为"未指定桶"。归一失败的原话走 `customLabel` 自定义称呼（用户语言层），展示与查询解析优先于谓词。
+- **确认文本文案规则**：称谓归一到谓词时用谓词中文标签（"已记住：小宝是你的女儿"）；回退 customLabel 时用用户原话（"已记住：大宝是你的发小"）。
+- 关系图谱同时供查询侧使用：`PersonQueryResolver` 按 customLabel 精确 → 人名 → 称谓（谓词族扩展：具体称谓含同族未指定桶、泛化称谓含整族）解到 personId，`MediaSearchEngine` 据此走共现查询（"我和小宝的合照""我和二儿子的合照"）。
+- Pass 2 全量重聚时关系随 `NamedPersonSnapshot` 导出（按两端名字+isSelf），重聚后按名解析写回（`RelationSnapshotRestorer` 纯函数，含 customLabel）。
 
 ### 12.3 生命周期
 

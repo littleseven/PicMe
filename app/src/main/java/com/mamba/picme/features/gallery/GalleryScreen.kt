@@ -68,7 +68,7 @@ import com.mamba.picme.features.settings.SettingsViewModel
 import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
-import com.mamba.picme.features.common.personRelationLabelRes
+import com.mamba.picme.features.common.PersonRelationPicker
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
@@ -88,13 +88,12 @@ import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.PoLangApplication
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
@@ -194,6 +193,7 @@ fun GalleryScreen(
     var renamingPersonName by remember { mutableStateOf("") }
     // 人物关系声明状态（重命名对话框内"TA 是我的…"与"这是我"）
     var renamingPersonRelation by remember { mutableStateOf<RelationPredicate?>(null) }
+    var renamingPersonCustomLabel by remember { mutableStateOf("") }
     var renamingPersonIsSelf by remember { mutableStateOf(false) }
 
     // 当切换到 PERSON 分组模式时加载所有 person 名称
@@ -697,6 +697,7 @@ fun GalleryScreen(
                                 renamingPersonGroup = group
                                 renamingPersonName = currentName
                                 renamingPersonRelation = null
+                                renamingPersonCustomLabel = ""
                                 renamingPersonIsSelf = false
                                 // 回显已存在的关系与"这是我"标记
                                 kotlinx.coroutines.MainScope().launch {
@@ -707,6 +708,7 @@ fun GalleryScreen(
                                             val relation = repo.getRelationToSelf(personId)
                                             renamingPersonRelation = relation?.predicate
                                                 ?.let(RelationPredicate::fromStored)
+                                            renamingPersonCustomLabel = relation?.customLabel.orEmpty()
                                             renamingPersonIsSelf =
                                                 repo.getSelfPerson()?.personId == personId
                                         }
@@ -832,12 +834,12 @@ fun GalleryScreen(
 
     // ── 人物分组编辑对话框（命名 + "TA 是我的…"关系声明 + "这是我"） ──
     if (renamingPersonGroup != null) {
-        var relationMenuExpanded by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { renamingPersonGroup = null },
             title = { Text(stringResource(R.string.person_edit_title)) },
             text = {
-                Column {
+                // 内容可滚动：chips + 自定义输入在小屏上可能超高
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     OutlinedTextField(
                         value = renamingPersonName,
                         onValueChange = { renamingPersonName = it },
@@ -845,43 +847,20 @@ fun GalleryScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    // "TA 是我的…" 关系下拉（谓词标签走 string 资源映射，不用领域层内置标签）
-                    Box(modifier = Modifier.padding(top = 12.dp)) {
-                        OutlinedButton(
-                            onClick = { relationMenuExpanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = stringResource(R.string.person_relation_label) + " " +
-                                    stringResource(personRelationLabelRes(renamingPersonRelation))
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = relationMenuExpanded,
-                            onDismissRequest = { relationMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.person_relation_none)) },
-                                onClick = {
-                                    renamingPersonRelation = null
-                                    relationMenuExpanded = false
-                                }
-                            )
-                            RelationPredicate.entries.forEach { predicate ->
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(personRelationLabelRes(predicate))) },
-                                    onClick = {
-                                        renamingPersonRelation = predicate
-                                        relationMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    // "TA 是我的…" 关系选择（快捷 chips + 自定义称呼，公共组件）
+                    PersonRelationPicker(
+                        selectedPredicate = renamingPersonRelation,
+                        customLabel = renamingPersonCustomLabel,
+                        onPredicateChange = { predicate -> renamingPersonRelation = predicate },
+                        onCustomLabelChange = { label -> renamingPersonCustomLabel = label },
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
                     // "这是我" 开关（全局唯一，设置后旧标记自动清除）
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.person_is_self),
@@ -900,7 +879,13 @@ fun GalleryScreen(
                         val group = renamingPersonGroup
                         if (group != null) {
                             val name = renamingPersonName.trim()
-                            val relation = renamingPersonRelation
+                            val customLabel = renamingPersonCustomLabel.trim()
+                            // 自定义称呼非空时以其为准（谓词记 OTHER）；否则用选中的谓词
+                            val relation = if (customLabel.isNotEmpty()) {
+                                RelationPredicate.OTHER
+                            } else {
+                                renamingPersonRelation
+                            }
                             val isSelf = renamingPersonIsSelf
                             if (groupingMode == GroupingMode.PERSON) {
                                 kotlinx.coroutines.MainScope().launch {
@@ -924,7 +909,8 @@ fun GalleryScreen(
                                                 val result = repo.declareRelation(
                                                     subjectPersonId = personId,
                                                     predicate = relation,
-                                                    source = RelationSource.RENAME_DIALOG
+                                                    source = RelationSource.RENAME_DIALOG,
+                                                    customLabel = customLabel.ifEmpty { null }
                                                 )
                                                 if (result is PersonRepository.DeclareRelationResult.SelfNotDeclared) {
                                                     Logger.w(TAG, "Relation skipped: self not declared yet")
@@ -932,7 +918,7 @@ fun GalleryScreen(
                                             } else {
                                                 repo.removeAllRelationsOf(personId)
                                             }
-                                            Logger.i(TAG, "Person $personId updated: name=$name relation=$relation isSelf=$isSelf")
+                                            Logger.i(TAG, "Person $personId updated: name=$name relation=$relation customLabel=$customLabel isSelf=$isSelf")
                                         }
                                     } catch (e: Exception) {
                                         Logger.e(TAG, "Failed to update person group", e)

@@ -12,13 +12,25 @@ enum class RelationPredicate(
     val labelJa: String
 ) {
     SPOUSE(labelZh = "配偶", labelEn = "Spouse", labelJa = "配偶者"),
-    CHILD(labelZh = "子女", labelEn = "Child", labelJa = "子供"),
+    PARTNER(labelZh = "恋人", labelEn = "Partner", labelJa = "恋人"),
+    CHILD(labelZh = "孩子", labelEn = "Child", labelJa = "子供"),
+    SON(labelZh = "儿子", labelEn = "Son", labelJa = "息子"),
+    DAUGHTER(labelZh = "女儿", labelEn = "Daughter", labelJa = "娘"),
     PARENT(labelZh = "父母", labelEn = "Parent", labelJa = "親"),
+    FATHER(labelZh = "爸爸", labelEn = "Father", labelJa = "父"),
+    MOTHER(labelZh = "妈妈", labelEn = "Mother", labelJa = "母"),
     SIBLING(labelZh = "兄弟姐妹", labelEn = "Sibling", labelJa = "兄弟姉妹"),
+    ELDER_BROTHER(labelZh = "哥哥", labelEn = "Elder brother", labelJa = "兄"),
+    ELDER_SISTER(labelZh = "姐姐", labelEn = "Elder sister", labelJa = "姉"),
+    YOUNGER_BROTHER(labelZh = "弟弟", labelEn = "Younger brother", labelJa = "弟"),
+    YOUNGER_SISTER(labelZh = "妹妹", labelEn = "Younger sister", labelJa = "妹"),
     GRANDPARENT(labelZh = "祖辈", labelEn = "Grandparent", labelJa = "祖父母"),
+    GRANDFATHER(labelZh = "爷爷", labelEn = "Grandfather", labelJa = "祖父"),
+    GRANDMOTHER(labelZh = "奶奶", labelEn = "Grandmother", labelJa = "祖母"),
     GRANDCHILD(labelZh = "孙辈", labelEn = "Grandchild", labelJa = "孫"),
     OTHER_FAMILY(labelZh = "其他亲属", labelEn = "Other family", labelJa = "その他の親族"),
     FRIEND(labelZh = "朋友", labelEn = "Friend", labelJa = "友人"),
+    CLASSMATE(labelZh = "同学", labelEn = "Classmate", labelJa = "クラスメート"),
     COLLEAGUE(labelZh = "同事", labelEn = "Colleague", labelJa = "同僚"),
     OTHER(labelZh = "其他", labelEn = "Other", labelJa = "その他");
 

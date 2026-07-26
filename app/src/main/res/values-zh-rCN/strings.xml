@@ -856,15 +856,32 @@
     <string name="person_relation_label">TA 是我的…</string>
     <string name="person_relation_none">不设置</string>
     <string name="person_relation_spouse">配偶</string>
-    <string name="person_relation_child">子女</string>
+    <string name="person_relation_partner">恋人</string>
+    <string name="person_relation_child">孩子</string>
+    <string name="person_relation_son">儿子</string>
+    <string name="person_relation_daughter">女儿</string>
     <string name="person_relation_parent">父母</string>
+    <string name="person_relation_father">爸爸</string>
+    <string name="person_relation_mother">妈妈</string>
     <string name="person_relation_sibling">兄弟姐妹</string>
+    <string name="person_relation_elder_brother">哥哥</string>
+    <string name="person_relation_elder_sister">姐姐</string>
+    <string name="person_relation_younger_brother">弟弟</string>
+    <string name="person_relation_younger_sister">妹妹</string>
     <string name="person_relation_grandparent">祖辈</string>
+    <string name="person_relation_grandfather">爷爷</string>
+    <string name="person_relation_grandmother">奶奶</string>
     <string name="person_relation_grandchild">孙辈</string>
     <string name="person_relation_other_family">其他亲属</string>
     <string name="person_relation_friend">朋友</string>
+    <string name="person_relation_classmate">同学</string>
     <string name="person_relation_colleague">同事</string>
     <string name="person_relation_other">其他</string>
+    <string name="person_relation_custom_label">自定义称呼</string>
+    <string name="person_relation_custom_hint">如：发小、二儿子</string>
+    <string name="person_relation_custom_supporting">填写后以自定义称呼为准</string>
+    <string name="person_relation_group_family">家庭</string>
+    <string name="person_relation_group_social">社会</string>
     <string name="person_is_self">这是我</string>
 
     <!-- AI 记忆（事实记忆管理页） -->
@@ -885,4 +902,5 @@
     <string name="memory_facts_facts_section">事实记忆</string>
     <string name="memory_facts_relations_empty">还没有人物关系。在人物分组对话框或聊天中对小浪说“X 是我 Y”即可添加</string>
     <string name="memory_relation_item_format">%1$s 是我的%2$s</string>
+    <string name="memory_relation_edit_title">编辑与 %1$s 的关系</string>
 </resources>

@@ -7,6 +7,7 @@ import com.mamba.picme.data.local.entity.MemoryFactEntity
 import com.mamba.picme.domain.memory.MemoryRepository
 import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.domain.person.RelationDisplayItem
+import com.mamba.picme.domain.person.RelationPredicate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -34,6 +35,17 @@ class MemoryFactsViewModel(
     fun removeRelation(relationId: Long) {
         viewModelScope.launch {
             personRepository.removeRelationById(relationId)
+        }
+    }
+
+    /** 编辑单条关系：只改谓词/自定义称呼，保留 source（见 [PersonRepository.updateRelation]） */
+    fun updateRelation(relationId: Long, predicate: RelationPredicate, customLabel: String?) {
+        viewModelScope.launch {
+            personRepository.updateRelation(
+                relationId = relationId,
+                predicate = predicate,
+                customLabel = customLabel
+            )
         }
     }
 

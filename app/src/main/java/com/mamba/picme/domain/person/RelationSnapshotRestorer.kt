@@ -12,7 +12,8 @@ data class RelationSnapshotEntry(
     val objectName: String?,
     val objectIsSelf: Boolean,
     val predicate: String,
-    val source: String
+    val source: String,
+    val customLabel: String? = null
 )
 
 /**
@@ -22,7 +23,8 @@ data class ResolvedRelation(
     val subjectPersonId: Long,
     val objectPersonId: Long,
     val predicate: String,
-    val source: String
+    val source: String,
+    val customLabel: String? = null
 )
 
 /**
@@ -60,7 +62,8 @@ object RelationSnapshotRestorer {
                         subjectPersonId = subjectId,
                         objectPersonId = objectId,
                         predicate = entry.predicate,
-                        source = entry.source
+                        source = entry.source,
+                        customLabel = entry.customLabel
                     )
                 )
             }

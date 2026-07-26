@@ -16,11 +16,13 @@ data class ResolvedPersons(
 /**
  * 人物查询解析器 —— 原始查询字符串 → 人物 ID 集合
  *
- * 解析全部在端侧确定性完成（理由是确定性与查询性能）：
- * 1. 已命名人物：query 包含某人名 → 命中
- * 2. 亲属称谓：[KinshipLexicon] 命中 → 经 [PersonRepository.resolveByKinship] 解到人物；
- *    一个称谓命中多条关系取并集并标记歧义
- * 3. "我"：仅在出现合拍电影 Pattern（"我和/和我/与我"）且已有其他人物命中时，
+ * 解析全部在端侧确定性完成（理由是确定性与查询性能），按优先级：
+ * 1. 自定义称呼：query 包含某关系的 customLabel（"二儿子""发小"）→ 精确命中对应人物
+ * 2. 已命名人物：query 包含某人名 → 命中
+ * 3. 亲属称谓：[KinshipLexicon] 命中 → 经 [PersonRepository.resolveByKinship] 解到人物；
+ *    一个称谓命中多条关系取并集并标记歧义。
+ *    已被更长自定义称呼覆盖的称谓跳过（"二儿子"命中后不再用"儿子"取并集）
+ * 4. "我"：仅在出现合拍电影 Pattern（"我和/和我/与我"）且已有其他人物命中时，
  *    才将本人计入（避免"我想看猫"这类第一人称查询误带本人照片）
  */
 class PersonQueryResolver(
@@ -36,7 +38,14 @@ class PersonQueryResolver(
         val descriptions = mutableListOf<String>()
         var isAmbiguous = false
 
-        // 1. 已命名人物命中（同名多人物取并集并标记歧义）
+        // 1. 自定义称呼精确命中（最高优先级，多个不同称呼可同时命中）
+        val customLabelHits = personRepository.resolveByCustomLabels(query)
+        for (hit in customLabelHits) {
+            personIds.add(hit.person.personId)
+            descriptions.add("${hit.label} → ${hit.person.name ?: "#${hit.person.personId}"}")
+        }
+
+        // 2. 已命名人物命中（同名多人物取并集并标记歧义）
         val namedPersons = personRepository.getNamedPersons()
         val nameHits = namedPersons.filter { person ->
             val name = person.name
@@ -52,8 +61,11 @@ class PersonQueryResolver(
             }
         }
 
-        // 2. 亲属称谓命中（一词多关系取并集并标记歧义）
+        // 3. 亲属称谓命中（一词多关系取并集并标记歧义）；
+        //    称谓已被命中的自定义称呼包含时跳过（避免"二儿子"又被"儿子"并集稀释）
+        val matchedLabels = customLabelHits.map { hit -> hit.label }
         for ((term, _) in KinshipLexicon.scan(query)) {
+            if (matchedLabels.any { label -> label.contains(term) }) continue
             val persons = personRepository.resolveByKinship(term)
             if (persons.isEmpty()) continue
             personIds.addAll(persons.map { person -> person.personId })
@@ -66,7 +78,7 @@ class PersonQueryResolver(
             }
         }
 
-        // 3. "我"：仅合拍 Pattern 且已有其他人物命中时计入
+        // 4. "我"：仅合拍 Pattern 且已有其他人物命中时计入
         if (personIds.isNotEmpty() && SELF_JOIN_PATTERNS.any { pattern -> query.contains(pattern) }) {
             val self = personRepository.getSelfPerson()
             if (self != null && self.personId !in personIds) {

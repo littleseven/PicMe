@@ -26,12 +26,14 @@ class PersonQueryResolverTest {
     private fun stubDefaults(
         named: List<PersonEntity> = emptyList(),
         kinship: Map<String, List<PersonEntity>> = emptyMap(),
+        customLabels: List<CustomLabelHit> = emptyList(),
         self: PersonEntity? = null
     ) {
         coEvery { repository.getNamedPersons() } returns named
         coEvery { repository.resolveByKinship(any()) } answers {
             kinship[firstArg<String>()].orEmpty()
         }
+        coEvery { repository.resolveByCustomLabels(any()) } returns customLabels
         coEvery { repository.getSelfPerson() } returns self
     }
 
@@ -131,5 +133,68 @@ class PersonQueryResolverTest {
 
         assertEquals(setOf(1L), result.personIds)
         assertFalse(result.isAmbiguous)
+    }
+
+    @Test
+    fun `custom label hit resolves exactly and suppresses covered kinship term`() = runTest {
+        // 三个儿子都是 CHILD；"二儿子"是自定义称呼，应精确命中二宝，
+        // 且"儿子"不再走亲属称谓并集
+        stubDefaults(
+            named = listOf(person(1, "大宝"), person(2, "二宝"), person(3, "小宝")),
+            kinship = mapOf("儿子" to listOf(person(1, "大宝"), person(2, "二宝"), person(3, "小宝"))),
+            customLabels = listOf(CustomLabelHit(label = "二儿子", person = person(2, "二宝"))),
+            self = person(9, "我", isSelf = true)
+        )
+
+        val result = resolver.resolve("我和二儿子的合照")
+
+        assertEquals("自定义称呼精确命中单个簇 + 合拍计入本人", setOf(2L, 9L), result.personIds)
+        assertFalse("未被称谓并集稀释，无歧义", result.isAmbiguous)
+        assertTrue(result.descriptions.any { it.contains("二儿子") })
+    }
+
+    @Test
+    fun `custom label miss still falls through to kinship`() = runTest {
+        stubDefaults(
+            kinship = mapOf("儿子" to listOf(person(1, "大宝"), person(2, "二宝"))),
+            customLabels = emptyList()
+        )
+
+        val result = resolver.resolve("我儿子的照片")
+
+        assertEquals(setOf(1L, 2L), result.personIds)
+        assertTrue(result.isAmbiguous)
+    }
+
+    @Test
+    fun `multiple distinct custom labels can hit together`() = runTest {
+        stubDefaults(
+            customLabels = listOf(
+                CustomLabelHit(label = "发小", person = person(1, "大宝")),
+                CustomLabelHit(label = "二儿子", person = person(2, "二宝"))
+            )
+        )
+
+        val result = resolver.resolve("发小和二儿子的合照")
+
+        assertEquals(setOf(1L, 2L), result.personIds)
+        assertFalse(result.isAmbiguous)
+    }
+
+    @Test
+    fun `longer kinship term suppresses contained shorter term`() = runTest {
+        // 新词表含单字称谓（爸/妈/哥/姐）：长称谓命中后短称谓不重复解析
+        stubDefaults(
+            kinship = mapOf(
+                "爸爸" to listOf(person(1, "老头")),
+                "爸" to listOf(person(1, "老头"))
+            )
+        )
+
+        val result = resolver.resolve("我和爸爸的合照")
+
+        assertEquals(setOf(1L), result.personIds)
+        assertEquals("只解析一次，无「爸」重复描述", 1, result.descriptions.size)
+        assertTrue(result.descriptions.single().startsWith("爸爸"))
     }
 }
