@@ -1,7 +1,9 @@
 package com.mamba.picme.domain.search
 
 import com.mamba.picme.agent.core.model.context.MediaAsset
+import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.MediaDao
+import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
@@ -20,6 +22,7 @@ import com.mamba.picme.domain.tag.i18n.TagTranslator
  */
 class ExplicitFirstSearchPipeline(
     private val mediaDao: MediaDao,
+    private val personDao: PersonDao? = null,
     private val tagTranslator: TagTranslator = TagTranslator(BilingualVocab.empty())
 ) {
 
@@ -99,6 +102,8 @@ class ExplicitFirstSearchPipeline(
         val matchedIds = mutableSetOf<Long>()
 
         for (keyword in content.keywords) {
+            searchPersonByNameCandidate(keyword, candidateIds)?.let { matchedIds.addAll(it) }
+
             val candidates = tagTranslator.expandForSearch(keyword, uiLang)
             for (candidate in candidates) {
                 matchedIds.addAll(mediaDao.searchLabelsAllFieldsInIds(ids, candidate).map { it.id })
@@ -129,6 +134,8 @@ class ExplicitFirstSearchPipeline(
 
         val matchedIds = mutableSetOf<Long>()
         for (keyword in content.keywords) {
+            searchPersonByNameCandidate(keyword, null)?.let { matchedIds.addAll(it) }
+
             val candidates = tagTranslator.expandForSearch(keyword, uiLang)
             for (candidate in candidates) {
                 matchedIds.addAll(mediaDao.searchByLabelAllFields(candidate).map { it.id })
@@ -144,6 +151,30 @@ class ExplicitFirstSearchPipeline(
         if (matchedIds.isEmpty()) return emptyList()
         return mediaDao.getMediaByIds(matchedIds.toList())
             .sortedByDescending { it.captureDate }
+    }
+
+    /**
+     * 将关键词作为人物分组名称进行匹配。
+     *
+     * 与 [MediaSearchEngine] 保持一致：支持用户自定义的人物分组名称搜索。
+     *
+     * @param candidateIds 若不为 null，则返回结果与该候选集取交集
+     * @return 命中人物的媒体 ID 集合；未命中或 [personDao] 未注入时返回 null
+     */
+    private suspend fun searchPersonByNameCandidate(
+        keyword: String,
+        candidateIds: Set<Long>?
+    ): Set<Long>? {
+        val dao = personDao ?: return null
+        val person = dao.findPersonByName(keyword.trim()) ?: return null
+        val media = dao.getMediaByPerson(person.personId)
+        Logger.d(TAG, "keyword='$keyword' matched personId=${person.personId}, media=${media.size}")
+        val ids = media.map { it.id }.toSet()
+        return if (candidateIds != null) ids.intersect(candidateIds) else ids
+    }
+
+    companion object {
+        private const val TAG = "ExplicitFirstSearchPipeline"
     }
 }
 

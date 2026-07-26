@@ -224,6 +224,7 @@ class AppContainerImpl(
     private val explicitFirstSearchPipeline: ExplicitFirstSearchPipeline by lazy {
         ExplicitFirstSearchPipeline(
             mediaDao = database.mediaDao(),
+            personDao = database.personDao(),
             tagTranslator = TagTranslator(bilingualVocab, opusMtTranslator, controlledVocab)
         )
     }

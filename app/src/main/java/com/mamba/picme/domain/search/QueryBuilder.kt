@@ -119,6 +119,17 @@ class QueryBuilder(
         deferredQueries: MutableList<kotlinx.coroutines.Deferred<List<MediaEntity>>>
     ) {
         for (keyword in keywords) {
+            // 将关键词同时作为人物分组名称匹配，支持用户自定义命名（如"大宝"）
+            personDao?.let { dao ->
+                deferredQueries += async {
+                    dao.findPersonByName(keyword.trim())?.let { person ->
+                        dao.getMediaByPerson(person.personId).also {
+                            if (it.isNotEmpty()) Logger.d(TAG, "Person match '$keyword': ${it.size}")
+                        }
+                    } ?: emptyList()
+                }
+            }
+
             for (candidate in tagTranslator.expandForSearch(keyword, uiLang)) {
                 deferredQueries += async { mediaDao.searchByOcrText(candidate) }
                 deferredQueries += async { mediaDao.searchByLabel(candidate) }
