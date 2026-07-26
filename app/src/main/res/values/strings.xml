@@ -901,7 +901,6 @@
     <string name="person_relation_friend">Friend</string>
     <string name="person_relation_classmate">Classmate</string>
     <string name="person_relation_colleague">Colleague</string>
-    <string name="person_relation_classmate">Classmate</string>
     <string name="person_relation_other">Other</string>
     <string name="person_relation_custom_label">Custom relation</string>
     <string name="person_relation_custom_hint">e.g. childhood buddy, second son</string>

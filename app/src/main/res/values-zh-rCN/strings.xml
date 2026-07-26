@@ -895,7 +895,6 @@
     <string name="person_relation_friend">朋友</string>
     <string name="person_relation_classmate">同学</string>
     <string name="person_relation_colleague">同事</string>
-    <string name="person_relation_classmate">同学</string>
     <string name="person_relation_other">其他</string>
     <string name="person_relation_custom_label">自定义称呼</string>
     <string name="person_relation_custom_hint">如：发小、二儿子</string>

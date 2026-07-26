@@ -873,7 +873,6 @@
     <string name="person_relation_friend">朋友</string>
     <string name="person_relation_classmate">同學</string>
     <string name="person_relation_colleague">同事</string>
-    <string name="person_relation_classmate">同學</string>
     <string name="person_relation_other">其他</string>
     <string name="person_relation_custom_label">自訂稱呼</string>
     <string name="person_relation_custom_hint">如：髮小、二兒子</string>
