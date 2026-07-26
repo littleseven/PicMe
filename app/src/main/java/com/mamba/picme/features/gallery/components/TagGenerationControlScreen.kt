@@ -735,11 +735,13 @@ private fun PassControlCard(
     }
 }
 
-private fun formatDuration(ms: Long): String {
+internal fun formatDuration(ms: Long): String {
     val seconds = ms / 1000
     val minutes = seconds / 60
     val hours = minutes / 60
+    val days = hours / 24
     return when {
+        days > 0 -> "${days}d ${hours % 24}h"
         hours > 0 -> "${hours}h ${minutes % 60}m"
         minutes > 0 -> "${minutes}m ${seconds % 60}s"
         else -> "${seconds}s"

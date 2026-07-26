@@ -64,9 +64,6 @@ class TagScanOrchestrator(
             TagScanPass.MOBILE_CLIP_ENCODING to 1_000L
         )
 
-        /** ETA 上限：超过 24 小时按 24 小时显示，避免异常值 */
-        private const val MAX_ESTIMATE_MS = 24 * 60 * 60 * 1000L
-
         /** 清理已完成任务的最小保留时间 */
         private const val CLEANUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000L
 
@@ -833,7 +830,10 @@ class TagScanOrchestrator(
      * 2. 某 Pass 尚无样本时，使用 [DEFAULT_PASS_DURATION_MS] 默认值，避免冷启动
      *    时 ETA 从 0 突然跳到真实值。
      * 3. 对 pending + failed 任务按 Pass 分组，分别相乘后求和。
-     * 4. 最终 ETA 上限 [MAX_ESTIMATE_MS]。
+     *
+     * 不再对总和做上限钳位：大图库的合法长耗时估值交给 UI（formatDuration）按天
+     * 展示（如 "1d 3h"），避免被钉死在 "24h 0m" 看似卡住。异常单任务耗时已由
+     * [recordDuration] 的 30 分钟过滤与中位数兜底。
      */
     private suspend fun estimateRemainingMs(sessionId: String): Long? {
         val stats = db.tagScanTaskDao().countByStatusAndPass(sessionId)
@@ -862,7 +862,7 @@ class TagScanOrchestrator(
             hasAnyEstimate = true
         }
 
-        return if (hasAnyEstimate) totalMs.coerceAtMost(MAX_ESTIMATE_MS) else null
+        return if (hasAnyEstimate) totalMs else null
     }
 
     private fun estimatePassDurationMs(pass: TagScanPass): Long {
