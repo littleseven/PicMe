@@ -15,6 +15,7 @@ import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
+import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.LabelSinicizer
@@ -245,7 +246,7 @@ class TagGenerationScheduler(
                 )
 
                 if (resultJson.isNotEmpty()) {
-                    db.mediaDao().updateLabels(mediaId, resultJson)
+                    persistUnifiedTags(mediaId, resultJson)
                 }
                 Log.d(TAG, "Single photo processed: mediaId=$mediaId")
             } catch (e: Exception) {
@@ -261,7 +262,8 @@ class TagGenerationScheduler(
      * 与 [processSingle] 区别:同步 suspend 返回 resultJson(供 UI 即时刷新),
      * 不经 dispatcher 队列/批控节流(单张用户显式触发)。
      *
-     * @return resultJson(结构化 Object);null 表示失败(模型未加载 / 媒体不存在 / 空结果)。
+     * @return 与当前 UI 语言匹配的结构化标签 JSON(英文 UI→labelsEn,其余→labelsZh);
+     * null 表示失败(模型未加载 / 媒体不存在 / 空结果)。
      */
     suspend fun processSingleSync(uri: String): String? = withContext(Dispatchers.IO) {
         if (!ensureModelLoaded()) return@withContext null
@@ -271,10 +273,8 @@ class TagGenerationScheduler(
             lensFacing = CameraSelector.LENS_FACING_BACK,
             mediaId = entity.id
         )
-        if (resultJson.isNotEmpty()) {
-            db.mediaDao().updateLabels(entity.id, resultJson)
-        }
-        resultJson.ifEmpty { null }
+        if (resultJson.isEmpty()) return@withContext null
+        persistUnifiedTags(entity.id, resultJson)
     }
 
     /**
@@ -905,6 +905,47 @@ class TagGenerationScheduler(
         return obj.toString()
     }
 
+    /** 解析 [unifiedTagToJson] 产出的统一标签 JSON 回 [UnifiedTagResult]。 */
+    private fun jsonToUnifiedTag(json: String): UnifiedTagResult {
+        val obj = JSONObject(json)
+        val faceObj = obj.optJSONObject("face")
+        val face = FaceTagInfo(
+            count = faceObj?.optInt("count") ?: 0,
+            selfie = faceObj?.optBoolean("selfie") ?: false,
+            groupPhoto = faceObj?.optBoolean("groupPhoto") ?: false,
+            personIds = faceObj?.optJSONArray("personIds")
+                ?.let { arr -> (0 until arr.length()).map { arr.getLong(it) } }
+                ?: emptyList()
+        )
+        return UnifiedTagResult(
+            face = face,
+            scene = obj.optString("scene"),
+            activity = obj.optString("activity"),
+            objects = obj.optJSONArray("objects")
+                ?.let { arr -> (0 until arr.length()).map { arr.getString(it) } }
+                ?: emptyList(),
+            tags = obj.optJSONArray("tags")
+                ?.let { arr -> (0 until arr.length()).map { arr.getString(it) } }
+                ?: emptyList(),
+            summary = obj.optString("summary")
+        )
+    }
+
+    /**
+     * 按双字段规范持久化统一标签（[enJson] 为英文原语 JSON）：
+     * labelsEn=英文原语；labelsZh=由 [LabelSinicizer] 离线汉化派生；labels 作 labelsZh 别名。
+     *
+     * @return 与当前 UI 语言匹配的 JSON（英文 UI→enJson，其余→zhJson），供调用方即时展示
+     */
+    private suspend fun persistUnifiedTags(mediaId: Long, enJson: String): String {
+        val zhJson = unifiedTagToJson(labelSinicizer.sinicize(jsonToUnifiedTag(enJson)))
+        val dao = db.mediaDao()
+        dao.updateLabelsEn(mediaId, enJson)
+        dao.updateLabelsZh(mediaId, zhJson)
+        dao.updateLabels(mediaId, zhJson)
+        return if (userSettingsRepository.getAppLanguageBlocking() == AppLanguage.ENGLISH) enJson else zhJson
+    }
+
     private suspend fun ensureModelLoaded(): Boolean {
         val orchestrator = AgentOrchestrator.getInstance(context)
         val engine = orchestrator.getLlmEngine()
@@ -1147,12 +1188,7 @@ class TagGenerationScheduler(
         }
 
         // 恒英文：labelsEn 存英文原语；labelsZh 由 LabelSinicizer 离线汉化派生。
-        val enJson = unifiedTagToJson(unified)
-        val zhJson = unifiedTagToJson(labelSinicizer.sinicize(unified))
-        dao.updateLabelsEn(entity.id, enJson)
-        dao.updateLabelsZh(entity.id, zhJson)
-        // 过渡期 labels 作 labelsZh 别名（老读取路径仍用 labels；task 14 切完后由后续 migration 删）
-        dao.updateLabels(entity.id, zhJson)
+        persistUnifiedTags(entity.id, unifiedTagToJson(unified))
 
         Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, " +
             "durationMs=${System.currentTimeMillis() - startMs}, tagger=" +
