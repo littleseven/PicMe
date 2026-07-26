@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PrivacyTip
@@ -121,7 +122,8 @@ fun SettingsScreen(
     onNavigateToLlmLog: () -> Unit = {},
     onNavigateToCategory: (SettingsCategory) -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {},
-    onNavigateToMemoryFacts: () -> Unit = {}
+    onNavigateToMemoryFacts: () -> Unit = {},
+    onNavigateToCommunicationChannel: () -> Unit = {}
 ) {
     val view = LocalView.current
     val context = LocalContext.current
@@ -165,10 +167,6 @@ fun SettingsScreen(
     val logModuleConfig by viewModel.logModuleConfig.collectAsState()
     val downloadStates by viewModel.downloadStates.collectAsState()
     val allModels by viewModel.allModels.collectAsState()
-
-    // 飞书远程控制
-    val feishuAppId by viewModel.feishuAppId.collectAsState()
-    val feishuAppSecret by viewModel.feishuAppSecret.collectAsState()
 
     val agentChatConfig = rememberAgentChatConfig(
         context = context,
@@ -295,10 +293,6 @@ fun SettingsScreen(
             allModels = allModels,
             logModuleConfig = logModuleConfig,
             onLogModuleConfigChange = viewModel::setLogModuleConfig,
-            feishuAppId = feishuAppId,
-            feishuAppSecret = feishuAppSecret,
-            onFeishuAppIdChange = viewModel::setFeishuAppId,
-            onFeishuAppSecretChange = viewModel::setFeishuAppSecret,
             onNavigateBack = onNavigateBack,
             onNavigateToTagControl = onNavigateToTagControl,
             onNavigateToTagViewer = onNavigateToTagViewer,
@@ -307,7 +301,8 @@ fun SettingsScreen(
             onNavigateToSearchTest = onNavigateToSearchTest,
             onNavigateToLlmLog = onNavigateToLlmLog,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy,
-            onNavigateToMemoryFacts = onNavigateToMemoryFacts
+            onNavigateToMemoryFacts = onNavigateToMemoryFacts,
+            onNavigateToCommunicationChannel = onNavigateToCommunicationChannel
         )
     }
 }
@@ -376,10 +371,6 @@ private fun SettingsContent(
     allModels: List<ModelConfig>,
     logModuleConfig: LogModuleConfig,
     onLogModuleConfigChange: (LogModuleConfig) -> Unit,
-    feishuAppId: String,
-    feishuAppSecret: String,
-    onFeishuAppIdChange: (String) -> Unit,
-    onFeishuAppSecretChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
@@ -388,7 +379,8 @@ private fun SettingsContent(
     onNavigateToSearchTest: () -> Unit = {},
     onNavigateToLlmLog: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {},
-    onNavigateToMemoryFacts: () -> Unit = {}
+    onNavigateToMemoryFacts: () -> Unit = {},
+    onNavigateToCommunicationChannel: () -> Unit = {}
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
@@ -431,7 +423,8 @@ private fun SettingsContent(
                     onAppLanguageSelected = onAppLanguageSelected,
                     onNavigateToCategory = onNavigateToCategory,
                     onNavigateToModelCenter = { onNavigateToModelCenter("") },
-                    onNavigateToDataPrivacy = onNavigateToDataPrivacy
+                    onNavigateToDataPrivacy = onNavigateToDataPrivacy,
+                    onNavigateToCommunicationChannel = onNavigateToCommunicationChannel
                 )
                 return@Column
             }
@@ -546,31 +539,6 @@ private fun SettingsContent(
                         subtitle = stringResource(R.string.settings_ai_memory_desc),
                         leadingIcon = Icons.Rounded.Psychology,
                         onClick = onNavigateToMemoryFacts
-                    )
-                }
-
-                SettingsSection(
-                    title = stringResource(R.string.communication_channel),
-                    description = stringResource(R.string.communication_channel_desc)
-                ) {
-                    Text(
-                        text = stringResource(R.string.feishu_channel_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    )
-                    SettingsTextInputRow(
-                        title = "App ID",
-                        value = feishuAppId,
-                        onValueChange = onFeishuAppIdChange,
-                        placeholder = "飞书应用的 App ID"
-                    )
-                    SettingsTextInputRow(
-                        title = "App Secret",
-                        value = feishuAppSecret,
-                        onValueChange = onFeishuAppSecretChange,
-                        placeholder = "飞书应用的 App Secret",
-                        isPassword = true
                     )
                 }
 
@@ -943,7 +911,8 @@ private fun SettingsMainMenu(
     onAppLanguageSelected: (AppLanguage) -> Unit,
     onNavigateToCategory: (SettingsCategory) -> Unit,
     onNavigateToModelCenter: () -> Unit,
-    onNavigateToDataPrivacy: () -> Unit
+    onNavigateToDataPrivacy: () -> Unit,
+    onNavigateToCommunicationChannel: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1004,6 +973,7 @@ private fun SettingsMainMenu(
             onNavigateToCategory = onNavigateToCategory,
             onNavigateToModelCenter = onNavigateToModelCenter,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy,
+            onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
         )
     }
 }
@@ -1023,6 +993,7 @@ private fun SettingsCategoryGrid(
     onNavigateToCategory: (SettingsCategory) -> Unit,
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDataPrivacy: () -> Unit,
+    onNavigateToCommunicationChannel: () -> Unit,
 ) {
     val context = LocalContext.current
     val items = listOf(
@@ -1046,6 +1017,9 @@ private fun SettingsCategoryGrid(
             context.startActivity(BackupRestoreActivity.intent(context))
         },
         CategoryGridItem(R.string.data_privacy_entry, R.string.data_privacy_desc, Icons.Rounded.PrivacyTip, onNavigateToDataPrivacy),
+        CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
+            onNavigateToCommunicationChannel()
+        },
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1351,10 +1325,6 @@ fun SettingsScreenPreview() {
             allModels = emptyList(),
             logModuleConfig = LogModuleConfig.default(),
             onLogModuleConfigChange = {},
-            feishuAppId = "",
-            feishuAppSecret = "",
-            onFeishuAppIdChange = {},
-            onFeishuAppSecretChange = {},
             onNavigateBack = {},
             onNavigateToDebug = {},
             onNavigateToJsBridge = {},

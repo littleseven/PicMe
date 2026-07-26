@@ -54,6 +54,9 @@ import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
 import com.mamba.picme.features.settings.MemoryFactsScreen
 import com.mamba.picme.features.settings.MemoryFactsViewModel
+import com.mamba.picme.features.settings.CommunicationChannelScreen
+import com.mamba.picme.features.settings.CommunicationChannelViewModel
+import com.mamba.picme.domain.model.RemoteChannelType
 import com.mamba.picme.features.settings.ModelCenterScreen
 import com.mamba.picme.features.settings.SettingsCategory
 import com.mamba.picme.features.settings.SettingsScreen
@@ -396,6 +399,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToMemoryFacts = {
                                         navController.navigate(Screen.MemoryFacts.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToCommunicationChannel = {
+                                        navController.navigate(Screen.CommunicationChannel.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -454,6 +460,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToMemoryFacts = {
                                         navController.navigate(Screen.MemoryFacts.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToCommunicationChannel = {
+                                        navController.navigate(Screen.CommunicationChannel.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -482,6 +491,26 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(Screen.DataPrivacy.route) {
                                 DataPrivacyScreen(onNavigateBack = { navController.popBackStack() })
+                            }
+                            composable(Screen.CommunicationChannel.route) {
+                                val communicationChannelViewModel: CommunicationChannelViewModel = viewModel(
+                                    factory = CommunicationChannelViewModel.factory(app.container.userPreferencesRepository)
+                                )
+                                val selectedChannel by communicationChannelViewModel.selectedChannel.collectAsState()
+                                val feishuAppId by communicationChannelViewModel.feishuAppId.collectAsState()
+                                val feishuAppSecret by communicationChannelViewModel.feishuAppSecret.collectAsState()
+                                val telegramBotToken by communicationChannelViewModel.telegramBotToken.collectAsState()
+                                val isConfigured = when (selectedChannel) {
+                                    RemoteChannelType.FEISHU -> feishuAppId.isNotBlank() && feishuAppSecret.isNotBlank()
+                                    RemoteChannelType.TELEGRAM -> telegramBotToken.isNotBlank()
+                                    RemoteChannelType.NONE -> false
+                                }
+                                CommunicationChannelScreen(
+                                    viewModel = communicationChannelViewModel,
+                                    isConnected = app.remoteChannelManager.isConnected,
+                                    isConfigured = isConfigured,
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
                             }
                             composable(Screen.MemoryFacts.route) {
                                 val memoryFactsViewModel: MemoryFactsViewModel = viewModel(
