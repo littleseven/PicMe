@@ -56,18 +56,6 @@ class LlmModelDownloadManager(context: Context) {
             "tokenizer.txt"
         )
 
-        /** SmolVLM-500M 多模态模型文件（比纯 LLM 多 visual 编码器） */
-        private val SMOLVLM_MODEL_FILES = listOf(
-            "config.json",
-            "llm_config.json",
-            "llm.mnn",
-            "llm.mnn.weight",
-            "visual.mnn",
-            "visual.mnn.weight",
-            "tokenizer.txt",
-            "embeddings_bf16.bin"
-        )
-
         /**
          * ASR 模型固定文件列表（Sherpa-ONNX Zipformer）
          */
@@ -185,7 +173,6 @@ class LlmModelDownloadManager(context: Context) {
             modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
-            modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "opus-mt-en-zh" -> ModelPathConfig.OPUS_MT_EN_ZH_MODEL_FILES
             modelId == "florence2_base" -> ModelPathConfig.FLORENCE2_MODEL_FILES
@@ -527,7 +514,6 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "face-det-retina500m-mnn" -> FACE_DETECTION_ROI_500M_MNN_FILES
             modelId == "face-embedding-glint360k-r100-mnn" -> FACE_EMBEDDING_GLINT360K_R100_MNN_FILES
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
-            modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
             modelId == "opus-mt-en-zh" -> ModelPathConfig.OPUS_MT_EN_ZH_MODEL_FILES
             modelId == "florence2_base" -> ModelPathConfig.FLORENCE2_MODEL_FILES
