@@ -43,8 +43,11 @@ import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 // 其他页面级 Capability 由各 Screen 自行创建
 import com.mamba.picme.domain.agent.remote.FeishuChannelHandler
-import com.mamba.picme.domain.agent.remote.FeishuPhotoTracker
+import com.mamba.picme.domain.agent.remote.RemoteChannelManager
 import com.mamba.picme.domain.agent.remote.RemoteCommandDispatcher
+import com.mamba.picme.domain.agent.remote.RemotePhotoTracker
+import com.mamba.picme.domain.agent.remote.TelegramChannelHandler
+import com.mamba.picme.domain.model.RemoteChannelType
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.beauty.internal.facedetect.adapter.FaceLandmarkAdapterRegistry
 import com.mamba.picme.beauty.log.BeautyLogProxy
@@ -57,6 +60,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.UUID
@@ -81,6 +85,13 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
     val feishuChannelHandler: FeishuChannelHandler by lazy { FeishuChannelHandler(applicationScope) }
 
+    val telegramChannelHandler: TelegramChannelHandler by lazy { TelegramChannelHandler(applicationScope) }
+
+    /** 单通道管理器：按 selectedRemoteChannel 激活飞书或 Telegram。 */
+    val remoteChannelManager: RemoteChannelManager by lazy {
+        RemoteChannelManager(feishuChannelHandler, telegramChannelHandler)
+    }
+
     /** 推荐模型 WiFi 静默预下载器（依赖 container，故 lazy）。 */
     private val recommendedAutoDownloader: RecommendedModelAutoDownloader by lazy {
         RecommendedModelAutoDownloader(
@@ -93,7 +104,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
     val remoteCommandDispatcher: RemoteCommandDispatcher by lazy {
         val database = AppDatabase.getDatabase(this)
         RemoteCommandDispatcher(
-            feishuChannelHandler,
+            remoteChannelManager,
             this,
             database.chatMessageDao(),
             database.chatSessionDao()
@@ -187,44 +198,36 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 注册 Activity 生命周期回调，跟踪当前活跃 Activity
         registerActivityLifecycleCallbacks(ActivityTracker())
 
-        // 初始化飞书远程控制通道
-        applicationScope.launch {
-            try {
-                val appId = container.userPreferencesRepository.feishuAppIdFlow.first()
-                val appSecret = container.userPreferencesRepository.feishuAppSecretFlow.first()
-                if (appId.isNotBlank() && appSecret.isNotBlank()) {
-                    feishuChannelHandler.init(appId, appSecret)
-                    // 绑定消息处理回调：飞书消息 → RemoteCommandDispatcher
-                    // 前一个推理任务未完成时自动取消，防止多个 LLM 线程吃满 CPU
-                    feishuChannelHandler.onMessageReceived = { text, messageId ->
-                        feishuDispatchJob?.cancel()
-                        feishuDispatchJob = applicationScope.launch {
-                            remoteCommandDispatcher.dispatch(text, messageId)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.e(TAG, "飞书通道初始化失败", e)
+        // 绑定消息处理回调：远程消息 → RemoteCommandDispatcher
+        // 前一个推理任务未完成时自动取消，防止多个 LLM 线程吃满 CPU
+        remoteChannelManager.onMessageReceived = { text, replyToken ->
+            feishuDispatchJob?.cancel()
+            feishuDispatchJob = applicationScope.launch {
+                remoteCommandDispatcher.dispatch(text, replyToken)
             }
         }
 
-        // 监听飞书配置变化，自动重连
+        // 统一监听：通道选择 + 飞书凭据 + Telegram 凭据 → manager.activate
+        // 首次发射即激活（开机按已存配置连接）；后续变化重新 activate（先断旧再连新）
         applicationScope.launch {
             try {
+                val repo = container.userPreferencesRepository
                 combine(
-                    container.userPreferencesRepository.feishuAppIdFlow,
-                    container.userPreferencesRepository.feishuAppSecretFlow
-                ) { appId, appSecret -> Pair(appId, appSecret) }
-                    .drop(1) // 跳过初始值，避免重复 init
-                    .collect { (appId, appSecret) ->
-                        if (appId.isNotBlank() && appSecret.isNotBlank()) {
-                            feishuChannelHandler.reinit(appId, appSecret)
-                        } else {
-                            feishuChannelHandler.disconnect()
-                        }
-                    }
+                    repo.selectedRemoteChannelFlow.map { RemoteChannelType.fromStored(it) },
+                    repo.feishuAppIdFlow,
+                    repo.feishuAppSecretFlow,
+                    repo.telegramBotTokenFlow,
+                    repo.telegramAllowedChatIdFlow
+                ) { type, feishuAppId, feishuAppSecret, telegramBotToken, telegramChatId ->
+                    ChannelSelection(type, feishuAppId, feishuAppSecret, telegramBotToken, telegramChatId)
+                }.collect { sel ->
+                    remoteChannelManager.activate(
+                        sel.type, sel.feishuAppId, sel.feishuAppSecret,
+                        sel.telegramBotToken, sel.telegramChatId
+                    )
+                }
             } catch (e: Exception) {
-                Logger.e(TAG, "飞书配置监听失败", e)
+                Logger.e(TAG, "远程通道激活监听失败", e)
             }
         }
 
@@ -239,7 +242,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         syncRemoteModelConfigToOrchestrator()
 
         // 监听媒体库变化：飞书远程拍照完成后自动发送照片到飞书
-        observeFeishuPhotoCapture()
+        observeRemotePhotoCapture()
 
         // 推荐模型 WiFi 静默预下载：注册网络监听 + 启动时初始检查
         registerRecommendedAutoDownloadMonitor()
@@ -308,7 +311,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                         // 延迟 2 秒等待网络稳定后再重连
                         applicationScope.launch {
                             delay(2000)
-                            feishuChannelHandler.reconnectIfNeeded()
+                            remoteChannelManager.reconnect()
                         }
                     }
                 }
@@ -330,7 +333,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                         Logger.i(TAG, "网络能力恢复，触发飞书重连")
                         applicationScope.launch {
                             delay(2000)
-                            feishuChannelHandler.reconnectIfNeeded()
+                            remoteChannelManager.reconnect()
                         }
                     }
                 }
@@ -454,98 +457,84 @@ class PoLangApplication : Application(), ImageLoaderFactory {
     }
 
     /**
-     * 监听媒体库变化，飞书远程拍照完成后自动发送照片到飞书
+     * 监听媒体库变化，远程拍照完成后自动经激活通道发送照片。
      *
-     * 当 [FeishuPhotoTracker] 标记了 pending capture 且照片保存到媒体库后，
-     * 此监听器会检测到 source="feishu_remote" 的新照片，执行以下操作：
-     * 1. 将照片写入飞书聊天记录（agent_image 类型）
-     * 2. 通过飞书通道发送图片文件到飞书
+     * 当 [RemotePhotoTracker] 标记了 pending capture 且照片保存到媒体库后，
+     * 按激活通道的来源标签（feishu_remote / telegram_remote）过滤新照片：
+     * 1. 写入对应会话的聊天记录（agent_image 类型）
+     * 2. 经 RemoteChannelManager 发送图片到激活通道
      */
-    private fun observeFeishuPhotoCapture() {
+    private fun observeRemotePhotoCapture() {
         applicationScope.launch {
             try {
                 val chatMessageDao = AppDatabase.getDatabase(this@PoLangApplication).chatMessageDao()
                 val chatSessionDao = AppDatabase.getDatabase(this@PoLangApplication).chatSessionDao()
-                val feishuSessionId = "feishu"
 
                 repository.allMedia.collect { mediaList ->
-                    Logger.d(TAG, "allMedia emit: size=${mediaList.size}")
+                    val sourceTag = remoteChannelManager.activeSourceTag
+                    if (sourceTag.isBlank()) return@collect
 
-                    // 查找来源为飞书远程控制的新照片
-                    val feishuPhotos = mediaList.filter { it.source == "feishu_remote" && it.type == MediaType.PHOTO }
-                    if (feishuPhotos.isEmpty()) {
-                        Logger.d(TAG, "没有检测到 feishu_remote 来源的照片")
-                        return@collect
-                    }
-                    Logger.d(TAG, "检测到 ${feishuPhotos.size} 张 feishu_remote 照片: ${feishuPhotos.map { it.fileName }}")
+                    val remotePhotos = mediaList.filter { it.source == sourceTag && it.type == MediaType.PHOTO }
+                    if (remotePhotos.isEmpty()) return@collect
 
-                    // 获取待回复的飞书消息 ID
-                    val pendingMessageId = FeishuPhotoTracker.consumePendingMessageId()
-                    if (pendingMessageId == null) {
-                        Logger.d(TAG, "没有 pending messageId，跳过发送（可能已处理或非飞书触发）")
+                    val pendingReplyToken = RemotePhotoTracker.consumePendingReplyToken()
+                    if (pendingReplyToken == null) {
+                        Logger.d(TAG, "无 pending replyToken，跳过发送（可能已处理或非远程触发）")
                         return@collect
                     }
 
-                    val latestPhoto = feishuPhotos.maxByOrNull { it.captureDate } ?: return@collect
-                    Logger.i(TAG, "检测到飞书远程拍照结果: uri=${latestPhoto.uri}, messageId=$pendingMessageId")
+                    val sessionId = remoteChannelManager.channelId.ifBlank { "remote" }
+                    val latestPhoto = remotePhotos.maxByOrNull { it.captureDate } ?: return@collect
+                    Logger.i(TAG, "检测到远程拍照结果: uri=${latestPhoto.uri}, session=$sessionId")
 
-                    // 1. 写入飞书聊天记录（agent_image 类型）
+                    // 1. 写入聊天记录（agent_image 类型）
                     try {
-                        // 确保飞书会话存在
-                        val existingSession = chatSessionDao.getSession(feishuSessionId)
-                        if (existingSession == null) {
+                        if (chatSessionDao.getSession(sessionId) == null) {
                             chatSessionDao.insertSession(
                                 ChatSessionEntity(
-                                    sessionId = feishuSessionId,
-                                    title = "飞书远程控制"
+                                    sessionId = sessionId,
+                                    title = if (sessionId == "telegram") "Telegram 远程控制" else "飞书远程控制"
                                 )
                             )
                         }
                         chatMessageDao.insertMessage(
                             ChatMessageEntity(
                                 id = UUID.randomUUID().toString(),
-                                sessionId = feishuSessionId,
+                                sessionId = sessionId,
                                 type = "agent_image",
                                 content = latestPhoto.uri,
-                                modelUsed = "feishu_remote"
+                                modelUsed = sourceTag
                             )
                         )
-                        chatSessionDao.touchSession(feishuSessionId)
-                        Logger.i(TAG, "飞书拍照结果已写入聊天记录")
+                        chatSessionDao.touchSession(sessionId)
                     } catch (e: Exception) {
-                        Logger.e(TAG, "写入飞书聊天记录失败", e)
+                        Logger.e(TAG, "写入远程聊天记录失败", e)
                     }
 
-                    // 2. 发送图片到飞书（压缩到 2K 尺寸，降低文件大小）
+                    // 2. 经激活通道发送图片（压缩到 2K）
                     try {
                         val uri = android.net.Uri.parse(latestPhoto.uri)
                         val compressedBytes = compressImageForFeishu(uri, 2048, 85)
                         if (compressedBytes != null) {
-                            feishuChannelHandler.sendImage(compressedBytes, pendingMessageId)
-                            Logger.i(TAG, "飞书拍照结果已发送到飞书: messageId=$pendingMessageId, size=${compressedBytes.size / 1024}KB")
-                            // 发送完成通知
-                            feishuChannelHandler.sendMessage("✅ 照片已发送，请查收", pendingMessageId)
+                            remoteChannelManager.sendImage(compressedBytes, pendingReplyToken)
+                            remoteChannelManager.sendMessage("✅ 照片已发送，请查收", pendingReplyToken)
+                            Logger.i(TAG, "远程拍照结果已发送: session=$sessionId, size=${compressedBytes.size / 1024}KB")
                         } else {
                             Logger.w(TAG, "图片压缩失败，尝试发送原图: ${latestPhoto.uri}")
-                            // 兜底：发送原图
                             val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
                             if (parcelFileDescriptor != null) {
-                                val fileDescriptor = parcelFileDescriptor.fileDescriptor
-                                val inputStream = java.io.FileInputStream(fileDescriptor)
-                                val imageBytes = inputStream.use { it.readBytes() }
+                                val imageBytes = java.io.FileInputStream(parcelFileDescriptor.fileDescriptor).use { it.readBytes() }
                                 parcelFileDescriptor.close()
-                                feishuChannelHandler.sendImage(imageBytes, pendingMessageId)
-                                Logger.i(TAG, "飞书拍照结果（原图）已发送: messageId=$pendingMessageId")
-                                // 发送完成通知
-                                feishuChannelHandler.sendMessage("✅ 照片已发送，请查收", pendingMessageId)
+                                remoteChannelManager.sendImage(imageBytes, pendingReplyToken)
+                                remoteChannelManager.sendMessage("✅ 照片已发送，请查收", pendingReplyToken)
                             }
                         }
                     } catch (e: Exception) {
-                        Logger.e(TAG, "发送照片到飞书失败", e)
+                        Logger.e(TAG, "发送远程照片失败", e)
                     }
                 }
             } catch (e: Exception) {
-                Logger.e(TAG, "飞书拍照监听启动失败", e)
+                Logger.e(TAG, "远程拍照监听启动失败", e)
             }
         }
     }
@@ -567,7 +556,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                 // App 回到前台时检查飞书连接，断开则自动重连
                 applicationScope.launch {
                     delay(1000) // 等待系统稳定
-                    feishuChannelHandler.reconnectIfNeeded()
+                    remoteChannelManager.reconnect()
                 }
             }
             activityCount++
@@ -758,5 +747,14 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         val localModel: String,
         val privacyLevel: AiAgentPrivacyLevel,
         val inferencePreference: AiAgentInferencePreference
+    )
+
+    /** 通道激活参数容器（combine 5 路流后传给 RemoteChannelManager.activate）。 */
+    private data class ChannelSelection(
+        val type: RemoteChannelType,
+        val feishuAppId: String,
+        val feishuAppSecret: String,
+        val telegramBotToken: String,
+        val telegramChatId: String
     )
 }
