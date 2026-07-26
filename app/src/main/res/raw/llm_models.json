@@ -192,6 +192,52 @@
     "tags": ["must-have", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
   },
   {
+    "id": "opus-mt-en-zh",
+    "name": "OPUS-MT 英中翻译",
+    "description": "Helsinki-NLP OPUS-MT 英文→中文翻译模型 (ONNX INT8 量化)，~443MB，用于英文打标 summary 汉化（labelsZh.summary）",
+    "type": "TRANSLATION",
+    "size": 443000000,
+    "sources": {
+      "ModelScope": "budaoshou/OPUS-MT-En-Zh-ONNX-INT8"
+    },
+    "files": [
+      "encoder_model_quantized.onnx",
+      "decoder_model_quantized.onnx",
+      "decoder_with_past_model_quantized.onnx",
+      "tokenizer.json",
+      "config.json",
+      "source.spm",
+      "target.spm"
+    ],
+    "tags": ["recommended", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
+  },
+  {
+    "id": "florence2_base",
+    "name": "Florence-2-Base 打标",
+    "description": "Microsoft Florence-2-base (231M) 视觉语言模型，ONNX INT8 量化，专为结构化物体检测+图像描述设计，~260MB",
+    "type": "VISION_LLM",
+    "size": 262000000,
+    "sources": {
+      "ModelScope": "budaoshou/Florence-2-base-ONNX"
+    },
+    "files": [
+      "vision_encoder_quantized.onnx",
+      "encoder_model_quantized.onnx",
+      "decoder_model_merged_quantized.onnx",
+      "embed_tokens_int8.onnx",
+      "config.json",
+      "generation_config.json",
+      "preprocessor_config.json",
+      "tokenizer.json",
+      "tokenizer_config.json",
+      "vocab.json",
+      "merges.txt",
+      "added_tokens.json",
+      "special_tokens_map.json"
+    ],
+    "tags": ["recommended", "photo-tagging", "vision-llm", "onnx", "structured-output"]
+  },
+  {
     "id": "modnet-onnx",
     "name": "MODNet ONNX",
     "description": "MODNet 人像抠图 ONNX 模型，用于去背景/证件照，~26MB",

@@ -12,7 +12,8 @@ import java.nio.LongBuffer
 
 class OpusMtTranslator(
     private val context: Context,
-    private val modelDir: File? = null
+    private val modelDir: File? = null,
+    initialSrcTag: String = ">>zho<<"
 ) {
     companion object {
         private const val TAG = "OpusMtTranslator"
@@ -35,7 +36,7 @@ class OpusMtTranslator(
     private var hfToPiece: Array<String?>? = null
 
     private var padId = 0L; private var eosId = 0L
-    private var decStartId = 65000L; private var srcTag = ">>zho<<"
+    private var decStartId = 65000L; private var srcTag = initialSrcTag
 
     val isInit: Boolean get() = enc != null && dec != null && srcTok != null
 

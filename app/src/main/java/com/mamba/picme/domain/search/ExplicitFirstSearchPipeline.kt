@@ -49,7 +49,7 @@ class ExplicitFirstSearchPipeline(
             searchInCandidates(candidateIds, content, uiLang)
         }
         return com.mamba.picme.domain.search.SearchResult(
-            media = mediaList.map { it.toDomain() },
+            media = mediaList.map { it.toDomain(uiLang) },
             originalQuery = content.semanticQuery ?: ""
         )
     }
@@ -101,7 +101,7 @@ class ExplicitFirstSearchPipeline(
         for (keyword in content.keywords) {
             val candidates = tagTranslator.expandForSearch(keyword, uiLang)
             for (candidate in candidates) {
-                matchedIds.addAll(mediaDao.searchLabelsInIds(ids, candidate).map { it.id })
+                matchedIds.addAll(mediaDao.searchLabelsAllFieldsInIds(ids, candidate).map { it.id })
                 matchedIds.addAll(mediaDao.searchFileNameInIds(ids, candidate).map { it.id })
             }
         }
@@ -131,7 +131,7 @@ class ExplicitFirstSearchPipeline(
         for (keyword in content.keywords) {
             val candidates = tagTranslator.expandForSearch(keyword, uiLang)
             for (candidate in candidates) {
-                matchedIds.addAll(mediaDao.searchByLabel(candidate).map { it.id })
+                matchedIds.addAll(mediaDao.searchByLabelAllFields(candidate).map { it.id })
             }
         }
         for (keyword in content.ocrKeywords) {
@@ -150,7 +150,7 @@ class ExplicitFirstSearchPipeline(
 /**
  * MediaEntity → MediaAsset 转换（精简版，用于搜索结果）
  */
-private fun MediaEntity.toDomain(): MediaAsset = MediaAsset(
+private fun MediaEntity.toDomain(uiLang: AppLanguage): MediaAsset = MediaAsset(
     id = id,
     uri = uri,
     type = type,
@@ -160,7 +160,7 @@ private fun MediaEntity.toDomain(): MediaAsset = MediaAsset(
     hasFace = hasFace,
     faceId = faceId,
     source = source,
-    labels = labels,
+    labels = labelsForLanguage(uiLang),
     ocrText = ocrText,
     latitude = latitude,
     longitude = longitude,

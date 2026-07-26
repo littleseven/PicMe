@@ -123,6 +123,8 @@ object ModelPathConfig {
     const val MODEL_ID_KWS = "sherpa-onnx-kws-zipformer-wenetspeech"
     const val MODEL_ID_MOBILECLIP = "mobileclip-onnx"
     const val MODEL_ID_OPUS_MT = "opus-mt-zh-en"
+    const val MODEL_ID_OPUS_MT_EN_ZH = "opus-mt-en-zh"
+    const val MODEL_ID_FLORENCE2 = "florence2_base"
 
     // ===== 模型文件列表 =====
 
@@ -208,6 +210,34 @@ object ModelPathConfig {
         "config.json",
         "source.spm",
         "target.spm"
+    )
+
+    /** opus-mt-en-zh（英→中，summary 汉化）文件清单，与 zh-en 同构。 */
+    val OPUS_MT_EN_ZH_MODEL_FILES = listOf(
+        "encoder_model_quantized.onnx",
+        "decoder_model_quantized.onnx",
+        "decoder_with_past_model_quantized.onnx",
+        "tokenizer.json",
+        "config.json",
+        "source.spm",
+        "target.spm"
+    )
+
+    /** Florence-2-base（231M VLM，ONNX ORT 打标）量化文件清单。 */
+    val FLORENCE2_MODEL_FILES = listOf(
+        "vision_encoder_quantized.onnx",
+        "encoder_model_quantized.onnx",
+        "decoder_model_merged_quantized.onnx",
+        "embed_tokens_int8.onnx",
+        "config.json",
+        "generation_config.json",
+        "preprocessor_config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json",
+        "merges.txt",
+        "added_tokens.json",
+        "special_tokens_map.json"
     )
 
     // ===== 模型验证辅助方法 =====

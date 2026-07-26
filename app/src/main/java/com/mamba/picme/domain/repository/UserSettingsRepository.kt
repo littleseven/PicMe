@@ -96,7 +96,7 @@ interface UserSettingsRepository {
     val tagGenerationUseOpencl: Flow<Boolean>
     suspend fun updateTagGenerationUseOpencl(enabled: Boolean)
 
-    /** 相册打标模型 key（由 [com.mamba.picme.domain.tag.TaggerModelSelector] 解析为有效值，默认 qwen3_vl_2b） */
+    /** 相册打标模型 key（AUTO=跟随 UI 语言 / qwen3_vl_2b / smolvlm_500m；默认 AUTO，由 TaggerModelSelector 解析） */
     val taggerModelKeyFlow: Flow<String>
     suspend fun updateTaggerModelKey(key: String)
     fun getTaggerModelKeyBlocking(): String

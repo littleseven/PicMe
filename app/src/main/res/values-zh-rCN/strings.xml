@@ -801,6 +801,7 @@
     <string name="cd_remove_pending_image">移除已选图片</string>
     <string name="tag_viewer_title">标签查看</string>
     <string name="tag_model_selector_title">打标模型</string>
+    <string name="tag_model_auto">自动（SmolVLM 优先）</string>
     <string name="tag_viewer_tab_photos">照片</string>
     <string name="tag_viewer_tab_tags">标签聚合</string>
     <string name="tag_viewer_search_hint">搜索文件名或标签</string>

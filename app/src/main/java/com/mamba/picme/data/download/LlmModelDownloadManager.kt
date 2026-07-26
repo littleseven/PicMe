@@ -187,6 +187,8 @@ class LlmModelDownloadManager(context: Context) {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
+            modelId == "opus-mt-en-zh" -> ModelPathConfig.OPUS_MT_EN_ZH_MODEL_FILES
+            modelId == "florence2_base" -> ModelPathConfig.FLORENCE2_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
@@ -527,6 +529,8 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "mobileclip-onnx" -> MOBILECLIP_MODEL_FILES
             modelId == "smolvlm_500m" -> SMOLVLM_MODEL_FILES
             modelId == "opus-mt-zh-en" -> ModelPathConfig.OPUS_MT_MODEL_FILES
+            modelId == "opus-mt-en-zh" -> ModelPathConfig.OPUS_MT_EN_ZH_MODEL_FILES
+            modelId == "florence2_base" -> ModelPathConfig.FLORENCE2_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
@@ -1366,7 +1370,8 @@ data class ModelConfig(
             "face-embedding-glint360k-r100-mnn", // Glint360K R100 人脸 embedding
             "mobileclip-onnx",          // 语义搜索
             "qwen3_vl_2b",              // 图片标签生成（Pass 3，默认 tagger）
-            "opus-mt-zh-en"             // 中文查询翻译
+            "opus-mt-zh-en",            // 中文查询翻译
+            "opus-mt-en-zh"             // 英文 summary 汉化（labelsZh）
         )
 
         /**

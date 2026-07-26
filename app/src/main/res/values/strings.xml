@@ -807,6 +807,7 @@
     <string name="cd_remove_pending_image">Remove selected image</string>
     <string name="tag_viewer_title">Tag Viewer</string>
     <string name="tag_model_selector_title">Tagging Model</string>
+    <string name="tag_model_auto">Auto (SmolVLM preferred)</string>
     <string name="tag_viewer_tab_photos">Photos</string>
     <string name="tag_viewer_tab_tags">Tags</string>
     <string name="tag_viewer_search_hint">Search file name or tag</string>

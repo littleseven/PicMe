@@ -79,6 +79,7 @@ import com.mamba.picme.domain.model.LogModule
 import com.mamba.picme.domain.model.LogModuleConfig
 import com.mamba.picme.domain.model.StageConfig
 import com.mamba.picme.domain.model.ThemeMode
+import com.mamba.picme.domain.tag.TaggerModelSelector
 import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.backuprestore.BackupRestoreActivity
@@ -597,15 +598,25 @@ private fun SettingsContent(
                         leadingIcon = Icons.Rounded.Search,
                         onClick = onNavigateToTagViewer
                     )
+                    val taggerAutoLabel = stringResource(R.string.tag_model_auto)
                     SettingsClickableRow(
                         title = stringResource(R.string.tag_model_selector_title),
-                        subtitle = if (taggerModelKey == "smolvlm_500m") "SmolVLM-500M" else "Qwen3-VL-2B",
+                        subtitle = when (taggerModelKey) {
+                            "smolvlm_500m" -> "SmolVLM-500M"
+                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
+                            "florence2_base" -> "Florence-2-Base"
+                            else -> taggerAutoLabel
+                        },
                         leadingIcon = Icons.AutoMirrored.Rounded.Label,
                         onClick = {
-                            // 二者切换：当前是 qwen3_vl_2b → 切 smolvlm_500m；否则切回 qwen3_vl_2b
-                            onTaggerModelKeyChange(
-                                if (taggerModelKey == "qwen3_vl_2b") "smolvlm_500m" else "qwen3_vl_2b"
-                            )
+                            // 四态循环：跟随语言 → Qwen3-VL-2B → SmolVLM-500M → Florence-2 → 跟随语言
+                            val next = when (taggerModelKey) {
+                                TaggerModelSelector.AUTO -> "qwen3_vl_2b"
+                                "qwen3_vl_2b" -> "smolvlm_500m"
+                                "smolvlm_500m" -> "florence2_base"
+                                else -> TaggerModelSelector.AUTO
+                            }
+                            onTaggerModelKeyChange(next)
                         }
                     )
                 }

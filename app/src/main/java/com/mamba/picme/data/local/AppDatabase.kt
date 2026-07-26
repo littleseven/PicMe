@@ -43,7 +43,7 @@ import com.mamba.picme.data.model.MediaEntity
         TagScanTaskEntity::class,
         MediaFeedbackEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -70,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "picme_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                     .build()
                 INSTANCE = instance
                 instance
@@ -239,6 +239,18 @@ abstract class AppDatabase : RoomDatabase() {
          * 2. 清空旧 ML Kit 写入的 labels（JSON 数组格式，Qwen 标签为 JSON 对象）
          * 3. 清空规范化标签表 tags / media_tag_cross_ref（旧 ML Kit 与废弃 ImageTagIndexingWorker 数据）
          */
+        /**
+         * Migration 11 → 12：新增 media_assets.labelsEn / labelsZh（英文打标 + 双字段汉化，见 spec §3.2）。
+         *
+         * 只 ADD COLUMN（全版本 SQLite 安全）；labels / mlKit* 死列暂不动（懒回填，见 spec §4）。
+         */
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `labelsEn` TEXT")
+                database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `labelsZh` TEXT")
+            }
+        }
+
         private val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 清空 ML Kit 专属列

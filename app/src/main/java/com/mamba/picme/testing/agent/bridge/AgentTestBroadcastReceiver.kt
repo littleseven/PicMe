@@ -310,6 +310,30 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
         val param = intent.getStringExtra(EXTRA_PARAM)
         Logger.i(TAG, "V2 Single command: cmd=$cmd, param=$param (deprecated, use --es json)")
 
+        // Florence-2 测试命令：加载模型 + 取一张图 + tag + 日志输出
+        if (cmd.equals("test_florence2", ignoreCase = true)) {
+            scope.launch {
+                try {
+                    val result = testFlorence2(context)
+                    sendResponse(context, JSONObject().apply {
+                        put("type", "cmd_result")
+                        put("cmd", "test_florence2")
+                        put("status", "success")
+                        put("result", result)
+                    }.toString())
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Florence2 test failed", e)
+                    sendResponse(context, JSONObject().apply {
+                        put("type", "cmd_result")
+                        put("cmd", "test_florence2")
+                        put("status", "error")
+                        put("error", e.message ?: "Unknown")
+                    }.toString())
+                }
+            }
+            return
+        }
+
         // TAG 扫描命令：直接启动 TagGenerationService，不经过 CapabilityRegistry
         if (handleTagScanCommand(cmd, context)) {
             sendResponse(context, JSONObject().apply {
@@ -729,5 +753,59 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
             put("type", "error")
             put("message", message)
         }.toString()
+    }
+
+    /**
+     * Florence-2 打标验证：加载模型 + 取 DB 第一张图 + tag() + 返回结果 JSON。
+     */
+    private suspend fun testFlorence2(context: Context): String {
+        val modelDir = com.mamba.picme.data.download.ModelPathConfig.getModelDir(
+            context, com.mamba.picme.data.download.ModelPathConfig.MODEL_ID_FLORENCE2
+        )
+        if (!modelDir.exists() || modelDir.listFiles()?.size ?: 0 < 10) {
+            return "Model not found at $modelDir"
+        }
+
+        // 加载 tokenizer vocab
+        com.mamba.picme.domain.tag.florence2.Florence2Tokenizer.load(modelDir)
+
+        // 创建 tagger + init
+        val tagger = com.mamba.picme.domain.tag.florence2.Florence2Tagger(context, modelDir)
+        if (!tagger.init()) return "Florence2Tagger init failed"
+
+        // 取 DB 第一张未打标的「图片」（跳过视频——视频 URI 解不出 bitmap）
+        val db = com.mamba.picme.data.local.AppDatabase.getDatabase(context)
+        val ids = db.mediaDao().getUnlabeledMediaIds().take(30)
+        val media = db.mediaDao().getMediaByIds(ids)
+        val entity = media.firstOrNull { it.type == MediaType.PHOTO }
+            ?: return "No unlabeled image media found (checked ${media.size} items)"
+        Logger.i(TAG, "Florence2 test: mediaId=${entity.id}, uri=${entity.uri.take(60)}")
+
+        // 加载 bitmap
+        val bitmap = try {
+            android.graphics.BitmapFactory.decodeStream(
+                context.contentResolver.openInputStream(android.net.Uri.parse(entity.uri))
+            )
+        } catch (e: Exception) {
+            return "Failed to load bitmap: ${e.message}"
+        }
+        if (bitmap == null) return "Bitmap is null"
+
+        // tag
+        val startMs = System.currentTimeMillis()
+        val result = tagger.tag(bitmap)
+        val durationMs = System.currentTimeMillis() - startMs
+        bitmap.recycle()
+        tagger.release()
+
+        return JSONObject().apply {
+            put("mediaId", entity.id)
+            put("duration_ms", durationMs)
+            put("scene", result.scene)
+            put("activity", result.activity)
+            put("objects", org.json.JSONArray(result.objects))
+            put("tags", org.json.JSONArray(result.tags))
+            put("summary", result.summary.take(400))
+        }.also { Logger.i(TAG, "[Florence2] full result: $it") }.toString()
     }
 }

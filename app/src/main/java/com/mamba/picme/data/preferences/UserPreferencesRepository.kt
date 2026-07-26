@@ -36,6 +36,7 @@ import com.mamba.picme.domain.model.StageConfig
 import com.mamba.picme.domain.model.ThemeMode
 import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.tag.TaggerModelSelector
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -656,7 +657,8 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             }
         }
         .map { preferences ->
-            preferences[PreferencesKeys.TAGGER_MODEL_KEY] ?: "qwen3_vl_2b"
+            // 默认跟随 UI 语言路由（中文→Qwen，英文→SmolVLM）；用户可手动覆盖。
+            preferences[PreferencesKeys.TAGGER_MODEL_KEY] ?: TaggerModelSelector.AUTO
         }
 
     override suspend fun updateTaggerModelKey(key: String) {

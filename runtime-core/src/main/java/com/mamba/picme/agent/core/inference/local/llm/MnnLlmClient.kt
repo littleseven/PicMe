@@ -53,6 +53,7 @@ class MnnLlmClient(private val context: Context) {
 
         return try {
             val modelDir = LlmModelManager(context).prepareModel(modelKey)
+            readPromptTemplates(modelDir)
             val configPath = "$modelDir/config.json"
 
             // 验证 config.json 存在且有效
@@ -164,8 +165,9 @@ class MnnLlmClient(private val context: Context) {
                     "(${bitmap.config}) -> ${safeBitmap.width}x${safeBitmap.height} (${safeBitmap.config})")
             }
 
+            val promptTemplate = buildImagePromptTemplate(systemPrompt, userPrompt)
             val resultMap = MnnGlobalReleaseLock.withOperation {
-                nativeGenerateWithImage(nativeHandle, systemPrompt, userPrompt, safeBitmap, maxNewTokens)
+                nativeGenerateWithImage(nativeHandle, systemPrompt, userPrompt, promptTemplate, safeBitmap, maxNewTokens)
             }
             val result = StreamResult.fromHashMap(resultMap)
             Logger.d(tag, "[Vision] result: ${result.response.take(200)}, " +
@@ -205,8 +207,9 @@ class MnnLlmClient(private val context: Context) {
                     "(${bitmap.config}) -> ${safeBitmap.width}x${safeBitmap.height} (${safeBitmap.config})")
             }
 
+            val promptTemplate = buildImagePromptTemplate(systemPrompt, userPrompt)
             val resultMap = MnnGlobalReleaseLock.withOperation {
-                nativeGenerateWithImageTimeout(nativeHandle, systemPrompt, userPrompt, safeBitmap, maxNewTokens, timeoutMs)
+                nativeGenerateWithImageTimeout(nativeHandle, systemPrompt, userPrompt, promptTemplate, safeBitmap, maxNewTokens, timeoutMs)
             }
             StreamResult.fromHashMap(resultMap)
         } catch (exception: Exception) {
@@ -239,14 +242,14 @@ class MnnLlmClient(private val context: Context) {
             original
         }
 
-        // Step 2: 尺寸缩放（最长边不超过 MAX_IMAGE_DIM）
+        // Step 2: 尺寸缩放（最长边不超过模型 image_size：Qwen=420 / SmolVLM=512）
         val w = argbBitmap.width
         val h = argbBitmap.height
-        if (w <= MAX_IMAGE_DIM && h <= MAX_IMAGE_DIM) {
+        if (w <= imageMaxDim && h <= imageMaxDim) {
             return argbBitmap  // 无需缩放
         }
 
-        val scale = MAX_IMAGE_DIM.toFloat() / maxOf(w, h).toFloat()
+        val scale = imageMaxDim.toFloat() / maxOf(w, h).toFloat()
         val newW = (w * scale).toInt().coerceAtLeast(1)
         val newH = (h * scale).toInt().coerceAtLeast(1)
 
@@ -428,6 +431,47 @@ class MnnLlmClient(private val context: Context) {
         releaseNative(NativeReleaseTarget.KV_CACHE)
     }
 
+    // ── 多模态提示词模板（按模型 llm_config.json 读取；SmolVLM 的 System:/User: ≠ Qwen ChatML）──
+    private var systemPromptTpl: String = ""
+    private var userPromptTpl: String = ""
+    private var assistantPromptTpl: String = ""
+    /** 视觉编码器输入最长边（按模型 llm_config.image_size：Qwen=420 / SmolVLM=512）。 */
+    private var imageMaxDim: Int = MAX_IMAGE_DIM
+
+    /** 从模型目录读 llm_config.json 的 prompt 模板（决定多模态提示词外层格式）。 */
+    private fun readPromptTemplates(modelDir: String) {
+        runCatching {
+            val root = JSONObject(File(modelDir, "llm_config.json").readText())
+            systemPromptTpl = root.optString("system_prompt_template")
+            userPromptTpl = root.optString("user_prompt_template")
+            assistantPromptTpl = root.optString("assistant_prompt_template")
+            imageMaxDim = root.optInt("image_size", MAX_IMAGE_DIM)
+            Logger.d(tag, "Prompt templates: sys=${systemPromptTpl.take(16)}.. user=${userPromptTpl.take(16)}.. imageMaxDim=$imageMaxDim")
+        }.onFailure { Logger.w(tag, "Failed to read prompt templates from llm_config.json", it) }
+    }
+
+    /**
+     * 按模型模板拼多模态 prompt_template（图片用 `<img>image_0</img>` 占位——MNN 通用约定，
+     * MNN 内部按模型 vision token 处理注入）。模板缺失时回退 Qwen ChatML（与原 JNI 硬编码一致）。
+     *
+     * - Qwen: `<|im_start|>system\n…<|im_end|>\n<|im_start|>user\n<img>image_0</img>…<|im_end|>\n<|im_start|>assistant\n`
+     * - SmolVLM: `System: …<end_of_utterance>\nUser:<img>image_0</img>…<end_of_utterance>\nAssistant:`
+     */
+    private fun buildImagePromptTemplate(systemPrompt: String, userPrompt: String): String {
+        if (systemPromptTpl.isEmpty() && userPromptTpl.isEmpty()) {
+            return "<|im_start|>system\n$systemPrompt<|im_end|>\n" +
+                "<|im_start|>user\n<img>image_0</img>$userPrompt<|im_end|>\n" +
+                "<|im_start|>assistant\n"
+        }
+        val sysPart = if (systemPrompt.isBlank() || systemPromptTpl.isEmpty()) ""
+                      else systemPromptTpl.replace("%s", systemPrompt)
+        val userPart = if (userPromptTpl.isEmpty()) "<img>image_0</img>$userPrompt"
+                       else userPromptTpl.replace("%s", "<img>image_0</img>$userPrompt")
+        val assistantPrefix = if (assistantPromptTpl.isEmpty()) "<|im_start|>assistant\n"
+                              else assistantPromptTpl.substringBefore("%s")
+        return sysPart + userPart + assistantPrefix
+    }
+
     private fun createRuntimeConfig(modelDir: String, configFile: File, useOpencl: Boolean): String {
         val rawJson = configFile.readText()
         val root = JSONObject(rawJson)
@@ -477,6 +521,7 @@ class MnnLlmClient(private val context: Context) {
         handle: Long,
         systemPrompt: String,
         userPrompt: String,
+        promptTemplate: String,
         bitmap: Bitmap,
         maxNewTokens: Int
     ): HashMap<String, Any>
@@ -485,6 +530,7 @@ class MnnLlmClient(private val context: Context) {
         handle: Long,
         systemPrompt: String,
         userPrompt: String,
+        promptTemplate: String,
         bitmap: Bitmap,
         maxNewTokens: Int,
         timeoutMs: Int

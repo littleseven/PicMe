@@ -83,9 +83,9 @@ class TagGenerationPipeline(
         private val exifRotationCache = LruCache<String, Int>(200)
     }
 
-    /** 当前生成目标语言，由用户设置决定 */
+    /** 打标恒用英文（SmolVLM 原语）；中文由 LabelSinicizer 离线派生到 labelsZh，不再随 UI 语言切换。 */
     private val targetLanguage: AppLanguage
-        get() = userSettingsRepository?.getAppLanguageBlocking() ?: AppLanguage.CHINESE
+        get() = AppLanguage.ENGLISH
 
     private val stage3SystemPrompt: String
         get() = promptProvider.systemPrompt(targetLanguage)
@@ -831,6 +831,9 @@ class TagGenerationPipeline(
      * inSampleSize 会被 BitmapFactory 向下取整到 2 的幂次，因此实际尺寸可能略大于 maxSize。
      * 注意：返回的 Bitmap 需要调用方负责回收。
      */
+    /** [公开] 加载 Bitmap（Florence-2 等外部调用者用）。 */
+    fun loadBitmapPublic(uri: String, maxSize: Int = MAX_VISION_SIZE): Bitmap? = loadBitmap(uri, maxSize)
+
     private fun loadBitmap(uri: String, maxSize: Int): Bitmap? {
         val contentUri = Uri.parse(uri)
 

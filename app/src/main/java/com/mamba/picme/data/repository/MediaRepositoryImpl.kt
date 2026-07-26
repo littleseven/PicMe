@@ -11,6 +11,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.model.MediaEntity
+import com.mamba.picme.data.preferences.UserPreferencesRepository
+import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.domain.repository.MediaRepository
@@ -34,6 +36,10 @@ class MediaRepositoryImpl(
     }
 
     private val appContext = context.applicationContext
+    private val appLanguage: AppLanguage by lazy {
+        // 展示用：按 UI 语言取 labelsEn/labelsZh（老数据回退 labels）。DataStore 单例，读一次缓存。
+        UserPreferencesRepository(appContext).getAppLanguageBlocking()
+    }
     private val refreshVersion = MutableStateFlow(0)
 
     // 系统媒体缓存：仅在显式刷新时更新，避免每次 Room Flow 发射都查询 MediaStore
@@ -530,7 +536,7 @@ class MediaRepositoryImpl(
         hasFace = hasFace,
         faceId = faceId,
         source = source,
-        labels = labels,
+        labels = labelsForLanguage(appLanguage),
         ocrText = ocrText,
         latitude = latitude,
         longitude = longitude,

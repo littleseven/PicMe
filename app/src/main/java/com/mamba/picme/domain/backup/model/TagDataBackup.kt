@@ -63,6 +63,8 @@ data class BackupTag(
 data class BackupMediaTagMetadata(
     val uri: String,
     val labels: String? = null,
+    val labelsEn: String? = null,
+    val labelsZh: String? = null,
     val mlKitLabels: String? = null,
     val mlKitLabelsZh: String? = null,
     val ocrText: String? = null,

@@ -8,6 +8,8 @@ import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.dao.MediaFeedbackDao
 import com.mamba.picme.data.local.entity.MediaFeedbackEntity
 import com.mamba.picme.data.model.MediaEntity
+import com.mamba.picme.data.preferences.UserPreferencesRepository
+import com.mamba.picme.domain.model.AppLanguage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,10 @@ class TagViewerViewModel(application: Application) : AndroidViewModel(applicatio
     private val tag = "PoLang:TagViewer"
     private val dao = AppDatabase.getDatabase(application).mediaDao()
     private val feedbackDao: MediaFeedbackDao = AppDatabase.getDatabase(application).mediaFeedbackDao()
+    private val appLanguage: AppLanguage by lazy {
+        // 按 UI 语言读 labelsEn/labelsZh（老数据回退 labels）
+        UserPreferencesRepository(application).getAppLanguageBlocking()
+    }
 
     private val _state = MutableStateFlow<TagViewerUiState>(TagViewerUiState.Loading)
     val state: StateFlow<TagViewerUiState> = _state.asStateFlow()
@@ -140,8 +146,8 @@ class TagViewerViewModel(application: Application) : AndroidViewModel(applicatio
         mediaId = id,
         uri = uri,
         fileName = fileName,
-        parsed = TagJsonParser.parse(labels),
-        rawJson = labels.orEmpty(),
+        parsed = TagJsonParser.parse(labelsForLanguage(appLanguage)),
+        rawJson = labelsForLanguage(appLanguage).orEmpty(),
         feedbackType = feedbackType
     )
 }

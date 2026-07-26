@@ -136,6 +136,8 @@ class TagDataBackupRepository(
             BackupMediaTagMetadata(
                 uri = media.uri,
                 labels = media.labels,
+                labelsEn = media.labelsEn,
+                labelsZh = media.labelsZh,
                 mlKitLabels = media.mlKitLabels,
                 mlKitLabelsZh = media.mlKitLabelsZh,
                 ocrText = media.ocrText,
@@ -423,6 +425,8 @@ class TagDataBackupRepository(
                 mediaDao.updateTagMetadataFromBackup(
                     mediaId = mediaId,
                     labels = meta.labels,
+                    labelsEn = meta.labelsEn,
+                    labelsZh = meta.labelsZh,
                     mlKitLabels = meta.mlKitLabels,
                     mlKitLabelsZh = meta.mlKitLabelsZh,
                     ocrText = meta.ocrText,

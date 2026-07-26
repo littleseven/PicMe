@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.domain.model.AppLanguage
 
 @Entity(
     tableName = "media_assets",
@@ -25,6 +26,10 @@ data class MediaEntity(
     val source: String? = null,
     // 元数据索引字段（Phase 1 自然语言搜索）
     val labels: String? = null,           // JSON 数组：["猫","户外","食物"]
+    /** 打标统一规格英文 JSON（SmolVLM 原语；英文搜索/展示来源） */
+    val labelsEn: String? = null,
+    /** 打标统一规格中文 JSON（由 labelsEn 离线汉化派生：tags 词表映射 + summary MT；中文搜索/展示来源） */
+    val labelsZh: String? = null,
     /** ML Kit Image Labeler 输出的英文标签（JSON 数组），与 Qwen 的 labels 字段完全独立 */
     val mlKitLabels: String? = null,      // JSON 数组：["Outdoor","Food"]
     /** ML Kit 英文标签对应的中文翻译（JSON 数组），用于中文搜索直接命中 */
@@ -45,4 +50,13 @@ data class MediaEntity(
 
     // 最近一次成功扫描覆盖的 Pass 阶段 JSON，如 {"1":ts,"2":ts,"3":ts}
     val lastTagScanPasses: String? = null
-)
+) {
+    /**
+     * 按 UI 语言取对应标签 JSON：英文 UI→[labelsEn]，其余→[labelsZh]；
+     * 目标字段为空（老数据未回填）时回退 [labels]。供展示/搜索读取。
+     */
+    fun labelsForLanguage(lang: AppLanguage): String? = when (lang) {
+        AppLanguage.ENGLISH -> labelsEn ?: labels
+        else -> labelsZh ?: labels
+    }
+}

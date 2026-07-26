@@ -36,6 +36,10 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE labels LIKE '%' || :label || '%' ORDER BY captureDate DESC")
     suspend fun searchByLabel(label: String): List<MediaEntity>
 
+    /** 按标签搜索（labels/labelsEn/labelsZh 三字段 OR：中英文直查 + 覆盖新老数据） */
+    @Query("SELECT * FROM media_assets WHERE labels LIKE '%' || :keyword || '%' OR labelsEn LIKE '%' || :keyword || '%' OR labelsZh LIKE '%' || :keyword || '%' ORDER BY captureDate DESC")
+    suspend fun searchByLabelAllFields(keyword: String): List<MediaEntity>
+
     /** 按 OCR 文本搜索 */
     @Query("SELECT * FROM media_assets WHERE ocrText LIKE '%' || :query || '%' ORDER BY captureDate DESC")
     suspend fun searchByOcrText(query: String): List<MediaEntity>
@@ -213,6 +217,14 @@ interface MediaDao {
     /** 更新媒体的 ML Kit 中文翻译标签 */
     @Query("UPDATE media_assets SET mlKitLabelsZh = :labels WHERE id = :mediaId")
     suspend fun updateMlKitLabelsZh(mediaId: Long, labels: String)
+
+    /** 更新媒体的英文统一标签 JSON（labelsEn，SmolVLM 原语） */
+    @Query("UPDATE media_assets SET labelsEn = :labels WHERE id = :mediaId")
+    suspend fun updateLabelsEn(mediaId: Long, labels: String)
+
+    /** 更新媒体的中文统一标签 JSON（labelsZh，由 labelsEn 汉化派生） */
+    @Query("UPDATE media_assets SET labelsZh = :labels WHERE id = :mediaId")
+    suspend fun updateLabelsZh(mediaId: Long, labels: String)
 
     /** 重置所有 AI 标签（用于强制重新标记） */
     @Query("UPDATE media_assets SET labels = NULL")
@@ -435,6 +447,10 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND labels LIKE '%' || :keyword || '%'")
     suspend fun searchLabelsInIds(ids: List<Long>, keyword: String): List<MediaEntity>
 
+    /** 在指定 ID 列表中按标签搜索（labels/labelsEn/labelsZh 三字段 OR） */
+    @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND (labels LIKE '%' || :keyword || '%' OR labelsEn LIKE '%' || :keyword || '%' OR labelsZh LIKE '%' || :keyword || '%')")
+    suspend fun searchLabelsAllFieldsInIds(ids: List<Long>, keyword: String): List<MediaEntity>
+
     /** 在指定 ID 列表中搜索 ML Kit 英文标签 */
     @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND mlKitLabels LIKE '%' || :keyword || '%'")
     suspend fun searchMlKitLabelsInIds(ids: List<Long>, keyword: String): List<MediaEntity>
@@ -442,6 +458,14 @@ interface MediaDao {
     /** 在指定 ID 列表中搜索 ML Kit 中文标签 */
     @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND mlKitLabelsZh LIKE '%' || :keyword || '%'")
     suspend fun searchMlKitLabelsZhInIds(ids: List<Long>, keyword: String): List<MediaEntity>
+
+    /** 在指定 ID 列表中搜索英文统一标签（labelsEn） */
+    @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND labelsEn LIKE '%' || :keyword || '%'")
+    suspend fun searchLabelsEnInIds(ids: List<Long>, keyword: String): List<MediaEntity>
+
+    /** 在指定 ID 列表中搜索中文统一标签（labelsZh） */
+    @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND labelsZh LIKE '%' || :keyword || '%'")
+    suspend fun searchLabelsZhInIds(ids: List<Long>, keyword: String): List<MediaEntity>
 
     /** 在指定 ID 列表中搜索 OCR */
     @Query("SELECT * FROM media_assets WHERE id IN (:ids) AND ocrText LIKE '%' || :keyword || '%'")
@@ -461,6 +485,8 @@ interface MediaDao {
         """
         UPDATE media_assets SET
             labels = :labels,
+            labelsEn = :labelsEn,
+            labelsZh = :labelsZh,
             mlKitLabels = :mlKitLabels,
             mlKitLabelsZh = :mlKitLabelsZh,
             ocrText = :ocrText,
@@ -479,6 +505,8 @@ interface MediaDao {
     suspend fun updateTagMetadataFromBackup(
         mediaId: Long,
         labels: String?,
+        labelsEn: String?,
+        labelsZh: String?,
         mlKitLabels: String?,
         mlKitLabelsZh: String?,
         ocrText: String?,

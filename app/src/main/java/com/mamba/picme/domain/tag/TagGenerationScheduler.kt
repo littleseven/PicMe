@@ -11,10 +11,16 @@ import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
 import com.mamba.picme.beauty.api.facedetect.InferenceBackendType
 import com.mamba.picme.beauty.api.facedetect.LandmarkDetectorType
 import com.mamba.picme.beauty.api.facedetect.RoiDetectorType
+import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.tag.i18n.BilingualVocab
+import com.mamba.picme.domain.tag.i18n.LabelSinicizer
+import com.mamba.picme.domain.tag.florence2.Florence2Tagger
+import com.mamba.picme.domain.tag.florence2.Florence2Tokenizer
+import com.mamba.picme.domain.tag.i18n.OpusMtTranslator
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,9 +76,26 @@ class TagGenerationScheduler(
     private val userSettingsRepository: UserSettingsRepository = UserPreferencesRepository(context)
 ) {
 
-    /** 当前打标模型 key（由用户设置解析；默认 qwen3_vl_2b，Debug 可切 smolvlm_500m） */
+    /**
+     * 当前打标模型 key：首选 SmolVLM-500M（恒英文打标，英文原生 + 省电），未下载回退 Qwen；
+     * 手动指定覆盖首选。详见 [TaggerModelSelector]。Florence-2 不走 MNN，单独检查文件存在。
+     */
     private val taggerModelKey: String
-        get() = TaggerModelSelector.resolve(userSettingsRepository.getTaggerModelKeyBlocking())
+        get() {
+            val raw = userSettingsRepository.getTaggerModelKeyBlocking()
+            // Florence-2 不走 MNN，用文件存在性检查
+            if (raw?.trim() == "florence2_base") {
+                val dir = ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_FLORENCE2)
+                if (dir.exists() && (dir.listFiles()?.size ?: 0) >= 10) {
+                    return "florence2_base"
+                }
+            }
+            val engine = AgentOrchestrator.getInstance(context).getLlmEngine()
+            return TaggerModelSelector.resolve(
+                raw = raw,
+                isAvailable = { key -> engine.isModelAvailable(key, context) }
+            )
+        }
 
     companion object {
         private const val TAG = "TagScheduler"
@@ -117,6 +140,35 @@ class TagGenerationScheduler(
     private val db = AppDatabase.getDatabase(context)
     private val personDao = db.personDao()
     private val vocab = ControlledVocab.loadFromAssets(context)
+    private val enToZhTranslator: OpusMtTranslator by lazy {
+        // initialSrcTag=">>eng<<"：en→zh 源语是英文（Marian 语言标签决定输出语种，必须正确）
+        OpusMtTranslator(
+            context,
+            ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_OPUS_MT_EN_ZH),
+            initialSrcTag = ">>eng<<"
+        )
+    }
+
+    private val labelSinicizer: LabelSinicizer by lazy {
+        LabelSinicizer(
+            controlledVocab = vocab,
+            bilingualVocab = BilingualVocab.loadFromAssets(context),
+            // en→zh summary：opus-mt-en-zh 翻译整句。
+            // 模型未下载/初始化失败时 translate 原样返回英文（OpusMtTranslator 内部兜底），summary_zh 暂留英文。
+            translateSummary = { en -> enToZhTranslator.translate(en) }
+        )
+    }
+
+    /** Florence-2 tagger（ORT，独立于 MNN 桥）。tagger 为 florence2_base 时使用。 */
+    private val florence2Tagger: Florence2Tagger? by lazy {
+        val dir = ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_FLORENCE2)
+        if (dir.exists() && (dir.listFiles()?.size ?: 0) >= 10) {
+            Florence2Tokenizer.load(dir)
+            Florence2Tagger(context, dir).also { it.init() }
+        } else {
+            null
+        }
+    }
     private val normalizer = TagNormalizer(vocab)
     private val faceClusterEngine = FaceClusterEngine(context)
 
@@ -1050,37 +1102,55 @@ class TagGenerationScheduler(
 
         val startMs = System.currentTimeMillis()
 
-        if (!ensureModelLoaded()) {
-            // 模型未就绪时抛出异常，使任务标记为 FAILED 并可重试，避免静默跳过导致照片永远未打标。
-            throw IllegalStateException("[Pass 3] Model not loaded for mediaId=$mediaId")
+        // ── 按模型分流：florence2_base → ORT 管道；其余 → MNN Qwen 管道 ──
+        val isFlorence2 = taggerModelKey == "florence2_base"
+        val unified = if (isFlorence2) {
+            // Florence-2 ORT 路径
+            val tagger = florence2Tagger
+            if (tagger == null || !tagger.isInit) {
+                throw IllegalStateException("[Pass 3] Florence-2 not available for mediaId=$mediaId")
+            }
+            val bitmap = pipeline.loadBitmapPublic(entity.uri)
+            if (bitmap == null) {
+                throw IllegalStateException("[Pass 3] Failed to load bitmap for mediaId=$mediaId")
+            }
+            val result = tagger.tag(bitmap)
+            bitmap.recycle()
+            Log.i(TAG, "[Pass 3] Florence-2 done: mediaId=$mediaId, " +
+                "scene=${result.scene}, tags=${result.tags}, summary=${result.summary.take(60)}")
+            result
+        } else {
+            // MNN Qwen/SmolVLM 路径
+            if (!ensureModelLoaded()) {
+                throw IllegalStateException("[Pass 3] Model not loaded for mediaId=$mediaId")
+            }
+            val qwenResult = pipeline.stage3QwenTagging(
+                uri = entity.uri,
+                faceRoiJson = entity.faceRoiResult
+            )
+            currentCoroutineContext().ensureActive()
+            val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
+            UnifiedTagResult(
+                face = faceInfo,
+                scene = qwenResult.scene,
+                activity = qwenResult.activity,
+                objects = qwenResult.objects,
+                tags = qwenResult.tags,
+                summary = qwenResult.summary
+            )
         }
 
-        val qwenResult = pipeline.stage3QwenTagging(
-            uri = entity.uri,
-            faceRoiJson = entity.faceRoiResult
-        )
+        // 恒英文：labelsEn 存英文原语；labelsZh 由 LabelSinicizer 离线汉化派生。
+        val enJson = unifiedTagToJson(unified)
+        val zhJson = unifiedTagToJson(labelSinicizer.sinicize(unified))
+        dao.updateLabelsEn(entity.id, enJson)
+        dao.updateLabelsZh(entity.id, zhJson)
+        // 过渡期 labels 作 labelsZh 别名（老读取路径仍用 labels；task 14 切完后由后续 migration 删）
+        dao.updateLabels(entity.id, zhJson)
 
-        currentCoroutineContext().ensureActive()
-
-        val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
-
-        val unified = UnifiedTagResult(
-            face = faceInfo,
-            scene = qwenResult.scene,
-            activity = qwenResult.activity,
-            objects = qwenResult.objects,
-            tags = qwenResult.tags,
-            summary = qwenResult.summary
-        )
-        dao.updateLabels(entity.id, unifiedTagToJson(unified))
-
-        if (qwenResult.tags.isEmpty() && qwenResult.scene.isBlank() && qwenResult.summary.isBlank()) {
-            Log.w(TAG, "[Pass 3] SmolVLM returned empty result for mediaId=$mediaId, " +
-                "but labels JSON still written with face info")
-        }
-
-        Log.d(TAG, "[Benchmark] Pass 3 (Qwen) done: mediaId=$mediaId, " +
-            "durationMs=${System.currentTimeMillis() - startMs}, tags=${qwenResult.tags}")
+        Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, " +
+            "durationMs=${System.currentTimeMillis() - startMs}, tagger=" +
+            if (isFlorence2) "Florence-2" else "Qwen")
 
         // Pass3 连续执行发热严重：每张推理后自适应散热（热状态越高间歇越长）。
         // SEVERE 及以上已由上面的 guardCheck ABORT 兜底，不会走到这里。

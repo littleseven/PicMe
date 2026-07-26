@@ -68,8 +68,9 @@ static void uninstallCrashGuard(const struct sigaction* old_action) {
 
 // 图像推理时最大允许的边长（像素）
 // 超过此值应提前缩放，防止 OOM / SIGSEGV
-// Qwen3.5-VL 视觉编码器 image_size=420，输入最长边必须 ≤ 420
-static constexpr int MAX_IMAGE_DIM = 420;
+// 安全闸门：拒绝异常大的图防 OOM。真正按模型 image_size 的缩放在 Kotlin preprocessBitmap
+// （读 llm_config.image_size：Qwen=420 / SmolVLM=512），这里取 2048 仅兜底。
+static constexpr int MAX_IMAGE_DIM = 2048;
 
 // ── 辅助函数 ──────────────────────────────────────────
 
@@ -566,6 +567,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
         jlong handle,
         jstring systemPrompt,
         jstring userPrompt,
+        jstring promptTemplate,
         jobject bitmap,
         jint maxNewTokens) {
 
@@ -582,6 +584,11 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
     std::string userStr(userCStr);
     env->ReleaseStringUTFChars(systemPrompt, systemCStr);
     env->ReleaseStringUTFChars(userPrompt, userCStr);
+
+    // 1b. prompt_template（Kotlin 按模型 llm_config 拼好；空则 JNI 兜底 ChatML）
+    const char *promptTplCStr = env->GetStringUTFChars(promptTemplate, nullptr);
+    std::string promptTplStr(promptTplCStr);
+    env->ReleaseStringUTFChars(promptTemplate, promptTplCStr);
 
     // 2. 从 Android Bitmap 提取像素数据
     AndroidBitmapInfo bitmapInfo;
@@ -663,11 +670,12 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
     //
     // 参考：MNN 官方 Demo processor.cpp HandleImageTags()
     MNN::Transformer::MultimodalPrompt multimodal;
-    multimodal.prompt_template =
-        "<|im_start|>system\n" + systemStr + "<|im_end|>\n"
-        "<|im_start|>user\n"
-        "<img>image_0</img>" + userStr + "<|im_end|>\n"
-        "<|im_start|>assistant\n";
+    multimodal.prompt_template = promptTplStr.empty()
+        ? ("<|im_start|>system\n" + systemStr + "<|im_end|>\n"
+           "<|im_start|>user\n"
+           "<img>image_0</img>" + userStr + "<|im_end|>\n"
+           "<|im_start|>assistant\n")
+        : promptTplStr;
     multimodal.images["image_0"] = {imageVar, 0, 0};
 
     LOGD("[Vision] Generating: system=%zu chars, user=%zu chars, maxTokens=%d",
@@ -807,6 +815,7 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
         jlong handle,
         jstring systemPrompt,
         jstring userPrompt,
+        jstring promptTemplate,
         jobject bitmap,
         jint maxNewTokens,
         jint timeoutMs) {
@@ -824,6 +833,11 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
     std::string userStr(userCStr);
     env->ReleaseStringUTFChars(systemPrompt, systemCStr);
     env->ReleaseStringUTFChars(userPrompt, userCStr);
+
+    // 1b. prompt_template（Kotlin 按模型 llm_config 拼好；空则 JNI 兜底 ChatML）
+    const char *promptTplCStr = env->GetStringUTFChars(promptTemplate, nullptr);
+    std::string promptTplStr(promptTplCStr);
+    env->ReleaseStringUTFChars(promptTemplate, promptTplCStr);
 
     // 2. 从 Android Bitmap 提取像素数据
     AndroidBitmapInfo bitmapInfo;
@@ -873,11 +887,12 @@ Java_com_mamba_picme_agent_core_inference_local_llm_MnnLlmClient_nativeGenerateW
 
     // 4. 构建 MultimodalPrompt
     MNN::Transformer::MultimodalPrompt multimodal;
-    multimodal.prompt_template =
-        "<|im_start|>system\n" + systemStr + "<|im_end|>\n"
-        "<|im_start|>user\n"
-        "<img>image_0</img>" + userStr + "<|im_end|>\n"
-        "<|im_start|>assistant\n";
+    multimodal.prompt_template = promptTplStr.empty()
+        ? ("<|im_start|>system\n" + systemStr + "<|im_end|>\n"
+           "<|im_start|>user\n"
+           "<img>image_0</img>" + userStr + "<|im_end|>\n"
+           "<|im_start|>assistant\n")
+        : promptTplStr;
     multimodal.images["image_0"] = {imageVar, 0, 0};
 
     LOGD("[Vision] Generating with timeout: system=%zu chars, user=%zu chars, maxTokens=%d, timeout=%dms",
