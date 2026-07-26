@@ -298,8 +298,27 @@
 
     <!-- Communication Channel -->
     <string name="communication_channel">通信通道</string>
-    <string name="communication_channel_desc">配置飞书 IM 集成，实现远程控制。</string>
+    <string name="communication_channel_desc">配置飞书 / Telegram 远程控制通道。</string>
     <string name="feishu_channel_desc">连接飞书，通过 IM 消息接收远程指令。</string>
+    <string name="channel_selection">当前通道</string>
+    <string name="channel_none">不启用</string>
+    <string name="channel_feishu">飞书</string>
+    <string name="channel_telegram">Telegram</string>
+    <string name="feishu_app_id">App ID</string>
+    <string name="feishu_app_secret">App Secret</string>
+    <string name="feishu_app_id_placeholder">飞书应用的 App ID</string>
+    <string name="feishu_app_secret_placeholder">飞书应用的 App Secret</string>
+    <string name="telegram_channel_desc">通过 Telegram Bot 长轮询连接（无需公网 IP）。</string>
+    <string name="telegram_bot_token">Bot Token</string>
+    <string name="telegram_bot_token_desc">在 @BotFather 创建机器人后粘贴其 token。</string>
+    <string name="telegram_bot_token_placeholder">123456:ABC-DEF...</string>
+    <string name="telegram_chat_id">允许的 Chat ID</string>
+    <string name="telegram_chat_id_desc">仅该聊天可下发指令（安全白名单）。</string>
+    <string name="telegram_chat_id_placeholder">如 123456789</string>
+    <string name="telegram_security_note">未填写「允许的 Chat ID」时，为安全起见机器人将拒绝所有消息。</string>
+    <string name="channel_status_connected">已连接</string>
+    <string name="channel_status_disconnected">未连接</string>
+    <string name="channel_status_not_configured">未配置</string>
 
     <string name="ai_agent_privacy_level">隐私级别</string>
     <string name="ai_agent_privacy_strict">严格（仅本地）</string>
@@ -876,6 +895,7 @@
     <string name="person_relation_friend">朋友</string>
     <string name="person_relation_classmate">同学</string>
     <string name="person_relation_colleague">同事</string>
+    <string name="person_relation_classmate">同学</string>
     <string name="person_relation_other">其他</string>
     <string name="person_relation_custom_label">自定义称呼</string>
     <string name="person_relation_custom_hint">如：发小、二儿子</string>

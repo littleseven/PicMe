@@ -161,6 +161,13 @@ interface UserSettingsRepository {
     suspend fun updateFeishuAppId(appId: String)
     suspend fun updateFeishuAppSecret(appSecret: String)
 
+    // ── 远程通道选择 + Telegram ───────────────────────────────
+    val selectedRemoteChannelFlow: Flow<String>
+    suspend fun updateSelectedRemoteChannel(type: String)
+    val telegramBotTokenFlow: Flow<String>
+    val telegramAllowedChatIdFlow: Flow<String>
+    suspend fun updateTelegramConfig(botToken: String, allowedChatId: String)
+
     // ── 服务端邮箱认证 ──────────────────────────────────────────
     val serverAuthTokenFlow: Flow<String>
     val serverAuthEmailFlow: Flow<String>

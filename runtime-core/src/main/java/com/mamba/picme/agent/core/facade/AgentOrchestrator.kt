@@ -995,12 +995,12 @@ class AgentOrchestrator private constructor(context: Context) {
      * @param timeoutMs 超时时间（毫秒），默认 120 秒
      * @return 任务完成摘要或错误信息
      */
-    suspend fun processFeishuInput(
+    suspend fun processRemoteImInput(
         input: String,
         windowManager: android.view.WindowManager,
         timeoutMs: Long = 120_000L
     ): Result<String> = withContext(Dispatchers.IO) {
-        Logger.d(tag, "processFeishuInput: input='$input', timeout=${timeoutMs}ms")
+        Logger.d(tag, "processRemoteImInput: input='$input', timeout=${timeoutMs}ms")
 
         val agent = configurator.getFeishuAgent(windowManager, object : RemoteReActAgentCallback {
             override fun onLoopStart(iteration: Int) {}
@@ -1080,14 +1080,14 @@ class AgentOrchestrator private constructor(context: Context) {
             } else {
                 result
             }
-            Logger.d(tag, "processFeishuInput got result: ${finalResult.take(100)}")
+            Logger.d(tag, "processRemoteImInput got result: ${finalResult.take(100)}")
             Result.success(finalResult)
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            Logger.e(tag, "processFeishuInput timeout after ${timeoutMs}ms")
+            Logger.e(tag, "processRemoteImInput timeout after ${timeoutMs}ms")
             agent.cancel()
             Result.failure(RuntimeException("⏰ 处理超时（${timeoutMs / 1000}秒），请稍后重试"))
         } catch (e: Exception) {
-            Logger.e(tag, "processFeishuInput error", e)
+            Logger.e(tag, "processRemoteImInput error", e)
             Result.failure(e)
         }
     }

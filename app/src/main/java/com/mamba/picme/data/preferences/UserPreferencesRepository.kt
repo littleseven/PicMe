@@ -156,6 +156,11 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val FEISHU_APP_ID = stringPreferencesKey("feishu_app_id")
         val FEISHU_APP_SECRET = stringPreferencesKey("feishu_app_secret")
 
+        // 远程通道选择 + Telegram
+        val SELECTED_REMOTE_CHANNEL = stringPreferencesKey("selected_remote_channel")
+        val TELEGRAM_BOT_TOKEN = stringPreferencesKey("telegram_bot_token")
+        val TELEGRAM_ALLOWED_CHAT_ID = stringPreferencesKey("telegram_allowed_chat_id")
+
         // 服务端邮箱认证
         val SERVER_AUTH_TOKEN = stringPreferencesKey("server_auth_token")
         val SERVER_AUTH_EMAIL = stringPreferencesKey("server_auth_email")
@@ -1080,6 +1085,56 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateFeishuAppSecret(appSecret: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FEISHU_APP_SECRET] = appSecret
+        }
+    }
+
+    // ── 远程通道选择 + Telegram ───────────────────────────────
+    override val selectedRemoteChannelFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SELECTED_REMOTE_CHANNEL] ?: "FEISHU"
+        }
+
+    override suspend fun updateSelectedRemoteChannel(type: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SELECTED_REMOTE_CHANNEL] = type
+        }
+    }
+
+    override val telegramBotTokenFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.TELEGRAM_BOT_TOKEN] ?: ""
+        }
+
+    override val telegramAllowedChatIdFlow: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.TELEGRAM_ALLOWED_CHAT_ID] ?: ""
+        }
+
+    override suspend fun updateTelegramConfig(botToken: String, allowedChatId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TELEGRAM_BOT_TOKEN] = botToken
+            preferences[PreferencesKeys.TELEGRAM_ALLOWED_CHAT_ID] = allowedChatId
         }
     }
 

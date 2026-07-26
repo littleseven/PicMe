@@ -22,7 +22,7 @@ import com.mamba.picme.core.image.ImageProcessor
 import com.mamba.picme.domain.model.BeautyStrategy
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
-import com.mamba.picme.domain.agent.remote.FeishuPhotoTracker
+import com.mamba.picme.domain.agent.remote.RemotePhotoTracker
 import com.mamba.picme.features.camera.state.CameraStateMachine
 import com.mamba.picme.features.camera.state.CameraStateManager
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -87,19 +87,19 @@ internal fun handleCaptureClick(
         val capture = imageCapture
         if (capture == null) {
             Logger.w(TAG, "Capture skipped: ImageCapture is null")
-            // [飞书远程拍照] ImageCapture 未就绪时，通知用户拍照失败
-            if (FeishuPhotoTracker.hasPendingCapture()) {
-                val pendingMessageId = FeishuPhotoTracker.consumePendingMessageId()
-                if (pendingMessageId != null) {
-                    Logger.w(TAG, "Feishu photo capture failed: ImageCapture not ready, messageId=$pendingMessageId")
+            // [远程拍照] ImageCapture 未就绪时，经激活通道通知用户拍照失败
+            if (RemotePhotoTracker.hasPendingCapture()) {
+                val pendingReplyToken = RemotePhotoTracker.consumePendingReplyToken()
+                if (pendingReplyToken != null) {
+                    Logger.w(TAG, "Remote photo capture failed: ImageCapture not ready, replyToken=$pendingReplyToken")
                     try {
                         val app = context.applicationContext as? PoLangApplication
-                        app?.feishuChannelHandler?.sendMessage(
+                        app?.remoteChannelManager?.sendMessage(
                             "抱歉，相机还没准备好，请稍等片刻再试",
-                            pendingMessageId
+                            pendingReplyToken
                         )
                     } catch (e: Exception) {
-                        Logger.e(TAG, "Failed to send feishu error notification", e)
+                        Logger.e(TAG, "Failed to send remote capture error notification", e)
                     }
                 }
             }
@@ -109,8 +109,12 @@ internal fun handleCaptureClick(
             return
         }
 
-        val photoSource = if (FeishuPhotoTracker.hasPendingCapture()) "feishu_remote" else null
-        Logger.i(TAG, "开始拍照: hasPendingCapture=${FeishuPhotoTracker.hasPendingCapture()}, source=$photoSource")
+        val photoSource = if (RemotePhotoTracker.hasPendingCapture()) {
+            (context.applicationContext as? PoLangApplication)?.remoteChannelManager?.activeSourceTag ?: "remote_capture"
+        } else {
+            null
+        }
+        Logger.i(TAG, "开始拍照: hasPendingCapture=${RemotePhotoTracker.hasPendingCapture()}, source=$photoSource")
         imageProcessor.takePhoto(
             context = context,
             imageCapture = capture,
@@ -127,20 +131,19 @@ internal fun handleCaptureClick(
                 cameraStateManager?.let { manager ->
                     if (!success) {
                         Logger.w(TAG, "Photo processing failed, recovering to Previewing")
-                        // [飞书远程拍照] 拍照失败时，如果有 pendingMessageId，发送失败通知
+                        // [远程拍照] 拍照失败时，如有 pending replyToken，经激活通道发送失败通知
                         if (photoSource != null) {
-                            val pendingMessageId = FeishuPhotoTracker.consumePendingMessageId()
-                            if (pendingMessageId != null) {
-                                Logger.w(TAG, "Feishu photo capture failed, notifying user: messageId=$pendingMessageId")
-                                // 通知飞书用户拍照失败 - 通过应用容器获取 FeishuChannelHandler
+                            val pendingReplyToken = RemotePhotoTracker.consumePendingReplyToken()
+                            if (pendingReplyToken != null) {
+                                Logger.w(TAG, "Remote photo capture failed, notifying user: replyToken=$pendingReplyToken")
                                 try {
                                     val app = context.applicationContext as? PoLangApplication
-                                    app?.feishuChannelHandler?.sendMessage(
+                                    app?.remoteChannelManager?.sendMessage(
                                         "抱歉，拍照失败了，请再试一次",
-                                        pendingMessageId
+                                        pendingReplyToken
                                     )
                                 } catch (e: Exception) {
-                                    Logger.e(TAG, "Failed to send feishu error notification", e)
+                                    Logger.e(TAG, "Failed to send remote capture error notification", e)
                                 }
                             }
                         }

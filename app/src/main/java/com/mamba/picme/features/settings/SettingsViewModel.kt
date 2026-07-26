@@ -263,20 +263,6 @@ class SettingsViewModel(
             initialValue = ""
         )
 
-    // ── 飞书远程控制 ───────────────────────────────────────
-    val feishuAppId: StateFlow<String> = repository.feishuAppIdFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
-
-    val feishuAppSecret: StateFlow<String> = repository.feishuAppSecretFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
 
     val logModuleConfig: StateFlow<LogModuleConfig> = repository.logModuleConfigFlow
         .stateIn(
@@ -1053,18 +1039,6 @@ class SettingsViewModel(
         }
     }
 
-    // ── 飞书远程控制 ────────────────────────────────────────
-    fun setFeishuAppId(appId: String) {
-        viewModelScope.launch {
-            repository.updateFeishuAppId(appId)
-        }
-    }
-
-    fun setFeishuAppSecret(appSecret: String) {
-        viewModelScope.launch {
-            repository.updateFeishuAppSecret(appSecret)
-        }
-    }
 }
 
 class SettingsViewModelFactory(

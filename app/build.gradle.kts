@@ -83,9 +83,9 @@ android {
             abiFilters += listOf("arm64-v8a")
         }
 
-        // 飞书远程控制默认值（从环境变量注入）
-        buildConfigField("String", "FEISHU_APP_ID", "\"${feishuAppId}\"")
-        buildConfigField("String", "FEISHU_APP_SECRET", "\"${feishuAppSecret}\"")
+        // 飞书远程控制默认值：release 默认空串（用户必须自行配置）；debug 在 buildTypes.debug 中覆盖为注入值
+        buildConfigField("String", "FEISHU_APP_ID", "\"\"")
+        buildConfigField("String", "FEISHU_APP_SECRET", "\"\"")
         buildConfigField("String", "CLOUDFLARE_GATEWAY_TOKEN", "\"${System.getenv("CLOUDFLARE_GATEWAY_TOKEN") ?: ""}\"")
     }
 
@@ -146,6 +146,9 @@ android {
         debug {
             isDebuggable = true
             signingConfig = signingConfigs.getByName("debug")
+            // 仅 debug 注入开发者飞书凭据（local.properties / 环境变量）；release 继承 defaultConfig 空串
+            buildConfigField("String", "FEISHU_APP_ID", "\"${feishuAppId}\"")
+            buildConfigField("String", "FEISHU_APP_SECRET", "\"${feishuAppSecret}\"")
         }
     }
 
@@ -245,6 +248,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.material)
     implementation(libs.oapi.sdk)
+    implementation(libs.telegram.bot)
 
     // Media3 dependencies
     implementation(libs.androidx.media3.exoplayer)

@@ -307,8 +307,27 @@
 
     <!-- Communication Channel -->
     <string name="communication_channel">Communication Channel</string>
-    <string name="communication_channel_desc">Configure Feishu IM integration for remote control.</string>
+    <string name="communication_channel_desc">Configure Feishu / Telegram remote control channels.</string>
     <string name="feishu_channel_desc">Connect to Feishu (Lark) to receive remote commands via IM messages.</string>
+    <string name="channel_selection">Active Channel</string>
+    <string name="channel_none">None</string>
+    <string name="channel_feishu">Feishu</string>
+    <string name="channel_telegram">Telegram</string>
+    <string name="feishu_app_id">App ID</string>
+    <string name="feishu_app_secret">App Secret</string>
+    <string name="feishu_app_id_placeholder">Feishu App ID</string>
+    <string name="feishu_app_secret_placeholder">Feishu App Secret</string>
+    <string name="telegram_channel_desc">Connect via Telegram Bot long polling (no public IP needed).</string>
+    <string name="telegram_bot_token">Bot Token</string>
+    <string name="telegram_bot_token_desc">Create a bot via @BotFather and paste its token.</string>
+    <string name="telegram_bot_token_placeholder">123456:ABC-DEF...</string>
+    <string name="telegram_chat_id">Allowed Chat ID</string>
+    <string name="telegram_chat_id_desc">Only this chat can send commands (security whitelist).</string>
+    <string name="telegram_chat_id_placeholder">e.g. 123456789</string>
+    <string name="telegram_security_note">Without an Allowed Chat ID, the bot rejects all messages for safety.</string>
+    <string name="channel_status_connected">Connected</string>
+    <string name="channel_status_disconnected">Disconnected</string>
+    <string name="channel_status_not_configured">Not configured</string>
 
     <string name="ai_agent_privacy_level">Privacy Level</string>
     <string name="ai_agent_privacy_strict">Strict (Local Only)</string>
@@ -882,6 +901,7 @@
     <string name="person_relation_friend">Friend</string>
     <string name="person_relation_classmate">Classmate</string>
     <string name="person_relation_colleague">Colleague</string>
+    <string name="person_relation_classmate">Classmate</string>
     <string name="person_relation_other">Other</string>
     <string name="person_relation_custom_label">Custom relation</string>
     <string name="person_relation_custom_hint">e.g. childhood buddy, second son</string>
