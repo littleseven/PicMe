@@ -994,17 +994,12 @@ private fun ChatInputArea(
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val settingsRepository = remember { UserPreferencesRepository(context) }
-    val savedInputMode by settingsRepository.chatInputModeFlow.collectAsState(initial = "text")
-    // 提到顶层稳定订阅（避免在 when(inputMode) 分支内 collectAsState 导致重组不稳定/漏订阅）
     val hasUserKey by viewModel.hasUserKey.collectAsState()
     val availableModels by viewModel.availableModels.collectAsState()
     val selectedModelId by viewModel.selectedModelId.collectAsState()
     val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
-    var inputMode by remember(savedInputMode) {
-        mutableStateOf(
-            if (savedInputMode == "text") ChatInputMode.TEXT else ChatInputMode.VOICE
-        )
-    }
+    // 独立 chat 页默认文本输入模式（不继承/回写公共 AI chat 的语音偏好）
+    var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
@@ -1113,9 +1108,6 @@ private fun ChatInputArea(
                     onSwitchToVoice = {
                         inputMode = ChatInputMode.VOICE
                         keyboardController?.hide()
-                        scope.launch {
-                            settingsRepository.updateChatInputMode("voice")
-                        }
                     },
                     onShowPhotoPicker = { showPhotoPicker = true },
                     pendingImage = pendingImage,
@@ -1131,9 +1123,6 @@ private fun ChatInputArea(
                     onSwitchToText = {
                         inputMode = ChatInputMode.TEXT
                         keyboardController?.show()
-                        scope.launch {
-                            settingsRepository.updateChatInputMode("text")
-                        }
                     },
                     onVoiceResult = { result ->
                         if (result.isNotBlank() && !isProcessing) {
