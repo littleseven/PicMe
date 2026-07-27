@@ -169,7 +169,9 @@ private fun GroupingMenu(
             Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.group_by))
         }
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-            GroupingMode.entries.forEach { mode ->
+            GroupingMode.entries
+                .filter { it != SWIMWEAR && it != SEXY }
+                .forEach { mode ->
                 val label = when (mode) {
                     NONE -> stringResource(R.string.group_none)
                     DATE -> stringResource(R.string.group_date)
