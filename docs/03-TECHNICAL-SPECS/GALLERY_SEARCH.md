@@ -103,7 +103,7 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 |------|------|------|------|
 | 1 | `FACE_DETECTION` | `hasFace`、`faceRoiResult`、`face_embeddings`、`semanticEmbedding` | 人脸 ROI + Glint360K R100 512 维 embedding + MobileCLIP 语义编码（同一张 faceBitmap 完成） |
 | 2 | `DBSCAN` | `persons`、`faceId` | 全局人脸聚类，单图多脸按 embedding 分别入簇 |
-| 3 | `QWEN_TAGGING` | `media_assets.labels`（中文 JSON） | Qwen3.5-2B 多模态图像理解，输出场景/活动/物体/标签/摘要 |
+| 3 | `IMAGE_TAGGING` | `media_assets.labels`（中文 JSON） | Qwen3.5-2B 多模态图像理解，输出场景/活动/物体/标签/摘要 |
 | 4 | `MOBILE_CLIP_ENCODING` | `semanticEmbedding` | **保留用于兼容/单独重编码**，常规扫描已在 Pass 1 内完成 |
 | 5 | `ML_KIT_TAGGING` | `media_assets.mlKitLabels`（英文 JSON） | ML Kit Image Labeler 快速英文标签，补充跨语言召回 |
 

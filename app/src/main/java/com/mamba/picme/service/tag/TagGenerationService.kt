@@ -208,8 +208,8 @@ class TagGenerationService : Service() {
                         com.mamba.picme.domain.tag.PipelineStage.FACE_ROI
                     com.mamba.picme.data.local.entity.TagScanPass.DBSCAN ->
                         com.mamba.picme.domain.tag.PipelineStage.FACE_CLUSTER
-                    com.mamba.picme.data.local.entity.TagScanPass.QWEN_TAGGING ->
-                        com.mamba.picme.domain.tag.PipelineStage.QWEN_TAGGING
+                    com.mamba.picme.data.local.entity.TagScanPass.IMAGE_TAGGING ->
+                        com.mamba.picme.domain.tag.PipelineStage.IMAGE_TAGGING
                     com.mamba.picme.data.local.entity.TagScanPass.MOBILE_CLIP_ENCODING ->
                         com.mamba.picme.domain.tag.PipelineStage.MOBILE_CLIP
                     null ->
@@ -241,7 +241,7 @@ class TagGenerationService : Service() {
         }.asCoroutineDispatcher()
 
     /**
-     * 任务线程：负责执行具体推理任务（人脸检测 / DBSCAN / Qwen 多模态）。
+     * 任务线程：负责执行具体推理任务（人脸检测 / DBSCAN / 图像打标）。
      * 与控制线程解耦，即使被 JNI 阻塞也不影响暂停/取消。
      */
     private val taskDispatcher =
@@ -347,12 +347,12 @@ class TagGenerationService : Service() {
                     com.mamba.picme.domain.tag.scan.ScanMode.FULL
                 )
                 ACTION_SCAN_PASS_3 -> orch.schedulePass(
-                    com.mamba.picme.data.local.entity.TagScanPass.QWEN_TAGGING,
+                    com.mamba.picme.data.local.entity.TagScanPass.IMAGE_TAGGING,
                     com.mamba.picme.domain.tag.scan.TagScanQuery(),
                     com.mamba.picme.domain.tag.scan.ScanMode.INCREMENTAL
                 )
                 ACTION_SCAN_PASS_3_FULL -> orch.schedulePass(
-                    com.mamba.picme.data.local.entity.TagScanPass.QWEN_TAGGING,
+                    com.mamba.picme.data.local.entity.TagScanPass.IMAGE_TAGGING,
                     com.mamba.picme.domain.tag.scan.TagScanQuery(),
                     com.mamba.picme.domain.tag.scan.ScanMode.FULL
                 )

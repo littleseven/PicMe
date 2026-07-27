@@ -536,7 +536,7 @@ class AgentTestBroadcastReceiver : BroadcastReceiver() {
      * 支持命令：
      * - scan_pass1_full / scan_pass1：全量 Pass 1 人脸检测
      * - scan_pass2_full / scan_pass2：全量 Pass 2 DBSCAN 聚类
-     * - scan_pass3_full / scan_pass3：全量 Pass 3 Qwen 标签生成
+     * - scan_pass3_full / scan_pass3：全量 Pass 3 图像打标
      * - scan_pass4_full / scan_pass4：全量 MobileCLIP 语义编码
      * - scan_all：全量 3-Pass 扫描
      * - cancel：取消扫描

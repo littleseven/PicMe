@@ -35,7 +35,7 @@ data class ScanQueuePolicy(
     /** 第一阶段全量完成后才执行的 Pass（延迟阶段）。
      *  阶段切换由 TagScanOrchestrator.scheduleAutoScan 在第一批次链式耗尽时自动触发。 */
     val deferredPasses: List<TagScanPass> = listOf(
-        TagScanPass.QWEN_TAGGING
+        TagScanPass.IMAGE_TAGGING
     )
 ) {
     companion object {

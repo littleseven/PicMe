@@ -40,7 +40,7 @@ enum class TagCategory {
                 passes += TagScanPass.DBSCAN
             }
             if (categories.any { it in setOf(SCENE, ACTIVITY, OBJECTS, TAGS, SUMMARY) }) {
-                passes += TagScanPass.QWEN_TAGGING
+                passes += TagScanPass.IMAGE_TAGGING
             }
             return passes.distinct()
         }

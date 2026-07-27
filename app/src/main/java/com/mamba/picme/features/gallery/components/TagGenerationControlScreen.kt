@@ -649,7 +649,7 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
 private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
     TagScanPass.FACE_DETECTION -> "第一步：人脸检测与语义编码"
     TagScanPass.DBSCAN -> "第二步：人物聚类"
-    TagScanPass.QWEN_TAGGING -> "第三步：图片内容理解"
+    TagScanPass.IMAGE_TAGGING -> "第三步：图片内容理解"
     TagScanPass.MOBILE_CLIP_ENCODING -> "语义编码（单独）"
     null -> "准备中"
 }

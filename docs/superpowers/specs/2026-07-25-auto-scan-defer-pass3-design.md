@@ -11,7 +11,7 @@
 
 用户进入应用后，`GalleryScreen`（首次启动 或 充电且 23:00–06:00 夜间）触发 `intentScanIncremental` → `TagGenerationService` → `TagScanOrchestrator.scheduleAutoScan(ScanQueuePolicy())`。
 
-当前 `ScanQueuePolicy.passes` 默认含 `[FACE_DETECTION, DBSCAN, QWEN_TAGGING]`，`createTasks` 给三者打 priority `0/1/2`，`runSession` 用 `pollNextPendingBySession` 按 priority 轮询。结果是**每批 50 张媒体内**顺序跑 Pass1 → Pass2 → Pass3。Pass3（Qwen/SmolVLM，`DEFAULT_PASS_DURATION_MS` 估 ~7s/张）使每批耗时约 350s，且阻塞下一批的 Pass1。
+当前 `ScanQueuePolicy.passes` 默认含 `[FACE_DETECTION, DBSCAN, IMAGE_TAGGING]`，`createTasks` 给三者打 priority `0/1/2`，`runSession` 用 `pollNextPendingBySession` 按 priority 轮询。结果是**每批 50 张媒体内**顺序跑 Pass1 → Pass2 → Pass3。Pass3（Qwen/SmolVLM，`DEFAULT_PASS_DURATION_MS` 估 ~7s/张）使每批耗时约 350s，且阻塞下一批的 Pass1。
 
 同样走 `scheduleAutoScan` 的入口还有：相册页手动「扫描」按钮、`TagGenerationControlScreen`「全量扫描」按钮、Agent 的 `AutoTagCapability`。
 
@@ -48,13 +48,13 @@ val passes: List<TagScanPass> = listOf(
 /** 第一阶段全量完成后才执行的 Pass（延迟阶段）。
  *  阶段切换由 scheduleAutoScan 在第一批次链式耗尽时自动触发。 */
 val deferredPasses: List<TagScanPass> = listOf(
-    TagScanPass.QWEN_TAGGING
+    TagScanPass.IMAGE_TAGGING
 ),
 ```
 
-`conservative()` / `overnight()` 预设同步：`passes = [FACE_DETECTION, DBSCAN]`、`deferredPasses = [QWEN_TAGGING]`。
+`conservative()` / `overnight()` 预设同步：`passes = [FACE_DETECTION, DBSCAN]`、`deferredPasses = [IMAGE_TAGGING]`。
 
-**兼容出口**：显式 `passes = [FACE_DETECTION, DBSCAN, QWEN_TAGGING]`、`deferredPasses = emptyList()` 即恢复旧的「混合三 pass 每批」行为（当前无入口需要）。
+**兼容出口**：显式 `passes = [FACE_DETECTION, DBSCAN, IMAGE_TAGGING]`、`deferredPasses = emptyList()` 即恢复旧的「混合三 pass 每批」行为（当前无入口需要）。
 
 ### 改动 2：`scheduleAutoScan` 阶段切换（`scan/TagScanOrchestrator.kt`，约 10 行）
 

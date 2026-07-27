@@ -326,13 +326,13 @@ override fun onCleared() {
 - **5-Pass 混合管道**:
   - **Pass 1**: `FACE_DETECTION` — 人脸检测 + 人脸 Embedding + MobileCLIP 语义编码（语义编码已内联合并到本阶段）
   - **Pass 2**: `DBSCAN` — 全局人脸聚类
-  - **Pass 3**: `QWEN_TAGGING` — Qwen 多模态标签生成（场景/活动/物体/标签/摘要）
+  - **Pass 3**: `IMAGE_TAGGING` — Qwen 多模态标签生成（场景/活动/物体/标签/摘要）
   - **Pass 4**: `MOBILE_CLIP_ENCODING` — 保留用于历史任务兼容及单独重编码场景
   - **Pass 5**: `ML_KIT_TAGGING` — ML Kit Image Labeler 快速英文标签提取
 - **类别到 Pass 映射**（`TagCategory.toPasses`）:
   - `FACE` → `FACE_DETECTION` + `DBSCAN`
   - `ML_KIT_LABELS` → `ML_KIT_TAGGING`
-  - `SCENE / ACTIVITY / OBJECTS / TAGS / SUMMARY` → `QWEN_TAGGING`
+  - `SCENE / ACTIVITY / OBJECTS / TAGS / SUMMARY` → `IMAGE_TAGGING`
 - **队列编排**: `TagScanOrchestrator` 持久化任务队列，支持暂停/恢复/取消/失败重试
 - **增量去重**: 默认跳过近期已覆盖所有请求 Pass 的媒体，按 `oldest-first` 排序避免老照片饿死
 - **精细控制**: 支持按 `TagCategory`（人脸/场景/活动/物体/标签/摘要/ML Kit 标签）和时间范围（全部/7天/30天/90天）重新生成

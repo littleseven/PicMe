@@ -157,8 +157,8 @@ enum class PipelineStage {
     FACE_ROI,
     /** Pass 2: 全局 DBSCAN 聚类 */
     FACE_CLUSTER,
-    /** Pass 3: Qwen 图像理解标签生成 */
-    QWEN_TAGGING,
+    /** Pass 3: 图像打标（图像内容理解） */
+    IMAGE_TAGGING,
     /**
      * MobileCLIP 语义编码（保留枚举值以兼容历史任务/单独重编码场景）。
      * 注意：常规扫描已将该阶段内联到 [FACE_ROI]。
@@ -175,8 +175,8 @@ enum class PassStage {
     FACE_DETECTION,
     /** Pass 2: 全局 DBSCAN 聚类 */
     DBSCAN_CLUSTERING,
-    /** Pass 3: Qwen 图像理解标签生成 */
-    QWEN_TAGGING,
+    /** Pass 3: 图像打标（图像内容理解） */
+    IMAGE_TAGGING,
     /**
      * MobileCLIP 语义编码（保留枚举值以兼容历史任务/单独重编码场景）。
      * 注意：常规扫描已将该阶段内联到 [FACE_DETECTION]。

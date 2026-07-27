@@ -70,7 +70,7 @@ class TagGenerationPipeline(
         /** 人脸检测前的图片最长边缩放 */
         private const val MAX_FACE_DETECT_SIZE = 640
 
-        /** Qwen 图像推理的图片最长边缩放 */
+        /** VLM 图像推理的图片最长边缩放 */
         private const val MAX_VISION_SIZE = 512
 
         /** Qwen Stage 3 最大输出 token 数。SmolVLM-256M 输出 JSON 需要 256 tokens 才能完整闭合。 */
@@ -129,7 +129,7 @@ class TagGenerationPipeline(
             }
             Log.d(TAG, "Stage 2 done: personIds=${stage2Result?.personIds ?: "N/A"}")
 
-            // ── Stage 3: Qwen 图像理解（复用已旋转/解码的 faceBitmap，缩放到 512px）───
+            // ── Stage 3: 图像打标（MNN VLM，复用已旋转/解码的 faceBitmap，缩放到 512px）───
             // 避免重新走 ContentResolver.openInputStream + BitmapFactory + EXIF 旋转。
             val stage3Bitmap = scaleBitmapToMaxSize(faceBitmap, MAX_VISION_SIZE)
             val faceRoiJson = faceRoiToJson(stage1Result)
@@ -230,11 +230,11 @@ class TagGenerationPipeline(
     }
 
     // ═══════════════════════════════════════════════════
-    //  [Pass 3] Qwen 图像理解标签生成（可断点续扫）
+    //  [Pass 3] 图像打标（可断点续扫）
     // ═══════════════════════════════════════════════════
 
     /**
-     * [Pass 3] Qwen3.5-2B 图像理解标签生成
+     * [Pass 3] 图像打标（MNN VLM 分支）
      *
      * 使用 Pass 1 持久化的 faceRoiJson 恢复人脸上下文。
      * 不依赖传递性 Stage1Result 对象，天然支持断点续扫。
@@ -261,7 +261,7 @@ class TagGenerationPipeline(
     }
 
     /**
-     * [Pass 3] Qwen3.5-2B 图像理解标签生成（Bitmap 重载）。
+     * [Pass 3] 图像打标（MNN VLM 分支，Bitmap 重载）。
      *
      * 供 [processPhoto] 复用已加载/已旋转的 Bitmap，避免二次 ContentResolver 解码。
      */
@@ -293,7 +293,7 @@ class TagGenerationPipeline(
 
     private suspend fun runStage3Combined(bitmap: Bitmap, faceRoiJson: String?): Stage3CombinedResult {
         if (!llmEngine.isLoaded) {
-            Log.w(TAG, "[Pass 3] LLM not loaded, skipping Qwen tagging")
+            Log.w(TAG, "[Pass 3] LLM not loaded, skipping image tagging")
         }
 
         // 从 JSON 恢复人脸上下文
@@ -667,7 +667,7 @@ class TagGenerationPipeline(
     }
 
     // ═══════════════════════════════════════════════════
-    //  Stage 3: Qwen3.5-2B 多模态图像理解
+    //  Stage 3: 多模态图像打标（VLM）
     // ═══════════════════════════════════════════════════
 
     private suspend fun stage3QwenTagging(

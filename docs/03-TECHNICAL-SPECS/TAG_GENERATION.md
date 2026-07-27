@@ -18,7 +18,7 @@
 为相册中每张照片自动生成多维度标签（Tag），支撑 `MediaSearchEngine` 的自然语言搜索召回：
 
 - **人脸维度**：照片中出现了「谁」（通过人脸检测 + 人脸 Embedding + DBSCAN 聚类）
-- **内容维度**：照片的场景、物体、活动（通过 Qwen 图像理解）
+- **内容维度**：照片的场景、物体、活动（通过图像打标模型）
 - **语义维度**：MobileCLIP 图像-文本对齐 embedding（用于语义搜索）
 - **ML Kit 快速标签**：英文物体/场景标签（用于补充召回）
 - **时间/地点维度**：已有的 EXIF 元数据
@@ -67,8 +67,8 @@
         │
         ▼
 ┌─────────────────────────────────────────────┐
-│ Pass 3: QWEN_TAGGING                         │
-│ • Qwen 3.5-2B 图像理解                       │
+│ Pass 3: IMAGE_TAGGING                         │
+│ • 图像打标                       │
 │ • 中文标签 + ControlledVocab 规范化          │
 │ 写入: labels JSON                            │
 └─────────────────────────────────────────────┘
@@ -104,7 +104,7 @@ Pass 4: MOBILE_CLIP_ENCODING（保留枚举值，用于兼容历史任务/单独
 | `group_photo` | `face_count >= 2` | `true` |
 | `selfie` | `face_count == 1` | `true` |
 
-#### L2 内容标签（Qwen 产出）
+#### L2 内容标签（图像打标产出）
 
 Qwen 输出经 `TagNormalizer` 映射到 `ControlledVocab` 后写入 `labels` JSON：
 
@@ -174,9 +174,9 @@ suspend fun stage1WithEmbeddings(
 - 匹配成功则复用原 `personId` 与 `name`，避免重扫描后用户命名丢失
 - 每个旧人物最多被复用一次，未匹配到的新簇将创建新的匿名人物
 
-#### Pass 3：Qwen 图像理解标签生成
+#### Pass 3：图像打标（图像内容理解）
 
-**模型**: Qwen 3.5-2B（MNN-LLM 运行时）  
+**模型**: tagger 可切换（默认 Florence-2 ORT；备选 Qwen3-VL / SmolVLM 等 MNN-LLM VLM）  
 **输入**: 照片 URI + `faceRoiResult` 人脸上下文  
 **输出**: `QwenTags` → `TagNormalizer` → `UnifiedTagResult` JSON
 
@@ -208,7 +208,7 @@ suspend fun stage1WithEmbeddings(
 | TagCategory | 映射 Pass |
 |-------------|-----------|
 | `FACE` | `FACE_DETECTION` + `DBSCAN` |
-| `SCENE` / `ACTIVITY` / `OBJECTS` / `TAGS` / `SUMMARY` | `QWEN_TAGGING` |
+| `SCENE` / `ACTIVITY` / `OBJECTS` / `TAGS` / `SUMMARY` | `IMAGE_TAGGING` |
 | `ML_KIT_LABELS` | `ML_KIT_TAGGING` |
 
 ### 2.5 OpenCL 超时与 CPU 降级
@@ -357,7 +357,7 @@ data class TagScanTaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: String,
     val mediaId: Long,
-    val pass: TagScanPass,                 // FACE_DETECTION / DBSCAN / QWEN_TAGGING / MOBILE_CLIP_ENCODING / ML_KIT_TAGGING
+    val pass: TagScanPass,                 // FACE_DETECTION / DBSCAN / IMAGE_TAGGING / MOBILE_CLIP_ENCODING / ML_KIT_TAGGING
     val tagCategories: String? = null,     // 目标类别 JSON 数组
     val status: TagScanTaskStatus = PENDING,
     val priority: Int = 0,
@@ -467,7 +467,7 @@ data class TagScanTaskEntity(
 | `id` | Long (PK) | 自增主键 |
 | `sessionId` | String | 扫描会话 ID |
 | `mediaId` | Long | 关联媒体 ID |
-| `pass` | TagScanPass | 阶段：FACE_DETECTION / DBSCAN / QWEN_TAGGING / MOBILE_CLIP_ENCODING / ML_KIT_TAGGING |
+| `pass` | TagScanPass | 阶段：FACE_DETECTION / DBSCAN / IMAGE_TAGGING / MOBILE_CLIP_ENCODING / ML_KIT_TAGGING |
 | `tagCategories` | String? | 目标 TAG 类别 JSON 数组，null=全部 |
 | `status` | TagScanTaskStatus | 状态：PENDING / RUNNING / PAUSED / COMPLETED / FAILED / CANCELLED |
 | `priority` | Int | 优先级（数值越小越优先） |
@@ -540,7 +540,7 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 |-----|------|
 | `"1"` | Pass 1（人脸检测 + MobileCLIP 内联合并）完成时间 |
 | `"2"` | Pass 2（DBSCAN 聚类）完成时间 |
-| `"3"` | Pass 3（Qwen 标签）完成时间 |
+| `"3"` | Pass 3（图像标签）完成时间 |
 | `"4"` | Pass 4（MobileCLIP 单独重编码，保留兼容）完成时间 |
 | `"5"` | Pass 5（ML Kit 英文标签）完成时间 |
 
@@ -574,7 +574,7 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│  Pass 3: Qwen 图像理解标签生成                                   │
+│  Pass 3: 图像打标                                   │
 │  ├─ 从 faceRoiResult 恢复人脸上下文（无需重新检测）               │
 │  ├─ llmEngine.imageInference(bitmap, prompt) → JSON 标签         │
 │  │                                                              │
@@ -775,7 +775,7 @@ private fun extractJson(text: String): String? {
 ### 7.1 当前性能基线（9000 张）
 
 ```
-Pass 1 (人脸 ROI + 106关键点 + Glint360K R100 Embedding)  →  Pass 2 (DBSCAN 全局聚类)  →  Pass 3 (Qwen3.5-2B 图像理解)
+Pass 1 (人脸 ROI + 106关键点 + Glint360K R100 Embedding)  →  Pass 2 (DBSCAN 全局聚类)  →  Pass 3 (图像打标)
   ~10-50ms + ~20-80ms + ~30-60ms                                 ~2-5s (一次)                  ~2-8s/张
 ```
 
@@ -787,7 +787,7 @@ Pass 1 (人脸 ROI + 106关键点 + Glint360K R100 Embedding)  →  Pass 2 (DBSC
 |------|---------|-------------|------|
 | **Pass 1** 人脸检测 + Embedding | ~170ms (推理) + 500ms (节流) = ~670ms | **~100 min** | 13% |
 | **Pass 2** DBSCAN 全局聚类 | 一次执行 ~2-5s | **~3s** | <1% |
-| **Pass 3** Qwen 图像理解 | ~4000ms (推理) + 500ms (节流) = ~4500ms | **~11.25 hrs** | 87% |
+| **Pass 3** 图像打标 | ~4000ms (推理) + 500ms (节流) = ~4500ms | **~11.25 hrs** | 87% |
 | **合计** | | **~13 hrs** | |
 
 ### 7.3 三大核心瓶颈

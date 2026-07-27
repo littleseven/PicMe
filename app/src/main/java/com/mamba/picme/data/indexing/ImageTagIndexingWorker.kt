@@ -21,7 +21,7 @@ import org.json.JSONArray
  * 图片 AI 标签索引 Worker
  *
  * ## 废弃说明
- * 标签生成功能已整合到 [TagGenerationScheduler] 的 3-Pass 混合管道中（Pass 3: Qwen 标签生成）。
+ * 标签生成功能已整合到 [TagGenerationScheduler] 的 3-Pass 混合管道中（Pass 3: 图像打标）。
  * 请使用 [TagGenerationScheduler.scanAll] 或 [TagGenerationScheduler.scanIncremental] 替代。
  *
  * 使用本地多模态 LLM (Qwen3.5-2B-MNN) 理解相册图片内容，

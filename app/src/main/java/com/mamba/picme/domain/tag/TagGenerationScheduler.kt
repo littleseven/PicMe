@@ -370,19 +370,19 @@ class TagGenerationScheduler(
     }
 
     /**
-     * [Pass 3 独立执行] 仅进行 Qwen 图像理解标签生成
+     * [Pass 3 独立执行] 仅进行图像打标
      *
      * @deprecated 已迁移到 [TagScanOrchestrator.schedulePass]。
      */
     @Deprecated(
-        "Use TagScanOrchestrator.schedulePass(TagScanPass.QWEN_TAGGING) instead",
-        ReplaceWith("TagScanOrchestrator(context, this).schedulePass(TagScanPass.QWEN_TAGGING)")
+        "Use TagScanOrchestrator.schedulePass(TagScanPass.IMAGE_TAGGING) instead",
+        ReplaceWith("TagScanOrchestrator(context, this).schedulePass(TagScanPass.IMAGE_TAGGING)")
     )
     fun scanPass3(
         progressCallback: suspend (processed: Int, total: Int) -> Unit = { _, _ -> }
     ) {
         throw NotImplementedError(
-            "scanPass3 is deprecated. Use TagScanOrchestrator.schedulePass(TagScanPass.QWEN_TAGGING)."
+            "scanPass3 is deprecated. Use TagScanOrchestrator.schedulePass(TagScanPass.IMAGE_TAGGING)."
         )
     }
 
@@ -392,14 +392,14 @@ class TagGenerationScheduler(
      * @deprecated 已迁移到 [TagScanOrchestrator.schedulePass]。
      */
     @Deprecated(
-        "Use TagScanOrchestrator.schedulePass(TagScanPass.QWEN_TAGGING, mode=FULL) instead",
-        ReplaceWith("TagScanOrchestrator(context, this).schedulePass(TagScanPass.QWEN_TAGGING, mode = FULL)")
+        "Use TagScanOrchestrator.schedulePass(TagScanPass.IMAGE_TAGGING, mode=FULL) instead",
+        ReplaceWith("TagScanOrchestrator(context, this).schedulePass(TagScanPass.IMAGE_TAGGING, mode = FULL)")
     )
     fun scanPass3Full(
         progressCallback: suspend (processed: Int, total: Int) -> Unit = { _, _ -> }
     ) {
         throw NotImplementedError(
-            "scanPass3Full is deprecated. Use TagScanOrchestrator.schedulePass(TagScanPass.QWEN_TAGGING, mode = FULL)."
+            "scanPass3Full is deprecated. Use TagScanOrchestrator.schedulePass(TagScanPass.IMAGE_TAGGING, mode = FULL)."
         )
     }
 
@@ -1256,12 +1256,12 @@ class TagGenerationScheduler(
     }
 
     /**
-     * [原子任务] Pass 3：单张媒体的 Qwen 标签生成
+     * [原子任务] Pass 3：单张媒体的图像打标
      *
-     * 质量优先方案：使用 SmolVLM/Qwen 视觉语言模型生成 scene/activity/objects/tags/summary。
+     * 质量优先方案：按 tagger 配置分流（默认 Florence-2 ORT，备选 Qwen3-VL / SmolVLM 等 MNN VLM）生成 scene/activity/objects/tags/summary。
      * 相比 ML Kit，标签语义更准确，能区分"纸"、"墙"等无意义背景与真实主体。
      */
-    suspend fun executeQwenTagging(mediaId: Long) {
+    suspend fun executeImageTagging(mediaId: Long) {
         // 接回守卫：热 SEVERE / 电量危机时 ABORT，抛异常 → 任务 FAILED → handleTaskFailure 退避重试（自带散热窗口）。
         // 热 MODERATE / 电量低时 guardCheck 内部已 delay(getThrottleMs())，不抛异常。
         check(guardCheck()) {
@@ -1370,9 +1370,9 @@ class TagGenerationScheduler(
     }
 
     /**
-     * 批量 Pass 3 前准备：确保 Qwen 模型已加载
+     * 批量 Pass 3 前准备：确保打标模型已加载
      */
-    suspend fun prepareQwenModel(): Boolean = ensureModelLoaded()
+    suspend fun prepareTaggerModel(): Boolean = ensureModelLoaded()
 
     /**
      * 预热 MobileCLIP 标签分类器。

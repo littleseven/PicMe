@@ -52,7 +52,7 @@ import com.mamba.picme.data.model.MediaEntity
         MemoryFactEntity::class,
         ChatImageCacheEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -87,7 +87,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                         MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                        MIGRATION_14_15
+                        MIGRATION_14_15, MIGRATION_15_16
                     )
                     .build()
                 INSTANCE = instance
@@ -254,7 +254,7 @@ abstract class AppDatabase : RoomDatabase() {
          *
          * ML Kit Image Labeler 已移除，不再生成新标签。本次 migration：
          * 1. 清空 media_assets.mlKitLabels / mlKitLabelsZh
-         * 2. 清空旧 ML Kit 写入的 labels（JSON 数组格式，Qwen 标签为 JSON 对象）
+         * 2. 清空旧 ML Kit 写入的 labels（JSON 数组格式，统一规格标签为 JSON 对象）
          * 3. 清空规范化标签表 tags / media_tag_cross_ref（旧 ML Kit 与废弃 ImageTagIndexingWorker 数据）
          */
         /**
@@ -375,6 +375,17 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_chat_image_cache_sessionId` ON `chat_image_cache` (`sessionId`)"
+                )
+            }
+        }
+
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // TagScanPass.QWEN_TAGGING 重命名为 IMAGE_TAGGING。tag_scan_tasks.pass 按 Room
+                // 枚举名持久化，需改写旧值，否则升级后反序列化历史任务行会崩溃。
+                // media_assets.lastTagScanPasses 用 pass 编号 "3"，不受枚举重命名影响。
+                database.execSQL(
+                    "UPDATE tag_scan_tasks SET pass = 'IMAGE_TAGGING' WHERE pass = 'QWEN_TAGGING'"
                 )
             }
         }

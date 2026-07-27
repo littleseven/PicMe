@@ -70,8 +70,8 @@ enum class TagScanPass {
     FACE_DETECTION,
     /** Pass 2: 全局 DBSCAN 聚类 */
     DBSCAN,
-    /** Pass 3: Qwen 图像理解标签生成 */
-    QWEN_TAGGING,
+    /** Pass 3: 图像打标（图像内容理解） */
+    IMAGE_TAGGING,
     /**
      * MobileCLIP 语义编码（保留以兼容历史任务/单独重编码场景）。
      * 常规扫描已将该阶段内联合并到 [FACE_DETECTION]。

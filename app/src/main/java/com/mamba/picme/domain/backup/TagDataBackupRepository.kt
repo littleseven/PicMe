@@ -639,10 +639,10 @@ class TagDataBackupRepository(
         return preferences.entries.size
     }
 
-    private fun parsePass(name: String): TagScanPass = try {
-        TagScanPass.valueOf(name)
-    } catch (_: IllegalArgumentException) {
-        TagScanPass.QWEN_TAGGING
+    private fun parsePass(name: String): TagScanPass = when (name) {
+        // 兼容枚举重命名前的旧备份：QWEN_TAGGING → IMAGE_TAGGING
+        "QWEN_TAGGING" -> TagScanPass.IMAGE_TAGGING
+        else -> runCatching { TagScanPass.valueOf(name) }.getOrDefault(TagScanPass.IMAGE_TAGGING)
     }
 
     private fun TagScanTaskEntity.toBackupModel(uri: String): BackupTagScanTask = BackupTagScanTask(

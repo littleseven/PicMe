@@ -51,7 +51,7 @@ class TagScanOrchestratorTest {
     @Test
     fun `TagCategory toPasses maps scene to pass 3`() {
         val passes = TagCategory.toPasses(setOf(TagCategory.SCENE))
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), passes)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), passes)
     }
 
     @Test
@@ -61,7 +61,7 @@ class TagScanOrchestratorTest {
             listOf(
                 TagScanPass.FACE_DETECTION,
                 TagScanPass.DBSCAN,
-                TagScanPass.QWEN_TAGGING
+                TagScanPass.IMAGE_TAGGING
             ),
             passes
         )
@@ -73,7 +73,7 @@ class TagScanOrchestratorTest {
         val next = TagScanOrchestrator.nextPhasePolicy(policy)
 
         assertNotNull(next)
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), next!!.passes)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), next!!.passes)
         // 防死循环：第二阶段不再有延迟阶段
         assertTrue(next.deferredPasses.isEmpty())
     }

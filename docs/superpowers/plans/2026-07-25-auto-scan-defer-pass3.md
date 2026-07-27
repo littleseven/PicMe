@@ -66,7 +66,7 @@ class ScanQueuePolicyTest {
     fun `default policy defers pass3 to second phase`() {
         val policy = ScanQueuePolicy()
         assertEquals(
-            listOf(TagScanPass.QWEN_TAGGING),
+            listOf(TagScanPass.IMAGE_TAGGING),
             policy.deferredPasses
         )
     }
@@ -74,13 +74,13 @@ class ScanQueuePolicyTest {
     @Test
     fun `conservative preset inherits two-phase defaults`() {
         val policy = ScanQueuePolicy.conservative()
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), policy.deferredPasses)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), policy.deferredPasses)
     }
 
     @Test
     fun `overnight preset inherits two-phase defaults`() {
         val policy = ScanQueuePolicy.overnight()
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), policy.deferredPasses)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), policy.deferredPasses)
     }
 }
 ```
@@ -104,7 +104,7 @@ Modify `app/src/main/java/com/mamba/picme/domain/tag/scan/ScanQueuePolicy.kt`，
     /** 第一阶段全量完成后才执行的 Pass（延迟阶段）。
      *  阶段切换由 TagScanOrchestrator.scheduleAutoScan 在第一批次链式耗尽时自动触发。 */
     val deferredPasses: List<TagScanPass> = listOf(
-        TagScanPass.QWEN_TAGGING
+        TagScanPass.IMAGE_TAGGING
     ),
 ```
 
@@ -146,7 +146,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
         val next = TagScanOrchestrator.nextPhasePolicy(policy)
 
         assertNotNull(next)
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), next!!.passes)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), next!!.passes)
         // 防死循环：第二阶段不再有延迟阶段
         assertTrue(next.deferredPasses.isEmpty())
     }
@@ -490,7 +490,7 @@ adb logcat -s "TagScanOrchestrator:*" "TagGenService:*" "TagGenerationScheduler:
 ```
 在设备上进入相册（或用 `/agent-test` 的 `scan_incremental` 触发），确认日志顺序：
 1. 先持续出现 `Pass 1` / DBSCAN 相关日志，**不出现** `[Benchmark] Pass 3`。
-2. 第一阶段耗尽后出现 `延迟阶段切换: [FACE_DETECTION, DBSCAN] 全量完成 → 进入 [QWEN_TAGGING]`。
+2. 第一阶段耗尽后出现 `延迟阶段切换: [FACE_DETECTION, DBSCAN] 全量完成 → 进入 [IMAGE_TAGGING]`。
 3. 之后才开始 `[Benchmark] Pass 3 (Qwen) done: ...`。
 
 Expected: 两阶段顺序符合预期，Pass1+Pass2 先全量完成。

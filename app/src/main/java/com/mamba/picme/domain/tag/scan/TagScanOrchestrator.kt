@@ -61,7 +61,7 @@ class TagScanOrchestrator(
         private val DEFAULT_PASS_DURATION_MS = mapOf(
             TagScanPass.FACE_DETECTION to 800L,
             TagScanPass.DBSCAN to 5_000L,
-            TagScanPass.QWEN_TAGGING to 7_000L,
+            TagScanPass.IMAGE_TAGGING to 7_000L,
             TagScanPass.MOBILE_CLIP_ENCODING to 1_000L
         )
 
@@ -110,7 +110,7 @@ class TagScanOrchestrator(
         fun TagScanPass.toPassNumber(): String = when (this) {
             TagScanPass.FACE_DETECTION -> "1"
             TagScanPass.DBSCAN -> "2"
-            TagScanPass.QWEN_TAGGING -> "3"
+            TagScanPass.IMAGE_TAGGING -> "3"
             TagScanPass.MOBILE_CLIP_ENCODING -> "4"
         }
 
@@ -119,7 +119,7 @@ class TagScanOrchestrator(
          *
          * 不依赖 [TagScanOrchestrator] 实例，供 UI/Service 直接使用，确保口径一致。
          * - [remainingForPass1]：尚未进行人脸检测/MobileCLIP 编码的媒体数
-         * - [remainingForPass3]：尚未生成 Qwen 标签的媒体数（不强制要求已有 faceRoiResult，与 Pass 1 解耦）
+         * - [remainingForPass3]：尚未生成图像标签的媒体数（不强制要求已有 faceRoiResult，与 Pass 1 解耦）
          *
          * 注意：所有统计均使用 COUNT 查询并在 IO 调度器执行，避免一次性加载大量 [MediaEntity]
          * 到 Java Heap 导致 OOM（MediaEntity 包含 faceRoiResult/semanticEmbedding 等大字段）。
@@ -359,7 +359,7 @@ class TagScanOrchestrator(
             // 这里仅做标记，实际清空操作在 executeDbscan 中按快照捕获后执行。
         }
 
-        if (pass == TagScanPass.QWEN_TAGGING && mode == ScanMode.FULL) {
+        if (pass == TagScanPass.IMAGE_TAGGING && mode == ScanMode.FULL) {
             // 全量重跑 Pass 3：清空已有标签
             db.mediaDao().resetAllLabels()
         }
@@ -516,12 +516,12 @@ class TagScanOrchestrator(
         }
 
         // Pass 3: 每张媒体一个独立任务
-        if (passes.contains(TagScanPass.QWEN_TAGGING)) {
+        if (passes.contains(TagScanPass.IMAGE_TAGGING)) {
             tasks += mediaIds.map { mediaId ->
                 TagScanTaskEntity(
                     sessionId = sessionId,
                     mediaId = mediaId,
-                    pass = TagScanPass.QWEN_TAGGING,
+                    pass = TagScanPass.IMAGE_TAGGING,
                     tagCategories = categoriesJson,
                     status = TagScanTaskStatus.PENDING,
                     priority = 2,
@@ -561,11 +561,11 @@ class TagScanOrchestrator(
                     createdAt = System.currentTimeMillis()
                 )
             )
-            TagScanPass.QWEN_TAGGING -> mediaIds.map { mediaId ->
+            TagScanPass.IMAGE_TAGGING -> mediaIds.map { mediaId ->
                 TagScanTaskEntity(
                     sessionId = sessionId,
                     mediaId = mediaId,
-                    pass = TagScanPass.QWEN_TAGGING,
+                    pass = TagScanPass.IMAGE_TAGGING,
                     status = TagScanTaskStatus.PENDING,
                     priority = 0,
                     createdAt = System.currentTimeMillis()
@@ -612,8 +612,8 @@ class TagScanOrchestrator(
             while (currentCoroutineContext().isActive) {
                 val task = db.tagScanTaskDao().pollNextPendingBySession(sessionId) ?: break
 
-                // Pass 3 (QWEN_TAGGING) 使用 SmolVLM/Qwen 视觉语言模型（质量优先方案）。
-                // 由 scheduler.executeQwenTagging 内部负责 ensureModelLoaded() 与推理。
+                // Pass 3 (IMAGE_TAGGING) 图像打标：scheduler.executeImageTagging 按 tagger 配置分流（Florence-2 / MNN VLM），内部 ensureModelLoaded。
+                // 由 scheduler.executeImageTagging 内部负责 ensureModelLoaded() 与推理。
 
                 // MobileCLIP 不参与 Pass3 打标（已移除 MobileClipTagClassifier.classify），无需预热。
                 // MobileCLIP 语义向量在 Pass1 内联编码供语义搜索，与此处无关。
@@ -667,7 +667,7 @@ class TagScanOrchestrator(
                     preserveNamedPersons = true,
                     isFullRescan = task.pass in fullRescanPasses
                 )
-                TagScanPass.QWEN_TAGGING -> scheduler.executeQwenTagging(task.mediaId)
+                TagScanPass.IMAGE_TAGGING -> scheduler.executeImageTagging(task.mediaId)
                 TagScanPass.MOBILE_CLIP_ENCODING -> scheduler.executeMobileClipEncoding(task.mediaId)
             }
             true
@@ -683,8 +683,8 @@ class TagScanOrchestrator(
     /**
      * 批量执行前准备：加载 Qwen 模型
      */
-    suspend fun prepareQwenModel(): Boolean {
-        return scheduler.prepareQwenModel()
+    suspend fun prepareTaggerModel(): Boolean {
+        return scheduler.prepareTaggerModel()
     }
 
     private suspend fun handleTaskFailure(task: TagScanTaskEntity) {
@@ -980,7 +980,7 @@ class TagScanOrchestrator(
         if (pass != TagScanPass.DBSCAN && entity.type != MediaType.PHOTO) return false
         return when (pass) {
             TagScanPass.FACE_DETECTION -> entity.faceRoiResult.isNullOrEmpty()
-            TagScanPass.QWEN_TAGGING -> entity.labels.isNullOrEmpty()
+            TagScanPass.IMAGE_TAGGING -> entity.labels.isNullOrEmpty()
             TagScanPass.MOBILE_CLIP_ENCODING -> entity.semanticEmbedding.isNullOrEmpty()
             TagScanPass.DBSCAN -> false // DBSCAN 是全局任务，不针对单媒体
         }

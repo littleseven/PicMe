@@ -19,7 +19,7 @@ class ScanQueuePolicyTest {
     fun `default policy defers pass3 to second phase`() {
         val policy = ScanQueuePolicy()
         assertEquals(
-            listOf(TagScanPass.QWEN_TAGGING),
+            listOf(TagScanPass.IMAGE_TAGGING),
             policy.deferredPasses
         )
     }
@@ -27,12 +27,12 @@ class ScanQueuePolicyTest {
     @Test
     fun `conservative preset inherits two-phase defaults`() {
         val policy = ScanQueuePolicy.conservative()
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), policy.deferredPasses)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), policy.deferredPasses)
     }
 
     @Test
     fun `overnight preset inherits two-phase defaults`() {
         val policy = ScanQueuePolicy.overnight()
-        assertEquals(listOf(TagScanPass.QWEN_TAGGING), policy.deferredPasses)
+        assertEquals(listOf(TagScanPass.IMAGE_TAGGING), policy.deferredPasses)
     }
 }
