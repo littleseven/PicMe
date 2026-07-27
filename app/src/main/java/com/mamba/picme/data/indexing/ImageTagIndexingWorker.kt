@@ -115,55 +115,6 @@ class ImageTagIndexingWorker(
         }
     }
 
-    /**
-     * 对单张图片重新生成 AI 标签(照片信息弹窗「重新打标」用)。
-     *
-     * 复用 [doBatchTagging] 的单张推理逻辑:加载模型 → bitmap → imageInference → 解析 → 更新 labels。
-     * 在 [Dispatchers.IO] 执行(模型加载 / 推理不可阻塞主线程)。
-     *
-     * @return 新标签列表(成功);null 表示失败(模型未加载 / 媒体不存在 / 推理空 / 解析空)。
-     */
-    suspend fun reTagSingle(uri: Uri, modelKey: String): List<String>? = withContext(Dispatchers.IO) {
-        val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
-        val loadResult = orchestrator.ensureModelLoaded(
-            modelId = modelKey,
-            useOpencl = useOpencl,
-            caller = "ImageTagIndexingWorker:reTagSingle"
-        )
-        if (loadResult.isFailure) {
-            Logger.w(TAG, "reTagSingle: model not loaded, uri=$uri")
-            return@withContext null
-        }
-        val db = AppDatabase.getDatabase(context)
-        val dao = db.mediaDao()
-        val entity = dao.getMediaByUri(uri.toString()) ?: run {
-            Logger.w(TAG, "reTagSingle: media not found, uri=$uri")
-            return@withContext null
-        }
-        val bitmap = loadBitmapForVision(entity.uri) ?: run {
-            Logger.w(TAG, "reTagSingle: failed to load bitmap, uri=$uri")
-            return@withContext null
-        }
-        val response = try {
-            localLlmEngine.imageInference(
-                bitmap = bitmap,
-                systemPrompt = TAGGING_SYSTEM_PROMPT,
-                userPrompt = TAGGING_USER_PROMPT,
-                maxTokens = 64
-            )
-        } finally {
-            bitmap.recycle()
-        }
-        if (response.isBlank()) return@withContext null
-        val labels = parseLabels(response)
-        if (labels.isEmpty()) return@withContext null
-        val labelsJson = JSONArray(labels.toList()).toString()
-        TagIndexUpdater(db.tagDao()).updateIndex(entity.id, labelsJson)
-        dao.updateLabels(entity.id, labelsJson)
-        Logger.i(TAG, "reTagSingle done: media ${entity.id} → $labels")
-        labels.toList()
-    }
-
     private suspend fun doBatchTagging() {
         // 0. 确保模型已加载
         val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)

@@ -579,7 +579,7 @@ fun ChatScreen(
                     onIdPhoto = { asset -> onNavigateToIDPhoto(asset.uri) },
                     voiceCoordinator = null,
                     onReTag = { _ ->
-                        // chat 页 photo info 暂用全量扫描(无 container 直拿 worker);相册页已是单张 reTagSingle
+                        // chat 页 photo info 暂用全量扫描(无 container 直拿 worker);相册页走单张 processSingleSync
                         context.startForegroundService(TagGenerationService.intentScanPass3Full(context))
                         null
                     }
