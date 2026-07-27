@@ -42,7 +42,7 @@ class ImageEditCapabilityTest {
             params = EditParams(brightness = EditParams.Absolute(10f))
         )
 
-        coEvery { processor.execute(any(), any(), any()) } returns Result.success("file:///output.jpg")
+        coEvery { processor.execute(any(), any(), any(), any()) } returns Result.success("file:///output.jpg")
 
         val result = capability.execute(command, agentContext, null)
 
@@ -52,7 +52,7 @@ class ImageEditCapabilityTest {
         val returnedCommand = action.command as AgentCommand.EditImage
         assertEquals("file:///output.jpg", returnedCommand.imageUri)
 
-        coVerify { processor.execute(context, "file:///input.jpg", any()) }
+        coVerify { processor.execute(context, "file:///input.jpg", any(), any()) }
 
         val storedRecipe = stateHolder.get(sessionId)
         assertEquals("file:///input.jpg", storedRecipe.sourceUri)
@@ -73,11 +73,11 @@ class ImageEditCapabilityTest {
             params = EditParams(contrast = EditParams.Delta(5f))
         )
 
-        coEvery { processor.execute(any(), any(), any()) } returns Result.success("content://output")
+        coEvery { processor.execute(any(), any(), any(), any()) } returns Result.success("content://output")
 
         capability.execute(command, agentContext, null)
 
-        coVerify { processor.execute(context, "file:///state.jpg", any()) }
+        coVerify { processor.execute(context, "file:///state.jpg", any(), any()) }
     }
 
     @Test
@@ -111,7 +111,7 @@ class ImageEditCapabilityTest {
     @Test
     fun `execute returns error when processor fails`() = runTest {
         val processor = mockk<ChatEditProcessor>(relaxed = true)
-        coEvery { processor.execute(any(), any(), any()) } returns Result.failure(RuntimeException("渲染失败"))
+        coEvery { processor.execute(any(), any(), any(), any()) } returns Result.failure(RuntimeException("渲染失败"))
 
         val capability = ImageEditCapability(mockk<Context>(relaxed = true), processor, ChatEditStateHolder())
         val agentContext = AgentContext(scene = AgentScene.CHAT, memorySessionId = "chat-fail")

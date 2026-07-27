@@ -5,13 +5,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import com.mamba.picme.beauty.api.PhotoProcessor
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
-import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.ChatImageStore
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.features.camera.toDevicePreference
 import com.mamba.picme.features.camera.toInferenceBackendType
@@ -28,15 +26,12 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
 private const val TAG = "ChatEditProcessor"
-private const val JPEG_QUALITY = 95
 
 class ChatEditProcessor(
     private val photoProcessor: PhotoProcessor,
     private val faceDetector: FaceDetector,
-    private val mediaRepository: MediaRepository,
+    private val chatImageStore: ChatImageStore,
     private val userSettingsRepository: UserSettingsRepository? = null,
-    private val outputCollectionUri: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-    private val sdkInt: Int = Build.VERSION.SDK_INT,
     private val recipeApplierFactory: (PhotoProcessor, CoroutineDispatcher) -> RecipeApplier = ::RecipeApplier
 ) {
 
@@ -75,11 +70,11 @@ class ChatEditProcessor(
     }
 
     /**
-     * 执行编辑并保存结果图。
+     * 执行编辑并把结果图交给 [chatImageStore] 落盘到私有缓存（不写入相册）。
      *
-     * @return 保存后的图片 URI，失败时返回异常
+     * @return 结果图 file:// 路径，失败时返回异常
      */
-    suspend fun execute(context: Context, sourceUri: String, recipe: EditRecipe): Result<String> {
+    suspend fun execute(context: Context, sourceUri: String, recipe: EditRecipe, sessionId: String): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
                 ensureFacePipeline()
@@ -91,14 +86,8 @@ class ChatEditProcessor(
                 val cropped = withContext(Dispatchers.Default) { applier.applyCrop(fullBitmap, recipe.crop) }
                 val faceData = detectFace(cropped)
                 val processed = applier.applyGpuEffects(cropped, recipe, faceData)
-                val outputUri = saveBitmapToMediaStore(context, processed)
-
-                if (outputUri != null) {
-                    mediaRepository.refreshMediaLibrary()
-                    Result.success(outputUri)
-                } else {
-                    Result.failure(IllegalStateException("保存结果图失败"))
-                }
+                val outputUri = chatImageStore.writeResult(sessionId, processed, "image/jpeg")
+                Result.success(outputUri)
             } catch (e: Exception) {
                 Logger.e(TAG, "Chat edit failed", e)
                 Result.failure(e)
@@ -140,22 +129,5 @@ class ChatEditProcessor(
                 Logger.w(TAG, "Face detection returned null, face-driven effects (slimFace/lipColor 等) 将被跳过")
             }
         }.getOrNull()
-    }
-
-    private fun saveBitmapToMediaStore(context: Context, bitmap: Bitmap): String? {
-        val name = "CHAT_EDIT_${System.currentTimeMillis()}.jpg"
-        val values = android.content.ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, name)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            if (sdkInt >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PoLang")
-            }
-        }
-        val uri = context.contentResolver.insert(outputCollectionUri, values)
-        return uri?.also {
-            context.contentResolver.openOutputStream(it)?.use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
-            }
-        }?.toString()
     }
 }

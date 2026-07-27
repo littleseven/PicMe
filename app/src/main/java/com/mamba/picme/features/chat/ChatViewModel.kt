@@ -136,6 +136,8 @@ class ChatViewModel(
     private val mediaRepository = dependencies.mediaRepository
     private val chatEditStateHolder = dependencies.chatEditStateHolder
     private val chatEditProcessor = dependencies.chatEditProcessor
+    private val chatImageStore = dependencies.chatImageStore
+    private val saveChatEditResultUseCase = dependencies.saveChatEditResultUseCase
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -424,11 +426,12 @@ class ChatViewModel(
             if (renderer == null) {
                 "Error: 图片渲染器暂不可用"
             } else {
-                val outcome = renderer.adjustImage(uri, brightness, contrast, saturation, temperature)
+                val sid = _currentSessionId.value
+                val outcome = renderer.adjustImage(uri, brightness, contrast, saturation, temperature, sid)
                 Logger.i(TAG, "adjustImage outcome: imageUri=${outcome.imageUri}, explanation=${outcome.explanation}")
                 if (outcome.imageUri != null) {
                     insertAgentImageMessage(
-                        sessionId = "default",
+                        sessionId = sid,
                         imageUri = outcome.imageUri,
                         content = outcome.explanation,
                         modelUsed = currentModelLabel()
@@ -962,7 +965,7 @@ class ChatViewModel(
                             if (renderer == null) {
                                 insertAgentMessage(sessionId, "⚠️ 图像优化暂不可用", currentModelLabel(), performance)
                             } else {
-                                val outcome = renderer.aiOptimize(targetUri)
+                                val outcome = renderer.aiOptimize(targetUri, sessionId)
                                 Logger.i(TAG, "AiOptimize outcome: imageUri=${outcome.imageUri}, explanation=${outcome.explanation}")
                                 if (outcome.imageUri != null) {
                                     insertAgentImageMessage(
