@@ -2,7 +2,6 @@ package com.mamba.picme.data.repository
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.net.Uri
 import com.mamba.picme.domain.repository.ChatImageStore
 import io.mockk.every
 import io.mockk.mockk
@@ -11,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -21,18 +21,14 @@ class ChatImageStoreImplTest {
     private lateinit var cacheDir: File
     private lateinit var context: Context
     private lateinit var dao: FakeChatImageCacheDao
-    private lateinit var collectionUri: Uri
 
     @Before
     fun setUp() {
         cacheDir = File(System.getProperty("java.io.tmpdir"), "chat_edit_cache_test_${System.nanoTime()}")
         cacheDir.mkdirs()
         context = mockk(relaxed = true)
-        every { context.filesDir } returns File(System.getProperty("java.io.tmpdir"))
+        every { context.filesDir } returns File(System.getProperty("java.io.tmpdir")!!)
         dao = FakeChatImageCacheDao()
-        // 显式传入 collectionUri，避免构造器默认值 MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        // 在无 Robolectric 的 JVM 单测里触发 "not mocked"
-        collectionUri = mockk(relaxed = true)
     }
 
     @After
@@ -43,24 +39,20 @@ class ChatImageStoreImplTest {
 
     private fun store(
         maxBytes: Long = ChatImageStore.DEFAULT_MAX_SIZE_BYTES,
-        sdkInt: Int = 21 // 预 Q：copyToGallery 走 outputCollectionUri 分支，避开 MediaStore.getContentUri 静态调用
+        galleryInserter: ((File, String) -> String?)? = null
     ) = ChatImageStoreImpl(
         context = context,
         dao = dao,
         cacheDir = cacheDir,
         maxSizeBytes = maxBytes,
-        outputCollectionUri = collectionUri,
-        sdkInt = sdkInt
+        galleryInserter = galleryInserter
     )
 
-    private fun bitmap(size: Int = 100): Bitmap {
+    private fun bitmap(): Bitmap {
         val bmp = mockk<Bitmap>(relaxed = true)
-        every { bmp.width } returns size
-        every { bmp.height } returns size
-        // 让 compress 真正写字节，便于断言文件存在与大小
+        // 让 compress 真正写字节，便于断言文件存在
         every { bmp.compress(any(), any(), any()) } answers {
-            val out = thirdArg<java.io.OutputStream>()
-            out.write(ByteArray(50))
+            thirdArg<java.io.OutputStream>().write(ByteArray(50))
             true
         }
         return bmp
@@ -86,7 +78,6 @@ class ChatImageStoreImplTest {
         seed(b, lastAccessedAt = 200)
         seed(c, lastAccessedAt = 300)
         store.enforceCap()
-        // 最旧的 a 应被 EVICTED 且文件删除；b/c 仍在
         assertEquals(ChatImageStore.Status.EVICTED, dao.getByPath(a)?.status)
         assertFalse(File(a).exists())
         assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(b)?.status)
@@ -104,7 +95,6 @@ class ChatImageStoreImplTest {
         seed(c, lastAccessedAt = 300)
         store.touch(a) // a 变最新
         store.enforceCap()
-        // 现在 b 最旧，应被淘汰；a/c 保留
         assertEquals(ChatImageStore.Status.EVICTED, dao.getByPath(b)?.status)
         assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(a)?.status)
         assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(c)?.status)
@@ -118,6 +108,31 @@ class ChatImageStoreImplTest {
         store.enforceCap()
         assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(big)?.status)
         assertTrue(File(big).exists())
+    }
+
+    @Test
+    fun `copyToGallery delegates to galleryInserter and returns content uri`() = runTest {
+        val src = absPath("src")
+        val result = store(galleryInserter = { _, _ -> "content://media/external/images/media/99" })
+            .copyToGallery(src)
+        assertEquals("content://media/external/images/media/99", result)
+    }
+
+    @Test
+    fun `copyToGallery returns null when source missing`() = runTest {
+        val result = store(galleryInserter = { _, _ -> "content://x" })
+            .copyToGallery(File(cacheDir, "nope.jpg").absolutePath)
+        assertNull(result)
+    }
+
+    @Test
+    fun `markSaved deletes file and sets SAVED`() = runTest {
+        val path = absPath("toSave")
+        seed(path, lastAccessedAt = 100)
+        assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(path)?.status)
+        store().markSaved(path)
+        assertEquals(ChatImageStore.Status.SAVED, dao.getByPath(path)?.status)
+        assertFalse(File(path).exists())
     }
 
     private fun absPath(name: String): String =

@@ -24,8 +24,8 @@ class ChatImageStoreImpl(
     private val dao: ChatImageCacheDao,
     private val cacheDir: File = File(context.filesDir, "chat_edit_cache"),
     private val maxSizeBytes: Long = ChatImageStore.DEFAULT_MAX_SIZE_BYTES,
-    private val outputCollectionUri: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-    private val sdkInt: Int = Build.VERSION.SDK_INT
+    // 测试可注入假的 MediaStore 写入器，避开 Android 静态 API（ContentValues/MediaStore）
+    private val galleryInserter: ((srcFile: File, displayName: String) -> String?)? = null
 ) : ChatImageStore {
 
     init {
@@ -57,12 +57,19 @@ class ChatImageStoreImpl(
         }
 
     override suspend fun copyToGallery(filePath: String): String? = withContext(Dispatchers.IO) {
-        // 见 Task 3 实现
-        null
+        val src = File(filePath.removePrefix("file://"))
+        if (!src.exists()) {
+            Logger.w(TAG, "copyToGallery: source missing $filePath")
+            return@withContext null
+        }
+        val inserter = galleryInserter ?: { file, name -> insertIntoMediaStore(file, name) }
+        inserter(src, "PoLang_edit_${UUID.randomUUID()}.jpg")
     }
 
     override suspend fun markSaved(filePath: String) {
-        // 见 Task 3 实现
+        val abs = filePath.removePrefix("file://")
+        runCatching { File(abs).delete() }
+        dao.updateStatus(abs, ChatImageStore.Status.SAVED)
     }
 
     override suspend fun touch(filePath: String) {
@@ -93,5 +100,34 @@ class ChatImageStoreImpl(
 
     override suspend fun evictForSession(sessionId: String) {
         // 见 Task 4 实现
+    }
+
+    /** 真正把文件写入 MediaStore Pictures/PoLang，返回 content:// URI。 */
+    private fun insertIntoMediaStore(src: File, displayName: String): String? {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, GALLERY_RELATIVE_PATH)
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val itemUri = context.contentResolver.insert(collection, values) ?: return null
+        var ok = false
+        context.contentResolver.openOutputStream(itemUri)?.use { out ->
+            src.inputStream().use { input -> input.copyTo(out) }
+            ok = true
+        }
+        if (ok && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            context.contentResolver.update(itemUri, values, null, null)
+        }
+        return if (ok) itemUri.toString() else null
     }
 }
