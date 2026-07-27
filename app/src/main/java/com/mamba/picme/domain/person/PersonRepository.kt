@@ -101,6 +101,38 @@ class PersonRepository(
     suspend fun getNamedPersons(): List<PersonEntity> =
         personDao.getAllPersons().filter { person -> !person.name.isNullOrBlank() }
 
+    /**
+     * 列出指向"我"的关系（chat 主动读通路的同步版，实时查 DB，不依赖 Flow 快照）。
+     *
+     * 规避 [observeRelationsToSelf] 的 Flow invalidation 延迟——声明关系后 snapshot 可能数分钟才更新，
+     * 用户在此期间查询会读到空。本方法每次现查 DB，供 chat 主动读工具直接调用。
+     *
+     * [name] 非空时只返回该名字人物与"我"的关系（声明幂等，至多 1 条）；null/空返回全部。
+     */
+    suspend fun listRelationsToSelf(name: String? = null): List<RelationDisplayItem> {
+        val self = personDao.getSelfPerson() ?: return emptyList()
+        val personsById = personDao.getAllPersons().associateBy { person -> person.personId }
+        val nameFilter = name?.trim()?.ifEmpty { null }
+        return relationDao.getAll()
+            .asSequence()
+            .filter { relation -> relation.objectPersonId == self.personId }
+            .filter { relation ->
+                nameFilter == null || personsById[relation.subjectPersonId]?.name == nameFilter
+            }
+            .mapNotNull { relation ->
+                val subject = personsById[relation.subjectPersonId] ?: return@mapNotNull null
+                val predicate = RelationPredicate.fromStored(relation.predicate) ?: return@mapNotNull null
+                RelationDisplayItem(
+                    relationId = relation.relationId,
+                    subjectPersonId = subject.personId,
+                    subjectName = subject.name ?: "#${subject.personId}",
+                    predicate = predicate,
+                    customLabel = relation.customLabel?.trim()?.ifEmpty { null }
+                )
+            }
+            .toList()
+    }
+
     /** 查询某人物当前与"我"的关系（对话框回显用） */
     suspend fun getRelationToSelf(subjectPersonId: Long): PersonRelationEntity? {
         val self = personDao.getSelfPerson() ?: return null

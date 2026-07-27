@@ -253,6 +253,14 @@ class ChatToolService private constructor() {
     ): String = dispatchCommand(AgentCommand.ForgetPersonRelation(name = name))
 
     @Tool(
+        name = "list_person_relations",
+        value = ["查询已记住的人物关系。用户问「看一下我的人物关系」「我女儿是谁」「小宝和我什么关系」「我记住了哪些关系」「谁是我的家人」时调用本工具，不要凭印象回答。name 留空返回全部指向「我」的关系；指定人物名只查该人物。返回关系列表（含自定义称呼）。"]
+    )
+    fun listPersonRelations(
+        @P(name = "name", value = "人物名，指定则只查该人物与「我」的关系；留空查全部") name: String
+    ): String = dispatchCommand(AgentCommand.QueryPersonRelation(name = name.ifBlank { null }))
+
+    @Tool(
         name = "remember_fact",
         value = ["记住一条事实，如用户说「帮我记住小宝对花粉过敏」「记住我喜欢低饱和度滤镜」。content 为原子化事实内容（一条一个事实），category 为可选分类（如 健康/偏好），无则空串。"]
     )
@@ -388,6 +396,7 @@ class ChatToolService private constructor() {
                 args.optString("relation", "")
             )
             "forget_person_relation" -> forgetPersonRelation(args.optString("name", ""))
+            "list_person_relations" -> listPersonRelations(args.optString("name", ""))
             "remember_fact" -> rememberFact(
                 args.optString("content", ""),
                 args.optString("category", "")

@@ -266,6 +266,7 @@ private fun getAgentCommandDisplayName(command: AgentCommand): String =
         is AgentCommand.DrawChart -> "画图表"
         is AgentCommand.RememberPersonRelation -> "记住人物关系"
         is AgentCommand.ForgetPersonRelation -> "遗忘人物关系"
+        is AgentCommand.QueryPersonRelation -> "查询人物关系"
         is AgentCommand.RememberFact -> "记住事实"
         is AgentCommand.ForgetFact -> "遗忘事实"
         is AgentCommand.RecallMemory -> "检索记忆"
@@ -320,6 +321,7 @@ private fun resolveCommandIcon(command: AgentCommand): ImageVector = when (comma
     is AgentCommand.DrawChart -> Icons.Rounded.Code
     is AgentCommand.RememberPersonRelation -> Icons.Rounded.Face
     is AgentCommand.ForgetPersonRelation -> Icons.Rounded.Face
+    is AgentCommand.QueryPersonRelation -> Icons.Rounded.Face
     is AgentCommand.RememberFact -> Icons.Rounded.Memory
     is AgentCommand.ForgetFact -> Icons.Rounded.Memory
     is AgentCommand.RecallMemory -> Icons.Rounded.Memory

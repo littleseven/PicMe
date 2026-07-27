@@ -475,6 +475,18 @@ sealed class AgentCommand {
     ) : AgentCommand()
 
     /**
+     * 查询人物关系（chat 主动读通路）。
+     *
+     * [name] 指定人物名时只返回该人物与「我」的关系（声明幂等，至多 1 条）；
+     * null/空返回全部指向「我」的关系。实时同步读 DB，不依赖被动注入的 Flow 快照，
+     * 用于"看一下我的人物关系""小宝和我什么关系"等查询（规避 snapshot 更新延迟）。
+     */
+    data class QueryPersonRelation(
+        override val commandId: Int = AgentIdGenerator.nextId(),
+        val name: String?
+    ) : AgentCommand()
+
+    /**
      * 记住一条事实（"帮我记住…"）。
      *
      * @property source 声明来源：CHAT_TOOL（聊天工具直调）/ JS_DISPATCH（JS 沙盒写通路）
@@ -573,6 +585,7 @@ sealed class AgentCommand {
             is DrawChart -> "draw_chart"
             is RememberPersonRelation -> "remember_person_relation"
             is ForgetPersonRelation -> "forget_person_relation"
+            is QueryPersonRelation -> "query_person_relation"
             is RememberFact -> "remember_fact"
             is ForgetFact -> "forget_fact"
             is RecallMemory -> "recall_memory"

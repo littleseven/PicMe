@@ -28,18 +28,20 @@ class PersonRelationCapability(
     private val tag = "PoLang:PersonRelationCapability"
 
     override val name: String = "person_relation"
-    override val description: String = "在聊天中声明/遗忘人物与「我」的关系（如「小宝是我女儿」），声明后可用称谓搜合照"
+    override val description: String = "在聊天中声明/遗忘/查询人物与「我」的关系（如「小宝是我女儿」「看一下我的人物关系」），声明后可用称谓搜合照"
 
     override fun activeScenes(): List<SceneManager.Scene> = listOf(SceneManager.Scene.CHAT)
 
     override fun supportedCommands(): List<String> = listOf(
         "remember_person_relation",
-        "forget_person_relation"
+        "forget_person_relation",
+        "query_person_relation"
     )
 
     override fun getCommandDescription(command: String): String = when (command) {
         "remember_person_relation" -> "声明人物关系，参数: name (已命名人物名), relation (谓词枚举名/中文称谓/任意自定义称呼)"
         "forget_person_relation" -> "遗忘与某人物的全部关系，参数: name (人物名)"
+        "query_person_relation" -> "查询人物关系，参数: name (可选，指定人物名则只查该人物；留空查全部)"
         else -> "未知命令"
     }
 
@@ -56,6 +58,10 @@ class PersonRelationCapability(
                 .addStringProperty("name", "人物名字")
                 .required("name")
                 .build()
+            "query_person_relation" -> JsonObjectSchema.builder()
+                .description("查询人物关系。name 留空查全部指向「我」的关系；指定人物名只查该人物")
+                .addStringProperty("name", "人物名（可选，留空查全部）")
+                .build()
             else -> JsonObjectSchema.builder().build()
         }
 
@@ -68,6 +74,7 @@ class PersonRelationCapability(
             when (command) {
                 is AgentCommand.RememberPersonRelation -> rememberRelation(command)
                 is AgentCommand.ForgetPersonRelation -> forgetRelation(command)
+                is AgentCommand.QueryPersonRelation -> queryRelation(command)
                 else -> Result.success(
                     AgentAction.Error(
                         commandId = command.commandId,
@@ -148,6 +155,29 @@ class PersonRelationCapability(
             "「$personName」本来就没有已记住的关系"
         }
         Logger.i(tag, "forget relation: $personName removed=$removed")
+        return Result.success(AgentAction.TextReply(commandId = command.commandId, message = message))
+    }
+
+    private suspend fun queryRelation(
+        command: AgentCommand.QueryPersonRelation
+    ): Result<AgentAction> {
+        // 主动现查 DB（绕开 MemoryContextProvider 的 Flow 快照，规避声明后 snapshot 更新延迟）
+        val relations = personRepository.listRelationsToSelf(command.name)
+        val message = if (relations.isEmpty()) {
+            if (command.name != null) {
+                "还没有记住「${command.name}」与你的关系"
+            } else {
+                "还没有记住任何人物关系。可以在相册人物分组里给人物命名并声明，或直接告诉我「小宝是我女儿」"
+            }
+        } else {
+            val lines = relations.mapIndexed { index, item ->
+                val label = item.customLabel ?: item.predicate.labelZh
+                "${index + 1}. ${item.subjectName}（$label）"
+            }
+            val scope = if (command.name != null) "「${command.name}」的" else ""
+            "已记住 ${relations.size} 条${scope}人物关系：\n${lines.joinToString("\n")}"
+        }
+        Logger.i(tag, "query relation: name=${command.name} hits=${relations.size}")
         return Result.success(AgentAction.TextReply(commandId = command.commandId, message = message))
     }
 

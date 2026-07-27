@@ -325,6 +325,7 @@ class AiAgentUseCase(
             // 记忆命令无 legacy 对应，统一转文本提示
             is AgentCommand.RememberPersonRelation -> AiAgentCommand.TextReply("记住人物关系")
             is AgentCommand.ForgetPersonRelation -> AiAgentCommand.TextReply("遗忘人物关系")
+            is AgentCommand.QueryPersonRelation -> AiAgentCommand.TextReply("查询人物关系")
             is AgentCommand.RememberFact -> AiAgentCommand.TextReply("记住事实")
             is AgentCommand.ForgetFact -> AiAgentCommand.TextReply("遗忘事实")
             is AgentCommand.RecallMemory -> AiAgentCommand.TextReply("检索记忆")
@@ -403,6 +404,7 @@ class AiAgentUseCase(
                     // 记忆命令无 legacy 对应
                     is AgentCommand.RememberPersonRelation -> AiAgentCommand.TextReply("记住人物关系")
                     is AgentCommand.ForgetPersonRelation -> AiAgentCommand.TextReply("遗忘人物关系")
+                    is AgentCommand.QueryPersonRelation -> AiAgentCommand.TextReply("查询人物关系")
                     is AgentCommand.RememberFact -> AiAgentCommand.TextReply("记住事实")
                     is AgentCommand.ForgetFact -> AiAgentCommand.TextReply("遗忘事实")
                     is AgentCommand.RecallMemory -> AiAgentCommand.TextReply("检索记忆")
