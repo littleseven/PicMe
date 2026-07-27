@@ -118,7 +118,7 @@ class ImageEditCapability(
         )
 
         return try {
-            chatEditProcessor.execute(this.context, targetUri, recipe)
+            chatEditProcessor.execute(this.context, targetUri, recipe, sessionId)
                 .fold(
                     onSuccess = { outputUri ->
                         stateHolder.update(sessionId, recipe)

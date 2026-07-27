@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.mamba.picme.data.local.dao.ChatImageCacheDao
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.MediaFeedbackDao
 import com.mamba.picme.data.local.dao.MemoryFactDao
@@ -15,6 +16,7 @@ import com.mamba.picme.data.local.dao.PersonRelationDao
 import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.dao.TagScanTaskDao
+import com.mamba.picme.data.local.entity.ChatImageCacheEntity
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.LocationHierarchyEntity
 import com.mamba.picme.data.local.entity.MediaFeedbackEntity
@@ -47,9 +49,10 @@ import com.mamba.picme.data.model.MediaEntity
         TagScanTaskEntity::class,
         MediaFeedbackEntity::class,
         PersonRelationEntity::class,
-        MemoryFactEntity::class
+        MemoryFactEntity::class,
+        ChatImageCacheEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -66,6 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun mediaFeedbackDao(): MediaFeedbackDao
     abstract fun personRelationDao(): PersonRelationDao
     abstract fun memoryFactDao(): MemoryFactDao
+    abstract fun chatImageCacheDao(): ChatImageCacheDao
 
     companion object {
         @Volatile
@@ -82,7 +86,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-                        MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
+                        MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
+                        MIGRATION_14_15
                     )
                     .build()
                 INSTANCE = instance
@@ -345,6 +350,32 @@ abstract class AppDatabase : RoomDatabase() {
                 // 清空规范化标签表（旧 ML Kit / 废弃 ImageTagIndexingWorker 数据）
                 database.execSQL("DELETE FROM `media_tag_cross_ref`")
                 database.execSQL("DELETE FROM `tags`")
+            }
+        }
+
+        /**
+         * Migration 14 → 15：新增 chat_image_cache 表，登记 chat 编辑/优化结果图的私有缓存行
+         */
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `chat_image_cache` (
+                        `filePath` TEXT NOT NULL PRIMARY KEY,
+                        `sessionId` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `lastAccessedAt` INTEGER NOT NULL,
+                        `sizeBytes` INTEGER NOT NULL,
+                        `status` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chat_image_cache_lastAccessedAt` ON `chat_image_cache` (`lastAccessedAt`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chat_image_cache_sessionId` ON `chat_image_cache` (`sessionId`)"
+                )
             }
         }
     }

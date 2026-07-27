@@ -101,7 +101,9 @@ class ChatViewModelEditResultTest {
             personDao = mockk(relaxed = true),
             controlledVocab = ControlledVocab(),
             chatEditStateHolder = ChatEditStateHolder(),
-            chatEditProcessor = mockk(relaxed = true)
+            chatEditProcessor = mockk(relaxed = true),
+            chatImageStore = mockk(relaxed = true),
+            saveChatEditResultUseCase = mockk(relaxed = true)
         )
     )
 

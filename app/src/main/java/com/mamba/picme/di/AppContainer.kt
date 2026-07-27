@@ -24,10 +24,12 @@ import com.mamba.picme.data.indexing.MediaIndexingWorker
 import com.mamba.picme.data.indexing.MediaStoreObserver
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.data.preferences.dataStore
+import com.mamba.picme.data.repository.ChatImageStoreImpl
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.data.repository.MediaFeedbackRepositoryImpl
 import com.mamba.picme.data.repository.MediaRepositoryImpl
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
+import com.mamba.picme.domain.repository.ChatImageStore
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.ExplicitFirstSearchPipeline
@@ -51,6 +53,7 @@ import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetReposi
 import com.mamba.picme.domain.agent.capability.ImageEditCapability
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.ChatEditProcessor
+import com.mamba.picme.domain.usecase.SaveChatEditResultUseCase
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
@@ -429,11 +432,19 @@ class AppContainerImpl(
         ChatEditStateHolder()
     }
 
+    private val chatImageStore: ChatImageStore by lazy {
+        ChatImageStoreImpl(context = context, dao = database.chatImageCacheDao())
+    }
+
+    private val saveChatEditResultUseCase: SaveChatEditResultUseCase by lazy {
+        SaveChatEditResultUseCase(store = chatImageStore, chatMessageDao = database.chatMessageDao())
+    }
+
     private val chatEditProcessor: ChatEditProcessor by lazy {
         ChatEditProcessor(
             photoProcessor = photoProcessor,
             faceDetector = faceDetector,
-            mediaRepository = repository,
+            chatImageStore = chatImageStore,
             userSettingsRepository = userPreferencesRepository
         )
     }
@@ -584,7 +595,7 @@ class AppContainerImpl(
     }
 
     private val chatImageRenderer: ChatImageRenderer by lazy {
-        ChatImageRenderer(context, photoProcessor, mattingEngine, aiOptimizeUseCase)
+        ChatImageRenderer(context, photoProcessor, mattingEngine, aiOptimizeUseCase, chatImageStore)
     }
 
     private val chatViewModelDependencies: ChatViewModelDependencies by lazy {
@@ -604,7 +615,9 @@ class AppContainerImpl(
             controlledVocab = controlledVocab,
             chatEditStateHolder = chatEditStateHolder,
             chatEditProcessor = chatEditProcessor,
-            chatImageRenderer = chatImageRenderer
+            chatImageRenderer = chatImageRenderer,
+            chatImageStore = chatImageStore,
+            saveChatEditResultUseCase = saveChatEditResultUseCase
         )
     }
 
