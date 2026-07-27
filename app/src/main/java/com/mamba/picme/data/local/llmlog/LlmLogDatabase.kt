@@ -17,7 +17,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [LlmCallLogEntity::class, ToolCallLogEntity::class, JsRunLogEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class LlmLogDatabase : RoomDatabase() {

@@ -32,4 +32,8 @@ interface LlmCallLogDao {
 
     @Query("DELETE FROM llm_call_log WHERE id = :id")
     suspend fun delete(id: Long): Int
+
+    /** 同一 traceId 的全部记录（旧→新），供详情页 turn pager 装配。 */
+    @Query("SELECT * FROM llm_call_log WHERE traceId = :traceId ORDER BY createdAt ASC")
+    suspend fun getByTraceId(traceId: String): List<LlmCallLogEntity>
 }
