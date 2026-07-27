@@ -29,13 +29,14 @@ class ChatRunScriptCapabilityTest {
     @Test
     fun `execute returns TextReply with delegate result`() = runBlocking {
         capability.bindDelegate(object : ChatRunScriptCapability.Delegate {
-            override suspend fun onRunScript(code: String): String = "RESULT:$code"
+            override suspend fun onRunScript(code: String, traceId: String?): String = "RESULT:$code"
             override suspend fun onDrawChart(
                 type: String,
                 title: String,
                 labels: List<String>,
                 values: List<Double>,
-                unit: String?
+                unit: String?,
+                traceId: String?
             ): String = ""
         })
         val result = capability.execute(
@@ -65,13 +66,14 @@ class ChatRunScriptCapabilityTest {
     @Test
     fun `unsupported command reports method not found`() = runBlocking {
         capability.bindDelegate(object : ChatRunScriptCapability.Delegate {
-            override suspend fun onRunScript(code: String): String = ""
+            override suspend fun onRunScript(code: String, traceId: String?): String = ""
             override suspend fun onDrawChart(
                 type: String,
                 title: String,
                 labels: List<String>,
                 values: List<Double>,
-                unit: String?
+                unit: String?,
+                traceId: String?
             ): String = ""
         })
         val result = capability.execute(
