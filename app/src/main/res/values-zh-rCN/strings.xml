@@ -687,6 +687,9 @@
     <string name="js_run_log_script">脚本</string>
     <string name="js_run_log_result">结果预览</string>
     <string name="llm_call_log_release_no_content">Release 构建不记录消息内容</string>
+    <string name="llm_log_turn_indicator">LLM %1$d · 工具 %2$d · JS %3$d</string>
+    <string name="llm_log_no_trace">无关联</string>
+    <string name="llm_log_detail_trace">关联 ID</string>
 
     <!-- 图片编辑器 -->
     <string name="editor_tab_crop">构图</string>

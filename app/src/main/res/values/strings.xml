@@ -693,6 +693,9 @@
     <string name="js_run_log_script">Script</string>
     <string name="js_run_log_result">Result Preview</string>
     <string name="llm_call_log_release_no_content">Release builds do not record message content</string>
+    <string name="llm_log_turn_indicator">LLM %1$d · TOOL %2$d · JS %3$d</string>
+    <string name="llm_log_no_trace">No association</string>
+    <string name="llm_log_detail_trace">Trace</string>
 
     <!-- Photo Editor -->
     <string name="editor_tab_crop">Crop</string>
