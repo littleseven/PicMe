@@ -56,7 +56,8 @@ class CommandExecutor(
                 capability.name, commandType, startMs,
                 success = result.isSuccess && errorAction == null,
                 errorCode = errorAction?.errorCode,
-                errorMessage = errorAction?.message ?: result.exceptionOrNull()?.message
+                errorMessage = errorAction?.message ?: result.exceptionOrNull()?.message,
+                traceId = context.traceId
             )
             result
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
@@ -65,7 +66,7 @@ class CommandExecutor(
                 ERROR_CODE_TIMEOUT,
                 e
             )
-            notifyRecorder(capability.name, commandType, startMs, false, ex.errorCode, ex.message)
+            notifyRecorder(capability.name, commandType, startMs, false, ex.errorCode, ex.message, context.traceId)
             Result.failure(ex)
         } catch (e: Exception) {
             val ex = CapabilityExecutionException(
@@ -73,7 +74,7 @@ class CommandExecutor(
                 ERROR_CODE_EXECUTION_FAILED,
                 e
             )
-            notifyRecorder(capability.name, commandType, startMs, false, ex.errorCode, ex.message)
+            notifyRecorder(capability.name, commandType, startMs, false, ex.errorCode, ex.message, context.traceId)
             Result.failure(ex)
         }
     }
@@ -85,7 +86,8 @@ class CommandExecutor(
         startMs: Long,
         success: Boolean,
         errorCode: Int?,
-        errorMessage: String?
+        errorMessage: String?,
+        traceId: String?
     ) {
         try {
             recorder?.record(
@@ -94,7 +96,8 @@ class CommandExecutor(
                 latencyMs = System.currentTimeMillis() - startMs,
                 success = success,
                 errorCode = errorCode,
-                errorMessage = errorMessage
+                errorMessage = errorMessage,
+                traceId = traceId
             )
         } catch (e: Exception) {
             Logger.w(TAG, "recorder.record failed", e)
