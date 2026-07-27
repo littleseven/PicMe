@@ -32,6 +32,7 @@ import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
 import com.mamba.picme.service.tag.TagGenerationService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * TAG 生成精细控制子页面
@@ -374,9 +375,18 @@ fun TagGenerationControlScreen(
                     )
                     Spacer(Modifier.height(8.dp))
 
+                    val pass1Progress = tagPassProgress(totalMedia, remainingPass1)
+                    val pass1Text = stringResource(
+                        R.string.tag_pass_progress_p1,
+                        pass1Progress.processed,
+                        pass1Progress.remaining,
+                        withFace
+                    )
                     PassControlCard(
-                        title = "人脸检测与语义编码",
-                        subtitle = "为未处理照片识别面孔并提取语义特征 · $withFace / $totalMedia 张已完成 · 剩余 $remainingPass1 张",
+                        title = stringResource(R.string.tag_pass_title_face),
+                        description = stringResource(R.string.tag_pass_desc_face),
+                        progress = pass1Progress,
+                        progressText = if (pass1Progress.isEmpty) "" else pass1Text,
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass1(context))
@@ -389,9 +399,16 @@ fun TagGenerationControlScreen(
 
                     Spacer(Modifier.height(8.dp))
 
+                    val clusterText = if (personCount > 0) {
+                        stringResource(R.string.tag_pass_cluster_done, personCount, embeddingCount)
+                    } else {
+                        stringResource(R.string.tag_pass_cluster_pending, embeddingCount)
+                    }
                     PassControlCard(
-                        title = "人物聚类",
-                        subtitle = "按面部特征将照片分组到不同人物 · 已识别 $personCount 个人物 · $embeddingCount 条特征",
+                        title = stringResource(R.string.tag_pass_title_cluster),
+                        description = stringResource(R.string.tag_pass_desc_cluster),
+                        progress = null,
+                        progressText = clusterText,
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass2(context))
@@ -404,9 +421,17 @@ fun TagGenerationControlScreen(
 
                     Spacer(Modifier.height(8.dp))
 
+                    val pass3Progress = tagPassProgress(totalMedia, remainingPass3)
+                    val pass3Text = stringResource(
+                        R.string.tag_pass_progress_p3,
+                        pass3Progress.processed,
+                        pass3Progress.remaining
+                    )
                     PassControlCard(
-                        title = "图片内容理解",
-                        subtitle = "为未处理照片生成场景、活动、物体等描述标签 · $withLabels / $totalMedia 张已完成 · 剩余 $remainingPass3 张",
+                        title = stringResource(R.string.tag_pass_title_content),
+                        description = stringResource(R.string.tag_pass_desc_content),
+                        progress = pass3Progress,
+                        progressText = if (pass3Progress.isEmpty) "" else pass3Text,
                         onIncremental = {
                             refreshStats()
                             context.startForegroundService(TagGenerationService.intentScanPass3(context))
@@ -657,7 +682,9 @@ private fun passDisplayName(pass: TagScanPass?): String = when (pass) {
 @Composable
 private fun PassControlCard(
     title: String,
-    subtitle: String,
+    description: String,
+    progress: TagPassProgress?,
+    progressText: String,
     onIncremental: () -> Unit,
     onFull: () -> Unit,
     modifier: Modifier = Modifier
@@ -682,10 +709,52 @@ private fun PassControlCard(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = subtitle,
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+                if (progress != null) {
+                    Spacer(Modifier.height(6.dp))
+                    if (progress.isEmpty) {
+                        Text(
+                            stringResource(R.string.tag_pass_no_media),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            LinearProgressIndicator(
+                                progress = { progress.fraction },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(6.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            if (progress.isComplete) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = Color(0xFF4CAF50)
+                                )
+                            } else {
+                                Text(
+                                    "${(progress.fraction * 100).roundToInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+                if (progressText.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = progressText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
 
             Column(
