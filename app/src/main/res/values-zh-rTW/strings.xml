@@ -282,6 +282,7 @@
     <string name="ocr_share_title">分享文字</string>
     <string name="vision_loading">圖像理解中…</string>
     <string name="vision_result_title">圖像理解結果</string>
+    <string name="vision_failed">圖像理解失敗</string>
     <string name="media_details">詳情</string>
     <string name="media_info_path">路徑：%1$s</string>
     <string name="media_info_size">大小：%1$s</string>
