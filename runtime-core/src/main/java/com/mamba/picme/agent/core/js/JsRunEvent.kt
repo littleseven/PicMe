@@ -29,6 +29,8 @@ data class JsRunEvent(
     val errorMessage: String?,
     val resultPreview: String?,
     val latencyMs: Long,
+    /** 关联 ID：一条用户消息一个 traceId；非 chat 来源为 null。 */
+    val traceId: String? = null,
 ) {
     companion object {
         const val KIND_EVAL = "eval"

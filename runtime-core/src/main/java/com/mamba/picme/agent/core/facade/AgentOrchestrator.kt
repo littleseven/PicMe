@@ -475,7 +475,7 @@ class AgentOrchestrator private constructor(context: Context) {
     ): Result<StreamChatResult> {
         val startTime = System.currentTimeMillis()
         return try {
-            processChatReAct(input, agentContext.memorySessionId).fold(
+            processChatReAct(input, agentContext.memorySessionId, traceId = agentContext.traceId).fold(
                 onSuccess = { summary ->
                     onToken(summary)
                     val latencyMs = System.currentTimeMillis() - startTime
@@ -1103,7 +1103,8 @@ class AgentOrchestrator private constructor(context: Context) {
     suspend fun processChatReAct(
         input: String,
         sessionId: String,
-        timeoutMs: Long = 120_000L
+        timeoutMs: Long = 120_000L,
+        traceId: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
@@ -1156,7 +1157,7 @@ class AgentOrchestrator private constructor(context: Context) {
                             agent.cancel()
                         }
                     }
-                    agent.executeTask(input, callback)
+                    agent.executeTask(input, callback, traceId)
                     Logger.d(tag, "Chat ReAct executeTask submitted, waiting for callback...")
                 }
             }

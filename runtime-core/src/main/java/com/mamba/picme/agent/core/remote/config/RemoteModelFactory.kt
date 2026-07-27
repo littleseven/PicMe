@@ -3,6 +3,7 @@ package com.mamba.picme.agent.core.remote.config
 import com.mamba.android.MambaAgentFactory
 import com.mamba.picme.agent.core.inference.remote.log.CapturingChatModelListener
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
+import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import java.time.Duration
 
 /**
@@ -65,7 +66,8 @@ object RemoteModelFactory {
      */
     fun createBuilder(
         config: RemoteModelConfig,
-        sourceLabel: String = DEFAULT_SOURCE
+        sourceLabel: String = DEFAULT_SOURCE,
+        traceIdHolder: TraceIdHolder? = null
     ): MambaAgentFactory.Builder {
         val effectiveApiKey = config.apiKey.ifEmpty { "gateway-auth" }
         val builder = MambaAgentFactory.builder()
@@ -84,9 +86,10 @@ object RemoteModelFactory {
         // 注入调用记录 listener（仅当 app 侧提供了 recorder）。
         // release 构建 captureContent=false → 只落纯指标，不记录消息内容。
         // 与调用方后续追加的 listener 累加共存（Builder.listeners(varargs) 为累加语义）。
+        // traceIdHolder：listener 经它读取当轮 traceId（langchain4j listener 拿不到 AgentContext）。
         val rec = recorder
         if (rec != null) {
-            builder.listeners(CapturingChatModelListener(sourceLabel, rec, captureContent))
+            builder.listeners(CapturingChatModelListener(sourceLabel, rec, captureContent, traceIdHolder))
         }
         return builder
     }

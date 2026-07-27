@@ -37,7 +37,7 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
 
     interface Delegate {
         /** 在端侧沙箱执行 [code]，返回结果（JSON 文本，会作为 observation 回传远程 LLM）。 */
-        suspend fun onRunScript(code: String): String
+        suspend fun onRunScript(code: String, traceId: String?): String
 
         /**
          * 端侧渲染一张图表：用 Chart 生成器把 [labels]/[values] 画成 [type] 图（bar/line/pie），
@@ -48,7 +48,8 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
             title: String,
             labels: List<String>,
             values: List<Double>,
-            unit: String?
+            unit: String?,
+            traceId: String?
         ): String
     }
 
@@ -104,7 +105,7 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
         return try {
             when (command) {
                 is AgentCommand.ExecuteScript -> {
-                    val result = delegate.onRunScript(command.code)
+                    val result = delegate.onRunScript(command.code, context.traceId)
                     Result.success(
                         AgentAction.TextReply(
                             commandId = command.commandId,
@@ -118,7 +119,8 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
                         title = command.title,
                         labels = command.labels,
                         values = command.values,
-                        unit = command.unit
+                        unit = command.unit,
+                        traceId = context.traceId
                     )
                     Result.success(
                         AgentAction.TextReply(

@@ -29,6 +29,7 @@ fun interface CommandExecutionRecorder {
         latencyMs: Long,
         success: Boolean,
         errorCode: Int?,
-        errorMessage: String?
+        errorMessage: String?,
+        traceId: String?
     )
 }

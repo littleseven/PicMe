@@ -50,6 +50,7 @@ class RoomJsRunRecorder(
                         errorMessage = LlmCallRecord.cap(event.errorMessage, JsRunEvent.ERROR_MAX_CHARS),
                         resultPreview = event.resultPreview,
                         latencyMs = event.latencyMs,
+                        traceId = event.traceId,
                     )
                 )
                 pruneIfNeeded()

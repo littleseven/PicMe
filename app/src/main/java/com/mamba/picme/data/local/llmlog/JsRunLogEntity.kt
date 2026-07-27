@@ -30,4 +30,6 @@ data class JsRunLogEntity(
     /** 结果 JSON 预览（仅 DEBUG，cap 1000） */
     val resultPreview: String?,
     val latencyMs: Long,
+    /** 关联 ID：一条用户消息一个 traceId；非 chat 来源/老数据为 null（详情页按无关联处理）。 */
+    val traceId: String? = null,
 )

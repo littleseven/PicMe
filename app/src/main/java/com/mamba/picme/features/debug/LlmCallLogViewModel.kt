@@ -62,6 +62,17 @@ class LlmCallLogViewModel(
         }
     }
 
+    /**
+     * 装载同一 [traceId] 的三层记录（LLM/tool/JS），按时间升序合并，供详情页 turn pager。
+     * 挂起函数：调用方在协程里 await（详情页 LaunchedEffect）。
+     */
+    suspend fun loadTurn(traceId: String): List<TurnRecordItem> {
+        val llm = runCatching { dao.getByTraceId(traceId) }.getOrDefault(emptyList())
+        val tool = runCatching { toolDao.getByTraceId(traceId) }.getOrDefault(emptyList())
+        val js = runCatching { jsRunDao.getByTraceId(traceId) }.getOrDefault(emptyList())
+        return mergeTurnRecords(llm, tool, js)
+    }
+
     companion object {
         private const val MAX = 200
     }

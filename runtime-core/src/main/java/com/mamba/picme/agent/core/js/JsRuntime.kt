@@ -64,6 +64,24 @@ class JsRuntime(
             name + "(" + args.joinToString(",") { it.toJson() } + ")",
         ) { engine.callFunction(name, *args) }
 
+    // —— traceId 携带重载：chat 等会话来源透传 context.traceId,落入 JsRunEvent.traceId ——
+
+    fun eval(script: String, traceId: String?): JsValue =
+        runRecorded(JsRunEvent.KIND_EVAL, script, traceId) { engine.eval(script) }
+
+    fun eval(script: String, timeoutMs: Long, traceId: String?): JsValue =
+        runRecorded(JsRunEvent.KIND_EVAL, script, traceId) { engine.eval(script, timeoutMs) }
+
+    fun evalAsync(code: String, timeoutMs: Long, traceId: String?): JsValue =
+        runRecorded(JsRunEvent.KIND_EVAL_ASYNC, code, traceId) { engine.evalAsync(code, timeoutMs) }
+
+    fun callFunction(name: String, traceId: String?, vararg args: JsValue): JsValue =
+        runRecorded(
+            JsRunEvent.KIND_CALL_FUNCTION,
+            name + "(" + args.joinToString(",") { it.toJson() } + ")",
+            traceId
+        ) { engine.callFunction(name, *args) }
+
     override fun installBridge(bridge: JsBridge) {
         engine.installBridge(bridge)
     }
@@ -71,7 +89,7 @@ class JsRuntime(
     /**
      * 执行并记录一条 [JsRunEvent]。执行语义不变：结果原样返回、错误原样重抛。
      */
-    private inline fun runRecorded(kind: String, script: String, block: () -> JsValue): JsValue {
+    private inline fun runRecorded(kind: String, script: String, traceId: String? = null, block: () -> JsValue): JsValue {
         val start = System.currentTimeMillis()
         var event: JsRunEvent? = null
         try {
@@ -91,6 +109,7 @@ class JsRuntime(
                     null
                 },
                 latencyMs = System.currentTimeMillis() - start,
+                traceId = traceId,
             )
             return result
         } catch (t: Throwable) {
@@ -105,6 +124,7 @@ class JsRuntime(
                 errorMessage = LlmCallRecord.cap(t.message ?: t.javaClass.simpleName, JsRunEvent.ERROR_MAX_CHARS),
                 resultPreview = null,
                 latencyMs = System.currentTimeMillis() - start,
+                traceId = traceId,
             )
             throw t
         } finally {

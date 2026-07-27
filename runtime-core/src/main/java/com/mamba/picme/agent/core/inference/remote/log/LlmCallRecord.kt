@@ -24,7 +24,9 @@ data class LlmCallRecord(
     val totalTokens: Int?,
     val requestJson: String,
     val responseJson: String?,
-    val errorMessage: String?
+    val errorMessage: String?,
+    /** 关联 ID：一条用户消息一个 traceId；非 chat 来源为 null。 */
+    val traceId: String? = null
 ) {
     companion object {
         /** 单字段最大字符数（约 32KB），超出截断，防止超大 prompt/响应撑爆本地调试库。 */
