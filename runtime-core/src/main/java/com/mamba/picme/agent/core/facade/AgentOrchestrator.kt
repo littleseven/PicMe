@@ -14,6 +14,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
+import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.local.llm.LlmChatRequest
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
@@ -113,6 +114,14 @@ class AgentOrchestrator private constructor(context: Context) {
      */
     fun registerCapability(capability: Capability) {
         _capabilityRegistry.register(capability)
+    }
+
+    /**
+     * 注入记忆快照供给者（转发给内部 [AgentConfigurator]）。须在 chat/飞书 agent 首次构建前
+     * 调用——app 在 PoLangApplication.onCreate 注入，早于 agent 懒构建。
+     */
+    fun setMemoryContextProvider(provider: MemoryContextProvider) {
+        configurator.setMemoryContextProvider(provider)
     }
 
     /**

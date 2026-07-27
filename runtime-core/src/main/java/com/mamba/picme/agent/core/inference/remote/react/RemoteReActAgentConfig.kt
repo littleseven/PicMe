@@ -1,5 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.react
 
+import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
+
 data class RemoteReActAgentConfig(
     val apiKey: String,
     val baseUrl: String,
@@ -9,7 +11,8 @@ data class RemoteReActAgentConfig(
     val temperature: Double = 0.1,
     val streaming: Boolean = false,
     val gatewayToken: String? = null,
-    val deviceId: String = ""
+    val deviceId: String = "",
+    val memoryContextProvider: MemoryContextProvider? = null
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT = """
@@ -166,6 +169,7 @@ data class RemoteReActAgentConfig(
         private var streaming: Boolean = false
         private var gatewayToken: String? = null
         private var deviceId: String = ""
+        private var memoryContextProvider: MemoryContextProvider? = null
 
         fun apiKey(apiKey: String) = apply {
             this.apiKey = apiKey
@@ -178,10 +182,11 @@ data class RemoteReActAgentConfig(
         fun streaming(streaming: Boolean) = apply { this.streaming = streaming }
         fun gatewayToken(token: String) = apply { this.gatewayToken = token }
         fun deviceId(deviceId: String) = apply { this.deviceId = deviceId }
+        fun memoryContextProvider(provider: MemoryContextProvider) = apply { this.memoryContextProvider = provider }
 
         fun build(): RemoteReActAgentConfig {
             require(apiKey.isNotEmpty() || gatewayToken != null) { "API key or gateway token is required" }
-            return RemoteReActAgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, streaming, gatewayToken, deviceId)
+            return RemoteReActAgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, streaming, gatewayToken, deviceId, memoryContextProvider)
         }
     }
 }

@@ -25,6 +25,7 @@ import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.di.AppContainer
 import com.mamba.picme.di.AppContainerImpl
+import com.mamba.picme.domain.memory.MemoryContextProviderImpl
 import com.mamba.picme.domain.model.ProviderConfigs
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
@@ -618,6 +619,13 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         Logger.i(TAG, "- PersonRelationCapability: CHAT-scoped person relation declaration")
         orchestrator.registerCapability(container.memoryCapability)
         Logger.i(TAG, "- MemoryCapability: CHAT-scoped fact memory (chat tool + JS dispatch)")
+        val memoryContextProvider = MemoryContextProviderImpl(
+            memoryRepository = container.memoryRepository,
+            personRepository = container.personRepository,
+            scope = applicationScope
+        )
+        orchestrator.setMemoryContextProvider(memoryContextProvider)
+        Logger.i(TAG, "- MemoryContextProvider: injected (chat + feishu passive memory)")
     }
 
     override fun newImageLoader(): ImageLoader {

@@ -7,6 +7,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.DataStoreChatMemoryStore
+import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
 import com.mamba.service.AiServices
 import com.mamba.data.message.SystemMessage
@@ -169,7 +170,9 @@ class RemoteReActAgent(
                 .chatModel(chatModel)
                 .chatMemory(memory)
                 .tools(effectiveToolService)
-                .systemMessageProvider { SystemMessage.from(config.systemPrompt) }
+                .systemMessageProvider {
+                    SystemMessage.from(composeSystemPrompt(config.systemPrompt, config.memoryContextProvider))
+                }
                 .toolChoice(ToolChoice.AUTO)
                 .maxIterations(config.maxIterations)
                 .build()
@@ -417,4 +420,13 @@ private class DataStoreChatMemory(
     fun clearAndSet(messages: MutableList<com.mamba.data.message.ChatMessage>) {
         store.updateMessages(memoryId, messages)
     }
+}
+
+/**
+ * 把基础 system prompt 与记忆快照拼成最终 system message 文本。快照为空（无 provider / provider
+ * 返回空白）时原样返回 [base]，零开销。供 [RemoteReActAgent] 的 systemMessageProvider 每轮调用。
+ */
+internal fun composeSystemPrompt(base: String, provider: MemoryContextProvider?): String {
+    val snapshot = provider?.snapshot()?.trim()?.ifEmpty { null } ?: return base
+    return "$base\n\n$snapshot"
 }
