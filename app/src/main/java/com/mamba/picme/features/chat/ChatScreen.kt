@@ -19,6 +19,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -195,8 +198,8 @@ fun ChatScreen(
     val scope = rememberCoroutineScope()
 
     var isSidebarOpen by remember { mutableStateOf(false) }
-    // 图片预览状态
-    var previewImage by remember { mutableStateOf<PreviewImageState?>(null) }
+    // 图片预览状态（横滑翻页集合）
+    var imagePreview by remember { mutableStateOf<ChatImagePreviewState?>(null) }
     var previewChartSvg by remember { mutableStateOf<String?>(null) }
     // 相册搜索结果预览状态
     var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
@@ -362,10 +365,10 @@ fun ChatScreen(
     // 预览打开时拦截系统返回键：关闭预览并回到 chat 页（保留横滑卡片），
     // 而非直接 pop 到相册（Gallery 为 startDestination，栈底为 [Gallery, Chat]）。
     // 与 GalleryScreen 的预览 BackHandler 行为对齐。
-    BackHandler(enabled = previewAssets.isNotEmpty() || previewImage != null || previewChartSvg != null) {
+    BackHandler(enabled = previewAssets.isNotEmpty() || imagePreview != null || previewChartSvg != null) {
         when {
             previewAssets.isNotEmpty() -> previewAssets = emptyList()
-            previewImage != null -> previewImage = null
+            imagePreview != null -> imagePreview = null
             previewChartSvg != null -> previewChartSvg = null
         }
     }
@@ -409,7 +412,7 @@ fun ChatScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             // 预览（照片轮播 / 图片 / 图表全屏）打开时隐藏 chat 顶栏，让覆盖层占满整屏
-            if (previewAssets.isEmpty() && previewImage == null && previewChartSvg == null) {
+            if (previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null) {
                 ChatTopBar(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
@@ -472,18 +475,16 @@ fun ChatScreen(
                                 ChatMessageItem(
                                     message = message,
                                     onImageClick = { msg ->
-                                        val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
-                                            msg.type == ChatMessageType.AGENT_EDIT_RESULT
-                                        if (isEdit) viewModel.touchEditImage(msg.imageUri)
-                                        val iu = Uri.parse(msg.imageUri ?: "")
-                                        val resolved = if (iu.scheme != null) iu
-                                            else java.io.File(msg.imageUri ?: "").toUri()
-                                        previewImage = PreviewImageState(
-                                            uri = resolved,
-                                            messageId = msg.id,
-                                            isEditableResult = isEdit,
-                                            isSaved = msg.imageSaved
-                                        )
+                                        val pages = buildImagePreviewPages(messages)
+                                        if (pages.isNotEmpty()) {
+                                            val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
+                                                msg.type == ChatMessageType.AGENT_EDIT_RESULT
+                                            if (isEdit) viewModel.touchEditImage(msg.imageUri)
+                                            imagePreview = ChatImagePreviewState(
+                                                pages = pages,
+                                                initialIndex = indexOfPage(pages, msg.id)
+                                            )
+                                        }
                                     }
                                 )
                             }
@@ -527,16 +528,27 @@ fun ChatScreen(
                 onDismiss = { isSidebarOpen = false }
             )
 
-            // 图片全屏预览
-            ImagePreviewOverlay(
-                state = previewImage,
+            // 图片全屏预览（横滑翻页）
+            ChatImagePreviewOverlay(
+                state = imagePreview,
                 onSave = { messageId, onDone ->
                     viewModel.saveEditResult(messageId) { ok ->
-                        if (ok) previewImage = previewImage?.copy(isSaved = true)
+                        if (ok) {
+                            imagePreview = imagePreview?.let { s ->
+                                s.copy(
+                                    pages = s.pages.map { p ->
+                                        if (p.messageId == messageId) p.copy(isSaved = true) else p
+                                    }
+                                )
+                            }
+                        }
                         onDone(ok)
                     }
                 },
-                onDismiss = { previewImage = null }
+                onPageChanged = { page ->
+                    if (page.isEditableResult) viewModel.touchEditImage(page.rawUri)
+                },
+                onDismiss = { imagePreview = null }
             )
 
             // 图表全屏预览
@@ -1670,11 +1682,12 @@ data class LlmPerformance(
 )
 
 /** 全屏预览态：携带保存所需的 messageId / 类型 / 已保存标记。 */
-data class PreviewImageState(
-    val uri: Uri,
-    val messageId: String,
-    val isEditableResult: Boolean, // agent_image / agent_edit_result 才显示保存按钮
-    val isSaved: Boolean
+/**
+ * 聊天图片横滑预览状态：打开瞬间快照的翻页集合 + 初始页下标。
+ */
+data class ChatImagePreviewState(
+    val pages: List<ImagePreviewPage>,
+    val initialIndex: Int
 )
 
 /**
@@ -1856,9 +1869,11 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
  * 图片全屏预览浮层：对编辑/优化结果额外提供「保存到相册」按钮。
  */
 @Composable
-private fun ImagePreviewOverlay(
-    state: PreviewImageState?,
+@OptIn(ExperimentalFoundationApi::class)
+private fun ChatImagePreviewOverlay(
+    state: ChatImagePreviewState?,
     onSave: (messageId: String, onDone: (Boolean) -> Unit) -> Unit,
+    onPageChanged: (ImagePreviewPage) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1868,6 +1883,18 @@ private fun ImagePreviewOverlay(
         enter = fadeIn(),
         exit = fadeOut()
     ) {
+        if (state == null) return@AnimatedVisibility
+        val pages = state.pages
+        val pagerState = rememberPagerState(
+            initialPage = state.initialIndex.coerceIn(0, pages.lastIndex.coerceAtLeast(0)),
+            pageCount = { pages.size }
+        )
+
+        // 切页时：若是编辑/生成图则续期（LRU 回收）
+        LaunchedEffect(pagerState.currentPage, pages.size) {
+            pages.getOrNull(pagerState.currentPage)?.let(onPageChanged)
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1879,14 +1906,35 @@ private fun ImagePreviewOverlay(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = state?.uri,
-                contentDescription = stringResource(R.string.cd_image_preview),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentScale = ContentScale.Fit
-            )
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { pageIndex ->
+                val page = pages[pageIndex]
+                var scale by remember(page.messageId) { mutableStateOf(1f) }
+                var offset by remember(page.messageId) { mutableStateOf(Offset.Zero) }
+                AsyncImage(
+                    model = resolvePreviewUri(page.rawUri),
+                    contentDescription = stringResource(R.string.cd_image_preview),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .pointerInput(page.messageId) {
+                            detectTransformGestures { _, pan, zoom, _ ->
+                                val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                                scale = nextScale
+                                offset = if (nextScale <= 1.01f) Offset.Zero else offset + pan
+                            }
+                        }
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = offset.x
+                            translationY = offset.y
+                        },
+                    contentScale = ContentScale.Fit
+                )
+            }
 
             // 关闭按钮（右上）
             IconButton(
@@ -1907,13 +1955,28 @@ private fun ImagePreviewOverlay(
                 )
             }
 
-            // 保存按钮（仅编辑/优化结果，底部居中）
-            if (state?.isEditableResult == true) {
-                val isSaved = state.isSaved
+            // 页码指示器（关闭键左侧）
+            Text(
+                text = "${pagerState.currentPage + 1} / ${pages.size}",
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(end = 72.dp, top = 22.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+
+            // 保存按钮（仅当前页为编辑/优化结果，底部居中）
+            val currentPage = pages.getOrNull(pagerState.currentPage)
+            if (currentPage?.isEditableResult == true) {
+                val isSaved = currentPage.isSaved
                 Button(
                     onClick = {
                         if (!isSaved) {
-                            onSave(state.messageId) { ok ->
+                            onSave(currentPage.messageId) { ok ->
                                 if (!ok) Toast.makeText(context, expiredToast, Toast.LENGTH_SHORT).show()
                             }
                         }
