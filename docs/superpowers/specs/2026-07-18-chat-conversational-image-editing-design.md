@@ -202,6 +202,7 @@ GPU 离屏渲染 → 保存结果图
 4. **LocalCommandParser**：将结构化意图解析为 `AgentCommand.EditImage(editParams: EditParams, imageUri: String)`。
 5. **ImageEditCapability.dispatch**：调用 `ChatEditRecipeBuilder.build(editParams, currentRecipe)` 得到完整 `EditRecipe`。
 6. **ChatEditProcessor.execute**：复用 `PhotoEditorViewModel` 的渲染链路生成结果 Bitmap，保存到 `Pictures/PoLang`。
+   > **修订（2026-07-27）**：不再直写 `Pictures/PoLang`。结果图改由 `ChatImageStore.writeResult` 落盘到私有缓存 `filesDir/chat_edit_cache/`，**未经用户确认对相册不可见**；用户在预览页点「保存到相册」后才复制进 `Pictures/PoLang` 并把消息 `imageUri` 重指向 `content://`。详见 `2026-07-27-chat-edit-image-isolation-design.md`。
 7. **ChatEditStateHolder**：更新当前会话的 `currentRecipe`。
 8. **ChatViewModel**：插入 `AGENT_EDIT_RESULT` 消息（结果图 + 说明 + 快捷按钮）。
 
@@ -281,6 +282,7 @@ GPU 离屏渲染 → 保存结果图
 - [ ] 单图轻量编辑端到端延迟 < 2s（含 LLM 推理 + GPU 渲染 + 保存）。
 - [ ] 多轮 delta 调整（连续 3 次“再亮一点”）结果正确递增。
 - [ ] 所有编辑结果不覆盖原图，保存至 `Pictures/PoLang`。
+  > **修订（2026-07-27）**：编辑结果默认落私有缓存（不入相册），仅用户主动保存后才进 `Pictures/PoLang`；中间结果按 LRU 回收，被清理的气泡显示「图片已过期·不可见」占位。
 - [ ] 提及智能消除等未支持能力时，给出友好提示而非报错。
 - [ ] 新增 Capability 不破坏现有 Chat 搜索、相册摘要、TAG 扫描能力。
 

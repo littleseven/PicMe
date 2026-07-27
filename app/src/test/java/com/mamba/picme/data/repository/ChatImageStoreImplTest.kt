@@ -2,6 +2,7 @@ package com.mamba.picme.data.repository
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.mamba.picme.data.local.entity.ChatImageCacheEntity
 import com.mamba.picme.domain.repository.ChatImageStore
 import io.mockk.every
 import io.mockk.mockk
@@ -193,7 +194,7 @@ class ChatImageStoreImplTest {
     }
 
     private fun row(path: String, sessionId: String, lastAccessedAt: Long, size: Long = 50) =
-        com.mamba.picme.data.local.entity.ChatImageCacheEntity(
+        ChatImageCacheEntity(
             filePath = path,
             sessionId = sessionId,
             createdAt = lastAccessedAt,
