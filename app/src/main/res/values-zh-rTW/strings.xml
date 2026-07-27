@@ -913,4 +913,27 @@
     <string name="memory_facts_relations_empty">還沒有人物關係。在人物分組對話框或聊天中對小浪說「X 是我 Y」即可新增</string>
     <string name="memory_relation_item_format">%1$s 是我的%2$s</string>
     <string name="memory_relation_edit_title">編輯與 %1$s 的關係</string>
+    <!-- Tag 生成階段進度(消除 X/Y 分數式歧義) -->
+    <string name="tag_pass_no_media">暫無照片</string>
+    <string name="tag_pass_title_face">人臉偵測與語意編碼</string>
+    <string name="tag_pass_title_cluster">人物聚類</string>
+    <string name="tag_pass_title_content">圖片內容理解</string>
+    <string name="tag_pass_desc_face">為未處理照片辨識面孔並擷取語意特徵</string>
+    <string name="tag_pass_desc_cluster">依臉部特徵將照片分組到不同人物</string>
+    <string name="tag_pass_desc_content">為未處理照片產生場景、活動、物體等描述標籤</string>
+    <string name="tag_pass_progress_p1">已處理 %1$d · 待處理 %2$d · 有人臉 %3$d</string>
+    <string name="tag_pass_progress_p3">已處理 %1$d · 待處理 %2$d</string>
+    <string name="tag_pass_cluster_done">已識別 %1$d 個人物 · %2$d 條特徵</string>
+    <string name="tag_pass_cluster_pending">尚未聚類 · %1$d 條特徵待分組</string>
+    <string name="tag_pass_step_face">第一步：人臉偵測與語意編碼</string>
+    <string name="tag_pass_step_cluster">第二步：人物聚類</string>
+    <string name="tag_pass_step_content">第三步：圖片內容理解</string>
+    <string name="tag_pass_overview_face">辨識照片中的人臉並擷取語意特徵，用於人物歸類與智慧搜尋 · 已處理 %1$d 張 · 待處理 %2$d 張 · %3$d 張有人臉 · %4$d 張有語意</string>
+    <string name="tag_pass_overview_cluster">已識別 %1$d 個人物</string>
+    <string name="tag_pass_overview_content">分析畫面內容，產生場景、活動、物體等標籤與摘要 · 已處理 %1$d 張 · 待處理 %2$d 張</string>
+    <string name="tag_pass_col_stage">階段</string>
+    <string name="tag_pass_col_processed">已處理</string>
+    <string name="tag_pass_col_pending">待處理</string>
+    <string name="tag_pass_row_face">人臉偵測</string>
+    <string name="tag_pass_row_content">內容標籤</string>
 </resources>

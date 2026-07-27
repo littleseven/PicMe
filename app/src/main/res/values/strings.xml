@@ -941,4 +941,27 @@
     <string name="memory_facts_relations_empty">No relations yet. Edit a person group in Gallery, or tell XiaoLang \"X is my Y\" in chat.</string>
     <string name="memory_relation_item_format">%1$s is my %2$s</string>
     <string name="memory_relation_edit_title">Edit relation with %1$s</string>
+    <!-- Tag generation pass progress (消除 X/Y 分数式歧义) -->
+    <string name="tag_pass_no_media">No photos</string>
+    <string name="tag_pass_title_face">Face detection &amp; semantic encoding</string>
+    <string name="tag_pass_title_cluster">Person clustering</string>
+    <string name="tag_pass_title_content">Image content understanding</string>
+    <string name="tag_pass_desc_face">Detect faces and extract semantic features for unprocessed photos</string>
+    <string name="tag_pass_desc_cluster">Group photos into people by facial features</string>
+    <string name="tag_pass_desc_content">Generate scene / activity / object tags for unprocessed photos</string>
+    <string name="tag_pass_progress_p1">Processed %1$d · Pending %2$d · %3$d with face</string>
+    <string name="tag_pass_progress_p3">Processed %1$d · Pending %2$d</string>
+    <string name="tag_pass_cluster_done">%1$d people · %2$d embeddings</string>
+    <string name="tag_pass_cluster_pending">Not clustered · %1$d embeddings to group</string>
+    <string name="tag_pass_step_face">Step 1: Face detection &amp; semantic encoding</string>
+    <string name="tag_pass_step_cluster">Step 2: Person clustering</string>
+    <string name="tag_pass_step_content">Step 3: Image content understanding</string>
+    <string name="tag_pass_overview_face">Detect faces and extract semantic features for grouping &amp; search · Processed %1$d · Pending %2$d · %3$d with face · %4$d with semantic</string>
+    <string name="tag_pass_overview_cluster">%1$d people identified</string>
+    <string name="tag_pass_overview_content">Analyze content to generate scene/activity/object tags &amp; summary · Processed %1$d · Pending %2$d</string>
+    <string name="tag_pass_col_stage">Stage</string>
+    <string name="tag_pass_col_processed">Processed</string>
+    <string name="tag_pass_col_pending">Pending</string>
+    <string name="tag_pass_row_face">Face detection</string>
+    <string name="tag_pass_row_content">Content tags</string>
 </resources>
