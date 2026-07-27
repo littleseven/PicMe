@@ -393,6 +393,11 @@
     <string name="feedback_resolve_failure_description">Couldn\'t find a photo matching "%1$s"</string>
     <string name="feedback_no_more_results">No more similar photos found</string>
     <string name="chat_edit_result_default">✅ Edited this photo for you</string>
+    <string name="chat_edit_save_to_gallery">Save to gallery</string>
+    <string name="chat_edit_saved_to_gallery">✓ Saved to gallery</string>
+    <string name="chat_edit_image_expired">Image expired · not visible</string>
+    <string name="chat_edit_save_expired_failed">Image expired, cannot save</string>
+    <string name="cd_chat_edit_save">Save edited image to gallery</string>
     <string name="chat_edit_unsupported_erase">Object removal is in development. You can use the editor manually.</string>
     <string name="chat_edit_unsupported_local_beauty">Per-area beauty adjustment is not supported yet.</string>
     <string name="chat_edit_hint">Try: smooth skin 30, film filter, brighter</string>
