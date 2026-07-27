@@ -7,6 +7,7 @@ import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
+import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.tool.P
@@ -46,6 +47,14 @@ class ChatToolService private constructor() {
 
     /** UI 事件流：dispatchCommand 执行后的原始 AgentAction 发到此 flow，ChatViewModel collect 渲染卡片/跳转。 */
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
+
+    /**
+     * 当轮 traceId 持有器：由 [com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent]
+     * 每轮任务开始时（与 LLM listener 共用同一 holder）写入，dispatchCommand 读取后注入 AgentContext，
+     * 使 chat 远程 ReAct 路径下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
+     */
+    @Volatile
+    var traceIdHolder: TraceIdHolder? = null
 
     /**
      * 指令驱动图片调整 handler（由 ChatViewModel 注入）。
@@ -427,7 +436,7 @@ class ChatToolService private constructor() {
         return try {
             val deferred = GlobalScope.future {
                 CapabilityRegistry.getInstance()
-                    .dispatch(command, AgentContext(scene = AgentScene.CHAT), null)
+                    .dispatch(command, AgentContext(scene = AgentScene.CHAT, traceId = traceIdHolder?.value), null)
             }
             val result = deferred.get(5, TimeUnit.SECONDS)
             result.fold(

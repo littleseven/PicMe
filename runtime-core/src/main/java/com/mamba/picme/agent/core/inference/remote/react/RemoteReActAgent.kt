@@ -14,6 +14,7 @@ import com.mamba.model.chat.listener.ChatModelListener
 import com.mamba.model.chat.listener.ChatModelResponseContext
 import com.mamba.model.output.TokenUsage
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
+import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -93,6 +94,13 @@ class RemoteReActAgent(
      * 读取后落入 LlmCallRecord。单线程 executor 串行执行 → 无竞态。
      */
     private val traceIdHolder = TraceIdHolder()
+
+    init {
+        // chat 路径（ChatToolService）共享同一 holder：dispatchCommand 读取当轮 traceId 注入 AgentContext，
+        // 使远程 ReAct 下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
+        // 飞书路径（PoLangToolService）非 chat 来源，cast 为 null 跳过。
+        (effectiveToolService as? ChatToolService)?.traceIdHolder = traceIdHolder
+    }
 
     /** 记录每次执行的性能指标 */
     private var lastExecutionMetrics: AgentExecutionMetrics? = null
