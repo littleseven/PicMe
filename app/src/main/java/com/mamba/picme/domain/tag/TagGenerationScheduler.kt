@@ -224,7 +224,9 @@ class TagGenerationScheduler(
             normalizer = normalizer,
             openClGuardian = openClGuardian,
             mobileClipEngine = mobileClip,
-            mobileClipTagClassifier = classifier
+            mobileClipTagClassifier = classifier,
+            florence2TaggerProvider = { florence2Tagger },
+            taggerModelKeyProvider = { taggerModelKey }
         )
     }
 
