@@ -1,0 +1,17 @@
+[
+  {"province":"北京市","city":"北京市","district":"东城区","lat":39.91,"lon":116.41},
+  {"province":"北京市","city":"北京市","district":"海淀区","lat":39.96,"lon":116.30},
+  {"province":"上海市","city":"上海市","district":"黄浦区","lat":31.23,"lon":121.47},
+  {"province":"天津市","city":"天津市","district":"和平区","lat":39.12,"lon":117.20},
+  {"province":"重庆市","city":"重庆市","district":"渝中区","lat":29.55,"lon":106.55},
+  {"province":"广东省","city":"广州市","district":"越秀区","lat":23.13,"lon":113.26},
+  {"province":"广东省","city":"深圳市","district":"福田区","lat":22.54,"lon":114.06},
+  {"province":"浙江省","city":"杭州市","district":"西湖区","lat":30.27,"lon":120.15},
+  {"province":"江苏省","city":"南京市","district":"玄武区","lat":32.05,"lon":118.78},
+  {"province":"四川省","city":"成都市","district":"锦江区","lat":30.66,"lon":104.06},
+  {"province":"湖北省","city":"武汉市","district":"江岸区","lat":30.60,"lon":114.30},
+  {"province":"陕西省","city":"西安市","district":"莲湖区","lat":34.27,"lon":108.95},
+  {"province":"山东省","city":"青岛市","district":"市南区","lat":36.07,"lon":120.38},
+  {"province":"福建省","city":"厦门市","district":"思明区","lat":24.48,"lon":118.09},
+  {"province":"云南省","city":"昆明市","district":"五华区","lat":25.05,"lon":102.71}
+]
