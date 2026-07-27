@@ -3,6 +3,7 @@ package com.mamba.picme.data.indexing.geo
 import android.content.Context
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
+import androidx.room.withTransaction
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.indexing.LocationIndexUpdater
 import com.mamba.picme.data.local.AppDatabase
@@ -20,6 +21,12 @@ import kotlinx.coroutines.withContext
  * 仅处理 `locationName` 为空的,首启跑完后后续启动 no-op,新照片下次启动补上。
  *
  * 全程端侧零网络(离线质心库);不跑 OCR,故轻量、不发热。
+ *
+ * **批量事务写入**:一批 BATCH 条 EXIF 读取(纯读文件 + 逆地理计算)攒齐后,在一个
+ * `withTransaction` 内统一写 [MediaDao.updateLocation]。Room 失效追踪只在事务提交时
+ * 通知一次,相册 `groupedMedia` Flow(基于 `SELECT * FROM media_assets` 全表)每批只
+ * 重算 1 次,而非逐条触发的 BATCH 次——避免 10000 张图引发 10000 次全表重查重分组
+ * (UI 卡顿 + 发热)。层级表(location_index)写入不触发相册 Flow,保持逐条。
  */
 class LocationIndexer(
     private val context: Context,
@@ -39,23 +46,52 @@ class LocationIndexer(
         while (coroutineContext.isActive) {
             val batch = dao.getMediaNeedingLocationScan(BATCH)
             if (batch.isEmpty()) break
+
+            // 阶段 1:逐张读 EXIF + 逆地理(纯读文件 + 计算,不写库),攒批量结果。
+            // 读操作互相独立,但保持串行避免并发 IO 发热(项目发热敏感)。
+            val locationUpdates = ArrayList<LocationUpdate>(batch.size)
+            val indexUpdates = ArrayList<Pair<Long, ResolvedLocation?>>(batch.size)
             for (entity in batch) {
                 if (!coroutineContext.isActive) break
                 try {
                     val resolved = readExifLocation(entity.uri)
                     if (resolved != null) {
                         val name = resolved.toDisplayString() ?: ""
-                        dao.updateLocation(entity.id, resolved.latitude, resolved.longitude, name, resolved.city)
-                        updater.updateIndex(entity.id, resolved)
+                        locationUpdates.add(
+                            LocationUpdate(entity.id, resolved.latitude, resolved.longitude, name, resolved.city)
+                        )
+                        indexUpdates.add(entity.id to resolved)
                     } else {
-                        dao.updateLocation(entity.id, null, null, NO_GPS, null)
+                        locationUpdates.add(LocationUpdate(entity.id, null, null, NO_GPS, null))
+                        indexUpdates.add(entity.id to null)
                     }
                 } catch (e: Exception) {
                     Logger.w(TAG, "location index fail media ${entity.id}: ${e.message}")
-                    dao.updateLocation(entity.id, null, null, NO_GPS, null)
+                    locationUpdates.add(LocationUpdate(entity.id, null, null, NO_GPS, null))
+                    indexUpdates.add(entity.id to null)
                 }
                 processed++
             }
+
+            // 阶段 2:一个事务批量写 media_assets(每批只触发 1 次 Room 失效 → 相册 Flow 只重算 1 次)。
+            if (locationUpdates.isNotEmpty()) {
+                db.withTransaction {
+                    locationUpdates.forEach { update ->
+                        dao.updateLocation(
+                            update.mediaId,
+                            update.latitude,
+                            update.longitude,
+                            update.locationName,
+                            update.city
+                        )
+                    }
+                }
+                // 层级表(location_index)不触发相册 groupedMedia Flow,逐条更新即可。
+                indexUpdates.forEach { (mediaId, resolved) ->
+                    updater.updateIndex(mediaId, resolved)
+                }
+            }
+
             Logger.d(TAG, "location pass batch done, cumulative=$processed")
             // 节流:每批之间让出,避免长时持续 IO 导致发热(项目发热敏感)
             delay(50)
@@ -81,3 +117,12 @@ class LocationIndexer(
 }
 
 private const val NO_GPS = ""
+
+/** 一条位置批量更新(LocationIndexer 内部攒批用)。 */
+private data class LocationUpdate(
+    val mediaId: Long,
+    val latitude: Double?,
+    val longitude: Double?,
+    val locationName: String,
+    val city: String?
+)

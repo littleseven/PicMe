@@ -2,6 +2,7 @@ package com.mamba.picme.data.local.dao
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.data.local.AppDatabase
@@ -68,5 +69,27 @@ class LocationIndexerDaoTest {
         val reloaded = dao.getMediaByIds(listOf(id)).first()
         assertNull(reloaded.latitude)
         assertEquals("", reloaded.locationName)
+    }
+
+    @Test
+    fun `batch transaction writes all updates and excludes them from next scan`() = runTest {
+        val dao = db.mediaDao()
+        val ids = (1..5).map { insert("img$it.jpg", null) }
+        // 模拟 LocationIndexer:一个事务内批量 updateLocation
+        db.withTransaction {
+            ids.forEach { id ->
+                dao.updateLocation(id, 22.54, 114.06, "广东省 深圳市 福田区", "深圳市")
+            }
+        }
+        // 全部应被排除出下一轮扫描
+        assertTrue(dao.getMediaNeedingLocationScan(10).isEmpty())
+        // 全部写入正确
+        val reloaded = dao.getMediaByIds(ids)
+        assertEquals(5, reloaded.size)
+        reloaded.forEach { entity ->
+            assertEquals("深圳市", entity.city)
+            assertEquals(22.54, entity.latitude!!, 0.0)
+            assertEquals("广东省 深圳市 福田区", entity.locationName)
+        }
     }
 }
