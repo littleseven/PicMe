@@ -116,7 +116,7 @@ class TagGenerationPipeline(
 
         val stage1Result: Stage1Result
         val stage2Result: Stage2Result?
-        val stage3Result: QwenTagsNormalized
+        val stage3Result: UnifiedTagResult
 
         try {
             // ── Stage 1: 轻量人脸 ROI 检测（复用 faceBitmap）───
@@ -131,12 +131,9 @@ class TagGenerationPipeline(
             }
             Log.d(TAG, "Stage 2 done: personIds=${stage2Result?.personIds ?: "N/A"}")
 
-            // ── Stage 3: Qwen 图像理解（复用已旋转/解码的 faceBitmap，缩放到 512px）───
-            // 避免重新走 ContentResolver.openInputStream + BitmapFactory + EXIF 旋转。
-            val stage3Bitmap = scaleBitmapToMaxSize(faceBitmap, MAX_VISION_SIZE)
+            // ── Stage 3: 统一分流（与批量同模型同提示词；按模型内部解码合适尺寸）───
             val faceRoiJson = faceRoiToJson(stage1Result)
-            stage3Result = stage3QwenTagging(stage3Bitmap, faceRoiJson)
-            stage3Bitmap.recycle()
+            stage3Result = runStage3Unified(uri, faceRoiJson)
             Log.d(TAG, "Stage 3 done: scene=${stage3Result.scene}, tags=${stage3Result.tags}")
         } finally {
             faceBitmap.recycle()
@@ -937,20 +934,5 @@ class TagGenerationPipeline(
             Log.w(TAG, "Failed to rotate bitmap: ${e.message}")
             bitmap
         }
-    }
-
-    /**
-     * 将 Bitmap 等比缩放到指定最长边，保持宽高比。
-     *
-     * @return 缩放后的新 Bitmap；若已满足尺寸则返回原 Bitmap
-     */
-    private fun scaleBitmapToMaxSize(source: Bitmap, maxSize: Int): Bitmap {
-        val maxDimension = maxOf(source.width, source.height)
-        if (maxDimension <= maxSize) return source
-
-        val scale = maxSize.toFloat() / maxDimension
-        val scaledWidth = (source.width * scale).toInt()
-        val scaledHeight = (source.height * scale).toInt()
-        return Bitmap.createScaledBitmap(source, scaledWidth, scaledHeight, true)
     }
 }
