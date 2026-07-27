@@ -64,7 +64,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 |------|-----------|------|------|
 | 语义搜索 | **MobileCLIP-S2-ONNX** + **OPUS-MT Zh→En** | 图文跨模态相似度匹配 | MobileCLIP 文本/图像编码 512 维 |
 | 人脸聚类 | **Glint360K R100** + DBSCAN | 提取 512 维 face embedding | MNN CPU 推理 |
-| 图像理解 | **Qwen3.5-2B-MNN** | 相册单张图像理解 | `MediaPager` 已修复加载检查 |
+| 图像理解 | **Florence-2**（默认）/ **Qwen3-VL-2B-MNN** | 相册三入口同源：预览页描述 / 信息弹框 retag / Pass3 批量 | 由设置 `taggerModelKey` 驱动；`qwen3_5_2b` 已退出图像理解 |
 | 标签/元数据 | **ML Kit Image Labeler**、**ML Kit Text Recognition** | 英文标签、OCR 文字 | 英文标签与 Qwen 中文标签混用 |
 
 ### 3.4 TAG 生成后台任务（TagGenerationService）
@@ -75,7 +75,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 |------|-----------|------|----------|----------|
 | **Pass 1** | MNN RetinaFace + Glint360K R100 + MobileCLIP-S2-ONNX | 人脸 ROI + 106 关键点 + 人脸/图像 512 维 Embedding；**MobileCLIP 无论是否有人脸都执行** | ~80-180ms | 否 |
 | **Pass 2** | DBSCAN / 增量余弦匹配 | 人脸聚类 → `personId` | ~5-20ms/对比 | — |
-| **Pass 3** | Qwen3.5-2B-MNN | 图像理解生成中文标签 | ~2-8s | 否 |
+| **Pass 3** | Florence-2（默认）/ Qwen3-VL-2B-MNN | 图像理解生成英文标签（中文离线派生） | ~2-8s | 否 |
 
 **调度策略**：单线程 Foreground Service + `singleThreadDispatcher` + 节流（Pass 1 已移除，Pass 3 保留 100ms）。
 
@@ -108,7 +108,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 
 | 模型 | 引擎 | 大小 | 量化 | 运行时内存 | 用途 |
 |------|------|------|------|------------|------|
-| **Qwen3.5-2B-MNN** | MNN-LLM | 1.32GB (weight ~1.8GB) | **未量化**（FP16/FP32） | ~4.2GB | 默认本地 LLM，聊天/图像理解（推荐模型） |
+| **Qwen3.5-2B-MNN** | MNN-LLM | 1.32GB (weight ~1.8GB) | **未量化**（FP16/FP32） | ~4.2GB | 默认本地 LLM，聊天/对话（相册图像理解已改走 Florence-2 / Qwen3-VL） |
 
 > 问题：2B 模型未做 INT4 量化，内存占用过大，与相机美颜叠加后易 OOM。
 
