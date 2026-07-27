@@ -291,6 +291,44 @@ class TagGenerationScheduler(
     }
 
     /**
+     * 预览页「图像理解」入口（entry 2）：对单张图片生成自然语言描述。
+     *
+     * 模型与 entry 1/3 同源（复用已解析的 [taggerModelKey]）：
+     * - Florence-2 → `Florence2Tagger.summary`（英文 caption）；中文 UI → en→zh 翻译。
+     * - Qwen3-VL-2B → `imageInference`，按 UI 语言直出提示词。
+     *
+     * 输出语言跟随 [userSettingsRepository] 的 appLanguage（zh-TW 复用 zh 译文）。
+     *
+     * @return 描述文本；模型不可用 / 解码失败 / 推理空 → null。
+     */
+    suspend fun describeImage(uri: String): String? = withContext(Dispatchers.IO) {
+        val lang = userSettingsRepository.getAppLanguageBlocking()
+        val strategy = ImageDescriptionStrategyResolver.resolve(taggerModelKey, lang)
+        val bitmap = pipeline.loadBitmapPublic(uri) ?: return@withContext null
+        try {
+            if (taggerModelKey == "florence2_base") {
+                val tagger = florence2Tagger
+                if (tagger == null || !tagger.isInit) return@withContext null
+                val caption = tagger.tag(bitmap).summary
+                if (caption.isBlank()) return@withContext null
+                if (strategy.needsZhTranslate) enToZhTranslator.translate(caption) else caption
+            } else {
+                if (!ensureModelLoaded()) return@withContext null
+                val engine = AgentOrchestrator.getInstance(context).getLlmEngine()
+                val result = engine.imageInference(
+                    bitmap = bitmap,
+                    systemPrompt = strategy.systemPrompt,
+                    userPrompt = strategy.userPrompt,
+                    maxTokens = 256
+                )
+                result.ifEmpty { null }
+            }
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /**
      * 取消进行中的扫描
      *
      * @deprecated 已迁移到 [TagScanOrchestrator.cancel]。
