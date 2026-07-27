@@ -1259,51 +1259,31 @@ class TagGenerationScheduler(
 
         val startMs = System.currentTimeMillis()
 
-        // ── 按模型分流：florence2_base → ORT 管道；其余 → MNN Qwen 管道 ──
-        val isFlorence2 = taggerModelKey == "florence2_base"
-        val unified = if (isFlorence2) {
-            // Florence-2 ORT 路径
+        // 可用性守卫（保留批量 fail-fast → FAILED → 退避重试语义）
+        if (taggerModelKey == "florence2_base") {
             val tagger = florence2Tagger
             check(tagger != null && tagger.isInit) {
                 "[Pass 3] Florence-2 not available for mediaId=$mediaId"
             }
-            // 按 Florence-2 输入尺寸解码（loadBitmapPublic 默认值即 Florence2Tagger.IMAGE_SIZE=768）
-            val bitmap = pipeline.loadBitmapPublic(entity.uri)
-            checkNotNull(bitmap) {
-                "[Pass 3] Failed to load bitmap for mediaId=$mediaId"
-            }
-            val result = tagger.tag(bitmap)
-            bitmap.recycle()
-            Log.i(TAG, "[Pass 3] Florence-2 done: mediaId=$mediaId, " +
-                "scene=${result.scene}, tags=${result.tags}, summary=${result.summary.take(60)}")
-            result
         } else {
-            // MNN Qwen/SmolVLM 路径
             check(ensureModelLoaded()) {
                 "[Pass 3] Model not loaded for mediaId=$mediaId"
             }
-            val qwenResult = pipeline.stage3QwenTagging(
-                uri = entity.uri,
-                faceRoiJson = entity.faceRoiResult
-            )
-            currentCoroutineContext().ensureActive()
-            val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
-            UnifiedTagResult(
-                face = faceInfo,
-                scene = qwenResult.scene,
-                activity = qwenResult.activity,
-                objects = qwenResult.objects,
-                tags = qwenResult.tags,
-                summary = qwenResult.summary
-            )
         }
+
+        // Stage-3 统一分流（与 retag 同源）：runStage3Unified 内部按 taggerModelKey
+        // 选 Florence-2 / Qwen3-VL，保证单张/批量同模型同提示词。
+        val stage3 = pipeline.runStage3Unified(entity.uri, entity.faceRoiResult)
+        currentCoroutineContext().ensureActive()
+        val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
+        val unified = stage3.copy(face = faceInfo)
 
         // 恒英文：labelsEn 存英文原语；labelsZh 由 LabelSinicizer 离线汉化派生。
         persistUnifiedTags(entity.id, unifiedTagToJson(unified))
 
         Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, " +
             "durationMs=${System.currentTimeMillis() - startMs}, tagger=" +
-            if (isFlorence2) "Florence-2" else "Qwen")
+            if (taggerModelKey == "florence2_base") "Florence-2" else "Qwen")
 
         // Pass3 连续执行发热严重：每张推理后自适应散热（热状态越高间歇越长）。
         // SEVERE 及以上已由上面的 guardCheck ABORT 兜底，不会走到这里。
