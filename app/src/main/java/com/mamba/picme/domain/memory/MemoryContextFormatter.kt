@@ -7,7 +7,7 @@ const val MEMORY_CONTEXT_CHAR_BUDGET = 1500
 data class RelationLine(val name: String, val label: String)
 data class FactLine(val content: String, val category: String?, val createdAt: Long)
 
-private const val SECTION_HEADER = "【关于用户（系统已记住，可直接引用，无需再问）】"
+private const val SECTION_HEADER = "【关于用户（系统已记住的最新记忆，直接引用即可，不要重复调 recall_memory 核对）】"
 
 /**
  * 生成"关于用户"快照文本。无关系且无事实返回 ""（→ systemMessageProvider 不追加，零开销）。

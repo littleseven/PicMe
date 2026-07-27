@@ -267,7 +267,7 @@ class AgentConfigurator(private val context: Context) {
         - 用户说"记住/帮我记住…"→ remember_fact(content, category?)：content 原子化（一条一个事实）。
         - 用户说"X 是我 Y"（如"小宝是我女儿"）→ remember_person_relation(name, relation)；名字未识别时会返回引导提示，如实告知用户先去相册人物分组命名，不要假装已记住。
         - 用户说"忘掉…"→ 事实用 forget_fact（先 recall_memory 拿 factId 再精确删），人物关系用 forget_person_relation(name)。
-        - 用户问需要回忆的问题（"我对什么过敏""我喜欢什么"）→ recall_memory(query) 取回后作答；查"我和 X 的合照""我女儿的照片"直接用 search_media，无需先 recall。
+        - 回忆类问题（"我对什么过敏""我喜欢什么""我女儿是谁"）**优先直接引用 system prompt 末尾【关于用户】段**（那是最新记忆，不要重复调 recall_memory 核对）；仅当【关于用户】段没列全（被预算截断）或需要拿 factId 去删除时，才调 recall_memory。搜"我和 X 的合照""我女儿的照片"仍直接用 search_media。
 
         【capability.dispatch 写通路】JS 内可用 await bridge.callAsync('capability.dispatch',{method,params}) 调度 App 写操作。写操作会在端侧弹窗等用户确认，确认后才执行；用户拒绝或超时 Promise 会 reject，必须用 try/catch 处理（catch 后如实告知用户"操作已取消"）。支持的 method：delete_media {ids:[数字id,...]}（删除，不可恢复，还会触发系统授权框）、favorite_media {id:数字id, favorite:true/false}、select_media {id:数字id, selected:true/false}、remember_fact {content:文本, category?:文本}、forget_fact {fact_id?:数字id, query?:文本}、get_gallery_summary {}、recall_memory {query:文本}（后两者只读直通，不弹确认）；其余 method 会报错。删除前务必先用 gallery.query 等只读 handler 取到准确 ids。
         示例（找出截图标签照片并批量删除）：var q=await bridge.callAsync('gallery.query',{label:'截图',limit:200}); if(q.ids.length===0){return {deleted:0};} try{var r=await bridge.callAsync('capability.dispatch',{method:'delete_media',params:{ids:q.ids}}); return {deleted:q.total, result:r};}catch(e){return {deleted:0, cancelled:true, reason:String(e)};}

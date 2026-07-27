@@ -279,7 +279,7 @@ class ChatToolService private constructor() {
 
     @Tool(
         name = "recall_memory",
-        value = ["检索已记住的事实记忆，如用户问「我对什么过敏」「我喜欢什么」。query 为模糊匹配关键词，空串返回全部。返回列表含 factId，供 forget_fact 精确删除。"]
+        value = ["system prompt【关于用户】段已含常见记忆，优先直接引用；本工具仅在该段未列全（被截断）或需拿 factId 删除时调用。query 为模糊匹配关键词，空串返回全部。返回列表含 factId，供 forget_fact 精确删除。"]
     )
     fun recallMemory(
         @P(name = "query", value = "模糊匹配关键词，空串返回全部") query: String
