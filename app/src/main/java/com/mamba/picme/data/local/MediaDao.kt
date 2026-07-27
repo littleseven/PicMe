@@ -111,6 +111,16 @@ interface MediaDao {
         indexedAt: Long
     )
 
+    /** 回填选择：有坐标但无地名的存量媒体（历史上 Geocoder 失败）。 */
+    @Query(
+        """
+        SELECT * FROM media_assets
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+          AND (locationName IS NULL OR locationName = '')
+        """
+    )
+    suspend fun getMediaNeedingLocationBackfill(): List<MediaEntity>
+
     /** 获取已索引媒体数量 */
     @Query("SELECT COUNT(*) FROM media_assets WHERE indexedAt IS NOT NULL AND indexedAt > 0")
     suspend fun getIndexedCount(): Int

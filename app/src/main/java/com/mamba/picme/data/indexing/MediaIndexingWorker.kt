@@ -7,6 +7,9 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.OcrWordDao
+import com.mamba.picme.data.indexing.geo.BackfillResolver
+import com.mamba.picme.data.indexing.geo.OfflineGeocoder
+import com.mamba.picme.data.indexing.geo.ResolvedLocation
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,6 +96,40 @@ class MediaIndexingWorker(
 
     // ── 全量索引 ──────────────────────────────────────────
 
+    /**
+     * 有界位置回填：对「有坐标但无地名」的存量媒体（历史上 Geocoder 失败）用离线库补名。
+     * 在每次全量索引入口执行一次；pending 为空时立即返回。
+     */
+    private suspend fun backfillLocations(
+        db: AppDatabase,
+        offline: OfflineGeocoder
+    ) {
+        val dao = db.mediaDao()
+        val updater = LocationIndexUpdater(db.locationDao())
+        val pending = dao.getMediaNeedingLocationBackfill()
+        if (pending.isEmpty()) return
+        Logger.i(TAG, "Location backfill: ${pending.size} media")
+        for (entity in pending) {
+            val (city, locationName) =
+                BackfillResolver.resolve(entity.latitude, entity.longitude, offline) ?: continue
+            dao.updateIndexResult(
+                mediaId = entity.id,
+                labels = entity.labels,
+                ocrText = entity.ocrText,
+                latitude = entity.latitude,
+                longitude = entity.longitude,
+                locationName = locationName,
+                city = city,
+                indexedAt = entity.indexedAt ?: -1L
+            )
+            updater.updateIndex(
+                entity.id,
+                ResolvedLocation(city = city, latitude = entity.latitude, longitude = entity.longitude)
+            )
+        }
+        Logger.i(TAG, "Location backfill done")
+    }
+
     private suspend fun doFullIndex() {
         val db = AppDatabase.getDatabase(context)
         val dao = db.mediaDao()
@@ -102,6 +139,8 @@ class MediaIndexingWorker(
         val locationIndexUpdater = LocationIndexUpdater(db.locationDao())
 
         try {
+            // 一次性回填：历史上 Geocoder 失败（有坐标无地名）的媒体用离线库补名
+            backfillLocations(db, OfflineGeocoder.fromAssets(context))
             var indexedCount = 0
             var cancelled = false
             while (!cancelled) {
