@@ -333,6 +333,10 @@ class RemotePromptBuilder {
 }
 ```
 
+#### 3.2.1 被动记忆注入（chat + 飞书，2026-07）
+
+`RemoteReActAgent` 的 `systemMessageProvider` 每轮重调，在固定 system prompt 后追加 `MemoryContextProvider.snapshot()` 返回的【关于用户】快照（已记住的事实 + 与"我"的人物关系）。快照由 app 层 `MemoryContextProviderImpl` 用 Room Flow（`observeAllFacts` + `observeRelationsToSelf`）预热 `@Volatile` 缓存，按 ~1500 字符预算截断、超出用 `recall_memory` 兜底。chat 与飞书 agent 共用同一份设备本机记忆。设计 spec：`docs/superpowers/specs/2026-07-27-chat-memory-passive-injection-design.md`。
+
 ### 3.3 Capability 接口扩展
 
 ```kotlin
