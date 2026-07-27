@@ -931,8 +931,16 @@ private fun StatsCard(
             StatsSectionTitle("阶段进度")
             StatsPassTableHeader()
             HorizontalDivider()
-            StatsPassTableRow("人脸检测", "$withFace / $totalMedia", remainingPass1.toString())
-            StatsPassTableRow("内容标签", "$withLabels / $totalMedia", remainingPass3.toString())
+            StatsPassTableRow(
+                pass = stringResource(R.string.tag_pass_row_face),
+                done = (totalMedia - remainingPass1).toString(),
+                remaining = remainingPass1.toString()
+            )
+            StatsPassTableRow(
+                pass = stringResource(R.string.tag_pass_row_content),
+                done = (totalMedia - remainingPass3).toString(),
+                remaining = remainingPass3.toString()
+            )
         }
     }
 }
@@ -991,20 +999,20 @@ private fun StatsPassTableHeader() {
             .padding(vertical = 4.dp)
     ) {
         Text(
-            text = "Pass",
+            text = stringResource(R.string.tag_pass_col_stage),
             modifier = Modifier.weight(0.22f),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         Text(
-            text = "完成",
+            text = stringResource(R.string.tag_pass_col_processed),
             modifier = Modifier.weight(0.46f),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             textAlign = TextAlign.End
         )
         Text(
-            text = "剩余",
+            text = stringResource(R.string.tag_pass_col_pending),
             modifier = Modifier.weight(0.32f),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
