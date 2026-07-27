@@ -3,6 +3,7 @@ package com.mamba.picme.domain.tag.scan
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
+import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.dao.StatusCount
 import com.mamba.picme.data.local.entity.TagScanPass
@@ -338,6 +339,12 @@ class TagScanOrchestrator(
 
         val allIds = db.mediaDao().getAllMediaIds()
         var ids = filterMediaIdsByQuery(allIds, query)
+
+        // 人脸检测 / 图像打标 / 语义编码 只适用于照片：FULL 与 INCREMENTAL 都排除视频，
+        // 否则 FULL 重跑会把视频当作可处理项（loadBitmap 对非图片返回 null → 结果列永不写入 → 永不收敛）。
+        if (pass != TagScanPass.DBSCAN) {
+            ids = filterPhotosOnly(ids)
+        }
 
         if (pass == TagScanPass.FACE_DETECTION && mode == ScanMode.FULL) {
             // 全量重跑 Pass 1：清空媒体端的人脸标记。
@@ -967,12 +974,31 @@ class TagScanOrchestrator(
      */
     private suspend fun isPassMissing(mediaId: Long, pass: TagScanPass): Boolean {
         val entity = db.mediaDao().getMediaById(mediaId) ?: return true
+        // 人脸检测 / 图像打标 / 语义编码 都依赖 loadBitmap 解码图片，视频会被 MIME 拦截返回 null，
+        // 结果列（faceRoiResult/labels/semanticEmbedding）永远写不进去 → 视频必须视为“不缺失”，
+        // 否则增量选片会永久重复选中视频（Pass 1“永远扫不完”的根因）。
+        if (pass != TagScanPass.DBSCAN && entity.type != MediaType.PHOTO) return false
         return when (pass) {
             TagScanPass.FACE_DETECTION -> entity.faceRoiResult.isNullOrEmpty()
             TagScanPass.QWEN_TAGGING -> entity.labels.isNullOrEmpty()
             TagScanPass.MOBILE_CLIP_ENCODING -> entity.semanticEmbedding.isNullOrEmpty()
             TagScanPass.DBSCAN -> false // DBSCAN 是全局任务，不针对单媒体
         }
+    }
+
+    /**
+     * 过滤出 type == PHOTO 的媒体 ID（人脸检测/图像打标/语义编码只适用于照片）。
+     * 分批加载实体以规避 SQLite IN 绑定变量上限，与 [filterMediaIdsByQuery] 同模式。
+     */
+    private suspend fun filterPhotosOnly(ids: List<Long>): List<Long> {
+        if (ids.isEmpty()) return ids
+        val photoIds = mutableSetOf<Long>()
+        ids.chunked(QUERY_FILTER_BATCH_SIZE).forEach { batch ->
+            db.mediaDao().getMediaByIds(batch).forEach { entity ->
+                if (entity.type == MediaType.PHOTO) photoIds.add(entity.id)
+            }
+        }
+        return ids.filter { it in photoIds }
     }
 
     private fun hasAllCategories(entity: com.mamba.picme.data.model.MediaEntity, categories: Set<TagCategory>): Boolean {

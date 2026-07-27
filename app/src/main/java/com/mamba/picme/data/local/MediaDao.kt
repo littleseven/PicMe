@@ -275,11 +275,13 @@ interface MediaDao {
     suspend fun getMediaWithoutFaceRoi(): List<MediaEntity>
 
     /** 仅获取未检测人脸 ROI 的媒体 ID（内存友好） */
-    @Query("SELECT id FROM media_assets WHERE faceRoiResult IS NULL ORDER BY captureDate DESC")
+    @Query("SELECT id FROM media_assets WHERE faceRoiResult IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC")
     suspend fun getMediaWithoutFaceRoiIds(): List<Long>
 
     /** 未检测人脸 ROI 的媒体数量 */
-    @Query("SELECT COUNT(*) FROM media_assets WHERE faceRoiResult IS NULL")
+    // 注意 type = 'PHOTO'：人脸检测/语义编码只适用于照片，视频走 loadBitmap 会被 MIME 拦截返回 null，
+    // faceRoiResult 永远写不进去。若不过滤，视频会永久计入“待 Pass 1”导致计数器永不归零。
+    @Query("SELECT COUNT(*) FROM media_assets WHERE faceRoiResult IS NULL AND type = 'PHOTO'")
     suspend fun getMediaWithoutFaceRoiCount(): Int
 
     /** 获取已检测人脸 ROI 但未生成标签的媒体 */
@@ -399,6 +401,7 @@ interface MediaDao {
         """
         SELECT id, lastTagScanPasses FROM media_assets
         WHERE (lastTagScanAt IS NULL OR lastTagScanAt < :before)
+          AND type = 'PHOTO'
         ORDER BY captureDate DESC, lastTagScanAt ASC
         LIMIT :limit
         """
@@ -413,6 +416,7 @@ interface MediaDao {
         """
         SELECT id, lastTagScanPasses FROM media_assets
         WHERE (lastTagScanAt IS NULL OR lastTagScanAt < :before)
+          AND type = 'PHOTO'
         ORDER BY captureDate ASC, lastTagScanAt ASC
         LIMIT :limit
         """

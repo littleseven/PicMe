@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.room.withTransaction
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.DevicePreference
 import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
@@ -107,6 +108,15 @@ class TagGenerationScheduler(
     companion object {
         private const val DEFAULT_PASS3_COOLDOWN_MS = 800L
         private const val TAG = "TagScheduler"
+
+        /**
+         * 照片解码失败哨兵：写入 faceRoiResult 使“faceRoiResult IS NULL”口径收敛，
+         * 防止损坏 / 本机不支持的格式 / URI 失效的照片被增量 Pass 1 无限重选。
+         * 字段与 faceRoiToJson 对齐（parseFaceRoi 兼容），额外 decodeError 标记便于排查；
+         * FULL 全量重扫 resetAllFaceData() 会清空该列以备将来重试。
+         */
+        private const val DECODE_FAILURE_ROI_JSON =
+            """{"hasFace":false,"faceCount":0,"isSelfie":false,"isGroupPhoto":false,"decodeError":true}"""
 
         /** 批次大小：每处理此数量照片后强制冷却 */
         private const val BATCH_SIZE = 10
@@ -1063,7 +1073,13 @@ class TagGenerationScheduler(
         val hasValidFace = result.faceRoiJson != null && result.embeddings.isNotEmpty()
         if (result.faceRoiJson != null) {
             dao.updateFaceRoiResult(entity.id, result.faceRoiJson, hasValidFace)
+        } else if (entity.type == MediaType.PHOTO) {
+            // 照片解码失败（loadBitmap 返回 null：损坏 / 本机不支持的格式 / URI 失效）。
+            // 写哨兵使 faceRoiResult IS NULL 口径收敛，避免这批照片被增量 Pass 1 无限重选。
+            Log.w(TAG, "[Pass 1] Photo decode failed; writing sentinel for mediaId=${entity.id}")
+            dao.updateFaceRoiResult(entity.id, DECODE_FAILURE_ROI_JSON, false)
         }
+        // 视频不写：loadBitmap 对非图片返回 null 属预期行为，选片层已按 type=PHOTO 排除。
 
         // 先清除该媒体旧 embedding，避免全量重扫时产生重复记录
         personDao.deleteEmbeddingsByMedia(entity.id)

@@ -376,6 +376,18 @@ data class TagScanTaskEntity(
 - `ScanQueuePolicy.skipRecentlyTaggedMs` 控制避重窗口（默认 24h）
 - `ScanQueuePolicy.order` 支持 `OLDEST_FIRST` / `NEWEST_FIRST`
 - 启动时自动将异常中断的 `RUNNING` 任务重置为 `PENDING`
+- **Pass 1 / Pass 3 选片与计数仅限照片（`type = 'PHOTO'`）**：人脸检测与图像打标都依赖
+  `loadBitmap` 解码图片，视频会被 MIME 拦截返回 `null`，结果列（`faceRoiResult` / `labels`）
+  永远写不进去。若不过滤，视频会被永久计入“待 Pass 1” → 计数器永不归零、增量扫描无限
+  重选同一批视频（“永远扫不完” bug 的根因）。涉及 `MediaDao.getMediaWithoutFaceRoiCount` /
+  `getMediaWithoutFaceRoiIds` / `getMediaForIncrementalScan*Projection`，以及
+  `TagScanOrchestrator.isPassMissing`（视频直接判“不缺失”）与 `schedulePass` 的 FULL 路径
+  （`filterPhotosOnly`）。
+- **照片解码失败写哨兵**：`executeFaceDetection` 在 `loadBitmap` 返回 `null`（损坏文件 /
+  本机不支持的格式 / URI 失效）且媒体为照片时，向 `faceRoiResult` 写入
+  `{"hasFace":false,"faceCount":0,…,"decodeError":true}` 哨兵，使“`faceRoiResult IS NULL`”
+  口径收敛，避免这批照片被增量 Pass 1 无限重选；FULL 全量重扫 `resetAllFaceData()` 会清空
+  该列以备将来重试。视频不写哨兵（已由选片层排除）。
 
 ---
 
@@ -391,7 +403,7 @@ data class TagScanTaskEntity(
 |------|------|------|
 | `id` | Long (PK) | 自增主键，媒体唯一标识 |
 | `uri` | String | Content URI，指向系统媒体库 |
-| `type` | MediaType | 类型：IMAGE / VIDEO |
+| `type` | MediaType | 类型：PHOTO / VIDEO（Room 按 enum 名以文本存储；Pass 1/3 选片仅 PHOTO） |
 | `captureDate` | Long | 拍摄时间戳（毫秒） |
 | `fileName` | String | 文件名 |
 | `duration` | Long? | 视频时长（图片为 null） |
