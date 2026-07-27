@@ -1678,6 +1678,45 @@ data class PreviewImageState(
 )
 
 /**
+ * 图片预览横滑翻页集合中的一个页面。持有原始 uri 字符串（Uri 解析推迟到渲染时进行，
+ * 使本模型为纯 Kotlin、可单测；touchEditImage 也接收原始字符串）。
+ */
+data class ImagePreviewPage(
+    val messageId: String,
+    val rawUri: String,
+    val isEditableResult: Boolean, // AGENT_IMAGE / AGENT_EDIT_RESULT
+    val isSaved: Boolean
+)
+
+/**
+ * 从会话消息快照构建图片预览翻页集合：保留所有 [ChatMessageUi.imageUri] 非空的消息，
+ * 保持原顺序。纯函数，便于单测（Uri 解析在渲染层 [resolvePreviewUri] 完成）。
+ */
+fun buildImagePreviewPages(messages: List<ChatMessageUi>): List<ImagePreviewPage> =
+    messages.mapNotNull { msg ->
+        val raw = msg.imageUri ?: return@mapNotNull null
+        ImagePreviewPage(
+            messageId = msg.id,
+            rawUri = raw,
+            isEditableResult = msg.type == ChatMessageType.AGENT_IMAGE ||
+                msg.type == ChatMessageType.AGENT_EDIT_RESULT,
+            isSaved = msg.imageSaved
+        )
+    }
+
+/** 把 raw uri 字符串解析为最终 Uri（含 scheme 直接用，否则按 file:// 兜底）。 */
+fun resolvePreviewUri(rawUri: String): Uri {
+    val parsed = Uri.parse(rawUri)
+    return if (parsed?.scheme != null) parsed else File(rawUri).toUri()
+}
+
+/** 返回 [messageId] 在 pages 中的下标；找不到返回 0（兜底定位到首页）。 */
+fun indexOfPage(pages: List<ImagePreviewPage>, messageId: String): Int {
+    val i = pages.indexOfFirst { it.messageId == messageId }
+    return if (i >= 0) i else 0
+}
+
+/**
  * 聊天消息 UI 数据类
  */
 data class ChatMessageUi(
