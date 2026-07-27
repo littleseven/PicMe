@@ -503,7 +503,7 @@
 
     <!-- 智慧型相簿索引 -->
     <string name="gallery_group_tag">按標籤</string>
-    <string name="gallery_group_location">按地點</string>
+    <string name="gallery_group_location">地點</string>
     <string name="group_no_location">無位置</string>
     <string name="gallery_group_ocr">按文字</string>
     <string name="gallery_group_person">按人物</string>
