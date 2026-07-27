@@ -27,15 +27,16 @@
 
 **目标**
 
-- 每一轮 chat，把"已记住的事实 + 已声明的人物关系（与'我'的关系）"以**有预算上限的快照**形式追加进 system prompt，使 LLM 无需主动调用任何工具即可"知道"并引用它们。
+- 每一轮 chat / 飞书远程控制，把"已记住的事实 + 已声明的人物关系（与'我'的关系）"以**有预算上限的快照**形式追加进 system prompt，使 LLM 无需主动调用任何工具即可"知道"并引用它们。
 - 同时治好事实与关系两边的根；让"我女儿是谁""我对什么过敏"这类问答直接可答。
 
 **非目标（本次不做）**
 
 - 不新增 `recall_relations` 读工具（走纯被动注入路线；现有 `recall_memory` 等工具保留作截断兜底）。
-- 不改飞书 RPA agent（`PoLangToolService`），只改 **chat agent**。
+- chat 与飞书**共用同一份**设备本机记忆快照（不为飞书单独做记忆子集/不同预算，见 §4.5）。
 - 不做 FTS / 语义召回，仍维持 LIKE + 注入。
 - 不改搜索链路（`PersonQueryResolver` 已工作）。
+- 暂不覆盖本地 Qwen 路径（chat 与飞书均走远程 ReAct）。
 
 ## 3. 方案总览
 
@@ -128,9 +129,11 @@ class MemoryContextProviderImpl(
 ```kotlin
 data class RemoteReActAgentConfig(
     ...
-    val memoryContextProvider: MemoryContextProvider? = null   // 新增；仅 chat agent 注入
+    val memoryContextProvider: MemoryContextProvider? = null   // 新增；chat 与飞书 agent 均可注入
 )
 ```
+
+> 注入逻辑在 `RemoteReActAgent.getOrCreateAssistant()` 内，是 chat 与飞书 agent 的**共用路径**——两个 agent 只要 config 带上 provider 就都生效，无需分别改注入代码。
 
 **`RemoteReActAgent.getOrCreateAssistant()`**（`:172`）lambda 改为：
 
@@ -150,8 +153,8 @@ data class RemoteReActAgentConfig(
       configurator.setMemoryContextProvider(provider)
   }
   ```
-- `AgentConfigurator` 增加 `private var memoryContextProvider: MemoryContextProvider? = null` 与 setter；`getChatAgent(...)` 构造 `RemoteReActAgentConfig` 时把 provider 传入（`.memoryContextProvider(memoryContextProvider)`）。飞书 agent `getFeishuAgent` 不传（保持 null）。
-- `PoLangApplication.onCreate`（注册 capability 的同一区域，`PoLangApplication.kt:619` 附近）：
+- `AgentConfigurator` 增加 `private var memoryContextProvider: MemoryContextProvider? = null` 与 setter；`getChatAgent(...)` **与 `getFeishuAgent(...)`** 构造 `RemoteReActAgentConfig` 时都把 provider 传入（`.memoryContextProvider(memoryContextProvider)`）。两个 agent 共用同一个 provider 实例 → 同一份设备本机记忆快照。飞书用其自身的 `DEFAULT_SYSTEM_PROMPT`（RPA 人设）+ 追加的【关于用户】快照，人设不变、仅多出用户记忆。
+- **装配时序**：provider 必须在任一 agent 首次构建前 set。`PoLangApplication.onCreate`（注册 capability 的同一区域，`PoLangApplication.kt:619` 附近）设：
   ```kotlin
   val memoryContextProvider = MemoryContextProviderImpl(
       memoryRepository = container.memoryRepository,
@@ -160,7 +163,8 @@ data class RemoteReActAgentConfig(
   )
   AgentOrchestrator.getInstance(this).setMemoryContextProvider(memoryContextProvider)
   ```
-  `PersonRepository` 从 `container` 取（与 `personRelationCapability` 同源）。
+  chat/飞书 agent 均懒构建（首次用到才建），onCreate 先于任何 agent 构建，时序安全。
+- `PersonRepository` 从 `container` 取（与 `personRelationCapability` 同源）。
 
 ## 5. 快照格式与预算策略
 
@@ -212,7 +216,7 @@ data class RemoteReActAgentConfig(
 
 ## 9. 上线边界（YAGNI）
 
-- 只注入 **chat agent**；飞书 RPA（`PoLangToolService`）不动。
+- 注入 **chat + 飞书** agent（共用同一 provider）；本地 Qwen 路径暂不动。
 - **不加** `recall_relations` 读工具；现有工具集不变。
 - 预算 1500 字符为初始值，上线后按实际事实量与 token 成本再调。
 
@@ -224,11 +228,11 @@ data class RemoteReActAgentConfig(
 | 事实排序 | `createdAt` 倒序（最近优先） | 用户确认；确定性、易理解 |
 | 装配入口 | `AgentOrchestrator.setMemoryContextProvider` 转发给 `AgentConfigurator` | `configurator` 为 private，需经 orchestrator 暴露 |
 | 注入位置 | `systemMessageProvider` lambda（每轮重调） | 无需重建 agent，天然每轮刷新 |
-| 覆盖范围 | chat agent only | 飞书 RPA 无需"记忆"语义 |
+| 覆盖范围 | chat + 飞书 agent（共用同一 provider） | 飞书远程控制同样需按人物名/关系行动（如"给小宝拍照""搜我女儿的照片"）；共用设备本机记忆，与既有飞书可调记忆/搜索 capability 一致，不引入新跨用户泄露面 |
 
 ## 11. 不在本次范围（后续）
 
 - `recall_relations` 读工具（若日后需在注入截断外按谓词穷举关系）。
 - FTS / 向量召回替代 LIKE。
-- 把注入推广到飞书 / 本地 Qwen 路径（当前 chat 走远程 ReAct）。
+- 把注入推广到本地 Qwen 路径（chat 与飞书均走远程 ReAct，已覆盖）。
 - 三层文档同步（`docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`、`CAPABILITY_REGISTRY.md`）在实现 PR 中按 CLAUDE.md 要求原子提交。
