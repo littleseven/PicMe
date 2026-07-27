@@ -1,7 +1,7 @@
 package com.mamba.picme.data.indexing
 
-import android.location.Address
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.data.indexing.geo.ResolvedLocation
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.entity.LocationHierarchyEntity
 import com.mamba.picme.data.local.entity.MediaLocationEntity
@@ -24,35 +24,31 @@ class LocationIndexUpdater(private val locationDao: LocationDao) {
      * 更新指定媒体的地理索引。
      *
      * @param mediaId 媒体 ID
-     * @param latitude 纬度
-     * @param longitude 经度
-     * @param locationName 逆地理编码后的人类可读地名（用于 POI 字段）
+     * @param resolved 逆地理编码结果（含省/市/区/POI 与坐标）；为 null 或无坐标则清空并返回
      */
     suspend fun updateIndex(
         mediaId: Long,
-        latitude: Double?,
-        longitude: Double?,
-        locationName: String? = null,
-        address: Address? = null
+        resolved: ResolvedLocation?
     ) {
         locationDao.clearLocationsForMedia(mediaId)
-        if (latitude == null || longitude == null) return
+        val lat = resolved?.latitude ?: return
+        val lon = resolved.longitude ?: return
 
         try {
             // 按坐标去重：同一位置只存一份层级信息
-            val existingLoc = locationDao.findByCoordinate(latitude, longitude)
+            val existingLoc = locationDao.findByCoordinate(lat, lon)
             val locationId: Long = if (existingLoc != null) {
                 existingLoc.locationId
             } else {
                 locationDao.insertLocation(
                     LocationHierarchyEntity(
-                        country = address?.countryName,
-                        province = address?.adminArea,
-                        city = address?.locality,
-                        district = address?.subLocality,
-                        poi = address?.featureName ?: locationName,
-                        latitude = roundCoordinate(latitude),
-                        longitude = roundCoordinate(longitude)
+                        country = resolved.country,
+                        province = resolved.province,
+                        city = resolved.city,
+                        district = resolved.district,
+                        poi = resolved.poi,
+                        latitude = roundCoordinate(lat),
+                        longitude = roundCoordinate(lon)
                     )
                 )
             }

@@ -137,9 +137,7 @@ class MediaIndexingWorker(
                         // 同步更新地理位置索引表
                         locationIndexUpdater.updateIndex(
                             mediaId = entity.id,
-                            latitude = result.latitude,
-                            longitude = result.longitude,
-                            locationName = result.locationName
+                            resolved = result.resolved
                         )
                         if (!result.ocrText.isNullOrBlank()) {
                             ocrIndexUpdater.updateIndex(entity.id, result.ocrText)
@@ -218,9 +216,7 @@ class MediaIndexingWorker(
             // 同步更新地理位置索引表
             locationIdxUpdater.updateIndex(
                 mediaId = mediaId,
-                latitude = result.latitude,
-                longitude = result.longitude,
-                locationName = result.locationName
+                resolved = result.resolved
             )
             if (!result.ocrText.isNullOrBlank()) {
                 ocrIdxUpdater.updateIndex(mediaId, result.ocrText)
