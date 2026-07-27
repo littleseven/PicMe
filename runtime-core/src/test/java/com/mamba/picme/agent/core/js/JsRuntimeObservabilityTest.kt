@@ -94,6 +94,33 @@ class JsRuntimeObservabilityTest {
     }
 
     @Test
+    fun `eval with traceId stamps event traceId`() {
+        val rt = runtime(FakeEngine { JsValue.Str("ok") })
+
+        rt.eval("return 1;", traceId = "trace-js")
+
+        assertEquals("trace-js", recorder.events[0].traceId)
+    }
+
+    @Test
+    fun `eval without traceId records null traceId`() {
+        val rt = runtime(FakeEngine { JsValue.Str("ok") })
+
+        rt.eval("return 1;")
+
+        assertNull(recorder.events[0].traceId)
+    }
+
+    @Test
+    fun `evalAsync with traceId stamps event traceId`() {
+        val rt = runtime(FakeEngine { JsValue.Null })
+
+        rt.evalAsync("return 1;", 1000, traceId = "trace-js-async")
+
+        assertEquals("trace-js-async", recorder.events[0].traceId)
+    }
+
+    @Test
     fun `bridge exception failure records its errorCode and rethrows`() {
         val rt = runtime(FakeEngine { throw JsBridgeException(JsBridgeException.SCRIPT_ERROR, "boom: at line 1") })
 
