@@ -709,7 +709,8 @@ class ChatViewModel(
                     memorySessionId = sessionId,
                     recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty(),
                     lastUserImageUri = _lastUserImageUri.value,
-                    gallerySummary = gallerySummary
+                    gallerySummary = gallerySummary,
+                    traceId = java.util.UUID.randomUUID().toString()
                 )
 
                 // 5. 调用流式推理
