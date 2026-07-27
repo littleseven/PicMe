@@ -14,6 +14,7 @@ import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallbac
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
+import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.MemoryManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -31,6 +32,15 @@ import com.mamba.model.chat.ChatModel
 class AgentConfigurator(private val context: Context) {
 
     private val tag = "AgentConfigurator"
+
+    /** 聊天/飞书 agent 每轮被动注入的记忆快照供给者；由 app 在 onCreate 注入。 */
+    @Volatile
+    private var memoryContextProvider: MemoryContextProvider? = null
+
+    /** app 层注入记忆快照供给者；须在任一 agent 首次构建前调用。 */
+    fun setMemoryContextProvider(provider: MemoryContextProvider) {
+        memoryContextProvider = provider
+    }
 
     /**
      * 获取 Application Context
@@ -321,6 +331,7 @@ class AgentConfigurator(private val context: Context) {
             return existing
         }
 
+        val memProvider = memoryContextProvider
         val cfg = try {
             RemoteReActAgentConfig.Builder()
                 .apiKey(currentConfig.apiKey)
@@ -328,6 +339,7 @@ class AgentConfigurator(private val context: Context) {
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
                 .deviceId(deviceId)
+                .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()
         } catch (e: Exception) {
             Logger.w("AgentConfigurator", "Failed to build FeishuAgent config", e)
@@ -365,6 +377,7 @@ class AgentConfigurator(private val context: Context) {
         } else if (existing != null) {
             return existing
         }
+        val memProvider = memoryContextProvider
         val cfg = try {
             RemoteReActAgentConfig.Builder()
                 .apiKey(currentConfig.apiKey)
@@ -373,6 +386,7 @@ class AgentConfigurator(private val context: Context) {
                 .gatewayToken(currentConfig.gatewayToken)
                 .deviceId(deviceId)
                 .systemPrompt(chatSystemPrompt + "\n\n当前日期：${java.time.LocalDate.now()}。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。")
+                .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()
         } catch (e: Exception) {
             Logger.w(tag, "Failed to build ChatAgent config", e)
