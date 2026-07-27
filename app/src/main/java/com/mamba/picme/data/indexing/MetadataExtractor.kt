@@ -10,6 +10,8 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.data.indexing.geo.OfflineGeocoder
+import com.mamba.picme.data.indexing.geo.ResolvedLocation
 import java.io.IOException
 
 /**
@@ -23,7 +25,8 @@ import java.io.IOException
  */
 class MetadataExtractor(
     private val context: Context,
-    private val idCardRecognizer: IdCardRecognizer? = null
+    private val idCardRecognizer: IdCardRecognizer? = null,
+    private val offlineGeocoder: OfflineGeocoder = OfflineGeocoder.fromAssets(context)
 ) {
 
     private val tag = "PoLang:MetadataExtractor"
@@ -36,9 +39,9 @@ class MetadataExtractor(
      */
     suspend fun extract(imageUri: Uri, inputImage: InputImage): ExtractionResult {
         val ocrText = extractOcrWithIdCardFallback(inputImage)
-        val (latitude, longitude, locationName) = extractLocation(imageUri)
+        val resolved = extractLocation(imageUri)
 
-        return ExtractionResult(emptyList(), ocrText, latitude, longitude, locationName)
+        return ExtractionResult(emptyList(), ocrText, resolved)
     }
 
     /**
@@ -82,44 +85,36 @@ class MetadataExtractor(
     }
 
     /**
-     * EXIF 位置提取 + 逆地理编码
+     * EXIF 位置提取 + 逆地理编码（系统 Geocoder 优先，失败走离线兜底）。
      */
-    private fun extractLocation(imageUri: Uri): LocationData {
+    private fun extractLocation(imageUri: Uri): ResolvedLocation? {
         return try {
             context.contentResolver.openInputStream(imageUri)?.use { stream ->
                 val exif = ExifInterface(stream)
                 val latLong = exif.latLong
                 val lat = latLong?.getOrNull(0)
                 val lon = latLong?.getOrNull(1)
-                val placeName = if (lat != null && lon != null) {
-                    reverseGeocode(lat, lon)
-                } else null
-                LocationData(lat, lon, placeName)
-            } ?: LocationData()
+                if (lat != null && lon != null) reverseGeocode(lat, lon) else null
+            }
         } catch (e: IOException) {
             Logger.w(tag, "EXIF location extraction failed", e)
-            LocationData()
+            null
         }
     }
 
     /**
-     * 逆地理编码：经纬度 → 地名（优先城市+区域）
+     * 逆地理编码：经纬度 → [ResolvedLocation]。系统 Geocoder 失败/为空 → 离线质心兜底。
      */
-    private fun reverseGeocode(latitude: Double, longitude: Double): String? {
-        return try {
-            val geocoder = Geocoder(context)
-            val addresses: List<Address>? =
-                geocoder.getFromLocation(latitude, longitude, 1)
-            addresses?.firstOrNull()?.let { addr ->
-                listOfNotNull(addr.locality, addr.subLocality)
-                    .takeIf { it.isNotEmpty() }
-                    ?.joinToString(" ")
-                    ?: addr.getAddressLine(0)
-            }
+    private fun reverseGeocode(lat: Double, lon: Double): ResolvedLocation? {
+        val addresses = try {
+            Geocoder(context).getFromLocation(lat, lon, 1)
         } catch (e: IOException) {
-            Logger.w(tag, "Geocoding failed", e)
+            Logger.w(tag, "Geocoder failed, will try offline", e)
             null
         }
+        val addr = addresses?.firstOrNull()
+        return if (addr != null) addr.toResolvedLocation(lat, lon)
+        else offlineGeocoder.lookup(lat, lon)
     }
 
     fun close() {
@@ -133,20 +128,27 @@ class MetadataExtractor(
     data class ExtractionResult(
         val labels: List<String> = emptyList(),
         val ocrText: String? = null,
-        val latitude: Double? = null,
-        val longitude: Double? = null,
-        val locationName: String? = null
+        val resolved: ResolvedLocation? = null
     ) {
+        val latitude: Double? get() = resolved?.latitude
+        val longitude: Double? get() = resolved?.longitude
+        val locationName: String? get() = resolved?.toDisplayString()
+
         val labelsJson: String?
             get() = labels.takeIf { it.isNotEmpty() }
                 ?.joinToString(prefix = "[", postfix = "]") { label ->
                     "\"${label}\""
                 }
     }
-
-    private data class LocationData(
-        val latitude: Double? = null,
-        val longitude: Double? = null,
-        val locationName: String? = null
-    )
 }
+
+/** 把系统 Geocoder 的 [Address] 映射为 [ResolvedLocation]（internal 便于单测）。 */
+internal fun Address.toResolvedLocation(lat: Double, lon: Double): ResolvedLocation = ResolvedLocation(
+    country = countryName,
+    province = adminArea,
+    city = locality,
+    district = subLocality,
+    poi = featureName,
+    latitude = lat,
+    longitude = lon
+)
