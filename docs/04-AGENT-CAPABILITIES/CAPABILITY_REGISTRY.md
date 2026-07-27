@@ -45,6 +45,10 @@
 | **AiOptimizeCapability** | `ai_optimize` | GALLERY, CHAT | 1 | ✅ 已落地 | 应用级 |
 | **PersonRelationCapability** | `person_relation` | CHAT | 2 | ✅ 已落地 | 应用级（AppContainer 注入 PersonRepository） |
 | **MemoryCapability** | `memory_facts` | CHAT | 3 | ✅ 已落地 | 应用级（AppContainer 注入 MemoryRepository） |
+| **ChatGallerySummaryCapability** | `chat_gallery_summary` | CHAT | 1 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate |
+| **ChatStartTagScanCapability** | `chat_start_tag_scan` | CHAT | 1 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate |
+| **ChatRunScriptCapability** | `chat_run_script` | CHAT | 2 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate（端侧 QuickJS 沙箱，命令 `run_gallery_script` / `draw_chart`） |
+| **ChatMediaWriteCapability** | `chat_media_write` | CHAT | 3 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate（CHAT 场景媒体写执行汇聚点：`delete_media` / `favorite_media` / `select_media`） |
 | **RemoteControlCapability** | `remote_control` | ALL | 0 | ✅ 已落地 | 应用级单例，不走 AgentCommand 路由 |
 | **BeautyCapability** | — | — | — | ✅ 已落地 | 测试/程序化 API，不注册到 Agent 编排 |
 
@@ -62,6 +66,10 @@
 > - 新增 `PersonRelationCapability`（人物关系声明/遗忘，`remember_person_relation` / `forget_person_relation`）
 > - 新增 `MemoryCapability`（事实记忆，`remember_fact` / `forget_fact` / `recall_memory`）
 > - 两者均为应用级、构造注入仓库（`PersonRepository` / `MemoryRepository`），同时服务聊天工具直调与 JS `capability.dispatch` 写通路；remember/forget 系在 `CommandRisk` 登记为 `REVERSIBLE_WRITE`，`recall_memory` 为 `READ_ONLY`
+>
+> **变更说明（2026-07-27）**：
+> - 补登 CHAT 场景此前漏列的 4 个 Capability：`ChatGallerySummaryCapability`（`get_gallery_summary`）、`ChatStartTagScanCapability`（`start_tag_scan`）、`ChatRunScriptCapability`（`run_gallery_script` / `draw_chart`，端侧 QuickJS 沙箱）、`ChatMediaWriteCapability`（CHAT 媒体写执行汇聚点）
+> - 新增「1.2 JS 沙箱能力表面」：登记 `gallery.* / media.* / face.* / tag.*` JSBridge handler 与 AgentCommand 的映射关系（仅 `run_gallery_script` 内部可见，详见 `AGENT_ARCHITECTURE.md` §2.4 路由策略）
 
 ### 1.1 场景 - 能力映射
 
@@ -70,9 +78,44 @@
 | `CAMERA` | CameraCapability, NavigationCapability, SystemCapability |
 | `GALLERY` | GalleryCapability, AutoTagCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `SETTINGS` | SettingsCapability, NavigationCapability, SystemCapability |
-| `CHAT` | ChatSearchCapability, AiOptimizeCapability, PersonRelationCapability, MemoryCapability, NavigationCapability, SystemCapability |
+| `CHAT` | ChatSearchCapability, ChatGallerySummaryCapability, ChatStartTagScanCapability, ChatRunScriptCapability, ChatMediaWriteCapability, AiOptimizeCapability, PersonRelationCapability, MemoryCapability, NavigationCapability, SystemCapability |
 | `DEBUG` | NavigationCapability, SystemCapability |
 | `UNKNOWN` | NavigationCapability, SystemCapability, RemoteControlCapability |
+
+### 1.2 JS 沙箱能力表面（`gallery.*` handler ↔ AgentCommand 映射）
+
+> 路由定位（详见 `AGENT_ARCHITECTURE.md` §2.4）：JS 沙箱**不是与 tool_call 平级的第二条链路**，而是 `run_gallery_script` 工具的执行体。JS 内通过 `await bridge.callAsync(name, args)` 调用两类 handler：
+> - **只读 handler**（下表 A）：直连 `QueryGalleryMediaUseCase` 等，**绕开 CapabilityRegistry**，属独立"能力表面"。无对应 AgentCommand，仅服务于盘点/统计。
+> - **写 handler**（下表 B，统一入口 `capability.dispatch`）：回环进 `CapabilityRegistry`，复用 AgentCommand/Capability，经 Tier A 应用内确认（见 §2.4.4）。
+
+**表 A — 只读 handler（`bridge.callAsync`，不进注册表，数据不出端）**
+
+| Handler | 参数 | 返回 | 对应 AgentCommand | 说明 |
+|---------|------|------|-------------------|------|
+| `gallery.summary` | `{}` | 聚合统计对象 | ≈ `get_gallery_summary` | totalPhotos/videos/media、hasFaceCount、personClusterCount、labeled/unlabeled… |
+| `gallery.query` | `{label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}` | `{ids,total}` | ≈ `search_media`（结构化版） | 多维 AND 过滤；ids 截断到 limit，total 为真实数 |
+| `gallery.tags` | `{}` | `{标签:照片数}`（top 50） | — | 全局标签分布 |
+| `gallery.timeline` | `{fromMs?,toMs?,bucketMs?}` | `{桶起始时间戳:照片数}` | — | 按时间分桶（默认月） |
+| `gallery.intersect` | `{idsA,idsB,op}` | `{ids,total}` | — | 集合交/并/差，用于多次 query 交叉 |
+| `gallery.stats_by_tag` | `{label?,hasFace?,fromMs?,toMs?}` | `{标签:照片数}` | — | 条件过滤后的标签分布 |
+| `media.meta` | `id` | 单张元数据 | — | 不含路径/GPS/OCR/向量 |
+| `media.batch_meta` | `[ids]`（上限 50） | `[{...}]` | — | 批量元数据 |
+| `face.cluster` | `{topN?}` | 聚类盘点 | — | 不含 embedding 原始数据 |
+| `tag.audit` | `{topN?}` | 打标覆盖审计 | — | 词表外标签分布 |
+
+**表 B — 写 handler（`bridge.callAsync('capability.dispatch', {method, params})` → 进注册表）**
+
+| `method` | `params` | 映射 AgentCommand | 目标 Capability | `CommandRisk` |
+|----------|----------|-------------------|-----------------|---------------|
+| `delete_media` | `{ids:[...]}` | `DeleteMedia` | ChatMediaWriteCapability | DESTRUCTIVE |
+| `favorite_media` | `{id, favorite}` | `FavoriteMedia` | ChatMediaWriteCapability | REVERSIBLE_WRITE |
+| `select_media` | `{id, selected}` | `SelectMedia` | ChatMediaWriteCapability | REVERSIBLE_WRITE |
+| `remember_fact` | `{content, category?}` | `RememberFact`(source=JS_DISPATCH) | MemoryCapability | REVERSIBLE_WRITE |
+| `forget_fact` | `{fact_id?|query?}` | `ForgetFact` | MemoryCapability | REVERSIBLE_WRITE |
+| `get_gallery_summary` | `{}` | `GetGallerySummary` | ChatGallerySummaryCapability | READ_ONLY（直通） |
+| `recall_memory` | `{query}` | `RecallMemory` | MemoryCapability | READ_ONLY（直通） |
+
+> **维护约定**：新增 JS handler 时必须同步本表。写 handler 另需同步两处——`CommandRisk.ofMethod` 分级 + `CapabilityDispatchHandler.buildCommand` 白名单（漏登前者会被默认 READ_ONLY 直通，漏登后者 JS 调不通）。唯一注册点：`GalleryScriptHandlers.registerGalleryHandlers`（只读）+ `ChatViewModel` 注入的 `CapabilityDispatchHandler`（写）。
 
 ---
 

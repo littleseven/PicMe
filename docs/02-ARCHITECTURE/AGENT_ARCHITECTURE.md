@@ -238,6 +238,91 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
 释放 ASR → 恢复 KWS always-on
 ```
 
+### 2.4 能力访问链路：tool_call 为主，JS 是 run_gallery_script 的内部实现
+
+> **一句话心智模型**（本节是 LLM 路由的权威说明，修正 2.2 中 `RemoteOrchestrator` 等已过时表述）：
+> 对外，LLM 只有一种调用方式 —— **tool_call（`@Tool`）**；`run_gallery_script` 只是其中一个"参数为 JS 源码"的特殊工具，**JS 沙箱不是与 tool_call 平级的第二条链路**，而是该工具的执行体。
+> 对内，所有 tool 最终收敛到 `CapabilityRegistry.dispatch(AgentCommand)`；唯一旁路是飞书 RPA 的 UI 自动化（操作无障碍树，非语义命令）。
+
+```
+                    ┌─ CHAT 场景（相册助理）──────────────────────┐
+                    │  streamChat → streamChatReAct（固定远程）    │
+                    │  → ChatToolService @Tool                    │
+                    └────────────────────┬────────────────────────┘
+                                         │ tool_calls
+用户/IM ── AgentOrchestrator ────────────┼─→ @Tool 薄封装
+                    ┌────────────────────┴────────────────────────┐
+                    │ ChatToolService：每个工具 =                  │
+                    │ dispatchCommand(AgentCommand.X) 一行         │
+                    └────────────────────┬────────────────────────┘
+                                         ▼
+                    ┌─────────────────────────────────────────────┐
+                    │  CapabilityRegistry.dispatch(command)        │ ← 所有语义命令
+                    │  → 按 method 找 Capability → execute()       │   的唯一收敛点
+                    └─────────────────────────────────────────────┘
+                                         ▲
+                                         │ dispatchCommand(AgentCommand)
+                    ┌────────────────────┴────────────────────────┐
+                    │ PoLangToolService（飞书 RPA）：             │
+                    │  • UI 自动化 click/scroll/input → Accessibility │ ← 绕开注册表，
+                    │  • 相机工具 → CameraToolHelper 直连          │   真正的"另一条链路"
+                    │  • 相册工具 → dispatchCommand 回注册表       │
+                    └─────────────────────────────────────────────┘
+
+                    ┌─ 本地小模型（CAMERA 等场景）─────────────────┐
+                    │ processUserInput → LocalLlmEngine           │
+                    │ → LocalCommandParser 解析 {method,args}      │ ← JSON 协议，
+                    │ → CapabilityRegistry.dispatch               │   也收敛到注册表
+                    └─────────────────────────────────────────────┘
+
+   ┌─ run_gallery_script 的内部世界（JS 沙箱，非平级链路）─────────────┐
+   │ ChatRunScriptCapability → ChatViewModel.onRunScript(code)        │
+   │ → QuickJS 执行 JS，bridge.callAsync(...) 取数：                   │
+   │   • gallery.*/media.*/face.*/tag.* → 直连 UseCase/Dao（只读，     │
+   │     绕开 CapabilityRegistry，属另一"能力表面"）                   │
+   │   • capability.dispatch {method,params} → 回环进 CapabilityRegistry │
+   │     （写操作，经 Tier A 确认）                                    │
+   └──────────────────────────────────────────────────────────────────┘
+```
+
+#### 2.4.1 三条 LLM 入口与收敛
+
+| 入口 | 触发场景 | 协议 | 收敛点 |
+|---|---|---|---|
+| 远程 Chat ReAct（`ChatToolService`） | CHAT 场景（相册助理）；`streamChat` 固定走此，无论 `inferencePreference` | OpenAI `tool_calls` | 每个 `@Tool` → `dispatchCommand(AgentCommand)` → `CapabilityRegistry` |
+| 远程飞书 RPA（`PoLangToolService`） | 飞书 IM 远程控制（`processRemoteImInput`） | OpenAI `tool_calls` | 语义工具 → `CapabilityRegistry`；UI 工具（click/scroll/input）→ Accessibility（旁路） |
+| 本地小模型（`LocalLlmEngine`） | CAMERA 等场景的语音/离线指令（`processUserInput`/`processInputWithRouter`） | 自定义 JSON `{method,args}` | `LocalCommandParser` → `AgentCommand` → `CapabilityRegistry` |
+
+> `streamChatLocal` / `streamChatRemote`（曾与 ReAct 并存的文本协议路径）已删除；CHAT 场景统一走远程 ReAct（ADR-005 远程协议分离）。
+
+#### 2.4.2 两个"能力表面"及其关系
+
+存在两套并行的能力描述面，**语义部分重叠**，需对照维护（映射表见 `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`「JS 沙箱能力表面」）：
+
+- **AgentCommand 表面（SSOT）**：`AgentCommand` sealed class → `CapabilityRegistry` → `Capability`。承载所有语义命令（搜索/编辑/打标/记忆/设置/导航/媒体写）。**三条 LLM 入口都汇此**。
+- **JsBridge handler 表面**：`gallery.* / media.* / face.* / tag.*`（`GalleryScriptHandlers`，直连 `QueryGalleryMediaUseCase` 等，**不经注册表**）。仅 `run_gallery_script` 执行的 JS 内部可见。
+
+`run_gallery_script` 是两表面的桥梁：JS 内 `bridge.callAsync('gallery.query')` 走 handler 表面（只读取数）；`bridge.callAsync('capability.dispatch',{method,params})` 回环到 AgentCommand 表面（写操作）。
+
+#### 2.4.3 LLM 选路决策矩阵
+
+| 意图 | 用哪个 tool | 底层路径 |
+|---|---|---|
+| 单一搜索 / 摘要 / 修图 / 打标 / 记忆 / 设置 / 导航 | 对应单一 `@Tool` | tool → AgentCommand → Capability |
+| 多维组合查询 / 趋势 / 占比 / 统计 / 数学计算 | `run_gallery_script`（取数）+ `draw_chart`（画图） | tool → JS 沙箱 → `gallery.*` 读 / `capability.dispatch` 写 |
+| 飞书 IM 远程操控 UI（点按 / 输入 / 滑动） | `click` / `scroll` / `input_text` | tool → Accessibility（旁路，不进注册表） |
+
+判定边界（已固化于 `AgentConfigurator.chatSystemPrompt` 与 `LocalPromptBuilder`）：单一维度用独立 tool；≥2 维度组合 / 趋势 / 占比 / 计算，才用 `run_gallery_script`。**本地小模型不暴露 `run_gallery_script` / `draw_chart`**——端侧 2B 无法可靠生成 JS，由 `LocalPromptBuilderJsIsolationTest` 锁死。
+
+#### 2.4.4 写操作确认两层策略
+
+同一写命令可由两条链路触发，**确认手段不同是刻意设计**（风险分级 SSOT：`CommandRisk`）：
+
+- **Tier A — JS 沙箱内 `capability.dispatch`**：JS 可由 `gallery.query` 计算出大批量 id 批量删除，风险高 → dispatch 前经应用内确认（`WriteConfirmationController`，带缩略图预览，仅脚本生命周期内有效，防孤儿确认）。
+- **Tier B — 顶层 `@Tool` 直调（`delete_media` 等）**：ReAct 循环对用户透明，删除另由系统 MediaStore 授权框兜底，不重复应用内确认。
+
+两条链路最终都汇聚到 `ChatMediaWriteCapability`（CHAT 场景媒体写执行点）执行；差异仅在"确认发生在 dispatch 前（Tier A）还是依赖系统授权（Tier B）"。
+
 ---
 
 ## 3. 核心组件设计

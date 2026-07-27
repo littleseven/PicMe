@@ -15,8 +15,6 @@ import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.local.llm.LlmChatRequest
-import com.mamba.picme.agent.core.local.llm.LlmChatResponse
-import com.mamba.picme.agent.core.local.llm.StreamingChatResponseHandler
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.inference.local.parser.LocalCommandParser
@@ -443,13 +441,12 @@ class AgentOrchestrator private constructor(context: Context) {
         val preference = configurator.getInferencePreference()
         Logger.d(tag, "streamChat: preference=$preference, input='$input'")
 
-        // 产品决策（chat-only remote + ReAct）：chat 页走远程 ReAct（tool_calls），无论 preference。
-        // 替代旧 streamChatRemote（文本协议 + LocalCommandParser）——符合 ADR-005 远程协议分离。
-        // 访客（无 token）由 PICME_SERVER_DEFAULT 兜底，仍可聊天。
+        // 产品决策（chat-only remote + ReAct）：chat 页统一走远程 ReAct（tool_calls），无论 preference。
+        // 远程协议与本地 JSON 协议分离（ADR-005）；访客（无 token）由 PICME_SERVER_DEFAULT 兜底，仍可聊天。
         Logger.i(tag, "streamChat routing to Chat ReAct (preference=$preference)")
         val result = streamChatReAct(input, agentContext, onToken)
 
-        // 回写本轮到 MemoryManager：streamChatLocal/Remote 只经 buildContextMessages 读历史，
+        // 回写本轮到 MemoryManager：ReAct 链路只经 buildContextMessages 读历史，
         // 此前未回写 → MemoryManager 永远为空 → 多轮对话无记忆（每轮 promptTokens 不增长）。
         // 成功才追加 [user, assistant]；await 以保证下一轮 loadHistory 能看到本轮。
         // assistant 用自然语言摘要（summarizeCommandsForMemory）而非原始 JSON，让小模型能
@@ -494,166 +491,6 @@ class AgentOrchestrator private constructor(context: Context) {
             )
         } catch (e: Exception) {
             Logger.e(tag, "streamChatReAct error", e)
-            Result.failure(e)
-        }
-    }
-
-    private suspend fun streamChatLocal(
-        input: String,
-        agentContext: AgentContext,
-        onToken: (String) -> Unit
-    ): Result<StreamChatResult> {
-        // 确保模型已加载
-        if (!localLlmEngine.isLoaded) {
-            val loadResult = ensureModelLoaded(caller = "streamChatLocal")
-            if (loadResult.isFailure) {
-                return Result.failure(
-                    RuntimeException("本地模型未加载：${loadResult.exceptionOrNull()?.message ?: "未知错误"}")
-                )
-            }
-        }
-
-        // 使用 L2 命令 prompt，让模型能输出指令（如 navigate_to、switch_filter 等）
-        val capabilities = _capabilityRegistry.getCapabilitiesForCurrentScene()
-        val systemPrompt = promptBuilder.buildL2SystemPrompt(capabilities, agentContext)
-        val messages = memoryManager.buildContextMessages(
-            agentContext.memorySessionId, systemPrompt, input
-        )
-
-        val startTime = System.currentTimeMillis()
-
-        return try {
-            val result = suspendCoroutine<Result<StreamChatResult>> { continuation ->
-                localLlmEngine.chat(
-                    LlmChatRequest(messages = messages),
-                    object : StreamingChatResponseHandler {
-                        private val accumulatedText = StringBuilder()
-
-                        override fun onPartialResponse(partialResponse: String) {
-                            accumulatedText.append(partialResponse)
-                            onToken(partialResponse)
-                        }
-
-                        override fun onCompleteResponse(completeResponse: LlmChatResponse) {
-                            val latencyMs = System.currentTimeMillis() - startTime
-                            val metrics = completeResponse.metadata
-                            Logger.d(tag, "streamChatLocal OK latency=${latencyMs}ms")
-                            continuation.resume(
-                                Result.success(
-                                    StreamChatResult(
-                                        fullResponse = completeResponse.aiMessage.text(),
-                                        metrics = StreamMetrics(
-                                            latencyMs = latencyMs,
-                                            promptTokens = metrics?.promptTokens,
-                                            completionTokens = metrics?.completionTokens
-                                        )
-                                    )
-                                )
-                            )
-                        }
-
-                        override fun onError(error: Throwable) {
-                            val latencyMs = System.currentTimeMillis() - startTime
-                            Logger.e(tag, "streamChatLocal ERR latency=${latencyMs}ms", error)
-                            continuation.resume(Result.failure(error))
-                        }
-                    }
-                )
-            }
-            // 流式完成后，从响应文本中解析命令
-            result.map { streamResult ->
-                val commands = LocalCommandParser.parseL2BatchResponse(
-                    streamResult.fullResponse, agentContext
-                )
-                Logger.d(tag, "streamChatLocal: parsed ${commands.size} commands from response")
-                streamResult.copy(commands = commands)
-            }
-        } catch (e: Exception) {
-            Logger.e(tag, "streamChatLocal setup failed", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * 远程聊天（同步调用，非 SSE 流式）
-     *
-     * 通过 OpenAI 兼容 API 进行同步推理，完整响应一次性返回。
-     * 使用同步 [com.mamba.model.chat.ChatModel] 而非流式模型，
-     * 因为 SCF AI Gateway 等代理网关不支持 SSE 流式传输，会直接关闭连接。
-     *
-     * 为保持与 [streamChatLocal] 一致的接口，将完整响应文本通过 [onToken] 一次性回调。
-     *
-     * @param input 用户输入
-     * @param agentContext Agent 上下文
-     * @param onToken 收到响应文本时回调（一次性返回完整文本）
-     * @return 流式结果
-     */
-    private suspend fun streamChatRemote(
-        input: String,
-        agentContext: AgentContext,
-        onToken: (String) -> Unit
-    ): Result<StreamChatResult> {
-        val remoteConfig = resolveRemoteConfig()
-        Logger.d(tag, "streamChatRemote: model=${remoteConfig.modelId}, baseUrl=${remoteConfig.baseUrl.take(40)}")
-
-        val capabilities = _capabilityRegistry.getCapabilitiesForCurrentScene()
-        val systemPrompt = promptBuilder.buildL2SystemPrompt(capabilities, agentContext)
-        Logger.i(
-            tag,
-            "streamChatRemote prompt: hasMultiTurnRule=${systemPrompt.contains("多轮找图硬规则")} " +
-                "recentSnaps=${agentContext.recentSearchResults.size} " +
-                "snapQueries=[${agentContext.recentSearchResults.joinToString(",") { snap -> snap.query }}]"
-        )
-        val messages = memoryManager.buildContextMessages(
-            agentContext.memorySessionId, systemPrompt, input
-        )
-
-        val startTime = System.currentTimeMillis()
-
-        return try {
-            // ChatModel.chat() 是阻塞网络调用，必须在 IO 线程执行
-            val response = withContext(Dispatchers.IO) {
-                val chatModel = configurator.createRemoteChatModel(remoteConfig)
-                chatModel.chat(messages)
-            }
-            val latencyMs = System.currentTimeMillis() - startTime
-            val responseText = response.aiMessage().text()
-            if (responseText.isNullOrBlank()) {
-                val reasoning = response.aiMessage().thinking()
-                Logger.w(
-                    tag,
-                    "streamChatRemote returned empty content (reasoning=${reasoning != null}), " +
-                        "latency=${latencyMs}ms"
-                )
-                throw IllegalStateException(
-                    "Remote model returned empty response content" +
-                        if (reasoning != null) " (only reasoning content present)" else ""
-                )
-            }
-            // 一次性回调完整响应
-            onToken(responseText)
-            val tokenUsage = response.tokenUsage()
-            val promptTokens = tokenUsage?.inputTokenCount()?.toLong()
-            val completionTokens = tokenUsage?.outputTokenCount()?.toLong()
-            Logger.d(tag, "streamChatRemote OK latency=${latencyMs}ms, " +
-                "responseLen=${responseText.length}, promptTokens=$promptTokens, completionTokens=$completionTokens")
-
-            val result = StreamChatResult(
-                fullResponse = responseText,
-                metrics = StreamMetrics(
-                    latencyMs = latencyMs,
-                    promptTokens = promptTokens,
-                    completionTokens = completionTokens
-                )
-            )
-            val commands = LocalCommandParser.parseL2BatchResponse(
-                result.fullResponse, agentContext
-            )
-            Logger.d(tag, "streamChatRemote: parsed ${commands.size} commands from response")
-            Result.success(result.copy(commands = commands))
-        } catch (e: Exception) {
-            val latencyMs = System.currentTimeMillis() - startTime
-            Logger.e(tag, "streamChatRemote ERR latency=${latencyMs}ms", e)
             Result.failure(e)
         }
     }
@@ -1098,7 +935,7 @@ class AgentOrchestrator private constructor(context: Context) {
      * chat 远程推理（ReAct tool_calls 循环）。
      *
      * 用 [AgentConfigurator.getChatAgent]（ChatToolService，chat 场域能力工具）执行多轮
-     * tool 调用，完成后返回自然语言 summary。替代旧 streamChatRemote 的「文本协议 + LocalCommandParser」。
+     * tool 调用，完成后返回自然语言 summary。
      */
     suspend fun processChatReAct(
         input: String,

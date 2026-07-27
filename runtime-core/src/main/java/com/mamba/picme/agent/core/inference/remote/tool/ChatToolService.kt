@@ -28,6 +28,10 @@ import java.util.concurrent.TimeUnit
  * 每个 @Tool 是 [dispatchCommand] 的薄封装：命令统一进 [CapabilityRegistry]（scene=CHAT），
  * 复用既有 chat Capability（ChatSearchCapability/ChatGallerySummaryCapability/ChatRunScriptCapability 等）。
  *
+ * 路由定位见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` §2.4（chat ReAct 入口）。与
+ * [PoLangToolService] 同名但描述不同的工具（如 `run_gallery_script`）是按 agent 故意差异化，
+ * 非漂移；逐字节相同的描述（如 `draw_chart`）抽到 [GalleryToolDocs] 共享。
+ *
  * **重要**：@Tool 参数**不能用 Kotlin 默认值**——langchain4j 用 Java 反射调用，Kotlin 默认参数会
  * 编译出 DefaultConstructorMarker 合成方法，导致反射"Wrong number of arguments"。所有参数必填，
  * 可选语义用空串/默认值由调用方传入（@P 描述说明）。
@@ -85,6 +89,9 @@ class ChatToolService private constructor() {
         @P(name = "media_id", value = "媒体 id/URI，无则空串") mediaId: String
     ): String = dispatchCommand(AgentCommand.ViewMedia(mediaId = mediaId.ifBlank { null }))
 
+    // 写操作确认两层策略·Tier B：顶层 @Tool 直调写操作不经应用内确认（区别于 JS
+    // capability.dispatch 的 Tier A——后者经 CapabilityDispatchHandler + WriteConfirmationController
+    // 带预览确认）。删除由系统 MediaStore 授权框兜底、ReAct 循环对用户透明。分级 SSOT 见 CommandRisk。
     @Tool(name = "delete_media", value = ["删除媒体。media_ids 为 id 列表逗号分隔，无则空串。"])
     fun deleteMedia(
         @P(name = "media_ids", value = "媒体 id 列表逗号分隔，无则空串") mediaIds: String
@@ -205,10 +212,7 @@ class ChatToolService private constructor() {
         @P(name = "code", value = "JS 源码；用 await bridge.callAsync 取数据（gallery.summary/tags/timeline/query/stats_by_tag/intersect, media.meta/batch_meta, face.cluster, tag.audit）；写操作（删除/收藏/选中）用 await bridge.callAsync('capability.dispatch',{method,params})（会弹窗等用户确认，需 try/catch 处理拒绝），return 结果对象") code: String
     ): String = dispatchCommand(AgentCommand.ExecuteScript(code = code))
 
-    @Tool(
-        name = "draw_chart",
-        value = ["画出图表并渲染成真实图片展示给用户——这是展示图表的唯一方式，严禁用文字、Markdown 表格、ASCII/emoji 画图（文字画的图用户看不到效果）。先用 run_gallery_script 拿到数据，再把数据传给本工具画图。"]
-    )
+    @Tool(name = "draw_chart", value = [GalleryToolDocs.DRAW_CHART])
     fun drawChart(
         @P(name = "type", value = "图表类型：bar(柱状)/line(折线)/pie(饼图)") type: String,
         @P(name = "title", value = "图表标题") title: String,

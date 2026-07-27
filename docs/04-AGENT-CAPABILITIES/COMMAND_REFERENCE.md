@@ -24,6 +24,7 @@
 7. [导航命令](#7-导航命令)
 8. [系统/外部 App 命令](#8-系统外部-app-命令)
 9. [通用命令](#9-通用命令)
+10. [相册分析命令（CHAT 场景）](#10-相册分析命令chat-场景)
 
 ---
 
@@ -413,6 +414,41 @@ Agent: 你想调高哪个参数？磨皮、美白还是其他？
 | 不支持的命令 | "抱歉，我还不支持这个功能" |
 | 参数超出范围 | "磨皮最高 100，你设了多少？" |
 | 上下文缺失 | "请先选择一张照片" |
+
+---
+
+## 10. 相册分析命令（CHAT 场景）
+
+> 这两个命令仅由**远程 chat ReAct agent**（`ChatToolService`）使用，本地小模型不暴露（见 `AGENT_ARCHITECTURE.md` §2.4）。`run_gallery_script` 在端侧 QuickJS 沙箱执行 JS，是相册盘点/统计/组合计算的入口；`draw_chart` 把统计数据渲染成真实图片。JS 沙箱的 handler 表面见 `CAPABILITY_REGISTRY.md` §1.2。
+
+### 10.1 执行脚本 `run_gallery_script`
+
+| 命令 | 参数 | 描述 |
+|------|------|------|
+| `run_gallery_script` | `code: String`（JS 源码） | 在端侧沙箱执行 JS 做相册盘点/统计；取数只读、数据不出端；写操作走 `capability.dispatch` 经用户确认 |
+
+**JS 内取数**（只读，`await bridge.callAsync(name, args)`）：`gallery.summary` / `gallery.query` / `gallery.tags` / `gallery.timeline` / `gallery.intersect` / `gallery.stats_by_tag` / `media.meta` / `media.batch_meta` / `face.cluster` / `tag.audit`。多个可 `Promise.all` 并发，JS 内组合计算后 `return` 结果对象回传 LLM。
+
+**JS 内写操作**（`await bridge.callAsync('capability.dispatch', {method, params})`，弹窗确认）：`delete_media` / `favorite_media` / `select_media` / `remember_fact` / `forget_fact` / `get_gallery_summary` / `recall_memory`。
+
+示例（盘点截图 + 批量删除）：
+
+```js
+var q = await bridge.callAsync('gallery.query', {label:'截图', limit:200});
+if (q.ids.length === 0) return {deleted:0};
+try {
+  var r = await bridge.callAsync('capability.dispatch', {method:'delete_media', params:{ids:q.ids}});
+  return {deleted:q.total, result:r};
+} catch (e) { return {deleted:0, cancelled:true, reason:String(e)}; }
+```
+
+### 10.2 画图表 `draw_chart`
+
+| 命令 | 参数 | 描述 |
+|------|------|------|
+| `draw_chart` | `type: String`(bar/line/pie)、`title: String`、`labels: List<String>`、`values: List<Double>`、`unit: String?` | 端侧渲染柱/折/饼图成真实图片插入聊天；展示图表的唯一方式，禁止文字/表格画图 |
+
+**标准流程**（严格三步）：① `run_gallery_script` 取数（只调 1 次，不分段/不重复）→ ② `draw_chart` 画图 → ③ 一句话总结。类型选择：时间趋势 → line/bar；占比/分布 → pie；数量对比 → bar。详见 `AgentConfigurator.chatSystemPrompt`。
 
 ---
 
