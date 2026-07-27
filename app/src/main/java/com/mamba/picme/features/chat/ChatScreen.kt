@@ -1642,7 +1642,9 @@ data class ChatMessageUi(
     /** 图文混排（USER_IMAGE_TEXT）时携带的图片 uri；其余类型为 null。 */
     val imageUri: String? = null,
     /** CHART 类型：端侧 JS 生成的 SVG 字符串，由 AndroidSVG 渲染成图。 */
-    val chartSvg: String? = null
+    val chartSvg: String? = null,
+    /** agent_image / agent_edit_result 是否已保存到相册（来自 metadata.saved）。 */
+    val imageSaved: Boolean = false
 )
 
 enum class ChatMessageType {

@@ -379,6 +379,8 @@ class ChatViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        // 冷启对账：修复缺失/孤儿文件、prune 终态行、重新约束 LRU 容量
+        viewModelScope.launch { runCatching { chatImageStore.reconcileColdStart() } }
         // chat ReAct tool 双通道：collect ChatToolService.uiActions → 渲染搜索卡片/编辑跳转
         viewModelScope.launch {
             ChatToolService.getInstance().uiActions.collect { action ->
@@ -600,6 +602,7 @@ class ChatViewModel(
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
             try {
+                chatImageStore.evictForSession(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.deleteSession(sessionId)
                 if (_currentSessionId.value == sessionId) {
@@ -611,6 +614,25 @@ class ChatViewModel(
                 Logger.e(TAG, "Failed to delete session", e)
             }
         }
+    }
+
+    /**
+     * 把指定编辑/优化结果消息保存进相册。成功后消息 imageUri 重指向 content://，UI 经 Flow 自动刷新。
+     * @param onResult 成功/失败回调，供 UI 切换按钮状态 / 提示。
+     */
+    fun saveEditResult(messageId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val res = saveChatEditResultUseCase.execute(messageId)
+            if (res.isFailure) Logger.w(TAG, "saveEditResult failed: ${res.exceptionOrNull()}")
+            onResult(res.isSuccess)
+        }
+    }
+
+    /** 打开编辑结果预览时刷新 LRU recency（仅对私有 file:// 路径有意义）。 */
+    fun touchEditImage(imageUri: String?) {
+        if (imageUri == null || !imageUri.startsWith("file://")) return
+        val path = imageUri.removePrefix("file://")
+        viewModelScope.launch { runCatching { chatImageStore.touch(path) } }
     }
 
     /**
@@ -1673,6 +1695,7 @@ class ChatViewModel(
     ) {
         val metadata = JSONObject().apply {
             put("imageUri", imageUri)
+            put("saved", false)
             performance?.let { p ->
                 put("prompt_len", p.promptLen)
                 put("decode_len", p.decodeLen)
@@ -1713,6 +1736,7 @@ class ChatViewModel(
     ) {
         val metadata = JSONObject().apply {
             put("imageUri", imageUri)
+            put("saved", false)
             put("explanation", explanation)
             put("suggestions", JSONArray(listOf(
                 context.getString(R.string.chat_edit_suggestion_brighter),
@@ -2103,6 +2127,8 @@ class ChatViewModel(
             content = content,
             chartSvg = if (type == "chart") content else null,
             imageUri = if (type == "user_image_text" || type == "agent_image" || type == "agent_edit_result") metadata?.let { m -> parseImageUri(m) } else null,
+            imageSaved = (type == "agent_image" || type == "agent_edit_result") &&
+                (metadata?.let { runCatching { org.json.JSONObject(it).optBoolean("saved", false) }.getOrDefault(false) } ?: false),
             modelUsed = modelUsed,
             timestamp = timestamp,
             performance = performance,
