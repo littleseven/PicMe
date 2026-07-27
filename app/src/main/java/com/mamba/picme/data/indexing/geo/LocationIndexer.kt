@@ -22,11 +22,15 @@ import kotlinx.coroutines.withContext
  *
  * 全程端侧零网络(离线质心库);不跑 OCR,故轻量、不发热。
  *
- * **批量事务写入**:一批 BATCH 条 EXIF 读取(纯读文件 + 逆地理计算)攒齐后,在一个
- * `withTransaction` 内统一写 [MediaDao.updateLocation]。Room 失效追踪只在事务提交时
- * 通知一次,相册 `groupedMedia` Flow(基于 `SELECT * FROM media_assets` 全表)每批只
- * 重算 1 次,而非逐条触发的 BATCH 次——避免 10000 张图引发 10000 次全表重查重分组
- * (UI 卡顿 + 发热)。层级表(location_index)写入不触发相册 Flow,保持逐条。
+ * **EXIF GPS 读取**:用 [ExifInterface] 标准库。**前提**:AndroidManifest 必须声明
+ * `ACCESS_MEDIA_LOCATION`,否则 Android 10+ 系统对 app 读取 MediaStore 图片时 redact
+ * EXIF GPS(数据区清零),任何库都读不到坐标。
+ *
+ * **批量事务写入**:一批 BATCH 条 EXIF 读取攒齐后,在一个 `withTransaction` 内统一写
+ * [com.mamba.picme.data.local.MediaDao.updateLocation]。Room 失效追踪只在事务提交时
+ * 通知一次,相册 `groupedMedia` Flow(基于全表 SELECT)每批只重算 1 次,而非逐条触发
+ * 的 BATCH 次——避免 10000 张图引发 10000 次全表重查重分组(UI 卡顿 + 发热)。层级表
+ * (location_index)写入不触发相册 Flow,保持逐条。
  */
 class LocationIndexer(
     private val context: Context,
