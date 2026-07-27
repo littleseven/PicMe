@@ -24,6 +24,12 @@ import java.lang.ref.WeakReference
  * 与 GalleryCapability 的 favorite 先例一致）。
  *
  * 注意：share_media 不在本 Capability（ChatToolService 已有通路，避免重复注册冲突）。
+ *
+ * **写操作确认两层策略的执行汇聚点**：本 Capability 是 CHAT 场景媒体写的唯一执行体，两条触发
+ * 链路都汇此——(A) JS `capability.dispatch` 经 [com.mamba.picme.features.chat.js.CapabilityDispatchHandler]
+ * 在 dispatch 前完成应用内确认；(B) 顶层 `ChatToolService.delete_media` 等 @Tool 直调，依赖系统
+ * MediaStore 授权框。差异由 [com.mamba.picme.agent.core.model.command.CommandRisk] 统一分级、
+ * 是刻意设计（见 CommandRisk 与 AGENT_ARCHITECTURE.md）。本类只管执行，不重复确认。
  */
 class ChatMediaWriteCapability private constructor() : BaseCapability() {
 

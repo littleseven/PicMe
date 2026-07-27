@@ -4,7 +4,7 @@
     "name": "Sherpa-ONNX Zipformer 中英双语",
     "description": "ONNX 流式语音识别模型，支持中文+英文，ONNX Runtime 端侧实时推理",
     "type": "ASR",
-    "size": 280000000,
+    "size": 198270793,
     "sources": {
       "ModelScope": "budaoshou/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20"
     },
@@ -19,9 +19,9 @@
   {
     "id": "sherpa-onnx-kws-zipformer-wenetspeech",
     "name": "Sherpa-ONNX KWS 唤醒词",
-    "description": "轻量级关键词识别模型，~14MB，支持自定义唤醒词（always-on 超低功耗）",
+    "description": "轻量级关键词识别模型，~5MB，支持自定义唤醒词（always-on 超低功耗）",
     "type": "KWS",
-    "size": 14000000,
+    "size": 5055221,
     "sources": {
       "ModelScope": "budaoshou/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
     },
@@ -39,7 +39,7 @@
     "name": "Qwen3.5-2B-MNN",
     "description": "阿里通义千问 3.5 2B 多模态版，支持图片理解与推理，适合高端设备本地运行",
     "type": "LLM",
-    "size": 1320000000,
+    "size": 1386690288,
     "sources": {
       "ModelScope": "budaoshou/Qwen3.5-2B-MNN"
     },
@@ -60,7 +60,7 @@
     "name": "Qwen3-VL-2B-Instruct-MNN",
     "description": "阿里通义千问 Qwen3-VL-2B-Instruct 多模态版（MNN 4bit 量化），Vision-Language 能力更强，作为 Florence-2 的备选打标模型",
     "type": "LLM",
-    "size": 1475226821,
+    "size": 1475225454,
     "sources": {
       "ModelScope": "MNN/Qwen3-VL-2B-Instruct-MNN"
     },
@@ -95,7 +95,7 @@
     "name": "2D106 Landmark",
     "description": "2D106 人脸关键点模型 (MNN 格式)，用于 106 点面部关键点检测，GPU 加速",
     "type": "FACE_DETECTION",
-    "size": 4976096,
+    "size": 4975640,
     "sources": {
       "ModelScope": "budaoshou/InsightFace-2D106Det-MNN"
     },
@@ -110,7 +110,7 @@
     "name": "RetinaFace Det500M",
     "description": "RetinaFace-MobileNet0.25 人脸检测模型 (MNN 格式)，用于 ROI 区域检测，GPU 加速",
     "type": "FACE_DETECTION",
-    "size": 1263560,
+    "size": 1285612,
     "sources": {
       "ModelScope": "budaoshou/InsightFace-Det500M-MNN"
     },
@@ -139,7 +139,7 @@
     "name": "MobileCLIP-S2-ONNX-FP32",
     "description": "MobileCLIP-S2 多模态语义编码模型 (ONNX fp32 格式)，512维图像/文本embedding，用于语义搜索。fp16 在 ONNX Runtime Android CPU 上会出现 NaN/Inf，因此使用 fp32",
     "type": "VISION",
-    "size": 397000000,
+    "size": 399139066,
     "sources": {
       "ModelScope": "budaoshou/MobileCLIP-ONNX"
     },
@@ -153,9 +153,9 @@
   {
     "id": "opus-mt-zh-en",
     "name": "OPUS-MT 中英翻译",
-    "description": "Helsinki-NLP OPUS-MT 中文→英文翻译模型 (ONNX INT8 量化)，~70MB，用于语义搜索时中文查询翻译",
+    "description": "Helsinki-NLP OPUS-MT 中文→英文翻译模型 (ONNX INT8 量化)，~233MB，用于语义搜索时中文查询翻译",
     "type": "TRANSLATION",
-    "size": 70000000,
+    "size": 244426169,
     "sources": {
       "ModelScope": "budaoshou/OPUS-MT-Zh-En-ONNX-INT8"
     },
@@ -175,7 +175,7 @@
     "name": "OPUS-MT 英中翻译",
     "description": "Helsinki-NLP OPUS-MT 英文→中文翻译模型 (ONNX INT8 量化)，~443MB，用于英文打标 summary 汉化（labelsZh.summary）",
     "type": "TRANSLATION",
-    "size": 443000000,
+    "size": 443347908,
     "sources": {
       "ModelScope": "budaoshou/OPUS-MT-En-Zh-ONNX-INT8"
     },
@@ -193,9 +193,9 @@
   {
     "id": "florence2_base",
     "name": "Florence-2-Base 打标",
-    "description": "Microsoft Florence-2-base (231M) 视觉语言模型，ONNX INT8 量化，专为结构化物体检测+图像描述设计，~260MB",
+    "description": "Microsoft Florence-2-base (231M) 视觉语言模型，ONNX INT8 量化，专为结构化物体检测+图像描述设计，~266MB",
     "type": "VISION_LLM",
-    "size": 262000000,
+    "size": 278936295,
     "sources": {
       "ModelScope": "budaoshou/Florence-2-base-ONNX"
     },

@@ -373,6 +373,10 @@ class LocalPromptBuilder(
      *
      * 剔除所有相机控制命令、滤镜语义映射、相机示例等冗余信息，
      * 只保留聊天页真正需要的：搜索/细化、text_reply、导航、系统控制、TAG 扫描、AI 优化。
+     *
+     * **不变式**：此处刻意不列出 `run_gallery_script` / `draw_chart` 等 JS/图表能力——它们仅由
+     * 远程 chat ReAct agent（@Tool）暴露。端侧 2B 小模型无法可靠生成 JS，列出去会诱导噪声输出。
+     * 由 [LocalPromptBuilderJsIsolationTest] 锁死。详见 AGENT_ARCHITECTURE.md 路由策略。
      */
     private fun buildChatL2StaticPrompt(): String {
         val (last6MStart, last6MEnd) = timeRangeMsForLastNMonths(6)

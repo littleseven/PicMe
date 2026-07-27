@@ -33,9 +33,15 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * PoLang 应用工具服务。
+ * PoLang 应用工具服务（飞书远程控制 RPA）。
  *
  * 使用 @Tool 注解定义所有可被远程 LLM 调用的工具，直接通过方法签名生成 ToolSpecification。
+ * 暴露 UI 自动化（click/scroll/input，走 Accessibility，不进 CapabilityRegistry）+ 相机控制 +
+ * 部分相册语义工具（后者经 [dispatchCommand] 回 CapabilityRegistry）。
+ *
+ * 路由定位见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` §2.4（飞书 RPA 入口）。与
+ * [ChatToolService] 同名但描述不同的工具是按 agent 故意差异化，非漂移；逐字节相同的描述（如
+ * `draw_chart`）抽到 [GalleryToolDocs] 共享。
  */
 class PoLangToolService(
     private val windowManager: WindowManager
@@ -422,10 +428,7 @@ class PoLangToolService(
         return dispatchCommand(AgentCommand.ExecuteScript(code = code))
     }
 
-    @Tool(
-        name = "draw_chart",
-        value = ["画出图表并渲染成真实图片展示给用户——这是展示图表的唯一方式，严禁用文字、Markdown 表格、ASCII/emoji 画图（文字画的图用户看不到效果）。先用 run_gallery_script 拿到数据，再把数据传给本工具画图。"]
-    )
+    @Tool(name = "draw_chart", value = [GalleryToolDocs.DRAW_CHART])
     fun drawChart(
         @P(name = "type", value = "图表类型：bar(柱状)/line(折线)/pie(饼图)") type: String,
         @P(name = "title", value = "图表标题") title: String,

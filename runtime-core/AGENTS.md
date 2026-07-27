@@ -138,6 +138,14 @@
 > - 全部取数 handler 为 async（JS 侧 `await bridge.callAsync`；对 async handler 调 `bridge.call` 抛 `HANDLER_NOT_ASYNC_CALLABLE`）
 > - `capability.dispatch` 写通路的风险分级表在 `model/command/CommandRisk.kt`（READ_ONLY / REVERSIBLE_WRITE / DESTRUCTIVE）
 > - 完整规格见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
+>
+> **2026-07-27 能力访问链路梳理（tool_call 为主，JS 为内部实现）**：
+> - 删除死代码 `AgentOrchestrator.streamChatLocal` / `streamChatRemote`（CHAT 已统一走 `streamChatReAct`，二者无调用方）；同步移除 `StreamingChatResponseHandler` / `LlmChatResponse` 孤儿 import 与 3 处过期注释
+> - 上述「2026-07-20 远程模型 reasoning_content 空内容防护」原位于 `streamChatRemote`，随其删除；chat 远程链路现为 ReAct（`processChatReAct`），错误由 `RemoteReActAgent` 回调处理
+> - 锁死不变式：本地小模型 L2 prompt 不得暴露 `run_gallery_script` / `draw_chart`（端侧 2B 无法可靠生成 JS）——`LocalPromptBuilderJsIsolationTest`
+> - 写操作确认两层策略（Tier A JS `capability.dispatch` 经应用内确认 / Tier B 顶层 `@Tool` 经系统授权）写入 `CommandRisk` SSOT 与 `ChatMediaWriteCapability`/`ChatToolService` 交叉引用
+> - `draw_chart` @Tool 描述（两 ToolService 逐字节相同）抽到 `GalleryToolDocs` 共享；其余同名工具按 agent 故意差异化
+> - 路由心智模型与 JS 能力表面映射见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` §2.4 与 `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md` §1.2
 
 ## 设计原则
 

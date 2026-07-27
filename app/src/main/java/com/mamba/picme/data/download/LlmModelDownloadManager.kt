@@ -727,8 +727,10 @@ fun isModelDownloaded(modelId: String): Boolean {
             ?: config.sources["modelscope"]
             ?: throw IOException("ModelScope source not available for $modelId")
         val fileInfos = fetchModelFileInfosFromModelScope(repoPath)
+        // 仅下载 config.files 声明的文件（白名单），与 downloadModel 路径保持一致
+        val declaredFiles = config.files.takeIf { it.isNotEmpty() }?.toSet()
         val allFileInfos = if (fileInfos.isNotEmpty()) {
-            fileInfos.filter { !it.name.startsWith(".") }
+            fileInfos.filter { !it.name.startsWith(".") && (declaredFiles == null || it.name in declaredFiles) }
         } else {
             (config.files.takeIf { it.isNotEmpty() } ?: getModelFiles(modelId))
                 .map { ModelFileInfo(name = it, size = 0, sha256 = null) }
@@ -914,11 +916,15 @@ fun isModelDownloaded(modelId: String): Boolean {
 
         // 从 API 获取的文件列表已经是完整列表（包含必需和可选文件）
         // 确定每个文件是否是可选文件
+        // 仅下载 config.files 声明的文件（白名单），避免拉取 README.md / configuration.json
+        // 及冗余权重（如 KWS 仓库同时含 int8 与非 int8 的 .onnx，否则会多下 ~12MB）
+        val declaredFiles = config.files.takeIf { it.isNotEmpty() }?.toSet()
         val allFileInfos = fileInfos.map { fileInfo ->
             fileInfo to (fileInfo.name in LLM_MODEL_OPTIONAL_FILES)
         }.filter { (fileInfo, _) ->
             // 排除隐藏文件（如 .gitattributes）
-            !fileInfo.name.startsWith(".")
+            !fileInfo.name.startsWith(".") &&
+                (declaredFiles == null || fileInfo.name in declaredFiles)
         }.map { it.first }
 
         if (allFileInfos.isEmpty()) {
