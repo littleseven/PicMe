@@ -59,6 +59,7 @@ import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.AddComment
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ImageNotSupported
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.KeyboardVoice
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -195,7 +196,7 @@ fun ChatScreen(
 
     var isSidebarOpen by remember { mutableStateOf(false) }
     // 图片预览状态
-    var previewImageUri by remember { mutableStateOf<Uri?>(null) }
+    var previewImage by remember { mutableStateOf<PreviewImageState?>(null) }
     var previewChartSvg by remember { mutableStateOf<String?>(null) }
     // 相册搜索结果预览状态
     var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
@@ -361,10 +362,10 @@ fun ChatScreen(
     // 预览打开时拦截系统返回键：关闭预览并回到 chat 页（保留横滑卡片），
     // 而非直接 pop 到相册（Gallery 为 startDestination，栈底为 [Gallery, Chat]）。
     // 与 GalleryScreen 的预览 BackHandler 行为对齐。
-    BackHandler(enabled = previewAssets.isNotEmpty() || previewImageUri != null || previewChartSvg != null) {
+    BackHandler(enabled = previewAssets.isNotEmpty() || previewImage != null || previewChartSvg != null) {
         when {
             previewAssets.isNotEmpty() -> previewAssets = emptyList()
-            previewImageUri != null -> previewImageUri = null
+            previewImage != null -> previewImage = null
             previewChartSvg != null -> previewChartSvg = null
         }
     }
@@ -408,7 +409,7 @@ fun ChatScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             // 预览（照片轮播 / 图片 / 图表全屏）打开时隐藏 chat 顶栏，让覆盖层占满整屏
-            if (previewAssets.isEmpty() && previewImageUri == null && previewChartSvg == null) {
+            if (previewAssets.isEmpty() && previewImage == null && previewChartSvg == null) {
                 ChatTopBar(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
@@ -470,7 +471,20 @@ fun ChatScreen(
                             } else {
                                 ChatMessageItem(
                                     message = message,
-                                    onImageClick = { imageUri -> previewImageUri = imageUri }
+                                    onImageClick = { msg ->
+                                        val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
+                                            msg.type == ChatMessageType.AGENT_EDIT_RESULT
+                                        if (isEdit) viewModel.touchEditImage(msg.imageUri)
+                                        val iu = Uri.parse(msg.imageUri ?: "")
+                                        val resolved = if (iu.scheme != null) iu
+                                            else java.io.File(msg.imageUri ?: "").toUri()
+                                        previewImage = PreviewImageState(
+                                            uri = resolved,
+                                            messageId = msg.id,
+                                            isEditableResult = isEdit,
+                                            isSaved = msg.imageSaved
+                                        )
+                                    }
                                 )
                             }
                         }
@@ -515,8 +529,14 @@ fun ChatScreen(
 
             // 图片全屏预览
             ImagePreviewOverlay(
-                imageUri = previewImageUri,
-                onDismiss = { previewImageUri = null }
+                state = previewImage,
+                onSave = { messageId, onDone ->
+                    viewModel.saveEditResult(messageId) { ok ->
+                        if (ok) previewImage = previewImage?.copy(isSaved = true)
+                        onDone(ok)
+                    }
+                },
+                onDismiss = { previewImage = null }
             )
 
             // 图表全屏预览
@@ -736,10 +756,38 @@ private fun ChatTopBar(
     }
 }
 
+/** LRU 已清理的编辑结果图占位：灰框 + 图标 + 「图片已过期·不可见」。 */
+@Composable
+private fun ExpiredImagePlaceholder(height: androidx.compose.ui.unit.Dp = 180.dp) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Rounded.ImageNotSupported,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(36.dp)
+            )
+            Text(
+                text = stringResource(R.string.chat_edit_image_expired),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+        }
+    }
+}
+
 @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：消息项多类型分支，抽分发器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit = {}) {
+private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi) -> Unit = {}) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
         message.type == ChatMessageType.USER_IMAGE_TEXT
@@ -796,12 +844,7 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                val iu = Uri.parse(message.imageUri)
-                                val resolvedUri = if (iu.scheme != null) iu
-                                    else java.io.File(message.imageUri).toUri()
-                                onImageClick(resolvedUri)
-                            }
+                            .clickable { onImageClick(message) }
                     )
                     Text(
                         text = message.content,
@@ -812,42 +855,40 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (Uri) -> Unit 
                     )
                 }
                 isImage -> {
-                    // 显示图片（可点击进入全屏预览）：宽度撑满气泡、高度按比例自适应、不裁切
-                    AsyncImage(
-                        model = message.imageUri ?: message.content,
-                        contentDescription = stringResource(R.string.photo),
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                val imgSrc = message.imageUri ?: message.content
-                                val uri = Uri.parse(imgSrc)
-                                val resolvedUri = if (uri.scheme != null) uri
-                                    else java.io.File(imgSrc).toUri()
-                                onImageClick(resolvedUri)
-                            }
-                    )
+                    // 显示图片（可点击进入全屏预览）；agent 生成的结果图过期则显示占位
+                    val imgSrc = message.imageUri ?: message.content
+                    if (message.type == ChatMessageType.AGENT_IMAGE && !chatImageIsLive(imgSrc)) {
+                        ExpiredImagePlaceholder()
+                    } else {
+                        AsyncImage(
+                            model = imgSrc,
+                            contentDescription = stringResource(R.string.photo),
+                            contentScale = ContentScale.FillWidth,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onImageClick(message) }
+                        )
+                    }
                 }
                 isEditResult -> {
-                    // 对话式编辑结果：图片 + 说明文字
+                    // 对话式编辑结果：图片 + 说明文字；结果图过期则显示占位
                     val imageUri = message.imageUri.orEmpty()
                     if (imageUri.isNotBlank()) {
-                        AsyncImage(
-                            model = imageUri,
-                            contentDescription = stringResource(R.string.photo),
-                            contentScale = ContentScale.FillHeight,
-                            modifier = Modifier
-                                .height(200.dp)
-                                .widthIn(max = 260.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    val uri = Uri.parse(imageUri)
-                                    val resolvedUri = if (uri.scheme != null) uri
-                                        else java.io.File(imageUri).toUri()
-                                    onImageClick(resolvedUri)
-                                }
-                        )
+                        if (!chatImageIsLive(imageUri)) {
+                            ExpiredImagePlaceholder(height = 200.dp)
+                        } else {
+                            AsyncImage(
+                                model = imageUri,
+                                contentDescription = stringResource(R.string.photo),
+                                contentScale = ContentScale.FillHeight,
+                                modifier = Modifier
+                                    .height(200.dp)
+                                    .widthIn(max = 260.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { onImageClick(message) }
+                            )
+                        }
                     }
                     if (message.content.isNotBlank()) {
                         Text(
@@ -1628,6 +1669,14 @@ data class LlmPerformance(
     val usedSandbox: Boolean = false
 )
 
+/** 全屏预览态：携带保存所需的 messageId / 类型 / 已保存标记。 */
+data class PreviewImageState(
+    val uri: Uri,
+    val messageId: String,
+    val isEditableResult: Boolean, // agent_image / agent_edit_result 才显示保存按钮
+    val isSaved: Boolean
+)
+
 /**
  * 聊天消息 UI 数据类
  */
@@ -1765,15 +1814,18 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 }
 
 /**
- * 图片全屏预览浮层
+ * 图片全屏预览浮层：对编辑/优化结果额外提供「保存到相册」按钮。
  */
 @Composable
 private fun ImagePreviewOverlay(
-    imageUri: Uri?,
+    state: PreviewImageState?,
+    onSave: (messageId: String, onDone: (Boolean) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val expiredToast = stringResource(R.string.chat_edit_save_expired_failed)
     AnimatedVisibility(
-        visible = imageUri != null,
+        visible = state != null,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
@@ -1789,7 +1841,7 @@ private fun ImagePreviewOverlay(
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
-                model = imageUri,
+                model = state?.uri,
                 contentDescription = stringResource(R.string.cd_image_preview),
                 modifier = Modifier
                     .fillMaxSize()
@@ -1797,7 +1849,7 @@ private fun ImagePreviewOverlay(
                 contentScale = ContentScale.Fit
             )
 
-            // 关闭按钮
+            // 关闭按钮（右上）
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
@@ -1814,6 +1866,31 @@ private fun ImagePreviewOverlay(
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
+            }
+
+            // 保存按钮（仅编辑/优化结果，底部居中）
+            if (state?.isEditableResult == true) {
+                val isSaved = state.isSaved
+                Button(
+                    onClick = {
+                        if (!isSaved) {
+                            onSave(state.messageId) { ok ->
+                                if (!ok) Toast.makeText(context, expiredToast, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    enabled = !isSaved,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (isSaved) R.string.chat_edit_saved_to_gallery else R.string.chat_edit_save_to_gallery
+                        )
+                    )
+                }
             }
         }
     }
