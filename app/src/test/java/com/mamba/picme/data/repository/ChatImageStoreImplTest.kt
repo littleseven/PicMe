@@ -135,19 +135,70 @@ class ChatImageStoreImplTest {
         assertFalse(File(path).exists())
     }
 
+    @Test
+    fun `reconcileColdStart prunes ACTIVE rows whose file is missing`() = runTest {
+        val store = store()
+        val live = absPath("live")
+        val gone = absPath("gone")
+        seed(live, lastAccessedAt = 100)
+        seed(gone, lastAccessedAt = 200)
+        File(gone).delete() // 文件被外部删了
+        store.reconcileColdStart()
+        assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(live)?.status)
+        // 文件缺失的 ACTIVE 行：step1 标 EVICTED，step3 prune 终态行 → 行被清理
+        assertNull(dao.getByPath(gone))
+    }
+
+    @Test
+    fun `reconcileColdStart deletes orphan files not tracked by any row`() = runTest {
+        val store = store()
+        val tracked = absPath("tracked")
+        seed(tracked, lastAccessedAt = 100)
+        val orphan = File(cacheDir, "orphan.jpg").apply { writeBytes(ByteArray(10)) }
+        assertTrue(orphan.exists())
+        store.reconcileColdStart()
+        assertFalse(orphan.exists())
+        assertTrue(File(tracked).exists())
+    }
+
+    @Test
+    fun `reconcileColdStart prunes terminal rows and deletes leftover SAVED files`() = runTest {
+        val store = store()
+        val savedLeftover = absPath("savedLeftover")
+        seed(savedLeftover, lastAccessedAt = 100)
+        dao.updateStatus(savedLeftover, ChatImageStore.Status.SAVED) // 行 SAVED 但文件还在
+        store.reconcileColdStart()
+        assertFalse(File(savedLeftover).exists())
+        assertNull(dao.getByPath(savedLeftover)) // 终态行被 prune
+    }
+
+    @Test
+    fun `evictForSession deletes ACTIVE files of the session`() = runTest {
+        val store = store()
+        val s1 = absPath("s1")
+        val s2 = absPath("s2")
+        dao.upsert(row(s1, "sessA", 1))
+        dao.upsert(row(s2, "sessB", 1))
+        store.evictForSession("sessA")
+        assertEquals(ChatImageStore.Status.EVICTED, dao.getByPath(s1)?.status)
+        assertFalse(File(s1).exists())
+        assertEquals(ChatImageStore.Status.ACTIVE, dao.getByPath(s2)?.status)
+    }
+
     private fun absPath(name: String): String =
         File(cacheDir, "$name.jpg").apply { writeBytes(ByteArray(50)) }.absolutePath
 
     private suspend fun seed(path: String, lastAccessedAt: Long, size: Long = 50) {
-        dao.upsert(
-            com.mamba.picme.data.local.entity.ChatImageCacheEntity(
-                filePath = path,
-                sessionId = "default",
-                createdAt = lastAccessedAt,
-                lastAccessedAt = lastAccessedAt,
-                sizeBytes = size,
-                status = ChatImageStore.Status.ACTIVE
-            )
-        )
+        dao.upsert(row(path, "default", lastAccessedAt, size))
     }
+
+    private fun row(path: String, sessionId: String, lastAccessedAt: Long, size: Long = 50) =
+        com.mamba.picme.data.local.entity.ChatImageCacheEntity(
+            filePath = path,
+            sessionId = sessionId,
+            createdAt = lastAccessedAt,
+            lastAccessedAt = lastAccessedAt,
+            sizeBytes = size,
+            status = ChatImageStore.Status.ACTIVE
+        )
 }

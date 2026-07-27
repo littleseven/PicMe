@@ -94,12 +94,33 @@ class ChatImageStoreImpl(
         }
     }
 
-    override suspend fun reconcileColdStart() {
-        // 见 Task 4 实现
+    override suspend fun reconcileColdStart() = withContext(Dispatchers.IO) {
+        // 1) ACTIVE 行文件缺失 → EVICTED；SAVED/EVICTED 行文件还在 → 删
+        dao.allRows().forEach { row ->
+            val f = File(row.filePath)
+            when (row.status) {
+                ChatImageStore.Status.ACTIVE ->
+                    if (!f.exists()) dao.updateStatus(row.filePath, ChatImageStore.Status.EVICTED)
+                ChatImageStore.Status.SAVED, ChatImageStore.Status.EVICTED ->
+                    if (f.exists()) runCatching { f.delete() }
+            }
+        }
+        // 2) 删孤儿文件（缓存目录里有、表里没有）
+        val known = dao.allFilePaths().toHashSet()
+        cacheDir.listFiles()?.forEach { f ->
+            if (f.isFile && f.absolutePath !in known) runCatching { f.delete() }
+        }
+        // 3) prune 终态行（UUID 文件名不复用，安全）
+        dao.pruneTerminalRows()
+        // 4) 重新执行容量约束
+        enforceCap()
     }
 
     override suspend fun evictForSession(sessionId: String) {
-        // 见 Task 4 实现
+        dao.getActiveBySession(sessionId).forEach { row ->
+            runCatching { File(row.filePath).delete() }
+            dao.updateStatus(row.filePath, ChatImageStore.Status.EVICTED)
+        }
     }
 
     /** 真正把文件写入 MediaStore Pictures/PoLang，返回 content:// URI。 */
