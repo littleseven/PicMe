@@ -25,7 +25,8 @@ class CommandExecutorTest {
         val latencyMs: Long,
         val success: Boolean,
         val errorCode: Int?,
-        val errorMessage: String?
+        val errorMessage: String?,
+        val traceId: String?
     )
 
     private val recorded = mutableListOf<Recorded>()
@@ -36,8 +37,8 @@ class CommandExecutorTest {
     }
 
     private fun installRecorder() {
-        CommandExecutor.recorder = CommandExecutionRecorder { capability, commandType, latencyMs, success, errorCode, errorMessage ->
-            recorded += Recorded(capability, commandType, latencyMs, success, errorCode, errorMessage)
+        CommandExecutor.recorder = CommandExecutionRecorder { capability, commandType, latencyMs, success, errorCode, errorMessage, traceId ->
+            recorded += Recorded(capability, commandType, latencyMs, success, errorCode, errorMessage, traceId)
         }
     }
 
@@ -154,7 +155,7 @@ class CommandExecutorTest {
 
     @Test
     fun `recorder exception does not affect command execution`() = runTest {
-        CommandExecutor.recorder = CommandExecutionRecorder { _, _, _, _, _, _ ->
+        CommandExecutor.recorder = CommandExecutionRecorder { _, _, _, _, _, _, _ ->
             error("boom in recorder")
         }
         val capability = fakeCapability { command ->
@@ -164,6 +165,32 @@ class CommandExecutorTest {
         val result = CommandExecutor().execute(AgentCommand.FlipCamera(), context, null, capability)
 
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `context traceId is passed to recorder`() = runTest {
+        installRecorder()
+        val capability = fakeCapability { command ->
+            Result.success(AgentAction.Success(command.commandId, command))
+        }
+        val ctxWithTrace = AgentContext(scene = AgentScene.CHAT, traceId = "trace-123")
+
+        CommandExecutor().execute(AgentCommand.FlipCamera(), ctxWithTrace, null, capability)
+
+        val r = recorded.single()
+        assertEquals("trace-123", r.traceId)
+    }
+
+    @Test
+    fun `null traceId passes through when context has none`() = runTest {
+        installRecorder()
+        val capability = fakeCapability { command ->
+            Result.success(AgentAction.Success(command.commandId, command))
+        }
+
+        CommandExecutor().execute(AgentCommand.FlipCamera(), context, null, capability)
+
+        assertNull(recorded.single().traceId)
     }
 
     @Test

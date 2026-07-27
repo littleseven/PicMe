@@ -41,7 +41,8 @@ class RoomToolCallRecorder(
         latencyMs: Long,
         success: Boolean,
         errorCode: Int?,
-        errorMessage: String?
+        errorMessage: String?,
+        traceId: String?
     ) {
         scope.launch {
             try {
@@ -53,7 +54,8 @@ class RoomToolCallRecorder(
                         latencyMs = latencyMs,
                         success = success,
                         errorCode = errorCode,
-                        errorMessage = LlmCallRecord.cap(errorMessage, ERROR_MESSAGE_MAX_CHARS)
+                        errorMessage = LlmCallRecord.cap(errorMessage, ERROR_MESSAGE_MAX_CHARS),
+                        traceId = traceId
                     )
                 )
                 pruneIfNeeded()

@@ -29,4 +29,8 @@ interface ToolCallLogDao {
 
     @Query("DELETE FROM tool_call_log")
     suspend fun clearAll(): Int
+
+    /** 同一 traceId 的全部记录（旧→新），供详情页 turn pager 装配。 */
+    @Query("SELECT * FROM tool_call_log WHERE traceId = :traceId ORDER BY createdAt ASC")
+    suspend fun getByTraceId(traceId: String): List<ToolCallLogEntity>
 }

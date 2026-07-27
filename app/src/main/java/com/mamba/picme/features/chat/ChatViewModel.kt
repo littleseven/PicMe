@@ -709,7 +709,8 @@ class ChatViewModel(
                     memorySessionId = sessionId,
                     recentSearchResults = sessionSearchSnapshots[sessionId].orEmpty(),
                     lastUserImageUri = _lastUserImageUri.value,
-                    gallerySummary = gallerySummary
+                    gallerySummary = gallerySummary,
+                    traceId = java.util.UUID.randomUUID().toString()
                 )
 
                 // 5. 调用流式推理
@@ -1365,7 +1366,7 @@ class ChatViewModel(
 
     // ── ChatRunScriptCapability.Delegate：执行 JS 脚本（端侧沙箱）─────────────
 
-    override suspend fun onRunScript(code: String): String {
+    override suspend fun onRunScript(code: String, traceId: String?): String {
         replyUsedSandbox = true
         return withContext(Dispatchers.Default) {
             val rt = getOrCreateJsRuntime()
@@ -1378,7 +1379,7 @@ class ChatViewModel(
                 // resolved value 作为结果，rejected 则抛出真实 JS 错误回传 LLM。
                 writeConfirmationController.onScriptStarted()
                 val result = try {
-                    rt.evalAsync(code, evalTimeoutMs)
+                    rt.evalAsync(code, evalTimeoutMs, traceId)
                 } finally {
                     // 脚本结束（正常/超时/取消）：在途写确认一律拒绝——
                     // 「脚本已死，确认不再生效」，防孤儿确认在 SCRIPT_TIMEOUT 后仍执行写操作
@@ -1426,7 +1427,8 @@ class ChatViewModel(
         title: String,
         labels: List<String>,
         values: List<Double>,
-        unit: String?
+        unit: String?,
+        traceId: String?
     ): String = withContext(Dispatchers.Default) {
         val rt = getOrCreateJsRuntime()
         jsEvalMutex.withLock {
@@ -1441,7 +1443,7 @@ class ChatViewModel(
                 .put("values", JSONArray(values))
                 .apply { if (!unit.isNullOrBlank()) put("unit", unit) }
                 .toString()
-            val result = rt.eval("Chart." + fn + "(" + args + ")")
+            val result = rt.eval("Chart." + fn + "(" + args + ")", traceId)
             val obj = result as? JsValue.Obj
             val chart = obj?.entries?.get("chart") as? JsValue.Str
             if (chart != null) emitChartMessage(chart.value)

@@ -23,5 +23,7 @@ data class LlmCallLogEntity(
     val totalTokens: Int?,
     val requestJson: String,
     val responseJson: String?,
-    val errorMessage: String?
+    val errorMessage: String?,
+    /** 关联 ID：一条用户消息一个 traceId；非 chat 来源/老数据为 null（详情页按无关联处理）。 */
+    val traceId: String? = null
 )

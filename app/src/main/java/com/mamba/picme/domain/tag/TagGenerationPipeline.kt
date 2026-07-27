@@ -61,7 +61,9 @@ class TagGenerationPipeline(
     private val openClGuardian: OpenClGuardian? = null,
     private val promptProvider: TagPromptProvider = DefaultTagPromptProvider(),
     private val mobileClipEngine: MobileClipEngine? = null,
-    private val mobileClipTagClassifier: MobileClipTagClassifier? = null
+    private val mobileClipTagClassifier: MobileClipTagClassifier? = null,
+    private val florence2TaggerProvider: () -> Florence2Tagger? = { null },
+    private val taggerModelKeyProvider: () -> String = { TaggerModelSelector.defaultKey }
 ) {
 
     companion object {
@@ -114,7 +116,7 @@ class TagGenerationPipeline(
 
         val stage1Result: Stage1Result
         val stage2Result: Stage2Result?
-        val stage3Result: QwenTagsNormalized
+        val stage3Result: UnifiedTagResult
 
         try {
             // ── Stage 1: 轻量人脸 ROI 检测（复用 faceBitmap）───
@@ -129,12 +131,9 @@ class TagGenerationPipeline(
             }
             Log.d(TAG, "Stage 2 done: personIds=${stage2Result?.personIds ?: "N/A"}")
 
-            // ── Stage 3: 图像打标（MNN VLM，复用已旋转/解码的 faceBitmap，缩放到 512px）───
-            // 避免重新走 ContentResolver.openInputStream + BitmapFactory + EXIF 旋转。
-            val stage3Bitmap = scaleBitmapToMaxSize(faceBitmap, MAX_VISION_SIZE)
+            // ── Stage 3: 统一分流（与批量同模型同提示词；按模型内部解码合适尺寸）───
             val faceRoiJson = faceRoiToJson(stage1Result)
-            stage3Result = stage3QwenTagging(stage3Bitmap, faceRoiJson)
-            stage3Bitmap.recycle()
+            stage3Result = runStage3Unified(uri, faceRoiJson)
             Log.d(TAG, "Stage 3 done: scene=${stage3Result.scene}, tags=${stage3Result.tags}")
         } finally {
             faceBitmap.recycle()
@@ -277,6 +276,46 @@ class TagGenerationPipeline(
             tags = combined.tags,
             summary = combined.summary
         ).let { normalizer.normalize(it) }
+    }
+
+    /**
+     * Stage-3 统一分流：按 scheduler 解析的 taggerModelKey 决定用 Florence-2（ORT）
+     * 还是 Qwen3-VL（MNN）打标。entry 1（批量 [TagGenerationScheduler.executeImageTagging]）
+     * 与 entry 3（retag [processPhoto]）共用，保证「单张/批量同模型同提示词同过程」。
+     *
+     * 内部按所选模型解码合适尺寸 bitmap（Florence-2 → 768，Qwen → 512）。
+     *
+     * @param uri 照片 Content URI
+     * @param faceRoiJson Pass 1 持久化的人脸上下文（Qwen 提示词提示用；可为 null）
+     * @return Stage-3 产物；face 字段留空，由调用方按各自人脸上下文填充。
+     *         模型不可用 / 解码失败 / 推理空 → 返回空 [UnifiedTagResult]。
+     */
+    suspend fun runStage3Unified(uri: String, faceRoiJson: String?): UnifiedTagResult {
+        val modelKey = taggerModelKeyProvider()
+        return if (modelKey == TaggerModelSelector.defaultKey) {
+            // Florence-2 ORT 路径
+            val tagger = florence2TaggerProvider()
+            if (tagger == null || !tagger.isInit) {
+                Log.w(TAG, "[Stage3] Florence-2 unavailable, returning empty")
+                return UnifiedTagResult()
+            }
+            val bitmap = loadBitmap(uri, Florence2Tagger.IMAGE_SIZE) ?: return UnifiedTagResult()
+            try {
+                tagger.tag(bitmap)
+            } finally {
+                bitmap.recycle()
+            }
+        } else {
+            // Qwen3-VL-2B 路径：复用既有 Stage-3（含 faceRoi 上下文提示 + normalize）
+            val qwen = stage3QwenTagging(uri, faceRoiJson)
+            UnifiedTagResult(
+                scene = qwen.scene,
+                activity = qwen.activity,
+                objects = qwen.objects,
+                tags = qwen.tags,
+                summary = qwen.summary
+            )
+        }
     }
 
     /**
@@ -895,20 +934,5 @@ class TagGenerationPipeline(
             Log.w(TAG, "Failed to rotate bitmap: ${e.message}")
             bitmap
         }
-    }
-
-    /**
-     * 将 Bitmap 等比缩放到指定最长边，保持宽高比。
-     *
-     * @return 缩放后的新 Bitmap；若已满足尺寸则返回原 Bitmap
-     */
-    private fun scaleBitmapToMaxSize(source: Bitmap, maxSize: Int): Bitmap {
-        val maxDimension = maxOf(source.width, source.height)
-        if (maxDimension <= maxSize) return source
-
-        val scale = maxSize.toFloat() / maxDimension
-        val scaledWidth = (source.width * scale).toInt()
-        val scaledHeight = (source.height * scale).toInt()
-        return Bitmap.createScaledBitmap(source, scaledWidth, scaledHeight, true)
     }
 }

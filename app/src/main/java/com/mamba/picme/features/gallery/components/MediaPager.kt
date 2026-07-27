@@ -115,7 +115,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.mamba.picme.R
-import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.domain.model.AppLanguage
@@ -155,6 +154,7 @@ fun MediaPager(
     onIdPhoto: (MediaAsset) -> Unit = {},
     voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: suspend (Uri) -> String? = { null },
+    onDescribeImage: suspend (Uri) -> String? = { null },
     onTriggerSummary: (Long) -> Unit = {}
 ) {
     key(initialIndex) {
@@ -228,50 +228,13 @@ fun MediaPager(
             val onStartVisionClick: () -> Unit = {
                 val asset = assets.getOrNull(pagerState.currentPage)
                 if (asset?.type == MediaType.PHOTO) {
-                    Log.d("Gallery", "Trigger vision inference for asset: ${asset.id}")
+                    Log.d("Gallery", "Trigger image understanding for asset: ${asset.id}")
                     visionResult = null
                     isVisionLoading = true
                     scope.launch(Dispatchers.IO) {
-                        try {
-                            val bitmap = context.contentResolver.openInputStream(asset.uri.toUri())?.use {
-                                BitmapFactory.decodeStream(it)
-                            }
-                            if (bitmap != null) {
-                                val orchestrator = AgentOrchestrator.getInstance(context)
-
-                                // 确保模型已加载并执行图像推理
-                                val inferenceResult = orchestrator.withModelLoaded(
-                                    modelId = "qwen3_5_2b",
-                                    useOpencl = false,
-                                    caller = "MediaPager:imageInference"
-                                ) { engine ->
-                                    engine.imageInference(
-                                        bitmap = bitmap,
-                                        systemPrompt = "你是一个图像理解助手。请用简洁的中文描述这张图片的内容，包括主要对象、场景、颜色和氛围。",
-                                        userPrompt = "请描述这张图片",
-                                        maxTokens = 256
-                                    )
-                                }
-
-                                val result = if (inferenceResult.isSuccess) {
-                                    inferenceResult.getOrThrow()
-                                } else {
-                                    val error = inferenceResult.exceptionOrNull()
-                                    Log.e("Gallery", "Vision inference failed", error)
-                                    visionResult = "模型加载失败: ${error?.message ?: "未知错误"}"
-                                    bitmap.recycle()
-                                    isVisionLoading = false
-                                    return@launch
-                                }
-                                visionResult = result.ifEmpty { "模型返回了空结果" }
-                                bitmap.recycle()
-                            } else {
-                                visionResult = "无法加载图片"
-                            }
-                        } catch (e: Exception) {
-                            Log.e("Gallery", "Vision inference failed", e)
-                            visionResult = "推理失败: ${e.message}"
-                        }
+                        val result = runCatching { onDescribeImage(asset.uri.toUri()) }
+                            .getOrNull()
+                        visionResult = result ?: context.getString(R.string.vision_failed)
                         isVisionLoading = false
                     }
                 }

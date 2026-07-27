@@ -234,7 +234,9 @@ class TagGenerationScheduler(
             normalizer = normalizer,
             openClGuardian = openClGuardian,
             mobileClipEngine = mobileClip,
-            mobileClipTagClassifier = classifier
+            mobileClipTagClassifier = classifier,
+            florence2TaggerProvider = { florence2Tagger },
+            taggerModelKeyProvider = { taggerModelKey }
         )
     }
 
@@ -296,6 +298,44 @@ class TagGenerationScheduler(
         )
         if (resultJson.isEmpty()) return@withContext null
         persistUnifiedTags(entity.id, resultJson)
+    }
+
+    /**
+     * 预览页「图像理解」入口（entry 2）：对单张图片生成自然语言描述。
+     *
+     * 模型与 entry 1/3 同源（复用已解析的 [taggerModelKey]）：
+     * - Florence-2 → `Florence2Tagger.summary`（英文 caption）；中文 UI → en→zh 翻译。
+     * - Qwen3-VL-2B → `imageInference`，按 UI 语言直出提示词。
+     *
+     * 输出语言跟随 [userSettingsRepository] 的 appLanguage（zh-TW 复用 zh 译文）。
+     *
+     * @return 描述文本；模型不可用 / 解码失败 / 推理空 → null。
+     */
+    suspend fun describeImage(uri: String): String? = withContext(Dispatchers.IO) {
+        val lang = userSettingsRepository.getAppLanguageBlocking()
+        val strategy = ImageDescriptionStrategyResolver.resolve(taggerModelKey, lang)
+        val bitmap = pipeline.loadBitmapPublic(uri) ?: return@withContext null
+        try {
+            if (taggerModelKey == "florence2_base") {
+                val tagger = florence2Tagger
+                if (tagger == null || !tagger.isInit) return@withContext null
+                val caption = tagger.tag(bitmap).summary
+                if (caption.isBlank()) return@withContext null
+                if (strategy.needsZhTranslate) enToZhTranslator.translate(caption) else caption
+            } else {
+                if (!ensureModelLoaded()) return@withContext null
+                val engine = AgentOrchestrator.getInstance(context).getLlmEngine()
+                val result = engine.imageInference(
+                    bitmap = bitmap,
+                    systemPrompt = strategy.systemPrompt,
+                    userPrompt = strategy.userPrompt,
+                    maxTokens = 256
+                )
+                result.ifEmpty { null }
+            }
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     /**
@@ -1273,51 +1313,31 @@ class TagGenerationScheduler(
 
         val startMs = System.currentTimeMillis()
 
-        // ── 按模型分流：florence2_base → ORT 管道；其余 → MNN Qwen 管道 ──
-        val isFlorence2 = taggerModelKey == "florence2_base"
-        val unified = if (isFlorence2) {
-            // Florence-2 ORT 路径
+        // 可用性守卫（保留批量 fail-fast → FAILED → 退避重试语义）
+        if (taggerModelKey == "florence2_base") {
             val tagger = florence2Tagger
             check(tagger != null && tagger.isInit) {
                 "[Pass 3] Florence-2 not available for mediaId=$mediaId"
             }
-            // 按 Florence-2 输入尺寸解码（loadBitmapPublic 默认值即 Florence2Tagger.IMAGE_SIZE=768）
-            val bitmap = pipeline.loadBitmapPublic(entity.uri)
-            checkNotNull(bitmap) {
-                "[Pass 3] Failed to load bitmap for mediaId=$mediaId"
-            }
-            val result = tagger.tag(bitmap)
-            bitmap.recycle()
-            Log.i(TAG, "[Pass 3] Florence-2 done: mediaId=$mediaId, " +
-                "scene=${result.scene}, tags=${result.tags}, summary=${result.summary.take(60)}")
-            result
         } else {
-            // MNN Qwen/SmolVLM 路径
             check(ensureModelLoaded()) {
                 "[Pass 3] Model not loaded for mediaId=$mediaId"
             }
-            val qwenResult = pipeline.stage3QwenTagging(
-                uri = entity.uri,
-                faceRoiJson = entity.faceRoiResult
-            )
-            currentCoroutineContext().ensureActive()
-            val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
-            UnifiedTagResult(
-                face = faceInfo,
-                scene = qwenResult.scene,
-                activity = qwenResult.activity,
-                objects = qwenResult.objects,
-                tags = qwenResult.tags,
-                summary = qwenResult.summary
-            )
         }
+
+        // Stage-3 统一分流（与 retag 同源）：runStage3Unified 内部按 taggerModelKey
+        // 选 Florence-2 / Qwen3-VL，保证单张/批量同模型同提示词。
+        val stage3 = pipeline.runStage3Unified(entity.uri, entity.faceRoiResult)
+        currentCoroutineContext().ensureActive()
+        val faceInfo = parseFaceRoiForUnifiedResult(entity.faceRoiResult, entity.faceId)
+        val unified = stage3.copy(face = faceInfo)
 
         // 恒英文：labelsEn 存英文原语；labelsZh 由 LabelSinicizer 离线汉化派生。
         persistUnifiedTags(entity.id, unifiedTagToJson(unified))
 
         Log.d(TAG, "[Benchmark] Pass 3 done: mediaId=$mediaId, " +
             "durationMs=${System.currentTimeMillis() - startMs}, tagger=" +
-            if (isFlorence2) "Florence-2" else "Qwen")
+            if (taggerModelKey == "florence2_base") "Florence-2" else "Qwen")
 
         // Pass3 连续执行发热严重：每张推理后自适应散热（热状态越高间歇越长）。
         // SEVERE 及以上已由上面的 guardCheck ABORT 兜底，不会走到这里。

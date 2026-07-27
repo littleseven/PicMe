@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,14 +83,12 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     val toolItems by vm.toolItems.collectAsState()
     val jsRunItems by vm.jsRunItems.collectAsState()
 
-    var selected by remember { mutableStateOf<LlmCallLogEntity?>(null) }
-    var selectedJs by remember { mutableStateOf<JsRunLogEntity?>(null) }
+    var detailAnchor by remember { mutableStateOf<TurnRecordItem?>(null) }
     var selectedTab by remember { mutableStateOf(LogTab.LLM) }
     var showClearDialog by remember { mutableStateOf(false) }
 
-    val selectedItem = selected
-    val selectedJsItem = selectedJs
-    val inDetail = selectedItem != null || selectedJsItem != null
+    val anchor = detailAnchor
+    val inDetail = anchor != null
     Scaffold(
         topBar = {
             TopAppBar(
@@ -95,10 +97,8 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (selectedItem != null) {
-                            selected = null
-                        } else if (selectedJsItem != null) {
-                            selectedJs = null
+                        if (anchor != null) {
+                            detailAnchor = null
                         } else {
                             onNavigateBack()
                         }
@@ -120,12 +120,10 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
         }
     ) { padding ->
         when {
-            selectedItem != null -> LlmCallLogDetail(
-                item = selectedItem,
-                modifier = Modifier.fillMaxSize().padding(padding)
-            )
-            selectedJsItem != null -> JsRunLogDetail(
-                item = selectedJsItem,
+            anchor != null -> LlmTurnDetailPager(
+                anchor = anchor,
+                vm = vm,
+                onBack = { detailAnchor = null },
                 modifier = Modifier.fillMaxSize().padding(padding)
             )
             else -> {
@@ -168,13 +166,13 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
                         ) {
                             when (selectedTab) {
                                 LogTab.LLM -> items(items, key = { it.id }) { row ->
-                                    LlmCallLogRow(row = row) { selected = it }
+                                    LlmCallLogRow(row = row) { detailAnchor = TurnRecordItem.Llm(it) }
                                 }
                                 LogTab.TOOL -> items(toolItems, key = { it.id }) { row ->
-                                    ToolCallLogRow(row = row)
+                                    ToolCallLogRow(row = row) { detailAnchor = TurnRecordItem.Tool(it) }
                                 }
                                 LogTab.JS -> items(jsRunItems, key = { it.id }) { row ->
-                                    JsRunLogRow(row = row) { selectedJs = it }
+                                    JsRunLogRow(row = row) { detailAnchor = TurnRecordItem.Js(it) }
                                 }
                             }
                         }
@@ -319,11 +317,152 @@ private fun JsRunLogDetail(item: JsRunLogEntity, modifier: Modifier) {
     }
 }
 
+/**
+ * Tool 执行指标详情（纯指标，不含命令参数/业务内容——隐私红线）。
+ * 列表原本不可点进详情，turn 关联上线后补此组件。
+ */
 @Composable
-private fun ToolCallLogRow(row: ToolCallLogEntity) {
+private fun ToolCallLogDetail(item: ToolCallLogEntity, modifier: Modifier) {
+    val timeFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
+    val successLabel = stringResource(R.string.llm_call_log_success)
+    val failedLabel = stringResource(R.string.llm_call_log_failed)
+    val traceLabel = stringResource(R.string.llm_log_detail_trace)
+
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "${timeFormat.format(Date(item.createdAt))}  ·  ${item.capability}  ·  ${item.commandType}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = (if (item.success) successLabel else failedLabel) +
+                "  ·  ${item.latencyMs}ms" +
+                (item.errorCode?.let { "  ·  code=$it" } ?: ""),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (item.success) Color(0xFF2E7D32) else Color(0xFFC62828)
+        )
+
+        HorizontalDivider()
+
+        item.errorMessage?.let {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+        item.traceId?.let {
+            Text(
+                text = "$traceLabel: $it",
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * 同一 traceId 的三层记录横滑详情 pager：LLM 调用 / Tool 执行 / JS 运行按时间顺序排成
+ * 可横滑的页，顶部指示器展示各层计数。traceId 为 null（非会话来源）时只显示锚点记录本身。
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun LlmTurnDetailPager(
+    anchor: TurnRecordItem,
+    vm: LlmCallLogViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier
+) {
+    val traceId: String? = when (anchor) {
+        is TurnRecordItem.Llm -> anchor.entity.traceId
+        is TurnRecordItem.Tool -> anchor.entity.traceId
+        is TurnRecordItem.Js -> anchor.entity.traceId
+    }
+
+    var items by remember { mutableStateOf<List<TurnRecordItem>?>(null) }
+    LaunchedEffect(traceId) {
+        items = if (traceId != null) {
+            runCatching { vm.loadTurn(traceId) }.getOrDefault(emptyList())
+        } else {
+            listOf(anchor)
+        }
+    }
+
+    val list = items
+    if (list == null) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val anchorId = when (anchor) {
+        is TurnRecordItem.Llm -> anchor.entity.id
+        is TurnRecordItem.Tool -> anchor.entity.id
+        is TurnRecordItem.Js -> anchor.entity.id
+    }
+    val initialPage = list.indexOfFirst { item ->
+        when (item) {
+            is TurnRecordItem.Llm -> item.entity.id == anchorId && anchor is TurnRecordItem.Llm
+            is TurnRecordItem.Tool -> item.entity.id == anchorId && anchor is TurnRecordItem.Tool
+            is TurnRecordItem.Js -> item.entity.id == anchorId && anchor is TurnRecordItem.Js
+        }
+    }.let { if (it >= 0) it else 0 }
+
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { list.size })
+    val counts = remember(list) { countByKind(list) }
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (traceId == null) {
+                Text(
+                    text = stringResource(R.string.llm_log_no_trace),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = stringResource(
+                        R.string.llm_log_turn_indicator,
+                        counts[TurnKind.LLM] ?: 0,
+                        counts[TurnKind.TOOL] ?: 0,
+                        counts[TurnKind.JS] ?: 0
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            val pageModifier = Modifier.fillMaxSize()
+            when (val item = list[page]) {
+                is TurnRecordItem.Llm -> LlmCallLogDetail(item.entity, pageModifier)
+                is TurnRecordItem.Tool -> ToolCallLogDetail(item.entity, pageModifier)
+                is TurnRecordItem.Js -> JsRunLogDetail(item.entity, pageModifier)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolCallLogRow(row: ToolCallLogEntity, onClick: (ToolCallLogEntity) -> Unit) {
     val timeFormat = remember { SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick(row) },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {

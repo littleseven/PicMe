@@ -49,7 +49,8 @@ class RoomLlmCallRecorder(
                         totalTokens = record.totalTokens,
                         requestJson = LlmCallRecord.cap(record.requestJson) ?: "{}",
                         responseJson = LlmCallRecord.cap(record.responseJson),
-                        errorMessage = record.errorMessage
+                        errorMessage = record.errorMessage,
+                        traceId = record.traceId
                     )
                 )
                 pruneIfNeeded()
