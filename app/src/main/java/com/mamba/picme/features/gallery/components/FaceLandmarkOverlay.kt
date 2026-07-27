@@ -273,18 +273,20 @@ fun FaceLandmarkCanvasOverlay(
     }
 }
 
-private fun createFaceLandmarker(context: Context, delegate: Delegate): FaceLandmarker {
+private fun createFaceLandmarker(context: Context, delegate: Delegate): FaceLandmarker? {
+    val modelFile = File(context.filesDir, "llm_models/mediapipe-face-landmarker/face_landmarker.task")
+    if (!modelFile.exists() || modelFile.length() == 0L) {
+        // 模型按需下载，首启下载完成前 modelFile 不存在。原逻辑回退到 APK asset
+        // "mediapipe/face_landmarker.task"，但该 asset 并未内置 → MediaPipe 原生
+        // startRunningGraph 拿到 null asset → SIGSEGV（不可被 runCatching 捕获）。
+        // 故模型就绪前直接返回 null，跳过人脸关键点检测（不阻塞看图，下次启动模型就绪即恢复）。
+        Logger.w(TAG, "face_landmarker.task not present yet, skip FaceLandmarker init")
+        return null
+    }
+
     val baseOptionsBuilder = BaseOptions.builder()
         .setDelegate(delegate)
-
-    val modelFile = File(context.filesDir, "llm_models/mediapipe-face-landmarker/face_landmarker.task")
-    if (modelFile.exists() && modelFile.length() > 0) {
-        val buffer = modelFile.readBytes().let { ByteBuffer.wrap(it) }
-        baseOptionsBuilder.setModelAssetBuffer(buffer)
-    } else {
-        // Fallback to bundled asset before first download completes
-        baseOptionsBuilder.setModelAssetPath("mediapipe/face_landmarker.task")
-    }
+        .setModelAssetBuffer(ByteBuffer.wrap(modelFile.readBytes()))
 
     val options = FaceLandmarker.FaceLandmarkerOptions.builder()
         .setBaseOptions(baseOptionsBuilder.build())
