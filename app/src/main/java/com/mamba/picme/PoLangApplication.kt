@@ -13,6 +13,7 @@ import com.mamba.picme.BuildConfig
 import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.data.indexing.geo.LocationIndexer
 import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.data.local.AppDatabase
@@ -171,6 +172,16 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         // 注册应用级 Capability（只注册一次，永不注销）
         initializeCapabilities()
+
+        // 轻量位置索引 pass：读 EXIF GPS + 离线逆地理，替代废弃 MediaIndexingWorker 的位置职责。
+        // 增量幂等（仅处理 locationName 为空），首启跑完后后续启动 no-op；不跑 OCR，不发热。
+        applicationScope.launch {
+            try {
+                LocationIndexer(this@PoLangApplication).runPass()
+            } catch (e: Exception) {
+                Logger.w(TAG, "location index pass failed: ${e.message}")
+            }
+        }
 
         // 预配置 AgentOrchestrator 默认远程推理配置
         // gatewayToken 异步从 DataStore 加载（syncRemoteModelConfigToOrchestrator）

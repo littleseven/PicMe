@@ -121,6 +121,29 @@ interface MediaDao {
     )
     suspend fun getMediaNeedingLocationBackfill(): List<MediaEntity>
 
+    /** 位置 pass 选择：locationName 为空的照片(仅 PHOTO;视频无 EXIF GPS 且 ExifInterface 读视频慢/报错)。 */
+    @Query("SELECT * FROM media_assets WHERE locationName IS NULL AND type = 'PHOTO' ORDER BY id LIMIT :limit")
+    suspend fun getMediaNeedingLocationScan(limit: Int): List<MediaEntity>
+
+    /** 仅写位置相关字段(不动 labels/ocr/indexedAt)。无 GPS 哨兵:locationName="". */
+    @Query(
+        """
+        UPDATE media_assets SET
+            latitude = :latitude,
+            longitude = :longitude,
+            locationName = :locationName,
+            city = :city
+        WHERE id = :mediaId
+        """
+    )
+    suspend fun updateLocation(
+        mediaId: Long,
+        latitude: Double?,
+        longitude: Double?,
+        locationName: String?,
+        city: String?
+    )
+
     /** 获取已索引媒体数量 */
     @Query("SELECT COUNT(*) FROM media_assets WHERE indexedAt IS NOT NULL AND indexedAt > 0")
     suspend fun getIndexedCount(): Int
