@@ -5,13 +5,12 @@
 # 须在「关于/隐私」页署名 http://www.geonames.org。
 #
 # 策略（稳健、可复现）：
-#   1. 下载 cities500.zip，过滤 countryCode==CN；
-#   2. province 用 CN admin1 省级码硬编码表（稳定）→ 中文名；
-#   3. city/district 用该行 alternatenames 里的首个中文名，回退 asciiname；
-#   4. 按 (province, city) 去重，保留 population 最大的代表点作为该市质心。
+#   1. 下载 cities500.zip，过滤 countryCode==CN，province 用下方 admin1 码表查得；
+#   2. city/district 用该行 alternatenames 里的首个中文名，回退 asciiname；
+#   3. 按 (province, city) 去重，保留 population 最大的代表点作为该市质心。
 #
+# admin1 码表来自 GeoNames admin1CodesASCII.txt（CN 段，已核验），稳定可复现。
 # 依赖：仅标准库。用法：python3 scripts/gen_admin_centroids.py
-import csv
 import io
 import json
 import urllib.request
@@ -20,15 +19,15 @@ import zipfile
 OUT = "app/src/main/assets/geo/admin_centroids_zh.json"
 CITY_URL = "https://download.geonames.org/export/dump/cities500.zip"
 
-# GeoNames CN admin1 码 → 省级行政区中文名（稳定，官方编码）
+# GeoNames CN admin1 码 → 省级行政区中文名（核验自 admin1CodesASCII.txt CN 段）
 PROVINCE = {
-    "01": "北京市", "02": "天津市", "03": "河北省", "04": "山西省", "05": "内蒙古自治区",
-    "06": "辽宁省", "07": "吉林省", "08": "黑龙江省", "09": "上海市", "10": "江苏省",
-    "11": "浙江省", "12": "安徽省", "13": "福建省", "14": "江西省", "15": "山东省",
-    "16": "河南省", "17": "湖北省", "18": "湖南省", "19": "广东省", "20": "广西壮族自治区",
-    "21": "海南省", "22": "重庆市", "23": "四川省", "24": "贵州省", "25": "云南省",
-    "26": "西藏自治区", "27": "陕西省", "28": "甘肃省", "29": "青海省", "30": "宁夏回族自治区",
-    "31": "新疆维吾尔自治区", "32": "台湾省", "33": "香港特别行政区", "34": "澳门特别行政区",
+    "01": "安徽省", "02": "浙江省", "03": "江西省", "04": "江苏省", "05": "吉林省",
+    "06": "青海省", "07": "福建省", "08": "黑龙江省", "09": "河南省", "10": "河北省",
+    "11": "湖南省", "12": "湖北省", "13": "新疆维吾尔自治区", "14": "西藏自治区",
+    "15": "甘肃省", "16": "广西壮族自治区", "18": "贵州省", "19": "辽宁省",
+    "20": "内蒙古自治区", "21": "宁夏回族自治区", "22": "北京市", "23": "上海市",
+    "24": "山西省", "25": "山东省", "26": "陕西省", "28": "天津市", "29": "云南省",
+    "30": "广东省", "31": "海南省", "32": "四川省", "33": "重庆市",
 }
 
 
@@ -56,8 +55,8 @@ def main():
             if len(f) < 15 or f[8] != "CN":
                 continue
             admin1 = f[10]
-            province = PROVINCE.get(admin1)
-            if not province:
+            prov = PROVINCE.get(admin1)
+            if not prov:
                 continue
             try:
                 lat = float(f[4])
@@ -66,10 +65,10 @@ def main():
             except ValueError:
                 continue
             city = pick_zh(f[3], f[1])
-            key = (province, city)
+            key = (prov, city)
             cur = best.get(key)
             if cur is None or pop > cur["pop"]:
-                best[key] = {"province": province, "city": city, "district": city,
+                best[key] = {"province": prov, "city": city, "district": city,
                              "lat": lat, "lon": lon, "pop": pop}
     rows = sorted(best.values(), key=lambda r: (r["province"], -r["pop"]))
     out = [{"province": r["province"], "city": r["city"], "district": r["district"],
