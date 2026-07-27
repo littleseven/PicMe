@@ -957,7 +957,7 @@
     <string name="tag_pass_step_cluster">Step 2: Person clustering</string>
     <string name="tag_pass_step_content">Step 3: Image content understanding</string>
     <string name="tag_pass_overview_face">Detect faces and extract semantic features for grouping &amp; search · Processed %1$d · Pending %2$d · %3$d with face · %4$d with semantic</string>
-    <string name="tag_pass_overview_cluster">%1$d people identified</string>
+    <string name="tag_pass_overview_cluster">Group similar faces into the same person for browsing and searching by people · %1$d people identified</string>
     <string name="tag_pass_overview_content">Analyze content to generate scene/activity/object tags &amp; summary · Processed %1$d · Pending %2$d</string>
     <string name="tag_pass_col_stage">Stage</string>
     <string name="tag_pass_col_processed">Processed</string>

@@ -673,7 +673,7 @@
     <string name="tag_pass_step_cluster">第二步：人物聚类</string>
     <string name="tag_pass_step_content">第三步：图片内容理解</string>
     <string name="tag_pass_overview_face">识别照片中的人脸并提取语义特征，用于人物归类与智能搜索 · 已处理 %1$d 张 · 待处理 %2$d 张 · %3$d 张有人脸 · %4$d 张有语义</string>
-    <string name="tag_pass_overview_cluster">已识别 %1$d 个人物</string>
+    <string name="tag_pass_overview_cluster">将相似人脸归为同一个人，方便按人物浏览和搜索 · 已识别 %1$d 个人物</string>
     <string name="tag_pass_overview_content">分析画面内容，生成场景、活动、物体等标签与摘要 · 已处理 %1$d 张 · 待处理 %2$d 张</string>
     <string name="tag_pass_col_stage">阶段</string>
     <string name="tag_pass_col_processed">已处理</string>

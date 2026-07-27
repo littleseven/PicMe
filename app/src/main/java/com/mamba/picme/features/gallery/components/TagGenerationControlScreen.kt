@@ -271,9 +271,15 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("第一步：人脸检测与语义编码", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.tag_pass_step_face), style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "识别照片中的人脸并提取语义特征，用于人物归类与智能搜索 · $withFace / $totalMedia 张已完成 · 有语义 $withSemantic 张",
+                                stringResource(
+                                    R.string.tag_pass_overview_face,
+                                    totalMedia - remainingPass1,
+                                    remainingPass1,
+                                    withFace,
+                                    withSemantic
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -291,9 +297,9 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("第二步：人物聚类", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.tag_pass_step_cluster), style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "将相似人脸归为同一个人，方便按人物浏览和搜索 · 已识别 $personCount 个人物",
+                                stringResource(R.string.tag_pass_overview_cluster, personCount),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -311,9 +317,13 @@ fun TagGenerationControlScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("第三步：图片内容理解", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.tag_pass_step_content), style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "分析画面内容，生成场景、活动、物体等标签与摘要 · $withLabels / $totalMedia 张已完成",
+                                stringResource(
+                                    R.string.tag_pass_overview_content,
+                                    totalMedia - remainingPass3,
+                                    remainingPass3
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
