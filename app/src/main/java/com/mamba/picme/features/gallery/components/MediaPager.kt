@@ -1,10 +1,12 @@
 package com.mamba.picme.features.gallery.components
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
+import java.net.URLEncoder
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -1369,10 +1371,14 @@ private fun PhotoInfoDialog(
                 if (asset.source != null) {
                     InfoRow("来源", asset.source!!.replaceFirstChar { it.uppercase() })
                 }
-                if (asset.locationName != null) {
-                    InfoRow("位置", asset.locationName!!)
-                } else if (asset.latitude != null && asset.longitude != null) {
-                    InfoRow("GPS", "${String.format("%.4f", asset.latitude)}, ${String.format("%.4f", asset.longitude)}")
+                val locName = asset.locationName
+                if (!locName.isNullOrBlank()) {
+                    LocationInfoRow(
+                        label = stringResource(R.string.media_info_location),
+                        locationName = locName,
+                        lat = asset.latitude,
+                        lon = asset.longitude
+                    )
                 }
 
                 // 人脸信息
@@ -1582,6 +1588,46 @@ private fun InfoRow(label: String, value: String) {
             color = Color.White,
             modifier = Modifier.weight(0.65f)
         )
+    }
+}
+
+/** 构造 geo: intent URI，label 用 UTF-8 百分号编码（纯 JVM，便于单测）。 */
+fun buildGeoUri(lat: Double, lon: Double, label: String): String {
+    val encoded = URLEncoder.encode(label, "UTF-8")
+    return "geo:$lat,$lon?q=$lat,$lon($encoded)"
+}
+
+/** 位置信息行：展示地名，有坐标时可点击跳用户自装的地图 App。 */
+@Composable
+private fun LocationInfoRow(label: String, locationName: String, lat: Double?, lon: Double?) {
+    val context = LocalContext.current
+    val canOpenMap = lat != null && lon != null
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .then(
+                if (canOpenMap) Modifier.clickable { openMapApp(context, lat!!, lon!!, locationName) }
+                else Modifier
+            ),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, fontSize = 13.sp, color = Color.Gray, modifier = Modifier.weight(0.35f))
+        Text(
+            text = if (canOpenMap) "$locationName  ›" else locationName,
+            fontSize = 13.sp,
+            color = Color.White,
+            modifier = Modifier.weight(0.65f)
+        )
+    }
+}
+
+private fun openMapApp(context: Context, lat: Double, lon: Double, label: String) {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(buildGeoUri(lat, lon, label)))
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, context.getString(R.string.no_map_app), Toast.LENGTH_SHORT).show()
     }
 }
 

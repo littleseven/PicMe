@@ -287,6 +287,8 @@
     <string name="media_info_path">路徑：%1$s</string>
     <string name="media_info_size">大小：%1$s</string>
     <string name="media_info_resolution">解析度：%1$s</string>
+    <string name="media_info_location">位置</string>
+    <string name="no_map_app">找不到地圖應用程式</string>
 
     <!-- AI Agent -->
     <string name="ai_agent">AI 智慧助手</string>
