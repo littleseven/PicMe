@@ -825,6 +825,9 @@ fun GalleryScreen(
                             val resultJson = app.container.tagGenerationScheduler.processSingleSync(uri.toString())
                             if (resultJson != null) viewModel.refreshLabels()
                             resultJson
+                        },
+                        onDescribeImage = { uri ->
+                            app.container.tagGenerationScheduler.describeImage(uri.toString())
                         }
                     )
                 }
