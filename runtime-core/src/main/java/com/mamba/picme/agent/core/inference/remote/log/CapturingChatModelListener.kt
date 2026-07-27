@@ -33,7 +33,8 @@ import com.mamba.picme.agent.core.platform.logging.Logger
 class CapturingChatModelListener(
     private val source: String,
     private val recorder: LlmCallRecorder,
-    private val captureContent: Boolean = true
+    private val captureContent: Boolean = true,
+    private val traceIdHolder: TraceIdHolder? = null
 ) : ChatModelListener {
 
     override fun onRequest(requestContext: ChatModelRequestContext) {
@@ -63,7 +64,8 @@ class CapturingChatModelListener(
                     totalTokens = usage?.totalTokenCount(),
                     requestJson = buildRequestJson(request),
                     responseJson = buildResponseJson(response?.aiMessage(), response?.finishReason(), usage),
-                    errorMessage = null
+                    errorMessage = null,
+                    traceId = traceIdHolder?.value
                 )
             )
         } catch (e: Exception) {
@@ -91,7 +93,8 @@ class CapturingChatModelListener(
                     errorMessage = capErrorMessage(
                         errorContext.error()?.message
                             ?: errorContext.error()?.javaClass?.simpleName
-                    )
+                    ),
+                    traceId = traceIdHolder?.value
                 )
             )
         } catch (e: Exception) {

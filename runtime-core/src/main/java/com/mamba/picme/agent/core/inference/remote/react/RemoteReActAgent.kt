@@ -13,6 +13,7 @@ import com.mamba.data.message.SystemMessage
 import com.mamba.model.chat.listener.ChatModelListener
 import com.mamba.model.chat.listener.ChatModelResponseContext
 import com.mamba.model.output.TokenUsage
+import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -53,7 +54,7 @@ class RemoteReActAgent(
             gatewayToken = config.gatewayToken ?: ""
         )
 
-        val builder = RemoteModelFactory.createBuilder(remoteModelConfig, "react")
+        val builder = RemoteModelFactory.createBuilder(remoteModelConfig, "react", traceIdHolder)
             .logRequests(true)
             .logResponses(true)
 
@@ -86,6 +87,12 @@ class RemoteReActAgent(
     private val running = AtomicBoolean(false)
     private val cancelled = AtomicBoolean(false)
     private val executor = Executors.newSingleThreadExecutor()
+
+    /**
+     * 当轮 traceId 持有器：[executeTask] 开始时写入，[chatModel] 的 CapturingChatModelListener
+     * 读取后落入 LlmCallRecord。单线程 executor 串行执行 → 无竞态。
+     */
+    private val traceIdHolder = TraceIdHolder()
 
     /** 记录每次执行的性能指标 */
     private var lastExecutionMetrics: AgentExecutionMetrics? = null
@@ -172,7 +179,7 @@ class RemoteReActAgent(
      */
     fun getLastExecutionMetrics(): AgentExecutionMetrics? = lastExecutionMetrics
 
-    fun executeTask(userPrompt: String, taskCallback: RemoteReActAgentCallback? = null) {
+    fun executeTask(userPrompt: String, taskCallback: RemoteReActAgentCallback? = null, traceId: String? = null) {
         if (running.get()) {
             (taskCallback ?: callback).onError(0, IllegalStateException("Agent is already running a task"), 0)
             return
@@ -184,7 +191,7 @@ class RemoteReActAgent(
 
         executor.submit {
             try {
-                runAgentWithAiServices(userPrompt, taskCallback)
+                runAgentWithAiServices(userPrompt, taskCallback, traceId)
             } catch (e: Exception) {
                 Logger.e(TAG, "Agent execution error", e)
                 (taskCallback ?: callback).onError(0, e, 0)
@@ -207,14 +214,14 @@ class RemoteReActAgent(
 
     // ==================== AiServices 代理调用（替代手动 ReAct loop）====================
 
-    private fun runAgentWithAiServices(userPrompt: String, taskCallback: RemoteReActAgentCallback? = null) {
+    private fun runAgentWithAiServices(userPrompt: String, taskCallback: RemoteReActAgentCallback? = null, traceId: String? = null) {
         val cb = taskCallback ?: callback
 
         Logger.d(TAG, "runAgentWithAiServices start: userPrompt='$userPrompt'")
         cb.onLoopStart(1)
 
         val startTime = System.currentTimeMillis()
-
+        traceIdHolder.value = traceId
         try {
             // 获取 AiServices 代理（自动处理工具调用循环）
             val assistant = getOrCreateAssistant()
@@ -263,6 +270,7 @@ class RemoteReActAgent(
             }
         }
 
+        traceIdHolder.value = null
         Logger.d(TAG, "runAgentWithAiServices end")
     }
 
