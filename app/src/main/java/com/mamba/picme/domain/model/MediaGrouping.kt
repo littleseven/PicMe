@@ -9,7 +9,8 @@ enum class GroupingMode {
     PERSON,
     LANDSCAPE,
     SWIMWEAR,
-    SEXY
+    SEXY,
+    LOCATION
 }
 
 enum class GroupTitleType {
@@ -21,7 +22,9 @@ enum class GroupTitleType {
     LANDSCAPE,
     SWIMWEAR,
     SEXY,
-    SEARCH
+    SEARCH,
+    LOCATION,
+    NO_LOCATION
 }
 
 data class GroupedMedia(

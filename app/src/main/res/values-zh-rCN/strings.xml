@@ -504,6 +504,7 @@
     <!-- 智能相册索引 -->
     <string name="gallery_group_tag">按标签</string>
     <string name="gallery_group_location">按地点</string>
+    <string name="group_no_location">无位置</string>
     <string name="gallery_group_ocr">按文字</string>
     <string name="gallery_group_person">按人物</string>
     <string name="gallery_index_status">已索引 %1$d / 共 %2$d 张</string>

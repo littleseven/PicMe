@@ -26,6 +26,8 @@ fun resolveGroupTitle(
         GroupTitleType.LANDSCAPE -> context.getString(R.string.landscape)
         GroupTitleType.SWIMWEAR -> context.getString(R.string.swimwear)
         GroupTitleType.SEXY -> context.getString(R.string.sexy)
+        GroupTitleType.LOCATION -> group.titleValue
+        GroupTitleType.NO_LOCATION -> context.getString(R.string.group_no_location)
         GroupTitleType.SEARCH -> "搜索 ${group.titleValue}（${group.items.size} 张）"
     }
 }

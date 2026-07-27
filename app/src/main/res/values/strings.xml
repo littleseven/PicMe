@@ -551,6 +551,7 @@
     <!-- Smart Gallery Index -->
     <string name="gallery_group_tag">By Tag</string>
     <string name="gallery_group_location">By Location</string>
+    <string name="group_no_location">No location</string>
     <string name="gallery_group_ocr">By Text</string>
     <string name="gallery_group_person">By Person</string>
     <string name="gallery_index_status">%1$d indexed, %2$d total</string>

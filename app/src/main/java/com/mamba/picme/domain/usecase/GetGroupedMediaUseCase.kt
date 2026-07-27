@@ -120,6 +120,19 @@ class GetGroupedMediaUseCase {
                     emptyList()
                 }
             }
+
+            GroupingMode.LOCATION -> {
+                val withCity = media.filter { item -> !item.city.isNullOrBlank() }
+                val noCity = media.filter { item -> item.city.isNullOrBlank() }
+                buildList {
+                    withCity.groupBy { item -> item.city!! }
+                        .map { (city, items) -> GroupedMedia(GroupTitleType.LOCATION, city, items) }
+                        .forEach { group -> add(group) }
+                    if (noCity.isNotEmpty()) {
+                        add(GroupedMedia(GroupTitleType.NO_LOCATION, "", noCity))
+                    }
+                }
+            }
         }
     }
 

@@ -36,6 +36,7 @@ import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.domain.model.GroupingMode.DATE
 import com.mamba.picme.domain.model.GroupingMode.FACE
 import com.mamba.picme.domain.model.GroupingMode.LANDSCAPE
+import com.mamba.picme.domain.model.GroupingMode.LOCATION
 import com.mamba.picme.domain.model.GroupingMode.NONE
 import com.mamba.picme.domain.model.GroupingMode.PERSON
 import com.mamba.picme.domain.model.GroupingMode.SEXY
@@ -177,6 +178,7 @@ private fun GroupingMenu(
                     LANDSCAPE -> stringResource(R.string.landscape)
                     SWIMWEAR -> stringResource(R.string.swimwear)
                     SEXY -> stringResource(R.string.sexy)
+                    LOCATION -> stringResource(R.string.gallery_group_location)
                 }
                 DropdownMenuItem(
                     text = { Text(label) },
