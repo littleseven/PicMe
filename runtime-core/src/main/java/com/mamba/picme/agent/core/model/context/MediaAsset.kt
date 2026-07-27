@@ -19,6 +19,7 @@ data class MediaAsset(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val locationName: String? = null,
+    val city: String? = null,
     val indexedAt: Long? = null
 )
 

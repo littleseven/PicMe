@@ -52,7 +52,7 @@ import com.mamba.picme.data.model.MediaEntity
         MemoryFactEntity::class,
         ChatImageCacheEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -87,7 +87,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                         MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                        MIGRATION_14_15, MIGRATION_15_16
+                        MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
                     )
                     .build()
                 INSTANCE = instance
@@ -387,6 +387,16 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL(
                     "UPDATE tag_scan_tasks SET pass = 'IMAGE_TAGGING' WHERE pass = 'QWEN_TAGGING'"
                 )
+            }
+        }
+
+        /**
+         * Migration 16 → 17：media_assets 新增 city 列（逆地理编码城市，去范式化供按城市分组）。
+         * 只 ADD COLUMN（全版本 SQLite 安全）；存量行 city 为 NULL，由位置回填 pass 写入。
+         */
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `city` TEXT")
             }
         }
     }

@@ -131,6 +131,7 @@ class MediaIndexingWorker(
                             latitude = result.latitude,
                             longitude = result.longitude,
                             locationName = result.locationName,
+                            city = result.resolved?.city,
                             indexedAt = now
                         )
 
@@ -153,6 +154,7 @@ class MediaIndexingWorker(
                             latitude = entity.latitude,
                             longitude = entity.longitude,
                             locationName = entity.locationName,
+                            city = entity.city,
                             indexedAt = -1L
                         )
                     }
@@ -192,6 +194,7 @@ class MediaIndexingWorker(
                     latitude = result.latitude,
                     longitude = result.longitude,
                     locationName = result.locationName,
+                    city = result.resolved?.city,
                     indexedAt = now
                 )
                 existingMedia.id
@@ -208,6 +211,7 @@ class MediaIndexingWorker(
                     latitude = result.latitude,
                     longitude = result.longitude,
                     locationName = result.locationName,
+                    city = result.resolved?.city,
                     indexedAt = now
                 )
                 dao.insertMedia(entity)

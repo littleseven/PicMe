@@ -95,6 +95,7 @@ interface MediaDao {
             latitude = :latitude,
             longitude = :longitude,
             locationName = :locationName,
+            city = :city,
             indexedAt = :indexedAt
         WHERE id = :mediaId
         """
@@ -106,6 +107,7 @@ interface MediaDao {
         latitude: Double?,
         longitude: Double?,
         locationName: String?,
+        city: String?,
         indexedAt: Long
     )
 
