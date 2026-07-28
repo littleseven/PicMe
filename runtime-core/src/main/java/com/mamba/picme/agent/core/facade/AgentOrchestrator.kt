@@ -12,10 +12,8 @@ import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
-import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.local.llm.LlmChatRequest
-import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.inference.local.parser.LocalCommandParser
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
@@ -32,7 +30,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -82,10 +79,6 @@ class AgentOrchestrator private constructor(context: Context) {
      */
     private val backgroundScope = CoroutineScope(SupervisorJob())
 
-    /** 模型加载状态（委托 [localModelService]；场景驱动卸载已移入 LocalModelService）。 */
-    val isModelLoading: StateFlow<Boolean>
-        get() = localModelService.isModelLoading
-
     // 便捷访问器
     private val localLlmEngine get() = configurator.localLlmEngine
     private val memoryManager get() = configurator.memoryManager
@@ -121,20 +114,6 @@ class AgentOrchestrator private constructor(context: Context) {
     fun getCapabilityRegistry(): CapabilityRegistry {
         return _capabilityRegistry
     }
-
-    /**
-     * 获取本地 LLM 推理引擎（委托 [localModelService]）。
-     *
-     * 供非 Agent 消费者（如后台标签索引 Worker）直接使用模型进行推理。
-     * **注意**：调用方应确保模型已加载后再使用。
-     */
-    fun getLlmEngine(): LocalLlmEngine = localModelService.getLlmEngine()
-
-    /**
-     * 获取最近一次本地 LLM 生成的性能指标（委托 [localModelService]）。
-     */
-    fun getLastLocalGenerationMetrics(): com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics? =
-        localModelService.getLastLocalGenerationMetrics()
 
     /**
      * 场景切换
@@ -226,63 +205,6 @@ class AgentOrchestrator private constructor(context: Context) {
     fun clearFeishuAgent() {
         configurator.clearFeishuAgent()
     }
-
-    /**
-     * 加载本地模型（委托 [localModelService]）
-     *
-     * @param modelId 模型 ID，为空时使用当前配置模型
-     */
-    suspend fun loadModel(modelId: String? = null): Result<Unit> =
-        localModelService.loadModel(modelId)
-
-    /**
-     * 卸载模型（委托 [localModelService]）
-     */
-    fun unloadModel() {
-        localModelService.unloadModel()
-    }
-
-    /**
-     * 确保本地模型已加载。
-     *
-     * 所有本地 LLM 推理入口应统一通过此方法（或 [withModelLoaded]）加载模型，
-     * 避免调用方遗漏加载检查导致空结果或崩溃。
-     *
-     * @param modelId 模型 ID，为空时使用当前配置模型
-     * @param useOpencl 是否使用 OpenCL，为 null 时使用当前配置
-     * @param caller 调用方标识，用于加载审计日志
-     * @return 加载结果
-     */
-    suspend fun ensureModelLoaded(
-        modelId: String? = null,
-        useOpencl: Boolean? = null,
-        caller: String = "unknown"
-    ): Result<Unit> = localModelService.ensureModelLoaded(modelId, useOpencl, caller)
-
-    /**
-     * 在模型已加载的前提下执行推理块。
-     *
-     * 如果模型未加载，会先尝试加载，成功后再执行 [inferenceBlock]。
-     * 所有 imageInference / generate / chat 等本地 LLM 调用应统一走此入口。
-     *
-     * @param modelId 模型 ID，为空时使用当前配置模型
-     * @param useOpencl 是否使用 OpenCL，为 null 时使用当前配置
-     * @param caller 调用方标识，用于加载审计日志
-     * @param inferenceBlock 推理逻辑块，接收 [LocalLlmEngine]
-     * @return 推理结果；加载失败时返回 failure
-     */
-    suspend fun <T> withModelLoaded(
-        modelId: String? = null,
-        useOpencl: Boolean? = null,
-        caller: String = "unknown",
-        inferenceBlock: suspend (LocalLlmEngine) -> T
-    ): Result<T> = localModelService.withModelLoaded(modelId, useOpencl, caller, inferenceBlock)
-
-    /**
-     * 模型是否已加载（委托 [localModelService]）
-     */
-    val isModelLoaded: Boolean
-        get() = localModelService.isModelLoaded
 
     /**
      * 使用 LocalPipeline 处理输入（支持 L2 本地快速通道）
