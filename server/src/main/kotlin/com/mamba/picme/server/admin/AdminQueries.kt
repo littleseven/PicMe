@@ -105,10 +105,15 @@ data class ChannelUsage(
 object AdminQueries {
     private const val DAY_MS = 86_400_000L
 
-    private fun startOfTodayMs(now: Long): Long = now - (now % DAY_MS)
+    private val CN = ZoneOffset.ofHours(8)
+
+    private fun startOfDayMs(ms: Long): Long =
+        Instant.ofEpochMilli(ms).atZone(CN).toLocalDate().atStartOfDay(CN).toInstant().toEpochMilli()
+
+    private fun startOfTodayMs(now: Long): Long = startOfDayMs(now)
 
     private fun epochDay(ms: Long): String =
-        Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate().toString()
+        Instant.ofEpochMilli(ms).atZone(CN).toLocalDate().toString()
 
     suspend fun overview(now: Long): OverviewRow = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         val startToday = startOfTodayMs(now)

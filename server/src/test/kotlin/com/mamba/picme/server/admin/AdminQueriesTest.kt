@@ -18,7 +18,9 @@ class AdminQueriesTest {
 
     private val day = 86_400_000L
     private val now = 1_700_000_000_000L
-    private val todayStart = now - (now % day)
+    private val cn = java.time.ZoneOffset.ofHours(8)
+    private val todayStart =
+        java.time.Instant.ofEpochMilli(now).atZone(cn).toLocalDate().atStartOfDay(cn).toInstant().toEpochMilli()
 
     @Test
     fun `overview users detail recent and daily aggregates`() = runBlocking {
