@@ -54,9 +54,9 @@ ADR-005 做了「协议分离」，但 `AgentOrchestrator` 仍是单一入口同
 | step1 消除共享配置污染（P0-3 止血：`updateRemoteRuntimeConfig` + 5 处泄漏点改调） | ✅ 已合 main |
 | step2 抽出 `RemoteChatEngine`（chat 远程链路：streamChat/processChatReAct/getChatAgent/chatSystemPrompt） | ✅ `treatment/d3-chain-isolation`（be8e3edf） |
 | step3 抽出 `LocalModelService`（模型加载服务，相机 Agent + 后台打标 Worker 共用） | ✅ `treatment/d3-chain-isolation`（6d1cd7a5） |
-| step4 消费者迁到 `localModelService` 直调 + 删 AgentOrchestrator 委托层（8 个方法） | ✅ `treatment/d3-chain-isolation`（a9a5f61c / c1445d1f） |
-| step5 抽出 `LocalCameraAgent`（本地相机推理路径 processInputWithRouter/processUserInput） | ⏳ 后续 |
-| 入口收敛 / 死代码清理（`handleInferenceResult` 等） | ⏳ 后续 |
+| step4 消费者迁到 `localModelService` 直调 + 删 AgentOrchestrator 委托层（8 个方法） | ✅ 已合 main（a9a5f61c / c1445d1f） |
+| step5 抽出 `LocalCameraAgent`（本地相机推理路径：processInputWithRouter/processUserInput + helper）+ 消费者迁移 + 删委托 | ✅ `treatment/d3-step5b-local-camera-agent`（21f76442 / 7181a269） |
+| 入口收敛 / 死代码清理（`handleInferenceResult` 等） | ✅ step5a 已清（b78996e0，已合 main） |
 
 ## 6. 相关
 
