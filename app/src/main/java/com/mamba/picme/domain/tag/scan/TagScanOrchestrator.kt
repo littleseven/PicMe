@@ -90,6 +90,19 @@ class TagScanOrchestrator(
         }
 
         /**
+         * 计算用于「单媒体覆盖判定」的 Pass 编号集合（供 [scheduleAutoScan] 过滤候选）。
+         *
+         * **必须剔除 DBSCAN**：DBSCAN 是全局任务（[createTasks] 里 mediaId=-1），
+         * [maybeUpdateMediaScanRecord] 对 DBSCAN 直接 return → 单媒体 lastTagScanPasses 永不写 "2"。
+         * 若把 "2" 纳入 [isPassesCovered]，所有照片恒为「未覆盖」，4h 避重窗口一过期就被重选
+         * → Pass 1 死循环；候选为空时又误判「全量完成」提前进入 deferredPasses（第二/三步）。
+         */
+        fun perMediaCoveragePassNumbers(passes: List<TagScanPass>): Set<String> =
+            passes.filter { it != TagScanPass.DBSCAN }
+                .map { it.toPassNumber() }
+                .toSet()
+
+        /**
          * 计算自动扫描的阶段切换策略。
          *
          * - [ScanQueuePolicy.deferredPasses] 非空：返回第二阶段 policy（passes=deferredPasses，
@@ -208,7 +221,8 @@ class TagScanOrchestrator(
         logInfo(sessionId, "开始自动增量扫描: $policy")
 
         val before = System.currentTimeMillis() - policy.skipRecentlyTaggedMs
-        val requestedPassNumbers = policy.passes.map { it.toPassNumber() }.toSet()
+        // 覆盖判定只认单媒体 Pass（剔除 DBSCAN 全局任务），见 [perMediaCoveragePassNumbers]。
+        val requestedPassNumbers = perMediaCoveragePassNumbers(policy.passes)
 
         // 按排序策略从数据库拉取轻量候选（仅 id + lastTagScanPasses），
         // 避免一次性加载 faceRoiResult/semanticEmbedding 等大字段到 Java Heap。

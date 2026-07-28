@@ -43,6 +43,25 @@ class TagScanOrchestratorTest {
     }
 
     @Test
+    fun `perMediaCoveragePassNumbers excludes DBSCAN from per-media coverage`() {
+        // 默认 phase 1 passes = FACE_DETECTION + DBSCAN；DBSCAN 是全局任务，必须不计入覆盖判定
+        val phase1 = ScanQueuePolicy().passes
+        assertEquals(setOf("1"), TagScanOrchestrator.perMediaCoveragePassNumbers(phase1))
+        // phase 2 (IMAGE_TAGGING) 是单媒体 pass，保留
+        val phase2 = TagScanOrchestrator.nextPhasePolicy(ScanQueuePolicy())!!.passes
+        assertEquals(setOf("3"), TagScanOrchestrator.perMediaCoveragePassNumbers(phase2))
+    }
+
+    @Test
+    fun `photo covered for pass 1 but missing DBSCAN is not re-selected`() {
+        // 回归 Pass 1 死循环：照片已完成 FACE_DETECTION（lastTagScanPasses={"1"}），DBSCAN 全局任务
+        // 从不写单媒体 "2"。覆盖判定必须剔除 "2"，否则该照片被恒判「未覆盖」→ 4h 窗口过期后被无限重选。
+        val lastTagScanPasses = """{"1":1700000000000}""" // 仅有 "1"，无 "2"
+        val requested = TagScanOrchestrator.perMediaCoveragePassNumbers(ScanQueuePolicy().passes)
+        assertTrue(TagScanOrchestrator.isPassesCovered(lastTagScanPasses, requested))
+    }
+
+    @Test
     fun `TagCategory toPasses maps face to pass 1 and 2`() {
         val passes = TagCategory.toPasses(setOf(TagCategory.FACE))
         assertEquals(listOf(TagScanPass.FACE_DETECTION, TagScanPass.DBSCAN), passes)
