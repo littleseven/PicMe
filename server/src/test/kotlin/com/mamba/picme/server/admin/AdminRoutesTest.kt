@@ -128,7 +128,7 @@ class AdminRoutesTest {
         // 9. traffic page
         val r9 = c.get("/admin/traffic") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.OK, r9.status)
-        assertTrue(r9.bodyAsText().contains("Total Token"))
+        assertTrue(r9.bodyAsText().contains("每日明细"))
 
         // 10. revoke user
         val r10 = c.post("/admin/users/1/revoke") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
@@ -290,5 +290,29 @@ class AdminRoutesTest {
         assertEquals("/admin/settings", post.headers[HttpHeaders.Location])
         assertEquals(888, SettingsService.snapshot().freeLlmQuota)
         assertEquals(66, SettingsService.snapshot().guestLlmQuota)
+    }
+
+    @Test
+    fun `overview and traffic honor days and metric query params and clamp invalid`() = testApplication {
+        seed()
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        // overview 接受 days=14&metric=cost
+        val ov = c.get("/admin?days=14&metric=cost") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, ov.status)
+        val ovHtml = ov.bodyAsText()
+        assertTrue(ovHtml.contains("近 14 天 · 成本 ¥"))
+        assertTrue(ovHtml.contains("subtab active"))
+
+        // traffic 接受 days=90&metric=tokens
+        val tr = c.get("/admin/traffic?days=90&metric=tokens") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, tr.status)
+        assertTrue(tr.bodyAsText().contains("近 90 天，UTC+8）· Token"))
+
+        // 非法值回落默认（days=3 / metric=foo），仍 200、不崩
+        val bad = c.get("/admin/traffic?days=3&metric=foo") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.OK, bad.status)
+        assertTrue(bad.bodyAsText().contains("近 30 天，UTC+8）· 调用数"))
     }
 }

@@ -221,7 +221,9 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
         get("/traffic") {
             if (!call.adminGuard(adminToken)) return@get
             val now = System.currentTimeMillis()
-            call.respondText(AdminViews.trafficPage(AdminQueries.dailySeries(30, now)), ContentType.Text.Html)
+            val days = parseDays(call.request.queryParameters["days"], listOf(7, 14, 30, 90), 30)
+            val metric = parseMetric(call.request.queryParameters["metric"])
+            call.respondText(AdminViews.trafficPage(AdminQueries.rangeStats(days, now), days, metric), ContentType.Text.Html)
         }
 
         get("/settings") {

@@ -312,38 +312,33 @@ object AdminViews {
         }
     }
 
-    fun trafficPage(series: List<DayBucket>): String = createHTML().html {
+    fun trafficPage(range: RangeStats, days: Int, metric: String): String = createHTML().html {
         adminHead("流量 · PoLang 管理后台")
         body {
             navBar()
-            h1 { +"流量（近 ${series.size} 天，UTC）" }
-            h2 { +"每日 Token 总量" }
-            unsafe { raw(svgBars(series.map { it.totalTokens.toDouble() }, series.map { it.day }, labelFormatter = ::compactCount)) }
-            h2 { +"每日明细" }
-            table {
-                tr {
-                    th { +"日期" }
-                    th { +"调用" }
-                    th { +"blocked" }
-                    th { +"Prompt" }
-                    th { +"Completion" }
-                    th { +"Total Token" }
-                    th { +"成本 ¥" }
-                    th { +"出口字节" }
+            rangeTabs(days, listOf(7, 14, 30, 90), "/admin/traffic", metric)
+            metricTabs(metric, listOf("calls" to "调用", "tokens" to "Token", "cost" to "成本", "bytes" to "字节"), "/admin/traffic", days)
+            h1 { +"流量（近 $days 天，UTC+8）· ${metricLabel(metric)}" }
+            h2 { +"每日 ${metricLabel(metric)}" }
+            unsafe { raw(svgBars(range.days.map { dayMetricValue(it, metric) }, range.days.map { it.day }, labelFormatter = metricFormatter(metric))) }
+            h2 { +"健康" }
+            healthRow(range)
+            val effMetric = if (metric == "bytes") "cost" else metric
+            h2 { +"构成（按${metricLabel(effMetric)}）" }
+            div("cards") {
+                div("card share-card") {
+                    div("card-label") { +"by model" }
+                    shareBars(range.byModel, effMetric, dimTotal(range.byModel, effMetric))
                 }
-                series.reversed().forEach { b ->
-                    tr {
-                        td { +b.day }
-                        td { +b.calls.toString() }
-                        td { +b.blocked.toString() }
-                        td { +b.promptTokens.toString() }
-                        td { +b.completionTokens.toString() }
-                        td { +b.totalTokens.toString() }
-                        td { +fmt(b.cost) }
-                        td { +b.bytes.toString() }
-                    }
+                div("card share-card") {
+                    div("card-label") { +"by provider" }
+                    shareBars(range.byProvider, effMetric, dimTotal(range.byProvider, effMetric))
                 }
             }
+            h2 { +"每日明细" }
+            dailyDetailTable(range)
+            h2 { +"异常 Top（近 $days 天）" }
+            topLists(range)
         }
     }
 
@@ -942,6 +937,84 @@ object AdminViews {
         }
     }
 
+    // ── 流量页专用组件 ──
+
+    private fun FlowContent.healthRow(range: RangeStats) {
+        val denom = range.totals.calls + range.totals.blocked + range.totals.errors
+        val rate = { n: Long -> if (denom > 0) "${(n.toDouble() / denom * 100).toInt()}%" else "—" }
+        div("cards health-row") {
+            healthItem("blocked 率", rate(range.totals.blocked))
+            healthItem("error 率", rate(range.totals.errors))
+            healthItem("延迟 p50", if (range.latency.count == 0) "—" else "${range.latency.p50} ms")
+            healthItem("延迟 p95", if (range.latency.count == 0) "—" else "${range.latency.p95} ms")
+        }
+    }
+
+    private fun FlowContent.healthItem(label: String, value: String) {
+        div("card health-item") {
+            div("card-label") { +label }
+            div("card-value") { +value }
+        }
+    }
+
+    private fun rateStr(calls: Long, blocked: Long, errors: Long, hit: Long): String {
+        val denom = calls + blocked + errors
+        return if (denom > 0) "${(hit.toDouble() / denom * 100).toInt()}%" else "—"
+    }
+
+    private fun FlowContent.dailyDetailTable(range: RangeStats) {
+        val tot = range.totals
+        table {
+            tr {
+                th { +"日期" }; th { +"调用" }; th { +"blocked" }; th { +"error" }; th { +"率" }
+                th { +"Token" }; th { +"成本 ¥" }; th { +"出口字节" }
+            }
+            tr("total-row") {
+                td { +"合计" }; td { +tot.calls.toString() }; td { +tot.blocked.toString() }; td { +tot.errors.toString() }
+                td { +rateStr(tot.calls, tot.blocked, tot.errors, tot.blocked) }
+                td { +compactCount(tot.totalTokens.toDouble()) }; td { +compactCost(tot.cost) }; td { +formatBytes(tot.bytes) }
+            }
+            range.days.reversed().forEach { b ->
+                tr {
+                    td { +b.day }; td { +b.calls.toString() }; td { +b.blocked.toString() }; td { +b.errors.toString() }
+                    td { +rateStr(b.calls, b.blocked, b.errors, b.blocked) }
+                    td { +compactCount(b.totalTokens.toDouble()) }; td { +fmt(b.cost) }; td { +formatBytes(b.bytes) }
+                }
+            }
+        }
+    }
+
+    private fun FlowContent.topLists(range: RangeStats) {
+        div("cards") {
+            div("card top-card") {
+                div("card-label") { +"用户 Top 5（按调用）" }
+                topTable(range.topUsers, "/admin/users")
+            }
+            div("card top-card") {
+                div("card-label") { +"设备 Top 5（按调用）" }
+                topTable(range.topDevices, null)
+            }
+        }
+    }
+
+    private fun FlowContent.topTable(items: List<TopStat>, linkBase: String?) {
+        table("top-list") {
+            tr { th { +"标识" }; th { +"调用" }; th { +"成本 ¥" } }
+            if (items.isEmpty()) {
+                tr { td { +"—" }; td {}; td {} }
+            }
+            items.forEach { s ->
+                tr {
+                    td {
+                        if (linkBase != null && s.id > 0) a("$linkBase/${s.id}") { +s.label } else +s.label
+                    }
+                    td { +s.calls.toString() }
+                    td { +fmt(s.cost) }
+                }
+            }
+        }
+    }
+
     // ── 公共片段 ──
 
     private fun HTML.adminHead(title: String) {
@@ -1080,6 +1153,13 @@ object AdminViews {
                         .share-bar{flex:1;height:10px;background:#f0f2f5;border-radius:6px;overflow:hidden}
                         .share-bar-fill{height:100%;background:#006eff;border-radius:6px}
                         .share-pct{width:44px;text-align:right;color:#666;font-variant-numeric:tabular-nums}
+                        .health-item{min-width:120px}
+                        .health-item .card-value{font-size:18px}
+                        .share-card{flex:1;min-width:280px}
+                        .top-card{flex:1;min-width:280px}
+                        .top-list{font-size:12px;margin-top:8px}
+                        .top-list th,.top-list td{padding:6px 8px}
+                        tr.total-row td{font-weight:700;background:#fafafa}
                         @media (max-width:640px){
                         body>h1{font-size:20px}
                         body>h2{font-size:14px}

@@ -52,11 +52,23 @@ class AdminViewsTest {
     }
 
     @Test
-    fun `traffic page renders daily table`() {
-        val series = listOf(DayBucket("2026-07-12", 1L, 0L, 10L, 5L, 15L, 0.1, 100L))
-        val html = AdminViews.trafficPage(series)
-        assertTrue(html.contains("Total Token"))
+    fun `traffic page renders range tabs detail table with total row and top lists`() {
+        val range = RangeStats(
+            days = listOf(DayBucket("2026-07-12", 1L, 0L, 10L, 5L, 15L, 0.1, 100L, 0L)),
+            byModel = listOf(DimStat("deepseek-chat", 1L, 15L, 0.1)),
+            byProvider = listOf(DimStat("CLOUDFLARE", 1L, 15L, 0.1)),
+            topUsers = listOf(TopStat(1, "a***@x.com", 1L, 15L, 0.1)),
+            topDevices = emptyList(),
+            latency = LatencyStats(1, 120, 120),
+            totals = DayBucket("合计", 1L, 0L, 10L, 5L, 15L, 0.1, 100L, 0L),
+        )
+        val html = AdminViews.trafficPage(range, days = 30, metric = "calls")
+        assertTrue(html.contains("每日明细"))
+        assertTrue(html.contains("合计"))
         assertTrue(html.contains("2026-07-12"))
+        assertTrue(html.contains("构成"))
+        assertTrue(html.contains("异常 Top"))
+        assertTrue(html.contains("blocked 率"))
     }
 
     @Test
