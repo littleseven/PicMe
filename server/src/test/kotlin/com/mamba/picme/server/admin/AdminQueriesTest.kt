@@ -185,6 +185,44 @@ class AdminQueriesTest {
         assertEquals(1L, usage.getValue("Kimi 直连").calls)
     }
 
+    @Test
+    fun `rangeStats aggregates dims tops latency and totals`() = runBlocking {
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
+        account(1, "alice@x.com", todayStart - 5 * day)
+        account(2, "bob@x.com", todayStart + 10)
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 100, 50, 150, 1.0, 100, "ok", todayStart + 1000, deviceId = "dev-aaaa-bbbb-1234", latencyMs = 200)
+        logRow(1, "deepseek-chat", "CLOUDFLARE", 100, 50, 150, 1.0, 100, "ok", todayStart + 2000, deviceId = "dev-aaaa-bbbb-1234", latencyMs = 400)
+        logRow(2, "kimi-k2.6", "TOKENHUB", 10, 5, 15, 0.5, 80, "ok", todayStart + 3000, latencyMs = 100)
+        logRow(1, "deepseek-chat", "CLOUDFLARE", null, null, null, 0.0, 0, "blocked_quota", todayStart + 4000)
+        logRow(1, "glm-5.2", "TOKENHUB", 40, 10, 50, 0.3, 60, "ok", todayStart - day + 500, latencyMs = 1000)
+
+        val r = AdminQueries.rangeStats(7, now)
+
+        assertEquals(7, r.days.size)
+        assertEquals(3, r.byModel.size)
+        val dm = r.byModel.first { it.key == "deepseek-chat" }
+        assertEquals(2L, dm.calls)
+        assertEquals(300L, dm.tokens)
+        assertEquals(2.0, dm.cost, 1e-6)
+        val cf = r.byProvider.first { it.key == "CLOUDFLARE" }
+        assertEquals(2L, cf.calls)
+        assertEquals(2.0, cf.cost, 1e-6)
+        val th = r.byProvider.first { it.key == "TOKENHUB" }
+        assertEquals(0.8, th.cost, 1e-6) // kimi 0.5 + glm 0.3
+        assertEquals(1, r.topUsers[0].id)
+        assertEquals(3L, r.topUsers[0].calls)
+        assertTrue(r.topUsers[0].label.contains("***"))
+        assertTrue(r.topUsers[0].label.contains("@x.com"))
+        assertEquals(2L, r.topDevices[0].calls)
+        assertTrue(r.topDevices[0].label.contains("••••"))
+        assertEquals(4, r.latency.count)
+        assertEquals(200, r.latency.p50)
+        assertEquals(400, r.latency.p95)
+        assertEquals(4L, r.totals.calls)
+        assertEquals(1L, r.totals.blocked)
+        assertEquals(0L, r.totals.errors)
+    }
+
     private suspend fun account(id: Int, email: String, createdAt: Long) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             Accounts.insert {
@@ -211,6 +249,7 @@ class AdminQueriesTest {
         status: String,
         createdAt: Long,
         deviceId: String? = null,
+        latencyMs: Int? = null,
     ) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             LlmCallLogs.insert {
@@ -224,6 +263,7 @@ class AdminQueriesTest {
                 it[LlmCallLogs.respBytes] = bytes
                 it[LlmCallLogs.status] = status
                 it[LlmCallLogs.deviceId] = deviceId
+                it[LlmCallLogs.latencyMs] = latencyMs
                 it[LlmCallLogs.createdAt] = createdAt
             }
         }

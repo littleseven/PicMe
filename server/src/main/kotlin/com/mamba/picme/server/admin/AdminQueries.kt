@@ -111,7 +111,23 @@ data class ChannelUsage(
     val cost: Double,
 )
 
-// ── Queries（自然日按 UTC；内部后台够用。聚合在内存做，trial 规模毫秒级）──
+data class DimStat(val key: String, val calls: Long, val tokens: Long, val cost: Double)
+
+data class TopStat(val id: Int, val label: String, val calls: Long, val tokens: Long, val cost: Double)
+
+data class LatencyStats(val count: Int, val p50: Int, val p95: Int)
+
+data class RangeStats(
+    val days: List<DayBucket>,
+    val byModel: List<DimStat>,
+    val byProvider: List<DimStat>,
+    val topUsers: List<TopStat>,
+    val topDevices: List<TopStat>,
+    val latency: LatencyStats,
+    val totals: DayBucket,
+)
+
+// ── Queries（自然日按 UTC+8；内部后台够用。聚合在内存做，trial 规模毫秒级）──
 
 object AdminQueries {
     private const val DAY_MS = 86_400_000L
@@ -245,6 +261,76 @@ object AdminQueries {
                 DayBucket(day, a.calls, a.blocked, a.promptTokens, a.completionTokens, a.totalTokens, a.cost, a.bytes, a.errors)
             }
         }
+
+    /** 对所选天数范围单次扫描，内存扇出每日序列 + 模型/渠道分布 + Top 用户/设备 + 延迟分位 + 合计。 */
+    suspend fun rangeStats(days: Int, now: Long): RangeStats = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        val startToday = startOfTodayMs(now)
+        val since = startToday - (days - 1) * DAY_MS
+        val dayAcc = LinkedHashMap<String, DayAcc>()
+        for (i in 0 until days) {
+            val ds = startToday - (days - 1 - i) * DAY_MS
+            dayAcc[epochDay(ds)] = DayAcc()
+        }
+        val byModel = HashMap<String, DimAcc>()
+        val byProvider = HashMap<String, DimAcc>()
+        val userAcc = HashMap<Int, DimAcc>()
+        val devAcc = HashMap<String, DimAcc>()
+        val latencies = ArrayList<Int>()
+        LlmCallLogs.selectAll().where { LlmCallLogs.createdAt greaterEq since }.forEach { r ->
+            val t = r[LlmCallLogs.createdAt]
+            val status = r[LlmCallLogs.status]
+            val tokens = r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
+            val cost = r[LlmCallLogs.costCny]
+            val bytes = r[LlmCallLogs.respBytes].toLong()
+            dayAcc[epochDay(t)]?.let { a ->
+                if (status == "ok") a.calls += 1L
+                if (status.startsWith("blocked_")) a.blocked += 1L
+                if (status == "upstream_error") a.errors += 1L
+                a.promptTokens += r[LlmCallLogs.promptTokens]?.toLong() ?: 0L
+                a.completionTokens += r[LlmCallLogs.completionTokens]?.toLong() ?: 0L
+                a.totalTokens += tokens
+                a.cost += cost
+                a.bytes += bytes
+            }
+            if (status == "ok") {
+                byModel.acc(r[LlmCallLogs.model]).add(1, tokens, cost)
+                byProvider.acc(r[LlmCallLogs.provider]).add(1, tokens, cost)
+                userAcc.acc(r[LlmCallLogs.accountId]).add(1, tokens, cost)
+                r[LlmCallLogs.deviceId]?.let { devAcc.acc(it).add(1, tokens, cost) }
+                r[LlmCallLogs.latencyMs]?.let { latencies.add(it) }
+            }
+        }
+        val dayBuckets = dayAcc.map { (day, a) ->
+            DayBucket(day, a.calls, a.blocked, a.promptTokens, a.completionTokens, a.totalTokens, a.cost, a.bytes, a.errors)
+        }
+        val ta = DayAcc()
+        dayAcc.values.forEach { a ->
+            ta.calls += a.calls; ta.blocked += a.blocked; ta.errors += a.errors
+            ta.promptTokens += a.promptTokens; ta.completionTokens += a.completionTokens
+            ta.totalTokens += a.totalTokens; ta.cost += a.cost; ta.bytes += a.bytes
+        }
+        val totals = DayBucket("合计", ta.calls, ta.blocked, ta.promptTokens, ta.completionTokens, ta.totalTokens, ta.cost, ta.bytes, ta.errors)
+        val topUserEntries = userAcc.entries.sortedByDescending { it.value.calls }.take(5)
+        val emailById = if (topUserEntries.isEmpty()) emptyMap()
+        else Accounts.selectAll().where { Accounts.id inList topUserEntries.map { it.key } }
+            .associate { it[Accounts.id] to it[Accounts.email] }
+        val topUsers = topUserEntries.map { e ->
+            TopStat(e.key, maskEmail(emailById[e.key] ?: "#${e.key}"), e.value.calls, e.value.tokens, e.value.cost)
+        }
+        val topDevices = devAcc.entries.sortedByDescending { it.value.calls }.take(5)
+            .map { e -> TopStat(0, maskDeviceId(e.key), e.value.calls, e.value.tokens, e.value.cost) }
+        val lat = if (latencies.isEmpty()) LatencyStats(0, 0, 0)
+        else { latencies.sort(); val n = latencies.size; LatencyStats(n, latencies[(0.50 * (n - 1)).toInt()], latencies[(0.95 * (n - 1)).toInt()]) }
+        RangeStats(
+            days = dayBuckets,
+            byModel = byModel.map { DimStat(it.key, it.value.calls, it.value.tokens, it.value.cost) },
+            byProvider = byProvider.map { DimStat(it.key, it.value.calls, it.value.tokens, it.value.cost) },
+            topUsers = topUsers,
+            topDevices = topDevices,
+            latency = lat,
+            totals = totals,
+        )
+    }
 
     suspend fun usersList(): List<UserRow> = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         val calls = HashMap<Int, Long>()
@@ -386,6 +472,22 @@ object AdminQueries {
         var cost = 0.0
         var bytes = 0L
         var errors = 0L
+    }
+
+    private class DimAcc {
+        var calls = 0L
+        var tokens = 0L
+        var cost = 0.0
+        fun add(c: Long, t: Long, co: Double) {
+            calls += c; tokens += t; cost += co
+        }
+    }
+
+    private fun <K> HashMap<K, DimAcc>.acc(key: K): DimAcc = get(key) ?: DimAcc().also { put(key, it) }
+
+    private fun maskEmail(email: String): String {
+        val at = email.indexOf('@')
+        return if (at <= 1) email else email.substring(0, 1) + "***" + email.substring(at)
     }
 
     data class ApkUploadRow(
