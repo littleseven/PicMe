@@ -103,7 +103,9 @@ class AdminRoutesTest {
         // 5. valid cookie → overview 200
         val r5 = c.get("/admin") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.OK, r5.status)
-        assertTrue(r5.bodyAsText().contains("概览"))
+        val ovHtml = r5.bodyAsText()
+        assertTrue(ovHtml.contains("概览"))
+        assertTrue(ovHtml.contains("今日调用"))
 
         // 6. users page lists the seeded email and lifecycle action forms
         val r6 = c.get("/admin/users") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }

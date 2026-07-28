@@ -5,14 +5,23 @@ import org.junit.Test
 
 class AdminViewsTest {
 
+    private fun rangeFixture(days: List<DayBucket> = emptyList(), byModel: List<DimStat> = emptyList()): RangeStats =
+        RangeStats(days, byModel, emptyList(), emptyList(), emptyList(), LatencyStats(0, 0, 0),
+            DayBucket("合计", 0, 0, 0, 0, 0, 0.0, 0, 0))
+
     @Test
-    fun `overview page renders stat cards and an svg chart`() {
+    fun `overview page renders delta cards trend chart and model share bars`() {
         val ov = OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L, 0L, 0L, 0L, 0.0)
-        val series = listOf(DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L))
-        val html = AdminViews.overviewPage(ov, series)
-        assertTrue(html.contains("总用户数"))
-        assertTrue(html.contains("今日成本 ¥"))
+        val range = rangeFixture(
+            days = listOf(DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L, 0L)),
+            byModel = listOf(DimStat("glm-5.2", 3L, 1000L, 5.0)),
+        )
+        val html = AdminViews.overviewPage(ov, range, days = 7, metric = "calls")
+        assertTrue(html.contains("今日调用"))
+        assertTrue(html.contains("累计"))
         assertTrue(html.contains("<svg"))
+        assertTrue(html.contains("模型 Top"))
+        assertTrue(html.contains("share-bar-fill"))
     }
 
     @Test
@@ -54,25 +63,24 @@ class AdminViewsTest {
     fun `overview page renders sub-cent cost with precision not zero`() {
         // 今日成本 0.0044 元：%.2f 会显示 "0.00"，计费看起来没生效
         val ov = OverviewRow(1L, 0L, 5L, 7944L, 0.0044, 819L, 0L, 0L, 0L, 0L, 0.0)
-        val html = AdminViews.overviewPage(ov, emptyList())
+        val html = AdminViews.overviewPage(ov, rangeFixture(), days = 7, metric = "calls")
         assertTrue("sub-cent cost must not round to 0.00", html.contains("0.0044"))
     }
 
     @Test
     fun `bar charts render compact labels on top of each bar`() {
         val series = listOf(
-            DayBucket("2026-07-10", 1_500_000L, 0L, 800_000L, 700_000L, 1_500_000L, 1_234.56, 4096L),
-            DayBucket("2026-07-11", 1_200L, 0L, 600L, 600L, 1_200L, 0.0044, 2048L),
-            DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L),
+            DayBucket("2026-07-10", 1_500_000L, 0L, 800_000L, 700_000L, 1_500_000L, 1_234.56, 4096L, 0L),
+            DayBucket("2026-07-11", 1_200L, 0L, 600L, 600L, 1_200L, 0.0044, 2048L, 0L),
+            DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L, 0L),
         )
-        val html = AdminViews.overviewPage(
-            OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L, 0L, 0L, 0L, 0.0),
-            series,
-        ) + AdminViews.trafficPage(series)
-        assertTrue("compact count label for millions", html.contains(">1.5M</text>"))
-        assertTrue("compact count label for thousands", html.contains(">1.2k</text>"))
-        assertTrue("compact cost label for thousands", html.contains(">1.23k</text>"))
-        assertTrue("plain count label", html.contains(">5</text>"))
+        val ov = OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L, 0L, 0L, 0L, 0.0)
+        val byCalls = AdminViews.overviewPage(ov, rangeFixture(days = series), days = 7, metric = "calls")
+        assertTrue("compact count label for millions", byCalls.contains(">1.5M</text>"))
+        assertTrue("compact count label for thousands", byCalls.contains(">1.2k</text>"))
+        assertTrue("plain count label", byCalls.contains(">5</text>"))
+        val byCost = AdminViews.overviewPage(ov, rangeFixture(days = series), days = 7, metric = "cost")
+        assertTrue("compact cost label for thousands", byCost.contains(">1.23k</text>"))
     }
 
     @Test
@@ -100,7 +108,9 @@ class AdminViewsTest {
         // 此处锁定 .limit-card 必须带居中规则（max-width + auto margin），防回归。
         val html = AdminViews.overviewPage(
             OverviewRow(0L, 0L, 0L, 0L, 0.0, 0L, 0L, 0L, 0L, 0L, 0.0),
-            emptyList(),
+            rangeFixture(),
+            days = 7,
+            metric = "calls",
         )
         val rule = Regex("\\.limit-card\\{[^}]*\\}").find(html)?.value ?: ""
         assertTrue("expected a .limit-card CSS rule to exist", rule.isNotEmpty())

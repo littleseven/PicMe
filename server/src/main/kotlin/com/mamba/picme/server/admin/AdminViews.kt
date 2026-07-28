@@ -38,6 +38,7 @@ import kotlinx.html.title
 import kotlinx.html.tr
 import kotlinx.html.unsafe
 import kotlinx.html.stream.createHTML
+import kotlin.math.abs
 
 /**
  * 服务端渲染 HTML 页面（kotlinx.html）。无前端构建、无 CDN，内联 SVG 图表。
@@ -59,11 +60,23 @@ object AdminViews {
         }
     }
 
-    fun overviewPage(ov: OverviewRow, series: List<DayBucket>): String = createHTML().html {
+    fun overviewPage(ov: OverviewRow, range: RangeStats, days: Int, metric: String): String = createHTML().html {
         adminHead("概览 · PoLang 管理后台")
         body {
             navBar()
+            rangeTabs(days, listOf(7, 14), "/admin", metric)
+            metricTabs(metric, listOf("calls" to "调用", "cost" to "成本", "tokens" to "Token"), "/admin", days)
             h1 { +"概览" }
+            h2 { +"今日（UTC+8 自然日，带环比）" }
+            div("cards") {
+                statCardDelta("今日调用", ov.callsToday.toString(), ov.callsToday.toDouble(), ov.callsYest.toDouble(), DeltaPolarity.GOOD_ON_UP)
+                statCardDelta("今日成本 ¥", compactCost(ov.costToday), ov.costToday, ov.costYest, DeltaPolarity.BAD_ON_UP)
+                statCardDelta("今日 Token", compactCount(ov.tokensToday.toDouble()), ov.tokensToday.toDouble(), ov.tokensYest.toDouble(), DeltaPolarity.GOOD_ON_UP)
+                statCardDelta("今日新增用户", ov.newUsersToday.toString(), ov.newUsersToday.toDouble(), ov.newUsersYest.toDouble(), DeltaPolarity.GOOD_ON_UP)
+                statCardDelta("今日新增设备", ov.newDevicesToday.toString(), ov.newDevicesToday.toDouble(), ov.newDevicesYest.toDouble(), DeltaPolarity.GOOD_ON_UP)
+                statCardDelta("今日 blocked", ov.blockedToday.toString(), ov.blockedToday.toDouble(), ov.blockedYest.toDouble(), DeltaPolarity.BAD_ON_UP)
+                statCardDelta("今日 error", ov.errorsToday.toString(), ov.errorsToday.toDouble(), ov.errorsYest.toDouble(), DeltaPolarity.BAD_ON_UP)
+            }
             h2 { +"累计" }
             div("cards") {
                 statCard("总用户数", ov.totalUsers.toString())
@@ -72,19 +85,10 @@ object AdminViews {
                 statCard("累计 Token", compactCount(ov.totalTokens.toDouble()))
                 statCard("累计成本 ¥", compactCost(ov.totalCost))
             }
-            h2 { +"今日（UTC 自然日）" }
-            div("cards") {
-                statCard("今日新增", ov.newUsersToday.toString())
-                statCard("今日调用", ov.callsToday.toString())
-                statCard("今日 Token", compactCount(ov.tokensToday.toDouble()))
-                statCard("今日成本 ¥", compactCost(ov.costToday))
-                statCard("今日出口字节", compactCount(ov.bytesToday.toDouble()))
-                statCard("今日 blocked", ov.blockedToday.toString())
-            }
-            h2 { +"近 ${series.size} 天 调用数" }
-            unsafe { raw(svgBars(series.map { it.calls.toDouble() }, series.map { it.day }, labelFormatter = ::compactCount)) }
-            h2 { +"近 ${series.size} 天 成本 ¥" }
-            unsafe { raw(svgBars(series.map { it.cost }, series.map { it.day }, labelFormatter = ::compactCost)) }
+            h2 { +"近 $days 天 · ${metricLabel(metric)}" }
+            unsafe { raw(svgBars(range.days.map { dayMetricValue(it, metric) }, range.days.map { it.day }, labelFormatter = metricFormatter(metric))) }
+            h2 { +"模型 Top（近 $days 天 成本占比）" }
+            shareBars(range.byModel, "cost", dimTotal(range.byModel, "cost"))
         }
     }
 
@@ -853,6 +857,91 @@ object AdminViews {
         }
     }
 
+    // ── 概览/流量 共享组件 ──
+
+    private enum class DeltaPolarity { GOOD_ON_UP, BAD_ON_UP }
+
+    private fun FlowContent.statCardDelta(
+        label: String,
+        todayStr: String,
+        today: Double,
+        yesterday: Double,
+        polarity: DeltaPolarity,
+    ) {
+        div("card") {
+            div("card-label") { +label }
+            div("card-value") { +todayStr }
+            deltaChip(today, yesterday, polarity)
+        }
+    }
+
+    private fun FlowContent.deltaChip(today: Double, yesterday: Double, polarity: DeltaPolarity) {
+        when {
+            yesterday == 0.0 && today > 0.0 -> span("delta delta-new") { +"新增" }
+            today == yesterday -> {}
+            else -> {
+                val pct = abs(((today - yesterday) / yesterday * 100).toInt())
+                val up = today > yesterday
+                val cls = if (up) {
+                    when (polarity) { DeltaPolarity.GOOD_ON_UP -> "delta delta-up-good"; DeltaPolarity.BAD_ON_UP -> "delta delta-up-bad" }
+                } else {
+                    "delta delta-down"
+                }
+                span(cls) { +((if (up) "↑" else "↓") + "$pct%") }
+            }
+        }
+    }
+
+    private fun FlowContent.rangeTabs(current: Int, options: List<Int>, basePath: String, metric: String) {
+        div("subtabs") {
+            options.forEach { d ->
+                a("$basePath?days=$d&metric=$metric", classes = if (d == current) "subtab active" else "subtab") { +"${d}天" }
+            }
+        }
+    }
+
+    private fun FlowContent.metricTabs(current: String, options: List<Pair<String, String>>, basePath: String, days: Int) {
+        div("subtabs") {
+            options.forEach { (v, label) ->
+                a("$basePath?days=$days&metric=$v", classes = if (v == current) "subtab active" else "subtab") { +label }
+            }
+        }
+    }
+
+    private fun metricLabel(metric: String): String = when (metric) {
+        "tokens" -> "Token"; "cost" -> "成本 ¥"; "bytes" -> "出口字节"; else -> "调用数"
+    }
+
+    private fun dayMetricValue(b: DayBucket, metric: String): Double = when (metric) {
+        "tokens" -> b.totalTokens.toDouble(); "cost" -> b.cost; "bytes" -> b.bytes.toDouble(); else -> b.calls.toDouble()
+    }
+
+    private fun metricFormatter(metric: String): (Double) -> String = when (metric) {
+        "cost" -> ::compactCost
+        "bytes" -> { v -> formatBytes(v.toLong()) }
+        else -> ::compactCount
+    }
+
+    private fun dimStatValue(st: DimStat, metric: String): Double = when (metric) {
+        "tokens" -> st.tokens.toDouble(); "cost" -> st.cost; else -> st.calls.toDouble()
+    }
+
+    private fun dimTotal(items: List<DimStat>, metric: String): Double = items.sumOf { dimStatValue(it, metric) }
+
+    private fun FlowContent.shareBars(items: List<DimStat>, metric: String, total: Double) {
+        val denom = if (total > 0.0) total else 1.0
+        div("share-list") {
+            items.sortedByDescending { dimStatValue(it, metric) }.take(6).forEach { st ->
+                val pct = (dimStatValue(st, metric) / denom * 100).toInt().coerceIn(0, 100)
+                div("share-row") {
+                    span("share-label") { +st.key }
+                    div("share-bar") { div("share-bar-fill") { attributes["style"] = "width:$pct%" } }
+                    span("share-pct") { +"$pct%" }
+                }
+            }
+        }
+    }
+
     // ── 公共片段 ──
 
     private fun HTML.adminHead(title: String) {
@@ -980,6 +1069,17 @@ object AdminViews {
                         .subtab{color:#666;text-decoration:none;padding:10px 16px;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
                         .subtab:hover{color:#006eff}
                         .subtab.active{color:#006eff;border-bottom-color:#006eff;font-weight:500}
+                        .delta{display:inline-block;margin-left:6px;font-size:12px;font-weight:600;padding:1px 6px;border-radius:8px;vertical-align:middle}
+                        .delta-up-good{color:#0abf5b;background:#e6f9f0}
+                        .delta-up-bad{color:#e54545;background:#fff2f0}
+                        .delta-down{color:#999;background:#f5f5f5}
+                        .delta-new{color:#999;background:#f5f5f5}
+                        .share-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+                        .share-row{display:flex;align-items:center;gap:10px;font-size:13px}
+                        .share-label{width:160px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+                        .share-bar{flex:1;height:10px;background:#f0f2f5;border-radius:6px;overflow:hidden}
+                        .share-bar-fill{height:100%;background:#006eff;border-radius:6px}
+                        .share-pct{width:44px;text-align:right;color:#666;font-variant-numeric:tabular-nums}
                         @media (max-width:640px){
                         body>h1{font-size:20px}
                         body>h2{font-size:14px}

@@ -91,9 +91,11 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
         get {
             if (!call.adminGuard(adminToken)) return@get
             val now = System.currentTimeMillis()
+            val days = parseDays(call.request.queryParameters["days"], listOf(7, 14), 7)
+            val metric = parseMetric(call.request.queryParameters["metric"])
             val ov = AdminQueries.overview(now)
-            val series = AdminQueries.dailySeries(14, now)
-            call.respondText(AdminViews.overviewPage(ov, series), ContentType.Text.Html)
+            val range = AdminQueries.rangeStats(days, now)
+            call.respondText(AdminViews.overviewPage(ov, range, days, metric), ContentType.Text.Html)
         }
 
         get("/users") {
@@ -497,3 +499,11 @@ private suspend fun ApplicationCall.parseChannelInput(): ChannelInput? {
         balanceUrl = (params["balance_url"] ?: "").trim(),
     )
 }
+
+/** 概览/流量页时间范围白名单解析：仅允许给定集合，非法或缺省回落 default。 */
+private fun parseDays(raw: String?, allowed: List<Int>, default: Int): Int =
+    raw?.toIntOrNull()?.let { if (it in allowed) it else default } ?: default
+
+/** 概览/流量页指标白名单解析：仅允许 calls/tokens/cost/bytes，其余回落 calls。 */
+private fun parseMetric(raw: String?): String =
+    if (raw != null && raw in listOf("calls", "tokens", "cost", "bytes")) raw else "calls"
