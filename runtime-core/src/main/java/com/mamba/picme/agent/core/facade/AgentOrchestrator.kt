@@ -21,8 +21,7 @@ import com.mamba.picme.agent.core.inference.local.parser.LocalCommandParser
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
-import com.mamba.picme.agent.core.local.llm.StreamMetrics
+import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -69,6 +68,9 @@ class AgentOrchestrator private constructor(context: Context) {
 
     private val tag = "AgentOrchestrator"
     private val configurator = AgentConfigurator(context)
+
+    /** 远程 chat 推理引擎（决策3 / ADR-010）：chat 远程 ReAct 链路隔离出口。 */
+    val remoteChatEngine = RemoteChatEngine(configurator)
 
     private val orchestratorDispatcher = ThreadPoolManager.getInstance().orchestratorDispatcher
 
@@ -437,72 +439,6 @@ class AgentOrchestrator private constructor(context: Context) {
         saveInferenceResultToMemory(input, inferenceResult, agentContext.memorySessionId)
 
         inferenceResult
-    }
-
-    // ── 流式自由聊天 ─────────────────────────────────────────────
-
-    /**
-     * 流式自由聊天
-     *
-     * 根据 [AiAgentInferencePreference] 决定使用本地还是远程推理：
-     * - FORCE_LOCAL：本地 MNN-LLM 流式推理
-     * - FORCE_REMOTE：远程 API 流式推理（用户配置优先，无配置时用 PICME_SERVER_DEFAULT 兜底）
-     * - AUTO：CHAT 场景默认使用远程推理
-     *
-     * @param input 用户输入
-     * @param agentContext Agent 上下文
-     * @param onToken 每个 token 的回调
-     * @return 流式结果
-     */
-    suspend fun streamChat(
-        input: String,
-        agentContext: AgentContext,
-        onToken: (String) -> Unit
-    ): Result<StreamChatResult> {
-        val preference = configurator.getInferencePreference()
-        Logger.d(tag, "streamChat: preference=$preference, input='$input'")
-
-        // 产品决策（chat-only remote + ReAct）：chat 页统一走远程 ReAct（tool_calls），无论 preference。
-        // 远程协议与本地 JSON 协议分离（ADR-005）；访客（无 token）由 PICME_SERVER_DEFAULT 兜底，仍可聊天。
-        Logger.i(tag, "streamChat routing to Chat ReAct (preference=$preference)")
-        val result = streamChatReAct(input, agentContext, onToken)
-        // chat 多轮记忆由 RemoteReActAgent 的 DataStoreChatMemory（AiServices 自动维护 user/assistant）
-        // 承担；不再回写 MemoryManager（该写入 chat ReAct 从不读取，见 ADR-012）。
-        return result
-    }
-
-    /**
-     * chat 远程 ReAct：调 [processChatReAct] 拿 summary，包成 TextReply 命令回 chat。
-     * ReAct 内部已执行 tool 调用（dispatchCommand → Capability），summary 即最终自然语言回复。
-     */
-    private suspend fun streamChatReAct(
-        input: String,
-        agentContext: AgentContext,
-        onToken: (String) -> Unit
-    ): Result<StreamChatResult> {
-        val startTime = System.currentTimeMillis()
-        return try {
-            processChatReAct(input, agentContext.memorySessionId, traceId = agentContext.traceId).fold(
-                onSuccess = { summary ->
-                    onToken(summary)
-                    val latencyMs = System.currentTimeMillis() - startTime
-                    val commands = if (summary.isNotBlank()) {
-                        listOf(AgentCommand.TextReply(message = summary))
-                    } else {
-                        emptyList()
-                    }
-                    val base = StreamChatResult(
-                        fullResponse = summary,
-                        metrics = StreamMetrics(latencyMs = latencyMs, promptTokens = null, completionTokens = null)
-                    )
-                    Result.success(base.copy(commands = commands))
-                },
-                onFailure = { Result.failure(it) },
-            )
-        } catch (e: Exception) {
-            Logger.e(tag, "streamChatReAct error", e)
-            Result.failure(e)
-        }
     }
 
     /**
@@ -912,86 +848,6 @@ class AgentOrchestrator private constructor(context: Context) {
             Result.failure(RuntimeException("⏰ 处理超时（${timeoutMs / 1000}秒），请稍后重试"))
         } catch (e: Exception) {
             Logger.e(tag, "processRemoteImInput error", e)
-            Result.failure(e)
-        }
-    }
-
-    // ── chat ReAct 入口 ───────────────────────────────────────────
-
-    /**
-     * chat 远程推理（ReAct tool_calls 循环）。
-     *
-     * 用 [AgentConfigurator.getChatAgent]（ChatToolService，chat 场域能力工具）执行多轮
-     * tool 调用，完成后返回自然语言 summary。
-     */
-    suspend fun processChatReAct(
-        input: String,
-        sessionId: String,
-        timeoutMs: Long = 120_000L,
-        traceId: String? = null
-    ): Result<String> = withContext(Dispatchers.IO) {
-        Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
-
-        val agent = configurator.getChatAgent(object : RemoteReActAgentCallback {
-            override fun onLoopStart(iteration: Int) {}
-            override fun onContent(iteration: Int, content: String) {}
-            override fun onToolCall(iteration: Int, toolName: String, args: String) {}
-            override fun onToolResult(iteration: Int, toolName: String, result: String) {}
-            override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
-            override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
-        }) ?: return@withContext Result.failure(
-            IllegalStateException("Chat ReAct Agent 初始化失败")
-        )
-
-        if (agent.isRunning()) {
-            return@withContext Result.failure(IllegalStateException("Agent 正在执行其他任务"))
-        }
-
-        agent.setSessionId(sessionId)
-
-        return@withContext try {
-            val job = coroutineContext[kotlinx.coroutines.Job]
-            val summary = withTimeout(timeoutMs) {
-                suspendCoroutine<String> { continuation ->
-                    val callback = object : RemoteReActAgentCallback {
-                        override fun onLoopStart(iteration: Int) {
-                            Logger.d(tag, "Chat ReAct iteration #$iteration")
-                        }
-                        override fun onContent(iteration: Int, content: String) {
-                            Logger.d(tag, "Chat ReAct content: ${content.take(200)}")
-                        }
-                        override fun onToolCall(iteration: Int, toolName: String, args: String) {
-                            Logger.d(tag, "Chat ReAct toolCall: $toolName(${args.take(100)})")
-                        }
-                        override fun onToolResult(iteration: Int, toolName: String, result: String) {
-                            Logger.d(tag, "Chat ReAct toolResult: $toolName → ${result.take(80)}")
-                        }
-                        override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {
-                            Logger.i(tag, "Chat ReAct complete: $iteration rounds, $totalTokens tokens")
-                            continuation.resume(summary)
-                        }
-                        override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {
-                            Logger.e(tag, "Chat ReAct error: ${error.message}")
-                            continuation.resume("出错了：${error.message ?: "未知错误"}")
-                        }
-                    }
-                    job?.invokeOnCompletion { cause ->
-                        if (cause != null) {
-                            Logger.d(tag, "Chat ReAct coroutine cancelled: ${cause.message}")
-                            agent.cancel()
-                        }
-                    }
-                    agent.executeTask(input, callback, traceId)
-                    Logger.d(tag, "Chat ReAct executeTask submitted, waiting for callback...")
-                }
-            }
-            Result.success(summary)
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            Logger.e(tag, "processChatReAct timeout after ${timeoutMs}ms")
-            agent.cancel()
-            Result.failure(RuntimeException("处理超时（${timeoutMs / 1000}秒），请稍后重试"))
-        } catch (e: Exception) {
-            Logger.e(tag, "processChatReAct error", e)
             Result.failure(e)
         }
     }

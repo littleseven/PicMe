@@ -737,7 +737,7 @@ class ChatViewModel(
                 } else {
                     text
                 }
-                val result = orchestrator.streamChat(
+                val result = orchestrator.remoteChatEngine.streamChat(
                     input = effectiveInput,
                     agentContext = agentContext,
                     // 占位文案已在创建时设好并保持不变，故逐 token 无需更新气泡。
