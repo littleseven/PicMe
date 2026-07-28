@@ -548,6 +548,17 @@
     <string name="settings_miui_permission_editor_summary">Enable "Display pop-up window" and "Background pop-up" for PoLang.</string>
     <string name="settings_miui_action_open">Open</string>
 
+    <!-- Background scan keep-alive guard -->
+    <string name="bg_scan_guard_dialog_title">Enable Background Scan</string>
+    <string name="bg_scan_guard_dialog_message">To keep scanning when PoLang is in the background, please enable the following. Otherwise the system may freeze scanning after a while.</string>
+    <string name="bg_scan_guard_action_settings">Go to Settings</string>
+    <string name="bg_scan_guard_action_continue">Scan Anyway</string>
+    <string name="bg_scan_guard_action_dont_remind">Don\'t Remind</string>
+    <string name="bg_scan_guard_banner_text">Background keep-alive is off — scanning may pause when the app is backgrounded.</string>
+    <string name="bg_scan_guard_issue_battery">Ignore battery optimizations</string>
+    <string name="bg_scan_guard_issue_notifications">Allow notifications</string>
+    <string name="bg_scan_guard_issue_miui_autostart">MIUI auto-start</string>
+
     <!-- Smart Gallery Index -->
     <string name="gallery_group_tag">By Tag</string>
     <string name="gallery_group_location">Location</string>

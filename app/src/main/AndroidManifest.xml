@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- onTimeout 兜底:AlarmManager 精确闹钟唤醒扫描续跑(API 31+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -84,6 +86,12 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- onTimeout 兜底:闹钟唤醒后重启扫描服务 -->
+        <receiver
+            android:name=".service.tag.TagScanRescheduleReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>

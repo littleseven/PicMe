@@ -55,6 +55,18 @@ import kotlin.math.roundToInt
  * TagGenerationService.isScanning.collect { ... }
  * TagGenerationService.sessionProgress.collect { ... }
  * ```
+ *
+ * ## 后台保活(重要)
+ * 本 Service 虽为 dataSync 前台服务 + PARTIAL_WAKE_LOCK,在原生 AOSP 足以保活;但
+ * HyperOS / MIUI 等 ROM 对退后台 + 息屏的 app 有独立冻结策略,会冻结整个进程导致
+ * 扫描暂停(亮屏打开 app 解冻即续跑)。要让扫描在后台持续运行,用户需:
+ * 1. 加入电池优化白名单(见 BackgroundScanGuard / BatteryOptimizationUtils)
+ * 2. 允许 app 通知(前台服务依赖通知,部分 ROM 对通知禁用的 FGS 限制更狠)
+ * 3. (MIUI/HyperOS)允许自启动
+ * 扫描启动入口已通过 BackgroundScanGuard 引导用户完成上述配置。
+ *
+ * 另:Android 14+ 对 dataSync 类型 FGS 有运行时长上限,超时走 [onTimeout],
+ * 由 [TagScanRescheduleReceiver] 闹钟兜底续跑(前提:已加电池白名单)。
  */
 class TagGenerationService : Service() {
 
@@ -67,6 +79,9 @@ class TagGenerationService : Service() {
         private const val CHANNEL_ID = "picme_tag_generation"
         private const val CHANNEL_NAME = "TAG 生成"
         private const val NOTIFICATION_ID = 10043
+
+        /** onTimeout 后多久重新拉起扫描服务续跑(Android 14+ dataSync FGS 超时兜底) */
+        const val RESUME_DELAY_MS = 15 * 60 * 1000L
 
         /** 电池电量阈值：低于此值暂停扫描 */
         private const val BATTERY_LOW_THRESHOLD = 15
@@ -420,6 +435,23 @@ class TagGenerationService : Service() {
         }
 
         return START_STICKY
+    }
+
+    /**
+     * Android 14+ dataSync 前台服务超时回调(API 35+,低版本系统不调用)。
+     *
+     * 超时后系统要求停止服务,且 START_STICKY 不保证重启。此处安排一个
+     * [TagScanRescheduleReceiver] 闹钟,到点重新拉起本 Service,由 Orchestrator.init 的
+     * `resetRunningToPending()` + `maybeResumeOnStartup()` 自动接续被中断的会话。
+     * 前提:用户已加电池优化白名单(BackgroundScanGuard 引导),否则后台启动 FGS 受限。
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        android.util.Log.w(
+            TAG,
+            "onTimeout: dataSync FGS timed out after long run, scheduling resume in ${RESUME_DELAY_MS}ms"
+        )
+        TagScanRescheduleReceiver.scheduleResume(applicationContext, RESUME_DELAY_MS)
+        stopSelf()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

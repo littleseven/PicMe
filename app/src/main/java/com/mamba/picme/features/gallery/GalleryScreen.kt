@@ -50,6 +50,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.mamba.picme.core.common.Logger
 
+import com.mamba.picme.features.gallery.components.BackgroundScanGuardDialog
 import com.mamba.picme.features.gallery.components.EmptyGalleryMessage
 import com.mamba.picme.features.gallery.components.GallerySplashPlaceholder
 import com.mamba.picme.features.gallery.components.GalleryPermissionMessage
@@ -85,6 +86,7 @@ import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.navigation.Screen
 import com.mamba.picme.service.tag.TagGenerationService
+import com.mamba.picme.util.permission.BackgroundScanGuard
 import com.mamba.picme.PoLangApplication
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -183,6 +185,45 @@ fun GalleryScreen(
     }
     val context = LocalContext.current
     val app = context.applicationContext as PoLangApplication
+
+    // ── 后台保活引导(HyperOS 等冻结后台进程,引导加白名单/开通知/自启动) ──
+    var guardIssues by remember { mutableStateOf<List<BackgroundScanGuard.Issue>>(emptyList()) }
+    var pendingStart by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    fun startScanWithGuard(startAction: () -> Unit) {
+        val issues = runCatching { BackgroundScanGuard.diagnose(context.applicationContext) }
+            .getOrDefault(emptyList())
+        if (issues.isNotEmpty() && BackgroundScanGuard.shouldShowDialog(context.applicationContext)) {
+            guardIssues = issues
+            pendingStart = startAction
+        } else {
+            startAction()
+        }
+    }
+
+    if (guardIssues.isNotEmpty()) {
+        BackgroundScanGuardDialog(
+            issues = guardIssues,
+            onGoSettings = {
+                val first = guardIssues.first()
+                guardIssues = emptyList()
+                pendingStart = null
+                first.openFix(context)
+            },
+            onContinue = {
+                val pending = pendingStart
+                guardIssues = emptyList()
+                pendingStart = null
+                pending?.invoke()
+            },
+            onDontRemind = {
+                BackgroundScanGuard.doNotShowAgain(context.applicationContext)
+                guardIssues = emptyList()
+                pendingStart = null
+            }
+        )
+    }
+
     val thumbnailCache = remember { app.container.thumbnailCache }
     val deleteAuthRequest by viewModel.deleteAuthRequest.collectAsState()
 
@@ -506,14 +547,18 @@ fun GalleryScreen(
                             searchResultMedia = emptyList()
                         },
                         onTagScanClick = {
-                            context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                            startScanWithGuard {
+                                context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                            }
                         },
                         onNavigateToTagControl = onNavigateToTagControl,
                         onToggleScan = {
                             if (TagGenerationService.isScanning.value) {
                                 context.startForegroundService(TagGenerationService.intentPause(context))
                             } else {
-                                context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                                startScanWithGuard {
+                                    context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                                }
                             }
                         }
                     )

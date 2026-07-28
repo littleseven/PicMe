@@ -501,6 +501,17 @@
     <string name="settings_miui_permission_editor_summary">為 破浪相冊 開啟「顯示懸浮窗」和「背景彈出介面」。</string>
     <string name="settings_miui_action_open">去開啟</string>
 
+    <!-- 背景掃描保活引導 -->
+    <string name="bg_scan_guard_dialog_title">開啟背景掃描</string>
+    <string name="bg_scan_guard_dialog_message">為了讓破浪相冊在背景持續掃描,請開啟以下項,否則系統可能在一段時間後凍結掃描任務。</string>
+    <string name="bg_scan_guard_action_settings">前往設定</string>
+    <string name="bg_scan_guard_action_continue">仍要掃描</string>
+    <string name="bg_scan_guard_action_dont_remind">不再提醒</string>
+    <string name="bg_scan_guard_banner_text">背景保活未開啟 —— app 退到背景後掃描可能被系統暫停。</string>
+    <string name="bg_scan_guard_issue_battery">忽略電池優化</string>
+    <string name="bg_scan_guard_issue_notifications">允許通知</string>
+    <string name="bg_scan_guard_issue_miui_autostart">MIUI 自啟動</string>
+
     <!-- 智慧型相簿索引 -->
     <string name="gallery_group_tag">按標籤</string>
     <string name="gallery_group_location">地點</string>

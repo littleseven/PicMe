@@ -501,6 +501,17 @@
     <string name="settings_miui_permission_editor_summary">为 破浪相册 开启「显示悬浮窗」和「后台弹出界面」。</string>
     <string name="settings_miui_action_open">去开启</string>
 
+    <!-- 后台扫描保活引导 -->
+    <string name="bg_scan_guard_dialog_title">开启后台扫描</string>
+    <string name="bg_scan_guard_dialog_message">为了让破浪相册在后台持续扫描,请开启以下项,否则系统可能在一段时间后冻结扫描任务。</string>
+    <string name="bg_scan_guard_action_settings">去设置</string>
+    <string name="bg_scan_guard_action_continue">仍然扫描</string>
+    <string name="bg_scan_guard_action_dont_remind">不再提醒</string>
+    <string name="bg_scan_guard_banner_text">后台保活未开启 —— app 退到后台后扫描可能被系统暂停。</string>
+    <string name="bg_scan_guard_issue_battery">忽略电池优化</string>
+    <string name="bg_scan_guard_issue_notifications">允许通知</string>
+    <string name="bg_scan_guard_issue_miui_autostart">MIUI 自启动</string>
+
     <!-- 智能相册索引 -->
     <string name="gallery_group_tag">按标签</string>
     <string name="gallery_group_location">地点</string>

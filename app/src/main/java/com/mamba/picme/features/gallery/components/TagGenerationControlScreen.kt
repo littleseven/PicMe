@@ -30,6 +30,7 @@ import com.mamba.picme.domain.tag.scan.ScanSessionState
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
 import com.mamba.picme.service.tag.TagGenerationService
+import com.mamba.picme.util.permission.BackgroundScanGuard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -131,6 +132,44 @@ fun TagGenerationControlScreen(
         }
     }
 
+    // ── 后台保活引导(HyperOS 等会冻结后台进程,引导用户加白名单/开通知/自启动) ──
+    var guardIssues by remember { mutableStateOf<List<BackgroundScanGuard.Issue>>(emptyList()) }
+    var pendingStart by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    fun startScanWithGuard(startAction: () -> Unit) {
+        val issues = runCatching { BackgroundScanGuard.diagnose(context.applicationContext) }
+            .getOrDefault(emptyList())
+        if (issues.isNotEmpty() && BackgroundScanGuard.shouldShowDialog(context.applicationContext)) {
+            guardIssues = issues
+            pendingStart = startAction
+        } else {
+            startAction()
+        }
+    }
+
+    if (guardIssues.isNotEmpty()) {
+        BackgroundScanGuardDialog(
+            issues = guardIssues,
+            onGoSettings = {
+                val first = guardIssues.first()
+                guardIssues = emptyList()
+                pendingStart = null
+                first.openFix(context)
+            },
+            onContinue = {
+                val pending = pendingStart
+                guardIssues = emptyList()
+                pendingStart = null
+                pending?.invoke()
+            },
+            onDontRemind = {
+                BackgroundScanGuard.doNotShowAgain(context.applicationContext)
+                guardIssues = emptyList()
+                pendingStart = null
+            }
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -152,6 +191,9 @@ fun TagGenerationControlScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── 后台保活缺失项提示(非阻断,点击跳设置) ────────
+            BackgroundScanGuardBanner()
+
             // ── 扫描进度卡片 ────────────────────────────
             AnimatedVisibility(visible = sessionProgress != null) {
                 sessionProgress?.let { ScanProgressCard(it) }
@@ -346,7 +388,9 @@ fun TagGenerationControlScreen(
                         Button(
                             onClick = {
                                 refreshStats()
-                                context.startForegroundService(TagGenerationService.intentScanAll(context))
+                                startScanWithGuard {
+                                    context.startForegroundService(TagGenerationService.intentScanAll(context))
+                                }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -357,7 +401,9 @@ fun TagGenerationControlScreen(
                         OutlinedButton(
                             onClick = {
                                 refreshStats()
-                                context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                                startScanWithGuard {
+                                    context.startForegroundService(TagGenerationService.intentScanIncremental(context))
+                                }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
