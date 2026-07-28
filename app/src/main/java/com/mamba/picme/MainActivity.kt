@@ -72,7 +72,6 @@ import com.mamba.picme.domain.agent.GlobalCapabilityHost
 import com.mamba.picme.domain.agent.LocalCapabilityHost
 import com.mamba.picme.domain.agent.capability.NavigationCapability
 import com.mamba.picme.domain.agent.capability.SystemCapability
-import com.mamba.picme.testing.agent.bridge.TestEntryPoint
 import java.util.Locale
 import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.ui.platform.LocalConfiguration
@@ -84,7 +83,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private var currentLanguage: AppLanguage? = null
-    private var testEntryPoint: TestEntryPoint? = null
 
     override fun attachBaseContext(newBase: Context) {
         val repository = UserPreferencesRepository(newBase)
@@ -102,9 +100,6 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // 初始化测试入口点（如果通过测试脚本启动）
-        testEntryPoint = TestEntryPoint.fromIntent(this, savedInstanceState)
 
         setContent {
             val app = application as PoLangApplication
@@ -173,8 +168,6 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navController) {
                         Logger.i(TAG, "NavigationCapability initialized with NavController")
-                        // 通知测试入口点应用已就绪
-                        testEntryPoint?.onAppReady()
                     }
 
                     CompositionLocalProvider(LocalCapabilityHost provides rootCapabilityHost) {
@@ -572,16 +565,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        testEntryPoint?.saveState(outState)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        testEntryPoint?.release()
     }
 
     private fun getLocaleFromLanguage(language: AppLanguage): Locale {

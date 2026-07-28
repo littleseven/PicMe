@@ -11,7 +11,7 @@ PoLang is a technology research project centered on an AI-Agent-driven smart gal
 Key technological decisions:
 - **On-device Agent**: `runtime-core/` (package `com.mamba.picme.agent.core`) implements an Agent Runtime (AgentOrchestrator, LocalLlmEngine, CapabilityRegistry, etc.) that maps natural language to device capabilities via Qwen3.5-2B running on MNN-LLM.
 - **Remote inference**: Standard OpenAI Chat Completions API protocol via langchain4j, with DeepSeek adapter support. Local/remote pipelines fully separated per ADR-005.
-- **Privacy-first**: All sensitive AI processing (LLM inference, face detection, OCR) runs locally; non-sensitive commands may use remote orchestration in REMOTE mode.
+- **Privacy-first**: 用户图片/视频**文件**不得上传到远程大模型/推理服务器（人脸检测/OCR/分类/打标等媒体处理 100% 端侧）；文本、元数据、相册聚合摘要可走远程推理（chat 默认远程）。飞书/Telegram 等用户自配置 IM 通道回传媒体给用户本人不在此列（用户自有通道，非模型推理上传）。详见 ADR-008。
 - **Self-developed Engine**: Full OpenGL ES + EGL pipeline (no third-party beauty SDKs); GPUPixel has been completely removed.
 
 ## Common Commands
@@ -173,7 +173,7 @@ CameraX → SurfaceTexture → OpenGL ES Shader → SurfaceView
 - When adding or refactoring features, **must sync all supported languages**: `values/strings.xml` (EN/default), `values-zh-rCN/strings.xml` (Simplified Chinese), `values-zh-rTW/strings.xml` (Traditional Chinese).
 
 ### Global Red Lines
-- **`[PRIVACY]`**: All AI processing (face, OCR, classification) must be 100% on-device. Cloud inference is strictly prohibited.
+- **`[PRIVACY]`**: **禁止向远程大模型/推理服务器上传用户图片/视频文件**；人脸检测/OCR/分类/打标等媒体处理必须 100% 端侧。文本、元数据、相册摘要等非媒体数据可走远程推理（chat 默认远程）。飞书/Telegram 等用户自配置通道回传媒体给用户本人不属红线。> 原「Cloud inference is strictly prohibited」红线已于 2026-07-28 决策1 放宽（见 ADR-008）。
 - **`[PERF]`**: Interaction feedback < 100 ms; shutter capture latency < 50 ms.
 - **`[I18N]`**: All user-visible text must be extracted and synchronized across the three language sets above.
 
@@ -214,7 +214,6 @@ Key technical specs:
 Located in `scripts/`:
 - `auto-dev-loop.sh` — Full verification loop (compile, install, launch, screenshot, log collection)
 - `ai-gate.sh` — Quality gate (lint + compile + install check)
-- `regression-test.sh` — P0 end-to-end regression
 - `quick-compile.sh` — Layered fast compile (syntax → compile → dex → APK, stop on first failure)
 - `impact-analyzer.sh` — Change impact analysis (affected modules, red lines, doc sync needs)
 - `screenshot-diff.py` — Pixel-level screenshot comparison for UI regression

@@ -50,24 +50,10 @@
         </activity>
 
         <activity
-            android:name=".testing.agent.bridge.AgentTestActivity"
-            android:exported="true"
-            android:label="Agent Test"
-            android:theme="@style/Theme.PoLang" />
-
-        <activity
             android:name=".features.backuprestore.BackupRestoreActivity"
             android:exported="false"
             android:label="@string/backup_and_restore"
             android:theme="@style/Theme.PoLang" />
-
-        <receiver
-            android:name=".testing.agent.bridge.AgentTestBroadcastReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.mamba.picme.AGENT_TEST" />
-            </intent-filter>
-        </receiver>
 
         <service
             android:name=".data.download.ModelDownloadForegroundService"

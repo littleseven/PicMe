@@ -32,6 +32,11 @@ import java.util.concurrent.TimeUnit
  * [PoLangToolService] 同名但描述不同的工具（如 `run_gallery_script`）是按 agent 故意差异化，
  * 非漂移；逐字节相同的描述（如 `draw_chart`）抽到 [GalleryToolDocs] 共享。
  *
+ * **隐私不变式（决策1 / ADR-008）**：本 ToolService 运行在远程 ReAct 链路上，但其 @Tool 执行的
+ * 媒体处理（`ai_optimize`/`edit_image`/`adjust_image`/打标/人脸）均在**端侧** renderer/本地模型完成，
+ * **图片/视频字节绝不作为多模态输入上传给远程 LLM**；返回给模型的是纯文本 observation
+ * （如「图片已优化，结果已展示在聊天中」）。受 `RemoteInferenceNoMediaUploadGuardTest` 守卫保护。
+ *
  * **重要**：@Tool 参数**不能用 Kotlin 默认值**——langchain4j 用 Java 反射调用，Kotlin 默认参数会
  * 编译出 DefaultConstructorMarker 合成方法，导致反射"Wrong number of arguments"。所有参数必填，
  * 可选语义用空串/默认值由调用方传入（@P 描述说明）。

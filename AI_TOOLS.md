@@ -81,7 +81,6 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 | `/error-healer` | Kotlin/Gradle 编译错误自动分类与修复策略 |
 | `/dev-loop` | 一键编译→安装→设备验证→质量检查闭环 |
 | `/i18n-validator` | 多语言同步验证（中/英/繁），禁止硬编码字符串 |
-| `/qa-acceptance` | QA 质量验收（端到端/边界/性能基线/红线） |
 | `/doc-sync-guardian` | 三层文档体系一致性维护 |
 | `/intent-router` | 意图路由：自然语言需求→技术任务 |
 | `/mnn-llm-android` | MNN-LLM 端侧大模型推理（Qwen/下载/调试） |
@@ -95,7 +94,6 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 |-------|------|
 | `ui-driver` | PoLang UI 自动化（Accessibility 结构化文本驱动） |
 | `adb-bot` | ADB 基础控制与调试 |
-| `agent-test` | PoLang Agent JSON 命令驱动测试 |
 | `android-build-debug` | Android 编译、安装、日志调试 |
 | `dev-loop` | 编译→安装→验证→报告一键闭环 |
 | `av-gl-expert` | 音视频与 OpenGL 渲染专家 |
@@ -114,7 +112,6 @@ ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
 | `ncnn-integration` | NCNN 推理引擎集成规范 |
 | `onnx-model-integration` | ONNX 模型接入 Checklist |
 | `perf-optimizer` | 性能分析与优化策略 |
-| `qa-acceptance` | QA 验收测试流程与清单 |
 | `rd-reflection` | RD 复盘模板 |
 
 ---

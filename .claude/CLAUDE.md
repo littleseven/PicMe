@@ -2,7 +2,7 @@
 
 > Claude Code 命令索引。所有命令定义在 `.claude/commands/*.md`，对话中通过 `/command-name` 调用。历史命令曾从 `.qoder/skills/` 迁移而来，当前以 `.claude/commands/` 为唯一事实来源。
 
-## 可用 Commands（共 25 个）
+## 可用 Commands（共 22 个）
 
 ### 🔧 开发与构建
 | Command | 说明 | 行数 |
@@ -21,9 +21,9 @@
 ### 🧪 测试与质量
 | Command | 说明 | 行数 |
 |---------|------|------|
-| `/agent-test` | Agent 自动化测试 V2（JSON 驱动，PC 端）✅ 当前推荐 | 158 |
-| `/qa-acceptance` | QA 质量验收（端到端/边界/性能基线/红线） | 267 |
 | `/ui-driver` | PoLang UI 自动化（Accessibility 结构化文本驱动） | 129 |
+
+> 2026-07-28 决策4：`/agent-test`、`/qa-acceptance` 及配套脚本/用例已下线清理，仅保留 `/ui-driver`。
 
 ### 🎨 渲染与图形
 | Command | 说明 | 行数 |
@@ -73,4 +73,4 @@
 > 历史源文件：`.qoder/skills/*/SKILL.md`（已迁移，不再维护）
 > 同步脚本：`.claude/migrate.py`（`.qoder/skills/` → `.claude/commands/`）
 > 修复脚本：`.claude/fix_skills.py`（修复过期引用、路径、模板）
-> 最近整理：2026-06-30（刷新命令来源说明，确认 25 个命令与 `.claude/commands/` 一一对应）
+> 最近整理：2026-07-28（决策4 下线 `/agent-test`、`/qa-acceptance`，确认 22 个命令与 `.claude/commands/` 一一对应）
