@@ -274,22 +274,6 @@ class CapabilityRegistry private constructor(
     }
 
     /**
-     * 根据命令名查找 Capability（供 ToolProvider 使用）
-     */
-    private fun findCapabilityForCommandName(commandName: String): Capability? {
-        val hostMatch = CapabilityHost.get()?.findForCommand(commandName)
-        if (hostMatch != null) return hostMatch
-
-        val currentSceneCapabilities = getCapabilitiesForCurrentScene()
-        val availableMatch = currentSceneCapabilities.find { capability ->
-            capability.supportedCommands().contains(commandName)
-        }
-        if (availableMatch != null) return availableMatch
-
-        return registry.values.find { it.supportedCommands().contains(commandName) }
-    }
-
-    /**
      * 构建 Capability 描述文本（用于 system prompt）
      *
      * 只包含当前场景可用且 isAvailable 的 Capability

@@ -411,6 +411,8 @@ private class DataStoreChatMemory(
     }
 
     override fun clear() {
+        // 同步清内存缓存：旧实现只删 DataStore，cache 残留 → resetSession 后 messages() 仍返回旧历史。
+        cache.clear()
         store.deleteMessages(memoryId)
     }
 

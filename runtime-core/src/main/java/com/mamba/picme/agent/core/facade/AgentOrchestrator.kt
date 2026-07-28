@@ -4,7 +4,6 @@ import android.content.Context
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.command.AgentCommand
-import com.mamba.picme.agent.core.model.command.summarizeCommandsForMemory
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentErrorCode
@@ -454,19 +453,8 @@ class AgentOrchestrator private constructor(context: Context) {
         // 远程协议与本地 JSON 协议分离（ADR-005）；访客（无 token）由 PICME_SERVER_DEFAULT 兜底，仍可聊天。
         Logger.i(tag, "streamChat routing to Chat ReAct (preference=$preference)")
         val result = streamChatReAct(input, agentContext, onToken)
-
-        // 回写本轮到 MemoryManager：ReAct 链路只经 buildContextMessages 读历史，
-        // 此前未回写 → MemoryManager 永远为空 → 多轮对话无记忆（每轮 promptTokens 不增长）。
-        // 成功才追加 [user, assistant]；await 以保证下一轮 loadHistory 能看到本轮。
-        // assistant 用自然语言摘要（summarizeCommandsForMemory）而非原始 JSON，让小模型能
-        // 从历史里读出"上一轮搜了/筛选了什么"，支撑多轮 refine 收敛。
-        if (agentContext.memorySessionId.isNotBlank()) {
-            result.getOrNull()?.let { streamResult ->
-                val replyText = summarizeCommandsForMemory(streamResult.commands)
-                    ?: streamResult.fullResponse
-                memoryManager.appendConversation(agentContext.memorySessionId, input, replyText)
-            }
-        }
+        // chat 多轮记忆由 RemoteReActAgent 的 DataStoreChatMemory（AiServices 自动维护 user/assistant）
+        // 承担；不再回写 MemoryManager（该写入 chat ReAct 从不读取，见 ADR-012）。
         return result
     }
 
@@ -502,29 +490,6 @@ class AgentOrchestrator private constructor(context: Context) {
             Logger.e(tag, "streamChatReAct error", e)
             Result.failure(e)
         }
-    }
-
-    /**
-     * 解析远程模型配置
-     *
-     * 优先使用已存储的远程配置（可能已被 [PoLangApplication] 预配置了 gatewayToken）。
-     * [RemoteModelConfig.isConfigured] 要求 apiKey 或 gatewayToken 非空，
-     * 但在 debug 构建中 BuildConfig token 可能为空，导致预配置的兜底 config 被误判为无效。
-     * 因此这里只检查 baseUrl 和 modelId，不检查认证字段——认证由 SCF 网关层处理。
-     *
-     * 绝不自定降级到本地推理。
-     */
-    private fun resolveRemoteConfig(): RemoteModelConfig {
-        val userConfig = configurator.getUserRemoteConfig()
-        if (userConfig != null && userConfig.baseUrl.isNotBlank() && userConfig.modelId.isNotBlank()) {
-            Logger.d(tag, "resolveRemoteConfig: using stored config model=${userConfig.modelId}, " +
-                "hasGatewayToken=${userConfig.gatewayToken.isNotBlank()}, " +
-                "hasApiKey=${userConfig.apiKey.isNotBlank()}")
-            return userConfig
-        }
-        // 最终兜底：无任何可用配置时使用 Server 默认网关
-        Logger.w(tag, "resolveRemoteConfig: no stored config available, falling back to PICME_SERVER_DEFAULT")
-        return RemoteModelConfig.PICME_SERVER_DEFAULT
     }
 
     /**

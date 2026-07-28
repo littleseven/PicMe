@@ -431,8 +431,4 @@ class AiAgentUseCase(
         val captureMode: MediaType = MediaType.PHOTO,
         val isRecording: Boolean = false
     )
-
-    companion object {
-        private const val CODING_DEFAULT_BASE_URL = "https://api.kimi.com/coding/v1/"
-    }
 }

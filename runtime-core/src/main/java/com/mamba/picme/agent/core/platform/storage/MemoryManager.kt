@@ -113,14 +113,29 @@ class MemoryManager(private val context: Context) {
      * @param sessionId 会话 ID
      * @param message 新消息
      */
-    suspend fun appendMessage(sessionId: String, message: ChatMessage) {
-        val history = loadHistory(sessionId).toMutableList()
-        history.add(message)
-        saveHistory(sessionId, history)
+    /**
+     * 原子追加消息：read-modify-write 在单个 DataStore [edit] 块内完成，
+     * 避免并发追加丢更新（旧实现 load→改→save 跨两次 DataStore 操作，fire-and-forget 并发会覆盖）。
+     */
+    suspend fun appendMessage(sessionId: String, message: ChatMessage) = withContext(dataStoreDispatcher) {
+        val key = stringPreferencesKey("memory_$sessionId")
+        try {
+            withTimeout(5000) {
+                dataStore.edit { preferences ->
+                    val current = preferences[key]?.let { parseMessagesFromJson(it) } ?: emptyList()
+                    val updated = current.toMutableList().apply { add(message) }
+                    preferences[key] = encodeMessagesToJson(trimToMaxSize(updated))
+                }
+            }
+        } catch (exception: TimeoutCancellationException) {
+            Logger.w(tag, "Timeout appending message for session $sessionId")
+        } catch (exception: Exception) {
+            Logger.e(tag, "Failed to append message for session $sessionId", exception)
+        }
     }
 
     /**
-     * 追加用户输入和助手回复（一轮对话）
+     * 原子追加用户输入和助手回复（一轮对话）。
      *
      * @param sessionId 会话 ID
      * @param userInput 用户输入
@@ -130,11 +145,24 @@ class MemoryManager(private val context: Context) {
         sessionId: String,
         userInput: String,
         assistantResponse: String
-    ) {
-        val history = loadHistory(sessionId).toMutableList()
-        history.add(UserMessage.from(userInput))
-        history.add(AiMessage.from(assistantResponse))
-        saveHistory(sessionId, history)
+    ) = withContext(dataStoreDispatcher) {
+        val key = stringPreferencesKey("memory_$sessionId")
+        try {
+            withTimeout(5000) {
+                dataStore.edit { preferences ->
+                    val current = preferences[key]?.let { parseMessagesFromJson(it) } ?: emptyList()
+                    val updated = current.toMutableList().apply {
+                        add(UserMessage.from(userInput))
+                        add(AiMessage.from(assistantResponse))
+                    }
+                    preferences[key] = encodeMessagesToJson(trimToMaxSize(updated))
+                }
+            }
+        } catch (exception: TimeoutCancellationException) {
+            Logger.w(tag, "Timeout appending conversation for session $sessionId")
+        } catch (exception: Exception) {
+            Logger.e(tag, "Failed to append conversation for session $sessionId", exception)
+        }
     }
 
     /**

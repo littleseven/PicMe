@@ -890,64 +890,6 @@ class ChatViewModel(
     }
 
     /**
-     * 统一处理用户输入：本地/远程模型都走 processInputWithRouter。
-     *
-     * 本地 Qwen3-2B 已做过 OpenAI tool_calls 训练，因此 chat 页面统一通过 Tool Calling
-     * 路径输出 OpenAI 格式指令；远程模型同样走此路径。
-     */
-    private suspend fun processAgentInput(text: String, sessionId: String) {
-        val agentContext = AgentContext(
-            scene = AgentScene.CHAT,
-            memorySessionId = sessionId
-        )
-        val modelLabel = when (_currentModel.value) {
-            is ChatModelOption.Local -> "local_qwen3.5_2b"
-            is ChatModelOption.Remote -> "remote_deepseek"
-        }
-
-        val inferenceResult = orchestrator.processInputWithRouter(text, agentContext)
-        val performance = if (_currentModel.value is ChatModelOption.Local) {
-            orchestrator.getLastLocalGenerationMetrics()?.toLlmPerformance()
-        } else {
-            null
-        }
-
-        when (inferenceResult) {
-            is InferenceResult.Chat -> {
-                insertAgentMessage(sessionId, inferenceResult.message, modelLabel, performance)
-            }
-            is InferenceResult.Local -> {
-                val safeCommands = sanitizeNavigationCommands(listOf(inferenceResult.command), text)
-                val action = orchestrator.getCapabilityRegistry()
-                    .dispatch(safeCommands.first(), agentContext)
-                handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
-            }
-            is InferenceResult.Batch -> {
-                val safeCommands = sanitizeNavigationCommands(inferenceResult.commands, text)
-                val finalCommand = if (safeCommands.size > 1) {
-                    AgentCommand.BatchExecute(commands = safeCommands)
-                } else {
-                    safeCommands.firstOrNull() ?: AgentCommand.TextReply(message = "没有可执行的命令")
-                }
-                val action = orchestrator.getCapabilityRegistry()
-                    .dispatch(finalCommand, agentContext)
-                handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
-            }
-            is InferenceResult.Plan -> {
-                val sanitizedPlan = inferenceResult.plan.copy(
-                    steps = inferenceResult.plan.steps.map { step ->
-                        val safe = sanitizeNavigationCommands(listOf(step.action), text)
-                        step.copy(action = safe.firstOrNull() ?: step.action)
-                    }
-                )
-                val action = orchestrator.getCapabilityRegistry()
-                    .dispatch(AgentCommand.ExecutePlan(plan = sanitizedPlan), agentContext)
-                handleAgentAction(action.getOrNull(), sessionId, modelLabel, performance)
-            }
-        }
-    }
-
-    /**
      * 将 AgentAction 渲染为聊天消息
      */
     @Suppress("LongMethod", "NestedBlockDepth") // 待重构：handleAgentAction 按 Action 类型分发
