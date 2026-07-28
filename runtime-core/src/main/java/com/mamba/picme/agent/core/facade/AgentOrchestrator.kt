@@ -361,48 +361,8 @@ class AgentOrchestrator private constructor(context: Context) {
         val systemPrompt = customSystemPrompt
             ?: configurator.localPromptBuilder.buildSystemPrompt(capabilities, agentContext)
 
-        // 3. 根据模式选择推理引擎（所有模式统一走本地推理）
-        val inferenceResult = when (configurator.getAgentMode()) {
-            AiAgentMode.LOCAL -> {
-                // 本地模式：使用 MNN-LLM
-                if (!localLlmEngine.isLoaded) {
-                    val loadResult = localModelService.ensureModelLoaded(caller = "processUserInput:LOCAL")
-                    if (loadResult.isFailure) {
-                        return@withContext handleModelLoadError(loadResult)
-                    }
-                }
-                Logger.d(tag, "Using local LLM (MNN-LLM)")
-                // 构建带历史上下文的 messages
-                val localMessages = memoryManager.buildContextMessages(
-                    agentContext.memorySessionId, systemPrompt, input
-                )
-                val responseResult = try {
-                    Result.success(
-                        localLlmEngine.chat(
-                            LlmChatRequest(
-                                messages = localMessages
-                            )
-                        ).aiMessage.text()
-                    )
-                } catch (e: Exception) {
-                    Result.failure(e)
-                }
-                return@withContext responseResult.fold(
-                    onSuccess = { rawResponse ->
-                        handleLlmResponse(rawResponse, input, agentContext, pageContext, agentContext.memorySessionId)
-                    },
-                    onFailure = { error ->
-                        Logger.e(tag, "LLM inference failed (mode=${configurator.getAgentMode()})", error)
-                        Result.success(
-                            AgentAction.Error(
-                                commandId = AgentIdGenerator.nextId(),
-                                errorCode = AgentErrorCode.INTERNAL_ERROR,
-                                message = "推理失败：${error.message ?: "未知错误"}"
-                            )
-                        )
-                    }
-                )
-            }
+        // 3. 根据模式选择推理引擎（LOCAL/REMOTE/FEISHU 统一走本地推理；OFF 直接返回）
+        when (val mode = configurator.getAgentMode()) {
             AiAgentMode.OFF -> {
                 Logger.w(tag, "Agent is OFF")
                 return@withContext Result.success(
@@ -414,23 +374,21 @@ class AgentOrchestrator private constructor(context: Context) {
                 )
             }
             else -> {
-                // REMOTE/FEISHU 模式统一使用本地推理
-                Logger.d(tag, "Using local LLM for ${configurator.getAgentMode()} mode")
+                // LOCAL/REMOTE/FEISHU 均使用本地 LLM（MNN-LLM）
                 if (!localLlmEngine.isLoaded) {
-                    val loadResult = localModelService.ensureModelLoaded(caller = "processUserInput:${configurator.getAgentMode()}")
+                    val loadResult = localModelService.ensureModelLoaded(caller = "processUserInput:$mode")
                     if (loadResult.isFailure) {
                         return@withContext handleModelLoadError(loadResult)
                     }
                 }
+                Logger.d(tag, "Using local LLM (MNN-LLM) for $mode mode")
                 val localMessages = memoryManager.buildContextMessages(
                     agentContext.memorySessionId, systemPrompt, input
                 )
                 val responseResult = try {
                     Result.success(
                         localLlmEngine.chat(
-                            LlmChatRequest(
-                                messages = localMessages
-                            )
+                            LlmChatRequest(messages = localMessages)
                         ).aiMessage.text()
                     )
                 } catch (e: Exception) {
@@ -441,7 +399,7 @@ class AgentOrchestrator private constructor(context: Context) {
                         handleLlmResponse(rawResponse, input, agentContext, pageContext, agentContext.memorySessionId)
                     },
                     onFailure = { error ->
-                        Logger.e(tag, "LLM inference failed (mode=${configurator.getAgentMode()})", error)
+                        Logger.e(tag, "LLM inference failed (mode=$mode)", error)
                         Result.success(
                             AgentAction.Error(
                                 commandId = AgentIdGenerator.nextId(),
@@ -453,9 +411,6 @@ class AgentOrchestrator private constructor(context: Context) {
                 )
             }
         }
-
-        // 4. 处理 InferenceResult
-        return@withContext handleInferenceResult(inferenceResult, input, agentContext, pageContext)
     }
 
 
@@ -706,64 +661,5 @@ class AgentOrchestrator private constructor(context: Context) {
         return LocalCommandParser.parseCommandByMethod(method, json, context, fallbackText)
     }
 
-    /**
-     * 处理 InferenceResult 并转换为 AgentAction
-     */
-    private suspend fun handleInferenceResult(
-        inferenceResult: InferenceResult,
-        userInput: String,
-        agentContext: AgentContext,
-        pageContext: PageContext?
-    ): Result<AgentAction> {
-        val memorySessionId = agentContext.memorySessionId
-
-        return when (inferenceResult) {
-            is InferenceResult.Local -> {
-                Logger.d(tag, "Handling Local result: ${inferenceResult.command::class.simpleName}")
-                saveConversation(memorySessionId, userInput, inferenceResult.command, "")
-                _capabilityRegistry.dispatch(inferenceResult.command, agentContext, pageContext)
-            }
-            is InferenceResult.Batch -> {
-                Logger.d(tag, "Handling Batch result: ${inferenceResult.commands.size} commands")
-                if (inferenceResult.commands.isEmpty()) {
-                    Result.success(
-                        AgentAction.Error(
-                            commandId = AgentIdGenerator.nextId(),
-                            errorCode = AgentErrorCode.INVALID_REQUEST,
-                            message = "未解析到任何命令"
-                        )
-                    )
-                } else {
-                    val firstCommand = inferenceResult.commands.first()
-                    val remainingCommands = inferenceResult.commands.drop(1)
-                    val finalCommand = if (remainingCommands.isNotEmpty()) {
-                        AgentCommand.BatchExecute(
-                            commands = listOf(firstCommand) + remainingCommands
-                        )
-                    } else {
-                        firstCommand
-                    }
-                    saveConversation(memorySessionId, userInput, finalCommand, "")
-                    _capabilityRegistry.dispatch(finalCommand, agentContext, pageContext)
-                }
-            }
-            is InferenceResult.Plan -> {
-                Logger.d(tag, "Handling Plan result: ${inferenceResult.plan.steps.size} steps")
-                val planCommand = AgentCommand.ExecutePlan(plan = inferenceResult.plan)
-                saveConversation(memorySessionId, userInput, planCommand, inferenceResult.plan.description)
-                _capabilityRegistry.dispatch(planCommand, agentContext, pageContext)
-            }
-            is InferenceResult.Chat -> {
-                Logger.d(tag, "Handling Chat result: ${inferenceResult.message}")
-                val textCommand = AgentCommand.TextReply(message = inferenceResult.message)
-                saveConversation(memorySessionId, userInput, textCommand, inferenceResult.message)
-                Result.success(
-                    AgentAction.TextReply(
-                        commandId = AgentIdGenerator.nextId(),
-                        message = inferenceResult.message
-                    )
-                )
-            }
-        }
-    }
 }
+
