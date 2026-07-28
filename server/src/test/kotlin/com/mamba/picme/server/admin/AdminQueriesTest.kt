@@ -54,6 +54,16 @@ class AdminQueriesTest {
         assertEquals(3L, o.totalCalls)
         assertEquals(465L, o.totalTokens)
         assertEquals(3.5, o.totalCost, 0.000001)
+        // 新增字段：今日 error + 昨日环比 + 今日/昨日新增设备
+        assertEquals(0L, o.errorsToday)
+        assertEquals(0L, o.newDevicesToday)
+        assertEquals(1L, o.callsYest) // 昨日 A 一条 ok
+        assertEquals(300L, o.tokensYest)
+        assertEquals(2.0, o.costYest, 0.000001)
+        assertEquals(0L, o.blockedYest)
+        assertEquals(0L, o.errorsYest)
+        assertEquals(0L, o.newUsersYest) // A 5 天前注册，不在昨日窗口
+        assertEquals(0L, o.newDevicesYest)
 
         // users（按 createdAt desc：B 在前）
         val users = AdminQueries.usersList()

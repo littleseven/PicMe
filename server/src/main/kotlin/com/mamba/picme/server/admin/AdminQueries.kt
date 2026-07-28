@@ -29,6 +29,16 @@ data class OverviewRow(
     val totalCalls: Long,
     val totalTokens: Long,
     val totalCost: Double,
+    // 新增：今日 error + 今日/昨日新增设备 + 昨日环比
+    val errorsToday: Long = 0,
+    val newDevicesToday: Long = 0,
+    val callsYest: Long = 0,
+    val tokensYest: Long = 0,
+    val costYest: Double = 0.0,
+    val blockedYest: Long = 0,
+    val errorsYest: Long = 0,
+    val newUsersYest: Long = 0,
+    val newDevicesYest: Long = 0,
 )
 
 data class DayBucket(
@@ -40,6 +50,7 @@ data class DayBucket(
     val totalTokens: Long,
     val cost: Double,
     val bytes: Long,
+    val errors: Long = 0,
 )
 
 data class UserRow(
@@ -117,25 +128,48 @@ object AdminQueries {
 
     suspend fun overview(now: Long): OverviewRow = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         val startToday = startOfTodayMs(now)
+        val startYest = startToday - DAY_MS
         val totalUsers = Accounts.selectAll().where {
             (Accounts.status eq "active") or (Accounts.status eq "revoked")
         }.count()
         val totalDevices = AnonymousDevices.selectAll().count()
         val newToday = Accounts.selectAll().where { Accounts.createdAt greaterEq startToday }.count()
+        val newYest = Accounts.selectAll().where { Accounts.createdAt greaterEq startYest }.count() - newToday
+        val newDevicesToday = AnonymousDevices.selectAll().where { AnonymousDevices.createdAt greaterEq startToday }.count()
+        val newDevicesYest =
+            AnonymousDevices.selectAll().where { AnonymousDevices.createdAt greaterEq startYest }.count() - newDevicesToday
 
-        // 今日（与原逻辑一致：跨所有今日行累加 tokens/cost/bytes）
+        // 今日 + 昨日（UTC+8 自然日）；tokens/cost/bytes 跨所有行累加（与原逻辑一致）
         var callsToday = 0L
         var blockedToday = 0L
+        var errorsToday = 0L
         var tokensToday = 0L
         var costToday = 0.0
         var bytesToday = 0L
-        LlmCallLogs.selectAll().where { LlmCallLogs.createdAt greaterEq startToday }.forEach { r ->
+        var callsYest = 0L
+        var blockedYest = 0L
+        var errorsYest = 0L
+        var tokensYest = 0L
+        var costYest = 0.0
+        LlmCallLogs.selectAll().where { LlmCallLogs.createdAt greaterEq startYest }.forEach { r ->
             val s = r[LlmCallLogs.status]
-            if (s == "ok") callsToday += 1
-            if (s.startsWith("blocked_")) blockedToday += 1
-            tokensToday += r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
-            costToday += r[LlmCallLogs.costCny]
-            bytesToday += r[LlmCallLogs.respBytes].toLong()
+            val isToday = r[LlmCallLogs.createdAt] >= startToday
+            val tokens = r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
+            val cost = r[LlmCallLogs.costCny]
+            if (isToday) {
+                if (s == "ok") callsToday += 1
+                if (s.startsWith("blocked_")) blockedToday += 1
+                if (s == "upstream_error") errorsToday += 1
+                tokensToday += tokens
+                costToday += cost
+                bytesToday += r[LlmCallLogs.respBytes].toLong()
+            } else {
+                if (s == "ok") callsYest += 1
+                if (s.startsWith("blocked_")) blockedYest += 1
+                if (s == "upstream_error") errorsYest += 1
+                tokensYest += tokens
+                costYest += cost
+            }
         }
 
         // 累计（仅 ok 行，全量）
@@ -160,6 +194,15 @@ object AdminQueries {
             totalCalls = totalCalls,
             totalTokens = totalTokens,
             totalCost = totalCost,
+            errorsToday = errorsToday,
+            newDevicesToday = newDevicesToday,
+            callsYest = callsYest,
+            tokensYest = tokensYest,
+            costYest = costYest,
+            blockedYest = blockedYest,
+            errorsYest = errorsYest,
+            newUsersYest = newYest,
+            newDevicesYest = newDevicesYest,
         )
     }
 
@@ -191,6 +234,7 @@ object AdminQueries {
                 val status = r[LlmCallLogs.status]
                 if (status == "ok") a.calls += 1L
                 if (status.startsWith("blocked_")) a.blocked += 1L
+                if (status == "upstream_error") a.errors += 1L
                 a.promptTokens += r[LlmCallLogs.promptTokens]?.toLong() ?: 0L
                 a.completionTokens += r[LlmCallLogs.completionTokens]?.toLong() ?: 0L
                 a.totalTokens += r[LlmCallLogs.totalTokens]?.toLong() ?: 0L
@@ -198,7 +242,7 @@ object AdminQueries {
                 a.bytes += r[LlmCallLogs.respBytes].toLong()
             }
             acc.map { (day, a) ->
-                DayBucket(day, a.calls, a.blocked, a.promptTokens, a.completionTokens, a.totalTokens, a.cost, a.bytes)
+                DayBucket(day, a.calls, a.blocked, a.promptTokens, a.completionTokens, a.totalTokens, a.cost, a.bytes, a.errors)
             }
         }
 
@@ -341,6 +385,7 @@ object AdminQueries {
         var totalTokens = 0L
         var cost = 0.0
         var bytes = 0L
+        var errors = 0L
     }
 
     data class ApkUploadRow(
