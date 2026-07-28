@@ -64,8 +64,7 @@ object AdminViews {
         adminHead("概览 · PoLang 管理后台")
         body {
             navBar()
-            rangeTabs(days, listOf(7, 14), "/admin", metric)
-            metricTabs(metric, listOf("calls" to "调用", "cost" to "成本", "tokens" to "Token"), "/admin", days)
+            pageControls(metric, listOf("calls" to "调用", "cost" to "成本", "tokens" to "Token"), days, listOf(7, 14), "/admin")
             h1 { +"概览" }
             h2 { +"今日（UTC+8 自然日，带环比）" }
             div("cards") {
@@ -88,7 +87,9 @@ object AdminViews {
             h2 { +"近 $days 天 · ${metricLabel(metric)}" }
             unsafe { raw(svgBars(range.days.map { dayMetricValue(it, metric) }, range.days.map { it.day }, labelFormatter = metricFormatter(metric))) }
             h2 { +"模型 Top（近 $days 天 成本占比）" }
-            shareBars(range.byModel, "cost", dimTotal(range.byModel, "cost"))
+            div("model-top") {
+                shareBars(range.byModel, "cost", dimTotal(range.byModel, "cost"))
+            }
         }
     }
 
@@ -316,8 +317,7 @@ object AdminViews {
         adminHead("流量 · PoLang 管理后台")
         body {
             navBar()
-            rangeTabs(days, listOf(7, 14, 30, 90), "/admin/traffic", metric)
-            metricTabs(metric, listOf("calls" to "调用", "tokens" to "Token", "cost" to "成本", "bytes" to "字节"), "/admin/traffic", days)
+            pageControls(metric, listOf("calls" to "调用", "tokens" to "Token", "cost" to "成本", "bytes" to "字节"), days, listOf(7, 14, 30, 90), "/admin/traffic")
             h1 { +"流量（近 $days 天，UTC+8）· ${metricLabel(metric)}" }
             h2 { +"每日 ${metricLabel(metric)}" }
             unsafe { raw(svgBars(range.days.map { dayMetricValue(it, metric) }, range.days.map { it.day }, labelFormatter = metricFormatter(metric))) }
@@ -887,18 +887,24 @@ object AdminViews {
         }
     }
 
-    private fun FlowContent.rangeTabs(current: Int, options: List<Int>, basePath: String, metric: String) {
-        div("subtabs") {
-            options.forEach { d ->
-                a("$basePath?days=$d&metric=$metric", classes = if (d == current) "subtab active" else "subtab") { +"${d}天" }
+    /** 单行控件栏：左侧分类(指标) Tab + 右侧周期 Tab，共用一条下划线，取代原来的双层 subtabs。 */
+    private fun FlowContent.pageControls(
+        metric: String,
+        metricOptions: List<Pair<String, String>>,
+        days: Int,
+        daysOptions: List<Int>,
+        basePath: String,
+    ) {
+        div("page-controls") {
+            div("ctrl-group") {
+                metricOptions.forEach { (v, label) ->
+                    a("$basePath?days=$days&metric=$v", classes = if (v == metric) "ctrl active" else "ctrl") { +label }
+                }
             }
-        }
-    }
-
-    private fun FlowContent.metricTabs(current: String, options: List<Pair<String, String>>, basePath: String, days: Int) {
-        div("subtabs") {
-            options.forEach { (v, label) ->
-                a("$basePath?days=$days&metric=$v", classes = if (v == current) "subtab active" else "subtab") { +label }
+            div("ctrl-group") {
+                daysOptions.forEach { d ->
+                    a("$basePath?days=$d&metric=$metric", classes = if (d == days) "ctrl active" else "ctrl") { +"${d}天" }
+                }
             }
         }
     }
@@ -1160,6 +1166,12 @@ object AdminViews {
                         .top-list{font-size:12px;margin-top:8px}
                         .top-list th,.top-list td{padding:6px 8px}
                         tr.total-row td{font-weight:700;background:#fafafa}
+                        .page-controls{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:16px auto 0;padding:0 24px;gap:12px;flex-wrap:wrap;border-bottom:1px solid #e5e5e5}
+                        .ctrl-group{display:flex;gap:2px}
+                        .ctrl{color:#666;text-decoration:none;padding:8px 14px;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+                        .ctrl:hover{color:#006eff}
+                        .ctrl.active{color:#006eff;border-bottom-color:#006eff;font-weight:500}
+                        .model-top{max-width:1200px;margin:16px auto;padding:16px 24px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
                         @media (max-width:640px){
                         body>h1{font-size:20px}
                         body>h2{font-size:14px}

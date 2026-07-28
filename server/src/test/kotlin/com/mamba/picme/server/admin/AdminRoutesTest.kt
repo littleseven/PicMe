@@ -303,7 +303,7 @@ class AdminRoutesTest {
         assertEquals(HttpStatusCode.OK, ov.status)
         val ovHtml = ov.bodyAsText()
         assertTrue(ovHtml.contains("近 14 天 · 成本 ¥"))
-        assertTrue(ovHtml.contains("subtab active"))
+        assertTrue(ovHtml.contains("ctrl active"))
 
         // traffic 接受 days=90&metric=tokens
         val tr = c.get("/admin/traffic?days=90&metric=tokens") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
