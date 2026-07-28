@@ -98,7 +98,7 @@ class TagGenerationScheduler(
                     return "florence2_base"
                 }
             }
-            val engine = AgentOrchestrator.getInstance(context).getLlmEngine()
+            val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
             return TaggerModelSelector.resolve(
                 raw = raw,
                 isAvailable = { key -> engine.isModelAvailable(key, context) }
@@ -203,7 +203,7 @@ class TagGenerationScheduler(
     private val openClGuardian: OpenClGuardian by lazy {
         OpenClGuardian(
             context = context,
-            engine = AgentOrchestrator.getInstance(context).getLlmEngine(),
+            engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine(),
             prefs = userSettingsRepository,
             modelId = taggerModelKey
         )
@@ -222,7 +222,7 @@ class TagGenerationScheduler(
             roiDevice = DevicePreference.FORCE_GPU,
             landmarkDevice = DevicePreference.FORCE_GPU
         ))
-        val llmEngine = AgentOrchestrator.getInstance(context).getLlmEngine()
+        val llmEngine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
         val mobileClip = MobileClipEngine(context)
         val tokenizer = MobileClipTokenizer(context)
         val classifier = MobileClipTagClassifier(mobileClip, tokenizer, vocab)
@@ -324,7 +324,7 @@ class TagGenerationScheduler(
                 if (strategy.needsZhTranslate) enToZhTranslator.translate(caption) else caption
             } else {
                 if (!ensureModelLoaded()) return@withContext null
-                val engine = AgentOrchestrator.getInstance(context).getLlmEngine()
+                val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
                 val result = engine.imageInference(
                     bitmap = bitmap,
                     systemPrompt = strategy.systemPrompt,
@@ -1024,7 +1024,7 @@ class TagGenerationScheduler(
 
     private suspend fun ensureModelLoaded(): Boolean {
         val orchestrator = AgentOrchestrator.getInstance(context)
-        val engine = orchestrator.getLlmEngine()
+        val engine = orchestrator.localModelService.getLlmEngine()
 
         if (!engine.isModelAvailable(taggerModelKey, context)) {
             Log.w(TAG, "Model not downloaded: $taggerModelKey")
@@ -1052,7 +1052,7 @@ class TagGenerationScheduler(
         // OpenCL GPU 路径（如果允许）→ 失败后降级 CPU
         if (!useCpu) {
             Log.i(TAG, "Loading LLM model with OpenCL (GPU): $taggerModelKey")
-            val openclResult = orchestrator.ensureModelLoaded(
+            val openclResult = orchestrator.localModelService.ensureModelLoaded(
                 modelId = taggerModelKey,
                 useOpencl = true,
                 caller = "TagGenerationScheduler:OpenCL"
@@ -1075,7 +1075,7 @@ class TagGenerationScheduler(
 
         // CPU 加载（默认路径 + OpenCL 失败/降级）
         Log.i(TAG, "Loading LLM model with CPU: $taggerModelKey")
-        val cpuResult = orchestrator.ensureModelLoaded(
+        val cpuResult = orchestrator.localModelService.ensureModelLoaded(
             modelId = taggerModelKey,
             useOpencl = false,
             caller = "TagGenerationScheduler:CPU"
@@ -1412,7 +1412,7 @@ class TagGenerationScheduler(
      */
     private fun unloadLlm() {
         try {
-            val engine = AgentOrchestrator.getInstance(context).getLlmEngine()
+            val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
             if (engine.isLoaded) {
                 Log.i(TAG, "Unloading LLM model to free memory")
                 engine.trimMemory()

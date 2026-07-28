@@ -118,7 +118,7 @@ class ImageTagIndexingWorker(
     private suspend fun doBatchTagging() {
         // 0. 确保模型已加载
         val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
-        val loadResult = orchestrator.ensureModelLoaded(
+        val loadResult = orchestrator.localModelService.ensureModelLoaded(
             modelId = modelKey,
             useOpencl = useOpencl,
             caller = "ImageTagIndexingWorker:doBatchTagging"

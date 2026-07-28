@@ -34,8 +34,8 @@ class CameraAgentIntegration(
      */
     fun enterCameraScene() {
         Logger.i(TAG, "Entering CAMERA scene, unload LLM if loaded")
-        if (orchestrator.isModelLoaded) {
-            orchestrator.unloadModel()
+        if (orchestrator.localModelService.isModelLoaded) {
+            orchestrator.localModelService.unloadModel()
         }
     }
 

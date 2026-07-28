@@ -310,7 +310,7 @@ class AgentOrchestrator private constructor(context: Context) {
         if (configurator.getAgentMode() != AiAgentMode.OFF) {
             if (!localLlmEngine.isLoaded) {
                 Logger.i(tag, "[RouterEntry] Local model not loaded, attempting load")
-                val loadResult = ensureModelLoaded(caller = "processInputWithRouter")
+                val loadResult = localModelService.ensureModelLoaded(caller = "processInputWithRouter")
                 if (loadResult.isFailure) {
                     Logger.e(tag, "[RouterEntry] Local model load failed")
                 } else {
@@ -444,7 +444,7 @@ class AgentOrchestrator private constructor(context: Context) {
             AiAgentMode.LOCAL -> {
                 // 本地模式：使用 MNN-LLM
                 if (!localLlmEngine.isLoaded) {
-                    val loadResult = ensureModelLoaded(caller = "processUserInput:LOCAL")
+                    val loadResult = localModelService.ensureModelLoaded(caller = "processUserInput:LOCAL")
                     if (loadResult.isFailure) {
                         return@withContext handleModelLoadError(loadResult)
                     }
@@ -495,7 +495,7 @@ class AgentOrchestrator private constructor(context: Context) {
                 // REMOTE/FEISHU 模式统一使用本地推理
                 Logger.d(tag, "Using local LLM for ${configurator.getAgentMode()} mode")
                 if (!localLlmEngine.isLoaded) {
-                    val loadResult = ensureModelLoaded(caller = "processUserInput:${configurator.getAgentMode()}")
+                    val loadResult = localModelService.ensureModelLoaded(caller = "processUserInput:${configurator.getAgentMode()}")
                     if (loadResult.isFailure) {
                         return@withContext handleModelLoadError(loadResult)
                     }

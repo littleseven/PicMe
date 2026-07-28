@@ -327,7 +327,7 @@ class AppContainerImpl(
 
     /** AI 图片标签索引器（本地 Vision LLM → 中文标签） */
     override val imageTagIndexingWorker: ImageTagIndexingWorker by lazy {
-        val llmEngine = AgentOrchestrator.getInstance(context).getLlmEngine()
+        val llmEngine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
         ImageTagIndexingWorker(context, llmEngine)
     }
 

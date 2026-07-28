@@ -126,19 +126,19 @@ class AiAgentUseCase(
      * 本地模型是否已加载
      */
     val isLocalModelLoaded: Boolean
-        get() = orchestrator.isModelLoaded
+        get() = orchestrator.localModelService.isModelLoaded
 
     /**
      * 本地模型是否正在加载中（供 UI 显示 "Agent 启动中"）
      */
     val isLocalModelLoading: StateFlow<Boolean>
-        get() = orchestrator.isModelLoading
+        get() = orchestrator.localModelService.isModelLoading
 
     /**
      * 卸载本地模型，释放内存
      */
     fun unloadLocalModel() {
-        orchestrator.unloadModel()
+        orchestrator.localModelService.unloadModel()
     }
 
     /**
@@ -159,7 +159,7 @@ class AiAgentUseCase(
                 localUseOpencl = targetUseOpencl
             )
         }
-        return orchestrator.loadModel(targetModel)
+        return orchestrator.localModelService.loadModel(targetModel)
     }
 
     /**

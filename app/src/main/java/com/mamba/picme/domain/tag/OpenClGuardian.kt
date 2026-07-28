@@ -208,7 +208,7 @@ class OpenClGuardian(
         }
         engine.unload()
         val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
-        orchestrator.ensureModelLoaded(
+        orchestrator.localModelService.ensureModelLoaded(
             modelId = modelId,
             useOpencl = false,
             caller = "OpenClGuardian:ensureCpuLoaded"

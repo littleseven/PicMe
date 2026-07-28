@@ -1824,7 +1824,7 @@ class ChatViewModel(
                 }
 
                 // 4. 确保模型已加载并执行图像推理
-                if (!orchestrator.isModelLoaded) {
+                if (!orchestrator.localModelService.isModelLoaded) {
                     _streamingMessage.value = ChatMessageUi(
                         id = streamingId,
                         type = ChatMessageType.AGENT_TEXT,
@@ -1832,7 +1832,7 @@ class ChatViewModel(
                         modelUsed = currentModelLabel()
                     )
                 }
-                val inferenceResult = orchestrator.withModelLoaded(
+                val inferenceResult = orchestrator.localModelService.withModelLoaded(
                     caller = "ChatViewModel:imageInference"
                 ) { engine ->
                     engine.imageInference(
@@ -1866,7 +1866,7 @@ class ChatViewModel(
                         sessionId = sessionId,
                         content = response,
                         modelUsed = currentModelLabel(),
-                        performance = orchestrator.getLastLocalGenerationMetrics()?.toLlmPerformance()
+                        performance = orchestrator.localModelService.getLastLocalGenerationMetrics()?.toLlmPerformance()
                     )
                     // 将图片分析结果保存到 MemoryManager，使后续文本消息能引用图片上下文
                     orchestrator.appendImageChatToMemory(
