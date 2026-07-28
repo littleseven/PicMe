@@ -51,9 +51,11 @@ ADR-005 做了「协议分离」，但 `AgentOrchestrator` 仍是单一入口同
 | 项 | 状态 |
 |---|---|
 | 决策与 ADR | ✅ 2026-07-28 |
-| 消除共享配置污染（P0-3 止血：`updateRemoteRuntimeConfig` + 5 处泄漏点改调） | ✅ 2026-07-28（commit b915626d） |
-| 拆分 orchestrator 为 RemoteChatEngine / LocalCameraAgent | ⏳ 波次1（后续） |
-| 入口收敛 / 死代码清理（handleInferenceResult 等） | ⏳ 波次1（后续） |
+| step1 消除共享配置污染（P0-3 止血：`updateRemoteRuntimeConfig` + 5 处泄漏点改调） | ✅ 已合 main |
+| step2 抽出 `RemoteChatEngine`（chat 远程链路：streamChat/processChatReAct/getChatAgent/chatSystemPrompt） | ✅ `treatment/d3-chain-isolation`（be8e3edf） |
+| step3 抽出 `LocalModelService`（模型加载服务，相机 Agent + 后台打标 Worker 共用；AgentOrchestrator 现为薄委托） | ✅ `treatment/d3-chain-isolation`（6d1cd7a5） |
+| step4+ 消费者迁到 `localModelService`/`remoteChatEngine` 直调、删委托层；`LocalCameraAgent` 抽取 | ⏳ 后续 |
+| 入口收敛 / 死代码清理（`handleInferenceResult` 等） | ⏳ 后续 |
 
 ## 6. 相关
 
