@@ -157,7 +157,8 @@ fun MediaPager(
     voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: suspend (Uri) -> String? = { null },
     onDescribeImage: suspend (Uri) -> String? = { null },
-    onTriggerSummary: (Long) -> Unit = {}
+    onTriggerSummary: (Long) -> Unit = {},
+    debugUiEnabled: Boolean = false
 ) {
     key(initialIndex) {
         val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { assets.size })
@@ -271,7 +272,7 @@ fun MediaPager(
                     onStartVision = onStartVisionClick,
                     onToggleLandmarks = onToggleLandmarksClick,
                     onStartOcr = onStartOcrClick,
-                    showLandmarkAction = currentAsset?.type == MediaType.PHOTO
+                    showLandmarkAction = debugUiEnabled && currentAsset?.type == MediaType.PHOTO
                 )
             }
 
@@ -352,8 +353,8 @@ fun MediaPager(
                 }
             )
 
-            // AI Chat Panel - 右下角浮动按钮入口
-            if (currentAsset?.type == MediaType.PHOTO) {
+            // AI Chat Panel - 右下角浮动按钮入口（仅 Debug 模式可见）
+            if (debugUiEnabled && currentAsset?.type == MediaType.PHOTO) {
                 if (!showAiChatPanel) {
                     FloatingActionButton(
                         onClick = { showAiChatPanel = true },
@@ -1132,12 +1133,12 @@ private fun mediaPagerBottomBar(
                     Icon(
                         Icons.Rounded.Delete,
                         contentDescription = stringResource(R.string.delete),
-                        tint = Color(0xFFFF5252),
+                        tint = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
                         "删除",
-                        color = Color(0xFFFF5252),
+                        color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
                 }

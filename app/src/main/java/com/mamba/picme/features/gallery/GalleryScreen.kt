@@ -123,6 +123,7 @@ fun GalleryScreen(
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
     val groupingMode by viewModel.groupingMode.collectAsState()
+    val debugUiEnabled by settingsViewModel.debugUiEnabled.collectAsState()
 
     var selectedMediaIndex by remember { mutableStateOf<Int?>(null) }
     var isSelectionMode by remember { mutableStateOf(false) }
@@ -828,7 +829,8 @@ fun GalleryScreen(
                         },
                         onDescribeImage = { uri ->
                             app.container.tagGenerationScheduler.describeImage(uri.toString())
-                        }
+                        },
+                        debugUiEnabled = debugUiEnabled
                     )
                 }
             }
