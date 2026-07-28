@@ -23,33 +23,55 @@ class QueryGalleryMediaUseCase(
 ) {
     suspend operator fun invoke(filter: QueryFilter): GalleryQueryResult =
         withContext(Dispatchers.IO) {
+            // person 维度：人物名 → mediaId 集合（按 face_embeddings 归属），与其它维度 AND 交集。
+            // 解决 search_media 自然语言"人物+时间"丢维问题：这里精确做"大宝 ∩ 6月"。
+            val personIds: Set<Long>? = filter.person?.let { resolvePersonMediaIds(it) }
+            if (filter.person != null && personIds.isNullOrEmpty()) {
+                return@withContext GalleryQueryResult(ids = emptyList(), total = 0)
+            }
+
             val needsFieldFilter =
                 filter.label != null || filter.ocr != null || filter.location != null
 
-            if (needsFieldFilter) {
-                val candidates: List<MediaEntity> = when {
-                    filter.label != null -> db.mediaDao().searchByLabel(filter.label)
-                    filter.ocr != null -> db.mediaDao().searchByOcrText(filter.ocr)
-                    else -> db.mediaDao().searchByLocation(filter.location!!)
+            // 其它维度的候选 id（null = 无其它维度，仅 person 或全量）
+            val otherIds: List<Long>? = when {
+                needsFieldFilter -> {
+                    val candidates: List<MediaEntity> = when {
+                        filter.label != null -> db.mediaDao().searchByLabel(filter.label)
+                        filter.ocr != null -> db.mediaDao().searchByOcrText(filter.ocr)
+                        else -> db.mediaDao().searchByLocation(filter.location!!)
+                    }
+                    candidates.applyFilter(filter).map { it.id }
                 }
-                val matched = candidates.applyFilter(filter)
-                GalleryQueryResult(
-                    ids = matched.take(filter.limit).map { it.id },
-                    total = matched.size,
-                )
-            } else {
-                val ids: List<Long> = when {
-                    filter.fromMs != null || filter.toMs != null ->
-                        db.mediaDao().searchByTimeRange(
-                            filter.fromMs ?: 0L,
-                            filter.toMs ?: Long.MAX_VALUE,
-                        ).map { it.id }
-                    filter.hasFace == true -> db.mediaDao().getHasFaceIds()
-                    else -> db.mediaDao().getAllMediaIds()
-                }
-                GalleryQueryResult(ids = ids.take(filter.limit), total = ids.size)
+                filter.fromMs != null || filter.toMs != null ->
+                    db.mediaDao().searchByTimeRange(
+                        filter.fromMs ?: 0L,
+                        filter.toMs ?: Long.MAX_VALUE,
+                    ).map { it.id }
+                filter.hasFace == true -> db.mediaDao().getHasFaceIds()
+                else -> null
             }
+
+            // person ∩ 其它维度（都有则交集；仅 person 则直接用 person 集合，避免全量 getAllMediaIds）
+            val ids: List<Long> = when {
+                personIds != null && otherIds != null -> otherIds.filter { it in personIds }
+                personIds != null -> personIds.toList()
+                otherIds != null -> otherIds
+                else -> db.mediaDao().getAllMediaIds()
+            }
+            GalleryQueryResult(ids = ids.take(filter.limit), total = ids.size)
         }
+
+    /**
+     * 解析人物名 → 命中媒体的 id 集合。
+     *
+     * 名字经 [PersonDao.findPersonByName]（LIKE 模糊）命中已命名人物分组，再取其 face_embeddings
+     * 归属的 mediaId。未命名/未找到 → 空集（上层据此返回空结果，而非误回全量）。
+     */
+    private suspend fun resolvePersonMediaIds(name: String): Set<Long> {
+        val person = db.personDao().findPersonByName(name) ?: return emptySet()
+        return db.personDao().getMediaIdsByPerson(person.personId).toSet()
+    }
 
     /** 单张媒体元数据（只读），供 JS `media.meta`。 */
     suspend fun meta(id: Long): MediaEntity? =
@@ -101,8 +123,12 @@ class QueryGalleryMediaUseCase(
      */
     suspend fun tagsByFilter(filter: QueryFilter, limit: Int = 50): Map<String, Int> =
         withContext(Dispatchers.IO) {
+            // person 维度：与 [invoke] 同口径 resolve，候选按 id 交集
+            val personIds: Set<Long>? = filter.person?.let { resolvePersonMediaIds(it) }
+            if (filter.person != null && personIds.isNullOrEmpty()) return@withContext emptyMap()
+
             // tagsByFilter 需要 MediaEntity.labels，统一走实体查询
-            val candidates: List<MediaEntity> = when {
+            val rawCandidates: List<MediaEntity> = when {
                 filter.label != null -> db.mediaDao().searchByLabel(filter.label)
                     .applyFilter(filter)
                 filter.ocr != null -> db.mediaDao().searchByOcrText(filter.ocr)
@@ -117,6 +143,7 @@ class QueryGalleryMediaUseCase(
                     if (filter.hasFace == true) byTime.filter { it.hasFace } else byTime
                 }
             }
+            val candidates = if (personIds != null) rawCandidates.filter { it.id in personIds } else rawCandidates
             val counts = mutableMapOf<String, Int>()
             candidates.forEach { entity ->
                 parseLabelArray(entity.labels).forEach { counts[it] = (counts[it] ?: 0) + 1 }

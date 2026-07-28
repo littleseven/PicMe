@@ -11,6 +11,8 @@ import com.mamba.picme.data.model.MediaEntity
  * @param fromMs   captureDate >= fromMs（毫秒）。
  * @param toMs     captureDate <= toMs（毫秒）。
  * @param hasFace  是否含人脸。
+ * @param person   人物名（相册人物分组里已命名的，如"大宝"）。按 face_embeddings 归属做 AND 交集，
+ *                 使"人物 ∩ 时间/标签"精确命中（解决 search_media 自然语言人物+时间丢维的问题）。
  * @param limit    返回 id 截断上限（防止爆量）；[GalleryQueryResult.total] 仍为未截断真实命中数。
  */
 data class QueryFilter(
@@ -20,6 +22,7 @@ data class QueryFilter(
     val fromMs: Long? = null,
     val toMs: Long? = null,
     val hasFace: Boolean? = null,
+    val person: String? = null,
     val limit: Int = DEFAULT_LIMIT,
 ) {
     companion object {

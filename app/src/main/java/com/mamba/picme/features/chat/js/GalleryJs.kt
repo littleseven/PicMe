@@ -34,6 +34,7 @@ fun parseQueryFilter(args: JsValue): QueryFilter {
         fromMs = num("fromMs"),
         toMs = num("toMs"),
         hasFace = bool("hasFace"),
+        person = str("person"),
         limit = limit ?: QueryFilter.DEFAULT_LIMIT,
     )
 }

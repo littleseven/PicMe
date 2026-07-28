@@ -58,6 +58,10 @@ interface PersonDao {
     )
     suspend fun getMediaByPerson(personId: Long): List<MediaEntity>
 
+    /** 按 personId 取媒体 id（轻量，仅供 gallery.query 的 person 过滤做交集）。 */
+    @Query("SELECT DISTINCT mediaId FROM face_embeddings WHERE personId = :personId")
+    suspend fun getMediaIdsByPerson(personId: Long): List<Long>
+
     /**
      * 多人物共现查询：返回同时包含所有指定人物的媒体
      * （HAVING COUNT(DISTINCT personId) = 传入 ids 数，确保每人都出现）

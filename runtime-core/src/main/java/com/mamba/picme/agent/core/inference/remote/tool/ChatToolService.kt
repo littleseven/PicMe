@@ -7,6 +7,8 @@ import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
+import com.mamba.picme.agent.core.model.context.SearchIntent
+import com.mamba.picme.agent.core.model.context.TimeRange
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -84,10 +86,15 @@ class ChatToolService private constructor() {
         @P(name = "query", value = "自然语言搜索词") query: String
     ): String = dispatchCommand(AgentCommand.SearchMedia(query = query))
 
-    @Tool(name = "refine_media_search", value = ["在上一轮搜索结果内细化过滤，如'只要夜景'。constraint 为细化条件。"])
+    @Tool(name = "refine_media_search", value = ["在上一轮搜索结果内细化过滤，如'只要夜景''找找4月的'。constraint 为细化条件；时间窄化务必传 fromMs/toMs（毫秒，据当前日期算）做精确交集，留空串=不限。"])
     fun refineMediaSearch(
-        @P(name = "constraint", value = "细化条件") constraint: String
-    ): String = dispatchCommand(AgentCommand.RefineMediaSearch(constraint = constraint))
+        @P(name = "constraint", value = "细化条件") constraint: String,
+        @P(name = "fromMs", value = "时间起点（毫秒），如某月起始；空串=不限") fromMs: String,
+        @P(name = "toMs", value = "时间终点（毫秒），如某月末；空串=不限") toMs: String
+    ): String {
+        val intent = refineTimeIntent(fromMs, toMs)
+        return dispatchCommand(AgentCommand.RefineMediaSearch(constraint = constraint, intent = intent))
+    }
 
     @Tool(name = "view_media", value = ["查看指定媒体。media_id 为媒体 URI 或 id，无则留空串。"])
     fun viewMedia(
@@ -385,7 +392,11 @@ class ChatToolService private constructor() {
         return when (toolName) {
             "get_gallery_summary" -> getGallerySummary()
             "search_media" -> searchMedia(args.optString("query", ""))
-            "refine_media_search" -> refineMediaSearch(args.optString("constraint", ""))
+            "refine_media_search" -> refineMediaSearch(
+                args.optString("constraint", ""),
+                args.optString("fromMs", ""),
+                args.optString("toMs", ""),
+            )
             "view_media" -> viewMedia(args.optString("media_id", ""))
             "delete_media" -> deleteMedia(args.optString("media_ids", ""))
             "share_media" -> shareMedia(args.optString("media_ids", ""))
@@ -496,4 +507,18 @@ class ChatToolService private constructor() {
     private fun parseFeedbackAction(action: String): FeedbackAction =
         runCatching { FeedbackAction.valueOf(action.trim().uppercase()) }
             .getOrDefault(FeedbackAction.LIKE)
+
+    /**
+     * 把 refine_media_search 的 fromMs/toMs 解析成 [SearchIntent]（timeRange）。
+     * 二者都空 → null（走 onRefineMediaSearch 的字符串路径）；任一非空 → 结构化时间，走精确交集。
+     */
+    private fun refineTimeIntent(fromMs: String, toMs: String): SearchIntent? {
+        val start = fromMs.trim().toLongOrNull()
+        val end = toMs.trim().toLongOrNull()
+        if (start == null && end == null) return null
+        return SearchIntent(
+            query = "",
+            timeRange = TimeRange(startMs = start ?: 0L, endMs = end ?: Long.MAX_VALUE),
+        )
+    }
 }
