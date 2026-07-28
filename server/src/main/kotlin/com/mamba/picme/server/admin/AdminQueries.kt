@@ -1,5 +1,7 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.analytics.Price
+import com.mamba.picme.server.analytics.defaultPrices
 import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.ApkUploads
@@ -117,6 +119,8 @@ data class TopStat(val id: Int, val label: String, val calls: Long, val tokens: 
 
 data class LatencyStats(val count: Int, val p50: Int, val p95: Int)
 
+data class CostSplit(val promptCost: Double, val completionCost: Double)
+
 data class RangeStats(
     val days: List<DayBucket>,
     val byModel: List<DimStat>,
@@ -125,6 +129,7 @@ data class RangeStats(
     val topDevices: List<TopStat>,
     val latency: LatencyStats,
     val totals: DayBucket,
+    val costSplit: CostSplit = CostSplit(0.0, 0.0),
 )
 
 // ── Queries（自然日按 UTC+8；内部后台够用。聚合在内存做，trial 规模毫秒级）──
@@ -263,7 +268,7 @@ object AdminQueries {
         }
 
     /** 对所选天数范围单次扫描，内存扇出每日序列 + 模型/渠道分布 + Top 用户/设备 + 延迟分位 + 合计。 */
-    suspend fun rangeStats(days: Int, now: Long): RangeStats = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+    suspend fun rangeStats(days: Int, now: Long, prices: Map<String, Price> = defaultPrices()): RangeStats = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
         val startToday = startOfTodayMs(now)
         val since = startToday - (days - 1) * DAY_MS
         val dayAcc = LinkedHashMap<String, DayAcc>()
@@ -276,6 +281,8 @@ object AdminQueries {
         val userAcc = HashMap<Int, DimAcc>()
         val devAcc = HashMap<String, DimAcc>()
         val latencies = ArrayList<Int>()
+        var promptCost = 0.0
+        var completionCost = 0.0
         LlmCallLogs.selectAll().where { LlmCallLogs.createdAt greaterEq since }.forEach { r ->
             val t = r[LlmCallLogs.createdAt]
             val status = r[LlmCallLogs.status]
@@ -298,6 +305,10 @@ object AdminQueries {
                 userAcc.acc(r[LlmCallLogs.accountId]).add(1, tokens, cost)
                 r[LlmCallLogs.deviceId]?.let { devAcc.acc(it).add(1, tokens, cost) }
                 r[LlmCallLogs.latencyMs]?.let { latencies.add(it) }
+                prices[r[LlmCallLogs.model]]?.let { p ->
+                    promptCost += (r[LlmCallLogs.promptTokens] ?: 0) / 1_000_000.0 * p.inPerMillion
+                    completionCost += (r[LlmCallLogs.completionTokens] ?: 0) / 1_000_000.0 * p.outPerMillion
+                }
             }
         }
         val dayBuckets = dayAcc.map { (day, a) ->
@@ -329,6 +340,7 @@ object AdminQueries {
             topDevices = topDevices,
             latency = lat,
             totals = totals,
+            costSplit = CostSplit(promptCost, completionCost),
         )
     }
 

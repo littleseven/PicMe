@@ -1,5 +1,7 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.analytics.Price
+import com.mamba.picme.server.analytics.defaultPrices
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.GuestService
 import com.mamba.picme.server.config.SettingsService
@@ -38,7 +40,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
  * 管理后台路由：/admin 下全部页面。主 app-token 拦截器（Application.module）对 /admin 前缀放行，
  * 由各受保护页面顶部的 adminGuard 接管认证（ADMIN_TOKEN 为空 → 503 禁用）。
  */
-fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService: ChannelBalanceService) {
+fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService: ChannelBalanceService, prices: Map<String, Price> = defaultPrices()) {
     route("/admin") {
         get("/login") {
             if (adminToken.isBlank()) {
@@ -94,7 +96,7 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             val days = parseDays(call.request.queryParameters["days"], listOf(7, 14), 7)
             val metric = parseMetric(call.request.queryParameters["metric"])
             val ov = AdminQueries.overview(now)
-            val range = AdminQueries.rangeStats(days, now)
+            val range = AdminQueries.rangeStats(days, now, prices)
             call.respondText(AdminViews.overviewPage(ov, range, days, metric), ContentType.Text.Html)
         }
 
@@ -223,7 +225,7 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             val now = System.currentTimeMillis()
             val days = parseDays(call.request.queryParameters["days"], listOf(7, 14, 30, 90), 30)
             val metric = parseMetric(call.request.queryParameters["metric"])
-            call.respondText(AdminViews.trafficPage(AdminQueries.rangeStats(days, now), days, metric), ContentType.Text.Html)
+            call.respondText(AdminViews.trafficPage(AdminQueries.rangeStats(days, now, prices), days, metric), ContentType.Text.Html)
         }
 
         get("/settings") {

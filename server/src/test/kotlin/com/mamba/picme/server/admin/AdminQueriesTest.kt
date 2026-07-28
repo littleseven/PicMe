@@ -221,6 +221,9 @@ class AdminQueriesTest {
         assertEquals(4L, r.totals.calls)
         assertEquals(1L, r.totals.blocked)
         assertEquals(0L, r.totals.errors)
+        // 成本构成（按 defaultPrices 估算；glm-5.2 无单价→0）
+        assertEquals(0.00044, r.costSplit.promptCost, 1e-6) // deepseek 200×2 + kimi 10×4（/1M）
+        assertEquals(0.00086, r.costSplit.completionCost, 1e-6) // deepseek 100×8 + kimi 5×12（/1M）
     }
 
     private suspend fun account(id: Int, email: String, createdAt: Long) {

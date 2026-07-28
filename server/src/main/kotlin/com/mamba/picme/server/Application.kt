@@ -145,6 +145,6 @@ fun Application.module(config: AppConfig) {
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
         // 管理后台（/admin/**，独立 cookie 认证）
-        adminRoute(config.adminToken, cosService, balanceService)
+        adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
     }
 }

@@ -323,6 +323,17 @@ object AdminViews {
             unsafe { raw(svgBars(range.days.map { dayMetricValue(it, metric) }, range.days.map { it.day }, labelFormatter = metricFormatter(metric))) }
             h2 { +"健康" }
             healthRow(range)
+            h2 { +"成本构成（输入 vs 输出，估算）" }
+            div("model-top") {
+                shareBars(
+                    listOf(
+                        DimStat("输入", 0, 0, range.costSplit.promptCost),
+                        DimStat("输出", 0, 0, range.costSplit.completionCost),
+                    ),
+                    "cost",
+                    range.costSplit.promptCost + range.costSplit.completionCost,
+                )
+            }
             val effMetric = if (metric == "bytes") "cost" else metric
             h2 { +"构成（按${metricLabel(effMetric)}）" }
             div("cards") {
@@ -973,18 +984,18 @@ object AdminViews {
         table {
             tr {
                 th { +"日期" }; th { +"调用" }; th { +"blocked" }; th { +"error" }; th { +"率" }
-                th { +"Token" }; th { +"成本 ¥" }; th { +"出口字节" }
+                th { +"输入Tok" }; th { +"输出Tok" }; th { +"成本 ¥" }; th { +"出口字节" }
             }
             tr("total-row") {
                 td { +"合计" }; td { +tot.calls.toString() }; td { +tot.blocked.toString() }; td { +tot.errors.toString() }
                 td { +rateStr(tot.calls, tot.blocked, tot.errors, tot.blocked) }
-                td { +compactCount(tot.totalTokens.toDouble()) }; td { +compactCost(tot.cost) }; td { +formatBytes(tot.bytes) }
+                td { +compactCount(tot.promptTokens.toDouble()) }; td { +compactCount(tot.completionTokens.toDouble()) }; td { +compactCost(tot.cost) }; td { +formatBytes(tot.bytes) }
             }
             range.days.reversed().forEach { b ->
                 tr {
                     td { +b.day }; td { +b.calls.toString() }; td { +b.blocked.toString() }; td { +b.errors.toString() }
                     td { +rateStr(b.calls, b.blocked, b.errors, b.blocked) }
-                    td { +compactCount(b.totalTokens.toDouble()) }; td { +fmt(b.cost) }; td { +formatBytes(b.bytes) }
+                    td { +compactCount(b.promptTokens.toDouble()) }; td { +compactCount(b.completionTokens.toDouble()) }; td { +fmt(b.cost) }; td { +formatBytes(b.bytes) }
                 }
             }
         }
