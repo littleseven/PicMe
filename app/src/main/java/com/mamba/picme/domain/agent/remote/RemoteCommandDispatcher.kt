@@ -162,7 +162,7 @@ class RemoteCommandDispatcher(
             orchestrator.pushModeOverride(AiAgentMode.REMOTE)
             try {
                 val result = withTimeout(30_000L) {
-                    orchestrator.processUserInput(
+                    orchestrator.localCameraAgent.processUserInput(
                         input = text,
                         agentContext = agentContext,
                         pageContext = PageContext.None

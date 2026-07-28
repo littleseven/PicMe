@@ -400,7 +400,7 @@ private suspend fun sendMessage(
     state.isProcessing = true
 
     try {
-        val result = orchestrator.processUserInput(
+        val result = orchestrator.localCameraAgent.processUserInput(
             input = text,
             agentContext = agentContext,
             pageContext = pageContext

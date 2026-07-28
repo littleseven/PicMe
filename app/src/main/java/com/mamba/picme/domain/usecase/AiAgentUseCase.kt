@@ -194,7 +194,7 @@ class AiAgentUseCase(
             AiAgentMode.LOCAL, AiAgentMode.OFF -> {
                 // 本地推理：优先使用 processInputWithRouter 的 L2 本地快速通道
                 Logger.i(tag, "[UseCase] LOCAL mode, calling processInputWithRouter for input='$userInput'")
-                val inferenceResult = orchestrator.processInputWithRouter(
+                val inferenceResult = orchestrator.localCameraAgent.processInputWithRouter(
                     input = userInput,
                     agentContext = agentContext
                 )
@@ -205,7 +205,7 @@ class AiAgentUseCase(
                 // REMOTE/FEISHU 模式：统一走本地推理（已不再需要远程推理链路）
                 // FEISHU 作为通信通道已独立配置，此处保留兼容性处理
                 Logger.i(tag, "[UseCase] ${currentMode.name} mode, using local inference for input='$userInput'")
-                val inferenceResult = orchestrator.processInputWithRouter(
+                val inferenceResult = orchestrator.localCameraAgent.processInputWithRouter(
                     input = userInput,
                     agentContext = agentContext
                 )
@@ -336,7 +336,7 @@ class AiAgentUseCase(
      * 清空对话记忆
      */
     suspend fun clearMemory() {
-        orchestrator.clearMemory("camera")
+        orchestrator.localCameraAgent.clearMemory("camera")
     }
 
     /**

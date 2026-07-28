@@ -3,10 +3,6 @@ package com.mamba.picme.agent.core.facade
 import android.content.Context
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.capability.Capability
-import com.mamba.picme.agent.core.model.command.AgentCommand
-import com.mamba.picme.agent.core.model.context.AgentAction
-import com.mamba.picme.agent.core.model.context.AgentContext
-import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
@@ -20,7 +16,6 @@ import com.mamba.picme.agent.core.inference.local.LocalCameraAgent
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
-import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -205,35 +200,6 @@ class AgentOrchestrator private constructor(context: Context) {
         configurator.clearFeishuAgent()
     }
 
-    /** 使用 LocalPipeline 处理输入（委托 [localCameraAgent]） */
-    suspend fun processInputWithRouter(
-        input: String,
-        agentContext: AgentContext,
-        pageContext: PageContext? = null
-    ): InferenceResult = localCameraAgent.processInputWithRouter(input, agentContext, pageContext)
-
-    /** 处理用户输入（委托 [localCameraAgent]） */
-    suspend fun processUserInput(
-        input: String,
-        agentContext: AgentContext,
-        pageContext: PageContext? = null,
-        customSystemPrompt: String? = null
-    ): Result<AgentAction> = localCameraAgent.processUserInput(input, agentContext, pageContext, customSystemPrompt)
-
-    /** 清空当前场景的对话历史（委托 [localCameraAgent]） */
-    suspend fun clearMemory(sessionId: String) {
-        localCameraAgent.clearMemory(sessionId)
-    }
-
-    /** 将图片对话保存到 MemoryManager（委托 [localCameraAgent]） */
-    fun appendImageChatToMemory(
-        sessionId: String,
-        userPrompt: String,
-        imageAnalysis: String
-    ) {
-        localCameraAgent.appendImageChatToMemory(sessionId, userPrompt, imageAnalysis)
-    }
-
     // ── 飞书 ReAct 入口 ─────────────────────────────────────────────
 
     /**
@@ -344,17 +310,6 @@ class AgentOrchestrator private constructor(context: Context) {
         }
     }
 
-    /** 解析 LLM 响应（委托 [localCameraAgent]，暴露给测试使用） */
-    fun parseLlmResponse(response: String, context: AgentContext): AgentCommand =
-        localCameraAgent.parseLlmResponse(response, context)
-
-    /** 根据 method 字段解析为具体命令（委托 [localCameraAgent]） */
-    fun parseCommandByMethod(
-        method: String,
-        json: String,
-        context: AgentContext,
-        fallbackText: String
-    ): AgentCommand = localCameraAgent.parseCommandByMethod(method, json, context, fallbackText)
-
 }
+
 
