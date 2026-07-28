@@ -120,7 +120,7 @@ class ChatViewModelTitleUpdateTest {
             title = "New Chat"
         )
         coEvery { chatMessageDao.getMessageCount("default") } returns 1
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
+        coEvery { orchestrator.remoteChatEngine.streamChat(any(), any(), any()) } returns Result.success(
             StreamChatResult(fullResponse = "好的")
         )
 
@@ -139,7 +139,7 @@ class ChatViewModelTitleUpdateTest {
             title = "我的自定义标题"
         )
         coEvery { chatMessageDao.getMessageCount("default") } returns 1
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
+        coEvery { orchestrator.remoteChatEngine.streamChat(any(), any(), any()) } returns Result.success(
             StreamChatResult(fullResponse = "好的")
         )
 
@@ -158,7 +158,7 @@ class ChatViewModelTitleUpdateTest {
             title = "New Chat"
         )
         coEvery { chatMessageDao.getMessageCount("default") } returns 2
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
+        coEvery { orchestrator.remoteChatEngine.streamChat(any(), any(), any()) } returns Result.success(
             StreamChatResult(fullResponse = "好的")
         )
 

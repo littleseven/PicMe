@@ -161,7 +161,7 @@ class ChatViewModelGuestModeTest {
         tokenFlow.value = ""
         // 模拟 server 真实 403 body（LlmRoute：guest 配额耗尽）—— 异常 message 即此 body
         coEvery {
-            orchestrator.streamChat(any(), any(), any())
+            orchestrator.remoteChatEngine.streamChat(any(), any(), any())
         } returns Result.failure(
             RuntimeException("""{"error":"quota_exceeded","tier":"guest","message":"guest quota used up"}""")
         )
@@ -183,7 +183,7 @@ class ChatViewModelGuestModeTest {
         tokenFlow.value = "pl-abc123token"
         // account 配额耗尽：body 同样含 quota_exceeded，但 isGuestMode=false → 不应弹 guest sheet
         coEvery {
-            orchestrator.streamChat(any(), any(), any())
+            orchestrator.remoteChatEngine.streamChat(any(), any(), any())
         } returns Result.failure(
             RuntimeException("""{"error":"quota_exceeded","tier":"account","message":"free quota used up"}""")
         )

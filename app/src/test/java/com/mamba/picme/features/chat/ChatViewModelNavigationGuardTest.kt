@@ -147,7 +147,7 @@ class ChatViewModelNavigationGuardTest {
     )
 
     private fun mockStreamCommands(commands: List<AgentCommand>) {
-        coEvery { orchestrator.streamChat(any(), any(), any()) } returns Result.success(
+        coEvery { orchestrator.remoteChatEngine.streamChat(any(), any(), any()) } returns Result.success(
             StreamChatResult(
                 fullResponse = "",
                 metrics = StreamMetrics(latencyMs = 100, promptTokens = 10, completionTokens = 5),
