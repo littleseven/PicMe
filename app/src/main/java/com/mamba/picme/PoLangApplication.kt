@@ -438,10 +438,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     if (selectedProviderConfig != null && selectedProviderConfig.isConfigured) {
                         // BYOK 模式：用户配置了自己的 API Key，直连 provider
                         val remoteConfig = selectedProviderConfig.toRemoteModelConfig()
-                        orchestrator.configure(
-                            mode = orchestrator.getAgentMode(),
-                            modelId = orchestrator.getCurrentModelId(),
-                            privacyLevel = AiAgentPrivacyLevel.STRICT,
+                        orchestrator.updateRemoteRuntimeConfig(
                             remoteConfig = remoteConfig
                         )
                         orchestrator.clearFeishuAgent()
@@ -452,10 +449,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                             gatewayToken = serverToken,
                             deviceId = deviceIdProvider.get(),
                         )
-                        orchestrator.configure(
-                            mode = orchestrator.getAgentMode(),
-                            modelId = orchestrator.getCurrentModelId(),
-                            privacyLevel = AiAgentPrivacyLevel.STRICT,
+                        orchestrator.updateRemoteRuntimeConfig(
                             remoteConfig = remoteConfig
                         )
                         orchestrator.clearFeishuAgent()

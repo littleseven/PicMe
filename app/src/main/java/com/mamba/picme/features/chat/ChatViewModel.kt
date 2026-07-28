@@ -722,11 +722,9 @@ class ChatViewModel(
                 //   同步一次性返回（onToken 仅回调一次），本来就没有可增量展示的文本。
                 // chat 推理前同步配置 remoteConfig：确保用当前 _remoteSource 对应的远程源，
                 // 避免其他场景（AiAgentUseCase/PoLangApplication）注入的 userRemoteConfig 残留导致走错服务器。
-                orchestrator.configure(
-                    mode = orchestrator.getAgentMode(),
-                    modelId = orchestrator.getCurrentModelId(),
-                    privacyLevel = AiAgentPrivacyLevel.STRICT,
+                orchestrator.updateRemoteRuntimeConfig(
                     remoteConfig = effectiveRemoteConfig(selectedModel),
+                    privacyLevel = AiAgentPrivacyLevel.STRICT,
                     inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
                 )
                 Logger.i(
@@ -1910,11 +1908,9 @@ class ChatViewModel(
                 }
                 // 同步到 AgentOrchestrator（复用已有的远程配置）
                 val existingRemoteConfig = orchestrator.getUserRemoteConfig()
-                orchestrator.configure(
-                    mode = orchestrator.getAgentMode(),
-                    modelId = orchestrator.getCurrentModelId(),
-                    privacyLevel = AiAgentPrivacyLevel.STRICT,
+                orchestrator.updateRemoteRuntimeConfig(
                     remoteConfig = existingRemoteConfig,
+                    privacyLevel = AiAgentPrivacyLevel.STRICT,
                     inferencePreference = preference
                 )
                 // 同步到 DataStore（设置中心会感知变化）
@@ -1934,11 +1930,9 @@ class ChatViewModel(
         _selectedModelId.value = modelId
         viewModelScope.launch {
             try {
-                orchestrator.configure(
-                    mode = orchestrator.getAgentMode(),
-                    modelId = orchestrator.getCurrentModelId(),
-                    privacyLevel = AiAgentPrivacyLevel.STRICT,
+                orchestrator.updateRemoteRuntimeConfig(
                     remoteConfig = effectiveRemoteConfig(model),
+                    privacyLevel = AiAgentPrivacyLevel.STRICT,
                     inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
                 )
                 Logger.i(TAG, "chat model switched: ${model.displayName} (${model.remoteConfig.baseUrl})")

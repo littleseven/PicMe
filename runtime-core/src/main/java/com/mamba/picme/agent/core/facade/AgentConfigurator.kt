@@ -135,6 +135,33 @@ class AgentConfigurator(private val context: Context) {
     }
 
     /**
+     * 仅更新远程运行时配置（remoteConfig / inferencePreference / privacyLevel），
+     * **不触碰持久 agentMode / currentModelId / localUseOpencl**。
+     *
+     * 用于 chat 发消息、PoLangApplication 同步 remoteConfig 等只想换远程配置的场景——
+     * 避免把 [getAgentMode]（可能含临时 modeOverride 栈顶）回写进持久 mode（P0-3 配置污染根因）。
+     * privacyGuard 用持久 [agentMode] 同步，杜绝 override 泄漏。
+     */
+    fun updateRemoteRuntimeConfig(
+        remoteConfig: RemoteModelConfig?,
+        privacyLevel: AiAgentPrivacyLevel? = null,
+        inferencePreference: AiAgentInferencePreference? = null
+    ) {
+        if (remoteConfig != null && remoteConfig.baseUrl.isNotBlank() && remoteConfig.modelId.isNotBlank()) {
+            this.userRemoteConfig = remoteConfig
+            localInferencePipeline = null
+        }
+        if (inferencePreference != null) {
+            this.inferencePreference = inferencePreference
+        }
+        if (privacyLevel != null) {
+            privacyGuard.updateConfig(privacyLevel, agentMode)
+        }
+        Logger.i(tag, "updateRemoteRuntimeConfig: remoteModel=${userRemoteConfig?.modelId ?: "fallback"}, " +
+            "inferencePreference=${this.inferencePreference}, privacyOverride=${privacyLevel != null}")
+    }
+
+    /**
      * 当前 Agent 运行模式
      *
      * 优先返回临时覆盖模式（[modeOverrideStack] 栈顶），

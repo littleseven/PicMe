@@ -175,6 +175,19 @@ class AgentOrchestrator private constructor(context: Context) {
     }
 
     /**
+     * 仅更新远程运行时配置，**不触碰持久 mode/modelId**（P0-3 配置污染止血，ADR-010 step 1）。
+     * 详见 [AgentConfigurator.updateRemoteRuntimeConfig]。chat 发消息 / remoteConfig 同步等
+     * 只想换远程配置的场景应调本方法，勿用 [configure] 回写 [getAgentMode]。
+     */
+    fun updateRemoteRuntimeConfig(
+        remoteConfig: RemoteModelConfig?,
+        privacyLevel: AiAgentPrivacyLevel? = null,
+        inferencePreference: AiAgentInferencePreference? = null
+    ) {
+        configurator.updateRemoteRuntimeConfig(remoteConfig, privacyLevel, inferencePreference)
+    }
+
+    /**
      * 压入模式临时覆盖。
      * 此后所有推理路由将强制使用 [mode]，直到 [popModeOverride] 被调用。
      *
