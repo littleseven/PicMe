@@ -22,6 +22,7 @@ import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallbac
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
+import com.mamba.picme.agent.core.inference.local.LocalModelService
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -31,9 +32,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -72,6 +71,9 @@ class AgentOrchestrator private constructor(context: Context) {
     /** 远程 chat 推理引擎（决策3 / ADR-010）：chat 远程 ReAct 链路隔离出口。 */
     val remoteChatEngine = RemoteChatEngine(configurator)
 
+    /** 本地模型加载服务（决策3 / ADR-010 step3）：相机 Agent + 后台打标 Worker 共用。 */
+    val localModelService = LocalModelService(configurator)
+
     private val orchestratorDispatcher = ThreadPoolManager.getInstance().orchestratorDispatcher
 
     /**
@@ -80,21 +82,9 @@ class AgentOrchestrator private constructor(context: Context) {
      */
     private val backgroundScope = CoroutineScope(SupervisorJob())
 
-    private val _isModelLoading = MutableStateFlow(false)
-    val isModelLoading: StateFlow<Boolean> = _isModelLoading.asStateFlow()
-
-    init {
-        // 场景驱动的 LLM 生命周期：进入相机页时立即卸载本地 LLM，释放内存给美颜/相机预览。
-        // 相机页触发 Agent 时再异步加载（调用方通过 ensureModelLoaded / withModelLoaded）。
-        backgroundScope.launch(orchestratorDispatcher) {
-            sceneManager.currentScene.collect { scene ->
-                if (scene == SceneManager.Scene.CAMERA && localLlmEngine.isLoaded) {
-                    Logger.i(tag, "CAMERA scene entered, unloading local LLM to free memory")
-                    unloadModel()
-                }
-            }
-        }
-    }
+    /** 模型加载状态（委托 [localModelService]；场景驱动卸载已移入 LocalModelService）。 */
+    val isModelLoading: StateFlow<Boolean>
+        get() = localModelService.isModelLoading
 
     // 便捷访问器
     private val localLlmEngine get() = configurator.localLlmEngine
@@ -133,19 +123,18 @@ class AgentOrchestrator private constructor(context: Context) {
     }
 
     /**
-     * 获取本地 LLM 推理引擎。
+     * 获取本地 LLM 推理引擎（委托 [localModelService]）。
      *
      * 供非 Agent 消费者（如后台标签索引 Worker）直接使用模型进行推理。
      * **注意**：调用方应确保模型已加载后再使用。
      */
-    fun getLlmEngine(): LocalLlmEngine = localLlmEngine
+    fun getLlmEngine(): LocalLlmEngine = localModelService.getLlmEngine()
 
     /**
-     * 获取最近一次本地 LLM 生成的性能指标。
+     * 获取最近一次本地 LLM 生成的性能指标（委托 [localModelService]）。
      */
-    fun getLastLocalGenerationMetrics(): com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics? {
-        return localLlmEngine.lastGenerationMetrics
-    }
+    fun getLastLocalGenerationMetrics(): com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics? =
+        localModelService.getLastLocalGenerationMetrics()
 
     /**
      * 场景切换
@@ -239,19 +228,18 @@ class AgentOrchestrator private constructor(context: Context) {
     }
 
     /**
-     * 加载本地模型
+     * 加载本地模型（委托 [localModelService]）
      *
      * @param modelId 模型 ID，为空时使用当前配置模型
      */
-    suspend fun loadModel(modelId: String? = null): Result<Unit> {
-        return ensureModelLoaded(modelId = modelId, caller = "loadModel")
-    }
+    suspend fun loadModel(modelId: String? = null): Result<Unit> =
+        localModelService.loadModel(modelId)
 
     /**
-     * 卸载模型
+     * 卸载模型（委托 [localModelService]）
      */
     fun unloadModel() {
-        localLlmEngine.unload()
+        localModelService.unloadModel()
     }
 
     /**
@@ -269,45 +257,7 @@ class AgentOrchestrator private constructor(context: Context) {
         modelId: String? = null,
         useOpencl: Boolean? = null,
         caller: String = "unknown"
-    ): Result<Unit> {
-        val targetModel = modelId ?: configurator.getCurrentModelId()
-        val targetUseOpencl = useOpencl ?: configurator.getLocalUseOpencl()
-
-        if (targetModel.isBlank()) {
-            Logger.w(tag, "[ModelLoadAudit] caller=$caller, modelId is blank")
-            return Result.failure(IllegalStateException("未配置模型 ID"))
-        }
-
-        Logger.i(
-            tag,
-            "[ModelLoadAudit] caller=$caller, model=$targetModel, " +
-                "useOpencl=$targetUseOpencl, alreadyLoaded=${localLlmEngine.isLoaded}"
-        )
-
-        if (!localLlmEngine.isModelAvailable(targetModel, configurator.getContext())) {
-            Logger.w(tag, "[ModelLoadAudit] caller=$caller, model not downloaded: $targetModel")
-            return Result.failure(
-                LlmModelNotFoundException(
-                    "模型未下载，请前往设置 → AI 模型管理下载 $targetModel"
-                )
-            )
-        }
-
-        _isModelLoading.value = true
-        val result = try {
-            localLlmEngine.loadModel(targetModel, targetUseOpencl)
-        } finally {
-            _isModelLoading.value = false
-        }
-
-        result.onSuccess {
-            Logger.i(tag, "[ModelLoadAudit] caller=$caller, model loaded successfully")
-        }.onFailure { error ->
-            Logger.e(tag, "[ModelLoadAudit] caller=$caller, model load failed", error)
-        }
-
-        return result
-    }
+    ): Result<Unit> = localModelService.ensureModelLoaded(modelId, useOpencl, caller)
 
     /**
      * 在模型已加载的前提下执行推理块。
@@ -326,50 +276,13 @@ class AgentOrchestrator private constructor(context: Context) {
         useOpencl: Boolean? = null,
         caller: String = "unknown",
         inferenceBlock: suspend (LocalLlmEngine) -> T
-    ): Result<T> {
-        val loadResult = ensureModelLoaded(
-            modelId = modelId,
-            useOpencl = useOpencl,
-            caller = "$caller→withModelLoaded"
-        )
-        if (loadResult.isFailure) {
-            @Suppress("UNCHECKED_CAST")
-            return loadResult as Result<T>
-        }
-
-        return try {
-            Result.success(inferenceBlock(localLlmEngine))
-        } catch (e: Exception) {
-            Logger.e(tag, "[ModelLoadAudit] caller=$caller, inference failed", e)
-            Result.failure(e)
-        }
-    }
+    ): Result<T> = localModelService.withModelLoaded(modelId, useOpencl, caller, inferenceBlock)
 
     /**
-     * 模型是否已加载
+     * 模型是否已加载（委托 [localModelService]）
      */
     val isModelLoaded: Boolean
-        get() = configurator.isModelLoaded
-
-    /**
-     * 场景驱动的模型加载策略
-     *
-     * 进入相机页时默认不保留 LLM，由独立协程监听场景并在进入 CAMERA 时卸载。
-     * 此处保留卸载逻辑作为 processInput 入口的二次确认，确保相机页触发 Agent 时
-     * 先释放再异步加载（而非直接使用可能已陈旧的模型上下文）。
-     */
-    private fun applySceneDrivenModelPolicy() {
-        val currentScene = sceneManager.currentScene.value
-        when (currentScene) {
-            SceneManager.Scene.CAMERA -> {
-                if (localLlmEngine.isLoaded) {
-                    Logger.i(tag, "CAMERA scene: unloading local LLM before agent inference")
-                    unloadModel()
-                }
-            }
-            else -> { /* 非相机场景：保持当前状态 */ }
-        }
-    }
+        get() = localModelService.isModelLoaded
 
     /**
      * 使用 LocalPipeline 处理输入（支持 L2 本地快速通道）
@@ -389,7 +302,7 @@ class AgentOrchestrator private constructor(context: Context) {
         Logger.d(tag, "Processing input via LocalPipeline: '$input'")
 
         // 场景驱动的模型管理
-        applySceneDrivenModelPolicy()
+        localModelService.applySceneDrivenModelPolicy()
 
         Logger.i(tag, "[RouterEntry] mode=${configurator.getAgentMode()}, input='$input', modelLoaded=${localLlmEngine.isLoaded}")
 
@@ -497,7 +410,7 @@ class AgentOrchestrator private constructor(context: Context) {
         Logger.d(tag, "Processing input: '$input', scene=${sceneManager.currentScene.value}, mode=${configurator.getAgentMode()}")
 
         // 场景驱动的模型管理
-        applySceneDrivenModelPolicy()
+        localModelService.applySceneDrivenModelPolicy()
 
         // 0. L1 缓存查询
         val cachedCommand = intentCache.match(input)
