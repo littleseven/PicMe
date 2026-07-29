@@ -288,6 +288,12 @@ public class MambaAgentFactory {
             if (customQueryParams != null && !customQueryParams.isEmpty()) {
                 builder.customQueryParams(customQueryParams);
             }
+            if (customParameters != null && !customParameters.isEmpty()) {
+                builder.customParameters(customParameters);
+            }
+            if (listeners != null && !listeners.isEmpty()) {
+                builder.listeners(listeners);
+            }
 
             return builder.build();
         }

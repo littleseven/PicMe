@@ -145,6 +145,13 @@
 > - 写操作确认两层策略（Tier A JS `capability.dispatch` 经应用内确认 / Tier B 顶层 `@Tool` 经系统授权）写入 `CommandRisk` SSOT 与 `ChatMediaWriteCapability`/`ChatToolService` 交叉引用
 > - `draw_chart` @Tool 描述（两 ToolService 逐字节相同）抽到 `GalleryToolDocs` 共享；其余同名工具按 agent 故意差异化
 > - 路由心智模型与 JS 能力表面映射见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` §2.4 与 `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md` §1.2
+>
+> **2026-07-29 Chat 远程流式输出（SSE）**：
+> - 新增 `StreamingSyncChatModel`（`agent.core.inference.remote`）：「同步外观、流式内核」的 `ChatModel` 适配器——内部持有 `StreamingChatModel`（SSE），`doChat` 用 CountDownLatch 阻塞返回完整 `ChatResponse`（含组装好的 toolCalls，AiServices 工具循环行为不变），逐 token 增量经可注入 `StreamListener` 旁路（`onTextSnapshot` 本轮累计全文快照 + `onRoundFinished` 轮结束）；未注入监听器时行为与原同步模型一致
+> - `RemoteReActAgent.chatModel` 改用 `StreamingSyncChatModel(builder.buildStreaming())`；`RemoteReActAgentCallback` 新增默认空实现 `onPartialText(snapshot)`（不破坏飞书等其他实现方）；一轮流式结束且含 tool_calls 时在工具执行前触发 `onToolCall`
+> - `RemoteChatEngine.streamChat` 的 `onToken: (String) -> Unit` 升级为 `onEvent: (ChatStreamEvent) -> Unit`（sealed：`TextSnapshot` 本轮累计全文 / `ToolCallStarted` 进入工具轮）；流式瞬态内容只走 UI 内存轨（`_streamingMessage`），不落 Room
+> - `MambaAgentFactory.buildStreaming()` 补齐 `listeners` / `customParameters` 透传（原遗漏会导致 LlmCallRecord 录制与 `thinking=disabled` 在流式路径失效）
+> - `AgentConfigurator.createRemoteChatModel` 同步改为流式内核；原"网关不支持 SSE"注释已过时（服务端 AI 网关已支持 SSE 逐 chunk 透传，见 `server/AGENTS.md`）
 
 ## 设计原则
 

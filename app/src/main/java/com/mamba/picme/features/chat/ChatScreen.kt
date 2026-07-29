@@ -106,6 +106,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -788,6 +789,52 @@ private fun ExpiredImagePlaceholder(height: androidx.compose.ui.unit.Dp = 180.dp
     }
 }
 
+/** 流式渲染段类型：Markdown 段正常渲染，表格段按纯文本直出（防抖动）。 */
+private enum class StreamSegmentType { MARKDOWN, TABLE }
+
+private data class StreamSegment(val type: StreamSegmentType, val text: String)
+
+/** GFM 表格分隔行，如 `|---|---|`、`| --- | ---: |`、`---|---`（可无前后导 `|`）。 */
+private val TABLE_DELIMITER = Regex("""^\s*\|?(\s*:?-{2,}:?\s*\|)+(\s*:?-{2,}:?\s*)\|?\s*$""")
+
+private val CODE_FENCE = Regex("""^\s*```""")
+
+/**
+ * 流式 Markdown 分段：把内容按「Markdown 段 / 表格段」切开。
+ *
+ * 表格段识别：分隔行（[TABLE_DELIMITER]）的前一行含 `|` 即视为表头，向后吞并
+ * 所有含 `|` 的非空行； fenced code block 内的 `|` 行不算。一条回复可有多个表格，
+ * 全部识别。流式期间表格段一律按纯文本渲染——Markwon 的表格位图逐 token 重建
+ * 是抖动根源；流结束消息落库后走完整 Markdown，表格一次性定型。
+ */
+private fun segmentStreamingMarkdown(content: String): List<StreamSegment> {
+    val lines = content.split("\n")
+    val isTableLine = BooleanArray(lines.size)
+    var inCodeFence = false
+    for (i in lines.indices) {
+        if (CODE_FENCE.containsMatchIn(lines[i])) inCodeFence = !inCodeFence
+        if (!inCodeFence && i > 0 && TABLE_DELIMITER.matches(lines[i]) && lines[i - 1].contains("|")) {
+            isTableLine[i - 1] = true
+            isTableLine[i] = true
+            var j = i + 1
+            while (j < lines.size && lines[j].isNotBlank() && lines[j].contains("|")) {
+                isTableLine[j] = true
+                j++
+            }
+        }
+    }
+    val segments = mutableListOf<StreamSegment>()
+    var start = 0
+    for (i in 1..lines.size) {
+        if (i == lines.size || isTableLine[i] != isTableLine[start]) {
+            val type = if (isTableLine[start]) StreamSegmentType.TABLE else StreamSegmentType.MARKDOWN
+            segments += StreamSegment(type, lines.subList(start, i).joinToString("\n"))
+            start = i
+        }
+    }
+    return segments
+}
+
 @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：消息项多类型分支，抽分发器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -913,12 +960,36 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                     )
                 }
                 else -> {
-                    MarkdownText(
-                        markdown = message.content,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
+                    if (message.isStreaming) {
+                        // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
+                        // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
+                        Column {
+                            segmentStreamingMarkdown(message.content).forEach { segment ->
+                                when (segment.type) {
+                                    StreamSegmentType.TABLE -> Text(
+                                        text = segment.text,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                    StreamSegmentType.MARKDOWN -> MarkdownText(
+                                        markdown = segment.text,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 14.sp,
+                                        lineHeight = 20.sp
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        MarkdownText(
+                            markdown = message.content,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
                 }
             }
             if (message.modelUsed != null && message.performance == null) {
@@ -1737,7 +1808,9 @@ data class ChatMessageUi(
     /** CHART 类型：端侧 JS 生成的 SVG 字符串，由 AndroidSVG 渲染成图。 */
     val chartSvg: String? = null,
     /** agent_image / agent_edit_result 是否已保存到相册（来自 metadata.saved）。 */
-    val imageSaved: Boolean = false
+    val imageSaved: Boolean = false,
+    /** 流式输出中的瞬态消息（不落 Room）；UI 据此对未闭合表格做防抖动处理。 */
+    val isStreaming: Boolean = false
 )
 
 enum class ChatMessageType {

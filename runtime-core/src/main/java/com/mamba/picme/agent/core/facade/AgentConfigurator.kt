@@ -10,6 +10,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.inference.local.pipeline.LocalInferencePipeline
 import com.mamba.picme.agent.core.inference.local.prompt.LocalPromptBuilder
+import com.mamba.picme.agent.core.inference.remote.StreamingSyncChatModel
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
@@ -227,14 +228,16 @@ class AgentConfigurator(private val context: Context) {
         get() = localLlmEngine.isLoaded
 
     /**
-     * 创建远程聊天模型（同步，兼容不支持 SSE 的网关）
+     * 创建远程聊天模型（流式内核 + 同步外观）
      *
-     * 使用同步 [com.mamba.model.chat.ChatModel] 而非流式模型。
-     * SCF AI Gateway 等代理网关通常不支持 SSE 流式传输，
-     * 发送 stream=true 会导致连接被关闭。同步调用已验证可靠（与飞书 RemoteReActAgent 一致）。
+     * 返回 [StreamingSyncChatModel]：内部经 SSE 流式（buildStreaming）逐 token 接收，
+     * 对外暴露同步 [com.mamba.model.chat.ChatModel] 接口（CountDownLatch 等待完整响应，
+     * 含组装好的 toolCalls，AiServices 工具循环行为与原同步模型一致）。
+     * 未注入 StreamListener 时行为与原同步模型完全一致；chat 链路经 RemoteReActAgent
+     * 注入监听器获得逐 token 增量（见 RemoteChatEngine.streamChat）。
      *
      * @param config 远程模型配置（baseUrl / apiKey / modelId / gatewayToken）
-     * @return 同步聊天模型实例
+     * @return 同步外观的流式聊天模型实例
      */
     fun createRemoteChatModel(config: RemoteModelConfig): ChatModel {
         val builder = RemoteModelFactory.createBuilder(config, "agent_stream")
@@ -249,8 +252,8 @@ class AgentConfigurator(private val context: Context) {
         if (effectiveDeviceId.isNotBlank()) {
             builder.customHeader("X-Device-Id", effectiveDeviceId)
         }
-        Logger.i(tag, "RemoteChatModel created: model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
-        return builder.build()
+        Logger.i(tag, "RemoteChatModel created (streaming): model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
+        return StreamingSyncChatModel(builder.buildStreaming())
     }
 
     // ── 飞书 ReAct Agent（懒创建）────────────────────────────────────

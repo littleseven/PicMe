@@ -20,6 +20,7 @@ import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.inference.remote.ChatStreamEvent
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
@@ -457,12 +458,23 @@ class ChatViewModel(
         }
         // 实时监听用户自配 Key：决定是否显示「默认服务器/自配 Key」切换（配 key 后即时刷新）
         viewModelScope.launch {
+            // 首次加载时跟随设置中心的选中模型：否则 chat 恒默认官方源，
+            // 用户在设置里选了自配 Key 也不会生效（chat 选择是页内独立状态）。
+            var restoredFromSettings = false
             try {
                 userSettingsRepository.aiAgentRemoteModelConfigsFlow.collect { json ->
                     val userConfigs = RemoteModelConfigs.fromJson(json).configs.filter { cfg -> cfg.isConfigured }
                     val userModels = userConfigs.map { cfg -> ChatRemoteModel(cfg.uniqueKey, cfg.modelId, cfg) }
                     _availableModels.value = listOf(officialModel) + userModels
                     _hasUserKey.value = userModels.isNotEmpty()
+                    if (!restoredFromSettings) {
+                        restoredFromSettings = true
+                        val settingsSelected = userSettingsRepository.aiAgentSelectedRemoteModelFlow.first()
+                        if (userModels.any { it.id == settingsSelected }) {
+                            _selectedModelId.value = settingsSelected
+                            Logger.i(TAG, "chat model restored from settings: $settingsSelected")
+                        }
+                    }
                     Logger.i(
                         TAG,
                         "availableModels: official + ${userModels.size} user = ${userModels.map { it.displayName }}"
@@ -697,7 +709,8 @@ class ChatViewModel(
                     id = streamingId,
                     type = ChatMessageType.AGENT_TEXT,
                     content = STREAMING_THINKING_HINT,
-                    modelUsed = currentModelLabel()
+                    modelUsed = currentModelLabel(),
+                    isStreaming = true
                 )
 
                 // 3.5 获取相册摘要并注入上下文
@@ -715,11 +728,11 @@ class ChatViewModel(
 
                 // 5. 调用流式推理
                 //
-                // 流式期间占位文案保持「正在思考...」不变：
-                // - 修复「先闪现 JSON 指令再出卡片」：本地/远程 L2 输出恒为 JSON 指令
-                //   （如 search_media / text_reply），不能把原始 token 直接展示到气泡。
-                // - 修复「空气泡过段时间才有内容」：占位一开始即为非空提示；远程推理为
-                //   同步一次性返回（onToken 仅回调一次），本来就没有可增量展示的文本。
+                // 流式期间占位消息内容实时更新（只走 _streamingMessage 内存轨，不落 Room）：
+                // - TextSnapshot：模型本轮累计全文快照，直接整体替换气泡内容
+                //   （AGENT_TEXT 经 MarkdownText 渲染，天然支持增量 Markdown）。
+                // - ToolCallStarted：进入工具调用轮，气泡切换为"正在调用工具"状态文案；
+                //   新一轮首个 delta 到达时快照从空重新累计，自动覆盖状态文案。
                 // chat 推理前同步配置 remoteConfig：确保用当前 _remoteSource 对应的远程源，
                 // 避免其他场景（AiAgentUseCase/PoLangApplication）注入的 userRemoteConfig 残留导致走错服务器。
                 orchestrator.updateRemoteRuntimeConfig(
@@ -740,8 +753,16 @@ class ChatViewModel(
                 val result = orchestrator.remoteChatEngine.streamChat(
                     input = effectiveInput,
                     agentContext = agentContext,
-                    // 占位文案已在创建时设好并保持不变，故逐 token 无需更新气泡。
-                    onToken = { _ -> }
+                    onEvent = { event ->
+                        when (event) {
+                            is ChatStreamEvent.TextSnapshot ->
+                                _streamingMessage.value = _streamingMessage.value?.copy(content = event.text)
+                            ChatStreamEvent.ToolCallStarted ->
+                                _streamingMessage.value = _streamingMessage.value?.copy(
+                                    content = context.getString(R.string.chat_calling_tool)
+                                )
+                        }
+                    }
                 )
 
                 // 6. 处理结果
@@ -1810,7 +1831,8 @@ class ChatViewModel(
                     id = streamingId,
                     type = ChatMessageType.AGENT_TEXT,
                     content = "正在分析图片...",
-                    modelUsed = currentModelLabel()
+                    modelUsed = currentModelLabel(),
+                    isStreaming = true
                 )
 
                 // 3. 加载 Bitmap

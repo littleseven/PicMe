@@ -765,6 +765,7 @@
     <string name="chat_register_use_local">先用本地模型</string>
     <string name="chat_guest_quota_used_up">试用额度已用完，注册即可获得 1000 次免费额度。</string>
     <string name="chat_inference_error">推理出错：%1$s</string>
+    <string name="chat_calling_tool">正在调用工具…</string>
     <string-array name="chat_example_prompts">
         <item>找去年夏天的照片</item>
         <item>搜索海边的照片</item>

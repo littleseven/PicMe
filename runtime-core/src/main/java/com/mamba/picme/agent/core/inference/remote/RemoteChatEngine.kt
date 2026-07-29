@@ -129,32 +129,37 @@ class RemoteChatEngine internal constructor(
     private var cachedChatAgentConfig: RemoteModelConfig? = null
 
     /**
-     * 流式自由聊天（chat 远程 ReAct）。占位"正在思考…"期间无增量 token——远程为同步一次性返回
-     * （onToken 仅回调一次完整 summary）；多轮记忆由 DataStoreChatMemory 承担。
+     * 流式自由聊天（chat 远程 ReAct）。流式期间经 [onEvent] 实时上报：
+     * 模型逐 token 增量以 [ChatStreamEvent.TextSnapshot]（本轮累计全文）下发，
+     * 进入工具调用轮时下发 [ChatStreamEvent.ToolCallStarted]；多轮记忆由 DataStoreChatMemory 承担。
      */
     suspend fun streamChat(
         input: String,
         agentContext: AgentContext,
-        onToken: (String) -> Unit
+        onEvent: (ChatStreamEvent) -> Unit
     ): Result<StreamChatResult> {
         val preference = configurator.getInferencePreference()
         Logger.d(tag, "streamChat: preference=$preference, input='$input'")
         // chat 页统一走远程 ReAct（tool_calls），无论 preference（ADR-005 协议分离）。
         Logger.i(tag, "streamChat routing to Chat ReAct (preference=$preference)")
-        return streamChatReAct(input, agentContext, onToken)
+        return streamChatReAct(input, agentContext, onEvent)
     }
 
     /** chat 远程 ReAct：调 [processChatReAct] 拿 summary，包成 TextReply 命令回 chat。 */
     private suspend fun streamChatReAct(
         input: String,
         agentContext: AgentContext,
-        onToken: (String) -> Unit
+        onEvent: (ChatStreamEvent) -> Unit
     ): Result<StreamChatResult> {
         val startTime = System.currentTimeMillis()
         return try {
-            processChatReAct(input, agentContext.memorySessionId, traceId = agentContext.traceId).fold(
+            processChatReAct(
+                input,
+                agentContext.memorySessionId,
+                traceId = agentContext.traceId,
+                onEvent = onEvent
+            ).fold(
                 onSuccess = { summary ->
-                    onToken(summary)
                     val latencyMs = System.currentTimeMillis() - startTime
                     val commands = if (summary.isNotBlank()) {
                         listOf(AgentCommand.TextReply(message = summary))
@@ -178,12 +183,16 @@ class RemoteChatEngine internal constructor(
     /**
      * chat 远程推理（ReAct tool_calls 循环）。用 [getChatAgent]（ChatToolService，chat 场域能力工具）
      * 执行多轮 tool 调用，完成后返回自然语言 summary。
+     *
+     * [onEvent] 非空时透传流式事件：模型逐 token 增量 → [ChatStreamEvent.TextSnapshot]，
+     * 工具调用轮开始 → [ChatStreamEvent.ToolCallStarted]（飞书等不传 onEvent 的调用方行为不变）。
      */
     internal suspend fun processChatReAct(
         input: String,
         sessionId: String,
         timeoutMs: Long = 120_000L,
-        traceId: String? = null
+        traceId: String? = null,
+        onEvent: ((ChatStreamEvent) -> Unit)? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
@@ -215,8 +224,13 @@ class RemoteChatEngine internal constructor(
                         override fun onContent(iteration: Int, content: String) {
                             Logger.d(tag, "Chat ReAct content: ${content.take(200)}")
                         }
+                        override fun onPartialText(snapshot: String) {
+                            // 本轮累计全文快照 → UI 直接替换气泡内容
+                            onEvent?.invoke(ChatStreamEvent.TextSnapshot(snapshot))
+                        }
                         override fun onToolCall(iteration: Int, toolName: String, args: String) {
                             Logger.d(tag, "Chat ReAct toolCall: $toolName(${args.take(100)})")
+                            onEvent?.invoke(ChatStreamEvent.ToolCallStarted)
                         }
                         override fun onToolResult(iteration: Int, toolName: String, result: String) {
                             Logger.d(tag, "Chat ReAct toolResult: $toolName → ${result.take(80)}")

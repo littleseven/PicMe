@@ -1,0 +1,22 @@
+package com.mamba.picme.agent.core.inference.remote
+
+/**
+ * chat 远程流式事件（sealed 枚举所有合法事件，供 UI 穷尽处理）。
+ *
+ * 由 [RemoteChatEngine.streamChat] 的 onEvent 回调产出，承载流式期间的瞬态内容；
+ * 全部走内存轨（ViewModel 的 _streamingMessage），**不落 Room**。
+ */
+sealed interface ChatStreamEvent {
+
+    /**
+     * 模型本轮累计文本快照（**非 delta**，含 Markdown），UI 直接整体替换气泡内容，
+     * 避免乱序累积问题。新一轮（工具调用后的下一轮）从空重新累计。
+     */
+    data class TextSnapshot(val text: String) : ChatStreamEvent
+
+    /**
+     * 模型本轮产出 tool_calls，进入端侧工具执行。
+     * UI 可将气泡内容切换为"正在调用工具"类状态文案（文案由 app 层按语言本地化）。
+     */
+    data object ToolCallStarted : ChatStreamEvent
+}

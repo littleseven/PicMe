@@ -771,6 +771,7 @@
     <string name="chat_register_use_local">Use on-device model</string>
     <string name="chat_guest_quota_used_up">Trial quota used up. Register to get 1000 free calls.</string>
     <string name="chat_inference_error">Inference error: %1$s</string>
+    <string name="chat_calling_tool">Calling tool…</string>
     <string-array name="chat_example_prompts">
         <item>Find photos from last summer</item>
         <item>Search for beach photos</item>

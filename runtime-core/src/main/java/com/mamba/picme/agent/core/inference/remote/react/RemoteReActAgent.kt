@@ -14,6 +14,7 @@ import com.mamba.data.message.SystemMessage
 import com.mamba.model.chat.listener.ChatModelListener
 import com.mamba.model.chat.listener.ChatModelResponseContext
 import com.mamba.model.output.TokenUsage
+import com.mamba.picme.agent.core.inference.remote.StreamingSyncChatModel
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import java.util.concurrent.Executors
@@ -48,7 +49,7 @@ class RemoteReActAgent(
     private val effectiveToolService: Any =
         toolService ?: RemoteControlToolService(windowManager!!)
 
-    private val chatModel by lazy {
+    private val chatModel: StreamingSyncChatModel by lazy {
         val remoteModelConfig = RemoteModelConfig(
             modelId = config.modelName,
             apiKey = config.apiKey,
@@ -83,7 +84,11 @@ class RemoteReActAgent(
             }
         })
 
-        builder.build()
+        // 流式内核（SSE）+ 同步外观：AiServices 仍按同步 ChatModel 驱动 tool_calls 循环，
+        // 逐 token 增量经 StreamingSyncChatModel.StreamListener 旁路到 callback（见 executeTask）。
+        // fallback：网关/上游不支持 stream=true（如现网未升级的代理）时，本轮降级为同步调用，
+        // 保证对话可用（退化为一次性返回），而不是直接报错。
+        StreamingSyncChatModel(builder.buildStreaming(), fallbackModel = builder.build())
     }
 
     private val running = AtomicBoolean(false)
@@ -237,6 +242,23 @@ class RemoteReActAgent(
             // 获取 AiServices 代理（自动处理工具调用循环）
             val assistant = getOrCreateAssistant()
 
+            // 流式旁路：模型逐 token 增量 → cb.onPartialText（本轮累计快照）；
+            // 一轮结束且含 tool_calls 时 → cb.onToolCall（工具执行前触发，供 UI 切"调用工具"状态）。
+            // 不关心流式的 callback（如飞书）走 onPartialText 默认空实现，行为不变。
+            chatModel.setStreamListener(object : StreamingSyncChatModel.StreamListener {
+                override fun onTextSnapshot(snapshot: String) {
+                    cb.onPartialText(snapshot)
+                }
+
+                override fun onRoundFinished(response: com.mamba.model.chat.response.ChatResponse) {
+                    val aiMessage = response.aiMessage()
+                    if (aiMessage?.hasToolExecutionRequests() == true) {
+                        val tool = aiMessage.toolExecutionRequests().firstOrNull()
+                        cb.onToolCall(1, tool?.name() ?: "unknown", tool?.arguments().orEmpty())
+                    }
+                }
+            })
+
             // 调用 chat 方法，AiServices 内部自动处理：
             // 1. 添加 UserMessage 到 ChatMemory
             // 2. 调用 LLM 传入 toolSpecifications
@@ -246,7 +268,11 @@ class RemoteReActAgent(
             // 注意：这里的重试由底层 ChatModel（OpenAiChatModel 等）在 HTTP 层完成；
             // 我们不在 assistant.chat 级别做顶层重试，因为一旦工具已经被执行，重新添加
             // UserMessage 会破坏 "assistant tool_calls → tool messages → assistant" 的合法序列。
-            val result = assistant.chat(userPrompt)
+            val result = try {
+                assistant.chat(userPrompt)
+            } finally {
+                chatModel.setStreamListener(null)
+            }
 
             val latencyMs = System.currentTimeMillis() - startTime
             val totalTokens = accumulatedTokenUsage
