@@ -64,11 +64,23 @@ class StreamingPacingController(
         }
     }
 
-    /** 轮次完成 / 取消收尾：停循环（内容追平见 Task 4）。 */
+    /** 清空缓冲（供 ToolCallStarted 切换状态文案时协调，避免节奏器用旧全文覆盖）。 */
+    fun reset() {
+        latestFullText = ""
+        shownLength = 0
+        lastChangedAtMs = timeSource()
+    }
+
+    /** 轮次完成 / 取消收尾：一次性追平全文、隐藏光标、停循环。 */
     fun finish() {
         finished = true
         loopJob?.cancel()
         loopJob = null
+        val full = latestFullText
+        if (full.isNotEmpty()) {
+            shownLength = full.length
+            onPaced(full, false)
+        }
     }
 
     private suspend fun paceLoop() {

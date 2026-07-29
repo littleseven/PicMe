@@ -101,6 +101,70 @@ class StreamingPacingControllerTest {
         assertEquals(false, paced.last().cursorVisible)
         ctrl.finish()
     }
+
+    @Test
+    fun `reset clears buffer and stays silent until new text`() = runTest {
+        val paced = mutableListOf<Paced>()
+        val ctrl = StreamingPacingController(
+            scope = this,
+            onPaced = { t, c -> paced += Paced(t, c) },
+            timeSource = { testScheduler.currentTime },
+        )
+        ctrl.start()
+        ctrl.onTextSnapshot("hello")
+        runCurrent()
+        tickPacer(5) // 追平 hello
+        val sizeBeforeReset = paced.size
+        ctrl.reset()
+        tickPacer(3) // reset 后 target=0，静默
+        assertEquals(sizeBeforeReset, paced.size)
+        ctrl.onTextSnapshot("world") // 从空扩展 → 连续增长，shownLength 保持 0
+        tickPacer(1)
+        assertEquals(1, paced.last().text.length) // 从 0 重新逐字
+        tickPacer(5)
+        assertEquals("world", paced.last().text)
+        ctrl.finish()
+    }
+
+    @Test
+    fun `non-continuous snapshot resets shown length`() = runTest {
+        val paced = mutableListOf<Paced>()
+        val ctrl = StreamingPacingController(
+            scope = this,
+            onPaced = { t, c -> paced += Paced(t, c) },
+            timeSource = { testScheduler.currentTime },
+        )
+        ctrl.start()
+        ctrl.onTextSnapshot("hello world")
+        runCurrent()
+        tickPacer(20) // 追平
+        ctrl.onTextSnapshot("xyz") // 非 "hello world" 的前缀扩展 → 重置
+        tickPacer(1)
+        assertEquals(1, paced.last().text.length) // 从 0 重追 "xyz"
+        tickPacer(5)
+        assertEquals("xyz", paced.last().text)
+        ctrl.finish()
+    }
+
+    @Test
+    fun `finish mid-stream catches up full text and hides cursor`() = runTest {
+        val paced = mutableListOf<Paced>()
+        val ctrl = StreamingPacingController(
+            scope = this,
+            onPaced = { t, c -> paced += Paced(t, c) },
+            timeSource = { testScheduler.currentTime },
+        )
+        ctrl.start()
+        ctrl.onTextSnapshot("x".repeat(100))
+        runCurrent()
+        tickPacer(1) // 仅追到 6
+        ctrl.finish()
+        assertEquals(100, paced.last().text.length)
+        assertEquals(false, paced.last().cursorVisible)
+        val sizeAfterFinish = paced.size
+        tickPacer(10)
+        assertEquals(sizeAfterFinish, paced.size) // finish 后循环应停止
+    }
 }
 
 private fun TestScope.tickPacer(frames: Long) {
