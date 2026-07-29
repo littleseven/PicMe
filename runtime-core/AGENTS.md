@@ -70,7 +70,7 @@
 | `RemoteReActAgentConfig` | ReAct 配置 | `agent.core.inference.remote.react` |
 | `RemotePromptBuilder` | 远程模型 Tool Schema + ChatRequest 构建 | `agent.core.inference.remote.prompt` |
 | `ToolCallCommandParser` | tool_calls 命令解析器（name + arguments → AgentCommand） | `agent.core.inference.remote.parser` |
-| `PoLangToolService` | 远程推理 @Tool 注解工具集 | `agent.core.inference.remote.tool` |
+| `RemoteControlToolService` | 远程推理 @Tool 注解工具集 | `agent.core.inference.remote.tool` |
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
 | `Logger` | 日志接口 | `agent.core.platform.logging` |
 | `ThreadPoolManager` | 线程池管理 | `agent.core.platform.thread` |
@@ -202,7 +202,10 @@
 - `RemoteReActAgentConfig.kt` — ReAct 配置
 
 ### `inference/remote/tool/`
-- `PoLangToolService.kt` — 远程推理 @Tool 注解工具集
+- `RemoteControlToolService.kt` — IM 远程控制 RPA @Tool 工具集（飞书/Telegram 通道）
+- `ChatToolService.kt` — chat 会话 agent @Tool 工具集（scene=CHAT）
+- `ToolInventory.kt` — @Tool 元数据 → system prompt 工具清单段（确定性生成，防手写漂移）
+- `GalleryToolDocs.kt` — chat / IM 远程控制两 agent 共享的 @Tool 描述文本
 
 ### `js/`
 - `JsEngine.kt` — 引擎无关 JS 引擎接口（eval / callFunction / installBridge / close）
@@ -298,7 +301,7 @@
 > **已移除（ADR-005 + 2026-06 清理）**：
 > - `InferenceRouter.kt`, `AdaptiveStrategySelector.kt`, `ToolCallingChatLanguageModel.kt`
 > - `ToolCallingOutputParser.kt`, `ToolPromptBuilder.kt`, `ToolCallingConfig.kt`, `ToolCallingMode.kt`, `ToolOrchestrator.kt`
-> - `UnifiedRemoteClient.kt`, `LangChain4jOpenAiClient.kt`, `RemoteCameraTools.kt`（功能已整合入 `RemoteReActAgent` + `PoLangToolService`）
+> - `UnifiedRemoteClient.kt`, `LangChain4jOpenAiClient.kt`, `RemoteCameraTools.kt`（功能已整合入 `RemoteReActAgent` + `RemoteControlToolService`）
 > - `SherpaMnnAsrEngine.kt`, `MnnAsrClient.kt`, `com.k2fsa.sherpa.mnn.*`（已迁移至 Sherpa-ONNX）
 > - `ToolCallParser.kt`（合并入 `ToolCallCommandParser.kt`）
 > - 累计清理 ~2,600 行冗余代码

@@ -448,7 +448,9 @@ try {
 |------|------|------|
 | `draw_chart` | `type: String`(bar/line/pie)、`title: String`、`labels: List<String>`、`values: List<Double>`、`unit: String?` | 端侧渲染柱/折/饼图成真实图片插入聊天；展示图表的唯一方式，禁止文字/表格画图 |
 
-**标准流程**（严格三步）：① `run_gallery_script` 取数（只调 1 次，不分段/不重复）→ ② `draw_chart` 画图 → ③ 一句话总结。类型选择：时间趋势 → line/bar；占比/分布 → pie；数量对比 → bar。详见 `AgentConfigurator.chatSystemPrompt`。
+**触发条件（2026-07-29 调整）**：**默认不画图**——统计/盘点类问题只用文字总结；仅当用户明确要求画图（"画/图表/柱状图/折线图/饼图/把…画成图"）时才走下述流程。
+
+**标准流程**（严格三步）：① `run_gallery_script` 取数（只调 1 次，不分段/不重复）→ ② `draw_chart` 画图 → ③ 一句话总结。类型选择：时间趋势 → line/bar；占比/分布 → pie；数量对比 → bar。详见 `RemoteChatEngine.chatSystemPrompt`。
 
 ---
 
