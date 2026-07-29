@@ -1810,7 +1810,9 @@ data class ChatMessageUi(
     /** agent_image / agent_edit_result 是否已保存到相册（来自 metadata.saved）。 */
     val imageSaved: Boolean = false,
     /** 流式输出中的瞬态消息（不落 Room）；UI 据此对未闭合表格做防抖动处理。 */
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
+    /** 流式打字光标是否可见（由节奏器驱动：吐字中 true，停顿超时/完成 false）。 */
+    val showCursor: Boolean = false
 )
 
 enum class ChatMessageType {
