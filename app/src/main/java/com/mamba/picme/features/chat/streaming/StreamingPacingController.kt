@@ -83,7 +83,8 @@ class StreamingPacingController(
                 shownLength = (shownLength + step).coerceAtMost(target)
                 onPaced(full.substring(0, shownLength), true)
             } else {
-                onPaced(full, true)
+                val cursor = timeSource() - lastChangedAtMs <= IDLE_CURSOR_TIMEOUT_MS
+                onPaced(full, cursor)
             }
         }
     }

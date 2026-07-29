@@ -83,6 +83,24 @@ class StreamingPacingControllerTest {
         assertEquals(2, paced.last().text.length)
         ctrl.finish()
     }
+
+    @Test
+    fun `cursor visible while caught up, hidden after idle timeout`() = runTest {
+        val paced = mutableListOf<Paced>()
+        val ctrl = StreamingPacingController(
+            scope = this,
+            onPaced = { t, c -> paced += Paced(t, c) },
+            timeSource = { testScheduler.currentTime },
+        )
+        ctrl.start()
+        ctrl.onTextSnapshot("hello")
+        runCurrent()
+        tickPacer(5) // 追平（5 字，每帧 1）
+        assertTrue(paced.last().cursorVisible)
+        tickPacer(80) // 80 帧 ≈ 1280ms > 1200ms 超时
+        assertEquals(false, paced.last().cursorVisible)
+        ctrl.finish()
+    }
 }
 
 private fun TestScope.tickPacer(frames: Long) {
