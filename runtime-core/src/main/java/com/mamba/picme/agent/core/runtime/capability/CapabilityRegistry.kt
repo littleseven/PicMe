@@ -202,12 +202,22 @@ class CapabilityRegistry private constructor(
 
         if (capability == null) {
             Logger.w(tag, "[$commandType] No capability found for command in scene $currentScene")
+            val detail = "No capability found for command '${AgentCommand.getMethodName(command)}' in scene $currentScene"
+            // 查找失败此前不过 CommandExecutor，tool_call_log 无记录（2026-07-29 盘点不可用故障即此类）
+            CommandExecutor.recordDispatchEvent(
+                capability = "(unresolved)",
+                commandType = AgentCommand.getMethodName(command),
+                success = false,
+                errorCode = AgentErrorCode.METHOD_NOT_FOUND,
+                errorMessage = detail,
+                traceId = context.traceId
+            )
             return Result.success(
                 AgentAction.Error(
                     commandId = command.commandId,
                     errorCode = AgentErrorCode.METHOD_NOT_FOUND,
                     message = "暂不支持此操作",
-                    detail = "No capability found for command '$commandType' in scene $currentScene"
+                    detail = detail
                 )
             )
         }
@@ -226,6 +236,15 @@ class CapabilityRegistry private constructor(
                 else -> "delegate not bound"
             }
             Logger.i(tag, "[$commandType] Capability ${capability.name} unavailable ($reason), queuing command")
+            // 入队 = 未立即执行：此前无记录，跨页指令黑洞无法排查
+            CommandExecutor.recordDispatchEvent(
+                capability = capability.name,
+                commandType = AgentCommand.getMethodName(command),
+                success = false,
+                errorCode = AgentErrorCode.COMMAND_QUEUED,
+                errorMessage = reason,
+                traceId = context.traceId
+            )
             commandQueue.enqueue(command, context, pageContext, capability)
             return Result.success(
                 AgentAction.TextReply(

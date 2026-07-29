@@ -132,6 +132,7 @@ object AgentErrorCode {
     const val EXECUTION_TIMEOUT = -32002
     const val QUEUE_FULL = -32003
     const val QUEUE_EXPIRED = -32004
+    const val COMMAND_QUEUED = -32006
 }
 
 /**

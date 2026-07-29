@@ -32,6 +32,36 @@ class CommandExecutor(
          */
         @Volatile
         var recorder: CommandExecutionRecorder? = null
+
+        /**
+         * 执行前阶段（Capability 查找失败 / 命令入队 / 调用方等待超时）的失败上报入口。
+         *
+         * 这些路径不经过 [execute]，此前在 tool_call_log 完全不可见（如 2026-07-29
+         * 「盘点相册返回暂不支持」：METHOD_NOT_FOUND 无任何记录，只能靠 LLM 请求体反推）。
+         * 与 [notifyRecorder] 同一通道、同一约束：只记纯指标，recorder 异常静默吞掉。
+         */
+        fun recordDispatchEvent(
+            capability: String,
+            commandType: String,
+            success: Boolean,
+            errorCode: Int?,
+            errorMessage: String?,
+            traceId: String?
+        ) {
+            try {
+                recorder?.record(
+                    capability = capability,
+                    commandType = commandType,
+                    latencyMs = 0,
+                    success = success,
+                    errorCode = errorCode,
+                    errorMessage = errorMessage,
+                    traceId = traceId
+                )
+            } catch (e: Exception) {
+                Logger.w(TAG, "recorder.record failed", e)
+            }
+        }
     }
 
     /**
