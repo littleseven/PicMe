@@ -46,6 +46,7 @@ import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.command.FeedbackAction
+import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.features.chat.MediaResultsUi
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -130,6 +131,7 @@ private fun MediaCard(
                     else -> stringResource(R.string.a11y_photo_desc)
                 },
                 contentScale = ContentScale.Crop,
+                alignment = faceAwareVerticalAlignment(asset.faceFocusY),
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable(

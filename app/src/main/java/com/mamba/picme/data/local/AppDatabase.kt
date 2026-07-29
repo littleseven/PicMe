@@ -52,7 +52,7 @@ import com.mamba.picme.data.model.MediaEntity
         MemoryFactEntity::class,
         ChatImageCacheEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -87,7 +87,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                         MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
-                        MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
+                        MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
+                        MIGRATION_17_18
                     )
                     .build()
                 INSTANCE = instance
@@ -397,6 +398,17 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `city` TEXT")
+            }
+        }
+
+        /**
+         * Migration 17 → 18：新增 media_assets.faceFocusY 字段（人脸纵向聚焦点，列表缩略图对齐）
+         */
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE `media_assets` ADD COLUMN `faceFocusY` REAL"
+                )
             }
         }
     }

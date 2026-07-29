@@ -636,6 +636,7 @@ class TagGenerationScheduler(
         // 【关键修复】校验 hasFace 标记：清理有 hasFace=true 但无有效 embedding 的媒体
         // 这些媒体可能是之前误检（RetinaFace 误报）或零向量过滤后的残留
         cleanupInvalidHasFace(dao)
+        backfillFaceFocus(dao)
     }
 
     /**
@@ -734,6 +735,24 @@ class TagGenerationScheduler(
         if (cleanedCount > 0) {
             Log.w(TAG, "Cleanup invalid hasFace: $cleanedCount media reset from hasFace=true to false")
         }
+    }
+
+    /**
+     * 一次性回填老照片的 faceFocusY（hasFace=1 但 faceFocusY IS NULL）。
+     *
+     * 仅做轻量人脸检测算纵向聚焦点，不重提 embedding / 不重算 MobileCLIP。
+     * 幂等：已回填的（faceFocusY NOT NULL）自动跳过。挂在聚类流程末尾，随扫描渐进覆盖。
+     */
+    private suspend fun backfillFaceFocus(dao: com.mamba.picme.data.local.MediaDao) {
+        val pending = dao.getMediaWithFacesWithoutFocus()
+        if (pending.isEmpty()) return
+        Log.i(TAG, "Backfilling faceFocusY for ${pending.size} media")
+        for (media in pending) {
+            currentCoroutineContext().ensureActive()
+            val focusY = pipeline.detectFaceFocusY(media.uri) ?: continue
+            dao.updateFaceFocusY(media.id, focusY)
+        }
+        Log.i(TAG, "faceFocusY backfill done")
     }
 
     /**
@@ -1118,6 +1137,11 @@ class TagGenerationScheduler(
             // 写哨兵使 faceRoiResult IS NULL 口径收敛，避免这批照片被增量 Pass 1 无限重选。
             Log.w(TAG, "[Pass 1] Photo decode failed; writing sentinel for mediaId=${entity.id}")
             dao.updateFaceRoiResult(entity.id, DECODE_FAILURE_ROI_JSON, false)
+        }
+        // 人脸纵向聚焦点（供列表缩略图纵向对齐）；无人脸时 result.faceFocusY == null，跳过
+        val faceFocusY = result.faceFocusY
+        if (faceFocusY != null) {
+            dao.updateFaceFocusY(entity.id, faceFocusY)
         }
         // 视频不写：loadBitmap 对非图片返回 null 属预期行为，选片层已按 type=PHOTO 排除。
 

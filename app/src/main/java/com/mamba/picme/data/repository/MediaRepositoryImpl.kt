@@ -542,7 +542,8 @@ class MediaRepositoryImpl(
         longitude = longitude,
         locationName = locationName,
         city = city,
-        indexedAt = indexedAt
+        indexedAt = indexedAt,
+        faceFocusY = faceFocusY
     )
 
     private fun MediaAsset.toEntity(): MediaEntity = MediaEntity(
@@ -561,6 +562,7 @@ class MediaRepositoryImpl(
         longitude = longitude,
         locationName = locationName,
         city = city,
-        indexedAt = indexedAt
+        indexedAt = indexedAt,
+        faceFocusY = faceFocusY
     )
 }

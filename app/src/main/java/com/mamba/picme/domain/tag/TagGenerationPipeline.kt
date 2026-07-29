@@ -222,9 +222,24 @@ class TagGenerationPipeline(
 
             Log.d(TAG, "[Pass 1] Extracted ${embeddings.size} valid embeddings for mediaId=$mediaId, " +
                 "semanticEmbedding=${if (semanticEmbedding != null) "ok" else "null"}")
-            return Stage1WithEmbeddingsResult(faceRoiJson, embeddings, semanticEmbedding)
+            val faceFocusY = computeFaceFocusY(stage1Result.faces, faceBitmap.height)
+            return Stage1WithEmbeddingsResult(faceRoiJson, embeddings, semanticEmbedding, faceFocusY)
         } finally {
             faceBitmap.recycle()
+        }
+    }
+
+    /**
+     * 仅做人脸纵向聚焦点检测（轻量，不提取 embedding / 不做 MobileCLIP）。
+     * 供老照片一次性回填（MediaEntity.faceFocusY）使用。null=解码失败或无人脸。
+     */
+    suspend fun detectFaceFocusY(uri: String): Float? {
+        val bitmap = loadBitmap(uri, MAX_FACE_DETECT_SIZE) ?: return null
+        try {
+            val stage1 = stage1FaceDetection(bitmap, androidx.camera.core.CameraSelector.LENS_FACING_BACK)
+            return computeFaceFocusY(stage1.faces, bitmap.height)
+        } finally {
+            bitmap.recycle()
         }
     }
 

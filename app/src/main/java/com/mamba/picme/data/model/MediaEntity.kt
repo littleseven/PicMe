@@ -42,6 +42,8 @@ data class MediaEntity(
     val indexedAt: Long? = null,          // 索引完成时间戳（null=未索引）
     // 人脸 ROI 检测结果 JSON（Stage 1 产出持久化，用于 Pass 1→Pass 3 断点续扫）
     val faceRoiResult: String? = null,
+    /** 人脸纵向聚焦点（归一化 0~1，Pass 1 检测算出；null=无人脸/未回填）。供列表缩略图纵向对齐。 */
+    val faceFocusY: Float? = null,
 
     // MobileCLIP 语义 embedding（512 维 FloatArray 的 Base64，供语义搜索）
     val semanticEmbedding: String? = null,

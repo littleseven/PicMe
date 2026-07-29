@@ -226,7 +226,9 @@ data class Stage1WithEmbeddingsResult(
     /** 每张人脸的 512 维 embedding */
     val embeddings: List<FloatArray>,
     /** MobileCLIP 语义 embedding Base64（null = 编码失败） */
-    val semanticEmbedding: String? = null
+    val semanticEmbedding: String? = null,
+    /** 人脸纵向聚焦点（归一化 0~1；null=无人脸/解码失败）。供列表对齐持久化。 */
+    val faceFocusY: Float? = null
 )
 
 /**
@@ -237,3 +239,17 @@ data class FaceEmbeddingBatch(
     val faceIdx: Int,
     val embedding: FloatArray
 )
+
+/**
+ * 计算人脸纵向「聚焦点」——所有人脸 ROI 纵向并集的中心，归一化到 [0,1]（相对 bitmap 高度）。
+ *
+ * 用于列表缩略图在 ContentScale.Crop 下的纵向对齐：null 表示无人脸（UI 回退居中）。
+ * 仅取纵向（top/bottom）并集，忽略横向；与镜头方向无关。
+ */
+fun computeFaceFocusY(faces: List<FaceRoi>, bitmapHeight: Int): Float? {
+    if (faces.isEmpty() || bitmapHeight <= 0) return null
+    val minTop = faces.minOf { it.roi.top }
+    val maxBottom = faces.maxOf { it.roi.bottom }
+    val center = (minTop + maxBottom) / 2f
+    return (center / bitmapHeight.toFloat()).coerceIn(0f, 1f)
+}

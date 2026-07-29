@@ -332,6 +332,14 @@ interface MediaDao {
     @Query("UPDATE media_assets SET faceRoiResult = :json, hasFace = :hasFace WHERE id = :mediaId")
     suspend fun updateFaceRoiResult(mediaId: Long, json: String, hasFace: Boolean)
 
+    /** 更新人脸纵向聚焦点（Pass 1 检测 / 回填产出） */
+    @Query("UPDATE media_assets SET faceFocusY = :faceFocusY WHERE id = :mediaId")
+    suspend fun updateFaceFocusY(mediaId: Long, faceFocusY: Float?)
+
+    /** 含人脸但尚未回填 faceFocusY 的照片（供一次性回填扫描） */
+    @Query("SELECT * FROM media_assets WHERE hasFace = 1 AND faceFocusY IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC")
+    suspend fun getMediaWithFacesWithoutFocus(): List<MediaEntity>
+
     /** 检查是否有已检测 ROI 但未完成标签的媒体 */
     @Query("SELECT COUNT(*) > 0 FROM media_assets WHERE faceRoiResult IS NOT NULL AND (labels IS NULL OR labels = '')")
     suspend fun hasPendingQwenTagging(): Boolean

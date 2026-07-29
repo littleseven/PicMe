@@ -20,7 +20,9 @@ data class MediaAsset(
     val longitude: Double? = null,
     val locationName: String? = null,
     val city: String? = null,
-    val indexedAt: Long? = null
+    val indexedAt: Long? = null,
+    /** 人脸纵向聚焦点（归一化 0~1，null=无人脸/未回填）。列表缩略图纵向对齐用。 */
+    val faceFocusY: Float? = null
 )
 
 enum class MediaType {

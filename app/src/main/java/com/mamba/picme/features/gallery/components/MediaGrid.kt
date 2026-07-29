@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.mamba.picme.R
+import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.core.image.ThumbnailCache
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.agent.core.model.context.MediaAsset
@@ -235,6 +236,7 @@ fun MediaItem(
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
+            alignment = faceAwareVerticalAlignment(asset.faceFocusY),
             placeholder = ThumbnailPlaceholderPainter,
             error = ThumbnailPlaceholderPainter
         )
