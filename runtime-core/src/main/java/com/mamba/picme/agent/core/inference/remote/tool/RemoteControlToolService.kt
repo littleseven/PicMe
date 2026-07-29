@@ -18,6 +18,7 @@ import com.mamba.picme.agent.core.tool.accessibility.AccessibilityActionPerforme
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityNodeDumper
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
+import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
@@ -33,22 +34,22 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * PoLang 应用工具服务（飞书远程控制 RPA）。
+ * IM 远程控制 RPA 工具服务（飞书/Telegram 等 IM 通道的远程 ReAct agent）。
  *
  * 使用 @Tool 注解定义所有可被远程 LLM 调用的工具，直接通过方法签名生成 ToolSpecification。
  * 暴露 UI 自动化（click/scroll/input，走 Accessibility，不进 CapabilityRegistry）+ 相机控制 +
  * 部分相册语义工具（后者经 [dispatchCommand] 回 CapabilityRegistry）。
  *
  * 路由定位见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` §2.4（飞书 RPA 入口）。与
- * [ChatToolService] 同名但描述不同的工具是按 agent 故意差异化，非漂移；逐字节相同的描述（如
- * `draw_chart`）抽到 [GalleryToolDocs] 共享。
+ * [ChatToolService]（App 内 chat 会话 agent）同名但描述不同的工具是按 agent 故意差异化，
+ * 非漂移；逐字节相同的描述（如 `draw_chart`）抽到 [GalleryToolDocs] 共享。
  */
-class PoLangToolService(
+class RemoteControlToolService(
     private val windowManager: WindowManager
 ) {
 
     companion object {
-        private const val TAG = "PoLangToolService"
+        private const val TAG = "RemoteControlToolService"
 
         /** UI 操作后等待屏幕稳定的时间（毫秒） */
         private const val UI_SETTLE_DELAY_MS = 300L
@@ -658,6 +659,18 @@ class PoLangToolService(
                 },
                 onFailure = { "Error: ${it.message}" }
             )
+        } catch (e: java.util.concurrent.TimeoutException) {
+            // 等待 dispatch 5s 超时：记调用方视角的等待超时（命令若最终完成仍由 CommandExecutor 记录）
+            Logger.w(TAG, "dispatchCommand wait timed out: ${command::class.simpleName}")
+            CommandExecutor.recordDispatchEvent(
+                capability = "(remote_control_tool)",
+                commandType = AgentCommand.getMethodName(command),
+                success = false,
+                errorCode = CommandExecutor.ERROR_CODE_TIMEOUT,
+                errorMessage = "dispatch wait timed out after 5s",
+                traceId = null
+            )
+            "Error: ${e.message}"
         } catch (e: Exception) {
             "Error: ${e.message}"
         }

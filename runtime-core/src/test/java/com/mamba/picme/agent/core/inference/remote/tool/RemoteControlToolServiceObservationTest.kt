@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class PoLangToolServiceObservationTest {
+class RemoteControlToolServiceObservationTest {
 
     @Test
     fun `formatter marks observation correctly`() {
@@ -18,7 +18,7 @@ class PoLangToolServiceObservationTest {
 
     @Test
     fun `capturePostActionState method exists via reflection`() {
-        val method = PoLangToolService::class.java.getDeclaredMethod(
+        val method = RemoteControlToolService::class.java.getDeclaredMethod(
             "capturePostActionState",
             String::class.java
         )
@@ -30,7 +30,7 @@ class PoLangToolServiceObservationTest {
 
     @Test
     fun `waitForUiSettle method exists via reflection`() {
-        val method = PoLangToolService::class.java.getDeclaredMethod(
+        val method = RemoteControlToolService::class.java.getDeclaredMethod(
             "waitForUiSettle",
             Boolean::class.java
         )
@@ -42,7 +42,7 @@ class PoLangToolServiceObservationTest {
 
     @Test
     fun `click method still declares correct parameter annotations`() {
-        val method = PoLangToolService::class.java.getDeclaredMethod(
+        val method = RemoteControlToolService::class.java.getDeclaredMethod(
             "click",
             Integer::class.java, Integer::class.java, String::class.java
         )
@@ -52,7 +52,7 @@ class PoLangToolServiceObservationTest {
 
     @Test
     fun `navigateTo method still declares correct parameter annotations`() {
-        val method = PoLangToolService::class.java.getDeclaredMethod(
+        val method = RemoteControlToolService::class.java.getDeclaredMethod(
             "navigateTo",
             String::class.java
         )

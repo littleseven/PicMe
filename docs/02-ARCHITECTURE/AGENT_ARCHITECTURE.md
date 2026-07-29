@@ -263,7 +263,7 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
                                          ▲
                                          │ dispatchCommand(AgentCommand)
                     ┌────────────────────┴────────────────────────┐
-                    │ PoLangToolService（飞书 RPA）：             │
+                    │ RemoteControlToolService（飞书 RPA）：             │
                     │  • UI 自动化 click/scroll/input → Accessibility │ ← 绕开注册表，
                     │  • 相机工具 → CameraToolHelper 直连          │   真正的"另一条链路"
                     │  • 相册工具 → dispatchCommand 回注册表       │
@@ -290,7 +290,7 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
 | 入口 | 触发场景 | 协议 | 收敛点 |
 |---|---|---|---|
 | 远程 Chat ReAct（`ChatToolService`） | CHAT 场景（相册助理）；`streamChat` 固定走此，无论 `inferencePreference` | OpenAI `tool_calls` | 每个 `@Tool` → `dispatchCommand(AgentCommand)` → `CapabilityRegistry` |
-| 远程飞书 RPA（`PoLangToolService`） | 飞书 IM 远程控制（`processRemoteImInput`） | OpenAI `tool_calls` | 语义工具 → `CapabilityRegistry`；UI 工具（click/scroll/input）→ Accessibility（旁路） |
+| 远程飞书 RPA（`RemoteControlToolService`） | 飞书 IM 远程控制（`processRemoteImInput`） | OpenAI `tool_calls` | 语义工具 → `CapabilityRegistry`；UI 工具（click/scroll/input）→ Accessibility（旁路） |
 | 本地小模型（`LocalLlmEngine`） | CAMERA 等场景的语音/离线指令（`processUserInput`/`processInputWithRouter`） | 自定义 JSON `{method,args}` | `LocalCommandParser` → `AgentCommand` → `CapabilityRegistry` |
 
 > `streamChatLocal` / `streamChatRemote`（曾与 ReAct 并存的文本协议路径）已删除；CHAT 场景统一走远程 ReAct（ADR-005 远程协议分离）。

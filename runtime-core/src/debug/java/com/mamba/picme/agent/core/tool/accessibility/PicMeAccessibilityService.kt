@@ -9,7 +9,7 @@ import com.mamba.picme.agent.core.platform.logging.Logger
  * PoLang 远程控制 AccessibilityService。
  *
  * 用户需要在系统设置 → 无障碍中开启本服务。
- * 服务连接后，会把自身注册到 [AccessibilityServiceHolder]，供 [PoLangToolService] 读取
+ * 服务连接后，会把自身注册到 [AccessibilityServiceHolder]，供 [RemoteControlToolService] 读取
  * Compose 页面的语义树并执行点击/输入/滚动等操作。
  */
 class PoLangAccessibilityService : AccessibilityService() {

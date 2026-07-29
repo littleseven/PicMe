@@ -63,7 +63,7 @@ Application.onCreate() → getInstance() 创建 → 注册到 CapabilityRegistry
 `NavigationCapability`、`SystemCapability` 与 `ImageEditCapability` 除了在 `MainActivity` 的 `ComposeCapabilityHost` 中注册外，还需通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`。
 
 **原因**：
-- 飞书直接搜索快速通道在后台线程通过 `PoLangToolService` 调用 `CapabilityRegistry.dispatch()`。
+- 飞书直接搜索快速通道在后台线程通过 `RemoteControlToolService` 调用 `CapabilityRegistry.dispatch()`。
 - `CapabilityRegistry` 优先查询 `CapabilityHost.get()`（Compose 树中设置的全局 host），当 `MainActivity` 重建或 host 被清空时，会回退到全局 registry。
 - 若 `NavigationCapability` 未注册到全局 registry，host 不可用时 `navigate_to` 会报 `No capability found`。
 

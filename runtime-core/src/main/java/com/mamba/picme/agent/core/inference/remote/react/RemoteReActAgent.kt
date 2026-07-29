@@ -8,7 +8,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.DataStoreChatMemoryStore
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
-import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
+import com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService
 import com.mamba.service.AiServices
 import com.mamba.data.message.SystemMessage
 import com.mamba.model.chat.listener.ChatModelListener
@@ -43,10 +43,10 @@ class RemoteReActAgent(
         private const val TAG = "RemoteReActAgent"
     }
 
-    // 飞书（远程控制 RPA）默认用 PoLangToolService(windowManager)；chat 注入 ChatToolService（不需 windowManager）。
+    // 飞书（远程控制 RPA）默认用 RemoteControlToolService(windowManager)；chat 注入 ChatToolService（不需 windowManager）。
     // 当 toolService=null 时要求 windowManager 非 null（飞书路径）。
     private val effectiveToolService: Any =
-        toolService ?: PoLangToolService(windowManager!!)
+        toolService ?: RemoteControlToolService(windowManager!!)
 
     private val chatModel by lazy {
         val remoteModelConfig = RemoteModelConfig(
@@ -99,7 +99,7 @@ class RemoteReActAgent(
     init {
         // chat 路径（ChatToolService）共享同一 holder：dispatchCommand 读取当轮 traceId 注入 AgentContext，
         // 使远程 ReAct 下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
-        // 飞书路径（PoLangToolService）非 chat 来源，cast 为 null 跳过。
+        // 飞书路径（RemoteControlToolService）非 chat 来源，cast 为 null 跳过。
         (effectiveToolService as? ChatToolService)?.traceIdHolder = traceIdHolder
     }
 
@@ -337,8 +337,13 @@ private class DataStoreChatMemory(
     override fun id(): Any = memoryId
 
     // 内存缓存：messages() 直接返回，避免每次 add 都 read DataStore 导致写/读时序丢失 tool 历史
+    // 加载时剔除持久化的 SystemMessage：system prompt 由 systemMessageProvider 每轮新鲜组装，
+    // 持久化会让旧版本 prompt 永久滞留在老会话（AiServices 仅在 memory 无 system 时才注入新
+    // prompt——2026-07-29 实测：prompt 更新后老会话请求仍携带上一版 prompt）。
     private val cache: MutableList<com.mamba.data.message.ChatMessage> =
-        store.getMessages(memoryId).toMutableList()
+        store.getMessages(memoryId)
+            .filterNot { it is com.mamba.data.message.SystemMessage }
+            .toMutableList()
 
     override fun messages(): MutableList<com.mamba.data.message.ChatMessage> = cache
 
@@ -347,12 +352,17 @@ private class DataStoreChatMemory(
         if (message is com.mamba.data.message.SystemMessage) {
             cache.removeAll { it is com.mamba.data.message.SystemMessage }
             cache.add(0, message)
+            trimToMaxMessages(cache)
+            // SystemMessage 只驻内存、不落盘（见 cache 声明处注释）
+            store.updateMessages(
+                memoryId,
+                cache.filterNot { it is com.mamba.data.message.SystemMessage }.toMutableList()
+            )
         } else {
             cache.add(message)
+            trimToMaxMessages(cache)
+            store.updateMessages(memoryId, cache)
         }
-
-        trimToMaxMessages(cache)
-        store.updateMessages(memoryId, cache)
     }
 
     /**

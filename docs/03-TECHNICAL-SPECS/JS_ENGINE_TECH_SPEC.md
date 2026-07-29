@@ -81,7 +81,7 @@
 ```
 LLM (远程 ReAct)  tool_call: run_gallery_script / draw_chart
     ↓
-ChatToolService / PoLangToolService (@Tool，:runtime-core)
+ChatToolService / RemoteControlToolService (@Tool，:runtime-core)
     ↓ dispatchCommand
 AgentCommand.ExecuteScript / DrawChart
     ↓ CapabilityRegistry (CHAT 场景)
@@ -147,7 +147,7 @@ QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 
 ```
 LLM tool_call: run_gallery_script(code)
- → ChatToolService / PoLangToolService.runGalleryScript
+ → ChatToolService / RemoteControlToolService.runGalleryScript
  → dispatchCommand(AgentCommand.ExecuteScript(code))
  → ChatRunScriptCapability (CHAT 场景)
  → ChatViewModel.onRunScript(code)
@@ -157,7 +157,7 @@ LLM tool_call: run_gallery_script(code)
  → 结果 JSON 作为 observation 回传 LLM 做自然语言总结
 ```
 
-LLM 感知 handler 的唯一渠道是 `@Tool` 描述文本（`ChatToolService` / `PoLangToolService` 的 `run_gallery_script` 描述已列出全部 handler 签名与示例），新增 handler 必须同步该描述。
+LLM 感知 handler 的唯一渠道是 `@Tool` 描述文本（`ChatToolService` / `RemoteControlToolService` 的 `run_gallery_script` 描述已列出全部 handler 签名与示例），新增 handler 必须同步该描述。
 
 ### 5.2 超时设计（三级）
 
@@ -231,7 +231,7 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 ## 8. 飞书链路现状
 
-- `PoLangToolService`（飞书等 IM 渠道使用的 @Tool 集）已补齐 `run_gallery_script` 完整 handler 描述与 `draw_chart` @Tool，与 chat 链路共用同一 `AgentCommand.ExecuteScript` / `DrawChart` 分发。
+- `RemoteControlToolService`（飞书等 IM 渠道使用的 @Tool 集）已补齐 `run_gallery_script` 完整 handler 描述与 `draw_chart` @Tool，与 chat 链路共用同一 `AgentCommand.ExecuteScript` / `DrawChart` 分发。
 - 执行落点与 chat **共享 JsRuntime**（经 `ChatRunScriptCapability` 的 Delegate 指向 ChatViewModel）——**chat 页不在前台时 delegate 未绑定，脚本执行不可用**（`CAPABILITY_UNAVAILABLE`）。
 - 飞书侧无图卡 UI：`draw_chart` 的 SVG 无法在飞书消息中渲染，只把 `summary` 文本回传。SVG 图片回传属未来演进（§10）。
 

@@ -10,7 +10,7 @@ import android.os.Bundle
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.mamba.picme.BuildConfig
-import com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService
+import com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.indexing.geo.LocationIndexer
@@ -41,7 +41,11 @@ import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.picme.agent.core.platform.logging.Logger as AgentCoreLogger
 import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.domain.agent.capability.optimize.AiOptimizeCapability
+import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
+import com.mamba.picme.features.chat.capability.ChatMediaWriteCapability
+import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
+import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 // 其他页面级 Capability 由各 Screen 自行创建
 import com.mamba.picme.domain.agent.remote.FeishuChannelHandler
@@ -569,7 +573,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         }
         override fun onActivityResumed(activity: Activity) {
             currentActivity = activity
-            PoLangToolService.currentActivity = activity
+            RemoteControlToolService.currentActivity = activity
             Logger.d(TAG, "Activity resumed: ${activity.javaClass.simpleName}")
         }
         override fun onActivityPaused(activity: Activity) {
@@ -612,6 +616,14 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         orchestrator.registerCapability(GalleryCapability.getInstance())
         orchestrator.registerCapability(ChatSearchCapability.getInstance())
         Logger.i(TAG, "- ChatSearchCapability: CHAT-scoped gallery search")
+        // 其余 chat 单例 Capability 同样注册到全局 registry 兜底：Compose CapabilityHost
+        // 链路失效（如 Activity recreate 竞态）时，findCapabilityForCommand 仍能命中，
+        // 可用性由 delegate 绑定状态决定（ChatScreen 绑/解），行为与 host 路径一致。
+        orchestrator.registerCapability(ChatGallerySummaryCapability.getInstance())
+        orchestrator.registerCapability(ChatRunScriptCapability.getInstance())
+        orchestrator.registerCapability(ChatStartTagScanCapability.getInstance())
+        orchestrator.registerCapability(ChatMediaWriteCapability.getInstance())
+        Logger.i(TAG, "- Chat summary/script/tag-scan/media-write: CHAT-scoped (global fallback)")
         orchestrator.registerCapability(
             AiOptimizeCapability(
                 context = this,

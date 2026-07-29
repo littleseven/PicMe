@@ -114,6 +114,12 @@ val LocalCapabilityHost = compositionLocalOf<ComposeCapabilityHost> {
  * 供 CapabilityRegistry 等非 Composable 代码访问。
  */
 object GlobalCapabilityHost {
+    /** 空 stub：无宿主时让 CapabilityRegistry 回退到本地 registry，而非 crash。 */
+    private val EMPTY_HOST = object : CapabilityHost {
+        override fun findForScene(scene: SceneManager.Scene): List<Capability>? = null
+        override fun findForCommand(commandName: String): Capability? = null
+    }
+
     @Volatile
     private var host: ComposeCapabilityHost? = null
 
@@ -124,12 +130,17 @@ object GlobalCapabilityHost {
 
     fun get(): ComposeCapabilityHost? = host
 
-    fun clear() {
-        host = null
-        CapabilityHost.set(object : CapabilityHost {
-            override fun findForScene(scene: SceneManager.Scene): List<Capability>? = null
-            override fun findForCommand(commandName: String): Capability? = null
-        })
+    /**
+     * 清空全局宿主。仅当当前宿主就是 [expected] 时才清空：
+     * Activity recreate 时新旧 composition 短暂共存，旧宿主的 onDispose 可能晚于
+     * 新宿主的 set() 执行；无条件 clear 会把新宿主覆盖成空 stub，导致本进程内
+     * Compose 注册的 Capability（chat_run_script 等）全部不可见。
+     */
+    fun clear(expected: ComposeCapabilityHost) {
+        if (host === expected) {
+            host = null
+            CapabilityHost.set(EMPTY_HOST)
+        }
     }
 }
 

@@ -163,7 +163,7 @@ class MainActivity : ComponentActivity() {
                     // 设置全局引用，供非 Composable 代码访问
                     DisposableEffect(rootCapabilityHost) {
                         GlobalCapabilityHost.set(rootCapabilityHost)
-                        onDispose { GlobalCapabilityHost.clear() }
+                        onDispose { GlobalCapabilityHost.clear(rootCapabilityHost) }
                     }
 
                     LaunchedEffect(navController) {

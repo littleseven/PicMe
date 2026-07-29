@@ -70,6 +70,10 @@
 > **变更说明（2026-07-27）**：
 > - 补登 CHAT 场景此前漏列的 4 个 Capability：`ChatGallerySummaryCapability`（`get_gallery_summary`）、`ChatStartTagScanCapability`（`start_tag_scan`）、`ChatRunScriptCapability`（`run_gallery_script` / `draw_chart`，端侧 QuickJS 沙箱）、`ChatMediaWriteCapability`（CHAT 媒体写执行汇聚点）
 > - 新增「1.2 JS 沙箱能力表面」：登记 `gallery.* / media.* / face.* / tag.*` JSBridge handler 与 AgentCommand 的映射关系（仅 `run_gallery_script` 内部可见，详见 `AGENT_ARCHITECTURE.md` §2.4 路由策略）
+>
+> **变更说明（2026-07-29）**：
+> - 修复「盘点相册返回暂不支持」：`GlobalCapabilityHost.clear()` 改为 `clear(expected)` 守卫——Activity recreate 时旧 composition 的 `onDispose` 可能晚于新宿主的 `set()` 执行，无条件 clear 会把全局宿主覆盖成空 stub，导致 Compose 注册的 CHAT Capability 在本进程内全部不可见（`findCapabilityForCommand` 落空 → METHOD_NOT_FOUND）
+> - 上述 4 个 chat 单例 Capability 同步在 `PoLangApplication.initializeCapabilities()` 注册到全局 `CapabilityRegistry` 兜底（与 `ChatSearchCapability` 既有先例一致）；可用性仍由 delegate 绑定状态决定，行为与 host 路径一致
 
 ### 1.1 场景 - 能力映射
 

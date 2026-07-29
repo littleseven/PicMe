@@ -14,7 +14,7 @@ class ToolSpecificationTest {
 
     @Test
     fun `verify click method parameter annotations`() {
-        val method = PoLangToolService::class.java.getDeclaredMethod(
+        val method = RemoteControlToolService::class.java.getDeclaredMethod(
             "click",
             Integer::class.java, Integer::class.java, String::class.java
         )
@@ -38,7 +38,7 @@ class ToolSpecificationTest {
 
     @Test
     fun `verify adjust_beauty method parameter annotations`() {
-        val method = PoLangToolService::class.java.getDeclaredMethod(
+        val method = RemoteControlToolService::class.java.getDeclaredMethod(
             "adjustBeauty",
             java.lang.Double::class.java, java.lang.Double::class.java, java.lang.Double::class.java,
             java.lang.Double::class.java, java.lang.Double::class.java, java.lang.Double::class.java, java.lang.Double::class.java
@@ -62,7 +62,7 @@ class ToolSpecificationTest {
     @Test
     fun `verify no param_ fallback names exist`() {
         // 检查所有 @Tool 注解方法的参数，确保没有使用 param_ 前缀的 fallback 名称
-        val methods = PoLangToolService::class.java.declaredMethods
+        val methods = RemoteControlToolService::class.java.declaredMethods
         for (method in methods) {
             if (method.getAnnotation(com.mamba.tool.Tool::class.java) == null) continue
 

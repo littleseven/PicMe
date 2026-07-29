@@ -12,6 +12,7 @@ import com.mamba.picme.agent.core.model.context.TimeRange
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
+import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.tool.P
 import com.mamba.tool.Tool
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit
 /**
  * chat 场景专用 ToolService（远程 ReAct）。
  *
- * 与 [PoLangToolService]（飞书远程控制 RPA：UI 操作 + 相机）区分：本类只暴露 **chat 场景可用**
+ * 与 [RemoteControlToolService]（飞书远程控制 RPA：UI 操作 + 相机）区分：本类只暴露 **chat 场景可用**
  * 的能力命令（相册搜索/摘要、打标、AI 修图、反馈、设置、导航、JS 脚本），不含 UI 自动化与
  * 相机控制（相机 Capability 属 CAMERA 场景，chat 场景下 dispatch 不可用）。
  *
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit
  * 复用既有 chat Capability（ChatSearchCapability/ChatGallerySummaryCapability/ChatRunScriptCapability 等）。
  *
  * 路由定位见 `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` §2.4（chat ReAct 入口）。与
- * [PoLangToolService] 同名但描述不同的工具（如 `run_gallery_script`）是按 agent 故意差异化，
+ * [RemoteControlToolService] 同名但描述不同的工具（如 `run_gallery_script`）是按 agent 故意差异化，
  * 非漂移；逐字节相同的描述（如 `draw_chart`）抽到 [GalleryToolDocs] 共享。
  *
  * **隐私不变式（决策1 / ADR-008）**：本 ToolService 运行在远程 ReAct 链路上，但其 @Tool 执行的
@@ -458,7 +459,7 @@ class ChatToolService private constructor() {
         }
     }
 
-    // ── 内部：命令分发（复用 PoLangToolService.dispatchCommand 范式，scene=CHAT）────
+    // ── 内部：命令分发（复用 RemoteControlToolService.dispatchCommand 范式，scene=CHAT）────
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun dispatchCommand(command: AgentCommand): String {
@@ -488,6 +489,19 @@ class ChatToolService private constructor() {
                 },
                 onFailure = { "Error: ${it.message}" },
             )
+        } catch (e: java.util.concurrent.TimeoutException) {
+            // 等待 dispatch 5s 超时：命令可能仍在执行（若最终完成会由 CommandExecutor 正常记录），
+            // 此处记调用方视角的等待超时，二者可经 traceId 关联。
+            Logger.w(tag, "dispatchCommand wait timed out: ${command::class.simpleName}")
+            CommandExecutor.recordDispatchEvent(
+                capability = "(chat_tool)",
+                commandType = AgentCommand.getMethodName(command),
+                success = false,
+                errorCode = CommandExecutor.ERROR_CODE_TIMEOUT,
+                errorMessage = "dispatch wait timed out after 5s",
+                traceId = traceIdHolder?.value
+            )
+            "Error: ${e.message}"
         } catch (e: Exception) {
             Logger.w(tag, "dispatchCommand failed: ${command::class.simpleName}: ${e.message}")
             "Error: ${e.message}"
