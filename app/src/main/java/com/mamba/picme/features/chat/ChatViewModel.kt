@@ -53,6 +53,7 @@ import com.mamba.picme.features.chat.js.CapabilityDispatchHandler
 import com.mamba.picme.features.chat.js.loadChartBootstrapJs
 import com.mamba.picme.features.chat.js.QuickJsEngine
 import com.mamba.picme.features.chat.js.registerGalleryHandlers
+import com.mamba.picme.features.chat.streaming.StreamingPacingController
 import com.mamba.picme.features.gallery.MediaViewModel
 import org.json.JSONArray
 import org.json.JSONObject
@@ -61,6 +62,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -261,6 +263,15 @@ class ChatViewModel(
      */
     private val _streamingMessage = MutableStateFlow<ChatMessageUi?>(null)
     val streamingMessage: StateFlow<ChatMessageUi?> = _streamingMessage.asStateFlow()
+
+    private val pacingController = StreamingPacingController(
+        scope = viewModelScope,
+        onPaced = { text, cursor ->
+            _streamingMessage.update { current ->
+                current?.copy(content = text, showCursor = cursor)
+            }
+        }
+    )
 
     /**
      * AI 优化命令触发后需要导航到编辑器的目标 URI。
@@ -712,6 +723,7 @@ class ChatViewModel(
                     modelUsed = currentModelLabel(),
                     isStreaming = true
                 )
+                pacingController.start()
 
                 // 3.5 获取相册摘要并注入上下文
                 val gallerySummary = getGallerySummaryUseCase(includeDetails = false)
@@ -756,14 +768,20 @@ class ChatViewModel(
                     onEvent = { event ->
                         when (event) {
                             is ChatStreamEvent.TextSnapshot ->
-                                _streamingMessage.value = _streamingMessage.value?.copy(content = event.text)
-                            ChatStreamEvent.ToolCallStarted ->
+                                pacingController.onTextSnapshot(event.text)
+                            ChatStreamEvent.ToolCallStarted -> {
+                                pacingController.reset()
                                 _streamingMessage.value = _streamingMessage.value?.copy(
-                                    content = context.getString(R.string.chat_calling_tool)
+                                    content = context.getString(R.string.chat_calling_tool),
+                                    showCursor = false
                                 )
+                            }
                         }
                     }
                 )
+
+                // 流式已结束（streamChat 返回 = onCompleteResponse 已触发）：节奏器追平收尾
+                pacingController.finish()
 
                 // 6. 处理结果
                 result.fold(
