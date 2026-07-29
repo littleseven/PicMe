@@ -136,7 +136,6 @@ import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
 import com.mamba.picme.agent.core.model.context.MediaAsset
-import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
@@ -318,15 +317,8 @@ fun ChatScreen(
         }
     }
 
-    // 注册到 Compose CapabilityHost（CHAT 场景），让命令分发命中本能力，
-    // 否则 findCapabilityForCommand 会回退到 registry 里的 GalleryCapability
-    // （GALLERY 场景）→ CHAT 场景不匹配 → "正在为您切换到对应页面执行操作..."
-    RegisterCapability(ChatSearchCapability.getInstance())
-    RegisterCapability(ChatGallerySummaryCapability.getInstance())
-    RegisterCapability(ChatRunScriptCapability.getInstance())
-    RegisterCapability(ChatStartTagScanCapability.getInstance())
-    // JS 写通路（capability.dispatch）的 CHAT 场景写操作落点：删除/收藏/选中
-    RegisterCapability(ChatMediaWriteCapability.getInstance())
+    // chat 系 Capability 已在 PoLangApplication 注册到全局 CapabilityRegistry（唯一注册表），
+    // 本页只负责 delegate 绑定/解绑（2026-07-29 单轨收敛，Compose CapabilityHost 已退役）
 
     // 绑定 ChatSearchCapability Delegate（chat 场景相册搜索执行器）
     DisposableEffect(Unit) {

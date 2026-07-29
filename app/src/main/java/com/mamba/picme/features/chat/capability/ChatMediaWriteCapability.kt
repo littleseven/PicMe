@@ -16,8 +16,8 @@ import java.lang.ref.WeakReference
  *
  * 存在意义：JS 经 `capability.dispatch` 在 CHAT 场景下发写命令时，若注册表只找得到
  * GalleryCapability（GALLERY 场景），命令会进跨页队列（等用户打开相册页才执行）——
- * 对 JS 同步语义是错误的。本 Capability 声明 activeScenes=[CHAT] 并注册进 Compose
- * CapabilityHost，使 CHAT 场景 dispatch 命中本类，立即执行。
+ * 对 JS 同步语义是错误的。本 Capability 声明 activeScenes=[CHAT] 并注册到全局
+ * CapabilityRegistry（PoLangApplication 启动期），使 CHAT 场景 dispatch 命中本类，立即执行。
  *
  * 写操作落点由 [Delegate]（ChatViewModel）实现：删除复用 MediaRepository 的
  * MediaStore 授权流；收藏/选中为 chat 会话级状态（App 尚无持久化收藏路径，

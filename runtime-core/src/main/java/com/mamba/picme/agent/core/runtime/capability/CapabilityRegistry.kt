@@ -1,7 +1,6 @@
 package com.mamba.picme.agent.core.runtime.capability
 
 import com.mamba.picme.agent.core.capability.Capability
-import com.mamba.picme.agent.core.capability.CapabilityHost
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
@@ -20,7 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.json.JSONObject
 
 /**
- * 能力注册表
+ * 能力注册表（唯一注册容器）
  *
  * 应用级单例，负责：
  * - 按场景过滤 Capability
@@ -28,9 +27,10 @@ import org.json.JSONObject
  * - 命令分发到对应 Capability
  * - 跨页面命令队列管理（委托给 CrossPageCommandQueue）
  *
- * **架构原则**：
- * - Capability 在 Application.onCreate() 中注册一次，永不注销
- * - 通过 isAvailable() 检查 Capability 是否可用（delegate 是否绑定）
+ * **架构原则（2026-07-29 单轨收敛）**：
+ * - 本类是唯一注册表：应用级 Capability 在 Application.onCreate() 注册一次、永不注销；
+ *   页面级 Capability（CameraCapability）随页面进入 [register]、退出 [unregister]
+ * - 注册与可用性分离：能否找到 = 注册表（静态）；能否执行 = activeScenes() + isAvailable()
  * - 支持跨页面指令排队执行
  *
  * 重构后职责拆分：
@@ -85,7 +85,8 @@ class CapabilityRegistry private constructor(
     val queueEvents = commandQueue.queueEvents
 
     /**
-     * 注册 Capability（应用级，只注册一次，永不注销）
+     * 注册 Capability（应用级 Capability 启动期注册一次，永不注销；
+     * 页面级 Capability 随页面进入注册、退出时 [unregister]）
      */
     fun register(capability: Capability) {
         if (registry.containsKey(capability.name)) {
@@ -95,6 +96,15 @@ class CapabilityRegistry private constructor(
         registry[capability.name] = capability
         Logger.i(tag, "Registered capability: ${capability.name} " +
             "(scenes: ${capability.activeScenes().joinToString { it.name }})")
+    }
+
+    /**
+     * 注销 Capability（仅页面级 Capability 使用，如 CameraCapability 随 CameraScreen 销毁注销）
+     */
+    fun unregister(capability: Capability) {
+        if (registry.remove(capability.name) != null) {
+            Logger.i(tag, "Unregistered capability: ${capability.name}")
+        }
     }
 
     /**
@@ -114,20 +124,11 @@ class CapabilityRegistry private constructor(
     /**
      * 获取当前场景下活跃的 Capability 列表
      *
-     * 优先从 CapabilityHost 查询（新架构），回退到本地 registry（兼容旧架构）。
      * 只返回在当前场景活跃的 Capability（不检查 isAvailable）
      * 用于构建 system prompt，让 LLM 知道当前页面"应该"支持哪些命令
      */
     fun getCapabilitiesForCurrentScene(): List<Capability> {
         val currentScene = sceneManager.currentScene.value
-
-        // 优先从 CapabilityHost 查询（新架构：页面级 Capability）
-        val hostCapabilities = CapabilityHost.get()?.findForScene(currentScene)
-        if (!hostCapabilities.isNullOrEmpty()) {
-            return hostCapabilities
-        }
-
-        // 回退到本地 registry（兼容旧架构）
         return registry.values.filter { capability ->
             capability.activeScenes().contains(currentScene) ||
                     capability.activeScenes().isEmpty()
@@ -269,17 +270,11 @@ class CapabilityRegistry private constructor(
     /**
      * 根据命令查找对应的 Capability
      *
-     * 优先从 CapabilityHost 查询（新架构），回退到本地 registry（兼容旧架构）。
      * 先查找当前场景的可用 Capability，找不到时查找所有已注册的 Capability（用于跨页面指令）。
      */
     private fun findCapabilityForCommand(command: AgentCommand): Capability? {
         val commandName = AgentCommand.getMethodName(command)
 
-        // 优先从 CapabilityHost 查询（新架构）
-        val hostMatch = CapabilityHost.get()?.findForCommand(commandName)
-        if (hostMatch != null) return hostMatch
-
-        // 回退到本地 registry（兼容旧架构）
         // 首先在当前场景的可用 Capability 中查找
         val currentSceneCapabilities = getCapabilitiesForCurrentScene()
         val availableMatch = currentSceneCapabilities.find { capability ->

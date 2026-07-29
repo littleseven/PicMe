@@ -46,6 +46,7 @@ import com.mamba.picme.features.chat.capability.ChatMediaWriteCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
 import com.mamba.picme.features.chat.capability.ChatSearchCapability
 import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
+import com.mamba.picme.features.settings.capability.SettingsCapability
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 // 其他页面级 Capability 由各 Screen 自行创建
 import com.mamba.picme.domain.agent.remote.FeishuChannelHandler
@@ -598,32 +599,33 @@ class PoLangApplication : Application(), ImageLoaderFactory {
     }
 
     /**
-     * 初始化应用级 Capability
+     * 初始化应用级 Capability（2026-07-29 单轨收敛：CapabilityRegistry 为唯一注册表，
+     * Compose CapabilityHost 已退役）。
      *
-     * 页面级 Capability（Camera/Gallery/Settings）随 Screen 创建和销毁，
-     * 但 GalleryCapability 需要支持后台飞书指令直接搜索，因此同时注册为全局 Capability。
-     * 它的可用性仍由 delegate 绑定状态决定，只有相册页面激活时才能真正执行命令。
+     * - 应用级单例 Capability：此处注册一次、永不注销；可用性由 delegate 绑定状态决定
+     * - 页面级 Capability（CameraCapability）：随 Screen 进入注册、退出注销（见 CameraScreen）
+     * - GalleryCapability 注册为全局是为了支持后台飞书指令直接搜索
+     * - SettingsCapability 此前从未注册（死能力，chat 的 change_theme 等工具永远
+     *   METHOD_NOT_FOUND），本版本起注册生效
      */
     private fun initializeCapabilities() {
-        Logger.i(TAG, "Capability lifecycle: page-scoped + global GalleryCapability for Feishu search")
+        Logger.i(TAG, "Capability lifecycle: single registry (app-scoped + page-scoped Camera)")
         Logger.i(TAG, "- NavigationCapability: Activity-scoped (MainActivity)")
-        Logger.i(TAG, "- CameraCapability: Page-scoped (CameraScreen)")
-        Logger.i(TAG, "- GalleryCapability: Page-scoped (GalleryScreen) + global registry")
-        Logger.i(TAG, "- SettingsCapability: Page-scoped (SettingsScreen)")
+        Logger.i(TAG, "- CameraCapability: Page-scoped (CameraScreen register/unregister)")
+        Logger.i(TAG, "- GalleryCapability: Application-scoped (Feishu background search)")
         Logger.i(TAG, "- AiOptimizeCapability: Application-scoped")
 
         val orchestrator = AgentOrchestrator.getInstance(this)
         orchestrator.registerCapability(GalleryCapability.getInstance())
+        orchestrator.registerCapability(SettingsCapability.getInstance())
+        Logger.i(TAG, "- SettingsCapability: SETTINGS-scoped (change_theme/language 等，补注册)")
         orchestrator.registerCapability(ChatSearchCapability.getInstance())
         Logger.i(TAG, "- ChatSearchCapability: CHAT-scoped gallery search")
-        // 其余 chat 单例 Capability 同样注册到全局 registry 兜底：Compose CapabilityHost
-        // 链路失效（如 Activity recreate 竞态）时，findCapabilityForCommand 仍能命中，
-        // 可用性由 delegate 绑定状态决定（ChatScreen 绑/解），行为与 host 路径一致。
         orchestrator.registerCapability(ChatGallerySummaryCapability.getInstance())
         orchestrator.registerCapability(ChatRunScriptCapability.getInstance())
         orchestrator.registerCapability(ChatStartTagScanCapability.getInstance())
         orchestrator.registerCapability(ChatMediaWriteCapability.getInstance())
-        Logger.i(TAG, "- Chat summary/script/tag-scan/media-write: CHAT-scoped (global fallback)")
+        Logger.i(TAG, "- Chat summary/script/tag-scan/media-write: CHAT-scoped")
         orchestrator.registerCapability(
             AiOptimizeCapability(
                 context = this,

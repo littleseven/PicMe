@@ -25,7 +25,7 @@ import kotlinx.coroutines.withContext
  * ```
  * MainActivity.onCreate() ──► NavigationCapability(navController) 创建
  *     │
- *     ├── 注册到根 CapabilityHost
+ *     ├── 注册到全局 CapabilityRegistry
  *     │
  * MainActivity.onDestroy() ──► NavigationCapability 随 Activity 释放
  * ```

@@ -30,18 +30,21 @@ import com.mamba.model.chat.request.json.JsonObjectSchema
  *
  * **生命周期**：
  * ```
- * CameraScreen Enter ──► CameraCapability() 创建 ──► 注册到 CapabilityHost
+ * CameraScreen Enter ──► CameraCapability() 创建 ──► 注册到全局 CapabilityRegistry
  *     │
  *     ├── 命令执行直接修改内部状态
  *     │
- * CameraScreen Exit ──► CapabilityHost 注销 ──► CameraCapability 被 GC 回收
+ * CameraScreen Exit ──► 从 CapabilityRegistry 注销 ──► CameraCapability 被 GC 回收
  * ```
  *
  * **状态同步**：
  * CameraScreen 通过读取 CameraCapability 的状态来驱动 UI：
  * ```kotlin
  * val cameraCapability = remember { CameraCapability() }
- * RegisterCapability(cameraCapability)
+ * DisposableEffect(cameraCapability) {
+ *     orchestrator.registerCapability(cameraCapability)
+ *     onDispose { orchestrator.unregisterCapability(cameraCapability) }
+ * }
  *
  * // 状态绑定
  * val aspectRatio = cameraCapability.aspectRatio

@@ -58,14 +58,14 @@ Application.onCreate() → getInstance() 创建 → 注册到 CapabilityRegistry
 @Volatile private var _autoConfirm: Boolean
 ```
 
-### 2.2 Capability 全局注册（2026-07 补充）
+### 2.2 Capability 全局注册（2026-07-29 单轨收敛）
 
-`NavigationCapability`、`SystemCapability` 与 `ImageEditCapability` 除了在 `MainActivity` 的 `ComposeCapabilityHost` 中注册外，还需通过 `AgentOrchestrator.registerCapability()` 注册到全局 `CapabilityRegistry`。
+`CapabilityRegistry` 是**唯一注册表**——`ComposeCapabilityHost` / `LocalCapabilityHost` / `GlobalCapabilityHost` 已全部退役删除（此前双轨制导致 Activity recreate 竞态后 chat Capability 整批不可见，见 2026-07-29 盘点故障）。
 
-**原因**：
-- 飞书直接搜索快速通道在后台线程通过 `RemoteControlToolService` 调用 `CapabilityRegistry.dispatch()`。
-- `CapabilityRegistry` 优先查询 `CapabilityHost.get()`（Compose 树中设置的全局 host），当 `MainActivity` 重建或 host 被清空时，会回退到全局 registry。
-- 若 `NavigationCapability` 未注册到全局 registry，host 不可用时 `navigate_to` 会报 `No capability found`。
+- 应用级 Capability：全部在 `PoLangApplication.initializeCapabilities()` 启动期注册（含 SettingsCapability 补注册——此前从未注册，是死能力）
+- `NavigationCapability` / `SystemCapability`：依赖 NavController/Context，由 `MainActivity` 创建后即调用 `AgentOrchestrator.registerCapability()` 注册
+- 页面级 `CameraCapability`：随 CameraScreen `DisposableEffect` register/unregister
+- 飞书直接搜索快速通道在后台线程通过 `RemoteControlToolService` 调用 `CapabilityRegistry.dispatch()`，同样命中上述注册表
 
 **实现位置**：`MainActivity.kt` 在创建 `navigationCapability`/`systemCapability` 后同步调用：
 ```kotlin

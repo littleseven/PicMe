@@ -67,9 +67,6 @@ import com.mamba.picme.navigation.Screen
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.domain.agent.ComposeCapabilityHost
-import com.mamba.picme.domain.agent.GlobalCapabilityHost
-import com.mamba.picme.domain.agent.LocalCapabilityHost
 import com.mamba.picme.domain.agent.capability.NavigationCapability
 import com.mamba.picme.domain.agent.capability.SystemCapability
 import java.util.Locale
@@ -141,18 +138,11 @@ class MainActivity : ComponentActivity() {
                 PoLangTheme(themeMode = themeMode) {
                     val navController = rememberNavController()
 
-                    // 创建 Activity 级 CapabilityHost，注入 NavigationCapability、SystemCapability
+                    // Navigation/System Capability：依赖 NavController/Context，在 Activity 期创建并
+                    // 注册到全局 CapabilityRegistry（唯一注册表，2026-07-29 单轨收敛——Compose
+                    // CapabilityHost 已退役，不再有第二注册容器）。
                     val navigationCapability = remember { NavigationCapability(navController) }
                     val systemCapability = remember { SystemCapability(applicationContext) }
-                    val rootCapabilityHost = remember {
-                        ComposeCapabilityHost().apply {
-                            register(navigationCapability)
-                            register(systemCapability)
-                        }
-                    }
-
-                    // 同时注册到全局 CapabilityRegistry，供非 Composable 代码（如飞书 direct search）
-                    // 在 CapabilityHost 未设置或已清空时仍能命中导航/系统能力。
                     val orchestrator = remember { AgentOrchestrator.getInstance(applicationContext) }
                     LaunchedEffect(navigationCapability, systemCapability) {
                         orchestrator.registerCapability(navigationCapability)
@@ -160,17 +150,11 @@ class MainActivity : ComponentActivity() {
                         Logger.i(TAG, "NavigationCapability and SystemCapability registered globally")
                     }
 
-                    // 设置全局引用，供非 Composable 代码访问
-                    DisposableEffect(rootCapabilityHost) {
-                        GlobalCapabilityHost.set(rootCapabilityHost)
-                        onDispose { GlobalCapabilityHost.clear(rootCapabilityHost) }
-                    }
-
                     LaunchedEffect(navController) {
                         Logger.i(TAG, "NavigationCapability initialized with NavController")
                     }
 
-                    CompositionLocalProvider(LocalCapabilityHost provides rootCapabilityHost) {
+                    run {
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
                             contentWindowInsets = WindowInsets(0, 0, 0, 0)

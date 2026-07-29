@@ -54,7 +54,6 @@
 | `CommandExecutor` | 命令执行器（超时+异常） | `agent.core.runtime.capability` |
 | `CrossPageCommandQueue` | 跨页面命令队列（TTL+重试） | `agent.core.runtime.capability` |
 | `Capability<T,C,P,A>` | 泛型 Capability 接口 | `agent.core.capability` |
-| `CapabilityHost` | Capability 宿主绑定 | `agent.core.capability` |
 | `FaceDetectionProvider` | 人脸检测结果提供 | `agent.core.capability` |
 | `PrivacyGuard` | 输入内容隐私分级 | `agent.core.runtime.policy` |
 | `MemoryManager` | 对话历史管理 | `agent.core.platform.storage` |
@@ -85,7 +84,7 @@
 
 | 子包 | 内容 | 说明 |
 |------|------|------|
-| `capability/` | `Capability`, `CapabilityHost`, `FaceDetectionProvider` | 泛型 Capability 接口与宿主绑定 |
+| `capability/` | `Capability`, `FaceDetectionProvider` | 泛型 Capability 接口 |
 | `facade/` | `AgentOrchestrator`, `AgentConfigurator` | 应用级入口与配置 |
 | `inference/` | `local/...`, `remote/...` | 本地/远程推理管道（pipeline、llm、parser、prompt、react、tool） |
 | `js/` | `JsEngine`, `JsValue`, `JsBridge`, `JsRuntime`, `NativeHandler`, `BuiltInHandlers`, `JsBridgeException`, `GallerySummaryJs` | JS 沙箱引擎无关层（JsEngine 接口 + bridge 路由 + handler SPI；QuickJS 实现在 `:app`，详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`） |
@@ -167,8 +166,7 @@
 ## 文件清单
 
 ### `capability/`
-- `Capability.kt` — 泛型 Capability 接口
-- `CapabilityHost.kt` — Capability 宿主绑定
+- `Capability.kt` — 泛型 Capability 接口（`CapabilityRegistry` 为唯一注册表；Compose CapabilityHost 已于 2026-07-29 退役）
 - `FaceDetectionProvider.kt` — 人脸检测结果提供
 
 ### `facade/`

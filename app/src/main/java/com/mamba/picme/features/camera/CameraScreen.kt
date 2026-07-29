@@ -80,6 +80,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
+import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
@@ -98,7 +99,6 @@ import com.mamba.picme.beauty.recorder.BeautyVideoRecorder
 import com.mamba.picme.beauty.render.GlBeautyPreviewProvider
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.di.BeautyEngineRuntimeState
-import com.mamba.picme.domain.agent.RegisterCapability
 import com.mamba.picme.domain.model.AiAgentCommand
 import com.mamba.picme.domain.model.BeautyStrategy
 import com.mamba.picme.domain.model.CameraMemoryState
@@ -1070,9 +1070,14 @@ voiceCoordinator.stopPushToTalk()
 
     val beautyVideoRecorder = remember { BeautyVideoRecorder() }
 
-    // 创建页面级 CameraCapability 并注册到 CapabilityHost
+    // 页面级 CameraCapability：随页面进入注册到全局 CapabilityRegistry、退出注销
+    // （2026-07-29 单轨收敛，Compose CapabilityHost 已退役；实例仍为页面级，持有相机状态）
     val cameraCapability = remember { CameraCapability() }
-    RegisterCapability(cameraCapability)
+    DisposableEffect(cameraCapability) {
+        val orchestrator = AgentOrchestrator.getInstance(context.applicationContext)
+        orchestrator.registerCapability(cameraCapability)
+        onDispose { orchestrator.unregisterCapability(cameraCapability) }
+    }
 
     // 初始化 Agent 命令处理器
     val agentCommandHandler = remember(

@@ -97,6 +97,13 @@
 
 ## 6. Phase 3：能力注册体系收敛（P2，核心重构）
 
+> **状态（2026-07-29）：已落地**——`CapabilityHost`/`ComposeCapabilityHost`/`LocalCapabilityHost`/
+> `GlobalCapabilityHost` 全部删除；`CapabilityRegistry` 唯一注册表（新增 `unregister`）；
+> 应用级注册收口 `PoLangApplication.initializeCapabilities()`（含 SettingsCapability 补注册）；
+> CameraCapability 随 CameraScreen DisposableEffect register/unregister；
+> ChatScreen/CameraScreen `RegisterCapability` 与 MainActivity 根宿主移除；
+> `AiAgentUseCase.registerCameraCapability`（死代码）删除；`GlobalCapabilityHostTest` 随守卫一并移除。
+
 ### 6.1 目标结构
 
 - **`CapabilityRegistry` 为唯一注册表**：所有 Capability 进程启动期一次性注册（`PoLangApplication.initializeCapabilities()` 收口），运行期不增删。

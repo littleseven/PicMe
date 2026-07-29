@@ -74,6 +74,12 @@
 > **变更说明（2026-07-29）**：
 > - 修复「盘点相册返回暂不支持」：`GlobalCapabilityHost.clear()` 改为 `clear(expected)` 守卫——Activity recreate 时旧 composition 的 `onDispose` 可能晚于新宿主的 `set()` 执行，无条件 clear 会把全局宿主覆盖成空 stub，导致 Compose 注册的 CHAT Capability 在本进程内全部不可见（`findCapabilityForCommand` 落空 → METHOD_NOT_FOUND）
 > - 上述 4 个 chat 单例 Capability 同步在 `PoLangApplication.initializeCapabilities()` 注册到全局 `CapabilityRegistry` 兜底（与 `ChatSearchCapability` 既有先例一致）；可用性仍由 delegate 绑定状态决定，行为与 host 路径一致
+>
+> **变更说明（2026-07-29，Phase 3 单轨收敛）**：
+> - `CapabilityHost` / `ComposeCapabilityHost` / `LocalCapabilityHost` / `GlobalCapabilityHost` 全部退役删除，`CapabilityRegistry` 成为**唯一注册表**：`findCapabilityForCommand` / `getCapabilitiesForCurrentScene` 只查本地 registry，不再经 Compose 宿主静态桥（竞态根因随之根除，Phase 0 的 `clear(expected)` 守卫一并移除）
+> - 注册收口：应用级 Capability 全部在 `PoLangApplication.initializeCapabilities()` 启动期注册；`SettingsCapability` 补注册（此前从未注册，chat 的 `change_theme`/`change_language`/`toggle_setting` 等工具实际为死能力）
+> - 页面级 `CameraCapability` 改为随 CameraScreen `DisposableEffect` 在全局 registry register/unregister（`CapabilityRegistry.unregister` / `AgentOrchestrator.unregisterCapability` 新增），实例仍页面级持有相机状态
+> - ChatScreen/CameraScreen 的 `RegisterCapability` 调用与 MainActivity 根宿主全部移除；`AiAgentUseCase.registerCameraCapability`（从未被调用）删除
 
 ### 1.1 场景 - 能力映射
 
@@ -162,8 +168,8 @@
 ### 2.3 生命周期
 
 - **页面级**：由 `CameraScreen` 创建和持有
-- `CameraScreen Enter → CameraCapability() 创建 → 注册到 CapabilityHost`
-- `CameraScreen Exit → CapabilityHost 注销 → CameraCapability 被 GC 回收`
+- `CameraScreen Enter → CameraCapability() 创建 → 注册到全局 CapabilityRegistry`
+- `CameraScreen Exit → 从 CapabilityRegistry 注销 → CameraCapability 被 GC 回收`
 
 ---
 
@@ -1077,12 +1083,11 @@ fun CameraScreen(
     cameraCapability: CameraCapability = remember { CameraCapability() }
 ) {
     // CameraCapability 直接持有状态，无需 delegate 模式
-    DisposableEffect(Unit) {
-        // 注册到当前页面的 Capability 集合
-        LocalCapabilityHost.current.register(cameraCapability)
-        onDispose {
-            LocalCapabilityHost.current.unregister(cameraCapability)
-        }
+    DisposableEffect(cameraCapability) {
+        // 注册到全局 CapabilityRegistry（唯一注册表，2026-07-29 单轨收敛）
+        val orchestrator = AgentOrchestrator.getInstance(context.applicationContext)
+        orchestrator.registerCapability(cameraCapability)
+        onDispose { orchestrator.unregisterCapability(cameraCapability) }
     }
 }
 ```
@@ -1094,16 +1099,15 @@ fun CameraScreen(
 val registry = CapabilityRegistry.getInstance()
 registry.register(CameraCapability.getInstance())
 
-// ✅ 新设计: 依赖注入
+// ✅ 新设计: 依赖注入 + 启动期收口注册
 class MainActivity : ComponentActivity() {
-    private val navigationCapability = NavigationCapability()  // Activity 级
-
     override fun onCreate(savedInstanceState: Bundle?) {
         setContent {
-            val capabilityHost = rememberCapabilityHost(navigationCapability)
-            CompositionLocalProvider(LocalCapabilityHost provides capabilityHost) {
-                NavHost(...) { ... }
+            val navigationCapability = remember { NavigationCapability(navController) }
+            LaunchedEffect(navigationCapability) {
+                orchestrator.registerCapability(navigationCapability)
             }
+            NavHost(...) { ... }
         }
     }
 }
@@ -1175,7 +1179,12 @@ class CameraCapability {
 
 ### 4. 详细设计
 
-#### 4.1 CapabilityHost（Capability 容器）
+> ⚠️ **2026-07-29 单轨收敛**：`CapabilityHost` / `LocalCapabilityHost` / `ComposeCapabilityHost`
+> 已退役删除，`CapabilityRegistry` 是唯一注册表（应用级启动期注册、页面级随 Screen
+> register/unregister）。下文 §4.1 与 §5 迁移路径中的 CapabilityHost 内容保留为历史设计参考，
+> 现行注册方式见 §1 生命周期表、`PoLangApplication.initializeCapabilities()` 与 §4.2/§4.3 示例。
+
+#### 4.1 CapabilityHost（Capability 容器）——已退役（历史参考）
 
 ```kotlin
 /**
@@ -1276,11 +1285,11 @@ fun CameraScreen(
     // 创建页面级 Capability
     val cameraCapability = remember { CameraCapability() }
 
-    // 注册到当前 CapabilityHost
-    val host = LocalCapabilityHost.current
+    // 注册到全局 CapabilityRegistry（唯一注册表，Compose CapabilityHost 已退役）
+    val orchestrator = remember { AgentOrchestrator.getInstance(context.applicationContext) }
     DisposableEffect(cameraCapability) {
-        host.register(cameraCapability)
-        onDispose { host.unregister(cameraCapability) }
+        orchestrator.registerCapability(cameraCapability)
+        onDispose { orchestrator.unregisterCapability(cameraCapability) }
     }
 
     // 将 Capability 的状态绑定到 UI

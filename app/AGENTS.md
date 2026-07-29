@@ -52,7 +52,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 文件 | 职责 |
 |------|------|
 | `PoLangApplication.kt` | Application 初始化：DI 容器、Native 库加载、AgentOrchestrator 预配置 |
-| `MainActivity.kt` | 单 Activity：Compose NavHost、主题/语言管理、CapabilityHost、模型下载弹窗 |
+| `MainActivity.kt` | 单 Activity：Compose NavHost、主题/语言管理、Navigation/System Capability 注册、模型下载弹窗 |
 | `navigation/Screen.kt` | sealed class 定义所有路由 |
 
 ---

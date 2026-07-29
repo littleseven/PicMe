@@ -16,7 +16,6 @@ import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.model.AiAgentCommand
-import com.mamba.picme.features.camera.capability.CameraCapability
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
@@ -113,13 +112,6 @@ class AiAgentUseCase(
             remoteConfig = effectiveRemoteConfig,
             localUseOpencl = localUseOpencl
         )
-    }
-
-    /**
-     * 注册相机 Capability
-     */
-    fun registerCameraCapability(capability: CameraCapability) {
-        orchestrator.registerCapability(capability)
     }
 
     /**

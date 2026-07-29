@@ -95,6 +95,13 @@ class AgentOrchestrator private constructor(context: Context) {
     }
 
     /**
+     * 注销 Capability（页面级 Capability 随页面退出调用，如 CameraCapability）
+     */
+    fun unregisterCapability(capability: Capability) {
+        _capabilityRegistry.unregister(capability)
+    }
+
+    /**
      * 注入记忆快照供给者（转发给内部 [AgentConfigurator]）。须在 chat/飞书 agent 首次构建前
      * 调用——app 在 PoLangApplication.onCreate 注入，早于 agent 懒构建。
      */

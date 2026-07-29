@@ -151,4 +151,22 @@ class CapabilityRegistryDispatchObservabilityTest {
         assertTrue(r.success)
         assertEquals("fake_chat", r.capability)
     }
+
+    @Test
+    fun `unregistered page capability falls back to METHOD_NOT_FOUND`() = runTest {
+        installRecorder()
+        sceneManager.transitionTo(SceneManager.Scene.CHAT)
+        val registry = CapabilityRegistry.create(sceneManager)
+        val capability = fakeCapability("fake_page", scenes = listOf(SceneManager.Scene.CHAT))
+        registry.register(capability)
+
+        // 页面退出 → 注销 → 命令不可达（2026-07-29 单轨收敛：CameraCapability 生命周期）
+        registry.unregister(capability)
+        registry.dispatch(AgentCommand.FlipCamera(), AgentContext(scene = AgentScene.CHAT), null)
+
+        val r = recorded.single()
+        assertFalse(r.success)
+        assertEquals(AgentErrorCode.METHOD_NOT_FOUND, r.errorCode)
+        assertEquals("(unresolved)", r.capability)
+    }
 }
