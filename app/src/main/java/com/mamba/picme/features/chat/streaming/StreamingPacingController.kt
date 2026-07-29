@@ -46,6 +46,24 @@ class StreamingPacingController(
         loopJob = scope.launch { paceLoop() }
     }
 
+    /**
+     * 来自事件链的全文快照：只更新缓冲，立即返回。
+     * 若 [fullText] 不是当前缓冲的连续扩展（回退/新轮），重置已展示长度从 0 重新累计。
+     */
+    fun onTextSnapshot(fullText: String) {
+        val prev = latestFullText
+        if (fullText == prev) {
+            lastChangedAtMs = timeSource()
+            return
+        }
+        val isContinuousGrowth = fullText.length > prev.length && fullText.startsWith(prev)
+        latestFullText = fullText
+        lastChangedAtMs = timeSource()
+        if (!isContinuousGrowth) {
+            shownLength = 0
+        }
+    }
+
     /** 轮次完成 / 取消收尾：停循环（内容追平见 Task 4）。 */
     fun finish() {
         finished = true
@@ -59,6 +77,14 @@ class StreamingPacingController(
             val full = latestFullText
             val target = full.length
             if (target == 0) continue // 无内容（思考中/reset 后）：静默，不干预 UI
+            if (shownLength < target) {
+                val backlog = target - shownLength
+                val step = (backlog / BACKLOG_DIVISOR).coerceIn(MIN_STEP, MAX_STEP)
+                shownLength = (shownLength + step).coerceAtMost(target)
+                onPaced(full.substring(0, shownLength), true)
+            } else {
+                onPaced(full, true)
+            }
         }
     }
 }
