@@ -981,23 +981,28 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                     if (message.isStreaming) {
                         // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
                         // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
-                        Column {
-                            segmentStreamingMarkdown(message.content).forEach { segment ->
-                                when (segment.type) {
-                                    StreamSegmentType.TABLE -> Text(
-                                        text = segment.text,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontFamily = FontFamily.Monospace
-                                    )
-                                    StreamSegmentType.MARKDOWN -> MarkdownText(
-                                        markdown = segment.text,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 14.sp,
-                                        lineHeight = 20.sp
-                                    )
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                segmentStreamingMarkdown(message.content).forEach { segment ->
+                                    when (segment.type) {
+                                        StreamSegmentType.TABLE -> Text(
+                                            text = segment.text,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        StreamSegmentType.MARKDOWN -> MarkdownText(
+                                            markdown = segment.text,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontSize = 14.sp,
+                                            lineHeight = 20.sp
+                                        )
+                                    }
                                 }
+                            }
+                            if (message.showCursor) {
+                                BlinkCursor()
                             }
                         }
                     } else {
