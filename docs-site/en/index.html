@@ -73,8 +73,8 @@
     .card p { font-size: 14.5px; color: var(--text-muted); line-height: 1.65; }
 
     /* Screenshots */
-    .shots { display: flex; gap: 18px; overflow-x: auto; padding: 6px 4px 18px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-    .shots img { height: 460px; border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-md); flex-shrink: 0; scroll-snap-align: center; }
+    .shots { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+    .shots img { height: 360px; width: auto; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-md); }
 
     /* Demos */
     .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
@@ -106,6 +106,37 @@
     footer .x-logo { width: 88px; height: 88px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; }
     footer .x-logo svg { width: 56px; height: 56px; }
 
+    /* Get-started carousel */
+    .guide-carousel { position: relative; max-width: 880px; margin: 0 auto; }
+    .guide-viewport { overflow: hidden; border-radius: var(--radius); box-shadow: var(--shadow-md); }
+    .guide-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); will-change: transform; }
+    .guide-slide { min-width: 100%; display: flex; align-items: center; gap: 32px; padding: 30px 34px; background: linear-gradient(120deg, #ffffff 48%, #eef2ff 100%); border: 1px solid var(--border); box-sizing: border-box; }
+    .guide-slide > img { height: 400px; width: auto; flex-shrink: 0; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-md); display: block; }
+    .guide-cap { flex: 1 1 auto; min-width: 0; }
+    .guide-cap .gs { display: inline-flex; align-items: center; gap: 7px; color: #fff; background: linear-gradient(135deg, #6366f1, #4f46e5); border-radius: 999px; padding: 6px 15px; font-size: 13px; font-weight: 700; margin-bottom: 14px; box-shadow: 0 6px 16px rgba(79,70,229,.28); letter-spacing: .02em; }
+    .guide-cap .gs::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: #fff; opacity: .9; }
+    .guide-cap h3 { font-size: 23px; font-weight: 800; margin-bottom: 10px; letter-spacing: -.01em; color: var(--text); }
+    .guide-cap p { font-size: 15px; color: var(--text-soft); line-height: 1.75; }
+    .guide-cap p b { color: var(--primary); font-weight: 700; }
+    .guide-cap .gtags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .guide-cap .gtag { background: #fff; color: #475569; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow-sm); }
+    .guide-cap .gtag.must { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
+    .guide-cap .gtag.opt { background: var(--primary-soft); color: var(--primary); border-color: #e0e7ff; }
+    .guide-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 999px; border: 1px solid var(--border); background: #fff; box-shadow: var(--shadow-sm); cursor: pointer; font-size: 22px; line-height: 1; color: var(--text-soft); display: flex; align-items: center; justify-content: center; z-index: 2; transition: box-shadow .15s, color .15s, transform .15s; }
+    .guide-arrow:hover { box-shadow: var(--shadow-md); color: var(--primary); transform: translateY(-50%) scale(1.06); }
+    .guide-prev { left: 10px; } .guide-next { right: 10px; }
+    .guide-dots { display: flex; gap: 7px; justify-content: center; margin-top: 20px; }
+    .guide-dots button { width: 8px; height: 8px; border-radius: 999px; border: none; background: #cbd5e1; cursor: pointer; padding: 0; transition: background .2s, width .2s; }
+    .guide-dots button.on { background: var(--primary); width: 24px; }
+    .guide-more { text-align: center; margin-top: 6px; }
+    .guide-more a { color: var(--primary); font-weight: 600; font-size: 14px; }
+    .guide-more a:hover { text-decoration: underline; }
+
+    /* Lightbox */
+    .lightbox { position: fixed; inset: 0; background: rgba(8,10,20,.94); display: none; align-items: center; justify-content: center; z-index: 999; padding: 18px; cursor: zoom-out; }
+    .lightbox.show { display: flex; }
+    .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+
     @media (max-width: 768px) {
       :root { --section-py: 40px; }
       .container { padding: 0 18px; }
@@ -116,8 +147,15 @@
       .section-title { font-size: 24px; }
       .section-sub { font-size: 15px; margin-bottom: 24px; }
       .grid, .demo-grid { grid-template-columns: 1fr; }
-      .shots img { height: 380px; }
-      .nav-links { gap: 14px; }
+      .shots img { height: 260px; }
+      .nav-links { gap: 12px; font-size: 13px; }
+      .nav-sm-hide { display: none; }
+      .guide-slide { flex-direction: column; text-align: center; gap: 16px; padding: 22px 18px; }
+      .guide-slide > img { height: 300px; }
+      .guide-arrow { display: none; }
+      .guide-cap .gtags { justify-content: center; }
+      .cta-row { flex-direction: column; }
+      .cta-row .btn { max-width: 100%; flex: 0 0 auto; white-space: nowrap; }
     }
   </style>
 </head>
@@ -127,6 +165,7 @@
       <a class="brand" href="index.html"><img src="../assets/icon.png" alt="PoLang">PoLang</a>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a class="nav-sm-hide" href="#guide">Guide</a>
         <a class="lang-switch" href="../index.html" hreflang="zh-Hans" lang="zh-Hans">中文</a>
         <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
       </div>
@@ -151,23 +190,6 @@
     </div>
   </header>
 
-  <section class="alt">
-    <div class="container">
-      <h2 class="section-title">At a Glance</h2>
-      <p class="section-sub">Swipe to view</p>
-      <div class="shots">
-        <img src="../assets/screenshot-1.jpg" alt="Screenshot 1">
-        <img src="../assets/screenshot-2.jpg" alt="Screenshot 2">
-        <img src="../assets/screenshot-3.jpg" alt="Screenshot 3">
-        <img src="../assets/screenshot-4.jpg" alt="Screenshot 4">
-        <img src="../assets/screenshot-5.jpg" alt="Screenshot 5">
-        <img src="../assets/screenshot-6.jpg" alt="Screenshot 6">
-        <img src="../assets/screenshot-7.jpg" alt="Screenshot 7">
-        <img src="../assets/screenshot-8.jpg" alt="Screenshot 8">
-      </div>
-    </div>
-  </section>
-
   <section id="features">
     <div class="container">
       <h2 class="section-title">Core Features</h2>
@@ -180,6 +202,44 @@
         <div class="card"><div class="icon">🔒</div><h3>Privacy First</h3><p>All AI and face processing happens locally. Your photos are never uploaded, and we collect no data.</p></div>
         <div class="card"><div class="icon">📱</div><h3>Feishu Remote Control (Experimental)</h3><p>Browse, search, and edit your gallery from Feishu IM — results land right back in the chat.</p></div>
       </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="container">
+      <h2 class="section-title">At a Glance</h2>
+      <p class="section-sub">A quick look</p>
+      <div class="shots">
+        <img src="../assets/screenshot-9.jpg" alt="Screenshot 1">
+        <img src="../assets/screenshot-10.jpg" alt="Screenshot 2">
+        <img src="../assets/screenshot-2.jpg" alt="Screenshot 3">
+        <img src="../assets/screenshot-3.jpg" alt="Screenshot 4">
+        <img src="../assets/screenshot-4.jpg" alt="Screenshot 5">
+      </div>
+    </div>
+  </section>
+
+  <section id="guide">
+    <div class="container">
+      <h2 class="section-title">Get Started in 3 Steps</h2>
+      <p class="section-sub">Make the AI truly get you</p>
+      <div class="guide-carousel" id="guideCarousel">
+        <div class="guide-viewport">
+          <div class="guide-track">
+            <div class="guide-slide"><img src="../assets/setup-1.jpg" alt="Download required models"><div class="guide-cap"><span class="gs">Step 1</span><h3>📦 Download required models</h3><p>Tagging, face recognition, and semantic search all rely on on-device AI models. Download them in "Model Center → Required" — <b>7 models, ~1.5 GB</b>.</p><div class="gtags"><span class="gtag must">Required</span><span class="gtag">≈ 1.5 GB</span><span class="gtag">Wi-Fi recommended</span></div></div></div>
+            <div class="guide-slide"><img src="../assets/setup-2.jpg" alt="Run a scan"><div class="guide-cap"><span class="gs">Step 2</span><h3>🔄 Run a scan</h3><p>Open "TAG Generation" and scan so PoLang learns the people and scenes in your gallery (faces + semantics), about <b>1.5h / 10k photos</b>. Remember to <b>keep background activity on</b>.</p><div class="gtags"><span class="gtag must">Required</span><span class="gtag">~1.5h / 10k</span></div></div></div>
+            <div class="guide-slide"><img src="../assets/setup-3.jpg" alt="Understand image content"><div class="guide-cap"><span class="gs">Step 3</span><h3>🧠 Understand image content</h3><p>Want "beach" or "night scene" searches to be sharper? Run image understanding to tag scenes, objects, and activities — about <b>24h / 10k photos</b>, best overnight while charging.</p><div class="gtags"><span class="gtag opt">Optional</span><span class="gtag">~24h / 10k</span></div></div></div>
+            <div class="guide-slide"><img src="../assets/setup-4.jpg" alt="Sign up for quota"><div class="guide-cap"><span class="gs">Step 4</span><h3>🔑 Sign up for quota</h3><p>AI chat runs on a remote model by default. Sign in with email for a <b>higher free quota</b> (guests get less), or switch to the local model to chat offline.</p><div class="gtags"><span class="gtag">Remote chat</span><span class="gtag">Free quota</span></div></div></div>
+            <div class="guide-slide"><img src="../assets/setup-5.jpg" alt="Teach AI your people"><div class="guide-cap"><span class="gs">Step 5</span><h3>👥 Teach AI your people</h3><p><b>Name people and set relationships</b> (family / friends…), then add facts in "<b>AI Memory</b>" — PoLang gets to know you better over time.</p><div class="gtags"><span class="gtag opt">Smarter AI</span><span class="gtag">People & relationships</span></div></div></div>
+            <div class="guide-slide"><img src="../assets/setup-6.jpg" alt="Remote control"><div class="guide-cap"><span class="gs">Step 6</span><h3>📡 Remote control (optional)</h3><p>Connect <b>Feishu / Telegram</b> to drive your gallery from IM in natural language — results come right back to the chat. Telegram uses long-polling, <b>no public IP needed</b>.</p><div class="gtags"><span class="gtag opt">Advanced</span><span class="gtag">Feishu / Telegram</span></div></div></div>
+            <div class="guide-slide"><img src="../assets/setup-preview.jpg" alt="Ready"><div class="guide-cap"><span class="gs">Ready</span><h3>✨ Talk to your AI</h3><p>"Find last summer's beach photos" — matches show up, grouped smartly. All search, face, and scene recognition happens <b>on-device</b>; photos are never uploaded.</p><div class="gtags"><span class="gtag">On-device privacy</span><span class="gtag">Natural-language search</span></div></div></div>
+          </div>
+        </div>
+        <button class="guide-arrow guide-prev" aria-label="Previous">‹</button>
+        <button class="guide-arrow guide-next" aria-label="Next">›</button>
+        <div class="guide-dots" id="guideDots"></div>
+      </div>
+      <p class="guide-more"><a href="getting-started.html">View full guide →</a></p>
     </div>
   </section>
 
@@ -226,11 +286,64 @@
     <div class="container inner">
       <span>© PoLang — Carving time, capturing the eternal.</span>
       <div class="nav-links">
+        <a href="#guide">Guide</a>
         <a href="privacy-policy/index.html">Privacy Policy</a>
         <a href="../docs/">Technical Docs (中文)</a>
         <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </footer>
+  <div class="lightbox" id="lightbox" aria-hidden="true"><img id="lightboxImg" alt=""></div>
+  <script>
+    (function () {
+      var root = document.getElementById('guideCarousel');
+      if (!root) return;
+      var track = root.querySelector('.guide-track');
+      var slides = track.children;
+      var n = slides.length, i = 0, timer = null;
+      var dotsBox = document.getElementById('guideDots');
+      for (var k = 0; k < n; k++) {
+        (function (idx) {
+          var b = document.createElement('button');
+          b.setAttribute('aria-label', 'Slide ' + (idx + 1));
+          b.onclick = function () { go(idx); reset(); };
+          dotsBox.appendChild(b);
+        })(k);
+      }
+      var dots = dotsBox.children;
+      function go(k) {
+        i = (k + n) % n;
+        track.style.transform = 'translateX(' + (-i * 100) + '%)';
+        for (var d = 0; d < n; d++) dots[d].className = d === i ? 'on' : '';
+      }
+      function reset() { clearInterval(timer); timer = setInterval(function () { go(i + 1); }, 4500); }
+      root.querySelector('.guide-next').onclick = function () { go(i + 1); reset(); };
+      root.querySelector('.guide-prev').onclick = function () { go(i - 1); reset(); };
+      root.addEventListener('mouseenter', function () { clearInterval(timer); });
+      root.addEventListener('mouseleave', reset);
+      var sx = 0, dx = 0, touching = false;
+      root.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; dx = 0; touching = true; clearInterval(timer); }, { passive: true });
+      root.addEventListener('touchmove', function (e) { dx = e.touches[0].clientX - sx; }, { passive: true });
+      root.addEventListener('touchend', function () { if (touching && Math.abs(dx) > 40) { go(dx < 0 ? i + 1 : i - 1); } touching = false; reset(); });
+      go(0); reset();
+    })();
+  </script>
+  <script>
+    // Mobile: tap an image in "At a Glance" or "Get Started" to enlarge
+    (function () {
+      if (!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)) return;
+      var lb = document.getElementById('lightbox');
+      var lbImg = document.getElementById('lightboxImg');
+      if (!lb) return;
+      function open(src) { lbImg.src = src; lb.classList.add('show'); lb.setAttribute('aria-hidden', 'false'); }
+      function close() { lb.classList.remove('show'); lbImg.src = ''; lb.setAttribute('aria-hidden', 'true'); }
+      document.querySelectorAll('.shots img, .guide-slide > img').forEach(function (img) {
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', function () { open(img.src); });
+      });
+      lb.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    })();
+  </script>
 </body>
 </html>

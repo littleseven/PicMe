@@ -9,6 +9,7 @@
 | 层级 | 路径 | 说明 |
 |------|------|------|
 | **交互规范** | [`01-PRODUCT/FEATURES.md`](./01-PRODUCT/FEATURES.md) | 用户交互流程与体验规则 |
+| **使用指南** | [`01-PRODUCT/SETUP_GUIDE.md`](./01-PRODUCT/SETUP_GUIDE.md) | 新用户使用前提与首次设置（官网/Play 复用 SSOT） |
 | **性能红线** | [`01-PRODUCT/NFR_SPEC.md`](./01-PRODUCT/NFR_SPEC.md) | 性能/稳定性/隐私量化指标 |
 | **Agent 架构** | [`02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](./02-ARCHITECTURE/AGENT_ARCHITECTURE.md) | Agent 运行时架构、本地/远程推理 |
 | **模块架构** | [`02-ARCHITECTURE/MODULE_ARCHITECTURE.md`](./02-ARCHITECTURE/MODULE_ARCHITECTURE.md) | Gradle 模块划分与依赖关系 |

@@ -3,6 +3,7 @@
 
 - **产品**
   - [功能交互](01-PRODUCT/FEATURES.md)
+  - [使用前提与设置](01-PRODUCT/SETUP_GUIDE.md)
   - [非功能性需求](01-PRODUCT/NFR_SPEC.md)
 
 - **架构**

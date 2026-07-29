@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started · PoLang</title>
+  <meta name="description" content="PoLang setup prerequisites: download models, scan your gallery, sign up for quota, tag people, and remote control. Three steps to get started, so the AI truly understands you.">
+  <link rel="alternate" hreflang="en" href="https://polang.net/en/getting-started.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://polang.net/getting-started.html">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f7f8fb;
+      --text: #0f172a;
+      --text-soft: #334155;
+      --text-muted: #64748b;
+      --border: #e6e8ee;
+      --primary: #4f46e5;
+      --primary-soft: #eef2ff;
+      --radius: 16px;
+      --shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 2px 6px rgba(15,23,42,.05);
+      --shadow-md: 0 14px 34px rgba(15,23,42,.10);
+      --section-py: 56px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text); background: var(--bg); line-height: 1.7;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+
+    /* Top nav */
+    .topnav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.82); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid var(--border); }
+    .topnav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; }
+    .nav-links { display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+    .nav-links a { transition: color .12s; }
+    .nav-links a:hover { color: var(--primary); }
+    .nav-links .active { color: var(--primary); }
+    .lang-switch { border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; color: var(--text-soft); }
+
+    /* Page head */
+    .page-head { padding: 56px 24px 32px; text-align: center; background: radial-gradient(125% 100% at 50% 0%, #efeefe 0%, #ffffff 60%); }
+    .page-head .eyebrow { display:inline-block; color: var(--primary); background: var(--primary-soft); border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+    .page-head h1 { font-size: 36px; line-height: 1.18; letter-spacing: -.02em; font-weight: 800; margin-bottom: 12px; }
+    .page-head p { font-size: 18px; color: var(--text-soft); max-width: 620px; margin: 0 auto; }
+
+    section { padding: var(--section-py) 0; }
+    .alt { background: var(--bg-alt); }
+    .section-title { font-size: 28px; font-weight: 800; text-align: center; letter-spacing: -.02em; margin-bottom: 10px; }
+    .section-sub { text-align: center; color: var(--text-muted); font-size: 15.5px; margin-bottom: 34px; }
+
+    /* Entry */
+    .entry { display:grid; grid-template-columns: 1fr 240px; gap: 28px; align-items: center; background:#fff; border:1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; margin-bottom: 30px; }
+    .entry h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .entry p { font-size: 14.5px; color: var(--text-muted); }
+    .entry .shot { width:100%; height:auto; border-radius: 10px; border:1px solid var(--border); box-shadow: var(--shadow-sm); }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 22px; }
+    .step { display: grid; grid-template-columns: 1fr 250px; grid-template-areas: "text img"; gap: 30px; align-items: center; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; transition: box-shadow .18s, transform .18s; }
+    .step:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .step.alt { grid-template-columns: 250px 1fr; grid-template-areas: "img text"; }
+    .step-text { grid-area: text; }
+    .step-img { grid-area: img; display: flex; justify-content: center; }
+    .step-img img { height: clamp(300px, 40vw, 430px); width: auto; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: block; }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; background: var(--primary-soft); color: var(--primary); font-weight: 800; font-size: 15px; }
+    .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    .step-title { font-size: 18px; font-weight: 700; }
+    .step-desc { font-size: 14.5px; color: var(--text-muted); line-height: 1.72; }
+    .step-desc b { color: var(--text-soft); font-weight: 600; }
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .tag { background: var(--bg-alt); color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; font-size: 12px; font-weight: 600; }
+    .tag.must { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
+    .tag.opt { background: var(--primary-soft); color: var(--primary); border-color: #e0e7ff; }
+
+    /* Outcome */
+    .outcome { display: grid; grid-template-columns: 1fr 250px; grid-template-areas: "text img"; gap: 30px; align-items: center; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; }
+    .outcome .step-img { grid-area: img; }
+    .outcome .say { color: var(--primary); font-weight: 600; font-size: 17px; margin-bottom: 8px; }
+    .outcome .say::before { content: "💬 "; }
+    .outcome p.do { font-size: 14.5px; color: var(--text-muted); }
+
+    /* CTA */
+    .cta-wrap { text-align: center; }
+    .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 12px; font-weight: 600; font-size: 15px; transition: transform .12s, box-shadow .12s, border-color .12s; }
+    .btn:hover { transform: translateY(-1px); }
+    .cta-row .btn { background: #fff; color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-sm); flex: 1 1 0; max-width: 230px; justify-content: center; }
+    .cta-row .btn:hover { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+    .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* Footer */
+    footer { background: #0b1220; color: #94a3b8; padding: 36px 0; }
+    footer .inner { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+    footer .nav-links a { transition: color .12s; }
+    footer .nav-links a:hover { color: #fff; }
+
+    /* Mobile: compact list (thumb + text) */
+    @media (max-width: 768px) {
+      :root { --section-py: 34px; }
+      .container { padding: 0 15px; }
+      .nav-links { gap: 13px; font-size: 13px; }
+      .page-head { padding: 34px 15px 22px; }
+      .page-head h1 { font-size: 24px; }
+      .page-head p { font-size: 15px; }
+      .section-title { font-size: 21px; }
+      .section-sub { font-size: 14px; margin-bottom: 18px; }
+
+      .entry, .step, .step.alt, .outcome {
+        display: flex; flex-direction: row; align-items: flex-start; gap: 13px; padding: 12px 13px;
+      }
+      .steps { gap: 11px; }
+      .step-text, .entry > div, .outcome > div:first-child { flex: 1 1 auto; min-width: 0; }
+      .entry .shot, .step-img, .outcome .step-img { order: -1; flex: 0 0 74px; }
+      .entry .shot, .step-img img, .outcome .step-img img { width: 100%; height: auto; border-radius: 9px; }
+      .step-num { width: 24px; height: 24px; font-size: 13px; }
+      .step-head { gap: 9px; margin-bottom: 4px; }
+      .step-title { font-size: 15.5px; }
+      .step-desc { font-size: 13px; line-height: 1.6; }
+      .tags { gap: 6px; margin-top: 7px; }
+      .tag { font-size: 11px; padding: 2px 8px; }
+      .entry h3 { font-size: 14.5px; margin-bottom: 3px; }
+      .entry p { font-size: 12.5px; }
+      .outcome .say { font-size: 14.5px; }
+      .outcome p.do { font-size: 12.5px; }
+      .cta-row { flex-direction: column; }
+      .cta-row .btn { max-width: 100%; flex: 0 0 auto; white-space: nowrap; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="container topnav-inner">
+      <a class="brand" href="index.html"><img src="../assets/icon.png" alt="PoLang">PoLang</a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="index.html#features">Features</a>
+        <a class="active" href="getting-started.html">Guide</a>
+        <a class="lang-switch" href="../getting-started.html" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+        <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">Before you start · Must-read</span>
+      <h1>3 Steps to Make the AI Truly Get You</h1>
+      <p>PoLang's smart search and AI chat rely on on-device models and a one-time gallery scan. Finish the steps below so the app can actually understand you.</p>
+    </div>
+  </header>
+
+  <section>
+    <div class="container">
+      <div class="entry">
+        <div>
+          <h3>📦 It all starts in Settings</h3>
+          <p>Model downloads, scan controls, account, people, and remote channels all live in the app's Settings. Each step below points you to the right screen.</p>
+        </div>
+        <img class="shot" src="../assets/setup-entry.jpg" alt="Settings overview">
+      </div>
+
+      <div class="steps">
+        <!-- Step 1 -->
+        <div class="step">
+          <div class="step-text">
+            <div class="step-head"><span class="step-num">1</span><span class="step-title">Download required models</span></div>
+            <p class="step-desc">Tagging, face recognition, and semantic search all rely on on-device AI models. Go to <b>Model Center → Required</b> and download them all (7 models, ~1.5 GB). The Recommended models (local chat, matting, voice) are optional.</p>
+            <div class="tags"><span class="tag must">Required</span><span class="tag">≈ 1.5 GB</span><span class="tag">Wi-Fi recommended</span></div>
+          </div>
+          <div class="step-img"><img src="../assets/setup-1.jpg" alt="Model Center · Required models"></div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step alt">
+          <div class="step-img"><img src="../assets/setup-2.jpg" alt="TAG Generation · scanning"></div>
+          <div class="step-text">
+            <div class="step-head"><span class="step-num">2</span><span class="step-title">Run a Pass 1 scan</span></div>
+            <p class="step-desc">Let the app learn the <b>people and scenes</b> in your gallery. Go to <b>TAG Generation</b> and start scanning (face detection + semantic encoding, ~1.5h / 10k photos). Remember to enable <b>background activity</b> when prompted, or it may be paused in the background.</p>
+            <div class="tags"><span class="tag must">Required</span><span class="tag">~1.5h / 10k</span></div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step">
+          <div class="step-text">
+            <div class="step-head"><span class="step-num">3</span><span class="step-title">(Optional) Understand image content</span></div>
+            <p class="step-desc">Want searches like "beach", "night scene", or "family picnic" to be sharper? Run <b>Image Understanding</b> to generate scene, object, and activity tags for every photo. ~24h / 10k, <b>best overnight while charging</b>. Pause anytime — already-processed photos won't repeat.</p>
+            <div class="tags"><span class="tag opt">Optional</span><span class="tag">~24h / 10k</span></div>
+          </div>
+          <div class="step-img"><img src="../assets/setup-3.jpg" alt="TAG Generation · 3-stage overview"></div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step alt">
+          <div class="step-img"><img src="../assets/setup-4.jpg" alt="Account · free quota"></div>
+          <div class="step-text">
+            <div class="step-head"><span class="step-num">4</span><span class="step-title">Sign up for quota</span></div>
+            <p class="step-desc">AI chat <b>defaults to a remote model</b> for the best experience. Sign in with email for a <b>higher free quota</b> (guests get less). When it runs out you'll see a notice, or switch to the local model to chat offline.</p>
+            <div class="tags"><span class="tag">Remote chat</span><span class="tag">Free quota</span></div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step">
+          <div class="step-text">
+            <div class="step-head"><span class="step-num">5</span><span class="step-title">Teach AI your people</span></div>
+            <p class="step-desc">After scanning, people are detected automatically. <b>Name each person and set relationships</b> (family / friends / colleagues…), then add facts in <b>AI Memory</b> — PoLang gets smarter in every conversation.</p>
+            <div class="tags"><span class="tag opt">Smarter AI</span><span class="tag">People & relationships</span></div>
+          </div>
+          <div class="step-img"><img src="../assets/setup-5.jpg" alt="Edit person · name & relationship"></div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="step alt">
+          <div class="step-img"><img src="../assets/setup-6.jpg" alt="Channels · Feishu / Telegram"></div>
+          <div class="step-text">
+            <div class="step-head"><span class="step-num">6</span><span class="step-title">(Optional) Remote control</span></div>
+            <p class="step-desc">Connect <b>Feishu / Telegram</b> to drive your gallery from IM (e.g. "send me yesterday's landscapes") — results come right back to the chat. Telegram uses long-polling, <b>no public IP needed</b>.</p>
+            <div class="tags"><span class="tag opt">Advanced</span><span class="tag">Feishu / Telegram</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="container">
+      <h2 class="section-title">Once You're Set Up</h2>
+      <p class="section-sub">Just say something to the AI</p>
+      <div class="outcome">
+        <div>
+          <p class="say">"Find last summer's beach photos"</p>
+          <p class="do">🗂️ Matching photos, grouped smartly by time — all search, face, and scene recognition happens on-device; photos are never uploaded.</p>
+        </div>
+        <div class="step-img"><img src="../assets/setup-preview.jpg" alt="AI assistant · natural-language search"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container cta-wrap">
+      <h2 class="section-title">Get Started</h2>
+      <p class="section-sub">Free · No ads · On-device privacy</p>
+      <div class="cta-row">
+        <a class="btn" href="https://play.google.com/store/apps/details?id=com.mamba.picme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg>Google Play</a>
+        <a class="btn" href="https://api.polang.net/download" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#3DDC84" d="M18.4395 5.5586c-.675 1.1664-1.352 2.3318-2.0274 3.498-.0366-.0155-.0742-.0286-.1113-.043-1.8249-.6957-3.484-.8-4.42-.787-1.8551.0185-3.3544.4643-4.2597.8203-.084-.1494-1.7526-3.021-2.0215-3.4864a1.1451 1.1451 0 0 0-.1406-.1914c-.3312-.364-.9054-.4859-1.379-.203-.475.282-.7136.9361-.3886 1.5019 1.9466 3.3696-.0966-.2158 1.9473 3.3593.0172.031-.4946.2642-1.3926 1.0177C2.8987 12.176.452 14.772 0 18.9902h24c-.119-1.1108-.3686-2.099-.7461-3.0683-.7438-1.9118-1.8435-3.2928-2.7402-4.1836a12.1048 12.1048 0 0 0-2.1309-1.6875c.6594-1.122 1.312-2.2559 1.9649-3.3848.2077-.3615.1886-.7956-.0079-1.1191a1.1001 1.1001 0 0 0-.8515-.5332c-.5225-.0536-.9392.3128-1.0488.5449zm-.0391 8.461c.3944.5926.324 1.3306-.1563 1.6503-.4799.3197-1.188.0985-1.582-.4941-.3944-.5927-.324-1.3307.1563-1.6504.4727-.315 1.1812-.1086 1.582.4941zM7.207 13.5273c.4803.3197.5506 1.0577.1563 1.6504-.394.5926-1.1038.8138-1.584.4941-.48-.3197-.5503-1.0577-.1563-1.6504.4008-.6021 1.1087-.8106 1.584-.4941z"/></svg>APK</a>
+        <a class="btn" href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#181717" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container inner">
+      <span>© PoLang — Carving time, capturing the eternal.</span>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="getting-started.html">Guide</a>
+        <a href="privacy-policy/index.html">Privacy Policy</a>
+        <a href="../docs/">Technical Docs (中文)</a>
+        <a href="https://github.com/littleseven/langchain4android" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    // Mobile: tap a thumbnail to open the full image
+    if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+      document.querySelectorAll('.step-img img, .outcome .step-img img, .entry .shot').forEach(function (img) {
+        img.style.cursor = 'zoom-in';
+        img.addEventListener('click', function () { window.open(img.src, '_blank'); });
+      });
+    }
+  </script>
+</body>
+</html>
