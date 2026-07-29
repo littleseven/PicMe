@@ -32,6 +32,42 @@ class TokenUsageTest {
         assertEquals(TokenUsage(10, 5, 15), u)
     }
 
+    // ── fromSseStream：流式 SSE 尾帧 usage 解析 ──
+
+    @Test
+    fun `sse stream parses usage from trailing frame`() {
+        val sse = "data: {\"choices\":[{\"delta\":{\"content\":\"你\"}}]}\n\n" +
+            "data: {\"choices\":[{\"delta\":{\"content\":\"好\"}}]}\n\n" +
+            "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5,\"total_tokens\":15}}\n\n" +
+            "data: [DONE]\n\n"
+        assertEquals(TokenUsage(10, 5, 15), fromSseStream(sse))
+    }
+
+    @Test
+    fun `sse stream tolerates crlf line endings`() {
+        val sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\r\n\r\n" +
+            "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":2,\"total_tokens\":5}}\r\n\r\n" +
+            "data: [DONE]\r\n\r\n"
+        assertEquals(TokenUsage(3, 2, 5), fromSseStream(sse))
+    }
+
+    @Test
+    fun `sse stream without usage returns null`() {
+        val sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n" +
+            "data: [DONE]\n\n"
+        assertNull(fromSseStream(sse))
+    }
+
+    @Test
+    fun `sse stream skips garbage frames and finds usage`() {
+        val sse = "data: not-json\n\n" +
+            ": comment line\n\n" +
+            "data: {\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":2}}\n\n" +
+            "data: [DONE]\n\n"
+        // total 缺失 → prompt+completion 推导
+        assertEquals(TokenUsage(1, 2, 3), fromSseStream(sse))
+    }
+
     @Test
     fun `cost computes per million tokens`() {
         val prices = mapOf("m" to Price(inPerMillion = 2.0, outPerMillion = 8.0))

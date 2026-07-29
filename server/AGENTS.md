@@ -26,7 +26,7 @@
 `server/` 是独立的 Ktor Gradle 工程（`rootProject.name = "picme-server"`），**不纳入 Android `settings.gradle.kts`**。通过 `./gradlew -p server` 独立构建和运行。
 
 **核心职责**：
-- **AI 网关**：`LlmProxy` + `ChannelRegistry` — 按模型自动路由到 Cloudflare AI Gateway 或腾讯 TokenHub
+- **AI 网关**：`LlmProxy` + `ChannelRegistry` — 按模型自动路由到 Cloudflare AI Gateway 或腾讯 TokenHub；`stream=true` 请求 SSE 逐 chunk 透传（原样转发 stream/stream_options），usage 从流尾帧解析计费；非流式请求强制 `stream=false` 走完整响应体解析
 - **账号体系**：`EmailService` + `AccountService` + `AppTokenAuth` — 邮箱注册、动态 Token、SHA-256 校验
 - **管理后台**：`AdminRoutes` + `AdminViews` + `AdminQueries` — SSR HTML 运营后台（概览/用户/流量）
 - **推荐引擎**：`RuleEngine` — 纯规则型场景推荐（规避算法备案）

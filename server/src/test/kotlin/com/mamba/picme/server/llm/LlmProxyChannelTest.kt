@@ -1,6 +1,7 @@
 package com.mamba.picme.server.llm
 
 import com.mamba.picme.server.analytics.TokenUsage
+import com.mamba.picme.server.analytics.fromSseStream
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -8,9 +9,11 @@ import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.http.content.TextContent
+import io.ktor.utils.io.toByteArray
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -162,5 +165,59 @@ class LlmProxyChannelTest {
         val result = proxy(engine).forward("1.2.3.4", buildJsonObject { put("model", "deepseek-chat") })
         assertTrue(result is ProxyResult.Success)
         assertNull((result as ProxyResult.Success).usage)
+    }
+
+    // ── 流式 SSE 透传 ──
+
+    private val sseBody =
+        "data: {\"choices\":[{\"delta\":{\"content\":\"你\"}}]}\n\n" +
+            "data: {\"choices\":[{\"delta\":{\"content\":\"好\"}}]}\n\n" +
+            "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5,\"total_tokens\":15}}\n\n" +
+            "data: [DONE]\n\n"
+
+    @Test
+    fun `stream true forwards SSE and preserves stream options`() = runBlocking {
+        var captured: HttpRequestData? = null
+        val engine = MockEngine { req ->
+            captured = req
+            respond(sseBody, HttpStatusCode.OK, headersOf("Content-Type", "text/event-stream"))
+        }
+        ChannelRegistry.setActiveForTesting(cfg())
+        val body = buildJsonObject {
+            put("model", "deepseek-chat")
+            put("stream", true)
+            putJsonObject("stream_options") { put("include_usage", true) }
+        }
+        val result = proxy(engine).forward("1.2.3.4", body)
+        assertTrue(result is ProxyResult.Streaming)
+        result as ProxyResult.Streaming
+        assertEquals(HttpStatusCode.OK, result.status)
+        assertEquals("glm-5.2", result.model)
+        val text = result.channel.toByteArray().toString(Charsets.UTF_8)
+        assertEquals(sseBody, text)
+        assertEquals(TokenUsage(10, 5, 15), fromSseStream(text))
+        // stream/stream_options 原样转发，不再改写为 false
+        val sent = (captured!!.body as TextContent).text
+        assertTrue(sent.contains("\"stream\":true"))
+        assertTrue(sent.contains("\"include_usage\":true"))
+    }
+
+    @Test
+    fun `stream true upstream error passes through status and body`() = runBlocking {
+        val errBody = """{"error":"upstream boom"}"""
+        val engine = MockEngine {
+            respond(errBody, HttpStatusCode.InternalServerError, headersOf("Content-Type", "application/json"))
+        }
+        ChannelRegistry.setActiveForTesting(cfg())
+        val body = buildJsonObject {
+            put("model", "deepseek-chat")
+            put("stream", true)
+        }
+        val result = proxy(engine).forward("1.2.3.4", body)
+        assertTrue(result is ProxyResult.Success)
+        result as ProxyResult.Success
+        assertEquals(HttpStatusCode.InternalServerError, result.status)
+        assertEquals(errBody, result.bytes.toString(Charsets.UTF_8))
+        assertNull(result.usage)
     }
 }

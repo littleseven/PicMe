@@ -2,6 +2,7 @@ package com.mamba.picme.server.llm
 
 import com.mamba.picme.server.analytics.Price
 import com.mamba.picme.server.analytics.UsageRecorder
+import com.mamba.picme.server.analytics.fromSseStream
 import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.GuestService
 import com.mamba.picme.server.config.SettingsService
@@ -15,10 +16,17 @@ import io.ktor.server.request.ApplicationRequest
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
+import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import io.ktor.utils.io.readAvailable
+import io.ktor.utils.io.writeFully
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import org.slf4j.LoggerFactory
+import java.io.ByteArrayOutputStream
+
+private val logger = LoggerFactory.getLogger("picme-llm")
 
 fun Route.llmRoute(
     proxy: LlmProxy,
@@ -97,6 +105,55 @@ fun Route.llmRoute(
                         )
                     }
                     call.respondBytes(result.bytes, ContentType.Application.Json, result.status)
+                }
+                is ProxyResult.Streaming -> {
+                    // 响应头先发：访客剩余额度必须在写 body 前 append
+                    if (isGuest) {
+                        call.response.headers.append(
+                            "X-Guest-Remaining",
+                            GuestService.remainingReadOnly(deviceId!!, guestLlmQuota).toString(),
+                        )
+                    }
+                    // 逐 chunk 透传上游 SSE，同时 tee 到内存累积器（KB 级）供流末解析 usage
+                    val tee = ByteArrayOutputStream()
+                    call.respondBytesWriter(ContentType.Text.EventStream, result.status) {
+                        val buf = ByteArray(8 * 1024)
+                        try {
+                            while (true) {
+                                val n = result.channel.readAvailable(buf, 0, buf.size)
+                                if (n == -1) break
+                                if (n > 0) {
+                                    writeFully(buf, 0, n)
+                                    flush()
+                                    tee.write(buf, 0, n)
+                                }
+                            }
+                        } catch (e: Throwable) {
+                            result.channel.cancel(e)
+                            throw e
+                        }
+                    }
+                    val streamLatencyMs = (System.currentTimeMillis() - started).toInt()
+                    val usage = fromSseStream(tee.toString(Charsets.UTF_8.name()))
+                    if (usage == null) {
+                        logger.warn(
+                            "No usage frame in SSE stream, provider={}, model={}, account={}",
+                            result.provider, result.model, accountId,
+                        )
+                    }
+                    accountId?.let {
+                        UsageRecorder.log(
+                            accountId = it,
+                            model = result.model,
+                            provider = result.provider,
+                            usage = usage,
+                            respBytes = tee.size(),
+                            status = "ok",
+                            latencyMs = streamLatencyMs,
+                            prices = prices,
+                            deviceId = deviceId,
+                        )
+                    }
                 }
                 is ProxyResult.Error -> {
                     // LLM call failed — revert quota increment

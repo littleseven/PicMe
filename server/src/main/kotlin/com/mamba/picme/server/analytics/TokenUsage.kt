@@ -18,17 +18,46 @@ data class Price(val inPerMillion: Double, val outPerMillion: Double)
 fun fromUpstreamBytes(bytes: ByteArray): TokenUsage? {
     return try {
         val obj = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
-        val usage = obj["usage"] as? JsonObject ?: return null
-        val prompt = usage.int("prompt_tokens")
-        val completion = usage.int("completion_tokens")
-        val total = usage.int("total_tokens")
-        if (prompt == null && completion == null && total == null) return null
-        val p = prompt ?: 0
-        val c = completion ?: 0
-        TokenUsage(p, c, total ?: (p + c))
+        (obj["usage"] as? JsonObject)?.let(::parseUsage)
     } catch (e: Exception) {
         null
     }
+}
+
+/**
+ * 从 SSE 流式响应（tee 下来的完整文本，KB 级）解析 usage。
+ * 客户端以 stream_options.include_usage=true 请求时，上游在末尾单独一帧
+ * `data: {"usage":{...}}` 给出三件套；从尾部向前扫描，取首个带 usage 的帧。
+ * 上游没给 usage / 帧解析失败 → null（调用方记告警并跳过计费，不影响请求）。
+ */
+fun fromSseStream(text: String): TokenUsage? {
+    val normalized = text.replace("\r\n", "\n")
+    for (frame in normalized.split("\n\n").asReversed()) {
+        for (line in frame.lines()) {
+            val t = line.trim()
+            if (!t.startsWith("data:")) continue
+            val data = t.removePrefix("data:").trim()
+            if (data.isEmpty() || data == "[DONE]") continue
+            val obj = try {
+                Json.parseToJsonElement(data).jsonObject
+            } catch (e: Exception) {
+                continue
+            }
+            val usage = (obj["usage"] as? JsonObject)?.let(::parseUsage)
+            if (usage != null) return usage
+        }
+    }
+    return null
+}
+
+private fun parseUsage(usage: JsonObject): TokenUsage? {
+    val prompt = usage.int("prompt_tokens")
+    val completion = usage.int("completion_tokens")
+    val total = usage.int("total_tokens")
+    if (prompt == null && completion == null && total == null) return null
+    val p = prompt ?: 0
+    val c = completion ?: 0
+    return TokenUsage(p, c, total ?: (p + c))
 }
 
 private fun JsonObject.int(key: String): Int? =
