@@ -340,6 +340,10 @@ interface MediaDao {
     @Query("UPDATE media_assets SET aestheticScore = :score WHERE id = :mediaId")
     suspend fun updateAestheticScore(mediaId: Long, score: Float)
 
+    /** 更新 eDifFIQA 人脸质量评分（后台打分器回写） */
+    @Query("UPDATE media_assets SET faceQualityScore = :score WHERE id = :mediaId")
+    suspend fun updateFaceQualityScore(mediaId: Long, score: Float)
+
     /** 取未评分的照片（限数，供后台美学打分器分批处理；照片优先、最新在前） */
     @Query("SELECT * FROM media_assets WHERE aestheticScore IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
     suspend fun getMediaWithoutAestheticScore(limit: Int): List<MediaEntity>

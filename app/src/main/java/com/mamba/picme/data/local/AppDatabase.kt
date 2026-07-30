@@ -414,9 +414,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    "ALTER TABLE `media_assets` ADD COLUMN `aestheticScore` REAL"
-                )
+                database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `aestheticScore` REAL")
+                database.execSQL("ALTER TABLE `media_assets` ADD COLUMN `faceQualityScore` REAL")
             }
         }
     }
