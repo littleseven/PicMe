@@ -363,6 +363,50 @@ class FaceClusterEngine(private val context: Context) {
     }
 
     /**
+     * 流式增量聚类（扫描链路用）：将已存储但未分配（personId=null）的 embedding 逐个归类。
+     *
+     * 与 [createCluster]/[addToCluster] 的区别：Pass1 已把 embedding 写入 face_embeddings，
+     * 这里用 [PersonDao.assignEmbedding] 改派 personId（不重新插入行），并同步质心缓存。
+     *
+     * @return 本次处理的 embedding 数（0 表示无未分配项）
+     */
+    suspend fun assignStoredEmbeddings(): Int {
+        val unassigned = personDao.getUnassignedEmbeddings()
+        if (unassigned.isEmpty()) return 0
+
+        var processed = 0
+        for (entity in unassigned) {
+            val feature = byteArrayToFloatArray(entity.embedding)
+            processed++
+            // 跳过零向量（模型缺失时 stage1 产出的占位）
+            if (feature.all { value -> value == 0f }) continue
+
+            val matchedId = matchCluster(feature)
+            if (matchedId != null) {
+                personDao.assignEmbedding(entity.embeddingId, matchedId)
+                personDao.incrementFaceCount(matchedId)
+                // 增量质心，与 addToCluster 一致
+                centroidCache[matchedId]?.let { (oldCentroid, oldCount) ->
+                    val newCount = oldCount + 1
+                    val newCentroid = FloatArray(EMBEDDING_DIM)
+                    for (i in 0 until EMBEDDING_DIM) {
+                        newCentroid[i] = (oldCentroid[i] * oldCount + feature[i]) / newCount
+                    }
+                    centroidCache[matchedId] = newCentroid to newCount
+                }
+            } else {
+                val personId = personDao.insertPerson(
+                    PersonEntity(faceCount = 1, coverMediaId = entity.mediaId)
+                )
+                personDao.assignEmbedding(entity.embeddingId, personId)
+                centroidCache[personId] = feature.clone() to 1
+            }
+        }
+        Log.i(TAG, "Streaming-assigned $processed stored embeddings (unassigned were ${unassigned.size})")
+        return processed
+    }
+
+    /**
      * 合并两个簇（将 personB 的所有 embedding 转移到 personA，删除 personB）
      */
     suspend fun mergeClusters(personA: Long, personB: Long) {
