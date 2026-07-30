@@ -159,7 +159,7 @@ class RemoteChatEngine internal constructor(
                 traceId = agentContext.traceId,
                 onEvent = onEvent
             ).fold(
-                onSuccess = { summary ->
+                onSuccess = { (summary, metrics) ->
                     val latencyMs = System.currentTimeMillis() - startTime
                     val commands = if (summary.isNotBlank()) {
                         listOf(AgentCommand.TextReply(message = summary))
@@ -168,7 +168,11 @@ class RemoteChatEngine internal constructor(
                     }
                     val base = StreamChatResult(
                         fullResponse = summary,
-                        metrics = StreamMetrics(latencyMs = latencyMs, promptTokens = null, completionTokens = null)
+                        metrics = StreamMetrics(
+                            latencyMs = latencyMs,
+                            promptTokens = metrics?.promptTokens?.toLong(),
+                            completionTokens = metrics?.completionTokens?.toLong()
+                        )
                     )
                     Result.success(base.copy(commands = commands))
                 },
@@ -193,7 +197,7 @@ class RemoteChatEngine internal constructor(
         timeoutMs: Long = 120_000L,
         traceId: String? = null,
         onEvent: ((ChatStreamEvent) -> Unit)? = null
-    ): Result<String> = withContext(Dispatchers.IO) {
+    ): Result<Pair<String, AgentExecutionMetrics?>> = withContext(Dispatchers.IO) {
         Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
         val agent = getChatAgent(object : RemoteReActAgentCallback {
@@ -216,7 +220,7 @@ class RemoteChatEngine internal constructor(
         return@withContext try {
             val job = coroutineContext[kotlinx.coroutines.Job]
             val summary = withTimeout(timeoutMs) {
-                suspendCoroutine<String> { continuation ->
+                suspendCoroutine<Pair<String, AgentExecutionMetrics?>> { continuation ->
                     val callback = object : RemoteReActAgentCallback {
                         override fun onLoopStart(iteration: Int) {
                             Logger.d(tag, "Chat ReAct iteration #$iteration")
@@ -237,11 +241,11 @@ class RemoteChatEngine internal constructor(
                         }
                         override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {
                             Logger.i(tag, "Chat ReAct complete: $iteration rounds, $totalTokens tokens")
-                            continuation.resume(summary)
+                            continuation.resume(summary to metrics)
                         }
                         override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {
                             Logger.e(tag, "Chat ReAct error: ${error.message}")
-                            continuation.resume("出错了：${error.message ?: "未知错误"}")
+                            continuation.resume("出错了：${error.message ?: "未知错误"}" to metrics)
                         }
                     }
                     job?.invokeOnCompletion { cause ->

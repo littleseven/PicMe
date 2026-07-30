@@ -23,6 +23,7 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -452,52 +453,39 @@ fun ChatScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(messages, key = { it.id }) { message ->
-                            val transitionState = remember(message.id) {
-                                MutableTransitionState(false).apply { targetState = true }
-                            }
-                            val density = LocalDensity.current
-                            AnimatedVisibility(
-                                visibleState = transitionState,
-                                enter = fadeIn(animationSpec = tween(180, easing = FastOutSlowInEasing)) +
-                                    slideInVertically(
-                                        animationSpec = tween(180, easing = FastOutSlowInEasing),
-                                        initialOffsetY = { with(density) { 8.dp.roundToPx() } }
-                                    )
-                            ) {
-                                val mr = message.mediaResults
-                                if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
-                                    MediaResultsCarousel(
-                                        mediaResults = mr,
-                                        onCardClick = { index ->
-                                            previewAssets = mr.assets
-                                            previewIndex = index
-                                        },
-                                        onViewAll = {
-                                            onNavigateToGallery(mr.query)
-                                        },
-                                        onFeedback = { mediaId, action ->
-                                            viewModel.onMediaFeedback(mediaId, mr.query, action)
+                            val mr = message.mediaResults
+                            if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
+                                MediaResultsCarousel(
+                                    mediaResults = mr,
+                                    onCardClick = { index ->
+                                        previewAssets = mr.assets
+                                        previewIndex = index
+                                    },
+                                    onViewAll = {
+                                        onNavigateToGallery(mr.query)
+                                    },
+                                    onFeedback = { mediaId, action ->
+                                        viewModel.onMediaFeedback(mediaId, mr.query, action)
+                                    }
+                                )
+                            } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
+                                ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
+                            } else {
+                                ChatMessageItem(
+                                    message = message,
+                                    onImageClick = { msg ->
+                                        val pages = buildImagePreviewPages(messages)
+                                        if (pages.isNotEmpty()) {
+                                            val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
+                                                msg.type == ChatMessageType.AGENT_EDIT_RESULT
+                                            if (isEdit) viewModel.touchEditImage(msg.imageUri)
+                                            imagePreview = ChatImagePreviewState(
+                                                pages = pages,
+                                                initialIndex = indexOfPage(pages, msg.id)
+                                            )
                                         }
-                                    )
-                                } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
-                                    ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
-                                } else {
-                                    ChatMessageItem(
-                                        message = message,
-                                        onImageClick = { msg ->
-                                            val pages = buildImagePreviewPages(messages)
-                                            if (pages.isNotEmpty()) {
-                                                val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
-                                                    msg.type == ChatMessageType.AGENT_EDIT_RESULT
-                                                if (isEdit) viewModel.touchEditImage(msg.imageUri)
-                                                imagePreview = ChatImagePreviewState(
-                                                    pages = pages,
-                                                    initialIndex = indexOfPage(pages, msg.id)
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
+                                    }
+                                )
                             }
                         }
                     }
@@ -979,30 +967,34 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                 }
                 else -> {
                     if (message.isStreaming) {
-                        // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
-                        // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                segmentStreamingMarkdown(message.content).forEach { segment ->
-                                    when (segment.type) {
-                                        StreamSegmentType.TABLE -> Text(
-                                            text = segment.text,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontSize = 13.sp,
-                                            lineHeight = 18.sp,
-                                            fontFamily = FontFamily.Monospace
-                                        )
-                                        StreamSegmentType.MARKDOWN -> MarkdownText(
-                                            markdown = segment.text,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontSize = 14.sp,
-                                            lineHeight = 20.sp
-                                        )
+                        if (message.isThinking) {
+                            TypingIndicator()
+                        } else {
+                            // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
+                            // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    segmentStreamingMarkdown(message.content).forEach { segment ->
+                                        when (segment.type) {
+                                            StreamSegmentType.TABLE -> Text(
+                                                text = segment.text,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontFamily = FontFamily.Monospace
+                                            )
+                                            StreamSegmentType.MARKDOWN -> MarkdownText(
+                                                markdown = segment.text,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 14.sp,
+                                                lineHeight = 20.sp
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            if (message.showCursor) {
-                                BlinkCursor()
+                                if (message.showCursor) {
+                                    BlinkCursor()
+                                }
                             }
                         }
                     } else {
@@ -1014,14 +1006,6 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                         )
                     }
                 }
-            }
-            if (message.modelUsed != null && message.performance == null) {
-                Text(
-                    text = message.modelUsed,
-                    color = if (isUser) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
             }
             message.performance?.let { perf ->
                 val metricTint = if (isUser) {
@@ -1064,10 +1048,12 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                         tint = metricTint
                     )
                     if (perf.usedSandbox) {
-                        PerformanceMetric(
-                            icon = Icons.Rounded.Code,
-                            value = "沙箱",
-                            tint = metricTint
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .size(14.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .border(1.5.dp, metricTint)
                         )
                     }
                 }
@@ -1835,7 +1821,9 @@ data class ChatMessageUi(
     /** 流式输出中的瞬态消息（不落 Room）；UI 据此对未闭合表格做防抖动处理。 */
     val isStreaming: Boolean = false,
     /** 流式打字光标是否可见（由节奏器驱动：吐字中 true，停顿超时/完成 false）。 */
-    val showCursor: Boolean = false
+    val showCursor: Boolean = false,
+    /** 思考中（首 token 到达前）：UI 显示三点 typing indicator 而非内容+光标。 */
+    val isThinking: Boolean = false
 )
 
 enum class ChatMessageType {

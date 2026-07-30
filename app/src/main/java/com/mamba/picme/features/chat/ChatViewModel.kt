@@ -67,6 +67,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -721,7 +722,8 @@ class ChatViewModel(
                     type = ChatMessageType.AGENT_TEXT,
                     content = STREAMING_THINKING_HINT,
                     modelUsed = currentModelLabel(),
-                    isStreaming = true
+                    isStreaming = true,
+                    isThinking = true
                 )
                 pacingController.start()
 
@@ -767,13 +769,18 @@ class ChatViewModel(
                     agentContext = agentContext,
                     onEvent = { event ->
                         when (event) {
-                            is ChatStreamEvent.TextSnapshot ->
+                            is ChatStreamEvent.TextSnapshot -> {
                                 pacingController.onTextSnapshot(event.text)
+                                if (_streamingMessage.value?.isThinking == true) {
+                                    _streamingMessage.value = _streamingMessage.value?.copy(isThinking = false)
+                                }
+                            }
                             ChatStreamEvent.ToolCallStarted -> {
                                 pacingController.reset()
                                 _streamingMessage.value = _streamingMessage.value?.copy(
                                     content = context.getString(R.string.chat_calling_tool),
-                                    showCursor = false
+                                    showCursor = false,
+                                    isThinking = false
                                 )
                             }
                         }
@@ -1850,7 +1857,8 @@ class ChatViewModel(
                     type = ChatMessageType.AGENT_TEXT,
                     content = "正在分析图片...",
                     modelUsed = currentModelLabel(),
-                    isStreaming = true
+                    isStreaming = true,
+                    isThinking = true
                 )
 
                 // 3. 加载 Bitmap

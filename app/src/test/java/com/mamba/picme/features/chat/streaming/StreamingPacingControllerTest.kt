@@ -14,160 +14,114 @@ class StreamingPacingControllerTest {
 
     private data class Paced(val text: String, val cursorVisible: Boolean)
 
+    private fun newController(paced: MutableList<Paced>, scope: TestScope) =
+        StreamingPacingController(scope = scope, onPaced = { t, c -> paced += Paced(t, c) })
+
     @Test
     fun `start with no content stays silent`() = runTest {
         val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
+        val ctrl = newController(paced, this)
         ctrl.start()
         runCurrent()
-        tickPacer(10)
+        advanceMs(300)
         assertTrue(paced.isEmpty())
         ctrl.finish()
     }
 
     @Test
-    fun `finish stops the loop and emits nothing more`() = runTest {
+    fun `basic rate advances two chars per chunk at 50ms per char`() = runTest {
         val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
+        val ctrl = newController(paced, this)
         ctrl.start()
+        ctrl.onTextSnapshot("abcdefgh")
         runCurrent()
-        ctrl.finish()
-        val sizeAfterFinish = paced.size
-        tickPacer(10)
-        assertEquals(sizeAfterFinish, paced.size)
-    }
-
-    @Test
-    fun `grows substring each frame with step capped at MAX_STEP and catches up`() = runTest {
-        val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
-        ctrl.start()
-        ctrl.onTextSnapshot("x".repeat(100))
-        runCurrent()
-        tickPacer(1) // 帧 1：backlog=100 → step=100/8=12 → coerceIn(1,6)=6
-        assertEquals(6, paced.last().text.length)
-        tickPacer(1) // 帧 2：backlog=94 → step=6 → shown=12
-        assertEquals(12, paced.last().text.length)
-        tickPacer(50) // 追平（自适应步长，余量足够）
-        assertEquals(100, paced.last().text.length)
-        assertEquals("x".repeat(100), paced.last().text)
+        advanceMs(100) // 跳1: 50*2=100ms（首跳无停顿）
+        assertEquals("ab", paced.last().text)
+        advanceMs(100) // 跳2
+        assertEquals("abcd", paced.last().text)
+        advanceMs(100) // 跳3
+        assertEquals("abcdef", paced.last().text)
         ctrl.finish()
     }
 
     @Test
-    fun `small backlog advances one char per frame`() = runTest {
+    fun `cjk chunk is two chars per hop`() = runTest {
         val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
+        val ctrl = newController(paced, this)
         ctrl.start()
-        ctrl.onTextSnapshot("hi") // backlog=2 → step=2/8=0 → coerceIn(1,6)=1
+        ctrl.onTextSnapshot("你好世界")
         runCurrent()
-        tickPacer(1)
-        assertEquals(1, paced.last().text.length)
-        tickPacer(1)
-        assertEquals(2, paced.last().text.length)
+        advanceMs(100)
+        assertEquals("你好", paced.last().text)
+        advanceMs(100)
+        assertEquals("你好世界", paced.last().text)
         ctrl.finish()
     }
 
     @Test
-    fun `cursor visible while caught up, hidden after idle timeout`() = runTest {
+    fun `punctuation adds extra delay before next chunk`() = runTest {
         val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
+        val ctrl = newController(paced, this)
         ctrl.start()
-        ctrl.onTextSnapshot("hello")
+        ctrl.onTextSnapshot("你好，世界") // chunks: 你好 | ，| 世界
         runCurrent()
-        tickPacer(5) // 追平（5 字，每帧 1）
-        assertTrue(paced.last().cursorVisible)
-        tickPacer(80) // 80 帧 ≈ 1280ms > 1200ms 超时
-        assertEquals(false, paced.last().cursorVisible)
+        advanceMs(100) // 你好
+        assertEquals("你好", paced.last().text)
+        advanceMs(50) // ，（上一字符'好'非标点 → 50ms）
+        assertEquals("你好，", paced.last().text)
+        advanceMs(199) // 标点停顿共 200ms，还差 1ms
+        assertEquals("你好，", paced.last().text)
+        advanceMs(1)
+        assertEquals("你好，世界", paced.last().text)
         ctrl.finish()
     }
 
     @Test
-    fun `reset clears buffer and stays silent until new text`() = runTest {
+    fun `newline adds extra delay before next chunk`() = runTest {
         val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
+        val ctrl = newController(paced, this)
         ctrl.start()
-        ctrl.onTextSnapshot("hello")
+        ctrl.onTextSnapshot("你好\n世界") // chunks: 你好 | \n | 世界
         runCurrent()
-        tickPacer(5) // 追平 hello
-        val sizeBeforeReset = paced.size
-        ctrl.reset()
-        tickPacer(3) // reset 后 target=0，静默
-        assertEquals(sizeBeforeReset, paced.size)
-        ctrl.onTextSnapshot("world") // 从空扩展 → 连续增长，shownLength 保持 0
-        tickPacer(1)
-        assertEquals(1, paced.last().text.length) // 从 0 重新逐字
-        tickPacer(5)
-        assertEquals("world", paced.last().text)
+        advanceMs(100) // 你好
+        assertEquals("你好", paced.last().text)
+        advanceMs(50) // \n
+        assertEquals("你好\n", paced.last().text)
+        advanceMs(299) // 换行停顿共 300ms，还差 1ms
+        assertEquals("你好\n", paced.last().text)
+        advanceMs(1)
+        assertEquals("你好\n世界", paced.last().text)
         ctrl.finish()
+    }
+
+    @Test
+    fun `finish hides cursor immediately`() = runTest {
+        val paced = mutableListOf<Paced>()
+        val ctrl = newController(paced, this)
+        ctrl.start()
+        ctrl.onTextSnapshot("hi")
+        runCurrent()
+        advanceMs(100) // hi 一跳（2 字母）追平
+        ctrl.finish()
+        assertEquals(false, paced.last().cursorVisible) // 立即隐藏，无余闪
     }
 
     @Test
     fun `non-continuous snapshot resets shown length`() = runTest {
         val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
+        val ctrl = newController(paced, this)
         ctrl.start()
         ctrl.onTextSnapshot("hello world")
         runCurrent()
-        tickPacer(20) // 追平
-        ctrl.onTextSnapshot("xyz") // 非 "hello world" 的前缀扩展 → 重置
-        tickPacer(1)
-        assertEquals(1, paced.last().text.length) // 从 0 重追 "xyz"
-        tickPacer(5)
-        assertEquals("xyz", paced.last().text)
+        advanceMs(1000) // 追平
+        ctrl.onTextSnapshot("xyz") // 非连续 → 重置 shownLength
+        advanceMs(500)
+        assertEquals("xyz", paced.last().text) // 从 0 重新追到 xyz
         ctrl.finish()
-    }
-
-    @Test
-    fun `finish mid-stream catches up full text and hides cursor`() = runTest {
-        val paced = mutableListOf<Paced>()
-        val ctrl = StreamingPacingController(
-            scope = this,
-            onPaced = { t, c -> paced += Paced(t, c) },
-            timeSource = { testScheduler.currentTime },
-        )
-        ctrl.start()
-        ctrl.onTextSnapshot("x".repeat(100))
-        runCurrent()
-        tickPacer(1) // 仅追到 6
-        ctrl.finish()
-        assertEquals(100, paced.last().text.length)
-        assertEquals(false, paced.last().cursorVisible)
-        val sizeAfterFinish = paced.size
-        tickPacer(10)
-        assertEquals(sizeAfterFinish, paced.size) // finish 后循环应停止
     }
 }
 
-private fun TestScope.tickPacer(frames: Long) {
-    advanceTimeBy(StreamingPacingController.FRAME_MS * frames)
+private fun TestScope.advanceMs(ms: Long) {
+    advanceTimeBy(ms)
     runCurrent()
 }
