@@ -1104,6 +1104,7 @@ private fun com.mamba.picme.data.model.MediaEntity.toDomain() =
         duration = duration,
         hasFace = hasFace,
         faceId = faceId,
+        faceFocusY = faceFocusY,
         source = source,
         labels = labels,
         ocrText = ocrText,

@@ -190,6 +190,7 @@ private fun MediaEntity.toDomain(uiLang: AppLanguage): MediaAsset = MediaAsset(
     duration = duration,
     hasFace = hasFace,
     faceId = faceId,
+    faceFocusY = faceFocusY,
     source = source,
     labels = labelsForLanguage(uiLang),
     ocrText = ocrText,
