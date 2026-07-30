@@ -29,9 +29,9 @@ fun BlinkCursor(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "blink")
     val alpha by transition.animateFloat(
         initialValue = 1f,
-        targetValue = 0.2f,
+        targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 265, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "blinkAlpha"

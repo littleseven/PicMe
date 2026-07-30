@@ -67,6 +67,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -786,6 +787,8 @@ class ChatViewModel(
                 // 6. 处理结果
                 result.fold(
                     onSuccess = { streamResult ->
+                        // 余闪：让 finish 的光标余闪在流式气泡上可见再清除（豆包式）
+                        delay(StreamingPacingController.TAIL_BLINK_MS)
                         // 清除流式占位
                         _streamingMessage.value = null
 
