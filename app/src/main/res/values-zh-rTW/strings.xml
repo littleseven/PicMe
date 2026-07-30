@@ -247,6 +247,9 @@
     <!-- Duplicate Management -->
     <string name="gallery_features">相簿打標</string>
     <string name="gallery_features_desc">打標掃描、人臉聚類與模型下載管理。</string>
+    <string name="people_title">人物</string>
+    <string name="people_default_name">人物 #%1$d</string>
+    <string name="people_photos_count">%1$d 張照片</string>
     <string name="manage_duplicates">管理重複照片</string>
     <string name="duplicate_manager_desc">尋找並刪除重複或相似照片，釋放儲存空間。</string>
     <string name="delete_all_duplicates">刪除全部重複</string>

@@ -258,6 +258,9 @@
     <!-- Gallery Features -->
     <string name="gallery_features">Gallery Tagging</string>
     <string name="gallery_features_desc">Tag scanning, face clustering, and model download management.</string>
+    <string name="people_title">People</string>
+    <string name="people_default_name">Person #%1$d</string>
+    <string name="people_photos_count">%1$d photos</string>
 
     <!-- Duplicate Management -->
     <string name="manage_duplicates">Manage Duplicates</string>
