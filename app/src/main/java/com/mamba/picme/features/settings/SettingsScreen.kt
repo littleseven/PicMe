@@ -56,7 +56,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -166,6 +165,7 @@ fun SettingsScreen(
     val aiAgentSelectedRemoteModel by viewModel.aiAgentSelectedRemoteModel.collectAsState()
     val aiAgentInferencePreference by viewModel.aiAgentInferencePreference.collectAsState()
     val aiAgentL1CacheEnabled by viewModel.aiAgentL1CacheEnabled.collectAsState()
+    val autoExecutePlans by viewModel.autoExecutePlansEnabled.collectAsState()
     val aiAgentLocalUseOpencl by viewModel.aiAgentLocalUseOpencl.collectAsState()
     val tagGenerationUseOpencl by viewModel.tagGenerationUseOpencl.collectAsState()
     val taggerModelKey by viewModel.taggerModelKey.collectAsState()
@@ -280,6 +280,8 @@ fun SettingsScreen(
             onAiAgentInferencePreferenceChange = { viewModel.setAiAgentInferencePreference(it) },
             aiAgentL1CacheEnabled = aiAgentL1CacheEnabled,
             onAiAgentL1CacheEnabledChange = { viewModel.setAiAgentL1CacheEnabled(it) },
+            autoExecutePlans = autoExecutePlans,
+            onAutoExecutePlansChange = { viewModel.setAutoExecutePlansEnabled(it) },
             aiAgentLocalUseOpencl = aiAgentLocalUseOpencl,
             onAiAgentLocalUseOpenclChange = { viewModel.setAiAgentLocalUseOpencl(it) },
             tagGenerationUseOpencl = tagGenerationUseOpencl,
@@ -345,6 +347,8 @@ private fun SettingsContent(
     onAiAgentInferencePreferenceChange: (AiAgentInferencePreference) -> Unit,
     aiAgentL1CacheEnabled: Boolean,
     onAiAgentL1CacheEnabledChange: (Boolean) -> Unit,
+    autoExecutePlans: Boolean,
+    onAutoExecutePlansChange: (Boolean) -> Unit,
     aiAgentLocalUseOpencl: Boolean,
     onAiAgentLocalUseOpenclChange: (Boolean) -> Unit,
     tagGenerationUseOpencl: Boolean,
@@ -453,30 +457,17 @@ private fun SettingsContent(
 
             // ── 1. 个性化（主题与语言已迁移至设置页主菜单顶部）───
 
-            // ── 2. AI 助手 ────────────────────────────────────────
+            // ── 2. AI 设置 ────────────────────────────────────────
             if (category == SettingsCategory.AI_AGENT) {
+                // 2.1 默认链路：单选决定 chat 实际路由 + 全局行为开关
                 SettingsSection(
                     title = stringResource(R.string.ai_agent),
                     description = stringResource(R.string.ai_agent_desc)
                 ) {
-                    // 模型中心作为 AI 助手卡片第一项
-                    SettingsClickableRow(
-                        title = stringResource(R.string.model_center),
-                        subtitle = stringResource(R.string.model_center_desc),
-                        leadingIcon = Icons.Rounded.SmartToy,
-                        onClick = { onNavigateToModelCenter("") }
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-
-                    var autoExecutePlans by remember { mutableStateOf(true) }
                     DebugOptionRow(
                         title = stringResource(R.string.ai_agent_auto_execute_plans),
                         checked = autoExecutePlans,
-                        onCheckedChange = { autoExecutePlans = it }
+                        onCheckedChange = onAutoExecutePlansChange
                     )
                     Text(
                         text = stringResource(R.string.ai_agent_auto_execute_plans_desc),
@@ -489,44 +480,39 @@ private fun SettingsContent(
                         currentMode = aiAgentMode,
                         onModeSelected = onAiAgentModeChange
                     )
+                }
 
-                    // 推理偏好选择（仅 LOCAL 模式下显示）
-                    if (aiAgentMode == AiAgentMode.LOCAL) {
-                        InferencePreferenceSelection(
-                            currentPreference = aiAgentInferencePreference,
-                            onPreferenceSelected = onAiAgentInferencePreferenceChange
-                        )
-                        OpenClBackendSelection(
-                            useOpencl = aiAgentLocalUseOpencl,
-                            onToggle = onAiAgentLocalUseOpenclChange
-                        )
-                    }
+                // 2.2 远程链路（常驻可见）
+                SettingsSection(
+                    title = stringResource(R.string.ai_settings_remote_section)
+                ) {
+                    AiAgentRemoteModelsSection(
+                        configsJson = aiAgentRemoteModelConfigs,
+                        onConfigsChange = onAiAgentRemoteModelConfigsChange,
+                        selectedModelId = aiAgentSelectedRemoteModel,
+                        onSelectedModelChange = onAiAgentSelectedRemoteModelChange
+                    )
+                }
 
-                    when (aiAgentMode) {
-                        AiAgentMode.OFF -> {
-                            Text(
-                                text = stringResource(R.string.ai_agent_mode_off),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                        AiAgentMode.LOCAL -> {
-                            AiAgentLocalModelSection(
-                                currentLocalModel = aiAgentLocalModel,
-                                onLocalModelSelected = onAiAgentLocalModelChange,
-                                onNavigateToModelManager = onNavigateToModelCenter
-                            )
-                        }
-                        AiAgentMode.REMOTE, AiAgentMode.FEISHU -> {
-                            AiAgentRemoteModelsSection(
-                                configsJson = aiAgentRemoteModelConfigs,
-                                onConfigsChange = onAiAgentRemoteModelConfigsChange,
-                                selectedModelId = aiAgentSelectedRemoteModel,
-                                onSelectedModelChange = onAiAgentSelectedRemoteModelChange
-                            )
-                        }
-                    }
+                // 2.3 本地链路（常驻可见）
+                SettingsSection(
+                    title = stringResource(R.string.ai_settings_local_section)
+                ) {
+                    AiAgentLocalModelSection(
+                        currentLocalModel = aiAgentLocalModel,
+                        onLocalModelSelected = onAiAgentLocalModelChange,
+                        onNavigateToModelManager = onNavigateToModelCenter
+                    )
+
+                    InferencePreferenceSelection(
+                        currentPreference = aiAgentInferencePreference,
+                        onPreferenceSelected = onAiAgentInferencePreferenceChange
+                    )
+
+                    OpenClBackendSelection(
+                        useOpencl = aiAgentLocalUseOpencl,
+                        onToggle = onAiAgentLocalUseOpenclChange
+                    )
 
                     DebugOptionRow(
                         title = stringResource(R.string.ai_agent_l1_cache),
@@ -541,6 +527,7 @@ private fun SettingsContent(
                     )
                 }
 
+                // 2.4 语音控制（独立第三区）
                 SettingsSection(
                     title = stringResource(R.string.voice_control),
                     description = stringResource(R.string.voice_control_desc)
@@ -1401,6 +1388,8 @@ fun SettingsScreenPreview() {
             onAiAgentInferencePreferenceChange = {},
             aiAgentL1CacheEnabled = true,
             onAiAgentL1CacheEnabledChange = {},
+            autoExecutePlans = true,
+            onAutoExecutePlansChange = {},
             aiAgentLocalUseOpencl = false,
             onAiAgentLocalUseOpenclChange = {},
             tagGenerationUseOpencl = false,
