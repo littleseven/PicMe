@@ -4,14 +4,14 @@
 
 **Goal:** 新建独立「人物」页：全部人脸聚类以代表图封面网格呈现，点封面直接改名/标关系/标"我"；相册顶栏加「人物」直达入口；设置新增一级「人物」入口（从 AI 记忆拆出，AI 记忆专注事实记忆）。
 
-**Architecture:** 抽取 GalleryScreen 里的人物重命名对话框为公共 `PersonRenameDialog`，命名/关系/自我标记的落库逻辑收口到 `PersonRepository.applyPersonEdit()`（DRY，相册与人物页共用）。新建 `PersonScreen` + `PersonViewModel`（Coil 加载 coverMediaId 整图为封面缩略图）。导航加 `Screen.People`；`GalleryTopBar` 加人物图标；`SettingsScreen` 主菜单加一级人物项；`MemoryFactsScreen` 移除人物关系 section。
+**Architecture:** 抽取 GalleryScreen 里的人物重命名对话框为公共 `PersonRenameDialog`，命名/关系/自我标记的落库逻辑收口到 `PersonRepository.applyPersonEdit()`（DRY，相册与人物页共用）。新建 `PersonScreen` + `PersonViewModel`（Coil 加载 coverMediaId 整图 + `faceAwareVerticalAlignment(faceFocusY)` 人脸感知纵向对齐，与相册列表一致、含人脸不砍头）。导航加 `Screen.People`；`GalleryTopBar` 加人物图标；`SettingsScreen` 主菜单加一级人物项；`MemoryFactsScreen` 移除人物关系 section。
 
 **Tech Stack:** Kotlin + Jetpack Compose + ViewModel + StateFlow + Room；Coil 2.7 图片加载；纯 JVM 单测（ViewModel 映射逻辑）+ 设备 `/ui-driver`（accessibility）验证 UI。
 
 **Spec:** `docs/superpowers/specs/2026-07-30-face-cluster-experience-design.md`（§3.4 人物页、§3.5 入口；A→C→B 之 C）
 
-**⚠️ 与 spec 的两处务实偏差（已确认前提）:**
-1. **封面用整图缩略图，非人脸裁剪**：`faceRoiResult` 持久化的 JSON 仅含 `{hasFace,faceCount,isSelfie,isGroupPhoto}`，**不含 ROI 矩形坐标**（`faceRoiToJson` 不写 roi）。人脸裁剪需显示时重检测或改 schema 存 ROI+重扫，超出 v1；改用 coverMediaId 整图封面（仍满足"看代表图认人→命名"）。
+**⚠️ 与 spec 的务实偏差（已确认）:**
+1. **封面不做人脸裁剪**（用户决定）：`faceRoiResult` 仅存计数/标志、无 ROI 矩形坐标，裁剪本就不可行；改用与相册列表一致的「人脸感知纵向对齐」——coverMediaId 整图 + `faceAwareVerticalAlignment(faceFocusY)`（含人脸照片不砍头），仍满足"看代表图认人→命名"。
 2. **"点进看该人照片"延后**：需相册按 personId 过滤的额外路由接线；v1 聚焦命名+入口，照片浏览留作后续。
 
 **验证命令（本环境真门槛=编译+JVM单测）:**
@@ -306,21 +306,27 @@ package com.mamba.picme.features.person
 
 import com.mamba.picme.data.local.entity.PersonEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class PersonCoverResolverTest {
     @Test
-    fun mapsCoverUriByPersonId() {
+    fun mapsCoverUriAndFaceFocusYByPersonId() {
         val persons = listOf(
             PersonEntity(personId = 1, coverMediaId = 10),
             PersonEntity(personId = 2, coverMediaId = null),
             PersonEntity(personId = 3, coverMediaId = 30)
         )
         val uriById = mapOf(10L to "content://a", 30L to "content://c")
-        val resolved = PersonCoverResolver.resolveCoverUris(persons, uriById)
-        assertEquals("content://a", resolved[1L])
-        assertEquals(null, resolved[2L])
-        assertEquals("content://c", resolved[3L])
+        val focusYById = mapOf(10L to 0.4f, 30L to null)
+        val resolved = PersonCoverResolver.resolve(persons, uriById, focusYById)
+        assertEquals("content://a", resolved[1L]?.coverUri)
+        assertEquals(0.4f, resolved[1L]?.faceFocusY)
+        // 无 coverMediaId → 无封面
+        assertNull(resolved[2L]?.coverUri)
+        // 有 uri 但该媒体 faceFocusY 为 null（无人脸）→ 对齐回退居中
+        assertEquals("content://c", resolved[3L]?.coverUri)
+        assertNull(resolved[3L]?.faceFocusY)
     }
 }
 ```
@@ -339,14 +345,22 @@ package com.mamba.picme.features.person
 
 import com.mamba.picme.data.local.entity.PersonEntity
 
-/** 纯映射：persons × (coverMediaId→uri) → personId→coverUri。便于 JVM 单测。 */
+/** 人物封面解析结果：封面 uri + 人脸纵向聚焦点（供 faceAwareVerticalAlignment）。 */
+data class PersonCover(val coverUri: String?, val faceFocusY: Float?)
+
+/** 纯映射：persons × (coverMediaId→uri) × (coverMediaId→faceFocusY) → personId→[PersonCover]。便于 JVM 单测。 */
 object PersonCoverResolver {
-    fun resolveCoverUris(
+    fun resolve(
         persons: List<PersonEntity>,
-        uriByMediaId: Map<Long, String>
-    ): Map<Long, String?> {
+        uriByMediaId: Map<Long, String>,
+        focusYByMediaId: Map<Long, Float?>
+    ): Map<Long, PersonCover> {
         return persons.associate { person ->
-            person.personId to person.coverMediaId?.let { id -> uriByMediaId[id] }
+            val mid = person.coverMediaId
+            person.personId to PersonCover(
+                coverUri = mid?.let { uriByMediaId[it] },
+                faceFocusY = mid?.let { focusYByMediaId[it] }
+            )
         }
     }
 }
@@ -377,19 +391,26 @@ class PersonViewModel(
     private val _persons = MutableStateFlow<List<PersonEntity>>(emptyList())
     val persons: StateFlow<List<PersonEntity>> = _persons.asStateFlow()
 
-    private val _coverUris = MutableStateFlow<Map<Long, String?>>(emptyMap())
-    val coverUris: StateFlow<Map<Long, String?>> = _coverUris.asStateFlow()
+    private val _covers = MutableStateFlow<Map<Long, PersonCover>>(emptyMap())
+    val covers: StateFlow<Map<Long, PersonCover>> = _covers.asStateFlow()
 
     fun load() {
         viewModelScope.launch {
             val all = personRepository.getAllPersons()
             _persons.value = all
             val ids = all.mapNotNull { person -> person.coverMediaId }.distinct()
-            val uriByMediaId = withContext(Dispatchers.IO) {
+            val resolved = withContext(Dispatchers.IO) {
                 if (ids.isEmpty()) emptyMap()
-                else db.mediaDao().getMediaByIds(ids).associate { entity -> entity.id to entity.uri }
+                else {
+                    val media = db.mediaDao().getMediaByIds(ids)
+                    PersonCoverResolver.resolve(
+                        all,
+                        media.associate { entity -> entity.id to entity.uri },
+                        media.associate { entity -> entity.id to entity.faceFocusY }
+                    )
+                }
             }
-            _coverUris.value = PersonCoverResolver.resolveCoverUris(all, uriByMediaId)
+            _covers.value = resolved
         }
     }
 
@@ -505,6 +526,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.domain.person.RelationPredicate
@@ -519,7 +541,7 @@ fun PersonScreen(
     LaunchedEffect(Unit) { viewModel.load() }
 
     val persons by viewModel.persons.collectAsState()
-    val coverUris by viewModel.coverUris.collectAsState()
+    val covers by viewModel.covers.collectAsState()
     var editing by remember { mutableStateOf<PersonEntity?>(null) }
     var editRelation by remember { mutableStateOf<RelationPredicate?>(null) }
     var editCustomLabel by remember { mutableStateOf("") }
@@ -544,7 +566,7 @@ fun PersonScreen(
             items(items = persons, key = { person -> person.personId }) { person ->
                 PersonCoverCell(
                     person = person,
-                    coverUri = coverUris[person.personId],
+                    cover = covers[person.personId],
                     onClick = {
                         editing = person
                         editRelation = null
@@ -575,7 +597,7 @@ fun PersonScreen(
 @Composable
 private fun PersonCoverCell(
     person: PersonEntity,
-    coverUri: String?,
+    cover: PersonCover?,
     onClick: () -> Unit
 ) {
     val name = person.name ?: stringResource(R.string.people_default_name, person.personId)
@@ -589,11 +611,13 @@ private fun PersonCoverCell(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (coverUri != null) {
+        val uri = cover?.coverUri
+        if (uri != null) {
             AsyncImage(
-                model = coverUri,
+                model = uri,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
+                alignment = faceAwareVerticalAlignment(cover.faceFocusY),
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -769,8 +793,8 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 ## 自审（Self-Review）
 
-- **Spec 覆盖**：§3.4 人物页 → Task 3/4；§3.5 入口与导航 → Task 5；命名收口 → Task 1/2。两处偏差（人脸裁剪、点进看照片）已在开头声明并延后。
+- **Spec 覆盖**：§3.4 人物页 → Task 3/4；§3.5 入口与导航 → Task 5；命名收口 → Task 1/2。封面改用 faceFocusY 人脸感知纵向对齐（不裁剪，与相册列表一致）、"点进看照片"延后——已在开头声明。
 - **占位符**：无 TBD；每步含完整代码/命令。少数 import 以"编译为准"微调已注明。
-- **类型一致**：`PersonRenameDialog(initialName, initialRelation, initialCustomLabel, initialIsSelf, onConfirm, onDismiss)` 在 Task 2/4 一致；`applyPersonEdit(personId, name, relation, customLabel, isSelf)` 在 Task 1/2/3 一致；`PersonCoverResolver.resolveCoverUris(persons, uriByMediaId)` Task 3 测与实现一致；`Screen.People.route="people"` Task 5 一致。
+- **类型一致**：`PersonRenameDialog(initialName, initialRelation, initialCustomLabel, initialIsSelf, onConfirm, onDismiss)` 在 Task 2/4 一致；`applyPersonEdit(personId, name, relation, customLabel, isSelf)` 在 Task 1/2/3 一致；`PersonCoverResolver.resolve(persons, uriByMediaId, focusYByMediaId) → Map<Long, PersonCover>` Task 3 测与实现一致；`PersonCover(coverUri, faceFocusY)` 贯穿 Task 3/4；`faceAwareVerticalAlignment(cover.faceFocusY)` Task 4；`Screen.People.route="people"` Task 5 一致。
 - **i18n**：`people_title/people_default_name/people_photos_count/people_entry/people_entry_desc/gallery_people_entry` 共 6 key × 4 locale。
 - **回归风险**：GalleryScreen 改用公共对话框须保留 `onGroupTitleClick` 回填逻辑（Task 2 已注明不变）；MemoryFacts 仅删 UI section，ViewModel 保留降低回归。
