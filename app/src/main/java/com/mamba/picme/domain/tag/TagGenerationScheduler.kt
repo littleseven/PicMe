@@ -1119,9 +1119,9 @@ class TagGenerationScheduler(
     fun detectFacesForScoring(bitmap: android.graphics.Bitmap): List<FaceRoi> =
         pipeline.detectFacesWithLandmarks5(bitmap)
 
-    suspend fun executeFaceDetection(mediaId: Long) {
+    suspend fun executeFaceDetection(mediaId: Long): Boolean {
         val dao = db.mediaDao()
-        val entity = dao.getMediaById(mediaId) ?: return
+        val entity = dao.getMediaById(mediaId) ?: return false
 
         val result = pipeline.stage1WithEmbeddings(
             uri = entity.uri,
@@ -1176,6 +1176,20 @@ class TagGenerationScheduler(
 
         // 固定轮询间隔（TagScanOrchestrator.POLL_INTERVAL_MS）已提供任务间散热间隙，
         // 原子任务内部不再额外节流，避免把 Pass 1 实际推理时间放大数倍。
+
+        return hasValidFace
+    }
+
+    /**
+     * Pass1 流式攒批聚类：把当前未分配的 embedding 流式归类，返回本次归类的 embedding 数。
+     * 异常被吞并记录日志，绝不影响 Pass1 主流程（DBSCAN 末批会兜底）。 */
+    suspend fun runStreamingClusterBatch(): Int {
+        return try {
+            faceClusterEngine.assignStoredEmbeddings()
+        } catch (e: Exception) {
+            Log.w(TAG, "Streaming cluster batch failed (will rely on DBSCAN): ${e.message}")
+            0
+        }
     }
 
     /**
