@@ -71,8 +71,7 @@ class StreamingPacingController(
         val full = latestFullText
         if (full.isNotEmpty()) {
             shownLength = full.length
-            onPaced(full, true)
-            scope.launch { delay(TAIL_BLINK_MS); onPaced(full, false) }
+            onPaced(full, false)
         }
     }
 

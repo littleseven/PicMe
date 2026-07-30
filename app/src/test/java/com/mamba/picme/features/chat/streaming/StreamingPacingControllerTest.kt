@@ -95,7 +95,7 @@ class StreamingPacingControllerTest {
     }
 
     @Test
-    fun `finish keeps cursor visible then hides after tail blink`() = runTest {
+    fun `finish hides cursor immediately`() = runTest {
         val paced = mutableListOf<Paced>()
         val ctrl = newController(paced, this)
         ctrl.start()
@@ -103,9 +103,7 @@ class StreamingPacingControllerTest {
         runCurrent()
         advanceMs(100) // hi 一跳（2 字母）追平
         ctrl.finish()
-        assertTrue(paced.last().cursorVisible) // 余闪开始
-        advanceMs(StreamingPacingController.TAIL_BLINK_MS)
-        assertEquals(false, paced.last().cursorVisible) // 余闪结束
+        assertEquals(false, paced.last().cursorVisible) // 立即隐藏，无余闪
     }
 
     @Test

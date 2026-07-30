@@ -452,52 +452,39 @@ fun ChatScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(messages, key = { it.id }) { message ->
-                            val transitionState = remember(message.id) {
-                                MutableTransitionState(false).apply { targetState = true }
-                            }
-                            val density = LocalDensity.current
-                            AnimatedVisibility(
-                                visibleState = transitionState,
-                                enter = fadeIn(animationSpec = tween(180, easing = FastOutSlowInEasing)) +
-                                    slideInVertically(
-                                        animationSpec = tween(180, easing = FastOutSlowInEasing),
-                                        initialOffsetY = { with(density) { 8.dp.roundToPx() } }
-                                    )
-                            ) {
-                                val mr = message.mediaResults
-                                if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
-                                    MediaResultsCarousel(
-                                        mediaResults = mr,
-                                        onCardClick = { index ->
-                                            previewAssets = mr.assets
-                                            previewIndex = index
-                                        },
-                                        onViewAll = {
-                                            onNavigateToGallery(mr.query)
-                                        },
-                                        onFeedback = { mediaId, action ->
-                                            viewModel.onMediaFeedback(mediaId, mr.query, action)
+                            val mr = message.mediaResults
+                            if (message.type == ChatMessageType.MEDIA_RESULTS && mr != null) {
+                                MediaResultsCarousel(
+                                    mediaResults = mr,
+                                    onCardClick = { index ->
+                                        previewAssets = mr.assets
+                                        previewIndex = index
+                                    },
+                                    onViewAll = {
+                                        onNavigateToGallery(mr.query)
+                                    },
+                                    onFeedback = { mediaId, action ->
+                                        viewModel.onMediaFeedback(mediaId, mr.query, action)
+                                    }
+                                )
+                            } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
+                                ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
+                            } else {
+                                ChatMessageItem(
+                                    message = message,
+                                    onImageClick = { msg ->
+                                        val pages = buildImagePreviewPages(messages)
+                                        if (pages.isNotEmpty()) {
+                                            val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
+                                                msg.type == ChatMessageType.AGENT_EDIT_RESULT
+                                            if (isEdit) viewModel.touchEditImage(msg.imageUri)
+                                            imagePreview = ChatImagePreviewState(
+                                                pages = pages,
+                                                initialIndex = indexOfPage(pages, msg.id)
+                                            )
                                         }
-                                    )
-                                } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
-                                    ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
-                                } else {
-                                    ChatMessageItem(
-                                        message = message,
-                                        onImageClick = { msg ->
-                                            val pages = buildImagePreviewPages(messages)
-                                            if (pages.isNotEmpty()) {
-                                                val isEdit = msg.type == ChatMessageType.AGENT_IMAGE ||
-                                                    msg.type == ChatMessageType.AGENT_EDIT_RESULT
-                                                if (isEdit) viewModel.touchEditImage(msg.imageUri)
-                                                imagePreview = ChatImagePreviewState(
-                                                    pages = pages,
-                                                    initialIndex = indexOfPage(pages, msg.id)
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
+                                    }
+                                )
                             }
                         }
                     }
