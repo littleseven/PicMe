@@ -78,6 +78,7 @@ import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
 import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
 import androidx.lifecycle.ViewModel
+import com.mamba.picme.domain.tag.FaceClusterEngine
 import com.mamba.picme.domain.tag.TagGenerationScheduler
 import com.mamba.picme.domain.tag.TagScanProgress
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
@@ -142,6 +143,8 @@ interface AppContainer {
     val imageTagIndexingWorker: ImageTagIndexingWorker
     /** TAG 生成调度器(单张 retag 走 Pass3 pipeline,与集中扫描同源) */
     val tagGenerationScheduler: TagGenerationScheduler
+    /** 人脸聚类引擎（人物页进入时跑跨簇合并 pass，愈合同人拆组） */
+    val faceClusterEngine: FaceClusterEngine
     /** 美学/人脸画质打分 + 封面刷新（eDifFIQA；独立后台） */
     val aestheticScoreWorker: AestheticScoreWorker
     /** TAG 生成扫描状态（只读，从 TagGenerationService 获取） */
@@ -338,6 +341,10 @@ class AppContainerImpl(
 
     override val tagGenerationScheduler: TagGenerationScheduler by lazy {
         TagGenerationScheduler(context)
+    }
+
+    override val faceClusterEngine: FaceClusterEngine by lazy {
+        FaceClusterEngine(context)
     }
 
     override val aestheticScoreWorker: AestheticScoreWorker by lazy {

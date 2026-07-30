@@ -50,6 +50,12 @@ class FaceClusterEngine(private val context: Context) {
         /** 调试：最多保存多少张对齐后人脸图 */
         private const val MAX_DEBUG_FACE_SAVES = 30
 
+        /** mergeSmallClusters：小簇判定上限（embedding 数 ≤ 此值者作为待合并候选） */
+        const val DEFAULT_MERGE_MAX_FACE_COUNT = 2
+
+        /** mergeSmallClusters：迭代轮数上限（防病态；每轮至少合并 1 个否则提前结束） */
+        private const val MAX_MERGE_ITERATIONS = 5
+
         @Volatile
         private var debugFaceSaveCount = 0
     }
@@ -442,6 +448,87 @@ class FaceClusterEngine(private val context: Context) {
         personDao.deletePerson(personB)
 
         Log.d(TAG, "Merged clusters: $personB -> $personA, ${countB} embeddings moved")
+    }
+
+    /**
+     * 跨簇合并 pass：把 [maxFaceCount] 张以下的「小簇/单例」按质心相似度并入最近的
+     * （通常更大的）person，愈合「同一人因 faceId 冻结被拆成多组」的问题。
+     *
+     * 幂等、迭代到不动点（上限 [MAX_MERGE_ITERATIONS] 轮）。每轮：
+     * 1. 重建当前全量 person 视图（质心 + 真实 embedding 数，不用 denormalized faceCount）；
+     * 2. 对每个小簇 P，在所有其他存活 person 中找质心余弦相似度最高者 Q；
+     * 3. [decideSmallClusterMerge] 判定（相似度 ≥ [threshold]、非双方命名、幸存者选择）→
+     *    [mergeClusters] 执行（保留幸存者的 name/isSelf/cover）。
+     *
+     * 只读 DB embedding 算质心+余弦，**不加载 MNN 模型**，进人物页调用开销很小。
+     *
+     * @return 本次执行的合并次数。
+     */
+    suspend fun mergeSmallClusters(
+        maxFaceCount: Int = DEFAULT_MERGE_MAX_FACE_COUNT,
+        threshold: Float = ClusteringConfig.COSINE_THRESHOLD
+    ): Int {
+        var totalMerges = 0
+        repeat(MAX_MERGE_ITERATIONS) {
+            // 重建当前视图：personId -> (entity, centroid, realCount)
+            val view = personDao.getAllPersons().mapNotNull { person ->
+                val centroid = getPersonCentroidCached(person.personId) ?: return@mapNotNull null
+                val count = personDao.getEmbeddingCount(person.personId)
+                if (count <= 0) return@mapNotNull null
+                Triple(person, centroid, count)
+            }
+            if (view.size < 2) return totalMerges
+
+            val byId = view.associateBy { it.first.personId }
+            val candidates = view
+                .filter { it.third in 1..maxFaceCount }
+                .sortedWith(compareBy({ it.third }, { it.first.personId }))
+
+            var mergedThisIter = 0
+            val removed = mutableSetOf<Long>()
+
+            for (cand in candidates) {
+                val candId = cand.first.personId
+                if (candId in removed) continue
+                val candCentroid = cand.second
+
+                var bestId: Long? = null
+                var bestSim = -1f
+                for (other in view) {
+                    val otherId = other.first.personId
+                    if (otherId == candId || otherId in removed) continue
+                    val sim = cosineSimilarity(candCentroid, other.second)
+                    if (sim > bestSim) {
+                        bestSim = sim
+                        bestId = otherId
+                    }
+                }
+                val neighbor = bestId?.let { byId[it] } ?: continue
+
+                val decision = decideSmallClusterMerge(
+                    MergeCandidate(candId, cand.first.name, cand.first.isSelf, cand.third),
+                    MergeCandidate(neighbor.first.personId, neighbor.first.name, neighbor.first.isSelf, neighbor.third),
+                    bestSim,
+                    threshold
+                )
+                if (decision == null) {
+                    if (bestSim >= threshold) {
+                        // 相似度达标却被跳过 → 双方均已命名（尊重用户人工区分）
+                        Log.d(TAG, "mergeSmallClusters: skip $candId~${neighbor.first.personId} (both named, sim=${"%.3f".format(bestSim)})")
+                    }
+                    continue
+                }
+
+                mergeClusters(decision.survivor.personId, decision.absorbed.personId)
+                removed.add(decision.absorbed.personId)
+                mergedThisIter++
+                totalMerges++
+            }
+
+            if (mergedThisIter == 0) return totalMerges
+            Log.d(TAG, "mergeSmallClusters: iteration merged $mergedThisIter (total $totalMerges)")
+        }
+        return totalMerges
     }
 
     /**

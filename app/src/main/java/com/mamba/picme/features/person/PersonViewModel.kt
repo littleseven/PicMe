@@ -1,5 +1,6 @@
 package com.mamba.picme.features.person
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.domain.person.RelationPredicate
+import com.mamba.picme.domain.tag.FaceClusterEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +23,8 @@ import kotlinx.coroutines.withContext
  */
 class PersonViewModel(
     private val personRepository: PersonRepository,
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    private val faceClusterEngine: FaceClusterEngine
 ) : ViewModel() {
 
     private val _persons = MutableStateFlow<List<PersonEntity>>(emptyList())
@@ -57,6 +60,12 @@ class PersonViewModel(
     fun reconcileAndLoad() {
         viewModelScope.launch {
             personRepository.reconcilePersons()
+            // 跨簇合并 pass：把同一人被拆出的小簇/单例并回最近邻（愈合 44/144 类拆组）。
+            // 合并失败不阻断人物页加载。
+            withContext(Dispatchers.IO) {
+                runCatching { faceClusterEngine.mergeSmallClusters() }
+                    .onFailure { Log.w("PersonViewModel", "mergeSmallClusters failed", it) }
+            }
             load()
         }
     }
@@ -79,12 +88,16 @@ class PersonViewModel(
 
     companion object {
         /** ViewModelProvider.Factory：参照 MemoryFactsViewModel.factory 范式。 */
-        fun factory(personRepository: PersonRepository, db: AppDatabase): ViewModelProvider.Factory =
+        fun factory(
+            personRepository: PersonRepository,
+            db: AppDatabase,
+            faceClusterEngine: FaceClusterEngine
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     if (modelClass.isAssignableFrom(PersonViewModel::class.java)) {
                         @Suppress("UNCHECKED_CAST")
-                        return PersonViewModel(personRepository, db) as T
+                        return PersonViewModel(personRepository, db, faceClusterEngine) as T
                     }
                     throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
                 }

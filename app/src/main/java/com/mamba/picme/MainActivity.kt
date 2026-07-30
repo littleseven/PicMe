@@ -516,7 +516,8 @@ class MainActivity : ComponentActivity() {
                                 val personViewModel: PersonViewModel = viewModel(
                                     factory = PersonViewModel.factory(
                                         app.container.personRepository,
-                                        app.container.database
+                                        app.container.database,
+                                        app.container.faceClusterEngine
                                     )
                                 )
                                 PersonScreen(

@@ -1222,6 +1222,14 @@ class TagGenerationScheduler(
         // 对齐 persons 表：增量聚类/历史数据可能留下孤儿人物、faceCount 失配、悬空封面。
         // 无论是否全量重聚，聚类结束都拉回一致，避免人物页空白聚类。
         db.personDao().reconcilePersons(System.currentTimeMillis())
+
+        // 跨簇合并 pass：faceId 冻结会让同一人被拆成「小簇/单例 + 大簇」永久分家
+        //（已分组的 embedding 不参与后续聚类轮）。聚类末尾把小簇按质心相似度并回最近邻。
+        val mergedSmall = faceClusterEngine.mergeSmallClusters()
+        if (mergedSmall > 0) {
+            Log.i(TAG, "Post-cluster merge pass healed $mergedSmall small person(s)")
+            db.personDao().reconcilePersons(System.currentTimeMillis())
+        }
     }
 
     /**
