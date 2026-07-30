@@ -245,7 +245,7 @@
 <string name="landmark_compatibility">GPUPixel</string>
 
     <!-- Duplicate Management -->
-    <string name="gallery_features">相簿功能</string>
+    <string name="gallery_features">相簿打標</string>
     <string name="gallery_features_desc">整理與清理照片圖庫的實用工具。</string>
     <string name="manage_duplicates">管理重複照片</string>
     <string name="duplicate_manager_desc">尋找並刪除重複或相似照片，釋放儲存空間。</string>
@@ -658,7 +658,7 @@
     <string name="developer_debug_entries">除錯工具入口</string>
     <string name="gallery_advanced">進階</string>
     <string name="gallery_debug_features">相簿除錯功能</string>
-    <string name="gallery_debug_features_desc">相簿功能的測試工具與後端模式切換。</string>
+    <string name="gallery_debug_features_desc">相簿打標的測試工具與後端模式切換。</string>
     <string name="debug_image_download">圖片下載頁</string>
     <string name="debug_image_download_desc">測試數據生成與圖片下載。</string>
     <string name="llm_call_log">LLM 呼叫記錄</string>
