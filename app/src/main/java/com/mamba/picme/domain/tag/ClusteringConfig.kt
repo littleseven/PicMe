@@ -25,9 +25,18 @@ object ClusteringConfig {
     const val COSINE_THRESHOLD = 0.65f
 
     /** 跨簇合并 pass 的质心相似度阈值：高于此值才把两个 person 合并（不限簇大小）。
-     *  0.80：同一人被拆出的两簇质心相似度通常 ≥0.85，不同人 rarely >0.70；
-     *  0.80 在两者之间，既能愈合「两个大簇被拆开」，又防撞脸误并。 */
-    const val MERGE_SIMILARITY_THRESHOLD = 0.80f
+     *  0.65：与 COSINE_THRESHOLD 同口径（系统「同一人」判定）。按实测校准——同一人拆簇
+     *  质心相似度 ≥0.677（如 35/142），不同人交叉 ≤0.42（如 140 两半）；0.65 落在两者之间。 */
+    const val MERGE_SIMILARITY_THRESHOLD = 0.65f
+
+    /** 拆分 pass：把疑似「两个人被并成一组」的簇切成两个 person 的判定阈值。
+     *  簇内用最远两点做种子分两半，仅当「两半各自内聚 ≥ SPLIT_INTRA_MIN 且互相交叉 ≤ SPLIT_CROSS_MAX」才拆。 */
+    /** 两半互相交叉相似度上限（≤ 此值才视为两个不同的人）。0.45：高于不同人交叉上限(~0.42)。 */
+    const val SPLIT_CROSS_MAX = 0.45f
+    /** 每半内部平均相似度下限（≥ 此值才视为内聚子团，避免拆出噪声/误裁剪）。 */
+    const val SPLIT_INTRA_MIN = 0.55f
+    /** 仅对 embedding 数 ≥ 此值的簇尝试拆分（保证两半各 ≥2）。 */
+    const val SPLIT_MIN_CLUSTER_SIZE = 4
 
     /** DBSCAN: 余弦距离阈值（= 1 - 相似度，越小越严格）
      *  0.35：相似度 ≥ 0.65 才成簇，抑制不同女明星误聚 */

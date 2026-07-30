@@ -53,6 +53,9 @@ class FaceClusterEngine(private val context: Context) {
         /** mergeSmallClusters：凝聚式合并次数上限（自然终止，此为兜底防病态） */
         private const val MAX_MERGE_ITERATIONS = 200
 
+        /** splitOvermergedClusters：拆分次数上限（自然终止，此为兜底） */
+        private const val MAX_SPLIT_ITERATIONS = 200
+
         @Volatile
         private var debugFaceSaveCount = 0
     }
@@ -537,6 +540,132 @@ class FaceClusterEngine(private val context: Context) {
             Log.i(TAG, "mergeSmallClusters: $totalMerges similar cluster(s) merged (threshold=$threshold)")
         }
         return totalMerges
+    }
+
+    /**
+     * 拆分 pass：把「两个人被并成一组」的簇切成两个 person。
+     *
+     * 判定（保守）：簇 embedding ≥ [minSize]，以最远（最低相似度）两点为种子分两半，
+     * 仅当两半各 ≥2、各自内聚 ≥ [intraMin]、且互相交叉 ≤ [crossMax] 才拆——较小的一半
+     * spin off 为新 person。命中 140 这类「两半各自内聚、互相很低」的 k-NN 桥接误并；
+     * 又不误拆高方差单人簇（内聚不够不拆）。
+     *
+     * @return 本次拆分次数。
+     */
+    suspend fun splitOvermergedClusters(
+        intraMin: Float = ClusteringConfig.SPLIT_INTRA_MIN,
+        crossMax: Float = ClusteringConfig.SPLIT_CROSS_MAX,
+        minSize: Int = ClusteringConfig.SPLIT_MIN_CLUSTER_SIZE
+    ): Int {
+        var totalSplits = 0
+        var guard = 0
+        while (guard++ < MAX_SPLIT_ITERATIONS) {
+            val persons = personDao.getAllPersons()
+            var didSplit = false
+            for (person in persons) {
+                val entities = personDao.getEmbeddingsByPerson(person.personId)
+                if (entities.size < minSize) continue
+                val feats = entities.map { entity -> byteArrayToFloatArray(entity.embedding) }
+                val (halfA, halfB) = twoWayPartition(feats)
+                if (halfA.size < 2 || halfB.size < 2) continue
+                val intraA = meanPairwiseSim(feats, halfA)
+                val intraB = meanPairwiseSim(feats, halfB)
+                val cross = meanCrossSim(feats, halfA, halfB)
+                if (intraA < intraMin || intraB < intraMin || cross > crossMax) continue
+
+                // 较小的一半 spin off 为新 person，较大的一半留在原 person
+                val (keepIdx, spinIdx) = if (halfA.size >= halfB.size) halfA to halfB else halfB to halfA
+                val spinMediaIds = spinIdx.map { idx -> entities[idx].mediaId }.distinct()
+                val newPersonId = personDao.insertPerson(
+                    PersonEntity(faceCount = spinIdx.size, coverMediaId = spinMediaIds.firstOrNull())
+                )
+                for (idx in spinIdx) {
+                    personDao.assignEmbedding(entities[idx].embeddingId, newPersonId)
+                }
+                if (spinMediaIds.isNotEmpty()) {
+                    personDao.setMediaFaceIds(spinMediaIds, newPersonId.toString())
+                }
+                val keepMediaIds = keepIdx.map { idx -> entities[idx].mediaId }.distinct()
+                personDao.updatePersonStats(
+                    person.personId,
+                    faceCount = keepIdx.size,
+                    coverMediaId = keepMediaIds.firstOrNull() ?: person.coverMediaId
+                )
+                centroidCache.remove(person.personId)
+                totalSplits++
+                didSplit = true
+                Log.i(
+                    TAG,
+                    "splitOvermergedClusters: ${person.personId} -> keep ${keepIdx.size} + new $newPersonId ${spinIdx.size} " +
+                        "(intraA=${"%.2f".format(intraA)} intraB=${"%.2f".format(intraB)} cross=${"%.2f".format(cross)})"
+                )
+                break // 拆分后 personId 变化，重新拉 persons
+            }
+            if (!didSplit) break
+        }
+        if (totalSplits > 0) {
+            Log.i(TAG, "splitOvermergedClusters: $totalSplits over-merged cluster(s) split")
+        }
+        return totalSplits
+    }
+
+    /** 聚类维护：先拆分（修过并）再合并（修欠并），供人物页进入/聚类末尾统一调用。 */
+    suspend fun runClusterMaintenance(): Int {
+        val splits = splitOvermergedClusters()
+        val merges = mergeSmallClusters()
+        return splits + merges
+    }
+
+    // ── 拆分 pass 的纯数值辅助 ─────────────────────────────────────────
+    /** 以最远（最低相似度）两点为种子把向量集分两半，返回 (idxA, idxB)。 */
+    private fun twoWayPartition(feats: List<FloatArray>): Pair<List<Int>, List<Int>> {
+        var wi = 0
+        var wj = 1
+        var worst = cosineSimilarity(feats[0], feats[1])
+        for (i in feats.indices) {
+            for (j in i + 1 until feats.size) {
+                val s = cosineSimilarity(feats[i], feats[j])
+                if (s < worst) {
+                    worst = s
+                    wi = i
+                    wj = j
+                }
+            }
+        }
+        val a = mutableListOf(wi)
+        val b = mutableListOf(wj)
+        for (k in feats.indices) {
+            if (k == wi || k == wj) continue
+            if (cosineSimilarity(feats[k], feats[wi]) >= cosineSimilarity(feats[k], feats[wj])) a.add(k) else b.add(k)
+        }
+        return a to b
+    }
+
+    /** 一组内（按 feats 下标）的平均两两相似度。 */
+    private fun meanPairwiseSim(feats: List<FloatArray>, idx: List<Int>): Float {
+        if (idx.size < 2) return 0f
+        var sum = 0f
+        var n = 0
+        for (i in idx.indices) {
+            for (j in i + 1 until idx.size) {
+                sum += cosineSimilarity(feats[idx[i]], feats[idx[j]])
+                n++
+            }
+        }
+        return if (n > 0) sum / n else 0f
+    }
+
+    /** 两组（按 feats 下标）之间的平均相似度。 */
+    private fun meanCrossSim(feats: List<FloatArray>, a: List<Int>, b: List<Int>): Float {
+        var sum = 0f
+        var n = 0
+        for (i in a) {
+            for (j in b) {
+                sum += cosineSimilarity(feats[i], feats[j])
+                n++
+            }
+        }
+        return if (n > 0) sum / n else 0f
     }
 
     /**

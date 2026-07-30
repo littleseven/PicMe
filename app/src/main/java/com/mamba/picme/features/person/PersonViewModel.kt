@@ -80,11 +80,11 @@ class PersonViewModel(
     fun reconcileAndLoad() {
         viewModelScope.launch {
             personRepository.reconcilePersons()
-            // 跨簇合并 pass：把同一人被拆出的小簇/单例并回最近邻（愈合 44/144 类拆组）。
-            // 合并失败不阻断人物页加载。
+            // 聚类维护：拆分（两个不同的人被并成一组）+ 合并（同一人被拆成多组），进人物页即时愈合。
+            // 失败不阻断人物页加载。
             withContext(Dispatchers.IO) {
-                runCatching { faceClusterEngine.mergeSmallClusters() }
-                    .onFailure { Log.w("PersonViewModel", "mergeSmallClusters failed", it) }
+                runCatching { faceClusterEngine.runClusterMaintenance() }
+                    .onFailure { Log.w("PersonViewModel", "runClusterMaintenance failed", it) }
             }
             load()
         }
@@ -148,7 +148,9 @@ class PersonViewModel(
     /** 读取某人物关联的全部媒体（供封面选择 Sheet）。 */
     suspend fun loadPhotosByPerson(personId: Long): List<MediaEntity> =
         withContext(Dispatchers.IO) {
-            db.personDao().getMediaByPerson(personId)
+            // 防御性去重：同一人可能在同一张照片里有多个人脸 embedding，
+            // 即使 DAO 已用 DISTINCT，UI 层再保一次险，避免 LazyVerticalGrid 重复 key 崩溃。
+            db.personDao().getMediaByPerson(personId).distinctBy { it.id }
         }
 
     fun clearError() {

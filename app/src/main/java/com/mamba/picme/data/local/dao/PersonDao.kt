@@ -51,7 +51,7 @@ interface PersonDao {
 
     @Query(
         """
-        SELECT m.* FROM media_assets m
+        SELECT DISTINCT m.* FROM media_assets m
         INNER JOIN face_embeddings e ON m.id = e.mediaId
         WHERE e.personId = :personId
         ORDER BY m.captureDate DESC
@@ -200,6 +200,10 @@ interface PersonDao {
     /** 合并 personB→personA 时，把媒体上指向 personB 的 faceId 改指 personA。 */
     @Query("UPDATE media_assets SET faceId = :newPersonId WHERE faceId = :oldPersonId")
     suspend fun reassignMediaFaceId(oldPersonId: String, newPersonId: String)
+
+    /** 拆分 pass：把指定一组媒体的 faceId 改指新 person（拆出子团时用）。 */
+    @Query("UPDATE media_assets SET faceId = :personId WHERE id IN (:mediaIds)")
+    suspend fun setMediaFaceIds(mediaIds: List<Long>, personId: String)
 
     /**
      * 修复悬空 faceId：媒体 faceId 指向已删除的 person（被合并），改指该媒体 embedding 现属 person；
