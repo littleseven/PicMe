@@ -257,5 +257,18 @@
       "face_landmarker.task"
     ],
     "tags": ["recommended", "photo-tagging", "face", "landmark", "mediapipe"]
+  },
+  {
+    "id": "ediffiqa-face-quality-onnx",
+    "name": "eDifFIQA 人脸画质",
+    "description": "eDifFIQA 人脸图像质量评估 ONNX (~7MB)，为人脸聚类挑最佳封面（人脸清晰度/光照/正脸）",
+    "size": 7272678,
+    "sources": {
+      "ModelScope": "budaoshou/ediffiqa-face-quality-onnx"
+    },
+    "files": [
+      "ediffiqa_tiny.onnx"
+    ],
+    "tags": ["recommended", "photo-tagging", "face", "onnx", "quality"]
   }
 ]

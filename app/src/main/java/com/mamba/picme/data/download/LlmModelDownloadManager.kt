@@ -126,6 +126,7 @@ class LlmModelDownloadManager(context: Context) {
          * U2NetP 轻量抠图 ONNX 模型文件列表
          */
         private val U2NETP_MODEL_FILES = listOf("u2netp.onnx")
+        private val EDIFFIQA_MODEL_FILES = listOf("ediffiqa_tiny.onnx")
 
         /**
          * MNN-LLM 模型可选文件列表（存在则下载，404则跳过）
@@ -179,6 +180,7 @@ class LlmModelDownloadManager(context: Context) {
             modelId == "florence2_base" -> ModelPathConfig.FLORENCE2_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
+            modelId == "ediffiqa-face-quality-onnx" -> EDIFFIQA_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
             else -> LLM_MODEL_FILES
         }
@@ -520,6 +522,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "florence2_base" -> ModelPathConfig.FLORENCE2_MODEL_FILES
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
+            modelId == "ediffiqa-face-quality-onnx" -> EDIFFIQA_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
             else -> LLM_MODEL_FILES
         }
@@ -1386,7 +1389,8 @@ data class ModelConfig(
         val RECOMMENDED_MODEL_IDS: Set<String> = CHAT_MODEL_IDS + setOf(
             "modnet-onnx",                  // 证件照/抠图
             "u2netp-onnx",                  // 证件照/抠图（轻量）
-            "mediapipe-face-landmarker"     // 相册人脸标记预览
+            "mediapipe-face-landmarker",    // 相册人脸标记预览
+            "ediffiqa-face-quality-onnx"    // 人脸封面质量评分
         )
     }
 
