@@ -17,6 +17,7 @@ import java.io.FileOutputStream
 import java.io.FileWriter
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
@@ -462,17 +463,16 @@ class FaceClusterEngine(private val context: Context) {
     }
 
     /**
-     * 跨簇合并 pass：把「质心相似度 ≥ [threshold]」的 person 两两合并（**不限簇大小**），
-     * 愈合「同一人因 faceId 冻结被拆成多组」——含两个都 >2 张的大簇被拆开的情形
-     * （旧的 ≤2 限制会漏掉大簇拆分）。
+     * 跨簇合并 pass：把「质心相似度 ≥ [threshold]」的 person 两两合并，愈合「同一人被拆成多组」。
+     *
+     * 为修复「同一人因表情/角度/光线差异被拆成多个 1~4 张小分组」（如用户反馈的 #1647 / #1628），
+     * 对**双方均 ≤ [ClusteringConfig.MERGE_SMALL_CLUSTER_MAX_SIZE] 的小簇**使用更宽松的
+     * [ClusteringConfig.MERGE_SMALL_CLUSTER_SIMILARITY_THRESHOLD]（默认 0.50）；
+     * 涉及任一较大簇时仍使用 [threshold]（默认 0.55），避免把「大宝」和「老郭」等大簇误合并。
      *
      * 凝聚式（agglomerative）：每轮在存活 person 中找相似度最高且可合并的一对 → [mergeClusters]，
      * 就地更新幸存者质心后继续，直到没有达标对。幸存者选择与「双方命名跳过」见
      * [decideSmallClusterMerge]（保留 name/isSelf/cover）。
-     *
-     * 阈值默认 [ClusteringConfig.MERGE_SIMILARITY_THRESHOLD]=0.80：同一人拆簇质心相似度通常
-     * ≥0.85，不同人 rarely >0.70，0.80 兼顾召回与防撞脸误并。只读 DB embedding 算质心+余弦，
-     * **不加载 MNN 模型**。
      *
      * @return 本次执行的合并次数。
      */
@@ -497,11 +497,14 @@ class FaceClusterEngine(private val context: Context) {
         val alive = centroids.keys.toMutableSet()
         if (alive.size < 2) return 0
 
+        val smallSize = ClusteringConfig.MERGE_SMALL_CLUSTER_MAX_SIZE
+        val smallThreshold = ClusteringConfig.MERGE_SMALL_CLUSTER_SIMILARITY_THRESHOLD
+
         var totalMerges = 0
         var guard = 0
         while (guard++ < MAX_MERGE_ITERATIONS) {
             val list = alive.toList()
-            var bestSim = threshold // 严格 > threshold 才合并
+            var bestSim = Float.NEGATIVE_INFINITY
             var bestA = -1L
             var bestB = -1L
             for (i in list.indices) {
@@ -510,23 +513,34 @@ class FaceClusterEngine(private val context: Context) {
                 for (j in i + 1 until list.size) {
                     val b = list[j]
                     val cb = centroids[b] ?: continue
-                    val sim = cosineSimilarity(ca, cb)
-                    if (sim <= bestSim) continue
                     val aNamed = !names[a].isNullOrBlank()
                     val bNamed = !names[b].isNullOrBlank()
                     if (aNamed && bNamed) continue // 双方已命名：尊重人工区分
-                    bestSim = sim
-                    bestA = a
-                    bestB = b
+
+                    val bothSmall = (counts[a] ?: 0) <= smallSize && (counts[b] ?: 0) <= smallSize
+                    val effectiveThreshold = if (bothSmall) min(threshold, smallThreshold) else threshold
+
+                    val sim = cosineSimilarity(ca, cb)
+                    if (sim <= effectiveThreshold) continue
+                    if (sim > bestSim) {
+                        bestSim = sim
+                        bestA = a
+                        bestB = b
+                    }
                 }
             }
             if (bestA < 0) break
+
+            val pairThreshold = when {
+                (counts[bestA] ?: 0) <= smallSize && (counts[bestB] ?: 0) <= smallSize -> min(threshold, smallThreshold)
+                else -> threshold
+            }
 
             val decision = decideSmallClusterMerge(
                 MergeCandidate(bestA, names[bestA], selves[bestA] == true, counts[bestA] ?: 1),
                 MergeCandidate(bestB, names[bestB], selves[bestB] == true, counts[bestB] ?: 1),
                 bestSim,
-                threshold
+                pairThreshold
             ) ?: break // 理论不会 null（已过滤双方命名与 sim≤阈值）
             val survivor = decision.survivor.personId
             val absorbed = decision.absorbed.personId
@@ -544,7 +558,7 @@ class FaceClusterEngine(private val context: Context) {
             Log.d(TAG, "mergeSmallClusters: $absorbed -> $survivor (sim=${"%.3f".format(bestSim)}), total $totalMerges")
         }
         if (totalMerges > 0) {
-            Log.i(TAG, "mergeSmallClusters: $totalMerges similar cluster(s) merged (threshold=$threshold)")
+            Log.i(TAG, "mergeSmallClusters: $totalMerges similar cluster(s) merged (threshold=$threshold, smallThreshold=$smallThreshold)")
         }
         return totalMerges
     }

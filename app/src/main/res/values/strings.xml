@@ -259,6 +259,10 @@
     <string name="gallery_features">Gallery Tagging</string>
     <string name="gallery_features_desc">Tag scanning, face clustering, and model download management.</string>
     <string name="people_title">People</string>
+    <string name="people_title_with_count">People (%1$d/%2$d)</string>
+    <string name="people_filter_show_all">Show all people</string>
+    <string name="people_filter_hide_singletons">Hide unnamed single-face groups</string>
+    <string name="people_filter_hidden_hint">Hidden %1$d unnamed single-face groups; tap filter to show all</string>
     <string name="people_default_name">Person #%1$d</string>
     <string name="people_photos_count">%1$d photos</string>
     <string name="people_rescore">Re-score and refresh covers</string>

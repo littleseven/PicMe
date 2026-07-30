@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Autorenew
+import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.FilterListOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -66,6 +68,8 @@ fun PersonScreen(
     val photoCounts by viewModel.photoCounts.collectAsState()
     val editingPersonId by viewModel.editingPersonId.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val showAll by viewModel.showAll.collectAsState()
+    val totalPersonCount by viewModel.totalPersonCount.collectAsState()
 
     var infoTarget by remember { mutableStateOf<PersonEntity?>(null) }
     var infoPhotos by remember { mutableStateOf<List<MediaEntity>>(emptyList()) }
@@ -76,6 +80,15 @@ fun PersonScreen(
         errorMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(showAll, persons.size, totalPersonCount) {
+        val hidden = totalPersonCount - persons.size
+        if (hidden > 0 && !showAll) {
+            snackbarHostState.showSnackbar(
+                context.getString(R.string.people_filter_hidden_hint, hidden)
+            )
         }
     }
 
@@ -91,7 +104,15 @@ fun PersonScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.people_title)) },
+                title = {
+                    Text(
+                        text = stringResource(
+                            R.string.people_title_with_count,
+                            persons.size,
+                            totalPersonCount
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -101,6 +122,18 @@ fun PersonScreen(
                     }
                 },
                 actions = {
+                    // 显示全部 / 隐藏单张未命名单人分组
+                    IconButton(
+                        onClick = { viewModel.toggleShowAll() },
+                    ) {
+                        Icon(
+                            imageVector = if (showAll) Icons.Rounded.FilterListOff else Icons.Rounded.FilterList,
+                            contentDescription = stringResource(
+                                if (showAll) R.string.people_filter_hide_singletons else R.string.people_filter_show_all
+                            )
+                        )
+                    }
+
                     // 手动触发：跑一轮（300 张）eDifFIQA 打分 + 刷新封面，完成后 reload 看效果
                     IconButton(
                         onClick = {

@@ -37,6 +37,12 @@ class PersonViewModel(
     private val _persons = MutableStateFlow<List<PersonEntity>>(emptyList())
     val persons: StateFlow<List<PersonEntity>> = _persons.asStateFlow()
 
+    private val _showAll = MutableStateFlow(false)
+    val showAll: StateFlow<Boolean> = _showAll.asStateFlow()
+
+    private val _totalPersonCount = MutableStateFlow(0)
+    val totalPersonCount: StateFlow<Int> = _totalPersonCount.asStateFlow()
+
     private val _covers = MutableStateFlow<Map<Long, PersonCover>>(emptyMap())
     val covers: StateFlow<Map<Long, PersonCover>> = _covers.asStateFlow()
 
@@ -100,11 +106,25 @@ class PersonViewModel(
             _covers.value = resolved
             _relations.value = relationMap
             _photoCounts.value = photoCountMap
-            // 防御：coverMediaId 悬空（封面媒体已删）的聚类 coverUri 为 null，不展示，避免空白格。
-            // 正常情况下 reconcileAndLoad 已先行清理，此处为兜底。
-            _persons.value = PersonCoverResolver.filterCoverable(all, resolved)
-                .sortedForDisplay(relationMap, photoCountMap)
+            _totalPersonCount.value = all.size
+
+            // 默认隐藏「未命名且只有 1 张人脸」的单人碎片，减少主界面噪音；
+            // 用户可一键切换显示全部。
+            val coverable = PersonCoverResolver.filterCoverable(all, resolved)
+            _persons.value = if (_showAll.value) {
+                coverable.sortedForDisplay(relationMap, photoCountMap)
+            } else {
+                coverable.filter { person ->
+                    !person.name.isNullOrBlank() || (photoCountMap[person.personId] ?: person.faceCount) >= 2
+                }.sortedForDisplay(relationMap, photoCountMap)
+            }
         }
+    }
+
+    /** 切换「显示全部 / 隐藏单张未命名单人分组」。切换后自动重新加载。 */
+    fun toggleShowAll() {
+        _showAll.value = !_showAll.value
+        load()
     }
 
     /** 进入人物页：先对齐 persons 表（清孤儿/修悬空封面/重算 faceCount），再加载。幂等。 */

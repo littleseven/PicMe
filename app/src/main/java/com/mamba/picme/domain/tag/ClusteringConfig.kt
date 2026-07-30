@@ -12,7 +12,7 @@ package com.mamba.picme.domain.tag
  * DBSCAN_EPS       : DBSCAN 余弦距离上限（= 1 - 相似度，越小越严格）
  * CLUSTER_COHESION_MIN : 簇内平均相似度下限（低于此值则分裂）
  *
- * 当前值: 相似度 ≥ 0.72 / 距离 ≤ 0.28，适用于 Glint360K R100 512 维 embedding
+ * 当前值: 相似度 ≥ 0.65 / 距离 ≤ 0.35，适用于 Glint360K R100 512 维 embedding
  * ──────────────────────────────────────────────────────
  */
 object ClusteringConfig {
@@ -21,13 +21,23 @@ object ClusteringConfig {
     const val USE_ADAPTIVE_CLUSTERING = true
 
     /** 余弦相似度阈值：高于此值归入已有簇（越接近 1.0 越严格）
-     *  0.55：用户希望把外貌相近的同一人尽量合并，降低人物数；
-     *  同时保留一定余量，避免把不同人并在一起。 */
-    const val COSINE_THRESHOLD = 0.55f
+     *  0.65：保守阈值，优先保证「不同人不并成一组」，再靠 [MERGE_SMALL_CLUSTER_SIMILARITY_THRESHOLD]
+     *  把小簇碎片合并回来。 */
+    const val COSINE_THRESHOLD = 0.65f
 
     /** 跨簇合并 pass 的质心相似度阈值：高于此值才把两个 person 合并（不限簇大小）。
      *  与 COSINE_THRESHOLD 同口径（系统「同一人」判定）。 */
-    const val MERGE_SIMILARITY_THRESHOLD = 0.55f
+    const val MERGE_SIMILARITY_THRESHOLD = 0.65f
+
+    /**
+     * 小簇碎片合并：两个簇的 embedding 数均 ≤ [MERGE_SMALL_CLUSTER_MAX_SIZE] 时，
+     * 使用更宽松的 [MERGE_SMALL_CLUSTER_SIMILARITY_THRESHOLD] 进行合并。
+     *
+     * 目的：修复「同一人因表情/角度/光线导致 embedding 距离略远，被拆成多个 1~4 张的小分组」
+     *（如用户反馈的 #1647 / #1628）。只对小簇放宽，避免把两个大簇（如「大宝」和「老郭」）误合并。
+     */
+    const val MERGE_SMALL_CLUSTER_SIMILARITY_THRESHOLD = 0.50f
+    const val MERGE_SMALL_CLUSTER_MAX_SIZE = 4
 
     /** 拆分 pass：把疑似「两个人被并成一组」的簇切成两个 person 的判定阈值。
      *  簇内用最远两点做种子分两半，仅当「两半各自内聚 ≥ SPLIT_INTRA_MIN 且互相交叉 ≤ SPLIT_CROSS_MAX」才拆。 */
@@ -49,8 +59,8 @@ object ClusteringConfig {
     const val SINK_SAMPLE_CAP = 30
 
     /** DBSCAN: 余弦距离阈值（= 1 - 相似度，越小越严格）
-     *  0.45：与 COSINE_THRESHOLD=0.55 对齐，相似度 ≥ 0.55 才成簇 */
-    const val DBSCAN_EPS = 0.45f
+     *  0.35：与 COSINE_THRESHOLD=0.65 对齐，相似度 ≥ 0.65 才成簇 */
+    const val DBSCAN_EPS = 0.35f
 
     /** DBSCAN: 最小邻居数（≥2 形成核心点）
      *  降为 2：让照片较少的明星/低频人物也能成簇 */
@@ -78,8 +88,8 @@ object ClusteringConfig {
     const val KNN_K = 2
 
     /** k-NN 建边最小余弦相似度（= 1 - eps）。
-     *  与 [COSINE_THRESHOLD] / [MERGE_SIMILARITY_THRESHOLD] 对齐（0.55）。 */
-    const val KNN_MIN_SIMILARITY = 0.55f
+     *  与 [COSINE_THRESHOLD] / [MERGE_SIMILARITY_THRESHOLD] 对齐（0.65）。 */
+    const val KNN_MIN_SIMILARITY = 0.65f
 
     /** 方案 B 最小簇大小，小于此值的连通分量视为噪声。
      *  与 DBSCAN_MIN_PTS 保持一致的语义：≥2 张人脸才成人物簇。 */
@@ -87,6 +97,6 @@ object ClusteringConfig {
 
     /** 全量重聚类时，新簇与旧命名人物质心的最小余弦相似度。
      *  高于此值则认为新旧簇为同一人，复用 personId 与 name。 */
-    const val NAME_PRESERVE_MIN_SIMILARITY = 0.55f
+    const val NAME_PRESERVE_MIN_SIMILARITY = 0.65f
 }
 
