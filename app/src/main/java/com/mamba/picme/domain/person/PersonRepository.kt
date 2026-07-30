@@ -140,6 +140,15 @@ class PersonRepository(
         personDao.getAllPersons().sortedByDescending { person -> person.updatedAt }
 
     /**
+     * 对齐 persons 表与 face_embeddings / media_assets：清孤儿、重算 faceCount、修悬空封面。
+     *
+     * 进入人物页前、聚类完成后、媒体删除后调用，幂等。详见 [PersonDao.reconcilePersons]。
+     */
+    suspend fun reconcilePersons() {
+        personDao.reconcilePersons(System.currentTimeMillis())
+    }
+
+    /**
      * 列出指向"我"的关系（chat 主动读通路的同步版，实时查 DB，不依赖 Flow 快照）。
      *
      * 规避 [observeRelationsToSelf] 的 Flow invalidation 延迟——声明关系后 snapshot 可能数分钟才更新，

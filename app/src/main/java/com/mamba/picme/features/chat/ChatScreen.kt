@@ -124,9 +124,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import androidx.compose.material.icons.rounded.Menu
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.activity.compose.BackHandler
 import androidx.core.net.toUri
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarAction
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.features.chat.ChatThreadSidebar
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -305,7 +307,7 @@ fun ChatScreen(
 
         // 确认 pending 删除已实际生效（物理文件 + Room 记录已清理）
         if (pendingDeletedIds.isNotEmpty()) {
-            val confirmedRemoved = pendingDeletedIds.filter { it > 0L && it !in existingIds }.toSet()
+            val confirmedRemoved = pendingDeletedIds.filter { it != 0L && it !in existingIds }.toSet()
             if (confirmedRemoved.isNotEmpty()) {
                 confirmedRemoved.forEach { viewModel.removeMediaResultAsset(it) }
                 pendingDeletedIds = pendingDeletedIds - confirmedRemoved
@@ -316,7 +318,7 @@ fun ChatScreen(
         if (previewAssets.isNotEmpty()) {
             val removedIds = previewAssets
                 .map { it.id }
-                .filter { it > 0L && it !in existingIds }
+                .filter { it != 0L && it !in existingIds }
                 .toSet()
             if (removedIds.isNotEmpty()) {
                 previewAssets = previewAssets.filter { it.id in existingIds }
@@ -713,58 +715,24 @@ private fun ChatTopBar(
     onNavigateToSettings: () -> Unit,
     onClearChat: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            IconButton(onClick = onOpenSidebar) {
-                Icon(
-                    imageVector = Icons.Rounded.Menu,
+    AppTopBar(
+        title = {},
+        navigationIcon = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppTopBarNavBack(onClick = onNavigateBack)
+                AppTopBarAction(
+                    icon = Icons.Rounded.Menu,
                     contentDescription = stringResource(R.string.cd_open_sidebar),
-                    modifier = Modifier.size(24.dp)
+                    onClick = onOpenSidebar
                 )
             }
+        },
+        actions = {
+            AppTopBarAction(Icons.Rounded.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
+            AppTopBarAction(Icons.Rounded.AddComment, stringResource(R.string.new_chat), onNewChat)
+            AppTopBarAction(Icons.Rounded.Settings, stringResource(R.string.settings), onNavigateToSettings)
         }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onClearChat, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Rounded.DeleteSweep,
-                    contentDescription = stringResource(R.string.clear_chat),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            IconButton(onClick = onNewChat, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Rounded.AddComment,
-                    contentDescription = stringResource(R.string.new_chat),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = stringResource(R.string.settings),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-    }
+    )
 }
 
 /** LRU 已清理的编辑结果图占位：灰框 + 图标 + 「图片已过期·不可见」。 */

@@ -56,13 +56,13 @@ fun PersonScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    LaunchedEffect(Unit) { viewModel.load() }
+    LaunchedEffect(Unit) { viewModel.reconcileAndLoad() }
     // 打开人物页时后台跑一轮 eDifFIQA 打分 + 按 CoverSelector 刷新封面（fire-and-forget，
     // 完成后 reload 让网格看到更新；模型未就绪时只刷新封面）
     LaunchedEffect(Unit) {
         val app = context.applicationContext as? PoLangApplication ?: return@LaunchedEffect
         app.container.aestheticScoreWorker.runOnce()
-        viewModel.load()
+        viewModel.reconcileAndLoad()
     }
 
     val persons by viewModel.persons.collectAsState()

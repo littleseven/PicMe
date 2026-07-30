@@ -79,7 +79,6 @@ fun PhotoEditorScreen(
                 onCancel = onNavigateBack,
                 onUndo = viewModel::undo,
                 onRedo = viewModel::redo,
-                onCompare = { /* handled in preview */ },
                 onRemoveBackground = viewModel::removeBackground,
                 onAiOptimize = viewModel::aiOptimize,
                 onDone = {

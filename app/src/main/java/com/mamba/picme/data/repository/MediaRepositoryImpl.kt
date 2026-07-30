@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import com.mamba.picme.core.common.Logger
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
@@ -124,7 +125,7 @@ class MediaRepositoryImpl(
             val currentAssets = allMedia.first()
             val localIds = currentAssets
                 .filter { asset -> asset.uri.toUri() in urisToDelete }
-                .mapNotNull { asset -> if (asset.id > 0L) asset.id else null }
+                .mapNotNull { asset -> if (asset.id != 0L) asset.id else null }
 
             if (localIds.isNotEmpty()) {
                 Logger.d(TAG, "Cleaning up local DB records: $localIds")
@@ -212,10 +213,16 @@ class MediaRepositoryImpl(
         // 如果需要用户授权，推迟数据库清理，避免用户拒绝后出现数据不一致
         if (!needsUserAuth) {
             pendingDeleteIds = null
-            val localIds = successfullyDeletedIds.filter { id -> id > 0L }
+            // id=0 才是未入库哨兵；负 id（如 sample 数据）是合法入库行，不能漏删。
+            val localIds = successfullyDeletedIds.filter { id -> id != 0L }
             if (localIds.isNotEmpty()) {
                 Logger.d(TAG, "Deleting local DB records: $localIds")
                 mediaDao.deleteMediaByIds(localIds)
+                // 级联清理人脸数据：删这些媒体的 embedding，再对齐 persons 表
+                // （重算 faceCount、修/清悬空 coverMediaId、删空人物），避免人物页出现空白聚类。
+                val personDao = AppDatabase.getDatabase(appContext).personDao()
+                personDao.deleteEmbeddingsByMediaIds(localIds)
+                personDao.reconcilePersons(System.currentTimeMillis())
             }
             // 清理 Coil 图片缓存，避免已删除文件的缩略图残留
             val imageLoader = coil.Coil.imageLoader(appContext)
@@ -232,7 +239,7 @@ class MediaRepositoryImpl(
     }
 
     override suspend fun getMediaById(id: Long): MediaAsset? {
-        if (id > 0L) {
+        if (id != 0L) {
             return mediaDao.getMediaById(id)?.toDomain() ?: allMedia.first().firstOrNull { asset -> asset.id == id }
         }
         return allMedia.first().firstOrNull { asset -> asset.id == id }

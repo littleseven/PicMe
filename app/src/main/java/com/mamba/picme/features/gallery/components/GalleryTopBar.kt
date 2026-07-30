@@ -3,7 +3,6 @@ package com.mamba.picme.features.gallery.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Check
@@ -18,12 +17,9 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,9 +38,11 @@ import com.mamba.picme.domain.model.GroupingMode.NONE
 import com.mamba.picme.domain.model.GroupingMode.PERSON
 import com.mamba.picme.domain.model.GroupingMode.SEXY
 import com.mamba.picme.domain.model.GroupingMode.SWIMWEAR
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarAction
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.service.tag.TagGenerationService
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryTopBar(
     isSelectionMode: Boolean,
@@ -63,8 +61,8 @@ fun GalleryTopBar(
     onToggleScan: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {}
 ) {
-    TopAppBar(
-        modifier = Modifier.displayCutoutPadding(),
+    val isScanning by TagGenerationService.isScanning.collectAsState(false)
+    AppTopBar(
         title = {
             Text(
                 if (isSelectionMode) {
@@ -74,95 +72,67 @@ fun GalleryTopBar(
                 }
             )
         },
+        modifier = Modifier.displayCutoutPadding(),
         navigationIcon = {
             if (isSelectionMode || onNavigateBack != null) {
-                IconButton(onClick = {
+                AppTopBarNavBack(onClick = {
                     if (isSelectionMode) {
                         onToggleSelectionMode()
                     } else {
                         onNavigateBack?.invoke()
                     }
-                }) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                }
+                })
             }
         },
         actions = {
             if (isSelectionMode) {
-                IconButton(onClick = onSelectAll) {
-                    Icon(Icons.Rounded.SelectAll, contentDescription = stringResource(R.string.select_all))
-                }
-                IconButton(onClick = onShareSelected) {
-                    Icon(Icons.Rounded.Share, contentDescription = stringResource(R.string.ocr_share))
-                }
-                IconButton(onClick = onDeleteSelected) {
-                    Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete))
-                }
+                AppTopBarAction(Icons.Rounded.SelectAll, stringResource(R.string.select_all), onSelectAll)
+                AppTopBarAction(Icons.Rounded.Share, stringResource(R.string.ocr_share), onShareSelected)
+                AppTopBarAction(Icons.Rounded.Delete, stringResource(R.string.delete), onDeleteSelected)
             } else {
-                val isScanning by TagGenerationService.isScanning.collectAsState(false)
-                val iconTint = if (isScanning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                // TAG 控制入口：点击进入 TagGenerationControlScreen
-                IconButton(onClick = onNavigateToTagControl) {
-                    Icon(
-                        Icons.Rounded.Sell,
-                        contentDescription = stringResource(R.string.tag_scan_control),
-                        tint = iconTint
-                    )
-                }
-                // 播放/暂停开关
-                IconButton(onClick = onToggleScan) {
-                    Icon(
-                        imageVector = if (isScanning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (isScanning) stringResource(R.string.pause) else stringResource(R.string.start_scan),
-                        tint = iconTint
-                    )
-                }
-                IconButton(onClick = onSearchClick) {
-                    Icon(
-                        Icons.Rounded.Search,
-                        contentDescription = stringResource(R.string.search_photos)
-                    )
-                }
-                // 人物页入口
-                IconButton(onClick = onNavigateToPeople) {
-                    Icon(
-                        Icons.Rounded.AccountCircle,
-                        contentDescription = stringResource(R.string.gallery_people_entry)
-                    )
-                }
-                GroupingMenu(
-                    currentMode = groupingMode,
-                    onModeSelected = onGroupingModeSelected
+                val scanTint = if (isScanning) MaterialTheme.colorScheme.primary else null
+                AppTopBarAction(
+                    icon = Icons.Rounded.Sell,
+                    contentDescription = stringResource(R.string.tag_scan_control),
+                    onClick = onNavigateToTagControl,
+                    tint = scanTint
                 )
-                // 设置入口统一放到顶部栏最右侧
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(
-                        Icons.Rounded.Settings,
-                        contentDescription = stringResource(R.string.settings)
-                    )
-                }
+                AppTopBarAction(
+                    icon = if (isScanning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (isScanning) {
+                        stringResource(R.string.pause)
+                    } else {
+                        stringResource(R.string.start_scan)
+                    },
+                    onClick = onToggleScan,
+                    tint = scanTint
+                )
+                AppTopBarAction(Icons.Rounded.Search, stringResource(R.string.search_photos), onSearchClick)
+                // 人物页入口（main 新增，统一为 AppTopBarAction）
+                AppTopBarAction(Icons.Rounded.AccountCircle, stringResource(R.string.gallery_people_entry), onNavigateToPeople)
+                GroupingMenu(currentMode = groupingMode, onModeSelected = onGroupingModeSelected)
+                AppTopBarAction(Icons.Rounded.Settings, stringResource(R.string.settings), onNavigateToSettings)
             }
         }
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DuplicateManagerTopBar(
     onNavigateBack: () -> Unit,
     onDeleteAllDuplicates: () -> Unit
 ) {
-    TopAppBar(
+    AppTopBar(
         title = { Text(stringResource(R.string.manage_duplicates)) },
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
-            }
+            AppTopBarAction(
+                icon = Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.close),
+                onClick = onNavigateBack
+            )
         },
         actions = {
-            IconButton(onClick = onDeleteAllDuplicates) {
-                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.delete_all_duplicates))
-            }
+            AppTopBarAction(Icons.Rounded.Delete, stringResource(R.string.delete_all_duplicates), onDeleteAllDuplicates)
         }
     )
 }
@@ -174,12 +144,14 @@ private fun GroupingMenu(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { showMenu = true }) {
-            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = stringResource(R.string.group_by))
-        }
+        AppTopBarAction(
+            icon = Icons.AutoMirrored.Rounded.Sort,
+            contentDescription = stringResource(R.string.group_by),
+            onClick = { showMenu = true }
+        )
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             GroupingMode.entries
-                .filter { it != SWIMWEAR && it != SEXY }
+                .filter { mode -> mode != SWIMWEAR && mode != SEXY }
                 .forEach { mode ->
                 val label = when (mode) {
                     NONE -> stringResource(R.string.group_none)

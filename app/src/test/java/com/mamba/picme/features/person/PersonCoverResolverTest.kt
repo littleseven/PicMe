@@ -24,4 +24,21 @@ class PersonCoverResolverTest {
         assertEquals("content://c", resolved[3L]?.coverUri)
         assertNull(resolved[3L]?.faceFocusY)
     }
+
+    @Test
+    fun filterCoverableDropsPersonsWithNullCoverUri() {
+        val persons = listOf(
+            PersonEntity(personId = 1, coverMediaId = 10),
+            PersonEntity(personId = 2, coverMediaId = 20), // 封面媒体已删 → coverUri null → 不展示
+            PersonEntity(personId = 3, coverMediaId = null) // 无 coverMediaId → 不展示
+        )
+        // 仅 media 10 存在；media 20 已被删，resolve 查不到 → null
+        val covers = PersonCoverResolver.resolve(
+            persons,
+            uriByMediaId = mapOf(10L to "content://a"),
+            focusYByMediaId = emptyMap()
+        )
+        val coverable = PersonCoverResolver.filterCoverable(persons, covers)
+        assertEquals(listOf(1L), coverable.map { person -> person.personId })
+    }
 }
