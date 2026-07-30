@@ -72,7 +72,6 @@ import androidx.compose.material.icons.rounded.ImageNotSupported
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.KeyboardVoice
 import androidx.compose.material.icons.rounded.PhotoLibrary
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
@@ -175,10 +174,10 @@ private const val TAG = "ChatScreen"
  *
  * 从相册首页通过 plus 菜单进入。页面提供返回按钮回到相册。
  * 布局：
- * - 顶部栏：返回 + 设置 + 清空
+ * - 顶部栏：返回 + 菜单 + 清空 + 新建（设置入口仅在相册首页，不在每个页面重复）
  * - 消息列表：LazyColumn 展示对话历史
  * - 输入区：ModelSelector + 输入框 + 发送按钮
- * - 快捷入口：相机 / 设置 / 模型中心
+ * - 快捷入口：相机 / 模型中心
  */
 @Suppress("LongMethod", "LongParameterList", "CyclomaticComplexMethod") // 待重构：Top-level Compose screen，scaffold+list+input+sidebar，后续按区域拆子组件
 @Composable
@@ -418,7 +417,6 @@ fun ChatScreen(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
                     onNewChat = { viewModel.newSession() },
-                    onNavigateToSettings = onNavigateToSettings,
                     onClearChat = { viewModel.clearChat() }
                 )
             }
@@ -712,7 +710,6 @@ private fun ChatTopBar(
     onNavigateBack: () -> Unit,
     onOpenSidebar: () -> Unit,
     onNewChat: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     onClearChat: () -> Unit
 ) {
     AppTopBar(
@@ -730,7 +727,6 @@ private fun ChatTopBar(
         actions = {
             AppTopBarAction(Icons.Rounded.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
             AppTopBarAction(Icons.Rounded.AddComment, stringResource(R.string.new_chat), onNewChat)
-            AppTopBarAction(Icons.Rounded.Settings, stringResource(R.string.settings), onNavigateToSettings)
         }
     )
 }
