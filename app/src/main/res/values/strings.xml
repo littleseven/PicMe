@@ -264,6 +264,10 @@
     <string name="people_entry">People</string>
     <string name="people_entry_desc">View and name face clusters</string>
     <string name="gallery_people_entry">People</string>
+    <string name="person_select_cover_title">Select cover</string>
+    <string name="person_info_title">Person info</string>
+    <string name="person_edit_name_hint">Tap to name</string>
+    <string name="people_empty">No people found</string>
 
     <!-- Duplicate Management -->
     <string name="manage_duplicates">Manage Duplicates</string>
