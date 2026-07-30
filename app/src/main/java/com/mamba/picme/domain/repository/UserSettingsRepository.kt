@@ -124,6 +124,10 @@ interface UserSettingsRepository {
     val aiAgentL1CacheEnabledFlow: Flow<Boolean>
     suspend fun updateAiAgentL1CacheEnabled(enabled: Boolean)
 
+    // ── 自动执行计划开关（仅持久化，chat 层暂未消费） ────────
+    val autoExecutePlansEnabledFlow: Flow<Boolean>
+    suspend fun updateAutoExecutePlansEnabled(enabled: Boolean)
+
     // ── Cloudflare AI Gateway Token ─────────────────────────
     val cloudflareGatewayTokenFlow: Flow<String>
     suspend fun updateCloudflareGatewayToken(token: String)

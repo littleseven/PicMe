@@ -191,6 +191,13 @@ class SettingsViewModel(
             initialValue = true
         )
 
+    val autoExecutePlansEnabled: StateFlow<Boolean> = repository.autoExecutePlansEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
+
     val aiAgentMode: StateFlow<AiAgentMode> = repository.aiAgentModeFlow
         .stateIn(
             scope = viewModelScope,
@@ -1000,6 +1007,13 @@ class SettingsViewModel(
             Logger.d("UX", "AI Agent L1 cache enabled changed: $enabled")
             repository.updateAiAgentL1CacheEnabled(enabled)
             L1CacheSettings.setEnabled(enabled)
+        }
+    }
+
+    fun setAutoExecutePlansEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "Auto execute plans changed: $enabled")
+            repository.updateAutoExecutePlansEnabled(enabled)
         }
     }
 

@@ -74,13 +74,22 @@ internal fun AiAgentModeSelection(
 }
 
 private fun ModelConfig.isAiAgentLlmCandidate(): Boolean {
+    // 优先按 type 白名单（精准）：仅本地 LLM 与多模态(VISION_LLM) 可作为 Agent 本地推理模型
+    val normalizedType = type.uppercase(Locale.ROOT)
+    if (normalizedType.isNotEmpty()) {
+        return normalizedType == "LLM" || normalizedType == "VISION_LLM"
+    }
+
+    // type 缺失（在线 model market 等无 type 字段）时回退到启发式
     val normalizedTags = tags.map { tag -> tag.lowercase(Locale.ROOT) }
     val normalizedId = id.lowercase(Locale.ROOT)
     val normalizedName = name.lowercase(Locale.ROOT)
 
     val hasExcludedSignal = normalizedTags.any { tag ->
-        tag == "asr" || tag == "tts" || tag == "audio" || tag == "audiogen" || tag == "imagegen" || tag.contains("face")
-    } || normalizedId.contains("face") || normalizedId.contains("asr") || normalizedName.contains("face")
+        tag == "asr" || tag == "kws" || tag == "tts" || tag == "audio" ||
+            tag == "audiogen" || tag == "imagegen" || tag.contains("face")
+    } || normalizedId.contains("face") || normalizedId.contains("asr") ||
+        normalizedId.contains("sherpa") || normalizedName.contains("face")
 
     if (hasExcludedSignal) return false
 
@@ -216,7 +225,7 @@ internal fun AiAgentRemoteModelsSection(
                     )
                     Column {
                         Text(
-                            text = "当前使用",
+                            text = stringResource(R.string.ai_agent_current_model),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
@@ -268,13 +277,13 @@ internal fun AiAgentRemoteModelsSection(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "默认远程模型有时长限制",
+                        text = stringResource(R.string.remote_model_default_limit_title),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "添加自有模型以解除限制",
+                        text = stringResource(R.string.remote_model_default_limit_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -337,7 +346,7 @@ private fun RemoteModelConfigCard(
     var editProtocol by remember { mutableStateOf(config.protocol) }
 
     val provider = RemoteModelConfig.getProvider(config.providerId)
-    val providerName = provider?.displayName ?: "自定义"
+    val providerName = provider?.displayName ?: stringResource(R.string.provider_custom)
 
     Card(
         modifier = Modifier.fillMaxWidth(),

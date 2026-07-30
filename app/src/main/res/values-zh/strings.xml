@@ -590,8 +590,14 @@
     <!-- 设置分类 -->
     <string name="personalization">个性化</string>
     <string name="personalization_desc">主题、语言与界面偏好。</string>
-    <string name="ai_assistant">AI 助手</string>
-    <string name="ai_assistant_desc">Agent 模式、模型、语音控制与远程通道。</string>
+    <string name="ai_assistant">AI 设置</string>
+    <string name="ai_assistant_desc">本地与远程推理链路、语音控制</string>
+    <string name="ai_settings_remote_section">远程推理</string>
+    <string name="ai_settings_local_section">本地推理</string>
+    <string name="ai_agent_current_model">当前使用</string>
+    <string name="remote_model_default_limit_title">默认远程模型有时长限制</string>
+    <string name="remote_model_default_limit_desc">添加自有模型以解除限制</string>
+    <string name="provider_custom">自定义</string>
     <string name="camera_and_beauty">相机与美颜</string>
     <string name="camera_and_beauty_desc">人脸检测、美颜引擎与相机行为。</string>
     <string name="system_and_permissions">系统与权限</string>
