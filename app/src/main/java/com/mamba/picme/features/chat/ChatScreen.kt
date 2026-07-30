@@ -966,30 +966,34 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                 }
                 else -> {
                     if (message.isStreaming) {
-                        // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
-                        // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                segmentStreamingMarkdown(message.content).forEach { segment ->
-                                    when (segment.type) {
-                                        StreamSegmentType.TABLE -> Text(
-                                            text = segment.text,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontSize = 13.sp,
-                                            lineHeight = 18.sp,
-                                            fontFamily = FontFamily.Monospace
-                                        )
-                                        StreamSegmentType.MARKDOWN -> MarkdownText(
-                                            markdown = segment.text,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontSize = 14.sp,
-                                            lineHeight = 20.sp
-                                        )
+                        if (message.isThinking) {
+                            TypingIndicator()
+                        } else {
+                            // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
+                            // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    segmentStreamingMarkdown(message.content).forEach { segment ->
+                                        when (segment.type) {
+                                            StreamSegmentType.TABLE -> Text(
+                                                text = segment.text,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontFamily = FontFamily.Monospace
+                                            )
+                                            StreamSegmentType.MARKDOWN -> MarkdownText(
+                                                markdown = segment.text,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 14.sp,
+                                                lineHeight = 20.sp
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            if (message.showCursor) {
-                                BlinkCursor()
+                                if (message.showCursor) {
+                                    BlinkCursor()
+                                }
                             }
                         }
                     } else {
@@ -1822,7 +1826,9 @@ data class ChatMessageUi(
     /** 流式输出中的瞬态消息（不落 Room）；UI 据此对未闭合表格做防抖动处理。 */
     val isStreaming: Boolean = false,
     /** 流式打字光标是否可见（由节奏器驱动：吐字中 true，停顿超时/完成 false）。 */
-    val showCursor: Boolean = false
+    val showCursor: Boolean = false,
+    /** 思考中（首 token 到达前）：UI 显示三点 typing indicator 而非内容+光标。 */
+    val isThinking: Boolean = false
 )
 
 enum class ChatMessageType {

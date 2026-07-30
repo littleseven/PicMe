@@ -7,9 +7,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -46,4 +49,36 @@ fun BlinkCursor(modifier: Modifier = Modifier) {
             .alpha(alpha),
         contentAlignment = Alignment.Center
     ) {}
+}
+
+/**
+ * 思考中指示器：三个小圆点错相呼吸（豆包式 typing indicator）。
+ * 用于流式首 token 到达前的占位，紧凑、无光标。
+ */
+@Composable
+fun TypingIndicator(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "typing")
+    Row(
+        modifier = modifier.padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(3) { index ->
+            val alpha by transition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 400, easing = FastOutSlowInEasing, delayMillis = index * 160),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "typingDot$index"
+            )
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
+            )
+        }
+    }
 }
