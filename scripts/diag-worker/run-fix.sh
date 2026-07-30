@@ -10,13 +10,17 @@ rootCause="$(printf '%s' "$claim" | jq -r '.rootCause // ""' | json_escape)"
 suggested=""   # 诊断阶段未回传 suggestedFix，留空
 mode="$(printf '%s' "$claim" | jq -r '.fixMode // "push"')"
 branch="diag-fix/$jobId"
+wlog "job #$jobId FIX start (sha=$gitSha mode=$mode)"
 
 repo="$DIAG_WORKDIR/repo"
+git -C "$repo" remote set-url origin "$DIAG_REPO" 2>/dev/null || true
 git -C "$repo" fetch --quiet origin 2>/dev/null || true
 git -C "$repo" checkout --quiet -B "$branch" "$gitSha" 2>/dev/null || git -C "$repo" checkout --quiet -B "$branch" "$DIAG_BASE_BRANCH"
 
 prompt="$(sed -e "s|__ROOT_CAUSE__|$rootCause|g" -e "s|__SUGGESTED_FIX__|$suggested|g" "$SCRIPT_DIR/prompts/fix.md")"
-run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --dangerously-skip-permissions --output-format json --max-turns "$DIAG_MAX_TURNS" >/dev/null 2>&1 || true
+wlog "job #$jobId claude fix start (<= ${DIAG_PHASE_TIMEOUT}s)"
+run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --dangerously-skip-permissions --output-format json --max-turns "$DIAG_MAX_TURNS" >/dev/null 2>&1
+wlog "job #$jobId claude fix done rc=$?"
 
 # 自检：跑 server JVM 单测（资源允许）；失败/超时不阻断，只标 tested=false。
 tested=false
@@ -24,9 +28,14 @@ if run_with_timeout 240 ./gradlew -p "$repo/server" test -q >/dev/null 2>&1; the
 
 git -C "$repo" add -A
 git -C "$repo" commit --quiet -m "fix(diag): 远程诊断自动修复 job #$jobId" >/dev/null 2>&1 || true
-git -C "$repo" push --quiet origin "$branch" >/dev/null 2>&1 || { report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"error\":\"push failed\"}"; exit 0; }
+wlog "job #$jobId push $branch"
+if ! run_with_timeout 120 git -C "$repo" push --quiet origin "$branch" >/dev/null 2>&1; then
+  wlog "job #$jobId push FAILED"
+  report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"error\":\"push failed\"}"; exit 0
+fi
 
 extra=""
 [ "$mode" = "pr" ] && extra=",\"compareUrl\":\"$(compare_url "$branch")\""
 status="FIXED"; [ "$tested" = "false" ] && status="FIXED_UNVERIFIED"
+wlog "job #$jobId FIX done status=$status branch=$branch"
 report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested$extra}"

@@ -18,6 +18,8 @@ load_env() {
   : "${DIAG_MAX_TURNS:=20}"
   : "${DIAG_PHASE_TIMEOUT:=300}"
   mkdir -p "$DIAG_WORKDIR"
+  export GIT_TERMINAL_PROMPT=0   # git 永不交互提示（无凭证直接失败，不挂起）
+  WORKER_LOG="$DIAG_WORKDIR/worker.log"
 }
 
 # 领一个任务；stdout 输出 claim JSON（空则返回 1）。
@@ -40,9 +42,9 @@ report_result() {
 # compare_url <branch>
 compare_url() {
   local branch="$1"
-  local rest="${DIAG_REPO#*://}"      # strip scheme
-  rest="${rest%.git}"                  # strip .git
-  rest="${rest#*github.com/}"          # strip host → owner/repo
+  local rest="$DIAG_REPO"
+  rest="${rest%.git}"
+  rest="${rest#*github.com[:/]}"   # 兼容 https://github.com/ 与 git@github.com:
   printf 'https://github.com/%s/compare/%s...%s' "$rest" "$DIAG_BASE_BRANCH" "$branch"
 }
 
@@ -61,3 +63,6 @@ run_with_timeout() {
     "$@"
   fi
 }
+
+# 步骤日志：同时打到 stderr（tmux 可见）和 $WORKER_LOG（可 tail -f）。
+wlog() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a "$WORKER_LOG" >&2; }
