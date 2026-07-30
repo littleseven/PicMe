@@ -27,6 +27,11 @@ import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.diag.DiagBundleCollector
+import com.mamba.picme.BuildConfig
+import android.os.Build
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
@@ -198,6 +203,117 @@ class ChatViewModel(
     /** UI 确认/拒绝入口（ChatScreen 确认框按钮回调）。 */
     fun resolveWriteConfirmation(confirmed: Boolean) =
         writeConfirmationController.resolve(confirmed)
+
+    // ── 远程诊断（chat 触发 → 云主机 Claude Code worker）─────────────────
+    private val diagController = DiagController()
+    val pendingDiagConfirm: StateFlow<PendingDiagConfirm?> = diagController.pending
+    private val diagClient = dependencies.diagClient
+
+    private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
+    private var activeDiag: ActiveDiag? = null
+
+    /** UI「诊断」icon 入口：把输入框文本作为问题描述发起远程诊断。 */
+    fun submitDiagnosis(description: String) {
+        if (description.isBlank()) return
+        viewModelScope.launch {
+            val token = userSettingsRepository.serverAuthTokenFlow.first()
+            val msgId = "diag_${System.currentTimeMillis()}"
+            if (token.isBlank()) {
+                upsertDiagMessage(msgId, context.getString(R.string.diag_login_required))
+                return@launch
+            }
+            val bundle = DiagBundleCollector.collect(
+                appVersion = BuildConfig.VERSION_NAME,
+                gitSha = BuildConfig.GIT_SHA,
+                deviceModel = Build.MODEL,
+                androidVersion = Build.VERSION.RELEASE,
+            )
+            upsertDiagMessage(msgId, context.getString(R.string.diag_submitted))
+            val jobId = diagClient.reportDiagnosis(token, description, bundle).getOrElse { e ->
+                upsertDiagMessage(msgId, context.getString(R.string.diag_report_failed, e.message ?: ""))
+                return@launch
+            }
+            activeDiag = ActiveDiag(token, jobId, msgId)
+            pollDiagnose(token, jobId, msgId)
+        }
+    }
+
+    private suspend fun pollDiagnose(token: String, jobId: Int, msgId: String) {
+        var delayMs = 2000L
+        while (currentCoroutineContext().isActive) {
+            delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(15000)
+            val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
+            when (st.status) {
+                "DIAGNOSED" -> {
+                    val rc = st.rootCause.orEmpty()
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_root_cause, rc))
+                    diagController.requestConfirm(jobId, rc) { mode ->
+                        if (mode != null) confirmDiagnosis(mode)
+                    }
+                    return
+                }
+                "DIAGNOSE_FAILED" -> {
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_diagnose_failed, st.rootCause ?: ""))
+                    return
+                }
+            }
+        }
+    }
+
+    /** DiagConfirmSheet 选定 mode 后调用。 */
+    fun confirmDiagnosis(mode: String) {
+        val ad = activeDiag ?: return
+        viewModelScope.launch {
+            diagController.clear()
+            val result = diagClient.confirmFix(ad.token, ad.jobId, mode)
+            if (result.isFailure) {
+                upsertDiagMessage(ad.msgId, context.getString(R.string.diag_confirm_failed, result.exceptionOrNull()?.message ?: ""))
+                return@launch
+            }
+            upsertDiagMessage(
+                ad.msgId,
+                context.getString(if (mode == "pr") R.string.diag_fixing_pr else R.string.diag_fixing_push),
+            )
+            pollFix(ad.token, ad.jobId, ad.msgId)
+        }
+    }
+
+    private suspend fun pollFix(token: String, jobId: Int, msgId: String) {
+        var delayMs = 3000L
+        while (currentCoroutineContext().isActive) {
+            delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(20000)
+            val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
+            when (st.status) {
+                "FIXED", "FIXED_UNVERIFIED" -> {
+                    val verified = context.getString(
+                        if (st.status == "FIXED") R.string.diag_verified_passed else R.string.diag_verified_unverified,
+                    )
+                    val base = context.getString(R.string.diag_fixed, st.fixBranch ?: "-", verified)
+                    val link = (st.compareUrl ?: st.fixBranch)?.let { "\n\n$it" } ?: ""
+                    upsertDiagMessage(msgId, base + link)
+                    activeDiag = null
+                    return
+                }
+                "FIX_FAILED" -> {
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_fix_failed, st.rootCause ?: ""))
+                    activeDiag = null
+                    return
+                }
+            }
+        }
+    }
+
+    /** DiagConfirmSheet 取消/关闭。 */
+    fun cancelDiagConfirm() = diagController.resolve(null)
+
+    /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。 */
+    private fun upsertDiagMessage(id: String, content: String) {
+        _messages.update { msgs ->
+            val idx = msgs.indexOfFirst { it.id == id }
+            if (idx >= 0) msgs.toMutableList().apply { this[idx] = this[idx].copy(content = content) }
+            else msgs + ChatMessageUi(id = id, type = ChatMessageType.AGENT_TEXT, content = content)
+        }
+    }
 
     fun consumeDeleteAuthRequest() {
         _deleteAuthRequest.value = null

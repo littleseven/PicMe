@@ -970,4 +970,22 @@
     <string name="tag_pass_col_pending">待處理</string>
     <string name="tag_pass_row_face">人臉偵測</string>
     <string name="tag_pass_row_content">內容標籤</string>
+    <!-- 遠端診斷（chat-UI）-->
+    <string name="diag_icon_desc">診斷</string>
+    <string name="diag_sheet_title">遠端診斷 · 根因</string>
+    <string name="diag_sheet_push">推送修復分支</string>
+    <string name="diag_sheet_pr">修復並開 PR</string>
+    <string name="diag_sheet_cancel">取消</string>
+    <string name="diag_login_required">遠端診斷需要先登入帳號（設定 → 帳號）。</string>
+    <string name="diag_submitted">🔍 已提交診斷請求，雲主機分析中…</string>
+    <string name="diag_report_failed">❌ 上報失敗：%1$s</string>
+    <string name="diag_root_cause">🔍 **根因分析**\n\n%1$s\n\n_請在彈窗選擇修復方式_</string>
+    <string name="diag_diagnose_failed">❌ 診斷失敗：%1$s</string>
+    <string name="diag_fixing_pr">🔧 修復中（開 PR）…</string>
+    <string name="diag_fixing_push">🔧 修復中（推送分支）…</string>
+    <string name="diag_confirm_failed">❌ 確認失敗：%1$s</string>
+    <string name="diag_fixed">✅ 已修復\n\n分支：`%1$s`（%2$s）</string>
+    <string name="diag_verified_passed">自檢通過</string>
+    <string name="diag_verified_unverified">未自檢</string>
+    <string name="diag_fix_failed">❌ 修復失敗：%1$s</string>
 </resources>
