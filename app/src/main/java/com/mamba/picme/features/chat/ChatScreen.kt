@@ -23,6 +23,7 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -1006,14 +1007,6 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                     }
                 }
             }
-            if (message.modelUsed != null && message.performance == null) {
-                Text(
-                    text = message.modelUsed,
-                    color = if (isUser) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
             message.performance?.let { perf ->
                 val metricTint = if (isUser) {
                     Color.White.copy(alpha = 0.55f)
@@ -1055,10 +1048,12 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                         tint = metricTint
                     )
                     if (perf.usedSandbox) {
-                        PerformanceMetric(
-                            icon = Icons.Rounded.Code,
-                            value = "沙箱",
-                            tint = metricTint
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .size(14.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .border(1.5.dp, metricTint)
                         )
                     }
                 }
