@@ -136,8 +136,15 @@ class FaceClusterEngine(private val context: Context) {
             faceBitmap.recycle()
 
             if (embedding != null) {
-                Log.d(TAG, "extractFeature: extracted ${embedding.size}-dim embedding, norm=${sqrt(embedding.map { it*it }.sum().toDouble())}")
-                embedding
+                val norm = sqrt(embedding.map { it * it }.sum().toDouble())
+                val valid = embedding.all { !it.isNaN() && !it.isInfinite() } && norm > 0
+                if (valid) {
+                    Log.d(TAG, "extractFeature: extracted ${embedding.size}-dim embedding, norm=$norm")
+                    embedding
+                } else {
+                    Log.w(TAG, "extractFeature: invalid embedding (nan/inf or zero norm), falling back to zero vector")
+                    FloatArray(EMBEDDING_DIM) { 0f }
+                }
             } else {
                 Log.w(TAG, "extractFeature: MNN inference returned null, falling back to zero vector")
                 FloatArray(EMBEDDING_DIM) { 0f }

@@ -12,7 +12,11 @@ import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.domain.person.RelationDisplayItem
 import com.mamba.picme.domain.person.RelationPredicate
 import com.mamba.picme.domain.tag.FaceClusterEngine
+import com.mamba.picme.features.gallery.capability.GalleryCapability
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +42,9 @@ class PersonViewModel(
 
     private val _relations = MutableStateFlow<Map<Long, RelationDisplayItem?>>(emptyMap())
     val relations: StateFlow<Map<Long, RelationDisplayItem?>> = _relations.asStateFlow()
+
+    private val _photoCounts = MutableStateFlow<Map<Long, Int>>(emptyMap())
+    val photoCounts: StateFlow<Map<Long, Int>> = _photoCounts.asStateFlow()
 
     private val _editingPersonId = MutableStateFlow<Long?>(null)
     val editingPersonId: StateFlow<Long?> = _editingPersonId.asStateFlow()
@@ -68,12 +75,35 @@ class PersonViewModel(
                     person.personId to relationToDisplay(person, relation)
                 }
             }
+            val photoCountMap = withContext(Dispatchers.IO) {
+                val distinctCounts = db.personDao().getDistinctMediaCounts().associate { it.personId to it.count }
+                val searchEngine = GalleryCapability.getInstance().searchEngine
+                if (searchEngine == null) {
+                    distinctCounts
+                } else {
+                    val namedPersons = all.filter { !it.name.isNullOrBlank() }
+                    val searchCounts = coroutineScope {
+                        namedPersons.map { person ->
+                            async {
+                                val count = searchEngine.search(person.name!!).media.size
+                                person.personId to count
+                            }
+                        }.awaitAll().toMap()
+                    }
+                    distinctCounts.toMutableMap().apply {
+                        searchCounts.forEach { (id, count) ->
+                            if (count > 0) this[id] = count
+                        }
+                    }
+                }
+            }
             _covers.value = resolved
             _relations.value = relationMap
+            _photoCounts.value = photoCountMap
             // 防御：coverMediaId 悬空（封面媒体已删）的聚类 coverUri 为 null，不展示，避免空白格。
             // 正常情况下 reconcileAndLoad 已先行清理，此处为兜底。
             _persons.value = PersonCoverResolver.filterCoverable(all, resolved)
-                .sortedForDisplay(relationMap)
+                .sortedForDisplay(relationMap, photoCountMap)
         }
     }
 
@@ -165,14 +195,15 @@ class PersonViewModel(
      * 3. 最后以 updatedAt 作兜底去稳定
      */
     private fun List<PersonEntity>.sortedForDisplay(
-        relations: Map<Long, RelationDisplayItem?>
+        relations: Map<Long, RelationDisplayItem?>,
+        photoCounts: Map<Long, Int>
     ): List<PersonEntity> {
         return sortedWith(
             compareByDescending<PersonEntity> { person -> intimacyPriority(person, relations) }
                 .thenByDescending { person -> !person.name.isNullOrBlank() }
                 .thenByDescending { person ->
                     if (!person.name.isNullOrBlank()) {
-                        person.faceCount.toLong()
+                        (photoCounts[person.personId] ?: person.faceCount).toLong()
                     } else {
                         person.updatedAt
                     }

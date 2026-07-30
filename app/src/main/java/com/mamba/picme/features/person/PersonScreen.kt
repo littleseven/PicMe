@@ -63,6 +63,7 @@ fun PersonScreen(
     val persons by viewModel.persons.collectAsState()
     val covers by viewModel.covers.collectAsState()
     val relations by viewModel.relations.collectAsState()
+    val photoCounts by viewModel.photoCounts.collectAsState()
     val editingPersonId by viewModel.editingPersonId.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
@@ -165,6 +166,7 @@ fun PersonScreen(
                         person = person,
                         cover = covers[person.personId],
                         relation = relations[person.personId],
+                        photoCount = photoCounts[person.personId] ?: person.faceCount,
                         isEditingName = editingPersonId == person.personId,
                         onCoverClick = { onNavigateToGallery(person.personId) },
                         onNameClick = { viewModel.startEditing(person.personId) },
@@ -189,6 +191,9 @@ fun PersonScreen(
             onNavigateBack = { infoTarget = null },
             onUpdateCover = { photo ->
                 viewModel.updateCover(person.personId, photo.id)
+            },
+            onUpdateName = { name ->
+                viewModel.updateName(person.personId, name)
             }
         )
     }

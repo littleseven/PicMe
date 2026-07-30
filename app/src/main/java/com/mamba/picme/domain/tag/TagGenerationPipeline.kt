@@ -521,9 +521,9 @@ class TagGenerationPipeline(
         return """{"hasFace":${result.hasFace},"faceCount":${result.faceCount},"isSelfie":${result.isSelfie},"isGroupPhoto":${result.isGroupPhoto}}"""
     }
 
-    /** 判断 embedding 是否为无效的零向量 */
+    /** 判断 embedding 是否为无效的零向量、nan 或 inf */
     private fun isZeroVector(embedding: FloatArray): Boolean {
-        return embedding.all { it == 0f }
+        return embedding.all { it == 0f || it.isNaN() || it.isInfinite() }
     }
 
     /** 从 JSON 恢复人脸上下文 */

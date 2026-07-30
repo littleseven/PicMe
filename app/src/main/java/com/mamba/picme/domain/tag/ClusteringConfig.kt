@@ -21,13 +21,13 @@ object ClusteringConfig {
     const val USE_ADAPTIVE_CLUSTERING = true
 
     /** 余弦相似度阈值：高于此值归入已有簇（越接近 1.0 越严格）
-     *  0.65：在抑制误聚与召回低频人脸之间取平衡 */
-    const val COSINE_THRESHOLD = 0.65f
+     *  0.55：用户希望把外貌相近的同一人尽量合并，降低人物数；
+     *  同时保留一定余量，避免把不同人并在一起。 */
+    const val COSINE_THRESHOLD = 0.55f
 
     /** 跨簇合并 pass 的质心相似度阈值：高于此值才把两个 person 合并（不限簇大小）。
-     *  0.65：与 COSINE_THRESHOLD 同口径（系统「同一人」判定）。按实测校准——同一人拆簇
-     *  质心相似度 ≥0.677（如 35/142），不同人交叉 ≤0.42（如 140 两半）；0.65 落在两者之间。 */
-    const val MERGE_SIMILARITY_THRESHOLD = 0.65f
+     *  与 COSINE_THRESHOLD 同口径（系统「同一人」判定）。 */
+    const val MERGE_SIMILARITY_THRESHOLD = 0.55f
 
     /** 拆分 pass：把疑似「两个人被并成一组」的簇切成两个 person 的判定阈值。
      *  簇内用最远两点做种子分两半，仅当「两半各自内聚 ≥ SPLIT_INTRA_MIN 且互相交叉 ≤ SPLIT_CROSS_MAX」才拆。 */
@@ -49,8 +49,8 @@ object ClusteringConfig {
     const val SINK_SAMPLE_CAP = 30
 
     /** DBSCAN: 余弦距离阈值（= 1 - 相似度，越小越严格）
-     *  0.35：相似度 ≥ 0.65 才成簇，抑制不同女明星误聚 */
-    const val DBSCAN_EPS = 0.35f
+     *  0.45：与 COSINE_THRESHOLD=0.55 对齐，相似度 ≥ 0.55 才成簇 */
+    const val DBSCAN_EPS = 0.45f
 
     /** DBSCAN: 最小邻居数（≥2 形成核心点）
      *  降为 2：让照片较少的明星/低频人物也能成簇 */
@@ -73,13 +73,13 @@ object ClusteringConfig {
 
     /** k-NN 邻居数 k。
      *  越小簇越紧凑（可能漏召），越大越连通（可能混组）。
-     *  当前经验值 3：在明星测试集上得到 10 个高纯度簇，接近真实 11 人。 */
-    const val KNN_K = 3
+     *  与 [KNN_MIN_SIMILARITY] 配合使用：阈值收紧后，k 过大反而把弱相关样本拉进簇。
+     *  当前经验值 2：在保持召回的同时抑制跨组桥接。 */
+    const val KNN_K = 2
 
     /** k-NN 建边最小余弦相似度（= 1 - eps）。
-     *  越大边越严格（纯度高、噪声多）；越小边越宽松（召回高、可能混组）。
-     *  当前经验值 0.40：在 70 张明星测试图上 purity=1.0。 */
-    const val KNN_MIN_SIMILARITY = 0.40f
+     *  与 [COSINE_THRESHOLD] / [MERGE_SIMILARITY_THRESHOLD] 对齐（0.55）。 */
+    const val KNN_MIN_SIMILARITY = 0.55f
 
     /** 方案 B 最小簇大小，小于此值的连通分量视为噪声。
      *  与 DBSCAN_MIN_PTS 保持一致的语义：≥2 张人脸才成人物簇。 */
@@ -87,6 +87,6 @@ object ClusteringConfig {
 
     /** 全量重聚类时，新簇与旧命名人物质心的最小余弦相似度。
      *  高于此值则认为新旧簇为同一人，复用 personId 与 name。 */
-    const val NAME_PRESERVE_MIN_SIMILARITY = 0.65f
+    const val NAME_PRESERVE_MIN_SIMILARITY = 0.55f
 }
 

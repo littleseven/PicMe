@@ -388,6 +388,19 @@ class TagGenerationService : Service() {
                 )
                 ACTION_REEMBED_FACES -> {
                     // 仅重提已有人脸 embedding（对齐）+ 全量重聚类（保名）。直接调用，非会话。
+                    // 必须与 orchestrator 扫描互斥，防止并发写 face_embeddings/persons 产生重复分组。
+                    val hasActiveOrchestratorSession = orch.progress.value?.state in setOf(
+                        ScanSessionState.RUNNING,
+                        ScanSessionState.PAUSING,
+                        ScanSessionState.CANCELLING
+                    )
+                    if (hasActiveOrchestratorSession || scheduler?.isScanning?.value == true) {
+                        android.util.Log.w(
+                            TAG,
+                            "reembed ignored: orchestrator=${hasActiveOrchestratorSession}, scheduler=${scheduler?.isScanning?.value}"
+                        )
+                        return@launch
+                    }
                     scheduler?.reembedFacesAndRecluster { processed, total ->
                         android.util.Log.i(TAG, "reembed progress: $processed/$total")
                     }

@@ -249,7 +249,7 @@
     <string name="gallery_features_desc">打標掃描、人臉聚類與模型下載管理。</string>
     <string name="people_title">人物</string>
     <string name="people_default_name">人物 #%1$d</string>
-    <string name="people_photos_count">%1$d 張照片</string>
+    <string name="people_photos_count">%1$d 張</string>
     <string name="people_rescore">重新打分刷新封面</string>
     <string name="people_recluster">重新聚類</string>
     <string name="people_recluster_started">已開始重新聚類（僅有人臉，耗時較長），完成後返回本頁自動整理</string>

@@ -250,4 +250,20 @@ interface PersonDao {
         fixDanglingCovers()
         reconcileDanglingFaceIds()
     }
+
+    /** 按人物统计包含 TA 的照片数（去重 mediaId），用于人物页外显张数与相册张数对齐。 */
+    @Query(
+        """
+        SELECT personId, COUNT(DISTINCT mediaId) AS count FROM face_embeddings
+        WHERE personId IS NOT NULL
+        GROUP BY personId
+        """
+    )
+    suspend fun getDistinctMediaCounts(): List<PersonMediaCount>
 }
+
+/** 人物 → 去重照片数（与 faceCount 不同，faceCount 是人脸 embedding 数）。 */
+data class PersonMediaCount(
+    val personId: Long,
+    val count: Int
+)

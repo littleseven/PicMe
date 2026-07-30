@@ -113,7 +113,14 @@ class MnnEmbeddingExtractor(
             val norm = kotlin.math.sqrt(embedding.map { it * it }.sum().toDouble())
             Logger.d(TAG, "extractEmbedding: dim=${embedding.size}, first5=[${previewVals.joinToString()}], l2=%.4f".format(norm))
 
-            embedding
+            // 部分 MNN 模型/输出层返回的向量未做 L2 归一化，甚至包含 nan/inf；
+            // 聚类依赖余弦相似度，必须先归一化并过滤无效值。
+            val valid = embedding.all { !it.isNaN() && !it.isInfinite() }
+            if (!valid || norm == 0.0) {
+                Logger.w(TAG, "extractEmbedding: invalid embedding (nan/inf or zero norm), returning null")
+                return null
+            }
+            FloatArray(embedding.size) { i -> embedding[i] / norm.toFloat() }
         } catch (e: Exception) {
             Logger.e(TAG, "Embedding extraction failed", e)
             null

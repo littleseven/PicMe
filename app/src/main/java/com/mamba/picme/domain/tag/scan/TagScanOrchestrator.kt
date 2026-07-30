@@ -192,10 +192,8 @@ class TagScanOrchestrator(
 
     /** Pass1 流式攒批聚类累加器（跨批次保留；全量重扫时复位）。 */
     private val streamingAccumulator = StreamingClusterAccumulator()
-    /** 自上次 DBSCAN 精修以来流式归类的 embedding 数（供周期触发判定）。 */
+    /** 自上次全量重聚类以来流式归类的 embedding 数（阶段末判定用）。 */
     private var embeddingsSinceDbscan = 0
-    /** 标记：流式累计已达阈值，下一批应入队一次 DBSCAN 精修。 */
-    private var dbscanRefinementDue = false
 
     /**
      * 自动扫描会话的策略缓存：sessionId -> ScanQueuePolicy。
@@ -243,14 +241,15 @@ class TagScanOrchestrator(
             .map { it.id }
 
         if (filteredIds.isEmpty()) {
-            // 当前阶段（含 DBSCAN 的 Pass1+Pass2）全量完成：按策略跑一次 DBSCAN 精修，纠正流式碎片/错分
+            // 当前阶段（含 DBSCAN 的 Pass1+Pass2）全量完成：跑一次全量重聚类，纠正流式碎片/错分。
+            // 必须 isFullRescan=true，否则 runDbscanClustering 只处理 unassigned embeddings，
+            // 流式聚类已分配的错分无法被纠正，导致同一人被拆成多个重复分组。
             if (policy.passes.contains(TagScanPass.DBSCAN) &&
                 DbscanRefinementPolicy.shouldRunRefinement(embeddingsSinceDbscan, isFinalBatch = true)
             ) {
-                logInfo(sessionId, "阶段末 DBSCAN 精修")
-                scheduler.executeDbscan(preserveNamedPersons = true, isFullRescan = false)
+                logInfo(sessionId, "阶段末全量重聚类")
+                scheduler.executeDbscan(preserveNamedPersons = true, isFullRescan = true)
                 embeddingsSinceDbscan = 0
-                dbscanRefinementDue = false
             }
             // 第一阶段全量完成：若有延迟阶段，切换到第二阶段（递归一层，第二阶段 deferredPasses 已空 → 不会死循环）
             val nextPolicy = nextPhasePolicy(policy)
@@ -368,7 +367,6 @@ class TagScanOrchestrator(
             if (pass == TagScanPass.FACE_DETECTION) {
                 streamingAccumulator.reset()
                 embeddingsSinceDbscan = 0
-                dbscanRefinementDue = false
             }
         }
 
@@ -537,20 +535,8 @@ class TagScanOrchestrator(
             }
         }
 
-        // Pass 2: 全局 DBSCAN 任务——仅在「周期精修到期」时入队（mediaId = -1 标记）
-        if (passes.contains(TagScanPass.DBSCAN) && dbscanRefinementDue) {
-            tasks += TagScanTaskEntity(
-                sessionId = sessionId,
-                mediaId = -1L,
-                pass = TagScanPass.DBSCAN,
-                tagCategories = categoriesJson,
-                status = TagScanTaskStatus.PENDING,
-                priority = 1,
-                createdAt = System.currentTimeMillis()
-            )
-            dbscanRefinementDue = false
-            embeddingsSinceDbscan = 0
-        }
+        // Pass 2: 不在中途入队 DBSCAN 精修任务。阶段末的全量重聚类已足够纠正流式错分，
+        // 中途非全量精修无法处理已分配 embedding，反而会留下重复分组。
 
         // Pass 3: 每张媒体一个独立任务
         if (passes.contains(TagScanPass.IMAGE_TAGGING)) {
@@ -624,6 +610,24 @@ class TagScanOrchestrator(
     }
 
     private suspend fun startSession(sessionId: String) {
+        // 若调度器正在执行「重新聚类」（reembedFacesAndRecluster），禁止启动新扫描会话，
+        // 避免并发的全局 DBSCAN 与 reembed 互相覆盖 person/face_embeddings 表导致重复分组。
+        if (scheduler.isScanning.value) {
+            logWarning(sessionId, "已有重新聚类/扫描任务在运行，拒绝启动新会话")
+            db.tagScanTaskDao().cancelSession(sessionId)
+            _progress.value = TagScanSessionProgress(
+                sessionId = sessionId,
+                state = ScanSessionState.COMPLETED,
+                messages = listOf(
+                    ScanMessage(
+                        level = MessageLevel.WARNING,
+                        text = "已有重新聚类/扫描任务在运行，本次请求已忽略"
+                    )
+                )
+            )
+            return
+        }
+
         sessionMutex.withLock {
             if (activeSessionId == sessionId && currentJob?.isActive == true) {
                 logInfo(sessionId, "会话已在运行中")
@@ -704,13 +708,6 @@ class TagScanOrchestrator(
                     if (hasFace && streamingAccumulator.onFacePhoto()) {
                         val assigned = scheduler.runStreamingClusterBatch()
                         embeddingsSinceDbscan += assigned
-                        if (DbscanRefinementPolicy.shouldRunRefinement(
-                                embeddingsSinceDbscan,
-                                isFinalBatch = false
-                            )
-                        ) {
-                            dbscanRefinementDue = true
-                        }
                     }
                 }
                 TagScanPass.DBSCAN -> scheduler.executeDbscan(

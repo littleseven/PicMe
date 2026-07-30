@@ -23,7 +23,7 @@ import com.mamba.picme.domain.person.RelationPredicate
  * 组成：
  * - 关系快捷 chips（FlowRow 流式布局，分「家庭」/「社会」两组）：选中即写入具体谓词
  * - "自定义"输入框：填了则以输入为准（写入 customLabel，谓词由调用方记 OTHER）
- * - "不设置"：清除谓词与自定义称呼
+ * - "不设置"（可隐藏）：清除谓词与自定义称呼
  *
  * 无状态组件：选择状态由调用方持有（[selectedPredicate] / [customLabel]），
  * 变更通过 [onPredicateChange] / [onCustomLabelChange] 回调。
@@ -36,17 +36,22 @@ fun PersonRelationPicker(
     customLabel: String,
     onPredicateChange: (RelationPredicate?) -> Unit,
     onCustomLabelChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showNoneChip: Boolean = true,
+    showTitle: Boolean = true
 ) {
     // 自定义称呼非空时以其为准，chips 全部不选中
     val customActive = customLabel.isNotBlank()
 
     Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.person_relation_label),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (showTitle) {
+            Text(
+                text = stringResource(R.string.person_relation_label),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
         RelationChipGroup(
             titleRes = R.string.person_relation_group_family,
             predicates = FAMILY_RELATIONS,
@@ -63,18 +68,20 @@ fun PersonRelationPicker(
             onPredicateChange = onPredicateChange,
             onCustomLabelChange = onCustomLabelChange
         )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            FilterChip(
-                selected = !customActive && selectedPredicate == null,
-                onClick = {
-                    onCustomLabelChange("")
-                    onPredicateChange(null)
-                },
-                label = { Text(stringResource(R.string.person_relation_none)) }
-            )
+        if (showNoneChip) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChip(
+                    selected = !customActive && selectedPredicate == null,
+                    onClick = {
+                        onCustomLabelChange("")
+                        onPredicateChange(null)
+                    },
+                    label = { Text(stringResource(R.string.person_relation_none)) }
+                )
+            }
         }
         OutlinedTextField(
             value = customLabel,

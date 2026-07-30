@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,11 +26,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +55,7 @@ fun PersonListItem(
     person: PersonEntity,
     cover: PersonCover?,
     relation: RelationDisplayItem?,
+    photoCount: Int = person.faceCount,
     isEditingName: Boolean,
     onCoverClick: () -> Unit,
     onNameClick: () -> Unit,
@@ -91,6 +89,7 @@ fun PersonListItem(
                     .fillMaxWidth()
                     .padding(12.dp)
             ) {
+                // 第一行：名字 + 张数 + 详情
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -103,6 +102,14 @@ fun PersonListItem(
                         onNameCancel = onNameCancel,
                         modifier = Modifier.weight(1f)
                     )
+                    if (!isEditingName) {
+                        Text(
+                            text = stringResource(R.string.people_photos_count, photoCount),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(start = 8.dp, end = 4.dp)
+                        )
+                    }
                     IconButton(
                         onClick = onInfoClick,
                         modifier = Modifier.size(32.dp)
@@ -114,18 +121,17 @@ fun PersonListItem(
                         )
                     }
                 }
-                Text(
-                    text = stringResource(R.string.people_photos_count, person.faceCount),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-                RelationChip(
-                    relation = relation,
-                    isSelf = person.isSelf,
-                    onClick = onInfoClick,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
+
+                // 第二行：关系 chip；未设置时不占行，避免“不设置”显得简陋
+                val hasRelation = person.isSelf || relation != null
+                if (hasRelation) {
+                    RelationChip(
+                        relation = relation,
+                        isSelf = person.isSelf,
+                        onClick = onInfoClick,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
             }
         }
     }

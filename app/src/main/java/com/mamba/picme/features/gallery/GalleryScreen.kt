@@ -186,14 +186,16 @@ fun GalleryScreen(
     val context = LocalContext.current
     val app = context.applicationContext as PoLangApplication
 
-    // 从人物页带入 personId：直接加载该人物关联的媒体并进入搜索展示态
+    // 从人物页带入 personId：优先按名字搜索（与相册搜索一致），无名字时按人脸聚类过滤
     LaunchedEffect(initialPersonId) {
         if (initialPersonId <= 0L) return@LaunchedEffect
         val person = withContext(Dispatchers.IO) {
             AppDatabase.getDatabase(context).personDao().getPerson(initialPersonId)
         }
         val label = person?.name?.takeIf { it.isNotBlank() } ?: "#$initialPersonId"
-        val media = withContext(Dispatchers.IO) {
+        val hasName = person?.name?.isNotBlank() == true
+
+        val faceMedia = withContext(Dispatchers.IO) {
             AppDatabase.getDatabase(context).personDao()
                 .getMediaByPerson(initialPersonId)
                 .map { entity ->
@@ -209,11 +211,27 @@ fun GalleryScreen(
                     )
                 }
         }
-        if (media.isNotEmpty()) {
+
+        val finalMedia = if (hasName) {
+            val engine = searchEngine
+            val searchMedia = engine?.search(label)?.media.orEmpty()
+            if (searchMedia.isNotEmpty()) {
+                // 合并人脸聚类与名字搜索结果，避免任一侧遗漏
+                (faceMedia + searchMedia)
+                    .distinctBy { it.id }
+                    .sortedByDescending { it.captureDate }
+            } else {
+                faceMedia.sortedByDescending { it.captureDate }
+            }
+        } else {
+            faceMedia.sortedByDescending { it.captureDate }
+        }
+
+        if (finalMedia.isNotEmpty()) {
             searchQuery = label
             isSearchActive = true
             isPersonFilter = true
-            searchResultMedia = media.sortedByDescending { it.captureDate }
+            searchResultMedia = finalMedia
         }
         isSearchLoading = false
     }

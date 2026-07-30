@@ -40,6 +40,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -148,6 +149,9 @@ class TagGenerationScheduler(
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    /** 防止「重新聚类」被并发/重复触发：同一人被多次重提并重复分组。 */
+    private val reembedMutex = Mutex()
 
     private val _progress = MutableStateFlow<TagScanProgress?>(null)
     val progress: StateFlow<TagScanProgress?> = _progress.asStateFlow()
@@ -1253,30 +1257,42 @@ class TagGenerationScheduler(
      * @param onProgress 进度回调 (已处理, 总数)，每 50 张及末尾触发。
      */
     suspend fun reembedFacesAndRecluster(onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }) {
-        // 1. 重提前建快照（personId 仍在）—— 重提后 personId 会被清空，届时再建就空了
-        val namedSnapshots = buildNamedPersonSnapshots()
-        val relationSnapshots = buildRelationSnapshots()
-        Log.i(TAG, "reembedFacesAndRecluster: snapshotted ${namedSnapshots.size} named persons, ${relationSnapshots.size} relations")
-
-        // 2. 逐张重提（executeFaceDetection 内部清旧 embedding 再插新对齐 embedding）
-        val ids = db.mediaDao().getHasFaceMediaIds()
-        Log.i(TAG, "reembedFacesAndRecluster: re-embedding ${ids.size} hasFace media (aligned)")
-        for ((index, mediaId) in ids.withIndex()) {
-            currentCoroutineContext().ensureActive()
-            try {
-                executeFaceDetection(mediaId)
-            } catch (e: Exception) {
-                Log.w(TAG, "reembed: failed mediaId=$mediaId: ${e.message}")
-            }
-            if ((index + 1) % 50 == 0 || index == ids.lastIndex) {
-                onProgress(index + 1, ids.size)
-                Log.i(TAG, "reembed progress: ${index + 1}/${ids.size}")
-            }
+        // 防止并发/重复触发：用户快速连点「重新聚类」或自动扫描与手动重聚类并发，
+        // 会导致同一人被多次重提并重复分组。
+        if (!reembedMutex.tryLock()) {
+            Log.w(TAG, "reembedFacesAndRecluster: already running, ignore concurrent call")
+            return
         }
+        _isScanning.value = true
+        try {
+            // 1. 重提前建快照（personId 仍在）—— 重提后 personId 会被清空，届时再建就空了
+            val namedSnapshots = buildNamedPersonSnapshots()
+            val relationSnapshots = buildRelationSnapshots()
+            Log.i(TAG, "reembedFacesAndRecluster: snapshotted ${namedSnapshots.size} named persons, ${relationSnapshots.size} relations")
 
-        // 3. 带预建快照全量重聚类（保名/保关系）
-        executeDbscanInternal(namedSnapshots, relationSnapshots, isFullRescan = true)
-        Log.i(TAG, "reembedFacesAndRecluster: done")
+            // 2. 逐张重提（executeFaceDetection 内部清旧 embedding 再插新对齐 embedding）
+            val ids = db.mediaDao().getHasFaceMediaIds()
+            Log.i(TAG, "reembedFacesAndRecluster: re-embedding ${ids.size} hasFace media (aligned)")
+            for ((index, mediaId) in ids.withIndex()) {
+                currentCoroutineContext().ensureActive()
+                try {
+                    executeFaceDetection(mediaId)
+                } catch (e: Exception) {
+                    Log.w(TAG, "reembed: failed mediaId=$mediaId: ${e.message}")
+                }
+                if ((index + 1) % 50 == 0 || index == ids.lastIndex) {
+                    onProgress(index + 1, ids.size)
+                    Log.i(TAG, "reembed progress: ${index + 1}/${ids.size}")
+                }
+            }
+
+            // 3. 带预建快照全量重聚类（保名/保关系）
+            executeDbscanInternal(namedSnapshots, relationSnapshots, isFullRescan = true)
+            Log.i(TAG, "reembedFacesAndRecluster: done")
+        } finally {
+            _isScanning.value = false
+            reembedMutex.unlock()
+        }
     }
 
     /**
