@@ -50,11 +50,8 @@ class FaceClusterEngine(private val context: Context) {
         /** 调试：最多保存多少张对齐后人脸图 */
         private const val MAX_DEBUG_FACE_SAVES = 30
 
-        /** mergeSmallClusters：小簇判定上限（embedding 数 ≤ 此值者作为待合并候选） */
-        const val DEFAULT_MERGE_MAX_FACE_COUNT = 2
-
-        /** mergeSmallClusters：迭代轮数上限（防病态；每轮至少合并 1 个否则提前结束） */
-        private const val MAX_MERGE_ITERATIONS = 5
+        /** mergeSmallClusters：凝聚式合并次数上限（自然终止，此为兜底防病态） */
+        private const val MAX_MERGE_ITERATIONS = 200
 
         @Volatile
         private var debugFaceSaveCount = 0
@@ -455,82 +452,89 @@ class FaceClusterEngine(private val context: Context) {
     }
 
     /**
-     * 跨簇合并 pass：把 [maxFaceCount] 张以下的「小簇/单例」按质心相似度并入最近的
-     * （通常更大的）person，愈合「同一人因 faceId 冻结被拆成多组」的问题。
+     * 跨簇合并 pass：把「质心相似度 ≥ [threshold]」的 person 两两合并（**不限簇大小**），
+     * 愈合「同一人因 faceId 冻结被拆成多组」——含两个都 >2 张的大簇被拆开的情形
+     * （旧的 ≤2 限制会漏掉大簇拆分）。
      *
-     * 幂等、迭代到不动点（上限 [MAX_MERGE_ITERATIONS] 轮）。每轮：
-     * 1. 重建当前全量 person 视图（质心 + 真实 embedding 数，不用 denormalized faceCount）；
-     * 2. 对每个小簇 P，在所有其他存活 person 中找质心余弦相似度最高者 Q；
-     * 3. [decideSmallClusterMerge] 判定（相似度 ≥ [threshold]、非双方命名、幸存者选择）→
-     *    [mergeClusters] 执行（保留幸存者的 name/isSelf/cover）。
+     * 凝聚式（agglomerative）：每轮在存活 person 中找相似度最高且可合并的一对 → [mergeClusters]，
+     * 就地更新幸存者质心后继续，直到没有达标对。幸存者选择与「双方命名跳过」见
+     * [decideSmallClusterMerge]（保留 name/isSelf/cover）。
      *
-     * 只读 DB embedding 算质心+余弦，**不加载 MNN 模型**，进人物页调用开销很小。
+     * 阈值默认 [ClusteringConfig.MERGE_SIMILARITY_THRESHOLD]=0.80：同一人拆簇质心相似度通常
+     * ≥0.85，不同人 rarely >0.70，0.80 兼顾召回与防撞脸误并。只读 DB embedding 算质心+余弦，
+     * **不加载 MNN 模型**。
      *
      * @return 本次执行的合并次数。
      */
     suspend fun mergeSmallClusters(
-        maxFaceCount: Int = DEFAULT_MERGE_MAX_FACE_COUNT,
-        threshold: Float = ClusteringConfig.COSINE_THRESHOLD
+        threshold: Float = ClusteringConfig.MERGE_SIMILARITY_THRESHOLD
     ): Int {
+        // personId -> 质心/计数/名/self；合并后就地更新，避免每轮全量重读 DB
+        val persons = personDao.getAllPersons()
+        val centroids = mutableMapOf<Long, FloatArray>()
+        val counts = mutableMapOf<Long, Int>()
+        val names = mutableMapOf<Long, String?>()
+        val selves = mutableMapOf<Long, Boolean>()
+        for (person in persons) {
+            val centroid = getPersonCentroidCached(person.personId) ?: continue
+            val count = personDao.getEmbeddingCount(person.personId)
+            if (count <= 0) continue
+            centroids[person.personId] = centroid
+            counts[person.personId] = count
+            names[person.personId] = person.name
+            selves[person.personId] = person.isSelf
+        }
+        val alive = centroids.keys.toMutableSet()
+        if (alive.size < 2) return 0
+
         var totalMerges = 0
-        repeat(MAX_MERGE_ITERATIONS) {
-            // 重建当前视图：personId -> (entity, centroid, realCount)
-            val view = personDao.getAllPersons().mapNotNull { person ->
-                val centroid = getPersonCentroidCached(person.personId) ?: return@mapNotNull null
-                val count = personDao.getEmbeddingCount(person.personId)
-                if (count <= 0) return@mapNotNull null
-                Triple(person, centroid, count)
-            }
-            if (view.size < 2) return totalMerges
-
-            val byId = view.associateBy { it.first.personId }
-            val candidates = view
-                .filter { it.third in 1..maxFaceCount }
-                .sortedWith(compareBy({ it.third }, { it.first.personId }))
-
-            var mergedThisIter = 0
-            val removed = mutableSetOf<Long>()
-
-            for (cand in candidates) {
-                val candId = cand.first.personId
-                if (candId in removed) continue
-                val candCentroid = cand.second
-
-                var bestId: Long? = null
-                var bestSim = -1f
-                for (other in view) {
-                    val otherId = other.first.personId
-                    if (otherId == candId || otherId in removed) continue
-                    val sim = cosineSimilarity(candCentroid, other.second)
-                    if (sim > bestSim) {
-                        bestSim = sim
-                        bestId = otherId
-                    }
+        var guard = 0
+        while (guard++ < MAX_MERGE_ITERATIONS) {
+            val list = alive.toList()
+            var bestSim = threshold // 严格 > threshold 才合并
+            var bestA = -1L
+            var bestB = -1L
+            for (i in list.indices) {
+                val a = list[i]
+                val ca = centroids[a] ?: continue
+                for (j in i + 1 until list.size) {
+                    val b = list[j]
+                    val cb = centroids[b] ?: continue
+                    val sim = cosineSimilarity(ca, cb)
+                    if (sim <= bestSim) continue
+                    val aNamed = !names[a].isNullOrBlank()
+                    val bNamed = !names[b].isNullOrBlank()
+                    if (aNamed && bNamed) continue // 双方已命名：尊重人工区分
+                    bestSim = sim
+                    bestA = a
+                    bestB = b
                 }
-                val neighbor = bestId?.let { byId[it] } ?: continue
-
-                val decision = decideSmallClusterMerge(
-                    MergeCandidate(candId, cand.first.name, cand.first.isSelf, cand.third),
-                    MergeCandidate(neighbor.first.personId, neighbor.first.name, neighbor.first.isSelf, neighbor.third),
-                    bestSim,
-                    threshold
-                )
-                if (decision == null) {
-                    if (bestSim >= threshold) {
-                        // 相似度达标却被跳过 → 双方均已命名（尊重用户人工区分）
-                        Log.d(TAG, "mergeSmallClusters: skip $candId~${neighbor.first.personId} (both named, sim=${"%.3f".format(bestSim)})")
-                    }
-                    continue
-                }
-
-                mergeClusters(decision.survivor.personId, decision.absorbed.personId)
-                removed.add(decision.absorbed.personId)
-                mergedThisIter++
-                totalMerges++
             }
+            if (bestA < 0) break
 
-            if (mergedThisIter == 0) return totalMerges
-            Log.d(TAG, "mergeSmallClusters: iteration merged $mergedThisIter (total $totalMerges)")
+            val decision = decideSmallClusterMerge(
+                MergeCandidate(bestA, names[bestA], selves[bestA] == true, counts[bestA] ?: 1),
+                MergeCandidate(bestB, names[bestB], selves[bestB] == true, counts[bestB] ?: 1),
+                bestSim,
+                threshold
+            ) ?: break // 理论不会 null（已过滤双方命名与 sim≤阈值）
+            val survivor = decision.survivor.personId
+            val absorbed = decision.absorbed.personId
+
+            mergeClusters(survivor, absorbed)
+            alive.remove(absorbed)
+            counts[survivor] = (counts[survivor] ?: 0) + (counts.remove(absorbed) ?: 0)
+            names.remove(absorbed)
+            selves.remove(absorbed)
+            // 幸存者质心已被 mergeClusters 更新进缓存，回填本地图
+            getPersonCentroidCached(survivor)?.let { centroids[survivor] = it }
+            centroids.remove(absorbed)
+
+            totalMerges++
+            Log.d(TAG, "mergeSmallClusters: $absorbed -> $survivor (sim=${"%.3f".format(bestSim)}), total $totalMerges")
+        }
+        if (totalMerges > 0) {
+            Log.i(TAG, "mergeSmallClusters: $totalMerges similar cluster(s) merged (threshold=$threshold)")
         }
         return totalMerges
     }

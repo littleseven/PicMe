@@ -24,6 +24,11 @@ object ClusteringConfig {
      *  0.65：在抑制误聚与召回低频人脸之间取平衡 */
     const val COSINE_THRESHOLD = 0.65f
 
+    /** 跨簇合并 pass 的质心相似度阈值：高于此值才把两个 person 合并（不限簇大小）。
+     *  0.80：同一人被拆出的两簇质心相似度通常 ≥0.85，不同人 rarely >0.70；
+     *  0.80 在两者之间，既能愈合「两个大簇被拆开」，又防撞脸误并。 */
+    const val MERGE_SIMILARITY_THRESHOLD = 0.80f
+
     /** DBSCAN: 余弦距离阈值（= 1 - 相似度，越小越严格）
      *  0.35：相似度 ≥ 0.65 才成簇，抑制不同女明星误聚 */
     const val DBSCAN_EPS = 0.35f
