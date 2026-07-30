@@ -100,6 +100,9 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         // AI Agent L1 意图缓存调试开关
         val AI_AGENT_L1_CACHE_ENABLED = booleanPreferencesKey("ai_agent_l1_cache_enabled")
 
+        // 自动执行计划开关
+        val AUTO_EXECUTE_PLANS = booleanPreferencesKey("auto_execute_plans")
+
         // Cloudflare AI Gateway Token
         val CLOUDFLARE_GATEWAY_TOKEN = stringPreferencesKey("cloudflare_gateway_token")
 
@@ -811,6 +814,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateAiAgentL1CacheEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.AI_AGENT_L1_CACHE_ENABLED] = enabled
+        }
+    }
+
+    override val autoExecutePlansEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.AUTO_EXECUTE_PLANS] ?: true
+        }
+
+    override suspend fun updateAutoExecutePlansEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_EXECUTE_PLANS] = enabled
         }
     }
 
