@@ -3,9 +3,12 @@ package com.mamba.picme.server.diag
 import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.Db
 import kotlinx.coroutines.Dispatchers
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.update
 import java.time.Instant
 
 data class DiagJobRow(
@@ -19,6 +22,17 @@ data class DiagJobRow(
     val fixBranch: String?,
     val compareUrl: String?,
     val tested: Boolean,
+)
+
+/** worker 领到的任务（phase 决定诊断还是修复）。 */
+data class DiagClaim(
+    val id: Int,
+    val phase: String,        // "diagnose" | "fix"
+    val description: String,
+    val bundleJson: String,
+    val gitSha: String,
+    val rootCause: String?,   // 修复阶段带确认过的根因
+    val fixMode: String?,     // 修复阶段带用户选的 mode
 )
 
 object DiagService {
@@ -61,6 +75,94 @@ object DiagService {
                     compareUrl = it[DiagJobs.compareUrl],
                     tested = it[DiagJobs.tested] == 1,
                 )
+            }
+        }
+    }
+
+    /**
+     * 原子领取一个待处理任务：QUEUED → 诊断；FIX_REQUESTED → 修复。
+     * 置 claimedAt；MVP 单 worker，不做悲观锁。
+     */
+    suspend fun claimNextJob(): DiagClaim? {
+        val now = Instant.now().toEpochMilli()
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = DiagJobs.selectAll()
+                .where {
+                    (DiagJobs.status eq DiagStatus.QUEUED.name) or
+                        (DiagJobs.status eq DiagStatus.FIX_REQUESTED.name)
+                }
+                .orderBy(DiagJobs.createdAt to SortOrder.ASC)
+                .firstOrNull() ?: return@newSuspendedTransaction null
+            val id = row[DiagJobs.id]
+            val status = DiagStatus.valueOf(row[DiagJobs.status])
+            DiagJobs.update({ DiagJobs.id eq id }) { it[claimedAt] = now }
+            DiagClaim(
+                id = id,
+                phase = if (status == DiagStatus.QUEUED) "diagnose" else "fix",
+                description = row[DiagJobs.description],
+                bundleJson = row[DiagJobs.bundleJson],
+                gitSha = row[DiagJobs.gitSha],
+                rootCause = row[DiagJobs.rootCause],
+                fixMode = row[DiagJobs.fixMode],
+            )
+        }
+    }
+
+    /** 诊断阶段回传：成功→DIAGNOSED，失败→DIAGNOSE_FAILED。 */
+    suspend fun submitDiagnosis(id: Int, rootCause: String?, status: DiagStatus, error: String?) {
+        require(status == DiagStatus.DIAGNOSED || status == DiagStatus.DIAGNOSE_FAILED) {
+            "diagnose status must be DIAGNOSED or DIAGNOSE_FAILED"
+        }
+        val now = Instant.now().toEpochMilli()
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = status.name
+                it[DiagJobs.rootCause] = rootCause
+                it[DiagJobs.workerLog] = error
+                it[DiagJobs.updatedAt] = now
+            }
+        }
+    }
+
+    /** 用户确认 + 选 mode：仅 owner 且 DIAGNOSED 态可确认。返回是否成功转移。 */
+    suspend fun confirmFix(id: Int, ownerTokenHash: String, mode: String): Boolean {
+        require(mode == "push" || mode == "pr") { "mode must be push or pr" }
+        val now = Instant.now().toEpochMilli()
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = DiagJobs.selectAll().where { DiagJobs.id eq id }.firstOrNull()
+                ?: return@newSuspendedTransaction false
+            if (row[DiagJobs.ownerTokenHash] != ownerTokenHash) return@newSuspendedTransaction false
+            if (row[DiagJobs.status] != DiagStatus.DIAGNOSED.name) return@newSuspendedTransaction false
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.FIX_REQUESTED.name
+                it[DiagJobs.fixMode] = mode
+                it[DiagJobs.updatedAt] = now
+            }
+            true
+        }
+    }
+
+    /** 修复阶段回传：FIXED / FIXED_UNVERIFIED / FIX_FAILED。 */
+    suspend fun submitFix(
+        id: Int,
+        status: DiagStatus,
+        fixBranch: String?,
+        compareUrl: String?,
+        tested: Boolean,
+        error: String?,
+    ) {
+        require(status == DiagStatus.FIXED || status == DiagStatus.FIXED_UNVERIFIED || status == DiagStatus.FIX_FAILED) {
+            "fix status must be FIXED, FIXED_UNVERIFIED or FIX_FAILED"
+        }
+        val now = Instant.now().toEpochMilli()
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = status.name
+                it[DiagJobs.fixBranch] = fixBranch
+                it[DiagJobs.compareUrl] = compareUrl
+                it[DiagJobs.tested] = if (tested) 1 else 0
+                it[DiagJobs.workerLog] = error
+                it[DiagJobs.updatedAt] = now
             }
         }
     }
