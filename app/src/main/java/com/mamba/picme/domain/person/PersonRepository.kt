@@ -80,6 +80,11 @@ class PersonRepository(
         }
     }
 
+    /** 更新人物封面（收口，供 UI 层调用） */
+    suspend fun updateCover(personId: Long, mediaId: Long) {
+        personDao.updateCoverMedia(personId, mediaId)
+    }
+
     /**
      * 声明"subject 是我的 predicate"（如：小宝 是我的 女儿）。
      *

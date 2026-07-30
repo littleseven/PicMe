@@ -65,7 +65,7 @@ fun PersonRelationPicker(
         )
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             FilterChip(
                 selected = !customActive && selectedPredicate == null,
@@ -87,7 +87,7 @@ fun PersonRelationPicker(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp)
+                .padding(top = 4.dp)
         )
     }
 }
@@ -105,15 +105,15 @@ private fun RelationChipGroup(
 ) {
     Text(
         text = stringResource(titleRes),
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 12.dp)
+        modifier = Modifier.padding(top = 8.dp)
     )
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         predicates.forEach { predicate ->
             FilterChip(

@@ -254,6 +254,10 @@
     <string name="people_entry">人物</string>
     <string name="people_entry_desc">查看並命名人臉聚類</string>
     <string name="gallery_people_entry">人物</string>
+    <string name="person_select_cover_title">選擇封面</string>
+    <string name="person_info_title">人物資訊</string>
+    <string name="person_edit_name_hint">點擊命名</string>
+    <string name="people_empty">未找到人物</string>
     <string name="manage_duplicates">管理重複照片</string>
     <string name="duplicate_manager_desc">尋找並刪除重複或相似照片，釋放儲存空間。</string>
     <string name="delete_all_duplicates">刪除全部重複</string>

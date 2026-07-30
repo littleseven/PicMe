@@ -1,17 +1,14 @@
 package com.mamba.picme.features.person
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -19,8 +16,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -31,28 +29,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
-import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.data.local.entity.PersonEntity
-import com.mamba.picme.domain.person.RelationPredicate
-import com.mamba.picme.features.common.PersonRenameDialog
+import com.mamba.picme.data.model.MediaEntity
+import com.mamba.picme.features.person.components.PersonCoverPickerSheet
+import com.mamba.picme.features.person.components.PersonInfoSheet
+import com.mamba.picme.features.person.components.PersonListItem
+import kotlinx.coroutines.launch
 
 /**
- * 「人物」页：全部人脸聚类 = 封面网格（coverMediaId 整图 + faceAwareVerticalAlignment 人脸感知纵向对齐）。
- * 点封面 → [PersonRenameDialog]（改名/标关系/标"我"）。
+ * 「人物」页：双列网格展示全部人脸聚类。
+ * 支持行内改名、展开式 Bottom Sheet 编辑关系/「我」标记、底部 Sheet 选择封面。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,20 +54,37 @@ fun PersonScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.reconcileAndLoad() }
-    // 打开人物页时后台跑一轮 eDifFIQA 打分 + 按 CoverSelector 刷新封面（fire-and-forget，
-    // 完成后 reload 让网格看到更新；模型未就绪时只刷新封面）
-    LaunchedEffect(Unit) {
-        val app = context.applicationContext as? PoLangApplication ?: return@LaunchedEffect
-        app.container.aestheticScoreWorker.runOnce()
-        viewModel.reconcileAndLoad()
-    }
 
     var scoring by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val persons by viewModel.persons.collectAsState()
     val covers by viewModel.covers.collectAsState()
-    var editing by remember { mutableStateOf<PersonEntity?>(null) }
+    val relations by viewModel.relations.collectAsState()
+    val editingPersonId by viewModel.editingPersonId.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    var infoTarget by remember { mutableStateOf<PersonEntity?>(null) }
+    var coverTarget by remember { mutableStateOf<PersonEntity?>(null) }
+    var photos by remember { mutableStateOf<List<MediaEntity>>(emptyList()) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(coverTarget) {
+        val target = coverTarget
+        photos = if (target != null) {
+            viewModel.loadPhotosByPerson(target.personId)
+        } else {
+            emptyList()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -121,82 +130,60 @@ fun PersonScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 96.dp),
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(4.dp)
         ) {
-            items(items = persons, key = { person -> person.personId }) { person ->
-                PersonCoverCell(
-                    person = person,
-                    cover = covers[person.personId],
-                    onClick = { editing = person }
-                )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(
+                    items = persons,
+                    key = { person -> person.personId }
+                ) { person ->
+                    PersonListItem(
+                        person = person,
+                        cover = covers[person.personId],
+                        relation = relations[person.personId],
+                        isEditingName = editingPersonId == person.personId,
+                        onCoverClick = { coverTarget = person },
+                        onNameClick = { viewModel.startEditing(person.personId) },
+                        onNameSave = { name -> viewModel.updateName(person.personId, name) },
+                        onNameCancel = { viewModel.stopEditing() },
+                        onInfoClick = { infoTarget = person }
+                    )
+                }
             }
         }
     }
 
-    val target = editing
-    if (target != null) {
-        // v1：关系/自定义称呼不预填（留空），仅回填"这是我"标记
-        PersonRenameDialog(
-            initialName = target.name.orEmpty(),
-            initialRelation = null,
-            initialCustomLabel = "",
-            initialIsSelf = target.isSelf,
-            onConfirm = { name, relation, customLabel, isSelf ->
-                viewModel.applyEdit(target.personId, name, customLabel, isSelf, relation)
+    infoTarget?.let { person ->
+        PersonInfoSheet(
+            relation = relations[person.personId],
+            isSelf = person.isSelf,
+            onSave = { relation, customLabel, isSelf ->
+                viewModel.updatePersonInfo(person.personId, relation, customLabel, isSelf)
             },
-            onDismiss = { editing = null }
+            onDismiss = { infoTarget = null }
         )
     }
-}
 
-@Composable
-private fun PersonCoverCell(
-    person: PersonEntity,
-    cover: PersonCover?,
-    onClick: () -> Unit
-) {
-    val name = person.name ?: stringResource(R.string.people_default_name, person.personId)
-    val count = stringResource(R.string.people_photos_count, person.faceCount)
-    Box(
-        modifier = Modifier
-            .padding(4.dp)
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        val uri = cover?.coverUri
-        if (uri != null) {
-            AsyncImage(
-                model = uri,
-                contentDescription = name,
-                contentScale = ContentScale.Crop,
-                alignment = faceAwareVerticalAlignment(cover?.faceFocusY),
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        // 底部半透明名条：名字 · 张数
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.45f))
-                .padding(4.dp)
-        ) {
-            Text(
-                text = "$name · $count",
-                color = Color.White,
-                fontSize = 11.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+    coverTarget?.let { person ->
+        if (photos.isNotEmpty()) {
+            PersonCoverPickerSheet(
+                photos = photos,
+                onSelect = { photo ->
+                    viewModel.updateCover(person.personId, photo.id)
+                    coverTarget = null
+                },
+                onDismiss = { coverTarget = null }
             )
         }
     }
