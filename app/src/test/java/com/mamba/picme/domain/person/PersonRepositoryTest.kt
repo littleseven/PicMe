@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.data.model.MediaEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -317,5 +318,25 @@ class PersonRepositoryTest {
         assertEquals(1, items.size)
         assertEquals("二儿子", items[0].customLabel)
         assertEquals(RelationPredicate.CHILD, items[0].predicate)
+    }
+
+    @Test
+    fun `updateCover changes coverMediaId`() = runTest {
+        val personId = insertPerson("小宝")
+        db.mediaDao().insertMedia(
+            MediaEntity(
+                id = 100L,
+                uri = "content://test/100",
+                type = com.mamba.picme.agent.core.model.context.MediaType.PHOTO,
+                captureDate = 1L,
+                fileName = "test.jpg"
+            )
+        )
+
+        repository.updateCover(personId, 100L)
+
+        val person = db.personDao().getPerson(personId)
+        assertNotNull(person)
+        assertEquals(100L, person!!.coverMediaId)
     }
 }
