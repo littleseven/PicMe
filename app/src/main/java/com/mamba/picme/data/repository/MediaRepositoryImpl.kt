@@ -125,7 +125,7 @@ class MediaRepositoryImpl(
             val currentAssets = allMedia.first()
             val localIds = currentAssets
                 .filter { asset -> asset.uri.toUri() in urisToDelete }
-                .mapNotNull { asset -> if (asset.id > 0L) asset.id else null }
+                .mapNotNull { asset -> if (asset.id != 0L) asset.id else null }
 
             if (localIds.isNotEmpty()) {
                 Logger.d(TAG, "Cleaning up local DB records: $localIds")
@@ -213,7 +213,8 @@ class MediaRepositoryImpl(
         // 如果需要用户授权，推迟数据库清理，避免用户拒绝后出现数据不一致
         if (!needsUserAuth) {
             pendingDeleteIds = null
-            val localIds = successfullyDeletedIds.filter { id -> id > 0L }
+            // id=0 才是未入库哨兵；负 id（如 sample 数据）是合法入库行，不能漏删。
+            val localIds = successfullyDeletedIds.filter { id -> id != 0L }
             if (localIds.isNotEmpty()) {
                 Logger.d(TAG, "Deleting local DB records: $localIds")
                 mediaDao.deleteMediaByIds(localIds)
@@ -238,7 +239,7 @@ class MediaRepositoryImpl(
     }
 
     override suspend fun getMediaById(id: Long): MediaAsset? {
-        if (id > 0L) {
+        if (id != 0L) {
             return mediaDao.getMediaById(id)?.toDomain() ?: allMedia.first().firstOrNull { asset -> asset.id == id }
         }
         return allMedia.first().firstOrNull { asset -> asset.id == id }

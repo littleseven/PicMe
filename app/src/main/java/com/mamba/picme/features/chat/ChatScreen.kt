@@ -307,7 +307,7 @@ fun ChatScreen(
 
         // 确认 pending 删除已实际生效（物理文件 + Room 记录已清理）
         if (pendingDeletedIds.isNotEmpty()) {
-            val confirmedRemoved = pendingDeletedIds.filter { it > 0L && it !in existingIds }.toSet()
+            val confirmedRemoved = pendingDeletedIds.filter { it != 0L && it !in existingIds }.toSet()
             if (confirmedRemoved.isNotEmpty()) {
                 confirmedRemoved.forEach { viewModel.removeMediaResultAsset(it) }
                 pendingDeletedIds = pendingDeletedIds - confirmedRemoved
@@ -318,7 +318,7 @@ fun ChatScreen(
         if (previewAssets.isNotEmpty()) {
             val removedIds = previewAssets
                 .map { it.id }
-                .filter { it > 0L && it !in existingIds }
+                .filter { it != 0L && it !in existingIds }
                 .toSet()
             if (removedIds.isNotEmpty()) {
                 previewAssets = previewAssets.filter { it.id in existingIds }
