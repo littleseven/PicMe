@@ -171,6 +171,8 @@ interface AppContainer {
     val queryGalleryMediaUseCase: QueryGalleryMediaUseCase
     /** 人物/人脸聚类 DAO（chat JS handler face.cluster / Debug 演示共用） */
     val personDao: PersonDao
+    /** Room 数据库（人物页封面解析等需读 media 表的场景共用） */
+    val database: AppDatabase
     /** 人物领域仓库（命名 / "我"标记 / 人物关系图谱收口，命名对话框与聊天工具共用） */
     val personRepository: PersonRepository
     /** 通用事实记忆仓库（"帮我记住…"事实的收口，聊天工具 / JS 通路 / 设置页共用） */
@@ -198,7 +200,7 @@ class AppContainerImpl(
     private val thumbnailCacheParam: ThumbnailCache
 ) : AppContainer {
 
-    private val database by lazy { AppDatabase.getDatabase(context) }
+    override val database by lazy { AppDatabase.getDatabase(context) }
 
     /** 双语词表（全局共享，避免重复加载） */
     private val bilingualVocab: BilingualVocab by lazy {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
@@ -59,7 +60,8 @@ fun GalleryTopBar(
     onSearchClick: () -> Unit = {},
     onTagScanClick: () -> Unit = {},
     onNavigateToTagControl: () -> Unit = {},
-    onToggleScan: () -> Unit = {}
+    onToggleScan: () -> Unit = {},
+    onNavigateToPeople: () -> Unit = {}
 ) {
     TopAppBar(
         modifier = Modifier.displayCutoutPadding(),
@@ -119,6 +121,13 @@ fun GalleryTopBar(
                     Icon(
                         Icons.Rounded.Search,
                         contentDescription = stringResource(R.string.search_photos)
+                    )
+                }
+                // 人物页入口
+                IconButton(onClick = onNavigateToPeople) {
+                    Icon(
+                        Icons.Rounded.AccountCircle,
+                        contentDescription = stringResource(R.string.gallery_people_entry)
                     )
                 }
                 GroupingMenu(

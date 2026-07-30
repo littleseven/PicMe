@@ -241,6 +241,9 @@
     <string name="people_title">人物</string>
     <string name="people_default_name">人物 #%1$d</string>
     <string name="people_photos_count">%1$d 张照片</string>
+    <string name="people_entry">人物</string>
+    <string name="people_entry_desc">查看并命名人脸聚类</string>
+    <string name="gallery_people_entry">人物</string>
     <string name="manage_duplicates">管理重复照片</string>
     <string name="duplicate_manager_desc">查找并删除重复或相似照片，释放存储空间。</string>
     <string name="delete_all_duplicates">删除全部重复</string>

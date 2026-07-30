@@ -122,6 +122,7 @@ fun GalleryScreen(
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDebug: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
+    onNavigateToPeople: () -> Unit = {},
     initialSearchQuery: String = ""
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
@@ -514,6 +515,7 @@ fun GalleryScreen(
                         selectedCount = selectedIds.size,
                         groupingMode = groupingMode,
                         onNavigateToSettings = onNavigateToSettings,
+                        onNavigateToPeople = onNavigateToPeople,
                         onToggleSelectionMode = {
                             isSelectionMode = false
                             selectedIds.clear()

@@ -61,9 +61,7 @@ fun MemoryFactsScreen(
     onNavigateBack: () -> Unit
 ) {
     val facts by viewModel.facts.collectAsState()
-    val relations by viewModel.relations.collectAsState()
     var editingFact by remember { mutableStateOf<MemoryFactEntity?>(null) }
-    var editingRelation by remember { mutableStateOf<RelationDisplayItem?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -91,7 +89,7 @@ fun MemoryFactsScreen(
             )
         }
     ) { innerPadding ->
-        if (facts.isEmpty() && relations.isEmpty()) {
+        if (facts.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -112,28 +110,6 @@ fun MemoryFactsScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // ── 人物关系 section（可编辑谓词/自定义称呼 + 删除） ──
-                item(key = "relations_header") {
-                    MemorySectionHeader(titleRes = R.string.memory_facts_relations_section)
-                }
-                if (relations.isEmpty()) {
-                    item(key = "relations_empty") {
-                        MemorySectionEmptyRow(textRes = R.string.memory_facts_relations_empty)
-                    }
-                } else {
-                    items(items = relations, key = { relation -> "relation_${relation.relationId}" }) { relation ->
-                        PersonRelationRow(
-                            relation = relation,
-                            onEdit = { editingRelation = relation },
-                            onDelete = { viewModel.removeRelation(relation.relationId) }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-
                 // ── 事实记忆 section ──
                 item(key = "facts_header") {
                     MemorySectionHeader(titleRes = R.string.memory_facts_facts_section)
@@ -204,53 +180,7 @@ fun MemoryFactsScreen(
         )
     }
 
-    // ── 关系编辑对话框（谓词/自定义称呼，不改人名；与人物编辑对话框共用 Picker） ──
-    editingRelation?.let { relation ->
-        var predicate by remember(relation.relationId) { mutableStateOf<RelationPredicate?>(relation.predicate) }
-        var customLabel by remember(relation.relationId) { mutableStateOf(relation.customLabel.orEmpty()) }
-        AlertDialog(
-            onDismissRequest = { editingRelation = null },
-            title = {
-                Text(stringResource(R.string.memory_relation_edit_title, relation.subjectName))
-            },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    PersonRelationPicker(
-                        selectedPredicate = predicate,
-                        customLabel = customLabel,
-                        onPredicateChange = { predicate = it },
-                        onCustomLabelChange = { customLabel = it }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val trimmedLabel = customLabel.trim()
-                        // 自定义称呼非空时以其为准（谓词记 OTHER）；谓词也未选则视为"其他"
-                        val newPredicate = if (trimmedLabel.isNotEmpty()) {
-                            RelationPredicate.OTHER
-                        } else {
-                            predicate ?: RelationPredicate.OTHER
-                        }
-                        viewModel.updateRelation(
-                            relationId = relation.relationId,
-                            predicate = newPredicate,
-                            customLabel = trimmedLabel.ifEmpty { null }
-                        )
-                        editingRelation = null
-                    }
-                ) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingRelation = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
+    // 注：人物关系编辑已迁至「人物」页重命名对话框（PersonRenameDialog），本页专注事实记忆。
 
     // ── 清空全部二次确认 ────────────────────────────────────────
     if (showClearConfirm) {

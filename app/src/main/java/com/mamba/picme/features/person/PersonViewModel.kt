@@ -1,6 +1,7 @@
 package com.mamba.picme.features.person
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
@@ -64,5 +65,19 @@ class PersonViewModel(
             load()
             onDone()
         }
+    }
+
+    companion object {
+        /** ViewModelProvider.Factory：参照 MemoryFactsViewModel.factory 范式。 */
+        fun factory(personRepository: PersonRepository, db: AppDatabase): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    if (modelClass.isAssignableFrom(PersonViewModel::class.java)) {
+                        @Suppress("UNCHECKED_CAST")
+                        return PersonViewModel(personRepository, db) as T
+                    }
+                    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+                }
+            }
     }
 }

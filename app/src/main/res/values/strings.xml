@@ -261,6 +261,9 @@
     <string name="people_title">People</string>
     <string name="people_default_name">Person #%1$d</string>
     <string name="people_photos_count">%1$d photos</string>
+    <string name="people_entry">People</string>
+    <string name="people_entry_desc">View and name face clusters</string>
+    <string name="gallery_people_entry">People</string>
 
     <!-- Duplicate Management -->
     <string name="manage_duplicates">Manage Duplicates</string>

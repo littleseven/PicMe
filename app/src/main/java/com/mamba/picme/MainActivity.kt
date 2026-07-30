@@ -53,6 +53,8 @@ import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
 import com.mamba.picme.features.settings.MemoryFactsScreen
+import com.mamba.picme.features.person.PersonScreen
+import com.mamba.picme.features.person.PersonViewModel
 import com.mamba.picme.features.settings.MemoryFactsViewModel
 import com.mamba.picme.features.settings.CommunicationChannelScreen
 import com.mamba.picme.features.settings.CommunicationChannelViewModel
@@ -262,6 +264,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToDebug = { navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToTagControl = {
                                         navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToPeople = {
+                                        navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -379,6 +384,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToCommunicationChannel = {
                                         navController.navigate(Screen.CommunicationChannel.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToPeople = {
+                                        navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -440,6 +448,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToCommunicationChannel = {
                                         navController.navigate(Screen.CommunicationChannel.route, navOptions { launchSingleTop = true })
+                                    },
+                                    onNavigateToPeople = {
+                                        navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -498,6 +509,18 @@ class MainActivity : ComponentActivity() {
                                 )
                                 MemoryFactsScreen(
                                     viewModel = memoryFactsViewModel,
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable(Screen.People.route) {
+                                val personViewModel: PersonViewModel = viewModel(
+                                    factory = PersonViewModel.factory(
+                                        app.container.personRepository,
+                                        app.container.database
+                                    )
+                                )
+                                PersonScreen(
+                                    viewModel = personViewModel,
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }

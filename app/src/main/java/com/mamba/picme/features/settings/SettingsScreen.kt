@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -129,7 +130,8 @@ fun SettingsScreen(
     onNavigateToCategory: (SettingsCategory) -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {},
     onNavigateToMemoryFacts: () -> Unit = {},
-    onNavigateToCommunicationChannel: () -> Unit = {}
+    onNavigateToCommunicationChannel: () -> Unit = {},
+    onNavigateToPeople: () -> Unit = {}
 ) {
     val view = LocalView.current
     val context = LocalContext.current
@@ -308,7 +310,8 @@ fun SettingsScreen(
             onNavigateToLlmLog = onNavigateToLlmLog,
             onNavigateToDataPrivacy = onNavigateToDataPrivacy,
             onNavigateToMemoryFacts = onNavigateToMemoryFacts,
-            onNavigateToCommunicationChannel = onNavigateToCommunicationChannel
+            onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
+            onNavigateToPeople = onNavigateToPeople
         )
     }
 }
@@ -386,7 +389,8 @@ private fun SettingsContent(
     onNavigateToLlmLog: () -> Unit = {},
     onNavigateToDataPrivacy: () -> Unit = {},
     onNavigateToMemoryFacts: () -> Unit = {},
-    onNavigateToCommunicationChannel: () -> Unit = {}
+    onNavigateToCommunicationChannel: () -> Unit = {},
+    onNavigateToPeople: () -> Unit = {}
 ) {
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
@@ -431,7 +435,8 @@ private fun SettingsContent(
                     onNavigateToModelCenter = { onNavigateToModelCenter("") },
                     onNavigateToDataPrivacy = onNavigateToDataPrivacy,
                     onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
-                    onNavigateToMemoryFacts = onNavigateToMemoryFacts
+                    onNavigateToMemoryFacts = onNavigateToMemoryFacts,
+                    onNavigateToPeople = onNavigateToPeople
                 )
                 return@Column
             }
@@ -907,7 +912,8 @@ private fun SettingsMainMenu(
     onNavigateToModelCenter: () -> Unit,
     onNavigateToDataPrivacy: () -> Unit,
     onNavigateToCommunicationChannel: () -> Unit,
-    onNavigateToMemoryFacts: () -> Unit
+    onNavigateToMemoryFacts: () -> Unit,
+    onNavigateToPeople: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -973,6 +979,7 @@ private fun SettingsMainMenu(
             onNavigateToDataPrivacy = onNavigateToDataPrivacy,
             onNavigateToCommunicationChannel = onNavigateToCommunicationChannel,
             onNavigateToMemoryFacts = onNavigateToMemoryFacts,
+            onNavigateToPeople = onNavigateToPeople,
         )
     }
 }
@@ -1083,6 +1090,7 @@ private fun SettingsCategoryGrid(
     onNavigateToDataPrivacy: () -> Unit,
     onNavigateToCommunicationChannel: () -> Unit,
     onNavigateToMemoryFacts: () -> Unit,
+    onNavigateToPeople: () -> Unit,
 ) {
     val context = LocalContext.current
     val items = listOf(
@@ -1090,6 +1098,7 @@ private fun SettingsCategoryGrid(
             onNavigateToCategory(SettingsCategory.AI_AGENT)
         },
         CategoryGridItem(R.string.settings_ai_memory, R.string.settings_ai_memory_desc, Icons.Rounded.Psychology, onNavigateToMemoryFacts),
+        CategoryGridItem(R.string.people_entry, R.string.people_entry_desc, Icons.Rounded.AccountCircle, onNavigateToPeople),
         CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
             onNavigateToCommunicationChannel()
         },
