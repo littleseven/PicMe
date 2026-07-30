@@ -94,6 +94,7 @@ object ChatGallerySearch {
             o.put("type", a.type.name)
             o.put("captureDate", a.captureDate)
             o.put("fileName", a.fileName)
+            a.faceFocusY?.let { o.put("faceFocusY", it.toDouble()) }
             arr.put(o)
         }
         return arr.toString()
@@ -120,7 +121,8 @@ object ChatGallerySearch {
                     type = runCatching { MediaType.valueOf(o.optString("type", "PHOTO")) }
                         .getOrDefault(MediaType.PHOTO),
                     captureDate = o.getLong("captureDate"),
-                    fileName = o.optString("fileName", "")
+                    fileName = o.optString("fileName", ""),
+                    faceFocusY = if (o.has("faceFocusY")) o.getDouble("faceFocusY").toFloat() else null
                 )
             )
         }
