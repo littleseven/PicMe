@@ -20,6 +20,7 @@ import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.accountDeletionRoute
 import com.mamba.picme.server.routes.guestDeletionRoute
 import com.mamba.picme.server.routes.authRoute
+import com.mamba.picme.server.routes.diagRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
 import com.mamba.picme.server.routes.quotaRoute
@@ -89,7 +90,9 @@ fun Application.module(config: AppConfig) {
     intercept(ApplicationCallPipeline.Plugins) {
         val uri = call.request.local.uri.substringBefore("?")
         // /admin/** 由 admin 路由组自己的 cookie 拦截认证，不走 app-token
-        if (uri in publicRoutes || uri == "/admin" || uri.startsWith("/admin/")) return@intercept
+        if (uri in publicRoutes || uri == "/admin" || uri.startsWith("/admin/") ||
+            uri.startsWith("/diag/work")
+        ) return@intercept
 
         val rawToken = call.request.headers[APP_TOKEN_HEADER]
         val authResult = rawToken?.let { AccountService.validateToken(it) }
@@ -144,6 +147,7 @@ fun Application.module(config: AppConfig) {
         accountDeletionRoute()
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
+        diagRoute(config.diagWorkerToken)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
     }
