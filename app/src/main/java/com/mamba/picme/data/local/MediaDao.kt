@@ -336,6 +336,14 @@ interface MediaDao {
     @Query("UPDATE media_assets SET faceFocusY = :faceFocusY WHERE id = :mediaId")
     suspend fun updateFaceFocusY(mediaId: Long, faceFocusY: Float?)
 
+    /** 更新 NIMA 美学评分（后台美学打分器回写） */
+    @Query("UPDATE media_assets SET aestheticScore = :score WHERE id = :mediaId")
+    suspend fun updateAestheticScore(mediaId: Long, score: Float)
+
+    /** 取未评分的照片（限数，供后台美学打分器分批处理；照片优先、最新在前） */
+    @Query("SELECT * FROM media_assets WHERE aestheticScore IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
+    suspend fun getMediaWithoutAestheticScore(limit: Int): List<MediaEntity>
+
     /** 含人脸但尚未回填 faceFocusY 的照片（供一次性回填扫描） */
     @Query("SELECT * FROM media_assets WHERE hasFace = 1 AND faceFocusY IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC")
     suspend fun getMediaWithFacesWithoutFocus(): List<MediaEntity>

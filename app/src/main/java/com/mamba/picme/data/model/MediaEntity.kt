@@ -44,6 +44,8 @@ data class MediaEntity(
     val faceRoiResult: String? = null,
     /** 人脸纵向聚焦点（归一化 0~1，Pass 1 检测算出；null=无人脸/未回填）。供列表缩略图纵向对齐。 */
     val faceFocusY: Float? = null,
+    /** NIMA 美学评分（1.0~10.0；null=未评分）。供人脸聚类挑最佳封面。 */
+    val aestheticScore: Float? = null,
 
     // MobileCLIP 语义 embedding（512 维 FloatArray 的 Base64，供语义搜索）
     val semanticEmbedding: String? = null,
