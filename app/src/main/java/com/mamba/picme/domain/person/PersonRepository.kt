@@ -47,6 +47,40 @@ class PersonRepository(
     suspend fun getSelfPerson(): PersonEntity? = personDao.getSelfPerson()
 
     /**
+     * 人物编辑收口（相册重命名对话框与人物页共用）：
+     * 1) name 非空 → 改名；
+     * 2) isSelf → 设为"我"，否则若当前是"我"则清除；
+     * 3) relation != null → 声明（覆盖）；relation == null → 清除该人物所有关系。
+     * 自定义称呼非空时 predicate 应为 [RelationPredicate.OTHER]（由调用方决定）。
+     */
+    suspend fun applyPersonEdit(
+        personId: Long,
+        name: String,
+        relation: RelationPredicate?,
+        customLabel: String,
+        isSelf: Boolean
+    ) {
+        if (name.isNotBlank()) {
+            renamePerson(personId, name)
+        }
+        if (isSelf) {
+            setSelf(personId)
+        } else if (getSelfPerson()?.personId == personId) {
+            clearSelf()
+        }
+        if (relation != null) {
+            declareRelation(
+                subjectPersonId = personId,
+                predicate = relation,
+                source = RelationSource.RENAME_DIALOG,
+                customLabel = customLabel.ifEmpty { null }
+            )
+        } else {
+            removeAllRelationsOf(personId)
+        }
+    }
+
+    /**
      * 声明"subject 是我的 predicate"（如：小宝 是我的 女儿）。
      *
      * 幂等覆盖：同一对人物已存在任意旧关系时先删除再写入新关系（customLabel 同步覆盖）。
@@ -100,6 +134,10 @@ class PersonRepository(
     /** 全部已命名人物（供 PersonQueryResolver 扫描查询串中的人名命中） */
     suspend fun getNamedPersons(): List<PersonEntity> =
         personDao.getAllPersons().filter { person -> !person.name.isNullOrBlank() }
+
+    /** 全部人物簇（含未命名），按更新时间倒序，供人物页展示。 */
+    suspend fun getAllPersons(): List<PersonEntity> =
+        personDao.getAllPersons().sortedByDescending { person -> person.updatedAt }
 
     /**
      * 列出指向"我"的关系（chat 主动读通路的同步版，实时查 DB，不依赖 Flow 快照）。
