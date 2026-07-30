@@ -29,6 +29,7 @@ import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.data.repository.MediaFeedbackRepositoryImpl
 import com.mamba.picme.data.repository.MediaRepositoryImpl
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
+import com.mamba.picme.domain.aesthetic.AestheticScoreWorker
 import com.mamba.picme.domain.repository.ChatImageStore
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -141,6 +142,8 @@ interface AppContainer {
     val imageTagIndexingWorker: ImageTagIndexingWorker
     /** TAG 生成调度器(单张 retag 走 Pass3 pipeline,与集中扫描同源) */
     val tagGenerationScheduler: TagGenerationScheduler
+    /** 美学/人脸画质打分 + 封面刷新（eDifFIQA；独立后台） */
+    val aestheticScoreWorker: AestheticScoreWorker
     /** TAG 生成扫描状态（只读，从 TagGenerationService 获取） */
     val tagGenerationIsScanning: kotlinx.coroutines.flow.StateFlow<Boolean>
     /** TAG 生成扫描进度（旧版兼容） */
@@ -335,6 +338,10 @@ class AppContainerImpl(
 
     override val tagGenerationScheduler: TagGenerationScheduler by lazy {
         TagGenerationScheduler(context)
+    }
+
+    override val aestheticScoreWorker: AestheticScoreWorker by lazy {
+        AestheticScoreWorker(context, faceDetector, database)
     }
 
     /** TAG 生成扫描状态（从 TagGenerationService 获取） */

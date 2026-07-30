@@ -32,11 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.data.local.entity.PersonEntity
@@ -53,7 +55,15 @@ fun PersonScreen(
     viewModel: PersonViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.load() }
+    // 打开人物页时后台跑一轮 eDifFIQA 打分 + 按 CoverSelector 刷新封面（fire-and-forget，
+    // 完成后 reload 让网格看到更新；模型未就绪时只刷新封面）
+    LaunchedEffect(Unit) {
+        val app = context.applicationContext as? PoLangApplication ?: return@LaunchedEffect
+        app.container.aestheticScoreWorker.runOnce()
+        viewModel.load()
+    }
 
     val persons by viewModel.persons.collectAsState()
     val covers by viewModel.covers.collectAsState()
