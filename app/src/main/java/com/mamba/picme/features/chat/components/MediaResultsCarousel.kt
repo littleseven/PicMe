@@ -123,6 +123,9 @@ private fun MediaCard(
         shape = RoundedCornerShape(12.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
+            val imageAlignment = remember(asset.faceFocusY) {
+                faceAwareVerticalAlignment(asset.faceFocusY)
+            }
             AsyncImage(
                 model = asset.uri,
                 contentDescription = when (asset.type) {
@@ -131,7 +134,7 @@ private fun MediaCard(
                     else -> stringResource(R.string.a11y_photo_desc)
                 },
                 contentScale = ContentScale.Crop,
-                alignment = faceAwareVerticalAlignment(asset.faceFocusY),
+                alignment = imageAlignment,
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable(

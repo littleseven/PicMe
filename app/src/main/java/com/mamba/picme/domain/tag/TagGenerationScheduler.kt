@@ -1201,11 +1201,24 @@ class TagGenerationScheduler(
      *                     重置 embedding 分配并清除媒体上的 faceId。
      */
     suspend fun executeDbscan(preserveNamedPersons: Boolean = false, isFullRescan: Boolean = false) {
-        val dao = db.mediaDao()
         val snapshots = if (preserveNamedPersons) buildNamedPersonSnapshots() else emptyList()
         // 关系表随人物快照一起导出：clearAllPersons 会 CASCADE 清空 person_relations
         val relationSnapshots = if (preserveNamedPersons) buildRelationSnapshots() else emptyList()
+        executeDbscanInternal(snapshots, relationSnapshots, isFullRescan)
+    }
 
+    /**
+     * 重聚类主体（命名/关系快照已在外部建好）。供 [executeDbscan] 与 [reembedFacesAndRecluster] 复用。
+     *
+     * isFullRescan=true 时清空旧 persons/embedding 分配/faceId 后用 [runDbscanClustering] 重聚；
+     * [namedSnapshots] 用于复用 personId/name，[relationSnapshots] 用于恢复人物关系。
+     */
+    private suspend fun executeDbscanInternal(
+        namedSnapshots: List<NamedPersonSnapshot>,
+        relationSnapshots: List<RelationSnapshotEntry>,
+        isFullRescan: Boolean
+    ) {
+        val dao = db.mediaDao()
         if (isFullRescan) {
             Log.i(TAG, "DBSCAN full rescan: clearing old persons/assignments/faceIds after snapshot capture")
             db.personDao().clearAllPersons()
@@ -1213,14 +1226,13 @@ class TagGenerationScheduler(
             dao.resetAllFaceIds()
         }
 
-        runDbscanClustering(dao, snapshots)
+        runDbscanClustering(dao, namedSnapshots)
 
         if (relationSnapshots.isNotEmpty()) {
             restorePersonRelations(relationSnapshots)
         }
 
         // 对齐 persons 表：增量聚类/历史数据可能留下孤儿人物、faceCount 失配、悬空封面。
-        // 无论是否全量重聚，聚类结束都拉回一致，避免人物页空白聚类。
         db.personDao().reconcilePersons(System.currentTimeMillis())
 
         // 聚类维护：先拆分（修 k-NN 桥接把两个不同的人并成一组）再合并（修 faceId 冻结把同一人拆成多组）。
@@ -1229,6 +1241,42 @@ class TagGenerationScheduler(
             Log.i(TAG, "Post-cluster maintenance: $maintained change(s) (split+merge)")
             db.personDao().reconcilePersons(System.currentTimeMillis())
         }
+    }
+
+    /**
+     * 重提「已有人脸」照片的 embedding（走对齐路径）并全量重聚类——治本低质 embedding
+     * （旧无对齐产物 / landmarks 缺失回退）导致的拆组与错并（如 140）。
+     *
+     * 仅重处理 hasFace 媒体（不重跑无人脸的，约全量 1/7）。**保名**：重提前 personId 还在，
+     * 先建命名/关系快照；重提会把 personId 清空，再用快照走 [executeDbscanInternal] 复用 name/关系。
+     *
+     * @param onProgress 进度回调 (已处理, 总数)，每 50 张及末尾触发。
+     */
+    suspend fun reembedFacesAndRecluster(onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }) {
+        // 1. 重提前建快照（personId 仍在）—— 重提后 personId 会被清空，届时再建就空了
+        val namedSnapshots = buildNamedPersonSnapshots()
+        val relationSnapshots = buildRelationSnapshots()
+        Log.i(TAG, "reembedFacesAndRecluster: snapshotted ${namedSnapshots.size} named persons, ${relationSnapshots.size} relations")
+
+        // 2. 逐张重提（executeFaceDetection 内部清旧 embedding 再插新对齐 embedding）
+        val ids = db.mediaDao().getHasFaceMediaIds()
+        Log.i(TAG, "reembedFacesAndRecluster: re-embedding ${ids.size} hasFace media (aligned)")
+        for ((index, mediaId) in ids.withIndex()) {
+            currentCoroutineContext().ensureActive()
+            try {
+                executeFaceDetection(mediaId)
+            } catch (e: Exception) {
+                Log.w(TAG, "reembed: failed mediaId=$mediaId: ${e.message}")
+            }
+            if ((index + 1) % 50 == 0 || index == ids.lastIndex) {
+                onProgress(index + 1, ids.size)
+                Log.i(TAG, "reembed progress: ${index + 1}/${ids.size}")
+            }
+        }
+
+        // 3. 带预建快照全量重聚类（保名/保关系）
+        executeDbscanInternal(namedSnapshots, relationSnapshots, isFullRescan = true)
+        Log.i(TAG, "reembedFacesAndRecluster: done")
     }
 
     /**

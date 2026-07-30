@@ -115,6 +115,8 @@ class TagGenerationService : Service() {
         const val ACTION_RESUME = "com.mamba.picme.tag.RESUME"
         const val ACTION_CANCEL = "com.mamba.picme.tag.CANCEL"
         const val ACTION_RETRY_FAILED = "com.mamba.picme.tag.RETRY_FAILED"
+        /** 仅重提已有人脸的 embedding（对齐）并全量重聚类（保名）。入口在人物页顶栏。 */
+        const val ACTION_REEMBED_FACES = "com.mamba.picme.tag.REEMBED_FACES"
 
         /** 按用户友好的类别启动 TAG 扫描 */
         const val ACTION_START_TAG_SCAN = "com.mamba.picme.tag.START_TAG_SCAN"
@@ -140,6 +142,9 @@ class TagGenerationService : Service() {
         fun intentScanPass3Full(context: Context) = intent(context, ACTION_SCAN_PASS_3_FULL)
         fun intentScanPass4(context: Context) = intent(context, ACTION_SCAN_PASS_4)
         fun intentScanPass4Full(context: Context) = intent(context, ACTION_SCAN_PASS_4_FULL)
+
+        /** 人物页「重新聚类」：仅重提已有人脸 embedding（对齐）+ 全量重聚类（保名）。 */
+        fun intentReembedFaces(context: Context) = intent(context, ACTION_REEMBED_FACES)
 
         /**
          * 按 TAG 类别 / 时间范围重新生成
@@ -381,6 +386,13 @@ class TagGenerationService : Service() {
                     com.mamba.picme.domain.tag.scan.TagScanQuery(),
                     com.mamba.picme.domain.tag.scan.ScanMode.FULL
                 )
+                ACTION_REEMBED_FACES -> {
+                    // 仅重提已有人脸 embedding（对齐）+ 全量重聚类（保名）。直接调用，非会话。
+                    scheduler?.reembedFacesAndRecluster { processed, total ->
+                        android.util.Log.i(TAG, "reembed progress: $processed/$total")
+                    }
+                    stopSelf() // 完成后释放 FGS
+                }
                 ACTION_REGENERATE_CATEGORIES -> {
                     val categoryNames = intent.getStringArrayListExtra(EXTRA_CATEGORIES) ?: arrayListOf()
                     val startTimeMs = intent.getLongExtra(EXTRA_START_TIME_MS, 0L)

@@ -32,6 +32,7 @@ enum class RelationPredicate(
     FRIEND(labelZh = "朋友", labelEn = "Friend", labelJa = "友人"),
     CLASSMATE(labelZh = "同学", labelEn = "Classmate", labelJa = "クラスメート"),
     COLLEAGUE(labelZh = "同事", labelEn = "Colleague", labelJa = "同僚"),
+    IDOL(labelZh = "偶像", labelEn = "Idol", labelJa = "アイドル"),
     OTHER(labelZh = "其他", labelEn = "Other", labelJa = "その他");
 
     companion object {

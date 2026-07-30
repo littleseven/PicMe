@@ -97,14 +97,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.ChatBubble
-import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Sell
 
 private const val TAG = "Gallery"
 private const val TAG_AGENT = "GalleryAgent"
@@ -123,7 +126,8 @@ fun GalleryScreen(
     onNavigateToDebug: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
-    initialSearchQuery: String = ""
+    initialSearchQuery: String = "",
+    initialPersonId: Long = 0L
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
     val groupingMode by viewModel.groupingMode.collectAsState()
@@ -138,6 +142,8 @@ fun GalleryScreen(
     var isSearchActive by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
     var isSearchLoading by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
     var searchResultMedia by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
+    // 人物页「相册」模式：直接使用人物关联媒体，不走搜索引擎，避免未命名人物被覆盖成"未匹配"
+    var isPersonFilter by remember { mutableStateOf(false) }
     val searchEngine = remember { GalleryCapability.getInstance().searchEngine }
 
     // 媒体库整体列表：用于在删除/授权完成后自动刷新搜索结果
@@ -146,7 +152,7 @@ fun GalleryScreen(
         snapshotFlow { allMedia }
             .debounce(300)
             .collect {
-                if (isSearchActive && searchQuery.isNotBlank() && searchEngine != null) {
+                if (isSearchActive && searchQuery.isNotBlank() && searchEngine != null && !isPersonFilter) {
                     Logger.d(TAG, "Media library changed, refreshing search results")
                     isSearchLoading = true
                     searchResultMedia = searchEngine.search(searchQuery).media
@@ -162,6 +168,10 @@ fun GalleryScreen(
             .collectLatest { query ->
                 if (query.isBlank()) {
                     searchResultMedia = emptyList()
+                    isPersonFilter = false
+                    isSearchLoading = false
+                } else if (isPersonFilter) {
+                    // 人物相册模式：保留已加载的人物媒体，不交给搜索引擎覆盖
                     isSearchLoading = false
                 } else {
                     val engine = searchEngine
@@ -171,6 +181,41 @@ fun GalleryScreen(
                     isSearchLoading = false
                 }
             }
+    }
+
+    val context = LocalContext.current
+    val app = context.applicationContext as PoLangApplication
+
+    // 从人物页带入 personId：直接加载该人物关联的媒体并进入搜索展示态
+    LaunchedEffect(initialPersonId) {
+        if (initialPersonId <= 0L) return@LaunchedEffect
+        val person = withContext(Dispatchers.IO) {
+            AppDatabase.getDatabase(context).personDao().getPerson(initialPersonId)
+        }
+        val label = person?.name?.takeIf { it.isNotBlank() } ?: "#$initialPersonId"
+        val media = withContext(Dispatchers.IO) {
+            AppDatabase.getDatabase(context).personDao()
+                .getMediaByPerson(initialPersonId)
+                .map { entity ->
+                    MediaAsset(
+                        id = entity.id,
+                        uri = entity.uri,
+                        type = entity.type,
+                        captureDate = entity.captureDate,
+                        fileName = entity.fileName,
+                        duration = entity.duration,
+                        hasFace = entity.hasFace,
+                        faceId = entity.faceId
+                    )
+                }
+        }
+        if (media.isNotEmpty()) {
+            searchQuery = label
+            isSearchActive = true
+            isPersonFilter = true
+            searchResultMedia = media.sortedByDescending { it.captureDate }
+        }
+        isSearchLoading = false
     }
 
     val allFlatMedia by remember { derivedStateOf { groupedMedia.flatMap { group -> group.items } } }
@@ -185,8 +230,6 @@ fun GalleryScreen(
             }
         }
     }
-    val context = LocalContext.current
-    val app = context.applicationContext as PoLangApplication
 
     // ── 后台保活引导(HyperOS 等冻结后台进程,引导加白名单/开通知/自启动) ──
     var guardIssues by remember { mutableStateOf<List<BackgroundScanGuard.Issue>>(emptyList()) }
@@ -492,6 +535,9 @@ fun GalleryScreen(
                     SearchTopBar(
                         searchQuery = searchQuery,
                         onQueryChange = { query ->
+                            if (isPersonFilter) {
+                                isPersonFilter = false
+                            }
                             searchQuery = query
                             if (query.isNotBlank()) {
                                 isSearchLoading = true
@@ -501,10 +547,14 @@ fun GalleryScreen(
                             }
                         },
                         onClose = {
-                            searchQuery = ""
-                            searchResultMedia = emptyList()
-                            isSearchActive = false
-                            isSearchLoading = false
+                            if (initialPersonId > 0L) {
+                                navController.popBackStack()
+                            } else {
+                                searchQuery = ""
+                                searchResultMedia = emptyList()
+                                isSearchActive = false
+                                isSearchLoading = false
+                            }
                         },
                         resultCount = if (searchQuery.isNotBlank()) searchResultMedia.size else null
                     )
@@ -515,7 +565,7 @@ fun GalleryScreen(
                         selectedCount = selectedIds.size,
                         groupingMode = groupingMode,
                         onNavigateToSettings = onNavigateToSettings,
-                        onNavigateToPeople = onNavigateToPeople,
+                        onNavigateToModelCenter = onNavigateToModelCenter,
                         onToggleSelectionMode = {
                             isSelectionMode = false
                             selectedIds.clear()
@@ -554,7 +604,6 @@ fun GalleryScreen(
                                 context.startForegroundService(TagGenerationService.intentScanIncremental(context))
                             }
                         },
-                        onNavigateToTagControl = onNavigateToTagControl,
                         onToggleScan = {
                             if (TagGenerationService.isScanning.value) {
                                 context.startForegroundService(TagGenerationService.intentPause(context))
@@ -773,9 +822,9 @@ fun GalleryScreen(
             }
 
             val activeMedia = selectedMediaIndex?.let { previewMediaList.getOrNull(it) }
-            val rect = activeMedia?.let { thumbnailPositions[it.id] }
+            val rect by remember { derivedStateOf { activeMedia?.let { thumbnailPositions[it.id] } } }
 
-            // 悬浮底部 Tab — 相机 / 聊天 / 模型中心（纯图标）
+            // 悬浮底部 Tab — 相机 / 聊天 / 打标 / 人物（纯图标）
             if (selectedMediaIndex == null) {
                 val tabItems = listOf(
                     FloatingBottomTabItem(
@@ -789,9 +838,14 @@ fun GalleryScreen(
                         onClick = onNavigateToChat
                     ),
                     FloatingBottomTabItem(
-                        icon = Icons.Rounded.CloudDownload,
-                        contentDescription = stringResource(R.string.model_center),
-                        onClick = onNavigateToModelCenter
+                        icon = Icons.Rounded.Sell,
+                        contentDescription = stringResource(R.string.tag_scan_control),
+                        onClick = onNavigateToTagControl
+                    ),
+                    FloatingBottomTabItem(
+                        icon = Icons.Rounded.AccountCircle,
+                        contentDescription = stringResource(R.string.gallery_people_entry),
+                        onClick = onNavigateToPeople
                     )
                 )
                 FloatingBottomTab(

@@ -4,14 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
-import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
@@ -57,9 +56,8 @@ fun GalleryTopBar(
     onGroupingModeSelected: (GroupingMode) -> Unit,
     onSearchClick: () -> Unit = {},
     onTagScanClick: () -> Unit = {},
-    onNavigateToTagControl: () -> Unit = {},
     onToggleScan: () -> Unit = {},
-    onNavigateToPeople: () -> Unit = {}
+    onNavigateToModelCenter: () -> Unit = {}
 ) {
     val isScanning by TagGenerationService.isScanning.collectAsState(false)
     AppTopBar(
@@ -91,11 +89,11 @@ fun GalleryTopBar(
                 AppTopBarAction(Icons.Rounded.Delete, stringResource(R.string.delete), onDeleteSelected)
             } else {
                 val scanTint = if (isScanning) MaterialTheme.colorScheme.primary else null
+                // 模型中心入口（从悬浮入口移入顶栏，置最左）
                 AppTopBarAction(
-                    icon = Icons.Rounded.Sell,
-                    contentDescription = stringResource(R.string.tag_scan_control),
-                    onClick = onNavigateToTagControl,
-                    tint = scanTint
+                    icon = Icons.Rounded.CloudDownload,
+                    contentDescription = stringResource(R.string.model_center),
+                    onClick = onNavigateToModelCenter
                 )
                 AppTopBarAction(
                     icon = if (isScanning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -108,8 +106,6 @@ fun GalleryTopBar(
                     tint = scanTint
                 )
                 AppTopBarAction(Icons.Rounded.Search, stringResource(R.string.search_photos), onSearchClick)
-                // 人物页入口（main 新增，统一为 AppTopBarAction）
-                AppTopBarAction(Icons.Rounded.AccountCircle, stringResource(R.string.gallery_people_entry), onNavigateToPeople)
                 GroupingMenu(currentMode = groupingMode, onModeSelected = onGroupingModeSelected)
                 AppTopBarAction(Icons.Rounded.Settings, stringResource(R.string.settings), onNavigateToSettings)
             }

@@ -31,5 +31,6 @@ fun personRelationLabelRes(predicate: RelationPredicate?): Int = when (predicate
     RelationPredicate.FRIEND -> R.string.person_relation_friend
     RelationPredicate.CLASSMATE -> R.string.person_relation_classmate
     RelationPredicate.COLLEAGUE -> R.string.person_relation_colleague
+    RelationPredicate.IDOL -> R.string.person_relation_idol
     RelationPredicate.OTHER -> R.string.person_relation_other
 }
