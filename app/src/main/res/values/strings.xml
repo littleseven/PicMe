@@ -262,12 +262,16 @@
     <string name="people_default_name">Person #%1$d</string>
     <string name="people_photos_count">%1$d photos</string>
     <string name="people_rescore">Re-score and refresh covers</string>
+    <string name="people_recluster">Re-cluster faces</string>
+    <string name="people_recluster_started">Re-clustering started (faces only, may take a while). Re-enter this page to refresh when done.</string>
     <string name="people_entry">People</string>
     <string name="people_entry_desc">View and name face clusters</string>
     <string name="gallery_people_entry">People</string>
     <string name="person_select_cover_title">Select cover</string>
     <string name="person_info_title">Person info</string>
     <string name="person_edit_name_hint">Tap to name</string>
+    <string name="person_cluster_id">Cluster #%1$d</string>
+    <string name="person_set_cover_hint">Tap to set cover</string>
     <string name="people_empty">No people found</string>
 
     <!-- Duplicate Management -->
@@ -943,6 +947,7 @@
     <string name="person_relation_friend">Friend</string>
     <string name="person_relation_classmate">Classmate</string>
     <string name="person_relation_colleague">Colleague</string>
+    <string name="person_relation_idol">Idol</string>
     <string name="person_relation_other">Other</string>
     <string name="person_relation_custom_label">Custom relation</string>
     <string name="person_relation_custom_hint">e.g. childhood buddy, second son</string>

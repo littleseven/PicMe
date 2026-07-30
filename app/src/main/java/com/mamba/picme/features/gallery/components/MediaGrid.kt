@@ -25,9 +25,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,10 +80,12 @@ fun MediaGrid(
     personNameMap: Map<String, String>? = null
 ) {
     var gridPositionInWindow by remember { mutableStateOf(Offset.Zero) }
+    val selectedIdSet by remember { derivedStateOf { selectedIds.toSet() } }
+    val currentThumbnailPositions by rememberUpdatedState(thumbnailPositions)
 
     fun resolveDraggedAsset(localPoint: Offset): MediaAsset? {
         val windowPoint = localPoint + gridPositionInWindow
-        val hitId = thumbnailPositions.entries.firstOrNull { (_, rect) ->
+        val hitId = currentThumbnailPositions.entries.firstOrNull { (_, rect) ->
             windowPoint.x in rect.left..rect.right && windowPoint.y in rect.top..rect.bottom
         }?.key
         return hitId?.let { mediaById[it] }
@@ -91,7 +95,7 @@ fun MediaGrid(
 
     // 预加载可视区域附近的缩略图到 ThumbnailCache（L1 LRU + L2 磁盘）
     if (thumbnailCache != null && groupedMedia.isNotEmpty()) {
-        LaunchedEffect(gridState.firstVisibleItemIndex, gridState.layoutInfo.visibleItemsInfo.size) {
+        LaunchedEffect(gridState.firstVisibleItemIndex) {
             val visibleItems = gridState.layoutInfo.visibleItemsInfo
             if (visibleItems.isEmpty()) return@LaunchedEffect
 
@@ -123,7 +127,7 @@ fun MediaGrid(
             .onGloballyPositioned { coordinates ->
                 gridPositionInWindow = coordinates.positionInWindow()
             }
-            .pointerInput(isSelectionMode, thumbnailPositions.size) {
+            .pointerInput(isSelectionMode) {
                 if (isSelectionMode) {
                     detectDragGestures(
                         onDragStart = { offset ->
@@ -169,7 +173,7 @@ fun MediaGrid(
             items(group.items, key = { item -> item.id }) { asset ->
                 MediaItem(
                     asset = asset,
-                    isSelected = selectedIds.contains(asset.id),
+                    isSelected = selectedIdSet.contains(asset.id),
                     isSelectionMode = isSelectionMode,
                     modifier = Modifier.onGloballyPositioned { coords ->
                         onThumbnailPositioned(
@@ -203,10 +207,13 @@ fun MediaItem(
     onLongClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val mediaTypeLabel = when (asset.type) {
-        MediaType.VIDEO -> context.getString(R.string.media_type_video)
-        MediaType.DOCUMENT -> context.getString(R.string.media_type_document)
-        else -> context.getString(R.string.media_type_photo)
+    val alignment = remember(asset.faceFocusY) { faceAwareVerticalAlignment(asset.faceFocusY) }
+    val mediaTypeLabel = remember(asset.type) {
+        when (asset.type) {
+            MediaType.VIDEO -> context.getString(R.string.media_type_video)
+            MediaType.DOCUMENT -> context.getString(R.string.media_type_document)
+            else -> context.getString(R.string.media_type_photo)
+        }
     }
     val contentDescription = mediaTypeLabel
     val selectionStateDescription = when {
@@ -236,7 +243,7 @@ fun MediaItem(
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            alignment = faceAwareVerticalAlignment(asset.faceFocusY),
+            alignment = alignment,
             placeholder = ThumbnailPlaceholderPainter,
             error = ThumbnailPlaceholderPainter
         )

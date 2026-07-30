@@ -609,11 +609,47 @@ class FaceClusterEngine(private val context: Context) {
         return totalSplits
     }
 
-    /** 聚类维护：先拆分（修过并）再合并（修欠并），供人物页进入/聚类末尾统一调用。 */
+    /** 聚类维护：解散 sink（链式垃圾簇）→ 拆分（修过并）→ 合并（修欠并），供人物页进入/聚类末尾统一调用。 */
     suspend fun runClusterMaintenance(): Int {
+        val sinks = dissolveSinks()
         val splits = splitOvermergedClusters()
         val merges = mergeSmallClusters()
-        return splits + merges
+        return sinks + splits + merges
+    }
+
+    /**
+     * 解散 sink：把 k-NN 链式并出的「垃圾簇」（median 两两相似度 < [cohesionThreshold]、规模 ≥ [minSize]）
+     * 解散——embedding 改派为未分配、删除 person，再用增量匹配（0.65）把释放的脸重新归入正确的人或新建小簇。
+     *
+     * 仅解散匿名 sink（命名人物尊重用户标记，不动）。命中 177 这类 median≈0.24 的链式 sink。
+     *
+     * @return 解散的 sink 数。
+     */
+    suspend fun dissolveSinks(
+        cohesionThreshold: Float = ClusteringConfig.SINK_COHESION_MAX,
+        minSize: Int = ClusteringConfig.SINK_MIN_SIZE
+    ): Int {
+        var dissolved = 0
+        val persons = personDao.getAllPersons()
+        for (person in persons) {
+            if (!person.name.isNullOrBlank()) continue // 命名人物不解散
+            val entities = personDao.getEmbeddingsByPerson(person.personId)
+            if (entities.size < minSize) continue
+            val sample = entities.take(ClusteringConfig.SINK_SAMPLE_CAP)
+                .map { entity -> byteArrayToFloatArray(entity.embedding) }
+            if (medianPairwiseSim(sample) >= cohesionThreshold) continue
+
+            personDao.unlinkEmbeddings(person.personId) // personId=NULL，释放
+            personDao.deletePerson(person.personId)
+            centroidCache.remove(person.personId)
+            dissolved++
+            Log.i(TAG, "dissolveSinks: dissolved person ${person.personId} (${entities.size} emb)")
+        }
+        if (dissolved > 0) {
+            val reassigned = assignStoredEmbeddings() // 释放的脸重新归入正确的人/新建小簇
+            Log.i(TAG, "dissolveSinks: dissolved $dissolved sink(s); re-assigned $reassigned freed embeddings")
+        }
+        return dissolved
     }
 
     // ── 拆分 pass 的纯数值辅助 ─────────────────────────────────────────
@@ -653,6 +689,19 @@ class FaceClusterEngine(private val context: Context) {
             }
         }
         return if (n > 0) sum / n else 0f
+    }
+
+    /** 一组向量的 median 两两相似度（sink 判定用；sample 已在外层截断控制开销）。 */
+    private fun medianPairwiseSim(feats: List<FloatArray>): Float {
+        if (feats.size < 2) return 1f
+        val sims = ArrayList<Float>(feats.size * (feats.size - 1) / 2)
+        for (i in feats.indices) {
+            for (j in i + 1 until feats.size) {
+                sims.add(cosineSimilarity(feats[i], feats[j]))
+            }
+        }
+        sims.sort()
+        return sims[sims.size / 2]
     }
 
     /** 两组（按 feats 下标）之间的平均相似度。 */

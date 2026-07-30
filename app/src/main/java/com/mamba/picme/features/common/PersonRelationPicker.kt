@@ -148,5 +148,6 @@ private val FAMILY_RELATIONS = listOf(
 private val SOCIAL_RELATIONS = listOf(
     RelationPredicate.FRIEND,
     RelationPredicate.CLASSMATE,
-    RelationPredicate.COLLEAGUE
+    RelationPredicate.COLLEAGUE,
+    RelationPredicate.IDOL
 )

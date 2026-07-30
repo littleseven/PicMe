@@ -171,6 +171,10 @@ interface MediaDao {
     @Query("SELECT id FROM media_assets ORDER BY captureDate DESC")
     suspend fun getAllMediaIds(): List<Long>
 
+    /** 仅获取已检测到人脸的照片 ID（重提 embedding 用：只处理有人脸的，省去无人脸的重跑） */
+    @Query("SELECT id FROM media_assets WHERE type = 'PHOTO' AND hasFace = 1 ORDER BY id")
+    suspend fun getHasFaceMediaIds(): List<Long>
+
     /** 所有非空 labels（JSON 数组字符串），供 gallery.tags 聚合标签分布。轻量：只取 labels 列。 */
     @Query("SELECT labels FROM media_assets WHERE labels IS NOT NULL AND labels != ''")
     suspend fun getAllLabels(): List<String>

@@ -235,11 +235,15 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable(
-                                route = Screen.Gallery.ROUTE_WITH_QUERY,
+                                route = Screen.Gallery.ROUTE_WITH_ARGS,
                                 arguments = listOf(
                                     navArgument(Screen.Gallery.ARG_QUERY) {
                                         type = NavType.StringType
                                         defaultValue = ""
+                                    },
+                                    navArgument(Screen.Gallery.ARG_PERSON_ID) {
+                                        type = NavType.LongType
+                                        defaultValue = 0L
                                     }
                                 )
                             ) { backStackEntry ->
@@ -252,11 +256,14 @@ class MainActivity : ComponentActivity() {
                                 }
                                 val initialSearchQuery = backStackEntry.arguments
                                     ?.getString(Screen.Gallery.ARG_QUERY).orEmpty()
+                                val initialPersonId = backStackEntry.arguments
+                                    ?.getLong(Screen.Gallery.ARG_PERSON_ID) ?: 0L
                                 GalleryScreen(
                                     navController = navController,
                                     viewModel = mediaViewModel,
                                     settingsViewModel = settingsViewModel,
                                     initialSearchQuery = initialSearchQuery,
+                                    initialPersonId = initialPersonId,
                                     onNavigateToChat = { navController.navigate(Screen.Chat.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToCamera = { navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true }) },
                                     onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
@@ -522,7 +529,13 @@ class MainActivity : ComponentActivity() {
                                 )
                                 PersonScreen(
                                     viewModel = personViewModel,
-                                    onNavigateBack = { navController.popBackStack() }
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onNavigateToGallery = { personId ->
+                                        navController.navigate(
+                                            Screen.Gallery.createRoute(personId = personId),
+                                            navOptions { launchSingleTop = true }
+                                        )
+                                    }
                                 )
                             }
                             composable(Screen.Debug.route) {

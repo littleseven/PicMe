@@ -251,12 +251,16 @@
     <string name="people_default_name">人物 #%1$d</string>
     <string name="people_photos_count">%1$d 張照片</string>
     <string name="people_rescore">重新打分刷新封面</string>
+    <string name="people_recluster">重新聚類</string>
+    <string name="people_recluster_started">已開始重新聚類（僅有人臉，耗時較長），完成後返回本頁自動整理</string>
     <string name="people_entry">人物</string>
     <string name="people_entry_desc">查看並命名人臉聚類</string>
     <string name="gallery_people_entry">人物</string>
     <string name="person_select_cover_title">選擇封面</string>
     <string name="person_info_title">人物資訊</string>
     <string name="person_edit_name_hint">點擊命名</string>
+    <string name="person_cluster_id">簇 #%1$d</string>
+    <string name="person_set_cover_hint">點擊設置封面</string>
     <string name="people_empty">未找到人物</string>
     <string name="manage_duplicates">管理重複照片</string>
     <string name="duplicate_manager_desc">尋找並刪除重複或相似照片，釋放儲存空間。</string>
@@ -915,6 +919,7 @@
     <string name="person_relation_friend">朋友</string>
     <string name="person_relation_classmate">同學</string>
     <string name="person_relation_colleague">同事</string>
+    <string name="person_relation_idol">偶像</string>
     <string name="person_relation_other">其他</string>
     <string name="person_relation_custom_label">自訂稱呼</string>
     <string name="person_relation_custom_hint">如：髮小、二兒子</string>

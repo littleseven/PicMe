@@ -73,6 +73,7 @@ class PersonViewModel(
             // 防御：coverMediaId 悬空（封面媒体已删）的聚类 coverUri 为 null，不展示，避免空白格。
             // 正常情况下 reconcileAndLoad 已先行清理，此处为兜底。
             _persons.value = PersonCoverResolver.filterCoverable(all, resolved)
+                .sortedForDisplay(relationMap)
         }
     }
 
@@ -145,16 +146,51 @@ class PersonViewModel(
         }
     }
 
-    /** 读取某人物关联的全部媒体（供封面选择 Sheet）。 */
+    /** 读取某人物关联的全部媒体（供封面选择 Sheet）。单人照优先，避免合影作封面。 */
     suspend fun loadPhotosByPerson(personId: Long): List<MediaEntity> =
         withContext(Dispatchers.IO) {
             // 防御性去重：同一人可能在同一张照片里有多个人脸 embedding，
             // 即使 DAO 已用 DISTINCT，UI 层再保一次险，避免 LazyVerticalGrid 重复 key 崩溃。
-            db.personDao().getMediaByPerson(personId).distinctBy { it.id }
+            db.personDao().getMediaByPersonOrderedForCover(personId).distinctBy { it.id }
         }
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    /**
+     * 人物页排序：
+     * 1. 亲密级：我 > 恋人/配偶 > 偶像 > 亲属 > 其他社会关系 > 无关系
+     * 2. 同亲密级下：已命名者优先；已命名者按照片数（faceCount）倒序，未命名者按最近更新（新照片）倒序
+     * 3. 最后以 updatedAt 作兜底去稳定
+     */
+    private fun List<PersonEntity>.sortedForDisplay(
+        relations: Map<Long, RelationDisplayItem?>
+    ): List<PersonEntity> {
+        return sortedWith(
+            compareByDescending<PersonEntity> { person -> intimacyPriority(person, relations) }
+                .thenByDescending { person -> !person.name.isNullOrBlank() }
+                .thenByDescending { person ->
+                    if (!person.name.isNullOrBlank()) {
+                        person.faceCount.toLong()
+                    } else {
+                        person.updatedAt
+                    }
+                }
+                .thenByDescending { it.updatedAt }
+        )
+    }
+
+    private fun intimacyPriority(
+        person: PersonEntity,
+        relations: Map<Long, RelationDisplayItem?>
+    ): Int = when {
+        person.isSelf -> 5
+        relations[person.personId]?.predicate in ROMANTIC_PREDICATES -> 4
+        relations[person.personId]?.predicate == RelationPredicate.IDOL -> 3
+        relations[person.personId]?.predicate in FAMILY_PREDICATES -> 2
+        relations[person.personId]?.predicate != null -> 1
+        else -> 0
     }
 
     private fun relationToDisplay(
@@ -173,6 +209,30 @@ class PersonViewModel(
     }
 
     companion object {
+        private val ROMANTIC_PREDICATES = setOf(
+            RelationPredicate.PARTNER,
+            RelationPredicate.SPOUSE
+        )
+
+        private val FAMILY_PREDICATES = setOf(
+            RelationPredicate.CHILD,
+            RelationPredicate.SON,
+            RelationPredicate.DAUGHTER,
+            RelationPredicate.PARENT,
+            RelationPredicate.FATHER,
+            RelationPredicate.MOTHER,
+            RelationPredicate.SIBLING,
+            RelationPredicate.ELDER_BROTHER,
+            RelationPredicate.ELDER_SISTER,
+            RelationPredicate.YOUNGER_BROTHER,
+            RelationPredicate.YOUNGER_SISTER,
+            RelationPredicate.GRANDPARENT,
+            RelationPredicate.GRANDFATHER,
+            RelationPredicate.GRANDMOTHER,
+            RelationPredicate.GRANDCHILD,
+            RelationPredicate.OTHER_FAMILY
+        )
+
         /** ViewModelProvider.Factory：参照 MemoryFactsViewModel.factory 范式。 */
         fun factory(
             personRepository: PersonRepository,

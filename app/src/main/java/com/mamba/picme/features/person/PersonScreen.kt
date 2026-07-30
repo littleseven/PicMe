@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,9 +38,9 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
-import com.mamba.picme.features.person.components.PersonCoverPickerSheet
-import com.mamba.picme.features.person.components.PersonInfoSheet
+import com.mamba.picme.features.person.components.PersonInfoScreen
 import com.mamba.picme.features.person.components.PersonListItem
+import com.mamba.picme.service.tag.TagGenerationService
 import kotlinx.coroutines.launch
 
 /**
@@ -50,7 +51,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun PersonScreen(
     viewModel: PersonViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToGallery: (Long) -> Unit
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.reconcileAndLoad() }
@@ -65,8 +67,7 @@ fun PersonScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     var infoTarget by remember { mutableStateOf<PersonEntity?>(null) }
-    var coverTarget by remember { mutableStateOf<PersonEntity?>(null) }
-    var photos by remember { mutableStateOf<List<MediaEntity>>(emptyList()) }
+    var infoPhotos by remember { mutableStateOf<List<MediaEntity>>(emptyList()) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -77,9 +78,9 @@ fun PersonScreen(
         }
     }
 
-    LaunchedEffect(coverTarget) {
-        val target = coverTarget
-        photos = if (target != null) {
+    LaunchedEffect(infoTarget) {
+        val target = infoTarget
+        infoPhotos = if (target != null) {
             viewModel.loadPhotosByPerson(target.personId)
         } else {
             emptyList()
@@ -128,6 +129,18 @@ fun PersonScreen(
                             )
                         }
                     }
+                    // 重新聚类：仅重提已有人脸 embedding（对齐路径）+ 全量重聚类（保名），后台 FGS 运行
+                    IconButton(onClick = {
+                        context.startForegroundService(TagGenerationService.intentReembedFaces(context))
+                        scope.launch {
+                            snackbarHostState.showSnackbar(context.getString(R.string.people_recluster_started))
+                        }
+                    }) {
+                        Icon(
+                            Icons.Rounded.Autorenew,
+                            contentDescription = stringResource(R.string.people_recluster)
+                        )
+                    }
                 }
             )
         },
@@ -153,7 +166,7 @@ fun PersonScreen(
                         cover = covers[person.personId],
                         relation = relations[person.personId],
                         isEditingName = editingPersonId == person.personId,
-                        onCoverClick = { coverTarget = person },
+                        onCoverClick = { onNavigateToGallery(person.personId) },
                         onNameClick = { viewModel.startEditing(person.personId) },
                         onNameSave = { name -> viewModel.updateName(person.personId, name) },
                         onNameCancel = { viewModel.stopEditing() },
@@ -165,26 +178,18 @@ fun PersonScreen(
     }
 
     infoTarget?.let { person ->
-        PersonInfoSheet(
+        PersonInfoScreen(
+            person = person,
             relation = relations[person.personId],
-            isSelf = person.isSelf,
+            cover = covers[person.personId],
+            photos = infoPhotos,
             onSave = { relation, customLabel, isSelf ->
                 viewModel.updatePersonInfo(person.personId, relation, customLabel, isSelf)
             },
-            onDismiss = { infoTarget = null }
+            onNavigateBack = { infoTarget = null },
+            onUpdateCover = { photo ->
+                viewModel.updateCover(person.personId, photo.id)
+            }
         )
-    }
-
-    coverTarget?.let { person ->
-        if (photos.isNotEmpty()) {
-            PersonCoverPickerSheet(
-                photos = photos,
-                onSelect = { photo ->
-                    viewModel.updateCover(person.personId, photo.id)
-                    coverTarget = null
-                },
-                onDismiss = { coverTarget = null }
-            )
-        }
     }
 }

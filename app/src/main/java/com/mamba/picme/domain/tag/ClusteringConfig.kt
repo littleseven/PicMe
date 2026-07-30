@@ -38,6 +38,16 @@ object ClusteringConfig {
     /** 仅对 embedding 数 ≥ 此值的簇尝试拆分（保证两半各 ≥2）。 */
     const val SPLIT_MIN_CLUSTER_SIZE = 4
 
+    /** sink(链式垃圾簇) 判定：簇内 median 两两相似度 < 此值视为 k-NN 链式并出的垃圾簇，解散重分。
+     *  0.40：同人 median 通常 ≥0.5；<0.40 基本是随机不相关脸（链式 sink）。 */
+    const val SINK_COHESION_MAX = 0.40f
+
+    /** 仅对 embedding 数 ≥ 此值的簇判定 sink（小簇不判，避免误伤）。 */
+    const val SINK_MIN_SIZE = 8
+
+    /** sink 判定时为控制开销，对大簇最多采样多少 embedding 算 median。 */
+    const val SINK_SAMPLE_CAP = 30
+
     /** DBSCAN: 余弦距离阈值（= 1 - 相似度，越小越严格）
      *  0.35：相似度 ≥ 0.65 才成簇，抑制不同女明星误聚 */
     const val DBSCAN_EPS = 0.35f

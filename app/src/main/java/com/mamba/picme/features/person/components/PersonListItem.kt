@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -205,6 +206,9 @@ private fun CoverThumbnail(
     cover: PersonCover?,
     contentDescription: String
 ) {
+    val alignment = remember(cover?.faceFocusY) {
+        faceAwareVerticalAlignment(cover?.faceFocusY)
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -217,7 +221,7 @@ private fun CoverThumbnail(
                 model = uri,
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
-                alignment = faceAwareVerticalAlignment(cover.faceFocusY),
+                alignment = alignment,
                 modifier = Modifier.fillMaxWidth()
             )
         } else {

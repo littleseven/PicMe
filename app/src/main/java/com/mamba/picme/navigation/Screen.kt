@@ -4,11 +4,20 @@ sealed class Screen(val route: String) {
     data object Chat : Screen("chat")
     data object Camera : Screen("camera")
     data object Gallery : Screen("gallery") {
-        const val ROUTE_WITH_QUERY = "gallery?query={query}"
+        const val ROUTE_WITH_ARGS = "gallery?query={query}&personId={personId}"
         const val ARG_QUERY = "query"
-        fun createRoute(query: String): String =
-            if (query.isBlank()) route
-            else "gallery?query=${java.net.URLEncoder.encode(query, "UTF-8")}"
+        const val ARG_PERSON_ID = "personId"
+        fun createRoute(query: String = "", personId: Long = 0L): String {
+            val params = buildList {
+                if (query.isNotBlank()) {
+                    add("$ARG_QUERY=${java.net.URLEncoder.encode(query, "UTF-8")}")
+                }
+                if (personId > 0L) {
+                    add("$ARG_PERSON_ID=$personId")
+                }
+            }
+            return if (params.isEmpty()) route else "$route?${params.joinToString("&")}"
+        }
     }
     data object TagControl : Screen("tag_control")
     data object Settings : Screen("settings")

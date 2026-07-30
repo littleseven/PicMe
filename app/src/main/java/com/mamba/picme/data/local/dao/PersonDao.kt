@@ -59,6 +59,21 @@ interface PersonDao {
     )
     suspend fun getMediaByPerson(personId: Long): List<MediaEntity>
 
+    /**
+     * 按人物取媒体，优先返回单人照（同媒体人脸数少者优先），再按拍摄时间倒序。
+     * 供封面选择，避免选中合影。
+     */
+    @Query(
+        """
+        SELECT DISTINCT m.* FROM media_assets m
+        INNER JOIN face_embeddings e ON m.id = e.mediaId
+        WHERE e.personId = :personId
+        GROUP BY m.id
+        ORDER BY COUNT(e.embeddingId) ASC, m.captureDate DESC
+        """
+    )
+    suspend fun getMediaByPersonOrderedForCover(personId: Long): List<MediaEntity>
+
     /** 按 personId 取媒体 id（轻量，仅供 gallery.query 的 person 过滤做交集）。 */
     @Query("SELECT DISTINCT mediaId FROM face_embeddings WHERE personId = :personId")
     suspend fun getMediaIdsByPerson(personId: Long): List<Long>
