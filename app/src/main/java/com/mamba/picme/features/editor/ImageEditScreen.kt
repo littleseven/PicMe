@@ -31,17 +31,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -72,6 +70,8 @@ import com.mamba.picme.R
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarAction
 import com.mamba.picme.features.gallery.MediaViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -178,35 +178,32 @@ private fun ImageEditContent(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            AppTopBar(
                 title = { Text(stringResource(R.string.edit)) },
+                centered = true,
                 navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = stringResource(R.string.cancel)
-                        )
-                    }
+                    AppTopBarAction(
+                        icon = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.cancel),
+                        onClick = onDismiss
+                    )
                 },
                 actions = {
-                    IconButton(
+                    AppTopBarAction(
+                        icon = Icons.AutoMirrored.Rounded.Undo,
+                        contentDescription = stringResource(R.string.undo),
                         onClick = {
                             onUndo()
                             drawIteration++
                         },
                         enabled = actions.isNotEmpty()
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = stringResource(R.string.undo)
-                        )
-                    }
-                    IconButton(
-                        enabled = originalBitmap != null,
-                        onClick = onSave
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.save))
-                    }
+                    )
+                    AppTopBarAction(
+                        icon = Icons.Rounded.Check,
+                        contentDescription = stringResource(R.string.save),
+                        onClick = onSave,
+                        enabled = originalBitmap != null
+                    )
                 }
             )
         },
