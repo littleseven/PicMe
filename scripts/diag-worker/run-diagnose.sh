@@ -28,8 +28,15 @@ claude_err="$(cat "$claude_err_file" 2>/dev/null)"; rm -f "$claude_err_file"
 #   b) .result.rootCause（result 本身为对象）
 #   c) 顶层 .rootCause
 rootCause=""
-inner="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null | sed 's/```[a-zA-Z]*//g; s/^[[:space:]]*//; s/[[:space:]]*$//')"
+inner="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null | sed 's/```[a-zA-Z]*//g')"
 [ -n "$inner" ] && rootCause="$(printf '%s' "$inner" | jq -r '.rootCause // empty' 2>/dev/null)"
+# 容忍 prose 前后缀：把整段压成一行后抠出 { ... } 的 JSON 对象
+if [ -z "$rootCause" ] || [ "$rootCause" = "null" ]; then
+  if [ -n "$inner" ]; then
+    json_only="$(printf '%s' "$inner" | tr '\n' ' ' | sed 's/.*\({.*}\).*/\1/' 2>/dev/null)"
+    [ -n "$json_only" ] && rootCause="$(printf '%s' "$json_only" | jq -r '.rootCause // empty' 2>/dev/null)"
+  fi
+fi
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.result.rootCause // empty' 2>/dev/null)"
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.rootCause // empty' 2>/dev/null)"
 
@@ -37,7 +44,9 @@ if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
   rc_escaped="$(printf '%s' "$rootCause" | json_escape)"
   report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\"}"
 else
-  # 解析失败：把 claude 原始输出（截断）+ stderr + exit code 回传到 workerLog，便于排查
-  raw="$(printf 'claude_exit=%s | stdout[0:800]=%.800s | stderr[0:500]=%.500s' "$rc" "$out" "$claude_err" | json_escape)"
+  # 解析失败：把 claude 的 .result（模型最终文本）+ num_turns + exit code 回传到 workerLog，便于排查
+  result_field="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null)"
+  nt="$(printf '%s' "$out" | jq -r '.num_turns // empty' 2>/dev/null)"
+  raw="$(printf 'claude_exit=%s num_turns=%s | .result[0:600]=%.600s' "$rc" "$nt" "$result_field" | json_escape)"
   report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSE_FAILED\",\"error\":\"no rootCause parsed; $raw\"}"
 fi
