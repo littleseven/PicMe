@@ -5,8 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,8 +36,8 @@ import com.mamba.picme.features.person.components.PersonInfoSheet
 import com.mamba.picme.features.person.components.PersonListItem
 
 /**
- * 「人物」页：垂直列表展示全部人脸聚类。
- * 支持行内改名、底部 Sheet 编辑关系/「我」标记、底部 Sheet 选择封面。
+ * 「人物」页：双列网格展示全部人脸聚类。
+ * 支持行内改名、全屏编辑关系/「我」标记、底部 Sheet 选择封面。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,8 +96,10 @@ fun PersonScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(

@@ -2,28 +2,29 @@ package com.mamba.picme.features.person.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,48 +65,151 @@ fun PersonListItem(
     onInfoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(96.dp)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        CoverThumbnail(
-            cover = cover,
-            contentDescription = person.name ?: stringResource(R.string.people_default_name, person.personId),
-            onClick = onCoverClick
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        InfoColumn(
-            person = person,
-            relation = relation,
-            isEditingName = isEditingName,
-            onNameClick = onNameClick,
-            onNameSave = onNameSave,
-            onNameCancel = onNameCancel,
-            onInfoClick = onInfoClick,
-            modifier = Modifier.weight(1f)
-        )
-        IconButton(onClick = onInfoClick) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = stringResource(R.string.person_info_title)
-            )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clickable(onClick = onCoverClick)
+            ) {
+                CoverThumbnail(
+                    cover = cover,
+                    contentDescription = person.name ?: stringResource(R.string.people_default_name, person.personId)
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NameBlock(
+                        person = person,
+                        isEditingName = isEditingName,
+                        onNameClick = onNameClick,
+                        onNameSave = onNameSave,
+                        onNameCancel = onNameCancel,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onInfoClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.person_info_title),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.people_photos_count, person.faceCount),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                RelationChip(
+                    relation = relation,
+                    isSelf = person.isSelf,
+                    onClick = onInfoClick,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun NameBlock(
+    person: PersonEntity,
+    isEditingName: Boolean,
+    onNameClick: () -> Unit,
+    onNameSave: (String) -> Unit,
+    onNameCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (isEditingName) {
+        NameEditor(
+            initialName = person.name.orEmpty(),
+            onSave = onNameSave,
+            onCancel = onNameCancel,
+            modifier = modifier
+        )
+    } else {
+        val hasName = !person.name.isNullOrBlank()
+        Text(
+            text = if (hasName) person.name!! else stringResource(R.string.person_edit_name_hint),
+            color = if (hasName) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modifier.clickable(onClick = onNameClick)
+        )
+    }
+}
+
+@Composable
+private fun RelationChip(
+    relation: RelationDisplayItem?,
+    isSelf: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val label = when {
+        isSelf -> stringResource(R.string.person_is_self)
+        relation?.customLabel != null -> relation.customLabel
+        relation != null -> stringResource(personRelationLabelRes(relation.predicate))
+        else -> stringResource(R.string.person_relation_none)
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (isSelf) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                }
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (isSelf) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
 @Composable
 private fun CoverThumbnail(
     cover: PersonCover?,
-    contentDescription: String,
-    onClick: () -> Unit
+    contentDescription: String
 ) {
     Box(
         modifier = Modifier
-            .size(76.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
     ) {
         val uri = cover?.coverUri
         if (uri != null) {
@@ -128,89 +232,66 @@ private fun CoverThumbnail(
 }
 
 @Composable
-private fun InfoColumn(
-    person: PersonEntity,
-    relation: RelationDisplayItem?,
-    isEditingName: Boolean,
-    onNameClick: () -> Unit,
-    onNameSave: (String) -> Unit,
-    onNameCancel: () -> Unit,
-    onInfoClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        if (isEditingName) {
-            NameEditor(
-                initialName = person.name.orEmpty(),
-                onSave = onNameSave,
-                onCancel = onNameCancel
-            )
-        } else {
-            val hasName = !person.name.isNullOrBlank()
-            Text(
-                text = if (hasName) person.name!! else stringResource(R.string.person_edit_name_hint),
-                color = if (hasName) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable(onClick = onNameClick)
-            )
-        }
-        Text(
-            text = stringResource(R.string.people_photos_count, person.faceCount),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        if (relation != null) {
-            val label = relation.customLabel
-                ?: stringResource(personRelationLabelRes(relation.predicate))
-            AssistChip(
-                onClick = onInfoClick,
-                label = { Text(label, fontSize = 12.sp) },
-                colors = if (person.isSelf) {
-                    AssistChipDefaults.assistChipColors(
-                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                } else {
-                    AssistChipDefaults.assistChipColors()
-                },
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
 private fun NameEditor(
     initialName: String,
     onSave: (String) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var text by remember(initialName) { mutableStateOf(initialName) }
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    OutlinedTextField(
-        value = text,
-        onValueChange = { text = it },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = { onSave(text) }),
-        trailingIcon = {
-            Row {
-                IconButton(onClick = { onSave(text) }) {
-                    Icon(Icons.Default.Check, contentDescription = stringResource(R.string.save))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
+    ) {
+        BasicTextField(
+            value = text,
+            onValueChange = { text = it },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onSave(text) }),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    innerTextField()
                 }
-                IconButton(onClick = onCancel) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
-                }
-            }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusRequester(focusRequester)
-    )
+            },
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester)
+        )
+        IconButton(
+            onClick = { onSave(text) },
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = stringResource(R.string.save),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        IconButton(
+            onClick = onCancel,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = stringResource(R.string.cancel),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
