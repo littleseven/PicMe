@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -63,7 +63,7 @@ fun IDPhotoScreen(
                 title = { Text(stringResource(R.string.id_photo_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -72,7 +72,7 @@ fun IDPhotoScreen(
                         onClick = { viewModel.save(context) },
                         enabled = ready != null && !ready.isSaving
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.done))
+                        Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.done))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors()
