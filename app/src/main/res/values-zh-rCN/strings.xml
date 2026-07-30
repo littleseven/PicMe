@@ -246,7 +246,7 @@
 
     <!-- Duplicate Management -->
     <string name="gallery_features">相册打标</string>
-    <string name="gallery_features_desc">整理和清理照片库的实用工具。</string>
+    <string name="gallery_features_desc">打标扫描、人脸聚类与模型下载管理。</string>
     <string name="manage_duplicates">管理重复照片</string>
     <string name="duplicate_manager_desc">查找并删除重复或相似照片，释放存储空间。</string>
     <string name="delete_all_duplicates">删除全部重复</string>

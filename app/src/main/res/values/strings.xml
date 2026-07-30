@@ -257,7 +257,7 @@
 
     <!-- Gallery Features -->
     <string name="gallery_features">Gallery Tagging</string>
-    <string name="gallery_features_desc">Tools to organize and clean up your photo library.</string>
+    <string name="gallery_features_desc">Tag scanning, face clustering, and model download management.</string>
 
     <!-- Duplicate Management -->
     <string name="manage_duplicates">Manage Duplicates</string>
