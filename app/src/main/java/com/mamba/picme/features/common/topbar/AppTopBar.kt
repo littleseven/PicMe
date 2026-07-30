@@ -13,8 +13,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,8 +34,7 @@ fun AppTopBar(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
-    centered: Boolean = false,
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors()
+    centered: Boolean = false
 ) {
     val wrappedActions: @Composable RowScope.() -> Unit = {
         Row(horizontalArrangement = Arrangement.spacedBy(TopBarSpacing), content = actions)
@@ -47,16 +44,14 @@ fun AppTopBar(
             title = title,
             modifier = modifier,
             navigationIcon = { navigationIcon() },
-            actions = wrappedActions,
-            colors = colors
+            actions = wrappedActions
         )
     } else {
         TopAppBar(
             title = title,
             modifier = modifier,
             navigationIcon = { navigationIcon() },
-            actions = wrappedActions,
-            colors = colors
+            actions = wrappedActions
         )
     }
 }
@@ -69,8 +64,7 @@ fun AppTopBar(
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
-    centered: Boolean = false,
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors()
+    centered: Boolean = false
 ) {
     AppTopBar(
         title = { Text(title) },
@@ -81,8 +75,7 @@ fun AppTopBar(
             }
         },
         actions = actions,
-        centered = centered,
-        colors = colors
+        centered = centered
     )
 }
 
