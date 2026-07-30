@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,7 +29,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +70,9 @@ fun PersonScreen(
         viewModel.reconcileAndLoad()
     }
 
+    var scoring by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     val persons by viewModel.persons.collectAsState()
     val covers by viewModel.covers.collectAsState()
     var editing by remember { mutableStateOf<PersonEntity?>(null) }
@@ -79,6 +87,37 @@ fun PersonScreen(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(R.string.back)
                         )
+                    }
+                },
+                actions = {
+                    // 手动触发：跑一轮（300 张）eDifFIQA 打分 + 刷新封面，完成后 reload 看效果
+                    IconButton(
+                        onClick = {
+                            if (scoring) return@IconButton
+                            scope.launch {
+                                scoring = true
+                                try {
+                                    val app = context.applicationContext as? PoLangApplication
+                                    app?.container?.aestheticScoreWorker?.runOnce(300)
+                                    viewModel.reconcileAndLoad()
+                                } finally {
+                                    scoring = false
+                                }
+                            }
+                        },
+                        enabled = !scoring
+                    ) {
+                        if (scoring) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Rounded.AutoAwesome,
+                                contentDescription = stringResource(R.string.people_rescore)
+                            )
+                        }
                     }
                 }
             )

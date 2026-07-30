@@ -241,6 +241,7 @@
     <string name="people_title">人物</string>
     <string name="people_default_name">人物 #%1$d</string>
     <string name="people_photos_count">%1$d 张照片</string>
+    <string name="people_rescore">重新打分刷新封面</string>
     <string name="people_entry">人物</string>
     <string name="people_entry_desc">查看并命名人脸聚类</string>
     <string name="gallery_people_entry">人物</string>
