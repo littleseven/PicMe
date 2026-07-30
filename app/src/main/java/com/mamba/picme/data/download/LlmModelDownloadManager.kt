@@ -662,7 +662,14 @@ fun isModelDownloaded(modelId: String): Boolean {
     }
 
     private fun hasAnyRunningTask(): Boolean {
-        return activeJobs.values.any { job -> job.isActive }
+        // 以 _downloadStates（DOWNLOADING）为唯一事实源，与 Service.onStartCommand 中
+        // snapshotDownloadingStates() 的判定保持一致。
+        // 关键：自动预下载（RecommendedModelAutoDownloader）走 downloadModel().collect{} 直连，
+        // 不经过 enqueueDownload，因此 activeJobs 为空；若这里仍用 activeJobs 判定，则下载期间
+        // 每次进度回调都会下发 ACTION_STOP，导致 FGS 被反复 stop→start（~500ms 一次），
+        // 冷启动 + IO/主线程竞争下 onCreate() 内 startForeground() 超出系统时间窗，
+        // 触发 ForegroundServiceDidNotStartInTimeException（即“startForeground 时序崩溃”）。
+        return _downloadStates.value.values.any { state -> state.status == DownloadStatus.DOWNLOADING }
     }
 
     private fun updateServiceState() {
