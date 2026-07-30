@@ -53,7 +53,7 @@ fun PersonScreen(
     viewModel: PersonViewModel,
     onNavigateBack: () -> Unit
 ) {
-    LaunchedEffect(Unit) { viewModel.load() }
+    LaunchedEffect(Unit) { viewModel.reconcileAndLoad() }
 
     val persons by viewModel.persons.collectAsState()
     val covers by viewModel.covers.collectAsState()

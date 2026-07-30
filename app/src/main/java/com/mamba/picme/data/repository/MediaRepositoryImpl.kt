@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import com.mamba.picme.core.common.Logger
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.data.preferences.UserPreferencesRepository
@@ -216,6 +217,11 @@ class MediaRepositoryImpl(
             if (localIds.isNotEmpty()) {
                 Logger.d(TAG, "Deleting local DB records: $localIds")
                 mediaDao.deleteMediaByIds(localIds)
+                // 级联清理人脸数据：删这些媒体的 embedding，再对齐 persons 表
+                // （重算 faceCount、修/清悬空 coverMediaId、删空人物），避免人物页出现空白聚类。
+                val personDao = AppDatabase.getDatabase(appContext).personDao()
+                personDao.deleteEmbeddingsByMediaIds(localIds)
+                personDao.reconcilePersons(System.currentTimeMillis())
             }
             // 清理 Coil 图片缓存，避免已删除文件的缩略图残留
             val imageLoader = coil.Coil.imageLoader(appContext)

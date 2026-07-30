@@ -34,7 +34,6 @@ class PersonViewModel(
     fun load() {
         viewModelScope.launch {
             val all = personRepository.getAllPersons()
-            _persons.value = all
             val ids = all.mapNotNull { person -> person.coverMediaId }.distinct()
             val resolved = withContext(Dispatchers.IO) {
                 if (ids.isEmpty()) emptyMap()
@@ -48,6 +47,17 @@ class PersonViewModel(
                 }
             }
             _covers.value = resolved
+            // 防御：coverMediaId 悬空（封面媒体已删）的聚类 coverUri 为 null，不展示，避免空白格。
+            // 正常情况下 reconcileAndLoad 已先行清理，此处为兜底。
+            _persons.value = PersonCoverResolver.filterCoverable(all, resolved)
+        }
+    }
+
+    /** 进入人物页：先对齐 persons 表（清孤儿/修悬空封面/重算 faceCount），再加载。幂等。 */
+    fun reconcileAndLoad() {
+        viewModelScope.launch {
+            personRepository.reconcilePersons()
+            load()
         }
     }
 

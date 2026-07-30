@@ -1200,6 +1200,10 @@ class TagGenerationScheduler(
         if (relationSnapshots.isNotEmpty()) {
             restorePersonRelations(relationSnapshots)
         }
+
+        // 对齐 persons 表：增量聚类/历史数据可能留下孤儿人物、faceCount 失配、悬空封面。
+        // 无论是否全量重聚，聚类结束都拉回一致，避免人物页空白聚类。
+        db.personDao().reconcilePersons(System.currentTimeMillis())
     }
 
     /**

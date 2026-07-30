@@ -3,6 +3,7 @@ package com.mamba.picme.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
 import com.mamba.picme.data.local.entity.PersonEntity
@@ -131,6 +132,10 @@ interface PersonDao {
     @Query("DELETE FROM face_embeddings WHERE mediaId = :mediaId")
     suspend fun deleteEmbeddingsByMedia(mediaId: Long)
 
+    /** 按 mediaId 列表批量删除 embedding（媒体删除级联清理用） */
+    @Query("DELETE FROM face_embeddings WHERE mediaId IN (:mediaIds)")
+    suspend fun deleteEmbeddingsByMediaIds(mediaIds: List<Long>)
+
     /** 按 mediaId 批量更新 personId（用于聚类后分配） */
     @Query("UPDATE face_embeddings SET personId = :personId WHERE mediaId = :mediaId")
     suspend fun assignEmbeddingByMediaId(mediaId: Long, personId: Long)
@@ -149,4 +154,59 @@ interface PersonDao {
     /** 重置所有 embedding 的 personId 为 NULL（重聚类前调用） */
     @Query("UPDATE face_embeddings SET personId = NULL")
     suspend fun resetAllEmbeddingAssignments()
+
+    // ── persons 表对齐（reconcile）──────────────────────────────────────
+    // 媒体删除 / Pass1 重检测 / 增量聚类 都可能让 persons 表与 face_embeddings、
+    // media_assets 失联：孤儿人物行、faceCount 失配、coverMediaId 悬空。
+    // 以下 4 步幂等，可重复执行；由 [reconcilePersons] 在单事务内完成。
+
+    /** 删除指向已不存在媒体的 embedding（媒体已被删但 embedding 残留） */
+    @Query("DELETE FROM face_embeddings WHERE mediaId NOT IN (SELECT id FROM media_assets)")
+    suspend fun deleteOrphanEmbeddings()
+
+    /** 删除无任何 embedding 的孤儿人物（无照片即无人物） */
+    @Query(
+        """
+        DELETE FROM persons WHERE personId NOT IN (
+            SELECT DISTINCT personId FROM face_embeddings WHERE personId IS NOT NULL
+        )
+        """
+    )
+    suspend fun deleteOrphanPersons()
+
+    /** 用真实 embedding 数重算 faceCount（修正历史失配计数） */
+    @Query(
+        """
+        UPDATE persons SET faceCount = (
+            SELECT COUNT(*) FROM face_embeddings fe WHERE fe.personId = persons.personId
+        ), updatedAt = :now
+        """
+    )
+    suspend fun recomputeFaceCounts(now: Long)
+
+    /** 修复悬空 coverMediaId：改指本簇任一存活 embedding 的 mediaId */
+    @Query(
+        """
+        UPDATE persons SET coverMediaId = (
+            SELECT fe.mediaId FROM face_embeddings fe
+            WHERE fe.personId = persons.personId
+            ORDER BY fe.mediaId LIMIT 1
+        )
+        WHERE coverMediaId IS NULL OR coverMediaId NOT IN (SELECT id FROM media_assets)
+        """
+    )
+    suspend fun fixDanglingCovers()
+
+    /**
+     * 单事务对齐 persons 表：清孤儿 embedding → 删孤儿人物 → 重算 faceCount → 修悬空封面。
+     *
+     * 调用时机：进入人物页前、聚类（DBSCAN）完成后、媒体删除后。幂等。
+     */
+    @Transaction
+    suspend fun reconcilePersons(now: Long = System.currentTimeMillis()) {
+        deleteOrphanEmbeddings()
+        deleteOrphanPersons()
+        recomputeFaceCounts(now)
+        fixDanglingCovers()
+    }
 }

@@ -23,4 +23,15 @@ object PersonCoverResolver {
             )
         }
     }
+
+    /**
+     * 过滤出封面可解析（coverUri 非空）的人物。
+     *
+     * 人物页不展示封面媒体已删/缺失的聚类（否则渲染空白格）。
+     * reconcile 会先行清理，此处为兜底；逻辑下沉为纯函数便于 JVM 单测。
+     */
+    fun filterCoverable(
+        persons: List<PersonEntity>,
+        covers: Map<Long, PersonCover>
+    ): List<PersonEntity> = persons.filter { person -> covers[person.personId]?.coverUri != null }
 }
