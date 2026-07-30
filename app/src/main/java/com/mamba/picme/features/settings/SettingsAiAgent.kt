@@ -216,7 +216,7 @@ internal fun AiAgentRemoteModelsSection(
                     )
                     Column {
                         Text(
-                            text = "当前使用",
+                            text = stringResource(R.string.ai_agent_current_model),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
@@ -268,13 +268,13 @@ internal fun AiAgentRemoteModelsSection(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "默认远程模型有时长限制",
+                        text = stringResource(R.string.remote_model_default_limit_title),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "添加自有模型以解除限制",
+                        text = stringResource(R.string.remote_model_default_limit_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -337,7 +337,7 @@ private fun RemoteModelConfigCard(
     var editProtocol by remember { mutableStateOf(config.protocol) }
 
     val provider = RemoteModelConfig.getProvider(config.providerId)
-    val providerName = provider?.displayName ?: "自定义"
+    val providerName = provider?.displayName ?: stringResource(R.string.provider_custom)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
