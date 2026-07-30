@@ -113,6 +113,22 @@ DataStore key (auto_execute_plans, 默认 true)
 
 - 编译通过（`./gradlew :app:assembleDebug`）。
 - 设置页：主菜单「AI 设置」入口文案正确；进入后无头部模型中心行；远程链路在上、本地链路在下，两区同时可见；切换「默认链路」不隐藏任一区。
-- 「自动执行计划」开关：修改后退出设置再进入，值保留；并在 chat 侧生效（关闭后不自动执行 plan）。
+- 「自动执行计划」开关：修改后退出设置再进入，值保留（注：仅持久化，chat 侧暂不消费，见 3.4）。
 - 切换系统语言（中/英/繁），新文案与 4 个新提取字符串均正确显示，无硬编码中文残留。
 - 现有本地/远程模型配置功能（选择、添加、删除、下载入口）行为不变。
+
+## 6. 实现期迭代（2026-07-30，基于反馈）
+
+实现中发现并处理两处，修订上文设计：
+
+### 6.1 移除失效的「推理偏好」控件（修订 3.3）
+
+核对 runtime 发现：推理偏好 `AiAgentInferencePreference`（AUTO/FORCE_LOCAL/FORCE_REMOTE）在 chat 场景被 `RemoteChatEngine.streamChat` 读取后**忽略**——注释明示「chat 页统一走远程 ReAct，无论 preference」（ADR-005）。即对核心 chat 场景完全失效；相机场景用的是 `AiAgentMode` 而非它。属继 `autoExecutePlans` 后的第二个死设置。
+
+决策：移除推理偏好 UI 传递链、`InferencePreferenceSelection` 函数与 unused import。本地链路区现仅含：本地模型选择 + 推理后端(CPU/OpenCL) + L1 缓存。数据层（VM StateFlow / repo / DataStore）保留不删。「默认链路」单选保留，其「影响相机」语义已由 `ai_agent_desc`（「…控制相机功能」）表达。
+
+### 6.2 本地模型候选按 type 白名单过滤（新增）
+
+本地推理模型选择误出现 Sherpa（KWS）：根因是 Sherpa KWS tags 含 `chat` 却不含 `asr`，漏过原启发式过滤（`SettingsAiAgent.isAiAgentLlmCandidate`）。
+
+决策：`ModelConfig` 新增 `type` 字段并解析本地 json；`isAiAgentLlmCandidate` 改为按 `type ∈ {LLM, VISION_LLM}` 白名单（type 缺失才回退启发式，回退补 sherpa/kws 排除）。满足「仅 LLM 与多模态可选」。
