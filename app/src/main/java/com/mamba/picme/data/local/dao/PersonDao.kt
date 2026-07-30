@@ -197,8 +197,29 @@ interface PersonDao {
     )
     suspend fun fixDanglingCovers()
 
+    /** 合并 personB→personA 时，把媒体上指向 personB 的 faceId 改指 personA。 */
+    @Query("UPDATE media_assets SET faceId = :newPersonId WHERE faceId = :oldPersonId")
+    suspend fun reassignMediaFaceId(oldPersonId: String, newPersonId: String)
+
     /**
-     * 单事务对齐 persons 表：清孤儿 embedding → 删孤儿人物 → 重算 faceCount → 修悬空封面。
+     * 修复悬空 faceId：媒体 faceId 指向已删除的 person（被合并），改指该媒体 embedding 现属 person；
+     * 无 embedding 归属则置空。幂等，在 [reconcilePersons] 内随人物页进入/聚类完成触发。
+     */
+    @Query(
+        """
+        UPDATE media_assets SET faceId = (
+            SELECT CAST(fe.personId AS TEXT) FROM face_embeddings fe
+            WHERE fe.mediaId = media_assets.id AND fe.personId IS NOT NULL
+            ORDER BY fe.embeddingId LIMIT 1
+        )
+        WHERE faceId IS NOT NULL AND faceId != ''
+        AND CAST(faceId AS INTEGER) NOT IN (SELECT personId FROM persons)
+        """
+    )
+    suspend fun reconcileDanglingFaceIds()
+
+    /**
+     * 单事务对齐 persons 表：清孤儿 embedding → 删孤儿人物 → 重算 faceCount → 修悬空封面 → 修悬空 faceId。
      *
      * 调用时机：进入人物页前、聚类（DBSCAN）完成后、媒体删除后。幂等。
      */
@@ -208,5 +229,6 @@ interface PersonDao {
         deleteOrphanPersons()
         recomputeFaceCounts(now)
         fixDanglingCovers()
+        reconcileDanglingFaceIds()
     }
 }

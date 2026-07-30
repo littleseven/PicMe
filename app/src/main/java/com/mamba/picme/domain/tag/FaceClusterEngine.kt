@@ -443,6 +443,10 @@ class FaceClusterEngine(private val context: Context) {
         }
         centroidCache.remove(personB)
 
+        // 媒体 faceId 也指向被吸收的 personB：一并改派到 personA
+        // （相册「人物分组」按 media_assets.faceId 聚合，不更新则合并后拆组仍显示）
+        personDao.reassignMediaFaceId(personB.toString(), personA.toString())
+
         // 删除 personB
         personDao.unlinkEmbeddings(personB)
         personDao.deletePerson(personB)
