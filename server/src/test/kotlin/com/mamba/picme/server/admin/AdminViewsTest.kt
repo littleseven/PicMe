@@ -1,5 +1,6 @@
 package com.mamba.picme.server.admin
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -130,5 +131,75 @@ class AdminViewsTest {
             "limit-card must be centered (max-width:1200px + margin auto): ${rule.take(80)}",
             rule.contains("max-width:1200px") && rule.contains("margin:") && rule.contains("auto"),
         )
+    }
+
+    @Test
+    fun `diag list page renders health bar stats status badges table and auto refresh`() {
+        val stats = DiagStats(total = 3, queued = 1, diagnosed = 0, fixRequested = 1, fixed = 1, failed = 0)
+        val rows = listOf(
+            DiagListRow(1, "QUEUED", "打开相册闪退", "dev12••••abcd", "sha12345abcdef", null, null, false, false, 100L, 100L, null),
+            DiagListRow(
+                2, "FIXED", "搜索无结果", "—", "sha99999",
+                "diag-fix/2", "https://github.com/x/y/compare/main...diag-fix-2", true, true, 50L, 90L, 60L,
+            ),
+        )
+        val activity = DiagWorkerActivity(lastClaimAt = 60_000L, pendingCount = 1, oldestPendingCreatedAt = 60_000L, health = DiagWorkerHealth.ONLINE)
+        val html = AdminViews.diagListPage(stats, rows, activity, now = 200_000L, autoSec = 30)
+
+        assertTrue(html.contains("诊断任务"))
+        assertTrue(html.contains("状态分布"))
+        assertTrue(html.contains("待诊断"))
+        assertTrue(html.contains("/admin/diag/1"))
+        assertTrue(html.contains("badge-diag-pending")) // QUEUED 徽章
+        assertTrue(html.contains("badge-active"))        // FIXED 徽章
+        assertTrue(html.contains("worker 在线"))
+        assertTrue(html.contains("自动刷新中"))
+        assertTrue(html.contains("setInterval")) // 自动轮询脚本
+    }
+
+    @Test
+    fun `diag list page idle and manual refresh when no auto`() {
+        val html = AdminViews.diagListPage(
+            DiagStats(0, 0, 0, 0, 0, 0),
+            emptyList(),
+            DiagWorkerActivity(null, 0, null, DiagWorkerHealth.IDLE),
+            now = 0L,
+            autoSec = 0,
+        )
+        assertTrue(html.contains("worker 空闲"))
+        assertTrue(html.contains("暂无诊断任务"))
+        assertTrue(html.contains("?auto=30"))
+        assertFalse(html.contains("setInterval"))
+    }
+
+    @Test
+    fun `diag detail page renders description root cause bundle fix and timeline`() {
+        val d = DiagDetailRow(
+            id = 7,
+            status = "FIXED",
+            description = "自然语言搜索返回空",
+            deviceIdMasked = "dev12••••abcd",
+            bundleJson = """{"logs":"PoLang:Gallery boom","crashTrace":"at Foo()","appVersion":"1.0.26","gitSha":"sha7","deviceModel":"Pixel","androidVersion":"14"}""",
+            gitSha = "sha7",
+            rootCause = "NPE at Gallery.kt:88\n修复：加判空",
+            fixMode = "push",
+            fixBranch = "diag-fix/7",
+            compareUrl = "https://github.com/x/y/compare/main...diag-fix-7",
+            tested = true,
+            workerLog = null,
+            createdAt = 100L,
+            updatedAt = 200L,
+            claimedAt = 150L,
+        )
+        val html = AdminViews.diagDetailPage(d)
+        assertTrue(html.contains("诊断任务 #7"))
+        assertTrue(html.contains("自然语言搜索返回空"))
+        assertTrue(html.contains("NPE at Gallery.kt:88"))
+        assertTrue(html.contains("diag-fix/7"))
+        assertTrue(html.contains("已通过")) // tested
+        assertTrue(html.contains("PoLang:Gallery boom")) // bundle 日志
+        assertTrue(html.contains("Pixel")) // deviceModel
+        assertTrue(html.contains("时间线"))
+        assertTrue(html.contains("worker 领取")) // timeline claimed
     }
 }

@@ -1,5 +1,6 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.appJson
 import com.mamba.picme.server.analytics.formatCostCny
 import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.llm.ChannelBalanceService
@@ -22,9 +23,11 @@ import kotlinx.html.head
 import kotlinx.html.html
 import kotlinx.html.input
 import kotlinx.html.label
+import kotlinx.html.li
 import kotlinx.html.meta
 import kotlinx.html.option
 import kotlinx.html.p
+import kotlinx.html.pre
 import kotlinx.html.script
 import kotlinx.html.select
 import kotlinx.html.span
@@ -36,8 +39,12 @@ import kotlinx.html.textInput
 import kotlinx.html.th
 import kotlinx.html.title
 import kotlinx.html.tr
+import kotlinx.html.ul
 import kotlinx.html.unsafe
 import kotlinx.html.stream.createHTML
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.math.abs
 
 /**
@@ -863,6 +870,238 @@ object AdminViews {
         }
     }
 
+    // ── 诊断任务（/admin/diag 可视化）──
+
+    fun diagListPage(
+        stats: DiagStats,
+        rows: List<DiagListRow>,
+        activity: DiagWorkerActivity,
+        now: Long,
+        autoSec: Int,
+    ): String = createHTML().html {
+        adminHead("诊断 · PoLang 管理后台")
+        body {
+            navBar()
+            h1 { +"诊断任务" }
+            diagHealthBar(activity, now)
+            diagRefreshControl(autoSec)
+            h2 { +"状态分布（共 ${stats.total}）" }
+            div("cards") {
+                statCard("待诊断", stats.queued.toString())
+                statCard("待确认", stats.diagnosed.toString())
+                statCard("待修复", stats.fixRequested.toString())
+                statCard("已修复", stats.fixed.toString())
+                statCard("失败/超时", stats.failed.toString())
+            }
+            h2 { +"任务列表（近 ${rows.size} 条）" }
+            if (rows.isEmpty()) {
+                div("card apk-empty") {
+                    div("apk-empty-text") { +"暂无诊断任务" }
+                }
+            } else {
+                table {
+                    tr {
+                        th { +"ID" }; th { +"状态" }; th { +"问题描述" }
+                        th { +"设备 · gitSha" }; th { +"修复" }; th { +"创建" }; th { +"更新" }
+                    }
+                    rows.forEach { row ->
+                        tr {
+                            td { a("/admin/diag/${row.id}") { +"#${row.id}" } }
+                            td { diagStatusBadge(row.status) }
+                            td {
+                                val d = row.description
+                                +(if (d.length > 80) d.take(80) + "…" else d)
+                            }
+                            td {
+                                span("meta-inline") { +row.deviceIdMasked }
+                                br()
+                                span("meta-inline") { +("sha: " + row.gitSha.take(10)) }
+                            }
+                            td {
+                                val branch = row.fixBranch
+                                if (branch != null) {
+                                    if (row.compareUrl != null) a(row.compareUrl) { +branch } else +branch
+                                    if (!row.tested) {
+                                        br(); span("err") { +"未自检" }
+                                    }
+                                } else {
+                                    +"—"
+                                }
+                            }
+                            td { +fmtTs(row.createdAt) }
+                            td { +fmtTs(row.updatedAt) }
+                        }
+                    }
+                }
+            }
+            if (autoSec > 0) {
+                script {
+                    unsafe { raw("setInterval(function(){location.reload()}," + (autoSec * 1000) + ");") }
+                }
+            }
+        }
+    }
+
+    fun diagDetailPage(d: DiagDetailRow): String = createHTML().html {
+        adminHead("诊断详情 #${d.id} · PoLang 管理后台")
+        body {
+            navBar()
+            p("meta") { a("/admin/diag") { +"← 返回诊断列表" } }
+            h1 {
+                +"诊断任务 #${d.id}  "
+                diagStatusBadge(d.status)
+            }
+            div("cards") {
+                statCard("状态", d.status)
+                statCard("设备", d.deviceIdMasked)
+                statCard("git 提交", d.gitSha.take(12))
+                statCard("修复方式", d.fixMode ?: "—")
+                statCard("创建时间", fmtTs(d.createdAt))
+                statCard("更新时间", fmtTs(d.updatedAt))
+            }
+            h2 { +"问题描述" }
+            div("diag-section diag-text") { +d.description }
+            h2 { +"根因分析" }
+            if (d.rootCause.isNullOrBlank()) {
+                p("meta") { +"（尚未诊断或无根因）" }
+            } else {
+                pre("diag-log") { +d.rootCause!! }
+            }
+            h2 { +"修复交付" }
+            div("diag-section") {
+                when {
+                    d.fixBranch != null -> {
+                        p {
+                            +"分支："
+                            if (d.compareUrl != null) a(d.compareUrl) { +d.fixBranch } else span("tok") { +d.fixBranch }
+                        }
+                        p {
+                            +"自检："
+                            if (d.tested) span("active-badge") { +"已通过" } else span("err") { +"未通过/未跑" }
+                        }
+                    }
+                    d.status == "FIX_REQUESTED" -> p("meta") { +"已请求修复，等待 worker 处理…" }
+                    else -> p("meta") { +"（尚无修复）" }
+                }
+            }
+            h2 { +"诊断包（已脱敏）" }
+            renderBundle(d.bundleJson)
+            if (!d.workerLog.isNullOrBlank()) {
+                h2 { +"worker 日志（失败诊断）" }
+                pre("diag-log") { +d.workerLog!! }
+            }
+            h2 { +"时间线" }
+            diagTimeline(d)
+        }
+    }
+
+    private fun FlowContent.diagHealthBar(a: DiagWorkerActivity, now: Long) {
+        val lastClaimTxt = a.lastClaimAt?.let { relTime(now - it) + "前" } ?: "从未"
+        val (label, cls, hint) = when (a.health) {
+            DiagWorkerHealth.ONLINE -> Triple("worker 在线", "diag-health online", "有待办任务且近期已领取")
+            DiagWorkerHealth.LIKELY_OFFLINE ->
+                Triple("worker 疑似离线", "diag-health offline", "${a.pendingCount} 个任务等待，近期未被领取（>约5分钟）")
+            DiagWorkerHealth.IDLE -> Triple("worker 空闲", "diag-health idle", "无等待任务")
+        }
+        div(cls) {
+            span("diag-health-label") { +"● $label" }
+            span("meta-inline") { +("最近领任务：" + lastClaimTxt) }
+            span("meta-inline") { +("等待中任务：" + a.pendingCount.toString()) }
+            span("meta-inline") { +hint }
+        }
+    }
+
+    private fun FlowContent.diagRefreshControl(autoSec: Int) {
+        div("diag-refresh") {
+            a("/admin/diag", classes = "btn-sm btn-primary") { +"刷新" }
+            if (autoSec > 0) {
+                span("meta-inline") { +"自动刷新中（${autoSec}s）" }
+                a("/admin/diag", classes = "btn-sm") { +"停止" }
+            } else {
+                span("meta-inline") { +"自动刷新：" }
+                a("/admin/diag?auto=30", classes = "btn-sm") { +"30s" }
+                a("/admin/diag?auto=60", classes = "btn-sm") { +"60s" }
+            }
+        }
+    }
+
+    private fun FlowContent.diagStatusBadge(status: String) {
+        val (label, cls) = when (status) {
+            "QUEUED" -> "待诊断" to "badge badge-diag-pending"
+            "DIAGNOSED" -> "待确认" to "badge badge-diag-wait"
+            "FIX_REQUESTED" -> "待修复" to "badge badge-diag-wait"
+            "FIXED" -> "已修复" to "badge badge-active"
+            "FIXED_UNVERIFIED" -> "已修复(未自检)" to "badge badge-diag-warn"
+            "DIAGNOSE_FAILED" -> "诊断失败" to "badge badge-diag-fail"
+            "FIX_FAILED" -> "修复失败" to "badge badge-diag-fail"
+            "TIMED_OUT" -> "超时" to "badge badge-diag-fail"
+            else -> status to "badge"
+        }
+        span(cls) { +label }
+    }
+
+    private fun FlowContent.renderBundle(json: String) {
+        val b = parseBundle(json)
+        if (b.isEmpty()) {
+            p("meta") { +"（无诊断包）" }
+            return
+        }
+        div("diag-section diag-bundle") {
+            table {
+                tr { th { +"app 版本" }; td { +b.getValue("appVersion") } }
+                tr { th { +"设备型号" }; td { +b.getValue("deviceModel") } }
+                tr { th { +"安卓版本" }; td { +b.getValue("androidVersion") } }
+                tr { th { +"git 提交" }; td { +b.getValue("gitSha") } }
+            }
+            val logs = b.getValue("logs")
+            if (logs.isNotBlank()) {
+                p("meta") { +"日志" }
+                pre("diag-log") { +logs }
+            }
+            val crash = b.getValue("crashTrace")
+            if (crash.isNotBlank()) {
+                p("meta") { +"崩溃栈" }
+                pre("diag-log") { +crash }
+            }
+        }
+    }
+
+    private fun FlowContent.diagTimeline(d: DiagDetailRow) {
+        ul("diag-timeline") {
+            li { +("创建：" + fmtTs(d.createdAt)) }
+            d.claimedAt?.let { li { +("worker 领取：" + fmtTs(it)) } }
+            li { +("最后更新：" + fmtTs(d.updatedAt) + "（" + d.status + "）") }
+        }
+    }
+
+    private fun parseBundle(json: String): Map<String, String> {
+        if (json.isBlank()) return emptyMap()
+        val o = try {
+            appJson.parseToJsonElement(json).jsonObject
+        } catch (e: Exception) {
+            return emptyMap()
+        }
+        fun s(k: String): String = o[k]?.jsonPrimitive?.contentOrNull ?: ""
+        return linkedMapOf(
+            "appVersion" to s("appVersion"),
+            "deviceModel" to s("deviceModel"),
+            "androidVersion" to s("androidVersion"),
+            "gitSha" to s("gitSha"),
+            "logs" to s("logs"),
+            "crashTrace" to s("crashTrace"),
+        )
+    }
+
+    private fun relTime(ms: Long): String {
+        val s = (ms / 1000).coerceAtLeast(0)
+        return when {
+            s < 60 -> "${s}秒"
+            s < 3600 -> "${s / 60}分钟"
+            s < 86400 -> "${s / 3600}小时"
+            else -> "${s / 86400}天"
+        }
+    }
+
     // ── 概览/流量 共享组件 ──
 
     private enum class DeltaPolarity { GOOD_ON_UP, BAD_ON_UP }
@@ -1183,6 +1422,24 @@ object AdminViews {
                         .ctrl:hover{color:#006eff}
                         .ctrl.active{color:#006eff;border-bottom-color:#006eff;font-weight:500}
                         .model-top{max-width:1200px;margin:16px auto;padding:16px 24px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+                        .diag-health{max-width:1200px;margin:16px auto;padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-radius:8px;border:1px solid #e5e5e5;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+                        .diag-health.online{border-left:4px solid #0abf5b}
+                        .diag-health.offline{border-left:4px solid #e54545}
+                        .diag-health.idle{border-left:4px solid #b0b8c4}
+                        .diag-health-label{font-weight:600;font-size:14px}
+                        .diag-refresh{max-width:1200px;margin:0 auto 12px;padding:0 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+                        .badge-diag-pending{color:#006eff;background:#e6f2ff;border:1px solid #b3d6ff}
+                        .badge-diag-wait{color:#ff9c00;background:#fff7e6;border:1px solid #ffd699}
+                        .badge-diag-warn{color:#b8860b;background:#fffbe6;border:1px solid #ffe599}
+                        .badge-diag-fail{color:#e54545;background:#fff2f0;border:1px solid #ffccc7}
+                        .diag-section{max-width:1200px;margin:16px auto;padding:16px 24px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+                        .diag-text{white-space:pre-wrap;word-break:break-word}
+                        .diag-bundle table{margin:0 0 12px}
+                        .diag-bundle table th{width:120px}
+                        .diag-log{display:block;max-width:1200px;margin:8px auto 16px;padding:12px 16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;background:#fafafa;border:1px solid #f0f0f0;border-radius:6px;white-space:pre-wrap;word-break:break-word;max-height:440px;overflow-y:auto}
+                        .diag-timeline{list-style:none;max-width:1200px;margin:8px auto;padding:0 24px}
+                        .diag-timeline li{padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px;color:#333}
+                        .diag-timeline li:last-child{border-bottom:none}
                         @media (max-width:640px){
                         body>h1{font-size:20px}
                         body>h2{font-size:14px}
@@ -1234,6 +1491,7 @@ object AdminViews {
                 a("/admin/channels", classes = "nav-link") { +"渠道" }
                 a("/admin/settings", classes = "nav-link") { +"设置" }
                 a("/admin/apk", classes = "nav-link") { +"APK" }
+                a("/admin/diag", classes = "nav-link") { +"诊断" }
             }
             div("nav-spacer") {}
             a("/admin/logout", classes = "nav-link nav-logout") { +"退出" }

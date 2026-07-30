@@ -228,6 +228,38 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             call.respondText(AdminViews.trafficPage(AdminQueries.rangeStats(days, now, prices), days, metric), ContentType.Text.Html)
         }
 
+        // 诊断任务可视化（只读）：列表 + 详情。worker 健康从任务活动推断。
+        get("/diag") {
+            if (!call.adminGuard(adminToken)) return@get
+            val now = System.currentTimeMillis()
+            val auto = parseAutoRefresh(call.request.queryParameters["auto"])
+            call.respondText(
+                AdminViews.diagListPage(
+                    AdminQueries.diagStats(),
+                    AdminQueries.diagList(),
+                    AdminQueries.diagWorkerActivity(now),
+                    now,
+                    auto,
+                ),
+                ContentType.Text.Html,
+            )
+        }
+
+        get("/diag/{id}") {
+            if (!call.adminGuard(adminToken)) return@get
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null) {
+                call.respondText("bad request", contentType = ContentType.Text.Plain, status = HttpStatusCode.BadRequest)
+                return@get
+            }
+            val row = AdminQueries.diagDetail(id)
+            if (row == null) {
+                call.respondText("not found", contentType = ContentType.Text.Plain, status = HttpStatusCode.NotFound)
+                return@get
+            }
+            call.respondText(AdminViews.diagDetailPage(row), ContentType.Text.Html)
+        }
+
         get("/settings") {
             if (!call.adminGuard(adminToken)) return@get
             val msg = call.request.queryParameters["err"]
@@ -511,3 +543,9 @@ private fun parseDays(raw: String?, allowed: List<Int>, default: Int): Int =
 /** 概览/流量页指标白名单解析：仅允许 calls/tokens/cost/bytes，其余回落 calls。 */
 private fun parseMetric(raw: String?): String =
     if (raw != null && raw in listOf("calls", "tokens", "cost", "bytes")) raw else "calls"
+
+/** 诊断页自动刷新间隔白名单解析：仅允许 30/60 秒，其余（含缺省）回落 0（手动）。 */
+private fun parseAutoRefresh(raw: String?): Int {
+    val v = raw?.toIntOrNull() ?: 0
+    return if (v == 30 || v == 60) v else 0
+}
