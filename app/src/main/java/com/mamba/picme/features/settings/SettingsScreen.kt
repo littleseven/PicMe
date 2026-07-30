@@ -69,7 +69,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.mamba.picme.BuildConfig
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.tool.accessibility.AccessibilityServiceHolder
 import com.mamba.picme.core.common.Logger
@@ -163,7 +162,6 @@ fun SettingsScreen(
     val aiAgentLocalModel by viewModel.aiAgentLocalModel.collectAsState()
     val aiAgentRemoteModelConfigs by viewModel.aiAgentRemoteModelConfigs.collectAsState()
     val aiAgentSelectedRemoteModel by viewModel.aiAgentSelectedRemoteModel.collectAsState()
-    val aiAgentInferencePreference by viewModel.aiAgentInferencePreference.collectAsState()
     val aiAgentL1CacheEnabled by viewModel.aiAgentL1CacheEnabled.collectAsState()
     val autoExecutePlans by viewModel.autoExecutePlansEnabled.collectAsState()
     val aiAgentLocalUseOpencl by viewModel.aiAgentLocalUseOpencl.collectAsState()
@@ -276,8 +274,6 @@ fun SettingsScreen(
             onAiAgentRemoteModelConfigsChange = { viewModel.setAiAgentRemoteModelConfigs(it) },
             aiAgentSelectedRemoteModel = aiAgentSelectedRemoteModel,
             onAiAgentSelectedRemoteModelChange = { viewModel.setAiAgentSelectedRemoteModel(it) },
-            aiAgentInferencePreference = aiAgentInferencePreference,
-            onAiAgentInferencePreferenceChange = { viewModel.setAiAgentInferencePreference(it) },
             aiAgentL1CacheEnabled = aiAgentL1CacheEnabled,
             onAiAgentL1CacheEnabledChange = { viewModel.setAiAgentL1CacheEnabled(it) },
             autoExecutePlans = autoExecutePlans,
@@ -343,8 +339,6 @@ private fun SettingsContent(
     onAiAgentRemoteModelConfigsChange: (String) -> Unit,
     aiAgentSelectedRemoteModel: String,
     onAiAgentSelectedRemoteModelChange: (String) -> Unit,
-    aiAgentInferencePreference: AiAgentInferencePreference,
-    onAiAgentInferencePreferenceChange: (AiAgentInferencePreference) -> Unit,
     aiAgentL1CacheEnabled: Boolean,
     onAiAgentL1CacheEnabledChange: (Boolean) -> Unit,
     autoExecutePlans: Boolean,
@@ -502,11 +496,6 @@ private fun SettingsContent(
                         currentLocalModel = aiAgentLocalModel,
                         onLocalModelSelected = onAiAgentLocalModelChange,
                         onNavigateToModelManager = onNavigateToModelCenter
-                    )
-
-                    InferencePreferenceSelection(
-                        currentPreference = aiAgentInferencePreference,
-                        onPreferenceSelected = onAiAgentInferencePreferenceChange
                     )
 
                     OpenClBackendSelection(
@@ -1184,43 +1173,6 @@ private fun LogModuleConfigSection(
 }
 
 @Composable
-private fun InferencePreferenceSelection(
-    currentPreference: AiAgentInferencePreference,
-    onPreferenceSelected: (AiAgentInferencePreference) -> Unit
-) {
-    val options = listOf(
-        AiAgentInferencePreference.AUTO to stringResource(R.string.ai_agent_inference_auto),
-        AiAgentInferencePreference.FORCE_LOCAL to stringResource(R.string.ai_agent_inference_force_local),
-        AiAgentInferencePreference.FORCE_REMOTE to stringResource(R.string.ai_agent_inference_force_remote)
-    )
-
-    Text(
-        text = stringResource(R.string.ai_agent_inference_preference),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 0.dp)
-    )
-
-    CompactOptionChips(
-        options = options,
-        currentValue = currentPreference,
-        maxLines = 1,
-        onSelected = onPreferenceSelected
-    )
-
-    Text(
-        text = when (currentPreference) {
-            AiAgentInferencePreference.AUTO -> stringResource(R.string.ai_agent_inference_auto_desc)
-            AiAgentInferencePreference.FORCE_LOCAL -> stringResource(R.string.ai_agent_inference_force_local_desc)
-            AiAgentInferencePreference.FORCE_REMOTE -> stringResource(R.string.ai_agent_inference_force_remote_desc)
-        },
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
-    )
-}
-
-@Composable
 private fun OpenClBackendSelection(
     useOpencl: Boolean,
     onToggle: (Boolean) -> Unit,
@@ -1384,8 +1336,6 @@ fun SettingsScreenPreview() {
             onAiAgentRemoteModelConfigsChange = {},
             aiAgentSelectedRemoteModel = "deepseek-v4-flash",
             onAiAgentSelectedRemoteModelChange = {},
-            aiAgentInferencePreference = AiAgentInferencePreference.FORCE_LOCAL,
-            onAiAgentInferencePreferenceChange = {},
             aiAgentL1CacheEnabled = true,
             onAiAgentL1CacheEnabledChange = {},
             autoExecutePlans = true,
