@@ -686,8 +686,14 @@
     <string name="personalization_desc">Theme, language and interface preferences.</string>
     <string name="account">Account</string>
     <string name="account_desc">Email registration, quota and API key binding.</string>
-    <string name="ai_assistant">AI Assistant</string>
-    <string name="ai_assistant_desc">Agent mode, models, voice control and remote channel.</string>
+    <string name="ai_assistant">AI Settings</string>
+    <string name="ai_assistant_desc">On-device &amp; remote inference, voice control</string>
+    <string name="ai_settings_remote_section">Remote inference</string>
+    <string name="ai_settings_local_section">On-device inference</string>
+    <string name="ai_agent_current_model">In use</string>
+    <string name="remote_model_default_limit_title">Default remote model has usage limits</string>
+    <string name="remote_model_default_limit_desc">Add your own model to remove limits</string>
+    <string name="provider_custom">Custom</string>
     <string name="camera_and_beauty">Camera &amp; Beauty</string>
     <string name="camera_and_beauty_desc">Face detection, beauty engine and camera behavior.</string>
     <string name="system_and_permissions">System &amp; Permissions</string>

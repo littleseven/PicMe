@@ -658,8 +658,14 @@
     <string name="personalization_desc">主題、語言與介面偏好。</string>
     <string name="account">帳號</string>
     <string name="account_desc">郵箱註冊、額度與 API Key 綁定。</string>
-    <string name="ai_assistant">AI 助手</string>
-    <string name="ai_assistant_desc">Agent 模式、模型、語音控制與遠端通道。</string>
+    <string name="ai_assistant">AI 設定</string>
+    <string name="ai_assistant_desc">本地與遠端推理鏈路、語音控制</string>
+    <string name="ai_settings_remote_section">遠端推理</string>
+    <string name="ai_settings_local_section">本地推理</string>
+    <string name="ai_agent_current_model">目前使用</string>
+    <string name="remote_model_default_limit_title">預設遠端模型有時長限制</string>
+    <string name="remote_model_default_limit_desc">新增自有模型以解除限制</string>
+    <string name="provider_custom">自訂</string>
     <string name="camera_and_beauty">相機與美顏</string>
     <string name="camera_and_beauty_desc">人臉檢測、美顏引擎與相機行為。</string>
     <string name="system_and_permissions">系統與權限</string>
