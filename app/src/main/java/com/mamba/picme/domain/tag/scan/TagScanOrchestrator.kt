@@ -190,6 +190,13 @@ class TagScanOrchestrator(
     /** 当前会话中被标记为全量重跑的 Pass 集合，供 executeTask 读取 */
     private val fullRescanPasses = mutableSetOf<TagScanPass>()
 
+    /** Pass1 流式攒批聚类累加器（跨批次保留；全量重扫时复位）。 */
+    private val streamingAccumulator = StreamingClusterAccumulator()
+    /** 自上次 DBSCAN 精修以来流式归类的 embedding 数（供周期触发判定）。 */
+    private var embeddingsSinceDbscan = 0
+    /** 标记：流式累计已达阈值，下一批应入队一次 DBSCAN 精修。 */
+    private var dbscanRefinementDue = false
+
     /**
      * 自动扫描会话的策略缓存：sessionId -> ScanQueuePolicy。
      * 用于当前批次完成后自动调度下一批；手动触发的会话不缓存，避免意外连锁。
@@ -236,6 +243,15 @@ class TagScanOrchestrator(
             .map { it.id }
 
         if (filteredIds.isEmpty()) {
+            // 当前阶段（含 DBSCAN 的 Pass1+Pass2）全量完成：按策略跑一次 DBSCAN 精修，纠正流式碎片/错分
+            if (policy.passes.contains(TagScanPass.DBSCAN) &&
+                DbscanRefinementPolicy.shouldRunRefinement(embeddingsSinceDbscan, isFinalBatch = true)
+            ) {
+                logInfo(sessionId, "阶段末 DBSCAN 精修")
+                scheduler.executeDbscan(preserveNamedPersons = true, isFullRescan = false)
+                embeddingsSinceDbscan = 0
+                dbscanRefinementDue = false
+            }
             // 第一阶段全量完成：若有延迟阶段，切换到第二阶段（递归一层，第二阶段 deferredPasses 已空 → 不会死循环）
             val nextPolicy = nextPhasePolicy(policy)
             if (nextPolicy != null) {
@@ -349,6 +365,11 @@ class TagScanOrchestrator(
 
         if (mode == ScanMode.FULL) {
             fullRescanPasses += pass
+            if (pass == TagScanPass.FACE_DETECTION) {
+                streamingAccumulator.reset()
+                embeddingsSinceDbscan = 0
+                dbscanRefinementDue = false
+            }
         }
 
         val allIds = db.mediaDao().getAllMediaIds()
@@ -516,8 +537,8 @@ class TagScanOrchestrator(
             }
         }
 
-        // Pass 2: 全局 DBSCAN 任务，mediaId = -1 作为标记
-        if (passes.contains(TagScanPass.DBSCAN)) {
+        // Pass 2: 全局 DBSCAN 任务——仅在「周期精修到期」时入队（mediaId = -1 标记）
+        if (passes.contains(TagScanPass.DBSCAN) && dbscanRefinementDue) {
             tasks += TagScanTaskEntity(
                 sessionId = sessionId,
                 mediaId = -1L,
@@ -527,6 +548,8 @@ class TagScanOrchestrator(
                 priority = 1,
                 createdAt = System.currentTimeMillis()
             )
+            dbscanRefinementDue = false
+            embeddingsSinceDbscan = 0
         }
 
         // Pass 3: 每张媒体一个独立任务
@@ -676,7 +699,20 @@ class TagScanOrchestrator(
     private suspend fun executeTask(task: TagScanTaskEntity): Boolean {
         return try {
             when (task.pass) {
-                TagScanPass.FACE_DETECTION -> scheduler.executeFaceDetection(task.mediaId)
+                TagScanPass.FACE_DETECTION -> {
+                    val hasFace = scheduler.executeFaceDetection(task.mediaId)
+                    if (hasFace && streamingAccumulator.onFacePhoto()) {
+                        val assigned = scheduler.runStreamingClusterBatch()
+                        embeddingsSinceDbscan += assigned
+                        if (DbscanRefinementPolicy.shouldRunRefinement(
+                                embeddingsSinceDbscan,
+                                isFinalBatch = false
+                            )
+                        ) {
+                            dbscanRefinementDue = true
+                        }
+                    }
+                }
                 TagScanPass.DBSCAN -> scheduler.executeDbscan(
                     preserveNamedPersons = true,
                     isFullRescan = task.pass in fullRescanPasses
