@@ -5,8 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
-import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.domain.tag.FaceRoi
+import com.mamba.picme.domain.tag.TagGenerationScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -17,13 +18,13 @@ import kotlinx.coroutines.withContext
  * →[EdiffiqaScorer] 打人脸画质分→回写 media_assets.faceQualityScore；
  * 随后按 [CoverSelector] 重算每个人物封面（缺 NIMA 美学时自动降级为人脸质量单分）。
  *
- * 模型未就绪时只尝试用已有分数刷新封面。faceDetector 由调用方传入（共享已配置实例）。
+ * 模型未就绪时只尝试用已有分数刷新封面。人脸检测复用 [scheduler] 的扫描级管线（保证 landmarks5）。
  *
  * @param batch 单次最多打分照片数（避免单次耗时过长）
  */
 class AestheticScoreWorker(
     private val context: Context,
-    private val faceDetector: FaceDetector,
+    private val scheduler: TagGenerationScheduler,
     private val db: AppDatabase,
     private val batch: Int = 50
 ) {
@@ -51,7 +52,7 @@ class AestheticScoreWorker(
             for (entity in pending) {
                 val bmp = decodeSampled(entity.uri) ?: continue
                 try {
-                    val faces = faceDetector.detectFacesWithLandmarks(bmp)
+                    val faces: List<FaceRoi> = scheduler.detectFacesForScoring(bmp)
                     // 每个含 5 点 landmarks 的人脸：对齐→打分，取最高者作为该照片的人脸画质
                     val best = faces.mapNotNull { face ->
                         val landmarks5 = face.landmarks5 ?: return@mapNotNull null

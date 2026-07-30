@@ -1115,6 +1115,10 @@ class TagGenerationScheduler(
     /**
      * [原子任务] Pass 1：单张媒体的人脸检测 + Embedding 提取
      */
+    /** 供美学/人脸画质打分用：扫描级人脸检测 + 5 点 landmarks（复用 pipeline，保证 landmarks5）。 */
+    fun detectFacesForScoring(bitmap: android.graphics.Bitmap): List<FaceRoi> =
+        pipeline.detectFacesWithLandmarks5(bitmap)
+
     suspend fun executeFaceDetection(mediaId: Long) {
         val dao = db.mediaDao()
         val entity = dao.getMediaById(mediaId) ?: return

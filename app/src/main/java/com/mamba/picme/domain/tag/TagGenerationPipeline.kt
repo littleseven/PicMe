@@ -561,6 +561,13 @@ class TagGenerationPipeline(
      * - 左嘴角（画面右侧）: 94
      * - 右嘴角（画面左侧）: 84
      */
+    /**
+     * 对外人脸检测 + 5 点 landmarks（复用扫描级检测管线，供美学/人脸画质打分等使用）。
+     * @return 人脸列表（每人脸含 roi 与 landmarks5；landmarks5 个别情况可能为 null）
+     */
+    fun detectFacesWithLandmarks5(bitmap: Bitmap): List<FaceRoi> =
+        stage1FaceDetection(bitmap, androidx.camera.core.CameraSelector.LENS_FACING_BACK).faces
+
     private fun stage1FaceDetection(bitmap: Bitmap, lensFacing: Int): Stage1Result {
         val detections = faceDetector.detectFacesWithLandmarks(bitmap)
 

@@ -341,7 +341,7 @@ class AppContainerImpl(
     }
 
     override val aestheticScoreWorker: AestheticScoreWorker by lazy {
-        AestheticScoreWorker(context, faceDetector, database)
+        AestheticScoreWorker(context, tagGenerationScheduler, database)
     }
 
     /** TAG 生成扫描状态（从 TagGenerationService 获取） */
