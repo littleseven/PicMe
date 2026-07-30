@@ -103,8 +103,6 @@ android {
         unitTests {
             // 让 android.util.Log 等 Android stub 方法在 JVM 单测中返回默认值，而非抛 "not mocked"。
             isReturnDefaultValues = true
-            // Robolectric + Compose UI 测试需要读取 Android resources（composable / string 资源等）。
-            isIncludeAndroidResources = true
         }
     }
 
@@ -275,10 +273,6 @@ dependencies {
     testImplementation(libs.robolectric)
     // 让 JVM 单元测试能使用真实的 org.json 实现，而非 Android stub
     testImplementation("org.json:json:20231013")
-    // JVM 单元测试（Robolectric）跑 Compose UI 测试
-    testImplementation(platform(libs.androidx.compose.bom))
-    testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
