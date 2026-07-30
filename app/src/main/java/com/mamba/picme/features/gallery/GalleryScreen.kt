@@ -70,6 +70,7 @@ import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
 import com.mamba.picme.features.common.PersonRelationPicker
+import com.mamba.picme.features.common.PersonRenameDialog
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
@@ -882,111 +883,31 @@ fun GalleryScreen(
         }
     }
 
-    // ── 人物分组编辑对话框（命名 + "TA 是我的…"关系声明 + "这是我"） ──
-    if (renamingPersonGroup != null) {
-        AlertDialog(
-            onDismissRequest = { renamingPersonGroup = null },
-            title = { Text(stringResource(R.string.person_edit_title)) },
-            text = {
-                // 内容可滚动：chips + 自定义输入在小屏上可能超高
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    OutlinedTextField(
-                        value = renamingPersonName,
-                        onValueChange = { renamingPersonName = it },
-                        label = { Text(stringResource(R.string.person_edit_name_label)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    // "TA 是我的…" 关系选择（快捷 chips + 自定义称呼，公共组件）
-                    PersonRelationPicker(
-                        selectedPredicate = renamingPersonRelation,
-                        customLabel = renamingPersonCustomLabel,
-                        onPredicateChange = { predicate -> renamingPersonRelation = predicate },
-                        onCustomLabelChange = { label -> renamingPersonCustomLabel = label },
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                    // "这是我" 开关（全局唯一，设置后旧标记自动清除）
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.person_is_self),
-                            modifier = Modifier.weight(1f)
-                        )
-                        Switch(
-                            checked = renamingPersonIsSelf,
-                            onCheckedChange = { checked -> renamingPersonIsSelf = checked }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val group = renamingPersonGroup
-                        if (group != null) {
-                            val name = renamingPersonName.trim()
-                            val customLabel = renamingPersonCustomLabel.trim()
-                            // 自定义称呼非空时以其为准（谓词记 OTHER）；否则用选中的谓词
-                            val relation = if (customLabel.isNotEmpty()) {
-                                RelationPredicate.OTHER
-                            } else {
-                                renamingPersonRelation
+    // ── 人物分组编辑对话框（公共组件 PersonRenameDialog）──
+    val renamingGroup = renamingPersonGroup
+    if (renamingGroup != null) {
+        PersonRenameDialog(
+            initialName = renamingPersonName,
+            initialRelation = renamingPersonRelation,
+            initialCustomLabel = renamingPersonCustomLabel,
+            initialIsSelf = renamingPersonIsSelf,
+            onConfirm = { name, relation, customLabel, isSelf ->
+                val personId = renamingGroup.titleValue.toLongOrNull()
+                if (personId != null) {
+                    kotlinx.coroutines.MainScope().launch {
+                        try {
+                            val repo = app.container.personRepository
+                            repo.applyPersonEdit(personId, name, relation, customLabel, isSelf)
+                            if (name.isNotBlank()) {
+                                personNameMap[renamingGroup.titleValue] = name
                             }
-                            val isSelf = renamingPersonIsSelf
-                            if (groupingMode == GroupingMode.PERSON) {
-                                kotlinx.coroutines.MainScope().launch {
-                                    try {
-                                        val personId = group.titleValue.toLongOrNull()
-                                        if (personId != null) {
-                                            // 统一走 PersonRepository 收口（不再直调 DAO）
-                                            val repo = app.container.personRepository
-                                            if (name.isNotBlank()) {
-                                                repo.renamePerson(personId, name)
-                                                personNameMap[group.titleValue] = name
-                                            }
-                                            // 先处理"这是我"，再声明关系（关系声明依赖 self 已就位）
-                                            if (isSelf) {
-                                                repo.setSelf(personId)
-                                            } else if (repo.getSelfPerson()?.personId == personId) {
-                                                repo.clearSelf()
-                                            }
-                                            // 改选即覆盖；选"不设置"则清除已有关系
-                                            if (relation != null) {
-                                                val result = repo.declareRelation(
-                                                    subjectPersonId = personId,
-                                                    predicate = relation,
-                                                    source = RelationSource.RENAME_DIALOG,
-                                                    customLabel = customLabel.ifEmpty { null }
-                                                )
-                                                if (result is PersonRepository.DeclareRelationResult.SelfNotDeclared) {
-                                                    Logger.w(TAG, "Relation skipped: self not declared yet")
-                                                }
-                                            } else {
-                                                repo.removeAllRelationsOf(personId)
-                                            }
-                                            Logger.i(TAG, "Person $personId updated: name=$name relation=$relation customLabel=$customLabel isSelf=$isSelf")
-                                        }
-                                    } catch (e: Exception) {
-                                        Logger.e(TAG, "Failed to update person group", e)
-                                    }
-                                }
-                            }
-                            renamingPersonGroup = null
+                        } catch (e: Exception) {
+                            Logger.e(TAG, "Failed to update person group", e)
                         }
                     }
-                ) {
-                    Text(stringResource(R.string.save))
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { renamingPersonGroup = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
+            onDismiss = { renamingPersonGroup = null }
         )
     }
 
