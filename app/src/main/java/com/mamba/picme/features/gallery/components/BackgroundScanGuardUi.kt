@@ -41,6 +41,9 @@ fun BackgroundScanGuardBanner(modifier: Modifier = Modifier) {
     val issues by produceState<List<BackgroundScanGuard.Issue>>(initialValue = emptyList(), context) {
         value = runCatching { BackgroundScanGuard.diagnose(context.applicationContext) }
             .getOrDefault(emptyList())
+            // MIUI/HyperOS 自启动无读取 API（恒报），不在常驻 Banner 显示——
+            // 配齐「电池白名单 + 通知」后 Banner 即消失；自启动仅在启动扫描弹窗引导一次
+            .filter { it.type != BackgroundScanGuard.IssueType.MIUI_AUTOSTART }
     }
     if (issues.isEmpty()) return
     val bannerText = stringResource(R.string.bg_scan_guard_banner_text)
