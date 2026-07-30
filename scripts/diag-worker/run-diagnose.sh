@@ -19,14 +19,25 @@ git -C "$repo" checkout --quiet "$gitSha" 2>/dev/null || git -C "$repo" checkout
 
 prompt="$(sed -e "s|__GIT_SHA__|$gitSha|g" -e "s|__DESCRIPTION__|$desc|g" -e "s|__LOGS__|$logs|g" -e "s|__CRASH_TRACE__|$crash|g" "$SCRIPT_DIR/prompts/diagnose.md")"
 
-out="$(run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --output-format json --max-turns "$DIAG_MAX_TURNS" 2>/dev/null)" || true
-# claude --output-format json 把模型文本放在 .result；模型文本本身是一段 JSON。
-rootCause="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null | jq -r '.rootCause // empty' 2>/dev/null)"
+claude_err_file="$(mktemp)"
+out="$(run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --output-format json --max-turns "$DIAG_MAX_TURNS" 2>"$claude_err_file")"; rc=$?
+claude_err="$(cat "$claude_err_file" 2>/dev/null)"; rm -f "$claude_err_file"
+
+# 解析 rootCause，兼容 claude 多种输出形态：
+#   a) .result 是 JSON 字符串 {rootCause,...}（claude --output-format json 标准形态）
+#   b) .result.rootCause（result 本身为对象）
+#   c) 顶层 .rootCause
+rootCause=""
+inner="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null)"
+[ -n "$inner" ] && rootCause="$(printf '%s' "$inner" | jq -r '.rootCause // empty' 2>/dev/null)"
+[ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.result.rootCause // empty' 2>/dev/null)"
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.rootCause // empty' 2>/dev/null)"
 
-if [ -z "$rootCause" ]; then
-  report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSE_FAILED\",\"error\":\"no rootCause parsed\"}"
-else
+if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
   rc_escaped="$(printf '%s' "$rootCause" | json_escape)"
   report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\"}"
+else
+  # 解析失败：把 claude 原始输出（截断）+ stderr + exit code 回传到 workerLog，便于排查
+  raw="$(printf 'claude_exit=%s | stdout[0:800]=%.800s | stderr[0:500]=%.500s' "$rc" "$out" "$claude_err" | json_escape)"
+  report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSE_FAILED\",\"error\":\"no rootCause parsed; $raw\"}"
 fi
