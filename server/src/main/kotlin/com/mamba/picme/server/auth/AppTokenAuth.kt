@@ -11,3 +11,9 @@ const val APP_TOKEN_HEADER = "X-App-Token"
  * 命中 AnonymousDevices 设备级试用额度（GUEST_LLM_QUOTA，默认 100）。
  */
 const val DEVICE_ID_HEADER = "X-Device-Id"
+
+/**
+ * 远程诊断 worker（云主机）鉴权 header。值为静态共享密钥（env DIAG_WORKER_TOKEN）。
+ * worker 出口 IP 池化轮换，故不按 IP 白名单，仅校验此 token。
+ */
+const val DIAG_WORKER_TOKEN_HEADER = "X-Diag-Worker-Token"
