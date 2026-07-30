@@ -42,6 +42,11 @@ val feishuAppSecret: String = localProperties.getProperty("polang.feishu.app.sec
     ?: System.getenv("POLANG_FEISHU_APP_SECRET")
     ?: System.getenv("PICME_FEISHU_APP_SECRET") ?: ""
 
+// 远程诊断上报：构建时的 git short SHA（注入 BuildConfig.GIT_SHA）
+val gitSha: String = providers.exec {
+    commandLine("git", "rev-parse", "--short", "HEAD")
+}.standardOutput.asText.get().trim().ifEmpty { "unknown" }
+
 detekt {
     buildUponDefaultConfig = true
     allRules = false
@@ -87,6 +92,7 @@ android {
         buildConfigField("String", "FEISHU_APP_ID", "\"\"")
         buildConfigField("String", "FEISHU_APP_SECRET", "\"\"")
         buildConfigField("String", "CLOUDFLARE_GATEWAY_TOKEN", "\"${System.getenv("CLOUDFLARE_GATEWAY_TOKEN") ?: ""}\"")
+        buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
     }
 
     androidResources {
