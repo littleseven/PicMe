@@ -154,6 +154,7 @@ import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
+import com.mamba.picme.features.chat.components.DiagConfirmSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -667,6 +668,18 @@ fun ChatScreen(
         )
     }
 
+    // ── 远程诊断根因确认（DiagController.pending 驱动）──
+    val pendingDiag by viewModel.pendingDiagConfirm.collectAsState()
+    pendingDiag?.let { p ->
+        DiagConfirmSheet(
+            rootCause = p.rootCause,
+            onPick = { mode ->
+                if (mode != null) viewModel.confirmDiagnosis(mode) else viewModel.cancelDiagConfirm()
+            },
+            onDismiss = { viewModel.cancelDiagConfirm() },
+        )
+    }
+
     // ── 聊天/语音/本地 LLM 模型下载提示 ────────────────────────────
     val showChatModelsPrompt by settingsViewModel.showChatModelsPrompt.collectAsState()
     val isChatBatchDownloading by settingsViewModel.isBatchDownloading.collectAsState()
@@ -1158,6 +1171,7 @@ private fun ChatInputArea(
                     text = text,
                     onTextChange = { text = it },
                     isProcessing = isProcessing,
+                    onDiagnose = { viewModel.submitDiagnosis(text.trim()) },
                     onSend = {
                         if (!isProcessing) {
                             val img = pendingImage
@@ -1274,6 +1288,7 @@ private fun ChatTextInputMode(
     onSwitchModel: (String) -> Unit,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
+    onDiagnose: () -> Unit = {},
     pendingImage: Uri? = null,
     selectedIntent: ImageIntent? = null,
     onSelectIntent: (ImageIntent) -> Unit = {},
@@ -1401,6 +1416,14 @@ private fun ChatTextInputMode(
                     icon = Icons.Rounded.PhotoLibrary,
                     label = "相册",
                     onClick = onShowPhotoPicker,
+                    enabled = !isProcessing
+                )
+
+                // 远程诊断胶囊按钮（chat 描述问题 → 云主机定位/修复）
+                CapsuleButton(
+                    icon = Icons.Rounded.Code,
+                    label = stringResource(R.string.diag_icon_desc),
+                    onClick = onDiagnose,
                     enabled = !isProcessing
                 )
             }
