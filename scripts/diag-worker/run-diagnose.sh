@@ -28,7 +28,7 @@ claude_err="$(cat "$claude_err_file" 2>/dev/null)"; rm -f "$claude_err_file"
 #   b) .result.rootCause（result 本身为对象）
 #   c) 顶层 .rootCause
 rootCause=""
-inner="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null)"
+inner="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null | sed 's/```[a-zA-Z]*//g; s/^[[:space:]]*//; s/[[:space:]]*$//')"
 [ -n "$inner" ] && rootCause="$(printf '%s' "$inner" | jq -r '.rootCause // empty' 2>/dev/null)"
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.result.rootCause // empty' 2>/dev/null)"
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.rootCause // empty' 2>/dev/null)"
