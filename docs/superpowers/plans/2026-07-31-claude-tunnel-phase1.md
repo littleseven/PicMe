@@ -111,6 +111,11 @@ def test_empty_and_garbage_return_empty_list():
 def test_format_sse():
     s = format_sse({"event": "done", "data": {"turns": 3}})
     assert s == 'event: done\ndata: {"turns": 3}\n\n'
+
+
+def test_result_is_error_emits_error():
+    line = json.dumps({"type": "result", "is_error": True, "result": "boom"})
+    assert translate_stream_line(line) == [{"event": "error", "data": {"message": "boom"}}]
 ```
 
 - [ ] **Step 3: 跑测试确认失败**
@@ -164,7 +169,10 @@ def translate_stream_line(line):
                     "summary": _summarize(block.get("content")),
                 }})
     elif mtype == "result":
-        events.append({"event": "done", "data": {"turns": msg.get("num_turns")}})
+        if msg.get("is_error"):
+            events.append({"event": "error", "data": {"message": msg.get("result", "claude error")}})
+        else:
+            events.append({"event": "done", "data": {"turns": msg.get("num_turns")}})
     return events
 
 
@@ -217,7 +225,7 @@ from session import SessionManager
 
 
 def _make_fake_repo(path):
-    os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
     subprocess.run(["git", "init", "-q"], cwd=path, check=True)
     subprocess.run(["git", "config", "user.email", "t@t"], cwd=path, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=path, check=True)
@@ -457,10 +465,10 @@ Run:
 ```bash
 cd scripts/claude-tunnel/gateway
 python3 -m venv /tmp/ct-venv && /tmp/ct-venv/bin/pip install -q aiohttp
-CT_REPO_URL=https://github.com/guoshuai/langchain4android.git /tmp/ct-venv/bin/python server.py &
-sleep 2
-curl -sf http://127.0.0.1:3000/healthz
-kill %1
+CT_REPO_URL=https://github.com/guoshuai/langchain4android.git /tmp/ct-venv/bin/python server.py >/tmp/ct.log 2>&1 &
+PID=$!
+for i in $(seq 1 30); do curl -sf http://127.0.0.1:3000/healthz 2>/dev/null && { echo ok; break; }; sleep 0.3; done
+kill $PID 2>/dev/null
 ```
 Expected: `ok`（服务起来，healthz 通）
 
