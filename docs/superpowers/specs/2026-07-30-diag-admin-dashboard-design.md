@@ -20,7 +20,7 @@
 1. **落点**：server admin 后台新页 `/admin/diag`（列表）+ `/admin/diag/{id}`（详情）。复用现有 admin 设计系统/cookie 认证/DB 直读。
 2. **worker 健康**：从任务活动**推断**（零新基建，不引入心跳端点/表）。用最近领任务时间 + 等待任务滞留时长推断在线/疑似离线/空闲。
 3. **刷新**：手动刷新 + 可选自动轮询（`?auto=30|60`，`setInterval` 重载）。无 SSE/WebSocket，零新依赖。
-4. **MVP 只读**：admin 是观测者，不做重试/取消等写操作（留二期），降低风险。
+4. **只读 → 可管理（二期已于 2026-07-31 落地）**：初期 admin 仅观测；二期已新增「删除 / 废弃 / 激活」管理操作，详见 `docs/superpowers/specs/2026-07-31-diag-admin-actions-design.md`（新增 `ARCHIVED` 状态、`DiagService` 三个写方法、worker 回传状态守卫、列表行 + 详情页操作按钮）。
 5. **文案**：沿用现有 admin 页惯例——中文内联（server 端内部工具，不进 app 的三语 `values/strings.xml`；现有 7 个 admin 页均为中文内联）。
 
 ## 3. 架构与落点
@@ -48,7 +48,7 @@
 
 列：`id, owner_token_hash, device_id, description, bundle_json, git_sha, status, root_cause, fix_mode, fix_branch, compare_url, tested, worker_log, created_at, updated_at, claimed_at`
 
-`status` ∈ `DiagStatus`：`QUEUED / DIAGNOSED / FIX_REQUESTED / FIXED / FIXED_UNVERIFIED / DIAGNOSE_FAILED / FIX_FAILED / TIMED_OUT`。
+`status` ∈ `DiagStatus`：`QUEUED / DIAGNOSED / FIX_REQUESTED / FIXED / FIXED_UNVERIFIED / DIAGNOSE_FAILED / FIX_FAILED / TIMED_OUT / ARCHIVED`。
 
 ## 5. worker 健康推断（纯函数，可单测）
 
