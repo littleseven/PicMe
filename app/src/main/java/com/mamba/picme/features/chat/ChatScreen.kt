@@ -74,6 +74,7 @@ import androidx.compose.material.icons.rounded.ImageNotSupported
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.KeyboardVoice
 import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
@@ -115,6 +116,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -497,7 +499,8 @@ fun ChatScreen(
                                         }
                                     },
                                     onDiagConfirm = { jobId, mode -> viewModel.confirmDiagnosis(jobId, mode) },
-                                    onDiagSubmit = { ds -> viewModel.submitDiagnosis(ds.description, ds.summary) }
+                                    onDiagSubmit = { ds -> viewModel.submitDiagnosis(ds.description, ds.summary) },
+                                    onClaudeDeliver = { id -> viewModel.confirmClaudeDeliver(id) }
                                 )
                             }
                         }
@@ -819,6 +822,46 @@ private fun segmentStreamingMarkdown(content: String): List<StreamSegment> {
     return segments
 }
 
+/**
+ * claude agent 气泡的步骤列表（spec §6：tool_use↔tool_result 配对 + file_change 徽标）。
+ * 每步 = 状态字形（⏳/✓/✗）+ 工具标签（file_change 本地化为「改文件」）+ detail（命令/路径/摘要）。
+ */
+@Composable
+private fun ClaudeAgentSteps(steps: List<ClaudeStepUi>) {
+    val fileLabel = stringResource(R.string.claude_file_change_label)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        steps.forEach { step ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val glyph: String
+                val glyphColor: Color
+                when (step.status) {
+                    ClaudeStepStatus.RUNNING -> {
+                        glyph = "⏳"; glyphColor = MaterialTheme.colorScheme.tertiary
+                    }
+                    ClaudeStepStatus.SUCCESS -> {
+                        glyph = "✓"; glyphColor = MaterialTheme.colorScheme.primary
+                    }
+                    ClaudeStepStatus.FAILED -> {
+                        glyph = "✗"; glyphColor = MaterialTheme.colorScheme.error
+                    }
+                }
+                Text(text = glyph, color = glyphColor, fontSize = 14.sp)
+                val label = if (step.tool == ClaudeAgentRenderer.FILE_CHANGE_TOOL) fileLabel else step.tool
+                val text = if (step.detail.isBlank()) label else "$label: ${step.detail}"
+                Text(
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
 @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：消息项多类型分支，抽分发器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -827,6 +870,7 @@ private fun ChatMessageItem(
     onImageClick: (ChatMessageUi) -> Unit = {},
     onDiagConfirm: (Int, String) -> Unit = { _, _ -> },
     onDiagSubmit: (DiagSubmitUi) -> Unit = {},
+    onClaudeDeliver: (String) -> Unit = {},
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
@@ -949,6 +993,8 @@ private fun ChatMessageItem(
                     )
                 }
                 else -> {
+                    // claude agent 气泡：文本以 claudeAgent.text 为准（流式期 content=""，text 累积 delta）。
+                    val displayText = message.claudeAgent?.text ?: message.content
                     if (message.isStreaming) {
                         if (message.isThinking) {
                             TypingIndicator()
@@ -957,7 +1003,7 @@ private fun ChatMessageItem(
                             // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    segmentStreamingMarkdown(message.content).forEach { segment ->
+                                    segmentStreamingMarkdown(displayText).forEach { segment ->
                                         when (segment.type) {
                                             StreamSegmentType.TABLE -> Text(
                                                 text = segment.text,
@@ -982,11 +1028,29 @@ private fun ChatMessageItem(
                         }
                     } else {
                         MarkdownText(
-                            markdown = message.content,
+                            markdown = displayText,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 14.sp,
                             lineHeight = 20.sp
                         )
+                    }
+                }
+            }
+            // claude agent 步骤列表（tool_use↔tool_result 配对 + file_change 徽标）
+            message.claudeAgent?.let { cs ->
+                if (cs.steps.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    ClaudeAgentSteps(cs.steps)
+                }
+            }
+            // claude 交付按钮：file_change 后出现，pending 时可点（spec §8）
+            message.claudeDeliver?.let { cd ->
+                if (cd.pending) {
+                    Spacer(Modifier.height(10.dp))
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Button(onClick = { onClaudeDeliver(message.id) }) {
+                            Text(stringResource(R.string.claude_deliver_button))
+                        }
                     }
                 }
             }
@@ -1140,6 +1204,8 @@ private fun ChatInputArea(
     var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
     // 诊断澄清对话模式（§2）：状态在 ViewModel（进入时自动新建独立会话）
     val diagMode by viewModel.diagMode.collectAsState()
+    // AI 工程师模式（claude-tunnel）：状态在 ViewModel（与诊断互斥，进入时新建独立会话）
+    val claudeMode by viewModel.claudeMode.collectAsState()
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
@@ -1211,6 +1277,8 @@ private fun ChatInputArea(
                     isProcessing = isProcessing,
                     diagMode = diagMode,
                     onToggleDiag = { if (diagMode) viewModel.exitDiagMode() else viewModel.enterDiagMode() },
+                    claudeMode = claudeMode,
+                    onToggleClaude = { if (claudeMode) viewModel.exitClaudeMode() else viewModel.enterClaudeMode() },
                     onSend = {
                         if (!isProcessing) {
                             val img = pendingImage
@@ -1232,7 +1300,11 @@ private fun ChatInputArea(
                                     keyboardController?.hide()
                                 }
                                 text.isNotBlank() -> {
-                                    if (diagMode) viewModel.sendDiagMessage(text.trim()) else onSendMessage(text.trim())
+                                    when {
+                                        claudeMode -> viewModel.sendClaudeMessage(text.trim())
+                                        diagMode -> viewModel.sendDiagMessage(text.trim())
+                                        else -> onSendMessage(text.trim())
+                                    }
                                     text = ""
                                     keyboardController?.hide()
                                 }
@@ -1329,6 +1401,8 @@ private fun ChatTextInputMode(
     onShowPhotoPicker: () -> Unit,
     diagMode: Boolean = false,
     onToggleDiag: () -> Unit = {},
+    claudeMode: Boolean = false,
+    onToggleClaude: () -> Unit = {},
     pendingImage: Uri? = null,
     selectedIntent: ImageIntent? = null,
     onSelectIntent: (ImageIntent) -> Unit = {},
@@ -1451,13 +1525,15 @@ private fun ChatTextInputMode(
                     }
                 }
 
-                // 图片选择胶囊按钮
-                CapsuleButton(
-                    icon = Icons.Rounded.PhotoLibrary,
-                    label = "相册",
-                    onClick = onShowPhotoPicker,
-                    enabled = !isProcessing
-                )
+                // 图片选择胶囊按钮（claude 模式禁用：媒体不上传远程，ADR-008/§11）
+                if (!claudeMode) {
+                    CapsuleButton(
+                        icon = Icons.Rounded.PhotoLibrary,
+                        label = "相册",
+                        onClick = onShowPhotoPicker,
+                        enabled = !isProcessing
+                    )
+                }
 
                 // 远程诊断 toggle（二态）：激活后发送键触发诊断（chat 描述问题 → 云主机定位/修复）
                 CapsuleButton(
@@ -1466,6 +1542,15 @@ private fun ChatTextInputMode(
                     onClick = onToggleDiag,
                     enabled = !isProcessing,
                     isActive = diagMode
+                )
+
+                // AI 工程师 toggle（二态）：激活后消息走 claude-tunnel 流式 agent chat（与诊断互斥）
+                CapsuleButton(
+                    icon = Icons.Rounded.SmartToy,
+                    label = stringResource(R.string.claude_icon_desc),
+                    onClick = onToggleClaude,
+                    enabled = !isProcessing,
+                    isActive = claudeMode
                 )
             }
 
