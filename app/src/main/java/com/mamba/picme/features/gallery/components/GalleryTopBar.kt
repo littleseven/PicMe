@@ -1,7 +1,6 @@
 package com.mamba.picme.features.gallery.components
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Check
@@ -70,7 +69,6 @@ fun GalleryTopBar(
                 }
             )
         },
-        modifier = Modifier.displayCutoutPadding(),
         navigationIcon = {
             if (isSelectionMode || onNavigateBack != null) {
                 AppTopBarNavBack(onClick = {

@@ -17,14 +17,12 @@ import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.FilterListOff
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,6 +39,7 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
+import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.person.components.PersonInfoScreen
 import com.mamba.picme.features.person.components.PersonListItem
 import com.mamba.picme.service.tag.TagGenerationService
@@ -50,7 +49,6 @@ import kotlinx.coroutines.launch
  * 「人物」页：双列网格展示全部人脸聚类。
  * 支持行内改名、展开式 Bottom Sheet 编辑关系/「我」标记、底部 Sheet 选择封面。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonScreen(
     viewModel: PersonViewModel,
@@ -105,8 +103,7 @@ fun PersonScreen(
     Box(Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                modifier = Modifier.displayCutoutPadding(),
+            AppTopBar(
                 title = {
                     Text(
                         text = stringResource(

@@ -2,9 +2,7 @@ package com.mamba.picme.features.person.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +56,7 @@ import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.person.RelationDisplayItem
 import com.mamba.picme.domain.person.RelationPredicate
 import com.mamba.picme.features.common.PersonRelationPicker
+import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.person.PersonCover
 
 /**
@@ -110,12 +108,11 @@ fun PersonInfoScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                modifier = Modifier.displayCutoutPadding(),
+            AppTopBar(
+                centered = true,
                 title = {
                     Text(
-                        text = stringResource(R.string.person_cluster_id, person.personId),
-                        style = MaterialTheme.typography.titleMedium
+                        text = stringResource(R.string.person_cluster_id, person.personId)
                     )
                 },
                 navigationIcon = {
@@ -127,29 +124,24 @@ fun PersonInfoScreen(
                     }
                 },
                 actions = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // 不设置：清空关系与自定义称呼
+                    IconButton(
+                        onClick = {
+                            currentRelation = null
+                            customLabel = ""
+                        }
                     ) {
-                        // 不设置：清空关系与自定义称呼
-                        IconButton(
-                            onClick = {
-                                currentRelation = null
-                                customLabel = ""
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.RestartAlt,
-                                contentDescription = stringResource(R.string.person_relation_none)
-                            )
-                        }
-                        // 保存
-                        IconButton(onClick = doSave) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = stringResource(R.string.save)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Rounded.RestartAlt,
+                            contentDescription = stringResource(R.string.person_relation_none)
+                        )
+                    }
+                    // 保存
+                    IconButton(onClick = doSave) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = stringResource(R.string.save)
+                        )
                     }
                 }
             )
