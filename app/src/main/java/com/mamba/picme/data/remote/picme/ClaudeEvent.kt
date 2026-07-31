@@ -9,6 +9,8 @@ sealed class ClaudeEvent {
     data class ToolUse(val tool: String, val input: JSONObject) : ClaudeEvent()
     data class ToolResult(val ok: Boolean, val summary: String) : ClaudeEvent()
     data class FileChange(val path: String, val action: String) : ClaudeEvent()
+    /** spec §6 cost：本轮 turns 与费用（分）。可选事件，app 仅用于额度提示。 */
+    data class Cost(val turns: Int, val cents: Int) : ClaudeEvent()
     data class Error(val message: String) : ClaudeEvent()
     data object Done : ClaudeEvent()
 }

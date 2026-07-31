@@ -38,6 +38,7 @@ object ClaudeSseParser {
                 )
                 "tool_result" -> ClaudeEvent.ToolResult(json.optBoolean("ok"), json.optString("summary"))
                 "file_change" -> ClaudeEvent.FileChange(json.optString("path"), json.optString("action"))
+                "cost" -> ClaudeEvent.Cost(json.optInt("turns", 0), json.optInt("cents", 0))
                 "error" -> ClaudeEvent.Error(json.optString("message"))
                 "done" -> ClaudeEvent.Done
                 else -> null

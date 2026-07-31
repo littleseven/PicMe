@@ -36,6 +36,15 @@ class ClaudeSseParserTest {
     }
 
     @Test
+    fun `parses cost event`() {
+        val sse = "event: cost\ndata: {\"turns\":3,\"cents\":12}\n\n"
+        val ev = ClaudeSseParser.parse(sse)
+        val cost = ev[0] as ClaudeEvent.Cost
+        assertEquals(3, cost.turns)
+        assertEquals(12, cost.cents)
+    }
+
+    @Test
     fun `ignores malformed lines`() {
         val sse = "garbage\n\nevent: done\ndata: {}\n\n"
         val ev = ClaudeSseParser.parse(sse)
