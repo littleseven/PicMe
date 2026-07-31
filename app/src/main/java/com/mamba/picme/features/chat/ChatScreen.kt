@@ -1810,8 +1810,13 @@ data class ChatMessageUi(
     /** 流式打字光标是否可见（由节奏器驱动：吐字中 true，停顿超时/完成 false）。 */
     val showCursor: Boolean = false,
     /** 思考中（首 token 到达前）：UI 显示三点 typing indicator 而非内容+光标。 */
-    val isThinking: Boolean = false
+    val isThinking: Boolean = false,
+    /** 诊断根因气泡的内嵌确认动作；非空且 pending=true 时渲染 [推送]/[PR] 按钮。 */
+    val diagConfirm: DiagConfirmUi? = null,
 )
+
+/** 诊断确认内嵌按钮状态。pending=true 显示按钮；false 则已处理（按钮消失）。 */
+data class DiagConfirmUi(val jobId: Int, val pending: Boolean)
 
 enum class ChatMessageType {
     USER_TEXT,
