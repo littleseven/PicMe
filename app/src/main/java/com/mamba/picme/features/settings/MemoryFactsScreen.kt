@@ -180,7 +180,7 @@ fun MemoryFactsScreen(
         )
     }
 
-    // 注：人物关系编辑已迁至「人物」页重命名对话框（PersonRenameDialog），本页专注事实记忆。
+    // 注：人物关系编辑统一在人物信息编辑页（PersonInfoScreen），本页专注事实记忆。
 
     // ── 清空全部二次确认 ────────────────────────────────────────
     if (showClearConfirm) {
