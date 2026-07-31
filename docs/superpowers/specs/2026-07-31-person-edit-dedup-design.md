@@ -44,9 +44,9 @@
   suspend fun loadPersonEditSnapshot(personId: Long): PersonEditSnapshot?
   ```
   内部聚合：
-  1. `personDao().getPersonByPersonId(personId)`（**新增**该 DAO 单行查询 `@Query("SELECT * FROM persons WHERE personId = :id LIMIT 1")`，避免为单人加载全表）；
+  1. `personDao().getPerson(personId)`（**复用现有** DAO 单行查询 `PersonDao.kt:36`，避免为单人加载全表）；
   2. `getRelationToSelf(personId)` → 经共享映射转 `RelationDisplayItem?`；
-  3. 封面：取 `person.coverMediaId`，经 `db.mediaDao().getMediaByIds(...)` 拿 uri/faceFocusY，用 `PersonCoverResolver.resolve(...)` 得 `PersonCover`（空封面返回 `PersonCover(null, null)`）；
+  3. 封面：从下面第 4 步已加载的照片里按 `person.coverMediaId` 找 `coverMedia`（`photos.firstOrNull { it.id == coverMediaId }`），取其 uri/faceFocusY 构造 `PersonCover`；`coverMediaId` 失效时为 null。**不引入 mediaDao**；
   4. 照片：`personDao().getMediaByPersonOrderedForCover(personId).distinctBy { it.id }`（与现 `PersonViewModel.loadPhotosByPerson` 一致）。
 - **下沉** `relationToDisplay`（现 PersonViewModel.kt:247-260）为共享映射：`RelationDisplayItem` 工厂或 repo 内私有函数，含 customLabel 空串归一、未知 predicate 归 null。`PersonViewModel.load()` 改为调用该共享映射（去重）。
 
