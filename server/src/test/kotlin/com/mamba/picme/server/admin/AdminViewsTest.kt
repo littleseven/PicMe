@@ -244,4 +244,30 @@ class AdminViewsTest {
         assertTrue(html.contains("/admin/diag/7/activate"))
         assertTrue(html.contains("/admin/diag/7/delete"))
     }
+
+    @Test
+    fun `diag list fix column shows untested as compact badge not block err`() {
+        val stats = DiagStats(total = 1, queued = 0, diagnosed = 0, fixRequested = 0, fixed = 0, failed = 0, archived = 0)
+        val rows = listOf(
+            DiagListRow(
+                5, "FIXED_UNVERIFIED", "搜索崩溃", "dev••••", "sha1234567890",
+                fixBranch = "diag-fix/5", compareUrl = null, tested = false, hasRootCause = true,
+                createdAt = 100L, updatedAt = 100L, claimedAt = null,
+            ),
+        )
+        val html = AdminViews.diagListPage(stats, rows, DiagWorkerActivity(null, 0, null, DiagWorkerHealth.IDLE), now = 0L, autoSec = 0)
+        // 未自检用紧凑徽标（与状态徽标统一），不再用块级 .err 样式
+        assertTrue(html.contains("badge-diag-warn\">未自检"))
+        assertTrue(!html.contains("err\">未自检"))
+    }
+
+    @Test
+    fun `diag list page keeps scroll position across admin actions via sessionStorage`() {
+        val html = AdminViews.diagListPage(
+            DiagStats(0, 0, 0, 0, 0, 0, 0), emptyList(),
+            DiagWorkerActivity(null, 0, null, DiagWorkerHealth.IDLE), now = 0L, autoSec = 0,
+        )
+        assertTrue(html.contains("diagScroll"))
+        assertTrue(html.contains("sessionStorage"))
+    }
 }

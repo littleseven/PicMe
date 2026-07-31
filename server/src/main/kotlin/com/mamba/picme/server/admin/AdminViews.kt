@@ -924,7 +924,7 @@ object AdminViews {
                                 if (branch != null) {
                                     if (row.compareUrl != null) a(row.compareUrl) { +branch } else +branch
                                     if (!row.tested) {
-                                        br(); span("err") { +"未自检" }
+                                        br(); span("badge badge-diag-warn") { +"未自检" }
                                     }
                                 } else {
                                     +"—"
@@ -940,6 +940,15 @@ object AdminViews {
             if (autoSec > 0) {
                 script {
                     unsafe { raw("setInterval(function(){location.reload()}," + (autoSec * 1000) + ");") }
+                }
+            }
+            script {
+                // 操作（废弃/激活/删除）后 302 重载整页，浏览器默认回顶部。
+                // 提交前把 scrollY 暂存 sessionStorage，重载后读回 scrollTo，保持原位置。
+                unsafe {
+                    raw(
+                        """(function(){var k='diagScroll';document.querySelectorAll('form').forEach(function(fm){if((fm.getAttribute('action')||'').indexOf('/admin/diag/')>-1){fm.addEventListener('submit',function(){try{sessionStorage.setItem(k,window.scrollY)}catch(e){}});}});var s=sessionStorage.getItem(k);if(s!==null){try{window.scrollTo(0,parseInt(s,10))}catch(e){}try{sessionStorage.removeItem(k)}catch(e){}}})();""",
+                    )
                 }
             }
         }
