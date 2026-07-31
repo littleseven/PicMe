@@ -23,7 +23,7 @@ data class DiagBundle(
     }
 }
 
-/** server /diag/jobs/{id} 回传的任务状态（手机端展示用）。 */
+/** server /diag/jobs/{id} 回传的任务状态（手机端展示用）。未知新状态按非终态处理（继续轮询/超时兜底，不 crash）。 */
 data class DiagJobStatus(
     val jobId: Int,
     val status: String,
@@ -31,4 +31,6 @@ data class DiagJobStatus(
     val fixBranch: String?,
     val compareUrl: String?,
     val tested: Boolean,
+    val error: String? = null,    // S2：失败原因（workerLog 尾部 ~500 字符）
+    val updatedAt: Long = 0L,     // S2：服务端最后更新时间（ms）
 )
