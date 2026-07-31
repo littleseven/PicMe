@@ -71,6 +71,13 @@ grep -q '"status":"DIAGNOSED"' "$CAPTURE" && grep -q 'stub: NPE' "$CAPTURE" \
   || { echo "FAIL diagnose glue; captured:"; cat "$CAPTURE"; exit 1; }
 echo "ok diagnose glue -> $(cat "$CAPTURE")"
 
+# --- 2d) W1：三字段（rootCause/suspectFiles/suggestedFix）全部回传 ---
+grep -q '"suspectFiles":"GalleryScreen.kt"' "$CAPTURE" \
+  || { echo "FAIL suspectFiles missing; captured:"; cat "$CAPTURE"; exit 1; }
+grep -q '"suggestedFix":"null check"' "$CAPTURE" \
+  || { echo "FAIL suggestedFix missing; captured:"; cat "$CAPTURE"; exit 1; }
+echo "ok diagnose three-field report"
+
 # --- 2b) 模板注入安全（W3）：含 | & \ " 的日志原样进入 prompt，不被替换语法破坏 ---
 grep -qF 'boom | sed & break \ path "q"' "$DIAG_WORKDIR/last-prompt.txt" \
   || { echo "FAIL template injection; prompt:"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
@@ -80,5 +87,13 @@ echo "ok template injection safe"
 grep -qF '现象: 打开相册崩溃' "$DIAG_WORKDIR/last-prompt.txt" \
   || { echo "FAIL conversationSummary missing in prompt"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
 echo "ok conversationSummary in diagnose prompt"
+
+# --- 3) W1：fix 阶段 claim 带 suggestedFix → fix prompt 拿到真实值 ---
+CLAIM_FIX='{"jobId":2,"phase":"fix","gitSha":"'"$SHA"'","rootCause":"stub: NPE","suggestedFix":"null check","fixMode":"push"}'
+: > "$CAPTURE"
+bash "$WD/run-fix.sh" 2 "$CLAIM_FIX" || true
+grep -qF 'null check' "$DIAG_WORKDIR/last-prompt.txt" \
+  || { echo "FAIL suggestedFix not in fix prompt"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
+echo "ok suggestedFix in fix prompt"
 
 echo "SMOKE PASS"

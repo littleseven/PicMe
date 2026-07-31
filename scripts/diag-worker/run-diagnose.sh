@@ -54,9 +54,22 @@ if { [ -z "$rootCause" ] || [ "$rootCause" = "null" ]; } && [ -n "$inner" ]; the
   fi
 fi
 
+# W1：从同一份 claude 输出抠 suspectFiles / suggestedFix（best-effort；仅 rootCause 成功时才回传）。
+# inner 是 .result 文本（形态 a），抠不出 JSON 时退到整段 out（形态 b/c 由 jq 直接兜）。
+suspectFiles=""; suggestedFix=""
+if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
+  json_src="$inner"
+  [ -z "$json_src" ] && json_src="$out"
+  json_obj="$(printf '%s' "$json_src" | tr '\n' ' ' | sed 's/.*\({.*}\).*/\1/' 2>/dev/null)"
+  [ -n "$json_obj" ] && suspectFiles="$(printf '%s' "$json_obj" | jq -r '(.suspectFiles // []) | if type == "array" then join(", ") else . end' 2>/dev/null)"
+  [ -n "$json_obj" ] && suggestedFix="$(printf '%s' "$json_obj" | jq -r '.suggestedFix // empty' 2>/dev/null)"
+fi
+
 if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
   rc_escaped="$(printf '%s' "$rootCause" | json_escape)"
-  report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\"}"
+  sf_escaped="$(printf '%s' "$suspectFiles" | json_escape)"
+  fx_escaped="$(printf '%s' "$suggestedFix" | json_escape)"
+  report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\",\"suspectFiles\":\"$sf_escaped\",\"suggestedFix\":\"$fx_escaped\"}"
 else
   # 解析失败：把 claude 的 .result（模型最终文本）+ num_turns + exit code 回传到 workerLog，便于排查
   result_field="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null)"
