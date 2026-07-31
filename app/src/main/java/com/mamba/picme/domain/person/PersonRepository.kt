@@ -302,4 +302,22 @@ data class RelationDisplayItem(
     val subjectName: String,
     val predicate: RelationPredicate,
     val customLabel: String? = null
-)
+) {
+    companion object {
+        /**
+         * PersonRelationEntity → RelationDisplayItem。
+         * 未知谓词或空关系返回 null；customLabel 空白归一为 null、非空则 trim。
+         */
+        fun from(person: PersonEntity, relation: PersonRelationEntity?): RelationDisplayItem? {
+            if (relation == null) return null
+            val predicate = RelationPredicate.fromStored(relation.predicate) ?: return null
+            return RelationDisplayItem(
+                relationId = relation.relationId,
+                subjectPersonId = person.personId,
+                subjectName = person.name ?: "#${person.personId}",
+                predicate = predicate,
+                customLabel = relation.customLabel?.trim()?.ifEmpty { null }
+            )
+        }
+    }
+}
