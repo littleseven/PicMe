@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.PersonEntity
-import com.mamba.picme.data.local.entity.PersonRelationEntity
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.domain.person.RelationDisplayItem
@@ -78,7 +77,7 @@ class PersonViewModel(
             val relationMap = withContext(Dispatchers.IO) {
                 all.associate { person ->
                     val relation = personRepository.getRelationToSelf(person.personId)
-                    person.personId to relationToDisplay(person, relation)
+                    person.personId to RelationDisplayItem.from(person, relation)
                 }
             }
             val photoCountMap = withContext(Dispatchers.IO) {
@@ -242,21 +241,6 @@ class PersonViewModel(
         relations[person.personId]?.predicate in FAMILY_PREDICATES -> 2
         relations[person.personId]?.predicate != null -> 1
         else -> 0
-    }
-
-    private fun relationToDisplay(
-        person: PersonEntity,
-        relation: PersonRelationEntity?
-    ): RelationDisplayItem? {
-        if (relation == null) return null
-        val predicate = RelationPredicate.fromStored(relation.predicate) ?: return null
-        return RelationDisplayItem(
-            relationId = relation.relationId,
-            subjectPersonId = person.personId,
-            subjectName = person.name ?: "#${person.personId}",
-            predicate = predicate,
-            customLabel = relation.customLabel?.trim()?.ifEmpty { null }
-        )
     }
 
     companion object {
