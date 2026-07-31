@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
@@ -154,7 +155,6 @@ import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
-import com.mamba.picme.features.chat.components.DiagConfirmSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -485,7 +485,8 @@ fun ChatScreen(
                                                 initialIndex = indexOfPage(pages, msg.id)
                                             )
                                         }
-                                    }
+                                    },
+                                    onDiagConfirm = { _, mode -> viewModel.confirmDiagnosis(mode) }
                                 )
                             }
                         }
@@ -668,18 +669,6 @@ fun ChatScreen(
         )
     }
 
-    // ── 远程诊断根因确认（DiagController.pending 驱动）──
-    val pendingDiag by viewModel.pendingDiagConfirm.collectAsState()
-    pendingDiag?.let { p ->
-        DiagConfirmSheet(
-            rootCause = p.rootCause,
-            onPick = { mode ->
-                if (mode != null) viewModel.confirmDiagnosis(mode) else viewModel.cancelDiagConfirm()
-            },
-            onDismiss = { viewModel.cancelDiagConfirm() },
-        )
-    }
-
     // ── 聊天/语音/本地 LLM 模型下载提示 ────────────────────────────
     val showChatModelsPrompt by settingsViewModel.showChatModelsPrompt.collectAsState()
     val isChatBatchDownloading by settingsViewModel.isBatchDownloading.collectAsState()
@@ -821,7 +810,11 @@ private fun segmentStreamingMarkdown(content: String): List<StreamSegment> {
 @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：消息项多类型分支，抽分发器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi) -> Unit = {}) {
+private fun ChatMessageItem(
+    message: ChatMessageUi,
+    onImageClick: (ChatMessageUi) -> Unit = {},
+    onDiagConfirm: (Int, String) -> Unit = { _, _ -> },
+) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
         message.type == ChatMessageType.USER_IMAGE_TEXT
@@ -984,6 +977,20 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                     }
                 }
             }
+            // 诊断根因：内嵌确认按钮（pending 时显示 [推送]/[PR]）
+            message.diagConfirm?.let { dc ->
+                if (dc.pending) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { onDiagConfirm(dc.jobId, "push") }) {
+                            Text(stringResource(R.string.diag_sheet_push))
+                        }
+                        Button(onClick = { onDiagConfirm(dc.jobId, "pr") }) {
+                            Text(stringResource(R.string.diag_sheet_pr))
+                        }
+                    }
+                }
+            }
             message.performance?.let { perf ->
                 val metricTint = if (isUser) {
                     Color.White.copy(alpha = 0.55f)
@@ -1102,6 +1109,8 @@ private fun ChatInputArea(
     val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
     // 独立 chat 页默认文本输入模式（不继承/回写公共 AI chat 的语音偏好）
     var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
+    // 远程诊断模式 toggle：激活后发送键触发诊断（而非普通消息）
+    var diagMode by remember { mutableStateOf(false) }
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
@@ -1171,7 +1180,8 @@ private fun ChatInputArea(
                     text = text,
                     onTextChange = { text = it },
                     isProcessing = isProcessing,
-                    onDiagnose = { viewModel.submitDiagnosis(text.trim()) },
+                    diagMode = diagMode,
+                    onToggleDiag = { diagMode = !diagMode },
                     onSend = {
                         if (!isProcessing) {
                             val img = pendingImage
@@ -1193,7 +1203,7 @@ private fun ChatInputArea(
                                     keyboardController?.hide()
                                 }
                                 text.isNotBlank() -> {
-                                    onSendMessage(text.trim())
+                                    if (diagMode) viewModel.submitDiagnosis(text.trim()) else onSendMessage(text.trim())
                                     text = ""
                                     keyboardController?.hide()
                                 }
@@ -1288,7 +1298,8 @@ private fun ChatTextInputMode(
     onSwitchModel: (String) -> Unit,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
-    onDiagnose: () -> Unit = {},
+    diagMode: Boolean = false,
+    onToggleDiag: () -> Unit = {},
     pendingImage: Uri? = null,
     selectedIntent: ImageIntent? = null,
     onSelectIntent: (ImageIntent) -> Unit = {},
@@ -1419,12 +1430,13 @@ private fun ChatTextInputMode(
                     enabled = !isProcessing
                 )
 
-                // 远程诊断胶囊按钮（chat 描述问题 → 云主机定位/修复）
+                // 远程诊断 toggle（二态）：激活后发送键触发诊断（chat 描述问题 → 云主机定位/修复）
                 CapsuleButton(
                     icon = Icons.Rounded.Code,
                     label = stringResource(R.string.diag_icon_desc),
-                    onClick = onDiagnose,
-                    enabled = !isProcessing
+                    onClick = onToggleDiag,
+                    enabled = !isProcessing,
+                    isActive = diagMode
                 )
             }
 
@@ -1810,8 +1822,13 @@ data class ChatMessageUi(
     /** 流式打字光标是否可见（由节奏器驱动：吐字中 true，停顿超时/完成 false）。 */
     val showCursor: Boolean = false,
     /** 思考中（首 token 到达前）：UI 显示三点 typing indicator 而非内容+光标。 */
-    val isThinking: Boolean = false
+    val isThinking: Boolean = false,
+    /** 诊断根因气泡的内嵌确认动作；非空且 pending=true 时渲染 [推送]/[PR] 按钮。 */
+    val diagConfirm: DiagConfirmUi? = null,
 )
+
+/** 诊断确认内嵌按钮状态。pending=true 显示按钮；false 则已处理（按钮消失）。 */
+data class DiagConfirmUi(val jobId: Int, val pending: Boolean)
 
 enum class ChatMessageType {
     USER_TEXT,

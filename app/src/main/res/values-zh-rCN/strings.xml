@@ -998,14 +998,12 @@
     <string name="tag_pass_row_content">内容标签</string>
     <!-- 远程诊断（chat-UI）-->
     <string name="diag_icon_desc">诊断</string>
-    <string name="diag_sheet_title">远程诊断 · 根因</string>
     <string name="diag_sheet_push">推送修复分支</string>
     <string name="diag_sheet_pr">修复并开 PR</string>
-    <string name="diag_sheet_cancel">取消</string>
     <string name="diag_login_required">远程诊断需要先登录账号（设置 → 账号）。</string>
     <string name="diag_submitted">🔍 已提交诊断请求，云主机分析中…</string>
     <string name="diag_report_failed">❌ 上报失败：%1$s</string>
-    <string name="diag_root_cause">🔍 **根因分析**\n\n%1$s\n\n_请在弹窗选择修复方式_</string>
+    <string name="diag_root_cause">🔍 **根因分析**\n\n%1$s</string>
     <string name="diag_diagnose_failed">❌ 诊断失败：%1$s</string>
     <string name="diag_fixing_pr">🔧 修复中（开 PR）…</string>
     <string name="diag_fixing_push">🔧 修复中（推送分支）…</string>

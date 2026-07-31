@@ -18,7 +18,8 @@ load_env() {
   : "${DIAG_MAX_TURNS:=20}"
   : "${DIAG_PHASE_TIMEOUT:=300}"
   mkdir -p "$DIAG_WORKDIR"
-  export GIT_TERMINAL_PROMPT=0   # git 永不交互提示（无凭证直接失败，不挂起）
+  export GIT_TERMINAL_PROMPT=0
+  export IS_SANDBOX=1   # claude root 下允许 --dangerously-skip-permissions（VM 即沙箱）   # git 永不交互提示（无凭证直接失败，不挂起）
   WORKER_LOG="$DIAG_WORKDIR/worker.log"
 }
 

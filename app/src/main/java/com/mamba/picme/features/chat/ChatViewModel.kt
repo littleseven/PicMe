@@ -205,8 +205,6 @@ class ChatViewModel(
         writeConfirmationController.resolve(confirmed)
 
     // ── 远程诊断（chat 触发 → 云主机 Claude Code worker）─────────────────
-    private val diagController = DiagController()
-    val pendingDiagConfirm: StateFlow<PendingDiagConfirm?> = diagController.pending
     private val diagClient = dependencies.diagClient
 
     private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
@@ -215,6 +213,14 @@ class ChatViewModel(
     /** UI「诊断」icon 入口：把输入框文本作为问题描述发起远程诊断。 */
     fun submitDiagnosis(description: String) {
         if (description.isBlank()) return
+        // 用户气泡（诊断标记）：与普通用户消息同形态，前缀 🔍 表明这是一次诊断请求
+        _messages.update { msgs ->
+            msgs + ChatMessageUi(
+                id = "diag_user_${System.currentTimeMillis()}",
+                type = ChatMessageType.USER_TEXT,
+                content = "🔍 $description"
+            )
+        }
         viewModelScope.launch {
             val token = userSettingsRepository.serverAuthTokenFlow.first()
             val msgId = "diag_${System.currentTimeMillis()}"
@@ -246,10 +252,11 @@ class ChatViewModel(
             when (st.status) {
                 "DIAGNOSED" -> {
                     val rc = st.rootCause.orEmpty()
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_root_cause, rc))
-                    diagController.requestConfirm(jobId, rc) { mode ->
-                        if (mode != null) confirmDiagnosis(mode)
-                    }
+                    upsertDiagMessage(
+                        msgId,
+                        context.getString(R.string.diag_root_cause, rc),
+                        diagConfirm = DiagConfirmUi(jobId, pending = true),
+                    )
                     return
                 }
                 "DIAGNOSE_FAILED" -> {
@@ -260,11 +267,10 @@ class ChatViewModel(
         }
     }
 
-    /** DiagConfirmSheet 选定 mode 后调用。 */
+    /** 根因气泡内嵌按钮选定 mode（push/pr）后调用。 */
     fun confirmDiagnosis(mode: String) {
         val ad = activeDiag ?: return
         viewModelScope.launch {
-            diagController.clear()
             val result = diagClient.confirmFix(ad.token, ad.jobId, mode)
             if (result.isFailure) {
                 upsertDiagMessage(ad.msgId, context.getString(R.string.diag_confirm_failed, result.exceptionOrNull()?.message ?: ""))
@@ -273,6 +279,7 @@ class ChatViewModel(
             upsertDiagMessage(
                 ad.msgId,
                 context.getString(if (mode == "pr") R.string.diag_fixing_pr else R.string.diag_fixing_push),
+                diagConfirm = DiagConfirmUi(ad.jobId, pending = false),
             )
             pollFix(ad.token, ad.jobId, ad.msgId)
         }
@@ -303,15 +310,15 @@ class ChatViewModel(
         }
     }
 
-    /** DiagConfirmSheet 取消/关闭。 */
-    fun cancelDiagConfirm() = diagController.resolve(null)
-
-    /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。 */
-    private fun upsertDiagMessage(id: String, content: String) {
+    /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。diagConfirm 非 null 时一并写入。 */
+    private fun upsertDiagMessage(id: String, content: String, diagConfirm: DiagConfirmUi? = null) {
         _messages.update { msgs ->
             val idx = msgs.indexOfFirst { it.id == id }
-            if (idx >= 0) msgs.toMutableList().apply { this[idx] = this[idx].copy(content = content) }
-            else msgs + ChatMessageUi(id = id, type = ChatMessageType.AGENT_TEXT, content = content)
+            if (idx >= 0) msgs.toMutableList().apply {
+                this[idx] = this[idx].copy(content = content, diagConfirm = diagConfirm)
+            } else msgs + ChatMessageUi(
+                id = id, type = ChatMessageType.AGENT_TEXT, content = content, diagConfirm = diagConfirm
+            )
         }
     }
 
