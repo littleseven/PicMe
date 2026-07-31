@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navOptions
@@ -79,6 +80,21 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+
+        private val MAIN_PAGES = listOf(
+            Screen.Camera,
+            Screen.Gallery,
+            Screen.Chat,
+            Screen.People
+        )
+
+        private fun routeToMainPageIndex(route: String?): Int = when {
+            route == Screen.Camera.route -> 0
+            route == Screen.Chat.route -> 2
+            route == Screen.People.route -> 3
+            route == Screen.Gallery.route || route?.startsWith("${Screen.Gallery.route}?") == true -> 1
+            else -> 1
+        }
     }
 
     private var currentLanguage: AppLanguage? = null
@@ -139,6 +155,16 @@ class MainActivity : ComponentActivity() {
             ) {
                 PoLangTheme(themeMode = themeMode) {
                     val navController = rememberNavController()
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentMainPageIndex = routeToMainPageIndex(currentBackStackEntry?.destination?.route)
+
+                    val switchMainPage: (Int) -> Unit = { index ->
+                        val targetRoute = MAIN_PAGES[index].route
+                        navController.navigate(targetRoute) {
+                            launchSingleTop = true
+                            popUpTo(Screen.Gallery.route) { saveState = true }
+                        }
+                    }
 
                     // Navigation/System Capability：依赖 NavController/Context，在 Activity 期创建并
                     // 注册到全局 CapabilityRegistry（唯一注册表，2026-07-29 单轨收敛——Compose
@@ -216,7 +242,9 @@ class MainActivity : ComponentActivity() {
                                             Screen.IDPhoto.createRoute(sourceUri = uri),
                                             navOptions { launchSingleTop = true }
                                         )
-                                    }
+                                    },
+                                    currentMainPageIndex = currentMainPageIndex,
+                                    onNavigateToMainPage = switchMainPage
                                 )
                             }
                             composable(Screen.Camera.route) {
@@ -231,7 +259,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToGallery = { navController.navigate(Screen.Gallery.route, navOptions { launchSingleTop = true }) },
                                     onNavigateBack = { navController.popBackStack() },
                                     viewModel = mediaViewModel,
-                                    settingsViewModel = settingsViewModel
+                                    settingsViewModel = settingsViewModel,
+                                    currentMainPageIndex = currentMainPageIndex,
+                                    onNavigateToMainPage = switchMainPage
                                 )
                             }
                             composable(
@@ -274,7 +304,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onNavigateToPeople = {
                                         navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
-                                    }
+                                    },
+                                    currentMainPageIndex = currentMainPageIndex,
+                                    onNavigateToMainPage = switchMainPage
                                 )
                             }
                             composable(
@@ -535,7 +567,9 @@ class MainActivity : ComponentActivity() {
                                             Screen.Gallery.createRoute(personId = personId),
                                             navOptions { launchSingleTop = true }
                                         )
-                                    }
+                                    },
+                                    currentMainPageIndex = currentMainPageIndex,
+                                    onNavigateToMainPage = switchMainPage
                                 )
                             }
                             composable(Screen.Debug.route) {

@@ -163,6 +163,8 @@ object QueryParser {
 
     private fun monthEndMs(year: Int, month: Int): Long {
         return Calendar.getInstance().apply {
+            // 先重置日期为 1，避免目标月份天数少于当前日期时 Calendar 宽松模式回滚到下一月
+            set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.YEAR, year)
             set(Calendar.MONTH, month)
             set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
@@ -365,6 +367,8 @@ object QueryParser {
     private fun monthsAgoRange(months: Int): TimeRange {
         // 与现有可测试设计保持一致：以 currentYear/currentMonth 为锚点
         val endCal = Calendar.getInstance()
+        // 先重置日期为 1，避免目标月份天数少于当前日期时 Calendar 宽松模式回滚到下一月
+        endCal.set(Calendar.DAY_OF_MONTH, 1)
         endCal.set(Calendar.YEAR, currentYear)
         endCal.set(Calendar.MONTH, currentMonth - 1)
         endCal.set(Calendar.DAY_OF_MONTH, endCal.getActualMaximum(Calendar.DAY_OF_MONTH))
@@ -375,9 +379,9 @@ object QueryParser {
         val endMs = endCal.timeInMillis
 
         val startCal = Calendar.getInstance()
+        startCal.set(Calendar.DAY_OF_MONTH, 1)
         startCal.set(Calendar.YEAR, currentYear)
         startCal.set(Calendar.MONTH, currentMonth - 1)
-        startCal.set(Calendar.DAY_OF_MONTH, 1)
         startCal.add(Calendar.MONTH, -months)
         startCal.set(Calendar.HOUR_OF_DAY, 0)
         startCal.set(Calendar.MINUTE, 0)

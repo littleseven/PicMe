@@ -114,6 +114,7 @@ import com.mamba.picme.features.camera.thread.CameraThreadRegistry
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import com.mamba.picme.features.common.chat.AgentMessage
+import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
 import com.mamba.picme.PoLangApplication
@@ -322,7 +323,9 @@ fun CameraScreen(
     onNavigateToGallery: () -> Unit,
     onNavigateBack: () -> Unit = {},
     viewModel: MediaViewModel,
-    settingsViewModel: SettingsViewModel? = null
+    settingsViewModel: SettingsViewModel? = null,
+    currentMainPageIndex: Int = 0,
+    onNavigateToMainPage: (Int) -> Unit = {}
 ) {
     // RD 沉浸式模式：隐藏系统栏
     val view = LocalView.current
@@ -362,12 +365,19 @@ fun CameraScreen(
 
     if (permissionsState.allPermissionsGranted) {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions granted, calling CameraContent")
-        CameraContent(
-            viewModel = viewModel,
-            onNavigateToGallery = onNavigateToGallery,
-            onNavigateBack = onNavigateBack,
-            settingsViewModel = settingsViewModel
-        )
+        MainPageSwipeWrapper(
+            enabled = true,
+            currentIndex = currentMainPageIndex,
+            pageCount = 4,
+            onPageChanged = onNavigateToMainPage
+        ) {
+            CameraContent(
+                viewModel = viewModel,
+                onNavigateToGallery = onNavigateToGallery,
+                onNavigateBack = onNavigateBack,
+                settingsViewModel = settingsViewModel
+            )
+        }
     } else {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions NOT granted")
         Box(
