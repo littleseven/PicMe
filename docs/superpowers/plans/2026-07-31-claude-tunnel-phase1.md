@@ -546,7 +546,7 @@ Description=chisel server (claude-tunnel)
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/chisel server --host 127.0.0.1 --port 8090 --auth ${CHISEL_PSK} --reverse
+ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel server --host 127.0.0.1 --port 8090 --auth "$CHISEL_PSK" --reverse'
 EnvironmentFile=/etc/picme/tunnel.env
 Restart=always
 RestartSec=5
@@ -562,7 +562,7 @@ Description=chisel client (claude-tunnel, egress to api.polang.net)
 After=network.target gateway.service
 
 [Service]
-ExecStart=/usr/local/bin/chisel client --auth ${CHISEL_PSK} https://${CT_TUNNEL_HOST}/tunnel R:${CT_REVERSE_PORT}:127.0.0.1:${CT_GATEWAY_PORT}
+ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel client --auth "$CHISEL_PSK" https://"$CT_TUNNEL_HOST"/tunnel R:"$CT_REVERSE_PORT":127.0.0.1:"$CT_GATEWAY_PORT"'
 EnvironmentFile=/root/claude-tunnel/tunnel.env
 Restart=always
 RestartSec=5

@@ -3,7 +3,7 @@ Description=chisel server (claude-tunnel)
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/chisel server --host 127.0.0.1 --port 8090 --auth ${CHISEL_PSK} --reverse
+ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel server --host 127.0.0.1 --port 8090 --auth "$CHISEL_PSK" --reverse'
 EnvironmentFile=/etc/picme/tunnel.env
 Restart=always
 RestartSec=5
