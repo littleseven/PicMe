@@ -12,6 +12,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class DiagServiceTest {
@@ -73,6 +74,30 @@ class DiagServiceTest {
         assertFalse(runBlocking { DiagService.confirmFix(id, "other", "push") })
         // still QUEUED (not DIAGNOSED) → reject even for owner
         assertFalse(runBlocking { DiagService.confirmFix(id, "o", "push") })
+    }
+
+    @Test
+    fun `confirmFix accepts auto mode and stores it`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.submitDiagnosis(id, "rc", DiagStatus.DIAGNOSED, null) }
+        assertTrue(runBlocking { DiagService.confirmFix(id, "o", "auto") })
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertEquals(DiagStatus.FIX_REQUESTED.name, row[DiagJobs.status])
+        assertEquals("auto", row[DiagJobs.fixMode])
+    }
+
+    @Test
+    fun `confirmFix rejects unknown mode`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.submitDiagnosis(id, "rc", DiagStatus.DIAGNOSED, null) }
+        try {
+            runBlocking { DiagService.confirmFix(id, "o", "weird") }
+            fail("expected IllegalArgumentException for unknown mode")
+        } catch (e: IllegalArgumentException) {
+            // ok
+        }
     }
 
     @Test

@@ -129,7 +129,7 @@ object DiagService {
 
     /** 用户确认 + 选 mode：仅 owner 且 DIAGNOSED 态可确认。返回是否成功转移。 */
     suspend fun confirmFix(id: Int, ownerTokenHash: String, mode: String): Boolean {
-        require(mode == "push" || mode == "pr") { "mode must be push or pr" }
+        require(mode == "push" || mode == "pr" || mode == "auto") { "mode must be push, pr or auto" }
         val now = Instant.now().toEpochMilli()
         return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             val row = DiagJobs.selectAll().where { DiagJobs.id eq id }.firstOrNull()

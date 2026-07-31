@@ -970,7 +970,7 @@ object AdminViews {
                 statCard("状态", d.status)
                 statCard("设备", d.deviceIdMasked)
                 statCard("git 提交", d.gitSha.take(12))
-                statCard("修复方式", d.fixMode ?: "—")
+                statCard("修复方式", when (d.fixMode) { "push" -> "保守"; "pr" -> "待审"; "auto" -> "自动"; else -> d.fixMode ?: "—" })
                 statCard("创建时间", fmtTs(d.createdAt))
                 statCard("更新时间", fmtTs(d.updatedAt))
             }
