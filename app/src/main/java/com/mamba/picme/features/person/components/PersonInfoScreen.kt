@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -48,6 +46,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -100,6 +99,8 @@ fun PersonInfoScreen(
         } else {
             currentRelation
         }
+        val trimmedName = nameText.trim()
+        if (trimmedName.isNotBlank()) onUpdateName(trimmedName)
         onSave(effectiveRelation, customLabel, currentIsSelf)
         onNavigateBack()
     }
@@ -174,62 +175,24 @@ fun PersonInfoScreen(
                     onClick = { showCoverPicker = true }
                 )
                 if (isEditingName) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    BasicTextField(
+                        value = nameText,
+                        onValueChange = { nameText = it },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = { isEditingName = false }
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp)
-                    ) {
-                        BasicTextField(
-                            value = nameText,
-                            onValueChange = { nameText = it },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    val trimmed = nameText.trim()
-                                    if (trimmed.isNotBlank()) onUpdateName(trimmed)
-                                    isEditingName = false
-                                }
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(nameFocusRequester)
-                        )
-                        IconButton(
-                            onClick = {
-                                val trimmed = nameText.trim()
-                                if (trimmed.isNotBlank()) onUpdateName(trimmed)
-                                isEditingName = false
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = stringResource(R.string.save),
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                nameText = person.name.orEmpty()
-                                isEditingName = false
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = stringResource(R.string.cancel),
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                            .focusRequester(nameFocusRequester)
+                    )
                 } else {
                     Text(
                         text = person.name?.takeIf { it.isNotBlank() }
