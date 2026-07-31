@@ -1014,8 +1014,10 @@ private fun ChatMessageItem(
             // 诊断澄清对话：[DIAG_READY] 摘要气泡内嵌「提交诊断」按钮（§2：提交永远是用户手动动作）
             message.diagSubmit?.let { ds ->
                 Spacer(Modifier.height(10.dp))
-                Button(onClick = { onDiagSubmit(ds) }) {
-                    Text(stringResource(R.string.diag_submit_report))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Button(onClick = { onDiagSubmit(ds) }) {
+                        Text(stringResource(R.string.diag_submit_report))
+                    }
                 }
             }
             message.performance?.let { perf ->
