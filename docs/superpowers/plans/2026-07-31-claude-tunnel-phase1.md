@@ -52,7 +52,7 @@
 
 Run（KimiClaw web 终端）:
 ```bash
-claude -p "say hi in one word" --output-format stream-json 2>/dev/null | head -20
+IS_SANDBOX=1 claude -p "say hi in one word" --output-format stream-json --dangerously-skip-permissions 2>/dev/null | head -20
 ```
 Expected: 每行一个 JSON。记录事件类型与字段：`system/init`（含 `session_id`）、`assistant`（`message.content[]`，block `type` 为 `text`/`tool_use`）、`user`（`message.content[]` 的 `tool_result`）、`result`（含 `num_turns`）。**若字段名与下述代码出入，调整 `claude_events.py` 的字段映射即可（仅一处）。**
 
