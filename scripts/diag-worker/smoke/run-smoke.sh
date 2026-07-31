@@ -63,11 +63,22 @@ git -C "$DIAG_WORKDIR/repo" add -A
 git -C "$DIAG_WORKDIR/repo" commit -qm init
 SHA="$(git -C "$DIAG_WORKDIR/repo" rev-parse --short HEAD)"
 
-CLAIM='{"jobId":1,"phase":"diagnose","description":"crash on open gallery","bundle":{"logs":"PoLang:Gallery boom","gitSha":"'"$SHA"'","appVersion":"1.0.29","deviceModel":"X","androidVersion":"14"},"gitSha":"'"$SHA"'"}'
+CLAIM='{"jobId":1,"phase":"diagnose","description":"crash on open gallery","conversationSummary":"现象: 打开相册崩溃","bundle":{"logs":"PoLang:Gallery boom | sed & break \\ path \"q\"","gitSha":"'"$SHA"'","appVersion":"1.0.29","deviceModel":"X","androidVersion":"14"},"gitSha":"'"$SHA"'"}'
+# 注：JSON 内 \\ 解码为单个 \（jq -r 输出 boom | sed & break \ path "q"），勿写成 \ （非法 JSON escape）。
 bash "$WD/run-diagnose.sh" 1 "$CLAIM"
 
 grep -q '"status":"DIAGNOSED"' "$CAPTURE" && grep -q 'stub: NPE' "$CAPTURE" \
   || { echo "FAIL diagnose glue; captured:"; cat "$CAPTURE"; exit 1; }
 echo "ok diagnose glue -> $(cat "$CAPTURE")"
+
+# --- 2b) 模板注入安全（W3）：含 | & \ " 的日志原样进入 prompt，不被替换语法破坏 ---
+grep -qF 'boom | sed & break \ path "q"' "$DIAG_WORKDIR/last-prompt.txt" \
+  || { echo "FAIL template injection; prompt:"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
+echo "ok template injection safe"
+
+# --- 2c) conversationSummary 进入 diagnose prompt ---
+grep -qF '现象: 打开相册崩溃' "$DIAG_WORKDIR/last-prompt.txt" \
+  || { echo "FAIL conversationSummary missing in prompt"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
+echo "ok conversationSummary in diagnose prompt"
 
 echo "SMOKE PASS"

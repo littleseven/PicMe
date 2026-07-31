@@ -6,8 +6,9 @@ load_env
 
 jobId="$1"; claim="$2"
 gitSha="$(printf '%s' "$claim" | jq -r .gitSha)"
-rootCause="$(printf '%s' "$claim" | jq -r '.rootCause // ""' | json_escape)"
-suggested=""   # 诊断阶段未回传 suggestedFix，留空
+# W1：诊断阶段回传的 rootCause/suggestedFix 经 claim 传入（旧 server 无此字段 → 空串，同现状）
+export TPL_ROOT_CAUSE="$(printf '%s' "$claim" | jq -r '.rootCause // ""')"
+export TPL_SUGGESTED_FIX="$(printf '%s' "$claim" | jq -r '.suggestedFix // ""')"
 mode="$(printf '%s' "$claim" | jq -r '.fixMode // "push"')"
 branch="diag-fix/$jobId"
 wlog "job #$jobId FIX start (sha=$gitSha mode=$mode)"
@@ -17,7 +18,7 @@ git -C "$repo" remote set-url origin "$DIAG_REPO" 2>/dev/null || true
 git -C "$repo" fetch --quiet origin 2>/dev/null || true
 git -C "$repo" checkout --quiet -B "$branch" "$gitSha" 2>/dev/null || git -C "$repo" checkout --quiet -B "$branch" "$DIAG_BASE_BRANCH"
 
-prompt="$(sed -e "s|__ROOT_CAUSE__|$rootCause|g" -e "s|__SUGGESTED_FIX__|$suggested|g" "$SCRIPT_DIR/prompts/fix.md")"
+prompt="$(render_template "$SCRIPT_DIR/prompts/fix.md")"
 wlog "job #$jobId claude fix start (<= ${DIAG_PHASE_TIMEOUT}s)"
 # claude 必须在 repo 根跑（prompt 假设在 repo）；输出存档供诊断（不再 /dev/null）。
 claude_out="$DIAG_WORKDIR/claude-fix-$jobId.out"

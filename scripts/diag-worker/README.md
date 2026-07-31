@@ -9,7 +9,7 @@
    - `DIAG_SERVER`（默认 `https://api.polang.net`）
    - `DIAG_WORKER_TOKEN`（**必须与 server 的 `DIAG_WORKER_TOKEN` 一致**）
    - `DIAG_REPO`（公开仓库 URL；已配 git/SSH）
-3. 确认 PATH 上有 `claude`（Claude Code，GLM 后端）、`jq`、`curl`、`git`、`./gradlew`（修复自检用，可选）。
+3. 确认 PATH 上有 `claude`（Claude Code，GLM 后端）、`jq`、`curl`、`git`、`python3`（模板渲染用，云主机 Ubuntu 自带）、`./gradlew`（修复自检用，可选）。
 4. 运行：`bash poll.sh`（或用 tmux/systemd 保活，见下）。
 
 ## pr / auto 模式（gh 配置）
