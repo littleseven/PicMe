@@ -165,4 +165,56 @@ class DiagRouteTest {
         val resp = client.get("/diag/jobs/$jobId") { header(APP_TOKEN_HEADER, tokenB) }
         assertEquals(HttpStatusCode.NotFound, resp.status)
     }
+
+    @Test
+    fun `report stores conversationSummary and diagnose claim exposes it`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val report = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"crash on open","conversationSummary":"现象: 打开相册崩溃","bundle":{"gitSha":"s"}}""")
+        }
+        assertEquals(HttpStatusCode.OK, report.status)
+        val claim = client.get("/diag/work/jobs") { header(DIAG_WORKER_TOKEN_HEADER, workerToken) }.bodyAsText()
+        assertTrue(jsonField(claim, "conversationSummary").contains("打开相册崩溃"))
+    }
+
+    @Test
+    fun `suggestedFix from diagnose result reaches fix claim`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val report = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"crash","bundle":{"gitSha":"s"}}""")
+        }
+        val jobId = appJson.parseToJsonElement(report.bodyAsText()).jsonObject["jobId"]!!.jsonPrimitive.int
+        client.get("/diag/work/jobs") { header(DIAG_WORKER_TOKEN_HEADER, workerToken) }
+        client.post("/diag/work/jobs/$jobId/result") {
+            header(DIAG_WORKER_TOKEN_HEADER, workerToken)
+            contentType(ContentType.Application.Json)
+            setBody("""{"phase":"diagnose","status":"DIAGNOSED","rootCause":"rc","suspectFiles":"GalleryScreen.kt:88","suggestedFix":"null check before use"}""")
+        }
+        client.post("/diag/jobs/$jobId/confirm") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"mode":"push"}""")
+        }
+        val fixClaim = client.get("/diag/work/jobs") { header(DIAG_WORKER_TOKEN_HEADER, workerToken) }.bodyAsText()
+        assertEquals("fix", jsonField(fixClaim, "phase"))
+        assertEquals("null check before use", jsonField(fixClaim, "suggestedFix"))
+    }
+
+    @Test
+    fun `report without conversationSummary stays accepted (backward compatible)`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val report = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"old client report","bundle":{"gitSha":"s"}}""")
+        }
+        assertEquals(HttpStatusCode.OK, report.status)
+    }
 }

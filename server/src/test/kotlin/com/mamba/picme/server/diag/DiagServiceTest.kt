@@ -227,4 +227,23 @@ class DiagServiceTest {
         assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
         assertNull(row[DiagJobs.fixBranch])
     }
+
+    @Test
+    fun `createJob stores conversationSummary and claim returns it`() {
+        TestDb.init(DiagJobs)
+        runBlocking { DiagService.createJob("o", null, "d", "{}", "sha", conversationSummary = "现象: 打开相册崩溃") }
+        val claim = runBlocking { DiagService.claimNextJob() }!!
+        assertEquals("现象: 打开相册崩溃", claim.conversationSummary)
+    }
+
+    @Test
+    fun `submitDiagnosis stores suggestedFix and fix claim returns it`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.submitDiagnosis(id, "rc", DiagStatus.DIAGNOSED, null, suggestedFix = "null check") }
+        runBlocking { DiagService.confirmFix(id, "o", "push") }
+        val claim = runBlocking { DiagService.claimNextJob() }!!
+        assertEquals("fix", claim.phase)
+        assertEquals("null check", claim.suggestedFix)
+    }
 }

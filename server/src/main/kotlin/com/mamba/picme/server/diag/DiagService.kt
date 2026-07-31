@@ -36,6 +36,8 @@ data class DiagClaim(
     val gitSha: String,
     val rootCause: String?,   // 修复阶段带确认过的根因
     val fixMode: String?,     // 修复阶段带用户选的 mode
+    val conversationSummary: String?, // 诊断澄清对话摘要（诊断阶段用）
+    val suggestedFix: String?,        // 修复阶段带诊断给出的修复方向
 )
 
 object DiagService {
@@ -46,6 +48,7 @@ object DiagService {
         description: String,
         bundleJson: String,
         gitSha: String,
+        conversationSummary: String? = null,
     ): Int {
         val now = Instant.now().toEpochMilli()
         return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
@@ -53,6 +56,7 @@ object DiagService {
                 it[DiagJobs.ownerTokenHash] = ownerTokenHash
                 it[DiagJobs.deviceId] = deviceId
                 it[DiagJobs.description] = description
+                it[DiagJobs.conversationSummary] = conversationSummary
                 it[DiagJobs.bundleJson] = bundleJson
                 it[DiagJobs.gitSha] = gitSha
                 it[DiagJobs.status] = DiagStatus.QUEUED.name
@@ -107,12 +111,14 @@ object DiagService {
                 gitSha = row[DiagJobs.gitSha],
                 rootCause = row[DiagJobs.rootCause],
                 fixMode = row[DiagJobs.fixMode],
+                conversationSummary = row[DiagJobs.conversationSummary],
+                suggestedFix = row[DiagJobs.suggestedFix],
             )
         }
     }
 
-    /** 诊断阶段回传：成功→DIAGNOSED，失败→DIAGNOSE_FAILED。 */
-    suspend fun submitDiagnosis(id: Int, rootCause: String?, status: DiagStatus, error: String?) {
+    /** 诊断阶段回传：成功→DIAGNOSED，失败→DIAGNOSE_FAILED。suggestedFix 供 fix 阶段 prompt 使用。 */
+    suspend fun submitDiagnosis(id: Int, rootCause: String?, status: DiagStatus, error: String?, suggestedFix: String? = null) {
         require(status == DiagStatus.DIAGNOSED || status == DiagStatus.DIAGNOSE_FAILED) {
             "diagnose status must be DIAGNOSED or DIAGNOSE_FAILED"
         }
@@ -121,6 +127,7 @@ object DiagService {
             DiagJobs.update({ (DiagJobs.id eq id) and (DiagJobs.status eq DiagStatus.QUEUED.name) }) {
                 it[DiagJobs.status] = status.name
                 it[DiagJobs.rootCause] = rootCause
+                it[DiagJobs.suggestedFix] = suggestedFix
                 it[DiagJobs.workerLog] = error
                 it[DiagJobs.updatedAt] = now
             }
@@ -205,6 +212,7 @@ object DiagService {
             DiagJobs.update({ DiagJobs.id eq id }) {
                 it[DiagJobs.status] = DiagStatus.QUEUED.name
                 it[DiagJobs.rootCause] = null
+                it[DiagJobs.suggestedFix] = null
                 it[DiagJobs.fixMode] = null
                 it[DiagJobs.fixBranch] = null
                 it[DiagJobs.compareUrl] = null

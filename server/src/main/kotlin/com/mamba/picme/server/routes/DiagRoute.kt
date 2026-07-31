@@ -28,7 +28,11 @@ data class DiagBundle(
 )
 
 @Serializable
-data class DiagReportRequest(val description: String, val bundle: DiagBundle)
+data class DiagReportRequest(
+    val description: String,
+    val bundle: DiagBundle,
+    val conversationSummary: String? = null, // 可选：诊断澄清对话摘要（向后兼容旧客户端）
+)
 
 @Serializable
 data class DiagReportResponse(val jobId: Int, val status: String)
@@ -56,6 +60,8 @@ data class DiagClaimResponse(
     val gitSha: String,
     val rootCause: String? = null,
     val fixMode: String? = null,
+    val conversationSummary: String? = null,
+    val suggestedFix: String? = null,
 )
 
 @Serializable
@@ -67,6 +73,9 @@ data class DiagWorkResult(
     val compareUrl: String? = null,
     val tested: Boolean = false,
     val error: String? = null,
+    val suspectFiles: String? = null,   // diagnose：疑似文件（写入 worker_log）
+    val suggestedFix: String? = null,   // diagnose：修复方向（存 suggested_fix 列）
+    val log: String? = null,            // fix：changedFiles/summary 摘要（写入 worker_log）
 )
 
 fun Routing.diagRoute(workerToken: String) {
@@ -87,6 +96,7 @@ fun Routing.diagRoute(workerToken: String) {
             description = req.description,
             bundleJson = appJson.encodeToString(DiagBundle.serializer(), req.bundle),
             gitSha = req.bundle.gitSha,
+            conversationSummary = req.conversationSummary,
         )
         call.respond(DiagReportResponse(id, DiagStatus.QUEUED.name))
     }
@@ -155,6 +165,8 @@ fun Routing.diagRoute(workerToken: String) {
                 gitSha = claim.gitSha,
                 rootCause = claim.rootCause,
                 fixMode = claim.fixMode,
+                conversationSummary = claim.conversationSummary,
+                suggestedFix = claim.suggestedFix,
             ),
         )
     }
@@ -174,7 +186,11 @@ fun Routing.diagRoute(workerToken: String) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "bad_request", "message" to "bad diagnose status"))
                     return@post
                 }
-                DiagService.submitDiagnosis(id, r.rootCause, status, r.error)
+                DiagService.submitDiagnosis(
+                    id, r.rootCause, status,
+                    error = r.error ?: r.suspectFiles?.let { "suspectFiles: $it" },
+                    suggestedFix = r.suggestedFix,
+                )
             }
             "fix" -> {
                 val status = parseFixStatus(r.status)
@@ -182,7 +198,7 @@ fun Routing.diagRoute(workerToken: String) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("error" to "bad_request", "message" to "bad fix status"))
                     return@post
                 }
-                DiagService.submitFix(id, status, r.fixBranch, r.compareUrl, r.tested, r.error)
+                DiagService.submitFix(id, status, r.fixBranch, r.compareUrl, r.tested, r.log ?: r.error)
             }
             else -> {
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to "bad_request", "message" to "unknown phase"))
