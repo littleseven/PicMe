@@ -21,6 +21,7 @@ import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.accountDeletionRoute
 import com.mamba.picme.server.routes.guestDeletionRoute
 import com.mamba.picme.server.routes.authRoute
+import com.mamba.picme.server.routes.claudeChatRoute
 import com.mamba.picme.server.routes.diagRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
@@ -146,6 +147,11 @@ fun Application.module(config: AppConfig) {
     val httpClient = HttpClient(io.ktor.client.engine.cio.CIO) {
         engine { requestTimeout = 60_000 }
     }
+    // claude-tunnel 反代用：SSE 流式长连接（GLM 推理 + 多轮可能数分钟），不限 requestTimeout，
+    // 靠 KimiClaw 网关 CT_PHASE_TIMEOUT（300s）兜底。
+    val claudeClient = HttpClient(io.ktor.client.engine.cio.CIO) {
+        engine { requestTimeout = 0 }
+    }
 
     val llmProxy = LlmProxy(
         httpClient = httpClient,
@@ -172,6 +178,7 @@ fun Application.module(config: AppConfig) {
         accountDeletionRoute()
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
+        claudeChatRoute(claudeClient, rateLimiter)
         diagRoute(config.diagWorkerToken, diagReportLimiter)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
