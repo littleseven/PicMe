@@ -129,4 +129,51 @@ class DiagServiceTest {
         row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id2 }.single() }
         assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
     }
+
+    @Test
+    fun `activate resets ARCHIVED to QUEUED and clears produced fields but keeps createdAt`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        val created = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single()[DiagJobs.createdAt] }
+        // 造一个有完整产出的 ARCHIVED 行
+        transaction(Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.ARCHIVED.name
+                it[DiagJobs.rootCause] = "old rc"
+                it[DiagJobs.fixMode] = "push"
+                it[DiagJobs.fixBranch] = "diag-fix/old"
+                it[DiagJobs.compareUrl] = "https://x/compare"
+                it[DiagJobs.workerLog] = "old log"
+                it[DiagJobs.tested] = 1
+                it[DiagJobs.claimedAt] = 1_700_000_000_000L
+            }
+        }
+        val ok = runBlocking { DiagService.activate(id) }
+        assertTrue(ok)
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertEquals(DiagStatus.QUEUED.name, row[DiagJobs.status])
+        assertNull(row[DiagJobs.rootCause])
+        assertNull(row[DiagJobs.fixMode])
+        assertNull(row[DiagJobs.fixBranch])
+        assertNull(row[DiagJobs.compareUrl])
+        assertNull(row[DiagJobs.workerLog])
+        assertEquals(0, row[DiagJobs.tested])
+        assertNull(row[DiagJobs.claimedAt])
+        assertEquals(created, row[DiagJobs.createdAt]) // 创建时间保留不变
+    }
+
+    @Test
+    fun `activate rejects QUEUED and FIX_REQUESTED`() {
+        TestDb.init(DiagJobs)
+        val queued = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        assertFalse(runBlocking { DiagService.activate(queued) })
+        // FIX_REQUESTED：走完整流程到该态
+        val fixReq = runBlocking { DiagService.createJob("o2", null, "d2", "{}", "sha2") }
+        runBlocking { DiagService.submitDiagnosis(fixReq, "rc", DiagStatus.DIAGNOSED, null) }
+        runBlocking { DiagService.confirmFix(fixReq, "o2", "push") }
+        assertFalse(runBlocking { DiagService.activate(fixReq) })
+        // 状态未被改
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq fixReq }.single() }
+        assertEquals(DiagStatus.FIX_REQUESTED.name, row[DiagJobs.status])
+    }
 }

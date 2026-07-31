@@ -186,4 +186,33 @@ object DiagService {
             }
         }
     }
+
+    /**
+     * 管理后台「激活」：把停摆的任务（ARCHIVED / 失败 / 超时 / 已修复 / 待确认 等）
+     * 重置为 QUEUED 并清空已有产出，让 worker 从头重跑诊断。
+     * 拒绝 QUEUED（本就在队列）与 FIX_REQUESTED（worker 正在修，避免 race）。返回是否转移成功。
+     */
+    suspend fun activate(id: Int): Boolean {
+        val now = Instant.now().toEpochMilli()
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = DiagJobs.selectAll().where { DiagJobs.id eq id }.firstOrNull()
+                ?: return@newSuspendedTransaction false
+            val current = DiagStatus.valueOf(row[DiagJobs.status])
+            if (current == DiagStatus.QUEUED || current == DiagStatus.FIX_REQUESTED) {
+                return@newSuspendedTransaction false
+            }
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.QUEUED.name
+                it[DiagJobs.rootCause] = null
+                it[DiagJobs.fixMode] = null
+                it[DiagJobs.fixBranch] = null
+                it[DiagJobs.compareUrl] = null
+                it[DiagJobs.workerLog] = null
+                it[DiagJobs.tested] = 0
+                it[DiagJobs.claimedAt] = null
+                it[DiagJobs.updatedAt] = now
+            }
+            true
+        }
+    }
 }
