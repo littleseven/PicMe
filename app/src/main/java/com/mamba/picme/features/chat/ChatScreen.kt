@@ -495,7 +495,7 @@ fun ChatScreen(
                                             )
                                         }
                                     },
-                                    onDiagConfirm = { _, mode -> viewModel.confirmDiagnosis(mode) }
+                                    onDiagConfirm = { jobId, mode -> viewModel.confirmDiagnosis(jobId, mode) }
                                 )
                             }
                         }

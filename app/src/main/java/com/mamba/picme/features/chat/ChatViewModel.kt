@@ -208,10 +208,21 @@ class ChatViewModel(
     private val diagClient = dependencies.diagClient
 
     private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
-    private var activeDiag: ActiveDiag? = null
 
-    /** UI「诊断」icon 入口：把输入框文本作为问题描述发起远程诊断。 */
-    fun submitDiagnosis(description: String) {
+    /** jobId → 进行中的诊断（支持多次诊断并存；确认按钮绑定各自气泡的 jobId，A1）。 */
+    private val activeDiags = mutableMapOf<Int, ActiveDiag>()
+
+    /** 诊断/修复轮询总超时（A2，默认 30 分钟）。 */
+    @VisibleForTesting
+    internal var diagPollTimeoutMs: Long = 30 * 60_000L
+
+    @VisibleForTesting
+    internal fun trackDiagForTesting(token: String, jobId: Int, msgId: String) {
+        activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
+    }
+
+    /** UI「诊断」入口：把问题描述（+ 可选澄清对话摘要）作为远程诊断上报。 */
+    fun submitDiagnosis(description: String, conversationSummary: String? = null) {
         if (description.isBlank()) return
         // 用户气泡（诊断标记）：与普通用户消息同形态，前缀 🔍 表明这是一次诊断请求
         _messages.update { msgs ->
@@ -235,18 +246,22 @@ class ChatViewModel(
                 androidVersion = Build.VERSION.RELEASE,
             )
             upsertDiagMessage(msgId, context.getString(R.string.diag_submitted))
-            val jobId = diagClient.reportDiagnosis(token, description, bundle).getOrElse { e ->
+            val jobId = diagClient.reportDiagnosis(token, description, bundle, conversationSummary).getOrElse { e ->
                 upsertDiagMessage(msgId, context.getString(R.string.diag_report_failed, e.message ?: ""))
                 return@launch
             }
-            activeDiag = ActiveDiag(token, jobId, msgId)
+            activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
             pollDiagnose(token, jobId, msgId)
         }
     }
 
-    private suspend fun pollDiagnose(token: String, jobId: Int, msgId: String) {
+    @VisibleForTesting
+    internal suspend fun pollDiagnose(token: String, jobId: Int, msgId: String) {
         var delayMs = 2000L
-        while (currentCoroutineContext().isActive) {
+        val startMs = System.currentTimeMillis()
+        while (currentCoroutineContext().isActive &&
+            System.currentTimeMillis() - startMs < diagPollTimeoutMs
+        ) {
             delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(15000)
             val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
             when (st.status) {
@@ -260,16 +275,29 @@ class ChatViewModel(
                     return
                 }
                 "DIAGNOSE_FAILED" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_diagnose_failed, st.rootCause ?: ""))
+                    upsertDiagMessage(
+                        msgId,
+                        context.getString(R.string.diag_diagnose_failed, st.error ?: st.rootCause ?: ""),
+                    )
+                    activeDiags.remove(jobId)
                     return
                 }
+                "TIMED_OUT" -> {
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_job_timed_out))
+                    activeDiags.remove(jobId)
+                    return
+                }
+                // 其余（含未来新增的非终态）：继续轮询，由总超时兜底
             }
         }
+        // A2：总超时 → 写气泡提示并退出协程，不再无限空转
+        upsertDiagMessage(msgId, context.getString(R.string.diag_poll_timeout))
+        activeDiags.remove(jobId)
     }
 
-    /** 根因气泡内嵌按钮选定 mode（push/pr）后调用。 */
-    fun confirmDiagnosis(mode: String) {
-        val ad = activeDiag ?: return
+    /** 根因气泡内嵌按钮选定 mode（push/pr/auto）后调用；作用于按钮所在气泡的 job（A1）。 */
+    fun confirmDiagnosis(jobId: Int, mode: String) {
+        val ad = activeDiags[jobId] ?: return
         viewModelScope.launch {
             val result = diagClient.confirmFix(ad.token, ad.jobId, mode)
             if (result.isFailure) {
@@ -278,16 +306,26 @@ class ChatViewModel(
             }
             upsertDiagMessage(
                 ad.msgId,
-                context.getString(if (mode == "pr") R.string.diag_fixing_pr else R.string.diag_fixing_push),
+                context.getString(
+                    when (mode) {
+                        "pr" -> R.string.diag_fixing_pr
+                        "auto" -> R.string.diag_fixing_auto
+                        else -> R.string.diag_fixing_push
+                    }
+                ),
                 diagConfirm = DiagConfirmUi(ad.jobId, pending = false),
             )
             pollFix(ad.token, ad.jobId, ad.msgId)
         }
     }
 
-    private suspend fun pollFix(token: String, jobId: Int, msgId: String) {
+    @VisibleForTesting
+    internal suspend fun pollFix(token: String, jobId: Int, msgId: String) {
         var delayMs = 3000L
-        while (currentCoroutineContext().isActive) {
+        val startMs = System.currentTimeMillis()
+        while (currentCoroutineContext().isActive &&
+            System.currentTimeMillis() - startMs < diagPollTimeoutMs
+        ) {
             delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(20000)
             val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
             when (st.status) {
@@ -298,16 +336,23 @@ class ChatViewModel(
                     val base = context.getString(R.string.diag_fixed, st.fixBranch ?: "-", verified)
                     val link = (st.compareUrl ?: st.fixBranch)?.let { "\n\n$it" } ?: ""
                     upsertDiagMessage(msgId, base + link)
-                    activeDiag = null
+                    activeDiags.remove(jobId)
                     return
                 }
                 "FIX_FAILED" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_fix_failed, st.rootCause ?: ""))
-                    activeDiag = null
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_fix_failed, st.error ?: st.rootCause ?: ""))
+                    activeDiags.remove(jobId)
+                    return
+                }
+                "TIMED_OUT" -> {
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_job_timed_out))
+                    activeDiags.remove(jobId)
                     return
                 }
             }
         }
+        upsertDiagMessage(msgId, context.getString(R.string.diag_poll_timeout))
+        activeDiags.remove(jobId)
     }
 
     /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。diagConfirm 非 null 时一并写入。 */
