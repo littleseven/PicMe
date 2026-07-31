@@ -98,4 +98,13 @@ class DiagServiceTest {
         assertEquals("rc", claim.rootCause)
         assertEquals("push", claim.fixMode)
     }
+
+    @Test
+    fun `deleteById physically removes the job row`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.deleteById(id) }
+        val count = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.count() }
+        assertEquals(0L, count)
+    }
 }

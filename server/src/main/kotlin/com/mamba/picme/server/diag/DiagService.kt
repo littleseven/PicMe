@@ -4,6 +4,8 @@ import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.Db
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
@@ -164,6 +166,13 @@ object DiagService {
                 it[DiagJobs.workerLog] = error
                 it[DiagJobs.updatedAt] = now
             }
+        }
+    }
+
+    /** 管理后台「删除」：物理删除任务记录（不可恢复）。 */
+    suspend fun deleteById(id: Int) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            DiagJobs.deleteWhere { with(SqlExpressionBuilder) { DiagJobs.id eq id } }
         }
     }
 }
