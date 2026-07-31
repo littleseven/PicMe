@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +56,7 @@ import com.mamba.picme.domain.person.RelationDisplayItem
 import com.mamba.picme.domain.person.RelationPredicate
 import com.mamba.picme.features.common.PersonRelationPicker
 import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.features.person.PersonCover
 
 /**
@@ -109,19 +109,13 @@ fun PersonInfoScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                centered = true,
                 title = {
                     Text(
                         text = stringResource(R.string.person_cluster_id, person.personId)
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
+                    AppTopBarNavBack(onClick = onNavigateBack)
                 },
                 actions = {
                     // 不设置：清空关系与自定义称呼

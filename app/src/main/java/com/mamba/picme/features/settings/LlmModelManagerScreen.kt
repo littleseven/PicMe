@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -68,7 +67,6 @@ import androidx.compose.material3.Surface
 
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,6 +93,8 @@ import com.mamba.picme.R
 import com.mamba.picme.data.download.DownloadStatus
 import com.mamba.picme.data.download.ModelConfig
 import com.mamba.picme.domain.model.ModelCategory
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import androidx.compose.ui.text.font.FontWeight
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -171,16 +171,9 @@ fun ModelCenterScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = { Text(stringResource(R.string.model_center)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                }
+                navigationIcon = { AppTopBarNavBack(onClick = onNavigateBack) }
             )
         }
     ) { innerPadding ->

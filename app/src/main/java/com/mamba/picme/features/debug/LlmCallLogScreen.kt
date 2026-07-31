@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -41,7 +40,6 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,6 +63,9 @@ import com.mamba.picme.data.local.llmlog.JsRunLogEntity
 import com.mamba.picme.data.local.llmlog.LlmCallLogEntity
 import com.mamba.picme.data.local.llmlog.LlmLogDatabase
 import com.mamba.picme.data.local.llmlog.ToolCallLogEntity
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarAction
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -91,29 +92,31 @@ fun LlmCallLogScreen(onNavigateBack: () -> Unit) {
     val inDetail = anchor != null
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = {
                     Text(if (inDetail) stringResource(R.string.llm_call_log_detail) else stringResource(R.string.llm_call_log))
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
+                    AppTopBarNavBack(onClick = {
                         if (anchor != null) {
                             detailAnchor = null
                         } else {
                             onNavigateBack()
                         }
-                    }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
-                    }
+                    })
                 },
                 actions = {
-                    IconButton(onClick = { vm.refresh() }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = null)
-                    }
+                    AppTopBarAction(
+                        icon = Icons.Rounded.Refresh,
+                        contentDescription = stringResource(R.string.refresh),
+                        onClick = { vm.refresh() }
+                    )
                     if (!inDetail) {
-                        IconButton(onClick = { showClearDialog = true }) {
-                            Icon(Icons.Rounded.DeleteSweep, contentDescription = null)
-                        }
+                        AppTopBarAction(
+                            icon = Icons.Rounded.DeleteSweep,
+                            contentDescription = stringResource(R.string.clear),
+                            onClick = { showClearDialog = true }
+                        )
                     }
                 }
             )

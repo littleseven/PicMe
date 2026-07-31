@@ -659,6 +659,7 @@
     <string name="yes">是</string>
     <string name="no">否</string>
     <string name="clear">清除</string>
+    <string name="refresh">重新整理</string>
     <string name="remove">移除</string>
 
     <!-- 設定分類 -->

@@ -11,14 +11,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.FilterListOff
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -31,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -40,6 +38,8 @@ import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarAction
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.features.person.components.PersonInfoScreen
 import com.mamba.picme.features.person.components.PersonListItem
 import com.mamba.picme.service.tag.TagGenerationService
@@ -114,67 +114,58 @@ fun PersonScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
+                    AppTopBarNavBack(onClick = onNavigateBack)
                 },
                 actions = {
                     // 显示全部 / 隐藏单张未命名单人分组
-                    IconButton(
-                        onClick = { viewModel.toggleShowAll() },
-                    ) {
-                        Icon(
-                            imageVector = if (showAll) Icons.Rounded.FilterListOff else Icons.Rounded.FilterList,
-                            contentDescription = stringResource(
-                                if (showAll) R.string.people_filter_hide_singletons else R.string.people_filter_show_all
-                            )
-                        )
-                    }
+                    AppTopBarAction(
+                        icon = if (showAll) Icons.Rounded.FilterListOff else Icons.Rounded.FilterList,
+                        contentDescription = stringResource(
+                            if (showAll) R.string.people_filter_hide_singletons else R.string.people_filter_show_all
+                        ),
+                        onClick = { viewModel.toggleShowAll() }
+                    )
 
                     // 手动触发：跑一轮（300 张）eDifFIQA 打分 + 刷新封面，完成后 reload 看效果
-                    IconButton(
-                        onClick = {
-                            if (scoring) return@IconButton
-                            scope.launch {
-                                scoring = true
-                                try {
-                                    val app = context.applicationContext as? PoLangApplication
-                                    app?.container?.aestheticScoreWorker?.runOnce(300)
-                                    viewModel.reconcileAndLoad()
-                                } finally {
-                                    scoring = false
-                                }
-                            }
-                        },
-                        enabled = !scoring
-                    ) {
-                        if (scoring) {
+                    if (scoring) {
+                        Box(
+                            modifier = Modifier.size(36.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
-                        } else {
-                            Icon(
-                                Icons.Rounded.AutoAwesome,
-                                contentDescription = stringResource(R.string.people_rescore)
-                            )
                         }
-                    }
-                    // 重新聚类：仅重提已有人脸 embedding（对齐路径）+ 全量重聚类（保名），后台 FGS 运行
-                    IconButton(onClick = {
-                        context.startForegroundService(TagGenerationService.intentReembedFaces(context))
-                        scope.launch {
-                            snackbarHostState.showSnackbar(context.getString(R.string.people_recluster_started))
-                        }
-                    }) {
-                        Icon(
-                            Icons.Rounded.Autorenew,
-                            contentDescription = stringResource(R.string.people_recluster)
+                    } else {
+                        AppTopBarAction(
+                            icon = Icons.Rounded.AutoAwesome,
+                            contentDescription = stringResource(R.string.people_rescore),
+                            onClick = {
+                                scope.launch {
+                                    scoring = true
+                                    try {
+                                        val app = context.applicationContext as? PoLangApplication
+                                        app?.container?.aestheticScoreWorker?.runOnce(300)
+                                        viewModel.reconcileAndLoad()
+                                    } finally {
+                                        scoring = false
+                                    }
+                                }
+                            }
                         )
                     }
+                    // 重新聚类：仅重提已有人脸 embedding（对齐路径）+ 全量重聚类（保名），后台 FGS 运行
+                    AppTopBarAction(
+                        icon = Icons.Rounded.Autorenew,
+                        contentDescription = stringResource(R.string.people_recluster),
+                        onClick = {
+                            context.startForegroundService(TagGenerationService.intentReembedFaces(context))
+                            scope.launch {
+                                snackbarHostState.showSnackbar(context.getString(R.string.people_recluster_started))
+                            }
+                        }
+                    )
                 }
             )
         },

@@ -681,6 +681,7 @@
     <string name="yes">是</string>
     <string name="no">否</string>
     <string name="clear">清除</string>
+    <string name="refresh">刷新</string>
     <string name="remove">移除</string>
 
     <!-- 设置分类 -->

@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
@@ -40,12 +39,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +86,8 @@ import com.mamba.picme.domain.model.ThemeMode
 import com.mamba.picme.domain.tag.TaggerModelSelector
 import com.mamba.picme.domain.model.VoiceCommandMode
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.features.backuprestore.BackupRestoreActivity
 import com.mamba.picme.features.settings.capability.SettingsCapability
 import com.mamba.picme.service.chat.FloatingChatBubbleService
@@ -403,16 +402,9 @@ private fun SettingsContent(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = { Text(stringResource(titleRes)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                }
+                navigationIcon = { AppTopBarNavBack(onClick = onNavigateBack) }
             )
         }
     ) { innerPadding ->

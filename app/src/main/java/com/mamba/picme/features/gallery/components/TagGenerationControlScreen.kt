@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +28,8 @@ import com.mamba.picme.domain.tag.TagCategory
 import com.mamba.picme.domain.tag.scan.ScanSessionState
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 import com.mamba.picme.service.tag.TagGenerationService
 import com.mamba.picme.util.permission.BackgroundScanGuard
 import kotlinx.coroutines.delay
@@ -173,13 +174,9 @@ fun TagGenerationControlScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("TAG 生成控制") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                }
+            AppTopBar(
+                title = { Text(stringResource(R.string.tag_control_title)) },
+                navigationIcon = { AppTopBarNavBack(onClick = onNavigateBack) }
             )
         }
     ) { padding ->

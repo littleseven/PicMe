@@ -4,10 +4,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.mamba.picme.R
 import com.mamba.picme.features.common.SearchField
 import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarNavBack
 
 /**
  * 搜索模式下的顶部栏（统一走 [AppTopBar]：48dp、内置刘海避让）。
@@ -39,12 +36,10 @@ fun SearchTopBar(
     AppTopBar(
         modifier = modifier,
         navigationIcon = {
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.close)
-                )
-            }
+            AppTopBarNavBack(
+                onClick = onClose,
+                contentDescription = stringResource(R.string.close)
+            )
         },
         title = {
             Row(
@@ -54,13 +49,13 @@ fun SearchTopBar(
                 SearchField(
                     query = searchQuery,
                     onQueryChange = onQueryChange,
-                    placeholder = "搜索照片，如 猫、去年夏天、上海...",
+                    placeholder = stringResource(R.string.gallery_search_hint),
                     modifier = Modifier.weight(1f)
                 )
                 if (resultCount != null) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "${resultCount} 张",
+                        text = stringResource(R.string.people_photos_count, resultCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         fontSize = 12.sp
