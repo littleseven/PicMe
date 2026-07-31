@@ -8,6 +8,7 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
+import com.mamba.picme.server.diag.DiagService
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
@@ -258,6 +259,28 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
                 return@get
             }
             call.respondText(AdminViews.diagDetailPage(row), ContentType.Text.Html)
+        }
+
+        // 诊断任务管理操作（删除 / 废弃 / 激活）：admin cookie 鉴权，302 回列表。
+        post("/diag/{id}/delete") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) DiagService.deleteById(id)
+            call.respondRedirect("/admin/diag")
+        }
+
+        post("/diag/{id}/archive") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) DiagService.archive(id)
+            call.respondRedirect("/admin/diag")
+        }
+
+        post("/diag/{id}/activate") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id != null) DiagService.activate(id)
+            call.respondRedirect("/admin/diag")
         }
 
         get("/settings") {

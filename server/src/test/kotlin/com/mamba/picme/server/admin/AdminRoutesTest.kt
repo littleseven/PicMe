@@ -9,6 +9,7 @@ import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.db.ServerSettings
+import com.mamba.picme.server.diag.DiagStatus
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.util.TestDb
 import io.ktor.client.HttpClient
@@ -31,6 +32,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -364,6 +366,46 @@ class AdminRoutesTest {
         assertTrue(!auto999.contains("setInterval"))
     }
 
+    @Test
+    fun `diag admin actions archive activate delete transition and redirect`() = testApplication {
+        TestDb.init(DiagJobs)
+        diagInsert(1, "QUEUED", "打开相册闪退", "sha1", 1_700_000_000_000L)
+        diagInsert(
+            2, "FIXED", "搜索无结果", "sha2", 1_700_000_001_000L,
+            fixBranch = "diag-fix/2", rootCause = "NPE X.kt:9", tested = true, claimedAt = 1_700_000_000_500L,
+        )
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        // 废弃 job1（QUEUED → ARCHIVED）
+        val arch = c.post("/admin/diag/1/archive") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, arch.status)
+        assertEquals("/admin/diag", arch.headers[HttpHeaders.Location])
+        assertEquals(
+            DiagStatus.ARCHIVED.name,
+            transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq 1 }.single()[DiagJobs.status] },
+        )
+
+        // 激活 job2（FIXED → QUEUED，清空产出）
+        val act = c.post("/admin/diag/2/activate") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, act.status)
+        val row2 = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq 2 }.single() }
+        assertEquals(DiagStatus.QUEUED.name, row2[DiagJobs.status])
+        assertNull(row2[DiagJobs.fixBranch])
+
+        // 删除 job1（物理删除）
+        val del = c.post("/admin/diag/1/delete") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        assertEquals(HttpStatusCode.Found, del.status)
+        assertEquals("/admin/diag", del.headers[HttpHeaders.Location])
+        val gone = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq 1 }.count() }
+        assertEquals(0L, gone)
+
+        // 无 cookie → 跳登录
+        val noauth = c.post("/admin/diag/2/archive")
+        assertEquals(HttpStatusCode.Found, noauth.status)
+        assertEquals("/admin/login", noauth.headers[HttpHeaders.Location])
+    }
+
     private fun diagInsert(
         id: Int,
         status: String,
@@ -375,6 +417,7 @@ class AdminRoutesTest {
         tested: Boolean = false,
         claimedAt: Long? = null,
         deviceId: String? = "dev-aaaa-bbbb-1234",
+        workerLog: String? = null,
     ) {
         transaction(Db.instance) {
             DiagJobs.insert {
@@ -391,6 +434,7 @@ class AdminRoutesTest {
                 it[DiagJobs.createdAt] = createdAt
                 it[DiagJobs.updatedAt] = createdAt
                 it[DiagJobs.claimedAt] = claimedAt
+                it[DiagJobs.workerLog] = workerLog
             }
         }
     }
