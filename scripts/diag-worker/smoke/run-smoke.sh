@@ -96,4 +96,9 @@ grep -qF 'null check' "$DIAG_WORKDIR/last-prompt.txt" \
   || { echo "FAIL suggestedFix not in fix prompt"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
 echo "ok suggestedFix in fix prompt"
 
+# --- 3b) W2：模型未产生改动 → FIX_FAILED（不产生空 commit/空分支）---
+grep -q '"status":"FIX_FAILED"' "$CAPTURE" && grep -q '模型未产生修改' "$CAPTURE" \
+  || { echo "FAIL empty-change should be FIX_FAILED; captured:"; cat "$CAPTURE"; exit 1; }
+echo "ok fix empty-change -> FIX_FAILED"
+
 echo "SMOKE PASS"
