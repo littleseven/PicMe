@@ -208,6 +208,114 @@ class ChatViewModel(
     // ── 远程诊断（chat 触发 → 云主机 Claude Code worker）─────────────────
     private val diagClient = dependencies.diagClient
 
+    // ── 诊断澄清对话（§2：diag toggle → 独立会话多轮 LLM 澄清 → [DIAG_READY] 手动提交）──
+
+    private val _diagMode = MutableStateFlow(false)
+    val diagMode: StateFlow<Boolean> = _diagMode.asStateFlow()
+
+    private var diagChatSession: DiagChatSession? = null
+
+    /** 诊断会话首条用户消息（作为上报 description；澄清摘要走 conversationSummary）。 */
+    private var diagFirstUserText: String? = null
+
+    /** msgId → 「提交诊断」按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填）。 */
+    private val diagSubmitOverrides = mutableMapOf<String, DiagSubmitUi>()
+
+    /** 进入诊断模式：自动新建独立会话（上下文纯净，摘要提取干净）。 */
+    fun enterDiagMode() {
+        if (_diagMode.value) return
+        _diagMode.value = true
+        diagChatSession = DiagChatSession(effectiveRemoteConfig(selectedModel))
+        diagFirstUserText = null
+        diagSubmitOverrides.clear()
+        newSession()
+    }
+
+    fun exitDiagMode() {
+        _diagMode.value = false
+        diagChatSession = null
+    }
+
+    /**
+     * 诊断模式下的用户消息：走 [DiagChatSession] 多轮流式澄清对话（而非一次性上报）。
+     * LLM 输出 [DIAG_READY] 时，气泡内嵌「提交诊断」按钮（提交永远是用户手动动作，§2.2）。
+     */
+    fun sendDiagMessage(text: String) {
+        if (text.isBlank()) return
+        val session = diagChatSession ?: DiagChatSession(effectiveRemoteConfig(selectedModel)).also {
+            diagChatSession = it
+            _diagMode.value = true
+        }
+        viewModelScope.launch {
+            val sessionId = _currentSessionId.value
+            try {
+                ensureSessionExists(sessionId)
+                chatMessageDao.insertMessage(
+                    ChatMessageEntity(
+                        id = UUID.randomUUID().toString(),
+                        sessionId = sessionId,
+                        type = "user_text",
+                        content = text,
+                        modelUsed = null,
+                    )
+                )
+                chatSessionDao.touchSession(sessionId)
+                if (diagFirstUserText == null) diagFirstUserText = text
+
+                _isProcessing.value = true
+                val streamingId = "streaming_${System.currentTimeMillis()}"
+                _streamingMessage.value = ChatMessageUi(
+                    id = streamingId,
+                    type = ChatMessageType.AGENT_TEXT,
+                    content = STREAMING_THINKING_HINT,
+                    modelUsed = currentModelLabel(),
+                    isStreaming = true,
+                    isThinking = true,
+                )
+                val result = session.chat(text) { snapshot ->
+                    _streamingMessage.update { cur -> cur?.copy(content = snapshot, isThinking = false) }
+                }
+                _streamingMessage.value = null
+                result.fold(
+                    onSuccess = { reply ->
+                        val parsed = DiagPrompts.parseDiagReply(reply)
+                        val entity = ChatMessageEntity(
+                            id = UUID.randomUUID().toString(),
+                            sessionId = sessionId,
+                            type = "agent_text",
+                            content = parsed.displayText,
+                            modelUsed = currentModelLabel(),
+                        )
+                        chatMessageDao.insertMessage(entity)
+                        chatSessionDao.touchSession(sessionId)
+                        if (parsed.ready) {
+                            val submit = DiagSubmitUi(
+                                description = diagFirstUserText ?: text,
+                                summary = parsed.summary,
+                            )
+                            diagSubmitOverrides[entity.id] = submit
+                            _messages.update { msgs ->
+                                msgs.map { m -> if (m.id == entity.id) m.copy(diagSubmit = submit) else m }
+                            }
+                        }
+                    },
+                    onFailure = { e ->
+                        insertAgentMessage(
+                            sessionId,
+                            context.getString(R.string.chat_inference_error, e.message ?: "unknown"),
+                            "error",
+                        )
+                    },
+                )
+            } catch (e: Exception) {
+                Logger.e(TAG, "sendDiagMessage failed", e)
+                _streamingMessage.value = null
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
     private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
 
     /** jobId → 进行中的诊断（支持多次诊断并存；确认按钮绑定各自气泡的 jobId，A1）。 */
@@ -703,7 +811,11 @@ class ChatViewModel(
                         chatMessageDao.getMessagesBySession(sessionId)
                     }
                     .collect { entities ->
-                        _messages.value = entities.map { it.toUiModel() }
+                        _messages.value = entities.map { e ->
+                            val ui = e.toUiModel()
+                            val submit = diagSubmitOverrides[ui.id]
+                            if (submit != null) ui.copy(diagSubmit = submit) else ui
+                        }
                     }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to load messages", e)
