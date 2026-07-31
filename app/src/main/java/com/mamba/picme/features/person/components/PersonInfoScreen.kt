@@ -2,6 +2,7 @@ package com.mamba.picme.features.person.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -110,6 +111,7 @@ fun PersonInfoScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
+                modifier = Modifier.displayCutoutPadding(),
                 title = {
                     Text(
                         text = stringResource(R.string.person_cluster_id, person.personId),
