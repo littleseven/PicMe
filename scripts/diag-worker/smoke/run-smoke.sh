@@ -48,6 +48,11 @@ expected="https://github.com/guoshuai/langchain4android/compare/main...diag-fix/
 [ "$cu" = "$expected" ] || { echo "FAIL compare_url: '$cu'"; exit 1; }
 echo "ok compare_url"
 
+# --- 1b) gh_auth：无 GITHUB_TOKEN 应返回 1（push 模式不需要 gh）---
+unset GITHUB_TOKEN
+if gh_auth; then echo "FAIL gh_auth: should fail without GITHUB_TOKEN"; exit 1; fi
+echo "ok gh_auth no-token fails"
+
 # --- 2) diagnose 胶水：本地仓 + stub claude → 解析 → report_result ---
 mkdir -p "$DIAG_WORKDIR/repo"
 git -C "$DIAG_WORKDIR/repo" init -q

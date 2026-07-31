@@ -34,8 +34,45 @@ if ! run_with_timeout 120 git -C "$repo" push --quiet origin "$branch" >/dev/nul
   report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"error\":\"push failed\"}"; exit 0
 fi
 
-extra=""
-[ "$mode" = "pr" ] && extra=",\"compareUrl\":\"$(compare_url "$branch")\""
 status="FIXED"; [ "$tested" = "false" ] && status="FIXED_UNVERIFIED"
-wlog "job #$jobId FIX done status=$status branch=$branch"
-report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested$extra}"
+case "$mode" in
+  push)
+    wlog "job #$jobId mode=push (保守：仅推分支)"
+    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    ;;
+  pr)
+    wlog "job #$jobId mode=pr (待审：建真 PR)"
+    if ! gh_auth; then
+      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"fixBranch\":\"$branch\",\"error\":\"gh not configured (GITHUB_TOKEN missing or gh absent)\"}"; exit 0
+    fi
+    pr_url="$(cd "$repo" && gh pr create --base "$DIAG_BASE_BRANCH" --head "$branch" \
+      --title "fix(diag): 远程诊断自动修复 job #$jobId" \
+      --body "由远程诊断 worker 自动修复。根因见 server /admin/diag job #$jobId。" 2>/dev/null)"
+    if [ -n "$pr_url" ]; then
+      wlog "job #$jobId PR created: $pr_url"
+      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested,\"compareUrl\":\"$(printf '%s' "$pr_url" | json_escape)\"}"
+    else
+      wlog "job #$jobId gh pr create FAILED"
+      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"fixBranch\":\"$branch\",\"error\":\"gh pr create failed\"}"
+    fi
+    ;;
+  auto)
+    wlog "job #$jobId mode=auto (自动：自检过则 ff-merge main)"
+    if [ "$tested" = "true" ] && \
+       git -C "$repo" fetch --quiet origin "$DIAG_BASE_BRANCH" && \
+       git -C "$repo" checkout --quiet -B "$DIAG_BASE_BRANCH" "origin/$DIAG_BASE_BRANCH" && \
+       git -C "$repo" merge --ff-only "$branch" && \
+       run_with_timeout 120 git -C "$repo" push --quiet origin "$DIAG_BASE_BRANCH"; then
+      wlog "job #$jobId auto-merged to $DIAG_BASE_BRANCH"
+      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED\",\"fixBranch\":\"$DIAG_BASE_BRANCH\",\"tested\":true}"
+    else
+      wlog "job #$jobId auto-merge aborted (自检失败/ff冲突/push失败)，留 $branch 分支"
+      git -C "$repo" checkout --quiet "$branch" 2>/dev/null || true
+      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED_UNVERIFIED\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    fi
+    ;;
+  *)
+    wlog "job #$jobId unknown mode=$mode，按 push 处理"
+    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    ;;
+esac

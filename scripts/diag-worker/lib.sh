@@ -23,6 +23,13 @@ load_env() {
   WORKER_LOG="$DIAG_WORKDIR/worker.log"
 }
 
+# 用 GITHUB_TOKEN 给 gh 鉴权（pr/auto 需要）。未配 token/无 gh → 返回 1（push 模式不需要）。
+gh_auth() {
+  [ -n "${GITHUB_TOKEN:-}" ] || return 1
+  command -v gh >/dev/null 2>&1 || return 1
+  printf '%s' "$GITHUB_TOKEN" | gh auth login --with-token >/dev/null 2>&1
+}
+
 # 领一个任务；stdout 输出 claim JSON（空则返回 1）。
 claim_next() {
   local body
