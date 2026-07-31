@@ -1019,4 +1019,10 @@
     <string name="diag_verified_passed">self-check passed</string>
     <string name="diag_verified_unverified">self-check not run</string>
     <string name="diag_fix_failed">❌ Fix failed: %1$s</string>
+    <string name="diag_sheet_title">Remote diagnosis · Root cause</string>
+    <string name="diag_sheet_cancel">Cancel</string>
+    <string name="diag_fixing_auto">🔧 Fixing (auto-merge)…</string>
+    <string name="diag_submit_report">Submit diagnosis</string>
+    <string name="diag_poll_timeout">⏱ Timed out waiting for a result (30 min). Please start a new diagnosis.</string>
+    <string name="diag_job_timed_out">⏱ The diagnosis job timed out on the server. Please start a new one.</string>
 </resources>
