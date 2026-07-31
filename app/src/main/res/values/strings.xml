@@ -1004,14 +1004,12 @@
     <string name="tag_pass_row_content">Content tags</string>
     <!-- Remote diagnosis (chat-UI) -->
     <string name="diag_icon_desc">Diagnose</string>
-    <string name="diag_sheet_title">Remote diagnosis · root cause</string>
     <string name="diag_sheet_push">Push fix branch</string>
     <string name="diag_sheet_pr">Fix &amp; open PR</string>
-    <string name="diag_sheet_cancel">Cancel</string>
     <string name="diag_login_required">Remote diagnosis requires signing in first (Settings → Account).</string>
     <string name="diag_submitted">🔍 Diagnosis request submitted; the cloud host is analyzing…</string>
     <string name="diag_report_failed">❌ Failed to report: %1$s</string>
-    <string name="diag_root_cause">🔍 **Root cause**\n\n%1$s\n\n_Choose a fix delivery in the dialog._</string>
+    <string name="diag_root_cause">🔍 **Root cause**\n\n%1$s</string>
     <string name="diag_diagnose_failed">❌ Diagnosis failed: %1$s</string>
     <string name="diag_fixing_pr">🔧 Fixing (opening PR)…</string>
     <string name="diag_fixing_push">🔧 Fixing (pushing branch)…</string>
