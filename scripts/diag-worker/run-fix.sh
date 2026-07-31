@@ -19,15 +19,24 @@ git -C "$repo" checkout --quiet -B "$branch" "$gitSha" 2>/dev/null || git -C "$r
 
 prompt="$(sed -e "s|__ROOT_CAUSE__|$rootCause|g" -e "s|__SUGGESTED_FIX__|$suggested|g" "$SCRIPT_DIR/prompts/fix.md")"
 wlog "job #$jobId claude fix start (<= ${DIAG_PHASE_TIMEOUT}s)"
-run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --dangerously-skip-permissions --output-format json --max-turns "$DIAG_MAX_TURNS" >/dev/null 2>&1
-wlog "job #$jobId claude fix done rc=$?"
+# claude 必须在 repo 根跑（prompt 假设在 repo）；输出存档供诊断（不再 /dev/null）。
+claude_out="$DIAG_WORKDIR/claude-fix-$jobId.out"
+( cd "$repo" && run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --dangerously-skip-permissions --output-format json --max-turns "$DIAG_MAX_TURNS" ) >"$claude_out" 2>&1 || true
+wlog "job #$jobId claude fix done rc=$? ; out: $(head -c 300 "$claude_out" 2>/dev/null | tr '\n' ' ')"
 
 # 自检：跑 server JVM 单测（资源允许）；失败/超时不阻断，只标 tested=false。
 tested=false
-if run_with_timeout 240 ./gradlew -p "$repo/server" test -q >/dev/null 2>&1; then tested=true; fi
+if run_with_timeout 240 "$repo/gradlew" -p "$repo/server" test -q >/dev/null 2>&1; then tested=true; fi
 
+# 显式配 local git user（云主机若无全局 user，commit 会失败 → 空提交；历次空修复高度疑似此因）。
+git -C "$repo" config user.email "diag-worker@polang" 2>/dev/null || true
+git -C "$repo" config user.name "diag-worker" 2>/dev/null || true
 git -C "$repo" add -A
-git -C "$repo" commit --quiet -m "fix(diag): 远程诊断自动修复 job #$jobId" >/dev/null 2>&1 || true
+if git -C "$repo" commit --quiet -m "fix(diag): 远程诊断自动修复 job #$jobId" >/dev/null 2>&1; then
+  wlog "job #$jobId commit ok: $(git -C "$repo" show --stat --oneline HEAD | head -1 | cut -c1-120)"
+else
+  wlog "job #$jobId commit 无改动或失败（claude 是否真改了文件？见 $claude_out）；status: $(git -C "$repo" status --short | head -5 | tr '\n' ' ')"
+fi
 wlog "job #$jobId push $branch"
 if ! run_with_timeout 120 git -C "$repo" push --quiet origin "$branch" >/dev/null 2>&1; then
   wlog "job #$jobId push FAILED"
