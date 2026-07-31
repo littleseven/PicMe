@@ -395,7 +395,7 @@ async def chat(request):
     repo = sm.repo_dir(sid)
     env = dict(os.environ, IS_SANDBOX="1", GIT_TERMINAL_PROMPT="0")
     cmd = [CLAUDE, "-p", message, "--output-format", "stream-json",
-           "--max-turns", MAX_TURNS, "--dangerously-skip-permissions"]
+           "--max-turns", MAX_TURNS, "--verbose"]
     if claude_sid:
         cmd += ["--resume", claude_sid]
 
