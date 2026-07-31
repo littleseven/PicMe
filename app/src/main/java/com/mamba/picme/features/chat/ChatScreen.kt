@@ -1122,6 +1122,8 @@ private fun ChatInputArea(
     val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
     // 独立 chat 页默认文本输入模式（不继承/回写公共 AI chat 的语音偏好）
     var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
+    // 远程诊断模式 toggle：激活后发送键触发诊断（而非普通消息）
+    var diagMode by remember { mutableStateOf(false) }
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
@@ -1191,7 +1193,8 @@ private fun ChatInputArea(
                     text = text,
                     onTextChange = { text = it },
                     isProcessing = isProcessing,
-                    onDiagnose = { viewModel.submitDiagnosis(text.trim()) },
+                    diagMode = diagMode,
+                    onToggleDiag = { diagMode = !diagMode },
                     onSend = {
                         if (!isProcessing) {
                             val img = pendingImage
@@ -1213,7 +1216,7 @@ private fun ChatInputArea(
                                     keyboardController?.hide()
                                 }
                                 text.isNotBlank() -> {
-                                    onSendMessage(text.trim())
+                                    if (diagMode) viewModel.submitDiagnosis(text.trim()) else onSendMessage(text.trim())
                                     text = ""
                                     keyboardController?.hide()
                                 }
@@ -1308,7 +1311,8 @@ private fun ChatTextInputMode(
     onSwitchModel: (String) -> Unit,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
-    onDiagnose: () -> Unit = {},
+    diagMode: Boolean = false,
+    onToggleDiag: () -> Unit = {},
     pendingImage: Uri? = null,
     selectedIntent: ImageIntent? = null,
     onSelectIntent: (ImageIntent) -> Unit = {},
@@ -1439,12 +1443,13 @@ private fun ChatTextInputMode(
                     enabled = !isProcessing
                 )
 
-                // 远程诊断胶囊按钮（chat 描述问题 → 云主机定位/修复）
+                // 远程诊断 toggle（二态）：激活后发送键触发诊断（chat 描述问题 → 云主机定位/修复）
                 CapsuleButton(
                     icon = Icons.Rounded.Code,
                     label = stringResource(R.string.diag_icon_desc),
-                    onClick = onDiagnose,
-                    enabled = !isProcessing
+                    onClick = onToggleDiag,
+                    enabled = !isProcessing,
+                    isActive = diagMode
                 )
             }
 
