@@ -26,6 +26,7 @@ import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import org.jetbrains.exposed.sql.Table
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -216,5 +217,29 @@ class DiagRouteTest {
             setBody("""{"description":"old client report","bundle":{"gitSha":"s"}}""")
         }
         assertEquals(HttpStatusCode.OK, report.status)
+    }
+
+    @Test
+    fun `job status exposes error tail and updatedAt after failure`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val report = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"crash","bundle":{"gitSha":"s"}}""")
+        }
+        val jobId = appJson.parseToJsonElement(report.bodyAsText()).jsonObject["jobId"]!!.jsonPrimitive.int
+        client.get("/diag/work/jobs") { header(DIAG_WORKER_TOKEN_HEADER, workerToken) }
+        client.post("/diag/work/jobs/$jobId/result") {
+            header(DIAG_WORKER_TOKEN_HEADER, workerToken)
+            contentType(ContentType.Application.Json)
+            setBody("""{"phase":"diagnose","status":"DIAGNOSE_FAILED","error":"claude_exit=1 boom"}""")
+        }
+        val s = appJson.parseToJsonElement(
+            client.get("/diag/jobs/$jobId") { header(APP_TOKEN_HEADER, token) }.bodyAsText(),
+        ).jsonObject
+        assertEquals("DIAGNOSE_FAILED", s["status"]!!.jsonPrimitive.content)
+        assertEquals("claude_exit=1 boom", s["error"]!!.jsonPrimitive.content)
+        assertTrue(s["updatedAt"]!!.jsonPrimitive.long > 0)
     }
 }

@@ -25,6 +25,8 @@ data class DiagJobRow(
     val fixBranch: String?,
     val compareUrl: String?,
     val tested: Boolean,
+    val workerLog: String?,
+    val updatedAt: Long,
 )
 
 /** worker 领到的任务（phase 决定诊断还是修复）。 */
@@ -81,6 +83,8 @@ object DiagService {
                     fixBranch = it[DiagJobs.fixBranch],
                     compareUrl = it[DiagJobs.compareUrl],
                     tested = it[DiagJobs.tested] == 1,
+                    workerLog = it[DiagJobs.workerLog],
+                    updatedAt = it[DiagJobs.updatedAt],
                 )
             }
         }

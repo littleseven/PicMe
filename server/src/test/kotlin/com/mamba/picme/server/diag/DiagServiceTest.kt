@@ -246,4 +246,14 @@ class DiagServiceTest {
         assertEquals("fix", claim.phase)
         assertEquals("null check", claim.suggestedFix)
     }
+
+    @Test
+    fun `getJob exposes workerLog and updatedAt`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.submitDiagnosis(id, null, DiagStatus.DIAGNOSE_FAILED, "claude_exit=1 boom") }
+        val job = runBlocking { DiagService.getJob(id, "o") }!!
+        assertEquals("claude_exit=1 boom", job.workerLog)
+        assertTrue(job.updatedAt > 0)
+    }
 }

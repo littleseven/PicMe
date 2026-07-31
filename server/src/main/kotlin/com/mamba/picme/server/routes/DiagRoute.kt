@@ -46,6 +46,7 @@ data class DiagJobStatus(
     val compareUrl: String? = null,
     val tested: Boolean = false,
     val error: String? = null,
+    val updatedAt: Long = 0,
 )
 
 @Serializable
@@ -119,6 +120,8 @@ fun Routing.diagRoute(workerToken: String) {
                 fixBranch = job.fixBranch,
                 compareUrl = job.compareUrl,
                 tested = job.tested,
+                error = job.workerLog?.takeLast(500),
+                updatedAt = job.updatedAt,
             ),
         )
     }
