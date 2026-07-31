@@ -40,7 +40,10 @@ def translate_stream_line(line):
                     "summary": _summarize(block.get("content")),
                 }})
     elif mtype == "result":
-        events.append({"event": "done", "data": {"turns": msg.get("num_turns")}})
+        if msg.get("is_error"):
+            events.append({"event": "error", "data": {"message": msg.get("result", "claude error")}})
+        else:
+            events.append({"event": "done", "data": {"turns": msg.get("num_turns")}})
     return events
 
 

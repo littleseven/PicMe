@@ -50,3 +50,8 @@ def test_empty_and_garbage_return_empty_list():
 def test_format_sse():
     s = format_sse({"event": "done", "data": {"turns": 3}})
     assert s == 'event: done\ndata: {"turns": 3}\n\n'
+
+
+def test_result_is_error_emits_error():
+    line = json.dumps({"type": "result", "is_error": True, "result": "boom"})
+    assert translate_stream_line(line) == [{"event": "error", "data": {"message": "boom"}}]
