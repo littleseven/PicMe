@@ -925,9 +925,7 @@
     <string name="a11y_photo_desc">Photo</string>
     <string name="a11y_video_desc">Video</string>
 
-    <!-- 人物分组编辑对话框（命名 + 关系声明） -->
-    <string name="person_edit_title">Edit person</string>
-    <string name="person_edit_name_label">Name</string>
+    <!-- 人物信息编辑（命名 + 关系声明） -->
     <string name="person_relation_label">This person is my…</string>
     <string name="person_relation_none">Not set</string>
     <string name="person_relation_spouse">Spouse</string>

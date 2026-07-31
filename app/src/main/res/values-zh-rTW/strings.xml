@@ -897,9 +897,7 @@
     <string name="a11y_photo_desc">照片</string>
     <string name="a11y_video_desc">影片</string>
 
-    <!-- 人物分组编辑对话框（命名 + 关系声明） -->
-    <string name="person_edit_title">編輯人物</string>
-    <string name="person_edit_name_label">名稱</string>
+    <!-- 人物信息编辑（命名 + 关系声明） -->
     <string name="person_relation_label">TA 是我的…</string>
     <string name="person_relation_none">不設定</string>
     <string name="person_relation_spouse">配偶</string>
