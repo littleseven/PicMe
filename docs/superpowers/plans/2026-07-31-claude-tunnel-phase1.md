@@ -520,7 +520,7 @@ CT_GATEWAY_PORT=3000         # client(KimiClaw) 端网关端口
 #!/usr/bin/env bash
 # 下载 chisel 到 /usr/local/bin/chisel。用法: bash install-chisel.sh [version]
 set -euo pipefail
-VER="${1:-1.10.3}"
+VER="${1:-1.11.8}"
 ARCH="$(uname -m)"
 case "$ARCH" in
   x86_64|amd64) GOARCH="amd64" ;;
@@ -528,7 +528,7 @@ case "$ARCH" in
   *) echo "unsupported arch: $ARCH"; exit 1 ;;
 esac
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-URL="https://github.com/jpilloura/chisel/releases/download/v${VER}/chisel_${VER}_${OS}_${GOARCH}.gz"
+URL="https://github.com/jpillora/chisel/releases/download/v${VER}/chisel_${VER}_${OS}_${GOARCH}.gz"
 curl -fSL "$URL" | gunzip > /tmp/chisel
 chmod +x /tmp/chisel
 sudo mv /tmp/chisel /usr/local/bin/chisel
