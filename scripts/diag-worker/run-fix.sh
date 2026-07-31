@@ -66,19 +66,30 @@ case "$mode" in
     fi
     ;;
   auto)
-    wlog "job #$jobId mode=auto (自动：自检过则 ff-merge main)"
-    if [ "$tested" = "true" ] && \
-       git -C "$repo" fetch --quiet origin "$DIAG_BASE_BRANCH" && \
-       git -C "$repo" checkout --quiet -B "$DIAG_BASE_BRANCH" "origin/$DIAG_BASE_BRANCH" && \
-       git -C "$repo" merge --ff-only "$branch" && \
-       run_with_timeout 120 git -C "$repo" push --quiet origin "$DIAG_BASE_BRANCH"; then
-      wlog "job #$jobId auto-merged to $DIAG_BASE_BRANCH"
-      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED\",\"fixBranch\":\"$DIAG_BASE_BRANCH\",\"tested\":true}"
-    else
-      wlog "job #$jobId auto-merge aborted (自检失败/ff冲突/push失败)，留 $branch 分支"
-      git -C "$repo" checkout --quiet "$branch" 2>/dev/null || true
-      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED_UNVERIFIED\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    wlog "job #$jobId mode=auto (自动：自检过则合并 main)"
+    auto_merged=0
+    if [ "$tested" = "true" ] && git -C "$repo" fetch --quiet origin "$DIAG_BASE_BRANCH"; then
+      base="origin/$DIAG_BASE_BRANCH"
+      # 1) 先试 ff（diag-fix 是 main 的直接祖先）
+      if git -C "$repo" checkout --quiet -B "$DIAG_BASE_BRANCH" "$base" && git -C "$repo" merge --ff-only "$branch"; then
+        auto_merged=1
+      # 2) ff 失败（main 已前进）：把 diag-fix rebase 到 main 之上再 ff，避免被新提交 block
+      elif git -C "$repo" checkout --quiet "$branch" 2>/dev/null \
+           && git -C "$repo" rebase --quiet "$base" 2>/dev/null \
+           && git -C "$repo" checkout --quiet -B "$DIAG_BASE_BRANCH" "$base" \
+           && git -C "$repo" merge --ff-only "$branch"; then
+        wlog "job #$jobId auto: ff 失败，rebase 到 $DIAG_BASE_BRANCH 后合并"
+        auto_merged=1
+      fi
+      if [ "$auto_merged" = "1" ] && run_with_timeout 120 git -C "$repo" push --quiet origin "$DIAG_BASE_BRANCH"; then
+        wlog "job #$jobId auto-merged to $DIAG_BASE_BRANCH"
+        report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED\",\"fixBranch\":\"$DIAG_BASE_BRANCH\",\"tested\":true}"; exit 0
+      fi
     fi
+    # 自检失败 / rebase 冲突 / push 失败 → 降级留分支（不 block，可手动收尾）
+    wlog "job #$jobId auto aborted (自检失败/rebase冲突/push失败)，留 $branch 分支"
+    git -C "$repo" checkout --quiet "$branch" 2>/dev/null || true
+    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED_UNVERIFIED\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
     ;;
   *)
     wlog "job #$jobId unknown mode=$mode，按 push 处理"
