@@ -40,6 +40,15 @@ fi
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.result.rootCause // empty' 2>/dev/null)"
 [ -z "$rootCause" ] && rootCause="$(printf '%s' "$out" | jq -r '.rootCause // empty' 2>/dev/null)"
 
+# 容错：claude(GLM) 偶发不守「只输出 JSON」、直接吐 prose 根因。
+# 若 prose 含源码文件线索（.kt/.java[:行]），当作 rootCause 收下（截断 800 字），避免诊断交白卷。
+if { [ -z "$rootCause" ] || [ "$rootCause" = "null" ]; } && [ -n "$inner" ]; then
+  if printf '%s' "$inner" | grep -qE '[A-Za-z_/]+\.(kt|java)(:[0-9]+)?'; then
+    rootCause="$(printf '%.800s' "$inner" | tr '\n' ' ')"
+    wlog "job #$jobId diagnose: JSON 未解析，回退用 prose 根因(len=${#rootCause})"
+  fi
+fi
+
 if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
   rc_escaped="$(printf '%s' "$rootCause" | json_escape)"
   report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\"}"
