@@ -5,6 +5,7 @@ import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.util.TestDb
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -106,5 +107,26 @@ class DiagServiceTest {
         runBlocking { DiagService.deleteById(id) }
         val count = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.count() }
         assertEquals(0L, count)
+    }
+
+    @Test
+    fun `archive moves any status to ARCHIVED`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        // QUEUED 态直接废弃
+        runBlocking { DiagService.archive(id) }
+        var row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
+        // 再种一个 FIXED 态验证任意态可废弃
+        val id2 = runBlocking { DiagService.createJob("o2", null, "d2", "{}", "sha2") }
+        transaction(Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id2 }) {
+                it[DiagJobs.status] = DiagStatus.FIXED.name
+                it[DiagJobs.fixBranch] = "diag-fix/x"
+            }
+        }
+        runBlocking { DiagService.archive(id2) }
+        row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id2 }.single() }
+        assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
     }
 }

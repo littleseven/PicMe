@@ -175,4 +175,15 @@ object DiagService {
             DiagJobs.deleteWhere { with(SqlExpressionBuilder) { DiagJobs.id eq id } }
         }
     }
+
+    /** 管理后台「废弃」：标记 ARCHIVED，worker 不再领取；任意源态允许。 */
+    suspend fun archive(id: Int) {
+        val now = Instant.now().toEpochMilli()
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.ARCHIVED.name
+                it[DiagJobs.updatedAt] = now
+            }
+        }
+    }
 }
