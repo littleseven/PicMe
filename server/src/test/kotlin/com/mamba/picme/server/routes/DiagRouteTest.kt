@@ -6,6 +6,7 @@ import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.DIAG_WORKER_TOKEN_HEADER
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.DiagJobs
+import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.util.TestDb
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -241,5 +242,73 @@ class DiagRouteTest {
         assertEquals("DIAGNOSE_FAILED", s["status"]!!.jsonPrimitive.content)
         assertEquals("claude_exit=1 boom", s["error"]!!.jsonPrimitive.content)
         assertTrue(s["updatedAt"]!!.jsonPrimitive.long > 0)
+    }
+
+    /** 带限流器的变体（S3 限频测试用）。 */
+    private fun TestApplicationBuilder.diagAppLimited(limiter: RateLimiter, vararg extra: Table) {
+        TestDb.init(DiagJobs, *extra)
+        application {
+            install(ContentNegotiation) { json(appJson) }
+            routing { diagRoute(workerToken, limiter) }
+        }
+    }
+
+    @Test
+    fun `report with overlong description returns 413`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val longDesc = "d".repeat(2001)
+        val resp = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"$longDesc","bundle":{"gitSha":"s"}}""")
+        }
+        assertEquals(HttpStatusCode.PayloadTooLarge, resp.status)
+    }
+
+    @Test
+    fun `report with overlong conversationSummary returns 413`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val longSummary = "s".repeat(4001)
+        val resp = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"d","conversationSummary":"$longSummary","bundle":{"gitSha":"s"}}""")
+        }
+        assertEquals(HttpStatusCode.PayloadTooLarge, resp.status)
+    }
+
+    @Test
+    fun `report with overlong logs returns 413`() = testApplication {
+        diagApp(Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        val longLogs = "x".repeat(200 * 1024 + 1)
+        val resp = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"d","bundle":{"logs":"$longLogs","gitSha":"s"}}""")
+        }
+        assertEquals(HttpStatusCode.PayloadTooLarge, resp.status)
+    }
+
+    @Test
+    fun `report rate limit returns 429 after 5 reports per hour`() = testApplication {
+        diagAppLimited(RateLimiter(5, 3_600_000L), Accounts)
+        val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
+        repeat(5) { i ->
+            val resp = client.post("/diag/report") {
+                header(APP_TOKEN_HEADER, token)
+                contentType(ContentType.Application.Json)
+                setBody("""{"description":"d$i","bundle":{"gitSha":"s"}}""")
+            }
+            assertEquals(HttpStatusCode.OK, resp.status)
+        }
+        val sixth = client.post("/diag/report") {
+            header(APP_TOKEN_HEADER, token)
+            contentType(ContentType.Application.Json)
+            setBody("""{"description":"d6","bundle":{"gitSha":"s"}}""")
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, sixth.status)
     }
 }

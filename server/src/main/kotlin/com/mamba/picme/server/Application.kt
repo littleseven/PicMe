@@ -152,6 +152,8 @@ fun Application.module(config: AppConfig) {
         maxTokensCap = config.maxTokensCap,
     )
     val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null
+    // S3：diag 上报护栏（每账号 5 次/小时）
+    val diagReportLimiter = RateLimiter(5, 3_600_000L)
     val emailService = EmailService(httpClient, config.resendApiKey, config.emailFrom)
 
     val cosService = CosService(config)
@@ -170,7 +172,7 @@ fun Application.module(config: AppConfig) {
         accountDeletionRoute()
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
-        diagRoute(config.diagWorkerToken)
+        diagRoute(config.diagWorkerToken, diagReportLimiter)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
     }
