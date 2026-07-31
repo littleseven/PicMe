@@ -4,6 +4,7 @@ import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.local.dao.PersonRelationDao
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.local.entity.PersonRelationEntity
+import com.mamba.picme.data.model.MediaEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -193,6 +194,19 @@ class PersonRepository(
     }
 
     /**
+     * 加载某人物信息编辑页所需快照：实体 + 与"我"的关系 + 封面媒体 + 封面候选照片。
+     * 人物不存在返回 null。封面从封面候选照片里按 coverMediaId 解析（coverMediaId
+     * 失效/媒体已删时为 null，由调用方兜底渲染）。
+     */
+    suspend fun loadPersonEditSnapshot(personId: Long): PersonEditSnapshot? {
+        val person = personDao.getPerson(personId) ?: return null
+        val relation = RelationDisplayItem.from(person, getRelationToSelf(personId))
+        val photos = personDao.getMediaByPersonOrderedForCover(personId).distinctBy { it.id }
+        val coverMedia = person.coverMediaId?.let { cid -> photos.firstOrNull { it.id == cid } }
+        return PersonEditSnapshot(person, relation, coverMedia, photos)
+    }
+
+    /**
      * 按亲属称谓解析人物集合（"我女儿" → 谓词族 {DAUGHTER, CHILD} 指向我的人物）。
      * 查询按谓词族扩展：具体称谓含同族未指定桶，泛化称谓含整族；
      * 一个称谓可能命中多条关系（多个孩子），返回并集由调用方决定是否歧义。
@@ -321,3 +335,15 @@ data class RelationDisplayItem(
         }
     }
 }
+
+/**
+ * 人物信息编辑页所需数据快照（相册分组与人物页共用加载入口）。
+ *
+ * [coverMedia] 从 [photos] 中按 person.coverMediaId 解析；coverMediaId 失效时为 null。
+ */
+data class PersonEditSnapshot(
+    val person: PersonEntity,
+    val relation: RelationDisplayItem?,
+    val coverMedia: MediaEntity?,
+    val photos: List<MediaEntity>
+)
