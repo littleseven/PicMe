@@ -62,6 +62,7 @@ import com.mamba.picme.features.gallery.components.hasGalleryPermission
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.components.shareMediaAssets
 import com.mamba.picme.features.gallery.components.SearchTopBar
+import com.mamba.picme.features.gallery.components.toMediaAsset
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.components.FloatingBottomTab
 import com.mamba.picme.features.common.components.FloatingBottomTabItem
@@ -200,18 +201,7 @@ fun GalleryScreen(
         val faceMedia = withContext(Dispatchers.IO) {
             AppDatabase.getDatabase(context).personDao()
                 .getMediaByPerson(personId)
-                .map { entity ->
-                    MediaAsset(
-                        id = entity.id,
-                        uri = entity.uri,
-                        type = entity.type,
-                        captureDate = entity.captureDate,
-                        fileName = entity.fileName,
-                        duration = entity.duration,
-                        hasFace = entity.hasFace,
-                        faceId = entity.faceId
-                    )
-                }
+                .map { entity -> entity.toMediaAsset() }
         }
 
         val finalMedia = if (hasName) {

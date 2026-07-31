@@ -8,6 +8,7 @@ import com.mamba.picme.domain.model.GroupTitleType
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.data.model.MediaEntity
 
 fun resolveGroupTitle(
     context: Context,
@@ -55,3 +56,23 @@ fun shareMediaAssets(context: Context, assets: List<MediaAsset>) {
 
     context.startActivity(Intent.createChooser(shareIntent, null))
 }
+
+/**
+ * 将 DB 媒体实体映射为 UI/网格用的 [MediaAsset]。
+ *
+ * 必须完整传递 [MediaEntity.faceFocusY]：网格缩略图依赖它做「人脸感知」纵向对齐
+ * （core.image.faceAwareVerticalAlignment），漏传会让对齐退化为居中裁剪，
+ * 配合 ContentScale.Crop 即产生「砍头杀」。
+ * 历史上人物聚类结果页（GalleryScreen 以 personId 过滤的 faceMedia 手写 map）曾因此漏传。
+ */
+internal fun MediaEntity.toMediaAsset(): MediaAsset = MediaAsset(
+    id = id,
+    uri = uri,
+    type = type,
+    captureDate = captureDate,
+    fileName = fileName,
+    duration = duration,
+    hasFace = hasFace,
+    faceId = faceId,
+    faceFocusY = faceFocusY
+)
