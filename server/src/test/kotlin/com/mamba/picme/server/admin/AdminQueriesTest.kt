@@ -277,18 +277,20 @@ class AdminQueriesTest {
         diagJob(2, "FIX_REQUESTED", "desc-fix-req", "sha2", createdAt = now - 2000, claimedAt = now - 1500)
         diagJob(3, "FIXED", "desc-fixed", "sha3", createdAt = now - 3000, claimedAt = now - 2500, fixBranch = "diag-fix/3", rootCause = "NPE X.kt:9", tested = true)
         diagJob(4, "DIAGNOSE_FAILED", "desc-fail", "sha4", createdAt = now - 4000, claimedAt = now - 3500, workerLog = "clone failed")
+        diagJob(5, "ARCHIVED", "desc-archived", "sha5", createdAt = now - 5000, claimedAt = now - 4500)
 
         val stats = AdminQueries.diagStats()
-        assertEquals(4, stats.total)
+        assertEquals(5, stats.total)
         assertEquals(1, stats.queued)
         assertEquals(0, stats.diagnosed)
         assertEquals(1, stats.fixRequested)
         assertEquals(1, stats.fixed)
         assertEquals(1, stats.failed)
+        assertEquals(1, stats.archived)
 
         // 列表按 createdAt desc：最新（job1, now-1000）在前
         val list = AdminQueries.diagList()
-        assertEquals(4, list.size)
+        assertEquals(5, list.size)
         assertEquals(1, list[0].id)
         val fixedRow = list.first { it.id == 3 }
         assertEquals("diag-fix/3", fixedRow.fixBranch)
