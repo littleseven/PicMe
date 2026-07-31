@@ -71,7 +71,8 @@ import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.common.SearchField
 import com.mamba.picme.features.common.PersonRelationPicker
-import com.mamba.picme.features.common.PersonRenameDialog
+import com.mamba.picme.features.person.PersonCover
+import com.mamba.picme.features.person.components.PersonInfoScreen
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
@@ -79,8 +80,8 @@ import androidx.navigation.navOptions
 import com.mamba.picme.domain.model.GroupTitleType
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
+import com.mamba.picme.domain.person.PersonEditSnapshot
 import com.mamba.picme.domain.person.PersonRepository
-import com.mamba.picme.domain.person.RelationPredicate
 import com.mamba.picme.domain.person.RelationSource
 import com.mamba.picme.R
 import com.mamba.picme.data.local.AppDatabase
@@ -309,26 +310,38 @@ fun GalleryScreen(
     // 人物分组名称映射（用于 PERSON 分组模式显示名称）
     val personNameMap = remember { mutableStateMapOf<String, String>() }
 
-    // 人物分组重命名状态
-    var renamingPersonGroup by remember { mutableStateOf<GroupedMedia?>(null) }
-    var renamingPersonName by remember { mutableStateOf("") }
-    // 人物关系声明状态（重命名对话框内"TA 是我的…"与"这是我"）
-    var renamingPersonRelation by remember { mutableStateOf<RelationPredicate?>(null) }
-    var renamingPersonCustomLabel by remember { mutableStateOf("") }
-    var renamingPersonIsSelf by remember { mutableStateOf(false) }
+    // 人物信息编辑 overlay 状态（点分组名打开 PersonInfoScreen）
+    var infoPersonId by remember { mutableStateOf<Long?>(null) }
+    var infoSnapshot by remember { mutableStateOf<PersonEditSnapshot?>(null) }
 
-    // 当切换到 PERSON 分组模式时加载所有 person 名称
+    // 从 DB 重载人物分组名称映射（进入 PERSON 模式 / 编辑保存后刷新分组标题）
+    suspend fun refreshPersonNameMap() {
+        try {
+            val db = AppDatabase.getDatabase(context)
+            val persons = db.personDao().getAllPersons()
+            personNameMap.clear()
+            for (p in persons) {
+                val displayName = p.name ?: "人物 ${p.personId}"
+                personNameMap[p.personId.toString()] = displayName
+            }
+        } catch (_: Exception) {}
+    }
+
+    // 切到 PERSON 分组模式时加载所有 person 名称
     LaunchedEffect(groupingMode) {
-        if (groupingMode == GroupingMode.PERSON) {
-            try {
-                val db = AppDatabase.getDatabase(context)
-                val persons = db.personDao().getAllPersons()
-                personNameMap.clear()
-                for (p in persons) {
-                    val displayName = p.name ?: "人物 ${p.personId}"
-                    personNameMap[p.personId.toString()] = displayName
-                }
-            } catch (_: Exception) {}
+        if (groupingMode == GroupingMode.PERSON) refreshPersonNameMap()
+    }
+
+    // 点分组名 → 加载编辑快照；infoPersonId 置空时清 overlay
+    LaunchedEffect(infoPersonId) {
+        val id = infoPersonId
+        if (id != null) {
+            infoSnapshot = null
+            runCatching { app.container.personRepository.loadPersonEditSnapshot(id) }
+                .onSuccess { snapshot -> infoSnapshot = snapshot }
+                .onFailure { Logger.e(TAG, "Failed to load person edit snapshot", it) }
+        } else {
+            infoSnapshot = null
         }
     }
 
@@ -823,29 +836,7 @@ fun GalleryScreen(
                         },
                         onGroupTitleClick = { group ->
                             if (groupingMode == GroupingMode.PERSON) {
-                                val currentName = personNameMap[group.titleValue] ?: "人物 ${group.titleValue}"
-                                renamingPersonGroup = group
-                                renamingPersonName = currentName
-                                renamingPersonRelation = null
-                                renamingPersonCustomLabel = ""
-                                renamingPersonIsSelf = false
-                                // 回显已存在的关系与"这是我"标记
-                                kotlinx.coroutines.MainScope().launch {
-                                    try {
-                                        val personId = group.titleValue.toLongOrNull()
-                                        if (personId != null) {
-                                            val repo = app.container.personRepository
-                                            val relation = repo.getRelationToSelf(personId)
-                                            renamingPersonRelation = relation?.predicate
-                                                ?.let(RelationPredicate::fromStored)
-                                            renamingPersonCustomLabel = relation?.customLabel.orEmpty()
-                                            renamingPersonIsSelf =
-                                                repo.getSelfPerson()?.personId == personId
-                                        }
-                                    } catch (e: Exception) {
-                                        Logger.e(TAG, "Failed to load person relation", e)
-                                    }
-                                }
+                                infoPersonId = group.titleValue.toLongOrNull()
                             }
                         },
                         personNameMap = personNameMap
@@ -971,31 +962,47 @@ fun GalleryScreen(
         }
     }
 
-    // ── 人物分组编辑对话框（公共组件 PersonRenameDialog）──
-    val renamingGroup = renamingPersonGroup
-    if (renamingGroup != null) {
-        PersonRenameDialog(
-            initialName = renamingPersonName,
-            initialRelation = renamingPersonRelation,
-            initialCustomLabel = renamingPersonCustomLabel,
-            initialIsSelf = renamingPersonIsSelf,
-            onConfirm = { name, relation, customLabel, isSelf ->
-                val personId = renamingGroup.titleValue.toLongOrNull()
-                if (personId != null) {
-                    kotlinx.coroutines.MainScope().launch {
-                        try {
-                            val repo = app.container.personRepository
-                            repo.applyPersonEdit(personId, name, relation, customLabel, isSelf)
-                            if (name.isNotBlank()) {
-                                personNameMap[renamingGroup.titleValue] = name
-                            }
-                        } catch (e: Exception) {
-                            Logger.e(TAG, "Failed to update person group", e)
-                        }
-                    }
+    // ── 人物信息编辑 overlay（点分组名打开，与人物页同一 PersonInfoScreen）──
+    val infoSnap = infoSnapshot
+    if (infoSnap != null) {
+        PersonInfoScreen(
+            person = infoSnap.person,
+            relation = infoSnap.relation,
+            cover = infoSnap.coverMedia?.let { media -> PersonCover(media.uri, media.faceFocusY) },
+            photos = infoSnap.photos,
+            onSave = { relation, customLabel, isSelf ->
+                kotlinx.coroutines.MainScope().launch {
+                    runCatching {
+                        app.container.personRepository.applyPersonEdit(
+                            infoSnap.person.personId,
+                            infoSnap.person.name.orEmpty(),
+                            relation,
+                            customLabel,
+                            isSelf
+                        )
+                    }.onSuccess { refreshPersonNameMap() }
+                        .onFailure { Logger.e(TAG, "Failed to apply person edit", it) }
                 }
             },
-            onDismiss = { renamingPersonGroup = null }
+            onNavigateBack = { infoPersonId = null },
+            onUpdateCover = { photo ->
+                kotlinx.coroutines.MainScope().launch {
+                    runCatching {
+                        app.container.personRepository.updateCover(infoSnap.person.personId, photo.id)
+                    }.onSuccess { refreshPersonNameMap() }
+                        .onFailure { Logger.e(TAG, "Failed to update cover", it) }
+                }
+            },
+            onUpdateName = { name ->
+                val trimmed = name.trim()
+                if (trimmed.isNotBlank()) {
+                    kotlinx.coroutines.MainScope().launch {
+                        runCatching {
+                            app.container.personRepository.renamePerson(infoSnap.person.personId, trimmed)
+                        }.onFailure { Logger.e(TAG, "Failed to rename person", it) }
+                    }
+                }
+            }
         )
     }
 
