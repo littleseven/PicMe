@@ -13,6 +13,7 @@ import com.mamba.picme.BuildConfig
 import com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.diag.CrashTraceStore
 import com.mamba.picme.data.indexing.geo.LocationIndexer
 import com.mamba.picme.core.image.CoilConfig
 import com.mamba.picme.core.image.ThumbnailCache
@@ -136,6 +137,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+
+        // A3：崩溃栈落盘（随下次远程诊断包上报 crashTrace）
+        CrashTraceStore.install(this)
 
         // 显式指定 SLF4J Provider，绕过 SPI 扫描机制。
         // 必须在任何 SLF4J Logger 首次使用前设置，否则不生效。

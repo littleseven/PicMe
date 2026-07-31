@@ -54,4 +54,13 @@ class DiagBundleCollectorTest {
         assertTrue("media path redacted: ${bundle.logs}", !bundle.logs.contains("/storage/"))
         assertTrue(bundle.logs.contains("<path>"))
     }
+
+    @Test
+    fun `collect sanitizes provided crash trace`() {
+        val bundle = DiagBundleCollector.collect(
+            "1.0.29", "abc1234", "Pixel 8", "14",
+            crashTrace = "at com.mamba.UserHandler for a@b.com",
+        )
+        assertTrue(bundle.crashTrace!!.contains("<email>"))
+    }
 }

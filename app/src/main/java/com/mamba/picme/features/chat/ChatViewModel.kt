@@ -27,6 +27,7 @@ import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.diag.CrashTraceStore
 import com.mamba.picme.core.diag.DiagBundleCollector
 import com.mamba.picme.BuildConfig
 import android.os.Build
@@ -239,17 +240,20 @@ class ChatViewModel(
                 upsertDiagMessage(msgId, context.getString(R.string.diag_login_required))
                 return@launch
             }
+            val crashTrace = CrashTraceStore.read(context.filesDir)
             val bundle = DiagBundleCollector.collect(
                 appVersion = BuildConfig.VERSION_NAME,
                 gitSha = BuildConfig.GIT_SHA,
                 deviceModel = Build.MODEL,
                 androidVersion = Build.VERSION.RELEASE,
+                crashTrace = crashTrace,
             )
             upsertDiagMessage(msgId, context.getString(R.string.diag_submitted))
             val jobId = diagClient.reportDiagnosis(token, description, bundle, conversationSummary).getOrElse { e ->
                 upsertDiagMessage(msgId, context.getString(R.string.diag_report_failed, e.message ?: ""))
                 return@launch
             }
+            CrashTraceStore.delete(context.filesDir) // 上报成功 → 崩溃栈已随包送出，清除落盘文件
             activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
             pollDiagnose(token, jobId, msgId)
         }
