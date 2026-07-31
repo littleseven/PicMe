@@ -1,0 +1,13 @@
+[Unit]
+Description=claude-tunnel gateway (aiohttp)
+After=network.target
+
+[Service]
+WorkingDirectory=/root/claude-tunnel/gateway
+ExecStart=/root/claude-tunnel/venv/bin/python server.py
+EnvironmentFile=/root/claude-tunnel/tunnel.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
