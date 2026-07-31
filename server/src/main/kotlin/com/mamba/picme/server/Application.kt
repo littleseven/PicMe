@@ -22,6 +22,7 @@ import com.mamba.picme.server.routes.accountDeletionRoute
 import com.mamba.picme.server.routes.guestDeletionRoute
 import com.mamba.picme.server.routes.authRoute
 import com.mamba.picme.server.routes.claudeChatRoute
+import com.mamba.picme.server.routes.claudeDeliverRoute
 import com.mamba.picme.server.routes.diagRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
@@ -179,6 +180,7 @@ fun Application.module(config: AppConfig) {
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
         claudeChatRoute(claudeClient, rateLimiter)
+        claudeDeliverRoute(claudeClient, rateLimiter)
         diagRoute(config.diagWorkerToken, diagReportLimiter)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
