@@ -572,6 +572,7 @@ fun GalleryScreen(
     val currentMedia = selectedMediaIndex?.let { allFlatMedia.getOrNull(it) }
     val selectedItems = selectedIds.mapNotNull { mediaById[it] }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -1005,6 +1006,7 @@ fun GalleryScreen(
             }
         )
     }
+    } // Box(Scaffold + 人物信息编辑 overlay)
 
     // ── 相册必须模型下载提示 ────────────────────────────
     val showGalleryRequiredModelsPrompt by settingsViewModel.showGalleryRequiredModelsPrompt.collectAsState()
