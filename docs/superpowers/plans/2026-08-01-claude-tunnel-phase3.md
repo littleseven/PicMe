@@ -39,7 +39,7 @@
 - Create: `app/.../data/remote/picme/ClaudeChatClient.kt`
 - Test: `app/src/test/.../ClaudeSseParserTest.kt`
 
-- [ ] **Step 1: 写 `ClaudeEvent.kt`**
+- [x] **Step 1: 写 `ClaudeEvent.kt`** ✅
 
 ```kotlin
 package com.mamba.picme.data.remote.picme
@@ -58,7 +58,7 @@ sealed class ClaudeEvent {
 }
 ```
 
-- [ ] **Step 2: 写失败测试（SSE 解析纯函数）**
+- [x] **Step 2: 写失败测试（SSE 解析纯函数）** ✅
 
 `app/src/test/java/com/mamba/picme/data/remote/picme/ClaudeSseParserTest.kt`:
 ```kotlin
@@ -110,12 +110,12 @@ class ClaudeSseParserTest {
 }
 ```
 
-- [ ] **Step 3: 跑确认失败**
+- [x] **Step 3: 跑确认失败** ✅
 
 Run: `./gradlew :app:testDebugUnitTest --tests "*ClaudeSseParserTest" 2>&1 | tail -15`
 Expected: FAIL（`ClaudeSseParser` 不存在）
 
-- [ ] **Step 4: 实现 `ClaudeChatClient.kt`（含 `ClaudeSseParser`）**
+- [x] **Step 4: 实现 `ClaudeChatClient.kt`（含 `ClaudeSseParser`）** ✅
 
 ```kotlin
 package com.mamba.picme.data.remote.picme
@@ -219,12 +219,12 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
 }
 ```
 
-- [ ] **Step 5: 跑测试通过**
+- [x] **Step 5: 跑测试通过** ✅
 
 Run: `./gradlew :app:testDebugUnitTest --tests "*ClaudeSseParserTest" 2>&1 | tail -15`
 Expected: PASS（4 tests）
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit** ✅（commit `4c50cf62`，本 session 前已提交）
 
 ```bash
 git add app/src/main/java/com/mamba/picme/data/remote/picme/ClaudeEvent.kt \
@@ -241,7 +241,7 @@ git commit -m "feat(app): ClaudeChatClient + SSE 解析（§6 事件）+ 单测"
 - Create: `app/.../features/chat/ClaudeAgentRenderer.kt`
 - Test: `app/src/test/.../ClaudeAgentRendererTest.kt`
 
-- [ ] **Step 1-5（TDD）**：`ClaudeAgentRenderer.toAgentMessages(event)`：
+- [x] **Step 1-5（TDD）** ✅（commit `dc8da62a`）：实际实现为 `ClaudeAgentRenderer` 把事件**有状态折叠**成 `ClaudeAgentState`（text + `ClaudeStepUi` steps + hasFileChange），落 `ChatMessageUi.claudeAgent`；**非**原计划的 `AgentMessage`（`AgentMessage` 属于另一页面 `AiChatScreen`，`ChatScreen` 实际渲染 `ChatMessageUi`——执行时修正的目标类型，见文末「执行注记」）：
   - `Session` → （不显示，ViewModel 存 sid）
   - `AssistantText(delta)` → 追加到当前 `AgentText`（流式累积）
   - `ToolUse(tool, input)` → `CommandExecution(commandName=tool, status=RUNNING, detail=input 简述)`
@@ -252,7 +252,7 @@ git commit -m "feat(app): ClaudeChatClient + SSE 解析（§6 事件）+ 单测"
   
   单测：喂事件序列，断言产出的 `AgentMessage` 列表（参考 `AgentChatComponents.agentActionToExecutionMessages` 模式）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit** ✅（commit `dc8da62a`）
 
 ---
 
@@ -260,10 +260,10 @@ git commit -m "feat(app): ClaudeChatClient + SSE 解析（§6 事件）+ 单测"
 
 **Files:** Modify `app/.../features/chat/ChatViewModel.kt`
 
-- [ ] claude 模式 toggle（`isClaudeMode`）+ session_id 持有 + `ClaudeChatClient` 注入
-- [ ] toggle 开 → 发送键路由到 `claudeChatClient.chat(...)`，onEvent → `ClaudeAgentRenderer` → 追加 `AgentMessage` 到会话
-- [ ] 多轮：session_id 后续消息带上
-- [ ] 复用现有 chat 状态/会话管理（参考 diag 在 ChatViewModel 的集成方式，`DiagChatSession`）
+- [x] claude 模式 toggle（`_claudeMode`）+ session_id（`claudeSid`）持有 + `ClaudeChatClient` 注入（`ChatViewModelDependencies.claudeChatClient`）
+- [x] toggle 开 → 发送键路由到 `claudeChatClient.chat(...)`，onEvent → `ClaudeAgentRenderer` 折叠 → 写入 `_streamingMessage` 的 `ChatMessageUi.claudeAgent`
+- [x] 多轮：session_id 后续消息带上（网关 `session` 事件回填 `claudeSid`）
+- [x] 复用现有 chat 状态/会话管理（镜像 diag：`enterClaudeMode` 新建独立会话 + `claudeDeliverOverrides` 内存覆盖，同 `diagSubmitOverrides`）
 
 > 执行前先 Read `ChatViewModel.kt` 的 diag 集成段（`submitDiagnosis`/diag session 模式），对齐 claude 模式怎么挂进现有 send/sendMessage 流程。
 
@@ -273,9 +273,9 @@ git commit -m "feat(app): ClaudeChatClient + SSE 解析（§6 事件）+ 单测"
 
 **Files:** Modify `app/.../features/chat/ChatScreen.kt`；可能 Create `app/.../features/chat/components/ClaudeAgentBubble.kt`
 
-- [ ] 输入栏「AI 工程师」toggle（图标 + 二态，参考现有 diag toggle/按钮）
-- [ ] claude 模式下 `AgentMessage`（AgentText + CommandExecution）渲染为 agent 气泡：文本流式 + 步骤列表（CommandExecution status icon + commandName + detail）+ 文件改动徽标
-- [ ] 图片禁用：claude 模式下隐藏图片输入（spec §11 红线）
+- [x] 输入栏「AI 工程师」toggle（`Icons.Rounded.SmartToy` CapsuleButton，二态，与诊断互斥）
+- [x] claude 模式下渲染 agent 气泡（**改用 `ChatMessageUi.claudeAgent` inline 渲染**，非 `AgentMessage`）：文本流式（`displayText = claudeAgent.text`）+ `ClaudeAgentSteps` 步骤列表（⏳/✓/✗ + tool + detail）+ 文件改动徽标（file_change 步骤）
+- [x] 图片禁用：claude 模式下隐藏「相册」胶囊按钮（spec §11 红线）
 
 > 执行前 Read `ChatScreen.kt` 输入栏 + 现有消息气泡渲染，对齐 Compose 结构。
 
@@ -285,16 +285,30 @@ git commit -m "feat(app): ClaudeChatClient + SSE 解析（§6 事件）+ 单测"
 
 **Files:** Modify `ChatScreen.kt`（交付按钮）；`values*/strings.xml`
 
-- [ ] claude 模式 `file_change` 后气泡出现「交付」按钮 → 选 push/pr/auto（复用 diag 三模式 UI）→ POST `/deliver`（网关，经 `/v1/claude-chat` 同隧道；或 server 加 `/v1/claude-deliver`——决定）→ 结果回气泡
-- [ ] 三语文案：toggle / 步骤标签 / 交付 / 离线提示（`values/`、`values-zh-rCN/`、`values-zh-rTW/`）
-- [ ] 编译：`./gradlew :app:assembleDebug`
+- [x] claude 模式 `file_change` 后气泡出现「交付」按钮 → **决定：server 新增 `POST /v1/claude-deliver`**（反代网关 `/deliver`，JSON 透传，commit `41558656`）→ 结果回气泡。gateway MVP 仅 push（pr/auto 二期），故 UI 当前只放单个「交付」按钮（非三模式）
+- [x] 三语文案：toggle / 步骤标签 / 交付 / 离线提示（`values/`、`values-zh/`、`values-zh-rCN/`、`values-zh-rTW/` 四文件同步 6 条 `claude_*`）
+- [x] 编译：`./gradlew :app:assembleDebug` ✅ BUILD SUCCESSFUL
 
 ---
 
 ## Phase 3 完成标准
 
-- [ ] `ClaudeSseParserTest` + `ClaudeAgentRendererTest` 全绿。
-- [ ] chat「AI 工程师」toggle：激活后消息走 claude-chat，agent 气泡渲染文本 + 步骤 + 文件改动；多轮 session；图片禁用。
-- [ ] 交付：push/pr/auto 至少 push 可用（推 claude-chat/<sid> 分支）。
-- [ ] 三语同步；`./gradlew :app:assembleDebug` 无新增错误。
-- [ ] E2E：真机 chat 描述一个简单改动 → 看流式 + 步骤 → 交付分支。
+- [x] `ClaudeSseParserTest` + `ClaudeAgentRendererTest` 全绿。（另：`ClaudeDeliverRouteTest` + `ClaudeChatRouteTest` server 单测全绿）
+- [x] chat「AI 工程师」toggle：激活后消息走 claude-chat，agent 气泡渲染文本 + 步骤 + 文件改动；多轮 session；图片禁用。
+- [x] 交付：push/pr/auto 至少 push 可用（推 `claude-chat/<sid>` 分支；server `/v1/claude-deliver` → 网关 `/deliver`）。
+- [x] 三语同步；`./gradlew :app:assembleDebug` 无新增错误。
+- [ ] E2E：真机 chat 描述一个简单改动 → 看流式 + 步骤 → 交付分支。**← 唯一未完成项：待真机 + claude-tunnel 在线人工 smoke**
+
+---
+
+## 执行注记（2026-08-01，本 session 实际实现）
+
+**目标类型修正**：计划原写 `ClaudeEvent → AgentMessage`，但 `ChatScreen`/`ChatViewModel` 实际渲染 `ChatMessageUi`；`AgentMessage` + `AgentChatComponents` 属于另一页面 `AiChatScreen`（camera/local agent），类型对不上。经与作者确认，改为**复刻 diag 已验证的内嵌字段套路**：`ChatMessageUi` 加 `claudeAgent: ClaudeAgentState?` + `claudeDeliver: ClaudeDeliverUi?` 两字段，事件由 `ClaudeAgentRenderer` 有状态折叠成 `ClaudeAgentState`，在 `MessageBubble` 内 inline 渲染（同 `diagConfirm`/`diagSubmit` 位置）。`AgentMessage.CommandExecution` 的 status 概念被 `ClaudeStepStatus`（RUNNING/SUCCESS/FAILED）沿用。
+
+**交付端点决策**：spec §8/Task5 原留「gateway `/deliver` 或 server `/v1/claude-deliver`——决定」。`/v1/claude-chat` 返回 SSE、`/deliver` 返回 JSON，无法复用同一 SSE 路由 → **新增 server `POST /v1/claude-deliver`**（反代网关 `/deliver`，JSON 透传）。gateway MVP 仅 push（README：「deliver 仅 push 模式（pr/auto 二期）」），故 UI 暂只放单「交付」按钮。
+
+**补缺**：spec §6 的 `cost` 事件原计划漏入 `ClaudeEvent` —— 已补（`ClaudeEvent.Cost` + parser + test）。
+
+**验证**：4 个新单测全绿（app 侧 renderer/parser、server 侧 deliver/chat route）；`:app:assembleDebug` BUILD SUCCESSFUL。E2E 待真机 + 隧道在线人工跑。
+
+**提交**（本地 main，未推送）：`dc8da62a`（renderer）、`3ca2632e`（VM 模式）、`e74ed95d`（UI）、`41558656`（server deliver）。Task1 `4c50cf62` 为本 session 前已提交。
