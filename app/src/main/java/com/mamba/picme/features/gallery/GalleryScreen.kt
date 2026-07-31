@@ -65,6 +65,7 @@ import com.mamba.picme.features.gallery.components.SearchTopBar
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.components.FloatingBottomTab
 import com.mamba.picme.features.common.components.FloatingBottomTabItem
+import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import com.mamba.picme.features.settings.SettingsViewModel
 import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
@@ -127,7 +128,9 @@ fun GalleryScreen(
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
     initialSearchQuery: String = "",
-    initialPersonId: Long = 0L
+    initialPersonId: Long = 0L,
+    currentMainPageIndex: Int = 1,
+    onNavigateToMainPage: (Int) -> Unit = {}
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
     val groupingMode by viewModel.groupingMode.collectAsState()
@@ -636,11 +639,18 @@ fun GalleryScreen(
             }
         }
     ) { padding ->
-        Box(
+        MainPageSwipeWrapper(
+            enabled = selectedMediaIndex == null && !isSelectionMode,
+            currentIndex = currentMainPageIndex,
+            pageCount = 4,
+            onPageChanged = onNavigateToMainPage,
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
             // TAG 扫描状态指示器
             if (TagGenerationService.isScanning.collectAsState(false).value) {
                 androidx.compose.material3.LinearProgressIndicator(
@@ -954,6 +964,7 @@ fun GalleryScreen(
                     )
                 }
             }
+        }
         }
     }
 

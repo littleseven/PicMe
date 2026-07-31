@@ -40,6 +40,7 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
+import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import com.mamba.picme.features.person.components.PersonInfoScreen
 import com.mamba.picme.features.person.components.PersonListItem
 import com.mamba.picme.service.tag.TagGenerationService
@@ -54,7 +55,9 @@ import kotlinx.coroutines.launch
 fun PersonScreen(
     viewModel: PersonViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToGallery: (Long) -> Unit
+    onNavigateToGallery: (Long) -> Unit,
+    currentMainPageIndex: Int = 3,
+    onNavigateToMainPage: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.reconcileAndLoad() }
@@ -180,12 +183,19 @@ fun PersonScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        Box(
+        MainPageSwipeWrapper(
+            enabled = true,
+            currentIndex = currentMainPageIndex,
+            pageCount = 4,
+            onPageChanged = onNavigateToMainPage,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LazyVerticalGrid(
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -209,6 +219,7 @@ fun PersonScreen(
                     )
                 }
             }
+        }
         }
     }
 

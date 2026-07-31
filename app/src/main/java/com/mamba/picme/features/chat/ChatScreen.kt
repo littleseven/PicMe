@@ -156,6 +156,7 @@ import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
+import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.MediaPager
@@ -190,7 +191,9 @@ fun ChatScreen(
     onNavigateToGallery: (String) -> Unit = {},
     mediaViewModel: MediaViewModel,
     onNavigateToPhotoEditor: (uri: String, autoOptimize: Boolean) -> Unit = { _, _ -> },
-    onNavigateToIDPhoto: (uri: String) -> Unit = {}
+    onNavigateToIDPhoto: (uri: String) -> Unit = {},
+    currentMainPageIndex: Int = 2,
+    onNavigateToMainPage: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -423,12 +426,20 @@ fun ChatScreen(
             }
         }
     ) { padding ->
-        Box(
+        MainPageSwipeWrapper(
+            enabled = previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null,
+            currentIndex = currentMainPageIndex,
+            pageCount = 4,
+            onPageChanged = onNavigateToMainPage,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -598,6 +609,7 @@ fun ChatScreen(
                     }
                 )
             }
+        }
         }
     }
 
