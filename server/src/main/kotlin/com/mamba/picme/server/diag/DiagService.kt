@@ -5,6 +5,7 @@ import com.mamba.picme.server.db.Db
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
@@ -117,7 +118,7 @@ object DiagService {
         }
         val now = Instant.now().toEpochMilli()
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.update({ DiagJobs.id eq id }) {
+            DiagJobs.update({ (DiagJobs.id eq id) and (DiagJobs.status eq DiagStatus.QUEUED.name) }) {
                 it[DiagJobs.status] = status.name
                 it[DiagJobs.rootCause] = rootCause
                 it[DiagJobs.workerLog] = error
@@ -158,7 +159,7 @@ object DiagService {
         }
         val now = Instant.now().toEpochMilli()
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.update({ DiagJobs.id eq id }) {
+            DiagJobs.update({ (DiagJobs.id eq id) and (DiagJobs.status eq DiagStatus.FIX_REQUESTED.name) }) {
                 it[DiagJobs.status] = status.name
                 it[DiagJobs.fixBranch] = fixBranch
                 it[DiagJobs.compareUrl] = compareUrl

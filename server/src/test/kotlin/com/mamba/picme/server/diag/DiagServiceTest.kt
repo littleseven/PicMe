@@ -176,4 +176,30 @@ class DiagServiceTest {
         val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq fixReq }.single() }
         assertEquals(DiagStatus.FIX_REQUESTED.name, row[DiagJobs.status])
     }
+
+    @Test
+    fun `submitDiagnosis is ignored after the job is archived`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.archive(id) } // 先废弃
+        runBlocking { DiagService.submitDiagnosis(id, "late rc", DiagStatus.DIAGNOSED, null) }
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        // 守卫挡住：仍是 ARCHIVED，未写入迟到回传
+        assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
+        assertNull(row[DiagJobs.rootCause])
+    }
+
+    @Test
+    fun `submitFix is ignored after the job is archived`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        // 走到 FIX_REQUESTED 再废弃，模拟修复阶段迟到回传
+        runBlocking { DiagService.submitDiagnosis(id, "rc", DiagStatus.DIAGNOSED, null) }
+        runBlocking { DiagService.confirmFix(id, "o", "push") }
+        runBlocking { DiagService.archive(id) }
+        runBlocking { DiagService.submitFix(id, DiagStatus.FIXED, "diag-fix/late", null, tested = true, error = null) }
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
+        assertNull(row[DiagJobs.fixBranch])
+    }
 }
