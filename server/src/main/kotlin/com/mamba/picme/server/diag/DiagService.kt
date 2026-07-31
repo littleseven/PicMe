@@ -25,6 +25,8 @@ data class DiagJobRow(
     val fixBranch: String?,
     val compareUrl: String?,
     val tested: Boolean,
+    val workerLog: String?,
+    val updatedAt: Long,
 )
 
 /** worker 领到的任务（phase 决定诊断还是修复）。 */
@@ -36,6 +38,8 @@ data class DiagClaim(
     val gitSha: String,
     val rootCause: String?,   // 修复阶段带确认过的根因
     val fixMode: String?,     // 修复阶段带用户选的 mode
+    val conversationSummary: String?, // 诊断澄清对话摘要（诊断阶段用）
+    val suggestedFix: String?,        // 修复阶段带诊断给出的修复方向
 )
 
 object DiagService {
@@ -46,6 +50,7 @@ object DiagService {
         description: String,
         bundleJson: String,
         gitSha: String,
+        conversationSummary: String? = null,
     ): Int {
         val now = Instant.now().toEpochMilli()
         return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
@@ -53,6 +58,7 @@ object DiagService {
                 it[DiagJobs.ownerTokenHash] = ownerTokenHash
                 it[DiagJobs.deviceId] = deviceId
                 it[DiagJobs.description] = description
+                it[DiagJobs.conversationSummary] = conversationSummary
                 it[DiagJobs.bundleJson] = bundleJson
                 it[DiagJobs.gitSha] = gitSha
                 it[DiagJobs.status] = DiagStatus.QUEUED.name
@@ -77,6 +83,8 @@ object DiagService {
                     fixBranch = it[DiagJobs.fixBranch],
                     compareUrl = it[DiagJobs.compareUrl],
                     tested = it[DiagJobs.tested] == 1,
+                    workerLog = it[DiagJobs.workerLog],
+                    updatedAt = it[DiagJobs.updatedAt],
                 )
             }
         }
@@ -98,7 +106,10 @@ object DiagService {
                 .firstOrNull() ?: return@newSuspendedTransaction null
             val id = row[DiagJobs.id]
             val status = DiagStatus.valueOf(row[DiagJobs.status])
-            DiagJobs.update({ DiagJobs.id eq id }) { it[claimedAt] = now }
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[claimedAt] = now
+                it[updatedAt] = now
+            }
             DiagClaim(
                 id = id,
                 phase = if (status == DiagStatus.QUEUED) "diagnose" else "fix",
@@ -107,12 +118,14 @@ object DiagService {
                 gitSha = row[DiagJobs.gitSha],
                 rootCause = row[DiagJobs.rootCause],
                 fixMode = row[DiagJobs.fixMode],
+                conversationSummary = row[DiagJobs.conversationSummary],
+                suggestedFix = row[DiagJobs.suggestedFix],
             )
         }
     }
 
-    /** 诊断阶段回传：成功→DIAGNOSED，失败→DIAGNOSE_FAILED。 */
-    suspend fun submitDiagnosis(id: Int, rootCause: String?, status: DiagStatus, error: String?) {
+    /** 诊断阶段回传：成功→DIAGNOSED，失败→DIAGNOSE_FAILED。suggestedFix 供 fix 阶段 prompt 使用。 */
+    suspend fun submitDiagnosis(id: Int, rootCause: String?, status: DiagStatus, error: String?, suggestedFix: String? = null) {
         require(status == DiagStatus.DIAGNOSED || status == DiagStatus.DIAGNOSE_FAILED) {
             "diagnose status must be DIAGNOSED or DIAGNOSE_FAILED"
         }
@@ -121,6 +134,7 @@ object DiagService {
             DiagJobs.update({ (DiagJobs.id eq id) and (DiagJobs.status eq DiagStatus.QUEUED.name) }) {
                 it[DiagJobs.status] = status.name
                 it[DiagJobs.rootCause] = rootCause
+                it[DiagJobs.suggestedFix] = suggestedFix
                 it[DiagJobs.workerLog] = error
                 it[DiagJobs.updatedAt] = now
             }
@@ -170,6 +184,39 @@ object DiagService {
         }
     }
 
+    /**
+     * S1 任务回收 sweeper（Application 启动的周期协程调用）：
+     * - 整体超时：非终态（QUEUED/DIAGNOSED/FIX_REQUESTED）超 [overallTimeoutMs] 未更新 → TIMED_OUT。
+     * - 领取回收：QUEUED/FIX_REQUESTED 且 claimedAt 超 [claimTimeoutMs] 未更新 → claimedAt 置空，重新可领。
+     *   15min > worker 侧 DIAG_PHASE_TIMEOUT（≤600s），正常执行不会误回收，无需心跳。
+     * 返回 (领取回收数, 整体超时数)。
+     */
+    suspend fun sweepStaleJobs(
+        nowMs: Long,
+        claimTimeoutMs: Long = 15 * 60_000L,
+        overallTimeoutMs: Long = 60 * 60_000L,
+    ): Pair<Int, Int> = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        val nonTerminal = listOf(
+            DiagStatus.QUEUED.name, DiagStatus.DIAGNOSED.name, DiagStatus.FIX_REQUESTED.name,
+        )
+        val timedOut = DiagJobs.update({
+            (DiagJobs.status inList nonTerminal) and (DiagJobs.updatedAt less nowMs - overallTimeoutMs)
+        }) {
+            it[DiagJobs.status] = DiagStatus.TIMED_OUT.name
+            it[DiagJobs.updatedAt] = nowMs
+        }
+        val claimable = listOf(DiagStatus.QUEUED.name, DiagStatus.FIX_REQUESTED.name)
+        // claimedAt 为 NULL 的行在 SQL 比较中自然被排除（NULL < x 为 UNKNOWN），无需显式 isNotNull
+        val reclaimed = DiagJobs.update({
+            (DiagJobs.status inList claimable) and
+                (DiagJobs.claimedAt less nowMs - claimTimeoutMs)
+        }) {
+            it[DiagJobs.claimedAt] = null
+            it[DiagJobs.updatedAt] = nowMs
+        }
+        reclaimed to timedOut
+    }
+
     /** 管理后台「删除」：物理删除任务记录（不可恢复）。 */
     suspend fun deleteById(id: Int) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
@@ -205,6 +252,7 @@ object DiagService {
             DiagJobs.update({ DiagJobs.id eq id }) {
                 it[DiagJobs.status] = DiagStatus.QUEUED.name
                 it[DiagJobs.rootCause] = null
+                it[DiagJobs.suggestedFix] = null
                 it[DiagJobs.fixMode] = null
                 it[DiagJobs.fixBranch] = null
                 it[DiagJobs.compareUrl] = null

@@ -6,8 +6,9 @@ load_env
 
 jobId="$1"; claim="$2"
 gitSha="$(printf '%s' "$claim" | jq -r .gitSha)"
-rootCause="$(printf '%s' "$claim" | jq -r '.rootCause // ""' | json_escape)"
-suggested=""   # 诊断阶段未回传 suggestedFix，留空
+# W1：诊断阶段回传的 rootCause/suggestedFix 经 claim 传入（旧 server 无此字段 → 空串，同现状）
+export TPL_ROOT_CAUSE="$(printf '%s' "$claim" | jq -r '.rootCause // ""')"
+export TPL_SUGGESTED_FIX="$(printf '%s' "$claim" | jq -r '.suggestedFix // ""')"
 mode="$(printf '%s' "$claim" | jq -r '.fixMode // "push"')"
 branch="diag-fix/$jobId"
 wlog "job #$jobId FIX start (sha=$gitSha mode=$mode)"
@@ -17,12 +18,25 @@ git -C "$repo" remote set-url origin "$DIAG_REPO" 2>/dev/null || true
 git -C "$repo" fetch --quiet origin 2>/dev/null || true
 git -C "$repo" checkout --quiet -B "$branch" "$gitSha" 2>/dev/null || git -C "$repo" checkout --quiet -B "$branch" "$DIAG_BASE_BRANCH"
 
-prompt="$(sed -e "s|__ROOT_CAUSE__|$rootCause|g" -e "s|__SUGGESTED_FIX__|$suggested|g" "$SCRIPT_DIR/prompts/fix.md")"
+prompt="$(render_template "$SCRIPT_DIR/prompts/fix.md")"
 wlog "job #$jobId claude fix start (<= ${DIAG_PHASE_TIMEOUT}s)"
 # claude 必须在 repo 根跑（prompt 假设在 repo）；输出存档供诊断（不再 /dev/null）。
 claude_out="$DIAG_WORKDIR/claude-fix-$jobId.out"
 ( cd "$repo" && run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --dangerously-skip-permissions --output-format json --max-turns "$DIAG_MAX_TURNS" ) >"$claude_out" 2>&1 || true
 wlog "job #$jobId claude fix done rc=$? ; out: $(head -c 300 "$claude_out" 2>/dev/null | tr '\n' ' ')"
+
+# W2：模型未产生任何文件改动 → 直接 FIX_FAILED，不再空 commit 照推分支
+if [ -z "$(git -C "$repo" status --porcelain)" ]; then
+  wlog "job #$jobId 模型未产生修改（git status 干净），回 FIX_FAILED"
+  report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"error\":\"模型未产生修改\"}"
+  exit 0
+fi
+
+# W2：模型的 changedFiles / summary 随结果回传（server 写入 worker_log，admin 详情可见）
+fix_inner="$(jq -r '.result // empty' "$claude_out" 2>/dev/null | sed 's/```[a-zA-Z]*//g')"
+fix_summary="$(printf '%s' "$fix_inner" | jq -r '.summary // empty' 2>/dev/null)"
+fix_files="$(printf '%s' "$fix_inner" | jq -r '(.changedFiles // []) | if type == "array" then join(", ") else . end' 2>/dev/null)"
+fix_log="$(printf 'summary=%s changedFiles=%s' "$fix_summary" "$fix_files" | json_escape)"
 
 # 自检：跑 server JVM 单测（资源允许）；失败/超时不阻断，只标 tested=false。
 tested=false
@@ -47,7 +61,7 @@ status="FIXED"; [ "$tested" = "false" ] && status="FIXED_UNVERIFIED"
 case "$mode" in
   push)
     wlog "job #$jobId mode=push (保守：仅推分支)"
-    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested,\"log\":\"$fix_log\"}"
     ;;
   pr)
     wlog "job #$jobId mode=pr (待审：建真 PR)"
@@ -59,7 +73,7 @@ case "$mode" in
       --body "由远程诊断 worker 自动修复。根因见 server /admin/diag job #$jobId。" 2>/dev/null)"
     if [ -n "$pr_url" ]; then
       wlog "job #$jobId PR created: $pr_url"
-      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested,\"compareUrl\":\"$(printf '%s' "$pr_url" | json_escape)\"}"
+      report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested,\"compareUrl\":\"$(printf '%s' "$pr_url" | json_escape)\",\"log\":\"$fix_log\"}"
     else
       wlog "job #$jobId gh pr create FAILED"
       report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIX_FAILED\",\"fixBranch\":\"$branch\",\"error\":\"gh pr create failed\"}"
@@ -83,16 +97,16 @@ case "$mode" in
       fi
       if [ "$auto_merged" = "1" ] && run_with_timeout 120 git -C "$repo" push --quiet origin "$DIAG_BASE_BRANCH"; then
         wlog "job #$jobId auto-merged to $DIAG_BASE_BRANCH"
-        report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED\",\"fixBranch\":\"$DIAG_BASE_BRANCH\",\"tested\":true}"; exit 0
+        report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED\",\"fixBranch\":\"$DIAG_BASE_BRANCH\",\"tested\":true,\"log\":\"$fix_log\"}"; exit 0
       fi
     fi
     # 自检失败 / rebase 冲突 / push 失败 → 降级留分支（不 block，可手动收尾）
     wlog "job #$jobId auto aborted (自检失败/rebase冲突/push失败)，留 $branch 分支"
     git -C "$repo" checkout --quiet "$branch" 2>/dev/null || true
-    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED_UNVERIFIED\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"FIXED_UNVERIFIED\",\"fixBranch\":\"$branch\",\"tested\":$tested,\"log\":\"$fix_log\"}"
     ;;
   *)
     wlog "job #$jobId unknown mode=$mode，按 push 处理"
-    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested}"
+    report_result "$jobId" "{\"phase\":\"fix\",\"status\":\"$status\",\"fixBranch\":\"$branch\",\"tested\":$tested,\"log\":\"$fix_log\"}"
     ;;
 esac

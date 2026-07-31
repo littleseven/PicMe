@@ -495,7 +495,8 @@ fun ChatScreen(
                                             )
                                         }
                                     },
-                                    onDiagConfirm = { _, mode -> viewModel.confirmDiagnosis(mode) }
+                                    onDiagConfirm = { jobId, mode -> viewModel.confirmDiagnosis(jobId, mode) },
+                                    onDiagSubmit = { ds -> viewModel.submitDiagnosis(ds.description, ds.summary) }
                                 )
                             }
                         }
@@ -823,6 +824,7 @@ private fun ChatMessageItem(
     message: ChatMessageUi,
     onImageClick: (ChatMessageUi) -> Unit = {},
     onDiagConfirm: (Int, String) -> Unit = { _, _ -> },
+    onDiagSubmit: (DiagSubmitUi) -> Unit = {},
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
@@ -1007,6 +1009,13 @@ private fun ChatMessageItem(
                     }
                 }
             }
+            // 诊断澄清对话：[DIAG_READY] 摘要气泡内嵌「提交诊断」按钮（§2：提交永远是用户手动动作）
+            message.diagSubmit?.let { ds ->
+                Spacer(Modifier.height(10.dp))
+                Button(onClick = { onDiagSubmit(ds) }) {
+                    Text(stringResource(R.string.diag_submit_report))
+                }
+            }
             message.performance?.let { perf ->
                 val metricTint = if (isUser) {
                     Color.White.copy(alpha = 0.55f)
@@ -1125,8 +1134,8 @@ private fun ChatInputArea(
     val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
     // 独立 chat 页默认文本输入模式（不继承/回写公共 AI chat 的语音偏好）
     var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
-    // 远程诊断模式 toggle：激活后发送键触发诊断（而非普通消息）
-    var diagMode by remember { mutableStateOf(false) }
+    // 诊断澄清对话模式（§2）：状态在 ViewModel（进入时自动新建独立会话）
+    val diagMode by viewModel.diagMode.collectAsState()
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
     val localAsrModel by settingsRepository.localAsrModelFlow.collectAsState(initial = "")
@@ -1197,7 +1206,7 @@ private fun ChatInputArea(
                     onTextChange = { text = it },
                     isProcessing = isProcessing,
                     diagMode = diagMode,
-                    onToggleDiag = { diagMode = !diagMode },
+                    onToggleDiag = { if (diagMode) viewModel.exitDiagMode() else viewModel.enterDiagMode() },
                     onSend = {
                         if (!isProcessing) {
                             val img = pendingImage
@@ -1219,7 +1228,7 @@ private fun ChatInputArea(
                                     keyboardController?.hide()
                                 }
                                 text.isNotBlank() -> {
-                                    if (diagMode) viewModel.submitDiagnosis(text.trim()) else onSendMessage(text.trim())
+                                    if (diagMode) viewModel.sendDiagMessage(text.trim()) else onSendMessage(text.trim())
                                     text = ""
                                     keyboardController?.hide()
                                 }
@@ -1841,10 +1850,15 @@ data class ChatMessageUi(
     val isThinking: Boolean = false,
     /** 诊断根因气泡的内嵌确认动作；非空且 pending=true 时渲染 [推送]/[PR] 按钮。 */
     val diagConfirm: DiagConfirmUi? = null,
+    /** 诊断澄清对话 [DIAG_READY] 气泡的内嵌提交动作；非空时渲染「提交诊断」按钮。 */
+    val diagSubmit: DiagSubmitUi? = null,
 )
 
 /** 诊断确认内嵌按钮状态。pending=true 显示按钮；false 则已处理（按钮消失）。 */
 data class DiagConfirmUi(val jobId: Int, val pending: Boolean)
+
+/** 诊断对话「提交诊断」按钮状态。description=诊断会话首条用户消息，summary=LLM 结构化摘要（可空，退化为现状）。 */
+data class DiagSubmitUi(val description: String, val summary: String?)
 
 enum class ChatMessageType {
     USER_TEXT,

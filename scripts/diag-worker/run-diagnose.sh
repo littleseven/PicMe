@@ -6,9 +6,14 @@ load_env
 
 jobId="$1"; claim="$2"
 gitSha="$(printf '%s' "$claim" | jq -r .gitSha)"
-desc="$(printf '%s' "$claim" | jq -r .description | json_escape)"
-logs="$(printf '%s' "$claim" | jq -r '.bundle.logs // ""' | json_escape)"
-crash="$(printf '%s' "$claim" | jq -r '.bundle.crashTrace // ""' | json_escape)"
+
+# W3：模板变量经 TPL_* 环境变量传给 python3 渲染（原样，不经 json_escape；
+# json_escape 会把换行压成 \n 字面量，仅 sed 时代需要）。
+export TPL_GIT_SHA="$gitSha"
+export TPL_DESCRIPTION="$(printf '%s' "$claim" | jq -r '.description // ""')"
+export TPL_CONVERSATION_SUMMARY="$(printf '%s' "$claim" | jq -r '.conversationSummary // ""')"
+export TPL_LOGS="$(printf '%s' "$claim" | jq -r '.bundle.logs // ""')"
+export TPL_CRASH_TRACE="$(printf '%s' "$claim" | jq -r '.bundle.crashTrace // ""')"
 
 repo="$DIAG_WORKDIR/repo"
 if [ ! -d "$repo/.git" ]; then
@@ -17,7 +22,7 @@ fi
 git -C "$repo" fetch --quiet origin 2>/dev/null || true
 git -C "$repo" checkout --quiet "$gitSha" 2>/dev/null || git -C "$repo" checkout --quiet "$DIAG_BASE_BRANCH"
 
-prompt="$(sed -e "s|__GIT_SHA__|$gitSha|g" -e "s|__DESCRIPTION__|$desc|g" -e "s|__LOGS__|$logs|g" -e "s|__CRASH_TRACE__|$crash|g" "$SCRIPT_DIR/prompts/diagnose.md")"
+prompt="$(render_template "$SCRIPT_DIR/prompts/diagnose.md")"
 
 claude_err_file="$(mktemp)"
 out="$(run_with_timeout "$DIAG_PHASE_TIMEOUT" "$DIAG_CLAUDE" -p "$prompt" --output-format json --max-turns "$DIAG_MAX_TURNS" 2>"$claude_err_file")"; rc=$?
@@ -49,9 +54,22 @@ if { [ -z "$rootCause" ] || [ "$rootCause" = "null" ]; } && [ -n "$inner" ]; the
   fi
 fi
 
+# W1：从同一份 claude 输出抠 suspectFiles / suggestedFix（best-effort；仅 rootCause 成功时才回传）。
+# inner 是 .result 文本（形态 a），抠不出 JSON 时退到整段 out（形态 b/c 由 jq 直接兜）。
+suspectFiles=""; suggestedFix=""
+if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
+  json_src="$inner"
+  [ -z "$json_src" ] && json_src="$out"
+  json_obj="$(printf '%s' "$json_src" | tr '\n' ' ' | sed 's/.*\({.*}\).*/\1/' 2>/dev/null)"
+  [ -n "$json_obj" ] && suspectFiles="$(printf '%s' "$json_obj" | jq -r '(.suspectFiles // []) | if type == "array" then join(", ") else . end' 2>/dev/null)"
+  [ -n "$json_obj" ] && suggestedFix="$(printf '%s' "$json_obj" | jq -r '.suggestedFix // empty' 2>/dev/null)"
+fi
+
 if [ -n "$rootCause" ] && [ "$rootCause" != "null" ]; then
   rc_escaped="$(printf '%s' "$rootCause" | json_escape)"
-  report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\"}"
+  sf_escaped="$(printf '%s' "$suspectFiles" | json_escape)"
+  fx_escaped="$(printf '%s' "$suggestedFix" | json_escape)"
+  report_result "$jobId" "{\"phase\":\"diagnose\",\"status\":\"DIAGNOSED\",\"rootCause\":\"$rc_escaped\",\"suspectFiles\":\"$sf_escaped\",\"suggestedFix\":\"$fx_escaped\"}"
 else
   # 解析失败：把 claude 的 .result（模型最终文本）+ num_turns + exit code 回传到 workerLog，便于排查
   result_field="$(printf '%s' "$out" | jq -r '.result // empty' 2>/dev/null)"

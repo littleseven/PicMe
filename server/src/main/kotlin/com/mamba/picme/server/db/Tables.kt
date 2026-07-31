@@ -166,10 +166,12 @@ object DiagJobs : Table("diag_job") {
     val ownerTokenHash = varchar("owner_token_hash", 64)  // X-App-Token 的 hash，owner 身份
     val deviceId = varchar("device_id", 128).nullable()
     val description = text("description")
+    val conversationSummary = text("conversation_summary").nullable() // 诊断澄清对话摘要（可选，旧客户端为 NULL）
     val bundleJson = text("bundle_json")                  // 脱敏后的纯文本诊断包
     val gitSha = varchar("git_sha", 64)
     val status = varchar("status", 24)                    // DiagStatus.name
     val rootCause = text("root_cause").nullable()
+    val suggestedFix = text("suggested_fix").nullable()     // 诊断给出的修复方向（供 fix 阶段 prompt）
     val fixMode = varchar("fix_mode", 8).nullable()       // push | pr
     val fixBranch = varchar("fix_branch", 128).nullable()
     val compareUrl = varchar("compare_url", 512).nullable()

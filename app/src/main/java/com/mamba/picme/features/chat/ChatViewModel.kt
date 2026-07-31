@@ -27,6 +27,7 @@ import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.diag.CrashTraceStore
 import com.mamba.picme.core.diag.DiagBundleCollector
 import com.mamba.picme.BuildConfig
 import android.os.Build
@@ -207,11 +208,130 @@ class ChatViewModel(
     // ── 远程诊断（chat 触发 → 云主机 Claude Code worker）─────────────────
     private val diagClient = dependencies.diagClient
 
-    private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
-    private var activeDiag: ActiveDiag? = null
+    // ── 诊断澄清对话（§2：diag toggle → 独立会话多轮 LLM 澄清 → [DIAG_READY] 手动提交）──
 
-    /** UI「诊断」icon 入口：把输入框文本作为问题描述发起远程诊断。 */
-    fun submitDiagnosis(description: String) {
+    private val _diagMode = MutableStateFlow(false)
+    val diagMode: StateFlow<Boolean> = _diagMode.asStateFlow()
+
+    private var diagChatSession: DiagChatSession? = null
+
+    /** 诊断会话首条用户消息（作为上报 description；澄清摘要走 conversationSummary）。 */
+    private var diagFirstUserText: String? = null
+
+    /** msgId → 「提交诊断」按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填）。 */
+    private val diagSubmitOverrides = mutableMapOf<String, DiagSubmitUi>()
+
+    /** 进入诊断模式：自动新建独立会话（上下文纯净，摘要提取干净）。 */
+    fun enterDiagMode() {
+        if (_diagMode.value) return
+        _diagMode.value = true
+        diagChatSession = DiagChatSession(effectiveRemoteConfig(selectedModel))
+        diagFirstUserText = null
+        diagSubmitOverrides.clear()
+        newSession()
+    }
+
+    fun exitDiagMode() {
+        _diagMode.value = false
+        diagChatSession = null
+    }
+
+    /**
+     * 诊断模式下的用户消息：走 [DiagChatSession] 多轮流式澄清对话（而非一次性上报）。
+     * LLM 输出 [DIAG_READY] 时，气泡内嵌「提交诊断」按钮（提交永远是用户手动动作，§2.2）。
+     */
+    fun sendDiagMessage(text: String) {
+        if (text.isBlank()) return
+        val session = diagChatSession ?: DiagChatSession(effectiveRemoteConfig(selectedModel)).also {
+            diagChatSession = it
+            _diagMode.value = true
+        }
+        viewModelScope.launch {
+            val sessionId = _currentSessionId.value
+            try {
+                ensureSessionExists(sessionId)
+                chatMessageDao.insertMessage(
+                    ChatMessageEntity(
+                        id = UUID.randomUUID().toString(),
+                        sessionId = sessionId,
+                        type = "user_text",
+                        content = text,
+                        modelUsed = null,
+                    )
+                )
+                chatSessionDao.touchSession(sessionId)
+                if (diagFirstUserText == null) diagFirstUserText = text
+
+                _isProcessing.value = true
+                val streamingId = "streaming_${System.currentTimeMillis()}"
+                _streamingMessage.value = ChatMessageUi(
+                    id = streamingId,
+                    type = ChatMessageType.AGENT_TEXT,
+                    content = STREAMING_THINKING_HINT,
+                    modelUsed = currentModelLabel(),
+                    isStreaming = true,
+                    isThinking = true,
+                )
+                val result = session.chat(text) { snapshot ->
+                    _streamingMessage.update { cur -> cur?.copy(content = snapshot, isThinking = false) }
+                }
+                _streamingMessage.value = null
+                result.fold(
+                    onSuccess = { reply ->
+                        val parsed = DiagPrompts.parseDiagReply(reply)
+                        val entity = ChatMessageEntity(
+                            id = UUID.randomUUID().toString(),
+                            sessionId = sessionId,
+                            type = "agent_text",
+                            content = parsed.displayText,
+                            modelUsed = currentModelLabel(),
+                        )
+                        chatMessageDao.insertMessage(entity)
+                        chatSessionDao.touchSession(sessionId)
+                        if (parsed.ready) {
+                            val submit = DiagSubmitUi(
+                                description = diagFirstUserText ?: text,
+                                summary = parsed.summary,
+                            )
+                            diagSubmitOverrides[entity.id] = submit
+                            _messages.update { msgs ->
+                                msgs.map { m -> if (m.id == entity.id) m.copy(diagSubmit = submit) else m }
+                            }
+                        }
+                    },
+                    onFailure = { e ->
+                        insertAgentMessage(
+                            sessionId,
+                            context.getString(R.string.chat_inference_error, e.message ?: "unknown"),
+                            "error",
+                        )
+                    },
+                )
+            } catch (e: Exception) {
+                Logger.e(TAG, "sendDiagMessage failed", e)
+                _streamingMessage.value = null
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
+    private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
+
+    /** jobId → 进行中的诊断（支持多次诊断并存；确认按钮绑定各自气泡的 jobId，A1）。 */
+    private val activeDiags = mutableMapOf<Int, ActiveDiag>()
+
+    /** 诊断/修复轮询总超时（A2，默认 30 分钟）。 */
+    @VisibleForTesting
+    internal var diagPollTimeoutMs: Long = 30 * 60_000L
+
+    @VisibleForTesting
+    internal fun trackDiagForTesting(token: String, jobId: Int, msgId: String) {
+        activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
+    }
+
+    /** UI「诊断」入口：把问题描述（+ 可选澄清对话摘要）作为远程诊断上报。 */
+    fun submitDiagnosis(description: String, conversationSummary: String? = null) {
         if (description.isBlank()) return
         // 用户气泡（诊断标记）：与普通用户消息同形态，前缀 🔍 表明这是一次诊断请求
         _messages.update { msgs ->
@@ -228,25 +348,32 @@ class ChatViewModel(
                 upsertDiagMessage(msgId, context.getString(R.string.diag_login_required))
                 return@launch
             }
+            val crashTrace = CrashTraceStore.read(context.filesDir)
             val bundle = DiagBundleCollector.collect(
                 appVersion = BuildConfig.VERSION_NAME,
                 gitSha = BuildConfig.GIT_SHA,
                 deviceModel = Build.MODEL,
                 androidVersion = Build.VERSION.RELEASE,
+                crashTrace = crashTrace,
             )
             upsertDiagMessage(msgId, context.getString(R.string.diag_submitted))
-            val jobId = diagClient.reportDiagnosis(token, description, bundle).getOrElse { e ->
+            val jobId = diagClient.reportDiagnosis(token, description, bundle, conversationSummary).getOrElse { e ->
                 upsertDiagMessage(msgId, context.getString(R.string.diag_report_failed, e.message ?: ""))
                 return@launch
             }
-            activeDiag = ActiveDiag(token, jobId, msgId)
+            CrashTraceStore.delete(context.filesDir) // 上报成功 → 崩溃栈已随包送出，清除落盘文件
+            activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
             pollDiagnose(token, jobId, msgId)
         }
     }
 
-    private suspend fun pollDiagnose(token: String, jobId: Int, msgId: String) {
+    @VisibleForTesting
+    internal suspend fun pollDiagnose(token: String, jobId: Int, msgId: String) {
         var delayMs = 2000L
-        while (currentCoroutineContext().isActive) {
+        val startMs = System.currentTimeMillis()
+        while (currentCoroutineContext().isActive &&
+            System.currentTimeMillis() - startMs < diagPollTimeoutMs
+        ) {
             delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(15000)
             val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
             when (st.status) {
@@ -260,16 +387,29 @@ class ChatViewModel(
                     return
                 }
                 "DIAGNOSE_FAILED" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_diagnose_failed, st.rootCause ?: ""))
+                    upsertDiagMessage(
+                        msgId,
+                        context.getString(R.string.diag_diagnose_failed, st.error ?: st.rootCause ?: ""),
+                    )
+                    activeDiags.remove(jobId)
                     return
                 }
+                "TIMED_OUT" -> {
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_job_timed_out))
+                    activeDiags.remove(jobId)
+                    return
+                }
+                // 其余（含未来新增的非终态）：继续轮询，由总超时兜底
             }
         }
+        // A2：总超时 → 写气泡提示并退出协程，不再无限空转
+        upsertDiagMessage(msgId, context.getString(R.string.diag_poll_timeout))
+        activeDiags.remove(jobId)
     }
 
-    /** 根因气泡内嵌按钮选定 mode（push/pr）后调用。 */
-    fun confirmDiagnosis(mode: String) {
-        val ad = activeDiag ?: return
+    /** 根因气泡内嵌按钮选定 mode（push/pr/auto）后调用；作用于按钮所在气泡的 job（A1）。 */
+    fun confirmDiagnosis(jobId: Int, mode: String) {
+        val ad = activeDiags[jobId] ?: return
         viewModelScope.launch {
             val result = diagClient.confirmFix(ad.token, ad.jobId, mode)
             if (result.isFailure) {
@@ -278,16 +418,26 @@ class ChatViewModel(
             }
             upsertDiagMessage(
                 ad.msgId,
-                context.getString(if (mode == "pr") R.string.diag_fixing_pr else R.string.diag_fixing_push),
+                context.getString(
+                    when (mode) {
+                        "pr" -> R.string.diag_fixing_pr
+                        "auto" -> R.string.diag_fixing_auto
+                        else -> R.string.diag_fixing_push
+                    }
+                ),
                 diagConfirm = DiagConfirmUi(ad.jobId, pending = false),
             )
             pollFix(ad.token, ad.jobId, ad.msgId)
         }
     }
 
-    private suspend fun pollFix(token: String, jobId: Int, msgId: String) {
+    @VisibleForTesting
+    internal suspend fun pollFix(token: String, jobId: Int, msgId: String) {
         var delayMs = 3000L
-        while (currentCoroutineContext().isActive) {
+        val startMs = System.currentTimeMillis()
+        while (currentCoroutineContext().isActive &&
+            System.currentTimeMillis() - startMs < diagPollTimeoutMs
+        ) {
             delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(20000)
             val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
             when (st.status) {
@@ -298,16 +448,23 @@ class ChatViewModel(
                     val base = context.getString(R.string.diag_fixed, st.fixBranch ?: "-", verified)
                     val link = (st.compareUrl ?: st.fixBranch)?.let { "\n\n$it" } ?: ""
                     upsertDiagMessage(msgId, base + link)
-                    activeDiag = null
+                    activeDiags.remove(jobId)
                     return
                 }
                 "FIX_FAILED" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_fix_failed, st.rootCause ?: ""))
-                    activeDiag = null
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_fix_failed, st.error ?: st.rootCause ?: ""))
+                    activeDiags.remove(jobId)
+                    return
+                }
+                "TIMED_OUT" -> {
+                    upsertDiagMessage(msgId, context.getString(R.string.diag_job_timed_out))
+                    activeDiags.remove(jobId)
                     return
                 }
             }
         }
+        upsertDiagMessage(msgId, context.getString(R.string.diag_poll_timeout))
+        activeDiags.remove(jobId)
     }
 
     /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。diagConfirm 非 null 时一并写入。 */
@@ -654,7 +811,11 @@ class ChatViewModel(
                         chatMessageDao.getMessagesBySession(sessionId)
                     }
                     .collect { entities ->
-                        _messages.value = entities.map { it.toUiModel() }
+                        _messages.value = entities.map { e ->
+                            val ui = e.toUiModel()
+                            val submit = diagSubmitOverrides[ui.id]
+                            if (submit != null) ui.copy(diagSubmit = submit) else ui
+                        }
                     }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to load messages", e)

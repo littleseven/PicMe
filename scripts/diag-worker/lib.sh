@@ -74,3 +74,17 @@ run_with_timeout() {
 
 # 步骤日志：同时打到 stderr（tmux 可见）和 $WORKER_LOG（可 tail -f）。
 wlog() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a "$WORKER_LOG" >&2; }
+
+# W3：用 python3 读模板 + 环境变量安全替换（用户日志含 | & \ 时 sed 会破坏替换）。
+# 占位符固定集合：__GIT_SHA__ __DESCRIPTION__ __CONVERSATION_SUMMARY__ __LOGS__ __CRASH_TRACE__ __ROOT_CAUSE__ __SUGGESTED_FIX__
+# 调用前把值放进 TPL_* 环境变量（原样传递，不做任何转义；python str.replace 无元字符问题）。
+# 用法: render_template <templateFile>
+render_template() {
+  python3 - "$1" <<'PYEOF'
+import os, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+for key in ("GIT_SHA", "DESCRIPTION", "CONVERSATION_SUMMARY", "LOGS", "CRASH_TRACE", "ROOT_CAUSE", "SUGGESTED_FIX"):
+    text = text.replace("__%s__" % key, os.environ.get("TPL_" + key, ""))
+sys.stdout.write(text)
+PYEOF
+}

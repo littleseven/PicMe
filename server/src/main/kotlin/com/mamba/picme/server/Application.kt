@@ -10,6 +10,7 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
+import com.mamba.picme.server.diag.DiagService
 import com.mamba.picme.server.llm.LlmProxy
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelBalanceService
@@ -42,6 +43,11 @@ import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -60,6 +66,23 @@ fun main() {
     runBlocking {
         val purged = AccountService.purgeExpiredDeleted(AccountService.RETENTION_MS)
         logger.info("Purged $purged expired deleted accounts (retention=${AccountService.RETENTION_MS}ms)")
+    }
+    // S4：worker token 未配置时打 WARN（消除静默 401）
+    if (config.diagWorkerToken.isBlank()) {
+        logger.warn("DIAG_WORKER_TOKEN 未配置：/diag/work/** 端点已禁用（worker 请求一律 401）")
+    }
+    // S1：diag 任务回收 sweeper —— 每 5 分钟扫一次（领取回收 15min + 整体超时 1h → TIMED_OUT）
+    val diagSweepScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    diagSweepScope.launch {
+        while (true) {
+            delay(5 * 60_000L)
+            runCatching {
+                val (reclaimed, timedOut) = DiagService.sweepStaleJobs(System.currentTimeMillis())
+                if (reclaimed > 0 || timedOut > 0) {
+                    logger.info("diag sweeper: reclaimed=$reclaimed timedOut=$timedOut")
+                }
+            }.onFailure { logger.warn("diag sweeper failed", it) }
+        }
     }
     embeddedServer(CIO, port = config.port, host = config.host) {
         module(config)
@@ -129,6 +152,8 @@ fun Application.module(config: AppConfig) {
         maxTokensCap = config.maxTokensCap,
     )
     val rateLimiter = if (config.rateLimitPerMin > 0) RateLimiter(config.rateLimitPerMin) else null
+    // S3：diag 上报护栏（每账号 5 次/小时）
+    val diagReportLimiter = RateLimiter(5, 3_600_000L)
     val emailService = EmailService(httpClient, config.resendApiKey, config.emailFrom)
 
     val cosService = CosService(config)
@@ -147,7 +172,7 @@ fun Application.module(config: AppConfig) {
         accountDeletionRoute()
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
-        diagRoute(config.diagWorkerToken)
+        diagRoute(config.diagWorkerToken, diagReportLimiter)
         // 管理后台（/admin/**，独立 cookie 认证）
         adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
     }

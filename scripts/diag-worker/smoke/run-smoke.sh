@@ -63,11 +63,42 @@ git -C "$DIAG_WORKDIR/repo" add -A
 git -C "$DIAG_WORKDIR/repo" commit -qm init
 SHA="$(git -C "$DIAG_WORKDIR/repo" rev-parse --short HEAD)"
 
-CLAIM='{"jobId":1,"phase":"diagnose","description":"crash on open gallery","bundle":{"logs":"PoLang:Gallery boom","gitSha":"'"$SHA"'","appVersion":"1.0.29","deviceModel":"X","androidVersion":"14"},"gitSha":"'"$SHA"'"}'
+CLAIM='{"jobId":1,"phase":"diagnose","description":"crash on open gallery","conversationSummary":"现象: 打开相册崩溃","bundle":{"logs":"PoLang:Gallery boom | sed & break \\ path \"q\"","gitSha":"'"$SHA"'","appVersion":"1.0.29","deviceModel":"X","androidVersion":"14"},"gitSha":"'"$SHA"'"}'
+# 注：JSON 内 \\ 解码为单个 \（jq -r 输出 boom | sed & break \ path "q"），勿写成 \ （非法 JSON escape）。
 bash "$WD/run-diagnose.sh" 1 "$CLAIM"
 
 grep -q '"status":"DIAGNOSED"' "$CAPTURE" && grep -q 'stub: NPE' "$CAPTURE" \
   || { echo "FAIL diagnose glue; captured:"; cat "$CAPTURE"; exit 1; }
 echo "ok diagnose glue -> $(cat "$CAPTURE")"
+
+# --- 2d) W1：三字段（rootCause/suspectFiles/suggestedFix）全部回传 ---
+grep -q '"suspectFiles":"GalleryScreen.kt"' "$CAPTURE" \
+  || { echo "FAIL suspectFiles missing; captured:"; cat "$CAPTURE"; exit 1; }
+grep -q '"suggestedFix":"null check"' "$CAPTURE" \
+  || { echo "FAIL suggestedFix missing; captured:"; cat "$CAPTURE"; exit 1; }
+echo "ok diagnose three-field report"
+
+# --- 2b) 模板注入安全（W3）：含 | & \ " 的日志原样进入 prompt，不被替换语法破坏 ---
+grep -qF 'boom | sed & break \ path "q"' "$DIAG_WORKDIR/last-prompt.txt" \
+  || { echo "FAIL template injection; prompt:"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
+echo "ok template injection safe"
+
+# --- 2c) conversationSummary 进入 diagnose prompt ---
+grep -qF '现象: 打开相册崩溃' "$DIAG_WORKDIR/last-prompt.txt" \
+  || { echo "FAIL conversationSummary missing in prompt"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
+echo "ok conversationSummary in diagnose prompt"
+
+# --- 3) W1：fix 阶段 claim 带 suggestedFix → fix prompt 拿到真实值 ---
+CLAIM_FIX='{"jobId":2,"phase":"fix","gitSha":"'"$SHA"'","rootCause":"stub: NPE","suggestedFix":"null check","fixMode":"push"}'
+: > "$CAPTURE"
+bash "$WD/run-fix.sh" 2 "$CLAIM_FIX" || true
+grep -qF 'null check' "$DIAG_WORKDIR/last-prompt.txt" \
+  || { echo "FAIL suggestedFix not in fix prompt"; cat "$DIAG_WORKDIR/last-prompt.txt"; exit 1; }
+echo "ok suggestedFix in fix prompt"
+
+# --- 3b) W2：模型未产生改动 → FIX_FAILED（不产生空 commit/空分支）---
+grep -q '"status":"FIX_FAILED"' "$CAPTURE" && grep -q '模型未产生修改' "$CAPTURE" \
+  || { echo "FAIL empty-change should be FIX_FAILED; captured:"; cat "$CAPTURE"; exit 1; }
+echo "ok fix empty-change -> FIX_FAILED"
 
 echo "SMOKE PASS"

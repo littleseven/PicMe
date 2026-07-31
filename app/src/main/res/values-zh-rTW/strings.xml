@@ -991,4 +991,10 @@
     <string name="diag_verified_passed">自檢通過</string>
     <string name="diag_verified_unverified">未自檢</string>
     <string name="diag_fix_failed">❌ 修復失敗：%1$s</string>
+    <string name="diag_sheet_title">遠端診斷 · 根因</string>
+    <string name="diag_sheet_cancel">取消</string>
+    <string name="diag_fixing_auto">🔧 修復中（自動合併）…</string>
+    <string name="diag_submit_report">提交診斷</string>
+    <string name="diag_poll_timeout">⏱ 等待結果超時（30 分鐘），請重新發起診斷。</string>
+    <string name="diag_job_timed_out">⏱ 診斷任務在伺服器端已超時，請重新發起。</string>
 </resources>

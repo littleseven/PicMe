@@ -4,6 +4,9 @@ Build git SHA: __GIT_SHA__
 User-reported problem:
 __DESCRIPTION__
 
+Clarified conversation summary from the in-app diagnosis chat (may be empty for old clients):
+__CONVERSATION_SUMMARY__
+
 Sanitized app logs (PoLang:* tags):
 __LOGS__
 

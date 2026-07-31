@@ -227,4 +227,85 @@ class DiagServiceTest {
         assertEquals(DiagStatus.ARCHIVED.name, row[DiagJobs.status])
         assertNull(row[DiagJobs.fixBranch])
     }
+
+    @Test
+    fun `createJob stores conversationSummary and claim returns it`() {
+        TestDb.init(DiagJobs)
+        runBlocking { DiagService.createJob("o", null, "d", "{}", "sha", conversationSummary = "现象: 打开相册崩溃") }
+        val claim = runBlocking { DiagService.claimNextJob() }!!
+        assertEquals("现象: 打开相册崩溃", claim.conversationSummary)
+    }
+
+    @Test
+    fun `submitDiagnosis stores suggestedFix and fix claim returns it`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.submitDiagnosis(id, "rc", DiagStatus.DIAGNOSED, null, suggestedFix = "null check") }
+        runBlocking { DiagService.confirmFix(id, "o", "push") }
+        val claim = runBlocking { DiagService.claimNextJob() }!!
+        assertEquals("fix", claim.phase)
+        assertEquals("null check", claim.suggestedFix)
+    }
+
+    @Test
+    fun `getJob exposes workerLog and updatedAt`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.submitDiagnosis(id, null, DiagStatus.DIAGNOSE_FAILED, "claude_exit=1 boom") }
+        val job = runBlocking { DiagService.getJob(id, "o") }!!
+        assertEquals("claude_exit=1 boom", job.workerLog)
+        assertTrue(job.updatedAt > 0)
+    }
+
+    @Test
+    fun `sweepStaleJobs reclaims jobs claimed over 15 minutes ago`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        runBlocking { DiagService.claimNextJob() } // 置 claimedAt
+        val now = System.currentTimeMillis()
+        // 把 claimedAt 改到 16 分钟前（updatedAt 保持当前 → 不触发整体超时）
+        transaction(Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) { it[DiagJobs.claimedAt] = now - 16 * 60_000L }
+        }
+        val (reclaimed, timedOut) = runBlocking { DiagService.sweepStaleJobs(now) }
+        assertEquals(1, reclaimed)
+        assertEquals(0, timedOut)
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertNull(row[DiagJobs.claimedAt])
+        // 回收后任务重新可领
+        assertNotNull(runBlocking { DiagService.claimNextJob() })
+    }
+
+    @Test
+    fun `sweepStaleJobs marks non-terminal jobs idle over 1 hour as TIMED_OUT`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        val now = System.currentTimeMillis()
+        transaction(Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) { it[DiagJobs.updatedAt] = now - 61 * 60_000L }
+        }
+        val (reclaimed, timedOut) = runBlocking { DiagService.sweepStaleJobs(now) }
+        assertEquals(0, reclaimed)
+        assertEquals(1, timedOut)
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertEquals(DiagStatus.TIMED_OUT.name, row[DiagJobs.status])
+    }
+
+    @Test
+    fun `sweepStaleJobs leaves terminal jobs untouched`() {
+        TestDb.init(DiagJobs)
+        val id = runBlocking { DiagService.createJob("o", null, "d", "{}", "sha") }
+        val now = System.currentTimeMillis()
+        transaction(Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.FIXED.name
+                it[DiagJobs.updatedAt] = now - 61 * 60_000L
+            }
+        }
+        val (reclaimed, timedOut) = runBlocking { DiagService.sweepStaleJobs(now) }
+        assertEquals(0, reclaimed)
+        assertEquals(0, timedOut)
+        val row = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq id }.single() }
+        assertEquals(DiagStatus.FIXED.name, row[DiagJobs.status])
+    }
 }

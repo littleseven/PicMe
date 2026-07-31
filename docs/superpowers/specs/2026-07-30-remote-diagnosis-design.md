@@ -3,6 +3,7 @@
 > **日期**：2026-07-30
 > **状态**：已确认，待实施
 > **范围**：`app/`（手机端诊断采集与 chat 触发）、`server/`（会合点队列与状态机）、`scripts/diag-worker/`（云主机 worker，egress-only）
+> **演进（2026-07-31）**：多轮澄清对话（app 侧 LLM 追问 + `[DIAG_READY]` 手动提交）与三方加固（sweeper 回收/TIMED_OUT、error 透出、限频限长、suggestedFix 传递、修复空改动防护、python3 模板渲染、确认绑定 jobId、轮询超时、崩溃栈链路）见 `2026-07-31-diag-multiturn-and-hardening-design.md`，已实现。
 
 ## 1. 背景与问题
 
