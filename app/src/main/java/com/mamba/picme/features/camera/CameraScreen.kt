@@ -114,7 +114,6 @@ import com.mamba.picme.features.camera.thread.CameraThreadRegistry
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
 import com.mamba.picme.features.common.chat.AgentMessage
-import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
 import com.mamba.picme.PoLangApplication
@@ -324,14 +323,15 @@ fun CameraScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: MediaViewModel,
     settingsViewModel: SettingsViewModel? = null,
-    currentMainPageIndex: Int = 0,
-    onNavigateToMainPage: (Int) -> Unit = {}
+    /** 是否为主页面 Pager 中的当前活跃页：非活跃时门控相机绑定/沉浸式/语音与模型加载 */
+    isActivePage: Boolean = true
 ) {
-    // RD 沉浸式模式：隐藏系统栏
+    // RD 沉浸式模式：隐藏系统栏（仅活跃页生效，避免 Pager 常驻组合时全局隐藏系统栏）
     val view = LocalView.current
     val context = LocalContext.current
 
-    DisposableEffect(Unit) {
+    DisposableEffect(isActivePage) {
+        if (!isActivePage) return@DisposableEffect onDispose {}
         val activity = context.findActivity() ?: return@DisposableEffect onDispose {}
         val window = activity.window
         val previousSoftInputMode = window.attributes.softInputMode
@@ -365,19 +365,13 @@ fun CameraScreen(
 
     if (permissionsState.allPermissionsGranted) {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions granted, calling CameraContent")
-        MainPageSwipeWrapper(
-            enabled = true,
-            currentIndex = currentMainPageIndex,
-            pageCount = 4,
-            onPageChanged = onNavigateToMainPage
-        ) {
-            CameraContent(
-                viewModel = viewModel,
-                onNavigateToGallery = onNavigateToGallery,
-                onNavigateBack = onNavigateBack,
-                settingsViewModel = settingsViewModel
-            )
-        }
+        CameraContent(
+            viewModel = viewModel,
+            onNavigateToGallery = onNavigateToGallery,
+            onNavigateBack = onNavigateBack,
+            settingsViewModel = settingsViewModel,
+            isActivePage = isActivePage
+        )
     } else {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions NOT granted")
         Box(
@@ -430,7 +424,9 @@ fun CameraContent(
     viewModel: MediaViewModel,
     onNavigateToGallery: () -> Unit,
     onNavigateBack: () -> Unit = {},
-    settingsViewModel: SettingsViewModel? = null
+    settingsViewModel: SettingsViewModel? = null,
+    /** 是否为主页面 Pager 中的当前活跃页：非活跃时解绑相机并暂停语音/模型加载 */
+    isActivePage: Boolean = true
 ) {
     val context = LocalContext.current
     val runtimeContext = rememberCameraRuntimeContext(context)
@@ -699,11 +695,12 @@ fun CameraContent(
         aiAgentChatVisible,
         voiceCommandMode,
         aiAgentMode,
-        aiAgentInferencePreference
+        aiAgentInferencePreference,
+        isActivePage
     ) {
         val localModeEnabled = aiAgentMode == AiAgentMode.LOCAL || aiAgentMode == AiAgentMode.OFF
         val forceRemote = aiAgentInferencePreference == AiAgentInferencePreference.FORCE_REMOTE
-        localModeEnabled && !forceRemote &&
+        isActivePage && localModeEnabled && !forceRemote &&
             (aiAgentChatVisible || voiceCommandMode != VoiceCommandMode.DISABLED)
     }
     LaunchedEffect(resolvedModelId, aiAgentLocalUseOpencl, shouldLoadLocalLlm) {
@@ -738,8 +735,8 @@ fun CameraContent(
     var asrEngine by remember(context) {
         mutableStateOf<AsrEngine>(SystemAsrEngine(context))
     }
-    val shouldLoadLocalAsr = remember(voiceCommandMode, aiAgentChatVisible) {
-        voiceCommandMode != VoiceCommandMode.DISABLED || aiAgentChatVisible
+    val shouldLoadLocalAsr = remember(voiceCommandMode, aiAgentChatVisible, isActivePage) {
+        isActivePage && (voiceCommandMode != VoiceCommandMode.DISABLED || aiAgentChatVisible)
     }
     LaunchedEffect(context, localAsrModel, shouldLoadLocalAsr) {
         if (!shouldLoadLocalAsr) {
@@ -853,8 +850,8 @@ fun CameraContent(
 
     // 根据模式启停唤醒词监听
     // 同时监听 voiceCoordinator 变化，防止 asrEngine 切换导致 coordinator 重建后 KWS 丢失
-    LaunchedEffect(voiceCommandMode, voiceCoordinator) {
-        if (voiceCommandMode == VoiceCommandMode.WAKE_WORD) {
+    LaunchedEffect(voiceCommandMode, voiceCoordinator, isActivePage) {
+        if (isActivePage && voiceCommandMode == VoiceCommandMode.WAKE_WORD) {
             voiceCoordinator.startWakeWordListening()
         } else {
             voiceCoordinator.stopWakeWordListening()
@@ -1314,8 +1311,15 @@ voiceCoordinator.stopPushToTalk()
         effectiveEngineMode,
         adaptiveFaceDetectionIntervalEnabled,
         faceDetectIntervalProfile,
-        previewRebindSignal
+        previewRebindSignal,
+        isActivePage
     ) {
+        if (!isActivePage) {
+            // 非活跃页（Pager 常驻组合）：解绑相机，释放摄像头资源
+            runCatching { cameraProviderFuture.get().unbindAll() }
+            Logger.d("Camera", "Camera page inactive, unbind all use cases")
+            return@LaunchedEffect
+        }
         Logger.d("Camera", "Rebinding camera use cases for face engine mode=${effectiveEngineMode.name}")
         bindCameraUseCases(
             context = context,

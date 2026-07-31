@@ -30,13 +30,24 @@ data/                     ← 仓储实现、Room DB、DataStore、Retrofit
 di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ```
 
-### 1.2 页面导航（7 屏，Gallery 为默认首页）
+### 1.2 页面导航（主页面 Pager + NavHost 二级页，Gallery 为默认首页）
+
+**主页面（`Screen.Main` 单 destination，`features/main/MainPagerHost.kt` 以 HorizontalPager 承载 4 页）**：
+
+| 页索引 | 页面 | 定位 |
+|--------|------|------|
+| 0 | `Camera` | 拍照、美颜预览、语音控制（`isActivePage` 门控相机绑定/语音/本地模型加载） |
+| 1 | `Gallery` | **默认首页** — 智能相册、媒体浏览、AI 搜索、分类管理；底部悬浮 Tab 以纯图标聚合 Camera/Chat/ModelCenter 入口；设置入口在顶部栏最右侧 |
+| 2 | `Chat` | AI 对话主页，模型切换 |
+| 3 | `People` | 人物聚类页 |
+
+> **2026-07 主页面 Pager 化**：4 个主页面由 `HorizontalPager`（`beyondViewportPageCount = 3`，页面常驻组合）承载，横滑跟手、线性顺序、无循环回绕；底部 Tab/编程入口经 `switchMainPage` 瞬时切页（无滑动动画）；相册（详情/多选）与聊天（全屏预览）通过 `onHorizontalSwipeEnabledChange` 局部禁用外层滑动；Chat/人物页跳相册搜索经 `searchRequest` 状态驱动（不再走 `gallery?query=` 路由参数）。原 `MainPageSwipeWrapper` 已删除。
+
+**NavHost 二级页**：
 
 | Screen | Route | 定位 |
 |--------|-------|------|
-| `Gallery` | `gallery` | **默认首页** — 智能相册、媒体浏览、AI 搜索、分类管理；底部悬浮 Tab 以纯图标聚合 Camera/Chat/ModelCenter 入口；设置入口在顶部栏最右侧 |
-| `Chat` | `chat` | 二级页 — AI 对话主页，模型切换；顶部栏提供返回相册按钮 |
-| `Camera` | `camera` | 辅助入口 — 拍照、美颜预览、语音控制 |
+| `Main` | `main` | **startDestination** — 主页面 Pager 容器（上表 4 页） |
 | `Editor` | `editor` | 图片编辑 — 美颜调节、滤镜、风格特效（当前未注册在 NavHost，从相册/MediaPager 进入） |
 | `Settings` | `settings` | 设置 — 主菜单，展示 6 个分类入口 |
 | `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera_beauty`、`system`、`developer` |

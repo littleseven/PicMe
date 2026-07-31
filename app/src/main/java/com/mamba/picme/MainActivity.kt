@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
@@ -22,22 +23,22 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navOptions
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AppLanguage
-import com.mamba.picme.features.camera.CameraScreen
-import com.mamba.picme.features.chat.ChatScreen
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.features.debug.DebugScreen
 import com.mamba.picme.features.debug.JsBridgeScreen
@@ -46,7 +47,6 @@ import com.mamba.picme.features.editor.PhotoEditorScreen
 import com.mamba.picme.features.editor.PhotoEditorViewModel
 import com.mamba.picme.features.idphoto.IDPhotoScreen
 import com.mamba.picme.features.idphoto.IDPhotoViewModel
-import com.mamba.picme.features.gallery.GalleryScreen
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
@@ -54,7 +54,11 @@ import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
 import com.mamba.picme.features.settings.DataPrivacyScreen
 import com.mamba.picme.features.settings.MemoryFactsScreen
-import com.mamba.picme.features.person.PersonScreen
+import com.mamba.picme.features.main.MAIN_PAGE_CAMERA
+import com.mamba.picme.features.main.MAIN_PAGE_COUNT
+import com.mamba.picme.features.main.MAIN_PAGE_GALLERY
+import com.mamba.picme.features.main.MAIN_PAGE_PEOPLE
+import com.mamba.picme.features.main.MainPagerHost
 import com.mamba.picme.features.person.PersonViewModel
 import com.mamba.picme.features.settings.MemoryFactsViewModel
 import com.mamba.picme.features.settings.CommunicationChannelScreen
@@ -72,6 +76,7 @@ import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.domain.agent.capability.NavigationCapability
 import com.mamba.picme.domain.agent.capability.SystemCapability
+import kotlinx.coroutines.launch
 import java.util.Locale
 import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.ui.platform.LocalConfiguration
@@ -80,21 +85,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-
-        private val MAIN_PAGES = listOf(
-            Screen.Camera,
-            Screen.Gallery,
-            Screen.Chat,
-            Screen.People
-        )
-
-        private fun routeToMainPageIndex(route: String?): Int = when {
-            route == Screen.Camera.route -> 0
-            route == Screen.Chat.route -> 2
-            route == Screen.People.route -> 3
-            route == Screen.Gallery.route || route?.startsWith("${Screen.Gallery.route}?") == true -> 1
-            else -> 1
-        }
     }
 
     private var currentLanguage: AppLanguage? = null
@@ -155,21 +145,43 @@ class MainActivity : ComponentActivity() {
             ) {
                 PoLangTheme(themeMode = themeMode) {
                     val navController = rememberNavController()
-                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentMainPageIndex = routeToMainPageIndex(currentBackStackEntry?.destination?.route)
+                    // 主页面 Pager 状态：提升到此层，保证导航到二级页再返回后页位与滚动状态保留
+                    val pagerState = rememberPagerState(
+                        initialPage = MAIN_PAGE_GALLERY,
+                        pageCount = { MAIN_PAGE_COUNT }
+                    )
+                    val scope = rememberCoroutineScope()
+                    var gallerySearchRequest by remember { mutableStateOf<Pair<String, Long>?>(null) }
 
+                    // 主页面切换（底部 Tab / 编程入口）：瞬时跳转，无横滑动画；手指拖动由 Pager 跟手处理
                     val switchMainPage: (Int) -> Unit = { index ->
-                        val targetRoute = MAIN_PAGES[index].route
-                        navController.navigate(targetRoute) {
-                            launchSingleTop = true
-                            popUpTo(Screen.Gallery.route) { saveState = true }
+                        if (navController.currentDestination?.route != Screen.Main.route) {
+                            navController.popBackStack(Screen.Main.route, inclusive = false)
                         }
+                        scope.launch { pagerState.scrollToPage(index) }
                     }
+
+                    val personViewModel: PersonViewModel = viewModel(
+                        factory = PersonViewModel.factory(
+                            app.container.personRepository,
+                            app.container.database,
+                            app.container.faceClusterEngine
+                        )
+                    )
 
                     // Navigation/System Capability：依赖 NavController/Context，在 Activity 期创建并
                     // 注册到全局 CapabilityRegistry（唯一注册表，2026-07-29 单轨收敛——Compose
                     // CapabilityHost 已退役，不再有第二注册容器）。
-                    val navigationCapability = remember { NavigationCapability(navController) }
+                    // 主页面（相机/相册）已收敛进 HorizontalPager，经 mainPageSwitcher 切页
+                    val navigationCapability = remember {
+                        NavigationCapability(navController) { destination ->
+                            when (destination) {
+                                NavigationCapability.Destination.CAMERA -> switchMainPage(MAIN_PAGE_CAMERA)
+                                NavigationCapability.Destination.GALLERY -> switchMainPage(MAIN_PAGE_GALLERY)
+                                else -> Unit
+                            }
+                        }
+                    }
                     val systemCapability = remember { SystemCapability(applicationContext) }
                     val orchestrator = remember { AgentOrchestrator.getInstance(applicationContext) }
                     LaunchedEffect(navigationCapability, systemCapability) {
@@ -189,7 +201,7 @@ class MainActivity : ComponentActivity() {
                         ) { innerPadding ->
                             NavHost(
                                 navController = navController,
-                                startDestination = Screen.Gallery.route,
+                                startDestination = Screen.Main.route,
                                 modifier = Modifier.padding(innerPadding),
                                 enterTransition = {
                                     fadeIn(tween(400)) + slideIntoContainer(
@@ -216,97 +228,22 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             ) {
-                            composable(Screen.Chat.route) {
-                                // 场景管理：进入 Chat 页面
-                                DisposableEffect(Unit) {
-                                    SceneManager.getInstance().transitionTo(SceneManager.Scene.CHAT)
-                                    onDispose {
-                                        SceneManager.getInstance().leaveScene(SceneManager.Scene.CHAT)
-                                    }
-                                }
-                                ChatScreen(
-                                    viewModel = chatViewModel,
-                                    settingsViewModel = settingsViewModel,
-                                    onNavigateBack = { navController.popBackStack() },
-                                    onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToGallery = { query -> navController.navigate(Screen.Gallery.createRoute(query), navOptions { launchSingleTop = true }) },
+                            // 主页面：相机/相册/聊天/人物 由 HorizontalPager 承载，横滑跟手切换
+                            composable(Screen.Main.route) {
+                                MainPagerHost(
+                                    pagerState = pagerState,
+                                    chatViewModel = chatViewModel,
                                     mediaViewModel = mediaViewModel,
-                                    onNavigateToPhotoEditor = { uri, autoOptimize ->
-                                        navController.navigate(
-                                            Screen.PhotoEditor.createRoute(sourceUri = uri, autoOptimize = autoOptimize),
-                                            navOptions { launchSingleTop = true }
-                                        )
-                                    },
-                                    onNavigateToIDPhoto = { uri ->
-                                        navController.navigate(
-                                            Screen.IDPhoto.createRoute(sourceUri = uri),
-                                            navOptions { launchSingleTop = true }
-                                        )
-                                    },
-                                    currentMainPageIndex = currentMainPageIndex,
-                                    onNavigateToMainPage = switchMainPage
-                                )
-                            }
-                            composable(Screen.Camera.route) {
-                                // 场景管理：进入 Camera 页面
-                                DisposableEffect(Unit) {
-                                    SceneManager.getInstance().transitionTo(SceneManager.Scene.CAMERA)
-                                    onDispose {
-                                        SceneManager.getInstance().leaveScene(SceneManager.Scene.CAMERA)
-                                    }
-                                }
-                                CameraScreen(
-                                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateBack = { navController.popBackStack() },
-                                    viewModel = mediaViewModel,
                                     settingsViewModel = settingsViewModel,
-                                    currentMainPageIndex = currentMainPageIndex,
-                                    onNavigateToMainPage = switchMainPage
-                                )
-                            }
-                            composable(
-                                route = Screen.Gallery.ROUTE_WITH_ARGS,
-                                arguments = listOf(
-                                    navArgument(Screen.Gallery.ARG_QUERY) {
-                                        type = NavType.StringType
-                                        defaultValue = ""
-                                    },
-                                    navArgument(Screen.Gallery.ARG_PERSON_ID) {
-                                        type = NavType.LongType
-                                        defaultValue = 0L
-                                    }
-                                )
-                            ) { backStackEntry ->
-                                // 场景管理：进入 Gallery 页面
-                                DisposableEffect(Unit) {
-                                    SceneManager.getInstance().transitionTo(SceneManager.Scene.GALLERY)
-                                    onDispose {
-                                        SceneManager.getInstance().leaveScene(SceneManager.Scene.GALLERY)
-                                    }
-                                }
-                                val initialSearchQuery = backStackEntry.arguments
-                                    ?.getString(Screen.Gallery.ARG_QUERY).orEmpty()
-                                val initialPersonId = backStackEntry.arguments
-                                    ?.getLong(Screen.Gallery.ARG_PERSON_ID) ?: 0L
-                                GalleryScreen(
+                                    personViewModel = personViewModel,
                                     navController = navController,
-                                    viewModel = mediaViewModel,
-                                    settingsViewModel = settingsViewModel,
-                                    initialSearchQuery = initialSearchQuery,
-                                    initialPersonId = initialPersonId,
-                                    onNavigateToChat = { navController.navigate(Screen.Chat.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToCamera = { navController.navigate(Screen.Camera.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToSettings = { navController.navigate(Screen.Settings.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToModelCenter = { navController.navigate(Screen.ModelCenter.createRoute("llm"), navOptions { launchSingleTop = true }) },
-                                    onNavigateToDebug = { navController.navigate(Screen.Debug.route, navOptions { launchSingleTop = true }) },
-                                    onNavigateToTagControl = {
-                                        navController.navigate(Screen.TagControl.route, navOptions { launchSingleTop = true })
-                                    },
-                                    onNavigateToPeople = {
-                                        navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
-                                    },
-                                    currentMainPageIndex = currentMainPageIndex,
-                                    onNavigateToMainPage = switchMainPage
+                                    onSwitchPage = switchMainPage,
+                                    gallerySearchRequest = gallerySearchRequest,
+                                    onGallerySearchRequestConsumed = { gallerySearchRequest = null },
+                                    onRequestGallerySearch = { query, personId ->
+                                        gallerySearchRequest = query to personId
+                                        switchMainPage(MAIN_PAGE_GALLERY)
+                                    }
                                 )
                             }
                             composable(
@@ -425,7 +362,8 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate(Screen.CommunicationChannel.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToPeople = {
-                                        navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
+                                        // 人物页已是主页面 Pager 一页：切页并弹回 Main
+                                        switchMainPage(MAIN_PAGE_PEOPLE)
                                     }
                                 )
                             }
@@ -489,7 +427,8 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate(Screen.CommunicationChannel.route, navOptions { launchSingleTop = true })
                                     },
                                     onNavigateToPeople = {
-                                        navController.navigate(Screen.People.route, navOptions { launchSingleTop = true })
+                                        // 人物页已是主页面 Pager 一页：切页并弹回 Main
+                                        switchMainPage(MAIN_PAGE_PEOPLE)
                                     }
                                 )
                             }
@@ -549,27 +488,6 @@ class MainActivity : ComponentActivity() {
                                 MemoryFactsScreen(
                                     viewModel = memoryFactsViewModel,
                                     onNavigateBack = { navController.popBackStack() }
-                                )
-                            }
-                            composable(Screen.People.route) {
-                                val personViewModel: PersonViewModel = viewModel(
-                                    factory = PersonViewModel.factory(
-                                        app.container.personRepository,
-                                        app.container.database,
-                                        app.container.faceClusterEngine
-                                    )
-                                )
-                                PersonScreen(
-                                    viewModel = personViewModel,
-                                    onNavigateBack = { navController.popBackStack() },
-                                    onNavigateToGallery = { personId ->
-                                        navController.navigate(
-                                            Screen.Gallery.createRoute(personId = personId),
-                                            navOptions { launchSingleTop = true }
-                                        )
-                                    },
-                                    currentMainPageIndex = currentMainPageIndex,
-                                    onNavigateToMainPage = switchMainPage
                                 )
                             }
                             composable(Screen.Debug.route) {

@@ -65,7 +65,6 @@ import com.mamba.picme.features.gallery.components.SearchTopBar
 import com.mamba.picme.features.common.chat.rememberAgentChatConfig
 import com.mamba.picme.features.common.components.FloatingBottomTab
 import com.mamba.picme.features.common.components.FloatingBottomTabItem
-import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import com.mamba.picme.features.settings.SettingsViewModel
 import android.app.Activity
 import com.mamba.picme.features.gallery.capability.GalleryCapability
@@ -127,10 +126,11 @@ fun GalleryScreen(
     onNavigateToDebug: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {},
-    initialSearchQuery: String = "",
-    initialPersonId: Long = 0L,
-    currentMainPageIndex: Int = 1,
-    onNavigateToMainPage: (Int) -> Unit = {}
+    /** 外部搜索/人物过滤请求：(query, personId)，来自 Chat 搜索结果跳转或人物页跳转 */
+    searchRequest: Pair<String, Long>? = null,
+    onSearchRequestConsumed: () -> Unit = {},
+    /** 上报是否允许外层主页面 Pager 横滑（详情/多选时禁用） */
+    onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {}
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
     val groupingMode by viewModel.groupingMode.collectAsState()
@@ -140,10 +140,10 @@ fun GalleryScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedIds = remember { mutableStateListOf<Long>() }
 
-    // 搜索状态(支持从「查看全部」带入初始 query,立即搜索)
-    var searchQuery by remember { mutableStateOf(initialSearchQuery) }
-    var isSearchActive by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
-    var isSearchLoading by remember { mutableStateOf(initialSearchQuery.isNotBlank()) }
+    // 搜索状态(支持外部带入搜索请求,立即搜索)
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
+    var isSearchLoading by remember { mutableStateOf(false) }
     var searchResultMedia by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     // 人物页「相册」模式：直接使用人物关联媒体，不走搜索引擎，避免未命名人物被覆盖成"未匹配"
     var isPersonFilter by remember { mutableStateOf(false) }
@@ -190,17 +190,16 @@ fun GalleryScreen(
     val app = context.applicationContext as PoLangApplication
 
     // 从人物页带入 personId：优先按名字搜索（与相册搜索一致），无名字时按人脸聚类过滤
-    LaunchedEffect(initialPersonId) {
-        if (initialPersonId <= 0L) return@LaunchedEffect
+    suspend fun applyPersonFilter(personId: Long) {
         val person = withContext(Dispatchers.IO) {
-            AppDatabase.getDatabase(context).personDao().getPerson(initialPersonId)
+            AppDatabase.getDatabase(context).personDao().getPerson(personId)
         }
-        val label = person?.name?.takeIf { it.isNotBlank() } ?: "#$initialPersonId"
+        val label = person?.name?.takeIf { it.isNotBlank() } ?: "#$personId"
         val hasName = person?.name?.isNotBlank() == true
 
         val faceMedia = withContext(Dispatchers.IO) {
             AppDatabase.getDatabase(context).personDao()
-                .getMediaByPerson(initialPersonId)
+                .getMediaByPerson(personId)
                 .map { entity ->
                     MediaAsset(
                         id = entity.id,
@@ -237,6 +236,30 @@ fun GalleryScreen(
             searchResultMedia = finalMedia
         }
         isSearchLoading = false
+    }
+
+    // 外部搜索/人物过滤请求（Chat 搜索结果跳转、人物页跳转）：驱动搜索状态
+    LaunchedEffect(searchRequest) {
+        val request = searchRequest ?: return@LaunchedEffect
+        val (query, personId) = request
+        when {
+            personId > 0L -> {
+                isSearchLoading = true
+                applyPersonFilter(personId)
+            }
+            query.isNotBlank() -> {
+                searchQuery = query
+                isSearchActive = true
+                isPersonFilter = false
+                isSearchLoading = true
+            }
+        }
+        onSearchRequestConsumed()
+    }
+
+    // 上报外层 Pager 横滑使能：照片详情/多选时禁用，避免与内层 MediaPager 滑动冲突
+    LaunchedEffect(selectedMediaIndex, isSelectionMode) {
+        onHorizontalSwipeEnabledChange(selectedMediaIndex == null && !isSelectionMode)
     }
 
     val allFlatMedia by remember { derivedStateOf { groupedMedia.flatMap { group -> group.items } } }
@@ -568,14 +591,12 @@ fun GalleryScreen(
                             }
                         },
                         onClose = {
-                            if (initialPersonId > 0L) {
-                                navController.popBackStack()
-                            } else {
-                                searchQuery = ""
-                                searchResultMedia = emptyList()
-                                isSearchActive = false
-                                isSearchLoading = false
-                            }
+                            // 关闭搜索：清空搜索状态（人物过滤同样由此进入，关闭后回到普通相册）
+                            isPersonFilter = false
+                            searchQuery = ""
+                            searchResultMedia = emptyList()
+                            isSearchActive = false
+                            isSearchLoading = false
                         },
                         resultCount = if (searchQuery.isNotBlank()) searchResultMedia.size else null
                     )
@@ -639,18 +660,11 @@ fun GalleryScreen(
             }
         }
     ) { padding ->
-        MainPageSwipeWrapper(
-            enabled = selectedMediaIndex == null && !isSelectionMode,
-            currentIndex = currentMainPageIndex,
-            pageCount = 4,
-            onPageChanged = onNavigateToMainPage,
+        Box(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
             // TAG 扫描状态指示器
             if (TagGenerationService.isScanning.collectAsState(false).value) {
                 androidx.compose.material3.LinearProgressIndicator(
@@ -964,7 +978,6 @@ fun GalleryScreen(
                     )
                 }
             }
-        }
         }
     }
 

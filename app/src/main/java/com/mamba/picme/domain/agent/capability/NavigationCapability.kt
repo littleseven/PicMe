@@ -34,7 +34,12 @@ import kotlinx.coroutines.withContext
  * execute() 内部会自动切换到 Main 线程。
  */
 class NavigationCapability(
-    private val navController: NavController
+    private val navController: NavController,
+    /**
+     * 主页面（相机/相册等 HorizontalPager 内页面）切换器。
+     * 主页面已不再是 NavController destination，必须由外层通过 Pager 切换。
+     */
+    private val mainPageSwitcher: ((Destination) -> Unit)? = null
 ) : BaseCapability() {
 
     private val tag = "NavigationCapability"
@@ -138,6 +143,15 @@ class NavigationCapability(
      * 同时保留返回栈的合理层级关系。
      */
     private fun navigateTo(nav: NavController, destination: Destination) {
+        // 主页面（相机/相册）已收敛进 HorizontalPager，优先走 Pager 切换
+        if (destination == Destination.CAMERA || destination == Destination.GALLERY) {
+            val switcher = mainPageSwitcher
+            if (switcher != null) {
+                Logger.d(tag, "Switching main page via pager: $destination")
+                switcher(destination)
+                return
+            }
+        }
         val route = when (destination) {
             Destination.CAMERA -> "camera"
             Destination.GALLERY -> "gallery"

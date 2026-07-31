@@ -156,7 +156,6 @@ import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
-import com.mamba.picme.features.common.components.MainPageSwipeWrapper
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.gallery.components.MediaPager
@@ -192,8 +191,8 @@ fun ChatScreen(
     mediaViewModel: MediaViewModel,
     onNavigateToPhotoEditor: (uri: String, autoOptimize: Boolean) -> Unit = { _, _ -> },
     onNavigateToIDPhoto: (uri: String) -> Unit = {},
-    currentMainPageIndex: Int = 2,
-    onNavigateToMainPage: (Int) -> Unit = {}
+    /** 上报是否允许外层主页面 Pager 横滑（预览打开时禁用） */
+    onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -217,6 +216,13 @@ fun ChatScreen(
     var previewIndex by remember { mutableIntStateOf(0) }
     // 已点删除但等待媒体库刷新确认的图片 ID
     var pendingDeletedIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+
+    // 上报外层 Pager 横滑使能：任一全屏预览打开时禁用，避免与内层预览滑动冲突
+    LaunchedEffect(previewAssets, imagePreview, previewChartSvg) {
+        onHorizontalSwipeEnabledChange(
+            previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null
+        )
+    }
 
     // 媒体库全量数据：用于感知删除完成并同步清理 preview/chat 消息
     val allMedia by mediaViewModel.allMedia.collectAsState()
@@ -426,20 +432,12 @@ fun ChatScreen(
             }
         }
     ) { padding ->
-        MainPageSwipeWrapper(
-            enabled = previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null,
-            currentIndex = currentMainPageIndex,
-            pageCount = 4,
-            onPageChanged = onNavigateToMainPage,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -609,7 +607,6 @@ fun ChatScreen(
                     }
                 )
             }
-        }
         }
     }
 

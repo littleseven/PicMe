@@ -1,6 +1,8 @@
 package com.mamba.picme.navigation
 
 sealed class Screen(val route: String) {
+    /** 主页面容器：内部以 HorizontalPager 承载 相机/相册/聊天/人物 4 页 */
+    data object Main : Screen("main")
     data object Chat : Screen("chat")
     data object Camera : Screen("camera")
     data object Gallery : Screen("gallery") {
