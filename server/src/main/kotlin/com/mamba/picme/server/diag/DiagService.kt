@@ -106,7 +106,10 @@ object DiagService {
                 .firstOrNull() ?: return@newSuspendedTransaction null
             val id = row[DiagJobs.id]
             val status = DiagStatus.valueOf(row[DiagJobs.status])
-            DiagJobs.update({ DiagJobs.id eq id }) { it[claimedAt] = now }
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[claimedAt] = now
+                it[updatedAt] = now
+            }
             DiagClaim(
                 id = id,
                 phase = if (status == DiagStatus.QUEUED) "diagnose" else "fix",
@@ -179,6 +182,39 @@ object DiagService {
                 it[DiagJobs.updatedAt] = now
             }
         }
+    }
+
+    /**
+     * S1 任务回收 sweeper（Application 启动的周期协程调用）：
+     * - 整体超时：非终态（QUEUED/DIAGNOSED/FIX_REQUESTED）超 [overallTimeoutMs] 未更新 → TIMED_OUT。
+     * - 领取回收：QUEUED/FIX_REQUESTED 且 claimedAt 超 [claimTimeoutMs] 未更新 → claimedAt 置空，重新可领。
+     *   15min > worker 侧 DIAG_PHASE_TIMEOUT（≤600s），正常执行不会误回收，无需心跳。
+     * 返回 (领取回收数, 整体超时数)。
+     */
+    suspend fun sweepStaleJobs(
+        nowMs: Long,
+        claimTimeoutMs: Long = 15 * 60_000L,
+        overallTimeoutMs: Long = 60 * 60_000L,
+    ): Pair<Int, Int> = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+        val nonTerminal = listOf(
+            DiagStatus.QUEUED.name, DiagStatus.DIAGNOSED.name, DiagStatus.FIX_REQUESTED.name,
+        )
+        val timedOut = DiagJobs.update({
+            (DiagJobs.status inList nonTerminal) and (DiagJobs.updatedAt less nowMs - overallTimeoutMs)
+        }) {
+            it[DiagJobs.status] = DiagStatus.TIMED_OUT.name
+            it[DiagJobs.updatedAt] = nowMs
+        }
+        val claimable = listOf(DiagStatus.QUEUED.name, DiagStatus.FIX_REQUESTED.name)
+        // claimedAt 为 NULL 的行在 SQL 比较中自然被排除（NULL < x 为 UNKNOWN），无需显式 isNotNull
+        val reclaimed = DiagJobs.update({
+            (DiagJobs.status inList claimable) and
+                (DiagJobs.claimedAt less nowMs - claimTimeoutMs)
+        }) {
+            it[DiagJobs.claimedAt] = null
+            it[DiagJobs.updatedAt] = nowMs
+        }
+        reclaimed to timedOut
     }
 
     /** 管理后台「删除」：物理删除任务记录（不可恢复）。 */
