@@ -36,7 +36,7 @@ systemd：写一个 unit 跑 `poll.sh`，`Restart=always`。
 
 ## 冒烟（本地，验证胶水）
 
-`bash smoke/run-smoke.sh` —— 用 stub claude + 本地仓 + stub HTTP 验证 compare_url / claim 解析 / claude 输出解析 / report_result。真 Claude Code + 真 server 在云主机上验证。
+`bash smoke/run-smoke.sh` —— 用 stub claude + 本地仓 + stub HTTP 验证 compare_url / claim 解析 / claude 输出解析（含三字段回传）/ 模板注入安全 / conversationSummary 进 prompt / suggestedFix 进 fix prompt / 修复空改动 → FIX_FAILED / report_result。真 Claude Code + 真 server 在云主机上验证。
 
 ## 文件
 
@@ -45,6 +45,6 @@ systemd：写一个 unit 跑 `poll.sh`，`Restart=always`。
 | `poll.sh` | 常驻主循环：claim → 分发 diagnose/fix |
 | `run-diagnose.sh` | clone @gitSha → `claude -p`（只读）→ 回根因 |
 | `run-fix.sh` | 建分支 → `claude -p` 修复 → 自检 → commit → push 分支 → 按 mode（push/pr/auto）交付 → 回结果 |
-| `lib.sh` | 共享工具（claim/result/compare_url/json_escape） |
+| `lib.sh` | 共享工具（claim/result/compare_url/json_escape/render_template） |
 | `prompts/*.md` | 诊断/修复 prompt 模板 |
 | `worker.env.example` | 配置模板 |
