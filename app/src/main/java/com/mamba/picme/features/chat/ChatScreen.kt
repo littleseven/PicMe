@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
@@ -485,7 +486,8 @@ fun ChatScreen(
                                                 initialIndex = indexOfPage(pages, msg.id)
                                             )
                                         }
-                                    }
+                                    },
+                                    onDiagConfirm = { _, mode -> viewModel.confirmDiagnosis(mode) }
                                 )
                             }
                         }
@@ -821,7 +823,11 @@ private fun segmentStreamingMarkdown(content: String): List<StreamSegment> {
 @Suppress("LongMethod", "CyclomaticComplexMethod") // 待重构：消息项多类型分支，抽分发器
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi) -> Unit = {}) {
+private fun ChatMessageItem(
+    message: ChatMessageUi,
+    onImageClick: (ChatMessageUi) -> Unit = {},
+    onDiagConfirm: (Int, String) -> Unit = { _, _ -> },
+) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
         message.type == ChatMessageType.USER_IMAGE_TEXT
@@ -981,6 +987,20 @@ private fun ChatMessageItem(message: ChatMessageUi, onImageClick: (ChatMessageUi
                             fontSize = 14.sp,
                             lineHeight = 20.sp
                         )
+                    }
+                }
+            }
+            // 诊断根因：内嵌确认按钮（pending 时显示 [推送]/[PR]）
+            message.diagConfirm?.let { dc ->
+                if (dc.pending) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { onDiagConfirm(dc.jobId, "push") }) {
+                            Text(stringResource(R.string.diag_sheet_push))
+                        }
+                        Button(onClick = { onDiagConfirm(dc.jobId, "pr") }) {
+                            Text(stringResource(R.string.diag_sheet_pr))
+                        }
                     }
                 }
             }
