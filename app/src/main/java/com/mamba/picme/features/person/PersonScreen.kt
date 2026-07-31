@@ -101,6 +101,7 @@ fun PersonScreen(
         }
     }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -229,5 +230,6 @@ fun PersonScreen(
                 viewModel.updateName(person.personId, name)
             }
         )
+    }
     }
 }

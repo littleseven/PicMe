@@ -104,6 +104,7 @@ class SentencePieceProcessor {
     /**
      * 释放 native 资源
      */
+    @Synchronized
     fun close() {
         if (nativeHandle != 0L) {
             nativeClose(nativeHandle)
