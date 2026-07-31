@@ -892,6 +892,7 @@ object AdminViews {
                 statCard("待修复", stats.fixRequested.toString())
                 statCard("已修复", stats.fixed.toString())
                 statCard("失败/超时", stats.failed.toString())
+                statCard("已废弃", stats.archived.toString())
             }
             h2 { +"任务列表（近 ${rows.size} 条）" }
             if (rows.isEmpty()) {
@@ -903,6 +904,7 @@ object AdminViews {
                     tr {
                         th { +"ID" }; th { +"状态" }; th { +"问题描述" }
                         th { +"设备 · gitSha" }; th { +"修复" }; th { +"创建" }; th { +"更新" }
+                        th(classes = "col-actions") { +"操作" }
                     }
                     rows.forEach { row ->
                         tr {
@@ -930,6 +932,7 @@ object AdminViews {
                             }
                             td { +fmtTs(row.createdAt) }
                             td { +fmtTs(row.updatedAt) }
+                            td { diagActions(row.status, row.id) }
                         }
                     }
                 }
@@ -950,6 +953,9 @@ object AdminViews {
             h1 {
                 +"诊断任务 #${d.id}  "
                 diagStatusBadge(d.status)
+            }
+            div("actions-bar") {
+                diagActions(d.status, d.id)
             }
             div("cards") {
                 statCard("状态", d.status)
@@ -1025,6 +1031,27 @@ object AdminViews {
         }
     }
 
+    private fun FlowContent.diagActions(status: String, id: Int) {
+        div("row-actions") {
+            if (status != "ARCHIVED") {
+                form(action = "/admin/diag/$id/archive", method = FormMethod.post, classes = "inline") {
+                    attributes["onsubmit"] = "return confirm('确定废弃该诊断任务？\\n\\nworker 将不再处理（仍保留记录，可稍后激活）。')"
+                    input(type = InputType.submit, classes = "btn-sm") { value = "废弃" }
+                }
+            }
+            if (status != "QUEUED" && status != "FIX_REQUESTED") {
+                form(action = "/admin/diag/$id/activate", method = FormMethod.post, classes = "inline") {
+                    attributes["onsubmit"] = "return confirm('确定重新激活？\\n\\n将清空已有根因/修复并重置为待诊断，重新入队。')"
+                    input(type = InputType.submit, classes = "btn-sm btn-go") { value = "激活" }
+                }
+            }
+            form(action = "/admin/diag/$id/delete", method = FormMethod.post, classes = "inline") {
+                attributes["onsubmit"] = "return confirm('确定删除该诊断任务？\\n\\n记录将被物理删除，不可恢复。')"
+                input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "删除" }
+            }
+        }
+    }
+
     private fun FlowContent.diagStatusBadge(status: String) {
         val (label, cls) = when (status) {
             "QUEUED" -> "待诊断" to "badge badge-diag-pending"
@@ -1035,6 +1062,7 @@ object AdminViews {
             "DIAGNOSE_FAILED" -> "诊断失败" to "badge badge-diag-fail"
             "FIX_FAILED" -> "修复失败" to "badge badge-diag-fail"
             "TIMED_OUT" -> "超时" to "badge badge-diag-fail"
+            "ARCHIVED" -> "已废弃" to "badge badge-deleted"
             else -> status to "badge"
         }
         span(cls) { +label }

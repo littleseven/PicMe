@@ -202,4 +202,46 @@ class AdminViewsTest {
         assertTrue(html.contains("时间线"))
         assertTrue(html.contains("worker 领取")) // timeline claimed
     }
+
+    @Test
+    fun `diag list page renders per-row action buttons depending on status`() {
+        val stats = DiagStats(total = 3, queued = 1, diagnosed = 0, fixRequested = 0, fixed = 0, failed = 0, archived = 1)
+        val rows = listOf(
+            DiagListRow(1, "QUEUED", "q", "dev••••", "sha1234567890", null, null, false, false, 100L, 100L, null),
+            DiagListRow(2, "ARCHIVED", "a", "dev••••", "sha1234567890", null, null, false, false, 100L, 100L, null),
+            DiagListRow(3, "TIMED_OUT", "t", "dev••••", "sha1234567890", null, null, false, false, 100L, 100L, null),
+        )
+        val activity = DiagWorkerActivity(null, 0, null, DiagWorkerHealth.IDLE)
+        val html = AdminViews.diagListPage(stats, rows, activity, now = 200_000L, autoSec = 0)
+
+        // 表头有「操作」列
+        assertTrue(html.contains("操作"))
+        // QUEUED 行：可废弃、可删除，不可激活
+        assertTrue(html.contains("/admin/diag/1/archive"))
+        assertTrue(html.contains("/admin/diag/1/delete"))
+        assertTrue(!html.contains("/admin/diag/1/activate"))
+        // ARCHIVED 行：可激活、可删除，不可废弃
+        assertTrue(html.contains("/admin/diag/2/activate"))
+        assertTrue(html.contains("/admin/diag/2/delete"))
+        assertTrue(!html.contains("/admin/diag/2/archive"))
+        // TIMED_OUT 行：可废弃、可激活、可删除
+        assertTrue(html.contains("/admin/diag/3/archive"))
+        assertTrue(html.contains("/admin/diag/3/activate"))
+        // ARCHIVED 徽标文案 + 统计卡「已废弃」
+        assertTrue(html.contains("已废弃"))
+    }
+
+    @Test
+    fun `diag detail page renders actions bar with archive activate delete`() {
+        val d = DiagDetailRow(
+            id = 7, status = "DIAGNOSE_FAILED", description = "搜索崩溃", deviceIdMasked = "dev••••",
+            bundleJson = """{"logs":"x","gitSha":"sha7","appVersion":"1.0.26"}""", gitSha = "sha7",
+            rootCause = null, fixMode = null, fixBranch = null, compareUrl = null,
+            tested = false, workerLog = "err", createdAt = 100L, updatedAt = 120L, claimedAt = 110L,
+        )
+        val html = AdminViews.diagDetailPage(d)
+        assertTrue(html.contains("/admin/diag/7/archive"))
+        assertTrue(html.contains("/admin/diag/7/activate"))
+        assertTrue(html.contains("/admin/diag/7/delete"))
+    }
 }
