@@ -144,6 +144,7 @@ data class DiagStats(
     val fixRequested: Int,
     val fixed: Int,   // FIXED + FIXED_UNVERIFIED
     val failed: Int,  // DIAGNOSE_FAILED + FIX_FAILED + TIMED_OUT
+    val archived: Int = 0,
 )
 
 /** 列表行：紧凑展示，长文本（根因/日志）进详情页。 */
@@ -615,7 +616,7 @@ object AdminQueries {
     }
 
     suspend fun diagStats(): DiagStats = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-        var total = 0; var queued = 0; var diagnosed = 0; var fixRequested = 0; var fixed = 0; var failed = 0
+        var total = 0; var queued = 0; var diagnosed = 0; var fixRequested = 0; var fixed = 0; var failed = 0; var archived = 0
         DiagJobs.selectAll().forEach { r ->
             total++
             when (r[DiagJobs.status]) {
@@ -624,9 +625,10 @@ object AdminQueries {
                 DiagStatus.FIX_REQUESTED.name -> fixRequested++
                 DiagStatus.FIXED.name, DiagStatus.FIXED_UNVERIFIED.name -> fixed++
                 DiagStatus.DIAGNOSE_FAILED.name, DiagStatus.FIX_FAILED.name, DiagStatus.TIMED_OUT.name -> failed++
+                DiagStatus.ARCHIVED.name -> archived++
             }
         }
-        DiagStats(total, queued, diagnosed, fixRequested, fixed, failed)
+        DiagStats(total, queued, diagnosed, fixRequested, fixed, failed, archived)
     }
 
     suspend fun diagList(limit: Int = 200): List<DiagListRow> =

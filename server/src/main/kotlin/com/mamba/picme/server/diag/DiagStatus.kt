@@ -10,4 +10,5 @@ enum class DiagStatus {
     DIAGNOSE_FAILED,   // 诊断失败
     FIX_FAILED,        // 修复失败
     TIMED_OUT,         // 超时
+    ARCHIVED,          // 管理后台「废弃」：worker 不再领取，记录保留可激活
 }

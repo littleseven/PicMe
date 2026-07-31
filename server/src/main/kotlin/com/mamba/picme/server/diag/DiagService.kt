@@ -4,6 +4,9 @@ import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.Db
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
@@ -115,7 +118,7 @@ object DiagService {
         }
         val now = Instant.now().toEpochMilli()
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.update({ DiagJobs.id eq id }) {
+            DiagJobs.update({ (DiagJobs.id eq id) and (DiagJobs.status eq DiagStatus.QUEUED.name) }) {
                 it[DiagJobs.status] = status.name
                 it[DiagJobs.rootCause] = rootCause
                 it[DiagJobs.workerLog] = error
@@ -156,7 +159,7 @@ object DiagService {
         }
         val now = Instant.now().toEpochMilli()
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.update({ DiagJobs.id eq id }) {
+            DiagJobs.update({ (DiagJobs.id eq id) and (DiagJobs.status eq DiagStatus.FIX_REQUESTED.name) }) {
                 it[DiagJobs.status] = status.name
                 it[DiagJobs.fixBranch] = fixBranch
                 it[DiagJobs.compareUrl] = compareUrl
@@ -164,6 +167,53 @@ object DiagService {
                 it[DiagJobs.workerLog] = error
                 it[DiagJobs.updatedAt] = now
             }
+        }
+    }
+
+    /** 管理后台「删除」：物理删除任务记录（不可恢复）。 */
+    suspend fun deleteById(id: Int) {
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            DiagJobs.deleteWhere { with(SqlExpressionBuilder) { DiagJobs.id eq id } }
+        }
+    }
+
+    /** 管理后台「废弃」：标记 ARCHIVED，worker 不再领取；任意源态允许。 */
+    suspend fun archive(id: Int) {
+        val now = Instant.now().toEpochMilli()
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.ARCHIVED.name
+                it[DiagJobs.updatedAt] = now
+            }
+        }
+    }
+
+    /**
+     * 管理后台「激活」：把停摆的任务（ARCHIVED / 失败 / 超时 / 已修复 / 待确认 等）
+     * 重置为 QUEUED 并清空已有产出，让 worker 从头重跑诊断。
+     * 拒绝 QUEUED（本就在队列）与 FIX_REQUESTED（worker 正在修，避免 race）。返回是否转移成功。
+     */
+    suspend fun activate(id: Int): Boolean {
+        val now = Instant.now().toEpochMilli()
+        return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            val row = DiagJobs.selectAll().where { DiagJobs.id eq id }.firstOrNull()
+                ?: return@newSuspendedTransaction false
+            val current = DiagStatus.valueOf(row[DiagJobs.status])
+            if (current == DiagStatus.QUEUED || current == DiagStatus.FIX_REQUESTED) {
+                return@newSuspendedTransaction false
+            }
+            DiagJobs.update({ DiagJobs.id eq id }) {
+                it[DiagJobs.status] = DiagStatus.QUEUED.name
+                it[DiagJobs.rootCause] = null
+                it[DiagJobs.fixMode] = null
+                it[DiagJobs.fixBranch] = null
+                it[DiagJobs.compareUrl] = null
+                it[DiagJobs.workerLog] = null
+                it[DiagJobs.tested] = 0
+                it[DiagJobs.claimedAt] = null
+                it[DiagJobs.updatedAt] = now
+            }
+            true
         }
     }
 }
