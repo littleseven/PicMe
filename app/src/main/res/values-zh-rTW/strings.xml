@@ -996,4 +996,11 @@
     <string name="diag_submit_report">提交診斷</string>
     <string name="diag_poll_timeout">⏱ 等待結果超時（30 分鐘），請重新發起診斷。</string>
     <string name="diag_job_timed_out">⏱ 診斷任務在伺服器端已超時，請重新發起。</string>
+    <!-- Claude-tunnel chat（AI 工程師 toggle） -->
+    <string name="claude_icon_desc">AI 工程師</string>
+    <string name="claude_login_required">AI 工程師需先登入帳號（設定 → 帳號）。</string>
+    <string name="claude_deliver_button">交付</string>
+    <string name="claude_deliver_done">✅ 已交付分支：`%1$s`</string>
+    <string name="claude_deliver_failed">❌ 交付失敗：%1$s</string>
+    <string name="claude_file_change_label">改檔案</string>
 </resources>

@@ -103,6 +103,27 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
         }
     }
 
+    /**
+     * 交付当前 session 的改动（spec §8）：POST /v1/claude-deliver → server 反代到网关 /deliver。
+     * gateway MVP 仅 push：在 workdir commit + push `claude-chat/<sid>`，返回 {ok, branch}。
+     * [mode] 透传供网关二期 pr/auto 使用（当前网关忽略）。
+     */
+    suspend fun deliver(token: String, sid: String, mode: String = "push"): Result<JSONObject> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val body = JSONObject().put("sid", sid).put("mode", mode).toString()
+                val req = Request.Builder()
+                    .url("$baseUrl/v1/claude-deliver")
+                    .header("X-App-Token", token)
+                    .post(body.toRequestBody(jsonMedia))
+                    .build()
+                val resp = client.newCall(req).execute()
+                val text = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) throw RuntimeException("HTTP ${resp.code}: $text")
+                JSONObject(text)
+            }
+        }
+
     companion object {
         private const val DEFAULT_BASE_URL = "https://api.polang.net"
     }

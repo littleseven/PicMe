@@ -1856,6 +1856,10 @@ data class ChatMessageUi(
     val diagConfirm: DiagConfirmUi? = null,
     /** 诊断澄清对话 [DIAG_READY] 气泡的内嵌提交动作；非空时渲染「提交诊断」按钮。 */
     val diagSubmit: DiagSubmitUi? = null,
+    /** claude-tunnel agent 气泡状态（文本流式 + 步骤列表 + 文件改动）；复用 diag 内嵌字段套路。 */
+    val claudeAgent: ClaudeAgentState? = null,
+    /** claude agent 气泡的交付动作；非空且 pending=true 时渲染「交付」按钮（§8）。 */
+    val claudeDeliver: ClaudeDeliverUi? = null,
 )
 
 /** 诊断确认内嵌按钮状态。pending=true 显示按钮；false 则已处理（按钮消失）。 */

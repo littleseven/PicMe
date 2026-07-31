@@ -1024,4 +1024,11 @@
     <string name="diag_submit_report">Submit diagnosis</string>
     <string name="diag_poll_timeout">⏱ Timed out waiting for a result (30 min). Please start a new diagnosis.</string>
     <string name="diag_job_timed_out">⏱ The diagnosis job timed out on the server. Please start a new one.</string>
+    <!-- Claude-tunnel chat (AI engineer toggle) -->
+    <string name="claude_icon_desc">AI Engineer</string>
+    <string name="claude_login_required">The AI engineer requires signing in first (Settings → Account).</string>
+    <string name="claude_deliver_button">Deliver</string>
+    <string name="claude_deliver_done">✅ Delivered branch: `%1$s`</string>
+    <string name="claude_deliver_failed">❌ Delivery failed: %1$s</string>
+    <string name="claude_file_change_label">File</string>
 </resources>

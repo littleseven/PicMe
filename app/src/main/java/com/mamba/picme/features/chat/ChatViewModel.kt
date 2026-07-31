@@ -34,6 +34,7 @@ import android.os.Build
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import com.mamba.picme.data.local.ChatMessageDao
+import com.mamba.picme.data.remote.picme.ClaudeEvent
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -224,6 +225,7 @@ class ChatViewModel(
     /** 进入诊断模式：自动新建独立会话（上下文纯净，摘要提取干净）。 */
     fun enterDiagMode() {
         if (_diagMode.value) return
+        exitClaudeMode()
         _diagMode.value = true
         diagChatSession = DiagChatSession(effectiveRemoteConfig(selectedModel))
         diagFirstUserText = null
@@ -234,6 +236,172 @@ class ChatViewModel(
     fun exitDiagMode() {
         _diagMode.value = false
         diagChatSession = null
+    }
+
+    // ── claude-tunnel chat（spec §5/§6：AI 工程师 toggle → /v1/claude-chat SSE 流式）──
+
+    private val claudeChatClient = dependencies.claudeChatClient
+
+    private val _claudeMode = MutableStateFlow(false)
+    val claudeMode: StateFlow<Boolean> = _claudeMode.asStateFlow()
+
+    /** 网关 session id（多轮 --resume 用；网关 session 事件回填）。@Volatile：IO 线程回调写。 */
+    @Volatile
+    private var claudeSid: String? = null
+
+    /** msgId → 交付按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填，同 diagSubmitOverrides）。 */
+    private val claudeDeliverOverrides = mutableMapOf<String, ClaudeDeliverUi>()
+
+    /** 进入 AI 工程师模式：与诊断互斥；自动新建独立会话（claude-tunnel 上下文独立）。 */
+    fun enterClaudeMode() {
+        if (_claudeMode.value) return
+        exitDiagMode()
+        _claudeMode.value = true
+        claudeSid = null
+        claudeDeliverOverrides.clear()
+        newSession()
+    }
+
+    fun exitClaudeMode() {
+        _claudeMode.value = false
+    }
+
+    /**
+     * claude 模式下的用户消息：走 [ClaudeChatClient.chat] SSE 流式（spec §6 事件）。
+     * 事件经 [ClaudeAgentRenderer] 折叠成 agent 气泡（文本流式 + 步骤 + 文件改动）；
+     * done 后落 Room（metadata 带 claude_agent_state，跨重载保留）；出现 file_change → 交付按钮。
+     */
+    fun sendClaudeMessage(text: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            val sessionId = _currentSessionId.value
+            try {
+                ensureSessionExists(sessionId)
+                chatMessageDao.insertMessage(
+                    ChatMessageEntity(
+                        id = UUID.randomUUID().toString(),
+                        sessionId = sessionId,
+                        type = "user_text",
+                        content = text,
+                        modelUsed = null,
+                    ),
+                )
+                chatSessionDao.touchSession(sessionId)
+
+                val token = _serverAuthToken.value
+                if (token.isBlank()) {
+                    insertAgentMessage(sessionId, context.getString(R.string.claude_login_required), "error")
+                    _showRegistrationSheet.value = true
+                    return@launch
+                }
+
+                _isProcessing.value = true
+                val renderer = ClaudeAgentRenderer()
+                val streamingId = "claude_streaming_${System.currentTimeMillis()}"
+                _streamingMessage.value = ChatMessageUi(
+                    id = streamingId,
+                    type = ChatMessageType.AGENT_TEXT,
+                    content = "",
+                    modelUsed = currentModelLabel(),
+                    isStreaming = true,
+                    isThinking = true,
+                    claudeAgent = ClaudeAgentState(),
+                )
+                val result = claudeChatClient.chat(token, text, claudeSid) { event ->
+                    when (event) {
+                        is ClaudeEvent.Session -> claudeSid = event.sid
+                        is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
+                        else -> {
+                            renderer.apply(event)
+                            _streamingMessage.update { cur ->
+                                cur?.copy(claudeAgent = renderer.state, isThinking = false)
+                            }
+                        }
+                    }
+                }
+                _streamingMessage.value = null
+                result.fold(
+                    onSuccess = { persistClaudeBubble(sessionId, renderer.state) },
+                    onFailure = { e ->
+                        insertAgentMessage(
+                            sessionId,
+                            context.getString(R.string.chat_inference_error, e.message ?: "unknown"),
+                            "error",
+                        )
+                    },
+                )
+            } catch (e: Exception) {
+                Logger.e(TAG, "sendClaudeMessage failed", e)
+                _streamingMessage.value = null
+            } finally {
+                _isProcessing.value = false
+            }
+        }
+    }
+
+    /**
+     * 把折叠后的 agent 气泡落 Room（type=agent_text + metadata.claude_agent_state）。
+     * loadMessages 重放时由 [parseClaudeAgentState] 还原 [ChatMessageUi.claudeAgent]；
+     * 有 file_change 则挂交付按钮（内存态，loadMessages 回填）。
+     */
+    private suspend fun persistClaudeBubble(sessionId: String, state: ClaudeAgentState) {
+        val metadata = JSONObject().put("claude_agent_state", state.toJson()).toString()
+        val entity = ChatMessageEntity(
+            id = UUID.randomUUID().toString(),
+            sessionId = sessionId,
+            type = "agent_text",
+            content = state.text,
+            modelUsed = currentModelLabel(),
+            metadata = metadata,
+        )
+        chatMessageDao.insertMessage(entity)
+        chatSessionDao.touchSession(sessionId)
+        val sid = claudeSid
+        if (state.hasFileChange && !sid.isNullOrBlank()) {
+            claudeDeliverOverrides[entity.id] = ClaudeDeliverUi(sid, pending = true)
+        }
+    }
+
+    /**
+     * 交付当前气泡对应 session 的改动（spec §8）：POST /v1/claude-deliver → 网关 push claude-chat/<sid>。
+     * 结果回填气泡；gateway MVP 仅 push（pr/auto 二期）。
+     */
+    fun confirmClaudeDeliver(messageId: String, mode: String = "push") {
+        val ov = claudeDeliverOverrides[messageId] ?: return
+        val sid = ov.sid
+        claudeDeliverOverrides[messageId] = ov.copy(pending = false)
+        _messages.update { msgs ->
+            msgs.map { m -> if (m.id == messageId) m.copy(claudeDeliver = ov.copy(pending = false)) else m }
+        }
+        viewModelScope.launch {
+            val token = _serverAuthToken.value
+            if (token.isBlank()) return@launch
+            val result = claudeChatClient.deliver(token, sid, mode)
+            val extra = result.fold(
+                onSuccess = { json ->
+                    val branch = json.optString("branch")
+                    if (json.optBoolean("ok", false) && branch.isNotBlank()) {
+                        context.getString(R.string.claude_deliver_done, branch)
+                    } else {
+                        context.getString(R.string.claude_deliver_failed, json.optString("error"))
+                    }
+                },
+                onFailure = { e ->
+                    context.getString(R.string.claude_deliver_failed, e.message ?: "")
+                },
+            )
+            _messages.update { msgs ->
+                msgs.map { m ->
+                    if (m.id == messageId) {
+                        val st = m.claudeAgent
+                        val merged = if (st == null) ClaudeAgentState(text = extra) else st.copy(text = st.text + "\n" + extra)
+                        m.copy(claudeAgent = merged)
+                    } else {
+                        m
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -814,7 +982,10 @@ class ChatViewModel(
                         _messages.value = entities.map { e ->
                             val ui = e.toUiModel()
                             val submit = diagSubmitOverrides[ui.id]
-                            if (submit != null) ui.copy(diagSubmit = submit) else ui
+                            val deliver = claudeDeliverOverrides[ui.id]
+                            ui
+                                .let { if (submit != null) it.copy(diagSubmit = submit) else it }
+                                .let { if (deliver != null) it.copy(claudeDeliver = deliver) else it }
                         }
                     }
             } catch (e: Exception) {
@@ -2402,8 +2573,17 @@ class ChatViewModel(
             modelUsed = modelUsed,
             timestamp = timestamp,
             performance = performance,
-            mediaResults = mediaResults
+            mediaResults = mediaResults,
+            claudeAgent = parseClaudeAgentState(metadata),
         )
+    }
+
+    /** 从 metadata.claude_agent_state 还原 agent 气泡（跨重载/重启保留）。 */
+    private fun parseClaudeAgentState(metadata: String?): ClaudeAgentState? {
+        if (metadata.isNullOrBlank()) return null
+        return runCatching {
+            JSONObject(metadata).optJSONObject("claude_agent_state")?.let { ClaudeAgentState.fromJson(it) }
+        }.getOrNull()
     }
 
     /**
