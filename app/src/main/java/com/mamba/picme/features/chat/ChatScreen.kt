@@ -993,7 +993,11 @@ private fun ChatMessageItem(
             message.diagConfirm?.let { dc ->
                 if (dc.pending) {
                     Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         Button(onClick = { onDiagConfirm(dc.jobId, "push") }) {
                             Text(stringResource(R.string.diag_sheet_push))
                         }
