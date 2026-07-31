@@ -7,6 +7,8 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.LayersClear
 import androidx.compose.material.icons.rounded.Redo
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.displayCutoutPadding
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.mamba.picme.R
 import com.mamba.picme.features.common.topbar.AppTopBar
@@ -29,6 +31,7 @@ fun EditorTopBar(
     AppTopBar(
         title = title,
         onBack = onCancel,
+        modifier = Modifier.displayCutoutPadding(),
         actions = {
             AppTopBarAction(
                 icon = Icons.Rounded.LayersClear,

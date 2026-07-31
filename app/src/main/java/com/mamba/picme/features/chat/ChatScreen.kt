@@ -31,6 +31,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -726,6 +727,7 @@ private fun ChatTopBar(
 ) {
     AppTopBar(
         title = {},
+        modifier = Modifier.displayCutoutPadding(),
         navigationIcon = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppTopBarNavBack(onClick = onNavigateBack)
@@ -737,8 +739,8 @@ private fun ChatTopBar(
             }
         },
         actions = {
-            AppTopBarAction(Icons.Rounded.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
             AppTopBarAction(Icons.Rounded.AddComment, stringResource(R.string.new_chat), onNewChat)
+            AppTopBarAction(Icons.Rounded.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
         }
     )
 }
