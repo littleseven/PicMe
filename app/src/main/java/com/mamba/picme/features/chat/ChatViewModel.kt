@@ -205,8 +205,6 @@ class ChatViewModel(
         writeConfirmationController.resolve(confirmed)
 
     // ── 远程诊断（chat 触发 → 云主机 Claude Code worker）─────────────────
-    private val diagController = DiagController()
-    val pendingDiagConfirm: StateFlow<PendingDiagConfirm?> = diagController.pending
     private val diagClient = dependencies.diagClient
 
     private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
@@ -311,9 +309,6 @@ class ChatViewModel(
             }
         }
     }
-
-    /** DiagConfirmSheet 取消/关闭。 */
-    fun cancelDiagConfirm() = diagController.resolve(null)
 
     /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。diagConfirm 非 null 时一并写入。 */
     private fun upsertDiagMessage(id: String, content: String, diagConfirm: DiagConfirmUi? = null) {

@@ -155,7 +155,6 @@ import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
-import com.mamba.picme.features.chat.components.DiagConfirmSheet
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -667,18 +666,6 @@ fun ChatScreen(
                     Text(text = stringResource(R.string.cancel))
                 }
             }
-        )
-    }
-
-    // ── 远程诊断根因确认（DiagController.pending 驱动）──
-    val pendingDiag by viewModel.pendingDiagConfirm.collectAsState()
-    pendingDiag?.let { p ->
-        DiagConfirmSheet(
-            rootCause = p.rootCause,
-            onPick = { mode ->
-                if (mode != null) viewModel.confirmDiagnosis(mode) else viewModel.cancelDiagConfirm()
-            },
-            onDismiss = { viewModel.cancelDiagConfirm() },
         )
     }
 
