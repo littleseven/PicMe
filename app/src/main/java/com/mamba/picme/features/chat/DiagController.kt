@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class PendingDiagConfirm(
     val jobId: Int,
     val rootCause: String,
-    val onResolved: (String?) -> Unit, // "push" | "pr" | null(取消)
+    val onResolved: (String?) -> Unit, // "push" | "pr" | "auto" | null(取消)
 )
 
 /**
@@ -24,7 +24,7 @@ class DiagController {
         _pending.value = PendingDiagConfirm(jobId, rootCause, onResolved)
     }
 
-    /** UI 入口：mode="push"|"pr" 确认；null=取消。无 pending 时 no-op。 */
+    /** UI 入口：mode="push"|"pr"|"auto" 确认；null=取消。无 pending 时 no-op。 */
     fun resolve(mode: String?) {
         val cur = _pending.value ?: return
         _pending.value = null

@@ -976,8 +976,9 @@
     <string name="tag_pass_row_content">內容標籤</string>
     <!-- 遠端診斷（chat-UI）-->
     <string name="diag_icon_desc">診斷</string>
-    <string name="diag_sheet_push">推送修復分支</string>
-    <string name="diag_sheet_pr">修復並開 PR</string>
+    <string name="diag_sheet_push">保守修復</string>
+    <string name="diag_sheet_pr">修復待審</string>
+    <string name="diag_sheet_auto">自動修復</string>
     <string name="diag_login_required">遠端診斷需要先登入帳號（設定 → 帳號）。</string>
     <string name="diag_submitted">🔍 已提交診斷請求，雲主機分析中…</string>
     <string name="diag_report_failed">❌ 上報失敗：%1$s</string>

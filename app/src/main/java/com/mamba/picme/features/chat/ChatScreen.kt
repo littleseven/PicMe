@@ -1000,6 +1000,9 @@ private fun ChatMessageItem(
                         Button(onClick = { onDiagConfirm(dc.jobId, "pr") }) {
                             Text(stringResource(R.string.diag_sheet_pr))
                         }
+                        Button(onClick = { onDiagConfirm(dc.jobId, "auto") }) {
+                            Text(stringResource(R.string.diag_sheet_auto))
+                        }
                     }
                 }
             }

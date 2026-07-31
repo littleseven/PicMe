@@ -706,8 +706,9 @@
     <!-- 远程诊断（chat-UI）-->
     <string name="diag_icon_desc">诊断</string>
     <string name="diag_sheet_title">远程诊断 · 根因</string>
-    <string name="diag_sheet_push">推送修复分支</string>
-    <string name="diag_sheet_pr">修复并开 PR</string>
+    <string name="diag_sheet_push">保守修复</string>
+    <string name="diag_sheet_pr">修复待审</string>
+    <string name="diag_sheet_auto">自动修复</string>
     <string name="diag_sheet_cancel">取消</string>
     <string name="diag_login_required">远程诊断需要先登录账号（设置 → 账号）。</string>
     <string name="diag_submitted">🔍 已提交诊断请求，云主机分析中…</string>
