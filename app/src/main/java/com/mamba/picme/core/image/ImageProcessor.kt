@@ -178,13 +178,18 @@ class ImageProcessorImpl(
             mode = mode,
             cachedFaces = cachedFaces,
             beautyStrategy = beautyStrategy,
-            executor = try {
-                Executor {
-                    CameraThreadRegistry.getCameraHandler().post(it)
+            executor = run {
+                val cameraHandler = try {
+                    CameraThreadRegistry.getCameraHandler()
+                } catch (e: IllegalStateException) {
+                    Logger.w(TAG, "CameraThreadRegistry not initialized, falling back to MainExecutor")
+                    null
                 }
-            } catch (e: IllegalStateException) {
-                Logger.w(TAG, "CameraThreadRegistry not initialized, falling back to MainExecutor")
-                ContextCompat.getMainExecutor(context)
+                if (cameraHandler != null) {
+                    Executor { cameraHandler.post(it) }
+                } else {
+                    ContextCompat.getMainExecutor(context)
+                }
             },
             source = source,
             onPhotoFinished = onPhotoFinished
