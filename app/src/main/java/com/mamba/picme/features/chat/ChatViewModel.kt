@@ -309,7 +309,23 @@ class ChatViewModel(
                 )
                 val result = claudeChatClient.chat(token, text, claudeSid) { event ->
                     when (event) {
-                        is ClaudeEvent.Session -> claudeSid = event.sid
+                        is ClaudeEvent.Session -> Logger.i(TAG, "claude evt: Session sid=${event.sid}")
+                        is ClaudeEvent.ToolUse -> Logger.i(
+                            TAG,
+                            "claude evt: ToolUse tool=${event.tool} detail=${ClaudeAgentRenderer.briefInput(event.tool, event.input)}",
+                        )
+                        is ClaudeEvent.FileChange -> Logger.i(TAG, "claude evt: FileChange ${event.action} ${event.path}")
+                        is ClaudeEvent.ToolResult -> Logger.i(TAG, "claude evt: ToolResult ok=${event.ok}")
+                        is ClaudeEvent.Error -> Logger.i(TAG, "claude evt: Error ${event.message}")
+                        is ClaudeEvent.Done -> Logger.i(TAG, "claude evt: Done")
+                        is ClaudeEvent.Cost -> Logger.i(TAG, "claude evt: Cost turns=${event.turns}")
+                        is ClaudeEvent.AssistantText -> Unit
+                    }
+                    when (event) {
+                        // gateway 首条 session = 网关 sid（workdir/deliver key）；
+                        // claude stream-json init 也带一条 session（claude session_id，仅 gateway 内部 --resume 用）。
+                        // 只采纳首个（网关 sid），忽略后者，否则 deliver 拿错 sid → gateway 找不到 workdir。
+                        is ClaudeEvent.Session -> if (claudeSid == null) claudeSid = event.sid
                         is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
                         else -> {
                             renderer.apply(event)
@@ -345,6 +361,11 @@ class ChatViewModel(
      * 有 file_change 则挂交付按钮（内存态，loadMessages 回填）。
      */
     private suspend fun persistClaudeBubble(sessionId: String, state: ClaudeAgentState) {
+        val sidNow = claudeSid
+        Logger.i(
+            TAG,
+            "persistClaudeBubble: hasFileChange=${state.hasFileChange} claudeSid=$sidNow steps=${state.steps.size} stepTools=${state.steps.map { it.tool }}",
+        )
         val metadata = JSONObject().put("claude_agent_state", state.toJson()).toString()
         val entity = ChatMessageEntity(
             id = UUID.randomUUID().toString(),
@@ -359,6 +380,9 @@ class ChatViewModel(
         val sid = claudeSid
         if (state.hasFileChange && !sid.isNullOrBlank()) {
             claudeDeliverOverrides[entity.id] = ClaudeDeliverUi(sid, pending = true)
+            Logger.i(TAG, "persistClaudeBubble: deliver override attached msgId=${entity.id}")
+        } else {
+            Logger.i(TAG, "persistClaudeBubble: NO deliver button (hasFileChange=${state.hasFileChange} sidBlank=${sid.isNullOrBlank()})")
         }
     }
 
@@ -367,7 +391,9 @@ class ChatViewModel(
      * 结果回填气泡；gateway MVP 仅 push（pr/auto 二期）。
      */
     fun confirmClaudeDeliver(messageId: String, mode: String = "push") {
-        val ov = claudeDeliverOverrides[messageId] ?: return
+        val ov = claudeDeliverOverrides[messageId]
+        Logger.i(TAG, "confirmClaudeDeliver: msgId=$messageId mode=$mode ov=${ov?.sid}/${ov?.pending}")
+        if (ov == null) return
         val sid = ov.sid
         claudeDeliverOverrides[messageId] = ov.copy(pending = false)
         _messages.update { msgs ->
@@ -375,10 +401,17 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             val token = _serverAuthToken.value
-            if (token.isBlank()) return@launch
+            if (token.isBlank()) {
+                Logger.w(TAG, "confirmClaudeDeliver: token blank, abort")
+                return@launch
+            }
+            val t0 = System.currentTimeMillis()
+            Logger.i(TAG, "confirmClaudeDeliver: calling deliver sid=$sid ...")
             val result = claudeChatClient.deliver(token, sid, mode)
+            Logger.i(TAG, "confirmClaudeDeliver: deliver returned in ${System.currentTimeMillis() - t0}ms isSuccess=${result.isSuccess}")
             val extra = result.fold(
                 onSuccess = { json ->
+                    Logger.i(TAG, "confirmClaudeDeliver: response=$json")
                     val branch = json.optString("branch")
                     if (json.optBoolean("ok", false) && branch.isNotBlank()) {
                         context.getString(R.string.claude_deliver_done, branch)
@@ -387,11 +420,12 @@ class ChatViewModel(
                     }
                 },
                 onFailure = { e ->
+                    Logger.w(TAG, "confirmClaudeDeliver: failure ${e.javaClass.simpleName}: ${e.message}")
                     context.getString(R.string.claude_deliver_failed, e.message ?: "")
                 },
             )
             _messages.update { msgs ->
-                msgs.map { m ->
+                val updated = msgs.map { m ->
                     if (m.id == messageId) {
                         val st = m.claudeAgent
                         val merged = if (st == null) ClaudeAgentState(text = extra) else st.copy(text = st.text + "\n" + extra)
@@ -400,6 +434,8 @@ class ChatViewModel(
                         m
                     }
                 }
+                Logger.i(TAG, "confirmClaudeDeliver: extra appended='$extra' targetInMsgs=${updated.any { it.id == messageId }}")
+                updated
             }
         }
     }

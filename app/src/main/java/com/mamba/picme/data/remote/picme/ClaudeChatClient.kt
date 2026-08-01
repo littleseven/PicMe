@@ -58,6 +58,11 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.SECONDS) // SSE 长连接，不超时（靠网关 CT_PHASE_TIMEOUT 兜底）
         .build()
+    /** 交付用（普通 JSON 请求，非 SSE）：有 readTimeout，避免 gateway push 挂起时 app 无限阻塞。 */
+    private val deliverClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .build()
     private val jsonMedia = "application/json".toMediaType()
 
     /** 流式 chat：onEvent 在 IO 线程回调每个 §6 事件；返回 session 事件给的 sid（多轮用）。 */
@@ -117,7 +122,7 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
                     .header("X-App-Token", token)
                     .post(body.toRequestBody(jsonMedia))
                     .build()
-                val resp = client.newCall(req).execute()
+                val resp = deliverClient.newCall(req).execute()
                 val text = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) throw RuntimeException("HTTP ${resp.code}: $text")
                 JSONObject(text)

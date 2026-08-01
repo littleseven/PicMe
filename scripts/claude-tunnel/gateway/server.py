@@ -1,7 +1,6 @@
 """Claude 流式网关。POST /chat → SSE；POST /deliver → push 分支；GET /healthz。"""
 import asyncio
 import os
-import subprocess
 
 from aiohttp import web
 
@@ -88,21 +87,46 @@ async def chat(request):
 
 
 async def deliver(request):
-    """MVP：仅 push 模式——在 workdir commit + push claude-chat/<sid>。pr/auto 二期。"""
+    """MVP：仅 push 模式——在 workdir commit + push claude-chat/<sid>。pr/auto 二期。
+
+    全程异步（asyncio.create_subprocess_exec）+ 超时：避免同步 subprocess.run 阻塞 event loop
+    （git push 若挂会卡死整个 gateway，连 healthz 都不响应）。push 失败/超时回传 stderr 便于诊断。"""
     body = await request.json()
     sid = body["sid"]
     repo = sm.repo_dir(sid)
     if not sm.exists(sid):
         return web.json_response({"ok": False, "error": "unknown sid"}, status=404)
-    subprocess.run(["git", "-C", repo, "add", "-A"], check=False)
-    subprocess.run(["git", "-C", repo, "commit", "-qm",
-                    "fix(claude-tunnel): session {}".format(sid)], check=False)
-    pushed = subprocess.run(["git", "-C", repo, "push", "--quiet", "origin",
-                             "claude-chat/{}".format(sid)], capture_output=True)
-    if pushed.returncode == 0:
-        return web.json_response({"ok": True, "branch": "claude-chat/{}".format(sid)})
-    return web.json_response(
-        {"ok": False, "error": pushed.stderr.decode("utf-8", "replace")[:500]}, status=500)
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
+    timeout = int(os.environ.get("CT_PUSH_TIMEOUT", "30"))
+    try:
+        for cmd in (
+            ["git", "-C", repo, "add", "-A"],
+            ["git", "-C", repo, "commit", "-qm", "fix(claude-tunnel): session {}".format(sid)],
+        ):
+            p = await asyncio.create_subprocess_exec(
+                *cmd, env=env,
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+            await asyncio.wait_for(p.wait(), timeout=timeout)
+        push = await asyncio.create_subprocess_exec(
+            "git", "-C", repo, "push", "--quiet", "origin", "claude-chat/{}".format(sid),
+            env=env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        try:
+            _out, err = await asyncio.wait_for(push.communicate(), timeout=timeout)
+        except asyncio.TimeoutError:
+            push.kill()
+            await push.wait()
+            return web.json_response(
+                {"ok": False,
+                 "error": "git push timeout ({}s) — KimiClaw 无法连 remote，查网络/credential".format(timeout)},
+                status=504)
+        if push.returncode == 0:
+            return web.json_response({"ok": True, "branch": "claude-chat/{}".format(sid)})
+        return web.json_response(
+            {"ok": False,
+             "error": (err.decode("utf-8", "replace")[:500] or "git push rc={}".format(push.returncode))},
+            status=500)
+    except Exception as e:  # noqa: BLE001
+        return web.json_response({"ok": False, "error": "deliver failed: {}".format(e)}, status=500)
 
 
 async def healthz(request):
