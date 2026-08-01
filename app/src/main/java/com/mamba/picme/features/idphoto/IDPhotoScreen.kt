@@ -2,12 +2,14 @@ package com.mamba.picme.features.idphoto
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,10 +25,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
@@ -80,12 +87,12 @@ fun IDPhotoScreen(
                 is IDPhotoViewModel.State.Loading -> CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 is IDPhotoViewModel.State.Error -> Text(s.message, color = Color.White, modifier = Modifier.padding(16.dp))
                 is IDPhotoViewModel.State.Ready -> {
-                    val preview by produceState<android.graphics.Bitmap?>(
+                    // 底图仅在加载/换底色时重建；手势只改 graphicsLayer 变换参数，保证跟手
+                    val base by produceState<android.graphics.Bitmap?>(
                         initialValue = null,
-                        s.selectedColorIndex,
-                        s.selectedSizeIndex
+                        s.selectedColorIndex
                     ) {
-                        value = viewModel.composePreview()
+                        value = viewModel.previewBase()
                     }
                     Column(
                         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -98,20 +105,57 @@ fun IDPhotoScreen(
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            val bmp = preview
-                            if (bmp != null) {
-                                Image(
-                                    bitmap = bmp.asImageBitmap(),
-                                    contentDescription = stringResource(R.string.id_photo_title),
-                                    contentScale = ContentScale.Fit,
+                            val bmp = base
+                            val cropRect = viewModel.currentCropRect()
+                            if (bmp != null && cropRect != null) {
+                                val sizeSpec = IDPhotoSpecs.SIZES[s.selectedSizeIndex]
+                                val frameW = 220.dp
+                                val frameH = frameW * sizeSpec.heightPx / sizeSpec.widthPx
+                                val density = LocalDensity.current
+                                val scale = with(density) { frameW.toPx() } / (cropRect.right - cropRect.left)
+                                Box(
                                     modifier = Modifier
-                                        .size(width = 220.dp, height = 300.dp)
+                                        .size(frameW, frameH)
                                         .background(Color.White, RoundedCornerShape(4.dp))
-                                )
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .pointerInput(Unit) {
+                                            detectTransformGestures { _, pan, gestureZoom, _ ->
+                                                viewModel.transformBy(
+                                                    dxFraction = pan.x / size.width,
+                                                    dyFraction = pan.y / size.height,
+                                                    zoomChange = gestureZoom
+                                                )
+                                            }
+                                        },
+                                    contentAlignment = Alignment.TopStart
+                                ) {
+                                    Image(
+                                        bitmap = bmp.asImageBitmap(),
+                                        contentDescription = stringResource(R.string.id_photo_title),
+                                        contentScale = ContentScale.FillBounds,
+                                        modifier = Modifier
+                                            .requiredSize(
+                                                with(density) { bmp.width.toDp() },
+                                                with(density) { bmp.height.toDp() }
+                                            )
+                                            .graphicsLayer {
+                                                transformOrigin = TransformOrigin(0f, 0f)
+                                                scaleX = scale
+                                                scaleY = scale
+                                                translationX = -(cropRect.left * scale)
+                                                translationY = -(cropRect.top * scale)
+                                            }
+                                    )
+                                }
                             } else {
                                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         }
+                        Text(
+                            text = stringResource(R.string.id_photo_drag_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
                         ColorSwatchRow(IDPhotoSpecs.COLORS, s.selectedColorIndex, viewModel::selectColor)
                         SizeChipRow(IDPhotoSpecs.SIZES, s.selectedSizeIndex, viewModel::selectSize)
                     }

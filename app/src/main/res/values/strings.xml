@@ -120,6 +120,7 @@
     <string name="remove_background_failed">Failed to remove background</string>
     <string name="id_photo_title">ID Photo</string>
     <string name="id_photo_matting_failed">Portrait matting failed</string>
+    <string name="id_photo_drag_hint">Drag or pinch to adjust framing</string>
     <string name="id_photo_action">ID Photo</string>
     <string name="id_photo_action_short">ID</string>
     <string name="id_photo_size_1in">1 inch</string>
