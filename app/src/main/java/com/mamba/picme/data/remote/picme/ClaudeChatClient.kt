@@ -58,7 +58,7 @@ object ClaudeSseParser {
 }
 
 /**
- * claude-tunnel chat 客户端。镜像 [DiagClient] 风格（OkHttp + X-App-Token + org.json），
+ * claude-tunnel chat 客户端。OkHttp + X-App-Token + org.json，
  * 加 SSE 流式读：POST /v1/claude-chat，逐 chunk 累积，按双换行切事件，回调 onEvent。
  */
 class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {

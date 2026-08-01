@@ -65,7 +65,6 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.ChatBubble
-import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.AddComment
@@ -498,8 +497,6 @@ fun ChatScreen(
                                             )
                                         }
                                     },
-                                    onDiagConfirm = { jobId, mode -> viewModel.confirmDiagnosis(jobId, mode) },
-                                    onDiagSubmit = { ds -> viewModel.submitDiagnosis(ds.description, ds.summary) },
                                     onClaudeDeliver = { id -> viewModel.confirmClaudeDeliver(id) }
                                 )
                             }
@@ -868,8 +865,6 @@ private fun ClaudeAgentSteps(steps: List<ClaudeStepUi>) {
 private fun ChatMessageItem(
     message: ChatMessageUi,
     onImageClick: (ChatMessageUi) -> Unit = {},
-    onDiagConfirm: (Int, String) -> Unit = { _, _ -> },
-    onDiagSubmit: (DiagSubmitUi) -> Unit = {},
     onClaudeDeliver: (String) -> Unit = {},
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
@@ -1054,36 +1049,6 @@ private fun ChatMessageItem(
                     }
                 }
             }
-            // 诊断根因：内嵌确认按钮（pending 时显示 [推送]/[PR]）
-            message.diagConfirm?.let { dc ->
-                if (dc.pending) {
-                    Spacer(Modifier.height(10.dp))
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(onClick = { onDiagConfirm(dc.jobId, "push") }) {
-                            Text(stringResource(R.string.diag_sheet_push))
-                        }
-                        Button(onClick = { onDiagConfirm(dc.jobId, "pr") }) {
-                            Text(stringResource(R.string.diag_sheet_pr))
-                        }
-                        Button(onClick = { onDiagConfirm(dc.jobId, "auto") }) {
-                            Text(stringResource(R.string.diag_sheet_auto))
-                        }
-                    }
-                }
-            }
-            // 诊断澄清对话：[DIAG_READY] 摘要气泡内嵌「提交诊断」按钮（§2：提交永远是用户手动动作）
-            message.diagSubmit?.let { ds ->
-                Spacer(Modifier.height(10.dp))
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Button(onClick = { onDiagSubmit(ds) }) {
-                        Text(stringResource(R.string.diag_submit_report))
-                    }
-                }
-            }
             message.performance?.let { perf ->
                 val metricTint = if (isUser) {
                     Color.White.copy(alpha = 0.55f)
@@ -1202,9 +1167,7 @@ private fun ChatInputArea(
     val selectedModel = availableModels.find { m -> m.id == selectedModelId } ?: availableModels.firstOrNull()
     // 独立 chat 页默认文本输入模式（不继承/回写公共 AI chat 的语音偏好）
     var inputMode by remember { mutableStateOf(ChatInputMode.TEXT) }
-    // 诊断澄清对话模式（§2）：状态在 ViewModel（进入时自动新建独立会话）
-    val diagMode by viewModel.diagMode.collectAsState()
-    // AI 工程师模式（claude-tunnel）：状态在 ViewModel（与诊断互斥，进入时新建独立会话）
+    // AI 工程师模式（claude-tunnel）：状态在 ViewModel（进入时新建独立会话）
     val claudeMode by viewModel.claudeMode.collectAsState()
 
     // 语音输入：按需加载本地 Sherpa-ONNX ASR 模型，未配置时回退到系统 ASR
@@ -1275,8 +1238,6 @@ private fun ChatInputArea(
                     text = text,
                     onTextChange = { text = it },
                     isProcessing = isProcessing,
-                    diagMode = diagMode,
-                    onToggleDiag = { if (diagMode) viewModel.exitDiagMode() else viewModel.enterDiagMode() },
                     claudeMode = claudeMode,
                     onToggleClaude = { if (claudeMode) viewModel.exitClaudeMode() else viewModel.enterClaudeMode() },
                     onSend = {
@@ -1300,11 +1261,8 @@ private fun ChatInputArea(
                                     keyboardController?.hide()
                                 }
                                 text.isNotBlank() -> {
-                                    when {
-                                        claudeMode -> viewModel.sendClaudeMessage(text.trim())
-                                        diagMode -> viewModel.sendDiagMessage(text.trim())
-                                        else -> onSendMessage(text.trim())
-                                    }
+                                    if (claudeMode) viewModel.sendClaudeMessage(text.trim())
+                                    else onSendMessage(text.trim())
                                     text = ""
                                     keyboardController?.hide()
                                 }
@@ -1399,8 +1357,6 @@ private fun ChatTextInputMode(
     onSwitchModel: (String) -> Unit,
     onSwitchToVoice: () -> Unit,
     onShowPhotoPicker: () -> Unit,
-    diagMode: Boolean = false,
-    onToggleDiag: () -> Unit = {},
     claudeMode: Boolean = false,
     onToggleClaude: () -> Unit = {},
     pendingImage: Uri? = null,
@@ -1535,16 +1491,7 @@ private fun ChatTextInputMode(
                     )
                 }
 
-                // 远程诊断 toggle（二态）：激活后发送键触发诊断（chat 描述问题 → 云主机定位/修复）
-                CapsuleButton(
-                    icon = Icons.Rounded.Code,
-                    label = stringResource(R.string.diag_icon_desc),
-                    onClick = onToggleDiag,
-                    enabled = !isProcessing,
-                    isActive = diagMode
-                )
-
-                // AI 工程师 toggle（二态）：激活后消息走 claude-tunnel 流式 agent chat（与诊断互斥）
+                // AI 工程师 toggle（二态）：激活后消息走 claude-tunnel 流式 agent chat
                 CapsuleButton(
                     icon = Icons.Rounded.SmartToy,
                     label = stringResource(R.string.claude_icon_desc),
@@ -1937,21 +1884,11 @@ data class ChatMessageUi(
     val showCursor: Boolean = false,
     /** 思考中（首 token 到达前）：UI 显示三点 typing indicator 而非内容+光标。 */
     val isThinking: Boolean = false,
-    /** 诊断根因气泡的内嵌确认动作；非空且 pending=true 时渲染 [推送]/[PR] 按钮。 */
-    val diagConfirm: DiagConfirmUi? = null,
-    /** 诊断澄清对话 [DIAG_READY] 气泡的内嵌提交动作；非空时渲染「提交诊断」按钮。 */
-    val diagSubmit: DiagSubmitUi? = null,
-    /** claude-tunnel agent 气泡状态（文本流式 + 步骤列表 + 文件改动）；复用 diag 内嵌字段套路。 */
+    /** claude-tunnel agent 气泡状态（文本流式 + 步骤列表 + 文件改动）；内嵌在消息气泡渲染。 */
     val claudeAgent: ClaudeAgentState? = null,
     /** claude agent 气泡的交付动作；非空且 pending=true 时渲染「交付」按钮（§8）。 */
     val claudeDeliver: ClaudeDeliverUi? = null,
 )
-
-/** 诊断确认内嵌按钮状态。pending=true 显示按钮；false 则已处理（按钮消失）。 */
-data class DiagConfirmUi(val jobId: Int, val pending: Boolean)
-
-/** 诊断对话「提交诊断」按钮状态。description=诊断会话首条用户消息，summary=LLM 结构化摘要（可空，退化为现状）。 */
-data class DiagSubmitUi(val description: String, val summary: String?)
 
 enum class ChatMessageType {
     USER_TEXT,

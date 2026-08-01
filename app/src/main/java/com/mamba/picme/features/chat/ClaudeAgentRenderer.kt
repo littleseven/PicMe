@@ -8,7 +8,7 @@ import org.json.JSONObject
  * claude-tunnel agent 气泡的可变状态（spec §6 事件折叠产物，§7.4 渲染数据）。
  *
  * 纯 Kotlin 数据类型，便于单测与 Room 持久化（[toJson] / [fromJson]）。
- * UI（ChatScreen）把它挂到 [ChatMessageUi.claudeAgent] inline 渲染，复用 diag 的内嵌字段套路。
+ * UI（ChatScreen）把它挂到 [ChatMessageUi.claudeAgent] inline 渲染。
  *
  * @property text assistant_text delta 累积的流式文本。
  * @property steps tool_use↔tool_result 配对的步骤列表；file_change 也记为一步。
@@ -68,7 +68,7 @@ data class ClaudeStepUi(
 enum class ClaudeStepStatus { RUNNING, SUCCESS, FAILED }
 
 /**
- * claude 交付按钮状态（镜像 [DiagConfirmUi]）。pending=true 显示按钮；交付完成后置 false。
+ * claude 交付按钮状态。pending=true 显示按钮；交付完成后置 false。
  * gateway MVP 仅支持 push（§8 + README：pr/auto 二期）。
  */
 data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
