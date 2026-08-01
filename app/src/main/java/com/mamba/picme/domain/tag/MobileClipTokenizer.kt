@@ -82,6 +82,8 @@ class MobileClipTokenizer(context: Context) {
      *
      * @return 是否加载成功
      */
+    /** 加载 tokenizer（幂等；@Synchronized 防并发重复加载 8MB+ 词表 JSON） */
+    @Synchronized
     fun load(): Boolean {
         if (isLoaded) return true
 
@@ -153,6 +155,10 @@ class MobileClipTokenizer(context: Context) {
             isLoaded = true
             Log.i(TAG, "Tokenizer loaded from tokenizer.json: vocab=${vocab.size}, merges=${merges.size}")
             true
+        } catch (e: OutOfMemoryError) {
+            // 堆耗尽时返回加载失败（调用方会跳过语义搜索），避免 OOM(Error) 直接 crash
+            Log.e(TAG, "Failed to load tokenizer.json: out of memory", e)
+            false
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load tokenizer.json", e)
             false

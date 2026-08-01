@@ -74,9 +74,13 @@ class SemanticSearchEngine(
     /**
      * 初始化引擎（加载模型和 tokenizer）
      *
+     * @Synchronized：多层召回并行搜索时防止 check-then-act 竞态重复加载
+     * MobileCLIP 模型与 tokenizer（每份占数百 MB native + 数十 MB Java 堆）。
+     *
      * @param useGpu 是否尝试使用 GPU 加载 vision 模型
      * @return 是否成功
      */
+    @Synchronized
     fun initialize(useGpu: Boolean = false): Boolean {
         // 1. 初始化 MobileClipEngine（加载 ONNX 模型）
         if (!engine.isInitialized) {

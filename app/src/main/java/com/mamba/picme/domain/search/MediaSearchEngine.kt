@@ -15,8 +15,10 @@ import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.TagTranslator
 import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 
 /**
@@ -91,8 +93,10 @@ class MediaSearchEngine(
         llmSearch: (suspend (String) -> StructuredFilter?)? = null,
         enableSemanticSearch: Boolean = true,
         limitToIds: Set<Long>? = null
-    ): SearchResult {
-        if (query.isBlank()) return SearchResult(emptyList(), query)
+    ): SearchResult = withContext(Dispatchers.Default) {
+        // 整体在后台线程执行：首次语义搜索需加载 MobileCLIP/OPUS-MT 模型（秒级），
+        // 在主线程执行会造成界面卡顿甚至 ANR（2026-08-01 事故）
+        if (query.isBlank()) return@withContext SearchResult(emptyList(), query)
 
         // refine（in-set）时把搜索结果限定在上一轮结果集 prior 内；全库搜索时为 null 不生效。
         fun limitToIdsFilter(list: List<MediaAsset>): List<MediaAsset> =
@@ -107,7 +111,7 @@ class MediaSearchEngine(
         if (segmentedQuery.hasNarrowingExplicit && explicitFirstPipeline != null) {
             val explicitResults = explicitFirstPipeline.search(segmentedQuery, uiLang)
             if (explicitResults.media.isNotEmpty()) {
-                return SearchResult(limitToIdsFilter(explicitResults.media), query)
+                return@withContext SearchResult(limitToIdsFilter(explicitResults.media), query)
             }
         }
 
@@ -127,7 +131,7 @@ class MediaSearchEngine(
 
             // Layer 3: 融合排序
             val merged = mergeAndRank(results, semanticResults, query)
-            return SearchResult(limitToIdsFilter(merged), query)
+            return@withContext SearchResult(limitToIdsFilter(merged), query)
         }
 
         // Layer 2: LLM 解析
@@ -146,7 +150,7 @@ class MediaSearchEngine(
                 }
 
                 val merged = mergeAndRank(results, semanticResults, query)
-                return SearchResult(limitToIdsFilter(merged), query)
+                return@withContext SearchResult(limitToIdsFilter(merged), query)
             }
         }
 
@@ -167,7 +171,7 @@ class MediaSearchEngine(
         }
 
         val merged = mergeAndRank(sqlResults, semanticResults, query)
-        return SearchResult(limitToIdsFilter(merged), query)
+        SearchResult(limitToIdsFilter(merged), query)
     }
 
     /**
@@ -184,7 +188,7 @@ class MediaSearchEngine(
         filter: StructuredFilter,
         limitToIds: Set<Long>? = null,
         enableSemanticSearch: Boolean = true
-    ): SearchResult {
+    ): SearchResult = withContext(Dispatchers.Default) {
         fun limitToIdsFilter(list: List<MediaAsset>): List<MediaAsset> =
             if (limitToIds != null) list.filter { asset -> asset.id in limitToIds } else list
 
@@ -209,7 +213,7 @@ class MediaSearchEngine(
         }
 
         val merged = mergeAndRank(results, semanticResults, query)
-        return SearchResult(limitToIdsFilter(merged), query)
+        SearchResult(limitToIdsFilter(merged), query)
     }
 
     /**
@@ -232,6 +236,11 @@ class MediaSearchEngine(
                 filter = filter,
                 topK = 50
             ) ?: emptyList()
+        } catch (e: OutOfMemoryError) {
+            // 堆内存耗尽时降级为「无语义召回」，OOM 属于 Error 不被上层 Exception 捕获，
+            // 不拦截会直接 crash（2026-08-01 事故）
+            Logger.w(TAG, "Semantic search aborted: out of memory, degraded to SQL-only", e)
+            emptyList()
         } catch (e: Exception) {
             Logger.w(TAG, "Semantic search failed", e)
             emptyList()
