@@ -249,6 +249,16 @@ class ChatViewModel(
     /** app_tool_request 采集执行器（spec §3.1）；null = 未接线，收到请求直接忽略。 */
     private val appToolExecutor = dependencies.appToolExecutor
 
+    /** claude-tunnel sid 持久化（Task 8）；null = 未接线（单测默认），退化为原内存态行为。 */
+    private val claudeSidStore = dependencies.claudeSidStore
+
+    /**
+     * renderer 跨线程串行化：SSE onEvent 回调线程与 handleAppToolRequest 的 IO 协程会并发
+     * renderer.apply。SSE 回调是非 suspend 主流，用 tryLock（失败则直接 apply，回到原竞态水平）；
+     * tool result 合成事件持锁短暂，在 IO 协程里 withLock。
+     */
+    private val rendererMutex = kotlinx.coroutines.sync.Mutex()
+
     private val _claudeMode = MutableStateFlow(false)
     val claudeMode: StateFlow<Boolean> = _claudeMode.asStateFlow()
 
@@ -264,6 +274,7 @@ class ChatViewModel(
         if (_claudeMode.value) return
         exitDiagMode()
         _claudeMode.value = true
+        claudeSidStore?.clear(_currentSessionId.value)
         claudeSid = null
         claudeDeliverOverrides.clear()
         newSession()
@@ -314,6 +325,21 @@ class ChatViewModel(
                     isThinking = true,
                     claudeAgent = ClaudeAgentState(),
                 )
+                // 进程重建后内存 sid 丢失：先从持久化恢复（Task 8），--resume 续上下文
+                if (claudeSid == null) claudeSid = claudeSidStore?.load(sessionId)
+                // SSE 回调是非 suspend 主流：tryLock 与 IO 协程的合成 ToolResult 串行，
+                // 拿不到锁则直接 apply（事件不能丢，竞态概率极低）
+                fun applyToRenderer(ev: ClaudeEvent) {
+                    val locked = rendererMutex.tryLock()
+                    try {
+                        renderer.apply(ev)
+                        _streamingMessage.update { cur ->
+                            cur?.copy(claudeAgent = renderer.state, isThinking = false)
+                        }
+                    } finally {
+                        if (locked) rendererMutex.unlock()
+                    }
+                }
                 val result = claudeChatClient.chat(token, text, claudeSid) { event ->
                     when (event) {
                         is ClaudeEvent.Session -> Logger.i(TAG, "claude evt: Session sid=${event.sid}")
@@ -333,23 +359,18 @@ class ChatViewModel(
                         // gateway 首条 session = 网关 sid（workdir/deliver key）；
                         // claude stream-json init 也带一条 session（claude session_id，仅 gateway 内部 --resume 用）。
                         // 只采纳首个（网关 sid），忽略后者，否则 deliver 拿错 sid → gateway 找不到 workdir。
-                        is ClaudeEvent.Session -> if (claudeSid == null) claudeSid = event.sid
+                        is ClaudeEvent.Session -> if (claudeSid == null) {
+                            claudeSid = event.sid
+                            claudeSidStore?.save(sessionId, event.sid)
+                        }
                         is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
                         // spec §3.1：App 数据采集请求。合成 ToolUse 步骤（复用步骤气泡折叠），
                         // 后台执行采集 + postToolResult 回传，完成后合成 ToolResult 收尾。
                         is ClaudeEvent.AppToolRequest -> {
-                            renderer.apply(ClaudeEvent.ToolUse(event.tool, event.args))
-                            _streamingMessage.update { cur ->
-                                cur?.copy(claudeAgent = renderer.state, isThinking = false)
-                            }
+                            applyToRenderer(ClaudeEvent.ToolUse(event.tool, event.args))
                             handleAppToolRequest(event.requestId, event.tool, event.args, renderer)
                         }
-                        else -> {
-                            renderer.apply(event)
-                            _streamingMessage.update { cur ->
-                                cur?.copy(claudeAgent = renderer.state, isThinking = false)
-                            }
-                        }
+                        else -> applyToRenderer(event)
                     }
                 }
                 _streamingMessage.value = null
@@ -383,6 +404,7 @@ class ChatViewModel(
         val executor = appToolExecutor ?: return
         val token = _serverAuthToken.value
         viewModelScope.launch(Dispatchers.IO) {
+            var ok = true
             val summary = try {
                 val appTool = AppTool.fromName(tool)
                     ?: throw IllegalArgumentException("unknown app tool: $tool")
@@ -397,6 +419,7 @@ class ChatViewModel(
                     "已回传（${payload.toString().length}B$truncated）"
                 }
             } catch (e: Exception) {
+                ok = false
                 Logger.e(TAG, "handleAppToolRequest failed", e)
                 if (token.isNotBlank()) {
                     runCatching {
@@ -407,8 +430,11 @@ class ChatViewModel(
                 }
                 "采集失败：${e.message}"
             }
-            renderer.apply(ClaudeEvent.ToolResult(ok = true, summary = summary))
-            _streamingMessage.update { cur -> cur?.copy(claudeAgent = renderer.state) }
+            // 与 SSE 回调线程串行（见 applyToRenderer）：合成 ToolResult 持锁短暂
+            rendererMutex.withLock {
+                renderer.apply(ClaudeEvent.ToolResult(ok = ok, summary = summary))
+                _streamingMessage.update { cur -> cur?.copy(claudeAgent = renderer.state) }
+            }
         }
     }
 

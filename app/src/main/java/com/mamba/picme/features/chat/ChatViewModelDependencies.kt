@@ -49,4 +49,7 @@ class ChatViewModelDependencies(
      * 生产由 AppContainer 构造本容器后回填（在创建 ChatViewModel 之前完成）。
      */
     var appToolExecutor: AppToolExecutor? = null
+
+    /** claude-tunnel sid 持久化（Task 8）；生产由 AppContainer 回填 PrefsClaudeSidStore。 */
+    var claudeSidStore: ClaudeSidStore? = null
 }
