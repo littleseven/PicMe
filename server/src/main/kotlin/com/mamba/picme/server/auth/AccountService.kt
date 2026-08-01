@@ -178,7 +178,7 @@ object AccountService {
 
     // ── Auth check ──
 
-    data class AuthResult(val valid: Boolean, val tokenHash: String? = null)
+    data class AuthResult(val valid: Boolean, val tokenHash: String? = null, val email: String? = null)
 
     suspend fun validateToken(rawToken: String): AuthResult {
         if (!isTokenFormat(rawToken)) return AuthResult(false)
@@ -188,7 +188,7 @@ object AccountService {
                 Accounts.tokenHash eq hash and (Accounts.status eq "active")
             }.firstOrNull()
         } ?: return AuthResult(false)
-        return AuthResult(true, hash)
+        return AuthResult(true, hash, row[Accounts.email])
     }
 
     /** tokenHash → account.id；用于 llm_call_log 写入归属。 */

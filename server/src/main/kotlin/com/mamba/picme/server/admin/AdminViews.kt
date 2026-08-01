@@ -2,6 +2,7 @@ package com.mamba.picme.server.admin
 
 import com.mamba.picme.server.appJson
 import com.mamba.picme.server.analytics.formatCostCny
+import com.mamba.picme.server.auth.AiEngineerWhitelistService
 import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelRow
@@ -1241,6 +1242,60 @@ object AdminViews {
         }
     }
 
+    fun aiEngineerWhitelistPage(entries: List<AiEngineerWhitelistService.Entry>, message: String? = null): String = createHTML().html {
+        adminHead("AI 工程师白名单 · PoLang 管理后台")
+        body {
+            navBar()
+            h1 { +"AI 工程师模式白名单" }
+            p("meta") { +"空表 = 全部禁止；加入邮箱后才允许该账号使用 AI 工程师模式。" }
+            if (message != null) {
+                div("toast ${if (message.startsWith("已") || message.startsWith("成功")) "toast-ok" else "toast-err"}") { +message }
+            }
+            div("card limit-card") {
+                div("card-label") { +"添加邮箱" }
+                form(action = "/admin/ai-engineer-whitelist", method = FormMethod.post, classes = "inline") {
+                    input(type = InputType.email, name = "email") {
+                        placeholder = "user@example.com"
+                        style = "width:280px"
+                    }
+                    +" "
+                    input(type = InputType.submit, classes = "btn-sm btn-go") { value = "添加" }
+                }
+            }
+            if (entries.isEmpty()) {
+                div("card apk-empty") {
+                    div("apk-empty-text") { +"暂无白名单记录" }
+                }
+            } else {
+                table {
+                    tr {
+                        th { +"ID" }
+                        th { +"邮箱" }
+                        th { +"加入时间" }
+                        th(classes = "col-actions") { +"操作" }
+                    }
+                    entries.forEach { e ->
+                        tr {
+                            td { +e.id.toString() }
+                            td { +e.email }
+                            td { +fmtTs(e.createdAt) }
+                            td {
+                                form(
+                                    action = "/admin/ai-engineer-whitelist/revoke",
+                                    method = FormMethod.post,
+                                    classes = "inline",
+                                ) {
+                                    input(type = InputType.hidden, name = "email") { value = e.email }
+                                    input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "移除" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun FlowContent.navBar() {
         div("nav") {
             div("nav-brand") { +"PoLang 管理后台" }
@@ -1250,6 +1305,7 @@ object AdminViews {
                 a("/admin/traffic", classes = "nav-link") { +"流量" }
                 a("/admin/channels", classes = "nav-link") { +"渠道" }
                 a("/admin/settings", classes = "nav-link") { +"设置" }
+                a("/admin/ai-engineer-whitelist", classes = "nav-link") { +"AI 白名单" }
                 a("/admin/apk", classes = "nav-link") { +"APK" }
             }
             div("nav-spacer") {}

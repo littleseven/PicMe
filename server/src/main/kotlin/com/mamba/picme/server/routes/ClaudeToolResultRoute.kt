@@ -27,6 +27,7 @@ fun Route.claudeToolResultRoute(httpClient: HttpClient, rateLimiter: RateLimiter
         val owner = call.ownerTokenHash() ?: run {
             call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized")); return@post
         }
+        if (!call.requireAiEngineerWhitelist()) return@post
         if (rateLimiter != null && !rateLimiter.allow(owner)) {
             call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to "rate_limit_exceeded")); return@post
         }

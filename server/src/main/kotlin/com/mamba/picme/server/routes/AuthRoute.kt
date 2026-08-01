@@ -17,6 +17,8 @@ import kotlinx.serialization.Serializable
 
 val TokenHashKey = AttributeKey<String>("tokenHash")
 
+val EmailKey = AttributeKey<String>("email")
+
 val DeviceIdKey = AttributeKey<String>("deviceId")
 
 @Serializable

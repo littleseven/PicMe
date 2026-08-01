@@ -160,3 +160,15 @@ object ServerSettings : Table("server_setting") {
     override val primaryKey = PrimaryKey(key)
 }
 
+// ── AI 工程师模式账号白名单（空表 = 全部禁止；命中邮箱才放行）──
+object AiEngineerWhitelists : Table("ai_engineer_whitelist") {
+    val id = integer("id").autoIncrement()
+    val email = varchar("email", 256)
+    val createdAt = long("created_at")
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex(email)
+    }
+}
+

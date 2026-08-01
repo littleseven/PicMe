@@ -3,6 +3,7 @@ package com.mamba.picme.server.admin
 import com.mamba.picme.server.analytics.Price
 import com.mamba.picme.server.analytics.defaultPrices
 import com.mamba.picme.server.auth.AccountService
+import com.mamba.picme.server.auth.AiEngineerWhitelistService
 import com.mamba.picme.server.auth.GuestService
 import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
@@ -371,6 +372,37 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
                 ChannelRegistry.reload()
             }
             call.respondRedirect("/admin/channels")
+        }
+
+        get("/ai-engineer-whitelist") {
+            if (!call.adminGuard(adminToken)) return@get
+            val entries = AiEngineerWhitelistService.list()
+            val msg = call.request.queryParameters["msg"]
+            call.respondText(AdminViews.aiEngineerWhitelistPage(entries, msg), ContentType.Text.Html)
+        }
+
+        post("/ai-engineer-whitelist") {
+            if (!call.adminGuard(adminToken)) return@post
+            val params = call.receiveParameters()
+            val email = (params["email"] ?: "").trim().lowercase()
+            val msg = when {
+                email.isBlank() || !email.contains("@") -> "请输入有效邮箱"
+                AiEngineerWhitelistService.allow(email) -> "已添加 $email"
+                else -> "$email 已在白名单中"
+            }
+            call.respondRedirect("/admin/ai-engineer-whitelist?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+        }
+
+        post("/ai-engineer-whitelist/revoke") {
+            if (!call.adminGuard(adminToken)) return@post
+            val params = call.receiveParameters()
+            val email = (params["email"] ?: "").trim().lowercase()
+            val msg = when {
+                email.isBlank() -> "请输入有效邮箱"
+                AiEngineerWhitelistService.revoke(email) -> "已移除 $email"
+                else -> "$email 不在白名单中"
+            }
+            call.respondRedirect("/admin/ai-engineer-whitelist?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
         get("/apk") {

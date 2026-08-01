@@ -16,12 +16,14 @@ import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
+import com.mamba.picme.server.routes.EmailKey
 import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.accountDeletionRoute
 import com.mamba.picme.server.routes.guestDeletionRoute
 import com.mamba.picme.server.routes.authRoute
 import com.mamba.picme.server.routes.claudeChatRoute
 import com.mamba.picme.server.routes.claudeDeliverRoute
+import com.mamba.picme.server.routes.claudeEngineerAvailabilityRoute
 import com.mamba.picme.server.routes.claudeToolResultRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
@@ -97,8 +99,9 @@ fun Application.module(config: AppConfig) {
         val rawToken = call.request.headers[APP_TOKEN_HEADER]
         val authResult = rawToken?.let { AccountService.validateToken(it) }
         if (authResult?.valid == true) {
-            // 有效账号 token → 存 hash 供下游额度校验
+            // 有效账号 token → 存 hash + email 供下游额度校验与白名单判定
             authResult.tokenHash?.let { call.attributes.put(TokenHashKey, it) }
+            authResult.email?.let { call.attributes.put(EmailKey, it) }
             // 注册用户请求若带 X-Device-Id,亦存 DeviceIdKey 供后台 device 维度展示(device_id 列)
             call.request.headers[DEVICE_ID_HEADER]?.takeIf { it.isNotBlank() }?.let {
                 call.attributes.put(DeviceIdKey, it)
@@ -152,6 +155,7 @@ fun Application.module(config: AppConfig) {
         accountDeletionRoute()
         guestDeletionRoute()
         llmRoute(llmProxy, rateLimiter, config.llmPrices)
+        claudeEngineerAvailabilityRoute()
         claudeChatRoute(claudeClient, rateLimiter)
         claudeDeliverRoute(claudeClient, rateLimiter)
         claudeToolResultRoute(claudeClient, rateLimiter)

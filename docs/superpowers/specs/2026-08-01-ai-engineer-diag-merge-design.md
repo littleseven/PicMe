@@ -174,7 +174,51 @@ claude -p <msg> --output-format stream-json --resume <sid> \
 
 ---
 
-## 6. 旧诊断移除清单
+## 6. AI 工程师模式账号白名单
+
+因 AI 工程师模式可调用 MCP 工具读取 App 数据，并可通过 `/v1/claude-deliver` 推送代码分支，属于高权限功能，故增加**账号级白名单**。
+
+### 6.1 设计语义
+
+- `ai_engineer_whitelist` 表为空时，**所有账号均不可使用** AI 工程师模式。
+- 管理员在后台把用户邮箱加入白名单后，该账号才可调用相关端点。
+- 白名单匹配**大小写不敏感**（入库时统一小写）。
+
+### 6.2 受保护端点
+
+| 端点 | 说明 |
+|---|---|
+| `POST /v1/claude-chat` | 进入 AI 工程师聊天 |
+| `POST /v1/claude-deliver` | 代码交付（push/pr/auto） |
+| `POST /v1/claude-tool-result` | App tool 结果回传 |
+| `GET /v1/claude-engineer/available` | 客户端查询入口是否可用 |
+
+未在白名单的请求返回：
+
+```json
+{"error":"ai_engineer_not_allowed","message":"AI engineer mode not enabled for this account"}
+```
+
+HTTP 状态码 `403 Forbidden`。
+
+### 6.3 管理后台
+
+路径：`/admin/ai-engineer-whitelist`
+
+- 列表展示所有白名单邮箱。
+- 输入邮箱点击「添加」加入白名单。
+- 每行提供「移除」按钮，从白名单删除。
+
+### 6.4 实现要点
+
+- `AiEngineerWhitelistService` 提供 `isAllowed(email)`、`allow(email)`、`revoke(email)`、`list()`。
+- `AccountService.validateToken` 返回结果新增 `email` 字段，由全局 auth interceptor 写入 `EmailKey` 属性。
+- `ClaudeChatRoute`、`ClaudeDeliverRoute`、`ClaudeToolResultRoute` 在鉴权后调用 `requireAiEngineerWhitelist()`。
+- 新增 `GET /v1/claude-engineer/available` 供 App 在展示入口前查询，避免用户进入后才收到 403。
+
+---
+
+## 7. 旧诊断移除清单
 
 | 层 | 删除 | 保留（复用） |
 |---|---|---|
@@ -187,7 +231,7 @@ DB 迁移：`server/migrations/` 新增一版，`DROP TABLE diag_jobs`。
 
 ---
 
-## 7. 错误处理
+## 8. 错误处理
 
 | 场景 | 行为 |
 |---|---|
@@ -196,19 +240,24 @@ DB 迁移：`server/migrations/` 新增一版，`DROP TABLE diag_jobs`。
 | 脱敏异常 | 拒绝回传并返回错误——宁可拿不到数据也不泄露（PRIVACY 红线） |
 | payload 超 32KB | 截断 + `truncated: true` 标记 |
 | 代码交付 | 沿用现有 `/v1/claude-deliver` 三档，本次不动 |
+| 账号未在白名单 | `403 ai_engineer_not_allowed` |
 
 ---
 
-## 8. 测试
+## 9. 测试
 
 - **App**：`AppToolExecutor` 单元测试（分发、截断、脱敏调用）；`ClaudeSseParser` 新事件解析测试
 - **Gateway**：`app_tools_mcp.py` pytest（pending map 挂起 / 解挂 / 超时）；参照 `scripts/diag-worker/smoke/` 思路补一个 claude-tunnel smoke 测试
-- **Server**：`ClaudeToolResultRouteTest`（鉴权、限流、反代）
+- **Server**：
+  - `ClaudeChatRouteTest` / `ClaudeDeliverRouteTest` / `ClaudeToolResultRouteTest`：鉴权、白名单、限流、反代
+  - `ClaudeEngineerAvailabilityRouteTest`：可用性查询
+  - `AiEngineerWhitelistServiceTest`：白名单增删查
+  - `AdminAiEngineerWhitelistRoutesTest`：管理后台增删查
 - **端到端手测清单**：描述问题 → Agent 拉日志 → 结合代码给方案 → 确认交付
 
 ---
 
-## 9. 红线合规
+## 10. 红线合规
 
 - **[PRIVACY]**：所有回传数据经 `DiagSanitizer` 脱敏；相册摘要仅元数据，不含图片/视频；脱敏异常时拒绝回传
 - **[AGENT-FIRST]**：`AppToolExecutor` 显式构造注入；工具分发穷举枚举；tool 过程结构化事件渲染
