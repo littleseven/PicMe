@@ -97,6 +97,7 @@ class ChatViewModelClaudeSidTest {
         coEvery { chatMessageDao.getMessageCount(any()) } returns 0
         every { chatSessionDao.getAllSessions() } returns flowOf(emptyList())
         coEvery { chatSessionDao.getSession(any()) } returns null
+        coEvery { claudeChatClient.engineerAvailability(any()) } returns Result.success(false)
 
         mockkObject(AgentOrchestrator.Companion)
         every { AgentOrchestrator.getInstance(any()) } returns orchestrator

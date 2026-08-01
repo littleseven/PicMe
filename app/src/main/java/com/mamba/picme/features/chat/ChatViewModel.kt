@@ -231,6 +231,10 @@ class ChatViewModel(
     private val _claudeMode = MutableStateFlow(false)
     val claudeMode: StateFlow<Boolean> = _claudeMode.asStateFlow()
 
+    /** AI 工程师模式当前账号是否有代码交付权限（ai_engineer_whitelist）。 */
+    private val _canDeliverClaude = MutableStateFlow(false)
+    val canDeliverClaude: StateFlow<Boolean> = _canDeliverClaude.asStateFlow()
+
     /** 网关 session id（多轮 --resume 用；网关 session 事件回填）。@Volatile：IO 线程回调写。 */
     @Volatile
     private var claudeSid: String? = null
@@ -245,6 +249,7 @@ class ChatViewModel(
     fun enterClaudeMode() {
         if (_claudeMode.value) return
         _claudeMode.value = true
+        _serverAuthToken.value.takeIf { it.isNotBlank() }?.let { refreshClaudeAvailability(it) }
         claudeDeliverOverrides.clear()
         val saved = claudeSidStore?.load()
         if (saved == null) {
@@ -662,7 +667,20 @@ class ChatViewModel(
         viewModelScope.launch {
             userSettingsRepository.serverAuthTokenFlow.collect { token ->
                 _serverAuthToken.value = token
+                if (token.isBlank()) {
+                    _canDeliverClaude.value = false
+                } else if (_claudeMode.value) {
+                    refreshClaudeAvailability(token)
+                }
             }
+        }
+    }
+
+    private fun refreshClaudeAvailability(token: String) {
+        viewModelScope.launch {
+            claudeChatClient.engineerAvailability(token)
+                .onSuccess { _canDeliverClaude.value = it }
+                .onFailure { _canDeliverClaude.value = false }
         }
     }
 

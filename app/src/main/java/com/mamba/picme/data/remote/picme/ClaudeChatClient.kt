@@ -138,6 +138,24 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
         }
 
     /**
+     * 查询 AI 工程师模式可用性与代码交付权限：GET /v1/claude-engineer/available。
+     * 已认证账号恒为 available；canDeliver 取决于 ai_engineer_whitelist。
+     */
+    suspend fun engineerAvailability(token: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = Request.Builder()
+                .url("$baseUrl/v1/claude-engineer/available")
+                .header("X-App-Token", token)
+                .get()
+                .build()
+            val resp = deliverClient.newCall(req).execute()
+            val text = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw RuntimeException("HTTP ${resp.code}: $text")
+            JSONObject(text).optBoolean("canDeliver", false)
+        }
+    }
+
+    /**
      * App tool 结果回传（spec §5）：POST /v1/claude-tool-result → server 反代网关 /tool-result。
      * [payload] 为 AppToolExecutor 采集+脱敏后的 JSON。
      */

@@ -212,6 +212,7 @@ fun ChatScreen(
     val isGuestMode by viewModel.isGuestMode.collectAsState()
     val showRegistration by viewModel.showRegistrationSheet.collectAsState()
     val issueReportState by viewModel.issueReportState.collectAsState()
+    val canDeliverClaude by viewModel.canDeliverClaude.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
@@ -540,7 +541,8 @@ fun ChatScreen(
                                             )
                                         }
                                     },
-                                    onClaudeDeliver = { id, mode -> viewModel.confirmClaudeDeliver(id, mode) }
+                                    onClaudeDeliver = { id, mode -> viewModel.confirmClaudeDeliver(id, mode) },
+                                    canDeliverClaude = canDeliverClaude
                                 )
                             }
                         }
@@ -1002,6 +1004,7 @@ private fun ChatMessageItem(
     message: ChatMessageUi,
     onImageClick: (ChatMessageUi) -> Unit = {},
     onClaudeDeliver: (String, String) -> Unit = { _, _ -> },
+    canDeliverClaude: Boolean = false,
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
@@ -1175,8 +1178,9 @@ private fun ChatMessageItem(
                 }
             }
             // claude 交付按钮：file_change 后出现，pending 时可选 push/pr/auto（spec §8）
+            // 仅白名单账号展示写链路入口；非白名单只读诊断，不能改代码。
             message.claudeDeliver?.let { cd ->
-                if (cd.pending) {
+                if (cd.pending && canDeliverClaude) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.claude_deliver_choose),
