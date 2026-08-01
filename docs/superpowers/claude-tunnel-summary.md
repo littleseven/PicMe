@@ -39,6 +39,7 @@
 | `file_change` | `{path, action}` | 改动徽标（注：漏 Bash 改文件，交付按钮不依赖它）|
 | `cost` | `{turns, cents}` | 额度（可选）|
 | `error` | `{message}` | 出错提示 |
+| `app_tool_request` | `{requestId, tool, args}` | 静默执行（AppToolExecutor 采集后经 `POST /v1/claude-tool-result` 回传，见 §9 演进摘要）|
 | `done` | `{}` | 本轮结束 |
 
 面向 agent 语义（非 OpenAI Chat Completions 兼容）——Claude 多步工具调用 / 文件改动无法用单轮 OpenAI 格式表达。
@@ -113,6 +114,13 @@ app 点「交付」→ `POST /v1/claude-deliver {sid}` → server 反代 → gat
 **已完成**：隧道（chisel）+ 流式网关（事件协议 + session/workdir + 异步 deliver）+ server 反代（chat SSE + deliver JSON + 三层鉴权 + 健康推断 + 限流）+ app claude-chat 通道（toggle + agent 气泡 + 多轮 + 交付）+ 脱敏 + 图片禁用 + 权限 repo 化 + systemd/反向 SSH 运维自动化。**端到端真机验证通过**（chat 流式 → 改码 → 推 `claude-chat/<sid>` 分支）。
 
 **二期**：GLM 成本精细化额度池；session 跨设备恢复；多 KimiClaw 容灾（多 chisel client）；Claude 工具权限精细化（白名单可跑命令）；`/admin` 观测页（类似 `/admin/diag`）；workdir 清理策略；deliver pr/auto 模式。
+
+**演进（2026-08-01，AI 工程师模式）**：
+
+- **MCP app 工具链**：gateway 新增 `app_tools_mcp.py`（MCP stdio server），向 Claude Code 暴露 5 个 `app_*` 工具（日志/崩溃/聊天历史/运行时状态/相册摘要）；tool call 经 SSE 下行 `app_tool_request` 到 App，`AppToolExecutor`（`app/core/agenttools/`）采集脱敏后经 `POST /v1/claude-tool-result`（Ktor 新增路由）回传。超时经 `CT_APP_TOOL_TIMEOUT` 配置（默认 60s）。
+- **诊断模式移除**：原诊断工单链路（DiagRoute / diag_jobs / diag-worker）已整体删除，诊断能力以「AI Engineer」toggle 并入本实时 chat 通道；三篇 diag spec 已标记 SUPERSEDED。
+- **sid 持久化**：`claudeSid` 经 `ClaudeSidStore`（SharedPreferences）持久化，进程重建后可 `--resume` 续上下文。
+- 设计 SSOT：`docs/superpowers/specs/2026-08-01-ai-engineer-diag-merge-design.md`。
 
 ## 10. 关键文件索引
 

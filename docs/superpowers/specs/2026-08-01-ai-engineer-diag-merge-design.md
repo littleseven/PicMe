@@ -178,7 +178,7 @@ claude -p <msg> --output-format stream-json --resume <sid> \
 
 | 层 | 删除 | 保留（复用） |
 |---|---|---|
-| App | 诊断 toggle + 三语文案、`diagMode` 状态机、`DiagChatSession`、`DiagPrompts`、`DiagClient` | `DiagBundleCollector`、`DiagSanitizer`、`CrashTraceStore` |
+| App | 诊断 toggle + 三语文案、`diagMode` 状态机、`DiagChatSession`、`DiagPrompts`、`DiagClient` | `DiagSanitizer`、`CrashTraceStore`（注：`DiagBundleCollector` 原计划保留复用，实际未被 AppToolExecutor 引用，已随诊断链路一并删除，见 commit `893801c3`） |
 | Server | `DiagRoute.kt` 全部 5 端点、`diag_jobs` 表与状态机、`/admin/diag` 页 | AppToken 鉴权、RateLimiter |
 | 云主机 | `scripts/diag-worker/` 整个目录 | 交付管线（run-fix push/pr/auto，已被 claude-deliver 复用） |
 | 文档 | 3 篇 diag spec 标记为 superseded（见文首） | — |

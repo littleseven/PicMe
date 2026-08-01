@@ -1,5 +1,9 @@
 # 诊断确认三选项（保守修复 / 修复待审 / 自动修复）
 
+> **状态**：⛔ SUPERSEDED（2026-08-01）——诊断模式已合并入 AI 工程师模式，见
+> `2026-08-01-ai-engineer-diag-merge-design.md`。本文仅作历史存档。
+> 注：交付三档（push/pr/auto）部分仍被 claude-deliver 复用，仍然有效。
+
 > **日期**：2026-07-31
 > **状态**：已确认，待实现
 > **范围**：跨端 —— `app/`（chat-UI）+ `server/`（confirm 状态机）+ `scripts/diag-worker/`（修复交付）

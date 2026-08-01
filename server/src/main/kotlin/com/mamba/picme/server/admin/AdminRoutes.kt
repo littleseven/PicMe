@@ -8,7 +8,6 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
-import com.mamba.picme.server.diag.DiagService
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
@@ -227,60 +226,6 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             val days = parseDays(call.request.queryParameters["days"], listOf(7, 14, 30, 90), 30)
             val metric = parseMetric(call.request.queryParameters["metric"])
             call.respondText(AdminViews.trafficPage(AdminQueries.rangeStats(days, now, prices), days, metric), ContentType.Text.Html)
-        }
-
-        // 诊断任务可视化（只读）：列表 + 详情。worker 健康从任务活动推断。
-        get("/diag") {
-            if (!call.adminGuard(adminToken)) return@get
-            val now = System.currentTimeMillis()
-            val auto = parseAutoRefresh(call.request.queryParameters["auto"])
-            call.respondText(
-                AdminViews.diagListPage(
-                    AdminQueries.diagStats(),
-                    AdminQueries.diagList(),
-                    AdminQueries.diagWorkerActivity(now),
-                    now,
-                    auto,
-                ),
-                ContentType.Text.Html,
-            )
-        }
-
-        get("/diag/{id}") {
-            if (!call.adminGuard(adminToken)) return@get
-            val id = call.parameters["id"]?.toIntOrNull()
-            if (id == null) {
-                call.respondText("bad request", contentType = ContentType.Text.Plain, status = HttpStatusCode.BadRequest)
-                return@get
-            }
-            val row = AdminQueries.diagDetail(id)
-            if (row == null) {
-                call.respondText("not found", contentType = ContentType.Text.Plain, status = HttpStatusCode.NotFound)
-                return@get
-            }
-            call.respondText(AdminViews.diagDetailPage(row), ContentType.Text.Html)
-        }
-
-        // 诊断任务管理操作（删除 / 废弃 / 激活）：admin cookie 鉴权，302 回列表。
-        post("/diag/{id}/delete") {
-            if (!call.adminGuard(adminToken)) return@post
-            val id = call.parameters["id"]?.toIntOrNull()
-            if (id != null) DiagService.deleteById(id)
-            call.respondRedirect("/admin/diag")
-        }
-
-        post("/diag/{id}/archive") {
-            if (!call.adminGuard(adminToken)) return@post
-            val id = call.parameters["id"]?.toIntOrNull()
-            if (id != null) DiagService.archive(id)
-            call.respondRedirect("/admin/diag")
-        }
-
-        post("/diag/{id}/activate") {
-            if (!call.adminGuard(adminToken)) return@post
-            val id = call.parameters["id"]?.toIntOrNull()
-            if (id != null) DiagService.activate(id)
-            call.respondRedirect("/admin/diag")
         }
 
         get("/settings") {
@@ -566,9 +511,3 @@ private fun parseDays(raw: String?, allowed: List<Int>, default: Int): Int =
 /** 概览/流量页指标白名单解析：仅允许 calls/tokens/cost/bytes，其余回落 calls。 */
 private fun parseMetric(raw: String?): String =
     if (raw != null && raw in listOf("calls", "tokens", "cost", "bytes")) raw else "calls"
-
-/** 诊断页自动刷新间隔白名单解析：仅允许 30/60 秒，其余（含缺省）回落 0（手动）。 */
-private fun parseAutoRefresh(raw: String?): Int {
-    val v = raw?.toIntOrNull() ?: 0
-    return if (v == 30 || v == 60) v else 0
-}

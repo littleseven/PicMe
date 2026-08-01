@@ -67,6 +67,8 @@ import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.chat.ChatImageRenderer
 import com.mamba.picme.features.chat.ChatViewModelDependencies
+import com.mamba.picme.features.chat.PrefsClaudeSidStore
+import com.mamba.picme.features.chat.buildAppToolExecutor
 import com.mamba.picme.features.chat.capability.MemoryCapability
 import com.mamba.picme.features.chat.capability.PersonRelationCapability
 import com.mamba.picme.domain.matting.MattingEngine
@@ -634,7 +636,11 @@ class AppContainerImpl(
             chatImageRenderer = chatImageRenderer,
             chatImageStore = chatImageStore,
             saveChatEditResultUseCase = saveChatEditResultUseCase
-        )
+        ).also { deps ->
+            // app_tool_request 采集执行器：工厂依赖容器内数据源，构造后回填（先于 ChatViewModel 创建）
+            deps.appToolExecutor = buildAppToolExecutor(deps)
+            deps.claudeSidStore = PrefsClaudeSidStore(deps.context)
+        }
     }
 
     private val chatViewModelFactory: ViewModelProvider.Factory by lazy {

@@ -8,7 +8,7 @@ import org.json.JSONObject
  * claude-tunnel agent 气泡的可变状态（spec §6 事件折叠产物，§7.4 渲染数据）。
  *
  * 纯 Kotlin 数据类型，便于单测与 Room 持久化（[toJson] / [fromJson]）。
- * UI（ChatScreen）把它挂到 [ChatMessageUi.claudeAgent] inline 渲染，复用 diag 的内嵌字段套路。
+ * UI（ChatScreen）把它挂到 [ChatMessageUi.claudeAgent] inline 渲染。
  *
  * @property text assistant_text delta 累积的流式文本。
  * @property steps tool_use↔tool_result 配对的步骤列表；file_change 也记为一步。
@@ -68,7 +68,7 @@ data class ClaudeStepUi(
 enum class ClaudeStepStatus { RUNNING, SUCCESS, FAILED }
 
 /**
- * claude 交付按钮状态（镜像 [DiagConfirmUi]）。pending=true 显示按钮；交付完成后置 false。
+ * claude 交付按钮状态。pending=true 显示按钮；交付完成后置 false。
  * gateway MVP 仅支持 push（§8 + README：pr/auto 二期）。
  */
 data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
@@ -80,7 +80,8 @@ data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
  * 后取 [state] 写入 ChatMessageUi.claudeAgent，实现文本流式 + 步骤配对 + 文件改动徽标。
  *
  * 折叠规则：
- * - [ClaudeEvent.Session] / [ClaudeEvent.Done] / [ClaudeEvent.Cost]：无视觉变化（sid 由 ViewModel 另存）。
+ * - [ClaudeEvent.Session] / [ClaudeEvent.Done] / [ClaudeEvent.Cost] / [ClaudeEvent.AppToolRequest]：无视觉变化
+ *   （sid 由 ViewModel 另存；AppToolRequest 由 Task 7 在 ViewModel 合成 ToolUse/ToolResult 事件）。
  * - [ClaudeEvent.AssistantText]：delta 追加到 [ClaudeAgentState.text]。
  * - [ClaudeEvent.ToolUse]：追加一步（RUNNING + input 简述）。
  * - [ClaudeEvent.ToolResult]：把最后一个 RUNNING 步骤改为 SUCCESS/FAILED + summary。
@@ -102,7 +103,7 @@ class ClaudeAgentRenderer {
     }
 
     private fun fold(cur: ClaudeAgentState, event: ClaudeEvent): ClaudeAgentState = when (event) {
-        is ClaudeEvent.Session, ClaudeEvent.Done, is ClaudeEvent.Cost -> cur
+        is ClaudeEvent.Session, ClaudeEvent.Done, is ClaudeEvent.Cost, is ClaudeEvent.AppToolRequest -> cur
         is ClaudeEvent.AssistantText -> cur.copy(text = cur.text + event.delta)
         is ClaudeEvent.ToolUse -> cur.copy(
             steps = cur.steps + ClaudeStepUi(

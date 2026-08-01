@@ -26,13 +26,13 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
+import com.mamba.picme.core.agenttools.AppTool
+import com.mamba.picme.core.agenttools.AppToolExecutor
+import com.mamba.picme.core.agenttools.RuntimeStateProvider
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.diag.CrashTraceStore
-import com.mamba.picme.core.diag.DiagBundleCollector
 import com.mamba.picme.BuildConfig
 import android.os.Build
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.isActive
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.remote.picme.ClaudeEvent
 import com.mamba.picme.data.local.ChatMessageEntity
@@ -76,6 +76,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -84,6 +86,9 @@ private const val TAG = "ChatViewModel"
 private const val MAX_MESSAGES = 500
 private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
+
+/** 网关 sid 格式：uuid4().hex[:12]（12 位小写 hex）；claude init 的 session_id 是带连字符 UUID，不匹配。 */
+private val GATEWAY_SID_PATTERN = Regex("[0-9a-f]{12}")
 
 /** 只读 JS 脚本 eval 超时。 */
 private const val DEFAULT_EVAL_TIMEOUT_MS = 5_000L
@@ -162,7 +167,7 @@ class ChatViewModel(
     private var persistentJsRuntime: JsRuntime? = null
 
     /** JS eval 互斥锁（QuickJS 非线程安全，需串行化 eval）。 */
-    private val jsEvalMutex = kotlinx.coroutines.sync.Mutex()
+    private val jsEvalMutex = Mutex()
 
     // ── capability.dispatch（JS → CapabilityRegistry 写通路）─────────────────
 
@@ -206,41 +211,22 @@ class ChatViewModel(
     fun resolveWriteConfirmation(confirmed: Boolean) =
         writeConfirmationController.resolve(confirmed)
 
-    // ── 远程诊断（chat 触发 → 云主机 Claude Code worker）─────────────────
-    private val diagClient = dependencies.diagClient
-
-    // ── 诊断澄清对话（§2：diag toggle → 独立会话多轮 LLM 澄清 → [DIAG_READY] 手动提交）──
-
-    private val _diagMode = MutableStateFlow(false)
-    val diagMode: StateFlow<Boolean> = _diagMode.asStateFlow()
-
-    private var diagChatSession: DiagChatSession? = null
-
-    /** 诊断会话首条用户消息（作为上报 description；澄清摘要走 conversationSummary）。 */
-    private var diagFirstUserText: String? = null
-
-    /** msgId → 「提交诊断」按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填）。 */
-    private val diagSubmitOverrides = mutableMapOf<String, DiagSubmitUi>()
-
-    /** 进入诊断模式：自动新建独立会话（上下文纯净，摘要提取干净）。 */
-    fun enterDiagMode() {
-        if (_diagMode.value) return
-        exitClaudeMode()
-        _diagMode.value = true
-        diagChatSession = DiagChatSession(effectiveRemoteConfig(selectedModel))
-        diagFirstUserText = null
-        diagSubmitOverrides.clear()
-        newSession()
-    }
-
-    fun exitDiagMode() {
-        _diagMode.value = false
-        diagChatSession = null
-    }
-
     // ── claude-tunnel chat（spec §5/§6：AI 工程师 toggle → /v1/claude-chat SSE 流式）──
 
     private val claudeChatClient = dependencies.claudeChatClient
+
+    /** app_tool_request 采集执行器（spec §3.1）；null = 未接线，收到请求直接忽略。 */
+    private val appToolExecutor = dependencies.appToolExecutor
+
+    /** claude-tunnel sid 持久化（Task 8）；null = 未接线（单测默认），退化为原内存态行为。 */
+    private val claudeSidStore = dependencies.claudeSidStore
+
+    /**
+     * renderer 跨线程串行化：SSE onEvent 回调线程与 handleAppToolRequest 的 IO 协程会并发
+     * renderer.apply。SSE 回调是非 suspend 主流，用 tryLock（失败则直接 apply，回到原竞态水平）；
+     * tool result 合成事件持锁短暂，在 IO 协程里 withLock。
+     */
+    private val rendererMutex = Mutex()
 
     private val _claudeMode = MutableStateFlow(false)
     val claudeMode: StateFlow<Boolean> = _claudeMode.asStateFlow()
@@ -249,17 +235,35 @@ class ChatViewModel(
     @Volatile
     private var claudeSid: String? = null
 
-    /** msgId → 交付按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填，同 diagSubmitOverrides）。 */
+    /** msgId → 交付按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填）。 */
     private val claudeDeliverOverrides = mutableMapOf<String, ClaudeDeliverUi>()
 
-    /** 进入 AI 工程师模式：与诊断互斥；自动新建独立会话（claude-tunnel 上下文独立）。 */
+    /**
+     * 进入 AI 工程师模式：有持久化上下文且所属 chat 会话仍在 → 切回该会话并恢复 sid
+     * （transcript + agent 上下文双连续）；否则新建独立会话（claude-tunnel 上下文独立）。
+     */
     fun enterClaudeMode() {
         if (_claudeMode.value) return
-        exitDiagMode()
         _claudeMode.value = true
-        claudeSid = null
         claudeDeliverOverrides.clear()
-        newSession()
+        val saved = claudeSidStore?.load()
+        if (saved == null) {
+            claudeSid = null
+            newSession()
+            return
+        }
+        val (chatSessionId, sid) = saved
+        viewModelScope.launch {
+            if (chatSessionDao.getSession(chatSessionId) != null) {
+                claudeSid = sid
+                switchSession(chatSessionId)
+            } else {
+                // 所属会话已被删除：清残留记录，按全新会话处理
+                claudeSidStore?.clear()
+                claudeSid = null
+                newSession()
+            }
+        }
     }
 
     fun exitClaudeMode() {
@@ -307,6 +311,23 @@ class ChatViewModel(
                     isThinking = true,
                     claudeAgent = ClaudeAgentState(),
                 )
+                // 进程重建后内存 sid 丢失：单槽兜底恢复（仅当记录属于当前会话），--resume 续上下文
+                if (claudeSid == null) {
+                    claudeSid = claudeSidStore?.load()?.takeIf { it.first == sessionId }?.second
+                }
+                // SSE 回调是非 suspend 主流：tryLock 与 IO 协程的合成 ToolResult 串行，
+                // 拿不到锁则直接 apply（事件不能丢，竞态概率极低）
+                fun applyToRenderer(ev: ClaudeEvent) {
+                    val locked = rendererMutex.tryLock()
+                    try {
+                        renderer.apply(ev)
+                        _streamingMessage.update { cur ->
+                            cur?.copy(claudeAgent = renderer.state, isThinking = false)
+                        }
+                    } finally {
+                        if (locked) rendererMutex.unlock()
+                    }
+                }
                 val result = claudeChatClient.chat(token, text, claudeSid) { event ->
                     when (event) {
                         is ClaudeEvent.Session -> Logger.i(TAG, "claude evt: Session sid=${event.sid}")
@@ -320,19 +341,25 @@ class ChatViewModel(
                         is ClaudeEvent.Done -> Logger.i(TAG, "claude evt: Done")
                         is ClaudeEvent.Cost -> Logger.i(TAG, "claude evt: Cost turns=${event.turns}")
                         is ClaudeEvent.AssistantText -> Unit
+                        is ClaudeEvent.AppToolRequest -> Unit
                     }
                     when (event) {
-                        // gateway 首条 session = 网关 sid（workdir/deliver key）；
-                        // claude stream-json init 也带一条 session（claude session_id，仅 gateway 内部 --resume 用）。
-                        // 只采纳首个（网关 sid），忽略后者，否则 deliver 拿错 sid → gateway 找不到 workdir。
-                        is ClaudeEvent.Session -> if (claudeSid == null) claudeSid = event.sid
-                        is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
-                        else -> {
-                            renderer.apply(event)
-                            _streamingMessage.update { cur ->
-                                cur?.copy(claudeAgent = renderer.state, isThinking = false)
-                            }
+                        // 网关 sid = 12 位 hex（workdir/deliver key，uuid4().hex[:12]）；
+                        // claude stream-json init 也带一条 session（带连字符 UUID，仅网关内部 --resume 用），忽略。
+                        // 有效 resume 时网关不下发 session 事件，该判断天然跳过；
+                        // 网关侧轮换（workdir 被清后重新签发）时新 sid 直接覆盖并持久化，自愈失忆。
+                        is ClaudeEvent.Session -> if (event.sid.matches(GATEWAY_SID_PATTERN)) {
+                            claudeSid = event.sid
+                            claudeSidStore?.save(sessionId, event.sid)
                         }
+                        is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
+                        // spec §3.1：App 数据采集请求。合成 ToolUse 步骤（复用步骤气泡折叠），
+                        // 后台执行采集 + postToolResult 回传，完成后合成 ToolResult 收尾。
+                        is ClaudeEvent.AppToolRequest -> {
+                            applyToRenderer(ClaudeEvent.ToolUse(event.tool, event.args))
+                            handleAppToolRequest(event.requestId, event.tool, event.args, renderer)
+                        }
+                        else -> applyToRenderer(event)
                     }
                 }
                 _streamingMessage.value = null
@@ -351,6 +378,51 @@ class ChatViewModel(
                 _streamingMessage.value = null
             } finally {
                 _isProcessing.value = false
+            }
+        }
+    }
+
+    /** spec §3.1/§3.3：执行 App 数据采集并回传；过程经合成 ToolUse/ToolResult 事件入气泡。 */
+    @VisibleForTesting
+    internal fun handleAppToolRequest(
+        requestId: String,
+        tool: String,
+        args: JSONObject,
+        renderer: ClaudeAgentRenderer,
+    ) {
+        val executor = appToolExecutor ?: return
+        val token = _serverAuthToken.value
+        viewModelScope.launch(Dispatchers.IO) {
+            var ok = true
+            val summary = try {
+                val appTool = AppTool.fromName(tool)
+                    ?: throw IllegalArgumentException("unknown app tool: $tool")
+                val payload = executor.execute(appTool, args)
+                if (token.isNotBlank()) {
+                    claudeChatClient.postToolResult(token, requestId, payload)
+                }
+                if (payload.optBoolean("empty")) {
+                    "无数据（${payload.optString("reason")}）"
+                } else {
+                    val truncated = if (payload.optBoolean("truncated")) "，已截断" else ""
+                    "已回传（${payload.toString().length}B$truncated）"
+                }
+            } catch (e: Exception) {
+                ok = false
+                Logger.e(TAG, "handleAppToolRequest failed", e)
+                if (token.isNotBlank()) {
+                    runCatching {
+                        claudeChatClient.postToolResult(
+                            token, requestId, JSONObject().put("error", e.message ?: "collect failed"),
+                        )
+                    }
+                }
+                "采集失败：${e.message}"
+            }
+            // 与 SSE 回调线程串行（见 applyToRenderer）：合成 ToolResult 持锁短暂
+            rendererMutex.withLock {
+                renderer.apply(ClaudeEvent.ToolResult(ok = ok, summary = summary))
+                _streamingMessage.update { cur -> cur?.copy(claudeAgent = renderer.state) }
             }
         }
     }
@@ -449,249 +521,6 @@ class ChatViewModel(
                 Logger.i(TAG, "confirmClaudeDeliver: delivered=$delivered pending=${!delivered} extra='$extra'")
                 updated
             }
-        }
-    }
-
-    /**
-     * 诊断模式下的用户消息：走 [DiagChatSession] 多轮流式澄清对话（而非一次性上报）。
-     * LLM 输出 [DIAG_READY] 时，气泡内嵌「提交诊断」按钮（提交永远是用户手动动作，§2.2）。
-     */
-    fun sendDiagMessage(text: String) {
-        if (text.isBlank()) return
-        val session = diagChatSession ?: DiagChatSession(effectiveRemoteConfig(selectedModel)).also {
-            diagChatSession = it
-            _diagMode.value = true
-        }
-        viewModelScope.launch {
-            val sessionId = _currentSessionId.value
-            try {
-                ensureSessionExists(sessionId)
-                chatMessageDao.insertMessage(
-                    ChatMessageEntity(
-                        id = UUID.randomUUID().toString(),
-                        sessionId = sessionId,
-                        type = "user_text",
-                        content = text,
-                        modelUsed = null,
-                    )
-                )
-                chatSessionDao.touchSession(sessionId)
-                if (diagFirstUserText == null) diagFirstUserText = text
-
-                _isProcessing.value = true
-                val streamingId = "streaming_${System.currentTimeMillis()}"
-                _streamingMessage.value = ChatMessageUi(
-                    id = streamingId,
-                    type = ChatMessageType.AGENT_TEXT,
-                    content = STREAMING_THINKING_HINT,
-                    modelUsed = currentModelLabel(),
-                    isStreaming = true,
-                    isThinking = true,
-                )
-                val result = session.chat(text) { snapshot ->
-                    _streamingMessage.update { cur -> cur?.copy(content = snapshot, isThinking = false) }
-                }
-                _streamingMessage.value = null
-                result.fold(
-                    onSuccess = { reply ->
-                        val parsed = DiagPrompts.parseDiagReply(reply)
-                        val entity = ChatMessageEntity(
-                            id = UUID.randomUUID().toString(),
-                            sessionId = sessionId,
-                            type = "agent_text",
-                            content = parsed.displayText,
-                            modelUsed = currentModelLabel(),
-                        )
-                        chatMessageDao.insertMessage(entity)
-                        chatSessionDao.touchSession(sessionId)
-                        if (parsed.ready) {
-                            val submit = DiagSubmitUi(
-                                description = diagFirstUserText ?: text,
-                                summary = parsed.summary,
-                            )
-                            diagSubmitOverrides[entity.id] = submit
-                            _messages.update { msgs ->
-                                msgs.map { m -> if (m.id == entity.id) m.copy(diagSubmit = submit) else m }
-                            }
-                        }
-                    },
-                    onFailure = { e ->
-                        insertAgentMessage(
-                            sessionId,
-                            context.getString(R.string.chat_inference_error, e.message ?: "unknown"),
-                            "error",
-                        )
-                    },
-                )
-            } catch (e: Exception) {
-                Logger.e(TAG, "sendDiagMessage failed", e)
-                _streamingMessage.value = null
-            } finally {
-                _isProcessing.value = false
-            }
-        }
-    }
-
-    private data class ActiveDiag(val token: String, val jobId: Int, val msgId: String)
-
-    /** jobId → 进行中的诊断（支持多次诊断并存；确认按钮绑定各自气泡的 jobId，A1）。 */
-    private val activeDiags = mutableMapOf<Int, ActiveDiag>()
-
-    /** 诊断/修复轮询总超时（A2，默认 30 分钟）。 */
-    @VisibleForTesting
-    internal var diagPollTimeoutMs: Long = 30 * 60_000L
-
-    @VisibleForTesting
-    internal fun trackDiagForTesting(token: String, jobId: Int, msgId: String) {
-        activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
-    }
-
-    /** UI「诊断」入口：把问题描述（+ 可选澄清对话摘要）作为远程诊断上报。 */
-    fun submitDiagnosis(description: String, conversationSummary: String? = null) {
-        if (description.isBlank()) return
-        // 用户气泡（诊断标记）：与普通用户消息同形态，前缀 🔍 表明这是一次诊断请求
-        _messages.update { msgs ->
-            msgs + ChatMessageUi(
-                id = "diag_user_${System.currentTimeMillis()}",
-                type = ChatMessageType.USER_TEXT,
-                content = "🔍 $description"
-            )
-        }
-        viewModelScope.launch {
-            val token = userSettingsRepository.serverAuthTokenFlow.first()
-            val msgId = "diag_${System.currentTimeMillis()}"
-            if (token.isBlank()) {
-                upsertDiagMessage(msgId, context.getString(R.string.diag_login_required))
-                return@launch
-            }
-            val crashTrace = CrashTraceStore.read(context.filesDir)
-            val bundle = DiagBundleCollector.collect(
-                appVersion = BuildConfig.VERSION_NAME,
-                gitSha = BuildConfig.GIT_SHA,
-                deviceModel = Build.MODEL,
-                androidVersion = Build.VERSION.RELEASE,
-                crashTrace = crashTrace,
-            )
-            upsertDiagMessage(msgId, context.getString(R.string.diag_submitted))
-            val jobId = diagClient.reportDiagnosis(token, description, bundle, conversationSummary).getOrElse { e ->
-                upsertDiagMessage(msgId, context.getString(R.string.diag_report_failed, e.message ?: ""))
-                return@launch
-            }
-            CrashTraceStore.delete(context.filesDir) // 上报成功 → 崩溃栈已随包送出，清除落盘文件
-            activeDiags[jobId] = ActiveDiag(token, jobId, msgId)
-            pollDiagnose(token, jobId, msgId)
-        }
-    }
-
-    @VisibleForTesting
-    internal suspend fun pollDiagnose(token: String, jobId: Int, msgId: String) {
-        var delayMs = 2000L
-        val startMs = System.currentTimeMillis()
-        while (currentCoroutineContext().isActive &&
-            System.currentTimeMillis() - startMs < diagPollTimeoutMs
-        ) {
-            delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(15000)
-            val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
-            when (st.status) {
-                "DIAGNOSED" -> {
-                    val rc = st.rootCause.orEmpty()
-                    upsertDiagMessage(
-                        msgId,
-                        context.getString(R.string.diag_root_cause, rc),
-                        diagConfirm = DiagConfirmUi(jobId, pending = true),
-                    )
-                    return
-                }
-                "DIAGNOSE_FAILED" -> {
-                    upsertDiagMessage(
-                        msgId,
-                        context.getString(R.string.diag_diagnose_failed, st.error ?: st.rootCause ?: ""),
-                    )
-                    activeDiags.remove(jobId)
-                    return
-                }
-                "TIMED_OUT" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_job_timed_out))
-                    activeDiags.remove(jobId)
-                    return
-                }
-                // 其余（含未来新增的非终态）：继续轮询，由总超时兜底
-            }
-        }
-        // A2：总超时 → 写气泡提示并退出协程，不再无限空转
-        upsertDiagMessage(msgId, context.getString(R.string.diag_poll_timeout))
-        activeDiags.remove(jobId)
-    }
-
-    /** 根因气泡内嵌按钮选定 mode（push/pr/auto）后调用；作用于按钮所在气泡的 job（A1）。 */
-    fun confirmDiagnosis(jobId: Int, mode: String) {
-        val ad = activeDiags[jobId] ?: return
-        viewModelScope.launch {
-            val result = diagClient.confirmFix(ad.token, ad.jobId, mode)
-            if (result.isFailure) {
-                upsertDiagMessage(ad.msgId, context.getString(R.string.diag_confirm_failed, result.exceptionOrNull()?.message ?: ""))
-                return@launch
-            }
-            upsertDiagMessage(
-                ad.msgId,
-                context.getString(
-                    when (mode) {
-                        "pr" -> R.string.diag_fixing_pr
-                        "auto" -> R.string.diag_fixing_auto
-                        else -> R.string.diag_fixing_push
-                    }
-                ),
-                diagConfirm = DiagConfirmUi(ad.jobId, pending = false),
-            )
-            pollFix(ad.token, ad.jobId, ad.msgId)
-        }
-    }
-
-    @VisibleForTesting
-    internal suspend fun pollFix(token: String, jobId: Int, msgId: String) {
-        var delayMs = 3000L
-        val startMs = System.currentTimeMillis()
-        while (currentCoroutineContext().isActive &&
-            System.currentTimeMillis() - startMs < diagPollTimeoutMs
-        ) {
-            delay(delayMs); delayMs = (delayMs * 2).coerceAtMost(20000)
-            val st = diagClient.fetchDiagStatus(token, jobId).getOrNull() ?: continue
-            when (st.status) {
-                "FIXED", "FIXED_UNVERIFIED" -> {
-                    val verified = context.getString(
-                        if (st.status == "FIXED") R.string.diag_verified_passed else R.string.diag_verified_unverified,
-                    )
-                    val base = context.getString(R.string.diag_fixed, st.fixBranch ?: "-", verified)
-                    val link = (st.compareUrl ?: st.fixBranch)?.let { "\n\n$it" } ?: ""
-                    upsertDiagMessage(msgId, base + link)
-                    activeDiags.remove(jobId)
-                    return
-                }
-                "FIX_FAILED" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_fix_failed, st.error ?: st.rootCause ?: ""))
-                    activeDiags.remove(jobId)
-                    return
-                }
-                "TIMED_OUT" -> {
-                    upsertDiagMessage(msgId, context.getString(R.string.diag_job_timed_out))
-                    activeDiags.remove(jobId)
-                    return
-                }
-            }
-        }
-        upsertDiagMessage(msgId, context.getString(R.string.diag_poll_timeout))
-        activeDiags.remove(jobId)
-    }
-
-    /** 追加或更新一条 AGENT_TEXT 诊断消息（内存态，不落 Room）。diagConfirm 非 null 时一并写入。 */
-    private fun upsertDiagMessage(id: String, content: String, diagConfirm: DiagConfirmUi? = null) {
-        _messages.update { msgs ->
-            val idx = msgs.indexOfFirst { it.id == id }
-            if (idx >= 0) msgs.toMutableList().apply {
-                this[idx] = this[idx].copy(content = content, diagConfirm = diagConfirm)
-            } else msgs + ChatMessageUi(
-                id = id, type = ChatMessageType.AGENT_TEXT, content = content, diagConfirm = diagConfirm
-            )
         }
     }
 
@@ -1029,10 +858,8 @@ class ChatViewModel(
                     .collect { entities ->
                         _messages.value = entities.map { e ->
                             val ui = e.toUiModel()
-                            val submit = diagSubmitOverrides[ui.id]
                             val deliver = claudeDeliverOverrides[ui.id]
                             ui
-                                .let { if (submit != null) it.copy(diagSubmit = submit) else it }
                                 .let { if (deliver != null) it.copy(claudeDeliver = deliver) else it }
                         }
                     }
@@ -1132,6 +959,8 @@ class ChatViewModel(
                 chatImageStore.evictForSession(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.deleteSession(sessionId)
+                // 删除的是工程师上下文所属会话 → 清掉持久化记录，避免 prefs 残留
+                if (claudeSidStore?.load()?.first == sessionId) claudeSidStore?.clear()
                 if (_currentSessionId.value == sessionId) {
                     _currentSessionId.value = "default"
                     userSettingsRepository.updateChatCurrentSessionId("default")
@@ -2733,3 +2562,64 @@ class ChatViewModel(
         }
     }
 }
+
+/**
+ * 生产接线工厂（spec §3.1）：把 Android 数据源接进 [AppToolExecutor]。
+ *
+ * - 日志来自 [Logger] 内存环缓冲（最近 500 条）；崩溃栈来自 [CrashTraceStore] 落盘文件。
+ * - 运行时状态只放元数据与 Boolean（绝不放 token 本体 / 用户 Key）。
+ * - 相册摘要是纯统计数字（[PRIVACY]：绝不含路径 / 图片）。
+ * - runtimeState/gallerySummary 是同步 lambda 但数据源是 suspend Flow：
+ *   此处已在 IO 调度器上执行（[ChatViewModel.handleAppToolRequest] launch(Dispatchers.IO)），
+ *   工厂内 runBlocking 取值可接受。
+ */
+internal fun buildAppToolExecutor(deps: ChatViewModelDependencies): AppToolExecutor = AppToolExecutor(
+    logProvider = {
+        Logger.logs.value.joinToString("\n") { e -> "${e.timestamp} ${e.level} PoLang:${e.tag}: ${e.message}" }
+    },
+    crashTraceReader = { CrashTraceStore.read(deps.context.filesDir) },
+    chatHistoryLoader = { sessionId, limit ->
+        // schema 缺省语义是「当前会话」：字面量 "default" 会漂移（工程师会话恒为 UUID），
+        // 改从设置库读当前会话 id（switchSession/newSession 均经 updateChatCurrentSessionId 写入）
+        val effectiveSessionId = sessionId
+            ?: deps.userSettingsRepository.chatCurrentSessionIdFlow.first()
+        deps.chatMessageDao.getRecentMessages(effectiveSessionId, limit)
+            .map { it.type to it.content }
+    },
+    runtimeStateProvider = RuntimeStateProvider {
+        runBlocking {
+            val settings = deps.userSettingsRepository
+            val userConfigs = RemoteModelConfigs.fromJson(settings.aiAgentRemoteModelConfigsFlow.first())
+            JSONObject()
+                .put("appVersion", BuildConfig.VERSION_NAME)
+                .put("gitSha", BuildConfig.GIT_SHA)
+                .put("deviceModel", Build.MODEL)
+                .put("androidVersion", Build.VERSION.RELEASE)
+                .put("selectedModelId", settings.aiAgentSelectedRemoteModelFlow.first())
+                .put("hasUserKey", userConfigs.configs.any { it.isConfigured })
+                .put("agentMode", settings.aiAgentModeFlow.first().name)
+                .put("hasServerAuthToken", settings.serverAuthTokenFlow.first().isNotBlank())
+        }
+    },
+    gallerySummaryLoader = {
+        runBlocking {
+            val s = deps.getGallerySummaryUseCase()
+            if (s == null) {
+                JSONObject().put("empty", true).put("reason", "summary_unavailable")
+            } else {
+                JSONObject()
+                    .put("totalPhotos", s.totalPhotos)
+                    .put("totalVideos", s.totalVideos)
+                    .put("totalMedia", s.totalMedia)
+                    .put("hasFaceCount", s.hasFaceCount)
+                    .put("personClusterCount", s.personClusterCount)
+                    .put("namedPersonCount", s.namedPersonCount)
+                    .put("labeledCount", s.labeledCount)
+                    .put("unlabeledCount", s.unlabeledCount)
+                    .put("semanticEncodedCount", s.semanticEncodedCount)
+                    .put("isScanning", s.isScanning)
+                    .put("recommendation", s.recommendation.name)
+            }
+        }
+    },
+)

@@ -11,7 +11,8 @@
       "Bash",
       "WebSearch",
       "WebFetch",
-      "TodoWrite"
+      "TodoWrite",
+      "mcp__app_tools"
     ]
   }
 }

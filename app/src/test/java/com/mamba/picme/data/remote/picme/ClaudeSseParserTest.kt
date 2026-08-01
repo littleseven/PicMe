@@ -45,6 +45,45 @@ class ClaudeSseParserTest {
     }
 
     @Test
+    fun `parse app_tool_request event`() {
+        val sse = """
+            event: app_tool_request
+            data: {"requestId":"abc123","tool":"app_get_logs","args":{"filter":"Tag","lines":100}}
+
+        """.trimIndent()
+        val events = ClaudeSseParser.parse(sse)
+        assertEquals(1, events.size)
+        val ev = events[0] as ClaudeEvent.AppToolRequest
+        assertEquals("abc123", ev.requestId)
+        assertEquals("app_get_logs", ev.tool)
+        assertEquals("Tag", ev.args.optString("filter"))
+        assertEquals(100, ev.args.optInt("lines"))
+    }
+
+    @Test
+    fun `parse app_tool_request with missing args defaults to empty json`() {
+        val sse = "event: app_tool_request\ndata: {\"requestId\":\"r1\",\"tool\":\"app_get_crash_trace\"}\n\n"
+        val ev = ClaudeSseParser.parse(sse).single() as ClaudeEvent.AppToolRequest
+        assertEquals(0, ev.args.length())
+    }
+
+    @Test
+    fun `app_tool_request with blank requestId is dropped`() {
+        // 无 requestId 无法回传 tool result（对齐 session 分支 blank sid 丢弃先例）
+        val sse = "event: app_tool_request\ndata: {\"requestId\":\"\",\"tool\":\"app_get_logs\"}\n\n"
+        assertTrue(ClaudeSseParser.parse(sse).isEmpty())
+        val missing = "event: app_tool_request\ndata: {\"tool\":\"app_get_logs\"}\n\n"
+        assertTrue(ClaudeSseParser.parse(missing).isEmpty())
+    }
+
+    @Test
+    fun `parse existing events not broken`() {
+        val sse = "event: assistant_text\ndata: {\"delta\":\"hi\"}\n\n"
+        val events = ClaudeSseParser.parse(sse)
+        assertTrue(events.single() is ClaudeEvent.AssistantText)
+    }
+
+    @Test
     fun `ignores malformed lines`() {
         val sse = "garbage\n\nevent: done\ndata: {}\n\n"
         val ev = ClaudeSseParser.parse(sse)

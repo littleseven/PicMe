@@ -6,9 +6,7 @@ import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
-import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.LlmCallLogs
-import com.mamba.picme.server.diag.DiagStatus
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.SortOrder
@@ -132,64 +130,6 @@ data class RangeStats(
     val latency: LatencyStats,
     val totals: DayBucket,
     val costSplit: CostSplit = CostSplit(0.0, 0.0),
-)
-
-// ── 诊断任务（/admin/diag 可视化）DTO ──────────────────
-
-/** 诊断任务状态分布统计。 */
-data class DiagStats(
-    val total: Int,
-    val queued: Int,
-    val diagnosed: Int,
-    val fixRequested: Int,
-    val fixed: Int,   // FIXED + FIXED_UNVERIFIED
-    val failed: Int,  // DIAGNOSE_FAILED + FIX_FAILED + TIMED_OUT
-    val archived: Int = 0,
-)
-
-/** 列表行：紧凑展示，长文本（根因/日志）进详情页。 */
-data class DiagListRow(
-    val id: Int,
-    val status: String,
-    val description: String,
-    val deviceIdMasked: String,
-    val gitSha: String,
-    val fixBranch: String?,
-    val compareUrl: String?,
-    val tested: Boolean,
-    val hasRootCause: Boolean,
-    val createdAt: Long,
-    val updatedAt: Long,
-    val claimedAt: Long?,
-)
-
-/** 详情行：含完整根因/worker 日志/脱敏诊断包原文。 */
-data class DiagDetailRow(
-    val id: Int,
-    val status: String,
-    val description: String,
-    val deviceIdMasked: String,
-    val bundleJson: String,
-    val gitSha: String,
-    val rootCause: String?,
-    val fixMode: String?,
-    val fixBranch: String?,
-    val compareUrl: String?,
-    val tested: Boolean,
-    val workerLog: String?,
-    val createdAt: Long,
-    val updatedAt: Long,
-    val claimedAt: Long?,
-)
-
-/** worker 健康推断（无心跳，从任务活动推断）。 */
-enum class DiagWorkerHealth { ONLINE, LIKELY_OFFLINE, IDLE }
-
-data class DiagWorkerActivity(
-    val lastClaimAt: Long?,              // max(claimedAt)；null=从未领取
-    val pendingCount: Int,               // QUEUED + FIX_REQUESTED
-    val oldestPendingCreatedAt: Long?,   // pending 中最早 createdAt；无则 null
-    val health: DiagWorkerHealth,
 )
 
 // ── Queries（自然日按 UTC+8；内部后台够用。聚合在内存做，trial 规模毫秒级）──
@@ -588,116 +528,6 @@ object AdminQueries {
                         createdAt = r[ApkUploads.createdAt],
                     )
                 }
-        }
-
-    // ── 诊断任务（/admin/diag 可视化）── worker 无心跳，从任务活动推断健康 ──
-
-    /** pending 任务超过此阈值仍未被领取，判定 worker 疑似离线（≈ poll 间隔 60s 的 5 个周期）。 */
-    private val DIAG_STALE_MS = 5L * 60 * 1000
-
-    /**
-     * worker 健康推断（纯函数，无 DB 依赖，便于单测）：
-     * - 无等待任务 → IDLE（worker 没事做；无心跳无法确证存活，标「空闲」）
-     * - 有等待任务但最早一个已滞留 > 5min 且近期从未领任务 → LIKELY_OFFLINE
-     * - 否则（近期已领取）→ ONLINE
-     * claimedAt 是 worker 唯一可观测「来过」痕迹（仅 worker 写）；updatedAt 也被用户确认写，故不单用。
-     */
-    fun inferDiagWorkerHealth(
-        now: Long,
-        lastClaimAt: Long?,
-        pendingCount: Int,
-        oldestPendingCreatedAt: Long?,
-    ): DiagWorkerHealth {
-        if (pendingCount <= 0) return DiagWorkerHealth.IDLE
-        val oldestAge = oldestPendingCreatedAt?.let { now - it } ?: Long.MAX_VALUE
-        val lastClaimAge = lastClaimAt?.let { now - it } ?: Long.MAX_VALUE
-        return if (oldestAge > DIAG_STALE_MS && lastClaimAge > DIAG_STALE_MS) DiagWorkerHealth.LIKELY_OFFLINE
-        else DiagWorkerHealth.ONLINE
-    }
-
-    suspend fun diagStats(): DiagStats = newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-        var total = 0; var queued = 0; var diagnosed = 0; var fixRequested = 0; var fixed = 0; var failed = 0; var archived = 0
-        DiagJobs.selectAll().forEach { r ->
-            total++
-            when (r[DiagJobs.status]) {
-                DiagStatus.QUEUED.name -> queued++
-                DiagStatus.DIAGNOSED.name -> diagnosed++
-                DiagStatus.FIX_REQUESTED.name -> fixRequested++
-                DiagStatus.FIXED.name, DiagStatus.FIXED_UNVERIFIED.name -> fixed++
-                DiagStatus.DIAGNOSE_FAILED.name, DiagStatus.FIX_FAILED.name, DiagStatus.TIMED_OUT.name -> failed++
-                DiagStatus.ARCHIVED.name -> archived++
-            }
-        }
-        DiagStats(total, queued, diagnosed, fixRequested, fixed, failed, archived)
-    }
-
-    suspend fun diagList(limit: Int = 200): List<DiagListRow> =
-        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.selectAll()
-                .orderBy(DiagJobs.createdAt to SortOrder.DESC)
-                .limit(limit)
-                .map { r ->
-                    DiagListRow(
-                        id = r[DiagJobs.id],
-                        status = r[DiagJobs.status],
-                        description = r[DiagJobs.description],
-                        deviceIdMasked = r[DiagJobs.deviceId]?.let { maskDeviceId(it) } ?: "—",
-                        gitSha = r[DiagJobs.gitSha],
-                        fixBranch = r[DiagJobs.fixBranch],
-                        compareUrl = r[DiagJobs.compareUrl],
-                        tested = r[DiagJobs.tested] == 1,
-                        hasRootCause = !r[DiagJobs.rootCause].isNullOrBlank(),
-                        createdAt = r[DiagJobs.createdAt],
-                        updatedAt = r[DiagJobs.updatedAt],
-                        claimedAt = r[DiagJobs.claimedAt],
-                    )
-                }
-        }
-
-    suspend fun diagDetail(id: Int): DiagDetailRow? =
-        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.selectAll().where { DiagJobs.id eq id }.firstOrNull()?.let { r ->
-                DiagDetailRow(
-                    id = r[DiagJobs.id],
-                    status = r[DiagJobs.status],
-                    description = r[DiagJobs.description],
-                    deviceIdMasked = r[DiagJobs.deviceId]?.let { maskDeviceId(it) } ?: "—",
-                    bundleJson = r[DiagJobs.bundleJson],
-                    gitSha = r[DiagJobs.gitSha],
-                    rootCause = r[DiagJobs.rootCause],
-                    fixMode = r[DiagJobs.fixMode],
-                    fixBranch = r[DiagJobs.fixBranch],
-                    compareUrl = r[DiagJobs.compareUrl],
-                    tested = r[DiagJobs.tested] == 1,
-                    workerLog = r[DiagJobs.workerLog],
-                    createdAt = r[DiagJobs.createdAt],
-                    updatedAt = r[DiagJobs.updatedAt],
-                    claimedAt = r[DiagJobs.claimedAt],
-                )
-            }
-        }
-
-    suspend fun diagWorkerActivity(now: Long): DiagWorkerActivity =
-        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            var lastClaim: Long? = null
-            var pendingCount = 0
-            var oldestPending: Long? = null
-            DiagJobs.selectAll().forEach { r ->
-                val claimed = r[DiagJobs.claimedAt]
-                if (claimed != null && (lastClaim == null || claimed > lastClaim!!)) lastClaim = claimed
-                val s = r[DiagJobs.status]
-                if (s == DiagStatus.QUEUED.name || s == DiagStatus.FIX_REQUESTED.name) {
-                    pendingCount++
-                    val c = r[DiagJobs.createdAt]
-                    if (oldestPending == null || c < oldestPending!!) oldestPending = c
-                }
-            }
-            DiagWorkerActivity(
-                lastClaimAt = lastClaim,
-                pendingCount = pendingCount,
-                oldestPendingCreatedAt = oldestPending,
-                health = inferDiagWorkerHealth(now, lastClaim, pendingCount, oldestPending),
-            )
         }
 
     /** 与 ChannelRepository.maskToken 同形：前4+••••+后4 便于辨认；空 → 「—」。 */

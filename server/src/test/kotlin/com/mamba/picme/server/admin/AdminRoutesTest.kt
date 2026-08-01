@@ -6,10 +6,8 @@ import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
-import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.db.ServerSettings
-import com.mamba.picme.server.diag.DiagStatus
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.util.TestDb
 import io.ktor.client.HttpClient
@@ -317,125 +315,5 @@ class AdminRoutesTest {
         val bad = c.get("/admin/traffic?days=3&metric=foo") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.OK, bad.status)
         assertTrue(bad.bodyAsText().contains("近 30 天，UTC+8）· 调用数"))
-    }
-
-    @Test
-    fun `diag list and detail pages render seeded jobs behind admin cookie`() = testApplication {
-        TestDb.init(DiagJobs)
-        diagInsert(1, "QUEUED", "打开相册闪退", "sha1", 1_700_000_000_000L)
-        diagInsert(
-            2, "FIXED", "搜索无结果", "sha2", 1_700_000_001_000L,
-            fixBranch = "diag-fix/2", rootCause = "NPE X.kt:9", tested = true, claimedAt = 1_700_000_000_500L,
-        )
-        application { routing { adminRoute(token, cos, balance) } }
-        val c = createClient { followRedirects = false }
-
-        // 列表：cookie 鉴权 200，含任务
-        val list = c.get("/admin/diag") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.OK, list.status)
-        val html = list.bodyAsText()
-        assertTrue(html.contains("诊断任务"))
-        assertTrue(html.contains("打开相册闪退"))
-        assertTrue(html.contains("/admin/diag/1"))
-        assertTrue(html.contains("diag-fix/2"))
-
-        // 详情
-        val detail = c.get("/admin/diag/2") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.OK, detail.status)
-        val dh = detail.bodyAsText()
-        assertTrue(dh.contains("NPE X.kt:9"))
-        assertTrue(dh.contains("diag-fix/2"))
-
-        // 未知 id → 404
-        val nf = c.get("/admin/diag/999") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.NotFound, nf.status)
-
-        // 非法 id → 400
-        val bad = c.get("/admin/diag/abc") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.BadRequest, bad.status)
-
-        // 无 cookie → 跳登录
-        val noauth = c.get("/admin/diag")
-        assertEquals(HttpStatusCode.Found, noauth.status)
-        assertEquals("/admin/login", noauth.headers[HttpHeaders.Location])
-
-        // auto 刷新参数白名单：auto=30 注入 setInterval；auto=999 不注入
-        val auto30 = c.get("/admin/diag?auto=30") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
-        assertTrue(auto30.contains("setInterval"))
-        val auto999 = c.get("/admin/diag?auto=999") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }.bodyAsText()
-        assertTrue(!auto999.contains("setInterval"))
-    }
-
-    @Test
-    fun `diag admin actions archive activate delete transition and redirect`() = testApplication {
-        TestDb.init(DiagJobs)
-        diagInsert(1, "QUEUED", "打开相册闪退", "sha1", 1_700_000_000_000L)
-        diagInsert(
-            2, "FIXED", "搜索无结果", "sha2", 1_700_000_001_000L,
-            fixBranch = "diag-fix/2", rootCause = "NPE X.kt:9", tested = true, claimedAt = 1_700_000_000_500L,
-        )
-        application { routing { adminRoute(token, cos, balance) } }
-        val c = createClient { followRedirects = false }
-
-        // 废弃 job1（QUEUED → ARCHIVED）
-        val arch = c.post("/admin/diag/1/archive") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.Found, arch.status)
-        assertEquals("/admin/diag", arch.headers[HttpHeaders.Location])
-        assertEquals(
-            DiagStatus.ARCHIVED.name,
-            transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq 1 }.single()[DiagJobs.status] },
-        )
-
-        // 激活 job2（FIXED → QUEUED，清空产出）
-        val act = c.post("/admin/diag/2/activate") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.Found, act.status)
-        val row2 = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq 2 }.single() }
-        assertEquals(DiagStatus.QUEUED.name, row2[DiagJobs.status])
-        assertNull(row2[DiagJobs.fixBranch])
-
-        // 删除 job1（物理删除）
-        val del = c.post("/admin/diag/1/delete") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
-        assertEquals(HttpStatusCode.Found, del.status)
-        assertEquals("/admin/diag", del.headers[HttpHeaders.Location])
-        val gone = transaction(Db.instance) { DiagJobs.selectAll().where { DiagJobs.id eq 1 }.count() }
-        assertEquals(0L, gone)
-
-        // 无 cookie → 跳登录
-        val noauth = c.post("/admin/diag/2/archive")
-        assertEquals(HttpStatusCode.Found, noauth.status)
-        assertEquals("/admin/login", noauth.headers[HttpHeaders.Location])
-    }
-
-    private fun diagInsert(
-        id: Int,
-        status: String,
-        description: String,
-        gitSha: String,
-        createdAt: Long,
-        fixBranch: String? = null,
-        rootCause: String? = null,
-        tested: Boolean = false,
-        claimedAt: Long? = null,
-        deviceId: String? = "dev-aaaa-bbbb-1234",
-        workerLog: String? = null,
-    ) {
-        transaction(Db.instance) {
-            DiagJobs.insert {
-                it[DiagJobs.id] = id
-                it[DiagJobs.ownerTokenHash] = "h$id"
-                it[DiagJobs.deviceId] = deviceId
-                it[DiagJobs.description] = description
-                it[DiagJobs.bundleJson] = """{"logs":"PoLang:Gallery","gitSha":"$gitSha","appVersion":"1.0.26"}"""
-                it[DiagJobs.gitSha] = gitSha
-                it[DiagJobs.status] = status
-                it[DiagJobs.rootCause] = rootCause
-                it[DiagJobs.fixBranch] = fixBranch
-                it[DiagJobs.tested] = if (tested) 1 else 0
-                it[DiagJobs.createdAt] = createdAt
-                it[DiagJobs.updatedAt] = createdAt
-                it[DiagJobs.claimedAt] = claimedAt
-                it[DiagJobs.workerLog] = workerLog
-            }
-        }
     }
 }

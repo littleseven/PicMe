@@ -40,6 +40,14 @@ object ClaudeSseParser {
                 "file_change" -> ClaudeEvent.FileChange(json.optString("path"), json.optString("action"))
                 "cost" -> ClaudeEvent.Cost(json.optInt("turns", 0), json.optInt("cents", 0))
                 "error" -> ClaudeEvent.Error(json.optString("message"))
+                // requestId 为空无法回传 tool result → 丢弃（对齐 session 分支 blank sid 先例）
+                "app_tool_request" -> json.optString("requestId").takeIf { it.isNotBlank() }?.let { rid ->
+                    ClaudeEvent.AppToolRequest(
+                        rid,
+                        json.optString("tool"),
+                        json.optJSONObject("args") ?: JSONObject(),
+                    )
+                }
                 "done" -> ClaudeEvent.Done
                 else -> null
             }
@@ -50,7 +58,7 @@ object ClaudeSseParser {
 }
 
 /**
- * claude-tunnel chat 客户端。镜像 [DiagClient] 风格（OkHttp + X-App-Token + org.json），
+ * claude-tunnel chat 客户端。OkHttp + X-App-Token + org.json，
  * 加 SSE 流式读：POST /v1/claude-chat，逐 chunk 累积，按双换行切事件，回调 onEvent。
  */
 class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
@@ -126,6 +134,33 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
                 val text = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) throw RuntimeException("HTTP ${resp.code}: $text")
                 JSONObject(text)
+            }
+        }
+
+    /**
+     * App tool 结果回传（spec §5）：POST /v1/claude-tool-result → server 反代网关 /tool-result。
+     * [payload] 为 AppToolExecutor 采集+脱敏后的 JSON。
+     */
+    suspend fun postToolResult(token: String, requestId: String, payload: JSONObject): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val body = JSONObject()
+                    .put("requestId", requestId)
+                    .put("payload", payload)
+                    .toString()
+                val req = Request.Builder()
+                    .url("$baseUrl/v1/claude-tool-result")
+                    .header("X-App-Token", token)
+                    .post(body.toRequestBody(jsonMedia))
+                    .build()
+                val resp = deliverClient.newCall(req).execute()
+                // use：无论成败都 close，让连接归还连接池（错误路径 body.string() 本身会关闭）
+                resp.use {
+                    if (!it.isSuccessful) {
+                        throw RuntimeException("HTTP ${it.code}: ${it.body?.string().orEmpty()}")
+                    }
+                }
+                Unit
             }
         }
 

@@ -1401,3 +1401,4 @@ Expected: 第一组无残留（spec 文档除外，限 `docs/`）；第二组三
 - **Spec 覆盖**：§2.1 生命周期 → Task 1/2/4/5/6/7；§2.2 五工具 → Task 2（MCP 定义）+ Task 6（App 采集）；§3.1 执行器 → Task 6/7；§3.2 事件/回传 → Task 5（SSE 保活经分析后简化为「tool call 必在回合内，无需保活」）；§3.3 sid 持久化 → Task 8；§3.4 UI → Task 7（复用步骤气泡）+ Task 9；§4 网关 → Task 1/2/3；§5 Ktor → Task 4；§6 移除清单 → Task 9/10/11；§7 错误处理 → 各 Task 内联；§8 测试 → 各 Task TDD + Task 12。
 - **类型一致性**：`AppTool.toolName`（Task 6）↔ MCP TOOLS name（Task 2）↔ `AppTool.fromName`（Task 7）一致；`requestId/payload` 字段名四层一致（gateway → Ktor → App）；`ClaudeEvent.AppToolRequest(requestId, tool, args)` 与 parser/ViewModel 用法一致。
 - **已知留待执行时确认的点**（已在对应 Task 注明）：`GetGallerySummaryUseCase` 返回类型（Task 7 工厂）、`UserSettingsRepository` 可用 flow（Task 7）、server 测试基建风格（Task 4）、diag_jobs 表名（Task 10）、`ChatTextInputMode` 形参（Task 9）。
+- **Task 9 偏差记录**：spec 保留清单假设 DiagBundleCollector 被 AppToolExecutor 复用，实际未复用（工厂直接用 Logger.logs），已随诊断链路一并删除（commit 893801c3）。

@@ -16,10 +16,10 @@ object Migrations {
             SchemaUtils.create(
                 Rules, Assets, TelemetryEvents, LlmDailyCounters,
                 Accounts, EmailVerifications, LlmCallLogs, LlmChannels,
-                ApkUploads, AnonymousDevices, ServerSettings, DiagJobs,
+                ApkUploads, AnonymousDevices, ServerSettings,
             )
             // 给现存表补缺失列（如 llm_channel.default_model），幂等
-            SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels, LlmCallLogs, ServerSettings, DiagJobs)
+            SchemaUtils.createMissingTablesAndColumns(Accounts, LlmChannels, LlmCallLogs, ServerSettings)
             seedRules()
         }
         seedChannels(config)

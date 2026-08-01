@@ -34,8 +34,6 @@ data class AppConfig(
     val cosPresignTtlMin: Int,
     // Admin 后台
     val adminToken: String,
-    // 远程诊断 worker（云主机）
-    val diagWorkerToken: String,
     val llmPrices: Map<String, Price>,
 ) {
     companion object {
@@ -68,8 +66,6 @@ data class AppConfig(
             cosPresignTtlMin = envInt("COS_PRESIGN_TTL_MIN", 60),
             // Admin
             adminToken = env("ADMIN_TOKEN", ""),
-            // 远程诊断 worker（云主机）
-            diagWorkerToken = env("DIAG_WORKER_TOKEN", ""),
             llmPrices = parsePrices(System.getenv("LLM_PRICES_JSON")),
         )
 

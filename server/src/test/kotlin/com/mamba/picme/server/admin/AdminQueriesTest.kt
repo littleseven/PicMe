@@ -3,7 +3,6 @@ package com.mamba.picme.server.admin
 import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.Db
-import com.mamba.picme.server.db.DiagJobs
 import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.util.TestDb
 import kotlinx.coroutines.Dispatchers
@@ -227,115 +226,6 @@ class AdminQueriesTest {
         assertEquals(0.00086, r.costSplit.completionCost, 1e-6) // deepseek 100×8 + kimi 5×12（/1M）
     }
 
-    @Test
-    fun `inferDiagWorkerHealth covers idle online and likely_offline branches`() {
-        val now = 1_700_000_000_000L
-        val stale = 5L * 60 * 1000 + 1000 // 301_000 > 5min 阈值
-        val fresh = 60_000L
-        val exactly = 5L * 60 * 1000
-        // 无等待任务 → IDLE（即便最近领取很久以前，无任务可判断）
-        assertEquals(
-            DiagWorkerHealth.IDLE,
-            AdminQueries.inferDiagWorkerHealth(now, lastClaimAt = null, pendingCount = 0, oldestPendingCreatedAt = null),
-        )
-        assertEquals(
-            DiagWorkerHealth.IDLE,
-            AdminQueries.inferDiagWorkerHealth(now, now - stale, pendingCount = 0, oldestPendingCreatedAt = null),
-        )
-        // 有等待任务、任务刚到（未滞留）→ ONLINE
-        assertEquals(
-            DiagWorkerHealth.ONLINE,
-            AdminQueries.inferDiagWorkerHealth(now, lastClaimAt = now - fresh, pendingCount = 1, oldestPendingCreatedAt = now - fresh),
-        )
-        // 有等待任务、最早已滞留但近期刚领取 → ONLINE（worker 在转）
-        assertEquals(
-            DiagWorkerHealth.ONLINE,
-            AdminQueries.inferDiagWorkerHealth(now, lastClaimAt = now - fresh, pendingCount = 2, oldestPendingCreatedAt = now - stale),
-        )
-        // 有等待任务、最早已滞留、近期也未领取 → LIKELY_OFFLINE
-        assertEquals(
-            DiagWorkerHealth.LIKELY_OFFLINE,
-            AdminQueries.inferDiagWorkerHealth(now, lastClaimAt = now - stale, pendingCount = 1, oldestPendingCreatedAt = now - stale),
-        )
-        // 从未领取 + 有等待且滞留 → LIKELY_OFFLINE
-        assertEquals(
-            DiagWorkerHealth.LIKELY_OFFLINE,
-            AdminQueries.inferDiagWorkerHealth(now, lastClaimAt = null, pendingCount = 1, oldestPendingCreatedAt = now - stale),
-        )
-        // 边界：恰好等于阈值（不严格大于）→ ONLINE
-        assertEquals(
-            DiagWorkerHealth.ONLINE,
-            AdminQueries.inferDiagWorkerHealth(now, lastClaimAt = now - exactly, pendingCount = 1, oldestPendingCreatedAt = now - exactly),
-        )
-    }
-
-    @Test
-    fun `diag stats list detail and worker activity`() = runBlocking {
-        TestDb.init(DiagJobs)
-        val now = 1_700_000_000_000L
-        diagJob(1, "QUEUED", "desc-queued", "sha1", createdAt = now - 1000, claimedAt = null)
-        diagJob(2, "FIX_REQUESTED", "desc-fix-req", "sha2", createdAt = now - 2000, claimedAt = now - 1500)
-        diagJob(3, "FIXED", "desc-fixed", "sha3", createdAt = now - 3000, claimedAt = now - 2500, fixBranch = "diag-fix/3", rootCause = "NPE X.kt:9", tested = true)
-        diagJob(4, "DIAGNOSE_FAILED", "desc-fail", "sha4", createdAt = now - 4000, claimedAt = now - 3500, workerLog = "clone failed")
-        diagJob(5, "ARCHIVED", "desc-archived", "sha5", createdAt = now - 5000, claimedAt = now - 4500)
-
-        val stats = AdminQueries.diagStats()
-        assertEquals(5, stats.total)
-        assertEquals(1, stats.queued)
-        assertEquals(0, stats.diagnosed)
-        assertEquals(1, stats.fixRequested)
-        assertEquals(1, stats.fixed)
-        assertEquals(1, stats.failed)
-        assertEquals(1, stats.archived)
-
-        // 列表按 createdAt desc：最新（job1, now-1000）在前
-        val list = AdminQueries.diagList()
-        assertEquals(5, list.size)
-        assertEquals(1, list[0].id)
-        val fixedRow = list.first { it.id == 3 }
-        assertEquals("diag-fix/3", fixedRow.fixBranch)
-        assertTrue(fixedRow.tested)
-        assertTrue(fixedRow.hasRootCause)
-        // deviceId 脱敏
-        assertTrue(list.first { it.id == 1 }.deviceIdMasked.contains("••••"))
-
-        val detail = AdminQueries.diagDetail(3)!!
-        assertEquals("NPE X.kt:9", detail.rootCause)
-        assertEquals("diag-fix/3", detail.fixBranch)
-        assertEquals("desc-fixed", detail.description)
-        assertNull(AdminQueries.diagDetail(999))
-
-        // pending = QUEUED(1) + FIX_REQUESTED(1) = 2；lastClaim = max(claimedAt) = now-1500(job2)；
-        // 最早 pending createdAt = min(now-1000, now-2000) = now-2000；age=2000 < 5min → ONLINE
-        val act = AdminQueries.diagWorkerActivity(now)
-        assertEquals(2, act.pendingCount)
-        assertEquals(now - 1500, act.lastClaimAt)
-        assertEquals(now - 2000, act.oldestPendingCreatedAt)
-        assertEquals(DiagWorkerHealth.ONLINE, act.health)
-    }
-
-    @Test
-    fun `diag worker activity reports likely offline when pending job stale`() = runBlocking {
-        TestDb.init(DiagJobs)
-        val now = 1_700_000_000_000L
-        val stale = 6L * 60 * 1000
-        diagJob(1, "QUEUED", "d", "sha", createdAt = now - stale, claimedAt = null)
-        val act = AdminQueries.diagWorkerActivity(now)
-        assertEquals(DiagWorkerHealth.LIKELY_OFFLINE, act.health)
-        assertEquals(1, act.pendingCount)
-        assertNull(act.lastClaimAt)
-    }
-
-    @Test
-    fun `diag worker activity idle when nothing pending`() = runBlocking {
-        TestDb.init(DiagJobs)
-        val now = 1_700_000_000_000L
-        diagJob(1, "FIXED", "d", "sha", createdAt = now - 1000, claimedAt = now - 500)
-        val act = AdminQueries.diagWorkerActivity(now)
-        assertEquals(DiagWorkerHealth.IDLE, act.health)
-        assertEquals(0, act.pendingCount)
-    }
-
     private suspend fun account(id: Int, email: String, createdAt: Long) {
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             Accounts.insert {
@@ -390,39 +280,6 @@ class AdminQueriesTest {
                 it[AnonymousDevices.llmCallsUsed] = used
                 it[AnonymousDevices.createdAt] = createdAt
                 it[AnonymousDevices.lastSeenAt] = lastSeenAt
-            }
-        }
-    }
-
-    private suspend fun diagJob(
-        id: Int,
-        status: String,
-        description: String,
-        gitSha: String,
-        createdAt: Long,
-        claimedAt: Long? = null,
-        rootCause: String? = null,
-        fixBranch: String? = null,
-        tested: Boolean = false,
-        workerLog: String? = null,
-        deviceId: String? = "dev-aaaa-bbbb-1234",
-    ) {
-        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            DiagJobs.insert {
-                it[DiagJobs.id] = id
-                it[DiagJobs.ownerTokenHash] = "hash$id"
-                it[DiagJobs.deviceId] = deviceId
-                it[DiagJobs.description] = description
-                it[DiagJobs.bundleJson] = """{"logs":"x","gitSha":"$gitSha","appVersion":"1.0.26"}"""
-                it[DiagJobs.gitSha] = gitSha
-                it[DiagJobs.status] = status
-                it[DiagJobs.rootCause] = rootCause
-                it[DiagJobs.fixBranch] = fixBranch
-                it[DiagJobs.tested] = if (tested) 1 else 0
-                it[DiagJobs.workerLog] = workerLog
-                it[DiagJobs.createdAt] = createdAt
-                it[DiagJobs.updatedAt] = createdAt
-                it[DiagJobs.claimedAt] = claimedAt
             }
         }
     }

@@ -1,11 +1,11 @@
 package com.mamba.picme.features.chat
 
 import android.content.Context
+import com.mamba.picme.core.agenttools.AppToolExecutor
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.data.remote.picme.ClaudeChatClient
-import com.mamba.picme.data.remote.picme.DiagClient
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.ChatImageStore
@@ -29,7 +29,6 @@ class ChatViewModelDependencies(
     val mediaFeedbackRepository: MediaFeedbackRepository,
     val mediaRepository: MediaRepository,
     val picMeAuthClient: PoLangAuthClient,
-    val diagClient: DiagClient = DiagClient(),
     val claudeChatClient: ClaudeChatClient = ClaudeChatClient(),
     val getGallerySummaryUseCase: GetGallerySummaryUseCase,
     val queryGalleryMediaUseCase: QueryGalleryMediaUseCase,
@@ -41,4 +40,14 @@ class ChatViewModelDependencies(
     val chatImageRenderer: ChatImageRenderer? = null,
     val chatImageStore: ChatImageStore,
     val saveChatEditResultUseCase: SaveChatEditResultUseCase
-)
+) {
+    /**
+     * app_tool_request 采集执行器（spec §3.1）。null = 未接线（单测默认不注入则功能关闭）。
+     * var 而非构造参数：执行器工厂 [buildAppToolExecutor] 依赖本容器的其他字段，
+     * 生产由 AppContainer 构造本容器后回填（在创建 ChatViewModel 之前完成）。
+     */
+    var appToolExecutor: AppToolExecutor? = null
+
+    /** claude-tunnel sid 持久化（Task 8）；生产由 AppContainer 回填 PrefsClaudeSidStore。 */
+    var claudeSidStore: ClaudeSidStore? = null
+}
