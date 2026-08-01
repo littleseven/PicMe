@@ -80,6 +80,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -88,6 +89,9 @@ private const val TAG = "ChatViewModel"
 private const val MAX_MESSAGES = 500
 private const val MAX_PREVIEW_LENGTH = 60
 private const val MAX_CARDS = 20
+
+/** 网关 sid 格式：uuid4().hex[:12]（12 位小写 hex）；claude init 的 session_id 是带连字符 UUID，不匹配。 */
+private val GATEWAY_SID_PATTERN = Regex("[0-9a-f]{12}")
 
 /** 只读 JS 脚本 eval 超时。 */
 private const val DEFAULT_EVAL_TIMEOUT_MS = 5_000L
@@ -166,7 +170,7 @@ class ChatViewModel(
     private var persistentJsRuntime: JsRuntime? = null
 
     /** JS eval 互斥锁（QuickJS 非线程安全，需串行化 eval）。 */
-    private val jsEvalMutex = kotlinx.coroutines.sync.Mutex()
+    private val jsEvalMutex = Mutex()
 
     // ── capability.dispatch（JS → CapabilityRegistry 写通路）─────────────────
 
@@ -257,7 +261,7 @@ class ChatViewModel(
      * renderer.apply。SSE 回调是非 suspend 主流，用 tryLock（失败则直接 apply，回到原竞态水平）；
      * tool result 合成事件持锁短暂，在 IO 协程里 withLock。
      */
-    private val rendererMutex = kotlinx.coroutines.sync.Mutex()
+    private val rendererMutex = Mutex()
 
     private val _claudeMode = MutableStateFlow(false)
     val claudeMode: StateFlow<Boolean> = _claudeMode.asStateFlow()
@@ -274,7 +278,8 @@ class ChatViewModel(
         if (_claudeMode.value) return
         exitDiagMode()
         _claudeMode.value = true
-        claudeSidStore?.clear(_currentSessionId.value)
+        // 不 clear 持久化 sid：进程重建后 restoreLastSessionId 恢复的会话正要经 sendClaudeMessage
+        // load 回 sid，此处 clear 会把记忆在恢复前删掉；新会话的全新性由随机 UUID 天然保证。
         claudeSid = null
         claudeDeliverOverrides.clear()
         newSession()
@@ -356,10 +361,11 @@ class ChatViewModel(
                         is ClaudeEvent.AppToolRequest -> Unit
                     }
                     when (event) {
-                        // gateway 首条 session = 网关 sid（workdir/deliver key）；
-                        // claude stream-json init 也带一条 session（claude session_id，仅 gateway 内部 --resume 用）。
-                        // 只采纳首个（网关 sid），忽略后者，否则 deliver 拿错 sid → gateway 找不到 workdir。
-                        is ClaudeEvent.Session -> if (claudeSid == null) {
+                        // 网关 sid = 12 位 hex（workdir/deliver key，uuid4().hex[:12]）；
+                        // claude stream-json init 也带一条 session（带连字符 UUID，仅网关内部 --resume 用），忽略。
+                        // 有效 resume 时网关不下发 session 事件，该判断天然跳过；
+                        // 网关侧轮换（workdir 被清后重新签发）时新 sid 直接覆盖并持久化，自愈失忆。
+                        is ClaudeEvent.Session -> if (event.sid.matches(GATEWAY_SID_PATTERN)) {
                             claudeSid = event.sid
                             claudeSidStore?.save(sessionId, event.sid)
                         }
@@ -1203,6 +1209,7 @@ class ChatViewModel(
                 chatImageStore.evictForSession(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.deleteSession(sessionId)
+                claudeSidStore?.clear(sessionId) // 顺带清持久化的网关 sid，避免 prefs 残留
                 if (_currentSessionId.value == sessionId) {
                     _currentSessionId.value = "default"
                     userSettingsRepository.updateChatCurrentSessionId("default")
