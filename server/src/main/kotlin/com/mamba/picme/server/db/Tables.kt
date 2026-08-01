@@ -1,5 +1,6 @@
 package com.mamba.picme.server.db
 
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Table
 
 object Rules : Table("rule") {
@@ -160,7 +161,7 @@ object ServerSettings : Table("server_setting") {
     override val primaryKey = PrimaryKey(key)
 }
 
-// ── AI 工程师模式账号白名单（空表 = 全部禁止；命中邮箱才放行）──
+// ── AI 工程师模式账号白名单（空表 = 可诊断但不可交付代码；命中邮箱才放行写链路）──
 object AiEngineerWhitelists : Table("ai_engineer_whitelist") {
     val id = integer("id").autoIncrement()
     val email = varchar("email", 256)
@@ -169,6 +170,26 @@ object AiEngineerWhitelists : Table("ai_engineer_whitelist") {
 
     init {
         uniqueIndex(email)
+    }
+}
+
+// ── 用户上报问题（关联 GitHub issue，全程脱敏）──
+object ReportedIssues : IntIdTable("reported_issue") {
+    val accountId = integer("account_id")
+    val reporterEmail = varchar("reporter_email", 256)
+    val category = varchar("category", 32)
+    val title = varchar("title", 256)
+    val description = text("description")
+    val status = varchar("status", 16).default("open")
+    val githubIssueNumber = integer("github_issue_number").nullable()
+    val githubIssueUrl = varchar("github_issue_url", 512).default("")
+    val sanitized = integer("sanitized").default(1) // 0=false, 1=true
+    val createdAt = long("created_at")
+    val updatedAt = long("updated_at")
+
+    init {
+        index(isUnique = false, status, createdAt)
+        index(isUnique = false, accountId, createdAt)
     }
 }
 

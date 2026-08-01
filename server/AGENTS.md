@@ -33,6 +33,7 @@
 - **遥测收集**：`TelemetryRoute` — 批量匿名事件写入 SQLite
 - **COS 存储**：`CosService` — 腾讯 COS 预签名 URL 生成
 - **限流**：`RateLimiter` — per-IP 令牌桶 + 日预算熔断
+- **用户问题上报**：`IssueReportRoute` — 脱敏后入库并自动同步 GitHub issue
 
 ---
 
@@ -57,10 +58,14 @@ server/
 │   │   ├── AppTokenAuth.kt       # X-App-Token 认证插件
 │   │   └── EmailService.kt       # 验证码发送（SMTP）
 │   ├── admin/
-│   │   ├── AdminRoutes.kt        # /admin/** 路由注册
+│   │   ├── AdminRoutes.kt        # /admin/** 路由注册（含 /admin/diagnosis 问题诊断页）
 │   │   ├── AdminAuth.kt          # ADMIN_TOKEN + cookie 认证
 │   │   ├── AdminViews.kt         # kotlinx.html SSR 页面
 │   │   └── AdminQueries.kt       # 运营数据查询
+│   ├── issue/
+│   │   ├── IssueReportService.kt # 问题上报存库 + GitHub 同步
+│   │   ├── IssueSanitizer.kt     # 隐私脱敏
+│   │   └── GitHubIssueClient.kt  # GitHub REST API 客户端
 │   ├── llm/
 │   │   ├── ChannelConfig.kt      # 供应商配置（baseUrl/apiKey/model/routing）
 │   │   ├── ChannelRegistry.kt    # 多供应商注册表
@@ -75,7 +80,7 @@ server/
 │   │   └── TokenUsage.kt         # Token 用量解析
 │   └── db/
 │       ├── Db.kt                 # HikariCP + Exposed 数据库连接
-│       ├── Tables.kt             # Exposed Table 定义
+│       ├── Tables.kt             # Exposed Table 定义（含 ReportedIssues）
 │       └── Migrations.kt         # Schema 创建 + seed 幂等加载
 ├── migrations/
 │   ├── 001_init.sql              # 初始建表
@@ -120,6 +125,11 @@ server/
 | POST | `/admin/users/{id}/limit` | P1 | ✅ | ADMIN_TOKEN | 改单账号调用上限（0=禁用但保留 token） |
 | POST | `/admin/devices/{id}/reset-quota` | P1 | ✅ | ADMIN_TOKEN | 清零访客设备已用额度 |
 | POST | `/admin/channels/{id}/refresh-balance` | P1 | ✅ | ADMIN_TOKEN | 刷新渠道上游余额缓存（DeepSeek 等） |
+| POST | `/v1/report-issue` | P1 | ✅ | X-App-Token | 用户问题上报（脱敏 + 自动 GitHub issue） |
+| POST | `/v1/claude-chat` | P1 | ✅ | X-App-Token | AI 工程师模式 SSE 对话（只读诊断） |
+| POST | `/v1/claude-tool-result` | P1 | ✅ | X-App-Token | AI 工程师 App tool 结果回传 |
+| POST | `/v1/claude-deliver` | P1 | ✅ | X-App-Token + 白名单 | AI 工程师代码交付 |
+| GET | `/v1/claude-engineer/available` | P1 | ✅ | X-App-Token | 返回 {available, canDeliver} |
 | GET | `/assets/{manifest,url}` | P1 | 🚧 | X-App-Token | COS 预签名 — 待实现 |
 | GET | `/agent/config` | P1 | 🚧 | X-App-Token | 供应商适配参数下发 — 待实现 |
 
@@ -202,5 +212,5 @@ systemd `picme-api.service`：`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`，与 Open
 ---
 
 > **维护者**：[RD] 全栈工程师
-> **最后更新**：2026-07-15
+> **最后更新**：2026-08-01
 > **状态**：生效中

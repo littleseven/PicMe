@@ -221,9 +221,46 @@ HTTP 状态码 `403 Forbidden`。
 - `ClaudeChatRoute`、`ClaudeToolResultRoute` 只鉴权，不校验白名单。
 - `GET /v1/claude-engineer/available` 固定返回 `available: true`（已认证即可诊断），`canDeliver` 按白名单返回。
 
+### 6.5 管理后台：问题诊断页
+
+原 `/admin/ai-engineer-whitelist` 已并入 `/admin/diagnosis`，包含两个 Tab：
+
+- **AI 工程师白名单**：保留原有增删查能力。
+- **用户上报问题**：展示 App 用户上报的问题列表（类别 / 标题 / 状态 / GitHub issue），支持更新状态与手动重试同步 GitHub。
+
+旧路径 `/admin/ai-engineer-whitelist` 返回 301 重定向到 `/admin/diagnosis?tab=whitelist`。
+
 ---
 
-## 7. 旧诊断移除清单
+## 7. 用户问题上报
+
+为让普通用户也能反馈使用问题，Chat 顶部新增「上报问题」入口，提交后服务端自动脱敏并同步到 GitHub issue。
+
+### 7.1 流程
+
+1. App 侧填写问题类别（crash / bug / ai / other）、标题、描述。
+2. `POST /v1/report-issue`（X-App-Token 鉴权，每账号每天限 10 次）。
+3. 服务端 `IssueSanitizer` 对标题与描述脱敏（邮箱、token、路径、身份证号等 → 占位符）。
+4. `IssueReportService` 写入 `reported_issue` 表，并异步调用 `GitHubIssueClient.createIssue`。
+5. GitHub issue 创建成功后回写 `github_issue_number` 与 `github_issue_url`；失败不阻塞用户响应。
+6. 管理后台 `/admin/diagnosis?tab=issues` 可查看、更新状态、手动重试同步。
+
+### 7.2 隐私合规
+
+- 服务端脱敏在响应用户前完成，`sanitized = 1` 方可入库。
+- GitHub issue body 仅含脱敏后的描述 + 内部 issue ID，不含账号、设备 ID、图片/视频。
+- 上传失败时同样入库，等待后台人工重试；不会重试原始未脱敏内容。
+
+### 7.3 配置
+
+环境变量：
+
+- `GITHUB_TOKEN`：创建 issue 所需的 GitHub Personal Access Token。
+- `GITHUB_ISSUE_REPO`：目标仓库，默认 `littleseven/langchain4android`。
+
+---
+
+## 8. 旧诊断移除清单
 
 | 层 | 删除 | 保留（复用） |
 |---|---|---|
@@ -236,7 +273,7 @@ DB 迁移：`server/migrations/` 新增一版，`DROP TABLE diag_jobs`。
 
 ---
 
-## 8. 错误处理
+## 9. 错误处理
 
 | 场景 | 行为 |
 |---|---|
@@ -249,21 +286,22 @@ DB 迁移：`server/migrations/` 新增一版，`DROP TABLE diag_jobs`。
 
 ---
 
-## 9. 测试
+## 10. 测试
 
-- **App**：`AppToolExecutor` 单元测试（分发、截断、脱敏调用）；`ClaudeSseParser` 新事件解析测试
+- **App**：`AppToolExecutor` 单元测试（分发、截断、脱敏调用）；`ClaudeSseParser` 新事件解析测试；`IssueReportClient` 与 `ChatViewModel` 上报状态机测试
 - **Gateway**：`app_tools_mcp.py` pytest（pending map 挂起 / 解挂 / 超时）；参照 `scripts/diag-worker/smoke/` 思路补一个 claude-tunnel smoke 测试
 - **Server**：
   - `ClaudeChatRouteTest` / `ClaudeDeliverRouteTest` / `ClaudeToolResultRouteTest`：鉴权、白名单、限流、反代
   - `ClaudeEngineerAvailabilityRouteTest`：可用性查询
   - `AiEngineerWhitelistServiceTest`：白名单增删查
-  - `AdminAiEngineerWhitelistRoutesTest`：管理后台增删查
-- **端到端手测清单**：描述问题 → Agent 拉日志 → 结合代码给方案 → 确认交付
+  - `IssueReportRouteTest` / `IssueReportServiceTest` / `GitHubIssueClientTest` / `IssueSanitizerTest`：问题上报、脱敏、GitHub 同步
+  - `AdminDiagnosisRoutesTest`：管理后台问题诊断页（白名单 + 用户上报问题）
+- **端到端手测清单**：描述问题 → Agent 拉日志 → 结合代码给方案 → 确认交付；Chat 顶部上报问题 → 服务端生成 GitHub issue
 
 ---
 
-## 10. 红线合规
+## 11. 红线合规
 
-- **[PRIVACY]**：所有回传数据经 `DiagSanitizer` 脱敏；相册摘要仅元数据，不含图片/视频；脱敏异常时拒绝回传
+- **[PRIVACY]**：所有回传数据经 `DiagSanitizer` 脱敏；相册摘要仅元数据，不含图片/视频；脱敏异常时拒绝回传；用户问题上报在入库前完成脱敏，GitHub issue 不含隐私信息
 - **[AGENT-FIRST]**：`AppToolExecutor` 显式构造注入；工具分发穷举枚举；tool 过程结构化事件渲染
 - **[DOC-SYNC]**：落地后更新 `docs/03-TECHNICAL-SPECS/` 相关文档与根 `AGENTS.md` 架构说明

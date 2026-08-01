@@ -35,6 +35,9 @@ data class AppConfig(
     // Admin 后台
     val adminToken: String,
     val llmPrices: Map<String, Price>,
+    // GitHub issue 同步（用户上报问题）
+    val githubToken: String,
+    val githubIssueRepo: String,
 ) {
     companion object {
         fun load(): AppConfig = AppConfig(
@@ -67,6 +70,9 @@ data class AppConfig(
             // Admin
             adminToken = env("ADMIN_TOKEN", ""),
             llmPrices = parsePrices(System.getenv("LLM_PRICES_JSON")),
+            // GitHub issue sync
+            githubToken = env("GITHUB_TOKEN", ""),
+            githubIssueRepo = env("GITHUB_ISSUE_REPO", "littleseven/langchain4android"),
         )
 
         private fun env(key: String, default: String): String =

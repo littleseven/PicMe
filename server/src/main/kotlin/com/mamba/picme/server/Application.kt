@@ -10,6 +10,8 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.Migrations
+import com.mamba.picme.server.issue.GitHubIssueClient
+import com.mamba.picme.server.issue.IssueReportService
 import com.mamba.picme.server.llm.LlmProxy
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelBalanceService
@@ -25,6 +27,7 @@ import com.mamba.picme.server.routes.claudeChatRoute
 import com.mamba.picme.server.routes.claudeDeliverRoute
 import com.mamba.picme.server.routes.claudeEngineerAvailabilityRoute
 import com.mamba.picme.server.routes.claudeToolResultRoute
+import com.mamba.picme.server.routes.issueReportRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
 import com.mamba.picme.server.routes.quotaRoute
@@ -141,6 +144,10 @@ fun Application.module(config: AppConfig) {
 
     val cosService = CosService(config)
     val balanceService = ChannelBalanceService(httpClient)
+    val githubIssueClient = GitHubIssueClient(httpClient, config.githubToken, config.githubIssueRepo)
+    val issueReportService = IssueReportService(githubIssueClient)
+    // 每账号每天最多 10 条问题上报
+    val issueReportRateLimiter = RateLimiter(10, 24 * 60 * 60_000L)
 
     routing {
         // Public
@@ -159,7 +166,8 @@ fun Application.module(config: AppConfig) {
         claudeChatRoute(claudeClient, rateLimiter)
         claudeDeliverRoute(claudeClient, rateLimiter)
         claudeToolResultRoute(claudeClient, rateLimiter)
+        issueReportRoute(issueReportService, issueReportRateLimiter)
         // 管理后台（/admin/**，独立 cookie 认证）
-        adminRoute(config.adminToken, cosService, balanceService, config.llmPrices)
+        adminRoute(config.adminToken, cosService, balanceService, config.llmPrices, issueReportService)
     }
 }

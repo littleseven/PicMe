@@ -9,7 +9,11 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
+import com.mamba.picme.server.issue.GitHubIssueClient
+import com.mamba.picme.server.issue.IssueReportService
 import com.mamba.picme.server.llm.ChannelBalanceService
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import com.mamba.picme.server.llm.ChannelInput
 import com.mamba.picme.server.llm.ChannelRegistry
 import com.mamba.picme.server.llm.ChannelRepository
@@ -41,7 +45,13 @@ import org.jetbrains.exposed.sql.transactions.transaction
  * 管理后台路由：/admin 下全部页面。主 app-token 拦截器（Application.module）对 /admin 前缀放行，
  * 由各受保护页面顶部的 adminGuard 接管认证（ADMIN_TOKEN 为空 → 503 禁用）。
  */
-fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService: ChannelBalanceService, prices: Map<String, Price> = defaultPrices()) {
+fun Route.adminRoute(
+    adminToken: String,
+    cosService: CosService,
+    balanceService: ChannelBalanceService,
+    prices: Map<String, Price> = defaultPrices(),
+    issueReportService: IssueReportService = IssueReportService(GitHubIssueClient(HttpClient(CIO), "", "")),
+) {
     route("/admin") {
         get("/login") {
             if (adminToken.isBlank()) {
@@ -374,14 +384,25 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
             call.respondRedirect("/admin/channels")
         }
 
-        get("/ai-engineer-whitelist") {
+        // ── 问题诊断页（AI 工程师白名单 + 用户上报问题）──
+        get("/diagnosis") {
             if (!call.adminGuard(adminToken)) return@get
-            val entries = AiEngineerWhitelistService.list()
+            val tab = call.request.queryParameters["tab"] ?: "whitelist"
             val msg = call.request.queryParameters["msg"]
-            call.respondText(AdminViews.aiEngineerWhitelistPage(entries, msg), ContentType.Text.Html)
+            val entries = AiEngineerWhitelistService.list()
+            val issues = if (tab == "issues") issueReportService.list() else emptyList()
+            call.respondText(
+                AdminViews.diagnosisPage(tab = tab, entries = entries, issues = issues, message = msg),
+                ContentType.Text.Html,
+            )
         }
 
-        post("/ai-engineer-whitelist") {
+        // 旧路径 301 重定向到新诊断页
+        get("/ai-engineer-whitelist") {
+            call.respondRedirect("/admin/diagnosis?tab=whitelist", permanent = true)
+        }
+
+        post("/diagnosis/whitelist") {
             if (!call.adminGuard(adminToken)) return@post
             val params = call.receiveParameters()
             val email = (params["email"] ?: "").trim().lowercase()
@@ -390,10 +411,10 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
                 AiEngineerWhitelistService.allow(email) -> "已添加 $email"
                 else -> "$email 已在白名单中"
             }
-            call.respondRedirect("/admin/ai-engineer-whitelist?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/diagnosis?tab=whitelist&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
-        post("/ai-engineer-whitelist/revoke") {
+        post("/diagnosis/whitelist/revoke") {
             if (!call.adminGuard(adminToken)) return@post
             val params = call.receiveParameters()
             val email = (params["email"] ?: "").trim().lowercase()
@@ -402,7 +423,37 @@ fun Route.adminRoute(adminToken: String, cosService: CosService, balanceService:
                 AiEngineerWhitelistService.revoke(email) -> "已移除 $email"
                 else -> "$email 不在白名单中"
             }
-            call.respondRedirect("/admin/ai-engineer-whitelist?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/diagnosis?tab=whitelist&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+        }
+
+        post("/diagnosis/issues/{id}/status") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            val status = call.receiveParameters()["status"]
+            val msg = if (id != null && status != null && status in IssueReportService.ALLOWED_STATUSES) {
+                issueReportService.updateStatus(id, status)
+                "状态已更新"
+            } else {
+                "参数错误"
+            }
+            call.respondRedirect("/admin/diagnosis?tab=issues&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+        }
+
+        post("/diagnosis/issues/{id}/sync-github") {
+            if (!call.adminGuard(adminToken)) return@post
+            val id = call.parameters["id"]?.toIntOrNull()
+            val msg = if (id != null) {
+                val issue = issueReportService.list().firstOrNull { it.id == id }
+                if (issue != null) {
+                    val ok = issueReportService.syncToGithub(issue.id, issue.title, issue.description)
+                    if (ok) "已同步到 GitHub" else "同步失败，请检查 GITHUB_TOKEN"
+                } else {
+                    "问题不存在"
+                }
+            } else {
+                "参数错误"
+            }
+            call.respondRedirect("/admin/diagnosis?tab=issues&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
         get("/apk") {

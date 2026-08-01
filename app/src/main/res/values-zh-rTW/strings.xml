@@ -983,4 +983,22 @@
     <string name="claude_deliver_done">✅ 已交付分支：`%1$s`</string>
     <string name="claude_deliver_failed">❌ 交付失敗：%1$s</string>
     <string name="claude_file_change_label">改檔案</string>
+
+    <!-- Issue report -->
+    <string name="report_issue_title">上報問題</string>
+    <string name="report_issue_cd">上報問題</string>
+    <string name="report_issue_category_label">問題類別</string>
+    <string name="report_issue_category_crash">閃退 / 卡死</string>
+    <string name="report_issue_category_bug">功能異常</string>
+    <string name="report_issue_category_ai">AI 回覆錯誤</string>
+    <string name="report_issue_category_other">其他</string>
+    <string name="report_issue_title_label">標題</string>
+    <string name="report_issue_title_hint">簡要描述遇到的問題</string>
+    <string name="report_issue_description_label">詳細描述</string>
+    <string name="report_issue_description_hint">復現步驟、預期結果與實際表現</string>
+    <string name="report_issue_submit">提交</string>
+    <string name="report_issue_cancel">取消</string>
+    <string name="report_issue_success">已上報（#%1$d）</string>
+    <string name="report_issue_error">上報失敗：%1$s</string>
+    <string name="report_issue_guest_not_allowed">請先登入帳號再上報問題</string>
 </resources>

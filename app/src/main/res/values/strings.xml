@@ -1011,4 +1011,22 @@
     <string name="claude_deliver_done">✅ Delivered branch: `%1$s`</string>
     <string name="claude_deliver_failed">❌ Delivery failed: %1$s</string>
     <string name="claude_file_change_label">File</string>
+
+    <!-- Issue report -->
+    <string name="report_issue_title">Report a problem</string>
+    <string name="report_issue_cd">Report a problem</string>
+    <string name="report_issue_category_label">Category</string>
+    <string name="report_issue_category_crash">Crash / Freeze</string>
+    <string name="report_issue_category_bug">Function bug</string>
+    <string name="report_issue_category_ai">AI reply error</string>
+    <string name="report_issue_category_other">Other</string>
+    <string name="report_issue_title_label">Title</string>
+    <string name="report_issue_title_hint">Briefly describe the problem</string>
+    <string name="report_issue_description_label">Description</string>
+    <string name="report_issue_description_hint">Steps to reproduce, expected vs actual</string>
+    <string name="report_issue_submit">Submit</string>
+    <string name="report_issue_cancel">Cancel</string>
+    <string name="report_issue_success">Reported (#%1$d)</string>
+    <string name="report_issue_error">Report failed: %1$s</string>
+    <string name="report_issue_guest_not_allowed">Please sign in to report issues</string>
 </resources>

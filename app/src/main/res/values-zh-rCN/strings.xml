@@ -1005,4 +1005,22 @@
     <string name="claude_deliver_done">✅ 已交付分支：`%1$s`</string>
     <string name="claude_deliver_failed">❌ 交付失败：%1$s</string>
     <string name="claude_file_change_label">改文件</string>
+
+    <!-- Issue report -->
+    <string name="report_issue_title">上报问题</string>
+    <string name="report_issue_cd">上报问题</string>
+    <string name="report_issue_category_label">问题类别</string>
+    <string name="report_issue_category_crash">闪退 / 卡死</string>
+    <string name="report_issue_category_bug">功能异常</string>
+    <string name="report_issue_category_ai">AI 回复错误</string>
+    <string name="report_issue_category_other">其他</string>
+    <string name="report_issue_title_label">标题</string>
+    <string name="report_issue_title_hint">简要描述遇到的问题</string>
+    <string name="report_issue_description_label">详细描述</string>
+    <string name="report_issue_description_hint">复现步骤、期望结果与实际表现</string>
+    <string name="report_issue_submit">提交</string>
+    <string name="report_issue_cancel">取消</string>
+    <string name="report_issue_success">已上报（#%1$d）</string>
+    <string name="report_issue_error">上报失败：%1$s</string>
+    <string name="report_issue_guest_not_allowed">请先登录账号再上报问题</string>
 </resources>

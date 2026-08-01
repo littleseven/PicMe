@@ -1,4 +1,5 @@
 @file:Suppress("TooManyFunctions") // 待重构：ChatScreen 拆分为多个子文件以降低文件级函数数
+@file:OptIn(ExperimentalLayoutApi::class)
 
 package com.mamba.picme.features.chat
 
@@ -65,6 +66,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
@@ -86,6 +88,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -208,10 +211,12 @@ fun ChatScreen(
     val currentSessionId by viewModel.currentSessionId.collectAsState()
     val isGuestMode by viewModel.isGuestMode.collectAsState()
     val showRegistration by viewModel.showRegistrationSheet.collectAsState()
+    val issueReportState by viewModel.issueReportState.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
     var isSidebarOpen by remember { mutableStateOf(false) }
+    var showReportIssueDialog by remember { mutableStateOf(false) }
     // 图片预览状态（横滑翻页集合）
     var imagePreview by remember { mutableStateOf<ChatImagePreviewState?>(null) }
     var previewChartSvg by remember { mutableStateOf<String?>(null) }
@@ -408,6 +413,41 @@ fun ChatScreen(
         settingsViewModel.checkChatModelsOnCellular()
     }
 
+    // 问题上报结果反馈
+    LaunchedEffect(issueReportState) {
+        when (val state = issueReportState) {
+            is IssueReportState.Success -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.report_issue_success, state.issueId),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                showReportIssueDialog = false
+                viewModel.resetIssueReportState()
+            }
+            is IssueReportState.Error -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.report_issue_error, state.message),
+                    Toast.LENGTH_LONG,
+                ).show()
+                viewModel.resetIssueReportState()
+            }
+            else -> {}
+        }
+    }
+
+    if (showReportIssueDialog) {
+        ReportIssueDialog(
+            state = issueReportState,
+            isGuest = isGuestMode,
+            onDismiss = { showReportIssueDialog = false },
+            onSubmit = { category, title, description ->
+                viewModel.submitIssueReport(category, title, description)
+            },
+        )
+    }
+
     // 沉浸式模式：隐藏系统栏
     DisposableEffect(Unit) {
         val activity = context as? Activity
@@ -431,7 +471,8 @@ fun ChatScreen(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
                     onNewChat = { viewModel.newSession() },
-                    onClearChat = { viewModel.clearChat() }
+                    onClearChat = { viewModel.clearChat() },
+                    onReportIssue = { showReportIssueDialog = true }
                 )
             }
         }
@@ -725,7 +766,8 @@ private fun ChatTopBar(
     onNavigateBack: () -> Unit,
     onOpenSidebar: () -> Unit,
     onNewChat: () -> Unit,
-    onClearChat: () -> Unit
+    onClearChat: () -> Unit,
+    onReportIssue: () -> Unit = {}
 ) {
     AppTopBar(
         title = {},
@@ -741,10 +783,102 @@ private fun ChatTopBar(
             }
         },
         actions = {
+            AppTopBarAction(Icons.Rounded.BugReport, stringResource(R.string.report_issue_cd), onReportIssue)
             AppTopBarAction(Icons.Rounded.AddComment, stringResource(R.string.new_chat), onNewChat)
             AppTopBarAction(Icons.Rounded.DeleteSweep, stringResource(R.string.clear_chat), onClearChat)
         }
     )
+}
+
+@Composable
+private fun ReportIssueDialog(
+    state: IssueReportState,
+    isGuest: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (category: String, title: String, description: String) -> Unit,
+) {
+    var category by remember { mutableStateOf("other") }
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    val submitting = state is IssueReportState.Submitting
+    val categories = listOf("crash", "bug", "ai", "other")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.report_issue_title)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (isGuest) {
+                    Text(
+                        text = stringResource(R.string.report_issue_guest_not_allowed),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.report_issue_category_label),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categories.forEach { c ->
+                        FilterChip(
+                            selected = category == c,
+                            onClick = { category = c },
+                            label = { Text(stringResource(categoryLabelRes(c))) },
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(R.string.report_issue_title_label)) },
+                    placeholder = { Text(stringResource(R.string.report_issue_title_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isGuest,
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text(stringResource(R.string.report_issue_description_label)) },
+                    placeholder = { Text(stringResource(R.string.report_issue_description_hint)) },
+                    minLines = 3,
+                    maxLines = 6,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isGuest,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(category, title, description) },
+                enabled = !submitting && !isGuest && title.isNotBlank(),
+            ) {
+                if (submitting) {
+                    // 保持按钮宽度稳定，仅显示 "提交中..."
+                    Text(stringResource(R.string.report_issue_submit) + "…")
+                } else {
+                    Text(stringResource(R.string.report_issue_submit))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !submitting) {
+                Text(stringResource(R.string.report_issue_cancel))
+            }
+        },
+    )
+}
+
+@StringRes
+private fun categoryLabelRes(category: String): Int = when (category) {
+    "crash" -> R.string.report_issue_category_crash
+    "bug" -> R.string.report_issue_category_bug
+    "ai" -> R.string.report_issue_category_ai
+    else -> R.string.report_issue_category_other
 }
 
 /** LRU 已清理的编辑结果图占位：灰框 + 图标 + 「图片已过期·不可见」。 */

@@ -4,6 +4,7 @@ import com.mamba.picme.server.appJson
 import com.mamba.picme.server.analytics.formatCostCny
 import com.mamba.picme.server.auth.AiEngineerWhitelistService
 import com.mamba.picme.server.config.SettingsService
+import com.mamba.picme.server.issue.IssueReportService
 import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelRow
 import com.mamba.picme.server.llm.renderModelMapLines
@@ -1230,6 +1231,10 @@ object AdminViews {
             "active" -> "badge badge-active"
             "revoked" -> "badge badge-revoked"
             "deleted" -> "badge badge-deleted"
+            "open" -> "badge badge-open"
+            "investigating" -> "badge badge-investigating"
+            "closed" -> "badge badge-closed"
+            "ignored" -> "badge badge-ignored"
             else -> "badge"
         }
         div(classes) {
@@ -1237,56 +1242,153 @@ object AdminViews {
                 "active" -> "正常"
                 "revoked" -> "已禁用"
                 "deleted" -> "已删除"
+                "open" -> "待处理"
+                "investigating" -> "处理中"
+                "closed" -> "已关闭"
+                "ignored" -> "已忽略"
                 else -> status
             }
         }
     }
 
-    fun aiEngineerWhitelistPage(entries: List<AiEngineerWhitelistService.Entry>, message: String? = null): String = createHTML().html {
-        adminHead("AI 工程师白名单 · PoLang 管理后台")
+    fun diagnosisPage(
+        tab: String,
+        entries: List<AiEngineerWhitelistService.Entry>,
+        issues: List<IssueReportService.IssueRow>,
+        message: String? = null,
+    ): String = createHTML().html {
+        adminHead("问题诊断 · PoLang 管理后台")
         body {
             navBar()
-            h1 { +"AI 工程师模式白名单" }
-            p("meta") { +"空表 = 全部禁止；加入邮箱后才允许该账号使用 AI 工程师模式。" }
+            h1 { +"问题诊断" }
             if (message != null) {
-                div("toast ${if (message.startsWith("已") || message.startsWith("成功")) "toast-ok" else "toast-err"}") { +message }
+                div("toast ${if (message.startsWith("已") || message.startsWith("成功") || message.startsWith("状态")) "toast-ok" else "toast-err"}") { +message }
             }
-            div("card limit-card") {
-                div("card-label") { +"添加邮箱" }
-                form(action = "/admin/ai-engineer-whitelist", method = FormMethod.post, classes = "inline") {
-                    input(type = InputType.email, name = "email") {
-                        placeholder = "user@example.com"
-                        style = "width:280px"
-                    }
-                    +" "
-                    input(type = InputType.submit, classes = "btn-sm btn-go") { value = "添加" }
-                }
+            div("subtabs") {
+                a(
+                    "/admin/diagnosis?tab=whitelist",
+                    classes = if (tab == "whitelist") "subtab active" else "subtab",
+                ) { +"AI 工程师白名单" }
+                a(
+                    "/admin/diagnosis?tab=issues",
+                    classes = if (tab == "issues") "subtab active" else "subtab",
+                ) { +"用户上报问题 (${issues.size})" }
             }
-            if (entries.isEmpty()) {
-                div("card apk-empty") {
-                    div("apk-empty-text") { +"暂无白名单记录" }
+            when (tab) {
+                "issues" -> issuesSection(issues)
+                else -> whitelistSection(entries)
+            }
+        }
+    }
+
+    private fun FlowContent.whitelistSection(entries: List<AiEngineerWhitelistService.Entry>) {
+        p("meta") { +"空表 = 所有用户可诊断，但均不可交付代码；加入邮箱后才开放写链路。" }
+        div("card limit-card") {
+            div("card-label") { +"添加邮箱" }
+            form(action = "/admin/diagnosis/whitelist", method = FormMethod.post, classes = "inline") {
+                input(type = InputType.email, name = "email") {
+                    placeholder = "user@example.com"
+                    style = "width:280px"
                 }
-            } else {
-                table {
+                +" "
+                input(type = InputType.submit, classes = "btn-sm btn-go") { value = "添加" }
+            }
+        }
+        if (entries.isEmpty()) {
+            div("card apk-empty") {
+                div("apk-empty-text") { +"暂无白名单记录" }
+            }
+        } else {
+            table {
+                tr {
+                    th { +"ID" }
+                    th { +"邮箱" }
+                    th { +"加入时间" }
+                    th(classes = "col-actions") { +"操作" }
+                }
+                entries.forEach { e ->
                     tr {
-                        th { +"ID" }
-                        th { +"邮箱" }
-                        th { +"加入时间" }
-                        th(classes = "col-actions") { +"操作" }
+                        td { +e.id.toString() }
+                        td { +e.email }
+                        td { +fmtTs(e.createdAt) }
+                        td {
+                            form(
+                                action = "/admin/diagnosis/whitelist/revoke",
+                                method = FormMethod.post,
+                                classes = "inline",
+                            ) {
+                                input(type = InputType.hidden, name = "email") { value = e.email }
+                                input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "移除" }
+                            }
+                        }
                     }
-                    entries.forEach { e ->
-                        tr {
-                            td { +e.id.toString() }
-                            td { +e.email }
-                            td { +fmtTs(e.createdAt) }
-                            td {
+                }
+            }
+        }
+    }
+
+    private fun FlowContent.issuesSection(issues: List<IssueReportService.IssueRow>) {
+        p("meta") { +"用户从 App 上报的问题，已脱敏处理；可更新状态或手动重试同步 GitHub。" }
+        if (issues.isEmpty()) {
+            div("card apk-empty") {
+                div("apk-empty-text") { +"暂无用户上报问题" }
+            }
+        } else {
+            table {
+                tr {
+                    th { +"ID" }
+                    th { +"类别" }
+                    th { +"标题" }
+                    th { +"状态" }
+                    th { +"GitHub" }
+                    th { +"上报时间" }
+                    th(classes = "col-actions") { +"操作" }
+                }
+                issues.forEach { issue ->
+                    tr {
+                        td { +issue.id.toString() }
+                        td { +issue.category }
+                        td { +issue.title }
+                        td { statusBadge(issue.status) }
+                        td {
+                            if (issue.githubIssueUrl.isNotBlank()) {
+                                a(issue.githubIssueUrl, target = "_blank") { +"#${issue.githubIssueNumber}" }
+                            } else {
+                                +"未同步"
+                            }
+                        }
+                        td { +fmtTs(issue.createdAt) }
+                        td {
+                            div("row-actions") {
+                                // 状态切换
+                                val nextStatus = when (issue.status) {
+                                    "open" -> "investigating"
+                                    "investigating" -> "closed"
+                                    "closed" -> "open"
+                                    else -> "open"
+                                }
                                 form(
-                                    action = "/admin/ai-engineer-whitelist/revoke",
+                                    action = "/admin/diagnosis/issues/${issue.id}/status",
                                     method = FormMethod.post,
                                     classes = "inline",
                                 ) {
-                                    input(type = InputType.hidden, name = "email") { value = e.email }
-                                    input(type = InputType.submit, classes = "btn-sm btn-danger") { value = "移除" }
+                                    input(type = InputType.hidden, name = "status") { value = nextStatus }
+                                    input(type = InputType.submit, classes = "btn-sm") {
+                                        value = when (nextStatus) {
+                                            "investigating" -> "开始处理"
+                                            "closed" -> "关闭"
+                                            else -> "重新打开"
+                                        }
+                                    }
+                                }
+                                if (issue.githubIssueUrl.isBlank()) {
+                                    form(
+                                        action = "/admin/diagnosis/issues/${issue.id}/sync-github",
+                                        method = FormMethod.post,
+                                        classes = "inline",
+                                    ) {
+                                        input(type = InputType.submit, classes = "btn-sm btn-go") { value = "同步 GitHub" }
+                                    }
                                 }
                             }
                         }
@@ -1305,7 +1407,7 @@ object AdminViews {
                 a("/admin/traffic", classes = "nav-link") { +"流量" }
                 a("/admin/channels", classes = "nav-link") { +"渠道" }
                 a("/admin/settings", classes = "nav-link") { +"设置" }
-                a("/admin/ai-engineer-whitelist", classes = "nav-link") { +"AI 白名单" }
+                a("/admin/diagnosis", classes = "nav-link") { +"问题诊断" }
                 a("/admin/apk", classes = "nav-link") { +"APK" }
             }
             div("nav-spacer") {}

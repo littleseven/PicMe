@@ -666,6 +666,36 @@ class ChatViewModel(
         }
     }
 
+    // ── 问题上报 ──────────────────────────────────
+    private val issueReportClient = dependencies.issueReportClient
+
+    private val _issueReportState = MutableStateFlow<IssueReportState>(IssueReportState.Idle)
+    val issueReportState: StateFlow<IssueReportState> = _issueReportState.asStateFlow()
+
+    fun submitIssueReport(category: String, title: String, description: String) {
+        val token = _serverAuthToken.value
+        if (token.isBlank()) {
+            _issueReportState.value = IssueReportState.Error("请先登录账号后再上报问题")
+            return
+        }
+        if (title.isBlank()) {
+            _issueReportState.value = IssueReportState.Error("请输入问题标题")
+            return
+        }
+        _issueReportState.value = IssueReportState.Submitting
+        viewModelScope.launch {
+            val result = issueReportClient.submit(token, category, title, description)
+            _issueReportState.value = result.fold(
+                onSuccess = { IssueReportState.Success(it) },
+                onFailure = { IssueReportState.Error(it.message ?: "上报失败，请稍后重试") }
+            )
+        }
+    }
+
+    fun resetIssueReportState() {
+        _issueReportState.value = IssueReportState.Idle
+    }
+
     /** 远程模式且未注册（无 server token）→ 访客试用，由服务端设备级额度放行。 */
     val isGuestMode: StateFlow<Boolean> = combine(_currentModel, _serverAuthToken) { model, token ->
         model is ChatModelOption.Remote && token.isBlank()
@@ -2562,6 +2592,14 @@ class ChatViewModel(
             }
         }
     }
+}
+
+/** Chat 问题上报 UI 状态。 */
+sealed interface IssueReportState {
+    data object Idle : IssueReportState
+    data object Submitting : IssueReportState
+    data class Success(val issueId: Int) : IssueReportState
+    data class Error(val message: String) : IssueReportState
 }
 
 /**
