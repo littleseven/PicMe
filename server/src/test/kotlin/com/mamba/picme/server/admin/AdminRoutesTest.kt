@@ -5,6 +5,7 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
+import com.mamba.picme.server.db.AiEngineerWhitelists
 import com.mamba.picme.server.db.Db
 import com.mamba.picme.server.db.LlmCallLogs
 import com.mamba.picme.server.db.ServerSettings
@@ -273,7 +274,7 @@ class AdminRoutesTest {
 
     @Test
     fun `settings page round-trips free and guest quota`() = testApplication {
-        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices, ServerSettings)
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices, ServerSettings, AiEngineerWhitelists)
         SettingsService.load()
         application { routing { adminRoute(token, cos, balance) } }
         val c = createClient { followRedirects = false }

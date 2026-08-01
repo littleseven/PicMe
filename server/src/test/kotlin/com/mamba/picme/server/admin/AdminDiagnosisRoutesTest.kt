@@ -50,26 +50,26 @@ class AdminDiagnosisRoutesTest {
     }
 
     @Test
-    fun `旧白名单路径 301 重定向到诊断页`() = testApplication {
+    fun `旧白名单路径 301 重定向到设置页白名单区块`() = testApplication {
         seed()
         application { routing { adminRoute(token, cos, balance, issueReportService = issueService) } }
         val c = createClient { followRedirects = false }
         val resp = c.get("/admin/ai-engineer-whitelist") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.MovedPermanently, resp.status)
-        assertTrue(resp.headers[HttpHeaders.Location]?.contains("/admin/diagnosis?tab=whitelist") == true)
+        assertTrue(resp.headers[HttpHeaders.Location]?.contains("/admin/settings#whitelist") == true)
     }
 
     @Test
-    fun `管理员可查看白名单 tab`() = testApplication {
+    fun `管理员可在设置页查看白名单`() = testApplication {
         seed()
         application { routing { adminRoute(token, cos, balance, issueReportService = issueService) } }
-        val resp = client.get("/admin/diagnosis?tab=whitelist") {
+        val resp = client.get("/admin/settings") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)
         }
         assertEquals(HttpStatusCode.OK, resp.status)
         val html = resp.bodyAsText()
         assertTrue(html.contains("AI 工程师白名单"))
-        assertTrue(html.contains("/admin/diagnosis/whitelist"))
+        assertTrue(html.contains("/admin/settings/whitelist"))
     }
 
     @Test
@@ -77,26 +77,26 @@ class AdminDiagnosisRoutesTest {
         seed()
         application { routing { adminRoute(token, cos, balance, issueReportService = issueService) } }
         val c = createClient { followRedirects = false }
-        val resp = c.post("/admin/diagnosis/whitelist") {
+        val resp = c.post("/admin/settings/whitelist") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)
             contentType(ContentType.Application.FormUrlEncoded)
             setBody("email=admin%40x.com")
         }
         assertEquals(HttpStatusCode.Found, resp.status)
-        assertTrue(resp.headers[HttpHeaders.Location]?.contains("/admin/diagnosis?tab=whitelist") == true)
+        assertTrue(resp.headers[HttpHeaders.Location]?.contains("/admin/settings") == true)
     }
 
     @Test
-    fun `管理员可查看用户上报问题 tab`() = testApplication {
+    fun `管理员可查看用户上报问题`() = testApplication {
         seed()
         runBlocking { issueService.submit(1, "u@x.com", "crash", "闪退", "打开相册闪退") }
         application { routing { adminRoute(token, cos, balance, issueReportService = issueService) } }
-        val resp = client.get("/admin/diagnosis?tab=issues") {
+        val resp = client.get("/admin/diagnosis") {
             cookie(AdminAuth.COOKIE_NAME, cookieVal)
         }
         assertEquals(HttpStatusCode.OK, resp.status)
         val html = resp.bodyAsText()
-        assertTrue(html.contains("用户上报问题"))
+        assertTrue(html.contains("问题诊断"))
         assertTrue(html.contains("闪退"))
     }
 

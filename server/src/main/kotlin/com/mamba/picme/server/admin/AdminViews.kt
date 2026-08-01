@@ -362,12 +362,18 @@ object AdminViews {
         }
     }
 
-    fun settingsPage(snap: SettingsService.Snapshot, message: String? = null): String = createHTML().html {
+    fun settingsPage(
+        snap: SettingsService.Snapshot,
+        whitelist: List<AiEngineerWhitelistService.Entry>,
+        message: String? = null,
+    ): String = createHTML().html {
         adminHead("设置 · PoLang 管理后台")
         body {
             navBar()
             h1 { +"额度默认值（全局）" }
-            if (message != null) p("err") { +message }
+            if (message != null) {
+                div("toast ${if (message.startsWith("已") || message.startsWith("成功")) "toast-ok" else "toast-err"}") { +message }
+            }
             div("card apk-info-card") {
                 p("meta") {
                     +"影响：free 用于新注册账号初始上限；guest 用于未注册访客设备上限。"
@@ -398,6 +404,11 @@ object AdminViews {
                         input(type = InputType.submit, classes = "btn") { value = "保存" }
                     }
                 }
+            }
+            div {
+                attributes["id"] = "whitelist"
+                h1 { +"AI 工程师白名单" }
+                whitelistSection(whitelist)
             }
         }
     }
@@ -1252,8 +1263,6 @@ object AdminViews {
     }
 
     fun diagnosisPage(
-        tab: String,
-        entries: List<AiEngineerWhitelistService.Entry>,
         issues: List<IssueReportService.IssueRow>,
         message: String? = null,
     ): String = createHTML().html {
@@ -1264,20 +1273,7 @@ object AdminViews {
             if (message != null) {
                 div("toast ${if (message.startsWith("已") || message.startsWith("成功") || message.startsWith("状态")) "toast-ok" else "toast-err"}") { +message }
             }
-            div("subtabs") {
-                a(
-                    "/admin/diagnosis?tab=whitelist",
-                    classes = if (tab == "whitelist") "subtab active" else "subtab",
-                ) { +"AI 工程师白名单" }
-                a(
-                    "/admin/diagnosis?tab=issues",
-                    classes = if (tab == "issues") "subtab active" else "subtab",
-                ) { +"用户上报问题 (${issues.size})" }
-            }
-            when (tab) {
-                "issues" -> issuesSection(issues)
-                else -> whitelistSection(entries)
-            }
+            issuesSection(issues)
         }
     }
 
@@ -1285,7 +1281,7 @@ object AdminViews {
         p("meta") { +"空表 = 所有用户可诊断，但均不可交付代码；加入邮箱后才开放写链路。" }
         div("card limit-card") {
             div("card-label") { +"添加邮箱" }
-            form(action = "/admin/diagnosis/whitelist", method = FormMethod.post, classes = "inline") {
+            form(action = "/admin/settings/whitelist", method = FormMethod.post, classes = "inline") {
                 input(type = InputType.email, name = "email") {
                     placeholder = "user@example.com"
                     style = "width:280px"
@@ -1313,7 +1309,7 @@ object AdminViews {
                         td { +fmtTs(e.createdAt) }
                         td {
                             form(
-                                action = "/admin/diagnosis/whitelist/revoke",
+                                action = "/admin/settings/whitelist/revoke",
                                 method = FormMethod.post,
                                 classes = "inline",
                             ) {

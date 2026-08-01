@@ -241,8 +241,11 @@ fun Route.adminRoute(
 
         get("/settings") {
             if (!call.adminGuard(adminToken)) return@get
-            val msg = call.request.queryParameters["err"]
-            call.respondText(AdminViews.settingsPage(SettingsService.snapshot(), msg), ContentType.Text.Html)
+            val msg = call.request.queryParameters["msg"]
+            call.respondText(
+                AdminViews.settingsPage(SettingsService.snapshot(), AiEngineerWhitelistService.list(), msg),
+                ContentType.Text.Html,
+            )
         }
 
         post("/settings") {
@@ -252,7 +255,11 @@ fun Route.adminRoute(
             val guest = params["guest_llm_quota"]?.toIntOrNull()
             if (free == null || guest == null || free <= 0 || guest <= 0) {
                 call.respondText(
-                    AdminViews.settingsPage(SettingsService.snapshot(), "参数错误：两个值都必须是正整数"),
+                    AdminViews.settingsPage(
+                        SettingsService.snapshot(),
+                        AiEngineerWhitelistService.list(),
+                        "参数错误：两个值都必须是正整数",
+                    ),
                     ContentType.Text.Html,
                     HttpStatusCode.BadRequest,
                 )
@@ -260,6 +267,31 @@ fun Route.adminRoute(
             }
             SettingsService.update(free, guest)
             call.respondRedirect("/admin/settings")
+        }
+
+        // ── AI 工程师白名单（设置页）──
+        post("/settings/whitelist") {
+            if (!call.adminGuard(adminToken)) return@post
+            val params = call.receiveParameters()
+            val email = (params["email"] ?: "").trim().lowercase()
+            val msg = when {
+                email.isBlank() || !email.contains("@") -> "请输入有效邮箱"
+                AiEngineerWhitelistService.allow(email) -> "已添加 $email"
+                else -> "$email 已在白名单中"
+            }
+            call.respondRedirect("/admin/settings?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}#whitelist")
+        }
+
+        post("/settings/whitelist/revoke") {
+            if (!call.adminGuard(adminToken)) return@post
+            val params = call.receiveParameters()
+            val email = (params["email"] ?: "").trim().lowercase()
+            val msg = when {
+                email.isBlank() -> "请输入有效邮箱"
+                AiEngineerWhitelistService.revoke(email) -> "已移除 $email"
+                else -> "$email 不在白名单中"
+            }
+            call.respondRedirect("/admin/settings?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}#whitelist")
         }
 
         get("/channels") {
@@ -384,46 +416,19 @@ fun Route.adminRoute(
             call.respondRedirect("/admin/channels")
         }
 
-        // ── 问题诊断页（AI 工程师白名单 + 用户上报问题）──
+        // ── 问题诊断页（用户上报问题；AI 工程师白名单已迁至 /admin/settings）──
         get("/diagnosis") {
             if (!call.adminGuard(adminToken)) return@get
-            val tab = call.request.queryParameters["tab"] ?: "whitelist"
             val msg = call.request.queryParameters["msg"]
-            val entries = AiEngineerWhitelistService.list()
-            val issues = if (tab == "issues") issueReportService.list() else emptyList()
             call.respondText(
-                AdminViews.diagnosisPage(tab = tab, entries = entries, issues = issues, message = msg),
+                AdminViews.diagnosisPage(issues = issueReportService.list(), message = msg),
                 ContentType.Text.Html,
             )
         }
 
-        // 旧路径 301 重定向到新诊断页
+        // 旧路径 301 重定向到设置页白名单区块
         get("/ai-engineer-whitelist") {
-            call.respondRedirect("/admin/diagnosis?tab=whitelist", permanent = true)
-        }
-
-        post("/diagnosis/whitelist") {
-            if (!call.adminGuard(adminToken)) return@post
-            val params = call.receiveParameters()
-            val email = (params["email"] ?: "").trim().lowercase()
-            val msg = when {
-                email.isBlank() || !email.contains("@") -> "请输入有效邮箱"
-                AiEngineerWhitelistService.allow(email) -> "已添加 $email"
-                else -> "$email 已在白名单中"
-            }
-            call.respondRedirect("/admin/diagnosis?tab=whitelist&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
-        }
-
-        post("/diagnosis/whitelist/revoke") {
-            if (!call.adminGuard(adminToken)) return@post
-            val params = call.receiveParameters()
-            val email = (params["email"] ?: "").trim().lowercase()
-            val msg = when {
-                email.isBlank() -> "请输入有效邮箱"
-                AiEngineerWhitelistService.revoke(email) -> "已移除 $email"
-                else -> "$email 不在白名单中"
-            }
-            call.respondRedirect("/admin/diagnosis?tab=whitelist&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/settings#whitelist", permanent = true)
         }
 
         post("/diagnosis/issues/{id}/status") {
@@ -436,7 +441,7 @@ fun Route.adminRoute(
             } else {
                 "参数错误"
             }
-            call.respondRedirect("/admin/diagnosis?tab=issues&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/diagnosis?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
         post("/diagnosis/issues/{id}/sync-github") {
@@ -453,7 +458,7 @@ fun Route.adminRoute(
             } else {
                 "参数错误"
             }
-            call.respondRedirect("/admin/diagnosis?tab=issues&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/diagnosis?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
         get("/apk") {
