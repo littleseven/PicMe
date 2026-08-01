@@ -305,7 +305,7 @@ strings model.mnn | grep -E "minusscalar|mulscalar"
 | 模型从 ONNX 转换而来 | [onnx-model-integration](/onnx-model-integration) |
 | 人脸关键点对齐问题 | [mnn-landmark-diagnosis](/mnn-landmark-diagnosis) |
 | Vulkan/GPU 相关问题 | [av-gl-expert](/av-gl-expert) |
-| NCNN 对比/迁移 | [ncnn-integration](/ncnn-integration) |
+| ONNX 模型接入 | [onnx-model-integration](/onnx-model-integration) |
 | 编译错误 | [error-healer](/error-healer) |
 
 ---
@@ -331,7 +331,7 @@ strings model.mnn | grep -E "minusscalar|mulscalar"
 - [MNN 文档](https://mnn-docs.readthedocs.io/)
 - `docs/03-TECHNICAL-SPECS/MNN_LANDMARK_DIAGNOSIS.md` — MNN 人脸关键点对齐诊断
 - `beauty-engine/src/main/cpp/mnn_face_detector.cpp` — CV 推理参考实现
-- `beauty-engine/src/main/cpp/llm_jni_bridge.cpp` — LLM JNI 桥接参考实现
+- `runtime-core/src/main/cpp/llm_jni_bridge.cpp` — LLM JNI 桥接参考实现
 
 ---
 
