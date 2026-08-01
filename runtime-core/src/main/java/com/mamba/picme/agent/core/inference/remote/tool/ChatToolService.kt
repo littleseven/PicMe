@@ -333,7 +333,7 @@ class ChatToolService private constructor() {
         @P(name = "model_id", value = "模型 id") modelId: String
     ): String = dispatchCommand(AgentCommand.DownloadModel(modelId = modelId))
 
-    @Tool(name = "switch_face_engine", value = ["切换人脸检测引擎。engine: mediapipe/mnn/ncnn/mlkit。"])
+    @Tool(name = "switch_face_engine", value = ["切换人脸检测引擎。engine: mediapipe/mnn/mlkit。"])
     fun switchFaceEngine(
         @P(name = "engine", value = "引擎名") engine: String
     ): String = dispatchCommand(AgentCommand.SwitchFaceEngine(engine = engine))
