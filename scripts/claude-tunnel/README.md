@@ -30,3 +30,13 @@ bash smoke/run-smoke.sh                      # mock claude 端到端
 - deliver 仅 push 模式（pr/auto 二期）。
 - 无并发隔离（多 session 共享 KimiClaw 资源，Phase 1 单用户够用）。
 - claude 以 root 运行需 `IS_SANDBOX=1`（网关 `server.py` 已设；手动实测也要带）。
+
+## MCP app 工具（2026-08-01，AI 工程师模式）
+
+`app_tools_mcp.py` 是 gateway 同目录的 MCP stdio server，向 Claude Code 暴露 5 个 `app_*` 工具（日志/崩溃/聊天历史/运行时状态/相册摘要）。tool call 经 SSE 下行 `app_tool_request` 到 App，App 采集后经 `POST /v1/claude-tool-result` 回传，gateway 再返回给 MCP。
+
+部署说明：
+- `app_tools_mcp.py` 随 `gateway/` 一起部署，无额外步骤。
+- gateway 启动时自动生成 `app-tools.mcp.json`（MCP 配置，含**绝对路径**，属运行时生成物，已在 `gateway/.gitignore` 中忽略，勿提交）。
+- 新环境变量 `CT_APP_TOOL_TIMEOUT`：单次 app tool 调用超时秒数，默认 `60`，可在 `tunnel.env` 覆盖。
+- 发版流程不变：`ssh kimi-worker 'cd /root/polang && git pull && systemctl restart gateway'`（重启 gateway 即生效）。

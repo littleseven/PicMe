@@ -1,5 +1,8 @@
 # 远程诊断（云主机 Claude Code worker）
 
+> **状态**：⛔ SUPERSEDED（2026-08-01）——诊断模式已合并入 AI 工程师模式，见
+> `2026-08-01-ai-engineer-diag-merge-design.md`。本文仅作历史存档。
+
 > **日期**：2026-07-30
 > **状态**：已确认，待实施
 > **范围**：`app/`（手机端诊断采集与 chat 触发）、`server/`（会合点队列与状态机）、`scripts/diag-worker/`（云主机 worker，egress-only）

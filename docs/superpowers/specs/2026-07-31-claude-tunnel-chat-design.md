@@ -1,5 +1,7 @@
 # 反向隧道接入 KimiClaw Claude Code：app 内实时 agent chat
 
+> **演进（2026-08-01）**：新增 MCP app 工具通道（`app_tool_request`/`/v1/claude-tool-result`）并吸收诊断模式，见 `2026-08-01-ai-engineer-diag-merge-design.md`。
+
 > **日期**：2026-07-31
 > **状态**：已确认，待实施
 > **范围**：跨端 —— `app/`（claude-chat 通道 + agent 步骤渲染 + 交付闭环）、`server/`（反代端点 + 三层鉴权 + 健康推断 + 限流）、`scripts/claude-tunnel/`（chisel 部署 + Claude 流式网关，KimiClaw 侧）
