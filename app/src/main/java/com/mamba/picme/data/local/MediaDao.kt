@@ -36,6 +36,14 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE labels LIKE '%' || :label || '%' ORDER BY captureDate DESC")
     suspend fun searchByLabel(label: String): List<MediaEntity>
 
+    /** 统计三字段标签中提及指定关键词的媒体数量（人物页计数徽章用，轻量，不加载实体） */
+    @Query(
+        "SELECT COUNT(*) FROM media_assets WHERE labels LIKE '%' || :keyword || '%' " +
+            "OR labelsEn LIKE '%' || :keyword || '%' " +
+            "OR labelsZh LIKE '%' || :keyword || '%'"
+    )
+    suspend fun countMediaByLabelMention(keyword: String): Int
+
     /** 按标签搜索（labels/labelsEn/labelsZh 三字段 OR：中英文直查 + 覆盖新老数据） */
     @Query(
         "SELECT * FROM media_assets WHERE labels LIKE '%' || :keyword || '%' " +
@@ -555,7 +563,8 @@ interface MediaDao {
      * 从备份批量更新 TAG 相关元数据字段。
      * 一次性写入 labels / mlKitLabels / mlKitLabelsZh / ocrText / 地理位置 /
      * faceRoiResult / semanticEmbedding / lastTagScanAt / lastTagScanPasses /
-     * hasFace / faceId，避免还原时多次 UPDATE。
+     * hasFace / faceId / city / faceFocusY / aestheticScore / faceQualityScore，
+     * 避免还原时多次 UPDATE。
      */
     @Query(
         """
@@ -574,7 +583,11 @@ interface MediaDao {
             lastTagScanAt = :lastTagScanAt,
             lastTagScanPasses = :lastTagScanPasses,
             hasFace = :hasFace,
-            faceId = :faceId
+            faceId = :faceId,
+            city = :city,
+            faceFocusY = :faceFocusY,
+            aestheticScore = :aestheticScore,
+            faceQualityScore = :faceQualityScore
         WHERE id = :mediaId
         """
     )
@@ -595,7 +608,11 @@ interface MediaDao {
         lastTagScanAt: Long?,
         lastTagScanPasses: String?,
         hasFace: Boolean,
-        faceId: String?
+        faceId: String?,
+        city: String?,
+        faceFocusY: Float?,
+        aestheticScore: Float?,
+        faceQualityScore: Float?
     )
 }
 

@@ -39,4 +39,8 @@ interface ChatSessionDao {
 
     @Query("SELECT * FROM chat_sessions ORDER BY updatedAt DESC")
     fun getAllSessions(): Flow<List<ChatSessionEntity>>
+
+    /** 快照导出：全量会话（备份用） */
+    @Query("SELECT * FROM chat_sessions ORDER BY updatedAt DESC")
+    suspend fun getAllSessionsNow(): List<ChatSessionEntity>
 }

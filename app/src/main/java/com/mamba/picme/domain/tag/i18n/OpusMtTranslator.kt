@@ -43,6 +43,14 @@ class OpusMtTranslator(
 
     private val dir get() = modelDir ?: com.mamba.picme.data.download.ModelPathConfig.getModelDir(context, "opus-mt-zh-en")
 
+    /**
+     * 初始化模型与词表（幂等）。
+     *
+     * @Synchronized：搜索并发场景（如人物页批量计数、多层召回并行）下，
+     * check-then-act（isInit 检查后建 session）竞态会重复创建 ONNX 会话，
+     * 每套 enc/dec/dec-past 会话占数百 MB native 内存，曾致 native heap 爆至 5GB+。
+     */
+    @Synchronized
     fun init(): Boolean {
         if (isInit) return true
         try {
@@ -87,6 +95,9 @@ class OpusMtTranslator(
             if (pf.exists()) decPast = ortEnv.createSession(pf.absolutePath, opt)
             Log.i(TAG, "OpusMtTranslator initialized")
             return true
+        } catch (e: OutOfMemoryError) {
+            // 堆耗尽时降级为「无 MT 翻译」，避免 OOM(Error) 击穿调用方 Exception 捕获直接 crash
+            Log.e(TAG, "Init aborted: out of memory", e); release(); return false
         } catch (e: Exception) { Log.e(TAG, "Init failed", e); release(); return false }
     }
 

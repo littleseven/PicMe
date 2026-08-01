@@ -14,10 +14,12 @@ import com.squareup.moshi.JsonClass
  * - v2：新增人脸 Embedding、人物聚类、OCR 倒排索引、地理位置关系
  * - v3：新增 DataStore 用户偏好（账号、Token、设置等）
  * - v4：新增媒体反馈（media_feedback，用户 like/dislike 训练数据）
+ * - v5：新增聊天会话/消息、人物关系、事实记忆、编辑配方，
+ *   媒体 TAG 元数据补 city/faceFocusY/aestheticScore/faceQualityScore
  */
 @JsonClass(generateAdapter = true)
 data class TagDataBackup(
-    val version: Int = 4,
+    val version: Int = 5,
     val exportedAt: Long,
     val tags: List<BackupTag>,
     val mediaTagMetadata: List<BackupMediaTagMetadata>,
@@ -30,7 +32,12 @@ data class TagDataBackup(
     val locationHierarchy: List<BackupLocationHierarchy> = emptyList(),
     val mediaLocations: List<BackupMediaLocation> = emptyList(),
     val mediaFeedback: List<BackupMediaFeedback> = emptyList(),
-    val preferences: BackupPreferences = BackupPreferences()
+    val preferences: BackupPreferences = BackupPreferences(),
+    val chatSessions: List<BackupChatSession> = emptyList(),
+    val chatMessages: List<BackupChatMessage> = emptyList(),
+    val personRelations: List<BackupPersonRelation> = emptyList(),
+    val memoryFacts: List<BackupMemoryFact> = emptyList(),
+    val photoEditRecipes: List<BackupPhotoEditRecipe> = emptyList()
 )
 
 /**
@@ -76,7 +83,11 @@ data class BackupMediaTagMetadata(
     val lastTagScanAt: Long? = null,
     val lastTagScanPasses: String? = null,
     val hasFace: Boolean = false,
-    val faceId: String? = null
+    val faceId: String? = null,
+    val city: String? = null,
+    val faceFocusY: Float? = null,
+    val aestheticScore: Float? = null,
+    val faceQualityScore: Float? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -174,4 +185,68 @@ data class BackupMediaFeedback(
     val queryText: String,
     val sessionId: String,
     val createdAt: Long
+)
+
+/** 聊天会话元数据 */
+@JsonClass(generateAdapter = true)
+data class BackupChatSession(
+    val sessionId: String,
+    val title: String,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+/**
+ * 聊天消息。
+ *
+ * 已知限制：图片消息的 [content] 为旧安装的本地文件路径，
+ * 跨安装恢复后图片文件可能不存在，仅保留消息记录本身。
+ */
+@JsonClass(generateAdapter = true)
+data class BackupChatMessage(
+    val id: String,
+    val sessionId: String,
+    val type: String,
+    val content: String,
+    val timestamp: Long,
+    val modelUsed: String? = null,
+    val metadata: String? = null
+)
+
+/**
+ * 人物关系图谱边。subject/objectPersonId 为旧安装的本地自增 personId，
+ * 恢复时通过 oldPersonId → newPersonId 映射重定位（与人物聚类同一映射）。
+ */
+@JsonClass(generateAdapter = true)
+data class BackupPersonRelation(
+    val subjectPersonId: Long,
+    val objectPersonId: Long,
+    val predicate: String,
+    val source: String,
+    val customLabel: String? = null,
+    val confidence: Float = 1.0f,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+/** 通用事实记忆（"帮我记住…"），无外部引用，恢复时直接插入 */
+@JsonClass(generateAdapter = true)
+data class BackupMemoryFact(
+    val content: String,
+    val category: String? = null,
+    val source: String,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+/**
+ * 非破坏性编辑配方。outputUri 即主键，直接写入；
+ * 已知限制：跨安装恢复后 outputUri 指向的媒体可能已不存在。
+ */
+@JsonClass(generateAdapter = true)
+data class BackupPhotoEditRecipe(
+    val outputUri: String,
+    val sourceUri: String,
+    val recipeJson: String,
+    val updatedAt: Long
 )

@@ -11,11 +11,7 @@ import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.domain.person.RelationDisplayItem
 import com.mamba.picme.domain.person.RelationPredicate
 import com.mamba.picme.domain.tag.FaceClusterEngine
-import com.mamba.picme.features.gallery.capability.GalleryCapability
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,22 +78,15 @@ class PersonViewModel(
             }
             val photoCountMap = withContext(Dispatchers.IO) {
                 val distinctCounts = db.personDao().getDistinctMediaCounts().associate { it.personId to it.count }
-                val searchEngine = GalleryCapability.getInstance().searchEngine
-                if (searchEngine == null) {
-                    distinctCounts
-                } else {
-                    val namedPersons = all.filter { !it.name.isNullOrBlank() }
-                    val searchCounts = coroutineScope {
-                        namedPersons.map { person ->
-                            async {
-                                val count = searchEngine.search(person.name!!).media.size
-                                person.personId to count
-                            }
-                        }.awaitAll().toMap()
-                    }
-                    distinctCounts.toMutableMap().apply {
-                        searchCounts.forEach { (id, count) ->
-                            if (count > 0) this[id] = count
+                // 命名人物补充「标签提及」计数：轻量 SQL 统计，不走搜索引擎。
+                // 旧实现对每个命名人物并发全量 search()，会并行拖入 MobileCLIP/OPUS-MT
+                // 初始化与全库候选加载，在 256MB 堆上引发 OOM 与主线程卡顿（2026-08-01 事故）。
+                val namedPersons = all.filter { !it.name.isNullOrBlank() }
+                distinctCounts.toMutableMap().apply {
+                    namedPersons.forEach { person ->
+                        val mentionCount = db.mediaDao().countMediaByLabelMention(person.name!!)
+                        if (mentionCount > 0) {
+                            this[person.personId] = maxOf(this[person.personId] ?: 0, mentionCount)
                         }
                     }
                 }

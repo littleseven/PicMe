@@ -418,6 +418,11 @@ class AppContainerImpl(
             ocrWordDao = database.ocrWordDao(),
             locationDao = database.locationDao(),
             mediaFeedbackDao = database.mediaFeedbackDao(),
+            chatMessageDao = database.chatMessageDao(),
+            chatSessionDao = database.chatSessionDao(),
+            personRelationDao = database.personRelationDao(),
+            memoryFactDao = database.memoryFactDao(),
+            photoEditRecipeDao = database.photoEditRecipeDao(),
             dataStore = context.dataStore
         )
     }
