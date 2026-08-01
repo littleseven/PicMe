@@ -62,7 +62,6 @@ tags:
 
 ## 📚 专项技术文档索引
 - **渲染管线**：`docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`
-- **相机集成**：`docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md`
 - **离屏拍照**：`docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md`
 - **坐标系规范**：`docs/07-STANDARDS/COORDINATE_SYSTEM.md`
 
@@ -357,7 +356,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 
 **A**: 
 1. 检查坐标系是否统一使用**图像坐标系**（详见 [COORDINATE_SYSTEM_STANDARD.md](../../docs/07-STANDARDS/COORDINATE_SYSTEM.md)）
-2. 检查 468→106 映射表是否正确（参考 [INSIGHTFACE_106_MAPPING.md](../../docs/03-TECHNICAL-SPECS/INSIGHTFACE_106_MAPPING.md)）
+2. 检查 468→106 映射表是否正确（参考 [FACE_LANDMARKS.md](../../docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md)）
 3. 检查旋转校正是否应用：
    ```kotlin
    // 根据 rotationDegrees 调整坐标
@@ -381,10 +380,9 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 ## 📚 参考文档
 
 ### 内部文档
-- [CAMERA_PREVIEW_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md) - 相机预览技术规格
 - [BIG_BEAUTY_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 大美丽引擎技术规格
 - [ADR-002-opengl-offscreen-unified-pipeline.md](docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md) - 离屏渲染架构决策
-- [BEAUTY_ENGINE_FALLBACK.md](docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md) - 引擎容灾降级策略
+- [FACE_LANDMARKS.md](docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md) - 人脸关键点规范
 
 ### 外部资源
 - [OpenGL ES 2.0 Reference](https://www.khronos.org/opengles/sdk/docs/man/)

@@ -67,7 +67,6 @@ tags:
 | 人脸检测 | Face Detection | `FaceDetector / FaceData` | beauty-engine |
 | 106 点 | 人脸关键点 (106 landmarks) | `landmarks106` | beauty-engine |
 | MediaPipe | MediaPipe Face Mesh | `MediaPipe468Adapter` | beauty-engine |
-| InsightFace | InsightFace 2D106 | `InsightFaceDetector` | beauty-engine |
 
 ### 相机相关
 
@@ -150,7 +149,6 @@ tags:
 
 [Feature] + camera:
   - app/src/main/java/com/mamba/picme/features/camera/AGENTS.md
-  - docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md
   - docs/01-PRODUCT/FEATURES.md (Section 2.1)
   - app/src/main/java/com/mamba/picme/features/camera/*.kt (最新修改的 3 个文件)
 
