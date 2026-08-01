@@ -119,8 +119,11 @@ server/
 | GET | `/admin/devices` | P1 | ✅ | ADMIN_TOKEN | 未注册设备列表（anonymous_device） |
 | GET | `/admin/devices/{id}/raw` | P1 | ✅ | ADMIN_TOKEN | 设备 id 复制（返回完整 device_id） |
 | POST | `/admin/devices/{id}/delete` | P1 | ✅ | ADMIN_TOKEN | 删除单条设备访客记录 |
-| GET | `/admin/settings` | P1 | ✅ | ADMIN_TOKEN | 全局额度默认值（free/guest）表单 |
+| GET | `/admin/settings` | P1 | ✅ | ADMIN_TOKEN | 全局额度默认值（free/guest）表单 + AI 工程师白名单区块（`#whitelist`） |
 | POST | `/admin/settings` | P1 | ✅ | ADMIN_TOKEN | 更新全局额度默认值 |
+| POST | `/admin/settings/whitelist` | P1 | ✅ | ADMIN_TOKEN | 添加 AI 工程师白名单邮箱 |
+| POST | `/admin/settings/whitelist/revoke` | P1 | ✅ | ADMIN_TOKEN | 移除 AI 工程师白名单邮箱 |
+| GET | `/admin/diagnosis` | P1 | ✅ | ADMIN_TOKEN | 用户上报问题列表（状态流转 / 手动同步 GitHub） |
 | POST | `/admin/users/{id}/reset-quota` | P1 | ✅ | ADMIN_TOKEN | 清零单账号已用额度（保留 llm_call_log 历史） |
 | POST | `/admin/users/{id}/limit` | P1 | ✅ | ADMIN_TOKEN | 改单账号调用上限（0=禁用但保留 token） |
 | POST | `/admin/devices/{id}/reset-quota` | P1 | ✅ | ADMIN_TOKEN | 清零访客设备已用额度 |
