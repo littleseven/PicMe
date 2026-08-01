@@ -4,7 +4,8 @@ After=network.target gateway.service
 
 [Service]
 EnvironmentFile=/root/claude-tunnel.env
-ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel client --auth "$CHISEL_PSK" https://api.polang.net/tunnel R:3001:127.0.0.1:3000 R:3022:127.0.0.1:22'
+# R: 显式绑 127.0.0.1——缺省绑 0.0.0.0 会把 gateway/ssh 直接暴露公网、绕过 Ktor 鉴权（2026-08-01 修复）
+ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel client --auth "$CHISEL_PSK" https://api.polang.net/tunnel R:127.0.0.1:3001:127.0.0.1:3000 R:127.0.0.1:3022:127.0.0.1:22'
 Restart=always
 RestartSec=5
 

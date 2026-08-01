@@ -113,7 +113,14 @@ app 点「交付」→ `POST /v1/claude-deliver {sid}` → server 反代 → gat
 
 **已完成**：隧道（chisel）+ 流式网关（事件协议 + session/workdir + 异步 deliver）+ server 反代（chat SSE + deliver JSON + 三层鉴权 + 健康推断 + 限流）+ app claude-chat 通道（toggle + agent 气泡 + 多轮 + 交付）+ 脱敏 + 图片禁用 + 权限 repo 化 + systemd/反向 SSH 运维自动化。**端到端真机验证通过**（chat 流式 → 改码 → 推 `claude-chat/<sid>` 分支）。
 
-**二期**：GLM 成本精细化额度池；session 跨设备恢复；多 KimiClaw 容灾（多 chisel client）；Claude 工具权限精细化（白名单可跑命令）；`/admin` 观测页（类似 `/admin/diag`）；workdir 清理策略；deliver pr/auto 模式。
+**二期**：GLM 成本精细化额度池；session 跨设备恢复；多 KimiClaw 容灾（多 chisel client）；Claude 工具权限精细化（白名单可跑命令）；`/admin` 观测页（类似 `/admin/diag`）；deliver pr/auto 模式。
+
+**运维修复（2026-08-01 下午）**：
+
+- **Ktor SSE 反代缓存**（`3460966c`）：`httpClient.post()` 等完整响应体才返回，SSE 帧憋到回合结束才下行，`app_tool_request` 永远超 60s → 改 `preparePost().execute{}` 真流式。
+- **chisel CPU 空转**（[issue #608](https://github.com/jpillora/chisel/issues/608)）：1.11.8 keepAliveLoop goroutine 泄漏，空闲也吃 100%+ CPU（prod 负载 2.26 的唯一原因）→ server 升 1.12.0-rc2（ping 超时修复；client 1.11.8 兼容），回滚备份 `/usr/local/bin/chisel.1.11.8.bak`。
+- **R: 监听绑定**：原 `R:3001:...`/`R:3022:...` 在 prod 绑 0.0.0.0，gateway/ssh 直接暴露公网绕过 Ktor 鉴权 → 改 `R:127.0.0.1:3001:...`/`R:127.0.0.1:3022:...`（unit 与 repo 同步）。
+- **workdir 清理**：KimiClaw cron `17 4 * * * find /root/polang-work -mindepth 1 -maxdepth 1 -mtime +7 -exec rm -rf {} +`（workdir 在 /root/polang-work，非 /tmp）。
 
 **演进（2026-08-01，AI 工程师模式）**：
 
