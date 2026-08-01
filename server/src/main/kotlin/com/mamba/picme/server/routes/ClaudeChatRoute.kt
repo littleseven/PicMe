@@ -5,6 +5,7 @@ import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.ratelimit.RateLimiter
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
+import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
@@ -37,10 +38,27 @@ fun Route.claudeChatRoute(httpClient: HttpClient, rateLimiter: RateLimiter?) {
             call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to "rate_limit_exceeded")); return@post
         }
         val body = call.receiveText()
-        val upstream = try {
-            httpClient.post(CLAUDE_UPSTREAM) {
+        // preparePost + execute：Ktor client 的 post() 会等完整响应体才返回（SSE 被整体缓存，
+        // app_tool_request 无法在回合进行中下行）——execute 块内逐 chunk 透传才是真流式。
+        try {
+            httpClient.preparePost(CLAUDE_UPSTREAM) {
                 contentType(ContentType.Application.Json)
                 setBody(body)
+            }.execute { upstream ->
+                call.respondBytesWriter(ContentType.Text.EventStream, upstream.status) {
+                    val ch = upstream.bodyAsChannel()
+                    val buf = ByteArray(8 * 1024)
+                    try {
+                        while (!ch.isClosedForRead) {
+                            val n = ch.readAvailable(buf, 0, buf.size)
+                            if (n == -1) break
+                            writeFully(buf, 0, n)
+                            flush()
+                        }
+                    } catch (e: Throwable) {
+                        ch.cancel(e); throw e
+                    }
+                }
             }
         } catch (e: Throwable) {
             call.respond(
@@ -48,20 +66,6 @@ fun Route.claudeChatRoute(httpClient: HttpClient, rateLimiter: RateLimiter?) {
                 mapOf("error" to "ai_offline", "message" to "tunnel unavailable"),
             )
             return@post
-        }
-        call.respondBytesWriter(ContentType.Text.EventStream, upstream.status) {
-            val ch = upstream.bodyAsChannel()
-            val buf = ByteArray(8 * 1024)
-            try {
-                while (!ch.isClosedForRead) {
-                    val n = ch.readAvailable(buf, 0, buf.size)
-                    if (n == -1) break
-                    writeFully(buf, 0, n)
-                    flush()
-                }
-            } catch (e: Throwable) {
-                ch.cancel(e); throw e
-            }
         }
     }
 }
