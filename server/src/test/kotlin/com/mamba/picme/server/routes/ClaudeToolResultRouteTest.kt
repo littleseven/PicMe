@@ -34,7 +34,7 @@ import org.junit.Test
 
 /**
  * ClaudeToolResultRoute 测试：MockEngine 模拟网关 /tool-result 的 JSON / 连接失败，
- * 断言鉴权 / AI 工程师白名单 / JSON 透传 / 限流（与 ClaudeDeliverRoute 同构）。
+ * 断言鉴权 / JSON 透传 / 限流。tool-result 是诊断只读链路，不校验白名单。
  */
 class ClaudeToolResultRouteTest {
 
@@ -61,10 +61,6 @@ class ClaudeToolResultRouteTest {
         AccountService.createOrRefresh(email, 100).token
     }
 
-    private suspend fun allow(email: String = "u@x.com") {
-        AiEngineerWhitelistService.allow(email)
-    }
-
     @Test
     fun `无 token 返回 401`() = testApplication {
         claudeApp(okUpstream())
@@ -76,7 +72,7 @@ class ClaudeToolResultRouteTest {
     }
 
     @Test
-    fun `未加入白名单返回 403 ai_engineer_not_allowed`() = testApplication {
+    fun `已认证用户未在白名单仍可回传 tool 结果`() = testApplication {
         claudeApp(okUpstream())
         val token = seedToken()
         val resp = client.post("/v1/claude-tool-result") {
@@ -84,8 +80,8 @@ class ClaudeToolResultRouteTest {
             contentType(ContentType.Application.Json)
             setBody("""{"toolCallId":"t1","result":"ok"}""")
         }
-        assertEquals(HttpStatusCode.Forbidden, resp.status)
-        assertTrue(resp.bodyAsText().contains("ai_engineer_not_allowed"))
+        assertEquals(HttpStatusCode.OK, resp.status)
+        assertEquals(upstreamBody, resp.bodyAsText())
     }
 
     @Test
@@ -93,7 +89,6 @@ class ClaudeToolResultRouteTest {
         val badUpstream = HttpClient(MockEngine { throw java.net.ConnectException("refused") })
         claudeApp(badUpstream)
         val token = seedToken()
-        runBlocking { allow() }
         val resp = client.post("/v1/claude-tool-result") {
             header(APP_TOKEN_HEADER, token)
             contentType(ContentType.Application.Json)
@@ -107,7 +102,6 @@ class ClaudeToolResultRouteTest {
     fun `tool-result proxies json from upstream`() = testApplication {
         claudeApp(okUpstream())
         val token = seedToken()
-        runBlocking { allow() }
         val resp = client.post("/v1/claude-tool-result") {
             header(APP_TOKEN_HEADER, token)
             contentType(ContentType.Application.Json)
@@ -121,7 +115,6 @@ class ClaudeToolResultRouteTest {
     fun `rate limit returns 429`() = testApplication {
         claudeApp(okUpstream(), RateLimiter(1, 60_000L))
         val token = seedToken()
-        runBlocking { allow() }
         client.post("/v1/claude-tool-result") {
             header(APP_TOKEN_HEADER, token)
             contentType(ContentType.Application.Json)

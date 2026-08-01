@@ -34,7 +34,7 @@ import org.junit.Test
 
 /**
  * ClaudeChatRoute 测试：MockEngine 模拟 upstream（127.0.0.1:3001）的 SSE / 连接失败，
- * 断言鉴权 / AI 工程师白名单 / SSE 透传 / 限流。
+ * 断言鉴权 / SSE 透传 / 限流。诊断对话对所有已认证账号开放，不校验白名单。
  */
 class ClaudeChatRouteTest {
 
@@ -64,10 +64,6 @@ class ClaudeChatRouteTest {
         AccountService.createOrRefresh(email, 100).token
     }
 
-    private suspend fun allow(email: String = "u@x.com") {
-        AiEngineerWhitelistService.allow(email)
-    }
-
     @Test
     fun `无 token 返回 401`() = testApplication {
         claudeApp(okUpstream())
@@ -79,7 +75,7 @@ class ClaudeChatRouteTest {
     }
 
     @Test
-    fun `未加入白名单返回 403 ai_engineer_not_allowed`() = testApplication {
+    fun `已认证用户未在白名单仍可进入诊断对话`() = testApplication {
         claudeApp(okUpstream())
         val token = seedToken()
         val resp = client.post("/v1/claude-chat") {
@@ -87,8 +83,8 @@ class ClaudeChatRouteTest {
             contentType(ContentType.Application.Json)
             setBody("""{"message":"hi"}""")
         }
-        assertEquals(HttpStatusCode.Forbidden, resp.status)
-        assertTrue(resp.bodyAsText().contains("ai_engineer_not_allowed"))
+        assertEquals(HttpStatusCode.OK, resp.status)
+        assertEquals(sseBody, resp.bodyAsText())
     }
 
     @Test
@@ -96,7 +92,6 @@ class ClaudeChatRouteTest {
         val badUpstream = HttpClient(MockEngine { throw java.net.ConnectException("refused") })
         claudeApp(badUpstream)
         val token = seedToken()
-        runBlocking { allow() }
         val resp = client.post("/v1/claude-chat") {
             header(APP_TOKEN_HEADER, token)
             contentType(ContentType.Application.Json)
@@ -110,7 +105,6 @@ class ClaudeChatRouteTest {
     fun `stream request proxies SSE from upstream`() = testApplication {
         claudeApp(okUpstream())
         val token = seedToken()
-        runBlocking { allow() }
         val resp = client.post("/v1/claude-chat") {
             header(APP_TOKEN_HEADER, token)
             contentType(ContentType.Application.Json)
@@ -124,7 +118,6 @@ class ClaudeChatRouteTest {
     fun `rate limit returns 429`() = testApplication {
         claudeApp(okUpstream(), RateLimiter(1, 60_000L))
         val token = seedToken()
-        runBlocking { allow() }
         client.post("/v1/claude-chat") {
             header(APP_TOKEN_HEADER, token)
             contentType(ContentType.Application.Json)

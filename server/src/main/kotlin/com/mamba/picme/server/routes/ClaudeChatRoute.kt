@@ -38,8 +38,9 @@ fun Route.claudeEngineerAvailabilityRoute() {
         val email = call.ownerEmail() ?: run {
             call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized")); return@get
         }
-        val allowed = AiEngineerWhitelistService.isAllowed(email)
-        call.respond(mapOf("available" to allowed))
+        val canDeliver = AiEngineerWhitelistService.isAllowed(email)
+        // 诊断对话对所有已认证账号开放；代码交付（push/pr/auto）仅白名单。
+        call.respond(mapOf("available" to true, "canDeliver" to canDeliver))
     }
 }
 
@@ -48,7 +49,7 @@ fun Route.claudeChatRoute(httpClient: HttpClient, rateLimiter: RateLimiter?) {
         val owner = call.ownerTokenHash() ?: run {
             call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized")); return@post
         }
-        if (!call.requireAiEngineerWhitelist()) return@post
+        // 诊断对话只读，不校验白名单。
         if (rateLimiter != null && !rateLimiter.allow(owner)) {
             call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to "rate_limit_exceeded")); return@post
         }

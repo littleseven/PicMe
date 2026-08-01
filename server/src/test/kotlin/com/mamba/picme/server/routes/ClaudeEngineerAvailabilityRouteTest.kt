@@ -37,7 +37,7 @@ class ClaudeEngineerAvailabilityRouteTest {
     }
 
     @Test
-    fun `未在白名单返回 available false`() = testApplication {
+    fun `已认证用户 always available，未在白名单时 canDeliver 为 false`() = testApplication {
         TestDb.init(Accounts, AiEngineerWhitelists)
         val token = runBlocking { AccountService.createOrRefresh("u@x.com", 100).token }
         application {
@@ -53,11 +53,13 @@ class ClaudeEngineerAvailabilityRouteTest {
             header(APP_TOKEN_HEADER, token)
         }
         assertEquals(HttpStatusCode.OK, resp.status)
-        assertTrue(resp.bodyAsText().contains("\"available\":false"))
+        val body = resp.bodyAsText()
+        assertTrue(body.contains("\"available\":true"))
+        assertTrue(body.contains("\"canDeliver\":false"))
     }
 
     @Test
-    fun `在白名单返回 available true`() = testApplication {
+    fun `已认证用户在白名单时 canDeliver 为 true`() = testApplication {
         TestDb.init(Accounts, AiEngineerWhitelists)
         val token = runBlocking {
             AccountService.createOrRefresh("u@x.com", 100).token
@@ -76,6 +78,8 @@ class ClaudeEngineerAvailabilityRouteTest {
             header(APP_TOKEN_HEADER, token)
         }
         assertEquals(HttpStatusCode.OK, resp.status)
-        assertTrue(resp.bodyAsText().contains("\"available\":true"))
+        val body = resp.bodyAsText()
+        assertTrue(body.contains("\"available\":true"))
+        assertTrue(body.contains("\"canDeliver\":true"))
     }
 }

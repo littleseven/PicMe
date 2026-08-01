@@ -174,26 +174,30 @@ claude -p <msg> --output-format stream-json --resume <sid> \
 
 ---
 
-## 6. AI 工程师模式账号白名单
+## 6. AI 工程师模式账号白名单（区分读写）
 
-因 AI 工程师模式可调用 MCP 工具读取 App 数据，并可通过 `/v1/claude-deliver` 推送代码分支，属于高权限功能，故增加**账号级白名单**。
+AI 工程师模式分两条链路：
+1. **只读诊断链路**：`/v1/claude-chat` + `/v1/claude-tool-result`，仅拉取日志、崩溃、聊天历史、运行时状态、相册摘要等脱敏数据，不修改代码。
+2. **写链路**：`/v1/claude-deliver`，可 commit + push 代码分支。
+
+为兼顾「让普通用户也能做远程诊断」与「防止未授权用户乱改代码」，白名单**仅限制写链路**，只读诊断对所有已认证账号开放。
 
 ### 6.1 设计语义
 
-- `ai_engineer_whitelist` 表为空时，**所有账号均不可使用** AI 工程师模式。
-- 管理员在后台把用户邮箱加入白名单后，该账号才可调用相关端点。
+- `ai_engineer_whitelist` 表为空时，**所有账号均可诊断，但均不可交付代码**。
+- 管理员在后台把用户邮箱加入白名单后，该账号才拥有代码交付权限。
 - 白名单匹配**大小写不敏感**（入库时统一小写）。
 
 ### 6.2 受保护端点
 
-| 端点 | 说明 |
-|---|---|
-| `POST /v1/claude-chat` | 进入 AI 工程师聊天 |
-| `POST /v1/claude-deliver` | 代码交付（push/pr/auto） |
-| `POST /v1/claude-tool-result` | App tool 结果回传 |
-| `GET /v1/claude-engineer/available` | 客户端查询入口是否可用 |
+| 端点 | 是否需白名单 | 说明 |
+|---|---|---|
+| `POST /v1/claude-chat` | ❌ 否 | AI 工程师诊断对话，只读 |
+| `POST /v1/claude-tool-result` | ❌ 否 | App tool 结果回传，只读诊断的一部分 |
+| `POST /v1/claude-deliver` | ✅ 是 | 代码交付（push/pr/auto） |
+| `GET /v1/claude-engineer/available` | ❌ 否 | 返回 `{available, canDeliver}`，供客户端区分展示 |
 
-未在白名单的请求返回：
+`/v1/claude-deliver` 未在白名单时返回：
 
 ```json
 {"error":"ai_engineer_not_allowed","message":"AI engineer mode not enabled for this account"}
@@ -205,16 +209,17 @@ HTTP 状态码 `403 Forbidden`。
 
 路径：`/admin/ai-engineer-whitelist`
 
-- 列表展示所有白名单邮箱。
-- 输入邮箱点击「添加」加入白名单。
-- 每行提供「移除」按钮，从白名单删除。
+- 列表展示所有拥有代码交付权限的邮箱。
+- 输入邮箱点击「添加」授权代码交付。
+- 每行提供「移除」按钮，撤销代码交付权限。
 
 ### 6.4 实现要点
 
 - `AiEngineerWhitelistService` 提供 `isAllowed(email)`、`allow(email)`、`revoke(email)`、`list()`。
 - `AccountService.validateToken` 返回结果新增 `email` 字段，由全局 auth interceptor 写入 `EmailKey` 属性。
-- `ClaudeChatRoute`、`ClaudeDeliverRoute`、`ClaudeToolResultRoute` 在鉴权后调用 `requireAiEngineerWhitelist()`。
-- 新增 `GET /v1/claude-engineer/available` 供 App 在展示入口前查询，避免用户进入后才收到 403。
+- `ClaudeDeliverRoute` 在鉴权后调用 `requireAiEngineerWhitelist()`。
+- `ClaudeChatRoute`、`ClaudeToolResultRoute` 只鉴权，不校验白名单。
+- `GET /v1/claude-engineer/available` 固定返回 `available: true`（已认证即可诊断），`canDeliver` 按白名单返回。
 
 ---
 
