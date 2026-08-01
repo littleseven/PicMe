@@ -18,7 +18,7 @@
 
 ## 0. 多通道扩展（2026-07-27 重新激活）
 
-> 详细设计与实现计划见 `docs/superpowers/specs/2026-07-26-multi-channel-remote-control-design.md` 与 `docs/superpowers/plans/2026-07-26-multi-channel-remote-control.md`。
+> 详细设计见 `docs/superpowers/specs/2026-07-26-multi-channel-remote-control-design.md`（实现计划已随落地清理）。
 
 - **`RemoteChannel` 接口**（`domain/agent/remote/RemoteChannel.kt`）：统一 `channelId / isConnected / onMessageReceived / sendMessage(text, replyToken) / sendImage`。`replyToken` 通道不透明（飞书=messageId，Telegram=chatId）。
 - **`RemoteChannelManager`**：单通道管理器，按 `selected_remote_channel`（FEISHU/TELEGRAM/NONE）激活；先断旧再连新；重连 = 重新 activate；发送/回调委托激活通道。

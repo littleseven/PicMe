@@ -192,4 +192,4 @@ LFM2-VL 已无目录条目，仅在注释/测试/文档中残留引用，本次�
 - **静默下载体积**：推荐集合总计 ~1.6GB+（含 qwen3_5_2b 1.3GB）。默认开启可能在用户未察觉时占用带宽/存储——以 `STORAGE_NOT_LOW` 约束 + 可见进度 + 易关闭缓解；若反馈不佳，后续可拆分「仅小模型自动下载」。
 - **`qwen3_vl_2b` 既不在必须也不在推荐**：作为内部 fallback 仍由 `TaggerModelSelector` 在 Florence-2 不可用时回退使用；用户需手动下载。若实际 Florence-2 ONNX 在部分设备不稳，可后续再议提升其优先级。
 - **三处列表已收敛为单一来源**：后续新增必须/推荐模型只改 `REQUIRED_MODEL_IDS` / `RECOMMENDED_MODEL_IDS`。
-- 历史规划文档（`docs/superpowers/specs|plans/2026-07-22-lfm25vl-*` 等）为时间戳记录，保留不改。
+- 早期 SmolVLM / LFM2-VL 的选型设计稿（已废弃、模型已移除）已随打标方案定型一并清理。

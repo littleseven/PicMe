@@ -621,7 +621,7 @@ suspend fun triggerManualGlEngineRecovery() {
 
 ### 7.4 QA 与回归检查
 
-QA 相关内容已提取到独立文档：`docs/06-QA/QA_EXECUTION_CHECKLIST.md`
+性能基线与历史 trace 见 `docs/06-QA/PERFORMANCE_BASELINE_REPORT.md`（独立的 QA 验收清单已于 ADR-011 退役）。
 
 ---
 
@@ -662,7 +662,6 @@ QA 相关内容已提取到独立文档：`docs/06-QA/QA_EXECUTION_CHECKLIST.md`
 - `FEATURES.md` — 功能交互规范（重点：`1.3.5` 大美丽 性能与验收）
 - `AGENTS.md` — AI Agent 操作规范
 - 「[9. 相机预览与比例策略](#9-相机预览与比例策略)」 — 相机预览与坐标系统规范
-- `BIG_BEAUTY_QA_EXECUTION_CHECKLIST.md` — 大美丽 QA 独立执行清单
 - `beauty-engine/src/main/java/com/mamba/picme/beauty/api/` — 对外稳定 API（`BeautyParams`、`BeautyPreviewProvider`、`BeautyPreviewCapability`、`BeautyPreviewEngine`）
 - `beauty-engine/src/main/java/com/mamba/picme/beauty/render/` — GL 渲染管线核心实现
 - `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` — 预览绑定、容灾回退与调试浮层
