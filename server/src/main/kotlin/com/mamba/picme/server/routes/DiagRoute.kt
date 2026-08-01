@@ -1,8 +1,6 @@
 package com.mamba.picme.server.routes
 
 import com.mamba.picme.server.appJson
-import com.mamba.picme.server.auth.APP_TOKEN_HEADER
-import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.DEVICE_ID_HEADER
 import com.mamba.picme.server.auth.DIAG_WORKER_TOKEN_HEADER
 import com.mamba.picme.server.diag.DiagService
@@ -249,12 +247,3 @@ private fun ApplicationCall.isWorker(expected: String): Boolean {
     return request.headers[DIAG_WORKER_TOKEN_HEADER] == expected
 }
 
-/**
- * 解析 owner 身份：优先用全局拦截器写入的 TokenHashKey（prod，免重复校验），
- * 否则自行 validateToken（路由单测无拦截器时走这条）。
- */
-private suspend fun ApplicationCall.ownerTokenHash(): String? {
-    attributes.getOrNull(TokenHashKey)?.let { return it }
-    val raw = request.headers[APP_TOKEN_HEADER] ?: return null
-    return AccountService.validateToken(raw).takeIf { it.valid }?.tokenHash
-}

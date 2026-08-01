@@ -100,7 +100,7 @@ fun Route.claudeDeliverRoute(httpClient: HttpClient, rateLimiter: RateLimiter?) 
 }
 
 /** 取 owner tokenHash：优先全局拦截器写入的 TokenHashKey，否则兜底 validateToken（路由单测用）。 */
-private suspend fun ApplicationCall.ownerTokenHash(): String? {
+internal suspend fun ApplicationCall.ownerTokenHash(): String? {
     attributes.getOrNull(TokenHashKey)?.let { return it }
     val raw = request.headers[APP_TOKEN_HEADER] ?: return null
     return AccountService.validateToken(raw).takeIf { it.valid }?.tokenHash
