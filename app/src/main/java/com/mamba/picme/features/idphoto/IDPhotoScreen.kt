@@ -11,17 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,10 +31,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.domain.matting.IDPhotoSpecs
+import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.common.topbar.AppTopBarAction
 import com.mamba.picme.features.idphoto.components.ColorSwatchRow
 import com.mamba.picme.features.idphoto.components.SizeChipRow
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod") // 待重构：抽 IDPhoto 控制面板子组件
 @Composable
 fun IDPhotoScreen(
@@ -59,23 +54,18 @@ fun IDPhotoScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.id_photo_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
+            AppTopBar(
+                title = stringResource(R.string.id_photo_title),
+                onBack = onNavigateBack,
                 actions = {
                     val ready = state as? IDPhotoViewModel.State.Ready
-                    IconButton(
+                    AppTopBarAction(
+                        icon = Icons.Rounded.Check,
+                        contentDescription = stringResource(R.string.done),
                         onClick = { viewModel.save(context) },
                         enabled = ready != null && !ready.isSaving
-                    ) {
-                        Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.done))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors()
+                    )
+                }
             )
         }
     ) { padding ->

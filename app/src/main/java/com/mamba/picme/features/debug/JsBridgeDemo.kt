@@ -14,19 +14,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -43,6 +40,7 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.di.AppContainer
+import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.chat.js.QuickJsEngine
 import com.mamba.picme.features.chat.js.registerGalleryHandlers
 import kotlinx.coroutines.CoroutineScope
@@ -272,16 +270,9 @@ private fun PresetScriptButton(
 fun JsBridgeScreen(onNavigateBack: () -> Unit) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.jsbridge_debug_section)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                }
+            AppTopBar(
+                title = stringResource(R.string.jsbridge_debug_section),
+                onBack = onNavigateBack
             )
         }
     ) { innerPadding ->

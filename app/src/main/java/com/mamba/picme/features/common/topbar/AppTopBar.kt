@@ -31,10 +31,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.R
 
-/** topbar 图标规格（chat 紧凑基准）：36dp 按钮 / 22dp 字形 / 8dp 同组间距。 */
+/** topbar 图标规格（chat 紧凑基准）：36dp 按钮 / 22dp 字形 / 8dp 同组间距 / 8dp 屏幕边距。 */
 private val TopBarButtonSize = 36.dp
 private val TopBarIconSize = 22.dp
 private val TopBarSpacing = 8.dp
+
+/** 统一顶栏左右屏幕边距（图标按钮到屏幕边缘的水平留白）。 */
+private val TopBarHorizontalPadding = 8.dp
 
 /** 统一顶栏高度，参考微信（~48dp）。 */
 private val TopBarHeight = 48.dp
@@ -74,7 +77,7 @@ fun AppTopBar(
                 .fillMaxWidth()
                 .displayCutoutPadding()
                 .height(TopBarHeight)
-                .padding(horizontal = 4.dp),
+                .padding(horizontal = TopBarHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             navigationIcon()
