@@ -6,6 +6,7 @@ import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
+import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.data.remote.picme.ClaudeChatClient
 import com.mamba.picme.data.remote.picme.ClaudeEvent
 import com.mamba.picme.domain.repository.UserSettingsRepository
@@ -28,36 +29,38 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
 /**
- * [ChatViewModel] claudeSid 持久化接线的单测（Task 8 + 审查修复）。
+ * [ChatViewModel] claudeSid 持久化接线的单测（Task 8 + 两轮审查修复，单槽语义）。
  *
  * 覆盖：
- * - 恢复场景：fake store 预置 sid，sendClaudeMessage 时 load 生效（chat 请求带旧 sid → --resume）
- * - Session 事件格式判断：12 位 hex 网关 sid 采纳并 save（含轮换覆盖旧 sid 自愈）；
- *   带连字符的 claude init session_id 被忽略
- * - enterClaudeMode 不再 clear 持久化 sid（进程重建恢复链路的回归保护）
+ * - 真实入口恢复（集成向）：store 预置 (S1, sid) → enterClaudeMode 切回 S1、恢复 sid、不新建会话
+ *   → 发消息 chat 带旧 sid（--resume）
+ * - store 为空 → enterClaudeMode 走 newSession 原行为；记录所属会话已删 → 清残留并新建
+ * - 兜底恢复：直接对历史会话发消息时 load 命中（takeIf first == sessionId）
+ * - Session 事件格式判断：12 位 hex 网关 sid 采纳并 save（含轮换覆盖自愈）；带连字符 UUID 忽略
  *
  * 基建对齐 [ChatViewModelAppToolTest]（mockkStatic Log + mockkObject Orchestrator）。
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModelClaudeSidTest {
 
-    /** 内存 fake：同 [ClaudeSidStoreTest]，验证 ViewModel 与 store 的交互。 */
+    /** 内存 fake：单槽，同 [ClaudeSidStoreTest]。 */
     private class InMemoryClaudeSidStore : ClaudeSidStore {
-        private val data = mutableMapOf<String, String>()
+        private var slot: Pair<String, String>? = null
 
-        override fun load(sessionId: String): String? = data[sessionId]
+        override fun load(): Pair<String, String>? = slot
 
-        override fun save(sessionId: String, sid: String) {
-            data[sessionId] = sid
+        override fun save(chatSessionId: String, claudeSid: String) {
+            slot = chatSessionId to claudeSid
         }
 
-        override fun clear(sessionId: String) {
-            data.remove(sessionId)
+        override fun clear() {
+            slot = null
         }
     }
 
@@ -140,7 +143,57 @@ class ChatViewModelClaudeSidTest {
     }
 
     @Test
-    fun `persisted sid is restored and sent as resume sid`() = runTest {
+    fun `enterClaudeMode restores saved session and sid, no new session created`() = runTest {
+        // 预置持久化上下文（模拟上次工程师会话 S1，进程被杀后重进）
+        sidStore.save("S1", "aaaa1111bbbb")
+        coEvery { chatSessionDao.getSession("S1") } returns ChatSessionEntity(sessionId = "S1", title = "t")
+        stubChat()
+
+        val vm = newViewModel()
+        assertEquals("default", vm.currentSessionId.value)
+        vm.enterClaudeMode()
+
+        // 切回原会话（transcript 连续），不新建
+        assertEquals("S1", vm.currentSessionId.value)
+
+        // agent 上下文连续：发消息带恢复的旧 sid（--resume）
+        vm.sendClaudeMessage("hello")
+        coVerify(timeout = VERIFY_TIMEOUT_MS) {
+            claudeChatClient.chat("pl-test-token", "hello", "aaaa1111bbbb", any())
+        }
+    }
+
+    @Test
+    fun `enterClaudeMode with empty store creates new session as before`() = runTest {
+        stubChat()
+
+        val vm = newViewModel()
+        vm.enterClaudeMode()
+
+        // 新建 UUID 会话，且不带 sid（全新上下文）
+        assertNotEquals("default", vm.currentSessionId.value)
+        vm.sendClaudeMessage("hello")
+        coVerify(timeout = VERIFY_TIMEOUT_MS) {
+            claudeChatClient.chat(any(), "hello", isNull(), any())
+        }
+    }
+
+    @Test
+    fun `enterClaudeMode clears stale record when saved chat session is gone`() = runTest {
+        sidStore.save("gone-session", "aaaa1111bbbb")
+        // getSession("gone-session") → null（setUp 的 any() stub）：会话已被删除
+        stubChat()
+
+        val vm = newViewModel()
+        vm.enterClaudeMode()
+
+        assertNull(sidStore.load())
+        assertNotEquals("default", vm.currentSessionId.value) // 走了 newSession
+    }
+
+    @Test
+    fun `persisted sid is restored and sent as resume sid on direct message`() = runTest {
+        // 兜底路径：不经 enterClaudeMode，直接对当前（历史）会话发消息
         sidStore.save("default", "aaaa1111bbbb")
         stubChat()
 
@@ -154,18 +207,18 @@ class ChatViewModelClaudeSidTest {
 
     @Test
     fun `gateway sid session event is adopted and persisted, overriding rotated old sid`() = runTest {
-        // 预置旧 sid（模拟进程重建恢复后，网关 workdir 已清 → 轮换签发新 sid）
+        // 预置旧 sid（模拟恢复后网关 workdir 已清 → 轮换签发新 sid）
         sidStore.save("default", "aaaa1111bbbb")
         stubChat(ClaudeEvent.Session("deadbeef0012"))
 
         val vm = newViewModel()
         vm.sendClaudeMessage("first")
 
-        // 新网关 sid 覆盖旧 sid 并持久化（自愈）
+        // 首轮带旧 sid；新网关 sid 覆盖旧记录并持久化（自愈）
         coVerify(timeout = VERIFY_TIMEOUT_MS) {
             claudeChatClient.chat(any(), "first", "aaaa1111bbbb", any())
         }
-        assertEquals("deadbeef0012", sidStore.load("default"))
+        assertEquals("default" to "deadbeef0012", sidStore.load())
 
         // 下一轮带新 sid
         vm.sendClaudeMessage("second")
@@ -184,18 +237,7 @@ class ChatViewModelClaudeSidTest {
         coVerify(timeout = VERIFY_TIMEOUT_MS) {
             claudeChatClient.chat(any(), "hello", isNull(), any())
         }
-        assertNull(sidStore.load("default"))
-    }
-
-    @Test
-    fun `enterClaudeMode does not clear persisted sid`() = runTest {
-        sidStore.save("default", "aaaa1111bbbb")
-
-        val vm = newViewModel()
-        vm.enterClaudeMode()
-
-        // 持久化 sid 必须保留：进程重建 → 恢复旧会话 → 重开工程师模式 → sendClaudeMessage 靠它 --resume
-        assertEquals("aaaa1111bbbb", sidStore.load("default"))
+        assertNull(sidStore.load())
     }
 
     private companion object {

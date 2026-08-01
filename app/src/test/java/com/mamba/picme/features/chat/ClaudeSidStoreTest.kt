@@ -5,23 +5,24 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * [ClaudeSidStore] 契约单测（Task 8）：内存 fake 验证 save/load/clear 语义与按 sessionId 隔离。
+ * [ClaudeSidStore] 契约单测（Task 8 终审修复）：单槽语义——内存 fake 验证
+ * save/load/clear 语义及 (chatSessionId, claudeSid) 成对读写。
  * [PrefsClaudeSidStore] 的 SharedPreferences 实现属 Android 层，不在 JVM 单测范围。
  */
 class ClaudeSidStoreTest {
 
-    /** 内存 fake：用 Map 模拟持久化介质，验证接口契约。 */
+    /** 内存 fake：单槽，模拟持久化介质，验证接口契约。 */
     private class InMemoryClaudeSidStore : ClaudeSidStore {
-        private val data = mutableMapOf<String, String>()
+        private var slot: Pair<String, String>? = null
 
-        override fun load(sessionId: String): String? = data[sessionId]
+        override fun load(): Pair<String, String>? = slot
 
-        override fun save(sessionId: String, sid: String) {
-            data[sessionId] = sid
+        override fun save(chatSessionId: String, claudeSid: String) {
+            slot = chatSessionId to claudeSid
         }
 
-        override fun clear(sessionId: String) {
-            data.remove(sessionId)
+        override fun clear() {
+            slot = null
         }
     }
 
@@ -29,45 +30,32 @@ class ClaudeSidStoreTest {
 
     @Test
     fun `load returns null when nothing saved`() {
-        assertNull(store.load("session-1"))
+        assertNull(store.load())
     }
 
     @Test
-    fun `save then load returns sid`() {
+    fun `save then load returns chatSessionId and sid pair`() {
         store.save("session-1", "sid-abc")
-        assertEquals("sid-abc", store.load("session-1"))
+        assertEquals("session-1" to "sid-abc", store.load())
     }
 
     @Test
-    fun `save overwrites previous sid`() {
+    fun `save overwrites previous slot`() {
         store.save("session-1", "sid-old")
-        store.save("session-1", "sid-new")
-        assertEquals("sid-new", store.load("session-1"))
+        store.save("session-2", "sid-new")
+        assertEquals("session-2" to "sid-new", store.load())
     }
 
     @Test
-    fun `clear removes saved sid`() {
+    fun `clear removes saved slot`() {
         store.save("session-1", "sid-abc")
-        store.clear("session-1")
-        assertNull(store.load("session-1"))
+        store.clear()
+        assertNull(store.load())
     }
 
     @Test
-    fun `clear on unknown session is no-op`() {
-        store.clear("no-such-session")
-        assertNull(store.load("no-such-session"))
-    }
-
-    @Test
-    fun `sids are isolated per sessionId`() {
-        store.save("session-1", "sid-1")
-        store.save("session-2", "sid-2")
-
-        assertEquals("sid-1", store.load("session-1"))
-        assertEquals("sid-2", store.load("session-2"))
-
-        store.clear("session-1")
-        assertNull(store.load("session-1"))
-        assertEquals("sid-2", store.load("session-2"))
+    fun `clear on empty store is no-op`() {
+        store.clear()
+        assertNull(store.load())
     }
 }

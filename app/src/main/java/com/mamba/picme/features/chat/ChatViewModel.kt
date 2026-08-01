@@ -238,15 +238,32 @@ class ChatViewModel(
     /** msgId → 交付按钮状态（内存态；Room 消息经 loadMessages 重放时按 id 回填）。 */
     private val claudeDeliverOverrides = mutableMapOf<String, ClaudeDeliverUi>()
 
-    /** 进入 AI 工程师模式：自动新建独立会话（claude-tunnel 上下文独立）。 */
+    /**
+     * 进入 AI 工程师模式：有持久化上下文且所属 chat 会话仍在 → 切回该会话并恢复 sid
+     * （transcript + agent 上下文双连续）；否则新建独立会话（claude-tunnel 上下文独立）。
+     */
     fun enterClaudeMode() {
         if (_claudeMode.value) return
         _claudeMode.value = true
-        // 不 clear 持久化 sid：进程重建后 restoreLastSessionId 恢复的会话正要经 sendClaudeMessage
-        // load 回 sid，此处 clear 会把记忆在恢复前删掉；新会话的全新性由随机 UUID 天然保证。
-        claudeSid = null
         claudeDeliverOverrides.clear()
-        newSession()
+        val saved = claudeSidStore?.load()
+        if (saved == null) {
+            claudeSid = null
+            newSession()
+            return
+        }
+        val (chatSessionId, sid) = saved
+        viewModelScope.launch {
+            if (chatSessionDao.getSession(chatSessionId) != null) {
+                claudeSid = sid
+                switchSession(chatSessionId)
+            } else {
+                // 所属会话已被删除：清残留记录，按全新会话处理
+                claudeSidStore?.clear()
+                claudeSid = null
+                newSession()
+            }
+        }
     }
 
     fun exitClaudeMode() {
@@ -294,8 +311,10 @@ class ChatViewModel(
                     isThinking = true,
                     claudeAgent = ClaudeAgentState(),
                 )
-                // 进程重建后内存 sid 丢失：先从持久化恢复（Task 8），--resume 续上下文
-                if (claudeSid == null) claudeSid = claudeSidStore?.load(sessionId)
+                // 进程重建后内存 sid 丢失：单槽兜底恢复（仅当记录属于当前会话），--resume 续上下文
+                if (claudeSid == null) {
+                    claudeSid = claudeSidStore?.load()?.takeIf { it.first == sessionId }?.second
+                }
                 // SSE 回调是非 suspend 主流：tryLock 与 IO 协程的合成 ToolResult 串行，
                 // 拿不到锁则直接 apply（事件不能丢，竞态概率极低）
                 fun applyToRenderer(ev: ClaudeEvent) {
@@ -928,7 +947,8 @@ class ChatViewModel(
                 chatImageStore.evictForSession(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.deleteSession(sessionId)
-                claudeSidStore?.clear(sessionId) // 顺带清持久化的网关 sid，避免 prefs 残留
+                // 删除的是工程师上下文所属会话 → 清掉持久化记录，避免 prefs 残留
+                if (claudeSidStore?.load()?.first == sessionId) claudeSidStore?.clear()
                 if (_currentSessionId.value == sessionId) {
                     _currentSessionId.value = "default"
                     userSettingsRepository.updateChatCurrentSessionId("default")
@@ -2547,7 +2567,11 @@ internal fun buildAppToolExecutor(deps: ChatViewModelDependencies): AppToolExecu
     },
     crashTraceReader = { CrashTraceStore.read(deps.context.filesDir) },
     chatHistoryLoader = { sessionId, limit ->
-        deps.chatMessageDao.getRecentMessages(sessionId ?: "default", limit)
+        // schema 缺省语义是「当前会话」：字面量 "default" 会漂移（工程师会话恒为 UUID），
+        // 改从设置库读当前会话 id（switchSession/newSession 均经 updateChatCurrentSessionId 写入）
+        val effectiveSessionId = sessionId
+            ?: deps.userSettingsRepository.chatCurrentSessionIdFlow.first()
+        deps.chatMessageDao.getRecentMessages(effectiveSessionId, limit)
             .map { it.type to it.content }
     },
     runtimeStateProvider = RuntimeStateProvider {
