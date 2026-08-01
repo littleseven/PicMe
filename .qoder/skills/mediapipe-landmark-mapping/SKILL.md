@@ -40,7 +40,7 @@ ndcY = -(y * 2.0f - 1.0f)  // Y轴翻转
 ```
 
 ### MediaPipe 468 → 106 点映射
-使用项目中的 `MediaPipeTo106Mapping.kt`：
+使用项目中的 `MediaPipe468Adapter.kt`（beauty-engine/.../facedetect/adapter/）：
 - 左脸轮廓：0-7
 - 右脸轮廓：25-32
 - 左眼：52-57, 72-78
