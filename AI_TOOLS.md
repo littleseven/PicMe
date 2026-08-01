@@ -9,9 +9,11 @@
 
 | 工具 | 配置位置 | 读取范围 | 用途 / 状态 |
 |------|----------|----------|-------------|
-| **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | 当前主力 AI 开发环境（命令目录与索引） |
-| **Qoder** | `.qoder/skills/` + `.qoder/agents/` | 项目级 | 原主力 AI 开发环境（Skills / Agents），现与 `.claude/commands/` 并存 |
+| **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | 主力 AI 开发环境之一（命令目录与索引） |
+| **OpenCode** | `.opencode/` + `.qoder/skills/`（软链） | 项目级 | 主力 AI 开发环境之一；`.opencode/skills` 为 `.qoder/skills` 符号链接 |
+| **Qoder** | `.qoder/skills/` + `.qoder/agents/` | 项目级 | Skills 唯一事实来源（OpenCode / Kimi 共享） |
 | **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发；`.kimi/skills` 为 `.qoder/skills` 符号链接 |
+| **AndroidStudio Qwen 插件** | `AGENTS.md`（根目录） | 项目级 | IDE 内置助手，读取根 AGENTS.md 治理 |
 | **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、角色职责、全局红线 |
 
 ---
@@ -33,24 +35,20 @@
 ## Skills / Commands 来源
 
 ```text
-.claude/commands/        ← Claude Code 唯一事实来源（当前主力）
-.qoder/skills/           ← Qoder / kimi-cli Skills 事实来源
-.openclaw/skills/        ← OpenClaw 读取（如配置）
+.qoder/skills/           ← ★ 唯一事实来源（SSOT）：OpenCode / Kimi 通过软链共享
+.opencode/skills/        ← 符号链接 → ../.qoder/skills
 .kimi/skills/            ← 符号链接 → ../.qoder/skills
+.claude/commands/        ← Claude Code 专用镜像（见下方"漂移治理"）
 ```
 
-**新增 Claude Code Command 的标准流程**：
+> **Skills SSOT = `.qoder/skills/`**。修改 Skill 时，改这里即可，OpenCode 和 Kimi 自动生效。
 
-```bash
-# 1. 在 .claude/commands/ 创建命令文件
-#    例如 .claude/commands/my-command.md
+**`.claude/commands/` 漂移治理**：Claude Code 命令格式（纯 Markdown，无 frontmatter）与 Skills（带 YAML frontmatter 的目录结构）不同，无法软链统一，已存在内容分叉。治理策略：
+- 修改 Skill 后**必须手动同步**对应的 `.claude/commands/<name>.md`
+- 运行 `./scripts/check-skill-sync.sh` 检查两侧命名是否齐全、内容是否一致
+- 该脚本只**报告**漂移，不自动覆盖（避免丢失任一侧独有内容）
 
-# 2. 更新索引
-#    - .claude/CLAUDE.md
-#    - 本文件（AI_TOOLS.md）如工具表需要
-```
-
-**新增 Skill（Qoder / kimi-cli 共用）的标准流程**：
+**新增 Skill 的标准流程**：
 
 ```bash
 # 1. 在唯一事实来源创建 Skill
@@ -58,16 +56,46 @@ mkdir -p .qoder/skills/my-skill
 cat > .qoder/skills/my-skill/SKILL.md << 'EOF'
 ---
 name: my-skill
+description: <触发场景描述>
 ---
 EOF
 
-# 2. 同步符号链接（如 .kimi/skills 尚未自动同步）
-ln -sf ../../.qoder/skills/my-skill .kimi/skills/my-skill
+# 2. 同步符号链接（.opencode/skills 和 .kimi/skills 通常已整体软链，无需单条操作）
 
-# 3. 更新索引文档
-# - .qoder/skills/README.md（如存在）
-# - 本文件（AI_TOOLS.md）
+# 3. Claude Code 镜像：从 SKILL.md 提取正文（去 frontmatter）写入
+#    .claude/commands/my-skill.md
+
+# 4. 运行校验
+./scripts/check-skill-sync.sh
+
+# 5. 更新索引文档（本文件 + .qoder/skills/README.md 如存在）
 ```
+
+---
+
+## Plans / Specs 公共位置（★ SSOT）
+
+```text
+docs/superpowers/
+├── README.md            ← SSOT 声明与命名规范（权威文档）
+├── plans/               ← 所有工具的执行计划（work plans）
+│   └── YYYY-MM-DD-<slug>.md
+├── specs/               ← 所有工具的设计规格（design specs）
+│   └── YYYY-MM-DD-<slug>-design.md
+└── *.md                 ← 阶段汇总（summary / nightly）
+```
+
+> **Plan / Spec SSOT = `docs/superpowers/{plans,specs}/`**。四工具一律写这里，**禁止**写到工具私有目录。
+
+**各工具默认位置的重定向**：
+
+| 工具 | 默认位置 | 本项目处理 |
+|------|----------|-----------|
+| Claude Code（superpowers） | `~/.claude/plans/` | ❌ 禁用；生成后立即移到 `docs/superpowers/plans/` |
+| OpenCode（ulw-plan / Momus） | `.omo/plans/` | ✅ 软链 `.omo/plans → ../docs/superpowers/plans`，自动落地 |
+| Kimi / Qwen 插件 | 无固定 | 直接写 `docs/superpowers/{plans,specs}/` |
+
+完整约定（命名规范、公共 vs 私有边界、判断准则）：见 [`docs/superpowers/README.md`](docs/superpowers/README.md)。
 
 ---
 
@@ -202,3 +230,4 @@ cd ~/AndroidStudioProjects/langchain4android && claude
 | 2026-05-31 | 文档全面审计与更新 | 根目录文档与 wiki 一致性清理 |
 | 2026-06-25 | Claude Code 命令整理 | `.qoder/skills/` → `.claude/commands/`，修复 19 个过期引用 |
 | 2026-06-30 | AI 工具索引刷新 | 明确 Claude Code 命令为主力来源，更新 DEVELOPMENT.md / CLAUDE.md / 本文件 |
+| 2026-08-01 | **Plans / Specs SSOT 统一** | 新建 `docs/superpowers/README.md`；`.omo/plans` 软链到公共目录；新增 `scripts/check-skill-sync.sh` 治理 `.claude/commands` 漂移；OpenCode 纳入工具表 |

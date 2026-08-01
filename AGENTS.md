@@ -360,8 +360,10 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | 类型 | 文档 |
 |------|------|
 | **顶层治理** | `AGENTS.md`（本文档） |
+| **AI 工具配置索引** | `AI_TOOLS.md`（四工具配置位置、Skills/Plans/Specs SSOT 约定） |
 | **产品定义** | `PRODUCT.md` |
 | **交互规范** | `docs/01-PRODUCT/FEATURES.md` |
+| **★ AI 协作产物 SSOT** | `docs/superpowers/README.md`（Plans / Specs 唯一事实来源，四工具共同遵守） |
 | **AI 协作角色** | `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`runtime-core/`、`mnn-core/`、`sentencepiece/`、`server/` 等） |
 | **技术专项** | `docs/03-TECHNICAL-SPECS/*.md` |
