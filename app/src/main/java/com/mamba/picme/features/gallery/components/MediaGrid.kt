@@ -59,6 +59,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.Dp
 
 @Composable
@@ -193,8 +194,9 @@ private fun IntSize.toSize() = Size(width.toFloat(), height.toFloat())
 
 private val ThumbnailCornerRadius: Dp = 2.dp
 
-/** 缩略图加载失败或加载中时显示的背景色，避免脏数据/无效引用显示为纯黑块 */
-private val ThumbnailPlaceholderPainter = ColorPainter(Color(0xFF2A2A2A))
+/** 缩略图加载/失败占位，使用主题 surface 色，避免在浅色主题下出现深色/黑色闪烁 */
+@Composable
+private fun thumbnailPlaceholderPainter(): Painter = ColorPainter(MaterialTheme.colorScheme.surface)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -226,6 +228,7 @@ fun MediaItem(
         modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(ThumbnailCornerRadius))
+            .background(MaterialTheme.colorScheme.surface)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .semantics {
                 this.contentDescription = contentDescription
@@ -244,8 +247,8 @@ fun MediaItem(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             alignment = alignment,
-            placeholder = ThumbnailPlaceholderPainter,
-            error = ThumbnailPlaceholderPainter
+            placeholder = thumbnailPlaceholderPainter(),
+            error = thumbnailPlaceholderPainter()
         )
 
         if (asset.type == MediaType.VIDEO) {
