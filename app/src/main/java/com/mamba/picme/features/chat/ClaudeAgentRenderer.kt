@@ -80,7 +80,8 @@ data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
  * 后取 [state] 写入 ChatMessageUi.claudeAgent，实现文本流式 + 步骤配对 + 文件改动徽标。
  *
  * 折叠规则：
- * - [ClaudeEvent.Session] / [ClaudeEvent.Done] / [ClaudeEvent.Cost]：无视觉变化（sid 由 ViewModel 另存）。
+ * - [ClaudeEvent.Session] / [ClaudeEvent.Done] / [ClaudeEvent.Cost] / [ClaudeEvent.AppToolRequest]：无视觉变化
+ *   （sid 由 ViewModel 另存；AppToolRequest 由 Task 7 在 ViewModel 合成 ToolUse/ToolResult 事件）。
  * - [ClaudeEvent.AssistantText]：delta 追加到 [ClaudeAgentState.text]。
  * - [ClaudeEvent.ToolUse]：追加一步（RUNNING + input 简述）。
  * - [ClaudeEvent.ToolResult]：把最后一个 RUNNING 步骤改为 SUCCESS/FAILED + summary。
@@ -102,7 +103,7 @@ class ClaudeAgentRenderer {
     }
 
     private fun fold(cur: ClaudeAgentState, event: ClaudeEvent): ClaudeAgentState = when (event) {
-        is ClaudeEvent.Session, ClaudeEvent.Done, is ClaudeEvent.Cost -> cur
+        is ClaudeEvent.Session, ClaudeEvent.Done, is ClaudeEvent.Cost, is ClaudeEvent.AppToolRequest -> cur
         is ClaudeEvent.AssistantText -> cur.copy(text = cur.text + event.delta)
         is ClaudeEvent.ToolUse -> cur.copy(
             steps = cur.steps + ClaudeStepUi(

@@ -40,6 +40,11 @@ object ClaudeSseParser {
                 "file_change" -> ClaudeEvent.FileChange(json.optString("path"), json.optString("action"))
                 "cost" -> ClaudeEvent.Cost(json.optInt("turns", 0), json.optInt("cents", 0))
                 "error" -> ClaudeEvent.Error(json.optString("message"))
+                "app_tool_request" -> ClaudeEvent.AppToolRequest(
+                    json.optString("requestId"),
+                    json.optString("tool"),
+                    json.optJSONObject("args") ?: JSONObject(),
+                )
                 "done" -> ClaudeEvent.Done
                 else -> null
             }
@@ -126,6 +131,30 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
                 val text = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) throw RuntimeException("HTTP ${resp.code}: $text")
                 JSONObject(text)
+            }
+        }
+
+    /**
+     * App tool 结果回传（spec §5）：POST /v1/claude-tool-result → server 反代网关 /tool-result。
+     * [payload] 为 AppToolExecutor 采集+脱敏后的 JSON。
+     */
+    suspend fun postToolResult(token: String, requestId: String, payload: JSONObject): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val body = JSONObject()
+                    .put("requestId", requestId)
+                    .put("payload", payload)
+                    .toString()
+                val req = Request.Builder()
+                    .url("$baseUrl/v1/claude-tool-result")
+                    .header("X-App-Token", token)
+                    .post(body.toRequestBody(jsonMedia))
+                    .build()
+                val resp = deliverClient.newCall(req).execute()
+                if (!resp.isSuccessful) {
+                    throw RuntimeException("HTTP ${resp.code}: ${resp.body?.string().orEmpty()}")
+                }
+                Unit
             }
         }
 

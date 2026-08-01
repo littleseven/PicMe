@@ -320,6 +320,7 @@ class ChatViewModel(
                         is ClaudeEvent.Done -> Logger.i(TAG, "claude evt: Done")
                         is ClaudeEvent.Cost -> Logger.i(TAG, "claude evt: Cost turns=${event.turns}")
                         is ClaudeEvent.AssistantText -> Unit
+                        is ClaudeEvent.AppToolRequest -> Unit
                     }
                     when (event) {
                         // gateway 首条 session = 网关 sid（workdir/deliver key）；
@@ -327,6 +328,7 @@ class ChatViewModel(
                         // 只采纳首个（网关 sid），忽略后者，否则 deliver 拿错 sid → gateway 找不到 workdir。
                         is ClaudeEvent.Session -> if (claudeSid == null) claudeSid = event.sid
                         is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
+                        is ClaudeEvent.AppToolRequest -> Unit
                         else -> {
                             renderer.apply(event)
                             _streamingMessage.update { cur ->
