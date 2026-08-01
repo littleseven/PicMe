@@ -80,5 +80,9 @@ interface ChatMessageDao {
      */
     @Query("SELECT DISTINCT sessionId FROM chat_messages ORDER BY timestamp DESC")
     fun getAllSessionIds(): Flow<List<String>>
+
+    /** 快照导出：全量消息（备份用） */
+    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
+    suspend fun getAllMessages(): List<ChatMessageEntity>
 }
 

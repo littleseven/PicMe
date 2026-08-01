@@ -5,12 +5,15 @@
 # 用途：
 #   同一部测试机反复安装 release/debug 包时，签名不同导致必须卸载重装，
 #   本脚本通过 adb 调用应用内已实现的 TAG 数据备份/还原能力，
-#   将 TAG 扫描结果、用户偏好（账号/Token/设置）保存为本地快照，
-#   重装后一键恢复，避免重新花大量时间生成。
+#   将 TAG 扫描结果、聊天历史、人物关系、事实记忆、编辑配方、
+#   用户偏好（账号/Token/设置）保存为本地快照，重装后一键恢复，
+#   避免重新花大量时间生成。
 #
 # 注意：
+#   - 脚本化入口 BackupRestoreBroadcastReceiver 仅存在于 debug 构建
+#     （app/src/debug/）；release 包请使用应用内 设置 → 备份与恢复（SAF）。
 #   - 备份文件存放在外部媒体目录 /sdcard/Android/media/<package>/PoLangBackup/，
-#     该目录属于应用自身存储区域，adb 可直接 pull/push，同时支持 debug 与 release 包。
+#     该目录属于应用自身存储区域，adb 可直接 pull/push。
 #   - 恢复依赖媒体 URI 匹配（content://media/external/...），恢复前请确保：
 #     1) 已安装目标 APK 并授予媒体读取权限；
 #     2) 设备上的媒体文件与备份时一致（或至少 URI 对应文件存在）。
@@ -23,7 +26,7 @@ set -euo pipefail
 
 readonly DEFAULT_PACKAGE_NAME="com.mamba.picme"
 readonly AGENT_TEST_ACTION="com.mamba.picme.AGENT_TEST"
-readonly RECEIVER_CLASS=".testing.agent.bridge.AgentTestBroadcastReceiver"
+readonly RECEIVER_CLASS=".testing.backup.BackupRestoreBroadcastReceiver"
 readonly MAIN_ACTIVITY=".MainActivity"
 readonly BACKUP_SUBDIR="PoLangBackup"
 readonly BACKUP_FILENAME="tag_data_backup.json"
@@ -307,7 +310,7 @@ cmd_backup() {
   send_agent_broadcast "$(build_backup_json)"
 
   if ! wait_for_remote_result "$(remote_result_file)"; then
-    die "备份操作超时，请检查设备日志（tag=AgentTestReceiver）"
+    die "备份操作超时，请检查设备日志（tag=BackupRestoreReceiver）"
   fi
 
   log_info "拉取备份文件..."
@@ -338,7 +341,7 @@ cmd_restore() {
   send_agent_broadcast "$(build_restore_json "$dry_run")"
 
   if ! wait_for_remote_result "$(remote_result_file)"; then
-    die "恢复操作超时，请检查设备日志（tag=AgentTestReceiver）"
+    die "恢复操作超时，请检查设备日志（tag=BackupRestoreReceiver）"
   fi
 
   local restore_result="$(snapshot_restore_file "$name")"

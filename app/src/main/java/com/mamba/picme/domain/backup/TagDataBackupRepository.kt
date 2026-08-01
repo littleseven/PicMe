@@ -12,11 +12,18 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.local.ChatMessageDao
+import com.mamba.picme.data.local.ChatMessageEntity
+import com.mamba.picme.data.local.ChatSessionDao
+import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.data.local.MediaDao
 import com.mamba.picme.data.local.dao.LocationDao
 import com.mamba.picme.data.local.dao.MediaFeedbackDao
+import com.mamba.picme.data.local.dao.MemoryFactDao
 import com.mamba.picme.data.local.dao.OcrWordDao
 import com.mamba.picme.data.local.dao.PersonDao
+import com.mamba.picme.data.local.dao.PersonRelationDao
+import com.mamba.picme.data.local.dao.PhotoEditRecipeDao
 import com.mamba.picme.data.local.dao.TagDao
 import com.mamba.picme.data.local.dao.TagScanTaskDao
 import com.mamba.picme.data.local.entity.FaceEmbeddingEntity
@@ -24,22 +31,30 @@ import com.mamba.picme.data.local.entity.LocationHierarchyEntity
 import com.mamba.picme.data.local.entity.MediaFeedbackEntity
 import com.mamba.picme.data.local.entity.MediaLocationEntity
 import com.mamba.picme.data.local.entity.MediaTagCrossRef
+import com.mamba.picme.data.local.entity.MemoryFactEntity
 import com.mamba.picme.data.local.entity.OcrWordEntity
 import com.mamba.picme.data.local.entity.OcrWordOccurrence
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.data.local.entity.PersonRelationEntity
+import com.mamba.picme.data.local.entity.PhotoEditRecipeEntity
 import com.mamba.picme.data.local.entity.TagEntity
 import com.mamba.picme.data.local.entity.TagScanPass
 import com.mamba.picme.data.local.entity.TagScanTaskEntity
 import com.mamba.picme.data.local.entity.TagScanTaskStatus
+import com.mamba.picme.domain.backup.model.BackupChatMessage
+import com.mamba.picme.domain.backup.model.BackupChatSession
 import com.mamba.picme.domain.backup.model.BackupFaceEmbedding
 import com.mamba.picme.domain.backup.model.BackupLocationHierarchy
 import com.mamba.picme.domain.backup.model.BackupMediaFeedback
 import com.mamba.picme.domain.backup.model.BackupMediaLocation
 import com.mamba.picme.domain.backup.model.BackupMediaTagCrossRef
 import com.mamba.picme.domain.backup.model.BackupMediaTagMetadata
+import com.mamba.picme.domain.backup.model.BackupMemoryFact
 import com.mamba.picme.domain.backup.model.BackupOcrWord
 import com.mamba.picme.domain.backup.model.BackupOcrWordOccurrence
 import com.mamba.picme.domain.backup.model.BackupPerson
+import com.mamba.picme.domain.backup.model.BackupPersonRelation
+import com.mamba.picme.domain.backup.model.BackupPhotoEditRecipe
 import com.mamba.picme.domain.backup.model.BackupPreferenceEntry
 import com.mamba.picme.domain.backup.model.BackupPreferences
 import com.mamba.picme.domain.backup.model.BackupTag
@@ -78,6 +93,11 @@ class TagDataBackupRepository(
     private val ocrWordDao: OcrWordDao,
     private val locationDao: LocationDao,
     private val mediaFeedbackDao: MediaFeedbackDao,
+    private val chatMessageDao: ChatMessageDao,
+    private val chatSessionDao: ChatSessionDao,
+    private val personRelationDao: PersonRelationDao,
+    private val memoryFactDao: MemoryFactDao,
+    private val photoEditRecipeDao: PhotoEditRecipeDao,
     private val dataStore: DataStore<Preferences>,
     moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 ) {
@@ -97,7 +117,12 @@ class TagDataBackupRepository(
         val locationCount: Int,
         val mediaLocationCount: Int,
         val mediaFeedbackCount: Int,
-        val preferenceCount: Int
+        val preferenceCount: Int,
+        val chatSessionCount: Int,
+        val chatMessageCount: Int,
+        val personRelationCount: Int,
+        val memoryFactCount: Int,
+        val photoEditRecipeCount: Int
     )
 
     data class RestoreResult(
@@ -114,7 +139,12 @@ class TagDataBackupRepository(
         val restoredLocationCount: Int,
         val restoredMediaLocationCount: Int,
         val restoredMediaFeedbackCount: Int,
-        val restoredPreferenceCount: Int
+        val restoredPreferenceCount: Int,
+        val restoredChatSessionCount: Int,
+        val restoredChatMessageCount: Int,
+        val restoredPersonRelationCount: Int,
+        val restoredMemoryFactCount: Int,
+        val restoredPhotoEditRecipeCount: Int
     )
 
     /**
@@ -150,7 +180,11 @@ class TagDataBackupRepository(
                 lastTagScanAt = media.lastTagScanAt,
                 lastTagScanPasses = media.lastTagScanPasses,
                 hasFace = media.hasFace,
-                faceId = media.faceId
+                faceId = media.faceId,
+                city = media.city,
+                faceFocusY = media.faceFocusY,
+                aestheticScore = media.aestheticScore,
+                faceQualityScore = media.faceQualityScore
             )
         }
 
@@ -246,6 +280,60 @@ class TagDataBackupRepository(
 
         val preferences = exportPreferences()
 
+        // v5 新增：聊天、人物关系、事实记忆、编辑配方（无 mediaId 依赖，直接全量导出）
+        val chatSessions = chatSessionDao.getAllSessionsNow().map {
+            BackupChatSession(
+                sessionId = it.sessionId,
+                title = it.title,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt
+            )
+        }
+
+        val chatMessages = chatMessageDao.getAllMessages().map {
+            BackupChatMessage(
+                id = it.id,
+                sessionId = it.sessionId,
+                type = it.type,
+                content = it.content,
+                timestamp = it.timestamp,
+                modelUsed = it.modelUsed,
+                metadata = it.metadata
+            )
+        }
+
+        val personRelations = personRelationDao.getAll().map {
+            BackupPersonRelation(
+                subjectPersonId = it.subjectPersonId,
+                objectPersonId = it.objectPersonId,
+                predicate = it.predicate,
+                source = it.source,
+                customLabel = it.customLabel,
+                confidence = it.confidence,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt
+            )
+        }
+
+        val memoryFacts = memoryFactDao.getAll().map {
+            BackupMemoryFact(
+                content = it.content,
+                category = it.category,
+                source = it.source,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt
+            )
+        }
+
+        val photoEditRecipes = photoEditRecipeDao.getAll().map {
+            BackupPhotoEditRecipe(
+                outputUri = it.outputUri,
+                sourceUri = it.sourceUri,
+                recipeJson = it.recipeJson,
+                updatedAt = it.updatedAt
+            )
+        }
+
         val backup = TagDataBackup(
             exportedAt = System.currentTimeMillis(),
             tags = tags,
@@ -259,7 +347,12 @@ class TagDataBackupRepository(
             locationHierarchy = locations,
             mediaLocations = mediaLocations,
             mediaFeedback = mediaFeedback,
-            preferences = preferences
+            preferences = preferences,
+            chatSessions = chatSessions,
+            chatMessages = chatMessages,
+            personRelations = personRelations,
+            memoryFacts = memoryFacts,
+            photoEditRecipes = photoEditRecipes
         )
 
         // 使用流式 JSON 写入，避免大备份序列化时产生超大字符串导致 OOM
@@ -280,7 +373,12 @@ class TagDataBackupRepository(
             locationCount = locations.size,
             mediaLocationCount = mediaLocations.size,
             mediaFeedbackCount = mediaFeedback.size,
-            preferenceCount = preferences.entries.size
+            preferenceCount = preferences.entries.size,
+            chatSessionCount = chatSessions.size,
+            chatMessageCount = chatMessages.size,
+            personRelationCount = personRelations.size,
+            memoryFactCount = memoryFacts.size,
+            photoEditRecipeCount = photoEditRecipes.size
         )
     }
 
@@ -360,7 +458,12 @@ class TagDataBackupRepository(
                 restoredLocationCount = 0,
                 restoredMediaLocationCount = 0,
                 restoredMediaFeedbackCount = 0,
-                restoredPreferenceCount = 0
+                restoredPreferenceCount = 0,
+                restoredChatSessionCount = 0,
+                restoredChatMessageCount = 0,
+                restoredPersonRelationCount = 0,
+                restoredMemoryFactCount = 0,
+                restoredPhotoEditRecipeCount = 0
             )
         }
 
@@ -439,7 +542,11 @@ class TagDataBackupRepository(
                     lastTagScanAt = meta.lastTagScanAt,
                     lastTagScanPasses = meta.lastTagScanPasses,
                     hasFace = meta.hasFace,
-                    faceId = meta.faceId
+                    faceId = meta.faceId,
+                    city = meta.city,
+                    faceFocusY = meta.faceFocusY,
+                    aestheticScore = meta.aestheticScore,
+                    faceQualityScore = meta.faceQualityScore
                 )
                 restoredMetadataCount++
             }
@@ -464,6 +571,27 @@ class TagDataBackupRepository(
                     restoredPersonCount++
                 }
             }
+
+            // 6.5 恢复人物关系图谱（依赖 oldToNewPersonId 重定位两端人物，须在人物恢复之后）
+            val relationsToInsert = backup.personRelations.mapNotNull { rel ->
+                val newSubjectId = oldToNewPersonId[rel.subjectPersonId] ?: return@mapNotNull null
+                val newObjectId = oldToNewPersonId[rel.objectPersonId] ?: return@mapNotNull null
+                PersonRelationEntity(
+                    relationId = 0,
+                    subjectPersonId = newSubjectId,
+                    objectPersonId = newObjectId,
+                    predicate = rel.predicate,
+                    source = rel.source,
+                    customLabel = rel.customLabel,
+                    confidence = rel.confidence,
+                    createdAt = rel.createdAt,
+                    updatedAt = rel.updatedAt
+                )
+            }
+            if (relationsToInsert.isNotEmpty()) {
+                personRelationDao.upsertAll(relationsToInsert)
+            }
+            val restoredPersonRelationCount = relationsToInsert.size
 
             // 7. 恢复人脸 Embedding（Pass 1 产出）
             val embeddingsToInsert = backup.faceEmbeddings.mapNotNull { emb ->
@@ -583,6 +711,63 @@ class TagDataBackupRepository(
             }
             val restoredMediaFeedbackCount = feedbackToInsert.size
 
+            // 11. 恢复聊天会话与消息（REPLACE 幂等，主键为 String 无需重定位）
+            backup.chatSessions.forEach { session ->
+                chatSessionDao.insertSession(
+                    ChatSessionEntity(
+                        sessionId = session.sessionId,
+                        title = session.title,
+                        createdAt = session.createdAt,
+                        updatedAt = session.updatedAt
+                    )
+                )
+            }
+            if (backup.chatMessages.isNotEmpty()) {
+                backup.chatMessages.chunked(500).forEach { chunk ->
+                    chatMessageDao.insertMessages(
+                        chunk.map { msg ->
+                            ChatMessageEntity(
+                                id = msg.id,
+                                sessionId = msg.sessionId,
+                                type = msg.type,
+                                content = msg.content,
+                                timestamp = msg.timestamp,
+                                modelUsed = msg.modelUsed,
+                                metadata = msg.metadata
+                            )
+                        }
+                    )
+                }
+            }
+
+            // 12. 恢复事实记忆（无外部引用，直接插入）
+            var restoredMemoryFactCount = 0
+            for (fact in backup.memoryFacts) {
+                val newId = memoryFactDao.insert(
+                    MemoryFactEntity(
+                        factId = 0,
+                        content = fact.content,
+                        category = fact.category,
+                        source = fact.source,
+                        createdAt = fact.createdAt,
+                        updatedAt = fact.updatedAt
+                    )
+                )
+                if (newId > 0) restoredMemoryFactCount++
+            }
+
+            // 13. 恢复编辑配方（主键 outputUri，REPLACE 幂等）
+            backup.photoEditRecipes.forEach { recipe ->
+                photoEditRecipeDao.insert(
+                    PhotoEditRecipeEntity(
+                        outputUri = recipe.outputUri,
+                        sourceUri = recipe.sourceUri,
+                        recipeJson = recipe.recipeJson,
+                        updatedAt = recipe.updatedAt
+                    )
+                )
+            }
+
             result = RestoreResult(
                 matchedMediaCount = matchedMediaCount,
                 unmatchedUris = unmatchedUris,
@@ -597,7 +782,12 @@ class TagDataBackupRepository(
                 restoredLocationCount = restoredLocationCount,
                 restoredMediaLocationCount = restoredMediaLocationCount,
                 restoredMediaFeedbackCount = restoredMediaFeedbackCount,
-                restoredPreferenceCount = 0 // 在 SQLite 事务外恢复
+                restoredPreferenceCount = 0, // 在 SQLite 事务外恢复
+                restoredChatSessionCount = backup.chatSessions.size,
+                restoredChatMessageCount = backup.chatMessages.size,
+                restoredPersonRelationCount = restoredPersonRelationCount,
+                restoredMemoryFactCount = restoredMemoryFactCount,
+                restoredPhotoEditRecipeCount = backup.photoEditRecipes.size
             )
             database.setTransactionSuccessful()
         } finally {
@@ -685,5 +875,9 @@ class TagDataBackupRepository(
             lastTagScanAt == null &&
             lastTagScanPasses.isNullOrBlank() &&
             !hasFace &&
-            faceId.isNullOrBlank()
+            faceId.isNullOrBlank() &&
+            city.isNullOrBlank() &&
+            faceFocusY == null &&
+            aestheticScore == null &&
+            faceQualityScore == null
 }

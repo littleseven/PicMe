@@ -6,9 +6,12 @@
 
 | 方案 | 适用包 | 是否需要电脑 | 备份粒度 | 推荐场景 |
 |------|--------|-------------|---------|---------|
-| **应用内 SAF 导入/导出**（设置 → 备份与恢复） | release / debug | 否 | TAG 数据库 + DataStore 设置 | 日常手动备份、无电脑时 |
+| **应用内 SAF 导入/导出**（设置 → 备份与恢复） | release / debug | 否 | 备份模型 v5（见下） | 日常手动备份、无电脑时 |
 | **`adb backup/restore`** | release / debug | 是 | 应用数据（数据库、SharedPreferences、DataStore） | 整机应用数据迁移、脚本化 |
-| **`scripts/app-data-backup.sh`** | debug 或 exported receiver | 是 | TAG 数据库 + DataStore 设置 | 开发脚本、CI/自动化 |
+| **`scripts/app-data-backup.sh`** | 仅 debug | 是 | 备份模型 v5（同 SAF） | 开发脚本、CI/自动化 |
+
+> **备份模型 v5 覆盖范围**：TAG 数据库（标签、媒体 TAG 元数据含 city/faceFocusY/aestheticScore/faceQualityScore、媒体-标签关联、扫描任务）、人脸 Embedding 与人物聚类、OCR 倒排索引、地理位置关系、媒体反馈、人物关系图谱（person_relations）、事实记忆（memory_facts）、聊天会话与消息（chat_sessions/chat_messages）、编辑配方（photo_edit_recipes）、DataStore 用户偏好。
+> **不覆盖**：`polang_llm_log.db`（LLM/tool/JS 日志）、`chat_image_cache`（可重建缓存）、`device_id`。
 
 ## 一、应用内 SAF 导入/导出（推荐，无需 adb）
 
@@ -21,6 +24,7 @@
 
 - 导入依赖媒体 URI 匹配（`content://media/external/...`）。如果重装后系统媒体库 ID 变化导致 URI 无法匹配，对应媒体的 TAG 元数据将不会被恢复。
 - 不同数据库 Schema 版本的应用之间恢复可能失败；建议尽量在相同版本或向后兼容版本之间操作。
+- 聊天图片消息的 `content` 与编辑配方的 `outputUri` 指向旧安装的本地文件/媒体 URI，跨安装恢复后对应图片可能不存在，仅保留记录本身。
 
 ## 二、adb backup / restore
 
@@ -88,13 +92,30 @@ adb shell run-as com.mamba.picme ls -l files/datastore/
   ```
 - 部分国产 ROM 可能限制或移除 `adb backup` 的本地传输，导致无法使用；此时请改用 SAF 或 `scripts/app-data-backup.sh`。
 
-## 三、跨版本注意事项
+## 三、scripts/app-data-backup.sh（仅 debug 包）
+
+脚本通过 adb 广播调用 debug 构建中的 `BackupRestoreBroadcastReceiver`
+（`app/src/debug/java/com/mamba/picme/testing/backup/`，action `com.mamba.picme.AGENT_TEST`），
+备份粒度与 SAF 完全一致（备份模型 v5），适合开发/CI 自动化：
+
+```bash
+./scripts/app-data-backup.sh backup before_release   # 备份到本地快照
+./scripts/app-data-backup.sh dry-run before_release  # 模拟恢复，只统计媒体匹配
+./scripts/app-data-backup.sh restore before_release  # 恢复快照
+./scripts/app-data-backup.sh list                    # 列出快照
+```
+
+> 历史说明：旧入口 `AgentTestBroadcastReceiver` 已随 ADR-011 退役，
+> 当前 receiver 仅保留 `backup_tag_data` / `restore_tag_data` 两个命令。
+> release 包不包含该 receiver，请改用 SAF 方案。
+
+## 四、跨版本注意事项
 
 1. **数据库 Schema 变化**：如果两个安装包的数据库版本不同，`adb restore` 恢复后 Room 会按当前版本的迁移规则处理；若迁移不存在会崩溃。建议先升级应用再恢复，或降级数据库版本。
 2. **媒体 URI 变化**：SAF JSON 恢复以 URI 为键；如果换机或系统重置导致媒体 URI 变化，需重新扫描媒体库。
 3. **账号/Token**：DataStore 设置（含 API key、Token、模型配置）会随 `adb backup` 或 SAF JSON 一起恢复，但云端会话/授权状态可能已失效，必要时重新登录。
 
-## 四、故障排查
+## 五、故障排查
 
 | 现象 | 可能原因 | 处理 |
 |------|---------|------|
@@ -103,10 +124,11 @@ adb shell run-as com.mamba.picme ls -l files/datastore/
 | JSON 导入崩溃 | 备份 JSON 与当前数据库 Schema 不兼容 | 使用相同版本应用恢复，或联系开发更新备份模型 |
 | `adb backup` 文件为 0 B 或极小 | 未在设备上点击确认；或系统未导出应用数据 | 在设备弹窗中确认备份；检查 `allowBackup=true` 与规则文件；切换本地 transport |
 
-## 五、相关文件
+## 六、相关文件
 
 - 备份规则：`app/src/main/res/xml/data_extraction_rules.xml`
 - 兼容规则：`app/src/main/res/xml/backup_rules.xml`
 - 应用内 SAF 入口：`app/src/main/java/com/mamba/picme/features/backuprestore/BackupRestoreActivity.kt`
 - 备份仓库：`app/src/main/java/com/mamba/picme/domain/backup/TagDataBackupRepository.kt`
 - 脚本入口：`scripts/app-data-backup.sh`
+- 脚本化广播入口（仅 debug）：`app/src/debug/java/com/mamba/picme/testing/backup/BackupRestoreBroadcastReceiver.kt`

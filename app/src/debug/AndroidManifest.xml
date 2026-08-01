@@ -16,6 +16,15 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <!-- 备份/恢复脚本化入口：仅 debug 构建，配合 scripts/app-data-backup.sh -->
+        <receiver
+            android:name=".testing.backup.BackupRestoreBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.mamba.picme.AGENT_TEST" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
