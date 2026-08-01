@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 
 # server.py 模块级读 CT_REPO_URL（构造 SessionManager）；测试默认置一个无害值。
@@ -36,34 +37,63 @@ def test_build_cmd_core_flags():
     assert "--max-turns" in cmd
 
 
+class _FakeResp:
+    """mock SSE writer：捕获写出的帧文本，测试从中解析下行事件。"""
+
+    def __init__(self):
+        self.frames = []
+
+    async def write(self, data: bytes):
+        self.frames.append(data.decode("utf-8"))
+
+    def tool_request_data(self):
+        assert self.frames, "no SSE frame pushed"
+        frame = self.frames[0]
+        assert frame.startswith("event: app_tool_request\n")
+        return json.loads(frame.split("data: ", 1)[1])
+
+
+async def _wait_tool_request_data(fake):
+    """轮询等待下行 SSE 帧出现（避免固定 sleep 在慢机器上偶发失败）。"""
+    for _ in range(200):
+        if fake.frames:
+            return fake.tool_request_data()
+        await asyncio.sleep(0.01)
+    raise AssertionError("no app_tool_request SSE frame pushed")
+
+
 async def test_tool_result_roundtrip(aiohttp_client):
-    """POST /app-tool-request 挂起 → POST /tool-result 解挂并返回 payload。"""
+    """POST /app-tool-request 挂起 → 下行 SSE 帧 → POST /tool-result 解挂并返回 payload。"""
     app = web.Application()
     app.router.add_post("/app-tool-request", server.app_tool_request)
     app.router.add_post("/tool-result", server.tool_result)
     client = await aiohttp_client(app)
 
+    fake = _FakeResp()
+    server.SSE_HUB["sid1"] = fake
+
     async def post_result():
-        await asyncio.sleep(0.1)
-        await client.post("/tool-result", json={
-            "requestId": server._LAST_REQUEST_ID,  # 测试钩子：最近一次下发的 requestId
+        request_id = (await _wait_tool_request_data(fake))["requestId"]
+        return await client.post("/tool-result", json={
+            "requestId": request_id,
             "payload": {"logs": "hello"},
         })
 
-    # 无活跃 SSE 时推送到 sid 应直接报错（走错误分支前先注册一个假 SSE 较复杂，
-    # 故本用例用 server.SSE_HUB 直接塞一个 mock writer）
-    class FakeResp:
-        async def write(self, data: bytes):
-            self.data = data
-    server.SSE_HUB["sid1"] = FakeResp()
     try:
-        result, _ = await asyncio.gather(
-            client.post("/app-tool-request", json={"sid": "sid1", "tool": "app_get_logs", "args": {}}),
+        result, result_resp = await asyncio.gather(
+            client.post("/app-tool-request",
+                        json={"sid": "sid1", "tool": "app_get_logs", "args": {"lines": 50}}),
             post_result(),
         )
         body = await result.json()
         assert body["ok"] is True
         assert body["payload"] == {"logs": "hello"}
+        assert (await result_resp.json())["ok"] is True
+        # 核心下行语义：SSE 帧携带 app_tool_request 事件、requestId、tool 名、args
+        data = fake.tool_request_data()
+        assert data["requestId"]
+        assert data["tool"] == "app_get_logs"
+        assert data["args"] == {"lines": 50}
     finally:
         server.SSE_HUB.pop("sid1", None)
 
@@ -77,3 +107,26 @@ async def test_app_tool_request_no_active_sse(aiohttp_client):
     body = await resp.json()
     assert body["ok"] is False
     assert "offline" in body["error"]
+
+
+async def test_app_tool_request_timeout(aiohttp_client, monkeypatch):
+    """App 不回传 → 超时 ok=false、PENDING 清空，迟到的 /tool-result 得 404。"""
+    monkeypatch.setattr(server, "APP_TOOL_TIMEOUT", 0.05)
+    app = web.Application()
+    app.router.add_post("/app-tool-request", server.app_tool_request)
+    app.router.add_post("/tool-result", server.tool_result)
+    client = await aiohttp_client(app)
+
+    fake = _FakeResp()
+    server.SSE_HUB["sid1"] = fake
+    try:
+        resp = await client.post("/app-tool-request", json={"sid": "sid1", "tool": "app_get_logs", "args": {}})
+        body = await resp.json()
+        assert body["ok"] is False
+        assert "timeout" in body["error"]
+        assert server.PENDING == {}
+        request_id = fake.tool_request_data()["requestId"]
+        late = await client.post("/tool-result", json={"requestId": request_id, "payload": {}})
+        assert late.status == 404
+    finally:
+        server.SSE_HUB.pop("sid1", None)

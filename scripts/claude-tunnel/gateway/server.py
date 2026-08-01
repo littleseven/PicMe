@@ -1,4 +1,6 @@
-"""Claude 流式网关。POST /chat → SSE；POST /deliver → push 分支；GET /healthz。"""
+"""Claude 流式网关。POST /chat → SSE；POST /deliver → push 分支；
+POST /app-tool-request → 经活跃 SSE 下行 app tool 调用并长轮询等回传；
+POST /tool-result → App 回传 tool 结果解挂；GET /healthz。"""
 import asyncio
 import os
 import uuid
@@ -25,8 +27,10 @@ sm = session.SessionManager(WORK_ROOT, REPO_URL, BASE_BRANCH)
 # ── app-tool 桥接（spec §4.1）：MCP server 经 localhost HTTP 与网关通信 ──
 SSE_HUB = {}       # sid → 活跃 /chat 的 StreamResponse（tool call 只发生在回合进行中）
 PENDING = {}       # requestId → asyncio.Future（tool-result 解挂）
-_LAST_REQUEST_ID = None  # 测试钩子
 APP_TOOL_TIMEOUT = int(os.environ.get("CT_APP_TOOL_TIMEOUT", "60"))
+# pump() 与 app_tool_request handler 可能并发写同一 StreamResponse，
+# 串行化 _send 防止 SSE 帧交错损坏（量小，一把全局锁即可）。
+_SEND_LOCK = asyncio.Lock()
 
 
 def build_cmd(message, claude_sid):
@@ -41,20 +45,19 @@ def build_cmd(message, claude_sid):
 
 
 async def _send(resp, event):
-    await resp.write(claude_events.format_sse(event).encode("utf-8"))
+    async with _SEND_LOCK:
+        await resp.write(claude_events.format_sse(event).encode("utf-8"))
 
 
 async def app_tool_request(request):
     """MCP server → 网关：经该 sid 的活跃 SSE 下行 app_tool_request 事件，长轮询等 App 回传。"""
-    global _LAST_REQUEST_ID
     body = await request.json()
     sid = body.get("sid", "")
     resp = SSE_HUB.get(sid)
     if resp is None:
         return web.json_response({"ok": False, "error": "app offline (no active SSE)"})
     request_id = uuid.uuid4().hex[:12]
-    _LAST_REQUEST_ID = request_id
-    fut = asyncio.get_event_loop().create_future()
+    fut = asyncio.get_running_loop().create_future()
     PENDING[request_id] = fut
     try:
         await _send(resp, {"event": "app_tool_request", "data": {
@@ -101,7 +104,9 @@ async def chat(request):
     try:
         await _run_claude_turn(resp, sid, message, claude_sid)
     finally:
-        SSE_HUB.pop(sid, None)
+        # 带身份判断：旧回合的 finally 不得误删新回合对同一 sid 的注册
+        if SSE_HUB.get(sid) is resp:
+            SSE_HUB.pop(sid, None)
     return resp
 
 
