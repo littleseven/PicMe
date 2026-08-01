@@ -1,5 +1,7 @@
 package com.mamba.picme.server.admin
 
+import com.mamba.picme.server.auth.AiEngineerWhitelistService
+import com.mamba.picme.server.config.SettingsService
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -112,6 +114,49 @@ class AdminViewsTest {
         assertTrue(html.contains("5 / 100"))
         assertTrue(html.contains("100 / 100")) // 超额行
         assertTrue(html.contains("btn-danger")) // 删除按钮
+    }
+
+    @Test
+    fun `settings page uses new section card structure and keeps form endpoints`() {
+        val snap = SettingsService.Snapshot(freeLlmQuota = 888, guestLlmQuota = 66)
+        val html = AdminViews.settingsPage(snap, whitelist = emptyList(), message = "已保存")
+        val body = html.substringAfter("<body").substringBefore("</body>")
+        // 页面标题与容器
+        assertTrue(body.contains("class=\"page-title\""))
+        assertTrue(body.contains(">设置</h1>"))
+        assertTrue(body.contains("class=\"page\""))
+        // 区块 1：额度默认值
+        assertTrue(body.contains("额度默认值（全局）"))
+        assertTrue(body.contains("class=\"section-title\""))
+        assertTrue(body.contains("class=\"section-desc\""))
+        assertTrue(body.contains("action=\"/admin/settings\""))
+        assertTrue(body.contains("name=\"free_llm_quota\""))
+        assertTrue(body.contains("name=\"guest_llm_quota\""))
+        assertTrue(body.contains("value=\"888\""))
+        assertTrue(body.contains("value=\"66\""))
+        // 区块 2：白名单
+        assertTrue(body.contains("AI 工程师白名单"))
+        assertTrue(body.contains("id=\"whitelist\""))
+        assertTrue(body.contains("action=\"/admin/settings/whitelist\""))
+        assertTrue(body.contains("class=\"empty-state\""))
+        assertTrue(body.contains("暂无白名单记录"))
+        // 不再使用设置页旧的跨界类/内联样式
+        assertFalse("settings page should not use chan-form", body.contains("chan-form"))
+        assertFalse("settings page should not use apk-info-card", body.contains("apk-info-card"))
+        assertFalse("settings page should not use limit-card", body.contains("limit-card"))
+        assertFalse("settings page should not use apk-empty", body.contains("apk-empty"))
+        assertFalse("settings page should not use inline width style", body.contains("width:160px"))
+        assertFalse("settings page should not use inline width style", body.contains("width:280px"))
+    }
+
+    @Test
+    fun `settings whitelist section renders table when not empty`() {
+        val snap = SettingsService.Snapshot(freeLlmQuota = 100, guestLlmQuota = 10)
+        val entries = listOf(AiEngineerWhitelistService.Entry(1, "dev@example.com", 1_700_000_000_000L))
+        val html = AdminViews.settingsPage(snap, entries)
+        assertTrue(html.contains("dev@example.com"))
+        assertTrue(html.contains("/admin/settings/whitelist/revoke"))
+        assertFalse(html.contains("class=\"empty-state\""))
     }
 
     @Test
