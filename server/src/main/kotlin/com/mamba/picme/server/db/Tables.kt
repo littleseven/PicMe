@@ -160,30 +160,3 @@ object ServerSettings : Table("server_setting") {
     override val primaryKey = PrimaryKey(key)
 }
 
-// ── 远程诊断任务（chat 触发 → 云主机 worker 诊断/修复）──
-object DiagJobs : Table("diag_job") {
-    val id = integer("id").autoIncrement()
-    val ownerTokenHash = varchar("owner_token_hash", 64)  // X-App-Token 的 hash，owner 身份
-    val deviceId = varchar("device_id", 128).nullable()
-    val description = text("description")
-    val conversationSummary = text("conversation_summary").nullable() // 诊断澄清对话摘要（可选，旧客户端为 NULL）
-    val bundleJson = text("bundle_json")                  // 脱敏后的纯文本诊断包
-    val gitSha = varchar("git_sha", 64)
-    val status = varchar("status", 24)                    // DiagStatus.name
-    val rootCause = text("root_cause").nullable()
-    val suggestedFix = text("suggested_fix").nullable()     // 诊断给出的修复方向（供 fix 阶段 prompt）
-    val fixMode = varchar("fix_mode", 8).nullable()       // push | pr
-    val fixBranch = varchar("fix_branch", 128).nullable()
-    val compareUrl = varchar("compare_url", 512).nullable()
-    val tested = integer("tested").default(0)
-    val workerLog = text("worker_log").nullable()
-    val createdAt = long("created_at")
-    val updatedAt = long("updated_at")
-    val claimedAt = long("claimed_at").nullable()
-    override val primaryKey = PrimaryKey(id)
-
-    init {
-        index(isUnique = false, ownerTokenHash)
-        index(isUnique = false, status)
-    }
-}
