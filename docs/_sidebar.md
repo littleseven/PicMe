@@ -17,6 +17,11 @@
     - [ADR-005 本地/远程推理分离](02-ARCHITECTURE/ADR/ADR-005-local-remote-inference-split.md)
     - [ADR-006 命令系统分离](02-ARCHITECTURE/ADR/ADR-006-command-system-separation.md)
     - [ADR-007 自然语言照片搜索](02-ARCHITECTURE/ADR/ADR-007-natural-language-photo-search.md)
+    - [ADR-008 隐私红线（禁媒体上传）](02-ARCHITECTURE/ADR/ADR-008-privacy-redline-media-only.md)
+    - [ADR-009 本地 LLM 收缩至相机](02-ARCHITECTURE/ADR/ADR-009-local-llm-camera-only.md)
+    - [ADR-010 远程/本地链路隔离](02-ARCHITECTURE/ADR/ADR-010-remote-local-chain-isolation.md)
+    - [ADR-011 退役非 ui-driver 测试](02-ARCHITECTURE/ADR/ADR-011-retire-non-ui-driver-tests.md)
+    - [ADR-012 统一会话记忆](02-ARCHITECTURE/ADR/ADR-012-unify-conversation-memory.md)
 
 - **技术规格**
   - [大美丽引擎](03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md)
@@ -30,7 +35,6 @@
   - [MNN 关键点诊断](03-TECHNICAL-SPECS/MNN_LANDMARK_DIAGNOSIS.md)
   - [端侧推理清单](03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md)
   - [端侧图像理解模型](03-TECHNICAL-SPECS/ONDEVICE_IMAGE_UNDERSTANDING_MODELS.md)
-  - [Agent UI 设计](03-TECHNICAL-SPECS/AGENT_UI_DESIGN.md)
   - [聊天 UI 统一](03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md)
   - [JS 沙盒引擎](03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md)
   - [IM 远程控制](03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md)
@@ -44,7 +48,6 @@
   - [本地环境](05-DEVELOPMENT/LOCAL_ENVIRONMENT.md)
 
 - **QA**
-  - [验收清单](06-QA/QA_EXECUTION_CHECKLIST.md)
   - [性能基线报告](06-QA/PERFORMANCE_BASELINE_REPORT.md)
   - [OPUS 翻译验证](06-QA/research/OPUS_MT_TRANSLATION_VALIDATION.md)
 

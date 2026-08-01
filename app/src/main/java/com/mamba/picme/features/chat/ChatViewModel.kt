@@ -433,29 +433,35 @@ class ChatViewModel(
      * 有 file_change 则挂交付按钮（内存态，loadMessages 回填）。
      */
     private suspend fun persistClaudeBubble(sessionId: String, state: ClaudeAgentState) {
-        val sidNow = claudeSid
+        val sid = claudeSid
         Logger.i(
             TAG,
-            "persistClaudeBubble: hasFileChange=${state.hasFileChange} claudeSid=$sidNow steps=${state.steps.size} stepTools=${state.steps.map { it.tool }}",
+            "persistClaudeBubble: hasFileChange=${state.hasFileChange} claudeSid=$sid steps=${state.steps.size} stepTools=${state.steps.map { it.tool }}",
         )
-        val metadata = JSONObject().put("claude_agent_state", state.toJson()).toString()
-        val entity = ChatMessageEntity(
-            id = UUID.randomUUID().toString(),
-            sessionId = sessionId,
-            type = "agent_text",
-            content = state.text,
-            modelUsed = currentModelLabel(),
-            metadata = metadata,
-        )
-        chatMessageDao.insertMessage(entity)
-        chatSessionDao.touchSession(sessionId)
-        val sid = claudeSid
-        if (state.hasFileChange && !sid.isNullOrBlank()) {
-            claudeDeliverOverrides[entity.id] = ClaudeDeliverUi(sid, pending = true)
-            Logger.i(TAG, "persistClaudeBubble: deliver override attached msgId=${entity.id}")
+        val msgId = UUID.randomUUID().toString()
+        // ⚠️ 时序：必须先 set override，再 insertMessage。insertMessage 会触发 loadMessages reload，
+        // reload 读 claudeDeliverOverrides[msgId] 渲染交付按钮；若 set 晚于 reload，按钮永不出现
+        // （之后无新 Room 写入再触发 reload）。预生成 msgId 保证 set 先于 insert。
+        if (!sid.isNullOrBlank()) {
+            // 交付按钮：有网关 sid（workdir 已建）就显示——不依赖 file_change 事件
+            // （Claude 用 Bash 改文件时 gateway 漏发 file_change）。spec §8：交付是用户主动动作。
+            claudeDeliverOverrides[msgId] = ClaudeDeliverUi(sid, pending = true)
+            Logger.i(TAG, "persistClaudeBubble: deliver override pre-attached msgId=$msgId (sid-only; hasFileChange=${state.hasFileChange})")
         } else {
-            Logger.i(TAG, "persistClaudeBubble: NO deliver button (hasFileChange=${state.hasFileChange} sidBlank=${sid.isNullOrBlank()})")
+            Logger.i(TAG, "persistClaudeBubble: NO deliver button (sid blank)")
         }
+        val metadata = JSONObject().put("claude_agent_state", state.toJson()).toString()
+        chatMessageDao.insertMessage(
+            ChatMessageEntity(
+                id = msgId,
+                sessionId = sessionId,
+                type = "agent_text",
+                content = state.text,
+                modelUsed = currentModelLabel(),
+                metadata = metadata,
+            ),
+        )
+        chatSessionDao.touchSession(sessionId)
     }
 
     /**
@@ -496,17 +502,23 @@ class ChatViewModel(
                     context.getString(R.string.claude_deliver_failed, e.message ?: "")
                 },
             )
+            // 成功（ok+branch）才隐藏交付按钮；失败则恢复 pending=true，允许重试
+            // （之前点一次失败按钮就永久消失，无法重试）。
+            val delivered = result.isSuccess &&
+                result.getOrNull()?.optBoolean("ok", false) == true &&
+                !result.getOrNull()?.optString("branch").isNullOrBlank()
+            claudeDeliverOverrides[messageId] = ov.copy(pending = !delivered)
             _messages.update { msgs ->
                 val updated = msgs.map { m ->
                     if (m.id == messageId) {
                         val st = m.claudeAgent
                         val merged = if (st == null) ClaudeAgentState(text = extra) else st.copy(text = st.text + "\n" + extra)
-                        m.copy(claudeAgent = merged)
+                        m.copy(claudeAgent = merged, claudeDeliver = ov.copy(pending = !delivered))
                     } else {
                         m
                     }
                 }
-                Logger.i(TAG, "confirmClaudeDeliver: extra appended='$extra' targetInMsgs=${updated.any { it.id == messageId }}")
+                Logger.i(TAG, "confirmClaudeDeliver: delivered=$delivered pending=${!delivered} extra='$extra'")
                 updated
             }
         }

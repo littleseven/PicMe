@@ -377,7 +377,6 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **能力注册与实现** | `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`（含实现指南与生命周期规范） |
 | **开发规范** | `docs/05-DEVELOPMENT/DEVELOPMENT.md`（含代码审查与任务标记规范） |
 | **本地开发环境** | `docs/05-DEVELOPMENT/LOCAL_ENVIRONMENT.md` |
-| **QA 验收** | `docs/06-QA/QA_EXECUTION_CHECKLIST.md`（含自动化测试与核心功能测试指引） |
 | **性能基线** | `docs/06-QA/PERFORMANCE_BASELINE_REPORT.md` |
 | **服务端部署** | `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md`（香港 VPS + Nginx + certbot，DNS-only 无 Cloudflare 代理） |
 | **服务端实现** | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`（Ktor 后端：AI 网关、账号、管理后台） |

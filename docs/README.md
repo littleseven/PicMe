@@ -17,7 +17,7 @@
 | [03 技术规格](03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) | 大美丽引擎、人脸检测、语音栈、端侧推理等 |
 | [04 Agent 能力](04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md) | 能力注册表、命令参考 |
 | [05 开发](05-DEVELOPMENT/DEVELOPMENT.md) | 开发流程、本地环境 |
-| [06 QA](06-QA/QA_EXECUTION_CHECKLIST.md) | 性能基线、验收清单 |
+| [06 QA](06-QA/PERFORMANCE_BASELINE_REPORT.md) | 性能基线报告 |
 | [07 标准](07-STANDARDS/GLOSSARY.md) | 坐标系、术语表 |
 
 ## 关于
