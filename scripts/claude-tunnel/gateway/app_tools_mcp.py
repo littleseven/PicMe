@@ -83,7 +83,7 @@ def handle_message(msg, emit):
     req_id = msg.get("id")
     if method == "initialize":
         emit({"jsonrpc": "2.0", "id": req_id, "result": {
-            "protocolVersion": msg.get("params", {}).get("protocolVersion", "2024-11-05"),
+            "protocolVersion": (msg.get("params") or {}).get("protocolVersion", "2024-11-05"),
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "app_tools", "version": "1.0.0"},
         }})
@@ -92,7 +92,7 @@ def handle_message(msg, emit):
     elif method == "tools/list":
         emit({"jsonrpc": "2.0", "id": req_id, "result": {"tools": TOOLS}})
     elif method == "tools/call":
-        params = msg.get("params", {})
+        params = msg.get("params") or {}
         name = params.get("name", "")
         if name not in _TOOL_NAMES:
             emit(_tool_result(req_id, "unknown tool: {}".format(name), True))
@@ -117,7 +117,7 @@ def main():
         except json.JSONDecodeError:
             continue
         handle_message(msg, lambda resp: (
-            sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n"), sys.stdout.flush()))
+            sys.stdout.write(json.dumps(resp, ensure_ascii=True) + "\n"), sys.stdout.flush()))
 
 
 if __name__ == "__main__":

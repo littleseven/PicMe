@@ -2,6 +2,7 @@
 POST /app-tool-request → 经活跃 SSE 下行 app tool 调用并长轮询等回传；
 POST /tool-result → App 回传 tool 结果解挂；GET /healthz。"""
 import asyncio
+import json
 import os
 import uuid
 
@@ -32,13 +33,50 @@ APP_TOOL_TIMEOUT = int(os.environ.get("CT_APP_TOOL_TIMEOUT", "60"))
 # 串行化 _send 防止 SSE 帧交错损坏（量小，一把全局锁即可）。
 _SEND_LOCK = asyncio.Lock()
 
+# claude --mcp-config 指向的 stdio MCP server 配置（启动时自生成）。
+# claude 的 cwd 是 workdir repo，args 必须用绝对路径，故不能手写静态文件。
+MCP_CONFIG_PATH = os.environ.get(
+    "CT_MCP_CONFIG",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "app-tools.mcp.json"),
+)
+GATEWAY_PORT = os.environ.get("CT_PORT", "3000")
+
+APP_TOOL_SYSTEM_PROMPT = """\
+你同时是 PoLang 相册 App 的远程诊断工程师。你可以通过 app_* 工具按需感知用户手机上的 App 状态：
+- app_get_logs：用户报告异常/报错时，先拉日志（用 filter 缩小范围）。
+- app_get_crash_trace：怀疑崩溃时拉取最近崩溃栈。
+- app_get_chat_history：用户说「之前/上次」等指代时拉聊天历史对齐事实。
+- app_get_runtime_state：需要版本、推理模式、模型配置、登录态等环境信息时。
+- app_get_gallery_summary：需要相册规模/标签分布等元数据时（图片本身永远拿不到，也不要索要）。
+诊断方法论：先澄清事实（问用户 + 拉数据交叉验证）→ 在代码中定位根因 → 给出最小修复方案。
+数据不足时明确告诉用户缺什么；工具返回 App 离线/超时时，引导用户保持 App 在前台重试。
+"""
+
+
+def write_mcp_config():
+    """启动时生成 --mcp-config（claude cwd 是 workdir，必须用绝对路径）。"""
+    mcp_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_tools_mcp.py")
+    cfg = {"mcpServers": {"app_tools": {"command": "python3", "args": [mcp_py]}}}
+    with open(MCP_CONFIG_PATH, "w") as fh:
+        json.dump(cfg, fh)
+
+
+def build_env(sid):
+    """chat spawn 环境：CT_SESSION_SID 供 MCP 子进程把 tool call 路由回本会话。"""
+    return dict(os.environ, IS_SANDBOX="1", GIT_TERMINAL_PROMPT="0",
+                CT_SESSION_SID=sid, CT_GATEWAY_PORT=GATEWAY_PORT)
+
 
 def build_cmd(message, claude_sid):
-    """构造 claude CLI 调用：--settings 指向权限白名单（模板存在时）+ --resume（多轮续上下文）。"""
+    """构造 claude CLI 调用：settings 白名单 + --resume 多轮 + MCP app 工具 + 诊断指引。"""
     cmd = [CLAUDE, "-p", message, "--output-format", "stream-json",
-           "--max-turns", MAX_TURNS, "--verbose"]
+           "--max-turns", MAX_TURNS, "--verbose",
+           "--append-system-prompt", APP_TOOL_SYSTEM_PROMPT]
     if os.path.exists(SETTINGS_PATH):
         cmd += ["--settings", SETTINGS_PATH]
+    if os.path.exists(MCP_CONFIG_PATH):
+        cmd += ["--mcp-config", MCP_CONFIG_PATH,
+                "--allowedTools", "mcp__app_tools"]
     if claude_sid:
         cmd += ["--resume", claude_sid]
     return cmd
@@ -113,7 +151,7 @@ async def chat(request):
 async def _run_claude_turn(resp, sid, message, claude_sid):
     """原 chat() 主体：spawn claude → pump SSE → error/done 收尾。"""
     repo = sm.repo_dir(sid)
-    env = dict(os.environ, IS_SANDBOX="1", GIT_TERMINAL_PROMPT="0")
+    env = build_env(sid)
     cmd = build_cmd(message, claude_sid)
 
     timeout = int(os.environ.get("CT_PHASE_TIMEOUT", "300"))
@@ -193,6 +231,7 @@ async def healthz(request):
 
 
 def main():
+    write_mcp_config()
     app = web.Application()
     app.router.add_post("/chat", chat)
     app.router.add_post("/deliver", deliver)

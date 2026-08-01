@@ -29,6 +29,29 @@ def test_build_cmd_no_resume_without_sid():
     assert "--resume" not in cmd
 
 
+def test_build_cmd_includes_mcp_and_system_prompt(monkeypatch, tmp_path):
+    mcp_cfg = tmp_path / "app-tools.mcp.json"
+    monkeypatch.setattr(server, "MCP_CONFIG_PATH", str(mcp_cfg))
+    server.write_mcp_config()  # 生成配置文件
+    cmd = server.build_cmd("hello", "csid123")
+    assert "--mcp-config" in cmd
+    assert cmd[cmd.index("--mcp-config") + 1] == str(mcp_cfg)
+    assert "--allowedTools" in cmd
+    assert "mcp__app_tools" in cmd[cmd.index("--allowedTools") + 1]
+    assert "--append-system-prompt" in cmd
+    assert "--resume" in cmd
+    cfg = json.loads(mcp_cfg.read_text())
+    args = cfg["mcpServers"]["app_tools"]["args"]
+    assert args[0].endswith("app_tools_mcp.py") and args[0].startswith("/")
+
+
+def test_build_env_injects_session_sid():
+    """chat spawn 的 env 必须带 CT_SESSION_SID=<网关 sid>（MCP 子进程继承）。"""
+    env = server.build_env("sidX")
+    assert env["CT_SESSION_SID"] == "sidX"
+    assert env["IS_SANDBOX"] == "1"
+
+
 def test_build_cmd_core_flags():
     cmd = server.build_cmd("do something", None)
     assert cmd[0] == server.CLAUDE
