@@ -13,8 +13,25 @@ MAX_TURNS = os.environ.get("CT_MAX_TURNS", "20")
 WORK_ROOT = os.environ.get("CT_WORK_ROOT", "/tmp/claude-tunnel-work")
 REPO_URL = os.environ["CT_REPO_URL"]
 BASE_BRANCH = os.environ.get("CT_BASE_BRANCH", "main")
+# claude 权限白名单（permissions.allow，非 bypass；root + IS_SANDBOX 下可用）。
+# 默认随 gateway/ 目录落盘，CT_SETTINGS 可覆盖路径。df354bec：bypass 被 claude 硬禁。
+SETTINGS_PATH = os.environ.get(
+    "CT_SETTINGS",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "claude-settings.json"),
+)
 
 sm = session.SessionManager(WORK_ROOT, REPO_URL, BASE_BRANCH)
+
+
+def build_cmd(message, claude_sid):
+    """构造 claude CLI 调用：--settings 指向权限白名单（模板存在时）+ --resume（多轮续上下文）。"""
+    cmd = [CLAUDE, "-p", message, "--output-format", "stream-json",
+           "--max-turns", MAX_TURNS, "--verbose"]
+    if os.path.exists(SETTINGS_PATH):
+        cmd += ["--settings", SETTINGS_PATH]
+    if claude_sid:
+        cmd += ["--resume", claude_sid]
+    return cmd
 
 
 async def _send(resp, event):
@@ -38,10 +55,7 @@ async def chat(request):
 
     repo = sm.repo_dir(sid)
     env = dict(os.environ, IS_SANDBOX="1", GIT_TERMINAL_PROMPT="0")
-    cmd = [CLAUDE, "-p", message, "--output-format", "stream-json",
-           "--max-turns", MAX_TURNS, "--verbose"]
-    if claude_sid:
-        cmd += ["--resume", claude_sid]
+    cmd = build_cmd(message, claude_sid)
 
     timeout = int(os.environ.get("CT_PHASE_TIMEOUT", "300"))
     done_sent = False
