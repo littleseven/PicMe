@@ -68,6 +68,15 @@ class ClaudeSseParserTest {
     }
 
     @Test
+    fun `app_tool_request with blank requestId is dropped`() {
+        // 无 requestId 无法回传 tool result（对齐 session 分支 blank sid 丢弃先例）
+        val sse = "event: app_tool_request\ndata: {\"requestId\":\"\",\"tool\":\"app_get_logs\"}\n\n"
+        assertTrue(ClaudeSseParser.parse(sse).isEmpty())
+        val missing = "event: app_tool_request\ndata: {\"tool\":\"app_get_logs\"}\n\n"
+        assertTrue(ClaudeSseParser.parse(missing).isEmpty())
+    }
+
+    @Test
     fun `parse existing events not broken`() {
         val sse = "event: assistant_text\ndata: {\"delta\":\"hi\"}\n\n"
         val events = ClaudeSseParser.parse(sse)

@@ -76,6 +76,20 @@ class AppToolExecutorTest {
     }
 
     @Test
+    fun `chat history truncation keeps messages as JSONArray`() = runTest {
+        // 50 条超长消息（~100KB）超 32KB 预算：截断必须裁剪条目数，而非把 JSONArray 腐蚀成字符串
+        val history = (1..50).map { "agent_text" to "x".repeat(2_000) }
+        val out = executor(history = history).execute(
+            AppTool.GET_CHAT_HISTORY, JSONObject().put("limit", 50),
+        )
+        assertTrue(out.getBoolean("truncated"))
+        val messages = out.optJSONArray("messages")
+        assertTrue("messages 截断后必须仍是 JSONArray", messages != null)
+        assertTrue(messages!!.length() < 50)
+        assertTrue(out.toString().length <= AppToolExecutor.MAX_PAYLOAD_BYTES + 256)
+    }
+
+    @Test
     fun `logs empty when no match`() = runTest {
         val out = executor(logs = "Other y").execute(
             AppTool.GET_LOGS, JSONObject().put("filter", "Nope"),

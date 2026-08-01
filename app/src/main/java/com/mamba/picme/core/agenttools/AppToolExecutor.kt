@@ -60,13 +60,34 @@ class AppToolExecutor(
     private fun emptyPayload(reason: String) =
         JSONObject().put("empty", true).put("reason", reason)
 
-    /** 超 32KB：对最大的字符串字段做截断并打 truncated 标记（宁可截断也不撑爆 MCP tool result）。 */
+    /**
+     * 超 32KB 时的截断（宁可截断也不撑爆 MCP tool result）：
+     * - String 字段：截断文本 + 标记；
+     * - JSONArray 字段：逐条裁剪条目直到总长回到预算内（保 JSON 结构，
+     *   绝不把数组腐蚀成字符串——否则 chat history 的 messages 会变成一段文本）。
+     */
     private fun truncate(payload: JSONObject): JSONObject {
         if (payload.toString().length <= MAX_PAYLOAD_BYTES) return payload.put("truncated", false)
         val keys = payload.keys().asSequence().toList()
-        val biggest = keys.maxByOrNull { payload.optString(it).length } ?: return payload.put("truncated", true)
-        val budget = (MAX_PAYLOAD_BYTES - 1024).coerceAtLeast(1024)
-        payload.put(biggest, payload.optString(biggest).take(budget) + "…[truncated]")
+        val biggest = keys.maxByOrNull { key ->
+            when (val v = payload.opt(key)) {
+                is String -> v.length
+                is JSONArray -> v.toString().length
+                else -> 0
+            }
+        } ?: return payload.put("truncated", true)
+        when (val v = payload.opt(biggest)) {
+            is String -> {
+                val budget = (MAX_PAYLOAD_BYTES - 1024).coerceAtLeast(1024)
+                payload.put(biggest, v.take(budget) + "…[truncated]")
+            }
+            is JSONArray -> {
+                while (v.length() > 0 && payload.toString().length > MAX_PAYLOAD_BYTES) {
+                    v.remove(v.length() - 1)
+                }
+            }
+            else -> Unit
+        }
         return payload.put("truncated", true)
     }
 

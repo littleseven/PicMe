@@ -40,11 +40,14 @@ object ClaudeSseParser {
                 "file_change" -> ClaudeEvent.FileChange(json.optString("path"), json.optString("action"))
                 "cost" -> ClaudeEvent.Cost(json.optInt("turns", 0), json.optInt("cents", 0))
                 "error" -> ClaudeEvent.Error(json.optString("message"))
-                "app_tool_request" -> ClaudeEvent.AppToolRequest(
-                    json.optString("requestId"),
-                    json.optString("tool"),
-                    json.optJSONObject("args") ?: JSONObject(),
-                )
+                // requestId 为空无法回传 tool result → 丢弃（对齐 session 分支 blank sid 先例）
+                "app_tool_request" -> json.optString("requestId").takeIf { it.isNotBlank() }?.let { rid ->
+                    ClaudeEvent.AppToolRequest(
+                        rid,
+                        json.optString("tool"),
+                        json.optJSONObject("args") ?: JSONObject(),
+                    )
+                }
                 "done" -> ClaudeEvent.Done
                 else -> null
             }
@@ -151,8 +154,11 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
                     .post(body.toRequestBody(jsonMedia))
                     .build()
                 val resp = deliverClient.newCall(req).execute()
-                if (!resp.isSuccessful) {
-                    throw RuntimeException("HTTP ${resp.code}: ${resp.body?.string().orEmpty()}")
+                // use：无论成败都 close，让连接归还连接池（错误路径 body.string() 本身会关闭）
+                resp.use {
+                    if (!it.isSuccessful) {
+                        throw RuntimeException("HTTP ${it.code}: ${it.body?.string().orEmpty()}")
+                    }
                 }
                 Unit
             }

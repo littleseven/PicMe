@@ -26,6 +26,9 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
+import com.mamba.picme.core.agenttools.AppTool
+import com.mamba.picme.core.agenttools.AppToolExecutor
+import com.mamba.picme.core.agenttools.RuntimeStateProvider
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.diag.CrashTraceStore
 import com.mamba.picme.core.diag.DiagBundleCollector
@@ -76,6 +79,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -242,6 +246,9 @@ class ChatViewModel(
 
     private val claudeChatClient = dependencies.claudeChatClient
 
+    /** app_tool_request 采集执行器（spec §3.1）；null = 未接线，收到请求直接忽略。 */
+    private val appToolExecutor = dependencies.appToolExecutor
+
     private val _claudeMode = MutableStateFlow(false)
     val claudeMode: StateFlow<Boolean> = _claudeMode.asStateFlow()
 
@@ -328,7 +335,15 @@ class ChatViewModel(
                         // 只采纳首个（网关 sid），忽略后者，否则 deliver 拿错 sid → gateway 找不到 workdir。
                         is ClaudeEvent.Session -> if (claudeSid == null) claudeSid = event.sid
                         is ClaudeEvent.Done, is ClaudeEvent.Cost -> Unit
-                        is ClaudeEvent.AppToolRequest -> Unit
+                        // spec §3.1：App 数据采集请求。合成 ToolUse 步骤（复用步骤气泡折叠），
+                        // 后台执行采集 + postToolResult 回传，完成后合成 ToolResult 收尾。
+                        is ClaudeEvent.AppToolRequest -> {
+                            renderer.apply(ClaudeEvent.ToolUse(event.tool, event.args))
+                            _streamingMessage.update { cur ->
+                                cur?.copy(claudeAgent = renderer.state, isThinking = false)
+                            }
+                            handleAppToolRequest(event.requestId, event.tool, event.args, renderer)
+                        }
                         else -> {
                             renderer.apply(event)
                             _streamingMessage.update { cur ->
@@ -354,6 +369,46 @@ class ChatViewModel(
             } finally {
                 _isProcessing.value = false
             }
+        }
+    }
+
+    /** spec §3.1/§3.3：执行 App 数据采集并回传；过程经合成 ToolUse/ToolResult 事件入气泡。 */
+    @VisibleForTesting
+    internal fun handleAppToolRequest(
+        requestId: String,
+        tool: String,
+        args: JSONObject,
+        renderer: ClaudeAgentRenderer,
+    ) {
+        val executor = appToolExecutor ?: return
+        val token = _serverAuthToken.value
+        viewModelScope.launch(Dispatchers.IO) {
+            val summary = try {
+                val appTool = AppTool.fromName(tool)
+                    ?: throw IllegalArgumentException("unknown app tool: $tool")
+                val payload = executor.execute(appTool, args)
+                if (token.isNotBlank()) {
+                    claudeChatClient.postToolResult(token, requestId, payload)
+                }
+                if (payload.optBoolean("empty")) {
+                    "无数据（${payload.optString("reason")}）"
+                } else {
+                    val truncated = if (payload.optBoolean("truncated")) "，已截断" else ""
+                    "已回传（${payload.toString().length}B$truncated）"
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "handleAppToolRequest failed", e)
+                if (token.isNotBlank()) {
+                    runCatching {
+                        claudeChatClient.postToolResult(
+                            token, requestId, JSONObject().put("error", e.message ?: "collect failed"),
+                        )
+                    }
+                }
+                "采集失败：${e.message}"
+            }
+            renderer.apply(ClaudeEvent.ToolResult(ok = true, summary = summary))
+            _streamingMessage.update { cur -> cur?.copy(claudeAgent = renderer.state) }
         }
     }
 
@@ -2723,3 +2778,60 @@ class ChatViewModel(
         }
     }
 }
+
+/**
+ * 生产接线工厂（spec §3.1）：把 Android 数据源接进 [AppToolExecutor]。
+ *
+ * - 日志来自 [Logger] 内存环缓冲（最近 500 条）；崩溃栈来自 [CrashTraceStore] 落盘文件。
+ * - 运行时状态只放元数据与 Boolean（绝不放 token 本体 / 用户 Key）。
+ * - 相册摘要是纯统计数字（[PRIVACY]：绝不含路径 / 图片）。
+ * - runtimeState/gallerySummary 是同步 lambda 但数据源是 suspend Flow：
+ *   此处已在 IO 调度器上执行（[ChatViewModel.handleAppToolRequest] launch(Dispatchers.IO)），
+ *   工厂内 runBlocking 取值可接受。
+ */
+internal fun buildAppToolExecutor(deps: ChatViewModelDependencies): AppToolExecutor = AppToolExecutor(
+    logProvider = {
+        Logger.logs.value.joinToString("\n") { e -> "${e.timestamp} ${e.level} PoLang:${e.tag}: ${e.message}" }
+    },
+    crashTraceReader = { CrashTraceStore.read(deps.context.filesDir) },
+    chatHistoryLoader = { sessionId, limit ->
+        deps.chatMessageDao.getRecentMessages(sessionId ?: "default", limit)
+            .map { it.type to it.content }
+    },
+    runtimeStateProvider = RuntimeStateProvider {
+        runBlocking {
+            val settings = deps.userSettingsRepository
+            val userConfigs = RemoteModelConfigs.fromJson(settings.aiAgentRemoteModelConfigsFlow.first())
+            JSONObject()
+                .put("appVersion", BuildConfig.VERSION_NAME)
+                .put("gitSha", BuildConfig.GIT_SHA)
+                .put("deviceModel", Build.MODEL)
+                .put("androidVersion", Build.VERSION.RELEASE)
+                .put("selectedModelId", settings.aiAgentSelectedRemoteModelFlow.first())
+                .put("hasUserKey", userConfigs.configs.any { it.isConfigured })
+                .put("agentMode", settings.aiAgentModeFlow.first().name)
+                .put("hasServerAuthToken", settings.serverAuthTokenFlow.first().isNotBlank())
+        }
+    },
+    gallerySummaryLoader = {
+        runBlocking {
+            val s = deps.getGallerySummaryUseCase()
+            if (s == null) {
+                JSONObject().put("empty", true).put("reason", "summary_unavailable")
+            } else {
+                JSONObject()
+                    .put("totalPhotos", s.totalPhotos)
+                    .put("totalVideos", s.totalVideos)
+                    .put("totalMedia", s.totalMedia)
+                    .put("hasFaceCount", s.hasFaceCount)
+                    .put("personClusterCount", s.personClusterCount)
+                    .put("namedPersonCount", s.namedPersonCount)
+                    .put("labeledCount", s.labeledCount)
+                    .put("unlabeledCount", s.unlabeledCount)
+                    .put("semanticEncodedCount", s.semanticEncodedCount)
+                    .put("isScanning", s.isScanning)
+                    .put("recommendation", s.recommendation.name)
+            }
+        }
+    },
+)
