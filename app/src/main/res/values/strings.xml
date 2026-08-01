@@ -1004,7 +1004,10 @@
     <!-- Claude-tunnel chat (AI engineer toggle) -->
     <string name="claude_icon_desc">AI Engineer</string>
     <string name="claude_login_required">The AI engineer requires signing in first (Settings → Account).</string>
-    <string name="claude_deliver_button">Deliver</string>
+    <string name="claude_deliver_choose">Save changes as</string>
+    <string name="claude_deliver_mode_push">Push branch</string>
+    <string name="claude_deliver_mode_pr">Create PR</string>
+    <string name="claude_deliver_mode_auto">Auto-merge</string>
     <string name="claude_deliver_done">✅ Delivered branch: `%1$s`</string>
     <string name="claude_deliver_failed">❌ Delivery failed: %1$s</string>
     <string name="claude_file_change_label">File</string>

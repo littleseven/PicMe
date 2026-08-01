@@ -39,11 +39,18 @@ echo "### 1/6 git pull（$REPO）"
 [ -d "$REPO/.git" ] || die "repo 不存在：$REPO（重装系统需先 git clone）"
 cd "$REPO" && git pull --ff-only || warn "git pull 失败（无网络/冲突），继续用现有代码"
 
-echo "### 2/6 gh credential（让 git push 走 gh token）"
+echo "### 2/6 gh credential（让 git push 走 gh token；pr/auto 需 GITHUB_TOKEN）"
 if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
   gh auth setup-git && ok "gh credential configured"
+elif command -v gh >/dev/null && [ -n "$GITHUB_TOKEN" ]; then
+  # 非交互式登录，供 pr/auto 模式创建 PR 使用
+  if gh auth login --with-token <<<"$GITHUB_TOKEN" >/dev/null 2>&1 && gh auth setup-git; then
+    ok "gh logged in with GITHUB_TOKEN"
+  else
+    warn "GITHUB_TOKEN 登录 gh 失败 —— pr/auto 模式不可用"
+  fi
 else
-  warn "gh 未登录 —— 先 gh auth login（需 GitHub token），否则交付推不动"
+  warn "gh 未登录且无 GITHUB_TOKEN —— push 仍可用，pr/auto 模式将失败"
 fi
 
 echo "### 3/6 反向 SSH：sshd 允许 root key 登录 + 注入 prod 公钥"

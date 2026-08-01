@@ -998,7 +998,10 @@
     <!-- Claude-tunnel chat（AI 工程师 toggle） -->
     <string name="claude_icon_desc">AI 工程师</string>
     <string name="claude_login_required">AI 工程师需先登录账号（设置 → 账号）。</string>
-    <string name="claude_deliver_button">交付</string>
+    <string name="claude_deliver_choose">保存改动方式</string>
+    <string name="claude_deliver_mode_push">推分支</string>
+    <string name="claude_deliver_mode_pr">创建 PR</string>
+    <string name="claude_deliver_mode_auto">自动合并</string>
     <string name="claude_deliver_done">✅ 已交付分支：`%1$s`</string>
     <string name="claude_deliver_failed">❌ 交付失败：%1$s</string>
     <string name="claude_file_change_label">改文件</string>

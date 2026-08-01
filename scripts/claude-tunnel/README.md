@@ -26,9 +26,22 @@ cd gateway && python3 -m pytest -v          # 翻译 + session 单测
 bash smoke/run-smoke.sh                      # mock claude 端到端
 ```
 
+## 交付三档（push / pr / auto）
+
+`POST /deliver` 支持 `mode` 参数：
+
+| 模式 | 行为 | 环境要求 |
+|---|---|---|
+| `push` | commit + push `claude-chat/<sid>` | git credential 可用即可 |
+| `pr` | push 分支 + `gh pr create` 建 GitHub PR | KimiClaw 已登录 `gh` + 有写权限 `GITHUB_TOKEN` |
+| `auto` | push 分支 + `./gradlew -p server test` + ff-merge 进 `main` + push | 同上，且 server 单测通过 |
+
+- 环境变量 `CT_BASE_BRANCH` 指定 auto/pr 的目标分支，默认 `main`。
+- 环境变量 `CT_DELIVER_TIMEOUT` 控制交付整体超时（含测试），默认 120s；旧 `CT_PUSH_TIMEOUT` 仍兼容。
+- pr/auto 若 `gh` 未登录/token 无权限，会返回明确错误；auto 测试失败或 ff 冲突会降级为仅 push 分支。
+
 ## 已知限制（Phase 1）
 - 网关以 root + `IS_SANDBOX=1` 跑；claude 权限走 `gateway/claude-settings.json` 的 `permissions.allow` 白名单（`--settings` 指定，**非** `--dangerously-skip-permissions`/bypass——claude CLI 硬禁 root+bypass，见 commit `df354bec`）。spec §10 root 风险，接受。
-- deliver 仅 push 模式（pr/auto 二期）。
 - 无并发隔离（多 session 共享 KimiClaw 资源，Phase 1 单用户够用）。
 - claude 以 root 运行需 `IS_SANDBOX=1`（网关 `server.py` 已设；手动实测也要带）。
 

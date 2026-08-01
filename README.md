@@ -108,6 +108,15 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+### Chat 双模式架构
+
+Chat 页输入栏的 **AI 工程师** toggle 在两条独立 LLM 链路间切换：
+
+- **普通 Chat（相册助手）**：用户输入 → `ChatViewModel.sendMessage()` → `AgentOrchestrator` → 本地 Qwen3.5-2B 或远程 DeepSeek → `@Tool` → `CapabilityRegistry` → 端侧 Capability 执行 → 结果渲染到对话。
+- **AI 工程师（远程 coding agent）**：用户输入 → `ChatViewModel.sendClaudeMessage()` → `POST /v1/claude-chat` → chisel 反向隧道 → KimiClaw `Claude Code` → 读改代码 / MCP app tools 感知 App 状态 → 用户选择 `push/pr/auto` 交付 → `POST /v1/claude-deliver` → git 分支/PR/自动合并。
+
+两条链路的目标、LLM、上下文、工具、隐私边界与交付物完全不同；详细架构图与对比见 [`docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md) §2.5。
+
 ### 项目模块
 
 | 模块 | 语言 | 说明 |

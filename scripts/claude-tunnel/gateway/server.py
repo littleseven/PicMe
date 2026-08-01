@@ -183,45 +183,126 @@ async def _run_claude_turn(resp, sid, message, claude_sid):
         await _send(resp, {"event": "done", "data": {}})
 
 
-async def deliver(request):
-    """MVP：仅 push 模式——在 workdir commit + push claude-chat/<sid>。pr/auto 二期。
+async def _run_cmd(cmd, env, timeout, cwd=None, capture=False):
+    """异步运行单条命令，超时处理。返回 (rc, stdout, stderr)。"""
+    if capture:
+        p = await asyncio.create_subprocess_exec(
+            *cmd, cwd=cwd, env=env,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    else:
+        p = await asyncio.create_subprocess_exec(
+            *cmd, cwd=cwd, env=env,
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+    try:
+        out, err = await asyncio.wait_for(p.communicate(), timeout=timeout)
+    except asyncio.TimeoutError:
+        p.kill()
+        await p.wait()
+        return -1, b"", "command timed out after {}s".format(timeout).encode()
+    return p.returncode, out or b"", err or b""
 
-    全程异步（asyncio.create_subprocess_exec）+ 超时：避免同步 subprocess.run 阻塞 event loop
-    （git push 若挂会卡死整个 gateway，连 healthz 都不响应）。push 失败/超时回传 stderr 便于诊断。"""
+
+async def _git_push_branch(repo, branch, env, timeout):
+    rc, _, err = await _run_cmd(
+        ["git", "-C", repo, "push", "--quiet", "origin", branch],
+        env, timeout, capture=True)
+    if rc == 0:
+        return 0, ""
+    return rc, err.decode("utf-8", "replace")[:500] or "git push rc={}".format(rc)
+
+
+async def _gh_pr_create(repo, base, head, sid, env, timeout):
+    title = "fix(claude-tunnel): session {}".format(sid)
+    body = "Auto-created by AI engineer mode"
+    rc, out, err = await _run_cmd(
+        ["gh", "pr", "create", "--base", base, "--head", head, "--title", title, "--body", body],
+        env, timeout, cwd=repo, capture=True)
+    if rc != 0:
+        return rc, "", err.decode("utf-8", "replace")[:500] or out.decode("utf-8", "replace")[:500]
+    rc2, out2, err2 = await _run_cmd(
+        ["gh", "pr", "view", head, "--json", "url", "-q", ".url"],
+        env, timeout, cwd=repo, capture=True)
+    if rc2 == 0:
+        return 0, out2.decode("utf-8", "replace").strip(), ""
+    return 0, out.decode("utf-8", "replace").strip() or "", ""
+
+
+async def _run_server_tests(repo, env, timeout):
+    rc, _, _ = await _run_cmd(
+        ["./gradlew", "-p", "server", "test"],
+        env, timeout, cwd=repo, capture=False)
+    return rc == 0
+
+
+async def _ff_merge_and_push(repo, base, branch, env, timeout):
+    for cmd in (
+        ["git", "-C", repo, "fetch", "origin", base],
+        ["git", "-C", repo, "checkout", "-B", base, "origin/{}".format(base)],
+        ["git", "-C", repo, "merge", "--ff-only", branch],
+        ["git", "-C", repo, "push", "origin", base],
+    ):
+        rc, _, err = await _run_cmd(cmd, env, timeout, capture=True)
+        if rc != 0:
+            return rc, err.decode("utf-8", "replace")[:500]
+    return 0, ""
+
+
+async def deliver(request):
+    """交付当前 session 的改动。支持 push / pr / auto 三档。
+
+    - push：在 workdir commit + push claude-chat/<sid>。
+    - pr：push 分支后，用 gh 创建 GitHub PR。
+    - auto：push 分支后，跑 server 单测；通过则 ff-merge 进 main 并 push。
+
+    全程异步 + 超时，避免阻塞 gateway event loop。
+    """
     body = await request.json()
     sid = body["sid"]
+    mode = body.get("mode", "push")
+    if mode not in ("push", "pr", "auto"):
+        return web.json_response({"ok": False, "error": "invalid mode '{}'".format(mode)}, status=400)
     repo = sm.repo_dir(sid)
     if not sm.exists(sid):
         return web.json_response({"ok": False, "error": "unknown sid"}, status=404)
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
-    timeout = int(os.environ.get("CT_PUSH_TIMEOUT", "30"))
+    timeout = int(os.environ.get("CT_DELIVER_TIMEOUT", os.environ.get("CT_PUSH_TIMEOUT", "120")))
+    base_branch = os.environ.get("CT_BASE_BRANCH", "main")
+    branch = "claude-chat/{}".format(sid)
     try:
+        # 公共步骤：add / commit
         for cmd in (
             ["git", "-C", repo, "add", "-A"],
             ["git", "-C", repo, "commit", "-qm", "fix(claude-tunnel): session {}".format(sid)],
         ):
-            p = await asyncio.create_subprocess_exec(
-                *cmd, env=env,
-                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
-            await asyncio.wait_for(p.wait(), timeout=timeout)
-        push = await asyncio.create_subprocess_exec(
-            "git", "-C", repo, "push", "--quiet", "origin", "claude-chat/{}".format(sid),
-            env=env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        try:
-            _out, err = await asyncio.wait_for(push.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
-            push.kill()
-            await push.wait()
-            return web.json_response(
-                {"ok": False,
-                 "error": "git push timeout ({}s) — KimiClaw 无法连 remote，查网络/credential".format(timeout)},
-                status=504)
-        if push.returncode == 0:
-            return web.json_response({"ok": True, "branch": "claude-chat/{}".format(sid)})
-        return web.json_response(
-            {"ok": False,
-             "error": (err.decode("utf-8", "replace")[:500] or "git push rc={}".format(push.returncode))},
-            status=500)
+            rc, _, err = await _run_cmd(cmd, env, timeout, capture=True)
+            if rc != 0:
+                return web.json_response(
+                    {"ok": False, "error": "git commit failed: {}".format(err.decode("utf-8", "replace")[:500])},
+                    status=500)
+        # 公共步骤：push branch
+        rc, err = await _git_push_branch(repo, branch, env, timeout)
+        if rc != 0:
+            return web.json_response({"ok": False, "error": err}, status=500)
+        if mode == "push":
+            return web.json_response({"ok": True, "branch": branch})
+        if mode == "pr":
+            rc, pr_url, err = await _gh_pr_create(repo, base_branch, branch, sid, env, timeout)
+            if rc != 0:
+                return web.json_response({"ok": False, "error": "gh pr create failed: {}".format(err)}, status=500)
+            return web.json_response({"ok": True, "branch": branch, "prUrl": pr_url})
+        # mode == "auto"
+        tested = await _run_server_tests(repo, env, timeout)
+        if tested:
+            rc, err = await _ff_merge_and_push(repo, base_branch, branch, env, timeout)
+            if rc == 0:
+                return web.json_response({"ok": True, "branch": base_branch, "merged": True, "tested": True})
+        return web.json_response({
+            "ok": True,
+            "branch": branch,
+            "merged": False,
+            "tested": tested,
+            "note": "tests failed or merge conflict; branch pushed only",
+        })
     except Exception as e:  # noqa: BLE001
         return web.json_response({"ok": False, "error": "deliver failed: {}".format(e)}, status=500)
 

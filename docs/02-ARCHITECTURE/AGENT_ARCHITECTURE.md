@@ -325,6 +325,122 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
 
 ---
 
+### 2.5 Chat 双模式架构：普通助手 vs AI 工程师
+
+Chat 页通过输入栏的 **AI 工程师** toggle 在两条完全独立的 LLM 链路间切换。两条链路的目标、LLM、上下文、工具与交付物均不同。
+
+#### 2.5.1 普通 Chat 链路（相册助手）
+
+```
+用户输入 (ChatScreen)
+        │
+        ▼
+ChatViewModel.sendMessage()
+        │
+        ▼
+AgentOrchestrator / AiAgentUseCase ── 本地/远程模式选择
+        │
+        ├── LOCAL ──► LocalInferencePipeline ──► LocalLlmEngine (MNN-LLM Qwen3.5-2B)
+        │                                              │
+        │                                              ▼
+        │                              JSON {method,args} → AgentCommand
+        │
+        └── REMOTE ──► RemoteInferencePipeline ──► :agent-core OpenAiChatModel
+                                                       │
+                                                       ▼
+                                          OpenAI Chat Completions (tool_calls)
+                                                       │
+                                                       ▼
+                                          PoLang Server / DeepSeek / 通义千问
+                                                       │
+                                                       ▼
+                                          ChatToolService @Tool ──► AgentCommand
+                                                       │
+        ◄──────────────────────────────────────────────┘
+        ▼
+CapabilityRegistry.dispatch(AgentCommand)
+        │
+        ▼
+Chat*Capability（搜索/摘要/编辑/脚本/媒体写/打标）
+        │
+        ▼
+执行结果 → ChatMessageUi（文本/图片/媒体轮播/图表）
+```
+
+**普通 Chat 的 LLM 感知：**
+- 输入：当前用户消息 + 多轮对话历史 + 被动注入的记忆快照 + 可选图片。
+- 能力：通过 `@Tool` 调用端侧 Capability，操作相册、编辑图片、运行 JS 分析脚本。
+- 隐私：敏感操作（人脸/OCR/图片）由 `PrivacyGuard` 强制本地；非敏感复杂推理可上云。
+- 交付物：文本回复、媒体结果、编辑结果图、图表 SVG。
+
+#### 2.5.2 AI 工程师链路（远程 coding agent）
+
+```
+用户输入 (ChatScreen，AI Engineer toggle ON)
+        │
+        ▼
+ChatViewModel.sendClaudeMessage()
+        │
+        ▼
+POST /v1/claude-chat ──► PoLang Server (Ktor，X-App-Token 鉴权)
+        │
+        ▼
+chisel wss 反向隧道 ──► KimiClaw gateway (server.py)
+        │
+        ▼
+Claude Code --resume <sid> (GLM backend)
+        │
+        ├── 读/改代码（Bash/Edit）──────────► file_change / tool_use SSE 事件
+        │                                          │
+        │                                          ▼
+        │                                App 渲染步骤列表 + 文本流
+        │
+        └── MCP app_tools ──► app_tool_request SSE 下行
+                    │
+                    ▼
+            AppToolExecutor（日志/崩溃/聊天历史/运行时状态/相册摘要）
+                    │
+                    ▼
+            DiagSanitizer 脱敏 ──► POST /v1/claude-tool-result
+                    │
+                    ▼
+            回传到 Claude 继续推理
+        │
+        ▼
+用户选择交付方式：push / pr / auto
+        │
+        ▼
+POST /v1/claude-deliver
+        │
+        ▼
+git commit + push claude-chat/<sid>
+或 gh pr create
+或 ./gradlew -p server test + ff-merge main + push
+```
+
+**AI 工程师的 LLM 感知：**
+- 输入：当前用户消息 + 完整代码库（KimiClaw workdir）+ App 运行时数据（经 MCP 工具按需拉取）。
+- 能力：Bash 跑 gradle/测试、Edit 改文件、MCP app tools 感知 App 状态。
+- 隐私：不触碰用户图片/视频；日志/聊天历史/相册摘要经 `DiagSanitizer` 脱敏后回传。
+- 交付物：代码改动 + git 分支 / PR / main merge 结果。
+
+#### 2.5.3 核心差异对比
+
+| 维度 | 普通 Chat | AI 工程师 |
+|---|---|---|
+| 入口 | ChatScreen 输入栏 | ChatScreen「AI 工程师」toggle |
+| 目标 | 操作相册、回答问题 | 读改代码、诊断修复、推分支 |
+| ViewModel 方法 | `sendMessage()` | `sendClaudeMessage()` |
+| LLM | DeepSeek / Qwen3.5-2B | Claude Code (GLM backend) |
+| 网络路径 | App → PoLang Server → 第三方 LLM | App → PoLang Server → chisel → KimiClaw → Claude |
+| 上下文 | 会话历史 + 记忆 + 相册元数据 | 完整代码库 + App 运行时状态 |
+| 工具协议 | `@Tool` / OpenAI tool_calls | Claude Code 原生工具 + MCP app_tools |
+| 执行位置 | 端侧 Capability | KimiClaw 云主机 workdir |
+| 媒体输入 | 可发送图片（ADR-008） | 禁止发送图片 |
+| 交付物 | 文本/图片/命令结果 | 代码改动 + 分支/PR |
+
+---
+
 ## 3. 核心组件设计
 
 ### 3.1 SceneManager 场景管理器

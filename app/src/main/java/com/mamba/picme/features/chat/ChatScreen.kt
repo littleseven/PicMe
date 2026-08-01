@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -79,6 +80,7 @@ import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.FilterChip
@@ -497,7 +499,7 @@ fun ChatScreen(
                                             )
                                         }
                                     },
-                                    onClaudeDeliver = { id -> viewModel.confirmClaudeDeliver(id) }
+                                    onClaudeDeliver = { id, mode -> viewModel.confirmClaudeDeliver(id, mode) }
                                 )
                             }
                         }
@@ -865,7 +867,7 @@ private fun ClaudeAgentSteps(steps: List<ClaudeStepUi>) {
 private fun ChatMessageItem(
     message: ChatMessageUi,
     onImageClick: (ChatMessageUi) -> Unit = {},
-    onClaudeDeliver: (String) -> Unit = {},
+    onClaudeDeliver: (String, String) -> Unit = { _, _ -> },
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
@@ -1038,14 +1040,29 @@ private fun ChatMessageItem(
                     ClaudeAgentSteps(cs.steps)
                 }
             }
-            // claude 交付按钮：file_change 后出现，pending 时可点（spec §8）
+            // claude 交付按钮：file_change 后出现，pending 时可选 push/pr/auto（spec §8）
             message.claudeDeliver?.let { cd ->
                 if (cd.pending) {
-                    Spacer(Modifier.height(10.dp))
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Button(onClick = { onClaudeDeliver(message.id) }) {
-                            Text(stringResource(R.string.claude_deliver_button))
-                        }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.claude_deliver_choose),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DeliverModeButton(
+                            label = stringResource(R.string.claude_deliver_mode_push),
+                            onClick = { onClaudeDeliver(message.id, "push") }
+                        )
+                        DeliverModeButton(
+                            label = stringResource(R.string.claude_deliver_mode_pr),
+                            onClick = { onClaudeDeliver(message.id, "pr") }
+                        )
+                        DeliverModeButton(
+                            label = stringResource(R.string.claude_deliver_mode_auto),
+                            onClick = { onClaudeDeliver(message.id, "auto") }
+                        )
                     }
                 }
             }
@@ -1101,6 +1118,23 @@ private fun ChatMessageItem(
                 }
             }
         }
+    }
+}
+
+/**
+ * 交付模式按钮：push / pr / auto 三档中的单个选项。
+ * 使用轻量边框按钮，避免实心按钮在消息气泡中过于突兀。
+ */
+@Composable
+private fun DeliverModeButton(
+    label: String,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(text = label, fontSize = 12.sp)
     }
 }
 

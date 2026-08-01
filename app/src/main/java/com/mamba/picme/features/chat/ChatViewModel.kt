@@ -442,13 +442,14 @@ class ChatViewModel(
         // ⚠️ 时序：必须先 set override，再 insertMessage。insertMessage 会触发 loadMessages reload，
         // reload 读 claudeDeliverOverrides[msgId] 渲染交付按钮；若 set 晚于 reload，按钮永不出现
         // （之后无新 Room 写入再触发 reload）。预生成 msgId 保证 set 先于 insert。
-        if (!sid.isNullOrBlank()) {
-            // 交付按钮：有网关 sid（workdir 已建）就显示——不依赖 file_change 事件
-            // （Claude 用 Bash 改文件时 gateway 漏发 file_change）。spec §8：交付是用户主动动作。
+        if (!sid.isNullOrBlank() && state.hasFileChange) {
+            // 交付按钮：只在 AI 实际改动过文件时显示。
+            // 注意：gateway 必须确保 Bash/Edit 等改文件操作都发出 file_change 事件；
+            // 若漏发，则交付按钮不会出现，需在 gateway 侧修复事件翻译。
             claudeDeliverOverrides[msgId] = ClaudeDeliverUi(sid, pending = true)
-            Logger.i(TAG, "persistClaudeBubble: deliver override pre-attached msgId=$msgId (sid-only; hasFileChange=${state.hasFileChange})")
+            Logger.i(TAG, "persistClaudeBubble: deliver override pre-attached msgId=$msgId (hasFileChange=true)")
         } else {
-            Logger.i(TAG, "persistClaudeBubble: NO deliver button (sid blank)")
+            Logger.i(TAG, "persistClaudeBubble: NO deliver button (sid=${sid?.take(4)}, hasFileChange=${state.hasFileChange})")
         }
         val metadata = JSONObject().put("claude_agent_state", state.toJson()).toString()
         chatMessageDao.insertMessage(
