@@ -3,9 +3,9 @@ Description=claude-tunnel gateway (aiohttp)
 After=network.target
 
 [Service]
-WorkingDirectory=/root/claude-tunnel/gateway
-ExecStart=/root/claude-tunnel/venv/bin/python server.py
-EnvironmentFile=/root/claude-tunnel/tunnel.env
+WorkingDirectory=/root/polang/scripts/claude-tunnel/gateway
+EnvironmentFile=/root/claude-tunnel.env
+ExecStart=/usr/bin/python3 server.py
 Restart=always
 RestartSec=5
 

@@ -1,10 +1,10 @@
 [Unit]
-Description=chisel client (claude-tunnel, egress to api.polang.net)
+Description=chisel client (claude-tunnel: egress + reverse SSH R:3022)
 After=network.target gateway.service
 
 [Service]
-ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel client --auth "$CHISEL_PSK" https://"$CT_TUNNEL_HOST"/tunnel R:"$CT_REVERSE_PORT":127.0.0.1:"$CT_GATEWAY_PORT"'
-EnvironmentFile=/root/claude-tunnel/tunnel.env
+EnvironmentFile=/root/claude-tunnel.env
+ExecStart=/bin/sh -c 'exec /usr/local/bin/chisel client --auth "$CHISEL_PSK" https://api.polang.net/tunnel R:3001:127.0.0.1:3000 R:3022:127.0.0.1:22'
 Restart=always
 RestartSec=5
 
