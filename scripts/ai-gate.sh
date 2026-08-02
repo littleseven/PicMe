@@ -131,8 +131,8 @@ if [ "$DEVICE_CHECK" = true ]; then
         echo "→ 启动应用并截屏..."
         adb shell am start -n com.picme/.MainActivity > /dev/null 2>&1
         sleep 3
-        adb shell screencap -p /sdcard/ai_gate_screen.png
-        adb pull /sdcard/ai_gate_screen.png "$OUTPUT_DIR/screen.png" > /dev/null 2>&1
+        # exec-out 直传电脑，设备零残留，不污染相册/MediaStore
+        adb exec-out screencap -p > "$OUTPUT_DIR/screen.png"
         echo -e "${GREEN}✅ PASS${NC}: 应用启动截屏完成"
         PASS_COUNT=$((PASS_COUNT + 1))
 

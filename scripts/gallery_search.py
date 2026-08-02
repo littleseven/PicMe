@@ -133,15 +133,9 @@ def main() -> int:
 
         print(f"[+] Search result: {result_node.text} (total {elapsed:.2f}s)")
 
-    # 6. 截图
-    subprocess.run(
-        ["adb", "shell", "screencap", "-p", "/sdcard/gallery_search_result.png"],
-        capture_output=True, text=True, check=False,
-    )
-    subprocess.run(
-        ["adb", "pull", "/sdcard/gallery_search_result.png", args.screenshot],
-        capture_output=True, text=True, check=False,
-    )
+    # 6. 截图（exec-out 直传电脑，设备零残留，不污染相册/MediaStore）
+    with open(args.screenshot, "wb") as f:
+        subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=f, check=False)
     print(f"[+] Screenshot: {args.screenshot}")
     return 0
 
