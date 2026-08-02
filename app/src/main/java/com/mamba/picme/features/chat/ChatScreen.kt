@@ -4,9 +4,6 @@
 package com.mamba.picme.features.chat
 
 import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -31,6 +28,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.Row
@@ -38,6 +36,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -46,9 +45,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.PaddingValues
@@ -121,6 +120,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -2099,8 +2099,9 @@ sealed class ChatModelOption(val label: String, val indicatorColor: Color) {
  * 图表全屏预览（in-content 整屏覆盖层；顶栏由调用方在打开时隐藏，整屏留给图）。
  * - 图按 contain-fit 等比缩放，整图可见、清晰。
  * - 双指缩放（1x~5x）+ 单指拖动平移；缩放回到 ~1x 自动回正。
- * - 点空白 / 返回键 / 左上角关闭键 均可关闭。
- * - 宽图强制横屏，关闭时恢复系统默认方向（MainActivity 已声明 configChanges，旋转不重建）。
+ * - 返回键 / 关闭键 均可关闭；关闭键位于视口右上，样式与图片预览页一致（含安全区内边距）。
+ * - App 全局锁竖屏：宽图不再修改 Activity/系统方向，而是把内容在竖屏视口内
+ *   旋转 90° 铺满屏幕，用户物理转动手机即可横屏查看。
  */
 @Composable
 private fun ChartPreviewOverlay(
@@ -2108,58 +2109,109 @@ private fun ChartPreviewOverlay(
     onDismiss: () -> Unit
 ) {
     if (svg == null) return
-    val context = LocalContext.current
     val landscape = chartIsLandscape(svg)
-    DisposableEffect(Unit) {
-        context.findActivity()?.requestedOrientation =
-            if (landscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-        onDispose {
-            context.findActivity()?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
+    // 宽图旋转容器内无法直接用 insets padding（轴向随旋转错位），提前换算导航栏安全区
+    val navBarBottomDp = with(LocalDensity.current) {
+        WindowInsets.navigationBars.getBottom(this).toDp()
     }
     var scale by remember(svg) { mutableStateOf(1f) }
     var offset by remember(svg) { mutableStateOf(Offset.Zero) }
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        ChartSvgImage(
-            svg = svg,
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(svg) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        val nextScale = (scale * zoom).coerceIn(1f, 5f)
-                        scale = nextScale
-                        // 缩放回到 ~1x 时复位偏移，避免图被拖飞
-                        offset = if (nextScale <= 1.01f) Offset.Zero else offset + pan
+        // 宽图：容器宽高互换后绕中心旋转 90° 铺满竖屏；手势与关闭键随旋转坐标系保持一致。
+        // 必须用 requiredSize：普通 size 会被父约束截断成方形，导致旋转后无法铺满
+        val chartModifier = if (landscape) {
+            Modifier
+                .requiredSize(width = maxHeight, height = maxWidth)
+                .align(Alignment.Center)
+                .graphicsLayer { rotationZ = 90f }
+        } else {
+            Modifier.fillMaxSize()
+        }
+        // 宽图关闭键需落在图表 contain-fit 后的黑边区域（中心图区之外）：
+        // 依图表宽高比算出两侧/上下黑边宽度，按钮优先居中放进侧边黑边
+        val closeTopPad: Dp
+        val closeEndPad: Dp
+        if (landscape) {
+            val containerW = maxHeight
+            val containerH = maxWidth
+            val aspect = chartAspect(svg)
+            val fittedW: Dp
+            val fittedH: Dp
+            if (aspect >= containerW / containerH) {
+                fittedW = containerW
+                fittedH = containerW / aspect
+            } else {
+                fittedH = containerH
+                fittedW = containerH * aspect
+            }
+            val sideBar = (containerW - fittedW) / 2
+            val topBar = (containerH - fittedH) / 2
+            val minBarForButton = 40.dp + 24.dp
+            when {
+                sideBar >= minBarForButton -> {
+                    closeTopPad = 16.dp
+                    closeEndPad = maxOf(navBarBottomDp + 16.dp, (sideBar - 40.dp) / 2)
+                }
+                topBar >= minBarForButton -> {
+                    closeTopPad = maxOf(16.dp, (topBar - 40.dp) / 2)
+                    closeEndPad = navBarBottomDp + 16.dp
+                }
+                else -> {
+                    closeTopPad = 16.dp
+                    closeEndPad = navBarBottomDp + 16.dp
+                }
+            }
+        } else {
+            closeTopPad = 0.dp
+            closeEndPad = 0.dp
+        }
+        Box(modifier = chartModifier) {
+            ChartSvgImage(
+                svg = svg,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(svg) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val nextScale = (scale * zoom).coerceIn(1f, 5f)
+                            scale = nextScale
+                            // 缩放回到 ~1x 时复位偏移，避免图被拖飞
+                            offset = if (nextScale <= 1.01f) Offset.Zero else offset + pan
+                        }
                     }
-                }
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                }
-        )
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .offset(x = (-80).dp)
-                .padding(8.dp)
-                .size(48.dp)
-                .background(Color.Black.copy(alpha = 0.4f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Close,
-                contentDescription = "关闭",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offset.x
+                        translationY = offset.y
+                    }
             )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    // 宽图：容器 end 边即屏幕底边，手动补导航栏安全区并避开图区；竖图与图片预览页一致
+                    .then(
+                        if (landscape) {
+                            Modifier.padding(top = closeTopPad, end = closeEndPad)
+                        } else {
+                            Modifier.statusBarsPadding().padding(16.dp)
+                        }
+                    )
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f))
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.close),
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -2170,13 +2222,6 @@ private fun chartIsLandscape(svg: String?): Boolean {
     val w = Regex("""width="(\d+)"""").find(svg)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     val h = Regex("""height="(\d+)"""").find(svg)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     return w > 0 && h > 0 && w > h
-}
-
-/** 从 Context 链中取出 Activity（LocalContext 可能是 ContextWrapper）。 */
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }
 
 /**

@@ -40,6 +40,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.PoLang"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="stateUnspecified|adjustNothing"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
             <intent-filter>
@@ -53,7 +54,8 @@
             android:name=".features.backuprestore.BackupRestoreActivity"
             android:exported="false"
             android:label="@string/backup_and_restore"
-            android:theme="@style/Theme.PoLang" />
+            android:theme="@style/Theme.PoLang"
+            android:screenOrientation="portrait" />
 
         <service
             android:name=".data.download.ModelDownloadForegroundService"
