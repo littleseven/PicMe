@@ -1445,9 +1445,9 @@ data class ModelMarketData(
 ) {
     /**
      * 服务功能分类标签集合（用于顶部 Tab 分类）
-     * 语音助手已合并入聊天分类。
+     * 语音(chat)分类调整到末尾。
      */
-    private val serviceCategoryTags = listOf("must-have", "recommended", "chat", "photo-tagging", "beauty-camera")
+    private val serviceCategoryTags = listOf("must-have", "recommended", "photo-tagging", "beauty-camera", "chat")
 
     /**
      * 获取所有可用的服务功能分类标签

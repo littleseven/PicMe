@@ -209,9 +209,9 @@ value class ModelCategory(val tag: String) {
         /** 预置的服务功能分类，用于本地缓存缺失时的默认展示 */
         val DEFAULT_CATEGORIES = listOf(
             ModelCategory("must-have"),
-            ModelCategory("chat"),
             ModelCategory("photo-tagging"),
-            ModelCategory("beauty-camera")
+            ModelCategory("beauty-camera"),
+            ModelCategory("chat")
         )
     }
 
