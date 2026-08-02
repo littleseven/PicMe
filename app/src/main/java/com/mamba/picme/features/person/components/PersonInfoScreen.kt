@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.mamba.picme.R
 import com.mamba.picme.core.image.faceAwareVerticalAlignment
 import com.mamba.picme.data.local.entity.PersonEntity
@@ -74,7 +77,9 @@ fun PersonInfoScreen(
     onSave: (RelationPredicate?, String, Boolean) -> Unit,
     onNavigateBack: () -> Unit,
     onUpdateCover: (MediaEntity) -> Unit,
-    onUpdateName: (String) -> Unit
+    onUpdateName: (String) -> Unit,
+    /** 仅给该人物聚类（重新）打美学/人脸画质分 + 刷新封面；null=不显示该入口。 */
+    onRescore: (suspend () -> Unit)? = null
 ) {
     var currentRelation by remember(relation) {
         mutableStateOf(relation?.predicate)
@@ -87,6 +92,8 @@ fun PersonInfoScreen(
     var isEditingName by remember(person.personId) { mutableStateOf(false) }
     var nameText by remember(person.personId, person.name) { mutableStateOf(person.name.orEmpty()) }
     val nameFocusRequester = remember { FocusRequester() }
+    val rescoreScope = rememberCoroutineScope()
+    var rescoring by remember { mutableStateOf(false) }
     LaunchedEffect(isEditingName) {
         if (isEditingName) nameFocusRequester.requestFocus()
     }
@@ -117,6 +124,27 @@ fun PersonInfoScreen(
                     AppTopBarNavBack(onClick = onNavigateBack)
                 },
                 actions = {
+                    // 仅给该聚类（重新）打美学/人脸画质分 + 刷新封面
+                    if (onRescore != null) {
+                        IconButton(
+                            enabled = !rescoring,
+                            onClick = {
+                                rescoreScope.launch {
+                                    rescoring = true
+                                    try {
+                                        onRescore()
+                                    } finally {
+                                        rescoring = false
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AutoAwesome,
+                                contentDescription = stringResource(R.string.people_rescore)
+                            )
+                        }
+                    }
                     // 不设置：清空关系与自定义称呼
                     IconButton(
                         onClick = {

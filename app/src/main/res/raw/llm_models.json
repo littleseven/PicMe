@@ -249,5 +249,18 @@
       "ediffiqa_tiny.onnx"
     ],
     "tags": ["recommended", "photo-tagging", "face", "onnx", "quality"]
+  },
+  {
+    "id": "nima-aesthetic-onnx",
+    "name": "NIMA 美学评分",
+    "description": "NIMA MobileNet (idealo) 图像美学评分 ONNX (~12MB)，为人物聚类挑最佳封面（构图/美学）",
+    "size": 12867270,
+    "sources": {
+      "ModelScope": "budaoshou/nima-aesthetic-onnx"
+    },
+    "files": [
+      "nima_mobilenet_aesthetic.onnx"
+    ],
+    "tags": ["recommended", "photo-tagging", "aesthetic", "onnx"]
   }
 ]

@@ -364,6 +364,10 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE faceQualityScore IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
     suspend fun getMediaWithoutFaceQuality(limit: Int): List<MediaEntity>
 
+    /** 取缺任一分（美学或人脸画质）的照片，供打分器一图两分、单次解码（照片优先、最新在前） */
+    @Query("SELECT * FROM media_assets WHERE (aestheticScore IS NULL OR faceQualityScore IS NULL) AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
+    suspend fun getMediaWithoutEitherScore(limit: Int): List<MediaEntity>
+
     /** 含人脸但尚未回填 faceFocusY 的照片（供一次性回填扫描） */
     @Query("SELECT * FROM media_assets WHERE hasFace = 1 AND faceFocusY IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC")
     suspend fun getMediaWithFacesWithoutFocus(): List<MediaEntity>

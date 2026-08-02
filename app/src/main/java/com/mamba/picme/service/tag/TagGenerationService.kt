@@ -20,6 +20,7 @@ import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.domain.tag.TagGenerationScheduler
 import com.mamba.picme.domain.tag.TagScanProgress
 import com.mamba.picme.domain.tag.scan.ScanQueuePolicy
+import com.mamba.picme.PoLangApplication
 import com.mamba.picme.domain.tag.scan.ScanSessionState
 import com.mamba.picme.domain.tag.scan.TagScanOrchestrator
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
@@ -313,6 +314,7 @@ class TagGenerationService : Service() {
         orchestratorRef = orch
 
         progressJob = serviceScope.launch {
+            var scoredSession: String? = null
             orch.progress.collectLatest { sp ->
                 sessionProgress.value = sp
                 isScanning.value = sp?.state in setOf(
@@ -323,6 +325,18 @@ class TagGenerationService : Service() {
                 progress.value = sp.toLegacyProgress()
                 lastScanMessage.value = sp?.messages?.lastOrNull()?.text
                 updateNotification(sp)
+                // 扫描会话完成 → 后台触发全量美学/人脸画质打分（独立、幂等；复用同一 worker 实例）。
+                // fire-and-forget 到 serviceScope，不被 collectLatest 取消；按 sessionId 去重，每会话只触发一次。
+                val sid = sp?.sessionId
+                if (sp?.state == ScanSessionState.COMPLETED && sid != null && sid != scoredSession) {
+                    scoredSession = sid
+                    serviceScope.launch {
+                        runCatching {
+                            (applicationContext as? PoLangApplication)
+                                ?.container?.aestheticScoreWorker?.runOnce()
+                        }.onFailure { android.util.Log.w(TAG, "post-scan aesthetic scoring failed", it) }
+                    }
+                }
             }
         }
 

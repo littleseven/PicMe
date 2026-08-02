@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import com.mamba.picme.data.local.AppDatabase
+import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.tag.FaceRoi
 import com.mamba.picme.domain.tag.TagGenerationScheduler
 import kotlinx.coroutines.Dispatchers
@@ -16,11 +17,14 @@ import kotlinx.coroutines.withContext
 /**
  * 后台美学/人脸画质打分 + 封面刷新（A1：独立后台，不阻塞扫描）。
  *
- * 当前为 eDifFIQA 单用：解码→复用 [faceDetector] 检测拿 landmarks5→[FaceAligner] 对齐 112×112
- * →[EdiffiqaScorer] 打人脸画质分→回写 media_assets.faceQualityScore；
- * 随后按 [CoverSelector] 重算每个人物封面（缺 NIMA 美学时自动降级为人脸质量单分）。
+ * 一图两分（单次解码）：解码→
+ *   ① [NimaScorer] 整图美学分→回写 media_assets.aestheticScore（无需人脸）；
+ *   ② 复用 [scheduler] 检测拿 landmarks5→[FaceAligner] 对齐 112×112→[EdiffiqaScorer] 人脸画质分
+ *      →回写 media_assets.faceQualityScore（无脸则跳过）。
+ * 任一模型未就绪则只跑另一个；两者都未就绪只用已有分数刷新封面。
+ * 随后按 [CoverSelector] 重算封面（双分加权；缺任一则单分降级）。
  *
- * 模型未就绪时只尝试用已有分数刷新封面。人脸检测复用 [scheduler] 的扫描级管线（保证 landmarks5）。
+ * 两类入口：[runOnce] 全库批处理；[runOnceForPerson] 仅给某个人脸簇的成员打分 + 刷该簇封面。
  *
  * @param batch 单次最多打分照片数（避免单次耗时过长）
  */
@@ -40,65 +44,136 @@ class AestheticScoreWorker(
     /** 串行化打分（自动触发与手动触发可能并发，避免同批重复处理） */
     private val mutex = Mutex()
 
-    /** 执行一轮打分 + 封面刷新，返回本轮打分照片数。串行化（自动/手动触发并发安全）。
+    /** 执行一轮全库打分 + 封面刷新，返回本轮打分照片数。串行化（自动/手动触发并发安全）。
      *  [batchLimit] 单次最多处理照片数（默认构造值；手动触发可传更大值）。 */
     suspend fun runOnce(batchLimit: Int = batch): Int = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val scorer = EdiffiqaScorer(context)
-            val modelReady = scorer.initialize()
-            if (!modelReady) {
-                Log.w(TAG, "eDifFIQA not ready; only refresh covers with existing scores")
+            val ediffiqa = EdiffiqaScorer(context)
+            val nima = NimaScorer(context)
+            val ediffiqaReady = ediffiqa.initialize()
+            val nimaReady = nima.initialize()
+            if (!ediffiqaReady && !nimaReady) {
+                Log.w(TAG, "no scorer ready; only refresh covers with existing scores")
                 refreshCovers()
                 return@withLock 0
             }
 
             var scored = 0
             try {
-                val pending = mediaDao.getMediaWithoutFaceQuality(batchLimit)
+                val pending = mediaDao.getMediaWithoutEitherScore(batchLimit)
                 for (entity in pending) {
                     val bmp = decodeSampled(entity.uri) ?: continue
                     try {
-                        val faces: List<FaceRoi> = scheduler.detectFacesForScoring(bmp)
-                        // 每个含 5 点 landmarks 的人脸：对齐→打分，取最高者作为该照片的人脸画质
-                        val best = faces.mapNotNull { face ->
-                            val landmarks5 = face.landmarks5 ?: return@mapNotNull null
-                            val aligned = FaceAligner.align(bmp, landmarks5) ?: return@mapNotNull null
-                            val s = scorer.score(aligned)
-                            aligned.recycle()
-                            s
-                        }.maxOrNull()
-                        if (best != null) {
-                            mediaDao.updateFaceQualityScore(entity.id, best)
-                            scored++
-                        }
+                        if (scoreEntity(entity, bmp, nima, nimaReady, ediffiqa, ediffiqaReady)) scored++
                     } finally {
                         bmp.recycle()
                     }
                 }
                 refreshCovers()
-                Log.i(TAG, "Aesthetic pass done: scored=$scored")
+                Log.i(TAG, "Aesthetic pass done: scored=$scored (nima=$nimaReady ediffiqa=$ediffiqaReady)")
             } catch (e: Exception) {
                 Log.e(TAG, "Aesthetic pass failed", e)
             } finally {
-                scorer.release()
+                ediffiqa.release()
+                nima.release()
             }
             scored
         }
     }
 
-    /** 按 CoverSelector 重算每个人物封面（双分加权；缺美学则人脸质量单分）。 */
-    private suspend fun refreshCovers() {
-        val persons = personDao.getAllPersons()
-        for (person in persons) {
-            val members = personDao.getMediaByPerson(person.personId)
-            val best = CoverSelector.bestCoverMediaId(
-                members.map { member ->
-                    CoverCandidate(member.id, member.aestheticScore, member.faceQualityScore)
-                }
-            )
-            if (best != null) {
-                personDao.updateCoverMedia(person.personId, best)
+    /**
+     * 仅给某个人脸簇的成员打分 + 刷新该簇封面，返回本轮打分照片数。
+     * 供「个人信息编辑页」按聚类触发（不全库扫）。串行化与 [runOnce] 共用同一锁。
+     * [personId] 目标人物；[batchLimit] 单次上限（默认 300，簇内通常不大）。 */
+    suspend fun runOnceForPerson(personId: Long, batchLimit: Int = 300): Int = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val ediffiqa = EdiffiqaScorer(context)
+            val nima = NimaScorer(context)
+            val ediffiqaReady = ediffiqa.initialize()
+            val nimaReady = nima.initialize()
+            if (!ediffiqaReady && !nimaReady) {
+                Log.w(TAG, "no scorer ready; only refresh cover for person $personId")
+                refreshCoverForPerson(personId)
+                return@withLock 0
             }
+
+            var scored = 0
+            try {
+                val members = personDao.getMediaByPerson(personId)
+                    .filter { it.aestheticScore == null || it.faceQualityScore == null }
+                    .take(batchLimit)
+                for (entity in members) {
+                    val bmp = decodeSampled(entity.uri) ?: continue
+                    try {
+                        if (scoreEntity(entity, bmp, nima, nimaReady, ediffiqa, ediffiqaReady)) scored++
+                    } finally {
+                        bmp.recycle()
+                    }
+                }
+                refreshCoverForPerson(personId)
+                Log.i(TAG, "Aesthetic pass person=$personId done: scored=$scored (nima=$nimaReady ediffiqa=$ediffiqaReady)")
+            } catch (e: Exception) {
+                Log.e(TAG, "Aesthetic pass for person $personId failed", e)
+            } finally {
+                ediffiqa.release()
+                nima.release()
+            }
+            scored
+        }
+    }
+
+    /**
+     * 给单张已解码 [bmp] 计算 NIMA 美学（缺时）+ eDifFIQA 人脸画质（缺时），回写，返回是否写了任一分。
+     */
+    private suspend fun scoreEntity(
+        entity: MediaEntity,
+        bmp: Bitmap,
+        nima: NimaScorer,
+        nimaReady: Boolean,
+        ediffiqa: EdiffiqaScorer,
+        ediffiqaReady: Boolean
+    ): Boolean {
+        var wroteAny = false
+        // ① NIMA 整图美学（仅在缺美学分时；无需人脸）
+        if (nimaReady && entity.aestheticScore == null) {
+            nima.score(bmp)?.let { a ->
+                mediaDao.updateAestheticScore(entity.id, a)
+                wroteAny = true
+            }
+        }
+        // ② eDifFIQA 人脸画质（仅在缺人脸分时；需检测到含 5 点的人脸）
+        if (ediffiqaReady && entity.faceQualityScore == null) {
+            val faces: List<FaceRoi> = scheduler.detectFacesForScoring(bmp)
+            val best = faces.mapNotNull { face ->
+                val landmarks5 = face.landmarks5 ?: return@mapNotNull null
+                val aligned = FaceAligner.align(bmp, landmarks5) ?: return@mapNotNull null
+                val s = ediffiqa.score(aligned)
+                aligned.recycle()
+                s
+            }.maxOrNull()
+            if (best != null) {
+                mediaDao.updateFaceQualityScore(entity.id, best)
+                wroteAny = true
+            }
+        }
+        return wroteAny
+    }
+
+    /** 按 CoverSelector 重算所有人物封面（双分加权；缺美学则人脸质量单分）。 */
+    private suspend fun refreshCovers() {
+        for (person in personDao.getAllPersons()) {
+            refreshCoverForPerson(person.personId)
+        }
+    }
+
+    /** 仅重算单个簇的封面（按聚类触发时用，避免全量刷新）。 */
+    private suspend fun refreshCoverForPerson(personId: Long) {
+        val members = personDao.getMediaByPerson(personId)
+        val best = CoverSelector.bestCoverMediaId(
+            members.map { member -> CoverCandidate(member.id, member.aestheticScore, member.faceQualityScore) }
+        )
+        if (best != null) {
+            personDao.updateCoverMedia(personId, best)
         }
     }
 

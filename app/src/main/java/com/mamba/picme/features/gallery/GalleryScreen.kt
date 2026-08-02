@@ -997,6 +997,13 @@ fun GalleryScreen(
                         }.onFailure { Logger.e(TAG, "Failed to rename person", it) }
                     }
                 }
+            },
+            onRescore = {
+                app.container.aestheticScoreWorker.runOnceForPerson(infoSnap.person.personId)
+                runCatching { app.container.personRepository.loadPersonEditSnapshot(infoSnap.person.personId) }
+                    .onSuccess { snapshot -> infoSnapshot = snapshot }
+                    .onFailure { Logger.e(TAG, "Failed to reload person edit snapshot", it) }
+                refreshPersonNameMap()
             }
         )
     }

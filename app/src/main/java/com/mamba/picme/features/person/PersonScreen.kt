@@ -218,6 +218,11 @@ fun PersonScreen(
             },
             onUpdateName = { name ->
                 viewModel.updateName(person.personId, name)
+            },
+            onRescore = {
+                val app = context.applicationContext as? PoLangApplication
+                app?.container?.aestheticScoreWorker?.runOnceForPerson(person.personId)
+                viewModel.reconcileAndLoad()
             }
         )
     }

@@ -127,6 +127,7 @@ class LlmModelDownloadManager(context: Context) {
          */
         private val U2NETP_MODEL_FILES = listOf("u2netp.onnx")
         private val EDIFFIQA_MODEL_FILES = listOf("ediffiqa_tiny.onnx")
+        private val NIMA_MODEL_FILES = listOf("nima_mobilenet_aesthetic.onnx")
 
         /**
          * MNN-LLM 模型可选文件列表（存在则下载，404则跳过）
@@ -181,6 +182,7 @@ class LlmModelDownloadManager(context: Context) {
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
             modelId == "ediffiqa-face-quality-onnx" -> EDIFFIQA_MODEL_FILES
+            modelId == "nima-aesthetic-onnx" -> NIMA_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
             else -> LLM_MODEL_FILES
         }
@@ -524,6 +526,7 @@ fun isModelDownloaded(modelId: String): Boolean {
             modelId == "modnet-onnx" -> MODNET_MODEL_FILES
             modelId == "u2netp-onnx" -> U2NETP_MODEL_FILES
             modelId == "ediffiqa-face-quality-onnx" -> EDIFFIQA_MODEL_FILES
+            modelId == "nima-aesthetic-onnx" -> NIMA_MODEL_FILES
             modelId.contains("face", ignoreCase = true) -> FACE_DETECTION_ROI_MNN_FILES
             else -> LLM_MODEL_FILES
         }
@@ -1400,7 +1403,8 @@ data class ModelConfig(
             "modnet-onnx",                  // 证件照/抠图
             "u2netp-onnx",                  // 证件照/抠图（轻量）
             "mediapipe-face-landmarker",    // 相册人脸标记预览
-            "ediffiqa-face-quality-onnx"    // 人脸封面质量评分
+            "ediffiqa-face-quality-onnx",   // 人脸封面质量评分
+            "nima-aesthetic-onnx"           // 人物封面美学评分
         )
     }
 
