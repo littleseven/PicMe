@@ -20,6 +20,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -72,7 +77,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -128,7 +132,7 @@ internal fun getCategoryIcon(tag: String): ImageVector {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ModelCenterScreen(
     viewModel: SettingsViewModel,
@@ -136,37 +140,36 @@ fun ModelCenterScreen(
     onNavigateBack: () -> Unit
 ) {
     val groupedModels by viewModel.groupedModels.collectAsState()
-    val currentTab by viewModel.currentTab.collectAsState()
     val modelTypeLabels = viewModel.getModelTypeLabels()
     val downloadStates by viewModel.downloadStates.collectAsState()
     val downloadedModels by viewModel.downloadedModels.collectAsState()
     val tagTranslations by viewModel.tagTranslations.collectAsState()
+    val autoDownloadRecommended by viewModel.autoDownloadRecommendedOnWifi.collectAsState()
     var modelToDelete by remember { mutableStateOf<ModelConfig?>(null) }
     var modelToShowProperties by remember { mutableStateOf<ModelConfig?>(null) }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
-    val isMustHaveTab = currentTab.tag.equals("must-have", ignoreCase = true)
-    val isRecommendedTab = currentTab.tag.equals("recommended", ignoreCase = true)
-    val autoDownloadRecommended by viewModel.autoDownloadRecommendedOnWifi.collectAsState()
 
-    // 根据传入的初始标签设置当前 Tab（按服务功能映射）
-    LaunchedEffect(initialCategoryTag, modelTypeLabels) {
-        if (initialCategoryTag.isNotBlank() && modelTypeLabels.isNotEmpty()) {
-            val targetCategory = when (initialCategoryTag) {
-                "Chat", "Audio" -> modelTypeLabels.keys.find { it.tag.equals("chat", ignoreCase = true) }
-                "Vision" -> modelTypeLabels.keys.find { it.tag.equals("beauty-camera", ignoreCase = true) }
-                else -> modelTypeLabels.keys.find { it.tag.equals(initialCategoryTag, ignoreCase = true) }
+    val categories = modelTypeLabels.entries.toList()
+    val pagerState = rememberPagerState(
+        initialPage = remember(initialCategoryTag, categories) {
+            initialPageIndex(initialCategoryTag, categories)
+        },
+        pageCount = { categories.size }
+    )
+    val chipScrollState = rememberScrollState()
+
+    // 横滑切页 → 同步当前分类 + 把选中 Chip 滚进可视区
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            if (page !in categories.indices) return@collect
+            viewModel.switchTab(categories[page].key)
+            val target = if (categories.size > 1) {
+                (chipScrollState.maxValue.toFloat() * page / (categories.size - 1)).toInt()
+            } else {
+                0
             }
-            if (targetCategory != null) {
-                viewModel.switchTab(targetCategory)
-            }
+            chipScrollState.animateScrollTo(target)
         }
-    }
-
-    // 同步 Tab 索引
-    LaunchedEffect(currentTab, modelTypeLabels) {
-        val index = modelTypeLabels.keys.indexOf(currentTab)
-        selectedTabIndex = index.coerceAtLeast(0)
     }
 
     Scaffold(
@@ -178,75 +181,43 @@ fun ModelCenterScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
-            // 可滚动的分类 Tab 栏
             ScrollableCategoryTabs(
                 categories = modelTypeLabels,
-                selectedIndex = selectedTabIndex,
-                onCategorySelected = { index, category ->
-                    selectedTabIndex = index
-                    viewModel.switchTab(category)
+                scrollState = chipScrollState,
+                selectedIndex = pagerState.currentPage,
+                onCategorySelected = { index, _ ->
+                    coroutineScope.launch { pagerState.animateScrollToPage(index) }
                 }
             )
 
-            // 模型列表
-            val currentModels = groupedModels[currentTab] ?: emptyList()
-
-            if (currentModels.isEmpty()) {
-                EmptyModelList()
-            } else {
-                val downloadedIds = downloadedModels.map { it.id }.toSet()
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (isMustHaveTab) {
-                        item(key = "must-have-header") {
-                            val missingCount = currentModels.count { it.id !in downloadedIds }
-                            MustHaveHeaderCard(
-                                requiredCount = currentModels.size,
-                                missingCount = missingCount,
-                                onDownloadAll = { viewModel.downloadAllRequiredModels() }
-                            )
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                val category = categories[page].key
+                ModelCategoryPage(
+                    category = category,
+                    models = groupedModels[category] ?: emptyList(),
+                    downloadedIds = downloadedModels.map { it.id }.toSet(),
+                    downloadStates = downloadStates,
+                    tagTranslations = tagTranslations,
+                    autoDownloadRecommended = autoDownloadRecommended,
+                    onDownload = { model ->
+                        if (downloadStates[model.id]?.status == DownloadStatus.PAUSED) {
+                            viewModel.resumeModelDownload(model.id, model)
+                        } else {
+                            viewModel.downloadModel(model.id, model)
                         }
+                    },
+                    onCancel = { model -> viewModel.cancelModelDownload(model.id) },
+                    onPause = { model -> viewModel.pauseModelDownload(model.id) },
+                    onDelete = { model -> modelToDelete = model },
+                    onShowProperties = { model -> modelToShowProperties = model },
+                    onDownloadAllRequired = { viewModel.downloadAllRequiredModels() },
+                    onAutoDownloadRecommendedChange = { enabled ->
+                        viewModel.setAutoDownloadRecommendedOnWifi(enabled)
                     }
-
-                    if (isRecommendedTab) {
-                        item(key = "recommended-header") {
-                            RecommendedHeaderCard(
-                                checked = autoDownloadRecommended,
-                                onCheckedChange = { enabled -> viewModel.setAutoDownloadRecommendedOnWifi(enabled) }
-                            )
-                        }
-                    }
-
-                    items(currentModels) { model ->
-                        val downloadState = downloadStates[model.id]
-                        val isPaused = downloadState?.status == DownloadStatus.PAUSED
-                        val isDownloaded = model.id in downloadedIds
-                        ModelCardWithBadge(
-                            model = model,
-                            downloadState = downloadState,
-                            isDownloaded = isDownloaded,
-                            tagTranslations = tagTranslations,
-                            onDownload = {
-                                if (isPaused) {
-                                    viewModel.resumeModelDownload(model.id, model)
-                                } else {
-                                    viewModel.downloadModel(model.id, model)
-                                }
-                            },
-                            onCancel = {
-                                viewModel.cancelModelDownload(model.id)
-                            },
-                            onPause = {
-                                viewModel.pauseModelDownload(model.id)
-                            },
-                            onDelete = { modelToDelete = model },
-                            onShowProperties = { modelToShowProperties = model }
-                        )
-                    }
-                }
+                )
             }
         }
     }
@@ -290,15 +261,102 @@ fun ModelCenterScreen(
 }
 
 /**
+ * 根据入口传入的初始标签计算 Pager 初始页索引。
+ * Chat/Audio → chat（语音）；Vision → beauty-camera；其它按标签字面匹配。
+ */
+private fun initialPageIndex(
+    initialCategoryTag: String,
+    categories: List<Map.Entry<ModelCategory, String>>
+): Int {
+    if (initialCategoryTag.isBlank() || categories.isEmpty()) return 0
+    val target = when (initialCategoryTag) {
+        "Chat", "Audio" -> ModelCategory("chat")
+        "Vision" -> ModelCategory("beauty-camera")
+        else -> ModelCategory(initialCategoryTag)
+    }
+    return categories.indexOfFirst { it.key == target }.coerceAtLeast(0)
+}
+
+/**
+ * 单个分类页内容（HorizontalPager 的一页）
+ */
+@Composable
+private fun ModelCategoryPage(
+    category: ModelCategory,
+    models: List<ModelConfig>,
+    downloadedIds: Set<String>,
+    downloadStates: Map<String, DownloadState>,
+    tagTranslations: Map<String, String>,
+    autoDownloadRecommended: Boolean,
+    onDownload: (ModelConfig) -> Unit,
+    onCancel: (ModelConfig) -> Unit,
+    onPause: (ModelConfig) -> Unit,
+    onDelete: (ModelConfig) -> Unit,
+    onShowProperties: (ModelConfig) -> Unit,
+    onDownloadAllRequired: () -> Unit,
+    onAutoDownloadRecommendedChange: (Boolean) -> Unit
+) {
+    val isMustHaveTab = category.tag.equals("must-have", ignoreCase = true)
+    val isRecommendedTab = category.tag.equals("recommended", ignoreCase = true)
+
+    if (models.isEmpty()) {
+        EmptyModelList()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (isMustHaveTab) {
+            item(key = "must-have-header") {
+                val missingCount = models.count { it.id !in downloadedIds }
+                MustHaveHeaderCard(
+                    requiredCount = models.size,
+                    missingCount = missingCount,
+                    onDownloadAll = onDownloadAllRequired
+                )
+            }
+        }
+
+        if (isRecommendedTab) {
+            item(key = "recommended-header") {
+                RecommendedHeaderCard(
+                    checked = autoDownloadRecommended,
+                    onCheckedChange = onAutoDownloadRecommendedChange
+                )
+            }
+        }
+
+        items(models) { model ->
+            val downloadState = downloadStates[model.id]
+            val isDownloaded = model.id in downloadedIds
+            ModelCardWithBadge(
+                model = model,
+                downloadState = downloadState,
+                isDownloaded = isDownloaded,
+                tagTranslations = tagTranslations,
+                onDownload = { onDownload(model) },
+                onCancel = { onCancel(model) },
+                onPause = { onPause(model) },
+                onDelete = { onDelete(model) },
+                onShowProperties = { onShowProperties(model) }
+            )
+        }
+    }
+}
+
+/**
  * 可滚动的分类 Tab 栏 - 使用 Chip 风格替代 TabRow，避免文字截断
  */
 @Composable
 private fun ScrollableCategoryTabs(
     categories: Map<ModelCategory, String>,
+    scrollState: ScrollState,
     selectedIndex: Int,
     onCategorySelected: (Int, ModelCategory) -> Unit
 ) {
-    val scrollState = rememberScrollState()
 
     Row(
         modifier = Modifier
