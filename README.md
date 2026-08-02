@@ -28,7 +28,7 @@
 
 本仓库包含两件事：
 
-- **PoLang（破浪相册）** —— 一个接近生产级复杂度的 **AI Agent 驱动的智能相册应用**，是本项目的应用与研究主体。以相册首页为默认入口，通过自然语言对话调度搜索 / 编辑 / 抠图 / 证件照 / 标签等能力，端侧 Qwen3.5-2B + 远程 DeepSeek 双推理，自研 OpenGL ES 美颜引擎，自建 Ktor 后端。
+- **PoLang（破浪相册）** —— 一个接近生产级复杂度的 **AI Agent 驱动的智能相册应用**，是本项目的应用与研究主体。以相册首页为默认入口，通过自然语言对话调度搜索 / 编辑 / 抠图 / 证件照 / 标签等能力，文本推理全远程（DeepSeek / 通义等 OpenAI 兼容），端侧保留 VLM 打标 / 人脸 / 美颜等媒体处理，自研 OpenGL ES 美颜引擎，自建 Ktor 后端。
 - **langchain4android** —— 从 PoLang 中沉淀出的 **Android 端侧 AI Agent 基础库**（`:agent-core`，LangChain4j 风格 ChatModel / Tool / AiServices / ChatMemory），无 SPI、纯显式注入，已发布 JitPack，可独立用于自己的 Agent 编排。
 
 PoLang 的 Agent 编排层（`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard` 等）位于 `:runtime-core`，基于 `:agent-core` 的原语构建。先看 [PoLang 产品特性](#polang-产品特性)，或直接跳到 [作为库使用](#作为库使用langchain4android)。
@@ -41,9 +41,9 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 
 ### AI Agent 对话中枢
 🤖 自然语言 → 能力调度：`AgentOrchestrator` + `CapabilityRegistry` + `PrivacyGuard` 完整架构，Capability 可热插拔。
-- **本地 / 远程双推理**：端侧 MNN-LLM（Qwen3.5-2B，离线/隐私）+ 远程 DeepSeek（复杂推理），输入框下拉切换
-- **多轮对话记忆**：Room 持久化，重启自动恢复；本地 L1 缓存命中直返
-- **隐私分级**：`PrivacyGuard` 把敏感操作（人脸/OCR/图片）钉在端侧，非敏感复杂推理才上云
+- **文本推理全远程**：远程 DeepSeek / 通义等 OpenAI 兼容模型（ReAct + tool_calls），输入框下拉切换；端侧不再跑文本 LLM
+- **多轮对话记忆**：Room 持久化，重启自动恢复
+- **隐私分级**：`PrivacyGuard` 把媒体处理（人脸/OCR/打标/图片）100% 钉在端侧，仅文本/元数据走远程推理
 
 ### 智能相册搜索
 🔍 「找出去年夏天的照片」「我和小明的合照」「最近一个月的视频」——规则解析 + MobileCLIP 语义召回 + 多维度 SQL 召回，**端侧执行**，结果可交互媒体网格。
@@ -56,7 +56,7 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 📇 **证件照制作**：`IDPhotoComposer` + `IDPhotoSpecs`，一寸/二寸/签证等多规格 + 背景色。
 
 ### 自动标签
-🏷️ **Florence-2 端侧 INT8 打标**，5-Pass 链路 + 中英双字段 + opus-mt 汉化；可由对话触发批量扫描。
+🏷️ **端侧多模型打标**：Florence-2 INT8 + Qwen3-VL-2B（TAG Pass3），5-Pass 链路 + 中英双字段 + opus-mt 汉化；可由对话触发批量扫描。
 
 ### JS 沙盒脚本
 📜 QuickJS 沙箱 + JSBridge，对话内运行相册分析 / 健康报告脚本（`run_script`），结果以图表 SVG / 结构化文本回显。
@@ -68,12 +68,12 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 📷 全自研 **OpenGL ES + EGL** 渲染管线（磨皮/美白/瘦脸/大眼/唇色/腮红 + 风格滤镜），无第三方美颜 SDK；帧同步美妆解决快速移动妆容甩飞；GPU 离屏渲染保证预览/拍照一致。
 
 ### 语音交互
-🎙️ 唤醒词 + 流式 ASR + 端侧 LLM 指令解析（Sherpa-ONNX），Push-to-Talk 默认开启。
+🎙️ 唤醒词（可选）+ 流式 ASR（Sherpa-ONNX 端侧）+ 远程 LLM 指令解析；语音入口位于相机页。
 
 ### 自建 Ktor 后端
 🌐 独立 `server/` 工程（部署 `api.polang.net`）：AI 网关（按模型路由 Cloudflare AI Gateway / 腾讯 TokenHub）+ 邮箱注册账号 + 免费额度 + 管理后台 + 遥测。**不做 Agent 编排**（ReAct 循环在客户端）。
 
-> **核心特点**：端侧优先 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 本地 + 远程双推理 ｜ 7 模块 monorepo（app / runtime-core / agent-core / beauty-engine / beauty-api / mnn-core / sentencepiece + server）
+> **核心特点**：媒体处理端侧 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 文本推理全远程 ｜ 7 模块 monorepo（app / runtime-core / agent-core / beauty-engine / beauty-api / mnn-core / sentencepiece + server）
 
 ---
 
@@ -112,7 +112,7 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 
 Chat 页输入栏的 **AI 工程师** toggle 在两条独立 LLM 链路间切换：
 
-- **普通 Chat（相册助手）**：用户输入 → `ChatViewModel.sendMessage()` → `AgentOrchestrator` → 本地 Qwen3.5-2B 或远程 DeepSeek → `@Tool` → `CapabilityRegistry` → 端侧 Capability 执行 → 结果渲染到对话。
+- **普通 Chat（相册助手）**：用户输入 → `ChatViewModel.sendMessage()` → `AgentOrchestrator` → 远程 DeepSeek / 通义等（OpenAI 兼容 ReAct）→ `@Tool` → `CapabilityRegistry` → 端侧 Capability 执行 → 结果渲染到对话。
 - **AI 工程师（远程 coding agent）**：用户输入 → `ChatViewModel.sendClaudeMessage()` → `POST /v1/claude-chat` → chisel 反向隧道 → KimiClaw `Claude Code` → 读改代码 / MCP app tools 感知 App 状态 → 用户选择 `push/pr/auto` 交付 → `POST /v1/claude-deliver` → git 分支/PR/自动合并。
 
 两条链路的目标、LLM、上下文、工具、隐私边界与交付物完全不同；详细架构图与对比见 [`docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md) §2.5。
@@ -352,10 +352,10 @@ com.mamba
 
 ### 实践关键发现
 
-- **指令格式：自定义优于通用规范** — 端侧小模型对 OpenAI tool_calls 嵌套结构支持不稳定，自定义简洁 JSON（method + params 平铺）可靠性更高
-- **云端推理缓存** — IntentCache 机制一次成功永久受益，大幅降低延迟与 API 成本
+- **文本推理全远程** — 端侧文本 LLM（Qwen3.5-2B）已移除以简化架构、降低功耗；文本对话 / 指令统一走远程 OpenAI 兼容 ReAct（tool_calls），相机指令亦改远程 tool_calls（`CameraToolService` + `AgentOrchestrator.processCameraInput`）
+- **媒体处理 100% 端侧** — 打标（Florence-2 / Qwen3-VL-2B）、人脸检测、美颜、相册搜索、抠图均在端侧，仅文本 / 元数据上云（隐私红线，ADR-008）
 - **多引擎资源隔离** — MNN/MediaPipe 共存时 Vulkan/EGL 资源竞争是隐形崩溃源（NCNN 路径已移除）
-- **服务端优先** — 端侧小模型能力边界为「指令路由器 + 轻量对话」，复杂推理明确上云
+- **远程推理优先** — 文本对话与指令解析明确上云，端侧算力聚焦媒体处理（VLM 打标 / 人脸 / 美颜）
 
 ### 度量指标
 
