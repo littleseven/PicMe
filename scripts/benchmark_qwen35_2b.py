@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qwen3.5-2B 相册 Pass 3 打标 benchmark。
+"""Qwen3-VL-2B 相册 Pass 3 VLM 打标 benchmark。
 
 用法:
     python3 scripts/benchmark_qwen35_2b.py [--count 100] [--output benchmark_qwen35_2b_report.json]
@@ -7,7 +7,7 @@
 前置条件:
     1. 设备已连接 adb
     2. PoLang 已安装并至少有 [count] 张未打标照片，或之前已完成 Pass 1/2
-    3. Qwen3.5-2B-MNN 模型已下载到设备
+    3. Qwen3-VL-2B-MNN 模型已下载到设备
 
 本脚本通过启动 TagGenerationService.ACTION_SCAN_PASS_3_FULL 触发全量 Pass 3，
 实时解析 logcat 中 TagScheduler / LocalLlmEngine 日志，收集每张图的：
@@ -56,7 +56,7 @@ class Sample:
 
 @dataclass
 class Report:
-    model: str = "qwen3_5_2b"
+    model: str = "qwen3_vl_2b"
     count_target: int = 100
     count_actual: int = 0
     json_ok_count: int = 0
@@ -243,20 +243,20 @@ def build_report(samples: list[Sample], count_target: int, started_at: str, mode
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Benchmark Qwen tagging (default: qwen3_5_2b)")
+    parser = argparse.ArgumentParser(description="Benchmark Qwen VLM tagging (default: qwen3_vl_2b)")
     parser.add_argument("--count", type=int, default=100, help="目标样本数 (default: 100)")
     parser.add_argument("--output", type=str, default="benchmark_qwen35_report.json",
                         help="报告输出路径")
     parser.add_argument("--timeout", type=int, default=1800, help="整体超时秒数 (default: 1800)")
     parser.add_argument("--no-cancel", action="store_true", help="完成后不取消扫描")
-    parser.add_argument("--model", type=str, default="qwen3_5_2b",
-                        help="被测模型标识，仅写入报告 (default: qwen3_5_2b)")
+    parser.add_argument("--model", type=str, default="qwen3_vl_2b",
+                        help="被测模型标识，仅写入报告 (default: qwen3_vl_2b)")
     args = parser.parse_args()
 
     if not check_device():
         return 1
 
-    print(f"[+] 启动 Qwen3.5-2B Pass 3 benchmark，目标 {args.count} 张")
+    print(f"[+] 启动 Qwen3-VL-2B Pass 3 benchmark，目标 {args.count} 张")
     started_at = datetime.now().isoformat()
 
     proc = start_logcat()

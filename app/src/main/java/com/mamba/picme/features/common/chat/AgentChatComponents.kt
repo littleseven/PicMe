@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
@@ -425,10 +424,8 @@ fun rememberAgentChatConfig(
         asrEngine = engine
     }
 
-    // 读取 Agent 模式与远程配置
+    // 读取 Agent 模式与远程配置（端侧文本 LLM 已移除，统一远程链路）
     val aiAgentMode by settingsRepository.aiAgentModeFlow.collectAsState(initial = AiAgentMode.REMOTE)
-    val aiAgentInferencePreference by settingsRepository.aiAgentInferencePreferenceFlow.collectAsState(initial = AiAgentInferencePreference.FORCE_REMOTE)
-    val aiAgentLocalUseOpencl by settingsRepository.aiAgentLocalUseOpenclFlow.collectAsState(initial = false)
     val aiAgentRemoteModelConfigs by settingsRepository.aiAgentRemoteModelConfigsFlow.collectAsState(initial = "")
     val aiAgentSelectedRemoteModel by settingsRepository.aiAgentSelectedRemoteModelFlow.collectAsState(initial = "deepseek-v4-flash")
 
@@ -449,21 +446,16 @@ fun rememberAgentChatConfig(
     // 读取服务端认证 token（邮箱注册）
     val serverAuthToken by settingsRepository.serverAuthTokenFlow.collectAsState(initial = "")
 
-    // AiAgentUseCase：根据设置动态配置 mode 和 forceRemote
+    // AiAgentUseCase：根据设置动态配置 mode 与远程配置
     val aiAgentUseCase = remember(
         aiAgentMode,
-        aiAgentInferencePreference,
-        aiAgentLocalUseOpencl,
         remoteConfig,
         serverAuthToken
     ) {
         AiAgentUseCase(
             context = context,
             agentMode = aiAgentMode,
-            localModelId = "qwen3_5_2b",
-            localUseOpencl = aiAgentLocalUseOpencl,
             remoteConfig = remoteConfig,
-            forceRemote = aiAgentInferencePreference == AiAgentInferencePreference.FORCE_REMOTE,
             gatewayToken = serverAuthToken.takeIf { it.isNotBlank() }
         )
     }

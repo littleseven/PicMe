@@ -36,7 +36,7 @@ import com.mamba.picme.features.chat.ChatModelOption
 /**
  * 模型选择器 — 输入框左侧下拉组件
  *
- * 支持本地模型（Qwen3.5-2B）/ 远程模型（DeepSeek）切换
+ * chat 页仅远程模型（DeepSeek）：端侧文本 LLM（Qwen3.5-2B）已移除
  */
 @Composable
 fun ModelSelector(

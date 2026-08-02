@@ -3,7 +3,6 @@ package com.mamba.picme.features.chat
 import android.content.Context
 import android.util.Log
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.data.local.ChatMessageDao
 import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
@@ -39,7 +38,7 @@ import org.junit.Before
  * - ChatViewModelDependencies 构造（[newViewModel]）
  *
  * 子类差异通过以下钩子处理：
- * - [initialToken] / [initialPreference]：覆盖 flow 初始值
+ * - [initialToken]：覆盖 flow 初始值
  * - [setUp]：override 并先调 super.setUp()，再追加文件专属 stub
  * - [newViewModel]：override 以注入 claudeChatClient / .also 回填（如 ClaudeSid / AppTool）
  */
@@ -63,10 +62,8 @@ abstract class ChatViewModelTestBase {
     // ── Overridable initial flow values ────────────────────────────
 
     protected open val initialToken: String = ""
-    protected open val initialPreference: AiAgentInferencePreference = AiAgentInferencePreference.FORCE_LOCAL
 
     protected val tokenFlow: MutableStateFlow<String> by lazy { MutableStateFlow(initialToken) }
-    protected val preferenceFlow: MutableStateFlow<AiAgentInferencePreference> by lazy { MutableStateFlow(initialPreference) }
 
     // ── Lifecycle ──────────────────────────────────────────────────
 
@@ -86,7 +83,6 @@ abstract class ChatViewModelTestBase {
         every { context.applicationContext } returns context
 
         every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
-        every { userSettingsRepository.aiAgentInferencePreferenceFlow } returns preferenceFlow
 
         every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
         coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
@@ -95,7 +91,6 @@ abstract class ChatViewModelTestBase {
 
         mockkObject(AgentOrchestrator.Companion)
         every { AgentOrchestrator.getInstance(any()) } returns orchestrator
-        every { orchestrator.getInferencePreference() } returns initialPreference
     }
 
     @After

@@ -1,8 +1,8 @@
 # langchain4android Agent 架构设计
 
-> **版本**：4.0（合并版）  
+> **版本**：4.1（端侧文本 LLM 移除对齐版）  
 > **状态**：已实施 / 迭代中  
-> **最后更新**：2026-07-15  
+> **最后更新**：2026-08-02  
 > **主要维护者**：[RD] 全栈工程师  
 > **历史合并说明**：本文档由 `AGENT_ARCHITECTURE.md` 与 `REMOTE_INFERENCE_ARCHITECTURE.md` 合并而成。远程推理相关的 OpenAI 协议、langchain4j 标准化、DeepSeek 适配、四层模型、性能成本与验收标准已并入“推理模式选型”与“远程推理”章节，原 `REMOTE_INFERENCE_ARCHITECTURE.md` 已删除。
 
@@ -41,33 +41,33 @@
 | 约束 | 定义 | 验证方式 |
 |------|------|----------|
 | **[PRIVACY]** | 敏感数据优先本地推理；确需云端处理时，必须获得用户授权且不得留存 | PrivacyGuard 拦截数据流 + 授权流程审计 |
-| **[PERF]** | 交互反馈 < 100ms，LLM 推理后台完成 | 端侧 Qwen3.5-2B 首 token 目标 < 600ms |
+| **[PERF]** | 交互反馈 < 100ms，LLM 推理后台完成 | 远程流式首 token 目标 < 500ms |
 | **[I18N]** | System Prompt 及用户可见回复禁止硬编码中文 | 接入 string 资源 |
 | **[OFFLINE]** | 本地模型未下载时提供明确引导 | 非静默失败 |
 | **[TYPE_SAFE]** | AgentCommand / AgentAction 必须使用 Sealed Class | 禁止字符串魔法值 |
 
-### 1.2 当前架构模式（ADR-005 后）
+### 1.2 当前架构模式（2026-08-02：端侧文本 LLM 移除后）
 
-**本地链路**：单轮 Function Calling（自定义 JSON 数组协议）  
-**远程链路**：标准 OpenAI Chat Completions API（原生 tool_calls + 流式 + 多轮对话）
-
-两条链路完全独立，无共享路由逻辑。
+**文本推理全远程**：chat 与相机指令统一走标准 OpenAI Chat Completions API（原生 tool_calls + 流式 + 多轮对话，ADR-005 远程协议）。  
+**端侧仅保留 VLM 打标**：`LocalLlmEngine` 仅存 `imageInference` 用途（Qwen3-VL-2B，TAG Pass3 打标），不再承担任何文本推理。
 
 ```
-用户输入 → AgentOrchestrator.dispatch() → 模式选择
-    ├── LOCAL → LocalInferencePipeline → LocalLlmEngine → JSON 数组解析 → Capability 执行
-    └── REMOTE → RemoteInferencePipeline → RemoteOrchestrator → OpenAI tool_calls → Capability 执行
+用户输入 → AgentOrchestrator
+    ├── chat/相册 → streamChat → RemoteReActAgent + ChatToolService → tool_calls → Capability 执行
+    └── 相机指令  → processCameraInput → RemoteReActAgent + CameraToolService → tool_calls → Capability 执行
 ```
+
+> 历史：ADR-005 的「本地/远程双链路」（Qwen3.5-2B 端侧推理 + 自定义 JSON 数组协议）已于 2026-08-02 随端侧文本 LLM 一并移除，见本节「已移除组件」与 ADR-005/009/010 的「状态更新（2026-08-02）」块。
 
 **核心组件状态**: 
 
 | 组件 | 职责 | 状态 |
 |------|------|------|
-| `AgentOrchestrator` | 统一入口，管理本地/远程两条独立推理链路 | ✅ 已落地 |
-| `LocalInferencePipeline` | 本地推理链路：L1 Cache + L2 Batch（自定义 JSON 数组协议） | ✅ 已落地 |
+| `AgentOrchestrator` | 统一入口：chat 走 `streamChat`，相机走 `processCameraInput`，均为远程推理 | ✅ 已落地 |
 | `RemoteInferencePipeline` | 远程推理链路：OpenAI Chat Completions API（tool_calls·流式·多轮） | ✅ 已落地 |
-| `LocalLlmEngine` | 封装 MNN-LLM 客户端，Qwen3.5-2B 本地推理 | ✅ 已落地 |
 | `RemoteOrchestrator` | 远程推理编排：:agent-core OpenAiChatModel + ChatMemory | ✅ 已落地 |
+| `CameraToolService` | 相机场域 @Tool 工具集（capture/adjust_beauty/switch_filter/adjust_zoom/flip_camera 等），相机指令远程 tool_calls 入口 | ✅ 已落地 |
+| `LocalLlmEngine` | 仅存 `imageInference`：Qwen3-VL-2B 端侧 VLM 打标（TAG Pass3），不再承担文本推理 | ✅ 已落地（仅打标） |
 | `:agent-core` (模块) | Java Android Library，提供 LangChain4j 风格 API：ChatModel、@Tool、AiServices、ChatMemory、OpenAiChatModel、OkHttp SSE 流式客户端 | ✅ 已落地 |
 | `CapabilityRegistry` | Capability 注册与命令分发 | ✅ 已落地 |
 | `PrivacyGuard` | 输入内容隐私分级与本地优先约束 | ✅ 已落地 |
@@ -75,7 +75,16 @@
 | `KeywordSpotterEngine` | KWS 常驻低功耗唤醒词检测（Sherpa-ONNX，~14MB） | ✅ 已落地 |
 | `SherpaOnnxAsrEngine` | ASR 按需加载语音转录（Sherpa-ONNX，~282MB） | ✅ 已落地 |
 | `FeishuRemoteChannel` | 飞书 WebSocket 直连，IM 远程控制入口 | 🔄 冻结（IM 远程控制线冻结，服务端替代方案优先） |
-| `IntentCache` | L1 远程意图缓存，高频指令直接返回 | ✅ 已落地 |
+
+**已移除组件（2026-08-02：端侧文本 LLM 移除）**：
+- `LocalInferencePipeline` / `LocalCameraAgent` — 本地推理链路整体删除
+- `LocalCommandParser` / `LocalPromptBuilder` — 本地 JSON 数组协议与本地 Prompt 构建器删除
+- `local/llm/` langchain4j 适配层 — 随本地文本推理删除
+- `IntentCache` / `L1CacheSettings` — L1 意图缓存删除
+- `AiAgentMode.LOCAL`（枚举仅剩 OFF/REMOTE/FEISHU）、`AiAgentInferencePreference` 枚举
+- chat 页 `ChatModelOption.Local`、qwen3_5_2b 模型下载条目与设置 UI
+- 相机 AI 指令改为远程 tool_calls：`AgentOrchestrator.processCameraInput` + `CameraToolService`
+- **保留**：`LocalLlmEngine`（仅存 `imageInference` VLM 打标）、`MnnLlmClient`、`llm_jni_bridge.cpp`/`libagent_native.so`、`LocalModelService`、`OpenClGuardian`、`TaggerModelSelector`
 
 **已移除组件（ADR-005/006，2026-06）**：
 - `InferenceRouter` — 拆分为 `LocalInferencePipeline` + `RemoteInferencePipeline` 两条独立链路
@@ -110,7 +119,7 @@
 │  │                   GlobalAgentPanel / AiAgentUseCase (Facade)           │    │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │    │
 │  │  │ Chat UI  │ │Voice Btn │ │QuickActs │ │Model Sel │ │StatusBar │   │    │
-│  │  │(多线程)   │ │(KWS唤醒) │ │(快捷入口) │ │(本地/远程)│ │(推理状态) │   │    │
+│  │  │(多线程)   │ │(KWS唤醒) │ │(快捷入口) │ │(远程模型) │ │(推理状态) │   │    │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘   │    │
 │  └──────────────────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -121,20 +130,20 @@
 │                                                                               │
 │  ┌────────────────────────────────────────────────────────────────────────┐  │
 │  │                      AgentOrchestrator (编排器)                          │  │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐          │  │
-│  │  │SceneManager│ │PrivacyGuard│ │MemoryManager│ │IntentCache │          │  │
-│  │  │(场景感知)   │ │(隐私分级)   │ │(对话持久化)  │ │(L1远程缓存) │          │  │
-│  │  └────────────┘ └────────────┘ └────────────┘ └────────────┘          │  │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐                         │  │
+│  │  │SceneManager│ │PrivacyGuard│ │MemoryManager│                         │  │
+│  │  │(场景感知)   │ │(隐私分级)   │ │(对话持久化)  │                         │  │
+│  │  └────────────┘ └────────────┘ └────────────┘                         │  │
 │  └────────────────────────────────────────────────────────────────────────┘  │
 │                    │                              │                           │
-│          LOCAL mode│                              │REMOTE mode                │
+│             相机指令│                              │chat/相册/飞书 (REMOTE)      │
 │                    ▼                              ▼                           │
 │  ┌────────────────────────────┐  ┌──────────────────────────────────────┐   │
-│  │  LocalInferencePipeline    │  │  RemoteInferencePipeline              │   │
-│  │  ┌──────────────────────┐  │  │  ┌────────────────────────────────┐  │   │
-│  │  │ LocalLlmEngine       │  │  │  │ RemoteOrchestrator             │  │   │
-│  │  │ Qwen3.5-2B (MNN)     │  │  │  │ :agent-core OpenAiChatModel   │  │   │
-│  │  │ L1 Cache → L2 Batch  │  │  │  │ OpenAI Chat Completions API   │  │   │
+│  │ CameraScreen→AiAgentUseCase│  │  RemoteInferencePipeline              │   │
+│  │ →processCameraInput (远程) │  │  ┌────────────────────────────────┐  │   │
+│  │  ┌──────────────────────┐  │  │  │ RemoteOrchestrator             │  │   │
+│  │  │RemoteReActAgent +    │  │  │  │ :agent-core OpenAiChatModel   │  │   │
+│  │  │CameraToolService@Tool│  │  │  │ OpenAI Chat Completions API   │  │   │
 │  │  └──────────────────────┘  │  │  │ DeepSeek V4 适配               │  │   │
 │  └────────────────────────────┘  │  │ L2 Batch / L3 Plan / L4 Chat   │  │   │
 │                                  │  └────────────────────────────────┘  │   │
@@ -174,8 +183,8 @@
 │                          Domain / Data / Infra                                │
 │                                                                              │
 │  ┌────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
-│  │MediaRepo   │ │SettingsRepo  │ │ BeautyEngine │ │ MNN-LLM (本地模型)    │ │
-│  │(Room DB)   │ │(DataStore)   │ │ (OpenGL ES)  │ │ Qwen3.5-2B · 端侧推理 │ │
+│  │MediaRepo   │ │SettingsRepo  │ │ BeautyEngine │ │ MNN-VLM (Qwen3-VL-2B)│ │
+│  │(Room DB)   │ │(DataStore)   │ │ (OpenGL ES)  │ │ TAG Pass3 打标专用    │ │
 │  └────────────┘ └──────────────┘ └──────────────┘ └──────────────────────┘ │
 │                                                                              │
 │  ┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐ │
@@ -189,34 +198,27 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 推理链路数据流（ADR-005 后）
+### 2.2 推理链路数据流（2026-08-02：文本推理全远程）
 
 ```
-用户输入 "找出去年夏天的照片" / "磨皮50"
+用户输入 "找出去年夏天的照片" / 相机语音 "磨皮50"
         │
         ▼
-AgentOrchestrator.dispatch(input)
+AgentOrchestrator（chat: streamChat · 相机: processCameraInput）
         │
-        ├── PrivacyGuard.assess(input) → 敏感? → 强制 LOCAL
+        ├── PrivacyGuard.assess(input) → 隐私分级（媒体文件不出端，[PRIVACY] 红线）
         │
-        ├── LOCAL mode (默认端侧模型)
-        │   │
-        │   ├── IntentCache.lookup(input) → HIT? → 直接返回 (L1)
-        │   │
-        │   └── LocalLlmEngine.generate(messages)
-        │       └── MNN-LLM (Qwen3.5-2B) → JSON 数组解析 → Capability 执行
-        │
-        └── REMOTE mode (用户手动切换或隐私允许)
+        └── REMOTE（端侧文本 LLM 已移除，全场景远程）
             │
-            ├── IntentCache.lookup(input) → HIT? → 直接返回 (L1)
+            ├── chat/相册 → RemoteReActAgent + ChatToolService（@Tool）
+            ├── 相机指令 → RemoteReActAgent + CameraToolService（@Tool 相机场域工具集）
             │
-            └── RemoteOrchestrator.chat(messages, tools)
-                └── :agent-core (Java Library)
-                    ├── OpenAiChatModel (ChatLanguageModel)
-                    ├── ToolSpecification (tool_calls 构建)
-                    └── OkHttp SSE Streaming (流式响应)
+            └── :agent-core (Java Library)
+                ├── OpenAiChatModel (ChatLanguageModel)
+                ├── ToolSpecification (tool_calls 构建)
+                └── OkHttp SSE Streaming (流式响应)
                         └── PoLang Server / DeepSeek / Claude API
-                            → tool_calls 解析 → Capability 执行
+                            → tool_calls 解析 → CapabilityRegistry.dispatch 执行
 ```
 
 ### 2.3 语音交互管线（Sherpa-ONNX 双引擎）
@@ -269,10 +271,12 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
                     │  • 相册工具 → dispatchCommand 回注册表       │
                     └─────────────────────────────────────────────┘
 
-                    ┌─ 本地小模型（CAMERA 等场景）─────────────────┐
-                    │ processUserInput → LocalLlmEngine           │
-                    │ → LocalCommandParser 解析 {method,args}      │ ← JSON 协议，
-                    │ → CapabilityRegistry.dispatch               │   也收敛到注册表
+                    ┌─ 相机场景（远程 tool_calls）─────────────────┐
+                    │ processCameraInput → RemoteReActAgent       │
+                    │ + CameraToolService @Tool（capture/         │ ← 与 chat 同一
+                    │   adjust_beauty/switch_filter/…）           │   ADR-005 协议，
+                    │ → ToolCallCommandParser                     │   也收敛到注册表
+                    │ → CapabilityRegistry.dispatch               │
                     └─────────────────────────────────────────────┘
 
    ┌─ run_gallery_script 的内部世界（JS 沙箱，非平级链路）─────────────┐
@@ -289,9 +293,9 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
 
 | 入口 | 触发场景 | 协议 | 收敛点 |
 |---|---|---|---|
-| 远程 Chat ReAct（`ChatToolService`） | CHAT 场景（相册助理）；`streamChat` 固定走此，无论 `inferencePreference` | OpenAI `tool_calls` | 每个 `@Tool` → `dispatchCommand(AgentCommand)` → `CapabilityRegistry` |
+| 远程 Chat ReAct（`ChatToolService`） | CHAT 场景（相册助理）；`streamChat` 固定走此 | OpenAI `tool_calls` | 每个 `@Tool` → `dispatchCommand(AgentCommand)` → `CapabilityRegistry` |
 | 远程飞书 RPA（`RemoteControlToolService`） | 飞书 IM 远程控制（`processRemoteImInput`） | OpenAI `tool_calls` | 语义工具 → `CapabilityRegistry`；UI 工具（click/scroll/input）→ Accessibility（旁路） |
-| 本地小模型（`LocalLlmEngine`） | CAMERA 等场景的语音/离线指令（`processUserInput`/`processInputWithRouter`） | 自定义 JSON `{method,args}` | `LocalCommandParser` → `AgentCommand` → `CapabilityRegistry` |
+| 相机远程 tool_calls（`CameraToolService`） | CAMERA 场景的语音/文字指令（`processCameraInput`） | OpenAI `tool_calls` | `ToolCallCommandParser` → `AgentCommand` → `CapabilityRegistry`（写操作复用 CommandRisk/确认机制与 JS `capability.dispatch` 通路） |
 
 > `streamChatLocal` / `streamChatRemote`（曾与 ReAct 并存的文本协议路径）已删除；CHAT 场景统一走远程 ReAct（ADR-005 远程协议分离）。
 
@@ -312,7 +316,7 @@ AgentOrchestrator.dispatch("拍张照") → Capability 执行
 | 多维组合查询 / 趋势 / 占比 / 统计 / 数学计算 | `run_gallery_script`（取数）+ `draw_chart`（画图） | tool → JS 沙箱 → `gallery.*` 读 / `capability.dispatch` 写 |
 | 飞书 IM 远程操控 UI（点按 / 输入 / 滑动） | `click` / `scroll` / `input_text` | tool → Accessibility（旁路，不进注册表） |
 
-判定边界（已固化于 `AgentConfigurator.chatSystemPrompt` 与 `LocalPromptBuilder`）：单一维度用独立 tool；≥2 维度组合 / 趋势 / 占比 / 计算，才用 `run_gallery_script`。**本地小模型不暴露 `run_gallery_script` / `draw_chart`**——端侧 2B 无法可靠生成 JS，由 `LocalPromptBuilderJsIsolationTest` 锁死。
+判定边界（已固化于 `AgentConfigurator.chatSystemPrompt`）：单一维度用独立 tool；≥2 维度组合 / 趋势 / 占比 / 计算，才用 `run_gallery_script`。**`run_gallery_script` / `draw_chart` 仅 chat 场景（`ChatToolService`）暴露**——相机工具集（`CameraToolService`）不含 JS 工具。
 
 #### 2.4.4 写操作确认两层策略
 
@@ -338,25 +342,20 @@ Chat 页通过输入栏的 **AI 工程师** toggle 在两条完全独立的 LLM 
 ChatViewModel.sendMessage()
         │
         ▼
-AgentOrchestrator / AiAgentUseCase ── 本地/远程模式选择
+AgentOrchestrator / AiAgentUseCase（固定远程 REMOTE，端侧文本 LLM 已移除）
         │
-        ├── LOCAL ──► LocalInferencePipeline ──► LocalLlmEngine (MNN-LLM Qwen3.5-2B)
-        │                                              │
-        │                                              ▼
-        │                              JSON {method,args} → AgentCommand
+        ▼
+RemoteInferencePipeline ──► :agent-core OpenAiChatModel
         │
-        └── REMOTE ──► RemoteInferencePipeline ──► :agent-core OpenAiChatModel
-                                                       │
-                                                       ▼
-                                          OpenAI Chat Completions (tool_calls)
-                                                       │
-                                                       ▼
-                                          PoLang Server / DeepSeek / 通义千问
-                                                       │
-                                                       ▼
-                                          ChatToolService @Tool ──► AgentCommand
-                                                       │
-        ◄──────────────────────────────────────────────┘
+        ▼
+OpenAI Chat Completions (tool_calls)
+        │
+        ▼
+PoLang Server / DeepSeek / 通义千问
+        │
+        ▼
+ChatToolService @Tool ──► AgentCommand
+        │
         ▼
 CapabilityRegistry.dispatch(AgentCommand)
         │
@@ -431,7 +430,7 @@ git commit + push claude-chat/<sid>
 | 入口 | ChatScreen 输入栏 | ChatScreen「AI 工程师」toggle |
 | 目标 | 操作相册、回答问题 | 读改代码、诊断修复、推分支 |
 | ViewModel 方法 | `sendMessage()` | `sendClaudeMessage()` |
-| LLM | DeepSeek / Qwen3.5-2B | Claude Code (GLM backend) |
+| LLM | DeepSeek（远程，端侧文本 LLM 已移除） | Claude Code (GLM backend) |
 | 网络路径 | App → PoLang Server → 第三方 LLM | App → PoLang Server → chisel → KimiClaw → Claude |
 | 上下文 | 会话历史 + 记忆 + 相册元数据 | 完整代码库 + App 运行时状态 |
 | 工具协议 | `@Tool` / OpenAI tool_calls | Claude Code 原生工具 + MCP app_tools |
@@ -486,26 +485,11 @@ class SceneManager {
 }
 ```
 
-### 3.2 分层 Prompt 构建器（ADR-005 后）
+### 3.2 Prompt 构建器（远程）
 
-本地和远程使用独立的 Prompt 构建器：
+端侧文本 LLM 移除后（2026-08-02），`LocalPromptBuilder` 已删除，仅保留远程 Prompt 构建（ADR-005 的本地/远程双构建器划分成为历史）：
 
 ```kotlin
-// 本地 Prompt — 精简、结构化
-class LocalPromptBuilder {
-    fun buildSystemPrompt(capabilities: List<Capability>, context: AgentContext): String = """
-        你是 PoLang AI 助手，运行在端侧设备。
-        请根据用户输入，输出 JSON 数组格式的命令。
-
-        可用命令：
-        ${capabilities.joinToString("\n") { "- ${it.name}: ${it.description}" }}
-
-        输出格式：
-        [{"method":"命令名称","args":{"参数名":值}}]
-        如果无法理解，输出：{"method":"text_reply","args":{"text":"回复内容"}}
-    """.trimIndent()
-}
-
 // 远程 Prompt — 标准 OpenAI 协议格式
 // 通过 langchain4j 构建 ChatRequest，SDK 自动序列化为 OpenAI Chat Completions 请求体
 class RemotePromptBuilder {
@@ -711,9 +695,17 @@ class NavigationCapability(
 
 ## 4. 推理模式选型
 
-### 4.1 本地 vs 远程推理
+### 4.1 文本推理全远程，端侧仅 VLM 打标（2026-08-02 最终状态）
 
-| 维度 | 本地推理 | 远程推理 |
+**最终决策**：端侧文本 LLM（Qwen3.5-2B）已完全移除。chat 与相机指令统一走远程 OpenAI Chat Completions（tool_calls），与 ADR-005 远程协议一致；相机链路为 `AgentOrchestrator.processCameraInput` → `RemoteReActAgent` + `CameraToolService`（相机场域 @Tool 工具集）→ `ToolCallCommandParser` → `CapabilityRegistry.dispatch`，写操作复用 CommandRisk/确认机制与 JS `capability.dispatch` 通路。
+
+**端侧保留**：仅 Qwen3-VL-2B VLM 打标（`LocalLlmEngine` 仅存 `imageInference`，TAG Pass3）、Florence-2 打标、人脸检测（`:mnn-core`）、OPUS-MT 翻译（`:sentencepiece`）——均为媒体/视觉处理，不承担文本对话与指令解析。
+
+**演进脉络**：ADR-005（本地/远程协议分离）→ ADR-009（本地收缩至相机）→ ADR-010（链路隔离）→ 2026-08-02（本地链路整体删除，见各 ADR「状态更新」块）。
+
+**历史对比（ADR-005 时期，本地列已删除）**：
+
+| 维度 | 本地推理（已删除） | 远程推理（现状唯一链路） |
 |------|---------|---------|
 | **协议** | 自定义 JSON 数组 | 标准 OpenAI Chat Completions API |
 | **Library** | 无第三方依赖 | :agent-core (OpenAiChatModel) |
@@ -723,23 +715,23 @@ class NavigationCapability(
 | **聊天/闲聊** | 通过 text_reply 命令兜底 | 原生支持（流式 + 多轮） |
 | **Strategy** | L1 Cache / L2 Batch | L2 Batch / L3 Plan / L4 Chat |
 | **延迟** | < 600ms | 500ms-2s |
-| **隐私** | 敏感数据本地处理，复杂推理可经用户授权后上云 | 非敏感数据允许上云 |
+| **隐私** | 敏感数据本地处理 | 媒体文件不出端；文本/元数据可远程（[PRIVACY]） |
 
-### 4.2 端侧推理模式选型（Qwen3.5-2B）
+### 4.2 端侧推理现状：仅 VLM 打标（原 Qwen3.5-2B 选型已废止）
 
-**不推荐完整 ReAct**，原因：
-- 2B 模型 COT（链式思考）能力弱，Thought 质量不稳定
-- AI 对话页要求 < 500ms 首字延迟，多轮推理无法满足 `[PERF]` 红线
-- 端侧电池/发热敏感
+端侧不再运行任何文本 LLM。保留的端侧推理均为视觉/媒体处理：
 
-**端侧能力边界（2026-06-12 验证）**：
-| 能力 | 端侧支持 | 说明 |
-|------|----------|------|
-| 单条 Function Calling | 已验证 | 明确意图→JSON 命令，准确率 > 90% |
-| 简单 Batch FC（2-3 条） | 部分支持 | JSON 数组格式需强 prompt 约束，偶有格式错误 |
-| 复杂组合指令（含条件/延迟） | 不支持 | 超出 2B 模型理解范围，明确走远程 |
-| 上下文推理（隐式引用） | 不支持 | "再亮一点"类指令需规则兜底 |
-| 开放式闲聊 | 不支持 | 生成质量差，应路由到远程 L4 |
+| 引擎 | 用途 | 模块 |
+|------|------|------|
+| Qwen3-VL-2B（MNN-VLM） | TAG Pass3 图像打标（`LocalLlmEngine.imageInference`） | `:runtime-core` + `:mnn-core` |
+| Florence-2 | 图像打标 | `:app` 打标流水线 |
+| MNN 人脸检测 | 人脸检测/关键点 | `:beauty-engine` + `:mnn-core` |
+| OPUS-MT（SentencePiece） | 翻译（与 LLM 无关） | `:sentencepiece` |
+
+**原 Qwen3.5-2B 端侧文本推理选型（历史记录，2026-06-12 验证，已随模型删除而废止）**：
+
+- 不推荐完整 ReAct：2B 模型 COT（链式思考）能力弱，Thought 质量不稳定；AI 对话页 < 500ms 首字延迟的 `[PERF]` 红线多轮推理无法满足；端侧电池/发热敏感。
+- 端侧能力边界：单条 Function Calling 已验证（准确率 > 90%）；简单 Batch FC（2-3 条）部分支持；复杂组合指令、上下文推理、开放式闲聊不支持——这些短板正是最终移除端侧文本 LLM、全面转向远程 tool_calls 的原因。
 
 ### 4.3 远程推理模式选型
 
@@ -749,7 +741,7 @@ class NavigationCapability(
 
 | 层级 | 模式 | 适用场景 | 协议 | 输出格式 | 执行位置 |
 |------|------|---------|------|---------|---------|
-| Layer 1 | 本地规则缓存 | 高频指令命中缓存 | 不走 LLM | 预定义命令 | 端侧 |
+| Layer 1 | 本地规则缓存（已随 `IntentCache` 移除，2026-08-02） | — | — | — | — |
 | Layer 2 | Batch Function Calling | 简单连续动作指令（2-3 步） | OpenAI Chat Completions + tool_calls | `ToolExecutionRequest[]` → `AgentCommand[]` | 远程 |
 | Layer 3 | Plan-and-Execute | 条件/依赖/多步骤 | OpenAI Chat Completions + tool_calls | `ExecutionPlan` (含 command 字段) | 远程规划 + 本地执行 |
 | Layer 4 | 流式 Chat | 开放式对话、闲聊 | OpenAI Chat Completions (stream=true) | 文本流 + 可选 tool_calls | 远程 |
@@ -757,9 +749,9 @@ class NavigationCapability(
 **远程优化策略**：
 - 连接池 + Keep-Alive 复用 TCP
 - 100ms 防抖窗口合并请求
-- 2s 超时降级到本地规则或文本提示
+- 2s 超时降级为文本提示（本地规则兜底已随本地链路移除）
 - 常见意图响应缓存（LruCache）
-- **隐私分级**：敏感数据（人脸/对话内容）强制本地；非敏感指令（天气/通用闲聊）允许远程
+- **隐私分级**：媒体文件（图片/视频）不出端（[PRIVACY] 红线）；文本/元数据/相册摘要允许远程推理
 
 ### 4.4 远程推理协议实现
 
@@ -855,9 +847,8 @@ object ToolCallCommandParser {
 }
 ```
 
-远程解析器与本地解析器完全隔离：
-- 远程：`ToolCallCommandParser` — 解析 `name` + `arguments` → `AgentCommand`
-- 本地：`LocalCommandParser` — 解析 `method` + `params` → `AgentCommand`
+命令解析统一使用 `ToolCallCommandParser`（本地 `LocalCommandParser` 已随端侧文本 LLM 移除，2026-08-02）：
+- `ToolCallCommandParser` — 解析 `name` + `arguments` → `AgentCommand`（chat 与相机链路共用）
 
 ### 4.5 DeepSeek 适配
 
@@ -890,7 +881,7 @@ object ToolCallCommandParser {
 | L4 (流式) | 200-500ms | 首 token 50-200ms | 50ms | 250-750ms |
 
 **优化策略**：
-1. **L1 缓存预热**：启动时预置 50+ 高频意图
+1. **L1 缓存预热**：（已废止，2026-08-02 — `IntentCache` 随端侧文本 LLM 移除）
 2. **L2 默认化**：80% 场景走 L2，保持简单高效
 3. **L3 异步执行**：计划生成后异步执行，不阻塞 UI
 4. **L4 流式**：首 token 低延迟，提升对话体验
@@ -1064,24 +1055,27 @@ sealed class InferenceResult {
 ```kotlin
 class AiAgentUseCase(
     context: Context,
-    agentMode: AiAgentMode = AiAgentMode.REMOTE, // 默认 REMOTE（远程优先）
+    agentMode: AiAgentMode = AiAgentMode.REMOTE, // 默认 REMOTE；端侧文本 LLM 已移除，AiAgentMode 仅剩 OFF/REMOTE/FEISHU
     privacyLevel: AiAgentPrivacyLevel = AiAgentPrivacyLevel.STRICT,
-    localModelId: String = "qwen3_5_2b",
     remoteConfig: RemoteModelConfig? = null,
     forceRemote: Boolean = false
 ) {
     private val orchestrator = AgentOrchestrator(
-        localPipeline = LocalInferencePipeline(...),
         remotePipeline = RemoteInferencePipeline(...)
     )
-    
+
+    // chat/相册入口
     suspend fun processInput(userInput: String, context: AgentContext): InferenceResult {
         return when (configurator.getAgentMode()) {
-            AiAgentMode.LOCAL -> localPipeline.process(input)
             AiAgentMode.REMOTE -> remotePipeline.process(input)
+            AiAgentMode.FEISHU -> remotePipeline.process(input) // 飞书通道复用远程链路
             AiAgentMode.OFF -> Result.failure(AgentDisabledException())
         }
     }
+
+    // 相机入口：远程 tool_calls（RemoteReActAgent + CameraToolService）
+    suspend fun processCameraInput(userInput: String, context: AgentContext): InferenceResult =
+        orchestrator.processCameraInput(userInput, context)
 }
 ```
 
@@ -1104,12 +1098,12 @@ class AiAgentUseCase(
 - **System Prompt**: 禁止硬编码在 `AgentOrchestrator` 内，需抽象为 `PromptBuilder` 策略接口
 - **Capability 注册**: 新增 Capability 必须同步更新 `CapabilityRegistry` 的命令映射，禁止遗漏
 - **Memory 持久化**: `appendConversation` 需引入内存缓存 + 批量刷盘，禁止每条消息 2 次 DataStore IO
-- **ChatML 格式**: `LocalLlmEngine` 禁止硬编码 Qwen ChatML，需抽象 `ChatFormat` 接口按模型注册
+- **ChatML 格式**:（已废止，2026-08-02 — 端侧文本 LLM 移除；原约束为 `LocalLlmEngine` 禁止硬编码 Qwen ChatML）
 - **线程安全**: `AgentOrchestrator` 的 `agentMode` / `currentModelId` 需同步控制，禁止并发修改
 - **模型加载**: 快速连续调用需加并发锁，避免触发多次加载
 - **隐私拦截**: `PrivacyGuard` 必须接入 LLM 输入输出流和 Capability 执行链路，禁止仅做断言
 - **日志规范**: 统一使用 `PoLang:[Module]` 前缀，禁止各组件标签不一致
-- **协议隔离**: 远程 tool_calls 与本地 method/params 必须彻底隔离，禁止混用
+- **协议统一**: 全链路使用 OpenAI tool_calls（chat/相机/飞书共用 `ToolCallCommandParser`；原本地 method/params 协议已随端侧文本 LLM 移除）
 
 ---
 
@@ -1119,7 +1113,6 @@ class AiAgentUseCase(
 - [ ] System Prompt 是否硬编码在类内？（需按场景插件化，违反 OCP）
 - [ ] 新增 AgentCommand 子类后是否同步更新了 CapabilityRegistry 的映射？（易遗漏）
 - [ ] MemoryManager 是否存在 IO 放大问题？（每条消息 2 次 DataStore 读写需优化）
-- [ ] ChatML 格式是否与模型耦合？（换模型如 Llama/Gemma 需改代码）
 - [ ] CameraCapability 回调是否为 null？（11 个可选回调需 Builder 模式或统一接口）
 - [ ] 模型加载是否有并发控制？（快速连续调用可能触发多次加载）
 - [ ] PrivacyGuard 是否实际拦截了数据流？（当前仅断言，未接入 LLM 和 Capability）
@@ -1137,8 +1130,8 @@ class AiAgentUseCase(
 |----|--------|--------|
 | AC-1 | 远程模式下，"磨皮 60 然后拍照" 能解析为两个 tool_calls 并依次执行 | P0 |
 | AC-2 | 远程模式下，"如果是后置就切前置再拍" 能正确执行条件判断 | P0 |
-| AC-3 | 本地模式下，所有现有功能保持 100% 兼容 | P0 |
-| AC-4 | L1 缓存命中率 > 60%（高频指令） | P1 |
+| AC-3 | 相机指令经远程 tool_calls 正确解析并执行（`processCameraInput` + `CameraToolService`） | P0 |
+| AC-4 | （已废止，2026-08-02：`IntentCache` L1 缓存随端侧文本 LLM 移除） | — |
 | AC-5 | 远程推理平均延迟 < 1.5s | P1 |
 | AC-6 | 支持对话式记忆（多轮上下文） | P2 |
 | AC-7 | DeepSeek 模型 tool_calls 成功率 > 95% | P0 |
@@ -1224,7 +1217,7 @@ class AiAgentUseCase(
 - [COMMAND_REFERENCE.md](../04-AGENT-CAPABILITIES/COMMAND_REFERENCE.md) — 命令参考手册
 - [AI_OPTIMIZATION.md](../03-TECHNICAL-SPECS/AI_OPTIMIZATION.md) — AI 一键优化
 - [TAG_GENERATION.md](../03-TECHNICAL-SPECS/TAG_GENERATION.md) — TAG 生成
-- [MNN_LLM_OPERATIONS.md](../03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md) — MNN LLM 运维
+- [MNN_LLM_OPERATIONS.md](../03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md) — 端侧 VLM 打标引擎运维
 - [VOICE_STACK.md](../03-TECHNICAL-SPECS/VOICE_STACK.md) — 语音栈
 - [IM_REMOTE_CONTROL_TECH_SPEC.md](../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) — IM 远程控制技术规范
 - `runtime-core/src/main/java/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）

@@ -35,7 +35,7 @@ data class EditParams(
 
     companion object {
         /**
-         * 从 JSON 对象构建 [EditParams]（供远程 tool 路径使用，与 LocalCommandParser 的解析规则一致）。
+         * 从 JSON 对象构建 [EditParams]（供远程 tool 路径使用，解析规则与原本地链路一致）。
          *
          * 每个字段支持三种形式：`"key": 数值` → [Absolute]；`"key": "字符串"` → [AbsoluteString]；
          * `"key_delta": 数值` → [Delta]；不存在 → [Unchanged]。key 为 snake_case。

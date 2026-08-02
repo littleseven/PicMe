@@ -7,8 +7,6 @@ import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallbac
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
-import com.mamba.picme.agent.core.local.llm.StreamMetrics
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.platform.logging.Logger
@@ -25,8 +23,8 @@ import kotlin.coroutines.suspendCoroutine
  * 从 AgentOrchestrator/AgentConfigurator 抽出的 chat 远程 ReAct 链路：owns chat-agent 生命周期
  *（[getChatAgent] + [chatSystemPrompt] + 缓存）与 chat 推理（[streamChat]/streamChatReAct/[processChatReAct]）。
  * 共享配置（userRemoteConfig / deviceId / memoryContextProvider / context）经 [AgentConfigurator] 只读访问，
- * 与本地链路（LocalCameraAgent）严格隔离、无交叉。chat 多轮记忆由 RemoteReActAgent 的 DataStoreChatMemory
- * 承担（ADR-012）；媒体处理留端侧、远程只发文本（ADR-008）。
+ * 与相机链路（CameraToolService / AgentOrchestrator.processCameraInput）严格隔离、无交叉。chat 多轮记忆由
+ * RemoteReActAgent 的 DataStoreChatMemory 承担（ADR-012）；媒体处理留端侧、远程只发文本（ADR-008）。
  */
 class RemoteChatEngine internal constructor(
     private val configurator: AgentConfigurator
@@ -138,10 +136,9 @@ class RemoteChatEngine internal constructor(
         agentContext: AgentContext,
         onEvent: (ChatStreamEvent) -> Unit
     ): Result<StreamChatResult> {
-        val preference = configurator.getInferencePreference()
-        Logger.d(tag, "streamChat: preference=$preference, input='$input'")
-        // chat 页统一走远程 ReAct（tool_calls），无论 preference（ADR-005 协议分离）。
-        Logger.i(tag, "streamChat routing to Chat ReAct (preference=$preference)")
+        Logger.d(tag, "streamChat: input='$input'")
+        // chat 页统一走远程 ReAct（tool_calls）（ADR-005 协议分离）。
+        Logger.i(tag, "streamChat routing to Chat ReAct")
         return streamChatReAct(input, agentContext, onEvent)
     }
 

@@ -50,8 +50,7 @@ internal fun AiAgentModeSelection(
     onModeSelected: (AiAgentMode) -> Unit
 ) {
     val options = listOf(
-        AiAgentMode.REMOTE to stringResource(R.string.ai_agent_mode_remote),
-        AiAgentMode.LOCAL to stringResource(R.string.ai_agent_mode_local)
+        AiAgentMode.REMOTE to stringResource(R.string.ai_agent_mode_remote)
     )
 
     Column(
@@ -70,114 +69,6 @@ internal fun AiAgentModeSelection(
             maxLines = 1,
             onSelected = onModeSelected
         )
-    }
-}
-
-private fun ModelConfig.isAiAgentLlmCandidate(): Boolean {
-    // 优先按 type 白名单（精准）：仅本地 LLM 与多模态(VISION_LLM) 可作为 Agent 本地推理模型
-    val normalizedType = type.uppercase(Locale.ROOT)
-    if (normalizedType.isNotEmpty()) {
-        return normalizedType == "LLM" || normalizedType == "VISION_LLM"
-    }
-
-    // type 缺失（在线 model market 等无 type 字段）时回退到启发式
-    val normalizedTags = tags.map { tag -> tag.lowercase(Locale.ROOT) }
-    val normalizedId = id.lowercase(Locale.ROOT)
-    val normalizedName = name.lowercase(Locale.ROOT)
-
-    val hasExcludedSignal = normalizedTags.any { tag ->
-        tag == "asr" || tag == "kws" || tag == "tts" || tag == "audio" ||
-            tag == "audiogen" || tag == "imagegen" || tag.contains("face")
-    } || normalizedId.contains("face") || normalizedId.contains("asr") ||
-        normalizedId.contains("sherpa") || normalizedName.contains("face")
-
-    if (hasExcludedSignal) return false
-
-    val hasLlmTag = normalizedTags.any { tag ->
-        tag == "chat" || tag == "think" || tag == "reasoning" || tag == "llm" || tag == "language"
-    }
-    val hasLlmFile = files.any { file ->
-        val normalizedFile = file.lowercase(Locale.ROOT)
-        normalizedFile.contains("tokenizer") || normalizedFile.contains("llm")
-    }
-    val hasLlmId = normalizedId.contains("qwen") || normalizedId.contains("llm") ||
-        normalizedId.contains("chat") || normalizedId.contains("deepseek") ||
-        normalizedId.contains("mistral") || normalizedId.contains("gemma")
-
-    return hasLlmTag || hasLlmFile || hasLlmId
-}
-
-@Composable
-internal fun AiAgentLocalModelSection(
-    currentLocalModel: String,
-    onLocalModelSelected: (String) -> Unit,
-    onNavigateToModelManager: (String) -> Unit
-) {
-    val context = LocalContext.current
-    val downloadManager = remember { LlmModelDownloadManager(context) }
-    var downloadedModels by remember { mutableStateOf<List<ModelConfig>>(emptyList()) }
-
-    LaunchedEffect(Unit) {
-        downloadedModels = downloadManager.getDownloadedModels()
-            .filter { model -> model.isAiAgentLlmCandidate() }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.ai_agent_local_model),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        if (downloadedModels.isEmpty()) {
-            Text(
-                text = stringResource(R.string.ai_agent_no_local_model),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        } else {
-            val options = downloadedModels.map { it.id to it.name }
-            CompactOptionChips(
-                options = options,
-                currentValue = currentLocalModel,
-                maxLines = 2,
-                onSelected = onLocalModelSelected
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = { onNavigateToModelManager("Chat") })
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = stringResource(R.string.model_center),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = stringResource(R.string.model_center_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.Outlined.CloudDownload,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(22.dp)
-                    .padding(start = 4.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
     }
 }
 

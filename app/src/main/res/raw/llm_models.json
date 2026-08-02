@@ -35,27 +35,6 @@
     "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx"]
   },
   {
-    "id": "qwen3_5_2b",
-    "name": "Qwen3.5-2B-MNN",
-    "description": "阿里通义千问 3.5 2B 多模态版，支持图片理解与推理，适合高端设备本地运行",
-    "type": "LLM",
-    "size": 1386690288,
-    "sources": {
-      "ModelScope": "budaoshou/Qwen3.5-2B-MNN"
-    },
-    "files": [
-      "config.json",
-      "llm_config.json",
-      "llm.mnn",
-      "llm.mnn.json",
-      "llm.mnn.weight",
-      "tokenizer.txt",
-      "visual.mnn",
-      "visual.mnn.weight"
-    ],
-    "tags": ["chat", "reasoning", "multilingual", "vision", "recommended"]
-  },
-  {
     "id": "qwen3_vl_2b",
     "name": "Qwen3-VL-2B-Instruct-MNN",
     "description": "阿里通义千问 Qwen3-VL-2B-Instruct 多模态版（MNN 4bit 量化），Vision-Language 能力更强，作为 Florence-2 的备选打标模型",

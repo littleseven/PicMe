@@ -11,12 +11,8 @@ import com.mamba.picme.agent.core.model.plan.StepResult
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.execution.ExecutionEngine
 import com.mamba.picme.agent.core.runtime.execution.ExecutionReporterImpl
-import com.mamba.picme.agent.core.inference.local.parser.LocalCommandParser
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import com.mamba.tool.ToolExecutionRequest
-import com.mamba.tool.ToolSpecification
 import kotlinx.coroutines.CoroutineScope
-import org.json.JSONObject
 
 /**
  * 能力注册表（唯一注册容器）

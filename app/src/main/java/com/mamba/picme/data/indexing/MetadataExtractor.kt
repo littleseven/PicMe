@@ -50,7 +50,7 @@ class MetadataExtractor(
      * 流程：
      * 1. 标准 ML Kit ChineseTextRecognizer → 正常图片快速产出
      * 2. 若产出极少（< 20 字符，身份证正面 OCR 失败信号）→ IdCardRecognizer 介入
-     *    - Pass 2: Qwen3.5-2B 多模态直接"看"图提取结构化字段（优先）
+     *    - Pass 2: Qwen3-VL-2B 多模态直接"看"图提取结构化字段（优先）
      *    - Pass 3: 图像增强（灰度化+对比度增强）后重试 ML Kit（备用）
      */
     private suspend fun extractOcrWithIdCardFallback(inputImage: InputImage): String? {

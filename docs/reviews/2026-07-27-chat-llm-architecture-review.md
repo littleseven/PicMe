@@ -1,5 +1,7 @@
 # Chat 与 LLM 链路架构 Review 报告
 
+> 注（2026-08-02）：本文「本地模型收缩至相机」决策已进一步演进——端侧文本 LLM 完全移除，相机指令改远程 tool_calls。正文不动，保留历史决策上下文。
+
 - **Review 日期**：2026-07-27
 - **Review 范围**：chat 主入口 + 本地/远程 LLM 推理链路（`:runtime-core` Agent Runtime、`:agent-core` langchain4j 适配层、`:app` chat 层）
 - **代码基线**：`main` @ `eb11897f`（app v1.0.26）

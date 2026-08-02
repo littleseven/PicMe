@@ -16,10 +16,11 @@ import org.json.JSONObject
 /**
  * Tool Calls 命令解析器（远程推理专用）
  *
- * **状态：无生产调用方，仅测试引用，保留为备用解析器。**
+ * 生产调用方：[com.mamba.picme.agent.core.inference.remote.tool.CameraToolService]
+ * （相机远程 tool_calls 链路的 tool_call → AgentCommand 解析）。
  *
  * 将标准 OpenAI tool_calls 格式的 [ToolExecutionRequest] 直接解析为 [AgentCommand]。
- * 不经过 method/params 中间格式，与本地 LLM 的 [LocalCommandParser] 完全隔离。
+ * 不经过 method/params 中间格式（原本地 LLM 的 LocalCommandParser 已随端侧文本链路移除）。
  *
  * 解析逻辑：
  * - tool_calls[i].function.name → 命令类型映射

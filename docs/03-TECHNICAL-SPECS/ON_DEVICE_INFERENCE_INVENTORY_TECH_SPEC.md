@@ -10,7 +10,9 @@
 
 ## 1. 概述
 
-PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14+ 个模型**，覆盖美颜预览、人脸检测、语音识别、关键词唤醒、大语言模型、图像理解、语义搜索、OCR、机器翻译等场景。由于历史演进和实验性质，推理栈呈现**多框架并存、量化程度不一、生命周期耦合、资源竞争复杂**的特点。
+PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**12+ 个模型**，覆盖美颜预览、人脸检测、语音识别、关键词唤醒、VLM 图像打标、语义搜索、OCR、机器翻译等场景。由于历史演进和实验性质，推理栈呈现**多框架并存、量化程度不一、生命周期耦合、资源竞争复杂**的特点。
+
+> **变更说明（2026-08）**：端侧**文本** LLM（Qwen3.5-2B 聊天/指令模型）已移除（`AiAgentMode.LOCAL`、相机本地 Agent 链路全部删除）。相机 AI 指令改走远程 tool_calls。MNN-LLM 运行时现仅承载 **VLM 打标**（Qwen3-VL-2B），不再有文本聊天/指令模型。本文中涉及"本地 LLM"性能瓶颈、INT4 量化等历史内容保留作参考。
 
 本文档按**页面/场景**梳理当前推理引擎、模型、作用及方案，指出运行时性能瓶颈与设计不合理之处；第 10 章对各项优化方案进行系统评估，第 11 章给出 MNN 多模型加载/卸载改造清单。全文为后续模型精简、量化统一、生命周期解耦提供决策依据。
 
@@ -20,8 +22,8 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 
 | 引擎 | 版本/包 | 运行模块 | 主要用途 | 原生库 |
 |------|---------|----------|----------|--------|
-| **MNN** | 3.5.0 | `:runtime-core`、`:beauty-engine` | LLM（Qwen）、人脸 ROI/关键点/Embedding、视觉编码器 | `libMNN.so`、`libMNN_CL.so` |
-| **MNN-LLM** | 内置于 MNN | `:runtime-core` | Qwen3.5-2B/0.8B 多模态 LLM | `libMNN.so` + `libmnn_llm.so` |
+| **MNN** | 3.5.0 | `:runtime-core`、`:beauty-engine` | VLM 打标（Qwen3-VL）、人脸 ROI/关键点/Embedding | `libMNN.so`、`libMNN_CL.so` |
+| **MNN-LLM** | 内置于 MNN | `:runtime-core` | Qwen3-VL-2B VLM 图像打标 | `libMNN.so` + `libmnn_llm.so` |
 | **ONNX Runtime** | 1.24.3 | `:app`、`:runtime-core` | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
 | **Sherpa-ONNX** | 1.13.3 | `:runtime-core` | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
 | **MediaPipe Tasks Vision** | 0.10.26 | `:app`、`:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
@@ -43,7 +45,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 | 人脸检测（备选） | **MNN RetinaFace det_500m** + **2D106 landmark** | ROI + 106 点 | 相机页初始化 | OpenCL GPU 优先 |
 | 语音唤醒词 | **KwakeWordKwsEngine**（Sherpa-ONNX KeywordSpotter） | 检测 "小觅" 等唤醒词 | 相机页常驻监听 | Sherpa-ONNX KWS 已落地；VAD+ASR 方案保留为 KWS 不可用时回退 |
 | 语音指令识别 | **Sherpa-ONNX Zipformer ASR** (INT8) | 唤醒后转录指令 | 唤醒后按需加载 | 与 LLM 分时复用 |
-| Agent 指令执行 | **Remote LLM**（默认）/ **Qwen3.5-2B-MNN**（本地降级） | 解析并执行语音/文字指令 | 跨页面保活 | 默认远程优先策略 |
+| Agent 指令执行 | **Remote LLM**（远程 tool_calls） | 解析并执行语音/文字指令 | 远程推理 | `AgentOrchestrator.processCameraInput` + `CameraToolService` |
 
 **当前方案问题**：
 - 人脸检测双引擎并存（MediaPipe 默认 + MNN 备选），配置较复杂；`FaceDetectorManager` 在 `updatePipelineConfig()` 前返回 `null` 导致静默失败。
@@ -64,7 +66,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 |------|-----------|------|------|
 | 语义搜索 | **MobileCLIP-S2-ONNX** + **OPUS-MT Zh→En** | 图文跨模态相似度匹配 | MobileCLIP 文本/图像编码 512 维 |
 | 人脸聚类 | **Glint360K R100** + DBSCAN | 提取 512 维 face embedding | MNN CPU 推理 |
-| 图像理解 | **Florence-2**（默认）/ **Qwen3-VL-2B-MNN** | 相册三入口同源：预览页描述 / 信息弹框 retag / Pass3 批量 | 由设置 `taggerModelKey` 驱动；`qwen3_5_2b` 已退出图像理解 |
+| 图像理解 | **Florence-2**（默认）/ **Qwen3-VL-2B-MNN** | 相册三入口同源：预览页描述 / 信息弹框 retag / Pass3 批量 | 由设置 `taggerModelKey` 驱动 |
 | 标签/元数据 | **ML Kit Image Labeler**、**ML Kit Text Recognition** | 英文标签、OCR 文字 | 英文标签与 Qwen 中文标签混用 |
 
 ### 3.4 TAG 生成后台任务（TagGenerationService）
@@ -83,34 +85,29 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 
 | 功能 | 引擎/模型 | 作用 | 备注 |
 |------|-----------|------|------|
-| 文字/多模态对话 | **Remote LLM**（默认）/ **Qwen3.5-2B-MNN** | Agent 推理 | `agentMode` 默认 REMOTE |
+| 文字/多模态对话 | **Remote LLM** | Agent 推理（远程 tool_calls） | `agentMode` 默认 REMOTE，本地文本 LLM 已移除 |
 | 语音输入 | **Sherpa-ONNX Zipformer ASR** | 语音转文字 | INT8 量化 |
-| 本地敏感数据处理 | **Qwen3.5-2B-MNN** | `PrivacyGuard` 路由敏感数据本地推理 | 隐私红线 |
 
 ### 3.6 设置页 / ModelCenterScreen
 
 | 功能 | 引擎/模型 | 作用 | 备注 |
 |------|-----------|------|------|
-| 模型下载管理 | 所有上述模型 | 从 ModelScope 下载到 `files/llm_models/{modelId}/` | 按服务功能分类：必须/推荐/聊天/相册打标/美颜相机；推荐项 Wi-Fi 下默认静默预下载（设置可关） |
-| Agent 模式切换 | 远程/本地 LLM | 本地/远程/关闭 | 默认远程优先 |
+| 模型下载管理 | 所有上述模型 | 从 ModelScope 下载到 `files/llm_models/{modelId}/` | 按服务功能分类：必须/推荐/相册打标/美颜相机；推荐项 Wi-Fi 下默认静默预下载（设置可关） |
+| Agent 模式切换 | 远程 LLM | 远程/关闭 | 本地文本 LLM 已移除，仅远程推理 |
 
 ### 3.7 IM 远程控制（飞书）
 
 | 功能 | 引擎/模型 | 作用 | 备注 |
 |------|-----------|------|------|
-| 远程指令处理 | Remote LLM + Qwen3.5-2B-MNN 降级 | 120s 超时处理飞书消息 | 本地模型未加载时自动加载 |
+| 远程指令处理 | Remote LLM | 120s 超时处理飞书消息 | 远程推理，无本地降级 |
 
 ---
 
 ## 4. 模型清单及量化状态
 
-### 4.1 大语言模型（LLM）
+### 4.1 ~~大语言模型（LLM）~~ — 已移除
 
-| 模型 | 引擎 | 大小 | 量化 | 运行时内存 | 用途 |
-|------|------|------|------|------------|------|
-| **Qwen3.5-2B-MNN** | MNN-LLM | 1.32GB (weight ~1.8GB) | **未量化**（FP16/FP32） | ~4.2GB | 默认本地 LLM，聊天/对话（相册图像理解已改走 Florence-2 / Qwen3-VL） |
-
-> 问题：2B 模型未做 INT4 量化，内存占用过大，与相机美颜叠加后易 OOM。
+> **2026-08 变更**：端侧**文本** LLM（Qwen3.5-2B-MNN）已移除。聊天/对话/Agent 指令统一走远程推理。VLM 打标模型（Florence-2、Qwen3-VL-2B）见 [§4.4](#44-图像理解与语义搜索模型)。
 
 ### 4.2 语音模型
 
@@ -139,7 +136,6 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 | **OPUS-MT En→Zh** | ONNX Runtime | 443MB | **INT8 量化** | 英文 summary→中文汉化 labelsZh（必须） |
 | **Florence-2-base** (ONNX) | ONNX Runtime | 260MB | **INT8** | 默认打标 tagger（结构化标签 + summary，必须） |
 | **Qwen3-VL-2B-Instruct** (MNN) | MNN-LLM | 1.4GB | INT4 | 备选打标 tagger（Florence-2 未下载时回退，普通可选） |
-| **Qwen3.5-2B visual encoder** | MNN-LLM | 含于 LLM | 否 | 图像理解视觉编码 |
 
 ### 4.5 其他模型
 
@@ -154,7 +150,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**14
 
 | 模型类别 | 已量化 | 未量化 | 说明 |
 |----------|--------|--------|------|
-| LLM | — | Qwen3.5-2B | 最大内存瓶颈，INT4 量化待实施 |
+| ~~LLM~~ | ~~—~~ | ~~Qwen3.5-2B~~ | ~~—~~ | 已移除；文本 LLM 不再端侧运行（远程推理替代） |
 | ASR/KWS | Sherpa-ONNX ASR、KWS | — | 已 INT8 量化 |
 | 人脸检测/关键点 | — | MNN RetinaFace、2D106 | 模型小，量化收益有限 |
 | 人脸 Embedding | — | Glint360K R100 | 248MB，量化收益有限 |
@@ -197,20 +193,20 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 | 瓶颈 | 现象 | 根因 | 影响 |
 |------|------|------|------|
-| **Qwen3.5-2B 常驻内存** | Native Heap ~3.6-4.2GB | 模型 weight 1.8GB + KV Cache + 激活值 | 与相机美颜（~2GB）叠加后 PSS 达 6.24GB，触发 LMK OOM Kill |
-| **LLM 与 ASR/人脸模型叠加** | 峰值 3.03GB Native | KWS/ASR/LLM/FaceDetect 同时加载 | 仅在 12GB+ 设备安全 |
+| **VLM 打标常驻内存** | Native Heap ~1.5-2.5GB | Qwen3-VL-2B weight 1.4GB + KV Cache + 激活值 | 与相机美颜（~2GB）叠加后 PSS 可达 ~4.5GB（历史文本 LLM Qwen3.5-2B ~4.2GB 已移除） |
+| **VLM 与 ASR/人脸模型叠加** | 峰值 ~2GB Native | KWS/ASR/VLM/FaceDetect 同时加载 | 仅在 12GB+ 设备安全 |
 | **Swap PSS 暴涨** | 2.33GB Swap | 内存压力触发系统换页 | 渲染卡顿、发热 |
-| **CameraX ImageReader 缓冲** | Native Heap 1.72GB 基线 | 1280×720 多帧缓冲 + GPU 纹理 | 即使无 LLM 也占用偏高 |
+| **CameraX ImageReader 缓冲** | Native Heap 1.72GB 基线 | 1280×720 多帧缓冲 + GPU 纹理 | 即使无模型也占用偏高 |
 
-> 实测：`06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md`（历史文件名，含 NCNN 基线）显示，开启本地 LLM 后 Native Heap 从 1.72GB → 3.61GB，Swap 从 54MB → 2.33GB，Janky frames 从 0.89% → 18.42%。
+> 历史参考：`06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md`（历史文件名，含 NCNN 基线）记录了文本 LLM 时期的数据：开启本地 LLM 后 Native Heap 从 1.72GB → 3.61GB，Swap 从 54MB → 2.33GB，Janky frames 从 0.89% → 18.42%。文本 LLM 移除后此瓶颈已解除。
 
 ### 5.2 计算瓶颈（P1）
 
 | 瓶颈 | 现象 | 根因 | 影响 |
 |------|------|------|------|
-| **LLM 单线程串行** | 所有 load/generate/unload 排队 | `PoLang-LLM-Model-Thread` + `engineMutex` | 长生成阻塞模型切换和 Tag 管道 |
-| **MNN 全局释放锁** | create/destroy/reset 串行 | `MnnGlobalReleaseLock` 保护 MNN 全局状态 | LLM/人脸检测互相阻塞 |
-| **TAG Pass 3 Qwen 推理** | 2-8s/张 | CPU 解码 128 tokens ≈ 3.8s | 9000 张全量扫描约 13 小时 |
+| **VLM 单线程串行** | 所有 load/generate/unload 排队 | `PoLang-LLM-Model-Thread` + `engineMutex` | 长生成阻塞模型切换和 Tag 管道 |
+| **MNN 全局释放锁** | create/destroy/reset 串行 | `MnnGlobalReleaseLock` 保护 MNN 全局状态 | VLM 打标/人脸检测互相阻塞 |
+| **TAG Pass 3 VLM 推理** | 2-8s/张 | CPU 解码 128 tokens ≈ 3.8s | 9000 张全量扫描约 13 小时 |
 | **MediaPipe 主线程初始化** | 首帧延迟 | `Dispatchers.Main` 强制初始化 | 启动时掉帧 |
 
 ### 5.3 渲染瓶颈（P1）
@@ -240,16 +236,16 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
    - 示例：`app/build.gradle.kts` 需要 `pickFirsts` 解决 `libonnxruntime.so` 冲突；`MNN-source/`  vendored 但未作为运行时依赖。
 
 2. **MNN 全局状态耦合**
-   - LLM、ASR（旧 Sherpa-MNN）、人脸检测（MNN 路径）共享 `libMNN.so`，被迫引入 `MnnGlobalReleaseLock` 和 `MnnResourceManager` 复杂引用计数。
-   - 即使 KWS/ASR 已迁移到 Sherpa-ONNX，MNN 仍被人脸检测和 LLM 共享，释放顺序和线程安全仍是隐患。
+   - VLM 打标（Qwen3-VL-2B）与人脸检测（MNN 路径）共享 `libMNN.so`，被迫引入 `MnnGlobalReleaseLock` 和 `MnnResourceManager` 复杂引用计数。
+   - KWS/ASR 已迁移到 Sherpa-ONNX，MNN 仍被 VLM 打标和人脸检测共享，释放顺序和线程安全仍是隐患。
 
-3. **LLM 单例与多入口加载责任分散**
+3. **VLM 单例与多入口加载责任分散**
    - ~~8 处 `loadModel()` 调用点自行处理加载检查~~ 已统一封装到 `AgentOrchestrator.ensureModelLoaded()` / `withModelLoaded()`，所有 `imageInference()` / `generate()` / `chat()` 入口均走统一加载检查，消除遗漏风险。
 
 ### 6.2 模型层问题
 
-4. **LLM 未量化**
-   - Qwen3.5-2B 为 FP16/FP32，weight 1.8GB，运行时 ~4.2GB。INT4 量化可减少 65% 内存到 ~600MB/1.5GB，已规划但未实施。
+4. **~~文本 LLM 未量化~~ — 已移除**
+   - 端侧文本 LLM（Qwen3.5-2B）已于 2026-08 移除。VLM 打标模型（Qwen3-VL-2B）已是 INT4 量化（1.4GB），Florence-2 已是 INT8（~260MB）。文本 LLM 时期 4.2GB 内存瓶颈不再存在。
 
 5. **MobileCLIP fp16 不稳定**
    - ModelScope 远程仅提供 fp16，但 fp16 在 ONNX Runtime Android CPU 上产生 NaN/Inf，被迫使用 fp32，模型增大且推理速度下降。
@@ -258,30 +254,30 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
    - Det10G 与 Det500M 同时存在；Det10G 已非默认，但仍作为可选模型保留，增加模型中心复杂度和下载体积。
 
 7. **量化策略不统一**
-   - 只有 ASR/KWS 和 OPUS-MT 明确 INT8；LLM、人脸、MobileCLIP 均未量化或无法量化，难以建立统一的性能/精度权衡策略。
+   - 只有 ASR/KWS、OPUS-MT 和 VLM/Florence-2 明确量化（INT8/INT4）；人脸、MobileCLIP 未量化或无法量化，难以建立统一的性能/精度权衡策略。
 
 ### 6.3 运行时问题
 
 8. **GPU 失败无 CPU 降级**
    - `MnnRoiDetector` 写死 `requireGpu=true`，OpenCL 初始化失败时检测器为 `null`，导致整帧无人脸。
-   - Qwen 视觉编码器虽有 `OpenClGuardian` CPU 降级，但人脸检测缺少等价机制。
+   - VLM 视觉编码器虽有 `OpenClGuardian` CPU 降级，但人脸检测缺少等价机制。
 
 9. **TAG 扫描物理瓶颈**
-   - Pass 3 Qwen 2-8s/张是物理上限，9000 张需 13 小时。当前优化（移除 Pass 1 节流、maxTokens=64、OpenCL GPU、照片去重）理论上可压缩到 2-3 小时，但去重等方案尚未落地。
+   - Pass 3 VLM 2-8s/张是物理上限，9000 张需 13 小时。当前优化（移除 Pass 1 节流、maxTokens=64、OpenCL GPU、照片去重）理论上可压缩到 2-3 小时，但去重等方案尚未落地。
 
 10. **线程过度串行化**
-    - LLM `engineMutex` + `MnnGlobalReleaseLock` 双重串行，牺牲了本可并行的能力（如 MobileCLIP 与 Qwen 不共享 GPU，本可并发）。
+    - VLM `engineMutex` + `MnnGlobalReleaseLock` 双重串行，牺牲了本可并行的能力（如 MobileCLIP 与 VLM 不共享 GPU，本可并发）。
 
 11. **Native 内存阈值固定**
-    - `MnnResourceManager` 使用固定阈值（2GB/2.56GB/3.07GB）触发 trim/unload，未按设备 RAM 分级，低端机可能太晚，高端机可能过早。
+    - `MnnResourceManager` 使用固定阈值触发 trim/unload，未按设备 RAM 分级，低端机可能太晚，高端机可能过早。
 
 ### 6.4 工程层问题
 
-12. **模型 ID 不一致（已修复）**
-    - `ModelPathConfig.MODEL_ID_LLM` 已统一为 `"qwen3_5_2b"`，`MODEL_ID_ASR` 已统一为 `"sherpa-onnx-zipformer-zh-en"`，与 `LlmModelManager` 注册表及 `llm_models.json` 保持一致。
+12. **模型 ID 不一致（已修复 / 端侧文本 LLM 已移除）**
+    - `MODEL_ID_ASR` 已统一为 `"sherpa-onnx-zipformer-zh-en"`，与 `LlmModelManager` 注册表及 `llm_models.json` 保持一致。历史 `MODEL_ID_LLM = "qwen3_5_2b"` 对应的端侧文本 LLM 已于 2026-08 移除；VLM 打标使用 `"qwen3_vl_2b"` / `"florence2_base"` 模型 ID。
 
-13. **ML Kit 英文标签与 Qwen 中文标签混用**
-    - `MetadataExtractor` 输出英文标签（如 "Outdoor"），Qwen 输出中文标签（如 "户外"），`LIKE` 搜索无法跨语言命中，依赖 LLM Agent 做同义词扩展。
+13. **ML Kit 英文标签与 VLM 中文标签混用**
+    - `MetadataExtractor` 输出英文标签（如 "Outdoor"），VLM tagger 输出中文标签（如 "户外"），`LIKE` 搜索无法跨语言命中，依赖 LLM Agent 做同义词扩展。
 
 14. **WakeWord 当前方案低效（已部分解决）**
     - KWS 已迁移到 Sherpa-ONNX KeywordSpotter（~14MB INT8），相机页默认启用低功耗唤醒；原 VAD+ASR 方案仅在 KWS 模型不可用时回退。
@@ -294,8 +290,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 | 优化项 | 收益 | 优先级 |
 |--------|------|--------|
-| Qwen3.5-2B INT4 量化 | 内存 4.2GB → ~1.5GB | P0 |
-| 相机页默认不加载 LLM | 避免 OOM | P0 |
+| ~~Qwen3.5-2B INT4 量化~~ | ~~内存 4.2GB → ~1.5GB~~ | 已移除（文本 LLM 不再端侧运行） |
+| ~~相机页默认不加载 LLM~~ | ~~避免 OOM~~ | 已移除（相机改走远程 tool_calls，无本地文本 LLM） |
 | 人脸检测 GPU 失败 CPU 降级 | 提升兼容性 | P0 |
 | 统一封装 `AgentOrchestrator.ensureModelLoaded()` | 避免遗漏加载 | P1 |
 
@@ -304,7 +300,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 | 优化项 | 收益 | 优先级 |
 |--------|------|--------|
 | ~~完成 Sherpa-ONNX KWS 迁移~~ | 唤醒功耗 ↓ 80%，延迟 ↓ 60% | 已完成 |
-| TAG Pass 3 照片去重（dHash） | 减少 30-50% Qwen 调用 | P1 |
+| TAG Pass 3 照片去重（dHash） | 减少 30-50% VLM 调用 | P1 |
 | TAG Bitmap 复用 | 减少二次解码 | P1 |
 | MobileCLIP 向量量化/PQ 或 HNSW | 大图库搜索加速 | P2 |
 
@@ -313,7 +309,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 | 优化项 | 收益 | 优先级 |
 |--------|------|--------|
 | 评估统一推理框架（MNN 或 ONNX Runtime） | 降低多框架维护成本 | P2 |
-| 模型动态加载/卸载 + 设备分级 | 低端机用远程/小模型 | P2 |
+| 模型动态加载/卸载 + 设备分级 | 低端机用远程推理 | P2 |
 | 人脸模型 INT8 量化评估 | 进一步降低人脸链路内存 | P3 |
 | PBO 异步 GPU readback | 拍照保存加速 | P3 |
 
@@ -328,9 +324,9 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 | 快门延迟 | < 50ms | GPU 路径达标 | ✅ |
 | TAG Pass 1 人脸 ROI | ~30-80ms | 已达成 | ✅ |
 | TAG Pass 1.5 MobileCLIP | ~50-100ms | 已达成 | ✅ |
-| TAG Pass 3 Qwen | ~2-8s | 物理瓶颈 | ⚠️ |
-| 本地 LLM 运行时内存 | < 2GB | ~4.2GB (2B FP16) | ❌ |
-| 相机+LLM 共存 | 不 OOM | 高性能手机也被 LMK Kill | ❌ |
+| TAG Pass 3 VLM | ~2-8s | 物理瓶颈 | ⚠️ |
+| ~~本地 LLM 运行时内存~~ | ~~< 2GB~~ | ~4.2GB (2B FP16) | 已移除（文本 LLM 不再端侧运行） |
+| ~~相机+LLM 共存~~ | ~~不 OOM~~ | ~~高性能手机也被 LMK Kill~~ | 已移除 |
 | ASR 唤醒延迟 | < 100ms (KWS) | ~50ms (Sherpa-ONNX KWS) | ✅ |
 
 ---
@@ -339,8 +335,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` — 大美丽美颜引擎
 - `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` — 人脸检测三引擎架构
-- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — MNN-LLM 性能优化
-- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — LLM 单例与加载点
+- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — VLM 打标引擎性能优化
+- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — VLM 单例与加载点
 - `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — MNN 资源管理
 - 「[11. MNN 多模型加载/卸载改造清单](#11-mnn-多模型加载卸载改造清单)」 — 多模型生命周期改造
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 生成 5-Pass 管道
@@ -382,33 +378,40 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 | 优化项 | 阶段 | 收益 | 成本 | 风险 | 优先级 | 推荐顺序 |
 |--------|------|------|------|------|--------|----------|
-| Qwen3.5-2B INT4/INT8 量化 | 短期 | ⭐⭐⭐⭐⭐ | 中 | 中 | **P0** | 1 |
-| 相机页默认不加载 LLM | 短期 | ⭐⭐⭐⭐⭐ | 低 | 低 | **P0** | 2 |
-| 人脸检测 GPU 失败 CPU 降级 | 短期 | ⭐⭐⭐ | 低 | 低 | **P0** | 3 |
-| 统一封装 `ensureModelLoaded()` | 短期 | ⭐⭐ | 低 | 低 | **P1** | 4 |
-| Sherpa-ONNX KWS 迁移 | 中期 | ⭐⭐⭐⭐⭐ | 中 | 中 | **P0** | 5 |
-| TAG Pass 3 照片去重（dHash） | 中期 | ⭐⭐⭐⭐ | 中 | 低 | **P1** | 6 |
-| TAG Bitmap 复用 | 中期 | ⭐⭐ | 低 | 低 | **P2** | 8 |
-| MobileCLIP 向量量化/PQ/HNSW | 中期 | ⭐⭐⭐ | 高 | 中 | **P2** | 7 |
-| 统一推理框架评估 | 长期 | ⭐⭐⭐ | 高 | 高 | **P2** | 9 |
-| 模型动态加载/卸载 + 设备分级 | 长期 | ⭐⭐⭐⭐ | 中 | 中 | **P1** | 10 |
-| 人脸模型 INT8 量化评估 | 长期 | ⭐⭐ | 中 | 中 | **P3** | 11 |
-| PBO 异步 GPU readback | 长期 | ⭐⭐ | 中 | 低 | **P2** | 12 |
+| ~~Qwen3.5-2B INT4/INT8 量化~~ | ~~短期~~ | ~~⭐⭐⭐⭐⭐~~ | ~~中~~ | ~~中~~ | ~~已移除~~ | — |
+| ~~相机页默认不加载 LLM~~ | ~~短期~~ | ~~⭐⭐⭐⭐⭐~~ | ~~低~~ | ~~低~~ | ~~已移除~~ | — |
+| 人脸检测 GPU 失败 CPU 降级 | 短期 | ⭐⭐⭐ | 低 | 低 | **P0** | 1 |
+| 统一封装 `ensureModelLoaded()` | 短期 | ⭐⭐ | 低 | 低 | **P1** | 2 |
+| Sherpa-ONNX KWS 迁移 | 中期 | ⭐⭐⭐⭐⭐ | 中 | 中 | **P0** | 3 |
+| TAG Pass 3 照片去重（dHash） | 中期 | ⭐⭐⭐⭐ | 中 | 低 | **P1** | 4 |
+| TAG Bitmap 复用 | 中期 | ⭐⭐ | 低 | 低 | **P2** | 6 |
+| MobileCLIP 向量量化/PQ/HNSW | 中期 | ⭐⭐⭐ | 高 | 中 | **P2** | 5 |
+| 统一推理框架评估 | 长期 | ⭐⭐⭐ | 高 | 高 | **P2** | 7 |
+| 模型动态加载/卸载 + 设备分级 | 长期 | ⭐⭐⭐⭐ | 中 | 中 | **P1** | 8 |
+| 人脸模型 INT8 量化评估 | 长期 | ⭐⭐ | 中 | 中 | **P3** | 9 |
+| PBO 异步 GPU readback | 长期 | ⭐⭐ | 中 | 低 | **P2** | 10 |
 
 ---
 
 ## 10.3. 短期优化方案评估（1-2 周）
 
-### 10.3.1 Qwen3.5-2B INT4/INT8 量化
+### 10.3.1 ~~Qwen3.5-2B INT4/INT8 量化~~ — 已移除
 
-**背景**
-- 当前 Qwen3.5-2B 为 FP16/FP32，weight ~1.8GB，运行时 ~4.2GB
-- 实测：相机预览 + 本地 LLM 时 Native Heap 3.61GB，总 PSS 6.24GB，触发 LMK OOM Kill
+> **2026-08 变更**：端侧文本 LLM（Qwen3.5-2B）已移除。文本聊天/Agent 指令统一走远程推理。以下为历史评估，保留作参考。
+
+**历史背景**
+- 原 Qwen3.5-2B 为 FP16/FP32，weight ~1.8GB，运行时 ~4.2GB
+- 原实测：相机预览 + 本地 LLM 时 Native Heap 3.61GB，总 PSS 6.24GB，触发 LMK OOM Kill
+
+**移除后的影响**
+- 不再需要本地文本 LLM 量化，内存瓶颈已解除
+- VLM 打标使用 Qwen3-VL-2B（已是 INT4，1.4GB），内存占用远低于历史文本 LLM
+- 相机页 AI 指令改走远程 tool_calls，无本地模型内存开销
 
 **收益评估**
 
-| 指标 | 当前 | INT4 目标 | INT8 目标 |
-|------|------|-----------|-----------|
+| 指标 | 历史 (FP16) | INT4 目标 | INT8 目标 |
+|------|------------|-----------|-----------|
 | 模型文件 | 1.32GB | ~450-600MB | ~900MB |
 | 运行时内存 | ~4.2GB | ~1.5GB | ~2.5GB |
 | 相机+LLM 共存 | OOM | 8GB 设备可稳定运行 | 8GB 设备临界 |
@@ -441,47 +444,28 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - [ ] 图像理解/Agent 指令准确率相对 FP16 下降 ≤ 5%
 - [ ] 首 token 延迟、总生成延迟不劣于 FP16 10%
 
-**结论**: **P0，立即实施**。这是解决当前 OOM 和发热的最高收益单点。
+**结论**: ~~P0，立即实施~~。已移除——文本 LLM 不再端侧运行。
 
 ---
 
-### 10.3.2 相机页默认不加载 LLM
+### 10.3.2 ~~相机页默认不加载 LLM~~ — 已移除
 
-**背景**
-- 当前 LLM 跨页面保活，相机页也会持有 LLM 引用。
-- 实测：仅相机预览（无 LLM）Native Heap 1.72GB；+LLM 后 3.61GB，直接 OOM。
+> **2026-08 变更**：端侧文本 LLM 已移除，相机 AI 指令改走远程 tool_calls（`AgentOrchestrator.processCameraInput` + `CameraToolService`）。以下为历史评估，保留作参考。
 
-**收益评估**
-- 内存释放：~2.5-3GB
-- 避免相机场景 OOM Kill
-- 发热下降：GPU/CPU 温度可回落 5-10°C
-- 对体验影响：相机页 Agent 入口触发时需异步加载 LLM（~2s 冷启动）
+**历史背景**
+- 原 LLM 跨页面保活，相机页也会持有 LLM 引用。
+- 原实测：仅相机预览（无 LLM）Native Heap 1.72GB；+LLM 后 3.61GB，直接 OOM。
 
-**技术可行性**
-- 高。`MnnResourceManager` 已支持引用计数和场景策略，只需调整 `AgentOrchestrator.applySceneDrivenModelPolicy`：
-  - 进入 `CameraScene` 时调用 `localLlmEngine.trimMemory()` 或 `unloadModel()`
-  - 离开相机页后恢复 LLM 到 WARM 状态（可选）
-- 需注意：IM 远程控制、语音指令若触发 LLM 需在相机页做异步加载 UI。
+**移除后的影响**
+- 相机页不再有本地文本 LLM，内存瓶颈自动解除
+- 相机 AI 指令走远程推理，无本地模型冷启动延迟
 
-**成本**
-- 策略调整：0.5 天
-- 异步加载 UI：0.5 天
-- 回归测试：1 天
-- **总计**: 2 天
+**历史评估**
+- 原收益：内存释放 ~2.5-3GB，避免 OOM，发热下降 5-10°C
+- 原成本：2 天（策略调整 + 异步加载 UI + 回归测试）
+- 原结论：P0，零风险高收益
 
-**风险**
-- 低。主要风险是相机页语音命令触发 LLM 时有 1-2s 延迟，可通过加载态提示缓解。
-
-**依赖**
-- 依赖 `MnnResourceManager` 的 `ReleaseLevel` 和场景策略已稳定运行
-- 需 IM 远程控制链路适配异步加载
-
-**验收指标**
-- [ ] 进入相机页后 Native Heap ≤ 2GB
-- [ ] 相机页 5 分钟连续预览不 OOM
-- [ ] 相机页触发 Agent 语音指令时显示 "Agent 启动中" 并在 3s 内响应
-
-**结论**: **P0，立即实施**。零风险、高收益，与量化方案互补。
+**结论**: ~~P0，立即实施~~。已移除——相机页不再有本地文本 LLM。
 
 ---
 
@@ -525,7 +509,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ### 10.3.4 统一封装 `AgentOrchestrator.ensureModelLoaded()`
 
 **背景**
-- 8 处 `loadModel()` 调用点分散在 `ChatViewModel`、`AiAgentUseCase`、`TagGenerationScheduler`、`OpenClGuardian`、`ImageTagIndexingWorker`、`MediaPager` 等。
+- 历史上 8 处 `loadModel()` 调用点分散在 `ChatViewModel`、`AiAgentUseCase`、`TagGenerationScheduler`、`OpenClGuardian`、`ImageTagIndexingWorker`、`MediaPager` 等（文本 LLM 已移除，`ChatViewModel` 入口已删除）。
 - 历史上 `MediaPager` 因未加载直接调用 `imageInference()` 导致空结果。
 
 **收益评估**
@@ -621,19 +605,19 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - [ ] ASR 转录字符准确率 ≥ 95%（相对当前 MNN ASR）
 - [ ] 多次 KWS→ASR→LLM 循环无内存泄漏
 
-**结论**: **P0**。唤醒体验质变，且是解除 LLM/ASR/Face 耦合的关键一步。
+**结论**: **P0**。唤醒体验质变，且是解除 VLM/ASR/Face 耦合的关键一步。
 
 ---
 
 ### 10.4.2 TAG Pass 3 照片去重（dHash）
 
 **背景**
-- Qwen 图像理解 2-8s/张，是 TAG 扫描的物理瓶颈。
+- VLM 图像理解 2-8s/张，是 TAG 扫描的物理瓶颈。
 - 连拍、截图、相似照片可能占 30-50%，标签可复用。
 
 **收益评估**
 - 假设 40% 重复，Pass 3 总耗时从 11.25 小时 → 6.75 小时，节省 4.5 小时（9000 张）。
-- 减少 Qwen GPU/CPU 占用，降低发热和耗电。
+- 减少 VLM GPU/CPU 占用，降低发热和耗电。
 
 **技术可行性**
 - 高。方案已明确：
@@ -656,7 +640,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - 需要 `media_assets` 表 schema 变更
 
 **验收指标**
-- [ ] 9000 张中 30-40% 跳过 Qwen 推理
+- [ ] 9000 张中 30-40% 跳过 VLM 推理
 - [ ] 误判率（不同照片复用标签）< 1%
 - [ ] 全量扫描总耗时下降 ≥ 30%
 
@@ -676,7 +660,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 **技术可行性**
 - 中。Pass 1 与 Pass 3 当前在不同调度阶段执行，Bitmap 生命周期管理需要改造：
   - 方案 A：Pass 1 生成 640px Bitmap，Pass 3 复用时缩放至 512px
-  - 方案 B：统一加载 640px，Qwen 内部 `preprocessBitmap` 自动缩放到 420px
+  - 方案 B：统一加载 640px，VLM 内部 `preprocessBitmap` 自动缩放到 420px
 - 需注意内存峰值：同时缓存 Bitmap 会增加瞬时内存。
 
 **成本**
@@ -757,8 +741,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 | 方案 | 优势 | 劣势 | 适用模型 |
 |------|------|------|----------|
-| **全部迁移到 MNN** | 统一 `libMNN.so`、团队已有经验、Qwen/VL 原生支持好 | 对 ONNX 模型支持弱、KWS/ASR 需重新适配 | LLM、人脸、MobileCLIP |
-| **全部迁移到 ONNX Runtime** | 统一 ONNX 生态、ASR/KWS/CLIP/翻译原生支持 | LLM 大模型 ONNX 部署复杂、端侧经验少 | ASR/KWS、CLIP、翻译、人脸 |
+| **全部迁移到 MNN** | 统一 `libMNN.so`、团队已有经验、VLM 原生支持好 | 对 ONNX 模型支持弱、KWS/ASR 需重新适配 | VLM 打标、人脸、MobileCLIP |
+| **全部迁移到 ONNX Runtime** | 统一 ONNX 生态、ASR/KWS/CLIP/翻译原生支持 | VLM 大模型 ONNX 部署复杂、端侧经验少 | ASR/KWS、CLIP、翻译、人脸 |
 | **保持现状，分层收敛** | 风险低、按模型特点选择最优后端 | 维护成本高、多框架冲突 | 当前策略 |
 
 **收益评估**
@@ -777,7 +761,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - 某些模型在目标框架上可能无最优后端（如 MNN 对 ONNX CLIP 支持）。
 
 **依赖**
-- 需要先完成 KWS 迁移和 LLM 量化，明确未来框架边界
+- 需要先完成 KWS 迁移和 VLM 打标模型定型，明确未来框架边界
 
 **验收指标**
 - [ ] 推理框架数量从 6 个收敛到 2-3 个
@@ -791,12 +775,12 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ### 10.5.2 模型动态加载/卸载 + 设备分级
 
 **背景**
-- 当前 LLM 跨页面保活，低端设备 OOM；高端设备又可能浪费内存。
+- VLM 打标模型常驻内存（Qwen3-VL-2B ~1.5-2.5GB），低端设备可能吃紧；高端设备浪费。
 
 **收益评估**
-- 低端设备使用远程 LLM，避免本地 OOM
-- 中端设备按需加载 0.8B 小模型
-- 高端设备使用 2B 模型并保活
+- 低端设备使用远程推理，避免本地 VLM OOM
+- 中端设备按需加载/卸载 VLM 打标模型
+- 高端设备使用 VLM 打标模型并保活
 - 相机页、后台等场景自动卸载非必需模型
 
 **技术可行性**
@@ -818,15 +802,15 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 **依赖**
 - 完成 `MnnResourceManager` P0 改造
-- 远程 LLM 链路稳定
+- 远程推理链路稳定
 
 **验收指标**
-- [ ] 低端设备（4GB RAM）不触发本地 LLM OOM
-- [ ] 中端设备默认使用 0.8B 模型
-- [ ] 高端设备默认使用 2B 模型
-- [ ] 任意页面触发 Agent 时，WARM 状态恢复 < 500ms
+- [ ] 低端设备（4GB RAM）不触发本地 VLM OOM
+- [ ] 中端设备 VLM 打标按需加载
+- [ ] 高端设备 VLM 打标模型可保活
+- [ ] 任意页面触发 TAG 打标时，WARM 状态恢复 < 500ms
 
-**结论**: **P1**。与量化、KWS 迁移共同构成端侧可用性的三支柱，建议在 P0 完成后 1 月内实施。
+**结论**: **P1**。与 KWS 迁移共同构成端侧可用性的支柱，建议在 P0 完成后 1 月内实施。
 
 ---
 
@@ -902,12 +886,12 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 ### 第一阶段（0-2 周）：止血与红线
 
-1. **Qwen3.5-2B INT4/INT8 量化**（P0）
-2. **相机页默认不加载 LLM**（P0）
+1. ~~**Qwen3.5-2B INT4/INT8 量化**（P0）~~ — 已移除
+2. ~~**相机页默认不加载 LLM**（P0）~~ — 已移除
 3. **人脸检测 GPU 失败 CPU 降级**（P0）
 4. **统一封装 `ensureModelLoaded()`**（P1，穿插实施）
 
-**阶段目标**: 解决 OOM、发热、兼容性问题，使本地 LLM 在相机页可共存。
+**阶段目标**: 解决兼容性问题，确保 VLM 打标和人脸检测稳定运行。
 
 ### 第二阶段（2-6 周）：体验质变
 
@@ -937,23 +921,20 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 ## 10.7. 关键决策建议
 
-### 10.7.1 LLM 量化：优先 INT4 权重，准备 INT8 回退
+### 10.7.1 ~~LLM 量化：优先 INT4 权重~~ — 已移除
 
-不要一步到位 W4A4。建议：
-- 主路径：`mnnconvert --weightQuantBits 4` 生成 INT4 权重 + FP16/INT8 激活
-- 回退路径：INT8 权重
-- 验收以中文图像理解和 Agent 指令准确率为准，不只看 benchmark
+> 端侧文本 LLM（Qwen3.5-2B）已于 2026-08 移除。VLM 打标使用 Qwen3-VL-2B（INT4 量化，1.4GB），不存在量化优化需求。
 
 ### 10.7.2 KWS 迁移优先于 ASR 优化
 
 当前 ASR 唤醒方案是功耗和延迟的最大短板。迁移到 Sherpa-ONNX KWS 后：
 - 待机内存从 282MB → 14MB
 - 唤醒延迟从 800ms → <100ms
-- 同时解除 LLM/ASR/Face 的 MNN 耦合
+- 同时解除 VLM/ASR/Face 的 MNN 耦合
 
-### 10.7.3 TAG 扫描优化：先"让 Qwen 少跑"，再"让 Qwen 跑得快"
+### 10.7.3 TAG 扫描优化：先"让 VLM 少跑"，再"让 VLM 跑得快"
 
-- 照片去重（dHash）可减少 30-40% Qwen 调用，收益最大
+- 照片去重（dHash）可减少 30-40% VLM 调用，收益最大
 - maxTokens=64、OpenCL GPU 已在前期文档中建议，应同步落地
 - Bitmap 复用是边际收益，优先级靠后
 
@@ -967,7 +948,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 当前多框架并存是历史债，但迁移风险高。建议：
 - 先完成 KWS 迁移（解除 MNN 耦合）
-- 再完成 LLM 量化（明确 MNN 是否继续承载 LLM）
+- VLM 打标模型已定型（Qwen3-VL-2B INT4），明确 MNN 继续承载 VLM
 - 最后评估是否将人脸/CLIP 统一到单一框架
 
 ---
@@ -976,9 +957,9 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 以下任一情况未通过，不应进入下一阶段：
 
-- [ ] 量化后中文图像理解准确率下降 > 5%
+- [ ] ~~量化后中文图像理解准确率下降 > 5%~~ （文本 LLM 已移除）
 - [ ] KWS 迁移后误触发率 > 1次/小时
-- [ ] 相机页 + 本地 LLM 仍触发 OOM
+- [ ] ~~相机页 + 本地 LLM 仍触发 OOM~~ （文本 LLM 已移除）
 - [ ] 人脸检测 CPU 降级路径导致 ANR 或崩溃率上升
 - [ ] 统一框架迁移导致任一核心功能不可用
 
@@ -987,7 +968,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ## 10.9. 相关文档
 
 - `docs/03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md` — 推理引擎与模型全景梳理
-- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — MNN-LLM 性能优化
+- `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — VLM 打标引擎性能优化
 - `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` — KWS 唤醒词迁移
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 性能瓶颈分析
 - `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` — 相册自然语言搜索（含 MobileCLIP 语义召回）
@@ -1010,7 +991,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - `Session`（推理数据持有）
   - 分级释放：`releaseSession` / `releaseModel` / `destroy`
 - 让 LLM / ASR / 人脸检测支持**独立加载、独立卸载、互不干扰**。
-- **Agent First 架构**：LLM 是应用驱动核心（相机/相册/设置/聊天等多页面均有 Agent 入口），LLM 生命周期策略必须与人脸/ASR 差异化——跨页面常驻，非页面级绑定。
+- **Agent First 架构**：VLM 打标是 TAG 生成核心能力，VLM 生命周期策略必须与人脸/ASR 差异化——跨页面常驻，非页面级绑定。
 - 在场景切换与内存压力下，行为可预测、可观测、可回归测试。
 
 ---
@@ -1022,7 +1003,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 3. `LocalLlmEngine` / `SherpaMnnAsrEngine` 注册了资源监听，但缺少明确反注册生命周期，存在监听器累积风险。
 4. `OnlineRecognizer` / `OnlineStream` 采用 `finalize()` 触发释放，不符合现代资源管理最佳实践。
 5. 缺少统一"释放等级"抽象（软释放/会话释放/彻底释放），模块间语义不一致。
-6. **LLM 与 Face/ASR 混用同一卸载策略**：当前未区分模型使用模式——LLM 需要跨页面常驻（Agent 多入口），但现有逻辑可能跟随页面切换误卸载 LLM，导致 Agent 响应延迟（冷启动 2s+）且增加功耗（反复加载）。
+6. **VLM 与 Face/ASR 混用同一卸载策略**：当前未区分模型使用模式——VLM 打标需要跨页面常驻（TAG 多入口），但现有逻辑可能跟随页面切换误卸载 VLM，导致 TAG 重新加载冷启动 2s+ 且增加功耗（反复加载）。
 
 ---
 
@@ -1085,12 +1066,12 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 | 模型 | 使用模式 | 作用域 | 卸载触发条件 | 保活等级 |
 |------|----------|--------|-------------|----------|
-| **LLM** (Qwen3-1.7B) | 跨页面常驻，Agent 驱动核心 | 全局（相机/相册/设置/聊天） | 仅内存压力 | **跨页面保活**，页面切换不触发卸载 |
+| **VLM** (Qwen3-VL-2B) | 跨页面常驻，TAG 打标核心 | 全局（相册/TAG 后台） | 仅内存压力 | **跨页面保活**，页面切换不触发卸载 |
 | **ASR** (Sherpa) | 按需激活，语音场景独占 | 语音交互开启期间 | 语音关闭 + 冷却计时 | 页面级，语音关闭后延迟释放 |
 | **Face** (ROI+Landmark) | 场景绑定，相机页独占 | 相机预览期间 | 离开相机页 + 冷却计时 | 页面级，离开即触发卸载 |
 
 **核心规则**：
-- `MnnResourceManager.onSceneChanged()` 必须区分模型类型：**LLM 永远不响应场景切换**，仅响应内存压力。
+- `MnnResourceManager.onSceneChanged()` 必须区分模型类型：**VLM 永远不响应场景切换**，仅响应内存压力。
 - Face 离开相机页即卸载（保留 P0-1 行为）。
 - ASR 语音关闭后延迟释放（冷却时间防止频繁切换）。
 
@@ -1124,11 +1105,11 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - **收益**
   - 显著降低二次冷启动耗时。
 
-### P1-4 LLM 跨页面保活策略（Agent First 核心）
+### P1-4 VLM 跨页面保活策略（TAG 打标核心）
 - **改造点**
-  - `MnnResourceManager.onSceneChanged()` 增加模型类型判断：LLM 跳过场景卸载逻辑，仅响应内存压力。
+  - `MnnResourceManager.onSceneChanged()` 增加模型类型判断：VLM 跳过场景卸载逻辑，仅响应内存压力。
   - 引入 `ModelUsagePattern` 枚举（`CROSS_PAGE_PERSISTENT` / `PAGE_SCOPED` / `SESSION_SCOPED`），各模型注册时声明。
-  - LLM 保活等级定义：
+  - VLM 保活等级定义：
     - **HOT**：模型 + Session 全就绪，首 Token 延迟 < 100ms（高功耗 ~800MB+ native）
     - **WARM**：仅保留模型（Interpreter），无 Session，首 Token 延迟 ~500ms（中功耗 ~600MB）
     - **COLD**：模型未加载，首 Token 延迟 ~2s（低功耗 ~0MB native 额外占用）
@@ -1137,8 +1118,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
   - `runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/AgentModels.kt`（新增 `ModelUsagePattern`）
 - **验收标准**
-  - 相机 → 相册 → 设置 → 聊天，LLM 全程保持 WARM+，不触发 FULL 卸载。
-  - Face 离开相机页后正常卸载（不受 LLM 策略影响）。
+  - 相机 → 相册 → 设置 → TAG 后台，VLM 全程保持 WARM+，不触发 FULL 卸载。
+  - Face 离开相机页后正常卸载（不受 VLM 策略影响）。
   - 可通过调试面板查看每个模型的保活等级。
 
 ---
@@ -1160,12 +1141,12 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - 模型下载后热切换
 - 产出：崩溃率、加载耗时、native 内存峰值
 
-### P2-3 LLM 热恢复策略（降低感知延迟）
+### P2-3 VLM 热恢复策略（降低感知延迟）
 - **改造点**
-  - 当 LLM 处于 WARM 状态（模型已加载，无 Session）时，用户触发 Agent 交互自动创建 Session 并恢复到 HOT，延迟控制在 500ms 内。
-  - 当 LLM 处于 COLD 状态时，用户触发 Agent 交互显示 "Agent 启动中..." 加载态，异步加载模型（~2s），加载完成后自动恢复。
-  - 预加载策略：App 启动时后台异步加载 LLM 到 WARM，无需等待首次交互。
-  - LRU 驱逐：当 native 内存压力达到阈值时，优先 SOFT 降级 LLM（释放 KV Cache），其次 SESSION 降级（释放 Session），最后 FULL 卸载 Face（已离开相机页则直接卸载）。此驱逐顺序由手动或内存压力信号触发，**不依赖电量自动降级**。
+  - 当 VLM 处于 WARM 状态（模型已加载，无 Session）时，用户触发 TAG 打标自动创建 Session 并恢复到 HOT，延迟控制在 500ms 内。
+  - 当 VLM 处于 COLD 状态时，用户触发 TAG 打标显示 "加载中..." 加载态，异步加载模型（~2s），加载完成后自动恢复。
+  - 预加载策略：App 启动时后台异步加载 VLM 到 WARM，无需等待首次交互。
+  - LRU 驱逐：当 native 内存压力达到阈值时，优先 SOFT 降级 VLM（释放 KV Cache），其次 SESSION 降级（释放 Session），最后 FULL 卸载 Face（已离开相机页则直接卸载）。此驱逐顺序由手动或内存压力信号触发，**不依赖电量自动降级**。
 - **涉及文件**
   - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
   - `app/src/main/java/com/mamba/picme/features/common/chat/AgentLoadingIndicator.kt`（新增或修改）
@@ -1173,7 +1154,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - **验收标准**
   - WARM → HOT 恢复延迟 < 500ms。
   - COLD → HOT 加载期间显示 loading UI，不阻塞主线程。
-  - App 启动后 5s 内 LLM 达到 WARM 状态。
+  - App 启动后 5s 内 VLM 达到 WARM 状态。
 
 ---
 
@@ -1184,13 +1165,13 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - [ ] 移除 `finalize` 依赖后，无 native 资源泄漏回归。
 - [ ] 连续 30 分钟压力切换测试无崩溃。
 - [ ] **Agent First 验收**：
-  - [ ] 相机 → 相册 → 设置 → 聊天，LLM 全程保持 WARM+，不触发 FULL 卸载。
-  - [ ] 任意页面触发 Agent 交互时，WARM 状态下恢复延迟 < 500ms。
-  - [ ] Face 离开相机页正常卸载，不受 LLM 保活策略干扰。
+  - [ ] 相机 → 相册 → 设置 → TAG 后台，VLM 全程保持 WARM+，不触发 FULL 卸载。
+  - [ ] 任意页面触发 TAG 打标时，WARM 状态下恢复延迟 < 500ms。
+  - [ ] Face 离开相机页正常卸载，不受 VLM 保活策略干扰。
 - [ ] 内存指标符合目标（建议）：
   - 离开相机页后 face 相关 native 内存在 10s 内明显下降。
   - 语音关闭后 ASR 在冷却窗口内释放到预期水平。
-  - LLM 跨页面切换时 native 内存无明显波动（不触发反复加载/卸载）。
+  - VLM 跨页面切换时 native 内存无明显波动（不触发反复加载/卸载）。
 
 ---
 
@@ -1200,10 +1181,10 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 2. `P0-2` 监听器反注册
 3. `P0-3` 去 finalize
 4. `P0-4` 统一释放等级 API
-5. `P1-4` LLM 跨页面保活（Agent First 核心，依赖 P0-4 释放等级 + P0-1 场景解耦）
+5. `P1-4` VLM 跨页面保活（TAG 打标核心，依赖 P0-4 释放等级 + P0-1 场景解耦）
 6. `P1-1` 模型状态机（依赖 P0-4 + P1-4 策略明确后建模）
 7. `P1-2` 共享 Runtime + `P1-3` GPU cache
-8. `P2-3` LLM 热恢复（依赖 P1-4 保活等级）
+8. `P2-3` VLM 热恢复（依赖 P1-4 保活等级）
 9. `P2-1` 结构化可观测性 + `P2-2` 压测回归
 
 ---
@@ -1216,11 +1197,11 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 | P0-2 | LLM/ASR 监听器反注册与生命周期收口 | RD | 1 人天 | 无 | 中 | 误删监听导致内存策略不生效 | 引入注册计数日志与回归脚本 |
 | P0-3 | 移除 `finalize` 依赖，改 `Closeable` 显式释放 | RD | 1.5 人天 | P0-2 | 高 | 释放时机变化可能触发 native 崩溃 | 全链路压测 + `try/finally` 审计 |
 | P0-4 | 统一 SOFT/SESSION/FULL 释放等级 API | RD | 2 人天 | P0-1, P0-2 | 高 | 跨模块语义对齐复杂，易出现行为回归 | 先定义接口契约，再分模块接入 |
-| P1-4 | LLM 跨页面保活策略（Agent First 核心） | RD | 2 人天 | P0-4, P0-1 | 高 | 页面切换误触发 LLM 卸载影响 Agent 体验 | 差异化表格先行，开关控制灰度 |
+| P1-4 | VLM 跨页面保活策略（TAG 打标核心） | RD | 2 人天 | P0-4, P0-1 | 高 | 页面切换误触发 VLM 卸载影响 TAG 体验 | 差异化表格先行，开关控制灰度 |
 | P1-1 | 建立每模型独立状态机 | RD | 2 人天 | P0-4, P1-4 | 中 | 状态迁移遗漏导致卡死或重复加载 | 状态图 + 穷举迁移单测 |
 | P1-2 | 评估并接入共享 Runtime | RD | 2 人天 | P1-1 | 中 | 内存复用导致输入指针失效 | 强制映射/拷贝输入，禁用直接填充 |
 | P1-3 | GPU cache 策略（`setCacheFile/updateCacheFile`） | RD | 1 人天 | P1-2 | 低 | cache 脏数据导致初始化异常 | 版本化 cache key + 失败回退 |
-| P2-3 | LLM 热恢复策略（预加载 + loading UI） | RD | 1.5 人天 | P1-4 | 中 | COLD 恢复时 UI 卡顿 | 异步加载 + loading 态兜底 |
+| P2-3 | VLM 热恢复策略（预加载 + loading UI） | RD | 1.5 人天 | P1-4 | 中 | COLD 恢复时 UI 卡顿 | 异步加载 + loading 态兜底 |
 | P2-1 | 结构化可观测性埋点 | RD | 1.5 人天 | P0-4 | 低 | 指标口径不一致 | 统一事件 schema 与命名规范 |
 | P2-2 | 压测与回归自动化脚本 | QA + RD | 2 人天 | P0 全部 | 中 | 用例覆盖不足 | 按场景矩阵维护必测集 |
 
@@ -1230,8 +1211,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 |---|---|---|---|
 | M1（本周） | P0-1 ~ P0-2 | 卸载触发修复 + 生命周期闭环 | 无监听器增长，Face 场景切换可卸载 |
 | M2（下周） | P0-3 ~ P0-4 | 释放语义统一（SOFT/SESSION/FULL） | 三档释放可独立触发且行为一致 |
-| M3（第 3 周） | P1-4 | **Agent First 保活** | LLM 跨页面不卸载 |
-| M4（第 4 周） | P1-1 ~ P1-3, P2-3 | 状态机 + 共享 Runtime + GPU cache + 热恢复 | WARM → HOT < 500ms，冷启动耗时下降 |
+| M3（第 3 周） | P1-4 | **VLM 打标保活** | VLM 跨页面不卸载 |
+| M4（第 4 周） | P1-1 ~ P1-3, P2-3 | 状态机 + 共享 Runtime + GPU cache + VLM 热恢复 | WARM → HOT < 500ms，冷启动耗时下降 |
 | M5（持续） | P2-1 ~ P2-2 | 可观测性与自动化回归 | 压测 30 分钟稳定无崩溃 |
 
 ### 11.6.2 进度跟踪模板（可直接复制到任务系统）
@@ -1240,22 +1221,22 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - [x] P0-2 LLM/ASR 监听器反注册
 - [x] P0-3 去 `finalize` 显式释放
 - [x] P0-4 统一释放等级 API
-- [x] P1-4 LLM 跨页面保活策略
+- [x] P1-4 VLM 跨页面保活策略
 - [ ] P1-5 功耗感知动态降级
 - [x] P1-1 每模型状态机
 - [ ] P1-2 共享 Runtime 接入
 - [ ] P1-3 GPU cache 策略
-- [ ] P2-3 LLM 热恢复策略
+- [ ] P2-3 VLM 热恢复策略
 - [ ] P2-1 结构化可观测性
 - [ ] P2-2 压测与回归自动化
 
 ### 11.6.3 风险门禁（上线前必须满足）
 
 - [ ] 连续场景切换 100 次，无 native crash
-- [ ] LLM/ASR/Face 任一模块可单独 FULL 卸载，不影响其余模块
-- [ ] 退出相机页后 Face 模型在目标时间窗内释放，LLM 不受影响
+- [ ] VLM/ASR/Face 任一模块可单独 FULL 卸载，不影响其余模块
+- [ ] 退出相机页后 Face 模型在目标时间窗内释放，VLM 不受影响
 - [ ] 语音关闭后 ASR 释放符合预期
-- [ ] LLM 跨页面切换时保持 WARM+，不触发 FULL 卸载
+- [ ] VLM 跨页面切换时保持 WARM+，不触发 FULL 卸载
 - [ ] WARM → HOT 恢复延迟 < 500ms
-- [ ] 内存压力下 LRU 驱逐顺序正确：LLM SOFT → LLM SESSION → Face FULL
+- [ ] 内存压力下 LRU 驱逐顺序正确：VLM SOFT → VLM SESSION → Face FULL
 

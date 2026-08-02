@@ -42,10 +42,10 @@ class MnnLlmClient(private val context: Context) {
      * **注意**：此方法应在专用线程上调用（由 [LocalLlmEngine] 统一调度），
      * 不做额外的 withContext 线程切换。
      *
-     * @param modelKey LlmModelManager 中注册的模型 key，默认 "qwen3_5_2b"（下划线格式）
+     * @param modelKey LlmModelManager 中的模型 key，默认 "qwen3_vl_2b"（下划线格式）
      * @return 加载是否成功
      */
-    fun load(modelKey: String = "qwen3_5_2b", useOpencl: Boolean = false): Boolean {
+    fun load(modelKey: String = "qwen3_vl_2b", useOpencl: Boolean = false): Boolean {
         if (isLoaded) {
             Logger.d(tag, "Model already loaded")
             return true

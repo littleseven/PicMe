@@ -1,7 +1,10 @@
-package com.mamba.picme.agent.core.local.llm
+package com.mamba.picme.agent.core.inference.remote
 
 /**
- * 流式聊天结果
+ * 流式聊天结果（远程链路）
+ *
+ * 原 `local.llm` 包类型；本地文本 LLM 链路移除后由远程链路（RemoteChatEngine）独占使用，
+ * 迁至本包。
  *
  * @property fullResponse 完整的响应文本
  * @property metrics 性能指标

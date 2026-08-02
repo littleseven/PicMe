@@ -7,10 +7,8 @@ import android.net.NetworkCapabilities
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
-import com.mamba.picme.agent.core.runtime.cache.L1CacheSettings
 import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.common.NetworkUtils
@@ -62,12 +60,12 @@ class SettingsViewModel(
             ModelConfig.REQUIRED_MODEL_IDS.toList()
 
         /**
-         * Tier 2：聊天/语音输入/本地 LLM 相关模型（次高优先）。
+         * Tier 2：聊天/语音输入相关模型（次高优先）。
          * 已从相册必须列表中移出，仅在聊天页提醒下载。
+         * 端侧文本 LLM（qwen3_5_2b）已移除，聊天改走远程推理；仅保留 ASR 语音输入。
          * KWS 唤醒模型已拆出为可选（语音为非刚需），仅在设置「语音控制」区块按需下载。
          */
         val CHAT_REQUIRED_MODEL_IDS = listOf(
-            "qwen3_5_2b", // 本地 LLM
             "sherpa-onnx-zipformer-zh-en" // ASR 语音输入
         )
     }
@@ -177,20 +175,6 @@ class SettingsViewModel(
             initialValue = "deepseek-v4-flash"
         )
 
-    val aiAgentInferencePreference: StateFlow<AiAgentInferencePreference> = repository.aiAgentInferencePreferenceFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = AiAgentInferencePreference.FORCE_LOCAL
-        )
-
-    val aiAgentL1CacheEnabled: StateFlow<Boolean> = repository.aiAgentL1CacheEnabledFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
-        )
-
     val autoExecutePlansEnabled: StateFlow<Boolean> = repository.autoExecutePlansEnabledFlow
         .stateIn(
             scope = viewModelScope,
@@ -202,7 +186,7 @@ class SettingsViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = AiAgentMode.LOCAL
+            initialValue = AiAgentMode.REMOTE
         )
 
     val aiAgentPrivacyLevel: StateFlow<AiAgentPrivacyLevel> = repository.aiAgentPrivacyLevelFlow
@@ -210,20 +194,6 @@ class SettingsViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = AiAgentPrivacyLevel.STRICT
-        )
-
-    val aiAgentLocalModel: StateFlow<String> = repository.aiAgentLocalModelFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
-
-    val aiAgentLocalUseOpencl: StateFlow<Boolean> = repository.aiAgentLocalUseOpenclFlow
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
         )
 
     val tagGenerationUseOpencl: StateFlow<Boolean> = repository.tagGenerationUseOpencl
@@ -396,13 +366,12 @@ class SettingsViewModel(
     }
 
     /**
-     * 判断聊天相关功能（本地 LLM 或语音）是否已开启。
+     * 判断聊天相关功能（语音输入）是否已开启。
+     * 端侧文本 LLM 已移除，聊天为远程推理，无需本地模型；仅语音输入需检查 ASR 模型。
      */
     private suspend fun isChatFeatureEnabled(): Boolean {
-        val inferencePref = repository.aiAgentInferencePreferenceFlow.first()
         val voiceMode = repository.voiceCommandModeFlow.first()
-        return inferencePref != AiAgentInferencePreference.FORCE_REMOTE ||
-            voiceMode != VoiceCommandMode.DISABLED
+        return voiceMode != VoiceCommandMode.DISABLED
     }
 
     /**
@@ -574,7 +543,6 @@ class SettingsViewModel(
         lastDownloadStatuses.putAll(downloadStates.value.mapValues { entry -> entry.value.status })
         loadModels()
         observeDownloadCompletion()
-        syncL1CacheSetting()
         registerSilentDownloadNetworkMonitor()
     }
 
@@ -588,17 +556,6 @@ class SettingsViewModel(
                 Logger.i(TAG, "Silent download network monitor unregistered")
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to unregister silent download network monitor", e)
-            }
-        }
-    }
-
-    private fun syncL1CacheSetting() {
-        viewModelScope.launch {
-            try {
-                val enabled = repository.aiAgentL1CacheEnabledFlow.first()
-                L1CacheSettings.setEnabled(enabled)
-            } catch (e: Exception) {
-                Logger.e("Settings", "Failed to sync L1 cache setting", e)
             }
         }
     }
@@ -957,19 +914,6 @@ class SettingsViewModel(
         }
     }
 
-    fun setAiAgentLocalModel(modelId: String) {
-        viewModelScope.launch {
-            repository.updateAiAgentLocalModel(modelId)
-        }
-    }
-
-    fun setAiAgentLocalUseOpencl(enabled: Boolean) {
-        viewModelScope.launch {
-            Logger.d("UX", "AI Agent local OpenCL changed: $enabled")
-            repository.updateAiAgentLocalUseOpencl(enabled)
-        }
-    }
-
     fun setTagGenerationUseOpencl(enabled: Boolean) {
         viewModelScope.launch {
             Logger.d("UX", "TAG generation OpenCL changed: $enabled")
@@ -1000,21 +944,6 @@ class SettingsViewModel(
     fun setAiAgentSelectedRemoteModel(modelId: String) {
         viewModelScope.launch {
             repository.updateAiAgentSelectedRemoteModel(modelId)
-        }
-    }
-
-    fun setAiAgentInferencePreference(preference: AiAgentInferencePreference) {
-        viewModelScope.launch {
-            Logger.d("UX", "AI Agent inference preference changed: ${preference.name}")
-            repository.updateAiAgentInferencePreference(preference)
-        }
-    }
-
-    fun setAiAgentL1CacheEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            Logger.d("UX", "AI Agent L1 cache enabled changed: $enabled")
-            repository.updateAiAgentL1CacheEnabled(enabled)
-            L1CacheSettings.setEnabled(enabled)
         }
     }
 

@@ -60,10 +60,10 @@ import androidx.compose.ui.unit.sp
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.PageContext
+import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import kotlinx.coroutines.launch
 
@@ -400,36 +400,20 @@ private suspend fun sendMessage(
     state.isProcessing = true
 
     try {
-        val result = orchestrator.localCameraAgent.processUserInput(
+        // 端侧文本 LLM 移除后，统一走远程 tool_calls 链路（返回 InferenceResult.Chat 文本总结）
+        val inferenceResult = orchestrator.processCameraInput(
             input = text,
             agentContext = agentContext,
             pageContext = pageContext
         )
 
-        result.fold(
-            onSuccess = { action ->
-                val responseText = when (action) {
-                    is AgentAction.Success -> {
-                        val commandName = action.command::class.simpleName ?: "操作"
-                        "已执行: $commandName"
-                    }
-                    is AgentAction.TextReply -> action.message
-                    is AgentAction.Error -> "抱歉，${action.message}"
-                    is AgentAction.BatchResult -> "已执行批量操作 (${action.results.size} 个)"
-                    is AgentAction.MediaResults -> "找到 ${action.totalCount} 张「${action.query}」的照片"
-                }
-                state.addMessage(AgentMessage(content = responseText, isFromUser = false))
-            },
-            onFailure = { error ->
-                Logger.e(tag, "Failed to process message", error)
-                state.addMessage(
-                    AgentMessage(
-                        content = "处理失败：${error.message ?: "未知错误"}",
-                        isFromUser = false
-                    )
-                )
-            }
-        )
+        val responseText = when (inferenceResult) {
+            is InferenceResult.Chat -> inferenceResult.message
+            is InferenceResult.Local -> "已执行: ${inferenceResult.command::class.simpleName ?: "操作"}"
+            is InferenceResult.Batch -> "已执行批量操作 (${inferenceResult.commands.size} 个)"
+            is InferenceResult.Plan -> "已生成执行计划 (${inferenceResult.plan.steps.size} 步)"
+        }
+        state.addMessage(AgentMessage(content = responseText, isFromUser = false))
     } catch (e: Exception) {
         Logger.e(tag, "Exception processing message", e)
         state.addMessage(

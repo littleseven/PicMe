@@ -3,7 +3,6 @@ package com.mamba.picme.domain.usecase
 import android.content.Context
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.model.command.AgentCommand
-import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.MediaType
@@ -17,7 +16,6 @@ import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.model.AiAgentCommand
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 
 /**
@@ -25,30 +23,23 @@ import kotlinx.coroutines.withContext
  *
  * 向后兼容的入口类。内部委托给 [AgentOrchestrator]，保留原有接口不变。
  *
- * **远程推理优先策略（2026-06-17）**：
- * - 默认 agentMode 从 LOCAL 改为 REMOTE
- * - 所有新功能先保证远程推理链路可用，再适配本地模型
- * - 本地推理链路保留作为离线兜底
+ * **端侧文本 LLM 移除（2026-08）**：
+ * - 相机 AI 指令统一走远程 tool_calls 链路（[AgentOrchestrator.processCameraInput]）
+ * - 端侧仅保留 VLM 打标（qwen3_vl_2b，经 `localModelService`），与本用例无关
  * - 远程控制能力参考 apkClaw（/Users/guoshuai/code/ApkClaw）的 DefaultAgentService
  *   使用 langchain4j tool_calls 机制实现 IM 远程控制
  *
  * @param context Application Context
- * @param agentMode Agent 运行模式，默认 REMOTE（远程推理优先）
- * @param privacyLevel 隐私级别，默认 PERMISSIVE（远程推理优先策略下允许远程调用）
- * @param localModelId 本地模型 ID，默认 qwen3_5_2b（下划线格式，离线兜底用）
- * @param localUseOpencl 本地模型是否启用 OpenCL 后端
+ * @param agentMode Agent 运行模式，默认 REMOTE
+ * @param privacyLevel 隐私级别，默认 STRICT
  * @param remoteConfig 用户自定义远程模型配置（完整配置，包含 modelId/apiKey/baseUrl/gatewayToken）
- * @param forceRemote 是否强制使用远程模型（绕过本地模型检查）
  * @param gatewayToken 邮箱注册获取的服务端认证 token
  */
 class AiAgentUseCase(
     context: Context,
     agentMode: AiAgentMode = AiAgentMode.REMOTE,
     privacyLevel: AiAgentPrivacyLevel = AiAgentPrivacyLevel.STRICT,
-    localModelId: String = "qwen3_5_2b",
-    localUseOpencl: Boolean = false,
     remoteConfig: RemoteModelConfig? = null,
-    forceRemote: Boolean = false,
     gatewayToken: String? = null
 ) {
 
@@ -86,80 +77,27 @@ class AiAgentUseCase(
      */
     val currentMode: AiAgentMode = agentMode
 
-    /**
-     * 是否强制使用远程模型（绕过本地模型检查）
-     */
-    private val forceRemoteMode: Boolean = forceRemote
-
-    /**
-     * 当前配置的本地模型 ID
-     */
-    private var currentLocalModelId: String = localModelId
-    private var currentLocalUseOpencl: Boolean = localUseOpencl
-
     init {
         Logger.i(tag, "AiAgentUseCase init: remoteConfig=${remoteConfig?.modelId ?: "null"}, " +
             "baseUrl=${remoteConfig?.baseUrl?.take(40) ?: "null"}, " +
             "apiKey=${if (remoteConfig?.apiKey.isNullOrBlank()) "empty" else "set"}, " +
-            "localUseOpencl=$localUseOpencl, " +
             "gatewayToken=${if (remoteConfig?.gatewayToken.isNullOrBlank()) "empty" else "set"}, " +
             "effectiveBaseUrl=${effectiveRemoteConfig.baseUrl.take(40)}, " +
             "isUsingFallbackGateway=${userRemoteConfig == null}")
         orchestrator.configure(
             mode = agentMode,
-            modelId = localModelId,
+            modelId = TAGGER_MODEL_ID,
             privacyLevel = privacyLevel,
-            remoteConfig = effectiveRemoteConfig,
-            localUseOpencl = localUseOpencl
+            remoteConfig = effectiveRemoteConfig
         )
     }
 
     /**
-     * 本地模型是否已加载
-     */
-    val isLocalModelLoaded: Boolean
-        get() = orchestrator.localModelService.isModelLoaded
-
-    /**
-     * 本地模型是否正在加载中（供 UI 显示 "Agent 启动中"）
-     */
-    val isLocalModelLoading: StateFlow<Boolean>
-        get() = orchestrator.localModelService.isModelLoading
-
-    /**
-     * 卸载本地模型，释放内存
-     */
-    fun unloadLocalModel() {
-        orchestrator.localModelService.unloadModel()
-    }
-
-    /**
-     * 加载本地模型
+     * 发送用户指令到 Agent，返回解析后的命令
      *
-     * @param modelId 模型 ID，为空时使用当前配置的模型。如果模型 ID 与当前加载的不同，会先卸载旧模型。
-     */
-    suspend fun loadLocalModel(modelId: String? = null, useOpencl: Boolean? = null): Result<Unit> {
-        val targetModel = modelId ?: currentLocalModelId
-        val targetUseOpencl = useOpencl ?: currentLocalUseOpencl
-        if (targetModel != currentLocalModelId || targetUseOpencl != currentLocalUseOpencl) {
-            currentLocalModelId = targetModel
-            currentLocalUseOpencl = targetUseOpencl
-            orchestrator.configure(
-                mode = currentMode,
-                modelId = targetModel,
-                privacyLevel = AiAgentPrivacyLevel.STRICT,
-                localUseOpencl = targetUseOpencl
-            )
-        }
-        return orchestrator.localModelService.loadModel(targetModel)
-    }
-
-    /**
-     * 发送用户指令到 LLM，返回解析后的命令
-     *
-     * 分层自适应推理策略：
-     * - LOCAL/OFF 模式：默认本地推理，forceRemote 时走远程
-     * - REMOTE 模式：直接调用 processBatch
+     * 端侧文本 LLM 移除后统一走远程 tool_calls 链路：
+     * [AgentOrchestrator.processCameraInput] 内部执行远程 ReAct + CameraToolService，
+     * 工具命令在循环内直接执行，返回 [InferenceResult.Chat] 文本总结。
      *
      * @param userInput 用户自然语言输入
      * @param currentState 当前相机状态快照，用于上下文感知
@@ -181,41 +119,20 @@ class AiAgentUseCase(
             memorySessionId = "camera"
         )
 
-        // 根据模式选择推理路径
-        when (currentMode) {
-            AiAgentMode.LOCAL, AiAgentMode.OFF -> {
-                // 本地推理：优先使用 processInputWithRouter 的 L2 本地快速通道
-                Logger.i(tag, "[UseCase] LOCAL mode, calling processInputWithRouter for input='$userInput'")
-                val inferenceResult = orchestrator.localCameraAgent.processInputWithRouter(
-                    input = userInput,
-                    agentContext = agentContext
-                )
-                Logger.i(tag, "[UseCase] processInputWithRouter returned: ${inferenceResult::class.simpleName}")
-                return@withContext handleInferenceResult(inferenceResult, userInput, agentContext, currentState)
-            }
-            AiAgentMode.REMOTE, AiAgentMode.FEISHU -> {
-                // REMOTE/FEISHU 模式：统一走本地推理（已不再需要远程推理链路）
-                // FEISHU 作为通信通道已独立配置，此处保留兼容性处理
-                Logger.i(tag, "[UseCase] ${currentMode.name} mode, using local inference for input='$userInput'")
-                val inferenceResult = orchestrator.localCameraAgent.processInputWithRouter(
-                    input = userInput,
-                    agentContext = agentContext
-                )
-                Logger.i(tag, "[UseCase] processInputWithRouter returned: ${inferenceResult::class.simpleName}")
-                return@withContext handleInferenceResult(inferenceResult, userInput, agentContext, currentState)
-            }
-        }
+        Logger.i(tag, "[UseCase] ${currentMode.name} mode, calling processCameraInput for input='$userInput'")
+        val inferenceResult = orchestrator.processCameraInput(
+            input = userInput,
+            agentContext = agentContext
+        )
+        Logger.i(tag, "[UseCase] processCameraInput returned: ${inferenceResult::class.simpleName}")
+        return@withContext handleInferenceResult(inferenceResult)
     }
 
     /**
-     * 处理 InferenceResult 并转换为 AiAgentCommand
+     * 处理 InferenceResult 并转换为 AiAgentCommand。
+     * 远程相机链路只产生 [InferenceResult.Chat] 分支，其余分支防御性保留。
      */
-    private fun handleInferenceResult(
-        inferenceResult: InferenceResult,
-        userInput: String,
-        agentContext: AgentContext,
-        currentState: CameraStateSnapshot
-    ): Result<AiAgentCommand> {
+    private fun handleInferenceResult(inferenceResult: InferenceResult): Result<AiAgentCommand> {
         return when (inferenceResult) {
             is InferenceResult.Local -> {
                 val command = inferenceResult.command
@@ -325,90 +242,10 @@ class AiAgentUseCase(
     }
 
     /**
-     * 清空对话记忆
+     * 清空相机 session 对话记忆
      */
     suspend fun clearMemory() {
-        orchestrator.localCameraAgent.clearMemory("camera")
-    }
-
-    /**
-     * 将新的 AgentAction 映射为旧的 AiAgentCommand（向后兼容）
-     */
-    private fun mapAgentActionToLegacyCommand(action: AgentAction): AiAgentCommand {
-        return when (action) {
-            is AgentAction.Success -> {
-                when (val cmd = action.command) {
-                    is AgentCommand.AdjustBeauty -> AiAgentCommand.AdjustBeauty(cmd.settings)
-                    is AgentCommand.SwitchFilter -> AiAgentCommand.SwitchFilter(cmd.filterType)
-                    is AgentCommand.SwitchStyle -> AiAgentCommand.SwitchStyle(cmd.styleFilter)
-                    is AgentCommand.SwitchScene -> AiAgentCommand.SwitchScene(cmd.sceneName)
-                    is AgentCommand.SwitchRatio -> AiAgentCommand.SwitchRatio(cmd.ratio)
-                    is AgentCommand.AdjustExposure -> AiAgentCommand.AdjustExposure(cmd.exposure)
-                    is AgentCommand.AdjustZoom -> AiAgentCommand.AdjustZoom(cmd.zoomRatio)
-                    is AgentCommand.FlipCamera -> AiAgentCommand.FlipCamera
-                    is AgentCommand.CapturePhoto -> AiAgentCommand.CapturePhoto
-                    is AgentCommand.ToggleRecording -> AiAgentCommand.ToggleRecording
-                    is AgentCommand.SwitchMode -> AiAgentCommand.SwitchMode(cmd.mode)
-                    is AgentCommand.Delay -> AiAgentCommand.Delay(cmd.delayMs)
-                    is AgentCommand.NavigateTo -> AiAgentCommand.NavigateTo(cmd.destination)
-                    is AgentCommand.GoBack -> AiAgentCommand.GoBack
-                    is AgentCommand.TextReply -> AiAgentCommand.TextReply(cmd.message)
-                    is AgentCommand.BatchExecute -> AiAgentCommand.BatchExecute(
-                        cmd.commands.map { mapAgentCommandToLegacy(it) }
-                    )
-                    is AgentCommand.ExecutePlan -> AiAgentCommand.TextReply("执行计划: ${cmd.plan.description}")
-                    // Gallery 命令
-                    is AgentCommand.ViewMedia -> AiAgentCommand.NavigateTo("gallery")
-                    is AgentCommand.DeleteMedia -> AiAgentCommand.TextReply("请在相册中删除照片")
-                    is AgentCommand.ShareMedia -> AiAgentCommand.TextReply("请在相册中分享照片")
-                    is AgentCommand.SelectMedia -> AiAgentCommand.TextReply("请在相册中选择照片")
-                    is AgentCommand.SearchMedia -> AiAgentCommand.TextReply("搜索照片: ${cmd.query}")
-                    is AgentCommand.RefineMediaSearch -> AiAgentCommand.TextReply("细化搜索: ${cmd.constraint}")
-                    is AgentCommand.SwitchViewMode -> AiAgentCommand.TextReply("切换相册视图")
-                    is AgentCommand.FavoriteMedia -> AiAgentCommand.TextReply("收藏照片")
-                    is AgentCommand.GetGallerySummary -> AiAgentCommand.TextReply("相册摘要")
-                    is AgentCommand.StartTagScan -> AiAgentCommand.TextReply("TAG 扫描控制: ${cmd.action}")
-                    // 设置命令
-                    is AgentCommand.ChangeTheme -> AiAgentCommand.TextReply("切换主题: ${cmd.theme}")
-                    is AgentCommand.ChangeLanguage -> AiAgentCommand.TextReply("切换语言: ${cmd.language}")
-                    is AgentCommand.DownloadModel -> AiAgentCommand.TextReply("下载模型: ${cmd.modelId}")
-                    is AgentCommand.SwitchFaceEngine -> AiAgentCommand.TextReply("切换人脸引擎: ${cmd.engine}")
-                    is AgentCommand.ToggleSetting -> AiAgentCommand.TextReply("切换设置: ${cmd.settingKey}")
-                    // AI 一键优化
-                    is AgentCommand.AiOptimize -> {
-                        cmd.resultRecipe?.let { AiAgentCommand.ApplyEditRecipe(it) }
-                            ?: AiAgentCommand.TextReply("AI 优化图片: ${cmd.imageUri}")
-                    }
-                    // 对话式图片编辑（Chat 路径在 ChatViewModel 处理，legacy 映射先兜底为文本）
-                    is AgentCommand.EditImage -> AiAgentCommand.TextReply(cmd.explanation ?: "对话式编辑图片")
-                    // 系统/外部 App 命令
-                    is AgentCommand.LaunchApp -> AiAgentCommand.TextReply("打开应用: ${cmd.appName ?: cmd.packageName}")
-                    is AgentCommand.OpenSystemSettings -> AiAgentCommand.TextReply("打开设置: ${cmd.setting}")
-                    // 错误/未知 —— 明确报告，不允许掩盖
-                    is AgentCommand.Error -> AiAgentCommand.TextReply("命令错误: ${cmd.reason}")
-                    is AgentCommand.Unknown -> AiAgentCommand.TextReply("未知命令: ${cmd.raw}")
-                    // Feedback 命令无 legacy 对应
-                    is AgentCommand.RecordMediaFeedback -> AiAgentCommand.TextReply("记录媒体反馈")
-                    is AgentCommand.MoreLikeThis -> AiAgentCommand.TextReply("查找更多相似")
-                    is AgentCommand.ExcludeConstraint -> AiAgentCommand.TextReply("排除约束")
-                    is AgentCommand.ExecuteScript -> AiAgentCommand.TextReply("执行脚本")
-            is AgentCommand.DrawChart -> AiAgentCommand.TextReply("画图表")
-                    // 记忆命令无 legacy 对应
-                    is AgentCommand.RememberPersonRelation -> AiAgentCommand.TextReply("记住人物关系")
-                    is AgentCommand.ForgetPersonRelation -> AiAgentCommand.TextReply("遗忘人物关系")
-                    is AgentCommand.QueryPersonRelation -> AiAgentCommand.TextReply("查询人物关系")
-                    is AgentCommand.RememberFact -> AiAgentCommand.TextReply("记住事实")
-                    is AgentCommand.ForgetFact -> AiAgentCommand.TextReply("遗忘事实")
-                    is AgentCommand.RecallMemory -> AiAgentCommand.TextReply("检索记忆")
-                }
-            }
-            is AgentAction.MediaResults -> AiAgentCommand.TextReply("找到 ${action.totalCount} 张「${action.query}」的照片")
-            is AgentAction.TextReply -> AiAgentCommand.TextReply(action.message)
-            is AgentAction.Error -> AiAgentCommand.TextReply("处理出错了：${action.message}")
-            is AgentAction.BatchResult -> {
-                AiAgentCommand.BatchExecute(action.results.map { mapAgentActionToLegacyCommand(it) })
-            }
-        }
+        orchestrator.clearChatMemory("camera")
     }
 
     /**
@@ -423,4 +260,9 @@ class AiAgentUseCase(
         val captureMode: MediaType = MediaType.PHOTO,
         val isRecording: Boolean = false
     )
+
+    private companion object {
+        /** 端侧 VLM 打标模型（configure 的 modelId 仅作 localModelService 默认模型，相机链路不再使用）。 */
+        const val TAGGER_MODEL_ID = "qwen3_vl_2b"
+    }
 }

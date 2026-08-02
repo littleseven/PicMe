@@ -1,7 +1,6 @@
 package com.mamba.picme.features.chat
 
 import com.mamba.picme.R
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -17,7 +16,7 @@ import org.junit.Test
  * [ChatViewModel] 访客模式 / 注册引导 单测（design §4.3 / client plan §5）。
  *
  * 覆盖：
- * - isGuestMode 在 (推理偏好 × token) 组合下的派生（参数化合并）
+ * - isGuestMode 按 server token 有无派生（chat 仅远程，token 为空即访客）
  * - guest 配额耗尽 403 → 弹注册 sheet + 插入「试用额度已用完」气泡（软引导）
  * - 注册用户额度耗尽 403 → 不触发 guest sheet（走通用错误气泡）
  */
@@ -30,21 +29,19 @@ class ChatViewModelGuestModeTest : ChatViewModelTestBase() {
         every { context.getString(R.string.chat_guest_quota_used_up) } returns "QUOTA_USED_UP"
     }
 
-    // ── isGuestMode 派生（3 组合并） ──────────────────────────────
+    // ── isGuestMode 派生（按 token 有无） ─────────────────────────
 
     @Test
-    fun `isGuestMode derived from preference and token combination`() = runTest {
+    fun `isGuestMode derived from token presence`() = runTest {
         val cases = listOf(
-            Triple(AiAgentInferencePreference.FORCE_REMOTE, "", true),
-            Triple(AiAgentInferencePreference.FORCE_REMOTE, "pl-abc123token", false),
-            Triple(AiAgentInferencePreference.FORCE_LOCAL, "", true),
+            "" to true,
+            "pl-abc123token" to false,
         )
-        cases.forEach { (preference, token, expectedGuest) ->
-            preferenceFlow.value = preference
+        cases.forEach { (token, expectedGuest) ->
             tokenFlow.value = token
             val vm = newViewModel()
             advanceUntilIdle()
-            assertEquals("preference=$preference, token='$token'", expectedGuest, vm.isGuestMode.value)
+            assertEquals("token='$token'", expectedGuest, vm.isGuestMode.value)
         }
     }
 
@@ -52,7 +49,6 @@ class ChatViewModelGuestModeTest : ChatViewModelTestBase() {
 
     @Test
     fun `guest 403 opens registration sheet and inserts exhaustion bubble`() = runTest {
-        preferenceFlow.value = AiAgentInferencePreference.FORCE_REMOTE
         tokenFlow.value = ""
         // 模拟 server 真实 403 body（LlmRoute：guest 配额耗尽）—— 异常 message 即此 body
         coEvery {
@@ -74,7 +70,6 @@ class ChatViewModelGuestModeTest : ChatViewModelTestBase() {
 
     @Test
     fun `registered user 403 does not open guest sheet`() = runTest {
-        preferenceFlow.value = AiAgentInferencePreference.FORCE_REMOTE
         tokenFlow.value = "pl-abc123token"
         // account 配额耗尽：body 同样含 quota_exceeded，但 isGuestMode=false → 不应弹 guest sheet
         coEvery {

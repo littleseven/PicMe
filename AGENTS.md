@@ -2,7 +2,7 @@
 
 > **版本**：2.2（服务端对齐版）  
 > **状态**：生效中  
-> **最后更新**：2026-07-16  
+> **最后更新**：2026-08-02  
 > **维护者**：CO Agent  
 > **历史合并说明**：本文档由根目录 `AGENTS.md` 与 `agents/README.md` 合并而成。`agents/README.md` 中的角色速查、状态板模板、Token 节省、回流机制、Tools 输入输出、工具调用速查等内容已并入本文档对应章节或附录，原文件已删除。
 
@@ -367,11 +367,11 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **AI 协作角色** | `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`runtime-core/`、`mnn-core/`、`sentencepiece/`、`server/` 等） |
 | **技术专项** | `docs/03-TECHNICAL-SPECS/*.md` |
-| **端侧推理全景** | `docs/03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`（含优化评估与多模型生命周期改造清单） |
+| **端侧推理全景** | `docs/03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`（端侧推理盘点：文本 LLM 已移除，余 VLM 打标/人脸检测/翻译等；含优化评估与多模型生命周期改造清单） |
 | **IM 远程控制技术规格** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md`（IM 远程控制线已冻结，服务端替代方案优先） |
 | **AI 一键优化** | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md` |
-| **TAG 生成** | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` |
-| **MNN LLM 运维** | `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` |
+| **TAG 生成** | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md`（端侧 VLM Qwen3-VL-2B + Florence-2 打标，3-Pass 流水线） |
+| **端侧 VLM 打标引擎运维** | `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` |
 | **语音栈** | `docs/03-TECHNICAL-SPECS/VOICE_STACK.md`（含 ASR Language Model 说明） |
 | **大美丽美颜引擎** | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（含相机预览比例、帧同步美妆、容灾降级） |
 | **人脸关键点** | `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md` |
@@ -384,14 +384,14 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **服务端实现** | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`（Ktor 后端：AI 网关、账号、管理后台） |
 | **备份恢复** | `docs/05-DEVELOPMENT/RELEASE_PACKAGE_BACKUP_RESTORE.md`（Release 包数据备份与恢复） |
 
-> **架构说明（2026-07-15）**：
+> **架构说明（2026-08-02）**：
 > - **`:agent-core` 是 Java Android Library**（非 Kotlin），提供 LangChain4j 风格的 ChatModel、@Tool、AiServices、ChatMemory 等 API
 > - **Agent 编排层在 `:runtime-core` 模块**（Kotlin）：`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard`、`MemoryManager`、`SceneManager` 等均位于 `runtime-core/src/main/java/com/mamba/picme/agent/core/`
 > - **TAG 生成在 `:app` 模块**：`TagScanOrchestrator`、`TagGenerationScheduler`、`OpenClGuardian` 位于 `app/src/main/java/com/mamba/picme/domain/tag/`；`TagGenerationService` 为前台 Service；`TagGenerationControlScreen` 提供 3-Pass 控制与按类别/时间范围重新生成 UI
 > - **OpenCL 超时与降级**：`OpenClGuardian` 在 Pass 3 前执行 warmup，单次推理带超时；连续失败/超时后标记设备降级为 CPU，黑名单持久化到 DataStore；`TagGenerationScheduler.ensureModelLoaded()` 自动按 Guardian 策略选择后端
 > - **OpenAI 协议兼容**：`OpenAiChatModel` / `OpenAiStreamingChatModel` 支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问等），含 tool_calls、流式、多轮对话
 > - **DeepSeek 适配**：API 请求自动禁用 thinking 模式；ToolSpec 自动添加 `additionalProperties: false` 兼容 strict 模式；`tool_choice: REQUIRED` 正确映射为 `"required"`
-> - `AiAgentUseCase` 作为 Facade 兼容层存在（:app 模块），内部委托给 `AgentOrchestrator` 执行。默认 agentMode 已从 LOCAL 改为 REMOTE（远程推理优先策略）
+> - **端侧文本 LLM 已移除（2026-08-02）**：`AiAgentMode` 仅剩 OFF/REMOTE/FEISHU；相机 AI 指令走远程 tool_calls（`AgentOrchestrator.processCameraInput` + `CameraToolService` 相机场域 @Tool 工具集 → `ToolCallCommandParser` → `CapabilityRegistry.dispatch`），chat 全远程（`ChatToolService`）；`AiAgentUseCase` 作为 Facade 兼容层（:app 模块）内部委托 `AgentOrchestrator`；`LocalLlmEngine` 仅存 `imageInference`（Qwen3-VL-2B 端侧 VLM 打标，TAG Pass3）
 > - **JS Engine（QuickJS 沙箱）**：引擎无关层在 `:runtime-core` `agent/core/js/`（JsEngine/JsValue/JsBridge/JsRuntime/NativeHandler），QuickJS 实现与应用 handler 在 `:app` `features/chat/js/`（QuickJsEngine/GalleryScriptHandlers/ChartJs/CapabilityDispatchHandler）；除只读取数 handler 外，已存在 `capability.dispatch` **写通路**（CommandRisk 分级 + 用户确认 + ChatMediaWriteCapability）。详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 > - **AI 工程师模式（原诊断模式已并入）**：Chat「AI Engineer」toggle → `POST /v1/claude-chat` → chisel 隧道 → KimiClaw 云主机 Claude Code（GLM）；云主机 MCP server（`scripts/claude-tunnel/gateway/app_tools_mcp.py`）暴露 5 个 `app_*` 工具（日志/崩溃/聊天历史/运行时状态/相册摘要），tool call 经 SSE 下行 `app_tool_request` 到 App，`AppToolExecutor`（`app/core/agenttools/`）采集脱敏后经 `POST /v1/claude-tool-result` 回传；`claudeSid` 经 `ClaudeSidStore`（SharedPreferences）持久化，进程重建后可 `--resume` 续上下文。诊断工单链路（DiagRoute/diag-worker）已于 2026-08-01 移除。**账号白名单区分读写**：`/v1/claude-chat` 与 `/v1/claude-tool-result` 对所有已认证账号开放（只读诊断），仅 `/v1/claude-deliver` 代码交付受 `ai_engineer_whitelist` 限制；`/v1/claude-engineer/available` 返回 `{available, canDeliver}`。**用户问题上报**：Chat 顶部新增「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动在 `littleseven/langchain4android` 创建 GitHub issue；管理后台「设置」页（`/admin/settings#whitelist`）承载「AI 工程师白名单」配置，「问题诊断」页（`/admin/diagnosis`）承载「用户上报问题」，原 `/admin/ai-engineer-whitelist` 已 301 重定向到设置页白名单区块。详见 `docs/superpowers/specs/2026-08-01-ai-engineer-diag-merge-design.md`
 > - **服务端（`server/`）**：独立 Ktor 工程，提供 AI 网关（Channel 路由 / LLM 代理）、账号体系（邮箱注册 / Token 认证）、管理后台（Admin 视图）、推荐引擎（RuleEngine）、限流（RateLimiter）、COS 对象存储。与 Android 客户端通过 Monorepo 管理，但不纳入 Android `settings.gradle`。

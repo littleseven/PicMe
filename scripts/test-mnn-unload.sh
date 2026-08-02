@@ -8,14 +8,14 @@
 # 前置条件:
 #   - Android 设备已连接
 #   - PoLang 调试版已安装
-#   - LLM 和 ASR 模型已下载
+#   - VLM 打标模型和 ASR 模型已下载
 
 set -e
 
 PACKAGE="com.picme"
 LOG_DIR="/tmp"
 LOG_FILE="$LOG_DIR/mnn_unload_test_$(date +%Y%m%d_%H%M%S).log"
-TAGS="MnnResourceManager:LocalLlmEngine:SherpaMnnAsr:VoiceCommand"
+TAGS="MnnResourceManager:LocalLlmEngine:SherpaOnnxAsr:VoiceCommand"
 
 # 颜色输出
 RED='\033[0;31m'

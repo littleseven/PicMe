@@ -1,12 +1,19 @@
 # ADR-005: 本地/远程推理协议分离与产品重心迁移
 
-**状态**: 已实施 (Implemented)  
+**状态**: 已实施 (Implemented) —— 本地链路部分已于 2026-08-02 被超越（见下方状态更新）  
 **日期**: 2026-06-15  
-**更新日期**: 2026-06-18  
+**更新日期**: 2026-06-18；2026-08-02（状态更新）  
 **决策**: RD  
 **依赖**: ADR-003（坐标系统管理 — 图片编辑复用美颜管线）
 
 ---
+
+> ## ⛔ 状态更新（2026-08-02）：本地链路已整体删除
+>
+> 本 ADR 确立的「本地/远程双链路」已演进为**文本推理全远程**：端侧文本 LLM（Qwen3.5-2B）及整条本地链路（`LocalInferencePipeline`/`LocalCameraAgent`/`LocalCommandParser`/`LocalPromptBuilder`/`local/llm/` 适配层、`IntentCache`/`L1CacheSettings`、`AiAgentMode.LOCAL`、`AiAgentInferencePreference`、chat `ChatModelOption.Local`、qwen3_5_2b 模型下载条目与设置 UI）已完全移除。
+> 相机 AI 指令从「本地收缩」（ADR-009）进一步演进为**远程 tool_calls**：`AgentOrchestrator.processCameraInput` → `RemoteReActAgent` + `CameraToolService`（相机场域 @Tool 工具集：capture/adjust_beauty/switch_filter/adjust_zoom/flip_camera 等）→ `ToolCallCommandParser` → `CapabilityRegistry.dispatch`。
+> `LocalLlmEngine` 仅保留 `imageInference`（Qwen3-VL-2B 端侧 VLM 打标，TAG Pass3）。
+> **下文中所有描述本地链路的"当前"设计均为历史记录**，保留用于理解决策脉络，不再代表现状。
 
 ## 1. 背景与问题陈述
 
@@ -125,7 +132,7 @@
 
 | 设置项 | 操作 | 说明 |
 |--------|------|------|
-| `AiAgentInferencePreference` | 保留但简化 | AUTO/FORCE_LOCAL/FORCE_REMOTE 三态 → 仅保留 FORCE_LOCAL/FORCE_REMOTE |
+| `AiAgentInferencePreference` | 保留但简化（2026-08-02 已随端侧文本 LLM 删除） | AUTO/FORCE_LOCAL/FORCE_REMOTE 三态 → 仅保留 FORCE_LOCAL/FORCE_REMOTE |
 | `AiAgentPrivacyLevel` | 保留 | 隐私红线逻辑不变 |
 
 ---

@@ -26,7 +26,7 @@ import org.json.JSONObject
  *
  * ## 三阶段策略
  * - **Pass 1（标准 ML Kit OCR）**：MetadataExtractor 先执行，快速过滤正常图片
- * - **Pass 2（Qwen3.5-2B 多模态）**：当标准 OCR 产出极少时，用 Qwen 视觉模型
+ * - **Pass 2（Qwen3-VL-2B 多模态）**：当标准 OCR 产出极少时，用 Qwen 视觉模型
  *   直接"看"图片提取结构化字段，准确率 >> 通用 OCR
  * - **Pass 3（图像增强 + ML Kit 重试）**：Qwen 不可用时，灰度化 + 对比度增强 +
  *   重跑 ML Kit

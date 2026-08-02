@@ -27,7 +27,7 @@ enum class LogModule(val tagPrefixes: List<String>, val displayName: String) {
     SETTINGS(listOf("Settings"), "Settings"),
     ORCHESTRATOR(listOf("Orchestrator"), "Orchestrator"),
     CHAT(
-        listOf("ChatViewModel", "ChatScreen", "ChatThreadSidebar", "LocalCommandParser"),
+        listOf("ChatViewModel", "ChatScreen", "ChatThreadSidebar"),
         "Chat"
     ),
     SEMANTIC(
@@ -53,8 +53,7 @@ enum class LogModule(val tagPrefixes: List<String>, val displayName: String) {
         /**
          * 根据标签查找对应的日志模块。
          * 使用预构建映射表实现 O(1) 平均查找。
-         * 当多个模块都能匹配时，选择最长前缀（最具体）的那个，
-         * 例如 "LocalCommandParser" 应归属 CHAT 而非 AGENT。
+         * 当多个模块都能匹配时，选择最长前缀（最具体）的那个。
          */
         fun fromTag(tag: String): LogModule? {
             val lowerTag = tag.lowercase()

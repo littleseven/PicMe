@@ -7,26 +7,26 @@
 
 ## 模块定位
 
-`:runtime-core` 是 **PoLang Agent Runtime 核心模块**，为 Android Library（`com.android.library` + `kotlin-compose` 插件），承载 Agent 编排、本地/远程推理管道、Capability 注册、隐私策略、对话记忆、场景管理等能力。
+`:runtime-core` 是 **PoLang Agent Runtime 核心模块**，为 Android Library（`com.android.library` + `kotlin-compose` 插件），承载 Agent 编排、远程推理管道、Capability 注册、隐私策略、对话记忆、场景管理、端侧 VLM 打标等能力。
 
 **插件类型**：`com.android.library` + `org.jetbrains.kotlin.plugin.compose`
 
 **语言**：Kotlin
 
 **版本**：1.0
-**最后更新**：2026-07-25
+**最后更新**：2026-08-02
 **状态**：生效中
 
 **关键职责**：
-- `AgentOrchestrator`（`facade`）：应用级 Agent 入口，管理本地/远程两条推理链路
+- `AgentOrchestrator`（`facade`）：应用级 Agent 入口，管理远程推理链路（chat / 相机 / 飞书）与端侧 VLM 生命周期
 - `CapabilityRegistry`（`runtime.capability`）：Capability 注册、查询、命令分发
-- `PrivacyGuard`（`runtime.policy`）：输入内容隐私分级与本地优先策略
+- `PrivacyGuard`（`runtime.policy`）：输入内容隐私分级与远程调用授权策略
 - `MemoryManager` / `DataStoreChatMemoryStore`（`platform.storage`）：对话历史管理
 - `SceneManager`（`runtime.state`）：页面场景状态管理
-- `LocalInferencePipeline`（`inference.local.pipeline`）：本地推理管道
 - `RemoteReActAgent`（`inference.remote.react`）：远程 ReAct 推理管道
+- `LocalLlmEngine`（`inference.local.llm`）：端侧 VLM 引擎（TAG 打标 / 图像理解专用）
 - 语音交互（`platform.voice`：Sherpa-ONNX ASR / Keyword Spotter）
-- 本地 MNN LLM 推理 JNI（`libagent_native.so`）
+- 端侧 VLM 推理 JNI（`libagent_native.so`）
 
 ## 依赖方向
 
@@ -44,12 +44,12 @@
 
 所有 Agent Runtime 组件位于 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 下。
 
-### 核心组件与文件分布（78 个文件，10 个一级子包）
+### 核心组件与文件分布（78 个文件，9 个一级子包）
 
 | 组件 | 职责 | 包路径 |
 |------|------|--------|
-| `AgentOrchestrator` | 应用级单例，统一入口，管理本地/远程两条独立推理链路 | `agent.core.facade` |
-| `AgentConfigurator` | Agent 配置管理（Local/Remote 实例与运行模式） | `agent.core.facade` |
+| `AgentOrchestrator` | 应用级单例，统一入口：远程推理链路（chat / 相机 / 飞书）+ 端侧 VLM 服务 | `agent.core.facade` |
+| `AgentConfigurator` | Agent 配置管理（远程配置、运行模式、VLM 模型参数） | `agent.core.facade` |
 | `CapabilityRegistry` | Capability 注册/查询/命令分发，跨页面命令队列 | `agent.core.runtime.capability` |
 | `CommandExecutor` | 命令执行器（超时+异常） | `agent.core.runtime.capability` |
 | `CrossPageCommandQueue` | 跨页面命令队列（TTL+重试） | `agent.core.runtime.capability` |
@@ -59,17 +59,17 @@
 | `MemoryManager` | 对话历史管理 | `agent.core.platform.storage` |
 | `DataStoreChatMemoryStore` | DataStore 持久化的 ChatMemory 存储 | `agent.core.platform.storage` |
 | `SceneManager` | 页面场景状态管理 | `agent.core.runtime.state` |
-| `LocalInferencePipeline` | 本地推理链路：L1 Cache + L2 Batch（自定义 JSON 数组协议） | `agent.core.inference.local.pipeline` |
-| `LocalPromptBuilder` | 本地模型 System prompt 构建（精简结构化） | `agent.core.inference.local.prompt` |
-| `LocalCommandParser` | LLM 响应解析为 AgentCommand | `agent.core.inference.local.parser` |
-| `LocalLlmEngine` | 本地 Qwen3.5-2B MNN-LLM 推理封装 | `agent.core.inference.local.llm` |
-| `LlmModelManager` | 本地 LLM 模型管理 | `agent.core.inference.local.llm` |
-| `MnnLlmClient` | MNN LLM 客户端 | `agent.core.inference.local.llm` |
+| `LocalLlmEngine` | 端侧 VLM 引擎（**TAG 打标 / 图像理解专用**：`imageInference`/`imageInferenceWithTimeout` + 模型生命周期；文本 chat 面已移除） | `agent.core.inference.local.llm` |
+| `LocalModelService` | 端侧 VLM 模型加载服务（打标 Worker / 图像理解经 `getLlmEngine()` 取引擎） | `agent.core.inference.local` |
+| `LlmModelManager` | 端侧 VLM 模型管理 | `agent.core.inference.local.llm` |
+| `MnnLlmClient` | MNN LLM 客户端（VLM 打标 JNI 桥） | `agent.core.inference.local.llm` |
 | `RemoteReActAgent` | 远程 ReAct Agent（标准 OpenAI Chat Completions + tool_calls） | `agent.core.inference.remote.react` |
 | `RemoteReActAgentConfig` | ReAct 配置 | `agent.core.inference.remote.react` |
 | `RemotePromptBuilder` | 远程模型 Tool Schema + ChatRequest 构建 | `agent.core.inference.remote.prompt` |
-| `ToolCallCommandParser` | tool_calls 命令解析器（name + arguments → AgentCommand） | `agent.core.inference.remote.parser` |
-| `RemoteControlToolService` | 远程推理 @Tool 注解工具集 | `agent.core.inference.remote.tool` |
+| `ToolCallCommandParser` | tool_calls 命令解析器（name + arguments → AgentCommand；生产调用方 `CameraToolService`） | `agent.core.inference.remote.parser` |
+| `ChatToolService` | chat 场域 @Tool 工具集（scene=CHAT） | `agent.core.inference.remote.tool` |
+| `CameraToolService` | 相机场域 @Tool 工具集（scene=CAMERA，远程 tool_calls） | `agent.core.inference.remote.tool` |
+| `RemoteControlToolService` | IM 远程控制 RPA @Tool 工具集 | `agent.core.inference.remote.tool` |
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
 | `Logger` | 日志接口 | `agent.core.platform.logging` |
 | `ThreadPoolManager` | 线程池管理 | `agent.core.platform.thread` |
@@ -78,7 +78,6 @@
 | `AgentCommands` / `AgentModels` / `AiAgentConfig` / `MediaAsset` / `PageContext` / `SceneContext` / `ExecutionPlan` | 数据模型 | `agent.core.model.*` |
 | `SearchIntent` / `TimeRange` | 搜索意图标准化模型（LLM 输出 → 本地结构化过滤） | `agent.core.model.context` |
 | `AsrEngine` / `AudioRecorder` / `VadDetector` / `SherpaOnnxAsrEngine` / `KeywordSpotterEngine` | 语音交互（Sherpa-ONNX） | `agent.core.platform.voice` |
-| `LlmChatLanguageModel` / `StreamingLlmChatLanguageModel` 等 | LangChain4j 风格本地对话模型接口 | `agent.core.local.llm` |
 
 ### 子包
 
@@ -86,13 +85,12 @@
 |------|------|------|
 | `capability/` | `Capability`, `FaceDetectionProvider` | 泛型 Capability 接口 |
 | `facade/` | `AgentOrchestrator`, `AgentConfigurator` | 应用级入口与配置 |
-| `inference/` | `local/...`, `remote/...` | 本地/远程推理管道（pipeline、llm、parser、prompt、react、tool） |
+| `inference/` | `local/...`, `remote/...` | 端侧 VLM（`local/llm` + `LocalModelService`，打标专用）/ 远程推理管道（parser、prompt、react、tool） |
 | `js/` | `JsEngine`, `JsValue`, `JsBridge`, `JsRuntime`, `NativeHandler`, `BuiltInHandlers`, `JsBridgeException`, `GallerySummaryJs` | JS 沙箱引擎无关层（JsEngine 接口 + bridge 路由 + handler SPI；QuickJS 实现在 `:app`，详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`） |
-| `local/` | `llm/ChatModel`, `StreamingChatModel`, `ChatMessage`, `ChatRequest`, `ChatResponse`, 等 | 与 LangChain4j API 对齐的自定义纯 Kotlin 模型层（为本地/远程推理提供标准化接口） |
 | `model/` | `command/`, `config/`, `context/`, `plan/` | 数据模型 |
 | `platform/` | `logging/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、存储、线程、语音 |
 | `remote/` | `config/` | 远程模型配置与工厂 |
-| `runtime/` | `cache/`, `capability/`, `execution/`, `policy/`, `state/` | 运行时能力：缓存、Capability、执行、隐私策略、场景状态 |
+| `runtime/` | `capability/`, `execution/`, `policy/`, `state/` | 运行时能力：Capability、执行、隐私策略、场景状态 |
 | `tool/` | `accessibility/`, `perception/`, `CameraToolHelper` | Agent 工具与辅助功能 |
 
 > **2026-06-15 架构更新（ADR-005）**：
@@ -152,12 +150,19 @@
 > - `RemoteChatEngine.streamChat` 的 `onToken: (String) -> Unit` 升级为 `onEvent: (ChatStreamEvent) -> Unit`（sealed：`TextSnapshot` 本轮累计全文 / `ToolCallStarted` 进入工具轮）；流式瞬态内容只走 UI 内存轨（`_streamingMessage`），不落 Room
 > - `MambaAgentFactory.buildStreaming()` 补齐 `listeners` / `customParameters` 透传（原遗漏会导致 LlmCallRecord 录制与 `thinking=disabled` 在流式路径失效）
 > - `AgentConfigurator.createRemoteChatModel` 同步改为流式内核；原"网关不支持 SSE"注释已过时（服务端 AI 网关已支持 SSE 逐 chunk 透传，见 `server/AGENTS.md`）
+>
+> **2026-08-02 端侧文本 LLM 移除（相机指令改远程 tool_calls）**：
+> - 移除端侧文本指令链路：`LocalCameraAgent`、`LocalInferencePipeline`（L1/L2/L3 本地通道）、`LocalCommandParser`、`LocalPromptBuilder`、`IntentCache`/`L1CacheSettings`，以及 `local/llm/` LangChain4j 风格适配层（`LlmChatLanguageModel`/`StreamingLlmChatLanguageModel`/`LlmChatRequest`/`LlmChatResponse`/`ChatResponseMetadata`/`StreamingChatResponseHandler`；`StreamChatResult`/`StreamMetrics` 为远程 chat 链路独占，迁至 `inference.remote`）
+> - `LocalLlmEngine` 裁剪为 **VLM 打标专用**：保留 `imageInference()`/`imageInferenceWithTimeout()`/`loadModel()`/`isLoaded`/`isLoadedAs()`/`unload()`/`trimMemory()` 等打标与生命周期方法，移除文本 `chat()` 同步/流式方法及对 `local/llm` 接口的实现
+> - `AiAgentMode` 移除 `LOCAL`（保留 OFF/REMOTE/FEISHU）；`AiAgentInferencePreference` 枚举整体删除；`AgentConfigurator`/`AgentOrchestrator` 移除 `localPromptBuilder`/`intentCache`/`getLocalPipeline()`/`getInferencePreference()` 与 `configure()` 的 `inferencePreference` 参数（`modelId`/`localUseOpencl` 保留——打标/图像理解链路仍以其为默认加载参数）
+> - 新增相机远程 tool_calls 链路：`CameraToolService`（`inference.remote.tool`，scene=CAMERA @Tool 工具集，经 `ToolCallCommandParser` 解析 + `CapabilityRegistry` 执行）+ `AgentOrchestrator.processCameraInput(input, agentContext, pageContext?, timeoutMs)`（远程单轮/少轮 tool_calls → 循环内直接执行 → `InferenceResult.Chat`；OFF 返回「AI Agent 已关闭」；相机 session 历史经 `MemoryManager` fire-and-forget 回写）
+> - 相机 AI 指令协议与 chat 完全一致（标准 OpenAI tool_calls，ADR-005），不新造协议
 
 ## 设计原则
 
 - **零业务依赖**：不直接依赖 `BeautySettings`、`FilterType`、`MediaType`、`ExecutionPlan`（业务）等业务类型，通过泛型 `<T, C, P, A>` 让业务模块注入具体类型。
 - **Android Library**：使用 `com.android.library` + `kotlin-compose` 插件，允许 Android 相关能力（如 AAR 依赖、JNI），但保持业务无关性。
-- **本地优先隐私**：敏感输入优先走本地推理；必须远程时由 `PrivacyGuard` 分级并显式授权。
+- **隐私分级**：`PrivacyGuard` 对输入内容分级；媒体处理 100% 端侧（ADR-008），文本/元数据可走远程推理。
 
 ## 与 App 模块的关系
 
@@ -177,26 +182,20 @@
 - `FaceDetectionProvider.kt` — 人脸检测结果提供
 
 ### `facade/`
-- `AgentConfigurator.kt` — Agent 配置管理（Local/Remote 实例与运行模式）
-- `AgentOrchestrator.kt` — 应用级单例编排器
+- `AgentConfigurator.kt` — Agent 配置管理（远程配置、运行模式、VLM 模型参数）
+- `AgentOrchestrator.kt` — 应用级单例编排器（chat 经 `RemoteChatEngine`；相机经 `processCameraInput`；飞书经 `processRemoteImInput`；VLM 经 `localModelService`）
 
-### `inference/local/llm/`
+### `inference/local/`
+- `LocalModelService.kt` — 端侧 VLM 模型加载服务（**打标专用**：`ensureModelLoaded`/`withModelLoaded`/`getLlmEngine`）
+
+### `inference/local/llm/`（VLM 打标专用）
 - `LlmGenerationMetrics.kt` — 生成指标
-- `LlmModelManager.kt` — 本地 LLM 模型管理
-- `LocalLlmEngine.kt` — 本地 LLM 推理引擎
-- `MnnLlmClient.kt` — MNN LLM 客户端
-
-### `inference/local/parser/`
-- `LocalCommandParser.kt` — 本地命令解析器
-
-### `inference/local/pipeline/`
-- `LocalInferencePipeline.kt` — 本地推理链路
-
-### `inference/local/prompt/`
-- `LocalPromptBuilder.kt` — 本地 Prompt 构建
+- `LlmModelManager.kt` — 端侧 VLM 模型管理
+- `LocalLlmEngine.kt` — 端侧 VLM 推理引擎（`imageInference`/`imageInferenceWithTimeout` + 生命周期）
+- `MnnLlmClient.kt` — MNN LLM 客户端（VLM 打标 JNI 桥）
 
 ### `inference/remote/parser/`
-- `ToolCallCommandParser.kt` — tool_calls 命令解析器
+- `ToolCallCommandParser.kt` — tool_calls 命令解析器（生产调用方 `CameraToolService`）
 
 ### `inference/remote/prompt/`
 - `RemotePromptBuilder.kt` — 远程 Prompt / Tool Schema 构建
@@ -209,8 +208,15 @@
 ### `inference/remote/tool/`
 - `RemoteControlToolService.kt` — IM 远程控制 RPA @Tool 工具集（飞书/Telegram 通道）
 - `ChatToolService.kt` — chat 会话 agent @Tool 工具集（scene=CHAT）
+- `CameraToolService.kt` — 相机 agent @Tool 工具集（scene=CAMERA，远程 tool_calls；`beautySettingsProvider` 由 app 注入）
 - `ToolInventory.kt` — @Tool 元数据 → system prompt 工具清单段（确定性生成，防手写漂移）
 - `GalleryToolDocs.kt` — chat / IM 远程控制两 agent 共享的 @Tool 描述文本
+
+### `inference/remote/`
+- `RemoteChatEngine.kt` — chat 远程 ReAct 链路引擎
+- `StreamingSyncChatModel.kt` — 同步外观 + 流式内核 ChatModel 适配器
+- `StreamChatResult.kt` — 流式聊天结果（远程 chat 链路；自 `local/llm` 迁入）
+- `ChatStreamEvent.kt` — chat 流式事件（TextSnapshot / ToolCallStarted）
 
 ### `js/`
 - `JsEngine.kt` — 引擎无关 JS 引擎接口（eval / callFunction / installBridge / close）
@@ -222,15 +228,6 @@
 - `JsBridgeException.kt` — 错误码（HANDLER_NOT_FOUND / HANDLER_ERROR / SCRIPT_TIMEOUT 等）
 - `JsCallback.kt` — 异步 handler 完成回调
 - `GallerySummaryJs.kt` — GallerySummary → JsValue 转换（gallery.summary handler 用）
-
-### `local/llm/`
-- `ChatResponseMetadata.kt` — 响应元数据
-- `LlmChatLanguageModel.kt` — 同步对话模型接口
-- `LlmChatRequest.kt` — 对话请求
-- `LlmChatResponse.kt` — 对话响应
-- `StreamChatResult.kt` — 流式结果
-- `StreamingChatResponseHandler.kt` — 流式响应回调
-- `StreamingLlmChatLanguageModel.kt` — 流式对话模型接口
 
 ### `model/command/`
 - `AgentCommands.kt` — 命令定义
@@ -270,10 +267,6 @@
 - `RemoteModelConfig.kt` — 远程模型配置
 - `RemoteModelFactory.kt` — 远程模型工厂
 
-### `runtime/cache/`
-- `IntentCache.kt` — 意图缓存
-- `L1CacheSettings.kt` — L1 缓存设置
-
 ### `runtime/capability/`
 - `CapabilityRegistry.kt` — 注册表（应用级单例）
 - `CommandExecutor.kt` — 命令执行器
@@ -310,6 +303,14 @@
 > - `SherpaMnnAsrEngine.kt`, `MnnAsrClient.kt`, `com.k2fsa.sherpa.mnn.*`（已迁移至 Sherpa-ONNX）
 > - `ToolCallParser.kt`（合并入 `ToolCallCommandParser.kt`）
 > - 累计清理 ~2,600 行冗余代码
+>
+> **已移除（2026-08-02 端侧文本 LLM 链路）**：
+> - `inference/local/LocalCameraAgent.kt`, `inference/local/pipeline/LocalInferencePipeline.kt`
+> - `inference/local/parser/LocalCommandParser.kt`, `inference/local/prompt/LocalPromptBuilder.kt`
+> - `runtime/cache/IntentCache.kt`, `runtime/cache/L1CacheSettings.kt`（L1 意图缓存随本地链路退役）
+> - `local/llm/` 整包（`LlmChatLanguageModel`/`StreamingLlmChatLanguageModel`/`LlmChatRequest`/`LlmChatResponse`/`ChatResponseMetadata`/`StreamingChatResponseHandler`；`StreamChatResult.kt` 迁至 `inference/remote/`）
+> - `LocalLlmEngine.chat()`（同步/流式）及 `extractText`/`safeExtractUserContent`/`buildPromptFromMessages` 辅助方法
+> - `AiAgentMode.LOCAL`、`AiAgentInferencePreference` 枚举、`AgentConfigurator.getLocalPipeline()`/`getInferencePreference()`
 
 ## 编译验证
 

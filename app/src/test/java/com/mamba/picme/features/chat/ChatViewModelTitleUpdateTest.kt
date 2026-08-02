@@ -1,7 +1,7 @@
 package com.mamba.picme.features.chat
 
 import com.mamba.picme.R
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
+import com.mamba.picme.agent.core.inference.remote.StreamChatResult
 import com.mamba.picme.data.local.ChatSessionEntity
 import io.mockk.coEvery
 import io.mockk.coVerify

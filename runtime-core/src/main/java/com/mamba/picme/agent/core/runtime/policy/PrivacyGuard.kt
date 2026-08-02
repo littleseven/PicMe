@@ -29,11 +29,11 @@ enum class PrivacyLevel {
  * 隐私守卫
  *
  * 负责运行时隐私策略检查和输入内容隐私分级。
- * 根据输入内容自动分类隐私级别，决定使用本地还是远程推理。
+ * 端侧文本 LLM 移除后，文本推理全远程，本类仅保留输入隐私分级能力。
  */
 class PrivacyGuard(
     private var privacyLevel: AiAgentPrivacyLevel = AiAgentPrivacyLevel.STRICT,
-    private var agentMode: AiAgentMode = AiAgentMode.LOCAL
+    private var agentMode: AiAgentMode = AiAgentMode.REMOTE
 ) {
 
     /**
@@ -63,19 +63,6 @@ class PrivacyGuard(
         }
 
         return PrivacyLevel.PUBLIC
-    }
-
-    /**
-     * 断言当前处于本地模式
-     *
-     * @throws SecurityException 如果当前模式违反本地-only 策略
-     */
-    fun assertLocalOnly() {
-        if (privacyLevel == AiAgentPrivacyLevel.STRICT && agentMode != AiAgentMode.LOCAL) {
-            throw SecurityException(
-                "PrivacyGuard: STRICT mode requires LOCAL inference, but current mode is $agentMode"
-            )
-        }
     }
 
     /**

@@ -116,7 +116,6 @@
 - **下载管理**：`LlmModelDownloadManager` 支持断点续传、暂停和进度回调
 - **模型配置**：`res/raw/llm_models.json` 定义所有可用模型的元数据；每个模型通过 `tags` 中的服务功能标签（`must-have` / `chat` / `voice` / `photo-tagging` / `beauty-camera`）决定所属分类
 - **必须模型清单（`ModelConfig.REQUIRED_MODEL_IDS`）**：
-  - `qwen3_5_2b`（本地 LLM，文字/多模态对话）
   - `sherpa-onnx-zipformer-zh-en`（ASR，语音输入）
   - `sherpa-onnx-kws-zipformer-wenetspeech`（KWS，唤醒词）
   - `face-det-retina500m-mnn`（默认人脸检测，Det10G 已降级为可选）
@@ -126,8 +125,7 @@
   - `opus-mt-zh-en`（中文查询翻译）
 
 **Agent 模式设置**
-- **本地模式**：仅使用本地模型（默认 Qwen3.5-2B）
-- **远程模式**：仅使用云端 LLM API（OpenAI 兼容协议）
+- **远程模式**：使用云端 LLM API（OpenAI 兼容协议）；端侧文本 LLM（qwen3_5_2b）已移除，相机/聊天指令统一走远程 tool_calls 链路
 - **关闭模式**：禁用 Agent
 - **隐私级别**：`STRICT` / `PERMISSIVE`；运行时输入分级为 `PUBLIC` / `SENSITIVE` / `RESTRICTED`
 

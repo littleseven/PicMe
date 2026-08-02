@@ -15,7 +15,7 @@
 
 ## 1. 模块概述
 
-`:mnn-core` 是 **MNN 推理运行时共享模块**，为 Android Library。它集中管理 MNN 预编译库（`libMNN.so`、`libOpenCL.so`）和 MNN 资源加载/释放锁，供 `:runtime-core`（本地 LLM）和 `:beauty-engine`（人脸检测/嵌入）共同依赖。
+`:mnn-core` 是 **MNN 推理运行时共享模块**，为 Android Library。它集中管理 MNN 预编译库（`libMNN.so`、`libOpenCL.so`）和 MNN 资源加载/释放锁，供 `:runtime-core`（VLM 打标）和 `:beauty-engine`（人脸检测）共同依赖。
 
 该模块的独立避免了 `:beauty-engine` 因使用 MNN 而反向依赖 `:runtime-core`。
 

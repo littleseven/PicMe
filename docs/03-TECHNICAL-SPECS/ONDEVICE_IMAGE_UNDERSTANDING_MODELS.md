@@ -16,6 +16,8 @@
 以下方案经评估**出局，不再考虑**：SmolVLM-500M / SmolVLM-2.2B / LFM2-VL / MiniCPM-V / MobileVLM / LightCap。
 
 > 本文其余内容为历史调研记录，保留作参考；打标落地实现见 `TAG_GENERATION.md`。
+>
+> **变更说明（2026-08）**：端侧**文本** LLM（Qwen3.5-2B 聊天/指令模型）已移除（`AiAgentMode.LOCAL` 及相机本地 Agent 链路全部删除）。MNN 运行时现仅承载 **VLM 打标**（Qwen3-VL-2B）和**人脸检测**模型。本文涉及的 Qwen3-VL-2B 和 Florence-2 打标方案不受影响。
 
 ---
 
@@ -216,7 +218,7 @@ PoLang 已有的推理框架：
 
 | 框架 | 当前用途 | VL 模型支持 |
 |------|---------|------------|
-| **MNN** | LLM (Qwen3.5-2B) + 人脸检测 | 可支持 Qwen3-VL |
+| **MNN** | VLM 打标 (Qwen3-VL-2B) + 人脸检测 | 可支持 Qwen3-VL |
 
 **推荐**:
 - VL 模型：**MNN** 或 **llama.cpp**（已有 MNN LLM 经验）

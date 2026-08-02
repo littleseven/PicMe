@@ -25,20 +25,20 @@ class LlmModelManager(private val context: Context) {
         val version: String
     )
 
-    private val llmModelRegistry = mapOf(
-        "qwen3_5_2b" to LlmModelInfo(
-            assetDir = "models/llm/Qwen3.5-2B-MNN",
-            cacheDirName = "qwen3_5_2b",
-            version = "1.0"
-        )
-    )
+    /**
+     * assets 内置 LLM 模型注册表。
+     *
+     * 当前无任何 assets 内置模型：端侧文本 LLM（qwen3_5_2b）已移除，
+     * VLM 打标模型（qwen3_vl_2b）仅经下载目录 (llm_models/) 提供。
+     */
+    private val llmModelRegistry = emptyMap<String, LlmModelInfo>()
 
     /**
      * 准备 LLM 模型目录
      *
-     * 优先从下载目录 (llm_models/) 加载，其次从 assets 复制。
+     * 从下载目录 (llm_models/) 加载；下载目录不存在时回退 assets 注册表（当前为空）。
      *
-     * @param modelKey 模型注册表中的 key，如 "qwen3_5_2b"
+     * @param modelKey 模型 key，如 "qwen3_vl_2b"
      * @return 模型目录绝对路径
      * @throws IllegalArgumentException 如果 key 不存在
      */

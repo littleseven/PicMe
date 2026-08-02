@@ -35,7 +35,6 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.core.identity.DeviceIdProvider
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
@@ -77,6 +76,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
     companion object {
         private const val TAG = "Application"
+
+        /** 端侧 VLM 打标模型（configure 的 modelId 仅作 localModelService 默认模型）。 */
+        private const val TAGGER_MODEL_ID = "qwen3_vl_2b"
     }
 
     val applicationScope = CoroutineScope(SupervisorJob())
@@ -194,9 +196,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         // 预配置 AgentOrchestrator 默认远程推理配置
         // gatewayToken 异步从 DataStore 加载（syncRemoteModelConfigToOrchestrator）
+        // modelId 为端侧 VLM 打标模型（qwen3_vl_2b），仅作 localModelService 默认模型
         AgentOrchestrator.getInstance(this).configure(
             mode = AiAgentMode.REMOTE,
-            modelId = "qwen3_5_2b",
+            modelId = "qwen3_vl_2b",
             privacyLevel = AiAgentPrivacyLevel.STRICT,
             remoteConfig = RemoteModelConfig.PICME_SERVER_DEFAULT
         )
@@ -256,8 +259,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         registerFeishuNetworkMonitor()
 
         // 同步 AI Agent 模式到 AgentOrchestrator，确保飞书远程控制
-        // 的路由遵循用户在设置中选定的推理模式（LOCAL/REMOTE/OFF）
+        // 的路由遵循用户在设置中选定的推理模式（REMOTE/OFF）
         syncAgentModeToOrchestrator()
+
+        // 端侧文本 LLM（qwen3_5_2b）残留模型目录一次性清理（DataStore 标志位幂等）
+        cleanupLegacyLocalTextLlm()
 
         // 同步远程模型配置到 AgentOrchestrator，确保用户修改 API Token 后即时生效
         syncRemoteModelConfigToOrchestrator()
@@ -376,11 +382,14 @@ class PoLangApplication : Application(), ImageLoaderFactory {
      * 同步 AI Agent 模式到 AgentOrchestrator
      *
      * **为什么需要这个方法**：
-     * - [AgentOrchestrator] 是单例，其内部 [AgentConfigurator.agentMode] 默认值为 [AiAgentMode.LOCAL]
+     * - [AgentOrchestrator] 是单例，其内部 [AgentConfigurator.agentMode] 默认值为 [AiAgentMode.REMOTE]
      * - [RemoteCommandDispatcher] 直接使用此单例，但从不调用 [AgentOrchestrator.configure]
      * - 如果用户在设置中切换了推理模式，而飞书路径没有收到通知，
-     *   飞书消息会继续走旧的模式（或默认 LOCAL），与用户期望不符
+     *   飞书消息会继续走旧的模式（或默认 REMOTE），与用户期望不符
      * - 此方法在启动时读取用户的设置，并在设置变化时自动同步
+     *
+     * 端侧文本 LLM 移除后，modelId 固定为端侧 VLM 打标模型（qwen3_vl_2b），
+     * 仅作 localModelService.ensureModelLoaded 的默认模型；推理路由不再有本地/远程偏好。
      */
     private fun syncAgentModeToOrchestrator() {
         applicationScope.launch {
@@ -388,27 +397,47 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                 val repository = container.userPreferencesRepository
                 combine(
                     repository.aiAgentModeFlow,
-                    repository.aiAgentLocalModelFlow,
-                    repository.aiAgentPrivacyLevelFlow,
-                    repository.aiAgentInferencePreferenceFlow
-                ) { mode, localModel, privacyLevel, inferencePreference ->
-                    SyncConfig(mode, localModel, privacyLevel, inferencePreference)
-                }.collect { (mode, localModel, privacyLevel, inferencePreference) ->
+                    repository.aiAgentPrivacyLevelFlow
+                ) { mode, privacyLevel ->
+                    SyncConfig(mode, privacyLevel)
+                }.collect { (mode, privacyLevel) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
-                    val effectiveModel = localModel.takeIf { it.isNotBlank() } ?: "qwen3_5_2b"
                     // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
                     // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
                     orchestrator.configure(
                         mode = mode,
-                        modelId = effectiveModel,
+                        modelId = TAGGER_MODEL_ID,
                         privacyLevel = privacyLevel,
-                        remoteConfig = null,
-                        inferencePreference = inferencePreference
+                        remoteConfig = null
                     )
-                    Logger.i(TAG, "Agent orchestrator synced: mode=$mode, model=$effectiveModel, inferencePreference=$inferencePreference")
+                    Logger.i(TAG, "Agent orchestrator synced: mode=$mode, model=$TAGGER_MODEL_ID")
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "Agent mode sync failed", e)
+            }
+        }
+    }
+
+    /**
+     * 端侧文本 LLM（qwen3_5_2b）残留模型目录一次性清理。
+     *
+     * 仅删除 `filesDir/llm_models/qwen3_5_2b/` 子目录（同目录其他模型不动），
+     * DataStore 标志位保证只执行一次；任何异常吞掉记日志，不影响启动。
+     */
+    private fun cleanupLegacyLocalTextLlm() {
+        applicationScope.launch {
+            try {
+                val repository = container.userPreferencesRepository
+                val alreadyCleaned = repository.localTextLlmCleanedFlow.first()
+                if (alreadyCleaned) return@launch
+                val legacyDir = java.io.File(filesDir, "llm_models/qwen3_5_2b")
+                if (legacyDir.exists()) {
+                    val deleted = legacyDir.deleteRecursively()
+                    Logger.i(TAG, "Legacy local text LLM dir removed: ${legacyDir.absolutePath}, deleted=$deleted")
+                }
+                repository.markLocalTextLlmCleaned()
+            } catch (e: Exception) {
+                Logger.w(TAG, "Legacy local text LLM cleanup failed (will retry next launch): ${e.message}")
             }
         }
     }
@@ -775,9 +804,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
      */
     private data class SyncConfig(
         val mode: AiAgentMode,
-        val localModel: String,
-        val privacyLevel: AiAgentPrivacyLevel,
-        val inferencePreference: AiAgentInferencePreference
+        val privacyLevel: AiAgentPrivacyLevel
     )
 
     /** 通道激活参数容器（combine 5 路流后传给 RemoteChannelManager.activate）。 */

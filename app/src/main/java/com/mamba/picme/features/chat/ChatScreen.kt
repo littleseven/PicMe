@@ -2091,10 +2091,9 @@ data class MediaResultsUi(
 )
 
 /**
- * 模型选项
+ * 模型选项（chat 页仅远程：端侧文本 LLM 已移除，仅保留 Remote）
  */
 sealed class ChatModelOption(val label: String, val indicatorColor: Color) {
-    data object Local : ChatModelOption("本地", Color(0xFF4CAF50))
     data object Remote : ChatModelOption("远程", Color(0xFF2196F3))
 }
 

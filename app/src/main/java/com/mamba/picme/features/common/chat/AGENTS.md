@@ -6,7 +6,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**: 二级页，相册内的 AI 助手能力入口，从相册首页底部 Tab 或 plus 菜单进入；支持本地/远程模型切换、对话持久化
+**模块定位**: 二级页，相册内的 AI 助手能力入口，从相册首页底部 Tab 或 plus 菜单进入；仅远程模型（端侧文本 LLM 已移除），支持对话持久化
 
 **主要维护者**: [RD] 全栈工程师
 
@@ -15,9 +15,8 @@
 ## 1. 核心产品逻辑 (Core Product Logic)
 
 - **[PRIVACY] 隐私优先保护**: 敏感数据（人脸/对话/图片）优先本地处理，非敏感复杂推理可在用户授权后使用云端模型
-- **[PERF] 响应延迟**: 本地模型首字 < 500ms，远程模型首字 < 1.5s
-- **[I18N] 多语言文案**: 模型切换提示、输入框占位符、快捷入口标签必须提取到 strings.xml
-- **[FEEDBACK] 模型切换反馈**: 切换本地/远程模型时必须显示 Toast 提示当前模型状态
+- **[PERF] 响应延迟**: 远程模型首字 < 1.5s
+- **[I18N] 多语言文案**: 输入框占位符、快捷入口标签必须提取到 strings.xml
 - **[PERSISTENCE] 对话持久化**: 所有消息自动保存到 Room 数据库，应用重启后自动恢复
 
 ## 2. 页面架构 (Page Architecture)
@@ -36,7 +35,7 @@
 │                             │
 ├─────────────────────────────┤
 │  ModelSelector + InputBar   │
-│  [本地模型 ▼] [输入框] [发送]│
+│  [远程模型 ▼] [输入框] [发送]│
 └─────────────────────────────┘
 ```
 
@@ -45,9 +44,9 @@
 | 组件 | 文件 | 职责 |
 |------|------|------|
 | **ChatScreen** | `features/chat/ChatScreen.kt` | 二级页容器，组合各子组件 |
-| **ChatViewModel** | `features/chat/ChatViewModel.kt` | 对话状态管理、消息发送、模型切换 |
+| **ChatViewModel** | `features/chat/ChatViewModel.kt` | 对话状态管理、消息发送 |
 | **MessageList** | `features/chat/components/MessageList.kt` | 消息列表渲染，支持多种消息类型 |
-| **ModelSelector** | `features/chat/components/ModelSelector.kt` | 输入框左侧下拉，本地/远程模型切换 |
+| **ModelSelector** | `features/chat/components/ModelSelector.kt` | 输入框左侧下拉，仅远程模型（本地文本 LLM 已移除） |
 | **ChatInputBar** | `features/chat/components/ChatInputBar.kt` | 输入框 + 发送按钮 + 语音切换 |
 | **MessageRepository** | `data/repository/MessageRepository.kt` | Room 数据库读写，对话持久化 |
 
@@ -55,48 +54,29 @@
 
 ## 3. 模型切换实现 (Model Switching)
 
+> **2026-08 更新**：端侧文本 LLM（Qwen3.5-2B）已移除，chat 页仅保留远程模型（DeepSeek），
+> `ChatModelOption` 只剩 `Remote` 单选项，下拉不再提供本地切换。下文本地切换逻辑为历史记录。
+
 ### 3.1 ModelSelector 组件
 
 **位置**: 输入框左侧，固定宽度 80dp
 
 **状态标识**:
-- 本地模型（Qwen3.5-2B）：绿色圆点 `#4CAF50` + 文字 "本地"
 - 远程模型（DeepSeek）：蓝色圆点 `#2196F3` + 文字 "远程"
 
 **下拉选项**:
 ```kotlin
 sealed class ModelOption(val label: String, val indicatorColor: Color) {
-    data object Local : ModelOption("本地模型", Color(0xFF4CAF50))
     data object Remote : ModelOption("远程模型", Color(0xFF2196F3))
 }
 ```
 
-**切换逻辑**:
+**切换逻辑**（chat 仅远程，简化为单选项）:
 ```kotlin
 fun switchModel(target: ModelOption) {
-    when (target) {
-        is ModelOption.Local -> {
-            if (!localModel.isDownloaded) {
-                showToast("本地模型未下载，前往设置下载？")
-                return
-            }
-            if (!localModel.isLoaded) {
-                showLoading("正在加载本地模型...")
-                localModel.load()
-            }
-            currentModel = localModel
-            showToast("已切换至本地模型（Qwen3.5-2B）")
-        }
-        is ModelOption.Remote -> {
-            if (!networkManager.isConnected) {
-                showToast("网络不可用，已回退至本地模型")
-                currentModel = localModel
-                return
-            }
-            currentModel = remoteModel
-            showToast("已切换至远程模型（DeepSeek）")
-        }
-    }
+    // 仅 Remote：同步远程配置到 AgentOrchestrator
+    currentModel = remoteModel
+    showToast("已切换至远程模型（DeepSeek）")
     // 保留当前对话上下文
     memorySession.preserveContext()
 }
@@ -106,12 +86,8 @@ fun switchModel(target: ModelOption) {
 
 ```kotlin
 fun getDefaultModel(): ModelOption {
-    return when {
-        !localModel.isDownloaded -> ModelOption.Remote
-        !networkManager.isConnected -> ModelOption.Local
-        userPreference.defaultModel == "local" -> ModelOption.Local
-        else -> ModelOption.Remote
-    }
+    // chat 页仅远程：固定 Remote
+    return ModelOption.Remote
 }
 ```
 
@@ -214,14 +190,14 @@ ChatScreen(
 
 **改进点**:
 1. 独立二级页，从相册首页进入，不再依附于相机/编辑页内
-2. 模型切换下拉，本地/远程实时切换
+2. 仅远程模型，无本地切换
 3. 对话持久化，Room 数据库存储
 4. 消息类型扩展，支持图片消息
 5. 全屏对话体验，非浮动面板
 
 ## 7. 跨模块复用
 
-- ✅ **ChatScreen（二级页）**: 使用完整 Chat UI，包含模型切换、持久化
+- ✅ **ChatScreen（二级页）**: 使用完整 Chat UI，包含持久化
 - ✅ **Camera**: 保留 AiChatScreen 浮动面板（作为页面内辅助）
 - ✅ **Gallery**: 保留 AiChatScreen 浮动面板（作为页面内辅助）
 - ✅ **Editor**: 保留 AiChatScreen 浮动面板（作为页面内辅助）
@@ -237,41 +213,38 @@ ChatScreen(
 
 ## 9. Agent 执行规约 (Execution Rules)
 
-- **模型切换**: 必须在 UI 线程更新状态，模型加载在 IO 线程
-- **消息发送**: 先插入本地数据库，再发起网络/本地推理请求
+- **消息发送**: 先插入本地数据库，再发起网络推理请求
 - **图片消息**: 图片保存到应用私有目录，数据库只存储路径
 - **数据库查询**: 使用 Flow 监听，自动响应数据变化
 - **I18N**: 所有用户可见文案必须提取到 strings.xml
-- **日志规范**: 关键操作（模型切换、消息发送、数据库读写）需记录 `PoLang:Chat` 日志
+- **日志规范**: 关键操作（消息发送、数据库读写）需记录 `PoLang:Chat` 日志
 - **内存管理**: 图片消息使用 Coil/Glide 加载，避免内存泄漏
 - **状态恢复**: 进程被杀后重启，自动恢复最近对话
 
 ## 10. 常见陷阱检查清单 (Checklist)
 
 - [ ] 模型切换时是否保留了对话上下文？
-- [ ] 本地模型未下载时是否给出明确引导？
 - [ ] 消息发送失败时是否有重试机制？
 - [ ] 数据库读写是否在 IO 线程执行？
 - [ ] 图片消息是否使用了适当的压缩？
 - [ ] 单会话消息数是否超过 1000 条限制？
 - [ ] 应用重启后对话历史是否正确恢复？
 - [ ] 快捷入口跳转后是否正确返回并插入图片消息？
-- [ ] 模型切换提示是否遵循 I18N 规范？
 - [ ] 语音输入是否在所有页面一致可用？
 
 ## 11. 与产品文档对照 (Product Alignment)
 
 **必须满足的产品指标**:
 - ✅ AI 对话二级页 → 独立 ChatScreen，从相册首页进入
-- ✅ 模型切换 → 输入框下拉，本地(Qwen3.5-2B)/远程(DeepSeek)切换
+- ✅ 模型切换 → 输入框下拉，仅远程(DeepSeek)（本地 Qwen 文本模型已移除）
 - ✅ 对话持久化 → Room 数据库，自动保存/恢复
-- ✅ 响应延迟 → 本地 < 500ms，远程 < 1.5s
+- ✅ 响应延迟 → 远程 < 1.5s
 - ✅ 隐私保护 → 敏感数据优先本地处理
 
 **技术决策记录**:
 - 选择 Room 而非 DataStore：Room 支持复杂查询和分页，适合消息列表场景
 - 单会话 1000 条限制：平衡存储空间与历史完整性，后续可扩展为可配置
-- 默认远程模型：确保首次安装最佳体验，用户下载本地模型后自动切换偏好
+- 默认远程模型：确保首次安装最佳体验
 - 图片存储在私有目录：避免暴露到公共相册，用户主动分享时才导出
 
 ### 2. AgentMessage

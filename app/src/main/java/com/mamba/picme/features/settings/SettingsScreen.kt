@@ -158,12 +158,9 @@ fun SettingsScreen(
     val roiStageConfig by viewModel.roiStageConfig.collectAsState()
     val landmarkStageConfig by viewModel.landmarkStageConfig.collectAsState()
     val aiAgentMode by viewModel.aiAgentMode.collectAsState()
-    val aiAgentLocalModel by viewModel.aiAgentLocalModel.collectAsState()
     val aiAgentRemoteModelConfigs by viewModel.aiAgentRemoteModelConfigs.collectAsState()
     val aiAgentSelectedRemoteModel by viewModel.aiAgentSelectedRemoteModel.collectAsState()
-    val aiAgentL1CacheEnabled by viewModel.aiAgentL1CacheEnabled.collectAsState()
     val autoExecutePlans by viewModel.autoExecutePlansEnabled.collectAsState()
-    val aiAgentLocalUseOpencl by viewModel.aiAgentLocalUseOpencl.collectAsState()
     val tagGenerationUseOpencl by viewModel.tagGenerationUseOpencl.collectAsState()
     val taggerModelKey by viewModel.taggerModelKey.collectAsState()
     val voiceCommandMode by viewModel.voiceCommandMode.collectAsState()
@@ -220,9 +217,8 @@ fun SettingsScreen(
                         if (enabled) VoiceCommandMode.WAKE_WORD else VoiceCommandMode.DISABLED
                     )
                     "agent_mode" -> viewModel.setAiAgentMode(
-                        if (enabled) AiAgentMode.LOCAL else AiAgentMode.OFF
+                        if (enabled) AiAgentMode.REMOTE else AiAgentMode.OFF
                     )
-                    "agent_local_opencl" -> viewModel.setAiAgentLocalUseOpencl(enabled)
                     "tag_generation_opencl" -> viewModel.setTagGenerationUseOpencl(enabled)
                     else -> Logger.w(TAG, "Unknown setting key: $key")
                 }
@@ -268,18 +264,12 @@ fun SettingsScreen(
             onLandmarkDevicePreferenceSelected = { viewModel.setLandmarkDevicePreference(it) },
             aiAgentMode = aiAgentMode,
             onAiAgentModeChange = { viewModel.setAiAgentMode(it) },
-            aiAgentLocalModel = aiAgentLocalModel,
-            onAiAgentLocalModelChange = { viewModel.setAiAgentLocalModel(it) },
             aiAgentRemoteModelConfigs = aiAgentRemoteModelConfigs,
             onAiAgentRemoteModelConfigsChange = { viewModel.setAiAgentRemoteModelConfigs(it) },
             aiAgentSelectedRemoteModel = aiAgentSelectedRemoteModel,
             onAiAgentSelectedRemoteModelChange = { viewModel.setAiAgentSelectedRemoteModel(it) },
-            aiAgentL1CacheEnabled = aiAgentL1CacheEnabled,
-            onAiAgentL1CacheEnabledChange = { viewModel.setAiAgentL1CacheEnabled(it) },
             autoExecutePlans = autoExecutePlans,
             onAutoExecutePlansChange = { viewModel.setAutoExecutePlansEnabled(it) },
-            aiAgentLocalUseOpencl = aiAgentLocalUseOpencl,
-            onAiAgentLocalUseOpenclChange = { viewModel.setAiAgentLocalUseOpencl(it) },
             tagGenerationUseOpencl = tagGenerationUseOpencl,
             onTagGenerationUseOpenclChange = { viewModel.setTagGenerationUseOpencl(it) },
             taggerModelKey = taggerModelKey,
@@ -335,18 +325,12 @@ private fun SettingsContent(
     landmarkStageConfig: StageConfig,
     aiAgentMode: AiAgentMode,
     onAiAgentModeChange: (AiAgentMode) -> Unit,
-    aiAgentLocalModel: String,
-    onAiAgentLocalModelChange: (String) -> Unit,
     aiAgentRemoteModelConfigs: String,
     onAiAgentRemoteModelConfigsChange: (String) -> Unit,
     aiAgentSelectedRemoteModel: String,
     onAiAgentSelectedRemoteModelChange: (String) -> Unit,
-    aiAgentL1CacheEnabled: Boolean,
-    onAiAgentL1CacheEnabledChange: (Boolean) -> Unit,
     autoExecutePlans: Boolean,
     onAutoExecutePlansChange: (Boolean) -> Unit,
-    aiAgentLocalUseOpencl: Boolean,
-    onAiAgentLocalUseOpenclChange: (Boolean) -> Unit,
     tagGenerationUseOpencl: Boolean,
     onTagGenerationUseOpenclChange: (Boolean) -> Unit,
     taggerModelKey: String,
@@ -482,34 +466,6 @@ private fun SettingsContent(
                         onConfigsChange = onAiAgentRemoteModelConfigsChange,
                         selectedModelId = aiAgentSelectedRemoteModel,
                         onSelectedModelChange = onAiAgentSelectedRemoteModelChange
-                    )
-                }
-
-                // 2.3 本地链路（常驻可见）
-                SettingsSection(
-                    title = stringResource(R.string.ai_settings_local_section)
-                ) {
-                    AiAgentLocalModelSection(
-                        currentLocalModel = aiAgentLocalModel,
-                        onLocalModelSelected = onAiAgentLocalModelChange,
-                        onNavigateToModelManager = onNavigateToModelCenter
-                    )
-
-                    OpenClBackendSelection(
-                        useOpencl = aiAgentLocalUseOpencl,
-                        onToggle = onAiAgentLocalUseOpenclChange
-                    )
-
-                    DebugOptionRow(
-                        title = stringResource(R.string.ai_agent_l1_cache),
-                        checked = aiAgentL1CacheEnabled,
-                        onCheckedChange = onAiAgentL1CacheEnabledChange
-                    )
-                    Text(
-                        text = stringResource(R.string.ai_agent_l1_cache_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
                 }
 
@@ -1336,20 +1292,14 @@ fun SettingsScreenPreview() {
             onRoiDevicePreferenceSelected = {},
             onLandmarkModelTypeSelected = {},
             onLandmarkDevicePreferenceSelected = {},
-            aiAgentMode = AiAgentMode.LOCAL,
+            aiAgentMode = AiAgentMode.REMOTE,
             onAiAgentModeChange = {},
-            aiAgentLocalModel = "",
-            onAiAgentLocalModelChange = {},
             aiAgentRemoteModelConfigs = "",
             onAiAgentRemoteModelConfigsChange = {},
             aiAgentSelectedRemoteModel = "deepseek-v4-flash",
             onAiAgentSelectedRemoteModelChange = {},
-            aiAgentL1CacheEnabled = true,
-            onAiAgentL1CacheEnabledChange = {},
             autoExecutePlans = true,
             onAutoExecutePlansChange = {},
-            aiAgentLocalUseOpencl = false,
-            onAiAgentLocalUseOpenclChange = {},
             tagGenerationUseOpencl = false,
             onTagGenerationUseOpenclChange = {},
             taggerModelKey = TaggerModelSelector.AUTO,

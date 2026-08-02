@@ -2,11 +2,6 @@ package com.mamba.picme.domain.agent.remote
 
 import android.content.Context
 import android.view.WindowManager
-import com.mamba.picme.agent.core.model.context.AgentAction
-import com.mamba.picme.agent.core.model.context.AgentContext
-import com.mamba.picme.agent.core.model.context.AgentScene
-import com.mamba.picme.agent.core.model.config.AiAgentMode
-import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService
 import com.mamba.picme.core.common.Logger
@@ -154,63 +149,14 @@ class RemoteCommandDispatcher(
     }
 
     /**
-     * 回退到原有的 AgentOrchestrator 流程
+     * WindowManager 不可用时的回退：端侧文本 LLM 已移除，本地兜底链路不存在，
+     * 直接告知用户当前环境不可用。
      */
     private suspend fun fallbackProcess(text: String, messageId: String) {
-        try {
-            val agentContext = AgentContext(scene = AgentScene.CHAT)
-            orchestrator.pushModeOverride(AiAgentMode.REMOTE)
-            try {
-                val result = withTimeout(30_000L) {
-                    orchestrator.localCameraAgent.processUserInput(
-                        input = text,
-                        agentContext = agentContext,
-                        pageContext = PageContext.None
-                    )
-                }
-                val reply = result.fold(
-                    onSuccess = { action -> formatActionReply(action) },
-                    onFailure = { error -> "❌ 处理失败: ${error.message ?: "未知错误"}" }
-                )
-                saveAgentMessage(reply)
-                channel.sendMessage(reply, messageId)
-            } finally {
-                orchestrator.popModeOverride()
-            }
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            val timeoutMsg = "⏰ 处理超时，请稍后重试"
-            saveAgentMessage(timeoutMsg)
-            channel.sendMessage(timeoutMsg, messageId)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            val cancelMsg = "⏹️ 上一个任务已取消，正在处理新请求..."
-            saveAgentMessage(cancelMsg)
-            channel.sendMessage(cancelMsg, messageId)
-        } catch (e: Exception) {
-            val errorMsg = "❌ 处理异常: ${e.message ?: "未知错误"}"
-            saveAgentMessage(errorMsg)
-            channel.sendMessage(errorMsg, messageId)
-        }
-    }
-
-    private fun formatActionReply(action: AgentAction): String {
-        return when (action) {
-            is AgentAction.TextReply -> action.message
-            is AgentAction.MediaResults -> "找到 ${action.totalCount} 张「${action.query}」的照片"
-            is AgentAction.Success -> "✅ 操作已执行"
-            is AgentAction.Error -> "❌ ${action.message}"
-            is AgentAction.BatchResult -> {
-                val parts = action.results.mapIndexed { i, r ->
-                    when (r) {
-                        is AgentAction.Success -> "  ✅ 步骤${i + 1}: 成功"
-                        is AgentAction.TextReply -> "  💬 步骤${i + 1}: ${r.message}"
-                        is AgentAction.Error -> "  ❌ 步骤${i + 1}: ${r.message}"
-                        is AgentAction.BatchResult -> "  📦 步骤${i + 1}: 批量完成"
-                        is AgentAction.MediaResults -> "  🖼️ 步骤${i + 1}: 找到 ${r.totalCount} 张照片"
-                    }
-                }
-                "📋 批量执行结果:\n${parts.joinToString("\n")}"
-            }
-        }
+        Logger.w(tag, "fallbackProcess: WindowManager 不可用，无法处理 '$text'")
+        val msg = "❌ 当前无法执行远程控制：请先在手机上打开应用后重试（WindowManager 不可用）"
+        saveAgentMessage(msg)
+        channel.sendMessage(msg, messageId)
     }
 
     // ── 聊天记录持久化 ─────────────────────────────────────────────

@@ -36,9 +36,9 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 | 页索引 | 页面 | 定位 |
 |--------|------|------|
-| 0 | `Camera` | 拍照、美颜预览、语音控制（`isActivePage` 门控相机绑定/语音/本地模型加载） |
+| 0 | `Camera` | 拍照、美颜预览、语音控制（`isActivePage` 门控相机绑定/语音；AI 指令走远程 tool_calls，无端侧文本模型加载） |
 | 1 | `Gallery` | **默认首页** — 智能相册、媒体浏览、AI 搜索、分类管理；底部悬浮 Tab 以纯图标聚合 Camera/Chat/ModelCenter 入口；设置入口在顶部栏最右侧 |
-| 2 | `Chat` | AI 对话主页，模型切换 |
+| 2 | `Chat` | AI 对话主页，仅远程模型 |
 | 3 | `People` | 人物聚类页 |
 
 > **2026-07 主页面 Pager 化**：4 个主页面由 `HorizontalPager`（`beyondViewportPageCount = 3`，页面常驻组合）承载，横滑跟手、线性顺序、无循环回绕；底部 Tab/编程入口经 `switchMainPage` 瞬时切页（无滑动动画）；相册（详情/多选）与聊天（全屏预览）通过 `onHorizontalSwipeEnabledChange` 局部禁用外层滑动；Chat/人物页跳相册搜索经 `searchRequest` 状态驱动（不再走 `gallery?query=` 路由参数）。原 `MainPageSwipeWrapper` 已删除。
@@ -153,7 +153,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 人脸检测 | `FaceDetector`（beauty-api 接口） | MediaPipe/MNN 双引擎 |
 | 远程推理 | `RemoteReActAgent`（:runtime-core） | OpenAI Chat Completions API + tool_calls |
 | TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
-| 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：本地/远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
+| 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
 | JS 沙箱脚本 | `ChatRunScriptCapability` → `ChatViewModel.onRunScript/onDrawChart` → `JsRuntime`（QuickJS） | LLM tool_call（run_gallery_script/draw_chart）经 CapabilityRegistry（CHAT 场景）落入持久 JsRuntime；`jsEvalMutex` 串行 eval，超时 5s（含 capability.dispatch 写脚本放宽至 180s）；写操作经 CommandRisk 分级 + 用户确认 → `ChatMediaWriteCapability` |
 | Chat 对话式图片编辑 | `ImageEditCapability` → `ChatEditProcessor` | 复用 PhotoEditor 的 Recipe → Bitmap 渲染链路；`ChatEditStateHolder` 维护会话级 Recipe 支持多轮 delta；`AGENT_EDIT_RESULT` 消息 inline 展示结果图与说明 |
 | 人物关系图谱 | 编辑人物对话框（GalleryScreen 人物分组标题点击，内嵌 `PersonRelationPicker`）/ 聊天 `remember_person_relation` → `PersonRelationCapability` → `PersonRepository` → `person_relations` | 「X 是我 Y」双通路声明（对话框 RENAME_DIALOG / 聊天 CHAT_DECLARATION），声明幂等覆盖即纠错（customLabel 同步覆盖）。**两层关系模型**：粗谓词（机器逻辑，封闭枚举：SPOUSE/PARTNER/SON/DAUGHTER/CHILD/FATHER/MOTHER/PARENT/ELDER_BROTHER/ELDER_SISTER/YOUNGER_BROTHER/YOUNGER_SISTER/SIBLING/GRANDFATHER/GRANDMOTHER/GRANDPARENT/GRANDCHILD/OTHER_FAMILY/FRIEND/CLASSMATE/COLLEAGUE/OTHER，CHILD/PARENT/SIBLING/GRANDPARENT 为"未指定桶"）+ `customLabel` 自定义称呼（用户语言，展示与查询解析优先于谓词）。"这是我"标记存 `persons.is_self`（全局唯一）；编辑入口共用 `features/common/PersonRelationPicker`（家庭/社会分组 chips + 自定义输入框 + 不设置）；「AI 记忆」页关系可编辑（`updateRelation` 保留 source、刷新 updatedAt）。Pass 2 全量重聚经 `NamedPersonSnapshot` + `RelationSnapshotRestorer` 按名字/isSelf 恢复关系（含 customLabel）。**附修复**：全量重聚 `clearAllPersons` 后复用分支原仅 `updatePersonStats`（对已删行为 no-op，命名/is_self 实际丢失），已改为按原 personId 显式 `insertPerson` 重建人物行，使命名保留真正生效 |

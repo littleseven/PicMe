@@ -16,6 +16,8 @@
 
 ## 1. 性能对比诊断报告：0.8B vs 1.7B 本地 LLM（ASR + NCNN人脸检测 + 美颜）
 
+> ⚠️ **历史基准**：端侧文本 LLM 已于 2026-08-02 移除（架构简化/功耗考虑），文本推理全远程。以下数据仅作历史参考。
+
 > **2026-06 模型升级**：默认模型已从 Qwen3-1.7B 升级至 Qwen3.5-2B。
 > 本文档为 0.8B vs 1.7B 的历史基线数据，保留供性能趋势参考。
 > Qwen3.5-2B 对应指标待后续采集更新。
@@ -458,6 +460,8 @@ adb shell "perfetto --txt -c /data/misc/perfetto-configs/perfetto_config.pbtxt \
   -o /data/misc/perfetto-traces/picme_trace_new.perfetto-trace --background"
 ```
 ## 3. 性能对比诊断报告：开启本地 LLM 前后（ASR + NCNN人脸检测 + 美颜）
+
+> ⚠️ **历史基准**：端侧文本 LLM 已于 2026-08-02 移除（架构简化/功耗考虑），文本推理全远程。以下数据仅作历史参考。
 
 > 采集时间：2026-06-06
 > 设备：51912a5c（高性能手机）

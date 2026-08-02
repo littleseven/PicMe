@@ -90,10 +90,10 @@ fun rememberCameraAgentIntegration(
     val context = LocalContext.current
     val orchestrator = remember {
         AgentOrchestrator.getInstance(context).apply {
-            // 加载配置
+            // 加载配置（端侧文本 LLM 已移除，相机 AI 走远程 tool_calls 链路）
             configure(
-                mode = AiAgentMode.LOCAL,
-                modelId = "qwen3_5_2b", // 下划线格式，与 ModelManager 注册表一致
+                mode = AiAgentMode.REMOTE,
+                modelId = "qwen3_vl_2b", // 端侧 VLM 打标模型（下划线格式，与 ModelManager 注册表一致）
                 privacyLevel = AiAgentPrivacyLevel.STRICT
             )
         }

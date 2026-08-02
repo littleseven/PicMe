@@ -10,7 +10,6 @@ class LogModuleConfigTest {
     fun chatTagResolvedToChatModule() {
         assertEquals(LogModule.CHAT, LogModule.fromTag("ChatViewModel"))
         assertEquals(LogModule.CHAT, LogModule.fromTag("ChatScreen"))
-        assertEquals(LogModule.CHAT, LogModule.fromTag("LocalCommandParser"))
     }
 
     @Test

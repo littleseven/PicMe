@@ -24,7 +24,7 @@ import org.json.JSONArray
  * 标签生成功能已整合到 [TagGenerationScheduler] 的 3-Pass 混合管道中（Pass 3: 图像打标）。
  * 请使用 [TagGenerationScheduler.scanAll] 或 [TagGenerationScheduler.scanIncremental] 替代。
  *
- * 使用本地多模态 LLM (Qwen3.5-2B-MNN) 理解相册图片内容，
+ * 使用本地多模态 LLM (Qwen3-VL-2B-MNN) 理解相册图片内容，
  * 生成中文标签并写入 TagEntity + MediaTagCrossRef 规范化表。
  *
  * 流程:
@@ -43,7 +43,7 @@ import org.json.JSONArray
 class ImageTagIndexingWorker(
     private val context: Context,
     private val localLlmEngine: LocalLlmEngine,
-    private val modelKey: String = "qwen3_5_2b",
+    private val modelKey: String = "qwen3_vl_2b",
     private val useOpencl: Boolean = false
 ) {
 

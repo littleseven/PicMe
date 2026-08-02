@@ -1,6 +1,5 @@
 package com.mamba.picme.features.chat
 
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.core.agenttools.AppTool
 import com.mamba.picme.core.agenttools.AppToolExecutor
 import com.mamba.picme.data.remote.picme.ClaudeChatClient
@@ -30,7 +29,6 @@ import org.junit.Test
 class ChatViewModelAppToolTest : ChatViewModelTestBase() {
 
     override val initialToken = "pl-test-token"
-    override val initialPreference = AiAgentInferencePreference.FORCE_REMOTE
 
     private val claudeChatClient: ClaudeChatClient = mockk()
     private val appToolExecutor: AppToolExecutor = mockk()

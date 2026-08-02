@@ -1,11 +1,17 @@
 # ADR-009: 本地 LLM 收缩至相机场景
 
-**状态**: 规划中（波次1 待执行）
+**状态**: 已被超越（Superseded，2026-08-02：本地 LLM 完全移除，相机亦改远程）
 **日期**: 2026-07-28
 **决策**: 用户
 **依赖**: ADR-005、ADR-008、ADR-010；review §0.3-D2
 
 ---
+
+> ## ⛔ 状态更新（2026-08-02）：本地 LLM 不是收缩，而是完全移除
+>
+> 本 ADR 波次1 的方向（清理 chat/gallery 本地分支）已落地，但最终决策比「收缩至相机」更彻底：**端侧文本 LLM（Qwen3.5-2B）已完全移除，相机场景同样改为远程 tool_calls**（`AgentOrchestrator.processCameraInput` → `RemoteReActAgent` + `CameraToolService` → `ToolCallCommandParser` → `CapabilityRegistry.dispatch`）。
+> §3 中「本地链路相机化」「`AiAgentUseCase` 收敛为纯相机 Facade」不再适用：`LocalCameraAgent`/`LocalInferencePipeline`/`IntentCache`/`LocalCommandParser`/`LocalPromptBuilder` 均已删除；`AiAgentUseCase` 仍为统一 Facade（内部委托 `AgentOrchestrator`）。
+> `LocalLlmEngine` 仅存 `imageInference`（Qwen3-VL-2B 端侧 VLM 打标，TAG Pass3）。下文保留原决策脉络作历史记录。
 
 ## 1. 背景
 
@@ -35,8 +41,9 @@
 | 项 | 状态 |
 |---|---|
 | 决策与 ADR | ✅ 2026-07-28 |
-| chat/gallery 本地分支清理 | ⏳ 波次1 |
-| 本地链路包结构下沉 | ⏳ 波次1 |
+| chat/gallery 本地分支清理 | ✅ 已落地（且更彻底：2026-08-02 端侧文本 LLM 完全移除） |
+| 本地链路包结构下沉 | ❌ 作废（本地链路整体删除，见顶部状态更新） |
+| 相机链路最终形态 | 远程 tool_calls（`processCameraInput` + `CameraToolService`），2026-08-02 |
 
 ## 6. 相关
 

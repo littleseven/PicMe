@@ -25,7 +25,7 @@ class OpenClGuardian(
     private val context: Context,
     private val engine: LocalLlmEngine,
     private val prefs: UserSettingsRepository,
-    private val modelId: String = "qwen3_5_2b"
+    private val modelId: String = "qwen3_vl_2b"
 ) {
 
     companion object {

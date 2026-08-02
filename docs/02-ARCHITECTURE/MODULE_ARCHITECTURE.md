@@ -8,8 +8,8 @@
 **模块定位**：模块分层与依赖关系可视化
 **主要维护者**：[RD] 全栈工程师 / [CR] 规范守护者
 **阅读对象**：CO、PM、RD、CR、QA、AI Agent
-**版本**：1.1（服务端对齐版）
-**最后更新**：2026-07-15
+**版本**：1.2（端侧文本 LLM 移除对齐版）
+**最后更新**：2026-08-02
 **状态**：生效中
 
 ---
@@ -20,11 +20,11 @@
 |------|------|----------|----------|
 | `:app` | Android Application | PoLang 主应用：Compose UI、页面导航、手动 DI、模块组装 | `picme.apk` |
 | `:agent-core` | Android Java Library | LangChain4j 风格 LLM 基础设施：ChatModel、@Tool、AiServices、ChatMemory、OpenAI 协议客户端 | `agent-core.aar` |
-| `:runtime-core` | Android Library | Agent Runtime：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、本地/远程推理管道、语音 ASR | `runtime-core.aar` |
+| `:runtime-core` | Android Library | Agent Runtime：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、远程推理管道（tool_calls）、语音 ASR、VLM 打标引擎 | `runtime-core.aar` |
 | `:beauty-api` | Android Library | 美颜系统纯契约层：BeautySettings、FaceDetector、FilterType 等 | `beauty-api.aar` |
 | `:beauty-engine` | Android Library | 自研 GPU 美颜引擎：OpenGL ES + EGL 渲染管线、人脸检测适配器 | `beauty-engine.aar` |
-| `:mnn-core` | Android Library | MNN 推理运行时共享模块：`libMNN.so`、`libOpenCL.so`、MnnResourceManager、MnnGlobalReleaseLock | `mnn-core.aar` |
-| `:sentencepiece` | Android Library | SentencePiece tokenizer JNI 封装：`libsentencepiece_android.so` | `sentencepiece.aar` |
+| `:mnn-core` | Android Library | MNN 推理运行时共享模块（人脸检测 + VLM 打标共享）：`libMNN.so`、`libOpenCL.so`、MnnResourceManager、MnnGlobalReleaseLock | `mnn-core.aar` |
+| `:sentencepiece` | Android Library | SentencePiece tokenizer JNI 封装（OPUS-MT 翻译专用，与 LLM 无关）：`libsentencepiece_android.so` | `sentencepiece.aar` |
 | `server/` | Ktor Application | AI 网关、账号体系、管理后台、推荐引擎、限流、COS 存储 | `picme-server.jar` |
 
 ---
@@ -90,7 +90,7 @@
 │  │           :mnn-core                 │    │        :runtime-core        │ │
 │  │  ┌─────────────────────────────┐   │    │  ┌───────────────────────┐  │ │
 │  │  │ libMNN.so           (7.2 MB)│◄───┼────┤  │ libagent_native.so    │  │ │
-│  │  └─────────────────────────────┘   │    │  │ LLM JNI 桥接          │  │ │
+│  │  └─────────────────────────────┘   │    │  │ VLM 打标 JNI 桥       │  │ │
 │  │            ▲                       │    │  └───────────────────────┘  │ │
 │  │            │                        │    └─────────────────────────────┘ │
 │  │  ┌─────────────────────────────┐   │                  ▲                  │
@@ -140,7 +140,7 @@
 |----|----------|-----------|------|
 | `libMNN.so` | `:mnn-core` | `:runtime-core`、`:beauty-engine` | 唯一来源，避免 AAR 级重复 |
 | `libOpenCL.so` | `:mnn-core` | `:app`（启动预加载） | OpenCL ICD Loader |
-| `libagent_native.so` | `:runtime-core` | `:app` | LLM JNI 桥接 |
+| `libagent_native.so` | `:runtime-core` | `:app` | VLM 打标 JNI 桥（Qwen3-VL） |
 | `libbeauty_native.so` | `:beauty-engine` | `:app` | 人脸检测 JNI 桥接 |
 | `libsentencepiece_android.so` | `:sentencepiece` | `:app` | 分词器 JNI |
 | `libonnxruntime.so` | 外部（Sherpa-ONNX / onnxruntime-android） | `:app` | 通过 `pickFirsts` 解决双来源冲突 |
@@ -160,11 +160,11 @@
 | `MemoryManager` | `:runtime-core` | `com.mamba.picme.agent.core.platform.storage` |
 | `SceneManager` | `:runtime-core` | `com.mamba.picme.agent.core.runtime.state` |
 | `RemoteReActAgent` | `:runtime-core` | `com.mamba.picme.agent.core.inference.remote.react` |
-| `LocalLlmEngine` / `MnnLlmClient` | `:runtime-core` | `com.mamba.picme.agent.core.inference.local.llm` |
+| `LocalLlmEngine` / `MnnLlmClient`（VLM 打标专用，仅 `imageInference`） | `:runtime-core` | `com.mamba.picme.agent.core.inference.local.llm` |
 | `ChatModel` / `StreamingChatModel` | `:agent-core` | `com.mamba.model.chat` |
 | `OpenAiChatModel` | `:agent-core` | `com.mamba.model.openai` |
 | `ToolSpecification` | `:agent-core` | `com.mamba.agent.tool` |
-| `MnnResourceManager` / `MnnGlobalReleaseLock` | `:mnn-core` | `com.mamba.picme.mnn` |
+| `MnnResourceManager` / `MnnGlobalReleaseLock`（人脸检测 + VLM 打标共享） | `:mnn-core` | `com.mamba.picme.mnn` |
 | `MnnFaceDetector` / `MnnFaceEmbedder` | `:beauty-engine` | `com.mamba.picme.beauty.internal.facedetect.mnn` |
 | `FaceDetectorManager` | `:beauty-engine` | `com.mamba.picme.beauty.internal.facedetect` |
 | `BeautyPreviewEngine` | `:beauty-engine` | `com.mamba.picme.beauty.api` |

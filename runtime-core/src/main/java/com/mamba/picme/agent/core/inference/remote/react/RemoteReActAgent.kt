@@ -16,6 +16,7 @@ import com.mamba.model.chat.listener.ChatModelResponseContext
 import com.mamba.model.output.TokenUsage
 import com.mamba.picme.agent.core.inference.remote.StreamingSyncChatModel
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
+import com.mamba.picme.agent.core.inference.remote.tool.CameraToolService
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -102,10 +103,13 @@ class RemoteReActAgent(
     private val traceIdHolder = TraceIdHolder()
 
     init {
-        // chat 路径（ChatToolService）共享同一 holder：dispatchCommand 读取当轮 traceId 注入 AgentContext，
-        // 使远程 ReAct 下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
-        // 飞书路径（RemoteControlToolService）非 chat 来源，cast 为 null 跳过。
-        (effectiveToolService as? ChatToolService)?.traceIdHolder = traceIdHolder
+        // chat/相机路径（ChatToolService/CameraToolService）共享同一 holder：dispatchCommand 读取当轮
+        // traceId 注入 AgentContext，使远程 ReAct 下的 tool 执行也带 traceId，与 LLM 调用关联。
+        // 飞书路径（RemoteControlToolService）非 chat/相机来源，不匹配跳过。
+        when (val ts = effectiveToolService) {
+            is ChatToolService -> ts.traceIdHolder = traceIdHolder
+            is CameraToolService -> ts.traceIdHolder = traceIdHolder
+        }
     }
 
     /** 记录每次执行的性能指标 */

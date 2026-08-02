@@ -43,7 +43,7 @@ internal fun isImageMimeType(mime: String?): Boolean =
  *
  * 依赖注入：
  * - [faceDetector]：Stage 1 使用，RetinaFace Det500M
- * - [llmEngine]：Stage 3 使用，Qwen3.5-2B MNN
+ * - [llmEngine]：Stage 3 使用，Qwen3-VL-2B MNN
  * - [faceClusterEngine]：Stage 2 使用，Glint360K R100 + 增量聚类
  * - [normalizer]：标签后处理规范化
  * - [openClGuardian]：OpenCL 超时守卫（可选）

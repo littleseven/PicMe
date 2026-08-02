@@ -563,8 +563,7 @@ private fun FloatingChatPanel(
             PanelHeader(
                 currentModel = currentModel,
                 isProcessing = isProcessing,
-                onClose = onClose,
-                onSwitchModel = { viewModel.switchModel(it) }
+                onClose = onClose
             )
 
             LazyColumn(
@@ -630,8 +629,7 @@ private fun FloatingChatPanel(
 private fun PanelHeader(
     currentModel: ChatModelOption,
     isProcessing: Boolean,
-    onClose: () -> Unit,
-    onSwitchModel: (ChatModelOption) -> Unit
+    onClose: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -652,7 +650,7 @@ private fun PanelHeader(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            ModelIndicatorChip(currentModel = currentModel, onSwitchModel = onSwitchModel)
+            ModelIndicatorChip(currentModel = currentModel)
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
                 Icon(
@@ -665,29 +663,12 @@ private fun PanelHeader(
 }
 
 @Composable
-private fun ModelIndicatorChip(
-    currentModel: ChatModelOption,
-    onSwitchModel: (ChatModelOption) -> Unit
-) {
-    val nextModel = if (currentModel is ChatModelOption.Local) ChatModelOption.Remote else ChatModelOption.Local
-    val containerColor = when (currentModel) {
-        is ChatModelOption.Local -> Color(0xFFE8F5E9)
-        is ChatModelOption.Remote -> Color(0xFFE3F2FD)
-    }
-    val contentColor = when (currentModel) {
-        is ChatModelOption.Local -> Color(0xFF2E7D32)
-        is ChatModelOption.Remote -> Color(0xFF1565C0)
-    }
-
+private fun ModelIndicatorChip(currentModel: ChatModelOption) {
+    // chat 仅远程：模型指示为静态标签（本地切换已移除）
     Surface(
-        modifier = Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = { onSwitchModel(nextModel) }
-        ),
         shape = RoundedCornerShape(12.dp),
-        color = containerColor,
-        contentColor = contentColor
+        color = Color(0xFFE3F2FD),
+        contentColor = Color(0xFF1565C0)
     ) {
         Text(
             text = currentModel.label,

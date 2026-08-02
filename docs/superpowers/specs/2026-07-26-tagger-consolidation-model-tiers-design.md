@@ -51,20 +51,19 @@ LFM2-VL 已无目录条目，仅在注释/测试/文档中残留引用，本次�
 
 变化：`−qwen3_vl_2b`、`−mediapipe-face-landmarker`、`+florence2_base`。（`opus-mt-en-zh` 原本已在集合内。）
 
-### 3.2 推荐（`RECOMMENDED_MODEL_IDS`，Tier 2，6 个）
+### 3.2 推荐（`RECOMMENDED_MODEL_IDS`，Tier 2，5 个）
 
 非核心、WiFi 下可静默预下载。
 
 | ID | 用途 |
 |----|------|
-| `qwen3_5_2b` | 本地 LLM（对话/多模态） |
 | `sherpa-onnx-zipformer-zh-en` | ASR 语音输入 |
 | `sherpa-onnx-kws-zipformer-wenetspeech` | KWS 唤醒词 |
 | `modnet-onnx` | 证件照/抠图 |
 | `u2netp-onnx` | 证件照/抠图（轻量） |
 | `mediapipe-face-landmarker` | 相册人脸标记**预览**（从必须移入） |
 
-注：`CHAT_MODEL_IDS`（已存在）= `{qwen3_5_2b, sherpa-zipformer, sherpa-kws}`，可直接作为推荐集合的子集来源。
+注：`CHAT_MODEL_IDS`（已存在）= `{sherpa-zipformer, sherpa-kws}`，可作为推荐集合的子集来源。（`qwen3_5_2b` 已随端侧文本 LLM 移除，不再推荐。）
 
 ### 3.3 普通可选（既非必须也非推荐）
 

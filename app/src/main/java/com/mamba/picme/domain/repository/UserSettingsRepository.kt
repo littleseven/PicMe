@@ -1,6 +1,5 @@
 package com.mamba.picme.domain.repository
 
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.domain.model.AppLanguage
@@ -86,12 +85,6 @@ interface UserSettingsRepository {
     val aiAgentPrivacyLevelFlow: Flow<AiAgentPrivacyLevel>
     suspend fun updateAiAgentPrivacyLevel(level: AiAgentPrivacyLevel)
 
-    val aiAgentLocalModelFlow: Flow<String>
-    suspend fun updateAiAgentLocalModel(modelId: String)
-
-    val aiAgentLocalUseOpenclFlow: Flow<Boolean>
-    suspend fun updateAiAgentLocalUseOpencl(enabled: Boolean)
-
     // ── TAG 生成 ────────────────────────────────────────────
     val tagGenerationUseOpencl: Flow<Boolean>
     suspend fun updateTagGenerationUseOpencl(enabled: Boolean)
@@ -116,17 +109,14 @@ interface UserSettingsRepository {
     val aiAgentSelectedRemoteModelFlow: Flow<String>
     suspend fun updateAiAgentSelectedRemoteModel(modelId: String)
 
-    // ── AI Agent 推理偏好（LOCAL 模式下的本地/远程路由策略） ────
-    val aiAgentInferencePreferenceFlow: Flow<AiAgentInferencePreference>
-    suspend fun updateAiAgentInferencePreference(preference: AiAgentInferencePreference)
-
-    // ── AI Agent L1 意图缓存调试开关 ─────────────────────────
-    val aiAgentL1CacheEnabledFlow: Flow<Boolean>
-    suspend fun updateAiAgentL1CacheEnabled(enabled: Boolean)
-
     // ── 自动执行计划开关（仅持久化，chat 层暂未消费） ────────
     val autoExecutePlansEnabledFlow: Flow<Boolean>
     suspend fun updateAutoExecutePlansEnabled(enabled: Boolean)
+
+    // ── 端侧文本 LLM 残留清理（一次性迁移标志） ─────────────
+    /** qwen3_5_2b 模型目录是否已一次性清理（true 后不再重复执行） */
+    val localTextLlmCleanedFlow: Flow<Boolean>
+    suspend fun markLocalTextLlmCleaned()
 
     // ── Cloudflare AI Gateway Token ─────────────────────────
     val cloudflareGatewayTokenFlow: Flow<String>

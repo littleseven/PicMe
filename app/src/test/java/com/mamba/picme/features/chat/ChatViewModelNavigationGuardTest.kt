@@ -4,8 +4,8 @@ import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.GallerySummary
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
-import com.mamba.picme.agent.core.local.llm.StreamMetrics
+import com.mamba.picme.agent.core.inference.remote.StreamChatResult
+import com.mamba.picme.agent.core.inference.remote.StreamMetrics
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify

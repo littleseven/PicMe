@@ -16,9 +16,7 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.model.context.SearchIntent
 import com.mamba.picme.agent.core.model.context.SearchResultSnapshot
 import com.mamba.picme.agent.core.model.context.TimeRange
-import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.ChatStreamEvent
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
@@ -831,17 +829,8 @@ class ChatViewModel(
                 }
             }
         }
-        // 从设置中心同步推理偏好到 UI 的 ModelSelector
-        viewModelScope.launch {
-            try {
-                userSettingsRepository.aiAgentInferencePreferenceFlow.collect { preference ->
-                    // chat 页仅远程：无论全局偏好如何（含 FORCE_LOCAL），chat 都用远程模型
-                    _currentModel.value = ChatModelOption.Remote
-                }
-            } catch (e: Exception) {
-                Logger.e(TAG, "Failed to sync inference preference from settings", e)
-            }
-        }
+        // chat 页仅远程：模型选择固定为 Remote（端侧文本 LLM 已移除）
+        _currentModel.value = ChatModelOption.Remote
         // 实时监听用户自配 Key：决定是否显示「默认服务器/自配 Key」切换（配 key 后即时刷新）
         viewModelScope.launch {
             // 首次加载时跟随设置中心的选中模型：否则 chat 恒默认官方源，
@@ -1132,8 +1121,7 @@ class ChatViewModel(
                 // 避免其他场景（AiAgentUseCase/PoLangApplication）注入的 userRemoteConfig 残留导致走错服务器。
                 orchestrator.updateRemoteRuntimeConfig(
                     remoteConfig = effectiveRemoteConfig(selectedModel),
-                    privacyLevel = AiAgentPrivacyLevel.STRICT,
-                    inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
+                    privacyLevel = AiAgentPrivacyLevel.STRICT
                 )
                 Logger.i(
                     TAG,
@@ -1309,7 +1297,6 @@ class ChatViewModel(
 
     private fun currentModelLabel(): String {
         return when (_currentModel.value) {
-            is ChatModelOption.Local -> "local_qwen3.5_2b"
             is ChatModelOption.Remote -> "remote_deepseek"
         }
     }
@@ -2298,10 +2285,10 @@ class ChatViewModel(
                         performance = orchestrator.localModelService.getLastLocalGenerationMetrics()?.toLlmPerformance()
                     )
                     // 将图片分析结果保存到 MemoryManager，使后续文本消息能引用图片上下文
-                    orchestrator.localCameraAgent.appendImageChatToMemory(
+                    orchestrator.appendConversation(
                         sessionId = sessionId,
-                        userPrompt = "请描述这张图片",
-                        imageAnalysis = response
+                        userInput = "请描述这张图片",
+                        assistantResponse = response
                     )
                 }
 
@@ -2317,36 +2304,21 @@ class ChatViewModel(
     }
 
     /**
-     * 切换当前模型
-     *
-     * 将 UI 的 Local/Remote 选择映射到 [AiAgentInferencePreference]，
-     * 同步到 AgentOrchestrator（控制实际推理路由）和 DataStore（设置中心同步更新）。
+     * 切换当前模型（chat 页仅远程：Remote 为唯一选项，同步远程配置到 AgentOrchestrator）。
      */
     fun switchModel(model: ChatModelOption) {
-        // chat 页仅远程：忽略切换到本地（保留接口兼容，UI 已不暴露本地选项）
-        if (model !is ChatModelOption.Remote) {
-            Logger.i(TAG, "switchModel ignored non-Remote option (chat is remote-only): $model")
-            return
-        }
         _currentModel.value = model
         viewModelScope.launch {
             try {
-                val preference = when (model) {
-                    is ChatModelOption.Local -> AiAgentInferencePreference.FORCE_LOCAL
-                    is ChatModelOption.Remote -> AiAgentInferencePreference.FORCE_REMOTE
-                }
                 // 同步到 AgentOrchestrator（复用已有的远程配置）
                 val existingRemoteConfig = orchestrator.getUserRemoteConfig()
                 orchestrator.updateRemoteRuntimeConfig(
                     remoteConfig = existingRemoteConfig,
-                    privacyLevel = AiAgentPrivacyLevel.STRICT,
-                    inferencePreference = preference
+                    privacyLevel = AiAgentPrivacyLevel.STRICT
                 )
-                // 同步到 DataStore（设置中心会感知变化）
-                userSettingsRepository.updateAiAgentInferencePreference(preference)
-                Logger.i(TAG, "Model switched to: ${model.label}, inferencePreference=$preference")
+                Logger.i(TAG, "Model switched to: ${model.label}")
             } catch (e: Exception) {
-                Logger.e(TAG, "Failed to sync inference preference switch", e)
+                Logger.e(TAG, "Failed to sync model switch", e)
             }
         }
     }
@@ -2361,8 +2333,7 @@ class ChatViewModel(
             try {
                 orchestrator.updateRemoteRuntimeConfig(
                     remoteConfig = effectiveRemoteConfig(model),
-                    privacyLevel = AiAgentPrivacyLevel.STRICT,
-                    inferencePreference = AiAgentInferencePreference.FORCE_REMOTE
+                    privacyLevel = AiAgentPrivacyLevel.STRICT
                 )
                 Logger.i(TAG, "chat model switched: ${model.displayName} (${model.remoteConfig.baseUrl})")
             } catch (e: Exception) {

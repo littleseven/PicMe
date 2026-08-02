@@ -82,7 +82,6 @@ import com.mamba.picme.R
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.context.MediaType
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.agent.core.platform.voice.AsrEngine
@@ -130,7 +129,6 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 private const val TAG = "Camera"
-private const val TAG_AI_AGENT = "AiAgent"
 
 private const val PROVIDER_VIEW_BIND_TIMEOUT_MS = 5000L
 private const val DEBUG_RELEASE_TOAST_DELAY_MS = 350L
@@ -637,13 +635,10 @@ fun CameraContent(
     var aiAgentChatVisible by remember { mutableStateOf(false) }
     var aiAgentMessages by remember { mutableStateOf<List<AgentMessage>>(emptyList()) }
     var aiAgentIsProcessing by remember { mutableStateOf(false) }
-    val aiAgentLocalModel by userPreferencesRepository.aiAgentLocalModelFlow.collectAsState(initial = "")
-    val aiAgentLocalUseOpencl by userPreferencesRepository.aiAgentLocalUseOpenclFlow.collectAsState(initial = false)
 
     val aiAgentRemoteModelConfigs by userPreferencesRepository.aiAgentRemoteModelConfigsFlow.collectAsState(initial = "")
     val aiAgentSelectedRemoteModel by userPreferencesRepository.aiAgentSelectedRemoteModelFlow.collectAsState(initial = "deepseek-v4-flash")
-    val aiAgentInferencePreference by userPreferencesRepository.aiAgentInferencePreferenceFlow.collectAsState(initial = AiAgentInferencePreference.FORCE_LOCAL)
-    val aiAgentMode by userPreferencesRepository.aiAgentModeFlow.collectAsState(initial = AiAgentMode.LOCAL)
+    val aiAgentMode by userPreferencesRepository.aiAgentModeFlow.collectAsState(initial = AiAgentMode.REMOTE)
     val voiceCommandMode by userPreferencesRepository.voiceCommandModeFlow.collectAsState(
         initial = VoiceCommandMode.DISABLED
     )
@@ -668,61 +663,20 @@ fun CameraContent(
     // 读取服务端认证 token（邮箱注册）
     val serverAuthToken by userPreferencesRepository.serverAuthTokenFlow.collectAsState(initial = "")
 
-    // 当关键配置变化时重新创建 UseCase（mode/remoteConfig/forceRemote/gatewayToken 等）
+    // 当关键配置变化时重新创建 UseCase（mode/remoteConfig/gatewayToken 等）
+    // 端侧文本 LLM 已移除，相机 AI 指令统一走远程 tool_calls 链路
     val aiAgentUseCase = remember(
         context,
         aiAgentMode,
         remoteConfig,
-        aiAgentInferencePreference,
-        aiAgentLocalUseOpencl,
         serverAuthToken
     ) {
         AiAgentUseCase(
             context = context,
             agentMode = aiAgentMode,
-            localModelId = "qwen3_5_2b",
-            localUseOpencl = aiAgentLocalUseOpencl,
             remoteConfig = remoteConfig,
-            forceRemote = aiAgentInferencePreference == AiAgentInferencePreference.FORCE_REMOTE,
             gatewayToken = serverAuthToken.takeIf { it.isNotBlank() }
         )
-    }
-
-    // 监听 Agent 模型加载状态，用于在相机页显示 "Agent 启动中"
-    val aiAgentModelLoading by aiAgentUseCase.isLocalModelLoading.collectAsState(initial = false)
-
-    // LLM 按需加载：仅在 AI Chat 打开或语音控制打开时加载本地模型。
-    val resolvedModelId = remember(aiAgentLocalModel) {
-        aiAgentLocalModel.takeIf { it.isNotBlank() } ?: "qwen3_5_2b"
-    }
-    val shouldLoadLocalLlm = remember(
-        aiAgentChatVisible,
-        voiceCommandMode,
-        aiAgentMode,
-        aiAgentInferencePreference,
-        isActivePage
-    ) {
-        val localModeEnabled = aiAgentMode == AiAgentMode.LOCAL || aiAgentMode == AiAgentMode.OFF
-        val forceRemote = aiAgentInferencePreference == AiAgentInferencePreference.FORCE_REMOTE
-        isActivePage && localModeEnabled && !forceRemote &&
-            (aiAgentChatVisible || voiceCommandMode != VoiceCommandMode.DISABLED)
-    }
-    LaunchedEffect(resolvedModelId, aiAgentLocalUseOpencl, shouldLoadLocalLlm) {
-        if (!shouldLoadLocalLlm) {
-            if (aiAgentUseCase.isLocalModelLoaded) {
-                Logger.i(TAG_AI_AGENT, "No active AI entry, unload local MNN-LLM model")
-                aiAgentUseCase.unloadLocalModel()
-            }
-            return@LaunchedEffect
-        }
-
-        if (!aiAgentUseCase.isLocalModelLoaded) {
-            Logger.i(TAG_AI_AGENT, "Loading local MNN-LLM model on demand: $resolvedModelId, opencl=$aiAgentLocalUseOpencl")
-            val result = aiAgentUseCase.loadLocalModel(resolvedModelId, aiAgentLocalUseOpencl)
-            Logger.i(TAG_AI_AGENT, "Local MNN-LLM model load result: $result")
-        } else {
-            Logger.d(TAG_AI_AGENT, "Local MNN-LLM model already loaded, skip")
-        }
     }
 
     // 场景切换由 MainActivity 统一管理，此处不再重复设置
@@ -811,10 +765,7 @@ fun CameraContent(
 
             if (nextMode == VoiceCommandMode.DISABLED && !aiAgentChatVisible) {
                 asrEngine.release()
-                if (aiAgentUseCase.isLocalModelLoaded) {
-                    aiAgentUseCase.unloadLocalModel()
-                }
-                Logger.i(TAG, "Voice feature closed, release ASR/LLM")
+                Logger.i(TAG, "Voice feature closed, release ASR")
             }
             Unit
         }
@@ -1623,7 +1574,6 @@ CameraPreviewContent(
     onAiAgentMessagesChange = { aiAgentMessages = it },
     onAiAgentIsProcessingChange = { aiAgentIsProcessing = it },
     voiceCoordinator = voiceCoordinator,
-    isModelLoading = aiAgentModelLoading,
     isWakeWordActive = voiceCommandMode == VoiceCommandMode.WAKE_WORD,
     onAiAgentCommand = { command ->
         Logger.i(TAG, "onAiAgentCommand received: ${command.javaClass.simpleName}")
@@ -1752,10 +1702,7 @@ CameraPreviewContent(
                 voiceCoordinator.stopWakeWordListening()
                 if (voiceCommandMode == VoiceCommandMode.DISABLED) {
                     asrEngine.release()
-                    if (aiAgentUseCase.isLocalModelLoaded) {
-                        aiAgentUseCase.unloadLocalModel()
-                    }
-                    Logger.i(TAG, "AI panel closed, release ASR/LLM")
+                    Logger.i(TAG, "AI panel closed, release ASR")
                 }
             }
         },
@@ -1765,12 +1712,12 @@ CameraPreviewContent(
             }
         },
 
-        // LLM 全量释放
+        // LLM 全量释放（端侧 VLM 打标模型，经 localModelService 共享）
         onLlmRelease = {
             val before = captureMnnMemoryStats(context)
             Logger.i(TAG, "🧠 [LLM释放] 开始")
             Logger.i(TAG, "📊 [释放前内存] Native ${before?.nativeHeapMB}MB | Java ${before?.javaHeapUsedMB}MB")
-            aiAgentUseCase.unloadLocalModel()
+            AgentOrchestrator.getInstance(context).localModelService.unloadModel()
             coroutineScope.launch {
                 val after = sampleMemoryAfterRelease(context)
                 showReleaseMemoryToast(context, "LLM", "full", before, after)

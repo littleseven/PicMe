@@ -1,6 +1,5 @@
 package com.mamba.picme.features.chat
 
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.data.remote.picme.ClaudeChatClient
 import com.mamba.picme.data.remote.picme.ClaudeEvent
@@ -33,7 +32,6 @@ import org.junit.Test
 class ChatViewModelClaudeSidTest : ChatViewModelTestBase() {
 
     override val initialToken = "pl-test-token"
-    override val initialPreference = AiAgentInferencePreference.FORCE_REMOTE
 
     private val claudeChatClient: ClaudeChatClient = mockk()
     private val sidStore = InMemoryClaudeSidStore()

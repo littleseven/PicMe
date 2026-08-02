@@ -6,10 +6,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
-import com.mamba.picme.agent.core.inference.local.pipeline.LocalInferencePipeline
-import com.mamba.picme.agent.core.inference.local.prompt.LocalPromptBuilder
 import com.mamba.picme.agent.core.inference.remote.StreamingSyncChatModel
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
@@ -18,7 +15,6 @@ import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.MemoryManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
-import com.mamba.picme.agent.core.runtime.cache.IntentCache
 import com.mamba.picme.agent.core.runtime.policy.PrivacyGuard
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.model.chat.ChatModel
@@ -48,13 +44,12 @@ class AgentConfigurator(private val context: Context) {
     fun getContext(): Context = context
 
     // 核心组件（延迟初始化）
+    /** 端侧 VLM 引擎（TAG 打标 / 图像理解专用；文本指令链路已移除）。 */
     val localLlmEngine = LocalLlmEngine(context)
     val memoryManager = MemoryManager(context)
     val privacyGuard = PrivacyGuard()
     val sceneManager = SceneManager.getInstance()
-    val localPromptBuilder = LocalPromptBuilder(sceneManager)
     val capabilityRegistry = CapabilityRegistry.getInstance()
-    val intentCache = IntentCache()
 
     /**
      * 模式临时覆盖栈（用于飞书远程控制等场景强制使用特定推理模式）。
@@ -70,7 +65,7 @@ class AgentConfigurator(private val context: Context) {
 
     // 配置状态
     private var agentMode: AiAgentMode = AiAgentMode.REMOTE
-    private var currentModelId: String = "qwen3_5_2b"
+    private var currentModelId: String = "qwen3_vl_2b"
     private var userRemoteConfig: RemoteModelConfig? = null
 
     /**
@@ -83,27 +78,7 @@ class AgentConfigurator(private val context: Context) {
     fun setDeviceId(id: String) {
         if (id.isNotBlank()) deviceId = id
     }
-    private var localInferencePipeline: LocalInferencePipeline? = null
     private var localUseOpencl: Boolean = false
-    private var inferencePreference: AiAgentInferencePreference = AiAgentInferencePreference.FORCE_REMOTE
-
-    /**
-     * 获取或创建本地推理管道
-     */
-    fun getLocalPipeline(): LocalInferencePipeline {
-        val existing = localInferencePipeline
-        if (existing != null) return existing
-        val pipeline = LocalInferencePipeline(
-            localEngine = localLlmEngine,
-            sceneManager = sceneManager,
-            capabilityRegistry = capabilityRegistry,
-            intentCache = intentCache,
-            privacyGuard = privacyGuard,
-            memoryManager = memoryManager
-        )
-        localInferencePipeline = pipeline
-        return pipeline
-    }
 
     /**
      * 配置 Agent 运行参数
@@ -113,29 +88,23 @@ class AgentConfigurator(private val context: Context) {
         modelId: String,
         privacyLevel: AiAgentPrivacyLevel,
         remoteConfig: RemoteModelConfig? = null,
-        localUseOpencl: Boolean = false,
-        inferencePreference: AiAgentInferencePreference? = null
+        localUseOpencl: Boolean = false
     ) {
         this.agentMode = mode
         this.currentModelId = modelId
         this.localUseOpencl = localUseOpencl
-        if (inferencePreference != null) {
-            this.inferencePreference = inferencePreference
-        }
         if (remoteConfig != null && remoteConfig.baseUrl.isNotBlank() && remoteConfig.modelId.isNotBlank()) {
             this.userRemoteConfig = remoteConfig
-            localInferencePipeline = null
         }
         privacyGuard.updateConfig(privacyLevel, mode)
         Logger.i(tag, "Configured: mode=$mode, model=$modelId, privacy=$privacyLevel, " +
             "localUseOpencl=$localUseOpencl, " +
-            "inferencePreference=${this.inferencePreference}, " +
             "remoteModel=${remoteConfig?.modelId ?: "default"}, " +
             "effectiveRemoteModel=${userRemoteConfig?.modelId ?: "fallback"}")
     }
 
     /**
-     * 仅更新远程运行时配置（remoteConfig / inferencePreference / privacyLevel），
+     * 仅更新远程运行时配置（remoteConfig / privacyLevel），
      * **不触碰持久 agentMode / currentModelId / localUseOpencl**。
      *
      * 用于 chat 发消息、PoLangApplication 同步 remoteConfig 等只想换远程配置的场景——
@@ -144,21 +113,16 @@ class AgentConfigurator(private val context: Context) {
      */
     fun updateRemoteRuntimeConfig(
         remoteConfig: RemoteModelConfig?,
-        privacyLevel: AiAgentPrivacyLevel? = null,
-        inferencePreference: AiAgentInferencePreference? = null
+        privacyLevel: AiAgentPrivacyLevel? = null
     ) {
         if (remoteConfig != null && remoteConfig.baseUrl.isNotBlank() && remoteConfig.modelId.isNotBlank()) {
             this.userRemoteConfig = remoteConfig
-            localInferencePipeline = null
-        }
-        if (inferencePreference != null) {
-            this.inferencePreference = inferencePreference
         }
         if (privacyLevel != null) {
             privacyGuard.updateConfig(privacyLevel, agentMode)
         }
         Logger.i(tag, "updateRemoteRuntimeConfig: remoteModel=${userRemoteConfig?.modelId ?: "fallback"}, " +
-            "inferencePreference=${this.inferencePreference}, privacyOverride=${privacyLevel != null}")
+            "privacyOverride=${privacyLevel != null}")
     }
 
     /**
@@ -204,11 +168,6 @@ class AgentConfigurator(private val context: Context) {
      * 当前本地 LLM 后端是否使用 OpenCL
      */
     fun getLocalUseOpencl(): Boolean = localUseOpencl
-
-    /**
-     * 当前推理偏好（FORCE_LOCAL / FORCE_REMOTE / AUTO）
-     */
-    fun getInferencePreference(): AiAgentInferencePreference = inferencePreference
 
     /**
      * 用户远程配置

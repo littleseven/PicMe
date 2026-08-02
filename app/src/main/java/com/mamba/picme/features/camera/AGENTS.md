@@ -258,7 +258,7 @@ val screenY = adjustedY * previewHeight
 - [ ] 是否记录了沉浸式模式的启用和禁用日志？（便于调试）
 - [ ] UI元素是否正常显示？（不被系统栏遮挡，EdgeToEdge已在MainActivity配置）
 
-## 2.7 Agent 集成规范（2026-05 新增）
+## 2.7 Agent 集成规范（2026-05 新增，2026-08 远程 tool_calls 对齐）
 
 **CameraAgentIntegration**
 - 通过 `CameraCapability` 绑定到 `CapabilityRegistry`
@@ -270,6 +270,12 @@ val screenY = adjustedY * previewHeight
   - `set_beauty_param` — 设置美颜参数（支持多参数同时调节）
   - `set_filter` — 切换滤镜
   - `set_style_effect` — 切换风格特效
+
+**AI 指令链路（远程 tool_calls）**
+- 端侧文本 LLM 已移除，相机 AI 指令统一走远程 tool_calls：
+  `CameraScreen` → `AiAgentUseCase` → `AgentOrchestrator.processCameraInput()` → 远程 LLM + `CameraToolService`（@Tool 工具集，scene=CAMERA）→ `ToolCallCommandParser` 解析 → `CapabilityRegistry` 执行
+- 协议与 chat 场景一致（标准 OpenAI tool_calls，ADR-005），不新造协议
+- AI 输入 UI 保留（`AiChatScreen` 浮动面板），但不再有端侧文本模型加载/卸载逻辑
 
 **AiAgentPanel → AiChatScreen 迁移**
 - 旧版：`Dialog` 设计的 `AiAgentPanel`（已废弃）
@@ -286,7 +292,7 @@ val screenY = adjustedY * previewHeight
 **KwakeWordKwsEngine（Sherpa-ONNX KWS）**
 - 相机预览可见时运行，页面退出自动停止
 - 使用 Sherpa-ONNX `KeywordSpotter` 实现 always-on 低功耗唤醒词检测（~14MB INT8）
-- 检测到唤醒词后触发 ASR → LLM 解析 → 命令执行
+- 检测到唤醒词后触发 ASR → 远程 tool_calls 解析 → 命令执行
 - KWS 模型不可用时回退到原 `WakeWordEngine`（VAD + ASR 文本匹配）
 
 **耳机模式适配（2026-06 新增）**

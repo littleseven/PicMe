@@ -22,7 +22,7 @@ PoLang 语音栈当前处于 **Phase 1（当前 ASR-based 唤醒词优化）→ 
 | **唤醒延迟** | 200-300ms | ~50ms |
 | **待机功耗** | ~40mW | ~50mW |
 | **ASR 内存** | 唤醒后按需加载 ~282MB | 唤醒后按需加载 ~282MB |
-| **依赖** | Sherpa-MNN ASR → `libMNN.so` | Sherpa-ONNX → `libonnxruntime.so`，与 LLM 彻底解耦 |
+| **依赖** | Sherpa-MNN ASR → ~~`libMNN.so`~~ | Sherpa-ONNX → `libonnxruntime.so`，与 VLM 打标解耦 |
 
 ---
 
@@ -278,7 +278,7 @@ AgentOrchestrator 接收指令并执行
 | 无法识别"嘿小觅" | 词库中未包含或 VAD 阈值过高 | 检查 `WAKE_WORD_VARIANTS` 包含该词；降低 VAD 阈值（如 20f） |
 | 频繁误触 | VAD 过敏感或冷却期太短 | 增加 `VAD_STABILITY_FRAMES`（如 5）；增加 `WAKE_COOLDOWN_MS`（如 2000） |
 | 识别延迟过长 | ACTIVE_POLL_MS 过大或 ASR 负载重 | 减小轮询延迟（如 20ms）；检查设备 CPU 占用 |
-| ASR 不可用 | LLM 模型加载冲突 | 检查 `MnnResourceManager` 日志；确保 ASR 模型已下载 |
+| ASR 不可用 | VLM 模型加载冲突 | 检查 `MnnResourceManager` 日志；确保 ASR 模型已下载 |
 | 识别失败但日志无错 | 唤醒词无匹配 | 检查 ASR 输出的转录文本；如"今天天气"则无唤醒词 |
 
 ---
@@ -404,24 +404,24 @@ VAD(RMS 25dB) → 录音(最长4s) → ASR 全量转录(282MB) → 文本匹配"
 │                      └─ AiAgentUseCase                   │
 └──────────┬──────────────┬──────────────┬────────────────┘
            │              │              │
-┌──────────▼──────┐ ┌─────▼──────┐ ┌────▼──────────────┐
-│  语音栈 (ONNX)   │ │ LLM (MNN)  │ │  FaceDetect       │
-│                 │ │            │ │  (MNN)            │
-│ libsherpa-      │ │ libMNN.so  │ │  独立 .so         │
-│ onnx-jni.so     │ │ +          │ │                   │
-│ +               │ │ libmnn_llm │ │                   │
-│ libonnxruntime  │ │ .so        │ │                   │
-│ .so             │ │            │ │                   │
-│                 │ │            │ │                   │
-│ ├─ Keyword      │ │ Qwen3.5-2B │ │ Det10G + 2D106   │
-│ │  Spotter(KWS) │ │            │ │                   │
-│ ├─ OnlineRecog  │ │            │ │                   │
-│ │  nizer(ASR)   │ │            │ │                   │
-│ └─ Vad(DNN VAD) │ │            │ │                   │
-│                 │ │            │ │                   │
-│ 完全独立        │ │ MNN 唯一   │ │ 完全独立          │
-│ 加载/释放       │ │ 使用者     │ │ 加载/释放         │
-└─────────────────┘ └────────────┘ └───────────────────┘
+┌──────────▼──────┐ ┌─────▼──────────┐ ┌────▼──────────────┐
+│  语音栈 (ONNX)   │ │ VLM 打标(MNN) │ │  FaceDetect       │
+│                 │ │ (仅 TAG 用)    │ │  (MNN)            │
+│ libsherpa-      │ │ libMNN.so      │ │  独立 .so         │
+│ onnx-jni.so     │ │ +              │ │                   │
+│ +               │ │ libmnn_llm     │ │                   │
+│ libonnxruntime  │ │ .so            │ │                   │
+│ .so             │ │                │ │                   │
+│                 │ │                │ │                   │
+│ ├─ Keyword      │ │ Qwen3-VL-2B    │ │ Det10G + 2D106   │
+│ │  Spotter(KWS) │ │ (TAG Pass 3)   │ │                   │
+│ ├─ OnlineRecog  │ │                │ │                   │
+│ │  nizer(ASR)   │ │                │ │                   │
+│ └─ Vad(DNN VAD) │ │                │ │                   │
+│                 │ │                │ │                   │
+│ 完全独立        │ │ MNN 使用者     │ │ 完全独立          │
+│ 加载/释放       │ │ (VLM+Face)     │ │ 加载/释放         │
+└─────────────────┘ └────────────────┘ └───────────────────┘
 ```
 
 **关键性质**：三个栈各自拥有独立的 Native 运行时，互相不共享全局状态。
@@ -437,7 +437,7 @@ VAD(RMS 25dB) → 录音(最长4s) → ASR 全量转录(282MB) → 文本匹配"
 | — | `com.k2fsa.sherpa.onnx.HomophoneReplacerConfig` | **新增** 同音字配置 |
 | — | `com.k2fsa.sherpa.onnx.Vad` | **可选** Silero DNN VAD |
 | `MnnGlobalReleaseLock` | **删除** | ONNX RT 无此全局状态问题 |
-| `MnnResourceManager` | `ModelResourceCoordinator` | **简化**：仅管理 LLM 生命周期 |
+| `MnnResourceManager` | `ModelResourceCoordinator` | **简化**：仅管理 VLM 打标生命周期（文本 LLM 已移除） |
 
 #### 双引擎工作流程
 
@@ -454,7 +454,7 @@ KWS 常驻监听 (50mW)
     ↓
 识别完毕立即释放 ASR
     ↓
-LLM 处理指令 (执行操作)
+VLM 处理指令（或远程推理，执行操作）
     ↓
 【回到待机】
 KWS 继续监听
@@ -468,7 +468,7 @@ KWS 继续监听
 每个子系统独立管理加载/释放，互不耦合：
 
          ┌──────────┐    ┌──────────┐    ┌──────────┐
-         │  KWS     │    │  ASR     │    │  LLM     │
+         │  KWS     │    │  ASR     │    │  VLM     │
          │ (ONNX)   │    │ (ONNX)   │    │ (MNN)    │
          ├──────────┤    ├──────────┤    ├──────────┤
 UNLOADED │          │    │          │    │          │
@@ -487,34 +487,34 @@ ACTIVE   │  推理中  │    │  推理中  │    │  推理中  │
 [休眠态]                    [唤醒态]                     [推理态]                  [休眠态]
 KWS ████████████           KWS ░░░░░░░░░░░              KWS ░░░░░░░░░░░            KWS ████████████
 ASR ────────────    →      ASR ────────────     →       ASR ████████████    →      ASR ────────────
-LLM ────────────           LLM ────────────             LLM ████████████           LLM ────────────
+VLM ────────────           VLM ────────────             VLM ████████████           VLM ────────────
 
  常驻 ~45MB                 KWS 暂停                     峰值 ~2GB                  常驻 ~45MB
-                            ASR 加载 (~400MB)            LLM + ASR 同时存在
-                            LLM 按需加载 (~1.5GB)        转录完成 → ASR 立即释放
-                                                        LLM 推理完成 → 立即释放
+                            ASR 加载 (~400MB)            VLM + ASR 同时存在
+                            VLM 按需加载 (~1.5GB)        转录完成 → ASR 立即释放
+                                                        VLM 推理完成 → 立即释放
 ```
 
 **设计约束**：
 1. KWS 与 ASR 绝不同时 ACTIVE（KWS 暂停后 ASR 加载）
 2. ASR 转录完成后立即释放（不缓存，不等待 GC）
-3. LLM 推理完成后立即释放（可选保留 KV cache 用于 follow-up 对话）
+3. VLM 推理完成后立即释放（可选保留 KV cache 用于后续 TAG 批处理）
 4. 人脸检测按需加载/释放（MNN，不受语音栈影响）
 
 #### 状态转移表
 
-| 事件 | KWS | ASR | LLM | FaceDetect | 内存峰值 |
+| 事件 | KWS | ASR | VLM | FaceDetect | 内存峰值 |
 |------|-----|-----|-----|------------|---------|
 | **App 启动，进入相机页** | ACTIVE | UNLOADED | UNLOADED | ACTIVE | ~125MB |
 | **检测到唤醒词** | PAUSED | LOADING→ACTIVE | UNLOADED | ACTIVE | ~525MB |
 | **ASR 识别完成** | ACTIVE | UNLOADED | UNLOADED | ACTIVE | ~125MB |
-| **LLM 推理指令** | PAUSED | UNLOADED | LOADING→ACTIVE | ACTIVE | ~1.7GB |
-| **LLM 推理完成** | ACTIVE | UNLOADED | TRIMMED | ACTIVE | ~125MB |
+| **VLM 推理（TAG 打标）** | PAUSED | UNLOADED | LOADING→ACTIVE | ACTIVE | ~1.7GB |
+| **VLM 推理完成** | ACTIVE | UNLOADED | TRIMMED | ACTIVE | ~125MB |
 | **离开相机页** | ACTIVE | UNLOADED | UNLOADED | UNLOADED | ~45MB |
 | **App 退到后台 (30s)** | UNLOADED | UNLOADED | UNLOADED | UNLOADED | 0MB |
-| **⚠️ LLM + ASR 同时** | PAUSED | ACTIVE | ACTIVE | ACTIVE | ~2.0GB |
+| **⚠️ VLM + ASR 同时** | PAUSED | ACTIVE | ACTIVE | ACTIVE | ~2.0GB |
 
-> **注意**：LLM + ASR 同时 ACTIVE 只在理论上发生。实际实现中应优先释放 ASR 再加载 LLM。
+> **注意**：VLM + ASR 同时 ACTIVE 只在理论上发生。实际实现中应优先释放 ASR 再加载 VLM。
 
 ### 4.4 内存压力分析
 
@@ -543,15 +543,15 @@ LLM ────────────           LLM ────────�
 | CTC/RNNT 格 | ~15MB | — |
 | **ASR 总计** | **~380-430MB** | 转录完成后释放 |
 
-**LLM**（Qwen3.5-2B-MNN）：
+**VLM**（Qwen3-VL-2B-MNN，仅 TAG 打标）：
 
 | 项目 | 大小 | 说明 |
 |------|------|------|
-| 模型文件 | ~1.2GB | — |
+| 模型文件 | ~1.4GB | INT4 量化 |
 | 权重张量 | ~1.2GB | MNN Interpreter 加载 |
 | KV Cache（2048 tokens） | ~512MB | 按上下文长度增长 |
 | MNN Runtime | ~20MB | libMNN.so + libmnn_llm.so |
-| **LLM 总计** | **~1.8GB** | 推理完成后释放 |
+| **VLM 总计** | **~1.8GB** | 推理完成后释放 |
 
 **FaceDetect**（MNN 路径）：
 
@@ -563,18 +563,18 @@ LLM ────────────           LLM ────────�
 
 #### 各阶段内存账本
 
-| 阶段 | KWS | ASR | LLM | FaceDetect | ONNX RT | 系统 | **Native 总计** | **进程总计** |
+| 阶段 | KWS | ASR | VLM | FaceDetect | ONNX RT | 系统 | **Native 总计** | **进程总计** |
 |------|-----|-----|-----|------------|---------|------|----------------|-------------|
 | ① 休眠态 | 25MB | — | — | 70MB | 35MB | 700MB | **830MB** | ~1.5GB |
 | ② ASR 转录 | 25MB(PAUSED) | 400MB | — | 70MB | 35MB | 700MB | **1.23GB** | ~1.9GB |
-| ③ LLM 推理 | 25MB(PAUSED) | — | 1.8GB | 70MB | 35MB | 700MB | **2.63GB** | ~3.3GB |
-| **④ ⚠️ ASR+LLM** | **25MB** | **400MB** | **1.8GB** | **70MB** | **35MB** | **700MB** | **3.03GB** | **~3.7GB** |
+| ③ VLM 推理 | 25MB(PAUSED) | — | 1.8GB | 70MB | 35MB | 700MB | **2.63GB** | ~3.3GB |
+| **④ ⚠️ ASR+VLM** | **25MB** | **400MB** | **1.8GB** | **70MB** | **35MB** | **700MB** | **3.03GB** | **~3.7GB** |
 
 > 进程总计 = Native 总计 + Java Heap (~200MB) + Graphics (~300-500MB for GL/CameraX)
 
 #### 设备分级评估
 
-| 设备 | RAM | 进程上限* | 休眠态 | ASR | LLM | ASR+LLM |
+| 设备 | RAM | 进程上限* | 休眠态 | ASR | VLM | ASR+VLM |
 |------|-----|----------|--------|-----|-----|---------|
 | 低端 (4GB) | 4GB | ~1.5-2GB | ✅ | ⚠️ 临界 | ❌ OOM | ❌ OOM |
 | 中端 (6GB) | 6GB | ~2-2.5GB | ✅ | ✅ | ⚠️ 临界 | ❌ OOM |
@@ -589,8 +589,8 @@ LLM ────────────           LLM ────────�
 
 ```kotlin
 enum class DeviceTier {
-    LOW,      // < 6GB RAM, LLM 使用远程推理, ASR 可能触发警告
-    MID,      // 6-8GB, LLM 可用但监控 Native Heap, ASR 安全
+    LOW,      // < 6GB RAM, VLM 打标可能触发警告, ASR 可能触发警告
+    MID,      // 6-8GB, VLM 可用但监控 Native Heap, ASR 安全
     HIGH,     // >= 8GB, 所有模型本地运行
 }
 
@@ -604,17 +604,17 @@ fun getDeviceTier(): DeviceTier {
 }
 ```
 
-#### LLM 加载前检查
+#### VLM 加载前检查
 
 ```kotlin
-fun canLoadLlm(): Boolean {
+fun canLoadVlm(): Boolean {
     val currentNativeHeap = Debug.getNativeHeapAllocatedSize() / 1048576L
-    val llmEstimatedMb = 1800L
+    val vlmEstimatedMb = 1800L
     val availableMb = getAvailableNativeMemoryMb()
 
     return when (deviceTier) {
-        DeviceTier.LOW -> false  // 低端设备不使用本地 LLM
-        DeviceTier.MID -> availableMb > llmEstimatedMb + 200L  // 留 200MB 缓冲
+        DeviceTier.LOW -> false  // 低端设备不使用本地 VLM 打标
+        DeviceTier.MID -> availableMb > vlmEstimatedMb + 200L  // 留 200MB 缓冲
         DeviceTier.HIGH -> true
     }
 }
@@ -626,8 +626,8 @@ fun canLoadLlm(): Boolean {
 
 | 层级 | 操作 | 适用对象 | 延迟 |
 |------|------|---------|------|
-| **TRIM** | 清 KV Cache / 停止流式 / 释放 Intermediate Tensors | LLM / ASR | 立即 |
-| **UNLOAD** | 释放模型权重 + 销毁 Interpreter/Session | LLM / ASR / KWS | 立即 |
+| **TRIM** | 清 KV Cache / 停止流式 / 释放 Intermediate Tensors | VLM / ASR | 立即 |
+| **UNLOAD** | 释放模型权重 + 销毁 Interpreter/Session | VLM / ASR / KWS | 立即 |
 
 不再需要 "SESSION" 中间层级，因为不存在跨子系统的共享状态。
 
@@ -646,7 +646,7 @@ fun canLoadLlm(): Boolean {
 |------|------|---------|------|
 | **runtime-core** | `SherpaMnnAsrEngine.kt` → `SherpaOnnxAsrEngine.kt` | 重写（包名+模型格式） | 2h |
 | **runtime-core** | 新增 `KeywordSpotterEngine.kt` | 新建 | 1.5h |
-| **runtime-core** | `MnnResourceManager.kt` → `ModelResourceCoordinator.kt` | 简化 | 1h |
+| **runtime-core** | `MnnResourceManager.kt` → `ModelResourceCoordinator.kt` | 简化（VLM 打标生命周期，文本 LLM 已移除） | 1h |
 | **runtime-core** | 删除 `MnnGlobalReleaseLock` | 删除 | 0.5h |
 | **app** | `WakeWordEngine.kt` | 重写（KWS 集成） | 2h |
 | **app** | `VoiceCommandCoordinator.kt` | 适配 | 1h |
@@ -763,7 +763,7 @@ dependencies {
 | ONNX ASR 模型精度与 MNN 不一致 | 中 | 高 | Phase 1 对比测试转录质量 |
 | ONNX Runtime 在低端设备崩溃 | 低 | 高 | 设备分级 + 回退到 Android System ASR |
 | KWS 误触发率高于预期 | 中 | 中 | 可调关键词分数 + 冷却期 + VAD 辅助 |
-| 低端设备 LLM OOM | 高 | 中 | 设备分级：低端用远程推理 |
+| 低端设备 VLM OOM | 高 | 中 | 设备分级：低端用远程推理或跳过 TAG 打标 |
 | AAR 54MB 导致 APK 过大 | 中 | 低 | AAB 按架构拆分的 .so 在实际安装中只包含 arm64 |
 
 ### 4.11 验收标准
@@ -772,9 +772,9 @@ dependencies {
 - [ ] KWS 唤醒延迟 < 100ms（从用户说话到检测到关键词）
 - [ ] KWS 误触发率 < 1次/小时（正常环境）
 - [ ] ASR 转录质量不低于当前 MNN 版本（对比测试 ≥ 95% 字符准确率）
-- [ ] LLM 可以完全卸载（Native Heap 回落到休眠态水平）
-- [ ] 多次 KWS→ASR→LLM 循环无内存泄漏（Native Heap 不持续增长）
-- [ ] 低端设备（4GB）不触发 OOM（KWS + 远程 LLM）
+- [ ] VLM 可以完全卸载（Native Heap 回落到休眠态水平）
+- [ ] 多次 KWS→ASR→VLM 循环无内存泄漏（Native Heap 不持续增长）
+- [ ] 低端设备（4GB）不触发 OOM（KWS + 远程推理，跳过本地 VLM 打标）
 - [ ] `MnnGlobalReleaseLock` 完全删除，无残留引用
 - [ ] 人脸检测（MNN）不受语音栈切换影响
 

@@ -16,7 +16,6 @@ import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.domain.model.AppLanguage
@@ -81,8 +80,6 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         // AI Agent
         val AI_AGENT_MODE = stringPreferencesKey("ai_agent_mode")
         val AI_AGENT_PRIVACY_LEVEL = stringPreferencesKey("ai_agent_privacy_level")
-        val AI_AGENT_LOCAL_MODEL = stringPreferencesKey("ai_agent_local_model")
-        val AI_AGENT_LOCAL_USE_OPENCL = booleanPreferencesKey("ai_agent_local_use_opencl")
 
         // TAG 生成
         val TAG_GENERATION_USE_OPENCL = booleanPreferencesKey("tag_generation_use_opencl")
@@ -94,11 +91,8 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val AI_AGENT_REMOTE_MODEL_CONFIGS = stringPreferencesKey("ai_agent_remote_model_configs_v2")
         val AI_AGENT_SELECTED_REMOTE_MODEL = stringPreferencesKey("ai_agent_selected_remote_model")
 
-        // AI Agent 推理偏好（LOCAL 模式下的本地/远程路由策略）
-        val AI_AGENT_INFERENCE_PREFERENCE = stringPreferencesKey("ai_agent_inference_preference")
-
-        // AI Agent L1 意图缓存调试开关
-        val AI_AGENT_L1_CACHE_ENABLED = booleanPreferencesKey("ai_agent_l1_cache_enabled")
+        // 端侧文本 LLM（qwen3_5_2b）一次性清理标志：删除 filesDir/llm_models/qwen3_5_2b/ 后置位
+        val LOCAL_TEXT_LLM_CLEANED = booleanPreferencesKey("local_text_llm_cleaned")
 
         // 自动执行计划开关
         val AUTO_EXECUTE_PLANS = booleanPreferencesKey("auto_execute_plans")
@@ -604,42 +598,6 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         }
     }
 
-    override val aiAgentLocalModelFlow: Flow<String> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_LOCAL_MODEL] ?: ""
-        }
-
-    override suspend fun updateAiAgentLocalModel(modelId: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_LOCAL_MODEL] = modelId
-        }
-    }
-
-    override val aiAgentLocalUseOpenclFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_LOCAL_USE_OPENCL] ?: false
-        }
-
-    override suspend fun updateAiAgentLocalUseOpencl(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_LOCAL_USE_OPENCL] = enabled
-        }
-    }
-
     override val tagGenerationUseOpencl: Flow<Boolean> = context.dataStore.data
         .catch { exception ->
             if (exception is IOException) {
@@ -779,45 +737,6 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         }
     }
 
-    override val aiAgentInferencePreferenceFlow: Flow<AiAgentInferencePreference> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            val prefName = preferences[PreferencesKeys.AI_AGENT_INFERENCE_PREFERENCE]
-                ?: AiAgentInferencePreference.FORCE_REMOTE.name
-            runCatching { AiAgentInferencePreference.valueOf(prefName) }
-                .getOrDefault(AiAgentInferencePreference.FORCE_REMOTE)
-        }
-
-    override suspend fun updateAiAgentInferencePreference(preference: AiAgentInferencePreference) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_INFERENCE_PREFERENCE] = preference.name
-        }
-    }
-
-    override val aiAgentL1CacheEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_L1_CACHE_ENABLED] ?: true
-        }
-
-    override suspend fun updateAiAgentL1CacheEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AI_AGENT_L1_CACHE_ENABLED] = enabled
-        }
-    }
-
     override val autoExecutePlansEnabledFlow: Flow<Boolean> = context.dataStore.data
         .catch { exception ->
             if (exception is IOException) {
@@ -833,6 +752,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateAutoExecutePlansEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTO_EXECUTE_PLANS] = enabled
+        }
+    }
+
+    override val localTextLlmCleanedFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.LOCAL_TEXT_LLM_CLEANED] ?: false
+        }
+
+    override suspend fun markLocalTextLlmCleaned() {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LOCAL_TEXT_LLM_CLEANED] = true
         }
     }
 

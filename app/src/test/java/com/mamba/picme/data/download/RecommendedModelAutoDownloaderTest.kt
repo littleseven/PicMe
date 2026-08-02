@@ -10,7 +10,7 @@ class RecommendedModelAutoDownloaderTest {
 
     @Test
     fun missing_is_all_recommended_minus_downloaded_and_inprogress() {
-        val downloaded = setOf("qwen3_5_2b", "modnet-onnx")
+        val downloaded = setOf("mediapipe-face-landmarker", "modnet-onnx")
         val inProgress = setOf("u2netp-onnx")
         val expected = ModelConfig.RECOMMENDED_MODEL_IDS
             .toList()

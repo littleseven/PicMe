@@ -89,7 +89,7 @@ Pass 4: MOBILE_CLIP_ENCODING（保留枚举值，用于兼容历史任务/单独
 | 层级 | 来源 | 存储字段 / 表 | 示例 |
 |------|------|---------------|------|
 | L1 人脸 | FaceDetector + FaceClusterEngine | `faceRoiResult` JSON、`face_embeddings` 表、`persons` 表、`media_assets.faceId` | `hasFace=true`, `faceCount=2`, `personId=3` |
-| L2 内容 | Qwen 3.5-2B | `media_assets.labels` JSON | `scene=户外`, `activity=旅行`, `tags=["风景","山"]` |
+| L2 内容 | Florence-2（默认）/ Qwen3-VL-2B（备选 tagger） | `media_assets.labels` JSON | `scene=户外`, `activity=旅行`, `tags=["风景","山"]` |
 | L3 元数据 | EXIF / MediaStore / 逆地理编码 | `captureDate`, `locationName`, `source`, `latitude`/`longitude` | `time:afternoon`, `location:北京` |
 | L4 ML Kit 标签 | ML Kit Image Labeler | `media_assets.mlKitLabels` JSON | `["Outdoor","Food","Plant"]` |
 | L5 语义向量 | MobileCLIP-S0 | `media_assets.semanticEmbedding` Base64 | 512 维 L2 归一化向量 |
@@ -638,16 +638,16 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 > 下文「用 2B 做标签抽取是过度设计」的批评即由此而来——结构化标签抽取改走 Florence-2，
 > 不再用 2B 生成模型打标；以下为历史背景，保留作参考。
 
-#### 命名与版本不一致
+#### 命名与版本一致性
 
-代码中模型 key 为 `qwen3_5_2b`：
+打标 tagger 模型 key 已统一（见上文决策）：
 
 ```kotlin
-// TagGenerationScheduler.kt
-private const val MODEL_KEY = "qwen3_5_2b"
+// TagGenerationScheduler.kt — tagger 模型由 TaggerModelSelector 驱动
+// 首选 florence2_base，未下载时回退 qwen3_vl_2b
 ```
 
-文档中同时出现 `Qwen 3.5-2B` 与 `Qwen3-VL 2B`。需要确认实际运行的模型版本，并在 `MODEL_KEY` 附近和文档中统一模型 ID，注释实际模型文件来源与版本。
+> **注意**：历史代码中存在 `qwen3_5_2b` 模型 key，该 key 对应的端侧**文本** LLM（Qwen3.5-2B 聊天/指令模型）已于 2026-08 移除（`AiAgentMode.LOCAL`、相机本地 Agent 链路全部删除）。本文 Pass 3 的 MNN VLM 打标链路（Qwen3-VL-2B / Florence-2）不受影响——VLM tagger 使用独立的 `qwen3_vl_2b` 模型 key。
 
 #### 用 2B 生成模型做「标签抽取」是过度设计
 
@@ -802,7 +802,7 @@ Pass 1 和 Pass 3 的每张照片循环末尾都执行 `delay(THROTTLE_MS)`。Pa
 
 #### 瓶颈 2：Pass 3 Qwen 推理是物理上限
 
-Qwen3.5-2B 多模态推理使用 `engineMutex` 串行保护，每张约 2-8s（CPU 模式）。9000 张的理论下限 (2s/张) 即 **5 小时**。
+Qwen3-VL-2B 多模态推理使用 `engineMutex` 串行保护，每张约 2-8s（CPU 模式）。9000 张的理论下限 (2s/张) 即 **5 小时**。
 
 #### 瓶颈 3：Bitmap 双重解码
 

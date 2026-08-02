@@ -321,12 +321,10 @@
 
     <!-- AI Agent -->
     <string name="ai_agent">AI Agent</string>
-    <string name="ai_agent_desc">Select local or remote model for natural language camera control.</string>
+    <string name="ai_agent_desc">Use a remote model for natural language camera control.</string>
     <string name="ai_agent_mode">Inference Mode</string>
     <string name="ai_agent_mode_off">Disabled</string>
-    <string name="ai_agent_mode_local">Local Model</string>
     <string name="ai_agent_mode_remote">Remote Model</string>
-    <string name="ai_agent_mode_feishu">Feishu</string>
 
     <!-- Communication Channel -->
     <string name="communication_channel">Communication Channel</string>
@@ -355,7 +353,6 @@
     <string name="ai_agent_privacy_level">Privacy Level</string>
     <string name="ai_agent_privacy_strict">Strict (Local Only)</string>
     <string name="ai_agent_privacy_permissive">Permissive (Allow Remote)</string>
-    <string name="ai_agent_local_model">Selected Model</string>
     <string name="ai_agent_local_backend">Local LLM Backend</string>
     <string name="ai_agent_local_backend_cpu">CPU</string>
     <string name="ai_agent_local_backend_opencl">OpenCL (GPU)</string>
@@ -364,7 +361,6 @@
     <string name="tag_gen_use_opencl_desc">Use GPU to accelerate batch image tagging. May cause freeze on some devices due to OpenCL driver issues in multimodal inference — disable if Pass 3 hangs.</string>
     <string name="tag_control_title">TAG Generation Control</string>
     <string name="tag_control_subtitle">Regenerate by category / time range / full or incremental</string>
-    <string name="ai_agent_no_local_model">No downloaded models. Go to Model Manager to download.</string>
     <string name="remote_models">Remote Models</string>
     <string name="configured">Configured</string>
     <string name="not_configured">Not configured</string>
@@ -381,17 +377,8 @@
     <string name="api_key_hint">Enter API Key</string>
     <string name="api_key_set">API Key configured</string>
     <string name="api_key_not_set">Not configured</string>
-    <string name="ai_agent_inference_preference">Inference Preference</string>
-    <string name="ai_agent_inference_auto">Auto</string>
-    <string name="ai_agent_inference_auto_desc">Automatically choose local or remote based on model availability.</string>
-    <string name="ai_agent_inference_force_local">Force Local</string>
-    <string name="ai_agent_inference_force_local_desc">Always use on-device model. Falls back to text reply if model unavailable.</string>
-    <string name="ai_agent_inference_force_remote">Force Remote</string>
-    <string name="ai_agent_inference_force_remote_desc">Always use remote API, bypassing local model check.</string>
     <string name="ai_agent_auto_execute_plans">Auto-Execute Multi-Step Plans</string>
     <string name="ai_agent_auto_execute_plans_desc">When disabled, Agent will ask for confirmation before executing multi-step plans.</string>
-    <string name="ai_agent_l1_cache">L1 Intent Cache</string>
-    <string name="ai_agent_l1_cache_desc">When disabled, all commands bypass the cache and go through the LLM for debugging.</string>
     <string name="ai_agent_input_hint">Ask AI Agent...</string>
     <string name="clear_chat">Clear Chat</string>
     <string name="chat_input_hint">Ask AI Agent...</string>
@@ -699,9 +686,8 @@
     <string name="account">Account</string>
     <string name="account_desc">Email registration, quota and API key binding.</string>
     <string name="ai_assistant">AI Settings</string>
-    <string name="ai_assistant_desc">On-device &amp; remote inference, voice control</string>
+    <string name="ai_assistant_desc">Cloud AI inference &amp; voice control</string>
     <string name="ai_settings_remote_section">Remote inference</string>
-    <string name="ai_settings_local_section">On-device inference</string>
     <string name="ai_agent_current_model">In use</string>
     <string name="remote_model_default_limit_title">Default remote model has usage limits</string>
     <string name="remote_model_default_limit_desc">Add your own model to remove limits</string>

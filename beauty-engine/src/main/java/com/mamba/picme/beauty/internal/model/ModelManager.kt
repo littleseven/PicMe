@@ -27,19 +27,6 @@ object ModelManager {
         val version: String
     )
 
-    /**
-     * LLM 模型信息（MNN-LLM 需要整个目录）
-     *
-     * @param assetDir assets 中的目录路径
-     * @param cacheDirName 复制到 filesDir 后的目录名
-     * @param version 模型版本号
-     */
-    data class LlmModelInfo(
-        val assetDir: String,
-        val cacheDirName: String,
-        val version: String
-    )
-
     // ── 模型注册表 ───────────────────────────────────────────
 
     /**
@@ -73,14 +60,6 @@ object ModelManager {
         "det_500m_mnn" to ModelInfo(
             assetPath = "models/mnn/det_500m.mnn",
             cacheName = "det_500m.mnn",
-            version = "1.0"
-        )
-    )
-
-    private val LLM_MODEL_REGISTRY = mapOf(
-        "qwen3_0_6b" to LlmModelInfo(
-            assetDir = "models/llm/Qwen3-0.6B-MNN",
-            cacheDirName = "qwen3_0_6b",
             version = "1.0"
         )
     )
@@ -143,82 +122,6 @@ object ModelManager {
         // 2. 检查传统缓存
         val file = File(context.filesDir, info.cacheName)
         return file.exists() && file.length() > 0L
-    }
-
-    // ── LLM 模型 API ─────────────────────────────────────────
-
-    /**
-     * 准备 LLM 模型目录（MNN-LLM 需要整个目录结构）
-     *
-     * 规则：代码 key（下划线格式）→ 存储目录（ModelScope 发布源格式）
-     *
-     * @param key LLM 模型注册表中的 key，如 "qwen3_5_2b"
-     * @param context Context
-     * @return 模型目录绝对路径
-     * @throws IllegalArgumentException 如果 key 不存在
-     */
-    fun prepareLlmModel(key: String, context: Context): String {
-        val info = LLM_MODEL_REGISTRY[key]
-            ?: throw IllegalArgumentException("Unknown LLM model key: $key")
-
-        // 1. 优先检查下载目录 (llm_models/<cacheDirName>/)
-        val downloadDir = File(context.filesDir, "llm_models/${info.cacheDirName}")
-        if (downloadDir.exists() && isLlmModelComplete(downloadDir)) {
-            Logger.d(TAG, "LLM model found: ${downloadDir.absolutePath}")
-            return downloadDir.absolutePath
-        }
-
-        // 2. 从 assets 复制（兜底）
-        return copyAssetModelToCache(info.assetDir, info.cacheDirName, context)
-    }
-
-    /**
-     * 检查 LLM 模型是否已缓存
-     */
-    fun isLlmModelCached(key: String, context: Context): Boolean {
-        val info = LLM_MODEL_REGISTRY[key] ?: return false
-
-        val downloadDir = File(context.filesDir, "llm_models/${info.cacheDirName}")
-        return downloadDir.exists() && isLlmModelComplete(downloadDir)
-    }
-
-    private fun isLlmModelComplete(dir: File): Boolean {
-        return dir.walkTopDown().any { it.name.endsWith(".mnn") }
-    }
-
-    /**
-     * 将 assets 中的模型目录复制到缓存目录
-     */
-    private fun copyAssetModelToCache(assetDir: String, cacheDirName: String, context: Context): String {
-        val destDir = File(context.filesDir, cacheDirName)
-
-        if (destDir.exists() && isLlmModelComplete(destDir)) {
-            return destDir.absolutePath
-        }
-
-        destDir.mkdirs()
-
-        try {
-            val assetFiles = context.assets.list(assetDir)
-                ?: throw RuntimeException("Asset directory not found: $assetDir")
-
-            for (fileName in assetFiles) {
-                val assetPath = "$assetDir/$fileName"
-                val destFile = File(destDir, fileName)
-
-                context.assets.open(assetPath).use { input ->
-                    destFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            }
-            Logger.d(TAG, "Model copied: $assetDir -> ${destDir.absolutePath}")
-        } catch (e: Exception) {
-            Logger.e(TAG, "Failed to copy model from assets: $assetDir", e)
-            throw RuntimeException("Failed to copy model from assets: $assetDir", e)
-        }
-
-        return destDir.absolutePath
     }
 
     /**

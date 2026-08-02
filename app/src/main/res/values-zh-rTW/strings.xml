@@ -312,12 +312,10 @@
 
     <!-- AI Agent -->
     <string name="ai_agent">AI 智慧助手</string>
-    <string name="ai_agent_desc">選擇本地或遠端模型，啟用自然語言控制相機功能。</string>
+    <string name="ai_agent_desc">使用遠端模型，啟用自然語言控制相機功能。</string>
     <string name="ai_agent_mode">推理模式</string>
     <string name="ai_agent_mode_off">關閉</string>
-    <string name="ai_agent_mode_local">本地模型</string>
     <string name="ai_agent_mode_remote">遠端模型</string>
-    <string name="ai_agent_mode_feishu">飞书</string>
 
     <!-- Communication Channel -->
     <string name="communication_channel">通信通道</string>
@@ -346,14 +344,12 @@
     <string name="ai_agent_privacy_level">隱私級別</string>
     <string name="ai_agent_privacy_strict">嚴格（僅本地）</string>
     <string name="ai_agent_privacy_permissive">寬鬆（允許遠端）</string>
-    <string name="ai_agent_local_model">已選模型</string>
     <string name="ai_agent_local_backend">本地 LLM 後端</string>
     <string name="ai_agent_local_backend_cpu">CPU</string>
     <string name="ai_agent_local_backend_opencl">OpenCL（GPU）</string>
     <string name="ai_agent_local_backend_desc">選擇本地 LLM 推理後端。OpenCL 依賴裝置支援，部分模型或機型穩定性可能較差。</string>
     <string name="tag_gen_use_opencl_title">TAG 生成 GPU 加速</string>
     <string name="tag_gen_use_opencl_desc">使用 GPU 加速批量圖片標籤生成。部分裝置 OpenCL 多模態推理可能卡死，如 Pass 3 卡住請關閉此選項。</string>
-    <string name="ai_agent_no_local_model">暫無已下載模型，前往模型管理下載。</string>
     <string name="remote_models">遠端模型</string>
     <string name="configured">已設定</string>
     <string name="not_configured">未設定</string>
@@ -370,17 +366,8 @@
     <string name="api_key_hint">輸入 API Key</string>
     <string name="api_key_set">API Key 已設定</string>
     <string name="api_key_not_set">未設定</string>
-    <string name="ai_agent_inference_preference">推理偏好</string>
-    <string name="ai_agent_inference_auto">自動</string>
-    <string name="ai_agent_inference_auto_desc">根據模型可用性自動選擇本地或遠端推理。</string>
-    <string name="ai_agent_inference_force_local">強制本地</string>
-    <string name="ai_agent_inference_force_local_desc">始終使用本地模型。模型不可用時回退到文本回覆。</string>
-    <string name="ai_agent_inference_force_remote">強制遠端</string>
-    <string name="ai_agent_inference_force_remote_desc">始終使用遠端 API，繞過本地模型檢查。</string>
     <string name="ai_agent_auto_execute_plans">自動執行多步驟計劃</string>
     <string name="ai_agent_auto_execute_plans_desc">關閉後，Agent 執行多步驟計劃前會要求確認。</string>
-    <string name="ai_agent_l1_cache">L1 意圖快取</string>
-    <string name="ai_agent_l1_cache_desc">關閉後所有指令都會繞過快取走 LLM，便於調試推理鏈路。</string>
     <string name="ai_agent_input_hint">向 AI 助手提問...</string>
     <string name="ai_model_manager">AI 模型管理</string>
     <string name="ai_model_manager_desc">管理本地 AI 模型。</string>
@@ -671,9 +658,8 @@
     <string name="account">帳號</string>
     <string name="account_desc">郵箱註冊、額度與 API Key 綁定。</string>
     <string name="ai_assistant">AI 設定</string>
-    <string name="ai_assistant_desc">本地與遠端推理鏈路、語音控制</string>
+    <string name="ai_assistant_desc">遠端 AI 推理、語音控制</string>
     <string name="ai_settings_remote_section">遠端推理</string>
-    <string name="ai_settings_local_section">本地推理</string>
     <string name="ai_agent_current_model">目前使用</string>
     <string name="remote_model_default_limit_title">預設遠端模型有時長限制</string>
     <string name="remote_model_default_limit_desc">新增自有模型以解除限制</string>

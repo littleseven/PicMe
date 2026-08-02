@@ -2,30 +2,16 @@ package com.mamba.picme.agent.core.inference.local.llm
 
 import android.content.Context
 import android.graphics.Bitmap
-import com.mamba.picme.agent.core.local.llm.ChatResponseMetadata
-import com.mamba.picme.agent.core.local.llm.LlmChatLanguageModel
-import com.mamba.picme.agent.core.local.llm.LlmChatRequest
-import com.mamba.picme.agent.core.local.llm.LlmChatResponse
-import com.mamba.picme.agent.core.local.llm.StreamingLlmChatLanguageModel
-import com.mamba.picme.agent.core.local.llm.StreamingChatResponseHandler
 import com.mamba.picme.agent.core.inference.local.llm.MnnLlmClient.NativeReleaseTarget
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.mnn.MnnGlobalReleaseLock
 import com.mamba.picme.mnn.MnnResourceManager
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
-import com.mamba.data.message.AiMessage
-import com.mamba.data.message.ChatMessage
-import com.mamba.data.message.ImageContent
-import com.mamba.data.message.SystemMessage
-import com.mamba.data.message.TextContent
-import com.mamba.data.message.ToolExecutionResultMessage
-import com.mamba.data.message.UserMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -42,16 +28,22 @@ class LlmModelNotFoundException(
 ) : Exception(message, cause)
 
 /**
- * 本地 LLM 推理引擎
+ * 本地 LLM 推理引擎（**VLM 打标专用**）
  *
  * 封装 MNN-LLM 客户端，支持多模型管理和懒加载。
+ *
+ * **适用范围（2026-08 端侧文本 LLM 移除后）**：本引擎仅保留端侧 VLM 能力——
+ * TAG 生成 Pass 3 图像打标与图像理解（[imageInference]/[imageInferenceWithTimeout]）
+ * 及模型生命周期管理（[loadModel]/[unload]/[trimMemory] 等）。
+ * 端侧文本聊天/指令推理链路（原 chat()/流式 chat）已移除，相机 AI 指令改走远程
+ * tool_calls（见 `inference/remote/tool/CameraToolService`）。
  *
  * **线程模型**：所有模型操作（load/unload/trimMemory/generate）统一在专用单线程上执行，
  * 避免 Compose 协程重组取消和多线程并发竞争导致的 MNN 全局状态冲突。
  *
  * @param context Application Context
  */
-class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, StreamingLlmChatLanguageModel {
+class LocalLlmEngine(private val context: Context) {
 
     private val tag = "LocalLlmEngine"
     private val client = MnnLlmClient(context)
@@ -195,202 +187,11 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
     }
 
     /**
-     * 最近一次本地生成的性能指标（仅同步/流式生成完成后有效）。
+     * 最近一次本地生成的性能指标（仅图像推理完成后有效）。
      */
     @Volatile
     var lastGenerationMetrics: LlmGenerationMetrics? = null
         private set
-
-    /**
-     * 使用 LangChain4j 风格 API 进行同步对话。
-     *
-     * 内部根据消息组成选择最优的底层调用：
-     * - 包含 SystemMessage + UserMessage → MNN generateWithSystem（可获取完整性能指标）
-     * - 仅 UserMessage → 直接 generate
-     * - 多轮历史 → 拼接为纯文本 prompt 后 generate
-     */
-    override fun chat(request: LlmChatRequest): LlmChatResponse {
-        return runBlocking(modelDispatcher) {
-            engineMutex.withLock {
-                if (!client.isLoaded) {
-                    throw IllegalStateException("LLM model not loaded")
-                }
-
-                val messages = request.messages
-                val systemMessage = messages.filterIsInstance<SystemMessage>().lastOrNull()?.text()
-
-                // 检测是否有历史消息（消息数量 > system+user 或有中间 assistant 消息）
-                val nonSystemMessages = messages.filter { it !is SystemMessage }
-                val historyMessages = nonSystemMessages.dropLast(1) // 除去当前 user 消息
-                val hasHistory = historyMessages.isNotEmpty()
-
-                val maxTokens = if (request.toolSpecifications.isNotEmpty()) 256 else 128
-
-                try {
-                    val response = if (hasHistory && systemMessage != null) {
-                        // 多轮对话：将完整历史转换为 (role, content) 列表传给 native
-                        val historyPairs = messages.map { message ->
-                            when (message) {
-                                is SystemMessage -> "system" to message.text()
-                                is UserMessage -> "user" to safeExtractUserContent(message)
-                                is AiMessage -> "assistant" to message.text()
-                                is ToolExecutionResultMessage -> "tool" to message.text()
-                                else -> "unknown" to message.toString()
-                            }
-                        }
-                        val result = client.generateWithHistory(historyPairs, maxTokens)
-                        if (result.error != null) {
-                            throw RuntimeException(result.error)
-                        }
-                        lastGenerationMetrics = LlmGenerationMetrics(
-                            promptLen = result.promptLen,
-                            decodeLen = result.decodeLen,
-                            prefillTime = result.prefillTime,
-                            decodeTime = result.decodeTime,
-                            prefillSpeed = result.prefillSpeed,
-                            decodeSpeed = result.decodeSpeed
-                        )
-                        result.response
-                    } else if (systemMessage != null) {
-                        // 单轮 system + user
-                        val userMessage = messages.filterIsInstance<UserMessage>().lastOrNull()?.let { safeExtractUserContent(it) }
-                            ?: messages.lastOrNull()?.let { extractText(it) }
-                            ?: throw IllegalArgumentException("ChatRequest must contain at least one message")
-                        val result = client.generateWithSystem(
-                            systemPrompt = systemMessage,
-                            userPrompt = userMessage,
-                            maxNewTokens = maxTokens
-                        )
-                        if (result.error != null) {
-                            throw RuntimeException(result.error)
-                        }
-                        lastGenerationMetrics = LlmGenerationMetrics(
-                            promptLen = result.promptLen,
-                            decodeLen = result.decodeLen,
-                            prefillTime = result.prefillTime,
-                            decodeTime = result.decodeTime,
-                            prefillSpeed = result.prefillSpeed,
-                            decodeSpeed = result.decodeSpeed
-                        )
-                        result.response
-                    } else {
-                        // 无 system prompt：拼接所有消息为纯文本 prompt
-                        client.generate(
-                            prompt = buildPromptFromMessages(messages),
-                            maxNewTokens = maxTokens
-                        )
-                    }
-
-                    if (response.isBlank()) {
-                        throw RuntimeException("Empty LLM response")
-                    }
-
-                    LlmChatResponse(
-                        aiMessage = AiMessage.from(response),
-                        metadata = lastGenerationMetrics?.let {
-                            ChatResponseMetadata(
-                                promptTokens = it.promptLen,
-                                completionTokens = it.decodeLen,
-                                prefillTimeMs = it.prefillTime,
-                                decodeTimeMs = it.decodeTime,
-                                prefillSpeed = it.prefillSpeed,
-                                decodeSpeed = it.decodeSpeed
-                            )
-                        }
-                    )
-                } catch (exception: CancellationException) {
-                    throw exception
-                } catch (exception: Exception) {
-                    Logger.e(tag, "Chat failed", exception)
-                    throw exception
-                }
-            }
-        }
-    }
-
-    /**
-     * 使用 LangChain4j 风格 API 进行流式对话。
-     */
-    override fun chat(request: LlmChatRequest, handler: StreamingChatResponseHandler) {
-        CoroutineScope(modelDispatcher).launch {
-            engineMutex.withLock {
-                if (!client.isLoaded) {
-                    handler.onError(IllegalStateException("LLM model not loaded"))
-                    return@launch
-                }
-
-                val prompt = buildPromptFromMessages(request.messages)
-                val accumulatedText = StringBuilder()
-
-                val listener = object : StreamGenerateListener {
-                    override fun onToken(token: String?, isEop: Boolean): Boolean {
-                        if (token != null) {
-                            accumulatedText.append(token)
-                            handler.onPartialResponse(token)
-                        }
-                        return false
-                    }
-                }
-
-                try {
-                    val streamResult = client.generateStream(prompt, 128, listener)
-                    if (streamResult.isSuccess) {
-                        handler.onCompleteResponse(
-                            LlmChatResponse(
-                                aiMessage = AiMessage.from(streamResult.response),
-                                metadata = ChatResponseMetadata(
-                                    promptTokens = streamResult.promptLen,
-                                    completionTokens = streamResult.decodeLen,
-                                    prefillTimeMs = streamResult.prefillTime,
-                                    decodeTimeMs = streamResult.decodeTime,
-                                    prefillSpeed = streamResult.prefillSpeed,
-                                    decodeSpeed = streamResult.decodeSpeed
-                                )
-                            )
-                        )
-                    } else {
-                        handler.onError(RuntimeException(streamResult.error ?: "Unknown error"))
-                    }
-                } catch (exception: Exception) {
-                    Logger.e(tag, "Streaming chat failed", exception)
-                    handler.onError(exception)
-                }
-            }
-        }
-    }
-
-    private fun extractText(message: ChatMessage): String = when (message) {
-        is UserMessage -> safeExtractUserContent(message)
-        is SystemMessage -> message.text()
-        is AiMessage -> message.text()
-        is ToolExecutionResultMessage -> message.text()
-        else -> message.toString()
-    }
-
-    /**
-     * 安全提取 UserMessage 的文本内容。
-     * 处理含 ImageContent 或其他非文本 Content 的消息。
-     */
-    private fun safeExtractUserContent(message: UserMessage): String {
-        return if (message.hasSingleText()) {
-            message.singleText()
-        } else {
-            message.contents().joinToString(" ") { content ->
-                when (content) {
-                    is TextContent -> content.text()
-                    is ImageContent -> {
-                        val image = content.image()
-                        if (image.url() != null) {
-                            "[图片: ${image.url()}]"
-                        } else {
-                            "[图片]"
-                        }
-                    }
-                    else -> "[${content.type()}]"
-                }
-            }
-        }
-    }
 
     /**
      * 使用本地多模态模型对图片进行推理。
@@ -611,10 +412,10 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
      * 注意：此回调已在 MnnGlobalReleaseLock 保护下执行，直接同步卸载即可。
      * 不要投递到 modelExecutor，否则真正的释放会脱离锁保护。
      *
-     * 必须使用 engineMutex.tryLock() 保护，防止与 chat() 并发执行时
-     * 在 chat() 检查 client.isLoaded 为 true 后、实际推理前将模型销毁，
+     * 必须使用 engineMutex.tryLock() 保护，防止与推理并发执行时
+     * 在推理检查 client.isLoaded 为 true 后、实际推理前将模型销毁，
      * 导致 IllegalStateException("LLM model not loaded")。
-     * 若 engine 正忙（chat 进行中），则跳过本次卸载，模型保持加载。
+     * 若 engine 正忙（推理进行中），则跳过本次卸载，模型保持加载。
      */
     private fun onSafeUnload() {
         if (!client.isLoaded) {
@@ -623,7 +424,7 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
         }
 
         if (!engineMutex.tryLock()) {
-            Logger.w(tag, "Skip sync unload: engine is busy (chat in progress), model stays loaded")
+            Logger.w(tag, "Skip sync unload: engine is busy (inference in progress), model stays loaded")
             return
         }
 
@@ -638,43 +439,5 @@ class LocalLlmEngine(private val context: Context) : LlmChatLanguageModel, Strea
             engineMutex.unlock()
         }
         isRegistered.set(false)
-    }
-
-    /**
-     * 将 ChatMessages 拼接为单个 prompt 字符串
-     *
-     * **注意**：MNN-LLM 在 config.json 中 use_template=true 时会自动应用 chat template，
-     * 外部不需要手动添加 <|im_start|> 等标记。使用纯文本格式即可。
-     */
-    private fun buildPromptFromMessages(
-        messages: List<ChatMessage>
-    ): String {
-        return buildString {
-            messages.forEach { message ->
-                when (message) {
-                    is SystemMessage -> {
-                        appendLine("system:")
-                        appendLine(message.text())
-                        appendLine()
-                    }
-                    is UserMessage -> {
-                        appendLine("user:")
-                        appendLine(safeExtractUserContent(message))
-                        appendLine()
-                    }
-                    is AiMessage -> {
-                        appendLine("assistant:")
-                        appendLine(message.text())
-                        appendLine()
-                    }
-                    is ToolExecutionResultMessage -> {
-                        appendLine("tool:")
-                        appendLine(message.text())
-                        appendLine()
-                    }
-                }
-            }
-            append("assistant:")
-        }
     }
 }

@@ -2,8 +2,7 @@ package com.mamba.picme.features.chat
 
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.inference.remote.ChatStreamEvent
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
+import com.mamba.picme.agent.core.inference.remote.StreamChatResult
 import com.mamba.picme.data.local.ChatSessionEntity
 import io.mockk.coEvery
 import io.mockk.every
@@ -20,8 +19,6 @@ import org.junit.Test
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModelStreamingWiringTest : ChatViewModelTestBase() {
-
-    override val initialPreference = AiAgentInferencePreference.FORCE_REMOTE
 
     @Before
     override fun setUp() {

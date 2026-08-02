@@ -5,19 +5,22 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
+import com.mamba.picme.agent.core.model.context.AgentContext
+import com.mamba.picme.agent.core.model.context.PageContext
+import com.mamba.picme.agent.core.inference.remote.tool.CameraToolService
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
+import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
+import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.inference.local.LocalModelService
-import com.mamba.picme.agent.core.inference.local.LocalCameraAgent
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
+import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,6 +54,25 @@ class AgentOrchestrator private constructor(context: Context) {
                 instance ?: AgentOrchestrator(context.applicationContext).also { instance = it }
             }
         }
+
+        /**
+         * 相机远程 tool_calls 专属 system prompt：只暴露相机控制能力，指令直接执行。
+         * 「可用工具」段由 [ToolInventory] 从 [CameraToolService] 的 @Tool 元数据确定性生成
+         *（同 RemoteChatEngine.chatSystemPrompt 模式）；internal 供一致性单测。
+         */
+        internal val cameraSystemPrompt =
+            """
+            你是相机拍摄助手，通过调用工具直接控制相机：拍照、录像、翻转摄像头、调美颜、换滤镜/风格、调变焦/曝光/画幅/场景模式。
+            """.trimIndent() +
+                "\n" + ToolInventory.build(CameraToolService::class.java) + "\n" +
+                """
+        【执行规则】
+        - 用户指令明确时立即调用对应工具执行，不要反问确认；相机能力之外的请求（如查相册、改设置）如实告知「相机页暂不支持，请到相册/聊天页操作」。
+        - 组合指令按顺序调用多个工具；延时拍摄必须先调 delay 再调 capture（如「3秒后拍照」→ delay(delay_ms=3000) → capture()）。
+        - 美颜类相对调整（「再白一点」「磨皮高一点」）在当前值基础上小幅增减（±10~20），一次性给足，不要反复微调。
+        - 完成后直接用一句话总结执行结果（如「已拍照」「已开启美颜，磨皮 50」），不要调用 finish，不要罗列参数细节。
+        - 每次请求工具调用不超过 3 次；工具返回 Error 时如实告知用户原因，不要重试同一失败操作。
+        """.trimIndent()
     }
 
     private val tag = "AgentOrchestrator"
@@ -59,11 +81,8 @@ class AgentOrchestrator private constructor(context: Context) {
     /** 远程 chat 推理引擎（决策3 / ADR-010）：chat 远程 ReAct 链路隔离出口。 */
     val remoteChatEngine = RemoteChatEngine(configurator)
 
-    /** 本地模型加载服务（决策3 / ADR-010 step3）：相机 Agent + 后台打标 Worker 共用。 */
+    /** 端侧 VLM 模型加载服务（TAG 打标 Worker / 图像理解专用，经 `getLlmEngine()` 取引擎）。 */
     val localModelService = LocalModelService(configurator)
-
-    /** 本地相机 Agent（决策3 / ADR-010 step5b）：本地推理路径隔离出口。 */
-    val localCameraAgent = LocalCameraAgent(configurator, localModelService)
 
     private val orchestratorDispatcher = ThreadPoolManager.getInstance().orchestratorDispatcher
 
@@ -74,13 +93,9 @@ class AgentOrchestrator private constructor(context: Context) {
     private val backgroundScope = CoroutineScope(SupervisorJob())
 
     // 便捷访问器
-    private val localLlmEngine get() = configurator.localLlmEngine
     private val memoryManager get() = configurator.memoryManager
     private val sceneManager get() = configurator.sceneManager
-    private val promptBuilder get() = configurator.localPromptBuilder
     private val _capabilityRegistry get() = configurator.capabilityRegistry
-    private val intentCache get() = configurator.intentCache
-    private val privacyGuard get() = configurator.privacyGuard
 
     /**
      * 当前活跃场景（可观察）
@@ -139,10 +154,9 @@ class AgentOrchestrator private constructor(context: Context) {
         modelId: String,
         privacyLevel: AiAgentPrivacyLevel,
         remoteConfig: RemoteModelConfig? = null,
-        localUseOpencl: Boolean = false,
-        inferencePreference: AiAgentInferencePreference? = null
+        localUseOpencl: Boolean = false
     ) {
-        configurator.configure(mode, modelId, privacyLevel, remoteConfig, localUseOpencl, inferencePreference)
+        configurator.configure(mode, modelId, privacyLevel, remoteConfig, localUseOpencl)
     }
 
     /**
@@ -152,10 +166,9 @@ class AgentOrchestrator private constructor(context: Context) {
      */
     fun updateRemoteRuntimeConfig(
         remoteConfig: RemoteModelConfig?,
-        privacyLevel: AiAgentPrivacyLevel? = null,
-        inferencePreference: AiAgentInferencePreference? = null
+        privacyLevel: AiAgentPrivacyLevel? = null
     ) {
-        configurator.updateRemoteRuntimeConfig(remoteConfig, privacyLevel, inferencePreference)
+        configurator.updateRemoteRuntimeConfig(remoteConfig, privacyLevel)
     }
 
     /**
@@ -189,11 +202,6 @@ class AgentOrchestrator private constructor(context: Context) {
      * 获取当前 Agent 运行模式（含临时覆盖）
      */
     fun getAgentMode(): AiAgentMode = configurator.getAgentMode()
-
-    /**
-     * 获取当前推理偏好（FORCE_LOCAL / FORCE_REMOTE / AUTO）
-     */
-    fun getInferencePreference(): AiAgentInferencePreference = configurator.getInferencePreference()
 
     /**
      * 获取当前模型 ID
@@ -315,6 +323,187 @@ class AgentOrchestrator private constructor(context: Context) {
             Logger.e(tag, "processRemoteImInput error", e)
             Result.failure(e)
         }
+    }
+
+    // ── 相机远程 tool_calls 入口（端侧文本 LLM 移除后的替代链路）─────────────────
+
+    private var cachedCameraAgent: RemoteReActAgent? = null
+
+    /** 缓存的相机 Agent 对应的配置，用于检测配置变更 */
+    private var cachedCameraAgentConfig: RemoteModelConfig? = null
+
+    /**
+     * 处理相机场景用户输入（远程单轮/少轮 tool_calls）。
+     *
+     * 端侧文本 LLM 移除后，相机 AI 指令改走远程链路：远程模型输出标准 OpenAI tool_calls
+     *（ADR-005 协议分离，与 chat 同一模式），[CameraToolService] 把相机场景 capability
+     *（拍照/录像/美颜/滤镜/变焦/曝光/翻转等）暴露为 @Tool，命令经 [CapabilityRegistry]
+     * 在 ReAct 循环内直接执行（写操作复用既有 CommandRisk/确认机制）。
+     *
+     * - OFF 模式直接返回「AI Agent 已关闭」提示，不发起远程调用。
+     * - 相机 session（默认 "camera"）对话历史经 [com.mamba.picme.agent.core.platform.storage.MemoryManager]
+     *   fire-and-forget 回写（与原 LocalCameraAgent.saveConversation 同语义）。
+     *
+     * @param input 用户自然语言输入
+     * @param agentContext 相机场景上下文（scene=CAMERA；memorySessionId 默认 "camera"）
+     * @param pageContext 页面上下文（可选）
+     * @param timeoutMs 超时时间（毫秒），默认 60 秒（相机指令需快速响应）
+     * @return [InferenceResult.Chat]：工具已在循环内执行，返回值为模型的文字总结/错误提示
+     */
+    suspend fun processCameraInput(
+        input: String,
+        agentContext: AgentContext,
+        pageContext: PageContext? = null,
+        timeoutMs: Long = 60_000L
+    ): InferenceResult = withContext(orchestratorDispatcher) {
+        Logger.d(tag, "processCameraInput: input='$input', session=${agentContext.memorySessionId}")
+
+        if (configurator.getAgentMode() == AiAgentMode.OFF) {
+            Logger.w(tag, "processCameraInput: Agent is OFF")
+            return@withContext InferenceResult.Chat(message = "AI Agent 已关闭")
+        }
+
+        val agent = getCameraAgent() ?: return@withContext InferenceResult.Chat(
+            message = "Camera Agent 初始化失败，请检查远程模型配置"
+        )
+
+        if (agent.isRunning()) {
+            return@withContext InferenceResult.Chat(message = "Agent 正在执行其他任务，请稍候")
+        }
+
+        agent.setSessionId(agentContext.memorySessionId)
+
+        // 桥接当前相机状态：adjust_beauty 的相对调整（「再白一点」）需要以真实当前值为基线，
+        // 未注入时 CameraToolService 只能拿全零默认值。单并发（上方 isRunning 守卫），逐调用注入安全。
+        CameraToolService.getInstance().beautySettingsProvider = { agentContext.beautySettings }
+
+        return@withContext try {
+            val job = coroutineContext[kotlinx.coroutines.Job]
+            val summary = withTimeout(timeoutMs) {
+                suspendCoroutine<String> { continuation ->
+                    val callback = object : RemoteReActAgentCallback {
+                        override fun onLoopStart(iteration: Int) {
+                            Logger.d(tag, "Camera ReAct iteration #$iteration")
+                        }
+                        override fun onContent(iteration: Int, content: String) {
+                            Logger.d(tag, "Camera ReAct content: ${content.take(200)}")
+                        }
+                        override fun onToolCall(iteration: Int, toolName: String, args: String) {
+                            Logger.d(tag, "Camera ReAct toolCall: $toolName(${args.take(100)})")
+                        }
+                        override fun onToolResult(iteration: Int, toolName: String, result: String) {
+                            Logger.d(tag, "Camera ReAct toolResult: $toolName → ${result.take(80)}")
+                        }
+                        override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {
+                            Logger.i(tag, "Camera ReAct complete: $iteration rounds, $totalTokens tokens")
+                            continuation.resume(summary)
+                        }
+                        override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {
+                            Logger.e(tag, "Camera ReAct error: ${error.message}")
+                            continuation.resume("出错了：${error.message ?: "未知错误"}")
+                        }
+                    }
+                    job?.invokeOnCompletion { cause ->
+                        if (cause != null) {
+                            Logger.d(tag, "Camera ReAct coroutine cancelled: ${cause.message}")
+                            agent.cancel()
+                        }
+                    }
+                    agent.executeTask(input, callback, agentContext.traceId)
+                }
+            }
+            saveCameraConversation(agentContext.memorySessionId, input, summary)
+            InferenceResult.Chat(message = summary)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Logger.e(tag, "processCameraInput timeout after ${timeoutMs}ms")
+            agent.cancel()
+            InferenceResult.Chat(message = "处理超时（${timeoutMs / 1000}秒），请稍后重试")
+        } catch (e: Exception) {
+            Logger.e(tag, "processCameraInput error", e)
+            InferenceResult.Chat(message = "出错了：${e.message ?: "未知错误"}")
+        }
+    }
+
+    /**
+     * 获取或创建相机 ReAct Agent（[CameraToolService]，相机场域能力工具）。
+     * 优先使用用户配置的远程模型，未配置时使用 PoLang Server 默认兜底；
+     * 配置变更时自动重建。共享配置经 [configurator] 只读访问。
+     */
+    private fun getCameraAgent(): RemoteReActAgent? {
+        val existing = cachedCameraAgent
+        val currentConfig = configurator.getUserRemoteConfig() ?: RemoteModelConfig.PICME_SERVER_DEFAULT
+        if (existing != null && cachedCameraAgentConfig != null) {
+            val configChanged = cachedCameraAgentConfig?.modelId != currentConfig.modelId
+                || cachedCameraAgentConfig?.baseUrl != currentConfig.baseUrl
+                || cachedCameraAgentConfig?.apiKey != currentConfig.apiKey
+                || cachedCameraAgentConfig?.gatewayToken != currentConfig.gatewayToken
+            if (configChanged) {
+                Logger.i(tag, "Remote config changed (model=${currentConfig.modelId}), rebuilding Camera Agent")
+                existing.shutdown()
+                cachedCameraAgent = null
+                cachedCameraAgentConfig = null
+            } else {
+                return existing
+            }
+        } else if (existing != null) {
+            return existing
+        }
+        val memProvider = configurator.getMemoryContextProvider()
+        val cfg = try {
+            RemoteReActAgentConfig.Builder()
+                .apiKey(currentConfig.apiKey)
+                .baseUrl(currentConfig.baseUrl)
+                .modelName(currentConfig.modelId)
+                .gatewayToken(currentConfig.gatewayToken)
+                .deviceId(configurator.getDeviceId())
+                .systemPrompt(cameraSystemPrompt)
+                .apply { if (memProvider != null) memoryContextProvider(memProvider) }
+                .build()
+        } catch (e: Exception) {
+            Logger.w(tag, "Failed to build CameraAgent config", e)
+            return null
+        }
+        val agent = RemoteReActAgent(
+            config = cfg,
+            windowManager = null,
+            callback = object : RemoteReActAgentCallback {
+                override fun onLoopStart(iteration: Int) {}
+                override fun onContent(iteration: Int, content: String) {}
+                override fun onToolCall(iteration: Int, toolName: String, args: String) {}
+                override fun onToolResult(iteration: Int, toolName: String, result: String) {}
+                override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
+                override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
+            },
+            appContext = configurator.getContext(),
+            toolService = CameraToolService.getInstance()
+        )
+        agent.initialize()
+        cachedCameraAgent = agent
+        cachedCameraAgentConfig = currentConfig
+        Logger.i(tag, "Camera ReAct Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
+        return agent
+    }
+
+    /** 相机对话历史回写（fire-and-forget，与原 LocalCameraAgent.saveConversation 同语义）。 */
+    private fun saveCameraConversation(sessionId: String, userInput: String, assistantResponse: String) {
+        backgroundScope.launch {
+            memoryManager.appendConversation(sessionId, userInput, assistantResponse)
+        }
+    }
+
+    // ── 会话记忆操作（替代原 LocalCameraAgent.clearMemory / appendImageChatToMemory）──
+
+    /** 清空指定 session 的对话记忆（如 "camera"）。 */
+    suspend fun clearChatMemory(sessionId: String) {
+        memoryManager.clearHistory(sessionId)
+    }
+
+    /**
+     * 追加一轮对话到指定 session 的记忆（如 chat 页图片分析结果回写，
+     * 使后续文本消息能引用图片上下文）。
+     */
+    suspend fun appendConversation(sessionId: String, userInput: String, assistantResponse: String) {
+        memoryManager.appendConversation(sessionId, userInput, assistantResponse)
     }
 
 }
