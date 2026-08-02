@@ -1,6 +1,5 @@
 package com.mamba.picme.features.person.components
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -104,7 +103,7 @@ fun PersonInfoScreen(
         onNavigateBack()
     }
 
-    BackHandler(onBack = onNavigateBack)
+    // 系统返回键由顶栏 AppTopBarNavBack 统一注册的 BackHandler 处理（与返回箭头同回调）。
 
     Scaffold(
         topBar = {

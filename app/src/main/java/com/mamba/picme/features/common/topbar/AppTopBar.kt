@@ -1,5 +1,6 @@
 package com.mamba.picme.features.common.topbar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -159,12 +160,22 @@ fun AppTopBarAction(
     }
 }
 
-/** 标准返回键 —— 锁死 AutoMirrored.Rounded.ArrowBack + 36/22。 */
+/**
+ * 标准返回键 —— 锁死 AutoMirrored.Rounded.ArrowBack + 36/22。
+ *
+ * 同时注册 [BackHandler]，使系统返回键（虚拟导航栏返回 / 手势返回）与顶栏返回箭头
+ * 共享同一个 [onClick] 回调，按构造保证两路返回语义完全一致。规则收敛在此处，
+ * 所有使用返回箭头的页面（含未来新增）自动对齐，无需逐页适配。
+ *
+ * 当页面内还存在更具体的 [BackHandler]（如多选 / 预览 / 详情态）时，那些 handler
+ * 在内容区组合、晚于顶栏，优先级更高，会先消费返回事件——与既有行为一致。
+ */
 @Composable
 fun AppTopBarNavBack(
     onClick: () -> Unit,
     contentDescription: String = stringResource(R.string.back)
 ) {
+    BackHandler(onBack = onClick)
     IconButton(onClick = onClick, modifier = Modifier.size(TopBarButtonSize)) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,

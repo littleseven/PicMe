@@ -586,12 +586,16 @@ fun GalleryScreen(
                             }
                         },
                         onClose = {
-                            // 关闭搜索：清空搜索状态（人物过滤同样由此进入，关闭后回到普通相册）
+                            // 人物过滤态（由人物页点击封面带入）：返回人物页，而非关闭到普通相册；
+                            // 普通搜索态：清空搜索状态，回到普通相册。
+                            // isPersonFilter 为 true 当且仅当来自人物页（Chat 跳转恒传 personId=0）。
+                            val returnToPeople = isPersonFilter
                             isPersonFilter = false
                             searchQuery = ""
                             searchResultMedia = emptyList()
                             isSearchActive = false
                             isSearchLoading = false
+                            if (returnToPeople) onNavigateToPeople()
                         },
                         resultCount = if (searchQuery.isNotBlank()) searchResultMedia.size else null
                     )
