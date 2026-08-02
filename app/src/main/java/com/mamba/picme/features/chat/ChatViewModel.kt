@@ -469,6 +469,14 @@ class ChatViewModel(
     }
 
     /**
+     * 截断后「继续」：用当前 session 的 sid 发"继续"（[sendClaudeMessage] 复用 --resume）。
+     * 注：继续的是本会话最新 sid，与具体气泡无关（一会话一 sid）。
+     */
+    fun continueClaude() {
+        sendClaudeMessage("继续")
+    }
+
+    /**
      * 交付当前气泡对应 session 的改动（spec §8）：POST /v1/claude-deliver → 网关 push claude-chat/<sid>。
      * 结果回填气泡；gateway MVP 仅 push（pr/auto 二期）。
      */

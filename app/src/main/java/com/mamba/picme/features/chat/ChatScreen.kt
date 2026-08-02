@@ -528,6 +528,7 @@ fun ChatScreen(
                                         }
                                     },
                                     onClaudeDeliver = { id, mode -> viewModel.confirmClaudeDeliver(id, mode) },
+                                    onClaudeContinue = { viewModel.continueClaude() },
                                     canDeliverClaude = canDeliverClaude
                                 )
                             }
@@ -999,6 +1000,13 @@ private fun SegmentedAgentText(displayText: String) {
  * 每步 = 状态字形（⏳/✓/✗）+ 工具标签（file_change 本地化为「改文件」）+ detail（命令/路径/摘要）。
  */
 @Composable
+private fun truncationReasonLabel(reason: String): String = when (reason) {
+    "max_turns" -> stringResource(R.string.claude_truncated_reason_max_turns)
+    "phase_timeout" -> stringResource(R.string.claude_truncated_reason_timeout)
+    else -> ""
+}
+
+@Composable
 private fun ClaudeAgentSteps(steps: List<ClaudeStepUi>) {
     val fileLabel = stringResource(R.string.claude_file_change_label)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1041,6 +1049,7 @@ private fun ChatMessageItem(
     message: ChatMessageUi,
     onImageClick: (ChatMessageUi) -> Unit = {},
     onClaudeDeliver: (String, String) -> Unit = { _, _ -> },
+    onClaudeContinue: () -> Unit = {},
     canDeliverClaude: Boolean = false,
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
@@ -1190,6 +1199,22 @@ private fun ChatMessageItem(
                 if (cs.steps.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     ClaudeAgentSteps(cs.steps)
+                }
+            }
+            // 截断标识 + 继续（spec §3.4）：truncatedReason 粘滞，置位后只设不清。
+            message.claudeAgent?.truncatedReason?.let { reason ->
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "ⓘ " + stringResource(R.string.claude_truncated) +
+                            " " + truncationReasonLabel(reason),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(onClick = onClaudeContinue) {
+                        Text(stringResource(R.string.claude_continue), fontSize = 12.sp)
+                    }
                 }
             }
             // claude 交付按钮：file_change 后出现，pending 时可选 push/pr/auto（spec §8）
