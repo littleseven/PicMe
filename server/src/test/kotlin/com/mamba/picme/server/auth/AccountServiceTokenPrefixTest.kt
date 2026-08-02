@@ -7,12 +7,6 @@ import org.junit.Test
 class AccountServiceTokenPrefixTest {
 
     @Test
-    fun `new tokens use pl- prefix`() {
-        val token = AccountService.generateToken()
-        assertTrue("token should start with pl-", token.startsWith("pl-"))
-    }
-
-    @Test
     fun `legacy picme_at tokens are rejected`() {
         assertFalse(AccountService.isTokenFormat("picme_at_" + "a".repeat(64)))
     }

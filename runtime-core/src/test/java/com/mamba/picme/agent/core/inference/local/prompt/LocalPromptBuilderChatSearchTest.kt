@@ -108,8 +108,6 @@ class LocalPromptBuilderChatSearchTest {
         assertTrue("状态片段应包含 tags，实际:\n$state", state.contains("日落"))
     }
 
-    // ── 多轮找图收敛：已有结果时强制 refine_media_search ──────────
-
     @Test
     fun `multi-turn hard rule injected when recentSearchResults non-empty`() {
         val snapshot = com.mamba.picme.agent.core.model.context.SearchResultSnapshot(
@@ -128,12 +126,36 @@ class LocalPromptBuilderChatSearchTest {
         try {
             val prompt = builder.buildL2SystemPrompt(emptyList(), ctx)
             assertTrue(
-                "已有搜索结果时，L2 prompt 应注入多轮找图硬规则，实际:\n$prompt",
+                "已有搜索结果时应注入多轮找图硬规则（契约锚点：规则段落标题），实际:\n$prompt",
                 prompt.contains("多轮找图硬规则")
             )
             assertTrue(
-                "硬规则应明确禁止在已有结果时输出 search_media，实际:\n$prompt",
-                prompt.contains("禁止") && prompt.contains("search_media")
+                "硬规则应引导后续条件走 refine_media_search 而非重搜，实际:\n$prompt",
+                prompt.contains("refine_media_search")
+            )
+        } finally {
+            sceneManager.leaveScene(SceneManager.Scene.CHAT)
+        }
+    }
+
+    @Test
+    fun `CHAT L2 prompt normalizes time words out of keywords`() {
+        val sceneManager = SceneManager.getInstance()
+        sceneManager.transitionTo(SceneManager.Scene.CHAT, saveToHistory = false)
+        try {
+            val prompt = builder.buildL2SystemPrompt(
+                emptyList(),
+                com.mamba.picme.agent.core.model.context.AgentContext(
+                    scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT
+                )
+            )
+            assertTrue(
+                "prompt 应包含时间词不得混入 keywords 的规范化指令（契约锚点：同时提及时间词与 keywords），实际:\n$prompt",
+                prompt.contains("时间词") && prompt.contains("keywords")
+            )
+            assertTrue(
+                "prompt 应演示整句只有时间词时 keywords 为空数组，实际:\n$prompt",
+                prompt.contains("\"keywords\":[]")
             )
         } finally {
             sceneManager.leaveScene(SceneManager.Scene.CHAT)
@@ -159,40 +181,4 @@ class LocalPromptBuilderChatSearchTest {
         }
     }
 
-    @Test
-    fun `CHAT capabilities include multi-turn refine few-shot`() {
-        val section = builder.buildL2CapabilitiesSection(SceneManager.Scene.CHAT)
-        assertTrue(
-            "CHAT 能力描述应含多轮 refine few-shot 正例，实际:\n$section",
-            section.contains("其中有日落的")
-        )
-    }
-
-    @Test
-    fun `CHAT L2 prompt forbids time words in keywords when time_range is used`() {
-        val sceneManager = SceneManager.getInstance()
-        sceneManager.transitionTo(SceneManager.Scene.CHAT, saveToHistory = false)
-        try {
-            val prompt = builder.buildL2SystemPrompt(
-                emptyList(),
-                com.mamba.picme.agent.core.model.context.AgentContext(
-                    scene = com.mamba.picme.agent.core.model.context.AgentScene.CHAT
-                )
-            )
-            assertTrue(
-                "L2 CHAT prompt 应明确禁止时间词进入 keywords，实际:\n$prompt",
-                prompt.contains("时间词") && prompt.contains("不要再放进 keywords")
-            )
-            assertTrue(
-                "L2 CHAT prompt 应提供 '去年夏天的照片' 示例，实际:\n$prompt",
-                prompt.contains("去年夏天的照片")
-            )
-            assertTrue(
-                "示例中应展示 keywords 为空数组，实际:\n$prompt",
-                prompt.contains("\"keywords\":[]")
-            )
-        } finally {
-            sceneManager.leaveScene(SceneManager.Scene.CHAT)
-        }
-    }
 }

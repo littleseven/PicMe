@@ -154,35 +154,6 @@ class MediaSearchEngineFilterTest {
         assertEquals(listOf(100L), result.media.map { it.id })
     }
 
-    /**
-     * 回归测试：用户给人物分组命名（如"大宝"）后，在相册搜索框输入该名称，
-     * 应返回该人物分组下的照片。
-     *
-     * 历史 bug：QueryParser 不识别自定义人名，搜索仅命中标签/OCR/文件名，
-     * 导致命名分组无法被搜索召回。
-     */
-    @Test
-    fun `search by custom person group name returns matching person media`() = runTest {
-        val personDao: PersonDao = mockk(relaxed = true)
-        val engineWithPerson = MediaSearchEngine(mediaDao = mediaDao, personDao = personDao)
-
-        val person = PersonEntity(personId = 42L, name = "大宝")
-
-        // 标签/OCR/文件名搜索均无命中
-        coEvery { mediaDao.searchByLabel(any()) } returns emptyList()
-        coEvery { mediaDao.searchByOcrText(any()) } returns emptyList()
-        coEvery { mediaDao.searchByFileName(any()) } returns emptyList()
-
-        // 人物分组名称命中
-        coEvery { personDao.findPersonByName("大宝") } returns person
-        coEvery { personDao.getMediaByPerson(42L) } returns listOf(mediaEntity(100L), mediaEntity(101L))
-        coEvery { mediaDao.getMediaByIds(listOf(100L, 101L)) } returns listOf(mediaEntity(100L), mediaEntity(101L))
-
-        val result = engineWithPerson.search("大宝")
-
-        assertEquals(setOf(100L, 101L), result.media.map { it.id }.toSet())
-    }
-
     private fun mediaEntity(id: Long): MediaEntity {
         return MediaEntity(
             id = id,

@@ -1,33 +1,16 @@
 package com.mamba.picme.features.chat
 
-import android.content.Context
-import android.util.Log
-import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
-import com.mamba.picme.data.local.ChatMessageDao
-import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.data.remote.picme.ClaudeChatClient
 import com.mamba.picme.data.remote.picme.ClaudeEvent
-import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.tag.ControlledVocab
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.mockkStatic
-import io.mockk.unmockkObject
-import io.mockk.unmockkStatic
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -44,85 +27,37 @@ import org.junit.Test
  * - 兜底恢复：直接对历史会话发消息时 load 命中（takeIf first == sessionId）
  * - Session 事件格式判断：12 位 hex 网关 sid 采纳并 save（含轮换覆盖自愈）；带连字符 UUID 忽略
  *
- * 基建对齐 [ChatViewModelAppToolTest]（mockkStatic Log + mockkObject Orchestrator）。
+ * 基建复用 [ChatViewModelTestBase]；claudeChatClient / claudeSidStore 为本文件专属注入。
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class ChatViewModelClaudeSidTest {
+class ChatViewModelClaudeSidTest : ChatViewModelTestBase() {
 
-    /** 内存 fake：单槽，同 [ClaudeSidStoreTest]。 */
-    private class InMemoryClaudeSidStore : ClaudeSidStore {
-        private var slot: Pair<String, String>? = null
+    override val initialToken = "pl-test-token"
+    override val initialPreference = AiAgentInferencePreference.FORCE_REMOTE
 
-        override fun load(): Pair<String, String>? = slot
-
-        override fun save(chatSessionId: String, claudeSid: String) {
-            slot = chatSessionId to claudeSid
-        }
-
-        override fun clear() {
-            slot = null
-        }
-    }
-
-    private val context: Context = mockk(relaxed = true)
-    private val chatMessageDao: ChatMessageDao = mockk(relaxed = true)
-    private val chatSessionDao: ChatSessionDao = mockk(relaxed = true)
-    private val userSettingsRepository: UserSettingsRepository = mockk(relaxed = true)
     private val claudeChatClient: ClaudeChatClient = mockk()
-    private val orchestrator: AgentOrchestrator = mockk(relaxed = true)
     private val sidStore = InMemoryClaudeSidStore()
 
-    private val tokenFlow = MutableStateFlow("pl-test-token")
-    private val preferenceFlow = MutableStateFlow(AiAgentInferencePreference.FORCE_REMOTE)
-
     @Before
-    fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+    override fun setUp() {
+        super.setUp()
 
-        mockkStatic(Log::class)
-        every { Log.v(any(), any()) } returns 0
-        every { Log.d(any(), any()) } returns 0
-        every { Log.i(any(), any()) } returns 0
-        every { Log.w(any(), any<String>()) } returns 0
-        every { Log.w(any(), any<String>(), any()) } returns 0
-        every { Log.e(any(), any<String>()) } returns 0
-        every { Log.e(any(), any<String>(), any()) } returns 0
-
-        every { context.applicationContext } returns context
-        every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
-        every { userSettingsRepository.aiAgentInferencePreferenceFlow } returns preferenceFlow
-
-        every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
-        coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
-        coEvery { chatMessageDao.getMessageCount(any()) } returns 0
-        every { chatSessionDao.getAllSessions() } returns flowOf(emptyList())
-        coEvery { chatSessionDao.getSession(any()) } returns null
         coEvery { claudeChatClient.engineerAvailability(any()) } returns Result.success(false)
-
-        mockkObject(AgentOrchestrator.Companion)
-        every { AgentOrchestrator.getInstance(any()) } returns orchestrator
-        every { orchestrator.getInferencePreference() } returns AiAgentInferencePreference.FORCE_REMOTE
+        coEvery { chatMessageDao.getMessageCount(any()) } returns 0
     }
 
-    @After
-    fun tearDown() {
-        unmockkObject(AgentOrchestrator.Companion)
-        unmockkStatic(Log::class)
-        Dispatchers.resetMain()
-    }
-
-    private fun newViewModel() = ChatViewModel(
+    override fun newViewModel(): ChatViewModel = ChatViewModel(
         ChatViewModelDependencies(
             context = context,
             chatMessageDao = chatMessageDao,
             chatSessionDao = chatSessionDao,
             userSettingsRepository = userSettingsRepository,
-            mediaSearchEngine = mockk(relaxed = true),
-            mediaFeedbackRepository = mockk(relaxed = true),
+            mediaSearchEngine = mediaSearchEngine,
+            mediaFeedbackRepository = mediaFeedbackRepository,
             mediaRepository = mockk(relaxed = true),
-            picMeAuthClient = mockk(relaxed = true),
+            picMeAuthClient = picMeAuthClient,
             claudeChatClient = claudeChatClient,
-            getGallerySummaryUseCase = mockk(relaxed = true),
+            getGallerySummaryUseCase = getGallerySummaryUseCase,
             queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context),
             personDao = mockk(relaxed = true),
@@ -239,9 +174,5 @@ class ChatViewModelClaudeSidTest {
             claudeChatClient.chat(any(), "hello", isNull(), any())
         }
         assertNull(sidStore.load())
-    }
-
-    private companion object {
-        const val VERIFY_TIMEOUT_MS = 3_000L
     }
 }

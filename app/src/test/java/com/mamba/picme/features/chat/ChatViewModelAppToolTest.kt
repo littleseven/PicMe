@@ -1,35 +1,17 @@
 package com.mamba.picme.features.chat
 
-import android.content.Context
-import android.util.Log
-import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
 import com.mamba.picme.core.agenttools.AppTool
 import com.mamba.picme.core.agenttools.AppToolExecutor
-import com.mamba.picme.data.local.ChatMessageDao
-import com.mamba.picme.data.local.ChatSessionDao
 import com.mamba.picme.data.remote.picme.ClaudeChatClient
 import com.mamba.picme.data.remote.picme.ClaudeEvent
-import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.tag.ControlledVocab
 import com.mamba.picme.domain.usecase.StartTagScanUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.mockkStatic
-import io.mockk.unmockkObject
-import io.mockk.unmockkStatic
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.json.JSONObject
-import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -42,70 +24,35 @@ import org.junit.Test
  *   renderer 合成 ToolResult 步骤（过程气泡 SUCCESS）
  * - executor 抛异常 / 未知工具：回传 `{error}` payload（不让 Claude 挂起等结果）
  *
- * 基建对齐 [ChatViewModelGuestModeTest]（mockkStatic Log + mockkObject Orchestrator）；
  * handleAppToolRequest 内部走 Dispatchers.IO（真实线程池），断言用 mockk timeout verify + 轮询。
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class ChatViewModelAppToolTest {
+class ChatViewModelAppToolTest : ChatViewModelTestBase() {
 
-    private val context: Context = mockk(relaxed = true)
-    private val chatMessageDao: ChatMessageDao = mockk(relaxed = true)
-    private val chatSessionDao: ChatSessionDao = mockk(relaxed = true)
-    private val userSettingsRepository: UserSettingsRepository = mockk(relaxed = true)
+    override val initialToken = "pl-test-token"
+    override val initialPreference = AiAgentInferencePreference.FORCE_REMOTE
+
     private val claudeChatClient: ClaudeChatClient = mockk()
     private val appToolExecutor: AppToolExecutor = mockk()
-    private val orchestrator: AgentOrchestrator = mockk(relaxed = true)
-
-    private val tokenFlow = MutableStateFlow("pl-test-token")
-    private val preferenceFlow = MutableStateFlow(AiAgentInferencePreference.FORCE_REMOTE)
 
     @Before
-    fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
-
-        mockkStatic(Log::class)
-        every { Log.v(any(), any()) } returns 0
-        every { Log.d(any(), any()) } returns 0
-        every { Log.i(any(), any()) } returns 0
-        every { Log.w(any(), any<String>()) } returns 0
-        every { Log.w(any(), any<String>(), any()) } returns 0
-        every { Log.e(any(), any<String>()) } returns 0
-        every { Log.e(any(), any<String>(), any()) } returns 0
-
-        every { context.applicationContext } returns context
-        every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
-        every { userSettingsRepository.aiAgentInferencePreferenceFlow } returns preferenceFlow
-
-        every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
-        coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
+    override fun setUp() {
+        super.setUp()
         coEvery { chatMessageDao.getMessageCount(any()) } returns 0
-        every { chatSessionDao.getAllSessions() } returns flowOf(emptyList())
-        coEvery { chatSessionDao.getSession(any()) } returns null
-
-        mockkObject(AgentOrchestrator.Companion)
-        every { AgentOrchestrator.getInstance(any()) } returns orchestrator
-        every { orchestrator.getInferencePreference() } returns AiAgentInferencePreference.FORCE_REMOTE
     }
 
-    @After
-    fun tearDown() {
-        unmockkObject(AgentOrchestrator.Companion)
-        unmockkStatic(Log::class)
-        Dispatchers.resetMain()
-    }
-
-    private fun newViewModel() = ChatViewModel(
+    override fun newViewModel(): ChatViewModel = ChatViewModel(
         ChatViewModelDependencies(
             context = context,
             chatMessageDao = chatMessageDao,
             chatSessionDao = chatSessionDao,
             userSettingsRepository = userSettingsRepository,
-            mediaSearchEngine = mockk(relaxed = true),
-            mediaFeedbackRepository = mockk(relaxed = true),
+            mediaSearchEngine = mediaSearchEngine,
+            mediaFeedbackRepository = mediaFeedbackRepository,
             mediaRepository = mockk(relaxed = true),
-            picMeAuthClient = mockk(relaxed = true),
+            picMeAuthClient = picMeAuthClient,
             claudeChatClient = claudeChatClient,
-            getGallerySummaryUseCase = mockk(relaxed = true),
+            getGallerySummaryUseCase = getGallerySummaryUseCase,
             queryGalleryMediaUseCase = mockk(relaxed = true),
             startTagScanUseCase = StartTagScanUseCase(context),
             personDao = mockk(relaxed = true),
@@ -189,7 +136,6 @@ class ChatViewModelAppToolTest {
     }
 
     private companion object {
-        const val VERIFY_TIMEOUT_MS = 3_000L
         const val POLL_INTERVAL_MS = 20L
     }
 }

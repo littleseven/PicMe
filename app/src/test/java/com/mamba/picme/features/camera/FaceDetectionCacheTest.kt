@@ -6,7 +6,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 /**
  * FaceDetectionCache 缓存逻辑测试
@@ -15,21 +18,17 @@ import org.junit.Test
  */
 class FaceDetectionCacheTest {
 
-    @Test
-    fun updateThenGet_returnsSameValues() {
+    @Before
+    fun setUp() {
         FaceDetectionCache.clear()
-        val landmarks = FloatArray(212) { it / 212f }
-
-        FaceDetectionCache.updateLandmarks106(landmarks)
-        val cached = FaceDetectionCache.getCachedLandmarks106()
-
-        assertNotNull("Cached value should not be null", cached)
-        assertArrayEquals("Cached values should match original", landmarks, cached, 0.0001f)
     }
+
+    // ================================================================
+    // cache 写语义 / 复杂生命周期（结构各不同，保留独立用例）
+    // ================================================================
 
     @Test
     fun get_returnsDefensiveCopy() {
-        FaceDetectionCache.clear()
         val landmarks = FloatArray(212) { it / 212f }
 
         FaceDetectionCache.updateLandmarks106(landmarks)
@@ -48,7 +47,6 @@ class FaceDetectionCacheTest {
 
     @Test
     fun update_overwritesPreviousValue() {
-        FaceDetectionCache.clear()
         val first = FloatArray(212) { 0.1f }
         val second = FloatArray(212) { 0.9f }
 
@@ -61,60 +59,7 @@ class FaceDetectionCacheTest {
     }
 
     @Test
-    fun get_afterClear_returnsNull() {
-        FaceDetectionCache.clear()
-        val landmarks = FloatArray(212) { it / 212f }
-
-        FaceDetectionCache.updateLandmarks106(landmarks)
-        FaceDetectionCache.clear()
-
-        val cached = FaceDetectionCache.getCachedLandmarks106()
-        assertNull("Cache should be null after clear", cached)
-    }
-
-    @Test
-    fun get_withoutUpdate_returnsNull() {
-        FaceDetectionCache.clear()
-        val cached = FaceDetectionCache.getCachedLandmarks106()
-        assertNull("Cache should be null without update", cached)
-    }
-
-    @Test
-    fun isValid_afterUpdate_returnsTrue() {
-        FaceDetectionCache.clear()
-        val landmarks = FloatArray(212) { it / 212f }
-
-        FaceDetectionCache.updateLandmarks106(landmarks)
-        assertTrue("Cache should be valid immediately after update", FaceDetectionCache.isValid())
-    }
-
-    @Test
-    fun isValid_afterClear_returnsFalse() {
-        FaceDetectionCache.clear()
-        assertFalse("Cache should be invalid after clear", FaceDetectionCache.isValid())
-    }
-
-    @Test
-    fun isValid_withoutUpdate_returnsFalse() {
-        FaceDetectionCache.clear()
-        assertFalse("Cache should be invalid without update", FaceDetectionCache.isValid())
-    }
-
-    @Test
-    fun get_withEmptyArray_returnsValue() {
-        FaceDetectionCache.clear()
-        val empty = FloatArray(0)
-
-        FaceDetectionCache.updateLandmarks106(empty)
-        val cached = FaceDetectionCache.getCachedLandmarks106()
-
-        assertNotNull("Cache should store even empty array", cached)
-        assertEquals("Cached array should be empty", 0, cached!!.size)
-    }
-
-    @Test
     fun update_copiesInputArray() {
-        FaceDetectionCache.clear()
         val landmarks = FloatArray(212) { it / 212f }
 
         FaceDetectionCache.updateLandmarks106(landmarks)
@@ -126,7 +71,6 @@ class FaceDetectionCacheTest {
 
     @Test
     fun isValid_afterUpdateThenClearThenUpdate_returnsTrue() {
-        FaceDetectionCache.clear()
         FaceDetectionCache.updateLandmarks106(FloatArray(212) { 0.1f })
         FaceDetectionCache.clear()
         FaceDetectionCache.updateLandmarks106(FloatArray(212) { 0.2f })
@@ -149,13 +93,88 @@ class FaceDetectionCacheTest {
 
     @Test
     fun multipleSequentialUpdates_allValid() {
-        FaceDetectionCache.clear()
-
         for (i in 0..5) {
             FaceDetectionCache.updateLandmarks106(FloatArray(212) { i / 10f })
             assertTrue("Cache should be valid after update $i", FaceDetectionCache.isValid())
             val cached = FaceDetectionCache.getCachedLandmarks106()!!
             assertEquals("Cache should contain value $i", i / 10f, cached[0], 0.0001f)
         }
+    }
+}
+
+// ================================================================
+// getCachedLandmarks106 状态组合 — 参数化
+// ================================================================
+
+@RunWith(Parameterized::class)
+class FaceDetectionCacheGetTest(
+    private val testName: String,
+    private val setup: () -> Unit,
+    private val expectNull: Boolean,
+    private val expectSize: Int
+) {
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "{0}")
+        fun data(): Collection<Array<Any>> = listOf(
+            arrayOf<Any>("update then get returns same values", { FaceDetectionCache.updateLandmarks106(FloatArray(212) { it / 212f }) }, false, 212),
+            arrayOf<Any>("get without update returns null", {}, true, -1),
+            arrayOf<Any>("get after clear returns null", { FaceDetectionCache.updateLandmarks106(FloatArray(212) { it / 212f }); FaceDetectionCache.clear() }, true, -1),
+            arrayOf<Any>("get with empty array returns value", { FaceDetectionCache.updateLandmarks106(FloatArray(0)) }, false, 0),
+        )
+    }
+
+    @Before
+    fun setUp() {
+        FaceDetectionCache.clear()
+        setup()
+    }
+
+    @Test
+    fun `getCachedLandmarks106 behaves as expected`() {
+        val cached = FaceDetectionCache.getCachedLandmarks106()
+        if (expectNull) {
+            assertNull(testName, cached)
+        } else {
+            assertNotNull(testName, cached)
+            if (expectSize >= 0) {
+                assertEquals(testName, expectSize, cached!!.size)
+            }
+            if (expectSize == 212) {
+                assertArrayEquals(testName, FloatArray(212) { it / 212f }, cached, 0.0001f)
+            }
+        }
+    }
+}
+
+// ================================================================
+// isValid 状态组合 — 参数化
+// ================================================================
+
+@RunWith(Parameterized::class)
+class FaceDetectionCacheIsValidTest(
+    private val testName: String,
+    private val setup: () -> Unit,
+    private val expected: Boolean
+) {
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "{0}")
+        fun data(): Collection<Array<Any>> = listOf(
+            arrayOf<Any>("isValid after update returns true", { FaceDetectionCache.updateLandmarks106(FloatArray(212) { it / 212f }) }, true),
+            arrayOf<Any>("isValid without update returns false", {}, false),
+            arrayOf<Any>("isValid after clear returns false", { FaceDetectionCache.updateLandmarks106(FloatArray(212) { it / 212f }); FaceDetectionCache.clear() }, false),
+        )
+    }
+
+    @Before
+    fun setUp() {
+        FaceDetectionCache.clear()
+        setup()
+    }
+
+    @Test
+    fun `isValid reflects cache state`() {
+        assertEquals(testName, expected, FaceDetectionCache.isValid())
     }
 }

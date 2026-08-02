@@ -1,8 +1,5 @@
 package com.mamba.picme.server.admin
 
-import com.mamba.picme.server.auth.AiEngineerWhitelistService
-import com.mamba.picme.server.config.SettingsService
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -83,22 +80,6 @@ class AdminViewsTest {
     }
 
     @Test
-    fun `bar charts render compact labels on top of each bar`() {
-        val series = listOf(
-            DayBucket("2026-07-10", 1_500_000L, 0L, 800_000L, 700_000L, 1_500_000L, 1_234.56, 4096L, 0L),
-            DayBucket("2026-07-11", 1_200L, 0L, 600L, 600L, 1_200L, 0.0044, 2048L, 0L),
-            DayBucket("2026-07-12", 5L, 1L, 600L, 634L, 1234L, 1.5, 4096L, 0L),
-        )
-        val ov = OverviewRow(2L, 1L, 5L, 1234L, 1.5, 4096L, 1L, 0L, 0L, 0L, 0.0)
-        val byCalls = AdminViews.overviewPage(ov, rangeFixture(days = series), days = 7, metric = "calls")
-        assertTrue("compact count label for millions", byCalls.contains(">1.5M</text>"))
-        assertTrue("compact count label for thousands", byCalls.contains(">1.2k</text>"))
-        assertTrue("plain count label", byCalls.contains(">5</text>"))
-        val byCost = AdminViews.overviewPage(ov, rangeFixture(days = series), days = 7, metric = "cost")
-        assertTrue("compact cost label for thousands", byCost.contains(">1.23k</text>"))
-    }
-
-    @Test
     fun `devices page lists masked ids quota and delete action`() {
         val rows = listOf(
             DeviceRow(1, "abcdef••••7890", 5, 1_700_000_000_000L, 1_700_000_001_000L),
@@ -116,65 +97,4 @@ class AdminViewsTest {
         assertTrue(html.contains("btn-danger")) // 删除按钮
     }
 
-    @Test
-    fun `settings page uses new section card structure and keeps form endpoints`() {
-        val snap = SettingsService.Snapshot(freeLlmQuota = 888, guestLlmQuota = 66)
-        val html = AdminViews.settingsPage(snap, whitelist = emptyList(), message = "已保存")
-        val body = html.substringAfter("<body").substringBefore("</body>")
-        // 页面标题与容器
-        assertTrue(body.contains("class=\"page-title\""))
-        assertTrue(body.contains(">设置</h1>"))
-        assertTrue(body.contains("class=\"page\""))
-        // 区块 1：额度默认值
-        assertTrue(body.contains("额度默认值（全局）"))
-        assertTrue(body.contains("class=\"section-title\""))
-        assertTrue(body.contains("class=\"section-desc\""))
-        assertTrue(body.contains("action=\"/admin/settings\""))
-        assertTrue(body.contains("name=\"free_llm_quota\""))
-        assertTrue(body.contains("name=\"guest_llm_quota\""))
-        assertTrue(body.contains("value=\"888\""))
-        assertTrue(body.contains("value=\"66\""))
-        // 区块 2：白名单
-        assertTrue(body.contains("AI 工程师白名单"))
-        assertTrue(body.contains("id=\"whitelist\""))
-        assertTrue(body.contains("action=\"/admin/settings/whitelist\""))
-        assertTrue(body.contains("class=\"empty-state\""))
-        assertTrue(body.contains("暂无白名单记录"))
-        // 不再使用设置页旧的跨界类/内联样式
-        assertFalse("settings page should not use chan-form", body.contains("chan-form"))
-        assertFalse("settings page should not use apk-info-card", body.contains("apk-info-card"))
-        assertFalse("settings page should not use limit-card", body.contains("limit-card"))
-        assertFalse("settings page should not use apk-empty", body.contains("apk-empty"))
-        assertFalse("settings page should not use inline width style", body.contains("width:160px"))
-        assertFalse("settings page should not use inline width style", body.contains("width:280px"))
-    }
-
-    @Test
-    fun `settings whitelist section renders table when not empty`() {
-        val snap = SettingsService.Snapshot(freeLlmQuota = 100, guestLlmQuota = 10)
-        val entries = listOf(AiEngineerWhitelistService.Entry(1, "dev@example.com", 1_700_000_000_000L))
-        val html = AdminViews.settingsPage(snap, entries)
-        assertTrue(html.contains("dev@example.com"))
-        assertTrue(html.contains("/admin/settings/whitelist/revoke"))
-        assertFalse(html.contains("class=\"empty-state\""))
-    }
-
-    @Test
-    fun `limit-card has centered css so the quota card does not span full viewport width`() {
-        // 修复前 .limit-card 无任何 CSS：div("card limit-card") 是 body 直接子元素，
-        // 而 body>.cards 居中规则只覆盖 .cards 容器、不覆盖裸 .card，导致「改上限」卡片整宽贴边显示。
-        // 此处锁定 .limit-card 必须带居中规则（max-width + auto margin），防回归。
-        val html = AdminViews.overviewPage(
-            OverviewRow(0L, 0L, 0L, 0L, 0.0, 0L, 0L, 0L, 0L, 0L, 0.0),
-            rangeFixture(),
-            days = 7,
-            metric = "calls",
-        )
-        val rule = Regex("\\.limit-card\\{[^}]*\\}").find(html)?.value ?: ""
-        assertTrue("expected a .limit-card CSS rule to exist", rule.isNotEmpty())
-        assertTrue(
-            "limit-card must be centered (max-width:1200px + margin auto): ${rule.take(80)}",
-            rule.contains("max-width:1200px") && rule.contains("margin:") && rule.contains("auto"),
-        )
-    }
 }

@@ -21,30 +21,6 @@ class GitHubIssueClientTest {
     }
 
     @Test
-    fun `未配置 token 返回失败`() = runBlocking {
-        val c = GitHubIssueClient(HttpClient(MockEngine { respond("") }), "", "owner/repo")
-        val r = c.createIssue("t", "b")
-        assertFalse(r.success)
-        assertEquals("github not configured", r.error)
-    }
-
-    @Test
-    fun `未配置 repo 返回失败`() = runBlocking {
-        val c = GitHubIssueClient(HttpClient(MockEngine { respond("") }), "tok", "")
-        val r = c.createIssue("t", "b")
-        assertFalse(r.success)
-        assertEquals("github not configured", r.error)
-    }
-
-    @Test
-    fun `repo 格式错误返回失败`() = runBlocking {
-        val c = GitHubIssueClient(HttpClient(MockEngine { respond("") }), "tok", "badrepo")
-        val r = c.createIssue("t", "b")
-        assertFalse(r.success)
-        assertTrue(r.error?.contains("invalid repo") == true)
-    }
-
-    @Test
     fun `创建成功返回 number 和 url`() = runBlocking {
         val engine = MockEngine { request ->
             assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])

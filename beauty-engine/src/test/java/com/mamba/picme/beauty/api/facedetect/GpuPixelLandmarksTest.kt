@@ -17,106 +17,22 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class GpuPixelLandmarksTest {
 
-    @Test
-    fun defaultInstance_hasNoFace() {
-        val defaults = GpuPixelLandmarks()
-        assertFalse("Default hasFace should be false", defaults.hasFace)
-        assertEquals("Default points should be empty", 0, defaults.points.size)
-        assertEquals("Default rawPoints should be empty", 0, defaults.rawPoints.size)
-    }
+    // ── valid / extra / partial / single / coords ──────────────
 
     @Test
-    fun fromFloatArray_extractsFirst106Points() {
-        val floats = FloatArray(106 * 2) { idx ->
-            val pointIdx = idx / 2
-            if (idx % 2 == 0) pointIdx / 106f else pointIdx / 106f
-        }
-
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
-
-        assertTrue("hasFace should be true", result.hasFace)
-        assertEquals("Should extract exactly 106 points", 106, result.rawPoints.size / 2)
-
-        // 验证前几个点的坐标
-        assertEquals("Point 0 x", 0f / 106f, result.rawPoints[0], 0.0001f)
-        assertEquals("Point 0 y", 0f / 106f, result.rawPoints[1], 0.0001f)
-        assertEquals("Point 1 x", 1f / 106f, result.rawPoints[2], 0.0001f)
-        assertEquals("Point 1 y", 1f / 106f, result.rawPoints[3], 0.0001f)
-    }
-
-    @Test
-    fun fromFloatArray_ignoresExtraPoints() {
-        val floats = FloatArray(150 * 2) { idx ->
-            val pointIdx = idx / 2
-            if (idx % 2 == 0) pointIdx / 150f else pointIdx / 150f
-        }
-
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
-
-        assertTrue("hasFace should be true", result.hasFace)
-        assertEquals("Should extract only 106 points", 106, result.rawPoints.size / 2)
-    }
-
-    @Test
-    fun fromFloatArray_nullInput_returnsEmpty() {
-        val result = GpuPixelLandmarks.fromFloatArray(null)
-        assertFalse("hasFace should be false for null", result.hasFace)
-        assertEquals("points should be empty for null", 0, result.points.size)
-    }
-
-    @Test
-    fun fromFloatArray_emptyInput_returnsEmpty() {
-        val result = GpuPixelLandmarks.fromFloatArray(FloatArray(0))
-        assertFalse("hasFace should be false for empty", result.hasFace)
-        assertEquals("points should be empty for empty", 0, result.points.size)
-    }
-
-    @Test
-    fun fromFloatArray_partialInput_extractsAvailablePoints() {
-        // 只提供 50 个点（100 个 float）
-        val floats = FloatArray(50 * 2) { idx ->
-            val pointIdx = idx / 2
-            if (idx % 2 == 0) pointIdx / 50f else pointIdx / 50f
-        }
-
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
-
-        assertTrue("hasFace should be true", result.hasFace)
-        assertEquals("Should extract 50 available points", 50, result.rawPoints.size / 2)
-    }
-
-    @Test
-    fun fromFloatArray_oddLength_ignoresLastFloat() {
-        // 提供 213 个 float（106.5 个点），应只取前 106 个点
-        val floats = FloatArray(213) { it / 213f }
-
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
-
-        assertTrue("hasFace should be true", result.hasFace)
-        assertEquals("Should extract 106 complete points", 106, result.rawPoints.size / 2)
-    }
-
-    @Test
-    fun fromFloatArray_setsHasFaceTrue() {
-        val floats = FloatArray(10 * 2) { it / 20f }
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
-        assertTrue("hasFace should be true for valid input", result.hasFace)
-    }
-
-    @Test
-    fun fromFloatArray_singlePoint() {
-        val floats = floatArrayOf(0.5f, 0.6f)
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
-
-        assertTrue("hasFace should be true", result.hasFace)
-        assertEquals("Should have 1 point", 1, result.rawPoints.size / 2)
-        assertEquals("Point x", 0.5f, result.rawPoints[0], 0.0001f)
-        assertEquals("Point y", 0.6f, result.rawPoints[1], 0.0001f)
+    fun fromFloatArray_validInputs_extractsExpectedPointCount() {
+        // 标准输入：106 个点 → 提取 106
+        assertValidExtraction(FloatArray(106 * 2) { it / 212f }, expectedPoints = 106)
+        // 多余输入：150 个点 → 仍只取 106
+        assertValidExtraction(FloatArray(150 * 2) { it / 300f }, expectedPoints = 106)
+        // 不足输入：50 个点 → 取 50
+        assertValidExtraction(FloatArray(50 * 2) { it / 100f }, expectedPoints = 50)
+        // 最小输入：1 个点 → 取 1
+        assertValidExtraction(floatArrayOf(0.5f, 0.6f), expectedPoints = 1)
     }
 
     @Test
     fun fromFloatArray_preservesCoordinateValues() {
-        // 构造特定坐标的输入
         val floats = FloatArray(106 * 2)
         for (i in 0 until 106) {
             floats[i * 2] = i * 0.001f
@@ -125,6 +41,7 @@ class GpuPixelLandmarksTest {
 
         val result = GpuPixelLandmarks.fromFloatArray(floats)
 
+        assertTrue("hasFace should be true", result.hasFace)
         for (i in 0 until 106) {
             assertEquals("Point $i x", i * 0.001f, result.rawPoints[i * 2], 0.0001f)
             assertEquals("Point $i y", i * 0.002f, result.rawPoints[i * 2 + 1], 0.0001f)
@@ -132,14 +49,45 @@ class GpuPixelLandmarksTest {
     }
 
     @Test
-    fun fromFloatArray_zeroCoordinates() {
-        val floats = FloatArray(106 * 2) { 0f }
-        val result = GpuPixelLandmarks.fromFloatArray(floats)
+    fun fromFloatArray_zeroCoordinates_preservedAsZero() {
+        val result = GpuPixelLandmarks.fromFloatArray(FloatArray(106 * 2) { 0f })
 
         assertTrue("hasFace should be true", result.hasFace)
         for (i in 0 until 106) {
             assertEquals("Point $i x should be 0", 0f, result.rawPoints[i * 2], 0.0001f)
             assertEquals("Point $i y should be 0", 0f, result.rawPoints[i * 2 + 1], 0.0001f)
         }
+    }
+
+    // ── null / empty ───────────────────────────────────────────
+
+    @Test
+    fun fromFloatArray_nullAndEmptyInput_returnsEmptyResult() {
+        assertEmptyResult(GpuPixelLandmarks.fromFloatArray(null))
+        assertEmptyResult(GpuPixelLandmarks.fromFloatArray(FloatArray(0)))
+    }
+
+    // ── odd-length input ───────────────────────────────────────
+
+    @Test
+    fun fromFloatArray_oddLength_ignoresLastFloat() {
+        // 213 floats = 106.5 points → should extract exactly 106 complete points
+        val result = GpuPixelLandmarks.fromFloatArray(FloatArray(213) { it / 213f })
+
+        assertTrue("hasFace should be true", result.hasFace)
+        assertEquals("Should extract 106 complete points", 106, result.rawPoints.size / 2)
+    }
+
+    // ── helpers ────────────────────────────────────────────────
+
+    private fun assertValidExtraction(floats: FloatArray, expectedPoints: Int) {
+        val result = GpuPixelLandmarks.fromFloatArray(floats)
+        assertTrue("hasFace should be true", result.hasFace)
+        assertEquals("Should extract $expectedPoints points", expectedPoints, result.rawPoints.size / 2)
+    }
+
+    private fun assertEmptyResult(result: GpuPixelLandmarks) {
+        assertFalse("hasFace should be false", result.hasFace)
+        assertEquals("points should be empty", 0, result.points.size)
     }
 }

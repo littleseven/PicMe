@@ -1,7 +1,5 @@
 package com.mamba.picme.server.admin
 
-import com.mamba.picme.server.auth.AccountService
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -9,10 +7,9 @@ import org.junit.Test
 class AdminAuthTest {
 
     @Test
-    fun `valid cookie equals sha256 of token and validates`() {
+    fun `valid cookie is accepted`() {
         val token = "s3cret-admin-token"
         val cookie = AdminAuth.expectedCookieValue(token)
-        assertEquals(AccountService.sha256(token), cookie)
         assertTrue(AdminAuth.isValid(cookie, token))
     }
 

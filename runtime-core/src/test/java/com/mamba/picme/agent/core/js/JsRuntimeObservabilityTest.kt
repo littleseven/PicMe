@@ -94,30 +94,18 @@ class JsRuntimeObservabilityTest {
     }
 
     @Test
-    fun `eval with traceId stamps event traceId`() {
-        val rt = runtime(FakeEngine { JsValue.Str("ok") })
-
-        rt.eval("return 1;", traceId = "trace-js")
-
+    fun `traceId is correctly stamped on eval and evalAsync`() {
+        // eval with traceId → event carries it
+        runtime(FakeEngine { JsValue.Str("ok") }).eval("return 1;", traceId = "trace-js")
         assertEquals("trace-js", recorder.events[0].traceId)
-    }
 
-    @Test
-    fun `eval without traceId records null traceId`() {
-        val rt = runtime(FakeEngine { JsValue.Str("ok") })
+        // eval without traceId → null
+        runtime(FakeEngine { JsValue.Str("ok") }).eval("return 1;")
+        assertNull(recorder.events[1].traceId)
 
-        rt.eval("return 1;")
-
-        assertNull(recorder.events[0].traceId)
-    }
-
-    @Test
-    fun `evalAsync with traceId stamps event traceId`() {
-        val rt = runtime(FakeEngine { JsValue.Null })
-
-        rt.evalAsync("return 1;", 1000, traceId = "trace-js-async")
-
-        assertEquals("trace-js-async", recorder.events[0].traceId)
+        // evalAsync with traceId → event carries it
+        runtime(FakeEngine { JsValue.Null }).evalAsync("return 1;", 1000, traceId = "trace-js-async")
+        assertEquals("trace-js-async", recorder.events[2].traceId)
     }
 
     @Test

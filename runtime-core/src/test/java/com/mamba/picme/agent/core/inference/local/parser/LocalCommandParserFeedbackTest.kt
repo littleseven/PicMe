@@ -8,6 +8,11 @@ import com.mamba.picme.agent.core.model.context.AgentScene
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/**
+ * 本地 L2 解析器的 feedback/more/exclude 分支是独立实现
+ * （LocalCommandParser.parseCommandByMethod + parseFeedbackTarget），
+ * 远程 ToolCallCommandParser 的同名测试保护不到这条路径。
+ */
 class LocalCommandParserFeedbackTest {
 
     private val context = AgentContext(scene = AgentScene.CHAT)

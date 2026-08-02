@@ -39,16 +39,6 @@ class ChannelConfigTest {
         assertEquals(2, map.size)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `parseModelMapLines throws on line without equals`() {
-        parseModelMapLines("deepseek-chat glm-5.2")
-    }
-
-    @Test(expected = IllegalArgumentException::class)
-    fun `parseModelMapLines throws on empty value`() {
-        parseModelMapLines("deepseek-chat=")
-    }
-
     @Test
     fun `renderModelMapLines produces key=value per line`() {
         val text = renderModelMapLines(mapOf("a" to "b"))

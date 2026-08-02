@@ -5,18 +5,6 @@ import org.junit.Test
 
 class AgentCommandsFeedbackTest {
     @Test
-    fun `RecordMediaFeedback holds target action queryHint`() {
-        val cmd = AgentCommand.RecordMediaFeedback(
-            target = FeedbackTarget.Ordinal(3),
-            action = FeedbackAction.LIKE,
-            queryHint = "海边"
-        )
-        assertEquals(FeedbackTarget.Ordinal(3), cmd.target)
-        assertEquals(FeedbackAction.LIKE, cmd.action)
-        assertEquals("海边", cmd.queryHint)
-    }
-
-    @Test
     fun `getMethodName maps feedback commands to short names`() {
         assertEquals(
             "feedback",

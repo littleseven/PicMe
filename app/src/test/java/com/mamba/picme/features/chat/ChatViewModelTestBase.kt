@@ -1,0 +1,141 @@
+package com.mamba.picme.features.chat
+
+import android.content.Context
+import android.util.Log
+import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
+import com.mamba.picme.data.local.ChatMessageDao
+import com.mamba.picme.data.local.ChatSessionDao
+import com.mamba.picme.data.remote.picme.PoLangAuthClient
+import com.mamba.picme.data.repository.MediaFeedbackRepository
+import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.search.MediaSearchEngine
+import com.mamba.picme.domain.tag.ControlledVocab
+import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
+import com.mamba.picme.domain.usecase.StartTagScanUseCase
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.mockkStatic
+import io.mockk.unmockkObject
+import io.mockk.unmockkStatic
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
+
+/**
+ * ChatViewModel 单测公共基类。
+ *
+ * 抽取 8 个 ChatViewModel*Test 文件的共享样板：
+ * - mockkStatic(Log) + Log.* stub
+ * - mockkObject(AgentOrchestrator.Companion) + getInstance
+ * - Room DAO 空 stub（getMessagesBySession / getLastMessageForSession / getAllSessions / getSession）
+ * - ChatViewModelDependencies 构造（[newViewModel]）
+ *
+ * 子类差异通过以下钩子处理：
+ * - [initialToken] / [initialPreference]：覆盖 flow 初始值
+ * - [setUp]：override 并先调 super.setUp()，再追加文件专属 stub
+ * - [newViewModel]：override 以注入 claudeChatClient / .also 回填（如 ClaudeSid / AppTool）
+ */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+abstract class ChatViewModelTestBase {
+
+    // ── Common mocks ──────────────────────────────────────────────
+
+    protected val context: Context = mockk(relaxed = true)
+    protected val chatMessageDao: ChatMessageDao = mockk(relaxed = true)
+    protected val chatSessionDao: ChatSessionDao = mockk(relaxed = true)
+    protected val userSettingsRepository: UserSettingsRepository = mockk(relaxed = true)
+    protected val orchestrator: AgentOrchestrator = mockk(relaxed = true)
+
+    // Dep-specific mocks（多数子类使用部分）
+    protected val mediaSearchEngine: MediaSearchEngine = mockk(relaxed = true)
+    protected val mediaFeedbackRepository: MediaFeedbackRepository = mockk(relaxed = true)
+    protected val picMeAuthClient: PoLangAuthClient = mockk(relaxed = true)
+    protected val getGallerySummaryUseCase: GetGallerySummaryUseCase = mockk(relaxed = true)
+
+    // ── Overridable initial flow values ────────────────────────────
+
+    protected open val initialToken: String = ""
+    protected open val initialPreference: AiAgentInferencePreference = AiAgentInferencePreference.FORCE_LOCAL
+
+    protected val tokenFlow: MutableStateFlow<String> by lazy { MutableStateFlow(initialToken) }
+    protected val preferenceFlow: MutableStateFlow<AiAgentInferencePreference> by lazy { MutableStateFlow(initialPreference) }
+
+    // ── Lifecycle ──────────────────────────────────────────────────
+
+    @Before
+    open fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+
+        mockkStatic(Log::class)
+        every { Log.v(any(), any()) } returns 0
+        every { Log.d(any(), any()) } returns 0
+        every { Log.i(any(), any()) } returns 0
+        every { Log.w(any(), any<String>()) } returns 0
+        every { Log.w(any(), any<String>(), any()) } returns 0
+        every { Log.e(any(), any<String>()) } returns 0
+        every { Log.e(any(), any<String>(), any()) } returns 0
+
+        every { context.applicationContext } returns context
+
+        every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
+        every { userSettingsRepository.aiAgentInferencePreferenceFlow } returns preferenceFlow
+
+        every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
+        coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
+        every { chatSessionDao.getAllSessions() } returns flowOf(emptyList())
+        coEvery { chatSessionDao.getSession(any()) } returns null
+
+        mockkObject(AgentOrchestrator.Companion)
+        every { AgentOrchestrator.getInstance(any()) } returns orchestrator
+        every { orchestrator.getInferencePreference() } returns initialPreference
+    }
+
+    @After
+    open fun tearDown() {
+        unmockkObject(AgentOrchestrator.Companion)
+        unmockkStatic(Log::class)
+        Dispatchers.resetMain()
+    }
+
+    // ── ViewModel factory ──────────────────────────────────────────
+
+    /**
+     * 构造标准 [ChatViewModelDependencies] 并创建 [ChatViewModel]。
+     *
+     * 子类如需注入 claudeChatClient 或回填 var 属性（claudeSidStore / appToolExecutor），
+     * override 本方法即可。
+     */
+    protected open fun newViewModel(): ChatViewModel = ChatViewModel(
+        ChatViewModelDependencies(
+            context = context,
+            chatMessageDao = chatMessageDao,
+            chatSessionDao = chatSessionDao,
+            userSettingsRepository = userSettingsRepository,
+            mediaSearchEngine = mediaSearchEngine,
+            mediaFeedbackRepository = mediaFeedbackRepository,
+            mediaRepository = mockk(relaxed = true),
+            picMeAuthClient = picMeAuthClient,
+            getGallerySummaryUseCase = getGallerySummaryUseCase,
+            queryGalleryMediaUseCase = mockk(relaxed = true),
+            startTagScanUseCase = StartTagScanUseCase(context),
+            personDao = mockk(relaxed = true),
+            controlledVocab = ControlledVocab(),
+            chatEditStateHolder = ChatEditStateHolder(),
+            chatEditProcessor = mockk(relaxed = true),
+            chatImageStore = mockk(relaxed = true),
+            saveChatEditResultUseCase = mockk(relaxed = true),
+        )
+    )
+
+    protected companion object {
+        const val VERIFY_TIMEOUT_MS = 3_000L
+    }
+}

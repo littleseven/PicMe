@@ -1,6 +1,5 @@
 package com.mamba.picme.beauty.internal.facedetect.adapter
 
-import com.mamba.picme.beauty.api.facedetect.FaceDetectionSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -21,11 +20,6 @@ class MnnLandmarkAdapterTest {
 
     private val adapter = MnnLandmarkAdapter()
 
-    @Test
-    fun detectionSource_isMnn() {
-        assertEquals(FaceDetectionSource.MNN, adapter.detectionSource)
-    }
-
     /**
      * 验证 remap 表的 identity 映射情况。
      *
@@ -42,16 +36,10 @@ class MnnLandmarkAdapterTest {
             if (idx % 2 == 0) pointIdx.toFloat() else 0f
         }
 
-        val result = adapter.adapt(native1, lensFacing = 1)
-        assertTrue(result.isSuccess)
-        val unified = result.getOrThrow()
+        val unified = adapter.adapt(native1, lensFacing = 1).getOrThrow()
 
-        val identityMappings = mutableListOf<Int>()
-        for (unifiedIdx in 0 until 106) {
-            val outputX = unified[unifiedIdx * 2]
-            if (kotlin.math.abs(outputX - unifiedIdx) < 0.001f) {
-                identityMappings.add(unifiedIdx)
-            }
+        val identityMappings = (0 until 106).filter { unifiedIdx ->
+            kotlin.math.abs(unified[unifiedIdx * 2] - unifiedIdx) < 0.001f
         }
 
         // 使用第二组输入交叉验证（offset 1000）
@@ -59,15 +47,10 @@ class MnnLandmarkAdapterTest {
             val pointIdx = idx / 2
             if (idx % 2 == 0) (pointIdx + 1000).toFloat() else 0f
         }
-        val result2 = adapter.adapt(native2, lensFacing = 1)
-        val unified2 = result2.getOrThrow()
+        val unified2 = adapter.adapt(native2, lensFacing = 1).getOrThrow()
 
-        val identityMappings2 = mutableListOf<Int>()
-        for (unifiedIdx in 0 until 106) {
-            val outputX = unified2[unifiedIdx * 2]
-            if (kotlin.math.abs(outputX - (unifiedIdx + 1000)) < 0.001f) {
-                identityMappings2.add(unifiedIdx)
-            }
+        val identityMappings2 = (0 until 106).filter { unifiedIdx ->
+            kotlin.math.abs(unified2[unifiedIdx * 2] - (unifiedIdx + 1000)) < 0.001f
         }
 
         // 两组输入应发现相同的 identity 映射位置
@@ -88,110 +71,90 @@ class MnnLandmarkAdapterTest {
         )
     }
 
+    // ── front/back mirror & coordinate preservation ───────────
+
     @Test
-    fun adapt_backCamera_preservesXCoordinate() {
-        // 构造 106 个唯一点，每个点的 x = mnnIdx, y = mnnIdx
+    fun adapt_backPreserves_frontMirrors_andYUnchanged() {
+        // 每个点的 x = mnnIdx / 106, y = mnnIdx / 106
         val native = FloatArray(106 * 2) { idx ->
             val pointIdx = idx / 2
-            pointIdx.toFloat()
+            pointIdx / 106f
         }
 
-        val result = adapter.adapt(native, lensFacing = 1) // BACK = 1
-
-        assertTrue("Result should be success", result.isSuccess)
-        val unified = result.getOrThrow()
-
-        // 验证：对于每个 unifiedIdx，输出中的 x 值应该出现在输入中（即等于某个 mnnIdx）
-        // 并且每个输入的 x 值应该恰好出现一次
-        val outputXValues = (0 until 106).map { unified[it * 2] }.toSortedSet()
-        val expectedXValues = (0 until 106).map { it.toFloat() }.toSortedSet()
+        // BACK = 1: x 和 y 都应保持不变（经 remap 置换）
+        val backUnified = adapter.adapt(native, lensFacing = 1).getOrThrow()
+        val expectedValues = (0 until 106).map { it / 106f }.toSortedSet()
         assertEquals(
-            "Back camera: all output x values should be a permutation of input x values",
-            expectedXValues,
-            outputXValues
+            "Back camera: x coordinates should be a permutation",
+            expectedValues,
+            (0 until 106).map { backUnified[it * 2] }.toSortedSet()
         )
-
-        // y 坐标也应该保持不变
-        val outputYValues = (0 until 106).map { unified[it * 2 + 1] }.toSortedSet()
-        val expectedYValues = (0 until 106).map { it.toFloat() }.toSortedSet()
         assertEquals(
             "Back camera: y coordinates should be preserved",
-            expectedYValues,
-            outputYValues
+            expectedValues,
+            (0 until 106).map { backUnified[it * 2 + 1] }.toSortedSet()
         )
-    }
 
-    @Test
-    fun adapt_frontCamera_mirrorsXCoordinate() {
-        // 构造输入：x = mnnIdx / 106.0（归一化到 0-1）
-        val native = FloatArray(106 * 2) { idx ->
-            val pointIdx = idx / 2
-            if (idx % 2 == 0) pointIdx / 106f else pointIdx / 106f
-        }
-
-        val result = adapter.adapt(native, lensFacing = 0) // FRONT = 0
-
-        assertTrue("Result should be success", result.isSuccess)
-        val unified = result.getOrThrow()
-
-        // 验证：每个输出 x 都是某个 (1 - inputX) 的值
+        // FRONT = 0: x 应被镜像 (1 - x)，y 不变
+        val frontUnified = adapter.adapt(native, lensFacing = 0).getOrThrow()
         val expectedMirroredX = (0 until 106).map { 1f - it / 106f }.toSortedSet()
-        val outputXValues = (0 until 106).map { unified[it * 2] }.toSortedSet()
         assertEquals(
             "Front camera: x coordinates should be mirrored (1 - x)",
             expectedMirroredX,
-            outputXValues
+            (0 until 106).map { frontUnified[it * 2] }.toSortedSet()
         )
-    }
-
-    @Test
-    fun adapt_frontCamera_yCoordinateUnchanged() {
-        val native = FloatArray(106 * 2) { idx ->
-            val pointIdx = idx / 2
-            if (idx % 2 == 0) pointIdx / 106f else pointIdx / 106f
-        }
-
-        val result = adapter.adapt(native, lensFacing = 0)
-        val unified = result.getOrThrow()
-
-        // y 坐标应该和后置摄像头一样（未改变）
-        val expectedY = (0 until 106).map { it / 106f }.toSortedSet()
-        val outputYValues = (0 until 106).map { unified[it * 2 + 1] }.toSortedSet()
         assertEquals(
             "Front camera: y coordinate should not be mirrored",
-            expectedY,
-            outputYValues
+            expectedValues,
+            (0 until 106).map { frontUnified[it * 2 + 1] }.toSortedSet()
         )
     }
 
-    @Test
-    fun adapt_inputTooSmall_returnsFailure() {
-        val native = FloatArray(100) // 远小于 212
-        val result = adapter.adapt(native, lensFacing = 1)
-        assertFalse("Result should be failure for undersized input", result.isSuccess)
-    }
+    // ── input size validation ─────────────────────────────────
 
     @Test
-    fun adapt_resultHasCorrectSize() {
-        val native = FloatArray(106 * 2) { it / 212f }
-        val result = adapter.adapt(native, lensFacing = 1)
-        assertTrue(result.isSuccess)
-        assertEquals("Output should have exactly 212 floats", 212, result.getOrThrow().size)
+    fun adapt_inputSizeVariants_correctSuccessOrFail() {
+        // 远小于 212 → 失败
+        assertFalse(
+            adapter.adapt(FloatArray(100), lensFacing = 1).isSuccess
+        )
+        // 恰好 212 → 成功，输出 212
+        val exactResult = adapter.adapt(FloatArray(212) { it / 212f }, lensFacing = 1)
+        assertTrue(exactResult.isSuccess)
+        assertEquals("Output should have exactly 212 floats", 212, exactResult.getOrThrow().size)
+        // 超过 212 → 成功
+        assertTrue(
+            adapter.adapt(FloatArray(300) { it / 300f }, lensFacing = 1).isSuccess
+        )
     }
 
-    @Test
-    fun adapt_exactSizeInput_succeeds() {
-        val native = FloatArray(212) { it / 212f }
-        val result = adapter.adapt(native, lensFacing = 1)
-        assertTrue("Result should be success for exactly-sized input", result.isSuccess)
-    }
+    // ── zero-value propagation ────────────────────────────────
 
     @Test
-    fun adapt_largerThanMinimumInput_succeeds() {
-        val native = FloatArray(300) { it / 300f }
-        val result = adapter.adapt(native, lensFacing = 1)
-        assertTrue("Result should be success for oversized input", result.isSuccess)
+    fun adapt_zeroValues_backPreserved_frontProducesOnesForX() {
+        val native = FloatArray(212) { 0f }
+
+        // BACK: 全零输入 → 全零输出
+        val backUnified = adapter.adapt(native, lensFacing = 1).getOrThrow()
+        for (i in backUnified.indices) {
+            assertEquals("Zero input should produce zero output at index $i", 0.0f, backUnified[i], 0.0001f)
+        }
+
+        // FRONT: 全零输入 → x = 1.0 (1 - 0), y = 0.0
+        val frontUnified = adapter.adapt(native, lensFacing = 0).getOrThrow()
+        for (unifiedIdx in 0 until 106) {
+            assertEquals(
+                "Front camera: x should be 1.0 at unifiedIdx=$unifiedIdx",
+                1.0f, frontUnified[unifiedIdx * 2], 0.0001f
+            )
+            assertEquals(
+                "Front camera: y should be 0.0 at unifiedIdx=$unifiedIdx",
+                0.0f, frontUnified[unifiedIdx * 2 + 1], 0.0001f
+            )
+        }
     }
+
+    // ── remap uniqueness ──────────────────────────────────────
 
     @Test
     fun adapt_remapProducesUniqueMapping() {
@@ -204,54 +167,18 @@ class MnnLandmarkAdapterTest {
         native2[42 * 2] = 0.9f
         native2[42 * 2 + 1] = 0.8f
 
-        val result1 = adapter.adapt(native1, lensFacing = 1)
-        val result2 = adapter.adapt(native2, lensFacing = 1)
-        val unified1 = result1.getOrThrow()
-        val unified2 = result2.getOrThrow()
-
-        // 找到两个输出中不同的 unifiedIdx
-        var diffCount = 0
-        for (unifiedIdx in 0 until 106) {
-            if (unified1[unifiedIdx * 2] != unified2[unifiedIdx * 2] ||
-                unified1[unifiedIdx * 2 + 1] != unified2[unifiedIdx * 2 + 1]) {
-                diffCount++
-            }
-        }
+        val unified1 = adapter.adapt(native1, lensFacing = 1).getOrThrow()
+        val unified2 = adapter.adapt(native2, lensFacing = 1).getOrThrow()
 
         // 只有一个 mnnIdx 不同，所以应该恰好有一个 unifiedIdx 不同
-        // 但由于前置/后置选择不影响这个测试（都是后置），所以 diffCount 应该为 1
+        val diffCount = (0 until 106).count { unifiedIdx ->
+            unified1[unifiedIdx * 2] != unified2[unifiedIdx * 2] ||
+                unified1[unifiedIdx * 2 + 1] != unified2[unifiedIdx * 2 + 1]
+        }
         assertEquals(
             "Only one mnn point changed, so exactly one unified point should differ",
             1,
             diffCount
         )
-    }
-
-    @Test
-    fun adapt_zeroValues_preserved() {
-        // 全零输入，验证后置摄像头输出也是全零
-        val native = FloatArray(212) { 0f }
-        val result = adapter.adapt(native, lensFacing = 1)
-        assertTrue(result.isSuccess)
-        val unified = result.getOrThrow()
-        for (i in unified.indices) {
-            val actual: Float = unified[i]
-            assertEquals("Zero input should produce zero output at index $i", 0.0f, actual, 0.0001f)
-        }
-    }
-
-    @Test
-    fun adapt_zeroValues_frontCamera_producesOnesForX() {
-        // 全零输入，前置摄像头 x 应变为 1.0 (1 - 0)
-        val native = FloatArray(212) { 0f }
-        val result = adapter.adapt(native, lensFacing = 0)
-        assertTrue(result.isSuccess)
-        val unified = result.getOrThrow()
-        for (unifiedIdx in 0 until 106) {
-            val actualX: Float = unified[unifiedIdx * 2]
-            val actualY: Float = unified[unifiedIdx * 2 + 1]
-            assertEquals("Front camera: x should be 1.0 at unifiedIdx=$unifiedIdx", 1.0f, actualX, 0.0001f)
-            assertEquals("Front camera: y should be 0.0 at unifiedIdx=$unifiedIdx", 0.0f, actualY, 0.0001f)
-        }
     }
 }

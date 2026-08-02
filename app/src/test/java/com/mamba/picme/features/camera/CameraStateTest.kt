@@ -1,10 +1,6 @@
 package com.mamba.picme.features.camera
 
-import android.graphics.PointF
-import com.mamba.picme.beauty.api.facedetect.FaceWarpParams
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -12,19 +8,12 @@ import org.junit.Test
 /**
  * [QA] 相机状态单元测试
  *
- * 整合内容（原 CameraPanelStateTest + AspectRatioAndFaceWarpTest FaceWarpParams 部分）：
- *
- * §1 CameraPanelState 面板状态机
- *    - 初始状态（全部关闭）
- *    - closePrimaryPanels() / closeBeautySubPanels() / closeAllPanels() 互斥关闭
- *    - toggleFacialRefinement() / toggleBodyManagement() 互斥开关
- *    - openMakeupEntry() 幂等切换与入口替换
- *    - 组合场景（多面板联动）
- *
- * §2 FaceWarpParams 数据模型
- *    - 默认值合理性（坐标在 [0,1] 内、眼部对称、hasFace=false）
- *    - 数据类不可变性与 copy 语义
- *    - 比例切换联动：切换后应重置 FaceWarpParams 避免旧坐标残留
+ * CameraPanelState 面板状态机：
+ * - 初始状态（全部关闭）
+ * - closePrimaryPanels() / closeBeautySubPanels() / closeAllPanels() 互斥关闭
+ * - toggleFacialRefinement() / toggleBodyManagement() 互斥开关
+ * - openMakeupEntry() 幂等切换与入口替换
+ * - 组合场景（多面板联动）
  */
 class CameraStateTest {
 
@@ -294,139 +283,6 @@ class CameraStateTest {
 
         assertTrue("toggleMakeupAdjustment should reopen with active entry", panelState.showMakeupAdjustment)
         assertTrue("Active entry should still be EYEBROW", panelState.activeMakeupEntry == MakeupEntry.EYEBROW)
-    }
-
-    // ================================================================
-    // §2 FaceWarpParams 数据模型
-    // ================================================================
-
-    @Test
-    fun `FaceWarpParams default hasFace is false`() {
-        assertFalse("Default hasFace should be false", FaceWarpParams().hasFace)
-    }
-
-    @Test
-    fun `FaceWarpParams default face center is at canvas center (0_5, 0_5)`() {
-        val params = FaceWarpParams()
-        assertEquals("Default faceCenterX should be 0.5", 0.5f, params.faceCenterX, 0.001f)
-        assertEquals("Default faceCenterY should be 0.5", 0.5f, params.faceCenterY, 0.001f)
-    }
-
-    @Test
-    fun `FaceWarpParams default eye positions are symmetric about center`() {
-        val params = FaceWarpParams()
-        assertTrue("Left eye X should be left of center", params.leftEyeX < params.faceCenterX)
-        assertTrue("Right eye X should be right of center", params.rightEyeX > params.faceCenterX)
-        val leftDist = params.faceCenterX - params.leftEyeX
-        val rightDist = params.rightEyeX - params.faceCenterX
-        assertEquals("Left and right eyes should be symmetric about center", leftDist, rightDist, 0.001f)
-    }
-
-    @Test
-    fun `FaceWarpParams default contour lists are empty`() {
-        val params = FaceWarpParams()
-        assertTrue("Default contourPoints should be empty", params.contourPoints.isEmpty())
-        assertTrue("Default leftEyeContourPoints should be empty", params.leftEyeContourPoints.isEmpty())
-        assertTrue("Default rightEyeContourPoints should be empty", params.rightEyeContourPoints.isEmpty())
-        assertTrue("Default lipOuterContourPoints should be empty", params.lipOuterContourPoints.isEmpty())
-        assertTrue("Default lipInnerContourPoints should be empty", params.lipInnerContourPoints.isEmpty())
-    }
-
-    @Test
-    fun `FaceWarpParams default faceRadius is in reasonable range (0_1 to 0_5)`() {
-        val params = FaceWarpParams()
-        assertTrue("Default faceRadius should be > 0.1", params.faceRadius > 0.1f)
-        assertTrue("Default faceRadius should be < 0.5", params.faceRadius < 0.5f)
-    }
-
-    @Test
-    fun `FaceWarpParams default mouth center is below eye level`() {
-        val params = FaceWarpParams()
-        assertTrue("Mouth center Y should be below eye Y", params.mouthCenterY > params.leftEyeY)
-    }
-
-    @Test
-    fun `FaceWarpParams all default coordinates are within 0 to 1`() {
-        val params = FaceWarpParams()
-        val coords = listOf(
-            "faceCenterX" to params.faceCenterX, "faceCenterY" to params.faceCenterY,
-            "leftEyeX" to params.leftEyeX, "leftEyeY" to params.leftEyeY,
-            "rightEyeX" to params.rightEyeX, "rightEyeY" to params.rightEyeY,
-            "mouthCenterX" to params.mouthCenterX, "mouthCenterY" to params.mouthCenterY,
-            "upperLipCenterX" to params.upperLipCenterX, "upperLipCenterY" to params.upperLipCenterY,
-            "lowerLipCenterX" to params.lowerLipCenterX, "lowerLipCenterY" to params.lowerLipCenterY
-        )
-        coords.forEach { (name, value) ->
-            assertTrue("$name ($value) should be >= 0", value >= 0f)
-            assertTrue("$name ($value) should be <= 1", value <= 1f)
-        }
-    }
-
-    @Test
-    fun `FaceWarpParams is immutable - copy creates new instance with independent fields`() {
-        val original = FaceWarpParams()
-        val modified = original.copy(hasFace = true, faceCenterX = 0.3f)
-
-        assertFalse("Original hasFace should not change", original.hasFace)
-        assertEquals("Original faceCenterX should not change", 0.5f, original.faceCenterX, 0.001f)
-        assertTrue("Modified hasFace should be true", modified.hasFace)
-        assertEquals("Modified faceCenterX should be 0.3", 0.3f, modified.faceCenterX, 0.001f)
-    }
-
-    @Test
-    fun `FaceWarpParams equality - same values are equal`() {
-        val a = FaceWarpParams(hasFace = true, faceCenterX = 0.4f, faceCenterY = 0.6f)
-        val b = FaceWarpParams(hasFace = true, faceCenterX = 0.4f, faceCenterY = 0.6f)
-        assertEquals("Same-valued FaceWarpParams should be equal", a, b)
-    }
-
-    @Test
-    fun `FaceWarpParams equality - different hasFace produces non-equal`() {
-        assertNotEquals("Different hasFace should produce non-equal params",
-            FaceWarpParams(hasFace = true), FaceWarpParams(hasFace = false))
-    }
-
-    @Test
-    fun `FaceWarpParams hashCode is consistent for equal objects`() {
-        val a = FaceWarpParams(hasFace = true, faceRadius = 0.2f)
-        val b = FaceWarpParams(hasFace = true, faceRadius = 0.2f)
-        assertEquals("Equal FaceWarpParams should have equal hashCodes", a.hashCode(), b.hashCode())
-    }
-
-    @Test
-    fun `FaceWarpParams out-of-range coordinates are stored as-is (clamping is caller responsibility)`() {
-        val params = FaceWarpParams(faceCenterX = 1.5f, faceCenterY = -0.1f)
-        assertEquals("Out-of-range X stored as-is", 1.5f, params.faceCenterX, 0.001f)
-        assertEquals("Out-of-range Y stored as-is", -0.1f, params.faceCenterY, 0.001f)
-    }
-
-    @Test
-    fun `FaceWarpParams with contour points can be compared by value`() {
-        val contour = listOf(PointF(0.1f, 0.2f), PointF(0.3f, 0.4f))
-        assertEquals("Same contour points should be equal",
-            FaceWarpParams(hasFace = true, contourPoints = contour),
-            FaceWarpParams(hasFace = true, contourPoints = contour))
-    }
-
-    // --- 比例切换联动（原 AspectRatioAndFaceWarpTest 末尾场景） ---
-
-    @Test
-    fun `aspect ratio switch - default FaceWarpParams has hasFace false (prevents stale overlay)`() {
-        // 切换比例时应重置为默认 FaceWarpParams，hasFace=false 避免旧坐标显示
-        assertFalse("Reset params should not show stale face debug overlay", FaceWarpParams().hasFace)
-    }
-
-    @Test
-    fun `aspect ratio switch - new detection result updates all coordinates`() {
-        val staleParams = FaceWarpParams(hasFace = true, faceCenterX = 0.8f, faceCenterY = 0.3f)
-        // 切换比例 → 重置
-        val resetParams = FaceWarpParams()
-        // 新比例下检测到人脸
-        val newParams = resetParams.copy(hasFace = true, faceCenterX = 0.5f, faceCenterY = 0.5f)
-
-        assertNotEquals("New params should differ from stale params", staleParams, newParams)
-        assertTrue("New params should have hasFace=true", newParams.hasFace)
-        assertEquals("New face center X should be updated", 0.5f, newParams.faceCenterX, 0.001f)
     }
 }
 

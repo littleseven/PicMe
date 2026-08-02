@@ -1,42 +1,19 @@
 package com.mamba.picme.features.chat
 
-import android.content.Context
-import android.util.Log
-import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
-import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.agent.core.local.llm.StreamChatResult
-import com.mamba.picme.agent.core.local.llm.StreamMetrics
 import com.mamba.picme.agent.core.model.command.AgentCommand
-import com.mamba.picme.agent.core.model.config.AiAgentInferencePreference
+import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.GallerySummary
-import com.mamba.picme.data.local.ChatMessageDao
-import com.mamba.picme.data.local.ChatSessionDao
-import com.mamba.picme.data.remote.picme.PoLangAuthClient
-import com.mamba.picme.data.repository.MediaFeedbackRepository
-import com.mamba.picme.domain.repository.UserSettingsRepository
-import com.mamba.picme.domain.search.MediaSearchEngine
-import com.mamba.picme.domain.tag.ControlledVocab
-import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
-import com.mamba.picme.domain.usecase.StartTagScanUseCase
+import com.mamba.picme.agent.core.local.llm.StreamChatResult
+import com.mamba.picme.agent.core.local.llm.StreamMetrics
+import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.mockkStatic
 import io.mockk.slot
-import io.mockk.unmockkObject
-import io.mockk.unmockkStatic
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -48,62 +25,24 @@ import org.junit.Test
  * VM 层应将其拦截并替换为 text_reply，避免页面自动跳转。
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class ChatViewModelNavigationGuardTest {
+class ChatViewModelNavigationGuardTest : ChatViewModelTestBase() {
 
-    private val context: Context = mockk(relaxed = true)
-    private val chatMessageDao: ChatMessageDao = mockk(relaxed = true)
-    private val chatSessionDao: ChatSessionDao = mockk(relaxed = true)
-    private val mediaSearchEngine: MediaSearchEngine = mockk(relaxed = true)
-    private val mediaFeedbackRepository: MediaFeedbackRepository = mockk(relaxed = true)
-    private val authClient: PoLangAuthClient = mockk(relaxed = true)
-    private val userSettingsRepository: UserSettingsRepository = mockk(relaxed = true)
-
-    private val tokenFlow = MutableStateFlow("")
-    private val preferenceFlow = MutableStateFlow(AiAgentInferencePreference.FORCE_LOCAL)
-    private val orchestrator: AgentOrchestrator = mockk(relaxed = true)
     private val registry: CapabilityRegistry = mockk(relaxed = true)
 
     @Before
-    fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+    override fun setUp() {
+        super.setUp()
 
-        mockkStatic(Log::class)
-        every { Log.v(any(), any()) } returns 0
-        every { Log.d(any(), any()) } returns 0
-        every { Log.i(any(), any()) } returns 0
-        every { Log.w(any(), any<String>()) } returns 0
-        every { Log.w(any(), any<String>(), any()) } returns 0
-        every { Log.e(any(), any<String>()) } returns 0
-        every { Log.e(any(), any<String>(), any()) } returns 0
-
-        every { context.applicationContext } returns context
-
-        every { userSettingsRepository.serverAuthTokenFlow } returns tokenFlow
-        every { userSettingsRepository.aiAgentInferencePreferenceFlow } returns preferenceFlow
-
-        every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(emptyList())
-        coEvery { chatMessageDao.getLastMessageForSession(any()) } returns null
         coEvery { chatMessageDao.getMessageCount(any()) } returns 1
-        every { chatSessionDao.getAllSessions() } returns flowOf(emptyList())
-        coEvery { chatSessionDao.getSession(any()) } returns null
+        coEvery { getGallerySummaryUseCase(any<Boolean>()) } returns emptyGallerySummary()
 
-        mockkObject(AgentOrchestrator.Companion)
-        every { AgentOrchestrator.getInstance(any()) } returns orchestrator
-        every { orchestrator.getInferencePreference() } returns AiAgentInferencePreference.FORCE_LOCAL
         every { orchestrator.getCapabilityRegistry() } returns registry
-        every { orchestrator.getAgentMode() } returns com.mamba.picme.agent.core.model.config.AiAgentMode.REMOTE
+        every { orchestrator.getAgentMode() } returns AiAgentMode.REMOTE
         every { orchestrator.getCurrentModelId() } returns "remote_deepseek"
         coEvery { orchestrator.configure(any(), any(), any(), any(), any()) } returns Unit
         coEvery { registry.dispatch(any(), any()) } returns Result.success(
             AgentAction.Success(commandId = 0, command = AgentCommand.TextReply(message = ""))
         )
-    }
-
-    @After
-    fun tearDown() {
-        unmockkObject(AgentOrchestrator.Companion)
-        unmockkStatic(Log::class)
-        Dispatchers.resetMain()
     }
 
     private fun emptyGallerySummary(): GallerySummary = GallerySummary(
@@ -120,30 +59,6 @@ class ChatViewModelNavigationGuardTest {
         remainingPass3 = 0,
         isScanning = false,
         recommendation = GallerySummary.ScanRecommendation.NONE
-    )
-
-    private fun newViewModel() = ChatViewModel(
-        ChatViewModelDependencies(
-            context = context,
-            chatMessageDao = chatMessageDao,
-            chatSessionDao = chatSessionDao,
-            userSettingsRepository = userSettingsRepository,
-            mediaSearchEngine = mediaSearchEngine,
-            mediaFeedbackRepository = mediaFeedbackRepository,
-            mediaRepository = mockk(relaxed = true),
-            picMeAuthClient = authClient,
-            getGallerySummaryUseCase = mockk<GetGallerySummaryUseCase>(relaxed = true).apply {
-                coEvery { this@apply(any<Boolean>()) } returns emptyGallerySummary()
-            },
-            queryGalleryMediaUseCase = mockk(relaxed = true),
-            startTagScanUseCase = StartTagScanUseCase(context),
-            personDao = mockk(relaxed = true),
-            controlledVocab = ControlledVocab(),
-            chatEditStateHolder = ChatEditStateHolder(),
-            chatEditProcessor = mockk(relaxed = true),
-            chatImageStore = mockk(relaxed = true),
-            saveChatEditResultUseCase = mockk(relaxed = true)
-        )
     )
 
     private fun mockStreamCommands(commands: List<AgentCommand>) {

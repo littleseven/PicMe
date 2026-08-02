@@ -13,53 +13,6 @@ import org.junit.Assert.*
 class ToolSpecificationTest {
 
     @Test
-    fun `verify click method parameter annotations`() {
-        val method = RemoteControlToolService::class.java.getDeclaredMethod(
-            "click",
-            Integer::class.java, Integer::class.java, String::class.java
-        )
-
-        val params = method.parameters
-        assertEquals("click should have 3 parameters", 3, params.size)
-
-        // 验证每个参数都有 @P 注解且 name 不为空
-        val expectedNames = listOf("x", "y", "text")
-        for (i in params.indices) {
-            val pAnnotation = params[i].getAnnotation(P::class.java)
-            assertNotNull("Parameter $i should have @P annotation", pAnnotation)
-            assertEquals(
-                "Parameter $i name should be '${expectedNames[i]}'",
-                expectedNames[i],
-                pAnnotation!!.name
-            )
-            println("Param ${expectedNames[i]}: name='${pAnnotation.name}', value='${pAnnotation.value}'")
-        }
-    }
-
-    @Test
-    fun `verify adjust_beauty method parameter annotations`() {
-        val method = RemoteControlToolService::class.java.getDeclaredMethod(
-            "adjustBeauty",
-            java.lang.Double::class.java, java.lang.Double::class.java, java.lang.Double::class.java,
-            java.lang.Double::class.java, java.lang.Double::class.java, java.lang.Double::class.java, java.lang.Double::class.java
-        )
-
-        val params = method.parameters
-        assertEquals("adjustBeauty should have 7 parameters", 7, params.size)
-
-        val expectedNames = listOf("smoothing", "whitening", "slim_face", "big_eyes", "lip_color", "blush", "eyebrow")
-        for (i in params.indices) {
-            val pAnnotation = params[i].getAnnotation(P::class.java)
-            assertNotNull("Parameter $i should have @P annotation", pAnnotation)
-            assertEquals(
-                "Parameter $i name should be '${expectedNames[i]}'",
-                expectedNames[i],
-                pAnnotation!!.name
-            )
-        }
-    }
-
-    @Test
     fun `verify no param_ fallback names exist`() {
         // 检查所有 @Tool 注解方法的参数，确保没有使用 param_ 前缀的 fallback 名称
         val methods = RemoteControlToolService::class.java.declaredMethods

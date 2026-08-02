@@ -120,10 +120,11 @@ class CapturingChatModelListenerTest {
     }
 
     @Test
-    fun `metrics-only mode captures no message content`() {
+    fun `metrics-only mode captures structure but drops content`() {
         val recorded = mutableListOf<LlmCallRecord>()
         val listener = CapturingChatModelListener("react", { recorded += it }, captureContent = false)
 
+        // ── response path: system prompt + tool calls ──
         val attrs = java.util.HashMap<Any, Any>()
         val request = ChatRequest.builder()
             .messages(SystemMessage.from("secret system prompt"), UserMessage.from("hello"))
@@ -131,13 +132,17 @@ class CapturingChatModelListenerTest {
             .build()
         listener.onRequest(ChatModelRequestContext(request, ModelProvider.OTHER, attrs))
 
+        val toolReq = ToolExecutionRequest.builder()
+            .id("1")
+            .name("search_media")
+            .arguments("{\"query\":\"my cat\"}")
+            .build()
         val response = ChatResponse.builder()
-            .aiMessage(AiMessage.from("ok secret answer"))
+            .aiMessage(AiMessage.from("ok secret answer", listOf(toolReq)))
             .tokenUsage(TokenUsage(10, 5, 15))
             .build()
         listener.onResponse(ChatModelResponseContext(response, request, ModelProvider.OTHER, attrs))
 
-        assertEquals(1, recorded.size)
         val r = recorded.first()
         // 纯指标保留
         assertTrue(r.requestJson.contains("\"messageCount\":2"))
@@ -147,34 +152,12 @@ class CapturingChatModelListenerTest {
         assertEquals(10, r.promptTokens)
         assertEquals(15, r.totalTokens)
         assertTrue(r.responseJson!!.contains("\"textLength\":16"))
+        assertTrue(r.responseJson!!.contains("\"toolCallNames\":[\"search_media\"]"))
         // 消息内容绝不落库（隐私红线）
         assertFalse(r.requestJson.contains("\"messages\""))
         assertFalse(r.requestJson.contains("hello"))
         assertFalse(r.requestJson.contains("secret system prompt"))
         assertFalse(r.responseJson!!.contains("ok secret answer"))
-    }
-
-    @Test
-    fun `metrics-only mode keeps tool call names but drops arguments`() {
-        val recorded = mutableListOf<LlmCallRecord>()
-        val listener = CapturingChatModelListener("react", { recorded += it }, captureContent = false)
-
-        val attrs = java.util.HashMap<Any, Any>()
-        val request = ChatRequest.builder().messages(UserMessage.from("q")).modelName("m").build()
-        listener.onRequest(ChatModelRequestContext(request, ModelProvider.OTHER, attrs))
-
-        val toolReq = ToolExecutionRequest.builder()
-            .id("1")
-            .name("search_media")
-            .arguments("{\"query\":\"my cat\"}")
-            .build()
-        val response = ChatResponse.builder()
-            .aiMessage(AiMessage.from(toolReq))
-            .build()
-        listener.onResponse(ChatModelResponseContext(response, request, ModelProvider.OTHER, attrs))
-
-        val r = recorded.first()
-        assertTrue(r.responseJson!!.contains("\"toolCallNames\":[\"search_media\"]"))
         assertFalse(r.responseJson!!.contains("arguments"))
         assertFalse(r.responseJson!!.contains("my cat"))
     }
