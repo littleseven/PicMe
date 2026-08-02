@@ -22,6 +22,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -65,6 +67,7 @@ import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChatBubble
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.AddComment
@@ -142,6 +145,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import androidx.compose.ui.draw.shadow
 import androidx.core.content.ContextCompat
 import android.Manifest
@@ -891,50 +895,103 @@ private fun ExpiredImagePlaceholder(height: androidx.compose.ui.unit.Dp = 180.dp
     }
 }
 
-/** 流式渲染段类型：Markdown 段正常渲染，表格段按纯文本直出（防抖动）。 */
-private enum class StreamSegmentType { MARKDOWN, TABLE }
-
-private data class StreamSegment(val type: StreamSegmentType, val text: String)
-
-/** GFM 表格分隔行，如 `|---|---|`、`| --- | ---: |`、`---|---`（可无前后导 `|`）。 */
-private val TABLE_DELIMITER = Regex("""^\s*\|?(\s*:?-{2,}:?\s*\|)+(\s*:?-{2,}:?\s*)\|?\s*$""")
-
-private val CODE_FENCE = Regex("""^\s*```""")
+/** 折叠阈值：超过此行数的代码块默认折叠。 */
+private const val CODE_COLLAPSE_LINES = 12
 
 /**
- * 流式 Markdown 分段：把内容按「Markdown 段 / 表格段」切开。
- *
- * 表格段识别：分隔行（[TABLE_DELIMITER]）的前一行含 `|` 即视为表头，向后吞并
- * 所有含 `|` 的非空行； fenced code block 内的 `|` 行不算。一条回复可有多个表格，
- * 全部识别。流式期间表格段一律按纯文本渲染——Markwon 的表格位图逐 token 重建
- * 是抖动根源；流结束消息落库后走完整 Markdown，表格一次性定型。
+ * agent 气泡代码块（spec §3.2）：默认折叠前 [CODE_COLLAPSE_LINES] 行 + 「展开/收起」，
+ * 横向滚动（长行不换行撑屏），可复制全文。代码体由 [extractCodeBody] 从围栏段提取。
  */
-private fun segmentStreamingMarkdown(content: String): List<StreamSegment> {
-    val lines = content.split("\n")
-    val isTableLine = BooleanArray(lines.size)
-    var inCodeFence = false
-    for (i in lines.indices) {
-        if (CODE_FENCE.containsMatchIn(lines[i])) inCodeFence = !inCodeFence
-        if (!inCodeFence && i > 0 && TABLE_DELIMITER.matches(lines[i]) && lines[i - 1].contains("|")) {
-            isTableLine[i - 1] = true
-            isTableLine[i] = true
-            var j = i + 1
-            while (j < lines.size && lines[j].isNotBlank() && lines[j].contains("|")) {
-                isTableLine[j] = true
-                j++
+@Composable
+private fun CodeBlock(raw: String) {
+    val code = remember(raw) { extractCodeBody(raw) }
+    val total = remember(code) { codeLineCount(code) }
+    val expandable = total > CODE_COLLAPSE_LINES
+    var expanded by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val shown = if (!expandable || expanded) code else previewCode(code, CODE_COLLAPSE_LINES)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(8.dp),
+    ) {
+        Text(
+            text = shown,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(end = 4.dp),
+        )
+        Row(
+            modifier = Modifier.padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (expandable) {
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(
+                        text = if (expanded) stringResource(R.string.claude_code_collapse)
+                        else stringResource(R.string.claude_code_expand_n, total),
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+            IconButton(
+                onClick = {
+                    clipboard.setText(AnnotatedString(code))
+                    copied = true
+                },
+                modifier = Modifier.size(20.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ContentCopy,
+                    contentDescription = stringResource(R.string.claude_code_copy),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (copied) {
+                Text(
+                    text = stringResource(R.string.claude_code_copied),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                LaunchedEffect(copied) {
+                    delay(1500)
+                    copied = false
+                }
             }
         }
     }
-    val segments = mutableListOf<StreamSegment>()
-    var start = 0
-    for (i in 1..lines.size) {
-        if (i == lines.size || isTableLine[i] != isTableLine[start]) {
-            val type = if (isTableLine[start]) StreamSegmentType.TABLE else StreamSegmentType.MARKDOWN
-            segments += StreamSegment(type, lines.subList(start, i).joinToString("\n"))
-            start = i
+}
+
+/** agent 文本分段渲染（流式与最终态共用）：MARKDOWN→MarkdownText、TABLE→纯文本、CODE→CodeBlock。 */
+@Composable
+private fun SegmentedAgentText(displayText: String) {
+    segmentMarkdown(displayText).forEach { segment ->
+        when (segment.type) {
+            AgentSegmentType.TABLE -> Text(
+                text = segment.text,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+            AgentSegmentType.MARKDOWN -> MarkdownText(
+                markdown = segment.text,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+            )
+            AgentSegmentType.CODE -> CodeBlock(raw = segment.text)
         }
     }
-    return segments
 }
 
 /**
@@ -1113,27 +1170,10 @@ private fun ChatMessageItem(
                         if (message.isThinking) {
                             TypingIndicator()
                         } else {
-                            // 流式防抖动：表格段（可多个）一律纯文本直出，流式期间零表格位图；
-                            // Markdown 段照常渲染。消息落库后走下方完整 Markdown，表格一次性定型。
+                            // 流式与最终态统一走 SegmentedAgentText：表格纯文本、代码折叠、散文 Markdown。
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    segmentStreamingMarkdown(displayText).forEach { segment ->
-                                        when (segment.type) {
-                                            StreamSegmentType.TABLE -> Text(
-                                                text = segment.text,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontSize = 13.sp,
-                                                lineHeight = 18.sp,
-                                                fontFamily = FontFamily.Monospace
-                                            )
-                                            StreamSegmentType.MARKDOWN -> MarkdownText(
-                                                markdown = segment.text,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontSize = 14.sp,
-                                                lineHeight = 20.sp
-                                            )
-                                        }
-                                    }
+                                    SegmentedAgentText(displayText)
                                 }
                                 if (message.showCursor) {
                                     BlinkCursor()
@@ -1141,12 +1181,7 @@ private fun ChatMessageItem(
                             }
                         }
                     } else {
-                        MarkdownText(
-                            markdown = displayText,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        )
+                        SegmentedAgentText(displayText)
                     }
                 }
             }
