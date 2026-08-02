@@ -39,7 +39,11 @@ object ClaudeSseParser {
                 "tool_result" -> ClaudeEvent.ToolResult(json.optBoolean("ok"), json.optString("summary"))
                 "file_change" -> ClaudeEvent.FileChange(json.optString("path"), json.optString("action"))
                 "cost" -> ClaudeEvent.Cost(json.optInt("turns", 0), json.optInt("cents", 0))
-                "error" -> ClaudeEvent.Error(json.optString("message"))
+                "error" -> ClaudeEvent.Error(
+                    message = json.optString("message"),
+                    truncated = json.optBoolean("truncated", false),
+                    reason = json.optString("reason").takeIf { it.isNotBlank() },
+                )
                 // requestId 为空无法回传 tool result → 丢弃（对齐 session 分支 blank sid 先例）
                 "app_tool_request" -> json.optString("requestId").takeIf { it.isNotBlank() }?.let { rid ->
                     ClaudeEvent.AppToolRequest(
@@ -48,7 +52,11 @@ object ClaudeSseParser {
                         json.optJSONObject("args") ?: JSONObject(),
                     )
                 }
-                "done" -> ClaudeEvent.Done
+                "done" -> ClaudeEvent.Done(
+                    turns = json.optInt("turns", 0),
+                    truncated = json.optBoolean("truncated", false),
+                    reason = json.optString("reason").takeIf { it.isNotBlank() },
+                )
                 else -> null
             }
             ev?.let { events.add(it) }

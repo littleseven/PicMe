@@ -103,7 +103,7 @@ class ClaudeAgentRenderer {
     }
 
     private fun fold(cur: ClaudeAgentState, event: ClaudeEvent): ClaudeAgentState = when (event) {
-        is ClaudeEvent.Session, ClaudeEvent.Done, is ClaudeEvent.Cost, is ClaudeEvent.AppToolRequest -> cur
+        is ClaudeEvent.Session, is ClaudeEvent.Done, is ClaudeEvent.Cost, is ClaudeEvent.AppToolRequest -> cur
         is ClaudeEvent.AssistantText -> cur.copy(text = cur.text + event.delta)
         is ClaudeEvent.ToolUse -> cur.copy(
             steps = cur.steps + ClaudeStepUi(

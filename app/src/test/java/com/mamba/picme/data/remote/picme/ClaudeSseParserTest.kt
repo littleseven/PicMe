@@ -1,6 +1,8 @@
 package com.mamba.picme.data.remote.picme
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -89,5 +91,32 @@ class ClaudeSseParserTest {
         val ev = ClaudeSseParser.parse(sse)
         assertEquals(1, ev.size)
         assertTrue(ev[0] is ClaudeEvent.Done)
+    }
+
+    @Test
+    fun `parses done with truncation fields`() {
+        val sse = "event: done\ndata: {\"turns\":20,\"truncated\":true,\"reason\":\"max_turns\"}\n\n"
+        val ev = ClaudeSseParser.parse(sse).single() as ClaudeEvent.Done
+        assertEquals(20, ev.turns)
+        assertTrue(ev.truncated)
+        assertEquals("max_turns", ev.reason)
+    }
+
+    @Test
+    fun `parses done without truncation defaults`() {
+        val sse = "event: done\ndata: {\"turns\":3}\n\n"
+        val ev = ClaudeSseParser.parse(sse).single() as ClaudeEvent.Done
+        assertEquals(3, ev.turns)
+        assertFalse(ev.truncated)
+        assertNull(ev.reason)
+    }
+
+    @Test
+    fun `parses error with truncation fields`() {
+        val sse = "event: error\ndata: {\"message\":\"phase timeout 300s\",\"truncated\":true,\"reason\":\"phase_timeout\"}\n\n"
+        val ev = ClaudeSseParser.parse(sse).single() as ClaudeEvent.Error
+        assertEquals("phase timeout 300s", ev.message)
+        assertTrue(ev.truncated)
+        assertEquals("phase_timeout", ev.reason)
     }
 }

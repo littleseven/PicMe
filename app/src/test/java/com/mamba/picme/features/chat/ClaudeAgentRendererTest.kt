@@ -78,7 +78,7 @@ class ClaudeAgentRendererTest {
         r.apply(ClaudeEvent.AssistantText("hi"))
         r.apply(ClaudeEvent.Session(sid = "s1"))
         r.apply(ClaudeEvent.Cost(turns = 3, cents = 12))
-        r.apply(ClaudeEvent.Done)
+        r.apply(ClaudeEvent.Done())
         assertEquals("hi", r.state.text)
         assertTrue(r.state.steps.isEmpty())
         assertFalse(r.state.hasFileChange)
