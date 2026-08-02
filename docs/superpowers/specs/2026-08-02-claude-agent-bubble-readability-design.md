@@ -163,8 +163,8 @@ enum class StreamSegmentType { MARKDOWN, TABLE, CODE }
 
 - [ ] 代码块默认折叠 ≤12 行 + 「展开/收起」；横向可滚；复制生效（androidTest）。
 - [ ] 流式与最终渲染都走分段器；表格/代码块在两态下一致（真机比对）。
-- [ ] 网关 prompt 追加简洁约束；pump 对 max_turns done / phase_timeout error 注入 `truncated`+`reason`（pytest）。
-- [ ] app 解析 done/error 新字段；截断时显标识 + 继续按钮，**不**把截断当 ⚠️ 灌正文；非截断 error 维持 ⚠️（回归）（JVM 测试）。
+- [x] 网关 prompt 追加简洁约束；pump 对 max_turns done / phase_timeout error 注入 `truncated`+`reason`（pytest）。
+- [x] app 解析 done/error 新字段；截断时显标识 + 继续按钮，**不**把截断当 ⚠️ 灌正文；非截断 error 维持 ⚠️（回归）（JVM 测试）。
 - [ ] 「继续」用同 sid 发"继续"，走 `--resume` 多轮（E2E）。
-- [ ] 三语文案同步；编译通过（`:app:assembleDebug` + 网关 pytest）无新增错误。
+- [x] 三语文案同步；编译通过（`:app:assembleDebug` + 网关 pytest）无新增错误。
 - [ ] E2E：真机触发长回答 → 代码折叠可展开 + 截断标识 + 继续续写，全链路。
