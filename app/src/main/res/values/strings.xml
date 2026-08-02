@@ -1000,6 +1000,14 @@
     <string name="claude_deliver_done">✅ Delivered branch: `%1$s`</string>
     <string name="claude_deliver_failed">❌ Delivery failed: %1$s</string>
     <string name="claude_file_change_label">File</string>
+    <string name="claude_code_expand_n">Expand (%1$d lines)</string>
+    <string name="claude_code_collapse">Collapse</string>
+    <string name="claude_code_copy">Copy</string>
+    <string name="claude_code_copied">Copied</string>
+    <string name="claude_truncated">Response truncated</string>
+    <string name="claude_truncated_reason_max_turns">(max turns reached)</string>
+    <string name="claude_truncated_reason_timeout">(timeout)</string>
+    <string name="claude_continue">Continue</string>
 
     <!-- Issue report -->
     <string name="report_issue_title">Report a problem</string>

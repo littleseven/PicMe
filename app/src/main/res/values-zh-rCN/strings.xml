@@ -994,6 +994,14 @@
     <string name="claude_deliver_done">✅ 已交付分支：`%1$s`</string>
     <string name="claude_deliver_failed">❌ 交付失败：%1$s</string>
     <string name="claude_file_change_label">改文件</string>
+    <string name="claude_code_expand_n">展开（共 %1$d 行）</string>
+    <string name="claude_code_collapse">收起</string>
+    <string name="claude_code_copy">复制</string>
+    <string name="claude_code_copied">已复制</string>
+    <string name="claude_truncated">回答较长已截断</string>
+    <string name="claude_truncated_reason_max_turns">（达最大轮数）</string>
+    <string name="claude_truncated_reason_timeout">（超时）</string>
+    <string name="claude_continue">继续</string>
 
     <!-- Issue report -->
     <string name="report_issue_title">上报问题</string>
