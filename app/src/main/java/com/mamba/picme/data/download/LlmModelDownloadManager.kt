@@ -144,7 +144,7 @@ class LlmModelDownloadManager(context: Context) {
         val DEFAULT_TAG_TRANSLATIONS = mapOf(
             "must-have" to "必须",
             "recommended" to "推荐",
-            "chat" to "聊天",
+            "chat" to "语音",
             "photo-tagging" to "相册打标",
             "beauty-camera" to "美颜相机",
             // 保留底层技术标签的翻译，用于模型卡片徽章展示
