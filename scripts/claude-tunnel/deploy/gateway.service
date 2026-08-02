@@ -5,6 +5,10 @@ After=network.target
 [Service]
 WorkingDirectory=/root/polang/scripts/claude-tunnel/gateway
 EnvironmentFile=/root/claude-tunnel.env
+# HOME=/root 必需：交付 git push 经 `gh auth git-credential` 凭证 helper 取 token，
+# helper 读 /root/.config/gh/hosts.yml——systemd 默认不给服务 HOME，helper 找不到
+# token → "could not read Username for github.com"。缺此行则交付 push 必坏。
+Environment=HOME=/root
 ExecStart=/usr/bin/python3 server.py
 Restart=always
 RestartSec=5
