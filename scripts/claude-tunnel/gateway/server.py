@@ -300,9 +300,11 @@ async def deliver(request):
     branch = "claude-chat/{}".format(sid)
     try:
         # 公共步骤：add / commit
+        # --allow-empty：重试交付（首次 push 失败后 workdir 已有提交、无新改动）时
+        # "nothing to commit" 会让 commit 退出非零、阻断后续 push。允许空提交即可放过。
         for cmd in (
             ["git", "-C", repo, "add", "-A"],
-            ["git", "-C", repo, "commit", "-qm", "fix(claude-tunnel): session {}".format(sid)],
+            ["git", "-C", repo, "commit", "--allow-empty", "-qm", "fix(claude-tunnel): session {}".format(sid)],
         ):
             rc, _, err = await _run_cmd(cmd, env, timeout, capture=True)
             if rc != 0:
