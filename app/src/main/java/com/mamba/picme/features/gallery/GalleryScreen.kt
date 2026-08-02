@@ -176,8 +176,8 @@ fun GalleryScreen(
                     isPersonFilter = false
                     isSearchLoading = false
                 } else if (isPersonFilter) {
-                    // 人物相册模式：保留已加载的人物媒体，不交给搜索引擎覆盖
-                    isSearchLoading = false
+                    // 人物相册模式：保留已加载的人物媒体，不交给搜索引擎覆盖；
+                    // isSearchLoading 由 applyPersonFilter 全权控制，避免防抖先触发导致 loading 提前结束
                 } else {
                     val engine = searchEngine
                     if (engine != null) {
@@ -221,11 +221,12 @@ fun GalleryScreen(
         }
 
         if (finalMedia.isNotEmpty()) {
-            searchQuery = label
             isSearchActive = true
             isPersonFilter = true
             searchResultMedia = finalMedia
         }
+        // 无论是否有结果都回填名字，避免空态文案泄漏占位 "#personId"
+        searchQuery = label
         isSearchLoading = false
     }
 
@@ -235,6 +236,13 @@ fun GalleryScreen(
         val (query, personId) = request
         when {
             personId > 0L -> {
+                // 立即进入搜索模式并清空旧结果：
+                // applyPersonFilter 为异步 DB 查询，若延迟到完成时才置 isSearchActive，
+                // 加载期间 UI 会渲染全部相册/上次搜索残留，造成闪烁
+                searchQuery = "#$personId"
+                isSearchActive = true
+                isPersonFilter = true
+                searchResultMedia = emptyList()
                 isSearchLoading = true
                 applyPersonFilter(personId)
             }
