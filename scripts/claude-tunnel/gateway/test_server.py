@@ -325,3 +325,34 @@ async def test_deliver_auto_tests_fail(aiohttp_client, deliver_env):
     assert body["merged"] is False
     assert body["tested"] is False
     assert body["branch"] == "claude-chat/{}".format(sid)
+
+
+def test_annotate_truncated_marks_max_turns():
+    ev = {"event": "done", "data": {"turns": 20}}
+    out = server.annotate_truncated(ev, max_turns=20)
+    assert out["data"]["truncated"] is True
+    assert out["data"]["reason"] == "max_turns"
+
+
+def test_annotate_truncated_leaves_short_turns():
+    ev = {"event": "done", "data": {"turns": 3}}
+    out = server.annotate_truncated(ev, max_turns=20)
+    assert "truncated" not in out["data"]
+
+
+def test_annotate_truncated_ignores_non_done():
+    ev = {"event": "assistant_text", "data": {"delta": "hi"}}
+    assert server.annotate_truncated(ev, max_turns=20) is ev
+
+
+def test_phase_timeout_event_carries_truncation():
+    ev = server.phase_timeout_event(300)
+    assert ev["event"] == "error"
+    assert ev["data"]["truncated"] is True
+    assert ev["data"]["reason"] == "phase_timeout"
+    assert "300" in ev["data"]["message"]
+
+
+def test_system_prompt_requires_concise_output():
+    assert "不要整段" in server.APP_TOOL_SYSTEM_PROMPT
+    assert "≤30 行" in server.APP_TOOL_SYSTEM_PROMPT

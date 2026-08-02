@@ -50,6 +50,12 @@ APP_TOOL_SYSTEM_PROMPT = """\
 - app_get_gallery_summary：需要相册规模/标签分布等元数据时（图片本身永远拿不到，也不要索要）。
 诊断方法论：先澄清事实（问用户 + 拉数据交叉验证）→ 在代码中定位根因 → 给出最小修复方案。
 数据不足时明确告诉用户缺什么；工具返回 App 离线/超时时，引导用户保持 App 在前台重试。
+
+输出风格（用户在手机上读你的回复，必须简洁可读）：
+- 结论先行；用要点 + 关键代码片段回答，不要整段粘贴源文件或完整构建/命令日志。
+- 必须展示代码时，只贴关键 ≤30 行片段并注明文件位置，省略部分用注释代替。
+- 日志/构建输出只摘录关键行（报错行 + 上下文），不要全量回灌。
+- 单次正文控制在约 ≤800 字；长内容分多条消息，每条聚焦一个要点。
 """
 
 
@@ -65,6 +71,29 @@ def build_env(sid):
     """chat spawn 环境：CT_SESSION_SID 供 MCP 子进程把 tool call 路由回本会话。"""
     return dict(os.environ, IS_SANDBOX="1", GIT_TERMINAL_PROMPT="0",
                 CT_SESSION_SID=sid, CT_GATEWAY_PORT=GATEWAY_PORT)
+
+
+def annotate_truncated(ev, max_turns=None):
+    """pump 转发 done 前调用：达 max_turns 则标注截断。返回（可能改写的）ev。"""
+    if ev["event"] != "done":
+        return ev
+    mt = int(MAX_TURNS) if max_turns is None else max_turns
+    turns = ev.get("data", {}).get("turns")
+    if isinstance(turns, int) and turns >= mt:
+        data = dict(ev["data"])
+        data["truncated"] = True
+        data["reason"] = "max_turns"
+        return {"event": "done", "data": data}
+    return ev
+
+
+def phase_timeout_event(seconds):
+    """CT_PHASE_TIMEOUT 触发的截断 error 事件。"""
+    return {"event": "error", "data": {
+        "message": "phase timeout {}s".format(seconds),
+        "truncated": True,
+        "reason": "phase_timeout",
+    }}
 
 
 def build_cmd(message, claude_sid):
@@ -163,6 +192,7 @@ async def _run_claude_turn(resp, sid, message, claude_sid):
             for ev in claude_events.translate_stream_line(raw.decode("utf-8", "replace")):
                 if ev["event"] == "session":
                     sm.set_claude_session(sid, ev["data"]["sid"])
+                ev = annotate_truncated(ev)
                 if ev["event"] == "done":
                     done_sent = True
                 await _send(resp, ev)
@@ -175,7 +205,7 @@ async def _run_claude_turn(resp, sid, message, claude_sid):
             await asyncio.wait_for(pump(), timeout=timeout)
         except asyncio.TimeoutError:
             proc.kill()
-            await _send(resp, {"event": "error", "data": {"message": "phase timeout {}s".format(timeout)}})
+            await _send(resp, phase_timeout_event(timeout))
         await proc.wait()
     except Exception as e:  # noqa: BLE001
         await _send(resp, {"event": "error", "data": {"message": str(e)}})
