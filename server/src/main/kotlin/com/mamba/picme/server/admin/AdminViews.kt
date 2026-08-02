@@ -816,6 +816,10 @@ object AdminViews {
                         fileInput.addEventListener('change',function(e){
                           if(e.target.files.length) setFile(e.target.files[0]);
                         });
+                        // 禁止浏览器对整页拖拽的默认行为：防止把文本/链接拖入页面时浏览器弹框、导航或打开
+                        ['dragenter','dragover','dragleave','drop'].forEach(function(evt){
+                          document.addEventListener(evt,function(e){e.preventDefault();},false);
+                        });
                         dropZone.addEventListener('dragover',function(e){
                           e.preventDefault();
                           dropZone.classList.add('drop-zone-active');
