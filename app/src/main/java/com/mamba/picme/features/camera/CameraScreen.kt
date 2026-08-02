@@ -113,6 +113,7 @@ import com.mamba.picme.features.camera.state.CameraStateManager
 import com.mamba.picme.features.camera.thread.CameraThreadRegistry
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
+import com.mamba.picme.features.camera.voice.createDefaultAsrEngine
 import com.mamba.picme.features.common.chat.AgentMessage
 import com.mamba.picme.features.gallery.MediaViewModel
 import com.mamba.picme.features.settings.SettingsViewModel
@@ -778,8 +779,8 @@ fun CameraContent(
                     }
                 }
             } else {
-                Logger.d(TAG, "No local ASR model configured, using system ASR")
-                SystemAsrEngine(context)
+                Logger.d(TAG, "No local ASR model configured, using default ASR (system or downloaded model)")
+                createDefaultAsrEngine(context)
             }
         }
 

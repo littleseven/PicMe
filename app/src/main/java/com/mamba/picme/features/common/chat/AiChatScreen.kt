@@ -218,7 +218,7 @@ private fun AiChatScreenContent(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(Color.Black.copy(alpha = 0.88f))
+            .background(Color.Black)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -959,8 +959,8 @@ private fun VoiceInputMode(
                             event.changes.forEach { change ->
                                 Logger.d(TAG, "Change: pressed=${change.pressed}, consumed=${change.isConsumed}, pos=${change.position}")
                                 when {
-                                    // 手指按下
-                                    change.pressed && !change.isConsumed && !isListening -> {
+                                    // 手指按下（仅初始 DOWN，避免 MOVE 事件重复触发 toast）
+                                    change.pressed && !change.previousPressed && !change.isConsumed && !isListening -> {
                                         Logger.d(TAG, "Finger DOWN detected -> voiceCoordinator=${voiceCoordinator != null}, isVoiceAvailable=$isVoiceAvailable")
                                         if (!isVoiceAvailable) {
                                             Logger.w(TAG, "Voice coordinator not available")

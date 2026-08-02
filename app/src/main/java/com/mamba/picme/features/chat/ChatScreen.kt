@@ -172,6 +172,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import com.mamba.picme.agent.core.platform.voice.SherpaOnnxAsrEngine
 import com.mamba.picme.features.camera.voice.SystemAsrEngine
 import com.mamba.picme.features.camera.voice.PushToTalkEngine
+import com.mamba.picme.features.camera.voice.createDefaultAsrEngine
 import com.mamba.picme.features.settings.SettingsViewModel
 import java.io.File
 
@@ -1371,8 +1372,8 @@ private fun ChatInputArea(
                     SystemAsrEngine(context)
                 }
             } else {
-                Logger.d(TAG, "No local ASR model configured, using system ASR")
-                SystemAsrEngine(context)
+                Logger.d(TAG, "No local ASR model configured, using default ASR (system or downloaded model)")
+                createDefaultAsrEngine(context)
             }
         }
         val previousEngine = asrEngine
@@ -1902,8 +1903,8 @@ private fun ChatVoiceInputMode(
                                 val event = awaitPointerEvent()
                                 event.changes.forEach { change ->
                                     when {
-                                        // 手指按下：检查麦克风权限并开始录音
-                                        change.pressed && !change.isConsumed && !isListening -> {
+                                        // 手指按下（仅初始 DOWN，避免 MOVE 事件重复触发）：检查麦克风权限并开始录音
+                                        change.pressed && !change.previousPressed && !change.isConsumed && !isListening -> {
                                             val hasPermission = ContextCompat.checkSelfPermission(
                                                 context,
                                                 Manifest.permission.RECORD_AUDIO

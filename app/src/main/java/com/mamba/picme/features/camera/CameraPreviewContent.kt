@@ -231,52 +231,55 @@ internal fun CameraPreviewContent(
             showVoiceEntry = uiState.voiceEntryEnabled,
             modifier = Modifier.align(Alignment.BottomEnd)
         )
-    }
 
-    // AI Agent 面板：使用统一的 AiChatScreen
-    if (aiAgentUseCase != null && onAiAgentCommand != null) {
-        val scope = androidx.compose.runtime.rememberCoroutineScope()
-        AiChatScreen(
-            visible = aiAgentChatVisible,
-            messages = aiAgentMessages,
-            isProcessing = aiAgentIsProcessing,
-            onVisibleChange = onAiAgentChatVisibleChange,
-            voiceCoordinator = voiceCoordinator,
-            isModelLoading = isModelLoading,
-            onSendMessage = { input ->
-                onAiAgentMessagesChange(aiAgentMessages + AgentMessage.UserText(content = input))
-                onAiAgentIsProcessingChange(true)
-                scope.launch {
-                    val currentState = AiAgentUseCase.CameraStateSnapshot(
-                        beautySettings = uiState.beautySettings,
-                        filterType = uiState.selectedFilter,
-                        styleFilter = uiState.selectedStyleFilter,
-                        zoomRatio = uiState.zoomRatio,
-                        exposureCompensation = uiState.exposureCompensation,
-                        captureMode = uiState.captureMode,
-                        isRecording = uiState.isRecording
-                    )
-                    val result = aiAgentUseCase.processInput(input, currentState)
-                    onAiAgentIsProcessingChange(false)
-                    result.onSuccess { command ->
-                        val executionMessages = commandToExecutionMessages(command)
-                        onAiAgentMessagesChange(
-                            aiAgentMessages +
-                                AgentMessage.UserText(content = input) +
-                                executionMessages
+        // AI Agent 面板：使用统一的 AiChatScreen
+        // 必须在根 Box 内部作为浮层组合：CameraScreen 宿主于 HorizontalPager，
+        // Pager 会把页内多个同级子项沿主轴（横向）依次摆放，Box 外的 AiChatScreen
+        // 会被放到屏外（组合但不渲染），表现为「点击 chat 入口无反应」
+        if (aiAgentUseCase != null && onAiAgentCommand != null) {
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            AiChatScreen(
+                visible = aiAgentChatVisible,
+                messages = aiAgentMessages,
+                isProcessing = aiAgentIsProcessing,
+                onVisibleChange = onAiAgentChatVisibleChange,
+                voiceCoordinator = voiceCoordinator,
+                isModelLoading = isModelLoading,
+                onSendMessage = { input ->
+                    onAiAgentMessagesChange(aiAgentMessages + AgentMessage.UserText(content = input))
+                    onAiAgentIsProcessingChange(true)
+                    scope.launch {
+                        val currentState = AiAgentUseCase.CameraStateSnapshot(
+                            beautySettings = uiState.beautySettings,
+                            filterType = uiState.selectedFilter,
+                            styleFilter = uiState.selectedStyleFilter,
+                            zoomRatio = uiState.zoomRatio,
+                            exposureCompensation = uiState.exposureCompensation,
+                            captureMode = uiState.captureMode,
+                            isRecording = uiState.isRecording
                         )
-                        onAiAgentCommand(command)
-                    }.onFailure { error ->
-                        onAiAgentMessagesChange(
-                            aiAgentMessages + AgentMessage.UserText(content = input) + AgentMessage.AgentText(
-                                content = "处理出错了：${error.message ?: "未知错误"}"
+                        val result = aiAgentUseCase.processInput(input, currentState)
+                        onAiAgentIsProcessingChange(false)
+                        result.onSuccess { command ->
+                            val executionMessages = commandToExecutionMessages(command)
+                            onAiAgentMessagesChange(
+                                aiAgentMessages +
+                                    AgentMessage.UserText(content = input) +
+                                    executionMessages
                             )
-                        )
+                            onAiAgentCommand(command)
+                        }.onFailure { error ->
+                            onAiAgentMessagesChange(
+                                aiAgentMessages + AgentMessage.UserText(content = input) + AgentMessage.AgentText(
+                                    content = "处理出错了：${error.message ?: "未知错误"}"
+                                )
+                            )
+                        }
                     }
-                }
-            },
-            onCommand = onAiAgentCommand
-        )
+                },
+                onCommand = onAiAgentCommand
+            )
+        }
     }
 }
 
