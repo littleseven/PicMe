@@ -4,6 +4,7 @@ import com.mamba.picme.data.remote.picme.ClaudeEvent
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -93,6 +94,43 @@ class ClaudeAgentRendererTest {
         assertEquals("", r.state.text)
         assertTrue(r.state.steps.isEmpty())
         assertFalse(r.state.hasFileChange)
+    }
+
+    @Test
+    fun `done with truncation sets sticky reason`() {
+        val r = ClaudeAgentRenderer()
+        r.apply(ClaudeEvent.AssistantText("partial…"))
+        r.apply(ClaudeEvent.Done(turns = 20, truncated = true, reason = "max_turns"))
+        assertEquals("max_turns", r.state.truncatedReason)
+        // 粘滞：后续无截断的 done 不清除
+        r.apply(ClaudeEvent.Done(turns = 20, truncated = false, reason = null))
+        assertEquals("max_turns", r.state.truncatedReason)
+    }
+
+    @Test
+    fun `truncated error sets reason without warning text`() {
+        val r = ClaudeAgentRenderer()
+        r.apply(ClaudeEvent.AssistantText("partial…"))
+        r.apply(ClaudeEvent.Error(message = "phase timeout 300s", truncated = true, reason = "phase_timeout"))
+        assertEquals("phase_timeout", r.state.truncatedReason)
+        assertFalse(r.state.text.contains("phase timeout"))
+    }
+
+    @Test
+    fun `non-truncated error still appends warning`() {
+        val r = ClaudeAgentRenderer()
+        r.apply(ClaudeEvent.AssistantText("working"))
+        r.apply(ClaudeEvent.Error(message = "boom"))
+        assertTrue(r.state.text.contains("boom"))
+        assertNull(r.state.truncatedReason)
+    }
+
+    @Test
+    fun `truncated reason survives json round-trip`() {
+        val r = ClaudeAgentRenderer()
+        r.apply(ClaudeEvent.Done(turns = 20, truncated = true, reason = "max_turns"))
+        val restored = ClaudeAgentState.fromJson(r.state.toJson())
+        assertEquals("max_turns", restored.truncatedReason)
     }
 
     @Test

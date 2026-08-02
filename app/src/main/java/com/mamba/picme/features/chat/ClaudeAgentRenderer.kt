@@ -13,11 +13,13 @@ import org.json.JSONObject
  * @property text assistant_text delta 累积的流式文本。
  * @property steps tool_use↔tool_result 配对的步骤列表；file_change 也记为一步。
  * @property hasFileChange 是否出现过 file_change（决定是否显示「交付」按钮，§8）。
+ * @property truncatedReason 截断原因（"max_turns"|"phase_timeout"）；null=未截断。置位后粘滞（只设不清）。
  */
 data class ClaudeAgentState(
     val text: String = "",
     val steps: List<ClaudeStepUi> = emptyList(),
     val hasFileChange: Boolean = false,
+    val truncatedReason: String? = null,
 ) {
     /** 序列化为 Room metadata JSON（气泡跨重载/重启保留）。 */
     fun toJson(): JSONObject {
@@ -34,6 +36,7 @@ data class ClaudeAgentState(
             .put("text", text)
             .put("steps", arr)
             .put("hasFileChange", hasFileChange)
+            .put("truncatedReason", truncatedReason ?: JSONObject.NULL)
     }
 
     companion object {
@@ -53,6 +56,7 @@ data class ClaudeAgentState(
                 text = obj.optString("text"),
                 steps = steps,
                 hasFileChange = obj.optBoolean("hasFileChange", false),
+                truncatedReason = if (obj.isNull("truncatedReason")) null else obj.optString("truncatedReason"),
             )
         }
     }
@@ -80,13 +84,14 @@ data class ClaudeDeliverUi(val sid: String, val pending: Boolean)
  * 后取 [state] 写入 ChatMessageUi.claudeAgent，实现文本流式 + 步骤配对 + 文件改动徽标。
  *
  * 折叠规则：
- * - [ClaudeEvent.Session] / [ClaudeEvent.Done] / [ClaudeEvent.Cost] / [ClaudeEvent.AppToolRequest]：无视觉变化
+ * - [ClaudeEvent.Session] / [ClaudeEvent.Cost] / [ClaudeEvent.AppToolRequest]：无视觉变化
  *   （sid 由 ViewModel 另存；AppToolRequest 由 Task 7 在 ViewModel 合成 ToolUse/ToolResult 事件）。
+ * - [ClaudeEvent.Done]：truncated 时置 [ClaudeAgentState.truncatedReason]（粘滞），否则无变化。
  * - [ClaudeEvent.AssistantText]：delta 追加到 [ClaudeAgentState.text]。
  * - [ClaudeEvent.ToolUse]：追加一步（RUNNING + input 简述）。
  * - [ClaudeEvent.ToolResult]：把最后一个 RUNNING 步骤改为 SUCCESS/FAILED + summary。
  * - [ClaudeEvent.FileChange]：追加一步（SUCCESS + "$action $path"）并置 hasFileChange=true。
- * - [ClaudeEvent.Error]：把 ⚠️ 提示追加到 [ClaudeAgentState.text]。
+ * - [ClaudeEvent.Error]：truncated 时置 truncatedReason（粘滞）；否则把 ⚠️ 提示追加到 [ClaudeAgentState.text]。
  */
 class ClaudeAgentRenderer {
     var state: ClaudeAgentState = ClaudeAgentState()
@@ -103,7 +108,12 @@ class ClaudeAgentRenderer {
     }
 
     private fun fold(cur: ClaudeAgentState, event: ClaudeEvent): ClaudeAgentState = when (event) {
-        is ClaudeEvent.Session, is ClaudeEvent.Done, is ClaudeEvent.Cost, is ClaudeEvent.AppToolRequest -> cur
+        is ClaudeEvent.Session, is ClaudeEvent.Cost, is ClaudeEvent.AppToolRequest -> cur
+        is ClaudeEvent.Done -> if (event.truncated && event.reason != null) {
+            cur.copy(truncatedReason = event.reason)
+        } else {
+            cur
+        }
         is ClaudeEvent.AssistantText -> cur.copy(text = cur.text + event.delta)
         is ClaudeEvent.ToolUse -> cur.copy(
             steps = cur.steps + ClaudeStepUi(
@@ -135,7 +145,9 @@ class ClaudeAgentRenderer {
             ),
             hasFileChange = true,
         )
-        is ClaudeEvent.Error -> {
+        is ClaudeEvent.Error -> if (event.truncated && event.reason != null) {
+            cur.copy(truncatedReason = event.reason)
+        } else {
             val prefix = if (cur.text.isBlank()) "" else "\n"
             cur.copy(text = "${cur.text}${prefix}⚠️ ${event.message}")
         }
