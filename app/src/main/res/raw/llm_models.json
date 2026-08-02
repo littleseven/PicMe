@@ -32,7 +32,7 @@
       "tokens.txt",
       "keywords.txt"
     ],
-    "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx", "recommended"]
+    "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx"]
   },
   {
     "id": "qwen3_5_2b",

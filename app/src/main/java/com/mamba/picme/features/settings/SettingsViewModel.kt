@@ -62,13 +62,13 @@ class SettingsViewModel(
             ModelConfig.REQUIRED_MODEL_IDS.toList()
 
         /**
-         * Tier 2：聊天/语音/本地 LLM 相关模型（次高优先）。
+         * Tier 2：聊天/语音输入/本地 LLM 相关模型（次高优先）。
          * 已从相册必须列表中移出，仅在聊天页提醒下载。
+         * KWS 唤醒模型已拆出为可选（语音为非刚需），仅在设置「语音控制」区块按需下载。
          */
         val CHAT_REQUIRED_MODEL_IDS = listOf(
             "qwen3_5_2b", // 本地 LLM
-            "sherpa-onnx-zipformer-zh-en", // ASR 语音输入
-            "sherpa-onnx-kws-zipformer-wenetspeech" // KWS 唤醒词
+            "sherpa-onnx-zipformer-zh-en" // ASR 语音输入
         )
     }
 
@@ -254,6 +254,14 @@ class SettingsViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = VoiceCommandMode.DISABLED
+        )
+
+    /** 相机页语音入口（悬浮 FAB）显隐开关，默认关闭 */
+    val voiceEntryEnabled: StateFlow<Boolean> = repository.voiceEntryEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
         )
 
     val localAsrModel: StateFlow<String> = repository.localAsrModelFlow
@@ -1021,6 +1029,17 @@ class SettingsViewModel(
         viewModelScope.launch {
             Logger.d("UX", "Voice command mode changed: ${mode.name}")
             repository.updateVoiceCommandMode(mode)
+            // 选择唤醒词模式时联动开启相机页语音入口，避免"已选 WAKE_WORD 但入口隐藏不监听"
+            if (mode == VoiceCommandMode.WAKE_WORD) {
+                repository.updateVoiceEntryEnabled(true)
+            }
+        }
+    }
+
+    fun setVoiceEntryEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            Logger.d("UX", "Voice entry enabled changed: $enabled")
+            repository.updateVoiceEntryEnabled(enabled)
         }
     }
 

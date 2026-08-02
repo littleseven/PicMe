@@ -646,6 +646,9 @@ fun CameraContent(
     val voiceCommandMode by userPreferencesRepository.voiceCommandModeFlow.collectAsState(
         initial = VoiceCommandMode.DISABLED
     )
+    val voiceEntryEnabled by userPreferencesRepository.voiceEntryEnabledFlow.collectAsState(
+        initial = false
+    )
 
     // 解析远程模型配置
     // 注意：aiAgentSelectedRemoteModel 保存的是 uniqueKey（providerId:modelId），
@@ -850,8 +853,9 @@ fun CameraContent(
 
     // 根据模式启停唤醒词监听
     // 同时监听 voiceCoordinator 变化，防止 asrEngine 切换导致 coordinator 重建后 KWS 丢失
-    LaunchedEffect(voiceCommandMode, voiceCoordinator, isActivePage) {
-        if (isActivePage && voiceCommandMode == VoiceCommandMode.WAKE_WORD) {
+    // 语音入口开关关闭时停止监听（语音为非刚需，入口隐藏后不在后台监听）
+    LaunchedEffect(voiceCommandMode, voiceCoordinator, isActivePage, voiceEntryEnabled) {
+        if (isActivePage && voiceEntryEnabled && voiceCommandMode == VoiceCommandMode.WAKE_WORD) {
             voiceCoordinator.startWakeWordListening()
         } else {
             voiceCoordinator.stopWakeWordListening()
@@ -1605,6 +1609,7 @@ CameraPreviewContent(
         whiteBalanceMode = whiteBalanceMode,
         beautyStrategy = beautyStrategy,
         isVoiceControlEnabled = voiceCommandMode != VoiceCommandMode.DISABLED,
+        voiceEntryEnabled = voiceEntryEnabled,
         roiStageConfig = runtimeContext.roiStageConfig,
         landmarkStageConfig = runtimeContext.landmarkStageConfig,
         showLogOverlay = showLogOverlay

@@ -1380,20 +1380,21 @@ data class ModelConfig(
         )
 
         /**
-         * 聊天/语音/本地 LLM 相关模型 ID 集合（Tier 2：次高优先）
+         * 聊天/语音输入/本地 LLM 相关模型 ID 集合（Tier 2：次高优先）
          *
          * 不在相册必须列表中，仅在聊天页提醒下载。
+         * KWS 唤醒模型（sherpa-onnx-kws-zipformer-wenetspeech）已拆出（语音为非刚需），
+         * 不随聊天模型下载、不 WiFi 静默预下载，仅在设置「语音控制」区块按需下载。
          */
         val CHAT_MODEL_IDS = setOf(
             "qwen3_5_2b",                // 本地 LLM（文字/多模态对话）
-            "sherpa-onnx-zipformer-zh-en", // ASR（语音输入）
-            "sherpa-onnx-kws-zipformer-wenetspeech" // KWS（唤醒词）
+            "sherpa-onnx-zipformer-zh-en" // ASR（语音输入）
         )
 
         /**
          * 推荐模型 ID 集合（Tier 2：非核心，WiFi 下可静默预下载）。
          *
-         * 含本地 LLM/语音（[CHAT_MODEL_IDS]）、证件照抠图、相册人脸标记预览。
+         * 含本地 LLM/语音输入（[CHAT_MODEL_IDS]）、证件照抠图、相册人脸标记预览。
          */
         val RECOMMENDED_MODEL_IDS: Set<String> = CHAT_MODEL_IDS + setOf(
             "modnet-onnx",                  // 证件照/抠图

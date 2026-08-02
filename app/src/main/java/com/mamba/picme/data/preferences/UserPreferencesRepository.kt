@@ -110,6 +110,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val VOICE_COMMAND_MODE = stringPreferencesKey("voice_command_mode")
         val LOCAL_ASR_MODEL = stringPreferencesKey("local_asr_model")
         val LOCAL_KWS_MODEL = stringPreferencesKey("local_kws_model")
+        val VOICE_ENTRY_ENABLED = booleanPreferencesKey("voice_entry_enabled")
 
         // 相机参数记忆
         val CAMERA_MEMORY_USE_FRONT_CAMERA = booleanPreferencesKey("camera_memory_use_front_camera")
@@ -873,6 +874,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun updateVoiceCommandMode(mode: VoiceCommandMode) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.VOICE_COMMAND_MODE] = mode.name
+        }
+    }
+
+    override val voiceEntryEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.VOICE_ENTRY_ENABLED] ?: false
+        }
+
+    override suspend fun updateVoiceEntryEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.VOICE_ENTRY_ENABLED] = enabled
         }
     }
 

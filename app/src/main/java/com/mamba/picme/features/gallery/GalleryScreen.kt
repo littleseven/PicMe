@@ -955,7 +955,6 @@ fun GalleryScreen(
                                 navOptions { launchSingleTop = true }
                             )
                         },
-                        voiceCoordinator = voiceCoordinator,
                         onReTag = { uri ->
                             val resultJson = app.container.tagGenerationScheduler.processSingleSync(uri.toString())
                             if (resultJson != null) viewModel.refreshLabels()

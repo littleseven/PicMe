@@ -136,6 +136,10 @@ interface UserSettingsRepository {
     val voiceCommandModeFlow: Flow<VoiceCommandMode>
     suspend fun updateVoiceCommandMode(mode: VoiceCommandMode)
 
+    /** 相机页语音入口（悬浮 FAB）是否显示，默认 false（语音能力为非刚需，默认收敛） */
+    val voiceEntryEnabledFlow: Flow<Boolean>
+    suspend fun updateVoiceEntryEnabled(enabled: Boolean)
+
     val localAsrModelFlow: Flow<String>
     suspend fun updateLocalAsrModel(modelId: String)
 

@@ -411,6 +411,8 @@
     <!-- Voice Control -->
     <string name="voice_control">語音控制</string>
     <string name="voice_control_desc">透過語音指令控制相機拍攝和參數調整。</string>
+    <string name="voice_entry_enabled">語音控制入口</string>
+    <string name="voice_entry_section_desc">在相機頁顯示懸浮語音控制按鈕，預設關閉。</string>
     <string name="voice_command_mode">語音互動模式</string>
     <string name="voice_command_mode_disabled">關閉</string>
     <string name="voice_command_mode_push_to_talk">按住說話</string>

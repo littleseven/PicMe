@@ -167,6 +167,7 @@ fun SettingsScreen(
     val tagGenerationUseOpencl by viewModel.tagGenerationUseOpencl.collectAsState()
     val taggerModelKey by viewModel.taggerModelKey.collectAsState()
     val voiceCommandMode by viewModel.voiceCommandMode.collectAsState()
+    val voiceEntryEnabled by viewModel.voiceEntryEnabled.collectAsState()
     val localAsrModel by viewModel.localAsrModel.collectAsState()
     val localKwsModel by viewModel.localKwsModel.collectAsState()
     val logModuleConfig by viewModel.logModuleConfig.collectAsState()
@@ -285,6 +286,8 @@ fun SettingsScreen(
             onTaggerModelKeyChange = { viewModel.setTaggerModelKey(it) },
             voiceCommandMode = voiceCommandMode,
             onVoiceCommandModeChange = { viewModel.setVoiceCommandMode(it) },
+            voiceEntryEnabled = voiceEntryEnabled,
+            onVoiceEntryEnabledChange = { viewModel.setVoiceEntryEnabled(it) },
             localAsrModel = localAsrModel,
             onLocalAsrModelChange = { viewModel.setLocalAsrModel(it) },
             localKwsModel = localKwsModel,
@@ -350,6 +353,8 @@ private fun SettingsContent(
     onTaggerModelKeyChange: (String) -> Unit,
     voiceCommandMode: VoiceCommandMode,
     onVoiceCommandModeChange: (VoiceCommandMode) -> Unit,
+    voiceEntryEnabled: Boolean,
+    onVoiceEntryEnabledChange: (Boolean) -> Unit,
     localAsrModel: String,
     onLocalAsrModelChange: (String) -> Unit,
     localKwsModel: String,
@@ -593,6 +598,17 @@ private fun SettingsContent(
 
             // ── 4. 相机与美颜 ─────────────────────────────────────
             if (category == SettingsCategory.CAMERA_BEAUTY) {
+                SettingsSection(
+                    title = stringResource(R.string.voice_control),
+                    description = stringResource(R.string.voice_entry_section_desc)
+                ) {
+                    DebugOptionRow(
+                        title = stringResource(R.string.voice_entry_enabled),
+                        checked = voiceEntryEnabled,
+                        onCheckedChange = onVoiceEntryEnabledChange
+                    )
+                }
+
                 StageConfigSection(
                     stage = DetectionStage.ROI,
                     config = roiStageConfig,
@@ -1340,6 +1356,8 @@ fun SettingsScreenPreview() {
             onTaggerModelKeyChange = {},
             voiceCommandMode = VoiceCommandMode.DISABLED,
             onVoiceCommandModeChange = {},
+            voiceEntryEnabled = false,
+            onVoiceEntryEnabledChange = {},
             localAsrModel = "",
             onLocalAsrModelChange = {},
             localKwsModel = "",

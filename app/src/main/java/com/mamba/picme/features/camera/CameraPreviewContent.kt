@@ -228,6 +228,7 @@ internal fun CameraPreviewContent(
             onToggleAiAgentPanel = actions.onToggleAiAgentPanel,
             onToggleVoiceControl = actions.onToggleVoiceControl,
             isVoiceControlEnabled = uiState.isVoiceControlEnabled,
+            showVoiceEntry = uiState.voiceEntryEnabled,
             modifier = Modifier.align(Alignment.BottomEnd)
         )
     }
@@ -564,6 +565,7 @@ private fun CameraFloatingActionButtons(
     onToggleAiAgentPanel: () -> Unit,
     onToggleVoiceControl: () -> Unit,
     isVoiceControlEnabled: Boolean,
+    showVoiceEntry: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -605,30 +607,33 @@ private fun CameraFloatingActionButtons(
         horizontalAlignment = Alignment.End
     ) {
         // 语音控制按钮 - 使用 RecordVoiceOver 区别于 Chat 入口
-        Box {
-            FloatingActionButton(
-                onClick = onToggleVoiceControl,
-                modifier = Modifier.size(52.dp),
-                shape = CircleShape,
-                containerColor = if (isVoiceControlEnabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    Color.Black.copy(alpha = 0.6f)
+        // 语音为非刚需：仅当设置中开启「语音控制入口」时显示
+        if (showVoiceEntry) {
+            Box {
+                FloatingActionButton(
+                    onClick = onToggleVoiceControl,
+                    modifier = Modifier.size(52.dp),
+                    shape = CircleShape,
+                    containerColor = if (isVoiceControlEnabled) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        Color.Black.copy(alpha = 0.6f)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.RecordVoiceOver,
+                        contentDescription = stringResource(R.string.voice_control),
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.RecordVoiceOver,
-                    contentDescription = stringResource(R.string.voice_control),
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            // 耳机连接状态小标记
-            if (isHeadsetConnected) {
-                CameraHeadsetBadge(
-                    device = inputDevice,
-                    modifier = Modifier.align(Alignment.TopEnd)
-                )
+                // 耳机连接状态小标记
+                if (isHeadsetConnected) {
+                    CameraHeadsetBadge(
+                        device = inputDevice,
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    )
+                }
             }
         }
 

@@ -43,7 +43,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -62,7 +61,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.KeyboardVoice
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -70,7 +68,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -123,10 +120,6 @@ import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.TagTranslator
 import com.mamba.picme.features.gallery.MediaViewModel
-import com.mamba.picme.features.common.chat.AgentMessage
-import com.mamba.picme.features.common.chat.AiChatScreen
-import com.mamba.picme.features.camera.voice.VoiceCommandCoordinator
-import com.mamba.picme.domain.model.AiAgentCommand
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
@@ -154,7 +147,6 @@ fun MediaPager(
     onNavigateToEditor: (MediaAsset) -> Unit,
     onAiOptimize: (MediaAsset) -> Unit,
     onIdPhoto: (MediaAsset) -> Unit = {},
-    voiceCoordinator: VoiceCommandCoordinator? = null,
     onReTag: suspend (Uri) -> String? = { null },
     onDescribeImage: suspend (Uri) -> String? = { null },
     onTriggerSummary: (Long) -> Unit = {},
@@ -166,7 +158,6 @@ fun MediaPager(
         var showLandmarkOverlay by remember { mutableStateOf(false) }
         var currentPageZoomed by remember { mutableStateOf(false) }
         var showBarsVisible by remember { mutableStateOf(true) }
-        var showAiChatPanel by remember { mutableStateOf(false) }
         var visionResult by remember { mutableStateOf<String?>(null) }
         var isVisionLoading by remember { mutableStateOf(false) }
         val context = LocalContext.current
@@ -257,13 +248,7 @@ fun MediaPager(
                 modifier = Modifier.align(Alignment.TopCenter)
             ) {
                 mediaPagerTopControls(
-                    onClose = {
-                        if (showAiChatPanel) {
-                            showAiChatPanel = false
-                        } else {
-                            onClose()
-                        }
-                    },
+                    onClose = onClose,
                     dateText = dateText,
                     onToggleInfo = {
                         Log.d("Gallery", "Toggle info visibility via top bar")
@@ -352,80 +337,6 @@ fun MediaPager(
                     isVisionLoading = false
                 }
             )
-
-            // AI Chat Panel - 右下角浮动按钮入口（仅 Debug 模式可见）
-            if (debugUiEnabled && currentAsset?.type == MediaType.PHOTO) {
-                if (!showAiChatPanel) {
-                    FloatingActionButton(
-                        onClick = { showAiChatPanel = true },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = 80.dp)
-                            .navigationBarsPadding(),
-                        shape = CircleShape,
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.KeyboardVoice,
-                            contentDescription = stringResource(R.string.ai_agent),
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                val pagerMessages = remember { mutableStateOf<List<AgentMessage>>(emptyList()) }
-                var pagerIsProcessing by remember { mutableStateOf(false) }
-
-                AiChatScreen(
-                    visible = showAiChatPanel,
-                    messages = pagerMessages.value,
-                    isProcessing = pagerIsProcessing,
-                    onVisibleChange = { showAiChatPanel = it },
-                    voiceCoordinator = voiceCoordinator,
-                    onSendMessage = { input ->
-                        pagerMessages.value = pagerMessages.value + AgentMessage.UserText(content = input)
-                        pagerIsProcessing = true
-                        scope.launch {
-                            val lower = input.lowercase()
-                            val isOptimizeRequest = lower.contains("优化") || lower.contains("修一下") ||
-                                lower.contains("修图") || lower.contains("美化") || lower.contains("增强") ||
-                                lower.contains("调一下") || lower.contains("帮我修") ||
-                                lower.contains("智能优化") || lower.contains("一键优化") ||
-                                (lower.contains("修") && (lower.contains("照片") || lower.contains("图"))) ||
-                                (lower.contains("调") && lower.contains("照片"))
-
-                            if (isOptimizeRequest) {
-                                val asset = currentAsset
-                                if (asset != null) {
-                                    pagerIsProcessing = false
-                                    pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                                        content = "好的，正在为您打开 AI 优化编辑器..."
-                                    )
-                                    showAiChatPanel = false
-                                    onAiOptimize(asset)
-                                } else {
-                                    pagerIsProcessing = false
-                                    pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                                        content = "请先选择一张图片，我再帮您优化~"
-                                    )
-                                }
-                            } else {
-                                kotlinx.coroutines.delay(500)
-                                pagerIsProcessing = false
-                                pagerMessages.value = pagerMessages.value + AgentMessage.AgentText(
-                                    content = "我收到了您的指令：$input。当前相册预览仅支持 AI 一键优化，可以说“优化这张照片”。"
-                                )
-                            }
-                        }
-                    },
-                    onCommand = { command ->
-                        if (command is AiAgentCommand.ApplyEditRecipe) {
-                            // 语音/Agent 通道已生成优化配方，由上层导航到编辑器应用
-                            currentAsset?.let { onAiOptimize(it) }
-                        }
-                    }
-                )
-            }
         }
     }
 }
