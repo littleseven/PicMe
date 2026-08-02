@@ -2497,6 +2497,15 @@ class ChatViewModel(
     private fun parsePerformanceMetadata(metadata: String): LlmPerformance? {
         return try {
             val json = JSONObject(metadata)
+            // metadata 不含任何性能字段（典型：AI 工程师 claude 气泡只写 claude_agent_state，
+            // 网关 SSE 不下发 input/output tokens）时，视为"无性能数据"返回 null，而非用
+            // optLong 默认值拼出一个全 0 的 LlmPerformance——否则 UI 会因 performance 非 null
+            // 而在气泡底部渲染一堆无意义的 0。本地/REMOTE chat 落库时必带这些字段，正常解析不受影响。
+            if (!json.has("prompt_len") && !json.has("decode_len") &&
+                !json.has("decode_time_ms") && !json.has("prefill_time_ms")
+            ) {
+                return null
+            }
             LlmPerformance(
                 promptLen = json.optLong("prompt_len", 0),
                 decodeLen = json.optLong("decode_len", 0),
