@@ -1,6 +1,5 @@
 package com.mamba.picme.features.settings
 
-import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,14 +54,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import com.mamba.picme.BuildConfig
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
@@ -130,20 +125,7 @@ fun SettingsScreen(
     onNavigateToCommunicationChannel: () -> Unit = {},
     onNavigateToPeople: () -> Unit = {}
 ) {
-    val view = LocalView.current
     val context = LocalContext.current
-
-    DisposableEffect(Unit) {
-        val window = (context as? Activity)?.window ?: return@DisposableEffect onDispose {}
-        val insetsController = WindowCompat.getInsetsController(window, view)
-
-        insetsController.hide(WindowInsetsCompat.Type.systemBars())
-        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        onDispose {
-            insetsController.show(WindowInsetsCompat.Type.systemBars())
-        }
-    }
 
     val themeMode by viewModel.themeMode.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()

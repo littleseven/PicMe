@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
@@ -46,12 +47,14 @@ private val TopBarHeight = 48.dp
 private val TopBarTitleFontSize = 17.sp
 
 /**
- * 槽位式主力 topbar（自建紧凑版，参考微信：48dp 高、17sp 标题、内置刘海避让）。
+ * 槽位式主力 topbar（自建紧凑版，参考微信：48dp 高、17sp 标题、内置状态栏 + 刘海避让）。
  *
  * 不再使用 Material3 [androidx.compose.material3.TopAppBar]（其高度写死 64dp），
- * 改为自建 [Row]，保证所有核心页顶栏的高度 / 字号 / 刘海避让一致。
+ * 改为自建 [Row]，保证所有核心页顶栏的高度 / 字号 / 状态栏与刘海避让一致。
  *
- * - 内置 [Modifier.displayCutoutPadding]，调用方无需再单独避让刘海；
+ * - 内置 [Modifier.statusBarsPadding] + [Modifier.displayCutoutPadding]，调用方无需再单独避让状态栏 / 刘海；
+ *   状态栏避让作用于内部 [Row]，使状态栏区域仍由外层 surface 背景填充，视觉无缝；
+ *   仅当顶栏外层已处理状态栏 insets 时，通过 [includeStatusBarPadding] = false 关闭状态栏避让；
  * - 标题统一 17sp / Medium，通过 [LocalTextStyle] 注入，调用方传普通 [Text] 即可继承；
  * - [centered] 为 true 时标题居中，否则左对齐。
  */
@@ -61,7 +64,9 @@ fun AppTopBar(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
-    centered: Boolean = false
+    centered: Boolean = false,
+    /** 是否内置状态栏避让（默认开启）；仅当顶栏外层已处理状态栏 insets 时关闭 */
+    includeStatusBarPadding: Boolean = true
 ) {
     val titleStyle = MaterialTheme.typography.titleLarge.copy(
         fontSize = TopBarTitleFontSize,
@@ -75,6 +80,7 @@ fun AppTopBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (includeStatusBarPadding) Modifier.statusBarsPadding() else Modifier)
                 .displayCutoutPadding()
                 .height(TopBarHeight)
                 .padding(horizontal = TopBarHorizontalPadding),
@@ -105,7 +111,9 @@ fun AppTopBar(
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
-    centered: Boolean = false
+    centered: Boolean = false,
+    /** 是否内置状态栏避让（默认开启）；仅当顶栏外层已处理状态栏 insets 时关闭 */
+    includeStatusBarPadding: Boolean = true
 ) {
     AppTopBar(
         title = {
@@ -122,7 +130,8 @@ fun AppTopBar(
             }
         },
         actions = actions,
-        centered = centered
+        centered = centered,
+        includeStatusBarPadding = includeStatusBarPadding
     )
 }
 

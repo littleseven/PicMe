@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -111,7 +110,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -123,10 +121,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import java.util.Locale
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
@@ -203,7 +198,6 @@ fun ChatScreen(
     onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val view = LocalView.current
     val messages by viewModel.displayMessages.collectAsState()
     val isProcessing by viewModel.isProcessing.collectAsState()
     val currentModel by viewModel.currentModel.collectAsState()
@@ -448,19 +442,6 @@ fun ChatScreen(
                 viewModel.submitIssueReport(category, title, description)
             },
         )
-    }
-
-    // 沉浸式模式：隐藏系统栏
-    DisposableEffect(Unit) {
-        val activity = context as? Activity
-        val window = activity?.window
-        val insetsController = window?.let { WindowCompat.getInsetsController(it, view) }
-        insetsController?.hide(WindowInsetsCompat.Type.systemBars())
-        insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        onDispose {
-            insetsController?.show(WindowInsetsCompat.Type.systemBars())
-        }
     }
 
     Scaffold(
@@ -773,7 +754,6 @@ private fun ChatTopBar(
 ) {
     AppTopBar(
         title = {},
-        modifier = Modifier.displayCutoutPadding(),
         navigationIcon = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppTopBarNavBack(onClick = onNavigateBack)

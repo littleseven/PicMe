@@ -44,10 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import com.mamba.picme.core.common.Logger
 
 import com.mamba.picme.features.gallery.components.BackgroundScanGuardDialog
@@ -480,8 +476,6 @@ fun GalleryScreen(
     var dragSelectionTargetSelected by remember { mutableStateOf(true) }
     val dragSelectionVisitedIds = remember { hashSetOf<Long>() }
 
-    val view = LocalView.current
-
     // ===== Agent Chat 配置（使用公共组件）=====
     val agentChatConfig = rememberAgentChatConfig(
         context = context,
@@ -553,17 +547,6 @@ fun GalleryScreen(
         onDispose {
             Logger.i(TAG, "Unbinding GalleryCapability delegate")
             galleryCapability.unbindDelegate()
-        }
-    }
-
-    DisposableEffect(Unit) {
-        val window = (context as? Activity)?.window ?: return@DisposableEffect onDispose {}
-        val insetsController = WindowCompat.getInsetsController(window, view)
-        insetsController.hide(WindowInsetsCompat.Type.systemBars())
-        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        onDispose {
-            insetsController.show(WindowInsetsCompat.Type.systemBars())
         }
     }
 
