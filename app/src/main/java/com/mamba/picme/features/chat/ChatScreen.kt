@@ -21,7 +21,6 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -77,6 +76,7 @@ import androidx.compose.material.icons.rounded.KeyboardVoice
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1244,12 +1244,15 @@ private fun ChatMessageItem(
                         tint = metricTint
                     )
                     if (perf.usedSandbox) {
-                        Box(
+                        // 沙盒标记：与性能指标同风格的 Material 图标（10.dp，无数值标签）。
+                        // 裸图标比同行指标（图标+文字）矮，需显式垂直居中避免顶对齐错位。
+                        Icon(
+                            imageVector = Icons.Rounded.Terminal,
+                            contentDescription = null,
+                            tint = metricTint,
                             modifier = Modifier
-                                .padding(start = 6.dp)
-                                .size(14.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .border(1.5.dp, metricTint)
+                                .align(Alignment.CenterVertically)
+                                .size(10.dp)
                         )
                     }
                 }

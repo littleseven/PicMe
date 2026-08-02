@@ -13,18 +13,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
- * 流式打字光标：与 AI 文本同色的细竖线，alpha 周期闪烁（≈530ms 一周期）。
+ * 流式打字光标：与 AI 文本同色的终端风格 `>` 提示符，alpha 周期闪烁（≈530ms 一周期）。
  * 纯装饰、无字符串资源（非语义文本）。
  */
 @Composable
@@ -39,16 +41,15 @@ fun BlinkCursor(modifier: Modifier = Modifier) {
         ),
         label = "blinkAlpha"
     )
-    val cursorColor = MaterialTheme.colorScheme.onSurface
-    Box(
+    Text(
+        text = ">",
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
         modifier = modifier
-            .padding(start = 2.dp, top = 2.dp, bottom = 2.dp)
-            .size(width = 2.dp, height = 14.dp)
-            .clip(RoundedCornerShape(1.dp))
-            .background(cursorColor)
-            .alpha(alpha),
-        contentAlignment = Alignment.Center
-    ) {}
+            .padding(start = 2.dp, bottom = 1.dp)
+            .alpha(alpha)
+    )
 }
 
 /**
