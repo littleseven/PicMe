@@ -200,23 +200,6 @@ base {
 }
 
 dependencies {
-    // Force vision-common to 17.2.0 to match image-labeling-common:18.1.0
-    // (text-recognition prefers 17.3.0 but is compatible with 17.2.0)
-    constraints {
-        implementation("com.google.mlkit:vision-common:17.2.0") {
-            version {
-                strictly("17.2.0")
-            }
-            because("image-labeling-common:18.1.0 is incompatible with vision-common:17.3.0 (AbstractMethodError on DetectorCreator.create)")
-        }
-        implementation("com.google.mlkit:vision-interfaces:16.1.0") {
-            version {
-                strictly("16.1.0")
-            }
-            because("image-labeling-common:18.1.0 was compiled against vision-interfaces:16.1.0")
-        }
-    }
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
