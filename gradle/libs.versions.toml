@@ -38,8 +38,6 @@ moshiKotlinCodegen = "1.15.2"
 datastorePreferences = "1.1.7"
 material = "1.4.0"
 media3 = "1.5.1"
-mlkitFaceDetection = "16.1.7"
-mlkitImageLabeling = "17.0.9"
 mlkitTextRecognition = "16.0.1"
 mediapipeFaceLandmarker = "0.10.26"
 onnxRuntimeAndroid = "1.24.3"
@@ -104,11 +102,9 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 androidx-media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
-google-mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "mlkitFaceDetection" }
 google-mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
 mediapipe-face-landmarker = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipeFaceLandmarker" }
 onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxRuntimeAndroid" }
-google-mlkit-image-labeling = { group = "com.google.mlkit", name = "image-labeling", version.ref = "mlkitImageLabeling" }
 google-mlkit-text-recognition-chinese = { group = "com.google.mlkit", name = "text-recognition-chinese", version.ref = "mlkitTextRecognition" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }

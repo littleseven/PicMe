@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Rect
 import android.net.Uri
 import java.net.URLEncoder
 import android.util.Log
@@ -14,7 +13,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -91,7 +89,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1069,7 +1066,6 @@ private fun PhotoInfoDialog(
     val configuration = LocalConfiguration.current
     val scope = rememberCoroutineScope()
     var infoBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var faceRects by remember { mutableStateOf<List<Rect>>(emptyList()) }
 
     // 解析标签（按当前界面语言翻译）
     val locale = configuration.locales[0]
@@ -1088,7 +1084,7 @@ private fun PhotoInfoDialog(
         )
     }
 
-    // 加载图片并检测人脸（用于绘制人脸框）
+    // 加载图片缩略图（用于信息弹窗预览）
     LaunchedEffect(asset.uri) {
         if (asset.type != MediaType.PHOTO) return@LaunchedEffect
         scope.launch(Dispatchers.IO) {
@@ -1101,26 +1097,6 @@ private fun PhotoInfoDialog(
                     BitmapFactory.decodeStream(it, null, opts)
                 }
                 infoBitmap = bitmap
-
-                // 尝试人脸检测获取 ROI
-                if (asset.hasFace && bitmap != null) {
-                    try {
-                        val inputImage = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
-                        val detector = com.google.mlkit.vision.face.FaceDetection.getClient(
-                            com.google.mlkit.vision.face.FaceDetectorOptions.Builder()
-                                .setPerformanceMode(com.google.mlkit.vision.face.FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-                                .setLandmarkMode(com.google.mlkit.vision.face.FaceDetectorOptions.LANDMARK_MODE_NONE)
-                                .setClassificationMode(com.google.mlkit.vision.face.FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-                                .setContourMode(com.google.mlkit.vision.face.FaceDetectorOptions.CONTOUR_MODE_NONE)
-                                .build()
-                        )
-                        val faces = com.google.android.gms.tasks.Tasks.await(detector.process(inputImage))
-                        faceRects = faces.map { Rect(it.boundingBox) }
-                        detector.close()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Face detection for info dialog failed: ${e.message}")
-                    }
-                }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load bitmap for info: ${e.message}")
             }
@@ -1242,31 +1218,6 @@ private fun PhotoInfoDialog(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
-                            // 人脸框选 overlay
-                            if (faceRects.isNotEmpty()) {
-                                Canvas(modifier = Modifier.fillMaxSize()) {
-                                    val canvasW = size.width
-                                    val canvasH = size.height
-                                    val imgW = infoBitmap!!.width.toFloat()
-                                    val imgH = infoBitmap!!.height.toFloat()
-                                    val scale = minOf(canvasW / imgW, canvasH / imgH)
-                                    val offsetX = (canvasW - imgW * scale) / 2
-                                    val offsetY = (canvasH - imgH * scale) / 2
-
-                                    for (rect in faceRects) {
-                                        val left = offsetX + rect.left.toFloat() * scale
-                                        val top = offsetY + rect.top.toFloat() * scale
-                                        val right = offsetX + rect.right.toFloat() * scale
-                                        val bottom = offsetY + rect.bottom.toFloat() * scale
-                                        drawRect(
-                                            color = Color(0xFF4CAF50),
-                                            topLeft = Offset(left, top),
-                                            size = androidx.compose.ui.geometry.Size(right - left, bottom - top),
-                                            style = Stroke(width = 2.5f)
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -1305,7 +1256,7 @@ private fun PhotoInfoDialog(
                         color = Color.White.copy(alpha = 0.8f),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
-                    InfoRow("包含人脸", "是 (${faceRects.size} 张)")
+                    InfoRow("包含人脸", "是")
                     if (asset.faceId != null) {
                         InfoRow("人物分组", "ID: ${asset.faceId}")
                     }

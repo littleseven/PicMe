@@ -1,8 +1,6 @@
 package com.mamba.picme.domain.usecase
 
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
-import com.mamba.picme.domain.agent.capability.optimize.analyzer.SceneAnalysis
-import com.mamba.picme.domain.agent.capability.optimize.analyzer.SceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
 import com.mamba.picme.domain.agent.capability.optimize.preset.AdjustmentPreset
 import com.mamba.picme.domain.agent.capability.optimize.preset.BeautyPreset
@@ -25,78 +23,62 @@ import org.junit.Test
 /**
  * [QA] AiOptimizeUseCase 单元测试
  *
- * 验证 fast/smart 优化路径、云端授权降级、异常降级行为。
+ * 本地场景分析（LocalSceneAnalyzer/ML Kit image-labeling）已移除：fast 路径
+ * 固定走 GENERAL 预设。本测试验证 fast/smart 路径、云端授权降级、异常降级行为。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiOptimizeUseCaseTest {
 
-    private val sceneAnalyzer: SceneAnalyzer = mockk()
     private val presetRepository: PresetRepository = mockk()
     private val consentManager: CloudOptimizeConsentManager = mockk()
     private val smartEngine: SmartOptimizeEngine = mockk()
 
     private val testPreset = OptimizePreset(
-        scene = Scene.PORTRAIT.name,
-        beauty = BeautyPreset(smoothing = 25f),
-        filter = FilterPreset(colorFilter = "WARM"),
-        adjustment = AdjustmentPreset(brightness = 5f)
+        scene = Scene.GENERAL.name,
+        beauty = BeautyPreset(smoothing = 15f),
+        filter = FilterPreset(colorFilter = "NONE"),
+        adjustment = AdjustmentPreset(brightness = 2f)
     )
 
     private fun createUseCase(engine: SmartOptimizeEngine? = smartEngine) = AiOptimizeUseCase(
-        sceneAnalyzer = sceneAnalyzer,
         presetRepository = presetRepository,
         consentManager = consentManager,
         smartEngine = engine
     )
 
     @Test
-    fun `fastOptimize returns local analysis result`() = runTest {
-        coEvery { sceneAnalyzer.analyze(any()) } returns SceneAnalysis(
-            scene = Scene.PORTRAIT,
-            confidence = 0.85f
-        )
-        every { presetRepository.getPreset(Scene.PORTRAIT) } returns testPreset
+    fun `fastOptimize returns GENERAL preset`() = runTest {
+        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
 
         val result = createUseCase().fastOptimize("file:///test.jpg")
 
-        assertEquals(Scene.PORTRAIT, result.scene)
-        assertEquals(0.85f, result.confidence, 0.001f)
+        assertEquals(Scene.GENERAL, result.scene)
         assertFalse(result.usedCloud)
         assertEquals("file:///test.jpg", result.editRecipe.sourceUri)
-        coVerify { sceneAnalyzer.analyze("file:///test.jpg") }
-        verify { presetRepository.getPreset(Scene.PORTRAIT) }
+        verify { presetRepository.getPreset(Scene.GENERAL) }
     }
 
     @Test
     fun `smartOptimize falls back to fast when consent denied`() = runTest {
         coEvery { consentManager.isCloudOptimizeAllowed() } returns false
-        coEvery { sceneAnalyzer.analyze(any()) } returns SceneAnalysis(
-            scene = Scene.FOOD,
-            confidence = 0.8f
-        )
-        every { presetRepository.getPreset(Scene.FOOD) } returns testPreset.copy(scene = Scene.FOOD.name)
+        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
 
         val result = createUseCase().smartOptimize("file:///test.jpg")
 
         assertFalse(result.usedCloud)
-        assertEquals(Scene.FOOD, result.scene)
+        assertEquals(Scene.GENERAL, result.scene)
         coVerify { consentManager.isCloudOptimizeAllowed() }
-        coVerify { sceneAnalyzer.analyze("file:///test.jpg") }
     }
 
     @Test
     fun `smartOptimize falls back to fast when engine is null`() = runTest {
         coEvery { consentManager.isCloudOptimizeAllowed() } returns true
-        coEvery { sceneAnalyzer.analyze(any()) } returns SceneAnalysis(
-            scene = Scene.LANDSCAPE,
-            confidence = 0.8f
-        )
-        every { presetRepository.getPreset(Scene.LANDSCAPE) } returns testPreset.copy(scene = Scene.LANDSCAPE.name)
+        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
 
         val result = createUseCase(engine = null).smartOptimize("file:///test.jpg")
 
         assertFalse(result.usedCloud)
-        assertEquals(Scene.LANDSCAPE, result.scene)
+        assertEquals(Scene.GENERAL, result.scene)
     }
 
     @Test
@@ -116,11 +98,7 @@ class AiOptimizeUseCaseTest {
     fun `smartOptimize falls back to fast on engine error`() = runTest {
         coEvery { consentManager.isCloudOptimizeAllowed() } returns true
         coEvery { smartEngine.optimize(any()) } throws RuntimeException("cloud failed")
-        coEvery { sceneAnalyzer.analyze(any()) } returns SceneAnalysis(
-            scene = Scene.GENERAL,
-            confidence = 0.6f
-        )
-        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset.copy(scene = Scene.GENERAL.name)
+        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
 
         val result = createUseCase().smartOptimize("file:///test.jpg")
 

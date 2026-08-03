@@ -2,7 +2,6 @@ package com.mamba.picme.domain.usecase
 
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
-import com.mamba.picme.domain.agent.capability.optimize.analyzer.SceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
 import com.mamba.picme.domain.agent.capability.optimize.preset.PresetRepository
 import com.mamba.picme.domain.agent.capability.optimize.recipe.OptimizeRecipeMapper
@@ -17,7 +16,6 @@ import com.mamba.picme.features.editor.EditRecipe
  * - Agent Capability 委托执行
  */
 class AiOptimizeUseCase(
-    private val sceneAnalyzer: SceneAnalyzer,
     private val presetRepository: PresetRepository,
     private val consentManager: CloudOptimizeConsentManager,
     private val smartEngine: SmartOptimizeEngine? = null
@@ -58,21 +56,20 @@ class AiOptimizeUseCase(
         baseRecipe: EditRecipe? = null
     ): Result {
         val startTime = System.currentTimeMillis()
-        val analysis = sceneAnalyzer.analyze(imageUri)
-        val preset = presetRepository.getPreset(analysis.scene)
+        val preset = presetRepository.getPreset(Scene.GENERAL)
         val elapsed = System.currentTimeMillis() - startTime
 
-        Logger.d(TAG, "Fast optimize: scene=${analysis.scene}, confidence=${analysis.confidence}, ${elapsed}ms")
+        Logger.d(TAG, "Fast optimize: scene=GENERAL, ${elapsed}ms")
 
         return Result(
-            scene = analysis.scene,
-            confidence = analysis.confidence,
+            scene = Scene.GENERAL,
+            confidence = 1.0f,
             editRecipe = OptimizeRecipeMapper.toEditRecipe(
                 preset = preset,
                 sourceUri = imageUri,
                 baseRecipe = baseRecipe ?: EditRecipe(sourceUri = imageUri)
             ),
-            explanation = OptimizeRecipeMapper.buildExplanation(analysis.scene),
+            explanation = OptimizeRecipeMapper.buildExplanation(Scene.GENERAL),
             usedCloud = false,
             processingTimeMs = elapsed
         )

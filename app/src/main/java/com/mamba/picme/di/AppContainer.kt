@@ -46,7 +46,6 @@ import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.domain.backup.BackupTagDataUseCase
 import com.mamba.picme.domain.backup.RestoreTagDataUseCase
 import com.mamba.picme.domain.backup.TagDataBackupRepository
-import com.mamba.picme.domain.agent.capability.optimize.analyzer.LocalSceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
 import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
 import com.mamba.picme.domain.agent.capability.ImageEditCapability
@@ -383,7 +382,6 @@ class AppContainerImpl(
 
     override val aiOptimizeUseCase: AiOptimizeUseCase by lazy {
         AiOptimizeUseCase(
-            sceneAnalyzer = LocalSceneAnalyzer(context, faceDetector),
             presetRepository = AssetPresetRepository(context),
             consentManager = CloudOptimizeConsentManager(context),
             smartEngine = null
