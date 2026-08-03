@@ -69,8 +69,14 @@ class CrossPageCommandQueue(
         data class QueueCleared(val previousSize: Int) : QueueEvent()
     }
 
+    /**
+     * [externalScope] 未注入时复用的内部 scope：懒创建并缓存，
+     * 避免 getter 每次新建 [SupervisorJob] 启动处理协程后旧 Job 泄漏。
+     */
+    private val fallbackScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+
     private val queueScope: CoroutineScope
-        get() = externalScope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        get() = externalScope ?: fallbackScope
 
     fun enqueue(
         command: AgentCommand,

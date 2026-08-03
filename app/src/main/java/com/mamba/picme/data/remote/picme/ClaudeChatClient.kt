@@ -1,6 +1,8 @@
 package com.mamba.picme.data.remote.picme
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -97,26 +99,31 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
                 .header("X-App-Token", token)
                 .post(body.toRequestBody(jsonMedia))
                 .build()
-            val resp = client.newCall(req).execute()
-            if (!resp.isSuccessful) {
-                throw RuntimeException("HTTP ${resp.code}: ${resp.body?.string().orEmpty()}")
-            }
-            val source = resp.body?.byteStream() ?: throw RuntimeException("empty body")
-            val sb = StringBuilder()
+            val call = client.newCall(req)
+            // readTimeout=0 的 SSE 阻塞读不响应协程取消：协程结束（含取消）时 cancel 打断 source.read()
+            currentCoroutineContext().job.invokeOnCompletion { call.cancel() }
             var sessionSid: String? = null
-            val buf = ByteArray(4 * 1024)
-            while (true) {
-                val n = source.read(buf)
-                if (n == -1) break
-                sb.append(String(buf, 0, n))
+            // use：无论成败都关闭 Response，让连接归还连接池（对齐 postToolResult 先例）
+            call.execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    throw RuntimeException("HTTP ${resp.code}: ${resp.body?.string().orEmpty()}")
+                }
+                val source = resp.body?.byteStream() ?: throw RuntimeException("empty body")
+                val sb = StringBuilder()
+                val buf = ByteArray(4 * 1024)
                 while (true) {
-                    val idx = sb.indexOf("\n\n")
-                    if (idx == -1) break
-                    val block = sb.substring(0, idx)
-                    sb.delete(0, idx + 2)
-                    for (ev in ClaudeSseParser.parse(block + "\n\n")) {
-                        if (ev is ClaudeEvent.Session) sessionSid = ev.sid
-                        onEvent(ev)
+                    val n = source.read(buf)
+                    if (n == -1) break
+                    sb.append(String(buf, 0, n))
+                    while (true) {
+                        val idx = sb.indexOf("\n\n")
+                        if (idx == -1) break
+                        val block = sb.substring(0, idx)
+                        sb.delete(0, idx + 2)
+                        for (ev in ClaudeSseParser.parse(block + "\n\n")) {
+                            if (ev is ClaudeEvent.Session) sessionSid = ev.sid
+                            onEvent(ev)
+                        }
                     }
                 }
             }

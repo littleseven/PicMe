@@ -26,6 +26,8 @@ class MnnFaceDetector private constructor(
         private var reusableDetectResult: FloatArray? = null
         private var reusableRetinaResult: FloatArray? = null
         private const val RETINA_RESULT_SIZE = 15
+        /** 2D106 关键点结果上限：106 点 × 2 坐标。native 侧按 GetArrayLength 截断拷贝，按上限分配即可 */
+        private const val DETECT_RESULT_SIZE = 106 * 2
 
         init {
             try {
@@ -37,6 +39,20 @@ class MnnFaceDetector private constructor(
             } catch (e: UnsatisfiedLinkError) {
                 Logger.e(TAG, "Failed to load native library", e)
             }
+        }
+
+        /**
+         * 释放 companion 级复用缓冲区（含 DirectByteBuffer 离堆内存，GC 无法回收）。
+         *
+         * 由 FaceDetectorManager.release() 在检测链路整体退出时调用；
+         * 缓冲区为按需重建，后续检测不受影响。
+         */
+        @Synchronized
+        fun releaseSharedBuffers() {
+            reusablePixels = null
+            reusableRgbBuffer = null
+            reusableDetectResult = null
+            reusableRetinaResult = null
         }
 
         private fun getPixelsBuffer(size: Int): IntArray {
@@ -233,7 +249,7 @@ class MnnFaceDetector private constructor(
             rgbBuffer.put(i * 3 + 2, (pixel and 0xFF).toByte())        // B
         }
 
-        val outResult = getDetectResult(pixelCount * 2)  // 最大 212 个 float (106 点 × 2)
+        val outResult = getDetectResult(DETECT_RESULT_SIZE)
         val written = MnnGlobalReleaseLock.withOperation {
             nativeDetect(nativeHandle, rgbBuffer, width, height, 3, outResult)
         }
@@ -356,7 +372,7 @@ class MnnFaceDetector private constructor(
             Logger.e(TAG, "NV21 buffer must be direct")
             return null
         }
-        val outResult = getDetectResult(width * height * 2)
+        val outResult = getDetectResult(DETECT_RESULT_SIZE)
         val written = MnnGlobalReleaseLock.withOperation {
             nativeDetectFromNv21(nativeHandle, nv21Data, width, height, rotationDegrees, outResult)
         }
@@ -396,7 +412,7 @@ class MnnFaceDetector private constructor(
             Logger.e(TAG, "NV21 buffer must be direct")
             return null
         }
-        val outResult = getDetectResult(nv21Width * nv21Height * 2)
+        val outResult = getDetectResult(DETECT_RESULT_SIZE)
         val written = MnnGlobalReleaseLock.withOperation {
             nativeDetectLandmarksFromNv21(
                 nativeHandle, nv21Data,

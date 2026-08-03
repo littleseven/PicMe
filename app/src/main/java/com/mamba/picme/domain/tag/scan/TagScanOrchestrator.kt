@@ -174,11 +174,23 @@ class TagScanOrchestrator(
     private var activeSessionId: String? = null
 
     /** 扫描期间持有 partial wake lock，防止息屏后 CPU 休眠导致任务挂起 */
-    private val wakeLock: PowerManager.WakeLock by lazy {
+    private val wakeLockLazy = lazy {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PoLang:TagScanWakeLock").apply {
             setReferenceCounted(false)
         }
+    }
+    private val wakeLock: PowerManager.WakeLock by wakeLockLazy
+
+    /**
+     * Service onDestroy 安全网：强制释放 wakeLock。
+     *
+     * 正常路径由 runSession 的 finally 释放，但 onDestroy 先取消 dispatcher 时
+     * finally 所在协程可能不再被调度，导致 setReferenceCounted(false) 的 wakeLock 残留。
+     */
+    fun releaseWakeLockIfHeld() {
+        if (!wakeLockLazy.isInitialized()) return
+        releaseWakeLock()
     }
 
     /** 每个 Pass 最近 N 次任务耗时，用于估算剩余时间 */

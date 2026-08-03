@@ -396,6 +396,17 @@ class TagGenerationPipeline(
     }
 
     /**
+     * 级联释放 pipeline 持有的引擎 native 资源（人脸检测器 + MobileCLIP）。
+     *
+     * faceClusterEngine 由 TagGenerationScheduler 持有并单独释放，不在此列。
+     * 仅供 Service onDestroy 级联调用，调用后本实例不可再用。
+     */
+    fun release() {
+        faceDetector.release()
+        releaseMobileClip()
+    }
+
+    /**
      * 预热 MobileCLIP 标签分类器
      *
      * 在 Pass 3 开始前调用，预计算候选标签文本 embedding。

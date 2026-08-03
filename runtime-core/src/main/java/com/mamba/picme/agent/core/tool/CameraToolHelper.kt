@@ -8,8 +8,9 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.future
 import kotlinx.coroutines.runBlocking
@@ -36,6 +37,12 @@ object CameraToolHelper {
     private const val NAVIGATION_TIMEOUT_MS = 5000L
     private const val SCENE_POLL_INTERVAL_MS = 100L
     private const val CAPABILITY_WAIT_MS = 300L
+
+    /**
+     * dispatch 常驻内部 scope（SupervisorJob 隔离单命令失败）。替代 GlobalScope：
+     * 等待超时后通过 deferred.cancel() 级联取消底层 dispatch 协程，避免协程裸跑。
+     */
+    private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
      * 根据方法名和参数构建对应的 AgentCommand
@@ -142,7 +149,6 @@ object CameraToolHelper {
      * @param onError 失败时的错误消息前缀
      * @return 执行结果字符串（成功或错误信息）
      */
-    @OptIn(DelicateCoroutinesApi::class)
     fun executeCameraCommand(
         method: String,
         params: Map<String, Any>,
@@ -162,10 +168,16 @@ object CameraToolHelper {
                 val navCommand = AgentCommand.NavigateTo(destination = "camera")
                 val navContext = AgentContext(scene = AgentScene.CAMERA)
 
-                val navDeferred = GlobalScope.future {
+                val navDeferred = dispatchScope.future {
                     registry.dispatch(navCommand, navContext, null)
                 }
-                val navResult = navDeferred.get(NAVIGATION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                val navResult = try {
+                    navDeferred.get(NAVIGATION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                } catch (e: java.util.concurrent.TimeoutException) {
+                    // 导航等待超时：取消底层 dispatch 协程，避免超时后协程裸跑
+                    navDeferred.cancel(true)
+                    throw e
+                }
 
                 if (navResult.isFailure) {
                     return "Error: Navigation to camera failed: ${navResult.exceptionOrNull()?.message}"
@@ -197,10 +209,16 @@ object CameraToolHelper {
             val context = AgentContext(scene = AgentScene.CAMERA)
             val command = buildAgentCommand(method, params)
 
-            val deferred = GlobalScope.future {
+            val deferred = dispatchScope.future {
                 registry.dispatch(command, context, null)
             }
-            val result = deferred.get(5, TimeUnit.SECONDS)
+            val result = try {
+                deferred.get(5, TimeUnit.SECONDS)
+            } catch (e: java.util.concurrent.TimeoutException) {
+                // 等待 dispatch 5s 超时：取消底层 dispatch 协程，避免超时后协程裸跑
+                deferred.cancel(true)
+                throw e
+            }
 
             result.fold(
                 onSuccess = { action ->

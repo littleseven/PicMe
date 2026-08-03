@@ -1005,6 +1005,10 @@ class ChatViewModel(
                 chatImageStore.evictForSession(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.deleteSession(sessionId)
+                // 会话级内存缓存同步清理，避免已删会话的搜索结果/快照/排除集残留
+                lastResultAssets.remove(sessionId)
+                sessionSearchSnapshots.remove(sessionId)
+                sessionExcludes.remove(sessionId)
                 // 删除的是工程师上下文所属会话 → 清掉持久化记录，避免 prefs 残留
                 if (claudeSidStore?.load()?.first == sessionId) claudeSidStore?.clear()
                 if (_currentSessionId.value == sessionId) {
@@ -1845,6 +1849,8 @@ class ChatViewModel(
         super.onCleared()
         persistentJsRuntime?.close()
         persistentJsRuntime = null
+        // adjustImageHandler 闭包捕获 this：ViewModel 销毁后必须摘除，否则进程级单例 ChatToolService 长期持有
+        ChatToolService.getInstance().adjustImageHandler = null
     }
 
     // ── ChatStartTagScanCapability.Delegate：TAG 扫描控制 ─────────────

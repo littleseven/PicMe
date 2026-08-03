@@ -15,8 +15,9 @@ import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.tool.P
 import com.mamba.tool.Tool
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.future.future
 import java.util.concurrent.TimeUnit
@@ -56,6 +57,12 @@ class ChatToolService private constructor() {
     }
 
     private val tag = "ChatToolService"
+
+    /**
+     * dispatch 常驻内部 scope（SupervisorJob 隔离单命令失败）。替代 GlobalScope：
+     * 等待超时后通过 deferred.cancel() 级联取消底层 dispatch 协程，避免协程裸跑。
+     */
+    private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** UI 事件流：dispatchCommand 执行后的原始 AgentAction 发到此 flow，ChatViewModel collect 渲染卡片/跳转。 */
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
@@ -461,13 +468,12 @@ class ChatToolService private constructor() {
 
     // ── 内部：命令分发（复用 RemoteControlToolService.dispatchCommand 范式，scene=CHAT）────
 
-    @OptIn(DelicateCoroutinesApi::class)
     private fun dispatchCommand(command: AgentCommand): String {
+        val deferred = dispatchScope.future {
+            CapabilityRegistry.getInstance()
+                .dispatch(command, AgentContext(scene = AgentScene.CHAT, traceId = traceIdHolder?.value), null)
+        }
         return try {
-            val deferred = GlobalScope.future {
-                CapabilityRegistry.getInstance()
-                    .dispatch(command, AgentContext(scene = AgentScene.CHAT, traceId = traceIdHolder?.value), null)
-            }
             val result = deferred.get(5, TimeUnit.SECONDS)
             result.fold(
                 onSuccess = { action ->
@@ -490,8 +496,10 @@ class ChatToolService private constructor() {
                 onFailure = { "Error: ${it.message}" },
             )
         } catch (e: java.util.concurrent.TimeoutException) {
-            // 等待 dispatch 5s 超时：命令可能仍在执行（若最终完成会由 CommandExecutor 正常记录），
-            // 此处记调用方视角的等待超时，二者可经 traceId 关联。
+            // 等待 dispatch 5s 超时：取消底层 dispatch 协程，避免超时后协程裸跑
+            // （CompletableFuture.cancel 会级联取消 future 协程）。
+            deferred.cancel(true)
+            // 记调用方视角的等待超时，二者可经 traceId 关联。
             Logger.w(tag, "dispatchCommand wait timed out: ${command::class.simpleName}")
             CommandExecutor.recordDispatchEvent(
                 capability = "(chat_tool)",

@@ -18,6 +18,7 @@ import com.mamba.picme.agent.core.inference.remote.StreamingSyncChatModel
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.inference.remote.tool.CameraToolService
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
+import java.util.Collections
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -142,8 +143,21 @@ class RemoteReActAgent(
         DataStoreChatMemoryStore(ctx)
     }
 
-    /** sessionId → ChatMemory 缓存 */
-    private val sessionMemories = mutableMapOf<String, ChatMemory>()
+    /** sessionMemories 容量上限：超出后 LRU 驱逐最久未用会话的 ChatMemory（持久层 DataStore 不受影响，重访时重新加载） */
+    private val maxSessionMemories = 5
+
+    /**
+     * sessionId → ChatMemory 缓存（有界 LRU）。
+     *
+     * 本实例被 app 级 RemoteChatEngine 缓存、活整个进程，无界 Map 会随会话数只增不减；
+     * synchronizedMap 保持与原 mutableMapOf 相同（及以上）的并发安全。
+     */
+    private val sessionMemories = Collections.synchronizedMap(
+        object : LinkedHashMap<String, ChatMemory>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ChatMemory>): Boolean =
+                size > maxSessionMemories
+        }
+    )
 
     /** AiServices 代理缓存 */
     private var assistant: PoLangAssistant? = null
