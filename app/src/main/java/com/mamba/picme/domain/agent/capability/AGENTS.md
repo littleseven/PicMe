@@ -16,7 +16,7 @@
 | `FeishuChannelHandler` | `domain/agent/remote/FeishuChannelHandler.kt` | 飞书 WebSocket 连接/消息收发/图片上传（OAPI SDK） |
 | `RemoteCommandDispatcher` | `domain/agent/remote/RemoteCommandDispatcher.kt` | 命令解析/LLM 意图理解/Capability 分派 |
 
-**主要维护者**：[RD] 全栈工程师
+**主要维护者**：项目开发者
 
 **阅读对象**：RD、AI Agent
 

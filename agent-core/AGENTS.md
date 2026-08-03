@@ -7,7 +7,7 @@
 > - 模块改造历史详见 [`LANGCHAIN4J_MIGRATION.md`](./LANGCHAIN4J_MIGRATION.md)。
 
 **模块定位**：Android Java Library，提供 LangChain4j 风格的 ChatModel、@Tool、AiServices、ChatMemory 等 API  
-**主要维护者**：[RD] 全栈工程师  
+**主要维护者**：项目开发者  
 **阅读对象**：RD、AI Agent  
 **版本**：1.0  
 **最后更新**：2026-07-15  

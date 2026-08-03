@@ -9,7 +9,7 @@
 
 **模块定位**：`:app` 是 PoLang 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:app` 负责将 `:runtime-core`、`:beauty-api`、`:beauty-engine`、`:sentencepiece` 四个独立库组装为完整应用（`:agent-core` 的能力已下沉到 `:runtime-core` 中，由 `:runtime-core` 以 `api` 方式透出）。
 
-**主要维护者**：[RD] 全栈工程师
+**主要维护者**：项目开发者
 
 **阅读对象**：CO、PM、RD、CR、QA、AI Agent
 
@@ -219,6 +219,6 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 ---
 
-> **维护者**：[RD] 全栈工程师
+> **维护者**：项目开发者
 > **最后更新**：2026-07-26
 > **状态**：生效中

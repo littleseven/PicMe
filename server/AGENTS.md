@@ -9,7 +9,7 @@
 
 **模块定位**：`server/` 是 PoLang 的 **Ktor 后端单体服务**，独立 Gradle 工程，与 Android 客户端通过 Monorepo 管理。提供 AI 网关、账号体系、管理后台、推荐引擎、遥测收集、COS 对象存储等能力。
 
-**主要维护者**：[RD] 全栈工程师
+**主要维护者**：项目开发者
 
 **阅读对象**：RD、CR、AI Agent
 
@@ -214,6 +214,6 @@ systemd `picme-api.service`：`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`，与 Open
 
 ---
 
-> **维护者**：[RD] 全栈工程师
+> **维护者**：项目开发者
 > **最后更新**：2026-08-01
 > **状态**：生效中
