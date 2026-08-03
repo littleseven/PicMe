@@ -1,12 +1,14 @@
 # langchain4android AI Agent 系统：唯一事实来源 (SSOT)
 
-> **版本**：2.2（服务端对齐版）  
+> **版本**：2.3（去角色化版）  
 > **状态**：生效中  
-> **最后更新**：2026-08-02  
-> **维护者**：CO Agent  
-> **历史合并说明**：本文档由根目录 `AGENTS.md` 与 `agents/README.md` 合并而成。`agents/README.md` 中的角色速查、状态板模板、Token 节省、回流机制、Tools 输入输出、工具调用速查等内容已并入本文档对应章节或附录，原文件已删除。
+> **最后更新**：2026-08-03  
+> **维护者**：项目开发者  
+> **历史合并说明**：本文档由根目录 `AGENTS.md` 与 `agents/README.md` 合并而成。
+>
+> 2026-08-03 更新：移除已退役的 CO/PM/RD/CR/QA 角色协作管线（`agents/*_agent.md` 已删；该管线从未被 kimi 实际调度，kimi 改用全局子代理）。本文档聚焦**架构原则、全局红线、文档治理与工具脚本**，不再定义强制角色编排流程。
 
-> 本文档为**顶层治理文档**，定义 Agent First 的研发流程与协作规范。
+> 本文档为**顶层治理文档**，定义 Agent First 的研发规范。
 >
 > **langchain4android** 是面向 Android 的 AI Agent 基础库（Java），Demo 工程 **PoLang（破浪相册）** 验证其在真实场景中的可行性。
 
@@ -111,120 +113,47 @@ Logger.log(AgentCommandParsedEvent(...))
 
 ---
 
-## 3. Agent 角色与协作流程
+## 3. 工具与自动化
 
-PoLang 采用**角色化协作模型**：每个 Agent 角色有明确的职责边界、输入输出契约。
+基础设施原子化为 **Tools**，供 AI 编排调用，并通过脚本形成闭环验证。
 
-### 3.1 角色定义
+### 3.1 Tools 层
 
-| 角色 | 标识 | 核心职责 | 关键能力 | 参考文档 | 激活方式 |
-|------|------|----------|----------|----------|----------|
-| **[CO]** 协调者 | `🤖CO` | 任务分级、状态板维护、流程推进 | 复杂度分析、状态板维护 | [`agents/co_agent.md`](agents/co_agent.md) | **所有请求默认激活** |
-| **[PM]** 产品经理 | `🤖PM` | 需求澄清、PRD 维护、验收标准 | 需求拆解、文档同步 | [`agents/pm_agent.md`](agents/pm_agent.md) | 由 CO 在需求类任务中激活 |
-| **[RD]** 全栈工程师 | `🤖RD` | 端到端实现、Self-Heal、Tools 编排 | 代码生成、Tools 编排 | [`agents/rd_agent.md`](agents/rd_agent.md) | 由 CO 在实现类任务中激活 |
-| **[CR]** 规范守护者 | `🤖CR` | 架构合规审查、代码质量裁决 | 红线检查、影响分析 | [`agents/review_agent.md`](agents/review_agent.md) | 由 CO 在 RD 完成后激活 |
-| **[QA]** 质量专家 | `🤖QA` | 边界测试、性能基线、端到端验收 | 场景设计、回归检测 | [`agents/qa_agent.md`](agents/qa_agent.md) | 由 CO 在 CR 通过后激活 |
-
-**设计原则**：
-- 每个角色有**明确的输入输出契约**
-- 每个角色有**可验证的交付标准**
-- 角色间通过 **CO 协调**传递信息，非直接沟通
-- **CO 是所有用户请求的唯一入口**
-
-### 3.2 协作流程（CO 驱动）
-
-```
-用户请求
-    ↓
-[CO] 分析任务类型 → 复杂度分级（L1/L2/L3）→ 创建状态板
-    ↓
-[PM] 需求对齐 → 输出可执行结论（AC）
-    ↓
-[RD] 原子化实现 → 代码 + 文档同步
-    ↓  调用 Tools 完成验证
-[RD] Self-Heal 闭环 → 编译 → 安装 → 测试 → 日志
-    ↓  [CO 检测到"编译通过"自动推进]
-[CR] 规范审查 → 架构合规、代码质量
-    ↓  [CO 检测到"审计通过"自动推进]
-[QA] 验收测试 → 边界、性能、体验
-    ↓  [CO 检测到"验收通过"自动推进]
-[CO] 汇总交付 → 更新状态板 → 报告闭环
-```
-
-**CO 推进规则**：
-- RD 报告编译通过 → CO **必须**立即启动 CR 审计
-- CR 报告无 Critical → CO **必须**立即启动 QA 验收
-- QA 报告无 P0 缺陷 → CO **必须**立即生成最终交付报告
-- **严禁**在 L1/L2 任务中间环节要求用户确认
-
-### 3.3 Tools 层
-
-基础设施原子化为 **Tools**，供 Agent 编排调用：
-
-| Tool | 功能 | 输入 | 输出 | 调用者 | 状态 |
-|------|------|------|------|--------|------|
-| `CompileTool` | 代码编译检查 | 源码变更 | 编译结果/错误日志 | RD | 🔄 脚本实现 (`./gradlew`) |
-| `InstallTool` | 安装到设备 | APK | 安装状态 | RD | 🔄 脚本实现 (`adb install`) |
-| `ScreenshotTool` | 自动截屏 | 设备连接 | 截图文件 | RD/QA | 🔄 脚本实现 (`adb screencap`) |
-| `LogAnalysisTool` | 结构化日志分析 | Logcat | 结构化事件 | RD | 📋 设计愿景 |
-| `DocSyncTool` | 文档同步检查 | Git diff | 需更新文档列表 | CR | 📋 设计愿景 |
-| `ScreenshotDiffTool` | UI 回归检测 | 截图对比 | Diff 报告 | QA | 🔄 脚本实现 (`screenshot-diff.py`) |
-| `PerfBaselineTool` | 性能基线对比 | 性能指标 | 对比报告 | QA | 📋 设计愿景 |
+| Tool | 功能 | 输入 | 输出 | 状态 |
+|------|------|------|------|------|
+| `CompileTool` | 代码编译检查 | 源码变更 | 编译结果/错误日志 | 🔄 脚本实现 (`./gradlew`) |
+| `InstallTool` | 安装到设备 | APK | 安装状态 | 🔄 脚本实现 (`adb install`) |
+| `ScreenshotTool` | 自动截屏 | 设备连接 | 截图文件 | 🔄 脚本实现 (`adb screencap`) |
+| `LogAnalysisTool` | 结构化日志分析 | Logcat | 结构化事件 | 📋 设计愿景 |
+| `DocSyncTool` | 文档同步检查 | Git diff | 需更新文档列表 | 📋 设计愿景 |
+| `ScreenshotDiffTool` | UI 回归检测 | 截图对比 | Diff 报告 | 🔄 脚本实现 (`screenshot-diff.py`) |
+| `PerfBaselineTool` | 性能基线对比 | 性能指标 | 对比报告 | 📋 设计愿景 |
 
 > **实现状态（2026-07）**：`CompileTool`、`InstallTool`、`ScreenshotTool` 已通过 Gradle 脚本和 adb 命令落地；`ScreenshotDiffTool` 已有 `scripts/screenshot-diff.py` 实现；`LogAnalysisTool`、`DocSyncTool`、`PerfBaselineTool` 仍为设计愿景，待 Phase 3 基础设施完善。
 
-**关键转变**：从「人类操作脚本」到「Agent 编排 Tools」。
+**关键转变**：从「人类操作脚本」到「AI 编排 Tools」。
 
-### 3.4 触发口令与执行模式
+### 3.2 自动化脚本
 
-| 口令 | 模式 | 自动化程度 | CO 行为 | 适用场景 |
-|------|------|-----------|--------|----------|
-| （无口令） | **默认模式** | L1 全自动 / L2 半自动 | 自动分析分级并启动对应流程 | 日常开发任务 |
-| `自动执行` | 全链路自动 | L1/L2 全自动 | 强制启动完整 CO→PM→RD→CR→QA 流程 | 明确的全链路需求 |
-| `保守执行` | 全链路可控 | 关键节点暂停 | 每阶段完成后暂停等待用户确认 | 高风险变更、不可逆操作 |
-| `仅分析` | 诊断模式 | 不执行 | CO 仅输出分析，不启动任何角色 | 需求澄清、方案比选 |
+| 脚本 | 用途 |
+|------|------|
+| `./scripts/ai-gate.sh` | 代码质量门禁 |
+| `./scripts/auto-dev-loop.sh` | 编译→安装→启动→截屏→日志 |
+| `./scripts/impact-analyzer.sh` | 变更影响分析 |
+| `./scripts/doc-sync-guardian.sh` | 文档同步检查 |
+| `./scripts/test-generator.py` | 基于 public 方法生成测试骨架 |
+| `./scripts/screenshot-diff.py` | UI 回归检测 |
 
-**默认模式分级行为**：
-- **L1 任务**（单文件修改、已知模式）：CO→RD→CR→QA，全自动推进，仅最终报告
-- **L2 任务**（跨多文件、新功能）：CO→PM→RD→CR→QA，半自动，关键节点简报
-- **L3 任务**（架构变更、无先例）：CO→PM→RD→CR→QA，手动，每阶段确认
+> **闭环验证习惯**：代码改动后走「编译 → 安装 → 测试 → 日志」闭环（`auto-dev-loop.sh`）；失败时基于日志定位根因再修，单任务自动重试最多 2 次，不盲目堆尝试。
 
-### 3.5 状态板管理（强制）
+**收益**：标准化工具消除人工操作的不确定性，AI 可编排完成复杂验证。
 
-CO 必须使用 `todo_write` 工具维护任务状态板，确保跨消息持久化。
+### 3.3 Token 优化
 
-**状态板模板**：
+- 推进消息简短，聚焦增量信息，不重复已知上下文。
+- 用 `TodoWrite` 追踪任务进度，替代长篇文字汇报。
 
-```markdown
-## 任务状态板：[任务简述]
-
-| 阶段 | 负责 | 状态 | 输出物 |
-|------|------|------|--------|
-| 需求分析 | [PM] | ⏸️/🔄/✅/❌ | 需求确认 |
-| 技术实现 | [RD] | ⏸️/🔄/✅/❌ | 代码 + 构建结果 |
-| 规范审计 | [CR] | ⏸️/🔄/✅/❌ | 审计报告 |
-| 质量验收 | [QA] | ⏸️/🔄/✅/❌ | 测试报告 |
-| 最终交付 | [CO] | ⏸️/🔄/✅/❌ | 汇总报告 |
-
-**当前阶段**：[角色]
-**任务分级**：[L1/L2/L3]
-**RD 自愈次数**：[0/1/2]
-**阻塞项**：[如有]
-```
-
-### 3.6 回流机制
-
-- CR 不通过 → CO 回流 RD，不通过计数 +1
-- QA 不通过 → CO 回流 RD，标记为 Bug
-- RD 自愈 2 次仍失败 → CO 上报用户，提供选项
-
-### 3.7 Token 节省
-
-- L1 任务阶段间推进消息 ≤ 3 行
-- 状态板替代长篇进度汇报
-- 各角色仅输出增量信息，不重复已知上下文
-
-### 3.8 工作区隔离（强制）
+### 3.4 工作区隔离（强制）
 
 - 任何代码改动任务开工前，**必须先建隔离工作区**：检测当前是否已在 worktree；不在则在 `.worktrees/` 下创建独立 worktree + 专用分支（遵循 `using-git-worktrees` skill），征得用户同意后动工
 - **禁止**在承载未提交改动或不相干特性分支的当前工作区直接改代码
@@ -233,69 +162,11 @@ CO 必须使用 `todo_write` 工具维护任务状态板，确保跨消息持久
 
 ---
 
-## 4. Self-Heal 与自动化工具链
-
-langchain4android 的核心创新是赋予 RD **闭环验证能力**——不仅能写代码，还能通过 Tools 自动验证正确性。
-
-### 4.1 自愈工作流
-
-```kotlin
-// RD Agent 的标准执行循环
-fun implementTask(task: CoTask) {
-    // 1. 理解需求（基于 CO 传递的 PM 结论）
-    val requirement = parsePmConclusion(task.pmOutput)
-    val spec = parseFeaturesMd(task.featureRef)
-
-    // 2. 分析上下文
-    analyzeCodebase(task.affectedModules)
-
-    // 3. 编码实现
-    writeCode(requirement, spec)
-
-    // 4. 闭环验证
-    var attempts = 0
-    while (attempts < MAX_RETRY) {
-        val result = execute("./scripts/auto-dev-loop.sh")
-        when {
-            result.success -> {
-                reportToCo("✅ 编译通过，变更摘要：...")
-                return
-            }
-            result.recoverable -> {
-                analyzeAndFix(result.errors)
-                attempts++
-                reportToCo("🔄 第${attempts}次自愈...")
-            }
-            else -> {
-                reportToCo("❌ 不可恢复错误：...")
-                return
-            }
-        }
-    }
-    reportToCo("❌ 自愈${MAX_RETRY}次仍失败...")
-}
-```
-
-### 4.2 自动化脚本
-
-| 脚本 | 用途 | 调用者 |
-|------|------|--------|
-| `./scripts/ai-gate.sh` | 代码质量门禁 | CI / RD |
-| `./scripts/auto-dev-loop.sh` | 编译→安装→启动→截屏→日志 | RD |
-| `./scripts/impact-analyzer.sh` | 变更影响分析 | CO |
-| `./scripts/doc-sync-guardian.sh` | 文档同步检查 | CR |
-| `./scripts/test-generator.py` | 基于 public 方法生成测试骨架 | RD |
-| `./scripts/screenshot-diff.py` | UI 回归检测 | QA |
-
-**收益**：标准化工具消除人工操作的不确定性，AI 可编排完成复杂验证。
-
----
-
-## 5. 文档体系（AI 可解析）
+## 4. 文档体系（AI 可解析）
 
 langchain4android 的文档设计为**机器可读、交叉引用完整**，AI 可直接解析为执行计划。
 
-### 5.1 文档层级
+### 4.1 文档层级
 
 ```
 PRODUCT.md (What: 目标与约束)
@@ -307,13 +178,12 @@ docs/01-PRODUCT/FEATURES.md (How: 交互与体验)
 代码实现
 ```
 
-### 5.2 任务标记规范 `[agent-task]`
+### 4.2 任务标记规范 `[agent-task]`
 
 AI 可直接解析 Spec 中的任务标记，生成执行计划：
 
 ```markdown
 ### 调节美颜参数 [agent-task:beauty-001]
-- **Assignee**: RD
 - **Scope**: `domain/agent/capability/ImageEditCapability.kt`
 - **Expected Change**:
   1. 实现 Capability 接口
@@ -327,7 +197,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 
 ---
 
-## 6. 全局红线（不可突破）
+## 5. 全局红线（不可突破）
 
 | 红线 | 定义 | 验证方式 |
 |------|------|----------|
@@ -335,34 +205,34 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **[PERF]** | 交互 < 100ms，快门 < 50ms | 性能测试、人工体感 |
 | **[I18N]** | 禁止硬编码，三语同步 | 资源文件检查 |
 | **[DOC-SYNC]** | 代码变更必须同步文档 | CI 文档检查 |
-| **[AGENT-FIRST]** | 新代码必须遵循 Agent First 原则 | CR 审查 |
+| **[AGENT-FIRST]** | 新代码必须遵循 Agent First 原则 | 代码审查 |
 
 ---
 
-## 7. 研究问题与度量
+## 6. 研究问题与度量
 
-### 7.1 待验证的假设
+### 6.1 待验证的假设
 
 1. **AI 可处理代码规模上限**：当前项目含 agent-core（Java）+ Demo 工程（Kotlin）共约 3 万行代码，上限是多少？
 2. **AI 重构能力**：AI 能否主导跨模块架构重构？
-3. **Self-Heal 成功率**：RD Agent 自动修复编译/运行时错误的成功率？
+3. **自动修复成功率**：AI 自动修复编译/运行时错误的成功率？
 4. **文档驱动开发的效率**：相比传统流程，AI 协作的效率提升？
 5. **Tools 扩展性**：新 Tools 能否被 Agent 自动发现和集成？
 
-### 7.2 度量指标
+### 6.2 度量指标
 
 | 指标 | 当前基线 | 目标 |
 |------|----------|------|
-| RD Self-Heal 成功率 | 待收集 | > 70% |
+| 自动修复成功率 | 待收集 | > 70% |
 | 文档→代码一致性 | 待评估 | > 95% |
 | AI 生成代码占比 | 待评估 | > 60% |
 | 人工介入频次 | 待评估 | < 20% |
 
-> **实现状态（2026-07）**：以上度量指标目前均为手动统计或待收集状态。自动化采集代码尚未落地（如 Self-Heal 成功率统计脚本、文档一致性 CI 检查工具等），是后续 Phase 3 的基础设施建设重点。
+> **实现状态（2026-07）**：以上度量指标目前均为手动统计或待收集状态。自动化采集代码尚未落地（如自动修复成功率统计脚本、文档一致性 CI 检查工具等），是后续 Phase 3 的基础设施建设重点。
 
 ---
 
-## 8. 文档索引
+## 7. 文档索引
 
 | 类型 | 文档 |
 |------|------|
@@ -371,7 +241,6 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **产品定义** | `PRODUCT.md` |
 | **交互规范** | `docs/01-PRODUCT/FEATURES.md` |
 | **★ AI 协作产物 SSOT** | `docs/superpowers/README.md`（Plans / Specs 唯一事实来源，四工具共同遵守） |
-| **AI 协作角色** | `agents/co_agent.md`, `agents/rd_agent.md`, `agents/pm_agent.md`, `agents/review_agent.md`, `agents/qa_agent.md` |
 | **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`runtime-core/`、`mnn-core/`、`sentencepiece/`、`server/` 等） |
 | **技术专项** | `docs/03-TECHNICAL-SPECS/*.md` |
 | **端侧推理全景** | `docs/03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`（端侧推理盘点：文本 LLM 已移除，余 VLM 打标/人脸检测/翻译等；含优化评估与多模型生命周期改造清单） |
@@ -405,16 +274,16 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 
 ---
 
-## 9. 交付审计清单
+## 8. 交付审计清单
 
 - [ ] 代码遵循 Agent First 原则（显式、枚举、自描述、结构化）
 - [ ] PRODUCT.md 已更新或保持一致
 - [ ] FEATURES.md 已更新或保持一致
 - [ ] 模块 AGENTS.md 已更新实现细节
 - [ ] 满足 [PRIVACY]、[PERF]、[I18N] 红线
-- [ ] Self-Heal 闭环验证通过
-- [ ] CR 架构合规审查通过
-- [ ] QA 核心验收通过
+- [ ] 闭环验证（编译/安装/测试）通过
+- [ ] 架构合规审查通过
+- [ ] 核心验收测试通过
 
 ---
 
@@ -426,7 +295,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | 批量读取 | `Read` | 多文件并行分析 |
 | 编译验证 | `Bash` | `./gradlew assembleDebug` |
 | 设备操作 | `Bash` | `adb install/logcat` |
-| 任务追踪 | `TodoWrite` | **状态板维护（强制）** |
+| 任务追踪 | `TodoWrite` | 任务进度维护 |
 | 知识存储 | `Skill` | 关键决策记录 |
 
 ## 附录 B：快速参考
@@ -442,15 +311,7 @@ FEATURES.md (How)
 代码
 ```
 
-### 角色流转
-```
-用户 → CO → PM → RD → CR → QA → CO → 用户
-         ↑              ↓______↓
-         └────────────── 回流机制
-```
-
 ### 关键指标
-- RD Self-Heal 成功率：目标 > 70%
+- 自动修复成功率：目标 > 70%
 - 文档同步率：目标 > 95%
 - 人工介入率：目标 < 20%
-- 阶段遗漏率：目标 = 0%

@@ -14,7 +14,7 @@
 | **Qoder** | `.qoder/skills/` + `.qoder/agents/` | 项目级 | Skills 唯一事实来源（OpenCode / Kimi 共享） |
 | **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发；`.kimi/skills` 为 `.qoder/skills` 符号链接 |
 | **AndroidStudio Qwen 插件** | `AGENTS.md`（根目录） | 项目级 | IDE 内置助手，读取根 AGENTS.md 治理 |
-| **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、角色职责、全局红线 |
+| **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、架构原则、全局红线 |
 
 ---
 
@@ -141,20 +141,6 @@ docs/superpowers/
 | `onnx-model-integration` | ONNX 模型接入 Checklist |
 | `perf-optimizer` | 性能分析与优化策略 |
 | `rd-reflection` | RD 复盘模板 |
-
----
-
-## 角色定义文件
-
-| 角色 | 文件 | 说明 |
-|------|------|------|
-| [CO] 协调者 | `agents/co_agent.md` | 任务路由、状态管理、冲突仲裁 |
-| [PM] 产品经理 | `agents/pm_agent.md` | 需求定义、UX 愿景、I18N 治理 |
-| [RD] 全栈工程师 | `agents/rd_agent.md` | 技术实现、自愈修复、性能优化 |
-| [CR] 规范审计 | `agents/review_agent.md` | 代码质量、架构合规、安全巡检 |
-| [QA] 质量专家 | `agents/qa_agent.md` | 测试策略、边界测试、性能验收 |
-
-> **快速参考**：`AGENTS.md`
 
 ---
 
