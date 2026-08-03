@@ -128,7 +128,9 @@ fun GalleryScreen(
     searchRequest: Pair<String, Long>? = null,
     onSearchRequestConsumed: () -> Unit = {},
     /** 上报是否允许外层主页面 Pager 横滑（详情/多选时禁用） */
-    onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {}
+    onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {},
+    /** 是否为当前激活的主页面 page（非激活时禁用内部 BackHandler，避免跨页抢占系统返回键） */
+    isActivePage: Boolean = true
 ) {
     val groupedMedia by viewModel.groupedMedia.collectAsState()
     val groupingMode by viewModel.groupingMode.collectAsState()
@@ -187,33 +189,25 @@ fun GalleryScreen(
     val context = LocalContext.current
     val app = context.applicationContext as PoLangApplication
 
-    // 从人物页带入 personId：优先按名字搜索（与相册搜索一致），无名字时按人脸聚类过滤
+    // 从人物页带入 personId：与人物页外显张数共用同一口径（PersonDao.getPersonMediaIds：
+    // 人脸聚类 ∪ 三字段标签提及），保证两处数字一致。人名是精确约束，不走搜索引擎——
+    // 语义/OCR 泛化召回会混入外显口径之外的照片，导致两处张数对不上。
     suspend fun applyPersonFilter(personId: Long) {
+        val db = AppDatabase.getDatabase(context)
         val person = withContext(Dispatchers.IO) {
-            AppDatabase.getDatabase(context).personDao().getPerson(personId)
+            db.personDao().getPerson(personId)
         }
         val label = person?.name?.takeIf { it.isNotBlank() } ?: "#$personId"
-        val hasName = person?.name?.isNotBlank() == true
 
-        val faceMedia = withContext(Dispatchers.IO) {
-            AppDatabase.getDatabase(context).personDao()
-                .getMediaByPerson(personId)
-                .map { entity -> entity.toMediaAsset() }
-        }
-
-        val finalMedia = if (hasName) {
-            val engine = searchEngine
-            val searchMedia = engine?.search(label)?.media.orEmpty()
-            if (searchMedia.isNotEmpty()) {
-                // 合并人脸聚类与名字搜索结果，避免任一侧遗漏
-                (faceMedia + searchMedia)
-                    .distinctBy { it.id }
-                    .sortedByDescending { it.captureDate }
+        val finalMedia = withContext(Dispatchers.IO) {
+            val mediaIds = db.personDao().getPersonMediaIds(personId, person?.name.orEmpty())
+            if (mediaIds.isEmpty()) {
+                emptyList()
             } else {
-                faceMedia.sortedByDescending { it.captureDate }
+                db.mediaDao().getMediaByIds(mediaIds)
+                    .map { entity -> entity.toMediaAsset() }
+                    .sortedByDescending { it.captureDate }
             }
-        } else {
-            faceMedia.sortedByDescending { it.captureDate }
         }
 
         if (finalMedia.isNotEmpty()) {
@@ -550,7 +544,7 @@ fun GalleryScreen(
         }
     }
 
-    BackHandler(enabled = selectedMediaIndex != null || isSelectionMode) {
+    BackHandler(enabled = isActivePage && (selectedMediaIndex != null || isSelectionMode)) {
         when {
             selectedMediaIndex != null -> selectedMediaIndex = null
             isSelectionMode -> {

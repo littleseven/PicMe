@@ -78,16 +78,17 @@ class PersonViewModel(
             }
             val photoCountMap = withContext(Dispatchers.IO) {
                 val distinctCounts = db.personDao().getDistinctMediaCounts().associate { it.personId to it.count }
-                // 命名人物补充「标签提及」计数：轻量 SQL 统计，不走搜索引擎。
+                // 命名人物改用「聚类 ∪ 标签提及」并集计数，与点开后的详情列表
+                // （GalleryScreen.applyPersonFilter）共用同一口径（PersonDao.getPersonMediaIds），
+                // 保证外显张数与详情张数一致。纯 SQL 轻量统计，不走搜索引擎：
                 // 旧实现对每个命名人物并发全量 search()，会并行拖入 MobileCLIP/OPUS-MT
                 // 初始化与全库候选加载，在 256MB 堆上引发 OOM 与主线程卡顿（2026-08-01 事故）。
                 val namedPersons = all.filter { !it.name.isNullOrBlank() }
                 distinctCounts.toMutableMap().apply {
                     namedPersons.forEach { person ->
-                        val mentionCount = db.mediaDao().countMediaByLabelMention(person.name!!)
-                        if (mentionCount > 0) {
-                            this[person.personId] = maxOf(this[person.personId] ?: 0, mentionCount)
-                        }
+                        this[person.personId] = db.personDao()
+                            .getPersonMediaIds(person.personId, person.name!!)
+                            .size
                     }
                 }
             }

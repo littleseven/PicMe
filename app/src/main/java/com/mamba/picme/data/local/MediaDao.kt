@@ -36,14 +36,6 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE labels LIKE '%' || :label || '%' ORDER BY captureDate DESC")
     suspend fun searchByLabel(label: String): List<MediaEntity>
 
-    /** 统计三字段标签中提及指定关键词的媒体数量（人物页计数徽章用，轻量，不加载实体） */
-    @Query(
-        "SELECT COUNT(*) FROM media_assets WHERE labels LIKE '%' || :keyword || '%' " +
-            "OR labelsEn LIKE '%' || :keyword || '%' " +
-            "OR labelsZh LIKE '%' || :keyword || '%'"
-    )
-    suspend fun countMediaByLabelMention(keyword: String): Int
-
     /** 按标签搜索（labels/labelsEn/labelsZh 三字段 OR：中英文直查 + 覆盖新老数据） */
     @Query(
         "SELECT * FROM media_assets WHERE labels LIKE '%' || :keyword || '%' " +

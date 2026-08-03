@@ -251,7 +251,7 @@ interface PersonDao {
         reconcileDanglingFaceIds()
     }
 
-    /** 按人物统计包含 TA 的照片数（去重 mediaId），用于人物页外显张数与相册张数对齐。 */
+    /** 按人物统计包含 TA 的照片数（去重 mediaId），用于未命名人物的外显张数。 */
     @Query(
         """
         SELECT personId, COUNT(DISTINCT mediaId) AS count FROM face_embeddings
@@ -260,6 +260,29 @@ interface PersonDao {
         """
     )
     suspend fun getDistinctMediaCounts(): List<PersonMediaCount>
+
+    /**
+     * 人物关联媒体 ID 全集：人脸聚类媒体 ∪ 三字段标签提及媒体（[name] 非空时才生效）。
+     *
+     * 人物页外显张数与点开后的详情列表（GalleryScreen.applyPersonFilter）共用这一口径，
+     * 保证两处数字一致。人名是精确约束，不走搜索引擎：语义/OCR 泛化召回会混入本口径之外
+     * 的照片，且对每个命名人物跑全量 search() 会并行拖入 MobileCLIP/OPUS-MT 初始化，
+     * 在 256MB 堆上引发 OOM（2026-08-01 事故）。
+     *
+     * @param name 人物名；空串时标签提及分支自动失效，仅返回聚类媒体（未命名人物口径不变）
+     */
+    @Query(
+        """
+        SELECT DISTINCT mediaId FROM face_embeddings WHERE personId = :personId
+        UNION
+        SELECT id FROM media_assets WHERE :name != '' AND (
+            labels LIKE '%' || :name || '%'
+            OR labelsEn LIKE '%' || :name || '%'
+            OR labelsZh LIKE '%' || :name || '%'
+        )
+        """
+    )
+    suspend fun getPersonMediaIds(personId: Long, name: String): List<Long>
 }
 
 /** 人物 → 去重照片数（与 faceCount 不同，faceCount 是人脸 embedding 数）。 */
