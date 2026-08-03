@@ -4,7 +4,7 @@ description: |
   PoLang 性能优化专家。诊断内存泄漏、卡顿、帧率下降，提供 Profiler 使用指南与性能基线对比。
 version: 1.0.0
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - performance
@@ -97,11 +97,11 @@ grep -i "timeout\|slow\|jank\|dropped" scripts/auto_test_output/*/logcat_picme.t
 
 ## 性能基线对比
 
-使用 `skills/image-quality-checker/scripts/perf-baseline.sh` 自动提取：
+使用 `./scripts/perf-baseline.sh` 自动提取：
 
 ```bash
 # 运行性能基线测试
-skills/image-quality-checker/scripts/perf-baseline.sh
+./scripts/perf-baseline.sh
 
 # 输出示例
 FPS: 58.2 (目标: ≥ 55) ✅
@@ -114,7 +114,6 @@ MemoryPeak: 186MB (基线: 180MB) ⚠️
 - [docs/01-PRODUCT/FEATURES.md](docs/01-PRODUCT/FEATURES.md) — 性能指标定义
 - [av-gl-expert](/av-gl-expert) — GPU/Shader 性能诊断
 - [compose-ui-expert](/compose-ui-expert) — Compose 重组性能优化
-- [qa-acceptance](/qa-acceptance) — 性能验收标准
 - [error-healer](/error-healer) — 编译错误修复
 
 ## 版本历史

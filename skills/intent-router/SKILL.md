@@ -4,7 +4,7 @@ description: |
   PoLang 项目意图路由与需求解析 Skill。将用户的自然语言需求转化为 AI 可执行的技术任务。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [PM] 产品经理 + [CO] 协调者
 tags:
   - requirement
@@ -67,6 +67,7 @@ tags:
 | 人脸检测 | Face Detection | `FaceDetector / FaceData` | beauty-engine |
 | 106 点 | 人脸关键点 (106 landmarks) | `landmarks106` | beauty-engine |
 | MediaPipe | MediaPipe Face Mesh | `MediaPipe468Adapter` | beauty-engine |
+| MNN | MNN 2D106 | `MnnFaceDetector` / `FaceLandmarkAdapter` | beauty-engine |
 
 ### 相机相关
 
@@ -124,14 +125,14 @@ tags:
 |----------|----------|----------|----------|
 | 语音控制 | 语音命令 / Voice Command | `VoiceCommandCoordinator` | camera (app) |
 | 智能助手 | AI Agent / Agent Panel | `GlobalAgentPanel / AiAgentPanel` | app |
-| 拍张照 | 拍照指令 / Capture | `CameraCapability.CapturePhoto` | domain/agent |
-| 换滤镜 | 切换滤镜 / SwitchFilter | `CameraCapability.SwitchFilter` | domain/agent |
-| 美颜参数 | 美颜调整 / AdjustBeauty | `BeautyCapability.AdjustBeauty` | domain/agent |
-| 场景模式 | 场景切换 / SwitchScene | `CameraCapability.SwitchScene` | domain/agent |
+| 拍张照 | 拍照指令 / Capture | `AiAgentCommand.CapturePhoto` | domain/agent |
+| 换滤镜 | 切换滤镜 / SwitchFilter | `AiAgentCommand.SwitchFilter` | domain/agent |
+| 美颜参数 | 美颜调整 / AdjustBeauty | `AiAgentCommand.AdjustBeauty` | domain/agent |
+| 场景模式 | 场景切换 / SwitchScene | `AiAgentCommand.SwitchScene` | domain/agent |
 | 语音唤醒 | 唤醒词 / Wake Word | `WakeWordEngine` | camera (app) |
-| 推理模式 | 推理模式 / Inference Mode | `AgentOrchestrator` (LOCAL/REMOTE) | agent-core |
-| 本地模型 | 端侧 LLM / On-device LLM | `LocalLlmEngine / MnnLlmClient` | agent-core |
-| 远程模型 | 远程 LLM / Remote LLM | `RemoteOrchestrator / UnifiedRemoteClient` | agent-core |
+| 推理模式 | 推理模式 / Inference Mode | `AgentOrchestrator` (LOCAL/REMOTE) | runtime-core |
+| 本地模型 | 端侧 LLM / On-device LLM | `LocalLlmEngine / MnnLlmClient` | runtime-core |
+| 远程模型 | 远程 LLM / Remote LLM | `RemoteChatEngine / RemoteReActAgent` | runtime-core |
 | Capability | 能力接口 | `Capability` | domain/agent |
 
 ### 全局红线术语
@@ -149,6 +150,7 @@ tags:
 
 [Feature] + camera:
   - app/src/main/java/com/mamba/picme/features/camera/AGENTS.md
+  - docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md（相机预览内容已并入）
   - docs/01-PRODUCT/FEATURES.md (Section 2.1)
   - app/src/main/java/com/mamba/picme/features/camera/*.kt (最新修改的 3 个文件)
 
@@ -164,7 +166,7 @@ tags:
 
 [Feature] + agent:
   - docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md
-  - app/src/main/java/com/mamba/picme/domain/agent/AGENTS.md
+  - app/src/main/java/com/mamba/picme/domain/agent/capability/AGENTS.md
   - docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md
   - app/src/main/java/com/mamba/picme/domain/agent/**/*.kt
 

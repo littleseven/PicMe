@@ -3,6 +3,7 @@ name: ui-driver
 description: Use when automating PoLang UI interactions through structured accessibility data, replacing screenshot-based image recognition with precise text, contentDescription, or bounds-driven actions
 ---
 
+
 # UI Driver
 
 ## Overview
@@ -30,19 +31,11 @@ Drive PoLang UI automation through structured accessibility node data instead of
 
 ## Recommended Approaches (in order)
 
-### 1. PoLang JSON Commands（首选，功能触发）
+### 1. Accessibility UI Driver（首选）
 
-For PoLang-specific actions like capture, switch camera, navigate, use [agent-test](/agent-test):
+Use `scripts/ui_driver.py` to inspect or interact with the live UI.
 
-```bash
-adb shell "am broadcast -n com.mamba.picme/.testing.agent.bridge.AgentTestBroadcastReceiver -a com.mamba.picme.AGENT_TEST --es json '{\"method\":\"capture\",\"params\":{}}'"
-```
-
-### 2. Accessibility UI Driver（运行时混合页面首选）
-
-Use `scripts/ui_driver.py` when you need to inspect or interact with the live UI after JSON commands have driven the app to a target state.
-
-### 3. Compose UI Test（Compose-only 页面）
+### 2. Compose UI Test（Compose-only 页面）
 
 ```kotlin
 composeTestRule.onNodeWithTag("exposure_slider")
@@ -51,14 +44,14 @@ composeTestRule.onNodeWithContentDescription("切换摄像头")
     .performClick()
 ```
 
-### 4. uiautomator dump（无 AccessibilityService 时备用）
+### 3. uiautomator dump（无 AccessibilityService 时备用）
 
 ```bash
 adb shell uiautomator dump /sdcard/window_dump.xml
 adb pull /sdcard/window_dump.xml
 ```
 
-### 5. Espresso（传统 View 页面）
+### 4. Espresso（传统 View 页面）
 
 ```kotlin
 onView(withId(R.id.shutter_button)).perform(click())
@@ -180,7 +173,6 @@ Expected output: `✅ Integration test passed: search mode entered`
 
 ## Related Skills
 
-- [agent-test](/agent-test) — Agent Test
 - [adb-bot](/adb-bot) — ADB Bot
 - [dev-loop](/dev-loop) — Dev Loop
 

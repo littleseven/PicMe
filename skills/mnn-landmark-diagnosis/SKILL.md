@@ -4,7 +4,7 @@ description: |
   诊断和修复 MNN 推理引擎在人脸关键点检测中的对齐问题。
 version: 1.2.0
 created: 2026-05-03
-updated: 2026-08-01
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - mnn
@@ -20,13 +20,12 @@ tags:
 > **定位**：诊断和修复 MNN 推理引擎在人脸关键点检测中的对齐问题。
 > **触发时机**：用户报告人脸关键点偏移、对齐错误或 MNN 推理结果异常时自动启用。
 
-> **历史说明**：项目早期的 ONNX InsightFace 2D106 检测路径已于 2026-07-05 完全移除，MNN 成为唯一的 landmark 推理后端。本 Skill 原有的"MNN vs ONNX 对比"工作流不再适用，已改为 MNN-only 诊断。
-
 
 ## 触发条件
 
 当以下情况出现时自动应用本 Skill：
 - MNN 路径关键点抖动、漂移或位置错误
+- MediaPipe 稳定但 MNN 输出不一致
 - 新推理引擎接入时的对齐验证
 - `copyFromHostTensor` / `copyToHostTensor` 相关数据异常
 - 提到 NCHW/NHWC、DimensionType、CAFFE/TENSORFLOW 布局问题
@@ -38,9 +37,9 @@ tags:
 ### Phase 1: 环境确认
 
 ```markdown
-- [ ] 确认 MNN 检测器已初始化（MnnLandmarkDetector）
-- [ ] 确认 INPUT_SIZE = 192
-- [ ] 确认模型文件存在且非空（.mnn）
+- [ ] 确认 MNN 和 MediaPipe 检测器均已初始化
+- [ ] 确认 INPUT_SIZE 一致（MNN vs MediaPipe）
+- [ ] 确认模型文件存在且非空（.mnn / .tflite）
 - [ ] 确认 GPU/CPU 模式配置正确
 ```
 
@@ -49,12 +48,12 @@ tags:
 ```
 Layer 1: 输入预处理层  → C++ detect() 方法
 Layer 2: 输出读取层    → copyToHostTensor 维度类型
-Layer 3: 坐标变换层    → Kotlin prepareInputBitmap
+Layer 3: 坐标变换层    → Kotlin prepareInputBitmap / buildLooseFaceCrop
 Layer 4: 坐标解析层    → parseLandmarks ([-1,1] → 像素 → 归一化)
 Layer 5: 点序映射层    → FULL_REMAP 映射表
 ```
 
-**诊断顺序**：自上而下建立基线 → 自下而上逐层定位
+**诊断顺序**：自上而下建立对比测试 → 自下而上逐层定位
 
 ---
 
@@ -111,10 +110,12 @@ output->copyToHostTensor(&tmpOutput);
 
 ### Layer 3: 坐标变换排查
 
-**关键检查点**：
-- `prepareInputBitmap` 的 crop 方式与 transformMatrix 是否与模型训练预处理一致
-- `transformMatrix`: `inputScale, 0, INPUT_SIZE/2 - centerX*inputScale`
-- `inverseMatrix`: `transformMatrix.invert()`
+**对比维度**：
+| 项目 | ONNX | MNN |
+|------|------|-----|
+| crop 方式 | `buildLooseFaceCrop` | `prepareInputBitmap` |
+| transformMatrix | `inputScale, 0, INPUT_SIZE/2 - centerX*inputScale` | 应完全一致 |
+| inverseMatrix | `transformMatrix.invert()` | 应完全一致 |
 
 ### Layer 4: 坐标解析排查
 
@@ -131,7 +132,7 @@ val normalizedX = mappedPoint[0] / bitmapWidth
 
 ### Layer 5: 点序映射排查
 
-**验证方法**：确认 `FULL_REMAP` 映射表与当前使用的 MNN 模型输出点序一致。
+**验证方法**：确认 `FULL_REMAP` 映射表与 ONNX 版本一致。
 
 ---
 
@@ -184,12 +185,12 @@ float normMean = hasBuiltInNormalization_ ? 0.0f : 127.5f;
 float normStd = hasBuiltInNormalization_ ? 1.0f : 128.0f;
 ```
 
-### 修复 3: INPUT_SIZE 确认
+### 修复 3: INPUT_SIZE 对齐
 
 ```kotlin
 // MnnLandmarkDetector.kt
 companion object {
-    private const val INPUT_SIZE = 192
+    private const val INPUT_SIZE = 192  // 与 MNN 2D106 检测器（MnnLandmarkDetector）保持一致
 }
 ```
 
@@ -220,29 +221,30 @@ init {
 adb install -r app/build/outputs/apk/debug/polang-debug.apk
 ```
 
-### Step 2: 启动 MNN 诊断日志
+### Step 2: 启动对比测试
 
-在 `FaceDetectorManager` 或 `MnnLandmarkDetector` 中启用诊断日志（输出 landmark 坐标与置信度），收集日志：
+> 注：ONNX（InsightFace 2D106）检测器已从 app 移除，仓库不再内置 MNN↔ONNX 并行对比埋点。若需以原始 ONNX 模型作外部基准校验 MNN 输出，需在 `MnnLandmarkDetector` / `FaceDetectorManager` 中**临时**加回并行推理与日志（自定义 tag，如 `MNN vs ONNX`），再按下方流程收集：
 
 ```bash
 adb logcat -c
 adb shell am start -n com.mamba.picme/.MainActivity
 sleep 15
-adb logcat -d | grep "Diag"
+adb logcat -d | grep "MNN vs ONNX"   # 仅当已临时加回对比埋点时才有输出
 ```
 
 ### Step 3: 验收标准
 
 | 指标 | 通过标准 |
 |------|----------|
-| 帧间稳定性 | 连续 10 帧标准差 < 0.01（归一化坐标） |
-| 像素抖动 | < 3px (@192x192) |
-| 检测耗时 | 单帧 < 30ms（GPU）/ < 80ms（CPU） |
+| 平均差异 | < 0.01 (归一化坐标) |
+| 最大差异 | < 0.05 (归一化坐标) |
+| 像素误差 | < 3px (@192x192) |
+| 帧间稳定性 | 连续 10 帧标准差 < 0.01 |
 
 ### Step 4: Dev Loop 集成
 
 ```bash
-scripts/auto-dev-loop.sh
+./scripts/auto-dev-loop.sh
 ```
 
 检查输出报告中的：
@@ -278,9 +280,10 @@ scripts/auto-dev-loop.sh
 
 - 详细技术文档: [docs/03-TECHNICAL-SPECS/MNN_LANDMARK_DIAGNOSIS.md](docs/03-TECHNICAL-SPECS/MNN_LANDMARK_DIAGNOSIS.md)
 
+## 相关文件
+
 ## 版本历史
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 1.1.0 | 2026-05-03 | 初始版本（含 MNN vs ONNX 对比工作流） |
-| 1.2.0 | 2026-08-01 | 移除 ONNX 对比工作流（InsightFace 2D106 已删除），改为 MNN-only 诊断 |
+| 1.1.0 | 2026-05-03 | 初始版本 |

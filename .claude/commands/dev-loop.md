@@ -199,7 +199,7 @@ fi
 - `scripts/ai-gate.sh` — 代码级质量门禁
 - `/android-build-debug` — 编译调试参考
 - `/adb-bot` — adb 命令参考
-- `/agent-test` — JSON 驱动测试方法（主要测试方法）
+- `/ui-driver` — 结构化 UI 自动化（主要测试方法）
 - `/image-quality-checker` — 图片质量分析
 - `/compose-ui-expert` — UI 验证参考
 - `/perf-optimizer` — 性能基线对比

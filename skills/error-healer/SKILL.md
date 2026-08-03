@@ -4,7 +4,7 @@ description: |
   PoLang 编译错误自动分类与修复策略。将 Kotlin/Gradle 编译错误映射到标准化修复方案。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - kotlin
@@ -174,7 +174,7 @@ import com.mamba.picme.beauty.internal.*          // 错误（app 模块不应�
 | Shader 编译失败 | `GL compile error\|Shader.*failed` | 检查 GLSL 语法、varying/uniform 一致性、精度修饰符 | 50% |
 | EGL 上下文错误 | `EGL.*error\|eglMakeCurrent failed` | 检查 EGL 配置、上下文共享、线程绑定 | 40% |
 | 纹理加载失败 | `glTexImage2D.*error\|texture.*failed` | 检查 Bitmap 格式、尺寸限制、内存 | 55% |
-| 人脸检测初始化 | `FaceDetector.*init\|ONNX.*error` | 检查模型文件存在性、设备 NNAPI 支持 | 50% |
+| 人脸检测初始化 | `FaceDetector.*init\|MNN.*error` | 检查模型文件存在性、设备 NNAPI 支持 | 50% |
 | I18N 缺失 | `strings.xml mismatch`（自定义检查）| 同步三个 strings.xml 文件 | 90% |
 
 ## 自愈策略决策树

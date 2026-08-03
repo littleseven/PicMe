@@ -32,7 +32,6 @@ def determine_module(file_path: str) -> str | None:
         "features/editor": "Editor",
         "features/settings": "Settings",
         "beauty-engine": "BeautyEngine",
-        "gpupixel": "GPUPixel",
         "data": "Data",
         "core": "Core",
     }

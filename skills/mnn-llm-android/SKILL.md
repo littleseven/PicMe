@@ -4,7 +4,7 @@ description: |
   MNN-LLM Android 端侧大模型推理专家。涵盖模型下载、加载、JNI 桥接、推理调用、ChatMessages 兼容性、Qwen 模型特殊处理等。Use when working with MNN-LLM local inference, Qwen models, empty response debugging, or model loading failures on Android.
 version: 1.0.0
 created: 2026-05-26
-updated: 2026-05-26
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - mnn
@@ -88,7 +88,7 @@ void Llm::response(const std::string& user_content, std::ostream* os,
 ### 1. 模型文件结构
 
 ```
-filesDir/llm_models/qwen3_5_2b/
+filesDir/llm_models/qwen3-0-6b/
 ├── config.json          # 模型配置（必须）
 ├── llm.mnn             # 模型结构（必须）
 ├── llm.mnn.weight      # 模型权重（必须）
@@ -152,14 +152,14 @@ if (!loaded) {
 ### Step 1: 确认模型文件完整性
 
 ```bash
-adb shell run-as com.mamba.picme ls -la files/llm_models/qwen3_5_2b/
+adb shell run-as com.mamba.picme ls -la files/llm_models/qwen3-0-6b/
 # 检查文件大小，config.json 应 > 1KB，llm.mnn 应 > 100MB
 ```
 
 ### Step 2: 检查 config.json 关键配置
 
 ```bash
-adb shell run-as com.mamba.picme cat files/llm_models/qwen3_5_2b/config.json
+adb shell run-as com.mamba.picme cat files/llm_models/qwen3-0-6b/config.json
 ```
 
 关键字段：
@@ -256,7 +256,7 @@ val prompt = buildString {
 
 - [MNN GitHub](https://github.com/alibaba/MNN)
 - [MNN-LLM 官方 Android Demo](https://github.com/alibaba/MNN/tree/master/apps/Android/MnnLlmChat)
-- `runtime-core/src/main/cpp/llm_jni_bridge.cpp` — 项目 JNI 桥接实现
+- `beauty-engine/src/main/cpp/llm_jni_bridge.cpp` — 项目 JNI 桥接实现
 - `beauty-engine/libs/mnn/include/MNN/llm/llm.hpp` — MNN-LLM 头文件
 
 ---

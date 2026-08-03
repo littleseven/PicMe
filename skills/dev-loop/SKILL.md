@@ -3,7 +3,7 @@ name: dev-loop
 description: Use when running the full PoLang development self-heal loop from code check through install, device verification, and report generation
 version: 2.2.0
 created: 2026-05-03
-updated: 2026-07-02
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - android
@@ -16,7 +16,7 @@ tags:
 
 # Dev Loop
 
-> **定位**：Dev Loop自动化，一键完成编译到报告完整闭环。
+> **定位**：PoLang 开发自循环自动化，一键完成编译到报告完整闭环。
 > **触发时机**：用户需要快速验证改动、执行完整开发闭环或 CI 检查时自动启用。
 
 
@@ -26,7 +26,7 @@ tags:
 
 ```
 修改前: 代码修改 → ./gradlew assembleDebug → [人工] adb install → [人工] 打开应用 → [人工] 验证
-修改后: 代码修改 → scripts/auto-dev-loop.sh → 全自动闭环（含报告）
+修改后: 代码修改 → ./scripts/auto-dev-loop.sh → 全自动闭环（含报告）
 ```
 
 ## 快速开始
@@ -37,46 +37,40 @@ tags:
 
 ```bash
 # 在项目根目录执行
-scripts/auto-dev-loop.sh
+./scripts/auto-dev-loop.sh
 ```
 
 自动完成：
 1. **代码检查** — ktlint + detekt + JVM unit tests
 2. **编译** — `./gradlew :app:assembleDebug`
 3. **安装** — 自动 `adb install -r`
-4. **设备验证** — 启动应用 + 执行 JSON 命令（通过 AgentTestBroadcastReceiver）+ accessibility UI dump 验证状态 + 收集日志
-5. **报告生成** — Markdown 格式报告 + 所有日志/dump 归档
+4. **设备验证** — 启动应用 + 截屏 + 执行 JSON 命令（通过 AgentTestBroadcastReceiver）+ 收集日志
+5. **报告生成** — Markdown 格式报告 + 所有日志/截图归档
 
-### 快速模式（编译+安装+UI dump）
-
-```bash
-scripts/auto-dev-loop.sh --quick
-```
-
-### 极速模式（跳过 lint/单元测试/instrumented test）
+### 快速模式（仅编译+安装+启动）
 
 ```bash
-scripts/auto-dev-loop.sh --fast
+./scripts/auto-dev-loop.sh --quick
 ```
 
 ### 纯代码检查（无设备）
 
 ```bash
-scripts/auto-dev-loop.sh --no-install
+./scripts/auto-dev-loop.sh --no-install
 ```
 
-### 带 Instrumented Tests
+### 带拍照质量分析
 
 ```bash
-scripts/auto-dev-loop.sh --instrumented
+./scripts/auto-dev-loop.sh --capture
 ```
 
 ### 回归测试（P0 用例）
 
 ```bash
-scripts/regression-test.sh           # 全部 P0 用例
-scripts/regression-test.sh --camera  # 仅相机模块
-scripts/regression-test.sh --beauty  # 仅美颜模块
+./scripts/regression-test.sh           # 全部 P0 用例
+./scripts/regression-test.sh --camera  # 仅相机模块
+./scripts/regression-test.sh --beauty  # 仅美颜模块
 ```
 
 ## 工作流集成
@@ -86,7 +80,7 @@ scripts/regression-test.sh --beauty  # 仅美颜模块
 **场景1: 代码修改后的标准验证**
 ```
 1. RD 完成代码修改
-2. 执行: scripts/auto-dev-loop.sh
+2. 执行: ./scripts/auto-dev-loop.sh
 3. 读取报告: scripts/auto_test_output/<timestamp>/report.md
 4. 如果有失败 → 自动修复 → 重新执行
 5. 如果全部通过 → 进入 CR/QA 环节
@@ -95,15 +89,15 @@ scripts/regression-test.sh --beauty  # 仅美颜模块
 **场景2: 修复 Bug 后的定向回归**
 ```
 1. 修复美颜相关 Bug
-2. 执行: scripts/regression-test.sh --beauty
+2. 执行: ./scripts/regression-test.sh --beauty
 3. 验证美颜滑杆、滤镜切换是否正常
 ```
 
 **场景3: PR 提交前的完整验证**
 ```
-1. 执行: skills/image-quality-checker/scripts/ai-gate.sh（代码级检查）
-2. 执行: scripts/auto-dev-loop.sh（设备级验证）
-3. 执行: scripts/regression-test.sh（端到端回归）
+1. 执行: ./scripts/ai-gate.sh（代码级检查）
+2. 执行: ./scripts/auto-dev-loop.sh（设备级验证）
+3. 执行: ./scripts/regression-test.sh（端到端回归）
 4. 全部通过 → 提交代码
 ```
 
@@ -118,8 +112,8 @@ scripts/auto_test_output/
     ├── unit_test.log                   # 单元测试日志
     ├── build.log                       # 编译日志
     ├── install.log                     # 安装日志
-    ├── ui_dump_startup.txt             # 启动后 accessibility UI dump（结构化文本）
-    ├── ui_dump_startup.err             # UI dump 错误日志（如有）
+    ├── screen_startup.png              # 启动截屏
+    ├── screen_after_capture.png        # 拍照后截屏
     ├── logcat_picme.txt                # PoLang 标签日志
     └── instrumented_test.log           # Instrumented test 日志
 ```
@@ -130,11 +124,8 @@ scripts/auto_test_output/
 |------|------|------|
 | `auto-dev-loop.sh` | `--no-install` | 跳过设备安装 |
 | `auto-dev-loop.sh` | `--no-test` | 跳过设备端测试 |
-| `auto-dev-loop.sh` | `--quick` | 快速模式（编译+安装+UI dump） |
-| `auto-dev-loop.sh` | `--fast` | 极速模式（跳过 lint/unit test/instrumented test） |
-| `auto-dev-loop.sh` | `--instrumented` | 运行 Instrumented Tests |
-| `auto-dev-loop.sh` | `--with-lint` | 运行 ktlint + detekt |
-| `auto-dev-loop.sh` | `--test-suite` | 已弃用，配合 `--instrumented` 选择测试套件 |
+| `auto-dev-loop.sh` | `--capture` | 自动拍照并分析质量 |
+| `auto-dev-loop.sh` | `--quick` | 快速模式（仅编译+安装+截屏） |
 | `regression-test.sh` | `--camera` | 仅执行相机测试 |
 | `regression-test.sh` | `--gallery` | 仅执行相册测试 |
 | `regression-test.sh` | `--beauty` | 仅执行美颜测试 |
@@ -160,19 +151,13 @@ scripts/auto_test_output/
 ```
 如果项目未配置 `connectedDebugAndroidTest` 任务，此警告可忽略。
 
-### UI 元素定位不准确（Gallery 测试）
+### 截屏坐标不准确（Gallery 测试）
 `regression-test.sh` 中的相册入口坐标基于常见分辨率计算：
 ```bash
 local tap_x=$((w * 75 / 100))
 local tap_y=$((h * 95 / 100))
 ```
 如果 UI 布局变化，需更新坐标。
-
-**推荐替代方案**：`auto-dev-loop.sh` 已改用 accessibility UI dump；手动定位时可使用 `scripts/ui_driver.py` 通过 contentDescription 或 bounds 精准点击，避免分辨率依赖：
-```bash
-python3 scripts/ui_driver.py click --content-description "相册"
-python3 scripts/ui_driver.py dump --package com.mamba.picme
-```
 
 ## 扩展指南
 
@@ -215,23 +200,22 @@ fi
 ```yaml
 - name: Auto Dev Loop
   run: |
-    scripts/auto-dev-loop.sh --ci
+    ./scripts/auto-dev-loop.sh --ci
     
 - name: Regression Test
   if: success()
   run: |
-    scripts/regression-test.sh --ci
+    ./scripts/regression-test.sh --ci
 ```
 
 ## 相关文件
 
-- `scripts/auto-dev-loop.sh` — 一键开发自循环
+- `scripts/auto-dev-loop.sh` — Dev Loop
 - `scripts/regression-test.sh` — 端到端回归测试（JSON 命令驱动）
 - `scripts/ai-gate.sh` — 代码级质量门禁
-- `/ui-driver` — UI Driver
 - `/android-build-debug` — 编译调试参考
-- `/adb-bot` — ADB Bot
-- `/agent-test` — Agent Test
+- `/adb-bot` — adb 命令参考
+- `/ui-driver` — 结构化 UI 自动化（主要测试方法）
 - `/image-quality-checker` — 图片质量分析
 - `/compose-ui-expert` — UI 验证参考
 - `/perf-optimizer` — 性能基线对比
@@ -241,7 +225,4 @@ fi
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| 2.2.0 | 2026-07-02 | 修复 package name（`com.picme` → `com.mamba.picme`）；Phase 4 全面改用 accessibility UI dump；新增 `--fast` 模式；Instrumented Tests 仅在 `--instrumented` 时运行 |
-| 2.1.0 | 2026-07-02 | 重命名目录和 skill 名从 `auto-dev-loop` 到 `dev-loop` |
-| 2.0.0 | 2026-07-02 | 统一标题为 Dev Loop；设备验证优先使用 accessibility UI dump |
 | 1.1.0 | 2026-05-03 | 初始版本 |

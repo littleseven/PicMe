@@ -4,7 +4,7 @@ description: |
   ONNX 模型接入专家。预防 AI 在接入 ONNX 模型时重复犯已验证过的错误。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - onnx
@@ -19,7 +19,7 @@ tags:
 
 > **定位**：预防 AI 在接入 ONNX 模型时重复犯已验证过的错误（颜色格式、归一化、激活函数等）。
 > **来源**：项目 ONNX 模型集成实践经验
-> **触发时机**：接入任何新 ONNX 模型（InsightFace、MediaPipe、自定义模型）时
+> **触发时机**：接入任何新 ONNX 模型（MobileCLIP、OPUS-MT、sherpa-onnx、自定义模型）时
 
 ## 接入前必须回答的 5 个问题
 
@@ -95,7 +95,7 @@ val confidence = when (modelConfig.outputFormat) {
 val cropScale = 1.5f
 
 // ✅ 正确：从 reference implementation 提取
-val cropScale = modelConfig.postProcess.faceCropScale // 1.2f for InsightFace
+val cropScale = modelConfig.postProcess.faceCropScale // 例: 人脸裁剪缩放（从 reference 实现）
 ```
 
 ## 日志规范

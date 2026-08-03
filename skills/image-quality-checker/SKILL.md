@@ -4,7 +4,7 @@ description: |
   通过 adb 截屏并分析图片质量，检测黑屏、人脸位置、调试信息是否正常。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - adb
@@ -53,7 +53,7 @@ if arr.mean() < 5: print('BLACK SCREEN!')
 |--------|------|----------|
 | **黑屏检测** | 检查画面是否全黑或接近全黑 | 平均亮度 < 5/255 |
 | **基本信息** | 分辨率、色彩模式、文件大小 | - |
-| **人脸检测** | 使用 ML Kit/InsightFace 检测人脸 | 至少检测到 1 张人脸 |
+| **人脸检测** | 使用 MediaPipe/MNN 检测人脸 | 至少检测到 1 张人脸 |
 | **人脸位置** | 输出人脸关键点坐标及边界框 | 关键点在合理范围内 |
 | **调试信息** | 检测画面中的文字覆盖（FPS、日志） | 文字清晰可读 |
 
@@ -159,7 +159,7 @@ done
 
 ### 未检测到人脸
 - 确认光线充足，人脸正对摄像头
-- 检查人脸检测引擎设置（InsightFace vs MediaPipe）
+- 检查人脸检测引擎设置（MNN vs MediaPipe）
 - 查看日志：`adb logcat | grep FaceDetector`
 
 ### 调试信息模糊
@@ -170,7 +170,7 @@ done
 
 - **截屏**: `adb shell screencap -p`
 - **分析**: Python + Pillow + NumPy（纯 Python，无需 OpenCV）
-- **人脸检测**: 可集成项目现有的 InsightFace 或 MediaPipe 模型
+- **人脸检测**: 可集成项目现有的 MNN 或 MediaPipe 模型
 
 ## 相关文件
 

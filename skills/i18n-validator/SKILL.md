@@ -4,7 +4,7 @@ description: |
   PoLang 多语言同步验证专家。确保用户可见文案同步覆盖英文、简体中文、繁体中文，禁止硬编码字符串。
 version: 1.0.0
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [CR] 规范守护者
 tags:
   - i18n
@@ -37,7 +37,7 @@ tags:
 
 ```bash
 # 检查 Kotlin 源码中的硬编码中文/英文
-skills/image-quality-checker/scripts/check-i18n-hardcode.sh
+./scripts/check-i18n-hardcode.sh
 
 # 手动检查（关键文件）
 grep -rn "\"[a-zA-Z\u4e00-\u9fa5]\{3,\}\"" app/src/main/java/com/mamba/picme/ --include="*.kt" | \
@@ -96,7 +96,7 @@ python3 scripts/check_i18n_sync.py
 - name: I18N Validation
   run: |
     python3 scripts/check_i18n_sync.py
-    skills/image-quality-checker/scripts/check-i18n-hardcode.sh
+    ./scripts/check-i18n-hardcode.sh
 ```
 
 ### 快速修复流程
@@ -118,7 +118,6 @@ python3 scripts/check_i18n_sync.py
 
 - [docs/01-PRODUCT/FEATURES.md](docs/01-PRODUCT/FEATURES.md) — 多语言词汇表（Section 4.1.1）
 - [PRODUCT.md](PRODUCT.md) — I18N 规范定义
-- [qa-acceptance](/qa-acceptance) — I18N 红线验收
 - [compose-ui-expert](/compose-ui-expert) — UI 文案硬编码检查
 - [doc-sync-guardian](/doc-sync-guardian) — 文档一致性同步
 

@@ -89,7 +89,7 @@ def check_black_screen(img_array, threshold=5.0):
 def detect_faces_simple(img_array, width, height):
     """
     简化版人脸检测（基于亮度和边缘）
-    实际项目中应集成 ML Kit 或 InsightFace
+    实际项目中应集成 MediaPipe 或 MNN
     """
     # 这里仅作示例，实际应调用项目的人脸检测模块
     # 可以通过 adb 命令触发应用内的人脸检测并读取日志

@@ -4,7 +4,7 @@ description: |
   人脸关键点坐标、渲染管线、UI 标注的坐标系规范化标准。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师 + [CR] 规范守护者
 tags:
   - coordinate-system
@@ -404,7 +404,8 @@ Log.d(TAG, "Step4 [像素映射]: screen=($screenX,$screenY)")
 
 - [COORDINATE_SYSTEM_STANDARD.md](docs/07-STANDARDS/COORDINATE_SYSTEM.md) - 坐标系规范详细说明
 - [ADR-003-coordinate-system-management.md](docs/02-ARCHITECTURE/ADR/ADR-003-coordinate-system-management.md) - 技术决策文档
-- [FACE_LANDMARKS.md](docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md) - 关键点映射文档
+- [BEAUTY_ENGINE_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 相机预览技术规范（原 CAMERA_PREVIEW_TECH_SPEC.md 已并入）
+- [FACE_LANDMARKS.md](docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md) - 关键点映射文档（468→106）
 
 ---
 

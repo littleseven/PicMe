@@ -95,7 +95,6 @@ MemoryPeak: 186MB (基线: 180MB) ⚠️
 - [docs/01-PRODUCT/FEATURES.md](docs/01-PRODUCT/FEATURES.md) — 性能指标定义
 - [av-gl-expert](/av-gl-expert) — GPU/Shader 性能诊断
 - [compose-ui-expert](/compose-ui-expert) — Compose 重组性能优化
-- [qa-acceptance](/qa-acceptance) — 性能验收标准
 - [error-healer](/error-healer) — 编译错误修复
 
 ## 版本历史

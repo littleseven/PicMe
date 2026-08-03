@@ -4,7 +4,7 @@ description: |
   指导使用 Android Studio Layout Inspector 和 Compose 调试工具排查 UI 布局问题。当用户报告 Compose UI 异常（如组件不显示、点击无响应、布局错位、状态不更新等）时自动启用，禁止基于截图猜测修改。
 version: 1.0.0
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - compose

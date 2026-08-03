@@ -285,7 +285,6 @@ strings model.mnn | grep -E "minusscalar|mulscalar"
 | 模型从 ONNX 转换而来 | [onnx-model-integration](/onnx-model-integration) |
 | 人脸关键点对齐问题 | [mnn-landmark-diagnosis](/mnn-landmark-diagnosis) |
 | Vulkan/GPU 相关问题 | [av-gl-expert](/av-gl-expert) |
-| NCNN 对比/迁移 | [ncnn-integration](/ncnn-integration) |
 | 编译错误 | [error-healer](/error-healer) |
 
 ---

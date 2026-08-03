@@ -4,7 +4,7 @@ description: |
   自动维护 PRODUCT.md → docs/01-PRODUCT/FEATURES.md → 模块 AGENTS.md 三层文档体系的一致性。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [CR] 规范守护者 + [CO] 协调者
 tags:
   - documentation
@@ -97,7 +97,7 @@ tags:
 | UI 视觉规范 | `docs/01-PRODUCT/FEATURES.md` | "大圆角 28dp+，毛玻璃效果" |
 | 技术架构设计 | 模块 `AGENTS.md` | "Clean Architecture 分层" |
 | 代码实现细节 | 模块 `AGENTS.md` | "Repository 层职责定义" |
-| 专项技术方案 | `docs/*_TECH_SPEC.md` | "CAMERA_PREVIEW_TECH_SPEC.md" |
+| 专项技术方案 | `docs/*_TECH_SPEC.md` | "BEAUTY_ENGINE_TECH_SPEC.md" |
 | 重大变更记录 | `docs/*_TECH_SPEC.md` | "拍照 GPU 化迁移方案" |
 
 ---
@@ -184,7 +184,7 @@ find app/src -name "AGENTS.md" -exec grep -l "Product Alignment" {} \;
 | Phase 1 | 识别变更范围 | `git diff --name-only HEAD~1 HEAD` |
 | Phase 2 | 确定需更新文档 | 按变更类型映射到文档层级（见下表） |
 | Phase 3 | 生成更新草案 | 使用 [reference.md](reference.md) §更新草案模板 |
-| Phase 4 | 执行更新并验证 | `skills/image-quality-checker/scripts/check-doc-consistency.sh` |
+| Phase 4 | 执行更新并验证 | `./scripts/check-doc-consistency.sh` |
 
 **变更类型 → 文档映射**：
 
@@ -346,7 +346,7 @@ wc -l AGENTS.md  # 如果超过 500 行，可能需要瘦身
 #### Step 4: 验证引用完整性
 ```bash
 # 检查所有 markdown 链接是否有效
-skills/image-quality-checker/scripts/check-markdown-links.sh
+./scripts/check-markdown-links.sh
 
 # 确认没有悬空引用
 grep -r "已废弃" docs/*.md

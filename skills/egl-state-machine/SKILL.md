@@ -4,7 +4,7 @@ description: |
   EGL 上下文状态机管理专家。预防 AI 在操作 EGL 上下文、离屏渲染、拍照 GPU 化时陷入线程与状态泥潭。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - opengl

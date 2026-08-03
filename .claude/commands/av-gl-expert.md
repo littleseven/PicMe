@@ -37,14 +37,14 @@
 
 ### 3. 坐标映射 (Coordinate Mapping)
 - **分层标准**：UI 层可用 [人脸坐标系]，渲染层**必须**使用 [图像坐标系]。
-- **转换链路**：MediaPipe 468 → InsightFace 106 → 旋转校正 → 镜像翻转 → Viewport 映射。
+- **转换链路**：MediaPipe 468 → 106（FaceLandmarkAdapter）→ 旋转校正 → 镜像翻转 → Viewport 映射。
 - **常见陷阱**：前置摄像头下，图像左侧对应被拍摄者右脸（镜像效应）。
 
 ---
 
 ## 📚 专项技术文档索引
 - **渲染管线**：`docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`
-- **相机集成**：`docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md`
+- **相机集成**：`docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（相机预览内容已并入，§9）
 - **离屏拍照**：`docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md`
 - **坐标系规范**：`docs/07-STANDARDS/COORDINATE_SYSTEM.md`
 
@@ -269,7 +269,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 - [ ] 归一化坐标范围是否为 [0.0, 1.0]？
 - [ ] Viewport 计算是否考虑画幅比例？
 - [ ] UV 映射是否与 Shader 期望一致？
-- [ ] 调试浮层是否显示检测来源（MediaPipe/InsightFace）？
+- [ ] 调试浮层是否显示检测来源（MediaPipe/MNN）？
 
 ---
 
@@ -339,7 +339,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 
 **A**: 
 1. 检查坐标系是否统一使用**图像坐标系**（详见 [COORDINATE_SYSTEM_STANDARD.md](../../docs/07-STANDARDS/COORDINATE_SYSTEM.md)）
-2. 检查 468→106 映射表是否正确（参考 [INSIGHTFACE_106_MAPPING.md](../../docs/03-TECHNICAL-SPECS/INSIGHTFACE_106_MAPPING.md)）
+2. 检查 468→106 映射表是否正确（参考 [FACE_LANDMARKS.md](../../docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md)）
 3. 检查旋转校正是否应用：
    ```kotlin
    // 根据 rotationDegrees 调整坐标
@@ -363,10 +363,10 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 ## 📚 参考文档
 
 ### 内部文档
-- [CAMERA_PREVIEW_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md) - 相机预览技术规格
+- [BEAUTY_ENGINE_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 相机预览技术规格（原 CAMERA_PREVIEW_TECH_SPEC.md 已并入）
 - [BIG_BEAUTY_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 大美丽引擎技术规格
 - [ADR-002-opengl-offscreen-unified-pipeline.md](docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md) - 离屏渲染架构决策
-- [BEAUTY_ENGINE_FALLBACK.md](docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md) - 引擎容灾降级策略
+- [BEAUTY_ENGINE_TECH_SPEC.md](docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md) - 引擎容灾降级策略（容灾降级章节；原 BEAUTY_ENGINE_FALLBACK.md 已并入）
 
 ### 外部资源
 - [OpenGL ES 2.0 Reference](https://www.khronos.org/opengles/sdk/docs/man/)

@@ -1,14 +1,14 @@
 # MNN Landmark 诊断与修复 Skill
 
-> **定位**：诊断和修复 MNN/ONNX 推理引擎在人脸关键点检测中的对齐问题。
-> **触发时机**：用户报告人脸关键点偏移、对齐错误或 MNN/ONNX 推理结果异常时自动启用。
+> **定位**：诊断和修复 MNN 推理引擎在人脸关键点检测中的对齐问题。
+> **触发时机**：用户报告人脸关键点偏移、对齐错误或 MNN 推理结果异常时自动启用。
 
 
 ## 触发条件
 
 当以下情况出现时自动应用本 Skill：
 - MNN 路径关键点抖动、漂移或位置错误
-- ONNX 稳定但 MNN 输出不一致
+- MediaPipe 稳定但 MNN 输出不一致
 - 新推理引擎接入时的对齐验证
 - `copyFromHostTensor` / `copyToHostTensor` 相关数据异常
 - 提到 NCHW/NHWC、DimensionType、CAFFE/TENSORFLOW 布局问题
@@ -20,9 +20,9 @@
 ### Phase 1: 环境确认
 
 ```markdown
-- [ ] 确认 MNN 和 ONNX 检测器均已初始化
-- [ ] 确认 INPUT_SIZE 一致（MNN vs ONNX）
-- [ ] 确认模型文件存在且非空（.mnn / .onnx）
+- [ ] 确认 MNN 和 MediaPipe 检测器均已初始化
+- [ ] 确认 INPUT_SIZE 一致（MNN vs MediaPipe）
+- [ ] 确认模型文件存在且非空（.mnn / .tflite）
 - [ ] 确认 GPU/CPU 模式配置正确
 ```
 
@@ -173,7 +173,7 @@ float normStd = hasBuiltInNormalization_ ? 1.0f : 128.0f;
 ```kotlin
 // MnnLandmarkDetector.kt
 companion object {
-    private const val INPUT_SIZE = 192  // 与 InsightFace2D106Detector 保持一致
+    private const val INPUT_SIZE = 192  // 与 MNN 2D106 检测器（MnnLandmarkDetector）保持一致
 }
 ```
 
@@ -206,13 +206,13 @@ adb install -r app/build/outputs/apk/debug/polang-debug.apk
 
 ### Step 2: 启动对比测试
 
-在 `FaceDetectorManager` 中添加并行对比代码（详见 reference.md），收集日志：
+> 注：ONNX（InsightFace 2D106）检测器已从 app 移除，仓库不再内置 MNN↔ONNX 并行对比埋点。若需以原始 ONNX 模型作外部基准校验 MNN 输出，需在 `MnnLandmarkDetector` / `FaceDetectorManager` 中**临时**加回并行推理与日志（自定义 tag，如 `MNN vs ONNX`），再按下方流程收集：
 
 ```bash
 adb logcat -c
 adb shell am start -n com.mamba.picme/.MainActivity
 sleep 15
-adb logcat -d | grep "MNN vs ONNX"
+adb logcat -d | grep "MNN vs ONNX"   # 仅当已临时加回对比埋点时才有输出
 ```
 
 ### Step 3: 验收标准

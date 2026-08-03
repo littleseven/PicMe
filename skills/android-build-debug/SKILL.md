@@ -4,7 +4,7 @@ description: |
   Android 项目编译、安装、日志调试的标准化流程。
 version: 1.1.0
 created: 2026-05-03
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - android

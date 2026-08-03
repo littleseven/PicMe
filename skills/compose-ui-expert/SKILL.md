@@ -4,7 +4,7 @@ description: |
   PoLang Jetpack Compose UI 专家。诊断布局异常、状态管理问题、重组性能瓶颈，确保 HyperOS 视觉风格一致。
 version: 1.0.0
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-08-03
 maintainer: [RD] 全栈工程师
 tags:
   - compose

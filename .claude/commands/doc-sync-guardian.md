@@ -80,7 +80,7 @@
 | UI 视觉规范 | `docs/01-PRODUCT/FEATURES.md` | "大圆角 28dp+，毛玻璃效果" |
 | 技术架构设计 | 模块 `AGENTS.md` | "Clean Architecture 分层" |
 | 代码实现细节 | 模块 `AGENTS.md` | "Repository 层职责定义" |
-| 专项技术方案 | `docs/*_TECH_SPEC.md` | "CAMERA_PREVIEW_TECH_SPEC.md" |
+| 专项技术方案 | `docs/*_TECH_SPEC.md` | "BEAUTY_ENGINE_TECH_SPEC.md" |
 | 重大变更记录 | `docs/*_TECH_SPEC.md` | "拍照 GPU 化迁移方案" |
 
 ---
