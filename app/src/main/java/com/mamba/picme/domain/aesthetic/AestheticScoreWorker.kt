@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.model.MediaEntity
@@ -23,6 +24,9 @@ import kotlinx.coroutines.withContext
  *      →回写 media_assets.faceQualityScore（无脸则跳过）。
  * 任一模型未就绪则只跑另一个；两者都未就绪只用已有分数刷新封面。
  * 随后按 [CoverSelector] 重算封面（双分加权；缺任一则单分降级）。
+ *
+ * **性能**：[nima]/[ediffiqa] 为长生命周期实例，会话跨调用复用（NNAPI 编译昂贵），
+ * [ensureScorers] 幂等——首次建会话、模型未到则每次重试直到就绪。
  *
  * 两类入口：[runOnce] 全库批处理；[runOnceForPerson] 仅给某个人脸簇的成员打分 + 刷该簇封面。
  *
@@ -44,38 +48,47 @@ class AestheticScoreWorker(
     /** 串行化打分（自动触发与手动触发可能并发，避免同批重复处理） */
     private val mutex = Mutex()
 
+    private val nima = NimaScorer(context)
+    private val ediffiqa = EdiffiqaScorer(context)
+    private var nimaReady = false
+    private var ediffiqaReady = false
+
+    /** 幂等初始化两个 scorer：已就绪则跳过；模型未下载则每次重试（下载后即就绪）。 */
+    private suspend fun ensureScorers() {
+        if (!nimaReady) nimaReady = nima.initialize()
+        if (!ediffiqaReady) ediffiqaReady = ediffiqa.initialize()
+    }
+
     /** 执行一轮全库打分 + 封面刷新，返回本轮打分照片数。串行化（自动/手动触发并发安全）。
      *  [batchLimit] 单次最多处理照片数（默认构造值；手动触发可传更大值）。 */
     suspend fun runOnce(batchLimit: Int = batch): Int = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val ediffiqa = EdiffiqaScorer(context)
-            val nima = NimaScorer(context)
-            val ediffiqaReady = ediffiqa.initialize()
-            val nimaReady = nima.initialize()
+            ensureScorers()
             if (!ediffiqaReady && !nimaReady) {
                 Log.w(TAG, "no scorer ready; only refresh covers with existing scores")
                 refreshCovers()
                 return@withLock 0
             }
 
+            val pending = mediaDao.getMediaWithoutEitherScore(batchLimit)
+            val total = pending.size
             var scored = 0
+            val start = SystemClock.elapsedRealtime()
             try {
-                val pending = mediaDao.getMediaWithoutEitherScore(batchLimit)
                 for (entity in pending) {
                     val bmp = decodeSampled(entity.uri) ?: continue
                     try {
-                        if (scoreEntity(entity, bmp, nima, nimaReady, ediffiqa, ediffiqaReady)) scored++
+                        if (scoreEntity(entity, bmp)) scored++
                     } finally {
                         bmp.recycle()
                     }
                 }
                 refreshCovers()
-                Log.i(TAG, "Aesthetic pass done: scored=$scored (nima=$nimaReady ediffiqa=$ediffiqaReady)")
+                val dt = SystemClock.elapsedRealtime() - start
+                val avg = if (total > 0) dt / total else 0L
+                Log.i(TAG, "Aesthetic pass done: scored=$scored/$total in ${dt}ms (avg ${avg}ms/img, nima=$nimaReady ediffiqa=$ediffiqaReady)")
             } catch (e: Exception) {
                 Log.e(TAG, "Aesthetic pass failed", e)
-            } finally {
-                ediffiqa.release()
-                nima.release()
             }
             scored
         }
@@ -87,36 +100,34 @@ class AestheticScoreWorker(
      * [personId] 目标人物；[batchLimit] 单次上限（默认 300，簇内通常不大）。 */
     suspend fun runOnceForPerson(personId: Long, batchLimit: Int = 300): Int = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val ediffiqa = EdiffiqaScorer(context)
-            val nima = NimaScorer(context)
-            val ediffiqaReady = ediffiqa.initialize()
-            val nimaReady = nima.initialize()
+            ensureScorers()
             if (!ediffiqaReady && !nimaReady) {
                 Log.w(TAG, "no scorer ready; only refresh cover for person $personId")
                 refreshCoverForPerson(personId)
                 return@withLock 0
             }
 
+            val members = personDao.getMediaByPerson(personId)
+                .filter { it.aestheticScore == null || it.faceQualityScore == null }
+                .take(batchLimit)
+            val total = members.size
             var scored = 0
+            val start = SystemClock.elapsedRealtime()
             try {
-                val members = personDao.getMediaByPerson(personId)
-                    .filter { it.aestheticScore == null || it.faceQualityScore == null }
-                    .take(batchLimit)
                 for (entity in members) {
                     val bmp = decodeSampled(entity.uri) ?: continue
                     try {
-                        if (scoreEntity(entity, bmp, nima, nimaReady, ediffiqa, ediffiqaReady)) scored++
+                        if (scoreEntity(entity, bmp)) scored++
                     } finally {
                         bmp.recycle()
                     }
                 }
                 refreshCoverForPerson(personId)
-                Log.i(TAG, "Aesthetic pass person=$personId done: scored=$scored (nima=$nimaReady ediffiqa=$ediffiqaReady)")
+                val dt = SystemClock.elapsedRealtime() - start
+                val avg = if (total > 0) dt / total else 0L
+                Log.i(TAG, "Aesthetic pass person=$personId done: scored=$scored/$total in ${dt}ms (avg ${avg}ms/img, nima=$nimaReady ediffiqa=$ediffiqaReady)")
             } catch (e: Exception) {
                 Log.e(TAG, "Aesthetic pass for person $personId failed", e)
-            } finally {
-                ediffiqa.release()
-                nima.release()
             }
             scored
         }
@@ -125,14 +136,7 @@ class AestheticScoreWorker(
     /**
      * 给单张已解码 [bmp] 计算 NIMA 美学（缺时）+ eDifFIQA 人脸画质（缺时），回写，返回是否写了任一分。
      */
-    private suspend fun scoreEntity(
-        entity: MediaEntity,
-        bmp: Bitmap,
-        nima: NimaScorer,
-        nimaReady: Boolean,
-        ediffiqa: EdiffiqaScorer,
-        ediffiqaReady: Boolean
-    ): Boolean {
+    private suspend fun scoreEntity(entity: MediaEntity, bmp: Bitmap): Boolean {
         var wroteAny = false
         // ① NIMA 整图美学（仅在缺美学分时；无需人脸）
         if (nimaReady && entity.aestheticScore == null) {

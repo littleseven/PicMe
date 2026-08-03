@@ -30,6 +30,7 @@ class EdiffiqaScorer(private val context: Context) {
     private var session: OrtSession? = null
 
     suspend fun initialize(): Boolean {
+        session?.let { return true } // 已就绪则复用，避免重复建会话（NNAPI 编译昂贵）
         val modelDir = ModelPathConfig.getModelDir(context, MODEL_ID)
         val modelFile = File(modelDir, FILE_NAME)
         if (!modelFile.exists()) {
@@ -38,7 +39,15 @@ class EdiffiqaScorer(private val context: Context) {
         }
         return try {
             val options = OrtSession.SessionOptions().apply {
-                setOptimizationLevel(OrtSession.SessionOptions.OptLevel.BASIC_OPT)
+                setInterOpNumThreads(2)
+                setIntraOpNumThreads(2)
+                setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+                try {
+                    addNnapi()
+                    Log.i(TAG, "eDifFIQA: using NNAPI")
+                } catch (e: Exception) {
+                    Log.w(TAG, "eDifFIQA: NNAPI unavailable, CPU fallback", e)
+                }
             }
             session = env.createSession(modelFile.absolutePath, options)
             Log.i(TAG, "eDifFIQA session initialized")
