@@ -173,9 +173,10 @@ fun AppTopBarAction(
 @Composable
 fun AppTopBarNavBack(
     onClick: () -> Unit,
+    enabled: Boolean = true,
     contentDescription: String = stringResource(R.string.back)
 ) {
-    BackHandler(onBack = onClick)
+    BackHandler(enabled = enabled, onBack = onClick)
     IconButton(onClick = onClick, modifier = Modifier.size(TopBarButtonSize)) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,

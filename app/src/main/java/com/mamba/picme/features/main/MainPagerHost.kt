@@ -69,8 +69,9 @@ fun MainPagerHost(
         scene?.let { SceneManager.getInstance().transitionTo(it) }
     }
 
-    // 返回键：非相册页回到相册页（对齐原 popUpTo(Gallery) 语义）；
-    // 相册内部的详情/多选 BackHandler 优先级更高，不受影响
+    // 返回键：非相册页回到相册页（对齐原 popUpTo(Gallery) 语义）。
+    // 各 page 内部 BackHandler（预览/多选/顶栏返回）均以 isActivePage 守卫，
+    // 仅激活页消费返回键，避免 HorizontalPager 全 page 组合下的跨页 LIFO 抢占。
     BackHandler(enabled = pagerState.currentPage != MAIN_PAGE_GALLERY) {
         onSwitchPage(MAIN_PAGE_GALLERY)
     }
@@ -117,7 +118,8 @@ fun MainPagerHost(
                 onNavigateToPeople = { onSwitchPage(MAIN_PAGE_PEOPLE) },
                 searchRequest = gallerySearchRequest,
                 onSearchRequestConsumed = onGallerySearchRequestConsumed,
-                onHorizontalSwipeEnabledChange = { gallerySwipeEnabled = it }
+                onHorizontalSwipeEnabledChange = { gallerySwipeEnabled = it },
+                isActivePage = pagerState.currentPage == MAIN_PAGE_GALLERY
             )
 
             MAIN_PAGE_CHAT -> ChatScreen(
@@ -141,13 +143,15 @@ fun MainPagerHost(
                         navOptions { launchSingleTop = true }
                     )
                 },
-                onHorizontalSwipeEnabledChange = { chatSwipeEnabled = it }
+                onHorizontalSwipeEnabledChange = { chatSwipeEnabled = it },
+                isActivePage = pagerState.currentPage == MAIN_PAGE_CHAT
             )
 
             MAIN_PAGE_PEOPLE -> PersonScreen(
                 viewModel = personViewModel,
                 onNavigateBack = { onSwitchPage(MAIN_PAGE_GALLERY) },
-                onNavigateToGallery = { personId -> onRequestGallerySearch("", personId) }
+                onNavigateToGallery = { personId -> onRequestGallerySearch("", personId) },
+                isActivePage = pagerState.currentPage == MAIN_PAGE_PEOPLE
             )
         }
     }

@@ -199,7 +199,9 @@ fun ChatScreen(
     onNavigateToPhotoEditor: (uri: String, autoOptimize: Boolean) -> Unit = { _, _ -> },
     onNavigateToIDPhoto: (uri: String) -> Unit = {},
     /** 上报是否允许外层主页面 Pager 横滑（预览打开时禁用） */
-    onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {}
+    onHorizontalSwipeEnabledChange: (Boolean) -> Unit = {},
+    /** 是否为当前激活的主页面 page（非激活时禁用内部 BackHandler，避免跨页抢占系统返回键） */
+    isActivePage: Boolean = true
 ) {
     val context = LocalContext.current
     val messages by viewModel.displayMessages.collectAsState()
@@ -377,14 +379,14 @@ fun ChatScreen(
         onDispose { ChatMediaWriteCapability.getInstance().unbindDelegate() }
     }
 
-    BackHandler(enabled = isSidebarOpen) {
+    BackHandler(enabled = isActivePage && isSidebarOpen) {
         isSidebarOpen = false
     }
 
     // 预览打开时拦截系统返回键：关闭预览并回到 chat 页（保留横滑卡片），
     // 而非直接 pop 到相册（Gallery 为 startDestination，栈底为 [Gallery, Chat]）。
     // 与 GalleryScreen 的预览 BackHandler 行为对齐。
-    BackHandler(enabled = previewAssets.isNotEmpty() || imagePreview != null || previewChartSvg != null) {
+    BackHandler(enabled = isActivePage && (previewAssets.isNotEmpty() || imagePreview != null || previewChartSvg != null)) {
         when {
             previewAssets.isNotEmpty() -> previewAssets = emptyList()
             imagePreview != null -> imagePreview = null
@@ -459,7 +461,8 @@ fun ChatScreen(
                     onOpenSidebar = { isSidebarOpen = true },
                     onNewChat = { viewModel.newSession() },
                     onClearChat = { viewModel.clearChat() },
-                    onReportIssue = { showReportIssueDialog = true }
+                    onReportIssue = { showReportIssueDialog = true },
+                    isActivePage = isActivePage
                 )
             }
         }
@@ -755,13 +758,14 @@ private fun ChatTopBar(
     onOpenSidebar: () -> Unit,
     onNewChat: () -> Unit,
     onClearChat: () -> Unit,
-    onReportIssue: () -> Unit = {}
+    onReportIssue: () -> Unit = {},
+    isActivePage: Boolean = true
 ) {
     AppTopBar(
         title = {},
         navigationIcon = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppTopBarNavBack(onClick = onNavigateBack)
+                AppTopBarNavBack(onClick = onNavigateBack, enabled = isActivePage)
                 AppTopBarAction(
                     icon = Icons.Rounded.Menu,
                     contentDescription = stringResource(R.string.cd_open_sidebar),

@@ -53,7 +53,9 @@ import kotlinx.coroutines.launch
 fun PersonScreen(
     viewModel: PersonViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToGallery: (Long) -> Unit
+    onNavigateToGallery: (Long) -> Unit,
+    /** 是否为当前激活的主页面 page（非激活时禁用顶栏 BackHandler，避免跨页抢占系统返回键） */
+    isActivePage: Boolean = true
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { viewModel.reconcileAndLoad() }
@@ -114,7 +116,7 @@ fun PersonScreen(
                     )
                 },
                 navigationIcon = {
-                    AppTopBarNavBack(onClick = onNavigateBack)
+                    AppTopBarNavBack(onClick = onNavigateBack, enabled = isActivePage)
                 },
                 actions = {
                     // 显示全部 / 隐藏单张未命名单人分组
