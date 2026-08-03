@@ -169,7 +169,7 @@ Logger.log(AgentCommandParsedEvent(...))
 | **STRONG** | 复杂推理:架构/评审/调试/规划 | glm-5.2(Fable 档) | K3(primary) |
 | **WEAK** | 便宜 fan-out:搜索/探索/梳理/摘要 | glm-5.1(Haiku 档) | glm-5.2(secondary) |
 
-> 「强模型」在两工具指代**不同物理模型**(CC=glm-5.2、kimi=K3),但逻辑语义一致:都指「该工具能用的最强模型」。两套机制不同(CC 用 frontmatter 别名/显式 id、kimi 用派发 `model=primary/secondary`),语义统一。
+> 「强模型」在两工具指代**不同物理模型**(CC=glm-5.2、kimi=K3),但逻辑语义一致:都指「该工具能用的最强模型」。两套机制不同(CC 用 frontmatter 别名(`fable`)、kimi 用派发 `model=primary/secondary`),语义统一。
 
 **角色 → 档位是各工具的策略,可以不同**:
 
@@ -178,12 +178,12 @@ Logger.log(AgentCommandParsedEvent(...))
 | 架构/规划 | STRONG(`.claude/agents/planner.md`) | STRONG(K3) | 一致 |
 | 强推理兜底 | STRONG(`reasoner.md`) | STRONG(K3 主循环) | 一致 |
 | 根因调试 | STRONG(`debugger.md`) | STRONG(K3 主循环) | 一致 |
-| 代码评审 | STRONG(`reviewer.md`,glm-5.2) | **WEAK**(glm-5.2,`review.md`) | kimi 故意用 GLM 审 K3 → **跨模型交叉验证** |
+| 代码评审 | STRONG(`reviewer.md`,`fable`) | **WEAK**(glm-5.2,`review.md`) | kimi 故意用 GLM 审 K3 → **跨模型交叉验证** |
 | 搜索/探索 | WEAK(内置 Explore,glm-5.1) | WEAK(内置 explore) | 一致 |
 
 > 这正体现了抽象的价值:同一「评审」角色,CC 给最强档,kimi 却故意用弱档做交叉验证——**角色→档是策略,随工具而定**,而档→模型的绑定各管各。
 >
-> **CC 自定义 agent 当前用显式 `model: glm-5.2` 表达 STRONG 档**(稳妥,避免别名不解析时静默回落弱档);待验证 `model: fable` 别名在 frontmatter 可靠解析后,可改别名以自动跟随 Fable 重映射。kimi 原生用 `model=primary/secondary` 逻辑档,无需显式 id。
+> **CC 自定义 agent 用 `model: fable` 表达 STRONG 档**。fable 别名经实测映射正确(`ANTHROPIC_DEFAULT_FABLE_MODEL_NAME=glm-5.2`;主循环 `model:fable` 实跑 glm-5.2,**无静默回落**)。**但注意:本环境 frontmatter `model:` 字段(及 Agent 工具 `model` 参数)对子代理实际是空操作**——实测显式传 `model:haiku` 仍跑 glm-5.2、历史 85 个子代理 LLM 调用全为 glm-5.2 无一 glm-5.1,子代理恒继承主会话模型(当前 fable→glm-5.2;含上表 WEAK 档的内置 Explore 实际亦然)。故 frontmatter 写 `fable` 仅作语义/未来兼容占位,实际档位由主会话 `model:fable` 决定(已配,自动跟 Fable 重映射)。kimi 原生用 `model=primary/secondary` 逻辑档,无需显式 id。
 
 ---
 
