@@ -183,8 +183,7 @@ object ToolCallCommandParser {
 
     private fun parseAiOptimize(args: JSONObject): AgentCommand.AiOptimize {
         val imageUri = args.optString("image_uri", "")
-        val mode = args.optString("mode", "fast")
-        return AgentCommand.AiOptimize(imageUri = imageUri, mode = mode)
+        return AgentCommand.AiOptimize(imageUri = imageUri)
     }
 
     private fun parseGetGallerySummary(args: JSONObject): AgentCommand.GetGallerySummary {

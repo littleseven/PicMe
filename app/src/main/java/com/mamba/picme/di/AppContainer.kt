@@ -46,7 +46,7 @@ import com.mamba.picme.data.download.ModelPathConfig
 import com.mamba.picme.domain.backup.BackupTagDataUseCase
 import com.mamba.picme.domain.backup.RestoreTagDataUseCase
 import com.mamba.picme.domain.backup.TagDataBackupRepository
-import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
+import com.mamba.picme.domain.agent.capability.optimize.analyzer.HeuristicSceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
 import com.mamba.picme.domain.agent.capability.ImageEditCapability
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
@@ -385,8 +385,7 @@ class AppContainerImpl(
     override val aiOptimizeUseCase: AiOptimizeUseCase by lazy {
         AiOptimizeUseCase(
             presetRepository = AssetPresetRepository(context),
-            consentManager = CloudOptimizeConsentManager(context),
-            smartEngine = null
+            sceneAnalyzer = HeuristicSceneAnalyzer(context, faceDetector)
         )
     }
 
@@ -600,7 +599,15 @@ class AppContainerImpl(
     }
 
     private val chatImageRenderer: ChatImageRenderer by lazy {
-        ChatImageRenderer(context, photoProcessor, mattingEngine, aiOptimizeUseCase, chatImageStore)
+        ChatImageRenderer(
+            context = context,
+            photoProcessor = photoProcessor,
+            mattingEngine = mattingEngine,
+            optimizeUseCase = aiOptimizeUseCase,
+            chatImageStore = chatImageStore,
+            faceDetector = faceDetector,
+            userSettingsRepository = userPreferencesRepository
+        )
     }
 
     override val picMeAuthClient: PoLangAuthClient by lazy { PoLangAuthClient() }

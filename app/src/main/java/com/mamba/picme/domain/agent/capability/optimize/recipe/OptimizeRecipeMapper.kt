@@ -1,9 +1,13 @@
 package com.mamba.picme.domain.agent.capability.optimize.recipe
 
+import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.domain.agent.capability.optimize.OptimizeResultDto
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
+import com.mamba.picme.domain.agent.capability.optimize.preset.AdjustmentPreset
+import com.mamba.picme.domain.agent.capability.optimize.preset.BeautyPreset
+import com.mamba.picme.domain.agent.capability.optimize.preset.FilterPreset
 import com.mamba.picme.domain.agent.capability.optimize.preset.OptimizePreset
 import com.mamba.picme.features.editor.AdjustmentRecipe
 import com.mamba.picme.features.editor.EditRecipe
@@ -46,6 +50,69 @@ object OptimizeRecipeMapper {
     }
 
     /**
+     * 反向映射：从编辑器已应用的 [EditRecipe] 重建 [OptimizePreset]
+     *
+     * 用于 Capability 将执行结果序列化为 DTO 时收口映射逻辑，
+     * 避免在各调用方手工逐字段拷贝。
+     *
+     * @param scene 触发优化的场景
+     * @param recipe 编辑器实际应用的配方
+     */
+    fun toOptimizePreset(scene: Scene, recipe: EditRecipe): OptimizePreset {
+        val beauty = recipe.beauty
+        val adjustments = recipe.adjustments
+        return OptimizePreset(
+            scene = scene.name,
+            beauty = BeautyPreset(
+                enabled = beauty.enabled,
+                smoothing = beauty.smoothing,
+                whitening = beauty.whitening,
+                slimFace = beauty.slimFace,
+                bigEyes = beauty.bigEyes,
+                lipColor = beauty.lipColor,
+                blush = beauty.blush,
+                eyebrow = beauty.eyebrow
+            ),
+            filter = FilterPreset(
+                colorFilter = recipe.colorFilter.name,
+                styleFilter = recipe.styleFilter.name
+            ),
+            adjustment = AdjustmentPreset(
+                brightness = adjustments.brightness,
+                exposure = adjustments.exposure,
+                contrast = adjustments.contrast,
+                saturation = adjustments.saturation,
+                temperature = adjustments.temperature,
+                tint = adjustments.tint
+            )
+        )
+    }
+
+    /**
+     * 反向映射并包装为 [OptimizeResultDto]
+     *
+     * 内部调用 [toOptimizePreset]，供 Capability 一行完成结果 DTO 构造。
+     *
+     * @param sourceUri 原图 URI
+     * @param scene 触发优化的场景
+     * @param explanation 场景说明文案
+     * @param recipe 编辑器实际应用的配方
+     */
+    fun toResultDto(
+        sourceUri: String,
+        scene: Scene,
+        explanation: String,
+        recipe: EditRecipe
+    ): OptimizeResultDto {
+        return OptimizeResultDto(
+            sourceUri = sourceUri,
+            scene = scene.name,
+            explanation = explanation,
+            preset = toOptimizePreset(scene, recipe)
+        )
+    }
+
+    /**
      * 构建场景说明文案
      */
     fun buildExplanation(scene: Scene): String {
@@ -61,9 +128,9 @@ object OptimizeRecipeMapper {
         }
     }
 
-    private fun toBeautySettings(preset: OptimizePreset): com.mamba.picme.beauty.api.BeautySettings {
+    private fun toBeautySettings(preset: OptimizePreset): BeautySettings {
         val beauty = preset.beauty
-        return com.mamba.picme.beauty.api.BeautySettings(
+        return BeautySettings(
             enabled = beauty.enabled,
             smoothing = beauty.smoothing,
             whitening = beauty.whitening,

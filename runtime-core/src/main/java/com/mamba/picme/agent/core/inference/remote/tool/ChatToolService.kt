@@ -174,11 +174,10 @@ class ChatToolService private constructor() {
     fun startTagScan(): String =
         dispatchCommand(AgentCommand.StartTagScan(action = "query", taskType = null, mode = null))
 
-    @Tool(name = "ai_optimize", value = ["AI 一键优化图片。image_uri 为图片 URI。mode: fast(本地快速)/smart(智能)。"])
+    @Tool(name = "ai_optimize", value = ["AI 一键优化图片。image_uri 为图片 URI。"])
     fun aiOptimize(
-        @P(name = "image_uri", value = "图片 URI") imageUri: String,
-        @P(name = "mode", value = "fast 或 smart") mode: String
-    ): String = dispatchCommand(AgentCommand.AiOptimize(imageUri = imageUri, mode = mode))
+        @P(name = "image_uri", value = "图片 URI") imageUri: String
+    ): String = dispatchCommand(AgentCommand.AiOptimize(imageUri = imageUri))
 
     @Tool(
         name = "adjust_image",
@@ -430,7 +429,7 @@ class ChatToolService private constructor() {
                 args.optString("query", "")
             )
             "recall_memory" -> recallMemory(args.optString("query", ""))
-            "ai_optimize" -> aiOptimize(args.optString("image_uri", ""), args.optString("mode", "fast"))
+            "ai_optimize" -> aiOptimize(args.optString("image_uri", ""))
             "adjust_image" -> adjustImage(
                 args.optString("image_uri", ""),
                 args.optString("brightness", ""),

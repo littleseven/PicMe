@@ -1,13 +1,12 @@
 package com.mamba.picme.domain.usecase
 
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
-import com.mamba.picme.domain.agent.capability.optimize.consent.CloudOptimizeConsentManager
+import com.mamba.picme.domain.agent.capability.optimize.analyzer.SceneAnalyzer
 import com.mamba.picme.domain.agent.capability.optimize.preset.AdjustmentPreset
 import com.mamba.picme.domain.agent.capability.optimize.preset.BeautyPreset
 import com.mamba.picme.domain.agent.capability.optimize.preset.FilterPreset
 import com.mamba.picme.domain.agent.capability.optimize.preset.OptimizePreset
 import com.mamba.picme.domain.agent.capability.optimize.preset.PresetRepository
-import com.mamba.picme.domain.agent.capability.optimize.smart.SmartOptimizeEngine
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -16,93 +15,136 @@ import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 /**
- * [QA] AiOptimizeUseCase 单元测试
+ * [QA] AiOptimizeUseCase 单元测试（US-1 AC1.3）
  *
- * 本地场景分析（LocalSceneAnalyzer/ML Kit image-labeling）已移除：fast 路径
- * 固定走 GENERAL 预设。本测试验证 fast/smart 路径、云端授权降级、异常降级行为。
+ * 重构后 useCase 构造为 (presetRepository, sceneAnalyzer)，optimize() 通过端侧
+ * [SceneAnalyzer] 识别场景并按场景路由预设。本测试覆盖：
+ * - 8 种 Scene 各跑一遍 optimize()，断言返回对应场景预设且不抛异常；
+ * - SELFIE/FOOD/LOW_LIGHT 的返回 recipe 与 GENERAL 预设在关键字段上不同；
+ * - analyze() 被调用，且其返回的 Scene 被用于 getPreset()。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiOptimizeUseCaseTest {
 
-    private val presetRepository: PresetRepository = mockk()
-    private val consentManager: CloudOptimizeConsentManager = mockk()
-    private val smartEngine: SmartOptimizeEngine = mockk()
+    private val imageUri = "file:///test.jpg"
 
-    private val testPreset = OptimizePreset(
-        scene = Scene.GENERAL.name,
-        beauty = BeautyPreset(smoothing = 15f),
-        filter = FilterPreset(colorFilter = "NONE"),
-        adjustment = AdjustmentPreset(brightness = 2f)
-    )
-
-    private fun createUseCase(engine: SmartOptimizeEngine? = smartEngine) = AiOptimizeUseCase(
-        presetRepository = presetRepository,
-        consentManager = consentManager,
-        smartEngine = engine
-    )
-
-    @Test
-    fun `fastOptimize returns GENERAL preset`() = runTest {
-        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
-
-        val result = createUseCase().fastOptimize("file:///test.jpg")
-
-        assertEquals(Scene.GENERAL, result.scene)
-        assertFalse(result.usedCloud)
-        assertEquals("file:///test.jpg", result.editRecipe.sourceUri)
-        verify { presetRepository.getPreset(Scene.GENERAL) }
+    /**
+     * 每个场景一套可区分字段的预设。GENERAL 作为对比基线，SELFIE/FOOD/LOW_LIGHT
+     * 必须在 smoothing / saturation / brightness 上与 GENERAL 明显不同。
+     */
+    private fun presetFor(scene: Scene): OptimizePreset {
+        val beauty = when (scene) {
+            Scene.SELFIE -> BeautyPreset(smoothing = 60f, whitening = 40f, slimFace = 20f)
+            Scene.PORTRAIT -> BeautyPreset(smoothing = 35f, whitening = 20f)
+            Scene.GROUP -> BeautyPreset(smoothing = 25f)
+            Scene.LOW_LIGHT -> BeautyPreset(smoothing = 18f)
+            Scene.DOCUMENT -> BeautyPreset(smoothing = 5f)
+            Scene.FOOD, Scene.LANDSCAPE, Scene.GENERAL -> BeautyPreset(smoothing = 10f)
+        }
+        val adjustment = when (scene) {
+            Scene.FOOD -> AdjustmentPreset(saturation = 150f, brightness = 5f)
+            Scene.LOW_LIGHT -> AdjustmentPreset(brightness = 35f, saturation = 90f)
+            Scene.LANDSCAPE -> AdjustmentPreset(saturation = 120f, contrast = 60f)
+            Scene.DOCUMENT -> AdjustmentPreset(contrast = 80f, saturation = 80f)
+            Scene.SELFIE, Scene.PORTRAIT, Scene.GROUP, Scene.GENERAL -> AdjustmentPreset(saturation = 100f)
+        }
+        return OptimizePreset(
+            scene = scene.name,
+            beauty = beauty,
+            filter = FilterPreset(colorFilter = "NONE", styleFilter = "NONE"),
+            adjustment = adjustment
+        )
     }
 
     @Test
-    fun `smartOptimize falls back to fast when consent denied`() = runTest {
-        coEvery { consentManager.isCloudOptimizeAllowed() } returns false
-        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
+    fun `optimize routes each of the 8 scenes to its preset without throwing`() = runTest {
+        Scene.entries.forEach { scene ->
+            val analyzer: SceneAnalyzer = mockk()
+            val repository: PresetRepository = mockk()
+            coEvery { analyzer.analyze(imageUri) } returns scene
+            every { repository.getPreset(scene) } returns presetFor(scene)
 
-        val result = createUseCase().smartOptimize("file:///test.jpg")
+            val result = AiOptimizeUseCase(repository, analyzer).optimize(imageUri)
 
-        assertFalse(result.usedCloud)
-        assertEquals(Scene.GENERAL, result.scene)
-        coVerify { consentManager.isCloudOptimizeAllowed() }
+            assertEquals(scene, result.scene)
+            assertEquals(imageUri, result.editRecipe.sourceUri)
+            // analyze() 被调用一次，且返回的 scene 被用于 getPreset()
+            coVerify(exactly = 1) { analyzer.analyze(imageUri) }
+            verify(exactly = 1) { repository.getPreset(scene) }
+        }
     }
 
     @Test
-    fun `smartOptimize falls back to fast when engine is null`() = runTest {
-        coEvery { consentManager.isCloudOptimizeAllowed() } returns true
-        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
+    fun `SELFIE recipe differs from GENERAL preset`() = runTest {
+        val analyzer: SceneAnalyzer = mockk()
+        val repository: PresetRepository = mockk()
 
-        val result = createUseCase(engine = null).smartOptimize("file:///test.jpg")
+        // SELFIE 断言锚点
+        coEvery { analyzer.analyze(imageUri) } returns Scene.SELFIE
+        every { repository.getPreset(Scene.SELFIE) } returns presetFor(Scene.SELFIE)
+        val selfieRecipe = AiOptimizeUseCase(repository, analyzer).optimize(imageUri).editRecipe
 
-        assertFalse(result.usedCloud)
-        assertEquals(Scene.GENERAL, result.scene)
+        // GENERAL 断言锚点（对比基线）
+        coEvery { analyzer.analyze(imageUri) } returns Scene.GENERAL
+        every { repository.getPreset(Scene.GENERAL) } returns presetFor(Scene.GENERAL)
+        val generalRecipe = AiOptimizeUseCase(repository, analyzer).optimize(imageUri).editRecipe
+
+        assertNotEquals(generalRecipe.beauty.smoothing, selfieRecipe.beauty.smoothing)
+        assertNotEquals(generalRecipe.beauty.slimFace, selfieRecipe.beauty.slimFace)
+        assertEquals(60f, selfieRecipe.beauty.smoothing, 0.001f)
     }
 
     @Test
-    fun `smartOptimize uses cloud when allowed and engine available`() = runTest {
-        coEvery { consentManager.isCloudOptimizeAllowed() } returns true
-        coEvery { smartEngine.optimize(any()) } returns testPreset.copy(scene = Scene.SELFIE.name)
+    fun `FOOD recipe differs from GENERAL preset`() = runTest {
+        val analyzer: SceneAnalyzer = mockk()
+        val repository: PresetRepository = mockk()
 
-        val result = createUseCase().smartOptimize("file:///test.jpg")
+        // FOOD 断言锚点
+        coEvery { analyzer.analyze(imageUri) } returns Scene.FOOD
+        every { repository.getPreset(Scene.FOOD) } returns presetFor(Scene.FOOD)
+        val foodRecipe = AiOptimizeUseCase(repository, analyzer).optimize(imageUri).editRecipe
 
-        assertTrue(result.usedCloud)
-        assertEquals(Scene.SELFIE, result.scene)
-        assertEquals(0.85f, result.confidence, 0.001f)
-        coVerify { smartEngine.optimize("file:///test.jpg") }
+        coEvery { analyzer.analyze(imageUri) } returns Scene.GENERAL
+        every { repository.getPreset(Scene.GENERAL) } returns presetFor(Scene.GENERAL)
+        val generalRecipe = AiOptimizeUseCase(repository, analyzer).optimize(imageUri).editRecipe
+
+        assertNotEquals(generalRecipe.adjustments.saturation, foodRecipe.adjustments.saturation)
+        assertEquals(150f, foodRecipe.adjustments.saturation, 0.001f)
     }
 
     @Test
-    fun `smartOptimize falls back to fast on engine error`() = runTest {
-        coEvery { consentManager.isCloudOptimizeAllowed() } returns true
-        coEvery { smartEngine.optimize(any()) } throws RuntimeException("cloud failed")
-        every { presetRepository.getPreset(Scene.GENERAL) } returns testPreset
+    fun `LOW_LIGHT recipe differs from GENERAL preset`() = runTest {
+        val analyzer: SceneAnalyzer = mockk()
+        val repository: PresetRepository = mockk()
 
-        val result = createUseCase().smartOptimize("file:///test.jpg")
+        // LOW_LIGHT 断言锚点
+        coEvery { analyzer.analyze(imageUri) } returns Scene.LOW_LIGHT
+        every { repository.getPreset(Scene.LOW_LIGHT) } returns presetFor(Scene.LOW_LIGHT)
+        val lowLightRecipe = AiOptimizeUseCase(repository, analyzer).optimize(imageUri).editRecipe
 
-        assertFalse(result.usedCloud)
-        assertEquals(Scene.GENERAL, result.scene)
+        coEvery { analyzer.analyze(imageUri) } returns Scene.GENERAL
+        every { repository.getPreset(Scene.GENERAL) } returns presetFor(Scene.GENERAL)
+        val generalRecipe = AiOptimizeUseCase(repository, analyzer).optimize(imageUri).editRecipe
+
+        assertNotEquals(generalRecipe.adjustments.brightness, lowLightRecipe.adjustments.brightness)
+        assertEquals(35f, lowLightRecipe.adjustments.brightness, 0.001f)
+    }
+
+    @Test
+    fun `analyze result is used to select the preset`() = runTest {
+        val analyzer: SceneAnalyzer = mockk()
+        val repository: PresetRepository = mockk()
+        coEvery { analyzer.analyze(imageUri) } returns Scene.LANDSCAPE
+        every { repository.getPreset(Scene.LANDSCAPE) } returns presetFor(Scene.LANDSCAPE)
+
+        AiOptimizeUseCase(repository, analyzer).optimize(imageUri)
+
+        // analyze() 被调用一次，且其返回值 LANDSCAPE 被传给 getPreset()
+        coVerify(exactly = 1) { analyzer.analyze(imageUri) }
+        verify(exactly = 1) { repository.getPreset(Scene.LANDSCAPE) }
     }
 }

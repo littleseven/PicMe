@@ -243,7 +243,7 @@ class PhotoEditorViewModel(
             val processingState = current.copy(isProcessing = true, error = null)
             _state.value = processingState
             try {
-                val result = useCase.fastOptimize(sourceUri, current.recipe)
+                val result = useCase.optimize(sourceUri, current.recipe)
                 history.push(result.editRecipe)
                 _state.value = processingState.copy(
                     recipe = result.editRecipe,
