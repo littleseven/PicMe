@@ -37,6 +37,19 @@ class MnnFaceEmbedder private constructor(
             }
         }
 
+        /**
+         * 释放 companion 级复用缓冲区（含 DirectByteBuffer 离堆内存，GC 无法回收）。
+         *
+         * 由 FaceDetectorManager.release() 在检测链路整体退出时调用；
+         * 缓冲区为按需重建，后续提取不受影响。
+         */
+        @Synchronized
+        fun releaseSharedBuffers() {
+            reusablePixels = null
+            reusableRgbBuffer = null
+            reusableResult = null
+        }
+
         private fun getPixelsBuffer(size: Int): IntArray {
             var buffer = reusablePixels
             if (buffer == null || buffer.size < size) {

@@ -614,6 +614,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
             if (currentActivity == activity) {
                 currentActivity = null
             }
+            // 同步清理 RemoteControlToolService 的静态引用，防止已暂停 Activity 泄漏
+            if (RemoteControlToolService.currentActivity === activity) {
+                RemoteControlToolService.currentActivity = null
+            }
         }
         override fun onActivityStopped(activity: Activity) {
             activityCount--
@@ -627,6 +631,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
             // NavigationCapability 现在由 MainActivity 持有，随 Activity 自动释放
             if (currentActivity == activity) {
                 currentActivity = null
+            }
+            // 同步清理 RemoteControlToolService 的静态引用，防止已销毁 Activity 泄漏
+            if (RemoteControlToolService.currentActivity === activity) {
+                RemoteControlToolService.currentActivity = null
             }
         }
     }

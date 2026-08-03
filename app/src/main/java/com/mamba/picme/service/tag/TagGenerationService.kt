@@ -265,10 +265,11 @@ class TagGenerationService : Service() {
      * 任务线程：负责执行具体推理任务（人脸检测 / DBSCAN / 图像打标）。
      * 与控制线程解耦，即使被 JNI 阻塞也不影响暂停/取消。
      */
-    private val taskDispatcher =
+    private val taskExecutor =
         Executors.newSingleThreadExecutor { r ->
             Thread(r, "tag-worker").apply { isDaemon = true }
-        }.asCoroutineDispatcher()
+        }
+    private val taskDispatcher = taskExecutor.asCoroutineDispatcher()
 
     private var batteryLevel: Int = 100
     private var isCharging: Boolean = false
@@ -501,8 +502,21 @@ class TagGenerationService : Service() {
             try { unregisterReceiver(it) } catch (_: Exception) {}
         }
         runBlocking { orchestrator?.cancel() }
+        // wakeLock 安全网：orchestrator 取消后 runSession 的 finally 可能因
+        // dispatcher 先被取消而跳过 releaseWakeLock()，这里兜底强制释放。
+        orchestrator?.releaseWakeLockIfHeld()
+        // 级联释放推理引擎 native 资源（FaceDetector / 人脸嵌入 / Florence-2 /
+        // OpusMT / MobileCLIP，合计数百 MB）：排到任务线程尾部执行，等可能在飞的
+        // JNI 任务结束后再释放，避免并发释放 native 句柄导致崩溃。
+        // 后续 taskDispatcher.cancel() 走 shutdown()，已入队的释放任务仍会执行。
+        scheduler?.let { sched ->
+            taskExecutor.execute {
+                runCatching { sched.release() }
+                    .onFailure { android.util.Log.w(TAG, "scheduler release failed: ${it.message}") }
+            }
+        }
         // scheduler 不再维护自己的扫描任务（旧入口已废弃），
-        // 取消 orchestrator 后再取消 taskDispatcher 即可完成清理。
+        // 取消 orchestrator、排队引擎释放后再取消 dispatcher 即可完成清理。
         orchestrator = null
         scheduler = null
         orchestratorRef = null

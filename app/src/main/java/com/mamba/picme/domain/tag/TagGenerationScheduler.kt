@@ -32,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -167,7 +168,7 @@ class TagGenerationScheduler(
         PersonRepository(personDao = db.personDao(), relationDao = db.personRelationDao())
     }
     private val vocab = ControlledVocab.loadFromAssets(context)
-    private val enToZhTranslator: OpusMtTranslator by lazy {
+    private val enToZhTranslatorLazy = lazy {
         // 双语 opus-mt-en-zh 不需要 `>>eng<<` 语言标签前缀（那是多语模型的用法）；
         // 实测加 tag 会诱发幻觉（"白马王子"），故 useLangTag=false。
         OpusMtTranslator(
@@ -177,6 +178,7 @@ class TagGenerationScheduler(
             useLangTag = false
         )
     }
+    private val enToZhTranslator: OpusMtTranslator by enToZhTranslatorLazy
 
     private val labelSinicizer: LabelSinicizer by lazy {
         LabelSinicizer(
@@ -192,7 +194,7 @@ class TagGenerationScheduler(
     }
 
     /** Florence-2 tagger（ORT，独立于 MNN 桥）。tagger 为 florence2_base 时使用。 */
-    private val florence2Tagger: Florence2Tagger? by lazy {
+    private val florence2TaggerLazy = lazy {
         val dir = ModelPathConfig.getModelDir(context, ModelPathConfig.MODEL_ID_FLORENCE2)
         if (dir.exists() && (dir.listFiles()?.size ?: 0) >= 10) {
             Florence2Tokenizer.load(dir)
@@ -201,6 +203,7 @@ class TagGenerationScheduler(
             null
         }
     }
+    private val florence2Tagger: Florence2Tagger? by florence2TaggerLazy
     private val normalizer = TagNormalizer(vocab)
     private val faceClusterEngine = FaceClusterEngine(context)
 
@@ -213,7 +216,7 @@ class TagGenerationScheduler(
         )
     }
 
-    private val pipeline: TagGenerationPipeline by lazy {
+    private val pipelineLazy = lazy {
         val faceDetector = FaceDetectorFactory.create(context)
         // 【关键修复】必须调用 updatePipelineConfig()，否则 FaceDetectorManager
         // 的 isPipelineInitialized 保持 false，所有 detectPhoto() 静默返回 null。
@@ -242,6 +245,31 @@ class TagGenerationScheduler(
             florence2TaggerProvider = { florence2Tagger },
             taggerModelKeyProvider = { taggerModelKey }
         )
+    }
+    private val pipeline: TagGenerationPipeline by pipelineLazy
+
+    /**
+     * 级联释放本调度器持有的全部推理引擎 native 资源。
+     *
+     * 仅供 TagGenerationService.onDestroy() 在任务已全部取消后调用，调用后本实例不可再用。
+     * 各 lazy 引擎未初始化（本轮未用到）则跳过，不为释放而触发模型加载。
+     */
+    fun release() {
+        scope.cancel()
+        if (pipelineLazy.isInitialized()) {
+            runCatching { pipeline.release() }
+                .onFailure { Log.w(TAG, "release pipeline failed: ${it.message}") }
+        }
+        runCatching { faceClusterEngine.release() }
+            .onFailure { Log.w(TAG, "release faceClusterEngine failed: ${it.message}") }
+        if (florence2TaggerLazy.isInitialized()) {
+            runCatching { florence2Tagger?.release() }
+                .onFailure { Log.w(TAG, "release florence2Tagger failed: ${it.message}") }
+        }
+        if (enToZhTranslatorLazy.isInitialized()) {
+            runCatching { enToZhTranslator.release() }
+                .onFailure { Log.w(TAG, "release enToZhTranslator failed: ${it.message}") }
+        }
     }
 
     /**

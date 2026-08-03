@@ -24,8 +24,9 @@ import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.tool.P
 import com.mamba.tool.Tool
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.future
 import kotlinx.coroutines.runBlocking
@@ -67,6 +68,12 @@ class RemoteControlToolService(
         private var screenWidth = 0
         private var screenHeight = 0
     }
+
+    /**
+     * dispatch 常驻内部 scope（SupervisorJob 隔离单命令失败）。替代 GlobalScope：
+     * 等待超时后通过 deferred.cancel() 级联取消底层 dispatch 协程，避免协程裸跑。
+     */
+    private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
      * 在主线程同步执行 [block]，并等待其完成。
@@ -642,11 +649,10 @@ class RemoteControlToolService(
     // ==================== 内部方法 ====================
 
     private fun dispatchCommand(command: AgentCommand): String {
+        val deferred = dispatchScope.future {
+            CapabilityRegistry.getInstance().dispatch(command, AgentContext(scene = AgentScene.CHAT), null)
+        }
         return try {
-            @OptIn(DelicateCoroutinesApi::class)
-            val deferred = GlobalScope.future {
-                CapabilityRegistry.getInstance().dispatch(command, AgentContext(scene = AgentScene.CHAT), null)
-            }
             val result = deferred.get(5, TimeUnit.SECONDS)
             result.fold(
                 onSuccess = { action ->
@@ -660,7 +666,10 @@ class RemoteControlToolService(
                 onFailure = { "Error: ${it.message}" }
             )
         } catch (e: java.util.concurrent.TimeoutException) {
-            // 等待 dispatch 5s 超时：记调用方视角的等待超时（命令若最终完成仍由 CommandExecutor 记录）
+            // 等待 dispatch 5s 超时：取消底层 dispatch 协程，避免超时后协程裸跑
+            // （CompletableFuture.cancel 会级联取消 future 协程）。
+            deferred.cancel(true)
+            // 记调用方视角的等待超时（命令若最终完成仍由 CommandExecutor 记录）
             Logger.w(TAG, "dispatchCommand wait timed out: ${command::class.simpleName}")
             CommandExecutor.recordDispatchEvent(
                 capability = "(remote_control_tool)",

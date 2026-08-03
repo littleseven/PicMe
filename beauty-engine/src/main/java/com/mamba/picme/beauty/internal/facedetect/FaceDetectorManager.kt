@@ -19,6 +19,8 @@ import com.mamba.picme.beauty.api.facedetect.InferenceBackendType
 import com.mamba.picme.beauty.api.facedetect.LandmarkDetectorType
 import com.mamba.picme.beauty.api.facedetect.RoiDetectorType
 import com.mamba.picme.beauty.internal.facedetect.adapter.FaceLandmarkAdapterRegistry
+import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceDetector
+import com.mamba.picme.beauty.internal.facedetect.mnn.MnnFaceEmbedder
 import java.nio.ByteBuffer
 
 /**
@@ -785,6 +787,9 @@ class FaceDetectorManager(context: Context) : FaceDetector {
             isPipelineInitialized = false
             lastDetectionSource = FaceDetectionSource.NONE
         }
+        // 释放 MNN 桥接层的 companion 复用缓冲（含 DirectByteBuffer 离堆内存），按需会重建
+        MnnFaceDetector.releaseSharedBuffers()
+        MnnFaceEmbedder.releaseSharedBuffers()
         Logger.i(TAG, "FaceDetectorManager released")
     }
 }

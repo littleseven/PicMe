@@ -67,7 +67,6 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.data.download.DownloadState
 import com.mamba.picme.data.download.ModelConfig
-import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.model.DetectionModelType
 import com.mamba.picme.domain.model.DetectionStage
@@ -918,7 +917,7 @@ private fun SettingsAccountHeroCard(onClick: () -> Unit) {
     val serverEmail by repo.serverAuthEmailFlow.collectAsState(initial = "")
     val loggedIn = serverToken.isNotBlank()
 
-    val authClient = remember { PoLangAuthClient() }
+    val authClient = app.container.picMeAuthClient
     var quotaUsed by remember { mutableStateOf(0) }
     var quotaLimit by remember { mutableStateOf(0) }
     var quotaLoaded by remember { mutableStateOf(false) }

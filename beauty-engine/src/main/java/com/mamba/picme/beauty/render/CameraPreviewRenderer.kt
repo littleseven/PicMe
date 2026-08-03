@@ -137,32 +137,51 @@ class CameraPreviewRenderer(private val context: Context) {
         Logger.d(TAG, "Initializing CameraPreviewRenderer")
         this.renderView = view
 
-        if (!eglCore.init()) {
-            throw RuntimeException("Failed to initialize EGL")
-        }
-
-        eglContext = eglCore.createContext()
-
-        val pbufferSurface = eglCore.createSurface(null, 1, 1)
-        if (!eglCore.makeCurrent(pbufferSurface, eglContext!!)) {
-            throw RuntimeException("Failed to make EGL context current before texture creation")
-        }
-
-        createExternalTexture()
-
-        surfaceTexture = SurfaceTexture(textureId).apply {
-            setOnFrameAvailableListener {
-                frameAvailable = true
+        try {
+            if (!eglCore.init()) {
+                throw RuntimeException("Failed to initialize EGL")
             }
+
+            eglContext = eglCore.createContext()
+
+            val pbufferSurface = eglCore.createSurface(null, 1, 1)
+            if (!eglCore.makeCurrent(pbufferSurface, eglContext!!)) {
+                throw RuntimeException("Failed to make EGL context current before texture creation")
+            }
+
+            createExternalTexture()
+
+            surfaceTexture = SurfaceTexture(textureId).apply {
+                setOnFrameAvailableListener {
+                    frameAvailable = true
+                }
+            }
+
+            beautyRenderer = BeautyRenderer(context)
+            beautyRenderer.frameSyncEnabled = frameSyncEnabled
+            beautyRenderer.onInit()
+            // [帧同步 P2] 预生成首个 FrameId，避免分析线程与渲染线程首次序号分叉
+            FrameSyncBridge.setLatestFrameId(FrameId.next(), surfaceTexture?.timestamp ?: 0L)
+
+            eglCore.clearCurrent()
+        } catch (e: Exception) {
+            // init 中途失败：release() 不会被调用（isRendererInitialized=false），
+            // 这里按已完成进度做幂等清理，避免 EGL display/context/pbufferSurface/纹理泄漏
+            Logger.e(TAG, "init failed, cleaning up partial GL resources: ${e.message}", e)
+            runCatching { eglCore.clearCurrent() }
+            if (textureId != -1) {
+                runCatching { GLES20.glDeleteTextures(1, intArrayOf(textureId), 0) }
+                textureId = -1
+            }
+            surfaceTexture?.setOnFrameAvailableListener(null)
+            surfaceTexture?.release()
+            surfaceTexture = null
+            if (::beautyRenderer.isInitialized) {
+                runCatching { beautyRenderer.release() }
+            }
+            runCatching { eglCore.release() }
+            throw e
         }
-
-        beautyRenderer = BeautyRenderer(context)
-        beautyRenderer.frameSyncEnabled = frameSyncEnabled
-        beautyRenderer.onInit()
-        // [帧同步 P2] 预生成首个 FrameId，避免分析线程与渲染线程首次序号分叉
-        FrameSyncBridge.setLatestFrameId(FrameId.next(), surfaceTexture?.timestamp ?: 0L)
-
-        eglCore.clearCurrent()
 
         textureListener?.onTextureAvailable(surfaceTexture!!, DEFAULT_WIDTH, DEFAULT_HEIGHT)
         Logger.d(TAG, "CameraPreviewRenderer fully initialized")
@@ -897,6 +916,9 @@ class CameraPreviewRenderer(private val context: Context) {
         surfaceTexture = null
         beautyRenderer.release()
         eglCore.release()
+        // 清空待执行的 GL 事件与 View 引用，避免 lambda 捕获链在 release 后滞留
+        glEventQueue.clear()
+        renderView = null
         // [帧同步] 释放时清理全局状态（CR-P2-3 修复）
         frameSyncManager.clear()
         FrameSyncBridge.reset()

@@ -63,7 +63,7 @@ internal fun ServerAuthSection(onNavigateToDataPrivacy: () -> Unit = {}) {
     val serverToken by repo.serverAuthTokenFlow.collectAsState(initial = "")
     val serverEmail by repo.serverAuthEmailFlow.collectAsState(initial = "")
 
-    val authClient = remember { PoLangAuthClient() }
+    val authClient = app.container.picMeAuthClient
 
     var quotaUsed by remember { mutableStateOf(0) }
     var quotaLimit by remember { mutableStateOf(0) }
@@ -363,9 +363,10 @@ private fun DangerZone(
 @Composable
 private fun ClearGuestDataButton() {
     val context = LocalContext.current
+    val app = context.applicationContext as PoLangApplication
     val scope = rememberCoroutineScope()
     var clearing by remember { mutableStateOf(false) }
-    val authClient = remember { PoLangAuthClient() }
+    val authClient = app.container.picMeAuthClient
 
     TextButton(
         onClick = {

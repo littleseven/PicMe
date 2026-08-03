@@ -288,9 +288,15 @@ class BeautyPreviewView @JvmOverloads constructor(
         // [修复2] 不再主动 release 旧 Surface，让 GC 自然回收，避免 CameraX 正在使用时被释放
         val oldSurface = cameraSurface
         cameraSurface = renderer.getSurfaceForCamera()
-        oldSurface?.let {
+        oldSurface?.let { surface ->
             // 延迟释放旧 Surface，确保 CameraX 已完成使用
-            postDelayed({ if (it.isValid) it.release() }, 500)
+            pendingSurfaceReleaseRunnable?.let { removeCallbacks(it) }
+            val releaseRunnable = Runnable {
+                if (surface.isValid) surface.release()
+                pendingSurfaceReleaseRunnable = null
+            }
+            pendingSurfaceReleaseRunnable = releaseRunnable
+            postDelayed(releaseRunnable, 500)
         }
         Logger.d(TAG, "Created camera input surface: ${cameraSurface?.hashCode()}")
         return cameraSurface
@@ -458,6 +464,17 @@ class BeautyPreviewView @JvmOverloads constructor(
 
     private var surfaceCheckRunnable: Runnable? = null
 
+    /** getSurfaceForCamera() 中延迟释放旧 Surface 的 Runnable，detach/release 时需移除以防持有 View */
+    private var pendingSurfaceReleaseRunnable: Runnable? = null
+
+    /** 统一摘除挂在 View Handler 上的延迟任务，避免匿名 Runnable 持有本 View → Activity 引用链 */
+    private fun removePendingCallbacks() {
+        surfaceCheckRunnable?.let { removeCallbacks(it) }
+        surfaceCheckRunnable = null
+        pendingSurfaceReleaseRunnable?.let { removeCallbacks(it) }
+        pendingSurfaceReleaseRunnable = null
+    }
+
     private fun postDelayedSurfaceCheck() {
         surfaceCheckRunnable?.let { removeCallbacks(it) }
         val runnable = object : Runnable {
@@ -488,6 +505,7 @@ class BeautyPreviewView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         Logger.d(TAG, "BeautyPreviewView detached from window")
+        removePendingCallbacks()
         displaySurface = null
         renderer.clearRenderSurface()
     }
@@ -508,6 +526,7 @@ class BeautyPreviewView @JvmOverloads constructor(
     }
 
     fun release() {
+        removePendingCallbacks()
         displaySurface = null
         cameraSurface?.release()
         cameraSurface = null

@@ -71,7 +71,7 @@ class FaceClusterEngine(private val context: Context) {
     private val centroidCache = mutableMapOf<Long, Pair<FloatArray, Int>>()
 
     /** Glint360K R100 嵌入提取器（懒加载，模型缺失时为 null） */
-    private val embeddingExtractor: MnnEmbeddingExtractor? by lazy {
+    private val embeddingExtractorLazy = lazy {
         val modelDir = ModelPathConfig.getModelDir(context, "face-embedding-glint360k-r100-mnn")
         val modelFile = File(modelDir, "glintr100.mnn")
         val extractor = MnnEmbeddingExtractor(modelFile)
@@ -87,6 +87,18 @@ class FaceClusterEngine(private val context: Context) {
         } else {
             Log.w(TAG, "Glint360K R100 model NOT found at ${modelFile.absolutePath}, face clustering will NOT work. Download glintr100.mnn to enable.")
             null
+        }
+    }
+    private val embeddingExtractor: MnnEmbeddingExtractor? by embeddingExtractorLazy
+
+    /**
+     * 释放 Glint360K R100 嵌入模型 native 资源。
+     *
+     * 仅供 Service onDestroy 级联调用；模型未初始化（本轮未做聚类）则跳过。
+     */
+    fun release() {
+        if (embeddingExtractorLazy.isInitialized()) {
+            embeddingExtractor?.close()
         }
     }
 

@@ -186,6 +186,8 @@ interface AppContainer {
     val memoryCapability: MemoryCapability
     /** 受控词表（chat JS handler tag.audit 词表外标签比对 / Debug 演示共用） */
     val controlledVocab: ControlledVocab
+    /** 服务端账号客户端（内含独立 OkHttpClient，进程级单例；设置页账号区与 chat 依赖共用） */
+    val picMeAuthClient: PoLangAuthClient
 
     fun createMediaViewModelFactory(): ViewModelProvider.Factory
     fun createChatViewModelFactory(): ViewModelProvider.Factory
@@ -601,6 +603,8 @@ class AppContainerImpl(
         ChatImageRenderer(context, photoProcessor, mattingEngine, aiOptimizeUseCase, chatImageStore)
     }
 
+    override val picMeAuthClient: PoLangAuthClient by lazy { PoLangAuthClient() }
+
     private val chatViewModelDependencies: ChatViewModelDependencies by lazy {
         ChatViewModelDependencies(
             context = context,
@@ -610,7 +614,7 @@ class AppContainerImpl(
             mediaSearchEngine = mediaSearchEngine,
             mediaFeedbackRepository = mediaFeedbackRepository,
             mediaRepository = repository,
-            picMeAuthClient = PoLangAuthClient(),
+            picMeAuthClient = picMeAuthClient,
             getGallerySummaryUseCase = getGallerySummaryUseCase,
             queryGalleryMediaUseCase = queryGalleryMediaUseCase,
             startTagScanUseCase = startTagScanUseCase,
