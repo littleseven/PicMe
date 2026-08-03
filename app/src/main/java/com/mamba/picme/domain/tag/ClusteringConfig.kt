@@ -4,7 +4,7 @@ package com.mamba.picme.domain.tag
  * 人脸聚类统一配置常量
  *
  * 所有人脸聚类相关的阈值、参数均定义在此处，
- * [FaceClusterEngine]、[TagGenerationScheduler]、[FaceClusteringWorker]
+ * [FaceClusterEngine]、[TagGenerationScheduler]
  * 等使用者统一引用此配置，确保参数一致性。
  *
  * ─── 参数说明 ─────────────────────────────────────────

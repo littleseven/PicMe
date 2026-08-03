@@ -17,8 +17,6 @@ import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.beauty.api.facedetect.FaceDetectorFactory
 import com.mamba.picme.data.local.MlKitOcrProcessor
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.picme.data.indexing.FaceClusteringWorker
-import com.mamba.picme.data.indexing.ImageTagIndexingWorker
 import com.mamba.picme.data.indexing.IndexingTaskQueue
 import com.mamba.picme.data.indexing.MediaIndexingWorker
 import com.mamba.picme.data.indexing.MediaStoreObserver
@@ -140,9 +138,6 @@ interface AppContainer {
     val kwsEngine: KeywordSpotterEngine?
     val mediaSearchEngine: MediaSearchEngine
     val mediaIndexingWorker: MediaIndexingWorker
-    val faceClusteringWorker: FaceClusteringWorker
-    /** AI 图片标签索引器（本地 Vision LLM → 标签） */
-    val imageTagIndexingWorker: ImageTagIndexingWorker
     /** TAG 生成调度器(单张 retag 走 Pass3 pipeline,与集中扫描同源) */
     val tagGenerationScheduler: TagGenerationScheduler
     /** 人脸聚类引擎（人物页进入时跑跨簇合并 pass，愈合同人拆组） */
@@ -326,19 +321,6 @@ class AppContainerImpl(
     /** 媒体元数据索引器（ML Kit 标签+OCR+EXIF） */
     override val mediaIndexingWorker: MediaIndexingWorker by lazy {
         MediaIndexingWorker(context)
-    }
-
-    /** 人脸聚类器（面部几何特征 + DBSCAN） */
-    override val faceClusteringWorker: FaceClusteringWorker by lazy {
-        FaceClusteringWorker(context) {
-            repository.refreshMediaLibrary()
-        }
-    }
-
-    /** AI 图片标签索引器（本地 Vision LLM → 中文标签） */
-    override val imageTagIndexingWorker: ImageTagIndexingWorker by lazy {
-        val llmEngine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
-        ImageTagIndexingWorker(context, llmEngine)
     }
 
     override val tagGenerationScheduler: TagGenerationScheduler by lazy {
