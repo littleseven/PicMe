@@ -5,20 +5,32 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.LruCache
+import com.mamba.picme.beauty.api.FaceData
 import com.mamba.picme.beauty.api.PhotoProcessor
+import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
+import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.repository.ChatImageStore
+import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
+import com.mamba.picme.features.camera.toDevicePreference
+import com.mamba.picme.features.camera.toInferenceBackendType
+import com.mamba.picme.features.camera.toLandmarkDetectorType
+import com.mamba.picme.features.camera.toRoiDetectorType
 import com.mamba.picme.features.editor.AdjustmentRecipe
 import com.mamba.picme.features.editor.EditRecipe
+import com.mamba.picme.features.editor.FaceDataConverter
 import com.mamba.picme.features.editor.RecipeApplier
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 private const val TAG = "PoLang:ChatImageRenderer"
 private const val MAX_DECODE_DIM = 2048
+private const val BYTE_COUNT_DENOMINATOR = 8
 private const val CONTRAST_DEFAULT = 50f
 private const val TEMPERATURE_NEUTRAL = 5000f
 
@@ -30,8 +42,9 @@ private const val TEMPERATURE_NEUTRAL = 5000f
  * [RecipeApplier] 的渲染管线（裁剪 → GPU 调色/美颜/滤镜 → 抠图 → 标注）搬进 chat，
  * 使结果图作为一条 AI 图片消息直接在对话内返回，无需离开 chat 页。
  *
- * 注：当前 faceData=null（不做人脸检测），美型中依赖人脸定位的瘦脸/大眼等不生效，
- * 但磨皮 / 调色 / 滤镜等全图效果正常；如需完整美型，后续注入 FaceDetector 即可。
+ * 美型生效：注入 [faceDetector] 后，[renderRecipe] 会先 [ensureFacePipeline] 初始化人脸
+ * 检测管线，再对裁剪后的图做 [detectFace]，把真实关键点传入 GPU 管线，使瘦脸/大眼/唇色
+ * 等依赖人脸定位的效果在 chat 内与编辑器入口行为一致。
  */
 class ChatImageRenderer(
     private val context: Context,
@@ -39,10 +52,25 @@ class ChatImageRenderer(
     private val mattingEngine: MattingEngine,
     private val optimizeUseCase: AiOptimizeUseCase,
     private val chatImageStore: ChatImageStore,
+    private val faceDetector: FaceDetector,
+    private val userSettingsRepository: UserSettingsRepository? = null,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
 
     data class Outcome(val imageUri: String?, val explanation: String)
+
+    /** 人脸管线只需配置一次（进程级），未配置时 detectPhoto 会静默返回 null。 */
+    @Volatile
+    private var facePipelineConfigured = false
+
+    /**
+     * URI → 解码位图内存缓存：同一图片重复渲染（多次调整/优化同一张图）时命中缓存，
+     * 跳过 openInputStream 与 BitmapFactory 解码。按字节计数，上限为堆内存 1/8。
+     * 生命周期 = 本实例（AppContainer 单例），会话内有效。
+     */
+    private val bitmapCache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / BYTE_COUNT_DENOMINATOR).toInt()) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
 
     /**
      * 指令驱动调整：按 brightness/contrast/saturation/temperature 等显式参数渲染 → 落盘。
@@ -93,7 +121,7 @@ class ChatImageRenderer(
     /** AI 一键优化：分析场景 → 生成 recipe → 渲染 → 落盘，返回结果 uri 与说明。 */
     suspend fun aiOptimize(imageUri: String, sessionId: String): Outcome = withContext(dispatcher) {
         try {
-            val result = optimizeUseCase.fastOptimize(imageUri)
+            val result = optimizeUseCase.optimize(imageUri)
             val rendered = renderRecipe(imageUri, result.editRecipe, sessionId)
             Logger.i(TAG, "aiOptimize: uri=$imageUri, rendered=$rendered, explanation=${result.explanation}")
             Outcome(rendered, result.explanation)
@@ -101,6 +129,46 @@ class ChatImageRenderer(
             Logger.e(TAG, "aiOptimize failed", e)
             Outcome(null, "优化失败：${e.message ?: "未知错误"}")
         }
+    }
+
+    /**
+     * 确保人脸检测管线已初始化（镜像 ChatEditProcessor.ensureFacePipeline 的做法）。
+     *
+     * 关键背景：FaceDetectorFactory.create() 后必须调 updatePipelineConfig()，
+     * 否则 isPipelineInitialized=false，detectPhoto() 静默返回 null，
+     * 导致瘦脸/大眼/唇色等依赖人脸关键点的效果被静默跳过。
+     */
+    private suspend fun ensureFacePipeline() {
+        if (facePipelineConfigured) return
+        val repository = userSettingsRepository ?: return
+        runCatching {
+            val roiStageConfig = repository.roiStageConfigFlow.first()
+            val landmarkStageConfig = repository.landmarkStageConfigFlow.first()
+            faceDetector.updatePipelineConfig(
+                DetectionPipelineConfig(
+                    roiDetector = roiStageConfig.modelType.toRoiDetectorType(),
+                    landmarkDetector = landmarkStageConfig.modelType.toLandmarkDetectorType(),
+                    roiEngine = roiStageConfig.engineType.toInferenceBackendType(),
+                    landmarkEngine = landmarkStageConfig.engineType.toInferenceBackendType(),
+                    roiDevice = roiStageConfig.devicePreference.toDevicePreference(),
+                    landmarkDevice = landmarkStageConfig.devicePreference.toDevicePreference()
+                )
+            )
+            facePipelineConfigured = true
+            Logger.d(TAG, "Face detection pipeline initialized for chat image render")
+        }.onFailure { error -> Logger.e(TAG, "Failed to initialize face detection pipeline for chat image render", error) }
+    }
+
+    /**
+     * 对裁剪后的图做人脸检测，返回 GPU 管线所需的 [FaceData]；检测异常或无人脸返回 null。
+     */
+    private suspend fun detectFace(bitmap: Bitmap): FaceData? = withContext(dispatcher) {
+        runCatching {
+            faceDetector.detectPhoto(bitmap, lensFacing = 1)?.landmarks106?.let { landmarks ->
+                FaceDataConverter.fromLandmarks106(landmarks, bitmap.width, bitmap.height)
+            }
+        }.onFailure { error -> Logger.w(TAG, "detectFace failed, face-driven effects will be skipped: ${error.message}") }
+            .getOrNull()
     }
 
     /** 按 [recipe] 渲染原图 → 经 [chatImageStore] 落盘到私有缓存 → 返回 file:// 路径；任一步失败返回 null。 */
@@ -112,7 +180,9 @@ class ChatImageRenderer(
             val applier = RecipeApplier(photoProcessor, dispatcher, mattingEngine)
             val cropped = applier.applyCrop(bitmap, recipe.crop)
             Logger.i(TAG, "renderRecipe: afterCrop=${cropped.width}x${cropped.height}")
-            val processed = applier.applyGpuEffects(cropped, recipe, faceData = null)
+            ensureFacePipeline()
+            val faceData = detectFace(cropped)
+            val processed = applier.applyGpuEffects(cropped, recipe, faceData)
             Logger.i(TAG, "renderRecipe: afterGpu=${processed?.width}x${processed?.height}")
             if (processed == null) return@withContext null
             val cutout = applier.applyCutout(processed, recipe.cutout)
@@ -126,21 +196,30 @@ class ChatImageRenderer(
         }
     }
 
-    private fun decodeBitmap(imageUri: String): Bitmap? = try {
-        val resolver = context.contentResolver
-        val uri = if (imageUri.startsWith("/")) {
-            Uri.fromFile(java.io.File(imageUri))
-        } else {
-            Uri.parse(imageUri)
+    private fun decodeBitmap(imageUri: String): Bitmap? {
+        bitmapCache.get(imageUri)?.let { cached ->
+            Logger.d(TAG, "decodeBitmap cache hit: $imageUri")
+            return cached
         }
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream, null, bounds) }
-        val maxDim = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
-        val sample = if (maxDim > MAX_DECODE_DIM) maxDim / MAX_DECODE_DIM else 1
-        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-        resolver.openInputStream(uri)?.use { stream -> BitmapFactory.decodeStream(stream, null, opts) }
-    } catch (e: Exception) {
-        Logger.e(TAG, "decodeBitmap failed", e)
-        null
+        return try {
+            val resolver = context.contentResolver
+            val uri = if (imageUri.startsWith("/")) {
+                Uri.fromFile(java.io.File(imageUri))
+            } else {
+                Uri.parse(imageUri)
+            }
+            resolver.openInputStream(uri)?.use { stream ->
+                val bytes = stream.readBytes()
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                val maxDim = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
+                val sample = if (maxDim > MAX_DECODE_DIM) maxDim / MAX_DECODE_DIM else 1
+                val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+            }?.also { decoded -> bitmapCache.put(imageUri, decoded) }
+        } catch (e: Exception) {
+            Logger.e(TAG, "decodeBitmap failed", e)
+            null
+        }
     }
 }
