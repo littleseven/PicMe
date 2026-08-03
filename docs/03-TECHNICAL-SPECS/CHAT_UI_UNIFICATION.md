@@ -2,7 +2,7 @@
 
 > **版本**: 1.0  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-06  
+> **最后更新**: 2026-08-03  
 > **维护者**: RD Agent  
 
 
@@ -44,12 +44,20 @@ fun AiChatScreen(
 
 ### 2. 消息类型定义
 
-支持 5 种消息类型：
+支持 6 种消息类型：
 
 ```kotlin
 sealed class AgentMessage {
     data class UserText(val content: String) : AgentMessage()
     data class AgentText(val content: String) : AgentMessage()
+    data class CommandExecution(
+        val commandName: String,
+        val commandIcon: ImageVector? = null,
+        val status: Status = Status.PENDING,  // PENDING/RUNNING/SUCCESS/FAILED
+        val detail: String = "",
+        val index: Int = 0,
+        val total: Int = 1
+    ) : AgentMessage()  // 单命令执行状态展示（支持多命令批量执行过程可视化）
     data class PlanPreview(val content: String, val plan: ExecutionPlan? = null) : AgentMessage()
     data class PlanProgress(val content: String) : AgentMessage()
     data class PlanResult(val content: String) : AgentMessage()

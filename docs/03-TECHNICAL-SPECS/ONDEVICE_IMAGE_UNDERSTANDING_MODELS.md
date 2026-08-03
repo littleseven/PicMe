@@ -2,7 +2,7 @@
 
 > **文档状态**: 调研报告（2026-06-21）
 > **范围**: 3B 参数以内、可在 Android 端侧运行的图片理解和人脸聚类模型
-> **维护者**: [RD] 全栈工程师
+> **维护者**: 项目开发者
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## 1. 背景
 
-PoLang 当前使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Phase 1），覆盖 400+ 常见物体/场景标签。但 ML Kit 标签粒度有限，无法满足以下需求：
+PoLang 早期使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Phase 1），覆盖 400+ 常见物体/场景标签（**历史背景**：ML Kit 打标链路已移除，打标现由 Florence-2 / Qwen3-VL-2B 承担，见顶部「决策」）。但 ML Kit 标签粒度有限，无法满足以下需求：
 
 - **语义搜索**：跨模态查询（"温暖的照片""快乐的时光"）
 - **中文场景理解**：截图/文档/中文标签图片的深度理解
@@ -37,7 +37,7 @@ PoLang 当前使用 Google ML Kit Image Labeling 进行图片标注（ADR-007 Ph
 
 ### 2.1 现状
 
-PoLang 已有 MediaPipe Face Landmarker（468→106 点）、ML Kit Face Detection，Room DB `hasFace`/`faceId` 字段已预留，但聚类逻辑未实现。
+PoLang 已有 MediaPipe Face Landmarker（468→106 点）与 MNN 人脸检测（备选引擎），Room DB `hasFace`/`faceId` 字段已预留（~~ML Kit Face Detection~~ 已移除；人脸聚类已由 TAG Pass 1/2 落地：Glint360K R100 Embedding + DBSCAN，见 `TAG_GENERATION.md`）。
 
 ### 2.2 方案对比
 
@@ -52,7 +52,7 @@ PoLang 已有 MediaPipe Face Landmarker（468→106 点）、ML Kit Face Detecti
 利用已有的 106 点 landmark 提取几何特征，无需额外模型。
 
 ```
-ML Kit / MediaPipe 人脸检测 → 106 点 Landmark
+MediaPipe / MNN 人脸检测 → 106 点 Landmark
     → 几何特征向量（眼距、鼻嘴距、脸宽、下颚轮廓）
     → DBSCAN 聚类（eps 基于特征空间距离）
     → 分配 faceId → 写入 Room DB
@@ -230,18 +230,19 @@ PoLang 已有的推理框架：
 ## 6. 建议路线
 
 ```
-Phase 1（当前，已实施）:
-  ├── 图片标注：ML Kit Image Labeling（400+ 标签，端侧免费）
+Phase 1（历史，已移除/被 VLM 打标取代）:
+  ├── 图片标注：ML Kit Image Labeling（400+ 标签，端侧免费）——已移除，
+  │   打标现由 Florence-2（默认）/ Qwen3-VL-2B（备选）承担（见顶部「决策」）
   └── 搜索引擎：QueryParser + LLM 语义解析（ADR-007）
 
-Phase 2（人脸聚类，待实施）:
-  ├── 方案一：Landmark 几何特征 + DBSCAN（零成本验证，~100行代码）
-  └── 如精度不够 → 方案二：MobileFaceNet TFLite（~4MB）
+Phase 2（人脸聚类，已实施）:
+  ├── 实际落地：Glint360K R100 512 维 Embedding + DBSCAN 聚类（TAG Pass 1/2，见 TAG_GENERATION.md）
+  └── 几何特征 baseline 与 MobileFaceNet 备选未再需要
 
 Phase 3（图片内容理解升级，可选）:
-  ├── 中文场景首选：Qwen3-VL 2B + MNN（复用已有 MNN LLM 框架）
+  ├── 中文场景首选：Qwen3-VL 2B + MNN（复用已有 MNN LLM 框架）——已落地为备选打标 tagger
   ├── 快速标注：LightCap / MobileCLIP-S0（<10ms/张）
-  └── 语义搜索：Chinese-CLIP + ONNX Runtime（复用已有 Sherpa-ONNX 框架）
+  └── 语义搜索：Chinese-CLIP + ONNX Runtime（复用已有 Sherpa-ONNX 框架）——实际落地为 MobileCLIP-S2 + ONNX Runtime
 
 Phase 4（远期）:
   └── SmolVLM / MiniCPM-V：端到端图片理解和问答

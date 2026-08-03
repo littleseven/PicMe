@@ -1,16 +1,16 @@
 # PoLang 端侧推理引擎与模型全景梳理
 
-> **版本**: 1.3  
+> **版本**: 1.4  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-08  
-> **维护者**: RD Agent  
+> **最后更新**: 2026-08-03  
+> **维护者**: 项目开发者  
 > **范围**: `:app`、`:runtime-core`、`:beauty-engine`、`:beauty-api`、`:sentencepiece` 模块中所有本地推理引擎、模型、量化策略、tokenizer、运行时瓶颈、优化方案评估与多模型生命周期改造清单
 
 ---
 
 ## 1. 概述
 
-PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**12+ 个模型**，覆盖美颜预览、人脸检测、语音识别、关键词唤醒、VLM 图像打标、语义搜索、OCR、机器翻译等场景。由于历史演进和实验性质，推理栈呈现**多框架并存、量化程度不一、生命周期耦合、资源竞争复杂**的特点。
+PoLang（破浪相册）当前在端侧同时运行 **6 套推理框架**、**15+ 个模型**，覆盖美颜预览、人脸检测、语音识别、关键词唤醒、VLM 图像打标、美学打分、语义搜索、OCR、机器翻译等场景。由于历史演进和实验性质，推理栈呈现**多框架并存、量化程度不一、生命周期耦合、资源竞争复杂**的特点。
 
 > **变更说明（2026-08）**：端侧**文本** LLM（Qwen3.5-2B 聊天/指令模型）已移除（`AiAgentMode.LOCAL`、相机本地 Agent 链路全部删除）。相机 AI 指令改走远程 tool_calls。MNN-LLM 运行时现仅承载 **VLM 打标**（Qwen3-VL-2B），不再有文本聊天/指令模型。本文中涉及"本地 LLM"性能瓶颈、INT4 量化等历史内容保留作参考。
 
@@ -27,7 +27,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**12
 | **ONNX Runtime** | 1.24.3 | `:app`、`:runtime-core` | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
 | **Sherpa-ONNX** | 1.13.3 | `:runtime-core` | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
 | **MediaPipe Tasks Vision** | 0.10.26 | `:app`、`:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
-| **ML Kit** | 多个 | `:app` | 人脸检测、图像标注、OCR | Google Play Services / 内置 TFLite |
+| **ML Kit** | 多个 | `:app` | 仅 OCR 文字识别（~~人脸检测、图像标注~~已移除） | Google Play Services / 内置 TFLite |
 | **SentencePiece** | 项目本地 | `:sentencepiece` | OPUS-MT 分词（`source.spm` / `target.spm`） | `libsentencepiece_android.so` |
 
 > **ABI 过滤**: 仅 `arm64-v8a`。`app/build.gradle.kts` 中使用 `pickFirsts` 解决 `libonnxruntime.so` 冲突。
@@ -67,11 +67,11 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**12
 | 语义搜索 | **MobileCLIP-S2-ONNX** + **OPUS-MT Zh→En** | 图文跨模态相似度匹配 | MobileCLIP 文本/图像编码 512 维 |
 | 人脸聚类 | **Glint360K R100** + DBSCAN | 提取 512 维 face embedding | MNN CPU 推理 |
 | 图像理解 | **Florence-2**（默认）/ **Qwen3-VL-2B-MNN** | 相册三入口同源：预览页描述 / 信息弹框 retag / Pass3 批量 | 由设置 `taggerModelKey` 驱动 |
-| 标签/元数据 | **ML Kit Image Labeler**、**ML Kit Text Recognition** | 英文标签、OCR 文字 | 英文标签与 Qwen 中文标签混用 |
+| 标签/元数据 | **ML Kit Text Recognition** | OCR 文字识别 | ~~ML Kit Image Labeler 英文标签~~已移除，`mlKitLabels` 仅存历史数据 |
 
 ### 3.4 TAG 生成后台任务（TagGenerationService）
 
-采用 **4-Pass 管道**（实际执行顺序已优化）：
+采用 **3-Pass 管道**（MobileCLIP 语义编码已内联合并到 Pass 1，`MOBILE_CLIP_ENCODING` 枚举值保留兼容历史任务/单独重编码）：
 
 | Pass | 引擎/模型 | 作用 | 单张耗时 | 是否量化 |
 |------|-----------|------|----------|----------|
@@ -79,7 +79,7 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**12
 | **Pass 2** | DBSCAN / 增量余弦匹配 | 人脸聚类 → `personId` | ~5-20ms/对比 | — |
 | **Pass 3** | Florence-2（默认）/ Qwen3-VL-2B-MNN | 图像理解生成英文标签（中文离线派生） | ~2-8s | 否 |
 
-**调度策略**：单线程 Foreground Service + `singleThreadDispatcher` + 节流（Pass 1 已移除，Pass 3 保留 100ms）。
+**调度策略**：单线程 Foreground Service + `singleThreadDispatcher` + 节流（Pass 1 固定节流已移除，Pass 3 每张冷却 `DEFAULT_PASS3_COOLDOWN_MS = 800ms`）。
 
 ### 3.5 聊天页（ChatScreen）
 
@@ -142,9 +142,18 @@ PoLang（破浪相册）当前在端侧同时运行 **7 套推理框架**、**12
 | 模型 | 引擎 | 大小 | 量化 | 用途 |
 |------|------|------|------|------|
 | **MediaPipe Face Landmarker** | MediaPipe TFLite | 约 8MB task 文件 | TFLite 内置（通常为 INT8/FP16） | 468 点人脸关键点 |
-| **ML Kit Face Detector** | ML Kit TFLite | Google 内置 | Google 内置 | 人脸检测备选 |
-| **ML Kit Image Labeler** | ML Kit TFLite | Google 内置 | Google 内置 | 图像标签（英文） |
 | **ML Kit Text Recognition** | ML Kit TFLite | Google 内置 | Google 内置 | OCR（含中文） |
+
+> ~~ML Kit Face Detector~~ 与 ~~ML Kit Image Labeler~~ 已随 ML Kit 人脸检测/图像标注链路整体移除（依赖与源码均已删除），不再列入模型清单。
+
+### 4.5.1 美学打分模型（人物封面选择）
+
+| 模型 | 引擎 | 大小 | 量化 | 用途 |
+|------|------|------|------|------|
+| **NIMA**（`nima-aesthetic-onnx`） | ONNX Runtime + NNAPI | 小模型（ONNX） | 否 | 照片美学评分（1..10），人物封面选择 |
+| **eDifFIQA**（`ediffiqa-face-quality-onnx`） | ONNX Runtime + NNAPI | 小模型（ONNX） | 否 | 人脸质量评分（~0..1），人物封面选择 |
+
+> 实现位于 `app/.../domain/aesthetic/`（`NimaScorer` / `EdiffiqaScorer` / `CoverSelector` / `AestheticScoreWorker`）：NNAPI 加速（失败兜底 CPU），`OrtSession` 跨调用复用；打分结果写入 `media_assets.aestheticScore` / `faceQualityScore`（DB v19），由 `CoverSelector` 按 `W_FACE=0.6 / W_AESTHETIC=0.4` 加权选出人物簇封面。详见 `TAG_GENERATION.md` §2.3「人物封面选择」。
 
 ### 4.6 量化状态汇总
 
@@ -232,7 +241,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ### 6.1 架构层问题
 
 1. **多框架并存，维护成本高**
-   - 同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe、ML Kit 五套推理栈，JNI 桥接、模型下载、生命周期管理重复。
+   - 同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe 四套推理栈（ML Kit 已降级为仅 OCR 文字识别，不再承担人脸检测/图像标注推理），JNI 桥接、模型下载、生命周期管理重复。
    - 示例：`app/build.gradle.kts` 需要 `pickFirsts` 解决 `libonnxruntime.so` 冲突；`MNN-source/`  vendored 但未作为运行时依赖。
 
 2. **MNN 全局状态耦合**
@@ -276,8 +285,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 12. **模型 ID 不一致（已修复 / 端侧文本 LLM 已移除）**
     - `MODEL_ID_ASR` 已统一为 `"sherpa-onnx-zipformer-zh-en"`，与 `LlmModelManager` 注册表及 `llm_models.json` 保持一致。历史 `MODEL_ID_LLM = "qwen3_5_2b"` 对应的端侧文本 LLM 已于 2026-08 移除；VLM 打标使用 `"qwen3_vl_2b"` / `"florence2_base"` 模型 ID。
 
-13. **ML Kit 英文标签与 VLM 中文标签混用**
-    - `MetadataExtractor` 输出英文标签（如 "Outdoor"），VLM tagger 输出中文标签（如 "户外"），`LIKE` 搜索无法跨语言命中，依赖 LLM Agent 做同义词扩展。
+13. **~~ML Kit 英文标签与 VLM 中文标签混用~~（历史问题，写入源已移除）**
+    - ~~`MetadataExtractor` 输出英文标签（如 "Outdoor"），VLM tagger 输出中文标签（如 "户外"），`LIKE` 搜索无法跨语言命中，依赖 LLM Agent 做同义词扩展。~~ ML Kit 打标链路已移除，`mlKitLabels`/`mlKitLabelsZh` 仅存历史数据，不再产生新的混用问题。
 
 14. **WakeWord 当前方案低效（已部分解决）**
     - KWS 已迁移到 Sherpa-ONNX KeywordSpotter（~14MB INT8），相机页默认启用低功耗唤醒；原 VAD+ASR 方案仅在 KWS 模型不可用时回退。
@@ -339,7 +348,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — VLM 单例与加载点
 - `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` — MNN 资源管理
 - 「[11. MNN 多模型加载/卸载改造清单](#11-mnn-多模型加载卸载改造清单)」 — 多模型生命周期改造
-- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 生成 5-Pass 管道
+- `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 生成 3-Pass 管道
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 性能瓶颈分析
 - `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` — 相册自然语言搜索（含 MobileCLIP 语义召回）
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 国际化与 OPUS-MT 翻译回退
@@ -735,7 +744,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 ### 10.5.1 统一推理框架评估
 
 **背景**
-- 当前同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe、ML Kit 五套栈。
+- 当前同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe 四套栈（ML Kit 仅剩 OCR）。
 
 **候选方案**
 
@@ -1000,7 +1009,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 1. 人脸检测场景切换后自动卸载不稳定（依赖条件不合理，常驻引用导致不触发）。
 2. `MnnLandmarkDetector` 的 `requireGpu` 没有完整生效（`useGpu` 传参写死）。
-3. `LocalLlmEngine` / `SherpaMnnAsrEngine` 注册了资源监听，但缺少明确反注册生命周期，存在监听器累积风险。
+3. `LocalLlmEngine` / `SherpaOnnxAsrEngine` 注册了资源监听，但缺少明确反注册生命周期，存在监听器累积风险。
 4. `OnlineRecognizer` / `OnlineStream` 采用 `finalize()` 触发释放，不符合现代资源管理最佳实践。
 5. 缺少统一"释放等级"抽象（软释放/会话释放/彻底释放），模块间语义不一致。
 6. **VLM 与 Face/ASR 混用同一卸载策略**：当前未区分模型使用模式——VLM 打标需要跨页面常驻（TAG 多入口），但现有逻辑可能跟随页面切换误卸载 VLM，导致 TAG 重新加载冷启动 2s+ 且增加功耗（反复加载）。

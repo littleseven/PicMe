@@ -3,7 +3,7 @@
 > **文档类型**：部署运维规格
 > **针对场景**：PoLang 出海 Google Play，面向海外用户的「推荐拍照 + 图片优化 + LLM 代理」服务端
 > **部署形态**：个人开发者 · 单机单体 · 香港机房 · Nginx 反代 + 腾讯 COS
-> **最后更新**：2026-07-15
+> **最后更新**：2026-08-03
 > **维护者**：RD Agent（技术实现）
 > **关联文档**：`PRODUCT.md`、`docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`、`server/README.md`
 
@@ -61,7 +61,9 @@ PoLang 是「AI Agent + 相册/图像编辑」技术探索实验场。产品重�
                  │     /telemetry   匿名指标 append                       │
                  │     /v1/chat/completions  LLM 代理（流式 SSE）        │
                  │     /auth/email/{send,verify}  邮箱注册认证             │
-                 │     /admin/**    管理后台（SSR HTML）                   │
+                 │     /v1/claude-chat 等  AI 工程师（SSE 反代 / tool-result / deliver / available）│
+                 │     /v1/report-issue  用户问题上报（→ GitHub issue）    │
+                 │     /admin/**    管理后台（SSR HTML，含 settings 白名单 / diagnosis）│
                  │  SQLite(WAL) — 规则 / 元数据 / 遥测 / 账号 / LLM 日志   │
                  └──────────┬──────────────────────────┬──────────────────┘
                             │ 签名 URL（下发）          │ 代理（出站）
@@ -235,7 +237,7 @@ App ──后续请求带 X-App-Token: <picme_at_*> ──▶ Nginx ──▶ HK
 ### 7.1 后端单体
 
 - **语言/框架**：Kotlin 2.0.21 + Ktor 3.0.3（CIO 引擎），与 Android 技术栈一致
-- **路由**：`/healthz`、`/recommend`、`/telemetry`、`/v1/chat/completions`、`/auth/email/{send,verify}`、`/admin/**`、`/download`
+- **路由**：`/healthz`、`/recommend`、`/telemetry`、`/v1/chat/completions`、`/auth/email/{send,verify}`、`/auth/quota`、`DELETE /auth/account`、`DELETE /guest/device`、`/v1/claude-chat`、`/v1/claude-tool-result`、`/v1/claude-deliver`、`/v1/claude-engineer/available`、`/v1/report-issue`、`/admin/**`、`/download`
 - **进程管理**：`systemd` 守护（`picme-api.service`），崩溃自启，`JAVA_OPTS=-Xmx256m` + `MemoryMax=450M`
 - **配置**：环境变量注入（`server/.env` 不入 git，`.env.example` 提供模板）
 
@@ -271,7 +273,7 @@ App ──后续请求带 X-App-Token: <picme_at_*> ──▶ Nginx ──▶ HK
 
 - **形态**：kotlinx.html SSR（零前端构建），同二进制部署。
 - **访问**：`https://api.polang.net/admin`，固定 `ADMIN_TOKEN` + cookie 认证。
-- **页面**：概览（今日 stat）、用户列表、用户详情、流量趋势。
+- **页面**：概览（今日 stat）、用户列表、用户详情、流量趋势、渠道（消耗聚合 + 上游余额）、设置（全局额度默认值 + AI 工程师白名单 `#whitelist`）、问题诊断（用户上报问题）。原 `/admin/ai-engineer-whitelist` 已 301 重定向至 `/admin/settings#whitelist`。
 - **安全**：`ADMIN_TOKEN` 为空则后台禁用；建议 nginx 加 IP 白名单。
 
 ---
@@ -387,5 +389,5 @@ bash ~/deploy-switch.sh
 ---
 
 > **维护者**：RD Agent
-> **最后更新**：2026-07-15
+> **最后更新**：2026-08-03
 > **状态**：生效中（已上线）

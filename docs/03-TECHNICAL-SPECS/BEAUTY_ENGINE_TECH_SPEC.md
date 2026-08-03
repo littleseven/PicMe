@@ -2,7 +2,7 @@
 
 > **版本**: 7.0  
 > **状态**: 生效中（大美丽 BIG_BEAUTY 单引擎）  
-> **最后更新**: 2026-07-06  
+> **最后更新**: 2026-08-03  
 > **维护者**: RD Agent  
 > **技术路线**: 自研 GPU 加速管线 + EGL 共享上下文 + SurfaceTexture 直通 + GPU 离屏渲染拍照（CPU Fallback 降级）
 
@@ -82,7 +82,7 @@
 | 故障排查 | ✅ 全链路日志可观测 |
 | 授权成本 | ✅ 零成本 |
 | Compose 兼容性 | ✅ SurfaceView/FrameLayout |
-| 人脸检测 | ML Kit / MediaPipe 外部提供 |
+| 人脸检测 | MediaPipe / MNN 双引擎外部提供（ML Kit 人脸检测已移除） |
 
 ### 1.2 为什么选择 OpenGL ES 而非 Vulkan
 

@@ -1,7 +1,7 @@
 # PoLang 服务端实现方案（Ktor）
 
 > **文档状态**：已上线（v0.6.3），服务端已在 `api.polang.net` 运行。文档与代码已对齐，编码时以代码为事实来源。
-> **最后更新**：2026-07-25（v0.6.4 对齐：管理后台额度/上限/概览累计/渠道余额扩展上线）
+> **最后更新**：2026-08-03（AI 工程师与问题上报路由对齐：`/v1/claude-chat`、`/v1/claude-tool-result`、`/v1/claude-deliver`、`/v1/claude-engineer/available`、`/v1/report-issue`；管理后台设置页白名单/问题诊断页；migrations 001~009）
 > **P0 阻断项**：✅ 已修复并本地端到端验证（2026-07-12）——WAL/busy_timeout/poolSize=1、seed 幂等加载（补 `rule(scene,locale,version)` 唯一索引让 `INSERT OR IGNORE` 真正生效）、StatusPages（Ktor 3 `(call,cause)` 双参数 handler）、`newSuspendedTransaction(Dispatchers.IO)`、systemd `JAVA_OPTS=-Xmx256m`。
 > **维护者**：RD Agent
 > **关联**：`PRODUCT.md`、`OVERSEAS_SERVER_DEPLOYMENT.md`、`AI_OPTIMIZATION.md`
@@ -26,6 +26,9 @@
 - 2 个 P1 路由：`/assets`（🚧）、`/agent/config`（🚧，供应商适配参数下发）
 - 管理后台 v0.6.4 扩展：`/admin/devices`（未注册设备列表 + id 复制 + 单条删除，对应 `anonymous_device` 表）
 - 管理后台 v0.6.4 扩展（额度/概览/渠道）：`/admin/settings`（全局额度默认值，持久化 `server_setting` 表 + `SettingsService` 内存快照）；`/admin/users/{id}/{reset-quota,limit}` 与 `/admin/devices/{id}/reset-quota`（清零计数、保留历史；单用户改上限）；概览页累计指标（用户/设备/Token/调用/成本）；`/admin/channels` 增消耗聚合 + 上游余额缓存（`llm_channel.balance_*` 列，`/admin/channels/{id}/refresh-balance`）
+- AI 工程师与问题上报（2026-08 上线）：`POST /v1/claude-chat`（SSE 流式反代云主机 Claude Code）、`POST /v1/claude-tool-result`（App 工具结果回传）、`POST /v1/claude-deliver`（代码交付，白名单限制）、`GET /v1/claude-engineer/available`（返回 `{available, canDeliver}`）、`POST /v1/report-issue`（用户问题上报 → 脱敏后自动建 GitHub issue，`IssueReportService` + `GitHubIssueClient`）
+- 管理后台 2026-08 扩展：`/admin/settings#whitelist`（AI 工程师白名单配置）、`/admin/diagnosis`（用户上报问题页）；原 `/admin/ai-engineer-whitelist` 301 重定向至 settings 页白名单区块
+- 账号与配额路由：`GET /auth/quota`（额度查询）、`DELETE /auth/account`（账号软注销）、`DELETE /guest/device`（游客设备注销）
 - SQLite（规则/元数据/遥测/计数/账号/LLM 日志）
 - 腾讯 COS 预签名下发
 - systemd + Nginx 反代 + certbot 上线
@@ -85,13 +88,17 @@ server/   # = langchain4android/server/（rootProject.name = "picme-server"）
 │   ├── kotlin/com/mamba/picme/server/
 │   │   ├── Application.kt          # ✅ 入口 + 插件装配
 │   │   ├── config/AppConfig.kt     # ✅ 读环境变量
+│   │   ├── config/SettingsService.kt # ✅ 全局设置（server_setting 表 + 内存快照）
 │   │   ├── routes/
 │   │   │   ├── HealthzRoute.kt     # ✅ P0
 │   │   │   ├── RecommendRoute.kt   # ✅ P0
 │   │   │   ├── TelemetryRoute.kt   # ✅ P0
-│   │   │   ├── AuthRoute.kt        # ✅ P0（邮箱认证）
+│   │   │   ├── AuthRoute.kt        # ✅ P0（邮箱认证 + /auth/quota + DELETE /auth/account + DELETE /guest/device）
 │   │   │   ├── LlmRoute.kt         # ✅ P0（LLM 代理）
 │   │   │   ├── DownloadRoute.kt    # ✅ P0
+│   │   │   ├── ClaudeChatRoute.kt  # ✅ AI 工程师（/v1/claude-chat、/v1/claude-deliver、/v1/claude-engineer/available）
+│   │   │   ├── ClaudeToolResultRoute.kt # ✅ /v1/claude-tool-result（App 工具结果回传）
+│   │   │   ├── IssueReportRoute.kt # ✅ /v1/report-issue（用户上报 → GitHub issue）
 │   │   │   ├── AssetsRoute.kt      # 🚧 P1 待实现
 │   │   │   └── AgentConfigRoute.kt # 🚧 P1 待实现
 │   │   ├── auth/
@@ -115,9 +122,12 @@ server/   # = langchain4android/server/（rootProject.name = "picme-server"）
 │   │   ├── analytics/
 │   │   │   ├── UsageRecorder.kt    # ✅ LLM 调用日志
 │   │   │   └── TokenUsage.kt       # ✅ Token 用量解析
+│   │   ├── issue/
+│   │   │   ├── IssueReportService.kt # ✅ 问题上报（脱敏 → GitHub issue）
+│   │   │   └── GitHubIssueClient.kt  # ✅ GitHub Issues API 客户端
 │   │   └── db/{Db,Tables,Migrations}.kt  # ✅
 │   └── resources/logback.xml       # ✅
-├── migrations/                     # 001_init ~ 005_account_token_plain
+├── migrations/                     # 001_init ~ 009_drop_diag_jobs（含 006_account_soft_delete、007_server_setting、008_llm_channel_balance、009_drop_diag_jobs）
 ├── .env.example
 ├── deploy.sh · deploy-switch.sh · run-local.sh
 ├── picme-api.service
@@ -128,7 +138,7 @@ server/   # = langchain4android/server/（rootProject.name = "picme-server"）
 
 ---
 
-## 5. API 契约（6 路由）
+## 5. API 契约
 
 所有路由前缀经 Nginx 反代到 `https://api.polang.net/`。
 
@@ -137,6 +147,17 @@ server/   # = langchain4android/server/（rootProject.name = "picme-server"）
 | GET | `/healthz` | P0 | ✅ | — | `{status:"ok", version, time}` | 不缓存 |
 | POST | `/recommend` | P0 | ✅ | `{scene, locale, clientVersion?}` | `{params:{...}, ruleVersion}` | 可缓存；不限流 |
 | POST | `/telemetry` | P0 | ✅ | `{events:[{type, payload}]}` | `{accepted:n}` | 不缓存；批量 |
+| POST | `/v1/chat/completions` | P0 | ✅ | OpenAI 兼容 `{messages, model?, stream?}` | OpenAI 兼容响应 / **SSE** 流 | 限流 + 计费（Channel 路由） |
+| POST | `/auth/email/send` | P0 | ✅ | `{email}` | `{ok}` | 限流 |
+| POST | `/auth/email/verify` | P0 | ✅ | `{email, code}` | `{token}` | — |
+| GET | `/auth/quota` | P0 | ✅ | —（X-App-Token） | `{used, limit, ...}` | 不缓存 |
+| DELETE | `/auth/account` | P0 | ✅ | —（X-App-Token） | 200/404 | 账号软注销 |
+| DELETE | `/guest/device` | P0 | ✅ | —（X-Device-Id） | 200/400 | 游客设备数据删除 |
+| POST | `/v1/claude-chat` | P1 | ✅ | `{message, claudeSid?, ...}` | **SSE**（流式反代云主机 Claude Code，含 `app_tool_request` 下行） | 限流；已认证账号可用（只读诊断） |
+| POST | `/v1/claude-tool-result` | P1 | ✅ | `{claudeSid, toolUseId, result}` | `{ok}` | App 工具执行结果回传 |
+| POST | `/v1/claude-deliver` | P1 | ✅ | `{claudeSid, instruction}` | **SSE** | **白名单限制**（`ai_engineer_whitelist`，代码交付） |
+| GET | `/v1/claude-engineer/available` | P1 | ✅ | — | `{available, canDeliver}` | 不缓存 |
+| POST | `/v1/report-issue` | P1 | ✅ | `{title, description, ...}` | `{issueUrl}` | 每账号每天 10 条；脱敏后建 GitHub issue |
 | GET | `/assets/manifest` | P1 | 🚧 | `?since=<ver>` | `{models:[{key,kind,version,size,md5}]}` | 可缓存 |
 | GET | `/assets/url` | P1 | 🚧 | `?key=<modelKey>` | `{url, expiresAt}` | COS 预签名；短缓存 |
 | GET | `/agent/config` | P1 | 🚧 | `?clientVersion?&locale?` | `{systemPrompt, model, providerAdapters, maxIterations}` | 可缓存（客户端启动时拉取） |

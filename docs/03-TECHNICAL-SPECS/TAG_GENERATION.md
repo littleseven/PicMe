@@ -1,11 +1,11 @@
 # 相册自动 TAG 生成
 
-> **版本**: 2.0  
+> **版本**: 2.1  
 > **状态**: 已实施  
-> **最后更新**: 2026-07-08  
-> **维护者**: RD Agent  
+> **最后更新**: 2026-08-03  
+> **维护者**: 项目开发者  
 >
-> **历史合并说明**：本文档由以下 6 份文档合并而成：`AUTO_TAG_GENERATION_SPEC.md`、`TAG_DATABASE_SCHEMA.md`、`TAG_SCAN_STATE_MACHINE.md`、`TAG_GENERATION_IMPLEMENTATION_REVIEW.md`、`TAG_GENERATION_PERFORMANCE_ANALYSIS.md`、`TAG_I18N_DESIGN.md`。内容已按「总览 → 5-Pass Pipeline → 状态机 → 数据库模型 → 实现回顾 → 性能分析 → I18N」重组，并消除重复内容。
+> **历史合并说明**：本文档由以下 6 份文档合并而成：`AUTO_TAG_GENERATION_SPEC.md`、`TAG_DATABASE_SCHEMA.md`、`TAG_SCAN_STATE_MACHINE.md`、`TAG_GENERATION_IMPLEMENTATION_REVIEW.md`、`TAG_GENERATION_PERFORMANCE_ANALYSIS.md`、`TAG_I18N_DESIGN.md`。内容已按「总览 → 3-Pass Pipeline → 状态机 → 数据库模型 → 实现回顾 → 性能分析 → I18N」重组，并消除重复内容。
 >
 > **相关文档**: `GALLERY_SEARCH.md`（相册搜索 SSOT）、`ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`
 
@@ -20,7 +20,6 @@
 - **人脸维度**：照片中出现了「谁」（通过人脸检测 + 人脸 Embedding + DBSCAN 聚类）
 - **内容维度**：照片的场景、物体、活动（通过图像打标模型）
 - **语义维度**：MobileCLIP 图像-文本对齐 embedding（用于语义搜索）
-- **ML Kit 快速标签**：英文物体/场景标签（用于补充召回）
 - **时间/地点维度**：已有的 EXIF 元数据
 
 ### 1.2 核心模块
@@ -28,13 +27,12 @@
 | 模块 | 文件 | 职责 |
 |------|------|------|
 | `TagGenerationScheduler` | `domain/tag/TagGenerationScheduler.kt` | 模型加载、单张处理、DBSCAN 聚类、OpenCL 守护 |
-| `TagGenerationPipeline` | `domain/tag/TagGenerationPipeline.kt` | 单张照片的 5-Pass 原子处理 |
+| `TagGenerationPipeline` | `domain/tag/TagGenerationPipeline.kt` | 单张照片的 3-Pass 原子处理 |
 | `TagScanOrchestrator` | `domain/tag/scan/TagScanOrchestrator.kt` | 持久化任务队列、会话状态机、暂停/恢复/取消/重试 |
 | `TagScanTaskEntity` | `data/local/entity/TagScanTaskEntity.kt` | 任务持久化实体及 `TagScanPass` 枚举 |
 | `TagCategory` | `domain/tag/TagCategory.kt` | 用户可见类别与 Pass 阶段映射 |
 | `OpenClGuardian` | `domain/tag/OpenClGuardian.kt` | Pass 3 前 warmup 与 OpenCL → CPU 降级 |
-| `MobileClipEngine` | `domain/tag/MobileClipEngine.kt` | MobileCLIP-S0 语义编码 |
-| `MlKitTagExtractor` | `domain/tag/MlKitTagExtractor.kt` | ML Kit Image Labeler 英文标签提取 |
+| `MobileClipEngine` | `domain/tag/MobileClipEngine.kt` | MobileCLIP-S2 语义编码 |
 | `FaceClusterEngine` | `domain/tag/FaceClusterEngine.kt` | Glint360K R100 Embedding + DBSCAN 聚类 |
 | `TagNormalizer` / `ControlledVocab` | `domain/tag/TagNormalizer.kt` | Qwen 输出规范化与受控词表映射 |
 | `TagGenerationService` | `service/tag/TagGenerationService.kt` | 前台 Service，驱动 Orchestrator 并暴露进度 |
@@ -42,7 +40,7 @@
 
 ---
 
-## 2. 5-Pass Pipeline
+## 2. 3-Pass Pipeline
 
 ### 2.1 Pipeline 总览
 
@@ -54,7 +52,7 @@
 │ Pass 1: FACE_DETECTION                       │
 │ • 人脸 ROI 检测 + 106 关键点                 │
 │ • Glint360K R100 512 维人脸 Embedding         │
-│ • MobileCLIP 语义 Embedding（Base64）        │
+│ • MobileCLIP 语义 Embedding（Base64，已内联） │
 │ 写入: faceRoiResult / face_embeddings        │
 │       semanticEmbedding / lastTagScanPasses  │
 └─────────────────────────────────────────────┘
@@ -72,16 +70,12 @@
 │ • 中文标签 + ControlledVocab 规范化          │
 │ 写入: labels JSON                            │
 └─────────────────────────────────────────────┘
-        │
-        ▼
-┌─────────────────────────────────────────────┐
-│ Pass 5: ML_KIT_TAGGING                       │
-│ • ML Kit Image Labeler 英文标签              │
-│ 写入: mlKitLabels JSON                       │
-└─────────────────────────────────────────────┘
 
 Pass 4: MOBILE_CLIP_ENCODING（保留枚举值，用于兼容历史任务/单独重编码场景；
-        常规扫描已将 MobileCLIP 内联合并到 Pass 1）
+        常规扫描已将 MobileCLIP 编码内联合并到 Pass 1）
+
+注：原 Pass 5（ML_KIT_TAGGING，ML Kit Image Labeler 英文标签提取）已随
+    ML Kit 打标链路整体移除，`TagScanPass` 枚举与 `MlKitTagExtractor` 类均已删除。
 ```
 
 ### 2.2 TAG 分类体系
@@ -91,8 +85,8 @@ Pass 4: MOBILE_CLIP_ENCODING（保留枚举值，用于兼容历史任务/单独
 | L1 人脸 | FaceDetector + FaceClusterEngine | `faceRoiResult` JSON、`face_embeddings` 表、`persons` 表、`media_assets.faceId` | `hasFace=true`, `faceCount=2`, `personId=3` |
 | L2 内容 | Florence-2（默认）/ Qwen3-VL-2B（备选 tagger） | `media_assets.labels` JSON | `scene=户外`, `activity=旅行`, `tags=["风景","山"]` |
 | L3 元数据 | EXIF / MediaStore / 逆地理编码 | `captureDate`, `locationName`, `source`, `latitude`/`longitude` | `time:afternoon`, `location:北京` |
-| L4 ML Kit 标签 | ML Kit Image Labeler | `media_assets.mlKitLabels` JSON | `["Outdoor","Food","Plant"]` |
-| L5 语义向量 | MobileCLIP-S0 | `media_assets.semanticEmbedding` Base64 | 512 维 L2 归一化向量 |
+| L4 ML Kit 标签（遗留） | ~~ML Kit Image Labeler~~（已移除） | `media_assets.mlKitLabels` JSON（仅历史数据） | `["Outdoor","Food","Plant"]` |
+| L5 语义向量 | MobileCLIP-S2 | `media_assets.semanticEmbedding` Base64 | 512 维 L2 归一化向量 |
 
 #### L1 人脸标签
 
@@ -127,7 +121,10 @@ Qwen 输出经 `TagNormalizer` 映射到 `ControlledVocab` 后写入 `labels` JS
 | `source:{source}` | `MediaAsset.source` | `source:wechat` |
 | `location:{name}` | `locationName` | `location:北京` |
 
-#### L4 ML Kit 英文标签
+#### L4 ML Kit 英文标签（遗留，已停止产生新数据）
+
+> **注意**：ML Kit Image Labeling 打标链路（`MlKitTagExtractor` / `ML_KIT_TAGGING` Pass）已整体移除，
+> `mlKitLabels` / `mlKitLabelsZh` 列仅为兼容历史数据保留，新扫描不再写入。以下描述仅对存量历史数据有效。
 
 - ML Kit `ImageLabeler` 输出英文标签，按置信度过滤后写入 `mlKitLabels` JSON 数组。
 - 不随存储翻译，避免引入额外延迟与翻译错误。
@@ -174,6 +171,26 @@ suspend fun stage1WithEmbeddings(
 - 匹配成功则复用原 `personId` 与 `name`，避免重扫描后用户命名丢失
 - 每个旧人物最多被复用一次，未匹配到的新簇将创建新的匿名人物
 
+#### 人物封面选择：NIMA + eDifFIQA 美学打分
+
+人物聚类（Pass 2）产出人物簇后，系统通过端侧美学打分为每个人物挑选封面图（`persons.coverMediaId`）：
+
+- **模型与打分**（`domain/aesthetic/`）：
+  - `NimaScorer`：NIMA 美学评分（模型 `nima-aesthetic-onnx`，输出 1..10 分）
+  - `EdiffiqaScorer`：eDifFIQA 人脸质量评分（模型 `ediffiqa-face-quality-onnx`，输出约 0..1 分）
+  - 两者均为 ONNX Runtime 推理，优先 **NNAPI** 加速（GPU/DSP），失败兜底 CPU；`OrtSession` 跨调用复用，避免重复建会话（NNAPI 编译昂贵）
+  - 打分结果持久化到 `media_assets.aestheticScore` / `faceQualityScore`（DB v19，见 §5.4），由 `AestheticScoreWorker` 批量回填
+- **加权选择**（`CoverSelector`）：人脸质量为主、美学为辅的加权组合，取最高分者作为封面：
+
+```kotlin
+// 美学归一 (a-1)/9 ∈ [0,1]；人脸质量 q clamp 到 [0,1]
+combinedScore = W_FACE * q + W_AESTHETIC * aNorm
+// W_FACE = 0.6, W_AESTHETIC = 0.4（可调常量）
+// 仅人脸质量 → 用 q；仅美学 → 用 aNorm；都无 → 回退旧逻辑（firstOrNull）
+```
+
+- 该机制替代了原先简单取第一张照片作为人物封面的策略，优先选择人脸清晰且构图美观的照片。
+
 #### Pass 3：图像打标（图像内容理解）
 
 **模型**: tagger 可切换（默认 Florence-2 ORT；备选 Qwen3-VL / SmolVLM 等 MNN-LLM VLM）  
@@ -197,19 +214,14 @@ suspend fun stage1WithEmbeddings(
   - 兼容历史任务记录
   - 单独对旧数据补全语义 embedding 的场景
 
-#### Pass 5：ML Kit 英文标签提取
-
-- `MlKitTagExtractor.extract(uri)` → 英文标签列表
-- 置信度阈值默认 `0.5`，最大数量 `5`
-- 结果写入 `media_assets.mlKitLabels` JSON 数组
-
 ### 2.4 类别到 Pass 映射
 
 | TagCategory | 映射 Pass |
 |-------------|-----------|
 | `FACE` | `FACE_DETECTION` + `DBSCAN` |
 | `SCENE` / `ACTIVITY` / `OBJECTS` / `TAGS` / `SUMMARY` | `IMAGE_TAGGING` |
-| `ML_KIT_LABELS` | `ML_KIT_TAGGING` |
+
+> 原 `ML_KIT_LABELS` 类别与 `ML_KIT_TAGGING` Pass 已随 ML Kit 打标链路移除。
 
 ### 2.5 OpenCL 超时与 CPU 降级
 
@@ -233,7 +245,7 @@ class OpenClGuardian(
 
 ### 3.1 设计目标
 
-`TagScanOrchestrator` 通过有限状态机管理 5-Pass TAG 扫描会话。状态机需要满足：
+`TagScanOrchestrator` 通过有限状态机管理 3-Pass TAG 扫描会话。状态机需要满足：
 
 - **可观测**：UI 可实时感知当前阶段
 - **可中断**：支持暂停、恢复、取消
@@ -357,7 +369,7 @@ data class TagScanTaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: String,
     val mediaId: Long,
-    val pass: TagScanPass,                 // FACE_DETECTION / DBSCAN / IMAGE_TAGGING / MOBILE_CLIP_ENCODING / ML_KIT_TAGGING
+    val pass: TagScanPass,                 // FACE_DETECTION / DBSCAN / IMAGE_TAGGING / MOBILE_CLIP_ENCODING（legacy，仅兼容历史任务/单独重编码）
     val tagCategories: String? = null,     // 目标类别 JSON 数组
     val status: TagScanTaskStatus = PENDING,
     val priority: Int = 0,
@@ -393,7 +405,7 @@ data class TagScanTaskEntity(
 
 ## 5. 数据库模型
 
-当前数据库版本：**7**（Room `@Database(version = 7)`）。版本 6→7 新增了 `media_assets.mlKitLabelsZh` 列，用于 ML Kit 标签中文翻译（见 [I18N 章节](#7-国际化i18n)）。
+当前数据库版本：**19**（Room `@Database(version = 19)`，`AppDatabase.kt`）。完整迁移历史见 [§5.4](#54-数据库版本迁移历史)。
 
 ### 5.1 核心表结构
 
@@ -411,8 +423,8 @@ data class TagScanTaskEntity(
 | `faceId` | String? | 人物簇 ID（Pass 2 聚类后填充） |
 | `source` | String? | 来源标识 |
 | `labels` | String? | **TAG 结果 JSON**（Pass 3 产出） |
-| `mlKitLabels` | String? | **ML Kit 英文标签 JSON 数组**（Pass 5 产出） |
-| `mlKitLabelsZh` | String? | **ML Kit 中文标签 JSON 数组**（Phase 1.5 新增） |
+| `mlKitLabels` | String? | **ML Kit 英文标签 JSON 数组**（遗留字段：写入源 ML Kit 打标链路已移除，仅为历史数据兼容保留，不再产生新数据） |
+| `mlKitLabelsZh` | String? | **ML Kit 中文标签 JSON 数组**（遗留字段：同上，仅历史数据） |
 | `ocrText` | String? | OCR 提取的文字 |
 | `latitude` | Double? | GPS 纬度 |
 | `longitude` | Double? | GPS 经度 |
@@ -467,7 +479,7 @@ data class TagScanTaskEntity(
 | `id` | Long (PK) | 自增主键 |
 | `sessionId` | String | 扫描会话 ID |
 | `mediaId` | Long | 关联媒体 ID |
-| `pass` | TagScanPass | 阶段：FACE_DETECTION / DBSCAN / IMAGE_TAGGING / MOBILE_CLIP_ENCODING / ML_KIT_TAGGING |
+| `pass` | TagScanPass | 阶段：FACE_DETECTION / DBSCAN / IMAGE_TAGGING / MOBILE_CLIP_ENCODING（legacy） |
 | `tagCategories` | String? | 目标 TAG 类别 JSON 数组，null=全部 |
 | `status` | TagScanTaskStatus | 状态：PENDING / RUNNING / PAUSED / COMPLETED / FAILED / CANCELLED |
 | `priority` | Int | 优先级（数值越小越优先） |
@@ -513,14 +525,16 @@ data class TagScanTaskEntity(
 
 #### `semanticEmbedding` 字段格式
 
-MobileCLIP-S0 生成的 512 维语义 embedding，存储为 **FloatArray 的 Base64 字符串**。
+MobileCLIP-S2 生成的 512 维语义 embedding，存储为 **FloatArray 的 Base64 字符串**。
 
-- 模型：MobileCLIP-S0 (vision_model ~45MB)
+- 模型：MobileCLIP-S2（vision model ~397MB，ONNX Runtime 后端，支持 fp32/fp16）
 - 维度：512
 - 归一化：L2 归一化
 - 用途：自然语言图片搜索（余弦相似度匹配）
 
-#### `mlKitLabels` 字段格式（Pass 5 产出）
+#### `mlKitLabels` 字段格式（遗留，原 Pass 5 产出）
+
+> **注意**：ML Kit Image Labeler 打标链路已移除，该字段仅为历史数据兼容保留，不再产生新数据。
 
 ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON 数组：
 
@@ -533,7 +547,7 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 记录各 Pass 的完成时间戳，用于增量扫描去重：
 
 ```json
-{"1": 1750992000000, "2": 1750992100000, "3": 1750992200000, "5": 1750992300000}
+{"1": 1750992000000, "2": 1750992100000, "3": 1750992200000}
 ```
 
 | Key | 含义 |
@@ -542,9 +556,9 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 | `"2"` | Pass 2（DBSCAN 聚类）完成时间 |
 | `"3"` | Pass 3（图像标签）完成时间 |
 | `"4"` | Pass 4（MobileCLIP 单独重编码，保留兼容）完成时间 |
-| `"5"` | Pass 5（ML Kit 英文标签）完成时间 |
+| `"5"` | 历史遗留：原 Pass 5（ML Kit 英文标签）完成时间；写入源已移除，仅存在于旧数据 |
 
-### 5.3 5-Pass 数据流转
+### 5.3 3-Pass 数据流转
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -585,16 +599,6 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 │     • media_assets.lastTagScanPasses += {"3": ts}               │
 │     • media_assets.lastTagScanAt = 当前时间戳                   │
 └─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  Pass 5: ML Kit Image Labeler 英文标签提取                       │
-│  ├─ mlKitTagExtractor.extract(uri) → 英文标签列表                │
-│  │                                                              │
-│  └─ 写入 DB:                                                    │
-│     • media_assets.mlKitLabels = JSON 英文标签数组                │
-│     • media_assets.mlKitLabelsZh = JSON 中文标签数组              │
-│     • media_assets.lastTagScanPasses += {"5": ts}               │
-└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.4 数据库版本迁移历史
@@ -604,8 +608,20 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 | 2 → 3 | 新增 `tag_scan_tasks` 表；`media_assets` 新增 `lastTagScanAt` / `lastTagScanPasses` |
 | 3 → 4 | `media_assets` 新增 `semanticEmbedding`（MobileCLIP 语义向量） |
 | 4 → 5 | 空迁移（修复设备上版本已升到 5 的问题） |
-| 5 → 6 | `media_assets` 新增 `mlKitLabels`（ML Kit 英文标签 JSON）；`TagScanPass` 新增 `ML_KIT_TAGGING` |
+| 5 → 6 | `media_assets` 新增 `mlKitLabels`（ML Kit 英文标签 JSON）；`TagScanPass` 新增 `ML_KIT_TAGGING`（该枚举值后续已随 ML Kit 打标链路移除） |
 | 6 → 7 | `media_assets` 新增 `mlKitLabelsZh`（ML Kit 中文标签 JSON） |
+| 7 → 8 | 性能优化：`media_assets` 新增 `captureDate` / `hasFace` 索引（Room 标准命名） |
+| 8 → 9 | 新增 `photo_edit_recipes` 表（非破坏性编辑配方） |
+| 9 → 10 | 新增 `media_feedback` 表（搜索结果点赞/点踩反馈） |
+| 10 → 11 | 清理 ML Kit 图像标注遗留数据 |
+| 11 → 12 | `media_assets` 新增 `labelsEn` / `labelsZh`（英文打标 + 双字段汉化） |
+| 12 → 13 | 人物关系图谱（`person_relations`）+ 通用事实记忆库（`memory_facts`） |
+| 13 → 14 | `person_relations` 新增 `customLabel` 列（两层关系模型） |
+| 14 → 15 | 新增 `chat_image_cache` 表（chat 编辑/优化结果图私有缓存） |
+| 15 → 16 | `TagScanPass.QWEN_TAGGING` 重命名为 `IMAGE_TAGGING`（改写历史任务行，避免枚举反序列化崩溃） |
+| 16 → 17 | `media_assets` 新增 `city` 列（逆地理编码城市，按城市分组） |
+| 17 → 18 | `media_assets` 新增 `faceFocusY`（人脸纵向聚焦点，列表缩略图对齐） |
+| 18 → 19 | `media_assets` 新增 `aestheticScore` / `faceQualityScore`（NIMA 美学分 / eDifFIQA 人脸质量分，用于人物封面选择） |
 
 ---
 
@@ -615,7 +631,7 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 
 **方向基本合理，但 Pass 3 的生成式标签体系存在「用大炮打蚊子」问题。**
 
-使用端侧多模态生成模型（Qwen 2B 级别）进行相册图像打标，在**隐私合规**和**中文复杂场景理解**上是成立的；但在**效率、标签一致性、成本控制**上不是最优解。当前 5-Pass 架构本身设计良好，但 Pass 3 的生成式标签体系存在多项可优化空间。
+使用端侧多模态生成模型（Qwen 2B 级别）进行相册图像打标，在**隐私合规**和**中文复杂场景理解**上是成立的；但在**效率、标签一致性、成本控制**上不是最优解。当前 3-Pass 架构本身设计良好，但 Pass 3 的生成式标签体系存在多项可优化空间。
 
 > **一句话建议**：保留 Qwen 做「摘要 + 复杂语义 + OCR」，把「标签分类」交给更快、更可控的 CLIP/分类体系；同时把当前扁平词表升级为「受控层级标签体系」。
 
@@ -623,10 +639,10 @@ ML Kit Image Labeler 输出的英文标签，按置信度过滤后存储为 JSON
 
 | 方面 | 评价 |
 |------|------|
-| **5-Pass 分离** | 人脸检测 / Embedding / 聚类 / VL 理解 / ML Kit 快速标签解耦合理，便于独立调度、失败重试、增量更新。 |
+| **3-Pass 分离** | 人脸检测 / Embedding / 聚类 / 图像打标解耦合理，便于独立调度、失败重试、增量更新。 |
 | **持久化任务队列** | `TagScanOrchestrator` 将扫描拆分为原子任务，支持暂停 / 恢复 / 取消 / 重试，适合长时间后台 Service。 |
 | **OpenCL Guardian** | 带 warmup、超时、黑名单降级，是端侧 GPU 推理的务实做法。 |
-| **混合召回设计** | Qwen 中文标签 + ML Kit 英文标签 + MobileCLIP 语义向量 + 人脸聚类，搜索侧有丰富信号可用。 |
+| **混合召回设计** | 打标标签 + MobileCLIP 语义向量 + 人脸聚类，搜索侧有丰富信号可用（历史曾含 ML Kit 英文标签，已移除）。 |
 | **隐私优先** | 全部本地推理，符合项目 `[PRIVACY]` 红线。 |
 | **Category 重新生成** | `TagCategory` 按类别触发不同 Pass，用户可单独重标人脸 / 场景 / 物体等，体验友好。 |
 
@@ -736,7 +752,7 @@ private fun extractJson(text: String): String? {
 
 #### P0：立即实施（低风险高收益）
 
-1. **统一 `QWEN_MAX_TOKENS` 为 64–128**：至少先降到 128，验证后再到 64，可省 30–50% Pass 3 时间。
+1. **~~统一 `QWEN_MAX_TOKENS` 为 64–128~~（已失效）**：当前值已为 `QWEN_MAX_TOKENS = 256`（`TagGenerationPipeline.kt:79`），注释明确「输出 JSON 需要 256 tokens 才能完整闭合」，进一步下调会截断 JSON，该优化项不再适用。
 2. **修复中文归一化风险**：移除或严格限制 `TagNormalizer` 的编辑距离匹配，改用同义词表 + 语义相似度。
 3. **统一模型命名**：在代码和文档中明确模型真实版本。
 4. **改进 JSON 提取**：支持 markdown code block 包裹、schema 校验、失败重试。
@@ -762,15 +778,17 @@ private fun extractJson(text: String): String? {
 | 维度 | 评分 | 说明 |
 |------|------|------|
 | **隐私合规** | ⭐⭐⭐⭐⭐ | 全端侧，符合 `[PRIVACY]` 红线。 |
-| **架构设计** | ⭐⭐⭐⭐☆ | 5-Pass + 队列 + 降级设计合理。 |
+| **架构设计** | ⭐⭐⭐⭐☆ | 3-Pass + 队列 + 降级设计合理。 |
 | **标签体系** | ⭐⭐⭐☆☆ | 字段冗余、词表过大、归一化有风险。 |
-| **模型选择** | ⭐⭐⭐☆☆ | Qwen 做纯标签分类是过度设计。 |
-| **效率** | ⭐⭐☆☆☆ | Pass 3 是瓶颈，maxTokens / 去重 / 复用都有优化空间。 |
+| **模型选择** | ⭐⭐⭐☆☆ | Qwen 做纯标签分类是过度设计（已收敛为 Florence-2 默认 + Qwen3-VL-2B 备选）。 |
+| **效率** | ⭐⭐☆☆☆ | Pass 3 是瓶颈，去重 / 复用 / GPU 加速都有优化空间。 |
 | **可维护性** | ⭐⭐⭐☆☆ | 文档较全，但代码与文档存在不一致。 |
 
 ---
 
 ## 7. 性能分析
+
+> **历史基线说明**：本章写于 Qwen 2B 为主力 tagger 的时期，耗时数字为当时的历史测量/估算，仅供方法参考。当前默认 tagger 已切换为 Florence-2（ORT 独立路径），Qwen3-VL-2B 为备选；文中常量已按现状校正（Pass 3 冷却 `DEFAULT_PASS3_COOLDOWN_MS = 800L`、`QWEN_MAX_TOKENS = 256`）。
 
 ### 7.1 当前性能基线（9000 张）
 
@@ -792,13 +810,16 @@ Pass 1 (人脸 ROI + 106关键点 + Glint360K R100 Embedding)  →  Pass 2 (DBSC
 
 ### 7.3 三大核心瓶颈
 
-#### 瓶颈 1：`THROTTLE_MS = 500ms` — 硬节流浪费
+#### 瓶颈 1：Pass 3 恒速冷却 `DEFAULT_PASS3_COOLDOWN_MS = 800L`
+
+当前实现中，Pass 1 的固定节流**已移除**（仅 `guardCheck()` 返回 PAUSE 时按 `getThrottleMs()` 退避，默认 1000ms）；Pass 3 每张照片处理完毕后仍执行 `delay(getPass3CooldownMs())`：
 
 ```kotlin
-private const val THROTTLE_MS = 500L  // 每张照片强制 delay
+// TagGenerationScheduler.kt:111
+private const val DEFAULT_PASS3_COOLDOWN_MS = 800L
 ```
 
-Pass 1 和 Pass 3 的每张照片循环末尾都执行 `delay(THROTTLE_MS)`。Pass 1 实际推理仅 ~70-150ms，但被 500ms delay 拖成 ~670ms — **节流耗时是推理耗时的 3-7 倍**。
+Pass 3 实际推理约数秒，800ms 冷却用于散热窗口与 FG Service 存活（见 §7.4），占比远小于早期 500ms 硬节流对 Pass 1 的拖累（当时 Pass 1 推理仅 ~70-150ms，被 500ms delay 拖成 ~670ms）。
 
 #### 瓶颈 2：Pass 3 Qwen 推理是物理上限
 
@@ -827,25 +848,25 @@ Pass 1 以 640px 加载，Pass 3 又加载 512px。两次 `ContentResolver.openI
 ┌─────────────────────────────────────────────────────────────┐
 │  TagGenerationScheduler.guardCheck()                        │
 │  → 调用 guard() 获取结果                                    │
-│    ALLOW  → 正常执行（后续仍要 delay(THROTTLE_MS)=500ms）   │
-│    PAUSE  → delay(THROTTLE_RESTRICTED_MS)=3000ms           │
+│    ALLOW  → 正常执行（Pass 3 每张结束 delay(getPass3CooldownMs())=800ms） │
+│    PAUSE  → delay(getThrottleMs())，默认 1000ms           │
 │    ABORT  → return false → 退出循环                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### 恒速节流 `THROTTLE_MS = 500ms` 的作用
+#### 恒速冷却 `DEFAULT_PASS3_COOLDOWN_MS = 800L` 的作用
 
 | 作用 | 说明 |
 |------|------|
-| **热预防** | 即使"允许"状态，500ms 间隙让 SoC 有散热窗口，避免快速升温到 MODERATE/SEVERE |
+| **热预防** | 即使"允许"状态，800ms 间隙让 SoC 有散热窗口，避免快速升温到 MODERATE/SEVERE |
 | **降低平均功耗** | 将"连续满载"变为"爆发+休息"模式，降低时间平均功率 (TAP) |
-| **Foreground Service 存活** | Android 对持续高功耗的 FG Service 会限频甚至杀进程，500ms break 降低被回收概率 |
+| **Foreground Service 存活** | Android 对持续高功耗的 FG Service 会限频甚至杀进程，800ms break 降低被回收概率 |
 | **减轻 IO 竞争** | 每次 delay 让 Room WAL checkpoint、ContentResolver 缓存有机会完成 |
-| **进度更新节流** | 避免每张照片都触发 StateFlow 更新→UI 重组（每 500ms 一次已足够） |
+| **进度更新节流** | 避免每张照片都触发 StateFlow 更新→UI 重组（每 800ms 一次已足够） |
 
-#### 移除节流的潜在害处
+#### 移除冷却的潜在害处
 
-**热失控 → 性能反而下降**：移除 500ms 间隙后，CPU/GPU 持续满负荷运行，SoC 温度持续上升 → 触发强制降频，整体速度反而降低 50%+。
+**热失控 → 性能反而下降**：移除 800ms 间隙后，CPU/GPU 持续满负荷运行，SoC 温度持续上升 → 触发强制降频，整体速度反而降低 50%+。
 
 **FG Service 被系统回收**：Android 12+ 的 Battery Optimization 对前台 Service 有严格的功耗监测。连续 2 分钟 CPU 占用 > 50% 的 FG Service 会被标记为异常，系统可能杀死 Service、强制降低进程优先级或限制后台运行时间。
 
@@ -855,23 +876,20 @@ Pass 1 以 640px 加载，Pass 3 又加载 512px。两次 `ContentResolver.openI
 
 #### P0：立即实施（低风险，高收益）
 
-**1. 移除 Pass 1 的 THROTTLE_MS**
+**1. ~~移除 Pass 1 的 THROTTLE_MS~~（已完成）**
 
-- **改动**：`TagGenerationScheduler` 中移除 `scanAll()` / `scanIncremental()` / `scanPass1()` 的 `delay(THROTTLE_MS)`。
-- **收益**：Pass 1 从 **100 分钟 → 25 分钟**（+75 min）。
-- **风险**：无。Pass 1 的 FaceDetector 和 MNN Embedding 推理是突发式 IO/CPU 负载，不持续。
+- Pass 1 的固定节流已移除；当前仅 `guardCheck()` 返回 PAUSE 时按 `getThrottleMs()`（默认 1000ms）退避。
 
-**2. 减少 Qwen maxTokens 从 128 → 64**
+**2. ~~减少 Qwen maxTokens 从 128 → 64~~（已失效）**
 
-- **改动**：`TagGenerationPipeline` 中 `QWEN_MAX_TOKENS = 64`。
-- **收益**：Qwen 推理从 ~4s → ~2.5s，Pass 3 从 **11.25 小时 → 7 小时**（+4.25 hrs）。
-- **风险**：极低。场景描述类任务 64 tokens 足够输出完整 JSON。
+- 当前 `QWEN_MAX_TOKENS = 256`（`TagGenerationPipeline.kt:79`），注释明确「输出 JSON 需要 256 tokens 才能完整闭合」。下调会截断 JSON、破坏解析，该优化项不再适用。
+- Pass 3 提速的现实路径：默认 tagger 已切换为 Florence-2（ORT，非生成式 JSON 解码），Qwen3-VL-2B 仅作备选；Qwen 路径的提速依赖 OpenCL GPU 加速（见下）而非压缩输出长度。
 
-**3. 降低 Pass 3 的 THROTTLE_MS 到 100ms**
+**3. 降低 Pass 3 的冷却时长（当前 `DEFAULT_PASS3_COOLDOWN_MS = 800L`）**
 
-- **改动**：Pass 3 循环末的 `delay(THROTTLE_MS)` → `delay(100L)`，或仅在 `guardCheck()` 返回 PAUSE 时才增加延迟。
-- **收益**：Pass 3 从 **11.25 小时 → 10.5 小时**（+45 min）。
-- **风险**：低。100ms 间隙足够让 SoC 散热和 DB checkpoint 完成。
+- **改动**：`getPass3CooldownMs()` 由 800ms 降到 100–300ms，或仅在 `guardCheck()` 返回 PAUSE 时才增加延迟。
+- **收益**：按 9000 张估算，800→300ms 可省约 75 分钟。
+- **风险**：低。数百 ms 间隙足够让 SoC 散热和 DB checkpoint 完成。
 
 #### P1：中等投入
 
@@ -898,12 +916,14 @@ Pass 1 以 640px 加载，Pass 3 又加载 512px。两次 `ContentResolver.openI
 
 ### 7.6 优化效果对比
 
+> 下表为历史基线（Qwen 主打标时期）的估算。其中「maxTokens=64」行已不适用（当前 `QWEN_MAX_TOKENS = 256` 为 JSON 闭合所需），「移除 P1 节流」已落地。
+
 | 策略 | Pass 1 | Pass 3 | **总计** | 累计降幅 |
 |------|--------|--------|---------|---------|
-| **当前基线** | ~100 min | ~11.25 hrs | **~13 hrs** | — |
-| + 移除 P1 节流 | **~25 min** | ~11.25 hrs | **~11.7 hrs** | 10% |
-| + maxTokens=64 | ~25 min | **~7 hrs** | **~7.4 hrs** | 43% |
-| + P3 节流 500→100ms | ~25 min | **~6.5 hrs** | **~6.9 hrs** | 47% |
+| **历史基线** | ~100 min | ~11.25 hrs | **~13 hrs** | — |
+| + 移除 P1 节流（已落地） | **~25 min** | ~11.25 hrs | **~11.7 hrs** | 10% |
+| ~~+ maxTokens=64~~（已失效，当前 256 为 JSON 闭合所需） | — | — | — | — |
+| + P3 冷却 800→100ms | ~25 min | **~10.5 hrs** | **~10.9 hrs** | 16% |
 | + OpenCL GPU | ~25 min | **~3.3 hrs** | **~3.7 hrs** | 72% |
 | + 照片去重 40% | ~27 min | **~2 hrs** | **~2.5 hrs** | 81% |
 | **最优组合** | **~25 min** | **~1.5 hrs** | **~2 hrs** | 85% |
@@ -925,7 +945,7 @@ for (i in 0 until n)          // n = 所有 face embedding 数量
 ### 7.8 最终结论
 
 1. **TAG 生成瓶颈的本质**：不是代码效率问题，而是 Qwen 模型 2-8s/张的物理推理延迟。
-2. **最大单点收益**：`maxTokens=64`（减 50% decode 时间）+ Pass 1 移除节流（省 75 分钟）。
+2. **最大单点收益（历史）**：Pass 1 固定节流已移除；`maxTokens=64` 方案已失效（当前 `QWEN_MAX_TOKENS = 256` 为 JSON 闭合所需），当前 Pass 3 提速主要依赖 Florence-2 默认 tagger 与 OpenCL GPU 加速。
 3. **节流可以移除但不能完全放弃**：Pass 1 安全，Pass 3 建议保留 100ms 最小间隙防止热积累。
 4. **终极方案**：去重 + GPU 加速 + 智能节流，可将 13 小时压缩到 **2-3 小时**。
 
@@ -1087,7 +1107,9 @@ Phase 0/1 解决了**英文用户搜索中文标签**的问题，但存在以下
 | 中文同义词无法扩展 | `ControlledVocab.reverseSynonyms` 仅在标签生成时使用，搜索链路未接入 | "猫咪"搜不到"猫" |
 | 显式约束管道跳过翻译 | `ExplicitFirstSearchPipeline` 无 TagTranslator | "去年在室内猫" 内容词未翻译 |
 
-#### ML Kit 标签中文翻译（静态映射）
+#### ML Kit 标签中文翻译（静态映射，已失效）
+
+> **注意**：ML Kit Image Labeling 打标链路（`MlKitTagExtractor`）已移除，`mlKitLabels` / `mlKitLabelsZh` 不再产生新数据，仅为历史数据兼容保留。以下流程仅对存量历史数据有效。
 
 ML Kit Image Labeling API 使用固定的 ~400 个英文标签。创建静态中英文映射表 `assets/mlkit_labels_zh.json`，在索引时同时存储中文翻译。
 
@@ -1190,7 +1212,7 @@ data class TagConceptTranslation(
 - [x] 切换为中文后，搜索/展示恢复为中文。
 - [x] 不触发全量 TAG 重新生成即可生效。
 - [x] Prompt 与 Agent Capability 描述支持英文。
-- [x] 中文搜索能命中 ML Kit 英文标签（通过 `mlKitLabelsZh` 列 + `MlKitLabelTranslator`）。
+- [x] 中文搜索能命中 ML Kit 英文标签（通过 `mlKitLabelsZh` 列 + `MlKitLabelTranslator`；写入源已移除，仅对历史存量数据有效）。
 - [x] 中文同义词搜索扩展（"美女"→"女性"，"猫咪"→"猫"，通过 `ControlledVocab.reverseSynonyms`）。
 - [x] 词表未命中时 OPUS-MT NMT 模型翻译回退（通过 `TagTranslator` MT fallback）。
 - [x] 显式约束管道支持跨语言搜索（通过 `ExplicitFirstSearchPipeline` 注入 `TagTranslator`）。
@@ -1207,7 +1229,7 @@ data class TagConceptTranslation(
 | 人脸聚类误判 | 同一人分成多簇 | 支持用户手动合并/重命名；DBSCAN 参数调优 |
 | 标签质量不可靠 | 搜索召回差 | 受控词表规范化 + 只生成场景级粗粒度标签 + 用户可触发重生成 |
 | 电量消耗 | 后台扫描费电 | 仅充电+Wi-Fi 时自动全量扫描；运行时电池/热状态守卫 |
-| ML Kit 英文标签与中文 Query 语言不一致 | 中文搜不到英文标签 | `QuerySegmenter` / LLM 语义解析层负责跨语言桥接；`mlKitLabelsZh` 静态翻译兜底 |
+| ML Kit 英文标签与中文 Query 语言不一致（历史遗留，已停止产生新数据） | 中文搜不到英文标签 | `QuerySegmenter` / LLM 语义解析层负责跨语言桥接；`mlKitLabelsZh` 静态翻译兜底（仅存量历史数据） |
 | 编辑距离中文误匹配 | 标签归一化错误 | 优先同义词表 + 精确匹配；用 MobileCLIP 语义相似度替代 Levenshtein |
 
 ---
@@ -1262,7 +1284,7 @@ class TagScanOrchestrator(
 |------|------|
 | 标签质量提升 | 优化 Qwen Prompt、扩充 `ControlledVocab`、引入用户反馈修正 |
 | 人物簇管理 | UI 支持合并、拆分、忽略误检簇 |
-| ML Kit 跨语言 | 完善英文标签 → 中文的翻译映射或语义桥接 |
+| ML Kit 跨语言（已失效） | ML Kit 打标链路已移除，该方向随之下线 |
 | 语义召回增强 | 尝试更大 MobileCLIP 变体或端侧多模态模型 |
 | 自动化测试 | 增加端到端 Tag 生成回归测试与性能基线 |
 | 标签分类迁移 | 将「标签分类」从 Qwen 迁移到 MobileCLIP / Chinese-CLIP 零 shot |

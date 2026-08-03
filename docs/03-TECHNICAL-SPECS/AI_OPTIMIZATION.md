@@ -2,8 +2,8 @@
 
 > **文档类型**：产品 + 技术方案 + 参数标准  
 > **针对能力**：AI 一键优化（AI One-Click Image Optimization）  
-> **最后更新**：2026-07-08  
-> **维护者**：PM Agent（产品定义）+ RD Agent（技术实现）+ CR Agent（合规审查）  
+> **最后更新**：2026-08-03  
+> **维护者**：项目开发者  
 >
 > **历史合并说明**：本文档由 `AI_ONE_CLICK_OPTIMIZATION_PROPOSAL.md` 与 `AI_OPTIMIZE_PARAMETER_STANDARD.md` 合并而成。参数预设以 `AI_OPTIMIZE_PARAMETER_STANDARD.md` 为准，已合并重复内容。
 
@@ -14,7 +14,7 @@
 AI 一键优化是新路线下最值得投入的 P0 能力之一：
 
 - **用户价值清晰**："帮我让这张照片更好看"是相册/编辑场景的高频、低学习成本诉求
-- **技术基础已具备**：大美丽美颜管线、`EditRecipe` 非破坏性编辑、ML Kit 图像识别、本地 Qwen3.5-2B 多模态理解、远程 OpenAI 协议推理均已落地
+- **技术基础已具备**：大美丽美颜管线、`EditRecipe` 非破坏性编辑、远程 OpenAI 协议推理均已落地（~~ML Kit 图像识别~~、~~本地 Qwen3.5-2B 多模态理解~~两项基础已移除：ML Kit 打标链路删除、端侧文本 LLM 下线）
 - **可行性高**：优先做「本地规则 + 远程增强」的混合方案，MVP 可在 2-3 周内验证核心体验
 - **与新产品路线契合**：入口自然（相册查看器/编辑器），不依赖聊天首页假设，也不强依赖 IM 远程
 
@@ -101,9 +101,9 @@ AI 一键优化是新路线下最值得投入的 P0 能力之一：
         │                                         │
         ▼                                         ▼
 ┌───────────────┐                       ┌───────────────────┐
-│ SceneAnalyzer │                       │ VisionLlmClient   │
-│ - ML Kit 图像标签 │                   │ - OpenAI 兼容 API │
-│ - 人脸检测      │                       │ - GPT-4o / Qwen-VL│
+│ SceneAnalyzer │  （未落地：fast 恒      │ VisionLlmClient   │
+│ - ~~ML Kit 图像标签~~│   GENERAL；ML Kit   │ - OpenAI 兼容 API │
+│ - 人脸检测      │   已移除，见 §3.2 注）  │ - GPT-4o / Qwen-VL│
 │ - 光线/色彩启发式│                      │ - 压缩图 base64   │
 └───────┬───────┘                       └─────────┬─────────┘
         │                                         │
@@ -124,10 +124,12 @@ AI 一键优化是新路线下最值得投入的 P0 能力之一：
 
 **场景识别输入**：
 
+> **实现现状（2026-08）**：Fast 路径当前**不做场景分析**——`AiOptimizeUseCase.fastOptimize()` 恒取 `Scene.GENERAL` 预设；`analyzer/` 下仅有 `Scene` 枚举，无 SceneAnalyzer 实现。场景识别实际发生在 Smart 路径（远程模型返回 `preset.scene`）。下表为原设计信号源，其中 ML Kit 两项已不可用。
+
 | 信号 | 来源 | 用途 |
 |------|------|------|
-| 人脸数量/位置/大小 | MediaPipe / ML Kit Face Detection | 判断人像/自拍/合影 |
-| 图像标签 Top-K | ML Kit Image Labeling | 判断风景/食物/文档/动物/建筑等 |
+| 人脸数量/位置/大小 | MediaPipe / MNN Face Detection（~~ML Kit Face Detection~~ 已移除） | 判断人像/自拍/合影 |
+| 图像标签 Top-K | ~~ML Kit Image Labeling~~（已移除；可改用 Florence-2 打标结果或其他本地信号） | 判断风景/食物/文档/动物/建筑等 |
 | EXIF 信息 | MetadataExtractor | 判断白天/夜晚/逆光、焦距 |
 | 直方图/亮度统计 | GPU 管线采样 | 判断过曝/欠曝/低对比度 |
 | 色彩分布 | 简单色彩直方图 | 判断偏暖/偏冷/饱和度 |
@@ -184,7 +186,11 @@ when {
    - 设置中提供「允许云端 AI 优化」开关
    - 不在云端存储用户图片
 
-### 3.4 本地 Qwen3.5-2B 多模态作为离线 fallback
+### 3.4 ~~本地 Qwen3.5-2B 多模态作为离线 fallback~~（历史方案，已失效）
+
+> **2026-08 变更**：端侧文本 LLM（Qwen3.5-2B）已移除，本节的离线 fallback 方案不再可用。
+> 且原文描述有误——`TagGenerationPipeline` Pass 3 实际使用的是 Qwen3-**VL**-2B（MNN VLM 打标，现为备选 tagger，默认 Florence-2），并非 Qwen3.5-2B 文本模型。
+> 当前无网络时的实际降级行为：Fast 路径直接应用 `Scene.GENERAL` 本地预设（见 §3.2 实现现状注）。以下内容保留作历史参考。
 
 项目已有的 `TagGenerationPipeline` Pass 3 使用 Qwen3.5-2B 做图像理解。可探索复用该路径：
 
@@ -618,11 +624,13 @@ class PhotoEditorViewModel(
 
 ### 10.1 [agent-task:aio-001] 场景分析器 SceneAnalyzer
 
+> **实现现状（2026-08）**：未落地——`analyzer/` 下仅有 `Scene` 枚举，`AiOptimizeUseCase.fastOptimize()` 恒取 `Scene.GENERAL`；场景识别由 Smart 路径远程模型承担。原第 2 条依赖的 ML Kit Image Labeling 已移除。
+
 - **Assignee**: RD
 - **Scope**: `domain/agent/capability/optimize/analyzer/SceneAnalyzer.kt`
 - **Expected Change**:
   1. 定义 `Scene` 枚举（selfie, portrait, group, food, landscape, low_light, document, general）
-  2. 集成 ML Kit Image Labeling 获取 Top-K 标签
+  2. ~~集成 ML Kit Image Labeling 获取 Top-K 标签~~（该依赖已移除；可改用 Florence-2 打标结果或 EXIF/直方图等本地信号替代）
   3. 复用 `FaceDetector` 获取人脸数量与占画面比例
   4. 读取 EXIF 与亮度统计作为辅助信号
   5. 实现规则引擎，将多路信号映射为 `Scene` + 置信度

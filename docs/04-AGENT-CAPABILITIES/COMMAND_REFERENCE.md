@@ -6,10 +6,10 @@
 > - 交互规范以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 
 **模块定位**: Agent 命令语法与使用示例  
-**主要维护者**: [RD] 全栈工程师  
-**阅读对象**: RD、PM、AI Agent  
-**版本**: 1.2  
-**最后更新**: 2026-07-20  
+**主要维护者**: 项目开发者  
+**阅读对象**: 项目开发者、AI Agent  
+**版本**: 1.3  
+**最后更新**: 2026-08-03  
 
 ---
 
@@ -25,6 +25,7 @@
 8. [系统/外部 App 命令](#8-系统外部-app-命令)
 9. [通用命令](#9-通用命令)
 10. [相册分析命令（CHAT 场景）](#10-相册分析命令chat-场景)
+11. [图片编辑命令（CHAT 场景）](#11-图片编辑命令chat-场景)
 
 ---
 
@@ -106,10 +107,22 @@ Agent: ✅ 已为你拍照
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
-| "夜景模式" | `SwitchMode("night")` | 夜景模式 |
-| "人像模式" | `SwitchMode("portrait")` | 人像模式 |
-| "专业模式" | `SwitchMode("pro")` | 专业模式 |
-| "默认模式" | `SwitchMode("normal")` | 返回普通模式 |
+| "拍照模式" | `SwitchMode("PHOTO")` | 普通拍照模式 |
+| "录像模式" | `SwitchMode("VIDEO")` | 录像模式 |
+| "专业模式" | `SwitchMode("PRO")` | 专业模式 |
+| "文档模式" | `SwitchMode("DOCUMENT")` | 文档拍摄模式 |
+
+**参数取值**: `PHOTO` / `VIDEO` / `PRO` / `DOCUMENT`（大写枚举，见 `CameraCapability.kt` 与 `CameraToolService.kt`）
+
+### 2.6.1 场景模式（switch_scene）
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "夜景模式" | `SwitchScene("night")` | 夜景场景 |
+| "月亮模式" | `SwitchScene("moon")` | 月亮场景 |
+| "关闭场景" | `SwitchScene("none")` | 关闭场景模式 |
+
+**参数取值**: `night` / `moon` / `none`。注意：`night` 是 `switch_scene` 的值，**不是** `switch_mode` 的值。
 
 ### 2.7 美颜调节
 
@@ -134,12 +147,14 @@ Agent: ✅ 已为你拍照
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
-| "冷调滤镜" | `SwitchFilter("cold_tone")` | 冷色调滤镜 |
-| "胶片金" | `SwitchFilter("film_gold")` | 胶片金滤镜 |
-| "徕卡经典" | `SwitchFilter("leica_classic")` | 徕卡经典滤镜 |
-| "卡通风格" | `SwitchStyle("cartoon")` | 卡通风格特效 |
-| "素描效果" | `SwitchStyle("sketch")` | 素描风格特效 |
-| "原图" | `SwitchFilter("none")` | 关闭滤镜 |
+| "冷调滤镜" | `SwitchFilter("COOL")` | 冷色调滤镜 |
+| "胶片金" | `SwitchFilter("FILM_GOLD")` | 胶片金滤镜 |
+| "徕卡经典" | `SwitchFilter("LEICA_CLASSIC")` | 徕卡经典滤镜 |
+| "卡通风格" | `SwitchStyle("TOON")` | 卡通风格特效 |
+| "素描效果" | `SwitchStyle("SKETCH")` | 素描风格特效 |
+| "原图" | `SwitchFilter("NONE")` | 关闭滤镜 |
+
+**参数取值**: 滤镜为大写枚举 `NONE` / `LEICA_CLASSIC` / `LEICA_VIBRANT` / `LEICA_BW` / `FILM_GOLD` / `FILM_FUJI` / `VINTAGE` / `COOL` / `WARM`（中文名如「徕卡经典」「胶片金」「冷调」亦可）；风格为 `NONE` / `TOON` / `SKETCH` / `POSTERIZE` / `EMBOSS` / `CROSSHATCH`。
 
 ### 2.9 画幅比例
 
@@ -229,11 +244,23 @@ Agent: ✅ 已为你拍照
 | "列表视图" | `SwitchViewMode("list")` | 列表布局 |
 | "时间线视图" | `SwitchViewMode("timeline")` | 时间线布局 |
 
+### 3.9 人物关系（CHAT 场景）
+
+**Capability**: `person_relation`  
+**活跃场景**: `CHAT`
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "记住小宝是我女儿" | `RememberPersonRelation(name="小宝", relation="女儿")` | 声明人物关系（幂等覆盖） |
+| "忘掉小宝的关系" | `ForgetPersonRelation(name="小宝")` | 遗忘与某人物的全部关系 |
+| "看一下我的人物关系" | `QueryPersonRelation(name=null)` | 查询全部指向「我」的关系（`ChatToolService` 工具名 `list_person_relations`） |
+| "小宝和我什么关系" | `QueryPersonRelation(name="小宝")` | 只查指定人物与「我」的关系 |
+
 ---
 
 ## 4. 标签生成命令
 
-**Capability**: `auto_tag`  
+**Capability**: `auto_tag`（⚠️ 2026-08-03 核实：`AutoTagCapability` 代码存在但未注册到 `CapabilityRegistry`；CHAT 场景实际生效路径为 `ChatStartTagScanCapability` 的 `start_tag_scan`，详见 CAPABILITY_REGISTRY.md §8）  
 **活跃场景**: `GALLERY`
 
 | 自然语言 | 解析命令 | 说明 |
@@ -295,9 +322,11 @@ Agent: ✅ 已为你拍照
 
 | 自然语言 | 解析命令 | 说明 |
 |---------|---------|------|
-| "用 MNN 检测" | `SwitchFaceEngine(MNN_2D106)` | 切换到 MNN 2D106 点 |
-| "用 MediaPipe 检测" | `SwitchFaceEngine(MEDIAPIPE_468)` | 切换到 MediaPipe 468 点 |
-| "默认引擎" | `SwitchFaceEngine(DEFAULT)` | 使用默认引擎 |
+| "用 MNN 检测" | `SwitchFaceEngine(MNN)` | 切换到 MNN 引擎（GPU/CPU） |
+| "用 MediaPipe 检测" | `SwitchFaceEngine(MEDIAPIPE)` | 切换到 MediaPipe 引擎（TFLite） |
+| "自定义引擎" | `SwitchFaceEngine(CUSTOM)` | 使用 StageConfig 独立配置 |
+
+**参数取值**: `FaceDetectionEngineMode` 枚举（`UserPreferences.kt`）为 `MEDIAPIPE` / `MNN` / `CUSTOM`，无 `DEFAULT`。
 
 > **注意**: NCNN 路径已于 2026-07-05 完全移除。
 
@@ -454,6 +483,44 @@ try {
 
 ---
 
+## 11. 图片编辑命令（CHAT 场景）
+
+**Capability**: `image_edit`（`edit_image` 经 CapabilityRegistry 分发，见 `CAPABILITY_REGISTRY.md` §14）  
+**活跃场景**: `CHAT`
+
+### 11.1 对话式图片编辑 `edit_image`
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "磨皮 30" | `EditImage(params={"smoothing":30})` | 美颜调整 |
+| "换胶片风" | `EditImage(params={"filter_name":"FILM_GOLD","filter_intensity":70})` | 滤镜切换（大写滤镜枚举名） |
+| "再亮一点" | `EditImage(params={"brightness_delta":20})` | 多轮 delta 相对调整 |
+| "把路人擦掉" | `EditImage(explanation="[unsupported:erase]")` | 未支持意图，返回友好说明 |
+
+**参数说明**（`edits` JSON 字段，均可选、只传要改的）：
+- 美颜：`smoothing` / `whitening` / `big_eyes` / `lip_color` / `blush` / `eyebrow`（0~100），`slim_face`（-50~50）
+- 调色：`brightness` / `exposure` / `contrast` / `saturation`（-50~50），`temperature` / `tint`（-50~50）
+- 滤镜/风格：`filter_name`（大写滤镜枚举，如 `FILM_GOLD` / `COOL`）、`filter_intensity`（0~100）、`style_name`
+- 相对调整：`*_delta` 字段（如 `{"brightness_delta":20}` 表示再亮一点）
+- `image_uri`：目标图片 URI，留空串表示用最近发送的图片
+
+**说明**: 编辑在后台渲染完成后把结果图发到聊天中，**绝不跳转编辑页**；编辑状态按会话隔离，支持同一会话多轮叠加。未支持的编辑（消除物体 / 局部美颜）不编造参数，经 `explanation` 返回 `[unsupported:erase]` / `[unsupported:local_beauty]`。
+
+### 11.2 显式参数调整 `adjust_image`（inline 工具，不进注册表）
+
+| 自然语言 | 解析命令 | 说明 |
+|---------|---------|------|
+| "调亮一点" | `AdjustImage(brightness=+20)` | 提高亮度 |
+| "增加对比度" | `AdjustImage(contrast=80)` | 提高对比度 |
+| "提高饱和度" | `AdjustImage(saturation=150)` | 提高饱和度 |
+| "调暖一点" | `AdjustImage(temperature=6500)` | 色温调暖 |
+
+**参数说明**: `brightness` -100(暗)~100(亮)，0=不变；`contrast` 0~200，50=默认；`saturation` 0~200，100=默认；`temperature` 2000(冷蓝)~8000(暖黄)，5000=默认；未指定的参数留空串表示不调整。
+
+**说明**: `adjust_image` 是 `ChatToolService.adjustImage()` @Tool 暴露的 inline 工具，**不经 `CapabilityRegistry` 分发，无对应 AgentCommand/Capability**。LLM 侧约定：显式数值调整走 `adjust_image`，其余编辑意图（滤镜/美颜/多轮 delta）走 `edit_image`。
+
+---
+
 ## 附录：命令解析流程
 
 ### 步骤 1: 构建 System Prompt
@@ -481,7 +548,7 @@ try {
 
 LLM 输出：[
   {"action": "adjust_beauty", "param": {"type": "smooth", "value": 50}},
-  {"action": "switch_filter", "param": {"type": "cold_tone"}}
+  {"action": "switch_filter", "param": {"type": "COOL"}}
 ]
 ```
 

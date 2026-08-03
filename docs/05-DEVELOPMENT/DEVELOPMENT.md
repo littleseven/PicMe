@@ -2,10 +2,10 @@
 
 > **版本**: 1.2  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-08  
-> **维护者**: CO / RD / CR / PM  
-> **上级文档**: 根目录 `AGENTS.md`（Agent First 治理与角色协作）  
-> **范围**: 本文档统一包含 PoLang 开发工作流、代码审查检查清单与 `[kimi-task]` 任务标记规范，是研发流程的唯一事实来源。
+> **最后更新**: 2026-08-03  
+> **维护者**: 项目开发者  
+> **上级文档**: 根目录 `AGENTS.md`（Agent First 治理）  
+> **范围**: 本文档统一包含 PoLang 开发工作流、代码审查检查清单与 `[agent-task]` 任务标记规范，是研发流程的唯一事实来源。
 
 ---
 
@@ -82,17 +82,17 @@ Spec 文档更新（Consensus）
 | 位置 | 示例 | 说明 |
 |------|------|------|
 | 公开 API 接口 | `BeautyPreviewProvider` | 关联 `beauty-engine/AGENTS.md` 接口定义 |
-| 核心算法实现 | `FrameSyncManager` | 关联 `FRAME_SYNC_TECH_SPEC.md` 功能需求 |
+| 核心算法实现 | `FrameSyncManager` | 关联 `BEAUTY_ENGINE_TECH_SPEC.md` 帧同步章节 |
 | 架构边界类 | `api/` vs `internal/` 边界 | 关联架构约束 |
 | 性能关键路径 | `CameraPreviewRenderer.render()` | 关联 `NFR_SPEC.md` 指标 |
-| 降级/容灾逻辑 | `onGlWarmUpFallback()` | 关联 `BEAUTY_ENGINE_FALLBACK.md` |
+| 降级/容灾逻辑 | `onGlWarmUpFallback()` | 关联 `BEAUTY_ENGINE_TECH_SPEC.md` 容灾降级章节 |
 | 搜索召回逻辑 | `ExplicitFirstSearchPipeline` | 关联 `GALLERY_SEARCH.md` |
-| TAG 生成阶段 | `TagGenerationPipeline` | 关联 `AUTO_TAG_GENERATION_SPEC.md` |
+| TAG 生成阶段 | `TagGenerationPipeline` | 关联 `TAG_GENERATION.md` |
 
 ### 2.4 完整示例
 
 ```kotlin
-// Spec: docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md#5-frame-sync
+// Spec: docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md#帧同步
 // Implements: AC-P0-3
 // Related: beauty-engine/AGENTS.md
 // ChangeLog: 2026-06-30 新增 missingThresholdFrames 字段
@@ -185,7 +185,7 @@ adb shell am start -W com.mamba.picme/.MainActivity
 
 - [ ] 代码变更是否同步更新了对应 Spec 文档？
 - [ ] 新增接口是否补充了 `api/` 文档说明？
-- [ ] 新增验收条件是否关联了 `[kimi-task]` 标记？
+- [ ] 新增验收条件是否关联了 `[agent-task]` 标记？
 - [ ] 反向链接注释是否正确（`// Spec: ...`）？
 
 #### 架构合规
@@ -235,7 +235,7 @@ adb shell am start -W com.mamba.picme/.MainActivity
 
 - 代码修改了实现但未更新对应 Spec
 - 新增 API 无文档说明
-- `[kimi-task]` 标记缺失或错误
+- `[agent-task]` 标记缺失或错误
 
 #### 架构越界
 
@@ -423,14 +423,14 @@ doc-sync-check:
 
 ### 5.1 目的
 
-本文档定义 `[kimi-task]` 结构化标记规范，用于在 Spec 文档（`PRODUCT.md`、`PRD-*.md`、`FEATURES.md`）中直接嵌入**可执行、可追踪、可验证**的任务描述。外层编排脚本可自动解析此类标记，生成标准化 Task JSON，直接驱动 RD/QA Agent 执行，实现"需求变更 → 开发任务"的自动转换。
+本文档定义 `[agent-task]` 结构化标记规范，用于在 Spec 文档（`PRODUCT.md`、`PRD-*.md`、`FEATURES.md`）中直接嵌入**可执行、可追踪、可验证**的任务描述。外层编排脚本可自动解析此类标记，生成标准化 Task JSON，直接驱动 RD/QA Agent 执行，实现"需求变更 → 开发任务"的自动转换。
 
 ### 5.2 标记格式
 
 #### 基本语法
 
 ```markdown
-### <功能标题> [kimi-task:<task_id>]
+### <功能标题> [agent-task:<task_id>]
 - **Assignee**: <RD | QA | CR | PM>
 - **Scope**: `<文件路径1>`, `<文件路径2>`
 - **Expected Change**:
@@ -458,7 +458,7 @@ doc-sync-check:
 #### 完整示例
 
 ```markdown
-### FR-5：严格缺失处理 [kimi-task:fsm-005]
+### FR-5：严格缺失处理 [agent-task:fsm-005]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`, `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
 - **Expected Change**:
@@ -474,7 +474,7 @@ doc-sync-check:
 
 ### 5.3 使用位置
 
-#### 允许使用 `[kimi-task]` 的文档
+#### 允许使用 `[agent-task]` 的文档
 
 | 文档 | 用途 |
 |------|------|
@@ -483,7 +483,7 @@ doc-sync-check:
 | `docs/01-PRODUCT/FEATURES.md` | 记录交互变更对应的 UI/UX 任务 |
 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 记录技术实现任务 |
 
-#### 禁止使用 `[kimi-task]` 的位置
+#### 禁止使用 `[agent-task]` 的位置
 
 - `AGENTS.md`（模块级实现规范，不应包含任务分配）
 - `README.md`（对外文档）
@@ -493,17 +493,20 @@ doc-sync-check:
 
 #### 解析脚本输入
 
+> **注意**：`scripts/parse_kimi_tasks.py` 尚未落地（设计中）。以下为预期接口，待实现后生效。
+
 ```bash
-python scripts/parse_kimi_tasks.py \
-  --input docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md \
-  --output tasks/frame-sync-tasks.json
+# ⏳ 设计中，脚本尚未创建
+# python scripts/parse_agent_tasks.py \
+#   --input docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md \
+#   --output tasks/beauty-engine-tasks.json
 ```
 
 #### 输出 JSON 格式
 
 ```json
 {
-  "source": "docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md",
+  "source": "docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md",
   "extracted_at": "2026-05-14T10:00:00Z",
   "tasks": [
     {
@@ -533,8 +536,8 @@ python scripts/parse_kimi_tasks.py \
 #### 驱动执行流程
 
 ```
-Spec 文档（含 [kimi-task]）
-    ↓ parse_kimi_tasks.py
+Spec 文档（含 [agent-task]）
+    ↓ parse_agent_tasks.py（⏳ 设计中，未落地）
 Task JSON（标准化任务描述）
     ↓ 编排脚本
 ├─→ RD Agent: 执行代码变更
@@ -559,20 +562,20 @@ Task JSON（标准化任务描述）
 
 ### 5.6 约束与红线
 
-- **[MUST]** 每个 `[kimi-task]` 必须关联至少一个 `Acceptance` ID（`AC-P0-X` 或 `AC-P1-X`）
+- **[MUST]** 每个 `[agent-task]` 必须关联至少一个 `Acceptance` ID（`AC-P0-X` 或 `AC-P1-X`）
 - **[MUST]** `task_id` 全局唯一，格式为 `<模块缩写>-<三位数字>`
 - **[MUST]** `Scope` 中的文件路径必须真实存在于代码库中
-- **[NEVER]** 禁止在 `[kimi-task]` 中描述实现细节（如具体算法），实现细节应留在 `AGENTS.md`
-- **[NEVER]** 禁止将 `[kimi-task]` 嵌入代码注释中
+- **[NEVER]** 禁止在 `[agent-task]` 中描述实现细节（如具体算法），实现细节应留在 `AGENTS.md`
+- **[NEVER]** 禁止将 `[agent-task]` 嵌入代码注释中
 
 ### 5.7 示例：帧同步美妆系统任务集
 
 ```markdown
-## 6. 版本规划（含 [kimi-task]）
+## 6. 版本规划（含 [agent-task]）
 
 ### Phase 1：基础设施（1~2 周）
 
-#### FrameId 体系 [kimi-task:fsm-001]
+#### FrameId 体系 [agent-task:fsm-001]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/api/FrameId.kt`
 - **Expected Change**:
@@ -583,7 +586,7 @@ Task JSON（标准化任务描述）
 - **Priority**: P0
 - **Acceptance**: AC-P0-1
 
-#### FrameSyncManager 骨架 [kimi-task:fsm-002]
+#### FrameSyncManager 骨架 [agent-task:fsm-002]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`
 - **Expected Change**:
@@ -596,9 +599,9 @@ Task JSON（标准化任务描述）
 - **Priority**: P0
 - **Acceptance**: AC-P0-1, AC-P0-2
 
-#### DetectionQueue 改造 [kimi-task:fsm-003]
+#### DetectionQueue 改造 [agent-task:fsm-003]
 
-> **⚠️ 审计备注（2026-06）**：DetectionQueue 未落地（`DetectionQueue.kt` 不存在）。此 [kimi-task] 标记的目标文件路径无效。当前使用同步检测路径。如需实施异步检测改造，应先创建 DetectionQueue.kt 再更新此任务标记。
+> **⚠️ 审计备注（2026-06）**：DetectionQueue 未落地（`DetectionQueue.kt` 不存在）。此 [agent-task] 标记的目标文件路径无效。当前使用同步检测路径。如需实施异步检测改造，应先创建 DetectionQueue.kt 再更新此任务标记。
 
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/DetectionQueue.kt`（⏳ 设计中，未落地）
@@ -613,7 +616,7 @@ Task JSON（标准化任务描述）
 
 ### Phase 2：时序对齐与严格缺失（1~2 周）
 
-#### 渲染管线集成 [kimi-task:fsm-004]
+#### 渲染管线集成 [agent-task:fsm-004]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`, `beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
 - **Expected Change**:
@@ -625,7 +628,7 @@ Task JSON（标准化任务描述）
 - **Priority**: P0
 - **Acceptance**: AC-P0-2, AC-P0-3
 
-#### 严格缺失处理 [kimi-task:fsm-005]
+#### 严格缺失处理 [agent-task:fsm-005]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`, `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
 - **Expected Change**:
@@ -637,7 +640,7 @@ Task JSON（标准化任务描述）
 - **Priority**: P0
 - **Acceptance**: AC-P0-3
 
-#### 调试指标接入 [kimi-task:fsm-006]
+#### 调试指标接入 [agent-task:fsm-006]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/api/BeautyPerfStats.kt`, `app/src/main/java/com/mamba/picme/features/camera/debug/PerfOverlay.kt`
 - **Expected Change**:
@@ -650,7 +653,7 @@ Task JSON（标准化任务描述）
 
 ### Phase 3：预测补偿与录制专项（1~2 周）
 
-#### MotionTracker 速度外推 [kimi-task:fsm-007]
+#### MotionTracker 速度外推 [agent-task:fsm-007]
 - **Assignee**: RD
 - **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/MotionTracker.kt`
 - **Expected Change**:
@@ -662,7 +665,7 @@ Task JSON（标准化任务描述）
 - **Priority**: P1
 - **Acceptance**: AC-P1-1
 
-#### 录制场景帧同步验证 [kimi-task:fsm-008]
+#### 录制场景帧同步验证 [agent-task:fsm-008]
 - **Assignee**: QA
 - **Scope**: `app/src/androidTest/java/com/mamba/picme/camera/VideoRecordingSyncTest.kt`
 - **Expected Change**:
@@ -693,7 +696,7 @@ Task JSON（标准化任务描述）
 | 零拷贝 | Zero Copy | GPU 管线中禁止 CPU-GPU 数据传输 | 无拷贝、直通 |
 | 降级 | Fallback | 引擎异常时自动回退到基础预览 | 回退、降级策略 |
 | 库化 | Library-ization | 将引擎模块演进为独立发布库 | 模块化、独立库 |
-| TAG 生成 | Tag Generation | 本地 5-Pass 照片标签生成管道 | 打标、标签扫描 |
+| TAG 生成 | Tag Generation | 本地 3-Pass 照片标签生成管道 | 打标、标签扫描 |
 | 语义召回 | Semantic Recall | MobileCLIP 文本-图像相似度召回 | CLIP 搜索 |
 | 显式召回 | Explicit Recall | 基于结构化字段（时间/地点/人脸/TAG）的 SQL 召回 | 规则召回 |
 

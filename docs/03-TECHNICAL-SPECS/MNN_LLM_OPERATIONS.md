@@ -2,8 +2,8 @@
 
 > **文档编号**: TECH-SPEC-MNN-VLM-OPS-001  
 > **关联模块**: `:runtime-core` (LocalLlmEngine, MnnLlmClient, MnnResourceManager), `:app` (AgentOrchestrator, MediaPager, TagGenerationScheduler)  
-> **最后更新**: 2026-08-02  
-> **维护者**: RD Agent  
+> **最后更新**: 2026-08-03  
+> **维护者**: 项目开发者  
 >
 > **变更说明（2026-08）**：端侧**文本** LLM（Qwen3.5-2B 聊天/指令模型）已移除（`AiAgentMode.LOCAL`、`LocalCameraAgent`/`LocalInferencePipeline`/`LocalCommandParser`/`LocalPromptBuilder` 全部删除）。`LocalLlmEngine` 现仅服务 **VLM 打标**（Qwen3-VL-2B `imageInference`）；相机 AI 指令改走远程 tool_calls（`AgentOrchestrator.processCameraInput` + `CameraToolService`）。MNN-LLM 运行时（`libMNN.so` + `libmnn_llm.so` + `MnnLlmClient` + `libagent_native.so` JNI 桥）仍保留，用于 VLM 图像推理。
 >
@@ -170,18 +170,20 @@ suspend fun safeModelInference(
 
 ### 2.1 背景与问题
 
-PoLang 使用 MNN 3.5.0 统一构建的 `libMNN.so`，同时承载两个独立子系统：
+PoLang 使用 MNN 3.5.0 统一构建的 `libMNN.so`，当前承载两个独立子系统：
 
 | 子系统 | MNN API | 内存占用 | 生命周期 |
 |--------|---------|----------|----------|
-| **VLM 打标** | `MNN::Transformer::Llm` | Qwen3-VL-2B（INT4）约 1.5-2.5GB | 加载后常驻，无自动卸载 |
-| **ASR** | `MNN::Express::Module` (via Sherpa-MNN，已迁移至 Sherpa-ONNX) | Zipformer 约 100-300MB | 相机页初始化，页面退出不释放 |
+| **VLM 打标** | `MNN::Transformer::Llm` | Qwen3-VL-2B（INT4）约 1.5-2.5GB | 加载后常驻，仅响应内存压力卸载 |
+| **MNN 人脸检测** | `MNN Interpreter`（beauty-engine `MnnRoiDetector` / `MnnLandmarkDetector`） | 约 50-70MB | 相机页场景绑定，离开相机页延迟卸载 |
 
-> **注意**：当前语音栈已迁移至 Sherpa-ONNX（见 [VOICE_STACK.md](VOICE_STACK.md)），ASR 不再依赖 `libMNN.so`，VLM 打标成为 `libMNN.so` 唯一使用者（人脸检测另有独立 `.so`）。本节保留历史设计用于理解 `MnnResourceManager` 的演进。
+> **注意**：语音栈已迁移至 Sherpa-ONNX（见 [VOICE_STACK.md](VOICE_STACK.md)），ASR 不再依赖 `libMNN.so`，`SherpaOnnxAsrEngine` 也明确**不再接入 `MnnResourceManager` / `MnnGlobalReleaseLock`**（引用计数协调机制中已无 ASR 一方）。`libMNN.so` 的共享方为 VLM 打标与 MNN 人脸检测。历史上的「VLM + ASR 共享协调」设计见下文标注的历史小节，保留用于理解 `MnnResourceManager` 的演进。
 
 ### 2.2 核心冲突（历史）
 
 `MNN::Transformer::Llm::destroy()` 在释放 LLM 独占内存时，会触及 MNN 全局内存分配器状态，导致**同一进程内仍在运行的 Sherpa-MNN ASR 崩溃**（历史问题，ASR 已迁移至 Sherpa-ONNX，不再依赖 MNN）。
+
+> **当前对应关系**：同类冲突如今存在于 **VLM 打标 ↔ MNN 人脸检测** 之间——两者共享 `libMNN.so` 全局分配器，一方释放时若另一方仍在推理，同样可能触发 use-after-free。`MnnGlobalReleaseLock` 与引用计数协调即为解决此问题。
 
 现有规避方案（`AgentOrchestrator.applySceneDrivenModelPolicy`）：
 
@@ -196,30 +198,30 @@ localLlmEngine.trimMemory()
 
 | 目标 | 度量 |
 |------|------|
-| **安全共享** | VLM 与 ASR 可共存，释放时互不破坏 |
+| **安全共享** | VLM 与人脸检测可共存，释放时互不破坏 |
 | **自动卸载** | App 后台 60s 后完全释放，无需人工干预 |
 | **内存压力响应** | `onTrimMemory(CRITICAL)` 时紧急释放 |
-| **零泄漏** | 页面退出时 ASR 实例 100% 释放 |
+| **零泄漏** | 离开相机页时人脸检测实例 100% 释放 |
 | **低延迟恢复** | 前台恢复时模型重新加载 < 3s |
 
 ### 2.4 引用计数协调
 
-引入 `MnnResourceManager` 作为**唯一协调者**，VLM 打标和 ASR 分别持有独立引用计数：
+引入 `MnnResourceManager` 作为**唯一协调者**，VLM 打标和 MNN 人脸检测分别持有独立引用计数：
 
 ```
-VLM 请求加载  →  acquireLlm()   → llmRefCount++
-ASR 请求加载  →  acquireAsr()   → asrRefCount++
+VLM 请求加载      →  acquireLlm()            → llmRefCount++
+人脸检测请求加载   →  acquireFaceDetection()  → faceDetectionRefCount++
 
 VLM 请求释放  →  releaseLlm()
-    ├─ asrRefCount == 0 → onSafeUnload()  → 真正 unload()
-    └─ asrRefCount  > 0 → onSoftRelease() → trimMemory()
+    ├─ faceDetectionRefCount == 0 → onSafeUnload()  → 真正 unload()（MnnGlobalReleaseLock 串行化）
+    └─ faceDetectionRefCount  > 0 → onSoftRelease() → trimMemory()
 
-ASR 请求释放  →  releaseAsr()
+人脸检测请求释放  →  releaseFaceDetection()
     ├─ llmRefCount == 0 → onSafeUnload()  → 真正 release()
-    └─ llmRefCount  > 0 → onSoftRelease() → stopStreaming()
+    └─ llmRefCount  > 0 → onSoftRelease()
 ```
 
-> **注意**：引用计数 API 名仍为 `acquireLlm`/`releaseLlm`，但当前 `llmRefCount` 实际管理的是 **VLM 打标引擎**的生命周期（文本 LLM 已移除）。
+> **注意**：引用计数 API 名仍为 `acquireLlm`/`releaseLlm`，但当前 `llmRefCount` 实际管理的是 **VLM 打标引擎**的生命周期（文本 LLM 已移除）。历史上的 `acquireAsr`/`releaseAsr` 已随 ASR 迁移 Sherpa-ONNX 而移除——ASR 不再共享 `libMNN.so`，也不接入 `MnnResourceManager`。
 
 ### 2.5 联合状态机
 
@@ -230,42 +232,49 @@ ASR 请求释放  →  releaseAsr()
 
     ┌──────────┐    load()    ┌──────────┐   both agree   ┌──────────┐
     │  IDLE    │ ───────────→ │  SHARED  │ ─────────────→ │ UNLOADED │
-    │(无模型)   │              │(VLM+ASR) │   unload()     │(已释放)   │
+    │(无模型)   │              │(VLM+Face)│   unload()     │(已释放)   │
     └──────────┘              └────┬─────┘                └──────────┘
          ↑                         │
          │              ┌──────────┴──────────┐
          │              │                     │
-         │         trim()                asr_stop()
+         │         trim()               face_unload()
          │              ↓                     ↓
          │       ┌──────────┐          ┌──────────┐
-         └───────│ VLM_ONLY │          │ ASR_ONLY │
-                 │(仅VLM常驻)│          │(仅ASR常驻)│
+         └───────│ VLM_ONLY │          │ FACE_ONLY │
+                 │(仅VLM常驻)│          │(仅Face常驻)│
                  └──────────┘          └──────────┘
 ```
 
-### 2.6 生命周期触发矩阵（历史）
+> 每模型另有独立细粒度状态机（`ModelState`：`UNLOADED → MODEL_LOADED → SESSION_READY → ACTIVE`），见 `MnnResourceManager`。
 
-| 当前状态 | 触发事件 | VLM 动作 | ASR 动作 | 结果状态 |
-|----------|----------|----------|----------|----------|
+### 2.6 生命周期触发矩阵（当前实现）
+
+场景驱动逻辑见 `MnnResourceManager.setScene()`：**VLM 永不响应场景切换**（跨页面保活，仅响应内存压力）；人脸检测绑定相机场景。
+
+| 当前状态 | 触发事件 | VLM 动作 | 人脸检测动作 | 结果状态 |
+|----------|----------|----------|--------------|----------|
 | IDLE | TAG 打标触发 | `loadModel()` | 无 | VLM_ONLY |
-| IDLE | 进入相机页 + 语音开启 | `trimMemory()`（如已加载） | `tryInitRecognizer()` | SHARED / ASR_ONLY |
-| VLM_ONLY | 进入相机页 + 语音开启 | 保持 | `tryInitRecognizer()` | SHARED |
-| ASR_ONLY | TAG 打标触发 | `loadModel()` | 保持 | SHARED |
-| SHARED | 离开相机页 | `trimMemory()` | `release()` → softRelease | VLM_ONLY |
-| SHARED | TAG 后台结束 | `unload()` → softRelease | 保持 | ASR_ONLY |
-| SHARED | 后台 30s | `trimMemory()` | `stopStreaming()` | SHARED (soft) |
-| SHARED | 后台 60s / 内存压力 | `unload()` | `release()` | IDLE |
-| * | `onTrimMemory(CRITICAL)` | `unload()` | `release()` | IDLE |
+| IDLE | 进入相机页（Scene.CAMERA） | 无 | 取消卸载调度，通知加载 | FACE_ONLY |
+| VLM_ONLY | 进入相机页 | 保持 | 加载 | SHARED |
+| FACE_ONLY | TAG 打标触发 | `loadModel()` | 保持 | SHARED |
+| SHARED | 离开相机页（CHAT/SETTINGS/OTHER） | 保持（不受场景切换影响） | 强制卸载（忽略引用计数） | VLM_ONLY |
+| SHARED | TAG 后台结束 | `releaseLlm()` → soft/safeRelease | 保持 | FACE_ONLY |
+| * | 后台 30s（无引用） | `trimMemory()`（softTrim） | softTrim | * (soft) |
+| * | 后台 60s / 内存压力 | `unload()`（safeUnload） | `release()`（safeUnload） | IDLE |
+| * | `onTrimMemory(CRITICAL/COMPLETE)` | `unload()` | `release()` | IDLE |
+
+> 历史矩阵（VLM + ASR 共享时期）已不再适用：ASR 生命周期现由 `VoiceCommandCoordinator` / `SherpaOnnxAsrEngine` 自行管理，不经 `MnnResourceManager`。
 
 ### 2.7 组件职责
 
 | 组件 | 位置 | 职责 |
 |------|------|------|
-| `MnnResourceManager` | `runtime-core/.../mnn/MnnResourceManager.kt` | 引用计数管理、生命周期监听、内存压力响应、事件分发 |
+| `MnnResourceManager` | `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt` | 引用计数管理（VLM + 人脸检测）、生命周期监听、内存压力响应、事件分发 |
 | `LocalLlmEngine` | `runtime-core/.../inference/local/llm/LocalLlmEngine.kt` | `load()` 成功后调用 `acquireLlm()`；`unload()` 改为调用 `releaseLlm()`（仅服务 VLM 打标） |
-| `SherpaMnnAsrEngine` | `app/.../camera/voice/SherpaMnnAsrEngine.kt` | `tryInitRecognizer()` 成功后调用 `acquireAsr()`；`release()` 改为调用 `releaseAsr()` |
-| `VoiceCommandCoordinator` | `app/.../camera/voice/VoiceCommandCoordinator.kt` | `release()` 中新增 `(asrEngine as? SherpaMnnAsrEngine)?.release()` |
-| `CameraScreen` | `app/.../camera/CameraScreen.kt` | 监听 ON_RESUME / ON_PAUSE，联动 `MnnResourceManager` |
+| `MnnRoiDetector` / `MnnLandmarkDetector` | `beauty-engine/.../facedetect/MnnRoiDetector.kt` 等 | 初始化时调用 `acquireFaceDetection()`；释放时调用 `releaseFaceDetection()` |
+| `SherpaOnnxAsrEngine` | `runtime-core/.../platform/voice/SherpaOnnxAsrEngine.kt` | ASR 引擎（Sherpa-ONNX）。**不参与 MNN 引用计数**——不再依赖 `libMNN.so` / `MnnResourceManager` / `MnnGlobalReleaseLock` |
+| `VoiceCommandCoordinator` | `app/.../camera/voice/VoiceCommandCoordinator.kt` | 语音生命周期管理（直接释放 ASR 引擎，不经 `MnnResourceManager`） |
+| `CameraScreen` | `app/.../camera/CameraScreen.kt` | 监听 ON_RESUME / ON_PAUSE，联动 `MnnResourceManager`（场景切换） |
 | `PoLangApplication` | `app/.../PoLangApplication.kt` | `ActivityTracker` 计数，前后台切换通知 `MnnResourceManager` |
 
 ### 2.8 线程安全
@@ -276,8 +285,8 @@ ASR 请求释放  →  releaseAsr()
 | `MnnResourceManager` | 监听器列表 | `CopyOnWriteArrayList` |
 | `MnnResourceManager` | 后台调度 | `AtomicBoolean` 防重复 |
 | `LocalLlmEngine` | load/unload/generate | `Mutex` |
-| `SherpaMnnAsrEngine` | recognizer 创建/释放 | `synchronized(initLock)` |
-| `SherpaMnnAsrEngine` | 流式识别状态 | `AtomicBoolean` |
+| MNN 人脸检测（ROI/Landmark） | native create/release | `MnnGlobalReleaseLock` 串行化 |
+| `SherpaOnnxAsrEngine` | recognizer 创建/释放 | 引擎内部自行管理（不经 MNN 锁） |
 
 ### 2.9 调试与观测
 
@@ -287,16 +296,18 @@ ASR 请求释放  →  releaseAsr()
 |------|------|----------|
 | `MnnResourceManager` | `MnnResourceManager` | refCount 变化、前后台切换、内存压力级别 |
 | `LocalLlmEngine` | `LocalLlmEngine` | load/unload/trimMemory 状态转换 |
-| `SherpaMnnAsr` | `SherpaMnnAsrEngine` | init/release/softRelease 状态转换 |
+| `SherpaOnnxAsr` | `SherpaOnnxAsrEngine` | ASR init/release 状态（独立于 MNN 资源管理） |
 
 #### 内存统计 API
 
 ```kotlin
 val stats = MnnResourceManager.getInstance(context).getMemoryStats()
 // stats.llmRefCount
-// stats.asrRefCount
+// stats.faceDetectionRefCount
+// stats.currentScene
 // stats.appInForeground
 // stats.javaHeapUsedMB
+// stats.nativeHeapMB
 // stats.availableMemoryMB
 // stats.lowMemory
 ```
@@ -316,23 +327,26 @@ val stats = MnnResourceManager.getInstance(context).getMemoryStats()
 | **内存压力** | `onTrimMemory(RUNNING_CRITICAL)` | `notifySafeUnload()` | 立即 | 紧急 |
 | **内存压力** | `onTrimMemory(UI_HIDDEN)` | `onAppBackground()` | 30s → 60s | 中 |
 | **内存压力** | `onTrimMemory(COMPLETE)` | `notifySafeUnload()` | 立即 | 紧急 |
-| **页面退出** | `VoiceCommandCoordinator.release()` | `releaseAsr()` → softRelease | 立即 | 中 |
+| **页面退出（场景切换）** | `setScene(CHAT/SETTINGS/OTHER)` | `forceFaceDetectionUnload()` | 立即 | 中 |
+| **离开相机页** | `setScene(CAMERA → 其他)` | 人脸检测延迟卸载（`FACE_DETECTION_UNLOAD_DELAY_MS = 5000L`） | 5s | 中 |
 | **TAG 后台结束** | `AgentOrchestrator.unloadModel()` | `releaseLlm()` → softRelease | 立即 | 低 |
 | **模型切换** | `loadModel()` 加载新模型 | `unload()` 旧模型 | 立即 | 中 |
+
+> 历史触发源「`VoiceCommandCoordinator.release()` → `releaseAsr()`」已失效：ASR 迁移 Sherpa-ONNX 后不经 `MnnResourceManager`，由 `SherpaOnnxAsrEngine.release()` 自行释放。
 
 ### 3.2 引用计数协调机制（核心规则）
 
 ```
-acquireLlm()  → llmRefCount++
-acquireAsr()  → asrRefCount++
+acquireLlm()           → llmRefCount++
+acquireFaceDetection() → faceDetectionRefCount++
 
 releaseLlm()
-    ├─ asrRefCount == 0 → onSafeUnload()  → 真正 nativeDestroy()
-    └─ asrRefCount  > 0 → onSoftRelease() → trimMemory()（保留模型）
+    ├─ faceDetectionRefCount == 0 → onSafeUnload()  → 真正 nativeDestroy()（MnnGlobalReleaseLock 串行化）
+    └─ faceDetectionRefCount  > 0 → onSoftRelease() → trimMemory()（保留模型）
 
-releaseAsr()
-    ├─ llmRefCount == 0 → onSafeUnload()  → 真正 recognizer.release()
-    └─ llmRefCount  > 0 → onSoftRelease() → stopStreaming()（保留模型）
+releaseFaceDetection()
+    ├─ llmRefCount == 0 → onSafeUnload()  → 真正 detector release()
+    └─ llmRefCount  > 0 → onSoftRelease() → 保留模型
 ```
 
 ### 3.3 App 前后台切换
@@ -374,7 +388,7 @@ onAppBackground()
     │
     ├── 是 → notifySoftTrim()
     │           ├── LocalLlmEngine.onSoftTrim() → trimMemory()
-    │           └── SherpaMnnAsrEngine.onSoftTrim() → stopStreaming()
+    │           └── 人脸检测.onSoftTrim() → softRelease（保留模型）
     │
     ▼
 delay 再 30s（累计 60s）
@@ -384,12 +398,12 @@ delay 再 30s（累计 60s）
     │
     ├── 是 → notifySafeUnload()
     │           ├── LocalLlmEngine.onSafeUnload() → performUnload()
-    │           └── SherpaMnnAsrEngine.onSafeUnload() → performUnload()
+    │           └── 人脸检测.onSafeUnload() → performUnload()
     │
     ▼
 ┌─────────────────────────────────────┐
 │            IDLE 状态                │
-│            VLM + ASR 完全释放              │
+│            VLM + 人脸检测完全释放          │
 └─────────────────────────────────────┘
 ```
 
@@ -488,24 +502,24 @@ fun releaseLlm(owner: String, onSafeUnload: () -> Unit, onSoftRelease: () -> Uni
 
 | 标签 | 来源 | 关键日志模式 |
 |------|------|-------------|
-| `MnnResourceManager` | `MnnResourceManager` | `VLM acquired/released by X, refCount=N` |
+| `MnnResourceManager` | `MnnResourceManager` | `LLM/FaceDetection acquired/released by X, refCount=N` |
 | `MnnResourceManager` | `MnnResourceManager` | `App entered foreground/background` |
 | `MnnResourceManager` | `MnnResourceManager` | `Memory pressure: LEVEL, action` |
 | `LocalLlmEngine` | `LocalLlmEngine` | `VLM fully unloaded` / `VLM memory trimmed` |
-| `SherpaMnnAsr` | `SherpaMnnAsrEngine` | `ASR fully unloaded` / `ASR soft released` |
+| `SherpaOnnxAsr` | `SherpaOnnxAsrEngine` | ASR init/release（独立于 MNN 资源管理） |
 | `VoiceCommand` | `VoiceCommandCoordinator` | `VoiceCommandCoordinator released` |
 
 #### ADB 日志过滤命令
 
 ```bash
 # 查看所有 MNN 资源管理日志
-adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaMnnAsr:*" "VoiceCommand:*" -v time
+adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaOnnxAsr:*" "VoiceCommand:*" -v time
 
 # 只看引用计数变化
 adb logcat -s "MnnResourceManager:*" -v time | grep -E "acquired|released|refCount"
 
 # 只看卸载事件
-adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaMnnAsr:*" -v time | grep -E "unloaded|trimmed|soft released"
+adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaOnnxAsr:*" -v time | grep -E "unloaded|trimmed|soft released"
 ```
 
 ---
@@ -832,7 +846,7 @@ class MemoryMonitor {
 adb logcat -c
 
 # 开启过滤日志（保持终端运行）
-adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaMnnAsr:*" "VoiceCommand:*" "AgentOrchestrator:*" -v time
+adb logcat -s "MnnResourceManager:*" "LocalLlmEngine:*" "SherpaOnnxAsr:*" "VoiceCommand:*" "AgentOrchestrator:*" -v time
 ```
 
 #### 内存监控（可选）
@@ -850,57 +864,59 @@ done
 
 ### 5.2 测试用例
 
+> **重要更新（2026-08）**：以下用例已按当前实现改写——`MnnResourceManager` 引用计数协调的双方为 **VLM 打标（`acquireLlm`/`releaseLlm`）与 MNN 人脸检测（`acquireFaceDetection`/`releaseFaceDetection`）**。历史版本中 ASR（`SherpaMnnAsrEngine`）一方的验证步骤已失效：ASR 迁移 Sherpa-ONNX 后不再接入 `MnnResourceManager`，其释放由 `SherpaOnnxAsrEngine.release()` 自行管理（日志 tag `SherpaOnnxAsr`）。
+
 #### TC-001: 后台自动卸载（核心用例）
 
-**目的**: 验证 App 进入后台后，VLM 和 ASR 按预期时间线卸载
+**目的**: 验证 App 进入后台后，VLM 和人脸检测按预期时间线卸载
 
 **前置条件**:
 - App 已启动，进入相机页
-- ASR 初始化成功（`acquireAsr()`）
+- 人脸检测初始化成功（`acquireFaceDetection()`）
 - VLM 已加载（`acquireLlm()`）
 
 **操作步骤**:
 
 | 步骤 | 操作 | 期望日志 |
 |------|------|----------|
-| 1 | 打开 PoLang，进入相机页 | `ASR acquired by SherpaMnnAsrEngine, refCount=1` |
-| 2 | 触发 TAG 打标 | `VLM acquired by LocalLlmEngine, refCount=1` |
+| 1 | 打开 PoLang，进入相机页 | `FaceDetection acquired by MnnRoiDetector, refCount=1` |
+| 2 | 触发 TAG 打标 | `LLM acquired by LocalLlmEngine, refCount=1` |
 | 3 | 按 Home 键回到桌面 | `App entered background, scheduling unload` |
 | 4 | 等待 30 秒 | `Background timeout, triggering soft trim for all` |
 | 5 | 继续等待 30 秒（累计 60s） | `Background force unload timeout, triggering safe unload` |
-| 6 | 观察最终状态 | `VLM fully unloaded` + `ASR fully unloaded` |
+| 6 | 观察最终状态 | VLM 与人脸检测均完全释放 |
 
 **验证标准**:
-- [ ] 30s 时触发 softTrim（VLM trimMemory + ASR stopStreaming）
-- [ ] 60s 时触发 safeUnload（VLM performUnload + ASR performUnload）
+- [ ] 30s 时触发 softTrim（VLM trimMemory + 人脸检测 softRelease）
+- [ ] 60s 时触发 safeUnload（VLM performUnload + 人脸检测 performUnload）
 - [ ] 内存下降（Native Heap 减少 1-2GB）
 
 **通过标准**: 所有期望日志按顺序出现，无崩溃
 
 ---
 
-#### TC-002: 页面退出释放 ASR
+#### TC-002: 页面退出释放人脸检测
 
-**目的**: 验证离开相机页时 ASR 正确释放，VLM 根据引用状态处理
+**目的**: 验证离开相机页时人脸检测正确释放，VLM 不受场景切换影响
 
 **前置条件**:
-- App 在相机页，ASR 已初始化
+- App 在相机页，人脸检测已初始化
 
 **操作步骤**:
 
 | 步骤 | 操作 | 期望日志（VLM 未加载） | 期望日志（VLM 已加载） |
 |------|------|------------------------|------------------------|
-| 1 | 打开相机页 | `ASR acquired, refCount=1` | `ASR acquired, refCount=1` |
-| 2 | 触发 TAG 打标（可选） | — | `VLM acquired, refCount=1` |
-| 3 | 点击底部导航切换到相册页 | `ASR released, refCount=0` | `ASR released, refCount=0` |
-| 4 | 观察释放行为 | `ASR safe to unload` → `ASR fully unloaded` | `ASR soft release (VLM still active)` |
+| 1 | 打开相机页 | `FaceDetection acquired, refCount=1` | `FaceDetection acquired, refCount=1` |
+| 2 | 触发 TAG 打标（可选） | — | `LLM acquired, refCount=1` |
+| 3 | 点击底部导航切换到相册页 | 场景切换触发人脸检测卸载 | 场景切换触发人脸检测卸载 |
+| 4 | 观察释放行为 | `FaceDetection safe to unload` → 完全释放 | VLM 保持加载（跨页面保活，不响应场景切换） |
 
 **验证标准**:
-- [ ] 切换页面后 `VoiceCommandCoordinator released` 出现
-- [ ] ASR refCount 正确递减到 0
-- [ ] 无 VLM 引用时 ASR 真正释放；有 VLM 引用时 ASR 软释放
+- [ ] 离开相机页后人脸检测 refCount 递减到 0 并释放
+- [ ] VLM 引用不受场景切换影响（仅响应内存压力）
+- [ ] ASR 由 `VoiceCommandCoordinator` 自行释放（日志 tag `SherpaOnnxAsr`，不经 `MnnResourceManager`）
 
-**通过标准**: ASR 不再占用内存，无资源泄漏
+**通过标准**: 人脸检测不再占用内存，无资源泄漏
 
 ---
 
@@ -909,16 +925,16 @@ done
 **目的**: 验证系统内存紧张时立即释放模型
 
 **前置条件**:
-- App 在相机页，VLM + ASR 均已加载
+- App 在相机页，VLM + 人脸检测均已加载
 
 **操作步骤**:
 
 | 步骤 | 操作 | 期望日志 |
 |------|------|----------|
-| 1 | 进入相机页，触发 TAG 打标 | `VLM acquired` + `ASR acquired` |
+| 1 | 进入相机页，触发 TAG 打标 | `LLM acquired` + `FaceDetection acquired` |
 | 2 | 执行 ADB 命令模拟内存压力 | — |
 | 3 | 观察日志 | `Memory pressure: LOW/CRITICAL, force unload` |
-| 4 | 验证释放 | `VLM fully unloaded` + `ASR fully unloaded` |
+| 4 | 验证释放 | VLM 与人脸检测均完全释放 |
 
 **ADB 命令**:
 ```bash
@@ -949,15 +965,15 @@ adb shell am send-trim-memory com.mamba.picme COMPLETE
 
 | 步骤 | 操作 | 期望 refCount | 期望状态 |
 |------|------|---------------|----------|
-| 1 | 打开相机页 | vlm=0, asr=1 | ASR_ONLY |
-| 2 | 触发 TAG 打标 | vlm=1, asr=1 | SHARED |
-| 3 | 切换到相册页（ASR release） | vlm=1, asr=0 | VLM_ONLY |
-| 4 | TAG 打标继续 | vlm=1, asr=0 | VLM_ONLY |
-| 5 | TAG 打标结束（VLM release） | vlm=0, asr=0 | IDLE |
-| 6 | 再次进入相机页 | vlm=0, asr=1 | ASR_ONLY |
-| 7 | 再次触发 TAG 打标 | vlm=1, asr=1 | SHARED |
+| 1 | 打开相机页 | llm=0, face=1 | FACE_ONLY |
+| 2 | 触发 TAG 打标 | llm=1, face=1 | SHARED |
+| 3 | 切换到相册页（人脸检测卸载） | llm=1, face=0 | VLM_ONLY |
+| 4 | TAG 打标继续 | llm=1, face=0 | VLM_ONLY |
+| 5 | TAG 打标结束（VLM release） | llm=0, face=0 | IDLE |
+| 6 | 再次进入相机页 | llm=0, face=1 | FACE_ONLY |
+| 7 | 再次触发 TAG 打标 | llm=1, face=1 | SHARED |
 | 8 | 按 Home 键 | — | 调度卸载 |
-| 9 | 等待 60s | vlm=0, asr=0 | IDLE |
+| 9 | 等待 60s | llm=0, face=0 | IDLE |
 
 **验证标准**:
 - [ ] 每个步骤 refCount 符合预期
@@ -979,10 +995,10 @@ adb shell am send-trim-memory com.mamba.picme COMPLETE
 
 | 步骤 | 操作 | 期望日志 |
 |------|------|----------|
-| 1 | 后台 60s，确认模型已卸载 | `VLM fully unloaded` + `ASR fully unloaded` |
+| 1 | 后台 60s，确认模型已卸载 | VLM 与人脸检测均完全释放 |
 | 2 | 重新打开 PoLang | `App entered foreground` |
-| 3 | 进入相机页 | `ASR acquired, refCount=1` |
-| 4 | 触发 TAG 打标 | `VLM acquired, refCount=1` |
+| 3 | 进入相机页 | `FaceDetection acquired, refCount=1` |
+| 4 | 触发 TAG 打标 | `LLM acquired, refCount=1` |
 | 5 | 验证功能正常 | 语音识别成功，VLM 打标成功 |
 
 **验证标准**:
@@ -1005,7 +1021,7 @@ adb shell am send-trim-memory com.mamba.picme COMPLETE
 
 | 步骤 | 操作 | 期望日志 |
 |------|------|----------|
-| 1 | 触发 TAG 打标 | `VLM acquired, refCount=1` |
+| 1 | 触发 TAG 打标 | `LLM acquired by LocalLlmEngine, refCount=1` |
 | 2 | 进入相册页触发图像理解 | 复用同一 `LocalLlmEngine`，无新的 `nativeCreate` |
 | 3 | 观察内存 | Native Heap 不重复增长 |
 
@@ -1029,7 +1045,7 @@ set -e
 
 PACKAGE="com.mamba.picme"
 LOG_FILE="/tmp/mnn_unload_test_$(date +%Y%m%d_%H%M%S).log"
-TAGS="MnnResourceManager:LocalLlmEngine:SherpaMnnAsr:VoiceCommand"
+TAGS="MnnResourceManager:LocalLlmEngine:SherpaOnnxAsr:VoiceCommand"
 
 echo "=== MNN Unload Test ==="
 echo "Log file: $LOG_FILE"
@@ -1071,11 +1087,11 @@ tc_001() {
     sleep 30
 
     echo "Step 6: Check logs"
-    if grep -q "VLM fully unloaded" "$LOG_FILE" && grep -q "ASR fully unloaded" "$LOG_FILE"; then
+    if grep -q "VLM fully unloaded" "$LOG_FILE" && grep -q "FaceDetection safe to unload" "$LOG_FILE"; then
         echo "✓ TC-001 PASSED"
     else
         echo "✗ TC-001 FAILED"
-        echo "Expected: VLM fully unloaded + ASR fully unloaded"
+        echo "Expected: VLM fully unloaded + FaceDetection safe to unload"
         grep -E "unloaded|trimmed|soft released" "$LOG_FILE" | tail -10
     fi
 }
@@ -1161,15 +1177,19 @@ echo "Full log: $LOG_FILE"
 
 #### Q2: ASR 释放后 recognizer 仍存在
 
+> ASR 已迁移至 Sherpa-ONNX（`SherpaOnnxAsrEngine`），不经 `MnnResourceManager` 引用计数。
+
 **排查步骤**:
 1. 检查日志是否有 `VoiceCommandCoordinator released`
-2. 检查 `SherpaMnnAsrEngine.release()` 是否被调用
-3. 检查 refCount 是否为 0
+2. 检查 `SherpaOnnxAsrEngine.release()` 是否被调用（日志 tag `SherpaOnnxAsr`，期望 `ASR fully released`）
+3. 检查 recognizer 是否重复初始化
 
-#### Q3: VLM unload 导致 ASR 崩溃
+#### Q3: VLM unload 导致人脸检测崩溃
+
+> 历史版本此问题为「VLM unload 导致 ASR 崩溃」；ASR 迁出后，同类风险存在于 VLM ↔ MNN 人脸检测之间。
 
 **排查步骤**:
-1. 检查 refCount 是否正确（不应在 ASR 引用存在时 safeUnload VLM）
+1. 检查 refCount 是否正确（不应在人脸检测引用存在时 safeUnload VLM）
 2. 检查 `MnnResourceManager` 的协调逻辑
 3. 查看崩溃堆栈是否涉及 MNN 全局状态
 
@@ -1187,12 +1207,12 @@ echo "Full log: $LOG_FILE"
 
 - [ ] `MnnResourceManager` 单例可正常获取，引用计数正确增减
 - [ ] VLM 加载后 `llmRefCount == 1`，卸载后 `llmRefCount == 0`
-- [ ] ASR 初始化后 `asrRefCount == 1`，释放后 `asrRefCount == 0`
+- [ ] 人脸检测初始化后 `faceDetectionRefCount == 1`，释放后 `faceDetectionRefCount == 0`
 - [ ] 双方同时存在时，单方 release 只触发 softRelease
 - [ ] 双方均 release 后触发真正的 native unload
 - [ ] App 后台 30s 触发 softTrim，60s 触发 safeUnload
 - [ ] `onTrimMemory(CRITICAL)` 立即触发 safeUnload
-- [ ] 离开相机页后 ASR 不再泄漏
+- [ ] 离开相机页后人脸检测不再泄漏（ASR 由 `SherpaOnnxAsrEngine` 自行管理，不在此列）
 - [ ] ~~量化模型转换并测试推理质量~~（VLM 已是 INT4）
 - [ ] GPU 后端兼容性测试（Vulkan 支持检测）
 - [ ] VLM 打标动态加载/卸载功能验证
@@ -1211,9 +1231,8 @@ echo "Full log: $LOG_FILE"
 | `runtime-core/src/main/java/com/mamba/picme/agent/core/facade/AgentConfigurator.kt` | 配置器，持有 `LocalLlmEngine` 单例 |
 | `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt` | VLM 打标引擎（仅 `imageInference`） |
 | `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt` | MNN LLM 客户端（VLM 打标 JNI 桥） |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/mnn/MnnResourceManager.kt` | 资源协调管理器 |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/mnn/MnnGlobalReleaseLock.kt` | Native 全局释放锁 |
-| `app/src/main/java/com/mamba/picme/features/camera/voice/SherpaMnnAsrEngine.kt` | ASR 引擎（历史） |
+| `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt` | 资源协调管理器（含 `MnnGlobalReleaseLock`） |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt` | ASR 引擎（Sherpa-ONNX，不经 MNN 资源管理） |
 | `app/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt` | 语音协调器 |
 | `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` | 相机页面 |
 | `app/src/main/java/com/mamba/picme/PoLangApplication.kt` | 应用入口 |

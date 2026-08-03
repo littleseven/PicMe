@@ -7,10 +7,10 @@
 > - 相册自然语言搜索的完整链路以 `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` 为唯一事实来源（SSOT）。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-> **版本**: 1.2  
+> **版本**: 1.3  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-02  
-> **维护者**: RD Agent
+> **最后更新**: 2026-08-03  
+> **维护者**: 项目开发者
 
 **模块定位**: 应用默认首页，提供智能聚类相册浏览、媒体查看器、批量操作功能；支持端侧自然语言搜索；右下角 plus 菜单聚合 Chat / Camera / Settings / Model Center 四个二级页入口，语音 Agent 面板提供自然语言交互入口。重复照片管理入口已迁移至设置页「相册功能」卡片。
 
@@ -22,7 +22,7 @@
 
 - **[PERF] 高刷流畅滚动**: 1000+ 张照片滑动保持 60fps，缩略图加载跟手无白屏
 - **[LOCAL] 纯本地聚类**: 人脸分组、重复检测全部在设备端完成，严禁上传云端
-- **[SEARCH] 自然语言搜索**: 纯本地推理，结构化召回优先，语义召回补充，无需联网
+- **[SEARCH] 自然语言搜索**: 检索与召回纯本地推理，结构化召回优先，语义召回补充，无需联网；但 Chat 场景的搜索意图（`SearchIntent`）由远程 LLM 生成后传入本地搜索（Gallery 入口搜索则完全本地）
 - **[I18N] 多语言支持**: 分组标题、操作按钮必须提取到 strings.xml
 - **[FEEDBACK] 流体动效**: 图片展开/收起跟随手指轨迹，缩放平移过渡自然
 - **[MEMORY] 内存优化**: LruCache 限制上限，OOM 时自动降级清晰度
@@ -35,7 +35,7 @@
 - **分组模式**:
   - `NONE`: 按时间倒序平铺
   - `DATE`: 按日期分组（今天、昨天、本周、本月）
-  - `PERSON`: 按人物聚类（基于 ML Kit 人脸检测）
+  - `PERSON`: 按人物聚类（人脸检测走 beauty-engine `FaceDetectorManager`，MediaPipe 468→106 点主链路 + MNN 备选；人脸 embedding 由 MNN Glint360K R100 生成，TAG Pass 2 经 DBSCAN 聚类）
   - `LANDSCAPE`: 风景照片单独分组，匹配 `labels` 中的风景相关 `scene` 或 `tags`（如「风景」「山脉」「海边」「landscape」等）
   - `SWIMWEAR`: 匹配 `labels` 中的泳装相关标签（如「泳衣」「比基尼」「swimsuit」「bikini」）
   - `SEXY`: 匹配 `labels` 中的风格标签（如「性感」「sexy」）
@@ -250,7 +250,7 @@ SearchTopBar(
   - MediaPager 顶部工具栏 ✨ 编辑按钮（`AutoFixHigh` icon），仅 `MediaType.PHOTO` 显示
   - **长按图片区域**：直接进入编辑器（带 `HapticFeedbackType.LongPress` 触感反馈）
   - 两者均通过 `onNavigateToEditor(asset)` 回调导航到 `Screen.PhotoEditor(sourceUri, recipeUri?)`
-- **导航路由**: `MainActivity` NavHost 注册 `photo_editor/{sourceUri}`，可选参数 `recipeUri` 用于重新编辑已保存的副本
+- **导航路由**: `MainActivity` NavHost 注册 `photo_editor/{sourceUri}?recipeUri={recipeUri}&autoOptimize={autoOptimize}`，可选参数 `recipeUri` 用于重新编辑已保存的副本，`autoOptimize` 用于进入时自动触发 AI 一键优化
 - **非破坏性编辑**: 原图始终不动；保存时生成新文件写入 MediaStore（`Pictures/PoLang/EDITED_${timestamp}.jpg`），并将本次完整配方持久化到 `photo_edit_recipes` 表
 - **配方数据模型**: `EditRecipe`
   - `crop: CropRecipe` — 裁剪比例、旋转角度、水平翻转
@@ -323,19 +323,16 @@ override fun onCleared() {
 **入口**: `TagGenerationControlScreen`（设置 → AI Agent → TAG 生成控制）
 
 **技术规范**:
-- **5-Pass 混合管道**:
+- **3-Pass 混合管道**（另有 legacy `MOBILE_CLIP_ENCODING` Pass，仅保留用于历史任务兼容及单独重编码场景，不在常规扫描链中）:
   - **Pass 1**: `FACE_DETECTION` — 人脸检测 + 人脸 Embedding + MobileCLIP 语义编码（语义编码已内联合并到本阶段）
   - **Pass 2**: `DBSCAN` — 全局人脸聚类
-  - **Pass 3**: `IMAGE_TAGGING` — Qwen 多模态标签生成（场景/活动/物体/标签/摘要）
-  - **Pass 4**: `MOBILE_CLIP_ENCODING` — 保留用于历史任务兼容及单独重编码场景
-  - **Pass 5**: `ML_KIT_TAGGING` — ML Kit Image Labeler 快速英文标签提取
+  - **Pass 3**: `IMAGE_TAGGING` — Qwen3-VL-2B 端侧多模态标签生成（场景/活动/物体/标签/摘要）
 - **类别到 Pass 映射**（`TagCategory.toPasses`）:
   - `FACE` → `FACE_DETECTION` + `DBSCAN`
-  - `ML_KIT_LABELS` → `ML_KIT_TAGGING`
   - `SCENE / ACTIVITY / OBJECTS / TAGS / SUMMARY` → `IMAGE_TAGGING`
 - **队列编排**: `TagScanOrchestrator` 持久化任务队列，支持暂停/恢复/取消/失败重试
 - **增量去重**: 默认跳过近期已覆盖所有请求 Pass 的媒体，按 `oldest-first` 排序避免老照片饿死
-- **精细控制**: 支持按 `TagCategory`（人脸/场景/活动/物体/标签/摘要/ML Kit 标签）和时间范围（全部/7天/30天/90天）重新生成
+- **精细控制**: 支持按 `TagCategory`（人脸/场景/活动/物体/标签/摘要）和时间范围（全部/7天/30天/90天）重新生成
 - **OpenCL 守护**: `OpenClGuardian` 在 Pass 3 前 warmup，超时后自动降级 CPU 并记录设备黑名单
 - **模型加载**: `TagGenerationScheduler.ensureModelLoaded()` 优先 OpenCL（用户开启且未降级），失败/warmup 超时后降级 CPU
 - **状态观察**: 通过 `TagGenerationService.sessionProgress` StateFlow 显示进度、预计剩余时间、暂停/恢复按钮
@@ -466,7 +463,7 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 - [ ] 重复扫描是否在后台线程执行？(避免阻塞 UI)
 - [ ] TAG 扫描任务是否正确持久化到 `tag_scan_tasks` 表？(异常恢复)
 - [ ] Pass 3 Qwen 推理是否经过 `OpenClGuardian` 超时保护？(防止 OpenCL 挂起)
-- [ ] 按类别重新生成时是否正确映射到 Pass 阶段？(人脸→Pass 1+2，ML Kit 标签→Pass 5，其他→Pass 3)
+- [ ] 按类别重新生成时是否正确映射到 Pass 阶段？(人脸→Pass 1+2，其他类别→Pass 3)
 - [ ] 沉浸式模式是否在 DisposableEffect 中正确清理？(onDispose 恢复系统栏)
 - [ ] 缩略图位置记录是否在重组时丢失？(使用 remember)
 - [ ] 搜索结果缩略图是否禁用 Coil crossfade？(避免 recycled bitmap 崩溃)
@@ -482,7 +479,7 @@ adb shell am broadcast -a com.mamba.picme.TEST_COMMAND --es action cancel_tag_sc
 - ✅ 批量操作 → mutableStateListOf 支持连续批选与全选；搜索结果支持相同操作
 - ✅ 独立图片编辑器 → 非破坏性配方编辑，裁剪/调节/美颜三语本地化，保存为新副本并持久化配方
 - ✅ OCR 本地识别 → ML Kit 离线引擎，ViewModel 生命周期管理
-- ✅ TAG 生成控制 → 5-Pass 队列 + 类别/时间范围精细控制 + OpenCL 超时降级
+- ✅ TAG 生成控制 → 3-Pass 队列 + 类别/时间范围精细控制 + OpenCL 超时降级
 - ✅ 自然语言搜索 → `MediaSearchEngine` + `SemanticSearchEngine` 本地召回；结果网格支持长按批量选择
 
 **技术决策记录**:

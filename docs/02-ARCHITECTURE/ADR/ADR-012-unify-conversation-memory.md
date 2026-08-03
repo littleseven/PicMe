@@ -1,11 +1,18 @@
 # ADR-012: 解决双套对话记忆系统
 
-**状态**: 规划中（波次1，随 ADR-010 隔离一并落地）
+**状态**: 波次1 数据正确性修复已完成（2026-08-03 代码核实，详见下方状态更新）
 **日期**: 2026-07-28
+**更新日期**: 2026-08-03（核实三项实施任务现状）
 **决策**: 用户
 **依赖**: ADR-010；review §0.3-D5、P1-3
 
 ---
+
+> ## ⛔ 状态更新（2026-08-03）：波次1 修复已落地，「相机专用」前提已变化
+>
+> 经代码核实，本 ADR 波次1 的两个数据正确性 bug 均已修复：`MemoryManager.appendConversation` 已改为 DataStore `edit{}` 内原子 read-modify-write（`MemoryManager.kt:144`）；`DataStoreChatMemory.clear()` 已同步清内存 `cache`（`RemoteReActAgent.kt:467`，注释明确记录旧 bug）。
+> 原 `streamChat` 对 `MemoryManager` 的死写回已随链路重构消除（`AgentOrchestrator` 已无 `streamChat`）；现存两处写回为有意保留：相机会话回写 `saveCameraConversation`（`processCameraInput` 后，`AgentOrchestrator.kt:415`）与 chat 图片分析结果回写（`ChatViewModel.kt:2302`）。
+> §3 中「`MemoryManager` 限定相机（与 ADR-009 一致）」的前提已不成立：ADR-009 已被超越（2026-08-02 本地链路整体删除，相机链路同样改走远程 tool_calls），`MemoryManager` 现状服务相机会话与 chat 图片上下文两类写回。⚠️ 遗留观察：`buildContextMessages` 当前无调用方，`MemoryManager` 写回的消费者链路待后续梳理。
 
 ## 1. 背景
 
@@ -27,7 +34,7 @@
 ## 3. 实现要点（波次1）
 
 - **chat 记忆单一来源**：统一用 `DataStoreChatMemory`（langchain4j ChatMemory）作为 chat 唯一对话记忆；**删除 `streamChat` 对 `MemoryManager.appendConversation` 的死写回**（`AgentOrchestrator.kt:463-468`）。
-- **`MemoryManager` 限定相机**：成为相机本地路径专用（与 ADR-009 一致）；或抽象统一 `ConversationMemory` 接口、两实现各服务一条隔离链路。
+- **`MemoryManager` 限定相机**：成为相机本地路径专用（与 ADR-009 一致）；或抽象统一 `ConversationMemory` 接口、两实现各服务一条隔离链路。⚠️ **已过时（2026-08-03）**：ADR-009 已被超越，相机链路同样改走远程 tool_calls；`MemoryManager` 现状服务相机会话与 chat 图片上下文两类写回，「限定相机」前提不再成立。
 - **修数据正确性 bug**：
   - `MemoryManager.appendConversation` 改为 DataStore `edit{}` 内原子 read-modify-write（解决并发丢更新）。
   - `RemoteReActAgent.resetSession` 同步清内存 `cache`（`RemoteReActAgent.kt:313-317,413`）。
@@ -45,8 +52,8 @@
 | 项 | 状态 |
 |---|---|
 | 决策与 ADR | ✅ 2026-07-28 |
-| 删 chat 对 MemoryManager 死写回 | ⏳ 波次1 |
-| appendConversation 原子化 / resetSession 清 cache | ⏳ 波次1 |
+| 删 chat 对 MemoryManager 死写回 | ✅ 已消除（原 `streamChat` 死写回随链路重构移除；现存相机会话与 chat 图片上下文两处为有意写回） |
+| appendConversation 原子化 / resetSession 清 cache | ✅ 已完成（2026-08-03 代码核实：`edit{}` 原子写、`clear()` 同步清 cache） |
 | 记忆边界文档化 | ⏳ 波次1 |
 
 ## 6. 相关

@@ -1,7 +1,7 @@
 # PoLang 相册自然语言搜索技术方案
 
 > **状态**: 已实施 / 已补充 LLM 意图标准化  
-> **最后更新**: 2026-07-20  
+> **最后更新**: 2026-08-03  
 > **维护者**: RD Agent  
 > **关联代码**: `app/src/main/java/com/mamba/picme/domain/search/`、`app/src/main/java/com/mamba/picme/features/chat/capability/`、`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/`
 
@@ -97,19 +97,20 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 
 ### 3.1 扫描管道（TagScanOrchestrator + TagGenerationScheduler）
 
-当前任务队列包含 5 个 Pass，其中 Pass 4 已内联合并到 Pass 1：
+当前任务队列包含 3 个活跃 Pass（另保留 1 个 legacy 枚举值）：
 
 | Pass | 名称 | 产出 | 说明 |
 |------|------|------|------|
 | 1 | `FACE_DETECTION` | `hasFace`、`faceRoiResult`、`face_embeddings`、`semanticEmbedding` | 人脸 ROI + Glint360K R100 512 维 embedding + MobileCLIP 语义编码（同一张 faceBitmap 完成） |
 | 2 | `DBSCAN` | `persons`、`faceId` | 全局人脸聚类，单图多脸按 embedding 分别入簇 |
-| 3 | `IMAGE_TAGGING` | `media_assets.labels`（中文 JSON） | Qwen3.5-2B 多模态图像理解，输出场景/活动/物体/标签/摘要 |
-| 4 | `MOBILE_CLIP_ENCODING` | `semanticEmbedding` | **保留用于兼容/单独重编码**，常规扫描已在 Pass 1 内完成 |
-| 5 | `ML_KIT_TAGGING` | `media_assets.mlKitLabels`（英文 JSON） | ML Kit Image Labeler 快速英文标签，补充跨语言召回 |
+| 3 | `IMAGE_TAGGING` | `media_assets.labels`（中文 JSON） | 端侧 VLM 打标：Florence-2-base（默认，ORT 独立路径）/ Qwen3-VL-2B（MNN）/ SmolVLM-500M，按 `taggerModelKey` 分流，输出场景/活动/物体/标签/摘要 |
+| — | `MOBILE_CLIP_ENCODING`（legacy） | `semanticEmbedding` | **保留枚举值用于兼容历史任务/单独重编码**，常规扫描已在 Pass 1 内完成 |
 
-### 3.2 数据模型（AppDatabase v6）
+> 注（2026-08-03）：原 Pass 5 `ML_KIT_TAGGING`（ML Kit Image Labeler）已移除；`media_assets.mlKitLabels` 列仅为历史数据兼容保留，新扫描不再写入。
 
-数据库版本：`6`（`app/src/main/java/com/mamba/picme/data/local/AppDatabase.kt`）。
+### 3.2 数据模型（AppDatabase v19）
+
+数据库版本：`19`（`app/src/main/java/com/mamba/picme/data/local/AppDatabase.kt`，以源码 `version` 为准）。
 
 核心表：
 
@@ -123,7 +124,7 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 ### 3.3 TAG 国际化
 
 - 存储以**中文 canonical** 为主（Qwen 输出中文标签）。
-- ML Kit 输出英文标签，独立存储在 `mlKitLabels`，与中文标签不混用。
+- ~~ML Kit 输出英文标签~~（ML Kit Image Labeler 已移除）：历史英文标签仍存于 `mlKitLabels` 列，与中文标签不混用；新扫描不再产生。
 - 运行时通过 `TagTranslator` + `assets/tag_translations.json` 实现：
   - **展示翻译**：中文 TAG → 英文界面显示。
   - **搜索扩展**：英文 query → 中文候选，跨语言召回。
@@ -230,7 +231,7 @@ MediaSearchEngine.search(filter)
 `app/src/main/java/com/mamba/picme/domain/search/ExplicitFirstSearchPipeline.kt`
 
 1. **显式过滤取交集**：时间范围、地点关键词、`hasFace=1` 分别查 `MediaDao`，得到 `candidateIds`。
-2. **候选集内内容检索**：在 `candidateIds` 内匹配 `labels`、`mlKitLabels`、`ocrText`、`fileName`。
+2. **候选集内内容检索**：在 `candidateIds` 内匹配 `labels`、`mlKitLabels`（仅历史数据，新扫描不产生）、`ocrText`、`fileName`。
 3. **无显式约束时**：退化为全局内容检索。
 
 ### 4.4 SemanticSearchEngine 语义召回
@@ -325,8 +326,8 @@ MediaSearchEngine.search(filter)
 | 语义召回 | `domain/search/SemanticSearchEngine.kt` | MobileCLIP 文本→图像搜索 |
 | 中文翻译 | `domain/tag/i18n/ChineseQueryTranslator.kt` | 中文查询 → 英文 embedding 候选 |
 | TAG 翻译 | `domain/tag/i18n/TagTranslator.kt` | TAG 展示翻译与搜索扩展 |
-| 扫描调度 | `domain/tag/scan/TagScanOrchestrator.kt` | 5-Pass 任务队列与状态机 |
-| 单阶段执行 | `domain/tag/TagGenerationScheduler.kt` | Pass 1/2/3/5 原子任务 |
+| 扫描调度 | `domain/tag/scan/TagScanOrchestrator.kt` | 3-Pass 任务队列与状态机（另含 legacy `MOBILE_CLIP_ENCODING`） |
+| 单阶段执行 | `domain/tag/TagGenerationScheduler.kt` | Pass 1/2/3 原子任务（Pass 3 按 `taggerModelKey` 分流 Florence-2 / Qwen3-VL-2B / SmolVLM） |
 | 数据访问 | `data/local/MediaDao.kt` | 搜索相关 DAO 方法 |
 | UI | `features/gallery/GalleryScreen.kt` | 搜索状态、结果展示、批量操作 |
 | **LLM 意图模型** | `runtime-core/.../model/context/SearchIntent.kt` | `SearchIntent` / `TimeRange` 定义 |

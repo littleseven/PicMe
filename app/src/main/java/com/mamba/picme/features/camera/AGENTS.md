@@ -10,7 +10,7 @@
 
 **主要维护者**：项目开发者
 
-**阅读对象**：CO、PM、RD、CR、QA、AI Agent
+**阅读对象**：项目开发者、AI Agent
 
 ## 1. 核心产品逻辑 (Core Product Logic)
 
@@ -22,7 +22,7 @@
 - **[ENGINE] 单引擎架构**：自研 `beauty-engine`（BIG_BEAUTY）为唯一引擎；GPUPixel 已于 2026-05 完全移除
 - **[NATURAL] 自然美学原则**：所有美颜效果必须保持自然，避免过度失真
 - **[ACCURACY] 十字星精确跟踪**：人脸跟踪十字星偏差 < 5px，支持旋转/缩放/镜像场景
-- **[MLKIT] 人脸能力预留**：表情/状态属性（微笑、睁眼、头部角度）仍保留为产品能力，但需通过独立 ML Kit 分析流补齐；MediaPipe Face Landmarker 作为当前预览主分析链路，Selfie Segmentation 作为异步增强流引入，严禁阻塞预览渲染线程
+- **[FACE] 人脸能力预留**：表情/状态属性（微笑、睁眼、头部角度）仍保留为产品能力（原 ML Kit 分析流已随 ML Kit face detection 移除而废弃，未来重启需基于 MediaPipe/MNN 关键点自研）；MediaPipe Face Landmarker 作为当前预览主分析链路，MNN landmark 为备选链路，Selfie Segmentation 作为异步增强流引入，严禁阻塞预览渲染线程
 
 ## 2. 技术实现规范 (Technical Implementation)
 
@@ -80,19 +80,21 @@
 
 ### 2.5 人脸跟踪十字星坐标转换
 
-**问题定义**：ML Kit 检测到的人脸坐标需要转换为屏幕坐标，用于绘制十字星指示器。
+**问题定义**：beauty-engine `FaceDetector` 检测到的人脸坐标（图像像素坐标）需要转换为屏幕坐标，用于绘制十字星指示器。
 
 **数据流与处理时机**：
 ```
 Camera Sensor (原始图像)
     ↓
-ImageProxy (YUV_420_888, rotationDegrees)
+ImageProxy (YUV_420_888 / RGBA_8888, rotationDegrees)
     ↓
-ML Kit InputImage.fromMediaImage(mediaImage, rotationDegrees)
-    ├── ML Kit 内部自动处理旋转补偿
-    └── 输出：Face.boundingBox（已旋转的坐标）
+beauty-engine FaceDetector（beauty-api 接口，`FaceDetectorManager` 实现）
+    ├── MediaPipe Face Landmarker 主链路（`detectFromImage` 零拷贝 / Bitmap 降级）
+    ├── MNN 备选链路（NV21 零拷贝检测 + 关键点）
+    ├── 检测内部按 rotationDegrees 完成旋转补偿
+    └── 输出：FaceDetectionResult（人脸框/关键点，基于旋转后图像坐标）
     ↓
-transformFaceCoordinate() / transformFaceCoordinateSimple()
+transformFaceCoordinateToNormalized() / transformFaceCoordinateSimple()
     ├── Step 1: 按 rotationDegrees 交换宽高并归一化
     ├── Step 2: 前置镜像补偿（x = 1 - x）
     ├── Step 3: 旋转补偿
@@ -100,13 +102,13 @@ transformFaceCoordinate() / transformFaceCoordinateSimple()
 ```
 
 **关键说明**：
-- ✅ **ML Kit 自动处理旋转**：`InputImage.fromMediaImage()` 根据 `rotationDegrees` 调整检测坐标系
-- ✅ **检测结果已是旋转后坐标**：`face.boundingBox` 返回相对于**旋转后**图像的坐标
+- ✅ **检测内部处理旋转**：`FaceDetector.detect*(image, rotationDegrees, lensFacing)` 调用时传入 `rotationDegrees`，检测结果已按旋转补偿
+- ✅ **检测结果已是旋转后坐标**：`FaceDetectionResult` 返回相对于**旋转后**图像的坐标
 - ✅ **归一化无需额外旋转**：直接使用 `imageProxy.width/height`（传感器物理尺寸）相除即可
 - ✅ **Step 2 的目的**：将**已旋转的图像坐标系**映射到**屏幕显示坐标系**
 
 **坐标系统差异**：
-1. **图像坐标系**：ML Kit 检测坐标，原点在左上角，基于旋转后的图像
+1. **图像坐标系**：检测输出坐标，原点在左上角，基于旋转后的图像
 2. **屏幕坐标系**：PreviewView 渲染坐标，考虑 FIT_CENTER 缩放和 letterbox 效应
 3. **变换因素**：旋转（坐标系映射）、镜像（前置摄像头）、宽高比适配
 
@@ -140,10 +142,10 @@ val screenX = adjustedX * previewWidth
 val screenY = adjustedY * previewHeight
 ```
 
-> 约束：`transformFaceCoordinateSimple()` 与 `transformFaceCoordinate()` 必须保持同构，避免分析链路和绘制链路出现偏移差异。
+> 约束：`transformFaceCoordinateSimple()` 内部直接复用 `transformFaceCoordinateToNormalized()`，二者必须保持同构，避免分析链路和绘制链路出现偏移差异。
 
 **关键实现要点**：
-- ✅ **统一转换函数**：分析链路使用 `transformFaceCoordinateSimple()`，屏幕绘制链路使用 `transformFaceCoordinate()`
+- ✅ **统一转换函数**：分析链路使用 `transformFaceCoordinateToNormalized()` 输出归一化坐标；`transformFaceCoordinateSimple()` 仅保留给调试 UI 绘制（已标记 `@Deprecated`，新代码优先使用归一化坐标自行映射到屏幕）
 - ✅ **前置摄像头镜像**：X 坐标翻转 `1 - normX`
 - ✅ **旋转宽高先交换**：`rotationDegrees` 为 90/270 时先交换宽高再归一化
 - ✅ **完整日志记录**：固定输出 `Step1~Step4` 便于调试
@@ -164,12 +166,6 @@ val screenY = adjustedY * previewHeight
   - `锁定丢失`应立即回到隐藏态。
 
 ## 3. Agent 执行规约 (Execution Rules)
-
-### 3.0 团队协作运行模式（单实例多角色）
-- **角色流转**：同一会话内按 `CO -> PM -> RD -> CR -> QA` 串行执行。
-- **触发口令**：`自动执行`（默认 AUTO_MAX 自动推进）、`保守执行`（关键节点确认）。
-- **自动修复预算**：单任务最多自动修复 2 次，超限必须上报并提供备选方案。
-- **红线暂停**：仅在隐私风险、不可逆操作或缺失外部输入时请求确认。
 
 - **拍摄操作**：必须在后台线程保存照片，避免阻塞 UI
 - **OCR 管理**：OCR 引擎在空闲 30s 后必须释放，避免内存泄漏
@@ -234,7 +230,7 @@ val screenY = adjustedY * previewHeight
 - [ ] 瘦脸/大眼是否限制在安全范围内？（避免失真）
 - [ ] 唇色是否保留唇部纹理？（避免塑料感）
 - [ ] 身材调整是否保持身体比例？（避免变形）
-- [ ] 十字星坐标转换是否统一走 `transformFaceCoordinateSimple()` / `transformFaceCoordinate()`？（严禁多套算法并存）
+- [ ] 十字星坐标转换是否统一走 `transformFaceCoordinateToNormalized()`？（严禁多套算法并存）
 - [ ] 前置摄像头是否正确镜像？（十字星应跟随镜中人脸）
 - [ ] 横屏拍摄是否处理了 90°旋转？（坐标应正确映射）
 - [ ] 是否添加了调试日志？（便于排查错位问题）
@@ -333,34 +329,25 @@ val screenY = adjustedY * previewHeight
 
 ### 2.6 ML Kit 人脸增强能力实现规范
 
-#### 2.6.1 表情与状态属性（能力预留）
-相关字段与产品能力仍保留，但当前预览主分析链路已切换为 MediaPipe；如需启用，需补充独立 ML Kit 分析流，并确保与预览渲染线程隔离：
+#### 2.6.1 表情与状态属性（已废弃：ML Kit face detection 已移除）
 
-| 属性 | 字段 | 应用场景 | 实现位置 |
-|:---|:---|:---|:---|
-| 微笑概率 | `face.smilingProbability` | 微笑快门（可选开关） | `CameraFrameAnalyzer` / `CameraScreen` |
-| 左眼睁开 | `face.leftEyeOpenProbability` | 闭眼提醒、连拍选优 | `CameraFrameAnalyzer` |
-| 右眼睁开 | `face.rightEyeOpenProbability` | 同上 | `CameraFrameAnalyzer` |
-| 头部欧拉角 | `face.headEulerAngleX/Y/Z` | 侧脸时自动降低瘦脸/大眼强度 | `CameraScreen` 参数联动 |
-| 追踪 ID | `face.trackingId` | 多人场景稳定跟踪 | 未来扩展 |
-
-**约束**：
-- 这些属性读取必须在 `ImageAnalysis` 异步回调中完成，严禁放入主线程阻塞逻辑。
-- 侧脸降强度逻辑应通过状态流（`StateFlow` / `remember`）联动到美颜参数下发，避免直接修改用户保存的偏好值。
+> **已废弃**：微笑概率（`smilingProbability`）、睁眼概率（`leftEyeOpenProbability`/`rightEyeOpenProbability`）、头部欧拉角（`headEulerAngleX/Y/Z`）、追踪 ID（`trackingId`）等 ML Kit Face 专有属性依赖 ML Kit 人脸检测，该检测链路已从 `:app` 完全移除（仅保留 ML Kit 文字识别 OCR），代码中已不存在这些字段。
+>
+> 微笑快门、闭眼提醒、侧脸自动降强度等产品能力仍保留为预留方向；如未来重启，需基于 MediaPipe/MNN 人脸关键点自研实现（独立异步分析流，严禁阻塞预览渲染线程），不再引入 ML Kit face detection。
 
 #### 2.6.2 MediaPipe Face Landmarker 468 点（已落地）
 - **引入方式**：集成 MediaPipe `face_landmarker` 任务（`face_landmarker.task` 模型），通过 `ImageAnalysis` 异步分析流驱动。
-- **数据流**：`ImageAnalysis` → `MediaPipeFaceDetector` → 468 点坐标 → 468→106 点语义映射 → `FaceWarpParams` → `BeautyPreviewEngine`；若 MediaPipe 连续漏检或初始化失败，可自动回退到本地 `InsightFace2D106Detector`（ML Kit 人脸框 + InsightFace `2d106det.onnx`）直接输出 106 点。
+- **数据流**：`ImageAnalysis` → `MediaPipeFaceDetector` → 468 点坐标 → 468→106 点语义映射 → `FaceWarpParams` → `BeautyPreviewEngine`；若 MediaPipe 连续漏检或初始化失败，可自动回退到 MNN 链路（MNN 人脸检测框 + `MnnLandmarkDetector` 2D106 关键点模型）直接输出 106 点。
 - **映射规范**：
   - 106 点轮廓为开放曲线（33 点）：从右鬓角(0) → 下巴(16) → 左鬓角(32)。
   - 非轮廓区域（73 点）：眉毛、鼻梁、鼻尖、眼睛、鼻孔、嘴巴、瞳孔，对齐字节火山引擎 106 点标准。
   - 映射策略：优先使用对等语义点，缺失点使用插值。详见 `MediaPipeFaceDetector.kt`。
 - **性能红线**：
   - MediaPipe Face Landmarker 推理耗时约 20-40ms/帧（中端机，GPU delegate），**绝对禁止**放入预览渲染管线同步执行。
-  - InsightFace `2d106det` 仅允许作为异步备选检测链路触发，禁止每帧常驻推理；当前实现要求至少连续 3 次主链路漏检且满足冷却时间后才允许触发。
+  - MNN landmark 备选链路（`MnnLandmarkDetector`）仅允许作为异步备选检测链路触发，禁止每帧常驻推理；当前实现要求至少连续 3 次主链路漏检且满足冷却时间后才允许触发。
   - 必须采用"异步分析 + 参数插值"策略：分析流每 200-300ms 更新一次关键点，预览流根据最近一次结果进行平滑插值。
 - **应用场景**：精细美型参数映射（瘦脸、大眼）、妆容 UV 贴合（唇色、腮红）。
-- **调试浮层约束**：开启 `showFaceDebugOverlay` 后，浮层必须同时展示当前帧 `detectionSource` 与设置页选择的 `requestedDetectionEngineMode`，避免误判 `Auto -> InsightFace` 的备选命中来源。
+- **调试浮层约束**：开启 `showFaceDebugOverlay` 后，浮层必须同时展示当前帧 `detectionSource` 与设置页选择的 `requestedDetectionEngineMode`，避免误判 `Auto -> MNN` 的备选命中来源。
 
 #### 2.6.3 Selfie Segmentation（Phase 2-3）
 - **引入方式**：新增 ML Kit `segmentation-selfie` 依赖。

@@ -56,10 +56,10 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 📇 **证件照制作**：`IDPhotoComposer` + `IDPhotoSpecs`，一寸/二寸/签证等多规格 + 背景色。
 
 ### 自动标签
-🏷️ **端侧多模型打标**：Florence-2 INT8 + Qwen3-VL-2B（TAG Pass3），5-Pass 链路 + 中英双字段 + opus-mt 汉化；可由对话触发批量扫描。
+🏷️ **端侧多模型打标**：Florence-2 INT8 + Qwen3-VL-2B（TAG Pass3），3-Pass 链路 + 中英双字段 + opus-mt 汉化；可由对话触发批量扫描。
 
 ### JS 沙盒脚本
-📜 QuickJS 沙箱 + JSBridge，对话内运行相册分析 / 健康报告脚本（`run_script`），结果以图表 SVG / 结构化文本回显。
+📜 QuickJS 沙箱 + JSBridge，对话内运行相册分析 / 健康报告脚本（`run_gallery_script`），结果以图表 SVG / 结构化文本回显。
 
 ### 人物记忆与关系图谱 🔄
 👥 事实记忆（「帮我记住…」）+ 人物命名 /「我」标记 + 关系图谱（配偶/子女/父母/…），支撑「我女儿的照片」「老婆的合照」式自然语言人物检索。（开发中，未合并 main）
@@ -72,6 +72,9 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 
 ### 自建 Ktor 后端
 🌐 独立 `server/` 工程（部署 `api.polang.net`）：AI 网关（按模型路由 Cloudflare AI Gateway / 腾讯 TokenHub）+ 邮箱注册账号 + 免费额度 + 管理后台 + 遥测。**不做 Agent 编排**（ReAct 循环在客户端）。
+
+### 用户问题上报
+📝 Chat 顶部「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动在 GitHub 仓库创建 issue，用户无需离开 App 即可反馈问题。
 
 > **核心特点**：媒体处理端侧 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 文本推理全远程 ｜ 7 模块 monorepo（app / runtime-core / agent-core / beauty-engine / beauty-api / mnn-core / sentencepiece + server）
 
@@ -330,8 +333,8 @@ com.mamba
 | **导航** | [`docs/00-INDEX.md`](docs/00-INDEX.md) | 完整文档导航索引 |
 | **产品** | [`PRODUCT.md`](PRODUCT.md) | 产品定义、核心命题 |
 | **架构** | [`docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md`](docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md) | Agent 架构设计 |
-| **决策** | [`docs/02-ARCHITECTURE/ADR/`](docs/02-ARCHITECTURE/ADR/) | 架构决策记录（ADR-001 ~ ADR-007） |
-| **技术规范** | [`docs/03-TECHNICAL-SPECS/`](docs/03-TECHNICAL-SPECS/) | 相册搜索、TAG 生成、美颜引擎、帧同步、人脸检测、语音栈、服务端部署 |
+| **决策** | [`docs/02-ARCHITECTURE/ADR/`](docs/02-ARCHITECTURE/ADR/) | 架构决策记录（ADR-001 ~ ADR-012） |
+| **技术规范** | [`docs/03-TECHNICAL-SPECS/`](docs/03-TECHNICAL-SPECS/) | 相册搜索、TAG 生成、美颜引擎（含帧同步）、人脸检测、语音栈、服务端部署 |
 | **Agent 能力** | [`docs/04-AGENT-CAPABILITIES/`](docs/04-AGENT-CAPABILITIES/) | Capability 实现指南、命令参考 |
 | **开发规范** | [`docs/05-DEVELOPMENT/`](docs/05-DEVELOPMENT/) | 工作流、CR 检查清单、Release 包备份恢复 |
 

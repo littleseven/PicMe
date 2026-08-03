@@ -93,7 +93,7 @@
 ### 3.1 核心实现: PhotoProcessorImpl
 
 ```kotlin
-// beauty-engine/src/main/java/com/picme/beauty/render/PhotoProcessorImpl.kt（实际落地类）
+// beauty-engine/src/main/java/com/mamba/picme/beauty/render/PhotoProcessorImpl.kt（实际落地类）
 
 class PhotoProcessorImpl(private val context: Context) : PhotoProcessor {
     private val eglCore = EGLCore()

@@ -6,10 +6,10 @@
 > - 坐标系标准以 [`COORDINATE_SYSTEM.md`](./COORDINATE_SYSTEM.md) 为准。
 
 **模块定位**: 统一术语定义与禁用别名  
-**主要维护者**: [PM] 产品经理 / [RD] 全栈工程师  
-**阅读对象**: RD、PM、AI Agent  
-**版本**: 1.0  
-**最后更新**: 2026-05-29  
+**主要维护者**: 项目开发者  
+**阅读对象**: 项目开发者、AI Agent  
+**版本**: 1.1  
+**最后更新**: 2026-08-03  
 
 ---
 
@@ -171,6 +171,8 @@ fun predict(fromFrameId: FrameId, toFrameId: FrameId, maxRatio: Float): Point {
 | **Function Calling** | 函数调用 | LLM 输出结构化命令的执行模式 | 指令解析、命令调用 |
 | **Batch Function Calling** | 批量函数调用 | 单次 LLM 推理输出多个命令 | 批量指令、多命令 |
 | **Local LLM Engine** | 本地推理引擎 | 端侧 MNN-LLM 客户端封装 | 本地模型、推理器 |
+| **JS Engine** | JS 引擎 | QuickJS 沙箱 + JSBridge，支持端侧 JS 脚本执行（取数 / 图卡 / 能力调度） | JS 沙箱、脚本引擎 |
+| **AI 工程师模式** | AI Engineer Mode | Chat 内嵌的远程 Claude Code 通道（chisel 隧道 → 云主机 GLM），含 5 个 app_* MCP 诊断工具 | 工程师通道、诊断模式 |
 
 ### 3.1 详细定义
 

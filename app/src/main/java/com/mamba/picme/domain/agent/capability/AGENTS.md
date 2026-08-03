@@ -1,5 +1,7 @@
 # IM 远程控制 Capability 模块技术实现规范 (Remote Control)
 
+> **⚠️ 状态声明（2026-08-03）**：本文档描述的 Capability 化设计未按原方案落地（`RemoteControlCapability` 代码存在但未注册到 `CapabilityRegistry`）；IM 远程控制线本身已于 2026-07-27 重新激活（RemoteChannel 多通道：飞书 + Telegram，详见 `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md`）。本文档仅作历史设计参考。
+
 > **边界声明（Boundary Statement）**
 > - 本文档仅承载本模块的实现细节（架构、代码约束、检查清单）。
 > - 产品目标与验收口径以 `PRODUCT.md` 为准；交互流程与体验规则以 `docs/01-PRODUCT/FEATURES.md#5-im-远程控制融合入口` 为准。
@@ -207,7 +209,7 @@ Application.onCreate() → FeishuChannelHandler.init(appId, appSecret)
 
 ---
 
-> **维护者**：RD Agent
-> **最后更新**：2026-06-17
+> **维护者**：项目开发者
+> **最后更新**：2026-08-03
 > **方案变更**：~~SCF Relay Server~~ → 设备端直连飞书 WebSocket
-> **状态**：设计阶段 · 待实现
+> **状态**：已冻结（服务端替代方案优先）· 仅作历史设计参考

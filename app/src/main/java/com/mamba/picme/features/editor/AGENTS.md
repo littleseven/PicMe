@@ -8,10 +8,12 @@
 
 > **版本**: 2.2  
 > **状态**: 生效中  
-> **最后更新**: 2026-07-08  
-> **维护者**: RD Agent
+> **最后更新**: 2026-08-03  
+> **维护者**: 项目开发者
 
 **模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜、标记（Phase 2）五大类编辑。
+
+**导航路由**: `photo_editor/{sourceUri}?recipeUri={recipeUri}&autoOptimize={autoOptimize}`（`navigation/Screen.kt` 注册）；可选参数 `recipeUri` 用于重新编辑已保存的副本，`autoOptimize` 用于进入时自动触发 AI 一键优化。
 
 **主要维护者**: 项目开发者
 

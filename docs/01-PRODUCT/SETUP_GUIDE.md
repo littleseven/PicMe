@@ -2,7 +2,7 @@
 
 > **定位**：新用户「如何把 PoLang 真正用起来」的唯一事实来源（SSOT），供官网帮助页 / Google Play 商店说明复用。
 > **维护**：与 [`FEATURES.md`](./FEATURES.md)、[`03-TECHNICAL-SPECS/TAG_GENERATION.md`](../03-TECHNICAL-SPECS/TAG_GENERATION.md) 保持一致；模型清单以 `app/src/main/res/raw/llm_models.json` 为准。
-> **最后更新**：2026-07-29
+> **最后更新**：2026-08-03
 
 ---
 
@@ -14,7 +14,7 @@ PoLang 的智能搜索 / AI 对话 / 人物识别**不是「装完即用」**的
 
 ---
 
-## 使用前提总览（6 条）
+## 使用前提总览（7 条）
 
 | # | 前提 | 必要性 | 大致耗时 / 体积 |
 |---|------|--------|-----------------|
@@ -24,8 +24,9 @@ PoLang 的智能搜索 / AI 对话 / 人物识别**不是「装完即用」**的
 | ④ | 注册账号获取免费额度 | 视用量 | 约 1 分钟 |
 | ⑤ | 人物标注 + AI 记忆 | 可选（让 AI 更聪明） | 按需 |
 | ⑥ | 飞书 / Telegram 远程控制 | 可选（进阶） | 约 5 分钟 |
+| ⑦ | 备份与恢复 | 可选（换机 / 重装前） | 按需 |
 
-> ①② 是「能用」的最低门槛；③④⑤⑥ 是「好用 / 进阶」的增强。完成 ①② 后即可开始体验，其余按需补充。
+> ①② 是「能用」的最低门槛；③④⑤⑥⑦ 是「好用 / 进阶」的增强。完成 ①② 后即可开始体验，其余按需补充。
 
 ---
 
@@ -132,6 +133,18 @@ PoLang 的 AI 对话**默认走远程大模型**（体验最佳）。远程推�
 
 ---
 
+## ⑦ 备份与恢复（换机 / 重装前）
+
+**入口**：设置 → **备份与恢复**。
+
+打标、人脸聚类、人物关系等成果生成成本高（扫描可能以小时计）。**换机、卸载重装**（尤其是签名不同的包，系统会清空应用数据）前，建议先导出备份：
+
+- **导出**：通过系统文件选择器（SAF）选择保存位置，生成备份文件（格式 v5，含 TAG 数据、人物与人脸 embedding、偏好设置、媒体反馈等全量数据）。
+- **导入**：在同一入口选择备份文件即可恢复。
+- Release 包即可用，无需 adb / debug 环境。
+
+---
+
 ## 配图索引（9 张）
 
 > ⚠️ 以下截图取自真实设备，**含个人邮箱 / Chat ID / App ID 等信息**。官网与 Play 商店版本务必**重新截取脱敏图**后再使用。原始截图见仓库外素材，不内嵌于本文档。
@@ -163,7 +176,7 @@ PoLang 的 AI 对话**默认走远程大模型**（体验最佳）。远程推�
 ## 相关文档
 
 - [`FEATURES.md`](./FEATURES.md) — 功能交互规范（产品 How）
-- [`03-TECHNICAL-SPECS/TAG_GENERATION.md`](../03-TECHNICAL-SPECS/TAG_GENERATION.md) — TAG 生成 5-Pass 管道（技术细节）
+- [`03-TECHNICAL-SPECS/TAG_GENERATION.md`](../03-TECHNICAL-SPECS/TAG_GENERATION.md) — TAG 生成 3-Pass 管道（技术细节）
 - [`03-TECHNICAL-SPECS/GALLERY_SEARCH.md`](../03-TECHNICAL-SPECS/GALLERY_SEARCH.md) — 相册搜索 SSOT
 - [`03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`](../03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md) — 端侧模型清单
 - [`02-ARCHITECTURE/ADR/ADR-008-privacy-redline-media-only.md`](../02-ARCHITECTURE/ADR/ADR-008-privacy-redline-media-only.md) — 隐私红线（端侧媒体处理）

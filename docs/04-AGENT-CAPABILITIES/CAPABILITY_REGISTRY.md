@@ -6,10 +6,10 @@
 > - 交互规范以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 
 **模块定位**: Agent 能力注册表、命令映射、实现指南与生命周期规范  
-**主要维护者**: [RD] 全栈工程师  
-**阅读对象**: RD、AI Agent  
-**版本**: 1.3  
-**最后更新**: 2026-07-20  
+**主要维护者**: 项目开发者  
+**阅读对象**: 项目开发者、AI Agent  
+**版本**: 1.4  
+**最后更新**: 2026-08-03  
 
 ---
 
@@ -26,8 +26,11 @@
 9. [AiOptimizeCapability](#9-aioptimizecapability)
 10. [RemoteControlCapability](#10-remotecontrolcapability)
 11. [BeautyCapability（非 Agent 编排）](#11-beautycapability非-agent-编排)
-12. [附录 A：新增 Capability 指南](#附录-a新增-capability-指南)
-13. [附录 B：Capability 生命周期规范](#附录-bcapability-生命周期规范)
+12. [PersonRelationCapability](#12-personrelationcapability)
+13. [MemoryCapability](#13-memorycapability)
+14. [ImageEditCapability](#14-imageeditcapability)
+15. [附录 A：新增 Capability 指南](#附录-a新增-capability-指南)
+16. [附录 B：Capability 生命周期规范](#附录-bcapability-生命周期规范)
 
 ---
 
@@ -41,21 +44,22 @@
 | **SettingsCapability** | `settings` | SETTINGS | 5 | ✅ 已落地 | 应用级单例 + 页面 delegate |
 | **NavigationCapability** | `navigation` | ALL | 2 | ✅ 已落地 | Activity 级（MainActivity） |
 | **SystemCapability** | `system` | ALL | 2 | ✅ 已落地 | Activity/Service 级 |
-| **AutoTagCapability** | `auto_tag` | GALLERY | 4 | ✅ 已落地 | 应用级 |
+| **AutoTagCapability** | `auto_tag` | GALLERY | 4 | ⚠️ 代码存在但未注册 | 应用级（实际生效路径为 CHAT 场景的 ChatStartTagScanCapability） |
 | **AiOptimizeCapability** | `ai_optimize` | GALLERY, CHAT | 1 | ✅ 已落地 | 应用级 |
-| **PersonRelationCapability** | `person_relation` | CHAT | 2 | ✅ 已落地 | 应用级（AppContainer 注入 PersonRepository） |
+| **PersonRelationCapability** | `person_relation` | CHAT | 3 | ✅ 已落地 | 应用级（AppContainer 注入 PersonRepository） |
 | **MemoryCapability** | `memory_facts` | CHAT | 3 | ✅ 已落地 | 应用级（AppContainer 注入 MemoryRepository） |
 | **ChatGallerySummaryCapability** | `chat_gallery_summary` | CHAT | 1 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate |
 | **ChatStartTagScanCapability** | `chat_start_tag_scan` | CHAT | 1 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate |
 | **ChatRunScriptCapability** | `chat_run_script` | CHAT | 2 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate（端侧 QuickJS 沙箱，命令 `run_gallery_script` / `draw_chart`） |
 | **ChatMediaWriteCapability** | `chat_media_write` | CHAT | 3 | ✅ 已落地 | 应用级单例 + `ChatViewModel` delegate（CHAT 场景媒体写执行汇聚点：`delete_media` / `favorite_media` / `select_media`） |
-| **RemoteControlCapability** | `remote_control` | ALL | 0 | ✅ 已落地 | 应用级单例，不走 AgentCommand 路由 |
+| **ImageEditCapability** | `image_edit` | CHAT | 1 | ✅ 已落地 | 应用级（AppContainer 注入 ChatEditProcessor / ChatEditStateHolder，对话式图片编辑 `edit_image`） |
+| **RemoteControlCapability** | `remote_control` | ALL | 0 | ⚠️ 代码存在但未注册 | 应用级单例，不走 AgentCommand 路由；IM 远程控制实际走 RemoteChannel 多通道路径（未 Capability 化） |
 | **BeautyCapability** | — | — | — | ✅ 已落地 | 测试/程序化 API，不注册到 Agent 编排 |
 
 > **变更说明（2026-07-06）**：
 > - 新增 `AutoTagCapability`、`AiOptimizeCapability`、`RemoteControlCapability`
 > - 移除 `AccessibilityCapability`（当前代码库中不存在对应实现）
-> - 移除 `EditCapability`（编辑页独立路由尚未落地）
+> - 移除 `EditCapability`（编辑页独立路由的 Capability，非 CHAT 场景；注意不要与后来新增的 `ImageEditCapability` 混淆——后者是 CHAT 场景对话式编辑、已注册生效，见 2026-08-03 变更说明）
 > - `CameraCapability` 命令从 11 个增加到 12 个（新增 `delay`）
 >
 > **变更说明（2026-07-20）**：
@@ -80,17 +84,26 @@
 > - 注册收口：应用级 Capability 全部在 `PoLangApplication.initializeCapabilities()` 启动期注册；`SettingsCapability` 补注册（此前从未注册，chat 的 `change_theme`/`change_language`/`toggle_setting` 等工具实际为死能力）
 > - 页面级 `CameraCapability` 改为随 CameraScreen `DisposableEffect` 在全局 registry register/unregister（`CapabilityRegistry.unregister` / `AgentOrchestrator.unregisterCapability` 新增），实例仍页面级持有相机状态
 > - ChatScreen/CameraScreen 的 `RegisterCapability` 调用与 MainActivity 根宿主全部移除；`AiAgentUseCase.registerCameraCapability`（从未被调用）删除
+>
+> **变更说明（2026-08-03，文档与实现对齐修正）**：
+> - 补登 `ImageEditCapability`（`image_edit`，CHAT 场景对话式图片编辑，`edit_image` 命令）：在 `PoLangApplication.initializeCapabilities()` 注册（`container.imageEditCapability`），由 `ChatToolService.editImage()` @Tool 暴露，**已在 §1 表与 §1.1 CHAT 场景映射中补列，并新增 §14 章节**。它与 2026-07-06 移除的 `EditCapability`（编辑页独立路由方向）不是同一个能力，不跳编辑页
+> - 登记 `adjust_image` 工具表面：`ChatToolService.adjustImage()` @Tool（brightness / contrast / saturation / temperature 显式参数调整）是 CHAT 场景真实可用工具，但为 **inline handler，不经 CapabilityRegistry 分发**，无对应 AgentCommand/Capability，故不列入能力表，详见 §14.3
+> - `PersonRelationCapability` 命令数 2 → 3：补登 `query_person_relation`（`ChatToolService.list_person_relations` @Tool 分发 `AgentCommand.QueryPersonRelation`）
+> - `AutoTagCapability` 状态由「✅ 已落地」更正为「⚠️ 代码存在但未注册」：全工程无 `registerCapability` 调用点，其命令在 GALLERY 场景实际不可达；实际生效路径为 CHAT 场景的 `ChatStartTagScanCapability`（`start_tag_scan`）
+> - `RemoteControlCapability` 状态由「✅ 已落地」更正为「⚠️ 代码存在但未注册」：IM 远程控制实际走 RemoteChannel 多通道路径（2026-07-27 重新激活），未按 Capability 化设计落地
 
 ### 1.1 场景 - 能力映射
 
 | 场景 | 可用 Capability |
 |------|-----------------|
 | `CAMERA` | CameraCapability, NavigationCapability, SystemCapability |
-| `GALLERY` | GalleryCapability, AutoTagCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
+| `GALLERY` | GalleryCapability, AiOptimizeCapability, NavigationCapability, SystemCapability |
 | `SETTINGS` | SettingsCapability, NavigationCapability, SystemCapability |
-| `CHAT` | ChatSearchCapability, ChatGallerySummaryCapability, ChatStartTagScanCapability, ChatRunScriptCapability, ChatMediaWriteCapability, AiOptimizeCapability, PersonRelationCapability, MemoryCapability, NavigationCapability, SystemCapability |
+| `CHAT` | ChatSearchCapability, ChatGallerySummaryCapability, ChatStartTagScanCapability, ChatRunScriptCapability, ChatMediaWriteCapability, ImageEditCapability, AiOptimizeCapability, PersonRelationCapability, MemoryCapability, NavigationCapability, SystemCapability |
 | `DEBUG` | NavigationCapability, SystemCapability |
-| `UNKNOWN` | NavigationCapability, SystemCapability, RemoteControlCapability |
+| `UNKNOWN` | NavigationCapability, SystemCapability |
+
+> **注**：`AutoTagCapability`（代码存在但未注册，见 §8）与 `RemoteControlCapability`（代码存在但未注册，IM 远程控制走 RemoteChannel 多通道路径，见 §10）均未注册到 `CapabilityRegistry`，不参与任何场景的实际分发，故未列入上表。
 
 ### 1.2 JS 沙箱能力表面（`gallery.*` handler ↔ AgentCommand 映射）
 
@@ -313,7 +326,9 @@
 **职责**: 将标签系统作为 Agent 可编排的 Capability 暴露，支持触发全量标签扫描、查询照片标签、获取进度、取消扫描  
 **活跃场景**: `GALLERY`  
 **文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/AutoTagCapability.kt`  
-**状态**: ✅ 已落地
+**状态**: ⚠️ 代码存在但未注册
+
+> **注意（2026-08-03 核实）**：全工程无任何 `registerCapability(AutoTagCapability...)` 调用点，本 Capability 未注册到 `CapabilityRegistry`，其命令（`scan_all_tags` 等）在 GALLERY 场景运行时会 `METHOD_NOT_FOUND`。且其实现仍使用过时的执行模型（依赖 `AgentCommand.Unknown.raw` 文本匹配，非标准 sealed class 分发）。实际生效的标签扫描路径为 CHAT 场景的 `ChatStartTagScanCapability`（`start_tag_scan`）。本章节保留仅作历史参考。
 
 ### 7.1 支持命令
 
@@ -360,7 +375,9 @@
 **职责**: IM 远程控制：管理设备绑定与远程命令执行状态  
 **活跃场景**: `ALL`  
 **文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt`  
-**状态**: ✅ 已落地
+**状态**: ⚠️ 代码存在但未注册；IM 远程控制实际走 RemoteChannel 多通道路径（未 Capability 化）
+
+> **注意（2026-08-03 核实）**：代码中无任何 `registerCapability` 调用点，本 Capability 实际未注册到 `CapabilityRegistry`（其 KDoc 声称的注册关系不存在）。IM 远程控制线本身已于 2026-07-27 重新激活（RemoteChannel 多通道：飞书 + Telegram，详见 `IM_REMOTE_CONTROL_TECH_SPEC.md`），但未按本文的 Capability 化设计落地。本章节保留仅作历史参考。
 
 ### 9.1 支持命令
 
@@ -379,7 +396,7 @@
 
 ### 9.3 生命周期
 
-- **应用级单例**：在 `Application.onCreate()` 中创建，永不注销
+- **应用级单例（设计意图，实际未生效）**：原设计为在 `Application.onCreate()` 中创建注册，但代码中无对应注册调用，IM 远程控制线冻结后不再生效
 - 进程结束时 `onDestroy()` 清理状态
 
 ---
@@ -422,6 +439,7 @@
 |------|------|--------|------|------|
 | `remember_person_relation` | `name: String, relation: String` | REVERSIBLE_WRITE | 声明人物关系（幂等覆盖=纠错，customLabel 同步覆盖）；relation 归一顺序：谓词枚举名（DAUGHTER 等）→ 中文称谓（女儿 等，归一后存**具体谓词**）→ 原话存 `customLabel`、谓词记 OTHER（不再报错，"大宝是我发小"可用） | "记住小宝是我女儿" |
 | `forget_person_relation` | `name: String` | REVERSIBLE_WRITE | 遗忘与某人物的全部关系（幂等） | "忘掉小宝的关系" |
+| `query_person_relation` | `name: String?` | READ_ONLY | 查询已记住的人物关系：name 留空返回全部指向「我」的关系，指定人物名只查该人物；`ChatToolService` 对应 `list_person_relations` 工具 | "看一下我的人物关系" / "小宝和我什么关系" |
 
 ### 12.2 关键设计
 
@@ -462,6 +480,36 @@
 ### 13.3 生命周期
 
 - **应用级**：`PoLangApplication.initializeCapabilities()` 注册（`AppContainer.memoryCapability` lazy 单例），CHAT 场景常驻可用。
+
+---
+
+## 14. ImageEditCapability
+
+**职责**: CHAT 场景对话式图片编辑：根据自然语言指令对照片进行美颜、调色、滤镜等编辑，支持多轮 delta 调整  
+**活跃场景**: `CHAT`  
+**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/ImageEditCapability.kt`  
+**状态**: ✅ 已落地
+
+### 14.1 支持命令
+
+| 命令 | 参数 | 描述 | 示例 |
+|------|------|------|------|
+| `edit_image` | `params: EditParams`（结构化编辑意图）、`image_uri: String?`（可选，留空用会话最近图片） | 对话式图片编辑（美颜/滤镜/调色），后台渲染完成后把结果图发到聊天中，**绝不跳转编辑页** | "磨皮 30" / "再亮一点" / "换胶片风" |
+
+### 14.2 关键设计
+
+- 构造函数显式注入 `Context` / `ChatEditProcessor` / `ChatEditStateHolder`；编辑状态保存在 `ChatEditStateHolder`，按 `AgentContext.memorySessionId` 隔离，支持同一会话内多轮 delta 调整（`ChatEditRecipeBuilder` 在当前 `EditRecipe` 上叠加增量）。
+- 目标图片解析顺序：命令携带 `image_uri` → 会话当前 recipe 的 sourceUri → `AgentContext.lastUserImageUri`；三者皆空返回 INVALID_PARAMS 引导。
+- 未支持意图（消除物体 / 局部美颜）由 parser 或 LLM 在 `explanation` 中携带 `[unsupported:erase]` / `[unsupported:local_beauty]` 标记，直接返回友好文本，不进入渲染流程。
+- 与 2026-07-06 移除的 `EditCapability`（编辑页独立路由方向）**不是同一个能力**：本能力面向 CHAT 场景对话式编辑，不跳编辑页。
+
+### 14.3 关联工具表面：`adjust_image`（inline，不进注册表）
+
+`ChatToolService.adjustImage()` @Tool 暴露 `adjust_image` 工具（brightness / contrast / saturation / temperature 显式参数调整），由 `adjustImageHandler` inline 处理，**不经 `CapabilityRegistry` 分发，无对应 AgentCommand/Capability**。LLM 侧约定：显式数值调整走 `adjust_image`，其余编辑意图（含多轮 delta、滤镜/美颜）走 `edit_image`。
+
+### 14.4 生命周期
+
+- **应用级**：`PoLangApplication.initializeCapabilities()` 注册（`AppContainer.imageEditCapability` lazy 单例），CHAT 场景常驻可用；由 `ChatToolService.editImage()` @Tool 暴露给远程 chat agent。
 
 ---
 
@@ -987,8 +1035,8 @@ class YourCapability : Capability {
 > **状态**: 草案  
 > **创建**: 2026-06-06  
 > **更新**: 2026-06-06  
-> **作者**: [RD] 全栈工程师  
-> **评审**: [CR] 规范守护者
+> **作者**: 项目开发者  
+> **评审**: 项目开发者
 
 ### 1. 设计目标
 

@@ -1,14 +1,19 @@
 # ADR-006: 本地/远程指令体系包级隔离
 
-**状态**: 已实施 (Implemented)  
+**状态**: 已实施 (Implemented) —— 本地指令体系已于 2026-08-02 整体删除（见下方状态更新）  
 **日期**: 2026-06-16  
-**更新日期**: 2026-06-18  
+**更新日期**: 2026-06-18；2026-08-02（状态更新）  
 **决策**: RD  
 **依赖**: ADR-005（本地/远程推理协议分离）
 >
 > **实现详情与远程编排规格见**: [`docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md`](../../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md)（本 ADR 保留决策背景，具体远程指令与飞书链路以该技术规范为唯一事实来源）
 
 ---
+
+> ## ⛔ 状态更新（2026-08-02）：本地指令体系已整体删除
+>
+> 本 ADR 隔离的「自定义指令体系（本地）」已不复存在：2026-08-02 端侧文本 LLM 移除时，整条本地链路（`LocalPromptBuilder`/`LocalCommandParser`/`LocalInferencePipeline` 等）已整体删除；`runtime-core inference/local/` 现仅剩 `llm/`（Qwen3-VL-2B 端侧 VLM 打标）+ `LocalModelService.kt`。指令体系从「本地 JSON 数组 / 远程 tool_calls 双体系」演进为**单一远程 tool_calls 体系**（相机走 `CameraToolService` 远程 tool_calls，chat 走 `ChatToolService`）。
+> 下文 §4.2 `local/` 包结构与 §4.3 LOCAL 模式分支**仅为历史记录**，保留用于理解决策脉络，不再代表现状。
 
 ## 1. 背景与问题陈述
 

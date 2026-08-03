@@ -2,13 +2,19 @@
 
 > **状态**: 已全面实施 / 已补充 LLM 意图标准化  
 > **日期**: 2026-06-30  
-> **最后更新**: 2026-07-20  
+> **最后更新**: 2026-08-03  
 > **决策**: RD  
 > **依赖**: ADR-005（本地/远程推理协议分离，LLM 解析层复用 Agent Runtime）
 >
 > **实现详情见**: [`docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md`](../../03-TECHNICAL-SPECS/GALLERY_SEARCH.md)（本 ADR 保留决策背景，具体链路以该文档为唯一事实来源）
 
 ---
+
+> ## ⛔ 状态更新（2026-08-03）：ML Kit Image Labeling 已移除，决策 2.2 被 VLM 打标取代
+>
+> 本 ADR 的**决策 2.2「使用 ML Kit Image Labeling 而非 CLIP」已被取代**：ML Kit Image Labeling 已从依赖与源码中整体移除，TAG 打标改走端侧 VLM 3-Pass 流水线（Qwen3-VL-2B + Florence-2，人脸检测 → DBSCAN 聚类 → 图像打标），详见 [`docs/03-TECHNICAL-SPECS/TAG_GENERATION.md`](../../03-TECHNICAL-SPECS/TAG_GENERATION.md)。
+> 同时，2026-08-02 端侧文本 LLM 移除后，§2.4 中 `LOCAL mode → LocalLlmEngine` 推理链路（含 `LocalCommandParser`）已废止，`AiAgentMode` 仅剩 OFF/REMOTE/FEISHU，搜索命令统一走远程 tool_calls。
+> 下文中 ML Kit Image Labeling 索引管线与 LOCAL 链路描述**仅为历史记录**，保留用于理解决策脉络。
 
 ## 1. 背景与问题陈述
 
@@ -118,7 +124,7 @@ ALTER TABLE media_assets ADD COLUMN indexedAt INTEGER;  -- 索引时间
     ▼
 AgentOrchestrator.dispatch()
     │
-    ├── LOCAL mode → LocalLlmEngine → 输出 [{"method":"search_media","params":{"query":"..."}}]
+    ├── LOCAL mode → LocalLlmEngine → 输出 [{"method":"search_media","params":{"query":"..."}}]   # ⚠️ 已废止（2026-08-02 端侧文本 LLM 移除）
     └── REMOTE mode → RemoteReActAgent → tool_calls → search_media
     │
     ▼

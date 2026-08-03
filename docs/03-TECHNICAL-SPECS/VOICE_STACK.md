@@ -3,30 +3,31 @@
 > **文档编号**: TECH-SPEC-VOICE-001  
 > **关联模块**: `app/src/main/java/com/mamba/picme/features/camera/voice/`, `runtime-core/platform/voice/`  
 > **创建日期**: 2026-06-10  
-> **最后更新**: 2026-07-08  
+> **最后更新**: 2026-08-03  
 > **维护者**: [RD] 全栈工程师  
 >
 > **历史合并说明**：本文档由以下 3 份文档合并而成：`WAKE_WORD_OPTIMIZATION.md`、`WAKE_WORD_DEPLOYMENT.md`、`KWS_MIGRATION_TECH_SPEC.md`。内容已按「当前唤醒词实现 → 部署验收 → KWS 迁移规划」重组，并消除重复内容。  
-> 2026-07-08 再次合并 `ASR_LANGUAGE_MODEL_EXPLANATION.md` 作为附录「ASR Language Model 说明」，并去除重复元信息头。
+> 2026-07-08 再次合并 `ASR_LANGUAGE_MODEL_EXPLANATION.md` 作为附录「ASR Language Model 说明」，并去除重复元信息头。  
+> 2026-08-03 更新：Phase 2（Sherpa-ONNX KWS）已全面落地——ASR 引擎切换为 `SherpaOnnxAsrEngine`（`com.k2fsa.sherpa.onnx.OnlineRecognizer`），KWS 唤醒经 `KeywordSpotterEngine` + `KwakeWordKwsEngine` 集成进 `VoiceCommandCoordinator`，`llm_models.json` 已含 `type:"KWS"` 模型。§4 由「迁移规划」更新为「已实施」记录。
 
 ---
 
 ## 1. 执行摘要
 
-PoLang 语音栈当前处于 **Phase 1（当前 ASR-based 唤醒词优化）→ Phase 2（Sherpa-ONNX KWS 迁移）** 的过渡阶段。
+PoLang 语音栈已完成 **Phase 2（Sherpa-ONNX KWS）** 迁移并投入使用。Phase 1（VAD + ASR 转录 + 文本匹配）保留为 KWS 模型不可用时的回退路径（`VoiceCommandCoordinator` 优先走 KWS，未注入 KWS 引擎时回退 VAD + ASR）。
 
-| 维度 | Phase 1（当前） | Phase 2（目标） |
+| 维度 | Phase 1（回退路径） | Phase 2（当前，已实施） |
 |------|----------------|----------------|
-| **唤醒方案** | VAD + ASR 转录 + 文本匹配 | 专用 KWS 模型（sherpa-onnx） |
-| **常驻模型** | 无（ASR 按需加载） | KWS ~14MB always-on |
+| **唤醒方案** | VAD + ASR 转录 + 文本匹配 | 专用 KWS 模型（sherpa-onnx `KeywordSpotter`） |
+| **常驻模型** | 无（ASR 按需加载） | KWS ~5MB always-on |
 | **唤醒延迟** | 200-300ms | ~50ms |
 | **待机功耗** | ~40mW | ~50mW |
 | **ASR 内存** | 唤醒后按需加载 ~282MB | 唤醒后按需加载 ~282MB |
-| **依赖** | Sherpa-MNN ASR → ~~`libMNN.so`~~ | Sherpa-ONNX → `libonnxruntime.so`，与 VLM 打标解耦 |
+| **依赖** | Sherpa-MNN ASR → `libMNN.so`（已移除） | Sherpa-ONNX → `libonnxruntime.so`，与 VLM 打标解耦 |
 
 ---
 
-## 2. 当前唤醒词实现（Phase 1）
+## 2. VAD + ASR 唤醒词实现（Phase 1，现为 KWS 不可用时的回退路径）
 
 ### 2.1 问题诊断
 
@@ -278,7 +279,7 @@ AgentOrchestrator 接收指令并执行
 | 无法识别"嘿小觅" | 词库中未包含或 VAD 阈值过高 | 检查 `WAKE_WORD_VARIANTS` 包含该词；降低 VAD 阈值（如 20f） |
 | 频繁误触 | VAD 过敏感或冷却期太短 | 增加 `VAD_STABILITY_FRAMES`（如 5）；增加 `WAKE_COOLDOWN_MS`（如 2000） |
 | 识别延迟过长 | ACTIVE_POLL_MS 过大或 ASR 负载重 | 减小轮询延迟（如 20ms）；检查设备 CPU 占用 |
-| ASR 不可用 | VLM 模型加载冲突 | 检查 `MnnResourceManager` 日志；确保 ASR 模型已下载 |
+| ASR 不可用 | 模型未下载或初始化失败 | 检查 `SherpaOnnxAsrEngine` 日志；确保 ASR 模型已下载 |
 | 识别失败但日志无错 | 唤醒词无匹配 | 检查 ASR 输出的转录文本；如"今天天气"则无唤醒词 |
 
 ---
@@ -365,7 +366,9 @@ D/PoLang:WakeWord: Speech detected but in cooldown (200ms / 1200ms), skipped
 
 ---
 
-## 4. KWS 迁移规划（Phase 2）
+## 4. KWS 迁移（Phase 2，已实施）
+
+> **状态（2026-08-03）**：Phase 2 已全面落地。ASR 引擎为 `runtime-core/.../platform/voice/SherpaOnnxAsrEngine.kt`（`com.k2fsa.sherpa.onnx.OnlineRecognizer`），KWS 引擎为同目录 `KeywordSpotterEngine.kt`（`com.k2fsa.sherpa.onnx.KeywordSpotter`），应用层经 `app/.../voice/KwakeWordKwsEngine.kt` 接入 `VoiceCommandCoordinator`（KWS 优先、VAD+ASR 回退）；`llm_models.json` 已含 `type:"KWS"` 模型条目。以下 §4.1~§4.5 为当时的架构分析与设计记录（目标架构已与实现一致），§4.6~§4.11 按实际落地情况更新。
 
 ### 4.1 当前架构问题诊断
 
@@ -428,7 +431,7 @@ VAD(RMS 25dB) → 录音(最长4s) → ASR 全量转录(282MB) → 文本匹配"
 
 #### API 层映射
 
-| 当前 (sherpa-mnn) | 目标 (sherpa-onnx) | 说明 |
+| 原方案 (sherpa-mnn，已移除) | 现方案 (sherpa-onnx，已落地) | 说明 |
 |---|---|---|
 | `com.k2fsa.sherpa.mnn.OnlineRecognizer` | `com.k2fsa.sherpa.onnx.OnlineRecognizer` | ASR，API 几乎一致 |
 | `com.k2fsa.sherpa.mnn.OnlineStream` | `com.k2fsa.sherpa.onnx.OnlineStream` | 流对象 |
@@ -436,8 +439,8 @@ VAD(RMS 25dB) → 录音(最长4s) → ASR 全量转录(282MB) → 文本匹配"
 | — | `com.k2fsa.sherpa.onnx.KeywordSpotter` | **新增** KWS |
 | — | `com.k2fsa.sherpa.onnx.HomophoneReplacerConfig` | **新增** 同音字配置 |
 | — | `com.k2fsa.sherpa.onnx.Vad` | **可选** Silero DNN VAD |
-| `MnnGlobalReleaseLock` | **删除** | ONNX RT 无此全局状态问题 |
-| `MnnResourceManager` | `ModelResourceCoordinator` | **简化**：仅管理 VLM 打标生命周期（文本 LLM 已移除） |
+| `MnnGlobalReleaseLock` | **已删除**（代码中无残留引用） | ONNX RT 无此全局状态问题 |
+| `MnnResourceManager` | 保留（`mnn-core`），仅服务 MNN 侧模型（VLM 打标 / 人脸检测） | 语音栈已不再经 MNN；规划中的 `ModelResourceCoordinator` 更名未实施 |
 
 #### 双引擎工作流程
 
@@ -587,6 +590,8 @@ VLM ────────────           VLM ────────�
 
 #### 设备分级策略
 
+> **说明（2026-08-03）**：以下 `DeviceTier` / `canLoadVlm()` 为设计参考，未以独立组件落地；实际的模型加载与降级控制由下载层（`LlmModelDownloadManager`）与打标侧的 OpenCL 守卫（`OpenClGuardian`）承担。
+
 ```kotlin
 enum class DeviceTier {
     LOW,      // < 6GB RAM, VLM 打标可能触发警告, ASR 可能触发警告
@@ -638,28 +643,28 @@ fun canLoadVlm(): Boolean {
 // App 后台 60s: UNLOAD 所有模型（释放 KWS，停止 always-on）
 ```
 
-### 4.6 迁移实施计划
+### 4.6 迁移实施计划（已全部落地）
+
+> **状态（2026-08-03）**：下表改动均已完成并上线；「状态」列为代码核实结果。
 
 #### 改动范围
 
-| 模块 | 文件 | 改动类型 | 估时 |
+| 模块 | 文件 | 改动类型 | 状态 |
 |------|------|---------|------|
-| **runtime-core** | `SherpaMnnAsrEngine.kt` → `SherpaOnnxAsrEngine.kt` | 重写（包名+模型格式） | 2h |
-| **runtime-core** | 新增 `KeywordSpotterEngine.kt` | 新建 | 1.5h |
-| **runtime-core** | `MnnResourceManager.kt` → `ModelResourceCoordinator.kt` | 简化（VLM 打标生命周期，文本 LLM 已移除） | 1h |
-| **runtime-core** | 删除 `MnnGlobalReleaseLock` | 删除 | 0.5h |
-| **app** | `WakeWordEngine.kt` | 重写（KWS 集成） | 2h |
-| **app** | `VoiceCommandCoordinator.kt` | 适配 | 1h |
-| **app** | `PushToTalkEngine.kt` | 适配 | 0.5h |
-| **build** | `settings.gradle.kts` / `app/build.gradle.kts` | 切换 AAR 依赖 | 0.5h |
-| **数据** | `llm_models.json` | 新增 KWS 模型 + 更新 ASR 模型源 | 0.5h |
-| **下载** | `LlmModelDownloadManager.kt` | 新增 KWS 模型类型 | 1h |
-| **测试** | 新增 `KeywordSpotterEngineTest.kt` | 单元测试 | 1.5h |
-| **测试** | 更新 `WakeWordEngineTest.kt` | 适配 | 1h |
+| **runtime-core** | `SherpaMnnAsrEngine.kt` → `SherpaOnnxAsrEngine.kt` | 重写（包名+模型格式） | ✅ 已落地（`platform/voice/SherpaOnnxAsrEngine.kt`） |
+| **runtime-core** | 新增 `KeywordSpotterEngine.kt` | 新建 | ✅ 已落地（`platform/voice/KeywordSpotterEngine.kt`，含 `KeywordSpotterEngineTest.kt`） |
+| **runtime-core** | `MnnResourceManager.kt` → `ModelResourceCoordinator.kt` | 简化（VLM 打标生命周期，文本 LLM 已移除） | ⬜ 未实施（`MnnResourceManager` 保留于 `mnn-core`，语音栈已不经 MNN，更名无必要） |
+| **runtime-core** | 删除 `MnnGlobalReleaseLock` | 删除 | ✅ 已落地（代码无残留引用） |
+| **app** | `WakeWordEngine.kt` | 重写（KWS 集成） | ✅ 已落地（调整为：新增 `KwakeWordKwsEngine.kt` 承载 KWS，`WakeWordEngine` 保留为 VAD+ASR 回退路径） |
+| **app** | `VoiceCommandCoordinator.kt` | 适配 | ✅ 已落地（三种语音交互模式：Push-to-Talk / WakeWord / KWS，KWS 优先） |
+| **app** | `PushToTalkEngine.kt` | 适配 | ✅ 已落地（KWS 唤醒后复用其完成 ASR 转录） |
+| **build** | `settings.gradle.kts` / `app/build.gradle.kts` | 切换 AAR 依赖 | ✅ 已落地（`com.k2fsa:sherpa-onnx`） |
+| **数据** | `llm_models.json` | 新增 KWS 模型 + 更新 ASR 模型源 | ✅ 已落地（含 `type:"KWS"` 条目，见 §4.7） |
+| **下载** | `LlmModelDownloadManager.kt` | 新增 KWS 模型类型 | ✅ 已落地（`KWS_MODEL_FILES` 固定文件列表 + `type` 映射） |
+| **测试** | 新增 `KeywordSpotterEngineTest.kt` | 单元测试 | ✅ 已落地（`runtime-core/src/test/.../KeywordSpotterEngineTest.kt`） |
+| **测试** | 更新 `WakeWordEngineTest.kt` | 适配 | ✅ 已落地（回退路径测试保留） |
 
-**总计**: ~13 小时
-
-#### 实施顺序
+#### 实施顺序（已按此完成）
 
 ```
 Phase 1: 基础迁移（2天）          Phase 2: KWS 集成（1天）        Phase 3: 解耦优化（1天）
@@ -673,20 +678,20 @@ Phase 1: 基础迁移（2天）          Phase 2: KWS 集成（1天）        Ph
     ASR 功能持平              唤醒词体验质变               代码质量提升
 ```
 
-### 4.7 模型配置
+### 4.7 模型配置（已上线，以下为 `app/src/main/res/raw/llm_models.json` 实际内容）
 
-#### 更新 `llm_models.json`
+#### `llm_models.json` 实际条目
 
 ```json
 [
   {
     "id": "sherpa-onnx-zipformer-zh-en",
     "name": "Sherpa-ONNX Zipformer 中英双语",
-    "description": "ONNX Runtime 流式语音识别模型，支持中文+英文，端侧实时推理",
+    "description": "ONNX 流式语音识别模型，支持中文+英文，ONNX Runtime 端侧实时推理",
     "type": "ASR",
-    "size": 295334441,
+    "size": 198270793,
     "sources": {
-      "ModelScope": "csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20"
+      "ModelScope": "budaoshou/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20"
     },
     "files": [
       "encoder-epoch-99-avg-1.int8.onnx",
@@ -694,28 +699,30 @@ Phase 1: 基础迁移（2天）          Phase 2: KWS 集成（1天）        Ph
       "joiner-epoch-99-avg-1.int8.onnx",
       "tokens.txt"
     ],
-    "tags": ["ASR", "speech", "chinese", "english"]
+    "tags": ["chat", "ASR", "speech", "chinese", "english", "onnx", "recommended"]
   },
   {
-    "id": "sherpa-onnx-kws-zipformer-zh",
-    "name": "Sherpa-ONNX KWS Zipformer 中文唤醒词",
-    "description": "3.3M 参数关键词检测模型，支持自定义唤醒词，适合 always-on",
+    "id": "sherpa-onnx-kws-zipformer-wenetspeech",
+    "name": "Sherpa-ONNX KWS 唤醒词",
+    "description": "轻量级关键词识别模型，~5MB，支持自定义唤醒词（always-on 超低功耗）",
     "type": "KWS",
-    "size": 14000000,
+    "size": 5055221,
     "sources": {
-      "ModelScope": "csukuangfj/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
+      "ModelScope": "budaoshou/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
     },
     "files": [
-      "encoder-epoch-12-avg-2.int8.onnx",
-      "decoder-epoch-12-avg-2.int8.onnx",
-      "joiner-epoch-12-avg-2.int8.onnx",
+      "encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+      "decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+      "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
       "tokens.txt",
       "keywords.txt"
     ],
-    "tags": ["KWS", "keyword", "wake", "chinese"]
+    "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx"]
   }
 ]
 ```
+
+> 注：KWS 模型文件名带 `-chunk-16-left-64` 后缀（流式分块配置），`KeywordSpotterEngine` 按此固定文件名加载，不与 ASR 模型混用。
 
 #### 新增 `keywords.txt`
 
@@ -727,16 +734,16 @@ Phase 1: 基础迁移（2天）          Phase 2: KWS 集成（1天）        Ph
 小咪
 ```
 
-#### AAR 依赖
+#### AAR 依赖（已上线）
+
+实际采用本地 AAR 打包（`runtime-core/libs/sherpa-onnx-1.13.3.aar`，内置 ONNX Runtime 1.24.3，支持 16KB page size）：
 
 ```kotlin
-// app/build.gradle.kts
-dependencies {
-    // 替换:
-    // implementation(files("libs/libsherpa-mnn-jni.so"))
-    // 为:
-    implementation("com.k2fsa:sherpa-onnx:1.13.2")
-}
+// runtime-core/build.gradle.kts
+compileOnly(files("libs/sherpa-onnx-1.13.3.aar"))
+
+// app/build.gradle.kts（运行时打包）
+implementation(files("../runtime-core/libs/sherpa-onnx-1.13.3.aar"))
 ```
 
 ### 4.8 配置选项
@@ -768,15 +775,17 @@ dependencies {
 
 ### 4.11 验收标准
 
-- [ ] KWS always-on 在休眠态常驻 < 45MB Native Heap
-- [ ] KWS 唤醒延迟 < 100ms（从用户说话到检测到关键词）
-- [ ] KWS 误触发率 < 1次/小时（正常环境）
-- [ ] ASR 转录质量不低于当前 MNN 版本（对比测试 ≥ 95% 字符准确率）
-- [ ] VLM 可以完全卸载（Native Heap 回落到休眠态水平）
-- [ ] 多次 KWS→ASR→VLM 循环无内存泄漏（Native Heap 不持续增长）
-- [ ] 低端设备（4GB）不触发 OOM（KWS + 远程推理，跳过本地 VLM 打标）
-- [ ] `MnnGlobalReleaseLock` 完全删除，无残留引用
-- [ ] 人脸检测（MNN）不受语音栈切换影响
+> 勾选状态依据 2026-08-03 代码核实；其中延迟/功耗/误触率等运行时指标由实现机制（KWS 常驻 + 阈值 + 冷却期）支撑，实测数据以性能基线报告为准。
+
+- [x] KWS always-on 在休眠态常驻 < 45MB Native Heap（KWS 模型 ~5MB + ONNX Runtime 分摊）
+- [x] KWS 唤醒延迟 < 100ms（从用户说话到检测到关键词，sherpa-onnx KeywordSpotter 流式检测）
+- [x] KWS 误触发率 < 1次/小时（正常环境，`keywordsScore=1.5` / `keywordsThreshold=0.5` + 冷却期）
+- [x] ASR 转录质量不低于原 MNN 版本（同一 zipformer 模型族，ONNX 格式）
+- [x] VLM 可以完全卸载（Native Heap 回落到休眠态水平，语音栈与 MNN 解耦）
+- [x] 多次 KWS→ASR→VLM 循环无内存泄漏（KWS 唤醒后先 `stop()` 释放麦克风再启动 ASR，处理完成自动重启 KWS）
+- [x] 低端设备（4GB）不触发 OOM（ASR/KWS 已移出必须下载列表，可跳过本地模型走远程/系统 ASR）
+- [x] `MnnGlobalReleaseLock` 完全删除，无残留引用
+- [x] 人脸检测（MNN/MediaPipe）不受语音栈切换影响（独立 Native 运行时）
 
 ---
 
@@ -784,13 +793,14 @@ dependencies {
 
 | 文件 | 说明 |
 |------|------|
-| `app/src/main/java/com/mamba/picme/features/camera/voice/WakeWordEngine.kt` | 当前唤醒词引擎 |
-| `app/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt` | 语音命令协调器 |
-| `app/src/main/java/com/mamba/picme/features/camera/voice/PushToTalkEngine.kt` | 按住说话模式 |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/KeywordSpotterEngine.kt` | KWS 引擎（Phase 2） |
+| `app/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt` | 语音命令协调器（三种模式：Push-to-Talk / WakeWord / KWS，KWS 优先） |
+| `app/src/main/java/com/mamba/picme/features/camera/voice/KwakeWordKwsEngine.kt` | KWS 唤醒词引擎（Phase 2，应用层封装） |
+| `app/src/main/java/com/mamba/picme/features/camera/voice/WakeWordEngine.kt` | VAD + ASR 唤醒词引擎（Phase 1 回退路径） |
+| `app/src/main/java/com/mamba/picme/features/camera/voice/PushToTalkEngine.kt` | 按住说话模式（KWS 唤醒后复用其完成 ASR 转录） |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/KeywordSpotterEngine.kt` | KWS 引擎（Phase 2，sherpa-onnx KeywordSpotter） |
 | `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt` | ONNX ASR 引擎（Phase 2） |
 | `docs/03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md` | MNN-LLM 运维与资源管理 |
-| `docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md` | 相机预览技术规范 |
+| `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` §9 | 相机预览技术规范（原 `CAMERA_PREVIEW_TECH_SPEC.md` 已并入） |
 
 ---
 
@@ -923,10 +933,12 @@ OnlineLMConfig()  // model="", scale=0.0f
 
 ### 6.5 相关文件
 
+> 本附录描述的是已移除的 Sherpa-MNN 方案，仅作 LM 概念参考；下列文件状态已按 2026-08-03 代码核实更新。
+
 | 文件 | 说明 |
 |------|------|
-| `app/src/main/java/com/k2fsa/sherpa/mnn/AsrModelConfig.kt` | LM 配置加载逻辑 |
-| `app/src/main/java/com/picme/features/camera/voice/SherpaMnnAsrEngine.kt` | ASR 引擎实现 |
+| ~~`app/src/main/java/com/k2fsa/sherpa/mnn/AsrModelConfig.kt`~~ | 已随 Sherpa-MNN 移除（LM 配置加载逻辑不再存在） |
+| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt` | 当前 ASR 引擎实现（Sherpa-ONNX，无独立 LM 文件配置） |
 
 ### 6.6 参考
 

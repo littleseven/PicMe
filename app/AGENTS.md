@@ -11,7 +11,7 @@
 
 **主要维护者**：项目开发者
 
-**阅读对象**：CO、PM、RD、CR、QA、AI Agent
+**阅读对象**：项目开发者、AI Agent
 
 ---
 
@@ -48,12 +48,24 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | Screen | Route | 定位 |
 |--------|-------|------|
 | `Main` | `main` | **startDestination** — 主页面 Pager 容器（上表 4 页） |
-| `Editor` | `editor` | 图片编辑 — 美颜调节、滤镜、风格特效（当前未注册在 NavHost，从相册/MediaPager 进入） |
+| `PhotoEditor` | `photo_editor/{sourceUri}?recipeUri={recipeUri}&autoOptimize={autoOptimize}` | 图片编辑器 — 从相册 MediaPager 进入；`recipeUri` 重新编辑已保存副本，`autoOptimize` 进入时自动触发 AI 一键优化 |
+| `IDPhoto` | `id_photo/{sourceUri}` | 证件照制作 |
 | `Settings` | `settings` | 设置 — 主菜单，展示 6 个分类入口 |
 | `SettingsCategory` | `settings/{category}` | 设置二级分类页 — `personalization`、`ai_agent`、`gallery`、`camera_beauty`、`system`、`developer` |
+| `ModelCenter` | `model_center/{categoryTag}` | 模型中心 — 按服务功能分类管理本地模型 |
 | `DuplicateManager` | `duplicate_manager` | 相册功能子页 — 重复/相似照片扫描与删除，从 Settings「相册功能」卡片进入 |
+| `TagControl` | `tag_control` | TAG 生成控制 — 3-Pass 进度、按类别/时间范围重新生成 |
+| `TagViewer` | `tag_viewer` | 标签查看页 |
 | `MemoryFacts` | `memory_facts` | 设置子页 — AI 记忆（人物关系区 + 事实记忆区的查看/编辑/删除/清空），从 Settings「AI 助手」卡片进入 |
+| `DataPrivacy` | `data_privacy` | 数据隐私说明页 |
+| `CommunicationChannel` | `communication_channel` | 通信通道设置页 |
 | `Debug` | `debug` | 开发工具 — 日志、截图、样本数据生成 |
+| `JsBridge` | `jsbridge` | JS 沙箱调试页 |
+| `SearchTest` | `search_test` | 搜索诊断测试页 |
+| `SentencePieceTest` | `sentencepiece_test` | SentencePiece 翻译测试页 |
+| `LlmLog` | `llm_log` | LLM 调用日志查看页 |
+
+> Chat/Camera/Gallery/People 为 `Main` 内部 Pager 页，不单独注册 destination；完整路由定义以 `navigation/Screen.kt` 为准。
 
 > **2026-06 产品重心转移**：Gallery 为默认首页，Camera/Chat/ModelCenter 作为纯图标入口从 Gallery 底部悬浮 Tab 进入，Settings 从顶部栏进入；设置页已拆分为 6 个二级分类页，主菜单保持一屏可见；Model Center 内置于 Settings 的 AI 助手卡片第一项，分类按服务功能（必须/聊天/相册打标/美颜相机）重排，聊天分类聚合文字与语音模型，并提供必须模型一键下载；重复照片管理内置于 Settings 的相册功能卡片；Camera 页已移除设置入口。
 > - **16 KB 适配**：MediaPipe tasks-vision 升级至 0.10.26，sherpa-onnx 升级至 1.13.3（内置 ONNX Runtime 1.24.3），`onnxruntime-android` 同步升级至 1.24.3，上述 native lib 均已 16 KB 对齐，满足 Google Play Android 15+ 要求。详见 `PRODUCT.md`。
@@ -77,13 +89,19 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 功能 | 路径 | 核心文件 | 说明 |
 |------|------|---------|------|
 | **Agent** | `features/agent/` | `GlobalAgentPanel.kt` | 全局悬浮 Agent 面板 |
+| **BackupRestore** | `features/backuprestore/` | `BackupRestoreActivity` | 数据备份与恢复入口（本地数据导出/导入，备份模型 v5） |
 | **Chat** | `features/chat/` | `ChatScreen`, `ChatViewModel`, `ChatThreadSidebar`, `ChatTitleGenerator` | AI 对话二级页，从相册首页进入，支持多线程；首条消息自动生成会话标题；支持对话式图片编辑（`edit_image`），结果以 `AGENT_EDIT_RESULT` 消息 inline 返回 |
 | **Chat JS** | `features/chat/js/` | `QuickJsEngine`, `QuickJsConverter`, `GalleryScriptHandlers`, `GalleryJs`, `ChartJs`, `CapabilityDispatchHandler` | QuickJS 沙箱引擎与 JSBridge 应用层（见下方 JS Engine 说明） |
 | **Camera** | `features/camera/` | `CameraScreen`, `CameraPreviewContent`, `CameraAgentCommandHandler` | 相机预览、美颜实时渲染、Agent 命令处理 |
 | **Common** | `features/common/chat/` | `AgentChatComponents`, `AgentMessage`, `AiChatScreen` | Chat UI 共享组件库（Camera/Gallery 复用） |
 | **Gallery** | `features/gallery/` | `GalleryScreen`, `MediaViewModel` | 智能相册浏览、AI 搜索 |
 | **Editor** | `features/editor/` | `ImageEditScreen` | 图片编辑（美颜/滤镜/风格） |
+| **IDPhoto** | `features/idphoto/` | `IDPhotoScreen`, `IDPhotoViewModel` | 证件照制作二级页（`id_photo/{sourceUri}`） |
+| **Main** | `features/main/` | `MainPagerHost` | 主页面 Pager 容器（Camera/Gallery/Chat/People 4 页横滑） |
+| **Person** | `features/person/` | `PersonScreen`, `PersonViewModel`, `PersonCoverResolver` | 人物聚类独立页 |
 | **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `ModelCenterScreen`, `MemoryFactsScreen` | 设置与模型管理；`MemoryFactsScreen` 为「AI 记忆」管理二级页（人物关系区查看/编辑/删除 + 事实记忆区查看/编辑/删除/清空） |
+| **TagViewer** | `features/tagviewer/` | `TagViewerTestScreen`, `TagAggregator`, `TagJsonParser` | 标签查看页 |
+| **Translation** | `features/translation/` | `SentencePieceTestScreen` | SentencePiece 翻译测试页 |
 | **Debug** | `features/debug/` | `DebugScreen`, `LogOverlay`, `ScreenshotUtil` | 开发调试工具 |
 
 > **2026-07-25 JS Engine（QuickJS 沙箱，`features/chat/js/`）**：
@@ -102,7 +120,9 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `repository/` | `MediaRepository`, `UserPreferencesRepository`, `UserSettingsRepository` 等接口 | 仓储抽象 |
 | `model/` | `AiAgentCommand`, `LlmProviderConfig`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe` |
 | `search/` | `MediaSearchEngine`, `ExplicitFirstSearchPipeline`, `QuerySegmenter`, `QueryParser`, `SegmentedQuery`, `ExplicitFilter`, `ContentFilter` | 自然语言图片搜索：显式约束优先分段检索 + 规则/LLM/语义混合排序；Chat 场景由 `SearchIntent` 直接驱动 `MediaSearchEngine.search(filter)` |
-| `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory`, `MlKitTagExtractor` | TAG 生成编排、OpenCL 守护、类别定义、ML Kit 英文标签提取 |
+| `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory` | TAG 生成编排、OpenCL 守护、类别定义 |
+| `aesthetic/` | `NimaScorer`, `EdiffiqaScorer`, `CoverSelector`, `FaceAligner`, `AestheticScoreWorker` | 美学打分（NIMA + eDifFIQA）接入人物封面选择：NNAPI 推理、会话跨调用复用、人脸对齐与质量分 |
+| `backup/` | `TagDataBackup`（model/）, `TagDataBackupRepository`, `BackupTagDataUseCase`, `RestoreTagDataUseCase` | 标签数据备份/恢复（备份模型 v5：标签、人脸聚类、人物关系、记忆事实、编辑配方等本地数据导出导入） |
 | `person/` | `RelationPredicate`, `KinshipLexicon`, `PersonRepository`, `PersonQueryResolver`, `RelationSnapshotRestorer` | 人物关系图谱（两层模型）：谓词封闭枚举（粗谓词机器逻辑，性别/长幼细分 + 中/英/日标签）+ `customLabel` 自定义称呼（用户语言，展示/查询优先）；称谓词表（声明归一具体谓词 + 谓词族查询扩展）；关系与"我"标记收口仓库；查询串→personId 解析器；重聚快照恢复纯函数 |
 | `memory/` | `MemoryRepository` | 通用事实记忆仓库（"帮我记住…"收口，remember/update/forget/唯一匹配删/observeAll） |
 | `preview/` | `BeautyPreviewProvider` | 美颜预览提供者接口 |
@@ -111,7 +131,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 | 子包 | 内容 | 说明 |
 |------|------|------|
-| `local/` | `AppDatabase`（Room v14）、`MediaDao`、`ChatMessageDao`、`ChatSessionDao`、`PersonRelationDao`、`MemoryFactDao` | Room 数据库 + DAO；v13 新增 `person_relations`（人物关系边，FK→persons CASCADE）与 `memory_facts`（事实记忆），`persons` 加 `is_self` 列；v14 `person_relations` 加 `customLabel` 列（自定义称呼，可空，MIGRATION_13_14） |
+| `local/` | `AppDatabase`（Room v19）、`MediaDao`、`ChatMessageDao`、`ChatSessionDao`、`PersonRelationDao`、`MemoryFactDao` | Room 数据库 + DAO；v13 新增 `person_relations`（人物关系边，FK→persons CASCADE）与 `memory_facts`（事实记忆），`persons` 加 `is_self` 列；v14 `person_relations` 加 `customLabel` 列（自定义称呼，可空，MIGRATION_13_14）；v15 新增 `chat_image_cache` 表（chat 编辑/优化结果图私有缓存登记，MIGRATION_14_15）；v16 `tag_scan_tasks.pass` 旧值 `QWEN_TAGGING` 改写为 `IMAGE_TAGGING`（枚举重命名，MIGRATION_15_16）；v17 `media_assets` 加 `city` 列（逆地理编码城市，MIGRATION_16_17）；v18 `media_assets` 加 `faceFocusY` 列（人脸纵向聚焦点，MIGRATION_17_18）；v19 `media_assets` 加 `aestheticScore`/`faceQualityScore` 列（美学/人脸质量分，MIGRATION_18_19） |
 | `remote/openai/` | OpenAI API 客户端（Retrofit） | 远程 LLM 网络层 |
 | `remote/anthropic/` | Anthropic/Claude API 客户端（Retrofit） | 备用远程 LLM |
 | `download/` | `LlmModelDownloadManager`、`ModelDownloadForegroundService` | LLM 模型下载管理 + 前台服务 |
@@ -152,7 +172,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 美颜预览 | `BeautyPreviewProvider` → `BeautyPreviewEngine` | 通过 beauty-api 接口调用 |
 | 人脸检测 | `FaceDetector`（beauty-api 接口） | MediaPipe/MNN 双引擎 |
 | 远程推理 | `RemoteReActAgent`（:runtime-core） | OpenAI Chat Completions API + tool_calls |
-| TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道 + 独立 ML Kit 英文标签 Pass，`mlKitLabels` 字段与 Qwen `labels` 字段解耦，OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
+| TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道（FACE_DETECTION/DBSCAN/IMAGE_TAGGING，另有 legacy `MOBILE_CLIP_ENCODING`），OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
 | JS 沙箱脚本 | `ChatRunScriptCapability` → `ChatViewModel.onRunScript/onDrawChart` → `JsRuntime`（QuickJS） | LLM tool_call（run_gallery_script/draw_chart）经 CapabilityRegistry（CHAT 场景）落入持久 JsRuntime；`jsEvalMutex` 串行 eval，超时 5s（含 capability.dispatch 写脚本放宽至 180s）；写操作经 CommandRisk 分级 + 用户确认 → `ChatMediaWriteCapability` |
 | Chat 对话式图片编辑 | `ImageEditCapability` → `ChatEditProcessor` | 复用 PhotoEditor 的 Recipe → Bitmap 渲染链路；`ChatEditStateHolder` 维护会话级 Recipe 支持多轮 delta；`AGENT_EDIT_RESULT` 消息 inline 展示结果图与说明 |
@@ -160,6 +180,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 多人物共现搜索 | `MediaSearchEngine.collectPersonMediaIds` → `PersonQueryResolver` → `PersonDao.getMediaByPersonsCooccurrence` | 原始 query 按优先级解析人物：① 自定义称呼精确匹配（query contains customLabel，"二儿子""发小"精确命中单簇）→ ② 已命名人物 contains → ③ 亲属称谓（`KinshipLexicon`，已被命中 customLabel 包含的称谓抑制；长短称谓去重如"爸爸"抑制"爸"）→ ④ 合拍 Pattern 的"我"。称谓查询按谓词族扩展：具体称谓含同族未指定桶（女儿→{DAUGHTER, CHILD}），泛化称谓含整族（孩子→{SON, DAUGHTER, CHILD}）。≥2 personId 走共现查询（同框合照），恰好 1 个走单人物查询，0 个回落原人名 LIKE 兜底；chat 与 Gallery 搜索路径自动获得 |
 | 事实记忆 | 聊天 `remember_fact`/`recall_memory`/`forget_fact` / JS `capability.dispatch` → `MemoryCapability` → `MemoryRepository` → `memory_facts`；设置页「AI 记忆」（`MemoryFactsScreen`：人物关系区查看/编辑/删除 + 事实区查看/编辑/删除/清空） | LIKE 召回（v1 无 FTS）；遗忘按 factId 或唯一匹配（多候选不删）；JS 写操作走确认门控，chat 直调不弹窗 |
 | 工具执行指标（tool_call_log） | `CommandExecutor`（:runtime-core）→ `CommandExecutionRecorder` → `RoomToolCallRecorder` → `polang_llm_log.db` | Capability 业务失败以 `Result.success(AgentAction.Error)` 返回（如引导性错误），记账按 action 语义：`AgentAction.Error` 记 `success=0` + errorCode/errorMessage，其余 action 记 `success=1`；只记纯指标（capability/method/耗时/结果），不含命令参数（隐私红线） |
+| 用户问题上报（report-issue） | Chat 顶部「上报问题」入口 → `IssueReportClient`（`data/remote/picme/`）→ `POST /v1/report-issue` | 用户问题描述经服务端脱敏后自动在 `littleseven/langchain4android` 创建 GitHub issue；管理后台「问题诊断」页（`/admin/diagnosis`）承载上报列表 |
 
 ---
 
@@ -220,5 +241,5 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ---
 
 > **维护者**：项目开发者
-> **最后更新**：2026-07-26
+> **最后更新**：2026-08-03
 > **状态**：生效中

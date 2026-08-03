@@ -755,6 +755,6 @@ class AmbiguousNamingDetector : Detector(), Detector.UastScanner {
 
 ---
 
-**批准人**: [RD] 全栈工程师 + [CR] 规范守护者  
+**批准人**: 项目开发者  
 **生效日期**: 2026-05-03  
-**下次审查**: 2026-08-03
+**下次审查**: 2026-11-03

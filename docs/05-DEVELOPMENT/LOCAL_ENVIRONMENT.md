@@ -3,7 +3,7 @@
 > **版本**: 1.0  
 > **状态**: 生效中  
 > **最后更新**: 2026-07-06  
-> **维护者**: CO / RD  
+> **维护者**: 项目开发者  
 > **上级文档**: 根目录 `AGENTS.md`
 
 ---
@@ -56,7 +56,7 @@
 | `~/code/MobileCLIP2-S2` | MobileCLIP2 S2 | CLIP 模型资源 |
 | `~/code/opus-mt-zh-en` | 翻译模型（中→英） | OPUS-MT |
 | `~/code/opus-mt-zh-en-int8` | 翻译模型 INT8 量化版 | OPUS-MT 量化 |
-| `~/code/sherpa-onnx-1.13.3-static-link-onnxruntime.aar` | 语音唤醒/ASR | Sherpa ONNX 静态库 AAR |
+| `~/code/sherpa-onnx-1.13.3-static-link-onnxruntime.aar` | 语音唤醒/ASR | Sherpa ONNX 静态库 AAR（项目内嵌为 `runtime-core/libs/sherpa-onnx-1.13.3.aar`，以项目内实际文件为准） |
 | `~/code/zvec` | 向量/Embedding 相关 | 本地向量工具或模型 |
 
 > 以上列表基于 `~/code` 当前内容整理。新增模型后应补充到本表。

@@ -1,8 +1,13 @@
 # ADR-004: Adreno GPU 争抢问题分析与解决方案
 
-> **状态**: 已接受 · **优先级**: P0 · **最后更新**: 2026-06-15
+> **状态**: 已接受（历史记录） · **优先级**: P0 · **最后更新**: 2026-08-03
 
 ---
+
+> ## ⛔ 状态更新（2026-08-03）：三方 GPU 争抢场景不再适用，本决策保留为历史记录
+>
+> 本 ADR 分析的 GPU 争抢三方——OpenGL ES 渲染、ncnn Vulkan（人脸检测）、ggml/llama.cpp（端侧文本 LLM）——其中两方已移除：**ncnn Vulkan 已于 2026-07 整删**（人脸检测改走 MediaPipe / MNN），**ggml/llama.cpp 端侧文本 LLM 已于 2026-08-02 整体移除**（文本推理全远程，`LocalLlmEngine` 仅存 Qwen3-VL-2B 端侧 VLM 打标 `imageInference`）。
+> 正文（§1-§3）中以当前时态描述的「两个/三个 GPU 消费者」争抢场景不再代表现状，**全部保留为历史记录**，用于理解决策脉络与 Adreno GPU 争抢的排查方法论。
 
 ## 1. 背景：PoLang 的 GPU 消费者
 
@@ -227,11 +232,11 @@ target_compile_definitions(agent_native PRIVATE
 
 | 文件 | 说明 |
 |------|------|
-| `agent-core/src/main/cpp/CMakeLists.txt` | C++ 编译配置，含 Vulkan 禁用注释 |
-| `agent-core/src/main/jniLibs/arm64-v8a/` | 编译产物目录 |
-| `beauty-engine/src/main/cpp/ncnn_face_detector.cpp` | ncnn Vulkan 配置（`net_.opt.use_vulkan_compute = true`） |
-| `docs/03-TECHNICAL-SPECS/LLM_ENGINE_MIGRATION_MNN_TO_LLAMACPP.md` | LLM 引擎迁移技术规范 |
-| `ADRs/ADR-001-beauty-engine-architecture.md` | 美颜引擎架构（含 EGL 渲染线程设计） |
+| ~~`agent-core/src/main/cpp/CMakeLists.txt`~~ | ⚠️ 已失效（随端侧文本 LLM 移除，`agent-core` 现为纯 Java 模块，无 `cpp/` 目录） |
+| ~~`agent-core/src/main/jniLibs/arm64-v8a/`~~ | ⚠️ 已失效（同上，编译产物目录已删除） |
+| ~~`beauty-engine/src/main/cpp/ncnn_face_detector.cpp`~~ | ⚠️ 已失效（ncnn 整删，源码不存在；原 ncnn Vulkan 配置 `net_.opt.use_vulkan_compute = true`） |
+| ~~`docs/03-TECHNICAL-SPECS/LLM_ENGINE_MIGRATION_MNN_TO_LLAMACPP.md`~~ | ⚠️ 已失效（文档已删除，原 LLM 引擎迁移技术规范） |
+| `ADR/ADR-001-beauty-engine-architecture.md` | 美颜引擎架构（含 EGL 渲染线程设计） |
 
 ---
 
@@ -240,9 +245,10 @@ target_compile_definitions(agent_native PRIVATE
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|---------|------|
 | 2026-06-15 | v1.0 | 初始版本，记录事件 1 + 事件 2 两次 GPU 争抢问题及决策 | RD |
+| 2026-08-03 | v1.1 | 添加状态更新块：ncnn Vulkan 与 ggml/llama.cpp 端侧文本 LLM 均已移除，争抢场景不再适用，保留为历史记录；修正 §7 失效文件引用 | AI Agent |
 
 ---
 
-> **维护者**：RD Agent
-> **最后更新**：2026-06-15
-> **状态**：已接受
+> **维护者**：项目开发者、AI Agent
+> **最后更新**：2026-08-03
+> **状态**：已接受（历史记录）

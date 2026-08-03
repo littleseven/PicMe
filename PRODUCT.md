@@ -3,9 +3,9 @@
 > **试验性应用** | 以 AI Agent 对话为核心，以相册+图像编辑为技术试验场  
 > **版本**：3.0（破浪相册）· 应用版本 v1.0.26 (10026)  
 > **状态**：生效中  
-**最后更新**：2026-07-26
-**维护者**：PM Agent（产品定义）+ RD Agent（技术实现）
-**实验状态**：进行中 · 相册核心能力已大规模落地（自然语言搜索、对话式图片编辑、智能抠图、证件照、Florence-2 标签扫描、JS 沙盒脚本、相册摘要）· 人物记忆与关系图谱开发中（🔄 未合并 main）
+**最后更新**：2026-08-03
+**维护者**：项目开发者
+**实验状态**：进行中 · 相册核心能力已大规模落地（自然语言搜索、对话式图片编辑、智能抠图、证件照、Florence-2 + Qwen3-VL-2B 标签扫描、JS 沙盒脚本、相册摘要）· 人物记忆与关系图谱开发中（🔄 未合并 main）
 
 > **2026-06-17 IM 远程控制产品线新增**：新增 IM 远程控制产品线，通过飞书等 IM + LLM 实现 App 远程控制。智能相册功能全量规划完成（智能分类、相册管理、AI 编辑进阶、视频管理等）。
 
@@ -38,7 +38,7 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
                        ▲
                        │
     OpenGL ES/EGL    ──┼──  实时美颜渲染管线
-    多引擎人脸检测   ──┼──  MediaPipe/NCNN/MNN 统一抽象
+    多引擎人脸检测   ──┼──  MediaPipe/MNN 统一抽象
     帧同步系统       ──┼──  检测-渲染时序对齐
                        │
     ═══════════════════╪═══════════════════
@@ -61,7 +61,7 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 4. **冗余代码清理**：移除 InferenceRouter、ToolCallingChatLanguageModel、ToolCallingOutputParser、ToolPromptBuilder、ToolCallingMode、ToolCallingConfig、AdaptiveStrategySelector、ToolOrchestrator 等 ~1500 行代码。
 5. **产品重心迁移**：相册（Gallery）和图片编辑（Editor）从「能力验证」升级为「核心产品」，相机降级为「辅助入口」。
 
-**关键认知更新（2026-06-12，保留）**：
+**关键认知更新（2026-06-12 原始，2026-08 追加）**：
 1. 端侧文本 LLM 已于 2026-08 移除（架构简化/功耗考虑），文本推理全远程（DeepSeek 等）；端侧保留 VLM 打标（Qwen3-VL-2B / Florence-2）、人脸检测、ASR 语音输入等能力不变。
 2. 产品策略据此调整：文本对话与指令路由全走远程模型 tool_calls，端侧不再维护文本 LLM 推理链路。
 3. **首页转型**：相册页作为应用默认首页，聊天页、相机页、模型中心页作为图标入口从相册底部悬浮 Tab 进入（无文字标签）；设置入口位于顶部栏最右侧，模型中心同时保留在设置页 AI 助手卡片第一项。相机降级为辅助入口，相册+编辑升级为核心能力，AI 对话作为核心二级能力。
@@ -96,15 +96,17 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 - 对话历史持久化（Room `ChatMessageDao`），支持跨会话查看历史记录 ✅
 - **发送图片进行 AI 分析 / 对话式编辑** ✅：图片选择器 → edit_image 远程 ReAct → 编辑结果回渲染（`AGENT_EDIT_RESULT` / `MediaResultsCarousel`）
 - **相册摘要工具** ✅：自然语言生成相册概况（`GetGallerySummaryUseCase` / `ChatGallerySummaryCapability`）
-- **标签扫描** ✅：Florence-2 端侧打标 5-Pass 链路，可由对话触发（`ChatStartTagScanCapability`，详见 `TAG_GENERATION.md`）
-- **JS 沙盒脚本** ✅：QuickJS 沙箱 + JSBridge，对话内运行相册分析/健康报告脚本（`run_script`，详见 `JS_ENGINE_TECH_SPEC.md`）
+- **标签扫描** ✅：Florence-2 / Qwen3-VL-2B 端侧打标 3-Pass 链路，可由对话触发（`ChatStartTagScanCapability`，详见 `TAG_GENERATION.md`）
+- **JS 沙盒脚本** ✅：QuickJS 沙箱 + JSBridge，对话内运行相册分析/健康报告脚本（`run_gallery_script`，详见 `JS_ENGINE_TECH_SPEC.md`）
 - 对话式反馈：操作确认、错误澄清、建议推荐、结果展示
+- **用户问题上报** ✅：Chat 顶部「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动创建 GitHub issue
 - 从相册首页底部 Tab 或 plus 菜单进入，顶部栏提供返回相册按钮
 
 **人物记忆与关系层（🔄 开发中，未合并 main）**
 - **事实记忆**：用户通过「帮我记住…」显式声明的事实，统一收口于 `MemoryRepository`（`memory_facts` 表）；来源含聊天工具（CHAT_TOOL）与 JS 沙盒写通路（JS_DISPATCH）
 - **人物命名 / "我"标记**：为人脸聚类命名，全局唯一"我"标记（`PersonRepository`）
 - **人物页（独立入口）**：`PersonScreen` 封面网格（coverMediaId 整图 + `faceFocusY` 人脸感知纵向对齐，含人脸不砍头），点封面直接改名/标关系/标"我"；相册顶栏 + 设置一级入口直达（`Screen.People`）；AI 记忆页专注事实记忆，人物关系编辑迁入人物页重命名对话框
+- **人物封面美学选择**：NIMA 美学评分 + eDifFIQA 人脸质量分加权（NNAPI 加速），自动选最佳封面写入 `PersonEntity.coverMediaId`
 - **人物关系图谱**：声明「subject 是我的 predicate」（配偶/子女/父母/兄弟姐妹/祖辈/孙辈/其他亲属），幂等覆盖、级联删除（`person_relations` 表，AppDatabase v13）
 - **亲属称谓词表**：中文称谓 ↔ 关系谓词映射（`KinshipLexicon`），查询侧与声明侧共用
 - **自然语言人物检索**：支撑「我女儿的照片」「老婆的合照」式查询，由称谓词表 → 关系图谱 → 人脸簇解析
@@ -209,7 +211,7 @@ AgentOrchestrator (runtime-core/)
 ### 4.3 端侧优先与云端增强
 
 - **LLM**：远程模型（DeepSeek 等），经**自建 Ktor 网关**（`api.polang.net`）代理：按模型自动路由（Cloudflare AI Gateway / 腾讯 TokenHub），邮箱注册动态 Token + 免费额度管控，上游密钥仅在服务端持有（详见 `server/README.md`）
-- 人脸检测：MediaPipe Face Mesh / MNN / NCNN 端侧模型（106 点统一输出）
+- 人脸检测：MediaPipe Face Mesh / MNN 端侧模型（106 点统一输出）
 - OCR：ML Kit 端侧识别
 - 图像编辑：端侧 GPU 处理为主
 - **隐私敏感数据优先本地处理**；非敏感复杂推理可在用户授权后使用云端模型
@@ -226,7 +228,7 @@ AgentOrchestrator (runtime-core/)
 | 自然语言→命令 | ✅ | 远程模型（DeepSeek）解析意图，映射到设备操作 |
 | 实时美颜 | ✅ | OpenGL ES 管线，支持磨皮/美白/瘦脸/大眼/唇色/腮红 |
 | GPU 拍照 | ✅ | 离屏渲染，预览/输出一致性 |
-| 多引擎人脸检测 | ✅ | MediaPipe Face Mesh 468→106 默认，MNN/NCNN 备选（InsightFace ONNX 已移除） |
+| 多引擎人脸检测 | ✅ | MediaPipe Face Mesh 468→106 默认，MNN 备选（InsightFace ONNX 已移除） |
 | 对话记忆 | ✅ | 多轮上下文维护 |
 | 统一聊天界面 | ✅ | Camera/Gallery/Settings 共享 Chat UI，支持折叠/展开 |
 | 帧同步美妆 | ✅ | 解决快速移动时的妆容甩飞问题 |
@@ -238,10 +240,10 @@ AgentOrchestrator (runtime-core/)
 | **图片消息** | ✅ | 聊天发送图片 → AI 分析 / 对话式编辑 |
 | **智能抠图 / 背景去除** | ✅ | U2Netp / ModNet / MediaPipe 三后端 + `MattingRouter` |
 | **证件照制作** | ✅ | `IDPhotoComposer` + `IDPhotoSpecs` 多规格，`features/idphoto` |
-| **标签自动生成** | ✅ | Florence-2 端侧打标 5-Pass（`domain/tag/florence2`，详见 `TAG_GENERATION.md`） |
-| **JS 沙盒脚本** | ✅ | QuickJS + JSBridge，对话内运行相册分析脚本（`run_script`） |
+| **标签自动生成** | ✅ | Florence-2 / Qwen3-VL-2B 端侧打标 3-Pass（`domain/tag/`，详见 `TAG_GENERATION.md`） |
+| **JS 沙盒脚本** | ✅ | QuickJS + JSBridge，对话内运行相册分析脚本（`run_gallery_script`） |
 | **相册摘要** | ✅ | `GetGallerySummaryUseCase` / `ChatGallerySummaryCapability` |
-| **备份 / 恢复** | ✅ | `features/backuprestore` + `domain/backup`（含标签/人物关系快照） |
+| **备份 / 恢复** | ✅ | `features/backuprestore` + `domain/backup`（备份格式 v5，SAF 导出/导入入口，含标签/人物关系快照） |
 | **事实记忆 + 人物关系图谱** | 🔄 开发中 | `MemoryRepository` + `PersonRepository`（`memory_facts` / `person_relations`，AppDatabase v13，未合并 main） |
 | 复杂意图理解 | ⚠️ | 多参数同时调节依赖远程 LLM 或规则模板；端侧仅胜任单参数明确指令 |
 | 上下文推理 | ⚠️ | 基于对话历史的隐式引用（"再亮一点"）准确率有限，需规则兜底 |
@@ -303,8 +305,8 @@ PoLang 以技术探索与能力验证为核心目标，**聚焦 Gallery/Editor +
 | **图片消息** | ✅ 已落地 | P1 | 聊天中发送图片给 AI 分析 / 对话式编辑 |
 | **对话式图片编辑** | ✅ 已落地 | P1 | `edit_image` 远程 ReAct，结果回渲染（`ChatEditProcessor`） |
 | **相册摘要** | ✅ 已落地 | P1 | `GetGallerySummaryUseCase` / `ChatGallerySummaryCapability` |
-| **标签扫描（对话触发）** | ✅ 已落地 | P1 | Florence-2 5-Pass，`ChatStartTagScanCapability` |
-| **JS 沙盒脚本** | ✅ 已落地 | P2 | QuickJS + JSBridge，`run_script` 运行相册分析脚本 |
+| **标签扫描（对话触发）** | ✅ 已落地 | P1 | Florence-2 / Qwen3-VL-2B 3-Pass，`ChatStartTagScanCapability` |
+| **JS 沙盒脚本** | ✅ 已落地 | P2 | QuickJS + JSBridge，`run_gallery_script` 运行相册分析脚本 |
 | **语音输入** | ✅ 已落地 | P1 | Push-to-Talk 默认开启，WakeWord 作为设置项可选 |
 | **快捷入口栏** | ❌ 已取消 | 聊天页不再提供底部快捷入口栏，统一从相册首页进入 |
 
@@ -475,7 +477,7 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/03-TECHNICAL-SPECS/CHAT_UI_UNIFICATION.md` | Chat UI 统一化技术规格 |
 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 大美丽引擎技术规范（含帧同步美妆、容灾降级） |
 | `docs/03-TECHNICAL-SPECS/AI_OPTIMIZATION.md` | AI 一键图片优化方案与参数标准 |
-| `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` | 相册自动 TAG 生成（Florence-2 5-Pass） |
+| `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` | 相册自动 TAG 生成（Florence-2 / Qwen3-VL-2B 3-Pass） |
 | `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` | 相册自然语言搜索完整链路 |
 | `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md` | JS 沙盒引擎（QuickJS + JSBridge） |
 | `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 人脸检测引擎架构 |
@@ -484,7 +486,7 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md` | PoLang Server（Ktor 后端）实现计划：AI 网关、账号、管理后台 |
 | `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md` | 服务端海外部署（香港 VPS + Nginx + certbot） |
 | `server/README.md` | 服务端现状与路由（v0.5.0） |
-| `AGENTS.md` | AI 协作开发角色定义 |
+| `AGENTS.md` | 顶层治理、架构原则、全局红线 |
 
 ---
 

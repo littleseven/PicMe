@@ -102,9 +102,11 @@ core/image/
 - **Bitmap 扩展**：`applyColorFilter(matrix)` - 应用颜色矩阵滤镜，在 Dispatchers.Default 线程执行
 - **Flow 扩展**：`debounceIf(condition, duration)` - 条件防抖，仅在满足条件时启用 debounce
 
-### 2.4 依赖注入配置
+### 2.4 依赖注入配置（预留扩展）
 
-**Hilt 模块定义规范**：
+> **当前状态**：项目采用手动 DI（`AppContainer` / `AppContainerImpl`，见 `di/AGENTS.md`），无 Hilt/Dagger。以下为 Hilt 预留扩展方案，仅在将来引入 Hilt 时适用。
+
+**Hilt 模块定义规范（预留扩展）**：
 - **AppModule 提供的全局单例**：
   - **Database**：Room 数据库，使用 `@Singleton`标注
   - **ImageLoader**：Coil 全局图片加载器，配置内存和磁盘缓存
@@ -117,7 +119,7 @@ core/image/
 - **Bitmap 管理**：必须及时回收（recycle() 或在 using 块中），避免 OOM
 - **Logger 使用**：必须使用正确的 Tag 格式（`PoLang:Module`），便于检索；`GpuBeautyProcessor` 使用 `PoLang:ImageProc`
 - **扩展函数**：必须使用明确的前缀，避免命名冲突
-- **Hilt 依赖**：必须标注正确的生命周期（@Singleton / @ViewModelScoped）
+- **依赖注入**：当前为手动 DI（`AppContainer`），新增全局依赖必须同步更新 `AppContainer.kt`；若将来引入 Hilt，必须标注正确的生命周期（@Singleton / @ViewModelScoped）
 - **Coil 缓存**：大小必须合理（避免 OOM），占可用内存 25% 以内
 - **冗余代码防止**：`core/image/gl/` 目录下**禁止**添加 OpenGL/EGL 实现类；GL 渲染链路统一由 `beauty-engine` 模块维护
 
@@ -128,7 +130,7 @@ core/image/
 - [ ] Bitmap 是否正确回收？（recycle() 或在 using 块中）
 - [ ] Logger 是否使用了正确的 Tag 格式？（`PoLang:Module`；`GpuBeautyProcessor` 用 `PoLang:ImageProc`）
 - [ ] 扩展函数是否避免了命名冲突？（使用明确的前缀）
-- [ ] Hilt 依赖是否标注了正确的生命周期？（@Singleton / @ViewModelScoped）
+- [ ] 新增全局依赖是否已同步更新 `AppContainer.kt`？（当前为手动 DI，无 Hilt）
 - [ ] Coil 缓存大小是否合理？（避免 OOM）
 - [ ] 所有用户可见字符串是否已提取到 strings.xml？（支持 I18N）
 - [ ] 是否在 `core/image/gl/` 下误添加了 GL 渲染实现类？（应放在 `beauty-engine` 模块）

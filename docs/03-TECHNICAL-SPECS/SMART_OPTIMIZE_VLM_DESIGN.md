@@ -1,6 +1,6 @@
 # SmartOptimizeEngine VLM 实现设计（LLM 推荐图片优化参数）
 
-> 状态：设计稿（2026-07-22），暂未实现。
+> 状态：设计稿（2026-07-22），`SmartOptimizeEngine` 空接口暂未实现；但部分相关改动已落地（`PhotoProcessorImpl` EGL 修复、`RecipeApplier` 黑屏兜底、`optimize_presets.json` 调优等，见 `AI_OPTIMIZATION.md` §9.1 勾选项）。
 > 范围：用多模态 LLM（VLM）看图直接推荐美颜/滤镜/调色参数，填补现有 `SmartOptimizeEngine` 空接口。
 
 ---
@@ -11,7 +11,7 @@ PoLang 的 AI 一键优化（`AiOptimizeUseCase`）有两条路径：
 
 | 路径 | 实现 | 现状 |
 |---|---|---|
-| `fastOptimize` | `SceneAnalyzer`（场景分类）→ `PresetRepository`（每场景固定 recipe） | ✅ 已实现，但参数固定、无个性化 |
+| `fastOptimize` | 固定 `Scene.GENERAL` 预设（`PresetRepository`；`SceneAnalyzer` 场景分类未落地，`analyzer/` 仅有 `Scene` 枚举） | ✅ 已实现，但参数固定、无个性化 |
 | `smartOptimize` | `SmartOptimizeEngine.optimize(uri) → OptimizePreset` | ❌ **空接口**（`AiOptimizeUseCase.smartEngine = null`），实际降级 fast |
 
 需求：让 LLM/VLM **看图后直接推荐优化参数**（beauty 强度 / 滤镜 / 调色值），而非按场景查固定预设。
@@ -28,11 +28,11 @@ PoLang **已有可直接复用的 VLM**，无需新模型：
 
 | 模型 | 位置 | 多模态 | 适配 |
 |---|---|---|---|
-| **SmolVLM-500M** | 端侧（已集成，打标用） | ✅ | 改 prompt 输出 recipe；500M 偏小，调色美学判断有限 |
-| **Qwen3.5-2B-MNN** | 端侧（已集成，图像理解/chat） | ✅ | 2B 比 SmolVLM 强，推荐质量更稳 |
+| **~~SmolVLM-500M~~** | ~~端侧（已集成，打标用）~~ **已下线**（经评估打标效果不佳，被 Florence-2 替代） | ✅ | 不再可用 |
+| **Qwen3-VL-2B-MNN** | 端侧（VLM 打标备选 tagger，默认 Florence-2；注意：端侧**文本** LLM Qwen3.5-2B 已移除，本文原写的「Qwen3.5-2B」应为此 VLM 模型） | ✅ | 2B 比 SmolVLM 强，推荐质量更稳 |
 | 远程多模态（GPT-4V / Qwen-VL / DeepSeek-VL） | 需 server vision 支持 | ✅ | 质量最好，但图片外发 + 依赖 server |
 
-> 注：当前 chat 远程是 `deepseek-v4-flash`（偏文本），图像理解走端侧 Qwen/SmolVLM。远程推荐需先确认 server 多模态能力。
+> 注：当前 chat 远程是 `deepseek-v4-flash`（偏文本），图像理解走端侧 Florence-2（默认）/ Qwen3-VL-2B。远程推荐需先确认 server 多模态能力。
 
 **推荐：先做端侧 VLM 版**（零新模型、零隐私外发、复用现有），质量不够再上远程多模态（server 中转，复用 LLM 网关机制）。
 
@@ -52,7 +52,7 @@ SmartOptimizeEngine.optimize(imageUri)
 - 注入 `AiOptimizeUseCase(smartEngine = LocalVlmSmartOptimizeEngine(...))`
 
 ### 复用（已有）
-- VLM 推理：SmolVLM/Qwen 的 `imageInference(bitmap, prompt)`
+- VLM 推理：Qwen3-VL-2B（备选 tagger）的 `imageInference(bitmap, prompt)`
 - recipe 映射：`OptimizeRecipeMapper`（preset → EditRecipe）
 - 渲染：`RecipeApplier`（applyGpuEffects/applyCutout/applyMarkup）
 
@@ -104,7 +104,7 @@ SmartOptimizeEngine.optimize(imageUri)
 ## 8. 结论
 
 - **不存在成熟的专用「图像→优化参数」模型**，VLM + prompt 是正解。
-- PoLang 已有端侧 VLM（SmolVLM/Qwen），**零新模型**即可实现 `SmartOptimizeEngine`。
+- PoLang 已有端侧 VLM（Qwen3-VL-2B；SmolVLM 已下线），**零新模型**即可实现 `SmartOptimizeEngine`。
 - 先做**端侧 VLM 版**（隐私、复用、离线），质量不够再上远程多模态。
 - 关键在 prompt 工程（few-shot + schema），而非换更大模型。
 

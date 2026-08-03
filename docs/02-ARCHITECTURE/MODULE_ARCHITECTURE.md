@@ -6,10 +6,10 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
 
 **模块定位**：模块分层与依赖关系可视化
-**主要维护者**：[RD] 全栈工程师 / [CR] 规范守护者
-**阅读对象**：CO、PM、RD、CR、QA、AI Agent
+**主要维护者**：项目开发者、AI Agent
+**阅读对象**：项目开发者、AI Agent
 **版本**：1.2（端侧文本 LLM 移除对齐版）
-**最后更新**：2026-08-02
+**最后更新**：2026-08-03
 **状态**：生效中
 
 ---
@@ -143,10 +143,10 @@
 | `libagent_native.so` | `:runtime-core` | `:app` | VLM 打标 JNI 桥（Qwen3-VL） |
 | `libbeauty_native.so` | `:beauty-engine` | `:app` | 人脸检测 JNI 桥接 |
 | `libsentencepiece_android.so` | `:sentencepiece` | `:app` | 分词器 JNI |
-| `libonnxruntime.so` | 外部（Sherpa-ONNX / onnxruntime-android） | `:app` | 通过 `pickFirsts` 解决双来源冲突 |
+| `libonnxruntime.so` | 外部（Sherpa-ONNX / onnxruntime-android） | `:app` | 通过 `pickFirsts` 解决双来源冲突；NIMA / eDifFIQA 美学打分（NNAPI 加速，人物封面选择）亦走 ONNX Runtime |
 | `libsherpa-onnx-*.so` | Sherpa-ONNX AAR | `:app` | ASR / KWS |
 | `libmediapipe_tasks_vision_jni.so` | MediaPipe AAR | `:app` | 人脸 landmark |
-| `libmlkit*.so` | ML Kit AAR | `:app` | OCR / 图像标签 / 人脸检测 |
+| `libmlkit*.so` | ML Kit AAR | `:app` | OCR 文字识别（图像标签与人脸检测已移除） |
 
 ---
 
@@ -163,11 +163,13 @@
 | `LocalLlmEngine` / `MnnLlmClient`（VLM 打标专用，仅 `imageInference`） | `:runtime-core` | `com.mamba.picme.agent.core.inference.local.llm` |
 | `ChatModel` / `StreamingChatModel` | `:agent-core` | `com.mamba.model.chat` |
 | `OpenAiChatModel` | `:agent-core` | `com.mamba.model.openai` |
-| `ToolSpecification` | `:agent-core` | `com.mamba.agent.tool` |
+| `ToolSpecification` | `:agent-core` | `com.mamba.tool` |
 | `MnnResourceManager` / `MnnGlobalReleaseLock`（人脸检测 + VLM 打标共享） | `:mnn-core` | `com.mamba.picme.mnn` |
 | `MnnFaceDetector` / `MnnFaceEmbedder` | `:beauty-engine` | `com.mamba.picme.beauty.internal.facedetect.mnn` |
 | `FaceDetectorManager` | `:beauty-engine` | `com.mamba.picme.beauty.internal.facedetect` |
 | `BeautyPreviewEngine` | `:beauty-engine` | `com.mamba.picme.beauty.api` |
+| `NimaScorer` / `EdiffiqaScorer`（ONNX/NNAPI 美学与人脸质量打分） | `:app` | `com.mamba.picme.domain.aesthetic` |
+| `CoverSelector` / `AestheticScoreWorker`（人物封面选择） | `:app` | `com.mamba.picme.domain.aesthetic` |
 | `SentencePieceProcessor` | `:sentencepiece` | `com.mamba.picme.sentencepiece` |
 
 ---
@@ -226,5 +228,5 @@
 ./gradlew :beauty-engine:dependencies --configuration releaseRuntimeClasspath | grep "runtime-core" || echo "PASS: no runtime-core dependency"
 ```
 
-> **维护者**：RD Agent
-> **最后更新**：2026-07-06
+> **维护者**：项目开发者、AI Agent
+> **最后更新**：2026-08-03

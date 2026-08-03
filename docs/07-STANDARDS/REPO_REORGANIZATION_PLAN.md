@@ -26,7 +26,7 @@
 - `:agent-core` = **langchain4j 的 Android 适配层**（远程推理库；包 `com.mamba.client`）
 - 依赖链：`:app → :runtime-core → :agent-core`
 
-> `.qoder/`（Qoder）与 `.claude/`（Claude Code）均为 AI 协作工具目录，**保留不动**。
+> ~~`.qoder/`（Qoder）与 `.claude/`（Claude Code）均为 AI 协作工具目录，**保留不动**。~~（`.qoder/` 已删除，见顶部 2026-08-03 更新）
 
 ---
 
@@ -54,12 +54,12 @@ langchain4android/
 │   ├── migrations/{001_init.sql, seed_rules.sql}
 │   └── .env.example · deploy.sh · picme-api.service · README.md · .gitignore
 ├── shared/                 # 【待建】端云共享 Kotlin（占位）
-├── docs/                   # 文档根（changelog/agents 未单列：发版记录留根、agents/ 留根）
+├── docs/                   # 文档根（changelog 未单列：发版记录留根；~~agents/ 留根~~（已删除，见顶部 2026-08-03 更新））
 ├── infra/                  # ✅ cloudflare/ + tencentscf/（无服务器实验，已挪入）
 ├── scripts/                # ✅ analyze_commits.py 已挪入
-├── .claude/  .qoder/  .kimi/  .idea/  .github/   # 工具/IDE 目录，保留
+├── .claude/  ~~.qoder/~~  .kimi/  .idea/  .github/   # 工具/IDE 目录，保留（~~.qoder/ 已删除~~，见顶部 2026-08-03 更新）
 ├── AGENTS.md  AI_TOOLS.md  CLAUDE.md  PRODUCT.md  README.md   # 约定，留根
-├── CHANGELOG.md  RELEASE_NOTE_*.md  input_images/  agents/    # 留根（发版脚本写死 / viz 脚本用 / AI 约定）
+├── CHANGELOG.md  RELEASE_NOTE_*.md  input_images/  ~~agents/~~    # 留根（发版脚本写死 / viz 脚本用 / ~~AI 约定~~）（agents/ 已删除，见顶部 2026-08-03 更新）
 ├── settings.gradle.kts · build.gradle.kts · gradle/ · gradlew   # buildSrc 已移除（空壳）
 └── ...
 ```
@@ -76,9 +76,9 @@ langchain4android/
 | `cloudflare/`、`tencentscf/` | `infra/` | ✅ 已挪 |
 | `CHANGELOG.md`、`RELEASE_NOTE_*.md` | **留根** | `scripts/release-automation.sh` 写死 `$PROJECT_ROOT/CHANGELOG.md`，挪了会断 |
 | `input_images/` | **留根** | `scripts/visualize_eyes_landmarks.py` 等 4 个脚本使用 |
-| `agents/*.md` | **留根** | AI 工具约定（与根 `AGENTS.md` 同级） |
+| ~~`agents/*.md`~~ | ~~**留根**~~ | ~~AI 工具约定（与根 `AGENTS.md` 同级）~~（已删除，见顶部 2026-08-03 更新） |
 | 根 `DEVELOPMENT.md` | ~~待定~~ **已删除** | 与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复，已删除 |
-| `.claude/worktrees`、`.qoder/`、`.claude/` | **保留** | 工具目录（worktrees 由 EnterWorktree 工具管理） |
+| `.claude/worktrees`、~~`.qoder/`~~、`.claude/` | **保留** | 工具目录（worktrees 由 EnterWorktree 工具管理）（~~.qoder/ 已删除~~，见顶部 2026-08-03 更新） |
 
 **风险**：`grep` 引用（CI、脚本路径、文档相对链接）避免断链——本次挪动的 3 项均仅文档提及、无脚本/CI 引用，已验证安全。
 
@@ -125,7 +125,7 @@ langchain4android/
 
 ## 6. 待拍板 ⚠️
 
-> `cloudflare/`/`tencentscf/` 已挪入 `infra/`（保留）；`agents/`、`CHANGELOG`/`RELEASE_NOTE`、`input_images/` 经评估**留根**（见 §3 理由）。根 `DEVELOPMENT.md` 已删除。
+> `cloudflare/`/`tencentscf/` 已挪入 `infra/`（保留）；~~`agents/`~~、`CHANGELOG`/`RELEASE_NOTE`、`input_images/` 经评估**留根**（见 §3 理由；~~`agents/` 已删除~~，见顶部 2026-08-03 更新）。根 `DEVELOPMENT.md` 已删除。
 
 1. ~~根 `DEVELOPMENT.md`~~ **已删除**（与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复）。
 2. **`shared/` 占位**：现在建 / 等端云真有共享需求再建？

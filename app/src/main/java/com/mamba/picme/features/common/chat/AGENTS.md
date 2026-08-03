@@ -200,7 +200,7 @@ ChatScreen(
 - ✅ **ChatScreen（二级页）**: 使用完整 Chat UI，包含持久化
 - ✅ **Camera**: 保留 AiChatScreen 浮动面板（作为页面内辅助）
 - ✅ **Gallery**: 保留 AiChatScreen 浮动面板（作为页面内辅助）
-- ✅ **Editor**: 保留 AiChatScreen 浮动面板（作为页面内辅助）
+- **Editor**: 已独立为 `PhotoEditorScreen` 二级页（`photo_editor/{sourceUri}` 路由），不使用 AiChatScreen 浮动面板
 
 ## 8. 语音输入集成
 

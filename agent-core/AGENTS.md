@@ -8,7 +8,7 @@
 
 **模块定位**：Android Java Library，提供 LangChain4j 风格的 ChatModel、@Tool、AiServices、ChatMemory 等 API  
 **主要维护者**：项目开发者  
-**阅读对象**：RD、AI Agent  
+**阅读对象**：项目开发者、AI Agent  
 **版本**：1.0  
 **最后更新**：2026-07-15  
 **状态**：生效中  
@@ -96,5 +96,5 @@ String response = chatModel.chat("Hello");
 
 ---
 
-> **维护者**：RD Agent
+> **维护者**：项目开发者
 > **最后更新**：2026-07-15

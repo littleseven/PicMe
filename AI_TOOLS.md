@@ -130,11 +130,11 @@ docs/superpowers/
 | `i18n-validator` | 国际化资源检查与三语同步验证 |
 | `image-quality-checker` | 截屏图片质量分析 |
 | `intent-router` | 自然语言需求解析与上下文加载 |
+| `layout-inspector-expert` | Android 布局检查与 UI 结构分析专家 |
 | `mediapipe-landmark-mapping` | MediaPipe 关键点映射规范 |
 | `mnn-integration` | MNN 推理引擎集成规范 |
 | `mnn-landmark-diagnosis` | MNN 关键点诊断与调试 |
 | `mnn-llm-android` | MNN-LLM 端侧大模型部署指南 |
-| `ncnn-integration` | NCNN 推理引擎集成规范 |
 | `onnx-model-integration` | ONNX 模型接入 Checklist |
 | `perf-optimizer` | 性能分析与优化策略 |
 | `rd-reflection` | RD 复盘模板 |
@@ -149,11 +149,11 @@ docs/superpowers/
 | 交互规范 | `docs/01-PRODUCT/FEATURES.md` | 交互与体验规则 |
 | 开发工作流 | `docs/05-DEVELOPMENT/DEVELOPMENT.md` | Spec-Code 双螺旋演进、CR 规范 |
 | 相册搜索 SSOT | `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` | 自然语言搜索完整链路 |
-| TAG 生成 | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` | 5-Pass 标签生成管道 |
+| TAG 生成 | `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` | 3-Pass 标签生成管道 |
 | 美颜引擎 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | Shader 架构、多 Pass 渲染 |
 | 人脸关键点 | `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md` | MediaPipe 468 / 火山 106 点参考与映射 |
 | 人脸检测架构 | `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 多引擎 ROI + Landmark 设计 |
-| 帧同步妆容 | `docs/03-TECHNICAL-SPECS/FRAME_SYNC_TECH_SPEC.md` | 时序对齐、甩飞问题根治 |
+| 帧同步妆容 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 时序对齐、甩飞问题根治（帧同步已并入美颜引擎 spec） |
 | 远程推理 | `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | 本地/远程协议分离、IntentCache |
 
 ---

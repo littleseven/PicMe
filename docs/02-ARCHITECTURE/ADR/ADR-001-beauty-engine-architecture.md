@@ -2,7 +2,7 @@
 
 **状态**: 已接受 (Accepted)  
 **日期**: 2026-04-17
-**最后同步**: 2026-06-04（与 `beauty-engine/src/main/java/com/picme/beauty/` 代码结构对齐）  
+**最后同步**: 2026-08-03（与 `beauty-engine/src/main/java/com/mamba/picme/beauty/` 代码结构对齐）  
 **决策**: RD  
 **PM Review**: 已完成
 
@@ -75,7 +75,7 @@ App Layer → 大美丽模块 (混合业务逻辑+GPU实现)
 
 ### 4.1 模块结构
 ```
-beauty-engine/src/main/java/com/picme/beauty/
+beauty-engine/src/main/java/com/mamba/picme/beauty/
 ├── api/                    # Domain Layer - 实现层 API（依赖 :beauty-api 共享类型）
 │   ├── BeautyPreviewProvider.kt   # 预览 Provider 接口
 │   ├── BeautyPreviewEngine.kt     # 组合接口（Provider + Capability）
@@ -85,10 +85,17 @@ beauty-engine/src/main/java/com/picme/beauty/
 │   ├── BeautyPerfStats.kt         # 性能统计（来自 :beauty-api）
 │   ├── FilterTypeExt.kt           # FilterType 扩展（来自 :beauty-api）
 │   ├── StyleFilterExt.kt          # StyleFilter 扩展（来自 :beauty-api）
-│   ├── FrameId.kt                 # 帧同步标识（来自 :beauty-api）
-│   ├── FrameSyncConfig.kt         # 帧同步配置（来自 :beauty-api）
-│   └── FrameSyncResult.kt         # 帧同步结果（来自 :beauty-api）
+│   ├── BeautyParamsConverter.kt   # 参数转换
+│   ├── Logger.kt                  # 日志接口
+│   └── facedetect/
+│       └── FaceDetectorFactory.kt # 人脸检测器工厂
 │   > **Note**: `BeautyParams`, `FilterType`, `StyleFilter`, `FaceData`, `FrameId`, `FrameSyncConfig`, `FrameSyncResult`, `BeautyPerfStats` 等类型定义在 `:beauty-api` 模块，`beauty-engine:api/` 仅保留实现相关接口。
+├── internal/               # 内部实现（帧同步 / 人脸检测 / 模型管理）
+│   ├── framesync/          # 帧同步（FrameSyncManager/FrameSyncBridge/MotionTracker）
+│   ├── facedetect/         # 人脸检测适配（FaceDetectorManager、MediaPipe*/Mnn* 检测器、mnn/）
+│   └── model/              # 模型管理（ModelManager）
+├── recorder/               # 视频录制（BeautyVideoRecorder）
+├── log/                    # 日志实现（BeautyLog/BeautyLogProxy）
 └── render/                 # Data Layer - 自研引擎 GL 渲染实现
     ├── GlBeautyPreviewProvider.kt   # Provider 接口实现
     ├── CameraPreviewRenderer.kt     # 渲染管线核心

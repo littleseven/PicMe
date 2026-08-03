@@ -2,6 +2,7 @@
 
 **状态**: 已实施（文案与防回归守卫落地；治理进行中）
 **日期**: 2026-07-28
+**更新日期**: 2026-08-03（核实 `PrivacyGuard` 现状，更新状态表）
 **决策**: 用户（基于 chat/LLM 链路架构 review）
 **依赖**: ADR-005（本地/远程推理协议分离）；`docs/reviews/2026-07-27-chat-llm-architecture-review.md` §0
 
@@ -41,7 +42,7 @@
 |---|---|
 | 红线文案同步 | ✅ 2026-07-28 |
 | 防回归守卫 | ✅ 2026-07-28 |
-| `PrivacyGuard` 重定位 | ⏳ 待（随决策3 隔离） |
+| `PrivacyGuard` 重定位 | ✅ 部分完成（2026-08-03 核实）：`assertLocalOnly` 已随 2026-08-02 本地链路删除一并清理；类已重定位为输入隐私分级（`classify`），位于 `runtime-core/.../runtime/policy/PrivacyGuard.kt`，媒体上传防线由 `RemoteInferenceNoMediaUploadGuardTest` 承担；⚠️ 遗留 `isRemoteAllowed()` 已无调用方、尚未删除 |
 
 ## 6. 相关
 

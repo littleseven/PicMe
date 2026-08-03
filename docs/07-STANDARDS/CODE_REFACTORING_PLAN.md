@@ -1,5 +1,7 @@
 # PoLang 代码拆分与架构重构计划
 
+> ⚠️ **历史方案（2026-08-03 标注）**：本文将 Agent Runtime 归于 `:agent-core`（`com.picme`）的表述已被取代——Agent Runtime 实际位于 `:runtime-core`（`com.mamba.picme`），`:agent-core` 为纯 Java langchain4j 适配层。本文仅作历史参考。
+
 > 本文档基于 2026-06-07 的代码扫描结果，识别项目中超过 1000 行的大文件，分析架构问题，并给出拆分建议。
 > 重点关注 Agent 模块的独立库提取可行性。
 
@@ -317,15 +319,6 @@ agent-core/src/main/java/com/picme/agent/core/        # Agent Runtime 核心（�
 - 业务 Capability（Camera/Gallery/Settings）已下放到 `features` 层
 - 所有模块编译通过
 
-### Phase 2：大文件拆分（待执行）
-
-| 任务 | 文件 | 预计工作量 | 风险 |
-|------|------|------------|------|
-| 拆分 CapabilityRegistry | `CapabilityRegistry.kt` | 2d | 中：队列逻辑需仔细测试 |
-| 拆分 AgentOrchestrator | `AgentOrchestrator.kt` | 2d | 中：单例生命周期需保持 |
-| Capability 位置调整 | `capability/*.kt` | 1d | 低：纯移动 |
-| 创建 `:agent-core` 模块 | 新建模块 | 1d | 低：Gradle 配置 |
-
 ### Phase 2：大文件拆分
 
 | 任务 | 文件 | 预计工作量 | 风险 |
@@ -356,6 +349,6 @@ agent-core/src/main/java/com/picme/agent/core/        # Agent Runtime 核心（�
 
 ---
 
-> **维护者**：CO Agent
+> **维护者**：项目开发者
 > **最后更新**：2026-06-07
 > **状态**：Phase 1 已完成，Phase 2 待启动

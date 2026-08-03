@@ -49,5 +49,5 @@
 ./gradlew :mnn-core:assembleDebug
 ```
 
-> **维护者**：RD Agent
+> **维护者**：项目开发者
 > **最后更新**：2026-07-06

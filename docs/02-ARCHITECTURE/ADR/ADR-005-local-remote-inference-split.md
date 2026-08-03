@@ -2,7 +2,7 @@
 
 **状态**: 已实施 (Implemented) —— 本地链路部分已于 2026-08-02 被超越（见下方状态更新）  
 **日期**: 2026-06-15  
-**更新日期**: 2026-06-18；2026-08-02（状态更新）  
+**更新日期**: 2026-06-18；2026-08-02（状态更新）；2026-08-03（重复引用清理）  
 **决策**: RD  
 **依赖**: ADR-003（坐标系统管理 — 图片编辑复用美颜管线）
 
@@ -411,8 +411,7 @@ class AgentOrchestrator {
 ## 7. 相关文档
 
 - `docs/01-PRODUCT/FEATURES.md` — 交互规范
-- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构
-- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — 远程推理架构详细设计
+- `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构（含远程推理架构详细设计，原 `REMOTE_INFERENCE_ARCHITECTURE.md` 已并入）
 - `agent-core/AGENTS.md` — Agent Core 模块规范
 - `ADR-001` — 美颜引擎分层架构（图片编辑复用基础）
 - `ADR-003` — 坐标系统管理（图片编辑关键点定位基础）

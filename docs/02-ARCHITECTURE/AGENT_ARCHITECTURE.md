@@ -2,8 +2,8 @@
 
 > **版本**：4.1（端侧文本 LLM 移除对齐版）  
 > **状态**：已实施 / 迭代中  
-> **最后更新**：2026-08-02  
-> **主要维护者**：[RD] 全栈工程师  
+> **最后更新**：2026-08-03  
+> **主要维护者**：项目开发者、AI Agent  
 > **历史合并说明**：本文档由 `AGENT_ARCHITECTURE.md` 与 `REMOTE_INFERENCE_ARCHITECTURE.md` 合并而成。远程推理相关的 OpenAI 协议、langchain4j 标准化、DeepSeek 适配、四层模型、性能成本与验收标准已并入“推理模式选型”与“远程推理”章节，原 `REMOTE_INFERENCE_ARCHITECTURE.md` 已删除。
 
 > **边界声明（Boundary Statement）**
@@ -438,6 +438,26 @@ git commit + push claude-chat/<sid>
 | 媒体输入 | 可发送图片（ADR-008） | 禁止发送图片 |
 | 交付物 | 文本/图片/命令结果 | 代码改动 + 分支/PR |
 
+#### 2.5.4 用户问题上报
+
+Chat 顶部新增「上报问题」入口，与 AI 工程师链路独立：
+
+```
+用户点击「上报问题」(ChatScreen 顶部)
+        │
+        ▼
+POST /v1/report-issue (IssueReportClient，X-App-Token 鉴权)
+        │
+        ▼
+PoLang Server 脱敏处理（IssueReportRoute）
+        │
+        ▼
+自动在 littleseven/langchain4android 创建 GitHub issue
+```
+
+- 上报内容为文本描述与脱敏后的运行信息，不触碰用户图片/视频（[PRIVACY] 红线）。
+- 创建的问题在管理后台「问题诊断」页（`/admin/diagnosis`）可见，供 AI 工程师链路后续诊断与修复。
+
 ---
 
 ## 3. 核心组件设计
@@ -726,6 +746,7 @@ class NavigationCapability(
 | Qwen3-VL-2B（MNN-VLM） | TAG Pass3 图像打标（`LocalLlmEngine.imageInference`） | `:runtime-core` + `:mnn-core` |
 | Florence-2 | 图像打标 | `:app` 打标流水线 |
 | MNN 人脸检测 | 人脸检测/关键点 | `:beauty-engine` + `:mnn-core` |
+| NIMA / eDifFIQA（ONNX，NNAPI 加速） | 人物封面美学/人脸质量打分（`NimaScorer`/`EdiffiqaScorer`/`CoverSelector`） | `:app` `domain/aesthetic/` |
 | OPUS-MT（SentencePiece） | 翻译（与 LLM 无关） | `:sentencepiece` |
 
 **原 Qwen3.5-2B 端侧文本推理选型（历史记录，2026-06-12 验证，已随模型删除而废止）**：

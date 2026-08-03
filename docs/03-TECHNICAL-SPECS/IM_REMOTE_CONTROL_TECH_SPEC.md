@@ -2,7 +2,8 @@
 
 > **版本**: 1.1  
 > **状态**: 重新激活（多通道）  
-> **最后更新**: 2026-07-27（从「已冻结」重新激活，新增 Telegram + 单通道选择 + release 凭据隔离）  
+> **最后更新**: 2026-08-03（重复 §13 编号修正为 §14；§14.5 失效文件清单标注）  
+> **上一更新**: 2026-07-27（从「已冻结」重新激活，新增 Telegram + 单通道选择 + release 凭据隔离）  
 > **维护者**: RD Agent  
 
 > ℹ️ 本线于 2026-07-16 冻结、2026-07-27 重新激活以承载多通道能力。端侧直连（飞书 WebSocket / Telegram 长轮询）与服务端中转方案并行存在，互不替代。
@@ -13,6 +14,7 @@
 > - 2026-07-03：从 P0 降级为 P2 实验线
 > - 2026-07-16：正式冻结，资源投入以 `PRODUCT.md` 为准，服务端方案优先
 > - 2026-07-27：重新激活；抽象 RemoteChannel 接口 + RemoteChannelManager 单通道激活，新增 Telegram（Pengrad 长轮询 + chatId 白名单 fail-closed），release 不再打包飞书凭据，通道配置迁出独立设置页
+> - 2026-08-03：重复的第二个「## 13.」（ReAct Agent 工具调用实现指引）改为「## 14.」；§14.5 引用的 InApp*/ToolRegistry 等文件已不存在，整节标注失效
 
 ---
 
@@ -570,13 +572,15 @@ class RemoteCommandDispatcher(
 
 ---
 
-## 13. ReAct Agent 工具调用实现指引
+## 14. ReAct Agent 工具调用实现指引
 
 > **来源**：2026-06-18 飞书远程控制"打开相机"导航失败问题复盘
 >
 > 本章节总结 ToolSpec 实现过程中的关键陷阱与最佳实践，供后续批量补充工具时参考。
+>
+> ⚠️ **失效提示（2026-08-03）**：本节为历史复盘记录。其中引用的 `InAppLlmClient` / `InAppAgentConfig` / `InAppAgentService` / `LangChain4jToolBridge` / `ToolRegistry` / `BaseUiTool` / `NavigateToTool` 等类已在 Agent 架构重构中移除；当前工具面为 `CameraToolService` / `ChatToolService`（@Tool 方法）→ `ToolCallCommandParser` → `CapabilityRegistry.dispatch`。本节的方法论（Prompt 设计、空字符串处理、content 回退解析）仍有参考价值，文件路径不再有效。
 
-### 13.1 问题复盘
+### 14.1 问题复盘
 
 **现象**：用户通过飞书发送"打开相机"，LLM 输出了正确的 `navigate_to` 指令 JSON，但手机端未执行导航，而是把 JSON 文本直接回复给了飞书。
 
@@ -586,7 +590,7 @@ content: {"tool_calls":[{"id":"call_1",...}]}  ← 工具调用 JSON 出现在 c
 task complete (no tool calls)                    ← 走了无工具调用路径
 ```
 
-### 13.2 根因分析（三层陷阱）
+### 14.2 根因分析（三层陷阱）
 
 | 层级 | 问题 | 影响 | 修复文件 |
 |------|------|------|----------|
@@ -594,9 +598,9 @@ task complete (no tool calls)                    ← 走了无工具调用路径
 | **空字符串陷阱** | API 返回的 `content` 为空字符串 `""`（而非 `null`），`isNullOrEmpty()` 判断失效 | 空字符串被序列化到消息历史，污染后续推理；API 看到 content 存在可能忽略 tool_calls | `InAppLlmClient.kt`, `InAppAgentService.kt` |
 | **解析缺失** | `parseResponse` 只检查原生 `tool_calls` 字段，没有处理嵌入 content 的情况 | 即使 content 中有正确 JSON，也走"无工具调用"路径直接返回文本 | `InAppLlmClient.kt` |
 
-### 13.3 修复方案
+### 14.3 修复方案
 
-#### 13.3.1 Prompt 设计原则（DeepSeek 适配）
+#### 14.3.1 Prompt 设计原则（DeepSeek 适配）
 
 **核心认知**：tool_calls 是 `message` 对象的独立字段，与 `content` 互斥。标准响应格式为：
 ```
@@ -629,7 +633,7 @@ choices[0].message: {
 - 参考文档：https://api-docs.deepseek.com/zh-cn/guides/tool_calls
 - 禁用 thinking 可避免模型在 reasoning 中分析工具调用但最终不输出 tool_calls 字段的问题
 
-#### 13.3.2 空字符串处理规范
+#### 14.3.2 空字符串处理规范
 
 所有涉及 `content` 字段解析/序列化的位置必须使用 `isNotBlank()`：
 
@@ -643,7 +647,7 @@ choices[0].message: {
 - `isNullOrEmpty()`：`null` → true, `""` → true, `" "` → false ❌
 - `isNullOrBlank()`：`null` → true, `""` → true, `" "` → true ✅
 
-#### 13.3.3 Content 回退解析机制（DeepSeek 兼容）
+#### 14.3.3 Content 回退解析机制（DeepSeek 兼容）
 
 当 API 未返回原生 `tool_calls` 但 `content` 中包含 `{"tool_calls":[...]}` 时，使用正则表达式提取并解析。
 
@@ -689,7 +693,7 @@ if (toolCalls.isEmpty() && text != null) {
 }
 ```
 
-### 13.4 新增 ToolSpec 的 checklist（含 DeepSeek strict 模式要求）
+### 14.4 新增 ToolSpec 的 checklist（含 DeepSeek strict 模式要求）
 
 每实现一个新工具时，按以下清单检查：
 
@@ -704,17 +708,21 @@ if (toolCalls.isEmpty() && text != null) {
 - [ ] **DeepSeek strict 模式兼容**：`parameters` 中设置 `additionalProperties: false`（已由 `:agent-core OpenAiChatModel` 内部自动处理）
 - [ ] **DeepSeek thinking 禁用**：使用 DeepSeek V4 时 API 请求自动附加 `thinking: {"type": "disabled"}`（已由 `:agent-core OpenAiChatModel` 内部自动处理）
 
-### 13.5 相关文件
+### 14.5 相关文件
 
-| 文件 | 职责 |
+> ⚠️ **本节文件清单已失效（2026-08-03）**：下表除 `NavigationCapability.kt` 外的文件均已在 Agent 架构重构中移除或重命名（Grep 无匹配），仅保留作为历史复盘上下文。当前等价物见表后说明。
+
+| 文件（历史，已不存在） | 原职责 |
 |------|------|
-| `InAppAgentConfig.kt` | System Prompt 定义，工具描述 |
-| `InAppLlmClient.kt` | API 请求/响应解析，content 回退解析 |
-| `InAppAgentService.kt` | ReAct 主循环，消息历史管理 |
-| `LangChain4jToolBridge.kt` | ToolSpec ↔ LangChain4j 转换，工具执行分发 |
-| `ToolRegistry.kt` | 工具注册中心 |
-| `BaseUiTool.kt` | 工具基类，参数辅助方法 |
-| `NavigateToTool.kt` | 导航工具示例（参考实现） |
-| `NavigationCapability.kt` | 页面路由 Capability |
+| ~~`InAppAgentConfig.kt`~~ | System Prompt 定义，工具描述 |
+| ~~`InAppLlmClient.kt`~~ | API 请求/响应解析，content 回退解析 |
+| ~~`InAppAgentService.kt`~~ | ReAct 主循环，消息历史管理 |
+| ~~`LangChain4jToolBridge.kt`~~ | ToolSpec ↔ LangChain4j 转换，工具执行分发 |
+| ~~`ToolRegistry.kt`~~ | 工具注册中心 |
+| ~~`BaseUiTool.kt`~~ | 工具基类，参数辅助方法 |
+| ~~`NavigateToTool.kt`~~ | 导航工具示例（参考实现） |
+| `NavigationCapability.kt` | 页面路由 Capability（仍存在） |
+
+**当前等价实现**：工具定义在 `CameraToolService` / `ChatToolService` 的 @Tool 方法；解析经 `ToolCallCommandParser`；分发经 `CapabilityRegistry.dispatch`；底层 chat 模型为 `:agent-core` 的 `OpenAiChatModel`（DeepSeek 适配已内置：禁用 thinking、`additionalProperties: false`、`tool_choice: REQUIRED` 映射）。
 
 ---

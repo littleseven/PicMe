@@ -9,7 +9,7 @@ PoLang is a technology research project centered on an AI-Agent-driven smart gal
 **Current focus (2026-07, app v1.0.26)** is the smart gallery as the default home with AI chat as the core assistant capability (相册/图片编辑为主入口, camera as auxiliary). Shipped: natural-language search, conversational image editing, matting/ID-photo, Florence-2 auto-tagging, JS sandbox; in progress: fact memory + person-relationship graph. See `PRODUCT.md` for the latest product roadmap.
 
 Key technological decisions:
-- **On-device Agent**: `runtime-core/` (package `com.mamba.picme.agent.core`) implements an Agent Runtime (AgentOrchestrator, LocalLlmEngine, CapabilityRegistry, etc.) that maps natural language to device capabilities via Qwen3.5-2B running on MNN-LLM.
+- **On-device Agent**: `runtime-core/` (package `com.mamba.picme.agent.core`) implements an Agent Runtime (AgentOrchestrator, CapabilityRegistry, etc.) that maps natural language to device capabilities. The on-device text LLM (Qwen3.5-2B) was removed in 2026-08 — camera/chat inference now goes through remote OpenAI-compatible tool_calls; `LocalLlmEngine` retains only on-device VLM tagging (`imageInference`, Qwen3-VL-2B).
 - **Remote inference**: Standard OpenAI Chat Completions API protocol via langchain4j, with DeepSeek adapter support. Local/remote pipelines fully separated per ADR-005.
 - **Privacy-first**: 用户图片/视频**文件**不得上传到远程大模型/推理服务器（人脸检测/OCR/分类/打标等媒体处理 100% 端侧）；文本、元数据、相册聚合摘要可走远程推理（chat 默认远程）。飞书/Telegram 等用户自配置 IM 通道回传媒体给用户本人不在此列（用户自有通道，非模型推理上传）。详见 ADR-008。
 - **Self-developed Engine**: Full OpenGL ES + EGL pipeline (no third-party beauty SDKs); GPUPixel has been completely removed.
@@ -93,7 +93,7 @@ beauty-engine:api/          ← Implementation-facing API (BeautyParams, BeautyP
 beauty-engine:render/       ← Internal OpenGL ES + EGL pipeline (BeautyRenderer,
                                CameraPreviewRenderer, PhotoProcessorImpl, EGLCore)
     ↑
-beauty-engine:internal/     ← Face detection adapters (MNN/NCNN/MediaPipe), frame-sync system
+beauty-engine:internal/     ← Face detection adapters (MediaPipe/MNN), frame-sync system
 ```
 
 **Dependency rules**:
@@ -108,11 +108,10 @@ beauty-engine:internal/     ← Face detection adapters (MNN/NCNN/MediaPipe), fr
 Multi-engine detection unified to 106 landmarks via adapter pattern:
 - **MediaPipe Face Mesh 468→106** (default): TFLite GPU delegate inference with precise 468→106 semantic mapping.
 - **MNN 2D106** (alternative): Local MNN inference for landmark detection.
-- **NCNN 2D106** (alternative): Local NCNN inference for ROI + landmark detection.
 - Auto mode: prefers MediaPipe; cascades through alternatives on miss or init failure.
 
 All detection implementations live in `beauty-engine/internal/facedetect/` with adapter pattern (`FaceLandmarkAdapter`).
-App layer consumes only `beauty-api/facedetect/` contracts. The old InsightFace ONNX path has been fully replaced by MNN/NCNN detectors.
+App layer consumes only `beauty-api/facedetect/` contracts. The old InsightFace ONNX and NCNN paths have been fully removed.
 
 ### Frame-Sync Makeup System
 
@@ -128,25 +127,21 @@ Solves makeup "flying off" caused by face detection (~10 fps) and rendering (30�
 
 ```
 User Input ("找出去年夏天的照片" / "磨皮50")
-    → AiAgentUseCase (Facade in domain/usecase/)
-    → AgentOrchestrator.dispatch() (in runtime-core/)
-    ├── LOCAL: LocalInferencePipeline
-    │   ├── LocalLlmEngine (Qwen3.5-2B via MNN-LLM, custom JSON protocol)
-    │   └── L1 Cache Hit? → direct return
-    └── REMOTE: RemoteInferencePipeline
-        ├── RemoteOrchestrator (OpenAI Chat Completions API)
-        └── tool_calls · streaming · multi-turn
-    → CapabilityRegistry (route to Capability)
-    → ImageEditCapability / AutoTagCapability / NavigationCapability / SystemCapability / RemoteControlCapability + Chat*Capability (execute)
+    → AiAgentUseCase (Facade in app domain/usecase/)
+    → AgentOrchestrator (in runtime-core/)
+    ├── Camera: processCameraInput → RemoteReActAgent + CameraToolService (remote tool_calls)
+    └── Chat: streamChat / ChatToolService (remote tool_calls, OpenAI-compatible)
+    → ToolCallCommandParser → CapabilityRegistry.dispatch
+    → ImageEditCapability / NavigationCapability / SystemCapability + Chat*Capability (execute)
 ```
 
 - **Module**: `:runtime-core` — independent pure Kotlin module containing all Agent Runtime components (package `com.mamba.picme.agent.core`).
-- **Local model**: Qwen3.5-2B-MNN with custom JSON array protocol (method + args).
+- **Local model**: on-device text LLM removed (2026-08); MNN-LLM runtime only hosts VLM tagging (Qwen3-VL-2B). Local inference pipeline (`LocalInferencePipeline`) deleted with it.
 - **Remote protocol**: Standard OpenAI Chat Completions API (tool_calls, streaming, multi-turn dialogue). langchain4j SDK as consumer layer.
-- **Capabilities**: Registered `Capability` classes — `ImageEditCapability` (conversational `edit_image`), `AutoTagCapability` (Florence-2 tagging), `NavigationCapability`, `SystemCapability` (app/settings launch + cross-app a11y), `RemoteControlCapability`, plus chat-side `ChatSearchCapability` / `ChatGallerySummaryCapability` / `ChatStartTagScanCapability` / `ChatRunScriptCapability` / `ChatMediaWriteCapability`. Command→Capability routing SSOT: `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`.
-- **Privacy**: `PrivacyGuard` grades operations; RESTRICTED/SENSITIVE → local only.
+- **Capabilities**: Registered `Capability` classes — `ImageEditCapability` (conversational `edit_image`), `NavigationCapability`, `SystemCapability` (app/settings launch + cross-app a11y), plus chat-side `ChatSearchCapability` / `ChatGallerySummaryCapability` / `ChatStartTagScanCapability` / `ChatRunScriptCapability` / `ChatMediaWriteCapability`. (`AutoTagCapability` / `RemoteControlCapability` exist in code but are NOT registered — see registry doc.) Command→Capability routing SSOT: `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`.
+- **Privacy**: `PrivacyGuard` classifies user input by privacy level (PUBLIC/SENSITIVE/RESTRICTED) for routing decisions; text inference is fully remote since the on-device text LLM removal.
 - **Memory**: `MemoryManager` maintains conversation context for multi-turn dialogue.
-- **Voice**: Voice interaction support via `voice/` sub-package (ASR, VAD, AudioRecorder, SherpaMnnAsrEngine).
+- **Voice**: Voice interaction support via `voice/` sub-package (ASR, VAD, AudioRecorder, SherpaOnnxAsrEngine).
 - **Remote**: Remote LLM orchestration via `remote/` sub-package (OpenAI-compatible API, IntentCache).
 - **ADR-005 (2026-06-15)**: Local/Remote protocols formally separated. Unified `InferenceRouter` removed. ~1500 lines of redundant Tool Calling wrappers removed.
 
@@ -195,9 +190,8 @@ docs/01-PRODUCT/FEATURES.md    → Interaction and UX rules (How)
 ```
 
 Key technical specs:
-- `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` — Rendering pipeline, fallback, cooldown recovery, observability
-- `docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md` — Coordinate conversion, viewport calculation
-- `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` — MediaPipe + MNN/NCNN multi-engine architecture
+- `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` — Rendering pipeline, fallback, cooldown recovery, observability (camera preview & frame-sync content merged here)
+- `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` — MediaPipe + MNN dual-engine architecture
 - `docs/02-ARCHITECTURE/ADR/ADR-001-beauty-engine-architecture.md` — Layered module architecture decision
 - `docs/02-ARCHITECTURE/ADR/ADR-002-opengl-offscreen-unified-pipeline.md` — GPU off-screen rendering for photo processing
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent runtime architecture design

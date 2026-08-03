@@ -672,7 +672,7 @@ scripts/check-doc-coordinate-annotation.sh # ✅ 通过
 
 #### Q4: 如何处理第三方 SDK 的坐标系？
 
-**A**: 在适配层统一转换。当前代码中，MediaPipe / MNN / NCNN 的坐标转换逻辑内嵌在检测适配层（如 `FaceDetectionManager` 及相关检测器实现）中，未提取为独立的通用适配器类。以下示例展示了理想的适配层设计（InsightFace 路径已于 2026-05 移除）：
+**A**: 在适配层统一转换。当前代码中，MediaPipe / MNN 的坐标转换逻辑内嵌在检测适配层（如 `FaceDetectionManager` 及相关检测器实现）中，未提取为独立的通用适配器类。以下示例展示了理想的适配层设计（InsightFace 路径已于 2026-05 移除；NCNN 已于 2026-08 整删）：
 
 #### Q5: Code Review 时如何快速发现混用问题？
 
@@ -687,6 +687,7 @@ scripts/check-doc-coordinate-annotation.sh # ✅ 通过
 |------|------|---------|------|
 | 2026-05-03 | v1.0 | 初始版本，确立"允许两种坐标系但严禁混用"原则 | Lingma |
 | 2026-06-04 | v1.1 | 修正：明确 `EyePosition` 枚举和坐标转换函数为规范示例，未在代码中实际落地；补充实际代码中的坐标处理现状说明 | RD |
+| 2026-08-03 | v1.2 | NCNN 已整删，Q4 第三方 SDK 坐标系说明改为 MediaPipe / MNN | AI Agent |
 
 ### 8.3 参考资料
 
