@@ -97,11 +97,11 @@ grep -i "timeout\|slow\|jank\|dropped" scripts/auto_test_output/*/logcat_picme.t
 
 ## 性能基线对比
 
-使用 `.qoder/skills/image-quality-checker/scripts/perf-baseline.sh` 自动提取：
+使用 `skills/image-quality-checker/scripts/perf-baseline.sh` 自动提取：
 
 ```bash
 # 运行性能基线测试
-.qoder/skills/image-quality-checker/scripts/perf-baseline.sh
+skills/image-quality-checker/scripts/perf-baseline.sh
 
 # 输出示例
 FPS: 58.2 (目标: ≥ 55) ✅

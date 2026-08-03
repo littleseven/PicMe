@@ -56,7 +56,7 @@ tags: [tag1, tag2, tag3]
 ## 相关文件
 
 - [相关文档](docs/XXX.md) - 文档说明
-- [相关 Skill](.qoder/skills/xxx/SKILL.md) - Skill 说明
+- [相关 Skill](skills/xxx/SKILL.md) - Skill 说明
 
 ## 版本历史
 
@@ -77,7 +77,7 @@ tags: [tag1, tag2, tag3]
 - 超过 30 行的代码应移至 `reference.md`，SKILL.md 中只保留说明和链接。
 
 ### 引用规范
-- 引用其他 Skill 使用相对路径：`.qoder/skills/xxx/SKILL.md`
+- 引用其他 Skill 使用相对路径：`skills/xxx/SKILL.md`
 - 引用项目文档使用相对路径：`docs/XXX.md`
 
 ### 版本管理

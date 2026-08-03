@@ -393,7 +393,7 @@ grep -r "leftEye\|rightEye" app/src/ --include="*.kt" | grep -v "imageLeft\|imag
 
 **文件列表**：
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（含相机预览比例与坐标转换、人脸关键点使用）
-- `.qoder/skills/av-gl-expert/SKILL.md`
+- `skills/av-gl-expert/SKILL.md`
 
 **修改示例**：
 

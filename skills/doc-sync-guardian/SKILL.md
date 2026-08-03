@@ -184,7 +184,7 @@ find app/src -name "AGENTS.md" -exec grep -l "Product Alignment" {} \;
 | Phase 1 | 识别变更范围 | `git diff --name-only HEAD~1 HEAD` |
 | Phase 2 | 确定需更新文档 | 按变更类型映射到文档层级（见下表） |
 | Phase 3 | 生成更新草案 | 使用 [reference.md](reference.md) §更新草案模板 |
-| Phase 4 | 执行更新并验证 | `.qoder/skills/image-quality-checker/scripts/check-doc-consistency.sh` |
+| Phase 4 | 执行更新并验证 | `skills/image-quality-checker/scripts/check-doc-consistency.sh` |
 
 **变更类型 → 文档映射**：
 
@@ -346,7 +346,7 @@ wc -l AGENTS.md  # 如果超过 500 行，可能需要瘦身
 #### Step 4: 验证引用完整性
 ```bash
 # 检查所有 markdown 链接是否有效
-.qoder/skills/image-quality-checker/scripts/check-markdown-links.sh
+skills/image-quality-checker/scripts/check-markdown-links.sh
 
 # 确认没有悬空引用
 grep -r "已废弃" docs/*.md

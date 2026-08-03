@@ -8,7 +8,7 @@
 ## 🔴 高频陷阱（最近 30 天内已确认）
 
 ### [通用] 前置调研缺失
-- [ ] **编码前检索相关 skill**：`ls .qoder/skills/` 查看是否有相关 skill（adb-bot / av-gl-expert / coordinate-system-standard 等）
+- [ ] **编码前检索相关 skill**：`ls skills/` 查看是否有相关 skill（adb-bot / av-gl-expert / coordinate-system-standard 等）
 - [ ] **阅读模块 AGENTS.md**：确认架构约束和常见陷阱
 - [ ] **画出核心数据流/命令流图**：文字描述亦可，确保理解 Broadcast → Receiver → Dispatcher → Screen 的完整链路
 

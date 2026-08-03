@@ -36,10 +36,10 @@ doc-sync-guardian/
 # 在项目根目录执行
 
 # 运行综合审计
-./.qoder/skills/doc-sync-guardian/scripts/generate-audit-report.py
+./skills/doc-sync-guardian/scripts/generate-audit-report.py
 
 # 或单独运行文档一致性检查
-./.qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh
+./skills/doc-sync-guardian/scripts/check-doc-consistency.sh
 ```
 
 ### 2. 功能交付后同步文档
@@ -49,7 +49,7 @@ doc-sync-guardian/
 git log -1 --format=%H
 
 # 生成文档更新草案
-python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
+python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
   --commit-hash abc123def456 \
   --output /tmp/doc_update_draft.md
 
@@ -60,7 +60,7 @@ code /tmp/doc_update_draft.md
 ### 3. 检查 I18N 同步
 
 ```bash
-python3 .qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py
+python3 skills/doc-sync-guardian/scripts/check-i18n-sync.py
 ```
 
 ---
@@ -74,7 +74,7 @@ python3 .qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py
 **解决方案**:
 ```bash
 # 1. 分析最近的代码变更
-python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
+python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
   --commit-hash HEAD
 
 # 2. 根据生成的草案更新文档
@@ -83,7 +83,7 @@ python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
 # - Camera AGENTS.md: 完善技术实现
 
 # 3. 验证一致性
-./.qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh
+./skills/doc-sync-guardian/scripts/check-doc-consistency.sh
 ```
 
 ### 场景 2: Code Review 阶段
@@ -98,8 +98,8 @@ python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
 - [ ] 验证技术决策已记录
 
 # 执行检查
-./.qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh
-python3 .qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py
+./skills/doc-sync-guardian/scripts/check-doc-consistency.sh
+python3 skills/doc-sync-guardian/scripts/check-i18n-sync.py
 ```
 
 ### 场景 3: 定期维护（每周）
@@ -109,7 +109,7 @@ python3 .qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py
 **解决方案**:
 ```bash
 # 生成综合审计报告
-python3 .qoder/skills/doc-sync-guardian/scripts/generate-audit-report.py
+python3 skills/doc-sync-guardian/scripts/generate-audit-report.py
 
 # 查看报告并采取行动
 ls -lt docs/comprehensive_audit_*.md | head -1 | xargs code
@@ -165,7 +165,7 @@ ls -lt docs/comprehensive_audit_*.md | head -1 | xargs code
 
 **示例**:
 ```bash
-python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
+python3 skills/doc-sync-guardian/scripts/sync-doc-template.py \
   --commit-hash abc123 \
   --output draft.md
 ```
@@ -250,11 +250,11 @@ python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
 ```yaml
 - name: Check Documentation Consistency
   run: |
-    ./.qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh
+    ./skills/doc-sync-guardian/scripts/check-doc-consistency.sh
     
 - name: Check I18N Sync
   run: |
-    python3 .qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py
+    python3 skills/doc-sync-guardian/scripts/check-i18n-sync.py
 ```
 
 ### 2. 添加到 Git Hook
@@ -265,7 +265,7 @@ python3 .qoder/skills/doc-sync-guardian/scripts/sync-doc-template.py \
 #!/bin/bash
 # 提交前自动检查文档一致性
 echo "🔍 检查文档一致性..."
-./.qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh || {
+./skills/doc-sync-guardian/scripts/check-doc-consistency.sh || {
   echo "⚠️  文档一致性检查失败，请修复后再提交"
   exit 1
 }
@@ -276,7 +276,7 @@ echo "🔍 检查文档一致性..."
 ```bash
 # 添加到 crontab（每周一上午 9 点执行）
 0 9 * * 1 # 在项目根目录执行 && \
-  python3 .qoder/skills/doc-sync-guardian/scripts/generate-audit-report.py
+  python3 skills/doc-sync-guardian/scripts/generate-audit-report.py
 ```
 
 ### 4. PR 模板集成
@@ -306,12 +306,12 @@ echo "🔍 检查文档一致性..."
    ```
 2. 检查脚本权限
    ```bash
-   chmod +x .qoder/skills/doc-sync-guardian/scripts/*.sh
-   chmod +x .qoder/skills/doc-sync-guardian/scripts/*.py
+   chmod +x skills/doc-sync-guardian/scripts/*.sh
+   chmod +x skills/doc-sync-guardian/scripts/*.py
    ```
 3. 查看详细错误信息
    ```bash
-   bash -x .qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh
+   bash -x skills/doc-sync-guardian/scripts/check-doc-consistency.sh
    ```
 
 ### Q2: 如何自定义检查规则？
@@ -329,10 +329,10 @@ echo "🔍 检查文档一致性..."
 2. 只运行特定检查
    ```bash
    # 仅检查文档一致性
-   ./.qoder/skills/doc-sync-guardian/scripts/check-doc-consistency.sh
+   ./skills/doc-sync-guardian/scripts/check-doc-consistency.sh
    
    # 仅检查 I18N
-   python3 .qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py
+   python3 skills/doc-sync-guardian/scripts/check-i18n-sync.py
    ```
 
 ### Q4: 如何处理历史遗留的文档问题？

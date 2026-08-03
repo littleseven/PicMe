@@ -151,7 +151,7 @@ def generate_report(analysis: dict) -> str:
         report += "✅ 三语资源完全同步，无需修复！\n\n"
     
     report += "---\n\n"
-    report += "**检查工具**: `.qoder/skills/doc-sync-guardian/scripts/check-i18n-sync.py`\n"
+    report += "**检查工具**: `skills/doc-sync-guardian/scripts/check-i18n-sync.py`\n"
     
     return report
 

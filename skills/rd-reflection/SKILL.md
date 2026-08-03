@@ -107,7 +107,7 @@ rd-reflection/
 
 | 措施 | 目标资产 | 状态 |
 |------|----------|------|
-| 更新 adb-bot skill 故障排除 | `.qoder/skills/adb-bot/SKILL.md` | ✅ 已提交 |
+| 更新 adb-bot skill 故障排除 | `skills/adb-bot/SKILL.md` | ✅ 已提交 |
 | 新增 Compose 闭包捕获规范 | `gallery/AGENTS.md` | ✅ 已提交 |
 
 ### 检查清单更新
@@ -164,16 +164,16 @@ rd-reflection/
 
 ```bash
 # 启动新任务（读取检查清单）
-.qoder/skills/image-quality-checker/scripts/new_task.sh "任务名称"
+skills/image-quality-checker/scripts/new_task.sh "任务名称"
 
 # 任务复盘（引导 5 个问题，自动更新清单和日志）
-.qoder/skills/image-quality-checker/scripts/reflect.sh
+skills/image-quality-checker/scripts/reflect.sh
 
 # 生成月度进化报告
-.qoder/skills/image-quality-checker/scripts/evolution_report.sh
+skills/image-quality-checker/scripts/evolution_report.sh
 
 # 将经验同步到相关 skill
-.qoder/skills/image-quality-checker/scripts/update_skill.sh adb-bot
+skills/image-quality-checker/scripts/update_skill.sh adb-bot
 ```
 
 ---

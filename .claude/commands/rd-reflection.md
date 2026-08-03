@@ -90,7 +90,7 @@ rd-reflection/
 
 | 措施 | 目标资产 | 状态 |
 |------|----------|------|
-| 更新 adb-bot skill 故障排除 | `.qoder/skills/adb-bot/SKILL.md` | ✅ 已提交 |
+| 更新 adb-bot skill 故障排除 | `skills/adb-bot/SKILL.md` | ✅ 已提交 |
 | 新增 Compose 闭包捕获规范 | `gallery/AGENTS.md` | ✅ 已提交 |
 
 ### 检查清单更新

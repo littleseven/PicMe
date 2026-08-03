@@ -37,7 +37,7 @@ tags:
 
 ```bash
 # 检查 Kotlin 源码中的硬编码中文/英文
-.qoder/skills/image-quality-checker/scripts/check-i18n-hardcode.sh
+skills/image-quality-checker/scripts/check-i18n-hardcode.sh
 
 # 手动检查（关键文件）
 grep -rn "\"[a-zA-Z\u4e00-\u9fa5]\{3,\}\"" app/src/main/java/com/mamba/picme/ --include="*.kt" | \
@@ -96,7 +96,7 @@ python3 scripts/check_i18n_sync.py
 - name: I18N Validation
   run: |
     python3 scripts/check_i18n_sync.py
-    .qoder/skills/image-quality-checker/scripts/check-i18n-hardcode.sh
+    skills/image-quality-checker/scripts/check-i18n-hardcode.sh
 ```
 
 ### 快速修复流程

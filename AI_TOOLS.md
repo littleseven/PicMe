@@ -35,13 +35,12 @@
 ## Skills / Commands 来源
 
 ```text
-.qoder/skills/           ← ★ 唯一事实来源（SSOT）：OpenCode / Kimi 通过软链共享
-.opencode/skills/        ← 符号链接 → ../.qoder/skills
-.kimi/skills/            ← 符号链接 → ../.qoder/skills
+skills/                  ← ★ 唯一事实来源（SSOT）：kimi 通过软链共享
+.kimi/skills/            ← 符号链接 → ../skills
 .claude/commands/        ← Claude Code 专用镜像（见下方"漂移治理"）
 ```
 
-> **Skills SSOT = `.qoder/skills/`**。修改 Skill 时，改这里即可，OpenCode 和 Kimi 自动生效。
+> **Skills SSOT = `skills/`**。修改 Skill 时，改这里即可，kimi 自动生效（CC 需手动同步 `.claude/commands/`）。
 
 **`.claude/commands/` 漂移治理**：Claude Code 命令格式（纯 Markdown，无 frontmatter）与 Skills（带 YAML frontmatter 的目录结构）不同，无法软链统一，已存在内容分叉。治理策略：
 - 修改 Skill 后**必须手动同步**对应的 `.claude/commands/<name>.md`
@@ -52,8 +51,8 @@
 
 ```bash
 # 1. 在唯一事实来源创建 Skill
-mkdir -p .qoder/skills/my-skill
-cat > .qoder/skills/my-skill/SKILL.md << 'EOF'
+mkdir -p skills/my-skill
+cat > skills/my-skill/SKILL.md << 'EOF'
 ---
 name: my-skill
 description: <触发场景描述>
@@ -68,7 +67,7 @@ EOF
 # 4. 运行校验
 ./scripts/check-skill-sync.sh
 
-# 5. 更新索引文档（本文件 + .qoder/skills/README.md 如存在）
+# 5. 更新索引文档（本文件 + skills/README.md 如存在）
 ```
 
 ---

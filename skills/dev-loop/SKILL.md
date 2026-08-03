@@ -101,7 +101,7 @@ scripts/regression-test.sh --beauty  # 仅美颜模块
 
 **场景3: PR 提交前的完整验证**
 ```
-1. 执行: .qoder/skills/image-quality-checker/scripts/ai-gate.sh（代码级检查）
+1. 执行: skills/image-quality-checker/scripts/ai-gate.sh（代码级检查）
 2. 执行: scripts/auto-dev-loop.sh（设备级验证）
 3. 执行: scripts/regression-test.sh（端到端回归）
 4. 全部通过 → 提交代码

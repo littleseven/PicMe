@@ -1,11 +1,11 @@
 #!/bin/bash
 #
 # check-skill-sync.sh - Skills / Commands 漂移校验
-# 用途：检查 .claude/commands/ 与 .qoder/skills/（SSOT）之间的命名与内容一致性
+# 用途：检查 .claude/commands/ 与 skills/（SSOT）之间的命名与内容一致性
 # 调用：./scripts/check-skill-sync.sh
 #
 # 说明：
-#   - .qoder/skills/ 是唯一事实来源（SSOT），OpenCode / Kimi 通过软链共享
+#   - skills/ 是唯一事实来源（SSOT），OpenCode / Kimi 通过软链共享
 #   - .claude/commands/ 是 Claude Code 专用镜像（格式不同：无 frontmatter）
 #   - 本脚本只报告漂移，不自动覆盖，避免丢失任一侧独有内容
 #   - 退出码：0=无漂移；1=发现漂移
@@ -14,7 +14,7 @@
 set -eu
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SKILLS_DIR="$PROJECT_ROOT/.qoder/skills"
+SKILLS_DIR="$PROJECT_ROOT/skills"
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 
 # 颜色
@@ -54,7 +54,7 @@ ONLY_SKILLS=$(comm -23 <(echo "$SKILL_NAMES") <(echo "$COMMAND_NAMES"))
 if [ -n "$ONLY_SKILLS" ]; then
   echo -e "${YELLOW}[DRIFT]${NC} 以下 Skill 在 SSOT 中存在，但 .claude/commands/ 缺少镜像："
   echo "$ONLY_SKILLS" | sed 's/^/    - /'
-  echo "  → 需从 .qoder/skills/<name>/SKILL.md 提取正文（去 frontmatter）创建 .claude/commands/<name>.md"
+  echo "  → 需从 skills/<name>/SKILL.md 提取正文（去 frontmatter）创建 .claude/commands/<name>.md"
   echo ""
   DRIFT_COUNT=$((DRIFT_COUNT + 1))
 else
@@ -68,7 +68,7 @@ ONLY_COMMANDS=$(comm -13 <(echo "$SKILL_NAMES") <(echo "$COMMAND_NAMES"))
 if [ -n "$ONLY_COMMANDS" ]; then
   echo -e "${YELLOW}[DRIFT]${NC} 以下 Claude command 在 SSOT 中无对应 Skill："
   echo "$ONLY_COMMANDS" | sed 's/^/    - /'
-  echo "  → 需确认是否应迁移到 .qoder/skills/ 作为 SSOT，或删除孤立镜像"
+  echo "  → 需确认是否应迁移到 skills/ 作为 SSOT，或删除孤立镜像"
   echo ""
   DRIFT_COUNT=$((DRIFT_COUNT + 1))
 else
@@ -112,6 +112,6 @@ if [ "$DRIFT_COUNT" -eq 0 ] && [ "$CONTENT_DRIFT" -eq 0 ]; then
   exit 0
 else
   echo -e " ${YELLOW}结果：发现漂移，请人工同步${NC}"
-  echo " 提示：修改 SSOT（.qoder/skills/）后，手动同步 .claude/commands/"
+  echo " 提示：修改 SSOT（skills/）后，手动同步 .claude/commands/"
   exit 1
 fi
