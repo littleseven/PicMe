@@ -4,10 +4,12 @@
 > - ✅ 已完成：模块命名文档修正；`server/` 后端骨架落地；Tier 1 安全挪动；根 `DEVELOPMENT.md` 删除（与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复）；移除空壳 `buildSrc/`、废弃 `tools/json-schema-to-gbnf`、移除 `.cursorrules`。
 > - ⏳ 待定：`shared/` 占位（可选）。
 > - ❌ 不做：模块改名（Tier 2，已否决）。
-> - ➖ 留根（有原因）：`CHANGELOG.md`/`RELEASE_NOTE_*`（`release-automation.sh` 写死路径）、`input_images/`（4 个 viz 脚本使用）、`agents/`（AI 工具约定）。
+> - ➖ 留根（有原因）：`CHANGELOG.md`/`RELEASE_NOTE_*`（`release-automation.sh` 写死路径）、`input_images/`（4 个 viz 脚本使用）。
 >
-> **关键决定**：① 后端 **Monorepo**（`server/` 已建，独立 Gradle build）；② **模块不改名**（`:runtime-core`=本地 Agent Runtime、`:agent-core`=langchain4j 适配）；③ `.claude/`、`.qoder/` 均为 AI 协作工具目录，**保留**。
-> **最后更新**：2026-07-12
+> **关键决定**：① 后端 **Monorepo**（`server/` 已建，独立 Gradle build）；② **模块不改名**（`:runtime-core`=本地 Agent Runtime、`:agent-core`=langchain4j 适配）；③ `.claude/` 为 AI 协作工具目录保留。
+>
+> **2026-08-03 更新（后续清理，supersede 下方涉及 `agents/`、`.qoder/` 的细节）**：根 `agents/`（CO 团队）已删；`.qoder/` 已整删；skills 已迁顶层 `skills/`（kimi 经 `.kimi/skills` 软链读）。下方目标结构 / Tier 1 表里的 `agents/`「留根」、`.qoder/`「保留」描述均以本条为准。
+> **最后更新**：2026-08-03
 
 ---
 

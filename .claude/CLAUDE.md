@@ -70,7 +70,6 @@
 ---
 
 > 命令源文件：`.claude/commands/*.md`
-> 历史源文件：`.qoder/skills/*/SKILL.md`（已迁移，不再维护）
-> 同步脚本：`.claude/migrate.py`（`.qoder/skills/` → `.claude/commands/`）
-> 修复脚本：`.claude/fix_skills.py`（修复过期引用、路径、模板）
+> 历史源文件：`.qoder/skills/*/SKILL.md`（已迁出，`.qoder/` 已删除）
+> Canonical skills 源：顶层 `skills/`（kimi 经 `.kimi/skills` 软链读取）；CC 命令仍在 `.claude/commands/`
 > 最近整理：2026-07-28（决策4 下线 `/agent-test`、`/qa-acceptance`，确认 22 个命令与 `.claude/commands/` 一一对应）

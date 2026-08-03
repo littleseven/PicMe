@@ -9,10 +9,8 @@
 
 | 工具 | 配置位置 | 读取范围 | 用途 / 状态 |
 |------|----------|----------|-------------|
-| **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | 主力 AI 开发环境之一（命令目录与索引） |
-| **OpenCode** | `.opencode/` + `.qoder/skills/`（软链） | 项目级 | 主力 AI 开发环境之一；`.opencode/skills` 为 `.qoder/skills` 符号链接 |
-| **Qoder** | `.qoder/skills/` + `.qoder/agents/` | 项目级 | Skills 唯一事实来源（OpenCode / Kimi 共享） |
-| **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发；`.kimi/skills` 为 `.qoder/skills` 符号链接 |
+| **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | AI 开发环境之一·日常备选（命令目录与索引） |
+| **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发·主力；`.kimi/skills` → `../skills` |
 | **AndroidStudio Qwen 插件** | `AGENTS.md`（根目录） | 项目级 | IDE 内置助手，读取根 AGENTS.md 治理 |
 | **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、架构原则、全局红线 |
 
@@ -188,10 +186,9 @@ cd ~/AndroidStudioProjects/langchain4android && claude
 | 助手 | 配置位置 | 状态 | 备注 |
 |------|----------|------|------|
 | **Android Studio Studio Bot** | `.idea/studiobot.xml` | ⚠️ 已启用上下文共享 | 当前配置为 `shareContext="OptedIn"`。本项目代码涉及人脸识别、图像处理等敏感算法，如需严格符合 `[PRIVACY]` 红线（100% 本地），建议改为 `OptedOut`。 |
-| **Claude Code** | `.claude/` | ✅ 已配置 | 当前主力 AI 开发环境 |
-| **Qoder** | `.qoder/` | ✅ 已配置 | 原主力环境，Skills 仍与 kimi-cli 共用 |
-| **kimi-cli** | `.kimi/` | ✅ 已配置 | 终端交互式 AI 开发 |
-| **Lingma（通义灵码）** | `.lingma/skills/` | ⚠️ 已停用 | 原 Skills 已迁移至 `.qoder/skills/`，不再维护 |
+| **Claude Code** | `.claude/` | ✅ 已配置 | AI 开发环境（日常备选） |
+| **kimi-cli** | `.kimi/` | ✅ 已配置 | 终端交互式 AI 开发（主力） |
+| **Lingma（通义灵码）** | `.lingma/skills/` | ⚠️ 已停用 | 原 Skills 已迁出，不再维护 |
 
 ---
 
