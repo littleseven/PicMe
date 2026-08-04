@@ -53,4 +53,5 @@ bash smoke/run-smoke.sh                      # mock claude 端到端
 - `app_tools_mcp.py` 随 `gateway/` 一起部署，无额外步骤。
 - gateway 启动时自动生成 `app-tools.mcp.json`（MCP 配置，含**绝对路径**，属运行时生成物，已在 `gateway/.gitignore` 中忽略，勿提交）。
 - 新环境变量 `CT_APP_TOOL_TIMEOUT`：单次 app tool 调用超时秒数，默认 `60`，可在 `tunnel.env` 覆盖。
+- 新环境变量 `CT_STDOUT_LIMIT`：claude stream-json 单行读取上限（字节），默认 16MiB（asyncio 默认 64KiB 会被大 tool_result/读大文件触发 `chunk is longer than limit`，2026-08-04 修复）。
 - 发版流程不变：`ssh kimi-worker 'cd /root/polang && git pull && systemctl restart gateway'`（重启 gateway 即生效）。

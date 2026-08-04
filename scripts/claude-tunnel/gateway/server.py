@@ -13,6 +13,10 @@ import session
 
 CLAUDE = os.environ.get("CT_CLAUDE", "claude")
 MAX_TURNS = os.environ.get("CT_MAX_TURNS", "20")
+# pump 按行迭代 claude stdout：stream-json 单行可超 asyncio StreamReader 默认
+# 64KiB limit（大 tool_result / 读大文件），触发 'chunk is longer than limit'。
+# 放宽到 16MiB（仍兜底防失控进程撑爆内存），CT_STDOUT_LIMIT 可覆盖。
+STDOUT_LIMIT = int(os.environ.get("CT_STDOUT_LIMIT", str(16 * 1024 * 1024)))
 WORK_ROOT = os.environ.get("CT_WORK_ROOT", "/tmp/claude-tunnel-work")
 REPO_URL = os.environ["CT_REPO_URL"]
 BASE_BRANCH = os.environ.get("CT_BASE_BRANCH", "main")
@@ -200,7 +204,7 @@ async def _run_claude_turn(resp, sid, message, claude_sid):
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
-            cwd=repo, env=env)
+            cwd=repo, env=env, limit=STDOUT_LIMIT)
         try:
             await asyncio.wait_for(pump(), timeout=timeout)
         except asyncio.TimeoutError:

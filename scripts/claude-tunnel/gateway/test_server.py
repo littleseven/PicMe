@@ -356,3 +356,35 @@ def test_phase_timeout_event_carries_truncation():
 def test_system_prompt_requires_concise_output():
     assert "不要整段" in server.APP_TOOL_SYSTEM_PROMPT
     assert "≤30 行" in server.APP_TOOL_SYSTEM_PROMPT
+
+
+async def test_chat_stream_survives_long_stream_json_line(aiohttp_client, monkeypatch, tmp_path):
+    """回归：claude stream-json 单行超 64KiB（大 tool_result / 读大文件）时，
+    pump 不得因 subprocess stdout StreamReader 默认 64KiB limit 报
+    'chunk is longer than limit'（2026-08-04 线上报错）。"""
+    work_root = tmp_path / "work"
+    work_root.mkdir()
+    sm = server.session.SessionManager(str(work_root), "unused")
+    monkeypatch.setattr(server, "sm", sm)
+    sid = "longline"
+    os.makedirs(os.path.join(sm.repo_dir(sid), ".git"))
+
+    long_text = "x" * (256 * 1024)  # 单行远超 asyncio 默认 64KiB limit
+    stub = tmp_path / "stub-claude-longline.py"
+    stub.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json\n"
+        "print(json.dumps({'type': 'system', 'subtype': 'init', 'session_id': 'cs-long'}), flush=True)\n"
+        "print(json.dumps({'type': 'assistant', 'message': {'content': [{'type': 'text', 'text': '%s'}]}}), flush=True)\n"
+        "print(json.dumps({'type': 'result', 'num_turns': 1}), flush=True)\n" % long_text)
+    stub.chmod(0o755)
+    monkeypatch.setattr(server, "CLAUDE", str(stub))
+
+    app = web.Application()
+    app.router.add_post("/chat", server.chat)
+    client = await aiohttp_client(app)
+    resp = await client.post("/chat", json={"sid": sid, "message": "hi"})
+    body = await resp.text()
+    assert "event: error" not in body  # 两种超限文案（...exceed/longer than limit）均走 error 事件
+    assert "assistant_text" in body
+    assert long_text in body  # 完整事件流式透传，不截断不报错
