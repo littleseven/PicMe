@@ -82,5 +82,7 @@ internal fun MediaEntity.toMediaAsset(): MediaAsset = MediaAsset(
     locationName = locationName,
     city = city,
     indexedAt = indexedAt,
-    faceFocusY = faceFocusY
+    faceFocusY = faceFocusY,
+    aestheticScore = aestheticScore,
+    faceQualityScore = faceQualityScore
 )

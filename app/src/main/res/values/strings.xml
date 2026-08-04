@@ -314,6 +314,8 @@
     <string name="media_info_size">Size: %1$s</string>
     <string name="media_info_resolution">Resolution: %1$s</string>
     <string name="media_info_location">Location</string>
+    <string name="media_info_aesthetic_score">Aesthetic score</string>
+    <string name="media_info_face_quality">Face quality</string>
     <string name="no_map_app">No map app found</string>
     <string name="screenshot">Screenshot</string>
     <string name="screenshot_saved">Screenshot saved to %1$s</string>

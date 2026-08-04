@@ -22,7 +22,11 @@ data class MediaAsset(
     val city: String? = null,
     val indexedAt: Long? = null,
     /** 人脸纵向聚焦点（归一化 0~1，null=无人脸/未回填）。列表缩略图纵向对齐用。 */
-    val faceFocusY: Float? = null
+    val faceFocusY: Float? = null,
+    /** NIMA 美学评分（1.0~10.0；null=未评分，照片信息不显示）。 */
+    val aestheticScore: Float? = null,
+    /** eDifFIQA 人脸质量评分（~0~1；null=未评分，照片信息不显示）。 */
+    val faceQualityScore: Float? = null
 )
 
 enum class MediaType {

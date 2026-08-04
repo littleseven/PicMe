@@ -292,6 +292,8 @@
     <string name="media_info_path">路径：%1$s</string>
     <string name="media_info_size">大小：%1$s</string>
     <string name="media_info_resolution">分辨率：%1$s</string>
+    <string name="media_info_aesthetic_score">美学评分</string>
+    <string name="media_info_face_quality">人脸质量</string>
 
     <!-- AI Agent -->
     <string name="ai_agent">AI 智能助手</string>

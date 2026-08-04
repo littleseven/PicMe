@@ -1242,6 +1242,9 @@ private fun PhotoInfoDialog(
                         lon = asset.longitude
                     )
                 }
+                asset.aestheticScore?.let { score ->
+                    InfoRow(stringResource(R.string.media_info_aesthetic_score), "%.1f / 10".format(score))
+                }
 
                 // 人脸信息
                 if (asset.hasFace) {
@@ -1259,6 +1262,9 @@ private fun PhotoInfoDialog(
                     InfoRow("包含人脸", "是")
                     if (asset.faceId != null) {
                         InfoRow("人物分组", "ID: ${asset.faceId}")
+                    }
+                    asset.faceQualityScore?.let { score ->
+                        InfoRow(stringResource(R.string.media_info_face_quality), "%.0f%%".format(score * 100))
                     }
                 }
 

@@ -308,6 +308,8 @@
     <string name="media_info_size">大小：%1$s</string>
     <string name="media_info_resolution">解析度：%1$s</string>
     <string name="media_info_location">位置</string>
+    <string name="media_info_aesthetic_score">美學評分</string>
+    <string name="media_info_face_quality">人臉質量</string>
     <string name="no_map_app">找不到地圖應用程式</string>
 
     <!-- AI Agent -->
