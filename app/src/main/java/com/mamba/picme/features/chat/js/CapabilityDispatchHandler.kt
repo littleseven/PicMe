@@ -19,7 +19,10 @@ import kotlinx.coroutines.withTimeoutOrNull
  * - `favorite_media` `{id:N, favorite:bool}` —— REVERSIBLE_WRITE，需用户确认
  * - `select_media` `{id:N, selected:bool}` —— REVERSIBLE_WRITE，需用户确认
  * - `get_gallery_summary` `{}` —— READ_ONLY，直接 dispatch 直通
- * 其余 method 抛 [JsBridgeException]（Promise reject，JS 可 try/catch）。
+ * - `remember_fact` / `forget_fact` / `recall_memory` —— 事实记忆（写需确认，读直通）
+ * - `remember_person_relation` `{name, relation}` / `forget_person_relation` `{name}` —— REVERSIBLE_WRITE，需用户确认
+ * - `query_person_relation` `{name?}` —— READ_ONLY，直接 dispatch 直通
+ * 完整列表见 [SUPPORTED_METHODS]；其余 method 抛 [JsBridgeException]（Promise reject，JS 可 try/catch）。
  *
  * 写操作挂起等待 [requestConfirmation]（由 ChatViewModel 弹窗实现），
  * [confirmationTimeoutMs] 超时按拒绝处理；拒绝/超时/执行失败均抛异常让 JS catch。
@@ -45,6 +48,7 @@ class CapabilityDispatchHandler(
         val SUPPORTED_METHODS = listOf(
             "delete_media", "favorite_media", "select_media", "get_gallery_summary",
             "remember_fact", "forget_fact", "recall_memory",
+            "remember_person_relation", "forget_person_relation", "query_person_relation",
         )
     }
 
@@ -145,6 +149,30 @@ class CapabilityDispatchHandler(
         }
         "recall_memory" -> AgentCommand.RecallMemory(
             query = strParam(params, "query").orEmpty(),
+        )
+        "remember_person_relation" -> {
+            val name = strParam(params, "name")
+                ?: throw JsBridgeException(
+                    JsBridgeException.HANDLER_ERROR,
+                    "remember_person_relation requires params.name (string)",
+                )
+            val relation = strParam(params, "relation")
+                ?: throw JsBridgeException(
+                    JsBridgeException.HANDLER_ERROR,
+                    "remember_person_relation requires params.relation (string)",
+                )
+            AgentCommand.RememberPersonRelation(name = name, relation = relation)
+        }
+        "forget_person_relation" -> {
+            val name = strParam(params, "name")
+                ?: throw JsBridgeException(
+                    JsBridgeException.HANDLER_ERROR,
+                    "forget_person_relation requires params.name (string)",
+                )
+            AgentCommand.ForgetPersonRelation(name = name)
+        }
+        "query_person_relation" -> AgentCommand.QueryPersonRelation(
+            name = strParam(params, "name"),
         )
         else -> throw JsBridgeException(
             JsBridgeException.HANDLER_ERROR,

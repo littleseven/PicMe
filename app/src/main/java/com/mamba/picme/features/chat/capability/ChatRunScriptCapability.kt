@@ -75,11 +75,14 @@ class ChatRunScriptCapability private constructor() : BaseCapability() {
         "run_gallery_script" -> "执行 JS 脚本（端侧沙箱，取数只读；写操作经确认）。参数: code (string, JS 源码)。" +
             "所有 handler 均为异步，脚本须用 await bridge.callAsync(name, args) 取数据" +
             "（'gallery.summary'|'gallery.query'|'gallery.tags'|'gallery.timeline'|'gallery.intersect'|" +
-            "'gallery.stats_by_tag'|'media.meta'|'media.batch_meta'|'face.cluster'|'tag.audit'；" +
+            "'gallery.stats_by_tag'|'gallery.stats_by_city'|'media.meta'|'media.batch_meta'|" +
+            "'face.cluster'|'tag.audit'|'tag.scan_status'；" +
             "bridge.call 已禁用），并在 JS 内组合计算。" +
-            "写操作（删除/收藏/选中）用 await bridge.callAsync('capability.dispatch', {method, params})：" +
-            "method 仅支持 delete_media{ids:[...]}/favorite_media{id,favorite}/select_media{id,selected}" +
-            "（会弹窗等用户确认，拒绝或超时 Promise 会 reject，需 try/catch），其余 method 报错。" +
+            "写操作（删除/收藏/选中/记忆/人物关系）用 await bridge.callAsync('capability.dispatch', {method, params})：" +
+            "method 支持 delete_media{ids:[...]}/favorite_media{id,favorite}/select_media{id,selected}/" +
+            "remember_fact/forget_fact/recall_memory/" +
+            "remember_person_relation{name,relation}/forget_person_relation{name}/query_person_relation{name?}" +
+            "（写操作会弹窗等用户确认，拒绝或超时 Promise 会 reject，需 try/catch），其余 method 报错。" +
             "需要画图时 return Chart.timeline(...)（时间趋势，最省事）/ Chart.bar(...) / Chart.line(...) / " +
             "Chart.pie(...)——会自动渲染成图卡（勿手动输出 SVG，勿用 Markdown 表格画图）；" +
             "return 其它值则原样作为 observation 回传给你做文字总结。"

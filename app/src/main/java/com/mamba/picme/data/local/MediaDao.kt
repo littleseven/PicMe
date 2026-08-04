@@ -422,6 +422,13 @@ interface MediaDao {
     @Query("SELECT MAX(lastTagScanAt) FROM media_assets")
     suspend fun getLatestTagScanAt(): Long?
 
+    /** 按城市分组统计媒体数量（逆地理编码城市，供 JS gallery.stats_by_city） */
+    @Query(
+        "SELECT city, COUNT(*) as cnt FROM media_assets " +
+            "WHERE city IS NOT NULL AND city != '' GROUP BY city ORDER BY cnt DESC LIMIT :limit"
+    )
+    suspend fun getCityGroups(limit: Int): List<CityGroupCount>
+
     /** 更新最近一次 TAG 扫描成功记录 */
     @Query(
         """
@@ -614,5 +621,10 @@ interface MediaDao {
 
 data class FaceGroupCount(
     val faceId: Int,
+    val cnt: Int
+)
+
+data class CityGroupCount(
+    val city: String,
     val cnt: Int
 )
