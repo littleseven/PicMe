@@ -1120,6 +1120,7 @@ private fun com.mamba.picme.data.model.MediaEntity.toDomain() =
         latitude = latitude,
         longitude = longitude,
         locationName = locationName,
+        city = city,
         indexedAt = indexedAt
     )
 

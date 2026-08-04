@@ -74,5 +74,13 @@ internal fun MediaEntity.toMediaAsset(): MediaAsset = MediaAsset(
     duration = duration,
     hasFace = hasFace,
     faceId = faceId,
+    source = source,
+    labels = labels,
+    ocrText = ocrText,
+    latitude = latitude,
+    longitude = longitude,
+    locationName = locationName,
+    city = city,
+    indexedAt = indexedAt,
     faceFocusY = faceFocusY
 )

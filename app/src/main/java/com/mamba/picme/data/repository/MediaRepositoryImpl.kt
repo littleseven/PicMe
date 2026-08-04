@@ -447,6 +447,7 @@ class MediaRepositoryImpl(
                 latitude = dbAsset.latitude,
                 longitude = dbAsset.longitude,
                 locationName = dbAsset.locationName,
+                city = dbAsset.city,
                 indexedAt = dbAsset.indexedAt,
                 faceFocusY = dbAsset.faceFocusY
             )

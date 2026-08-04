@@ -449,6 +449,7 @@ private fun MediaEntity.toDomain() =
         latitude = latitude,
         longitude = longitude,
         locationName = locationName,
+        city = city,
         indexedAt = indexedAt
     )
 
