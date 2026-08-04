@@ -1,6 +1,6 @@
 package com.mamba.picme.features.idphoto
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,18 +22,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.domain.matting.IDPhotoSpecs
@@ -111,8 +109,6 @@ fun IDPhotoScreen(
                                 val sizeSpec = IDPhotoSpecs.SIZES[s.selectedSizeIndex]
                                 val frameW = 220.dp
                                 val frameH = frameW * sizeSpec.heightPx / sizeSpec.widthPx
-                                val density = LocalDensity.current
-                                val scale = with(density) { frameW.toPx() } / (cropRect.right - cropRect.left)
                                 Box(
                                     modifier = Modifier
                                         .size(frameW, frameH)
@@ -126,26 +122,23 @@ fun IDPhotoScreen(
                                                     zoomChange = gestureZoom
                                                 )
                                             }
-                                        },
-                                    contentAlignment = Alignment.TopStart
+                                        }
                                 ) {
-                                    Image(
-                                        bitmap = bmp.asImageBitmap(),
-                                        contentDescription = stringResource(R.string.id_photo_title),
-                                        contentScale = ContentScale.FillBounds,
-                                        modifier = Modifier
-                                            .requiredSize(
-                                                with(density) { bmp.width.toDp() },
-                                                with(density) { bmp.height.toDp() }
-                                            )
-                                            .graphicsLayer {
-                                                transformOrigin = TransformOrigin(0f, 0f)
-                                                scaleX = scale
-                                                scaleY = scale
-                                                translationX = -(cropRect.left * scale)
-                                                translationY = -(cropRect.top * scale)
-                                            }
-                                    )
+                                    // 直接把 cropRect 区域拉伸绘制到 frame。曾用 graphicsLayer 对整张 bmp 做
+                                    // scale+translation，但「子 layout(requiredSize=bmp 尺寸) 超出父 Box 后再经
+                                    // graphicsLayer 缩放/平移」的绘制在 frame 边缘不精确，会在底部/右侧露出白边。
+                                    val imageBmp = remember(bmp) { bmp.asImageBitmap() }
+                                    Canvas(modifier = Modifier.fillMaxSize()) {
+                                        drawImage(
+                                            image = imageBmp,
+                                            srcOffset = IntOffset(cropRect.left, cropRect.top),
+                                            srcSize = IntSize(
+                                                cropRect.right - cropRect.left,
+                                                cropRect.bottom - cropRect.top
+                                            ),
+                                            dstSize = IntSize(size.width.toInt(), size.height.toInt())
+                                        )
+                                    }
                                 }
                             } else {
                                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
