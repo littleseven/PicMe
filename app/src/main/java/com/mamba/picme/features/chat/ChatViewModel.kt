@@ -41,6 +41,7 @@ import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.model.StructuredFilter
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
 import com.mamba.picme.domain.usecase.StartTagScanResult
+import com.mamba.picme.service.tag.TagGenerationService
 import android.util.Log
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.js.JsValue
@@ -1836,7 +1837,10 @@ class ChatViewModel(
             runCatching { rt.eval(loadChartBootstrapJs(context)) }
                 .onFailure { Logger.w(TAG, "Chart bootstrap failed", it) }
             // gallery.*/media.* 只读 handler（唯一注册点，与 Debug 演示共用）
-            registerGalleryHandlers(rt, getGallerySummaryUseCase, queryGalleryMediaUseCase, personDao, controlledVocab)
+            registerGalleryHandlers(
+                rt, getGallerySummaryUseCase, queryGalleryMediaUseCase, personDao, controlledVocab,
+                scanProgressProvider = { TagGenerationService.sessionProgress.value },
+            )
             // capability.dispatch：JS → CapabilityRegistry 写通路（写操作经用户确认；仅 chat 链路注册）
             rt.register(capabilityDispatchHandler.asNativeHandler())
             Log.i(TAG, "Persistent JsRuntime created with ${rt.handlerNames()} handlers")

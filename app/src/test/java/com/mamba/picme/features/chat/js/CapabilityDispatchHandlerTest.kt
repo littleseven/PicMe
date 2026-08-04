@@ -351,4 +351,110 @@ class CapabilityDispatchHandlerTest {
         }
         assertTrue(probe.dispatched.isEmpty())
     }
+
+    // ── 人物关系 method（remember/forget/query_person_relation）──────────
+
+    @Test
+    fun `remember_person_relation maps params and requires confirmation`() = runTest {
+        val probe = Probe()
+        val params = JsValue.Obj(
+            linkedMapOf(
+                "name" to JsValue.Str("小宝"),
+                "relation" to JsValue.Str("女儿"),
+            )
+        )
+        probe.handler().invoke(argsOf("remember_person_relation", params))
+
+        val call = probe.confirmationArgs.single()
+        assertEquals("remember_person_relation", call.method)
+        assertEquals(CommandRisk.REVERSIBLE_WRITE, call.risk)
+        val command = probe.dispatched.single() as AgentCommand.RememberPersonRelation
+        assertEquals("小宝", command.name)
+        assertEquals("女儿", command.relation)
+    }
+
+    @Test
+    fun `remember_person_relation without name or relation throws before confirmation`() = runTest {
+        val probe = Probe()
+        try {
+            probe.handler().invoke(
+                argsOf(
+                    "remember_person_relation",
+                    JsValue.Obj(linkedMapOf("name" to JsValue.Str("小宝"))),
+                )
+            )
+            fail("expected JsBridgeException")
+        } catch (e: JsBridgeException) {
+            assertTrue(e.message!!.contains("relation"))
+        }
+        assertTrue(probe.dispatched.isEmpty())
+        assertEquals(0, probe.confirmationArgs.size)
+    }
+
+    @Test
+    fun `remember_person_relation without name throws before confirmation`() = runTest {
+        val probe = Probe()
+        try {
+            probe.handler().invoke(
+                argsOf(
+                    "remember_person_relation",
+                    JsValue.Obj(linkedMapOf("relation" to JsValue.Str("女儿"))),
+                )
+            )
+            fail("expected JsBridgeException")
+        } catch (e: JsBridgeException) {
+            assertTrue(e.message!!.contains("name"))
+        }
+        assertTrue(probe.dispatched.isEmpty())
+        assertEquals(0, probe.confirmationArgs.size)
+    }
+
+    @Test
+    fun `forget_person_relation maps name and requires confirmation`() = runTest {
+        val probe = Probe()
+        val params = JsValue.Obj(linkedMapOf("name" to JsValue.Str("小宝")))
+        probe.handler().invoke(argsOf("forget_person_relation", params))
+
+        val call = probe.confirmationArgs.single()
+        assertEquals("forget_person_relation", call.method)
+        assertEquals(CommandRisk.REVERSIBLE_WRITE, call.risk)
+        val command = probe.dispatched.single() as AgentCommand.ForgetPersonRelation
+        assertEquals("小宝", command.name)
+    }
+
+    @Test
+    fun `forget_person_relation without name throws before confirmation`() = runTest {
+        val probe = Probe()
+        try {
+            probe.handler().invoke(argsOf("forget_person_relation"))
+            fail("expected JsBridgeException")
+        } catch (e: JsBridgeException) {
+            assertTrue(e.message!!.contains("name"))
+        }
+        assertTrue(probe.dispatched.isEmpty())
+        assertEquals(0, probe.confirmationArgs.size)
+    }
+
+    @Test
+    fun `query_person_relation is READ_ONLY and dispatches without confirmation`() = runTest {
+        val probe = Probe()
+        val result = probe.handler().invoke(
+            argsOf("query_person_relation", JsValue.Obj(linkedMapOf("name" to JsValue.Str("小宝"))))
+        ) as JsValue.Obj
+
+        assertEquals(0, probe.confirmationArgs.size)
+        val command = probe.dispatched.single() as AgentCommand.QueryPersonRelation
+        assertEquals("小宝", command.name)
+        assertEquals(true, (result.entries["ok"] as JsValue.Bool).value)
+    }
+
+    @Test
+    fun `query_person_relation without name queries all relations`() = runTest {
+        val probe = Probe()
+        probe.handler().invoke(argsOf("query_person_relation"))
+
+        assertEquals(0, probe.confirmationArgs.size)
+        val command = probe.dispatched.single() as AgentCommand.QueryPersonRelation
+        assertEquals(null, command.name)
+    }
 }

@@ -6,6 +6,7 @@ import com.mamba.picme.agent.core.js.asyncHandler
 import com.mamba.picme.agent.core.js.toJsValue
 import com.mamba.picme.data.local.dao.PersonDao
 import com.mamba.picme.domain.tag.ControlledVocab
+import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 
@@ -20,6 +21,10 @@ import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
  * JsBridge.dispatchAsync 已在注入的 scope 内 launch，handler 内直接 suspend 调 UseCase/DAO。
  *
  * JS ↔ 模型的字段转换见 [GalleryJs.kt]（parseQueryFilter / toResultJsValue 等）。
+ *
+ * @param scanProgressProvider TAG 扫描会话进度快照来源（只读，不触发扫描）。
+ *   由调用点注入（handler 层不直接依赖 service 层）；生产实现读
+ *   `TagGenerationService.sessionProgress`，测试可注入假快照。
  */
 fun registerGalleryHandlers(
     runtime: JsRuntime,
@@ -27,6 +32,7 @@ fun registerGalleryHandlers(
     queryGalleryMediaUseCase: QueryGalleryMediaUseCase,
     personDao: PersonDao,
     controlledVocab: ControlledVocab,
+    scanProgressProvider: () -> TagScanSessionProgress?,
 ) {
     // gallery.summary
     runtime.register(asyncHandler("gallery.summary") {
@@ -82,6 +88,11 @@ fun registerGalleryHandlers(
         val filter = parseQueryFilter(args)
         queryGalleryMediaUseCase.tagsByFilter(filter).toTagsJsValue()
     })
+    // gallery.stats_by_city：按城市分组的媒体计数分布（只读，DB 层聚合）
+    runtime.register(asyncHandler("gallery.stats_by_city") { args ->
+        val topN = parseTopN(args)
+        queryGalleryMediaUseCase.statsByCity(topN).toTagsJsValue()
+    })
     // face.cluster：人脸聚类盘点（只读，不回 embedding 原始数据）
     runtime.register(asyncHandler("face.cluster") { args ->
         val topN = parseTopN(args)
@@ -111,6 +122,10 @@ fun registerGalleryHandlers(
                 "outOfVocabTags" to outOfVocabTags(tagDistribution, vocabTags, topN).toTagsJsValue(),
             )
         )
+    })
+    // tag.scan_status：扫描会话状态查询（只读快照，绝不触发/控制扫描）
+    runtime.register(asyncHandler("tag.scan_status") {
+        scanProgressProvider().toScanStatusJsValue()
     })
 }
 

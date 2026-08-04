@@ -43,6 +43,7 @@ import com.mamba.picme.di.AppContainer
 import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.chat.js.QuickJsEngine
 import com.mamba.picme.features.chat.js.registerGalleryHandlers
+import com.mamba.picme.service.tag.TagGenerationService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -218,6 +219,7 @@ private fun runJsBridgeDemo(
                 container.queryGalleryMediaUseCase,
                 container.personDao,
                 container.controlledVocab,
+                scanProgressProvider = { TagGenerationService.sessionProgress.value },
             )
             val result = runtime.evalAsync(script, QuickJsEngine.DEFAULT_EVAL_TIMEOUT_MS)
             onOutput("✓ result: ${result.toJson()}")

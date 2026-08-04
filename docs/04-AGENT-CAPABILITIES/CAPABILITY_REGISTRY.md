@@ -116,15 +116,17 @@
 | Handler | 参数 | 返回 | 对应 AgentCommand | 说明 |
 |---------|------|------|-------------------|------|
 | `gallery.summary` | `{}` | 聚合统计对象 | ≈ `get_gallery_summary` | totalPhotos/videos/media、hasFaceCount、personClusterCount、labeled/unlabeled… |
-| `gallery.query` | `{label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}` | `{ids,total}` | ≈ `search_media`（结构化版） | 多维 AND 过滤；ids 截断到 limit，total 为真实数 |
+| `gallery.query` | `{label?,ocr?,location?,fromMs?,toMs?,hasFace?,person?,limit?}` | `{ids,total}` | ≈ `search_media`（结构化版） | 多维 AND 过滤（person=已命名人物名）；ids 截断到 limit，total 为真实数 |
 | `gallery.tags` | `{}` | `{标签:照片数}`（top 50） | — | 全局标签分布 |
 | `gallery.timeline` | `{fromMs?,toMs?,bucketMs?}` | `{桶起始时间戳:照片数}` | — | 按时间分桶（默认月） |
 | `gallery.intersect` | `{idsA,idsB,op}` | `{ids,total}` | — | 集合交/并/差，用于多次 query 交叉 |
 | `gallery.stats_by_tag` | `{label?,hasFace?,fromMs?,toMs?}` | `{标签:照片数}` | — | 条件过滤后的标签分布 |
-| `media.meta` | `id` | 单张元数据 | — | 不含路径/GPS/OCR/向量 |
+| `gallery.stats_by_city` | `{topN?}` | `{城市:照片数}` | — | 按城市分组的媒体计数分布 |
+| `media.meta` | `id` | 单张元数据 | — | 不含路径/GPS/OCR/向量；含 city/aestheticScore/faceQualityScore |
 | `media.batch_meta` | `[ids]`（上限 50） | `[{...}]` | — | 批量元数据 |
 | `face.cluster` | `{topN?}` | 聚类盘点 | — | 不含 embedding 原始数据 |
 | `tag.audit` | `{topN?}` | 打标覆盖审计 | — | 词表外标签分布 |
+| `tag.scan_status` | `{}` | 扫描会话状态快照 | — | 只读查询（active/state/进度），绝不触发扫描 |
 
 **表 B — 写 handler（`bridge.callAsync('capability.dispatch', {method, params})` → 进注册表）**
 
@@ -135,8 +137,11 @@
 | `select_media` | `{id, selected}` | `SelectMedia` | ChatMediaWriteCapability | REVERSIBLE_WRITE |
 | `remember_fact` | `{content, category?}` | `RememberFact`(source=JS_DISPATCH) | MemoryCapability | REVERSIBLE_WRITE |
 | `forget_fact` | `{fact_id?|query?}` | `ForgetFact` | MemoryCapability | REVERSIBLE_WRITE |
+| `remember_person_relation` | `{name, relation}` | `RememberPersonRelation` | PersonRelationCapability | REVERSIBLE_WRITE |
+| `forget_person_relation` | `{name}` | `ForgetPersonRelation` | PersonRelationCapability | REVERSIBLE_WRITE |
 | `get_gallery_summary` | `{}` | `GetGallerySummary` | ChatGallerySummaryCapability | READ_ONLY（直通） |
 | `recall_memory` | `{query}` | `RecallMemory` | MemoryCapability | READ_ONLY（直通） |
+| `query_person_relation` | `{name?}` | `QueryPersonRelation` | PersonRelationCapability | READ_ONLY（直通） |
 
 > **维护约定**：新增 JS handler 时必须同步本表。写 handler 另需同步两处——`CommandRisk.ofMethod` 分级 + `CapabilityDispatchHandler.buildCommand` 白名单（漏登前者会被默认 READ_ONLY 直通，漏登后者 JS 调不通）。唯一注册点：`GalleryScriptHandlers.registerGalleryHandlers`（只读）+ `ChatViewModel` 注入的 `CapabilityDispatchHandler`（写）。
 

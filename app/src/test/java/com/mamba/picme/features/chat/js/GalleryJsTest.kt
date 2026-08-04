@@ -3,8 +3,11 @@ package com.mamba.picme.features.chat.js
 import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.data.local.entity.PersonEntity
+import com.mamba.picme.data.local.entity.TagScanPass
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.GalleryQueryResult
+import com.mamba.picme.domain.tag.scan.ScanSessionState
+import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -237,8 +240,11 @@ class GalleryJsTest {
             fileName = "IMG_1.jpg",
             labels = """["猫","户外"]""",
             locationName = "北京",
+            city = "北京",
             hasFace = true,
             faceId = "p_3",
+            aestheticScore = 7.5f,
+            faceQualityScore = 0.82f,
         )
         val obj = (m.toMetaJsValue() as JsValue.Obj).entries
         assertEquals(12.0, (obj["id"] as JsValue.Num).value, 0.0)
@@ -248,8 +254,11 @@ class GalleryJsTest {
             (obj["labels"] as JsValue.Arr).items.map { (it as JsValue.Str).value },
         )
         assertEquals("北京", (obj["locationName"] as JsValue.Str).value)
+        assertEquals("北京", (obj["city"] as JsValue.Str).value)
         assertEquals(true, (obj["hasFace"] as JsValue.Bool).value)
         assertEquals("p_3", (obj["faceId"] as JsValue.Str).value)
+        assertEquals(7.5, (obj["aestheticScore"] as JsValue.Num).value, 0.001)
+        assertEquals(0.82, (obj["faceQualityScore"] as JsValue.Num).value, 0.001)
         // 隐私白名单：不含 uri / GPS / ocrText
         assertFalse(obj.containsKey("uri"))
         assertFalse(obj.containsKey("latitude"))
@@ -266,6 +275,9 @@ class GalleryJsTest {
         assertEquals(JsValue.Null, obj["labels"])
         assertEquals(JsValue.Null, obj["locationName"])
         assertEquals(JsValue.Null, obj["faceId"])
+        assertEquals(JsValue.Null, obj["city"])
+        assertEquals(JsValue.Null, obj["aestheticScore"])
+        assertEquals(JsValue.Null, obj["faceQualityScore"])
     }
 
     // ── toPersonJsValue（face.cluster）──────────────────────────────
@@ -317,5 +329,51 @@ class GalleryJsTest {
     fun `outOfVocabTags empty when all in vocab`() {
         val dist = linkedMapOf("户外" to 10, "猫" to 5)
         assertTrue(outOfVocabTags(dist, listOf("户外", "猫"), limit = 10).isEmpty())
+    }
+
+    // ── toScanStatusJsValue（tag.scan_status）───────────────────────
+
+    @Test
+    fun `toScanStatusJsValue null session returns inactive`() {
+        val obj = (null as TagScanSessionProgress?).toScanStatusJsValue().entries
+        assertEquals(false, (obj["active"] as JsValue.Bool).value)
+        assertEquals(JsValue.Null, obj["state"])
+        assertEquals(2, obj.size)
+    }
+
+    @Test
+    fun `toScanStatusJsValue running session is active with full fields`() {
+        val p = TagScanSessionProgress(
+            sessionId = "s-1",
+            state = ScanSessionState.RUNNING,
+            currentPass = TagScanPass.IMAGE_TAGGING,
+            processed = 10,
+            total = 50,
+            pending = 39,
+            failed = 1,
+            estimatedRemainingMs = 30_000L,
+        )
+        val obj = p.toScanStatusJsValue().entries
+        assertEquals(true, (obj["active"] as JsValue.Bool).value)
+        assertEquals("RUNNING", (obj["state"] as JsValue.Str).value)
+        assertEquals("IMAGE_TAGGING", (obj["currentPass"] as JsValue.Str).value)
+        assertEquals(10.0, (obj["processed"] as JsValue.Num).value, 0.0)
+        assertEquals(50.0, (obj["total"] as JsValue.Num).value, 0.0)
+        assertEquals(39.0, (obj["pending"] as JsValue.Num).value, 0.0)
+        assertEquals(1.0, (obj["failed"] as JsValue.Num).value, 0.0)
+        assertEquals(30_000.0, (obj["estimatedRemainingMs"] as JsValue.Num).value, 0.0)
+    }
+
+    @Test
+    fun `toScanStatusJsValue paused is active, completed is inactive`() {
+        val paused = TagScanSessionProgress(sessionId = "s", state = ScanSessionState.PAUSED)
+        assertEquals(true, (paused.toScanStatusJsValue().entries["active"] as JsValue.Bool).value)
+
+        val completed = TagScanSessionProgress(sessionId = "s", state = ScanSessionState.COMPLETED)
+        val obj = completed.toScanStatusJsValue().entries
+        assertEquals(false, (obj["active"] as JsValue.Bool).value)
+        assertEquals("COMPLETED", (obj["state"] as JsValue.Str).value)
+        assertEquals(JsValue.Null, obj["currentPass"])
+        assertEquals(JsValue.Null, obj["estimatedRemainingMs"])
     }
 }

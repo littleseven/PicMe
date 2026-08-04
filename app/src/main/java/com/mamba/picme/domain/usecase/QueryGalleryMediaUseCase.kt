@@ -195,6 +195,14 @@ class QueryGalleryMediaUseCase(
         counts.entries.sortedByDescending { it.value }.take(limit).associate { it.key to it.value }
     }
 
+    /**
+     * 按城市分组的媒体计数分布（城市 → 照片数），按计数降序取 top [limit]。
+     * 供 JS `gallery.stats_by_city`：DB 层 GROUP BY 聚合，不加载实体。
+     */
+    suspend fun statsByCity(limit: Int = 50): Map<String, Int> = withContext(Dispatchers.IO) {
+        db.mediaDao().getCityGroups(limit).associate { it.city to it.cnt }
+    }
+
     private fun parseLabelArray(raw: String?): List<String> {
         if (raw.isNullOrBlank()) return emptyList()
         return runCatching {

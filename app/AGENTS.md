@@ -106,10 +106,10 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 > **2026-07-25 JS Engine（QuickJS 沙箱，`features/chat/js/`）**：
 > - `QuickJsEngine` / `QuickJsConverter`：dokar3 quickjs-kt 1.0.5 引擎适配器（唯一生产引擎实现，QuickJS 依赖仅 `:app` 引入），实现 `:runtime-core` 引擎无关的 `JsEngine` 接口；eval 带超时（默认 5s），bridge 经 `__bridgeCall`/`__bridgeCallAsync` 绑定 + bootstrap JS 注入
-> - `GalleryScriptHandlers.registerGalleryHandlers`：gallery/media/face/tag **10 个只读取数 handler 的唯一注册点**（全部 async，JS 侧必须 `await bridge.callAsync`），ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 共用，新增/修改 handler 只改这里
-> - `GalleryJs`：JS ↔ 查询模型字段转换（parseQueryFilter / toResultJsValue 等），media.meta 白名单不回 uri/GPS/ocrText/embedding
+> - `GalleryScriptHandlers.registerGalleryHandlers`：gallery/media/face/tag **12 个只读取数 handler 的唯一注册点**（全部 async，JS 侧必须 `await bridge.callAsync`），ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 共用，新增/修改 handler 只改这里
+> - `GalleryJs`：JS ↔ 查询模型字段转换（parseQueryFilter / toResultJsValue / toScanStatusJsValue 等），media.meta 白名单不回 uri/GPS/ocrText/embedding（回 city/aestheticScore/faceQualityScore 纯数值字段）
 > - `ChartJs` + `assets/js/chart_bootstrap.js`：Chart.bar/line/pie/timeline → SVG，图卡落库为 CHART 消息，summary 回传 LLM
-> - `CapabilityDispatchHandler`：`capability.dispatch` 写通路（delete_media/favorite_media/select_media/get_gallery_summary/remember_fact/forget_fact/recall_memory 白名单），按 `CommandRisk` 分级，写操作经 `WriteConfirmationController`（`features/chat/`）弹确认框——缩略图预览、120s 超时按拒绝、并发确认互斥串行、脚本结束在途确认失效；落点 `ChatMediaWriteCapability`（CHAT 场景，删除走 MediaStore 授权，favorite/select 会话级无持久化）与 `MemoryCapability`（remember/forget_fact 落 `memory_facts`，recall_memory 只读直通）
+> - `CapabilityDispatchHandler`：`capability.dispatch` 写通路（delete_media/favorite_media/select_media/get_gallery_summary/remember_fact/forget_fact/recall_memory/remember_person_relation/forget_person_relation/query_person_relation 白名单），按 `CommandRisk` 分级，写操作经 `WriteConfirmationController`（`features/chat/`）弹确认框——缩略图预览、120s 超时按拒绝、并发确认互斥串行、脚本结束在途确认失效；落点 `ChatMediaWriteCapability`（CHAT 场景，删除走 MediaStore 授权，favorite/select 会话级无持久化）、`MemoryCapability`（remember/forget_fact 落 `memory_facts`，recall_memory 只读直通）与 `PersonRelationCapability`（人物关系声明/遗忘/查询）
 > - 完整规格见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 
 ### 2.2 领域层 (`domain/`)

@@ -5,6 +5,8 @@ import com.mamba.picme.data.local.entity.PersonEntity
 import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.model.GalleryQueryResult
 import com.mamba.picme.domain.model.QueryFilter
+import com.mamba.picme.domain.tag.scan.ScanSessionState
+import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
 import org.json.JSONArray
 
@@ -50,6 +52,7 @@ fun GalleryQueryResult.toResultJsValue(): JsValue.Obj = JsValue.Obj(
 /**
  * MediaEntity → media.meta 白名单元数据。
  * **不回**：uri / latitude / longitude / ocrText / 任何 embedding/ROI（隐私红线）。
+ * 评分字段（aestheticScore/faceQualityScore）为纯数值、不含媒体内容，可回。
  */
 fun MediaEntity.toMetaJsValue(): JsValue.Obj = JsValue.Obj(
     linkedMapOf(
@@ -59,8 +62,11 @@ fun MediaEntity.toMetaJsValue(): JsValue.Obj = JsValue.Obj(
         "fileName" to JsValue.Str(fileName),
         "labels" to (labels?.let { parseStringArray(it) } ?: JsValue.Null),
         "locationName" to (locationName?.let { JsValue.Str(it) } ?: JsValue.Null),
+        "city" to (city?.let { JsValue.Str(it) } ?: JsValue.Null),
         "hasFace" to JsValue.Bool(hasFace),
         "faceId" to (faceId?.let { JsValue.Str(it) } ?: JsValue.Null),
+        "aestheticScore" to (aestheticScore?.let { JsValue.Num(it.toDouble()) } ?: JsValue.Null),
+        "faceQualityScore" to (faceQualityScore?.let { JsValue.Num(it.toDouble()) } ?: JsValue.Null),
     )
 )
 
@@ -176,4 +182,42 @@ fun parseTimelineArgs(args: JsValue): Triple<Long?, Long?, Long> {
     val bucketMs = (e["bucketMs"] as? JsValue.Num)?.value?.toLong()
         ?: QueryGalleryMediaUseCase.BUCKET_MONTH_MS
     return Triple(fromMs, toMs, bucketMs)
+}
+
+// ── tag.scan_status：扫描会话状态快照 ──────────────────────────────
+
+/** 会话进行中（含暂停/取消中）的状态集合；IDLE/CANCELLED/COMPLETED 视为非活跃。 */
+private val ACTIVE_SCAN_STATES = setOf(
+    ScanSessionState.RUNNING,
+    ScanSessionState.PAUSING,
+    ScanSessionState.PAUSED,
+    ScanSessionState.CANCELLING,
+)
+
+/**
+ * TagScanSessionProgress? → tag.scan_status 结果。
+ * 无会话（null）时仅回 `{active:false, state:null}`；不回 messages 明细（量大，UI 专用）。
+ */
+fun TagScanSessionProgress?.toScanStatusJsValue(): JsValue.Obj {
+    if (this == null) {
+        return JsValue.Obj(
+            linkedMapOf(
+                "active" to JsValue.Bool(false),
+                "state" to JsValue.Null,
+            )
+        )
+    }
+    return JsValue.Obj(
+        linkedMapOf(
+            "active" to JsValue.Bool(state in ACTIVE_SCAN_STATES),
+            "state" to JsValue.Str(state.name),
+            "sessionId" to JsValue.Str(sessionId),
+            "currentPass" to (currentPass?.let { JsValue.Str(it.name) } ?: JsValue.Null),
+            "processed" to JsValue.Num(processed.toDouble()),
+            "total" to JsValue.Num(total.toDouble()),
+            "pending" to JsValue.Num(pending.toDouble()),
+            "failed" to JsValue.Num(failed.toDouble()),
+            "estimatedRemainingMs" to (estimatedRemainingMs?.let { JsValue.Num(it.toDouble()) } ?: JsValue.Null),
+        )
+    )
 }

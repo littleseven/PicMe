@@ -112,28 +112,30 @@ QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 
 ## 4. Handler 清单
 
-### 4.1 取数 handler（10 个，全部 async、只读）
+### 4.1 取数 handler（12 个，全部 async、只读）
 
 唯一注册入口：`GalleryScriptHandlers.registerGalleryHandlers`（`features/chat/js/GalleryScriptHandlers.kt`），**ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 临时 JsRuntime 共用**，保证两条链路 handler 集合一致。新增/修改 handler 只改这里。
 
 | Handler | 参数 | 返回 | 说明 |
 |---------|------|------|------|
 | `gallery.summary` | `{}` | 聚合统计对象 | totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation |
-| `gallery.query` | `{label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}` | `{ids:[...], total:N}` | 多维 AND 结构化过滤；ids 截断到 limit，total 为未截断真实数 |
+| `gallery.query` | `{label?,ocr?,location?,fromMs?,toMs?,hasFace?,person?,limit?}` | `{ids:[...], total:N}` | 多维 AND 结构化过滤（person=已命名人物名，按人脸归属过滤）；ids 截断到 limit，total 为未截断真实数 |
 | `gallery.tags` | `{}` | `{标签:照片数}` | 实际打标标签分布，按计数降序 top 50 |
 | `gallery.timeline` | `{fromMs?,toMs?,bucketMs?}` | `{桶起始时间戳:照片数}` | 按时间分桶，默认按月（bucketMs=2592000000；年=31536000000） |
 | `gallery.intersect` | `{idsA:[...],idsB:[...],op:"intersect\|union\|diff"}` | `{ids:[...], total:N}` | 多次 query 结果集合运算（如 旅行+人脸） |
 | `gallery.stats_by_tag` | `{label?,hasFace?,fromMs?,toMs?}` | `{标签:照片数}` | 条件过滤后的标签分布（如人像照片内的场景标签） |
-| `media.meta` | `id` 或 `[id]` | 单张元数据对象 | `{id,type,captureMs,fileName,labels,locationName,hasFace,faceId}` |
+| `gallery.stats_by_city` | `{topN?}`（默认 10 上限 50） | `{城市:照片数}` | 按城市分组的媒体计数分布（逆地理编码城市，DB 层聚合） |
+| `media.meta` | `id` 或 `[id]` | 单张元数据对象 | `{id,type,captureMs,fileName,labels,locationName,city,hasFace,faceId,aestheticScore,faceQualityScore}` |
 | `media.batch_meta` | `[id1,id2,...]` 或 `{ids:[...]}` | `[{...},...]` | 批量元数据，上限 50，避免循环调 media.meta |
 | `face.cluster` | `{topN?}`（默认 10 上限 50） | `{clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}` | 人脸聚类盘点；**不含 embedding 原始数据** |
 | `tag.audit` | `{topN?}`（默认 10 上限 50） | `{totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}` | 打标覆盖与词表外标签审计 |
+| `tag.scan_status` | `{}` | `{active,state,...}` 或 `{active:false,state:null}` | TAG 扫描会话状态快照（active/state/sessionId/currentPass/processed/total/pending/failed/estimatedRemainingMs）；只读查询，**绝不触发扫描** |
 
 ### 4.2 写通路 handler（1 个，async）
 
 | Handler | 参数 | 说明 |
 |---------|------|------|
-| `capability.dispatch` | `{method, params}` | JS → CapabilityRegistry 写通路，详见 §6。method 白名单：`delete_media {ids:[...]}` / `favorite_media {id,favorite}` / `select_media {id,selected}` / `remember_fact {content,category?}` / `forget_fact {fact_id?,query?}` / `get_gallery_summary {}` / `recall_memory {query}`（后两者只读直通）；其余 method 抛错 |
+| `capability.dispatch` | `{method, params}` | JS → CapabilityRegistry 写通路，详见 §6。method 白名单：`delete_media {ids:[...]}` / `favorite_media {id,favorite}` / `select_media {id,selected}` / `remember_fact {content,category?}` / `forget_fact {fact_id?,query?}` / `remember_person_relation {name,relation}` / `forget_person_relation {name}` / `get_gallery_summary {}` / `recall_memory {query}` / `query_person_relation {name?}`（后三者只读直通）；其余 method 抛错 |
 
 ### 4.3 内置演示 handler（4 个）
 
@@ -216,6 +218,7 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 - `favorite_media` / `select_media`：当前为 **chat 会话级 StateFlow 状态，无持久化**（App 尚无持久化收藏路径，与 GalleryCapability 的 favorite 先例一致）；
 - `remember_fact` / `forget_fact`：`MemoryCapability`（CHAT 场景）→ `MemoryRepository` 落 `memory_facts` 表（source=JS_DISPATCH，设置页「AI 记忆」可见来源标签）；
 - `recall_memory`：`MemoryCapability` READ_ONLY 直通，返回含 factId 的事实列表文本；
+- `remember_person_relation` / `forget_person_relation` / `query_person_relation`：`PersonRelationCapability`（CHAT 场景）→ `PersonRepository` 人物关系声明/遗忘/查询（remember/forget 需确认，query 只读直通）；
 - `share_media` 不在本 Capability（ChatToolService 已有通路，避免重复注册冲突）；
 - ChatViewModel 未激活（chat 页不在前台）时 Capability 报 `CAPABILITY_UNAVAILABLE`，Promise reject。
 
