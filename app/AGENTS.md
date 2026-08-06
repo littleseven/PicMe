@@ -118,7 +118,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 |------|------|------|
 | `usecase/` | `AiAgentUseCase`, `FindDuplicateMediaUseCase`, `GetGroupedMediaUseCase`, `OcrUseCase`, `ChatEditProcessor` | 业务用例：Agent Facade、去重、分组、OCR、对话式图片编辑渲染与保存 |
 | `repository/` | `MediaRepository`, `UserPreferencesRepository`, `UserSettingsRepository` 等接口 | 仓储抽象 |
-| `model/` | `AiAgentCommand`, `LlmProviderConfig`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe` |
+| `model/` | `AiAgentCommand`, `LlmProviderConfig`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe`（delta 相对调整带单次步进上限保护：美颜 ±10、slim_face ±5、亮度/曝光 ±15、对比度/饱和度 ±15、色温 ±500K、tint ±15；绝对值视为显式数值请求不限幅） |
 | `matting/` | `MattingEngine`, `MaskPostProcessor`, `StrokeLayer`, `EdgeParams`, `IDPhotoComposer`, `BackgroundComposer` 等 | 抠图与证件照合成：融合管线不再固定 sharpen（边缘锐化已迁移参数层，`EdgeParams.DEFAULT_CONTRAST=2.5` 复现旧行为，MIN/MAX 常量供 UI 钳制）；`MaskPostProcessor` 参数层 `erode/dilate/adjustEdges`（对比度→收缩扩张→羽化，各环节默认值自然短路）；`StrokeLayer` 矢量描边层（RESTORE/ERASE、undo/redo，撤销=移除尾条重放；`snapshot` + companion `replay` 纯函数保证跨线程安全） |
 | `search/` | `MediaSearchEngine`, `ExplicitFirstSearchPipeline`, `QuerySegmenter`, `QueryParser`, `SegmentedQuery`, `ExplicitFilter`, `ContentFilter` | 自然语言图片搜索：显式约束优先分段检索 + 规则/LLM/语义混合排序；Chat 场景由 `SearchIntent` 直接驱动 `MediaSearchEngine.search(filter)` |
 | `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory` | TAG 生成编排、OpenCL 守护、类别定义 |

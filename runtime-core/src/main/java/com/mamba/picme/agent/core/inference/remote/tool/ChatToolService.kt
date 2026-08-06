@@ -202,7 +202,7 @@ class ChatToolService private constructor() {
 
     @Tool(
         name = "edit_image",
-        value = ["对话式图片编辑（美颜/滤镜/调色），后台完成并把结果图发到聊天中，**绝不跳转到编辑页**。用户说「磨皮 30」「瘦脸」「美白一点」「换胶片风」「再亮一点」等编辑意图时使用（含 adjust_image 覆盖不了的场景）。edits 为 JSON 字符串，字段（均可选，只传要改的）：smoothing/whitening/slim_face/big_eyes/lip_color/blush/eyebrow（美颜 0~100，slim_face -50~50）、brightness/exposure/contrast/saturation（-50~50）、temperature/tint（-50~50）、filter_name（滤镜枚举，如 FILM_GOLD/COOL）、filter_intensity（0~100）、style_name（风格枚举）。相对调整用 *_delta 字段（如 {\"brightness_delta\":20} 表示再亮一点）。不支持的编辑（消除物体/局部美颜）不要编造参数，在 explanation 返回 [unsupported:erase] 或 [unsupported:local_beauty]。"]
+        value = ["对话式图片编辑（美颜/滤镜/调色），后台完成并把结果图发到聊天中，**绝不跳转到编辑页**。用户说「磨皮 30」「瘦脸」「美白一点」「换胶片风」「再亮一点」等编辑意图时使用（含 adjust_image 覆盖不了的场景）。edits 为 JSON 字符串，字段（均可选，只传要改的）：smoothing/whitening/big_eyes/lip_color/blush/eyebrow（美颜 0~100）、slim_face（-50~50）、brightness/exposure（-100~100）、contrast/saturation（0~200，100 为原图）、temperature（色温开尔文 2000~8000，5000 为原图，越大越暖）、tint（-100~100）、filter_name（滤镜枚举，如 FILM_GOLD/COOL）、filter_intensity（0~100）、style_name（风格枚举）。**模糊/相对调整（「美白一点」「再亮一点」）必须用 *_delta 字段且幅度要小**：美颜 ±10 以内、亮度/曝光 ±15 以内、对比度/饱和度 ±15 以内、色温 ±500 以内、tint ±15 以内、slim_face ±5 以内（超出会被截断）；如 {\"brightness_delta\":10} 表示再亮一点。只有用户明确给出数值（「磨皮 50」）才用绝对值字段。不支持的编辑（消除物体/局部美颜）不要编造参数，在 explanation 返回 [unsupported:erase] 或 [unsupported:local_beauty]。"]
     )
     fun editImage(
         @P(name = "image_uri", value = "目标图片 URI，留空串表示用最近发送的图片") imageUri: String,
