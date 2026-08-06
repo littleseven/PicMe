@@ -107,7 +107,7 @@ fun AppSlider(
 
 @Preview(name = "Light", showBackground = true)
 @Composable
-private fun AppSliderPreviewLight() {
+fun AppSliderPreviewLight() {
     PoLangTheme {
         AppSliderPreviewContent()
     }
@@ -120,7 +120,7 @@ private fun AppSliderPreviewLight() {
     backgroundColor = 0xFF1C1B1F
 )
 @Composable
-private fun AppSliderPreviewDark() {
+fun AppSliderPreviewDark() {
     PoLangTheme {
         AppSliderPreviewContent()
     }
