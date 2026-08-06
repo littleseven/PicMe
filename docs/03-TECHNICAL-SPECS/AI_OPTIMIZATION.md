@@ -114,6 +114,8 @@ AI 一键优化是新路线下最值得投入的 P0 能力之一：
 └───────────────┘                       └───────────────────┘
 ```
 
+> **2026-08-06 更新**：Fast 路径现已接入抽卡闭环（best-of-N + NIMA 评分守卫），见 §11.5。
+
 ### 3.2 Fast 路径（本地，默认）
 
 **为什么优先本地**：
@@ -124,7 +126,7 @@ AI 一键优化是新路线下最值得投入的 P0 能力之一：
 
 **场景识别输入**：
 
-> **实现现状（2026-08）**：Fast 路径当前**不做场景分析**——`AiOptimizeUseCase.fastOptimize()` 恒取 `Scene.GENERAL` 预设；`analyzer/` 下仅有 `Scene` 枚举，无 SceneAnalyzer 实现。场景识别实际发生在 Smart 路径（远程模型返回 `preset.scene`）。下表为原设计信号源，其中 ML Kit 两项已不可用。
+> **实现现状（2026-08）**：Fast 路径当前**不做场景分析**——`AiOptimizeUseCase.fastOptimize()` 恒取 `Scene.GENERAL` 预设；`analyzer/` 下仅有 `Scene` 枚举，无 SceneAnalyzer 实现。场景识别实际发生在 Smart 路径（远程模型返回 `preset.scene`）。下表为原设计信号源，其中 ML Kit 两项已不可用。编辑器一键优化自 2026-08-06 起改走抽卡闭环（`optimizeWithGacha()`，见 §11.5），NIMA 模型未下载时退回此固定预设路径。
 
 | 信号 | 来源 | 用途 |
 |------|------|------|
@@ -673,6 +675,19 @@ class PhotoEditorViewModel(
   - 可被 AgentOrchestrator 通过 tool call 调用
   - Fast 路径端到端 < 500ms
   - 失败时 graceful 降级，不崩溃
+
+---
+
+## 11.5 抽卡闭环（2026-08-06 落地）
+
+AI 优化已从「一次给值」升级为「抽卡闭环」（best-of-N + NIMA 评分守卫）：
+
+- **链路**：`CandidateSampler` 以场景预设为锚点抽 4 候选 → `CandidateRenderer` 512px 渲染 → `OptimizeScorer` NIMA 评分 + 技术护栏（高光裁剪 5%、亮度漂移 15%）→ 自动选优
+- **退化守卫**：最优候选 NIMA 分 ≤ 原图 + 0.05 时保持原图，从机制上杜绝"越优化越差"
+- **换一组**：编辑器结果条支持重抽 4 卡用户手选；点选/关闭行为落库 `optimize_feedback` 表（Phase 2 个性化素材）
+- **落库语义**：重抽时每组自动落一条 `auto` 记录（NIMA 建议），用户点选/关闭再落 `user`/`dismiss` 记录——两组叠加是有意设计，Phase 2 可比对「NIMA 建议 vs 人选」差异
+- **降级链**：NIMA 模型未下载 → 退回固定预设（原行为）；批量优化不走抽卡
+- 设计与实现详见 `docs/superpowers/specs/2026-08-06-ai-optimize-gacha-design.md` 与 `docs/superpowers/plans/2026-08-06-ai-optimize-gacha.md`
 
 ---
 

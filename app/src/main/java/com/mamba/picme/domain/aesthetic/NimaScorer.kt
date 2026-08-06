@@ -24,7 +24,7 @@ import java.nio.FloatBuffer
  *
  * 与 [EdiffiqaScorer] 的差异：整图打分（不需人脸对齐）、NHWC 交错（非 NCHW 三 plane）、10-bin 期望分（非单标量）。
  */
-class NimaScorer(private val context: Context) {
+class NimaScorer(private val context: Context) : AestheticScorer {
     companion object {
         private const val TAG = "PoLang:Aesthetic"
         val MODEL_ID: String = ModelPathConfig.MODEL_ID_NIMA
@@ -56,7 +56,7 @@ class NimaScorer(private val context: Context) {
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
     private var session: OrtSession? = null
 
-    suspend fun initialize(): Boolean {
+    override suspend fun initialize(): Boolean {
         session?.let { return true } // 已就绪则复用，避免重复建会话（NNAPI 编译昂贵）
         val modelDir = ModelPathConfig.getModelDir(context, MODEL_ID)
         val modelFile = File(modelDir, FILE_NAME)
@@ -89,7 +89,7 @@ class NimaScorer(private val context: Context) {
     /**
      * 给一张整图 [Bitmap] 打美学分；失败返回 null。内部 resize 到 224×224，无需人脸对齐。
      */
-    fun score(bitmap: Bitmap): Float? {
+    override fun score(bitmap: Bitmap): Float? {
         val sess = session ?: run {
             Log.w(TAG, "NIMA session not initialized")
             return null
@@ -133,7 +133,7 @@ class NimaScorer(private val context: Context) {
         }
     }
 
-    fun release() {
+    override fun release() {
         session?.close()
         session = null
         Log.i(TAG, "NIMA session released")

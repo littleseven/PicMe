@@ -113,6 +113,11 @@
     <string name="ai_optimize">AI 一鍵優化</string>
     <string name="ai_optimize_not_available">AI 優化暫不可用</string>
     <string name="ai_optimize_failed">AI 優化失敗：%1$s</string>
+    <string name="ai_optimize_best_applied">已為你套用最佳效果</string>
+    <string name="ai_optimize_keep_original">目前照片效果已很好，未做修改</string>
+    <string name="ai_optimize_reroll">換一組</string>
+    <string name="ai_optimize_pick_hint">點選你最喜歡的一張</string>
+    <string name="ai_optimize_dismiss">關閉</string>
     <string name="remove_background">去背景</string>
     <string name="remove_background_failed">去背景失敗</string>
     <string name="id_photo_title">證件照</string>

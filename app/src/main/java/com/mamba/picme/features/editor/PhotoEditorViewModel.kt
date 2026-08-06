@@ -14,6 +14,11 @@ import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
+import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
+import com.mamba.picme.domain.agent.capability.optimize.gacha.GachaResult
+import com.mamba.picme.domain.agent.capability.optimize.gacha.OptimizeFeedbackLogger
+import com.mamba.picme.domain.agent.capability.optimize.gacha.ScoredCandidate
+import com.mamba.picme.domain.agent.capability.optimize.recipe.OptimizeRecipeMapper
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.matting.MattingRouter
 import com.mamba.picme.domain.repository.MediaRepository
@@ -52,7 +57,8 @@ class PhotoEditorViewModel(
     private val mediaRepository: MediaRepository,
     private val userSettingsRepository: UserSettingsRepository? = null,
     private val aiOptimizeUseCase: AiOptimizeUseCase? = null,
-    private val mattingEngine: MattingEngine? = null
+    private val mattingEngine: MattingEngine? = null,
+    private val feedbackLogger: OptimizeFeedbackLogger? = null
 ) : ViewModel() {
 
     sealed class State {
@@ -64,11 +70,33 @@ class PhotoEditorViewModel(
             val selectedTab: EditorTab = EditorTab.CROP,
             val isProcessing: Boolean = false,
             val isSaving: Boolean = false,
-            val error: String? = null
+            val error: String? = null,
+            val gachaRun: GachaRunUiState? = null
         ) : State()
 
         data class Error(val message: String) : State()
     }
+
+    /**
+     * 抽卡运行状态（UI）。
+     *
+     * @property candidates 本组 4 张候选卡（含缩略图与分数）
+     * @property selectedIndex 当前应用的卡序号；-1 = 当前应用结果不在本组或 KeepOriginal
+     * @property exclude 已出现的参数指纹（「换一组」去重）
+     * @property baseRecipe 首次优化前的 recipe；换一组/点选都基于它映射，避免参数叠加
+     * @property scene 识别场景（落库用）
+     * @property expanded true = 展开 4 卡对比条（换一组后）
+     * @property keepOriginal true = 退化守卫判定保持原图
+     */
+    data class GachaRunUiState(
+        val candidates: List<ScoredCandidate>,
+        val selectedIndex: Int,
+        val exclude: Set<String>,
+        val baseRecipe: EditRecipe,
+        val scene: Scene,
+        val expanded: Boolean = false,
+        val keepOriginal: Boolean = false
+    )
 
     enum class EditorTab { CROP, ADJUST, BEAUTY, FILTER, MARKUP }
 
@@ -229,7 +257,11 @@ class PhotoEditorViewModel(
     }
 
     /**
-     * AI 一键优化：分析当前图片场景并应用推荐配方。
+     * AI 一键优化：抽卡闭环（采样 4 候选 → 渲染 → NIMA 评分 → 选优 + 退化守卫）。
+     *
+     * - Selected：自动应用最优卡，结果条提供「换一组」
+     * - KeepOriginal：保持原图，结果条说明 + 「换一组」
+     * - Unavailable（NIMA 未下载等）：退回固定预设直接应用（原行为），无抽卡 UI
      */
     fun aiOptimize() {
         val useCase = aiOptimizeUseCase ?: run {
@@ -239,19 +271,59 @@ class PhotoEditorViewModel(
             return
         }
         val current = _state.value as? State.Ready ?: return
+        if (current.isProcessing) return // 防快速连点并发抽卡
         val sourceUri = current.recipe.sourceUri
         viewModelScope.launch {
             val processingState = current.copy(isProcessing = true, error = null)
             _state.value = processingState
             try {
-                val result = useCase.optimize(sourceUri, current.recipe)
-                history.push(result.editRecipe)
-                _state.value = processingState.copy(
-                    recipe = result.editRecipe,
-                    isProcessing = false
-                )
-                _recipeChanges.value = result.editRecipe
-                scoreNimaDelta(result.editRecipe, result.scene.name)
+                val outcome = useCase.optimizeWithGacha(sourceUri, current.recipe)
+                when (val result = outcome.result) {
+                    is GachaResult.Selected -> {
+                        val recipe = outcome.editRecipe
+                        if (recipe != null) {
+                            history.push(recipe)
+                            _state.value = processingState.copy(
+                                recipe = recipe,
+                                isProcessing = false,
+                                gachaRun = GachaRunUiState(
+                                    candidates = result.all,
+                                    selectedIndex = result.best.candidate.index,
+                                    exclude = outcome.usedFingerprints,
+                                    baseRecipe = current.recipe,
+                                    scene = outcome.scene
+                                )
+                            )
+                            _recipeChanges.value = recipe
+                        } else {
+                            _state.value = processingState.copy(isProcessing = false)
+                        }
+                    }
+                    is GachaResult.KeepOriginal -> {
+                        _state.value = processingState.copy(
+                            isProcessing = false,
+                            gachaRun = GachaRunUiState(
+                                candidates = result.all,
+                                selectedIndex = -1,
+                                exclude = outcome.usedFingerprints,
+                                baseRecipe = current.recipe,
+                                scene = outcome.scene,
+                                keepOriginal = true
+                            )
+                        )
+                    }
+                    GachaResult.Unavailable -> {
+                        val recipe = outcome.editRecipe
+                        if (recipe != null) {
+                            history.push(recipe)
+                            _state.value = processingState.copy(recipe = recipe, isProcessing = false)
+                            _recipeChanges.value = recipe
+                            scoreNimaDelta(recipe, outcome.scene.name)
+                        } else {
+                            _state.value = processingState.copy(isProcessing = false)
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 Logger.e(TAG, "AI optimize failed", e)
                 _state.value = processingState.copy(
@@ -289,6 +361,110 @@ class PhotoEditorViewModel(
                 "delta=${(afterScore ?: 0f) - (beforeScore ?: 0f)}"
         )
         nima.release()
+    }
+
+    /**
+     * 「换一组」：以首次优化前的 recipe 为基准重新抽卡（去重已出现组合），
+     * 展开 4 卡对比条等用户点选；不自动应用。
+     */
+    fun rerollGacha() {
+        val useCase = aiOptimizeUseCase ?: return
+        val current = _state.value as? State.Ready ?: return
+        if (current.isProcessing) return // 防快速连点并发抽卡
+        val run = current.gachaRun ?: return
+        viewModelScope.launch {
+            _state.value = current.copy(isProcessing = true)
+            try {
+                val outcome = useCase.optimizeWithGacha(
+                    imageUri = run.baseRecipe.sourceUri,
+                    baseRecipe = run.baseRecipe,
+                    exclude = run.exclude
+                )
+                val ready = _state.value as? State.Ready ?: return@launch
+                val all = when (val r = outcome.result) {
+                    is GachaResult.Selected -> r.all
+                    is GachaResult.KeepOriginal -> r.all
+                    GachaResult.Unavailable -> null
+                }
+                if (all != null) {
+                    _state.value = ready.copy(
+                        isProcessing = false,
+                        gachaRun = GachaRunUiState(
+                            candidates = all,
+                            selectedIndex = -1,
+                            exclude = outcome.usedFingerprints,
+                            baseRecipe = run.baseRecipe,
+                            scene = outcome.scene,
+                            expanded = true,
+                            keepOriginal = outcome.result is GachaResult.KeepOriginal
+                        )
+                    )
+                } else {
+                    _state.value = ready.copy(
+                        isProcessing = false,
+                        error = appContext?.getString(R.string.ai_optimize_not_available)
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "reroll gacha failed", e)
+                val ready = _state.value as? State.Ready ?: return@launch
+                _state.value = ready.copy(
+                    isProcessing = false,
+                    error = appContext?.getString(R.string.ai_optimize_failed, e.message ?: "")
+                )
+            }
+        }
+    }
+
+    /**
+     * 用户在 4 卡对比条点选某卡：基于 baseRecipe 映射应用（不叠加），落库 user 反馈。
+     */
+    fun pickGachaCandidate(index: Int) {
+        val current = _state.value as? State.Ready ?: return
+        val run = current.gachaRun ?: return
+        val scored = run.candidates.find { it.candidate.index == index } ?: return
+        if (scored.rejected) return
+
+        val recipe = OptimizeRecipeMapper.toEditRecipe(
+            preset = scored.candidate.preset,
+            sourceUri = run.baseRecipe.sourceUri,
+            baseRecipe = run.baseRecipe
+        )
+        history.push(recipe)
+        _state.value = current.copy(
+            recipe = recipe,
+            gachaRun = run.copy(selectedIndex = index, expanded = false, keepOriginal = false)
+        )
+        _recipeChanges.value = recipe
+        viewModelScope.launch {
+            feedbackLogger?.log(
+                imageUri = run.baseRecipe.sourceUri,
+                scene = run.scene,
+                all = run.candidates,
+                selectedIndex = index,
+                source = OptimizeFeedbackLogger.SOURCE_USER
+            )
+        }
+    }
+
+    /**
+     * 关闭抽卡结果条；展开态下未点选即关闭时落库 dismiss 反馈。
+     */
+    fun dismissGacha() {
+        val current = _state.value as? State.Ready ?: return
+        val run = current.gachaRun ?: return
+        if (run.expanded && run.selectedIndex < 0) {
+            viewModelScope.launch {
+                feedbackLogger?.log(
+                    imageUri = run.baseRecipe.sourceUri,
+                    scene = run.scene,
+                    all = run.candidates,
+                    selectedIndex = -1,
+                    source = OptimizeFeedbackLogger.SOURCE_DISMISS
+                )
+            }
+        }
+        _state.value = current.copy(gachaRun = null)
     }
 
     fun redo() {
