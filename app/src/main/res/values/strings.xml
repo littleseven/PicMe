@@ -159,6 +159,27 @@
     <string name="face_detect_profile_balanced">Balanced</string>
     <string name="face_detect_profile_aggressive">Aggressive</string>
     <string name="data_generation">Data Generation</string>
+    <string name="debug_tab_generate">Batch Generate</string>
+    <string name="debug_tab_pexels">Pexels Gallery</string>
+    <string name="pexels_api_key_hint">Enter Pexels API Key</string>
+    <string name="pexels_api_key_save">Save</string>
+    <string name="pexels_api_key_configured">API Key configured</string>
+    <string name="pexels_api_key_change">Change</string>
+    <string name="pexels_api_key_invalid">Invalid API Key, please re-enter</string>
+    <string name="pexels_get_key">Get a free key at pexels.com/api</string>
+    <string name="pexels_search_hint">Search keywords (empty = curated)</string>
+    <string name="pexels_attribution">Photos provided by Pexels</string>
+    <string name="pexels_selected_count">%1$d selected</string>
+    <string name="pexels_download_selected">Download Selected</string>
+    <string name="pexels_download_batch">Batch %1$d</string>
+    <string name="pexels_downloading">Downloading %1$s</string>
+    <string name="pexels_download_done">Done: %1$d/%2$d saved</string>
+    <string name="pexels_error_network">Network error, please retry</string>
+    <string name="pexels_error_rate_limited">Pexels rate limit reached (200/hour), try later</string>
+    <string name="pexels_empty">No results</string>
+    <string name="pexels_retry">Retry</string>
+    <string name="pexels_search">Search</string>
+    <string name="pexels_photo_desc">Photo by %1$s</string>
     <string name="person">Person</string>
     <string name="landscape">Landscape</string>
     <string name="swimwear">Swimwear</string>

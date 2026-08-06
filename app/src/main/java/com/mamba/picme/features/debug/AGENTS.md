@@ -107,6 +107,17 @@ private suspend fun downloadWithRetry(
 }
 ```
 
+### 2.2a Pexels 图库（Pexels API 测试图下载）
+
+**技术规范**:
+- **官方 API**: Retrofit 接口 `PexelsApi`（`v1/search` / `v1/curated`），Key 以 `@Header("Authorization")` 逐请求传入
+- **Key 存取**: `PexelsKeyStore`（独立 SharedPreferences `debug_pexels_prefs`），仅存本地，不进日志不进 git
+- **状态机**: `PexelsViewModel` + sealed `PexelsUiState`（NoKey / Loading / Ready / Error），错误用 `PexelsErrorKind` 枚举（401 清 Key 回 NoKey；429 提示限流）
+- **下载链路**: 复用 `SampleDataGenerator.savePexelsPhoto()`，`TEST_PEXELS_` 前缀，兼容 `clearTestData()`
+- **限流**: 免费档 200 次/小时、20,000 次/月；per_page=30
+- **署名**: 页面底部常驻「Photos provided by Pexels」（API 使用条款要求）
+- **设计文档**: `docs/superpowers/specs/2026-08-06-pexels-test-image-download-design.md`
+
 ### 2.3 内容审核与人脸检测
 
 **技术规范**:
@@ -231,6 +242,10 @@ private fun LogWindow(
 - [ ] 暂停/恢复功能是否正常？(协程挂起与恢复)
 - [ ] 下载失败是否有重试机制？(最多 3 次)
 - [ ] 用户点击清除时是否有二次确认？(避免误操作)
+- [ ] Pexels API Key 是否仅存本地 SharedPreferences？（严禁入库/进日志）
+- [ ] 401/429 是否分别走 NoKey 回退与限流提示？（不可笼统报网络错误）
+- [ ] Pexels 下载图片是否带 TEST_PEXELS_ 前缀？（兼容 TEST_ 前缀清理）
+- [ ] 页面是否保留「Photos provided by Pexels」署名？（API 条款要求）
 
 ## 5. 与产品文档对照 (Product Alignment)
 
