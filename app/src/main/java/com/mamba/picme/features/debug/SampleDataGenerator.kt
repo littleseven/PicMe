@@ -14,6 +14,7 @@ import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.domain.repository.MediaRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -157,36 +158,46 @@ object SampleDataGenerator {
             return@withContext false
         }
 
-        val bitmap = decodeSampledBitmap(file)
-        val isValid = bitmap?.let { analyzeContentAndSkin(it).isValidContent } == true
-        bitmap?.recycle()
-        if (!isValid) {
-            file.delete()
-            addLog("Pexels filtered (invalid content): $photoId")
-            return@withContext false
-        }
+        try {
+            val bitmap = decodeSampledBitmap(file)
+            if (bitmap == null) {
+                addLog("Pexels decode failed: $photoId")
+                return@withContext false
+            }
+            val isValid = analyzeContentAndSkin(bitmap).isValidContent
+            bitmap.recycle()
+            if (!isValid) {
+                addLog("Pexels filtered (invalid content): $photoId")
+                return@withContext false
+            }
 
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, -Random().nextInt(180))
-        val savedUri = saveTestImageToAlbum(context, file, fileName, calendar.timeInMillis)
-        file.delete()
-        if (savedUri == null) {
-            addLog("Pexels album save failed: $fileName")
-            return@withContext false
-        }
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_YEAR, -Random().nextInt(180))
+            val savedUri = saveTestImageToAlbum(context, file, fileName, calendar.timeInMillis)
+            if (savedUri == null) {
+                addLog("Pexels album save failed: $fileName")
+                return@withContext false
+            }
 
-        repository.insertMedia(
-            MediaAsset(
-                uri = savedUri,
-                type = MediaType.PHOTO,
-                captureDate = calendar.timeInMillis,
-                fileName = fileName,
-                hasFace = false,
-                source = "pexels"
+            repository.insertMedia(
+                MediaAsset(
+                    uri = savedUri,
+                    type = MediaType.PHOTO,
+                    captureDate = calendar.timeInMillis,
+                    fileName = fileName,
+                    hasFace = false,
+                    source = "pexels"
+                )
             )
-        )
-        addLog("Saved to album [PEXELS]: $fileName")
-        true
+            addLog("Saved to album [PEXELS]: $fileName")
+            true
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            addLog("Pexels save error [$photoId]: ${e.message.orEmpty().ifBlank { e::class.java.simpleName }}")
+            false
+        } finally {
+            file.delete()
+        }
     }
 
     private suspend fun generateData(
