@@ -216,7 +216,7 @@ beauty-engine/src/main/java/com/picme/beauty/
 - **调试 Shader**：`FRAGMENT_SHADER_DEBUG_RED`（全红）、`FRAGMENT_SHADER_DEBUG_TEXTURE_R`（R 通道灰度）供渲染链路验证使用
 
 **GPU 加速策略**：
-- **优先使用 GPU**：所有图像处理方法必须使用 GPU 加速 (OpenGL ES / Vulkan)
+- **优先使用 GPU**：所有图像处理方法必须使用 GPU 加速 (OpenGL ES / OpenCL)
 - **内存管理**：避免频繁的 CPU-GPU 数据传输，使用 FBO (Framebuffer Object)
 - **延迟控制**：单帧处理时间 < 16ms (60fps) 或 < 33ms (30fps)
 

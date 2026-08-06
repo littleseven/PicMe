@@ -1,11 +1,11 @@
 # PoLang 产品定义与路线图
 
 > **试验性应用** | 以 AI Agent 对话为核心，以相册+图像编辑为技术试验场  
-> **版本**：3.0（破浪相册）· 应用版本 v1.0.26 (10026)  
+> **版本**：3.0（破浪相册）· 应用版本 v1.0.33 (10033)  
 > **状态**：生效中  
 **最后更新**：2026-08-03
 **维护者**：项目开发者
-**实验状态**：进行中 · 相册核心能力已大规模落地（自然语言搜索、对话式图片编辑、智能抠图、证件照、Florence-2 + Qwen3-VL-2B 标签扫描、JS 沙盒脚本、相册摘要）· 人物记忆与关系图谱开发中（🔄 未合并 main）
+**实验状态**：进行中 · 相册核心能力已大规模落地（自然语言搜索、对话式图片编辑、智能抠图、证件照、Florence-2 + Qwen3-VL-2B 标签扫描、JS 沙盒脚本、相册摘要）· 人物记忆与关系图谱能力已落地（MemoryCapability/PersonRelationCapability 已注册进 main，体验完善中）
 
 > **2026-06-17 IM 远程控制产品线新增**：新增 IM 远程控制产品线，通过飞书等 IM + LLM 实现 App 远程控制。智能相册功能全量规划完成（智能分类、相册管理、AI 编辑进阶、视频管理等）。
 
@@ -138,9 +138,9 @@ PoLang 的实验目标是探索**右侧范式的工程可行性**。
 
 | 红线 | 定义 | 验证方式 |
 |------|------|----------|
-| **Agent 响应** | < 800ms（本地 L2 推理）/ < 1.5s（远程 L3/L4 推理） | 日志埋点 |
+| **Agent 响应** | < 1.5s（远程 L3/L4 推理）— 端侧文本 LLM 已于 2026-08 移除，原「本地 L2 推理 < 800ms」档不再适用 | 日志埋点 |
 | **交互反馈** | < 100ms（UI 响应） | 人工感知测试 |
-| **对话首字延迟** | < 500ms（本地）/ < 1s（远程） | 日志埋点 |
+| **对话首字延迟** | < 1s（远程）— 端侧文本路径已移除，原「本地 < 500ms」档不再适用 | 日志埋点 |
 | **快门延迟** | < 50ms | 高速摄像 |
 | **隐私保护** | 敏感数据优先本地处理，云端推理仅用于非敏感场景且需用户授权 | 权限清单审查 + 网络抓包 |
 | **IM 命令响应（实验线）** | < 3s（IM 发出到 Bot 回复） | 端到端计时 |
@@ -179,19 +179,19 @@ ChatScreen (二级页 - features/chat/)
     └─ ModelSelector (远程模型选择 + 用户偏好)
         ↓
 AgentOrchestrator (runtime-core/)
-    ├── REMOTE: RemoteInferencePipeline
-    │   ├── RemoteOrchestrator (OpenAI 标准 API)
+    ├── REMOTE: RemoteChatEngine（chat）/ RemoteReActAgent（相机）
+    │   ├── AgentConfigurator → StreamingSyncChatModel（:agent-core OpenAiChatModel）
     │   └── Chat Completions · tool_calls · 流式
     ├── MemoryManager (对话上下文 + 持久化)
     ├── PrivacyGuard (隐私分级)
     └── CapabilityRegistry (能力路由)
         ↓
     GalleryCapability (features/gallery/) - 核心能力
-    EditorCapability (features/editor/) - 核心能力
+    ImageEditCapability (domain/agent/capability/) - 核心能力
     CameraCapability (features/camera/) - 辅助入口
     SettingsCapability (features/settings/)
     NavigationCapability (global)
-    RemoteInferenceCapability (features/agent/remote/) - IM远程实验
+    RemoteChannelManager (domain/agent/remote/) - IM远程（飞书/Telegram）
         ↓
     UI Feedback (Compose)
     IM Feedback (飞书卡片/消息，实验线)
@@ -244,7 +244,7 @@ AgentOrchestrator (runtime-core/)
 | **JS 沙盒脚本** | ✅ | QuickJS + JSBridge，对话内运行相册分析脚本（`run_gallery_script`） |
 | **相册摘要** | ✅ | `GetGallerySummaryUseCase` / `ChatGallerySummaryCapability` |
 | **备份 / 恢复** | ✅ | `features/backuprestore` + `domain/backup`（备份格式 v5，SAF 导出/导入入口，含标签/人物关系快照） |
-| **事实记忆 + 人物关系图谱** | 🔄 开发中 | `MemoryRepository` + `PersonRepository`（`memory_facts` / `person_relations`，AppDatabase v13，未合并 main） |
+| **事实记忆 + 人物关系图谱** | ✅ 能力已注册 | `MemoryRepository` + `PersonRepository`（`memory_facts` / `person_relations`，AppDatabase v13）已注册进 main（MemoryCapability/PersonRelationCapability），体验完善中 |
 | 复杂意图理解 | ⚠️ | 多参数同时调节依赖远程 LLM 或规则模板；端侧仅胜任单参数明确指令 |
 | 上下文推理 | ⚠️ | 基于对话历史的隐式引用（"再亮一点"）准确率有限，需规则兜底 |
 | 语音控制 | ✅ | Push-to-Talk 默认开启，WakeWord 作为设置项可选 |
@@ -258,7 +258,7 @@ AgentOrchestrator (runtime-core/)
 |------|--------|----------|
 | 主动建议 | P2 | Agent 根据场景主动推荐（"光线较暗，是否开启夜景？"）|
 | 视频美颜录制 | P1 | 实时美颜 + 帧同步在视频场景的稳定性 |
-| 事实记忆 + 人物关系图谱 | P1 | 当前 🔄 开发中：记忆召回准确率、称谓→人脸簇解析、关系快照备份/重聚恢复 |
+| 事实记忆 + 人物关系图谱 | P1 | 能力已注册（MemoryCapability/PersonRelationCapability），待验证：记忆召回准确率、称谓→人脸簇解析、关系快照备份/重聚恢复 |
 
 ### 5.3 长期问题
 

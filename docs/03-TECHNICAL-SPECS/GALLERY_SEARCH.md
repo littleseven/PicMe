@@ -16,7 +16,7 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 - “包含发票的截图”
 - “大美女”
 
-整个链路**完全在设备端运行**（CV 模型、LLM、向量编码、数据库查询均不依赖云端），符合项目 `[PRIVACY]` 红线。
+相册搜索的**媒体处理**（CV 模型、向量编码、数据库查询）100% 在设备端运行，用户图片/视频文件绝不上传云端；仅文本查询经远程 LLM 做意图解析（端侧文本 LLM 已于 2026-08-02 移除），符合项目 `[PRIVACY]` 红线。
 
 核心设计原则：
 
@@ -103,7 +103,7 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 |------|------|------|------|
 | 1 | `FACE_DETECTION` | `hasFace`、`faceRoiResult`、`face_embeddings`、`semanticEmbedding` | 人脸 ROI + Glint360K R100 512 维 embedding + MobileCLIP 语义编码（同一张 faceBitmap 完成） |
 | 2 | `DBSCAN` | `persons`、`faceId` | 全局人脸聚类，单图多脸按 embedding 分别入簇 |
-| 3 | `IMAGE_TAGGING` | `media_assets.labels`（中文 JSON） | 端侧 VLM 打标：Florence-2-base（默认，ORT 独立路径）/ Qwen3-VL-2B（MNN）/ SmolVLM-500M，按 `taggerModelKey` 分流，输出场景/活动/物体/标签/摘要 |
+| 3 | `IMAGE_TAGGING` | `media_assets.labels`（中文 JSON） | 端侧 VLM 打标：Florence-2-base（默认，ORT 独立路径）/ Qwen3-VL-2B（MNN），按 `taggerModelKey` 分流，输出场景/活动/物体/标签/摘要 |
 | — | `MOBILE_CLIP_ENCODING`（legacy） | `semanticEmbedding` | **保留枚举值用于兼容历史任务/单独重编码**，常规扫描已在 Pass 1 内完成 |
 
 > 注（2026-08-03）：原 Pass 5 `ML_KIT_TAGGING`（ML Kit Image Labeler）已移除；`media_assets.mlKitLabels` 列仅为历史数据兼容保留，新扫描不再写入。
@@ -161,7 +161,7 @@ data class TimeRange(
 
 - **时间标准化**：Prompt 明确告知 LLM 当前时间（`now=`），要求把“近半年”“去年”“上个月”“近 3 个月”等相对表达换算为毫秒时间戳。例如 `近半年小孩的照片` → `TimeRange(startMs=1735689600000, endMs=1751327999999)`。
 - **与本地字段对齐**：`keywords` 对应 `labels/mlKitLabels/ocrText/fileName`；`locationKeywords` 对应 `locationName`；`hasFaces` 对应 `hasFace`；`personName` 对应人脸聚类后的 `persons`。
-- **命令层传递**：本地链路在 `LocalPromptBuilder` 中输出 `params.intent`；远程链路在 `RemotePromptBuilder` 的 Tool Spec 中定义 `intent` 参数；`LocalCommandParser` / `ToolCallCommandParser` 负责把 JSON 反序列化为 `SearchIntent`。
+- **命令层传递**：远程链路在 `RemotePromptBuilder` 的 Tool Spec 中定义 `intent` 参数，由 `ToolCallCommandParser` 负责把 JSON 反序列化为 `SearchIntent`（端侧文本链路 `LocalPromptBuilder`/`LocalCommandParser` 已于 2026-08-02 移除）。
 - **退化策略**：当 LLM 未输出 `intent` 或所有结构化字段为空时，`SearchIntent? = null`，下游自动回退到 `QueryParser` 规则解析。
 
 **Chat 链路**：
@@ -173,7 +173,7 @@ data class TimeRange(
 AgentOrchestrator.streamChat()
     │
     ▼
-Local/Remote LLM → AgentCommand.SearchMedia(
+远程 LLM（RemoteReActAgent）→ AgentCommand.SearchMedia(
     query = "近半年小孩的照片",
     intent = SearchIntent(
         timeRange = TimeRange(...),   // 近半年
@@ -327,13 +327,13 @@ MediaSearchEngine.search(filter)
 | 中文翻译 | `domain/tag/i18n/ChineseQueryTranslator.kt` | 中文查询 → 英文 embedding 候选 |
 | TAG 翻译 | `domain/tag/i18n/TagTranslator.kt` | TAG 展示翻译与搜索扩展 |
 | 扫描调度 | `domain/tag/scan/TagScanOrchestrator.kt` | 3-Pass 任务队列与状态机（另含 legacy `MOBILE_CLIP_ENCODING`） |
-| 单阶段执行 | `domain/tag/TagGenerationScheduler.kt` | Pass 1/2/3 原子任务（Pass 3 按 `taggerModelKey` 分流 Florence-2 / Qwen3-VL-2B / SmolVLM） |
+| 单阶段执行 | `domain/tag/TagGenerationScheduler.kt` | Pass 1/2/3 原子任务（Pass 3 按 `taggerModelKey` 分流 Florence-2 / Qwen3-VL-2B） |
 | 数据访问 | `data/local/MediaDao.kt` | 搜索相关 DAO 方法 |
 | UI | `features/gallery/GalleryScreen.kt` | 搜索状态、结果展示、批量操作 |
 | **LLM 意图模型** | `runtime-core/.../model/context/SearchIntent.kt` | `SearchIntent` / `TimeRange` 定义 |
 | **命令定义** | `runtime-core/.../model/command/AgentCommands.kt` | `SearchMedia` / `RefineMediaSearch` 等 |
-| **本地 Prompt** | `runtime-core/.../inference/local/prompt/LocalPromptBuilder.kt` | Chat 场景搜索意图 Prompt 与示例 |
-| **本地解析器** | `runtime-core/.../inference/local/parser/LocalCommandParser.kt` | `params.intent` → `SearchIntent` |
+| ~~**本地 Prompt**~~ | ~~`runtime-core/.../inference/local/prompt/LocalPromptBuilder.kt`~~ | 已随端侧文本 LLM 移除（2026-08-02） |
+| ~~**本地解析器**~~ | ~~`runtime-core/.../inference/local/parser/LocalCommandParser.kt`~~ | 已随端侧文本 LLM 移除（2026-08-02） |
 | **远程 Prompt** | `runtime-core/.../inference/remote/prompt/RemotePromptBuilder.kt` | Tool Spec 中定义 `intent` 参数 |
 | **远程解析器** | `runtime-core/.../inference/remote/parser/ToolCallCommandParser.kt` | `arguments.intent` → `SearchIntent` |
 | **Chat 搜索能力** | `features/chat/capability/ChatSearchCapability.kt` | CHAT 场景搜索命令分发 |

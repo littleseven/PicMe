@@ -29,8 +29,7 @@ PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 - `FaceDetectorFactory.kt`：创建 `FaceDetectorManager`
 - `FaceDetectionResult.kt`：返回 `landmarks106 + detectionSource + roiRect`
 - `EngineType.kt`：`MEDIAPIPE` / `MNN`（已移除 `NCNN` 与旧 `INSIGHTFACE`）
-- `DetectionPipelineConfig.kt`：ROI 与 Landmark 组合配置
-- `InferenceBackendType.kt`：推理后端类型枚举（ONNX / MNN / TFLite）
+- `DetectionPipelineConfig.kt`：ROI 与 Landmark 组合配置；同文件内定义 `InferenceBackendType`（ONNX / MNN / TFLite）、`DevicePreference`、`RoiDetectorType`、`LandmarkDetectorType` 枚举
 
 ### 2.2 内部实现层
 

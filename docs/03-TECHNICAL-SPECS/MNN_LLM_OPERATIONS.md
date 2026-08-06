@@ -649,8 +649,8 @@ mnnconvert -f ONNX --modelFile qwen3.5-2b.onnx \
 
 #### P1：GPU 后端切换
 
-**当前**：`backend_type: "cpu"`  
-**建议**：`backend_type: "gpu"`（Vulkan）
+**当前**：`backend_type: "opencl"`（`MnnLlmClient` 默认硬编码；MNN GPU 后端为 OpenCL，非 Vulkan，见 `MnnLlmClient.kt`）  
+**可选**：不支持 OpenCL 的低端设备回退 `cpu`（`OpenClGuardian` 负责超时降级）
 
 | 后端 | CPU 占用 | GPU 内存 | 温度 | 适用场景 |
 |------|---------|---------|------|---------|
@@ -660,7 +660,7 @@ mnnconvert -f ONNX --modelFile qwen3.5-2b.onnx \
 
 **注意事项**：
 - GPU 后端会增加 GPU 内存占用（~500MB-1GB）
-- 需要设备支持 Vulkan
+- 需要设备支持 OpenCL（项目统一 OpenCL 后端，未使用 Vulkan）
 - 首次加载可能有编译延迟
 
 #### ~~P1：动态加载/卸载~~ — 已部分解决
@@ -1214,7 +1214,7 @@ echo "Full log: $LOG_FILE"
 - [ ] `onTrimMemory(CRITICAL)` 立即触发 safeUnload
 - [ ] 离开相机页后人脸检测不再泄漏（ASR 由 `SherpaOnnxAsrEngine` 自行管理，不在此列）
 - [ ] ~~量化模型转换并测试推理质量~~（VLM 已是 INT4）
-- [ ] GPU 后端兼容性测试（Vulkan 支持检测）
+- [ ] GPU 后端兼容性测试（OpenCL 支持检测）
 - [ ] VLM 打标动态加载/卸载功能验证
 - [ ] 内存监控 + 自动降级逻辑
 - [ ] ~~相机预览场景不加载 LLM~~（文本 LLM 已移除）

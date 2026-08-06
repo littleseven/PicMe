@@ -64,8 +64,8 @@
 | 组件 | 职责 | 状态 |
 |------|------|------|
 | `AgentOrchestrator` | 统一入口：chat 走 `streamChat`，相机走 `processCameraInput`，均为远程推理 | ✅ 已落地 |
-| `RemoteInferencePipeline` | 远程推理链路：OpenAI Chat Completions API（tool_calls·流式·多轮） | ✅ 已落地 |
-| `RemoteOrchestrator` | 远程推理编排：:agent-core OpenAiChatModel + ChatMemory | ✅ 已落地 |
+| `RemoteReActAgent` / `RemoteChatEngine` | 远程推理链路：OpenAI Chat Completions API（tool_calls·流式·多轮）；相机走 ReAct，chat 走 ChatEngine | ✅ 已落地 |
+| `AgentConfigurator` / `StreamingSyncChatModel` | 远程推理装配与编排：`createRemoteChatModel()` 构建 `:agent-core OpenAiChatModel`，`StreamingSyncChatModel` 承载 SSE 流式 + ChatMemory 多轮 | ✅ 已落地 |
 | `CameraToolService` | 相机场域 @Tool 工具集（capture/adjust_beauty/switch_filter/adjust_zoom/flip_camera 等），相机指令远程 tool_calls 入口 | ✅ 已落地 |
 | `LocalLlmEngine` | 仅存 `imageInference`：Qwen3-VL-2B 端侧 VLM 打标（TAG Pass3），不再承担文本推理 | ✅ 已落地（仅打标） |
 | `:agent-core` (模块) | Java Android Library，提供 LangChain4j 风格 API：ChatModel、@Tool、AiServices、ChatMemory、OpenAiChatModel、OkHttp SSE 流式客户端 | ✅ 已落地 |
@@ -74,7 +74,7 @@
 | `MemoryManager` | DataStore 持久化对话历史，按 session 隔离 | ✅ 已落地 |
 | `KeywordSpotterEngine` | KWS 常驻低功耗唤醒词检测（Sherpa-ONNX，~14MB） | ✅ 已落地 |
 | `SherpaOnnxAsrEngine` | ASR 按需加载语音转录（Sherpa-ONNX，~282MB） | ✅ 已落地 |
-| `FeishuRemoteChannel` | 飞书 WebSocket 直连，IM 远程控制入口 | 🔄 冻结（IM 远程控制线冻结，服务端替代方案优先） |
+| `RemoteChannelManager`（`FeishuChannelHandler` + `TelegramChannelHandler`） | IM 远程控制入口：飞书/Telegram 多通道，消息→AgentCommand，拍照回传·设备绑定·确认 | ✅ 已落地（2026-07-27 解冻，多通道） |
 
 **已移除组件（2026-08-02：端侧文本 LLM 移除）**：
 - `LocalInferencePipeline` / `LocalCameraAgent` — 本地推理链路整体删除
@@ -87,12 +87,12 @@
 - **保留**：`LocalLlmEngine`（仅存 `imageInference` VLM 打标）、`MnnLlmClient`、`llm_jni_bridge.cpp`/`libagent_native.so`、`LocalModelService`、`OpenClGuardian`、`TaggerModelSelector`
 
 **已移除组件（ADR-005/006，2026-06）**：
-- `InferenceRouter` — 拆分为 `LocalInferencePipeline` + `RemoteInferencePipeline` 两条独立链路
+- `InferenceRouter` — 拆分为 `LocalInferencePipeline` + `RemoteReActAgent` 两条独立链路（前者已于 2026-08-02 随端侧文本 LLM 移除）
 - `ToolCallingChatLanguageModel` — 远程直接使用 langchain4j 原生 `OpenAiChatModel`
 - `ToolCallingOutputParser` — 远程使用标准 OpenAI `tool_calls` 响应格式
 - `ToolPromptBuilder` — 拆分为 `LocalPromptBuilder` + `RemotePromptBuilder`
 - `AdaptiveStrategySelector` — 本地不再需要策略分级
-- `ToolOrchestrator` — 编排逻辑合并入 `RemoteOrchestrator`
+- `ToolOrchestrator` — 编排逻辑合并入 `RemoteReActAgent`
 - `SherpaMnnAsrEngine` + `com.k2fsa.sherpa.mnn.*` — 已迁移至 Sherpa-ONNX（`SherpaOnnxAsrEngine`）
 - `MnnAsrClient` — 占位死代码，同步移除
 - 共清理 ~2,600 行冗余代码
@@ -139,9 +139,9 @@
 │             相机指令│                              │chat/相册/飞书 (REMOTE)      │
 │                    ▼                              ▼                           │
 │  ┌────────────────────────────┐  ┌──────────────────────────────────────┐   │
-│  │ CameraScreen→AiAgentUseCase│  │  RemoteInferencePipeline              │   │
+│  │ CameraScreen→AiAgentUseCase│  │  RemoteChatEngine                     │   │
 │  │ →processCameraInput (远程) │  │  ┌────────────────────────────────┐  │   │
-│  │  ┌──────────────────────┐  │  │  │ RemoteOrchestrator             │  │   │
+│  │  ┌──────────────────────┐  │  │  │ AgentConfigurator              │  │   │
 │  │  │RemoteReActAgent +    │  │  │  │ :agent-core OpenAiChatModel   │  │   │
 │  │  │CameraToolService@Tool│  │  │  │ OpenAI Chat Completions API   │  │   │
 │  │  └──────────────────────┘  │  │  │ DeepSeek V4 适配               │  │   │
@@ -149,7 +149,7 @@
 │                                  │  └────────────────────────────────┘  │   │
 │  ┌──────────────────────────┐    │                                      │   │
 │  │   Voice Pipeline (ONNX)  │    │  ┌────────────────────────────────┐  │   │
-│  │  ┌────────────────────┐  │    │  │ FeishuRemoteChannel            │  │   │
+│  │  ┌────────────────────┐  │    │  │ RemoteChannelManager           │  │   │
 │  │  │KeywordSpotterEngine│  │    │  │ 飞书 WebSocket 直连             │  │   │
 │  │  │ KWS always-on      │  │    │  │ IM消息→AgentCommand            │  │   │
 │  │  │ ~14MB · 50mW       │  │    │  │ 拍照回传·设备绑定·确认机制      │  │   │
@@ -345,7 +345,7 @@ ChatViewModel.sendMessage()
 AgentOrchestrator / AiAgentUseCase（固定远程 REMOTE，端侧文本 LLM 已移除）
         │
         ▼
-RemoteInferencePipeline ──► :agent-core OpenAiChatModel
+RemoteChatEngine ──► StreamingSyncChatModel ──► :agent-core OpenAiChatModel
         │
         ▼
 OpenAI Chat Completions (tool_calls)
@@ -834,7 +834,7 @@ POST /v1/chat/completions
 
 **langchain4j 标准化实现**：
 ```kotlin
-class RemoteOrchestrator(config: RemoteModelConfig) {
+class RemoteChatEngine(config: RemoteModelConfig) {  // 实际由 AgentConfigurator.createRemoteChatModel() 装配
     private val openAiChatModel = OpenAiChatModel.builder()  // :agent-core
         .baseUrl(config.baseUrl)
         .apiKey(config.apiKey)
@@ -878,7 +878,7 @@ object ToolCallCommandParser {
 | 禁用 thinking | API 请求自动附加 `thinking: {"type": "disabled"}` | `OpenAiChatModel` 内部处理 |
 | strict 模式兼容 | ToolSpec 自动添加 `additionalProperties: false` | `OpenAiChatModel` 内部处理 |
 | tool_choice 修复 | `REQUIRED` 正确映射为 `"required"`（非 `"auto"`） | `OpenAiChatModel` 内部处理 |
-| content 回退解析 | 当 API 未返回 tool_calls 但 content 含 tool_calls JSON 时，正则提取解析 | `RemoteOrchestrator.parseFallbackToolCalls()` |
+| thinking 禁用（避免 content 回退） | DeepSeek 开启 thinking 会使 content 为空、tool_calls 缺失；请求自动附加 `thinking.type=disabled` 使模型直接返回标准 tool_calls，无需 content 回退解析 | `RemoteModelFactory` |
 | Prompt 规范 | 禁止在 Prompt 中提供具体 tool_calls JSON 示例，避免模型输出到 content | `RemotePromptBuilder` |
 
 ### 4.6 性能与成本考量
@@ -996,7 +996,7 @@ sealed class AgentCommand {
 | **对话** | 文本回复/聊天 | `TextReply` | CameraCapability | 已验证 |
 | **相册搜索** | 自然语言搜照片（含 LLM 意图标准化） | `SearchMedia` | GalleryCapability / ChatSearchCapability | 已验证 |
 | **相册搜索** | 多轮结果细化（in-set 过滤） | `RefineMediaSearch` | ChatSearchCapability | 已验证 |
-| **远程控制** | 飞书消息处理 | 多种 | RemoteControlCapability | 开发中 |
+| **远程控制** | 飞书/Telegram 消息处理 | 多种 | RemoteChannelManager（RemoteControlCapability 存在但未注册） | ✅ 已落地 |
 
 #### V2 新增功能（开发中）
 
@@ -1009,7 +1009,7 @@ sealed class AgentCommand {
 | | 切换语言 | `ChangeLanguage` | SettingsCapability | P1 |
 | **导航** | 切换页面 | `NavigateTo` | NavigationCapability | P0 |
 | | 返回上一页 | `GoBack` | NavigationCapability | P0 |
-| **编辑** | 进入编辑 | 预留 | EditorCapability | P2 |
+| **编辑** | 进入编辑 | 预留 | ImageEditCapability | P2 |
 
 ---
 
@@ -1082,7 +1082,7 @@ class AiAgentUseCase(
     forceRemote: Boolean = false
 ) {
     private val orchestrator = AgentOrchestrator(
-        remotePipeline = RemoteInferencePipeline(...)
+        remotePipeline = RemoteChatEngine(...)   // 由 AgentConfigurator.createRemoteChatModel 装配
     )
 
     // chat/相册入口
@@ -1102,11 +1102,11 @@ class AiAgentUseCase(
 
 ### 6.5 IM 远程控制集成
 
-飞书远程控制复用同一 `RemoteOrchestrator` 和 `RemoteInferencePipeline`：
+飞书/Telegram 远程控制复用同一远程推理链路（`RemoteChatEngine`/`RemoteReActAgent`，经 `RemoteChannelManager` 分发）：
 
 ```
 飞书消息 → FeishuChannelHandler → RemoteCommandDispatcher
-    → LLM 解析意图（复用 RemoteOrchestrator，独立 System Prompt）
+    → LLM 解析意图（复用 RemoteChatEngine，独立 System Prompt）
     → CapabilityRegistry.dispatch()
     → 结果 → FeishuChannelHandler.sendMessage/sendImage
 ```

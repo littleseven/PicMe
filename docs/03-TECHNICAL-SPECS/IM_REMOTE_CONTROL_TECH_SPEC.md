@@ -84,7 +84,7 @@
 | **FeishuChannelHandler** | Android 端 (`domain/agent/remote/`) | 飞书 WebSocket 连接、消息接收/回复、图片上传 | 飞书 OAPI SDK (`com.larksuite.oapi:oapi-sdk:2.5.3`) |
 | **RemoteCommandDispatcher** | Android 端 (`domain/agent/remote/`) | 命令解析、LLM 意图理解、Capability 分派 | Kotlin + 现有 LLM 链路 |
 | **RemoteControlCapability** | Android 端 (`domain/agent/capability/`) | 设备绑定状态管理、操作审计 | Kotlin + Capability 接口 |
-| **RemoteInferencePipeline** | Android 端（复用现有） | 复杂意图的 LLM 解析 | 现有远程推理链路 |
+| **RemoteChatEngine / RemoteReActAgent** | Android 端（复用现有） | 复杂意图的 LLM 解析 | 现有远程推理链路（经 AgentOrchestrator） |
 
 ---
 
@@ -198,7 +198,7 @@ class FeishuChannelHandler(
 │                         │                                  │
 │  ┌──────────────────────▼──────────────────────────────┐  │
 │  │  CapabilityRegistry                                  │  │
-│  │  (GalleryCapability/EditorCapability/SystemCapability)│  │
+│  │  (GalleryCapability/ImageEditCapability)              │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                          │
 │  ┌──────────────────────────────────────────────────────┐  │
@@ -213,7 +213,7 @@ class FeishuChannelHandler(
 class RemoteCommandDispatcher(
     private val channelHandler: FeishuChannelHandler,
     private val capabilityRegistry: CapabilityRegistry,
-    private val remoteOrchestrator: RemoteOrchestrator,  // 使用 :agent-core OpenAiChatModel
+    private val orchestrator: AgentOrchestrator,  // 复用远程推理链路（RemoteChatEngine/RemoteReActAgent）
 ) {
     /**
      * 接收飞书消息并分派执行
@@ -475,6 +475,8 @@ class RemoteCommandDispatcher(
 
 > **核心设计原则（2026-06-18）**：远程推理原生支持 OpenAI tool_calls 格式，与本地 LLM 的 method/params 格式完全隔离，不产生任何耦合。
 
+> ⚠️ **历史记录（2026-08-02 更新）**：端侧**文本** LLM 链路已移除，下文「本地推理链路（端侧 LLM）」/ `LocalCommandParser` / method/params 协议仅为隔离设计的历史参考。当前命令解析统一走远程 `ToolCallCommandParser`（标准 OpenAI tool_calls）。
+
 ### 12.1 协议分层
 
 ```
@@ -538,11 +540,11 @@ class RemoteCommandDispatcher(
 | 文件 | 职责 | 协议 |
 |------|------|------|
 | `ToolCallCommandParser.kt` | 远程 tool_calls 解析 | `name` + `arguments` → `AgentCommand` |
-| `LocalCommandParser.kt` | 本地 method/params 解析 | `method` + `params` → `AgentCommand` |
-| `RemoteOrchestrator.kt` | 远程编排器 | 调用 `ToolCallCommandParser` |
+| ~~`LocalCommandParser.kt`~~ | ~~本地 method/params 解析~~（已随端侧文本 LLM 移除） | — |
+| ~~`RemoteOrchestrator.kt`~~ | ~~远程编排器~~（类不存在；现由 `RemoteChatEngine`/`AgentConfigurator` 承担） | — |
 | `RemotePromptBuilder.kt` | 远程 Prompt 构建 | `name` + `arguments` 格式 |
 | `CameraToolHelper.kt` | 相机命令辅助 | 直接构建 `AgentCommand` |
-| `InAppAgentConfig.kt` | 本地 System Prompt | `method` + `params` 格式 |
+| ~~`InAppAgentConfig.kt`~~ | ~~本地 System Prompt~~（已移除，见 §13 失效提示） | — |
 
 ---
 

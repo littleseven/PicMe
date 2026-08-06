@@ -193,7 +193,7 @@ combinedScore = W_FACE * q + W_AESTHETIC * aNorm
 
 #### Pass 3：图像打标（图像内容理解）
 
-**模型**: tagger 可切换（默认 Florence-2 ORT；备选 Qwen3-VL / SmolVLM 等 MNN-LLM VLM）  
+**模型**: tagger 可切换（默认 Florence-2 ORT；备选 Qwen3-VL-2B MNN-LLM VLM；SmolVLM/LFM2 已下线移除）  
 **输入**: 照片 URI + `faceRoiResult` 人脸上下文  
 **输出**: `QwenTags` → `TagNormalizer` → `UnifiedTagResult` JSON
 

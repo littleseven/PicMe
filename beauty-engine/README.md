@@ -88,12 +88,8 @@ beauty-engine/src/main/java/com/mamba/picme/beauty/
 │   │   ├── MediaPipeFaceDetector.kt   # MediaPipe 检测器
 │   │   ├── MediaPipeRoiDetector.kt    # MediaPipe ROI 检测器
 │   │   ├── MediaPipeLandmarkDetector.kt # MediaPipe Landmark 检测器
-│   │   ├── InsightFaceDet10GDetector.kt # InsightFace ROI (MNN)
-│   │   ├── InsightFace2D106Detector.kt  # InsightFace Landmark (MNN)
-│   │   ├── InsightFaceLandmarkDetector.kt # InsightFace 适配器
-│   │   ├── MnnRoiDetector.kt          # MNN ROI 检测器
-│   │   ├── MnnLandmarkDetector.kt     # MNN Landmark 检测器
-│   │   ├── Det10GRoiDetector.kt       # Det10G ROI 接口
+│   │   ├── MnnRoiDetector.kt          # MNN ROI 检测器（RetinaFace Det10G/Det500M）
+│   │   ├── MnnLandmarkDetector.kt     # MNN Landmark 检测器（2D106）
 │   │   ├── RoiDetector.kt             # ROI 检测器接口
 │   │   ├── LandmarkDetector.kt        # Landmark 检测器接口
 │   │   ├── adapter/                   # 检测适配器
@@ -102,8 +98,8 @@ beauty-engine/src/main/java/com/mamba/picme/beauty/
 │   │   ├── FrameSyncBridge.kt         # 线程安全 FrameId 共享
 │   │   ├── FrameSyncManager.kt        # 时序对齐核心
 │   │   └── MotionTracker.kt           # 速度外推预测算法
-│   └── model/                         # 领域模型
-│       └── UserPreferences.kt         # 用户偏好设置
+│   └── model/                         # 模型管理
+│       └── ModelManager.kt            # 模型下载与缓存管理
 ├── recorder/                          # 视频录制
 │   └── BeautyVideoRecorder.kt         # GPU 美颜视频录制器
 └── engine/                            # （预留扩展）
@@ -261,7 +257,7 @@ override fun onCleared() {
 ### M2 已完成项
 
 - ✅ 多引擎 ROI + Landmark 双阶段检测（引擎类型独立配置）
-- ✅ MNN Vulkan GPU 推理（RetinaFace + 2D106）+ `AtomicBoolean` CAS 非阻塞懒加载
+- ✅ MNN OpenCL GPU 推理（RetinaFace + 2D106）+ `AtomicBoolean` CAS 非阻塞懒加载
 - ✅ MNN GPU/CPU 推理（2D106 模型）
 - ✅ MediaPipe TFLite GPU 推理（FaceLandmarker）+ `detect(mediaImage: Image)` 零拷贝
 - ✅ 帧同步系统（FrameSyncManager + MotionTracker）
@@ -338,7 +334,7 @@ override fun onCleared() {
 
 1. **MediaPipe 是高端机最佳方案**：TFLite GPU delegate 优化好，跨设备性能稳定；Image 零拷贝额外节省约 5ms
 2. **MediaPipe 是中端机最佳方案**：TFLite GPU delegate 优化好，跨设备性能稳定；Image 零拷贝额外节省约 5ms
-3. **MNN ROI 性能一般**：Vulkan 后端对 640x640 RetinaFace 优化不足，中端机 CPU fallback 耗时较长
+3. **MNN ROI 性能一般**：OpenCL 后端对 640x640 RetinaFace 优化不足，中端机 CPU fallback 耗时较长
 4. **GPU 算力是主要瓶颈**：同一模型同一框架，Adreno 740+ 比 Adreno 620 快 10-20 倍
 5. **零拷贝收益**：Image 路径消除 YUV→Bitmap→RGB 多重 CPU 拷贝，每帧节省 3-8ms
 
