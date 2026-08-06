@@ -140,6 +140,55 @@ object SampleDataGenerator {
         generateData(context, repository, expandedKeywords, prefix = "TEST_SEXY")
     }
 
+    /**
+     * 保存单张 Pexels 图片为测试图：复用现有「下载→校验→存相册→插库」链路。
+     * 文件名前缀 TEST_PEXELS_，兼容 clearTestData() 的 TEST_ 前缀清理。
+     */
+    suspend fun savePexelsPhoto(
+        context: Context,
+        repository: MediaRepository,
+        photoId: Long,
+        imageUrl: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        val fileName = "TEST_PEXELS_${photoId}_${System.currentTimeMillis()}.jpg"
+        val file = downloadWithRetry(imageUrl, context, fileName)
+        if (file == null) {
+            addLog("Pexels download failed: $photoId")
+            return@withContext false
+        }
+
+        val bitmap = decodeSampledBitmap(file)
+        val isValid = bitmap?.let { analyzeContentAndSkin(it).isValidContent } == true
+        bitmap?.recycle()
+        if (!isValid) {
+            file.delete()
+            addLog("Pexels filtered (invalid content): $photoId")
+            return@withContext false
+        }
+
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_YEAR, -Random().nextInt(180))
+        val savedUri = saveTestImageToAlbum(context, file, fileName, calendar.timeInMillis)
+        file.delete()
+        if (savedUri == null) {
+            addLog("Pexels album save failed: $fileName")
+            return@withContext false
+        }
+
+        repository.insertMedia(
+            MediaAsset(
+                uri = savedUri,
+                type = MediaType.PHOTO,
+                captureDate = calendar.timeInMillis,
+                fileName = fileName,
+                hasFace = false,
+                source = "pexels"
+            )
+        )
+        addLog("Saved to album [PEXELS]: $fileName")
+        true
+    }
+
     private suspend fun generateData(
         context: Context,
         repository: MediaRepository,
