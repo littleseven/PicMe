@@ -108,6 +108,26 @@ class ChatViewModelGachaTest : ChatViewModelTestBase() {
     }
 
     @Test
+    fun `onOptimizeGachaReroll ignores concurrent tap while rerolling`() = runTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+        val gate = kotlinx.coroutines.CompletableDeferred<ChatOptimizeGachaController.RerollOutcome>()
+        coEvery { gachaController.reroll("msg1") } coAnswers { gate.await() }
+
+        var results = 0
+        vm.onOptimizeGachaReroll("msg1") { results++ }
+        vm.onOptimizeGachaReroll("msg1") { results++ } // 应被防抖忽略
+        gate.complete(
+            ChatOptimizeGachaController.RerollOutcome.Rerolled(group().copy(drawIndex = 2), "new")
+        )
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { gachaController.reroll("msg1") }
+        assertEquals(1, results)
+        assertTrue(vm.gachaRerolling.value.isEmpty())
+    }
+
+    @Test
     fun `clearChat discards pending gacha groups`() = runTest {
         val vm = newViewModel()
         advanceUntilIdle()

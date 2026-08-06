@@ -223,6 +223,7 @@ fun ChatScreen(
     val issueReportState by viewModel.issueReportState.collectAsState()
     val canDeliverClaude by viewModel.canDeliverClaude.collectAsState()
     val gachaSelections by viewModel.gachaSelections.collectAsState()
+    val gachaRerolling by viewModel.gachaRerolling.collectAsState()
     // 抽卡条确认/换一组失败 toast 文案（闭包回调内无法取 stringResource，提前取）
     val gachaRerollUnavailableText = stringResource(R.string.chat_gacha_reroll_unavailable)
     val gachaConfirmFailedText = stringResource(R.string.chat_gacha_confirm_failed)
@@ -537,6 +538,7 @@ fun ChatScreen(
                                     group = group,
                                     interactive = message.gachaInteractive,
                                     selectedIndex = selected,
+                                    rerolling = message.id in gachaRerolling,
                                     onSelect = { index ->
                                         viewModel.onOptimizeGachaSelection(message.id, index)
                                         // 点卡 = 选中 + 全屏预览该组候选（isEditableResult=false → 无保存按钮）

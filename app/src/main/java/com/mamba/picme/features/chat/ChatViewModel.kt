@@ -195,6 +195,10 @@ class ChatViewModel(
     private val _gachaSelections = MutableStateFlow<Map<String, Int>>(emptyMap())
     val gachaSelections: StateFlow<Map<String, Int>> = _gachaSelections.asStateFlow()
 
+    /** 正在换一组的卡条消息 id 集合（局部 loading + 防抖）。 */
+    private val _gachaRerolling = MutableStateFlow<Set<String>>(emptySet())
+    val gachaRerolling: StateFlow<Set<String>> = _gachaRerolling.asStateFlow()
+
     /** capability.dispatch handler：确认交互走 [WriteConfirmationController]，dispatch 走 CHAT 场景注册表。 */
     private val capabilityDispatchHandler = CapabilityDispatchHandler(
         dispatch = { command ->
@@ -2235,19 +2239,25 @@ class ChatViewModel(
      */
     fun onOptimizeGachaReroll(messageId: String, onResult: (Boolean) -> Unit) {
         val controller = optimizeGachaController ?: return
+        if (messageId in _gachaRerolling.value) return // 防抖：换一组期间忽略重复点击
+        _gachaRerolling.value = _gachaRerolling.value + messageId
         viewModelScope.launch {
-            when (val outcome = controller.reroll(messageId)) {
-                is ChatOptimizeGachaController.RerollOutcome.Rerolled -> {
-                    chatMessageDao.getMessageById(messageId)?.let { entity ->
-                        chatMessageDao.insertMessage(
-                            entity.copy(content = outcome.explanation, metadata = outcome.group.toJson())
-                        )
+            try {
+                when (val outcome = controller.reroll(messageId)) {
+                    is ChatOptimizeGachaController.RerollOutcome.Rerolled -> {
+                        chatMessageDao.getMessageById(messageId)?.let { entity ->
+                            chatMessageDao.insertMessage(
+                                entity.copy(content = outcome.explanation, metadata = outcome.group.toJson())
+                            )
+                        }
+                        _gachaSelections.value = _gachaSelections.value + (messageId to outcome.group.recommendedIndex)
+                        onResult(true)
                     }
-                    _gachaSelections.value = _gachaSelections.value + (messageId to outcome.group.recommendedIndex)
-                    onResult(true)
+                    ChatOptimizeGachaController.RerollOutcome.Expired,
+                    ChatOptimizeGachaController.RerollOutcome.Unavailable -> onResult(false)
                 }
-                ChatOptimizeGachaController.RerollOutcome.Expired,
-                ChatOptimizeGachaController.RerollOutcome.Unavailable -> onResult(false)
+            } finally {
+                _gachaRerolling.value = _gachaRerolling.value - messageId
             }
         }
     }

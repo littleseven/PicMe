@@ -7,10 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +38,7 @@ import com.mamba.picme.features.chat.OptimizeCandidateGroup
  *
  * - 点卡 = 选中高亮 + 全屏预览（预览由调用方处理）
  * - 「就用这张」：有选中卡且该卡未被护栏淘汰时可用
+ * - [rerolling] = true（换一组进行中）时显示局部 loading 并禁用两个按钮
  * - [interactive] = false（进程重建后内存态丢失）时降级只读：隐藏按钮，提示已过期
  */
 @Composable
@@ -40,6 +46,7 @@ fun GachaCandidateStrip(
     group: OptimizeCandidateGroup,
     interactive: Boolean,
     selectedIndex: Int,
+    rerolling: Boolean,
     onSelect: (Int) -> Unit,
     onReroll: () -> Unit,
     onConfirm: () -> Unit
@@ -87,12 +94,19 @@ fun GachaCandidateStrip(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    TextButton(onClick = onReroll) {
+                    if (rerolling) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    TextButton(onClick = onReroll, enabled = !rerolling) {
                         Text(stringResource(R.string.ai_optimize_reroll))
                     }
                     TextButton(
                         onClick = onConfirm,
-                        enabled = selectedIndex >= 0 && !selectedRejected
+                        enabled = !rerolling && selectedIndex >= 0 && !selectedRejected
                     ) {
                         Text(stringResource(R.string.chat_gacha_use_this))
                     }
@@ -135,6 +149,8 @@ private fun CandidateCard(
                     model = candidate.thumbPath,
                     contentDescription = candidate.direction,
                     contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(MaterialTheme.colorScheme.surface),
+                    error = ColorPainter(MaterialTheme.colorScheme.surface),
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                 )
             } else {
