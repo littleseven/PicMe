@@ -14,7 +14,7 @@ interface OptimizeFeedbackDao {
     @Query("SELECT * FROM optimize_feedback ORDER BY created_at DESC")
     suspend fun getAll(): List<OptimizeFeedbackEntity>
 
-    /** Phase 2 个性化用：取某场景的用户手选记录 */
+    /** Phase 2 个性化用：取某场景的用户手选记录（'user' 必须与 OptimizeFeedbackLogger.SOURCE_USER 一致） */
     @Query("SELECT * FROM optimize_feedback WHERE scene = :scene AND selection_source = 'user'")
     suspend fun getUserPicksForScene(scene: String): List<OptimizeFeedbackEntity>
 }

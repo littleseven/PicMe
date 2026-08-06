@@ -64,6 +64,9 @@ class OptimizeFeedbackLoggerTest {
         assertTrue(entity.candidatesJson.contains("\"nimaScore\":5"))
         assertTrue(entity.candidatesJson.contains("\"rejected\":true"))
         assertTrue(entity.candidatesJson.contains("\"temperature\":5400"))
+        assertTrue(entity.candidatesJson.contains("\"rejectReason\":\"nima_failed\""))
+        // null nimaScore 在 org.json 中序列化为 null 字面量
+        assertTrue(entity.candidatesJson.contains("\"nimaScore\":null"))
     }
 
     @Test
