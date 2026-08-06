@@ -46,6 +46,7 @@ import com.mamba.picme.features.editor.components.CropPanel
 import com.mamba.picme.features.editor.components.EditorBottomBar
 import com.mamba.picme.features.editor.components.EditorTopBar
 import com.mamba.picme.features.editor.components.FilterPanel
+import com.mamba.picme.features.editor.components.GachaCandidateBar
 import com.mamba.picme.features.editor.components.MarkupPanel
 
 @Composable
@@ -90,6 +91,14 @@ fun PhotoEditorScreen(
         bottomBar = {
             val ready = state as? PhotoEditorViewModel.State.Ready ?: return@Scaffold
             Column(modifier = Modifier.navigationBarsPadding()) {
+                ready.gachaRun?.let { run ->
+                    GachaCandidateBar(
+                        run = run,
+                        onReroll = viewModel::rerollGacha,
+                        onPick = viewModel::pickGachaCandidate,
+                        onDismiss = viewModel::dismissGacha
+                    )
+                }
                 PanelForTab(
                     tab = ready.selectedTab,
                     recipe = ready.recipe,

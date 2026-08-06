@@ -47,7 +47,14 @@ import com.mamba.picme.domain.backup.BackupTagDataUseCase
 import com.mamba.picme.domain.backup.RestoreTagDataUseCase
 import com.mamba.picme.domain.backup.TagDataBackupRepository
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.HeuristicSceneAnalyzer
+import com.mamba.picme.domain.agent.capability.optimize.gacha.CandidateRenderer
+import com.mamba.picme.domain.agent.capability.optimize.gacha.CandidateSampler
+import com.mamba.picme.domain.agent.capability.optimize.gacha.OptimizeFeedbackLogger
+import com.mamba.picme.domain.agent.capability.optimize.gacha.OptimizeGachaEngine
+import com.mamba.picme.domain.agent.capability.optimize.gacha.OptimizeScorer
 import com.mamba.picme.domain.agent.capability.optimize.preset.AssetPresetRepository
+import com.mamba.picme.domain.aesthetic.AestheticScorer
+import com.mamba.picme.domain.aesthetic.NimaScorer
 import com.mamba.picme.domain.agent.capability.ImageEditCapability
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.domain.usecase.ChatEditProcessor
@@ -74,6 +81,7 @@ import com.mamba.picme.domain.memory.MemoryRepository
 import com.mamba.picme.domain.person.PersonQueryResolver
 import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.features.editor.PhotoEditorViewModelFactory
+import com.mamba.picme.features.editor.RecipeApplier
 import com.mamba.picme.features.idphoto.IDPhotoViewModelFactory
 import com.mamba.picme.features.gallery.MediaViewModel
 import androidx.lifecycle.ViewModel
@@ -83,6 +91,8 @@ import com.mamba.picme.domain.tag.TagScanProgress
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
 import com.mamba.picme.data.indexing.MediaChangeEvent
 import com.mamba.picme.service.tag.TagGenerationService
+import java.util.concurrent.Executors
+import kotlinx.coroutines.asCoroutineDispatcher
 
 data class MediaViewModelDependencies(
     val repository: MediaRepository,
@@ -382,10 +392,37 @@ class AppContainerImpl(
         PhotoEditRecipeRepository(database.photoEditRecipeDao())
     }
 
+    private val optimizeFeedbackLogger: OptimizeFeedbackLogger by lazy {
+        OptimizeFeedbackLogger(database.optimizeFeedbackDao())
+    }
+
+    private val gachaAestheticScorer: AestheticScorer by lazy { NimaScorer(context) }
+
+    private val gachaProcessingDispatcher by lazy {
+        // 与编辑器同一约束：PhotoProcessor 内部 EGL 上下文必须单线程调用，
+        // 线程池切换会导致 EGL 上下文失效而黑屏（见 AI_OPTIMIZATION.md §9.1）
+        Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    }
+
+    private val optimizeGachaEngine: OptimizeGachaEngine by lazy {
+        OptimizeGachaEngine(
+            sampler = CandidateSampler(),
+            renderer = CandidateRenderer(
+                context = context,
+                // 独立 PhotoProcessor 实例：不与相机/编辑器共享 EGL 上下文（§9.1 教训）
+                recipeApplier = RecipeApplier(photoProcessorFactory(context), gachaProcessingDispatcher)
+            ),
+            optimizeScorer = OptimizeScorer(gachaAestheticScorer),
+            aestheticScorer = gachaAestheticScorer
+        )
+    }
+
     override val aiOptimizeUseCase: AiOptimizeUseCase by lazy {
         AiOptimizeUseCase(
             presetRepository = AssetPresetRepository(context),
-            sceneAnalyzer = HeuristicSceneAnalyzer(context, faceDetector)
+            sceneAnalyzer = HeuristicSceneAnalyzer(context, faceDetector),
+            gachaEngine = optimizeGachaEngine,
+            feedbackLogger = optimizeFeedbackLogger
         )
     }
 
@@ -582,7 +619,8 @@ class AppContainerImpl(
             mediaRepository = repository,
             userSettingsRepository = userPreferencesRepository,
             aiOptimizeUseCase = aiOptimizeUseCase,
-            downloadManager = llmModelDownloadManager
+            downloadManager = llmModelDownloadManager,
+            feedbackLogger = optimizeFeedbackLogger
         )
     }
 
