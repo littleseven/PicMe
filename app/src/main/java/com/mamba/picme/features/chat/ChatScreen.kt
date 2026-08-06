@@ -21,9 +21,11 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -35,8 +37,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -87,12 +92,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -222,6 +229,8 @@ fun ChatScreen(
     // 图片预览状态（横滑翻页集合）
     var imagePreview by remember { mutableStateOf<ChatImagePreviewState?>(null) }
     var previewChartSvg by remember { mutableStateOf<String?>(null) }
+    // 表格全屏预览状态（点击气泡内表格打开）
+    var expandedTable by remember { mutableStateOf<MarkdownTable?>(null) }
     // 相册搜索结果预览状态
     var previewAssets by remember { mutableStateOf<List<MediaAsset>>(emptyList()) }
     var previewIndex by remember { mutableIntStateOf(0) }
@@ -229,9 +238,9 @@ fun ChatScreen(
     var pendingDeletedIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
 
     // 上报外层 Pager 横滑使能：任一全屏预览打开时禁用，避免与内层预览滑动冲突
-    LaunchedEffect(previewAssets, imagePreview, previewChartSvg) {
+    LaunchedEffect(previewAssets, imagePreview, previewChartSvg, expandedTable) {
         onHorizontalSwipeEnabledChange(
-            previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null
+            previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null && expandedTable == null
         )
     }
 
@@ -386,11 +395,12 @@ fun ChatScreen(
     // 预览打开时拦截系统返回键：关闭预览并回到 chat 页（保留横滑卡片），
     // 而非直接 pop 到相册（Gallery 为 startDestination，栈底为 [Gallery, Chat]）。
     // 与 GalleryScreen 的预览 BackHandler 行为对齐。
-    BackHandler(enabled = isActivePage && (previewAssets.isNotEmpty() || imagePreview != null || previewChartSvg != null)) {
+    BackHandler(enabled = isActivePage && (previewAssets.isNotEmpty() || imagePreview != null || previewChartSvg != null || expandedTable != null)) {
         when {
             previewAssets.isNotEmpty() -> previewAssets = emptyList()
             imagePreview != null -> imagePreview = null
             previewChartSvg != null -> previewChartSvg = null
+            expandedTable != null -> expandedTable = null
         }
     }
 
@@ -454,8 +464,8 @@ fun ChatScreen(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            // 预览（照片轮播 / 图片 / 图表全屏）打开时隐藏 chat 顶栏，让覆盖层占满整屏
-            if (previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null) {
+            // 预览（照片轮播 / 图片 / 图表 / 表格全屏）打开时隐藏 chat 顶栏，让覆盖层占满整屏
+            if (previewAssets.isEmpty() && imagePreview == null && previewChartSvg == null && expandedTable == null) {
                 ChatTopBar(
                     onNavigateBack = onNavigateBack,
                     onOpenSidebar = { isSidebarOpen = true },
@@ -532,7 +542,8 @@ fun ChatScreen(
                                     },
                                     onClaudeDeliver = { id, mode -> viewModel.confirmClaudeDeliver(id, mode) },
                                     onClaudeContinue = { viewModel.continueClaude() },
-                                    canDeliverClaude = canDeliverClaude
+                                    canDeliverClaude = canDeliverClaude,
+                                    onTableClick = { table -> expandedTable = table }
                                 )
                             }
                         }
@@ -602,6 +613,12 @@ fun ChatScreen(
             ChartPreviewOverlay(
                 svg = previewChartSvg,
                 onDismiss = { previewChartSvg = null }
+            )
+
+            // 表格全屏预览（横屏旋转查看）
+            TablePreviewOverlay(
+                table = expandedTable,
+                onDismiss = { expandedTable = null }
             )
 
             // 注册引导弹层（访客试用用尽 / 用户主动注册）
@@ -976,18 +993,12 @@ private fun CodeBlock(raw: String) {
     }
 }
 
-/** agent 文本分段渲染（流式与最终态共用）：MARKDOWN→MarkdownText、TABLE→纯文本、CODE→CodeBlock。 */
+/** agent 文本分段渲染（流式与最终态共用）：MARKDOWN→MarkdownText、TABLE→Compose 网格表格、CODE→CodeBlock。 */
 @Composable
-private fun SegmentedAgentText(displayText: String) {
+private fun SegmentedAgentText(displayText: String, onTableClick: (MarkdownTable) -> Unit) {
     segmentMarkdown(displayText).forEach { segment ->
         when (segment.type) {
-            AgentSegmentType.TABLE -> Text(
-                text = segment.text,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                fontFamily = FontFamily.Monospace,
-            )
+            AgentSegmentType.TABLE -> AgentTable(raw = segment.text, onTableClick = onTableClick)
             AgentSegmentType.MARKDOWN -> MarkdownText(
                 markdown = segment.text,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -997,6 +1008,212 @@ private fun SegmentedAgentText(displayText: String) {
             AgentSegmentType.CODE -> CodeBlock(raw = segment.text)
         }
     }
+}
+
+/** 显示宽度单位：CJK 等全角字符计 2，其余计 1（配合等宽字体估算列宽）。 */
+private fun displayUnits(text: String): Int = text.sumOf { ch -> if (ch.code > 0xFF) 2 else 1 }
+
+/** 每列宽度估算上限（单位：显示宽度），超出后该列按份额分配宽度并换行。 */
+private const val TABLE_MAX_COL_UNITS = 30
+
+/** 超过估算总宽时，列数 ≤ 此值按份额铺满换行显示，否则横向滚动。 */
+private const val TABLE_MAX_FIT_COLUMNS = 3
+
+/** 每列内容宽度估算（显示单位，4..[TABLE_MAX_COL_UNITS]），气泡与全屏预览共用。 */
+private fun tableColUnits(table: MarkdownTable): List<Int> =
+    table.header.indices.map { col ->
+        (listOf(table.header[col]) + table.rows.map { row -> row[col] })
+            .maxOf { cell -> displayUnits(cell) }
+            .coerceIn(4, TABLE_MAX_COL_UNITS)
+    }
+
+/**
+ * GFM 表格的原生 Compose 渲染（不走 Markwon，规避位图抖动）：表头加粗带底色、完整网格线。
+ * 宽度自适应：估算总宽 ≤ 气泡宽时按内容紧凑排；超宽且列数 ≤ [TABLE_MAX_FIT_COLUMNS] 时
+ * 按内容比例铺满气泡宽、长文本换行完整显示；更多列才退化为横向滚动。
+ * 点击经 [onTableClick] 上报，由屏幕层打开全屏预览。
+ */
+@Composable
+private fun AgentTable(raw: String, onTableClick: (MarkdownTable) -> Unit) {
+    val table = remember(raw) { parseMarkdownTable(raw) }
+    if (table.header.isEmpty()) {
+        Text(
+            text = raw,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            fontFamily = FontFamily.Monospace,
+        )
+        return
+    }
+    val colUnits = remember(table) { tableColUnits(table) }
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+    BoxWithConstraints(
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .clickable { onTableClick(table) },
+    ) {
+        val estWidths = colUnits.map { (it * 8 + 18).dp }
+        val fits = estWidths.fold(0.dp) { acc, w -> acc + w } <= maxWidth
+        val useScroll = !fits && table.header.size > TABLE_MAX_FIT_COLUMNS
+        val fixedWidths = if (fits || useScroll) estWidths else null
+        Column(
+            modifier = Modifier
+                .border(1.dp, dividerColor, RoundedCornerShape(6.dp))
+                .then(
+                    when {
+                        useScroll -> Modifier.horizontalScroll(rememberScrollState())
+                        fixedWidths == null -> Modifier.fillMaxWidth()
+                        else -> Modifier
+                    },
+                ),
+        ) {
+            TableGrid(table = table, fixedWidths = fixedWidths, colUnits = colUnits, dividerColor = dividerColor)
+        }
+    }
+}
+
+/** 表格网格主体：表头（加粗带底色）+ 数据行 + 行列网格线，气泡内与全屏预览共用。 */
+@Composable
+private fun TableGrid(
+    table: MarkdownTable,
+    fixedWidths: List<Dp>?,
+    colUnits: List<Int>,
+    dividerColor: Color,
+) {
+    TableRow(
+        cells = table.header,
+        bold = true,
+        fixedWidths = fixedWidths,
+        colUnits = colUnits,
+        dividerColor = dividerColor,
+        background = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    )
+    HorizontalDivider(color = dividerColor)
+    table.rows.forEachIndexed { rowIndex, row ->
+        TableRow(
+            cells = row,
+            bold = false,
+            fixedWidths = fixedWidths,
+            colUnits = colUnits,
+            dividerColor = dividerColor.copy(alpha = 0.5f),
+            background = null,
+        )
+        if (rowIndex < table.rows.lastIndex) {
+            HorizontalDivider(color = dividerColor.copy(alpha = 0.5f))
+        }
+    }
+}
+
+/**
+ * 表格全屏预览（in-content 整屏覆盖层；顶栏由调用方在打开时隐藏，整屏留给表格）。
+ * - App 全局锁竖屏：不转 Activity/系统方向，把内容在竖屏视口内旋转 90° 铺满屏幕，
+ *   用户物理转动手机即可横屏查看，与 ChartPreviewOverlay 同一模式。
+ * - 表格区域 16:9 居中，固定估算列宽 + 双向滚动；返回键 / 关闭键均可关闭。
+ * - 旋转后内容左边贴屏幕顶部（状态栏）、右边贴屏幕底部（导航栏），按此方向让出安全区。
+ */
+@Composable
+private fun TablePreviewOverlay(table: MarkdownTable?, onDismiss: () -> Unit) {
+    if (table == null) return
+    val density = LocalDensity.current
+    val startInset = with(density) { WindowInsets.statusBars.getTop(this).toDp() }
+    val endInset = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+    val colUnits = remember(table) { tableColUnits(table) }
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
+        // 容器宽高互换后绕中心旋转 90° 铺满竖屏；必须用 requiredSize，普通 size 会被父约束截断
+        Box(
+            modifier = Modifier
+                .requiredSize(width = maxHeight, height = maxWidth)
+                .align(Alignment.Center)
+                .graphicsLayer { rotationZ = 90f },
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = startInset, end = endInset, top = 12.dp, bottom = 12.dp),
+            ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.close),
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // 16:9 仅作居中参照区域；边框紧贴表格网格（wrap content），
+                    // 否则分隔线按区域全宽绘制会伸出表体、表头底色与网格错位
+                    Box(
+                        modifier = Modifier.aspectRatio(16f / 9f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .verticalScroll(rememberScrollState())
+                                .horizontalScroll(rememberScrollState())
+                                .border(1.dp, dividerColor, RoundedCornerShape(6.dp)),
+                        ) {
+                            TableGrid(
+                                table = table,
+                                fixedWidths = colUnits.map { (it * 8 + 18).dp },
+                                colUnits = colUnits,
+                                dividerColor = dividerColor,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 表格一行：[fixedWidths] 非空按固定宽度排（紧凑/横滚模式），为 null 按 [colUnits] 份额铺满。 */
+@Composable
+private fun TableRow(
+    cells: List<String>,
+    bold: Boolean,
+    fixedWidths: List<Dp>?,
+    colUnits: List<Int>,
+    dividerColor: Color,
+    background: Color?,
+) {
+    Row(
+        modifier = Modifier
+            .then(if (background != null) Modifier.background(background) else Modifier)
+            .then(if (fixedWidths == null) Modifier.fillMaxWidth() else Modifier)
+            .height(IntrinsicSize.Min),
+    ) {
+        cells.forEachIndexed { col, cell ->
+            if (col > 0) VerticalDivider(color = dividerColor)
+            val cellModifier = if (fixedWidths != null) {
+                Modifier.width(fixedWidths[col])
+            } else {
+                Modifier.weight(colUnits[col].toFloat())
+            }
+            TableCell(text = cell, modifier = cellModifier, bold = bold)
+        }
+    }
+}
+
+@Composable
+private fun TableCell(text: String, modifier: Modifier, bold: Boolean) {
+    Text(
+        text = text,
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 13.sp,
+        lineHeight = 17.sp,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = if (bold) FontWeight.Bold else null,
+    )
 }
 
 /**
@@ -1055,6 +1272,7 @@ private fun ChatMessageItem(
     onClaudeDeliver: (String, String) -> Unit = { _, _ -> },
     onClaudeContinue: () -> Unit = {},
     canDeliverClaude: Boolean = false,
+    onTableClick: (MarkdownTable) -> Unit = {},
 ) {
     val isUser = message.type == ChatMessageType.USER_TEXT ||
         message.type == ChatMessageType.USER_IMAGE ||
@@ -1183,10 +1401,10 @@ private fun ChatMessageItem(
                         if (message.isThinking) {
                             TypingIndicator()
                         } else {
-                            // 流式与最终态统一走 SegmentedAgentText：表格纯文本、代码折叠、散文 Markdown。
+                            // 流式与最终态统一走 SegmentedAgentText：表格网格渲染、代码折叠、散文 Markdown。
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    SegmentedAgentText(displayText)
+                                    SegmentedAgentText(displayText, onTableClick)
                                 }
                                 if (message.showCursor) {
                                     BlinkCursor()
@@ -1194,7 +1412,7 @@ private fun ChatMessageItem(
                             }
                         }
                     } else {
-                        SegmentedAgentText(displayText)
+                        SegmentedAgentText(displayText, onTableClick)
                     }
                 }
             }

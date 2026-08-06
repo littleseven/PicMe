@@ -55,6 +55,39 @@ class ClaudeMarkdownSegmenterTest {
     }
 
     @Test
+    fun `parse table strips delimiter row and trims cells`() {
+        val table = parseMarkdownTable("| h1 | h2 |\n| --- | ---: |\n| a | b |\n| c | d |")
+        assertEquals(listOf("h1", "h2"), table.header)
+        assertEquals(listOf(listOf("a", "b"), listOf("c", "d")), table.rows)
+    }
+
+    @Test
+    fun `parse table without edge pipes`() {
+        val table = parseMarkdownTable("h1 | h2\n--- | ---\na | b")
+        assertEquals(listOf("h1", "h2"), table.header)
+        assertEquals(listOf(listOf("a", "b")), table.rows)
+    }
+
+    @Test
+    fun `parse table keeps escaped pipe inside cell`() {
+        val table = parseMarkdownTable("| h1 | h2 |\n| --- | --- |\n| a \\| b | c |")
+        assertEquals(listOf(listOf("a | b", "c")), table.rows)
+    }
+
+    @Test
+    fun `parse table pads short rows and strips inline markers`() {
+        val table = parseMarkdownTable("| h1 | h2 | h3 |\n| --- | --- | --- |\n| **a** | `b` |")
+        assertEquals(listOf(listOf("a", "b", "")), table.rows)
+    }
+
+    @Test
+    fun `parse malformed table returns empty`() {
+        val table = parseMarkdownTable("only one line")
+        assertTrue(table.header.isEmpty())
+        assertTrue(table.rows.isEmpty())
+    }
+
+    @Test
     fun `preview code takes first n lines`() {
         val code = "1\n2\n3\n4\n5"
         assertEquals("1\n2\n3", previewCode(code, 3))
