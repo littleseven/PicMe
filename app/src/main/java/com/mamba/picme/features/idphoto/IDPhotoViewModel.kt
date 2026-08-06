@@ -293,11 +293,14 @@ class IDPhotoViewModel(
     }
 
     /** 合成最终输出图（保存用；底图走缓存，仅裁剪+缩放）。 */
-    suspend fun composePreview(): Bitmap? = withContext(Dispatchers.Default) {
-        val current = _state.value as? State.Ready ?: return@withContext null
-        val base = previewBase() ?: return@withContext null
+    suspend fun composePreview(): Bitmap? {
+        val current = _state.value as? State.Ready ?: return null
+        // previewBase 在调用方线程（Main）上做 strokeLayer.snapshot()，避免 Default 与 Main 竞态
+        val base = previewBase() ?: return null
         val size = IDPhotoSpecs.SIZES[current.selectedSizeIndex]
-        IDPhotoComposer.cropAndScale(base, size.widthPx, size.heightPx, framingOf(current))
+        return withContext(Dispatchers.Default) {
+            IDPhotoComposer.cropAndScale(base, size.widthPx, size.heightPx, framingOf(current))
+        }
     }
 
     fun save(context: Context) {
