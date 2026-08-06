@@ -42,12 +42,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +66,11 @@ import androidx.compose.ui.unit.sp
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.features.common.topbar.AppTopBar
+import com.mamba.picme.features.debug.pexels.PexelsApi
+import com.mamba.picme.features.debug.pexels.PexelsImageSaver
+import com.mamba.picme.features.debug.pexels.PexelsKeyStore
+import com.mamba.picme.features.debug.pexels.PexelsSection
+import com.mamba.picme.features.debug.pexels.PexelsViewModel
 import com.mamba.picme.features.gallery.MediaViewModel
 import kotlinx.coroutines.launch
 
@@ -82,11 +91,23 @@ fun DebugScreen(
     val logs by SampleDataGenerator.logs.collectAsState()
     val allMedia by mediaViewModel.allMedia.collectAsState()
 
+    val pexelsViewModel = remember {
+        PexelsViewModel(
+            api = PexelsApi.create(),
+            keyStore = PexelsKeyStore(context.applicationContext),
+            imageSaver = PexelsImageSaver { photoId, imageUrl ->
+                SampleDataGenerator.savePexelsPhoto(context, app.repository, photoId, imageUrl)
+            },
+            scope = app.applicationScope
+        )
+    }
+
     DebugContent(
         isGenerating = isGenerating,
         isPaused = isPaused,
         progress = progress,
         logs = logs,
+        pexelsViewModel = pexelsViewModel,
         onNavigateBack = onNavigateBack,
         onPauseResume = {
             if (isPaused) {
@@ -133,13 +154,13 @@ fun DebugScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("LongMethod") // 待重构：Debug 页按区块拆子组件
 @Composable
 private fun DebugContent(
     isGenerating: Boolean,
     isPaused: Boolean,
     progress: String,
     logs: List<String>,
+    pexelsViewModel: PexelsViewModel,
     onNavigateBack: () -> Unit,
     onPauseResume: () -> Unit,
     onStop: () -> Unit,
@@ -167,67 +188,125 @@ private fun DebugContent(
             )
         }
     ) { innerPadding ->
+        var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (isGenerating) {
-                GenerationStatusCard(
-                    progress = progress,
-                    isPaused = isPaused,
-                    onPauseResume = onPauseResume,
-                    onStop = onStop
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text(stringResource(R.string.debug_tab_generate)) }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text(stringResource(R.string.debug_tab_pexels)) }
                 )
             }
+            when (selectedTab) {
+                0 -> GenerateTabContent(
+                    isGenerating = isGenerating,
+                    isPaused = isPaused,
+                    progress = progress,
+                    filterText = filterText,
+                    filteredLogs = filteredLogs,
+                    onFilterTextChange = { filterText = it },
+                    onPauseResume = onPauseResume,
+                    onStop = onStop,
+                    onPopulatePerson = onPopulatePerson,
+                    onPopulateLandscape = onPopulateLandscape,
+                    onPopulateSwimwear = onPopulateSwimwear,
+                    onPopulateSexy = onPopulateSexy,
+                    onClearData = onClearData,
+                    onScreenshot = onScreenshot
+                )
 
-            Text(
-                stringResource(R.string.data_generation),
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            DataGenerationButtons(
-                isGenerating = isGenerating,
-                onPopulatePerson = onPopulatePerson,
-                onPopulateLandscape = onPopulateLandscape,
-                onPopulateSwimwear = onPopulateSwimwear,
-                onPopulateSexy = onPopulateSexy,
-                onClearData = onClearData
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            Text(
-                stringResource(R.string.screenshot),
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            Button(
-                onClick = onScreenshot,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Save, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.screenshot))
+                1 -> PexelsSection(viewModel = pexelsViewModel)
             }
+        }
+    }
+}
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            LogWindow(
-                filterText = filterText,
-                onFilterTextChange = { filterText = it },
-                filteredLogs = filteredLogs
+@Composable
+private fun GenerateTabContent(
+    isGenerating: Boolean,
+    isPaused: Boolean,
+    progress: String,
+    filterText: String,
+    filteredLogs: List<String>,
+    onFilterTextChange: (String) -> Unit,
+    onPauseResume: () -> Unit,
+    onStop: () -> Unit,
+    onPopulatePerson: () -> Unit,
+    onPopulateLandscape: () -> Unit,
+    onPopulateSwimwear: () -> Unit,
+    onPopulateSexy: () -> Unit,
+    onClearData: () -> Unit,
+    onScreenshot: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (isGenerating) {
+            GenerationStatusCard(
+                progress = progress,
+                isPaused = isPaused,
+                onPauseResume = onPauseResume,
+                onStop = onStop
             )
         }
+
+        Text(
+            stringResource(R.string.data_generation),
+            style = MaterialTheme.typography.titleSmall
+        )
+
+        DataGenerationButtons(
+            isGenerating = isGenerating,
+            onPopulatePerson = onPopulatePerson,
+            onPopulateLandscape = onPopulateLandscape,
+            onPopulateSwimwear = onPopulateSwimwear,
+            onPopulateSexy = onPopulateSexy,
+            onClearData = onClearData
+        )
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+
+        Text(
+            stringResource(R.string.screenshot),
+            style = MaterialTheme.typography.titleSmall
+        )
+
+        Button(
+            onClick = onScreenshot,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Save, null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.screenshot))
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+
+        LogWindow(
+            filterText = filterText,
+            onFilterTextChange = onFilterTextChange,
+            filteredLogs = filteredLogs
+        )
     }
 }
 
