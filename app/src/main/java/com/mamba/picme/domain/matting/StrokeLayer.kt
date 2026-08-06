@@ -37,7 +37,7 @@ class StrokeLayer {
     val canRedo: Boolean get() = redoStack.isNotEmpty()
 
     fun addStroke(stroke: BrushStroke) {
-        strokes.add(stroke)
+        strokes.add(stroke.copy(softness = stroke.softness.coerceIn(0f, 1f), points = stroke.points.toList()))
         redoStack.clear()
     }
 
@@ -92,6 +92,7 @@ class StrokeLayer {
         out: FloatArray, w: Int, h: Int,
         cx: Float, cy: Float, r: Float, softness: Float, target: Float
     ) {
+        val r2 = r * r
         val x0 = floor(cx - r).toInt().coerceIn(0, w - 1)
         val x1 = ceil(cx + r).toInt().coerceIn(0, w - 1)
         val y0 = floor(cy - r).toInt().coerceIn(0, h - 1)
@@ -100,8 +101,9 @@ class StrokeLayer {
             for (x in x0..x1) {
                 val dx = x - cx
                 val dy = y - cy
-                val d = sqrt(dx * dx + dy * dy) / r
-                if (d >= 1f) continue
+                val d2 = dx * dx + dy * dy
+                if (d2 >= r2) continue
+                val d = sqrt(d2) / r
                 val weight = if (softness <= 0f) 1f else ((1f - d) / softness).coerceIn(0f, 1f)
                 if (weight <= 0f) continue
                 val idx = y * w + x

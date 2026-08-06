@@ -77,6 +77,47 @@ class StrokeLayerTest {
     }
 
     @Test
+    fun `replay interpolates between stroke points`() {
+        val layer = StrokeLayer()
+        layer.addStroke(
+            BrushStroke(
+                mode = StrokeMode.ERASE,
+                radiusPx = 1.5f,
+                softness = 0f,
+                points = listOf(StrokePoint(1f, 2f), StrokePoint(4f, 2f))
+            )
+        )
+        val base = FloatArray(25) { 1f } // 5x5 全 1
+        val out = layer.replayOnto(base, w = 5, h = 5)
+        // 连线中点 (2,2)/(3,2) 也被填充为 0，证明插值发生
+        assertEquals(0f, out[2 * 5 + 2], 0.001f)
+        assertEquals(0f, out[2 * 5 + 3], 0.001f)
+        assertEquals(0f, out[2 * 5 + 1], 0.001f) // 起点圆盘
+        assertEquals(0f, out[2 * 5 + 4], 0.001f) // 终点圆盘
+        assertEquals(1f, out[0], 0.001f)         // 远处不受影响
+    }
+
+    @Test
+    fun `replay soft brush fades toward disc edge`() {
+        val layer = StrokeLayer()
+        layer.addStroke(
+            BrushStroke(
+                mode = StrokeMode.RESTORE,
+                radiusPx = 2f,
+                softness = 1f,
+                points = listOf(StrokePoint(2f, 2f))
+            )
+        )
+        val base = FloatArray(25) // 5x5 全 0
+        val out = layer.replayOnto(base, w = 5, h = 5)
+        assertEquals(1f, out[2 * 5 + 2], 0.001f) // 圆心 weight=1
+        val fadeBand = out[3 * 5 + 3]            // d≈0.71，软边过渡带内
+        assertTrue(fadeBand > 0f)
+        assertTrue(fadeBand < 1f)
+        assertEquals(0f, out[2 * 5 + 4], 0.001f) // d=1 恰在圆盘边界，weight=0 不写入
+    }
+
+    @Test
     fun `empty layer returns copy of base`() {
         val base = floatArrayOf(0.3f, 0.7f)
         val out = StrokeLayer().replayOnto(base, w = 2, h = 1)
