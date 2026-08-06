@@ -119,6 +119,11 @@
     <string name="ai_optimize_reroll">换一组</string>
     <string name="ai_optimize_pick_hint">点卡片在大图上预览，确认后点应用</string>
     <string name="ai_optimize_dismiss">关闭</string>
+    <string name="chat_gacha_use_this">就用这张</string>
+    <string name="chat_gacha_pick_hint">点选一张候选预览，确认后应用</string>
+    <string name="chat_gacha_expired">该组候选已过期，可重新发起优化</string>
+    <string name="chat_gacha_confirm_failed">应用失败，请重试</string>
+    <string name="chat_gacha_reroll_unavailable">换一组暂不可用，请稍后再试</string>
     <string name="processing">处理中...</string>
     <string name="analyzing_face">分析人脸中...</string>
     <string name="doodle">涂鸦</string>
