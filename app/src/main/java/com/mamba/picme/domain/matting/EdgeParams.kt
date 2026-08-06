@@ -6,6 +6,7 @@ package com.mamba.picme.domain.matting
  */
 data class EdgeParams(
     val contrast: Float = DEFAULT_CONTRAST,
+    /** 正值扩张前景(dilate)，负值收缩(erode)，0=不动。 */
     val shrinkExpandPx: Int = 0,
     val featherRadiusPx: Int = 0
 ) {

@@ -143,13 +143,25 @@ class MaskPostProcessorTest {
     }
 
     @Test
-    fun `adjustEdges applies order contrast then morph then feather`() {
-        // 对比度先把 0.4 压到 0.3（contrast=2 关于 0.5：(0.4-0.5)*2+0.5=0.3），不会被后续 morph 当作前景
+    fun `adjustEdges applies contrast when morph and feather disabled`() {
+        // 只验证对比度透传（0.4 关于 0.5 压到 0.3）+ morph/feather 默认值短路（0.3 不被当作前景改变）
         val alpha = floatArrayOf(0.4f, 0.4f, 0.4f)
         val out = MaskPostProcessor.adjustEdges(
             alpha, w = 3, h = 1,
             params = EdgeParams(contrast = 2f, shrinkExpandPx = 0, featherRadiusPx = 0)
         )
         assertArrayEquals(floatArrayOf(0.3f, 0.3f, 0.3f), out, 1e-5f)
+    }
+
+    @Test
+    fun `adjustEdges with featherRadius delegates to feather`() {
+        // 1x4 硬边 1 1 0 0，contrast=1 短路，feather radius 1 -> 过渡带被软化
+        val alpha = floatArrayOf(1f, 1f, 0f, 0f)
+        val out = MaskPostProcessor.adjustEdges(
+            alpha, w = 4, h = 1,
+            params = EdgeParams(contrast = 1f, featherRadiusPx = 1)
+        )
+        assertEquals(2f / 3f, out[1], 0.01f)
+        assertEquals(1f / 3f, out[2], 0.01f)
     }
 }
