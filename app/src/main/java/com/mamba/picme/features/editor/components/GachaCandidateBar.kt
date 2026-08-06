@@ -1,9 +1,11 @@
 package com.mamba.picme.features.editor.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,38 +59,49 @@ fun GachaCandidateBar(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     run.candidates.forEach { scored ->
-                        val selected = scored.candidate.index == run.selectedIndex
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable(enabled = !scored.rejected) {
-                                    onPick(scored.candidate.index)
+                        key(scored.candidate.index) {
+                            val selected = scored.candidate.index == run.selectedIndex
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable(enabled = !scored.rejected) {
+                                        onPick(scored.candidate.index)
+                                    }
+                                    .border(
+                                        width = if (selected) 2.dp else 0.dp,
+                                        color = if (selected) MaterialTheme.colorScheme.primary
+                                        else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(4.dp)
+                            ) {
+                                val thumbModifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                val bmp = scored.thumbnail
+                                if (bmp != null) {
+                                    Image(
+                                        bitmap = bmp.asImageBitmap(),
+                                        contentDescription = scored.candidate.direction,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = thumbModifier
+                                    )
+                                } else {
+                                    // 渲染失败的候选：占位块保证布局一致，方向名仍可读、可点选
+                                    Box(
+                                        modifier = thumbModifier.background(
+                                            MaterialTheme.colorScheme.surfaceContainerHighest
+                                        )
+                                    )
                                 }
-                                .border(
-                                    width = if (selected) 2.dp else 0.dp,
-                                    color = if (selected) MaterialTheme.colorScheme.primary
-                                    else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(4.dp)
-                        ) {
-                            scored.thumbnail?.let { bmp ->
-                                Image(
-                                    bitmap = bmp.asImageBitmap(),
-                                    contentDescription = scored.candidate.direction,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(72.dp)
-                                        .clip(RoundedCornerShape(6.dp))
+                                Text(
+                                    text = scored.candidate.direction,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (scored.rejected) MaterialTheme.colorScheme.outline
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Text(
-                                text = scored.candidate.direction,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (scored.rejected) MaterialTheme.colorScheme.outline
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
