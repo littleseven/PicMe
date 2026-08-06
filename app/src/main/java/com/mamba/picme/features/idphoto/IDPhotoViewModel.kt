@@ -11,11 +11,17 @@ import androidx.lifecycle.viewModelScope
 import com.mamba.picme.R
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.matting.BackgroundComposer
+import com.mamba.picme.domain.matting.BrushStroke
+import com.mamba.picme.domain.matting.EdgeParams
 import com.mamba.picme.domain.matting.IDPhotoComposer
 import com.mamba.picme.domain.matting.IDPhotoSpecs
+import com.mamba.picme.domain.matting.MaskPostProcessor
 import com.mamba.picme.domain.matting.MaskSource
 import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.matting.MattingEngineImpl
+import com.mamba.picme.domain.matting.StrokeLayer
+import com.mamba.picme.domain.matting.StrokeMode
+import com.mamba.picme.domain.matting.StrokePoint
 import com.mamba.picme.domain.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +36,7 @@ private const val JPEG_QUALITY = 95
 private const val MIN_ZOOM = 1f
 private const val MAX_ZOOM = 4f
 
+@Suppress("TooManyFunctions") // 页面 VM：底部 4-tab 的动作方法集中于此，拆分反而割裂状态一致性
 class IDPhotoViewModel(
     private val mattingEngine: MattingEngine,
     private val mediaRepository: MediaRepository
@@ -48,6 +55,11 @@ class IDPhotoViewModel(
             val zoom: Float = 1f,
             val selectedColorIndex: Int = 0,
             val selectedSizeIndex: Int = 0,
+            val activeTab: IdPhotoTab = IdPhotoTab.BG_COLOR,
+            val edgeParams: EdgeParams = EdgeParams(),
+            val strokeVersion: Int = 0,
+            val canUndoStroke: Boolean = false,
+            val canRedoStroke: Boolean = false,
             val isSaving: Boolean = false,
             val error: String? = null
         ) : State()
@@ -61,9 +73,12 @@ class IDPhotoViewModel(
 
     fun load(context: Context, sourceUri: String) {
         appContext = context.applicationContext
-        previewBaseCache = null
         viewModelScope.launch {
             _state.value = State.Loading
+            previewBaseCache = null
+            adjustedAlphaCache = null
+            strokeLayer.clear()
+            activeStrokePoints = null
             try {
                 val bitmap = decodePreview(context, Uri.parse(sourceUri))
                     ?: run {
@@ -75,9 +90,13 @@ class IDPhotoViewModel(
                     _state.value = State.Error(context.getString(R.string.id_photo_matting_failed))
                     return@launch
                 }
-                // 从 alpha 蒙版提取主体位置，用于「头顶留白」智能构图，避免居中裁剪砍头
+                // 从 alpha 蒙版提取主体位置，用于「头顶留白」智能构图，避免居中裁剪砍头。
+                // 融合 alpha 未锐化，先在参数层默认结果（含默认 sharpen）上提取，与旧行为一致。
                 val subject = withContext(Dispatchers.Default) {
-                    IDPhotoComposer.subjectBounds(result.alpha, result.width, result.height)
+                    val sharpened = MaskPostProcessor.adjustEdges(
+                        result.alpha, result.width, result.height, EdgeParams()
+                    )
+                    IDPhotoComposer.subjectBounds(sharpened, result.width, result.height)
                 }
                 _state.value = State.Ready(
                     originalBitmap = bitmap,
@@ -105,6 +124,83 @@ class IDPhotoViewModel(
         _state.value = current.copy(selectedSizeIndex = index)
     }
 
+    fun selectTab(tab: IdPhotoTab) {
+        val current = _state.value as? State.Ready ?: return
+        _state.value = current.copy(activeTab = tab)
+    }
+
+    /** 滑块松手时调用（UI 在 onValueChangeFinished 触发，天然防抖）。 */
+    fun setEdgeParams(params: EdgeParams) {
+        val current = _state.value as? State.Ready ?: return
+        _state.value = current.copy(edgeParams = params)
+    }
+
+    fun resetEdgeParams() = setEdgeParams(EdgeParams())
+
+    /** 开始一笔涂抹（[radiusPx]/[softness] 已换算为源图像素坐标系）。 */
+    fun beginStroke(mode: StrokeMode, radiusPx: Float, softness: Float) {
+        if (_state.value !is State.Ready) return
+        activeStrokeMode = mode
+        activeStrokeRadius = radiusPx
+        activeStrokeSoftness = softness
+        activeStrokePoints = mutableListOf()
+    }
+
+    /** 追加一个源图像素坐标点（UI 经 [IDPhotoComposer.frameToSource] 换算后传入）。 */
+    fun appendStrokePoint(point: StrokePoint) {
+        activeStrokePoints?.add(point)
+    }
+
+    /** 结束一笔：提交描边层，strokeVersion+1 使缓存失效触发底图重建。 */
+    fun endStroke() {
+        val points = activeStrokePoints ?: return
+        activeStrokePoints = null
+        if (points.isEmpty()) return
+        val current = _state.value as? State.Ready ?: return
+        strokeLayer.addStroke(
+            BrushStroke(activeStrokeMode, activeStrokeRadius, activeStrokeSoftness, points.toList())
+        )
+        _state.value = current.copy(
+            strokeVersion = current.strokeVersion + 1,
+            canUndoStroke = strokeLayer.canUndo,
+            canRedoStroke = strokeLayer.canRedo
+        )
+    }
+
+    /** 是否有进行中的描边（UI 判断是否需要画进行态覆盖层）。 */
+    fun hasActiveStroke(): Boolean = activeStrokePoints != null
+
+    fun undoStroke() {
+        val current = _state.value as? State.Ready ?: return
+        if (!strokeLayer.undo()) return
+        _state.value = current.copy(
+            strokeVersion = current.strokeVersion + 1,
+            canUndoStroke = strokeLayer.canUndo,
+            canRedoStroke = strokeLayer.canRedo
+        )
+    }
+
+    fun redoStroke() {
+        val current = _state.value as? State.Ready ?: return
+        if (!strokeLayer.redo()) return
+        _state.value = current.copy(
+            strokeVersion = current.strokeVersion + 1,
+            canUndoStroke = strokeLayer.canUndo,
+            canRedoStroke = strokeLayer.canRedo
+        )
+    }
+
+    fun clearStrokes() {
+        val current = _state.value as? State.Ready ?: return
+        if (strokeLayer.count == 0) return
+        strokeLayer.clear()
+        _state.value = current.copy(
+            strokeVersion = current.strokeVersion + 1,
+            canUndoStroke = false,
+            canRedoStroke = false
+        )
+    }
+
     /**
      * 拖拽/双指缩放微调构图。[dxFraction]/[dyFraction] 为相对预览尺寸的归一化拖拽量
      * （拖动方向与内容一致：向下拖 = 露出更多顶部）；[zoomChange] 为双指缩放比例增量，
@@ -128,22 +224,52 @@ class IDPhotoViewModel(
         _state.value = current.copy(offsetX = clamped.offsetX, offsetY = clamped.offsetY, zoom = clamped.zoom)
     }
 
-    /** 预览底图缓存：key = selectedColorIndex。手势只改变换参数，不重建底图，保证跟手。 */
-    private var previewBaseCache: Pair<Int, Bitmap>? = null
+    /** 预览底图缓存键：底色 + 参数层 + 描边版本。手势只改变换参数，不重建底图，保证跟手。 */
+    private data class PreviewKey(val colorIndex: Int, val params: EdgeParams, val strokeVersion: Int)
 
-    /** 预览底图（original+alpha 按当前底色合成，原图尺寸）；按底色缓存，跨手势复用。 */
-    suspend fun previewBase(): Bitmap? = withContext(Dispatchers.Default) {
-        val current = _state.value as? State.Ready ?: return@withContext null
-        val colorIndex = current.selectedColorIndex
-        previewBaseCache?.takeIf { cached -> cached.first == colorIndex }
-            ?.let { cached -> return@withContext cached.second }
-        val base = BackgroundComposer.apply(
-            current.originalBitmap, current.alpha,
-            current.originalBitmap.width, current.originalBitmap.height,
-            IDPhotoSpecs.COLORS[colorIndex].argb
+    /** alpha 缓存键：参数层 + 描边版本（alpha 与底色无关，不含 colorIndex）。 */
+    private data class AlphaKey(val params: EdgeParams, val strokeVersion: Int)
+
+    @Volatile
+    private var previewBaseCache: Pair<PreviewKey, Bitmap>? = null
+
+    @Volatile
+    private var adjustedAlphaCache: Pair<AlphaKey, FloatArray>? = null
+    private val strokeLayer = StrokeLayer()
+
+    /** 进行中的描边（源图像素坐标，UI 拖完一笔后提交）。 */
+    private var activeStrokePoints: MutableList<StrokePoint>? = null
+    private var activeStrokeMode: StrokeMode = StrokeMode.RESTORE
+    private var activeStrokeRadius: Float = 0f
+    private var activeStrokeSoftness: Float = 0f
+
+    /** 参数层 + 描边层叠加后的 alpha（按 AlphaKey 缓存；[strokes] 为 Main 上取的快照）。 */
+    private fun adjustedAlpha(current: State.Ready, key: AlphaKey, strokes: List<BrushStroke>): FloatArray {
+        adjustedAlphaCache?.takeIf { it.first == key }?.let { return it.second }
+        val paramApplied = MaskPostProcessor.adjustEdges(
+            current.alpha, current.alphaWidth, current.alphaHeight, current.edgeParams
         )
-        previewBaseCache = colorIndex to base
-        base
+        val adjusted = StrokeLayer.replay(strokes, paramApplied, current.alphaWidth, current.alphaHeight)
+        adjustedAlphaCache = key to adjusted
+        return adjusted
+    }
+
+    /** 预览底图（original+adjustedAlpha 按当前底色合成，原图尺寸）；按 PreviewKey 缓存，跨手势复用。 */
+    suspend fun previewBase(): Bitmap? {
+        val current = _state.value as? State.Ready ?: return null
+        val key = PreviewKey(current.selectedColorIndex, current.edgeParams, current.strokeVersion)
+        val alphaKey = AlphaKey(current.edgeParams, current.strokeVersion)
+        val strokes = strokeLayer.snapshot() // Main 上快照，避免 Default 重放与 Main 修改竞态
+        return withContext(Dispatchers.Default) {
+            previewBaseCache?.takeIf { it.first == key }?.let { return@withContext it.second }
+            val base = BackgroundComposer.apply(
+                current.originalBitmap, adjustedAlpha(current, alphaKey, strokes),
+                current.originalBitmap.width, current.originalBitmap.height,
+                IDPhotoSpecs.COLORS[current.selectedColorIndex].argb
+            )
+            previewBaseCache = key to base
+            base
+        }
     }
 
     private fun framingOf(current: State.Ready) = IDPhotoComposer.CropFraming(
@@ -167,11 +293,14 @@ class IDPhotoViewModel(
     }
 
     /** 合成最终输出图（保存用；底图走缓存，仅裁剪+缩放）。 */
-    suspend fun composePreview(): Bitmap? = withContext(Dispatchers.Default) {
-        val current = _state.value as? State.Ready ?: return@withContext null
-        val base = previewBase() ?: return@withContext null
+    suspend fun composePreview(): Bitmap? {
+        val current = _state.value as? State.Ready ?: return null
+        // previewBase 在调用方线程（Main）上做 strokeLayer.snapshot()，避免 Default 与 Main 竞态
+        val base = previewBase() ?: return null
         val size = IDPhotoSpecs.SIZES[current.selectedSizeIndex]
-        IDPhotoComposer.cropAndScale(base, size.widthPx, size.heightPx, framingOf(current))
+        return withContext(Dispatchers.Default) {
+            IDPhotoComposer.cropAndScale(base, size.widthPx, size.heightPx, framingOf(current))
+        }
     }
 
     fun save(context: Context) {

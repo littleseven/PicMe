@@ -113,8 +113,9 @@ class MattingEngineImpl(
         }
 
     /**
-     * selfie + MODNet 双模型融合：逐像素 max（服装区取 selfie、面部区取 MODNet），
-     * 再 alpha 锐化收窄融合边缘。证件照专用（双推理，离线可接受）。
+     * selfie + MODNet 双模型融合：逐像素 max（服装区取 selfie、面部区取 MODNet）。
+     * 证件照专用（双推理，离线可接受）。融合结果不做固定锐化，交由证件照参数层
+     * （MaskPostProcessor.adjustEdges，默认对比度 2.5）处理。
      */
     private suspend fun fusionMatting(bitmap: Bitmap): MattingResult? {
         if (!ensureBackend(MaskSource.SELFIE_SEGMENTATION) || !ensureBackend(MaskSource.MODNET)) {
@@ -133,8 +134,9 @@ class MattingEngineImpl(
             dstW = bitmap.width, dstH = bitmap.height
         )
         val fused = FloatArray(alphaSelfie.size) { i -> maxOf(alphaSelfie[i], alphaModnet[i]) }
-        val refined = MaskPostProcessor.sharpenAlpha(fused, contrast = 2.5f)
-        return MattingResult(alpha = refined, width = bitmap.width, height = bitmap.height)
+        // 不做固定 sharpen：边缘锐化已迁移到证件照参数层（EdgeParams.DEFAULT_CONTRAST=2.5），
+        // 此处返回未锐化的融合 alpha，供参数层/描边层后处理。
+        return MattingResult(alpha = fused, width = bitmap.width, height = bitmap.height)
     }
 
     fun release() {

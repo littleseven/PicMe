@@ -239,4 +239,28 @@ class IDPhotoComposerTest {
         )
         assertEquals(1f, clamped.zoom, 0.0001f)
     }
+
+    @Test
+    fun `frameToSource maps frame position into crop window`() {
+        // cropRect = (100,200)-(300,600)（宽200 高400），画框 100x200：中心点应映射到 crop 中心
+        val crop = IDPhotoComposer.CropRect(100, 200, 300, 600)
+        val p = IDPhotoComposer.frameToSource(px = 50f, py = 100f, frameW = 100f, frameH = 200f, crop = crop)
+        assertEquals(200f, p.x, 0.01f)
+        assertEquals(400f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `frameToSource maps frame origin to crop left top`() {
+        val crop = IDPhotoComposer.CropRect(100, 200, 300, 600)
+        val p = IDPhotoComposer.frameToSource(px = 0f, py = 0f, frameW = 100f, frameH = 200f, crop = crop)
+        assertEquals(100f, p.x, 0.01f)
+        assertEquals(200f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `frameRadiusToSource scales by crop width over frame width`() {
+        val crop = IDPhotoComposer.CropRect(0, 0, 200, 400)
+        val r = IDPhotoComposer.frameRadiusToSource(radiusPx = 10f, frameW = 100f, crop = crop)
+        assertEquals(20f, r, 0.01f)
+    }
 }

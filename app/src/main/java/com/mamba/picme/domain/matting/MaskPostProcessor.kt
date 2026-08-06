@@ -98,4 +98,62 @@ object MaskPostProcessor {
             }
         }
     }
+
+    /** 腐蚀（收缩前景）：分离式滑动窗口最小值滤波。radius<=0 返回拷贝。 */
+    fun erode(alpha: FloatArray, w: Int, h: Int, radius: Int): FloatArray =
+        windowPass(windowPass(alpha, w, h, radius, horizontal = true, isMax = false),
+            w, h, radius, horizontal = false, isMax = false)
+
+    /** 扩张（扩展前景）：分离式滑动窗口最大值滤波。radius<=0 返回拷贝。 */
+    fun dilate(alpha: FloatArray, w: Int, h: Int, radius: Int): FloatArray =
+        windowPass(windowPass(alpha, w, h, radius, horizontal = true, isMax = true),
+            w, h, radius, horizontal = false, isMax = true)
+
+    /** 单方向滑动窗口 min/max 滤波；越界位置跳过（边缘钳制，与 [feather] 一致）。 */
+    private fun windowPass(
+        alpha: FloatArray, w: Int, h: Int, radius: Int, horizontal: Boolean, isMax: Boolean
+    ): FloatArray {
+        if (radius <= 0) return alpha.copyOf()
+        val out = FloatArray(alpha.size)
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                out[y * w + x] = windowExtremum(alpha, w, h, WindowQuery(x, y, radius, horizontal, isMax))
+            }
+        }
+        return out
+    }
+
+    /** 单方向窗口查询参数（同一 pass 内 radius/horizontal/isMax 不变，仅 x/y 随像素移动）。 */
+    private data class WindowQuery(val x: Int, val y: Int, val radius: Int, val horizontal: Boolean, val isMax: Boolean)
+
+    /** (x,y) 处单方向窗口的 min/max 值（越界跳过）。 */
+    private fun windowExtremum(alpha: FloatArray, w: Int, h: Int, query: WindowQuery): Float {
+        var best = if (query.isMax) 0f else 1f
+        for (d in -query.radius..query.radius) {
+            val sx = if (query.horizontal) query.x + d else query.x
+            val sy = if (query.horizontal) query.y else query.y + d
+            if (sx in 0 until w && sy in 0 until h) {
+                val v = alpha[sy * w + sx]
+                best = if (query.isMax) maxOf(best, v) else minOf(best, v)
+            }
+        }
+        return best
+    }
+
+    /**
+     * 证件照参数层流水线：对比度 → 收缩/扩张 → 羽化（先定边缘位置，再软化）。
+     * 各环节为默认值时自然短路（sharpen=1/erode/dilate/feather radius<=0 均返回拷贝）。
+     */
+    fun adjustEdges(alpha: FloatArray, w: Int, h: Int, params: EdgeParams): FloatArray {
+        var out = sharpenAlpha(alpha, params.contrast)
+        if (params.shrinkExpandPx > 0) {
+            out = dilate(out, w, h, params.shrinkExpandPx)
+        } else if (params.shrinkExpandPx < 0) {
+            out = erode(out, w, h, -params.shrinkExpandPx)
+        }
+        if (params.featherRadiusPx > 0) {
+            out = feather(out, w, h, params.featherRadiusPx)
+        }
+        return out
+    }
 }
