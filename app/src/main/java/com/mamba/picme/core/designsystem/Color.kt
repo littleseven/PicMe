@@ -59,3 +59,6 @@ val VibrantGreen = Color(0xFF00E676)
 val VibrantBlue = Color(0xFF2979FF)
 val VibrantOrange = Color(0xFFFF9100)
 val VibrantPink = Color(0xFFFF4081)
+
+// Component tokens (fixed component-level colors, not part of ColorScheme)
+val SliderThumbColor = Color(0xFFFFFFFF)
