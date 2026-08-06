@@ -131,4 +131,21 @@ object MaskPostProcessor {
         }
         return out
     }
+
+    /**
+     * 证件照参数层流水线：对比度 → 收缩/扩张 → 羽化（先定边缘位置，再软化）。
+     * 各环节为默认值时自然短路（sharpen=1/erode/dilate/feather radius<=0 均返回拷贝）。
+     */
+    fun adjustEdges(alpha: FloatArray, w: Int, h: Int, params: EdgeParams): FloatArray {
+        var out = sharpenAlpha(alpha, params.contrast)
+        if (params.shrinkExpandPx > 0) {
+            out = dilate(out, w, h, params.shrinkExpandPx)
+        } else if (params.shrinkExpandPx < 0) {
+            out = erode(out, w, h, -params.shrinkExpandPx)
+        }
+        if (params.featherRadiusPx > 0) {
+            out = feather(out, w, h, params.featherRadiusPx)
+        }
+        return out
+    }
 }

@@ -113,4 +113,43 @@ class MaskPostProcessorTest {
         val out = MaskPostProcessor.erode(alpha, w = 3, h = 3, radius = 1)
         assertArrayEquals(FloatArray(9) { 0f }, out, 0.0001f)
     }
+
+    @Test
+    fun `adjustEdges with default params equals sharpen 2_5 only`() {
+        val alpha = floatArrayOf(0f, 0.3f, 0.7f, 1f)
+        val out = MaskPostProcessor.adjustEdges(alpha, w = 4, h = 1, params = EdgeParams())
+        val expected = MaskPostProcessor.sharpenAlpha(alpha, contrast = EdgeParams.DEFAULT_CONTRAST)
+        assertArrayEquals(expected, out, 1e-5f)
+    }
+
+    @Test
+    fun `adjustEdges positive shrinkExpand dilates`() {
+        val alpha = floatArrayOf(0f, 0f, 1f, 0f, 0f)
+        val out = MaskPostProcessor.adjustEdges(
+            alpha, w = 5, h = 1,
+            params = EdgeParams(contrast = 1f, shrinkExpandPx = 1)
+        )
+        assertArrayEquals(floatArrayOf(0f, 1f, 1f, 1f, 0f), out, 0.0001f)
+    }
+
+    @Test
+    fun `adjustEdges negative shrinkExpand erodes`() {
+        val alpha = floatArrayOf(0f, 1f, 1f, 1f, 0f)
+        val out = MaskPostProcessor.adjustEdges(
+            alpha, w = 5, h = 1,
+            params = EdgeParams(contrast = 1f, shrinkExpandPx = -1)
+        )
+        assertArrayEquals(floatArrayOf(0f, 0f, 1f, 0f, 0f), out, 0.0001f)
+    }
+
+    @Test
+    fun `adjustEdges applies order contrast then morph then feather`() {
+        // 对比度先把 0.4 压到 0.3（contrast=2 关于 0.5：(0.4-0.5)*2+0.5=0.3），不会被后续 morph 当作前景
+        val alpha = floatArrayOf(0.4f, 0.4f, 0.4f)
+        val out = MaskPostProcessor.adjustEdges(
+            alpha, w = 3, h = 1,
+            params = EdgeParams(contrast = 2f, shrinkExpandPx = 0, featherRadiusPx = 0)
+        )
+        assertArrayEquals(floatArrayOf(0.3f, 0.3f, 0.3f), out, 1e-5f)
+    }
 }
