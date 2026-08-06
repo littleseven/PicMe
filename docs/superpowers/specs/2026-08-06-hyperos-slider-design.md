@@ -49,9 +49,14 @@ fun AppSlider(
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
 )
 ```
+
+> 注：`steps` 为实施期追加——相机专业模式曝光滑杆依赖离散步进（§4 迁移原则要求「步进保持原样」），故纳入最小子集。
+
+另：实施中经审查发现并经用户确认的追加决策——相机/证件照等强制深色背景的页面，内容区包 `Theme.kt` 新增的 `PoLangForcedDarkTheme`，使 colorScheme 与深色视觉场景对齐（否则浅色 scheme 下 onSurface 派生的未激活轨道色在深色背景上不可见）。
 
 - **不提供配色参数**：颜色全部由组件内部从 `MaterialTheme.colorScheme` 取，防止再次碎片化。
 - 内部基于 M3 `Slider` 的 `thumb` / `track` slot 自定义实现（保留 M3 的手势、无障碍、步进语义），不裸写 Canvas 手势。
