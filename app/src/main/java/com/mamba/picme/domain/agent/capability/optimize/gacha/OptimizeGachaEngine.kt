@@ -58,10 +58,15 @@ class OptimizeGachaEngine(
         }
 
         val result = optimizeScorer.select(scored, originalScore)
+        val resultName = when (result) {
+            is GachaResult.Selected -> "Selected"
+            is GachaResult.KeepOriginal -> "KeepOriginal"
+            GachaResult.Unavailable -> "Unavailable"
+        }
         Logger.i(
             TAG,
             "gacha done: scene=${scene.name}, cards=${scored.size}, " +
-                "original=$originalScore, result=${result::class.simpleName}"
+                "original=$originalScore, result=$resultName"
         )
         return result
     }
