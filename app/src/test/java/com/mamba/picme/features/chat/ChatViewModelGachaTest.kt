@@ -3,9 +3,11 @@ package com.mamba.picme.features.chat
 import com.mamba.picme.data.local.ChatMessageEntity
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -30,6 +32,25 @@ class ChatViewModelGachaTest : ChatViewModelTestBase() {
         usedFingerprints = listOf("fp1"),
         drawIndex = 1
     )
+
+    @Test
+    fun `loadMessages restores gacha selection for pending candidates message`() = runTest {
+        every { gachaController.hasPending("msg1") } returns true
+        every { chatMessageDao.getMessagesBySession(any()) } returns flowOf(
+            listOf(
+                ChatMessageEntity(
+                    id = "msg1", sessionId = "default",
+                    type = OptimizeCandidateGroup.MESSAGE_TYPE,
+                    content = "expl", metadata = group().toJson()
+                )
+            )
+        )
+
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        assertEquals(1, vm.gachaSelections.value["msg1"])
+    }
 
     @Test
     fun `insertOptimizeCandidatesMessage persists optimize_candidates and seeds selection`() = runTest {

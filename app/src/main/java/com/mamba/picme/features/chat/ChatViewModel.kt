@@ -918,6 +918,17 @@ class ChatViewModel(
                             ui
                                 .let { if (deliver != null) it.copy(claudeDeliver = deliver) else it }
                         }
+                        // 回填仍处 pending 的卡条选中态（controller 内存态存活于 ViewModel 重建，选中态不存活）
+                        val restored = entities
+                            .filter { it.type == OptimizeCandidateGroup.MESSAGE_TYPE }
+                            .filter { optimizeGachaController?.hasPending(it.id) == true }
+                            .mapNotNull { entity ->
+                                OptimizeCandidateGroup.fromJson(entity.metadata)?.let { entity.id to it.recommendedIndex }
+                            }
+                            .toMap()
+                        if (restored.isNotEmpty()) {
+                            _gachaSelections.value = _gachaSelections.value + restored
+                        }
                     }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to load messages", e)
