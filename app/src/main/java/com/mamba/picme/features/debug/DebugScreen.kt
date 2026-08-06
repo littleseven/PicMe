@@ -96,7 +96,12 @@ fun DebugScreen(
             api = PexelsApi.create(),
             keyStore = PexelsKeyStore(context.applicationContext),
             imageSaver = PexelsImageSaver { photoId, imageUrl ->
-                SampleDataGenerator.savePexelsPhoto(context, app.repository, photoId, imageUrl)
+                SampleDataGenerator.savePexelsPhoto(
+                    context.applicationContext,
+                    app.repository,
+                    photoId,
+                    imageUrl
+                )
             },
             scope = app.applicationScope
         )
