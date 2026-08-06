@@ -98,4 +98,37 @@ object MaskPostProcessor {
             }
         }
     }
+
+    /** 腐蚀（收缩前景）：分离式滑动窗口最小值滤波。radius<=0 返回拷贝。 */
+    fun erode(alpha: FloatArray, w: Int, h: Int, radius: Int): FloatArray =
+        windowPass(windowPass(alpha, w, h, radius, horizontal = true, isMax = false),
+            w, h, radius, horizontal = false, isMax = false)
+
+    /** 扩张（扩展前景）：分离式滑动窗口最大值滤波。radius<=0 返回拷贝。 */
+    fun dilate(alpha: FloatArray, w: Int, h: Int, radius: Int): FloatArray =
+        windowPass(windowPass(alpha, w, h, radius, horizontal = true, isMax = true),
+            w, h, radius, horizontal = false, isMax = true)
+
+    /** 单方向滑动窗口 min/max 滤波；越界位置跳过（边缘钳制，与 [feather] 一致）。 */
+    private fun windowPass(
+        alpha: FloatArray, w: Int, h: Int, radius: Int, horizontal: Boolean, isMax: Boolean
+    ): FloatArray {
+        if (radius <= 0) return alpha.copyOf()
+        val out = FloatArray(alpha.size)
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                var best = if (isMax) 0f else 1f
+                for (d in -radius..radius) {
+                    val sx = if (horizontal) x + d else x
+                    val sy = if (horizontal) y else y + d
+                    if (sx in 0 until w && sy in 0 until h) {
+                        val v = alpha[sy * w + sx]
+                        best = if (isMax) maxOf(best, v) else minOf(best, v)
+                    }
+                }
+                out[y * w + x] = best
+            }
+        }
+        return out
+    }
 }

@@ -2,6 +2,7 @@ package com.mamba.picme.domain.matting
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MaskPostProcessorTest {
@@ -62,5 +63,50 @@ class MaskPostProcessorTest {
         val alpha = floatArrayOf(0.2f, 0.8f)
         val out = MaskPostProcessor.sharpenAlpha(alpha, contrast = 1f)
         assertArrayEquals(alpha, out, 1e-6f)
+    }
+
+    @Test
+    fun `erode radius 0 returns copy`() {
+        val alpha = floatArrayOf(0f, 1f, 1f, 0f)
+        val out = MaskPostProcessor.erode(alpha, w = 4, h = 1, radius = 0)
+        assertArrayEquals(alpha, out, 0.0001f)
+    }
+
+    @Test
+    fun `erode shrinks foreground strip`() {
+        // 1x5: 0 1 1 1 0 ; radius 1 min-filter -> 0 0 1 0 0
+        val alpha = floatArrayOf(0f, 1f, 1f, 1f, 0f)
+        val out = MaskPostProcessor.erode(alpha, w = 5, h = 1, radius = 1)
+        assertArrayEquals(floatArrayOf(0f, 0f, 1f, 0f, 0f), out, 0.0001f)
+    }
+
+    @Test
+    fun `dilate grows foreground strip`() {
+        // 1x5: 0 0 1 0 0 ; radius 1 max-filter -> 0 1 1 1 0
+        val alpha = floatArrayOf(0f, 0f, 1f, 0f, 0f)
+        val out = MaskPostProcessor.dilate(alpha, w = 5, h = 1, radius = 1)
+        assertArrayEquals(floatArrayOf(0f, 1f, 1f, 1f, 0f), out, 0.0001f)
+    }
+
+    @Test
+    fun `dilate at image edge clamps window`() {
+        // 1x3: 1 0 0 ; radius 1 -> 1 1 0（左边缘不外溢）
+        val alpha = floatArrayOf(1f, 0f, 0f)
+        val out = MaskPostProcessor.dilate(alpha, w = 3, h = 1, radius = 1)
+        assertArrayEquals(floatArrayOf(1f, 1f, 0f), out, 0.0001f)
+    }
+
+    @Test
+    fun `erode never increases foreground area on 2d mask`() {
+        // 3x3 全 1，中心一个 0 空洞；腐蚀后前景计数不增
+        val alpha = floatArrayOf(
+            1f, 1f, 1f,
+            1f, 0f, 1f,
+            1f, 1f, 1f
+        )
+        val out = MaskPostProcessor.erode(alpha, w = 3, h = 3, radius = 1)
+        val before = alpha.count { it >= 0.5f }
+        val after = out.count { it >= 0.5f }
+        assertTrue(after <= before)
     }
 }
