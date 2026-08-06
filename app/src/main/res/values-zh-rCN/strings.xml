@@ -113,10 +113,11 @@
     <string name="ai_optimize">AI 一键优化</string>
     <string name="ai_optimize_not_available">AI 优化暂不可用</string>
     <string name="ai_optimize_failed">AI 优化失败：%1$s</string>
-    <string name="ai_optimize_best_applied">已为你应用最佳方案</string>
-    <string name="ai_optimize_keep_original">当前照片已很好，未做修改</string>
+    <string name="ai_optimize_recommended">推荐</string>
+    <string name="ai_optimize_apply">应用</string>
+    <string name="ai_optimize_keep_hint">AI 认为原图已很好，仍可试看候选</string>
     <string name="ai_optimize_reroll">换一组</string>
-    <string name="ai_optimize_pick_hint">点选你最喜欢的一张</string>
+    <string name="ai_optimize_pick_hint">点卡片在大图上预览，确认后点应用</string>
     <string name="ai_optimize_dismiss">关闭</string>
     <string name="remove_background">去背景</string>
     <string name="remove_background_failed">去背景失败</string>

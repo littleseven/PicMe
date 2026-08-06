@@ -41,6 +41,8 @@ AI 一键优化现状（`AiOptimizeUseCase`）：
 
 用户已确认选型：**A + 轻量 B**。
 
+> **修订记录（2026-08-06）**：交互改为「用户手选为主体 + 先预览后应用」。不再自动应用最优卡；抽卡后进入对比模式，候选在主预览区全尺寸预览（复用 2048px 预览管线，不入撤销历史），用户点「应用」才生效并入历史。落库时点相应调整：`user` 在「应用」时落库（而非点选时），`dismiss` 在「关闭」时落库。
+
 ## 3. 架构与组件
 
 新增包 `app/src/main/java/com/mamba/picme/domain/agent/capability/optimize/gacha/`：
@@ -142,7 +144,7 @@ NIMA 偏好高对比高饱和，需护栏约束：
 
 `NimaScorer.initialize()` 返回 false（模型未下载）→ 整个抽卡链路返回 `GachaResult.Unavailable` → 调用方退回现有固定预设行为。**功能不阻塞、不提示用户下载**（与封面选择一致的渐进增强策略）。
 
-## 6. 交互流程
+## 6. 交互流程（2026-08-06 修订：先预览后应用）
 
 ```
 点击「AI 优化」（媒体查看器 / 编辑器入口不变）
@@ -150,19 +152,20 @@ NIMA 偏好高对比高饱和，需护栏约束：
   → CandidateSampler 抽 4 卡
   → 解码 512px 小图 → CandidateRenderer 渲染 ×4（串行，复用现有单线程 EGL dispatcher）
   → OptimizeScorer 评分 ×4 + 原图评分
-  ├─ 有候选过守卫 → 自动应用最优卡
-  │     （全分辨率渲染与保存走现有 RecipeApplier 路径，不重复实现）
-  │     结果卡显示场景说明 + 「换一组」按钮
-  ├─ 全部未过守卫 → 保持原图，提示"当前照片已很好，未做修改"
-  └─ Unavailable → 退回现有 optimize() 固定预设路径
+  ├─ 有候选过守卫 → 进入对比模式：主预览区全尺寸预览最优卡（不入撤销历史），
+  │     底部候选条显示 4 卡（缩略图 + 推荐徽标，预览中的卡高亮边框）
+  ├─ 全部未过守卫 → 进入对比模式但 previewedIndex=-1（保持原图预览），
+  │     提示"AI 认为原图已很好，仍可试看候选"
+  └─ Unavailable → 退回现有 optimize() 固定预设路径（直接应用）
 
-「换一组」→ 新 seed 重抽 4 卡（去重已出现组合）
-  → 底部弹出 4 卡横向对比条（缩略图 + 方向标签，不显示 NIMA 裸分）
-  → 用户点选某卡 → 应用该卡（全分辨率）→ 落库 user pick
-  → 用户关闭不选 → 保持当前已应用结果 → 落库 dismiss
+对比模式（调整面板与底栏隐藏，undo/redo 禁用）：
+  → 点选某卡 → 主预览区切换到该卡（full-quality 预览，仅预览不落历史不落库）
+  → 「换一组」→ 新 seed 重抽 4 卡（去重已出现组合），预览自动切到新最优卡
+  → 「应用」→ history.push + 落库 user（previewedIndex=-1 时按钮禁用）
+  → 「关闭」→ 预览回退 baseRecipe + 落库 dismiss + 退出对比模式
 ```
 
-UI 文案遵循三语同步 [I18N] 红线，新增字符串同步 zh/en/ja。
+UI 文案遵循 [I18N] 红线，新增字符串同步 en / zh / zh-rCN / zh-rTW。
 
 ## 7. 反馈落库（Phase 2 个性化铺路，v1 只记录不学习）
 
@@ -175,7 +178,7 @@ UI 文案遵循三语同步 [I18N] 红线，新增字符串同步 zh/en/ja。
 | scene | String | Scene 枚举名 |
 | candidates_json | String | 4 卡参数 + NIMA 分 + 是否被护栏淘汰 |
 | selected_index | Int | 选中的卡；-1 = KeepOriginal |
-| selection_source | String | `auto`（NIMA 选优）/ `user`（换一组手选）/ `dismiss`（换一组后未选） |
+| selection_source | String | `auto`（每组生成时 NIMA 选优）/ `user`（用户点「应用」确认）/ `dismiss`（用户点「关闭」放弃） |
 | created_at | Long | 时间戳 |
 
 Phase 2（不在本 spec 范围）：按 scene 聚合 user pick 相对 base 的参数偏移（EMA），把采样中心向用户偏好方向收窄——即"逐渐优化参数范围"。v1 只把 schema 定好、数据落准。
