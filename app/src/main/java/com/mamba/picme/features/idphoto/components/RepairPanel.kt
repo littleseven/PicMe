@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import com.mamba.picme.core.designsystem.components.AppSlider
 import com.mamba.picme.domain.matting.StrokeMode
 
 /** 修补面板状态（由 Screen 从 ViewModel/本地态组装）。 */
@@ -78,15 +77,10 @@ fun RepairPanel(state: RepairPanelState, callbacks: RepairPanelCallbacks) {
             )
         }
         // 笔刷尺寸无重计算开销，实时更新以保证拖动手感（区别于 EdgePanel 的松手才回调）
-        Slider(
+        AppSlider(
             value = state.brushSizePx,
             onValueChange = callbacks.onBrushSizeChange,
             valueRange = 8f..80f,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = Color(0xFF3A3A3A)
-            ),
             modifier = Modifier.fillMaxWidth()
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
