@@ -82,7 +82,7 @@ class StrokeLayerTest {
         layer.addStroke(
             BrushStroke(
                 mode = StrokeMode.ERASE,
-                radiusPx = 1.5f,
+                radiusPx = 0.6f,
                 softness = 0f,
                 points = listOf(StrokePoint(1f, 2f), StrokePoint(4f, 2f))
             )
