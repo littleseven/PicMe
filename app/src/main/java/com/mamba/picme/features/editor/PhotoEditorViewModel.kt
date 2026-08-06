@@ -229,6 +229,16 @@ class PhotoEditorViewModel(
         _recipeChanges.value = recipe
     }
 
+    /**
+     * 追加一条标记动作（涂鸦/马赛克/文字）并入撤销历史。
+     * 直接读取最新 state，避免绘图层闭包捕获旧 recipe 快照导致连续笔画互相覆盖。
+     */
+    fun addMarkupAction(action: MarkupAction) {
+        val current = _state.value as? State.Ready ?: return
+        if (current.gachaRun != null) return
+        updateRecipe(current.recipe.copy(markup = current.recipe.markup + action))
+    }
+
     /** 一键去背景：按是否人像路由写入 cutout 配方（默认透明抠图），可撤销/重做，复用 [updateRecipe] 触发预览。 */
     fun removeBackground() {
         val current = _state.value as? State.Ready ?: return

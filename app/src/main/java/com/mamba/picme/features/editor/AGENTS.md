@@ -6,12 +6,12 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-> **版本**: 2.2  
+> **版本**: 2.3  
 > **状态**: 生效中  
-> **最后更新**: 2026-08-03  
+> **最后更新**: 2026-08-06  
 > **维护者**: 项目开发者
 
-**模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜、标记（Phase 2）五大类编辑。
+**模块定位**: 从 Gallery 进入的独立非破坏性图片编辑器，基于配方（Recipe）模型实现裁剪、调节、美颜、滤镜、标记五大类编辑。
 
 **导航路由**: `photo_editor/{sourceUri}?recipeUri={recipeUri}&autoOptimize={autoOptimize}`（`navigation/Screen.kt` 注册）；可选参数 `recipeUri` 用于重新编辑已保存的副本，`autoOptimize` 用于进入时自动触发 AI 一键优化。
 
@@ -39,7 +39,7 @@
 - `adjustments: AdjustmentRecipe` — 亮度、曝光、对比度、饱和度、色温、色调
 - `beauty: BeautySettings` — 复用相机模块美颜参数
 - `colorFilter: FilterType` / `styleFilter: StyleFilter` — 色调/风格滤镜
-- `markup: List<MarkupAction>` — 涂鸦/马赛克/文字路径（Phase 2）
+- `markup: List<MarkupAction>` — 涂鸦/马赛克/文字（归一化坐标模型，见 2.3.1）
 - `version: Int` — 配方版本，便于后续迁移
 
 **代码示例**:
@@ -69,14 +69,32 @@ val recipe = EditRecipe(
 **处理顺序**:
 1. `applyCrop(base, crop)` — 先旋转/翻转，再按 `AspectRatio` 自动居中裁剪
 2. `applyGpuEffects(cropped, recipe, faceData)` — 调用 `PhotoProcessor.process()` 应用美颜与滤镜
-3. `applyMarkup(processed, markup)` — 当前为占位，Phase 2 叠加涂鸦/马赛克路径
+3. `applyMarkup(processed, markup)` — 叠加涂鸦路径/马赛克 Shader/文字
 
 **关键约束**:
 - 裁剪矩形使用原图归一化坐标；`AspectRatio.FREE` 时不裁剪
+- 标记（markup）在最后叠加，坐标系为裁剪+GPU 效果后的最终图片
 - 旋转后通过 `Bitmap.createBitmap` 生成新 Bitmap
 - 人脸检测缓存由 `PhotoEditorViewModel` 提供，避免重复检测
 - `applyGpuEffects` 运行在独立单线程调度器上，避免 EGL 上下文在协程线程池间切换而失效
 - GPU 路径抛出异常或输出全黑时，降级为 CPU 滤镜兜底，确保不显示黑屏
+
+### 2.3.1 标记模型与绘制 (Markup)
+
+**核心文件**:
+- `features/editor/MarkupAction.kt` — 标记动作模型（`Doodle` / `Mosaic` / `Text` + `MosaicMode`）
+- `features/editor/components/MarkupOverlay.kt` — 绘制覆盖层（手势→归一化坐标、进行中笔画渲染、文字输入对话框）
+- `features/editor/components/MarkupPanel.kt` — 工具/颜色/粗细面板（含 `MarkupToolState`）
+
+**技术规范**:
+- 坐标（`NormPoint`）、笔画宽度、文字大小全部为**归一化值**（相对处理后图片宽高的 0..1 比例），
+  保证预览（降采样）与保存（全分辨率）渲染一致，且可直接 JSON 序列化（`PhotoEditRecipeRepository` markup 字段）
+- 标记在 `applyCrop` / `applyGpuEffects` / `applyCutout` 之后叠加，坐标系即最终输出图片；
+  **已知限制**：先标记再改裁剪/旋转时标记不跟随（与多数相册编辑器「裁剪即压平」取舍一致）
+- 马赛克以处理后图片的降采样 `BitmapShader` 沿路径涂抹：PIXEL 关闭采样过滤呈像素块，BLUR 降采样更狠且开启过滤
+- 交互：进入 MARKUP tab 时预览缩放重置为 1x 并禁用捏合/长按手势，单指拖拽成笔（涂鸦/马赛克），点按弹文字输入框；
+  进行中的笔画由覆盖层实时渲染，抬笔才 `addMarkupAction()` 入撤销历史并触发预览烘焙（避免滑动中整图重算）
+- `addMarkupAction()` 在 ViewModel 内读取最新 state 追加动作，避免绘图层闭包捕获旧 recipe 快照导致连续笔画互相覆盖
 
 ### 2.4 ViewModel 与状态 (PhotoEditorViewModel)
 
@@ -115,7 +133,8 @@ sealed class State {
 - `features/editor/components/CropPanel.kt` — 裁剪比例 chips；另含 `CropTransformOverlay`（旋转/翻转悬浮按钮）
 - `features/editor/components/AdjustPanel.kt` — 光色参数滑块
 - `features/editor/components/FilterPanel.kt` — 色调滤镜与风格特效选择
-- `features/editor/components/MarkupPanel.kt` — Phase 2 标记工具占位
+- `features/editor/components/MarkupPanel.kt` — 标记面板（工具 chips / 颜色圆点 / 粗细滑块 / 清除）
+- `features/editor/components/MarkupOverlay.kt` — 标记绘制覆盖层与文字输入对话框
 - `features/editor/components/GachaCandidateBar.kt` — AI 优化抽卡候选条（提示行 + 4 卡缩略图（推荐徽标/预览高亮）+ 应用/换一组/关闭）
 
 **交互规范**:
@@ -123,6 +142,7 @@ sealed class State {
 - 长按预览区切换显示原图，松开后恢复编辑后效果
 - 预览区支持双指捏合缩放（1x~4x）与拖动平移，便于查看细节；双击或切换底部 tab 时恢复原始大小，避免跨工具跳转后仍保持放大状态导致误判为裁剪
 - 底部 tab 文案全部来自 `strings.xml`，支持英文/简体中文/繁体中文
+- MARKUP tab 下预览区手势让位给绘制（禁用缩放/平移/长按对比），切换 tab 时自动恢复
 - 美颜面板在编辑页限制为屏幕高度的 45%，为预览区留出更多空间
 - 旋转（逆时针 90°）/水平镜像采用小米相册风格：仅在 CROP tab 下以半透明圆形按钮悬浮于预览区底部左/右角（`CropTransformOverlay`），底部裁剪面板只保留比例 chips，不再单独占一行；连续点击旋转按钮实现 180°/270°
 
@@ -174,4 +194,4 @@ sealed class State {
 - 独立 `PhotoEditorScreen` 替代 MediaPager 就地编辑：减少手势冲突，支持更复杂的底部面板
 - 预览与保存共用 `RecipeApplier`：保证「所见即所得」，避免预览与最终输出不一致
 - 配方持久化到 Room 而非 EXIF：JSON 更灵活，可跨版本迁移
-- 标记功能 Phase 2 实现：当前保留 UI 占位与数据字段，避免一次性改动过大
+- 标记坐标采用归一化模型而非屏幕/像素坐标：预览与保存渲染一致，JSON 持久化无需额外转换（2026-08-06 Phase 2 落地）

@@ -6,6 +6,7 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import com.mamba.picme.beauty.api.FaceData
 import com.mamba.picme.beauty.api.FilterType
@@ -25,6 +26,8 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "RecipeApplier"
 private const val FULL_INTENSITY_THRESHOLD = 0.99f
+private const val MOSAIC_PIXEL_FACTOR = 24
+private const val MOSAIC_BLUR_FACTOR = 48
 
 class RecipeApplier(
     private val photoProcessor: PhotoProcessor,
@@ -187,12 +190,17 @@ class RecipeApplier(
 
     /**
      * Overlay markup actions on top of processed bitmap.
+     *
+     * 坐标/笔画宽度/文字大小均为归一化值（相对图片宽高），此处换算为像素后绘制。
+     * 马赛克以「处理中图片」的降采样 Shader 沿路径涂抹，采样源不含已绘制的标记。
      */
     fun applyMarkup(bitmap: Bitmap, actions: List<MarkupAction>): Bitmap {
         if (actions.isEmpty()) return bitmap
+        val width = bitmap.width
+        val height = bitmap.height
         val result = bitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(result)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
@@ -200,21 +208,84 @@ class RecipeApplier(
         actions.forEach { action ->
             when (action) {
                 is MarkupAction.Doodle -> {
-                    paint.color = action.color
-                    paint.strokeWidth = action.strokeWidth
-                    canvas.drawPath(action.path, paint)
+                    strokePaint.shader = null
+                    strokePaint.isFilterBitmap = false
+                    strokePaint.color = action.color
+                    val strokePx = action.strokeWidth * width
+                    strokePaint.strokeWidth = strokePx
+                    drawStroke(canvas, action.points, width, height, strokePx, strokePaint)
                 }
                 is MarkupAction.Mosaic -> {
-                    // Phase 2: implement mosaic shader overlay
+                    strokePaint.shader = createMosaicShader(bitmap, action.mode)
+                    strokePaint.isFilterBitmap = action.mode == MosaicMode.BLUR
+                    val strokePx = action.strokeWidth * width
+                    strokePaint.strokeWidth = strokePx
+                    drawStroke(canvas, action.points, width, height, strokePx, strokePaint)
+                    strokePaint.shader = null
+                    strokePaint.isFilterBitmap = false
                 }
                 is MarkupAction.Text -> {
-                    paint.color = action.color
-                    paint.textSize = action.sizePx
-                    paint.style = Paint.Style.FILL
-                    canvas.drawText(action.text, action.position.x, action.position.y, paint)
+                    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.FILL
+                        color = action.color
+                        textSize = action.size * width
+                    }
+                    canvas.drawText(
+                        action.text,
+                        action.position.x * width,
+                        action.position.y * height,
+                        textPaint
+                    )
                 }
             }
         }
         return result
+    }
+
+    /** 单点触摸画不出零长度 Path，退化为圆点；多点按折线绘制。 */
+    private fun drawStroke(
+        canvas: Canvas,
+        points: List<NormPoint>,
+        width: Int,
+        height: Int,
+        strokePx: Float,
+        paint: Paint
+    ) {
+        if (points.isEmpty()) return
+        if (points.size == 1) {
+            val p = points.first()
+            canvas.drawCircle(p.x * width, p.y * height, strokePx / 2f, paint)
+            return
+        }
+        val path = Path()
+        points.forEachIndexed { index, p ->
+            val x = p.x * width
+            val y = p.y * height
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        canvas.drawPath(path, paint)
+    }
+
+    /**
+     * 马赛克 Shader：整图大幅降采样后作为 BitmapShader 沿路径涂抹。
+     * PIXEL 关闭采样过滤呈像素块；BLUR 降采样更狠且开启过滤呈模糊效果。
+     */
+    private fun createMosaicShader(bitmap: Bitmap, mode: MosaicMode): android.graphics.Shader {
+        val factor = when (mode) {
+            MosaicMode.PIXEL -> MOSAIC_PIXEL_FACTOR
+            MosaicMode.BLUR -> MOSAIC_BLUR_FACTOR
+        }
+        val smallW = (bitmap.width / factor).coerceAtLeast(1)
+        val smallH = (bitmap.height / factor).coerceAtLeast(1)
+        val small = Bitmap.createScaledBitmap(bitmap, smallW, smallH, mode == MosaicMode.BLUR)
+        val shader = android.graphics.BitmapShader(
+            small,
+            android.graphics.Shader.TileMode.CLAMP,
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        shader.setLocalMatrix(Matrix().apply {
+            setScale(bitmap.width / smallW.toFloat(), bitmap.height / smallH.toFloat())
+        })
+        return shader
     }
 }

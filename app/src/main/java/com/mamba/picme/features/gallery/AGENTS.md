@@ -257,12 +257,12 @@ SearchTopBar(
   - `adjustments: AdjustmentRecipe` — 亮度、曝光、对比度、饱和度、色温、色调
   - `beauty: BeautySettings` — 复用相机侧美颜面板与 GPU 处理管线
   - `colorFilter / styleFilter` — 色调/风格滤镜（Phase 2 占位）
-  - `markup: List<MarkupAction>` — 涂鸦/马赛克/文字标记（Phase 2 占位）
+  - `markup: List<MarkupAction>` — 涂鸦/马赛克/文字标记（归一化坐标，已实现）
 - **状态与历史**: `PhotoEditorViewModel` 管理 `State`（Loading / Ready / Error），内部使用 `EditHistory` 支持撤销/重做；预览通过 `_recipeChanges.debounce(200)` 自动触发
 - **处理管线**: `RecipeApplier`
   1. `applyCrop()` — 按 `AspectRatio` 自动居中裁剪，支持 90° 旋转与水平翻转
   2. `applyGpuEffects()` — 调用 `PhotoProcessor.process()` 应用美颜与 GPU 滤镜
-  3. `applyMarkup()` — 当前为占位，Phase 2 叠加涂鸦/马赛克路径
+  3. `applyMarkup()` — 叠加涂鸦路径/马赛克 Shader/文字（标记在裁剪与 GPU 效果之后绘制）
 - **性能与内存**:
   - 预览图按最长边 2048px 降采样解码
   - 所有处理在 `Dispatchers.Default` / `Dispatchers.IO` 执行

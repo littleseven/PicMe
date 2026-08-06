@@ -660,7 +660,9 @@
     <string name="reset">重置</string>
     <string name="markup_tool_text">文字</string>
     <string name="markup_stroke_width">笔画粗细</string>
-    <string name="markup_phase2_hint">标记功能完整绘制交互将在 Phase 2 实现</string>
+    <string name="markup_clear">清除</string>
+    <string name="markup_text_dialog_title">添加文字</string>
+    <string name="markup_text_hint">输入文字</string>
     <string name="filter_panel_phase2">滤镜面板（Phase 2）</string>
     <string name="redo">重做</string>
     <string name="done">完成</string>

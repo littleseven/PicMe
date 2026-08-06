@@ -48,7 +48,12 @@ import com.mamba.picme.features.editor.components.EditorBottomBar
 import com.mamba.picme.features.editor.components.EditorTopBar
 import com.mamba.picme.features.editor.components.FilterPanel
 import com.mamba.picme.features.editor.components.GachaCandidateBar
+import com.mamba.picme.features.editor.components.MarkupDrawingOverlay
 import com.mamba.picme.features.editor.components.MarkupPanel
+import com.mamba.picme.features.editor.components.MarkupTextInputDialog
+import com.mamba.picme.features.editor.components.MarkupToolState
+import com.mamba.picme.features.editor.components.MARKUP_DEFAULT_TEXT_SIZE
+import java.util.UUID
 
 @Composable
 fun PhotoEditorScreen(
@@ -61,6 +66,7 @@ fun PhotoEditorScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val markupToolState = remember { MarkupToolState() }
 
     LaunchedEffect(Unit) {
         viewModel.load(context, sourceUri, recipeUri, autoOptimize)
@@ -106,6 +112,7 @@ fun PhotoEditorScreen(
                     PanelForTab(
                         tab = ready.selectedTab,
                         recipe = ready.recipe,
+                        markupToolState = markupToolState,
                         onRecipeChange = viewModel::updateRecipe
                     )
                     EditorBottomBar(
@@ -147,6 +154,11 @@ fun PhotoEditorScreen(
                     var offsetY by remember { mutableFloatStateOf(0f) }
                     var viewSize by remember { mutableStateOf(IntSize.Zero) }
                     val viewConfiguration = LocalViewConfiguration.current
+                    // 标记模式下预览区手势让位给绘制：禁用缩放/平移与长按对比，
+                    // 且进入 MARKUP tab 时 LaunchedEffect 已将缩放重置为 1x，
+                    // 覆盖层可按 Fit 矩形直接做视图→图片坐标换算
+                    val markupMode = s.selectedTab == PhotoEditorViewModel.EditorTab.MARKUP &&
+                        s.gachaRun == null
 
                     // 切换编辑 tab 或更换源图时重置缩放/平移，避免用户在不同工具间跳转时
                     // 仍保留上一状态的放大视图，导致预览图只显示局部而误以为被裁剪。
@@ -201,29 +213,42 @@ fun PhotoEditorScreen(
                                 translationX = offsetX
                                 translationY = offsetY
                             }
-                            .transformable(state = transformableState)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onDoubleTap = {
-                                        scale = 1f
-                                        offsetX = 0f
-                                        offsetY = 0f
-                                    },
-                                    onPress = {
-                                        val releasedInTime = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                            tryAwaitRelease()
-                                        }
-                                        if (releasedInTime == null) {
-                                            comparing = true
-                                            try {
-                                                tryAwaitRelease()
-                                            } finally {
-                                                comparing = false
+                            .transformable(state = transformableState, enabled = !markupMode)
+                            .then(
+                                if (markupMode) {
+                                    Modifier
+                                } else {
+                                    Modifier.pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onDoubleTap = {
+                                                scale = 1f
+                                                offsetX = 0f
+                                                offsetY = 0f
+                                            },
+                                            onPress = {
+                                                val releasedInTime = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                                    tryAwaitRelease()
+                                                }
+                                                if (releasedInTime == null) {
+                                                    comparing = true
+                                                    try {
+                                                        tryAwaitRelease()
+                                                    } finally {
+                                                        comparing = false
+                                                    }
+                                                }
                                             }
-                                        }
+                                        )
                                     }
-                                )
-                            }
+                                }
+                            )
+                    )
+                    // 标记绘制层：涂鸦/马赛克拖拽成笔、文字点按弹输入框
+                    MarkupEditLayer(
+                        markupMode = markupMode,
+                        bitmapRatio = bitmapRatio,
+                        markupToolState = markupToolState,
+                        viewModel = viewModel
                     )
                     // 小米相册风格：CROP tab 下旋转/镜像悬浮在预览区底部左右角
                     if (s.selectedTab == PhotoEditorViewModel.EditorTab.CROP) {
@@ -244,10 +269,50 @@ fun PhotoEditorScreen(
     }
 }
 
+/**
+ * 标记编辑层：MARKUP tab 下叠加绘制覆盖层，文字工具点按后弹输入框。
+ * 抽出以控制 [PhotoEditorScreen] 的圈复杂度（detekt 上限 20）。
+ */
+@Composable
+private fun MarkupEditLayer(
+    markupMode: Boolean,
+    bitmapRatio: Float,
+    markupToolState: MarkupToolState,
+    viewModel: PhotoEditorViewModel
+) {
+    var pendingTextPosition by remember { mutableStateOf<NormPoint?>(null) }
+    if (markupMode) {
+        MarkupDrawingOverlay(
+            toolState = markupToolState,
+            bitmapRatio = bitmapRatio,
+            onCommit = viewModel::addMarkupAction,
+            onTextTap = { pendingTextPosition = it }
+        )
+    }
+    pendingTextPosition?.let { pos ->
+        MarkupTextInputDialog(
+            onConfirm = { text ->
+                viewModel.addMarkupAction(
+                    MarkupAction.Text(
+                        id = UUID.randomUUID().toString(),
+                        text = text,
+                        position = pos,
+                        color = markupToolState.color,
+                        size = MARKUP_DEFAULT_TEXT_SIZE
+                    )
+                )
+                pendingTextPosition = null
+            },
+            onDismiss = { pendingTextPosition = null }
+        )
+    }
+}
+
 @Composable
 private fun PanelForTab(
     tab: PhotoEditorViewModel.EditorTab,
     recipe: EditRecipe,
+    markupToolState: MarkupToolState,
     onRecipeChange: (EditRecipe) -> Unit
 ) {
     when (tab) {
@@ -274,6 +339,7 @@ private fun PanelForTab(
             }
         )
         PhotoEditorViewModel.EditorTab.MARKUP -> MarkupPanel(
+            toolState = markupToolState,
             actions = recipe.markup,
             onChange = { onRecipeChange(recipe.copy(markup = it)) }
         )

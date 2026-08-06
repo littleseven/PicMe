@@ -789,7 +789,9 @@
     <string name="reset">Reset</string>
     <string name="markup_tool_text">Text</string>
     <string name="markup_stroke_width">Stroke width</string>
-    <string name="markup_phase2_hint">Markup drawing tools will be available in Phase 2</string>
+    <string name="markup_clear">Clear</string>
+    <string name="markup_text_dialog_title">Add text</string>
+    <string name="markup_text_hint">Enter text</string>
     <string name="filter_panel_phase2">Filter panel (Phase 2)</string>
     <string name="redo">Redo</string>
     <string name="done">Done</string>
