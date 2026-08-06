@@ -21,7 +21,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import com.mamba.picme.R
@@ -32,7 +34,9 @@ import java.util.UUID
 /**
  * 标记绘制覆盖层：覆盖在预览图之上（与 ContentScale.Fit 同一适配矩形），
  * 负责把手指拖拽/点按转换为归一化图片坐标，并实时渲染进行中的笔画。
- * 已提交的笔画由 RecipeApplier 烘焙进预览 Bitmap，不在此重复绘制。
+ *
+ * 已提交的笔画由 RecipeApplier 烘焙进预览 Bitmap，但烘焙要走 debounce + 全管线重渲染；
+ * 提交后到新预览图到达之间，[pendingActions] 继续在覆盖层绘制，避免「画完闪一下」。
  *
  * 仅在 MARKUP tab 且缩放被重置为 1x 时启用（见 PhotoEditorScreen），
  * 因此视图坐标→图片坐标无需考虑缩放/平移。
@@ -41,6 +45,7 @@ import java.util.UUID
 fun MarkupDrawingOverlay(
     toolState: MarkupToolState,
     bitmapRatio: Float,
+    pendingActions: List<MarkupAction>,
     onCommit: (MarkupAction) -> Unit,
     onTextTap: (NormPoint) -> Unit
 ) {
@@ -94,33 +99,63 @@ fun MarkupDrawingOverlay(
                 }
             }
     ) {
-        if (strokePoints.isEmpty()) return@Canvas
         val bounds = computeFitBounds(size.width, size.height, bitmapRatio)
+        // 已提交、待烘焙的动作：涂鸦/文字按最终效果绘制（烘焙后无缝衔接），
+        // 马赛克无法廉价复刻 Shader，沿用半透明指示色
+        pendingActions.forEach { action ->
+            when (action) {
+                is MarkupAction.Doodle -> drawNormStroke(
+                    action.points, bounds, action.strokeWidth * bounds.width, Color(action.color)
+                )
+                is MarkupAction.Mosaic -> drawNormStroke(
+                    action.points, bounds, action.strokeWidth * bounds.width, PENDING_STROKE_COLOR
+                )
+                is MarkupAction.Text -> drawNormText(action, bounds)
+            }
+        }
+        if (strokePoints.isEmpty()) return@Canvas
         val strokePx = toolState.strokeWidth * bounds.width
         val color = if (tool == MarkupTool.DOODLE) {
             Color(toolState.color)
         } else {
-            Color.White.copy(alpha = IN_PROGRESS_STROKE_ALPHA)
+            PENDING_STROKE_COLOR
         }
-        if (strokePoints.size == 1) {
-            drawCircle(color, radius = strokePx / 2f, center = strokePoints.first().toOffset(bounds))
-        } else {
-            val path = Path().apply {
-                strokePoints.forEachIndexed { index, p ->
-                    val o = p.toOffset(bounds)
-                    if (index == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y)
-                }
-            }
-            drawPath(
-                path,
-                color,
-                style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round)
-            )
-        }
+        drawNormStroke(strokePoints, bounds, strokePx, color)
     }
 }
 
 private const val IN_PROGRESS_STROKE_ALPHA = 0.5f
+private val PENDING_STROKE_COLOR = Color.White.copy(alpha = IN_PROGRESS_STROKE_ALPHA)
+
+/** 归一化点序列笔画：单点画圆点，多点画圆头折线。 */
+private fun DrawScope.drawNormStroke(points: List<NormPoint>, bounds: Rect, strokePx: Float, color: Color) {
+    if (points.isEmpty()) return
+    if (points.size == 1) {
+        drawCircle(color, radius = strokePx / 2f, center = points.first().toOffset(bounds))
+        return
+    }
+    val path = Path().apply {
+        points.forEachIndexed { index, p ->
+            val o = p.toOffset(bounds)
+            if (index == 0) moveTo(o.x, o.y) else lineTo(o.x, o.y)
+        }
+    }
+    drawPath(path, color, style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round))
+}
+
+/** 文字标记：与 RecipeApplier 同一坐标语义（position 为基线起点），保证烘焙前后无缝。 */
+private fun DrawScope.drawNormText(action: MarkupAction.Text, bounds: Rect) {
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = action.color
+        textSize = action.size * bounds.width
+    }
+    drawContext.canvas.nativeCanvas.drawText(
+        action.text,
+        bounds.left + action.position.x * bounds.width,
+        bounds.top + action.position.y * bounds.height,
+        paint
+    )
+}
 
 /** ContentScale.Fit 下图片在视图内的显示矩形（scale=1 无平移时）。 */
 internal fun computeFitBounds(viewWidth: Float, viewHeight: Float, bitmapRatio: Float): Rect {

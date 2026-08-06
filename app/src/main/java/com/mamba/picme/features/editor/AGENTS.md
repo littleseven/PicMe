@@ -94,6 +94,8 @@ val recipe = EditRecipe(
 - 马赛克以处理后图片的降采样 `BitmapShader` 沿路径涂抹：PIXEL 关闭采样过滤呈像素块，BLUR 降采样更狠且开启过滤
 - 交互：进入 MARKUP tab 时预览缩放重置为 1x 并禁用捏合/长按手势，单指拖拽成笔（涂鸦/马赛克），点按弹文字输入框；
   进行中的笔画由覆盖层实时渲染，抬笔才 `addMarkupAction()` 入撤销历史并触发预览烘焙（避免滑动中整图重算）
+- 防闪烁：提交的动作先记入覆盖层 `pendingActions` 继续绘制（涂鸦/文字按最终效果、马赛克用半透明指示色），
+  新预览 Bitmap 到达（烘焙完成）才清除，避免 debounce+重渲染空窗期「画完闪一下」
 - `addMarkupAction()` 在 ViewModel 内读取最新 state 追加动作，避免绘图层闭包捕获旧 recipe 快照导致连续笔画互相覆盖
 
 ### 2.4 ViewModel 与状态 (PhotoEditorViewModel)
