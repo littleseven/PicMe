@@ -49,6 +49,7 @@ import com.mamba.picme.features.idphoto.IDPhotoScreen
 import com.mamba.picme.features.idphoto.IDPhotoViewModel
 import com.mamba.picme.features.search.SearchTestScreen
 import com.mamba.picme.features.gallery.MediaViewModel
+import com.mamba.picme.features.gallery.components.DuplicateManagerRoute
 import com.mamba.picme.features.gallery.components.TagGenerationControlScreen
 import com.mamba.picme.features.translation.SentencePieceTestScreen
 import com.mamba.picme.features.tagviewer.TagViewerTestScreen
@@ -316,6 +317,12 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.TagViewer.route) {
                                 TagViewerTestScreen(onNavigateBack = { navController.popBackStack() })
                             }
+                            composable(Screen.DuplicateManager.route) {
+                                DuplicateManagerRoute(
+                                    viewModel = mediaViewModel,
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
                             composable(Screen.Settings.route) {
                                 // 场景管理：进入 Settings 主页面
                                 DisposableEffect(Unit) {
@@ -364,6 +371,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToPeople = {
                                         // 人物页已是主页面 Pager 一页：切页并弹回 Main
                                         switchMainPage(MAIN_PAGE_PEOPLE)
+                                    },
+                                    onNavigateToDuplicateManager = {
+                                        navController.navigate(Screen.DuplicateManager.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }
@@ -429,6 +439,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToPeople = {
                                         // 人物页已是主页面 Pager 一页：切页并弹回 Main
                                         switchMainPage(MAIN_PAGE_PEOPLE)
+                                    },
+                                    onNavigateToDuplicateManager = {
+                                        navController.navigate(Screen.DuplicateManager.route, navOptions { launchSingleTop = true })
                                     }
                                 )
                             }

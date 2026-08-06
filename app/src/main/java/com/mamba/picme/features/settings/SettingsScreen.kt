@@ -114,6 +114,7 @@ fun SettingsScreen(
     onNavigateToModelCenter: (String) -> Unit = {},
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
+    onNavigateToDuplicateManager: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
@@ -275,6 +276,7 @@ fun SettingsScreen(
             onNavigateBack = onNavigateBack,
             onNavigateToTagControl = onNavigateToTagControl,
             onNavigateToTagViewer = onNavigateToTagViewer,
+            onNavigateToDuplicateManager = onNavigateToDuplicateManager,
             onNavigateToDebug = onNavigateToDebug,
             onNavigateToJsBridge = onNavigateToJsBridge,
             onNavigateToSearchTest = onNavigateToSearchTest,
@@ -350,6 +352,7 @@ private fun SettingsContent(
     onNavigateBack: () -> Unit,
     onNavigateToTagControl: () -> Unit = {},
     onNavigateToTagViewer: () -> Unit = {},
+    onNavigateToDuplicateManager: () -> Unit = {},
     onNavigateToDebug: () -> Unit = {},
     onNavigateToJsBridge: () -> Unit = {},
     onNavigateToSearchTest: () -> Unit = {},
@@ -493,6 +496,12 @@ private fun SettingsContent(
                         subtitle = stringResource(R.string.tag_viewer_open_entry),
                         leadingIcon = Icons.Rounded.Search,
                         onClick = onNavigateToTagViewer
+                    )
+                    SettingsClickableRow(
+                        title = stringResource(R.string.manage_duplicates),
+                        subtitle = stringResource(R.string.duplicate_manager_desc),
+                        leadingIcon = Icons.Rounded.PhotoLibrary,
+                        onClick = onNavigateToDuplicateManager
                     )
                     val taggerAutoLabel = stringResource(R.string.tag_model_auto)
                     SettingsClickableRow(
