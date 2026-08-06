@@ -142,5 +142,6 @@ class AiOptimizeUseCaseGachaTest {
 
         assertTrue("old-fp" in outcome.usedFingerprints)
         assertEquals(3, outcome.usedFingerprints.size)
+        coVerify { engine.run(imageUri, Scene.GENERAL, any(), any(), setOf("old-fp")) }
     }
 }

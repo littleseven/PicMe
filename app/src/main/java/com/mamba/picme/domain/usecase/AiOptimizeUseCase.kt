@@ -129,6 +129,7 @@ class AiOptimizeUseCase(
 
         val engine = gachaEngine
         if (engine == null) {
+            Logger.w(TAG, "gacha engine null, falling back to fixed preset")
             val recipe = OptimizeRecipeMapper.toEditRecipe(preset, imageUri, base)
             return GachaOutcome(
                 result = GachaResult.Unavailable,
@@ -152,6 +153,7 @@ class AiOptimizeUseCase(
                 OptimizeRecipeMapper.toEditRecipe(result.best.candidate.preset, imageUri, base)
             is GachaResult.KeepOriginal -> null
             GachaResult.Unavailable ->
+                // 与 optimize() 固定预设路径一致（两处实现点，改动需同步）
                 OptimizeRecipeMapper.toEditRecipe(preset, imageUri, base)
         }
 
@@ -171,7 +173,12 @@ class AiOptimizeUseCase(
         }
 
         val elapsed = System.currentTimeMillis() - startTime
-        Logger.i(TAG, "optimizeWithGacha: scene=${scene.name}, result=${result::class.simpleName}, ${elapsed}ms")
+        val resultName = when (result) {
+            is GachaResult.Selected -> "Selected"
+            is GachaResult.KeepOriginal -> "KeepOriginal"
+            GachaResult.Unavailable -> "Unavailable"
+        }
+        Logger.i(TAG, "optimizeWithGacha: scene=${scene.name}, result=$resultName, ${elapsed}ms")
 
         return GachaOutcome(
             result = result,
