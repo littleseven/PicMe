@@ -691,6 +691,19 @@ AI 优化已从「一次给值」升级为「抽卡闭环」（best-of-N + NIMA 
 
 ---
 
+## Chat 页抽卡（2026-08-06）
+
+chat 内 AI 优化指令同样走抽卡闭环（复用 `optimizeWithGacha`，domain 引擎零改动）：
+结果以对话内候选卡条呈现（type=optimize_candidates 消息，metadata 存展示数据，
+候选 preset 在 `ChatOptimizeGachaController` 进程级内存态），支持「换一组」去重重抽、
+点卡全屏预览、显式「就用这张」确认——确认后全尺寸渲染并折叠为普通 agent_image 结果消息，
+选中 recipe 写入 `ChatEditStateHolder` 支撑多轮 delta 续调。
+NIMA 不可用 / 缩略图落盘全失败时退回原固定预设单发路径。
+反馈经 `OptimizeFeedbackLogger` 落库（auto/user/dismiss），与编辑器抽卡共用 optimize_feedback 表。
+详见 `docs/superpowers/specs/2026-08-06-chat-optimize-gacha-design.md`。
+
+---
+
 ## 11. 相关文档索引
 
 | 文档 | 说明 |
