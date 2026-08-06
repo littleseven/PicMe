@@ -60,7 +60,8 @@ class PexelsViewModel(
 
     fun retry() {
         if (_uiState.value is PexelsUiState.Error) {
-            scope.launch { loadFirstPage(currentQuery) }
+            val q = currentQuery
+            scope.launch { loadFirstPage(q) }
         }
     }
 
@@ -128,7 +129,11 @@ class PexelsViewModel(
                 endReached = response.nextPage == null || response.photos.isEmpty()
             )
         } catch (e: HttpException) {
-            handleHttpError(e.code())
+            if (append && previous != null && e.code() != 401) {
+                _uiState.value = previous.copy(loadingMore = false)
+            } else {
+                handleHttpError(e.code())
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             if (append && previous != null) {
