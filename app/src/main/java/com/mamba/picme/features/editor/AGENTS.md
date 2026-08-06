@@ -112,7 +112,7 @@ sealed class State {
 - `features/editor/PhotoEditorScreen.kt` — 编辑器主屏幕
 - `features/editor/components/EditorTopBar.kt` — 顶部导航、撤销/重做、完成
 - `features/editor/components/EditorBottomBar.kt` — 底部 tab（Crop / Adjust / Beauty / Filter / Markup）
-- `features/editor/components/CropPanel.kt` — 裁剪比例与旋转/翻转
+- `features/editor/components/CropPanel.kt` — 裁剪比例 chips；另含 `CropTransformOverlay`（旋转/翻转悬浮按钮）
 - `features/editor/components/AdjustPanel.kt` — 光色参数滑块
 - `features/editor/components/FilterPanel.kt` — 色调滤镜与风格特效选择
 - `features/editor/components/MarkupPanel.kt` — Phase 2 标记工具占位
@@ -124,6 +124,7 @@ sealed class State {
 - 预览区支持双指捏合缩放（1x~4x）与拖动平移，便于查看细节；双击或切换底部 tab 时恢复原始大小，避免跨工具跳转后仍保持放大状态导致误判为裁剪
 - 底部 tab 文案全部来自 `strings.xml`，支持英文/简体中文/繁体中文
 - 美颜面板在编辑页限制为屏幕高度的 45%，为预览区留出更多空间
+- 旋转（逆时针 90°）/水平镜像采用小米相册风格：仅在 CROP tab 下以半透明圆形按钮悬浮于预览区底部左/右角（`CropTransformOverlay`），底部裁剪面板只保留比例 chips，不再单独占一行；连续点击旋转按钮实现 180°/270°
 
 ### 2.6 配方持久化 (PhotoEditRecipeRepository)
 
