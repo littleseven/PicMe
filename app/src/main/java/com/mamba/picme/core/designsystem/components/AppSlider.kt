@@ -1,5 +1,6 @@
 package com.mamba.picme.core.designsystem.components
 
+import android.content.res.Configuration
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,7 +30,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import android.content.res.Configuration
 import com.mamba.picme.core.designsystem.PoLangTheme
 import com.mamba.picme.core.designsystem.SliderThumbColor
 
