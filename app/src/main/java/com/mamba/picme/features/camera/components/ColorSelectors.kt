@@ -22,8 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.R
+import com.mamba.picme.core.designsystem.components.AppSlider
 
 @Composable
 fun BlushColorFamilySelector(
@@ -198,18 +197,13 @@ fun LipColorSelector(
             }
         }
 
-        Slider(
+        AppSlider(
             value = strength.coerceIn(0f, 100f),
             onValueChange = { value ->
                 onStrengthChanged(value.coerceIn(0f, 100f))
             },
             valueRange = 0f..100f,
-            modifier = Modifier.height(32.dp),
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
-            )
+            modifier = Modifier.height(32.dp)
         )
     }
 }

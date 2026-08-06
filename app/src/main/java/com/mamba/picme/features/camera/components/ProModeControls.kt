@@ -1,18 +1,13 @@
 package com.mamba.picme.features.camera.components
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -29,16 +24,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -48,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mamba.picme.R
 import com.mamba.picme.beauty.api.BeautySettings
+import com.mamba.picme.core.designsystem.components.AppSlider
 import kotlin.math.abs
 
 private const val PANEL_HEIGHT_RATIO = 0.5f
@@ -176,7 +169,7 @@ fun ProModeControls(
                     valueText = exposureDisplayText,
                     isValueChanged = exposure != 0,
                     sliderContent = {
-                        Slider(
+                        AppSlider(
                             value = exposure.toFloat(),
                             valueRange = exposureValueRange,
                             steps = if (exposureRange.last > exposureRange.first) {
@@ -185,16 +178,7 @@ fun ProModeControls(
                                 0
                             },
                             onValueChange = { newValue -> onExposureChange(newValue.toInt()) },
-                            modifier = Modifier.fillMaxWidth().height(36.dp),
-                            thumb = { ProModeThumb() },
-                            track = { state ->
-                                ProModeTrack(
-                                    fraction = state.valueRange.run {
-                                        (exposure.toFloat() - start) / (endInclusive - start)
-                                            .coerceAtLeast(0.001f)
-                                    }.coerceIn(0f, 1f)
-                                )
-                            }
+                            modifier = Modifier.fillMaxWidth().height(36.dp)
                         )
                     }
                 )
@@ -212,21 +196,13 @@ fun ProModeControls(
                         beautySettings.contrast.toInt().toString() else "--",
                     isValueChanged = abs(beautySettings.contrast - 50f) > 0.5f,
                     sliderContent = {
-                        Slider(
+                        AppSlider(
                             value = beautySettings.contrast,
                             valueRange = 0f..200f,
                             onValueChange = { value ->
                                 onBeautySettingsChanged(beautySettings.copy(contrast = value))
                             },
-                            modifier = Modifier.fillMaxWidth().height(36.dp),
-                            thumb = { ProModeThumb() },
-                            track = { state ->
-                                ProModeTrack(
-                                    fraction = state.valueRange.run {
-                                        (beautySettings.contrast - start) / (endInclusive - start)
-                                    }.coerceIn(0f, 1f)
-                                )
-                            }
+                            modifier = Modifier.fillMaxWidth().height(36.dp)
                         )
                     }
                 )
@@ -237,21 +213,13 @@ fun ProModeControls(
                         beautySettings.saturation.toInt().toString() else "--",
                     isValueChanged = abs(beautySettings.saturation - 100f) > 0.5f,
                     sliderContent = {
-                        Slider(
+                        AppSlider(
                             value = beautySettings.saturation,
                             valueRange = 0f..200f,
                             onValueChange = { value ->
                                 onBeautySettingsChanged(beautySettings.copy(saturation = value))
                             },
-                            modifier = Modifier.fillMaxWidth().height(36.dp),
-                            thumb = { ProModeThumb() },
-                            track = { state ->
-                                ProModeTrack(
-                                    fraction = state.valueRange.run {
-                                        (beautySettings.saturation - start) / (endInclusive - start)
-                                    }.coerceIn(0f, 1f)
-                                )
-                            }
+                            modifier = Modifier.fillMaxWidth().height(36.dp)
                         )
                     }
                 )
@@ -262,21 +230,13 @@ fun ProModeControls(
                         "${beautySettings.temperature.toInt()}K" else "--",
                     isValueChanged = abs(beautySettings.temperature - 5000f) > 50f,
                     sliderContent = {
-                        Slider(
+                        AppSlider(
                             value = beautySettings.temperature,
                             valueRange = 2000f..8000f,
                             onValueChange = { value ->
                                 onBeautySettingsChanged(beautySettings.copy(temperature = value))
                             },
-                            modifier = Modifier.fillMaxWidth().height(36.dp),
-                            thumb = { ProModeThumb() },
-                            track = { state ->
-                                ProModeTrack(
-                                    fraction = state.valueRange.run {
-                                        (beautySettings.temperature - start) / (endInclusive - start)
-                                    }.coerceIn(0f, 1f)
-                                )
-                            }
+                            modifier = Modifier.fillMaxWidth().height(36.dp)
                         )
                     }
                 )
@@ -316,44 +276,5 @@ private fun ProModeSlider(
             )
         }
         sliderContent()
-    }
-}
-
-@Composable
-private fun ProModeThumb() {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val thumbScale by animateFloatAsState(if (isPressed) 1.4f else 1f, label = "thumbScale")
-    Spacer(
-        modifier = Modifier
-            .size(20.dp)
-            .scale(thumbScale)
-            .background(MaterialTheme.colorScheme.onSurface, CircleShape)
-            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-    )
-}
-
-@Composable
-private fun ProModeTrack(fraction: Float) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(6.dp)
-            .clip(RoundedCornerShape(3.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction)
-                .fillMaxHeight()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                            MaterialTheme.colorScheme.primary
-                        )
-                    )
-                )
-        )
     }
 }
