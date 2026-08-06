@@ -96,7 +96,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | **Common** | `features/common/chat/` | `AgentChatComponents`, `AgentMessage`, `AiChatScreen` | Chat UI 共享组件库（Camera/Gallery 复用） |
 | **Gallery** | `features/gallery/` | `GalleryScreen`, `MediaViewModel` | 智能相册浏览、AI 搜索 |
 | **Editor** | `features/editor/` | `ImageEditScreen` | 图片编辑（美颜/滤镜/风格） |
-| **IDPhoto** | `features/idphoto/` | `IDPhotoScreen`, `IDPhotoViewModel` | 证件照制作二级页（`id_photo/{sourceUri}`） |
+| **IDPhoto** | `features/idphoto/` | `IDPhotoScreen`, `IDPhotoViewModel` | 证件照制作二级页（`id_photo/{sourceUri}`）；底部 4-tab（底色/尺寸/边缘/修补），修补 tab 涂抹手势 + 覆盖层，边缘 tab 三滑块（对比度/收缩扩张/羽化）松手触发预览更新 |
 | **Main** | `features/main/` | `MainPagerHost` | 主页面 Pager 容器（Camera/Gallery/Chat/People 4 页横滑） |
 | **Person** | `features/person/` | `PersonScreen`, `PersonViewModel`, `PersonCoverResolver` | 人物聚类独立页 |
 | **Settings** | `features/settings/` | `SettingsScreen`, `SettingsViewModel`, `ModelCenterScreen`, `MemoryFactsScreen` | 设置与模型管理；`MemoryFactsScreen` 为「AI 记忆」管理二级页（人物关系区查看/编辑/删除 + 事实记忆区查看/编辑/删除/清空） |
@@ -119,6 +119,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | `usecase/` | `AiAgentUseCase`, `FindDuplicateMediaUseCase`, `GetGroupedMediaUseCase`, `OcrUseCase`, `ChatEditProcessor` | 业务用例：Agent Facade、去重、分组、OCR、对话式图片编辑渲染与保存 |
 | `repository/` | `MediaRepository`, `UserPreferencesRepository`, `UserSettingsRepository` 等接口 | 仓储抽象 |
 | `model/` | `AiAgentCommand`, `LlmProviderConfig`, `MediaAsset`, `UserPreferences`, `ChatEditRecipeBuilder` 等 | 领域数据模型；`ChatEditRecipeBuilder` 将 LLM 编辑意图转换为 `EditRecipe` |
+| `matting/` | `MattingEngine`, `MaskPostProcessor`, `StrokeLayer`, `EdgeParams`, `IDPhotoComposer`, `BackgroundComposer` 等 | 抠图与证件照合成：融合管线不再固定 sharpen（边缘锐化已迁移参数层，`EdgeParams.DEFAULT_CONTRAST=2.5` 复现旧行为，MIN/MAX 常量供 UI 钳制）；`MaskPostProcessor` 参数层 `erode/dilate/adjustEdges`（对比度→收缩扩张→羽化，各环节默认值自然短路）；`StrokeLayer` 矢量描边层（RESTORE/ERASE、undo/redo，撤销=移除尾条重放；`snapshot` + companion `replay` 纯函数保证跨线程安全） |
 | `search/` | `MediaSearchEngine`, `ExplicitFirstSearchPipeline`, `QuerySegmenter`, `QueryParser`, `SegmentedQuery`, `ExplicitFilter`, `ContentFilter` | 自然语言图片搜索：显式约束优先分段检索 + 规则/LLM/语义混合排序；Chat 场景由 `SearchIntent` 直接驱动 `MediaSearchEngine.search(filter)` |
 | `tag/` | `TagGenerationScheduler`, `TagScanOrchestrator`, `OpenClGuardian`, `TagCategory` | TAG 生成编排、OpenCL 守护、类别定义 |
 | `aesthetic/` | `NimaScorer`, `EdiffiqaScorer`, `CoverSelector`, `FaceAligner`, `AestheticScoreWorker` | 美学打分（NIMA + eDifFIQA）：NNAPI 推理、会话跨调用复用、人脸对齐与质量分；非会话制附属打分器（`runUntilDone` 循环排空 + `progress` StateFlow 上报），触发=扫描完成后自动补分 + 打标页手动（Service `ACTION_SCORE_AESTHETIC[_FULL]`），与扫描会话互斥（复用 RetinaFace 无同步保护）；待人脸画质分口径 gate 在 `hasFace=1` |
