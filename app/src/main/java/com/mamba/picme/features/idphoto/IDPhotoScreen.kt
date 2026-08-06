@@ -2,6 +2,7 @@ package com.mamba.picme.features.idphoto
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,12 +22,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -35,10 +42,17 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import com.mamba.picme.domain.matting.IDPhotoComposer
 import com.mamba.picme.domain.matting.IDPhotoSpecs
+import com.mamba.picme.domain.matting.StrokeMode
 import com.mamba.picme.features.common.topbar.AppTopBar
 import com.mamba.picme.features.common.topbar.AppTopBarAction
 import com.mamba.picme.features.idphoto.components.ColorSwatchRow
+import com.mamba.picme.features.idphoto.components.EdgePanel
+import com.mamba.picme.features.idphoto.components.IdPhotoTabRow
+import com.mamba.picme.features.idphoto.components.RepairPanel
+import com.mamba.picme.features.idphoto.components.RepairPanelCallbacks
+import com.mamba.picme.features.idphoto.components.RepairPanelState
 import com.mamba.picme.features.idphoto.components.SizeChipRow
 
 @Suppress("LongMethod") // 待重构：抽 IDPhoto 控制面板子组件
@@ -85,13 +99,20 @@ fun IDPhotoScreen(
                 is IDPhotoViewModel.State.Loading -> CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 is IDPhotoViewModel.State.Error -> Text(s.message, color = Color.White, modifier = Modifier.padding(16.dp))
                 is IDPhotoViewModel.State.Ready -> {
-                    // 底图仅在加载/换底色时重建；手势只改 graphicsLayer 变换参数，保证跟手
+                    // 底图在加载/换底色/参数或描边变化时重建；手势只改 cropRect 绘制窗口，保证跟手
                     val base by produceState<android.graphics.Bitmap?>(
                         initialValue = null,
-                        s.selectedColorIndex
+                        s.selectedColorIndex, s.edgeParams, s.strokeVersion
                     ) {
                         value = viewModel.previewBase()
                     }
+                    // 修补 tab 的本地交互态（画框坐标系，仅用于实时覆盖层与笔刷光标）
+                    var brushMode by remember { mutableStateOf(StrokeMode.ERASE) }
+                    var brushSize by remember { mutableFloatStateOf(32f) }
+                    var softEdge by remember { mutableStateOf(false) }
+                    val overlayPoints = remember { mutableStateListOf<Offset>() }
+                    var cursor by remember { mutableStateOf<Offset?>(null) }
+
                     Column(
                         modifier = Modifier.fillMaxSize().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -109,24 +130,66 @@ fun IDPhotoScreen(
                                 val sizeSpec = IDPhotoSpecs.SIZES[s.selectedSizeIndex]
                                 val frameW = 220.dp
                                 val frameH = frameW * sizeSpec.heightPx / sizeSpec.widthPx
+                                val repairing = s.activeTab == IdPhotoTab.REPAIR
                                 Box(
                                     modifier = Modifier
                                         .size(frameW, frameH)
                                         .background(Color.White, RoundedCornerShape(4.dp))
                                         .clip(RoundedCornerShape(4.dp))
-                                        .pointerInput(Unit) {
-                                            detectTransformGestures { _, pan, gestureZoom, _ ->
-                                                viewModel.transformBy(
-                                                    dxFraction = pan.x / size.width,
-                                                    dyFraction = pan.y / size.height,
-                                                    zoomChange = gestureZoom
-                                                )
+                                        .then(
+                                            if (repairing) {
+                                                Modifier.pointerInput(cropRect) {
+                                                    detectDragGestures(
+                                                        onDragStart = { start ->
+                                                            overlayPoints.clear()
+                                                            cursor = start
+                                                            val radiusSrc = IDPhotoComposer.frameRadiusToSource(
+                                                                brushSize / 2f, size.width.toFloat(), cropRect
+                                                            )
+                                                            viewModel.beginStroke(
+                                                                brushMode, radiusSrc,
+                                                                if (softEdge) 0.5f else 0f
+                                                            )
+                                                        },
+                                                        onDrag = { change, _ ->
+                                                            change.consume()
+                                                            cursor = change.position
+                                                            overlayPoints.add(change.position)
+                                                            viewModel.appendStrokePoint(
+                                                                IDPhotoComposer.frameToSource(
+                                                                    px = change.position.x,
+                                                                    py = change.position.y,
+                                                                    frameW = size.width.toFloat(),
+                                                                    frameH = size.height.toFloat(),
+                                                                    crop = cropRect
+                                                                )
+                                                            )
+                                                        },
+                                                        onDragEnd = {
+                                                            cursor = null
+                                                            overlayPoints.clear()
+                                                            viewModel.endStroke()
+                                                        },
+                                                        onDragCancel = {
+                                                            cursor = null
+                                                            overlayPoints.clear()
+                                                            viewModel.endStroke()
+                                                        }
+                                                    )
+                                                }
+                                            } else {
+                                                Modifier.pointerInput(Unit) {
+                                                    detectTransformGestures { _, pan, gestureZoom, _ ->
+                                                        viewModel.transformBy(
+                                                            dxFraction = pan.x / size.width,
+                                                            dyFraction = pan.y / size.height,
+                                                            zoomChange = gestureZoom
+                                                        )
+                                                    }
+                                                }
                                             }
-                                        }
+                                        )
                                 ) {
-                                    // 直接把 cropRect 区域拉伸绘制到 frame。曾用 graphicsLayer 对整张 bmp 做
-                                    // scale+translation，但「子 layout(requiredSize=bmp 尺寸) 超出父 Box 后再经
-                                    // graphicsLayer 缩放/平移」的绘制在 frame 边缘不精确，会在底部/右侧露出白边。
                                     val imageBmp = remember(bmp) { bmp.asImageBitmap() }
                                     Canvas(modifier = Modifier.fillMaxSize()) {
                                         drawImage(
@@ -138,6 +201,30 @@ fun IDPhotoScreen(
                                             ),
                                             dstSize = IntSize(size.width.toInt(), size.height.toInt())
                                         )
+                                        // 进行中的描边覆盖层：恢复=白、擦除=黑，40% 透明
+                                        if (overlayPoints.isNotEmpty()) {
+                                            val overlayColor =
+                                                (if (brushMode == StrokeMode.RESTORE) Color.White else Color.Black)
+                                                    .copy(alpha = 0.4f)
+                                            for (i in 1 until overlayPoints.size) {
+                                                drawLine(
+                                                    color = overlayColor,
+                                                    start = overlayPoints[i - 1],
+                                                    end = overlayPoints[i],
+                                                    strokeWidth = brushSize,
+                                                    cap = StrokeCap.Round
+                                                )
+                                            }
+                                        }
+                                        // 笔刷圈光标
+                                        cursor?.let { pos ->
+                                            drawCircle(
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                radius = brushSize / 2f,
+                                                center = pos,
+                                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                                            )
+                                        }
                                     }
                                 }
                             } else {
@@ -145,12 +232,45 @@ fun IDPhotoScreen(
                             }
                         }
                         Text(
-                            text = stringResource(R.string.id_photo_drag_hint),
+                            text = stringResource(
+                                if (s.activeTab == IdPhotoTab.REPAIR) R.string.id_photo_repair_hint
+                                else R.string.id_photo_drag_hint
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.6f)
                         )
-                        ColorSwatchRow(IDPhotoSpecs.COLORS, s.selectedColorIndex, viewModel::selectColor)
-                        SizeChipRow(IDPhotoSpecs.SIZES, s.selectedSizeIndex, viewModel::selectSize)
+                        IdPhotoTabRow(selected = s.activeTab, onSelect = viewModel::selectTab)
+                        when (s.activeTab) {
+                            IdPhotoTab.BG_COLOR ->
+                                ColorSwatchRow(IDPhotoSpecs.COLORS, s.selectedColorIndex, viewModel::selectColor)
+                            IdPhotoTab.SIZE ->
+                                SizeChipRow(IDPhotoSpecs.SIZES, s.selectedSizeIndex, viewModel::selectSize)
+                            IdPhotoTab.EDGE ->
+                                EdgePanel(
+                                    params = s.edgeParams,
+                                    onParamsChange = viewModel::setEdgeParams,
+                                    onReset = viewModel::resetEdgeParams
+                                )
+                            IdPhotoTab.REPAIR ->
+                                RepairPanel(
+                                    state = RepairPanelState(
+                                        mode = brushMode,
+                                        brushSizePx = brushSize,
+                                        softEdge = softEdge,
+                                        canUndo = s.canUndoStroke,
+                                        canRedo = s.canRedoStroke,
+                                        hasStrokes = s.strokeVersion > 0 || s.canUndoStroke
+                                    ),
+                                    callbacks = RepairPanelCallbacks(
+                                        onModeChange = { brushMode = it },
+                                        onBrushSizeChange = { brushSize = it },
+                                        onSoftEdgeChange = { softEdge = it },
+                                        onUndo = viewModel::undoStroke,
+                                        onRedo = viewModel::redoStroke,
+                                        onClear = viewModel::clearStrokes
+                                    )
+                                )
+                        }
                     }
                 }
             }
