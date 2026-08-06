@@ -22,7 +22,7 @@ class PexelsViewModel(
     private val _uiState = MutableStateFlow<PexelsUiState>(PexelsUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
-    private val _events = MutableSharedFlow<PexelsEvent>()
+    private val _events = MutableSharedFlow<PexelsEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
     /** null = curated 精选；非 null = 搜索关键词 */
@@ -49,24 +49,26 @@ class PexelsViewModel(
 
     fun loadCurated() {
         currentQuery = null
-        scope.launch { loadFirstPage() }
+        scope.launch { loadFirstPage(null) }
     }
 
     fun search(query: String) {
         currentQuery = query.trim().ifBlank { null }
-        scope.launch { loadFirstPage() }
+        val q = currentQuery
+        scope.launch { loadFirstPage(q) }
     }
 
     fun retry() {
         if (_uiState.value is PexelsUiState.Error) {
-            scope.launch { loadFirstPage() }
+            scope.launch { loadFirstPage(currentQuery) }
         }
     }
 
     fun loadMore() {
         val ready = _uiState.value as? PexelsUiState.Ready ?: return
         if (ready.endReached || ready.loadingMore || ready.downloading) return
-        scope.launch { loadPage(ready.page + 1, append = true) }
+        val q = currentQuery
+        scope.launch { loadPage(ready.page + 1, append = true, query = q) }
     }
 
     fun toggleSelect(photoId: Long) {
@@ -86,23 +88,24 @@ class PexelsViewModel(
     /** 批量下载当前列表前 count 张；已加载不足时自动翻页补足 */
     fun downloadBatch(count: Int) {
         val ready = _uiState.value as? PexelsUiState.Ready ?: return
-        if (ready.downloading) return
+        if (ready.downloading || ready.loadingMore) return
+        val q = currentQuery
         scope.launch {
             var current = ready
             while (current.photos.size < count && !current.endReached) {
-                loadPage(current.page + 1, append = true)
+                loadPage(current.page + 1, append = true, query = q)
                 current = _uiState.value as? PexelsUiState.Ready ?: return@launch
             }
             downloadPhotos(current.photos.take(count))
         }
     }
 
-    internal suspend fun loadFirstPage() {
+    internal suspend fun loadFirstPage(query: String?) {
         _uiState.value = PexelsUiState.Loading
-        loadPage(page = 1, append = false)
+        loadPage(page = 1, append = false, query = query)
     }
 
-    internal suspend fun loadPage(page: Int, append: Boolean) {
+    internal suspend fun loadPage(page: Int, append: Boolean, query: String?) {
         val key = keyStore.getKey()
         if (key == null) {
             _uiState.value = PexelsUiState.NoKey()
@@ -113,7 +116,6 @@ class PexelsViewModel(
             _uiState.value = previous.copy(loadingMore = true)
         }
         try {
-            val query = currentQuery
             val response = if (query == null) {
                 api.curated(key, page)
             } else {
@@ -129,7 +131,12 @@ class PexelsViewModel(
             handleHttpError(e.code())
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            _uiState.value = PexelsUiState.Error(PexelsErrorKind.NETWORK)
+            if (append && previous != null) {
+                // 翻页失败保留已加载内容，仅复位 loadingMore，用户再次滚动即可重试
+                _uiState.value = previous.copy(loadingMore = false)
+            } else {
+                _uiState.value = PexelsUiState.Error(PexelsErrorKind.NETWORK)
+            }
         }
     }
 

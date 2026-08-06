@@ -6,6 +6,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
@@ -171,5 +173,34 @@ class PexelsViewModelTest {
         coEvery { api.curated("key", 1) } throws java.io.IOException("timeout")
         val vm = newViewModel()
         assertEquals(PexelsUiState.Error(PexelsErrorKind.NETWORK), vm.uiState.value)
+    }
+
+    @Test
+    fun `download completion emits DownloadCompleted event`() {
+        every { keyStore.getKey() } returns "key"
+        coEvery { api.curated("key", 1) } returns response(listOf(1L, 2L))
+        coEvery { imageSaver.save(any(), any()) } returns true
+        val vm = newViewModel()
+        val received = mutableListOf<PexelsEvent>()
+        scope.launch { vm.events.toList(received) }
+        vm.toggleSelect(1L)
+        vm.toggleSelect(2L)
+        vm.downloadSelected()
+        assertEquals(listOf(PexelsEvent.DownloadCompleted(2, 2)), received)
+    }
+
+    @Test
+    fun `partial download failure reports accurate success count`() {
+        every { keyStore.getKey() } returns "key"
+        coEvery { api.curated("key", 1) } returns response(listOf(1L, 2L))
+        coEvery { imageSaver.save(1L, any()) } returns true
+        coEvery { imageSaver.save(2L, any()) } returns false
+        val vm = newViewModel()
+        val received = mutableListOf<PexelsEvent>()
+        scope.launch { vm.events.toList(received) }
+        vm.toggleSelect(1L)
+        vm.toggleSelect(2L)
+        vm.downloadSelected()
+        assertEquals(listOf(PexelsEvent.DownloadCompleted(1, 2)), received)
     }
 }
