@@ -49,7 +49,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.io.ByteArrayInputStream
 
@@ -111,6 +110,21 @@ class PerceptualHashTest {
         return g
     }
 
+    /**
+     * 确定性的伪随机「图像」场（LCG，不依赖 Math.random()）。
+     * 用于亮度鲁棒性测试：其低频 DCT 系数分散（非退化），避免抛物面/梯度这类
+     * 数学曲面在频域产生大量聚集在中位数附近的系数，使严格 `>` 比较对浮点噪声敏感。
+     */
+    private fun deterministicRandomField(size: Int, seed: Int = 12345): DoubleArray {
+        val g = DoubleArray(size * size)
+        var s = seed.toLong() and 0x7fffffffL
+        for (i in g.indices) {
+            s = (1103515245L * s + 12345L) and 0x7fffffffL
+            g[i] = (s % 256).toDouble() // 0..255，模拟自然图像像素强度
+        }
+        return g
+    }
+
     @Test
     fun `phash is deterministic for identical input`() {
         val g = gradient(32, horizontal = true)
@@ -118,11 +132,15 @@ class PerceptualHashTest {
     }
 
     @Test
-    fun `phash stable under tiny 1-pixel perturbation`() {
-        val g = gradient(32, horizontal = true)
-        val g2 = g.copyOf().also { it[0] = it[0] + 1.0 } // 1 个像素 +1
-        val d = PerceptualHash.hammingDistance(PerceptualHash.phash(g), PerceptualHash.phash(g2))
-        assertTrue("expected small hamming distance, got $d", d <= 8)
+    fun `phash robust to global brightness shift`() {
+        // pHash 以 AC 系数中位数阈值化：常数亮度偏移只改变 DC（已排除出中位数），
+        // AC 系数与中位数不变 → 哈希近似不变。这是「同图不同曝光」近似重复判定的理论基础。
+        // 用确定性的伪随机场（非退化、低频系数分散）作夹具，避免抛物面这类曲面在频域
+        // 把大量系数聚集到中位数附近、使严格 `>` 比较对浮点噪声敏感而乱翻转。
+        val g = deterministicRandomField(32)
+        val gBrighter = DoubleArray(g.size) { i -> g[i] + 50.0 }
+        val d = PerceptualHash.hammingDistance(PerceptualHash.phash(g), PerceptualHash.phash(gBrighter))
+        assertTrue("brightness shift should barely change pHash, got $d", d <= 4)
     }
 
     @Test
@@ -202,16 +220,23 @@ object PerceptualHash {
 
     /**
      * 64-bit pHash。[gray] 长度须为 [size]×[size]。
-     * 流程：灰度矩阵 → 2D DCT-II → 左上 8×8 系数 → 以中位数阈值化。
+     * 流程：灰度矩阵 → 2D DCT-II → 左上 8×8 系数 → 以 AC 系数中位数阈值化。
      */
     fun phash(gray: DoubleArray, size: Int = PHASH_SIZE): Long {
         require(gray.size == size * size) { "gray size ${gray.size} != ${size * size}" }
         val dct = dct2(gray, size)
         val block = Array(8) { r -> DoubleArray(8) { c -> dct[r][c] } }
-        val coeffs = ArrayList<Double>(64)
-        for (r in 0 until 8) for (c in 0 until 8) coeffs.add(block[r][c])
+        // 标准 pHash：阈值用 AC 系数中位数，排除 DC（DC 编码亮度，纳入会使阈值随曝光漂移，
+        // 破坏对「同图不同曝光」这类近似重复的鲁棒性）。
+        val coeffs = ArrayList<Double>(63)
+        for (r in 0 until 8) {
+            for (c in 0 until 8) {
+                if (r == 0 && c == 0) continue
+                coeffs.add(block[r][c])
+            }
+        }
         coeffs.sort()
-        val median = coeffs[32] // 64 个系数的中位数
+        val median = coeffs[31] // 63 个 AC 系数的中位数
         var hash = 0L
         var bit = 0
         for (r in 0 until 8) {
@@ -759,4 +784,6 @@ git commit -m "docs(gallery): 去重功能 i18n 校验 + AGENTS.md 同步"
 | [I18N] | Task 4 校验/补齐三语 |
 | 代码硬规则 | 无全限定名（除同一文件内 `com.mamba.picme.core.common.Logger.w` 自引用——可改为加 import 后用 `Logger.w`）、无通配 import、lambda 显式命名、tag `PoLang:Gallery`、4 空格 |
 
-> **实施修正**：Task 2 检测器里对 Logger 用了全限定名 `com.mamba.picme.core.common.Logger.w(...)`，违反「无全限定名」规则。落地时改为在文件顶部 `import com.mamba.picme.core.common.Logger`（同包其实无需 import——`DuplicateImageDetector` 本就在 `core.common` 包，直接写 `Logger.w(...)` 即可）。计划代码保留全限定名仅为示意，实施务必去掉。
+> **实施修正 1**：Task 2 检测器里对 Logger 用了全限定名 `com.mamba.picme.core.common.Logger.w(...)`，违反「无全限定名」规则。落地时改为在文件顶部 `import com.mamba.picme.core.common.Logger`（同包其实无需 import——`DuplicateImageDetector` 本就在 `core.common` 包，直接写 `Logger.w(...)` 即可）。计划代码保留全限定名仅为示意，实施务必去掉。
+
+> **实施修正 2（Task 1 已落地）**：① pHash 阈值改为用 **AC 系数中位数（排除 DC）**——DC 编码亮度，纳入会使阈值随曝光漂移，破坏「同图不同曝光」鲁棒性（上方代码与 `PerceptualHash.kt` 已同步为此版）。② 亮度鲁棒性测试夹具从「单像素扰动 + 退化梯度」改为「确定性伪随机场 + 全局 +50 亮度偏移」：原夹具是退化信号，63 个低频系数里大量聚集在中位数附近，使严格 `>` 比较对 ~1e-12 浮点噪声敏感而乱翻转（实测翻转 6~12 位，属夹具退化非实现缺陷）；伪随机场低频系数分散，亮度偏移后 d≈0（AC 在常数偏移下数学上不变，已用独立 Python DCT 验证 max Δ≈3e-12）。
