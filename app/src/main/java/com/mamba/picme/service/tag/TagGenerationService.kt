@@ -112,6 +112,10 @@ class TagGenerationService : Service() {
         /** 单独全量重新生成 MobileCLIP 语义编码。常规扫描已将该阶段内联合并到 Pass 1。 */
         const val ACTION_SCAN_PASS_4_FULL = "com.mamba.picme.tag.SCAN_PASS_4_FULL"
         const val ACTION_REGENERATE_CATEGORIES = "com.mamba.picme.tag.REGENERATE_CATEGORIES"
+        /** 美学评分（NIMA + eDifFIQA）增量补分：循环跑批排空全库积压，与扫描会话解耦。 */
+        const val ACTION_SCORE_AESTHETIC = "com.mamba.picme.tag.SCORE_AESTHETIC"
+        /** 美学评分全量重打：先清空已有 aestheticScore/faceQualityScore 再排空。 */
+        const val ACTION_SCORE_AESTHETIC_FULL = "com.mamba.picme.tag.SCORE_AESTHETIC_FULL"
         const val ACTION_PAUSE = "com.mamba.picme.tag.PAUSE"
         const val ACTION_RESUME = "com.mamba.picme.tag.RESUME"
         const val ACTION_CANCEL = "com.mamba.picme.tag.CANCEL"
@@ -143,6 +147,8 @@ class TagGenerationService : Service() {
         fun intentScanPass3Full(context: Context) = intent(context, ACTION_SCAN_PASS_3_FULL)
         fun intentScanPass4(context: Context) = intent(context, ACTION_SCAN_PASS_4)
         fun intentScanPass4Full(context: Context) = intent(context, ACTION_SCAN_PASS_4_FULL)
+        fun intentScoreAesthetic(context: Context) = intent(context, ACTION_SCORE_AESTHETIC)
+        fun intentScoreAestheticFull(context: Context) = intent(context, ACTION_SCORE_AESTHETIC_FULL)
 
         /** 人物页「重新聚类」：仅重提已有人脸 embedding（对齐）+ 全量重聚类（保名）。 */
         fun intentReembedFaces(context: Context) = intent(context, ACTION_REEMBED_FACES)
@@ -328,13 +334,14 @@ class TagGenerationService : Service() {
                 updateNotification(sp)
                 // 扫描会话完成 → 后台触发全量美学/人脸画质打分（独立、幂等；复用同一 worker 实例）。
                 // fire-and-forget 到 serviceScope，不被 collectLatest 取消；按 sessionId 去重，每会话只触发一次。
+                // runUntilDone 循环跑批排空积压（旧版 runOnce 每会话仅 50 张，大图库永远补不齐）。
                 val sid = sp?.sessionId
                 if (sp?.state == ScanSessionState.COMPLETED && sid != null && sid != scoredSession) {
                     scoredSession = sid
                     serviceScope.launch {
                         runCatching {
                             (applicationContext as? PoLangApplication)
-                                ?.container?.aestheticScoreWorker?.runOnce()
+                                ?.container?.aestheticScoreWorker?.runUntilDone()
                         }.onFailure { android.util.Log.w(TAG, "post-scan aesthetic scoring failed", it) }
                     }
                 }
@@ -471,6 +478,31 @@ class TagGenerationService : Service() {
                 ACTION_RESUME -> orch.resume()
                 ACTION_CANCEL -> orch.cancel()
                 ACTION_RETRY_FAILED -> orch.retryFailed()
+                // 美学评分手动触发（打标控制页「美学评分」卡片）：循环跑批排空积压。
+                // 互斥规则：eDifFIQA 复用 pipeline 的 RetinaFace 检测（detectFacesForScoring，非线程安全），
+                // 扫描会话活跃时不并发执行——增量补分由会话完成后的 post-scan 钩子自动兜底；
+                // 全量重打直接拒绝（避免清空后无人补分），用户待扫描结束后重试。
+                ACTION_SCORE_AESTHETIC -> if (isScanning.value) {
+                    android.util.Log.i(TAG, "scan session active; incremental aesthetic scoring deferred to post-scan hook")
+                } else {
+                    serviceScope.launch {
+                        runCatching {
+                            (applicationContext as? PoLangApplication)
+                                ?.container?.aestheticScoreWorker?.runUntilDone()
+                        }.onFailure { android.util.Log.w(TAG, "manual aesthetic scoring failed", it) }
+                    }
+                }
+                ACTION_SCORE_AESTHETIC_FULL -> if (isScanning.value) {
+                    android.util.Log.w(TAG, "scan session active; full aesthetic rescoring rejected, retry after scan")
+                } else {
+                    serviceScope.launch {
+                        runCatching {
+                            AppDatabase.getDatabase(applicationContext).mediaDao().clearAestheticScores()
+                            (applicationContext as? PoLangApplication)
+                                ?.container?.aestheticScoreWorker?.runUntilDone()
+                        }.onFailure { android.util.Log.w(TAG, "full aesthetic rescoring failed", it) }
+                    }
+                }
             }
         }
 

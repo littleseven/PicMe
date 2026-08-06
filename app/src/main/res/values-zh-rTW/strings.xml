@@ -951,6 +951,11 @@
     <string name="tag_pass_desc_content">為未處理照片產生場景、活動、物體等描述標籤</string>
     <string name="tag_pass_progress_p1">已處理 %1$d · 待處理 %2$d · 有人臉 %3$d</string>
     <string name="tag_pass_progress_p3">已處理 %1$d · 待處理 %2$d</string>
+    <string name="tag_pass_title_aesthetic">美學與人臉畫質評分</string>
+    <string name="tag_pass_desc_aesthetic">NIMA 整圖美學分 + eDifFIQA 人臉畫質分，用於照片資訊展示與人物封面</string>
+    <string name="tag_pass_progress_aesthetic">已評分 %1$d · 待評分 %2$d</string>
+    <string name="tag_aesthetic_running">美學評分中</string>
+    <string name="tag_aesthetic_progress">已打分 %1$d / 待打分 %2$d</string>
     <string name="tag_pass_cluster_done">已識別 %1$d 個人物 · %2$d 條特徵</string>
     <string name="tag_pass_cluster_pending">尚未聚類 · %1$d 條特徵待分組</string>
     <string name="tag_pass_step_face">第一步：人臉偵測與語意編碼</string>

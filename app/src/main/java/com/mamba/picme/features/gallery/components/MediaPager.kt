@@ -113,6 +113,7 @@ import coil.compose.AsyncImage
 import com.mamba.picme.R
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
+import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.domain.tag.i18n.BilingualVocab
 import com.mamba.picme.domain.tag.i18n.TagTranslator
@@ -121,6 +122,7 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -1111,6 +1113,17 @@ private fun PhotoInfoDialog(
         } catch (e: Exception) { "未知" }
     }
 
+    // 人物分组名（media_assets.faceId 存 personId 字符串；已命名分组显示「名（ID: x）」，未命名仅 ID）
+    var personGroupName by remember(asset.faceId) { mutableStateOf<String?>(null) }
+    LaunchedEffect(asset.faceId) {
+        val personId = asset.faceId?.toLongOrNull() ?: return@LaunchedEffect
+        personGroupName = withContext(Dispatchers.IO) {
+            runCatching {
+                AppDatabase.getDatabase(context).personDao().getPerson(personId)?.name
+            }.getOrNull()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1261,7 +1274,10 @@ private fun PhotoInfoDialog(
                     )
                     InfoRow("包含人脸", "是")
                     if (asset.faceId != null) {
-                        InfoRow("人物分组", "ID: ${asset.faceId}")
+                        val groupLabel = personGroupName?.takeIf { it.isNotBlank() }
+                            ?.let { "$it（ID: ${asset.faceId}）" }
+                            ?: "ID: ${asset.faceId}"
+                        InfoRow("人物分组", groupLabel)
                     }
                     asset.faceQualityScore?.let { score ->
                         InfoRow(stringResource(R.string.media_info_face_quality), "%.0f%%".format(score * 100))

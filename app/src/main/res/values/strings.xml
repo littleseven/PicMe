@@ -979,6 +979,11 @@
     <string name="tag_pass_desc_content">Generate scene / activity / object tags for unprocessed photos</string>
     <string name="tag_pass_progress_p1">Processed %1$d · Pending %2$d · %3$d with face</string>
     <string name="tag_pass_progress_p3">Processed %1$d · Pending %2$d</string>
+    <string name="tag_pass_title_aesthetic">Aesthetic &amp; face quality scoring</string>
+    <string name="tag_pass_desc_aesthetic">NIMA aesthetic score + eDifFIQA face quality; shown in photo info and used for people covers</string>
+    <string name="tag_pass_progress_aesthetic">Scored %1$d · Pending %2$d</string>
+    <string name="tag_aesthetic_running">Aesthetic scoring</string>
+    <string name="tag_aesthetic_progress">Scored %1$d / %2$d pending</string>
     <string name="tag_pass_cluster_done">%1$d people · %2$d embeddings</string>
     <string name="tag_pass_cluster_pending">Not clustered · %1$d embeddings to group</string>
     <string name="tag_pass_step_face">Step 1: Face detection &amp; semantic encoding</string>

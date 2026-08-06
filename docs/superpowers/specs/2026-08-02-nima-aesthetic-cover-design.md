@@ -101,3 +101,21 @@ AestheticScoreWorker.runOnce()
 
 ## 9. 转换可复现性（附录）
 转换脚本留 `scripts/nima/convert_idealo_to_onnx.py` + `verify_hf_onnx*.py`，记录"HF==idealo"结论与 `[-1,1]/NHWC/224` 口径来源。本机 conda env 为跑转换临时改了 `scipy 1.18→1.11.4`、`onnx→1.16.2`（原 scipy 在 numpy 1.26 下已坏，属修复）。
+
+## 10. 与三 Pass 索引流水线关系（2026-08-06 补充， supersede §8「自动触发」条）
+
+**定位**：美学评分不是第 4 个 Pass，而是**索引流水线之外的附属打分器（Scoring Sidecar）**。两类任务的边界：
+
+| 维度 | 三 Pass 索引流水线（TagScanOrchestrator） | 美学评分（AestheticScoreWorker） |
+|------|------------------------------------------|--------------------------------|
+| 产出 | faceRoi / embedding / person / labels —— 搜索与人物的**索引数据** | aestheticScore / faceQualityScore —— 信息展示与封面选优的**增强数据** |
+| 执行模型 | 会话制：任务表 + 断点续扫 + 暂停/恢复/取消 | 非会话制：循环跑批（`runUntilDone`），幂等可重入，无任务表 |
+| 单张成本 | Pass 3 VLM 秒级，需要 checkpoint | ~200ms（NNAPI），全库排空约半小时，无需 checkpoint |
+| 依赖关系 | Pass1 → Pass2/Pass3 链式依赖 | 仅一处弱依赖：人脸画质待打分集合 gate 在 Pass 1 的 `hasFace` 上 |
+
+**关系规则（实现已落地）**：
+
+1. **互斥执行**：eDifFIQA 复用 pipeline 的 RetinaFace 检测（`TagGenerationScheduler.detectFacesForScoring`，无同步保护），与 Pass 1 并发会踩同一 MNN 解释器。规则：扫描会话活跃时，手动增量触发推迟（会话完成后由 post-scan 钩子兜底）、全量重打拒绝；post-scan 自动补分发生在会话 COMPLETED 之后，天然互斥。
+2. **触发**：① 扫描会话完成后自动 `runUntilDone()` 排空积压（取代旧 `runOnce()` 每会话仅 50 张、大图库永远补不齐的缺陷）；② 打标控制页「美学与人脸画质评分」卡片手动增量/全量（`ACTION_SCORE_AESTHETIC[_FULL]`，前台 Service 承载，离开页面不中断）。
+3. **待打分口径**：`aestheticScore IS NULL OR (faceQualityScore IS NULL AND hasFace = 1)`。无脸照片永远写不进 faceQualityScore，若计入待打分集合会按时间序永久堵住队首（2026-08-06 实测：队首 317 张无脸旧照挡住后面 8000 张待评分照片）。
+4. **进度展示**：顶部进度卡是「当前活跃任务」统一槽位——打分活跃（`AestheticScoreWorker.progress != null`）时优先显示打分进度，否则显示扫描会话进度；分阶段区的美学卡片显示累计进度（已评分/照片总数，1s 轮询 DB 统计）。

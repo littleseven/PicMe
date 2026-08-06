@@ -449,7 +449,11 @@ class MediaRepositoryImpl(
                 locationName = dbAsset.locationName,
                 city = dbAsset.city,
                 indexedAt = dbAsset.indexedAt,
-                faceFocusY = dbAsset.faceFocusY
+                faceFocusY = dbAsset.faceFocusY,
+                // 美学/人脸画质分只存在于 DB（MediaStore 无此列），必须随 merge 透传，
+                // 否则预览页信息弹窗的「美学评分/人脸质量」行对系统相册内照片永不显示
+                aestheticScore = dbAsset.aestheticScore,
+                faceQualityScore = dbAsset.faceQualityScore
             )
         }
 
@@ -552,7 +556,10 @@ class MediaRepositoryImpl(
         locationName = locationName,
         city = city,
         indexedAt = indexedAt,
-        faceFocusY = faceFocusY
+        faceFocusY = faceFocusY,
+        // 美学/人脸画质分必须透传：预览页信息弹窗展示依赖它（漏传会导致「美学评分」行永不显示）
+        aestheticScore = aestheticScore,
+        faceQualityScore = faceQualityScore
     )
 
     private fun MediaAsset.toEntity(): MediaEntity = MediaEntity(
@@ -572,6 +579,9 @@ class MediaRepositoryImpl(
         locationName = locationName,
         city = city,
         indexedAt = indexedAt,
-        faceFocusY = faceFocusY
+        faceFocusY = faceFocusY,
+        // 与 toDomain 对称，避免 entity→domain→entity 往返把已有分数回写成 null
+        aestheticScore = aestheticScore,
+        faceQualityScore = faceQualityScore
     )
 }
