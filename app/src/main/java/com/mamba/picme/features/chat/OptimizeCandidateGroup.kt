@@ -68,7 +68,7 @@ data class OptimizeCandidateGroup(
                     Candidate(
                         direction = c.optString("direction"),
                         thumbPath = c.optString("thumbPath"),
-                        nimaScore = if (c.has("nimaScore")) c.getDouble("nimaScore").toFloat() else null,
+                        nimaScore = if (c.has("nimaScore")) runCatching { c.getDouble("nimaScore").toFloat() }.getOrNull() else null,
                         rejected = c.optBoolean("rejected", false)
                     )
                 }
@@ -78,7 +78,7 @@ data class OptimizeCandidateGroup(
                     scene = obj.optString("scene"),
                     recommendedIndex = obj.optInt("recommendedIndex", -1),
                     candidates = candidates,
-                    usedFingerprints = if (fps == null) emptyList() else (0 until fps.length()).map { fps.getString(it) },
+                    usedFingerprints = if (fps == null) emptyList() else (0 until fps.length()).map { fps.optString(it) },
                     drawIndex = obj.optInt("drawIndex", 1)
                 )
             }.getOrNull()

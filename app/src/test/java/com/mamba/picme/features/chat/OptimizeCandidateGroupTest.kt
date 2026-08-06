@@ -68,8 +68,20 @@ class OptimizeCandidateGroupTest {
         """.trimIndent()
         val restored = OptimizeCandidateGroup.fromJson(json)!!
         assertEquals("content://x", restored.sourceImageUri)
+        assertEquals("", restored.scene)
         assertEquals(-1, restored.recommendedIndex)
         assertEquals(1, restored.drawIndex)
         assertEquals(emptyList<String>(), restored.usedFingerprints)
+    }
+
+    @Test
+    fun `corrupt nimaScore degrades to null for that candidate only`() {
+        val json = """
+            {"sourceImageUri":"content://x","scene":"GENERAL","recommendedIndex":0,
+             "candidates":[{"direction":"base","thumbPath":"file:///a.jpg","nimaScore":"high","rejected":false}]}
+        """.trimIndent()
+        val restored = OptimizeCandidateGroup.fromJson(json)!!
+        assertNull(restored.candidates[0].nimaScore)
+        assertEquals("base", restored.candidates[0].direction)
     }
 }
