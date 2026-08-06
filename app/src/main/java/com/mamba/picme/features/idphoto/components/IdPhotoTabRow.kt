@@ -1,6 +1,5 @@
 package com.mamba.picme.features.idphoto.components
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,21 +17,21 @@ import com.mamba.picme.features.idphoto.IdPhotoTab
 /** 底部 4-tab 行：底色/尺寸/边缘/修补。 */
 @Composable
 fun IdPhotoTabRow(selected: IdPhotoTab, onSelect: (IdPhotoTab) -> Unit) {
-    @StringRes val labels = mapOf(
-        IdPhotoTab.BG_COLOR to R.string.id_photo_tab_color,
-        IdPhotoTab.SIZE to R.string.id_photo_tab_size,
-        IdPhotoTab.EDGE to R.string.id_photo_tab_edge,
-        IdPhotoTab.REPAIR to R.string.id_photo_tab_repair
-    )
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         IdPhotoTab.entries.forEach { tab ->
+            val labelRes = when (tab) {
+                IdPhotoTab.BG_COLOR -> R.string.id_photo_tab_color
+                IdPhotoTab.SIZE -> R.string.id_photo_tab_size
+                IdPhotoTab.EDGE -> R.string.id_photo_tab_edge
+                IdPhotoTab.REPAIR -> R.string.id_photo_tab_repair
+            }
             FilterChip(
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
                 label = {
                     Text(
-                        stringResource(labels.getValue(tab)),
-                        color = if (tab == selected) Color.Black else Color.White
+                        stringResource(labelRes),
+                        color = if (tab == selected) MaterialTheme.colorScheme.onPrimary else Color.White
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(

@@ -25,6 +25,8 @@ import kotlin.math.roundToInt
 /**
  * 边缘参数面板：羽化 / 收缩扩张 / 边缘对比度。
  * 拖动中只更新本地滑块态，松手（onValueChangeFinished）才回调，避免每帧重建底图。
+ * 证件照页内容区为强制深色背景，滑块与文字使用显式深色配色（白字 + 深色轨道），
+ * 避免浅色主题下默认颜色不可读（对齐 SizeChipRow 的配色约定）。
  */
 @Composable
 fun EdgePanel(
@@ -35,6 +37,17 @@ fun EdgePanel(
     var feather by remember(params) { mutableFloatStateOf(params.featherRadiusPx.toFloat()) }
     var shrinkExpand by remember(params) { mutableFloatStateOf(params.shrinkExpandPx.toFloat()) }
     var contrast by remember(params) { mutableFloatStateOf(params.contrast) }
+
+    // 任一滑块松手都提交三个本地态的完整 EdgeParams，避免 params 回流前拖第二个滑块丢更新
+    val commitParams = {
+        onParamsChange(
+            EdgeParams(
+                contrast = contrast,
+                shrinkExpandPx = shrinkExpand.roundToInt(),
+                featherRadiusPx = feather.roundToInt()
+            )
+        )
+    }
 
     val sliderColors = SliderDefaults.colors(
         thumbColor = MaterialTheme.colorScheme.primary,
@@ -49,9 +62,7 @@ fun EdgePanel(
             valueRange = 0f..EdgeParams.MAX_FEATHER_PX.toFloat(),
             display = "${feather.roundToInt()}px",
             onValueChange = { feather = it },
-            onFinished = {
-                onParamsChange(params.copy(featherRadiusPx = feather.roundToInt()))
-            },
+            onFinished = commitParams,
             colors = sliderColors
         )
         EdgeSlider(
@@ -60,9 +71,7 @@ fun EdgePanel(
             valueRange = -EdgeParams.MAX_SHRINK_EXPAND_PX.toFloat()..EdgeParams.MAX_SHRINK_EXPAND_PX.toFloat(),
             display = "${shrinkExpand.roundToInt()}px",
             onValueChange = { shrinkExpand = it },
-            onFinished = {
-                onParamsChange(params.copy(shrinkExpandPx = shrinkExpand.roundToInt()))
-            },
+            onFinished = commitParams,
             colors = sliderColors
         )
         EdgeSlider(
@@ -71,7 +80,7 @@ fun EdgePanel(
             valueRange = EdgeParams.MIN_CONTRAST..EdgeParams.MAX_CONTRAST,
             display = "%.1f".format(contrast),
             onValueChange = { contrast = it },
-            onFinished = { onParamsChange(params.copy(contrast = contrast)) },
+            onFinished = commitParams,
             colors = sliderColors
         )
         TextButton(onClick = onReset, modifier = Modifier.align(Alignment.End)) {

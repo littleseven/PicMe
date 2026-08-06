@@ -21,22 +21,29 @@ import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 import com.mamba.picme.domain.matting.StrokeMode
 
+/** 修补面板状态（由 Screen 从 ViewModel/本地态组装）。 */
+data class RepairPanelState(
+    val mode: StrokeMode,
+    val brushSizePx: Float,
+    val softEdge: Boolean,
+    val canUndo: Boolean,
+    val canRedo: Boolean,
+    val hasStrokes: Boolean
+)
+
+/** 修补面板回调集合。 */
+data class RepairPanelCallbacks(
+    val onModeChange: (StrokeMode) -> Unit,
+    val onBrushSizeChange: (Float) -> Unit,
+    val onSoftEdgeChange: (Boolean) -> Unit,
+    val onUndo: () -> Unit,
+    val onRedo: () -> Unit,
+    val onClear: () -> Unit
+)
+
 /** 修补面板：恢复/擦除模式 + 笔刷大小 + 软边 + 撤销/重做/清除。 */
 @Composable
-fun RepairPanel(
-    mode: StrokeMode,
-    brushSizePx: Float,
-    softEdge: Boolean,
-    canUndo: Boolean,
-    canRedo: Boolean,
-    hasStrokes: Boolean,
-    onModeChange: (StrokeMode) -> Unit,
-    onBrushSizeChange: (Float) -> Unit,
-    onSoftEdgeChange: (Boolean) -> Unit,
-    onUndo: () -> Unit,
-    onRedo: () -> Unit,
-    onClear: () -> Unit
-) {
+fun RepairPanel(state: RepairPanelState, callbacks: RepairPanelCallbacks) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
@@ -44,12 +51,12 @@ fun RepairPanel(
                 StrokeMode.ERASE to R.string.id_photo_repair_erase
             ).forEach { (m, labelRes) ->
                 FilterChip(
-                    selected = mode == m,
-                    onClick = { onModeChange(m) },
+                    selected = state.mode == m,
+                    onClick = { callbacks.onModeChange(m) },
                     label = {
                         Text(
                             stringResource(labelRes),
-                            color = if (mode == m) Color.Black else Color.White
+                            color = if (state.mode == m) MaterialTheme.colorScheme.onPrimary else Color.White
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
@@ -66,13 +73,14 @@ fun RepairPanel(
                 modifier = Modifier.weight(1f)
             )
             Text(
-                "${brushSizePx.toInt()}px", color = Color.White.copy(alpha = 0.6f),
+                "${state.brushSizePx.toInt()}px", color = Color.White.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.bodySmall
             )
         }
+        // 笔刷尺寸无重计算开销，实时更新以保证拖动手感（区别于 EdgePanel 的松手才回调）
         Slider(
-            value = brushSizePx,
-            onValueChange = onBrushSizeChange,
+            value = state.brushSizePx,
+            onValueChange = callbacks.onBrushSizeChange,
             valueRange = 8f..80f,
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
@@ -87,16 +95,16 @@ fun RepairPanel(
                 color = Color.White, style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.weight(1f)
             )
-            Switch(checked = softEdge, onCheckedChange = onSoftEdgeChange)
+            Switch(checked = state.softEdge, onCheckedChange = callbacks.onSoftEdgeChange)
         }
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onUndo, enabled = canUndo) {
+            TextButton(onClick = callbacks.onUndo, enabled = state.canUndo) {
                 Text(stringResource(R.string.id_photo_repair_undo))
             }
-            TextButton(onClick = onRedo, enabled = canRedo) {
+            TextButton(onClick = callbacks.onRedo, enabled = state.canRedo) {
                 Text(stringResource(R.string.id_photo_repair_redo))
             }
-            TextButton(onClick = onClear, enabled = hasStrokes) {
+            TextButton(onClick = callbacks.onClear, enabled = state.hasStrokes) {
                 Text(stringResource(R.string.id_photo_repair_clear))
             }
         }
