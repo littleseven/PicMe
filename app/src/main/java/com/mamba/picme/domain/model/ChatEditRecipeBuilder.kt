@@ -12,8 +12,9 @@ import com.mamba.picme.features.editor.EditRecipe
  * 将 LLM 的结构化编辑意图转换为可渲染的 [EditRecipe]。
  *
  * 处理规则：
- * - [EditParams.Absolute]：直接设置绝对值
- * - [EditParams.Delta]：在当前 Recipe 基础上累加/递减
+ * - [EditParams.Absolute]：直接设置绝对值（视为用户显式数值请求，不做步进限幅）
+ * - [EditParams.Delta]：在当前 Recipe 基础上累加/递减，按参数类别设单次步进上限，
+ *   避免模糊请求（"美白一点"）被 LLM 放大成剧烈跳变；大幅调整通过多轮叠加达成
  * - [EditParams.Unchanged]：保持当前值不变
  */
 object ChatEditRecipeBuilder {
@@ -26,6 +27,21 @@ object ChatEditRecipeBuilder {
      * 避免一次调整过度导致不自然。
      */
     private const val SLIM_FACE_DELTA_MAX = 5f
+
+    /** 美颜类（磨皮/美白/大眼/唇色/腮红/眉毛）单次 delta 上限（0~100 量程） */
+    private const val BEAUTY_DELTA_MAX = 10f
+
+    /** 亮度/曝光单次 delta 上限（-100~100 量程） */
+    private const val LIGHT_DELTA_MAX = 15f
+
+    /** 对比度/饱和度单次 delta 上限（0~200 量程） */
+    private const val TONE_DELTA_MAX = 15f
+
+    /** 色温单次 delta 上限（开尔文，2000~8000 量程） */
+    private const val TEMPERATURE_DELTA_MAX = 500f
+
+    /** 色调单次 delta 上限（-100~100 量程） */
+    private const val TINT_DELTA_MAX = 15f
 
     fun build(currentRecipe: EditRecipe, command: AgentCommand.EditImage): EditRecipe {
         val params = command.params
@@ -42,24 +58,24 @@ object ChatEditRecipeBuilder {
     private fun buildBeautySettings(current: BeautySettings, params: EditParams): BeautySettings {
         return current.copy(
             enabled = true,
-            smoothing = resolveAbsolute(current.smoothing, params.smoothing, max = 100f),
-            whitening = resolveAbsolute(current.whitening, params.whitening, max = 100f),
-            slimFace = resolveAbsolute(current.slimFace, params.slimFace, min = -50f, max = 50f, deltaMax = SLIM_FACE_DELTA_MAX),
-            bigEyes = resolveAbsolute(current.bigEyes, params.bigEyes, max = 100f),
-            lipColor = resolveAbsolute(current.lipColor, params.lipColor, max = 100f),
-            blush = resolveAbsolute(current.blush, params.blush, max = 100f),
-            eyebrow = resolveAbsolute(current.eyebrow, params.eyebrow, max = 100f)
+            smoothing = resolve(current.smoothing, params.smoothing, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
+            whitening = resolve(current.whitening, params.whitening, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
+            slimFace = resolve(current.slimFace, params.slimFace, min = -50f, max = 50f, deltaMax = SLIM_FACE_DELTA_MAX),
+            bigEyes = resolve(current.bigEyes, params.bigEyes, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
+            lipColor = resolve(current.lipColor, params.lipColor, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
+            blush = resolve(current.blush, params.blush, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
+            eyebrow = resolve(current.eyebrow, params.eyebrow, max = 100f, deltaMax = BEAUTY_DELTA_MAX)
         )
     }
 
     private fun buildAdjustments(current: AdjustmentRecipe, params: EditParams): AdjustmentRecipe {
         return current.copy(
-            brightness = resolveRelative(current.brightness, params.brightness, min = -100f, max = 100f),
-            exposure = resolveRelative(current.exposure, params.exposure, min = -100f, max = 100f),
-            contrast = resolveRelative(current.contrast, params.contrast, min = 0f, max = 200f),
-            saturation = resolveRelative(current.saturation, params.saturation, min = 0f, max = 200f),
-            temperature = resolveRelative(current.temperature, params.temperature, min = 2000f, max = 8000f),
-            tint = resolveRelative(current.tint, params.tint, min = -100f, max = 100f)
+            brightness = resolve(current.brightness, params.brightness, min = -100f, max = 100f, deltaMax = LIGHT_DELTA_MAX),
+            exposure = resolve(current.exposure, params.exposure, min = -100f, max = 100f, deltaMax = LIGHT_DELTA_MAX),
+            contrast = resolve(current.contrast, params.contrast, min = 0f, max = 200f, deltaMax = TONE_DELTA_MAX),
+            saturation = resolve(current.saturation, params.saturation, min = 0f, max = 200f, deltaMax = TONE_DELTA_MAX),
+            temperature = resolve(current.temperature, params.temperature, min = 2000f, max = 8000f, deltaMax = TEMPERATURE_DELTA_MAX),
+            tint = resolve(current.tint, params.tint, min = -100f, max = 100f, deltaMax = TINT_DELTA_MAX)
         )
     }
 
@@ -73,7 +89,12 @@ object ChatEditRecipeBuilder {
         return if (value is EditParams.AbsoluteString) resolveStyleFilter(value.value) else current
     }
 
-    private fun resolveAbsolute(
+    /**
+     * 统一解析单个参数：
+     * - Absolute：显式数值请求，直接设置（仅做全量程 clamp，不限制步进）
+     * - Delta：模糊/相对调整，单次变化量限制在 ±[deltaMax] 内（null = 不限）
+     */
+    private fun resolve(
         current: Float,
         value: EditParams.Value,
         min: Float = 0f,
@@ -85,18 +106,6 @@ object ChatEditRecipeBuilder {
             val clampedDelta = deltaMax?.let { value.value.coerceIn(-it, it) } ?: value.value
             (current + clampedDelta).coerceIn(min, max)
         }
-        EditParams.Unchanged -> current
-        is EditParams.AbsoluteString -> current
-    }
-
-    private fun resolveRelative(
-        current: Float,
-        value: EditParams.Value,
-        min: Float,
-        max: Float
-    ): Float = when (value) {
-        is EditParams.Absolute -> value.value.coerceIn(min, max)
-        is EditParams.Delta -> (current + value.value).coerceIn(min, max)
         EditParams.Unchanged -> current
         is EditParams.AbsoluteString -> current
     }

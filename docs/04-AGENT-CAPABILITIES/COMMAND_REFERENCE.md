@@ -494,14 +494,15 @@ try {
 |---------|---------|------|
 | "磨皮 30" | `EditImage(params={"smoothing":30})` | 美颜调整 |
 | "换胶片风" | `EditImage(params={"filter_name":"FILM_GOLD","filter_intensity":70})` | 滤镜切换（大写滤镜枚举名） |
-| "再亮一点" | `EditImage(params={"brightness_delta":20})` | 多轮 delta 相对调整 |
+| "再亮一点" | `EditImage(params={"brightness_delta":10})` | 多轮 delta 相对调整（单步小幅度） |
 | "把路人擦掉" | `EditImage(explanation="[unsupported:erase]")` | 未支持意图，返回友好说明 |
 
 **参数说明**（`edits` JSON 字段，均可选、只传要改的）：
 - 美颜：`smoothing` / `whitening` / `big_eyes` / `lip_color` / `blush` / `eyebrow`（0~100），`slim_face`（-50~50）
-- 调色：`brightness` / `exposure` / `contrast` / `saturation`（-50~50），`temperature` / `tint`（-50~50）
+- 调色：`brightness` / `exposure`（-100~100，0=不变），`contrast` / `saturation`（0~200，100=原图），`temperature`（色温开尔文 2000~8000，5000=原图，越大越暖），`tint`（-100~100）
 - 滤镜/风格：`filter_name`（大写滤镜枚举，如 `FILM_GOLD` / `COOL`）、`filter_intensity`（0~100）、`style_name`
-- 相对调整：`*_delta` 字段（如 `{"brightness_delta":20}` 表示再亮一点）
+- 相对调整：`*_delta` 字段（如 `{"brightness_delta":10}` 表示再亮一点）。**模糊/相对调整必须用 `*_delta` 且单步幅度要小**；只有用户明确给出数值（"磨皮 50"）才用绝对值字段
+- 单次 delta 步进上限（`ChatEditRecipeBuilder` 截断保护，超出会被 clamp）：美颜 ±10、`slim_face` ±5、亮度/曝光 ±15、对比度/饱和度 ±15、色温 ±500K、`tint` ±15；绝对值不设步进上限（视为显式数值请求）。需要更强效果时分多轮小步叠加
 - `image_uri`：目标图片 URI，留空串表示用最近发送的图片
 
 **说明**: 编辑在后台渲染完成后把结果图发到聊天中，**绝不跳转编辑页**；编辑状态按会话隔离，支持同一会话多轮叠加。未支持的编辑（消除物体 / 局部美颜）不编造参数，经 `explanation` 返回 `[unsupported:erase]` / `[unsupported:local_beauty]`。

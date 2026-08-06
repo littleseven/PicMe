@@ -104,4 +104,63 @@ class ChatEditRecipeBuilderTest {
         )
         assertEquals(30f, result.beauty.slimFace, 0.001f)
     }
+
+    @Test
+    fun `beauty delta is capped to 10 per step`() {
+        val current = base.copy(beauty = base.beauty.copy(smoothing = 20f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(smoothing = EditParams.Delta(40f)))
+        )
+        assertEquals(30f, result.beauty.smoothing, 0.001f)
+    }
+
+    @Test
+    fun `beauty absolute value is not capped`() {
+        val result = ChatEditRecipeBuilder.build(
+            base,
+            AgentCommand.EditImage(params = EditParams(whitening = EditParams.Absolute(60f)))
+        )
+        assertEquals(60f, result.beauty.whitening, 0.001f)
+    }
+
+    @Test
+    fun `brightness delta is capped to 15 per step`() {
+        val current = base.copy(adjustments = AdjustmentRecipe(brightness = 0f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(brightness = EditParams.Delta(50f)))
+        )
+        assertEquals(15f, result.adjustments.brightness, 0.001f)
+    }
+
+    @Test
+    fun `saturation delta is capped to 15 per step`() {
+        val current = base.copy(adjustments = AdjustmentRecipe(saturation = 100f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(saturation = EditParams.Delta(-40f)))
+        )
+        assertEquals(85f, result.adjustments.saturation, 0.001f)
+    }
+
+    @Test
+    fun `temperature delta is capped to 500K per step`() {
+        val current = base.copy(adjustments = AdjustmentRecipe(temperature = 5000f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(temperature = EditParams.Delta(2000f)))
+        )
+        assertEquals(5500f, result.adjustments.temperature, 0.001f)
+    }
+
+    @Test
+    fun `tint delta is capped to 15 per step`() {
+        val current = base.copy(adjustments = AdjustmentRecipe(tint = 0f))
+        val result = ChatEditRecipeBuilder.build(
+            current,
+            AgentCommand.EditImage(params = EditParams(tint = EditParams.Delta(30f)))
+        )
+        assertEquals(15f, result.adjustments.tint, 0.001f)
+    }
 }

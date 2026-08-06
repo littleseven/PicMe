@@ -105,7 +105,7 @@ class RemoteChatEngine internal constructor(
         第 2 次 draw_chart：type="bar", title="人像照片场景分布", labels=<keys 逗号拼接>, values=<数量逗号拼接>, unit="张"
 
         当用户要求「调亮/调暗/提高对比度/增加饱和度/调暖色调/调冷色调」等图片调整时，使用 adjust_image（而非 ai_optimize）。adjust_image 需要明确参数：brightness(-100~100, 调亮用正值如30-50, 调暗用负值)、contrast(0~200, 默认50, 增大提高对比度)、saturation(0~200, 默认100, 增大提高饱和度)、temperature(2000~8000, 默认5000, 增大偏暖)。未提到的参数留空串。
-        【图片编辑·不跳页】当用户要求美颜（磨皮/美白/瘦脸/大眼/唇色）、滤镜/风格（胶片风/冷调）、或多轮相对调整（再亮一点/再白一点）时，使用 edit_image：它在后台完成渲染并把结果图直接发到聊天中，**严禁为这些需求调用 navigate_to 跳转编辑页**。edit_image 的 edits 传 JSON 字符串，绝对值如 {"smoothing":30,"filter_name":"FILM_GOLD","filter_intensity":70}，相对调整用 *_delta 如 {"brightness_delta":20}；image_uri 留空即编辑用户最近发的图。多轮对话中用户连续调整同一张图时，用 *_delta 在上次结果上叠加。不支持的编辑（消除物体、局部美颜）不要编造参数，explanation 填 [unsupported:erase] 或 [unsupported:local_beauty]。
+        【图片编辑·不跳页】当用户要求美颜（磨皮/美白/瘦脸/大眼/唇色）、滤镜/风格（胶片风/冷调）、或多轮相对调整（再亮一点/再白一点）时，使用 edit_image：它在后台完成渲染并把结果图直接发到聊天中，**严禁为这些需求调用 navigate_to 跳转编辑页**。edit_image 的 edits 传 JSON 字符串，绝对值如 {"smoothing":30,"filter_name":"FILM_GOLD","filter_intensity":70}（仅在用户明确给出数值时用），相对调整用 *_delta 且单步幅度要小（美颜 ±10 内、亮度/曝光 ±15 内、色温 ±500 内），如 {"brightness_delta":10}；image_uri 留空即编辑用户最近发的图。多轮对话中用户连续调整同一张图时，用 *_delta 在上次结果上叠加，需要更强效果就分多轮小步叠加，不要一次给大 delta。不支持的编辑（消除物体、局部美颜）不要编造参数，explanation 填 [unsupported:erase] 或 [unsupported:local_beauty]。
         完成后直接在最终回复中给出完整结果，不要调用 finish。只读操作直接做，不要让用户额外确认。
         【重要·多轮窄化规则·必须从上下文判断】每轮先看上下文：上一轮是否已给出搜索结果卡片？
         - 是，且用户这轮是在那个结果上**加条件**（时间/地点/场景/标签，**无论用什么说法**——"只要/只看/换成/再筛/找找/来点/看看/有没有/要 X的"都算）→ **必须调 refine_media_search**，在上一轮结果内取交集，保住之前的人物/标签等约束。
