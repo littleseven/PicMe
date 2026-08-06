@@ -272,6 +272,9 @@ fun PhotoEditorScreen(
 /**
  * 标记编辑层：MARKUP tab 下叠加绘制覆盖层，文字工具点按后弹输入框。
  * 抽出以控制 [PhotoEditorScreen] 的圈复杂度（detekt 上限 20）。
+ *
+ * 提交的动作先记入 [pendingActions] 由覆盖层继续绘制，直到包含该笔画的
+ * 新预览图到达才清除——避免烘焙空窗期「画完闪一下」。
  */
 @Composable
 private fun MarkupEditLayer(
@@ -281,26 +284,36 @@ private fun MarkupEditLayer(
     viewModel: PhotoEditorViewModel
 ) {
     var pendingTextPosition by remember { mutableStateOf<NormPoint?>(null) }
+    var pendingActions by remember { mutableStateOf<List<MarkupAction>>(emptyList()) }
+    val state by viewModel.state.collectAsState()
+    // 新预览 Bitmap 到达即说明已提交动作完成烘焙（每次提交都会触发重渲染产出新对象）
+    LaunchedEffect((state as? PhotoEditorViewModel.State.Ready)?.previewBitmap) {
+        pendingActions = emptyList()
+    }
     if (markupMode) {
         MarkupDrawingOverlay(
             toolState = markupToolState,
             bitmapRatio = bitmapRatio,
-            onCommit = viewModel::addMarkupAction,
+            pendingActions = pendingActions,
+            onCommit = { action ->
+                pendingActions = pendingActions + action
+                viewModel.addMarkupAction(action)
+            },
             onTextTap = { pendingTextPosition = it }
         )
     }
     pendingTextPosition?.let { pos ->
         MarkupTextInputDialog(
             onConfirm = { text ->
-                viewModel.addMarkupAction(
-                    MarkupAction.Text(
-                        id = UUID.randomUUID().toString(),
-                        text = text,
-                        position = pos,
-                        color = markupToolState.color,
-                        size = MARKUP_DEFAULT_TEXT_SIZE
-                    )
+                val action = MarkupAction.Text(
+                    id = UUID.randomUUID().toString(),
+                    text = text,
+                    position = pos,
+                    color = markupToolState.color,
+                    size = MARKUP_DEFAULT_TEXT_SIZE
                 )
+                pendingActions = pendingActions + action
+                viewModel.addMarkupAction(action)
                 pendingTextPosition = null
             },
             onDismiss = { pendingTextPosition = null }
