@@ -1,139 +1,176 @@
 package com.mamba.picme.core.common
 
+import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import java.io.File
-import java.security.MessageDigest
+import android.net.Uri
+import com.mamba.picme.domain.model.DuplicateGroup
 
+/**
+ * 图片去重检测器（端侧）：精确 MD5 + 近似 pHash 两层。
+ *
+ * 纯算法见 [PerceptualHash]（可 JVM 单测）；本对象只负责 Android I/O
+ * （ContentResolver 读取、Bitmap 解码）与分组编排。所有媒体字节 100% 本地处理。
+ *
+ * 两组内成员按「像素最多 → 评分最高 → 最新」择优排序，最优者在前，
+ * 作为默认保留项（UI 取 index 0 保留，删其余）。
+ */
 object DuplicateImageDetector {
 
-    /**
-     * 计算图片的 MD5 哈希值
-     */
-    fun calculateMD5(file: File): String? {
-        return try {
-            val md = MessageDigest.getInstance("MD5")
-            val bytes = file.readBytes()
-            val digest = md.digest(bytes)
-            digest.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
-            null
-        }
-    }
+    private const val TAG = "PoLang:Gallery"
 
-    /**
-     * 计算感知哈希 (pHash) - 用于检测相似图片
-     */
-    fun calculatePerceptualHash(file: File, size: Int = 32): Long? {
-        return try {
-            val options = BitmapFactory.Options().apply {
-                inSampleSize = 1
-            }
-            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
-
-            // 缩放到固定大小
-            val scaled = Bitmap.createScaledBitmap(bitmap, size, size, true)
-
-            // 转为灰度图并计算平均值
-            val pixels = IntArray(size * size)
-            scaled.getPixels(pixels, 0, size, 0, 0, size, size)
-
-            var sum = 0L
-            for (pixel in pixels) {
-                val r = (pixel shr 16) and 0xFF
-                val g = (pixel shr 8) and 0xFF
-                val b = pixel and 0xFF
-                sum += (0.299 * r + 0.587 * g + 0.114 * b).toLong()
-            }
-            val avg = sum / (size * size)
-
-            // 生成哈希：大于平均值的位为 1，否则为 0
-            var hash = 0L
-            for (i in pixels.indices) {
-                val pixel = pixels[i]
-                val r = (pixel shr 16) and 0xFF
-                val g = (pixel shr 8) and 0xFF
-                val b = pixel and 0xFF
-                val gray = (0.299 * r + 0.587 * g + 0.114 * b).toLong()
-                if (gray >= avg) {
-                    hash = hash or (1L shl i)
-                }
-            }
-
-            hash
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    /**
-     * 计算两个哈希值的汉明距离
-     */
-    fun hammingDistance(hash1: Long, hash2: Long): Int {
-        var xor = hash1 xor hash2
-        var distance = 0
-        while (xor != 0L) {
-            distance++
-            xor = xor and (xor - 1)
-        }
-        return distance
-    }
-
-    /**
-     * 判断两张图片是否相似（汉明距离 <= 5）
-     */
-    fun areImagesSimilar(hash1: Long, hash2: Long, threshold: Int = 5): Boolean {
-        return hammingDistance(hash1, hash2) <= threshold
-    }
-
-    /**
-     * 数据类：存储重复图片信息
-     */
-    data class DuplicateGroup(
-        val hash: String,
-        val files: List<File>,
-        val isExactDuplicate: Boolean = true
+    /** 一张待检图片的最小信号。像素宽高由 pHash 解码顺带获得，精确组无需。 */
+    data class DedupItem(
+        val uri: String,
+        val sizeBytes: Long,
+        val mime: String,
+        val captureDate: Long,
+        val aestheticScore: Float? = null,
     )
 
+    /** 解码后附带原始像素面积，用于近似组择优。 */
+    private data class Decoded(val item: DedupItem, val pixelArea: Int)
+
     /**
-     * 查找所有重复的图片组
+     * 两层检测：
+     * 1. 精确：(size, mime) 分桶 → 桶内 MD5 流式 → MD5 相同成组。
+     * 2. 近似：全部图 pHash → 汉明 ≤ [PerceptualHash.SIMILAR_HAMMING_THRESHOLD] 并查集聚类
+     *    → 含 ≥2 个不同 MD5 的聚类作为相似组（全部字节相同的聚类已是精确组，跳过）。
+     *
+     * 本方法内含阻塞 I/O（MD5 流式读 + Bitmap 解码），由调用方包在
+     * `withContext(Dispatchers.IO)` 中执行。
      */
-    suspend fun findDuplicates(files: List<File>): List<DuplicateGroup> {
-        val hashMap = mutableMapOf<String, MutableList<File>>()
-        val phashMap = mutableMapOf<Long, MutableList<File>>()
+    fun findDuplicates(context: Context, items: List<DedupItem>): List<DuplicateGroup> {
+        if (items.size < 2) return emptyList()
+        val cr = context.contentResolver
 
-        // 第一步：按 MD5 分组（精确重复）
-        files.forEach { file ->
-            if (file.exists()) {
-                val md5 = calculateMD5(file)
-                if (md5 != null) {
-                    hashMap.getOrPut(md5) { mutableListOf() }.add(file)
-                }
+        // 1. 一次性算好 MD5（流式，缓存，避免两遍 I/O）
+        val md5ByUri = LinkedHashMap<String, String?>()
+        for (item in items) md5ByUri[item.uri] = md5FromUri(cr, item.uri)
 
-                // 同时计算感知哈希（相似图片）
-                val phash = calculatePerceptualHash(file)
-                if (phash != null) {
-                    phashMap.getOrPut(phash) { mutableListOf() }.add(file)
-                }
+        // 2. 精确组
+        val exact = findExact(items, md5ByUri)
+        val exactUris: Set<String> = exact.flatMap { group -> group.fileUris }.toSet()
+
+        // 3. 近似组（排除与精确组完全重合的聚类）
+        val near = findNear(cr, items, md5ByUri)
+            .filter { group -> group.fileUris.any { uri -> uri !in exactUris } }
+
+        return exact + near
+    }
+
+    private fun findExact(
+        items: List<DedupItem>,
+        md5ByUri: Map<String, String?>
+    ): List<DuplicateGroup> {
+        val results = mutableListOf<DuplicateGroup>()
+        items
+            .groupBy { "${it.sizeBytes}|${it.mime}" }
+            .filter { it.value.size >= 2 }
+            .forEach { (_, bucket) ->
+                bucket
+                    .mapNotNull { item -> md5ByUri[item.uri]?.let { md5 -> md5 to item } }
+                    .groupBy({ it.first }, { it.second })
+                    .filter { it.value.size >= 2 }
+                    .forEach { (md5, group) ->
+                        results += DuplicateGroup(
+                            id = "exact:$md5",
+                            fileUris = rankExact(group).map { it.uri },
+                            isExactDuplicate = true
+                        )
+                    }
             }
+        return results
+    }
+
+    private fun findNear(
+        cr: ContentResolver,
+        items: List<DedupItem>,
+        md5ByUri: Map<String, String?>
+    ): List<DuplicateGroup> {
+        val decoded = mutableListOf<Decoded>()
+        val hashes = mutableListOf<Long>()
+        for (item in items) {
+            val (hash, area) = phashFromUri(cr, item.uri) ?: continue
+            hashes += hash
+            decoded += Decoded(item, area)
         }
-
-        val duplicates = mutableListOf<DuplicateGroup>()
-
-        // 添加精确重复的组
-        hashMap.filter { it.value.size > 1 }.forEach { (hash, fileList) ->
-            duplicates.add(DuplicateGroup(hash, fileList, isExactDuplicate = true))
+        val results = mutableListOf<DuplicateGroup>()
+        for (cluster in PerceptualHash.clusterByHamming(hashes)) {
+            val members = cluster.map { idx -> decoded[idx] }
+            val distinctMd5 = members.mapNotNull { it.item.uri.let { u -> md5ByUri[u] } }.toSet()
+            if (distinctMd5.size < 2) continue // 全部字节相同 → 已是精确组
+            results += DuplicateGroup(
+                id = "near:${members.first().item.uri}",
+                fileUris = rankNear(members).map { it.item.uri },
+                isExactDuplicate = false
+            )
         }
+        return results
+    }
 
-        // 添加相似但不完全相同的图片
-        phashMap.filter { it.value.size > 1 }.forEach { (phash, fileList) ->
-            // 排除已经作为精确重复添加的组
-            val md5Hashes = fileList.mapNotNull { calculateMD5(it) }.toSet()
-            if (md5Hashes.size > 1) { // 只有当 MD5 不完全相同时才添加为相似图片
-                duplicates.add(DuplicateGroup(phash.toString(), fileList, isExactDuplicate = false))
+    private fun rankExact(items: List<DedupItem>): List<DedupItem> =
+        items.sortedWith(
+            compareByDescending<DedupItem> { it.aestheticScore ?: -1f }
+                .thenByDescending { it.captureDate }
+        )
+
+    private fun rankNear(decoded: List<Decoded>): List<Decoded> =
+        decoded.sortedWith(
+            compareByDescending<Decoded> { it.pixelArea }
+                .thenByDescending { it.item.aestheticScore ?: -1f }
+                .thenByDescending { it.item.captureDate }
+        )
+
+    /** 流式 MD5；失败/不可读返回 null。 */
+    private fun md5FromUri(cr: ContentResolver, uri: String): String? = try {
+        cr.openInputStream(Uri.parse(uri))?.use { PerceptualHash.md5Hex(it) }
+    } catch (e: Exception) {
+        Logger.w(TAG, "md5 failed for $uri", e)
+        null
+    }
+
+    /** 返回 (pHash, 原始 width*height)；解码失败返回 null。降采样到 32×32 后转灰度。 */
+    private fun phashFromUri(cr: ContentResolver, uri: String): Pair<Long, Int>? {
+        val parsed = Uri.parse(uri)
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        try {
+            cr.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        } catch (e: Exception) {
+            Logger.w(TAG, "phash bounds failed for $uri", e)
+            return null
+        }
+        val w = bounds.outWidth
+        val h = bounds.outHeight
+        if (w <= 0 || h <= 0) return null
+        val target = PerceptualHash.PHASH_SIZE
+        val sample = maxOf(1, maxOf(w, h) / target)
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val bmp: Bitmap = try {
+            cr.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return null
+        } catch (e: Exception) {
+            Logger.w(TAG, "phash decode failed for $uri", e)
+            return null
+        }
+        val scaled = if (bmp.width != target || bmp.height != target) {
+            Bitmap.createScaledBitmap(bmp, target, target, false).also { if (it !== bmp) bmp.recycle() }
+        } else {
+            bmp
+        }
+        return try {
+            val px = IntArray(target * target)
+            scaled.getPixels(px, 0, target, 0, 0, target, target)
+            val gray = DoubleArray(target * target) { i ->
+                val p = px[i]
+                0.299 * ((p shr 16) and 0xFF) + 0.587 * ((p shr 8) and 0xFF) + 0.114 * (p and 0xFF)
             }
+            PerceptualHash.phash(gray, target) to (w * h)
+        } catch (e: Exception) {
+            Logger.w(TAG, "phash compute failed for $uri", e)
+            null
+        } finally {
+            scaled.recycle()
         }
-
-        return duplicates
     }
 }
