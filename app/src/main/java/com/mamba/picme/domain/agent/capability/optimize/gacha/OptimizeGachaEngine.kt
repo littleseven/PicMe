@@ -4,6 +4,8 @@ import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
 import com.mamba.picme.domain.agent.capability.optimize.preset.OptimizePreset
 import com.mamba.picme.domain.aesthetic.AestheticScorer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * 抽卡编排引擎：采样 → 渲染 → 评分 → 选优/退化守卫。
@@ -36,12 +38,12 @@ class OptimizeGachaEngine(
         basePreset: OptimizePreset,
         count: Int = CandidateSampler.DEFAULT_COUNT,
         exclude: Set<String> = emptySet()
-    ): GachaResult {
+    ): GachaResult = withContext(Dispatchers.Default) {
         if (!aestheticScorer.initialize()) {
             Logger.w(TAG, "aesthetic scorer unavailable, gacha skipped")
-            return GachaResult.Unavailable
+            return@withContext GachaResult.Unavailable
         }
-        val base = renderer.decodeDownscaled(imageUri) ?: return GachaResult.Unavailable
+        val base = renderer.decodeDownscaled(imageUri) ?: return@withContext GachaResult.Unavailable
         val originalPx = renderer.extractPixels(base)
         val originalLuminance = Guardrails.meanLuminance(originalPx)
         val originalScore = aestheticScorer.score(base)
@@ -54,7 +56,7 @@ class OptimizeGachaEngine(
         }
         if (scored.size < OptimizeScorer.MIN_VALID_CARDS) {
             Logger.w(TAG, "only ${scored.size} cards rendered, gacha unavailable")
-            return GachaResult.Unavailable
+            return@withContext GachaResult.Unavailable
         }
 
         val result = optimizeScorer.select(scored, originalScore)
@@ -68,6 +70,6 @@ class OptimizeGachaEngine(
             "gacha done: scene=${scene.name}, cards=${scored.size}, " +
                 "original=$originalScore, result=$resultName"
         )
-        return result
+        result
     }
 }

@@ -270,6 +270,7 @@ class PhotoEditorViewModel(
             return
         }
         val current = _state.value as? State.Ready ?: return
+        if (current.isProcessing) return // 防快速连点并发抽卡
         val sourceUri = current.recipe.sourceUri
         viewModelScope.launch {
             val processingState = current.copy(isProcessing = true, error = null)
@@ -338,6 +339,7 @@ class PhotoEditorViewModel(
     fun rerollGacha() {
         val useCase = aiOptimizeUseCase ?: return
         val current = _state.value as? State.Ready ?: return
+        if (current.isProcessing) return // 防快速连点并发抽卡
         val run = current.gachaRun ?: return
         viewModelScope.launch {
             _state.value = current.copy(isProcessing = true)
@@ -369,7 +371,7 @@ class PhotoEditorViewModel(
                 } else {
                     _state.value = ready.copy(
                         isProcessing = false,
-                        error = appContext?.getString(R.string.ai_optimize_failed, "gacha unavailable")
+                        error = appContext?.getString(R.string.ai_optimize_not_available)
                     )
                 }
             } catch (e: Exception) {
