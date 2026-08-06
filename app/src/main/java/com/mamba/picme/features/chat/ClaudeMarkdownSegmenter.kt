@@ -10,8 +10,39 @@ private val TABLE_DELIMITER = Regex("""^\s*\|?(\s*:?-{2,}:?\s*\|)+(\s*:?-{2,}:?\
 
 private val CODE_FENCE = Regex("""^\s*```""")
 
+/** 解析出的 markdown 表格：表头 + 数据行（分隔行已剔除，单元格为去行内标记的纯文本）。 */
+data class MarkdownTable(val header: List<String>, val rows: List<List<String>>)
+
+/** 未转义的 `|` 作单元格分隔符；`\|` 是字面管道。 */
+private val CELL_SPLIT = Regex("""(?<!\\)\|""")
+
+/** 单元格行内标记清理：`**bold**`、`__bold__`、`` `code` `` → 纯文本。 */
+private val INLINE_MARKERS = Regex("""(\*\*|__|`)""")
+
 /**
- * 把 agent 回复切成 MARKDOWN / TABLE / CODE 段。表格段纯文本直出（防 Markwon 位图抖动）；
+ * 把 TABLE 段原文解析成 [MarkdownTable]：首行为表头，第二行（分隔行）跳过，其余为数据行；
+ * 列数不足表头的行补空串、超出的截断；`\|` 还原为字面 `|`。
+ */
+fun parseMarkdownTable(raw: String): MarkdownTable {
+    fun cells(line: String): List<String> {
+        val body = line.trim().removePrefix("|").removeSuffix("|")
+        return CELL_SPLIT.split(body).map { cell ->
+            cell.replace("\\|", "|").replace(INLINE_MARKERS, "").trim()
+        }
+    }
+    val lines = raw.split("\n").filter { it.isNotBlank() }
+    if (lines.size < 2) return MarkdownTable(emptyList(), emptyList())
+    val header = cells(lines[0])
+    val rows = lines.drop(2).map { line ->
+        val parsed = cells(line)
+        if (parsed.size >= header.size) parsed.take(header.size)
+        else parsed + List(header.size - parsed.size) { "" }
+    }
+    return MarkdownTable(header, rows)
+}
+
+/**
+ * 把 agent 回复切成 MARKDOWN / TABLE / CODE 段。表格段由 AgentTable 原生网格渲染（不走 Markwon，防位图抖动）；
  * 代码段（围栏内，含围栏行）交给 CodeBlock 折叠。一条回复可含多个表格/代码块。
  * 流式期间末围栏可能缺失：未闭合的 ``` 之后所有行均归 CODE。
  */
