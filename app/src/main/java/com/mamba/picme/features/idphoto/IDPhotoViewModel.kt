@@ -72,12 +72,12 @@ class IDPhotoViewModel(
 
     fun load(context: Context, sourceUri: String) {
         appContext = context.applicationContext
-        previewBaseCache = null
-        adjustedAlphaCache = null
-        strokeLayer.clear()
-        activeStrokePoints = null
         viewModelScope.launch {
             _state.value = State.Loading
+            previewBaseCache = null
+            adjustedAlphaCache = null
+            strokeLayer.clear()
+            activeStrokePoints = null
             try {
                 val bitmap = decodePreview(context, Uri.parse(sourceUri))
                     ?: run {
@@ -226,8 +226,14 @@ class IDPhotoViewModel(
     /** 预览底图缓存键：底色 + 参数层 + 描边版本。手势只改变换参数，不重建底图，保证跟手。 */
     private data class PreviewKey(val colorIndex: Int, val params: EdgeParams, val strokeVersion: Int)
 
+    /** alpha 缓存键：参数层 + 描边版本（alpha 与底色无关，不含 colorIndex）。 */
+    private data class AlphaKey(val params: EdgeParams, val strokeVersion: Int)
+
+    @Volatile
     private var previewBaseCache: Pair<PreviewKey, Bitmap>? = null
-    private var adjustedAlphaCache: Pair<PreviewKey, FloatArray>? = null
+
+    @Volatile
+    private var adjustedAlphaCache: Pair<AlphaKey, FloatArray>? = null
     private val strokeLayer = StrokeLayer()
 
     /** 进行中的描边（源图像素坐标，UI 拖完一笔后提交）。 */
@@ -236,30 +242,33 @@ class IDPhotoViewModel(
     private var activeStrokeRadius: Float = 0f
     private var activeStrokeSoftness: Float = 0f
 
-    /** 参数层 + 描边层叠加后的 alpha（按 PreviewKey 缓存）。 */
-    private fun adjustedAlpha(current: State.Ready): FloatArray {
-        val key = PreviewKey(current.selectedColorIndex, current.edgeParams, current.strokeVersion)
+    /** 参数层 + 描边层叠加后的 alpha（按 AlphaKey 缓存；[strokes] 为 Main 上取的快照）。 */
+    private fun adjustedAlpha(current: State.Ready, key: AlphaKey, strokes: List<BrushStroke>): FloatArray {
         adjustedAlphaCache?.takeIf { it.first == key }?.let { return it.second }
         val paramApplied = MaskPostProcessor.adjustEdges(
             current.alpha, current.alphaWidth, current.alphaHeight, current.edgeParams
         )
-        val adjusted = strokeLayer.replayOnto(paramApplied, current.alphaWidth, current.alphaHeight)
+        val adjusted = StrokeLayer.replay(strokes, paramApplied, current.alphaWidth, current.alphaHeight)
         adjustedAlphaCache = key to adjusted
         return adjusted
     }
 
     /** 预览底图（original+adjustedAlpha 按当前底色合成，原图尺寸）；按 PreviewKey 缓存，跨手势复用。 */
-    suspend fun previewBase(): Bitmap? = withContext(Dispatchers.Default) {
-        val current = _state.value as? State.Ready ?: return@withContext null
+    suspend fun previewBase(): Bitmap? {
+        val current = _state.value as? State.Ready ?: return null
         val key = PreviewKey(current.selectedColorIndex, current.edgeParams, current.strokeVersion)
-        previewBaseCache?.takeIf { it.first == key }?.let { return@withContext it.second }
-        val base = BackgroundComposer.apply(
-            current.originalBitmap, adjustedAlpha(current),
-            current.originalBitmap.width, current.originalBitmap.height,
-            IDPhotoSpecs.COLORS[current.selectedColorIndex].argb
-        )
-        previewBaseCache = key to base
-        base
+        val alphaKey = AlphaKey(current.edgeParams, current.strokeVersion)
+        val strokes = strokeLayer.snapshot() // Main 上快照，避免 Default 重放与 Main 修改竞态
+        return withContext(Dispatchers.Default) {
+            previewBaseCache?.takeIf { it.first == key }?.let { return@withContext it.second }
+            val base = BackgroundComposer.apply(
+                current.originalBitmap, adjustedAlpha(current, alphaKey, strokes),
+                current.originalBitmap.width, current.originalBitmap.height,
+                IDPhotoSpecs.COLORS[current.selectedColorIndex].argb
+            )
+            previewBaseCache = key to base
+            base
+        }
     }
 
     private fun framingOf(current: State.Ready) = IDPhotoComposer.CropFraming(

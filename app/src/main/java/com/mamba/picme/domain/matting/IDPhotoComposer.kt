@@ -132,7 +132,10 @@ object IDPhotoComposer {
         )
     }
 
-    /** 画框内笔刷半径（px）→ 原图像素半径（按 crop 宽 / 画框宽缩放）。 */
+    /**
+     * 画框内笔刷半径（px）→ 原图像素半径（按 crop 宽 / 画框宽缩放）。
+     * 有意按宽度单轴缩放：屏幕上的圆在源空间可能是椭圆，但视觉上笔刷保持圆形。
+     */
     fun frameRadiusToSource(radiusPx: Float, frameW: Float, crop: CropRect): Float {
         val cropW = (crop.right - crop.left).toFloat()
         return radiusPx * cropW / frameW.coerceAtLeast(1f)
