@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -113,6 +114,16 @@ fun IDPhotoScreen(
                     val overlayPoints = remember { mutableStateListOf<Offset>() }
                     var cursor by remember { mutableStateOf<Offset?>(null) }
 
+                    // 重建期间（base 被重置为 null）保留上一帧底图，避免 spinner 闪断与覆盖层消失
+                    var lastBase by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+                    LaunchedEffect(base) {
+                        if (base != null) {
+                            lastBase = base
+                            overlayPoints.clear() // 新底图就绪后无缝交接覆盖层（无覆盖层时 no-op）
+                        }
+                    }
+                    val shownBase = base ?: lastBase
+
                     Column(
                         modifier = Modifier.fillMaxSize().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -124,7 +135,7 @@ fun IDPhotoScreen(
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            val bmp = base
+                            val bmp = shownBase
                             val cropRect = viewModel.currentCropRect()
                             if (bmp != null && cropRect != null) {
                                 val sizeSpec = IDPhotoSpecs.SIZES[s.selectedSizeIndex]
@@ -138,44 +149,62 @@ fun IDPhotoScreen(
                                         .clip(RoundedCornerShape(4.dp))
                                         .then(
                                             if (repairing) {
+                                                // 不变量：REPAIR tab 不会改变 cropRect（涂抹期间禁缩放），故描边中途不会因 key 变化重启手势块
                                                 Modifier.pointerInput(cropRect) {
-                                                    detectDragGestures(
-                                                        onDragStart = { start ->
-                                                            overlayPoints.clear()
-                                                            cursor = start
-                                                            val radiusSrc = IDPhotoComposer.frameRadiusToSource(
-                                                                brushSize / 2f, size.width.toFloat(), cropRect
-                                                            )
-                                                            viewModel.beginStroke(
-                                                                brushMode, radiusSrc,
-                                                                if (softEdge) 0.5f else 0f
-                                                            )
-                                                        },
-                                                        onDrag = { change, _ ->
-                                                            change.consume()
-                                                            cursor = change.position
-                                                            overlayPoints.add(change.position)
-                                                            viewModel.appendStrokePoint(
-                                                                IDPhotoComposer.frameToSource(
-                                                                    px = change.position.x,
-                                                                    py = change.position.y,
-                                                                    frameW = size.width.toFloat(),
-                                                                    frameH = size.height.toFloat(),
-                                                                    crop = cropRect
+                                                    try {
+                                                        detectDragGestures(
+                                                            onDragStart = { start ->
+                                                                overlayPoints.clear()
+                                                                cursor = start
+                                                                val radiusSrc = IDPhotoComposer.frameRadiusToSource(
+                                                                    brushSize / 2f, size.width.toFloat(), cropRect
                                                                 )
-                                                            )
-                                                        },
-                                                        onDragEnd = {
-                                                            cursor = null
-                                                            overlayPoints.clear()
-                                                            viewModel.endStroke()
-                                                        },
-                                                        onDragCancel = {
+                                                                viewModel.beginStroke(
+                                                                    brushMode, radiusSrc,
+                                                                    if (softEdge) 0.5f else 0f
+                                                                )
+                                                                overlayPoints.add(start)
+                                                                viewModel.appendStrokePoint(
+                                                                    IDPhotoComposer.frameToSource(
+                                                                        px = start.x, py = start.y,
+                                                                        frameW = size.width.toFloat(),
+                                                                        frameH = size.height.toFloat(),
+                                                                        crop = cropRect
+                                                                    )
+                                                                )
+                                                            },
+                                                            onDrag = { change, _ ->
+                                                                change.consume()
+                                                                cursor = change.position
+                                                                overlayPoints.add(change.position)
+                                                                viewModel.appendStrokePoint(
+                                                                    IDPhotoComposer.frameToSource(
+                                                                        px = change.position.x,
+                                                                        py = change.position.y,
+                                                                        frameW = size.width.toFloat(),
+                                                                        frameH = size.height.toFloat(),
+                                                                        crop = cropRect
+                                                                    )
+                                                                )
+                                                            },
+                                                            onDragEnd = {
+                                                                cursor = null
+                                                                viewModel.endStroke()
+                                                            },
+                                                            onDragCancel = {
+                                                                cursor = null
+                                                                overlayPoints.clear()
+                                                                viewModel.endStroke()
+                                                            }
+                                                        )
+                                                    } finally {
+                                                        // 协程被取消（切 tab / pointerInput 重启）时 detectDragGestures 不走 onDragCancel，兜底收尾
+                                                        if (cursor != null) {
                                                             cursor = null
                                                             overlayPoints.clear()
                                                             viewModel.endStroke()
                                                         }
-                                                    )
+                                                    }
                                                 }
                                             } else {
                                                 Modifier.pointerInput(Unit) {
@@ -222,7 +251,7 @@ fun IDPhotoScreen(
                                                 color = Color.White.copy(alpha = 0.8f),
                                                 radius = brushSize / 2f,
                                                 center = pos,
-                                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                                                style = Stroke(width = 2f)
                                             )
                                         }
                                     }
@@ -259,7 +288,7 @@ fun IDPhotoScreen(
                                         softEdge = softEdge,
                                         canUndo = s.canUndoStroke,
                                         canRedo = s.canRedoStroke,
-                                        hasStrokes = s.strokeVersion > 0 || s.canUndoStroke
+                                        hasStrokes = s.canUndoStroke || s.canRedoStroke
                                     ),
                                     callbacks = RepairPanelCallbacks(
                                         onModeChange = { brushMode = it },
