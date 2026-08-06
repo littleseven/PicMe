@@ -3,7 +3,6 @@ package com.mamba.picme.features.chat
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.agent.capability.optimize.analyzer.Scene
 import com.mamba.picme.domain.agent.capability.optimize.gacha.GachaResult
-import com.mamba.picme.domain.agent.capability.optimize.gacha.OptimizeCandidate
 import com.mamba.picme.domain.agent.capability.optimize.gacha.OptimizeFeedbackLogger
 import com.mamba.picme.domain.agent.capability.optimize.gacha.ScoredCandidate
 import com.mamba.picme.domain.agent.capability.optimize.recipe.OptimizeRecipeMapper
@@ -38,7 +37,6 @@ class ChatOptimizeGachaController(
         val sessionId: String,
         val sourceImageUri: String,
         val scene: Scene,
-        val candidates: List<OptimizeCandidate>,
         val scored: List<ScoredCandidate>,
         val usedFingerprints: Set<String>,
         val drawIndex: Int
@@ -139,11 +137,16 @@ class ChatOptimizeGachaController(
             sourceUri = pending.sourceImageUri,
             baseRecipe = EditRecipe(sourceUri = pending.sourceImageUri)
         )
+        // 先摘除再渲染：渲染期间 discardPending 无法窃取该组，杜绝 dismiss/user 双落库
+        pendingGroups.remove(messageId)
         val rendered = chatImageRenderer.renderRecipe(
             pending.sourceImageUri, recipe, pending.sessionId
-        ) ?: return null
+        )
+        if (rendered == null) {
+            pendingGroups[messageId] = pending // 渲染失败保持可重试（spec §8）
+            return null
+        }
         chatEditStateHolder.update(pending.sessionId, recipe)
-        pendingGroups.remove(messageId)
         runCatching {
             feedbackLogger?.log(
                 pending.sourceImageUri, pending.scene, pending.scored,
@@ -218,8 +221,8 @@ class ChatOptimizeGachaController(
             sessionId = sessionId,
             sourceImageUri = imageUri,
             scene = scene,
-            candidates = scored.map { it.candidate },
-            scored = scored,
+            // 剥离缩略图 Bitmap：落盘后 UI 走 Coil 读文件，内存态 Bitmap 无人消费（每组约 4MB）
+            scored = scored.map { it.copy(thumbnail = null) },
             usedFingerprints = usedFingerprints,
             drawIndex = drawIndex
         )

@@ -204,9 +204,35 @@ class ChatOptimizeGachaControllerTest {
         assertEquals("file:///full.jpg", result?.imageUri)
         verify(exactly = 1) { stateHolder.update("session1", any()) }
         coVerify(exactly = 1) {
-            feedbackLogger.log("uri", Scene.GENERAL, all, 1, OptimizeFeedbackLogger.SOURCE_USER)
+            feedbackLogger.log(
+                "uri", Scene.GENERAL, all.map { it.copy(thumbnail = null) }, 1,
+                OptimizeFeedbackLogger.SOURCE_USER
+            )
         }
         assertFalse(c.hasPending("msg1"))
+    }
+
+    @Test
+    fun `confirm render failure returns null and keeps pending for retry`() = runTest {
+        val all = listOf(scored(0, 6.0f), scored(1, 6.5f))
+        coEvery { useCase.optimizeWithGacha("uri", any(), any()) } returns
+            outcome(GachaResult.Selected(best = all[1], all = all, originalScore = 6.0f))
+        coEvery { store.writeResult(any(), any(), any()) } returns "file:///t.jpg"
+        coEvery { renderer.renderRecipe("uri", any(), "session1") } returns null
+
+        val c = controller()
+        c.draw("msg1", "uri", "session1")
+        val result = c.confirm("msg1", 1)
+
+        assertNull(result)
+        verify(exactly = 0) { stateHolder.update(any(), any()) }
+        coVerify(exactly = 0) { feedbackLogger.log(any(), any(), any(), any(), OptimizeFeedbackLogger.SOURCE_USER) }
+        assertTrue(c.hasPending("msg1")) // 可重试
+    }
+
+    @Test
+    fun `confirm returns null for unknown messageId`() = runTest {
+        assertNull(controller().confirm("nope", 0))
     }
 
     @Test
@@ -238,9 +264,33 @@ class ChatOptimizeGachaControllerTest {
         c.discardPending("session1")
 
         coVerify(exactly = 1) {
-            feedbackLogger.log("uri-a", Scene.GENERAL, all, -1, OptimizeFeedbackLogger.SOURCE_DISMISS)
+            feedbackLogger.log(
+                "uri-a", Scene.GENERAL, all.map { it.copy(thumbnail = null) }, -1,
+                OptimizeFeedbackLogger.SOURCE_DISMISS
+            )
         }
         assertFalse(c.hasPending("msg-a"))
         assertTrue(c.hasPending("msg-b"))
+    }
+
+    @Test
+    fun `reroll persist all failure returns Unavailable and keeps pending`() = runTest {
+        val all = listOf(scored(0, 6.0f), scored(1, 6.5f))
+        coEvery { useCase.optimizeWithGacha("uri", any(), exclude = emptySet()) } returns
+            outcome(GachaResult.Selected(best = all[1], all = all, originalScore = 6.0f))
+        coEvery { useCase.optimizeWithGacha("uri", any(), exclude = setOf("fp1")) } returns
+            outcome(GachaResult.Selected(best = all[1], all = all, originalScore = 6.0f), setOf("fp1", "fp2"))
+        var call = 0
+        coEvery { store.writeResult(any(), any(), any()) } answers {
+            call++
+            if (call <= 2) "file:///t.jpg" else throw RuntimeException("io")
+        }
+
+        val c = controller()
+        c.draw("msg1", "uri", "session1")
+        val result = c.reroll("msg1")
+
+        assertEquals(ChatOptimizeGachaController.RerollOutcome.Unavailable, result)
+        assertTrue(c.hasPending("msg1"))
     }
 }
