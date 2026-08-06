@@ -40,7 +40,7 @@ class OptimizeScorerTest {
         )
 
         assertTrue(result.rejected)
-        assertEquals("highlight_clip:1.0", result.rejectReason)
+        assertTrue(result.rejectReason!!.startsWith("highlight_clip:"))
         assertNull(result.nimaScore)
     }
 

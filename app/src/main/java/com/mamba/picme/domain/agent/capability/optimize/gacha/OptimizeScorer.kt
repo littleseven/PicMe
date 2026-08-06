@@ -20,7 +20,7 @@ class OptimizeScorer(private val scorer: AestheticScorer) {
      * 给单张渲染结果评分：先护栏后 NIMA（护栏淘汰的卡不再打分）。
      *
      * @param rendered 候选渲染结果（同时作为 thumbnail 带回）
-     * @param renderedPx [rendered] 的像素数组（护栏计算用）
+     * @param renderedPx [rendered] 的像素数组（护栏计算用）；必须为 [rendered] 的像素数组，护栏计算依赖两者一致
      * @param originalMeanLuminance 原图平均亮度
      */
     fun scoreCandidate(

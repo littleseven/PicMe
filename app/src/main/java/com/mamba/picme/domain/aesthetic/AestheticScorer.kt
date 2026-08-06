@@ -15,6 +15,6 @@ interface AestheticScorer {
     /** 给整图打分，分数越高越美；推理失败返回 null。 */
     fun score(bitmap: Bitmap): Float?
 
-    /** 释放模型资源。 */
+    /** 释放模型资源。由持有本实例的 DI 容器在销毁时调用；引擎/run 周期内不应调用。 */
     fun release()
 }
