@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderColors
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,14 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.mamba.picme.R
+import com.mamba.picme.core.designsystem.components.AppSlider
 import com.mamba.picme.domain.matting.EdgeParams
 import kotlin.math.roundToInt
 
 /**
  * 边缘参数面板：羽化 / 收缩扩张 / 边缘对比度。
  * 拖动中只更新本地滑块态，松手（onValueChangeFinished）才回调，避免每帧重建底图。
- * 证件照页内容区为强制深色背景，滑块与文字使用显式深色配色（白字 + 深色轨道），
- * 避免浅色主题下默认颜色不可读（对齐 SizeChipRow 的配色约定）。
+ * 证件照页内容区为强制深色背景，滑杆统一走 AppSlider（深色 scheme 下轨道自然呈深灰），
+ * 文字仍为白字以保证可读性（对齐 SizeChipRow 的配色约定）。
  */
 @Composable
 fun EdgePanel(
@@ -49,12 +47,6 @@ fun EdgePanel(
         )
     }
 
-    val sliderColors = SliderDefaults.colors(
-        thumbColor = MaterialTheme.colorScheme.primary,
-        activeTrackColor = MaterialTheme.colorScheme.primary,
-        inactiveTrackColor = Color(0xFF3A3A3A)
-    )
-
     Column(modifier = Modifier.fillMaxWidth()) {
         EdgeSlider(
             label = stringResource(R.string.id_photo_edge_feather),
@@ -62,8 +54,7 @@ fun EdgePanel(
             valueRange = 0f..EdgeParams.MAX_FEATHER_PX.toFloat(),
             display = "${feather.roundToInt()}px",
             onValueChange = { feather = it },
-            onFinished = commitParams,
-            colors = sliderColors
+            onFinished = commitParams
         )
         EdgeSlider(
             label = stringResource(R.string.id_photo_edge_shrink_expand),
@@ -71,8 +62,7 @@ fun EdgePanel(
             valueRange = -EdgeParams.MAX_SHRINK_EXPAND_PX.toFloat()..EdgeParams.MAX_SHRINK_EXPAND_PX.toFloat(),
             display = "${shrinkExpand.roundToInt()}px",
             onValueChange = { shrinkExpand = it },
-            onFinished = commitParams,
-            colors = sliderColors
+            onFinished = commitParams
         )
         EdgeSlider(
             label = stringResource(R.string.id_photo_edge_contrast),
@@ -80,8 +70,7 @@ fun EdgePanel(
             valueRange = EdgeParams.MIN_CONTRAST..EdgeParams.MAX_CONTRAST,
             display = "%.1f".format(contrast),
             onValueChange = { contrast = it },
-            onFinished = commitParams,
-            colors = sliderColors
+            onFinished = commitParams
         )
         TextButton(onClick = onReset, modifier = Modifier.align(Alignment.End)) {
             Text(stringResource(R.string.id_photo_edge_reset), color = MaterialTheme.colorScheme.primary)
@@ -96,8 +85,7 @@ private fun EdgeSlider(
     valueRange: ClosedFloatingPointRange<Float>,
     display: String,
     onValueChange: (Float) -> Unit,
-    onFinished: () -> Unit,
-    colors: SliderColors
+    onFinished: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -109,12 +97,11 @@ private fun EdgeSlider(
             style = MaterialTheme.typography.bodySmall
         )
     }
-    Slider(
+    AppSlider(
         value = value,
         onValueChange = onValueChange,
         onValueChangeFinished = onFinished,
         valueRange = valueRange,
-        colors = colors,
         modifier = Modifier.fillMaxWidth()
     )
 }

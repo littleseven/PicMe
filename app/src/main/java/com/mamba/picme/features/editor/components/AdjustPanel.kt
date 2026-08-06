@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import com.mamba.picme.core.designsystem.components.AppSlider
 import com.mamba.picme.features.editor.AdjustmentRecipe
 
 @Composable
@@ -106,7 +106,7 @@ fun AdjustPanel(
             }
         }
 
-        Slider(
+        AppSlider(
             value = current.value,
             onValueChange = current.onValueChange,
             valueRange = current.valueRange,

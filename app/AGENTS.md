@@ -193,6 +193,8 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 - **导入**：禁止通配符导入（`import com.mamba.picme.*`）
 - **Lambda**：参数必须显式命名（禁止 `it`）
 - **日志标签**：格式 `PoLang:[FeatureName]`（如 `PoLang:Camera`、`PoLang:Chat`）
+- **滑杆组件**：全 app 滑杆统一使用 `core/designsystem/components/AppSlider.kt`（HyperOS 风：胶囊轨道 + 白圆点描边 thumb），禁止直接裸用 M3 `Slider` 或自定义配色
+- **强制深色页面**：相机/证件照等强制深色背景的页面，内容区统一包 `core/designsystem/Theme.kt` 的 `PoLangForcedDarkTheme`，使 colorScheme 与深色视觉场景对齐（否则 onSurface 派生色在浅色主题下不可见）
 - **缩进**：Kotlin 4 空格；XML/JSON/MD 2 空格
 
 ### 4.2 I18N（强制）

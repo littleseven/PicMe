@@ -84,3 +84,28 @@ fun PoLangTheme(
         content = content
     )
 }
+
+/**
+ * 强制深色 scheme 的内容区主题。
+ *
+ * 用于相机、证件照等「强制深色背景」的页面：这些页面无论用户主题如何都以深色
+ * 为背景呈现，但全局 scheme 跟随用户主题，浅色 scheme 下 onSurface 派生色
+ * （如 AppSlider 未激活轨道 onSurface 12%）在深色背景上不可见。用本包装让
+ * scheme 与视觉场景对齐。动态取色策略与 [PoLangTheme] 一致。
+ */
+@Composable
+fun PoLangForcedDarkTheme(
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        dynamicDarkColorScheme(LocalContext.current)
+    } else {
+        DarkColorScheme
+    }
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}

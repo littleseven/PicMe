@@ -97,6 +97,7 @@ import com.mamba.picme.beauty.internal.facedetect.FaceDetectorManager
 import com.mamba.picme.beauty.recorder.BeautyVideoRecorder
 import com.mamba.picme.beauty.render.GlBeautyPreviewProvider
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.core.designsystem.PoLangForcedDarkTheme
 import com.mamba.picme.di.BeautyEngineRuntimeState
 import com.mamba.picme.domain.model.AiAgentCommand
 import com.mamba.picme.domain.model.BeautyStrategy
@@ -364,13 +365,17 @@ fun CameraScreen(
 
     if (permissionsState.allPermissionsGranted) {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions granted, calling CameraContent")
-        CameraContent(
-            viewModel = viewModel,
-            onNavigateToGallery = onNavigateToGallery,
-            onNavigateBack = onNavigateBack,
-            settingsViewModel = settingsViewModel,
-            isActivePage = isActivePage
-        )
+        // 相机为天然深色场景（预览 + 深色面板 UI），强制深色 scheme，
+        // 保证 AppSlider 等 onSurface 派生色在深色背景上可见
+        PoLangForcedDarkTheme {
+            CameraContent(
+                viewModel = viewModel,
+                onNavigateToGallery = onNavigateToGallery,
+                onNavigateBack = onNavigateBack,
+                settingsViewModel = settingsViewModel,
+                isActivePage = isActivePage
+            )
+        }
     } else {
         android.util.Log.i("CameraDebug", "CameraScreen: permissions NOT granted")
         Box(
