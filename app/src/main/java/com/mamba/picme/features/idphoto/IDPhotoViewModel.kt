@@ -36,6 +36,7 @@ private const val JPEG_QUALITY = 95
 private const val MIN_ZOOM = 1f
 private const val MAX_ZOOM = 4f
 
+@Suppress("TooManyFunctions") // 页面 VM：底部 4-tab 的动作方法集中于此，拆分反而割裂状态一致性
 class IDPhotoViewModel(
     private val mattingEngine: MattingEngine,
     private val mediaRepository: MediaRepository

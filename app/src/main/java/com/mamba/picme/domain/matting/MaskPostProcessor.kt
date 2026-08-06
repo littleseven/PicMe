@@ -117,19 +117,27 @@ object MaskPostProcessor {
         val out = FloatArray(alpha.size)
         for (y in 0 until h) {
             for (x in 0 until w) {
-                var best = if (isMax) 0f else 1f
-                for (d in -radius..radius) {
-                    val sx = if (horizontal) x + d else x
-                    val sy = if (horizontal) y else y + d
-                    if (sx in 0 until w && sy in 0 until h) {
-                        val v = alpha[sy * w + sx]
-                        best = if (isMax) maxOf(best, v) else minOf(best, v)
-                    }
-                }
-                out[y * w + x] = best
+                out[y * w + x] = windowExtremum(alpha, w, h, WindowQuery(x, y, radius, horizontal, isMax))
             }
         }
         return out
+    }
+
+    /** 单方向窗口查询参数（同一 pass 内 radius/horizontal/isMax 不变，仅 x/y 随像素移动）。 */
+    private data class WindowQuery(val x: Int, val y: Int, val radius: Int, val horizontal: Boolean, val isMax: Boolean)
+
+    /** (x,y) 处单方向窗口的 min/max 值（越界跳过）。 */
+    private fun windowExtremum(alpha: FloatArray, w: Int, h: Int, query: WindowQuery): Float {
+        var best = if (query.isMax) 0f else 1f
+        for (d in -query.radius..query.radius) {
+            val sx = if (query.horizontal) query.x + d else query.x
+            val sy = if (query.horizontal) query.y else query.y + d
+            if (sx in 0 until w && sy in 0 until h) {
+                val v = alpha[sy * w + sx]
+                best = if (query.isMax) maxOf(best, v) else minOf(best, v)
+            }
+        }
+        return best
     }
 
     /**
