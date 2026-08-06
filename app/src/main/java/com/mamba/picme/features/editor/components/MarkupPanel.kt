@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
+import com.mamba.picme.core.designsystem.components.AppSlider
 import com.mamba.picme.features.editor.MarkupAction
 
 enum class MarkupTool { DOODLE, MOSAIC, TEXT }
@@ -76,7 +76,7 @@ fun MarkupPanel(
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
         )
-        Slider(
+        AppSlider(
             value = 20f,
             onValueChange = { /* stroke width */ },
             valueRange = 5f..100f,
