@@ -2,7 +2,6 @@ package com.mamba.picme.domain.matting
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MaskPostProcessorTest {
@@ -73,6 +72,13 @@ class MaskPostProcessorTest {
     }
 
     @Test
+    fun `dilate radius 0 returns copy`() {
+        val alpha = floatArrayOf(0f, 1f, 0f, 1f)
+        val out = MaskPostProcessor.dilate(alpha, w = 4, h = 1, radius = 0)
+        assertArrayEquals(alpha, out, 0.0001f)
+    }
+
+    @Test
     fun `erode shrinks foreground strip`() {
         // 1x5: 0 1 1 1 0 ; radius 1 min-filter -> 0 0 1 0 0
         val alpha = floatArrayOf(0f, 1f, 1f, 1f, 0f)
@@ -98,15 +104,13 @@ class MaskPostProcessorTest {
 
     @Test
     fun `erode never increases foreground area on 2d mask`() {
-        // 3x3 全 1，中心一个 0 空洞；腐蚀后前景计数不增
+        // 3x3 全 1，中心一个 0 空洞；radius 1 的 3x3 窗口对每个像素都覆盖中心 0，腐蚀后全 0
         val alpha = floatArrayOf(
             1f, 1f, 1f,
             1f, 0f, 1f,
             1f, 1f, 1f
         )
         val out = MaskPostProcessor.erode(alpha, w = 3, h = 3, radius = 1)
-        val before = alpha.count { it >= 0.5f }
-        val after = out.count { it >= 0.5f }
-        assertTrue(after <= before)
+        assertArrayEquals(FloatArray(9) { 0f }, out, 0.0001f)
     }
 }
