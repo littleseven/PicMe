@@ -18,6 +18,7 @@ import com.mamba.picme.domain.matting.MattingEngine
 import com.mamba.picme.domain.matting.MattingRouter
 import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.aesthetic.NimaScorer
 import com.mamba.picme.domain.usecase.AiOptimizeUseCase
 import com.mamba.picme.features.camera.toDevicePreference
 import com.mamba.picme.features.camera.toInferenceBackendType
@@ -250,6 +251,7 @@ class PhotoEditorViewModel(
                     isProcessing = false
                 )
                 _recipeChanges.value = result.editRecipe
+                scoreNimaDelta(result.editRecipe, result.scene.name)
             } catch (e: Exception) {
                 Logger.e(TAG, "AI optimize failed", e)
                 _state.value = processingState.copy(
@@ -258,6 +260,35 @@ class PhotoEditorViewModel(
                 )
             }
         }
+    }
+
+    /** 临时:NIMA 美学量化 before→after Δ(仅日志,不改产品行为)。 */
+    private suspend fun scoreNimaDelta(recipe: EditRecipe, sceneName: String) {
+        val ctx = appContext ?: return
+        val before = sourceBitmap ?: return
+        val nima = NimaScorer(ctx)
+        if (!nima.initialize()) {
+            Logger.w(TAG, "NIMA not initialized, skip aesthetic delta")
+            return
+        }
+        val beforeScore = nima.score(before)
+        val afterScore = try {
+            val applier = RecipeApplier(photoProcessor, photoProcessingDispatcher, mattingEngine)
+            val cropped = withContext(Dispatchers.Default) { applier.applyCrop(before, recipe.crop) }
+            val processed = applier.applyGpuEffects(cropped, recipe, cachedFaceData)
+            val cutout = withContext(Dispatchers.Default) { applier.applyCutout(processed, recipe.cutout) }
+            val marked = applier.applyMarkup(cutout, recipe.markup)
+            nima.score(marked)
+        } catch (e: Exception) {
+            Logger.e(TAG, "NIMA after render failed", e)
+            null
+        }
+        Logger.i(
+            TAG,
+            "NIMA Δ: scene=$sceneName before=$beforeScore after=$afterScore " +
+                "delta=${(afterScore ?: 0f) - (beforeScore ?: 0f)}"
+        )
+        nima.release()
     }
 
     fun redo() {

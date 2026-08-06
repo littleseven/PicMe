@@ -94,6 +94,12 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 │  │ features/         功能模块（Capability 实现）                   │  │
 │  │  ImageEditCapability  AutoTagCapability  NavigationCapability  │  │
 │  │  SystemCapability  RemoteControlCapability  Chat*Capability   │  │
+│  │                            │ run_gallery_script               │  │
+│  │  ┌─────────────────────────▼──────────────────────────┐      │  │
+│  │  │ ★ JS 沙盒引擎（QuickJS + JSBridge · libquickjs.so）│      │  │
+│  │  │   run_gallery_script · 对话内执行相册分析/健康报告   │      │  │
+│  │  │   → 图表 SVG / 结构化文本回显到对话                  │      │  │
+│  │  └────────────────────────────────────────────────────┘      │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                            ↓ 使用                                    │
 │  ┌───────────────────────────────────────────────────────────────┐  │
