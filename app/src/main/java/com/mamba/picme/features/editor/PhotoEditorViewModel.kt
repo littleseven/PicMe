@@ -232,6 +232,7 @@ class PhotoEditorViewModel(
     /** 一键去背景：按是否人像路由写入 cutout 配方（默认透明抠图），可撤销/重做，复用 [updateRecipe] 触发预览。 */
     fun removeBackground() {
         val current = _state.value as? State.Ready ?: return
+        if (current.gachaRun != null) return // 对比模式下禁用，避免向撤销栈写入预览中的配方
         val source = MattingRouter.choose(cachedFaceData != null)
         updateRecipe(
             current.recipe.copy(
@@ -244,10 +245,10 @@ class PhotoEditorViewModel(
     }
 
     val canUndo: Boolean
-        get() = history.canUndo
+        get() = (_state.value as? State.Ready)?.gachaRun == null && history.canUndo
 
     val canRedo: Boolean
-        get() = history.canRedo
+        get() = (_state.value as? State.Ready)?.gachaRun == null && history.canRedo
 
     fun undo() {
         if ((_state.value as? State.Ready)?.gachaRun != null) return // 对比模式下禁用，预览 recipe 不在历史中
@@ -274,6 +275,7 @@ class PhotoEditorViewModel(
         }
         val current = _state.value as? State.Ready ?: return
         if (current.isProcessing) return // 防快速连点并发抽卡
+        if (current.gachaRun != null) return // 对比模式下禁止再次优化，避免参数叠加
         val sourceUri = current.recipe.sourceUri
         viewModelScope.launch {
             val processingState = current.copy(isProcessing = true, error = null)
@@ -393,10 +395,15 @@ class PhotoEditorViewModel(
                 }
                 if (all != null) {
                     val recommended = (outcome.result as? GachaResult.Selected)?.best?.candidate?.index ?: -1
-                    // 与首抽一致：推荐卡直接大图预览（不入历史），等用户点「应用」
-                    val previewRecipe = if (recommended >= 0) outcome.editRecipe else null
+                    // 与首抽一致：推荐卡直接大图预览（不入历史），等用户点「应用」；
+                    // KeepOriginal（recommended<0）时回退 baseRecipe，避免残留上一组候选的预览
+                    val effectiveRecipe = if (recommended >= 0) {
+                        outcome.editRecipe ?: run.baseRecipe
+                    } else {
+                        run.baseRecipe
+                    }
                     _state.value = ready.copy(
-                        recipe = previewRecipe ?: ready.recipe,
+                        recipe = effectiveRecipe,
                         isProcessing = false,
                         gachaRun = GachaRunUiState(
                             candidates = all,
@@ -408,7 +415,7 @@ class PhotoEditorViewModel(
                             keepOriginal = outcome.result is GachaResult.KeepOriginal
                         )
                     )
-                    if (previewRecipe != null) _recipeChanges.value = previewRecipe
+                    _recipeChanges.value = effectiveRecipe
                 } else {
                     _state.value = ready.copy(
                         isProcessing = false,
@@ -511,13 +518,17 @@ class PhotoEditorViewModel(
                 val processed = applier.applyGpuEffects(cropped, recipe, cachedFaceData)
                 val cutout = withContext(Dispatchers.Default) { applier.applyCutout(processed, recipe.cutout) }
                 val marked = withContext(Dispatchers.Default) { applier.applyMarkup(cutout, recipe.markup) }
-                _state.value = current.copy(
+                // 写回时重新读取最新 state：渲染期间用户可能已点「应用/关闭」，
+                // 用捕获的 current 写回会复活已清空的 gachaRun
+                val latest = _state.value as? State.Ready ?: return@launch
+                _state.value = latest.copy(
                     previewBitmap = marked,
                     isProcessing = false
                 )
             } catch (e: Exception) {
                 Logger.e(TAG, "Preview processing failed", e)
-                _state.value = current.copy(
+                val latest = _state.value as? State.Ready ?: return@launch
+                _state.value = latest.copy(
                     isProcessing = false,
                     error = appContext?.getString(R.string.editor_preview_failed) ?: "Preview processing failed"
                 )
