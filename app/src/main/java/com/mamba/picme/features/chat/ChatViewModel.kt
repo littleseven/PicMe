@@ -1021,6 +1021,8 @@ class ChatViewModel(
                 lastResultAssets.remove(sessionId)
                 sessionSearchSnapshots.remove(sessionId)
                 sessionExcludes.remove(sessionId)
+                // 选中态是纯 UI 内存态，会话删除后整体清理，回退到推荐卡高亮即可
+                _gachaSelections.value = emptyMap()
                 // 删除的是工程师上下文所属会话 → 清掉持久化记录，避免 prefs 残留
                 if (claudeSidStore?.load()?.first == sessionId) claudeSidStore?.clear()
                 if (_currentSessionId.value == sessionId) {
@@ -2576,6 +2578,8 @@ class ChatViewModel(
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.updateTitle(sessionId, "New Chat")
                 _messages.value = emptyList()
+                // 选中态是纯 UI 内存态，消息删光后整体清理，回退到推荐卡高亮即可
+                _gachaSelections.value = emptyMap()
                 Logger.i(TAG, "Chat cleared for session: $sessionId")
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to clear chat", e)

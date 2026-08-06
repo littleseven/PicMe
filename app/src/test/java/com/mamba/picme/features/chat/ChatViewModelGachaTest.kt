@@ -117,4 +117,19 @@ class ChatViewModelGachaTest : ChatViewModelTestBase() {
 
         coVerify { gachaController.discardPending("default", any()) }
     }
+
+    @Test
+    fun `clearChat clears gacha selections`() = runTest {
+        val vm = newViewModel()
+        advanceUntilIdle()
+
+        vm.insertOptimizeCandidatesMessage("default", "msg1", group(), "expl", "remote_deepseek")
+        advanceUntilIdle()
+        assertEquals(1, vm.gachaSelections.value["msg1"])
+
+        vm.clearChat()
+        advanceUntilIdle()
+
+        assertTrue(vm.gachaSelections.value.isEmpty())
+    }
 }
