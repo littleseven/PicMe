@@ -41,7 +41,9 @@ class ChatViewModelDependencies(
     val chatEditProcessor: ChatEditProcessor,
     val chatImageRenderer: ChatImageRenderer? = null,
     val chatImageStore: ChatImageStore,
-    val saveChatEditResultUseCase: SaveChatEditResultUseCase
+    val saveChatEditResultUseCase: SaveChatEditResultUseCase,
+    /** AI 优化抽卡编排器；null = 未接线（单测默认），AiOptimize 走旧单发路径。 */
+    val optimizeGachaController: ChatOptimizeGachaController? = null
 ) {
     /**
      * app_tool_request 采集执行器（spec §3.1）。null = 未接线（单测默认不注入则功能关闭）。

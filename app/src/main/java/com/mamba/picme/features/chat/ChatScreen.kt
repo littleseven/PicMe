@@ -2325,6 +2325,10 @@ data class ChatMessageUi(
     val claudeAgent: ClaudeAgentState? = null,
     /** claude agent 气泡的交付动作；非空且 pending=true 时渲染「交付」按钮（§8）。 */
     val claudeDeliver: ClaudeDeliverUi? = null,
+    /** 抽卡候选卡组负载（OPTIMIZE_CANDIDATES 消息，来自 metadata JSON）。 */
+    val optimizeCandidates: OptimizeCandidateGroup? = null,
+    /** 卡条是否可交互（controller 内存态仍有 pending；进程重建后降级只读）。 */
+    val gachaInteractive: Boolean = false,
 )
 
 enum class ChatMessageType {
@@ -2337,7 +2341,8 @@ enum class ChatMessageType {
     COMMAND,
     PLAN_PREVIEW,
     MEDIA_RESULTS,
-    CHART
+    CHART,
+    OPTIMIZE_CANDIDATES
 }
 
 /**

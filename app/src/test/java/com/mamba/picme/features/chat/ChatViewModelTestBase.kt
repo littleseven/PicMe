@@ -108,7 +108,15 @@ abstract class ChatViewModelTestBase {
      * 子类如需注入 claudeChatClient 或回填 var 属性（claudeSidStore / appToolExecutor），
      * override 本方法即可。
      */
-    protected open fun newViewModel(): ChatViewModel = ChatViewModel(
+    protected open fun newViewModel(): ChatViewModel = newViewModelWithGacha(null)
+
+    /**
+     * 抽卡控制器注入扩展点（[ChatViewModelGachaTest]）：与 [newViewModel] 相同的构造，
+     * 末尾追加 optimizeGachaController。
+     */
+    protected open fun newViewModelWithGacha(
+        controller: ChatOptimizeGachaController?
+    ): ChatViewModel = ChatViewModel(
         ChatViewModelDependencies(
             context = context,
             chatMessageDao = chatMessageDao,
@@ -127,6 +135,7 @@ abstract class ChatViewModelTestBase {
             chatEditProcessor = mockk(relaxed = true),
             chatImageStore = mockk(relaxed = true),
             saveChatEditResultUseCase = mockk(relaxed = true),
+            optimizeGachaController = controller,
         )
     )
 
