@@ -43,6 +43,7 @@ import com.mamba.picme.features.camera.components.BeautyPanel
 import com.mamba.picme.features.editor.components.AdjustPanel
 import com.mamba.picme.features.editor.components.CheckerboardBackground
 import com.mamba.picme.features.editor.components.CropPanel
+import com.mamba.picme.features.editor.components.CropTransformOverlay
 import com.mamba.picme.features.editor.components.EditorBottomBar
 import com.mamba.picme.features.editor.components.EditorTopBar
 import com.mamba.picme.features.editor.components.FilterPanel
@@ -220,6 +221,13 @@ fun PhotoEditorScreen(
                                 )
                             }
                     )
+                    // 小米相册风格：CROP tab 下旋转/镜像悬浮在预览区底部左右角
+                    if (s.selectedTab == PhotoEditorViewModel.EditorTab.CROP) {
+                        CropTransformOverlay(
+                            crop = s.recipe.crop,
+                            onChange = { viewModel.updateRecipe(s.recipe.copy(crop = it)) }
+                        )
+                    }
                     if (s.isProcessing) {
                         CircularProgressIndicator(
                             color = MaterialTheme.colorScheme.primary,
