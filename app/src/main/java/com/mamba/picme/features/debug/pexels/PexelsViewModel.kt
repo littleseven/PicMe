@@ -158,6 +158,7 @@ class PexelsViewModel(
     }
 
     internal suspend fun downloadPhotos(targets: List<PexelsPhoto>) {
+        // 有意逐张顺序下载（不走 generateData 的 Semaphore(2) 并发）：Pexels 免费档 200 次/小时，顺序下载更省额度且进度展示更直观
         val ready = _uiState.value as? PexelsUiState.Ready ?: return
         _uiState.value = ready.copy(downloading = true, downloadProgress = "0/${targets.size}")
         var success = 0

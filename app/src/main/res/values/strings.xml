@@ -179,7 +179,6 @@
     <string name="pexels_empty">No results</string>
     <string name="pexels_retry">Retry</string>
     <string name="pexels_search">Search</string>
-    <string name="pexels_batch_size">Batch size</string>
     <string name="pexels_photo_desc">Photo by %1$s</string>
     <string name="person">Person</string>
     <string name="landscape">Landscape</string>

@@ -1,7 +1,7 @@
 package com.mamba.picme.features.debug.pexels
 
-/** 错误枚举优于字符串：UI 层映射到 stringResource（[I18N] 红线） */
-enum class PexelsErrorKind { INVALID_KEY, RATE_LIMITED, NETWORK }
+/** 错误枚举优于字符串：UI 层映射到 stringResource（[I18N] 红线）。401 不走此枚举，直接回 NoKey(invalidPrevious=true) */
+enum class PexelsErrorKind { RATE_LIMITED, NETWORK }
 
 sealed interface PexelsUiState {
 
