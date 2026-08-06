@@ -121,4 +121,20 @@ object IDPhotoComposer {
         if (cropped !== composited && cropped !== scaled) cropped.recycle()
         return scaled
     }
+
+    /** 预览画框坐标（px，画框把 [crop] 区域拉伸到 frameW×frameH）→ 原图像素坐标。 */
+    fun frameToSource(px: Float, py: Float, frameW: Float, frameH: Float, crop: CropRect): StrokePoint {
+        val cropW = (crop.right - crop.left).toFloat()
+        val cropH = (crop.bottom - crop.top).toFloat()
+        return StrokePoint(
+            x = crop.left + px / frameW.coerceAtLeast(1f) * cropW,
+            y = crop.top + py / frameH.coerceAtLeast(1f) * cropH
+        )
+    }
+
+    /** 画框内笔刷半径（px）→ 原图像素半径（按 crop 宽 / 画框宽缩放）。 */
+    fun frameRadiusToSource(radiusPx: Float, frameW: Float, crop: CropRect): Float {
+        val cropW = (crop.right - crop.left).toFloat()
+        return radiusPx * cropW / frameW.coerceAtLeast(1f)
+    }
 }
