@@ -91,23 +91,27 @@ fun PhotoEditorScreen(
         bottomBar = {
             val ready = state as? PhotoEditorViewModel.State.Ready ?: return@Scaffold
             Column(modifier = Modifier.navigationBarsPadding()) {
-                ready.gachaRun?.let { run ->
+                val run = ready.gachaRun
+                if (run != null) {
+                    // 抽卡对比模式：隐藏面板与底栏，只保留候选条，主预览区用于大图对比
                     GachaCandidateBar(
                         run = run,
+                        onApply = viewModel::applyGachaCandidate,
                         onReroll = viewModel::rerollGacha,
-                        onPick = viewModel::pickGachaCandidate,
+                        onPreview = viewModel::previewGachaCandidate,
                         onDismiss = viewModel::dismissGacha
                     )
+                } else {
+                    PanelForTab(
+                        tab = ready.selectedTab,
+                        recipe = ready.recipe,
+                        onRecipeChange = viewModel::updateRecipe
+                    )
+                    EditorBottomBar(
+                        selectedTab = ready.selectedTab,
+                        onTabSelected = viewModel::selectTab
+                    )
                 }
-                PanelForTab(
-                    tab = ready.selectedTab,
-                    recipe = ready.recipe,
-                    onRecipeChange = viewModel::updateRecipe
-                )
-                EditorBottomBar(
-                    selectedTab = ready.selectedTab,
-                    onTabSelected = viewModel::selectTab
-                )
             }
         }
     ) { padding ->

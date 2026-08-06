@@ -101,7 +101,7 @@ sealed class State {
 
 **技术规范**:
 - `load(context, sourceUri, recipeUri)` 在 `Dispatchers.IO` 解码预览图，并尝试从 `recipeUri` 恢复配方
-- **AI 一键优化走抽卡闭环**：`aiOptimize()` 调 `AiOptimizeUseCase.optimizeWithGacha()`（采样 4 候选 → NIMA 评分 → 退化守卫），结果条 `GachaCandidateBar` 支持「换一组」手选；NIMA 未下载时自动退回固定预设。反馈落库 `optimize_feedback`（source: auto/user/dismiss；重抽时每组落 `auto`，点选/关闭再落 `user`/`dismiss`，供 Phase 2 比对 NIMA 建议与人选差异）
+- **AI 一键优化走抽卡闭环**：`aiOptimize()` 调 `AiOptimizeUseCase.optimizeWithGacha()`（采样 4 候选 → NIMA 评分 → 退化守卫），随后进入「先预览后应用」对比模式：最优卡在主预览区全尺寸预览（走 `_recipeChanges`，**不入撤销历史**），`GachaCandidateBar` 独占底部区（面板/底栏隐藏，undo/redo 禁用）；点卡仅切预览（`previewGachaCandidate`），「应用」（`applyGachaCandidate`）才 `history.push` + 落库 `user`，「关闭」（`dismissGacha`）回退 baseRecipe + 落库 `dismiss`；NIMA 未下载时退回固定预设直接应用。反馈落库 `optimize_feedback`（source: auto/user/dismiss；每组生成时落 `auto`，供 Phase 2 比对 NIMA 建议与人选差异）
 - 预览通过 `_recipeChanges.debounce(200)` 自动触发，避免滑动过程中频繁重算
 - 保存时使用完整分辨率原图，按同一配方处理，输出 JPEG（质量 95）到 `Pictures/PoLang`
 - 保存成功后调用 `PhotoEditRecipeRepository.save(outputUri, sourceUri, recipe)` 持久化配方
@@ -116,7 +116,7 @@ sealed class State {
 - `features/editor/components/AdjustPanel.kt` — 光色参数滑块
 - `features/editor/components/FilterPanel.kt` — 色调滤镜与风格特效选择
 - `features/editor/components/MarkupPanel.kt` — Phase 2 标记工具占位
-- `features/editor/components/GachaCandidateBar.kt` — AI 优化抽卡结果条（收起态说明 + 展开态 4 卡对比手选）
+- `features/editor/components/GachaCandidateBar.kt` — AI 优化抽卡候选条（提示行 + 4 卡缩略图（推荐徽标/预览高亮）+ 应用/换一组/关闭）
 
 **交互规范**:
 - 顶部标题使用 `R.string.edit`

@@ -682,11 +682,11 @@ class PhotoEditorViewModel(
 
 AI 优化已从「一次给值」升级为「抽卡闭环」（best-of-N + NIMA 评分守卫）：
 
-- **链路**：`CandidateSampler` 以场景预设为锚点抽 4 候选 → `CandidateRenderer` 512px 渲染 → `OptimizeScorer` NIMA 评分 + 技术护栏（高光裁剪增量 5pp、亮度漂移 15%）→ 自动选优
-- **退化守卫**：最优候选 NIMA 分 ≤ 原图 + 0.05 时保持原图，从机制上杜绝"越优化越差"
-- **换一组**：编辑器结果条支持重抽 4 卡用户手选；点选/关闭行为落库 `optimize_feedback` 表（Phase 2 个性化素材）
-- **落库语义**：重抽时每组自动落一条 `auto` 记录（NIMA 建议），用户点选/关闭再落 `user`/`dismiss` 记录——两组叠加是有意设计，Phase 2 可比对「NIMA 建议 vs 人选」差异
-- **降级链**：NIMA 模型未下载 → 退回固定预设（原行为）；批量优化不走抽卡
+- **链路**：`CandidateSampler` 以场景预设为锚点抽 4 候选 → `CandidateRenderer` 512px 渲染 → `OptimizeScorer` NIMA 评分 + 技术护栏（高光裁剪增量 5pp、亮度漂移 15%）→ 选优
+- **退化守卫**：最优候选 NIMA 分 ≤ 原图 + 0.05 时不推荐（previewedIndex=-1，保持原图预览），从机制上杜绝"越优化越差"
+- **先预览后应用（2026-08-06 修订）**：抽卡后进入对比模式——最优卡在编辑器主预览区全尺寸预览（复用 2048px 预览管线，不入撤销历史），底部候选条独占（面板/底栏隐藏、undo/redo 禁用）；点卡仅切预览，「应用」才入历史 + 落库 `user`，「关闭」回退原图 + 落库 `dismiss`
+- **落库语义**：每组生成时自动落一条 `auto` 记录（NIMA 建议），「应用」/「关闭」再落 `user`/`dismiss` 记录——两组叠加是有意设计，Phase 2 可比对「NIMA 建议 vs 人选」差异
+- **降级链**：NIMA 模型未下载 → 退回固定预设直接应用（原行为）；批量优化不走抽卡
 - 设计与实现详见 `docs/superpowers/specs/2026-08-06-ai-optimize-gacha-design.md` 与 `docs/superpowers/plans/2026-08-06-ai-optimize-gacha.md`
 
 ---

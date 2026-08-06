@@ -30,55 +30,61 @@ import com.mamba.picme.R
 import com.mamba.picme.features.editor.PhotoEditorViewModel
 
 /**
- * AI 优化抽卡结果条。
+ * AI 优化抽卡对比导航条（先预览后应用）。
  *
- * 收起态：自动选优/保持原图说明 +「换一组」+「关闭」；
- * 展开态（换一组后）：4 卡缩略图对比，点选应用；被淘汰的卡置灰不可点。
+ * 缩略图仅作导航识别；真正的效果对比在编辑器主预览区（点卡片全质量渲染，
+ * 长按预览区可与原图对比）。NIMA 推荐卡带「推荐」角标；被淘汰的卡置灰不可点。
+ * 「应用」提交当前预览的卡，「关闭」放弃并回退原图，「换一组」重抽。
  */
 @Composable
 fun GachaCandidateBar(
     run: PhotoEditorViewModel.GachaRunUiState,
+    onApply: () -> Unit,
     onReroll: () -> Unit,
-    onPick: (Int) -> Unit,
+    onPreview: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
-        if (run.expanded) {
-            Column(modifier = Modifier.padding(8.dp)) {
-                Text(
-                    text = stringResource(R.string.ai_optimize_pick_hint),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 6.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    run.candidates.forEach { scored ->
-                        key(scored.candidate.index) {
-                            val selected = scored.candidate.index == run.selectedIndex
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable(enabled = !scored.rejected) {
-                                        onPick(scored.candidate.index)
-                                    }
-                                    .border(
-                                        width = if (selected) 2.dp else 0.dp,
-                                        color = if (selected) MaterialTheme.colorScheme.primary
-                                        else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(4.dp)
-                            ) {
-                                val thumbModifier = Modifier
-                                    .size(72.dp)
-                                    .clip(RoundedCornerShape(6.dp))
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(
+                text = stringResource(
+                    if (run.keepOriginal) R.string.ai_optimize_keep_hint
+                    else R.string.ai_optimize_pick_hint
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                run.candidates.forEach { scored ->
+                    key(scored.candidate.index) {
+                        val previewing = scored.candidate.index == run.previewedIndex
+                        val recommended = scored.candidate.index == run.recommendedIndex
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(enabled = !scored.rejected) {
+                                    onPreview(scored.candidate.index)
+                                }
+                                .border(
+                                    width = if (previewing) 2.dp else 0.dp,
+                                    color = if (previewing) MaterialTheme.colorScheme.primary
+                                    else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(4.dp)
+                        ) {
+                            val thumbModifier = Modifier
+                                .size(84.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                            Box {
                                 val bmp = scored.thumbnail
                                 if (bmp != null) {
                                     Image(
@@ -95,41 +101,38 @@ fun GachaCandidateBar(
                                         )
                                     )
                                 }
-                                Text(
-                                    text = scored.candidate.direction,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (scored.rejected) MaterialTheme.colorScheme.outline
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                if (recommended) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = RoundedCornerShape(bottomEnd = 6.dp),
+                                        modifier = Modifier.align(Alignment.TopStart)
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.ai_optimize_recommended),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        )
+                                    }
+                                }
                             }
+                            Text(
+                                text = scored.candidate.direction,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (scored.rejected) MaterialTheme.colorScheme.outline
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
-                Row(modifier = Modifier.align(Alignment.End)) {
-                    TextButton(onClick = onReroll) {
-                        Text(stringResource(R.string.ai_optimize_reroll))
-                    }
-                    TextButton(onClick = onDismiss) {
-                        Text(stringResource(R.string.ai_optimize_dismiss))
-                    }
-                }
             }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(
-                        if (run.keepOriginal) R.string.ai_optimize_keep_original
-                        else R.string.ai_optimize_best_applied
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
+            Row(modifier = Modifier.align(Alignment.End)) {
+                TextButton(
+                    onClick = onApply,
+                    enabled = run.previewedIndex >= 0
+                ) {
+                    Text(stringResource(R.string.ai_optimize_apply))
+                }
                 TextButton(onClick = onReroll) {
                     Text(stringResource(R.string.ai_optimize_reroll))
                 }

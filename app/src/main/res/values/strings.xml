@@ -116,10 +116,11 @@
     <string name="ai_optimize">AI Optimize</string>
     <string name="ai_optimize_not_available">AI optimization is not available</string>
     <string name="ai_optimize_failed">AI optimization failed: %1$s</string>
-    <string name="ai_optimize_best_applied">Best look applied</string>
-    <string name="ai_optimize_keep_original">This photo already looks great — left unchanged</string>
+    <string name="ai_optimize_recommended">Recommended</string>
+    <string name="ai_optimize_apply">Apply</string>
+    <string name="ai_optimize_keep_hint">AI thinks the original looks best — you can still preview candidates</string>
     <string name="ai_optimize_reroll">Try another set</string>
-    <string name="ai_optimize_pick_hint">Tap the one you like best</string>
+    <string name="ai_optimize_pick_hint">Tap a card to preview it full-size, then Apply</string>
     <string name="ai_optimize_dismiss">Close</string>
     <string name="remove_background">Remove background</string>
     <string name="remove_background_failed">Failed to remove background</string>

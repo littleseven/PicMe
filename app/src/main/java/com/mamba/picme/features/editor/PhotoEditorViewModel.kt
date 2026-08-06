@@ -78,23 +78,23 @@ class PhotoEditorViewModel(
     }
 
     /**
-     * 抽卡运行状态（UI）。
+     * 抽卡运行状态（UI）——对比模式：候选只在主预览区预览，点「应用」才提交。
      *
      * @property candidates 本组 4 张候选卡（含缩略图与分数）
-     * @property selectedIndex 当前应用的卡序号；-1 = 当前应用结果不在本组或 KeepOriginal
+     * @property recommendedIndex NIMA 最优卡序号；-1 = KeepOriginal（无推荐）
+     * @property previewedIndex 主预览区当前预览的卡序号；-1 = 显示 baseRecipe（原图）
      * @property exclude 已出现的参数指纹（「换一组」去重）
-     * @property baseRecipe 首次优化前的 recipe；换一组/点选都基于它映射，避免参数叠加
+     * @property baseRecipe 首次优化前的 recipe；换一组/预览都基于它映射，避免参数叠加
      * @property scene 识别场景（落库用）
-     * @property expanded true = 展开 4 卡对比条（换一组后）
-     * @property keepOriginal true = 退化守卫判定保持原图
+     * @property keepOriginal true = 退化守卫判定保持原图（提示文案用）
      */
     data class GachaRunUiState(
         val candidates: List<ScoredCandidate>,
-        val selectedIndex: Int,
+        val recommendedIndex: Int,
+        val previewedIndex: Int,
         val exclude: Set<String>,
         val baseRecipe: EditRecipe,
         val scene: Scene,
-        val expanded: Boolean = false,
         val keepOriginal: Boolean = false
     )
 
@@ -250,6 +250,7 @@ class PhotoEditorViewModel(
         get() = history.canRedo
 
     fun undo() {
+        if ((_state.value as? State.Ready)?.gachaRun != null) return // 对比模式下禁用，预览 recipe 不在历史中
         val recipe = history.undo() ?: return
         val current = _state.value as? State.Ready ?: return
         _state.value = current.copy(recipe = recipe)
@@ -259,8 +260,9 @@ class PhotoEditorViewModel(
     /**
      * AI 一键优化：抽卡闭环（采样 4 候选 → 渲染 → NIMA 评分 → 选优 + 退化守卫）。
      *
-     * - Selected：自动应用最优卡，结果条提供「换一组」
-     * - KeepOriginal：保持原图，结果条说明 + 「换一组」
+     * - Selected：进入对比模式，最优卡在主预览区全尺寸预览（不入历史），
+     *   点「应用」（[applyGachaCandidate]）才提交
+     * - KeepOriginal：退化守卫判定保持原图，进入对比模式但预览原图（previewedIndex=-1）
      * - Unavailable（NIMA 未下载等）：退回固定预设直接应用（原行为），无抽卡 UI
      */
     fun aiOptimize() {
@@ -282,13 +284,15 @@ class PhotoEditorViewModel(
                     is GachaResult.Selected -> {
                         val recipe = outcome.editRecipe
                         if (recipe != null) {
-                            history.push(recipe)
+                            // 先预览后应用：推荐卡直接大图预览，但不入历史、不提交，
+                            // 等用户点「应用」（applyGachaCandidate）才入历史并落库
                             _state.value = processingState.copy(
                                 recipe = recipe,
                                 isProcessing = false,
                                 gachaRun = GachaRunUiState(
                                     candidates = result.all,
-                                    selectedIndex = result.best.candidate.index,
+                                    recommendedIndex = result.best.candidate.index,
+                                    previewedIndex = result.best.candidate.index,
                                     exclude = outcome.usedFingerprints,
                                     baseRecipe = current.recipe,
                                     scene = outcome.scene
@@ -304,7 +308,8 @@ class PhotoEditorViewModel(
                             isProcessing = false,
                             gachaRun = GachaRunUiState(
                                 candidates = result.all,
-                                selectedIndex = -1,
+                                recommendedIndex = -1,
+                                previewedIndex = -1,
                                 exclude = outcome.usedFingerprints,
                                 baseRecipe = current.recipe,
                                 scene = outcome.scene,
@@ -387,18 +392,23 @@ class PhotoEditorViewModel(
                     GachaResult.Unavailable -> null
                 }
                 if (all != null) {
+                    val recommended = (outcome.result as? GachaResult.Selected)?.best?.candidate?.index ?: -1
+                    // 与首抽一致：推荐卡直接大图预览（不入历史），等用户点「应用」
+                    val previewRecipe = if (recommended >= 0) outcome.editRecipe else null
                     _state.value = ready.copy(
+                        recipe = previewRecipe ?: ready.recipe,
                         isProcessing = false,
                         gachaRun = GachaRunUiState(
                             candidates = all,
-                            selectedIndex = -1,
+                            recommendedIndex = recommended,
+                            previewedIndex = recommended,
                             exclude = outcome.usedFingerprints,
                             baseRecipe = run.baseRecipe,
                             scene = outcome.scene,
-                            expanded = true,
                             keepOriginal = outcome.result is GachaResult.KeepOriginal
                         )
                     )
+                    if (previewRecipe != null) _recipeChanges.value = previewRecipe
                 } else {
                     _state.value = ready.copy(
                         isProcessing = false,
@@ -417,9 +427,10 @@ class PhotoEditorViewModel(
     }
 
     /**
-     * 用户在 4 卡对比条点选某卡：基于 baseRecipe 映射应用（不叠加），落库 user 反馈。
+     * 点选某卡：只切换主预览区的大图预览（基于 baseRecipe 映射，不叠加），
+     * 不入历史、不落库；点「应用」（[applyGachaCandidate]）才提交。
      */
-    fun pickGachaCandidate(index: Int) {
+    fun previewGachaCandidate(index: Int) {
         val current = _state.value as? State.Ready ?: return
         val run = current.gachaRun ?: return
         val scored = run.candidates.find { it.candidate.index == index } ?: return
@@ -430,44 +441,59 @@ class PhotoEditorViewModel(
             sourceUri = run.baseRecipe.sourceUri,
             baseRecipe = run.baseRecipe
         )
-        history.push(recipe)
         _state.value = current.copy(
             recipe = recipe,
-            gachaRun = run.copy(selectedIndex = index, expanded = false, keepOriginal = false)
+            gachaRun = run.copy(previewedIndex = index)
         )
         _recipeChanges.value = recipe
+    }
+
+    /**
+     * 「应用」：提交当前预览的卡——入撤销历史、落库 user 反馈、退出对比模式。
+     */
+    fun applyGachaCandidate() {
+        val current = _state.value as? State.Ready ?: return
+        val run = current.gachaRun ?: return
+        if (run.previewedIndex < 0) return
+
+        history.push(current.recipe)
+        _state.value = current.copy(gachaRun = null)
         viewModelScope.launch {
             feedbackLogger?.log(
                 imageUri = run.baseRecipe.sourceUri,
                 scene = run.scene,
                 all = run.candidates,
-                selectedIndex = index,
+                selectedIndex = run.previewedIndex,
                 source = OptimizeFeedbackLogger.SOURCE_USER
             )
         }
     }
 
     /**
-     * 关闭抽卡结果条；展开态下未点选即关闭时落库 dismiss 反馈。
+     * 「关闭」：放弃本轮抽卡——预览回退到优化前 recipe，落库 dismiss 反馈，退出对比模式。
      */
     fun dismissGacha() {
         val current = _state.value as? State.Ready ?: return
         val run = current.gachaRun ?: return
-        if (run.expanded && run.selectedIndex < 0) {
-            viewModelScope.launch {
-                feedbackLogger?.log(
-                    imageUri = run.baseRecipe.sourceUri,
-                    scene = run.scene,
-                    all = run.candidates,
-                    selectedIndex = -1,
-                    source = OptimizeFeedbackLogger.SOURCE_DISMISS
-                )
-            }
+        if (run.previewedIndex >= 0) {
+            _state.value = current.copy(recipe = run.baseRecipe, gachaRun = null)
+            _recipeChanges.value = run.baseRecipe
+        } else {
+            _state.value = current.copy(gachaRun = null)
         }
-        _state.value = current.copy(gachaRun = null)
+        viewModelScope.launch {
+            feedbackLogger?.log(
+                imageUri = run.baseRecipe.sourceUri,
+                scene = run.scene,
+                all = run.candidates,
+                selectedIndex = -1,
+                source = OptimizeFeedbackLogger.SOURCE_DISMISS
+            )
+        }
     }
 
     fun redo() {
+        if ((_state.value as? State.Ready)?.gachaRun != null) return // 对比模式下禁用，预览 recipe 不在历史中
         val recipe = history.redo() ?: return
         val current = _state.value as? State.Ready ?: return
         _state.value = current.copy(recipe = recipe)
