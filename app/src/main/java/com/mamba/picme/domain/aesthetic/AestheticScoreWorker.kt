@@ -11,6 +11,8 @@ import com.mamba.picme.data.model.MediaEntity
 import com.mamba.picme.domain.tag.FaceRoi
 import com.mamba.picme.domain.tag.TagGenerationScheduler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -47,6 +49,17 @@ class AestheticScoreWorker(
     private val personDao = db.personDao()
     /** 串行化打分（自动触发与手动触发可能并发，避免同批重复处理） */
     private val mutex = Mutex()
+
+    /** 打分进度快照（null = 空闲）；供打标控制页顶部进度卡展示「当前活跃任务」。 */
+    data class AestheticProgress(
+        /** 本次排空已累计打分照片数 */
+        val processed: Int,
+        /** 开始时全库待打分照片总数 */
+        val total: Int
+    )
+
+    private val _progress = MutableStateFlow<AestheticProgress?>(null)
+    val progress: StateFlow<AestheticProgress?> = _progress
 
     private val nima = NimaScorer(context)
     private val ediffiqa = EdiffiqaScorer(context)
@@ -95,6 +108,32 @@ class AestheticScoreWorker(
     }
 
     /**
+     * 循环跑批直到无待打分照片（一轮无产出即停，避免坏图占位导致死循环），返回总打分照片数。
+     * 供打标控制页「美学评分」手动触发与扫描完成后自动补分（排空积压）使用。
+     */
+    suspend fun runUntilDone(batchLimit: Int = 100): Int {
+        val totalPending = mediaDao.getPendingAestheticCount()
+        if (totalPending <= 0) return 0
+        var total = 0
+        _progress.value = AestheticProgress(processed = 0, total = totalPending)
+        try {
+            while (true) {
+                val scored = runOnce(batchLimit)
+                if (scored <= 0) break
+                total += scored
+                _progress.value = AestheticProgress(
+                    processed = total.coerceAtMost(totalPending),
+                    total = totalPending
+                )
+            }
+        } finally {
+            _progress.value = null
+        }
+        Log.i(TAG, "Aesthetic drain done: totalScored=$total")
+        return total
+    }
+
+    /**
      * 仅给某个人脸簇的成员打分 + 刷新该簇封面，返回本轮打分照片数。
      * 供「个人信息编辑页」按聚类触发（不全库扫）。串行化与 [runOnce] 共用同一锁。
      * [personId] 目标人物；[batchLimit] 单次上限（默认 300，簇内通常不大）。 */
@@ -108,7 +147,8 @@ class AestheticScoreWorker(
             }
 
             val members = personDao.getMediaByPerson(personId)
-                .filter { it.aestheticScore == null || it.faceQualityScore == null }
+                // 与 getMediaWithoutEitherScore 同口径：无脸照片不算待人脸画质分（永远写不进，避免空转）
+                .filter { it.aestheticScore == null || (it.faceQualityScore == null && it.hasFace) }
                 .take(batchLimit)
             val total = members.size
             var scored = 0

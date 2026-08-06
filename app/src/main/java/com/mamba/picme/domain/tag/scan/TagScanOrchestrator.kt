@@ -149,6 +149,8 @@ class TagScanOrchestrator(
             // Pass 3 剩余独立统计：所有无 labels 的媒体，不强制要求已有 faceRoiResult
             val remainingForPass3 = unlabeledCount
             val namedPersonCount = db.personDao().getNamedPersonCount()
+            val photoCount = db.mediaDao().getPhotoCount()
+            val aestheticScoredCount = db.mediaDao().getAestheticScoredCount()
 
             TagScanDbStats(
                 totalMedia = totalMedia,
@@ -159,7 +161,9 @@ class TagScanOrchestrator(
                 namedPersonCount = namedPersonCount,
                 faceEmbeddingCount = faceEmbeddingCount,
                 remainingForPass1 = remainingForPass1,
-                remainingForPass3 = remainingForPass3
+                remainingForPass3 = remainingForPass3,
+                photoCount = photoCount,
+                aestheticScoredCount = aestheticScoredCount
             )
         }
     }
@@ -1118,7 +1122,11 @@ class TagScanOrchestrator(
         val namedPersonCount: Int = 0,
         val faceEmbeddingCount: Int,
         val remainingForPass1: Int,
-        val remainingForPass3: Int
+        val remainingForPass3: Int,
+        /** 照片总数（type = 'PHOTO'，美学评分进度分母；视频不参与打分） */
+        val photoCount: Int = 0,
+        /** 已出 NIMA 美学分的照片数 */
+        val aestheticScoredCount: Int = 0
     )
 
     private fun List<StatusCount>.count(status: TagScanTaskStatus): Int {

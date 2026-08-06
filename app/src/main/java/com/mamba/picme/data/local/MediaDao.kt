@@ -356,9 +356,23 @@ interface MediaDao {
     @Query("SELECT * FROM media_assets WHERE faceQualityScore IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
     suspend fun getMediaWithoutFaceQuality(limit: Int): List<MediaEntity>
 
-    /** 取缺任一分（美学或人脸画质）的照片，供打分器一图两分、单次解码（照片优先、最新在前） */
-    @Query("SELECT * FROM media_assets WHERE (aestheticScore IS NULL OR faceQualityScore IS NULL) AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
+    /** 取缺任一分（美学或人脸画质）的照片，供打分器一图两分、单次解码（照片优先、最新在前）。
+     *  人脸画质分仅对 Pass 1 确认含人脸（hasFace = 1）的照片视为待打分：
+     *  无脸照片永远写不进 faceQualityScore，若计入会让其按时间序永久堵住队首，挡住后面的待美学分照片。 */
+    @Query("SELECT * FROM media_assets WHERE (aestheticScore IS NULL OR (faceQualityScore IS NULL AND hasFace = 1)) AND type = 'PHOTO' ORDER BY captureDate DESC LIMIT :limit")
     suspend fun getMediaWithoutEitherScore(limit: Int): List<MediaEntity>
+
+    /** 待打分照片总数（口径同 [getMediaWithoutEitherScore]，供美学打分进度展示） */
+    @Query("SELECT COUNT(*) FROM media_assets WHERE (aestheticScore IS NULL OR (faceQualityScore IS NULL AND hasFace = 1)) AND type = 'PHOTO'")
+    suspend fun getPendingAestheticCount(): Int
+
+    /** 已出 NIMA 美学分的照片数（美学打分进度统计） */
+    @Query("SELECT COUNT(*) FROM media_assets WHERE aestheticScore IS NOT NULL AND type = 'PHOTO'")
+    suspend fun getAestheticScoredCount(): Int
+
+    /** 清空美学/人脸画质评分（打标控制页「美学评分-全量」重打分前置） */
+    @Query("UPDATE media_assets SET aestheticScore = NULL, faceQualityScore = NULL")
+    suspend fun clearAestheticScores()
 
     /** 含人脸但尚未回填 faceFocusY 的照片（供一次性回填扫描） */
     @Query("SELECT * FROM media_assets WHERE hasFace = 1 AND faceFocusY IS NULL AND type = 'PHOTO' ORDER BY captureDate DESC")

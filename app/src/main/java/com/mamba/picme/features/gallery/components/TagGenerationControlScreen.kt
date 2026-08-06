@@ -24,6 +24,7 @@ import com.mamba.picme.PoLangApplication
 import com.mamba.picme.R
 import com.mamba.picme.data.local.AppDatabase
 import com.mamba.picme.data.local.entity.TagScanPass
+import com.mamba.picme.domain.aesthetic.AestheticScoreWorker
 import com.mamba.picme.domain.tag.TagCategory
 import com.mamba.picme.domain.tag.scan.ScanSessionState
 import com.mamba.picme.domain.tag.scan.TagScanSessionProgress
@@ -56,6 +57,8 @@ fun TagGenerationControlScreen(
     // ── 通过 AppContainer 观察 TAG 生成状态（Service 内部分发） ───
     val sessionProgress by app.container.tagGenerationSessionProgress.collectAsState()
     val isScanning by app.container.tagGenerationIsScanning.collectAsState()
+    // 附属打分器（美学/人脸画质）进度：非会话制，null = 空闲；顶部进度卡优先显示活跃任务
+    val aestheticProgress by app.container.aestheticScoreWorker.progress.collectAsState()
     val currentState = sessionProgress?.state
     val isRunning = currentState == ScanSessionState.RUNNING
     val isPausing = currentState == ScanSessionState.PAUSING
@@ -79,6 +82,8 @@ fun TagGenerationControlScreen(
     var embeddingCount by remember { mutableIntStateOf(0) }
     var remainingPass1 by remember { mutableIntStateOf(0) }
     var remainingPass3 by remember { mutableIntStateOf(0) }
+    var photoCount by remember { mutableIntStateOf(0) }
+    var aestheticScored by remember { mutableIntStateOf(0) }
 
     // 精细控制：类别 / 时间范围 / 模式
     var selectedCategories by remember { mutableStateOf(setOf<TagCategory>()) }
@@ -102,6 +107,8 @@ fun TagGenerationControlScreen(
                 embeddingCount = stats.faceEmbeddingCount
                 remainingPass1 = stats.remainingForPass1
                 remainingPass3 = stats.remainingForPass3
+                photoCount = stats.photoCount
+                aestheticScored = stats.aestheticScoredCount
             } catch (e: Exception) {
                 android.util.Log.e("TagGenControl", "refreshStats failed", e)
             }
@@ -191,8 +198,13 @@ fun TagGenerationControlScreen(
             // ── 后台保活缺失项提示(非阻断,点击跳设置) ────────
             BackgroundScanGuardBanner()
 
-            // ── 扫描进度卡片 ────────────────────────────
-            AnimatedVisibility(visible = sessionProgress != null) {
+            // ── 当前任务进度卡片（统一槽位）─────────────────────
+            // 活跃任务优先：美学评分运行时显示打分进度，否则显示扫描会话进度。
+            // 美学评分非会话制（不进 TagScanOrchestrator），会话卡片只反映扫描本身。
+            AnimatedVisibility(visible = aestheticProgress != null) {
+                aestheticProgress?.let { AestheticProgressCard(it) }
+            }
+            AnimatedVisibility(visible = sessionProgress != null && aestheticProgress == null) {
                 sessionProgress?.let { ScanProgressCard(it) }
             }
 
@@ -499,6 +511,29 @@ fun TagGenerationControlScreen(
                     // ML Kit 英文标签已并入内容理解阶段，不再单独生成。
 
                     Spacer(Modifier.height(8.dp))
+
+                    // 美学评分（NIMA + eDifFIQA）：独立于扫描会话，直接驱动 AestheticScoreWorker 排空积压
+                    val aestheticProgress = tagPassProgress(photoCount, photoCount - aestheticScored)
+                    PassControlCard(
+                        title = stringResource(R.string.tag_pass_title_aesthetic),
+                        description = stringResource(R.string.tag_pass_desc_aesthetic),
+                        progress = aestheticProgress,
+                        progressText = if (aestheticProgress.isEmpty) "" else stringResource(
+                            R.string.tag_pass_progress_aesthetic,
+                            aestheticScored,
+                            aestheticProgress.remaining
+                        ),
+                        onIncremental = {
+                            refreshStats()
+                            context.startForegroundService(TagGenerationService.intentScoreAesthetic(context))
+                        },
+                        onFull = {
+                            refreshStats()
+                            context.startForegroundService(TagGenerationService.intentScoreAestheticFull(context))
+                        }
+                    )
+
+                    Spacer(Modifier.height(8.dp))
                     HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
 
@@ -720,6 +755,47 @@ private fun ScanProgressCard(progress: TagScanSessionProgress) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AestheticProgressCard(progress: AestheticScoreWorker.AestheticProgress) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.tag_aesthetic_running),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = {
+                    if (progress.total > 0) progress.processed.toFloat() / progress.total else 0f
+                },
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                trackColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.tag_aesthetic_progress, progress.processed, progress.total),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
         }
     }
 }
