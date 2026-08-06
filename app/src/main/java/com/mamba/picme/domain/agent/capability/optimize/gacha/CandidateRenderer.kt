@@ -35,18 +35,29 @@ class CandidateRenderer(
         return try {
             val uri = Uri.parse(imageUri)
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                BitmapFactory.decodeStream(input, null, bounds)
-            } ?: return null
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            val boundsStream = context.contentResolver.openInputStream(uri) ?: run {
+                Logger.w(TAG, "decodeDownscaled: openInputStream null: $imageUri")
+                return null
+            }
+            // inJustDecodeBounds 模式下 decodeStream 返回 null 是正常的，只取 outWidth/outHeight
+            boundsStream.use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                Logger.w(TAG, "decodeDownscaled: bounds decode failed: $imageUri")
+                return null
+            }
 
             var sample = 1
             val longEdge = maxOf(bounds.outWidth, bounds.outHeight)
             while (longEdge / (sample * 2) >= maxEdge) sample *= 2
 
             val options = BitmapFactory.Options().apply { inSampleSize = sample }
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                BitmapFactory.decodeStream(input, null, options)
+            val pixelStream = context.contentResolver.openInputStream(uri) ?: run {
+                Logger.w(TAG, "decodeDownscaled: reopen stream null: $imageUri")
+                return null
+            }
+            pixelStream.use { BitmapFactory.decodeStream(it, null, options) } ?: run {
+                Logger.w(TAG, "decodeDownscaled: pixels decode null: $imageUri")
+                null
             }
         } catch (e: Exception) {
             Logger.e(TAG, "decodeDownscaled failed: $imageUri", e)

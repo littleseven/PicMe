@@ -36,7 +36,8 @@ class OptimizeScorerTest {
             candidate = candidate(0),
             rendered = mockk<Bitmap>(),
             renderedPx = whitePx,
-            originalMeanLuminance = 1.0f   // 亮度漂移为 0，确保命中的是高光裁剪
+            originalMeanLuminance = 1.0f,   // 亮度漂移为 0，确保命中的是高光裁剪
+            originalClipRatio = 0f          // 原图无裁剪，候选全白 → 增量 1.0 超阈值
         )
 
         assertTrue(result.rejected)
@@ -53,7 +54,8 @@ class OptimizeScorerTest {
             candidate = candidate(0),
             rendered = mockk<Bitmap>(),
             renderedPx = grayPx(),
-            originalMeanLuminance = 0.5f
+            originalMeanLuminance = 0.5f,
+            originalClipRatio = 0f
         )
 
         assertTrue(result.rejected)

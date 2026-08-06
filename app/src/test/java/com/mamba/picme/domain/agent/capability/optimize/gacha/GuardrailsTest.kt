@@ -35,10 +35,28 @@ class GuardrailsTest {
     }
 
     @Test
-    fun `check rejects candidate exceeding highlight clip limit`() {
-        // 全白图：裁剪率 1.0 > 0.05
+    fun `check rejects candidate exceeding highlight clip delta limit`() {
+        // 全白图：裁剪率 1.0，原图裁剪率 0 → 增量 1.0 > 0.05
         val px = IntArray(64) { pixel(255, 255, 255) }
-        val reason = Guardrails.check(px, originalMeanLuminance = 1.0f)
+        val reason = Guardrails.check(px, originalMeanLuminance = 1.0f, originalClipRatio = 0f)
+        assertNotNull(reason)
+        assertTrue(reason!!.startsWith("highlight_clip"))
+    }
+
+    @Test
+    fun `check passes naturally bright photo when clip delta is small`() {
+        // 天然偏亮：原图裁剪率 0.10，候选 0.12 → 增量 0.02 < 0.05，不误杀
+        // （step=4 采样 25 点，前 12 个下标中 0,4,8 被采到 → 候选裁剪率 3/25=0.12）
+        val candidate = IntArray(100) { if (it < 12) pixel(255, 255, 255) else pixel(200, 200, 200) }
+        val reason = Guardrails.check(candidate, originalMeanLuminance = 0.9f, originalClipRatio = 0.10f)
+        assertNull(reason)
+    }
+
+    @Test
+    fun `check rejects candidate pushing highlight far beyond original`() {
+        // 原图裁剪率 0.10，候选 0.20 → 增量 0.10 > 0.05，把高光推爆的卡仍被拦
+        val candidate = IntArray(100) { if (it < 20) pixel(255, 255, 255) else pixel(200, 200, 200) }
+        val reason = Guardrails.check(candidate, originalMeanLuminance = 0.9f, originalClipRatio = 0.10f)
         assertNotNull(reason)
         assertTrue(reason!!.startsWith("highlight_clip"))
     }
@@ -47,7 +65,7 @@ class GuardrailsTest {
     fun `check rejects candidate with excessive luminance drift`() {
         // 亮灰图（240 未达 250 裁剪阈值，裁剪率 0），原图亮度 0.5，漂移约 88% > 15%
         val px = IntArray(64) { pixel(240, 240, 240) }
-        val reason = Guardrails.check(px, originalMeanLuminance = 0.5f)
+        val reason = Guardrails.check(px, originalMeanLuminance = 0.5f, originalClipRatio = 0f)
         assertNotNull(reason)
         assertTrue(reason!!.startsWith("luminance_drift"))
     }
@@ -56,6 +74,6 @@ class GuardrailsTest {
     fun `check passes candidate within guardrails`() {
         // 中灰图 vs 原图亮度 0.5：裁剪率 0，漂移约 0.4%（0.502 vs 0.5）
         val px = IntArray(64) { pixel(128, 128, 128) }
-        assertNull(Guardrails.check(px, originalMeanLuminance = 0.5f))
+        assertNull(Guardrails.check(px, originalMeanLuminance = 0.5f, originalClipRatio = 0f))
     }
 }

@@ -682,7 +682,7 @@ class PhotoEditorViewModel(
 
 AI 优化已从「一次给值」升级为「抽卡闭环」（best-of-N + NIMA 评分守卫）：
 
-- **链路**：`CandidateSampler` 以场景预设为锚点抽 4 候选 → `CandidateRenderer` 512px 渲染 → `OptimizeScorer` NIMA 评分 + 技术护栏（高光裁剪 5%、亮度漂移 15%）→ 自动选优
+- **链路**：`CandidateSampler` 以场景预设为锚点抽 4 候选 → `CandidateRenderer` 512px 渲染 → `OptimizeScorer` NIMA 评分 + 技术护栏（高光裁剪增量 5pp、亮度漂移 15%）→ 自动选优
 - **退化守卫**：最优候选 NIMA 分 ≤ 原图 + 0.05 时保持原图，从机制上杜绝"越优化越差"
 - **换一组**：编辑器结果条支持重抽 4 卡用户手选；点选/关闭行为落库 `optimize_feedback` 表（Phase 2 个性化素材）
 - **落库语义**：重抽时每组自动落一条 `auto` 记录（NIMA 建议），用户点选/关闭再落 `user`/`dismiss` 记录——两组叠加是有意设计，Phase 2 可比对「NIMA 建议 vs 人选」差异

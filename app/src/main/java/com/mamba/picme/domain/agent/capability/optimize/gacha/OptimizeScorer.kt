@@ -22,14 +22,16 @@ class OptimizeScorer(private val scorer: AestheticScorer) {
      * @param rendered 候选渲染结果（同时作为 thumbnail 带回）
      * @param renderedPx [rendered] 的像素数组（护栏计算用）；必须为 [rendered] 的像素数组，护栏计算依赖两者一致
      * @param originalMeanLuminance 原图平均亮度
+     * @param originalClipRatio 原图高光裁剪率（护栏增量判定基准）
      */
     fun scoreCandidate(
         candidate: OptimizeCandidate,
         rendered: Bitmap,
         renderedPx: IntArray,
-        originalMeanLuminance: Float
+        originalMeanLuminance: Float,
+        originalClipRatio: Float
     ): ScoredCandidate {
-        val rejectReason = Guardrails.check(renderedPx, originalMeanLuminance)
+        val rejectReason = Guardrails.check(renderedPx, originalMeanLuminance, originalClipRatio)
         if (rejectReason != null) {
             return ScoredCandidate(
                 candidate = candidate,

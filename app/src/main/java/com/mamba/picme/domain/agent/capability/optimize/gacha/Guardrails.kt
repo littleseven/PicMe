@@ -10,8 +10,8 @@ import kotlin.math.abs
  */
 object Guardrails {
 
-    /** 高光裁剪率上限：r,g,b 均 >= 250 的采样像素占比超过该值则淘汰 */
-    const val HIGHLIGHT_CLIP_LIMIT = 0.05f
+    /** 高光裁剪增量上限：候选裁剪率相对原图的增量超过该值则淘汰（防候选把高光推爆，不惩罚天然偏亮的照片） */
+    const val HIGHLIGHT_CLIP_DELTA_LIMIT = 0.05f
 
     /** 平均亮度漂移上限：候选均亮度相对原图漂移超过该比例则淘汰 */
     const val LUMINANCE_DRIFT_LIMIT = 0.15f
@@ -53,11 +53,12 @@ object Guardrails {
      *
      * @param candidatePx 候选渲染结果像素
      * @param originalMeanLuminance 原图平均亮度
+     * @param originalClipRatio 原图高光裁剪率（增量判定基准）
      * @return null 表示通过；否则为淘汰原因（日志与落库用）
      */
-    fun check(candidatePx: IntArray, originalMeanLuminance: Float): String? {
+    fun check(candidatePx: IntArray, originalMeanLuminance: Float, originalClipRatio: Float): String? {
         val clip = highlightClipRatio(candidatePx)
-        if (clip > HIGHLIGHT_CLIP_LIMIT) return "highlight_clip:$clip"
+        if (clip - originalClipRatio > HIGHLIGHT_CLIP_DELTA_LIMIT) return "highlight_clip:$clip"
         val lum = meanLuminance(candidatePx)
         if (originalMeanLuminance > 0f &&
             abs(lum - originalMeanLuminance) / originalMeanLuminance > LUMINANCE_DRIFT_LIMIT

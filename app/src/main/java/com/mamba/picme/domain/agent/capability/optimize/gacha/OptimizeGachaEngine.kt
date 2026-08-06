@@ -43,21 +43,31 @@ class OptimizeGachaEngine(
             Logger.w(TAG, "aesthetic scorer unavailable, gacha skipped")
             return@withContext GachaResult.Unavailable
         }
-        val base = renderer.decodeDownscaled(imageUri) ?: return@withContext GachaResult.Unavailable
+        val base = renderer.decodeDownscaled(imageUri) ?: run {
+            Logger.w(TAG, "base decode failed, gacha skipped: $imageUri")
+            return@withContext GachaResult.Unavailable
+        }
         val originalPx = renderer.extractPixels(base)
         val originalLuminance = Guardrails.meanLuminance(originalPx)
+        val originalClipRatio = Guardrails.highlightClipRatio(originalPx)
         val originalScore = aestheticScorer.score(base)
 
         val candidates = sampler.sample(basePreset, scene, count, exclude)
         val scored = candidates.mapNotNull { candidate ->
             val rendered = renderer.render(candidate, base, imageUri) ?: return@mapNotNull null
             val px = renderer.extractPixels(rendered)
-            optimizeScorer.scoreCandidate(candidate, rendered, px, originalLuminance)
+            optimizeScorer.scoreCandidate(candidate, rendered, px, originalLuminance, originalClipRatio)
         }
         if (scored.size < OptimizeScorer.MIN_VALID_CARDS) {
             Logger.w(TAG, "only ${scored.size} cards rendered, gacha unavailable")
             return@withContext GachaResult.Unavailable
         }
+        // 每卡明细：分值或淘汰原因（结构化可观测性，阈值校准依赖此日志）
+        val cardsSummary = scored.joinToString(", ") {
+            "#${it.candidate.index} ${it.candidate.direction} " +
+                (it.nimaScore?.let { s -> "score=$s" } ?: "reject=${it.rejectReason}")
+        }
+        Logger.i(TAG, "gacha cards: $cardsSummary (originalLum=$originalLuminance, originalClip=$originalClipRatio)")
 
         val result = optimizeScorer.select(scored, originalScore)
         val resultName = when (result) {
