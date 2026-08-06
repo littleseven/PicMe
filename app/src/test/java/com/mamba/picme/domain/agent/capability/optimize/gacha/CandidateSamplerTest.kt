@@ -105,4 +105,13 @@ class CandidateSamplerTest {
             assertEquals(base.beauty.whitening, c.preset.beauty.whitening, 0.001f)
         }
     }
+
+    @Test
+    fun `returns fewer than count when direction space is exhausted`() {
+        val cards = CandidateSampler(Random(0)).sample(basePreset(), Scene.DOCUMENT, count = 100)
+        // DOCUMENT 只有 3 个方向；MAX_RETRY=20 封顶总尝试次数 → 远小于 100
+        assertTrue(cards.size < 100)
+        assertTrue(cards.isNotEmpty())
+        assertEquals("base", cards[0].direction) // 锚点恒在
+    }
 }

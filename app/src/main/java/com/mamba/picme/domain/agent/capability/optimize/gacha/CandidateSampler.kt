@@ -73,6 +73,9 @@ class CandidateSampler(private val random: Random = Random.Default) {
      * @param scene 当前场景（决定方向池与是否叠加美颜抖动）
      * @param count 候选总数（含锚点卡）
      * @param exclude 已出现过的 fingerprint 集合（「换一组」去重）；锚点卡不受排除约束
+     * @return 候选卡列表，首张恒为 base 锚点卡（index 0、direction "base"）。
+     * 当方向空间耗尽（exclude 过大或方向池过小）且达到 [MAX_RETRY] 上限时，
+     * 返回数量可能少于 [count]，调用方需处理短结果。
      */
     fun sample(
         base: OptimizePreset,
