@@ -1,21 +1,19 @@
 package com.mamba.picme.agent.core.inference.remote
 
 import com.mamba.picme.agent.core.facade.AgentConfigurator
+import com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
-import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
-import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * 远程 chat 推理引擎（决策3 / ADR-010 链路隔离 step 2）。
@@ -23,8 +21,12 @@ import kotlin.coroutines.suspendCoroutine
  * 从 AgentOrchestrator/AgentConfigurator 抽出的 chat 远程 ReAct 链路：owns chat-agent 生命周期
  *（[getChatAgent] + [chatSystemPrompt] + 缓存）与 chat 推理（[streamChat]/streamChatReAct/[processChatReAct]）。
  * 共享配置（userRemoteConfig / deviceId / memoryContextProvider / context）经 [AgentConfigurator] 只读访问，
- * 与相机链路（CameraToolService / AgentOrchestrator.processCameraInput）严格隔离、无交叉。chat 多轮记忆由
- * RemoteReActAgent 的 DataStoreChatMemory 承担（ADR-012）；媒体处理留端侧、远程只发文本（ADR-008）。
+ * 与相机链路（CameraToolService / AgentOrchestrator.processCameraInput）严格隔离、无交叉。
+ *
+ * **:agent-core → Koog 迁移（Phase 4）**：chat 链路改由 [KoogChatAgent] 驱动（Koog AIAgent + ChatMemory
+ * feature），取代旧 langchain4j RemoteReActAgent + StreamingSyncChatModel 路径。[processChatReAct] 直接 suspend
+ * 调 [KoogChatAgent.runChat]（删 suspendCoroutine/CountDownLatch 桥）；多轮记忆由 Koog ChatMemory feature +
+ * [KoogMessageMemoryStore] 承担（ADR-012 三不变式由 store 强制）；媒体处理留端侧、远程只发文本（ADR-008）。
  */
 class RemoteChatEngine internal constructor(
     private val configurator: AgentConfigurator
@@ -123,7 +125,7 @@ class RemoteChatEngine internal constructor(
 
     // ── chat ReAct Agent（懒创建）────────────────────────────────────
 
-    private var cachedChatAgent: RemoteReActAgent? = null
+    private var cachedChatAgent: KoogChatAgent? = null
     private var cachedChatAgentConfig: RemoteModelConfig? = null
 
     /**
@@ -182,11 +184,14 @@ class RemoteChatEngine internal constructor(
     }
 
     /**
-     * chat 远程推理（ReAct tool_calls 循环）。用 [getChatAgent]（ChatToolService，chat 场域能力工具）
-     * 执行多轮 tool 调用，完成后返回自然语言 summary。
+     * chat 远程推理（Koog ReAct tool_calls 循环）。用 [getChatAgent]（ChatToolService，chat 场域能力工具）
+     * 驱动 [KoogChatAgent.runChat] 执行多轮 tool 调用，完成后返回自然语言 summary。
      *
      * [onEvent] 非空时透传流式事件：模型逐 token 增量 → [ChatStreamEvent.TextSnapshot]，
      * 工具调用轮开始 → [ChatStreamEvent.ToolCallStarted]（飞书等不传 onEvent 的调用方行为不变）。
+     *
+     * Koog `agent.run()` 本身 suspend，故直接 `withTimeout { runChat(...) }`，删除旧 langchain4j 期的
+     * suspendCoroutine/CountDownLatch 回调桥。取消经 withTimeout 的协程 cancel 级联（Koog 1.1.1 已正确响应取消）。
      */
     internal suspend fun processChatReAct(
         input: String,
@@ -197,14 +202,7 @@ class RemoteChatEngine internal constructor(
     ): Result<Pair<String, AgentExecutionMetrics?>> = withContext(Dispatchers.IO) {
         Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
-        val agent = getChatAgent(object : RemoteReActAgentCallback {
-            override fun onLoopStart(iteration: Int) {}
-            override fun onContent(iteration: Int, content: String) {}
-            override fun onToolCall(iteration: Int, toolName: String, args: String) {}
-            override fun onToolResult(iteration: Int, toolName: String, result: String) {}
-            override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
-            override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
-        }) ?: return@withContext Result.failure(
+        val agent = getChatAgent() ?: return@withContext Result.failure(
             IllegalStateException("Chat ReAct Agent 初始化失败")
         )
 
@@ -215,50 +213,23 @@ class RemoteChatEngine internal constructor(
         agent.setSessionId(sessionId)
 
         return@withContext try {
-            val job = coroutineContext[kotlinx.coroutines.Job]
-            val summary = withTimeout(timeoutMs) {
-                suspendCoroutine<Pair<String, AgentExecutionMetrics?>> { continuation ->
-                    val callback = object : RemoteReActAgentCallback {
-                        override fun onLoopStart(iteration: Int) {
-                            Logger.d(tag, "Chat ReAct iteration #$iteration")
-                        }
-                        override fun onContent(iteration: Int, content: String) {
-                            Logger.d(tag, "Chat ReAct content: ${content.take(200)}")
-                        }
-                        override fun onPartialText(snapshot: String) {
-                            // 本轮累计全文快照 → UI 直接替换气泡内容
-                            onEvent?.invoke(ChatStreamEvent.TextSnapshot(snapshot))
-                        }
-                        override fun onToolCall(iteration: Int, toolName: String, args: String) {
-                            Logger.d(tag, "Chat ReAct toolCall: $toolName(${args.take(100)})")
-                            onEvent?.invoke(ChatStreamEvent.ToolCallStarted)
-                        }
-                        override fun onToolResult(iteration: Int, toolName: String, result: String) {
-                            Logger.d(tag, "Chat ReAct toolResult: $toolName → ${result.take(80)}")
-                        }
-                        override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {
-                            Logger.i(tag, "Chat ReAct complete: $iteration rounds, $totalTokens tokens")
-                            continuation.resume(summary to metrics)
-                        }
-                        override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {
-                            Logger.e(tag, "Chat ReAct error: ${error.message}")
-                            continuation.resume("出错了：${error.message ?: "未知错误"}" to metrics)
-                        }
-                    }
-                    job?.invokeOnCompletion { cause ->
-                        if (cause != null) {
-                            Logger.d(tag, "Chat ReAct coroutine cancelled: ${cause.message}")
-                            agent.cancel()
-                        }
-                    }
-                    agent.executeTask(input, callback, traceId)
-                    Logger.d(tag, "Chat ReAct executeTask submitted, waiting for callback...")
-                }
+            val (summary, metrics) = withTimeout(timeoutMs) {
+                agent.runChat(
+                    input = input,
+                    traceId = traceId,
+                    onPartialText = { snapshot ->
+                        // 本轮累计全文快照 → UI 直接替换气泡内容
+                        onEvent?.invoke(ChatStreamEvent.TextSnapshot(snapshot))
+                    },
+                    onToolCall = { toolName, args ->
+                        Logger.d(tag, "Chat ReAct toolCall: $toolName(${args.take(100)})")
+                        onEvent?.invoke(ChatStreamEvent.ToolCallStarted)
+                    },
+                )
             }
-            Result.success(summary)
+            Result.success(summary to metrics)
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             Logger.e(tag, "processChatReAct timeout after ${timeoutMs}ms")
-            agent.cancel()
             Result.failure(RuntimeException("处理超时（${timeoutMs / 1000}秒），请稍后重试"))
         } catch (e: Exception) {
             Logger.e(tag, "processChatReAct error", e)
@@ -267,10 +238,14 @@ class RemoteChatEngine internal constructor(
     }
 
     /**
-     * 获取或创建 chat ReAct Agent（ChatToolService，chat 场域能力工具，不含 UI/相机）。
+     * 获取或创建 chat Koog Agent（ChatToolService，chat 场域能力工具，不含 UI/相机）。
      * 配置变更时自动重建。共享配置经 [configurator] 只读访问。
+     *
+     * KoogChatAgent 无 langchain4j 期的 initialize/shutdown 生命周期（AIAgent 在 [KoogChatAgent.agent]
+     * 内按记忆快照新鲜度懒建/重建），故重建仅置空缓存；executor/memoryStore/historyProvider 复用，
+     * 历史经 DataStore（chat_memory）跨重建留存。
      */
-    private fun getChatAgent(callback: RemoteReActAgentCallback): RemoteReActAgent? {
+    private fun getChatAgent(): KoogChatAgent? {
         val existing = cachedChatAgent
         val currentConfig = configurator.getUserRemoteConfig() ?: RemoteModelConfig.PICME_SERVER_DEFAULT
         if (existing != null && cachedChatAgentConfig != null) {
@@ -280,7 +255,6 @@ class RemoteChatEngine internal constructor(
                 || cachedChatAgentConfig?.gatewayToken != currentConfig.gatewayToken
             if (configChanged) {
                 Logger.i(tag, "Remote config changed (model=${currentConfig.modelId}), rebuilding Chat Agent")
-                existing.shutdown()
                 cachedChatAgent = null
                 cachedChatAgentConfig = null
             } else {
@@ -304,17 +278,14 @@ class RemoteChatEngine internal constructor(
             Logger.w(tag, "Failed to build ChatAgent config", e)
             return null
         }
-        val agent = RemoteReActAgent(
+        val agent = KoogChatAgent(
             config = cfg,
-            windowManager = null,
-            callback = callback,
-            appContext = configurator.getContext(),
-            toolService = ChatToolService.getInstance()
+            toolSet = ChatToolService.getInstance(),
+            memoryStore = KoogMessageMemoryStore(configurator.getContext()),
         )
-        agent.initialize()
         cachedChatAgent = agent
         cachedChatAgentConfig = currentConfig
-        Logger.i(tag, "Chat ReAct Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
+        Logger.i(tag, "Chat Koog Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
         return agent
     }
 }

@@ -65,15 +65,23 @@ Application.onCreate() → getInstance() 创建 → 注册到 CapabilityRegistry
 `CapabilityRegistry` 是**唯一注册表**——`ComposeCapabilityHost` / `LocalCapabilityHost` / `GlobalCapabilityHost` 已全部退役删除（此前双轨制导致 Activity recreate 竞态后 chat Capability 整批不可见，见 2026-07-29 盘点故障）。
 
 - 应用级 Capability：全部在 `PoLangApplication.initializeCapabilities()` 启动期注册（含 SettingsCapability 补注册——此前从未注册，是死能力）
-- `NavigationCapability` / `SystemCapability`：依赖 NavController/Context，由 `MainActivity` 创建后即调用 `AgentOrchestrator.registerCapability()` 注册
+- `NavigationCapability` / `SystemCapability`：依赖 NavController/Context，由 `MainActivity` 创建后经 `DisposableEffect` 注册、onDispose 注销（2026-08-07 修复：此前只注册不注销，Activity recreate 后注册表永久持有捕获死 composition scope 的旧实例，agent `navigate_to` 假成功、Pager 切页静默失效）
 - 页面级 `CameraCapability`：随 CameraScreen `DisposableEffect` register/unregister
 - 飞书直接搜索快速通道在后台线程通过 `RemoteControlToolService` 调用 `CapabilityRegistry.dispatch()`，同样命中上述注册表
 
-**实现位置**：`MainActivity.kt` 在创建 `navigationCapability`/`systemCapability` 后同步调用：
+**注册语义（2026-08-07 起）**：`CapabilityRegistry.register()` 对同名同实例跳过、同名**不同实例替换**（保证注册表永远指向存活实例）；`unregister()` 实例感知——仅当注册表当前持有的就是该实例时才移除，防止旧实例 onDispose 竞态摘除已替换的新实例。
+
+**实现位置**：`MainActivity.kt` 在创建 `navigationCapability`/`systemCapability` 后注册：
 ```kotlin
 val orchestrator = AgentOrchestrator.getInstance(applicationContext)
-orchestrator.registerCapability(navigationCapability)
-orchestrator.registerCapability(systemCapability)
+DisposableEffect(navigationCapability, systemCapability) {
+    orchestrator.registerCapability(navigationCapability)
+    orchestrator.registerCapability(systemCapability)
+    onDispose {
+        orchestrator.unregisterCapability(navigationCapability)
+        orchestrator.unregisterCapability(systemCapability)
+    }
+}
 ```
 
 ### 2.3 FeishuChannelHandler — 飞书通道管理

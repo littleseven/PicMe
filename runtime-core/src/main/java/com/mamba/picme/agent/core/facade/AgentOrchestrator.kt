@@ -11,16 +11,20 @@ import com.mamba.picme.agent.core.inference.remote.tool.CameraToolService
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
-import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
+import com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.inference.local.LocalModelService
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.RequestMetaInfo
+import ai.koog.prompt.message.ResponseMetaInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -101,6 +105,16 @@ class AgentOrchestrator private constructor(context: Context) {
      * 当前活跃场景（可观察）
      */
     val currentScene = sceneManager.currentScene
+
+    /**
+     * 远程 IM 链路（processRemoteImInput）的工具调用监听，app 层注入。
+     *
+     * 用于精准感知 agent 实际执行的工具——例如 capture 触发时标记远程拍照回传
+     * （RemotePhotoTracker.startCapture），替代消息入口的关键词猜测
+     * （"连拍三张照片"这类表达匹配不到关键词，导致拍了不回传）。
+     */
+    @Volatile
+    var remoteImToolCallListener: ((toolName: String) -> Unit)? = null
 
     /**
      * 注册 Capability（应用级，通常由 PoLangApplication 调用）
@@ -220,7 +234,7 @@ class AgentOrchestrator private constructor(context: Context) {
     /**
      * 处理飞书远程控制输入（ReAct 循环）。
      *
-     * 使用 [RemoteReActAgent] 执行多轮 Observe→Think→Act→Verify 循环，
+     * 使用 [KoogReActAgent]（Koog 驱动，Phase 5 起）执行多轮 Observe→Think→Act→Verify 循环，
      * 通过应用内 UI 自动化工具完成用户请求。
      *
      * @param input 用户自然语言输入
@@ -267,6 +281,7 @@ class AgentOrchestrator private constructor(context: Context) {
                         }
                         override fun onToolCall(iteration: Int, toolName: String, args: String) {
                             Logger.d(tag, "Feishu ReAct toolCall: $toolName(${args.take(100)})")
+                            remoteImToolCallListener?.invoke(toolName)
                         }
                         override fun onToolResult(iteration: Int, toolName: String, result: String) {
                             Logger.d(tag, "Feishu ReAct toolResult: $toolName → ${result.take(80)}")
@@ -327,7 +342,7 @@ class AgentOrchestrator private constructor(context: Context) {
 
     // ── 相机远程 tool_calls 入口（端侧文本 LLM 移除后的替代链路）─────────────────
 
-    private var cachedCameraAgent: RemoteReActAgent? = null
+    private var cachedCameraAgent: KoogReActAgent? = null
 
     /** 缓存的相机 Agent 对应的配置，用于检测配置变更 */
     private var cachedCameraAgentConfig: RemoteModelConfig? = null
@@ -429,7 +444,7 @@ class AgentOrchestrator private constructor(context: Context) {
      * 优先使用用户配置的远程模型，未配置时使用 PoLang Server 默认兜底；
      * 配置变更时自动重建。共享配置经 [configurator] 只读访问。
      */
-    private fun getCameraAgent(): RemoteReActAgent? {
+    private fun getCameraAgent(): KoogReActAgent? {
         val existing = cachedCameraAgent
         val currentConfig = configurator.getUserRemoteConfig() ?: RemoteModelConfig.PICME_SERVER_DEFAULT
         if (existing != null && cachedCameraAgentConfig != null) {
@@ -463,7 +478,7 @@ class AgentOrchestrator private constructor(context: Context) {
             Logger.w(tag, "Failed to build CameraAgent config", e)
             return null
         }
-        val agent = RemoteReActAgent(
+        val agent = KoogReActAgent(
             config = cfg,
             windowManager = null,
             callback = object : RemoteReActAgentCallback {
@@ -484,10 +499,13 @@ class AgentOrchestrator private constructor(context: Context) {
         return agent
     }
 
+    /** Koog 记忆存储（对话回写用，懒创建；与 agent 运行期记忆同一 koog_memory_ 键空间）。 */
+    private val koogMemoryStore by lazy { KoogMessageMemoryStore(configurator.getContext()) }
+
     /** 相机对话历史回写（fire-and-forget，与原 LocalCameraAgent.saveConversation 同语义）。 */
     private fun saveCameraConversation(sessionId: String, userInput: String, assistantResponse: String) {
         backgroundScope.launch {
-            memoryManager.appendConversation(sessionId, userInput, assistantResponse)
+            appendKoogConversation(sessionId, userInput, assistantResponse)
         }
     }
 
@@ -496,6 +514,7 @@ class AgentOrchestrator private constructor(context: Context) {
     /** 清空指定 session 的对话记忆（如 "camera"）。 */
     suspend fun clearChatMemory(sessionId: String) {
         memoryManager.clearHistory(sessionId)
+        koogMemoryStore.clear(sessionId)
     }
 
     /**
@@ -503,7 +522,19 @@ class AgentOrchestrator private constructor(context: Context) {
      * 使后续文本消息能引用图片上下文）。
      */
     suspend fun appendConversation(sessionId: String, userInput: String, assistantResponse: String) {
-        memoryManager.appendConversation(sessionId, userInput, assistantResponse)
+        appendKoogConversation(sessionId, userInput, assistantResponse)
+    }
+
+    /** 经 Koog 记忆层原子回写一轮 user+assistant（load→拼→save，store 内置三不变式裁剪）。 */
+    private suspend fun appendKoogConversation(sessionId: String, userInput: String, assistantResponse: String) {
+        val history = koogMemoryStore.load(sessionId)
+        koogMemoryStore.save(
+            sessionId,
+            history + listOf(
+                Message.User(userInput, RequestMetaInfo.Empty),
+                Message.Assistant(assistantResponse, ResponseMetaInfo.Empty)
+            )
+        )
     }
 
 }

@@ -3,21 +3,18 @@ package com.mamba.picme.agent.core.facade
 import android.content.Context
 import android.view.WindowManager
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
-import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
-import com.mamba.picme.agent.core.inference.remote.StreamingSyncChatModel
+import com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
-import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.MemoryManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.policy.PrivacyGuard
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import com.mamba.model.chat.ChatModel
 
 /**
  * Agent 配置器
@@ -186,38 +183,9 @@ class AgentConfigurator(private val context: Context) {
     val isModelLoaded: Boolean
         get() = localLlmEngine.isLoaded
 
-    /**
-     * 创建远程聊天模型（流式内核 + 同步外观）
-     *
-     * 返回 [StreamingSyncChatModel]：内部经 SSE 流式（buildStreaming）逐 token 接收，
-     * 对外暴露同步 [com.mamba.model.chat.ChatModel] 接口（CountDownLatch 等待完整响应，
-     * 含组装好的 toolCalls，AiServices 工具循环行为与原同步模型一致）。
-     * 未注入 StreamListener 时行为与原同步模型完全一致；chat 链路经 RemoteReActAgent
-     * 注入监听器获得逐 token 增量（见 RemoteChatEngine.streamChat）。
-     *
-     * @param config 远程模型配置（baseUrl / apiKey / modelId / gatewayToken）
-     * @return 同步外观的流式聊天模型实例
-     */
-    fun createRemoteChatModel(config: RemoteModelConfig): ChatModel {
-        val builder = RemoteModelFactory.createBuilder(config, "agent_stream")
-            .logRequests(true)
-            .logResponses(true)
-        if (config.gatewayToken.isNotBlank()) {
-            builder.customHeader("X-App-Token", config.gatewayToken)
-        }
-        // 注册与访客均带 X-Device-Id：访客用于设备级试用额度；注册用户用于后台 device 维度展示。
-        // 优先用 config.deviceId；若被 fallback 覆盖为空，回退到独立持有的 [deviceId]。
-        val effectiveDeviceId = config.deviceId.ifBlank { deviceId }
-        if (effectiveDeviceId.isNotBlank()) {
-            builder.customHeader("X-Device-Id", effectiveDeviceId)
-        }
-        Logger.i(tag, "RemoteChatModel created (streaming): model=${config.modelId}, baseUrl=${config.baseUrl.take(40)}")
-        return StreamingSyncChatModel(builder.buildStreaming())
-    }
+    // ── 飞书 ReAct Agent（懒创建，Koog 驱动，Phase 5）────────────────────────────
 
-    // ── 飞书 ReAct Agent（懒创建）────────────────────────────────────
-
-    private var cachedFeishuAgent: RemoteReActAgent? = null
+    private var cachedFeishuAgent: KoogReActAgent? = null
 
     /** 缓存的 Feishu Agent 对应的配置，用于检测配置变更 */
     private var cachedFeishuAgentConfig: RemoteModelConfig? = null
@@ -231,7 +199,7 @@ class AgentConfigurator(private val context: Context) {
      * 当用户配置发生变更时（cachedFeishuAgentConfig != userRemoteConfig），
      * 自动重建 Agent 以确保使用最新的 API Key / baseUrl / model。
      */
-    fun getFeishuAgent(windowManager: WindowManager, callback: RemoteReActAgentCallback): RemoteReActAgent? {
+    fun getFeishuAgent(windowManager: WindowManager, callback: RemoteReActAgentCallback): KoogReActAgent? {
         val existing = cachedFeishuAgent
         val currentConfig = userRemoteConfig ?: RemoteModelConfig.PICME_SERVER_DEFAULT
 
@@ -268,11 +236,11 @@ class AgentConfigurator(private val context: Context) {
             return null
         }
 
-        val agent = RemoteReActAgent(cfg, windowManager, callback, context)
+        val agent = KoogReActAgent(cfg, windowManager, callback, context)
         agent.initialize()
         cachedFeishuAgent = agent
         cachedFeishuAgentConfig = currentConfig
-        Logger.i("AgentConfigurator", "Feishu ReAct Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
+        Logger.i("AgentConfigurator", "Feishu Koog ReAct Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")
         return agent
     }
 

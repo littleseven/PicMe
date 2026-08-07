@@ -54,6 +54,5 @@
 # === JS 引擎 + JSBridge（QuickJS）===
 # JS bridge：NativeHandler 工厂 object、JsBridge、JsEngine 实现经反射装配
 -keep class com.mamba.picme.agent.core.js.** { *; }
-# 远程 @Tool 方法被 langchain4j 反射扫描生成 ToolSpecification（含 run_gallery_script / draw_chart）
--keep class com.mamba.picme.agent.core.inference.remote.tool.PoLangToolService { *; }
--keep class com.mamba.picme.agent.core.inference.remote.tool.ChatToolService { *; }
+# Koog 工具集（ChatToolService 等 ToolSet 实现）为代码直接引用、无需反射 keep；
+# langchain4j 时代的 @Tool 反射扫描 keep（PoLangToolService）已随 fork 删除（2026-08-07 Phase 6）。

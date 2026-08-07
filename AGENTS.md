@@ -20,7 +20,7 @@ langchain4android 是一个元实验（meta-experiment），同时探索三个�
 
 | 层次 | 实验对象 | 核心问题 |
 |------|----------|----------|
-| **基础库** | langchain4android（`:agent-core`） | LangChain4j 风格 API 能否在 Android 高效运行？ |
+| **基础库** | langchain4android（原 `:agent-core` fork，已替换为 Koog） | LangChain4j 风格 API 能否在 Android 高效运行？（结论：自维护 vendored fork 不可持续——冻结上游、死重多、0 测试；2026-08 全面迁移至 JetBrains Koog，fork 模块已删除） |
 | **运行时** | PoLang Agent 编排层（`:runtime-core` + `:app`） | LLM 能否成为应用的中枢神经系统？ |
 | **服务端** | PoLang Server（`server/` Ktor 后端） | AI 网关、账号体系、管理后台能否支撑端侧 Agent？ |
 | **架构层** | Agent First 客户端框架 | 什么样的架构让 Agent 最高效？ |
@@ -238,7 +238,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 
 ### 6.1 待验证的假设
 
-1. **AI 可处理代码规模上限**：当前项目含 agent-core（Java）+ Demo 工程（Kotlin）共约 3 万行代码，上限是多少？
+1. **AI 可处理代码规模上限**：当前项目以 Demo 工程（Kotlin）+ runtime-core 为主（agent-core Java fork 已于 2026-08 删除），上限是多少？
 2. **AI 重构能力**：AI 能否主导跨模块架构重构？
 3. **自动修复成功率**：AI 自动修复编译/运行时错误的成功率？
 4. **文档驱动开发的效率**：相比传统流程，AI 协作的效率提升？
@@ -266,7 +266,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **产品定义** | `PRODUCT.md` |
 | **交互规范** | `docs/01-PRODUCT/FEATURES.md` |
 | **★ AI 协作产物 SSOT** | `docs/superpowers/README.md`（Plans / Specs 唯一事实来源，四工具共同遵守） |
-| **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`agent-core/`、`runtime-core/`、`mnn-core/`、`sentencepiece/`、`server/` 等） |
+| **模块规范** | 各模块 `AGENTS.md`（`app/`、`beauty-engine/`、`runtime-core/`、`mnn-core/`、`sentencepiece/`、`server/` 等） |
 | **技术专项** | `docs/03-TECHNICAL-SPECS/*.md` |
 | **端侧推理全景** | `docs/03-TECHNICAL-SPECS/ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`（端侧推理盘点：文本 LLM 已移除，余 VLM 打标/人脸检测/翻译等；含优化评估与多模型生命周期改造清单） |
 | **IM 远程控制技术规格** | `docs/03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md`（IM 远程控制：飞书 + Telegram 多通道，2026-07-27 重新激活，低优先级实验线） |
@@ -285,14 +285,14 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **服务端实现** | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`（Ktor 后端：AI 网关、账号、管理后台） |
 | **备份恢复** | `docs/05-DEVELOPMENT/RELEASE_PACKAGE_BACKUP_RESTORE.md`（Release 包数据备份与恢复） |
 
-> **架构说明（2026-08-02）**：
-> - **`:agent-core` 是 Java Android Library**（非 Kotlin），提供 LangChain4j 风格的 ChatModel、@Tool、AiServices、ChatMemory 等 API
+> **架构说明（2026-08-07 更新）**：
+> - **Agent 框架为 JetBrains Koog（`ai.koog:koog-agents` 外部依赖）**：原 `:agent-core`（langchain4j 1.13.0 vendored fork）已于 2026-08-07 Phase 6 整体删除；chat/相机/飞书链路分别由 `KoogChatAgent` / `KoogReActAgent`（`runtime-core/.../inference/remote/koog/`）驱动，工具集（ChatToolService/CameraToolService/RemoteControlToolService）实现 Koog `ToolSet` 接口
 > - **Agent 编排层在 `:runtime-core` 模块**（Kotlin）：`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard`、`MemoryManager`、`SceneManager` 等均位于 `runtime-core/src/main/java/com/mamba/picme/agent/core/`
 > - **TAG 生成在 `:app` 模块**：`TagScanOrchestrator`、`TagGenerationScheduler`、`OpenClGuardian` 位于 `app/src/main/java/com/mamba/picme/domain/tag/`；`TagGenerationService` 为前台 Service；`TagGenerationControlScreen` 提供 3-Pass 控制与按类别/时间范围重新生成 UI
 > - **OpenCL 超时与降级**：`OpenClGuardian` 在 Pass 3 前执行 warmup，单次推理带超时；连续失败/超时后标记设备降级为 CPU，黑名单持久化到 DataStore；`TagGenerationScheduler.ensureModelLoaded()` 自动按 Guardian 策略选择后端
-> - **OpenAI 协议兼容**：`OpenAiChatModel` / `OpenAiStreamingChatModel` 支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问等），含 tool_calls、流式、多轮对话
-> - **DeepSeek 适配**：API 请求自动禁用 thinking 模式；ToolSpec 自动添加 `additionalProperties: false` 兼容 strict 模式；`tool_choice: REQUIRED` 正确映射为 `"required"`
-> - **端侧文本 LLM 已移除（2026-08-02）**：runtime-core 的 `AiAgentMode` 仅剩 OFF/REMOTE/FEISHU（FEISHU 属远程控制模式）；app 层 `UserPreferences.AiAgentMode` 为 OFF/LOCAL/REMOTE（LOCAL 为遗留离线兜底枚举值）。相机 AI 指令走远程 tool_calls（`AgentOrchestrator.processCameraInput` + `CameraToolService` 相机场域 @Tool 工具集 → `ToolCallCommandParser` → `CapabilityRegistry.dispatch`），chat 全远程（`ChatToolService`）；`AiAgentUseCase` 作为 Facade 兼容层（:app 模块）内部委托 `AgentOrchestrator`；`LocalLlmEngine` 仅存 `imageInference`（Qwen3-VL-2B 端侧 VLM 打标，TAG Pass3）
+> - **OpenAI 协议兼容**：经 Koog `OpenAILLMClient` 接入所有兼容 OpenAI API 的服务（DeepSeek、通义千问、PoLang Server 网关），含 tool_calls、多轮对话；自定义模型名须在 `LLModel.capabilities` 显式声明（`Completion, Tools, OpenAIEndpoint.Completions`，🔴不加 Responses/Thinking）
+> - **DeepSeek 适配**：`RemoteModelFactory` 经 Koog `additionalProperties` 注入 `thinking.type=disabled`；自定义 `poLangSingleRunStrategy` 修复 Koog 1.1.1 内建策略丢「文本+tool_calls 同帧」工具调用的缺陷
+> - **端侧文本 LLM 已移除（2026-08-02）**：runtime-core 的 `AiAgentMode` 仅剩 OFF/REMOTE/FEISHU（FEISHU 属远程控制模式）；app 层 `UserPreferences.AiAgentMode` 为 OFF/LOCAL/REMOTE（LOCAL 为遗留离线兜底枚举值）。相机 AI 指令走远程 tool_calls（`AgentOrchestrator.processCameraInput` + `CameraToolService` 相机场域工具集 → Koog agent 循环内直接 `CapabilityRegistry.dispatch`，ToolCallCommandParser 已随 Phase 5 删除），chat 全远程（`ChatToolService`）；`AiAgentUseCase` 作为 Facade 兼容层（:app 模块）内部委托 `AgentOrchestrator`；`LocalLlmEngine` 仅存 `imageInference`（Qwen3-VL-2B 端侧 VLM 打标，TAG Pass3）
 > - **JS Engine（QuickJS 沙箱）**：引擎无关层在 `:runtime-core` `agent/core/js/`（JsEngine/JsValue/JsBridge/JsRuntime/NativeHandler），QuickJS 实现与应用 handler 在 `:app` `features/chat/js/`（QuickJsEngine/GalleryScriptHandlers/ChartJs/CapabilityDispatchHandler）；除只读取数 handler 外，已存在 `capability.dispatch` **写通路**（CommandRisk 分级 + 用户确认 + ChatMediaWriteCapability）。详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`
 > - **AI 工程师模式（原诊断模式已并入）**：Chat「AI Engineer」toggle → `POST /v1/claude-chat` → chisel 隧道 → KimiClaw 云主机 Claude Code（GLM）；云主机 MCP server（`scripts/claude-tunnel/gateway/app_tools_mcp.py`）暴露 5 个 `app_*` 工具（日志/崩溃/聊天历史/运行时状态/相册摘要），tool call 经 SSE 下行 `app_tool_request` 到 App，`AppToolExecutor`（`app/core/agenttools/`）采集脱敏后经 `POST /v1/claude-tool-result` 回传；`claudeSid` 经 `ClaudeSidStore`（SharedPreferences）持久化，进程重建后可 `--resume` 续上下文。诊断工单链路（DiagRoute/diag-worker）已于 2026-08-01 移除。**账号白名单区分读写**：`/v1/claude-chat` 与 `/v1/claude-tool-result` 对所有已认证账号开放（只读诊断），仅 `/v1/claude-deliver` 代码交付受 `ai_engineer_whitelist` 限制；`/v1/claude-engineer/available` 返回 `{available, canDeliver}`。**用户问题上报**：Chat 顶部新增「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动在 `littleseven/langchain4android` 创建 GitHub issue；管理后台「设置」页（`/admin/settings#whitelist`）承载「AI 工程师白名单」配置，「问题诊断」页（`/admin/diagnosis`）承载「用户上报问题」，原 `/admin/ai-engineer-whitelist` 已 301 重定向到设置页白名单区块。详见 `docs/superpowers/specs/2026-08-01-ai-engineer-diag-merge-design.md`
 > - **服务端（`server/`）**：独立 Ktor 工程，提供 AI 网关（Channel 路由 / LLM 代理）、账号体系（邮箱注册 / Token 认证）、管理后台（Admin 视图）、推荐引擎（RuleEngine）、限流（RateLimiter）、COS 对象存储。与 Android 客户端通过 Monorepo 管理，但不纳入 Android `settings.gradle`。

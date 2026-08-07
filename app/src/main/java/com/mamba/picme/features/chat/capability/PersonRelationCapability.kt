@@ -12,7 +12,6 @@ import com.mamba.picme.domain.person.KinshipLexicon
 import com.mamba.picme.domain.person.PersonRepository
 import com.mamba.picme.domain.person.RelationPredicate
 import com.mamba.picme.domain.person.RelationSource
-import com.mamba.model.chat.request.json.JsonObjectSchema
 
 /**
  * 人物关系声明 Capability（CHAT 场景）。
@@ -44,26 +43,6 @@ class PersonRelationCapability(
         "query_person_relation" -> "查询人物关系，参数: name (可选，指定人物名则只查该人物；留空查全部)"
         else -> "未知命令"
     }
-
-    override fun getCommandParameterSchema(command: String): JsonObjectSchema =
-        when (command) {
-            "remember_person_relation" -> JsonObjectSchema.builder()
-                .description("声明人物与「我」的关系")
-                .addStringProperty("name", "已命名人物的名字")
-                .addStringProperty("relation", "关系：谓词枚举名（spouse/partner/son/daughter/child/father/mother/parent/elder_brother/elder_sister/younger_brother/younger_sister/sibling/grandfather/grandmother/grandparent/grandchild/other_family/friend/classmate/colleague/other）、中文称谓（如 女儿/老公/爸爸/女朋友/同学，归一后存具体谓词），或任意自定义称呼（如 发小/二儿子，会原样记住）")
-                .required("name", "relation")
-                .build()
-            "forget_person_relation" -> JsonObjectSchema.builder()
-                .description("遗忘与某人物的全部关系")
-                .addStringProperty("name", "人物名字")
-                .required("name")
-                .build()
-            "query_person_relation" -> JsonObjectSchema.builder()
-                .description("查询人物关系。name 留空查全部指向「我」的关系；指定人物名只查该人物")
-                .addStringProperty("name", "人物名（可选，留空查全部）")
-                .build()
-            else -> JsonObjectSchema.builder().build()
-        }
 
     override suspend fun execute(
         command: AgentCommand,

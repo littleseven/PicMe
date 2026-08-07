@@ -65,6 +65,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -79,6 +80,15 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         /** 端侧 VLM 打标模型（configure 的 modelId 仅作 localModelService 默认模型）。 */
         private const val TAGGER_MODEL_ID = "qwen3_vl_2b"
+
+        /** 远程拍照回传：consume pending token 后等媒体流稳定的时长（连拍落盘异步）。 */
+        private const val REMOTE_PHOTO_SETTLE_MS = 4_000L
+
+        /** 远程拍照回传：按 captureDate 收集本轮照片的窗口（排除历史远程照片）。 */
+        private const val REMOTE_PHOTO_WINDOW_MS = 120_000L
+
+        /** 远程拍照回传：单次最多回传张数（防异常刷屏）。 */
+        private const val MAX_REMOTE_PHOTOS_PER_REPLY = 10
     }
 
     val applicationScope = CoroutineScope(SupervisorJob())
@@ -208,7 +218,8 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 安装 LLM 调用 / tool 执行指标记录器（全构建注入）。
         // release 构建仅落纯指标（model/latency/tokens/success/errorMessage 等），
         // 绝不记录消息内容（隐私红线）；DEBUG 构建额外记录 request/response 全文。
-        // runtime-core 的 RemoteModelFactory 创建远程模型时会自动挂上 CapturingChatModelListener，
+        // runtime-core 的 Koog agent（KoogChatAgent/KoogReActAgent）在每次 LLM 调用完成时经
+        // RemoteModelFactory.recorder 录制 LlmCallRecord，
         // CommandExecutor 汇聚全部 tool 执行并上报指标，均落库到独立 DB（polang_llm_log）。
         RemoteModelFactory.captureContent = BuildConfig.DEBUG
         RemoteModelFactory.recorder = RoomLlmCallRecorder(this)
@@ -244,7 +255,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     repo.telegramAllowedChatIdFlow
                 ) { type, feishuAppId, feishuAppSecret, telegramBotToken, telegramChatId ->
                     ChannelSelection(type, feishuAppId, feishuAppSecret, telegramBotToken, telegramChatId)
-                }.collect { sel ->
+                    // DataStore 任一无关 key 写入（如相机持久化预览比例）都会触发重放射；
+                    // 值未变时必须跳过，否则 activate() 会无意义断开/重连 WS 通道
+                }.distinctUntilChanged().collect { sel ->
                     remoteChannelManager.activate(
                         sel.type, sel.feishuAppId, sel.feishuAppSecret,
                         sel.telegramBotToken, sel.telegramChatId
@@ -400,7 +413,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     repository.aiAgentPrivacyLevelFlow
                 ) { mode, privacyLevel ->
                     SyncConfig(mode, privacyLevel)
-                }.collect { (mode, privacyLevel) ->
+                    // distinctUntilChanged：无关 DataStore 写入会触发重放射，
+                    // 值未变时跳过重配，避免打断正在运行的 agent 任务
+                }.distinctUntilChanged().collect { (mode, privacyLevel) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
                     // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
                     // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
@@ -463,7 +478,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     repository.serverAuthTokenFlow
                 ) { configsJson, selectedModelId, serverToken ->
                     Triple(configsJson, selectedModelId, serverToken)
-                }.collect { (configsJson, selectedModelId, serverToken) ->
+                    // distinctUntilChanged：无关 DataStore 写入（如相机持久化预览比例）会触发
+                    // 重放射；值未变时跳过——此前每次重放射都无条件 clearFeishuAgent()，
+                    // 会把正在执行多轮工具调用的飞书 agent 直接 shutdown（"Task cancelled"）
+                }.distinctUntilChanged().collect { (configsJson, selectedModelId, serverToken) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
                     // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
                     orchestrator.setDeviceId(deviceIdProvider.get())
@@ -500,6 +518,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         }
     }
 
+    /** 已回传的远程照片最大 captureDate（观察者去重水位线，防连拍多轮触发重复回传）。 */
+    @Volatile
+    private var lastRemotePhotoSentCaptureDate = 0L
+
     /**
      * 监听媒体库变化，远程拍照完成后自动经激活通道发送照片。
      *
@@ -528,54 +550,77 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     }
 
                     val sessionId = remoteChannelManager.channelId.ifBlank { "remote" }
-                    val latestPhoto = remotePhotos.maxByOrNull { it.captureDate } ?: return@collect
-                    Logger.i(TAG, "检测到远程拍照结果: uri=${latestPhoto.uri}, session=$sessionId")
 
-                    // 1. 写入聊天记录（agent_image 类型）
-                    try {
-                        if (chatSessionDao.getSession(sessionId) == null) {
-                            chatSessionDao.insertSession(
-                                ChatSessionEntity(
+                    // 连拍回传：capture 与落盘异步，等媒体流稳定后按 captureDate 窗口收集
+                    // 本轮全部远程照片（排除历史远程照片），逐张回传。
+                    // captureDate > lastRemotePhotoSentCaptureDate 去重：连拍时每次 capture
+                    // 工具调用都会重新 arm token，观察者会被多次触发；窗口收集不含已发照片，
+                    // 否则同一张照片会重复回传（3 拍收 5 张即此问题）
+                    delay(REMOTE_PHOTO_SETTLE_MS)
+                    val windowStart = System.currentTimeMillis() - REMOTE_PHOTO_WINDOW_MS
+                    val photosToSend = repository.allMedia.first()
+                        .filter {
+                            it.source == sourceTag && it.type == MediaType.PHOTO &&
+                                it.captureDate >= windowStart && it.captureDate > lastRemotePhotoSentCaptureDate
+                        }
+                        .sortedBy { it.captureDate }
+                        .takeLast(MAX_REMOTE_PHOTOS_PER_REPLY)
+                    if (photosToSend.isEmpty()) {
+                        Logger.w(TAG, "远程拍照回传：窗口内无新照片，跳过（session=$sessionId）")
+                        return@collect
+                    }
+                    Logger.i(TAG, "检测到远程拍照结果: ${photosToSend.size} 张, session=$sessionId")
+                    lastRemotePhotoSentCaptureDate = photosToSend.maxOf { it.captureDate }
+
+                    photosToSend.forEach { photo ->
+                        // 1. 写入聊天记录（agent_image 类型）
+                        try {
+                            if (chatSessionDao.getSession(sessionId) == null) {
+                                chatSessionDao.insertSession(
+                                    ChatSessionEntity(
+                                        sessionId = sessionId,
+                                        title = if (sessionId == "telegram") "Telegram 远程控制" else "飞书远程控制"
+                                    )
+                                )
+                            }
+                            chatMessageDao.insertMessage(
+                                ChatMessageEntity(
+                                    id = UUID.randomUUID().toString(),
                                     sessionId = sessionId,
-                                    title = if (sessionId == "telegram") "Telegram 远程控制" else "飞书远程控制"
+                                    type = "agent_image",
+                                    content = photo.uri,
+                                    modelUsed = sourceTag
                                 )
                             )
+                            chatSessionDao.touchSession(sessionId)
+                        } catch (e: Exception) {
+                            Logger.e(TAG, "写入远程聊天记录失败", e)
                         }
-                        chatMessageDao.insertMessage(
-                            ChatMessageEntity(
-                                id = UUID.randomUUID().toString(),
-                                sessionId = sessionId,
-                                type = "agent_image",
-                                content = latestPhoto.uri,
-                                modelUsed = sourceTag
-                            )
-                        )
-                        chatSessionDao.touchSession(sessionId)
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "写入远程聊天记录失败", e)
-                    }
 
-                    // 2. 经激活通道发送图片（压缩到 2K）
-                    try {
-                        val uri = android.net.Uri.parse(latestPhoto.uri)
-                        val compressedBytes = compressImageForFeishu(uri, 2048, 85)
-                        if (compressedBytes != null) {
-                            remoteChannelManager.sendImage(compressedBytes, pendingReplyToken)
-                            remoteChannelManager.sendMessage("✅ 照片已发送，请查收", pendingReplyToken)
-                            Logger.i(TAG, "远程拍照结果已发送: session=$sessionId, size=${compressedBytes.size / 1024}KB")
-                        } else {
-                            Logger.w(TAG, "图片压缩失败，尝试发送原图: ${latestPhoto.uri}")
-                            val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
-                            if (parcelFileDescriptor != null) {
-                                val imageBytes = java.io.FileInputStream(parcelFileDescriptor.fileDescriptor).use { it.readBytes() }
-                                parcelFileDescriptor.close()
-                                remoteChannelManager.sendImage(imageBytes, pendingReplyToken)
-                                remoteChannelManager.sendMessage("✅ 照片已发送，请查收", pendingReplyToken)
+                        // 2. 经激活通道发送图片（压缩到 2K）
+                        try {
+                            val uri = android.net.Uri.parse(photo.uri)
+                            val compressedBytes = compressImageForFeishu(uri, 2048, 85)
+                            if (compressedBytes != null) {
+                                remoteChannelManager.sendImage(compressedBytes, pendingReplyToken)
+                                Logger.i(TAG, "远程拍照结果已发送: session=$sessionId, size=${compressedBytes.size / 1024}KB")
+                            } else {
+                                Logger.w(TAG, "图片压缩失败，尝试发送原图: ${photo.uri}")
+                                val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
+                                if (parcelFileDescriptor != null) {
+                                    val imageBytes = java.io.FileInputStream(parcelFileDescriptor.fileDescriptor).use { it.readBytes() }
+                                    parcelFileDescriptor.close()
+                                    remoteChannelManager.sendImage(imageBytes, pendingReplyToken)
+                                }
                             }
+                        } catch (e: Exception) {
+                            Logger.e(TAG, "发送远程照片失败", e)
                         }
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "发送远程照片失败", e)
                     }
+                    remoteChannelManager.sendMessage(
+                        if (photosToSend.size > 1) "✅ ${photosToSend.size} 张照片已发送，请查收" else "✅ 照片已发送，请查收",
+                        pendingReplyToken
+                    )
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "远程拍照监听启动失败", e)

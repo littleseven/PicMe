@@ -1,7 +1,6 @@
 package com.mamba.picme.domain.agent.capability.optimize
 
 import android.content.Context
-import com.mamba.model.chat.request.json.JsonObjectSchema
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
@@ -55,13 +54,6 @@ class AiOptimizeCapability(
         SceneManager.Scene.GALLERY,
         SceneManager.Scene.CHAT
     )
-
-    override fun getCommandParameterSchema(command: String): JsonObjectSchema {
-        return JsonObjectSchema.builder()
-            .addStringProperty("image_uri", "待优化图片的本地文件 URI")
-            .required("image_uri")
-            .build()
-    }
 
     private fun resolveImageUri(commandUri: String, pageContext: PageContext?): String {
         if (commandUri.isNotBlank()) return commandUri

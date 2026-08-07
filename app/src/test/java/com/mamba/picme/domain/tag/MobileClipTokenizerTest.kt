@@ -34,7 +34,7 @@ class MobileClipTokenizerTest {
 
         every { context.assets } returns assets
         // 提供一个真实临时目录作为 filesDir，避免 ModelPathConfig.getModelsBaseDir 空指针
-        every { context.filesDir } returns createTempDir("mobileclip_test_")
+        every { context.filesDir } returns kotlin.io.path.createTempDirectory("mobileclip_test_").toFile()
     }
 
     @Test

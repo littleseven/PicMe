@@ -1,7 +1,8 @@
 package com.mamba.picme.agent.core.inference.remote.tool
 
+import ai.koog.agents.core.tools.annotations.LLMDescription
+import ai.koog.agents.core.tools.annotations.Tool as KoogTool
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
-import com.mamba.tool.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,13 +17,16 @@ class ToolInventoryTest {
 
     @Suppress("unused")
     private class Fixture {
-        @Tool(name = "b_tool", value = ["第二工具。更多细节忽略"])
+        @KoogTool(customName = "b_tool")
+        @LLMDescription("第二工具。更多细节忽略")
         fun b(): String = ""
 
-        @Tool(name = "a_tool", value = ["首行即描述", "第二行忽略"])
+        @KoogTool(customName = "a_tool")
+        @LLMDescription("首行即描述\n第二行忽略")
         fun a(): String = ""
 
-        @Tool(value = ["未命名工具。"])
+        @KoogTool
+        @LLMDescription("未命名工具。")
         fun c_tool(): String = ""
 
         fun notATool(): String = ""
@@ -43,8 +47,10 @@ class ToolInventoryTest {
 
     @Test
     fun `inventory contains every @Tool of ChatToolService`() {
+        // Phase 4：ChatToolService 已迁到 Koog @Tool（customName 保蛇形 LLM-facing 名），
+        // 扫 KoogTool.customName（与 ToolInventory.build 的 Koog 扫描分支一致）。
         val toolNames = ChatToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("ChatToolService 应暴露多个 @Tool", toolNames.size > 20)
 
         val inventory = ToolInventory.build(ChatToolService::class.java)
@@ -56,7 +62,7 @@ class ToolInventoryTest {
     fun `chat system prompt covers every @Tool of ChatToolService`() {
         val prompt = RemoteChatEngine.chatSystemPrompt
         val toolNames = ChatToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
 
         val missing = toolNames.filter { !prompt.contains(it) }
         assertEquals("system prompt 未覆盖工具：$missing", emptyList<String>(), missing)

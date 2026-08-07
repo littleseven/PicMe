@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.tool
 
+import ai.koog.agents.core.tools.annotations.Tool as KoogTool
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
-import com.mamba.tool.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,7 +24,7 @@ class CameraToolServiceInventoryTest {
     @Test
     fun `CameraToolService exposes every camera capability command as @Tool`() {
         val toolNames = CameraToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
             .toSet()
 
         val missing = cameraCommands - toolNames
@@ -34,7 +34,7 @@ class CameraToolServiceInventoryTest {
     @Test
     fun `inventory contains every @Tool of CameraToolService`() {
         val toolNames = CameraToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("CameraToolService 应暴露多个 @Tool", toolNames.size >= cameraCommands.size)
 
         val inventory = ToolInventory.build(CameraToolService::class.java)
@@ -46,7 +46,7 @@ class CameraToolServiceInventoryTest {
     fun `camera system prompt covers every @Tool of CameraToolService`() {
         val prompt = AgentOrchestrator.cameraSystemPrompt
         val toolNames = CameraToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
 
         val missing = toolNames.filter { !prompt.contains(it) }
         assertEquals("system prompt 未覆盖工具：$missing", emptyList<String>(), missing)

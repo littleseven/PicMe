@@ -53,6 +53,25 @@ class RemoteCommandDispatcher(
     @Volatile
     private var currentJob: Job? = null
 
+    /**
+     * 当前正在处理的消息 ID（飞书 messageId / Telegram chatId）。
+     * agent 执行 capture 工具时由 [AgentOrchestrator.remoteImToolCallListener] 读取，
+     * 精准标记远程拍照回传——替代入口关键词猜测（"连拍三张照片"匹配不到会漏标）。
+     */
+    @Volatile
+    private var activeMessageId: String? = null
+
+    init {
+        orchestrator.remoteImToolCallListener = { toolName ->
+            if (toolName == "capture") {
+                activeMessageId?.let {
+                    RemotePhotoTracker.startCapture(it)
+                    Logger.i(tag, "capture 工具触发，远程拍照追踪已启动: messageId=$it")
+                }
+            }
+        }
+    }
+
     /** ReAct 循环超时（毫秒）— 多轮交互需要更长 timeout */
     private val TIMEOUT_MS = 120_000L
 
@@ -63,24 +82,19 @@ class RemoteCommandDispatcher(
      * 当 Agent 不可用时回退到原有 [AgentOrchestrator.processUserInput] 路径。
      * 所有收发消息同步写入本地聊天记录。
      *
-     * **飞书拍照追踪**：若命令包含拍照意图，设置 [RemotePhotoTracker] 状态，
-     * 照片保存完成后自动发送到飞书。
+     * **飞书拍照追踪**：agent 实际执行 capture 工具时（经 remoteImToolCallListener）
+     * 设置 [RemotePhotoTracker] 状态，照片保存完成后自动发送到飞书。
      */
     suspend fun dispatch(text: String, messageId: String) {
         Logger.i(tag, "远程命令: text='$text', messageId=$messageId")
         currentJob?.cancel()
+        activeMessageId = messageId
 
         // 确保飞书会话元数据存在
         ensureFeishuSession()
 
         // 持久化收到的飞书用户消息
         saveUserMessage(text)
-
-        // 若用户请求包含拍照，标记追踪器（照片保存后自动发送）
-        if (text.contains("拍照") || text.contains("拍张") || text.contains("拍照片")) {
-            RemotePhotoTracker.startCapture(messageId)
-            Logger.i(tag, "飞书拍照追踪已启动: messageId=$messageId")
-        }
 
         // ── 快速通道：相册搜索 + 预览 ──
         // 对于明确的“搜索照片”指令（可能附带“预览第 N 张”），直接走工具调用，避免依赖 LLM 是否遵循 prompt。
