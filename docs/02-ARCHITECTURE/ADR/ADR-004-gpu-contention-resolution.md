@@ -234,7 +234,7 @@ target_compile_definitions(agent_native PRIVATE
 |------|------|
 | ~~`agent-core/src/main/cpp/CMakeLists.txt`~~ | ⚠️ 已失效（随端侧文本 LLM 移除，`agent-core` 现为纯 Java 模块，无 `cpp/` 目录） |
 | ~~`agent-core/src/main/jniLibs/arm64-v8a/`~~ | ⚠️ 已失效（同上，编译产物目录已删除） |
-| ~~`beauty-engine/src/main/cpp/ncnn_face_detector.cpp`~~ | ⚠️ 已失效（ncnn 整删，源码不存在；原 ncnn Vulkan 配置 `net_.opt.use_vulkan_compute = true`） |
+| ~~`engines/beauty-engine/src/main/cpp/ncnn_face_detector.cpp`~~ | ⚠️ 已失效（ncnn 整删，源码不存在；原 ncnn Vulkan 配置 `net_.opt.use_vulkan_compute = true`） |
 | ~~`docs/03-TECHNICAL-SPECS/LLM_ENGINE_MIGRATION_MNN_TO_LLAMACPP.md`~~ | ⚠️ 已失效（文档已删除，原 LLM 引擎迁移技术规范） |
 | `ADR/ADR-001-beauty-engine-architecture.md` | 美颜引擎架构（含 EGL 渲染线程设计） |
 

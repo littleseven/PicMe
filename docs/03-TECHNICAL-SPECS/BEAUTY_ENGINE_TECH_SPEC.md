@@ -15,7 +15,7 @@
 - 帧同步美妆系统：见「[10. 帧同步美妆系统](#10-帧同步美妆系统)」。
 - 容灾降级与恢复：见「[11. 容灾降级与恢复](#11-容灾降级与恢复)」。
 - 产品交互与验收口径：见 `FEATURES.md`。
-- beauty-engine 模块实现规范：见 `beauty-engine/AGENTS.md`。
+- beauty-engine 模块实现规范：见 `engines/beauty-engine/AGENTS.md`。
 
 ---
 
@@ -107,7 +107,7 @@
 
 ### 1.4 磨皮算法演进路线（2026-04）
 
-**当前实现**：双边滤波快速近似（5×5 采样核 + 值域高斯权重），已落地在 `beauty-engine/src/main/assets/shaders/pass_smoothing.glsl`。
+**当前实现**：双边滤波快速近似（5×5 采样核 + 值域高斯权重），已落地在 `engines/beauty-engine/src/main/assets/shaders/pass_smoothing.glsl`。
 
 **算法演进路线**：
 
@@ -194,7 +194,7 @@ BeautyStrategy（domain.model.UserPreferences）
     ↓
 CameraPreviewStrategies.rememberPreviewStrategyBundle()
     └── BeautyStrategy.BIG_BEAUTY → GlBeautyPreviewStrategy
-            → GlBeautyPreviewProvider（beauty-engine/render）
+            → GlBeautyPreviewProvider（engines/beauty-engine/render）
                 → BeautyPreviewView → CameraPreviewRenderer → BeautyRenderer
 ```
 
@@ -387,8 +387,8 @@ while (isRendering && !Thread.interrupted()) {
 #### 3.5.2 映射实现参考
 
 **非轮廓 73 点（33-105）**的具体映射关系请参考：
-- [MediaPipe468Adapter.kt](../../beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/adapter/MediaPipe468Adapter.kt) - 生产环境映射
-- [FaceLandmarkOverlay.kt](../../app/src/main/java/com/mamba/picme/features/gallery/components/FaceLandmarkOverlay.kt) - 静态图调试映射与可视化
+- [MediaPipe468Adapter.kt](../../engines/beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/adapter/MediaPipe468Adapter.kt) - 生产环境映射
+- [FaceLandmarkOverlay.kt](../../androidApp/src/main/java/com/mamba/picme/features/gallery/components/FaceLandmarkOverlay.kt) - 静态图调试映射与可视化
 
 **映射原则**：
 1. **语义优先**：每个 106 点找到 MediaPipe 中语义对应的固定点
@@ -471,7 +471,7 @@ M0=(0.119,0.380)  M1=(0.125,0.391)  ...  M16=(0.500,0.552)  ...  M31=(0.875,0.39
 
 #### 🔴 P0 — 稳定性与文档一致性
 - [ ] 将自动回退结果提示与 I18N 文案在 UI 层彻底打通（当前以日志和调试态为主）。
-- [x] `beauty-engine/AGENTS.md` 中磨皮算法描述已与实际代码对齐（"双边滤波快速近似"）。✅ 已完成
+- [x] `engines/beauty-engine/AGENTS.md` 中磨皮算法描述已与实际代码对齐（"双边滤波快速近似"）。✅ 已完成
 
 #### 🟡 P1 — 性能与可观测性
 - [ ] 补充低端机专项压测基线（720p/1080p，前后置，连续 5 分钟）。
@@ -501,7 +501,7 @@ M0=(0.119,0.380)  M1=(0.125,0.391)  ...  M16=(0.500,0.552)  ...  M31=(0.875,0.39
 
 #### Phase 3：大美丽 库化落地（8~16 周）⏳ 待启动
 - `beauty-core`：沉淀策略模型、参数协议、状态机与能力契约。
-- `:beauty-engine`：实现 大美丽 引擎适配并对接能力契约。
+- `:engines:beauty-engine`：实现 大美丽 引擎适配并对接能力契约。
 - App 侧改为消费者模式：仅通过稳定 API 接入，避免直接依赖引擎实现。
 
 #### 跨阶段验收标准
@@ -662,10 +662,10 @@ suspend fun triggerManualGlEngineRecovery() {
 - `FEATURES.md` — 功能交互规范（重点：`1.3.5` 大美丽 性能与验收）
 - `AGENTS.md` — AI Agent 操作规范
 - 「[9. 相机预览与比例策略](#9-相机预览与比例策略)」 — 相机预览与坐标系统规范
-- `beauty-engine/src/main/java/com/mamba/picme/beauty/api/` — 对外稳定 API（`BeautyParams`、`BeautyPreviewProvider`、`BeautyPreviewCapability`、`BeautyPreviewEngine`）
-- `beauty-engine/src/main/java/com/mamba/picme/beauty/render/` — GL 渲染管线核心实现
-- `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` — 预览绑定、容灾回退与调试浮层
-- `app/src/main/java/com/mamba/picme/features/camera/CameraPreviewStrategies.kt` — 引擎策略路由
+- `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/api/` — 对外稳定 API（`BeautyParams`、`BeautyPreviewProvider`、`BeautyPreviewCapability`、`BeautyPreviewEngine`）
+- `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/render/` — GL 渲染管线核心实现
+- `androidApp/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` — 预览绑定、容灾回退与调试浮层
+- `androidApp/src/main/java/com/mamba/picme/features/camera/CameraPreviewStrategies.kt` — 引擎策略路由
 
 ---
 
@@ -1611,10 +1611,10 @@ FrameSyncManager 初始化失败
 
 | 文件 | 变更类型 | 说明 |
 |------|----------|------|
-| `beauty-engine/.../FrameId.kt` | 新增 | 全局帧 ID |
-| `beauty-engine/.../FrameSyncManager.kt` | 新增 | 时序对齐核心 |
-| `beauty-engine/.../MotionTracker.kt` | 新增 | 运动预测 |
-| `beauty-engine/.../DetectionQueue.kt` | 新增（⏳ 设计中，未落地） | 检测任务队列 |
+| `engines/beauty-engine/.../FrameId.kt` | 新增 | 全局帧 ID |
+| `engines/beauty-engine/.../FrameSyncManager.kt` | 新增 | 时序对齐核心 |
+| `engines/beauty-engine/.../MotionTracker.kt` | 新增 | 运动预测 |
+| `engines/beauty-engine/.../DetectionQueue.kt` | 新增（⏳ 设计中，未落地） | 检测任务队列 |
 | `CameraPreviewRenderer.kt` | 修改 | 集成 FrameSyncManager |
 | `BeautyRenderer.kt` | 修改 | 新增同步接口 |
 | `FaceMakeupPass.kt` | 修改 | 新增同步入口 |
@@ -1642,7 +1642,7 @@ PoLang 当前引擎策略如下：
 
 | 引擎 | 状态 | 职责 | 实现类 | 所在模块 |
 |------|------|------|--------|----------|
-| **大美丽 (`BIG_BEAUTY`)** | ✅ 唯一引擎 | 自研 OpenGL ES + EGL 管线；当前基础美颜走主 Shader，磨皮/美白/几何美型/妆容按需走多 Pass GPU 链路 | `GlBeautyPreviewProvider` | `:beauty-engine` |
+| **大美丽 (`BIG_BEAUTY`)** | ✅ 唯一引擎 | 自研 OpenGL ES + EGL 管线；当前基础美颜走主 Shader，磨皮/美白/几何美型/妆容按需走多 Pass GPU 链路 | `GlBeautyPreviewProvider` | `:engines:beauty-engine` |
 
 > **重要说明**：当前项目为单引擎架构。大美丽初始化失败后，系统将使用 `PreviewView` 进行无美颜预览，并通过冷却窗口机制在下次启动时自动重试。
 
@@ -1652,7 +1652,7 @@ PoLang 当前引擎策略如下：
 
 #### 2.1 初始化阶段回退（大美丽 warm-up 失败）
 
-在 `:app` 模块的相机预览链路（`CameraPreviewStrategies.kt`）中，按以下流程处理初始化失败：
+在 `:androidApp` 模块的相机预览链路（`CameraPreviewStrategies.kt`）中，按以下流程处理初始化失败：
 
 1. 相机绑定时触发大美丽 warm-up（`GlBeautyPreviewProvider.initialize()`）。
 2. 若 `initialize()` 抛出异常（如 GLES 不支持、Shader 编译失败、EGL 上下文创建失败）：
@@ -1678,14 +1678,14 @@ private fun onGlWarmUpFallback(reason: String) {
 - `beauty-engine` 内部运行异常（如渲染线程崩溃、FBO 失效、妆容 Pass 渲染失败）会直接抛出。
 - `BeautyRenderer` 会同步输出 `PoLang:BeautyRenderer` 分类日志，例如 `shader_compile`、`fbo_pipeline`、`texture_input`、`face_makeup`、`style_effect`。
 - `CameraPreviewRenderer` 会把最近一次分类与原因聚合进 `BeautyPerfStats.errorCategory/errorReason`，供调试浮层直接展示。
-- `:app` 层在接收到异常后，通过 `BeautyEngineRuntimeState` 标记状态，并在下一次页面重建时回落至 `PreviewView`。
+- `:androidApp` 层在接收到异常后，通过 `BeautyEngineRuntimeState` 标记状态，并在下一次页面重建时回落至 `PreviewView`。
 - 详细的运行时冷却与重试机制，请参阅 `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`。
 
 ---
 
 ### 3. 冷却恢复机制
 
-`BeautyEngineRuntimeState` 是 `:app` 模块中的单例对象，负责记录并消费回退原因：
+`BeautyEngineRuntimeState` 是 `:androidApp` 模块中的单例对象，负责记录并消费回退原因：
 
 - **`markGlEngineFallback(reason: String)`**：记录回退原因，并写入冷却时间戳（`gl_engine_recovery_available_at_ms`）。
 - **`consumeGlEngineFallbackReason(): String?`**：消费并清空回退原因，供 UI 层展示一次性提示（如 Toast / Snackbar）。
@@ -1699,9 +1699,9 @@ private fun onGlWarmUpFallback(reason: String) {
 
 ### 4. 依赖方向约束
 
-- `:beauty-engine` 模块**不依赖** `:app` 模块，也不感知外部策略的存在。
-- `:beauty-engine` 仅在初始化失败时抛出异常；兜底决策完全由 `:app` 的相机预览策略层负责。
-- 禁止 `:beauty-engine` 的 `render/` 内部实现类被 `:app` 直接引用；`:app` 只能通过 `api/BeautyPreviewProvider` 访问能力。
+- `:engines:beauty-engine` 模块**不依赖** `:androidApp` 模块，也不感知外部策略的存在。
+- `:engines:beauty-engine` 仅在初始化失败时抛出异常；兜底决策完全由 `:androidApp` 的相机预览策略层负责。
+- 禁止 `:engines:beauty-engine` 的 `render/` 内部实现类被 `:androidApp` 直接引用；`:androidApp` 只能通过 `api/BeautyPreviewProvider` 访问能力。
 
 ---
 
@@ -1853,8 +1853,8 @@ verts[i * 2 + 1] += eyeAxisY * axisOffset * str * slimRadius
 
 ### A.9 相关文件
 
-- `app/src/main/java/com/mamba/picme/core/image/GpuBeautyProcessor.kt` - 正向映射实现
-- `beauty-engine/src/main/assets/shaders/warp.glsl` - 反向映射实现
+- `androidApp/src/main/java/com/mamba/picme/core/image/GpuBeautyProcessor.kt` - 正向映射实现
+- `engines/beauty-engine/src/main/assets/shaders/warp.glsl` - 反向映射实现
 
 ---
 

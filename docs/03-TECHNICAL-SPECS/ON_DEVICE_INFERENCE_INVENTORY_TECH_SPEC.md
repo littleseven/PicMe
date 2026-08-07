@@ -4,7 +4,7 @@
 > **状态**: 生效中  
 > **最后更新**: 2026-08-03  
 > **维护者**: 项目开发者  
-> **范围**: `:app`、`:runtime-core`、`:beauty-engine`、`:beauty-api`、`:sentencepiece` 模块中所有本地推理引擎、模型、量化策略、tokenizer、运行时瓶颈、优化方案评估与多模型生命周期改造清单
+> **范围**: `:androidApp`、`:runtime-core`、`:engines:beauty-engine`、`:engines:beauty-api`、`:engines:sentencepiece` 模块中所有本地推理引擎、模型、量化策略、tokenizer、运行时瓶颈、优化方案评估与多模型生命周期改造清单
 
 ---
 
@@ -22,15 +22,15 @@ PoLang（破浪相册）当前在端侧同时运行 **6 套推理框架**、**15
 
 | 引擎 | 版本/包 | 运行模块 | 主要用途 | 原生库 |
 |------|---------|----------|----------|--------|
-| **MNN** | 3.5.0 | `:runtime-core`、`:beauty-engine` | VLM 打标（Qwen3-VL）、人脸 ROI/关键点/Embedding | `libMNN.so`、`libMNN_CL.so` |
+| **MNN** | 3.5.0 | `:runtime-core`、`:engines:beauty-engine` | VLM 打标（Qwen3-VL）、人脸 ROI/关键点/Embedding | `libMNN.so`、`libMNN_CL.so` |
 | **MNN-LLM** | 内置于 MNN | `:runtime-core` | Qwen3-VL-2B VLM 图像打标 | `libMNN.so` + `libmnn_llm.so` |
-| **ONNX Runtime** | 1.24.3 | `:app`、`:runtime-core` | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
+| **ONNX Runtime** | 1.24.3 | `:androidApp`、`:runtime-core` | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
 | **Sherpa-ONNX** | 1.13.3 | `:runtime-core` | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
-| **MediaPipe Tasks Vision** | 0.10.26 | `:app`、`:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
-| **ML Kit** | 多个 | `:app` | 仅 OCR 文字识别（~~人脸检测、图像标注~~已移除） | Google Play Services / 内置 TFLite |
-| **SentencePiece** | 项目本地 | `:sentencepiece` | OPUS-MT 分词（`source.spm` / `target.spm`） | `libsentencepiece_android.so` |
+| **MediaPipe Tasks Vision** | 0.10.26 | `:androidApp`、`:engines:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
+| **ML Kit** | 多个 | `:androidApp` | 仅 OCR 文字识别（~~人脸检测、图像标注~~已移除） | Google Play Services / 内置 TFLite |
+| **SentencePiece** | 项目本地 | `:engines:sentencepiece` | OPUS-MT 分词（`source.spm` / `target.spm`） | `libsentencepiece_android.so` |
 
-> **ABI 过滤**: 仅 `arm64-v8a`。`app/build.gradle.kts` 中使用 `pickFirsts` 解决 `libonnxruntime.so` 冲突。
+> **ABI 过滤**: 仅 `arm64-v8a`。`androidApp/build.gradle.kts` 中使用 `pickFirsts` 解决 `libonnxruntime.so` 冲突。
 
 ---
 
@@ -174,8 +174,8 @@ PoLang（破浪相册）当前在端侧同时运行 **6 套推理框架**、**15
 
 | Tokenizer | 实现位置 | 服务模型 | 输入文件 | 输出 | 说明 |
 |---|---|---|---|---|---|
-| **SentencePiece** | `:sentencepiece` (`SentencePieceProcessor`) | OPUS-MT Zh→En | `source.spm` / `target.spm` | `IntArray` (SP piece IDs) | C++ JNI 实现，负责文本 ↔ SP pieces 的编解码 |
-| **Hugging Face BPE** | `:app` (`MobileClipTokenizer`) | MobileCLIP-S2-ONNX | `tokenizer.json`（回退 `vocab.txt` + `merges.txt`） | `LongArray` (HF token IDs) | 自研 Kotlin 实现，解析 Hugging Face BPE 格式 |
+| **SentencePiece** | `:engines:sentencepiece` (`SentencePieceProcessor`) | OPUS-MT Zh→En | `source.spm` / `target.spm` | `IntArray` (SP piece IDs) | C++ JNI 实现，负责文本 ↔ SP pieces 的编解码 |
+| **Hugging Face BPE** | `:androidApp` (`MobileClipTokenizer`) | MobileCLIP-S2-ONNX | `tokenizer.json`（回退 `vocab.txt` + `merges.txt`） | `LongArray` (HF token IDs) | 自研 Kotlin 实现，解析 Hugging Face BPE 格式 |
 
 ### OPUS-MT 为什么同时需要 `.spm` 和 `tokenizer.json`
 
@@ -186,7 +186,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 3. Decoder 输出 HF IDs 后，再通过 `tokenizer.json` 反向映射为 SP pieces；
 4. `target.spm` 把 SP pieces 解码为英文句子。
 
-所以 `tokenizer.json` 在这里只是 **ID 映射表**，真正的分词/解码仍由 SentencePiece 完成。没有 `:sentencepiece` 模块，OPUS-MT 链路无法运转。
+所以 `tokenizer.json` 在这里只是 **ID 映射表**，真正的分词/解码仍由 SentencePiece 完成。没有 `:engines:sentencepiece` 模块，OPUS-MT 链路无法运转。
 
 ### 是否应统一
 
@@ -242,7 +242,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 
 1. **多框架并存，维护成本高**
    - 同时维护 MNN、ONNX Runtime、Sherpa-ONNX、MediaPipe 四套推理栈（ML Kit 已降级为仅 OCR 文字识别，不再承担人脸检测/图像标注推理），JNI 桥接、模型下载、生命周期管理重复。
-   - 示例：`app/build.gradle.kts` 需要 `pickFirsts` 解决 `libonnxruntime.so` 冲突；`MNN-source/`  vendored 但未作为运行时依赖。
+   - 示例：`androidApp/build.gradle.kts` 需要 `pickFirsts` 解决 `libonnxruntime.so` 冲突；`MNN-source/`  vendored 但未作为运行时依赖。
 
 2. **MNN 全局状态耦合**
    - VLM 打标（Qwen3-VL-2B）与人脸检测（MNN 路径）共享 `libMNN.so`，被迫引入 `MnnGlobalReleaseLock` 和 `MnnResourceManager` 复杂引用计数。
@@ -355,8 +355,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
 - `docs/06-QA/research/OPUS_MT_TRANSLATION_VALIDATION.md` — OPUS-MT 端侧推理验证记录
 - `docs/03-TECHNICAL-SPECS/VOICE_STACK.md` — KWS 唤醒词迁移
 - `docs/06-QA/perf_trace_2026-06-06_ncnn_llm_comparison.md` — LLM 开启前后性能对比（历史文件名，含 NCNN 基线）
-- `app/src/main/res/raw/llm_models.json` — 模型清单与下载配置
-- `app/src/main/java/com/mamba/picme/features/settings/AGENTS.md` — 模型中心与设置
+- `androidApp/src/main/res/raw/llm_models.json` — 模型清单与下载配置
+- `androidApp/src/main/java/com/mamba/picme/features/settings/AGENTS.md` — 模型中心与设置
 
 ---
 
@@ -1025,8 +1025,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - 将人脸检测卸载触发条件从“引用计数”与“场景状态”解耦。
   - 相机离开（`CAMERA -> OTHER/CHAT/SETTINGS`）时可触发卸载，即使仍有 owner 存在。
 - **涉及文件**
-  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
-  - `app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt`
+  - `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `androidApp/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt`
 - **验收标准**
   - 从相机页切到非相机场景后，5~10s 内触发 face unload 回调。
   - 不依赖手动 `manager.release()` 才能卸载。
@@ -1062,10 +1062,10 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
     - `FULL`: 释放权重与解释器（彻底卸载）
   - 人脸、ASR、LLM 都对齐这三档语义。
 - **涉及文件**
-  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
   - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt`
-  - `beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/mnn/MnnFaceDetector.kt`
-  - `beauty-engine/src/main/cpp/mnn_jni_bridge.cpp`
+  - `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/mnn/MnnFaceDetector.kt`
+  - `engines/beauty-engine/src/main/cpp/mnn_jni_bridge.cpp`
 - **验收标准**
   - 设置页或调试页可独立触发某模块三档释放，行为一致。
 
@@ -1123,7 +1123,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
     - **WARM**：仅保留模型（Interpreter），无 Session，首 Token 延迟 ~500ms（中功耗 ~600MB）
     - **COLD**：模型未加载，首 Token 延迟 ~2s（低功耗 ~0MB native 额外占用）
 - **涉及文件**
-  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
   - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
   - `runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/AgentModels.kt`（新增 `ModelUsagePattern`）
 - **验收标准**
@@ -1157,9 +1157,9 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - 预加载策略：App 启动时后台异步加载 VLM 到 WARM，无需等待首次交互。
   - LRU 驱逐：当 native 内存压力达到阈值时，优先 SOFT 降级 VLM（释放 KV Cache），其次 SESSION 降级（释放 Session），最后 FULL 卸载 Face（已离开相机页则直接卸载）。此驱逐顺序由手动或内存压力信号触发，**不依赖电量自动降级**。
 - **涉及文件**
-  - `mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
-  - `app/src/main/java/com/mamba/picme/features/common/chat/AgentLoadingIndicator.kt`（新增或修改）
-  - `app/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt`
+  - `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
+  - `androidApp/src/main/java/com/mamba/picme/features/common/chat/AgentLoadingIndicator.kt`（新增或修改）
+  - `androidApp/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt`
 - **验收标准**
   - WARM → HOT 恢复延迟 < 500ms。
   - COLD → HOT 加载期间显示 loading UI，不阻塞主线程。

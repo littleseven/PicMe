@@ -711,5 +711,5 @@ NIMA 不可用 / 缩略图落盘全失败时退回原固定预设单发路径。
 | `docs/01-PRODUCT/FEATURES.md#141-ai-一键优化` | 交互 PRD |
 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 大美丽美颜引擎 |
 | `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` | Agent 架构 |
-| `app/src/main/java/com/mamba/picme/features/editor/AGENTS.md` | 编辑器模块规范 |
-| `app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md` | 相册模块规范 |
+| `androidApp/src/main/java/com/mamba/picme/features/editor/AGENTS.md` | 编辑器模块规范 |
+| `androidApp/src/main/java/com/mamba/picme/features/gallery/AGENTS.md` | 相册模块规范 |

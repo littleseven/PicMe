@@ -40,7 +40,7 @@
 | 项 | 状态 |
 |---|---|
 | 代码/脚本/文档清理 | ✅ 2026-07-28 |
-| `:app:compileDebugKotlin` 验证 | ✅ BUILD SUCCESSFUL |
+| `:androidApp:compileDebugKotlin` 验证 | ✅ BUILD SUCCESSFUL |
 
 ## 6. 相关
 

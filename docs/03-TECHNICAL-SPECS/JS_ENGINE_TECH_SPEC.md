@@ -26,13 +26,13 @@
 | 层 | 模块 | 文件 | 职责 |
 |----|------|------|------|
 | 引擎无关层 | `:runtime-core` | `agent/core/js/JsEngine.kt`、`JsValue.kt`、`JsBridge.kt`、`JsRuntime.kt`、`NativeHandler.kt`、`BuiltInHandlers.kt`、`JsBridgeException.kt`、`GallerySummaryJs.kt` | JsEngine 接口 / JS 值投影 / bridge 路由 / handler SPI / 内置演示 handler / 错误码；**不依赖任何具体 JS 引擎** |
-| 引擎实现层 | `:app` | `features/chat/js/QuickJsEngine.kt`、`QuickJsConverter.kt` | dokar3 quickjs-kt 适配器：eval 超时、bridge 注入、Promise/async 桥接 |
-| 应用 handler 层 | `:app` | `features/chat/js/GalleryScriptHandlers.kt`、`GalleryJs.kt` | gallery/media/face/tag 取数 handler（唯一注册点）与 JS↔模型字段转换 |
-| 图表层 | `:app` | `features/chat/js/ChartJs.kt` + `assets/js/chart_bootstrap.js` | Chart 生成器 bootstrap 加载；Chart.bar/line/pie/timeline → SVG |
-| 写通路层 | `:app` | `features/chat/js/CapabilityDispatchHandler.kt`、`features/chat/WriteConfirmationController.kt`、`features/chat/capability/ChatMediaWriteCapability.kt` | capability.dispatch → CommandRisk 分级 → 用户确认 → CapabilityRegistry |
+| 引擎实现层 | `:androidApp` | `features/chat/js/QuickJsEngine.kt`、`QuickJsConverter.kt` | dokar3 quickjs-kt 适配器：eval 超时、bridge 注入、Promise/async 桥接 |
+| 应用 handler 层 | `:androidApp` | `features/chat/js/GalleryScriptHandlers.kt`、`GalleryJs.kt` | gallery/media/face/tag 取数 handler（唯一注册点）与 JS↔模型字段转换 |
+| 图表层 | `:androidApp` | `features/chat/js/ChartJs.kt` + `assets/js/chart_bootstrap.js` | Chart 生成器 bootstrap 加载；Chart.bar/line/pie/timeline → SVG |
+| 写通路层 | `:androidApp` | `features/chat/js/CapabilityDispatchHandler.kt`、`features/chat/WriteConfirmationController.kt`、`features/chat/capability/ChatMediaWriteCapability.kt` | capability.dispatch → CommandRisk 分级 → 用户确认 → CapabilityRegistry |
 | 风险分级 | `:runtime-core` | `agent/core/model/command/CommandRisk.kt` | READ_ONLY / REVERSIBLE_WRITE / DESTRUCTIVE 分级表 |
 
-**依赖约束**：QuickJS 依赖（`io.github.dokar3:quickjs-kt:1.0.5`）**仅 `:app` 模块**引入；`:runtime-core` 的 `js/` 包引擎无关，不依赖 QuickJS。
+**依赖约束**：QuickJS 依赖（`io.github.dokar3:quickjs-kt:1.0.5`）**仅 `:androidApp` 模块**引入；`:runtime-core` 的 `js/` 包引擎无关，不依赖 QuickJS。
 
 ---
 
@@ -85,19 +85,19 @@ ChatToolService / RemoteControlToolService (@Tool，:runtime-core)
     ↓ dispatchCommand
 AgentCommand.ExecuteScript / DrawChart
     ↓ CapabilityRegistry (CHAT 场景)
-ChatRunScriptCapability / ChatMediaWriteCapability (:app)
+ChatRunScriptCapability / ChatMediaWriteCapability (:androidApp)
     ↓ Delegate
 ChatViewModel.onRunScript / onDrawChart
     ↓ jsEvalMutex 串行
 JsRuntime (:runtime-core 门面) ──register── NativeHandler (白名单)
     ↓ engine 注入
-QuickJsEngine (:app) ──bridge.callAsync──→ JsBridge.dispatchAsync
+QuickJsEngine (:androidApp) ──bridge.callAsync──→ JsBridge.dispatchAsync
     ↓                                        ↓
 QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 ```
 
 - `:runtime-core` 的 `js/` 包**引擎无关**：`JsEngine` 接口（`eval` / `eval(script, timeoutMs)` / `callFunction` / `installBridge` / `close`）、`JsValue`（sealed：Null/Bool/Num/Str/Obj/Arr）、`JsBridge`（handler 注册与 sync/async 分发）、`JsRuntime`（门面，引擎由调用方注入）、`NativeHandler`（Sync/Async 两种 SPI，`syncHandler`/`asyncHandler` 工厂函数）、`JsBridgeException`（错误码）。
-- `:app` 的 `QuickJsEngine` 是唯一生产引擎实现：dokar3 的 `evaluate` 是 suspend，用 `runBlocking` + `withTimeout` 适配同步 `JsEngine.eval`；协程取消可真正中断 C 层死循环。
+- `:androidApp` 的 `QuickJsEngine` 是唯一生产引擎实现：dokar3 的 `evaluate` 是 suspend，用 `runBlocking` + `withTimeout` 适配同步 `JsEngine.eval`；协程取消可真正中断 C 层死循环。
 - 换引擎只换注入的 `JsEngine` 实现，bridge/handler/JsValue 不变。
 
 ### 3.2 异步模型（callAsync 通路）
@@ -184,7 +184,7 @@ LLM 感知 handler 的唯一渠道是 `@Tool` 描述文本（`ChatToolService` /
 
 ```
 JS: await bridge.callAsync('capability.dispatch', {method, params})
- → CapabilityDispatchHandler (:app, features/chat/js/)
+ → CapabilityDispatchHandler (:androidApp, features/chat/js/)
     解析 {method, params} → buildCommand → AgentCommand
     → CommandRisk.ofMethod(method) 风险分级
     → 非 READ_ONLY：confirmationMutex 互斥 → WriteConfirmationController.request(...) 挂起等用户确认

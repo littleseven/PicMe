@@ -33,12 +33,12 @@
 ```
 :runtime-core
     ├── ai.koog:koog-agents (api，外部依赖；替代已删除的 :agent-core fork)
-    ├── :beauty-api
-    ├── :mnn-core
+    ├── :engines:beauty-api
+    ├── :engines:mnn-core
     └── Sherpa-ONNX AAR (compileOnly)
 ```
 
-> 注意：`:runtime-core` **不**应被 `:beauty-engine` 依赖。MNN 资源管理已下沉到独立模块 `:mnn-core`，`:beauty-engine` 通过 `:mnn-core` 共享 MNN 资源。
+> 注意：`:runtime-core` **不**应被 `:engines:beauty-engine` 依赖。MNN 资源管理已下沉到独立模块 `:engines:mnn-core`，`:engines:beauty-engine` 通过 `:engines:mnn-core` 共享 MNN 资源。
 
 ## 核心组件位置
 
@@ -73,7 +73,7 @@
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
 | `Logger` | 日志接口 | `agent.core.platform.logging` |
 | `ThreadPoolManager` | 线程池管理 | `agent.core.platform.thread` |
-| `MnnResourceManager` / `MnnGlobalReleaseLock` | MNN 资源管理 | `:mnn-core`（已下沉） |
+| `MnnResourceManager` / `MnnGlobalReleaseLock` | MNN 资源管理 | `:engines:mnn-core`（已下沉） |
 | `ExecutionEngine` / `ExecutionReporter` / `ExecutionState` / `InferenceResult` | 执行引擎与执行状态 | `agent.core.runtime.execution` |
 | `AgentCommands` / `AgentModels` / `AiAgentConfig` / `MediaAsset` / `PageContext` / `SceneContext` / `ExecutionPlan` | 数据模型 | `agent.core.model.*` |
 | `SearchIntent` / `TimeRange` | 搜索意图标准化模型（LLM 输出 → 本地结构化过滤） | `agent.core.model.context` |
@@ -86,7 +86,7 @@
 | `capability/` | `Capability`, `FaceDetectionProvider` | 泛型 Capability 接口 |
 | `facade/` | `AgentOrchestrator`, `AgentConfigurator` | 应用级入口与配置 |
 | `inference/` | `local/...`, `remote/...` | 端侧 VLM（`local/llm` + `LocalModelService`，打标专用）/ 远程推理管道（koog、prompt、react、tool） |
-| `js/` | `JsEngine`, `JsValue`, `JsBridge`, `JsRuntime`, `NativeHandler`, `BuiltInHandlers`, `JsBridgeException`, `GallerySummaryJs` | JS 沙箱引擎无关层（JsEngine 接口 + bridge 路由 + handler SPI；QuickJS 实现在 `:app`，详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`） |
+| `js/` | `JsEngine`, `JsValue`, `JsBridge`, `JsRuntime`, `NativeHandler`, `BuiltInHandlers`, `JsBridgeException`, `GallerySummaryJs` | JS 沙箱引擎无关层（JsEngine 接口 + bridge 路由 + handler SPI；QuickJS 实现在 `:androidApp`，详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`） |
 | `model/` | `command/`, `config/`, `context/`, `plan/` | 数据模型 |
 | `platform/` | `logging/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、存储、线程、语音 |
 | `remote/` | `config/` | 远程模型配置与工厂 |
@@ -170,7 +170,7 @@
 > - 护栏验证：`grep "^import com.mamba."`（排除 `com.mamba.picme` 自身命名空间）在 runtime-core/app 源码与测试为零引用
 > - 残留编译依赖清理：`Capability.getCommandParameterSchema` 死 API（langchain4j tool-calling 时代，零调用方）从接口与 5 个实现（Memory/PersonRelation/ChatSearch/Camera/AiOptimize）移除；`ToolInventory` 删 langchain4j 注解分支（仅 Koog 扫描）；`MemoryManager` 裁剪到仅剩 `clearHistory`（读/写/裁剪已迁 KoogMessageMemoryStore），`AgentOrchestrator` 对话回写（相机 saveCameraConversation / chat appendConversation）改走 Koog 记忆层 load→拼→save；`clearChatMemory` 新旧两个键空间（memory_ / koog_memory_）并清
 > - 测试侧：`ToolInventoryTest` / `ChatToolCapabilityCoverageTest` fixture 迁 Koog 注解；`MemoryManagerTrimTest`（fork 消息 trim 语义）随删——三不变式等价覆盖由 `KoogMessageMemoryTest` / `KoogMessageMemoryCodecTest` 承担；`MobileClipTokenizerTest` 顺手修 createTempDir 弃用（Kotlin 2.3 升级为 error）
-> - `app/proguard-rules.pro` 删失效 keep（`PoLangToolService` 类已不存在；Koog 工具集为代码直接引用，无需 langchain4j 式 @Tool 反射 keep）
+> - `androidApp/proguard-rules.pro` 删失效 keep（`PoLangToolService` 类已不存在；Koog 工具集为代码直接引用，无需 langchain4j 式 @Tool 反射 keep）
 > - 清理死代码 `RemoteModelFactory.DEFAULT_SOURCE`（无引用）；`RemotePromptBuilder` 早已随端侧文本 LLM 移除（仅历史 ADR 提及）
 
 ## 设计原则
@@ -184,7 +184,7 @@
 ```
 :runtime-core (Agent Runtime 核心)
     ↑ 被依赖
-:app (业务实现)
+:androidApp (业务实现)
     - AgentCommand 密封类（含 BeautySettings 等）
     - Capability 接口（特化为 AgentCommand/AgentContext/PageContext/AgentAction）
     - CameraCapability / GalleryCapability / SettingsCapability

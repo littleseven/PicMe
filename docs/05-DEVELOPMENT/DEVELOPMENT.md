@@ -51,8 +51,8 @@ Spec 文档更新（Consensus）
 
 - **[NEVER]** 禁止"先合并代码，后补文档"
 - **[NEVER]** 禁止文档更新与代码实现分离提交（必须同一 PR / Commit）
-- **[MUST]** 代码修改了 `beauty-engine/` 内部实现，必须同步修改 `beauty-engine/AGENTS.md`（或 PR 描述中说明原因）
-- **[MUST]** 代码修改了 `beauty-api/` 公开接口，必须同步修改 `beauty-engine/AGENTS.md` + `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` + 通知 App 层适配
+- **[MUST]** 代码修改了 `engines/beauty-engine/` 内部实现，必须同步修改 `engines/beauty-engine/AGENTS.md`（或 PR 描述中说明原因）
+- **[MUST]** 代码修改了 `engines/beauty-api/` 公开接口，必须同步修改 `engines/beauty-engine/AGENTS.md` + `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` + 通知 App 层适配
 - **[MUST]** 新增功能必须在 `PRODUCT.md` / `FEATURES.md` 中有对应需求描述
 - **[MUST]** 修改相册搜索/TAG 生成相关代码，必须同步更新 `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` 或 `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md`
 - **[MUST]** 新增/修改 AI Capability 必须同步更新 `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md` 与 `COMMAND_REFERENCE.md`
@@ -81,7 +81,7 @@ Spec 文档更新（Consensus）
 
 | 位置 | 示例 | 说明 |
 |------|------|------|
-| 公开 API 接口 | `BeautyPreviewProvider` | 关联 `beauty-engine/AGENTS.md` 接口定义 |
+| 公开 API 接口 | `BeautyPreviewProvider` | 关联 `engines/beauty-engine/AGENTS.md` 接口定义 |
 | 核心算法实现 | `FrameSyncManager` | 关联 `BEAUTY_ENGINE_TECH_SPEC.md` 帧同步章节 |
 | 架构边界类 | `api/` vs `internal/` 边界 | 关联架构约束 |
 | 性能关键路径 | `CameraPreviewRenderer.render()` | 关联 `NFR_SPEC.md` 指标 |
@@ -94,7 +94,7 @@ Spec 文档更新（Consensus）
 ```kotlin
 // Spec: docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md#帧同步
 // Implements: AC-P0-3
-// Related: beauty-engine/AGENTS.md
+// Related: engines/beauty-engine/AGENTS.md
 // ChangeLog: 2026-06-30 新增 missingThresholdFrames 字段
 class FrameSyncManager(
     private val config: FrameSyncConfig = FrameSyncConfig.DEFAULT
@@ -127,12 +127,12 @@ doc-sync-check:
   script:
     # 检查 PR 中修改了 beauty-engine 内部实现时是否同步修改了 AGENTS.md
     - python scripts/check_doc_sync.py \
-        --code-path beauty-engine/src/main/java/ \
-        --doc-path beauty-engine/AGENTS.md
+        --code-path engines/beauty-engine/src/main/java/ \
+        --doc-path engines/beauty-engine/AGENTS.md
     
     # 检查 PR 中修改了 api/ 接口时是否同步修改了技术文档
     - python scripts/check_doc_sync.py \
-        --code-path beauty-api/src/main/java/ \
+        --code-path engines/beauty-api/src/main/java/ \
         --doc-path docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md
     
     # 检查文档间内部链接有效性
@@ -141,8 +141,8 @@ doc-sync-check:
     
     # 检查 AGENTS.md 中提到的模块在代码中是否存在
     - python scripts/check_spec_completeness.py \
-        --spec beauty-engine/AGENTS.md \
-        --src beauty-engine/src/
+        --spec engines/beauty-engine/AGENTS.md \
+        --src engines/beauty-engine/src/
 ```
 
 > **当前落地状态**：`scripts/check_doc_links.py` 等工具处于设计/局部脚本阶段，日常以 RD/CR 人工检查 + 自动化链接扫描为主。
@@ -159,7 +159,7 @@ doc-sync-check:
 ./gradlew detekt
 
 # 组合检查（CI 推荐）
-./gradlew :app:compileDebugKotlin :app:testDebugUnitTest ktlintCheck detekt
+./gradlew :androidApp:compileDebugKotlin :androidApp:testDebugUnitTest ktlintCheck detekt
 ```
 
 ### 3.3 性能基线检查（Performance Baseline）
@@ -351,12 +351,12 @@ doc-sync-check:
   script:
     # 检查 PR 中修改了 egl/ 实现时是否同步修改了 AGENTS.md
     - python scripts/check_doc_sync.py \
-        --code-path beauty-engine/src/main/java/com/picme/beauty/egl/ \
-        --doc-path beauty-engine/AGENTS.md
+        --code-path engines/beauty-engine/src/main/java/com/picme/beauty/egl/ \
+        --doc-path engines/beauty-engine/AGENTS.md
     
     # 检查 PR 中修改了 api/ 接口时是否同步修改了技术文档
     - python scripts/check_doc_sync.py \
-        --code-path beauty-engine/src/main/java/com/picme/beauty/api/ \
+        --code-path engines/beauty-engine/src/main/java/com/picme/beauty/api/ \
         --doc-path docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md
     
     # 检查文档间内部链接有效性
@@ -365,8 +365,8 @@ doc-sync-check:
     
     # 检查 AGENTS.md 中提到的模块在代码中是否存在
     - python scripts/check_spec_completeness.py \
-        --spec beauty-engine/AGENTS.md \
-        --src beauty-engine/src/
+        --spec engines/beauty-engine/AGENTS.md \
+        --src engines/beauty-engine/src/
 ```
 
 #### 文档更新检查项
@@ -402,9 +402,9 @@ doc-sync-check:
 ### 阻塞问题
 
 #### 1. 文档不同步
-- **位置**: `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
+- **位置**: `engines/beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
 - **问题**: 修改了 `render()` 实现但未更新 `AGENTS.md`
-- **修复**: 同步更新 `beauty-engine/AGENTS.md#render-pipeline` 章节
+- **修复**: 同步更新 `engines/beauty-engine/AGENTS.md#render-pipeline` 章节
 
 #### 2. 性能退化
 - **位置**: `FrameSyncManager.query()`
@@ -460,7 +460,7 @@ doc-sync-check:
 ```markdown
 ### FR-5：严格缺失处理 [agent-task:fsm-005]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`, `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`, `engines/beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
 - **Expected Change**:
   1. 在 `FrameSyncConfig` 中新增 `missingThresholdFrames: Int = 3` 字段
   2. 修改 `FrameSyncManager.query()`，当 `syncMode = STRICT` 且帧差 > `missingThresholdFrames` 时返回 `SyncStatus.MISSING`
@@ -514,8 +514,8 @@ doc-sync-check:
       "title": "FR-5：严格缺失处理",
       "assignee": "RD",
       "scope": [
-        "beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt",
-        "beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt"
+        "engines/beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt",
+        "engines/beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt"
       ],
       "expected_change": [
         "在 FrameSyncConfig 中新增 missingThresholdFrames: Int = 3 字段",
@@ -577,7 +577,7 @@ Task JSON（标准化任务描述）
 
 #### FrameId 体系 [agent-task:fsm-001]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/api/FrameId.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/api/FrameId.kt`
 - **Expected Change**:
   1. 创建 `@JvmInline value class FrameId(val value: Long)`
   2. 实现 `AtomicLong` 计数器，`next()` 方法
@@ -588,7 +588,7 @@ Task JSON（标准化任务描述）
 
 #### FrameSyncManager 骨架 [agent-task:fsm-002]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`
 - **Expected Change**:
   1. 创建 `FrameSyncManager` 单例类
   2. 实现 `ResultStore`（`ConcurrentHashMap<FrameId, DetectionResult>`）
@@ -604,7 +604,7 @@ Task JSON（标准化任务描述）
 > **⚠️ 审计备注（2026-06）**：DetectionQueue 未落地（`DetectionQueue.kt` 不存在）。此 [agent-task] 标记的目标文件路径无效。当前使用同步检测路径。如需实施异步检测改造，应先创建 DetectionQueue.kt 再更新此任务标记。
 
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/DetectionQueue.kt`（⏳ 设计中，未落地）
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/internal/framesync/DetectionQueue.kt`（⏳ 设计中，未落地）
 - **Expected Change**:
   1. 创建 `DetectionQueue` 类，深度限制 2，超时 200ms
   2. 改造人脸检测线程为消费队列模式
@@ -618,7 +618,7 @@ Task JSON（标准化任务描述）
 
 #### 渲染管线集成 [agent-task:fsm-004]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`, `beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`, `engines/beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
 - **Expected Change**:
   1. `CameraPreviewRenderer` 渲染循环中调用 `FrameSyncManager.query(currentFrameId)`
   2. `BeautyRenderer` 新增 `updateSyncedFacePoints106()` + `setHasFace()`
@@ -630,7 +630,7 @@ Task JSON（标准化任务描述）
 
 #### 严格缺失处理 [agent-task:fsm-005]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`, `beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/internal/framesync/FrameSyncManager.kt`, `engines/beauty-engine/src/main/java/com/picme/beauty/egl/CameraPreviewRenderer.kt`
 - **Expected Change**:
   1. `FrameSyncConfig` 新增 `missingThresholdFrames: Int = 3`
   2. `query()` 严格模式：帧差 > 阈值时返回 `MISSING`
@@ -642,7 +642,7 @@ Task JSON（标准化任务描述）
 
 #### 调试指标接入 [agent-task:fsm-006]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/api/BeautyPerfStats.kt`, `app/src/main/java/com/mamba/picme/features/camera/debug/PerfOverlay.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/api/BeautyPerfStats.kt`, `androidApp/src/main/java/com/mamba/picme/features/camera/debug/PerfOverlay.kt`
 - **Expected Change**:
   1. `BeautyPerfStats` 增加 `detectionLatencyMs` / `syncStatus` / `predictedOffsetPx` / `framesSinceDetection`
   2. 调试浮层展示新增指标
@@ -655,7 +655,7 @@ Task JSON（标准化任务描述）
 
 #### MotionTracker 速度外推 [agent-task:fsm-007]
 - **Assignee**: RD
-- **Scope**: `beauty-engine/src/main/java/com/picme/beauty/internal/framesync/MotionTracker.kt`
+- **Scope**: `engines/beauty-engine/src/main/java/com/picme/beauty/internal/framesync/MotionTracker.kt`
 - **Expected Change**:
   1. 创建 `MotionTracker` 类，保留最近 3 帧历史
   2. 实现 `predict(fromFrameId, toFrameId, maxRatio)` 速度外推
@@ -667,7 +667,7 @@ Task JSON（标准化任务描述）
 
 #### 录制场景帧同步验证 [agent-task:fsm-008]
 - **Assignee**: QA
-- **Scope**: `app/src/androidTest/java/com/mamba/picme/camera/VideoRecordingSyncTest.kt`
+- **Scope**: `androidApp/src/androidTest/java/com/mamba/picme/camera/VideoRecordingSyncTest.kt`
 - **Expected Change**:
   1. 编写录制快转头测试用例
   2. 编写录制人脸出画入画测试用例

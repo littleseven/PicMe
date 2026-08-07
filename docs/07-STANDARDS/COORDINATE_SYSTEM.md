@@ -384,7 +384,7 @@ class FaceProcessor {
 ```bash
 # 搜索模糊的左右描述
 grep -r "左眼\|右眼\|左眉\|右眉" docs/ --include="*.md"
-grep -r "leftEye\|rightEye" app/src/ --include="*.kt" | grep -v "imageLeft\|imageRight"
+grep -r "leftEye\|rightEye" androidApp/src/ --include="*.kt" | grep -v "imageLeft\|imageRight"
 ```
 
 ### Step 2: 按优先级修改
@@ -410,8 +410,8 @@ grep -r "leftEye\|rightEye" app/src/ --include="*.kt" | grep -v "imageLeft\|imag
 #### 优先级 2: 代码注释
 
 **文件列表**：
-- `beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
-- `app/src/main/java/com/picme/core/image/ImageProcessor.kt`
+- `engines/beauty-engine/src/main/java/com/picme/beauty/egl/BeautyRenderer.kt`
+- `androidApp/src/main/java/com/picme/core/image/ImageProcessor.kt`
 
 **修改示例**：
 
@@ -601,7 +601,7 @@ FUZZY_PATTERNS=(
 
 for pattern in "${FUZZY_PATTERNS[@]}"; do
     echo "\n搜索: $pattern"
-    grep -rn "$pattern" app/src/ --include="*.kt" | grep -v "\[图像坐标系\]" | grep -v "\[人脸坐标系\]" | grep -v "imageLeft" | grep -v "imageRight" | grep -v "userLeft" | grep -v "userRight"
+    grep -rn "$pattern" androidApp/src/ --include="*.kt" | grep -v "\[图像坐标系\]" | grep -v "\[人脸坐标系\]" | grep -v "imageLeft" | grep -v "imageRight" | grep -v "userLeft" | grep -v "userRight"
 done
 
 echo "\n✅ 检查完成"
@@ -711,7 +711,7 @@ exit 0
 find docs/ -name "*.md" -exec grep -l "左眼\|右眼\|左眉\|右眉" {} \;
 
 # 检查代码注释
-find app/src/ -name "*.kt" -exec grep -n "//.*左眼\|//.*右眼" {} +
+find androidApp/src/ -name "*.kt" -exec grep -n "//.*左眼\|//.*右眼" {} +
 ```
 
 ### 新人培训

@@ -482,7 +482,7 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md` | JS 沙盒引擎（QuickJS + JSBridge） |
 | `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 人脸检测引擎架构 |
 | `runtime-core/AGENTS.md` | Agent Runtime 实现规范（本地/远程推理、Capability、JS 沙盒） |
-| `app/src/main/java/com/mamba/picme/features/common/chat/AGENTS.md` | Chat 二级页模块实现规范 |
+| `androidApp/src/main/java/com/mamba/picme/features/common/chat/AGENTS.md` | Chat 二级页模块实现规范 |
 | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md` | PoLang Server（Ktor 后端）实现计划：AI 网关、账号、管理后台 |
 | `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md` | 服务端海外部署（香港 VPS + Nginx + certbot） |
 | `server/README.md` | 服务端现状与路由（v0.5.0） |

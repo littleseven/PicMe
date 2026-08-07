@@ -1,5 +1,7 @@
 # PoLang 仓库整理方案
 
+> **状态：superseded by docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md（Phase 3，2026-08 执行）**
+
 > **状态总览**
 > - ✅ 已完成：模块命名文档修正；`server/` 后端骨架落地；Tier 1 安全挪动；根 `DEVELOPMENT.md` 删除（与 `docs/05-DEVELOPMENT/DEVELOPMENT.md` 重复）；移除空壳 `buildSrc/`、废弃 `tools/json-schema-to-gbnf`、移除 `.cursorrules`。
 > - ⏳ 待定：`shared/` 占位（可选）。

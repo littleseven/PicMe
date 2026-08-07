@@ -1,4 +1,4 @@
-# langchain4android Claude Code Commands 索引
+# polang Claude Code Commands 索引
 
 > Claude Code 命令索引。所有命令定义在 `.claude/commands/*.md`，对话中通过 `/command-name` 调用。历史命令曾从 `.qoder/skills/` 迁移而来，当前以 `.claude/commands/` 为唯一事实来源。
 

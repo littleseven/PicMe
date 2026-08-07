@@ -1,13 +1,13 @@
 # App 模块技术实现规范 (App Module Implementation)
 
 > **边界声明（Boundary Statement）**
-> - 本文档仅承载 `:app` 主应用模块的实现细节（架构、组件、导航、依赖注入）。
+> - 本文档仅承载 `:androidApp` 主应用模块的实现细节（架构、组件、导航、依赖注入）。
 > - 产品目标与验收口径以 `PRODUCT.md` 为准；交互流程与体验规则以 `docs/01-PRODUCT/FEATURES.md` 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
-> - 美颜引擎实现细节见 `beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `runtime-core/AGENTS.md`。
+> - 美颜引擎实现细节见 `engines/beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `runtime-core/AGENTS.md`。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：`:app` 是 PoLang 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:app` 负责将 `:runtime-core`、`:beauty-api`、`:beauty-engine`、`:sentencepiece` 四个独立库组装为完整应用（`:agent-core` 的能力已下沉到 `:runtime-core` 中，由 `:runtime-core` 以 `api` 方式透出）。
+**模块定位**：`:androidApp` 是 PoLang 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:androidApp` 负责将 `:runtime-core`、`:engines:beauty-api`、`:engines:beauty-engine`、`:engines:sentencepiece` 四个独立库组装为完整应用（Agent 框架为 Koog 外部依赖，经 `:runtime-core` 透出）。
 
 **主要维护者**：项目开发者
 
@@ -105,7 +105,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | **Debug** | `features/debug/` | `DebugScreen`, `LogOverlay`, `ScreenshotUtil` | 开发调试工具 |
 
 > **2026-07-25 JS Engine（QuickJS 沙箱，`features/chat/js/`）**：
-> - `QuickJsEngine` / `QuickJsConverter`：dokar3 quickjs-kt 1.0.5 引擎适配器（唯一生产引擎实现，QuickJS 依赖仅 `:app` 引入），实现 `:runtime-core` 引擎无关的 `JsEngine` 接口；eval 带超时（默认 5s），bridge 经 `__bridgeCall`/`__bridgeCallAsync` 绑定 + bootstrap JS 注入
+> - `QuickJsEngine` / `QuickJsConverter`：dokar3 quickjs-kt 1.0.5 引擎适配器（唯一生产引擎实现，QuickJS 依赖仅 `:androidApp` 引入），实现 `:runtime-core` 引擎无关的 `JsEngine` 接口；eval 带超时（默认 5s），bridge 经 `__bridgeCall`/`__bridgeCallAsync` 绑定 + bootstrap JS 注入
 > - `GalleryScriptHandlers.registerGalleryHandlers`：gallery/media/face/tag **12 个只读取数 handler 的唯一注册点**（全部 async，JS 侧必须 `await bridge.callAsync`），ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 共用，新增/修改 handler 只改这里
 > - `GalleryJs`：JS ↔ 查询模型字段转换（parseQueryFilter / toResultJsValue / toScanStatusJsValue 等），media.meta 白名单不回 uri/GPS/ocrText/embedding（回 city/aestheticScore/faceQualityScore 纯数值字段）
 > - `ChartJs` + `assets/js/chart_bootstrap.js`：Chart.bar/line/pie/timeline → SVG，图卡落库为 CHART 消息，summary 回传 LLM
@@ -158,11 +158,11 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ### 3.1 依赖关系
 
 ```
-:app
- ├── :runtime-core    ← Agent Runtime 核心（编排、推理、语音、远程；内部包含 :agent-core 基础 API）
- ├── :beauty-api      ← 美颜 API 契约
- ├── :beauty-engine   ← 美颜引擎实现
- └── :sentencepiece   ← SentencePiece tokenizer
+:androidApp
+ ├── :runtime-core           ← Agent Runtime 核心（编排、推理、语音、远程；Agent 框架为 Koog 外部依赖）
+ ├── :engines:beauty-api     ← 美颜 API 契约
+ ├── :engines:beauty-engine  ← 美颜引擎实现
+ └── :engines:sentencepiece  ← SentencePiece tokenizer
 ```
 
 ### 3.2 关键集成点
@@ -181,7 +181,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 多人物共现搜索 | `MediaSearchEngine.collectPersonMediaIds` → `PersonQueryResolver` → `PersonDao.getMediaByPersonsCooccurrence` | 原始 query 按优先级解析人物：① 自定义称呼精确匹配（query contains customLabel，"二儿子""发小"精确命中单簇）→ ② 已命名人物 contains → ③ 亲属称谓（`KinshipLexicon`，已被命中 customLabel 包含的称谓抑制；长短称谓去重如"爸爸"抑制"爸"）→ ④ 合拍 Pattern 的"我"。称谓查询按谓词族扩展：具体称谓含同族未指定桶（女儿→{DAUGHTER, CHILD}），泛化称谓含整族（孩子→{SON, DAUGHTER, CHILD}）。≥2 personId 走共现查询（同框合照），恰好 1 个走单人物查询，0 个回落原人名 LIKE 兜底；chat 与 Gallery 搜索路径自动获得 |
 | 事实记忆 | 聊天 `remember_fact`/`recall_memory`/`forget_fact` / JS `capability.dispatch` → `MemoryCapability` → `MemoryRepository` → `memory_facts`；设置页「AI 记忆」（`MemoryFactsScreen`：人物关系区查看/编辑/删除 + 事实区查看/编辑/删除/清空） | LIKE 召回（v1 无 FTS）；遗忘按 factId 或唯一匹配（多候选不删）；JS 写操作走确认门控，chat 直调不弹窗 |
 | 工具执行指标（tool_call_log） | `CommandExecutor`（:runtime-core）→ `CommandExecutionRecorder` → `RoomToolCallRecorder` → `polang_llm_log.db` | Capability 业务失败以 `Result.success(AgentAction.Error)` 返回（如引导性错误），记账按 action 语义：`AgentAction.Error` 记 `success=0` + errorCode/errorMessage，其余 action 记 `success=1`；只记纯指标（capability/method/耗时/结果），不含命令参数（隐私红线） |
-| 用户问题上报（report-issue） | Chat 顶部「上报问题」入口 → `IssueReportClient`（`data/remote/picme/`）→ `POST /v1/report-issue` | 用户问题描述经服务端脱敏后自动在 `littleseven/langchain4android` 创建 GitHub issue；管理后台「问题诊断」页（`/admin/diagnosis`）承载上报列表 |
+| 用户问题上报（report-issue） | Chat 顶部「上报问题」入口 → `IssueReportClient`（`data/remote/picme/`）→ `POST /v1/report-issue` | 用户问题描述经服务端脱敏后自动在 `littleseven/polang` 创建 GitHub issue；管理后台「问题诊断」页（`/admin/diagnosis`）承载上报列表 |
 
 ---
 
@@ -239,7 +239,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 - [ ] UI 字符串已三语同步
 - [ ] 日志标签遵循 `PoLang:[FeatureName]` 格式
 - [ ] 不跨层引用：features 不直接引用 data 实现类
-- [ ] 跨模块调用使用接口（`beauty-api` / `agent-core` 公开 API）
+- [ ] 跨模块调用使用接口（`beauty-api` 等公开 API）
 
 ---
 

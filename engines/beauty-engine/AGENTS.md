@@ -36,11 +36,11 @@
 
 ### 2.1 模块包结构规范
 
-> **注意**：纯 API 契约类型（`BeautySettings`、`FilterType`、`StyleFilter`、`Face`、`FaceDetector`、`FrameSyncConfig` 等）已提取到独立的 `:beauty-api` 模块（`beauty-api/src/main/java/com/picme/beauty/api/`），供 `:app` 和 `:beauty-engine` 共同依赖。`beauty-engine` 内的 `api/` 包仅保留 `:beauty-api` 不可承载的实现相关接口。
+> **注意**：纯 API 契约类型（`BeautySettings`、`FilterType`、`StyleFilter`、`Face`、`FaceDetector`、`FrameSyncConfig` 等）已提取到独立的 `:engines:beauty-api` 模块（`engines/beauty-api/src/main/java/com/picme/beauty/api/`），供 `:androidApp` 和 `:engines:beauty-engine` 共同依赖。`beauty-engine` 内的 `api/` 包仅保留 `:engines:beauty-api` 不可承载的实现相关接口。
 
 ```
-beauty-engine/src/main/java/com/picme/beauty/
-├── api/                               # 实现层 API（依赖 :beauty-api 共享类型）
+engines/beauty-engine/src/main/java/com/picme/beauty/
+├── api/                               # 实现层 API（依赖 :engines:beauty-api 共享类型）
 │   ├── BeautyParams.kt                # 美颜参数数据类（Shader 归一化值）
 │   ├── BeautyParamsConverter.kt       # BeautySettings → BeautyParams 转换
 │   ├── BeautyPerfStats.kt             # 性能统计模型
@@ -101,11 +101,11 @@ beauty-engine/src/main/java/com/picme/beauty/
 ```
 
 **依赖方向红线**：
-- App 层：依赖 `:beauty-api`（纯 Kotlin 类型契约）+ `beauty-engine:api/`（实现相关接口），禁止直接引用 `render/`、`internal/`、`log/`、`recorder/`
-- `beauty-engine:api/` 包：可依赖 `:beauty-api`，**禁止**依赖 `render/`、`androidx.camera.*`、`features.*`、`data.*`
+- App 层：依赖 `:engines:beauty-api`（纯 Kotlin 类型契约）+ `engines/beauty-engine:api/`（实现相关接口），禁止直接引用 `render/`、`internal/`、`log/`、`recorder/`
+- `engines/beauty-engine:api/` 包：可依赖 `:engines:beauty-api`，**禁止**依赖 `render/`、`androidx.camera.*`、`features.*`、`data.*`
 - `render/` 包：允许实现 `api/` 接口，允许依赖 `android.*` 和 OpenGL ES 相关库
-- `:beauty-api` 模块：零 Android/OpenGL 依赖，纯 Kotlin
-- `:beauty-engine` 模块：依赖 `:beauty-api` 和 `:mnn-core`（MNN native 库与资源锁），**禁止**依赖 `:runtime-core` 或 `:app`
+- `:engines:beauty-api` 模块：零 Android/OpenGL 依赖，纯 Kotlin
+- `:engines:beauty-engine` 模块：依赖 `:engines:beauty-api` 和 `:engines:mnn-core`（MNN native 库与资源锁），**禁止**依赖 `:runtime-core` 或 `:androidApp`
 
 ### 2.2 对外 API 层 (`api/`)
 
@@ -209,7 +209,7 @@ beauty-engine/src/main/java/com/picme/beauty/
   - **安全约束**：调整幅度限制在 20% 以内，保持身体比例
 
 **Shader 工程规范**（与实际代码对齐）：
-- **当前实现**：基础美颜由 Shader 模块化管线处理；唇色/腮红启用时，会先经过 `FaceMakeupPass` 纹理妆容 Pass，再回到主 Shader 完成后续渲染。GLSL 源码从 `BeautyShaders.kt` 迁移至 `beauty-engine/src/main/assets/shaders/`，通过 `ShaderModuleLoader` 按需加载。
+- **当前实现**：基础美颜由 Shader 模块化管线处理；唇色/腮红启用时，会先经过 `FaceMakeupPass` 纹理妆容 Pass，再回到主 Shader 完成后续渲染。GLSL 源码从 `BeautyShaders.kt` 迁移至 `engines/beauty-engine/src/main/assets/shaders/`，通过 `ShaderModuleLoader` 按需加载。
 - **磨皮算法**：双边滤波快速近似（5×5 采样核 + 后处理锐化），**非** Box Blur；早期文档中"盒式模糊"的描述是规划期草案，与当前实现不符，已纠正。演进路线：双边滤波 → 引导滤波（Phase 2）→ 多尺度分层（Phase 3）
 - **参数传递**：通过 `glUniform1f`/`glUniform2f`/`glUniform1i` 实时更新，禁止在参数变化时重新编译 Shader
 - **纹理类型**：相机输入使用 `GL_TEXTURE_EXTERNAL_OES`，调试 Shader 使用普通 `GL_TEXTURE_2D`
@@ -331,7 +331,7 @@ if (fps < 25 || processingMs > 20) {
 
 ### 3.4 Shader 开发规范
 
-- GLSL 源码集中管理在 `beauty-engine/src/main/assets/shaders/`，通过 `ShaderModuleLoader` 按需加载，而非硬编码在 `BeautyShaders.kt` 中
+- GLSL 源码集中管理在 `engines/beauty-engine/src/main/assets/shaders/`，通过 `ShaderModuleLoader` 按需加载，而非硬编码在 `BeautyShaders.kt` 中
 - BeautyShaders.kt 仅保留 Shader 常量定义和调试 Shader（`FRAGMENT_SHADER_DEBUG_RED`、`FRAGMENT_SHADER_DEBUG_TEXTURE_R`）
 - Shader 模块划分：`header.glsl`（OES 扩展）、`pass_smoothing.glsl`（磨皮）、`main.glsl`（主美颜）、`warp.glsl`（美型）、`lip.glsl`（唇色）、`blush.glsl`（腮红）、`makeup_*.glsl`（妆容）、`style/*.glsl`（风格特效 7 个）
 - Shader 必须声明 `precision mediump float;`
@@ -403,7 +403,7 @@ if (fps < 25 || processingMs > 20) {
 
 #### 自研风格特效（2026-05 实现）
 
-> GPUPixel 已于 2026-05 完全移除。GLSL 源码位于 `beauty-engine/src/main/assets/shaders/style/`。以下风格特效由自研 `StyleEffectShader` 实现。
+> GPUPixel 已于 2026-05 完全移除。GLSL 源码位于 `engines/beauty-engine/src/main/assets/shaders/style/`。以下风格特效由自研 `StyleEffectShader` 实现。
 
 **风格特效列表**：
 
@@ -447,7 +447,7 @@ if (fps < 25 || processingMs > 20) {
 - 输入/显示 Surface 解耦：避免 CameraX 与 View 生命周期抖动互相影响
 - 磨皮使用双边滤波快速近似（5×5 采样核）而非盒式模糊：保边效果更自然，移动端单帧耗时可接受（早期文档"盒式模糊"描述已纠正）。后续评估引导滤波（O(N) 无序复杂度）作为 Phase 2 升级方向
 - 基础美颜通过模块化 Shader 管线处理；妆容纹理通过 `FaceMakeupPass` 独立 Pass 处理，在效果与实时性间平衡
-- `api/` 纯 Kotlin 接口层 + `:beauty-api` 独立模块：为后续独立发布 AAR/Maven 做准备
+- `api/` 纯 Kotlin 接口层 + `:engines:beauty-api` 独立模块：为后续独立发布 AAR/Maven 做准备
 - 帧同步系统（2026-05）：解决人脸检测 ~10fps 与渲染 30~60fps 不同步导致的妆容滞后问题
 
 ---
@@ -456,7 +456,7 @@ if (fps < 25 || processingMs > 20) {
 
 ### 5.1 架构定位
 帧同步是 beauty-engine 的**横切能力**，核心目标是**解决妆容甩飞问题**（妆容粘屏幕不跟脸、悬空残留、录制跳变）。沉淀在 `internal/framesync/` 包下：
-- `:beauty-api` 提供 `FrameId`、`FrameSyncConfig`、`FrameSyncResult` 数据契约（跨模块共享）
+- `:engines:beauty-api` 提供 `FrameId`、`FrameSyncConfig`、`FrameSyncResult` 数据契约（跨模块共享）
 - `internal/framesync/` 实现时序对齐核心（`FrameSyncBridge`、`FrameSyncManager`、`MotionTracker`），不侵入 `render/` 具体 Pass
 - `FaceMakeupPass` 只消费同步后的顶点数据，不关心同步逻辑
 - **录制场景强制启用**：视频录制必须复用预览同一套帧同步逻辑，确保录制帧与预览帧行为一致
@@ -466,9 +466,9 @@ if (fps < 25 || processingMs > 20) {
 
 | 组件 | 职责 | 线程 | 状态 |
 |------|------|------|------|
-| `FrameId` | 单调递增全局帧标识符 | 任意（AtomicLong） | ✅ 已落地（`:beauty-api`） |
-| `FrameSyncConfig` | 帧同步配置参数 | — | ✅ 已落地（`:beauty-api`） |
-| `FrameSyncResult` | 帧同步查询结果 | — | ✅ 已落地（`:beauty-api`） |
+| `FrameId` | 单调递增全局帧标识符 | 任意（AtomicLong） | ✅ 已落地（`:engines:beauty-api`） |
+| `FrameSyncConfig` | 帧同步配置参数 | — | ✅ 已落地（`:engines:beauty-api`） |
+| `FrameSyncResult` | 帧同步查询结果 | — | ✅ 已落地（`:engines:beauty-api`） |
 | `FrameSyncBridge` | 线程安全共享分析线程的最新 FrameId 给渲染线程 | 分析线程写 / 渲染线程读 | ✅ 已落地 |
 | `FrameSyncManager` | 时序对齐：精确匹配 → 历史回退 → 预测补偿 → 缺失隐藏 | 渲染线程读 / 检测线程写 | ✅ 已落地 |
 | `MotionTracker` | 速度外推预测算法，保留 3 帧历史 | 渲染线程读 / 检测线程写 | ✅ 已落地 |
@@ -533,6 +533,6 @@ CameraPreviewRenderer（渲染线程）
 - `docs/01-PRODUCT/FEATURES.md` - 功能交互规范
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` - 大美丽 渲染链路、容灾回退、冷却恢复与观测指标
 - `docs/06-QA/QA_EXECUTION_CHECKLIST.md` - QA 验收测试清单
-- `app/src/main/java/com/picme/features/camera/AGENTS.md` - Camera 模块实现规范
-- `beauty-engine/src/main/java/com/picme/beauty/api/` - 对外稳定 API
-- `beauty-engine/src/main/java/com/picme/beauty/render/` - OpenGL ES 渲染管线实现
+- `androidApp/src/main/java/com/picme/features/camera/AGENTS.md` - Camera 模块实现规范
+- `engines/beauty-engine/src/main/java/com/picme/beauty/api/` - 对外稳定 API
+- `engines/beauty-engine/src/main/java/com/picme/beauty/render/` - OpenGL ES 渲染管线实现

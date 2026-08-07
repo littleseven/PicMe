@@ -151,7 +151,7 @@
 
 **职责**: 相机控制、美颜调节、滤镜切换、拍摄模式管理、延迟拍照  
 **活跃场景**: `CAMERA`  
-**文件**: `app/src/main/java/com/mamba/picme/features/camera/capability/CameraCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/features/camera/capability/CameraCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 2.1 支持命令
@@ -195,7 +195,7 @@
 
 **职责**: 相册查看、删除、分享、搜索、批量选择、收藏  
 **活跃场景**: `GALLERY`  
-**文件**: `app/src/main/java/com/mamba/picme/features/gallery/capability/GalleryCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/features/gallery/capability/GalleryCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 3.1 支持命令
@@ -222,7 +222,7 @@
 
 **职责**: 在 Chat 对话页提供相册自然语言搜索与多轮细化能力  
 **活跃场景**: `CHAT`  
-**文件**: `app/src/main/java/com/mamba/picme/features/chat/capability/ChatSearchCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/features/chat/capability/ChatSearchCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 4.1 支持命令
@@ -253,7 +253,7 @@
 
 **职责**: 主题切换、语言设置、模型管理、人脸引擎切换、调试选项  
 **活跃场景**: `SETTINGS`  
-**文件**: `app/src/main/java/com/mamba/picme/features/settings/capability/SettingsCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/features/settings/capability/SettingsCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 4.1 支持命令
@@ -277,7 +277,7 @@
 
 **职责**: 页面切换、返回上一页  
 **活跃场景**: `ALL` (所有场景)  
-**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/NavigationCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/domain/agent/capability/NavigationCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 5.1 支持命令
@@ -309,7 +309,7 @@
 
 **职责**: 启动其他应用、打开系统设置  
 **活跃场景**: `ALL` (所有场景)  
-**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/SystemCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/domain/agent/capability/SystemCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 6.1 支持命令
@@ -330,7 +330,7 @@
 
 **职责**: 将标签系统作为 Agent 可编排的 Capability 暴露，支持触发全量标签扫描、查询照片标签、获取进度、取消扫描  
 **活跃场景**: `GALLERY`  
-**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/AutoTagCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/domain/agent/capability/AutoTagCapability.kt`  
 **状态**: ⚠️ 代码存在但未注册
 
 > **注意（2026-08-03 核实）**：全工程无任何 `registerCapability(AutoTagCapability...)` 调用点，本 Capability 未注册到 `CapabilityRegistry`，其命令（`scan_all_tags` 等）在 GALLERY 场景运行时会 `METHOD_NOT_FOUND`。且其实现仍使用过时的执行模型（依赖 `AgentCommand.Unknown.raw` 文本匹配，非标准 sealed class 分发）。实际生效的标签扫描路径为 CHAT 场景的 `ChatStartTagScanCapability`（`start_tag_scan`）。本章节保留仅作历史参考。
@@ -355,7 +355,7 @@
 
 **职责**: AI 一键优化图片，分析照片场景并自动推荐美颜、滤镜、调节参数  
 **活跃场景**: `GALLERY`, `CHAT`  
-**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/optimize/AiOptimizeCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/domain/agent/capability/optimize/AiOptimizeCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 8.1 支持命令
@@ -379,7 +379,7 @@
 
 **职责**: IM 远程控制：管理设备绑定与远程命令执行状态  
 **活跃场景**: `ALL`  
-**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt`  
 **状态**: ⚠️ 代码存在但未注册；IM 远程控制实际走 RemoteChannel 多通道路径（未 Capability 化）
 
 > **注意（2026-08-03 核实）**：代码中无任何 `registerCapability` 调用点，本 Capability 实际未注册到 `CapabilityRegistry`（其 KDoc 声称的注册关系不存在）。IM 远程控制线本身已于 2026-07-27 重新激活（RemoteChannel 多通道：飞书 + Telegram，详见 `IM_REMOTE_CONTROL_TECH_SPEC.md`），但未按本文的 Capability 化设计落地。本章节保留仅作历史参考。
@@ -409,7 +409,7 @@
 ## 11. BeautyCapability（非 Agent 编排）
 
 **职责**: 提供美颜调节的标准化程序化能力，支持生产代码和测试直接调用  
-**文件**: `app/src/main/java/com/mamba/picme/capability/BeautyCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/capability/BeautyCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 10.1 支持操作
@@ -435,7 +435,7 @@
 
 **职责**: 在 Chat 中声明/遗忘人物与「我」的关系（"小宝是我女儿"），声明后支持称谓/合照搜索  
 **活跃场景**: `CHAT`  
-**文件**: `app/src/main/java/com/mamba/picme/features/chat/capability/PersonRelationCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/features/chat/capability/PersonRelationCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 12.1 支持命令
@@ -465,7 +465,7 @@
 
 **职责**: 通用事实记忆（"帮我记住…"）的写入 / 检索 / 遗忘  
 **活跃场景**: `CHAT`  
-**文件**: `app/src/main/java/com/mamba/picme/features/chat/capability/MemoryCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/features/chat/capability/MemoryCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 13.1 支持命令
@@ -492,7 +492,7 @@
 
 **职责**: CHAT 场景对话式图片编辑：根据自然语言指令对照片进行美颜、调色、滤镜等编辑，支持多轮 delta 调整  
 **活跃场景**: `CHAT`  
-**文件**: `app/src/main/java/com/mamba/picme/domain/agent/capability/ImageEditCapability.kt`  
+**文件**: `androidApp/src/main/java/com/mamba/picme/domain/agent/capability/ImageEditCapability.kt`  
 **状态**: ✅ 已落地
 
 ### 14.1 支持命令
