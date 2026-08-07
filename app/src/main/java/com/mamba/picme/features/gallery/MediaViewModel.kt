@@ -204,7 +204,9 @@ class MediaViewModel(
     }
 
     fun startDuplicateScan() {
-        if (_duplicateGroups.value.isEmpty()) {
+        // 互斥：结果为空且当前未在扫描才启动；否则重扫/重回页面会并发起多个 scan，
+        // 在大量级相册下（实测近 9000 张）会重复解码拖垮性能。
+        if (_duplicateGroups.value.isEmpty() && !_isScanningDuplicates.value) {
             scanForDuplicates()
         }
     }

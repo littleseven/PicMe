@@ -599,7 +599,7 @@ class AppContainerImpl(
         MediaViewModelDependencies(
             repository = repository,
             getGroupedMediaUseCase = GetGroupedMediaUseCase(),
-            findDuplicateMediaUseCase = FindDuplicateMediaUseCase(repository),
+            findDuplicateMediaUseCase = FindDuplicateMediaUseCase(repository, context),
             ocrUseCase = ocrProcessor,
             photoProcessor = photoProcessor,
             faceDetector = faceDetector,

@@ -36,6 +36,8 @@ sealed class Screen(val route: String) {
     data object CommunicationChannel : Screen("communication_channel")
     data object SentencePieceTest : Screen("sentencepiece_test")
     data object TagViewer : Screen("tag_viewer")
+
+    data object DuplicateManager : Screen("duplicate_manager")
     data object ModelCenter : Screen("model_center/{categoryTag}") {
         fun createRoute(categoryTag: String): String {
             return if (categoryTag.isNotBlank()) {

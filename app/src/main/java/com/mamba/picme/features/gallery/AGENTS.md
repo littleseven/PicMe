@@ -135,10 +135,11 @@ private fun shareMediaAssets(context: Context, assets: List<MediaAsset>) {
 
 **技术规范**:
 - **触发时机**: 用户在设置页「相册功能」卡片点击「管理重复照片」后进入独立 `DuplicateManagerRoute` 时触发扫描
-- **扫描逻辑**: 调用 `FindDuplicateMediaUseCase` 在后台线程执行
-- **判定规则**:
-  - 精确重复: 文件哈希值相同
-  - 相似照片: 视觉内容高度接近（需图像指纹算法）
+- **扫描逻辑**: `FindDuplicateMediaUseCase` 取全部照片（v1 仅 `MediaType.PHOTO`），通过 `ContentResolver` 流式取 size/mime 组装 `DuplicateImageDetector.DedupItem`，在 `Dispatchers.IO` 调端侧 `DuplicateImageDetector.findDuplicates(context, items)`。媒体字节 100% 本地处理，零上传（[PRIVACY]）。
+- **判定规则（分层检测；纯算法见 `core/common/PerceptualHash.kt`，零 Android 依赖、可 JVM 单测）**:
+  - 精确重复: `(fileSize, mime)` 分桶 → 仅 ≥2 的桶内流式 MD5（`DigestInputStream`，不解码、毫秒级）→ MD5 相同成组（`isExactDuplicate = true`）
+  - 高度相似: 全部图降采样到 32×32 → 64-bit pHash（2D DCT，阈值取 **AC 系数中位数、排除 DC**）→ 汉明距离 ≤ `SIMILAR_HAMMING_THRESHOLD`(=5) 用并查集聚类 → 含 ≥2 个不同 MD5 的聚类为相似组（`isExactDuplicate = false`；与精确组完全重合的聚类跳过）
+- **择优排序**: 组内按「像素最多（width×height）→ `aestheticScore` 最高 → `captureDate` 最新」排序，index 0 为默认保留项；精确组无像素信号，按「评分 → 日期」。UI 可改选保留项。
 - **UI 展示**: 每组重复照片展示缩略图网格，用户可选择保留哪一张
 - **删除策略**: 
   - 默认保留第一张，删除其余
