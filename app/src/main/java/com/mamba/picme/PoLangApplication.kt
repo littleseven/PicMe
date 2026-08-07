@@ -518,6 +518,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         }
     }
 
+    /** 已回传的远程照片最大 captureDate（观察者去重水位线，防连拍多轮触发重复回传）。 */
+    @Volatile
+    private var lastRemotePhotoSentCaptureDate = 0L
+
     /**
      * 监听媒体库变化，远程拍照完成后自动经激活通道发送照片。
      *
@@ -548,18 +552,25 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     val sessionId = remoteChannelManager.channelId.ifBlank { "remote" }
 
                     // 连拍回传：capture 与落盘异步，等媒体流稳定后按 captureDate 窗口收集
-                    // 本轮全部远程照片（排除历史远程照片），逐张回传
+                    // 本轮全部远程照片（排除历史远程照片），逐张回传。
+                    // captureDate > lastRemotePhotoSentCaptureDate 去重：连拍时每次 capture
+                    // 工具调用都会重新 arm token，观察者会被多次触发；窗口收集不含已发照片，
+                    // 否则同一张照片会重复回传（3 拍收 5 张即此问题）
                     delay(REMOTE_PHOTO_SETTLE_MS)
                     val windowStart = System.currentTimeMillis() - REMOTE_PHOTO_WINDOW_MS
                     val photosToSend = repository.allMedia.first()
-                        .filter { it.source == sourceTag && it.type == MediaType.PHOTO && it.captureDate >= windowStart }
+                        .filter {
+                            it.source == sourceTag && it.type == MediaType.PHOTO &&
+                                it.captureDate >= windowStart && it.captureDate > lastRemotePhotoSentCaptureDate
+                        }
                         .sortedBy { it.captureDate }
                         .takeLast(MAX_REMOTE_PHOTOS_PER_REPLY)
                     if (photosToSend.isEmpty()) {
-                        Logger.w(TAG, "远程拍照回传：窗口内无照片，跳过（session=$sessionId）")
+                        Logger.w(TAG, "远程拍照回传：窗口内无新照片，跳过（session=$sessionId）")
                         return@collect
                     }
                     Logger.i(TAG, "检测到远程拍照结果: ${photosToSend.size} 张, session=$sessionId")
+                    lastRemotePhotoSentCaptureDate = photosToSend.maxOf { it.captureDate }
 
                     photosToSend.forEach { photo ->
                         // 1. 写入聊天记录（agent_image 类型）
