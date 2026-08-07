@@ -103,6 +103,16 @@ class AgentOrchestrator private constructor(context: Context) {
     val currentScene = sceneManager.currentScene
 
     /**
+     * 远程 IM 链路（processRemoteImInput）的工具调用监听，app 层注入。
+     *
+     * 用于精准感知 agent 实际执行的工具——例如 capture 触发时标记远程拍照回传
+     * （RemotePhotoTracker.startCapture），替代消息入口的关键词猜测
+     * （"连拍三张照片"这类表达匹配不到关键词，导致拍了不回传）。
+     */
+    @Volatile
+    var remoteImToolCallListener: ((toolName: String) -> Unit)? = null
+
+    /**
      * 注册 Capability（应用级，通常由 PoLangApplication 调用）
      */
     fun registerCapability(capability: Capability) {
@@ -267,6 +277,7 @@ class AgentOrchestrator private constructor(context: Context) {
                         }
                         override fun onToolCall(iteration: Int, toolName: String, args: String) {
                             Logger.d(tag, "Feishu ReAct toolCall: $toolName(${args.take(100)})")
+                            remoteImToolCallListener?.invoke(toolName)
                         }
                         override fun onToolResult(iteration: Int, toolName: String, result: String) {
                             Logger.d(tag, "Feishu ReAct toolResult: $toolName → ${result.take(80)}")

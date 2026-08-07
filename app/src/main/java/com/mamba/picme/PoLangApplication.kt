@@ -80,6 +80,15 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         /** 端侧 VLM 打标模型（configure 的 modelId 仅作 localModelService 默认模型）。 */
         private const val TAGGER_MODEL_ID = "qwen3_vl_2b"
+
+        /** 远程拍照回传：consume pending token 后等媒体流稳定的时长（连拍落盘异步）。 */
+        private const val REMOTE_PHOTO_SETTLE_MS = 4_000L
+
+        /** 远程拍照回传：按 captureDate 收集本轮照片的窗口（排除历史远程照片）。 */
+        private const val REMOTE_PHOTO_WINDOW_MS = 120_000L
+
+        /** 远程拍照回传：单次最多回传张数（防异常刷屏）。 */
+        private const val MAX_REMOTE_PHOTOS_PER_REPLY = 10
     }
 
     val applicationScope = CoroutineScope(SupervisorJob())
@@ -537,54 +546,70 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     }
 
                     val sessionId = remoteChannelManager.channelId.ifBlank { "remote" }
-                    val latestPhoto = remotePhotos.maxByOrNull { it.captureDate } ?: return@collect
-                    Logger.i(TAG, "检测到远程拍照结果: uri=${latestPhoto.uri}, session=$sessionId")
 
-                    // 1. 写入聊天记录（agent_image 类型）
-                    try {
-                        if (chatSessionDao.getSession(sessionId) == null) {
-                            chatSessionDao.insertSession(
-                                ChatSessionEntity(
+                    // 连拍回传：capture 与落盘异步，等媒体流稳定后按 captureDate 窗口收集
+                    // 本轮全部远程照片（排除历史远程照片），逐张回传
+                    delay(REMOTE_PHOTO_SETTLE_MS)
+                    val windowStart = System.currentTimeMillis() - REMOTE_PHOTO_WINDOW_MS
+                    val photosToSend = repository.allMedia.first()
+                        .filter { it.source == sourceTag && it.type == MediaType.PHOTO && it.captureDate >= windowStart }
+                        .sortedBy { it.captureDate }
+                        .takeLast(MAX_REMOTE_PHOTOS_PER_REPLY)
+                    if (photosToSend.isEmpty()) {
+                        Logger.w(TAG, "远程拍照回传：窗口内无照片，跳过（session=$sessionId）")
+                        return@collect
+                    }
+                    Logger.i(TAG, "检测到远程拍照结果: ${photosToSend.size} 张, session=$sessionId")
+
+                    photosToSend.forEach { photo ->
+                        // 1. 写入聊天记录（agent_image 类型）
+                        try {
+                            if (chatSessionDao.getSession(sessionId) == null) {
+                                chatSessionDao.insertSession(
+                                    ChatSessionEntity(
+                                        sessionId = sessionId,
+                                        title = if (sessionId == "telegram") "Telegram 远程控制" else "飞书远程控制"
+                                    )
+                                )
+                            }
+                            chatMessageDao.insertMessage(
+                                ChatMessageEntity(
+                                    id = UUID.randomUUID().toString(),
                                     sessionId = sessionId,
-                                    title = if (sessionId == "telegram") "Telegram 远程控制" else "飞书远程控制"
+                                    type = "agent_image",
+                                    content = photo.uri,
+                                    modelUsed = sourceTag
                                 )
                             )
+                            chatSessionDao.touchSession(sessionId)
+                        } catch (e: Exception) {
+                            Logger.e(TAG, "写入远程聊天记录失败", e)
                         }
-                        chatMessageDao.insertMessage(
-                            ChatMessageEntity(
-                                id = UUID.randomUUID().toString(),
-                                sessionId = sessionId,
-                                type = "agent_image",
-                                content = latestPhoto.uri,
-                                modelUsed = sourceTag
-                            )
-                        )
-                        chatSessionDao.touchSession(sessionId)
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "写入远程聊天记录失败", e)
-                    }
 
-                    // 2. 经激活通道发送图片（压缩到 2K）
-                    try {
-                        val uri = android.net.Uri.parse(latestPhoto.uri)
-                        val compressedBytes = compressImageForFeishu(uri, 2048, 85)
-                        if (compressedBytes != null) {
-                            remoteChannelManager.sendImage(compressedBytes, pendingReplyToken)
-                            remoteChannelManager.sendMessage("✅ 照片已发送，请查收", pendingReplyToken)
-                            Logger.i(TAG, "远程拍照结果已发送: session=$sessionId, size=${compressedBytes.size / 1024}KB")
-                        } else {
-                            Logger.w(TAG, "图片压缩失败，尝试发送原图: ${latestPhoto.uri}")
-                            val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
-                            if (parcelFileDescriptor != null) {
-                                val imageBytes = java.io.FileInputStream(parcelFileDescriptor.fileDescriptor).use { it.readBytes() }
-                                parcelFileDescriptor.close()
-                                remoteChannelManager.sendImage(imageBytes, pendingReplyToken)
-                                remoteChannelManager.sendMessage("✅ 照片已发送，请查收", pendingReplyToken)
+                        // 2. 经激活通道发送图片（压缩到 2K）
+                        try {
+                            val uri = android.net.Uri.parse(photo.uri)
+                            val compressedBytes = compressImageForFeishu(uri, 2048, 85)
+                            if (compressedBytes != null) {
+                                remoteChannelManager.sendImage(compressedBytes, pendingReplyToken)
+                                Logger.i(TAG, "远程拍照结果已发送: session=$sessionId, size=${compressedBytes.size / 1024}KB")
+                            } else {
+                                Logger.w(TAG, "图片压缩失败，尝试发送原图: ${photo.uri}")
+                                val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
+                                if (parcelFileDescriptor != null) {
+                                    val imageBytes = java.io.FileInputStream(parcelFileDescriptor.fileDescriptor).use { it.readBytes() }
+                                    parcelFileDescriptor.close()
+                                    remoteChannelManager.sendImage(imageBytes, pendingReplyToken)
+                                }
                             }
+                        } catch (e: Exception) {
+                            Logger.e(TAG, "发送远程照片失败", e)
                         }
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "发送远程照片失败", e)
                     }
+                    remoteChannelManager.sendMessage(
+                        if (photosToSend.size > 1) "✅ ${photosToSend.size} 张照片已发送，请查收" else "✅ 照片已发送，请查收",
+                        pendingReplyToken
+                    )
                 }
             } catch (e: Exception) {
                 Logger.e(TAG, "远程拍照监听启动失败", e)
