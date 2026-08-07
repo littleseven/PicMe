@@ -56,3 +56,8 @@
 -keep class com.mamba.picme.agent.core.js.** { *; }
 # Koog 工具集（ChatToolService 等 ToolSet 实现）为代码直接引用、无需反射 keep；
 # langchain4j 时代的 @Tool 反射扫描 keep（PoLangToolService）已随 fork 删除（2026-08-07 Phase 6）。
+
+# Ktor: IntellijIdeaDebugDetector 引用 java.lang.management（JVM 专属 API）探测 IDE 调试器，
+# Android 上不存在该类——Ktor 内部已做运行时防护（懒加载 + 异常兜底），安全忽略。
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
