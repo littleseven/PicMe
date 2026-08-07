@@ -36,6 +36,8 @@ import com.mamba.picme.data.remote.picme.ClaudeEvent
 import com.mamba.picme.data.local.ChatMessageEntity
 import com.mamba.picme.data.local.ChatSessionEntity
 import com.mamba.picme.domain.repository.UserSettingsRepository
+import com.mamba.picme.domain.tag.ImageDescriptionStrategyResolver
+import com.mamba.picme.domain.tag.TaggerModelSelector
 import com.mamba.picme.agent.core.model.command.FeedbackAction
 import com.mamba.picme.agent.core.model.command.FeedbackTarget
 import com.mamba.picme.domain.model.StructuredFilter
@@ -94,6 +96,9 @@ private const val DEFAULT_EVAL_TIMEOUT_MS = 5_000L
 
 /** 含 capability.dispatch 的脚本 eval 超时（挂起等用户确认 + 系统授权提示）。 */
 private const val WRITE_EVAL_TIMEOUT_MS = 180_000L
+
+/** tagGenerationScheduler 未注入（单测）时图像理解的兜底模型，与 AgentConfigurator 默认一致。 */
+private const val FALLBACK_IMAGE_MODEL_KEY = "qwen3_vl_2b"
 
 /** Chat 选图后的用户意图。EDIT 在 UI 层直接跳 PhotoEditor，不会进入 VM 的 sendImageWithIntent。 */
 enum class ImageIntent { UNDERSTAND, FIND_SIMILAR, EDIT }
@@ -154,6 +159,7 @@ class ChatViewModel(
     private val chatImageStore = dependencies.chatImageStore
     private val saveChatEditResultUseCase = dependencies.saveChatEditResultUseCase
     private val optimizeGachaController = dependencies.optimizeGachaController
+    private val tagGenerationScheduler = dependencies.tagGenerationScheduler
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -2369,7 +2375,10 @@ class ChatViewModel(
     }
 
     /**
-     * 发送图片消息，通过本地 LLM 视觉模型进行图像理解
+     * 发送图片消息，通过端侧 VLM 进行图像理解。
+     *
+     * 引擎跟随设置页「打标模型」选择（与打标同源，见 [TaggerModelSelector]）：
+     * Florence-2 走 ONNX caption 管线，qwen3_vl_2b 走 MNN imageInference。
      */
     fun sendImageMessage(imageUri: Uri) {
         viewModelScope.launch {
@@ -2403,13 +2412,19 @@ class ChatViewModel(
                     updateSessionTitleIfDefault(sessionId, generateAutoTitle(userMessage))
                 }
 
+                // 1.6 按设置页打标模型解析图像理解引擎（与打标同源，AUTO 由 TaggerModelSelector 兜底）
+                val scheduler = tagGenerationScheduler
+                val modelKey = withContext(Dispatchers.IO) {
+                    scheduler?.currentTaggerModelKey()
+                } ?: FALLBACK_IMAGE_MODEL_KEY
+
                 // 2. 创建流式占位
                 val streamingId = "streaming_${System.currentTimeMillis()}"
                 _streamingMessage.value = ChatMessageUi(
                     id = streamingId,
                     type = ChatMessageType.AGENT_TEXT,
                     content = "正在分析图片...",
-                    modelUsed = currentModelLabel(),
+                    modelUsed = modelKey,
                     isStreaming = true,
                     isThinking = true
                 )
@@ -2424,21 +2439,49 @@ class ChatViewModel(
                     return@launch
                 }
 
-                // 4. 确保模型已加载并执行图像推理
+                // 4. 按解析出的模型执行图像理解：Florence-2 走 ONNX caption 管线，其余走 MNN imageInference
+                if (modelKey == TaggerModelSelector.defaultKey) {
+                    // Florence-2（ONNX，不走 MNN）：复用 scheduler 的 caption + en→zh 翻译管线
+                    val description = scheduler?.describeImage(bitmap)
+                    _streamingMessage.value = null
+                    if (description.isNullOrBlank()) {
+                        insertAgentMessage(
+                            sessionId,
+                            "模型未加载：$modelKey 未下载或初始化失败，请前往设置 → AI 模型管理下载",
+                            "error"
+                        )
+                        return@launch
+                    }
+                    insertAgentMessage(sessionId = sessionId, content = description, modelUsed = modelKey)
+                    // 将图片分析结果保存到 MemoryManager，使后续文本消息能引用图片上下文
+                    orchestrator.appendConversation(
+                        sessionId = sessionId,
+                        userInput = "请描述这张图片",
+                        assistantResponse = description
+                    )
+                    cleanupIfNeeded(sessionId)
+                    return@launch
+                }
+
+                // MNN VLM（qwen3_vl_2b）：显式传 modelId 跟随设置，提示词按 UI 语言直出
                 if (!orchestrator.localModelService.isModelLoaded) {
                     _streamingMessage.value = ChatMessageUi(
                         id = streamingId,
                         type = ChatMessageType.AGENT_TEXT,
                         content = "正在加载模型...",
-                        modelUsed = currentModelLabel()
+                        modelUsed = modelKey
                     )
                 }
+                val strategy = withContext(Dispatchers.IO) {
+                    ImageDescriptionStrategyResolver.resolve(modelKey, userSettingsRepository.getAppLanguageBlocking())
+                }
                 val inferenceResult = orchestrator.localModelService.withModelLoaded(
+                    modelId = modelKey,
                     caller = "ChatViewModel:imageInference"
                 ) { engine ->
                     engine.imageInference(
-                        systemPrompt = "你是一个图像理解助手。请用简洁的中文描述这张图片的内容，包括主要对象、场景、颜色和氛围。",
-                        userPrompt = "请描述这张图片",
+                        systemPrompt = strategy.systemPrompt,
+                        userPrompt = strategy.userPrompt,
                         bitmap = bitmap,
                         maxTokens = 256
                     )
@@ -2466,13 +2509,13 @@ class ChatViewModel(
                     insertAgentMessage(
                         sessionId = sessionId,
                         content = response,
-                        modelUsed = currentModelLabel(),
+                        modelUsed = modelKey,
                         performance = orchestrator.localModelService.getLastLocalGenerationMetrics()?.toLlmPerformance()
                     )
                     // 将图片分析结果保存到 MemoryManager，使后续文本消息能引用图片上下文
                     orchestrator.appendConversation(
                         sessionId = sessionId,
-                        userInput = "请描述这张图片",
+                        userInput = strategy.userPrompt,
                         assistantResponse = response
                     )
                 }

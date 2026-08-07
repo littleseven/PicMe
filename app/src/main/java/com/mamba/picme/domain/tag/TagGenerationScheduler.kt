@@ -1,6 +1,7 @@
 package com.mamba.picme.domain.tag
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.room.withTransaction
@@ -106,6 +107,14 @@ class TagGenerationScheduler(
                 isAvailable = { key -> engine.isModelAvailable(key, context) }
             )
         }
+
+    /**
+     * 当前打标/图像理解模型 key（对外只读入口）。Chat 页单图理解等场景经此与打标同源选模型，
+     * 避免各自重复「读设置 + 下载感知兜底」的解析逻辑。
+     *
+     * 内部阻塞读取 DataStore，调用方需在 IO 上下文使用。
+     */
+    fun currentTaggerModelKey(): String = taggerModelKey
 
     companion object {
         private const val DEFAULT_PASS3_COOLDOWN_MS = 800L
@@ -344,29 +353,45 @@ class TagGenerationScheduler(
      * @return 描述文本；模型不可用 / 解码失败 / 推理空 → null。
      */
     suspend fun describeImage(uri: String): String? = withContext(Dispatchers.IO) {
-        val lang = userSettingsRepository.getAppLanguageBlocking()
-        val strategy = ImageDescriptionStrategyResolver.resolve(taggerModelKey, lang)
         val bitmap = pipeline.loadBitmapPublic(uri) ?: return@withContext null
         try {
-            if (taggerModelKey == "florence2_base") {
-                val tagger = florence2Tagger
-                if (tagger == null || !tagger.isInit) return@withContext null
-                val caption = tagger.tag(bitmap).summary
-                if (caption.isBlank()) return@withContext null
-                if (strategy.needsZhTranslate) enToZhTranslator.translate(caption) else caption
-            } else {
-                if (!ensureModelLoaded()) return@withContext null
-                val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
-                val result = engine.imageInference(
-                    bitmap = bitmap,
-                    systemPrompt = strategy.systemPrompt,
-                    userPrompt = strategy.userPrompt,
-                    maxTokens = 256
-                )
-                result.ifEmpty { null }
-            }
+            describeLoadedBitmap(bitmap)
         } finally {
             bitmap.recycle()
+        }
+    }
+
+    /**
+     * [describeImage] 的 Bitmap 重载：调用方已持有解码好的 Bitmap 时使用
+     *（如 Chat 页单图理解，图片在内部存储、无 content:// URI，避免二次解码）。
+     *
+     * Bitmap 所有权归调用方，本函数不负责回收。
+     *
+     * @return 描述文本；模型不可用 / 推理空 → null。
+     */
+    suspend fun describeImage(bitmap: Bitmap): String? = withContext(Dispatchers.IO) {
+        describeLoadedBitmap(bitmap)
+    }
+
+    private suspend fun describeLoadedBitmap(bitmap: Bitmap): String? {
+        val lang = userSettingsRepository.getAppLanguageBlocking()
+        val strategy = ImageDescriptionStrategyResolver.resolve(taggerModelKey, lang)
+        return if (taggerModelKey == "florence2_base") {
+            val tagger = florence2Tagger
+            if (tagger == null || !tagger.isInit) return null
+            val caption = tagger.tag(bitmap).summary
+            if (caption.isBlank()) return null
+            if (strategy.needsZhTranslate) enToZhTranslator.translate(caption) else caption
+        } else {
+            if (!ensureModelLoaded()) return null
+            val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
+            val result = engine.imageInference(
+                bitmap = bitmap,
+                systemPrompt = strategy.systemPrompt,
+                userPrompt = strategy.userPrompt,
+                maxTokens = 256
+            )
+            result.ifEmpty { null }
         }
     }
 

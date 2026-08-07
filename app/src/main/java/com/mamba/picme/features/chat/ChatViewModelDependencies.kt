@@ -14,6 +14,7 @@ import com.mamba.picme.domain.repository.MediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.tag.ControlledVocab
+import com.mamba.picme.domain.tag.TagGenerationScheduler
 import com.mamba.picme.domain.usecase.ChatEditProcessor
 import com.mamba.picme.domain.usecase.GetGallerySummaryUseCase
 import com.mamba.picme.domain.usecase.QueryGalleryMediaUseCase
@@ -43,7 +44,13 @@ class ChatViewModelDependencies(
     val chatImageStore: ChatImageStore,
     val saveChatEditResultUseCase: SaveChatEditResultUseCase,
     /** AI 优化抽卡编排器；null = 未接线（单测默认），AiOptimize 走旧单发路径。 */
-    val optimizeGachaController: ChatOptimizeGachaController? = null
+    val optimizeGachaController: ChatOptimizeGachaController? = null,
+    /**
+     * 打标调度器：单图图像理解经 [TagGenerationScheduler.currentTaggerModelKey] /
+     * [TagGenerationScheduler.describeImage] 与打标同源选模型（跟随设置页打标模型）。
+     * null = 未接线（单测默认），图像理解回退默认 MNN 模型。
+     */
+    val tagGenerationScheduler: TagGenerationScheduler? = null
 ) {
     /**
      * app_tool_request 采集执行器（spec §3.1）。null = 未接线（单测默认不注入则功能关闭）。
