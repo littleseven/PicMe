@@ -1,4 +1,4 @@
-package com.mamba.picme.agent.core.inference.remote.react
+package com.mamba.picme.agent.core.inference.remote.koog
 
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import org.junit.Assert.assertEquals

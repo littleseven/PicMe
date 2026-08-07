@@ -21,9 +21,9 @@
 - `AgentOrchestrator`（`facade`）：应用级 Agent 入口，管理远程推理链路（chat / 相机 / 飞书）与端侧 VLM 生命周期
 - `CapabilityRegistry`（`runtime.capability`）：Capability 注册、查询、命令分发
 - `PrivacyGuard`（`runtime.policy`）：输入内容隐私分级与远程调用授权策略
-- `MemoryManager` / `DataStoreChatMemoryStore`（`platform.storage`）：对话历史管理
+- `MemoryManager` / `KoogMessageMemoryStore`（`platform.storage`）：对话历史管理（Koog 版持久化）
 - `SceneManager`（`runtime.state`）：页面场景状态管理
-- `RemoteReActAgent`（`inference.remote.react`）：远程 ReAct 推理管道
+- `KoogChatAgent` / `KoogReActAgent`（`inference.remote.koog`）：远程 ReAct 推理管道（Koog 驱动）
 - `LocalLlmEngine`（`inference.local.llm`）：端侧 VLM 引擎（TAG 打标 / 图像理解专用）
 - 语音交互（`platform.voice`：Sherpa-ONNX ASR / Keyword Spotter）
 - 端侧 VLM 推理 JNI（`libagent_native.so`）
@@ -63,10 +63,10 @@
 | `LocalModelService` | 端侧 VLM 模型加载服务（打标 Worker / 图像理解经 `getLlmEngine()` 取引擎） | `agent.core.inference.local` |
 | `LlmModelManager` | 端侧 VLM 模型管理 | `agent.core.inference.local.llm` |
 | `MnnLlmClient` | MNN LLM 客户端（VLM 打标 JNI 桥） | `agent.core.inference.local.llm` |
-| `RemoteReActAgent` | 远程 ReAct Agent（标准 OpenAI Chat Completions + tool_calls） | `agent.core.inference.remote.react` |
-| `RemoteReActAgentConfig` | ReAct 配置 | `agent.core.inference.remote.react` |
+| `RemoteReActAgentConfig` | ReAct 配置（三链路共用） | `agent.core.inference.remote.react` |
 | `RemotePromptBuilder` | 远程模型 Tool Schema + ChatRequest 构建 | `agent.core.inference.remote.prompt` |
-| `ToolCallCommandParser` | tool_calls 命令解析器（name + arguments → AgentCommand；生产调用方 `CameraToolService`） | `agent.core.inference.remote.parser` |
+| `KoogChatAgent` | chat 链路 Koog Agent（Phase 4） | `agent.core.inference.remote.koog` |
+| `KoogReActAgent` | 相机/飞书链路 Koog Agent（Phase 5，回调式 API 对齐旧 RemoteReActAgent） | `agent.core.inference.remote.koog` |
 | `ChatToolService` | chat 场域 @Tool 工具集（scene=CHAT） | `agent.core.inference.remote.tool` |
 | `CameraToolService` | 相机场域 @Tool 工具集（scene=CAMERA，远程 tool_calls） | `agent.core.inference.remote.tool` |
 | `RemoteControlToolService` | IM 远程控制 RPA @Tool 工具集 | `agent.core.inference.remote.tool` |
@@ -85,7 +85,7 @@
 |------|------|------|
 | `capability/` | `Capability`, `FaceDetectionProvider` | 泛型 Capability 接口 |
 | `facade/` | `AgentOrchestrator`, `AgentConfigurator` | 应用级入口与配置 |
-| `inference/` | `local/...`, `remote/...` | 端侧 VLM（`local/llm` + `LocalModelService`，打标专用）/ 远程推理管道（parser、prompt、react、tool） |
+| `inference/` | `local/...`, `remote/...` | 端侧 VLM（`local/llm` + `LocalModelService`，打标专用）/ 远程推理管道（koog、prompt、react、tool） |
 | `js/` | `JsEngine`, `JsValue`, `JsBridge`, `JsRuntime`, `NativeHandler`, `BuiltInHandlers`, `JsBridgeException`, `GallerySummaryJs` | JS 沙箱引擎无关层（JsEngine 接口 + bridge 路由 + handler SPI；QuickJS 实现在 `:app`，详见 `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`） |
 | `model/` | `command/`, `config/`, `context/`, `plan/` | 数据模型 |
 | `platform/` | `logging/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、存储、线程、语音 |
@@ -157,6 +157,13 @@
 > - `AiAgentMode` 移除 `LOCAL`（保留 OFF/REMOTE/FEISHU）；`AiAgentInferencePreference` 枚举整体删除；`AgentConfigurator`/`AgentOrchestrator` 移除 `localPromptBuilder`/`intentCache`/`getLocalPipeline()`/`getInferencePreference()` 与 `configure()` 的 `inferencePreference` 参数（`modelId`/`localUseOpencl` 保留——打标/图像理解链路仍以其为默认加载参数）
 > - 新增相机远程 tool_calls 链路：`CameraToolService`（`inference.remote.tool`，scene=CAMERA @Tool 工具集，经 `ToolCallCommandParser` 解析 + `CapabilityRegistry` 执行）+ `AgentOrchestrator.processCameraInput(input, agentContext, pageContext?, timeoutMs)`（远程单轮/少轮 tool_calls → 循环内直接执行 → `InferenceResult.Chat`；OFF 返回「AI Agent 已关闭」；相机 session 历史经 `MemoryManager` fire-and-forget 回写）
 > - 相机 AI 指令协议与 chat 完全一致（标准 OpenAI tool_calls，ADR-005），不新造协议
+>
+> **2026-08-07 langchain4j → Koog 迁移 Phase 5（相机 + 飞书链路切 Koog）**：
+> - 新增 `KoogReActAgent`（`inference.remote.koog`）：相机/飞书共用的回调式 Koog Agent，公开 API 与旧 `RemoteReActAgent` 逐方法对齐（executeTask/cancel/shutdown/isRunning/setSessionId/resetSession/initialize/getLastExecutionMetrics）；CoroutineScope(SupervisorJob()+Dispatchers.IO) 替代单线程 executor；EventHandler → RemoteReActAgentCallback 映射（TextDelta 累积快照 → onPartialText、onToolCallStarting → onToolCall、onLLMCallCompleted → token 累加 + LlmCallRecord，source 区分 "camera-koog"/"feishu-koog"）；记忆复用 Phase 3 产物（KoogSessionHistoryProvider + KoogMessageMemoryStore，键前缀 `koog_memory_`，历史不迁移）
+> - `CameraToolService` / `RemoteControlToolService` 迁 Koog 注解（`@Tool(customName=...)` + 方法级/参数级 `@LLMDescription`，implement `ToolSet`），删除 `callTool` 字符串分发；Kotlin 默认参数全部改必填（可选语义用空串/坐标 -1）；LLM-facing 工具名与描述首句迁移前后逐字节一致（ToolInventory 确定性，DeepSeek 上下文缓存依赖）
+> - `CameraToolService` 内联消除「拼 argsJson → ToolExecutionRequest → ToolCallCommandParser.parse」往返：@Tool 方法直接构造 AgentCommand（滤镜/风格中文别名解析随迁至本类私有函数）；`ToolCallCommandParser` 及其 3 个单测随删
+> - 删除 langchain4j 期死代码：`RemoteReActAgent.kt`、`StreamingSyncChatModel.kt`、`CapturingChatModelListener.kt`（+其单测）、`DataStoreChatMemoryStore.kt`、`RemoteModelFactory.createBuilder`、`AgentConfigurator.createRemoteChatModel`
+> - `AgentOrchestrator`（相机 `getCameraAgent`）/ `AgentConfigurator`（飞书 `getFeishuAgent`）仅构造点切 `KoogReActAgent`，两个 process 方法签名与 `RemoteReActAgentCallback`/`InferenceResult` 契约不变
 
 ## 设计原则
 
@@ -194,15 +201,17 @@
 - `LocalLlmEngine.kt` — 端侧 VLM 推理引擎（`imageInference`/`imageInferenceWithTimeout` + 生命周期）
 - `MnnLlmClient.kt` — MNN LLM 客户端（VLM 打标 JNI 桥）
 
-### `inference/remote/parser/`
-- `ToolCallCommandParser.kt` — tool_calls 命令解析器（生产调用方 `CameraToolService`）
-
 ### `inference/remote/prompt/`
 - `RemotePromptBuilder.kt` — 远程 Prompt / Tool Schema 构建
 
+### `inference/remote/koog/`（Koog 迁移 Phase 3/4/5）
+- `KoogChatAgent.kt` — chat 链路 Koog Agent（AIAgent + ChatMemory feature，Phase 4）
+- `KoogReActAgent.kt` — 相机/飞书链路 Koog Agent（回调式，公开 API 对齐旧 RemoteReActAgent，Phase 5）
+- `KoogSessionHistoryProvider.kt` — Koog ChatHistoryProvider ↔ KoogMessageMemoryStore 桥
+- `KoogMessageMemory.kt` — Koog 记忆三不变式（纯函数）
+
 ### `inference/remote/react/`
-- `RemoteReActAgent.kt` — 远程 ReAct Agent
-- `RemoteReActAgentCallback.kt` — ReAct 回调
+- `RemoteReActAgentCallback.kt` — ReAct 回调（契约冻结）+ `AgentExecutionMetrics`
 - `RemoteReActAgentConfig.kt` — ReAct 配置
 
 ### `inference/remote/tool/`
@@ -214,7 +223,6 @@
 
 ### `inference/remote/`
 - `RemoteChatEngine.kt` — chat 远程 ReAct 链路引擎
-- `StreamingSyncChatModel.kt` — 同步外观 + 流式内核 ChatModel 适配器
 - `StreamChatResult.kt` — 流式聊天结果（远程 chat 链路；自 `local/llm` 迁入）
 - `ChatStreamEvent.kt` — chat 流式事件（TextSnapshot / ToolCallStarted）
 
@@ -250,7 +258,7 @@
 - `Logger.kt` — 日志接口
 
 ### `platform/storage/`
-- `DataStoreChatMemoryStore.kt` — DataStore ChatMemory 存储
+- `KoogMessageMemoryStore.kt` — Koog 版 DataStore 对话历史持久化（键前缀 `koog_memory_`）
 - `MemoryManager.kt` — 记忆管理
 
 ### `platform/thread/`

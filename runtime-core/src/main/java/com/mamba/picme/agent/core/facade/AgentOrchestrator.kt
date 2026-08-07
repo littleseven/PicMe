@@ -11,7 +11,7 @@ import com.mamba.picme.agent.core.inference.remote.tool.CameraToolService
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
 import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
-import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgent
+import com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
@@ -220,7 +220,7 @@ class AgentOrchestrator private constructor(context: Context) {
     /**
      * 处理飞书远程控制输入（ReAct 循环）。
      *
-     * 使用 [RemoteReActAgent] 执行多轮 Observe→Think→Act→Verify 循环，
+     * 使用 [KoogReActAgent]（Koog 驱动，Phase 5 起）执行多轮 Observe→Think→Act→Verify 循环，
      * 通过应用内 UI 自动化工具完成用户请求。
      *
      * @param input 用户自然语言输入
@@ -327,7 +327,7 @@ class AgentOrchestrator private constructor(context: Context) {
 
     // ── 相机远程 tool_calls 入口（端侧文本 LLM 移除后的替代链路）─────────────────
 
-    private var cachedCameraAgent: RemoteReActAgent? = null
+    private var cachedCameraAgent: KoogReActAgent? = null
 
     /** 缓存的相机 Agent 对应的配置，用于检测配置变更 */
     private var cachedCameraAgentConfig: RemoteModelConfig? = null
@@ -429,7 +429,7 @@ class AgentOrchestrator private constructor(context: Context) {
      * 优先使用用户配置的远程模型，未配置时使用 PoLang Server 默认兜底；
      * 配置变更时自动重建。共享配置经 [configurator] 只读访问。
      */
-    private fun getCameraAgent(): RemoteReActAgent? {
+    private fun getCameraAgent(): KoogReActAgent? {
         val existing = cachedCameraAgent
         val currentConfig = configurator.getUserRemoteConfig() ?: RemoteModelConfig.PICME_SERVER_DEFAULT
         if (existing != null && cachedCameraAgentConfig != null) {
@@ -463,7 +463,7 @@ class AgentOrchestrator private constructor(context: Context) {
             Logger.w(tag, "Failed to build CameraAgent config", e)
             return null
         }
-        val agent = RemoteReActAgent(
+        val agent = KoogReActAgent(
             config = cfg,
             windowManager = null,
             callback = object : RemoteReActAgentCallback {

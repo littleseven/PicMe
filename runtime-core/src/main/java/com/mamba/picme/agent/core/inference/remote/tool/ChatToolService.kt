@@ -74,8 +74,8 @@ class ChatToolService private constructor() : ToolSet {
 
     /**
      * 当轮 traceId 持有器：由 [com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent]
-     *（chat 链路 Phase 4 起）/ RemoteReActAgent（相机/飞书遗留路径）写入，dispatchCommand 读取后注入
-     * AgentContext，使 chat 远程 ReAct 路径下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
+     *（chat 链路 Phase 4 起）写入，dispatchCommand 读取后注入 AgentContext，使 chat 远程 ReAct
+     * 路径下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
      */
     @Volatile
     var traceIdHolder: TraceIdHolder? = null

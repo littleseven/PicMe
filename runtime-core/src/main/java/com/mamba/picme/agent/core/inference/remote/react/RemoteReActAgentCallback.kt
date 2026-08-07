@@ -9,7 +9,7 @@ interface RemoteReActAgentCallback {
 
     /**
      * 流式文本快照：模型本轮累计全文（非 delta），每次新 token 到达时回调。
-     * 仅在底层模型为流式内核（StreamingSyncChatModel）时触发；默认空实现，
+     * 由 Koog agent 的流式 EventHandler（TextDelta 累积）触发；默认空实现，
      * 不关心流式的实现方（如飞书）无需改动。
      */
     fun onPartialText(snapshot: String) {}

@@ -11,11 +11,7 @@ import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.params.additionalPropertiesOf
-import com.mamba.android.MambaAgentFactory
-import com.mamba.picme.agent.core.inference.remote.log.CapturingChatModelListener
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
-import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
-import java.time.Duration
 import kotlinx.serialization.json.Json
 
 /**
@@ -62,51 +58,7 @@ object RemoteModelFactory {
         return if (modelId.contains("kimi-k2.6", ignoreCase = true)) 1.0 else (requested ?: 0.7)
     }
 
-    /**
-     * 创建 MambaAgentFactory Builder。
-     *
-     * 设置所有公共远程推理参数，调用方可链式追加额外配置：
-     * ```
-     * val factory = RemoteModelFactory.createBuilder(config)
-     *     .customHeader("X-App-Token", token)
-     *     .listeners(myListener)
-     *     .build()
-     * ```
-     *
-     * @param config 远程模型配置
-     * @return MambaAgentFactory Builder，可继续追加配置后调用 [MambaAgentFactory.Builder.build]
-     */
-    fun createBuilder(
-        config: RemoteModelConfig,
-        sourceLabel: String = DEFAULT_SOURCE,
-        traceIdHolder: TraceIdHolder? = null
-    ): MambaAgentFactory.Builder {
-        val effectiveApiKey = config.apiKey.ifEmpty { "gateway-auth" }
-        val builder = MambaAgentFactory.builder()
-            .apiKey(effectiveApiKey)
-            .baseUrl(config.baseUrl)
-            .model(config.modelId)
-            .temperature(clampTemperature(config.modelId))
-            .maxTokens(4096)
-            .timeout(Duration.ofSeconds(60))
-            .maxRetries(2)
-        // DeepSeek reasoning 模型默认产生 reasoning_content（消耗 max_tokens 预算），
-        // 导致 content 为空、tool_calls 缺失。通过 thinking.type=disabled 禁用推理模式，
-        // 确保模型直接输出 content 或 tool_calls。
-        // 非 DeepSeek 模型忽略此参数（customParameters 平铺到请求体顶层）。
-        builder.customParameters(mapOf("thinking" to mapOf("type" to "disabled")))
-        // 注入调用记录 listener（仅当 app 侧提供了 recorder）。
-        // release 构建 captureContent=false → 只落纯指标，不记录消息内容。
-        // 与调用方后续追加的 listener 累加共存（Builder.listeners(varargs) 为累加语义）。
-        // traceIdHolder：listener 经它读取当轮 traceId（langchain4j listener 拿不到 AgentContext）。
-        val rec = recorder
-        if (rec != null) {
-            builder.listeners(CapturingChatModelListener(sourceLabel, rec, captureContent, traceIdHolder))
-        }
-        return builder
-    }
-
-    // ── Koog（:agent-core → Koog 迁移，Phase 3 additive）─────────────────────────
+    // ── Koog（:agent-core → Koog 迁移，Phase 3 additive；Phase 5 起为唯一执行路径）─────────────
 
     /**
      * Koog 执行器组装产物：Phase 4 chat 链路用它构建 [ai.koog.agents.core.agent.AIAgent]。
