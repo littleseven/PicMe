@@ -43,7 +43,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: detekt-report
-          path: app/build/reports/detekt/
+          path: androidApp/build/reports/detekt/
 
       - name: Upload Test Reports
         if: failure()
@@ -51,5 +51,5 @@ jobs:
         with:
           name: test-reports
           path: |
-            app/build/reports/tests/
-            beauty-engine/build/reports/tests/
+            androidApp/build/reports/tests/
+            engines/beauty-engine/build/reports/tests/

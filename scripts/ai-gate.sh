@@ -110,7 +110,7 @@ if [ "$DEVICE_CHECK" = true ]; then
         PASS_COUNT=$((PASS_COUNT + 1))
 
         # 自动安装 APK
-        apk=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+        apk=$(find androidApp/build/outputs/apk/debug -name "*.apk" | head -1)
         echo "→ 安装 APK: $(basename $apk)"
         if adb install -r "$apk" > "$OUTPUT_DIR/install.log" 2>&1; then
             echo -e "${GREEN}✅ PASS${NC}: APK 安装成功"
@@ -147,7 +147,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📊 代码健康度指标"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-TODO_COUNT=$(grep -rn "TODO\|FIXME\|XXX" --include="*.kt" app/src/main beauty-engine/src/main 2>/dev/null | wc -l | tr -d ' ')
+TODO_COUNT=$(grep -rn "TODO\|FIXME\|XXX" --include="*.kt" androidApp/src/main engines/beauty-engine/src/main 2>/dev/null | wc -l | tr -d ' ')
 echo "   TODO/FIXME 数量: $TODO_COUNT"
 
 # 汇总

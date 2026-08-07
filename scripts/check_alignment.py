@@ -37,7 +37,7 @@ def check_elf_alignment(filepath):
         return not has_issue
 
 # Check all arm64-v8a libraries
-lib_dir = "app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a"
+lib_dir = "androidApp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a"
 all_ok = True
 for filename in sorted(os.listdir(lib_dir)):
     if filename.endswith('.so'):

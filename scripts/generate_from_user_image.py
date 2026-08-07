@@ -6,7 +6,7 @@ import sys
 
 # 用户需要将新图片保存到 input_images/new_portrait.png
 base_image_path = 'input_images/new_portrait.png'
-output_dir = 'app/src/main/assets/filters'
+output_dir = 'androidApp/src/main/assets/filters'
 
 if not os.path.exists(base_image_path):
     print(f"错误：未找到原型图 {base_image_path}")

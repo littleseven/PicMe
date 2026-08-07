@@ -14,7 +14,7 @@ cd "$PICME_PATH" || exit 1
 # 构建项目
 kbuild() {
     echo "🔨 正在构建调试版本..."
-    ./gradlew :app:assembleDebug
+    ./gradlew :androidApp:assembleDebug
     if [ $? -eq 0 ]; then
         echo "✅ 构建成功"
     else
@@ -37,7 +37,7 @@ kclean() {
 # 安装调试 APK 到设备
 kinstall() {
     echo "📱 安装调试 APK..."
-    adb install -r app/build/outputs/apk/debug/polang-debug.apk
+    adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 }
 
 # 查看日志

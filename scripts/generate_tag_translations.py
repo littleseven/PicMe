@@ -4,8 +4,8 @@
 
 用法（示例）：
     python scripts/generate_tag_translations.py \
-        --input app/src/main/assets/controlled_vocab.json \
-        --output app/src/main/assets/tag_translations.json
+        --input androidApp/src/main/assets/controlled_vocab.json \
+        --output androidApp/src/main/assets/tag_translations.json
 
 当前实现：
     读取 controlled_vocab.json 中的中文 canonical 词，
@@ -56,13 +56,13 @@ def main() -> None:
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("app/src/main/assets/controlled_vocab.json"),
+        default=Path("androidApp/src/main/assets/controlled_vocab.json"),
         help="Path to controlled_vocab.json",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("app/src/main/assets/tag_translations.json"),
+        default=Path("androidApp/src/main/assets/tag_translations.json"),
         help="Output path for tag_translations.json",
     )
     parser.add_argument(

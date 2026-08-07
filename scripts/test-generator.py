@@ -11,8 +11,8 @@ Options:
     --template <name>   测试模板: standard|viewmodel|repository|usecase
 
 示例:
-    python3 scripts/test-generator.py app/src/main/java/com/picme/features/gallery/MediaViewModel.kt
-    python3 scripts/test-generator.py beauty-engine/src/main/java/com/picme/beauty/api/BeautySettings.kt --mock-deps
+    python3 scripts/test-generator.py androidApp/src/main/java/com/picme/features/gallery/MediaViewModel.kt
+    python3 scripts/test-generator.py engines/beauty-engine/src/main/java/com/picme/beauty/api/BeautySettings.kt --mock-deps
 """
 
 import sys

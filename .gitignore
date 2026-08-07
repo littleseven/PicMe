@@ -65,7 +65,7 @@ captures/
 # Signing keys (NEVER commit to Git)
 *.jks
 *.keystore
-app/keystore/
+androidApp/keystore/
 
 # Kotlin compiler cache
 .kotlin/
@@ -81,7 +81,7 @@ output_images/
 tmp_models/
 
 # LLM model files (downloaded at runtime via LlmModelDownloadManager, NOT embedded in APK)
-beauty-engine/src/main/assets/models/llm/
+engines/beauty-engine/src/main/assets/models/llm/
 *.mnn.weight
 *.mnn.lock
 *.qwen

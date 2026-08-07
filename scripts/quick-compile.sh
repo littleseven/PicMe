@@ -15,7 +15,7 @@
 # 示例:
 #   ./scripts/quick-compile.sh                    # 默认：增量编译修改的模块
 #   ./scripts/quick-compile.sh --lint-only        # 快速格式检查
-#   ./scripts/quick-compile.sh :beauty-engine     # 仅编译 beauty-engine 模块
+#   ./scripts/quick-compile.sh :engines:beauty-engine     # 仅编译 beauty-engine 模块
 #   ./scripts/quick-compile.sh --all              # 完整编译验证
 #   ./scripts/quick-compile.sh --watch            # 监听模式
 #
@@ -88,18 +88,18 @@ detect_changed_modules() {
     fi
     
     local modules=""
-    if echo "$changed_files" | grep -q "^app/"; then
-        modules=":app"
+    if echo "$changed_files" | grep -q "^androidApp/"; then
+        modules=":androidApp"
     fi
-    if echo "$changed_files" | grep -q "^beauty-engine/"; then
-        modules="${modules}${modules:+, }:beauty-engine"
+    if echo "$changed_files" | grep -q "^engines/beauty-engine/"; then
+        modules="${modules}${modules:+, }:engines:beauty-engine"
     fi
     if echo "$changed_files" | grep -q "^buildSrc/"; then
         # buildSrc 变更影响所有模块
-        modules=":app :beauty-engine"
+        modules=":androidApp :engines:beauty-engine"
     fi
     
-    echo "${modules:-:app}"
+    echo "${modules:-:androidApp}"
 }
 
 # 分层编译主流程
@@ -165,8 +165,8 @@ run_compile() {
         
         # 如果没有指定模块且未检测到变更，默认编译 app
         if [ -z "$compile_cmd" ]; then
-            compile_cmd=":app:compileDebugKotlin"
-            print_info "未指定模块且未检测到变更，默认编译 :app"
+            compile_cmd=":androidApp:compileDebugKotlin"
+            print_info "未指定模块且未检测到变更，默认编译 :androidApp"
         fi
         
         if ./gradlew $compile_cmd $GRADLE_OPTS; then
@@ -194,7 +194,7 @@ run_compile() {
     if [ "$MODE" = "incremental" ] || [ "$MODE" = "all" ]; then
         print_header "Stage 3/4: 资源与 Dex 编译 (~10-60s)"
         local start=$(timer_start)
-        local modules_to_build="${TARGET_MODULE:-:app}"
+        local modules_to_build="${TARGET_MODULE:-:androidApp}"
         
         if [ -z "$TARGET_MODULE" ] && [ "$MODE" = "incremental" ]; then
             modules_to_build=$(detect_changed_modules)
@@ -209,11 +209,11 @@ run_compile() {
         
         # 如果 build_cmd 为空，默认构建 app
         if [ -z "$build_cmd" ]; then
-            build_cmd=":app:mergeDexDebug"
+            build_cmd=":androidApp:mergeDexDebug"
         fi
         
         if ./gradlew $build_cmd $GRADLE_OPTS 2>/dev/null || \
-           ./gradlew ${TARGET_MODULE:-:app}:assembleDebug $GRADLE_OPTS; then
+           ./gradlew ${TARGET_MODULE:-:androidApp}:assembleDebug $GRADLE_OPTS; then
             print_ok "资源与 Dex 编译通过"
             passed_stages=$((passed_stages + 1))
         else
@@ -231,9 +231,9 @@ run_compile() {
         print_header "Stage 4/4: 完整 APK 打包 (~30-120s)"
         local start=$(timer_start)
         
-        if ./gradlew ${TARGET_MODULE:-:app}:assembleDebug $GRADLE_OPTS; then
+        if ./gradlew ${TARGET_MODULE:-:androidApp}:assembleDebug $GRADLE_OPTS; then
             print_ok "APK 打包成功"
-            local apk=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+            local apk=$(find androidApp/build/outputs/apk/debug -name "*.apk" | head -1)
             local size=$(du -h "$apk" 2>/dev/null | cut -f1 || echo "unknown")
             print_info "APK: $(basename "$apk") ($size)"
             passed_stages=$((passed_stages + 1))
@@ -254,12 +254,12 @@ run_compile() {
 classify_compile_errors() {
     # 获取最近的编译错误日志
     local error_log=""
-    if [ -f "app/build/reports/ktlint/ktlintMainSourceSetCheck/ktlintMainSourceSetCheck.txt" ]; then
-        error_log=$(cat app/build/reports/ktlint/ktlintMainSourceSetCheck/ktlintMainSourceSetCheck.txt 2>/dev/null | head -20)
+    if [ -f "androidApp/build/reports/ktlint/ktlintMainSourceSetCheck/ktlintMainSourceSetCheck.txt" ]; then
+        error_log=$(cat androidApp/build/reports/ktlint/ktlintMainSourceSetCheck/ktlintMainSourceSetCheck.txt 2>/dev/null | head -20)
     fi
     
     # 尝试从 gradle 输出中解析
-    local gradle_log=$(./gradlew ${TARGET_MODULE:-:app}:compileDebugKotlin 2>&1 | tail -50 || true)
+    local gradle_log=$(./gradlew ${TARGET_MODULE:-:androidApp}:compileDebugKotlin 2>&1 | tail -50 || true)
     
     echo ""
     echo -e "${YELLOW}━━ 编译错误分析 ━━${NC}"
@@ -315,7 +315,7 @@ classify_compile_errors() {
     fi
     
     echo ""
-    print_info "完整错误日志: 执行 './gradlew ${TARGET_MODULE:-:app}:compileDebugKotlin' 查看"
+    print_info "完整错误日志: 执行 './gradlew ${TARGET_MODULE:-:androidApp}:compileDebugKotlin' 查看"
 }
 
 show_success_summary() {
@@ -348,7 +348,7 @@ run_watch() {
     local last_hash=""
     while true; do
         # 计算所有 Kotlin 文件的哈希
-        local current_hash=$(find app/src beauty-engine/src -name "*.kt" -type f -exec md5 -q {} + 2>/dev/null | md5 -q)
+        local current_hash=$(find androidApp/src engines/beauty-engine/src -name "*.kt" -type f -exec md5 -q {} + 2>/dev/null | md5 -q)
         
         if [ "$current_hash" != "$last_hash" ] && [ -n "$last_hash" ]; then
             echo ""

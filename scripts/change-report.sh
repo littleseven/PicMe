@@ -61,7 +61,7 @@ get_change_stats() {
     local camera_files=$(echo "$files" | grep -c "features/camera/" 2>/dev/null); camera_files=${camera_files:-0}
     local gallery_files=$(echo "$files" | grep -c "features/gallery/" 2>/dev/null); gallery_files=${gallery_files:-0}
     local editor_files=$(echo "$files" | grep -c "features/editor/" 2>/dev/null); editor_files=${editor_files:-0}
-    local beauty_files=$(echo "$files" | grep -c "beauty-engine/" 2>/dev/null); beauty_files=${beauty_files:-0}
+    local beauty_files=$(echo "$files" | grep -c "engines/beauty-engine/" 2>/dev/null); beauty_files=${beauty_files:-0}
     local data_files=$(echo "$files" | grep -c "data/" 2>/dev/null); data_files=${data_files:-0}
     local test_files=$(echo "$files" | grep -cE "Test\.kt$|test/|androidTest/" 2>/dev/null); test_files=${test_files:-0}
     local doc_files=$(echo "$files" | grep -cE "\.md$" 2>/dev/null); doc_files=${doc_files:-0}
@@ -86,13 +86,13 @@ analyze_risks() {
     local risks=""
     
     # 检查跨模块修改
-    local module_count=$(git diff --name-only "$since" HEAD 2>/dev/null | grep -E "^app/|^beauty-engine/" | sed 's|/src/.*||' | sort -u | wc -l | tr -d ' ')
+    local module_count=$(git diff --name-only "$since" HEAD 2>/dev/null | grep -E "^androidApp/|^engines/beauty-engine/" | sed 's|/src/.*||' | sort -u | wc -l | tr -d ' ')
     if [ "$module_count" -gt 2 ]; then
         risks="${risks}- 跨模块影响: 涉及 $module_count 个模块，需仔细验证集成\n"
     fi
     
     # 检查公共 API 变更
-    local api_changes=$(git diff "$since" HEAD -- beauty-engine/src/main/java/com/picme/beauty/api/ 2>/dev/null | grep -E "^[-+].*(fun |val |var |class )" | head -10 || true)
+    local api_changes=$(git diff "$since" HEAD -- engines/beauty-engine/src/main/java/com/picme/beauty/api/ 2>/dev/null | grep -E "^[-+].*(fun |val |var |class )" | head -10 || true)
     if [ -n "$api_changes" ]; then
         risks="${risks}- API 变更: beauty-engine 公开 API 发生变更\n"
     fi

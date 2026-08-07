@@ -24,7 +24,7 @@ ERRORS=0
 
 for pattern in "${FUZZY_PATTERNS[@]}"; do
     echo "搜索: $pattern"
-    RESULTS=$(grep -rn "$pattern" "$PROJECT_ROOT/app/src/" --include="*.kt" 2>/dev/null | \
+    RESULTS=$(grep -rn "$pattern" "$PROJECT_ROOT/androidApp/src/" --include="*.kt" 2>/dev/null | \
         grep -v "\[图像坐标系\]" | \
         grep -v "\[人脸坐标系\]" | \
         grep -v "imageLeft" | \
