@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.remote.config
 
-import ai.koog.http.client.HttpClientFactoryResolver
 import ai.koog.http.client.KoogHttpClient
+import ai.koog.http.client.ktor.KtorKoogHttpClient
 import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
@@ -142,9 +142,16 @@ object RemoteModelFactory {
         // openAIClient(apiKey, settings) 顶层工厂函数（@file:JvmName facade "OpenAIClientFactory"）
         // 仅在 JVM 变体的 kotlin_module 注册，Android 变体 Kotlin 解析不到该函数/facade 类
         // （同文件的普通类 OpenAILLMClient/OpenAIClientSettings 可解析）。Android 直接构造：
-        // 用 HttpClientFactoryResolver 解析默认 Ktor HttpClient 工厂（与 Koog 官方 openAIClient
-        // 工厂内部走的同一解析路径）。有网关 header 时包一层 HeaderInjectingHttpClientFactory。
-        val baseFactory = HttpClientFactoryResolver.resolve()
+        //
+        // ⚠️ 不能用 HttpClientFactoryResolver.resolve()——它经 java.util.ServiceLoader 找
+        // KoogHttpClient.Factory provider，而 Koog 1.1.1 的 http-client-ktor-android 变体**未发布**
+        // META-INF/services/ai.koog.http.client.KoogHttpClient$Factory（KMP android 发布缺陷），
+        // Android runtime 下 ServiceLoader 永远空 → "No KoogHttpClient.Factory provider found"
+        //（真机实测 2026-08-07 复现；Ktor 自身的 HttpClientEngineContainer provider 正常在 APK 内）。
+        // 显式构造 KtorKoogHttpClient.Factory() 绕过（无参构造内部 new 默认 Ktor HttpClient，已配
+        // DefaultRequest/ContentNegotiation/HttpTimeout）。显式构造也更利于 R8：无需为 ServiceLoader
+        // provider 加 keep。有网关 header 时包一层 HeaderInjectingHttpClientFactory。
+        val baseFactory = KtorKoogHttpClient.Factory()
         val factory = if (extraHeaders.isEmpty()) baseFactory else HeaderInjectingHttpClientFactory(baseFactory, extraHeaders)
         val client = OpenAILLMClient(
             effectiveApiKey,
