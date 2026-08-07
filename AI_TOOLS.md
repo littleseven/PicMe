@@ -171,10 +171,10 @@ docs/superpowers/
 adb logcat -s "PoLang:*"
 
 # 启动 kimi-cli
-cd ~/AndroidStudioProjects/langchain4android && kimi-cli chat
+cd ~/AndroidStudioProjects/polang && kimi-cli chat
 
 # 启动 Claude Code（如已安装）
-cd ~/AndroidStudioProjects/langchain4android && claude
+cd ~/AndroidStudioProjects/polang && claude
 ```
 
 > 完整开发指南（环境配置、构建命令、调试技巧、发布流程）：`DEVELOPMENT.md`

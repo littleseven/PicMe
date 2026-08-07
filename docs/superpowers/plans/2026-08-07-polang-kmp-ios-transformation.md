@@ -58,7 +58,7 @@ polang/                          # 原 langchain4android/（git repo 改名）
 |-------|------|------|----------|
 | **1** | agent-core → Koog 迁移（Android 侧）✅ **已完成（2026-08-07，merge `614a4fef` 入 main）** | 无 | agent-core 模块删除，AI 功能全链路回归，平台耦合点清单产出 |
 | **2** | 技术排雷 Spikes（可与 Phase 1 并行） | 无 | 三个 spike 全绿，任一失败回到选型重新评估 |
-| **3** | 项目改名 + 目录重组（纯机械，无行为变更） | Phase 1 | `./gradlew assembleDebug` 通过，安装回归通过 |
+| **3** | 项目改名 + 目录重组（纯机械，无行为变更）✅ **已完成（2026-08-08，merge `323c3e1a`；3.6 冒烟全绿）** | Phase 1 | `./gradlew assembleDebug` 通过，安装回归通过 |
 | **4** | shared KMP 模块抽取 | Phase 1、3 | Android 零回归，shared JVM 单测覆盖核心逻辑 |
 | **5** | iOS App 骨架（含相机管线） | Phase 2、4 | TestFlight 内测版：相机预览 + 拍照 + 相册浏览 |
 | **6** | iOS 功能对齐与发布准备 | Phase 5 | TAG/Chat/设置逐页对齐，双端隐私政策就绪 |
@@ -123,31 +123,33 @@ polang/                          # 原 langchain4android/（git repo 改名）
 - [ ] **2.5 Spike 总结与 Go/No-Go**
   - 各报告汇总（含补验项结果），确认进入 Phase 5（iOS App）；任一红线失败则回到方案讨论（本文件第 1 节决策需重审）
 
-## Phase 3：项目改名与目录重组（纯机械，约 1 周）
+## Phase 3：项目改名与目录重组（纯机械，约 1 周）✅ 已完成（2026-08-08）
+
+> 细粒度计划：`docs/superpowers/plans/2026-08-07-repo-restructure.md`（8 个 Task 全执行并通过：Task 1-6 双审通过，Task 7 GitHub rename ✅，Task 8 本地目录改名 + worktree repair + 改名后构建/安装冒烟 ✅）
 
 原则：**git mv 保历史，零逻辑变更，构建常绿**。开工前按 `using-git-worktrees` 建隔离工作区与专用分支（如 `refactor/repo-restructure`）。
 
-- [ ] **3.1 目录迁移**
+- [x] **3.1 目录迁移** ✅（2026-08-08，commit `9d06dec7` + `123447df`）
   - `app/` → `androidApp/`；`beauty-engine/`、`beauty-api/`、`mnn-core/`、`sentencepiece/` → `engines/` 下；`runtime-core/` 暂留根级（Phase 4 消亡，现在搬是浪费）
   - `agent-core/` 此时已不存在（Phase 1 已删除）
   - 逐目录 `git mv`，每移一个目录跑一次增量构建
-- [ ] **3.2 构建配置更新**
+- [x] **3.2 构建配置更新** ✅（模块名同步改方案 B：`:androidApp`、`:engines:*`；另修复 runtime-core/CMakeLists.txt 跨模块相对路径——盘点漏项）
   - `settings.gradle`：`rootProject.name = "polang"`；include 路径更新（`:androidApp`、`:engines:beauty-engine` 等）
   - 各 `build.gradle(.kts)` 内 `project(":app")` 等依赖路径、源码/资源路径引用修正
-- [ ] **3.3 工具链与脚本路径批量更新**
+- [x] **3.3 工具链与脚本路径批量更新** ✅（commit `830e63c2`，scripts 24 文件 + CI 3 处 + .gitignore 2 处；残留扫描/语法验证全零）
   - `scripts/`（ai-gate.sh、auto-dev-loop.sh、impact-analyzer.sh、screenshot-diff.py 等）中的模块路径
   - `.github/` CI 配置、detekt baseline 路径
-  - 验证闭环：`./scripts/ai-gate.sh` + `auto-dev-loop.sh` 全绿
-- [ ] **3.4 文档批量更新**
+  - 验证闭环：`./scripts/ai-gate.sh` + `auto-dev-loop.sh` 全绿（ai-gate 设备在线验证待 3.6 一并补）
+- [x] **3.4 文档批量更新** ✅（commit `4f08ca2c`，50 文件；README 删 JitPack 死段、MODULE_ARCHITECTURE 去 :agent-core、断裂相对链接修复；双审+修复复审通过）
   - 根 `AGENTS.md`（模块清单、架构说明）、各模块 `AGENTS.md`、`AI_TOOLS.md`、`PRODUCT.md` 中的项目名与路径
   - `docs/` 内交叉引用链接扫描修复（doc-sync-guardian.sh 辅助）
-- [ ] **3.5 GitHub repo rename 与对外链接更新**
+- [x] **3.5 GitHub repo rename 与对外链接更新** ✅（2026-08-08：`littleseven/langchain4android` → `littleseven/polang`；本地 fetch/push URL 均更新并 ls-remote 验证；AppConfig 默认值 commit `1db37a4f`）
   - GitHub repo rename → `polang`；本地 remote URL 更新
-  - `server/` 上报问题功能的 issue 目标仓库配置更新（旧名有重定向，但配置应显式更新）
+  - `server/` 上报问题功能的 issue 目标仓库配置更新（旧名有重定向，但配置应显式更新）⚠️ 部署环境变量 `GITHUB_ISSUE_REPO` 需部署侧同步
   - docs-site、README 徽章、隐私政策页中的仓库链接
   - **时机说明**：GitHub rename 延后至此 Phase（而非更早），避免 Phase 1–2 期间文档/计划中的路径引用因 repo 改名而失效
-- [ ] **3.6 出口验证**
-  - `./gradlew assembleDebug` 通过；设备安装 + 核心路径冒烟（相机/相册/Chat/TAG）；不合并回主干前由 review 子 agent 审 diff
+- [x] **3.6 出口验证** ✅（2026-08-08 收口：合并 `323c3e1a` 入 main；本地目录改名 `~/AndroidStudioProjects/polang` + 绝对路径引用更新（kimi-cli.sh/fix_pipeline.py/AI_TOOLS.md）；7 个嵌套 worktree `git worktree repair` 修复完成（`.worktrees/` 3 个 + `.claude/worktrees/` 4 个，双向 gitdir 指针全部指向新路径）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，产物 `polang-debug.apk`）；真机安装冒烟全绿零崩溃：相册浏览 ✅ / 相机预览+拍照 ✅ / Chat 发消息远程往返 ✅ / TAG 扫描控制页 ✅（Pass 1 人脸检测运行中））
+  - `./gradlew assembleDebug` 通过；设备安装 + 核心路径冒烟（相机/相册/Chat/TAG）；不合并回主干前由 review 子 agent 审 diff ✅（终审通过：零行为变更，源码唯一改动为 AppConfig.kt 一行）
 
 ## Phase 4：shared KMP 模块抽取（约 3–5 周）
 
@@ -231,3 +233,5 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | 2026-08-07 | 修订五：Phase 1 完成合并（merge `614a4fef`，1.1–1.6 全勾）；Phase 1.5 耦合点清单提前产出（specs/2026-08-07-runtime-core-platform-coupling-inventory.md，基于 `1cbe9353` 删除后状态审计）；Phase 4 细粒度计划提前产出（plans/2026-08-07-shared-kmp-extraction.md，15 Task + 决策锁定 D1–D9，执行待 Phase 3） |
 | 2026-08-08 | 修订六：Phase 1 迁移性质复盘（Koog 差异化优势 main 上未挖，战略红利兑现等 Phase 4，为 Phase 4 核心价值点论证）；Phase 1.6 补 README/CLAUDE.md 漂移清理（push `8bb9ef30`/`870ee533`，对外 + 指令文档漂移清零） |
 | 2026-08-08 | 修订七：Phase 2.4 美颜 Metal spike ✅ GO——美白单滤镜真机实时渲染达标（FPS:30 出图、滑杆美白即时可见）；产出报告 specs/2026-08-08-ios-beauty-metal-spike-design.md + 产物 tmp/beauty-metal-spike/（不入库）。**修正计划两处误述**：2.4 内容「渲染管线在 cpp/」实为 Kotlin 宿主 + GLSL assets；5.4「美颜 C++ 直桥」实为 shader 移植 + Kotlin 宿主 Swift/Metal 重写。**Phase 5.4 美颜工期重估 ~3 周**（shader 翻译 ~1 周 + 宿主重写 ~2 周，原估 1–2 周偏紧）。踩坑清单：MSL const→constexpr、commandQueue 初始化、相机显式 requestAccess、videoOrientation、iOS 无日志时状态画屏调试法 |
+| 2026-08-08 | 修订八：Phase 3 主体完成 ✅——细粒度计划 plans/2026-08-07-repo-restructure.md 8 Task 全执行（子代理驱动 + 每 Task 双审）：Task 2/3 目录重组（`9d06dec7`/`123447df`，含 CMakeLists 跨模块路径漏项修复）、Task 4 scripts/CI（`830e63c2`）、Task 5 文档 50 文件（`4f08ca2c`，README 删 JitPack 死段、MODULE_ARCHITECTURE 去 :agent-core）、Task 6 server 配置（`1db37a4f`）；终审「零行为变更」确认（唯一源码改动 AppConfig.kt 一行）后合并入 main（`323c3e1a`，README 与并行工具冲突已解——保留其重写版 + 应用改名）；Task 7 GitHub rename → `littleseven/polang` ✅（fetch/push URL 已更新验证）；Task 8 本地目录改名 `~/AndroidStudioProjects/polang` ✅ + 绝对路径引用更新；3.6 改名后构建冒烟与嵌套 worktree repair 待补 |
+| 2026-08-08 | 修订九：Phase 3 全部收口 ✅——3.6 出口验证补齐：7 个嵌套 worktree `git worktree repair`（双向 gitdir 指针 `langchain4android`→`polang`，无 prunable 残留）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，`polang-debug.apk` 80M）；真机安装冒烟零崩溃（相册浏览/相机预览+拍照/Chat 远程消息往返「pong ✅」/TAG 扫描控制页 Pass 1 运行中）；绝对路径引用更新（AI_TOOLS.md、kimi-cli.sh、fix_pipeline.py）随本修订提交。**Phase 3 完成，Phase 4（shared KMP 抽取）前置条件 P1 满足** |

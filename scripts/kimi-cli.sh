@@ -5,7 +5,7 @@
 #
 
 # 项目路径
-PICME_PATH="$HOME/AndroidStudioProjects/langchain4android"
+PICME_PATH="$HOME/AndroidStudioProjects/polang"
 
 cd "$PICME_PATH" || exit 1
 
