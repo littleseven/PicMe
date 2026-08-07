@@ -179,7 +179,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            // `:app` 直接使用 ONNX Runtime Java API（MobileCLIP / OPUS-MT），需要保留 `onnxruntime-android` 坐标。
+            // `:androidApp` 直接使用 ONNX Runtime Java API（MobileCLIP / OPUS-MT），需要保留 `onnxruntime-android` 坐标。
             // Sherpa-ONNX AAR 同时内置同名 `libonnxruntime.so`，导致打包冲突。
             // 当前两个来源均为 ONNX Runtime 1.24.3，ABI 兼容；仅支持 arm64-v8a，故只保留该 ABI 的 pickFirst。
             // 升级任一依赖时，必须确保 `libonnxruntime.so` 版本一致，否则会出现 UnsatisfiedLinkError。

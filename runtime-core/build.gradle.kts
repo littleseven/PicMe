@@ -64,7 +64,7 @@ dependencies {
     //
     // **api 而非 implementation（Phase 4 起）**：runtime-core 的公开类型实现了 Koog 接口
     //（ChatToolService : ai.koog...reflect.ToolSet，Phase 5 起 CameraToolService/
-    // RemoteControlToolService 同理）。消费方（:app）持有这些类型时，编译器须能在其类路径解析
+    // RemoteControlToolService 同理）。消费方（:androidApp）持有这些类型时，编译器须能在其类路径解析
     // ToolSet 等超类型，故 Koog 须经 api 传递暴露。
     api(libs.koog.agents) {
         exclude(group = "ai.koog", module = "serialization-jackson")
