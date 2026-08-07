@@ -25,7 +25,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "langchain4android"
-include(":app")
+include(":androidApp")
 include(":beauty-api")
 include(":beauty-engine")
 include(":runtime-core")
