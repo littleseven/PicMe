@@ -153,6 +153,7 @@ class ChatViewModel(
     private val chatEditProcessor = dependencies.chatEditProcessor
     private val chatImageStore = dependencies.chatImageStore
     private val saveChatEditResultUseCase = dependencies.saveChatEditResultUseCase
+    private val optimizeGachaController = dependencies.optimizeGachaController
 
     private val mediaFeedbackUseCase = MediaFeedbackUseCase(mediaFeedbackRepository)
     private val authClient = dependencies.picMeAuthClient
@@ -189,6 +190,14 @@ class ChatViewModel(
     /** chat 会话级选中集合。 */
     private val _selectedMediaIds = MutableStateFlow<Set<String>>(emptySet())
     val selectedMediaIds: StateFlow<Set<String>> = _selectedMediaIds.asStateFlow()
+
+    /** 卡条选中状态（messageId → 选中卡 index），「就用这张」可用性由 UI 依据该值判断。 */
+    private val _gachaSelections = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val gachaSelections: StateFlow<Map<String, Int>> = _gachaSelections.asStateFlow()
+
+    /** 正在换一组的卡条消息 id 集合（局部 loading + 防抖）。 */
+    private val _gachaRerolling = MutableStateFlow<Set<String>>(emptySet())
+    val gachaRerolling: StateFlow<Set<String>> = _gachaRerolling.asStateFlow()
 
     /** capability.dispatch handler：确认交互走 [WriteConfirmationController]，dispatch 走 CHAT 场景注册表。 */
     private val capabilityDispatchHandler = CapabilityDispatchHandler(
@@ -909,6 +918,17 @@ class ChatViewModel(
                             ui
                                 .let { if (deliver != null) it.copy(claudeDeliver = deliver) else it }
                         }
+                        // 回填仍处 pending 的卡条选中态（controller 内存态存活于 ViewModel 重建，选中态不存活）
+                        val restored = entities
+                            .filter { it.type == OptimizeCandidateGroup.MESSAGE_TYPE }
+                            .filter { optimizeGachaController?.hasPending(it.id) == true }
+                            .mapNotNull { entity ->
+                                OptimizeCandidateGroup.fromJson(entity.metadata)?.let { entity.id to it.recommendedIndex }
+                            }
+                            .toMap()
+                        if (restored.isNotEmpty()) {
+                            _gachaSelections.value = _gachaSelections.value + restored
+                        }
                     }
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to load messages", e)
@@ -952,6 +972,10 @@ class ChatViewModel(
      * 切换当前会话
      */
     fun switchSession(sessionId: String) {
+        // 先按旧会话废弃 pending 卡条：launch 体在 _currentSessionId 更新后才可能执行，
+        // 必须先把旧 id 捕获下来，否则会误废弃新会话的卡条
+        val previousSessionId = _currentSessionId.value
+        viewModelScope.launch { discardPendingOptimizeGacha(previousSessionId) }
         _currentSessionId.value = sessionId
         Logger.i(TAG, "Switched to session: $sessionId")
         viewModelScope.launch {
@@ -965,6 +989,7 @@ class ChatViewModel(
     fun newSession() {
         val sessionId = UUID.randomUUID().toString()
         viewModelScope.launch {
+            discardPendingOptimizeGacha()
             try {
                 chatSessionDao.insertSession(
                     ChatSessionEntity(
@@ -1003,6 +1028,7 @@ class ChatViewModel(
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
             try {
+                optimizeGachaController?.discardPending(sessionId)
                 chatImageStore.evictForSession(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.deleteSession(sessionId)
@@ -1010,6 +1036,8 @@ class ChatViewModel(
                 lastResultAssets.remove(sessionId)
                 sessionSearchSnapshots.remove(sessionId)
                 sessionExcludes.remove(sessionId)
+                // 选中态是纯 UI 内存态，会话删除后整体清理，回退到推荐卡高亮即可
+                _gachaSelections.value = emptyMap()
                 // 删除的是工程师上下文所属会话 → 清掉持久化记录，避免 prefs 残留
                 if (claudeSidStore?.load()?.first == sessionId) claudeSidStore?.clear()
                 if (_currentSessionId.value == sessionId) {
@@ -1068,6 +1096,8 @@ class ChatViewModel(
         viewModelScope.launch {
             val sessionId = _currentSessionId.value
             replyUsedSandbox = false
+            // 用户发新消息即放弃未确认的抽卡（落库 dismiss）
+            discardPendingOptimizeGacha()
             try {
                 // 0. 确保会话元数据存在
                 ensureSessionExists(sessionId)
@@ -1350,25 +1380,7 @@ class ChatViewModel(
                         if (targetUri.isNullOrBlank()) {
                             insertAgentMessage(sessionId, "请先发送一张图片，再说“帮我优化这张照片”", currentModelLabel(), performance)
                         } else {
-                            // chat 内执行优化渲染，结果直接作为图片消息返回（不再跳转编辑器）
-                            val renderer = chatImageRenderer
-                            if (renderer == null) {
-                                insertAgentMessage(sessionId, "⚠️ 图像优化暂不可用", currentModelLabel(), performance)
-                            } else {
-                                val outcome = renderer.aiOptimize(targetUri, sessionId)
-                                Logger.i(TAG, "AiOptimize outcome: imageUri=${outcome.imageUri}, explanation=${outcome.explanation}")
-                                if (outcome.imageUri != null) {
-                                    insertAgentImageMessage(
-                                        sessionId = sessionId,
-                                        imageUri = outcome.imageUri,
-                                        content = cmd.explanation ?: outcome.explanation,
-                                        modelUsed = currentModelLabel(),
-                                        performance = performance
-                                    )
-                                } else {
-                                    insertAgentMessage(sessionId, outcome.explanation, currentModelLabel(), performance)
-                                }
-                            }
+                            handleAiOptimize(sessionId, targetUri, cmd.explanation, currentModelLabel(), performance)
                         }
                     }
                     is AgentCommand.EditImage -> {
@@ -1404,6 +1416,71 @@ class ChatViewModel(
             null -> {
                 insertAgentMessage(sessionId, "未获取到执行结果", "error", performance)
             }
+        }
+    }
+
+    /**
+     * AI 优化：抽卡闭环（候选卡组消息）；控制器未注入时退回旧单发路径。
+     * spec: docs/superpowers/specs/2026-08-06-chat-optimize-gacha-design.md
+     */
+    private suspend fun handleAiOptimize(
+        sessionId: String,
+        targetUri: String,
+        explanationOverride: String?,
+        modelUsed: String,
+        performance: LlmPerformance?
+    ) {
+        val controller = optimizeGachaController
+        if (controller == null) {
+            legacyAiOptimize(sessionId, targetUri, explanationOverride, modelUsed, performance)
+            return
+        }
+        val messageId = UUID.randomUUID().toString()
+        when (val outcome = controller.draw(messageId, targetUri, sessionId)) {
+            is ChatOptimizeGachaController.DrawOutcome.Candidates -> {
+                insertOptimizeCandidatesMessage(
+                    sessionId = sessionId,
+                    messageId = messageId,
+                    group = outcome.group,
+                    content = explanationOverride ?: outcome.explanation,
+                    modelUsed = modelUsed
+                )
+            }
+            is ChatOptimizeGachaController.DrawOutcome.Fallback -> {
+                if (outcome.imageUri != null) {
+                    insertAgentImageMessage(
+                        sessionId = sessionId,
+                        imageUri = outcome.imageUri,
+                        content = explanationOverride ?: outcome.explanation,
+                        modelUsed = modelUsed,
+                        performance = performance
+                    )
+                } else {
+                    insertAgentMessage(sessionId, outcome.explanation, modelUsed, performance)
+                }
+            }
+        }
+    }
+
+    /** 抽卡控制器未注入时的旧单发路径（与抽卡接入前行为一致）。 */
+    private suspend fun legacyAiOptimize(
+        sessionId: String,
+        targetUri: String,
+        explanationOverride: String?,
+        modelUsed: String,
+        performance: LlmPerformance?
+    ) {
+        val renderer = chatImageRenderer
+        if (renderer == null) {
+            insertAgentMessage(sessionId, "⚠️ 图像优化暂不可用", modelUsed, performance)
+            return
+        }
+        val outcome = renderer.aiOptimize(targetUri, sessionId)
+        Logger.i(TAG, "AiOptimize outcome (legacy): imageUri=${outcome.imageUri}, explanation=${outcome.explanation}")
+        if (outcome.imageUri != null) {
+            insertAgentImageMessage(sessionId, outcome.imageUri, explanationOverride ?: outcome.explanation, modelUsed, performance)
+        } else {
+            insertAgentMessage(sessionId, outcome.explanation, modelUsed, performance)
         }
     }
 
@@ -2138,6 +2215,96 @@ class ChatViewModel(
         chatSessionDao.touchSession(sessionId)
     }
 
+    /** 插入候选卡组消息（type=optimize_candidates），并按推荐卡初始化选中态。 */
+    @VisibleForTesting
+    internal suspend fun insertOptimizeCandidatesMessage(
+        sessionId: String,
+        messageId: String,
+        group: OptimizeCandidateGroup,
+        content: String,
+        modelUsed: String
+    ) {
+        chatMessageDao.insertMessage(
+            ChatMessageEntity(
+                id = messageId,
+                sessionId = sessionId,
+                type = OptimizeCandidateGroup.MESSAGE_TYPE,
+                content = content,
+                modelUsed = modelUsed,
+                metadata = group.toJson()
+            )
+        )
+        chatSessionDao.touchSession(sessionId)
+        _gachaSelections.value = _gachaSelections.value + (messageId to group.recommendedIndex)
+    }
+
+    /** 点选候选卡（同时触发全屏预览，由 UI 侧处理）。 */
+    fun onOptimizeGachaSelection(messageId: String, index: Int) {
+        _gachaSelections.value = _gachaSelections.value + (messageId to index)
+    }
+
+    /**
+     * 换一组：重抽并覆写该条消息。
+     *
+     * @param onResult true=成功；false=不可用（UI toast，卡条保持）
+     */
+    fun onOptimizeGachaReroll(messageId: String, onResult: (Boolean) -> Unit) {
+        val controller = optimizeGachaController ?: return
+        if (messageId in _gachaRerolling.value) return // 防抖：换一组期间忽略重复点击
+        _gachaRerolling.value = _gachaRerolling.value + messageId
+        viewModelScope.launch {
+            try {
+                when (val outcome = controller.reroll(messageId)) {
+                    is ChatOptimizeGachaController.RerollOutcome.Rerolled -> {
+                        chatMessageDao.getMessageById(messageId)?.let { entity ->
+                            chatMessageDao.insertMessage(
+                                entity.copy(content = outcome.explanation, metadata = outcome.group.toJson())
+                            )
+                        }
+                        _gachaSelections.value = _gachaSelections.value + (messageId to outcome.group.recommendedIndex)
+                        onResult(true)
+                    }
+                    ChatOptimizeGachaController.RerollOutcome.Expired,
+                    ChatOptimizeGachaController.RerollOutcome.Unavailable -> onResult(false)
+                }
+            } finally {
+                _gachaRerolling.value = _gachaRerolling.value - messageId
+            }
+        }
+    }
+
+    /**
+     * 就用这张：全尺寸渲染 → 该条消息改写为 agent_image 结果消息（复用 insert-replace 模式）。
+     *
+     * @param onResult true=成功；false=失败（UI toast，卡条保持可重试）
+     */
+    fun onOptimizeGachaConfirm(messageId: String, candidateIndex: Int, onResult: (Boolean) -> Unit) {
+        val controller = optimizeGachaController ?: return
+        viewModelScope.launch {
+            val result = controller.confirm(messageId, candidateIndex)
+            if (result == null) {
+                onResult(false)
+                return@launch
+            }
+            chatMessageDao.getMessageById(messageId)?.let { entity ->
+                val metadata = JSONObject().apply {
+                    put("imageUri", result.imageUri)
+                    put("saved", false)
+                }.toString()
+                chatMessageDao.insertMessage(
+                    entity.copy(type = "agent_image", metadata = metadata)
+                )
+            }
+            _gachaSelections.value = _gachaSelections.value - messageId
+            onResult(true)
+        }
+    }
+
+    /** 废弃会话的 pending 卡条（落库 dismiss）；在用户发新消息/切会话等打断点调用。 */
+    private suspend fun discardPendingOptimizeGacha(sessionId: String = _currentSessionId.value) {
+        optimizeGachaController?.discardPending(sessionId)
+    }
+
     /**
      * 仅暂存图片：复制到内部存储 + 设 [_lastUserImageUri]，**不**插入消息、**不**触发推理。
      * 返回持久化后的路径字符串；失败返回 null。供 Chat 输入框「缩略图预览」用。
@@ -2428,9 +2595,12 @@ class ChatViewModel(
         viewModelScope.launch {
             try {
                 val sessionId = _currentSessionId.value
+                optimizeGachaController?.discardPending(sessionId)
                 chatMessageDao.deleteAllMessagesBySession(sessionId)
                 chatSessionDao.updateTitle(sessionId, "New Chat")
                 _messages.value = emptyList()
+                // 选中态是纯 UI 内存态，消息删光后整体清理，回退到推荐卡高亮即可
+                _gachaSelections.value = emptyMap()
                 Logger.i(TAG, "Chat cleared for session: $sessionId")
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to clear chat", e)
@@ -2478,6 +2648,7 @@ class ChatViewModel(
                 "media_results" -> ChatMessageType.MEDIA_RESULTS
                 "chart" -> ChatMessageType.CHART
                 "agent_edit_result" -> ChatMessageType.AGENT_EDIT_RESULT
+                OptimizeCandidateGroup.MESSAGE_TYPE -> ChatMessageType.OPTIMIZE_CANDIDATES
                 else -> ChatMessageType.AGENT_TEXT
             },
             content = content,
@@ -2490,6 +2661,13 @@ class ChatViewModel(
             performance = performance,
             mediaResults = mediaResults,
             claudeAgent = parseClaudeAgentState(metadata),
+            optimizeCandidates = if (type == OptimizeCandidateGroup.MESSAGE_TYPE) {
+                OptimizeCandidateGroup.fromJson(metadata)
+            } else {
+                null
+            },
+            gachaInteractive = type == OptimizeCandidateGroup.MESSAGE_TYPE &&
+                optimizeGachaController?.hasPending(id) == true,
         )
     }
 

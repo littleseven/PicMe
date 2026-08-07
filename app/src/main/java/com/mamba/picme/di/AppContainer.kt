@@ -70,6 +70,7 @@ import com.mamba.picme.features.chat.ChatEditStateHolder
 import com.mamba.picme.features.chat.ChatViewModel
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.features.chat.ChatImageRenderer
+import com.mamba.picme.features.chat.ChatOptimizeGachaController
 import com.mamba.picme.features.chat.ChatViewModelDependencies
 import com.mamba.picme.features.chat.PrefsClaudeSidStore
 import com.mamba.picme.features.chat.buildAppToolExecutor
@@ -648,6 +649,16 @@ class AppContainerImpl(
         )
     }
 
+    private val chatOptimizeGachaController: ChatOptimizeGachaController by lazy {
+        ChatOptimizeGachaController(
+            optimizeUseCase = aiOptimizeUseCase,
+            chatImageRenderer = chatImageRenderer,
+            chatImageStore = chatImageStore,
+            feedbackLogger = optimizeFeedbackLogger,
+            chatEditStateHolder = chatEditStateHolder
+        )
+    }
+
     override val picMeAuthClient: PoLangAuthClient by lazy { PoLangAuthClient() }
 
     private val chatViewModelDependencies: ChatViewModelDependencies by lazy {
@@ -669,7 +680,8 @@ class AppContainerImpl(
             chatEditProcessor = chatEditProcessor,
             chatImageRenderer = chatImageRenderer,
             chatImageStore = chatImageStore,
-            saveChatEditResultUseCase = saveChatEditResultUseCase
+            saveChatEditResultUseCase = saveChatEditResultUseCase,
+            optimizeGachaController = chatOptimizeGachaController
         ).also { deps ->
             // app_tool_request 采集执行器：工厂依赖容器内数据源，构造后回填（先于 ChatViewModel 创建）
             deps.appToolExecutor = buildAppToolExecutor(deps)

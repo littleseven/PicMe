@@ -122,6 +122,11 @@
     <string name="ai_optimize_reroll">Try another set</string>
     <string name="ai_optimize_pick_hint">Tap a card to preview it full-size, then Apply</string>
     <string name="ai_optimize_dismiss">Close</string>
+    <string name="chat_gacha_use_this">Use this</string>
+    <string name="chat_gacha_pick_hint">Tap a card to preview it, then confirm</string>
+    <string name="chat_gacha_expired">This candidate set has expired — start a new optimization</string>
+    <string name="chat_gacha_confirm_failed">Failed to apply, please try again</string>
+    <string name="chat_gacha_reroll_unavailable">Shuffling is unavailable right now</string>
     <string name="remove_background">Remove background</string>
     <string name="remove_background_failed">Failed to remove background</string>
     <string name="id_photo_title">ID Photo</string>

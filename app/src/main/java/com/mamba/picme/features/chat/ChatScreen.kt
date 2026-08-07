@@ -168,6 +168,7 @@ import com.mamba.picme.features.chat.capability.ChatStartTagScanCapability
 import com.mamba.picme.features.chat.components.ChatEmptyState
 import com.mamba.picme.features.chat.components.ChatPhotoPickerSheet
 import com.mamba.picme.features.chat.components.ChatRegistrationSheet
+import com.mamba.picme.features.chat.components.GachaCandidateStrip
 import com.mamba.picme.features.chat.components.MediaResultsCarousel
 import androidx.core.net.toUri
 import com.mamba.picme.features.gallery.MediaViewModel
@@ -221,6 +222,11 @@ fun ChatScreen(
     val showRegistration by viewModel.showRegistrationSheet.collectAsState()
     val issueReportState by viewModel.issueReportState.collectAsState()
     val canDeliverClaude by viewModel.canDeliverClaude.collectAsState()
+    val gachaSelections by viewModel.gachaSelections.collectAsState()
+    val gachaRerolling by viewModel.gachaRerolling.collectAsState()
+    // 抽卡条确认/换一组失败 toast 文案（闭包回调内无法取 stringResource，提前取）
+    val gachaRerollUnavailableText = stringResource(R.string.chat_gacha_reroll_unavailable)
+    val gachaConfirmFailedText = stringResource(R.string.chat_gacha_confirm_failed)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
@@ -525,6 +531,44 @@ fun ChatScreen(
                                 )
                             } else if (message.type == ChatMessageType.CHART && message.chartSvg != null) {
                                 ChartSvgCard(svg = message.chartSvg, onClick = { previewChartSvg = message.chartSvg })
+                            } else if (message.type == ChatMessageType.OPTIMIZE_CANDIDATES && message.optimizeCandidates != null) {
+                                val group = message.optimizeCandidates!!
+                                val selected = gachaSelections[message.id] ?: group.recommendedIndex
+                                GachaCandidateStrip(
+                                    group = group,
+                                    interactive = message.gachaInteractive,
+                                    selectedIndex = selected,
+                                    rerolling = message.id in gachaRerolling,
+                                    onSelect = { index ->
+                                        viewModel.onOptimizeGachaSelection(message.id, index)
+                                        // 点卡 = 选中 + 全屏预览该组候选（isEditableResult=false → 无保存按钮）
+                                        val pages = group.candidates.mapIndexedNotNull { i, c ->
+                                            c.thumbPath.takeIf { it.isNotBlank() }?.let { path ->
+                                                ImagePreviewPage(
+                                                    messageId = "${message.id}#$i",
+                                                    rawUri = path,
+                                                    isEditableResult = false,
+                                                    isSaved = false
+                                                )
+                                            }
+                                        }
+                                        if (pages.isNotEmpty()) {
+                                            val startAt = pages.indexOfFirst { it.messageId == "${message.id}#$index" }
+                                                .coerceAtLeast(0)
+                                            imagePreview = ChatImagePreviewState(pages = pages, initialIndex = startAt)
+                                        }
+                                    },
+                                    onReroll = {
+                                        viewModel.onOptimizeGachaReroll(message.id) { ok ->
+                                            if (!ok) Toast.makeText(context, gachaRerollUnavailableText, Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    onConfirm = {
+                                        viewModel.onOptimizeGachaConfirm(message.id, selected) { ok ->
+                                            if (!ok) Toast.makeText(context, gachaConfirmFailedText, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                )
                             } else {
                                 ChatMessageItem(
                                     message = message,
@@ -2325,6 +2369,10 @@ data class ChatMessageUi(
     val claudeAgent: ClaudeAgentState? = null,
     /** claude agent 气泡的交付动作；非空且 pending=true 时渲染「交付」按钮（§8）。 */
     val claudeDeliver: ClaudeDeliverUi? = null,
+    /** 抽卡候选卡组负载（OPTIMIZE_CANDIDATES 消息，来自 metadata JSON）。 */
+    val optimizeCandidates: OptimizeCandidateGroup? = null,
+    /** 卡条是否可交互（controller 内存态仍有 pending；进程重建后降级只读）。 */
+    val gachaInteractive: Boolean = false,
 )
 
 enum class ChatMessageType {
@@ -2337,7 +2385,8 @@ enum class ChatMessageType {
     COMMAND,
     PLAN_PREVIEW,
     MEDIA_RESULTS,
-    CHART
+    CHART,
+    OPTIMIZE_CANDIDATES
 }
 
 /**
