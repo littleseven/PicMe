@@ -41,8 +41,8 @@ android {
 
 
 dependencies {
-    implementation(project(":beauty-api"))
-    implementation(project(":mnn-core"))
+    implementation(project(":engines:beauty-api"))
+    implementation(project(":engines:mnn-core"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
