@@ -87,7 +87,9 @@ polang/                          # 原 langchain4android/（git repo 改名）
 - [x] **1.3 删除自研兼容层**：✅ DeepSeek 适配收敛为 Koog `additionalProperties` 注入 `thinking.type=disabled` + LLModel capabilities 显式声明；旧 `StreamingSyncChatModel`/`ToolCallCommandParser`/`CapturingChatModelListener` 已删
 - [x] **1.4 回归与删除**：✅ 相机 AI 指令、Chat、tool_calls、飞书远程控制（拍照/比例/回传）全链路真机回归；`llm_call_log`/`tool_call_log` 日志链路保持（`TraceIdHolder` + `LlmCallRecord` 迁 Koog listener）；`:agent-core` 模块已删除（Phase 6，`1cbe9353` + `d09fbb77`，310 文件 ~3.4 万行）
 - [x] **1.5 平台耦合点审计**：✅ 清单已产出（`docs/superpowers/specs/2026-08-07-runtime-core-platform-coupling-inventory.md`，基于 worktree HEAD `1cbe9353`（Phase 6 删除后状态）逐文件审计：runtime-core 79 文件 + app 热点 56 文件，含 PURE/SEAM/ANDROID_ONLY 判定与 expect 设计）；Phase 4 开工时按 main 现状复核一次防漂移
-- [x] **1.6 文档**：✅ 根 AGENTS.md「架构说明」段已更新（Koog 编排、JS Engine、AI 工程师模式等）；`agent-core/LANGCHAIN4J_MIGRATION.md` 随模块删除（自然 superseded）；`docs/02-ARCHITECTURE/` 更新并入 Phase 3 文档批量更新
+- [x] **1.6 文档**：✅ 根 AGENTS.md「架构说明」段已更新（Koog 编排、JS Engine、AI 工程师模式等）；`agent-core/LANGCHAIN4J_MIGRATION.md` 随模块删除（自然 superseded）；`docs/02-ARCHITECTURE/` 更新并入 Phase 3 文档批量更新。**2026-08-08 补**：README.md + CLAUDE.md 的 agent-core/langchain4j 漂移已同步为 Koog + 6 模块（push `8bb9ef30` / `870ee533`，删整章「作为库使用 langchain4android」），对外 + 指令文档最显眼漂移提前清零；Phase 3.4 批量更新按改名后结构复核即可
+
+> **迁移性质复盘（2026-08-08 调研）**：Phase 1 兑现的是**迁移红利**（协程化：删 CountDownLatch/suspendCoroutine/单线程 executor → CoroutineScope；工程瘦身：删 `:agent-core` fork 310 文件 ~3.4 万行），**非 Koog 能力红利**——Koog 差异化优势（KMP 跨平台共享 / 多 agent 并发编排 / 结构化输出 / 同帧工具并行 / RAG-evaluator）在 main 上**一项未挖**（Koog 完全封在 `runtime-core/inference/remote/koog/`，app 模块 0 处 import；自定义 `poLangSingleRunStrategy` 反而是为绕 Koog 1.1.1 丢「文本+tool_calls 同帧」工具调用 bug，属「适配 Koog」非「享红利」；代码注释反复「语义对齐旧实现/与旧链路一致」，目标是平移非升级）。**结论：Koog 战略价值（选它而非其他 JVM 框架的理由）须等 Phase 4 KMP 抽取才兑现**——这正是 Phase 4 作为核心价值点的依据。详见记忆 `koog-usage-not-mined-on-main`。
 
 ## Phase 2：技术排雷 Spikes（风险前置，约 2–3 周，可与 Phase 1 并行）
 
@@ -224,3 +226,4 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | 2026-08-07 | 修订三：记录 Koog 实际接入版本 1.1.1（非 1.0）、执行现场（`.worktrees/feat-koog-migration/` + 分支 `feat/koog-migration`）及实测坑（1.1.1 Android ServiceLoader 缺陷需显式构造 `KtorKoogHttpClient.Factory`） |
 | 2026-08-07 | 修订四：按 KMP/iOS 细化方案 review 回写——2.1/2.2 spike 结论降级为有条件 GO（Metal 输出全 0 补验、Qwen3-VL-2B 真机补验、运行时调用补验、MNN 版本核实）；2.3 标为阻塞前置并补必验项（Koog 1.1.1 iOS 初始化、构建耗时实测）；新增 Phase 2.4 美颜 Metal 渲染 spike；Phase 4 补耦合点六类清单（Room→SQLDelight、Foreground Service→BGTaskScheduler 为大头）；Phase 5 工期调 6–10 周 + 5.1 增 Privacy Manifest；6.1 改为新设计 MetalGuardian；6.3 增 App Store 2.5.2 合规分析；风险登记册新增 3 项、上调 1 项。同步回写两份 spike 报告（specs/2026-08-07-ios-mnn-spike-design.md、2026-08-07-ios-spm-quickjs-spike-design.md） |
 | 2026-08-07 | 修订五：Phase 1 完成合并（merge `614a4fef`，1.1–1.6 全勾）；Phase 1.5 耦合点清单提前产出（specs/2026-08-07-runtime-core-platform-coupling-inventory.md，基于 `1cbe9353` 删除后状态审计）；Phase 4 细粒度计划提前产出（plans/2026-08-07-shared-kmp-extraction.md，15 Task + 决策锁定 D1–D9，执行待 Phase 3） |
+| 2026-08-08 | 修订六：Phase 1 迁移性质复盘（Koog 差异化优势 main 上未挖，战略红利兑现等 Phase 4，为 Phase 4 核心价值点论证）；Phase 1.6 补 README/CLAUDE.md 漂移清理（push `8bb9ef30`/`870ee533`，对外 + 指令文档漂移清零） |
