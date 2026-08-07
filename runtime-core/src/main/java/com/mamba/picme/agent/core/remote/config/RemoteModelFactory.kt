@@ -6,6 +6,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
+import ai.koog.prompt.llm.LLMCapability
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.params.LLMParams
@@ -162,6 +163,17 @@ object RemoteModelFactory {
         val model = LLModel(
             provider = LLMProvider.OpenAI,
             id = config.modelId,
+            // 声明能力，否则两处 gate 会抛错：
+            // 1. OpenAILLMClient.determineParams 因 capabilities 为空走兜底分支抛
+            //    "Cannot determine proper LLM params"（需 OpenAIEndpoint.Completions）。
+            // 2. 更下游另有检查抛 "Model <id> does not support completion"——capability id
+            //    "completion" 对应 LLMCapability.Completion（OpenAIEndpoint.Completions 的 id
+            //    是 "openai-endpoint-chat-completions"，两者是不同能力）。
+            // 🔴 不加 Responses（切 Responses API）或 Thinking（与 thinking.type=disabled 冲突）。
+            capabilities = listOf(
+                LLMCapability.Completion,
+                LLMCapability.OpenAIEndpoint.Completions,
+            ),
             maxOutputTokens = MAX_TOKENS.toLong(),
         )
         val params = LLMParams(
