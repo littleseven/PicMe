@@ -79,12 +79,12 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  :app（PoLang 应用 · Kotlin · Jetpack Compose）                        │
+│  :androidApp（PoLang 应用 · Kotlin · Jetpack Compose）                 │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │ :runtime-core（Agent Runtime 核心 · Kotlin）                  │  │
 │  │  AgentOrchestrator  CapabilityRegistry  PrivacyGuard        │  │
 │  │  MemoryManager  SceneManager  LocalLlmEngine               │  │
-│  │  AiAgentUseCase (Facade，位于 :app，委托给 AgentOrchestrator) │  │
+│  │  AiAgentUseCase（Facade，位于 :androidApp，委托 Orchestrator）│  │
 │  ├───────────────────────────────────────────────────────────────┤  │
 │  │ features/         功能模块（Capability 实现）                   │  │
 │  │  ImageEditCapability  AutoTagCapability  NavigationCapability  │  │
@@ -104,8 +104,8 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 │  │  PromptExecutor · EventHandler 流式 · SSE                      │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────────────┤
-│  :beauty-api (Kotlin)  :beauty-engine (C++/Kotlin)  :mnn-core       │
-│  :sentencepiece (JNI)                                                 │
+│  :engines:beauty-api (Kotlin)   :engines:mnn-core (C++)              │
+│  :engines:beauty-engine (C++/Kotlin)   :engines:sentencepiece (JNI)  │
 ├─────────────────────────────────────────────────────────────────────┤
 │  server/（Ktor 后端 · 独立 Gradle 工程）                              │
 │  AI 网关 / 账号体系 / 管理后台 / 推荐引擎 / 遥测收集                      │
@@ -125,12 +125,12 @@ Chat 页输入栏的 **AI 工程师** toggle 在两条独立 LLM 链路间切换
 
 | 模块 | 语言 | 说明 |
 |------|------|------|
-| `:app` | Kotlin | **PoLang 应用** — Agent 编排层 + 智能相册 UI（Jetpack Compose） |
+| `:androidApp` | Kotlin | **PoLang 应用** — Agent 编排层 + 智能相册 UI（Jetpack Compose） |
 | `:runtime-core` | Kotlin | **Agent Runtime** — AgentOrchestrator、CapabilityRegistry、PrivacyGuard、SceneManager、JS 沙盒 |
-| `:beauty-api` | Kotlin | 美颜接口契约层 |
-| `:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
-| `:mnn-core` | C++ | MNN 推理运行时共享库（`:runtime-core` 和 `:beauty-engine` 共用） |
-| `:sentencepiece` | C++/JNI | SentencePiece tokenizer JNI 封装 |
+| `:engines:beauty-api` | Kotlin | 美颜接口契约层 |
+| `:engines:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
+| `:engines:mnn-core` | C++ | MNN 推理运行时共享库（`:runtime-core` 和 `:engines:beauty-engine` 共用） |
+| `:engines:sentencepiece` | C++/JNI | SentencePiece tokenizer JNI 封装 |
 | `server/` | Kotlin | **Ktor 后端**（独立 Gradle 工程）— AI 网关、账号体系、管理后台 |
 
 ---
@@ -138,14 +138,14 @@ Chat 页输入栏的 **AI 工程师** toggle 在两条独立 LLM 链路间切换
 ## 运行 PoLang
 
 ```bash
-git clone https://github.com/littleseven/langchain4android.git
-cd langchain4android
+git clone https://github.com/littleseven/polang.git
+cd polang
 
 # 构建 Demo APK
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 
 # 安装到设备
-adb install -r app/build/outputs/apk/debug/polang-debug.apk
+adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 
 # 一键开发闭环
 ./scripts/auto-dev-loop.sh

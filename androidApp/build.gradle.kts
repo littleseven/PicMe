@@ -179,7 +179,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            // `:app` 直接使用 ONNX Runtime Java API（MobileCLIP / OPUS-MT），需要保留 `onnxruntime-android` 坐标。
+            // `:androidApp` 直接使用 ONNX Runtime Java API（MobileCLIP / OPUS-MT），需要保留 `onnxruntime-android` 坐标。
             // Sherpa-ONNX AAR 同时内置同名 `libonnxruntime.so`，导致打包冲突。
             // 当前两个来源均为 ONNX Runtime 1.24.3，ABI 兼容；仅支持 arm64-v8a，故只保留该 ABI 的 pickFirst。
             // 升级任一依赖时，必须确保 `libonnxruntime.so` 版本一致，否则会出现 UnsatisfiedLinkError。
@@ -266,19 +266,19 @@ dependencies {
     androidTestImplementation(libs.androidx.runner)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    // 美颜 API 接口模块（纯数据类型，被 beauty-engine 和 app 共享）
-    implementation(project(":beauty-api"))
+    // 美颜 API 接口模块（纯数据类型，被 beauty-engine 和 androidApp 共享）
+    implementation(project(":engines:beauty-api"))
     // 美颜引擎模块
-    implementation(project(":beauty-engine"))
+    implementation(project(":engines:beauty-engine"))
     implementation(project(":runtime-core"))
-    implementation(project(":mnn-core"))
-    // sherpa-onnx: runtime-core 编译期依赖，app 模块提供运行时 AAR 打包
+    implementation(project(":engines:mnn-core"))
+    // sherpa-onnx: runtime-core 编译期依赖，androidApp 模块提供运行时 AAR 打包
     implementation(files("../runtime-core/libs/sherpa-onnx-1.13.3.aar"))
     // Agent 核心模块（将来提取独立库）
     // GPUPixel 已移除，全部能力由自研引擎提供
 
     // SentencePiece tokenizer（OPUS-MT 编码解码 + tokenizer.json 词表映射）
-    implementation(project(":sentencepiece"))
+    implementation(project(":engines:sentencepiece"))
 
     // ONNX Runtime（OPUS-MT 翻译模型推理后端）
     // 版本必须与 sherpa-onnx-1.13.3 内置的 ONNX Runtime 一致（1.24.3）

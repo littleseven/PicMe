@@ -13,7 +13,7 @@
 # 示例:
 #   ./scripts/impact-analyzer.sh                    # 分析当前工作区的变更
 #   ./scripts/impact-analyzer.sh --last-commit      # 分析上次提交
-#   ./scripts/impact-analyzer.sh --file app/src/.../CameraViewModel.kt
+#   ./scripts/impact-analyzer.sh --file androidApp/src/.../CameraViewModel.kt
 #   ./scripts/impact-analyzer.sh --output markdown  # Markdown 格式输出
 #
 
@@ -71,8 +71,8 @@ get_changed_files() {
 get_module_for_file() {
     local file="$1"
     case "$file" in
-        app/*) echo ":app" ;;
-        beauty-engine/*) echo ":beauty-engine" ;;
+        androidApp/*) echo ":androidApp" ;;
+        engines/beauty-engine/*) echo ":engines:beauty-engine" ;;
         buildSrc/*) echo "buildSrc" ;;
         gradle/*|build.gradle*|settings.gradle*) echo "build-system" ;;
         docs/*) echo "docs" ;;
@@ -143,19 +143,19 @@ doc_mapping() {
     local docs=""
     
     case "$module" in
-        :app)
+        :androidApp)
             docs="PRODUCT.md FEATURES.md"
             case "$impact" in
-                *ui-change*|*viewmodel-change*) docs="$docs app AGENTS.md FEATURES.md §2" ;;
-                *api-change*) docs="$docs app AGENTS.md AGENTS.md" ;;
+                *ui-change*|*viewmodel-change*) docs="$docs androidApp AGENTS.md FEATURES.md §2" ;;
+                *api-change*) docs="$docs androidApp AGENTS.md AGENTS.md" ;;
                 *resource-change*) docs="$docs FEATURES.md (I18N check)" ;;
             esac
             ;;
-        :beauty-engine)
+        :engines:beauty-engine)
             docs="PRODUCT.md docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md"
             case "$impact" in
                 *shader-change*) docs="$docs docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md (Shader section)" ;;
-                *api-change*) docs="$docs beauty-engine/AGENTS.md AGENTS.md" ;;
+                *api-change*) docs="$docs engines/beauty-engine/AGENTS.md AGENTS.md" ;;
             esac
             ;;
         build-system|buildSrc)
@@ -275,7 +275,7 @@ generate_text_report() {
     if echo "$files" | grep -qE "Test\.kt$"; then
         echo -e "     - ./gradlew testDebugUnitTest"
     fi
-    if [ "$cross_module" = true ] || echo "$files" | grep -qE "beauty-engine/|camera/|gallery/"; then
+    if [ "$cross_module" = true ] || echo "$files" | grep -qE "engines/beauty-engine/|camera/|gallery/"; then
         echo -e "     - ./scripts/regression-test.sh"
     fi
     echo ""

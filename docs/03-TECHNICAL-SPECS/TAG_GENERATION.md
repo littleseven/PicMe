@@ -1031,7 +1031,7 @@ class TagTranslator(private val vocab: BilingualVocab) {
 }
 ```
 
-新增 asset `app/src/main/assets/tag_translations.json`：
+新增 asset `androidApp/src/main/assets/tag_translations.json`：
 
 ```json
 {
@@ -1151,7 +1151,7 @@ expandForSearch(中文查询词)
   └─ 4. 保留原词兜底
 ```
 
-> **Tokenizer 说明**：OPUS-MT 的编解码依赖 `:sentencepiece` 模块加载的 `source.spm` / `target.spm`，`tokenizer.json` 仅用于 Hugging Face token ID 与 SentencePiece piece 之间的映射。详见 `ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`。
+> **Tokenizer 说明**：OPUS-MT 的编解码依赖 `:engines:sentencepiece` 模块加载的 `source.spm` / `target.spm`，`tokenizer.json` 仅用于 Hugging Face token ID 与 SentencePiece piece 之间的映射。详见 `ON_DEVICE_INFERENCE_INVENTORY_TECH_SPEC.md`。
 
 #### ChineseQueryTranslator CLIP 扩展增强
 

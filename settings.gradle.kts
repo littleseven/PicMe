@@ -24,10 +24,10 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "langchain4android"
-include(":app")
-include(":beauty-api")
-include(":beauty-engine")
+rootProject.name = "polang"
+include(":androidApp")
+include(":engines:beauty-api")
+include(":engines:beauty-engine")
 include(":runtime-core")
-include(":mnn-core")
-include(":sentencepiece")
+include(":engines:mnn-core")
+include(":engines:sentencepiece")

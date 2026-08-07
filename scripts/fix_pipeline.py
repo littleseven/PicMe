@@ -1,6 +1,6 @@
 import re
 
-path = '/Users/guoshuai/AndroidStudioProjects/langchain4android/app/src/main/java/com/mamba/picme/domain/tag/TagGenerationPipeline.kt'
+path = '/Users/guoshuai/AndroidStudioProjects/langchain4android/androidApp/src/main/java/com/mamba/picme/domain/tag/TagGenerationPipeline.kt'
 with open(path, 'r') as f:
     content = f.read()
 

@@ -1,4 +1,4 @@
-with open('app/src/main/java/com/picme/features/camera/CameraScreen.kt', 'r') as f:
+with open('androidApp/src/main/java/com/picme/features/camera/CameraScreen.kt', 'r') as f:
     lines = f.readlines()
 
 # Find insertion point: after "var renderPerfStats" block
@@ -21,7 +21,7 @@ new_lines = lines[:insert_line]
 new_lines.append(test_code)
 new_lines.extend(lines[insert_line:])
 
-with open('app/src/main/java/com/picme/features/camera/CameraScreen.kt', 'w') as f:
+with open('androidApp/src/main/java/com/picme/features/camera/CameraScreen.kt', 'w') as f:
     f.writelines(new_lines)
 
 print("Done!")

@@ -162,10 +162,10 @@ docs/superpowers/
 
 ```bash
 # 构建调试版本
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 
 # 运行单元测试
-./gradlew :app:testDebugUnitTest
+./gradlew :androidApp:testDebugUnitTest
 
 # 查看 PoLang 日志
 adb logcat -s "PoLang:*"

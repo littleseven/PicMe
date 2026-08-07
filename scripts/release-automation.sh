@@ -33,8 +33,8 @@ RELEASE_TYPE="patch"
 DRY_RUN=false
 SKIP_BUILD=false
 BUILD_AAB=false
-OUTPUT_DIR="$PROJECT_ROOT/app/build/outputs/apk/release"
-AAB_OUTPUT_DIR="$PROJECT_ROOT/app/build/outputs/bundle/release"
+OUTPUT_DIR="$PROJECT_ROOT/androidApp/build/outputs/apk/release"
+AAB_OUTPUT_DIR="$PROJECT_ROOT/androidApp/build/outputs/bundle/release"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -49,7 +49,7 @@ done
 
 # 获取当前版本
 get_current_version() {
-    grep -E "versionName\s*=" app/build.gradle.kts | grep -oE '"[^"]+"' | tr -d '"' || echo "1.0.0"
+    grep -E "versionName\s*=" androidApp/build.gradle.kts | grep -oE '"[^"]+"' | tr -d '"' || echo "1.0.0"
 }
 
 # 计算新版本
@@ -83,7 +83,7 @@ calculate_new_version() {
 
 # 获取当前 versionCode
 get_current_version_code() {
-    grep -E "versionCode\s*=" app/build.gradle.kts | grep -oE '[0-9]+' | head -1 || echo "1"
+    grep -E "versionCode\s*=" androidApp/build.gradle.kts | grep -oE '[0-9]+' | head -1 || echo "1"
 }
 
 # 生成 CHANGELOG
@@ -136,8 +136,8 @@ update_version() {
     fi
     
     # 更新 build.gradle.kts
-    sed -i '' "s/versionCode = [0-9]*/versionCode = $new_version_code/" app/build.gradle.kts
-    sed -i '' "s/versionName = \"[^\"]*\"/versionName = \"$new_version\"/" app/build.gradle.kts
+    sed -i '' "s/versionCode = [0-9]*/versionCode = $new_version_code/" androidApp/build.gradle.kts
+    sed -i '' "s/versionName = \"[^\"]*\"/versionName = \"$new_version\"/" androidApp/build.gradle.kts
     
     echo -e "${GREEN}✅ 版本号已更新:${NC}"
     echo "  versionName: $new_version"
@@ -187,15 +187,15 @@ build_release() {
     fi
 
     if [ "$DRY_RUN" = true ]; then
-        echo -e "${BLUE}[DRY-RUN] 将执行: ./gradlew :app:assembleRelease${NC}"
+        echo -e "${BLUE}[DRY-RUN] 将执行: ./gradlew :androidApp:assembleRelease${NC}"
         if [ "$BUILD_AAB" = true ]; then
-            echo -e "${BLUE}[DRY-RUN] 将执行: ./gradlew :app:bundleRelease${NC}"
+            echo -e "${BLUE}[DRY-RUN] 将执行: ./gradlew :androidApp:bundleRelease${NC}"
         fi
         return
     fi
 
     echo "🔨 构建 Release APK..."
-    ./gradlew :app:assembleRelease
+    ./gradlew :androidApp:assembleRelease
 
     # 查找 APK
     local apk=$(find "$OUTPUT_DIR" -name "*.apk" -type f | sort | tail -1)
@@ -209,7 +209,7 @@ build_release() {
     if [ "$BUILD_AAB" = true ]; then
         echo ""
         echo "🔨 构建 Release AAB（Google Play 上架格式）..."
-        ./gradlew :app:bundleRelease
+        ./gradlew :androidApp:bundleRelease
 
         local aab=$(find "$AAB_OUTPUT_DIR" -name "*.aab" -type f | sort | tail -1)
         if [ -n "$aab" ]; then
@@ -227,7 +227,7 @@ git_operations() {
     
     if [ "$DRY_RUN" = true ]; then
         echo -e "${BLUE}[DRY-RUN] 将执行 Git 操作:${NC}"
-        echo "  git add app/build.gradle.kts CHANGELOG.md"
+        echo "  git add androidApp/build.gradle.kts CHANGELOG.md"
         echo "  git commit -m \"chore(release): $version\""
         echo "  git tag -a v$version -m \"Release $version\""
         return
@@ -236,7 +236,7 @@ git_operations() {
     # 检查工作区是否干净
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
         echo -e "${YELLOW}⚠️ 工作区有未提交的变更，先提交...${NC}"
-        git add app/build.gradle.kts CHANGELOG.md
+        git add androidApp/build.gradle.kts CHANGELOG.md
         git commit -m "chore(release): $version" || true
     fi
     

@@ -282,7 +282,7 @@ data class RemoteFunction(
 | 当前 | 变更 |
 |------|------|
 | `agent/test/` 测试混用本地/远程 | 按包拆分为 `local/` 和 `remote/` |
-| `app/src/test/.../AgentTestEngine.kt` 使用 method 映射 | 按包拆分为 `LocalTestEngine` 和 `RemoteTestEngine` |
+| `androidApp/src/test/.../AgentTestEngine.kt` 使用 method 映射 | 按包拆分为 `LocalTestEngine` 和 `RemoteTestEngine` |
 
 ---
 
@@ -561,7 +561,7 @@ graph TB
 > **实现差异说明（2026-06-22）**：本 ADR 的核心原则（本地/远程包物理隔离）已完全落实，但实际实现与提议的目标包结构存在以下差异：
 > - **包路径**：实际使用 `inference/local/` 和 `inference/remote/` 而非提议的 `local/` 和 `remote/` 直铺（保留 `inference/` 父级以便代码导航）
 > - **文件名**：`ToolCallParser.kt` → 实际为 `ToolCallCommandParser.kt`
-> - **已移除的类**：本 ADR 中引用的 `UnifiedRemoteClient`、`LangChain4jOpenAiClient` 已不存在。当前远程推理架构为：`:agent-core`（Java 库）提供 `OpenAiChatModel`/`OpenAiStreamingChatModel`，`:app` 模块的 `RemoteOrchestrator` 直接使用 `:agent-core` API 编排，无独立的客户端包装层
+> - **已移除的类**：本 ADR 中引用的 `UnifiedRemoteClient`、`LangChain4jOpenAiClient` 已不存在。当前远程推理架构为：`:agent-core`（Java 库）提供 `OpenAiChatModel`/`OpenAiStreamingChatModel`，`:androidApp` 模块的 `RemoteOrchestrator` 直接使用 `:agent-core` API 编排，无独立的客户端包装层
 > - **react 包**：位于 `inference/remote/react/` 而非提议的 `react/` 顶层包
 > - **GBNF Grammar**：提议中列为本地约束方式，实际已尝试后放弃
 

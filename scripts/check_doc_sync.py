@@ -34,7 +34,7 @@ SYNC_FILES = [
     "PRODUCT.md",
     "docs/01-PRODUCT/FEATURES.md",
     "docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md",
-    "beauty-engine/AGENTS.md",
+    "engines/beauty-engine/AGENTS.md",
     "README.md",
 ]
 

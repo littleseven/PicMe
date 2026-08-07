@@ -23,7 +23,7 @@ PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 
 ### 2.1 对外契约层
 
-`beauty-api/src/main/java/com/mamba/picme/beauty/api/facedetect/`
+`engines/beauty-api/src/main/java/com/mamba/picme/beauty/api/facedetect/`
 
 - `FaceDetector.kt`：统一检测接口（含 `detect(bitmap)` 和 `detectFromImage(image)` 零拷贝重载）
 - `FaceDetectorFactory.kt`：创建 `FaceDetectorManager`
@@ -33,7 +33,7 @@ PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 
 ### 2.2 内部实现层
 
-`beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/`
+`engines/beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/`
 
 - `FaceDetectorManager.kt`：双引擎调度核心，含 `detectFromImage()` 零拷贝入口和 `detectRoiFromNv21()` 路由（MNN 后端）
 - `DetectionPipelineFactory.kt`：创建 ROI/Landmark 检测器，DET10G/2D106 仅支持 MNN
@@ -50,7 +50,7 @@ PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 
 ### 2.3 C++ 原生层
 
-`beauty-engine/src/main/cpp/`
+`engines/beauty-engine/src/main/cpp/`
 
 - `mnn_face_detector.cpp/h`：MNN RetinaFace / 2D106 检测器
 - `mnn_jni_bridge.cpp`：MNN JNI 桥接
@@ -58,11 +58,11 @@ PoLang 当前采用双引擎人脸检测架构：`MEDIAPIPE`、`MNN`。
 
 ### 2.4 App 集成层
 
-- `app/src/main/java/com/mamba/picme/PoLangApplication.kt`
+- `androidApp/src/main/java/com/mamba/picme/PoLangApplication.kt`
   - 启动时执行 `FaceLandmarkAdapterRegistry.initDefaults()`
-- `app/src/main/java/com/mamba/picme/features/camera/CameraRuntimeState.kt`
+- `androidApp/src/main/java/com/mamba/picme/features/camera/CameraRuntimeState.kt`
   - 监听用户设置，将 ROI/Landmark 检测器类型转为 `DetectionPipelineConfig`
-- `app/src/main/java/com/mamba/picme/features/camera/CameraFrameAnalyzer.kt`
+- `androidApp/src/main/java/com/mamba/picme/features/camera/CameraFrameAnalyzer.kt`
   - 检测入口：优先走 `detectFromImage()` MediaPipe 零拷贝路径（若配置 MediaPipe 统一管线）
   - 非 MediaPipe 路径走 `detectRoiFromNv21()` 零拷贝 ROI → Landmark 检测
   - 智能帧跳过优化（每 N 帧检测 + 运动触发重检）

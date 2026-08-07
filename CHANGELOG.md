@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased] - 2026-08
+
+- 仓库重组（Phase 3）：项目改名 polang（原 langchain4android），`app/` → `androidApp/`，引擎模块迁入 `engines/`，Gradle rootProject 改名 polang
+- Agent 框架迁移（Phase 1）：`:agent-core`（langchain4j vendored fork）删除，迁移至 JetBrains Koog 1.1.1
+
 ## [1.0.11] - 2026-07-15
 
 ### ✨ Features

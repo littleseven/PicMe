@@ -24,4 +24,4 @@
 
 PoLang 不追求商业化，核心价值在于端侧 Agent 机制、自研音视频引擎（OpenGL ES + EGL）的工程探索。
 
-源码：[github.com/littleseven/langchain4android](https://github.com/littleseven/langchain4android)
+源码：[github.com/littleseven/polang](https://github.com/littleseven/polang)

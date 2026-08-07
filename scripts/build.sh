@@ -5,7 +5,7 @@
 #
 # 用法:
 #   ./scripts/build.sh debug          # 打 debug 包
-#   ./scripts/build.sh release        # 打 release APK（使用 app/keystore/picme-release.jks）
+#   ./scripts/build.sh release        # 打 release APK（使用 androidApp/keystore/picme-release.jks）
 #   ./scripts/build.sh release-plain  # 打 release APK 但不混淆（用于调试 release 问题）
 #   ./scripts/build.sh aab            # 打 release AAB（Google Play 上架格式）
 #   ./scripts/build.sh aab-plain      # 打 release AAB 但不混淆（用于调试 release 问题）
@@ -19,9 +19,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APK_OUTPUT_DIR="$PROJECT_ROOT/app/build/outputs/apk"
-AAB_OUTPUT_DIR="$PROJECT_ROOT/app/build/outputs/bundle"
-KEYSTORE_PATH="$PROJECT_ROOT/app/keystore/picme-release.jks"
+APK_OUTPUT_DIR="$PROJECT_ROOT/androidApp/build/outputs/apk"
+AAB_OUTPUT_DIR="$PROJECT_ROOT/androidApp/build/outputs/bundle"
+KEYSTORE_PATH="$PROJECT_ROOT/androidApp/keystore/picme-release.jks"
 
 # 兼容旧环境变量命名（PICME_*）
 export POLANG_RELEASE_STORE_PASSWORD="${POLANG_RELEASE_STORE_PASSWORD:-$PICME_RELEASE_STORE_PASSWORD}"
@@ -87,7 +87,7 @@ print_artifact_info() {
 # 构建 Debug 包
 build_debug() {
     log_info "开始构建 Debug 包..."
-    ./gradlew :app:assembleDebug
+    ./gradlew :androidApp:assembleDebug
 
     local apk
     apk=$(find_artifact "$APK_OUTPUT_DIR/debug" "apk")
@@ -143,7 +143,7 @@ build_release() {
         log_info "开始构建 Release 包..."
     fi
 
-    ./gradlew :app:assembleRelease \
+    ./gradlew :androidApp:assembleRelease \
         -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" \
         -Pandroid.injected.signing.store.password="$POLANG_RELEASE_STORE_PASSWORD" \
         -Pandroid.injected.signing.key.alias="$POLANG_RELEASE_KEY_ALIAS" \
@@ -209,7 +209,7 @@ build_aab() {
         log_info "开始构建 Release AAB（Google Play 上架格式）..."
     fi
 
-    ./gradlew :app:bundleRelease \
+    ./gradlew :androidApp:bundleRelease \
         -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" \
         -Pandroid.injected.signing.store.password="$POLANG_RELEASE_STORE_PASSWORD" \
         -Pandroid.injected.signing.key.alias="$POLANG_RELEASE_KEY_ALIAS" \
@@ -259,7 +259,7 @@ main() {
             echo "用法: $0 {debug|release|release-plain|aab|aab-plain}"
             echo ""
             echo "  debug          - 构建 debug APK"
-            echo "  release        - 构建 release APK（使用 app/keystore/picme-release.jks）"
+            echo "  release        - 构建 release APK（使用 androidApp/keystore/picme-release.jks）"
             echo "  release-plain  - 构建 release APK 但不启用混淆/R8"
             echo "  aab            - 构建 release AAB（Google Play 上架格式）"
             echo "  aab-plain      - 构建 release AAB 但不启用混淆/R8"

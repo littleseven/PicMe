@@ -47,10 +47,10 @@
 
 ## 2. 代码管理：Monorepo（已定）
 
-**决策**：后端放进本仓 `langchain4android/server/`（**Monorepo**）——AI 全栈协作友好，端云同仓便于跨端检索与契约演进。
+**决策**：后端放进本仓 `polang/server/`（**Monorepo**）——AI 全栈协作友好，端云同仓便于跨端检索与契约演进。
 
 **落地点与构建边界**：
-- 目录：`langchain4android/server/`（自洽的 Ktor Gradle 工程）。
+- 目录：`polang/server/`（自洽的 Ktor Gradle 工程）。
 - 构建：`server/` 用**独立的 `settings.gradle.kts`**，**不纳入安卓的 settings.gradle.kts** → `./gradlew -p server installDist` 只编译后端，安卓构建完全不依赖 `:server`、也不被拖慢。（`server/` 无独立 `gradlew`，须用根目录 wrapper 加 `-p server`。）
 - CI（后期）：用 path filter 让 `server/**` 改动才触发后端 build/deploy，不污染安卓流水线。
 - 密钥：`server/.env` 不入 git；GitHub Actions（若启用）用独立 secrets。
@@ -78,10 +78,10 @@
 
 ## 4. 工程结构（monorepo 子目录 `server/`，自洽 Gradle build）
 
-`server/` 寄居在 `langchain4android/` 下，**用独立 `settings.gradle.kts`、不纳入安卓 `settings.gradle.kts`**——安卓 7 模块的构建完全不依赖它、也不被拖慢：
+`server/` 寄居在 `polang/` 下，**用独立 `settings.gradle.kts`、不纳入安卓 `settings.gradle.kts`**——安卓 7 模块的构建完全不依赖它、也不被拖慢：
 
 ```
-server/   # = langchain4android/server/（rootProject.name = "picme-server"）
+server/   # = polang/server/（rootProject.name = "picme-server"）
 ├── build.gradle.kts                # 版本号硬编码于此（无 libs.versions.toml）
 ├── settings.gradle.kts
 ├── src/main/

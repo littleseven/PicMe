@@ -171,10 +171,10 @@ print_section "Phase 2/4: 编译 Debug APK"
 
 run_phase2() {
     echo ""
-    echo "→ 编译 :app:assembleDebug..."
-    if ./gradlew :app:assembleDebug > "$OUTPUT_DIR/build.log" 2>&1; then
+    echo "→ 编译 :androidApp:assembleDebug..."
+    if ./gradlew :androidApp:assembleDebug > "$OUTPUT_DIR/build.log" 2>&1; then
         log_ok "Debug APK 编译成功"
-        local apk=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+        local apk=$(find androidApp/build/outputs/apk/debug -name "*.apk" | head -1)
         local apk_size=$(du -h "$apk" | cut -f1)
         echo "   APK: $apk ($apk_size)"
         return 0
@@ -208,7 +208,7 @@ run_phase3() {
 
     echo ""
     echo "→ 安装 APK..."
-    local apk=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+    local apk=$(find androidApp/build/outputs/apk/debug -name "*.apk" | head -1)
     if adb install -r "$apk" > "$OUTPUT_DIR/install.log" 2>&1; then
         log_ok "APK 安装成功"
     else

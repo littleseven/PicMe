@@ -48,23 +48,23 @@ done
 # 文档映射规则：代码路径前缀 → 需同步的文档（用 | 分隔）
 # 格式: "前缀|文档1|文档2|..."
 declare -a DOC_MAP_PAIRS=(
-    "app/src/main/java/com/picme/features/camera/|docs/01-PRODUCT/FEATURES.md|app/src/main/java/com/picme/features/camera/AGENTS.md|docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md"
-    "app/src/main/java/com/picme/features/gallery/|docs/01-PRODUCT/FEATURES.md|app/src/main/java/com/picme/features/gallery/AGENTS.md"
-    "app/src/main/java/com/picme/features/editor/|docs/01-PRODUCT/FEATURES.md|app/src/main/java/com/picme/features/editor/AGENTS.md"
-    "app/src/main/java/com/picme/features/settings/|docs/01-PRODUCT/FEATURES.md|app/src/main/java/com/picme/features/settings/AGENTS.md"
-    "app/src/main/java/com/picme/features/debug/|docs/01-PRODUCT/FEATURES.md|app/src/main/java/com/picme/features/debug/AGENTS.md"
-    "app/src/main/java/com/picme/data/|app/src/main/java/com/picme/data/AGENTS.md"
-    "app/src/main/java/com/picme/di/|app/src/main/java/com/picme/di/AGENTS.md"
-    "beauty-engine/|beauty-engine/AGENTS.md|docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md|docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md"
+    "androidApp/src/main/java/com/picme/features/camera/|docs/01-PRODUCT/FEATURES.md|androidApp/src/main/java/com/picme/features/camera/AGENTS.md|docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md"
+    "androidApp/src/main/java/com/picme/features/gallery/|docs/01-PRODUCT/FEATURES.md|androidApp/src/main/java/com/picme/features/gallery/AGENTS.md"
+    "androidApp/src/main/java/com/picme/features/editor/|docs/01-PRODUCT/FEATURES.md|androidApp/src/main/java/com/picme/features/editor/AGENTS.md"
+    "androidApp/src/main/java/com/picme/features/settings/|docs/01-PRODUCT/FEATURES.md|androidApp/src/main/java/com/picme/features/settings/AGENTS.md"
+    "androidApp/src/main/java/com/picme/features/debug/|docs/01-PRODUCT/FEATURES.md|androidApp/src/main/java/com/picme/features/debug/AGENTS.md"
+    "androidApp/src/main/java/com/picme/data/|androidApp/src/main/java/com/picme/data/AGENTS.md"
+    "androidApp/src/main/java/com/picme/di/|androidApp/src/main/java/com/picme/di/AGENTS.md"
+    "engines/beauty-engine/|engines/beauty-engine/AGENTS.md|docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md|docs/08-FALLBACK/BEAUTY_ENGINE_FALLBACK.md"
     "buildSrc/|DEVELOPMENT.md"
-    "app/src/main/res/values/strings.xml|docs/01-PRODUCT/FEATURES.md|app/src/main/res/values-zh-rCN/strings.xml|app/src/main/res/values-zh-rTW/strings.xml"
-    "app/src/main/res/values-zh-rCN/strings.xml|app/src/main/res/values/strings.xml|app/src/main/res/values-zh-rTW/strings.xml"
-    "app/src/main/res/values-zh-rTW/strings.xml|app/src/main/res/values/strings.xml|app/src/main/res/values-zh-rCN/strings.xml"
+    "androidApp/src/main/res/values/strings.xml|docs/01-PRODUCT/FEATURES.md|androidApp/src/main/res/values-zh-rCN/strings.xml|androidApp/src/main/res/values-zh-rTW/strings.xml"
+    "androidApp/src/main/res/values-zh-rCN/strings.xml|androidApp/src/main/res/values/strings.xml|androidApp/src/main/res/values-zh-rTW/strings.xml"
+    "androidApp/src/main/res/values-zh-rTW/strings.xml|androidApp/src/main/res/values/strings.xml|androidApp/src/main/res/values-zh-rCN/strings.xml"
     "AGENTS.md|AGENTS.md"
     "PRODUCT.md|docs/01-PRODUCT/FEATURES.md"
     "docs/01-PRODUCT/FEATURES.md|PRODUCT.md"
-    "docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md|beauty-engine/AGENTS.md"
-    "docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md|app/src/main/java/com/picme/features/camera/AGENTS.md"
+    "docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md|engines/beauty-engine/AGENTS.md"
+    "docs/03-TECHNICAL-SPECS/CAMERA_PREVIEW_TECH_SPEC.md|androidApp/src/main/java/com/picme/features/camera/AGENTS.md"
 )
 
 # 查找文档映射（兼容 bash 3.2）
@@ -160,7 +160,7 @@ generate_sync_report() {
         fi
         
         # 检查架构文档
-        if echo "$file" | grep -qE "beauty-engine/|camera/|gallery/"; then
+        if echo "$file" | grep -qE "engines/beauty-engine/|camera/|gallery/"; then
             arch_doc_needed=true
         fi
         
@@ -183,9 +183,9 @@ generate_sync_report() {
             echo "## 🚨 I18N 同步提醒"
             echo ""
             echo "检测到 strings.xml 变更，请确认以下文件已同步更新："
-            echo "- [ ] app/src/main/res/values/strings.xml（英文/默认）"
-            echo "- [ ] app/src/main/res/values-zh-rCN/strings.xml（简体中文）"
-            echo "- [ ] app/src/main/res/values-zh-rTW/strings.xml（繁体中文）"
+            echo "- [ ] androidApp/src/main/res/values/strings.xml（英文/默认）"
+            echo "- [ ] androidApp/src/main/res/values-zh-rCN/strings.xml（简体中文）"
+            echo "- [ ] androidApp/src/main/res/values-zh-rTW/strings.xml（繁体中文）"
             echo ""
         fi
         
@@ -262,7 +262,7 @@ generate_suggestions() {
             camera_changes="${camera_changes}- $file\n"
         elif echo "$file" | grep -q "features/gallery/"; then
             gallery_changes="${gallery_changes}- $file\n"
-        elif echo "$file" | grep -q "beauty-engine/"; then
+        elif echo "$file" | grep -q "engines/beauty-engine/"; then
             beauty_changes="${beauty_changes}- $file\n"
         else
             other_changes="${other_changes}- $file\n"
@@ -272,21 +272,21 @@ generate_suggestions() {
     if [ -n "$camera_changes" ]; then
         echo "### 相机模块"
         echo -e "$camera_changes"
-        echo "建议更新: docs/01-PRODUCT/FEATURES.md §相机功能, app/src/main/java/com/picme/features/camera/AGENTS.md"
+        echo "建议更新: docs/01-PRODUCT/FEATURES.md §相机功能, androidApp/src/main/java/com/picme/features/camera/AGENTS.md"
         echo ""
     fi
     
     if [ -n "$gallery_changes" ]; then
         echo "### 相册模块"
         echo -e "$gallery_changes"
-        echo "建议更新: docs/01-PRODUCT/FEATURES.md §相册功能, app/src/main/java/com/picme/features/gallery/AGENTS.md"
+        echo "建议更新: docs/01-PRODUCT/FEATURES.md §相册功能, androidApp/src/main/java/com/picme/features/gallery/AGENTS.md"
         echo ""
     fi
     
     if [ -n "$beauty_changes" ]; then
         echo "### 美颜引擎"
         echo -e "$beauty_changes"
-        echo "建议更新: beauty-engine/AGENTS.md, docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md"
+        echo "建议更新: engines/beauty-engine/AGENTS.md, docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md"
         echo ""
     fi
 }

@@ -1,4 +1,4 @@
-# langchain4android Agent 架构设计
+# polang Agent 架构设计
 
 > **版本**：4.1（端侧文本 LLM 移除对齐版）  
 > **状态**：已实施 / 迭代中  
@@ -12,7 +12,7 @@
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
 > - **重要：`:agent-core` 是 Java 基础库**（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:runtime-core` 模块的 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 目录下。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
 
-**模块定位**: AI Agent 运行时架构与推理模式选型（基础库 langchain4android + Demo 工程 PoLang）  
+**模块定位**: AI Agent 运行时架构与推理模式选型（基础库 polang + Demo 工程 PoLang）  
 **阅读对象**: RD、AI Agent
 
 ---
@@ -126,7 +126,7 @@
                                       │
                                       ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                       Agent Orchestration Layer (:app · Kotlin)                  │
+│                       Agent Orchestration Layer (:androidApp · Kotlin)           │
 │                                                                               │
 │  ┌────────────────────────────────────────────────────────────────────────┐  │
 │  │                      AgentOrchestrator (编排器)                          │  │
@@ -452,7 +452,7 @@ POST /v1/report-issue (IssueReportClient，X-App-Token 鉴权)
 PoLang Server 脱敏处理（IssueReportRoute）
         │
         ▼
-自动在 littleseven/langchain4android 创建 GitHub issue
+自动在 littleseven/polang 创建 GitHub issue
 ```
 
 - 上报内容为文本描述与脱敏后的运行信息，不触碰用户图片/视频（[PRIVACY] 红线）。
@@ -719,7 +719,7 @@ class NavigationCapability(
 
 **最终决策**：端侧文本 LLM（Qwen3.5-2B）已完全移除。chat 与相机指令统一走远程 OpenAI Chat Completions（tool_calls），与 ADR-005 远程协议一致；相机链路为 `AgentOrchestrator.processCameraInput` → `RemoteReActAgent` + `CameraToolService`（相机场域 @Tool 工具集）→ `ToolCallCommandParser` → `CapabilityRegistry.dispatch`，写操作复用 CommandRisk/确认机制与 JS `capability.dispatch` 通路。
 
-**端侧保留**：仅 Qwen3-VL-2B VLM 打标（`LocalLlmEngine` 仅存 `imageInference`，TAG Pass3）、Florence-2 打标、人脸检测（`:mnn-core`）、OPUS-MT 翻译（`:sentencepiece`）——均为媒体/视觉处理，不承担文本对话与指令解析。
+**端侧保留**：仅 Qwen3-VL-2B VLM 打标（`LocalLlmEngine` 仅存 `imageInference`，TAG Pass3）、Florence-2 打标、人脸检测（`:engines:mnn-core`）、OPUS-MT 翻译（`:engines:sentencepiece`）——均为媒体/视觉处理，不承担文本对话与指令解析。
 
 **演进脉络**：ADR-005（本地/远程协议分离）→ ADR-009（本地收缩至相机）→ ADR-010（链路隔离）→ 2026-08-02（本地链路整体删除，见各 ADR「状态更新」块）。
 
@@ -743,11 +743,11 @@ class NavigationCapability(
 
 | 引擎 | 用途 | 模块 |
 |------|------|------|
-| Qwen3-VL-2B（MNN-VLM） | TAG Pass3 图像打标（`LocalLlmEngine.imageInference`） | `:runtime-core` + `:mnn-core` |
-| Florence-2 | 图像打标 | `:app` 打标流水线 |
-| MNN 人脸检测 | 人脸检测/关键点 | `:beauty-engine` + `:mnn-core` |
-| NIMA / eDifFIQA（ONNX，NNAPI 加速） | 人物封面美学/人脸质量打分（`NimaScorer`/`EdiffiqaScorer`/`CoverSelector`） | `:app` `domain/aesthetic/` |
-| OPUS-MT（SentencePiece） | 翻译（与 LLM 无关） | `:sentencepiece` |
+| Qwen3-VL-2B（MNN-VLM） | TAG Pass3 图像打标（`LocalLlmEngine.imageInference`） | `:runtime-core` + `:engines:mnn-core` |
+| Florence-2 | 图像打标 | `:androidApp` 打标流水线 |
+| MNN 人脸检测 | 人脸检测/关键点 | `:engines:beauty-engine` + `:engines:mnn-core` |
+| NIMA / eDifFIQA（ONNX，NNAPI 加速） | 人物封面美学/人脸质量打分（`NimaScorer`/`EdiffiqaScorer`/`CoverSelector`） | `:androidApp` `domain/aesthetic/` |
+| OPUS-MT（SentencePiece） | 翻译（与 LLM 无关） | `:engines:sentencepiece` |
 
 **原 Qwen3.5-2B 端侧文本推理选型（历史记录，2026-06-12 验证，已随模型删除而废止）**：
 
@@ -1243,4 +1243,4 @@ class AiAgentUseCase(
 - [IM_REMOTE_CONTROL_TECH_SPEC.md](../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) — IM 远程控制技术规范
 - `runtime-core/src/main/java/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）
 - `agent-core/src/main/java/com/mamba/` — 源码目录（Java 基础库：ChatModel、OpenAiChatModel、Tool、AiServices 等）
-- `app/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt` — Facade 桥接层
+- `androidApp/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt` — Facade 桥接层

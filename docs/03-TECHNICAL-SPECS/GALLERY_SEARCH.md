@@ -3,7 +3,7 @@
 > **状态**: 已实施 / 已补充 LLM 意图标准化  
 > **最后更新**: 2026-08-03  
 > **维护者**: RD Agent  
-> **关联代码**: `app/src/main/java/com/mamba/picme/domain/search/`、`app/src/main/java/com/mamba/picme/features/chat/capability/`、`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/`
+> **关联代码**: `androidApp/src/main/java/com/mamba/picme/domain/search/`、`androidApp/src/main/java/com/mamba/picme/features/chat/capability/`、`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/`
 
 ---
 
@@ -110,7 +110,7 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 
 ### 3.2 数据模型（AppDatabase v19）
 
-数据库版本：`19`（`app/src/main/java/com/mamba/picme/data/local/AppDatabase.kt`，以源码 `version` 为准）。
+数据库版本：`19`（`androidApp/src/main/java/com/mamba/picme/data/local/AppDatabase.kt`，以源码 `version` 为准）。
 
 核心表：
 
@@ -197,7 +197,7 @@ MediaSearchEngine.search(filter)
 
 ### 4.1 QuerySegmenter 语义分段
 
-`app/src/main/java/com/mamba/picme/domain/search/QuerySegmenter.kt`
+`androidApp/src/main/java/com/mamba/picme/domain/search/QuerySegmenter.kt`
 
 把查询切分为带类型的语义段，词典优先级：`SCENE > LOCATION > OBJECT > ACTIVITY > OCR > PERSON`。
 
@@ -211,7 +211,7 @@ MediaSearchEngine.search(filter)
 
 ### 4.2 QueryParser 规则解析
 
-`app/src/main/java/com/mamba/picme/domain/search/QueryParser.kt`
+`androidApp/src/main/java/com/mamba/picme/domain/search/QueryParser.kt`
 
 支持的时间词：
 
@@ -228,7 +228,7 @@ MediaSearchEngine.search(filter)
 
 ### 4.3 ExplicitFirstSearchPipeline 显式约束优先召回
 
-`app/src/main/java/com/mamba/picme/domain/search/ExplicitFirstSearchPipeline.kt`
+`androidApp/src/main/java/com/mamba/picme/domain/search/ExplicitFirstSearchPipeline.kt`
 
 1. **显式过滤取交集**：时间范围、地点关键词、`hasFace=1` 分别查 `MediaDao`，得到 `candidateIds`。
 2. **候选集内内容检索**：在 `candidateIds` 内匹配 `labels`、`mlKitLabels`（仅历史数据，新扫描不产生）、`ocrText`、`fileName`。
@@ -236,7 +236,7 @@ MediaSearchEngine.search(filter)
 
 ### 4.4 SemanticSearchEngine 语义召回
 
-`app/src/main/java/com/mamba/picme/domain/search/SemanticSearchEngine.kt`
+`androidApp/src/main/java/com/mamba/picme/domain/search/SemanticSearchEngine.kt`
 
 - 使用 `MobileClipEngine` + `MobileClipTokenizer` 对查询文本编码为 512 维 embedding。
 - 对候选集（或全量有 `semanticEmbedding` 的媒体）计算余弦相似度，取 Top-K。
@@ -245,7 +245,7 @@ MediaSearchEngine.search(filter)
 
 ### 4.5 MediaSearchEngine 融合排序
 
-`app/src/main/java/com/mamba/picme/domain/search/MediaSearchEngine.kt`
+`androidApp/src/main/java/com/mamba/picme/domain/search/MediaSearchEngine.kt`
 
 搜索入口分为两个：
 
@@ -272,7 +272,7 @@ MediaSearchEngine.search(filter)
 
 ### 4.6 中文查询翻译（ChineseQueryTranslator）
 
-`app/src/main/java/com/mamba/picme/domain/tag/i18n/ChineseQueryTranslator.kt`
+`androidApp/src/main/java/com/mamba/picme/domain/tag/i18n/ChineseQueryTranslator.kt`
 
 翻译分层：
 
@@ -287,7 +287,7 @@ MediaSearchEngine.search(filter)
 
 ### 5.1 搜索界面
 
-`app/src/main/java/com/mamba/picme/features/gallery/GalleryScreen.kt`
+`androidApp/src/main/java/com/mamba/picme/features/gallery/GalleryScreen.kt`
 
 - 点击顶部栏搜索图标进入搜索模式，显示 `SearchTopBar`。
 - 输入查询后调用 `MediaSearchEngine.search(query)`，结果渲染为 `MediaGrid`。
@@ -347,4 +347,4 @@ MediaSearchEngine.search(filter)
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 生成管道细节
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — 数据库表结构
 - `docs/03-TECHNICAL-SPECS/TAG_GENERATION.md` — TAG 国际化方案
-- `app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md` — 相册模块实现约束
+- `androidApp/src/main/java/com/mamba/picme/features/gallery/AGENTS.md` — 相册模块实现约束

@@ -93,7 +93,7 @@
 ### 3.1 核心实现: PhotoProcessorImpl
 
 ```kotlin
-// beauty-engine/src/main/java/com/mamba/picme/beauty/render/PhotoProcessorImpl.kt（实际落地类）
+// engines/beauty-engine/src/main/java/com/mamba/picme/beauty/render/PhotoProcessorImpl.kt（实际落地类）
 
 class PhotoProcessorImpl(private val context: Context) : PhotoProcessor {
     private val eglCore = EGLCore()
@@ -391,7 +391,7 @@ Phase 1 验收标准：
 
 ### 落地实现记录（2026-05）
 
-GPU 离屏渲染拍照已由 `PhotoProcessorImpl` 在 `beauty-engine/render` 中完整落地，关键实现要点：
+GPU 离屏渲染拍照已由 `PhotoProcessorImpl` 在 `engines/beauty-engine/render` 中完整落地，关键实现要点：
 
 1. **独立 EGL 上下文与 Pbuffer Surface**：在 `PhotoProcessorImpl` 中创建独立 EGL 上下文，避免与预览线程竞争，实现后台线程异步处理。
 2. **渲染管线复用**：直接调用 `BeautyRenderer.renderBeautyMultiPass()` / `renderMainShaderFromFbo2D()`，复用预览同一套渲染逻辑。拍照路径设置 `skipCopyPass = true` 跳过 OES→2D 转换。

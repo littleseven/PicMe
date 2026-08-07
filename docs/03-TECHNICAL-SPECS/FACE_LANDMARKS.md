@@ -806,8 +806,8 @@ fun checkSymmetryIndex(leftIndex: Int, rightIndex: Int): Boolean {
 
 | 文件 | 说明 |
 |------|------|
-| `beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/adapter/MediaPipe468Adapter.kt` | 生产环境 468→106 映射 |
-| `app/src/main/java/com/mamba/picme/features/gallery/components/FaceLandmarkOverlay.kt` | 静态图调试映射与可视化 |
+| `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/adapter/MediaPipe468Adapter.kt` | 生产环境 468→106 映射 |
+| `androidApp/src/main/java/com/mamba/picme/features/gallery/components/FaceLandmarkOverlay.kt` | 静态图调试映射与可视化 |
 | `docs/07-STANDARDS/COORDINATE_SYSTEM.md` | 坐标系标准 |
 | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` | 大美丽技术规格 |
 

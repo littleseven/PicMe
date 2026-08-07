@@ -11,7 +11,7 @@
 #
 # 注意：
 #   - 脚本化入口 BackupRestoreBroadcastReceiver 仅存在于 debug 构建
-#     （app/src/debug/）；release 包请使用应用内 设置 → 备份与恢复（SAF）。
+#     （androidApp/src/debug/）；release 包请使用应用内 设置 → 备份与恢复（SAF）。
 #   - 备份文件存放在外部媒体目录 /sdcard/Android/media/<package>/PoLangBackup/，
 #     该目录属于应用自身存储区域，adb 可直接 pull/push。
 #   - 恢复依赖媒体 URI 匹配（content://media/external/...），恢复前请确保：

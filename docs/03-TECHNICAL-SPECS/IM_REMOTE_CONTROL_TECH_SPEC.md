@@ -239,7 +239,7 @@ class RemoteCommandDispatcher(
 
 ### 3.3 RemoteControlCapability
 
-与现有实现一致（见 [RemoteControlCapability.kt](../../app/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt)），管理设备绑定状态、自动确认模式，不通过 AgentCommand 密封类分发。
+与现有实现一致（见 [RemoteControlCapability.kt](../../androidApp/src/main/java/com/mamba/picme/domain/agent/capability/RemoteControlCapability.kt)），管理设备绑定状态、自动确认模式，不通过 AgentCommand 密封类分发。
 
 ### 3.4 图片回传流程
 

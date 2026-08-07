@@ -337,5 +337,5 @@ MediaSearchEngine.search(filter)
 - `docs/02-ARCHITECTURE/ADR/ADR-005-local-remote-inference-split.md` — LLM 推理协议分离
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` — Agent 运行时架构（search_media 路由）
 - `docs/01-PRODUCT/FEATURES.md` — 智能相册产品需求
-- `app/src/main/java/com/mamba/picme/domain/search/` — 搜索引擎实现
-- `app/src/main/java/com/mamba/picme/domain/tag/` — TAG 生成与语义编码实现
+- `androidApp/src/main/java/com/mamba/picme/domain/search/` — 搜索引擎实现
+- `androidApp/src/main/java/com/mamba/picme/domain/tag/` — TAG 生成与语义编码实现

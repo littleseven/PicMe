@@ -1,6 +1,6 @@
 import re
 
-with open('app/src/main/java/com/picme/features/camera/CameraScreen.kt', 'r') as f:
+with open('androidApp/src/main/java/com/picme/features/camera/CameraScreen.kt', 'r') as f:
     lines = f.readlines()
 
 # Find line numbers for the test command block
@@ -50,7 +50,7 @@ new_lines.extend(lines[end_line+1:state_start])
 # Add everything after state snapshot block
 new_lines.extend(lines[state_end:])
 
-with open('app/src/main/java/com/picme/features/camera/CameraScreen.kt', 'w') as f:
+with open('androidApp/src/main/java/com/picme/features/camera/CameraScreen.kt', 'w') as f:
     f.writelines(new_lines)
 
 print("File updated successfully!")

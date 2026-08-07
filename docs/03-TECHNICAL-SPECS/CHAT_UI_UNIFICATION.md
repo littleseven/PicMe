@@ -18,7 +18,7 @@ PoLang 项目中存在两套 Chat UI 实现：
 
 ### 1. 新增统一组件库
 
-**位置**: `app/src/main/java/com/mamba/picme/features/common/chat/`
+**位置**: `androidApp/src/main/java/com/mamba/picme/features/common/chat/`
 
 #### 文件列表：
 - **AiChatScreen.kt** - 主聊天界面组件
@@ -266,7 +266,7 @@ fun aiChatScreen_showsMessages() {
 
 - [Material Design 3 - Sheets](https://m3.material.io/components/sheets/overview)
 - [Jetpack Compose - Layouts](https://developer.android.com/jetpack/compose/layouts)
-- [Camera Chat UI Implementation](../../app/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt)
+- [Camera Chat UI Implementation](../../androidApp/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt)
 
 ---
 

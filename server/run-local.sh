@@ -24,7 +24,7 @@
 set -euo pipefail
 export LC_ALL=C   # 纯 ASCII 变量名语义：避免 $var 紧邻中文标点时，bash 把高位字节吞进变量名（echo 中文不受影响）
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"          # .../langchain4android/server
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"          # .../polang/server
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 GRADLEW="$REPO_ROOT/gradlew"
 

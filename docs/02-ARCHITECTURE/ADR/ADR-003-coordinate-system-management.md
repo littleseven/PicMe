@@ -349,7 +349,7 @@ scripts/check-doc-coordinate-annotation.sh
 
 ```
 ❌ 发现未标注坐标系的注释:
-app/src/main/java/com/picme/example.kt:42: // 左眼中心点
+androidApp/src/main/java/com/picme/example.kt:42: // 左眼中心点
 
 ❌ 发现 1 处问题，请参考 docs/07-STANDARDS/COORDINATE_SYSTEM.md 修复
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-将自动生成的 ML Kit 标签中文翻译合并进 app/src/main/assets/tag_translations.json。
+将自动生成的 ML Kit 标签中文翻译合并进 androidApp/src/main/assets/tag_translations.json。
 
 用法：
     python scripts/merge_ml_kit_translations.py
@@ -21,7 +21,7 @@ def save_json(path: Path, data: dict) -> None:
 
 
 def main() -> None:
-    assets_dir = Path("app/src/main/assets")
+    assets_dir = Path("androidApp/src/main/assets")
     translations_path = assets_dir / "tag_translations.json"
     ml_kit_path = Path("scripts/ml_kit_labels_zh.json")
 

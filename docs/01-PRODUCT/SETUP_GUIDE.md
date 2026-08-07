@@ -1,7 +1,7 @@
 # PoLang 破浪相册 · 使用前提与首次设置指南
 
 > **定位**：新用户「如何把 PoLang 真正用起来」的唯一事实来源（SSOT），供官网帮助页 / Google Play 商店说明复用。
-> **维护**：与 [`FEATURES.md`](./FEATURES.md)、[`03-TECHNICAL-SPECS/TAG_GENERATION.md`](../03-TECHNICAL-SPECS/TAG_GENERATION.md) 保持一致；模型清单以 `app/src/main/res/raw/llm_models.json` 为准。
+> **维护**：与 [`FEATURES.md`](./FEATURES.md)、[`03-TECHNICAL-SPECS/TAG_GENERATION.md`](../03-TECHNICAL-SPECS/TAG_GENERATION.md) 保持一致；模型清单以 `androidApp/src/main/res/raw/llm_models.json` 为准。
 > **最后更新**：2026-08-03
 
 ---

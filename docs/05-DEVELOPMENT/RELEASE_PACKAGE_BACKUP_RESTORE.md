@@ -95,7 +95,7 @@ adb shell run-as com.mamba.picme ls -l files/datastore/
 ## 三、scripts/app-data-backup.sh（仅 debug 包）
 
 脚本通过 adb 广播调用 debug 构建中的 `BackupRestoreBroadcastReceiver`
-（`app/src/debug/java/com/mamba/picme/testing/backup/`，action `com.mamba.picme.AGENT_TEST`），
+（`androidApp/src/debug/java/com/mamba/picme/testing/backup/`，action `com.mamba.picme.AGENT_TEST`），
 备份粒度与 SAF 完全一致（备份模型 v5），适合开发/CI 自动化：
 
 ```bash
@@ -126,9 +126,9 @@ adb shell run-as com.mamba.picme ls -l files/datastore/
 
 ## 六、相关文件
 
-- 备份规则：`app/src/main/res/xml/data_extraction_rules.xml`
-- 兼容规则：`app/src/main/res/xml/backup_rules.xml`
-- 应用内 SAF 入口：`app/src/main/java/com/mamba/picme/features/backuprestore/BackupRestoreActivity.kt`
-- 备份仓库：`app/src/main/java/com/mamba/picme/domain/backup/TagDataBackupRepository.kt`
+- 备份规则：`androidApp/src/main/res/xml/data_extraction_rules.xml`
+- 兼容规则：`androidApp/src/main/res/xml/backup_rules.xml`
+- 应用内 SAF 入口：`androidApp/src/main/java/com/mamba/picme/features/backuprestore/BackupRestoreActivity.kt`
+- 备份仓库：`androidApp/src/main/java/com/mamba/picme/domain/backup/TagDataBackupRepository.kt`
 - 脚本入口：`scripts/app-data-backup.sh`
-- 脚本化广播入口（仅 debug）：`app/src/debug/java/com/mamba/picme/testing/backup/BackupRestoreBroadcastReceiver.kt`
+- 脚本化广播入口（仅 debug）：`androidApp/src/debug/java/com/mamba/picme/testing/backup/BackupRestoreBroadcastReceiver.kt`

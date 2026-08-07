@@ -335,7 +335,7 @@ cat > "$WIKI_DIR/Architecture-Decisions.md" << 'EOF'
 
 **状态**: ✅ 已接受  
 **日期**: 2026-04  
-**影响范围**: `beauty-engine/egl/`, App 层依赖
+**影响范围**: `engines/beauty-engine/egl/`, App 层依赖
 
 **决策**: 移除 GPUPixel,仅保留自研 OpenGL ES 引擎
 
@@ -347,7 +347,7 @@ cat > "$WIKI_DIR/Architecture-Decisions.md" << 'EOF'
 
 **后果**:
 - GPUPixel 相关代码全部清理
-- App 层仅依赖 `beauty-engine:api`
+- App 层仅依赖 `:engines:beauty-engine` 的 api
 - 容灾降级展示无美颜原生预览
 
 详见: [ADR-001](../docs/02-ARCHITECTURE/ADR/ADR-001-beauty-engine-architecture.md)
@@ -358,7 +358,7 @@ cat > "$WIKI_DIR/Architecture-Decisions.md" << 'EOF'
 
 **状态**: ✅ 已接受  
 **日期**: 2026-05  
-**影响范围**: `beauty-engine/egl/OffscreenRenderer.kt`
+**影响范围**: `engines/beauty-engine/egl/OffscreenRenderer.kt`
 
 **决策**: 预览与拍照使用同一套 OpenGL Shader
 

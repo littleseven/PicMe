@@ -108,7 +108,7 @@ infer_scope() {
             scope="settings"
         elif echo "$file" | grep -q "features/debug/"; then
             scope="debug"
-        elif echo "$file" | grep -q "beauty-engine/"; then
+        elif echo "$file" | grep -q "engines/beauty-engine/"; then
             scope="beauty"
         elif echo "$file" | grep -q "data/"; then
             scope="data"

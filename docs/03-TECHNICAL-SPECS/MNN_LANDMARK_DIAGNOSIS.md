@@ -207,7 +207,7 @@ output->copyToHostTensor(&tmpOutput);
 
 ```bash
 # 1. 编译安装
-./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/polang-debug.apk
+./gradlew :androidApp:assembleDebug && adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 
 # 2. 启动应用并收集日志
 adb logcat -c && adb shell am start -n com.mamba.picme/.MainActivity
@@ -259,11 +259,11 @@ sleep 10 && adb logcat -d | grep "MNN vs Baseline"
 
 | 文件 | 作用 |
 |------|------|
-| `beauty-engine/src/main/cpp/mnn_face_detector.cpp` | MNN C++ 推理核心（修复主文件） |
-| `beauty-engine/src/main/java/.../MnnLandmarkDetector.kt` | MNN Kotlin 层（INPUT_SIZE 修复） |
-| `beauty-engine/src/main/java/.../FaceDetectorManager.kt` | 检测器管理（初始化修复） |
-| `beauty-engine/src/main/java/.../InsightFace2D106Detector.kt` | 基准实现（历史 ONNX，已移除） |
-| `beauty-engine/src/main/java/.../MnnLandmarkAdapter.kt` | 点序映射层 |
+| `engines/beauty-engine/src/main/cpp/mnn_face_detector.cpp` | MNN C++ 推理核心（修复主文件） |
+| `engines/beauty-engine/src/main/java/.../MnnLandmarkDetector.kt` | MNN Kotlin 层（INPUT_SIZE 修复） |
+| `engines/beauty-engine/src/main/java/.../FaceDetectorManager.kt` | 检测器管理（初始化修复） |
+| `engines/beauty-engine/src/main/java/.../InsightFace2D106Detector.kt` | 基准实现（历史 ONNX，已移除） |
+| `engines/beauty-engine/src/main/java/.../MnnLandmarkAdapter.kt` | 点序映射层 |
 
 ---
 

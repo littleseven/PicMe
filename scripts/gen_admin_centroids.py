@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 生成 app/src/main/assets/geo/admin_centroids_zh.json
+# 生成 androidApp/src/main/assets/geo/admin_centroids_zh.json
 #
 # 数据来源 GeoNames (https://download.geonames.org/export/dump/) —— CC-BY 4.0，
 # 须在「关于/隐私」页署名 http://www.geonames.org。
@@ -19,7 +19,7 @@ import os
 import urllib.request
 import zipfile
 
-OUT = "app/src/main/assets/geo/admin_centroids_zh.json"
+OUT = "androidApp/src/main/assets/geo/admin_centroids_zh.json"
 CITY_URL = "https://download.geonames.org/export/dump/cities500.zip"
 # 本地缓存：开发/复跑时避免重复下载（首次下载后落盘）
 CACHE = "/tmp/cities500.zip"

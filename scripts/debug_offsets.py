@@ -2,10 +2,10 @@
 """Debug NCNN .bin weight offsets"""
 import struct
 
-with open('app/src/main/assets/models/ncnn/det_500m.bin', 'rb') as f:
+with open('androidApp/src/main/assets/models/ncnn/det_500m.bin', 'rb') as f:
     data = f.read()
 
-with open('app/src/main/assets/models/ncnn/det_500m.param', 'r') as f:
+with open('androidApp/src/main/assets/models/ncnn/det_500m.param', 'r') as f:
     lines = [l.rstrip('\n\r') for l in f.readlines()]
 
 header = lines[1].strip().split()
