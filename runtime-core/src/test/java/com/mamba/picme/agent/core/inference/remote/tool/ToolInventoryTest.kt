@@ -1,5 +1,6 @@
 package com.mamba.picme.agent.core.inference.remote.tool
 
+import ai.koog.agents.core.tools.annotations.Tool as KoogTool
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.tool.Tool
 import org.junit.Assert.assertEquals
@@ -43,8 +44,10 @@ class ToolInventoryTest {
 
     @Test
     fun `inventory contains every @Tool of ChatToolService`() {
+        // Phase 4：ChatToolService 已迁到 Koog @Tool（customName 保蛇形 LLM-facing 名），
+        // 扫 KoogTool.customName（与 ToolInventory.build 的 Koog 扫描分支一致）。
         val toolNames = ChatToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("ChatToolService 应暴露多个 @Tool", toolNames.size > 20)
 
         val inventory = ToolInventory.build(ChatToolService::class.java)
@@ -56,7 +59,7 @@ class ToolInventoryTest {
     fun `chat system prompt covers every @Tool of ChatToolService`() {
         val prompt = RemoteChatEngine.chatSystemPrompt
         val toolNames = ChatToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
 
         val missing = toolNames.filter { !prompt.contains(it) }
         assertEquals("system prompt 未覆盖工具：$missing", emptyList<String>(), missing)

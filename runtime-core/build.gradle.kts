@@ -64,7 +64,12 @@ dependencies {
     // Koog（JetBrains）Agent 框架：替换自维护 langchain4j fork（:agent-core），分阶段迁移。
     // 排除 serialization-jackson：它传递引入 jackson-module-kotlin:2.21.3（MethodHandle.invokeExact，
     // 需 API 26），minSdk 24 下 D8 拒绝 dex。Koog 主链路用 kotlinx-serialization，不依赖此可选模块。
-    implementation(libs.koog.agents) {
+    //
+    // **api 而非 implementation（Phase 4 起）**：runtime-core 的公开类型实现了 Koog 接口
+    //（ChatToolService : ai.koog...reflect.ToolSet，Phase 5 起 CameraToolService/
+    // RemoteControlToolService 同理）。消费方（:app）持有这些类型时，编译器须能在其类路径解析
+    // ToolSet 等超类型，故 Koog 须经 api 传递暴露（与 :agent-core 同为 api）。
+    api(libs.koog.agents) {
         exclude(group = "ai.koog", module = "serialization-jackson")
     }
     // Koog 记忆层（KoogMessageMemoryStore）用 kotlinx Json 编解码 Koog Message；

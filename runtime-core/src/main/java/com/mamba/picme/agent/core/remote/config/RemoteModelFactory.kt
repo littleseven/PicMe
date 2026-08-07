@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.remote.config
 
 import ai.koog.http.client.HttpClientFactoryResolver
+import ai.koog.http.client.KoogHttpClient
 import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
@@ -14,6 +15,7 @@ import com.mamba.picme.agent.core.inference.remote.log.CapturingChatModelListene
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import java.time.Duration
+import kotlinx.serialization.json.Json
 
 /**
  * 远程模型工厂
@@ -122,25 +124,32 @@ object RemoteModelFactory {
      * 创建 Koog 执行器包（与 [createBuilder] 并行存在，旧 langchain4j 路径不受影响）。
      *
      * - 自定义 baseUrl：[OpenAIClientSettings] 仅传 baseUrl，其余默认（DeepSeek/Kimi/网关通用）。
+     * - 网关鉴权 header：[extraHeaders]（如 `X-App-Token` / `X-Device-Id`）非空时，用
+     *   [HeaderInjectingHttpClientFactory] 包一层默认 Ktor 工厂——auth 仍由 apiKey 经
+     *   `OpenAILLMClient(apiKey, settings, factory)` 标准路径注入（factory.create 的
+     *   `authHeaderValue` 由 client 从 apiKey 派生，装饰器原样透传），extraHeaders 合并进
+     *   factory.create 的 headers map。空 map 时直接用默认工厂，零额外开销。
      * - DeepSeek `thinking.type=disabled`：经 `additionalProperties` 由 Koog 的
      *   `AdditionalPropertiesFlatteningSerializer` 平铺到请求体顶层（Phase 0 已源码级证实 +
      *   配方测试）。
      * - `clampTemperature`：kimi-k2.6 钳到 1.0，其余 0.7（与旧链路一致）。
-     *
-     * 注意：Phase 3 只负责构造与编译期正确性；网关 header（X-App-Token / X-Device-Id）、
-     * 流式事件、token 指标采集在 Phase 4 接 Ktor HttpClient / EventHandler 时补齐。
      */
-    public fun createKoogExecutor(config: RemoteModelConfig): KoogExecutorBundle {
+    public fun createKoogExecutor(
+        config: RemoteModelConfig,
+        extraHeaders: Map<String, String> = emptyMap(),
+    ): KoogExecutorBundle {
         val effectiveApiKey = config.apiKey.ifEmpty { "gateway-auth" }
         // openAIClient(apiKey, settings) 顶层工厂函数（@file:JvmName facade "OpenAIClientFactory"）
         // 仅在 JVM 变体的 kotlin_module 注册，Android 变体 Kotlin 解析不到该函数/facade 类
         // （同文件的普通类 OpenAILLMClient/OpenAIClientSettings 可解析）。Android 直接构造：
         // 用 HttpClientFactoryResolver 解析默认 Ktor HttpClient 工厂（与 Koog 官方 openAIClient
-        // 工厂内部走的同一解析路径）。
+        // 工厂内部走的同一解析路径）。有网关 header 时包一层 HeaderInjectingHttpClientFactory。
+        val baseFactory = HttpClientFactoryResolver.resolve()
+        val factory = if (extraHeaders.isEmpty()) baseFactory else HeaderInjectingHttpClientFactory(baseFactory, extraHeaders)
         val client = OpenAILLMClient(
             effectiveApiKey,
             OpenAIClientSettings(baseUrl = config.baseUrl),
-            HttpClientFactoryResolver.resolve(),
+            factory,
         )
         val executor: PromptExecutor = MultiLLMPromptExecutor(client)
         val model = LLModel(
@@ -161,4 +170,40 @@ object RemoteModelFactory {
     // object 内可直接声明 const val（companion 仅在 class 内需要；standalone object 内
     // 嵌套 companion 非法——曾踩此编译错）。createKoogExecutor 引用此常量。
     private const val MAX_TOKENS: Int = 4096
+}
+
+/**
+ * 给 Koog HttpClient 工厂注入额外请求 header（picme-server 网关鉴权 `X-App-Token` / `X-Device-Id`）。
+ *
+ * `OpenAIClientSettings` 无 header 参数；`OpenAILLMClient(apiKey, settings, factory)` 的 apiKey 只
+ * 派生 `Authorization`。网关要求的自定义 header 经此装饰器合并进 `KoogHttpClient.Factory.create` 的
+ * `headers` 形参（位置参数透传，authHeaderValue 等 7 个其余参数原样转交委托工厂——auth 仍走 apiKey
+ * 标准路径，不在此重写）。
+ *
+ * `headers + extraHeaders`：委托工厂（默认 Ktor）传入的 headers 全保留，extraHeaders 同名键覆盖
+ * （本场景 extraHeaders 仅含网关鉴权键，不与默认 headers 冲突）。
+ */
+private class HeaderInjectingHttpClientFactory(
+    private val delegate: KoogHttpClient.Factory,
+    private val extraHeaders: Map<String, String>,
+) : KoogHttpClient.Factory {
+    override fun create(
+        baseURL: String,
+        authHeaderValue: String,
+        headers: Map<String, String>,
+        queryParams: Map<String, String>,
+        connectTimeoutMs: Long,
+        socketTimeoutMs: Long,
+        requestTimeoutMs: Long,
+        json: Json,
+    ): KoogHttpClient = delegate.create(
+        baseURL,
+        authHeaderValue,
+        headers + extraHeaders,
+        queryParams,
+        connectTimeoutMs,
+        socketTimeoutMs,
+        requestTimeoutMs,
+        json,
+    )
 }
