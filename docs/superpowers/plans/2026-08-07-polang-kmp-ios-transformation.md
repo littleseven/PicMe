@@ -115,10 +115,11 @@ polang/                          # 原 langchain4android/（git repo 改名）
   - **必验项结果**：① **Koog 1.1.1 iOS 真机初始化并调用 DeepSeek 成功**——显式构造 `KtorKoogHttpClient.Factory()` 直通，无 ServiceLoader 坑，实回 "pong"；② **构建耗时**：debug 增量 ~5-6s（AI 迭代循环可行）、Release framework 全量 3m54s（一次性成本）；③ xcode-kotlin 插件已装并就位，断点命中待 Xcode GUI 手动确认（非阻塞）
   - 出口：双端调用成功 ✅；构建耗时记录 ✅；spike 报告已产出 ✅（断点为体验项不阻塞）
   - **注意**：spike 代码为一次性验证产物，不进入主分支；Phase 4 从零建立正式 shared 模块
-- [ ] **2.4 美颜引擎 Metal 渲染验证（review 增补）**
-  - 内容：美颜引擎（`beauty-engine/src/main/cpp/`）是独立 C++/OpenGLES 渲染管线，Phase 2.1 不覆盖。最小验证：选一个最简单滤镜（如美白）用 Metal shader 在 AVCaptureSession 实时预览渲染、测帧率；评估 GLSL→MSL 逐滤镜迁移工作量（坐标系原点/Y 翻转/色彩空间差异）
-  - 出口：单滤镜实时渲染达标；全滤镜迁移工作量评估（预估 1–2 周）写入 Phase 5.4 细化计划
-  - 说明：也可降级为 Phase 5.4 内独立工项，但届时才发现 shader 迁移量会冲击 Phase 5 工期
+- [x] **2.4 美颜引擎 Metal 渲染验证（review 增补）** ✅ **GO（2026-08-08）**
+  - 内容（已修正事实）：美颜引擎渲染宿主是 **Kotlin**（`beauty-engine/.../render/` 19 文件 6185 行）+ GLSL shader 是 `assets/shaders/` 文本模块；`cpp/` 仅 6 个 MNN 人脸推理文件，**非渲染管线**。最小验证：选美白 `whitenSkin` 用 Metal shader 在 AVCaptureSession 实时预览渲染、测帧率；评估 GLSL→MSL 逐滤镜 + 宿主迁移工作量
+  - 出口 ✅：美白单滤镜真机实时渲染达标（**FPS:30** 出图、滑杆美白即时可见）；全滤镜迁移评估完成（shader ~1 周 + Kotlin 宿主重写 ~2 周，详见 spike 报告 §4）。**报告：`docs/superpowers/specs/2026-08-08-ios-beauty-metal-spike-design.md`，产物 `tmp/beauty-metal-spike/`（不入库）**
+  - 关键结论：GLSL→MSL 翻译可行，90% 机械（hard 仅 3 个 warp 反向形变）；**Phase 5.4 真正成本在宿主重写（EGL/GLES/SurfaceTexture→Metal/AVFoundation）非 shader**。计划原估 1–2 周偏紧（缺宿主重写），建议 ~3 周
+  - 踩坑（纳入 Phase 5.4 检查清单）：MSL `const` 局部标量须译 `constexpr`（`constant` 是地址空间非 const）；`commandQueue` 勿漏初始化；相机须显式 `requestAccess`；`AVCaptureConnection.videoOrientation=Portrait` 修偏转；iOS 无日志可达时「状态画屏」调试法
 - [ ] **2.5 Spike 总结与 Go/No-Go**
   - 各报告汇总（含补验项结果），确认进入 Phase 5（iOS App）；任一红线失败则回到方案讨论（本文件第 1 节决策需重审）
 
@@ -174,7 +175,9 @@ polang/                          # 原 langchain4android/（git repo 改名）
 - [ ] **5.1 工程与基建**：Xcode 工程、Bundle ID、签名、SPM/依赖、shared XCFramework 集成、xcode-kotlin 调试、基础 CI（xcodebuild）；**初始化 Privacy Manifest（`PrivacyInfo.xcprivacy`）**（review 增补：2024/05 起强制，声明 FileTimestamp/SystemBootTime/DiskSpace 等 API 使用原因，勿等 Phase 6.3）；统一 MNN/sentencepiece/美颜三组件的 XCFramework 构建与 SPM binary target 分发策略
 - [ ] **5.2 首批页面（学习区）**：相册网格 + 相簿列表（SwiftUI + Photos framework + shared 领域层）；权限流按 iOS 范式实现（Limited Access 一等公民）
 - [ ] **5.3 相册网格性能实测**：1000+ 缩略图滚动帧率/内存达标验证（此前评估为 iOS 端最重 UI 场景）
-- [ ] **5.4 相机管线（压轴）**：AVFoundation 采集 → 美颜引擎（C++ 直桥，走 Phase 2.1 产物）→ MTKView 渲染；对焦/变焦/曝光手势；对标 Android [PERF] 红线（交互 <100ms、快门 <50ms）
+- [ ] **5.4 相机管线（压轴）**：AVFoundation 采集 → 美颜引擎 → MTKView 渲染；对焦/变焦/曝光手势；对标 Android [PERF] 红线（交互 <100ms、快门 <50ms）
+  - ⚠️ **美颜引擎非「C++ 直桥」（Phase 2.4 spike 已证，2026-08-08）**：渲染宿主是 Kotlin（绑定 EGL/GLES/SurfaceTexture，无法移植），iOS 须用 Swift/Metal/AVFoundation **从零重写管线宿主**（~2 周）；只有 GLSL shader 可移植（GLSL→MSL，~1 周，hard 仅 3 个 warp）。详见 spike 报告 `specs/2026-08-08-ios-beauty-metal-spike-design.md` §4。MNN 人脸推理（106 关键点）那部分才是走 Phase 2.1 C++ 产物
+  - 美颜子工期据此重估为 **~3 周**（shader 翻译 ~1 周 + 宿主重写 ~2 周），原 Phase 5 总预算需相应调宽
 - [ ] **5.5 TestFlight 内测包**：相机预览 + 拍照 + 相册浏览可用
 
 ## Phase 6：iOS 功能对齐与发布准备（持续）
@@ -227,3 +230,4 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | 2026-08-07 | 修订四：按 KMP/iOS 细化方案 review 回写——2.1/2.2 spike 结论降级为有条件 GO（Metal 输出全 0 补验、Qwen3-VL-2B 真机补验、运行时调用补验、MNN 版本核实）；2.3 标为阻塞前置并补必验项（Koog 1.1.1 iOS 初始化、构建耗时实测）；新增 Phase 2.4 美颜 Metal 渲染 spike；Phase 4 补耦合点六类清单（Room→SQLDelight、Foreground Service→BGTaskScheduler 为大头）；Phase 5 工期调 6–10 周 + 5.1 增 Privacy Manifest；6.1 改为新设计 MetalGuardian；6.3 增 App Store 2.5.2 合规分析；风险登记册新增 3 项、上调 1 项。同步回写两份 spike 报告（specs/2026-08-07-ios-mnn-spike-design.md、2026-08-07-ios-spm-quickjs-spike-design.md） |
 | 2026-08-07 | 修订五：Phase 1 完成合并（merge `614a4fef`，1.1–1.6 全勾）；Phase 1.5 耦合点清单提前产出（specs/2026-08-07-runtime-core-platform-coupling-inventory.md，基于 `1cbe9353` 删除后状态审计）；Phase 4 细粒度计划提前产出（plans/2026-08-07-shared-kmp-extraction.md，15 Task + 决策锁定 D1–D9，执行待 Phase 3） |
 | 2026-08-08 | 修订六：Phase 1 迁移性质复盘（Koog 差异化优势 main 上未挖，战略红利兑现等 Phase 4，为 Phase 4 核心价值点论证）；Phase 1.6 补 README/CLAUDE.md 漂移清理（push `8bb9ef30`/`870ee533`，对外 + 指令文档漂移清零） |
+| 2026-08-08 | 修订七：Phase 2.4 美颜 Metal spike ✅ GO——美白单滤镜真机实时渲染达标（FPS:30 出图、滑杆美白即时可见）；产出报告 specs/2026-08-08-ios-beauty-metal-spike-design.md + 产物 tmp/beauty-metal-spike/（不入库）。**修正计划两处误述**：2.4 内容「渲染管线在 cpp/」实为 Kotlin 宿主 + GLSL assets；5.4「美颜 C++ 直桥」实为 shader 移植 + Kotlin 宿主 Swift/Metal 重写。**Phase 5.4 美颜工期重估 ~3 周**（shader 翻译 ~1 周 + 宿主重写 ~2 周，原估 1–2 周偏紧）。踩坑清单：MSL const→constexpr、commandQueue 初始化、相机显式 requestAccess、videoOrientation、iOS 无日志时状态画屏调试法 |
