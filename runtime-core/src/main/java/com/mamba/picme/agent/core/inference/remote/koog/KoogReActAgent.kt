@@ -271,7 +271,12 @@ class KoogReActAgent(
             .llmModel(executorBundle.model)
             .toolRegistry(ToolRegistry.builder().tools(effectiveToolService).build())
             .systemPrompt(systemPrompt)
-            .maxIterations(config.maxIterations.coerceAtLeast(1))
+            // Koog maxIterations 数的是**子图节点执行次数**（一轮工具调用 ≈ nodeLLMRequest +
+            // nodeExecuteTool ≈ 2-3 步），而旧 AiServices maxIterations 数的是 LLM 轮次。
+            // 真机实测（2026-08-07）：直接传 10 时约 5 轮工具调用就抛
+            // AIAgentMaxNumberOfIterationsReachedException（飞书 navigate_to 循环撞顶）。
+            // ×3 换算对齐旧「10 轮 LLM」语义上限（仅是上限，正常 1-3 轮即返回，无副作用）。
+            .maxIterations((config.maxIterations * KOOG_STEPS_PER_LLM_ROUND).coerceAtLeast(KOOG_STEPS_PER_LLM_ROUND))
             .install(ChatMemory.Feature) { cm ->
                 cm.chatHistoryProvider(historyProvider)
             }
@@ -333,6 +338,11 @@ class KoogReActAgent(
         config.gatewayToken?.takeIf { it.isNotBlank() }?.let { token -> headers["X-App-Token"] = token }
         if (config.deviceId.isNotBlank()) headers["X-Device-Id"] = config.deviceId
         return headers
+    }
+
+    private companion object {
+        /** Koog 一轮工具调用消耗的步数估计（nodeLLMRequest + nodeExecuteTool 等），见 buildAgent 注释。 */
+        const val KOOG_STEPS_PER_LLM_ROUND = 3
     }
 }
 

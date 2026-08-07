@@ -145,7 +145,9 @@ class KoogChatAgent(
             .llmModel(executorBundle.model)
             .toolRegistry(ToolRegistry.builder().tools(toolSet).build())
             .systemPrompt(systemPrompt)
-            .maxIterations(config.maxIterations.coerceAtLeast(1))
+            // Koog maxIterations 数的是子图节点执行次数（一轮工具调用 ≈ 2-3 步），旧 AiServices
+            // 数的是 LLM 轮次；×3 对齐旧语义上限（详见 KoogReActAgent 同款注释，飞书真机撞顶实测）。
+            .maxIterations((config.maxIterations * KOOG_STEPS_PER_LLM_ROUND).coerceAtLeast(KOOG_STEPS_PER_LLM_ROUND))
             .install(ChatMemory.Feature) { cm ->
                 cm.chatHistoryProvider(historyProvider)
             }
@@ -217,5 +219,8 @@ class KoogChatAgent(
 
     private companion object {
         const val RECORD_SOURCE = "chat-koog"
+
+        /** Koog 一轮工具调用消耗的步数估计（nodeLLMRequest + nodeExecuteTool 等）。 */
+        const val KOOG_STEPS_PER_LLM_ROUND = 3
     }
 }
