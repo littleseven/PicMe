@@ -67,6 +67,9 @@ dependencies {
     implementation(libs.koog.agents) {
         exclude(group = "ai.koog", module = "serialization-jackson")
     }
+    // Koog 记忆层（KoogMessageMemoryStore）用 kotlinx Json 编解码 Koog Message；
+    // 显式声明而非依赖 Koog 传递暴露（Koog 仅 api 暴露 JsonElement）。
+    implementation(libs.kotlinx.serialization.json)
 
 
     // RecyclerView（ScrollTool 滚动检测）

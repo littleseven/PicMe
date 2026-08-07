@@ -1,5 +1,14 @@
 package com.mamba.picme.agent.core.remote.config
 
+import ai.koog.http.client.HttpClientFactoryResolver
+import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
+import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
+import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
+import ai.koog.prompt.executor.model.PromptExecutor
+import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.llm.LLMProvider
+import ai.koog.prompt.params.LLMParams
+import ai.koog.prompt.params.additionalPropertiesOf
 import com.mamba.android.MambaAgentFactory
 import com.mamba.picme.agent.core.inference.remote.log.CapturingChatModelListener
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
@@ -93,4 +102,63 @@ object RemoteModelFactory {
         }
         return builder
     }
+
+    // ── Koog（:agent-core → Koog 迁移，Phase 3 additive）─────────────────────────
+
+    /**
+     * Koog 执行器组装产物：Phase 4 chat 链路用它构建 [ai.koog.agents.core.agent.AIAgent]。
+     *
+     * - [executor]：单模型 PromptExecutor（OpenAI 兼容客户端，接自定义 baseUrl）。
+     * - [model]：LLM 标识（provider=OpenAI 兼容，id=模型名），供 agent/executor 路由。
+     * - [baseParams]：基础推理参数（temperature 钳制 + DeepSeek thinking 禁用）。
+     */
+    public data class KoogExecutorBundle(
+        public val executor: PromptExecutor,
+        public val model: LLModel,
+        public val baseParams: LLMParams,
+    )
+
+    /**
+     * 创建 Koog 执行器包（与 [createBuilder] 并行存在，旧 langchain4j 路径不受影响）。
+     *
+     * - 自定义 baseUrl：[OpenAIClientSettings] 仅传 baseUrl，其余默认（DeepSeek/Kimi/网关通用）。
+     * - DeepSeek `thinking.type=disabled`：经 `additionalProperties` 由 Koog 的
+     *   `AdditionalPropertiesFlatteningSerializer` 平铺到请求体顶层（Phase 0 已源码级证实 +
+     *   配方测试）。
+     * - `clampTemperature`：kimi-k2.6 钳到 1.0，其余 0.7（与旧链路一致）。
+     *
+     * 注意：Phase 3 只负责构造与编译期正确性；网关 header（X-App-Token / X-Device-Id）、
+     * 流式事件、token 指标采集在 Phase 4 接 Ktor HttpClient / EventHandler 时补齐。
+     */
+    public fun createKoogExecutor(config: RemoteModelConfig): KoogExecutorBundle {
+        val effectiveApiKey = config.apiKey.ifEmpty { "gateway-auth" }
+        // openAIClient(apiKey, settings) 顶层工厂函数（@file:JvmName facade "OpenAIClientFactory"）
+        // 仅在 JVM 变体的 kotlin_module 注册，Android 变体 Kotlin 解析不到该函数/facade 类
+        // （同文件的普通类 OpenAILLMClient/OpenAIClientSettings 可解析）。Android 直接构造：
+        // 用 HttpClientFactoryResolver 解析默认 Ktor HttpClient 工厂（与 Koog 官方 openAIClient
+        // 工厂内部走的同一解析路径）。
+        val client = OpenAILLMClient(
+            effectiveApiKey,
+            OpenAIClientSettings(baseUrl = config.baseUrl),
+            HttpClientFactoryResolver.resolve(),
+        )
+        val executor: PromptExecutor = MultiLLMPromptExecutor(client)
+        val model = LLModel(
+            provider = LLMProvider.OpenAI,
+            id = config.modelId,
+            maxOutputTokens = MAX_TOKENS.toLong(),
+        )
+        val params = LLMParams(
+            temperature = clampTemperature(config.modelId),
+            maxTokens = MAX_TOKENS,
+            additionalProperties = additionalPropertiesOf(
+                "thinking" to mapOf("type" to "disabled")
+            ),
+        )
+        return KoogExecutorBundle(executor, model, params)
+    }
+
+    // object 内可直接声明 const val（companion 仅在 class 内需要；standalone object 内
+    // 嵌套 companion 非法——曾踩此编译错）。createKoogExecutor 引用此常量。
+    private const val MAX_TOKENS: Int = 4096
 }
