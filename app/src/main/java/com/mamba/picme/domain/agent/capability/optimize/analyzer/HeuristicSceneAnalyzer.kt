@@ -4,9 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.RectF
-import android.net.Uri
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.domain.agent.capability.optimize.openImageInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -211,10 +211,8 @@ class HeuristicSceneAnalyzer(
      */
     private fun decodeThumbnail(imageUri: String): Bitmap? {
         return try {
-            val uri = Uri.parse(imageUri)
-
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            context.contentResolver.openInputStream(uri)?.use { stream ->
+            openImageInputStream(context, imageUri)?.use { stream ->
                 BitmapFactory.decodeStream(stream, null, bounds)
             }
             if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
@@ -224,7 +222,7 @@ class HeuristicSceneAnalyzer(
 
             val sampleSize = calcInSampleSize(bounds.outWidth, bounds.outHeight)
             val opts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-            context.contentResolver.openInputStream(uri)?.use { stream ->
+            openImageInputStream(context, imageUri)?.use { stream ->
                 BitmapFactory.decodeStream(stream, null, opts)
             }
         } catch (e: Exception) {

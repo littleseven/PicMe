@@ -3,9 +3,9 @@ package com.mamba.picme.domain.agent.capability.optimize.gacha
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import com.mamba.picme.beauty.api.FaceData
 import com.mamba.picme.core.common.Logger
+import com.mamba.picme.domain.agent.capability.optimize.openImageInputStream
 import com.mamba.picme.domain.agent.capability.optimize.recipe.OptimizeRecipeMapper
 import com.mamba.picme.features.editor.EditRecipe
 import com.mamba.picme.features.editor.RecipeApplier
@@ -29,13 +29,12 @@ class CandidateRenderer(
 
     /**
      * 解码长边不超过 [maxEdge] 的降采样 Bitmap；失败返回 null（不抛出）。
-     * 支持 content:// 与 file:// URI。
+     * 支持 content://、file:// 与无 scheme 裸路径（chat 附件持久化格式），见 [openImageInputStream]。
      */
     fun decodeDownscaled(imageUri: String, maxEdge: Int = CANDIDATE_MAX_EDGE): Bitmap? {
         return try {
-            val uri = Uri.parse(imageUri)
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            val boundsStream = context.contentResolver.openInputStream(uri) ?: run {
+            val boundsStream = openImageInputStream(context, imageUri) ?: run {
                 Logger.w(TAG, "decodeDownscaled: openInputStream null: $imageUri")
                 return null
             }
@@ -51,7 +50,7 @@ class CandidateRenderer(
             while (longEdge / (sample * 2) >= maxEdge) sample *= 2
 
             val options = BitmapFactory.Options().apply { inSampleSize = sample }
-            val pixelStream = context.contentResolver.openInputStream(uri) ?: run {
+            val pixelStream = openImageInputStream(context, imageUri) ?: run {
                 Logger.w(TAG, "decodeDownscaled: reopen stream null: $imageUri")
                 return null
             }
