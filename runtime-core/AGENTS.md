@@ -32,7 +32,7 @@
 
 ```
 :runtime-core
-    ├── :agent-core (api)
+    ├── ai.koog:koog-agents (api，外部依赖；替代已删除的 :agent-core fork)
     ├── :beauty-api
     ├── :mnn-core
     └── Sherpa-ONNX AAR (compileOnly)
@@ -164,6 +164,12 @@
 > - `CameraToolService` 内联消除「拼 argsJson → ToolExecutionRequest → ToolCallCommandParser.parse」往返：@Tool 方法直接构造 AgentCommand（滤镜/风格中文别名解析随迁至本类私有函数）；`ToolCallCommandParser` 及其 3 个单测随删
 > - 删除 langchain4j 期死代码：`RemoteReActAgent.kt`、`StreamingSyncChatModel.kt`、`CapturingChatModelListener.kt`（+其单测）、`DataStoreChatMemoryStore.kt`、`RemoteModelFactory.createBuilder`、`AgentConfigurator.createRemoteChatModel`
 > - `AgentOrchestrator`（相机 `getCameraAgent`）/ `AgentConfigurator`（飞书 `getFeishuAgent`）仅构造点切 `KoogReActAgent`，两个 process 方法签名与 `RemoteReActAgentCallback`/`InferenceResult` 契约不变
+>
+> **2026-08-07 langchain4j → Koog 迁移 Phase 6（删除 :agent-core + 清理）**：
+> - `settings.gradle.kts` 删 `include(":agent-core")`、`runtime-core/build.gradle.kts` 删 `api(project(":agent-core"))`、`agent-core/` 目录（310 文件 ~3.4 万行 vendored fork）整体删除；`scripts/publish-mamba-agent.sh`（fork 的 maven 发布脚本）随删
+> - 护栏验证：`grep "import com.mamba."`（排除 `com.mamba.picme` 自身命名空间）在 runtime-core/app 源码为零引用
+> - `app/proguard-rules.pro` 删失效 keep（`PoLangToolService` 类已不存在；Koog 工具集为代码直接引用，无需 langchain4j 式 @Tool 反射 keep）
+> - 清理死代码 `RemoteModelFactory.DEFAULT_SOURCE`（无引用）；`RemotePromptBuilder` 早已随端侧文本 LLM 移除（仅历史 ADR 提及）
 
 ## 设计原则
 

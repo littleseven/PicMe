@@ -41,9 +41,6 @@ object RemoteModelFactory {
     @Volatile
     var captureContent: Boolean = true
 
-    /** 默认来源标签（调用方未显式指定 sourceLabel 时使用）。 */
-    const val DEFAULT_SOURCE = "remote"
-
     /**
      * 根据模型 ID 获取合法 temperature 值。
      *
