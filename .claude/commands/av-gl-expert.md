@@ -102,7 +102,7 @@ GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, viewportArray, 0)
 Log.d(TAG, "Viewport: [${viewportArray[0]}, ${viewportArray[1]}, ${viewportArray[2]}x${viewportArray[3]}]")
 ```
 
-完整代码示例见 [reference.md](reference.md) §1-§2。
+完整代码示例见 [reference.md](skills/av-gl-expert/reference.md) §1-§2。
 
 ---
 
@@ -126,7 +126,7 @@ R=U, G=V，验证纹理坐标映射。预期：左上黑(0,0)，右下黄(1,1)�
 
 通过 `glGetUniformfv` 读取 Uniform 实际值，验证参数传递。
 
-完整 Shader 代码和 Kotlin 实现见 [reference.md](reference.md) §1。
+完整 Shader 代码和 Kotlin 实现见 [reference.md](skills/av-gl-expert/reference.md) §1。
 
 ---
 
@@ -159,7 +159,7 @@ R=U, G=V，验证纹理坐标映射。预期：左上黑(0,0)，右下黄(1,1)�
 
 使用双缓冲 PBO 实现异步像素读取，将 `glReadPixels` 从 ~50ms 降至 ~15ms。
 
-完整实现代码见 [reference.md](reference.md) §2。
+完整实现代码见 [reference.md](skills/av-gl-expert/reference.md) §2。
 
 ---
 
@@ -185,7 +185,7 @@ R=U, G=V，验证纹理坐标映射。预期：左上黑(0,0)，右下黄(1,1)�
 
 **优化**：预初始化双摄像头 Surface，切换时直接复用。
 
-完整代码示例见 [reference.md](reference.md) §5。
+完整代码示例见 [reference.md](skills/av-gl-expert/reference.md) §5。
 
 ---
 
@@ -219,7 +219,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 
 使用 Compose Canvas 绘制 106 个关键点，按区域着色（轮廓红、眉毛绿/蓝、眼睛黄/青、鼻子紫、嘴巴白）。
 
-完整代码实现见 [reference.md](reference.md) §3-§4。
+完整代码实现见 [reference.md](skills/av-gl-expert/reference.md) §3-§4。
 
 ---
 
@@ -394,7 +394,7 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 
 统一使用 `PoLang:[ModuleName]` 标签，如 `PoLang:BeautyRenderer`。
 
-完整代码示例见 [reference.md](reference.md) §6。
+完整代码示例见 [reference.md](skills/av-gl-expert/reference.md) §6。
 
 ---
 

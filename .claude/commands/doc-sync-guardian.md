@@ -166,7 +166,7 @@ find app/src -name "AGENTS.md" -exec grep -l "Product Alignment" {} \;
 |------|------|------|
 | Phase 1 | 识别变更范围 | `git diff --name-only HEAD~1 HEAD` |
 | Phase 2 | 确定需更新文档 | 按变更类型映射到文档层级（见下表） |
-| Phase 3 | 生成更新草案 | 使用 [reference.md](reference.md) §更新草案模板 |
+| Phase 3 | 生成更新草案 | 使用 [reference.md](skills/doc-sync-guardian/reference.md) §更新草案模板 |
 | Phase 4 | 执行更新并验证 | `./scripts/check-doc-consistency.sh` |
 
 **变更类型 → 文档映射**：
@@ -341,7 +341,7 @@ grep -r "已废弃" docs/*.md
 
 ### 自动化脚本
 
-详见 [reference.md](reference.md) §脚本工具：
+详见 [reference.md](skills/doc-sync-guardian/reference.md) §脚本工具：
 - `check-doc-consistency.sh` — 三层文档一致性快速检查
 - `sync-doc-template.py` — 基于 git diff 生成文档更新草案
 
@@ -440,7 +440,7 @@ grep -r "已废弃" docs/*.md
 
 ## 📝 使用示例
 
-详见 [reference.md](reference.md) §使用示例：
+详见 [reference.md](skills/doc-sync-guardian/reference.md) §使用示例：
 - **示例 1**: 日常审计流程
 - **示例 2**: 功能交付后同步文档
 - **示例 3**: 记录重大技术决策
