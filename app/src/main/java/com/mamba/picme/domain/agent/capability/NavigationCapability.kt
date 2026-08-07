@@ -112,10 +112,25 @@ class NavigationCapability(
 
             is AgentCommand.GoBack -> {
                 Logger.d(tag, "Matched GoBack")
-                withContext(Dispatchers.Main) {
-                    navController.popBackStack()
+                val popped = withContext(Dispatchers.Main) {
+                    // 栈底守卫：start destination（Main）不可弹出，否则 NavHost 变空白、
+                    // 用户看到"窗口消失"（此前 agent 收尾 go_back 把 Main 弹掉即此现象）
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    } else {
+                        false
+                    }
                 }
-                Result.success(AgentAction.Success(commandId = command.commandId, command = command))
+                if (popped) {
+                    Result.success(AgentAction.Success(commandId = command.commandId, command = command))
+                } else {
+                    Result.success(
+                        AgentAction.TextReply(
+                            commandId = command.commandId,
+                            message = "已经在主页面了，没有可返回的页面"
+                        )
+                    )
+                }
             }
 
             else -> {

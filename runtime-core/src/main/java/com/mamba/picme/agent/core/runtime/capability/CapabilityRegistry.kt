@@ -85,9 +85,15 @@ class CapabilityRegistry private constructor(
      * 页面级 Capability 随页面进入注册、退出时 [unregister]）
      */
     fun register(capability: Capability) {
-        if (registry.containsKey(capability.name)) {
-            Logger.w(tag, "Capability ${capability.name} already registered, skipping")
+        val existing = registry[capability.name]
+        if (existing === capability) {
             return
+        }
+        if (existing != null) {
+            // 同名不同实例：典型场景是 Activity recreate 后新 NavigationCapability 注册——
+            // 旧实例闭包捕获的 composition scope 已取消，继续持有会让 agent 导航静默失效
+            // （navigate_to 返回 Success 但 scrollToPage 从未执行）。替换为存活的新实例。
+            Logger.w(tag, "Capability ${capability.name} already registered with a stale instance, replacing")
         }
         registry[capability.name] = capability
         Logger.i(tag, "Registered capability: ${capability.name} " +
@@ -96,9 +102,12 @@ class CapabilityRegistry private constructor(
 
     /**
      * 注销 Capability（仅页面级 Capability 使用，如 CameraCapability 随 CameraScreen 销毁注销）
+     *
+     * 实例感知：仅当注册表当前持有的就是该实例时才移除，防止旧实例的 onDispose
+     * 竞态把已替换的新实例一并摘除。
      */
     fun unregister(capability: Capability) {
-        if (registry.remove(capability.name) != null) {
+        if (registry[capability.name] === capability && registry.remove(capability.name) != null) {
             Logger.i(tag, "Unregistered capability: ${capability.name}")
         }
     }

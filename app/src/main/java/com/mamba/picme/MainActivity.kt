@@ -185,10 +185,17 @@ class MainActivity : ComponentActivity() {
                     }
                     val systemCapability = remember { SystemCapability(applicationContext) }
                     val orchestrator = remember { AgentOrchestrator.getInstance(applicationContext) }
-                    LaunchedEffect(navigationCapability, systemCapability) {
+                    DisposableEffect(navigationCapability, systemCapability) {
                         orchestrator.registerCapability(navigationCapability)
                         orchestrator.registerCapability(systemCapability)
                         Logger.i(TAG, "NavigationCapability and SystemCapability registered globally")
+                        onDispose {
+                            // Activity recreate（切语言/配置变更）时注销旧实例，新 composition 的
+                            // 新实例随后注册替换；旧实例不注销会让注册表持有捕获死 scope 的
+                            // capability，agent 导航静默失效（navigate_to 假成功、切页不发生）
+                            orchestrator.unregisterCapability(navigationCapability)
+                            orchestrator.unregisterCapability(systemCapability)
+                        }
                     }
 
                     LaunchedEffect(navController) {
