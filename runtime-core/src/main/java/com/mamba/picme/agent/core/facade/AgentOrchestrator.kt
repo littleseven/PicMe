@@ -17,10 +17,14 @@ import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.inference.local.LocalModelService
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
 import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.RequestMetaInfo
+import ai.koog.prompt.message.ResponseMetaInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -495,10 +499,13 @@ class AgentOrchestrator private constructor(context: Context) {
         return agent
     }
 
+    /** Koog 记忆存储（对话回写用，懒创建；与 agent 运行期记忆同一 koog_memory_ 键空间）。 */
+    private val koogMemoryStore by lazy { KoogMessageMemoryStore(configurator.getContext()) }
+
     /** 相机对话历史回写（fire-and-forget，与原 LocalCameraAgent.saveConversation 同语义）。 */
     private fun saveCameraConversation(sessionId: String, userInput: String, assistantResponse: String) {
         backgroundScope.launch {
-            memoryManager.appendConversation(sessionId, userInput, assistantResponse)
+            appendKoogConversation(sessionId, userInput, assistantResponse)
         }
     }
 
@@ -507,6 +514,7 @@ class AgentOrchestrator private constructor(context: Context) {
     /** 清空指定 session 的对话记忆（如 "camera"）。 */
     suspend fun clearChatMemory(sessionId: String) {
         memoryManager.clearHistory(sessionId)
+        koogMemoryStore.clear(sessionId)
     }
 
     /**
@@ -514,7 +522,19 @@ class AgentOrchestrator private constructor(context: Context) {
      * 使后续文本消息能引用图片上下文）。
      */
     suspend fun appendConversation(sessionId: String, userInput: String, assistantResponse: String) {
-        memoryManager.appendConversation(sessionId, userInput, assistantResponse)
+        appendKoogConversation(sessionId, userInput, assistantResponse)
+    }
+
+    /** 经 Koog 记忆层原子回写一轮 user+assistant（load→拼→save，store 内置三不变式裁剪）。 */
+    private suspend fun appendKoogConversation(sessionId: String, userInput: String, assistantResponse: String) {
+        val history = koogMemoryStore.load(sessionId)
+        koogMemoryStore.save(
+            sessionId,
+            history + listOf(
+                Message.User(userInput, RequestMetaInfo.Empty),
+                Message.Assistant(assistantResponse, ResponseMetaInfo.Empty)
+            )
+        )
     }
 
 }

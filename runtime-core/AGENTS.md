@@ -167,7 +167,9 @@
 >
 > **2026-08-07 langchain4j → Koog 迁移 Phase 6（删除 :agent-core + 清理）**：
 > - `settings.gradle.kts` 删 `include(":agent-core")`、`runtime-core/build.gradle.kts` 删 `api(project(":agent-core"))`、`agent-core/` 目录（310 文件 ~3.4 万行 vendored fork）整体删除；`scripts/publish-mamba-agent.sh`（fork 的 maven 发布脚本）随删
-> - 护栏验证：`grep "import com.mamba."`（排除 `com.mamba.picme` 自身命名空间）在 runtime-core/app 源码为零引用
+> - 护栏验证：`grep "^import com.mamba."`（排除 `com.mamba.picme` 自身命名空间）在 runtime-core/app 源码与测试为零引用
+> - 残留编译依赖清理：`Capability.getCommandParameterSchema` 死 API（langchain4j tool-calling 时代，零调用方）从接口与 5 个实现（Memory/PersonRelation/ChatSearch/Camera/AiOptimize）移除；`ToolInventory` 删 langchain4j 注解分支（仅 Koog 扫描）；`MemoryManager` 裁剪到仅剩 `clearHistory`（读/写/裁剪已迁 KoogMessageMemoryStore），`AgentOrchestrator` 对话回写（相机 saveCameraConversation / chat appendConversation）改走 Koog 记忆层 load→拼→save；`clearChatMemory` 新旧两个键空间（memory_ / koog_memory_）并清
+> - 测试侧：`ToolInventoryTest` / `ChatToolCapabilityCoverageTest` fixture 迁 Koog 注解；`MemoryManagerTrimTest`（fork 消息 trim 语义）随删——三不变式等价覆盖由 `KoogMessageMemoryTest` / `KoogMessageMemoryCodecTest` 承担；`MobileClipTokenizerTest` 顺手修 createTempDir 弃用（Kotlin 2.3 升级为 error）
 > - `app/proguard-rules.pro` 删失效 keep（`PoLangToolService` 类已不存在；Koog 工具集为代码直接引用，无需 langchain4j 式 @Tool 反射 keep）
 > - 清理死代码 `RemoteModelFactory.DEFAULT_SOURCE`（无引用）；`RemotePromptBuilder` 早已随端侧文本 LLM 移除（仅历史 ADR 提及）
 

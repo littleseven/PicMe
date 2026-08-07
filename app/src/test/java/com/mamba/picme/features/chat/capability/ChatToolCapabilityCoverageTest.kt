@@ -3,7 +3,7 @@ package com.mamba.picme.features.chat.capability
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.features.gallery.capability.GalleryCapability
 import com.mamba.picme.features.settings.capability.SettingsCapability
-import com.mamba.tool.Tool
+import ai.koog.agents.core.tools.annotations.Tool as KoogTool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -56,8 +56,9 @@ class ChatToolCapabilityCoverageTest {
 
     @Test
     fun `every chat tool has capability coverage or documented exception`() {
+        // ChatToolService 已迁 Koog @Tool（customName 保蛇形 LLM-facing 名）
         val toolNames = ChatToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("ChatToolService 应暴露多个 @Tool", toolNames.size > 20)
 
         val uncovered = toolNames.filter { it !in covered && it !in exceptions }
@@ -67,7 +68,7 @@ class ChatToolCapabilityCoverageTest {
     @Test
     fun `exception table has no stale entries`() {
         val toolNames = ChatToolService::class.java.declaredMethods
-            .mapNotNull { it.getAnnotation(Tool::class.java)?.name }
+            .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
             .toSet()
         val stale = exceptions.keys - toolNames
         assertTrue("例外表含已不存在的工具名：$stale", stale.isEmpty())

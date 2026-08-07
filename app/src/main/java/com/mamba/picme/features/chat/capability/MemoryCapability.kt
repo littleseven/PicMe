@@ -10,7 +10,6 @@ import com.mamba.picme.agent.core.runtime.state.SceneManager
 import com.mamba.picme.core.common.Logger
 import com.mamba.picme.domain.memory.MemoryRepository
 import com.mamba.picme.domain.memory.MemorySource
-import com.mamba.model.chat.request.json.JsonObjectSchema
 
 /**
  * 通用事实记忆 Capability（CHAT 场景）。
@@ -44,27 +43,6 @@ class MemoryCapability(
         "recall_memory" -> "检索事实记忆，参数: query (模糊匹配，空串返回全部)"
         else -> "未知命令"
     }
-
-    override fun getCommandParameterSchema(command: String): JsonObjectSchema =
-        when (command) {
-            "remember_fact" -> JsonObjectSchema.builder()
-                .description("记住一条事实")
-                .addStringProperty("content", "事实内容（原子化，一条一个事实）")
-                .addStringProperty("category", "可选分类，如 健康/偏好")
-                .required("content")
-                .build()
-            "forget_fact" -> JsonObjectSchema.builder()
-                .description("遗忘一条事实")
-                .addStringProperty("fact_id", "事实 id（recall_memory 返回里有，优先）")
-                .addStringProperty("query", "内容模糊匹配（恰好一条才删）")
-                .build()
-            "recall_memory" -> JsonObjectSchema.builder()
-                .description("检索事实记忆")
-                .addStringProperty("query", "模糊匹配关键词，空串返回全部")
-                .required("query")
-                .build()
-            else -> JsonObjectSchema.builder().build()
-        }
 
     override suspend fun execute(
         command: AgentCommand,

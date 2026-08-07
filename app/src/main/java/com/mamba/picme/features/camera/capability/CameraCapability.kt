@@ -17,7 +17,6 @@ import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
 import com.mamba.picme.core.common.Logger
-import com.mamba.model.chat.request.json.JsonObjectSchema
 
 /**
  * 相机控制 Capability（页面级）
@@ -164,51 +163,6 @@ class CameraCapability : BaseCapability() {
         "toggle_recording",
         "switch_mode"
     )
-
-    override fun getCommandParameterSchema(command: String): JsonObjectSchema = when (command) {
-        "delay" -> JsonObjectSchema.builder()
-            .addIntegerProperty("delay_ms", "延迟毫秒数（1~300000，即最多5分钟）")
-            .required("delay_ms")
-            .build()
-        "adjust_beauty" -> JsonObjectSchema.builder()
-            .addIntegerProperty("smoothing", "磨皮程度 0~100")
-            .addIntegerProperty("whitening", "美白程度 0~100")
-            .addIntegerProperty("slim_face", "瘦脸 -50~50")
-            .addIntegerProperty("big_eyes", "大眼 0~100")
-            .addIntegerProperty("lip_color", "唇色 0~100")
-            .addIntegerProperty("blush", "腮红 0~100")
-            .addIntegerProperty("eyebrow", "眉毛 0~100")
-            .build()
-        "switch_filter" -> JsonObjectSchema.builder()
-            .addEnumProperty("filter", listOf("NONE", "LEICA_CLASSIC", "LEICA_VIBRANT", "LEICA_BW", "FILM_GOLD", "FILM_FUJI", "VINTAGE", "COOL", "WARM"), "滤镜名称")
-            .required("filter")
-            .build()
-        "switch_style" -> JsonObjectSchema.builder()
-            .addEnumProperty("style", listOf("NONE", "TOON", "SKETCH", "POSTERIZE", "EMBOSS", "CROSSHATCH"), "风格特效名称")
-            .required("style")
-            .build()
-        "switch_scene" -> JsonObjectSchema.builder()
-            .addEnumProperty("scene", listOf("night", "moon", "none"), "场景模式")
-            .required("scene")
-            .build()
-        "switch_ratio" -> JsonObjectSchema.builder()
-            .addEnumProperty("ratio", listOf("4:3", "16:9", "full"), "画幅比例")
-            .required("ratio")
-            .build()
-        "adjust_exposure" -> JsonObjectSchema.builder()
-            .addIntegerProperty("exposure", "曝光补偿 -2~2")
-            .required("exposure")
-            .build()
-        "adjust_zoom" -> JsonObjectSchema.builder()
-            .addNumberProperty("zoom", "变焦比例 0.5~10.0")
-            .required("zoom")
-            .build()
-        "switch_mode" -> JsonObjectSchema.builder()
-            .addEnumProperty("mode", listOf("PHOTO", "VIDEO", "PRO", "DOCUMENT"), "拍摄模式")
-            .required("mode")
-            .build()
-        else -> super.getCommandParameterSchema(command)
-    }
 
     override fun getCommandDescription(command: String): String = when (command) {
         "delay" -> "等待指定毫秒数后再执行后续命令，必须与其他命令组合使用，参数: delay_ms (毫秒)"

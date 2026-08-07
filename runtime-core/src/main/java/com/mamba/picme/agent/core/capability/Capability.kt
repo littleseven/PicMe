@@ -5,7 +5,6 @@ import com.mamba.picme.agent.core.model.context.AgentAction
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import com.mamba.model.chat.request.json.JsonObjectSchema
 
 /**
  * Capability 接口 —— Agent 可执行能力的抽象契约
@@ -42,9 +41,6 @@ interface Capability {
     fun supportsCommand(command: AgentCommand): Boolean {
         return supportedCommands().contains(AgentCommand.getMethodName(command))
     }
-
-    /** 获取命令的参数 JSON Schema（用于 Tool Calling） */
-    fun getCommandParameterSchema(command: String): JsonObjectSchema = JsonObjectSchema.builder().build()
 
     /** 构建 Capability 描述文本（用于 system prompt） */
     fun buildCapabilityDescription(): String {
