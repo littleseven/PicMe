@@ -65,6 +65,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -245,7 +246,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     repo.telegramAllowedChatIdFlow
                 ) { type, feishuAppId, feishuAppSecret, telegramBotToken, telegramChatId ->
                     ChannelSelection(type, feishuAppId, feishuAppSecret, telegramBotToken, telegramChatId)
-                }.collect { sel ->
+                    // DataStore 任一无关 key 写入（如相机持久化预览比例）都会触发重放射；
+                    // 值未变时必须跳过，否则 activate() 会无意义断开/重连 WS 通道
+                }.distinctUntilChanged().collect { sel ->
                     remoteChannelManager.activate(
                         sel.type, sel.feishuAppId, sel.feishuAppSecret,
                         sel.telegramBotToken, sel.telegramChatId
@@ -401,7 +404,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     repository.aiAgentPrivacyLevelFlow
                 ) { mode, privacyLevel ->
                     SyncConfig(mode, privacyLevel)
-                }.collect { (mode, privacyLevel) ->
+                    // distinctUntilChanged：无关 DataStore 写入会触发重放射，
+                    // 值未变时跳过重配，避免打断正在运行的 agent 任务
+                }.distinctUntilChanged().collect { (mode, privacyLevel) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
                     // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
                     // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
@@ -464,7 +469,10 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     repository.serverAuthTokenFlow
                 ) { configsJson, selectedModelId, serverToken ->
                     Triple(configsJson, selectedModelId, serverToken)
-                }.collect { (configsJson, selectedModelId, serverToken) ->
+                    // distinctUntilChanged：无关 DataStore 写入（如相机持久化预览比例）会触发
+                    // 重放射；值未变时跳过——此前每次重放射都无条件 clearFeishuAgent()，
+                    // 会把正在执行多轮工具调用的飞书 agent 直接 shutdown（"Task cancelled"）
+                }.distinctUntilChanged().collect { (configsJson, selectedModelId, serverToken) ->
                     val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
                     // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
                     orchestrator.setDeviceId(deviceIdProvider.get())
