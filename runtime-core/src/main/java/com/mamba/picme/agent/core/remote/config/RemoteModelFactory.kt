@@ -163,15 +163,18 @@ object RemoteModelFactory {
         val model = LLModel(
             provider = LLMProvider.OpenAI,
             id = config.modelId,
-            // 声明能力，否则两处 gate 会抛错：
-            // 1. OpenAILLMClient.determineParams 因 capabilities 为空走兜底分支抛
+            // 声明能力，否则 Koog 1.1.1 的 capability gate 链会逐个抛错（真机逐个撞出）：
+            // 1. OpenAILLMClient.determineParams：capabilities 为空走兜底抛
             //    "Cannot determine proper LLM params"（需 OpenAIEndpoint.Completions）。
-            // 2. 更下游另有检查抛 "Model <id> does not support completion"——capability id
-            //    "completion" 对应 LLMCapability.Completion（OpenAIEndpoint.Completions 的 id
-            //    是 "openai-endpoint-chat-completions"，两者是不同能力）。
-            // 🔴 不加 Responses（切 Responses API）或 Thinking（与 thinking.type=disabled 冲突）。
+            // 2. AbstractOpenAILLMClient.executeStreaming / getResponse 开头
+            //    requireCapability(Completion) → "does not support completion"。
+            // 3. getResponse 内 tools 非空时 requireCapability(Tools) →
+            //    "does not support tools"；消息转换序列化 tool 历史也查 Tools。
+            // 🔴 不加 Responses（切 Responses API）、Thinking（与 thinking.type=disabled
+            //    冲突）；无需 MultipleChoices/Vision/Audio/Document（chat 只文本+工具）。
             capabilities = listOf(
                 LLMCapability.Completion,
+                LLMCapability.Tools,
                 LLMCapability.OpenAIEndpoint.Completions,
             ),
             maxOutputTokens = MAX_TOKENS.toLong(),
