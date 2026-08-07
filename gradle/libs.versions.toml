@@ -8,9 +8,9 @@ lifecycleRuntimeKtx = "2.8.7"
 lifecycleViewmodelCompose = "2.8.7"
 lifecycleRuntimeCompose = "2.8.7"
 activityCompose = "1.10.1"
-kotlin = "2.0.21"
-composeBom = "2024.12.01"
-googleDevtoolsKsp = "2.0.21-1.0.25"
+kotlin = "2.3.10"
+composeBom = "2026.06.01"
+googleDevtoolsKsp = "2.3.11"
 navigationCompose = "2.8.9"
 roomRuntime = "2.7.0"
 roomKtx = "2.7.0"
@@ -31,8 +31,11 @@ cameraLifecycle = "1.5.0"
 cameraView = "1.5.0"
 cameraCore = "1.5.0"
 cameraVideo = "1.5.0"
-loggingInterceptor = "4.10.0"
-okhttp = "4.10.0"
+loggingInterceptor = "5.2.1"
+okhttp = "5.2.1"
+koog = "1.1.1"
+ktor = "3.3.3"
+kotlinxSerialization = "1.10.0"
 moshiKotlin = "1.15.2"
 moshiKotlinCodegen = "1.15.2"
 datastorePreferences = "1.1.7"
@@ -93,6 +96,8 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "cameraVideo" }
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "loggingInterceptor" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+koog-agents = { group = "ai.koog", name = "koog-agents", version.ref = "koog" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 oapi-sdk = { module = "com.larksuite.oapi:oapi-sdk", version.ref = "oapi" }
 telegram-bot = { module = "com.github.pengrad:java-telegram-bot-api", version.ref = "telegramBot" }
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshiKotlin" }
@@ -124,3 +129,4 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

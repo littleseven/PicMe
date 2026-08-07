@@ -61,6 +61,13 @@ dependencies {
     // agent-core: 合并后的 langchain4j 单库模块（core + open-ai + okhttp）
     api(project(":agent-core"))
 
+    // Koog（JetBrains）Agent 框架：替换自维护 langchain4j fork（:agent-core），分阶段迁移。
+    // 排除 serialization-jackson：它传递引入 jackson-module-kotlin:2.21.3（MethodHandle.invokeExact，
+    // 需 API 26），minSdk 24 下 D8 拒绝 dex。Koog 主链路用 kotlinx-serialization，不依赖此可选模块。
+    implementation(libs.koog.agents) {
+        exclude(group = "ai.koog", module = "serialization-jackson")
+    }
+
 
     // RecyclerView（ScrollTool 滚动检测）
     implementation(libs.androidx.recyclerview)
