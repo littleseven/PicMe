@@ -167,7 +167,7 @@ App → 后续请求带 X-App-Token: <picme_at_*>
 
 | 决策 | 选择 | 理由 |
 |------|------|------|
-| Monorepo | `server/` 寄居在 `langchain4android/` 下 | 端云同仓，AI 全栈协作友好，DTO/规则可端云同源 |
+| Monorepo | `server/` 寄居在 `polang/` 下 | 端云同仓，AI 全栈协作友好，DTO/规则可端云同源 |
 | 独立构建 | 不纳入 Android `settings.gradle.kts` | 安卓构建不依赖、不被拖慢 |
 | 服务引擎 | Ktor CIO（纯 Kotlin 协程） | 省内存，2G 盒子友好 |
 | DB | SQLite + Exposed + HikariCP | 单机单体，规则/遥测/用量结构化存储 |

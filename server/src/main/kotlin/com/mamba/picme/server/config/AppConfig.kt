@@ -72,7 +72,7 @@ data class AppConfig(
             llmPrices = parsePrices(System.getenv("LLM_PRICES_JSON")),
             // GitHub issue sync
             githubToken = env("GITHUB_TOKEN", ""),
-            githubIssueRepo = env("GITHUB_ISSUE_REPO", "littleseven/langchain4android"),
+            githubIssueRepo = env("GITHUB_ISSUE_REPO", "littleseven/polang"),
         )
 
         private fun env(key: String, default: String): String =
