@@ -140,7 +140,10 @@ class KoogChatAgent(
     }
 
     private fun buildAgent(systemPrompt: String): AIAgent<String, String> =
+        // 自定义策略：修复 Koog 1.1.1 内建 singleRunStrategy 丢「文本+tool_calls 同帧」
+        // 工具调用的缺陷（chat 多轮工具任务同样受影响），详见 poLangSingleRunStrategy KDoc。
         AIAgent.builder()
+            .graphStrategy<String, String>("polang_single_run") { poLangSingleRunStrategy() }
             .promptExecutor(executorBundle.executor)
             .llmModel(executorBundle.model)
             .toolRegistry(ToolRegistry.builder().tools(toolSet).build())

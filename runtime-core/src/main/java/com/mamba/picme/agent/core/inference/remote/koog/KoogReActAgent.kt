@@ -266,7 +266,11 @@ class KoogReActAgent(
     }
 
     private fun buildAgent(systemPrompt: String): AIAgent<String, String> =
+        // 自定义策略（graphStrategy 的 lambda 忽略入参 builder，直接返回预建策略）：
+        // 修复 Koog 1.1.1 内建 singleRunStrategy 在 nodeSendToolResult 出边先匹配 onTextMessage
+        // 导致「文本+tool_calls 同帧」响应丢工具调用的缺陷，详见 poLangSingleRunStrategy KDoc。
         AIAgent.builder()
+            .graphStrategy<String, String>("polang_single_run") { poLangSingleRunStrategy() }
             .promptExecutor(executorBundle.executor)
             .llmModel(executorBundle.model)
             .toolRegistry(ToolRegistry.builder().tools(effectiveToolService).build())
