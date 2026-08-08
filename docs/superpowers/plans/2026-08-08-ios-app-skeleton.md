@@ -29,6 +29,7 @@
 > - **Task 0 核对结论**：`MediaRepository`/`AccessState` ✅ 已存在（`domain/repository/`，AccessState 为 4 data object 密封接口）；`BeautySettings`/`FilterType`/`StyleFilter` ✅；**`GetGroupedMediaUseCase` ❌ commonMain 不存在**（Task 9 暂用 Swift 侧等价分组，shared 落地后替换）；**文档偏差**：`MediaAsset.id` 实为 `Long`（非启动包/spec §4.1 所述 String），iOS id 由 `localIdentifier.hashCode()` 派生；`MediaRepository` 仍含 Android 删除授权四方法（iOS 实现为 no-op）。
 > - **Kotlin 2.3.10 DSL 偏差**：`XCFramework` 类已改名 `XCFrameworkConfig`（构造器首参 `Project`），Task 1 代码块已按此落地。
 > - **Intel 主机（x86_64）偏差**：`iosSimulatorArm64Test` 被 KGP 禁用（host arch 不匹配），iOS 单测用 `:shared:iosX64Test` 验证。
+> - **互审修复轮（2026-08-08 二轮，GLM 审 K3 = APPROVED_WITH_COMMENTS 9🟡 全修）**：commits `5cf19a25`/`80855fef`/`1c907b6d`。要点：Flow 异常兜底（signal 6 纪律）、awaitClose 注销 changeListener（桥协议加 removeChangeListener）、AddOnly 权限一等检测（readWrite 未授权时查 addOnly 级）、fetchAllMedia 加 image/video 谓词 + fileName 取 PHAssetResource.originalFilename（S5 对齐 DISPLAY_NAME，DTO 加字段）、watcher 重入取消、Limited banner 显式 VStack、大图 highQualityFormat、相簿后台取数、VM 测试固定 sleep 改轮询。验证：`:shared:iosX64Test` 8/8、workspace xcodebuild test **12/12**（新增 testAddOnlyFallback 六行打表；MediaPipe 模型需 `scripts/ios-fetch-mediapipe-model.sh` 先下载否则资源拷贝失败）。
 > - **Task 3 阻塞**：Xcode 工程（Task 2 产物）在 GLM 分支 `refactor/ios-camera-track`，本 worktree 无工程可 embed；冒烟待两分支会合后补做。Swift 半代码已写（经 SharedKit.h 导出签名核对 + `swiftc -parse` 语法检查），xcodebuild 编译验证随 Task 3 一并补。
 
 ## Task 0: 前置核对（Phase 4 出口验证，不写代码）
