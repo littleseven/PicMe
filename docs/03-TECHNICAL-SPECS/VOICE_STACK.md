@@ -651,17 +651,17 @@ fun canLoadVlm(): Boolean {
 
 | 模块 | 文件 | 改动类型 | 状态 |
 |------|------|---------|------|
-| **runtime-core** | `SherpaMnnAsrEngine.kt` → `SherpaOnnxAsrEngine.kt` | 重写（包名+模型格式） | ✅ 已落地（`platform/voice/SherpaOnnxAsrEngine.kt`） |
-| **runtime-core** | 新增 `KeywordSpotterEngine.kt` | 新建 | ✅ 已落地（`platform/voice/KeywordSpotterEngine.kt`，含 `KeywordSpotterEngineTest.kt`） |
-| **runtime-core** | `MnnResourceManager.kt` → `ModelResourceCoordinator.kt` | 简化（VLM 打标生命周期，文本 LLM 已移除） | ⬜ 未实施（`MnnResourceManager` 保留于 `mnn-core`，语音栈已不经 MNN，更名无必要） |
-| **runtime-core** | 删除 `MnnGlobalReleaseLock` | 删除 | ✅ 已落地（代码无残留引用） |
+| **shared (androidMain)** | `SherpaMnnAsrEngine.kt` → `SherpaOnnxAsrEngine.kt` | 重写（包名+模型格式） | ✅ 已落地（`platform/voice/SherpaOnnxAsrEngine.kt`） |
+| **shared (androidMain)** | 新增 `KeywordSpotterEngine.kt` | 新建 | ✅ 已落地（`platform/voice/KeywordSpotterEngine.kt`，含 `KeywordSpotterEngineTest.kt`） |
+| **mnn-core** | `MnnResourceManager.kt` → `ModelResourceCoordinator.kt` | 简化（VLM 打标生命周期，文本 LLM 已移除） | ⬜ 未实施（`MnnResourceManager` 保留于 `mnn-core`，语音栈已不经 MNN，更名无必要） |
+| **runtime-core（已整删）** | 删除 `MnnGlobalReleaseLock` | 删除 | ✅ 已落地（代码无残留引用） |
 | **app** | `WakeWordEngine.kt` | 重写（KWS 集成） | ✅ 已落地（调整为：新增 `KwakeWordKwsEngine.kt` 承载 KWS，`WakeWordEngine` 保留为 VAD+ASR 回退路径） |
 | **app** | `VoiceCommandCoordinator.kt` | 适配 | ✅ 已落地（三种语音交互模式：Push-to-Talk / WakeWord / KWS，KWS 优先） |
 | **app** | `PushToTalkEngine.kt` | 适配 | ✅ 已落地（KWS 唤醒后复用其完成 ASR 转录） |
 | **build** | `settings.gradle.kts` / `androidApp/build.gradle.kts` | 切换 AAR 依赖 | ✅ 已落地（`com.k2fsa:sherpa-onnx`） |
 | **数据** | `llm_models.json` | 新增 KWS 模型 + 更新 ASR 模型源 | ✅ 已落地（含 `type:"KWS"` 条目，见 §4.7） |
 | **下载** | `LlmModelDownloadManager.kt` | 新增 KWS 模型类型 | ✅ 已落地（`KWS_MODEL_FILES` 固定文件列表 + `type` 映射） |
-| **测试** | 新增 `KeywordSpotterEngineTest.kt` | 单元测试 | ✅ 已落地（`runtime-core/src/test/.../KeywordSpotterEngineTest.kt`） |
+| **测试** | 新增 `KeywordSpotterEngineTest.kt` | 单元测试 | ✅ 已落地（`androidApp/src/test/java/com/mamba/picme/agent/core/platform/voice/KeywordSpotterEngineTest.kt`） |
 | **测试** | 更新 `WakeWordEngineTest.kt` | 适配 | ✅ 已落地（回退路径测试保留） |
 
 #### 实施顺序（已按此完成）

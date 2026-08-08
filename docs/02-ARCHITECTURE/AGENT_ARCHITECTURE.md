@@ -1242,5 +1242,5 @@ class AiAgentUseCase(
 - [VOICE_STACK.md](../03-TECHNICAL-SPECS/VOICE_STACK.md) — 语音栈
 - [IM_REMOTE_CONTROL_TECH_SPEC.md](../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) — IM 远程控制技术规范
 - `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等；平台实现见 `shared/src/androidMain/`）
-- `agent-core/src/main/java/com/mamba/` — 源码目录（Java 基础库：ChatModel、OpenAiChatModel、Tool、AiServices 等）
+- ~~`agent-core/src/main/java/com/mamba/`~~ — `:agent-core` 已删除（2026-08 迁移至 JetBrains Koog 外部依赖）
 - `androidApp/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt` — Facade 桥接层

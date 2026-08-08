@@ -18,13 +18,13 @@ Key technological decisions:
 
 ```bash
 # Build debug APK
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 
 # Run JVM unit tests (no device required)
 ./gradlew test
 # Or module-specific:
-./gradlew :app:testDebugUnitTest
-./gradlew :beauty-engine:testDebugUnitTest
+./gradlew :androidApp:testDebugUnitTest
+./gradlew :engines:beauty-engine:testDebugUnitTest
 
 # Run instrumentation tests (requires device/emulator)
 ./gradlew connectedAndroidTest
@@ -38,7 +38,7 @@ Key technological decisions:
 ./gradlew clean
 
 # Install to device
-adb install -r app/build/outputs/apk/debug/polang-debug.apk
+adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 
 # View PoLang logs
 adb logcat -s "PoLang:*"
@@ -51,17 +51,18 @@ adb logcat -s "PoLang:*"
 
 ### Module Structure
 
-Six Gradle modules defined in `settings.gradle.kts`:
-- **`:app`** — Main Android application (Camera, Gallery, Editor, Settings)
-- **`:beauty-api`** — Pure Kotlin library; stable API contracts shared between `:app` and `:beauty-engine`
+Seven Gradle modules defined in `settings.gradle.kts`:
+- **`:androidApp`** — Main Android application (Camera, Gallery, Editor, Settings)
+- **`:engines:beauty-api`** — Pure Kotlin library; stable API contracts shared between `:androidApp` and `:engines:beauty-engine`
   (BeautySettings, FilterType, StyleFilter, Face, FaceDetector, FrameSyncConfig, etc.)
-- **`:beauty-engine`** — Independent Android library; self-developed OpenGL ES + EGL real-time beauty engine
+- **`:engines:beauty-engine`** — Independent Android library; self-developed OpenGL ES + EGL real-time beauty engine
 - **`:shared`** — Kotlin Multiplatform library (android/jvm/iOS targets); **Agent orchestration layer** infrastructure
   (AgentOrchestrator, CapabilityRegistry, KoogChatAgent, KoogReActAgent, RemoteChatEngine, ExecutionEngine, PrivacyGuard,
   JS sandbox engine-agnostic layer in commonMain; LocalLlmEngine, MemoryManager, voice/ASR, DataStore stores in androidMain).
   Package `com.mamba.picme.agent.core.*`. VLM JNI bridge `.so` is built by `:engines:agent-native`.
-- **`:mnn-core`** — MNN inference JNI wrappers
-- **`:sentencepiece`** — tokenizer
+- **`:engines:mnn-core`** — MNN inference JNI wrappers
+- **`:engines:agent-native`** — VLM JNI bridge (`libagent_native.so`), consumed by `:shared` androidMain via AAR
+- **`:engines:sentencepiece`** — tokenizer
 
 > ⚠️ **模块语义（重要）**：`:shared` = Agent 编排层 KMP 模块（commonMain 引擎无关层：AgentOrchestrator/CapabilityRegistry/KoogChatAgent/KoogReActAgent/RemoteChatEngine/…；androidMain 平台实现：LocalLlmEngine/语音/DataStore；包 `com.mamba.picme.agent.core`）。远程推理经 **Koog**（JetBrains KMP Agent 框架，外部依赖）编排——2026-08 由自维护的 langchain4j fork 迁移而来，原 `:agent-core` 模块已删除；原 `:runtime-core` 已于 Phase 4 整体迁入 `:shared` 后删除。依赖链：`:androidApp → :shared → Koog（外部依赖）`。
 
