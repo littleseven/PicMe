@@ -1163,9 +1163,9 @@ git commit -m "refactor(shared): Phase 4.7 :runtime-core 模块删除（全部�
 
 ---
 
-## Task 15：出口验证与文档同步（路线图 4.8 + [DOC-SYNC] 红线）
+## Task 15：出口验证与文档同步（路线图 4.8 + [DOC-SYNC] 红线）✅ 已完成（2026-08-08，commit `1741afa1` + 审查收尾 `146c980c`，双审 APPROVED_WITH_CONCERNS→🟡 已修，偏差见变更记录）
 
-- [ ] **Step 1: Android 全功能零回归**
+- [x] **Step 1: Android 全功能零回归**
 
 Run: `./scripts/ai-gate.sh`
 Expected: 全绿
@@ -1176,18 +1176,18 @@ Expected: `BUILD SUCCESSFUL`；shared 侧测试数 ≥ 原 runtime-core 23 个�
 安装冒烟矩阵（逐项人工/自动确认）：相机（预览/快门/AI 指令）、相册（浏览/搜索）、Chat（流式/工具调用/JS 图卡）、TAG（打标/控制页）、设置、飞书远程控制（可连环境下）
 Expected: 与 P3 基线记录行为一致
 
-- [ ] **Step 2: shared JVM 单测覆盖核查（4.8 出口标准：核心逻辑 JVM 可复现可调试）**
+- [x] **Step 2: shared JVM 单测覆盖核查（4.8 出口标准：核心逻辑 JVM 可复现可调试）**
 
 Run: `./gradlew :shared:jvmTest --continue && find shared/src/commonTest shared/src/jvmTest -name "*.kt" | wc -l`
 Expected: ≥ 20 个测试文件；`CapabilityRegistry`/`CommandExecutor`/`PrivacyGuard`/`JsBridge`/`KoogMessageMemory`/`EditParams`/`RemotePromptBuilder`（日期区间）/`ToolInventory`（确定性）有对应测试。缺口项补测试后重跑
 
-- [ ] **Step 3: iOS 侧消费验证（骨架级）**
+- [x] **Step 3: iOS 侧消费验证（骨架级）**
 
 Run: `./gradlew :shared:assembleSharedReleaseXCFramework`（或 Phase 2.3 spike 的 XCFramework 任务名）
 Expected: 产出 XCFramework；用 Phase 2.3 spike 工程（`tmp/kmp-koog-spike/`）替换新 framework 后 iOS 真机跑一次 `SharedPlaceholder` 级调用（此时为某个 commonMain PURE API，如 `PrivacyGuard` 分级）
 Expected: iOS 真机调用成功（此步是 Phase 5 的提前排雷，失败不阻塞 Phase 4 收口但必须记录）
 
-- [ ] **Step 4: 文档同步（[DOC-SYNC]）**
+- [x] **Step 4: 文档同步（[DOC-SYNC]）**
 
 - 根 `AGENTS.md`「架构说明」段：`:runtime-core` 消亡、`shared/` KMP 模块三 target 结构、引擎 actual 分布（VLM/语音 androidMain、iOS Phase 5/6）
 - 删 `runtime-core/AGENTS.md`，新建 `shared/AGENTS.md`（模块定位/依赖方向/核心组件位置/编译验证 `./gradlew :shared:jvmTest :shared:assembleDebug`）
@@ -1195,7 +1195,7 @@ Expected: iOS 真机调用成功（此步是 Phase 5 的提前排雷，失败不
 - 路线图 Phase 4 全部 `- [ ]` 勾选为 `- [x]`，变更记录追加一行
 - `docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md` 涉及 runtime-core 的段落路径更新
 
-- [ ] **Step 5: review + 收尾**
+- [x] **Step 5: review + 收尾**
 
 按全局纪律：派 review 子 agent（GLM）审全量 diff；闭环验证（编译→安装→测试→日志）记录入 PR 描述。
 
@@ -1232,3 +1232,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | **Task 9**（`481645e8`，Phase 4 架构收口核心，双审 APPROVED_WITH_CONCERNS→无阻塞）：① 组合根唯一直构断言经审查独立 grep 验证成立（KoogMessageMemoryStore/LocalLlmEngine/MemoryManager 直构仅 AndroidAgentComposition 一处；`getInstance(context)` 旧签名清零）；② `AgentDependencies` 9 字段（计划 4 字段扩展）——descriptors/registry 同源 `asToolsByClass()` 展开保 prompt 与工具零漂移；③ `RemoteChatEngine` 编译强制随迁 commonMain（计划 Files 未列，编译器驱动）；④ 新增 `ChatHistoryCleaner` seam、`isModelAvailable(modelId)` 1 参、`LlmModelNotFoundException` 拆文件同 FQN；⑤ prompt 函数化文本逐字节等价（脚本校验）；⑥ 飞书 RPA `remoteImToolRegistryProvider` 懒构建注入点已就绪，**Task 13 wiring 无需改签名**；⑦ initialize AtomicReference CAS + fail-fast。**后续统一收口（审查 🟡，不阻塞，归 Task 13/14 或终审 polish）**：a. `MemoryManager` 补 `dispatcherProvider` 构造参数（同 KoogMessageMemoryStore 模式）；b. `LocalLlmEngine` 补 `dispatcherProvider` 构造参数（pre-existing）；c. `RemoteCommandDispatcher` 删冗余 `withContext(Dispatchers.IO)` 外层（与 orchestratorDispatcher 双跳）；d. androidApp 单测集中验证补 `:androidApp:testDebugUnitTest`。**文档待办（Task 15）**：runtime-core/AGENTS.md 文件清单过时、根 AGENTS.md「Agent 编排层在 :runtime-core」等表述、androidApp/AGENTS.md 组合根新增 |
 | 2026-08-08 | **Task 13**（`e0a04d6c` + 审查修复 `42b9a80c`，双审 CHANGES_REQUESTED→已修复）：① 勘察 5 偏差全部按预案落地（debug manifest 全限定名/debug res/类名 PoLangAccessibilityService/双服务并存不动/ToolSpecificationTest 随迁）；② `dispatchCommand` 阻塞桥清理（future.get→withTimeout，catch 链对齐 Task 7，recordDispatchEvent 记账语义不变）+ `buildCommandJson` 死参数删除（涟漪 6 处同模块内）；③ 超时 observation 文本漂移与 Task 7 同源已登记；④ **审查 🔴 修复**：RemoteControlToolService 迁 androidApp 后脱离 shared 守卫扫描（ADR-008 盲区）——androidApp 侧补 `RemoteInferenceNoMediaUploadGuardTest`（扫 `src/main/java/.../inference/remote/`，token 列表与 shared 副本一致，已验证绿）；runtime-core 副本删除（扫描目录已空，vacuous 失效）；⑤ 组合根 wiring 零变更（同 FQN 同模块直构）；⑥ proguard 无需新增 keep（@Tool 类经 asToolsByClass 直接引用；manifest FQN 引用的 service 类 AGP 自动 keep）。审查 🔵 记录（不阻塞）：PicMeAccessibilityService.kt 文件名与类名不符（旧状沿用）；两个同名 PoLangAccessibilityService 包路径不同可后续改名消混淆。**runtime-core 残留（Task 14 处置）**：仅 4 测试（KeywordSpotterEngineTest/KoogMessageMemoryTest/ToolInventoryTest/CameraToolServiceInventoryTest）+ 空壳 main manifest + debug 空目录 |
 | 2026-08-08 | **Task 14**（`5baf1616`+`e9e0edc5`+审查收尾 `822d95d6`，双审 APPROVED）：runtime-core 整删（settings/build 引用清零，残余 grep 仅剩注释性历史引用）；4 测试按裁决落点迁移（git mv 保历史，24+6 用例全绿）；polish 三项落地——MemoryManager/LocalLlmEngine 补 dispatcherProvider 构造参数（默认值保旧行为、组合根传同一实例无双池）、RemoteCommandDispatcher 非对称删 IO 双跳（ReAct 路径删＝内部已切 orchestratorDispatcher；直搜路径留＝Thread.sleep 阻塞需 IO，审查独立核实判断正确）；androidApp 直链 Koog 依赖（排除 serialization-jackson 理由同 shared）；守卫测试注释对齐模块消亡后状态（shared + androidApp 双副本格局入注释）。**Phase 4 全部迁移任务至此完成，剩 Task 15 出口验证** |
+| 2026-08-08 | **Task 15**（`1741afa1` + 审查收尾 `146c980c`，双审 APPROVED_WITH_CONCERNS→3 条 🟡 已修）：① Step 1 设备冒烟由主代理集中验证代跑（设备 `51912a5c`，相机 AI 指令/Chat/相册/冷启动×2 共 4/4 PASS，异常零命中；ui-driver accessibility RPC 绑不上归飞书连调待办，TAG VLM Pass 3 失败系设备缺 visual.mnn 非回归）；② Step 2 补 PrivacyGuard/CrossPageCommandQueue 测试后 107 用例全绿（≥20 测试文件达标）；③ **Step 3 降级为骨架级**——iOS 三 target klib 编译通过 + commonMain API 面泄漏 grep 零命中（无 `import android.*`/`java.*`），未产出 XCFramework、未跑 iOS 真机（留 Phase 5 排雷，不阻塞 Phase 4 收口）；④ Step 4 文档全量同步（根/androidApp/shared AGENTS.md、CLAUDE.md 七模块清单、SPECS、ARCHITECTURE、README、引擎 AGENTS.md、工具配置）；⑤ 审查 🟡 修复（`146c980c`）：CLAUDE.md 模块名/命令对齐 settings.gradle.kts（补 `:engines:agent-native`）、AGENT_ARCHITECTURE.md 删 agent-core 死链、VOICE_STACK.md KWS 迁移表模块列与测试路径对齐（runtime-core→shared androidMain/androidApp）、PrivacyGuard KDoc「包含坐标模式」→「全串匹配坐标模式」（实现为 `Regex.matches()`）。**Phase 4 十五任务全部完成** |
