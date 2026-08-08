@@ -203,7 +203,7 @@ git commit -m "feat(ios): PoLang Xcode 工程骨架 + Tab 骨架（Task 2）"
 
 ## Task 3: SharedKit embed 集成 + SharedBridge 冒烟
 
-> **⛔ K3 相册段侧阻塞标注（2026-08-08）**：Xcode 工程（Task 2 产物）在 GLM 分支 `refactor/ios-camera-track`（且该分支当前**未入库 `PoLang.xcodeproj`**，仅 Swift 源码）；本 worktree 无工程可 embed。K3 侧前置产物已就绪——`shared/build/XCFrameworks/debug/SharedKit.xcframework`（Task 1，双切片、符号导出已验证，含 `AgentIdGenerator`/`IosMediaRepository`/`FlowWatchersKt.watch`）。会合后冒烟路径：embed + `KotlinBridge.smokeIds()` XCTest + 相册段 Swift 文件（Task 7–10 已写）首次 xcodebuild 编译验证。
+> **✅ K3 完成记录（2026-08-08，commit `112c1e92` + 勾选 commit）**：阻塞解除（camera-track 合并入 `739ac8cf`）。实际路径与原计划两处偏差：① 工程为 XcodeGen 生成（`project.yml`），embed 走 yml `dependencies: framework: ... embed: true` + `preBuildScripts` 挂 `build-shared-kit.sh`，无 GUI 步骤；② 冒烟 XCTest 2 项（smokeIds 递增 + AccessState 四态单例相等性）。**全量 `xcodebuild test` 11/11 通过**（含 GLM MediaPipe 7 项 + 相册权限/分组 2 项）。typecheck 修复 4 处见 Step 5 注；`build-shared-kit.sh` 踩坑修复见 Step 2 注。
 
 **Files:**
 - Modify: `iosApp/PoLang.xcodeproj`（GUI：加 framework + Run Script 阶段）
@@ -211,13 +211,13 @@ git commit -m "feat(ios): PoLang Xcode 工程骨架 + Tab 骨架（Task 2）"
 - Create: `iosApp/PoLang/SharedBridge/KotlinBridge.swift`
 - Test: `iosApp/PoLangTests/KotlinBridgeTests.swift`
 
-- [ ] **Step 1: embed SharedKit.xcframework**
+- [x] **Step 1: embed SharedKit.xcframework**（K3 注：XcodeGen yml 声明式 embed，Debug 链 `shared/build/XCFrameworks/debug/`；Release 切换留待首次发版）
 
 GUI：把 `shared/build/XCFrameworks/debug/SharedKit.xcframework` 拖进工程（不勾 Copy items，引用相对路径 `../shared/build/...`）；target → General → Frameworks 里设为 **Embed & Sign**。
 
 （Release 配置后续切 `release/` 产物；日常开发全用 debug——2.3 spike 实测增量 ~6s。）
 
-- [ ] **Step 2: 写 Gradle 同步脚本**
+- [x] **Step 2: 写 Gradle 同步脚本**（K3 注：新增两坑修复——① hash 文件缺失时 BSD find `-newer` 退出码非零 + pipefail + set -e 静默中止，改分支处理 + `|| true`；② Xcode 构建环境无 java/ANDROID_HOME，脚本兜底注入 `/usr/libexec/java_home` 与 `$HOME/Library/Android/sdk`；另加重建后 `touch` framework 强制 embed 重拷）
 
 `iosApp/scripts/build-shared-kit.sh`（chmod +x）：
 
@@ -240,7 +240,7 @@ mkdir -p "$(dirname "$HASH_FILE")" && touch "$HASH_FILE"
 
 Xcode：target → Build Phases → + Run Script，命名「Build SharedKit」，内容 `"$SRCROOT/scripts/build-shared-kit.sh"`，**取消勾选** "Based on dependency analysis"（脚本自判增量），移到 Compile Sources 之前。
 
-- [ ] **Step 3: 写 SharedBridge 冒烟封装**
+- [x] **Step 3: 写 SharedBridge 冒烟封装**
 
 `iosApp/PoLang/SharedBridge/KotlinBridge.swift`：
 
@@ -263,7 +263,7 @@ enum KotlinBridge {
 
 （`AgentIdGenerator` 是 shared commonMain 的 `expect object`，导出为 `SharedKitAgentIdGenerator`，Swift 名 `AgentIdGenerator.shared`。）
 
-- [ ] **Step 4: 写 XCTest**
+- [x] **Step 4: 写 XCTest**（K3 注：加第 2 项 AccessState 四态单例相等性）
 
 `iosApp/PoLangTests/KotlinBridgeTests.swift`：
 
@@ -279,12 +279,12 @@ final class KotlinBridgeTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 5: 跑测试验证集成**
+- [x] **Step 5: 跑测试验证集成**（✅ 11/11 passed。相册段 Swift 首跑 typecheck 修 4 处：`presentLimitedLibraryPicker` 在 **PhotosUI** 扩展（非 Photos）；`GalleryAccessState.map` tuple switch 穷举补 `(.limited,.addOnly)`→denied；`GalleryGridView` 缺 `import SharedKit`；init 解耦 AppContainer 改默认直构 repository——**Task 4 需切回 `container.mediaRepository`**）
 
 Run: `xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang -destination 'platform=iOS Simulator,name=iPhone 16' test`
 Expected: `** TEST SUCCEEDED **`，1 test passed（证明 embed/link/签名/调用链全通）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**（`112c1e92`）
 
 ```bash
 git add iosApp/
