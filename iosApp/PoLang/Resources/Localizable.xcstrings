@@ -210,6 +210,46 @@
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Warm" } },
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "ウォーム" } }
       }
+    },
+    "Authorize Photo Access" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "授权访问相册" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Authorize Photo Access" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "写真へのアクセスを許可" } }
+      }
+    },
+    "Add-Only Access Hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "当前仅可添加照片" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add-Only Access" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "追加のみ可能" } }
+      }
+    },
+    "Manage Accessible Photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "管理可访问照片" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Manage Accessible Photos" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アクセス可能な写真を管理" } }
+      }
+    },
+    "Photo Library Unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法访问相册" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photo Library Unavailable" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "写真ライブラリにアクセスできません" } }
+      }
+    },
+    "Open Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "去设置开启" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Settings" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定を開く" } }
+      }
     }
   },
   "version" : "1.0"

@@ -12,8 +12,7 @@ struct GalleryGridView: View {
                            GridItem(.flexible(), spacing: 2),
                            GridItem(.flexible(), spacing: 2)]
 
-    init(repository: IosMediaRepository = IosMediaRepository(bridge: PhMediaBridge())) {
-        // Task 4（GLM）切换到 container.mediaRepository；当前默认直构保证 Task 3 可编译
+    init(repository: IosMediaRepository) {
         _vm = StateObject(wrappedValue: GalleryViewModel(repository: repository))
     }
 

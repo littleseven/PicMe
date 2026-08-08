@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject private var container: AppContainer
+
     var body: some View {
         TabView {
-            GalleryPlaceholderView()
+            GalleryGridView(repository: container.mediaRepository)
                 .tabItem { Label(String(localized: "Gallery"), systemImage: "photo.on.rectangle") }
             CameraPreviewView()
                 .tabItem { Label(String(localized: "Camera"), systemImage: "camera") }
@@ -15,4 +17,5 @@ struct MainTabView: View {
 
 #Preview {
     MainTabView()
+        .environmentObject(AppContainer.shared)
 }
