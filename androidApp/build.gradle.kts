@@ -285,8 +285,9 @@ dependencies {
     implementation(project(":engines:beauty-engine"))
     implementation(project(":runtime-core"))
     implementation(project(":engines:mnn-core"))
-    // sherpa-onnx: runtime-core 编译期依赖，androidApp 模块提供运行时 AAR 打包
-    implementation(files("../runtime-core/libs/sherpa-onnx-1.13.3.aar"))
+    // sherpa-onnx: :shared androidMain 编译期 compileOnly（Phase 4 Task 11 前为 runtime-core），
+    // androidApp 模块提供运行时 AAR 打包
+    implementation(files("../shared/libs/sherpa-onnx-1.13.3.aar"))
     // Agent 核心模块（将来提取独立库）
     // GPUPixel 已移除，全部能力由自研引擎提供
 

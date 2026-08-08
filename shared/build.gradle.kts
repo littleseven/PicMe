@@ -36,6 +36,10 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.core.ktx)
+            // sherpa-onnx v1.13.3（2026-06，内置 ONNX Runtime 1.24.3，支持 16KB page size）
+            // compileOnly + app 直接依赖：规避 Library 模块打包 AAR 时禁止直接依赖本地 .aar 限制
+            //（模式自 :runtime-core 平移；运行时 AAR 由 :androidApp 直接依赖本目录同文件打包）
+            compileOnly(files("libs/sherpa-onnx-1.13.3.aar"))
         }
         // iosMain.dependencies 在后续 Task 按需追加
     }
