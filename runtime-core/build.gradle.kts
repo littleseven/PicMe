@@ -59,9 +59,8 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
 
-    // sherpa-onnx v1.13.3（2026-06，内置 ONNX Runtime 1.24.3，支持 16KB page size）
-    // compileOnly + app 直接依赖：规避 Library 模块打包 AAR 时禁止直接依赖本地 .aar 限制
-    compileOnly(files("libs/sherpa-onnx-1.13.3.aar"))
+    // sherpa-onnx compileOnly 已随 platform/voice 迁至 :shared androidMain（Phase 4 Task 11）；
+    // AAR 实体在 shared/libs/，运行时打包仍由 :androidApp 直接依赖。
 
     // Koog（JetBrains）Agent 框架：替换自维护 langchain4j fork（:agent-core，已于 Phase 6 删除）。
     // 排除 serialization-jackson：它传递引入 jackson-module-kotlin:2.21.3（MethodHandle.invokeExact，
