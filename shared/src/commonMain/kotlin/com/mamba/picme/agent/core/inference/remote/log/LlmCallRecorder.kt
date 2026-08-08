@@ -3,7 +3,7 @@ package com.mamba.picme.agent.core.inference.remote.log
 /**
  * 远程 LLM 调用记录的接收端。
  *
- * runtime-core 仅定义此接口与 [LlmCallRecord]；具体持久化（Room 独立库）由 :app 提供，
+ * 本模块（:shared）仅定义此接口与 [LlmCallRecord]；具体持久化（Room 独立库）由 :androidApp 提供，
  * 在 Application 启动时注入到
  * [com.mamba.picme.agent.core.remote.config.RemoteModelFactory.recorder]。
  *

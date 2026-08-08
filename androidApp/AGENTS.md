@@ -4,10 +4,10 @@
 > - 本文档仅承载 `:androidApp` 主应用模块的实现细节（架构、组件、导航、依赖注入）。
 > - 产品目标与验收口径以 `PRODUCT.md` 为准；交互流程与体验规则以 `docs/01-PRODUCT/FEATURES.md` 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 `AGENTS.md` 为准。
-> - 美颜引擎实现细节见 `engines/beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `runtime-core/AGENTS.md`。
+> - 美颜引擎实现细节见 `engines/beauty-engine/AGENTS.md`；Agent Runtime 实现细节见 `shared/AGENTS.md`。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`；跨模块或专项技术内容应下沉到对应模块文档或 `docs/*_TECH_SPEC.md`。
 
-**模块定位**：`:androidApp` 是 PoLang 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:androidApp` 负责将 `:runtime-core`、`:engines:beauty-api`、`:engines:beauty-engine`、`:engines:sentencepiece` 四个独立库组装为完整应用（Agent 框架为 Koog 外部依赖，经 `:runtime-core` 透出）。
+**模块定位**：`:androidApp` 是 PoLang 的主 Android 应用模块，承载 Compose UI、页面导航、依赖注入、数据持久化、网络请求和功能集成。作为最外层模块，`:androidApp` 负责将 `:shared`（Agent 编排层 KMP 模块）、`:engines:beauty-api`、`:engines:beauty-engine`、`:engines:sentencepiece` 四个独立库组装为完整应用（Agent 框架为 Koog 外部依赖，经 `:shared` 透出；VLM JNI `.so` 经 `:engines:agent-native` 传递）。
 
 **主要维护者**：项目开发者
 
@@ -105,7 +105,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | **Debug** | `features/debug/` | `DebugScreen`, `LogOverlay`, `ScreenshotUtil` | 开发调试工具 |
 
 > **2026-07-25 JS Engine（QuickJS 沙箱，`features/chat/js/`）**：
-> - `QuickJsEngine` / `QuickJsConverter`：dokar3 quickjs-kt 1.0.5 引擎适配器（唯一生产引擎实现，QuickJS 依赖仅 `:androidApp` 引入），实现 `:runtime-core` 引擎无关的 `JsEngine` 接口；eval 带超时（默认 5s），bridge 经 `__bridgeCall`/`__bridgeCallAsync` 绑定 + bootstrap JS 注入
+> - `QuickJsEngine` / `QuickJsConverter`：dokar3 quickjs-kt 1.0.5 引擎适配器（唯一生产引擎实现，QuickJS 依赖仅 `:androidApp` 引入），实现 `:shared` 引擎无关的 `JsEngine` 接口；eval 带超时（默认 5s），bridge 经 `__bridgeCall`/`__bridgeCallAsync` 绑定 + bootstrap JS 注入
 > - `GalleryScriptHandlers.registerGalleryHandlers`：gallery/media/face/tag **12 个只读取数 handler 的唯一注册点**（全部 async，JS 侧必须 `await bridge.callAsync`），ChatViewModel 持久 JsRuntime 与 Debug 页 JsBridgeDemo 共用，新增/修改 handler 只改这里
 > - `GalleryJs`：JS ↔ 查询模型字段转换（parseQueryFilter / toResultJsValue / toScanStatusJsValue 等），media.meta 白名单不回 uri/GPS/ocrText/embedding（回 city/aestheticScore/faceQualityScore 纯数值字段）
 > - `ChartJs` + `assets/js/chart_bootstrap.js`：Chart.bar/line/pie/timeline → SVG，图卡落库为 CHART 消息，summary 回传 LLM
@@ -159,20 +159,37 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 
 ```
 :androidApp
- ├── :runtime-core           ← Agent Runtime 核心（编排、推理、语音、远程；Agent 框架为 Koog 外部依赖）
- ├── :engines:beauty-api     ← 美颜 API 契约
- ├── :engines:beauty-engine  ← 美颜引擎实现
- └── :engines:sentencepiece  ← SentencePiece tokenizer
+ ├── :shared                ← Agent 编排层 KMP 模块（commonMain 引擎无关层 + androidMain 平台实现；Agent 框架为 Koog 外部依赖）
+ ├── :engines:beauty-api    ← 美颜 API 契约
+ ├── :engines:beauty-engine ← 美颜引擎实现
+ └── :engines:sentencepiece ← SentencePiece tokenizer
+（:engines:agent-native / :engines:mnn-core 经 :shared androidMain 传递，不直接依赖）
 ```
+
+### 3.1.1 Agent 组合根（Phase 4 KMP 抽取新增）
+
+`agent/AndroidAgentComposition.kt` 是所有 Agent 平台实现的**唯一直构点**：`Application.onCreate` 调 `initialize(context)`，构建 DataStore 存储（`KoogMessageMemoryStore`/`MemoryManager`）、端侧 VLM 引擎（`LocalLlmEngine`）、chat/相机工具集（`asToolsByClass()` 反射展开为 ToolDescriptor 清单 + ToolRegistry 同源派生，保 prompt 与工具零漂移）、飞书 RPA 工具集（`RemoteControlToolService` 懒构建，取 WindowManager），经 `AgentOrchestrator.initialize(AgentDependencies)` 一次性注入。commonMain 侧 `AgentOrchestrator` 只暴露无参 `getInstance()`。
+
+### 3.1.2 Agent 平台组件迁入（Phase 4 Task 13，自 runtime-core）
+
+`agent/core/` 子树承载依赖 Android 平台、无法进 shared commonMain 的 Agent 组件：
+
+| 路径 | 内容 |
+|------|------|
+| `agent/core/inference/remote/tool/` | `RemoteControlToolService`（飞书 RPA @Tool 集，11 个 suspend 工具方法，实现 JVM-only `reflect.ToolSet`，由组合根懒构建 ToolRegistry） |
+| `agent/core/tool/perception/` | `ViewHierarchyExtractor`（WindowManager 视图层级抽取） |
+| `agent/core/tool/accessibility/` | `AccessibilityServiceHolder` / `AccessibilityActionPerformer` / `AccessibilityNodeDumper`（无障碍服务桥） |
+
+配套守卫：`androidApp/src/test/.../RemoteInferenceNoMediaUploadGuardTest`（ADR-008 隐私红线防回归，扫描本模块 `inference/remote/` 源码不出现媒体上传符号，token 列表与 shared 侧副本一致）。
 
 ### 3.2 关键集成点
 
 | 集成场景 | 入口类 | 说明 |
 |----------|--------|------|
-| Agent 交互 | `AiAgentUseCase` → `AgentOrchestrator` | Facade 模式，委托给 :runtime-core 的 `AgentOrchestrator` |
+| Agent 交互 | `AiAgentUseCase` → `AgentOrchestrator` | Facade 模式，委托给 :shared 的 `AgentOrchestrator` |
 | 美颜预览 | `BeautyPreviewProvider` → `BeautyPreviewEngine` | 通过 beauty-api 接口调用 |
 | 人脸检测 | `FaceDetector`（beauty-api 接口） | MediaPipe/MNN 双引擎 |
-| 远程推理 | `RemoteReActAgent`（:runtime-core） | OpenAI Chat Completions API + tool_calls |
+| 远程推理 | `KoogReActAgent`（:shared） | OpenAI Chat Completions API + tool_calls |
 | TAG 生成 | `TagGenerationService` → `TagScanOrchestrator` | 3-Pass 混合管道（FACE_DETECTION/DBSCAN/IMAGE_TAGGING，另有 legacy `MOBILE_CLIP_ENCODING`），OpenCL 超时自动降级 CPU；人脸对齐采用方案 B（2D106 关键点替换 RetinaFace 5 点），ROI/2D106/ArcFace R100 均优先走 MNN OpenCL GPU；ETA 按 Pass 独立统计、取中位数并设冷启动默认值 |
 | 自然语言搜索 | `GallerySearchBar` → `MediaSearchEngine`<br>`ChatViewModel` → `ChatSearchCapability` → `MediaSearchEngine` | **Gallery 入口**：Layer 0.5 QuerySegmenter → Layer 1 QueryParser → Layer 2 显式召回 → Layer 2.5 MobileCLIP 语义 → Layer 3 融合排序。<br>**Chat 入口**：远程 LLM 输出 `AgentCommand.SearchMedia(query, intent)`，`ChatViewModel` 将 `SearchIntent` 转为 `StructuredFilter` 后直接调用 `MediaSearchEngine.search(filter)`；多轮细化走 `RefineMediaSearch` 并在上一轮结果集内过滤。`QueryParser` 新增近半年/近 N 个月规则作为兜底。 |
 | JS 沙箱脚本 | `ChatRunScriptCapability` → `ChatViewModel.onRunScript/onDrawChart` → `JsRuntime`（QuickJS） | LLM tool_call（run_gallery_script/draw_chart）经 CapabilityRegistry（CHAT 场景）落入持久 JsRuntime；`jsEvalMutex` 串行 eval，超时 5s（含 capability.dispatch 写脚本放宽至 180s）；写操作经 CommandRisk 分级 + 用户确认 → `ChatMediaWriteCapability` |
@@ -180,7 +197,7 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 | 人物关系图谱 | 编辑人物对话框（GalleryScreen 人物分组标题点击，内嵌 `PersonRelationPicker`）/ 聊天 `remember_person_relation` → `PersonRelationCapability` → `PersonRepository` → `person_relations` | 「X 是我 Y」双通路声明（对话框 RENAME_DIALOG / 聊天 CHAT_DECLARATION），声明幂等覆盖即纠错（customLabel 同步覆盖）。**两层关系模型**：粗谓词（机器逻辑，封闭枚举：SPOUSE/PARTNER/SON/DAUGHTER/CHILD/FATHER/MOTHER/PARENT/ELDER_BROTHER/ELDER_SISTER/YOUNGER_BROTHER/YOUNGER_SISTER/SIBLING/GRANDFATHER/GRANDMOTHER/GRANDPARENT/GRANDCHILD/OTHER_FAMILY/FRIEND/CLASSMATE/COLLEAGUE/OTHER，CHILD/PARENT/SIBLING/GRANDPARENT 为"未指定桶"）+ `customLabel` 自定义称呼（用户语言，展示与查询解析优先于谓词）。"这是我"标记存 `persons.is_self`（全局唯一）；编辑入口共用 `features/common/PersonRelationPicker`（家庭/社会分组 chips + 自定义输入框 + 不设置）；「AI 记忆」页关系可编辑（`updateRelation` 保留 source、刷新 updatedAt）。Pass 2 全量重聚经 `NamedPersonSnapshot` + `RelationSnapshotRestorer` 按名字/isSelf 恢复关系（含 customLabel）。**附修复**：全量重聚 `clearAllPersons` 后复用分支原仅 `updatePersonStats`（对已删行为 no-op，命名/is_self 实际丢失），已改为按原 personId 显式 `insertPerson` 重建人物行，使命名保留真正生效 |
 | 多人物共现搜索 | `MediaSearchEngine.collectPersonMediaIds` → `PersonQueryResolver` → `PersonDao.getMediaByPersonsCooccurrence` | 原始 query 按优先级解析人物：① 自定义称呼精确匹配（query contains customLabel，"二儿子""发小"精确命中单簇）→ ② 已命名人物 contains → ③ 亲属称谓（`KinshipLexicon`，已被命中 customLabel 包含的称谓抑制；长短称谓去重如"爸爸"抑制"爸"）→ ④ 合拍 Pattern 的"我"。称谓查询按谓词族扩展：具体称谓含同族未指定桶（女儿→{DAUGHTER, CHILD}），泛化称谓含整族（孩子→{SON, DAUGHTER, CHILD}）。≥2 personId 走共现查询（同框合照），恰好 1 个走单人物查询，0 个回落原人名 LIKE 兜底；chat 与 Gallery 搜索路径自动获得 |
 | 事实记忆 | 聊天 `remember_fact`/`recall_memory`/`forget_fact` / JS `capability.dispatch` → `MemoryCapability` → `MemoryRepository` → `memory_facts`；设置页「AI 记忆」（`MemoryFactsScreen`：人物关系区查看/编辑/删除 + 事实区查看/编辑/删除/清空） | LIKE 召回（v1 无 FTS）；遗忘按 factId 或唯一匹配（多候选不删）；JS 写操作走确认门控，chat 直调不弹窗 |
-| 工具执行指标（tool_call_log） | `CommandExecutor`（:runtime-core）→ `CommandExecutionRecorder` → `RoomToolCallRecorder` → `polang_llm_log.db` | Capability 业务失败以 `Result.success(AgentAction.Error)` 返回（如引导性错误），记账按 action 语义：`AgentAction.Error` 记 `success=0` + errorCode/errorMessage，其余 action 记 `success=1`；只记纯指标（capability/method/耗时/结果），不含命令参数（隐私红线） |
+| 工具执行指标（tool_call_log） | `CommandExecutor`（:shared）→ `CommandExecutionRecorder` → `RoomToolCallRecorder` → `polang_llm_log.db` | Capability 业务失败以 `Result.success(AgentAction.Error)` 返回（如引导性错误），记账按 action 语义：`AgentAction.Error` 记 `success=0` + errorCode/errorMessage，其余 action 记 `success=1`；只记纯指标（capability/method/耗时/结果），不含命令参数（隐私红线） |
 | 用户问题上报（report-issue） | Chat 顶部「上报问题」入口 → `IssueReportClient`（`data/remote/picme/`）→ `POST /v1/report-issue` | 用户问题描述经服务端脱敏后自动在 `littleseven/polang` 创建 GitHub issue；管理后台「问题诊断」页（`/admin/diagnosis`）承载上报列表 |
 
 ---
@@ -244,5 +261,5 @@ di/                       ← AppContainer 手动 DI（无 Hilt/Dagger）
 ---
 
 > **维护者**：项目开发者
-> **最后更新**：2026-08-03
+> **最后更新**：2026-08-08
 > **状态**：生效中

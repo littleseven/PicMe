@@ -8,8 +8,8 @@
 **模块定位**：模块分层与依赖关系可视化
 **主要维护者**：项目开发者、AI Agent
 **阅读对象**：项目开发者、AI Agent
-**版本**：1.3（agent-core 删除 + polang 改名对齐版）
-**最后更新**：2026-08-07
+**版本**：1.4（Phase 4：runtime-core → :shared KMP 抽取版）
+**最后更新**：2026-08-08
 **状态**：生效中
 
 ---
@@ -19,7 +19,8 @@
 | 模块 | 类型 | 主要职责 | 关键产物 |
 |------|------|----------|----------|
 | `:androidApp` | Android Application | PoLang 主应用：Compose UI、页面导航、手动 DI、模块组装 | `picme.apk` |
-| `:runtime-core` | Android Library | Agent Runtime：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、远程推理管道（tool_calls）、语音 ASR、VLM 打标引擎 | `runtime-core.aar` |
+| `:shared` | KMP Library（android/jvm/iOS×3） | Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、远程推理管道（Koog tool_calls）在 commonMain；语音 ASR、VLM 打标引擎、DataStore 存储在 androidMain | `shared.aar` / klib |
+| `:engines:agent-native` | Android Library | VLM 打标 JNI 桥构建模块：`libagent_native.so`（AGP 9 KMP 插件不支持 externalNativeBuild，独立 com.android.library 承载） | `agent-native.aar` |
 | `:engines:beauty-api` | Android Library | 美颜系统纯契约层：BeautySettings、FaceDetector、FilterType 等 | `beauty-api.aar` |
 | `:engines:beauty-engine` | Android Library | 自研 GPU 美颜引擎：OpenGL ES + EGL 渲染管线、人脸检测适配器 | `beauty-engine.aar` |
 | `:engines:mnn-core` | Android Library | MNN 推理运行时共享模块（人脸检测 + VLM 打标共享）：`libMNN.so`、`libOpenCL.so`、MnnResourceManager、MnnGlobalReleaseLock | `mnn-core.aar` |
@@ -41,8 +42,8 @@
             │                          │                          │                          │                          │
             ▼                          ▼                          ▼                          ▼                          ▼
 ┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐ ┌────────────────────────┐
-│  :engines:beauty-api   │ │ :engines:beauty-engine │ │     :runtime-core      │ │   :engines:mnn-core    │ │ :engines:sentencepiece │
-│      美颜 API契约      │ │      美颜引擎实现      │ │     Agent Runtime      │ │      MNN 共享模块      │ │     SentencePiece      │
+│  :engines:beauty-api   │ │ :engines:beauty-engine │ │        :shared         │ │   :engines:mnn-core    │ │ :engines:sentencepiece │
+│      美颜 API契约      │ │      美颜引擎实现      │ │   Agent 编排层(KMP)    │ │      MNN 共享模块      │ │     SentencePiece      │
 └───────────┬────────────┘ └───────────┬────────────┘ └───────────┬────────────┘ └───────────┬────────────┘ └────────────────────────┘
             │                          │                          │                          │
             │                          │                          ▼                          │
@@ -53,9 +54,10 @@
             ▼                          ▼                                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │  说明                                                                                                        │
-│  • :engines:beauty-engine 不再依赖 :runtime-core，二者通过 :engines:mnn-core 共享 MNN 资源                   │
+│  • :engines:beauty-engine 不直接依赖 :shared，二者通过 :engines:mnn-core 共享 MNN 资源                     │
 │  • :androidApp 直接依赖 :engines:mnn-core（PoLangApplication / CameraScreen 使用 MnnResourceManager）        │
-│  • :runtime-core 的 Agent 框架为外部依赖 ai.koog:koog-agents（JetBrains Koog），非本仓库模块                 │
+│  • :shared 的 Agent 框架为外部依赖 ai.koog:koog-agents（JetBrains Koog），非本仓库模块                     │
+│  • :shared androidMain 依赖 :engines:mnn-core + :engines:agent-native（VLM JNI 桥）；:engines:beauty-api 经 api 依赖 :shared │
 │  • server/ 为独立 Ktor 工程，不纳入 Android settings.gradle，Monorepo 管理                                   │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -63,9 +65,9 @@
 ### 依赖方向说明
 
 - **无循环依赖**：所有模块依赖构成有向无环图（DAG）。
-- **`:engines:beauty-engine` 不再依赖 `:runtime-core`**：通过 `:engines:mnn-core` 共享 MNN 资源后，视觉引擎与 Agent Runtime 解耦。
+- **`:engines:beauty-engine` 不直接依赖 `:shared`**：通过 `:engines:mnn-core` 共享 MNN 资源后，视觉引擎与 Agent 编排层解耦（`:engines:beauty-api` 因 BeautySettings 等契约类型经 `api` 依赖 `:shared`）。
 - **`:androidApp` 直接依赖 `:engines:mnn-core`**：因为 `PoLangApplication` 和 `CameraScreen` 直接调用 `MnnResourceManager`。
-- **Agent 框架为外部依赖**：`:runtime-core` 的 LLM 编排基于 JetBrains Koog（`ai.koog:koog-agents`，Maven 外部依赖，非本仓库模块）。
+- **Agent 框架为外部依赖**：`:shared` 的 LLM 编排基于 JetBrains Koog（`ai.koog:koog-agents`，Maven 外部依赖，非本仓库模块）。
 
 ---
 
@@ -77,7 +79,7 @@
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌─────────────────────────────────────┐    ┌─────────────────────────────┐ │
-│  │           :engines:mnn-core         │    │        :runtime-core        │ │
+│  │           :engines:mnn-core         │    │    :engines:agent-native    │ │
 │  │  ┌─────────────────────────────┐   │    │  ┌───────────────────────┐  │ │
 │  │  │ libMNN.so           (7.2 MB)│◄───┼────┤  │ libagent_native.so    │  │ │
 │  │  └─────────────────────────────┘   │    │  │ VLM 打标 JNI 桥       │  │ │
@@ -128,9 +130,9 @@
 
 | SO | 归属模块 |  consumers | 备注 |
 |----|----------|-----------|------|
-| `libMNN.so` | `:engines:mnn-core` | `:runtime-core`、`:engines:beauty-engine` | 唯一来源，避免 AAR 级重复 |
+| `libMNN.so` | `:engines:mnn-core` | `:shared`（androidMain）、`:engines:beauty-engine` | 唯一来源，避免 AAR 级重复 |
 | `libOpenCL.so` | `:engines:mnn-core` | `:androidApp`（启动预加载） | OpenCL ICD Loader |
-| `libagent_native.so` | `:runtime-core` | `:androidApp` | VLM 打标 JNI 桥（Qwen3-VL） |
+| `libagent_native.so` | `:engines:agent-native` | `:androidApp`（经 `:shared` androidMain 传递） | VLM 打标 JNI 桥（Qwen3-VL） |
 | `libbeauty_native.so` | `:engines:beauty-engine` | `:androidApp` | 人脸检测 JNI 桥接 |
 | `libsentencepiece_android.so` | `:engines:sentencepiece` | `:androidApp` | 分词器 JNI |
 | `libonnxruntime.so` | 外部（Sherpa-ONNX / onnxruntime-android） | `:androidApp` | 通过 `pickFirsts` 解决双来源冲突；NIMA / eDifFIQA 美学打分（NNAPI 加速，人物封面选择）亦走 ONNX Runtime |
@@ -144,13 +146,13 @@
 
 | 类 / 对象 | 所在模块 | 包路径 |
 |-----------|----------|--------|
-| `AgentOrchestrator` | `:runtime-core` | `com.mamba.picme.agent.core.facade` |
-| `CapabilityRegistry` | `:runtime-core` | `com.mamba.picme.agent.core.runtime.capability` |
-| `PrivacyGuard` | `:runtime-core` | `com.mamba.picme.agent.core.runtime.policy` |
-| `MemoryManager` | `:runtime-core` | `com.mamba.picme.agent.core.platform.storage` |
-| `SceneManager` | `:runtime-core` | `com.mamba.picme.agent.core.runtime.state` |
-| `RemoteReActAgent` | `:runtime-core` | `com.mamba.picme.agent.core.inference.remote.react` |
-| `LocalLlmEngine` / `MnnLlmClient`（VLM 打标专用，仅 `imageInference`） | `:runtime-core` | `com.mamba.picme.agent.core.inference.local.llm` |
+| `AgentOrchestrator` | `:shared`（commonMain） | `com.mamba.picme.agent.core.facade` |
+| `CapabilityRegistry` | `:shared`（commonMain） | `com.mamba.picme.agent.core.runtime.capability` |
+| `PrivacyGuard` | `:shared`（commonMain） | `com.mamba.picme.agent.core.runtime.policy` |
+| `MemoryManager` | `:shared`（androidMain） | `com.mamba.picme.agent.core.platform.storage` |
+| `SceneManager` | `:shared`（commonMain） | `com.mamba.picme.agent.core.runtime.state` |
+| `KoogChatAgent` / `KoogReActAgent` | `:shared`（commonMain） | `com.mamba.picme.agent.core.inference.remote.koog` |
+| `LocalLlmEngine` / `MnnLlmClient`（VLM 打标专用，仅 `imageInference`） | `:shared`（androidMain） | `com.mamba.picme.agent.core.inference.local.llm` |
 | `MnnResourceManager` / `MnnGlobalReleaseLock`（人脸检测 + VLM 打标共享） | `:engines:mnn-core` | `com.mamba.picme.mnn` |
 | `MnnFaceDetector` / `MnnFaceEmbedder` | `:engines:beauty-engine` | `com.mamba.picme.beauty.internal.facedetect.mnn` |
 | `FaceDetectorManager` | `:engines:beauty-engine` | `com.mamba.picme.beauty.internal.facedetect` |
@@ -169,13 +171,13 @@
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  [R1] :engines:beauty-engine 禁止依赖 :runtime-core                 │   │
-│  │       视觉引擎经 :engines:mnn-core 共享 MNN，不反向耦合 Runtime     │   │
+│  │  [R1] :engines:beauty-engine 禁止直接依赖 :shared                   │   │
+│  │       视觉引擎经 :engines:mnn-core 共享 MNN，不反向耦合编排层       │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  [R2] :runtime-core 禁止依赖 :androidApp 业务类型                   │   │
-│  │       Agent Runtime 保持平台无关，可被任意应用模块复用              │   │
+│  │  [R2] :shared 禁止依赖 :androidApp 业务类型                         │   │
+│  │       Agent 编排层保持平台无关，可被任意应用模块复用                │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
@@ -189,7 +191,7 @@
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  [R5] :engines:mnn-core 不依赖 :runtime-core、:engines:beauty-engine│   │
+│  │  [R5] :engines:mnn-core 不依赖 :shared、:engines:beauty-engine      │   │
 │  │       Native 共享模块必须保持底层独立，避免循环依赖                 │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
@@ -198,7 +200,7 @@
 
 | 红线 | 定义 | 验证方式 |
 |------|------|----------|
-| **视觉-运行时解耦** | `:engines:beauty-engine` 不直接依赖 `:runtime-core` | `./gradlew :engines:beauty-engine:dependencies` 无 `:runtime-core` |
+| **视觉-运行时解耦** | `:engines:beauty-engine` 不直接依赖 `:shared`（经 `:engines:beauty-api` 的 `api` 传递属契约类型透出，豁免） | `grep 'project(":shared")' engines/beauty-engine/build.gradle.kts` 无命中 |
 | **API 契约纯净** | `:engines:beauty-api` 仅 Kotlin stdlib + Android graphics | 依赖树检查 |
 | **Native 共享收敛** | MNN SO 由 `:engines:mnn-core` 唯一提供 | AAR 内容检查 |
 
@@ -211,7 +213,8 @@
 ./gradlew :androidApp:assembleDebug
 
 # 反向依赖检查
-./gradlew :engines:beauty-engine:dependencies --configuration releaseRuntimeClasspath | grep "runtime-core" || echo "PASS: no runtime-core dependency"
+# beauty-engine 禁止直接依赖 :shared（经 beauty-api api 传递的契约类型透出豁免）
+grep 'project(":shared")' engines/beauty-engine/build.gradle.kts || echo "PASS: no direct :shared dependency"
 ```
 
 > **维护者**：项目开发者、AI Agent

@@ -12,7 +12,7 @@ model: fable
 3. 输出 `ARCHITECTURE.md` 和 `tasks.md`(任务清单)。
 
 ## 必须遵守的项目约束(PoLang 项目)
-- 模块边界:参考根 `CLAUDE.md` 的模块结构与依赖规则(`:app → :runtime-core → :agent-core`;beauty-engine 分层)。
+- 模块边界:参考根 `CLAUDE.md` 的模块结构与依赖规则(`:androidApp → :shared → Koog(外部依赖)`;beauty-engine 分层)。
 - 依赖规则:App 只依赖 `beauty-api/` 和 `beauty-engine:api/`,禁直引 `render/`、`internal/`。
 - 代码硬规则:无全限定名(`com.mamba.picme.*` 用 import)、无 wildcard import、lambda 显式命名、log tag `PoLang:[模块]`、4 空格缩进。
 - i18N:所有 UI 文案必须三语同步(values / values-zh-rCN / values-zh-rTW)。

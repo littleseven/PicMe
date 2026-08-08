@@ -9,7 +9,7 @@ import org.json.JSONObject
  * 相册搜索的纯逻辑支持：in-set 过滤 + Room 持久化编解码。
  *
  * 抽离自 ChatViewModel 以便 JVM 单测（避免加载 Android 依赖）。
- * 全部基于 runtime-core 的 [MediaAsset]（与 MediaSearchEngine / MediaPager 一致）。
+ * 全部基于 :shared 的 [MediaAsset]（与 MediaSearchEngine / MediaPager 一致）。
  */
 object ChatGallerySearch {
 

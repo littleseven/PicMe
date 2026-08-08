@@ -180,7 +180,7 @@ sealed class AgentAction {
     ) : AgentAction()
 
     /**
-     * 相册搜索结果（媒体 id 列表）。只带 id，避免 runtime-core 依赖 app Room 实体；
+     * 相册搜索结果（媒体 id 列表）。只带 id，避免 :shared 依赖 app Room 实体；
      * 调用方（ChatViewModel）按 id 从 session 持有的 List<MediaAsset> 取展示数据。
      *
      * @property query 搜索/细化关键词

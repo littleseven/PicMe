@@ -222,7 +222,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 安装 LLM 调用 / tool 执行指标记录器（全构建注入）。
         // release 构建仅落纯指标（model/latency/tokens/success/errorMessage 等），
         // 绝不记录消息内容（隐私红线）；DEBUG 构建额外记录 request/response 全文。
-        // runtime-core 的 Koog agent（KoogChatAgent/KoogReActAgent）在每次 LLM 调用完成时经
+        // :shared 的 Koog agent（KoogChatAgent/KoogReActAgent）在每次 LLM 调用完成时经
         // RemoteModelFactory.recorder 录制 LlmCallRecord，
         // CommandExecutor 汇聚全部 tool 执行并上报指标，均落库到独立 DB（polang_llm_log）。
         RemoteModelFactory.captureContent = BuildConfig.DEBUG

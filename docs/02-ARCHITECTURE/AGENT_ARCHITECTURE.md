@@ -10,7 +10,7 @@
 > - 本文档定义 Agent 的运行时架构、Capability 模型与推理模式选型。
 > - 产品目标与验收口径以 [`../01-PRODUCT/FEATURES.md`](../01-PRODUCT/FEATURES.md) 为准。
 > - 顶层治理规则（角色协作、全局红线、文档流程）以根目录 [`AGENTS.md`](../../AGENTS.md) 为准。
-> - **重要：`:agent-core` 是 Java 基础库**（ChatModel、Tool、AiServices），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:runtime-core` 模块的 `runtime-core/src/main/java/com/mamba/picme/agent/core/` 目录下。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
+> - **重要：原 `:agent-core` Java 基础库已删除**（2026-08 迁移至 JetBrains Koog 外部依赖），Agent 编排层（AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）在 `:shared` KMP 模块的 `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/` 目录下（平台实现 androidMain；Android 组合根 `androidApp/agent/AndroidAgentComposition.kt`）。详见 [`MODULE_ARCHITECTURE.md`](MODULE_ARCHITECTURE.md)。
 
 **模块定位**: AI Agent 运行时架构与推理模式选型（基础库 polang + Demo 工程 PoLang）  
 **阅读对象**: RD、AI Agent
@@ -743,7 +743,7 @@ class NavigationCapability(
 
 | 引擎 | 用途 | 模块 |
 |------|------|------|
-| Qwen3-VL-2B（MNN-VLM） | TAG Pass3 图像打标（`LocalLlmEngine.imageInference`） | `:runtime-core` + `:engines:mnn-core` |
+| Qwen3-VL-2B（MNN-VLM） | TAG Pass3 图像打标（`LocalLlmEngine.imageInference`） | `:shared`（androidMain）+ `:engines:agent-native` + `:engines:mnn-core` |
 | Florence-2 | 图像打标 | `:androidApp` 打标流水线 |
 | MNN 人脸检测 | 人脸检测/关键点 | `:engines:beauty-engine` + `:engines:mnn-core` |
 | NIMA / eDifFIQA（ONNX，NNAPI 加速） | 人物封面美学/人脸质量打分（`NimaScorer`/`EdiffiqaScorer`/`CoverSelector`） | `:androidApp` `domain/aesthetic/` |
@@ -1019,7 +1019,7 @@ sealed class AgentCommand {
 
 见 [第 5 章](#5-命令扩展)。
 
-新增的标准化搜索意图模型（位于 `runtime-core`）：
+新增的标准化搜索意图模型（位于 `:shared` commonMain）：
 
 ```kotlin
 data class SearchIntent(
@@ -1241,6 +1241,6 @@ class AiAgentUseCase(
 - [MNN_LLM_OPERATIONS.md](../03-TECHNICAL-SPECS/MNN_LLM_OPERATIONS.md) — 端侧 VLM 打标引擎运维
 - [VOICE_STACK.md](../03-TECHNICAL-SPECS/VOICE_STACK.md) — 语音栈
 - [IM_REMOTE_CONTROL_TECH_SPEC.md](../03-TECHNICAL-SPECS/IM_REMOTE_CONTROL_TECH_SPEC.md) — IM 远程控制技术规范
-- `runtime-core/src/main/java/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等）
+- `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/` — 源码目录（Agent 编排层：AgentOrchestrator、CapabilityRegistry、PrivacyGuard、MemoryManager、SceneManager 等；平台实现见 `shared/src/androidMain/`）
 - `agent-core/src/main/java/com/mamba/` — 源码目录（Java 基础库：ChatModel、OpenAiChatModel、Tool、AiServices 等）
 - `androidApp/src/main/java/com/mamba/picme/domain/usecase/AiAgentUseCase.kt` — Facade 桥接层
