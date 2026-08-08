@@ -1,12 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// 相机手势叠加层（对标 Android 相机手势：对焦/变焦/曝光）
+/// 相机手势叠加层（对标 Android CameraOverlays.kt:397-516 + CameraControls.kt:99-138）
 ///
-/// 透明覆盖在 MetalPreviewView 上方：
-/// - 点按 → 对焦 + 曝光（在该点）
-/// - 捏合 → 变焦（videoZoomFactor）
-/// - 垂直拖动 → 曝光补偿（[-2, +2]）
+/// - 点按 → 对焦+曝光 + 青色 L 型对焦十字星
+/// - 捏合 → 变焦（保留，Android 同时有预设按钮）
+/// - 垂直拖动 → 曝光补偿（保留，Android 在 ProMode 面板做）
 struct CameraGesturesView: View {
     let controller: CaptureSessionController
 
@@ -20,7 +19,6 @@ struct CameraGesturesView: View {
                 Color.clear
                     .contentShape(Rectangle())
 
-                    // 点按对焦
                     .onTapGesture { location in
                         let devicePoint = convertViewToDevicePoint(location, in: geo)
                         print("[PoLang] gesture.focus: view=(\(String(format: "%.1f", location.x)),\(String(format: "%.1f", location.y))) device=(\(String(format: "%.3f", devicePoint.x)),\(String(format: "%.3f", devicePoint.y)))")
@@ -28,7 +26,6 @@ struct CameraGesturesView: View {
                         triggerFocusRing(at: location)
                     }
 
-                    // 捏合变焦（MagnificationGesture for iOS 16 compatibility）
                     .gesture(
                         MagnificationGesture()
                             .onChanged { value in
@@ -41,21 +38,18 @@ struct CameraGesturesView: View {
                             }
                     )
 
-                    // 垂直拖动曝光补偿
                     .gesture(
                         DragGesture(minimumDistance: 20)
                             .onChanged { value in
-                                // 垂直拖动距离映射到 [-2, +2]
                                 let normalized = -Float(value.translation.height / geo.size.height) * 4.0
                                 let clamped = max(-2.0, min(2.0, normalized))
                                 controller.setExposureBias(clamped)
                             }
                     )
 
-                // 对焦框动画
+                // 对焦框（对标 Android FaceFocusCrosshair: 100pt, 青色 L 型角, 中心十字）
                 if showFocusRing, let loc = focusLocation {
-                    FocusRingView()
-                        .frame(width: 60, height: 60)
+                    FocusCrosshairView()
                         .position(loc)
                         .transition(.opacity)
                 }
@@ -63,43 +57,81 @@ struct CameraGesturesView: View {
         }
     }
 
-    /// SwiftUI 视图坐标 → AVCaptureDevice 归一化坐标（后置竖屏 Portrait）
-    /// 🔴8: portrait 模式需做 (x,y) → (1-y, x) 变换（视图竖屏 vs 传感器横置），
-    /// 非"无翻转"。参考 AVCaptureDevice.focusPointOfInterest 文档：
-    /// 设备坐标系是横屏左上(0,0)右下(1,1)；竖屏 portrait 需旋转映射。
+    /// portrait: (1-y, x) 变换（🔴8）
     private func convertViewToDevicePoint(_ point: CGPoint, in geo: GeometryProxy) -> CGPoint {
         let normalizedX = point.x / geo.size.width
         let normalizedY = point.y / geo.size.height
-        // portrait: 旋转 90° → (1-y, x)
         return CGPoint(x: 1.0 - normalizedY, y: normalizedX)
     }
 
     private func triggerFocusRing(at location: CGPoint) {
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             focusLocation = location
             showFocusRing = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            withAnimation(.easeIn(duration: 0.3)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeOut(duration: 0.4)) {
                 showFocusRing = false
             }
         }
     }
 }
 
-/// 对焦框（方框缩放动画）
-private struct FocusRingView: View {
-    @State private var scale: CGFloat = 1.4
+/// 对焦十字星（对标 Android FaceFocusCrosshair）
+/// 100pt 外框，4 角 L 型标记（20pt 拐角长度），青色 #00E5FF，中心 16pt 十字 + 3pt 中心点
+private struct FocusCrosshairView: View {
+    private let size: CGFloat = 100
+    private let cornerLen: CGFloat = 20
+    private let lineWidth: CGFloat = 2
+    private let color = Color(red: 0, green: 0.9, blue: 1) // #00E5FF
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 6)
-            .stroke(Color.yellow, lineWidth: 2)
-            .scaleEffect(scale)
-            .opacity(0.8)
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.8)) {
-                    scale = 1.0
-                }
+        ZStack {
+            // 4 角 L 型标记
+            // 左上
+            Path { p in
+                p.move(to: CGPoint(x: 0, y: cornerLen))
+                p.addLine(to: CGPoint(x: 0, y: 0))
+                p.addLine(to: CGPoint(x: cornerLen, y: 0))
             }
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            // 右上
+            Path { p in
+                p.move(to: CGPoint(x: size - cornerLen, y: 0))
+                p.addLine(to: CGPoint(x: size, y: 0))
+                p.addLine(to: CGPoint(x: size, y: cornerLen))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            // 左下
+            Path { p in
+                p.move(to: CGPoint(x: 0, y: size - cornerLen))
+                p.addLine(to: CGPoint(x: 0, y: size))
+                p.addLine(to: CGPoint(x: cornerLen, y: size))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            // 右下
+            Path { p in
+                p.move(to: CGPoint(x: size - cornerLen, y: size))
+                p.addLine(to: CGPoint(x: size, y: size))
+                p.addLine(to: CGPoint(x: size, y: size - cornerLen))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+
+            // 中心十字（16pt）
+            Path { p in
+                p.move(to: CGPoint(x: size/2 - 8, y: size/2))
+                p.addLine(to: CGPoint(x: size/2 + 8, y: size/2))
+                p.move(to: CGPoint(x: size/2, y: size/2 - 8))
+                p.addLine(to: CGPoint(x: size/2, y: size/2 + 8))
+            }
+            .stroke(color.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+
+            // 中心点（3pt）
+            Circle()
+                .fill(color)
+                .frame(width: 3, height: 3)
+                .position(x: size/2, y: size/2)
+        }
+        .frame(width: size, height: size)
     }
 }

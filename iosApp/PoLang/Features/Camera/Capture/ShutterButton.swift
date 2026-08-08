@@ -2,25 +2,25 @@ import SwiftUI
 import Photos
 import AVFoundation
 
-/// 快门按钮（对标 Android 相机主按钮）
-///
-/// [PERF] 快门 <50ms：按下即刻回弹，美颜离屏渲染 + 保存异步进行。
+/// 快门按钮（对标 Android CameraControls.kt:196-228）
+/// 76pt 外径，4pt 白色边框，6pt 内边距，拍照=白填，录像=红填（Phase 6）
 struct ShutterButton: View {
     let action: () -> Void
 
     @State private var isPressed = false
+    @State private var lastClickTime: Date = .distantPast
 
     var body: some View {
-        Button(action: action) {
+        Button(action: tap) {
             Circle()
                 .stroke(Color.white, lineWidth: 4)
-                .frame(width: 72, height: 72)
+                .frame(width: 76, height: 76)
                 .overlay(
                     Circle()
                         .fill(isPressed ? Color.white.opacity(0.8) : Color.white)
-                        .frame(width: 58, height: 58)
+                        .frame(width: 64, height: 64)
                 )
-                .scaleEffect(isPressed ? 0.85 : 1.0)
+                .scaleEffect(isPressed ? 0.9 : 1.0)
                 .animation(.easeInOut(duration: 0.1), value: isPressed)
         }
         .accessibilityIdentifier("camera_shutter")
@@ -31,12 +31,18 @@ struct ShutterButton: View {
                 .onEnded { _ in isPressed = false }
         )
     }
+
+    private func tap() {
+        // 500ms 防抖（对标 Android CameraControls.kt:210-214）
+        let now = Date()
+        guard now.timeIntervalSince(lastClickTime) > 0.5 else { return }
+        lastClickTime = now
+        action()
+    }
 }
 
 /// 拍照保存管理器（触发系统 AddOnly 授权流）
 enum PhotoSaver {
-    /// 保存 CGImage 到系统相册
-    /// - Parameter image: 美颜离屏渲染后的 CGImage
     static func saveToLibrary(_ image: CGImage) async throws {
         try await PHPhotoLibrary.shared().performChanges {
             PHAssetChangeRequest.creationRequestForAsset(from: UIImage(cgImage: image))
@@ -58,7 +64,6 @@ final class CaptureFlow: ObservableObject {
         self.renderer = renderer
     }
 
-    /// 完整拍照流程：按下快门 → 捕获全分辨率 → 离屏美颜 → 保存
     func captureAndSave() {
         guard !isCapturing else { return }
         isCapturing = true
@@ -74,7 +79,6 @@ final class CaptureFlow: ObservableObject {
                 }
             }
 
-            // 1. 全分辨率捕获
             guard let photo = await photoController.capture() else {
                 print("[PoLang] shutter.FAIL: capture() returned nil")
                 await setError("capture failed")
@@ -83,14 +87,12 @@ final class CaptureFlow: ObservableObject {
             let captureMs = Date().timeIntervalSince(shutterStart) * 1000
             print("[PoLang] shutter.captured in \(String(format: "%.1f", captureMs))ms")
 
-            // 2. 转 CVPixelBuffer
             guard let pixelBuffer = PhotoCaptureController.pixelBuffer(from: photo) else {
                 print("[PoLang] shutter.FAIL: pixelBuffer conversion nil")
                 await setError("pixel buffer failed")
                 return
             }
 
-            // 3. 离屏美颜渲染（异步，不阻塞 UI）
             let renderStart = Date()
             let renderedImage = await Task.detached(priority: .userInitiated) { [renderer] () -> CGImage? in
                 renderer?.renderToImage(pixelBuffer: pixelBuffer)
@@ -104,7 +106,6 @@ final class CaptureFlow: ObservableObject {
             }
             print("[PoLang] shutter.rendered in \(String(format: "%.1f", renderMs))ms → CGImage \(image.width)x\(image.height)")
 
-            // 4. 保存到相册
             do {
                 try await PhotoSaver.saveToLibrary(image)
                 let totalMs = Date().timeIntervalSince(shutterStart) * 1000

@@ -35,8 +35,9 @@ final class CaptureSessionController: NSObject {
         queue.async { [self] in
             session.beginConfiguration()
             session.sessionPreset = .hd1280x720
+            // 🔴 翻转摄像头支持
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera,
-                                                       for: .video, position: .back),
+                                                       for: .video, position: currentPosition),
                   let input = try? AVCaptureDeviceInput(device: device),
                   session.canAddInput(input), session.canAddOutput(videoOutput) else {
                 session.commitConfiguration()
@@ -45,21 +46,72 @@ final class CaptureSessionController: NSObject {
                 }
                 return
             }
+            // 移除旧 input（翻转时）
+            session.inputs.forEach { session.removeInput($0) }
             session.addInput(input)
+            currentDeviceInput = input
             videoOutput.videoSettings = [
                 kCVPixelBufferPixelFormatTypeKey as String:
                     kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
             ]
             videoOutput.alwaysDiscardsLateVideoFrames = true
             videoOutput.setSampleBufferDelegate(self, queue: queue)
-            session.addOutput(videoOutput)
+            if !session.outputs.contains(videoOutput) {
+                session.addOutput(videoOutput)
+            }
             if let conn = videoOutput.connection(with: .video) {
                 conn.videoOrientation = .portrait
+                if currentPosition == .front {
+                    conn.isVideoMirrored = true
+                } else {
+                    conn.isVideoMirrored = false
+                }
             }
             session.commitConfiguration()
             session.startRunning()
+            DispatchQueue.main.async {
+                DebugOverlayState.shared.set("camera.running", "yes")
+                DebugOverlayState.shared.set("camera.position", self.currentPosition == .front ? "front" : "back")
+            }
         }
     }
+
+    /// 当前摄像头方向
+    private var currentPosition: AVCaptureDevice.Position = .back
+    private var currentDeviceInput: AVCaptureDeviceInput?
+
+    /// 翻转摄像头
+    func flipCamera() {
+        currentPosition = currentPosition == .back ? .front : .back
+        faceServiceIsFrontCamera?(currentPosition == .front)
+        // 重启 session
+        queue.async { [self] in
+            session.stopRunning()
+            session.beginConfiguration()
+            session.inputs.forEach { session.removeInput($0) }
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera,
+                                                       for: .video, position: currentPosition),
+                  let input = try? AVCaptureDeviceInput(device: device),
+                  session.canAddInput(input) else {
+                session.commitConfiguration()
+                return
+            }
+            session.addInput(input)
+            currentDeviceInput = input
+            if let conn = videoOutput.connection(with: .video) {
+                conn.videoOrientation = .portrait
+                conn.isVideoMirrored = currentPosition == .front
+            }
+            session.commitConfiguration()
+            session.startRunning()
+            DispatchQueue.main.async {
+                DebugOverlayState.shared.set("camera.position", self.currentPosition == .front ? "front" : "back")
+            }
+        }
+    }
+
+    /// 前置摄像头状态回调（供 FaceLandmarkService 同步 isFrontCamera）
+    var faceServiceIsFrontCamera: ((Bool) -> Void)?
 
     func stop() { queue.async { [self] in session.stopRunning() } }
 
