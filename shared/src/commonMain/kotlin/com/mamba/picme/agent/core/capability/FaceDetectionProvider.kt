@@ -1,5 +1,7 @@
 package com.mamba.picme.agent.core.capability
 
+import kotlin.concurrent.Volatile
+
 /**
  * 人脸检测状态提供者接口
  *

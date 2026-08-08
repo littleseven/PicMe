@@ -40,19 +40,17 @@ class CapabilityRegistry private constructor(
 ) {
 
     companion object {
-        @Volatile
-        private var instance: CapabilityRegistry? = null
+        // KMP commonMain 无 synchronized，lazy 默认 SYNCHRONIZED 模式保证同款线程安全单例语义
+        private val singleton: CapabilityRegistry by lazy {
+            CapabilityRegistry(SceneManager.getInstance())
+        }
 
         const val DEFAULT_COMMAND_TIMEOUT_MS = CommandExecutor.DEFAULT_TIMEOUT_MS
 
         /**
          * 获取单例实例（使用默认协程作用域）
          */
-        fun getInstance(): CapabilityRegistry {
-            return instance ?: synchronized(this) {
-                instance ?: CapabilityRegistry(SceneManager.getInstance()).also { instance = it }
-            }
-        }
+        fun getInstance(): CapabilityRegistry = singleton
 
         /**
          * 创建实例（支持注入外部协程作用域，便于生命周期绑定和测试）
@@ -268,7 +266,7 @@ class CapabilityRegistry private constructor(
     /**
      * 清空命令队列
      */
-    fun clearCommandQueue() {
+    suspend fun clearCommandQueue() {
         commandQueue.clear()
     }
 

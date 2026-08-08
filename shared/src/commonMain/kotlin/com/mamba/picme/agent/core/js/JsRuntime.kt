@@ -3,6 +3,7 @@ package com.mamba.picme.agent.core.js
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecord
 import com.mamba.picme.agent.core.platform.logging.Logger
 import kotlinx.coroutines.CoroutineScope
+import kotlin.concurrent.Volatile
 import kotlin.time.Clock
 
 /**

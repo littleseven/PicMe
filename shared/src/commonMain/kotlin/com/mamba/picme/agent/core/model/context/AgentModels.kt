@@ -4,6 +4,7 @@ import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
+import kotlin.time.Clock
 
 /**
  * Agent 运行上下文
@@ -240,7 +241,7 @@ data class AgentCommandEvent(
     val message: String? = null,
     val errorType: String? = null,
     val durationMs: Long? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = Clock.System.now().toEpochMilliseconds()
 ) {
     enum class CommandStage {
         PARSE,      // 命令解析

@@ -225,7 +225,7 @@ class ChatToolService private constructor() : ToolSet {
         @LLMDescription("给用户的一句话说明；未支持请求填 [unsupported:erase] 或 [unsupported:local_beauty]，无则留空串") explanation: String
     ): String {
         val params = try {
-            EditParams.fromJson(org.json.JSONObject(edits.ifBlank { "{}" }))
+            EditParams.fromJson(edits.ifBlank { "{}" })
         } catch (e: Exception) {
             return "Error: edits JSON 解析失败: ${e.message}"
         }

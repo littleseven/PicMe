@@ -1,8 +1,8 @@
 package com.mamba.picme.agent.core.model.command
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * 回归：媒体命令历史回退原始 JSON（消除「[method] X」摘要对 LLM 输出格式的诱导）。

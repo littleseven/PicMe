@@ -19,6 +19,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Clock
+import kotlin.concurrent.Volatile
 
 /**
  * 命令分发器接口
@@ -253,8 +255,8 @@ class ExecutionEngine(
             }
             is WaitCondition.FaceDetected -> {
                 Logger.d(tag, "Waiting for face detection, timeout=${waitCondition.timeoutMs}ms")
-                val startTime = System.currentTimeMillis()
-                while (System.currentTimeMillis() - startTime < waitCondition.timeoutMs) {
+                val startTime = Clock.System.now().toEpochMilliseconds()
+                while (Clock.System.now().toEpochMilliseconds() - startTime < waitCondition.timeoutMs) {
                     if (FaceDetectionProvider.get()?.isFaceValid() == true) {
                         Logger.d(tag, "Face detected")
                         return null

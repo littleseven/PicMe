@@ -7,6 +7,8 @@ import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.platform.logging.Logger
 import kotlinx.coroutines.withTimeout
+import kotlin.time.Clock
+import kotlin.concurrent.Volatile
 
 /**
  * 命令执行器
@@ -73,7 +75,7 @@ class CommandExecutor(
         pageContext: PageContext?,
         capability: Capability
     ): Result<AgentAction> {
-        val startMs = System.currentTimeMillis()
+        val startMs = Clock.System.now().toEpochMilliseconds()
         val commandType = AgentCommand.getMethodName(command)
         return try {
             val result = withTimeout(timeoutMs) {
@@ -123,7 +125,7 @@ class CommandExecutor(
             recorder?.record(
                 capability = capability,
                 commandType = commandType,
-                latencyMs = System.currentTimeMillis() - startMs,
+                latencyMs = Clock.System.now().toEpochMilliseconds() - startMs,
                 success = success,
                 errorCode = errorCode,
                 errorMessage = errorMessage,
