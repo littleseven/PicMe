@@ -147,7 +147,9 @@ class KoogChatAgent(
             .promptExecutor(executorBundle.executor)
             .llmModel(executorBundle.model)
             .toolRegistry(ToolRegistry.builder().tools(toolSet).build())
-            .systemPrompt(systemPrompt)
+            // baseParams（temperature 钳制 + DeepSeek thinking=disabled + maxTokens）必须经 polangSystemPrompt
+            // 烘焙进 Prompt；不能用 .systemPrompt(String)——它从空 Prompt.Empty 扩展，丢弃全部 params。
+            .prompt(polangSystemPrompt(id = "polang-chat", systemPrompt = systemPrompt, params = executorBundle.baseParams))
             // Koog maxIterations 数的是子图节点执行次数（一轮工具调用 ≈ 2-3 步），旧 AiServices
             // 数的是 LLM 轮次；×3 对齐旧语义上限（详见 KoogReActAgent 同款注释，飞书真机撞顶实测）。
             .maxIterations((config.maxIterations * KOOG_STEPS_PER_LLM_ROUND).coerceAtLeast(KOOG_STEPS_PER_LLM_ROUND))
