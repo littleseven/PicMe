@@ -27,6 +27,5 @@ tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 
 ## 模块语义提醒
 
-- `:runtime-core` = 本地 Agent Runtime（AgentOrchestrator / CapabilityRegistry / …；包 `com.mamba.picme.agent.core`）。
-- `:agent-core` = langchain4j 的 Android 适配层（远程推理）。
-- `:beauty-engine` = 自研 OpenGL ES + EGL 美颜引擎；app 层只依赖 `beauty-api/` 与 `beauty-engine:api/`，禁直接引用 render/internal。
+- `:runtime-core` = 本地 Agent Runtime（AgentOrchestrator / CapabilityRegistry / …；包 `com.mamba.picme.agent.core`；远程推理经 Koog 编排）。
+- `:engines:beauty-engine` = 自研 OpenGL ES + EGL 美颜引擎；app 层只依赖 `beauty-api/` 与 `beauty-engine:api/`，禁直接引用 render/internal。

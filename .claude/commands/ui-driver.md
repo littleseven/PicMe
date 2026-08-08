@@ -61,7 +61,7 @@ onView(withText("确认")).check(matches(isDisplayed()))
 
 ```bash
 # 1. Install debug APK
-./gradlew :app:installDebug --no-daemon
+./gradlew :androidApp:installDebug --no-daemon
 
 # 2. Enable the accessibility service
 adb shell settings put secure enabled_accessibility_services \

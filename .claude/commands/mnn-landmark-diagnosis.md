@@ -199,9 +199,9 @@ init {
 ### Step 1: 编译安装
 
 ```bash
-./gradlew :beauty-engine:assembleDebug
-./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/polang-debug.apk
+./gradlew :engines:beauty-engine:assembleDebug
+./gradlew :androidApp:assembleDebug
+adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 ```
 
 ### Step 2: 启动对比测试

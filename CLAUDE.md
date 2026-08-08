@@ -18,13 +18,13 @@ Key technological decisions:
 
 ```bash
 # Build debug APK
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 
 # Run JVM unit tests (no device required)
 ./gradlew test
 # Or module-specific:
-./gradlew :app:testDebugUnitTest
-./gradlew :beauty-engine:testDebugUnitTest
+./gradlew :androidApp:testDebugUnitTest
+./gradlew :engines:beauty-engine:testDebugUnitTest
 
 # Run instrumentation tests (requires device/emulator)
 ./gradlew connectedAndroidTest
@@ -38,7 +38,7 @@ Key technological decisions:
 ./gradlew clean
 
 # Install to device
-adb install -r app/build/outputs/apk/debug/polang-debug.apk
+adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 
 # View PoLang logs
 adb logcat -s "PoLang:*"
@@ -52,16 +52,16 @@ adb logcat -s "PoLang:*"
 ### Module Structure
 
 Six Gradle modules defined in `settings.gradle.kts`:
-- **`:app`** — Main Android application (Camera, Gallery, Editor, Settings)
-- **`:beauty-api`** — Pure Kotlin library; stable API contracts shared between `:app` and `:beauty-engine`
+- **`:androidApp`** — Main Android application (Camera, Gallery, Editor, Settings)
+- **`:engines:beauty-api`** — Pure Kotlin library; stable API contracts shared between `:androidApp` and `:engines:beauty-engine`
   (BeautySettings, FilterType, StyleFilter, Face, FaceDetector, FrameSyncConfig, etc.)
-- **`:beauty-engine`** — Independent Android library; self-developed OpenGL ES + EGL real-time beauty engine
+- **`:engines:beauty-engine`** — Independent Android library; self-developed OpenGL ES + EGL real-time beauty engine
 - **`:runtime-core`** — Pure Kotlin library; **Agent Runtime** infrastructure (AgentOrchestrator, CapabilityRegistry,
   LocalLlmEngine, RemoteReActAgent, RemoteChatEngine, ExecutionEngine, PrivacyGuard, MemoryManager, voice/ASR, remote/orchestration, etc.). Package `com.mamba.picme.agent.core.*`
-- **`:mnn-core`** — MNN inference JNI wrappers
-- **`:sentencepiece`** — tokenizer
+- **`:engines:mnn-core`** — MNN inference JNI wrappers
+- **`:engines:sentencepiece`** — tokenizer
 
-> ⚠️ **模块语义（重要）**：`:runtime-core` = 本地 Agent Runtime（编排端侧 VLM + 远程推理；AgentOrchestrator/CapabilityRegistry/LocalLlmEngine/RemoteReActAgent/RemoteChatEngine/…；包 `com.mamba.picme.agent.core`）。远程推理经 **Koog**（JetBrains KMP Agent 框架，外部依赖）编排——2026-08 由自维护的 langchain4j fork 迁移而来，原 `:agent-core` 模块已删除。依赖链：`:app → :runtime-core → Koog（外部依赖）`。
+> ⚠️ **模块语义（重要）**：`:runtime-core` = 本地 Agent Runtime（编排端侧 VLM + 远程推理；AgentOrchestrator/CapabilityRegistry/LocalLlmEngine/RemoteReActAgent/RemoteChatEngine/…；包 `com.mamba.picme.agent.core`）。远程推理经 **Koog**（JetBrains KMP Agent 框架，外部依赖）编排——2026-08 由自维护的 langchain4j fork 迁移而来，原 `:agent-core` 模块已删除。依赖链：`:androidApp → :runtime-core → Koog（外部依赖）`。
 
 GPUPixel has been fully removed; all GPU capabilities are provided by the self-developed engine.
 

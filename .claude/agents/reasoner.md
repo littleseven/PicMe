@@ -18,5 +18,5 @@ tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch, NotebookEdit, T
 ## 约束
 
 - 守 `CLAUDE.md` / `AGENTS.md` 硬规则与红线：`[PRIVACY]`（媒体 100% 端侧）、`[PERF]`、`[I18N]`（三语同步，禁硬编码）。
-- 遵循既有架构模式与模块边界（见 `AGENTS.md` 模块语义：`:runtime-core` 本地 Runtime / `:agent-core` 远程适配 / `:beauty-engine` 自研 GL 引擎）。
+- 遵循既有架构模式与模块边界（见 `AGENTS.md` 模块语义：`:runtime-core` 本地 Runtime（远程推理经 Koog 编排）/ `:engines:beauty-engine` 自研 GL 引擎）。
 - 日志 tag `PoLang:[Module]`；Kotlin 显式命名 lambda 参数，禁 `*` 导入。

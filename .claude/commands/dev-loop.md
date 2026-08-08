@@ -26,7 +26,7 @@
 
 自动完成：
 1. **代码检查** — ktlint + detekt + JVM unit tests
-2. **编译** — `./gradlew :app:assembleDebug`
+2. **编译** — `./gradlew :androidApp:assembleDebug`
 3. **安装** — 自动 `adb install -r`
 4. **设备验证** — 启动应用 + 截屏 + 执行 JSON 命令（通过 AgentTestBroadcastReceiver）+ 收集日志
 5. **报告生成** — Markdown 格式报告 + 所有日志/截图归档

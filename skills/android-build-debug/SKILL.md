@@ -26,12 +26,12 @@ tags:
 ### 1. 编译 Debug APK
 ```bash
 # 在项目根目录执行
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 ```
 
 ### 2. 安装到设备
 ```bash
-adb install -r app/build/outputs/apk/debug/polang-debug.apk
+adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 ```
 
 ### 3. 查看日志（过滤 PoLang 标签）
@@ -50,16 +50,16 @@ adb shell am start -n com.mamba.picme/.MainActivity
 
 ```bash
 # 第 1 层: 语法/格式检查（~2s）
-./gradlew :app:ktlintCheck
+./gradlew :androidApp:ktlintCheck
 
 # 第 2 层: Kotlin 编译到 class（~5-30s）
-./gradlew :app:compileDebugKotlin
+./gradlew :androidApp:compileDebugKotlin
 
 # 第 3 层: beauty-engine 模块编译（~10-60s）
-./gradlew :beauty-engine:assembleDebug
+./gradlew :engines:beauty-engine:assembleDebug
 
 # 第 4 层: 完整 APK（~30-120s，仅最终验证）
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 ```
 
 **规则**：每层失败后立即修复，不继续下一层。详见 [error-healer](/error-healer) 的分层验证策略。
@@ -69,11 +69,11 @@ adb shell am start -n com.mamba.picme/.MainActivity
 ### 快速失败日志解析
 ```bash
 # 提取关键错误信息（前 3 个错误）
-./gradlew :app:compileDebugKotlin 2>&1 | \
+./gradlew :androidApp:compileDebugKotlin 2>&1 | \
     grep -E "^e:\s+" | head -3 > /tmp/compile_errors.txt
 
 # 提取文件和行号
-./gradlew :app:compileDebugKotlin 2>&1 | \
+./gradlew :androidApp:compileDebugKotlin 2>&1 | \
     grep -E "\.kt:\d+:\d+" | head -3 > /tmp/error_locations.txt
 ```
 
@@ -111,9 +111,9 @@ adb shell am start -n com.mamba.picme/.MainActivity
 
 ## 项目特定路径
 
-- APK 输出：`app/build/outputs/apk/debug/polang-debug.apk`
+- APK 输出：`androidApp/build/outputs/apk/debug/polang-debug.apk`
 - Shader 目录：`beauty-engine/src/main/assets/shaders/`
-- Java/Kotlin 源码：`app/src/main/java/com/mamba/picme/`
+- Java/Kotlin 源码：`androidApp/src/main/java/com/mamba/picme/`
 - 日志标签过滤：`adb logcat -s PoLang:* *:S`
 
 ## 相关文件

@@ -319,7 +319,7 @@ wc -l AGENTS.md  # 如果超过 500 行，可能需要瘦身
 #### Step 3: 更新双向链接
 ```markdown
 # 在来源文档添加指引
-详见模块 AGENTS.md: `app/src/main/java/com/mamba/picme/features/camera/AGENTS.md`
+详见模块 AGENTS.md: `androidApp/src/main/java/com/mamba/picme/features/camera/AGENTS.md`
 
 # 在目标文档添加回溯
 产品需求来源: `PRODUCT.md Section 3.1`

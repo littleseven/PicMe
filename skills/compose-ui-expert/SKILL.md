@@ -57,7 +57,7 @@ tags:
 
 ```bash
 # 启用 Compose 编译器指标
-./gradlew :app:assembleDebug -PcomposeCompilerReports=true
+./gradlew :androidApp:assembleDebug -PcomposeCompilerReports=true
 # 查看 build/compose_metrics/ 下的报告
 ```
 
@@ -92,7 +92,7 @@ tags:
 ## 相关文件
 
 - [docs/01-PRODUCT/FEATURES.md](docs/01-PRODUCT/FEATURES.md) — 交互规范与设计系统
-- [app/src/main/java/com/mamba/picme/core/designsystem/AGENTS.md](app/src/main/java/com/mamba/picme/core/designsystem/AGENTS.md) — 设计系统规范
+- [androidApp/src/main/java/com/mamba/picme/core/designsystem/AGENTS.md](androidApp/src/main/java/com/mamba/picme/core/designsystem/AGENTS.md) — 设计系统规范
 - [error-healer](/error-healer) — 编译错误修复
 - [perf-optimizer](/perf-optimizer) — 重组性能分析
 - [i18n-validator](/i18n-validator) — UI 文案多语言验证

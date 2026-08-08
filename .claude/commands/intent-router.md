@@ -132,15 +132,15 @@
 # 根据意图和模块自动读取的文件
 
 [Feature] + camera:
-  - app/src/main/java/com/mamba/picme/features/camera/AGENTS.md
+  - androidApp/src/main/java/com/mamba/picme/features/camera/AGENTS.md
   - docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md（相机预览内容已并入）
   - docs/01-PRODUCT/FEATURES.md (Section 2.1)
-  - app/src/main/java/com/mamba/picme/features/camera/*.kt (最新修改的 3 个文件)
+  - androidApp/src/main/java/com/mamba/picme/features/camera/*.kt (最新修改的 3 个文件)
 
 [Feature] + gallery:
-  - app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md
+  - androidApp/src/main/java/com/mamba/picme/features/gallery/AGENTS.md
   - docs/01-PRODUCT/FEATURES.md (Section 2.2)
-  - app/src/main/java/com/mamba/picme/features/gallery/*.kt
+  - androidApp/src/main/java/com/mamba/picme/features/gallery/*.kt
 
 [Feature] + beauty:
   - beauty-engine/AGENTS.md
@@ -149,9 +149,9 @@
 
 [Feature] + agent:
   - docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md
-  - app/src/main/java/com/mamba/picme/domain/agent/capability/AGENTS.md
+  - androidApp/src/main/java/com/mamba/picme/domain/agent/capability/AGENTS.md
   - docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md
-  - app/src/main/java/com/mamba/picme/domain/agent/**/*.kt
+  - androidApp/src/main/java/com/mamba/picme/domain/agent/**/*.kt
 
 [BugFix] + 任何模块:
   - 相关模块 AGENTS.md
@@ -174,7 +174,7 @@
   - [/compose-ui-expert](/compose-ui-expert)
 
 [Voice]:
-  - app/src/main/java/com/mamba/picme/features/camera/voice/ 目录下相关文件
+  - androidApp/src/main/java/com/mamba/picme/features/camera/voice/ 目录下相关文件
   - docs/01-PRODUCT/FEATURES.md (语音交互章节)
   - docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md (语音命令路由)
 
@@ -215,7 +215,7 @@ Intent Router 处理:
 1. 意图分类: [Feature] + gallery
 2. 术语对齐: "旋转" → `rotate()` / `Rotation` (UI 变换)
 3. 上下文加载:
-   - app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md
+   - androidApp/src/main/java/com/mamba/picme/features/gallery/AGENTS.md
    - docs/01-PRODUCT/FEATURES.md §2.2 (相册交互规范)
    - MediaPager.kt (最近修改的 gallery 文件)
 4. 影响推断: gallery 模块，UI 层变更，涉及 [I18N]（新增按钮文案）
@@ -249,7 +249,7 @@ Intent Router 处理:
 1. 意图分类: [Perf] + gallery
 2. 术语对齐: "卡" → 掉帧 / jank / 滑动性能 < 120fps
 3. 上下文加载:
-   - app/src/main/java/com/mamba/picme/features/gallery/AGENTS.md
+   - androidApp/src/main/java/com/mamba/picme/features/gallery/AGENTS.md
    - GalleryScreen.kt (LazyColumn/Grid 实现)
    - 性能基线数据
 4. 影响推断: gallery 模块，UI 渲染性能，[PERF] 红线

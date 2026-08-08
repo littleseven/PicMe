@@ -63,7 +63,7 @@ LaunchedEffect(Unit) {
 |----------|----------|
 | 不清日志，新旧进程混杂 | `adb logcat -c` |
 | 不查 pid，grep 抓到旧进程 | `adb shell pidof com.mamba.picme` |
-| `compileDebugKotlin` 后直接安装 | `./gradlew :app:assembleDebug` 重新打包 |
+| `compileDebugKotlin` 后直接安装 | `./gradlew :androidApp:assembleDebug` 重新打包 |
 | 不强制停止，热更新残留 | `adb shell am force-stop com.mamba.picme` |
 
 **陷阱 5 — 批量修改**

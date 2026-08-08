@@ -40,7 +40,7 @@ tags:
 ./scripts/check-i18n-hardcode.sh
 
 # 手动检查（关键文件）
-grep -rn "\"[a-zA-Z\u4e00-\u9fa5]\{3,\}\"" app/src/main/java/com/mamba/picme/ --include="*.kt" | \
+grep -rn "\"[a-zA-Z\u4e00-\u9fa5]\{3,\}\"" androidApp/src/main/java/com/mamba/picme/ --include="*.kt" | \
     grep -v "Log\." | grep -v "TAG" | grep -v "http"
 ```
 

@@ -34,7 +34,7 @@
 ### [Android] adb 调试规范
 - [ ] **清除日志后再测试**：`adb logcat -c`
 - [ ] **确认进程号**：`adb shell pidof com.mamba.picme`，日志过滤时使用确切 pid
-- [ ] **修改代码后必须重新打包**：`./gradlew :app:assembleDebug`，`compileDebugKotlin` 不会生成新 APK
+- [ ] **修改代码后必须重新打包**：`./gradlew :androidApp:assembleDebug`，`compileDebugKotlin` 不会生成新 APK
 - [ ] **强制停止后安装**：`adb shell am force-stop com.mamba.picme && adb install -r ...`，避免热更新残留
 
 **关联经验**: [2026-05-10] Gallery adb 命令扩展 — 多次安装旧 APK，改代码"没效果"

@@ -70,5 +70,5 @@
 
 > 命令源文件：`.claude/commands/*.md`
 > 历史源文件：`.qoder/skills/*/SKILL.md`（已迁出，`.qoder/` 已删除）
-> Canonical skills 源（SSOT）：`.claude/commands/`；顶层 `skills/` 为 kimi 镜像（经 `.kimi/skills` 软链读取），内容由 commands/ 同步
+> Canonical skills 源（SSOT）：`skills/`（经 `.kimi/skills` 软链供 kimi/OpenCode 共享）；`.claude/commands/` 为 Claude Code 专用镜像（无 frontmatter），由 `scripts/check-skill-sync.sh` 校验、从 `skills/` 同步
 > 最近整理：2026-08-03（移除已下线 `ncnn-integration` 条目；清理 InsightFace→MNN、`/agent-test`→`/ui-driver`、`/qa-acceptance` 等过时引用；去掉易过期的「行数」列；确认 21 个命令与 `.claude/commands/` 一一对应）

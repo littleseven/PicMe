@@ -13,7 +13,7 @@ model: fable
 
 ## 铁律(不可违反)
 - **验收标准必须可机器判定**:写成具体的 shell 命令、退出码、文件存在性、或测试通过。禁止"体验流畅""界面美观"这类无法自动判定的模糊词。
-  - ✅ 好:`./gradlew :app:testDebugUnitTest` 退出码 0;`MainActivity.kt` 存在且包含 `setContent`
+  - ✅ 好:`./gradlew :androidApp:testDebugUnitTest` 退出码 0;`MainActivity.kt` 存在且包含 `setContent`
   - ❌ 坏:"用户用起来感觉很快"
 - **不做技术决策**:不选型、不定架构、不写代码。技术方案交给 `vt-architect`。
 - **不做 UI 设计**:界面交给 `vt-designer`。

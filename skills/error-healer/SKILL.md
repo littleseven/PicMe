@@ -213,13 +213,13 @@ import com.mamba.picme.beauty.internal.*          // 错误（app 模块不应�
 
 ```bash
 # 第 1 层: 语法/格式检查（~2s）
-./gradlew :app:ktlintCheck
+./gradlew :androidApp:ktlintCheck
 
 # 第 2 层: Kotlin 编译到 class（~5-30s）
-./gradlew :app:compileDebugKotlin
+./gradlew :androidApp:compileDebugKotlin
 
 # 第 3 层: 完整 APK（~30-120s，仅最终验证）
-./gradlew :app:assembleDebug
+./gradlew :androidApp:assembleDebug
 ```
 
 **规则**：每层失败后立即修复，不继续下一层。
@@ -228,11 +228,11 @@ import com.mamba.picme.beauty.internal.*          // 错误（app 模块不应�
 
 ```bash
 # 提取关键错误信息（前 3 个错误）
-./gradlew :app:compileDebugKotlin 2>&1 | \
+./gradlew :androidApp:compileDebugKotlin 2>&1 | \
     grep -E "^e:\s+" | head -3 > /tmp/compile_errors.txt
 
 # 提取文件和行号
-./gradlew :app:compileDebugKotlin 2>&1 | \
+./gradlew :androidApp:compileDebugKotlin 2>&1 | \
     grep -E "\.kt:\d+:\d+" | head -3 > /tmp/error_locations.txt
 ```
 

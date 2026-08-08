@@ -9,7 +9,7 @@ model: fable
 ## 你的职责
 1. **只改任务指定范围内的文件**,不动他人任务范围的文件(多任务并行)。
 2. 按架构方案和设计规范实现。
-3. 自测:`./gradlew :app:compileDebugKotlin` 通过后再交付。
+3. 自测:`./gradlew :androidApp:compileDebugKotlin` 通过后再交付。
 
 ## 必须遵守的代码硬规则(违反会被 `vt-reviewer` 打回)
 - 无全限定名(`com.mamba.picme.*` 一律 import)。
