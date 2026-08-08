@@ -61,7 +61,7 @@
 
 ---
 
-## Task 1：shared 模块骨架与构建接入（路线图 4.1）
+## Task 1：shared 模块骨架与构建接入（路线图 4.1）✅ 已完成（2026-08-08，commit `89485605`，双审通过）
 
 **Files:**
 - Create: `shared/build.gradle.kts`
@@ -73,7 +73,7 @@
 - Modify: `gradle/libs.versions.toml`（新增 kotlinx-datetime + KMP 插件别名）
 - Modify: `androidApp/build.gradle.kts`（追加 shared 依赖）
 
-- [ ] **Step 1: 版本目录新增条目**
+- [x] **Step 1: 版本目录新增条目**
 
 `gradle/libs.versions.toml` 在 `[versions]` 段追加：
 
@@ -94,12 +94,12 @@ kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref 
 android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 ```
 
-- [ ] **Step 2: 验证 kotlinx-datetime 版本可解析**
+- [x] **Step 2: 验证 kotlinx-datetime 版本可解析**
 
 Run: `./gradlew help --refresh-dependencies > /dev/null && curl -s "https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-datetime/maven-metadata.xml" | grep -o "<latest>[^<]*" | head -1`
 Expected: 输出 `<latest>0.7.1` 或更高。若 `0.7.1` 不存在，改为 latest 显示的最新稳定版（不用 SNAPSHOT/RC）。
 
-- [ ] **Step 3: 创建 shared 模块构建脚本**
+- [x] **Step 3: 创建 shared 模块构建脚本**
 
 `shared/build.gradle.kts`：
 
@@ -175,7 +175,7 @@ class SharedPlaceholderTest {
 
 `shared/src/iosMain/kotlin/.gitkeep`：空文件。
 
-- [ ] **Step 4: 接入 settings 与 androidApp**
+- [x] **Step 4: 接入 settings 与 androidApp**
 
 `settings.gradle.kts` 追加（保持字母序插入位置即可）：
 
@@ -189,7 +189,7 @@ include(":shared")
 implementation(project(":shared"))
 ```
 
-- [ ] **Step 5: 三端构建 + JVM 测试验证骨架**
+- [x] **Step 5: 三端构建 + JVM 测试验证骨架**
 
 Run: `./gradlew :shared:jvmTest`
 Expected: `BUILD SUCCESSFUL`，`SharedPlaceholderTest > pingReturnsPong PASSED`
@@ -203,12 +203,12 @@ Expected: `BUILD SUCCESSFUL`（macOS + Xcode 环境；首次 Kotlin/Native 编�
 Run: `./gradlew :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`（零回归：app 尚未消费 shared 任何类，仅多一个空依赖）
 
-- [ ] **Step 6: ai-gate 接线检查**
+- [x] **Step 6: ai-gate 接线检查**
 
 Run: `grep -n "runtime-core" scripts/ai-gate.sh`
 Expected: 输出 ai-gate 中显式列举模块的行。若 ai-gate 按模块逐个跑测试，在同一位置追加 `:shared:jvmTest` 调用；若它全量跑 `./gradlew test`，无需改动。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add shared/ settings.gradle.kts gradle/libs.versions.toml androidApp/build.gradle.kts scripts/ai-gate.sh
@@ -217,7 +217,7 @@ git commit -m "feat(shared): Phase 4.1 KMP shared 模块骨架（android/jvm/ios
 
 ---
 
-## Task 2：平台原语层（expect 声明 + Logger 迁移）
+## Task 2：平台原语层（expect 声明 + Logger 迁移）✅ 已完成（2026-08-08，commit `6d0255b7` + 审查修复 `63eb17f1`，双审通过）
 
 所有后续批次的公共地基。先建 expect 声明，后续迁移直接引用。
 
@@ -238,7 +238,7 @@ git commit -m "feat(shared): Phase 4.1 KMP shared 模块骨架（android/jvm/ios
 - Move: `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/logging/Logger.kt` → `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/platform/logging/Logger.kt`
 - Delete: `shared/src/commonMain/kotlin/com/mamba/picme/shared/SharedPlaceholder.kt`（含测试）
 
-- [ ] **Step 1: expect `DispatcherProvider`（4 命名 dispatcher，语义与现 `ThreadPoolManager` 一致）**
+- [x] **Step 1: expect `DispatcherProvider`（4 命名 dispatcher，语义与现 `ThreadPoolManager` 一致）**
 
 commonMain 声明：
 
@@ -304,7 +304,7 @@ actual class DispatcherProvider actual constructor() {
 }
 ```
 
-- [ ] **Step 2: expect `AgentIdGenerator`（替代 `AgentModels.kt` 内的 JVM AtomicInteger）**
+- [x] **Step 2: expect `AgentIdGenerator`（替代 `AgentModels.kt` 内的 JVM AtomicInteger）**
 
 commonMain：
 
@@ -348,7 +348,7 @@ actual object AgentIdGenerator {
 
 > 注：`kotlin.concurrent.atomics` 在 Kotlin 2.1+ 提供；若 2.3.10 的 API 名与上面不一致（该包仍在演进），以编译器报错提示修正 import，语义保持「从 1 开始单调递增」。
 
-- [ ] **Step 3: expect `createKoogHttpClientFactory`（双端均显式构造，绕 Koog ServiceLoader 缺陷）**
+- [x] **Step 3: expect `createKoogHttpClientFactory`（双端均显式构造，绕 Koog ServiceLoader 缺陷）**
 
 commonMain：
 
@@ -379,7 +379,7 @@ actual fun createKoogHttpClientFactory(extraHeaders: Map<String, String>): KoogH
 
 > 迁移动作：`RemoteModelFactory.kt` 内的 `HeaderInjectingHttpClientFactory`（现约 L157）若为纯 Koog API 实现（无 Android 依赖），原样移入 commonMain `KoogHttpClientFactoryProvider.kt` 同文件；若含平台依赖，先剥离再移。
 
-- [ ] **Step 4: Logger 迁移（PURE，git mv）**
+- [x] **Step 4: Logger 迁移（PURE，git mv）**
 
 ```bash
 mkdir -p shared/src/commonMain/kotlin/com/mamba/picme/agent/core/platform/logging
@@ -387,7 +387,7 @@ git mv runtime-core/src/main/java/com/mamba/picme/agent/core/platform/logging/Lo
        shared/src/commonMain/kotlin/com/mamba/picme/agent/core/platform/logging/Logger.kt
 ```
 
-- [ ] **Step 5: 删除占位文件 + 写第一个真正 commonTest**
+- [x] **Step 5: 删除占位文件 + 写第一个真正 commonTest**
 
 ```bash
 git rm shared/src/commonMain/kotlin/com/mamba/picme/shared/SharedPlaceholder.kt \
@@ -416,7 +416,7 @@ class DispatcherProviderTest {
 }
 ```
 
-- [ ] **Step 6: 验证**
+- [x] **Step 6: 验证**
 
 Run: `./gradlew :shared:jvmTest :shared:compileDebugKotlinAndroid :shared:compileKotlinIosSimulatorArm64`
 Expected: `BUILD SUCCESSFUL`；`DispatcherProviderTest PASSED`
@@ -424,7 +424,7 @@ Expected: `BUILD SUCCESSFUL`；`DispatcherProviderTest PASSED`
 Run: `./gradlew :runtime-core:assembleDebug :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`（Logger 包名未变，引用方零改动；`ThreadPoolManager` 若本步已删，则其引用点替换必须同批完成，否则编译会红——红则按 Step 1 迁移动作清单补齐）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add shared/ runtime-core/ androidApp/
