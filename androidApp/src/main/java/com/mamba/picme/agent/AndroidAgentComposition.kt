@@ -56,7 +56,7 @@ object AndroidAgentComposition {
         val appContext = context.applicationContext
         val dispatcherProvider = SharedDispatcherProvider.instance
 
-        val engine = LocalLlmEngine(appContext)
+        val engine = LocalLlmEngine(appContext, dispatcherProvider)
         localLlmEngine = engine
 
         // chat/相机工具集反射展开（与旧 reflect.ToolSet 扫描同一函数）：descriptor 清单与
@@ -68,7 +68,7 @@ object AndroidAgentComposition {
             AgentDependencies(
                 dispatcherProvider = dispatcherProvider,
                 chatMemoryStore = KoogMessageMemoryStore(appContext, dispatcherProvider),
-                chatHistoryCleaner = MemoryManager(appContext),
+                chatHistoryCleaner = MemoryManager(appContext, dispatcherProvider),
                 imageEngineProvider = { engine },
                 chatToolDescriptors = chatTools.map { it.descriptor },
                 chatToolRegistry = ToolRegistry { tools(chatTools) },

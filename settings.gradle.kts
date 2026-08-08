@@ -28,7 +28,6 @@ rootProject.name = "polang"
 include(":androidApp")
 include(":engines:beauty-api")
 include(":engines:beauty-engine")
-include(":runtime-core")
 include(":engines:mnn-core")
 include(":engines:agent-native")
 include(":engines:sentencepiece")

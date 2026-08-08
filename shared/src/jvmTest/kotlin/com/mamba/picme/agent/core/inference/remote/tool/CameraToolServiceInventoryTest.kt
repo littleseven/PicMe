@@ -11,7 +11,10 @@ import org.junit.Test
  * 相机 ToolService 工具清单与 prompt 一致性单测。
  *
  * 门禁：相机远程 agent 的 system prompt 必须覆盖 [CameraToolService] 的全部 @Tool，
- * 手写清单漂移（漏加/漏删工具）在此 fail-fast。与 [ToolInventoryTest]（chat 链路）同约。
+ * 手写清单漂移（漏加/漏删工具）在此 fail-fast。与 [ChatToolServiceInventoryTest]（chat 链路）同约。
+ *
+ * Task 14 变更：自 runtime-core 迁入 :shared jvmTest（@Tool 元数据反射展开为 JVM-only，
+ * 与 ToolPromptDeterminismTest 同层）。
  */
 class CameraToolServiceInventoryTest {
 

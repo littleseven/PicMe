@@ -13,6 +13,9 @@ import org.junit.rules.TemporaryFolder
  *
  * 由于 native KeywordSpotter 在 JVM 单元测试环境中不可用，
  * 本测试专注于文件验证、关键词加载等不依赖 native 初始化的逻辑。
+ *
+ * Task 14 落点说明：被测 [KeywordSpotterEngine] 在 :shared androidMain（KMP android library
+ * 无 androidUnitTest source set），故留 androidApp 单测经 :shared 依赖解析符号。
  */
 class KeywordSpotterEngineTest {
 

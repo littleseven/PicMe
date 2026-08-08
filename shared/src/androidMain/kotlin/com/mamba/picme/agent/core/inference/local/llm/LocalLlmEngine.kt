@@ -8,6 +8,7 @@ import com.mamba.picme.agent.core.inference.local.llm.MnnLlmClient.NativeRelease
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.mnn.MnnGlobalReleaseLock
 import com.mamba.picme.mnn.MnnResourceManager
+import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
 import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -34,15 +35,19 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 避免 Compose 协程重组取消和多线程并发竞争导致的 MNN 全局状态冲突。
  *
  * @param context Application Context
+ * @param dispatcherProvider 模型专用单线程来源（与 [KoogMessageMemoryStore] 同模式注入）
  */
-class LocalLlmEngine(private val context: Context) : ImageInferenceEngine {
+class LocalLlmEngine(
+    private val context: Context,
+    dispatcherProvider: DispatcherProvider = SharedDispatcherProvider.instance,
+) : ImageInferenceEngine {
 
     private val tag = "LocalLlmEngine"
     private val client = MnnLlmClient(context)
     private val engineMutex = Mutex()
     private val resourceManager = MnnResourceManager.getInstance(context)
 
-    private val modelDispatcher: CoroutineDispatcher = SharedDispatcherProvider.instance.modelDispatcher
+    private val modelDispatcher: CoroutineDispatcher = dispatcherProvider.modelDispatcher
 
     /**
      * 后台协程作用域，用于 fire-and-forget 异步任务（如 trimMemory、unload 投递）。

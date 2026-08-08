@@ -18,8 +18,9 @@ import org.junit.Test
  * 新增远程推理代码若误引入 `ImageContent`/multipart 等，本测试会立即变红，防止红线被悄悄突破。
  *
  * KMP 抽取（Phase 4 Task 6）：本守卫随 `inference/remote/` 源码迁 :shared，扫描 commonMain
- * 新路径（java.io 文件扫描 → jvmTest，不进 commonTest）；runtime-core 同名副本继续守卫
- * 尚未迁出的 `RemoteChatEngine`/`tool/` 残留，Task 7/13 迁完后随 :runtime-core 一并删除。
+ * 新路径（java.io 文件扫描 → jvmTest，不进 commonTest），覆盖 RemoteChatEngine/ToolService
+ * 等 commonMain 全量远程链路；androidApp 侧（RemoteControlToolService）由 androidApp/src/test
+ * 同名副本守卫（Task 13）。runtime-core 副本已随模块删除（Task 14）。
  */
 class RemoteInferenceNoMediaUploadGuardTest {
 

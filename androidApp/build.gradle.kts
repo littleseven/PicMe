@@ -283,7 +283,6 @@ dependencies {
     implementation(project(":engines:beauty-api"))
     // 美颜引擎模块
     implementation(project(":engines:beauty-engine"))
-    implementation(project(":runtime-core"))
     implementation(project(":engines:mnn-core"))
     // sherpa-onnx: :shared androidMain 编译期 compileOnly（Phase 4 Task 11 前为 runtime-core），
     // androidApp 模块提供运行时 AAR 打包
@@ -294,8 +293,14 @@ dependencies {
     // SentencePiece tokenizer（OPUS-MT 编码解码 + tokenizer.json 词表映射）
     implementation(project(":engines:sentencepiece"))
 
-    // KMP shared 模块（Phase 4：runtime-core 引擎无关逻辑迁入目标，当前仅骨架占位）
+    // KMP shared 模块（Phase 4：原 runtime-core 引擎无关逻辑已全部迁入；模块已删）
     implementation(project(":shared"))
+    // Koog agent 框架：androidApp 侧直接使用（RemoteControlToolService 的 @Tool/@LLMDescription、
+    // AndroidAgentComposition 的 ToolRegistry/asToolsByClass）；Task 14 前经 :runtime-core 传递
+    // 解析，模块删除后改直接依赖。serialization-jackson 排除理由同 :shared（minSdk 24 D8 限制）。
+    implementation("ai.koog:koog-agents:${libs.versions.koog.get()}") {
+        exclude(group = "ai.koog", module = "serialization-jackson")
+    }
 
     // ONNX Runtime（OPUS-MT 翻译模型推理后端）
     // 版本必须与 sherpa-onnx-1.13.3 内置的 ONNX Runtime 一致（1.24.3）

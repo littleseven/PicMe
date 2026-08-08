@@ -17,8 +17,12 @@ import org.junit.Test
  * 反射展开经 `asToolsByClass()`（与旧 `reflect.ToolSet` 扫描同一函数）；排序/首句截断的
  * 格式化单测已迁 :shared commonTest `ToolInventoryTest`，逐字节防漂移护栏见 :shared
  * jvmTest `ToolPromptDeterminismTest`。
+ *
+ * Task 14 变更：自 runtime-core 迁入 :shared jvmTest（@Tool 元数据反射展开为 JVM-only，
+ * 与 ToolPromptDeterminismTest 同层）；因 commonTest 已存在格式化用 `ToolInventoryTest`，
+ * 本类更名 `ChatToolServiceInventoryTest` 消 FQN 冲突（与 camera 侧命名对齐）。
  */
-class ToolInventoryTest {
+class ChatToolServiceInventoryTest {
 
     @Test
     fun `inventory contains every @Tool of ChatToolService`() {
