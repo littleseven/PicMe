@@ -293,6 +293,9 @@ dependencies {
     // SentencePiece tokenizer（OPUS-MT 编码解码 + tokenizer.json 词表映射）
     implementation(project(":engines:sentencepiece"))
 
+    // KMP shared 模块（Phase 4：runtime-core 引擎无关逻辑迁入目标，当前仅骨架占位）
+    implementation(project(":shared"))
+
     // ONNX Runtime（OPUS-MT 翻译模型推理后端）
     // 版本必须与 sherpa-onnx-1.13.3 内置的 ONNX Runtime 一致（1.24.3）
     // 否则 libonnxruntime4j_jni.so 与 libonnxruntime.so ABI 不匹配
