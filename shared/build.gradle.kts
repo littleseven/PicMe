@@ -33,6 +33,10 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
         }
-        // androidMain.dependencies / iosMain.dependencies 在后续 Task 按需追加
+        androidMain.dependencies {
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.androidx.core.ktx)
+        }
+        // iosMain.dependencies 在后续 Task 按需追加
     }
 }

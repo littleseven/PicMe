@@ -16,8 +16,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 
 // 同一 chat_memory DataStore 文件（与 langchain4j 期 DataStoreChatMemoryStore 共享进程级单例），
 // 但用独立键前缀 koog_memory_ 隔离：Koog Message 是 kotlinx-serializable 的多态结构，
@@ -40,14 +38,14 @@ private val Context.koogChatMemoryDataStore: DataStore<Preferences> by preferenc
  * 本类在 Phase 3 仅作为记忆层组件落地（旧 langchain4j 路径仍活、不被调用）；
  * 由 chat 链路（Phase 4）按 run 模型接 load/save。
  */
-public class KoogMessageMemoryStore(private val context: Context) {
+public class KoogMessageMemoryStore(private val context: Context) : ChatMemoryStore {
 
     private val tag = "KoogMessageMemoryStore"
     private val dataStore = context.koogChatMemoryDataStore
     private val dataStoreDispatcher = SharedDispatcherProvider.instance.dataStoreDispatcher
 
     /** 加载指定 session 的历史：解码 → 剔除 System（不变式①）→ 双向配对 sanitize（不变式③）。 */
-    public suspend fun load(sessionId: String): List<Message> = withContext(dataStoreDispatcher) {
+    override suspend fun load(sessionId: String): List<Message> = withContext(dataStoreDispatcher) {
         return@withContext try {
             val key = stringPreferencesKey("koog_memory_$sessionId")
             val raw = withTimeout(TIMEOUT_MS) {
@@ -67,7 +65,7 @@ public class KoogMessageMemoryStore(private val context: Context) {
     }
 
     /** 保存指定 session 的历史：剔除 System（不变式①）→ 原子块裁剪（不变式②）→ 编码落盘。 */
-    public suspend fun save(sessionId: String, messages: List<Message>) = withContext(dataStoreDispatcher) {
+    override suspend fun save(sessionId: String, messages: List<Message>) = withContext(dataStoreDispatcher) {
         try {
             val key = stringPreferencesKey("koog_memory_$sessionId")
             val persisted = KoogMessageMemory.trimToMaxMessages(
@@ -86,7 +84,7 @@ public class KoogMessageMemoryStore(private val context: Context) {
     }
 
     /** 清空指定 session 的历史。 */
-    public suspend fun clear(sessionId: String) = withContext(dataStoreDispatcher) {
+    override suspend fun clear(sessionId: String) = withContext(dataStoreDispatcher) {
         try {
             val key = stringPreferencesKey("koog_memory_$sessionId")
             withTimeout(TIMEOUT_MS) {
@@ -104,24 +102,3 @@ public class KoogMessageMemoryStore(private val context: Context) {
         private const val TIMEOUT_MS: Long = 5000L
     }
 }
-
-// ── 编解码（纯函数，无 Android 依赖，便于 JVM 单测）──────────────────────────
-
-/**
- * 用于持久化的 kotlinx Json：encodeDefaults 保证密封类型判别字段稳定写入，
- * ignoreUnknownKeys 保证 Koog 升级新增字段时不破坏旧历史解析。
- */
-private val koogMemoryJson: Json = Json {
-    encodeDefaults = true
-    ignoreUnknownKeys = true
-}
-
-private val messageListSerializer = ListSerializer(Message.serializer())
-
-/** 把 Koog [Message] 列表编码为 JSON 字符串（持久化用）。 */
-internal fun encodeKoogMessages(messages: List<Message>): String =
-    koogMemoryJson.encodeToString(messageListSerializer, messages)
-
-/** 把 JSON 字符串解码为 Koog [Message] 列表（加载用）。解析失败抛异常，由调用方兜底为空表。 */
-internal fun decodeKoogMessages(raw: String): List<Message> =
-    koogMemoryJson.decodeFromString(messageListSerializer, raw)

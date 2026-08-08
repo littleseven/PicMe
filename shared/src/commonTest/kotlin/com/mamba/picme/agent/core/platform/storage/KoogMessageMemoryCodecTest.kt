@@ -5,10 +5,11 @@ import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import com.mamba.picme.agent.core.inference.remote.koog.KoogMessageMemory
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Koog 记忆层编解码往返测试（[encodeKoogMessages] / [decodeKoogMessages]）。
@@ -113,13 +114,13 @@ class KoogMessageMemoryCodecTest {
     fun `JSON 含多态判别字段保证跨版本可识别`() {
         val raw = encodeKoogMessages(listOf(toolCall("c1"), toolResult("c1")))
         // kotlinx 密封接口序列化会写入 "type" 判别键
-        assertTrue("应含多态判别键", raw.contains("\"type\""))
-        assertFalse("不应是空数组", raw == "[]")
+        assertTrue(raw.contains("\"type\""), "应含多态判别键")
+        assertFalse(raw == "[]", "不应是空数组")
     }
 
-    @Test(expected = Exception::class)
+    @Test
     fun `decode 非法 JSON 抛异常（store 层兜底为空表）`() {
-        decodeKoogMessages("not a json")
+        assertFailsWith<Exception> { decodeKoogMessages("not a json") }
     }
 
     @Test
@@ -127,13 +128,13 @@ class KoogMessageMemoryCodecTest {
         // 模拟 Koog 升级新增字段后，旧客户端解析新历史不崩。
         // 不依赖具体字段名：在数组首个对象开括号后注入未知键。
         val raw = encodeKoogMessages(listOf(user("u"))).replaceFirst("[{", "[{\"futureField\":42,")
-        assertTrue("注入点应存在（数组+对象开头）", raw.contains("futureField"))
+        assertTrue(raw.contains("futureField"), "注入点应存在（数组+对象开头）")
         val decoded = decodeKoogMessages(raw)
         assertEquals(1, decoded.size)
         assertEquals("u", decoded[0].textContent())
     }
 
     private fun assertNotNull(value: Any?) {
-        assertTrue("不应为 null", value != null)
+        assertTrue(value != null, "不应为 null")
     }
 }
