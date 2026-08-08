@@ -1,8 +1,8 @@
 package com.mamba.picme.agent.core.js
 
 import com.mamba.picme.agent.core.model.context.GallerySummary
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class GallerySummaryJsTest {
     private fun sample() = GallerySummary(

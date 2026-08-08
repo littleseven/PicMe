@@ -7,10 +7,10 @@ import com.dokar.quickjs.binding.FunctionBinding
 import com.mamba.picme.agent.core.js.JsBridge
 import com.mamba.picme.agent.core.js.JsBridgeException
 import com.mamba.picme.agent.core.js.JsCallback
+import com.mamba.picme.agent.core.js.JsClosable
 import com.mamba.picme.agent.core.js.JsEngine
 import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.platform.logging.Logger
-import java.io.Closeable
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -35,7 +35,7 @@ import kotlinx.coroutines.withTimeout
 class QuickJsEngine(
     private val onLog: (String) -> Unit = {},
     private val evalTimeoutMs: Long = DEFAULT_EVAL_TIMEOUT_MS,
-) : JsEngine, Closeable {
+) : JsEngine, JsClosable {
 
     private val quickjs: QuickJs = QuickJs.create(Dispatchers.Default)
 
