@@ -62,7 +62,9 @@ final class CaptureFlow: ObservableObject {
     func captureAndSave() {
         guard !isCapturing else { return }
         isCapturing = true
+        let shutterStart = Date()
         DebugOverlayState.shared.set("camera.shutter", "capturing")
+        print("[PoLang] shutter.pressed at \(shutterStart.timeIntervalSince1970)")
 
         Task {
             defer {
@@ -74,31 +76,42 @@ final class CaptureFlow: ObservableObject {
 
             // 1. 全分辨率捕获
             guard let photo = await photoController.capture() else {
+                print("[PoLang] shutter.FAIL: capture() returned nil")
                 await setError("capture failed")
                 return
             }
+            let captureMs = Date().timeIntervalSince(shutterStart) * 1000
+            print("[PoLang] shutter.captured in \(String(format: "%.1f", captureMs))ms")
 
             // 2. 转 CVPixelBuffer
             guard let pixelBuffer = PhotoCaptureController.pixelBuffer(from: photo) else {
+                print("[PoLang] shutter.FAIL: pixelBuffer conversion nil")
                 await setError("pixel buffer failed")
                 return
             }
 
             // 3. 离屏美颜渲染（异步，不阻塞 UI）
+            let renderStart = Date()
             let renderedImage = await Task.detached(priority: .userInitiated) { [renderer] () -> CGImage? in
                 renderer?.renderToImage(pixelBuffer: pixelBuffer)
             }.value
+            let renderMs = Date().timeIntervalSince(renderStart) * 1000
 
             guard let image = renderedImage else {
+                print("[PoLang] shutter.FAIL: renderToImage nil")
                 await setError("render failed")
                 return
             }
+            print("[PoLang] shutter.rendered in \(String(format: "%.1f", renderMs))ms → CGImage \(image.width)x\(image.height)")
 
             // 4. 保存到相册
             do {
                 try await PhotoSaver.saveToLibrary(image)
+                let totalMs = Date().timeIntervalSince(shutterStart) * 1000
+                print("[PoLang] shutter.SAVED total=\(String(format: "%.1f", totalMs))ms (capture+\(String(format: "%.1f", captureMs))+render+\(String(format: "%.1f", renderMs)))")
                 DebugOverlayState.shared.set("camera.shutter", "saved")
             } catch {
+                print("[PoLang] shutter.SAVE_ERROR: \(error.localizedDescription)")
                 await setError("save: \(error.localizedDescription)")
             }
         }

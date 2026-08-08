@@ -105,6 +105,8 @@ final class BeautyRenderer: NSObject {
         lutLight = loadLut(named: "lookup_light")
 
         let lutStatus = "\(lutGray != nil)" + "\(lutOrigin != nil)" + "\(lutSkin != nil)" + "\(lutLight != nil)"
+        print("[PoLang] beauty.lut gray/origin/skin/light = \(lutStatus)")
+        print("[PoLang] beauty.pipelines: yuv=\(yuvPipeline != nil) smooth=\(smoothingPipeline != nil) lut=\(lutPipeline != nil) beauty=\(beautyPipeline != nil)")
         DispatchQueue.main.async {
             DebugOverlayState.shared.set("beauty.lut", lutStatus)
         }
@@ -141,6 +143,9 @@ final class BeautyRenderer: NSObject {
 
     // MARK: - 人脸关键点
 
+    private var drawFrameCount = 0
+    private var lastFacePointsLogTime: Date = .distantPast
+
     /// 更新人脸关键点（由 CaptureSessionController 帧回调接线调用）
     func updateFacePoints(_ points: [SIMD2<Float>], hasFace: Bool) {
         guard hasFace, points.count >= 106 else {
@@ -150,6 +155,13 @@ final class BeautyRenderer: NSObject {
         let floats = points.prefix(106).flatMap { [$0.x, $0.y] }
         if let buf = device.makeBuffer(bytes: floats, length: 106 * 2 * MemoryLayout<Float>.stride, options: .storageModeShared) {
             facePointsBuffer = buf
+            // 日志：每 2s 打首点坐标（验证非零 + 方向）
+            let now = Date()
+            if now.timeIntervalSince(lastFacePointsLogTime) > 2.0 {
+                let p0 = points[0]
+                print("[PoLang] face.updatePoints: count=\(points.count) p0=(\(String(format: "%.3f", p0.x)),\(String(format: "%.3f", p0.y)))")
+                lastFacePointsLogTime = now
+            }
         }
     }
 
@@ -162,6 +174,7 @@ final class BeautyRenderer: NSObject {
               let cmd = commandQueue.makeCommandBuffer() else { return }
         let (yTex, uvTex) = textures
         let w = CVPixelBufferGetWidth(pixelBuffer), h = CVPixelBufferGetHeight(pixelBuffer)
+        drawFrameCount += 1
 
         // Pass 1: YUV → RGB
         rgbTexture = ensureTexture(rgbTexture, w: w, h: h)
@@ -228,9 +241,17 @@ final class BeautyRenderer: NSObject {
         }
         cmd.present(drawable)
         cmd.commit()
-    }
 
-    // MARK: - 拍照离屏渲染（BGRA 单平面输入，跳过 YUV pass）
+        // 周期性结构化日志（每 60 帧 ≈ 2s @30fps）
+        if drawFrameCount % 60 == 0 {
+            let activePasses = "yuv" +
+                (params.shaderSmoothing > 0.001 ? "+smooth" : "") +
+                (params.colorFilter != .none ? "+lut(\(params.colorFilter.rawValue))" : "") +
+                "+beauty"
+            print("[PoLang] draw.frame=\(drawFrameCount) \(activePasses) w=\(w) h=\(h) face=\(facePointsBuffer != nil) " +
+                  "whiten=\(String(format: "%.2f", params.shaderWhitening)) smooth=\(String(format: "%.2f", params.shaderSmoothing)) slim=\(String(format: "%.2f", params.shaderSlimFace)) eye=\(String(format: "%.2f", params.shaderBigEyes))")
+        }
+    }
 
     /// [🔴4] 拍照 pixelBuffer 是 32BGRA 单平面，不是 NV12 双平面
     /// 直接做 BGRA → 美颜全管线（跳过 yuv pass）

@@ -17,7 +17,9 @@ final class CaptureSessionController: NSObject {
     var onFrame: ((CVPixelBuffer, Int) -> Void)?
 
     func checkAuthorizationAndStart() async -> Bool {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        print("[PoLang] camera.auth status=\(status.rawValue)")
+        switch status {
         case .authorized:
             start(); return true
         case .notDetermined:

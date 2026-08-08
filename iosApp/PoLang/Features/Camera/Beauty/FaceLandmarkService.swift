@@ -60,6 +60,7 @@ final class FaceLandmarkService {
         opts.numFaces = 1
         landmarker = try FaceLandmarker(options: opts)
         let status = landmarker != nil ? "ok" : "nil"
+        print("[PoLang] face.engine init: \(status) modelPath=\(modelPath)")
         DispatchQueue.main.async {
             DebugOverlayState.shared.set("face.engine", status)
         }

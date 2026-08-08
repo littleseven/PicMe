@@ -23,6 +23,7 @@ struct CameraGesturesView: View {
                     // 点按对焦
                     .onTapGesture { location in
                         let devicePoint = convertViewToDevicePoint(location, in: geo)
+                        print("[PoLang] gesture.focus: view=(\(String(format: "%.1f", location.x)),\(String(format: "%.1f", location.y))) device=(\(String(format: "%.3f", devicePoint.x)),\(String(format: "%.3f", devicePoint.y)))")
                         controller.focus(at: devicePoint)
                         triggerFocusRing(at: location)
                     }
