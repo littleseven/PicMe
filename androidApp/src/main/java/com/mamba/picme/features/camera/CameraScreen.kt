@@ -1042,7 +1042,7 @@ voiceCoordinator.stopPushToTalk()
     // （2026-07-29 单轨收敛，Compose CapabilityHost 已退役；实例仍为页面级，持有相机状态）
     val cameraCapability = remember { CameraCapability() }
     DisposableEffect(cameraCapability) {
-        val orchestrator = AgentOrchestrator.getInstance(context.applicationContext)
+        val orchestrator = AgentOrchestrator.getInstance()
         orchestrator.registerCapability(cameraCapability)
         onDispose { orchestrator.unregisterCapability(cameraCapability) }
     }
@@ -1722,7 +1722,7 @@ CameraPreviewContent(
             val before = captureMnnMemoryStats(context)
             Logger.i(TAG, "🧠 [LLM释放] 开始")
             Logger.i(TAG, "📊 [释放前内存] Native ${before?.nativeHeapMB}MB | Java ${before?.javaHeapUsedMB}MB")
-            AgentOrchestrator.getInstance(context).localModelService.unloadModel()
+            AgentOrchestrator.getInstance().localModelService.unloadModel()
             coroutineScope.launch {
                 val after = sampleMemoryAfterRelease(context)
                 showReleaseMemoryToast(context, "LLM", "full", before, after)

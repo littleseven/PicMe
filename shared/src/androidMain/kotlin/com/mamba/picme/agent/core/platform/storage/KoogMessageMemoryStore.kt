@@ -38,11 +38,14 @@ private val Context.koogChatMemoryDataStore: DataStore<Preferences> by preferenc
  * 本类在 Phase 3 仅作为记忆层组件落地（旧 langchain4j 路径仍活、不被调用）；
  * 由 chat 链路（Phase 4）按 run 模型接 load/save。
  */
-public class KoogMessageMemoryStore(private val context: Context) : ChatMemoryStore {
+public class KoogMessageMemoryStore(
+    private val context: Context,
+    dispatcherProvider: DispatcherProvider = SharedDispatcherProvider.instance,
+) : ChatMemoryStore {
 
     private val tag = "KoogMessageMemoryStore"
     private val dataStore = context.koogChatMemoryDataStore
-    private val dataStoreDispatcher = SharedDispatcherProvider.instance.dataStoreDispatcher
+    private val dataStoreDispatcher = dispatcherProvider.dataStoreDispatcher
 
     /** 加载指定 session 的历史：解码 → 剔除 System（不变式①）→ 双向配对 sanitize（不变式③）。 */
     override suspend fun load(sessionId: String): List<Message> = withContext(dataStoreDispatcher) {

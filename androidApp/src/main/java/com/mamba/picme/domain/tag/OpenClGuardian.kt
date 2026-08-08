@@ -207,7 +207,7 @@ class OpenClGuardian(
             return
         }
         engine.unload()
-        val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(context)
+        val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance()
         orchestrator.localModelService.ensureModelLoaded(
             modelId = modelId,
             useOpencl = false,

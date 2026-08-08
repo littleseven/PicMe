@@ -184,7 +184,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     val systemCapability = remember { SystemCapability(applicationContext) }
-                    val orchestrator = remember { AgentOrchestrator.getInstance(applicationContext) }
+                    val orchestrator = remember { AgentOrchestrator.getInstance() }
                     DisposableEffect(navigationCapability, systemCapability) {
                         orchestrator.registerCapability(navigationCapability)
                         orchestrator.registerCapability(systemCapability)

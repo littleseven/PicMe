@@ -38,16 +38,17 @@ class CameraToolServiceInventoryTest {
             .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("CameraToolService 应暴露多个 @Tool", toolNames.size >= cameraCommands.size)
 
-        val inventory = ToolInventory.build(
-            CameraToolService.getInstance().asToolsByClass().map { it.descriptor }
-        )
+        val inventory = ToolInventory.build(cameraDescriptors())
         val missing = toolNames.filter { !inventory.contains("- $it:") }
         assertEquals("工具清单遗漏：$missing", emptyList<String>(), missing)
     }
 
+    private fun cameraDescriptors() =
+        CameraToolService.getInstance().asToolsByClass().map { it.descriptor }
+
     @Test
     fun `camera system prompt covers every @Tool of CameraToolService`() {
-        val prompt = AgentOrchestrator.cameraSystemPrompt
+        val prompt = AgentOrchestrator.buildCameraSystemPrompt(cameraDescriptors())
         val toolNames = CameraToolService::class.java.declaredMethods
             .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
 
@@ -58,7 +59,7 @@ class CameraToolServiceInventoryTest {
     @Test
     fun `camera system prompt has no indented lines`() {
         // 回归：raw string 内插值零缩进行会让 trimIndent 失效、手写段残留前导空格
-        val indented = AgentOrchestrator.cameraSystemPrompt.lines()
+        val indented = AgentOrchestrator.buildCameraSystemPrompt(cameraDescriptors()).lines()
             .filter { it.startsWith(" ") || it.startsWith("\t") }
         assertEquals("system prompt 存在前导缩进行：$indented", emptyList<String>(), indented)
     }

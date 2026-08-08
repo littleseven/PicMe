@@ -1,11 +1,8 @@
 package com.mamba.picme.agent.core.inference.local
 
 import com.mamba.picme.agent.core.facade.AgentConfigurator
-import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
-import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -21,23 +18,25 @@ import kotlinx.coroutines.launch
  * 场景驱动卸载（进入相机页释放内存）、加载状态流。**相机 Agent 与后台打标 Worker 共用此服务**
  * （`getLlmEngine`）。
  *
- * 引擎实例（[LocalLlmEngine]）仍由 [AgentConfigurator] 持有，本服务经只读访问操作它——与
- * RemoteChatEngine 同一模式，最小侵入。AgentOrchestrator 现阶段以薄委托暴露同等 API，消费者
- * 将逐步迁移到本服务直接调用。
+ * **接口注入化（Phase 4 KMP 抽取）**：引擎实例（[ImageInferenceEngine]；Android actual =
+ * `LocalLlmEngine`）由组合根经 [AgentConfigurator] 注入，本服务经只读访问操作它——与
+ * RemoteChatEngine 同一模式，最小侵入。需要 Android 专有 API（Bitmap 便捷重载 /
+ * trimMemory / lastGenerationMetrics）的 androidApp 消费者经组合根
+ * `AndroidAgentComposition.localLlmEngine` 取同一实例的具体类型。
  */
 class LocalModelService internal constructor(
     private val configurator: AgentConfigurator
 ) {
 
     private val tag = "LocalModelService"
-    private val orchestratorDispatcher = SharedDispatcherProvider.instance.orchestratorDispatcher
+    private val orchestratorDispatcher = configurator.dispatcherProvider.orchestratorDispatcher
 
     /**
      * 后台作用域：场景驱动的 LLM 卸载等 fire-and-forget 任务。
      */
     private val backgroundScope = CoroutineScope(SupervisorJob())
 
-    private val localLlmEngine: LocalLlmEngine get() = configurator.localLlmEngine
+    private val imageEngine: ImageInferenceEngine get() = configurator.imageEngine
     private val sceneManager get() = configurator.sceneManager
 
     private val _isModelLoading = MutableStateFlow(false)
@@ -54,7 +53,7 @@ class LocalModelService internal constructor(
         // 相机页触发 Agent 时再异步加载（调用方通过 ensureModelLoaded / withModelLoaded）。
         backgroundScope.launch(orchestratorDispatcher) {
             sceneManager.currentScene.collect { scene ->
-                if (scene == SceneManager.Scene.CAMERA && localLlmEngine.isLoaded) {
+                if (scene == SceneManager.Scene.CAMERA && imageEngine.isLoaded) {
                     Logger.i(tag, "CAMERA scene entered, unloading local LLM to free memory")
                     unloadModel()
                 }
@@ -63,15 +62,13 @@ class LocalModelService internal constructor(
     }
 
     /**
-     * 获取本地 LLM 推理引擎。
+     * 获取本地图像推理引擎（接口视图）。
      *
      * 供非 Agent 消费者（如后台标签索引 Worker）直接使用模型进行推理。
      * **注意**：调用方应确保模型已加载后再使用。
+     * 需要 Android 专有 API（Bitmap 重载 / trimMemory 等）时经组合根取具体类型。
      */
-    fun getLlmEngine(): LocalLlmEngine = localLlmEngine
-
-    /** 最近一次本地 LLM 生成的性能指标。 */
-    fun getLastLocalGenerationMetrics(): LlmGenerationMetrics? = localLlmEngine.lastGenerationMetrics
+    fun getLlmEngine(): ImageInferenceEngine = imageEngine
 
     /**
      * 加载本地模型。
@@ -83,7 +80,7 @@ class LocalModelService internal constructor(
 
     /** 卸载模型。 */
     fun unloadModel() {
-        localLlmEngine.unload()
+        imageEngine.unload()
     }
 
     /**
@@ -113,10 +110,10 @@ class LocalModelService internal constructor(
         Logger.i(
             tag,
             "[ModelLoadAudit] caller=$caller, model=$targetModel, " +
-                "useOpencl=$targetUseOpencl, alreadyLoaded=${localLlmEngine.isLoaded}"
+                "useOpencl=$targetUseOpencl, alreadyLoaded=${imageEngine.isLoaded}"
         )
 
-        if (!localLlmEngine.isModelAvailable(targetModel, configurator.getContext())) {
+        if (!imageEngine.isModelAvailable(targetModel)) {
             Logger.w(tag, "[ModelLoadAudit] caller=$caller, model not downloaded: $targetModel")
             return Result.failure(
                 LlmModelNotFoundException(
@@ -127,7 +124,7 @@ class LocalModelService internal constructor(
 
         _isModelLoading.value = true
         val result = try {
-            localLlmEngine.loadModel(targetModel, targetUseOpencl)
+            imageEngine.loadModel(targetModel, targetUseOpencl)
         } finally {
             _isModelLoading.value = false
         }
@@ -145,19 +142,20 @@ class LocalModelService internal constructor(
      * 在模型已加载的前提下执行推理块。
      *
      * 如果模型未加载，会先尝试加载，成功后再执行 [inferenceBlock]。
-     * 所有 imageInference / generate / chat 等本地 LLM 调用应统一走此入口。
+     * 所有 imageInference 等本地 LLM 调用应统一走此入口。
      *
      * @param modelId 模型 ID，为空时使用当前配置模型
      * @param useOpencl 是否使用 OpenCL，为 null 时使用当前配置
      * @param caller 调用方标识，用于加载审计日志
-     * @param inferenceBlock 推理逻辑块，接收 [LocalLlmEngine]
+     * @param inferenceBlock 推理逻辑块，接收 [ImageInferenceEngine]（需要 Bitmap 重载等
+     *   Android 专有 API 时由调用方 cast 为 `LocalLlmEngine`，组合根保证实际类型）
      * @return 推理结果；加载失败时返回 failure
      */
     suspend fun <T> withModelLoaded(
         modelId: String? = null,
         useOpencl: Boolean? = null,
         caller: String = "unknown",
-        inferenceBlock: suspend (LocalLlmEngine) -> T
+        inferenceBlock: suspend (ImageInferenceEngine) -> T
     ): Result<T> {
         val loadResult = ensureModelLoaded(
             modelId = modelId,
@@ -170,7 +168,7 @@ class LocalModelService internal constructor(
         }
 
         return try {
-            Result.success(inferenceBlock(localLlmEngine))
+            Result.success(inferenceBlock(imageEngine))
         } catch (e: Exception) {
             Logger.e(tag, "[ModelLoadAudit] caller=$caller, inference failed", e)
             Result.failure(e)
@@ -187,7 +185,7 @@ class LocalModelService internal constructor(
         val currentScene = sceneManager.currentScene.value
         when (currentScene) {
             SceneManager.Scene.CAMERA -> {
-                if (localLlmEngine.isLoaded) {
+                if (imageEngine.isLoaded) {
                     Logger.i(tag, "CAMERA scene: unloading local LLM before agent inference")
                     unloadModel()
                 }

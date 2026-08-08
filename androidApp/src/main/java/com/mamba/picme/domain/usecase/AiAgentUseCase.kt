@@ -48,7 +48,7 @@ class AiAgentUseCase(
     /**
      * Agent Runtime 编排器（单例）
      */
-    private val orchestrator = AgentOrchestrator.getInstance(context)
+    private val orchestrator = AgentOrchestrator.getInstance()
 
     /**
      * 用户自定义远程模型配置（高优先级）

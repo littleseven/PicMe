@@ -33,7 +33,7 @@ class ToolInventoryTest {
 
     @Test
     fun `chat system prompt covers every @Tool of ChatToolService`() {
-        val prompt = RemoteChatEngine.chatSystemPrompt
+        val prompt = RemoteChatEngine.buildChatSystemPrompt(chatDescriptors())
         val toolNames = ChatToolService::class.java.declaredMethods
             .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
 
@@ -49,12 +49,13 @@ class ToolInventoryTest {
     @Test
     fun `chat system prompt has no indented lines`() {
         // 回归：raw string 内插值零缩进行会让 trimIndent 失效、手写段残留前导空格
-        val indented = RemoteChatEngine.chatSystemPrompt.lines()
+        val indented = RemoteChatEngine.buildChatSystemPrompt(chatDescriptors()).lines()
             .filter { it.startsWith(" ") || it.startsWith("\t") }
         assertEquals("system prompt 存在前导缩进行：$indented", emptyList<String>(), indented)
     }
 
-    private fun chatInventory(): String = ToolInventory.build(
+    private fun chatDescriptors() =
         ChatToolService.getInstance().asToolsByClass().map { it.descriptor }
-    )
+
+    private fun chatInventory(): String = ToolInventory.build(chatDescriptors())
 }

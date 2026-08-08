@@ -44,7 +44,7 @@ class RemoteCommandDispatcher(
 
     private val tag = "RemoteDispatcher"
     private val appContext = context.applicationContext
-    private val orchestrator = AgentOrchestrator.getInstance(context)
+    private val orchestrator = AgentOrchestrator.getInstance()
 
     /** 当前会话 ID = 激活通道 id（feishu / telegram），每次 dispatch 动态读取。 */
     private fun sessionId(): String = channel.channelId.ifBlank { "remote" }
@@ -118,12 +118,14 @@ class RemoteCommandDispatcher(
         withContext(Dispatchers.IO) {
             channel.sendMessage("⏳ 正在处理您的请求...", messageId)
 
-            val wm = appContext.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-            if (wm != null) {
+            // WindowManager 可用性门禁保留（组合根的飞书 RPA 工具集按需自取 WindowManager，
+            // 不可用时走回退路径而非让 agent 构建期崩溃）
+            val wmAvailable = appContext.getSystemService(Context.WINDOW_SERVICE) != null
+            if (wmAvailable) {
                 // ── ReAct Agent 路径（统一走 AgentOrchestrator）──
                 try {
                     val result = withTimeout(TIMEOUT_MS) {
-                        orchestrator.processRemoteImInput(text, wm, TIMEOUT_MS)
+                        orchestrator.processRemoteImInput(text, TIMEOUT_MS)
                     }
                     val reply = result.fold(
                         onSuccess = { it },
