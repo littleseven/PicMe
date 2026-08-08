@@ -1450,7 +1450,7 @@ git commit -m "test(ios): 相册 1000+ 照片性能实测达标（Task 11，实�
 
 **移植源**：`tmp/beauty-metal-spike/BeautyMetalSpike/main.mm`（298 行已验证管线）+ `Shaders.metal`（BT.601 YUV→RGB）。本 Task 只做**无美颜直渲**，美颜从 Task 13 起逐层叠加。
 
-- [ ] **Step 1: 写 YUV→RGB shader（spike 生产版，去调试 bleach）**
+- [x] **Step 1: 写 YUV→RGB shader（spike 生产版，去调试 bleach）** ✅ GLM 完成
 
 `iosApp/PoLang/Features/Camera/Preview/Shaders/yuv.metal`：
 
@@ -2017,7 +2017,7 @@ git commit -m "feat(ios): BeautyRenderer 宿主骨架 + 美白 shader 翻译 + �
 
 **翻译源**：`engines/beauty-engine/src/main/assets/shaders/pass_smoothing.glsl`（195 行；uniform：uInputTexture/uLookUpGray/uLookUpOrigin/uLookUpSkin/uLookUpLight + uBlurAlpha/uSharpen/uWhiten + uWidthOffset/uHeightOffset）。LUT 资产已在 Task 6 拷入 bundle（lookup_gray/origin/skin/light.png）。
 
-- [ ] **Step 1: 翻译 smoothing.metal**
+- [x] **Step 1: 翻译 smoothing.metal** ✅ GLM 完成
 
 逐段翻译 `pass_smoothing.glsl`（195 行）为 MSL：
 - `texture2D(t, uv)` → `t.sample(bilinear, uv)`；`clamp(x,0.,1.)` → `saturate`；`vec*→float*`；GLSL `const` 局部量 → `constexpr`；
@@ -2197,7 +2197,7 @@ git commit -m "feat(ios): MediaPipe FaceLandmarker 接入 + 468→106 适配器�
 
 **翻译源**：`warp_gpupixel_thinface.glsl`（129 行）+ `warp_gpupixel_bigeye.glsl`（146 行）——GLSL→MSL 难度分级中仅有的 hard 之二（几何反向 UV 形变 + `uFacePoints[212]` 动态索引，**逐行理解后翻译**，不得机械替换）。
 
-- [ ] **Step 1: 翻译 warp.metal**
+- [x] **Step 1: 翻译 warp.metal** ✅ GLM 完成（warp_gpupixel_thinface + bigeye 双 hard shader 逐行翻译 + 编译验证通过）
 
 - 两个 warp 函数逐行翻译（`warpThinFace`/`warpBigEye`），反向形变数学不变，只换语法：`texture2D→sample`、`fract/mix/step` 同名、`vec2 数组→device/constant float2*`；
 - `uFacePoints[212]` → `constant float2* facePoints [[buffer(1)]]`（数组必须独立 buffer，spec §5.3）；
@@ -2523,3 +2523,4 @@ git commit -m "docs(phase5): 文档同步——roadmap 勾选/spec 偏差/AGENTS
 | 日期 | 变更 |
 |------|------|
 | 2026-08-08 | 初版：23 个 Task（Task 0 前置核对 → Task 22 文档同步）；基于 spec（S1–S10）+ explore 实测（shared 当前态/spike 产物/shader 清单/468→106 适配器）。对 spec 一处修正：人脸关键点走 MediaPipe 而非 MNN |
+| 2026-08-08 | GLM 相机段执行进度：Task 12 shader (yuv.metal) ✅、Task 13 shader (beauty.metal + whitenSkin) ✅、Task 14 shader (smoothing.metal + pass_smoothing 全量翻译) ✅、Task 16 shader (warp.metal: 瘦脸+大眼 hard×2) ✅ —— 全部编译通过（含 concat 路径零 error 零 warning）；Task 15 MediaPipe468Adapter Swift 移植 + 金样本测试 ✅；Task 6 引擎产物收编 ✅（MNN/sentencepiece 构建脚本 + MediaPipe fetch + GLSL/LUT/filter assets 同步）；Task 2/4/5 Swift 基建骨架 ✅（DebugOverlay/AppContainer/DebugOverlay/I18N xcstrings/PrivacyInfo/ios-dev-loop/CI iOS job）。阻塞：Xcode .xcodeproj 需 GUI 创建（GLM 无 GUI 能力）；Kotlin/SharedKit embed 需 K3 侧 XCFramework 产出 |
