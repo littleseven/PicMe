@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
 import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
@@ -26,13 +27,17 @@ private val Context.agentMemoryDataStore: DataStore<Preferences> by preferencesD
  * （PoLang-DataStore-Thread）串行执行，与网络请求隔离。
  *
  * @param context Application Context
+ * @param dispatcherProvider DataStore 专用单线程来源（与 [KoogMessageMemoryStore] 同模式注入）
  */
-class MemoryManager(private val context: Context) : ChatHistoryCleaner {
+class MemoryManager(
+    private val context: Context,
+    dispatcherProvider: DispatcherProvider = SharedDispatcherProvider.instance,
+) : ChatHistoryCleaner {
 
     private val tag = "MemoryManager"
     private val dataStore = context.agentMemoryDataStore
 
-    private val dataStoreDispatcher = SharedDispatcherProvider.instance.dataStoreDispatcher
+    private val dataStoreDispatcher = dispatcherProvider.dataStoreDispatcher
 
     /**
      * 清空指定 session 的对话历史

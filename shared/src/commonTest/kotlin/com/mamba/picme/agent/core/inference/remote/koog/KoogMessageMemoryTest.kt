@@ -4,10 +4,10 @@ import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Koog 记忆三不变式单测（移植自 langchain4j `DataStoreChatMemory.trimToMaxMessages`
@@ -16,7 +16,7 @@ import org.junit.Test
  * 1.1.1 关键：工具调用是 [MessagePart.Tool.Call]（嵌在 Assistant.parts），
  * 工具结果是 [MessagePart.Tool.Result]（嵌在 User.parts），按 id 配对。
  *
- * 纯 JVM、无 Android 依赖。
+ * KMP 纯逻辑（kotlin.test），被测对象 [KoogMessageMemory] 在 commonMain。
  */
 class KoogMessageMemoryTest {
 
@@ -196,9 +196,9 @@ class KoogMessageMemoryTest {
         assertEquals(5, trimmed.size)
         val callIdx = trimmed.indexOfFirst { callIdsOf(it).isNotEmpty() }
         val resultIdx = trimmed.indexOfFirst { resultIdsOf(it).isNotEmpty() }
-        assertTrue("Call 必须保留", callIdx >= 0)
-        assertTrue("Result 必须保留", resultIdx >= 0)
-        assertEquals("Call 与 Result 必须相邻（同块）", callIdx + 1, resultIdx)
+        assertTrue(callIdx >= 0, "Call 必须保留")
+        assertTrue(resultIdx >= 0, "Result 必须保留")
+        assertEquals(callIdx + 1, resultIdx, "Call 与 Result 必须相邻（同块）")
         assertEquals(listOf("a2", "u3", "a3"), trimmed.drop(2).map { message -> contentOf(message) })
     }
 
