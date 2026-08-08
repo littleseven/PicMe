@@ -2066,6 +2066,23 @@ git commit -m "feat(ios): 磨皮 pass_smoothing GLSL→MSL 翻译 + 4 LUT 接入
 
 ## Task 15: 人脸关键点（MediaPipeTasksVision + 468→106 适配器移植）
 
+> **MediaPipe iOS 集成调研结论（2026-08-08 GLM 实测）**：
+>
+> **无官方 SPM**——`google-ai-edge/mediapipe` 主仓无 `Package.swift`，`google-ai-edge/mediapipe-swift-pm` 仓库 404。
+> **正确路径：CocoaPods**（`pod 'MediaPipeTasksVision', '~> 0.10.14'`），社区广泛使用且 Google 官方维护。
+>
+> **集成步骤（Task 4 会合轮执行）**：
+> 1. 在 `iosApp/` 建 `Podfile`（`platform :ios, '16.0'; target 'PoLang' do use_frameworks!; pod 'MediaPipeTasksVision', '~> 0.10.14'; end`）
+> 2. `cd iosApp && pod install`
+> 3. `project.yml` 改为引用 `.xcworkspace`（或 XcodeGen + CocoaPods 插件生成）
+> 4. `FaceLandmarkService.swift` 的 `#if canImport(MediaPipeTasksVision)` 自动激活
+>
+> **模型验证**：
+> - 正确 URL：`https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task`
+> - 体积：3.6MB，sha256：`64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`
+> - 旧 URL `float32/1/` 已 404 NoSuchKey，`ios-fetch-mediapipe-model.sh` 已修正
+> - 模型落位：`iosApp/PoLang/Features/Camera/Beauty/Assets/face_landmarker.task`（bundle resource，`.gitignore` 排除 `*.task`）
+
 **Files:**
 - Modify: `iosApp/PoLang.xcodeproj`（SPM 加 MediaPipeTasksVision）
 - Create: `iosApp/PoLang/Features/Camera/Beauty/FaceLandmarkService.swift`

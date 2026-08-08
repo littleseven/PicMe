@@ -12,12 +12,21 @@ import CoreVideo
 /// vertex function 名：`quad_vertex`（concat guard 确保全局一份）
 final class BeautyRenderer: NSObject {
     /// 对标 shared BeautySettings 的 MVP 子集
+    /// [S5 双端一致] 滑杆范围与 Android BeautyPanel.kt 一致：
+    /// smoothing/whitening/bigEyes: 0..100, slimFace: -50..50
+    /// shader 侧需 0..1 → 渲染前 normalize（见 normalizedParams()）
     struct Params {
-        var whitening: Float = 0
-        var smoothing: Float = 0
-        var slimFace: Float = 0
-        var bigEyes: Float = 0
-        var colorFilter: FilterType = .none  // Task 17 LUT/ColorMatrix
+        var whitening: Float = 0       // 0..100 (Android)
+        var smoothing: Float = 0       // 0..100 (Android)
+        var slimFace: Float = 0        // -50..50 (Android)
+        var bigEyes: Float = 0         // 0..100 (Android)
+        var colorFilter: FilterType = .none
+
+        /// 转换为 shader 期望的归一化值
+        var normalizedWhitening: Float { whitening / 100.0 }
+        var normalizedSmoothing: Float { smoothing / 100.0 }
+        var normalizedSlimFace: Float { slimFace / 50.0 }   // -1..1
+        var normalizedBigEyes: Float { bigEyes / 100.0 }
     }
 
     private let device: MTLDevice
@@ -142,10 +151,10 @@ final class BeautyRenderer: NSObject {
         d2.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1)
 
         var uniforms = BeautyUniforms()
-        uniforms.whitening = params.whitening
-        uniforms.smoothing = params.smoothing
-        uniforms.slimFace = params.slimFace
-        uniforms.bigEyes = params.bigEyes
+        uniforms.whitening = params.normalizedWhitening
+        uniforms.smoothing = params.normalizedSmoothing
+        uniforms.slimFace = params.normalizedSlimFace
+        uniforms.bigEyes = params.normalizedBigEyes
         uniforms.aspectRatio = Float(w) / Float(h)
         uniforms.hasFace = facePointsBuffer != nil ? 1.0 : 0.0
         uniforms.useGpupixelWarp = 1
@@ -231,10 +240,10 @@ final class BeautyRenderer: NSObject {
         guard let outTex = outputTex else { return nil }
 
         var uniforms = BeautyUniforms()
-        uniforms.whitening = params.whitening
-        uniforms.smoothing = params.smoothing
-        uniforms.slimFace = params.slimFace
-        uniforms.bigEyes = params.bigEyes
+        uniforms.whitening = params.normalizedWhitening
+        uniforms.smoothing = params.normalizedSmoothing
+        uniforms.slimFace = params.normalizedSlimFace
+        uniforms.bigEyes = params.normalizedBigEyes
         uniforms.aspectRatio = Float(w) / Float(h)
         uniforms.hasFace = facePointsBuffer != nil ? 1.0 : 0.0
         uniforms.useGpupixelWarp = 1
