@@ -580,8 +580,7 @@ class RemoteControlToolService(
         @LLMDescription("瘦脸 -50~50，留空=不变") slimFace: String,
         @LLMDescription("大眼 0~100，留空=不变") bigEyes: String,
         @LLMDescription("唇色 0~100，留空=不变") lipColor: String,
-        @LLMDescription("腮红 0~100，留空=不变") blush: String,
-        @LLMDescription("眉毛 0~100，留空=不变") eyebrow: String
+        @LLMDescription("腮红 0~100，留空=不变") blush: String
     ): String {
         val params = mutableMapOf<String, Any>()
         smoothing.toDoubleOrNull()?.let { params["smoothing"] = it }
@@ -590,7 +589,6 @@ class RemoteControlToolService(
         bigEyes.toDoubleOrNull()?.let { params["big_eyes"] = it }
         lipColor.toDoubleOrNull()?.let { params["lip_color"] = it }
         blush.toDoubleOrNull()?.let { params["blush"] = it }
-        eyebrow.toDoubleOrNull()?.let { params["eyebrow"] = it }
         return executeCameraCommand("adjust_beauty", params)
     }
 

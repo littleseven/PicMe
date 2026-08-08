@@ -166,7 +166,7 @@ class CameraCapability : BaseCapability() {
 
     override fun getCommandDescription(command: String): String = when (command) {
         "delay" -> "等待指定毫秒数后再执行后续命令，必须与其他命令组合使用，参数: delay_ms (毫秒)"
-        "adjust_beauty" -> "调整美颜参数，参数: smoothing, whitening, slim_face, big_eyes, lip_color, blush, eyebrow"
+        "adjust_beauty" -> "调整美颜参数，参数: smoothing, whitening, slim_face, big_eyes, lip_color, blush"
         "switch_filter" -> "切换滤镜，参数: filter (NONE|LEICA_CLASSIC|LEICA_VIBRANT|LEICA_BW|FILM_GOLD|FILM_FUJI|VINTAGE|COOL|WARM)"
         "switch_style" -> "切换风格，参数: style (NONE|TOON|SKETCH|POSTERIZE|EMBOSS|CROSSHATCH)"
         "switch_scene" -> "切换场景模式，参数: scene (night|moon|none)"

@@ -49,8 +49,7 @@ class BeautyParamsConverterTest {
             lipColor = 60f,
             lipColorIndex = 5,
             blush = 25f,
-            blushColorFamily = 1,
-            eyebrow = 35f
+            blushColorFamily = 1
         )
 
         val params = settings.toBeautyParams()
@@ -70,7 +69,7 @@ class BeautyParamsConverterTest {
     fun `toBeautyParams when enabled is true but no effects returns EMPTY`() {
         val settings = BeautySettings(
             enabled = true,
-            lipColor = 0f, blush = 0f, eyebrow = 0f // 覆盖默认值，使 hasAnyEffect() = false
+            lipColor = 0f, blush = 0f // 覆盖默认值，使 hasAnyEffect() = false
         )
 
         val params = settings.toBeautyParams()

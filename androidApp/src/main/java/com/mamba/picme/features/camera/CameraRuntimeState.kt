@@ -158,8 +158,7 @@ internal data class PreviewRuntimeViews(
 
 internal enum class MakeupEntry {
     LIP_COLOR,
-    BLUSH,
-    EYEBROW
+    BLUSH
 }
 
 @Stable

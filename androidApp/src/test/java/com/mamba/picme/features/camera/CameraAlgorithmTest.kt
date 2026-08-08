@@ -44,7 +44,7 @@ class CameraAlgorithmTest {
     @Test
     fun `resolveNextBeautySettings - all effects zero auto disables`() {
         val current = BeautySettings(enabled = true, smoothing = 50f)
-        val updated = BeautySettings(enabled = true, smoothing = 0f, lipColor = 0f, blush = 0f, eyebrow = 0f)
+        val updated = BeautySettings(enabled = true, smoothing = 0f, lipColor = 0f, blush = 0f)
         val result = resolveNextBeautySettings(current, updated)
         assertFalse("Should auto-disable when all effects are zero", result.enabled)
     }

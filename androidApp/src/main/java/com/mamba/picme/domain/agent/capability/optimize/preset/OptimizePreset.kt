@@ -24,8 +24,7 @@ data class BeautyPreset(
     val slimFace: Float = 0f,       // -50..50
     val bigEyes: Float = 0f,        // 0..100
     val lipColor: Float = 0f,       // 0..100
-    val blush: Float = 0f,          // 0..100
-    val eyebrow: Float = 0f         // 0..100
+    val blush: Float = 0f           // 0..100
 )
 
 /**

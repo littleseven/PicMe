@@ -28,7 +28,7 @@ object ChatEditRecipeBuilder {
      */
     private const val SLIM_FACE_DELTA_MAX = 5f
 
-    /** 美颜类（磨皮/美白/大眼/唇色/腮红/眉毛）单次 delta 上限（0~100 量程） */
+    /** 美颜类（磨皮/美白/大眼/唇色/腮红）单次 delta 上限（0~100 量程） */
     private const val BEAUTY_DELTA_MAX = 10f
 
     /** 亮度/曝光单次 delta 上限（-100~100 量程） */
@@ -63,8 +63,7 @@ object ChatEditRecipeBuilder {
             slimFace = resolve(current.slimFace, params.slimFace, min = -50f, max = 50f, deltaMax = SLIM_FACE_DELTA_MAX),
             bigEyes = resolve(current.bigEyes, params.bigEyes, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
             lipColor = resolve(current.lipColor, params.lipColor, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
-            blush = resolve(current.blush, params.blush, max = 100f, deltaMax = BEAUTY_DELTA_MAX),
-            eyebrow = resolve(current.eyebrow, params.eyebrow, max = 100f, deltaMax = BEAUTY_DELTA_MAX)
+            blush = resolve(current.blush, params.blush, max = 100f, deltaMax = BEAUTY_DELTA_MAX)
         )
     }
 

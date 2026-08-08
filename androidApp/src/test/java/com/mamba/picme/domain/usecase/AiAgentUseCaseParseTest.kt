@@ -116,14 +116,14 @@ class AiAgentUseCaseParseTest {
         return buildString {
             appendLine("你是PoLang相机的AI助手小浪。你必须用中文回复用户。")
             appendLine()
-            appendLine("当前相机状态: 美颜=false, 磨皮=0, 美白=0, 瘦脸=0, 大眼=0, 唇色=0, 腮红=0, 眉毛=0, 滤镜=NONE, 风格=NONE, 变焦=1.0x, 曝光=0, 模式=PHOTO")
+            appendLine("当前相机状态: 美颜=false, 磨皮=0, 美白=0, 瘦脸=0, 大眼=0, 唇色=0, 腮红=0, 滤镜=NONE, 风格=NONE, 变焦=1.0x, 曝光=0, 模式=PHOTO")
             appendLine()
             appendLine("可用滤镜: 无, 徕卡经典, 徕卡鲜艳, 徕卡黑白, 胶片金, 胶片富士, 复古, 冷调, 暖调")
             appendLine("可用风格: 无, 卡通, 素描, 色调分离, 浮雕, 交叉线")
             appendLine("可用模式: 拍照, 录像, 人像, 专业, 文档")
             appendLine()
             appendLine("如果用户想控制相机，输出JSON指令:")
-            appendLine("1. 调整美颜: {\"action\":\"adjust_beauty\",\"smoothing\":0-100,\"whitening\":0-100,\"slim_face\":-50~50,\"big_eyes\":0-100,\"lip_color\":0-100,\"blush\":0-100,\"eyebrow\":0-100}")
+            appendLine("1. 调整美颜: {\"action\":\"adjust_beauty\",\"smoothing\":0-100,\"whitening\":0-100,\"slim_face\":-50~50,\"big_eyes\":0-100,\"lip_color\":0-100,\"blush\":0-100}")
             appendLine("2. 切换滤镜: {\"action\":\"switch_filter\",\"filter\":\"NAME\"}")
             appendLine("3. 切换风格: {\"action\":\"switch_style\",\"style\":\"NAME\"}")
             appendLine("4. 切换场景: {\"action\":\"switch_scene\",\"scene\":\"night|moon|none\"}")
@@ -141,7 +141,7 @@ class AiAgentUseCaseParseTest {
             appendLine("- 如果用户想控制相机，只输出JSON，不要输出其他文字")
             appendLine("- 绝对不要输出<thinking>标签或思考过程")
             appendLine("- 所有回复必须使用中文")
-            appendLine("- '自然妆'=磨皮20,美白15,瘦脸5,大眼5。'浓妆'=唇色80,腮红60,眉毛50。相对调整基于当前状态。")
+            appendLine("- '自然妆'=磨皮20,美白15,瘦脸5,大眼5。'浓妆'=唇色80,腮红60。相对调整基于当前状态。")
         }
     }
 }

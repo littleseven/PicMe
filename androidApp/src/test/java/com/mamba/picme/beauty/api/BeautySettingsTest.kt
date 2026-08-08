@@ -25,8 +25,7 @@ class BeautySettingsTest {
         val settings = BeautySettings(
             lipColorIndex = 5,
             lipColor = 0f,
-            blush = 0f,
-            eyebrow = 0f
+            blush = 0f
         )
 
         assertFalse(settings.hasAnyEffect())
@@ -36,18 +35,18 @@ class BeautySettingsTest {
 
     @Test
     fun `hasAnyEffect with smoothing at boundary values`() {
-        assertFalse(BeautySettings(smoothing = 0f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
-        assertTrue(BeautySettings(smoothing = 0.1f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
-        assertTrue(BeautySettings(smoothing = 100f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
+        assertFalse(BeautySettings(smoothing = 0f, lipColor = 0f, blush = 0f).hasAnyEffect())
+        assertTrue(BeautySettings(smoothing = 0.1f, lipColor = 0f, blush = 0f).hasAnyEffect())
+        assertTrue(BeautySettings(smoothing = 100f, lipColor = 0f, blush = 0f).hasAnyEffect())
     }
 
     @Test
     fun `hasAnyEffect with slimFace at boundary values`() {
-        assertFalse(BeautySettings(slimFace = 0f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
-        assertTrue(BeautySettings(slimFace = 0.1f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
-        assertTrue(BeautySettings(slimFace = -0.1f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
-        assertTrue(BeautySettings(slimFace = 50f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
-        assertTrue(BeautySettings(slimFace = -50f, lipColor = 0f, blush = 0f, eyebrow = 0f).hasAnyEffect())
+        assertFalse(BeautySettings(slimFace = 0f, lipColor = 0f, blush = 0f).hasAnyEffect())
+        assertTrue(BeautySettings(slimFace = 0.1f, lipColor = 0f, blush = 0f).hasAnyEffect())
+        assertTrue(BeautySettings(slimFace = -0.1f, lipColor = 0f, blush = 0f).hasAnyEffect())
+        assertTrue(BeautySettings(slimFace = 50f, lipColor = 0f, blush = 0f).hasAnyEffect())
+        assertTrue(BeautySettings(slimFace = -50f, lipColor = 0f, blush = 0f).hasAnyEffect())
     }
 
     @Test
@@ -64,7 +63,7 @@ class BeautySettingsTest {
     @Test
     fun `hasAnyEffect returns false when all color grade params are at default`() {
         val settings = BeautySettings(
-            lipColor = 0f, blush = 0f, eyebrow = 0f,
+            lipColor = 0f, blush = 0f,
             colorFilter = FilterType.NONE,
             styleFilter = StyleFilter.NONE,
             exposure = 0f, contrast = 50f, saturation = 100f,

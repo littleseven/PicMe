@@ -810,39 +810,6 @@ class GpuBeautyProcessor(private val context: Context) : BeautyProcessor {
         }
     }
 
-    override suspend fun applyEyebrow(bitmap: Bitmap, strength: Float): Bitmap {
-        return withContext(Dispatchers.Default) {
-            try {
-                val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-
-                // 使用 ColorMatrix 增强眉毛对比度
-                val intensity = (strength / 100f) * 0.5f
-
-                val colorMatrix = ColorMatrix().apply {
-                    set(floatArrayOf(
-                        1f - intensity * 0.2f, 0f, 0f, 0f, -intensity * 20f,
-                        0f, 1f - intensity * 0.2f, 0f, 0f, -intensity * 20f,
-                        0f, 0f, 1f - intensity * 0.2f, 0f, -intensity * 20f,
-                        0f, 0f, 0f, 1f, 0f
-                    ))
-                }
-
-                val paint = Paint().apply {
-                    colorFilter = ColorMatrixColorFilter(colorMatrix)
-                    isAntiAlias = true
-                }
-
-                val canvas = Canvas(mutableBitmap)
-                canvas.drawBitmap(bitmap, 0f, 0f, paint)
-
-                mutableBitmap
-            } catch (e: Exception) {
-                Logger.e(TAG, "Eyebrow error", e)
-                bitmap
-            }
-        }
-    }
-
     override suspend fun applyBodyEnhancement(bitmap: Bitmap, strength: Float): Bitmap {
         return withContext(Dispatchers.Default) {
             try {

@@ -121,7 +121,6 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val CAMERA_MEMORY_BEAUTY_LIP_COLOR_INDEX = intPreferencesKey("camera_memory_beauty_lip_color_index")
         val CAMERA_MEMORY_BEAUTY_BLUSH = floatPreferencesKey("camera_memory_beauty_blush")
         val CAMERA_MEMORY_BEAUTY_BLUSH_COLOR_FAMILY = intPreferencesKey("camera_memory_beauty_blush_color_family")
-        val CAMERA_MEMORY_BEAUTY_EYEBROW = floatPreferencesKey("camera_memory_beauty_eyebrow")
         val CAMERA_MEMORY_BEAUTY_BODY_ENHANCEMENT = floatPreferencesKey("camera_memory_beauty_body_enhancement")
         val CAMERA_MEMORY_BEAUTY_LEG_EXTENSION = floatPreferencesKey("camera_memory_beauty_leg_extension")
         val CAMERA_MEMORY_BEAUTY_EXPOSURE = floatPreferencesKey("camera_memory_beauty_exposure")
@@ -889,7 +888,6 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
                 lipColorIndex = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_LIP_COLOR_INDEX] ?: 0,
                 blush = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_BLUSH] ?: BeautySettings.DEFAULT_BLUSH,
                 blushColorFamily = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_BLUSH_COLOR_FAMILY] ?: 0,
-                eyebrow = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_EYEBROW] ?: BeautySettings.DEFAULT_EYEBROW,
                 bodyEnhancement = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_BODY_ENHANCEMENT] ?: 0f,
                 legExtension = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_LEG_EXTENSION] ?: 0f,
                 exposure = preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_EXPOSURE] ?: 0f,
@@ -941,7 +939,6 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
             preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_LIP_COLOR_INDEX] = resolvedBeautySettings.lipColorIndex
             preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_BLUSH] = resolvedBeautySettings.blush
             preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_BLUSH_COLOR_FAMILY] = resolvedBeautySettings.blushColorFamily
-            preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_EYEBROW] = resolvedBeautySettings.eyebrow
             preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_BODY_ENHANCEMENT] = resolvedBeautySettings.bodyEnhancement
             preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_LEG_EXTENSION] = resolvedBeautySettings.legExtension
             preferences[PreferencesKeys.CAMERA_MEMORY_BEAUTY_EXPOSURE] = resolvedBeautySettings.exposure

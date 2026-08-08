@@ -195,7 +195,7 @@ private fun showReleaseMemoryToast(
 }
 
 private fun BeautySettings.requiresFaceDetection(): Boolean {
-    return slimFace != 0f || bigEyes > 0f || lipColor > 0f || blush > 0f || eyebrow > 0f
+    return slimFace != 0f || bigEyes > 0f || lipColor > 0f || blush > 0f
 }
 
 /**

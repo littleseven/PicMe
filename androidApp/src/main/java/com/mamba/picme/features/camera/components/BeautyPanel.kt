@@ -228,14 +228,6 @@ internal fun MakeupAdjustmentContent(
         onValueChange = { onSettingsChanged(settings.copy(blush = it)) },
         onReset = { onSettingsChanged(settings.copy(blush = BeautySettings.DEFAULT_BLUSH)) }
     )
-    BeautySlider(
-        icon = Icons.Rounded.LineStyle,
-        label = stringResource(R.string.eyebrow),
-        value = settings.eyebrow,
-        valueRange = 0f..100f,
-        onValueChange = { onSettingsChanged(settings.copy(eyebrow = it)) },
-        onReset = { onSettingsChanged(settings.copy(eyebrow = BeautySettings.DEFAULT_EYEBROW)) }
-    )
 }
 
 

@@ -45,7 +45,6 @@ interface BeautyShaderChain {
      * @param bigEyeStrength 大眼强度 (0.0 - 1.0)
      * @param lipColorStrength 唇色强度 (0.0 - 1.0)
      * @param blushStrength 腮红强度 (0.0 - 1.0)
-     * @param eyebrowStrength 眉毛强度 (0.0 - 1.0)
      */
     fun setBeautyParams(
         smoothingStrength: Float,
@@ -53,8 +52,7 @@ interface BeautyShaderChain {
         slimFaceStrength: Float,
         bigEyeStrength: Float,
         lipColorStrength: Float,
-        blushStrength: Float,
-        eyebrowStrength: Float
+        blushStrength: Float
     )
 
     /**

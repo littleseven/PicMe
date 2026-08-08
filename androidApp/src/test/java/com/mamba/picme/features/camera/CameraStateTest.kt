@@ -235,10 +235,9 @@ class CameraStateTest {
     fun `openMakeupEntry - switching through all makeup entries ends on last`() {
         panelState.openMakeupEntry(MakeupEntry.LIP_COLOR)
         panelState.openMakeupEntry(MakeupEntry.BLUSH)
-        panelState.openMakeupEntry(MakeupEntry.EYEBROW)
 
         assertTrue(panelState.showMakeupAdjustment)
-        assertTrue(panelState.activeMakeupEntry == MakeupEntry.EYEBROW)
+        assertTrue(panelState.activeMakeupEntry == MakeupEntry.BLUSH)
     }
 
     // --- 组合场景 ---
@@ -276,13 +275,13 @@ class CameraStateTest {
 
     @Test
     fun `combined - toggleMakeupAdjustment delegates to openMakeupEntry with active entry`() {
-        panelState.openMakeupEntry(MakeupEntry.EYEBROW)
+        panelState.openMakeupEntry(MakeupEntry.BLUSH)
         panelState.showMakeupAdjustment = false
 
         panelState.toggleMakeupAdjustment()
 
         assertTrue("toggleMakeupAdjustment should reopen with active entry", panelState.showMakeupAdjustment)
-        assertTrue("Active entry should still be EYEBROW", panelState.activeMakeupEntry == MakeupEntry.EYEBROW)
+        assertTrue("Active entry should still be BLUSH", panelState.activeMakeupEntry == MakeupEntry.BLUSH)
     }
 }
 

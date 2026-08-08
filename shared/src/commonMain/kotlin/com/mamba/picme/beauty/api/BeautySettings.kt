@@ -14,7 +14,6 @@ data class BeautySettings(
     val lipColorIndex: Int = 0,
     val blush: Float = DEFAULT_BLUSH,
     val blushColorFamily: Int = 0,
-    val eyebrow: Float = DEFAULT_EYEBROW,
     val bodyEnhancement: Float = 0f,
     val legExtension: Float = 0f,
     val exposure: Float = 0f,
@@ -31,7 +30,7 @@ data class BeautySettings(
 ) {
     fun hasAnyEffect(): Boolean {
         return smoothing > 0 || whitening > 0 || slimFace != 0f || bigEyes > 0 ||
-            lipColor > 0 || blush > 0 || eyebrow > 0 ||
+            lipColor > 0 || blush > 0 ||
             bodyEnhancement != 0f || legExtension > 0 ||
             colorFilter != FilterType.NONE || styleFilter != StyleFilter.NONE ||
             exposure != 0f || contrast != 50f || saturation != 100f ||
@@ -42,6 +41,5 @@ data class BeautySettings(
     companion object {
         const val DEFAULT_LIP_COLOR: Float = 0f
         const val DEFAULT_BLUSH: Float = 0f
-        const val DEFAULT_EYEBROW: Float = 0f
     }
 }

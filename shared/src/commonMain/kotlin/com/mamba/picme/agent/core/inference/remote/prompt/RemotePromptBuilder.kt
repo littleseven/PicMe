@@ -209,8 +209,6 @@ class RemotePromptBuilder(
             append(context.beautySettings.lipColor.toInt())
             append(", blush=")
             append(context.beautySettings.blush.toInt())
-            append(", eyebrow=")
-            append(context.beautySettings.eyebrow.toInt())
             append(", filter=")
             append(context.filterType.name)
             append(", style=")

@@ -139,7 +139,6 @@ internal data class CameraPreviewActions(
     val onToggleMakeupAdjustment: () -> Unit,
     val onToggleLipColor: () -> Unit,
     val onToggleBlush: () -> Unit,
-    val onToggleEyebrow: () -> Unit,
     val onToggleBodyManagement: () -> Unit,
     val onZoomPresetClick: (Float) -> Unit,
     val onExposureChange: (Int) -> Unit,
@@ -325,7 +324,6 @@ internal fun buildCameraPreviewActions(
         onToggleMakeupAdjustment = panelState::toggleMakeupAdjustment,
         onToggleLipColor = { panelState.openMakeupEntry(MakeupEntry.LIP_COLOR) },
         onToggleBlush = { panelState.openMakeupEntry(MakeupEntry.BLUSH) },
-        onToggleEyebrow = { panelState.openMakeupEntry(MakeupEntry.EYEBROW) },
         onToggleBodyManagement = panelState::toggleBodyManagement,
         onZoomPresetClick = { ratio -> cameraControl?.setZoomRatio(ratio) },
         onExposureChange = { exposure ->

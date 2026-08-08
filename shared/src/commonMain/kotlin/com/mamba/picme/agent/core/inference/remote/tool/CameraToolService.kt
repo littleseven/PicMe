@@ -103,7 +103,7 @@ class CameraToolService private constructor() : TraceIdAware {
     // ── 美颜 / 滤镜 / 风格 ─────────────────────────────────────────
 
     @Tool(customName = "adjust_beauty")
-    @LLMDescription("调整美颜参数。enabled: true 开美颜 / false 关美颜 / 空串=有调整参数时自动开启。smoothing(磨皮)/whitening(美白)/big_eyes(大眼)/lip_color(唇色)/blush(腮红)/eyebrow(眉毛) 0~100，slim_face(瘦脸) -50~50；未提及的参数留空串保持当前值。")
+    @LLMDescription("调整美颜参数。enabled: true 开美颜 / false 关美颜 / 空串=有调整参数时自动开启。smoothing(磨皮)/whitening(美白)/big_eyes(大眼)/lip_color(唇色)/blush(腮红) 0~100，slim_face(瘦脸) -50~50；未提及的参数留空串保持当前值。")
     suspend fun adjustBeauty(
         @LLMDescription("true/false，留空=有调整参数时自动开启") enabled: String,
         @LLMDescription("磨皮 0~100，留空=不变") smoothing: String,
@@ -111,8 +111,7 @@ class CameraToolService private constructor() : TraceIdAware {
         @LLMDescription("瘦脸 -50~50，留空=不变") slimFace: String,
         @LLMDescription("大眼 0~100，留空=不变") bigEyes: String,
         @LLMDescription("唇色 0~100，留空=不变") lipColor: String,
-        @LLMDescription("腮红 0~100，留空=不变") blush: String,
-        @LLMDescription("眉毛 0~100，留空=不变") eyebrow: String
+        @LLMDescription("腮红 0~100，留空=不变") blush: String
     ): String {
         val current = beautySettingsProvider?.invoke() ?: BeautySettings(enabled = true)
         val settings = current.copy(
@@ -126,8 +125,7 @@ class CameraToolService private constructor() : TraceIdAware {
             slimFace = slimFace.toFloatOrNull() ?: current.slimFace,
             bigEyes = bigEyes.toFloatOrNull() ?: current.bigEyes,
             lipColor = lipColor.toFloatOrNull() ?: current.lipColor,
-            blush = blush.toFloatOrNull() ?: current.blush,
-            eyebrow = eyebrow.toFloatOrNull() ?: current.eyebrow
+            blush = blush.toFloatOrNull() ?: current.blush
         )
         return dispatchCommand(AgentCommand.AdjustBeauty(settings = settings))
     }

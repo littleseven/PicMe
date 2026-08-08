@@ -135,8 +135,7 @@ class OptimizeRecipeMapperTest {
                 slimFace = -10f,
                 bigEyes = 15f,
                 lipColor = 40f,
-                blush = 30f,
-                eyebrow = 20f
+                blush = 30f
             )
         )
 
@@ -150,7 +149,6 @@ class OptimizeRecipeMapperTest {
         assertEquals(15f, preset.beauty.bigEyes, 0.001f)
         assertEquals(40f, preset.beauty.lipColor, 0.001f)
         assertEquals(30f, preset.beauty.blush, 0.001f)
-        assertEquals(20f, preset.beauty.eyebrow, 0.001f)
     }
 
     @Test
@@ -238,8 +236,7 @@ class OptimizeRecipeMapperTest {
                 slimFace = 3f,
                 bigEyes = 6f,
                 lipColor = 20f,
-                blush = 15f,
-                eyebrow = 12f
+                blush = 15f
             ),
             filter = FilterPreset(
                 colorFilter = "WARM", // exact enum name -> round-trips

@@ -61,7 +61,6 @@ object CameraToolHelper {
                 val bigEyes = (params["big_eyes"] as? Number)?.toFloat() ?: 0f
                 val lipColor = (params["lip_color"] as? Number)?.toFloat() ?: 0f
                 val blush = (params["blush"] as? Number)?.toFloat() ?: 0f
-                val eyebrow = (params["eyebrow"] as? Number)?.toFloat() ?: 0f
                 AgentCommand.AdjustBeauty(
                     settings = com.mamba.picme.beauty.api.BeautySettings(
                         enabled = true,
@@ -70,8 +69,7 @@ object CameraToolHelper {
                         slimFace = slimFace,
                         bigEyes = bigEyes,
                         lipColor = lipColor,
-                        blush = blush,
-                        eyebrow = eyebrow
+                        blush = blush
                     )
                 )
             }

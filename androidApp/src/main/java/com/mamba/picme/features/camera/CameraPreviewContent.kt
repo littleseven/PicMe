@@ -318,9 +318,6 @@ private fun BoxScope.CameraPreviewDebugStatus(uiState: CameraPreviewUiState) {
     if (uiState.beautySettings.blush > 0f) {
         activeEffects.add("BLUSH")
     }
-    if (uiState.beautySettings.eyebrow > 0f) {
-        activeEffects.add("BROW")
-    }
 
     val nowMs = System.currentTimeMillis()
     val hasPersistedFallback = uiState.beautyDebugState.recoveryAvailableAtMs > 0L

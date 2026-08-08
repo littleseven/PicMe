@@ -68,14 +68,6 @@ interface BeautyProcessor {
     suspend fun applyBlush(bitmap: Bitmap, strength: Float, colorFamily: Int): Bitmap
 
     /**
-     * 应用眉毛加深效果
-     * @param bitmap 原始图像
-     * @param strength 强度 0-100
-     * @return 处理后的图像
-     */
-    suspend fun applyEyebrow(bitmap: Bitmap, strength: Float): Bitmap
-
-    /**
      * 应用身材调整效果
      * @param bitmap 原始图像
      * @param strength 强度 -30~+30 (负值为缩小)
@@ -121,9 +113,6 @@ interface BeautyProcessor {
             }
             if (settings.blush > 0) {
                 result = applyBlush(result, settings.blush, settings.blushColorFamily)
-            }
-            if (settings.eyebrow > 0) {
-                result = applyEyebrow(result, settings.eyebrow)
             }
         }
         // 身材管理 (需要全身检测，当前仅当有人脸时应用)

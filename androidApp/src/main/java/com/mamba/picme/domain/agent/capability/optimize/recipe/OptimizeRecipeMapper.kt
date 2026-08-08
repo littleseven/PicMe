@@ -70,8 +70,7 @@ object OptimizeRecipeMapper {
                 slimFace = beauty.slimFace,
                 bigEyes = beauty.bigEyes,
                 lipColor = beauty.lipColor,
-                blush = beauty.blush,
-                eyebrow = beauty.eyebrow
+                blush = beauty.blush
             ),
             filter = FilterPreset(
                 colorFilter = recipe.colorFilter.name,
@@ -138,7 +137,6 @@ object OptimizeRecipeMapper {
             bigEyes = beauty.bigEyes,
             lipColor = beauty.lipColor,
             blush = beauty.blush,
-            eyebrow = beauty.eyebrow,
             colorFilter = resolveFilterType(preset.filter.colorFilter),
             styleFilter = resolveStyleFilter(preset.filter.styleFilter)
         )

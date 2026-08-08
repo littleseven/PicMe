@@ -129,16 +129,6 @@ internal fun MakeupAdjustmentSelector(
                     onReset = { onSettingsChanged(settings.copy(blush = BeautySettings.DEFAULT_BLUSH)) }
                 )
             }
-            MakeupEntry.EYEBROW -> {
-                BeautySlider(
-                    icon = Icons.Rounded.LineStyle,
-                    label = stringResource(R.string.eyebrow),
-                    value = settings.eyebrow,
-                    valueRange = 0f..100f,
-                    onValueChange = { onSettingsChanged(settings.copy(eyebrow = it)) },
-                    onReset = { onSettingsChanged(settings.copy(eyebrow = BeautySettings.DEFAULT_EYEBROW)) }
-                )
-            }
             null -> {
                 LipColorSelector(
                     strength = settings.lipColor,
@@ -167,14 +157,6 @@ internal fun MakeupAdjustmentSelector(
                     valueRange = 0f..100f,
                     onValueChange = { onSettingsChanged(settings.copy(blush = it)) },
                     onReset = { onSettingsChanged(settings.copy(blush = BeautySettings.DEFAULT_BLUSH)) }
-                )
-                BeautySlider(
-                    icon = Icons.Rounded.LineStyle,
-                    label = stringResource(R.string.eyebrow),
-                    value = settings.eyebrow,
-                    valueRange = 0f..100f,
-                    onValueChange = { onSettingsChanged(settings.copy(eyebrow = it)) },
-                    onReset = { onSettingsChanged(settings.copy(eyebrow = BeautySettings.DEFAULT_EYEBROW)) }
                 )
             }
         }
