@@ -6,21 +6,20 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 /**
- * 隐私红线防回归守卫（决策1 / ADR-008）。
+ * 隐私红线防回归守卫（决策1 / ADR-008）——androidApp 侧副本。
  *
  * 契约：远程 LLM 推理链路（`inference/remote/` 下）**只发文本**——禁止上传用户图片/视频文件到
- * 远程大模型/推理服务器。本测试静态扫描该包源码，断言不出现多模态/媒体上传符号。媒体处理
- * （`ai_optimize`/`edit_image`/打标/人脸）须在端侧 renderer/本地模型完成，绝不经此链路出境。
+ * 远程大模型/推理服务器。本测试静态扫描该包源码，断言不出现多模态/媒体上传符号。
  *
- * 不在本守卫范围：飞书/Telegram 等用户自配置 IM 通道回传媒体给用户本人（决策1 豁免，属用户
- * 自有通道，非模型推理上传）；其 channel handler 在 `app/domain/agent/remote/`，不在本包。
- *
- * 新增远程推理代码若误引入 `ImageContent`/multipart 等，本测试会立即变红，防止红线被悄悄突破。
+ * 存在理由（Phase 4 Task 13）：`RemoteControlToolService` 自 runtime-core 迁入 androidApp 后
+ * 脱离 shared 侧同名守卫（仅扫 commonMain）的覆盖范围，但其包路径仍属红线契约管辖，故在
+ * 本模块补一份守卫。shared/src/jvmTest 副本继续守卫 commonMain 侧。
  */
 class RemoteInferenceNoMediaUploadGuardTest {
 
     /**
      * 媒体文件上传到远程 LLM 的强信号 token。任一在 `inference/remote/` 源码出现即视为红线被触碰。
+     * 与 shared 侧副本列表保持一致。
      */
     private val forbiddenTokens = listOf(
         "ImageContent", // langchain4j 多模态图片消息体
@@ -36,7 +35,7 @@ class RemoteInferenceNoMediaUploadGuardTest {
     @Test
     fun remoteInferenceSourcesMustNotUploadMediaFiles() {
         assertTrue(
-            "守卫源码目录不存在：${remoteSourceDir.absolutePath}（测试需在 :runtime-core 模块根目录运行）",
+            "守卫源码目录不存在：${remoteSourceDir.absolutePath}（测试需在 :androidApp 模块根目录运行）",
             remoteSourceDir.isDirectory
         )
 

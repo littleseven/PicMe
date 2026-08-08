@@ -302,7 +302,7 @@ class RemoteCommandDispatcher(
     /**
      * 直接执行相册搜索（并可选预览第 N 张），不经过 LLM ReAct 循环。
      */
-    private fun executeDirectGallerySearch(query: String, previewIndex: Int?, wm: WindowManager): String {
+    private suspend fun executeDirectGallerySearch(query: String, previewIndex: Int?, wm: WindowManager): String {
         return try {
             val toolService = RemoteControlToolService(wm)
             val navigateResult = toolService.navigateTo("gallery")

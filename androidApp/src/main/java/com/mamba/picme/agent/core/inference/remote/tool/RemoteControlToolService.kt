@@ -25,12 +25,9 @@ import com.mamba.picme.beauty.api.StyleFilter
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.agents.core.tools.reflect.ToolSet
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.future.future
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -68,6 +65,9 @@ class RemoteControlToolService(
         /** UI 线程同步操作的默认超时（毫秒） */
         private const val UI_THREAD_TIMEOUT_MS = 5000L
 
+        /** dispatch 等待 CapabilityRegistry 执行的超时（毫秒） */
+        private const val DISPATCH_TIMEOUT_MS = 5000L
+
         /** 当前 Activity 引用 */
         @JvmStatic
         var currentActivity: Activity? = null
@@ -75,12 +75,6 @@ class RemoteControlToolService(
         private var screenWidth = 0
         private var screenHeight = 0
     }
-
-    /**
-     * dispatch 常驻内部 scope（SupervisorJob 隔离单命令失败）。替代 GlobalScope：
-     * 等待超时后通过 deferred.cancel() 级联取消底层 dispatch 协程，避免协程裸跑。
-     */
-    private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
      * 在主线程同步执行 [block]，并等待其完成。
@@ -416,13 +410,12 @@ class RemoteControlToolService(
 
     @Tool(customName = "search_photos")
     @LLMDescription("在相册中搜索照片。调用前必须先用 navigate_to(gallery) 进入相册。参数 query 为自然语言搜索词，如'去年夏天小孩'。")
-    fun searchPhotos(
+    suspend fun searchPhotos(
         @LLMDescription("搜索关键词，例如'去年夏天小孩'") query: String
     ): String {
         if (query.isBlank()) {
             return "Error: query cannot be empty"
         }
-
         val dispatchResult = dispatchCommand(AgentCommand.SearchMedia(query = query))
         if (dispatchResult.startsWith("Error:")) {
             return dispatchResult
@@ -433,7 +426,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "get_gallery_summary")
     @LLMDescription("获取本地相册摘要，包括照片数、人脸数、人物数、已/未打标数量以及扫描建议。参数 include_details 为 true 时返回剩余 Pass 1/Pass 3/ML Kit 任务数。")
-    fun getGallerySummary(
+    suspend fun getGallerySummary(
         @LLMDescription("是否返回包含剩余任务数的完整摘要，true=完整，false=简要") includeDetails: Boolean
     ): String {
         return dispatchCommand(AgentCommand.GetGallerySummary(includeDetails = includeDetails))
@@ -441,7 +434,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "run_gallery_script")
     @LLMDescription("在端侧沙箱执行 JavaScript 做相册盘点/统计分析（取数类 handler 只读、数据不出端；删除/收藏等写操作走 capability.dispatch，会弹窗经用户确认）。所有 handler 均为异步，**必须用 await bridge.callAsync(name, args) 调用**（bridge.call 已禁用，调用会报错）。可用 handler： gallery.summary → 相册聚合统计（totalPhotos/totalVideos/totalMedia/hasFaceCount/personClusterCount/namedPersonCount/labeledCount/unlabeledCount/semanticEncodedCount/remainingPass1/remainingPass3/isScanning/currentPass/recommendation）； gallery.query({label?,ocr?,location?,fromMs?,toMs?,hasFace?,limit?}) → 结构化过滤命中，返回 {ids:[...], total:N}（多维 AND，全可选；ids 已截断到 limit，total 为未截断真实数）； gallery.tags → 实际打标标签分布 {标签:照片数}（按计数降序 top 50）； gallery.timeline({fromMs?,toMs?,bucketMs?}) → 按时间分桶统计 {\"桶起始时间戳\":照片数}（默认按月，bucketMs=2592000000=月/31536000000=年）； gallery.intersect({idsA:[...],idsB:[...],op:\"intersect|union|diff\"}) → 集合交并差，返回 {ids:[...],total:N}（用于多次 query 结果交叉，如旅行+人脸）； media.meta(id) → 单张元数据 {id,type,captureMs,fileName,labels:[...],locationName,hasFace,faceId}（不含路径/GPS/OCR/向量）； media.batch_meta([id1,id2,...]) → 批量元数据 [{...},...]（上限 50，避免循环调 media.meta）； gallery.stats_by_tag({label?,hasFace?,fromMs?,toMs?}) → 条件过滤后的标签分布（如人像照片内的场景标签）； face.cluster({topN?}) → 人脸聚类盘点 {clusterCount,namedCount,totalEmbeddings,unassignedEmbeddings,topPersons:[{personId,name,faceCount,coverMediaId}]}（topN 默认 10 上限 50，不含 embedding 原始数据）； tag.audit({topN?}) → 打标覆盖审计 {totalMedia,unlabeledCount,neverScannedCount,lastScanAt,outOfVocabTags:{标签:照片数}}（词表外标签 topN 默认 10 上限 50）。 可并发取数：var r=await Promise.all([bridge.callAsync('gallery.summary',{}),bridge.callAsync('gallery.tags',{})]); var s=r[0],t=r[1]; 在 JS 内组合计算（如某标签占比 = query.total / summary.totalMedia；环比 = 本月/上月-1），return 结果对象回传给你做总结。 示例：var s=await bridge.callAsync('gallery.summary',{}); var t=await bridge.callAsync('gallery.tags',{}); return {total:s.totalMedia, topTags:t};")
-    fun runGalleryScript(
+    suspend fun runGalleryScript(
         @LLMDescription("JS 源码；用 await bridge.callAsync 取数据（gallery.summary/tags/timeline/query/stats_by_tag/intersect, media.meta/batch_meta, face.cluster, tag.audit），return 结果对象") code: String
     ): String {
         return dispatchCommand(AgentCommand.ExecuteScript(code = code))
@@ -449,7 +442,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "draw_chart")
     @LLMDescription(GalleryToolDocs.DRAW_CHART)
-    fun drawChart(
+    suspend fun drawChart(
         @LLMDescription("图表类型：bar(柱状)/line(折线)/pie(饼图)") type: String,
         @LLMDescription("图表标题") title: String,
         @LLMDescription("分类/x 轴标签，英文逗号分隔，如 '1月,2月,3月' 或 '人像,风景,美食'") labels: String,
@@ -530,7 +523,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "navigate_to")
     @LLMDescription("导航到指定页面。可选值：camera（相机）、gallery（相册）、settings（设置）、debug（调试）")
-    fun navigateTo(
+    suspend fun navigateTo(
         @LLMDescription("目标页面: camera|gallery|settings|debug") destination: String
     ): String {
         val valid = setOf("camera", "gallery", "settings", "debug")
@@ -675,12 +668,15 @@ class RemoteControlToolService(
 
     // ==================== 内部方法 ====================
 
-    private fun dispatchCommand(command: AgentCommand): String {
-        val deferred = dispatchScope.future {
-            CapabilityRegistry.getInstance().dispatch(command, AgentContext(scene = AgentScene.CHAT), null)
-        }
+    // suspend 直通（Task 13）：全链路已 suspend（CapabilityRegistry.dispatch 为挂起函数），
+    // 原 `dispatchScope.future{}.get(5s)` 阻塞桥改 `withTimeout` 结构化等待——超时经协程取消
+    // 级联终止底层 dispatch（语义对齐旧 TimeoutException 分支），外部取消透传不吞。
+    // 与 CameraToolHelper.executeCameraCommand 的 Task 7 模式一致。
+    private suspend fun dispatchCommand(command: AgentCommand): String {
         return try {
-            val result = deferred.get(5, TimeUnit.SECONDS)
+            val result = withTimeout(DISPATCH_TIMEOUT_MS) {
+                CapabilityRegistry.getInstance().dispatch(command, AgentContext(scene = AgentScene.CHAT), null)
+            }
             result.fold(
                 onSuccess = { action ->
                     when (action) {
@@ -692,10 +688,8 @@ class RemoteControlToolService(
                 },
                 onFailure = { "Error: ${it.message}" }
             )
-        } catch (e: java.util.concurrent.TimeoutException) {
-            // 等待 dispatch 5s 超时：取消底层 dispatch 协程，避免超时后协程裸跑
-            // （CompletableFuture.cancel 会级联取消 future 协程）。
-            deferred.cancel(true)
+        } catch (e: TimeoutCancellationException) {
+            // 等待 dispatch 5s 超时：withTimeout 已级联取消底层 dispatch 协程，无协程裸跑
             // 记调用方视角的等待超时（命令若最终完成仍由 CommandExecutor 记录）
             Logger.w(TAG, "dispatchCommand wait timed out: ${command::class.simpleName}")
             CommandExecutor.recordDispatchEvent(
@@ -707,6 +701,9 @@ class RemoteControlToolService(
                 traceId = null
             )
             "Error: ${e.message}"
+        } catch (e: CancellationException) {
+            // 外部取消（agent cancel）：结构化并发要求透传，不吞为错误字符串。
+            throw e
         } catch (e: Exception) {
             "Error: ${e.message}"
         }
@@ -714,17 +711,16 @@ class RemoteControlToolService(
 
     // suspend（Task 7 涟漪）：CameraToolHelper.executeCameraCommand 已 suspend 化
     //（future.get 阻塞桥 → withTimeout），相机 @Tool 方法随之 suspend（Koog 支持 suspend
-    // 工具函数；LLM-facing 工具名/描述不变）。本类其余 dispatchCommand 阻塞桥留 Task 13 处理。
+    // 工具函数；LLM-facing 工具名/描述不变）。
     private suspend fun executeCameraCommand(method: String, params: Map<String, Any>): String {
         return try {
             CameraToolHelper.executeCameraCommand(
                 method = method,
                 params = params,
-                buildCommandJson = { "" }, // 不再使用 JSON 中间格式
                 onSuccess = { "OK: $method executed" },
                 onError = { "Error: $method failed: $it" }
             )
-        } catch (e: kotlinx.coroutines.CancellationException) {
+        } catch (e: CancellationException) {
             // 外部取消（agent cancel）：结构化并发要求透传，不吞为错误字符串。
             throw e
         } catch (e: Exception) {
