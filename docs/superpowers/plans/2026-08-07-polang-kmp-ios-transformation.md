@@ -68,6 +68,63 @@ polang/                          # 原 langchain4android/（git repo 改名）
 >
 > 实际执行以 Koog 迁移（Phase 1）为起点——它不依赖任何其他 Phase，是纯 Android 侧的框架替换，由其他工具正在执行中。Phase 2（iOS 技术 spikes）与 Phase 1 无依赖，可并行，但单人带宽下也可等 Phase 1 完成后再做。Phase 3（改名重组）**必须在 Phase 1 完成后**进行——迁移期间 `agent-core` 和 `runtime-core` 目录结构频繁变动，此时做目录搬迁会制造冲突。Phase 4（KMP 抽取）以 Phase 1 产出的「平台耦合点清单」为输入，同时需要 Phase 3 完成的干净目录结构。Phase 5（iOS App）依赖 Phase 2（spike 验证通过）和 Phase 4（shared 模块可用）。
 
+### 3.1 并行执行模型与分工（2026-08-08 决策）
+
+> 历史约束：上方顺序理由与风险登记册「单人带宽」项均按**单人串行**设计。2026-08-08 起改为**多实例并行**——开多个 `kimi-code` 实例，每实例按任务类型选模型（Kimi K3 / GLM）。harness 统一，模型当旋钮。
+
+**拓扑决策**：
+- **harness 统一为 `kimi-code`**（行为 / 权限 / skill 加载 / 提交规范一致；7 个 iOS skill 经 `skills/` SSOT 双端等价）；**模型正交于 harness**，每实例选 K3 或 GLM。
+- 执行 = 对等实例并行；**review 仍用一次性派发**（对侧模型审 diff，沿用 §5 全局纪律）。
+- 不另起 Claude Code 混用 harness——保持单一 harness 行为一致。
+
+**双轨划分（技术轴 → 文件零冲突）**：
+
+| 轨 | 默认模型 | 文件域 |
+|---|---|---|
+| Kotlin/KMP 轨 | **K3** | `shared/`、`androidApp/`、`engines/*.gradle.kts`、`server/` |
+| Swift/Metal 轨 | **GLM** | `iosApp/`、`scripts/ios-*`、`*.metal` |
+
+两轨唯一共享面 = 编译产物 shared XCFramework 的 API 契约（源码不交叉，故真并行）。
+
+**Phase 5 细分（功能段轴，让两实例都打满；Phase 4 由 K3 收尾落地，不另拆）**：
+
+| 段 | Task | 实例 | 依赖 |
+|---|---|---|---|
+| 基建-KMP | 0/1/3（XCFramework/embed） | K3 | Phase 4 落 main |
+| 基建-iOS | 2/4/5/6（Xcode/DebugOverlay/CI/引擎收编） | GLM | 无 |
+| 相册段 | 7–11 | K3 | 基建合体（Task 3） |
+| 相机段 | 12–19 | GLM | 基建-iOS；**warp（Task 16）零依赖可最先启动** |
+| 收敛 | 20–22 | 共担（文档 K3 收口） | 相册 + 相机完成 |
+
+**Phase 6（语言轴）**：6.1/6.2 Kotlin 半（shared Agent / server）= K3；6.1 iOS MetalGuardian + 6.2/6.3 Swift UI + 合规 = GLM。
+
+**依赖与并行图**：
+
+```
+Phase 4（K3 收尾）─落 main─► shared XCFramework 可消费 ◄────┐
+                                                             │ 合体冒烟
+Phase 5 基建（并行）                                          │ Task 3 embed
+  ├ K3   Task 0/1/3（XCFramework/embed）─────────────────────┤
+  └ GLM  Task 2/4/5/6（Xcode/调试/CI/引擎收编）──────────────┘
+  └ GLM 先行（零依赖）：warp shader Task 16 + 磨皮/LUT 翻译   ◄ 可与 Phase 4 收尾并行启动
+          │
+Phase 5 主功能（两屏独立 → 真并行）
+  ├ K3   相册段 Task 7–11
+  └ GLM  相机段 Task 12–19
+          │
+          ▼
+Phase 5 收敛（共担 Task 20–22）→ 5.5 TestFlight 出口
+          │
+          ▼
+Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
+```
+
+**关键依赖松弛（修正原「Phase 5 依赖 Phase 4 完成」）**：
+- Phase 5 出口（相册 + 相机 + 拍照）只消费 Phase **4.2** 的 shared 类型（已产出）；Phase 4.3–4.8（Agent 层 / Koog / JS / 语音 / VLM）是 **Phase 6.2 Chat** 的依赖，**非 Phase 5**。
+- Phase 5 内 **Task 2 / Task 6 / shader 翻译 零 shared 依赖**，可与 Phase 4 收尾并行（≈1.5–2 周原被隐式卡住的窗口）。
+
+**模型分配原则（按任务类型，非按轨一刀切）**：K3 → 长上下文大重构 / 熟栈（Gradle·KMP·本仓 UI）/ 数据 + 逻辑（相册段、KMP 缝）；GLM → 强推理硬骨头（warp 逆变换 shader、468→106 映射、Metal 管线状态调试）；任选 → 机械翻译（LUT）/ 脚手架。
+
 ---
 
 ## Phase 1：agent-core → Koog 迁移（Android 侧）✅ 已完成（2026-08-07）
@@ -161,8 +218,8 @@ polang/                          # 原 langchain4android/（git repo 改名）
 
 抽取顺序（自底向上，每层 Android 先跑通）：
 
-- [ ] **4.1 shared 骨架**：KMP 模块建立（commonMain/androidMain/iosMain），接入 androidApp 构建；CI 增加 shared JVM 单测
-- [ ] **4.2 领域与网络层**：DTO、媒体领域模型、与 server 共享的数据契约；相册访问抽象为**能力接口**——`PhotoLibraryProvider` + `AccessState` 密封枚举（`Full / Limited / Denied / AddOnly(iOS)`），权限流程留各端 UI（对应双端隐私范式差异决策）
+- [x] **4.1 shared 骨架**：KMP 模块建立（commonMain/androidMain/iosMain），接入 androidApp 构建；CI 增加 shared JVM 单测
+- [x] **4.2 领域与网络层**：DTO、媒体领域模型、与 server 共享的数据契约；相册访问抽象为**能力接口**——`PhotoLibraryProvider` + `AccessState` 密封枚举（`Full / Limited / Denied / AddOnly(iOS)`），权限流程留各端 UI（对应双端隐私范式差异决策）
 - [ ] **4.3 Agent 层**：runtime-core 的 Koog 编排、CapabilityRegistry、PrivacyGuard、MemoryManager 迁入 commonMain；平台依赖（存储、日志、文件、时钟——来自 Phase 1.5 清单）收敛为 expect 接口
 - [ ] **4.4 JS 引擎抽象**：`agent/core/js/` 引擎无关层迁 commonMain；QuickJS 绑定留 androidMain，iOS 侧 actual 用 Phase 2.2 验证的桥接
 - [ ] **4.5 语音引擎抽象**：`platform/voice/` 接口层（`AsrEngine`、`KeywordSpotterEngine`、`VadDetector`）→ commonMain expect；Android 实现（`SherpaOnnxAsrEngine` 等）→ androidMain actual；iOS actual 留空或 Phase 6 实现
@@ -208,7 +265,7 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | MNN/Qwen3-VL 在 iOS 不可用或性能不达标 | 🔴 方案级 | Phase 2.1 补验 B 真机前置；失败预案注意 MLX 不支持 iOS、CoreML LLM 支持有限，实际替代路径极少 |
 | App Store 2.5.2（LLM 生成代码端侧执行）拒审 | 🔴（2026-08-07 review 新增） | Phase 6.3 前完成合规三级分析；iOS 端 code-interpreter 或需限为白名单 handler 调用 |
 | Kotlin/Native 构建慢拖垮 AI 迭代循环 | 🟡 偏高（2026-08-07 review 上调） | Phase 2.3 强制实测增量/全量构建耗时（社区有 30+ 分钟报告、KT-78518）；shared 逻辑以 JVM 单测为主验证路径；评估 SPM binary target 预编译加速 |
-| 单人带宽：Android 维护与 iOS 开发并行 | 🟡 | Phase 严格串行（Phase 1/2 例外，可并行）；Android 端 Phase 3–4 期间冻结新特性 |
+| 单人带宽：Android 维护与 iOS 开发并行 | 🔵（2026-08-08 下调，原 🟡） | 多 `kimi-code` 实例并行执行（见 §3.1）：Kotlin 轨与 Swift/iOS 轨文件零冲突、Phase 5 相册/相机段真并行；单人带宽从「串行瓶颈」降为「协调成本」 |
 | Koog 1.x API 与实际需求不匹配（如相机 tool_calls 场域、iOS 无 ServiceLoader 的初始化差异） | 🟡 | Phase 1.1 映射表先行，差距早发现；Phase 2.3 真机验证 Koog 1.1.1 iOS 初始化；Koog 是 JetBrains 官方项目可提 issue/贡献 |
 | Kotlin/Native ↔ Swift 互操作坑（retain cycle、类型映射语义损失、framework 体积） | 🟡（2026-08-07 review 新增） | Phase 2.3/4 实测互操作边界；framework 体积监控 |
 | 美颜引擎 GLSL→MSL shader 迁移量未知 | 🟡（2026-08-07 review 新增） | Phase 2.4 spike 前置评估；或 Phase 5.4 内独立工项 1–2 周 |
@@ -222,6 +279,7 @@ polang/                          # 原 langchain4android/（git repo 改名）
 - 每 Phase 收尾：review 子 agent（GLM）审 diff；闭环验证（编译→安装→测试→日志）；文档同步（[DOC-SYNC] 红线）
 - 红线持续生效：[PRIVACY] 媒体 100% 端侧（iOS 端同样受约束）、[PERF]、[I18N]（iOS 端三语同步从 Phase 5 第一天起算）
 - 提交纪律：fix/feat 只落本 Phase 专用分支
+- **并行实例纪律（2026-08-08 起，见 §3.1）**：每轨/实例一个独立 worktree（如 `refactor/ios-camera-track` / `refactor/ios-gallery`）；两轨文件域不交叉，冲突仅在 shared XCFramework API 契约；文档归属——谁先动某 doc 谁先占、另一实例后合，避免双改 `AGENTS.md` / 架构文档撞车；实例间交接契约 = 计划文档 + shared API，**不靠实例间直连**；落 main 前仍由对侧模型一次性 review diff
 
 ## 6. 变更记录
 
@@ -238,3 +296,4 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | 2026-08-08 | 修订八：Phase 3 主体完成 ✅——细粒度计划 plans/2026-08-07-repo-restructure.md 8 Task 全执行（子代理驱动 + 每 Task 双审）：Task 2/3 目录重组（`9d06dec7`/`123447df`，含 CMakeLists 跨模块路径漏项修复）、Task 4 scripts/CI（`830e63c2`）、Task 5 文档 50 文件（`4f08ca2c`，README 删 JitPack 死段、MODULE_ARCHITECTURE 去 :agent-core）、Task 6 server 配置（`1db37a4f`）；终审「零行为变更」确认（唯一源码改动 AppConfig.kt 一行）后合并入 main（`323c3e1a`，README 与并行工具冲突已解——保留其重写版 + 应用改名）；Task 7 GitHub rename → `littleseven/polang` ✅（fetch/push URL 已更新验证）；Task 8 本地目录改名 `~/AndroidStudioProjects/polang` ✅ + 绝对路径引用更新；3.6 改名后构建冒烟与嵌套 worktree repair 待补 |
 | 2026-08-08 | 修订九：Phase 3 全部收口 ✅——3.6 出口验证补齐：7 个嵌套 worktree `git worktree repair`（双向 gitdir 指针 `langchain4android`→`polang`，无 prunable 残留）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，`polang-debug.apk` 80M）；真机安装冒烟零崩溃（相册浏览/相机预览+拍照/Chat 远程消息往返「pong ✅」/TAG 扫描控制页 Pass 1 运行中）；绝对路径引用更新（AI_TOOLS.md、kimi-cli.sh、fix_pipeline.py）随本修订提交。**Phase 3 完成，Phase 4（shared KMP 抽取）前置条件 P1 满足** |
 | 2026-08-08 | 修订十：Phase 5 设计文档产出 ✅（specs/2026-08-08-ios-app-skeleton-design.md，commit `7dc41f82`）——决策锁定 S1–S10：分模块边界（相册 Swift 主导 presentation/相机纯 Swift+Metal/Agent 薄壳复用 shared）、美颜方案 A（Swift/Metal 宿主 + GLSL→MSL，**否 C++ GLES 双端方案**——deprecated API + 动 Android 已验证宿主冲撞零回归）、美颜 MVP 子集（磨皮/美白/瘦脸/大眼+LUT 进 5.4，全量 25 shader 移 Phase 6）、**UI 生产方式改为「AI 生成 + 可调试性内建」**（S4，取代「前几页自己写」）、双端体验一致为最高原则（S5）；工期 6–8 周；细粒度计划待 Phase 4 收口后经 writing-plans 一次对准终态 |
+| 2026-08-08 | 修订十一：确立**并行执行模型**——多 `kimi-code` 实例 + 按任务选模型（K3/GLM），harness 统一、模型当旋钮（不混用 Claude Code harness）。新增 §3.1：双轨分工（Kotlin/KMP=K3、Swift/Metal=GLM）+ Phase 5 功能段细分（基建-KMP=K3 / 基建-iOS=GLM / 相册段=K3 / 相机段=GLM / 收敛共担）+ 依赖并行图 + 模型分配原则。**关键修订：松弛 Phase 5→Phase 4 依赖**（Phase 5 仅需 4.2，4.3–4.8 属 Phase 6.2；Task 2/6/shader 零 shared 依赖可并行，原被隐式卡住 ≈1.5–2w 窗口释放）。§5 增并行实例纪律（独立 worktree / 文档归属 / 交接靠计划+API 不靠实例直连）。同步勾选 4.1/4.2 ✅ |
