@@ -114,7 +114,8 @@ class LocalLlmEngine(private val context: Context) : ImageInferenceEngine {
      * @param modelId 模型注册表中的 key，如 "qwen3_5_2b" 或 "qwen3_0_6b"
      * @return 加载结果，失败时返回具体错误原因
      */
-    override suspend fun loadModel(modelId: String, useOpencl: Boolean): Result<Unit> = withContext(modelDispatcher) {        engineMutex.withLock {
+    override suspend fun loadModel(modelId: String, useOpencl: Boolean): Result<Unit> = withContext(modelDispatcher) {
+        engineMutex.withLock {
             // 双重检查：已加载且是同一模型、同一后端，直接返回
             if (client.isLoaded && currentModelId == modelId && currentUseOpencl == useOpencl) {
                 ensureRegistered()

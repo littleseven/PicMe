@@ -6,6 +6,8 @@ package com.mamba.picme.agent.core.inference.local
  * 方法签名与 Android 实现 `LocalLlmEngine`（`inference.local.llm`）公开 API 逐项对应，
  * 仅将 Bitmap 入参统一改为 [ByteArray]（编码后的图片字节，如 JPEG/PNG）；
  * ByteArray → Bitmap 的解码在 Android actual 内完成。
+ *
+ * TODO(Task 9+): 错误返回统一为 sealed class 或 Result，消除 `__ERROR_` 魔法前缀字符串契约（旧实现遗留编码风格，iOS actual 暂需遵守）。
  */
 interface ImageInferenceEngine {
 
@@ -33,7 +35,7 @@ interface ImageInferenceEngine {
      * @param systemPrompt 系统提示词（定义任务，如 "简短描述图片内容"）
      * @param userPrompt   用户提示词（具体问题）
      * @param maxTokens    最大生成 token 数，默认 256
-     * @return 模型生成的文本回复，失败时返回空字符串
+     * @return 模型生成的文本回复；所有错误路径均返回空字符串，不产生 `__ERROR_` 前缀
      */
     suspend fun imageInference(
         imageBytes: ByteArray,
@@ -46,7 +48,7 @@ interface ImageInferenceEngine {
      * 带超时的多模态图片推理
      *
      * @param timeoutMs 最大等待时间（毫秒），默认 30 秒
-     * @return 模型生成的文本回复；超时或失败时返回空字符串（native 层错误以 `__ERROR_` 前缀返回）
+     * @return 模型生成的文本回复；native 层推理错误返回 `__ERROR_{error}__` 格式字符串；超时或 JVM 异常返回空字符串
      */
     suspend fun imageInferenceWithTimeout(
         imageBytes: ByteArray,
