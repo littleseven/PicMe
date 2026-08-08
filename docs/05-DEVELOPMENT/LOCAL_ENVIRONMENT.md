@@ -56,7 +56,7 @@
 | `~/code/MobileCLIP2-S2` | MobileCLIP2 S2 | CLIP 模型资源 |
 | `~/code/opus-mt-zh-en` | 翻译模型（中→英） | OPUS-MT |
 | `~/code/opus-mt-zh-en-int8` | 翻译模型 INT8 量化版 | OPUS-MT 量化 |
-| `~/code/sherpa-onnx-1.13.3-static-link-onnxruntime.aar` | 语音唤醒/ASR | Sherpa ONNX 静态库 AAR（项目内嵌为 `runtime-core/libs/sherpa-onnx-1.13.3.aar`，以项目内实际文件为准） |
+| `~/code/sherpa-onnx-1.13.3-static-link-onnxruntime.aar` | 语音唤醒/ASR | Sherpa ONNX 静态库 AAR（项目内嵌为 `shared/libs/sherpa-onnx-1.13.3.aar`（Phase 4 Task 11 起），以项目内实际文件为准） |
 | `~/code/zvec` | 向量/Embedding 相关 | 本地向量工具或模型 |
 
 > 以上列表基于 `~/code` 当前内容整理。新增模型后应补充到本表。

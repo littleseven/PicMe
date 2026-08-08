@@ -736,14 +736,14 @@ Phase 1: 基础迁移（2天）          Phase 2: KWS 集成（1天）        Ph
 
 #### AAR 依赖（已上线）
 
-实际采用本地 AAR 打包（`runtime-core/libs/sherpa-onnx-1.13.3.aar`，内置 ONNX Runtime 1.24.3，支持 16KB page size）：
+实际采用本地 AAR 打包（`shared/libs/sherpa-onnx-1.13.3.aar`（Phase 4 Task 11 自 runtime-core 迁入），内置 ONNX Runtime 1.24.3，支持 16KB page size）：
 
 ```kotlin
 // runtime-core/build.gradle.kts
 compileOnly(files("libs/sherpa-onnx-1.13.3.aar"))
 
 // androidApp/build.gradle.kts（运行时打包）
-implementation(files("../runtime-core/libs/sherpa-onnx-1.13.3.aar"))
+implementation(files("../shared/libs/sherpa-onnx-1.13.3.aar"))  // Phase 4 Task 11 起路径
 ```
 
 ### 4.8 配置选项
