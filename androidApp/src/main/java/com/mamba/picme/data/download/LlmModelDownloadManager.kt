@@ -211,6 +211,15 @@ class LlmModelDownloadManager(context: Context) {
     private val _downloadStates = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val downloadStates = _downloadStates.asStateFlow()
 
+    /**
+     * 前台下载服务是否运行（Manager 侧镜像）。由 [updateServiceState] 在启动 service 后置 true，
+     * 由 [ModelDownloadForegroundService.onDestroy] 回调 [onServiceStopped] 置 false。
+     * 用途：service 运行期间只走普通 startService 刷通知，避免反复 startForegroundService
+     * 放大「onCreate→startForeground 超时」竞态（曾导致 ForegroundServiceDidNotStartInTimeException）。
+     */
+    @Volatile
+    private var fgServiceRunning = false
+
     private val activeDownloads = ConcurrentHashMap<String, okhttp3.Call>()
 
     /**
@@ -657,6 +666,14 @@ fun isModelDownloaded(modelId: String): Boolean {
     }
 
     /**
+     * 由 [ModelDownloadForegroundService.onDestroy] 回调：前台服务已真正销毁，
+     * 重置 [fgServiceRunning]，使下次 [updateServiceState] 能重新走首次启动分支。
+     */
+    fun onServiceStopped() {
+        fgServiceRunning = false
+    }
+
+    /**
      * 供前台 Service 查询当前下载中的模型状态。
      */
     fun snapshotDownloadingStates(): List<DownloadState> {
@@ -677,24 +694,45 @@ fun isModelDownloaded(modelId: String): Boolean {
     }
 
     private fun updateServiceState() {
-        val intent = Intent(appContext, ModelDownloadForegroundService::class.java)
-        intent.action = if (hasAnyRunningTask()) {
-            ModelDownloadForegroundService.ACTION_START_OR_UPDATE
-        } else {
-            ModelDownloadForegroundService.ACTION_STOP
-        }
-        // Android 13+ 需通知权限才能 startForeground。无权限时降级为普通 startService，
-        // 避免 ForegroundServiceDidNotStartInTimeException 闪退。
-        val hasNotificationPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+        val shouldRun = hasAnyRunningTask()
+        // Android 13+ 需 POST_NOTIFICATIONS 才能建前台通知（startForeground 依赖）。
+        val hasNotificationPermission = ContextCompat.checkSelfPermission(
             appContext, android.Manifest.permission.POST_NOTIFICATIONS
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        val intent = Intent(appContext, ModelDownloadForegroundService::class.java)
         runCatching {
-            if (hasNotificationPermission) {
-                ContextCompat.startForegroundService(appContext, intent)
-            } else if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
-                appContext.startService(intent)
+            when {
+                // ① 需要运行 + 尚未启动：唯一走 startForegroundService 的分支（触发 onCreate→startForeground）。
+                //    冷启动时由 PoLangApplication 错峰触发，避开主线程峰值，防 onCreate 内 startForeground 超时。
+                shouldRun && !fgServiceRunning && hasNotificationPermission -> {
+                    intent.action = ModelDownloadForegroundService.ACTION_START_OR_UPDATE
+                    ContextCompat.startForegroundService(appContext, intent)
+                    fgServiceRunning = true
+                }
+                // ② 需要运行 + 已在运行：普通 startService 投递 START_OR_UPDATE，仅刷通知。
+                //    给已运行 service 投递不受后台启动限制；不触发 onCreate / 不要求 startForeground，
+                //    消除「下载中反复 startForegroundService」竞态（原 reportProgress 500ms 一次的根因）。
+                shouldRun && fgServiceRunning -> {
+                    intent.action = ModelDownloadForegroundService.ACTION_START_OR_UPDATE
+                    appContext.startService(intent)
+                }
+                // ③ 不需要运行 + 仍在运行：投递 STOP。**绝不** startForegroundService——
+                //    否则为「停止服务」反而启动新前台服务、强制 onCreate+startForeground，冷启动下必超时。
+                //    fgServiceRunning 不在此重置，交给 Service.onDestroy→onServiceStopped() 闭环。
+                !shouldRun && fgServiceRunning -> {
+                    intent.action = ModelDownloadForegroundService.ACTION_STOP
+                    appContext.startService(intent)
+                }
+                // ④ 无通知权限 + Android < O 降级（API<26 无后台启动限制，普通 service）。
+                shouldRun && !hasNotificationPermission &&
+                    android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O -> {
+                    intent.action = ModelDownloadForegroundService.ACTION_START_OR_UPDATE
+                    appContext.startService(intent)
+                    fgServiceRunning = true
+                }
+                // 其余（无通知权限 Android 8+ 不启动；或无需运行且未运行）→ 空操作
             }
-            // Android 8+ 无通知权限时不启动 Service（下载在协程中继续）
         }.onFailure { throwable ->
             Logger.w(TAG, "Failed to sync foreground service state", throwable)
         }
@@ -843,7 +881,7 @@ fun isModelDownloaded(modelId: String): Boolean {
                                 val bytesSinceLastEmit = totalDownloaded - lastEmitBytes
                                 if (now - lastEmitTime > 500 || bytesSinceLastEmit > 1_048_576) {
                                     _downloadStates.update { it + (modelId to DownloadState(modelId, DownloadStatus.DOWNLOADING, totalDownloaded, actualTotalBytes)) }
-                                    updateServiceState()
+                                    // 进度刷新不驱动 service（同 downloadModel.reportProgress）：通知由 Service 自驱刷新。
                                     emit(DownloadProgress(modelId, totalDownloaded, actualTotalBytes, DownloadStatus.DOWNLOADING))
                                     lastEmitTime = now
                                     lastEmitBytes = totalDownloaded
@@ -975,7 +1013,9 @@ fun isModelDownloaded(modelId: String): Boolean {
                     _downloadStates.update {
                         it + (modelId to DownloadState(modelId, DownloadStatus.DOWNLOADING, total, actualTotalBytes))
                     }
-                    updateServiceState()
+                    // 进度刷新不再驱动前台 service：下载进度通知由 ModelDownloadForegroundService 自驱
+                    // 定时刷新。此处只更新 _downloadStates（UI 进度源）。曾因每次进度回调 startForegroundService
+                    // 放大 onCreate→startForeground 超时竞态（详见 updateServiceState 注释）。
                     lastEmitTime = now
                     lastEmitBytes = total
                 }
