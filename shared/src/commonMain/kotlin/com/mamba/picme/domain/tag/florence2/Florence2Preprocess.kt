@@ -12,8 +12,8 @@ private const val CHANNEL_MASK = 0xFF
  * 768×768×3 ≈ 177 万次浮点除法降为等次数组查表。
  */
 
-/** 单通道 256 项归一化查找表：lut[v] = (v/255f - mean) / std。 */
-internal fun buildNormalizeLut(mean: Float, std: Float): FloatArray {
+/** 单通道 256 项归一化查找表：lut[v] = (v/255f - mean) / std。public：迁至 shared 后供 androidApp 侧 Florence2Tagger 跨模块调用。 */
+fun buildNormalizeLut(mean: Float, std: Float): FloatArray {
     val invStd = 1f / std
     return FloatArray(LUT_SIZE) { v -> (v / 255f - mean) * invStd }
 }
@@ -24,8 +24,10 @@ internal fun buildNormalizeLut(mean: Float, std: Float): FloatArray {
  *
  * @param pixels width×height 个 ARGB_8888 像素
  * @param out 输出缓冲，长度 ≥ 3×pixels.size，布局 [R plane | G plane | B plane]
+ *
+ * public：迁至 shared 后供 androidApp 侧 Florence2Tagger 跨模块调用。
  */
-internal fun normalizePixelsToPlanes(
+fun normalizePixelsToPlanes(
     pixels: IntArray,
     out: FloatArray,
     rLut: FloatArray,
