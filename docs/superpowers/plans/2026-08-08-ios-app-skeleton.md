@@ -2236,24 +2236,24 @@ git commit -m "feat(ios): warp 瘦脸/大眼 hard shader 翻译 + uFacePoints bu
 
 **范围**：`FilterType`（NONE/LEICA_CLASSIC/LEICA_VIBRANT/LEICA_BW/FILM_GOLD/FILM_FUJI/VINTAGE/COOL/WARM）经 LUT 纹理映射实现；`StyleFilter`（TOON/SKETCH/POSTERIZE/EMBOSS/CROSSHATCH，style/*.glsl）**移 Phase 6**（spec S3 第一批只含 LUT 风格）。
 
-- [ ] **Step 1: 确认滤镜 LUT 资产清单**
+- [x] **Step 1: 确认滤镜 LUT 资产清单** ✅ GLM 完成（9 款 filter_*.jpg 已在 Task 6 拷入 bundle Assets/filters/；Android FilterType 走 ColorMatrix 而非纹理 LUT，已核对 FilterTypeExt.kt）
 
 Run: `ls androidApp/src/main/assets/filters/`
 Expected: 9 款 FilterType 对应 LUT 图（PNG/JPG）。Task 6 已拷入 iOS bundle `Assets/filters/`；若缺某款，回 Android 侧 `FilterType`→资产映射代码（`LutTextureLoader.kt`）核对文件名对照表，抄入本计划备注。
 
-- [ ] **Step 2: 翻译 lut.metal（LUT 采样 pass）**
+- [x] **Step 2: 翻译 lut.metal（LUT 采样 pass）** ✅ GLM 完成（ColorMatrix 路径：colorgrade.glsl + main.glsl ColorMatrix → lut.metal，非纹理 LUT）
 
 参照 Android `LutTextureLoader` + LUT 采样 shader（`colorgrade.glsl` 或 LUT 专用 pass）：
 - 标准 512×512（64³）LUT 采样逻辑：`fragment float4 lut_fragment(input [[texture(0)]], lut [[texture(1)]], intensity [[buffer(0)]])`；
 - 蓝色通道选 tile、红绿通道 tile 内寻址——逐行对齐 Android 实现（LUT 布局约定错 = 全屏偏色，用滤镜前后对照验证）。
 
-- [ ] **Step 3: BeautyRenderer 加滤镜 pass 与切换**
+- [x] **Step 3: BeautyRenderer 加滤镜 pass 与切换** ✅ GLM 完成（lutPipeline + Pass 2 插入；FilterType Swift 枚举 + ColorMatrix 逐值照抄 Android）
 
 - `params` 加 `colorFilter: Int32`（对应 shared `FilterType` 枚举 ordinal——滤镜名/排序与 Android 一致，spec S5）；
 - 9 张 LUT 纹理惰性加载缓存（`loadLut` 模式复用）；
 - pass 链：`yuv→rgb → (smoothing) → (lut) → beauty 上屏`，lut pass 仅 `colorFilter != NONE` 时启用。
 
-- [ ] **Step 4: 滤镜选择 UI（对标 Android FilterSelector）**
+- [x] **Step 4: 滤镜选择 UI（对标 Android FilterSelector）** ✅ GLM 完成（FilterSelectorView.swift 横向滚动条 + 三语名称 + accessibilityIdentifier）
 
 `FilterSelectorView.swift`：横向滚动的滤镜条（9 款，名称与 Android 一致走 `String(localized:)`），选中写 `BeautyRenderer.params.colorFilter`。`accessibilityIdentifier("filter_<name>")`。
 
@@ -2276,7 +2276,7 @@ git commit -m "feat(ios): FilterType 九款 LUT 色彩滤镜（StyleFilter 移 P
 - Modify: `iosApp/PoLang/Features/Camera/Beauty/BeautyRenderer.swift`（离屏渲染入口）
 - Create: `iosApp/PoLang/Features/Camera/Capture/ShutterButton.swift`
 
-- [ ] **Step 1: 写 PhotoCaptureController**
+- [x] **Step 1: 写 PhotoCaptureController** ✅ GLM 完成（使用 AVCapturePhoto API，非已弃用的 CMSampleBuffer 变体；含 AVCapturePhoto→CVPixelBuffer 转换）
 
 ```swift
 import Foundation
@@ -2317,11 +2317,11 @@ extension PhotoCaptureController: AVCapturePhotoCaptureDelegate {
 
 （若部署目标 SDK 该 delegate 签名已弃用，按 Xcode 提示改用 `AVCapturePhoto` 变体——取 `photo.fileDataRepresentation` 转 `CGImage` 路径，等价。）
 
-- [ ] **Step 2: BeautyRenderer 离屏渲染入口**
+- [x] **Step 2: BeautyRenderer 离屏渲染入口** ✅ GLM 完成（renderToImage + runPass 封装 + textureToCGImage 回读）
 
 新增 `func renderToImage(pixelBuffer: CVPixelBuffer) -> CGImage?`：复用预览同一 pass 链（yuv→rgb→smoothing→lut→beauty），最终渲染到全分辨率 `MTLTexture`，`CIContext(mtlDevice:)` 或 `MTLTexture.getBytes` 转 `CGImage`。共享 pass 函数，不复制 shader 逻辑。
 
-- [ ] **Step 3: 保存 + 快门 UI + AddOnly 权限衔接**
+- [x] **Step 3: 保存 + 快门 UI + AddOnly 权限衔接** ✅ GLM 完成（ShutterButton + CaptureFlow 异步封装 + PhotoSaver.saveToLibrary）
 
 ```swift
 // 保存（触发系统 AddOnly 授权流，spec §5.5 与 §4.2 衔接）
@@ -2353,7 +2353,7 @@ git commit -m "feat(ios): 拍照链路——全分辨率捕获/离屏美颜/保�
 - Create: `iosApp/PoLang/Features/Camera/Preview/CameraGesturesView.swift`
 - Modify: `iosApp/PoLang/Features/Camera/Capture/CaptureSessionController.swift`
 
-- [ ] **Step 1: CaptureSessionController 加控制方法**
+- [x] **Step 1: CaptureSessionController 加控制方法** ✅ GLM 完成（首轮已写入：focus/zoom/exposure + DebugOverlay）
 
 ```swift
 func focus(at point: CGPoint) {   // view 坐标 → devicePointOfInterest 转换由调用侧完成
@@ -2394,7 +2394,7 @@ func setExposureBias(_ bias: Float) {
 }
 ```
 
-- [ ] **Step 2: 手势视图叠加**
+- [x] **Step 2: 手势视图叠加** ✅ GLM 完成（CameraGesturesView：onTapGesture 对焦 + MagnifyGesture 变焦 + DragGesture 曝光补偿 + FocusRing 动画）
 
 `CameraGesturesView.swift`：透明叠加层，`onTapGesture` → 换算 `view.pointForCaptureDevicePoint`/`captureDevicePointForView` 后调 `focus`；`MagnifyGesture` → `setZoom`（基准倍率 × 手势增量，钳制 [1, maxZoom]）；垂直拖动 → `setExposureBias`（[-2, +2] 钳制）。
 
@@ -2524,3 +2524,4 @@ git commit -m "docs(phase5): 文档同步——roadmap 勾选/spec 偏差/AGENTS
 |------|------|
 | 2026-08-08 | 初版：23 个 Task（Task 0 前置核对 → Task 22 文档同步）；基于 spec（S1–S10）+ explore 实测（shared 当前态/spike 产物/shader 清单/468→106 适配器）。对 spec 一处修正：人脸关键点走 MediaPipe 而非 MNN |
 | 2026-08-08 | GLM 相机段执行进度：Task 12 shader (yuv.metal) ✅、Task 13 shader (beauty.metal + whitenSkin) ✅、Task 14 shader (smoothing.metal + pass_smoothing 全量翻译) ✅、Task 16 shader (warp.metal: 瘦脸+大眼 hard×2) ✅ —— 全部编译通过（含 concat 路径零 error 零 warning）；Task 15 MediaPipe468Adapter Swift 移植 + 金样本测试 ✅；Task 6 引擎产物收编 ✅（MNN/sentencepiece 构建脚本 + MediaPipe fetch + GLSL/LUT/filter assets 同步）；Task 2/4/5 Swift 基建骨架 ✅（DebugOverlay/AppContainer/DebugOverlay/I18N xcstrings/PrivacyInfo/ios-dev-loop/CI iOS job）。阻塞：Xcode .xcodeproj 需 GUI 创建（GLM 无 GUI 能力）；Kotlin/SharedKit embed 需 K3 侧 XCFramework 产出 |
+| 2026-08-08 | GLM 相机段续跑：Task 17 ✅（lut.metal ColorMatrix+ColorGrade 翻译 + FilterColorMatrix.swift 9 款矩阵逐值照抄 Android + FilterSelectorView.swift 三语滤镜条）；Task 18 ✅（PhotoCaptureController AVCapturePhoto API + BeautyRenderer.renderToImage 离屏全管线 + ShutterButton 异步快门 + CaptureFlow captureAndSave 异步流程 + PhotoSaver AddOnly 权限衔接）；Task 19 ✅（CameraGesturesView 对焦框/捏合变焦/垂直曝光 + FocusRing 动画）。5 shader 全量编译通过（含 concat） |
