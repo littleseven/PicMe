@@ -1083,7 +1083,7 @@ Expected: `imageInference` 正常返回，logcat 无 JNI 加载错误
 
 ---
 
-## Task 13：Android 专有组件沉入 androidApp（路线图 4.6）
+## Task 13：Android 专有组件沉入 androidApp（路线图 4.6） ✅ 已完成（2026-08-08，commit `e0a04d6c` + 审查阻塞项修复 `42b9a80c`，双审 CHANGES_REQUESTED→阻塞项已修复）
 
 **Files（包名不变，仅换模块）:**
 - Move: `runtime-core/.../tool/accessibility/` 全部 4 文件（含 `src/debug/` 变体 `PicMeAccessibilityService.kt`，debug sourceSet 对应迁移）→ `androidApp/src/main|debug/java/com/mamba/picme/agent/core/tool/accessibility/`
@@ -1091,7 +1091,7 @@ Expected: `imageInference` 正常返回，logcat 无 JNI 加载错误
 - Move: `runtime-core/.../inference/remote/tool/RemoteControlToolService.kt` → `androidApp/.../agent/core/inference/remote/tool/`
 - Modify: `androidApp/build.gradle.kts`（如 accessibility 相关 manifest 声明在 runtime-core，随迁）
 
-- [ ] **Step 1: git mv（含 debug sourceSet 与 manifest 片段）**
+- [x] **Step 1: git mv（含 debug sourceSet 与 manifest 片段）**（勘察偏差全部按预案执行：声明在 debug manifest→并入 androidApp debug manifest 全限定类名；res 在 debug sourceSet；类名 PoLangAccessibilityService；strings 重命名 picme_accessibility_strings.xml 防撞名；androidApp 既有同名测试服务并存未动）
 
 ```bash
 SRC=runtime-core/src/main/java/com/mamba/picme/agent/core
@@ -1108,14 +1108,14 @@ git mv runtime-core/src/debug/java/com/mamba/picme/agent/core/tool/accessibility
 
 `runtime-core/src/main/AndroidManifest.xml` 中 accessibility service 声明（`<service android:name=".agent.core.tool.accessibility.PicMeAccessibilityService" ...>` 含 `BIND_ACCESSIBILITY_SERVICE` 权限与 meta-data）剪贴到 `androidApp/src/main/AndroidManifest.xml`（或 debug manifest，与原来 sourceSet 一致）；`res/xml/` 下 accessibility service config 资源文件随迁。
 
-- [ ] **Step 2: 组合根接线核查**
+- [x] **Step 2: 组合根接线核查**（`remoteImToolRegistryProvider` lambda import 零变更——同 FQN 同模块直构，Task 9 预留设计兑现；wm 门禁与 fallbackProcess 语义未动）
 
 Task 9 组合根中飞书 RPA 路径的 `additionalToolSets` 注入点现在可以引用本模块的 `RemoteControlToolService`（同模块可直构），确认 wiring 完整：
 
 Run: `grep -rn "RemoteControlToolService" androidApp/src/main/java/ | grep -v "^.*RemoteControlToolService.kt"`
 Expected: 至少组合根一处引用；无指向 runtime-core 的残留
 
-- [ ] **Step 3: 验证**
+- [x] **Step 3: 验证**（assembleDebug + runtime-core 测试 + compileReleaseKotlin 全绿；ToolSpecificationTest 单测过；release 全量/proguard 留集中验证；飞书冒烟静态验证通过、功能待连调）
 
 Run: `./gradlew :androidApp:assembleDebug :androidApp:assembleRelease`
 Expected: 全部 `BUILD SUCCESSFUL`（release 验证 proguard 无 accessibility 类缺失警告）
@@ -1123,7 +1123,7 @@ Expected: 全部 `BUILD SUCCESSFUL`（release 验证 proguard 无 accessibility 
 飞书远程控制冒烟（若环境可连飞书）：`go_back`/点击等 RPA 指令正常
 Expected: 指令执行正常（环境不可连时记录为「静态验证通过，功能验证待连调」）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**（实际 `e0a04d6c` + `42b9a80c`）
 
 ```bash
 git add androidApp/ runtime-core/
@@ -1230,3 +1230,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | **坑位⑤（环境，已实证解法）**：阿里云镜像对 Koog iOS metadata jar（`prompt-executor-ollama-client-iossimulatorarm64-1.1.1-metadata.jar` 等）间歇 404（目录列表有、文件没有），Gradle 不穿透到后置 mavenCentral；`--stop` 与 `--offline` 均无效（缓存记录来源仓库）。**解法：`JITPACK=true ./gradlew ...`**（settings.gradle.kts 内置开关，整体跳过阿里云走 google/mavenCentral/jitpack；Google 系依赖已缓存不需联网）。后续集中验证统一加 `JITPACK=true` |
 | 2026-08-08 | **Task 7**（`fdd66823`，计划标注最难任务 D4，双审 APPROVED_WITH_CONCERNS→无阻塞）：① suspend 化模式——`dispatchScope.future{}.get(5s)`→`withTimeout(5000)`、dispatchScope 删除（结构化并发级联取消）、catch 链顺序 `TimeoutCancellationException→CancellationException{throw}→Exception` 经审查核实正确；② **超时 observation 文本漂移（有意改进，记录备 Agent 行为回归对照）**：`Error: null`→`Error: Timed out waiting for N ms`（withTimeout message 比 future.get TimeoutException 更有信息量；非 @Tool/@LLMDescription 文本，不破坏 prompt 前缀缓存；golden 护栏不覆盖运行时 observation）；③ ToolSet 裁决——两服务移除 ToolSet 标记接口（JVM-only），组合根 `asToolsByClass()` 展开，字节码证实与 `ToolSet.asTools()` 同一扫描函数，golden 逐字节一致实证；④ `RemoteControlToolService` 11 @Tool 方法 suspend 涟漪（CameraToolHelper 强制波及），`dispatchCommand` 阻塞桥留 Task 13；⑤ golden 护栏在 jvmTest（reflect JVM-only），commonTest `ToolInventoryTest` 补纯格式化；⑥ `ToolInventory.kt` 重写未保 rename 历史。**Task 13 待办（审查 🟡）**：清理 `CameraToolHelper.buildCommandJson` 废弃参数（调用方传 `{ "" }` 的死代码）+ dispatchCommand 阻塞桥。审查 🔵 记录：ChatToolService.adjustImageHandler 缺 @Volatile 系旧代码既有问题 |
 | 2026-08-08 | **Task 9**（`481645e8`，Phase 4 架构收口核心，双审 APPROVED_WITH_CONCERNS→无阻塞）：① 组合根唯一直构断言经审查独立 grep 验证成立（KoogMessageMemoryStore/LocalLlmEngine/MemoryManager 直构仅 AndroidAgentComposition 一处；`getInstance(context)` 旧签名清零）；② `AgentDependencies` 9 字段（计划 4 字段扩展）——descriptors/registry 同源 `asToolsByClass()` 展开保 prompt 与工具零漂移；③ `RemoteChatEngine` 编译强制随迁 commonMain（计划 Files 未列，编译器驱动）；④ 新增 `ChatHistoryCleaner` seam、`isModelAvailable(modelId)` 1 参、`LlmModelNotFoundException` 拆文件同 FQN；⑤ prompt 函数化文本逐字节等价（脚本校验）；⑥ 飞书 RPA `remoteImToolRegistryProvider` 懒构建注入点已就绪，**Task 13 wiring 无需改签名**；⑦ initialize AtomicReference CAS + fail-fast。**后续统一收口（审查 🟡，不阻塞，归 Task 13/14 或终审 polish）**：a. `MemoryManager` 补 `dispatcherProvider` 构造参数（同 KoogMessageMemoryStore 模式）；b. `LocalLlmEngine` 补 `dispatcherProvider` 构造参数（pre-existing）；c. `RemoteCommandDispatcher` 删冗余 `withContext(Dispatchers.IO)` 外层（与 orchestratorDispatcher 双跳）；d. androidApp 单测集中验证补 `:androidApp:testDebugUnitTest`。**文档待办（Task 15）**：runtime-core/AGENTS.md 文件清单过时、根 AGENTS.md「Agent 编排层在 :runtime-core」等表述、androidApp/AGENTS.md 组合根新增 |
+| 2026-08-08 | **Task 13**（`e0a04d6c` + 审查修复 `42b9a80c`，双审 CHANGES_REQUESTED→已修复）：① 勘察 5 偏差全部按预案落地（debug manifest 全限定名/debug res/类名 PoLangAccessibilityService/双服务并存不动/ToolSpecificationTest 随迁）；② `dispatchCommand` 阻塞桥清理（future.get→withTimeout，catch 链对齐 Task 7，recordDispatchEvent 记账语义不变）+ `buildCommandJson` 死参数删除（涟漪 6 处同模块内）；③ 超时 observation 文本漂移与 Task 7 同源已登记；④ **审查 🔴 修复**：RemoteControlToolService 迁 androidApp 后脱离 shared 守卫扫描（ADR-008 盲区）——androidApp 侧补 `RemoteInferenceNoMediaUploadGuardTest`（扫 `src/main/java/.../inference/remote/`，token 列表与 shared 副本一致，已验证绿）；runtime-core 副本删除（扫描目录已空，vacuous 失效）；⑤ 组合根 wiring 零变更（同 FQN 同模块直构）；⑥ proguard 无需新增 keep（@Tool 类经 asToolsByClass 直接引用；manifest FQN 引用的 service 类 AGP 自动 keep）。审查 🔵 记录（不阻塞）：PicMeAccessibilityService.kt 文件名与类名不符（旧状沿用）；两个同名 PoLangAccessibilityService 包路径不同可后续改名消混淆。**runtime-core 残留（Task 14 处置）**：仅 4 测试（KeywordSpotterEngineTest/KoogMessageMemoryTest/ToolInventoryTest/CameraToolServiceInventoryTest）+ 空壳 main manifest + debug 空目录 |
