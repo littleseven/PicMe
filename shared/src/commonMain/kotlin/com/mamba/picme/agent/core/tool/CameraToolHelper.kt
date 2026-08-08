@@ -143,7 +143,6 @@ object CameraToolHelper {
      *
      * @param method 命令方法名（如 "capture", "switch_filter"）
      * @param params 命令参数 Map
-     * @param buildCommandJson 构建命令 JSON 的 lambda（已废弃，保留参数避免破坏调用方）
      * @param onSuccess 成功时的结果消息
      * @param onError 失败时的错误消息前缀
      * @return 执行结果字符串（成功或错误信息）
@@ -151,7 +150,6 @@ object CameraToolHelper {
     suspend fun executeCameraCommand(
         method: String,
         params: Map<String, Any>,
-        buildCommandJson: () -> String,
         onSuccess: (String) -> String,
         onError: (String) -> String
     ): String {
