@@ -654,7 +654,7 @@ Expected: `BUILD SUCCESSFUL`（包名不变零 import 改动；若报 unresolved
 
 ---
 
-## Task 6：Koog 推理层迁移（路线图 4.3 中段：koog/react/log/prompt）
+## Task 6：Koog 推理层迁移（路线图 4.3 中段：koog/react/log/prompt）✅ 已完成（2026-08-08，commit `3e1bc761`@并行分支，双审 APPROVED；Step 1-6 全落地，偏差见变更记录）
 
 **Files（源前缀同 Task 5）:**
 - Move: `inference/remote/koog/{KoogChatAgent,KoogMessageMemory,KoogReActStrategy,KoogSessionHistoryProvider}.kt`（4 PURE）
@@ -667,14 +667,14 @@ Expected: `BUILD SUCCESSFUL`（包名不变零 import 改动；若报 unresolved
 - Move: `remote/config/RemoteModelFactory.kt`（SEAM，Step 4 改造）
 - Move: 对应单测（`inference/remote/koog/ComposeSystemPromptTest.kt`、`RemoteInferenceNoMediaUploadGuardTest.kt` 等）→ commonTest
 
-- [ ] **Step 1: PURE 批 git mv（11 文件）**
+- [x] **Step 1: PURE 批 git mv（11 文件）**（实际：7 纯 rename + 3 rename 带小改；`KoogMessageMemory`/`LlmCallRecord` 已提前迁移跳过；`MemoryContextProvider.kt` 自 Task 7 清单提前迁移——`RemoteReActAgentConfig` 硬依赖，**Task 7 执行时视为已迁**）
 
 按 Task 5 Step 1 的模式执行，清单见上。迁移前复验：
 
 Run: `grep -rn "^import android\|^import java\.time\|future\|org\.json" runtime-core/src/main/java/com/mamba/picme/agent/core/inference/remote/koog/ runtime-core/src/main/java/com/mamba/picme/agent/core/inference/remote/react/ runtime-core/src/main/java/com/mamba/picme/agent/core/inference/remote/log/`
 Expected: 无输出（KoogReActAgent 除外——它属 SEAM 在 Step 3 处理，先不迁）
 
-- [ ] **Step 2: `RemotePromptBuilder` 去 java.time（D2）**
+- [x] **Step 2: `RemotePromptBuilder` 去 java.time（D2）**（日期/时区用 kotlinx-datetime + 瞬时戳用 kotlin.time.Clock；`nowString` 手动 `HH:mm` padStart 保 prompt 逐字节一致；新建 `RemotePromptBuilderTimeTest` 锁格式与区间边界；注意 kotlinx-datetime 0.7.1 已无 `kotlinx.datetime.Clock`）
 
 `git mv` 后，L138-160 的 `ZoneId.systemDefault()`/`LocalDate.now()`/`ZonedDateTime`/`LocalTime.now()` 全部替换为 kotlinx-datetime：
 
@@ -693,7 +693,7 @@ import kotlinx.datetime.toLocalDateTime
 
 逐处对照现有实现替换，语义（本地时区、毫秒时间戳）不变。若某处换算无直接等价物，以现有测试（`RemotePromptBuilder` 相关单测，若无则本步补一个日期区间计算的 commonTest）锁行为后再改。
 
-- [ ] **Step 3: `KoogReActAgent` 改造迁移**
+- [x] **Step 3: `KoogReActAgent` 改造迁移**（关键裁决：`additionalToolSets: List<reflect.ToolSet>` 不可行——经独立求证 reflect.ToolSet 在 Koog 1.1.1 是 **jvmCommonMain** API，common metadata klib 无 reflect 包；改用 KMP common 类型 **`toolRegistry: ToolRegistry`** 注入，Task 13 组合根用 `ToolRegistry { tools(RemoteControlToolService(windowManager)) }` 接线。另：旧 init 块类型判断改 `TraceIdAware` 接口（ChatToolService/CameraToolService 实现，RemoteControlToolService 不实现＝飞书跳过语义对齐）+ `recordSource: String` 参数化；`memoryStore: ChatMemoryStore` 注入落实；`dispatcherProvider.orchestratorDispatcher`）
 
 `git mv` 后三处处理：
 
@@ -714,21 +714,11 @@ class KoogReActAgent(
 
 3. `KoogMessageMemoryStore(ctx)`（约 L88-89）→ 改为注入 `memoryStore: ChatMemoryStore`（Task 8 定义的接口；本步先用接口类型声明，Task 8 完成实现——**Task 6 与 Task 8 可互换顺序，先完成者定义接口**）
 
-- [ ] **Step 4: `RemoteModelFactory` 改造迁移**
+- [x] **Step 4: `RemoteModelFactory` 改造迁移**（去 @Volatile；`createKoogHttpClientFactory` 接线 Task 2 已完成，本步仅注释更新）
 
-`git mv` 后：`KtorKoogHttpClient.Factory()` 直构点（约 L104）替换为 Task 2 的 `createKoogHttpClientFactory(...)`；`HeaderInjectingHttpClientFactory` 按 Task 2 Step 3 迁移动作处理；删除已无引用的 langchain4j 期残留（若有）。
+- [x] **Step 5: 测试迁移 + 验证**（4 测试迁 commonTest kotlin.test 化；`RemoteInferenceNoMediaUploadGuardTest` **双份**——shared jvmTest 扫 commonMain + runtime-core 保留副本扫未迁出残留，[PRIVACY] 红线两侧守卫；`KoogMessageMemoryTest` 留 runtime-core。验证：jvmTest 68/0、compileAndroidMain、runtime-core 34/0、iOS 编译均绿）
 
-- [ ] **Step 5: 测试迁移 + 验证**
-
-Run: `./gradlew :shared:jvmTest :shared:compileKotlinIosSimulatorArm64 :runtime-core:assembleDebug :androidApp:assembleDebug`
-Expected: 全部 `BUILD SUCCESSFUL`；`RemoteInferenceNoMediaUploadGuardTest` PASSED（**[PRIVACY] 红线护栏测试，必须随迁且保持绿**）
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add shared/ runtime-core/ androidApp/
-git commit -m "refactor(shared): Phase 4.3 Koog 推理层迁 commonMain（java.time→kotlinx-datetime，WindowManager 解耦）"
-```
+- [x] **Step 6: Commit**（实际 `3e1bc761`）
 
 ---
 
@@ -1240,3 +1230,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | 并行流执行记录（Task 8/10/11 自 `71e6cf5d` 拉并行 worktree/分支，各自提交后合回主干）：**全局坑位回写**——① shared 的 KMP android library 插件**不产生 androidUnitTest source set**，Android 侧单测一律留原模块（runtime-core/androidApp）经 `:shared` 依赖解析符号，勿迁 shared；② shared 的 Android 编译任务名是 `:shared:compileAndroidMain`（非传统 AGP 的 `compileDebugKotlinAndroid`），后续 Task 验证命令同此。**Task 8**（`e49daff4`）：Step 4 调用点收口经裁决排除、归 Task 9 组合根一并收口；`dispatcherProvider` 构造参数同推迟（避免死代码）；附带迁移 `KoogMessageMemory.kt`（原 Task 6 PURE 项，Task 6 执行时视为已迁）；`KoogMessageMemoryTest.kt` 留 runtime-core，Task 14 删模块前需迁入 commonTest（勿遗漏）。**Task 10**（`d1d727cc`）：附带迁移 `GallerySummary.kt` + `LlmCallRecord.kt`（js/ 层硬依赖，原 Task 5/6 清单，执行时视为已迁）；`t.javaClass.simpleName` → `t::class.simpleName ?: "unknown"`。**Task 11**（`412c25d4`）：`KeywordSpotterEngineTest` 留 runtime-core（androidUnitTest 坑位①）；`VOICE_STACK.md`/`LOCAL_ENVIRONMENT.md` 旧 AAR 路径引用待 Task 15 文档流处理。四任务均经 spec/质量双审通过 |
 | 2026-08-08 | **Task 5**（`5bbd4def`，并行 worktree 执行，双审 APPROVED）：① PURE 批实际 21 文件（GallerySummary/MediaAsset/LlmCallRecord/KoogMessageMemory 按已迁裁决跳过）；② 清单漏报的 JVM 残留同批 KMP 化（编译器驱动的正当行为）：`System.currentTimeMillis`×7→`kotlin.time.Clock`（**未用计划写的 kotlinx-datetime**——纯 stdlib 更轻，后续 Task 同此惯例）；`synchronized` 单例×2→`lazy(SYNCHRONIZED)`（CapabilityRegistry/SceneManager）；`CrossPageCommandQueue` synchronized→协程 Mutex（enqueue/clear/size suspend 化，调用点 CapabilityRegistry 同步，`clearCommandQueue` 零外部调用方已核实）；`@Volatile`→`kotlin.concurrent.Volatile`/StateFlow；③ 修复 Task 10 已审代码 `JsRuntime.kt` 裸 `@Volatile` 补 import（纯编译修复，零语义变更）；④ JUnit4 Parameterized 改 4 个独立 @Test 覆盖等价（28 用例）；⑤ EditParams.fromJson 经审查逐边界对齐 org.json opt* 容错语义。审查 🔵 记录（不阻塞）：CrossPageCommandQueue 用 StateFlow 与同批 @Volatile 风格不一；startQueueProcessor check-then-act 竞态系既有问题（原版相同），可后续 compareAndSet |
 | 2026-08-08 | **提速裁决**：① Task 12 提前并行执行（不等 Task 9）——`ImageInferenceEngine` 接口由 Task 12 按 Task 9 Step 1 定义逐字创建，Task 9 执行时直接消费、跳过创建步；② 后续 Task commit 门槛轻量化——`:shared:jvmTest` + `:shared:compileAndroidMain` + `:runtime-core:testDebugUnitTest` 为 commit 前置，`:androidApp:assembleDebug` 改为每次合并后由主代理集中验证（包名不变、模块搬迁的 app 编译风险低，集中验证兜底） |
+| 2026-08-08 | **Task 6**（`3e1bc761`，并行 worktree，双审 APPROVED）：① **核心架构裁决**——计划 Step 3 的 `additionalToolSets: List<reflect.ToolSet>` 不可行（reflect.ToolSet 经审查独立求证为 Koog 1.1.1 jvmCommonMain API，common metadata klib 无 reflect 包），改用 KMP common 类型 `toolRegistry: ToolRegistry` 注入；**Task 13 接线方式**：组合根 `ToolRegistry { tools(RemoteControlToolService(windowManager)) }`，`RemoteControlToolService(windowManager!!)` 直构已删、`WindowManager`/`appContext` 参数已出构造器；② 旧 init 块 `is ChatToolService/CameraToolService` 类型判断改 `TraceIdAware` 接口（RemoteControlToolService 不实现＝飞书跳过语义对齐）+ `recordSource` 参数化（companion 常量 RECORD_SOURCE_CAMERA/FEISHU）；③ `KoogChatAgent` 用 `kotlin.concurrent.atomics`（@ExperimentalAtomicApi，token 计数高频 addAndFetch 场景必需，已 OptIn）；④ `MemoryContextProvider.kt` 自 Task 7 清单提前迁移（RemoteReActAgentConfig 硬依赖，**Task 7 视为已迁**）；⑤ 护栏测试双份（shared jvmTest + runtime-core 副本，Task 7/13 迁完后副本随 runtime-core 删除）；⑥ `graphStrategy(poLangSingleRunStrategy())`（命名 lambda 重载 JVM-only）。审查 🟡 记录（不阻塞）：KoogChatAgent `running` 普通 Boolean 未加 @Volatile（KoogReActAgent 用 AtomicBoolean，建议统一）；exampleTimestamps 放宽 internal 仅为测试可见性 |
