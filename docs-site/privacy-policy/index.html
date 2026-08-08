@@ -152,7 +152,7 @@
             <tr>
                 <td><span class="data-type">人脸关键点</span></td>
                 <td>驱动美颜效果（瘦脸、大眼等）</td>
-                <td>本地 MediaPipe/NCNN 实时计算，不上传</td>
+                <td>本地 MediaPipe/MNN 实时计算，不上传</td>
             </tr>
             <tr>
                 <td><span class="data-type">相册图片/视频</span></td>
@@ -279,8 +279,8 @@
             <tr>
                 <td><span class="permission-tag">INTERNET</span></td>
                 <td>普通权限</td>
-                <td>远程 LLM 编排（用户主动配置）</td>
-                <td>否（可完全离线使用）</td>
+                <td>AI 对话远程推理</td>
+                <td>否（媒体功能可离线；AI 对话需联网）</td>
             </tr>
             <tr>
                 <td><span class="permission-tag">FOREGROUND_SERVICE</span></td>
@@ -295,8 +295,8 @@
         <h3>3.1 端侧优先原则</h3>
         <p>PoLang 的核心架构设计遵循<strong>端侧优先</strong>原则：</p>
         <ul>
-            <li><strong>本地 LLM 推理</strong>：Qwen3.5-2B 大语言模型通过 MNN-LLM 在设备本地运行，您的对话内容不会离开设备</li>
-            <li><strong>本地人脸检测</strong>：MediaPipe / NCNN / MNN 多引擎人脸检测全部在本地 GPU/CPU 执行</li>
+            <li><strong>本地 VLM 打标</strong>：Qwen3-VL-2B 视觉语言模型在设备本地为图片生成标签，图片内容不上传</li>
+            <li><strong>本地人脸检测</strong>：MediaPipe / MNN 多引擎人脸检测全部在本地 GPU/CPU 执行</li>
             <li><strong>本地 OCR 识别</strong>：ML Kit 文字识别在端侧完成</li>
             <li><strong>本地美颜渲染</strong>：OpenGL ES 渲染管线完全本地运行</li>
         </ul>
@@ -326,14 +326,13 @@
             </tr>
         </table>
 
-        <h3>3.3 远程模式（可选）</h3>
-        <p>PoLang 支持用户<strong>主动配置</strong>远程 LLM API（如 Kimi/OpenAI 兼容接口）：</p>
+        <h3>3.3 AI 对话推理（远程）</h3>
+        <p>AI 对话与指令解析通过<strong>远程大模型</strong>（DeepSeek / 通义等 OpenAI 兼容接口）完成，需联网：</p>
         <ul>
-            <li>远程模式<strong>默认关闭</strong>，需用户手动在设置中配置 API Token</li>
-            <li>即使开启远程模式，<strong>RESTRICTED 和 SENSITIVE 级别指令仍强制本地执行</strong></li>
-            <li>仅 PUBLIC 级别指令（如相机控制）可路由至远程</li>
-            <li>远程 API 调用使用用户自行配置的 Token，PoLang 不持有、不中转任何 API 凭证</li>
-            <li>登录 PoLang 账号后，可使用官方 <strong>api.polang.net</strong> 网关享免费 LLM 试用额度；该网关仅记录调用次数与 Token 用量，<strong>不存储对话内容</strong></li>
+            <li>对话文本、指令等<strong>非媒体数据</strong>会发送至远程推理服务以生成回复；<strong>用户图片/视频文件绝不上传</strong></li>
+            <li>人脸检测、OCR、美颜、打标、抠图等媒体处理<strong>始终在端侧执行</strong>，不受远程推理影响</li>
+            <li>登录 PoLang 账号后，可使用官方 <strong>api.polang.net</strong> 网关享免费推理额度；该网关仅记录调用次数与 Token 用量，<strong>不存储对话内容</strong></li>
+            <li>您也可在设置中自行配置其它 OpenAI 兼容 API（使用您自己的 Token，PoLang 不持有、不中转任何凭证）</li>
         </ul>
 
         <h2>4. 数据存储与保留</h2>
@@ -385,7 +384,7 @@
                 <td>完全本地运行，无网络通信</td>
             </tr>
             <tr>
-                <td>MNN / NCNN</td>
+                <td>MNN</td>
                 <td>神经网络推理引擎</td>
                 <td>完全本地运行，无网络通信</td>
             </tr>
@@ -407,7 +406,7 @@
             <li><strong>访问权</strong>：您拍摄的所有照片和视频均存储在本地，您可随时访问</li>
             <li><strong>删除权</strong>：您可随时删除照片、清除对话记忆、删除下载的模型；登录账号的用户可在 app「设置 → 账号 → 删除账号」删除账号及关联数据；未注册访客可在「设置 → 数据与隐私 → 清除访客数据」删除设备级访客记录；亦可邮件申请删除</li>
             <li><strong>撤回同意权</strong>：您可随时在系统设置中撤销任何已授予的权限</li>
-            <li><strong>离线使用权</strong>：PoLang 的核心功能无需网络即可完整使用</li>
+            <li><strong>离线使用权</strong>：打标、人脸检测、美颜、相册搜索等媒体功能可离线使用；AI 对话需联网</li>
             <li><strong>数据可携带权</strong>：您的照片存储在标准相册中，可自由导出</li>
         </ul>
 

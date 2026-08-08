@@ -152,7 +152,7 @@
             <tr>
                 <td><span class="data-type">Face landmarks</span></td>
                 <td>Drive beauty effects (slim face, enlarge eyes, etc.)</td>
-                <td>Local MediaPipe/NCNN real-time, never uploaded</td>
+                <td>Local MediaPipe/MNN real-time, never uploaded</td>
             </tr>
             <tr>
                 <td><span class="data-type">Gallery photos / videos</span></td>
@@ -279,8 +279,8 @@
             <tr>
                 <td><span class="permission-tag">INTERNET</span></td>
                 <td>Normal</td>
-                <td>Remote LLM orchestration (user-configured)</td>
-                <td>No (fully offline capable)</td>
+                <td>AI chat remote inference</td>
+                <td>No (media works offline; AI chat needs network)</td>
             </tr>
             <tr>
                 <td><span class="permission-tag">FOREGROUND_SERVICE</span></td>
@@ -295,8 +295,8 @@
         <h3>3.1 On-Device First Principle</h3>
         <p>PoLang's core architecture follows the <strong>On-Device First</strong> principle:</p>
         <ul>
-            <li><strong>Local LLM inference:</strong> the Qwen3.5-2B large language model runs on-device via MNN-LLM; your conversations never leave the device</li>
-            <li><strong>Local face detection:</strong> MediaPipe / NCNN / MNN multi-engine face detection all execute locally on GPU/CPU</li>
+            <li><strong>Local VLM tagging:</strong> the Qwen3-VL-2B vision-language model runs on-device to tag your photos; image content is never uploaded</li>
+            <li><strong>Local face detection:</strong> MediaPipe / MNN multi-engine face detection all execute locally on GPU/CPU</li>
             <li><strong>Local OCR:</strong> ML Kit text recognition runs on-device</li>
             <li><strong>Local beauty rendering:</strong> the OpenGL ES pipeline runs entirely on-device</li>
         </ul>
@@ -326,14 +326,13 @@
             </tr>
         </table>
 
-        <h3>3.3 Remote Mode (Optional)</h3>
-        <p>PoLang lets users <strong>opt in</strong> to a remote LLM API (e.g. Kimi / an OpenAI-compatible endpoint):</p>
+        <h3>3.3 AI Chat Inference (Remote)</h3>
+        <p>AI chat and command parsing run on a <strong>remote large language model</strong> (DeepSeek / Tongyi and other OpenAI-compatible endpoints) and require a network connection:</p>
         <ul>
-            <li>Remote mode is <strong>off by default</strong> and requires you to manually configure an API token in Settings</li>
-            <li>Even with remote mode on, <strong>RESTRICTED and SENSITIVE commands still run locally</strong></li>
-            <li>Only PUBLIC commands (e.g. camera control) may route to the remote endpoint</li>
-            <li>Remote API calls use your own token; PoLang neither holds nor relays any API credentials</li>
-            <li>After signing in to a PoLang account, you may use the official <strong>api.polang.net</strong> gateway for a free LLM trial quota; the gateway records only call counts and token usage — <strong>it never stores conversation content</strong></li>
+            <li>Non-media data such as conversation text and commands is sent to the remote inference service to generate replies; <strong>your photo/video files are never uploaded</strong></li>
+            <li>Media processing — face detection, OCR, beauty, tagging, matting — <strong>always runs on-device</strong>, unaffected by remote inference</li>
+            <li>After signing in to a PoLang account, you may use the official <strong>api.polang.net</strong> gateway for a free inference quota; the gateway records only call counts and token usage — <strong>it never stores conversation content</strong></li>
+            <li>You may also configure your own OpenAI-compatible API in Settings (using your own token; PoLang neither holds nor relays any credentials)</li>
         </ul>
 
         <h2>4. Data Storage & Retention</h2>
@@ -385,7 +384,7 @@
                 <td>Fully local, no network communication</td>
             </tr>
             <tr>
-                <td>MNN / NCNN</td>
+                <td>MNN</td>
                 <td>Neural-network inference engine</td>
                 <td>Fully local, no network communication</td>
             </tr>
@@ -407,7 +406,7 @@
             <li><strong>Access:</strong> all photos and videos you capture are stored locally and accessible anytime</li>
             <li><strong>Deletion:</strong> delete photos, clear conversation memory, or remove downloaded models anytime; signed-in users can delete their account at Settings → Account → Delete account; unregistered guests can clear device-level guest records at Settings → Data & Privacy → Clear guest data; deletion can also be requested by email</li>
             <li><strong>Withdraw consent:</strong> revoke any granted permission in system settings anytime</li>
-            <li><strong>Offline use:</strong> core features work fully without a network</li>
+            <li><strong>Offline use:</strong> media features such as tagging, face detection, beauty, and gallery search work offline; AI chat requires a network</li>
             <li><strong>Data portability:</strong> your photos live in the standard gallery and can be freely exported</li>
         </ul>
 
