@@ -126,6 +126,7 @@ object ModelPathConfig {
     const val MODEL_ID_FLORENCE2 = "florence2_base"
     const val MODEL_ID_EDIFFIQA = "ediffiqa-face-quality-onnx"
     const val MODEL_ID_NIMA = "nima-aesthetic-onnx"
+    const val MODEL_ID_CODEFORMER = "codeformer-onnx"
 
     // ===== 模型文件列表 =====
 

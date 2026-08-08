@@ -1,0 +1,13 @@
+# kimi-batch 任务文件示例（TSV：worktree <TAB> prompt）
+# · 行首 # 为注释，空行跳过。
+# · 第一列 worktree：相对仓库根的路径（如 .worktrees/xxx），或 . / - 表示主仓库。
+# · 第二列起为 prompt（可含空格，但不要含 TAB 字符）。
+# · 每行一个独立、自包含的任务——别让 prompt 再 fan-out 子 agent，否则突破 4 并发名额。
+#
+# 运行：./scripts/kimi-batch.sh scripts/kimi-batch.example.tsv
+# 可用环境变量调参：MAX_PARALLEL / KIMI_MODEL / TASK_TIMEOUT / DRY_RUN
+
+.worktrees/p4-task5	检查本 worktree 的改动，运行 ./gradlew :androidApp:assembleDebug 验证编译，失败则按日志修复（最多 2 次），最后报告结果。
+.worktrees/p4-task8-memory	对本 worktree 运行 ./gradlew ktlintCheck，仅修复 style 报错，不要改业务逻辑，报告修复点。
+.worktrees/p4-task10-js	审阅本 worktree JS sandbox 相关改动，列出潜在空指针/越界风险与 file:line，只读不改。
+.worktrees/fix-idphoto-white-margin	补充该修复的单元测试覆盖白边边界条件，运行 ./gradlew test 验证并报告通过情况。
