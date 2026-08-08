@@ -1026,7 +1026,7 @@ Expected: 识别结果正常，无 `UnsatisfiedLinkError`
 
 ---
 
-## Task 12：VLM 引擎与 JNI 归位 androidMain（路线图 4.3 local 残余，Task 9 接口的实现侧）
+## Task 12：VLM 引擎与 JNI 归位 androidMain（路线图 4.3 local 残余，Task 9 接口的实现侧）✅ 已完成（2026-08-08，提前并行执行，commit `ff16cbf2` + 审查收尾 `a3e12fc0`，双审 APPROVED_WITH_CONCERNS→🟡 已修；降级预案启用且形态调整，见变更记录）
 
 **Files:**
 - Move: `runtime-core/.../inference/local/llm/{LlmGenerationMetrics,LlmModelManager,LocalLlmEngine,MnnLlmClient}.kt` → `shared/src/androidMain/kotlin/` 同路径（`LlmGenerationMetrics.kt` 虽 PURE，但仅服务 VLM 引擎，随引擎包安置——清单 ANDROID_ONLY 表决议）
@@ -1034,11 +1034,11 @@ Expected: 识别结果正常，无 `UnsatisfiedLinkError`
 - Move: `runtime-core/src/main/cpp/` → `shared/src/androidMain/cpp/`
 - Modify: `shared/build.gradle.kts`（androidLibrary 块接入 externalNativeBuild + ndk 配置 + mnn-core/beauty-api 依赖）
 
-- [ ] **Step 1: 四文件 git mv + LocalLlmEngine implements 接口**
+- [x] **Step 1: 四文件 git mv + LocalLlmEngine implements 接口**（`ImageInferenceEngine` 接口按提速裁决由本 Task 创建——Task 9 执行时直接消费、跳过创建步；接口签名按「以现有公开 API 为准」：String 返回含 `__ERROR_` 前缀语义、非 suspend `unload()`、`timeoutMs: Int`、4 参 imageInference）
 
 `LocalLlmEngine` 声明实现 `ImageInferenceEngine`（Task 9 Step 1），Bitmap 公开入参收敛：`imageInference(Bitmap,...)` 保留为 Android 侧便捷重载，接口方法（`ByteArray` 入参）内部 `BitmapFactory.decodeByteArray` 解码后复用现有逻辑。
 
-- [ ] **Step 2: CMake JNI 迁移**
+- [x] **Step 2: CMake JNI 迁移**（降级预案启用且形态调整：cpp/头文件/consumer-rules 拆到新建 `:engines:agent-native`（com.android.library，配置逐项平移），四 Kotlin 文件仍归 shared/androidMain；CMakeLists 仅改 1 行；未加 `:engines:beauty-api`（grep 实证零引用））
 
 `shared/build.gradle.kts` 的 `androidLibrary {}` 块内追加（与现 runtime-core/build.gradle.kts 的 android 块逐项对应）：
 
@@ -1071,7 +1071,7 @@ implementation(project(":engines:beauty-api"))
 
 > **降级预案**（仅当 AGP 9 KMP 插件的 androidLibrary 块不接受 externalNativeBuild 时启用）：VLM 引擎四文件 + cpp 改沉 `androidApp/`（包名不变），`ImageInferenceEngine` 接口仍在 commonMain，组合根 wiring 不受影响。判定标准：`./gradlew :shared:compileDebugKotlinAndroid` 报 externalNativeBuild 相关 DSL 错误且查阅 AGP 9.1 文档确认不支持。启用预案则在本 Task 勾选处记录。
 
-- [ ] **Step 3: 验证**
+- [x] **Step 3: 验证**（`:engines:agent-native:assembleDebug` + `:shared:assemble` + `:shared:compileAndroidMain` + `:shared:jvmTest` 7/0 + `:runtime-core:testDebugUnitTest` 71/0 全绿；`libagent_native.so` arm64-v8a 产出核实；TAG 冒烟留合并后设备验证）
 
 Run: `./gradlew :shared:assembleDebug`
 Expected: `BUILD SUCCESSFUL`，`shared/build/intermediates` 下产出 `libagent_native.so`（arm64-v8a）
@@ -1079,12 +1079,7 @@ Expected: `BUILD SUCCESSFUL`，`shared/build/intermediates` 下产出 `libagent_
 TAG 冒烟：触发一次打标（TAG 控制页手动扫小范围）
 Expected: `imageInference` 正常返回，logcat 无 JNI 加载错误
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add shared/ runtime-core/ androidApp/
-git commit -m "refactor(shared): VLM 引擎 + CMake JNI 归位 shared/androidMain（LocalLlmEngine implements ImageInferenceEngine）"
-```
+- [x] **Step 4: Commit**（实际 `ff16cbf2` + 审查收尾 `a3e12fc0`）
 
 ---
 
@@ -1231,3 +1226,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | **Task 5**（`5bbd4def`，并行 worktree 执行，双审 APPROVED）：① PURE 批实际 21 文件（GallerySummary/MediaAsset/LlmCallRecord/KoogMessageMemory 按已迁裁决跳过）；② 清单漏报的 JVM 残留同批 KMP 化（编译器驱动的正当行为）：`System.currentTimeMillis`×7→`kotlin.time.Clock`（**未用计划写的 kotlinx-datetime**——纯 stdlib 更轻，后续 Task 同此惯例）；`synchronized` 单例×2→`lazy(SYNCHRONIZED)`（CapabilityRegistry/SceneManager）；`CrossPageCommandQueue` synchronized→协程 Mutex（enqueue/clear/size suspend 化，调用点 CapabilityRegistry 同步，`clearCommandQueue` 零外部调用方已核实）；`@Volatile`→`kotlin.concurrent.Volatile`/StateFlow；③ 修复 Task 10 已审代码 `JsRuntime.kt` 裸 `@Volatile` 补 import（纯编译修复，零语义变更）；④ JUnit4 Parameterized 改 4 个独立 @Test 覆盖等价（28 用例）；⑤ EditParams.fromJson 经审查逐边界对齐 org.json opt* 容错语义。审查 🔵 记录（不阻塞）：CrossPageCommandQueue 用 StateFlow 与同批 @Volatile 风格不一；startQueueProcessor check-then-act 竞态系既有问题（原版相同），可后续 compareAndSet |
 | 2026-08-08 | **提速裁决**：① Task 12 提前并行执行（不等 Task 9）——`ImageInferenceEngine` 接口由 Task 12 按 Task 9 Step 1 定义逐字创建，Task 9 执行时直接消费、跳过创建步；② 后续 Task commit 门槛轻量化——`:shared:jvmTest` + `:shared:compileAndroidMain` + `:runtime-core:testDebugUnitTest` 为 commit 前置，`:androidApp:assembleDebug` 改为每次合并后由主代理集中验证（包名不变、模块搬迁的 app 编译风险低，集中验证兜底） |
 | 2026-08-08 | **Task 6**（`3e1bc761`，并行 worktree，双审 APPROVED）：① **核心架构裁决**——计划 Step 3 的 `additionalToolSets: List<reflect.ToolSet>` 不可行（reflect.ToolSet 经审查独立求证为 Koog 1.1.1 jvmCommonMain API，common metadata klib 无 reflect 包），改用 KMP common 类型 `toolRegistry: ToolRegistry` 注入；**Task 13 接线方式**：组合根 `ToolRegistry { tools(RemoteControlToolService(windowManager)) }`，`RemoteControlToolService(windowManager!!)` 直构已删、`WindowManager`/`appContext` 参数已出构造器；② 旧 init 块 `is ChatToolService/CameraToolService` 类型判断改 `TraceIdAware` 接口（RemoteControlToolService 不实现＝飞书跳过语义对齐）+ `recordSource` 参数化（companion 常量 RECORD_SOURCE_CAMERA/FEISHU）；③ `KoogChatAgent` 用 `kotlin.concurrent.atomics`（@ExperimentalAtomicApi，token 计数高频 addAndFetch 场景必需，已 OptIn）；④ `MemoryContextProvider.kt` 自 Task 7 清单提前迁移（RemoteReActAgentConfig 硬依赖，**Task 7 视为已迁**）；⑤ 护栏测试双份（shared jvmTest + runtime-core 副本，Task 7/13 迁完后副本随 runtime-core 删除）；⑥ `graphStrategy(poLangSingleRunStrategy())`（命名 lambda 重载 JVM-only）。审查 🟡 记录（不阻塞）：KoogChatAgent `running` 普通 Boolean 未加 @Volatile（KoogReActAgent 用 AtomicBoolean，建议统一）；exampleTimestamps 放宽 internal 仅为测试可见性 |
+| 2026-08-08 | **Task 12**（提前并行，`ff16cbf2` + 审查收尾 `a3e12fc0`，双审 APPROVED_WITH_CONCERNS→🟡 已修）：① **降级预案启用且形态调整（审查批准为更优方案）**——AGP 9.1 KMP android 块不支持 externalNativeBuild（实证 + 官方文档双确认），但计划原版降级「沉 androidApp」不可行（runtime-core `LocalModelService.kt:6`/`AgentConfigurator.kt:45` 仍引用 LocalLlmEngine，库不能反向依赖 app；Task 9 未执行）；实际落地：四 Kotlin 文件按计划归 shared/androidMain，cpp/36 头文件/consumer-rules 拆新建模块 **`:engines:agent-native`**（com.android.library，ndk 28.2/abiFilters/cmake 3.22.1 逐项平移），shared androidMain `implementation` 依赖，`.so` 经 AAR 传 androidApp；此形态保留 Phase 5 iOS 扩展性、Task 14 删 runtime-core 无 native 残留；② `ImageInferenceEngine` 接口由本 Task 创建（Task 9 直接消费、跳过创建步；接口 KDoc 已精确化 `__ERROR_` 语义——仅 `imageInferenceWithTimeout` 可能产生，`imageInference` 所有错误返回空字符串；TODO 标注：Task 9+ 考虑改 sealed/Result 消魔法前缀）；③ **坑位③**：`:shared` 无 `assembleDebug`（KMP 单 variant），整体验证用 `:shared:assemble`；④ **坑位④**：commonMain 禁用裸 `@Volatile`（kotlin.jvm 不自动导入），用 `@kotlin.concurrent.Volatile`；**只有 `:shared:assemble`/metadata 编译能暴露此类问题，jvmTest/compileAndroidMain 发现不了——后续 Task 验证门槛均须含 `:shared:assemble`**；⑤ 环境坑位：Gradle daemon 毒化下载先试 `./gradlew --stop`；⑥ `engines/beauty-engine` 的 CMakeLists 有同样 mnn-core 相对路径写法但层级不同未受影响，未动 |
