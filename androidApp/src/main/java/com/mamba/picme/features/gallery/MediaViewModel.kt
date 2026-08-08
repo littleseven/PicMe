@@ -170,9 +170,9 @@ class MediaViewModel(
     }
 
     /**
-     * 获取待删除的 URI 列表（用于权限请求）
+     * 获取待删除的 URI 字面值列表（`List<String>`，与 [MediaRepository] 接口对齐；用于权限请求）
      */
-    fun getPendingDeleteUris() = repository.getPendingDeleteUris()
+    fun getPendingDeleteUris(): List<String> = repository.getPendingDeleteUris()
 
     /**
      * 清除待删除的 URI 列表

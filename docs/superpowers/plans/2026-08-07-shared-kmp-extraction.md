@@ -495,7 +495,7 @@ git commit -m "refactor(shared): Phase 4.2 领域模型与 TAG 纯逻辑迁 comm
 
 ---
 
-## Task 4：beauty 纯类型迁移 + 相册访问能力接口（路线图 4.2 后半）✅ 已完成（2026-08-08，commit 待填，双审待审）
+## Task 4：beauty 纯类型迁移 + 相册访问能力接口（路线图 4.2 后半）✅ 已完成（2026-08-08，commit `71e6cf5d`，spec/质量双审通过；审查收尾 KDoc 补注见后续簿记 commit）
 
 **Files:**
 - Move: `engines/beauty-api/src/main/java/com/mamba/picme/beauty/api/BeautySettings.kt` → `shared/src/commonMain/kotlin/com/mamba/picme/beauty/api/BeautySettings.kt`
@@ -832,7 +832,7 @@ git commit -m "refactor(shared): Phase 4.3 ToolService suspend 化迁 commonMain
 
 ---
 
-## Task 8：记忆存储 seam（路线图 4.3：`ChatMemoryStore` 接口 + DataStore actual）
+## Task 8：记忆存储 seam（路线图 4.3：`ChatMemoryStore` 接口 + DataStore actual）✅ 已完成（2026-08-08，commit `e49daff4`@并行分支，spec/质量双审通过；Step 4 调用点收口经裁决排除、归 Task 9）
 
 **Files:**
 - Create: `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/platform/storage/ChatMemoryStore.kt`
@@ -841,7 +841,7 @@ git commit -m "refactor(shared): Phase 4.3 ToolService suspend 化迁 commonMain
 - Move: `runtime-core/.../platform/storage/MemoryManager.kt` → `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/platform/storage/MemoryManager.kt`
 - Move: `runtime-core/src/test/.../platform/storage/KoogMessageMemoryCodecTest.kt` → `shared/src/commonTest/` 同包（kotlin.test 化）
 
-- [ ] **Step 1: commonMain 接口定义**
+- [x] **Step 1: commonMain 接口定义**
 
 ```kotlin
 package com.mamba.picme.agent.core.platform.storage
@@ -856,11 +856,11 @@ interface ChatMemoryStore {
 }
 ```
 
-- [ ] **Step 2: 编解码纯函数拆出（清单 ② 指定动作）**
+- [x] **Step 2: 编解码纯函数拆出（清单 ② 指定动作）**
 
 `KoogMessageMemoryStore.kt` 底部（约 L121-125）的 `encodeKoogMessages`/`decodeKoogMessages` 两顶层函数原样 `git mv` 内容到新文件 `KoogMessageMemoryCodec.kt`（kotlinx.serialization，已 PURE）。`KoogMessageMemoryCodecTest` 随迁 commonTest，无需改动即可跑（它本来就不依赖 Android）。
 
-- [ ] **Step 3: Android actual 改造**
+- [x] **Step 3: Android actual 改造**（实现说明：`dispatcherProvider` 构造参数未加——Step 4 排除后加参会产生死代码，与 Task 9 组合根 wiring 一起改）
 
 `KoogMessageMemoryStore.kt` `git mv` 到 androidMain 后：
 
@@ -884,21 +884,16 @@ androidMain.dependencies {
 }
 ```
 
-- [ ] **Step 4: 调用点收口**
+- [ ] **Step 4: 调用点收口**（⏭️ 经裁决从本 Task 排除，归 Task 9 组合根一并收口）
 
 `RemoteChatEngine`、`KoogReActAgent` 中 `KoogMessageMemoryStore(configurator.getContext())` 直构点（清单：`RemoteChatEngine.kt:285`、`KoogReActAgent.kt:88-89`）全部改为构造注入 `ChatMemoryStore`；`KoogSessionHistoryProvider` 构造参数类型从具体类改为接口。直构只剩一处：Task 9 的 Android 组合根。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**（实际任务名为 `:shared:compileAndroidMain`，KMP androidLibrary 无 `compileDebugKotlinAndroid`）
 
 Run: `./gradlew :shared:jvmTest :shared:compileDebugKotlinAndroid :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`；`KoogMessageMemoryCodecTest PASSED`
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add shared/ runtime-core/ androidApp/
-git commit -m "refactor(shared): Phase 4.3 ChatMemoryStore seam——接口 commonMain + DataStore actual androidMain"
-```
+- [x] **Step 6: Commit**（实际 `e49daff4`，另经裁决附带迁移 `KoogMessageMemory.kt` 原 Task 6 PURE 项）
 
 ---
 
@@ -990,7 +985,7 @@ git commit -m "refactor(shared): Phase 4.3 facade 接口注入化迁 commonMain 
 
 ---
 
-## Task 10：JS 引擎抽象迁移（路线图 4.4）
+## Task 10：JS 引擎抽象迁移（路线图 4.4）✅ 已完成（2026-08-08，commit `d1d727cc`@并行分支，spec/质量双审通过）
 
 **Files:**
 - Move: `runtime-core/.../js/` 10 个 PURE 文件（`NativeHandler`、`JsValue`、`JsCallback`、`JsBridgeException`、`JsEngine`、`JsRunEvent`、`JsRunRecorder`、`BuiltInHandlers`、`GallerySummaryJs`、`JsBridge`）→ commonMain 同路径
@@ -998,12 +993,12 @@ git commit -m "refactor(shared): Phase 4.3 facade 接口注入化迁 commonMain 
 - Move: `runtime-core/src/test/.../js/{JsRuntimeObservabilityTest,JsValueTest,JsBridgeTest,GallerySummaryJsTest}.kt` → commonTest（kotlin.test 化）
 - Modify: `androidApp/src/main/java/com/mamba/picme/features/chat/js/QuickJsEngine.kt`（`Closeable`→`JsClosable`）
 
-- [ ] **Step 1: PURE 批 git mv + 复验**
+- [x] **Step 1: PURE 批 git mv + 复验**（经裁决附带迁移 `GallerySummary.kt` + `LlmCallRecord.kt`——js/ 层对两者的硬依赖，原属 Task 5/6 清单，Task 5/6 执行时视为已迁）
 
 Run: `grep -rn "^import android\|^import java\.\|^import org\.json" runtime-core/src/main/java/com/mamba/picme/agent/core/js/`
 Expected: 仅 `JsRuntime.kt` 命中（`java.io.Closeable`）；其余文件无输出
 
-- [ ] **Step 2: `JsRuntime` 去 JVM API（清单 js/ 条目指定动作）**
+- [x] **Step 2: `JsRuntime` 去 JVM API（清单 js/ 条目指定动作）**（附带替换：`t.javaClass.simpleName` → `t::class.simpleName ?: "unknown"`，经裁决）
 
 ```kotlin
 // 新增（commonMain，可放 JsEngine.kt 同文件）
@@ -1017,30 +1012,25 @@ interface JsClosable { fun close() }
 
 `QuickJsEngine.kt`（androidApp）：`java.io.Closeable` 改 implements `JsClosable`（方法签名不变）。
 
-- [ ] **Step 3: 验证**
+- [x] **Step 3: 验证**
 
 Run: `./gradlew :shared:jvmTest :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`；js/ 4 个随迁测试 PASSED
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add shared/ runtime-core/ androidApp/
-git commit -m "refactor(shared): Phase 4.4 JS 引擎无关层迁 commonMain（JsClosable 去 JVM API）"
-```
+- [x] **Step 4: Commit**（实际 `d1d727cc`）
 
 ---
 
-## Task 11：语音引擎抽象（路线图 4.5）
+## Task 11：语音引擎抽象（路线图 4.5）✅ 已完成（2026-08-08，commit `412c25d4`@并行分支，spec/质量双审通过）
 
 **Files:**
 - Move: `runtime-core/.../platform/voice/{AsrEngine,VadDetector}.kt` → commonMain 同路径（2 PURE）
 - Move: `runtime-core/.../platform/voice/{AudioRecorder,KeywordSpotterEngine,SherpaOnnxAsrEngine}.kt` → `shared/src/androidMain/kotlin/` 同路径
-- Move: `runtime-core/src/test/.../platform/voice/KeywordSpotterEngineTest.kt` → `shared/src/androidUnitTest/`（其依赖 sherpa AAR，留 Android 侧）
+- Move: ~~`runtime-core/src/test/.../platform/voice/KeywordSpotterEngineTest.kt` → `shared/src/androidUnitTest/`~~ ❌ 经裁决**留 runtime-core**：shared 的 KMP android library 插件不产生 androidUnitTest source set，迁过去是死代码；测试经 `:shared` 的 `api` 依赖仍能编译执行（实测通过）
 - Move: `runtime-core/libs/sherpa-onnx-1.13.3.aar` → `shared/libs/sherpa-onnx-1.13.3.aar`（compileOnly 引用随迁）
 - Modify: `shared/build.gradle.kts`（androidMain 追加 sherpa compileOnly + AAR 依赖约束说明）
 
-- [ ] **Step 1: 迁移 + 构建脚本**
+- [x] **Step 1: 迁移 + 构建脚本**
 
 commonMain 两文件 git mv；androidMain 三文件 git mv。`shared/build.gradle.kts` androidLibrary 块内补 sherpa 约束（与现 runtime-core 相同模式）：
 
@@ -1051,20 +1041,15 @@ compileOnly(files("libs/sherpa-onnx-1.13.3.aar"))
 
 androidApp 对 sherpa AAR 的直接依赖保持不变（runtime-core AGENTS.md 记录的「compileOnly + app 直接依赖」规避模式原样平移：runtime-core 删除后，app 的 `files("...")` 路径指向改为 `../shared/libs/`）。
 
-- [ ] **Step 2: 验证**
+- [x] **Step 2: 验证**（实际任务名 `:shared:compileAndroidMain`——KMP androidLibrary 无 `compileDebugKotlinAndroid`，后续所有 Task 同此；语音冒烟留待合并后设备验证）
 
-Run: `./gradlew :shared:compileDebugKotlinAndroid :shared:jvmTest :androidApp:assembleDebug`
+Run: `./gradlew :shared:compileAndroidMain :shared:jvmTest :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`
 
 语音冒烟（相机页语音指令，走 SherpaOnnxAsrEngine）：正常识别
 Expected: 识别结果正常，无 `UnsatisfiedLinkError`
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add shared/ runtime-core/ androidApp/
-git commit -m "refactor(shared): Phase 4.5 语音抽象——AsrEngine/VadDetector 进 commonMain，Sherpa 实现进 androidMain"
-```
+- [x] **Step 3: Commit**（实际 `412c25d4`）
 
 ---
 
@@ -1269,3 +1254,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 |------|------|
 | 2026-08-07 | 初版：基于耦合点清单（specs/2026-08-07-runtime-core-platform-coupling-inventory.md）与路线图 Phase 4 编写；执行前置 = Phase 1 合并 + Phase 3 完成 |
 | 2026-08-08 | Task 4 执行偏差记录：① `MediaAsset.kt`（含 `MediaType`，PURE 零 import）从 Task 5 提前补迁——`UserPreferences` 与 `MediaRepository` 接口均引用 `agent.core.model.context.MediaType/MediaAsset`，属「被依赖文件同批补迁」规则适用；Task 5 执行时该文件视为已迁。② beauty-api 用 `api(project(":shared"))` 而非计划写的 `implementation`——迁走的三类型本是 beauty-api 公开 API 面，`implementation` 会让 beauty-engine 等消费者失解析。③ IntentSender 专有方法从接口移除后，androidApp 新增 `AndroidMediaRepository : MediaRepository` 子接口承载（计划允许「面向接口则需调整」），`MediaViewModel`/`ChatViewModelDependencies`/`AppContainer` 改面此子接口，分层约束不破。④ `UserPreferences.kt` 补 `import kotlin.jvm.JvmInline`（Native 后端不自动导入 kotlin.jvm 包），Android 行为零变更 |
+| 2026-08-08 | 并行流执行记录（Task 8/10/11 自 `71e6cf5d` 拉并行 worktree/分支，各自提交后合回主干）：**全局坑位回写**——① shared 的 KMP android library 插件**不产生 androidUnitTest source set**，Android 侧单测一律留原模块（runtime-core/androidApp）经 `:shared` 依赖解析符号，勿迁 shared；② shared 的 Android 编译任务名是 `:shared:compileAndroidMain`（非传统 AGP 的 `compileDebugKotlinAndroid`），后续 Task 验证命令同此。**Task 8**（`e49daff4`）：Step 4 调用点收口经裁决排除、归 Task 9 组合根一并收口；`dispatcherProvider` 构造参数同推迟（避免死代码）；附带迁移 `KoogMessageMemory.kt`（原 Task 6 PURE 项，Task 6 执行时视为已迁）；`KoogMessageMemoryTest.kt` 留 runtime-core，Task 14 删模块前需迁入 commonTest（勿遗漏）。**Task 10**（`d1d727cc`）：附带迁移 `GallerySummary.kt` + `LlmCallRecord.kt`（js/ 层硬依赖，原 Task 5/6 清单，执行时视为已迁）；`t.javaClass.simpleName` → `t::class.simpleName ?: "unknown"`。**Task 11**（`412c25d4`）：`KeywordSpotterEngineTest` 留 runtime-core（androidUnitTest 坑位①）；`VOICE_STACK.md`/`LOCAL_ENVIRONMENT.md` 旧 AAR 路径引用待 Task 15 文档流处理。四任务均经 spec/质量双审通过 |

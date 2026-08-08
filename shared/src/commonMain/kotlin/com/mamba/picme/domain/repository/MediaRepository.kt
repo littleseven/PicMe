@@ -6,7 +6,12 @@ import kotlinx.coroutines.flow.Flow
 interface MediaRepository {
     val allMedia: Flow<List<MediaAsset>>
 
-    /** 相册访问授权状态（双端统一抽象；Android 实现按 READ_MEDIA_* 权限映射，AddOnly 仅 iOS） */
+    /**
+     * 相册访问授权状态（双端统一抽象；Android 实现按 READ_MEDIA_* 权限映射，AddOnly 仅 iOS）。
+     *
+     * 快照语义：每次收集反映收集时刻的权限态，不监听运行时权限变更；需刷新时重新收集。
+     * Android 实现以图片访问权限为准（视频权限不独立体现）。
+     */
     val accessState: Flow<AccessState>
 
     suspend fun insertMedia(mediaAsset: MediaAsset): Long
