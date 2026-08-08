@@ -1,0 +1,28 @@
+AI Photo Gallery — search, edit, and organize your photos with on-device AI.
+
+PoLang is an AI photo gallery that turns your photo album into a smart, searchable, private gallery. Search photos in natural language ("beach photos with friends"), edit images by chatting ("make this photo warmer"), and let AI auto-tag and organize your whole album — with every AI feature running 100% on your device. No photo is ever uploaded.
+
+🖼️ Smart AI Photo Gallery
+AI auto-tags each photo by scene, people, objects, and activity. Browse your album by People, Places, or Things, run natural-language photo search, and let AI build smart albums. Finding any photo takes a single sentence.
+
+🔍 Natural-Language Photo Search
+Stop scrolling. Just ask: "photos from last summer", "sunsets", "screenshots". On-device AI understands your intent and instantly surfaces matching photos — no internet required, and your images never leave your phone.
+
+✨ AI Photo Editor & Beauty
+GPU-accelerated photo editing: skin smoothing, whitening, face slimming, eye enlarging, lip color, blush, with precise left/right control. One-tap AI enhancement analyzes each photo and recommends the best settings — or just describe the look you want.
+
+✂️ Cutout & ID Photo
+Remove or swap a background in one tap, isolate any subject, and generate standard ID / passport photos (1-inch, 2-inch, passport) with a clean background — all on-device.
+
+🎨 Filters & Effects
+Leica-style looks (Classic, Vibrant, B&W), film simulations (Gold, Fuji, Vintage), and real-time GPU effects (Cartoon, Sketch, Emboss). Apply to one photo or batch-apply across the album.
+
+📷 Beauty Camera
+Real-time beauty preview with a near-zero-lag shutter (<50 ms). Frame-sync face tracking keeps makeup locked in, even during fast movement.
+
+🔒 Private by Design
+Unlike cloud galleries, PoLang runs all AI photo search, face detection, tagging, and editing locally on your device. Zero photo upload, zero data collection — your gallery stays yours.
+
+Completely free — no ads, no subscriptions, no in-app purchases.
+
+PoLang: the private, AI-powered photo gallery for searching, editing, and organizing your photos with natural language.
