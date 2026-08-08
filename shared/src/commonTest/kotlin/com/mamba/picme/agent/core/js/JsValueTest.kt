@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.js
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class JsValueTest {
     @Test

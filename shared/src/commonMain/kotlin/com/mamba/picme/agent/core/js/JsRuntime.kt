@@ -3,7 +3,7 @@ package com.mamba.picme.agent.core.js
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecord
 import com.mamba.picme.agent.core.platform.logging.Logger
 import kotlinx.coroutines.CoroutineScope
-import java.io.Closeable
+import kotlin.time.Clock
 
 /**
  * JS 运行时门面：装配引擎 + bridge + 内置 handler，提供 [eval]/[evalAsync]/[callFunction]。
@@ -22,7 +22,7 @@ import java.io.Closeable
  * rt.close()
  * ```
  *
- * @param engine JS 引擎实现（eval/callFunction/installBridge；通常也实现 [Closeable]）。
+ * @param engine JS 引擎实现（eval/callFunction/installBridge；通常也实现 [JsClosable]）。
  * @param scope 异步 handler 协程作用域（建议绑定 App / 页面生命周期）。
  * @param source 运行来源标签（chat / debug_page），落入 [JsRunEvent.source] 便于归因。
  */
@@ -30,7 +30,7 @@ class JsRuntime(
     private val engine: JsEngine,
     scope: CoroutineScope,
     private val source: String = "unknown",
-) : JsEngine, AutoCloseable {
+) : JsEngine, JsClosable {
 
     private val tag = "JsRuntime"
     private val bridge: JsBridge = JsBridge(scope)
@@ -90,7 +90,7 @@ class JsRuntime(
      * 执行并记录一条 [JsRunEvent]。执行语义不变：结果原样返回、错误原样重抛。
      */
     private inline fun runRecorded(kind: String, script: String, traceId: String? = null, block: () -> JsValue): JsValue {
-        val start = System.currentTimeMillis()
+        val start = Clock.System.now().toEpochMilliseconds()
         var event: JsRunEvent? = null
         try {
             val result = block()
@@ -108,7 +108,7 @@ class JsRuntime(
                 } else {
                     null
                 },
-                latencyMs = System.currentTimeMillis() - start,
+                latencyMs = Clock.System.now().toEpochMilliseconds() - start,
                 traceId = traceId,
             )
             return result
@@ -121,9 +121,9 @@ class JsRuntime(
                 scriptLength = script.length,
                 success = false,
                 errorCode = (t as? JsBridgeException)?.errorCode ?: JsRunEvent.ERROR_UNKNOWN,
-                errorMessage = LlmCallRecord.cap(t.message ?: t.javaClass.simpleName, JsRunEvent.ERROR_MAX_CHARS),
+                errorMessage = LlmCallRecord.cap(t.message ?: t::class.simpleName ?: "unknown", JsRunEvent.ERROR_MAX_CHARS),
                 resultPreview = null,
-                latencyMs = System.currentTimeMillis() - start,
+                latencyMs = Clock.System.now().toEpochMilliseconds() - start,
                 traceId = traceId,
             )
             throw t
@@ -134,7 +134,7 @@ class JsRuntime(
     }
 
     override fun close() {
-        (engine as? Closeable)?.close()
+        (engine as? JsClosable)?.close()
         Logger.i(tag, "JsRuntime closed")
     }
 

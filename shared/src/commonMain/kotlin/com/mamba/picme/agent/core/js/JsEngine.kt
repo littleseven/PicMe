@@ -1,6 +1,14 @@
 package com.mamba.picme.agent.core.js
 
 /**
+ * 可关闭资源的引擎无关抽象（commonMain 无 java.io.Closeable / AutoCloseable）。
+ * 引擎实现（如 QuickJsEngine）实现本接口即可被 [JsRuntime.close] 级联关闭。
+ */
+interface JsClosable {
+    fun close()
+}
+
+/**
  * JS 引擎抽象（引擎无关）。当前实现 QuickJsEngine（app 层，dokar3/quickjs-kt）。
  *
  * 引擎负责：执行脚本、调用全局函数、注入 bridge 全局对象。

@@ -1,14 +1,14 @@
 package com.mamba.picme.agent.core.js
 
 import kotlinx.coroutines.test.TestScope
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
  * JsRuntime 运行感知埋点测试（Agent 终端运行感知层）。
@@ -35,14 +35,14 @@ class JsRuntimeObservabilityTest {
 
     private lateinit var recorder: FakeRecorder
 
-    @Before
+    @BeforeTest
     fun setUp() {
         recorder = FakeRecorder()
         JsRuntime.recorder = recorder
         JsRuntime.captureContent = true
     }
 
-    @After
+    @AfterTest
     fun tearDown() {
         JsRuntime.recorder = null
         JsRuntime.captureContent = false
