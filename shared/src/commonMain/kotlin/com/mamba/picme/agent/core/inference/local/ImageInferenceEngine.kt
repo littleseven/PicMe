@@ -15,6 +15,13 @@ interface ImageInferenceEngine {
     val isLoaded: Boolean
 
     /**
+     * 检查指定模型是否已下载可用（本地文件存在性检查，不加载模型）。
+     *
+     * @param modelId 模型注册表中的 key，如 "qwen3_vl_2b"
+     */
+    fun isModelAvailable(modelId: String): Boolean
+
+    /**
      * 加载指定模型
      *
      * @param modelId 模型注册表中的 key，如 "qwen3_vl_2b"

@@ -1,6 +1,5 @@
 package com.mamba.picme.agent.core.facade
 
-import android.content.Context
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.capability.Capability
 import com.mamba.picme.agent.core.model.config.AiAgentMode
@@ -17,18 +16,18 @@ import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.inference.local.LocalModelService
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
-import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
+import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.core.tools.reflect.asToolsByClass
+import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
+import kotlin.concurrent.Volatile
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,8 +39,8 @@ import kotlin.coroutines.suspendCoroutine
  * Agent 编排器（统一入口）
  *
  * **线程模型**：
- * 所有专有线程池由 [DispatcherProvider]（:shared，经 [SharedDispatcherProvider] 共享实例）
- * 集中管理，四线程池完全隔离：
+ * 所有专有线程池由 [com.mamba.picme.agent.core.platform.thread.DispatcherProvider]
+ * （:shared，组合根注入，Android 为进程级共享实例）集中管理，四线程池完全隔离：
  * - **编排线程**（PoLang-Orchestrator-Thread）：双线程，处理用户输入的整个生命周期
  * - **LLM 推理线程**（PoLang-LLM-Model-Thread）：单线程，模型加载和推理
  * - **DataStore 线程**（PoLang-DataStore-Thread）：单线程，对话历史持久化
@@ -49,31 +48,58 @@ import kotlin.coroutines.suspendCoroutine
  *
  * 各线程池完全隔离，无直接依赖关系。数据持久化为 fire-and-forget 异步操作，
  * 不阻塞推理与编排流程。
+ *
+ * **接口注入化（Phase 4 KMP 抽取）**：`getInstance(context)` 单例已改为
+ * [initialize]（组合根注入 [AgentDependencies]）+ [getInstance]（无参取用）。
+ * Android 组合根 = `androidApp` 的 `AndroidAgentComposition`，Application.onCreate 接线。
  */
-class AgentOrchestrator private constructor(context: Context) {
+@OptIn(ExperimentalAtomicApi::class)
+class AgentOrchestrator private constructor(
+    private val deps: AgentDependencies,
+) {
 
     companion object {
-        @Volatile
-        private var instance: AgentOrchestrator? = null
+        // commonMain 无 synchronized（kotlin stdlib JVM-only）：AtomicReference CAS 保单次构建，
+        // 竞争失败者丢弃新建实例（生产路径仅 Application.onCreate 主线程调用一次，理论兜底）。
+        private val instanceRef = AtomicReference<AgentOrchestrator?>(null)
 
-        fun getInstance(context: Context): AgentOrchestrator {
-            return instance ?: synchronized(this) {
-                instance ?: AgentOrchestrator(context.applicationContext).also { instance = it }
+        /**
+         * 组合根注入入口：应用启动时（Application.onCreate）调用一次。
+         * 重复调用返回既有实例（单例语义，进程内唯一 wiring）。
+         */
+        fun initialize(deps: AgentDependencies): AgentOrchestrator {
+            instanceRef.load()?.let {
+                Logger.w("AgentOrchestrator", "initialize called twice, returning existing instance")
+                return it
+            }
+            val created = AgentOrchestrator(deps)
+            return if (instanceRef.compareAndSet(null, created)) {
+                created
+            } else {
+                checkNotNull(instanceRef.load())
             }
         }
 
         /**
-         * 相机远程 tool_calls 专属 system prompt：只暴露相机控制能力，指令直接执行。
-         * 「可用工具」段由 [ToolInventory] 从 [CameraToolService] 的 @Tool 元数据确定性生成
-         *（同 RemoteChatEngine.chatSystemPrompt 模式）；internal 供一致性单测。
+         * 取进程内唯一实例。须先于 [initialize] 完成组合根接线，
+         * 否则 fail-fast（替代旧 `getInstance(context)` 的隐式直构）。
          */
-        internal val cameraSystemPrompt =
+        fun getInstance(): AgentOrchestrator = checkNotNull(instanceRef.load()) {
+            "AgentOrchestrator not initialized: Android 端须先在 Application.onCreate 调用 " +
+                "AndroidAgentComposition.initialize(context)"
+        }
+
+        /**
+         * 相机远程 tool_calls 专属 system prompt 组装（确定性）：「可用工具」段由
+         * [ToolInventory] 从 [CameraToolService] 的 @Tool 元数据（组合根反射展开为
+         * [ToolDescriptor] 列表注入）生成（同 RemoteChatEngine.buildChatSystemPrompt 模式）。
+         * public 供组合根一致性单测复用（无需实例化 orchestrator）。
+         */
+        fun buildCameraSystemPrompt(toolDescriptors: List<ToolDescriptor>): String =
             """
             你是相机拍摄助手，通过调用工具直接控制相机：拍照、录像、翻转摄像头、调美颜、换滤镜/风格、调变焦/曝光/画幅/场景模式。
             """.trimIndent() +
-                // 去反射（Task 7）：ToolInventory 改收 ToolDescriptor；反射展开经 asToolsByClass
-                //（与旧 reflect.ToolSet 扫描同一函数）在本调用点（Android）完成。
-                "\n" + ToolInventory.build(CameraToolService.getInstance().asToolsByClass().map { it.descriptor }) + "\n" +
+                "\n" + ToolInventory.build(toolDescriptors) + "\n" +
                 """
         【执行规则】
         - 用户指令明确时立即调用对应工具执行，不要反问确认；相机能力之外的请求（如查相册、改设置）如实告知「相机页暂不支持，请到相册/聊天页操作」。
@@ -85,15 +111,28 @@ class AgentOrchestrator private constructor(context: Context) {
     }
 
     private val tag = "AgentOrchestrator"
-    private val configurator = AgentConfigurator(context)
+
+    private val configurator = AgentConfigurator(
+        dispatcherProvider = deps.dispatcherProvider,
+        chatMemoryStore = deps.chatMemoryStore,
+        imageEngineProvider = deps.imageEngineProvider,
+        remoteImToolRegistryProvider = deps.remoteImToolRegistryProvider,
+    )
+
+    /** 相机 system prompt（由组合根注入的工具描述元数据确定性组装，agent 构建期烘焙）。 */
+    private val cameraSystemPrompt = buildCameraSystemPrompt(deps.cameraToolDescriptors)
 
     /** 远程 chat 推理引擎（决策3 / ADR-010）：chat 远程 ReAct 链路隔离出口。 */
-    val remoteChatEngine = RemoteChatEngine(configurator)
+    val remoteChatEngine = RemoteChatEngine(
+        configurator = configurator,
+        chatToolDescriptors = deps.chatToolDescriptors,
+        chatToolRegistry = deps.chatToolRegistry,
+    )
 
     /** 端侧 VLM 模型加载服务（TAG 打标 Worker / 图像理解专用，经 `getLlmEngine()` 取引擎）。 */
     val localModelService = LocalModelService(configurator)
 
-    private val orchestratorDispatcher = SharedDispatcherProvider.instance.orchestratorDispatcher
+    private val orchestratorDispatcher = deps.dispatcherProvider.orchestratorDispatcher
 
     /**
      * 后台作用域：用于 fire-and-forget 异步操作（如对话历史保存）。
@@ -102,7 +141,7 @@ class AgentOrchestrator private constructor(context: Context) {
     private val backgroundScope = CoroutineScope(SupervisorJob())
 
     // 便捷访问器
-    private val memoryManager get() = configurator.memoryManager
+    private val chatHistoryCleaner get() = deps.chatHistoryCleaner
     private val sceneManager get() = configurator.sceneManager
     private val _capabilityRegistry get() = configurator.capabilityRegistry
 
@@ -242,19 +281,20 @@ class AgentOrchestrator private constructor(context: Context) {
      * 使用 [KoogReActAgent]（Koog 驱动，Phase 5 起）执行多轮 Observe→Think→Act→Verify 循环，
      * 通过应用内 UI 自动化工具完成用户请求。
      *
+     * **WindowManager 参数已删除（Phase 4 KMP 抽取）**：飞书 RPA 工具集由组合根经
+     * [AgentDependencies.remoteImToolRegistryProvider] 注入（构建时自取 WindowManager）。
+     *
      * @param input 用户自然语言输入
-     * @param windowManager 用于获取屏幕信息的 WindowManager
      * @param timeoutMs 超时时间（毫秒），默认 120 秒
      * @return 任务完成摘要或错误信息
      */
     suspend fun processRemoteImInput(
         input: String,
-        windowManager: android.view.WindowManager,
         timeoutMs: Long = 120_000L
-    ): Result<String> = withContext(Dispatchers.IO) {
+    ): Result<String> = withContext(orchestratorDispatcher) {
         Logger.d(tag, "processRemoteImInput: input='$input', timeout=${timeoutMs}ms")
 
-        val agent = configurator.getFeishuAgent(windowManager, object : RemoteReActAgentCallback {
+        val agent = configurator.getFeishuAgent(object : RemoteReActAgentCallback {
             override fun onLoopStart(iteration: Int) {}
             override fun onContent(iteration: Int, content: String) {}
             override fun onToolCall(iteration: Int, toolName: String, args: String) {}
@@ -364,7 +404,7 @@ class AgentOrchestrator private constructor(context: Context) {
      * 在 ReAct 循环内直接执行（写操作复用既有 CommandRisk/确认机制）。
      *
      * - OFF 模式直接返回「AI Agent 已关闭」提示，不发起远程调用。
-     * - 相机 session（默认 "camera"）对话历史经 [com.mamba.picme.agent.core.platform.storage.MemoryManager]
+     * - 相机 session（默认 "camera"）对话历史经 Koog 记忆层（[ChatMemoryStore] 注入实现）
      *   fire-and-forget 回写（与原 LocalCameraAgent.saveConversation 同语义）。
      *
      * @param input 用户自然语言输入
@@ -497,13 +537,11 @@ class AgentOrchestrator private constructor(context: Context) {
                 override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
                 override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
             },
-            dispatcherProvider = SharedDispatcherProvider.instance,
+            dispatcherProvider = deps.dispatcherProvider,
             memoryStore = koogMemoryStore,
-            // reflect.ToolSet 是 Koog 1.1.1 JVM-only API，commonMain 的 KoogReActAgent
-            // 改收 KMP 类型 ToolRegistry；反射展开在本调用点（Android）完成。
-            //（Task 7：CameraToolService 迁 commonMain 后不再实现 ToolSet 标记接口，
-            //  asToolsByClass 与 ToolSet.asTools 同一扫描函数，LLM-facing 表面逐字节等价。）
-            toolRegistry = ToolRegistry { tools(cameraToolService.asToolsByClass()) },
+            // reflect.ToolSet / asToolsByClass 是 Koog 1.1.1 JVM-only API；工具集→ToolRegistry
+            // 的反射展开在组合根（Android）完成，经 AgentDependencies.cameraToolRegistry 注入。
+            toolRegistry = deps.cameraToolRegistry,
             recordSource = KoogReActAgent.RECORD_SOURCE_CAMERA,
         )
         // traceId 注入（原 KoogReActAgent init 内类型判断随迁出）：tool 执行带当轮 traceId。
@@ -515,8 +553,8 @@ class AgentOrchestrator private constructor(context: Context) {
         return agent
     }
 
-    /** Koog 记忆存储（对话回写用，懒创建；与 agent 运行期记忆同一 koog_memory_ 键空间）。 */
-    private val koogMemoryStore by lazy { KoogMessageMemoryStore(configurator.getContext()) }
+    /** Koog 记忆存储（对话回写用；组合根注入，与 agent 运行期记忆同一 koog_memory_ 键空间）。 */
+    private val koogMemoryStore: ChatMemoryStore get() = deps.chatMemoryStore
 
     /** 相机对话历史回写（fire-and-forget，与原 LocalCameraAgent.saveConversation 同语义）。 */
     private fun saveCameraConversation(sessionId: String, userInput: String, assistantResponse: String) {
@@ -527,9 +565,9 @@ class AgentOrchestrator private constructor(context: Context) {
 
     // ── 会话记忆操作（替代原 LocalCameraAgent.clearMemory / appendImageChatToMemory）──
 
-    /** 清空指定 session 的对话记忆（如 "camera"）。 */
+    /** 清空指定 session 的对话记忆（如 "camera"）：旧 memory_ 键空间 + Koog koog_memory_ 键空间。 */
     suspend fun clearChatMemory(sessionId: String) {
-        memoryManager.clearHistory(sessionId)
+        chatHistoryCleaner.clearHistory(sessionId)
         koogMemoryStore.clear(sessionId)
     }
 
@@ -554,5 +592,3 @@ class AgentOrchestrator private constructor(context: Context) {
     }
 
 }
-
-

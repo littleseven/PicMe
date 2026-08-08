@@ -22,7 +22,9 @@ import com.mamba.picme.agent.core.inference.remote.ChatStreamEvent
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
+import com.mamba.picme.agent.AndroidAgentComposition
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
+import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.core.agenttools.AppTool
 import com.mamba.picme.core.agenttools.AppToolExecutor
@@ -604,7 +606,7 @@ class ChatViewModel(
     /** 匹配“3月”“12月”“五月”等月份表达。 */
     private val monthKeywordRegex = Regex("""^(\d{1,2}月|[一二三四五六七八九十]{1,3}月)$""")
 
-    private val orchestrator = AgentOrchestrator.getInstance(context)
+    private val orchestrator = AgentOrchestrator.getInstance()
 
     private val _currentSessionId = MutableStateFlow("default")
     val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
@@ -2479,7 +2481,9 @@ class ChatViewModel(
                     modelId = modelKey,
                     caller = "ChatViewModel:imageInference"
                 ) { engine ->
-                    engine.imageInference(
+                    // 接口视图只有 ByteArray 入参；Bitmap 便捷重载是 LocalLlmEngine 的
+                    // Android 专有 API，组合根保证实际类型（同一单例）。
+                    (engine as LocalLlmEngine).imageInference(
                         systemPrompt = strategy.systemPrompt,
                         userPrompt = strategy.userPrompt,
                         bitmap = bitmap,
@@ -2510,7 +2514,9 @@ class ChatViewModel(
                         sessionId = sessionId,
                         content = response,
                         modelUsed = modelKey,
-                        performance = orchestrator.localModelService.getLastLocalGenerationMetrics()?.toLlmPerformance()
+                        // LlmGenerationMetrics 是 Android actual 类型（shared androidMain），
+                        // commonMain 的 LocalModelService 不再透出；经组合根取同一引擎实例读取。
+                        performance = AndroidAgentComposition.localLlmEngine.lastGenerationMetrics?.toLlmPerformance()
                     )
                     // 将图片分析结果保存到 MemoryManager，使后续文本消息能引用图片上下文
                     orchestrator.appendConversation(

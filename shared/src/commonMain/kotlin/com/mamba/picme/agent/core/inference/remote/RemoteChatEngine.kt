@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote
 
+import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.core.tools.reflect.asToolsByClass
 import com.mamba.picme.agent.core.facade.AgentConfigurator
 import com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
@@ -11,9 +11,10 @@ import com.mamba.picme.agent.core.inference.remote.tool.ToolInventory
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
-import kotlinx.coroutines.Dispatchers
+import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
@@ -21,37 +22,42 @@ import kotlinx.coroutines.withTimeout
  * 远程 chat 推理引擎（决策3 / ADR-010 链路隔离 step 2）。
  *
  * 从 AgentOrchestrator/AgentConfigurator 抽出的 chat 远程 ReAct 链路：owns chat-agent 生命周期
- *（[getChatAgent] + [chatSystemPrompt] + 缓存）与 chat 推理（[streamChat]/streamChatReAct/[processChatReAct]）。
- * 共享配置（userRemoteConfig / deviceId / memoryContextProvider / context）经 [AgentConfigurator] 只读访问，
+ *（[getChatAgent] + chat system prompt + 缓存）与 chat 推理（[streamChat]/streamChatReAct/[processChatReAct]）。
+ * 共享配置（userRemoteConfig / deviceId / memoryContextProvider / chatMemoryStore）经 [AgentConfigurator] 只读访问，
  * 与相机链路（CameraToolService / AgentOrchestrator.processCameraInput）严格隔离、无交叉。
  *
  * **:agent-core → Koog 迁移（Phase 4）**：chat 链路改由 [KoogChatAgent] 驱动（Koog AIAgent + ChatMemory
  * feature），取代旧 langchain4j RemoteReActAgent + StreamingSyncChatModel 路径。[processChatReAct] 直接 suspend
  * 调 [KoogChatAgent.runChat]（删 suspendCoroutine/CountDownLatch 桥）；多轮记忆由 Koog ChatMemory feature +
- * [KoogMessageMemoryStore] 承担（ADR-012 三不变式由 store 强制）；媒体处理留端侧、远程只发文本（ADR-008）。
+ * 组合根注入的 ChatMemoryStore（ADR-012 三不变式由 store 强制）承担；媒体处理留端侧、远程只发文本（ADR-008）。
+ *
+ * **接口注入化（Phase 4 KMP 抽取）**：工具集→ToolRegistry 的反射展开（`asToolsByClass`，
+ * Koog JVM-only API）移到组合根（Android）完成，[chatToolRegistry] 与 prompt 清单段用的
+ * [ToolDescriptor] 列表同源注入。
  */
 class RemoteChatEngine internal constructor(
-    private val configurator: AgentConfigurator
+    private val configurator: AgentConfigurator,
+    chatToolDescriptors: List<ToolDescriptor>,
+    private val chatToolRegistry: ToolRegistry,
 ) {
 
     private val tag = "RemoteChatEngine"
 
     companion object {
         /**
-         * chat ReAct 专属 system prompt：强调用工具调度相册能力，含 run_gallery_script 用法。
-         * 「可用工具」段由 [ToolInventory] 从 [ChatToolService] 的 @Tool 元数据确定性生成，
-         * 行为规则段保留手写。internal 供一致性单测（无需实例化 engine）。
+         * chat ReAct 专属 system prompt 组装（确定性）：强调用工具调度相册能力，含 run_gallery_script 用法。
+         * 「可用工具」段由 [ToolInventory] 从 [ChatToolService] 的 @Tool 元数据（组合根反射展开为
+         * [ToolDescriptor] 列表注入）确定性生成，行为规则段保留手写。
+         * public 供组合根一致性单测复用（无需实例化 engine）。
          *
          * 注意：生成段必须在 trimIndent 之后拼接——若在 raw string 内插值，注入的零缩进行会
          * 使公共缩进归零、手写段残留前导空格（实测 2026-07-29 请求体首行带 8 空格）。
          */
-        internal val chatSystemPrompt =
+        fun buildChatSystemPrompt(toolDescriptors: List<ToolDescriptor>): String =
             """
             你是 PoLang 相册 AI 助手，通过调用工具帮助用户管理、搜索、分析本地相册。
             """.trimIndent() +
-                // 去反射（Task 7）：ToolInventory 改收 ToolDescriptor；反射展开经 asToolsByClass
-                //（与旧 reflect.ToolSet 扫描同一函数）在本调用点（Android）完成。
-                "\n" + ToolInventory.build(ChatToolService.getInstance().asToolsByClass().map { it.descriptor }) + "\n" +
+                "\n" + ToolInventory.build(toolDescriptors) + "\n" +
                 """
 
         【画图规则·默认不画图】统计/盘点类问题默认只用简洁文字总结回答，**不要主动画图**——用户没要求看图时出图是打扰。仅当用户**明确要求**画图（说"画/画图/图表/柱状图/折线图/饼图"，或"把…画成图/用图展示"）时，才调用 draw_chart 把数据画成真实图片图表；此时严禁用任何文字方式画图（Markdown 表格、ASCII 字符块如 █▓▏│、emoji 柱、空格缩进等"伪图表"），文字画的图用户根本看不到效果。
@@ -132,6 +138,9 @@ class RemoteChatEngine internal constructor(
     private var cachedChatAgent: KoogChatAgent? = null
     private var cachedChatAgentConfig: RemoteModelConfig? = null
 
+    /** chat system prompt（由组合根注入的工具描述元数据确定性组装，agent 构建期拼接当前日期）。 */
+    private val chatSystemPrompt = buildChatSystemPrompt(chatToolDescriptors)
+
     /**
      * 流式自由聊天（chat 远程 ReAct）。流式期间经 [onEvent] 实时上报：
      * 模型逐 token 增量以 [ChatStreamEvent.TextSnapshot]（本轮累计全文）下发，
@@ -154,7 +163,7 @@ class RemoteChatEngine internal constructor(
         agentContext: AgentContext,
         onEvent: (ChatStreamEvent) -> Unit
     ): Result<StreamChatResult> {
-        val startTime = System.currentTimeMillis()
+        val startTime = Clock.System.now().toEpochMilliseconds()
         return try {
             processChatReAct(
                 input,
@@ -163,7 +172,7 @@ class RemoteChatEngine internal constructor(
                 onEvent = onEvent
             ).fold(
                 onSuccess = { (summary, metrics) ->
-                    val latencyMs = System.currentTimeMillis() - startTime
+                    val latencyMs = Clock.System.now().toEpochMilliseconds() - startTime
                     val commands = if (summary.isNotBlank()) {
                         listOf(AgentCommand.TextReply(message = summary))
                     } else {
@@ -203,7 +212,7 @@ class RemoteChatEngine internal constructor(
         timeoutMs: Long = 120_000L,
         traceId: String? = null,
         onEvent: ((ChatStreamEvent) -> Unit)? = null
-    ): Result<Pair<String, AgentExecutionMetrics?>> = withContext(Dispatchers.IO) {
+    ): Result<Pair<String, AgentExecutionMetrics?>> = withContext(configurator.dispatcherProvider.orchestratorDispatcher) {
         Logger.d(tag, "processChatReAct: input='$input', sessionId='$sessionId', timeout=${timeoutMs}ms")
 
         val agent = getChatAgent() ?: return@withContext Result.failure(
@@ -275,7 +284,7 @@ class RemoteChatEngine internal constructor(
                 .modelName(currentConfig.modelId)
                 .gatewayToken(currentConfig.gatewayToken)
                 .deviceId(configurator.getDeviceId())
-                .systemPrompt(chatSystemPrompt + "\n\n当前日期：${java.time.LocalDate.now()}。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。")
+                .systemPrompt(chatSystemPrompt + "\n\n当前日期：${today()}。用户说「去年」「上个月」等相对时间时，据此计算具体日期范围。")
                 .apply { if (memProvider != null) memoryContextProvider(memProvider) }
                 .build()
         } catch (e: Exception) {
@@ -285,12 +294,10 @@ class RemoteChatEngine internal constructor(
         val chatToolService = ChatToolService.getInstance()
         val agent = KoogChatAgent(
             config = cfg,
-            // reflect.ToolSet 是 Koog 1.1.1 JVM-only API，commonMain 的 KoogChatAgent
-            // 改收 KMP 类型 ToolRegistry；工具集→registry 的反射展开在本调用点（Android）完成。
-            //（Task 7：ChatToolService 迁 commonMain 后不再实现 ToolSet 标记接口，
-            //  asToolsByClass 与 ToolSet.asTools 同一扫描函数，LLM-facing 表面逐字节等价。）
-            toolRegistry = ToolRegistry { tools(chatToolService.asToolsByClass()) },
-            memoryStore = KoogMessageMemoryStore(configurator.getContext()),
+            // reflect.ToolSet / asToolsByClass 是 Koog 1.1.1 JVM-only API；工具集→registry 的
+            // 反射展开在组合根（Android）完成，与 prompt 清单段同源注入（逐字节等价）。
+            toolRegistry = chatToolRegistry,
+            memoryStore = configurator.chatMemoryStore,
         )
         // traceId 注入（原 KoogChatAgent init 内类型判断随迁出）：tool 执行带当轮 traceId。
         chatToolService.traceIdHolder = agent.traceIdHolder
@@ -300,3 +307,7 @@ class RemoteChatEngine internal constructor(
         return agent
     }
 }
+
+/** 当前日期（ISO yyyy-MM-dd，与旧 `java.time.LocalDate.now()` 输出格式一致）。 */
+private fun today(): String =
+    Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()

@@ -35,6 +35,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.core.identity.DeviceIdProvider
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
+import com.mamba.picme.agent.AndroidAgentComposition
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
@@ -191,6 +192,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
             Logger.setModuleConfig(config)
         }
 
+        // Android 组合根：构建全部平台实现并注入 AgentOrchestrator（须早于一切 getInstance() 调用）
+        AndroidAgentComposition.initialize(this)
+
         // 注册应用级 Capability（只注册一次，永不注销）
         initializeCapabilities()
 
@@ -207,7 +211,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 预配置 AgentOrchestrator 默认远程推理配置
         // gatewayToken 异步从 DataStore 加载（syncRemoteModelConfigToOrchestrator）
         // modelId 为端侧 VLM 打标模型（qwen3_vl_2b），仅作 localModelService 默认模型
-        AgentOrchestrator.getInstance(this).configure(
+        AgentOrchestrator.getInstance().configure(
             mode = AiAgentMode.REMOTE,
             modelId = "qwen3_vl_2b",
             privacyLevel = AiAgentPrivacyLevel.STRICT,
@@ -416,7 +420,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     // distinctUntilChanged：无关 DataStore 写入会触发重放射，
                     // 值未变时跳过重配，避免打断正在运行的 agent 任务
                 }.distinctUntilChanged().collect { (mode, privacyLevel) ->
-                    val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
+                    val orchestrator = AgentOrchestrator.getInstance()
                     // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
                     // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
                     orchestrator.configure(
@@ -482,7 +486,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     // 重放射；值未变时跳过——此前每次重放射都无条件 clearFeishuAgent()，
                     // 会把正在执行多轮工具调用的飞书 agent 直接 shutdown（"Task cancelled"）
                 }.distinctUntilChanged().collect { (configsJson, selectedModelId, serverToken) ->
-                    val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
+                    val orchestrator = AgentOrchestrator.getInstance()
                     // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
                     orchestrator.setDeviceId(deviceIdProvider.get())
 
@@ -701,7 +705,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         Logger.i(TAG, "- GalleryCapability: Application-scoped (Feishu background search)")
         Logger.i(TAG, "- AiOptimizeCapability: Application-scoped")
 
-        val orchestrator = AgentOrchestrator.getInstance(this)
+        val orchestrator = AgentOrchestrator.getInstance()
         orchestrator.registerCapability(GalleryCapability.getInstance())
         orchestrator.registerCapability(SettingsCapability.getInstance())
         Logger.i(TAG, "- SettingsCapability: SETTINGS-scoped (change_theme/language 等，补注册)")

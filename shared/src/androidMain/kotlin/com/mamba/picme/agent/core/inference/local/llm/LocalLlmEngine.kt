@@ -20,16 +20,6 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * LLM 模型未找到异常
- *
- * 用于区分"模型未下载"和"其他加载错误"，便于 UI 层引导用户下载。
- */
-class LlmModelNotFoundException(
-    message: String,
-    cause: Throwable? = null
-) : Exception(message, cause)
-
-/**
  * 本地 LLM 推理引擎（**VLM 打标专用**）
  *
  * 封装 MNN-LLM 客户端，支持多模型管理和懒加载。
@@ -171,9 +161,9 @@ class LocalLlmEngine(private val context: Context) : ImageInferenceEngine {
     }
 
     /**
-     * 检查指定模型是否已下载可用
+     * 检查指定模型是否已下载可用（接口方法；引擎已持有 context，无需外部传入）。
      */
-    fun isModelAvailable(modelId: String, context: Context): Boolean {
+    override fun isModelAvailable(modelId: String): Boolean {
         return LlmModelManager(context).isModelCached(modelId)
     }
 

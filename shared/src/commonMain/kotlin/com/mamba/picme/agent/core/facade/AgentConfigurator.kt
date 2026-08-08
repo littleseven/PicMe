@@ -1,32 +1,44 @@
 package com.mamba.picme.agent.core.facade
 
 import ai.koog.agents.core.tools.ToolRegistry
-import android.content.Context
-import android.view.WindowManager
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
-import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
+import com.mamba.picme.agent.core.inference.local.ImageInferenceEngine
 import com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
-import com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
-import com.mamba.picme.agent.core.platform.storage.MemoryManager
-import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
+import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
+import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.policy.PrivacyGuard
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import kotlin.concurrent.Volatile
 
 /**
  * Agent 配置器
  *
  * 负责初始化和配置 Agent 运行时所需的所有核心组件。
  * 作为 [AgentOrchestrator] 的依赖工厂，集中管理组件生命周期。
+ *
+ * **接口注入化（Phase 4 KMP 抽取）**：构造器不再收 `Context`，平台实现
+ * （记忆存储 / VLM 引擎 / 飞书 RPA 工具集）全部由组合根经构造参数注入；
+ * 原 `getContext()` 已删除（[imageEngine] / [chatMemoryStore] 只读访问替代）。
  */
-class AgentConfigurator(private val context: Context) {
+class AgentConfigurator(
+    /** 平台命名 dispatcher 提供者（构建 KoogReActAgent 时注入）。 */
+    val dispatcherProvider: DispatcherProvider,
+
+    /** Koog 对话记忆持久化（组合根注入；供 RemoteChatEngine/飞书 agent 只读访问）。 */
+    val chatMemoryStore: ChatMemoryStore,
+
+    imageEngineProvider: () -> ImageInferenceEngine,
+
+    /** 飞书 RPA 工具注册表按需构建（RemoteControlToolService 依赖 WindowManager，懒创建时取用）。 */
+    private val remoteImToolRegistryProvider: () -> ToolRegistry,
+) {
 
     private val tag = "AgentConfigurator"
 
@@ -39,15 +51,9 @@ class AgentConfigurator(private val context: Context) {
         memoryContextProvider = provider
     }
 
-    /**
-     * 获取 Application Context
-     */
-    fun getContext(): Context = context
-
-    // 核心组件（延迟初始化）
-    /** 端侧 VLM 引擎（TAG 打标 / 图像理解专用；文本指令链路已移除）。 */
-    val localLlmEngine = LocalLlmEngine(context)
-    val memoryManager = MemoryManager(context)
+    // 核心组件
+    /** 端侧 VLM 引擎（TAG 打标 / 图像理解专用；文本指令链路已移除）。组合根注入，全进程单实例。 */
+    val imageEngine: ImageInferenceEngine = imageEngineProvider()
     val privacyGuard = PrivacyGuard()
     val sceneManager = SceneManager.getInstance()
     val capabilityRegistry = CapabilityRegistry.getInstance()
@@ -185,7 +191,7 @@ class AgentConfigurator(private val context: Context) {
      * 模型是否已加载
      */
     val isModelLoaded: Boolean
-        get() = localLlmEngine.isLoaded
+        get() = imageEngine.isLoaded
 
     // ── 飞书 ReAct Agent（懒创建，Koog 驱动，Phase 5）────────────────────────────
 
@@ -202,8 +208,11 @@ class AgentConfigurator(private val context: Context) {
      *
      * 当用户配置发生变更时（cachedFeishuAgentConfig != userRemoteConfig），
      * 自动重建 Agent 以确保使用最新的 API Key / baseUrl / model。
+     *
+     * **WindowManager 参数已删除（Phase 4 KMP 抽取）**：飞书 RPA 工具集
+     * （Android 侧 RemoteControlToolService）由组合根经 [remoteImToolRegistryProvider] 注入。
      */
-    fun getFeishuAgent(windowManager: WindowManager, callback: RemoteReActAgentCallback): KoogReActAgent? {
+    fun getFeishuAgent(callback: RemoteReActAgentCallback): KoogReActAgent? {
         val existing = cachedFeishuAgent
         val currentConfig = userRemoteConfig ?: RemoteModelConfig.PICME_SERVER_DEFAULT
 
@@ -242,13 +251,13 @@ class AgentConfigurator(private val context: Context) {
 
         // RemoteControlToolService 外部注入（KMP 抽取后 KoogReActAgent 在 commonMain，
         // 不再直构 Android 专有的 RemoteControlToolService(windowManager)）；反射展开
-        // ToolSet→ToolRegistry 在本组合根（Android）完成。多工具集时 builder 多次 tools(...)。
+        // ToolSet→ToolRegistry 在组合根（Android）完成。多工具集时 builder 多次 tools(...)。
         val agent = KoogReActAgent(
             config = cfg,
             callback = callback,
-            dispatcherProvider = SharedDispatcherProvider.instance,
-            memoryStore = KoogMessageMemoryStore(context),
-            toolRegistry = ToolRegistry { tools(RemoteControlToolService(windowManager)) },
+            dispatcherProvider = dispatcherProvider,
+            memoryStore = chatMemoryStore,
+            toolRegistry = remoteImToolRegistryProvider(),
         )
         agent.initialize()
         cachedFeishuAgent = agent

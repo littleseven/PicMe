@@ -27,7 +27,7 @@ private val Context.agentMemoryDataStore: DataStore<Preferences> by preferencesD
  *
  * @param context Application Context
  */
-class MemoryManager(private val context: Context) {
+class MemoryManager(private val context: Context) : ChatHistoryCleaner {
 
     private val tag = "MemoryManager"
     private val dataStore = context.agentMemoryDataStore
@@ -37,7 +37,7 @@ class MemoryManager(private val context: Context) {
     /**
      * 清空指定 session 的对话历史
      */
-    suspend fun clearHistory(sessionId: String) = withContext(dataStoreDispatcher) {
+    override suspend fun clearHistory(sessionId: String) = withContext(dataStoreDispatcher) {
         return@withContext try {
             val key = stringPreferencesKey("memory_$sessionId")
             withTimeout(5000) {
