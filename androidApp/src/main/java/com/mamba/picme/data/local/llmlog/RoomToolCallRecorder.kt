@@ -22,7 +22,7 @@ import java.util.Locale
  * - errorMessage 截断到 [ERROR_MESSAGE_MAX_CHARS] 字符，防止超长堆栈撑爆本地库；
  * - 任何异常吞掉只打日志，绝不冒泡到命令执行链路。
  *
- * 由 :app 在 Application 启动时（全构建）注入到
+ * 由 :androidApp 在 Application 启动时（全构建）注入到
  * [com.mamba.picme.agent.core.runtime.capability.CommandExecutor.recorder]。
  */
 class RoomToolCallRecorder(

@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  * - 写入后做日级 guard 清理（仅保留最近 [KEEP] 条）——"每天检查一次即可"；
  * - 任何异常吞掉只打日志，绝不冒泡到执行链路。
  *
- * 由 :app 在 Application 启动时（全构建）注入到
+ * 由 :androidApp 在 Application 启动时（全构建）注入到
  * [com.mamba.picme.agent.core.js.JsRuntime.recorder]。
  */
 class RoomJsRunRecorder(

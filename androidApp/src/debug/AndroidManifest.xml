@@ -17,7 +17,7 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- 飞书远程控制无障碍服务（自 :runtime-core debug 迁入，Task 13；与上面测试用服务并存，互不合并） -->
+        <!-- 飞书远程控制无障碍服务（自原 :runtime-core debug 迁入；与上面测试用服务并存，互不合并） -->
         <service
             android:name="com.mamba.picme.agent.core.tool.accessibility.PoLangAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

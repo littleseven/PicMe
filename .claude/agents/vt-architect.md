@@ -20,7 +20,7 @@ model: fable
 
 ## 任务拆解铁律
 - 每个任务**足够小**(一个 Dev 一轮能完成并自测)。
-- 每个任务**带验收命令**(可被 `vt-qa` 自动验证),如 `./gradlew :app:compileDebugKotlin`。
+- 每个任务**带验收命令**(可被 `vt-qa` 自动验证),如 `./gradlew :androidApp:compileDebugKotlin`。
 - 标注每个任务的**文件改动范围**,防止 Dev 越界改他人文件。
 
 ## 输出

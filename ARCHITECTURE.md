@@ -136,9 +136,9 @@ fun toResultDto(sourceUri: String, scene: Scene, explanation: String, recipe: Ed
 
 ## 3. 模块边界与依赖
 
-- 全部改动在 **`:app`**(optimize/、usecase/、features/chat/、features/editor/ 复用、di/)与 **`:runtime-core`**(AgentCommands/ChatToolService/ToolCallCommandParser 的 smart 删除)。
-- **`:app` → `:beauty-api`**(`FaceDetector`/`FaceData`/`PhotoProcessor`):合法,沿用编辑器既有依赖。
-- **`:app` → `:beauty-engine:api/`**:`FaceData` 实定义于 `beauty-engine/.../api/PhotoProcessor.kt`(包 `com.mamba.picme.beauty.api`),编辑器已如此依赖,不新增越界。
+- 全部改动在 **`:androidApp`**(optimize/、usecase/、features/chat/、features/editor/ 复用、di/)与 **`:shared`**(AgentCommands/ChatToolService/ToolCallCommandParser 的 smart 删除)。
+- **`:androidApp` → `:engines:beauty-api`**(`FaceDetector`/`FaceData`/`PhotoProcessor`):合法,沿用编辑器既有依赖。
+- **`:androidApp` → `:engines:beauty-engine:api/`**:`FaceData` 实定义于 `beauty-engine/.../api/PhotoProcessor.kt`(包 `com.mamba.picme.beauty.api`),编辑器已如此依赖,不新增越界。
 - `FaceDataConverter` 引用 `beauty.internal.facedetect.Face106ToWarpParams`——**既有**依赖(编辑器路径已用),本轮复用不扩大。
 - `analyzer/` 包零网络依赖(AC-1.4)。
 
@@ -158,11 +158,11 @@ fun toResultDto(sourceUri: String, scene: Scene, explanation: String, recipe: Ed
 
 | 测试 | 类型 | 覆盖 AC |
 |------|------|---------|
-| `AiOptimizeUseCaseTest`(重写) | JVM(`:app:testDebugUnitTest`) | AC-1.2/1.3/1.5/1.6/2.9:mock `SceneAnalyzer` 返回 SELFIE/FOOD/LANDSCAPE/DOCUMENT(≥4 非 GENERAL),断言 `Result.scene` 一致 + `getPreset(<scene>)` 被调用;8 场景预设各 `verify` 一次;删 smart 降级测试 |
+| `AiOptimizeUseCaseTest`(重写) | JVM(`:androidApp:testDebugUnitTest`) | AC-1.2/1.3/1.5/1.6/2.9:mock `SceneAnalyzer` 返回 SELFIE/FOOD/LANDSCAPE/DOCUMENT(≥4 非 GENERAL),断言 `Result.scene` 一致 + `getPreset(<scene>)` 被调用;8 场景预设各 `verify` 一次;删 smart 降级测试 |
 | `analyzer/` 零网络 | grep 门 | AC-1.4:CI grep `okhttp\|HttpURL\|...` 输出空 |
 | `ChatImageRenderer` 人脸/缓存 | JVM(mock FaceDetector/ContentResolver) | AC-3.4/5.2:检测到人脸时 `faceData.hasFace==true`;同 URI 二次渲染 `openInputStream` 仅一次。若 `FaceDataConverter` 依赖 `beauty.internal` 在纯 JVM 不可加载,则人脸断言降级 `androidTest` 插桩,PR 说明;缓存断言用 mock LruCache 在 JVM 可行 |
 | `OptimizeRecipeMapperTest`(增补) | JVM | AC-4.1/4.2:反向映射 DTO 字段正确 |
-| 全量编译/单测 | gate | AC-2.8/4.3/全局门:`./gradlew :app:assembleDebug` + `--tests "*AiOptimize*" --tests "*ChatImageRenderer*"` 退出 0 |
+| 全量编译/单测 | gate | AC-2.8/4.3/全局门:`./gradlew :androidApp:assembleDebug` + `--tests "*AiOptimize*" --tests "*ChatImageRenderer*"` 退出 0 |
 
 > 注:`HeuristicSceneAnalyzer` 自身启发式逻辑需真实 Bitmap + FaceDetector(JVM 不友好),以 `androidTest` 插桩或人工验证为主;use-case 层用 mock analyzer 覆盖路由正确性(AC-1.3/1.6 的可机器判定点)。
 

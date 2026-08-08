@@ -25,7 +25,7 @@ import kotlin.concurrent.Volatile
 object RemoteModelFactory {
 
     /**
-     * 远程 LLM 调用记录接收端。由 :app 在 Application 启动时注入（全构建注入）。
+     * 远程 LLM 调用记录接收端。由 :androidApp 在 Application 启动时注入（全构建注入）。
      * 为 null 时不录制。
      */
     @Volatile
@@ -34,7 +34,7 @@ object RemoteModelFactory {
     /**
      * 是否记录消息全文（request messages / response text 等）。
      * DEBUG 构建置 true 记录全文；release 构建置 false 只落纯指标，
-     * **绝不落消息内容**（隐私红线）。由 :app 注入 recorder 时一并设置。
+     * **绝不落消息内容**（隐私红线）。由 :androidApp 注入 recorder 时一并设置。
      */
     @Volatile
     var captureContent: Boolean = true
@@ -53,7 +53,7 @@ object RemoteModelFactory {
         return if (modelId.contains("kimi-k2.6", ignoreCase = true)) 1.0 else (requested ?: 0.7)
     }
 
-    // ── Koog（:agent-core → Koog 迁移，Phase 3 additive；Phase 5 起为唯一执行路径）─────────────
+    // ── Koog（原 :agent-core 已删除；Koog 为唯一 Agent 执行路径）─────────────
 
     /**
      * Koog 执行器组装产物：Phase 4 chat 链路用它构建 [ai.koog.agents.core.agent.AIAgent]。

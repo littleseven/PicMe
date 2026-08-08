@@ -26,7 +26,7 @@ import kotlinx.coroutines.withTimeout
  * 共享配置（userRemoteConfig / deviceId / memoryContextProvider / chatMemoryStore）经 [AgentConfigurator] 只读访问，
  * 与相机链路（CameraToolService / AgentOrchestrator.processCameraInput）严格隔离、无交叉。
  *
- * **:agent-core → Koog 迁移（Phase 4）**：chat 链路改由 [KoogChatAgent] 驱动（Koog AIAgent + ChatMemory
+ * **Koog 驱动**：chat 链路由 [KoogChatAgent] 驱动（Koog AIAgent + ChatMemory
  * feature），取代旧 langchain4j RemoteReActAgent + StreamingSyncChatModel 路径。[processChatReAct] 直接 suspend
  * 调 [KoogChatAgent.runChat]（删 suspendCoroutine/CountDownLatch 桥）；多轮记忆由 Koog ChatMemory feature +
  * 组合根注入的 ChatMemoryStore（ADR-012 三不变式由 store 强制）承担；媒体处理留端侧、远程只发文本（ADR-008）。

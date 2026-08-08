@@ -90,8 +90,8 @@ android {
         applicationId = "com.mamba.picme"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10033
-        versionName = "1.0.33"
+        versionCode = 10034
+        versionName = "1.0.34"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -296,8 +296,8 @@ dependencies {
     // KMP shared 模块（Phase 4：原 runtime-core 引擎无关逻辑已全部迁入；模块已删）
     implementation(project(":shared"))
     // Koog agent 框架：androidApp 侧直接使用（RemoteControlToolService 的 @Tool/@LLMDescription、
-    // AndroidAgentComposition 的 ToolRegistry/asToolsByClass）；Task 14 前经 :runtime-core 传递
-    // 解析，模块删除后改直接依赖。serialization-jackson 排除理由同 :shared（minSdk 24 D8 限制）。
+    // AndroidAgentComposition 的 ToolRegistry/asToolsByClass）；原 :runtime-core 已删除，
+    // 改直接依赖。serialization-jackson 排除理由同 :shared（minSdk 24 D8 限制）。
     implementation("ai.koog:koog-agents:${libs.versions.koog.get()}") {
         exclude(group = "ai.koog", module = "serialization-jackson")
     }

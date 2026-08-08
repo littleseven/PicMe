@@ -194,7 +194,7 @@ agent-core/src/main/java/com/mamba/picme/agent/core/
 
 **理由**：ADR-005 已决策删除此包装层。远程链路直接通过 `UnifiedRemoteClient`（LangChain4j SDK）发出标准 OpenAI 请求并接收标准响应，SDK 原生支持 `tool_calls`。
 
-> **实现说明（2026-06-22）**：`UnifiedRemoteClient` 已在后续重构中被移除，当前远程链路通过 `:agent-core` 的 `OpenAiChatModel` 直接调用 OpenAI API。
+> **实现说明（2026-06-22，2026-08 更新）**：`UnifiedRemoteClient` 已在后续重构中被移除。原 `:agent-core`（Java 库）已于 2026-08 删除，当前远程链路通过 Koog `OpenAILLMClient` 直接调用 OpenAI API。
 
 #### 2.4 `ToolPromptBuilder.kt` → 并入 RemotePromptBuilder
 
@@ -561,7 +561,7 @@ graph TB
 > **实现差异说明（2026-06-22）**：本 ADR 的核心原则（本地/远程包物理隔离）已完全落实，但实际实现与提议的目标包结构存在以下差异：
 > - **包路径**：实际使用 `inference/local/` 和 `inference/remote/` 而非提议的 `local/` 和 `remote/` 直铺（保留 `inference/` 父级以便代码导航）
 > - **文件名**：`ToolCallParser.kt` → 实际为 `ToolCallCommandParser.kt`
-> - **已移除的类**：本 ADR 中引用的 `UnifiedRemoteClient`、`LangChain4jOpenAiClient` 已不存在。当前远程推理架构为：`:agent-core`（Java 库）提供 `OpenAiChatModel`/`OpenAiStreamingChatModel`，`:androidApp` 模块的 `RemoteOrchestrator` 直接使用 `:agent-core` API 编排，无独立的客户端包装层
+> - **已移除的类**：本 ADR 中引用的 `UnifiedRemoteClient`、`LangChain4jOpenAiClient` 已不存在。原 `:agent-core`（Java 库）已于 2026-08 删除，当前远程推理架构为：Koog（外部依赖）提供 `OpenAILLMClient`，`:shared` KMP 模块的 `AgentOrchestrator`/`RemoteChatEngine` 经 Koog `AIAgent` 编排，无独立的客户端包装层。`ToolCallCommandParser` 已随 Koog 迁移删除（agent 循环内直接 `CapabilityRegistry.dispatch`）。
 > - **react 包**：位于 `inference/remote/react/` 而非提议的 `react/` 顶层包
 > - **GBNF Grammar**：提议中列为本地约束方式，实际已尝试后放弃
 
@@ -570,6 +570,6 @@ graph TB
 ## 8. 相关文档
 
 - `ADR-005` — 本地/远程推理协议分离（本 ADR 的前置决策）
-- `agent-core/AGENTS.md` — Agent Core 模块规范（需同步更新）
+- `:shared` AGENTS.md — shared KMP 模块规范（`:agent-core` 已删除，原规范随模块退役）
 - `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md` — 大美丽美颜引擎（含帧同步美妆系统）
 - `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md` — Capability 注册表与生命周期规范

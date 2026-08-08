@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 import kotlin.test.Test
 
 /**
- * Phase 0 PoC：DeepSeek `thinking.type=disabled` 注入路径（:agent-core → Koog 迁移生死点之一）。
+ * Phase 0 PoC：DeepSeek `thinking.type=disabled` 注入路径（原 :agent-core → Koog 迁移关键点）。
  *
  * flatten 到请求体 JSON 顶层已**源码级证实**：Koog 的
  * `OpenAIChatCompletionRequestSerializer = AdditionalPropertiesFlatteningSerializer<OpenAIChatCompletionRequest>`

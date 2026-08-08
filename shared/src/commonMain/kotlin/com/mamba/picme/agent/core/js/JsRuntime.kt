@@ -141,7 +141,7 @@ class JsRuntime(
 
     companion object {
         /**
-         * 全局 [JsRunRecorder]（:app 启动时注入，null 则不记录）。
+         * 全局 [JsRunRecorder]（:androidApp 启动时注入，null 则不记录）。
          * 镜像 `RemoteModelFactory.recorder` 既定模式。
          */
         @kotlin.concurrent.Volatile

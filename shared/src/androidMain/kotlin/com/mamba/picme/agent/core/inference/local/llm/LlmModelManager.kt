@@ -8,7 +8,7 @@ import java.io.File
  * LLM 模型文件管理器
  *
  * 负责从 assets 复制 LLM 模型到应用缓存目录，并管理模型可用性检查。
- * 从 beauty-engine 的 ModelManager 解耦，使 :agent-core 模块可独立编译。
+ * 从 beauty-engine 的 ModelManager 解耦，使 :shared 模块可独立编译。
  *
  * @param context Application Context
  */

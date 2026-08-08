@@ -23,7 +23,7 @@ import kotlinx.coroutines.withTimeout
 private val Context.koogChatMemoryDataStore: DataStore<Preferences> by preferencesDataStore(name = "chat_memory")
 
 /**
- * Koog 版对话历史持久化（:agent-core → Koog 迁移 Phase 3）。
+ * Koog 版对话历史持久化（原 :agent-core 已删除，Koog 接管）。
  *
  * 把 Koog [Message] 列表序列化到 Android DataStore，复用 [KoogMessageMemory] 的三不变式
  * （SystemMessage 不落盘 / tool_call 块原子裁剪 / 双向配对剔除悬空）。

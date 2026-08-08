@@ -8,7 +8,7 @@ package com.mamba.picme.agent.core.js
  * 三表按时间对齐即可还原一次请求的完整端侧链路。
  *
  * 纯数据类，不依赖 Android / Room / 任何具体 JS 引擎：由 [JsRuntime] 产出，
- * 经 [JsRunRecorder] 上报，:app 侧 RoomJsRunRecorder 持久化到 polang_llm_log.db 的 js_run_log 表。
+ * 经 [JsRunRecorder] 上报，:androidApp 侧 RoomJsRunRecorder 持久化到 polang_llm_log.db 的 js_run_log 表。
  *
  * @param source 运行来源标签（chat / debug_page），由 [JsRuntime] 构造注入。
  * @param kind 执行入口：eval / evalAsync / callFunction。

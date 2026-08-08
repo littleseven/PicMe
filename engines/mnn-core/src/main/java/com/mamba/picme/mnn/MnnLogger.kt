@@ -5,7 +5,7 @@ import android.util.Log
 /**
  * :mnn-core 内部日志封装。
  *
- * 保持 :mnn-core 不依赖 :runtime-core 的 Logger，避免反向依赖。
+ * 保持 :engines:mnn-core 不依赖 :shared 的 Logger，避免反向依赖。
  */
 internal object MnnLogger {
     @JvmStatic

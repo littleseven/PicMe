@@ -3,4 +3,4 @@ jdk:
 before_install:
   - chmod +x gradlew
 install:
-  - ./gradlew :agent-core:publishToMavenLocal -x lint -x ktlintCheck -x detekt -x test --no-daemon
+  - ./gradlew :shared:publishToMavenLocal -x lint -x ktlintCheck -x detekt -x test --no-daemon

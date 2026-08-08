@@ -65,10 +65,10 @@
 |------|------|------|
 | `AgentOrchestrator` | 统一入口：chat 走 `streamChat`，相机走 `processCameraInput`，均为远程推理 | ✅ 已落地 |
 | `RemoteReActAgent` / `RemoteChatEngine` | 远程推理链路：OpenAI Chat Completions API（tool_calls·流式·多轮）；相机走 ReAct，chat 走 ChatEngine | ✅ 已落地 |
-| `AgentConfigurator` / `StreamingSyncChatModel` | 远程推理装配与编排：`createRemoteChatModel()` 构建 `:agent-core OpenAiChatModel`，`StreamingSyncChatModel` 承载 SSE 流式 + ChatMemory 多轮 | ✅ 已落地 |
+| `AgentConfigurator` / `StreamingSyncChatModel` | 远程推理装配与编排：`createRemoteChatModel()` 构建 Koog `OpenAILLMClient`，`StreamingSyncChatModel` 承载 SSE 流式 + ChatMemory 多轮 | ✅ 已落地 |
 | `CameraToolService` | 相机场域 @Tool 工具集（capture/adjust_beauty/switch_filter/adjust_zoom/flip_camera 等），相机指令远程 tool_calls 入口 | ✅ 已落地 |
 | `LocalLlmEngine` | 仅存 `imageInference`：Qwen3-VL-2B 端侧 VLM 打标（TAG Pass3），不再承担文本推理 | ✅ 已落地（仅打标） |
-| `:agent-core` (模块) | Java Android Library，提供 LangChain4j 风格 API：ChatModel、@Tool、AiServices、ChatMemory、OpenAiChatModel、OkHttp SSE 流式客户端 | ✅ 已落地 |
+| `:shared` (KMP 模块) | Kotlin Multiplatform Library，提供 Koog Agent 框架封装：ChatModel、@Tool、AIAgent、ChatMemory、OpenAI Client、流式客户端 | ✅ 已落地 |
 | `CapabilityRegistry` | Capability 注册与命令分发 | ✅ 已落地 |
 | `PrivacyGuard` | 输入内容隐私分级与本地优先约束 | ✅ 已落地 |
 | `MemoryManager` | DataStore 持久化对话历史，按 session 隔离 | ✅ 已落地 |
@@ -142,7 +142,7 @@
 │  │ CameraScreen→AiAgentUseCase│  │  RemoteChatEngine                     │   │
 │  │ →processCameraInput (远程) │  │  ┌────────────────────────────────┐  │   │
 │  │  ┌──────────────────────┐  │  │  │ AgentConfigurator              │  │   │
-│  │  │RemoteReActAgent +    │  │  │  │ :agent-core OpenAiChatModel   │  │   │
+│  │  │RemoteReActAgent +    │  │  │  │ Koog OpenAILLMClient         │  │   │
 │  │  │CameraToolService@Tool│  │  │  │ OpenAI Chat Completions API   │  │   │
 │  │  └──────────────────────┘  │  │  │ DeepSeek V4 适配               │  │   │
 │  └────────────────────────────┘  │  │ L2 Batch / L3 Plan / L4 Chat   │  │   │
@@ -188,10 +188,10 @@
 │  └────────────┘ └──────────────┘ └──────────────┘ └──────────────────────┘ │
 │                                                                              │
 │  ┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐ │
-│  │ :agent-core (SDK)    │ │LlmModelDownloadManager│ │ FaceDetect Pipeline  │ │
-│  │ Java Library          │ │前台服务·断点续传       │ │ MediaPipe·MNN        │ │
-│  │ ChatModel·@Tool      │ └──────────────────────┘ └──────────────────────┘ │
-│  │ AiServices·SSE       │ ┌──────────────────────┐                           │
+│  │ :shared (KMP SDK)   │ │LlmModelDownloadManager│ │ FaceDetect Pipeline  │ │
+│  │ Kotlin Multiplatform│ │前台服务·断点续传       │ │ MediaPipe·MNN        │ │
+│  │ Koog·@Tool          │ └──────────────────────┘ └──────────────────────┘ │
+│  │ AIAgent·SSE         │ ┌──────────────────────┐                           │
 │  └──────────────────────┘ │ Network Monitor      │                           │
 │                           │ 飞书重连·心跳保持     │                           │
 │                           └──────────────────────┘                           │
@@ -213,10 +213,10 @@ AgentOrchestrator（chat: streamChat · 相机: processCameraInput）
             ├── chat/相册 → RemoteReActAgent + ChatToolService（@Tool）
             ├── 相机指令 → RemoteReActAgent + CameraToolService（@Tool 相机场域工具集）
             │
-            └── :agent-core (Java Library)
-                ├── OpenAiChatModel (ChatLanguageModel)
-                ├── ToolSpecification (tool_calls 构建)
-                └── OkHttp SSE Streaming (流式响应)
+            └── :shared (KMP Library, Koog 驱动)
+                ├── OpenAILLMClient (ChatLanguageModel)
+                ├── ToolDescriptor (tool_calls 构建)
+                └── SSE Streaming (流式响应)
                         └── PoLang Server / DeepSeek / Claude API
                             → tool_calls 解析 → CapabilityRegistry.dispatch 执行
 ```
@@ -345,7 +345,7 @@ ChatViewModel.sendMessage()
 AgentOrchestrator / AiAgentUseCase（固定远程 REMOTE，端侧文本 LLM 已移除）
         │
         ▼
-RemoteChatEngine ──► StreamingSyncChatModel ──► :agent-core OpenAiChatModel
+RemoteChatEngine ──► StreamingSyncChatModel ──► Koog OpenAILLMClient
         │
         ▼
 OpenAI Chat Completions (tool_calls)
@@ -728,7 +728,7 @@ class NavigationCapability(
 | 维度 | 本地推理（已删除） | 远程推理（现状唯一链路） |
 |------|---------|---------|
 | **协议** | 自定义 JSON 数组 | 标准 OpenAI Chat Completions API |
-| **Library** | 无第三方依赖 | :agent-core (OpenAiChatModel) |
+| **Library** | 无第三方依赖 | Koog (OpenAILLMClient) |
 | **Prompt** | 精简、结构化 | 自然语言 + Tool Schema |
 | **输出解析** | 简单 JSON 数组解析 | 标准 JSON 反序列化（tool_calls） |
 | **约束方式** | JSON 数组格式 Prompt 约束 | OpenAI 原生协议约束 |
@@ -832,24 +832,17 @@ POST /v1/chat/completions
 - 当存在 `tool_calls` 时，`content` 必须为 `null`
 - 参数通过 `function.arguments` 传递，为标准 JSON 字符串
 
-**langchain4j 标准化实现**：
+**Koog 标准化实现**：
 ```kotlin
 class RemoteChatEngine(config: RemoteModelConfig) {  // 实际由 AgentConfigurator.createRemoteChatModel() 装配
-    private val openAiChatModel = OpenAiChatModel.builder()  // :agent-core
-        .baseUrl(config.baseUrl)
-        .apiKey(config.apiKey)
-        .modelName(config.modelId)
-        .temperature(config.temperature)
-        .maxTokens(config.maxTokens)
-        .build()
-    
+    // Koog OpenAILLMClient 驱动，经 RemoteModelFactory 注入 additionalProperties
     fun chat(request: ChatRequest): ChatResponse {
-        // 直接使用 :agent-core OpenAiChatModel，支持 tool_calls、流式、多轮
+        // Koog AIAgent + ChatMemory 支持 tool_calls、流式、多轮
     }
 }
 ```
 
-远程推理直接使用 `:agent-core OpenAiChatModel`，支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问等）；通过 `AiServices` 代理构建器 + `ChatMemory` 实现多轮对话。
+远程推理使用 Koog `OpenAILLMClient`，支持所有兼容 OpenAI API 的服务（DeepSeek、通义千问等）；通过 Koog `AIAgent` + `ChatMemory` 实现多轮对话。
 
 **命令解析（ToolCallCommandParser）**：
 ```kotlin
@@ -1164,7 +1157,7 @@ class AiAgentUseCase(
 
 ### Phase 1: 基础设施 (RD) — 已完成
 - [x] `agent-task:remote-infra-001` 实现 `RemoteInferencePipeline`（标准 OpenAI 协议）
-- [x] `agent-task:remote-infra-002` 引入 :agent-core `OpenAiChatModel` 标准化
+- [x] `agent-task:remote-infra-002` 引入 Koog `OpenAILLMClient` 标准化
 - [x] `agent-task:remote-infra-003` 实现 `ToolCallCommandParser`（tool_calls → AgentCommand）
 - [x] `agent-task:remote-infra-004` 删除 `InferenceRouter`、`AdaptiveStrategySelector` 等冗余组件
 

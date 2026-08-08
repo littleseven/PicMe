@@ -30,7 +30,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * 相机 + 飞书（远程控制 RPA）链路的 Koog Agent（:agent-core → Koog 迁移 Phase 5，
+ * 相机 + 飞书（远程控制 RPA）链路的 Koog Agent（
  * 替代 langchain4j 期的 RemoteReActAgent + StreamingSyncChatModel + AiServices）。
  *
  * 与旧 langchain4j 路径的关键差异：

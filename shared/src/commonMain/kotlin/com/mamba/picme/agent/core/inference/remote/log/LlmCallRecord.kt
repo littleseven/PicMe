@@ -4,7 +4,7 @@ package com.mamba.picme.agent.core.inference.remote.log
  * 一次远程 LLM 调用的记录（request/response 摘要），用于本地调试落库。
  *
  * 纯数据类，不依赖 Android / Room：由 Koog agent 的 EventHandler（onLLMCallCompleted）产出，
- * 再由 :app 侧的 RoomLlmCallRecorder 持久化到独立数据库 llm_call_log。
+ * 再由 :androidApp 侧的 RoomLlmCallRecorder 持久化到独立数据库 llm_call_log。
  *
  * @param source 调用来源标签（如 "chat-koog" / "camera-koog" / "feishu-koog"），便于在 Debug 页筛选。
  * @param requestJson 序列化后的请求摘要。DEBUG 含完整 messages JSON；

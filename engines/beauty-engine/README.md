@@ -115,7 +115,7 @@ beauty-engine/src/main/java/com/mamba/picme/beauty/
 
 ```
 dependencies {
-    implementation(project(":beauty-engine"))
+    implementation(project(":engines:beauty-engine"))
 }
 ```
 

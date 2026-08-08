@@ -3,7 +3,7 @@ package com.mamba.picme.agent.core.platform.logging
 /**
  * Agent 核心模块日志接口
  *
- * 抽象日志依赖，让 :agent-core 模块保持平台无关。
+ * 抽象日志依赖，让 :shared 模块保持平台无关。
  * App 模块通过 [Logger.setDelegate] 注入平台特定实现。
  */
 interface Logger {

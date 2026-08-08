@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.withTimeout
 
 /**
- * 相机场景专用 ToolService（远程 tool_calls，ADR-005 协议分离；:agent-core → Koog 迁移 Phase 5）。
+ * 相机场景专用 ToolService（远程 tool_calls，ADR-005 协议分离；Koog 驱动）。
  *
  * 端侧文本 LLM 移除后，相机 AI 指令改为远程模型 tool_calls：模型输出标准 OpenAI tool_calls，
  * 本类的 @Tool 方法把相机场景 capability（拍照/录像/美颜/滤镜/变焦/曝光/翻转等）暴露给模型，

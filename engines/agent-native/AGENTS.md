@@ -33,7 +33,7 @@
 ## 3. Native 构建约束
 
 - ABI：`arm64-v8a`；STL：`c++_shared`；平台：`android-24`；CMake 3.22.1
-- MNN 头文件：`libs/mnn/include`（自 `:runtime-core` 迁入，CMake `../../../libs/mnn` 引用）
+- MNN 头文件：`libs/mnn/include`（自原 `:runtime-core` 迁入，CMake `../../../libs/mnn` 引用）
 - MNN 预编译库：引用 `:engines:mnn-core` 的 jniLibs（CMake 相对路径上溯 5 级到仓库根）
 
 ## 4. 依赖方向

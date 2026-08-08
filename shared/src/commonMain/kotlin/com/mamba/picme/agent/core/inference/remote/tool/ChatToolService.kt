@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.withTimeout
 
 /**
- * chat 场景专用 ToolService（远程 ReAct，:agent-core → Koog 迁移 Phase 4）。
+ * chat 场景专用 ToolService（远程 ReAct，Koog 驱动）。
  *
  * 与 [RemoteControlToolService]（飞书远程控制 RPA：UI 操作 + 相机）区分：本类只暴露 **chat 场景可用**
  * 的能力命令（相册搜索/摘要、打标、AI 修图、反馈、设置、导航、JS 脚本），不含 UI 自动化与

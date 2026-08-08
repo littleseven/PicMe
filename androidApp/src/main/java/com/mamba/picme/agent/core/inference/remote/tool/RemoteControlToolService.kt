@@ -32,7 +32,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * IM 远程控制 RPA 工具服务（飞书/Telegram 等 IM 通道的远程 ReAct agent；:agent-core → Koog 迁移 Phase 5）。
+ * IM 远程控制 RPA 工具服务（飞书/Telegram 等 IM 通道的远程 ReAct agent；Koog 驱动）。
  *
  * **Koog 工具表面**：实现 [ToolSet]，用 Koog `@Tool(customName=...)`（保 LLM-facing 蛇形工具名，确定性）
  * + 方法级/参数级 `@LLMDescription`。Koog ToolRegistry 经反射直接派发 @Tool 方法拿到类型化参数，

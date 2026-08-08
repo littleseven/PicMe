@@ -31,7 +31,7 @@ import org.junit.Test
  * 需要 EGL/GPU，无法在纯 JVM 单测中真正执行到 `applyGpuEffects`。因此本测试在
  * [ChatImageRenderer.renderRecipe] 这个**通往 applyGpuEffects 的唯一公开接缝**处
  * 截获 recipe，断言 slimFace 值完好。完整的「slimFace 实际进入 applyGpuEffects」
- * 验证需在设备上以 androidTest（`./gradlew :app:connectedAndroidTest`）覆盖。
+ * 验证需在设备上以 androidTest（`./gradlew :androidApp:connectedAndroidTest`）覆盖。
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatImageRendererBeautyTest {

@@ -29,7 +29,7 @@ class CommandExecutor(
         private const val TAG = "PoLang:CommandExecutor"
 
         /**
-         * tool 执行指标接收端，由 :app 在 Application 启动时注入（全构建注入）。
+         * tool 执行指标接收端，由 :androidApp 在 Application 启动时注入（全构建注入）。
          * 为 null 时不记录。
          */
         @Volatile
