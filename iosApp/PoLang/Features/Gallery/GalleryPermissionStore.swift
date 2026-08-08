@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import PhotosUI
 import Combine
 import UIKit
 
@@ -15,7 +16,8 @@ enum GalleryAccessState: Equatable {
         case (.limited, .readWrite): return .limited
         case (.authorized, .addOnly): return .addOnly
         case (.notDetermined, _): return .notDetermined
-        case (.denied, _), (.restricted, _): return .denied
+        // (.limited, .addOnly) 组合系统不会产生，按 denied 兜底
+        case (.denied, _), (.restricted, _), (.limited, .addOnly): return .denied
         }
     }
 }

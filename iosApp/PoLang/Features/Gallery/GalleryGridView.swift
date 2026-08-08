@@ -1,4 +1,5 @@
 import SwiftUI
+import SharedKit
 
 /// 相册网格页（对标 Android MediaGrid）：3 列 LazyVGrid + 按日分组 pinned header。
 /// 权限四态 UI：Full/Limited 显网格（Limited 常驻管理入口）、notDetermined 引导授权、
@@ -11,8 +12,9 @@ struct GalleryGridView: View {
                            GridItem(.flexible(), spacing: 2),
                            GridItem(.flexible(), spacing: 2)]
 
-    init(container: AppContainer) {
-        _vm = StateObject(wrappedValue: GalleryViewModel(repository: container.mediaRepository))
+    init(repository: IosMediaRepository = IosMediaRepository(bridge: PhMediaBridge())) {
+        // Task 4（GLM）切换到 container.mediaRepository；当前默认直构保证 Task 3 可编译
+        _vm = StateObject(wrappedValue: GalleryViewModel(repository: repository))
     }
 
     var body: some View {

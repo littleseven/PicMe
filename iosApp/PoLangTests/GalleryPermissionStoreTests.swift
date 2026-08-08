@@ -10,5 +10,6 @@ final class GalleryPermissionStoreTests: XCTestCase {
         XCTAssertEqual(S.map(status: .notDetermined, level: .readWrite), .notDetermined)
         XCTAssertEqual(S.map(status: .denied, level: .readWrite), .denied)
         XCTAssertEqual(S.map(status: .restricted, level: .addOnly), .denied)
+        XCTAssertEqual(S.map(status: .limited, level: .addOnly), .denied)
     }
 }

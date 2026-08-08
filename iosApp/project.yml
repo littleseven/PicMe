@@ -14,6 +14,13 @@ targets:
     sources:
       - path: PoLang
       - path: PrivacyInfo.xcprivacy
+    dependencies:
+      - framework: ../shared/build/XCFrameworks/debug/SharedKit.xcframework
+        embed: true
+    preBuildScripts:
+      - name: Build SharedKit
+        script: "\"$SRCROOT/scripts/build-shared-kit.sh\"\n"
+        basedOnDependencyAnalysis: false
     settings:
       base:
         DEVELOPMENT_TEAM: 6NPE45262A
