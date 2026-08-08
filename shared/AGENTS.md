@@ -19,7 +19,7 @@
 shared/src/
 ├── commonMain/    ← 引擎无关层（91 个 Kotlin 文件，见 §2）
 ├── androidMain/   ← Android 平台实现（VLM/语音/DataStore/dispatcher actual，12 文件）
-├── iosMain/       ← iOS actual 骨架（AgentIdGenerator/DispatcherProvider/KoogHttpClientFactoryProvider）
+├── iosMain/       ← iOS actual（AgentIdGenerator/DispatcherProvider/KoogHttpClientFactoryProvider + Phase 5 相册：IosMediaRepository/IosMediaRepositoryBridge 桥协议/FlowWatcher）
 ├── jvmMain/       ← JVM actual（同 iosMain 三项）
 ├── commonTest/    ← 多平台测试（kotlin.test，21 文件）
 └── jvmTest/       ← JVM-only 测试（@Tool 反射清单/prompt golden/守卫扫描，5 文件）
@@ -67,6 +67,12 @@ JITPACK=true ./gradlew :shared:jvmTest
 
 # 整体编译门槛（含 android AAR + iOS 三 target metadata，坑位④类问题只有这里能暴露）
 JITPACK=true ./gradlew :shared:assemble
+
+# iOS 单测（Intel 主机注意：iosSimulatorArm64Test 被 KGP 按 host arch 禁用，用 iosX64Test）
+JITPACK=true ./gradlew :shared:iosX64Test
+
+# iOS framework 产物（Phase 5 Task 1；Kotlin 2.2+ DSL 类名 XCFrameworkConfig）
+JITPACK=true ./gradlew :shared:assembleSharedKitDebugXCFramework
 
 # Android 侧编译
 ./gradlew :shared:compileAndroidMain
