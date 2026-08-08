@@ -274,7 +274,9 @@ class KoogReActAgent(
             .promptExecutor(executorBundle.executor)
             .llmModel(executorBundle.model)
             .toolRegistry(ToolRegistry.builder().tools(effectiveToolService).build())
-            .systemPrompt(systemPrompt)
+            // baseParams（temperature 钳制 + DeepSeek thinking=disabled + maxTokens）必须经 polangSystemPrompt
+            // 烘焙进 Prompt；不能用 .systemPrompt(String)——它从空 Prompt.Empty 扩展，丢弃全部 params。
+            .prompt(polangSystemPrompt(id = "polang-react", systemPrompt = systemPrompt, params = executorBundle.baseParams))
             // Koog maxIterations 数的是**子图节点执行次数**（一轮工具调用 ≈ nodeLLMRequest +
             // nodeExecuteTool ≈ 2-3 步），而旧 AiServices maxIterations 数的是 LLM 轮次。
             // 真机实测（2026-08-07）：直接传 10 时约 5 轮工具调用就抛
