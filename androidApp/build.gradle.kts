@@ -8,15 +8,15 @@ plugins {
 
 import java.util.Properties
 
-// Release signing config from environment variables (secure)
-// 本地构建时请在 ~/.gradle/gradle.properties 中配置：
-//   POLANG_RELEASE_STORE_FILE=/path/to/keystore
-//   POLANG_RELEASE_STORE_PASSWORD=your_password
-//   POLANG_RELEASE_KEY_ALIAS=your_alias
-//   POLANG_RELEASE_KEY_PASSWORD=your_password
-// 兼容旧命名 PICME_RELEASE_*（即将废弃）
+// Release signing config —— 从环境变量读取（System.getenv，非 gradle.properties）。
+// 本地构建请在 shell profile（如 ~/.zshrc）export：POLANG_RELEASE_STORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD。
+// STORE_FILE 可省略：未设置时回退到项目内置 keystore（defaultReleaseKeystore），故直接 gradle 或
+// release-automation.sh 也能出正式签名包；CI 检出无该文件时留空 → 回退 debug 签名。发版推荐 ./scripts/build.sh release。
+// 兼容旧命名 PICME_RELEASE_*（即将废弃）。
+val defaultReleaseKeystore = file("keystore/picme-release.jks")
 val releaseStoreFile: String = System.getenv("POLANG_RELEASE_STORE_FILE")
-    ?: System.getenv("PICME_RELEASE_STORE_FILE") ?: ""
+    ?: System.getenv("PICME_RELEASE_STORE_FILE")
+    ?: if (defaultReleaseKeystore.exists()) defaultReleaseKeystore.absolutePath else ""
 val releaseStorePassword: String = System.getenv("POLANG_RELEASE_STORE_PASSWORD")
     ?: System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
 val releaseKeyAlias: String = System.getenv("POLANG_RELEASE_KEY_ALIAS")
