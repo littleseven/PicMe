@@ -43,15 +43,18 @@ final class MediaPipe468AdapterTests: XCTestCase {
 
     func testCenterXRemainsHalfForBothLensFacing() {
         let landmarks = fakeLandmarks(centerX: 0.5, centerY: 0.5)
-        let frontResult = MediaPipe468Adapter.map(landmarks, isFrontCamera: true)!
-        XCTAssertEqual(frontResult[0].x, 0.5, accuracy: 0.001, "Center X should remain 0.5 for front")
-        let backResult = MediaPipe468Adapter.map(landmarks, isFrontCamera: false)!
-        XCTAssertEqual(backResult[0].x, 0.5, accuracy: 0.001, "Center X should remain 0.5 for back")
+        let frontResult = MediaPipe468Adapter.map(landmarks, isFrontCamera: true)
+        XCTAssertNotNil(frontResult)
+        XCTAssertEqual(frontResult![0].x, 0.5, accuracy: 0.001, "Center X should remain 0.5 for front")
+        let backResult = MediaPipe468Adapter.map(landmarks, isFrontCamera: false)
+        XCTAssertNotNil(backResult)
+        XCTAssertEqual(backResult![0].x, 0.5, accuracy: 0.001, "Center X should remain 0.5 for back")
     }
 
     func testFrontCameraLeftSideBecomesRightSide() {
         let landmarks = fakeLandmarks(centerX: 0.2, centerY: 0.5)
-        let result = MediaPipe468Adapter.map(landmarks, isFrontCamera: true)!
+        let result = MediaPipe468Adapter.map(landmarks, isFrontCamera: true)
+        XCTAssertNotNil(result)
         XCTAssertEqual(result![0].x, 0.8, accuracy: 0.001, "Left side should become right side")
     }
 
@@ -75,7 +78,8 @@ final class MediaPipe468AdapterTests: XCTestCase {
 
     func testResultAlwaysHas106Points() {
         let landmarks = fakeLandmarks(centerX: 0.5, centerY: 0.5)
-        let result = MediaPipe468Adapter.map(landmarks)!
-        XCTAssertEqual(result.count, 106)
+        let result = MediaPipe468Adapter.map(landmarks)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result!.count, 106)
     }
 }

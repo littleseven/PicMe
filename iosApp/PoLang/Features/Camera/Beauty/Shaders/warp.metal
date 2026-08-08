@@ -18,10 +18,8 @@
 using namespace metal;
 
 // ===========================================================================
-// Uniforms（与 beauty.metal 的 BeautyUniforms 同一 struct；guard 防 concat 重复）
+// Uniforms
 // ===========================================================================
-#ifndef POLANG_BEAUTY_UNIFORMS_DEFINED
-#define POLANG_BEAUTY_UNIFORMS_DEFINED
 struct BeautyUniforms {
     float smoothing;
     float whitening;
@@ -32,34 +30,14 @@ struct BeautyUniforms {
     float aspectRatio;   // 对应 GLSL uAspectRatio
     int   useGpupixelWarp; // 对应 GLSL uUseGpupixelWarp (0 or 1)
 };
-#endif
 
 // ===========================================================================
-// 顶点输出 + 共享顶点着色器
-// concat 编译时（device.makeLibrary(source:)），多个 .metal 文件拼为一串：
-// 用 #ifndef 去重，第一个出现的定义生效。
+// Vout（Metal 每文件独立编译；quad_vertex 定义在 yuv.metal，linker 解析）
 // ===========================================================================
-#ifndef POLANG_VOUT_DEFINED
-#define POLANG_VOUT_DEFINED
 struct Vout {
     float4 position [[position]];
     float2 uv;
 };
-#endif // POLANG_VOUT_DEFINED
-
-#ifndef POLANG_QUAD_VERTEX_DEFINED
-#define POLANG_QUAD_VERTEX_DEFINED
-vertex Vout quad_vertex(uint vid [[vertex_id]]) {
-    // 全屏四边形（TriangleStrip，无 VBO）
-    float2 pos[4] = { {-1,-1}, {1,-1}, {-1,1}, {1,1} };
-    // Metal UV 原点左上（与 GL 左下相反）；UV y 翻转补偿
-    float2 uv[4]  = { {0,0}, {1,0}, {0,1}, {1,1} };
-    Vout o;
-    o.position = float4(pos[vid], 0, 1);
-    o.uv = uv[vid];
-    return o;
-}
-#endif // POLANG_QUAD_VERTEX_DEFINED
 
 // ===========================================================================
 // 辅助：从扁平关键点数组取坐标

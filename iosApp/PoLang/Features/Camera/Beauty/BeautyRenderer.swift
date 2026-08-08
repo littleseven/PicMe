@@ -39,7 +39,7 @@ final class BeautyRenderer: NSObject {
         self.device = device
         // spike 踩坑：commandQueue 勿漏初始化 → 黑屏
         guard let queue = device.makeCommandQueue(),
-              let lib = device.makeDefaultLibrary(bundle: .main),
+              let lib = try? device.makeDefaultLibrary(bundle: .main),
               let vert = lib.makeFunction(name: "quad_vertex"),
               let yuvFrag = lib.makeFunction(name: "yuv_fragment"),
               let lutFrag = lib.makeFunction(name: "lut_fragment"),

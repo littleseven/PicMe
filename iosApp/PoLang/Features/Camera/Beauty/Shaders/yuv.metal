@@ -6,16 +6,12 @@
 #include <metal_stdlib>
 using namespace metal;
 
-#ifndef POLANG_VOUT_DEFINED
-#define POLANG_VOUT_DEFINED
+// Vout + quad_vertex 的唯一定义（其他 .metal 文件通过外部链接引用）
 struct Vout {
     float4 position [[position]];
     float2 uv;
 };
-#endif
 
-#ifndef POLANG_QUAD_VERTEX_DEFINED
-#define POLANG_QUAD_VERTEX_DEFINED
 vertex Vout quad_vertex(uint vid [[vertex_id]]) {
     float2 pos[4] = { {-1,-1}, {1,-1}, {-1,1}, {1,1} };
     float2 uv[4]  = { {0,0}, {1,0}, {0,1}, {1,1} };
@@ -24,7 +20,6 @@ vertex Vout quad_vertex(uint vid [[vertex_id]]) {
     o.uv = uv[vid];
     return o;
 }
-#endif
 
 // BT.601 limited range YUV → RGB
 fragment float4 yuv_fragment(

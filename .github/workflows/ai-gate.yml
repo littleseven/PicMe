@@ -55,20 +55,25 @@ jobs:
             engines/beauty-engine/build/reports/tests/
 
   ios-build:
-    name: iOS Build (Metal shaders + Swift compile)
+    name: iOS Build + Test (XcodeGen + xcodebuild)
     runs-on: macos-latest
-    timeout-minutes: 20
-    # iOS job 并行于 Android job，无交叉依赖
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify Metal shader compilation
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd iosApp && xcodegen generate
+
+      - name: Build (Simulator)
         run: |
-          cd iosApp/PoLang/Features/Camera/Beauty/Shaders
-          for f in yuv.metal warp.metal smoothing.metal; do
-            xcrun metal -std=macos-metal2.4 "$f" -o "/tmp/${f%.metal}.air"
-          done
-          # beauty.metal 引用 warp.metal 的 computeWarpedUv（concat 编译路径）
-          cat warp.metal beauty.metal > /tmp/warp_beauty.metal
-          xcrun metal -std=macos-metal2.4 /tmp/warp_beauty.metal -o /tmp/warp_beauty.air
+          xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang \
+            -destination 'generic/platform=iOS Simulator' build
+
+      - name: Test (Simulator)
+        run: |
+          xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang \
+            -destination 'platform=iOS Simulator,name=iPhone 16' test

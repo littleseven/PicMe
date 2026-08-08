@@ -27,15 +27,15 @@ struct CameraGesturesView: View {
                         triggerFocusRing(at: location)
                     }
 
-                    // 捏合变焦
+                    // 捏合变焦（MagnificationGesture for iOS 16 compatibility）
                     .gesture(
-                        MagnifyGesture()
+                        MagnificationGesture()
                             .onChanged { value in
-                                let factor = zoomBase * value.magnification
+                                let factor = zoomBase * value
                                 controller.setZoom(factor)
                             }
                             .onEnded { value in
-                                zoomBase *= value.magnification
+                                zoomBase *= value
                                 zoomBase = max(1.0, min(zoomBase, 10.0))
                             }
                     )

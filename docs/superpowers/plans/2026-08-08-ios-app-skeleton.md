@@ -119,7 +119,7 @@ git commit -m "feat(shared): SharedKit XCFramework 打包配置（iosApp 消费�
 - Create: `iosApp/.gitignore`
 - Test: `xcodebuild` 编译 + 模拟器运行截图验证
 
-- [ ] **Step 1: Xcode 模板建工程**
+- [x] **Step 1: Xcode 模板建工程** ✅ GLM 完成（XcodeGen CLI 路径替代 GUI：`iosApp/project.yml` + `xcodegen generate` → `PoLang.xcodeproj`）
 
 手动步骤（GUI 一次）：Xcode → New Project → iOS App → Product Name `PoLang`，Team 选 `6NPE45262A` 对应账号，Org Identifier `com.mamba`，Interface **SwiftUI**，Language **Swift**，Storage **None**，Include Tests ✅。保存到 `iosApp/`（工程路径 `iosApp/PoLang.xcodeproj`，源码目录 `iosApp/PoLang/`）。
 
@@ -210,7 +210,7 @@ Frameworks/MNN.framework/
 
 （MNN.framework 10MB 二进制不入 git——Task 6 由构建脚本产出/拷贝；SharedKit.xcframework 同理不入库。）
 
-- [ ] **Step 5: 编译 + 模拟器运行验证**
+- [x] **Step 5: 编译 + 模拟器运行验证** ✅ GLM 完成（`xcodebuild build` BUILD SUCCEEDED + 7 XCTest passed）
 
 Run: `xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang -destination 'platform=iOS Simulator,name=iPhone 16' build`
 Expected: `** BUILD SUCCEEDED **`。
@@ -2525,3 +2525,4 @@ git commit -m "docs(phase5): 文档同步——roadmap 勾选/spec 偏差/AGENTS
 | 2026-08-08 | 初版：23 个 Task（Task 0 前置核对 → Task 22 文档同步）；基于 spec（S1–S10）+ explore 实测（shared 当前态/spike 产物/shader 清单/468→106 适配器）。对 spec 一处修正：人脸关键点走 MediaPipe 而非 MNN |
 | 2026-08-08 | GLM 相机段执行进度：Task 12 shader (yuv.metal) ✅、Task 13 shader (beauty.metal + whitenSkin) ✅、Task 14 shader (smoothing.metal + pass_smoothing 全量翻译) ✅、Task 16 shader (warp.metal: 瘦脸+大眼 hard×2) ✅ —— 全部编译通过（含 concat 路径零 error 零 warning）；Task 15 MediaPipe468Adapter Swift 移植 + 金样本测试 ✅；Task 6 引擎产物收编 ✅（MNN/sentencepiece 构建脚本 + MediaPipe fetch + GLSL/LUT/filter assets 同步）；Task 2/4/5 Swift 基建骨架 ✅（DebugOverlay/AppContainer/DebugOverlay/I18N xcstrings/PrivacyInfo/ios-dev-loop/CI iOS job）。阻塞：Xcode .xcodeproj 需 GUI 创建（GLM 无 GUI 能力）；Kotlin/SharedKit embed 需 K3 侧 XCFramework 产出 |
 | 2026-08-08 | GLM 相机段续跑：Task 17 ✅（lut.metal ColorMatrix+ColorGrade 翻译 + FilterColorMatrix.swift 9 款矩阵逐值照抄 Android + FilterSelectorView.swift 三语滤镜条）；Task 18 ✅（PhotoCaptureController AVCapturePhoto API + BeautyRenderer.renderToImage 离屏全管线 + ShutterButton 异步快门 + CaptureFlow captureAndSave 异步流程 + PhotoSaver AddOnly 权限衔接）；Task 19 ✅（CameraGesturesView 对焦框/捏合变焦/垂直曝光 + FocusRing 动画）。5 shader 全量编译通过（含 concat） |
+| 2026-08-08 | GLM XcodeGen 突破：`project.yml` + `xcodegen generate` 生成 `PoLang.xcodeproj`，16 Swift 文件首次整体 `xcodebuild build` **BUILD SUCCEEDED**（iOS 16 target，simulator），7 XCTest **全绿**。Metal shader 链接修复：struct 每文件独立定义（Metal 无跨 TU struct 链接），`quad_vertex` 唯一定义在 yuv.metal（linker 解析）。FaceLandmarkService 用 `#if canImport(MediaPipeTasksVision)` 条件编译（SPM URL 待确认）。CI iOS job 升级为 `xcodegen generate && xcodebuild build && test` |

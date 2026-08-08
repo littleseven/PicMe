@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import Photos
 import CoreVideo
+import UIKit
 
 /// 拍照：全分辨率静态图捕获（与预览 720p 流并行）。
 ///

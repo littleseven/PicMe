@@ -46,16 +46,12 @@ struct ColorGradeUniforms {
     float intensity;     // FilterType 混合强度（0=原图，1=完全应用）
 };
 
-// 顶点输出（guard: concat 去重）
-#ifndef POLANG_VOUT_DEFINED
-#define POLANG_VOUT_DEFINED
+// Vout（Metal 每文件独立编译，struct 在每个 .metal 内重复定义）
 struct Vout {
     float4 position [[position]];
     float2 uv;
 };
-#endif
-
-// vertex 复用 quad_vertex（定义在其他 .metal；concat 编译时共享）
+// quad_vertex 定义在 yuv.metal（linker 解析）
 
 // ===== colorgrade.glsl 翻译 =====
 static float3 applyColorGrade(float3 color, constant ColorGradeUniforms& uni) {

@@ -16,31 +16,24 @@
 #include <metal_stdlib>
 using namespace metal;
 
-// ===== 对应 uniforms_2d.glsl MVP 子集（guard: concat 去重）=====
-#ifndef POLANG_BEAUTY_UNIFORMS_DEFINED
-#define POLANG_BEAUTY_UNIFORMS_DEFINED
+// ===== BeautyUniforms（Metal 无跨文件 struct 链接，每个 .metal 文件内重复定义）=====
 struct BeautyUniforms {
-    float smoothing;   // uSmoothing
-    float whitening;   // uWhitening
-    float sharpen;     // uSharpen
-    float bigEyes;     // uBigEyes
-    float slimFace;    // uSlimFace
-    float hasFace;     // uHasFace
-    float aspectRatio; // uAspectRatio
-    int   useGpupixelWarp; // uUseGpupixelWarp
+    float smoothing;
+    float whitening;
+    float sharpen;
+    float bigEyes;
+    float slimFace;
+    float hasFace;
+    float aspectRatio;
+    int   useGpupixelWarp;
 };
-#endif
 
-// 顶点输出（guard: 与 yuv.metal/warp.metal concat 时去重）
-#ifndef POLANG_VOUT_DEFINED
-#define POLANG_VOUT_DEFINED
+// Vout（Metal 每文件独立编译，struct 在每个 .metal 内重复定义）
 struct Vout {
     float4 position [[position]];
     float2 uv;
 };
-#endif
-
-// vertex 复用 quad_vertex（定义在 yuv.metal 或 warp.metal；concat 编译时共享）
+// quad_vertex 定义在 yuv.metal（linker 解析）
 
 // ===== 对应 skin.glsl whitenSkin()（spike 逐行验证版）=====
 // [图像坐标系] 纯像素算术，无纹理采样、无 GL 状态依赖

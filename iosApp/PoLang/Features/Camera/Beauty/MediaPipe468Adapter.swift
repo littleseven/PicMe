@@ -91,7 +91,7 @@ enum MediaPipe468Adapter {
         func getMpPoint(_ index: Int) -> (Float, Float)? {
             guard index < landmarks.count else { return nil }
             var x = landmarks[index].x
-            var y = landmarks[index].y
+            let y = landmarks[index].y
             let (rx, ry) = rotateNormalized(x, y, degrees: rotationDegrees)
             x = rx
             let finalY = ry
@@ -162,6 +162,6 @@ enum MediaPipe468Adapter {
 // Comparable clamp helper for Int
 private extension Int {
     func clamped(to range: ClosedRange<Int>) -> Int {
-        min(max(self, range.lowerBound), range.upperBound)
+        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
