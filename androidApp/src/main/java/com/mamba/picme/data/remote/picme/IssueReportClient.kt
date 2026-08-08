@@ -23,6 +23,11 @@ class IssueReportClient(
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            chain.proceed(chain.request().newBuilder()
+                .addHeader("X-Platform", "android")
+                .build())
+        }
         .build()
 
     private val jsonMedia = "application/json".toMediaType()

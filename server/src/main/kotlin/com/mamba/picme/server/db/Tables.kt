@@ -108,6 +108,7 @@ object LlmCallLogs : Table("llm_call_log") {
     val status = varchar("status", 24) // ok | upstream_error | blocked_quota | blocked_rate
     val latencyMs = integer("latency_ms").nullable()
     val deviceId = varchar("device_id", 128).nullable()
+    val platform = varchar("platform", 16).nullable() // android | ios | null（老数据）
     val createdAt = long("created_at")
     override val primaryKey = PrimaryKey(id)
 

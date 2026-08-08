@@ -67,6 +67,7 @@ data class UserRow(
     val apiTokenMasked: String,
     val hasToken: Boolean,
     val deviceIdMasked: String,
+    val lastPlatform: String,
 )
 
 data class UserDetail(
@@ -350,6 +351,7 @@ object AdminQueries {
         val cost = HashMap<Int, Double>()
         val lastDevTime = HashMap<Int, Long>()
         val lastDeviceId = HashMap<Int, String>()
+        val lastPlatform = HashMap<Int, String>()
         LlmCallLogs.selectAll().where { LlmCallLogs.status eq "ok" }.forEach { r ->
             val id = r[LlmCallLogs.accountId]
             calls[id] = (calls[id] ?: 0L) + 1
@@ -363,6 +365,7 @@ object AdminQueries {
                     lastDeviceId[id] = dev
                 }
             }
+            r[LlmCallLogs.platform]?.let { p -> lastPlatform[id] = p }
         }
         val lastActive = HashMap<Int, Long>()
         LlmCallLogs.selectAll().forEach { r ->
@@ -385,6 +388,7 @@ object AdminQueries {
                 apiTokenMasked = maskToken(a[Accounts.tokenPlain]),
                 hasToken = a[Accounts.tokenPlain].isNotEmpty(),
                 deviceIdMasked = lastDeviceId[id]?.let { maskDeviceId(it) } ?: "—",
+                lastPlatform = lastPlatform[id] ?: "—",
             )
         }
     }

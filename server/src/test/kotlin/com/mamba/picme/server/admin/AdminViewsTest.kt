@@ -27,8 +27,8 @@ class AdminViewsTest {
     @Test
     fun `users page lists emails, detail links and masked api tokens`() {
         val rows = listOf(
-            UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null, "picm••••wxyz", true, "device••••1234"),
-            UserRow(2, "b@x.com", "active", 0L, 0L, 0L, 0.0, null, "—", false, "—"),
+            UserRow(1, "a@x.com", "active", 0L, 3L, 100L, 0.5, null, "picm••••wxyz", true, "device••••1234", "android"),
+            UserRow(2, "b@x.com", "active", 0L, 0L, 0L, 0.0, null, "—", false, "—", "—"),
         )
         val html = AdminViews.usersPage(rows, devicesCount = 0L)
         assertTrue(html.contains("a@x.com"))
@@ -39,7 +39,9 @@ class AdminViewsTest {
         assertTrue(html.contains("tokCopy(1, this)"))
         assertTrue(html.contains("Token 用量"))
         assertTrue(html.contains("Device ID"))
+        assertTrue(html.contains("平台"))
         assertTrue(html.contains("device••••1234"))
+        assertTrue(html.contains("android"))
         assertTrue(html.contains("未注册设备")) // 二级 Tab 出现
     }
 

@@ -114,6 +114,7 @@ object AdminViews {
                     th { +"ID" }
                     th { +"邮箱" }
                     th { +"Device ID" }
+                    th { +"平台" }
                     th { +"API Token" }
                     th { +"状态" }
                     th { +"注册时间" }
@@ -128,6 +129,7 @@ object AdminViews {
                         td { +u.id.toString() }
                         td { a("/admin/users/${u.id}") { +u.email } }
                         td { +u.deviceIdMasked }
+                        td { +u.lastPlatform }
                         td {
                             if (u.hasToken) {
                                 span("tok") { +u.apiTokenMasked }

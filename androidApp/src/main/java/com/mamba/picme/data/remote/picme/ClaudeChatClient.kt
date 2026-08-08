@@ -75,11 +75,21 @@ class ClaudeChatClient(private val baseUrl: String = DEFAULT_BASE_URL) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.SECONDS) // SSE 长连接，不超时（靠网关 CT_PHASE_TIMEOUT 兜底）
+        .addInterceptor { chain ->
+            chain.proceed(chain.request().newBuilder()
+                .addHeader("X-Platform", "android")
+                .build())
+        }
         .build()
     /** 交付用（普通 JSON 请求，非 SSE）：有 readTimeout，避免 gateway push 挂起时 app 无限阻塞。 */
     private val deliverClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            chain.proceed(chain.request().newBuilder()
+                .addHeader("X-Platform", "android")
+                .build())
+        }
         .build()
     private val jsonMedia = "application/json".toMediaType()
 
