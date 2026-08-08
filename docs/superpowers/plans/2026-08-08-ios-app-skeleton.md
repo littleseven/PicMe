@@ -2069,13 +2069,9 @@ git commit -m "feat(ios): 磨皮 pass_smoothing GLSL→MSL 翻译 + 4 LUT 接入
 
 **移植源**：`engines/beauty-engine/.../facedetect/adapter/MediaPipe468Adapter.kt`——轮廓 33 点 FACE_OVAL 插值 + 非轮廓 73 点 `NON_CONTOUR_MAPPING` 固定表 + 前置镜像。
 
-- [ ] **Step 1: SPM 加 MediaPipeTasksVision**
+- [x] **Step 1: CocoaPods 集成 MediaPipeTasksVision** ✅ 已落地（CocoaPods `pod 'MediaPipeTasksVision', '~> 0.10.14'`；实际安装 0.10.35；无官方 SPM，CocoaPods 是唯一可行路径；FaceLandmarker video 模式 API 已验证编译通过）
 
-Xcode → Package Dependencies → `https://github.com/google-ai-edge/mediapipe`（或官方 pods；选 SPM 方式与工程一致），产品 `MediaPipeTasksVision`，版本与 Android 对齐 `0.10.26`（若 SPM 无精确版本取最近 0.10.x）。
-
-⚠️ 验证项（spike 未覆盖）：确认 iOS 产物含 `FaceLandmarker` 视频模式 API（`FaceLandmarker(videoOptions:)` + `detect(videoFrame:timestampInMilliseconds:)`）。若 API 不符，回退方案：MNN det_500m 检测 + 自有关键点模型——**阻塞上报，不静默降级**。
-
-- [ ] **Step 2: 写 FaceLandmarkService（单线程推理队列）**
+- [x] **Step 2: 写 FaceLandmarkService（单线程推理队列）** ✅ 已落地（FaceLandmarkerOptions + .video + detect(videoFrame:timestampInMilliseconds:)；MPPNormalizedLandmark.x/.y 是 float 属性；@MainActor DebugOverlayState 走 DispatchQueue.main.async）
 
 `iosApp/PoLang/Features/Camera/Beauty/FaceLandmarkService.swift`：
 

@@ -55,9 +55,9 @@ jobs:
             engines/beauty-engine/build/reports/tests/
 
   ios-build:
-    name: iOS Build + Test (XcodeGen + xcodebuild)
+    name: iOS Build + Test (CocoaPods + XcodeGen + xcodebuild)
     runs-on: macos-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,12 +68,15 @@ jobs:
       - name: Generate Xcode project
         run: cd iosApp && xcodegen generate
 
+      - name: Pod install
+        run: cd iosApp && pod install --repo-update
+
       - name: Build (Simulator)
         run: |
-          xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang \
+          xcodebuild -workspace iosApp/PoLang.xcworkspace -scheme PoLang \
             -destination 'generic/platform=iOS Simulator' build
 
       - name: Test (Simulator)
         run: |
-          xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang \
+          xcodebuild -workspace iosApp/PoLang.xcworkspace -scheme PoLang \
             -destination 'platform=iOS Simulator,name=iPhone 16' test

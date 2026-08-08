@@ -1,18 +1,11 @@
 import Foundation
 import AVFoundation
-
-#if canImport(MediaPipeTasksVision)
 import MediaPipeTasksVision
 
 /// 人脸 468 点检测（video 模式）→ 106 点输出。
 ///
-/// ⚠️ 单线程串行队列（shared iOS DispatcherProvider.modelDispatcher 不保证串行的教训）；
-/// 跳帧策略：推理中丢帧不排队（alwaysDiscardsLateVideoFrames 同义）。
-///
+/// ⚠️ 单线程串行队列；跳帧策略：推理中丢帧不排队。
 /// 输出经 MediaPipe468Adapter.map() 转为 106 点归一化坐标。
-///
-/// ⚠️ 当 MediaPipeTasksVision SPM 未集成时，本类整体编译排除；
-/// BeautyRenderer 的 facePointsBuffer 保持 nil，warp shader 直通不形变。
 final class FaceLandmarkService {
     struct Result {
         let points106: [SIMD2<Float>]
@@ -28,18 +21,47 @@ final class FaceLandmarkService {
 
     init() {
         queue.async { [self] in
+            // 模型路径：bundle resource（Task 6 收编布局）
             guard let modelPath = Bundle.main.path(
                     forResource: "face_landmarker", ofType: "task",
                     inDirectory: "Assets") else {
-                DebugOverlayState.shared.set("face.error", "model missing")
-                return
+                // fallback：直接在 bundle root 找（Xcode folder reference 差异）
+                guard let modelPath2 = Bundle.main.path(
+                        forResource: "face_landmarker", ofType: "task") else {
+                    DispatchQueue.main.async {
+                        DebugOverlayState.shared.set("face.error", "model missing")
+                    }
+                    return
+                }
+                do {
+                    try initLandmarker(modelPath: modelPath2)
+                    return
+                } catch {
+                    DispatchQueue.main.async {
+                        DebugOverlayState.shared.set("face.error", "init: \(error.localizedDescription.prefix(40))")
+                    }
+                    return
+                }
             }
-            let opts = FaceLandmarkerOptions()
-            opts.baseOptions.modelAssetPath = modelPath
-            opts.runningMode = .video
-            opts.numFaces = 1
-            landmarker = try? FaceLandmarker(options: opts)
-            DebugOverlayState.shared.set("face.engine", landmarker != nil ? "ok" : "init failed")
+            do {
+                try initLandmarker(modelPath: modelPath)
+            } catch {
+                DispatchQueue.main.async {
+                    DebugOverlayState.shared.set("face.error", "init: \(error.localizedDescription.prefix(40))")
+                }
+            }
+        }
+    }
+
+    private func initLandmarker(modelPath: String) throws {
+        let opts = FaceLandmarkerOptions()
+        opts.baseOptions.modelAssetPath = modelPath
+        opts.runningMode = .video
+        opts.numFaces = 1
+        landmarker = try FaceLandmarker(options: opts)
+        let status = landmarker != nil ? "ok" : "nil"
+        DispatchQueue.main.async {
+            DebugOverlayState.shared.set("face.engine", status)
         }
     }
 
@@ -51,18 +73,25 @@ final class FaceLandmarkService {
 
             do {
                 let mpImage = try MPImage(pixelBuffer: pixelBuffer)
-                let result = try landmarker.detect(videoFrame: mpImage,
-                                                    timestampInMilliseconds: timestampMs)
-                guard let faceLandmarks = result.faceLandmarks?.first else { return }
+                let result = try landmarker.detect(
+                    videoFrame: mpImage,
+                    timestampInMilliseconds: timestampMs)
+                guard let faceLandmarks = result.faceLandmarks.first else { return }
+                // MPPNormalizedLandmark.x/.y 是 float 属性（非方法调用）
                 let landmarks468 = faceLandmarks.map { landmark in
                     MediaPipe468Adapter.Landmark(x: landmark.x, y: landmark.y)
                 }
                 guard let points106 = MediaPipe468Adapter.map(
                     landmarks468, isFrontCamera: isFrontCamera) else { return }
-                latest = Result(points106: points106, timestampMs: timestampMs)
-                DebugOverlayState.shared.set("face.points", "\(points106.count)")
+                latest = FaceLandmarkService.Result(
+                    points106: points106, timestampMs: timestampMs)
+                DispatchQueue.main.async {
+                    DebugOverlayState.shared.set("face.points", "\(points106.count)")
+                }
             } catch {
-                DebugOverlayState.shared.set("face.error", "\(error.localizedDescription.prefix(40))")
+                DispatchQueue.main.async {
+                    DebugOverlayState.shared.set("face.error", "\(error.localizedDescription.prefix(40))")
+                }
             }
         }
     }
@@ -73,5 +102,3 @@ final class FaceLandmarkService {
         return result.points106
     }
 }
-
-#endif // canImport(MediaPipeTasksVision)
