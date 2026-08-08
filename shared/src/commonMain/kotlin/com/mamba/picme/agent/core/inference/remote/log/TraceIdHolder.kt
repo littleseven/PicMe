@@ -1,5 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.log
 
+import kotlin.concurrent.Volatile
+
 /**
  * traceId 跨边界持有器。
  *
@@ -13,4 +15,16 @@ package com.mamba.picme.agent.core.inference.remote.log
 class TraceIdHolder {
     @Volatile
     var value: String? = null
+}
+
+/**
+ * 接受当轮 traceId 注入的工具集（Koog agent init 期把自身 holder 注入，
+ * 使 Koog 链路下的 tool 执行也带 traceId，与 LLM 调用日志关联）。
+ *
+ * 自 KoogReActAgent/KoogChatAgent 的 `is ChatToolService/CameraToolService` 类型判断收敛而来——
+ * KMP 抽取后 agent 在 commonMain，不再反向依赖具体工具集类型，改按本接口匹配
+ * （RemoteControlToolService 等不实现本接口的工具集自然跳过，语义对齐旧 when 分支）。
+ */
+interface TraceIdAware {
+    var traceIdHolder: TraceIdHolder?
 }

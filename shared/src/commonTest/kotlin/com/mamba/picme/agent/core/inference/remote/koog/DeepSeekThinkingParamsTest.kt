@@ -4,9 +4,9 @@ import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.params.additionalPropertiesOf
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 /**
  * Phase 0 PoC：DeepSeek `thinking.type=disabled` 注入路径（:agent-core → Koog 迁移生死点之一）。
@@ -32,7 +32,7 @@ class DeepSeekThinkingParamsTest {
         )
 
         val thinking = params.additionalProperties?.get("thinking")
-        assertTrue("thinking 必须存在于 additionalProperties", thinking is JsonObject)
+        assertTrue(thinking is JsonObject, "thinking 必须存在于 additionalProperties")
         assertEquals(
             JsonPrimitive("disabled"),
             (thinking as JsonObject)["type"]

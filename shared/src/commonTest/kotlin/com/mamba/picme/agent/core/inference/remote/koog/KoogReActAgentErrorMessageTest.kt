@@ -1,8 +1,8 @@
 package com.mamba.picme.agent.core.inference.remote.koog
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 /**
  * [buildFriendlyErrorMessage] 单测（自旧 RemoteReActAgent 随迁逻辑的回归护栏，纯 JVM 无网络）。

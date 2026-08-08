@@ -2,10 +2,15 @@ package com.mamba.picme.agent.core.inference.remote.prompt
 
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import kotlin.time.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * 远程 LLM Prompt 构建器
@@ -134,31 +139,50 @@ class RemotePromptBuilder(
      * Prompt 示例中的动态时间戳生成器。
      * 避免写死时间戳导致 LLM 在不同年份照搬过期数值。
      */
-    private val exampleTimestamps = object {
-        private val zone = ZoneId.systemDefault()
+    internal val exampleTimestamps = ExampleTimestamps()
+
+    /**
+     * [exampleTimestamps] 的实现（命名类——匿名 object 成员在非 private 属性上不可见，
+     * internal 可见性供 commonTest 锁行为）。
+     *
+     * kotlinx-datetime 化，语义与旧 java.time 实现逐处对齐：本地时区、毫秒时间戳。
+     */
+    internal class ExampleTimestamps(
+        private val zone: TimeZone = TimeZone.currentSystemDefault(),
+    ) {
+        private fun today(): LocalDate =
+            Clock.System.now().toLocalDateTime(zone).date
 
         fun lastYearSummer(): Pair<Long, Long> {
-            val lastYear = LocalDate.now().year - 1
-            val start = ZonedDateTime.of(lastYear, 6, 1, 0, 0, 0, 0, zone).toInstant().toEpochMilli()
-            val end = ZonedDateTime.of(lastYear, 8, 31, 23, 59, 59, 999_000_000, zone).toInstant().toEpochMilli()
+            val lastYear = today().year - 1
+            val start = LocalDate(lastYear, 6, 1).atStartOfDayIn(zone).toEpochMilliseconds()
+            val end = LocalDateTime(lastYear, 8, 31, 23, 59, 59, 999_000_000)
+                .toInstant(zone).toEpochMilliseconds()
             return start to end
         }
 
         fun pastHalfYear(): Pair<Long, Long> {
-            val now = LocalDate.now()
-            val start = now.minusMonths(6).withDayOfMonth(1)
-                .atStartOfDay(zone).toInstant().toEpochMilli()
-            val end = now.atTime(23, 59, 59, 999_000_000)
-                .atZone(zone).toInstant().toEpochMilli()
+            val now = today()
+            val sixMonthsAgo = now.minus(6, DateTimeUnit.MONTH)
+            val start = LocalDate(sixMonthsAgo.year, sixMonthsAgo.month, 1)
+                .atStartOfDayIn(zone).toEpochMilliseconds()
+            val end = LocalDateTime(now.year, now.month, now.dayOfMonth, 23, 59, 59, 999_000_000)
+                .toInstant(zone).toEpochMilliseconds()
             return start to end
         }
     }
 
-    private fun nowString(): String {
-        val date = LocalDate.now()
-        val week = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")[date.dayOfWeek.value - 1]
-        val time = LocalTime.now().withSecond(0).withNano(0)
-        return "$date $week $time"
+    /**
+     * `now=` 状态段的当前时间串。格式与旧 java.time 实现逐字节对齐：
+     * `yyyy-MM-dd 周X HH:mm`（java.time LocalTime.toString 在 second=0 时省略秒，
+     * 故手动 padStart 而非用 kotlinx LocalTime.toString——后者恒输出 HH:mm:ss）。
+     */
+    internal fun nowString(): String {
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val week = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")[now.dayOfWeek.ordinal]
+        val hh = now.hour.toString().padStart(2, '0')
+        val mm = now.minute.toString().padStart(2, '0')
+        return "${now.date} $week $hh:$mm"
     }
 
     private fun buildStateSection(

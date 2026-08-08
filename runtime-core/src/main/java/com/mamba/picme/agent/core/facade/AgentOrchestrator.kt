@@ -22,6 +22,7 @@ import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
@@ -318,8 +319,11 @@ class AgentOrchestrator private constructor(context: Context) {
                     append("\n\n---\n")
                     val model = metrics.modelName ?: "未知"
                     val latency = "${metrics.latencyMs}ms"
-                    val tokens = if (metrics.promptTokens != null && metrics.completionTokens != null) {
-                        "${metrics.promptTokens + metrics.completionTokens} tokens (${metrics.promptTokens} in / ${metrics.completionTokens} out)"
+                    // AgentExecutionMetrics 已迁 :shared（跨模块 public val 不可 smart cast），先取局部变量
+                    val promptTokens = metrics.promptTokens
+                    val completionTokens = metrics.completionTokens
+                    val tokens = if (promptTokens != null && completionTokens != null) {
+                        "${promptTokens + completionTokens} tokens ($promptTokens in / $completionTokens out)"
                     } else {
                         ""
                     }
@@ -479,9 +483,9 @@ class AgentOrchestrator private constructor(context: Context) {
             Logger.w(tag, "Failed to build CameraAgent config", e)
             return null
         }
+        val cameraToolService = CameraToolService.getInstance()
         val agent = KoogReActAgent(
             config = cfg,
-            windowManager = null,
             callback = object : RemoteReActAgentCallback {
                 override fun onLoopStart(iteration: Int) {}
                 override fun onContent(iteration: Int, content: String) {}
@@ -490,9 +494,15 @@ class AgentOrchestrator private constructor(context: Context) {
                 override fun onComplete(iteration: Int, summary: String, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
                 override fun onError(iteration: Int, error: Throwable, totalTokens: Int, metrics: AgentExecutionMetrics?) {}
             },
-            appContext = configurator.getContext(),
-            toolService = CameraToolService.getInstance()
+            dispatcherProvider = SharedDispatcherProvider.instance,
+            memoryStore = koogMemoryStore,
+            // reflect.ToolSet 是 Koog 1.1.1 JVM-only API，commonMain 的 KoogReActAgent
+            // 改收 KMP 类型 ToolRegistry；反射展开在本调用点（Android）完成。
+            toolRegistry = ToolRegistry { tools(cameraToolService) },
+            recordSource = KoogReActAgent.RECORD_SOURCE_CAMERA,
         )
+        // traceId 注入（原 KoogReActAgent init 内类型判断随迁出）：tool 执行带当轮 traceId。
+        cameraToolService.traceIdHolder = agent.traceIdHolder
         agent.initialize()
         cachedCameraAgent = agent
         cachedCameraAgentConfig = currentConfig

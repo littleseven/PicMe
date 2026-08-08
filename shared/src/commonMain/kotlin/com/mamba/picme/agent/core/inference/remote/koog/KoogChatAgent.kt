@@ -3,19 +3,21 @@ package com.mamba.picme.agent.core.inference.remote.koog
 import ai.koog.agents.chatMemory.feature.ChatMemory
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.core.tools.reflect.ToolSet
 import ai.koog.agents.features.eventHandler.feature.EventHandler
 import ai.koog.prompt.streaming.StreamFrame
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecord
+import com.mamba.picme.agent.core.inference.remote.log.TraceIdAware
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
-import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
+import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.Volatile
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Clock
 
 /**
  * chat 链路的 Koog Agent（Phase 4：替代 RemoteReActAgent + StreamingSyncChatModel 的 chat 专用路径）。
@@ -23,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * 与旧 langchain4j AiServices 路径的关键差异：
  * - **纯 suspend**：`agent.run(input, sessionId)` 即协程挂起，删除 CountDownLatch / suspendCoroutine 桥。
  *   取消经调用方 `withTimeout` 的协程 cancel 级联（Koog 0.5.3+ 已修 cancellation 包裹）。
- * - **记忆**：Koog ChatMemory feature + [KoogSessionHistoryProvider]（包 [KoogMessageMemoryStore]），
+ * - **记忆**：Koog ChatMemory feature + [KoogSessionHistoryProvider]（包 [ChatMemoryStore]），
  *   三不变式（System 不落盘 / tool_call 块原子裁剪 / 双向配对剔除）由 store 强制；feature **不**设 windowSize
  *   （避免朴素计数裁剪拆散 tool_call 块致远端 400）。
  * - **网关 header**：经 [RemoteModelFactory.createKoogExecutor] 的 extraHeaders 注入（X-App-Token / X-Device-Id），
@@ -41,10 +43,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * **回调闭包**：EventHandler lambda 在 build 期捕获，引用 per-run 持有字段 [currentPartialText] / [currentToolCall]
  *（runChat 开头赋值、finally 清空），避免捕获过期回调；runs 串行（processChatReAct 的 isRunning 互斥）。
  */
+@OptIn(ExperimentalAtomicApi::class)
 class KoogChatAgent(
     private val config: RemoteReActAgentConfig,
-    private val toolSet: ToolSet,
-    memoryStore: KoogMessageMemoryStore,
+    private val toolRegistry: ToolRegistry,
+    memoryStore: ChatMemoryStore,
 ) {
     private val tag = "KoogChatAgent"
 
@@ -60,20 +63,20 @@ class KoogChatAgent(
     )
 
     private val historyProvider = KoogSessionHistoryProvider(memoryStore)
-    private val traceIdHolder = TraceIdHolder()
 
-    init {
-        // ChatToolService.dispatchCommand 读自身的 traceIdHolder 注入 AgentContext/CommandExecutor；
-        // 把它指向本 agent 的 holder（runChat 开头写 value），使 Koog 链路下 tool 执行也带 traceId。
-        // ChatToolService 是 chat 专用单例，Phase 4 后仅本 agent 持有，无竞态。
-        (toolSet as? ChatToolService)?.traceIdHolder = traceIdHolder
-    }
+    /**
+     * 当轮 traceId 持有器（runChat 开头写入，onLLMCallCompleted 录制时读取）。
+     * 组合根在构建本 agent 后把它注入实现 [TraceIdAware] 的工具集（ChatToolService），
+     * 使 Koog 链路下 tool 执行也带 traceId（原 init 内 `as? ChatToolService` 类型判断
+     * 随 KMP 抽取移除——本类在 commonMain，reflect.ToolSet 是 Koog 1.1.1 JVM-only API）。
+     */
+    val traceIdHolder = TraceIdHolder()
 
-    // 单 run 累计状态（runs 串行：processChatReAct 的 isRunning 互斥）。StringBuffer/Atomic 线程安全，
+    // 单 run 累计状态（runs 串行：processChatReAct 的 isRunning 互斥）。StringBuilder/Atomic 线程安全，
     // 因 EventHandler 可能在 Koog 内部调度线程触发（非调用 runChat 的线程）。
-    private val snapshotBuffer = StringBuffer()
-    private val promptTokens = AtomicInteger(0)
-    private val completionTokens = AtomicInteger(0)
+    private val snapshotBuffer = StringBuilder()
+    private val promptTokens = AtomicInt(0)
+    private val completionTokens = AtomicInt(0)
 
     // per-run 回调持有（EventHandler lambda 读这两个字段，而非捕获 runChat 的入参，避免重建/跨 run 失效）
     @Volatile private var currentPartialText: ((snapshot: String) -> Unit)? = null
@@ -105,18 +108,18 @@ class KoogChatAgent(
         running = true
         traceIdHolder.value = traceId
         snapshotBuffer.setLength(0)
-        promptTokens.set(0)
-        completionTokens.set(0)
+        promptTokens.store(0)
+        completionTokens.store(0)
         currentPartialText = onPartialText
         currentToolCall = onToolCall
-        val started = System.currentTimeMillis()
+        val started = Clock.System.now().toEpochMilliseconds()
         return try {
             val summary = agent().run(input, currentSessionId)
-            val latencyMs = System.currentTimeMillis() - started
+            val latencyMs = Clock.System.now().toEpochMilliseconds() - started
             summary to AgentExecutionMetrics(
                 latencyMs = latencyMs,
-                promptTokens = promptTokens.get().takeIf { it > 0 },
-                completionTokens = completionTokens.get().takeIf { it > 0 },
+                promptTokens = promptTokens.load().takeIf { it > 0 },
+                completionTokens = completionTokens.load().takeIf { it > 0 },
                 modelName = config.modelName.ifBlank { null },
             )
         } finally {
@@ -143,10 +146,12 @@ class KoogChatAgent(
         // 自定义策略：修复 Koog 1.1.1 内建 singleRunStrategy 丢「文本+tool_calls 同帧」
         // 工具调用的缺陷（chat 多轮工具任务同样受影响），详见 poLangSingleRunStrategy KDoc。
         AIAgent.builder()
-            .graphStrategy<String, String>("polang_single_run") { poLangSingleRunStrategy() }
+            // 直接传策略实例（命名 lambda 重载 graphStrategy(name){...} 是 Koog 1.1.1 JVM-only
+            // 便捷 API；策略内部已命名 "polang_single_run"，语义等价）。
+            .graphStrategy(poLangSingleRunStrategy())
             .promptExecutor(executorBundle.executor)
             .llmModel(executorBundle.model)
-            .toolRegistry(ToolRegistry.builder().tools(toolSet).build())
+            .toolRegistry(toolRegistry)
             .systemPrompt(systemPrompt)
             // Koog maxIterations 数的是子图节点执行次数（一轮工具调用 ≈ 2-3 步），旧 AiServices
             // 数的是 LLM 轮次；×3 对齐旧语义上限（详见 KoogReActAgent 同款注释，飞书真机撞顶实测）。
@@ -173,13 +178,13 @@ class KoogChatAgent(
                 }
                 events.onLLMCallCompleted { ctx ->
                     val meta = ctx.response?.metaInfo
-                    meta?.inputTokensCount?.let { prompt -> promptTokens.addAndGet(prompt) }
-                    meta?.outputTokensCount?.let { comp -> completionTokens.addAndGet(comp) }
+                    meta?.inputTokensCount?.let { prompt -> promptTokens.addAndFetch(prompt) }
+                    meta?.outputTokensCount?.let { comp -> completionTokens.addAndFetch(comp) }
                     val rec = RemoteModelFactory.recorder
                     if (rec != null) {
                         rec.record(
                             LlmCallRecord(
-                                createdAt = System.currentTimeMillis(),
+                                createdAt = Clock.System.now().toEpochMilliseconds(),
                                 source = RECORD_SOURCE,
                                 model = ctx.model?.id,
                                 success = true,
