@@ -14,7 +14,8 @@ import kotlinx.coroutines.CoroutineDispatcher
  * 四者完全隔离，无直接依赖关系。数据持久化为 fire-and-forget 异步操作。
  *
  * **生命周期**：进程内共享实例见 [SharedDispatcherProvider]（对齐旧 `getInstance()` 单例语义）；
- * 测试可独立构造。应用退出时调用 [shutdown] 释放线程资源。
+ * 测试可独立构造。[shutdown] 当前生产路径无调用方——daemon 线程随进程退出自动终止，
+ * 保留供测试清理与未来按需调用。
  */
 expect class DispatcherProvider() {
     /** DataStore 专用单线程调度器：所有 DataStore 读写在此线程上串行执行。 */
@@ -29,7 +30,13 @@ expect class DispatcherProvider() {
     /** 编排专用双线程调度器：负责推理调用、响应解析、命令分发，不参与 IO 操作。 */
     val orchestratorDispatcher: CoroutineDispatcher
 
-    /** 关闭所有线程池，释放资源。调用后所有 dispatcher 不再接受新任务。 */
+    /**
+     * 关闭所有线程池，释放资源。调用后所有 dispatcher 不再接受新任务。
+     *
+     * **生命周期说明**：当前生产路径无调用方（旧 `ThreadPoolManager` 同样无人调用）——
+     * android/jvm actual 的线程均为 daemon，随进程退出自动终止。保留本方法供测试清理
+     * 与未来按需调用（如组合根收口后的显式生命周期管理）。
+     */
     fun shutdown()
 }
 
