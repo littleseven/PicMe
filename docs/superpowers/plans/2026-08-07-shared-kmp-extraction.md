@@ -584,7 +584,7 @@ git commit -m "refactor(shared): Phase 4.2 beauty 纯类型 + AccessState/MediaR
 
 ---
 
-## Task 5：model/ + runtime/ + capability/ 编排核心迁移（路线图 4.3 前半）
+## Task 5：model/ + runtime/ + capability/ 编排核心迁移（路线图 4.3 前半）✅ 已完成（2026-08-08，commit `5bbd4def`@并行分支，双审通过 APPROVED）
 
 runtime-core 最纯净的一批：19 个 PURE + 3 个 SEAM。SEAM 的解锁动作（EditParams/AgentIdGenerator/AgentCommands）在本批内完成。
 
@@ -600,7 +600,7 @@ runtime-core 最纯净的一批：19 个 PURE + 3 个 SEAM。SEAM 的解锁动�
 - Move: `tool/perception/UiObservationFormatter.kt`（+ 测试 `runtime-core/src/test/.../UiObservationFormatterTest.kt` → `shared/src/commonTest/`，JUnit4→kotlin.test）
 - Move: 对应单测 `runtime-core/src/test/.../model/command/{EditParamsTest,MemorySummaryTest,AgentCommandsFeedbackTest,CommandRiskTest}.kt` 等 → `shared/src/commonTest/` 同包路径（JUnit4→kotlin.test 改写：`org.junit.Test`→`kotlin.test.Test`，`org.junit.Assert.*`→`kotlin.test.assert*`）
 
-- [ ] **Step 1: PURE 批 git mv（19 文件）**
+- [x] **Step 1: PURE 批 git mv（19 文件）**（实际 21 文件；`GallerySummary`/`MediaAsset`/`LlmCallRecord`/`KoogMessageMemory` 已提前迁移，按裁决跳过）
 
 ```bash
 SRC=runtime-core/src/main/java/com/mamba/picme/agent/core
@@ -622,7 +622,7 @@ for f in model/command/CommandRisk.kt model/command/FeedbackAction.kt model/conf
 done
 ```
 
-- [ ] **Step 2: `EditParams` 去 org.json（D3）**
+- [x] **Step 2: `EditParams` 去 org.json（D3）**（kotlinx.serialization 实现经审查逐边界对齐 opt* 容错语义）
 
 `git mv` `model/command/EditParams.kt` 后，改造其 `fromJson`（现约 L43-71，参数 `org.json.JSONObject`，用 `opt/optDouble` 逐字段读取）：
 
@@ -638,23 +638,11 @@ fun fromJson(jsonString: String): EditParams {
 
 同步修改调用方（`ChatToolService.kt:228` 等处，`JSONObject(edits)` → 直接传 `edits` 字符串）。
 
-- [ ] **Step 3: `AgentModels.kt` 去 AtomicInteger（Task 2 产物替换）**
+- [x] **Step 3: `AgentModels.kt` 去 AtomicInteger（Task 2 产物替换）**（另同批 KMP 化清单漏报残留：`System.currentTimeMillis`×7→`kotlin.time.Clock`；`synchronized` 单例×2→`lazy(SYNCHRONIZED)`；`CrossPageCommandQueue` synchronized→协程 Mutex；`@Volatile`→`kotlin.concurrent.Volatile`/StateFlow——审查判定语义等价，Zero 回归）
 
-`git mv` 后：删除文件内 `object AgentIdGenerator`（约 L112-117，`AtomicInteger` 实现）与 `import java.util.concurrent.atomic.AtomicInteger`，引用点改用 Task 2 的 `expect object AgentIdGenerator`（同包 `model.context`，FQN 相同则零调用点变更）。
+- [x] **Step 4: 测试迁移与 kotlin.test 化**（8 文件，JUnit4 Parameterized 改 4 个独立 @Test，覆盖等价；含 Task 10 遗留 `JsRuntime.kt` 裸 `@Volatile` 补 import 编译修复）
 
-- [ ] **Step 4: 测试迁移与 kotlin.test 化**
-
-对每个随迁测试文件执行：`git mv` 到 `shared/src/commonTest/kotlin/<同包路径>`，然后：
-
-```kotlin
-// import 替换
-import org.junit.Test              → import kotlin.test.Test
-import org.junit.Assert.assertEquals → import kotlin.test.assertEquals
-// assertTrue/assertFalse/assertNull/assertNotNull 等同理
-// @Test(expected = X::class) → assertFailsWith<X> { ... }
-```
-
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**（`:shared:jvmTest` 55/0、`:shared:compileKotlinIosSimulatorArm64`、`:shared:compileAndroidMain`、`:runtime-core:testDebugUnitTest` 43/0、`:androidApp:assembleDebug` 全绿）
 
 Run: `./gradlew :shared:jvmTest`
 Expected: `BUILD SUCCESSFUL`，随迁测试全部 PASSED（数量 ≥ 迁移前 runtime-core 对应测试数）
@@ -662,12 +650,7 @@ Expected: `BUILD SUCCESSFUL`，随迁测试全部 PASSED（数量 ≥ 迁移前 
 Run: `./gradlew :runtime-core:assembleDebug :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`（包名不变零 import 改动；若报 unresolved，检查是否有漏迁的同包依赖）
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add shared/ runtime-core/ androidApp/
-git commit -m "refactor(shared): Phase 4.3 model/runtime/capability 编排核心迁 commonMain（EditParams 去 org.json）"
-```
+- [x] **Step 6: Commit**（实际 `5bbd4def`）
 
 ---
 
@@ -1255,3 +1238,5 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-07 | 初版：基于耦合点清单（specs/2026-08-07-runtime-core-platform-coupling-inventory.md）与路线图 Phase 4 编写；执行前置 = Phase 1 合并 + Phase 3 完成 |
 | 2026-08-08 | Task 4 执行偏差记录：① `MediaAsset.kt`（含 `MediaType`，PURE 零 import）从 Task 5 提前补迁——`UserPreferences` 与 `MediaRepository` 接口均引用 `agent.core.model.context.MediaType/MediaAsset`，属「被依赖文件同批补迁」规则适用；Task 5 执行时该文件视为已迁。② beauty-api 用 `api(project(":shared"))` 而非计划写的 `implementation`——迁走的三类型本是 beauty-api 公开 API 面，`implementation` 会让 beauty-engine 等消费者失解析。③ IntentSender 专有方法从接口移除后，androidApp 新增 `AndroidMediaRepository : MediaRepository` 子接口承载（计划允许「面向接口则需调整」），`MediaViewModel`/`ChatViewModelDependencies`/`AppContainer` 改面此子接口，分层约束不破。④ `UserPreferences.kt` 补 `import kotlin.jvm.JvmInline`（Native 后端不自动导入 kotlin.jvm 包），Android 行为零变更 |
 | 2026-08-08 | 并行流执行记录（Task 8/10/11 自 `71e6cf5d` 拉并行 worktree/分支，各自提交后合回主干）：**全局坑位回写**——① shared 的 KMP android library 插件**不产生 androidUnitTest source set**，Android 侧单测一律留原模块（runtime-core/androidApp）经 `:shared` 依赖解析符号，勿迁 shared；② shared 的 Android 编译任务名是 `:shared:compileAndroidMain`（非传统 AGP 的 `compileDebugKotlinAndroid`），后续 Task 验证命令同此。**Task 8**（`e49daff4`）：Step 4 调用点收口经裁决排除、归 Task 9 组合根一并收口；`dispatcherProvider` 构造参数同推迟（避免死代码）；附带迁移 `KoogMessageMemory.kt`（原 Task 6 PURE 项，Task 6 执行时视为已迁）；`KoogMessageMemoryTest.kt` 留 runtime-core，Task 14 删模块前需迁入 commonTest（勿遗漏）。**Task 10**（`d1d727cc`）：附带迁移 `GallerySummary.kt` + `LlmCallRecord.kt`（js/ 层硬依赖，原 Task 5/6 清单，执行时视为已迁）；`t.javaClass.simpleName` → `t::class.simpleName ?: "unknown"`。**Task 11**（`412c25d4`）：`KeywordSpotterEngineTest` 留 runtime-core（androidUnitTest 坑位①）；`VOICE_STACK.md`/`LOCAL_ENVIRONMENT.md` 旧 AAR 路径引用待 Task 15 文档流处理。四任务均经 spec/质量双审通过 |
+| 2026-08-08 | **Task 5**（`5bbd4def`，并行 worktree 执行，双审 APPROVED）：① PURE 批实际 21 文件（GallerySummary/MediaAsset/LlmCallRecord/KoogMessageMemory 按已迁裁决跳过）；② 清单漏报的 JVM 残留同批 KMP 化（编译器驱动的正当行为）：`System.currentTimeMillis`×7→`kotlin.time.Clock`（**未用计划写的 kotlinx-datetime**——纯 stdlib 更轻，后续 Task 同此惯例）；`synchronized` 单例×2→`lazy(SYNCHRONIZED)`（CapabilityRegistry/SceneManager）；`CrossPageCommandQueue` synchronized→协程 Mutex（enqueue/clear/size suspend 化，调用点 CapabilityRegistry 同步，`clearCommandQueue` 零外部调用方已核实）；`@Volatile`→`kotlin.concurrent.Volatile`/StateFlow；③ 修复 Task 10 已审代码 `JsRuntime.kt` 裸 `@Volatile` 补 import（纯编译修复，零语义变更）；④ JUnit4 Parameterized 改 4 个独立 @Test 覆盖等价（28 用例）；⑤ EditParams.fromJson 经审查逐边界对齐 org.json opt* 容错语义。审查 🔵 记录（不阻塞）：CrossPageCommandQueue 用 StateFlow 与同批 @Volatile 风格不一；startQueueProcessor check-then-act 竞态系既有问题（原版相同），可后续 compareAndSet |
+| 2026-08-08 | **提速裁决**：① Task 12 提前并行执行（不等 Task 9）——`ImageInferenceEngine` 接口由 Task 12 按 Task 9 Step 1 定义逐字创建，Task 9 执行时直接消费、跳过创建步；② 后续 Task commit 门槛轻量化——`:shared:jvmTest` + `:shared:compileAndroidMain` + `:runtime-core:testDebugUnitTest` 为 commit 前置，`:androidApp:assembleDebug` 改为每次合并后由主代理集中验证（包名不变、模块搬迁的 app 编译风险低，集中验证兜底） |
