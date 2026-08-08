@@ -10,7 +10,7 @@ import com.mamba.picme.data.remote.picme.IssueReportClient
 import com.mamba.picme.data.remote.picme.PoLangAuthClient
 import com.mamba.picme.data.repository.MediaFeedbackRepository
 import com.mamba.picme.domain.repository.ChatImageStore
-import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.AndroidMediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.MediaSearchEngine
 import com.mamba.picme.domain.tag.ControlledVocab
@@ -29,7 +29,7 @@ class ChatViewModelDependencies(
     val userSettingsRepository: UserSettingsRepository,
     val mediaSearchEngine: MediaSearchEngine,
     val mediaFeedbackRepository: MediaFeedbackRepository,
-    val mediaRepository: MediaRepository,
+    val mediaRepository: AndroidMediaRepository,
     val picMeAuthClient: PoLangAuthClient,
     val claudeChatClient: ClaudeChatClient = ClaudeChatClient(),
     val issueReportClient: IssueReportClient = IssueReportClient(),

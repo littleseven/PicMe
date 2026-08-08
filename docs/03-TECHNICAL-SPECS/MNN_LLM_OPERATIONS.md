@@ -1,7 +1,7 @@
 # 端侧 VLM 打标引擎运维手册
 
 > **文档编号**: TECH-SPEC-MNN-VLM-OPS-001  
-> **关联模块**: `:runtime-core` (LocalLlmEngine, MnnLlmClient, MnnResourceManager), `:androidApp` (AgentOrchestrator, MediaPager, TagGenerationScheduler)  
+> **关联模块**: `:shared`（LocalLlmEngine/MnnLlmClient 在 androidMain，AgentOrchestrator/AgentConfigurator 在 commonMain facade）, `:engines:mnn-core` (MnnResourceManager), `:engines:agent-native`（libagent_native.so JNI 桥构建）, `:androidApp` (MediaPager, TagGenerationScheduler)  
 > **最后更新**: 2026-08-03  
 > **维护者**: 项目开发者  
 >
@@ -270,9 +270,9 @@ VLM 请求释放  →  releaseLlm()
 | 组件 | 位置 | 职责 |
 |------|------|------|
 | `MnnResourceManager` | `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt` | 引用计数管理（VLM + 人脸检测）、生命周期监听、内存压力响应、事件分发 |
-| `LocalLlmEngine` | `runtime-core/.../inference/local/llm/LocalLlmEngine.kt` | `load()` 成功后调用 `acquireLlm()`；`unload()` 改为调用 `releaseLlm()`（仅服务 VLM 打标） |
+| `LocalLlmEngine` | `shared/src/androidMain/.../inference/local/llm/LocalLlmEngine.kt` | `load()` 成功后调用 `acquireLlm()`；`unload()` 改为调用 `releaseLlm()`（仅服务 VLM 打标） |
 | `MnnRoiDetector` / `MnnLandmarkDetector` | `engines/beauty-engine/.../facedetect/MnnRoiDetector.kt` 等 | 初始化时调用 `acquireFaceDetection()`；释放时调用 `releaseFaceDetection()` |
-| `SherpaOnnxAsrEngine` | `runtime-core/.../platform/voice/SherpaOnnxAsrEngine.kt` | ASR 引擎（Sherpa-ONNX）。**不参与 MNN 引用计数**——不再依赖 `libMNN.so` / `MnnResourceManager` / `MnnGlobalReleaseLock` |
+| `SherpaOnnxAsrEngine` | `shared/src/androidMain/.../platform/voice/SherpaOnnxAsrEngine.kt` | ASR 引擎（Sherpa-ONNX）。**不参与 MNN 引用计数**——不再依赖 `libMNN.so` / `MnnResourceManager` / `MnnGlobalReleaseLock` |
 | `VoiceCommandCoordinator` | `app/.../camera/voice/VoiceCommandCoordinator.kt` | 语音生命周期管理（直接释放 ASR 引擎，不经 `MnnResourceManager`） |
 | `CameraScreen` | `app/.../camera/CameraScreen.kt` | 监听 ON_RESUME / ON_PAUSE，联动 `MnnResourceManager`（场景切换） |
 | `PoLangApplication` | `app/.../PoLangApplication.kt` | `ActivityTracker` 计数，前后台切换通知 `MnnResourceManager` |
@@ -1227,12 +1227,12 @@ echo "Full log: $LOG_FILE"
 
 | 文件 | 说明 |
 |------|------|
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/facade/AgentOrchestrator.kt` | Agent 编排器 |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/facade/AgentConfigurator.kt` | 配置器，持有 `LocalLlmEngine` 单例 |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt` | VLM 打标引擎（仅 `imageInference`） |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt` | MNN LLM 客户端（VLM 打标 JNI 桥） |
+| `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/facade/AgentOrchestrator.kt` | Agent 编排器 |
+| `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/facade/AgentConfigurator.kt` | 配置器；`LocalLlmEngine` 由 Android 组合根（`androidApp/agent/AndroidAgentComposition.kt`）直构注入 |
+| `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt` | VLM 打标引擎（仅 `imageInference`） |
+| `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt` | MNN LLM 客户端（VLM 打标 JNI 桥，`libagent_native.so` 由 `:engines:agent-native` 构建） |
 | `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt` | 资源协调管理器（含 `MnnGlobalReleaseLock`） |
-| `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt` | ASR 引擎（Sherpa-ONNX，不经 MNN 资源管理） |
+| `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt` | ASR 引擎（Sherpa-ONNX，不经 MNN 资源管理） |
 | `androidApp/src/main/java/com/mamba/picme/features/camera/voice/VoiceCommandCoordinator.kt` | 语音协调器 |
 | `androidApp/src/main/java/com/mamba/picme/features/camera/CameraScreen.kt` | 相机页面 |
 | `androidApp/src/main/java/com/mamba/picme/PoLangApplication.kt` | 应用入口 |

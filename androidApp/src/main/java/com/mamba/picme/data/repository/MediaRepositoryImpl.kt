@@ -16,12 +16,14 @@ import com.mamba.picme.data.preferences.UserPreferencesRepository
 import com.mamba.picme.domain.model.AppLanguage
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.agent.core.model.context.MediaType
-import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.AccessState
+import com.mamba.picme.domain.repository.AndroidMediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import android.app.RecoverableSecurityException
 import android.content.IntentSender
@@ -30,7 +32,7 @@ import android.content.IntentSender
 class MediaRepositoryImpl(
     private val mediaDao: MediaDao,
     context: Context
-) : MediaRepository {
+) : AndroidMediaRepository {
 
     companion object {
         private const val TAG = "Gallery"
@@ -70,10 +72,26 @@ class MediaRepositoryImpl(
     }
 
     /**
-     * 获取待删除的 URI 列表（用于权限请求）
+     * 相册访问授权状态。冷流：每次收集时按当前权限实况映射。
+     * READ_MEDIA_IMAGES（或 33- 的 READ_EXTERNAL_STORAGE）→ Full；
+     * API 34+ 部分照片授权（READ_MEDIA_VISUAL_USER_SELECTED）→ Limited；否则 Denied。
      */
-    override fun getPendingDeleteUris(): List<Uri> {
-        return pendingDeleteUris.toList()
+    override val accessState: Flow<AccessState> = flow {
+        emit(currentAccessState())
+    }
+
+    private fun currentAccessState(): AccessState = when {
+        hasImageReadPermission() -> AccessState.Full
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            hasPermission(android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) -> AccessState.Limited
+        else -> AccessState.Denied
+    }
+
+    /**
+     * 获取待删除的 URI 字面值列表（用于权限请求）
+     */
+    override fun getPendingDeleteUris(): List<String> {
+        return pendingDeleteUris.map { uri -> uri.toString() }
     }
 
     /**

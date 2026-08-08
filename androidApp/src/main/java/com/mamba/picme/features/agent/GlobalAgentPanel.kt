@@ -125,7 +125,7 @@ fun GlobalAgentPanel(
 ) {
     val context = LocalContext.current
     val state = rememberGlobalAgentPanelState()
-    val orchestrator = remember { AgentOrchestrator.getInstance(context) }
+    val orchestrator = remember { AgentOrchestrator.getInstance() }
     val sceneManager = remember { SceneManager.getInstance() }
     val currentScene by sceneManager.currentScene.collectAsState()
     val agentScene = remember(currentScene) {

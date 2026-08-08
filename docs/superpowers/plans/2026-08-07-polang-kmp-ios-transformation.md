@@ -59,7 +59,7 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | **1** | agent-core → Koog 迁移（Android 侧）✅ **已完成（2026-08-07，merge `614a4fef` 入 main）** | 无 | agent-core 模块删除，AI 功能全链路回归，平台耦合点清单产出 |
 | **2** | 技术排雷 Spikes（可与 Phase 1 并行） | 无 | 三个 spike 全绿，任一失败回到选型重新评估 |
 | **3** | 项目改名 + 目录重组（纯机械，无行为变更）✅ **已完成（2026-08-08，merge `323c3e1a`；3.6 冒烟全绿）** | Phase 1 | `./gradlew assembleDebug` 通过，安装回归通过 |
-| **4** | shared KMP 模块抽取 | Phase 1、3 | Android 零回归，shared JVM 单测覆盖核心逻辑 |
+| **4** | shared KMP 模块抽取 ✅ **已完成（2026-08-08，merge `805870e5` 入 main；整合 PR#8/#9 后 `c1dc78e4`）** | Phase 1、3 | Android 零回归，shared JVM 单测覆盖核心逻辑 |
 | **5** | iOS App 骨架（含相机管线） | Phase 2、4 | TestFlight 内测版：相机预览 + 拍照 + 相册浏览 |
 | **6** | iOS 功能对齐与发布准备 | Phase 5 | TAG/Chat/设置逐页对齐，双端隐私政策就绪 |
 | **7** | 演进（CMP 逐屏评估、度量采集） | 持续 | — |
@@ -208,9 +208,9 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 - [x] **3.6 出口验证** ✅（2026-08-08 收口：合并 `323c3e1a` 入 main；本地目录改名 `~/AndroidStudioProjects/polang` + 绝对路径引用更新（kimi-cli.sh/fix_pipeline.py/AI_TOOLS.md）；7 个嵌套 worktree `git worktree repair` 修复完成（`.worktrees/` 3 个 + `.claude/worktrees/` 4 个，双向 gitdir 指针全部指向新路径）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，产物 `polang-debug.apk`）；真机安装冒烟全绿零崩溃：相册浏览 ✅ / 相机预览+拍照 ✅ / Chat 发消息远程往返 ✅ / TAG 扫描控制页 ✅（Pass 1 人脸检测运行中））
   - `./gradlew assembleDebug` 通过；设备安装 + 核心路径冒烟（相机/相册/Chat/TAG）；不合并回主干前由 review 子 agent 审 diff ✅（终审通过：零行为变更，源码唯一改动为 AppConfig.kt 一行）
 
-## Phase 4：shared KMP 模块抽取（约 3–5 周）
+## Phase 4：shared KMP 模块抽取（约 3–5 周）✅ 已完成（2026-08-08）
 
-> 独立细粒度计划：`docs/superpowers/plans/2026-08-07-shared-kmp-extraction.md` ✅ **已提前产出（2026-08-07）**——15 个 Task（骨架/平台原语/领域层/beauty 类型/编排核心/Koog 层/ToolService suspend 化/存储 seam/facade/JS/语音/VLM 归位/Android 专有归位/runtime-core 消亡/出口验证），含决策锁定 D1–D9 与降级预案。**执行仍需等 Phase 3 完成**（计划内路径按 Phase 3 后结构书写）。
+> 独立细粒度计划：`docs/superpowers/plans/2026-08-07-shared-kmp-extraction.md` ✅ **15 Task 全部完成（2026-08-08，合并入 main）**——（骨架/平台原语/领域层/beauty 类型/编排核心/Koog 层/ToolService suspend 化/存储 seam/facade/JS/语音/VLM 归位/Android 专有归位/runtime-core 消亡/出口验证），含决策锁定 D1–D9 与降级预案；每 Task 双审结论与执行偏差逐条记录在该计划「变更记录」。
 >
 > **输入**：Phase 1.5 产出的「runtime-core 平台耦合点清单」
 >
@@ -218,14 +218,14 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 
 抽取顺序（自底向上，每层 Android 先跑通）：
 
-- [x] **4.1 shared 骨架**：KMP 模块建立（commonMain/androidMain/iosMain），接入 androidApp 构建；CI 增加 shared JVM 单测
-- [x] **4.2 领域与网络层**：DTO、媒体领域模型、与 server 共享的数据契约；相册访问抽象为**能力接口**——`PhotoLibraryProvider` + `AccessState` 密封枚举（`Full / Limited / Denied / AddOnly(iOS)`），权限流程留各端 UI（对应双端隐私范式差异决策）
-- [ ] **4.3 Agent 层**：runtime-core 的 Koog 编排、CapabilityRegistry、PrivacyGuard、MemoryManager 迁入 commonMain；平台依赖（存储、日志、文件、时钟——来自 Phase 1.5 清单）收敛为 expect 接口
-- [ ] **4.4 JS 引擎抽象**：`agent/core/js/` 引擎无关层迁 commonMain；QuickJS 绑定留 androidMain，iOS 侧 actual 用 Phase 2.2 验证的桥接
-- [ ] **4.5 语音引擎抽象**：`platform/voice/` 接口层（`AsrEngine`、`KeywordSpotterEngine`、`VadDetector`）→ commonMain expect；Android 实现（`SherpaOnnxAsrEngine` 等）→ androidMain actual；iOS actual 留空或 Phase 6 实现
-- [ ] **4.6 Android 专有组件归位**：`tool/accessibility/` + `tool/perception/`（无障碍服务、ViewHierarchyExtractor 等）为纯 Android 架构，iOS 无等价物——沉入 `androidApp/`，不进 shared
-- [ ] **4.7 runtime-core 消亡**：确认所有可共享代码已迁出，Android 特有残余沉入 androidMain/androidApp；`:runtime-core` 模块删除
-- [ ] **4.8 出口**：Android 全功能零回归；shared commonMain 核心逻辑 JVM 单测覆盖（这是 iOS 侧调试成本的对冲——逻辑 bug 在 JVM/Android 侧可复现可调试）
+- [x] **4.1 shared 骨架**：✅ KMP 模块建立（commonMain/androidMain/iosMain/jvmMain，android/jvm/iosX64/iosArm64/iosSimulatorArm64 五 target），接入 androidApp 构建（Task 1-3）
+- [x] **4.2 领域与网络层**：✅ DTO/媒体领域模型/UserPreferences/MediaRepository 接口迁入 commonMain（Task 4/5）；相册能力接口 `PhotoLibraryProvider` + `AccessState` 留 Phase 5 iOS 接入时落地（Android 侧现有 MediaRepository 抽象已够用）
+- [x] **4.3 Agent 层**：✅ Koog 编排（KoogChatAgent/KoogReActAgent/RemoteChatEngine）、CapabilityRegistry、PrivacyGuard、MemoryManager、ToolService suspend 化迁入 commonMain；平台依赖收敛为 expect/接口注入（AgentDependencies 9 字段组合根，`androidApp/agent/AndroidAgentComposition.kt`）（Task 6-9/12）
+- [x] **4.4 JS 引擎抽象**：✅ `agent/core/js/` 引擎无关层迁 commonMain；QuickJS 绑定与应用 handler 留 `:androidApp`（Task 10）
+- [x] **4.5 语音引擎抽象**：✅ 接口层 commonMain，SherpaOnnx 实现 androidMain（Task 11）；iOS actual 留 Phase 6
+- [x] **4.6 Android 专有组件归位**：✅ `tool/accessibility/` + `tool/perception/` + RemoteControlToolService 沉入 `androidApp/`（Task 13）
+- [x] **4.7 runtime-core 消亡**：✅ `:runtime-core` 模块删除（Task 14）；VLM JNI 拆 `:engines:agent-native`（Task 12 降级形态，审查批准）
+- [x] **4.8 出口**：✅ Android 全功能零回归（集中验证全绿 + 设备冒烟 4/4 PASS）；shared commonMain 核心逻辑 JVM 单测 107 用例全绿（Task 15）
 
 ## Phase 5：iOS App 骨架（设计 6–8 周；原估 6–10 周含手写 UI 学习缓冲，S4 后下调）
 
@@ -296,4 +296,6 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 | 2026-08-08 | 修订八：Phase 3 主体完成 ✅——细粒度计划 plans/2026-08-07-repo-restructure.md 8 Task 全执行（子代理驱动 + 每 Task 双审）：Task 2/3 目录重组（`9d06dec7`/`123447df`，含 CMakeLists 跨模块路径漏项修复）、Task 4 scripts/CI（`830e63c2`）、Task 5 文档 50 文件（`4f08ca2c`，README 删 JitPack 死段、MODULE_ARCHITECTURE 去 :agent-core）、Task 6 server 配置（`1db37a4f`）；终审「零行为变更」确认（唯一源码改动 AppConfig.kt 一行）后合并入 main（`323c3e1a`，README 与并行工具冲突已解——保留其重写版 + 应用改名）；Task 7 GitHub rename → `littleseven/polang` ✅（fetch/push URL 已更新验证）；Task 8 本地目录改名 `~/AndroidStudioProjects/polang` ✅ + 绝对路径引用更新；3.6 改名后构建冒烟与嵌套 worktree repair 待补 |
 | 2026-08-08 | 修订九：Phase 3 全部收口 ✅——3.6 出口验证补齐：7 个嵌套 worktree `git worktree repair`（双向 gitdir 指针 `langchain4android`→`polang`，无 prunable 残留）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，`polang-debug.apk` 80M）；真机安装冒烟零崩溃（相册浏览/相机预览+拍照/Chat 远程消息往返「pong ✅」/TAG 扫描控制页 Pass 1 运行中）；绝对路径引用更新（AI_TOOLS.md、kimi-cli.sh、fix_pipeline.py）随本修订提交。**Phase 3 完成，Phase 4（shared KMP 抽取）前置条件 P1 满足** |
 | 2026-08-08 | 修订十：Phase 5 设计文档产出 ✅（specs/2026-08-08-ios-app-skeleton-design.md，commit `7dc41f82`）——决策锁定 S1–S10：分模块边界（相册 Swift 主导 presentation/相机纯 Swift+Metal/Agent 薄壳复用 shared）、美颜方案 A（Swift/Metal 宿主 + GLSL→MSL，**否 C++ GLES 双端方案**——deprecated API + 动 Android 已验证宿主冲撞零回归）、美颜 MVP 子集（磨皮/美白/瘦脸/大眼+LUT 进 5.4，全量 25 shader 移 Phase 6）、**UI 生产方式改为「AI 生成 + 可调试性内建」**（S4，取代「前几页自己写」）、双端体验一致为最高原则（S5）；工期 6–8 周；细粒度计划待 Phase 4 收口后经 writing-plans 一次对准终态 |
-| 2026-08-08 | 修订十一：确立**并行执行模型**——多 `kimi-code` 实例 + 按任务选模型（K3/GLM），harness 统一、模型当旋钮（不混用 Claude Code harness）。新增 §3.1：双轨分工（Kotlin/KMP=K3、Swift/Metal=GLM）+ Phase 5 功能段细分（基建-KMP=K3 / 基建-iOS=GLM / 相册段=K3 / 相机段=GLM / 收敛共担）+ 依赖并行图 + 模型分配原则。**关键修订：松弛 Phase 5→Phase 4 依赖**（Phase 5 仅需 4.2，4.3–4.8 属 Phase 6.2；Task 2/6/shader 零 shared 依赖可并行，原被隐式卡住 ≈1.5–2w 窗口释放）。§5 增并行实例纪律（独立 worktree / 文档归属 / 交接靠计划+API 不靠实例直连）。同步勾选 4.1/4.2 ✅ |
+| 2026-08-08 | 修订十一：**Phase 4 全部收口 ✅**——15 Task 全部完成（细计划 `2026-08-07-shared-kmp-extraction.md` 变更记录逐条在案），4.1-4.8 全勾；runtime-core 消亡、`:shared` 五 target 就位、组合根 `AndroidAgentComposition` 唯一直构、107 JVM 用例全绿、设备冒烟 4/4 PASS。关键偏差：4.2 相册能力接口（PhotoLibraryProvider/AccessState）缓至 Phase 5 iOS 接入时落地；4.8 iOS 消费验证降级为骨架级（klib 三 target 编译 + API 面零泄漏，XCFramework/真机留 Phase 5）。**Phase 5（iOS 骨架）前置条件 P4 满足，Task 0 硬门禁解除** |
+| 2026-08-08 | 修订十二：**Phase 4 合并 main 并推送 ✅**（`805870e5` 合 main → 整合另一会话 PR#8（Koog baseParams 死代码修复，`KoogPromptFactory` 落 `shared/commonMain`、测试转 kotlin.test 适配 commonTest 跨平台编译）+ PR#9（前台服务超时根治）→ `c1dc78e4` 推送 origin/main；整合后 `assembleDebug + jvmTest` 全绿）。冲突裁决：agent 文档/CLAUDE.md 取 `:shared` 终态表述、build.gradle.kts 取 main 新签名块、roadmap 双修订并存。清理：13 个 p4 worktree + 12 个已合并分支删除；`refactor/shared-kmp-extraction` 分支保留（内容 = origin/main）。**Phase 4 正式收口，Phase 5（iOS 骨架）随时可开工** |
+| 2026-08-08 | 修订十三（合并自本地 `41acedc1`，原编号修订十一，并入时顺移）：确立**并行执行模型**——多 `kimi-code` 实例 + 按任务选模型（K3/GLM），harness 统一、模型当旋钮（不混用 Claude Code harness）。新增 §3.1：双轨分工（Kotlin/KMP=K3、Swift/Metal=GLM）+ Phase 5 功能段细分（基建-KMP=K3 / 基建-iOS=GLM / 相册段=K3 / 相机段=GLM / 收敛共担）+ 依赖并行图 + 模型分配原则。**关键修订：松弛 Phase 5→Phase 4 依赖**（Phase 5 仅需 4.2，4.3–4.8 属 Phase 6.2；Task 2/6/shader 零 shared 依赖可并行，原被隐式卡住 ≈1.5–2w 窗口释放）。§5 增并行实例纪律（独立 worktree / 文档归属 / 交接靠计划+API 不靠实例直连）。同步勾选 4.1/4.2 ✅ |

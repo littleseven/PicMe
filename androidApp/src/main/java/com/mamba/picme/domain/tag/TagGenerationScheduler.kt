@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.room.withTransaction
+import com.mamba.picme.agent.AndroidAgentComposition
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
@@ -101,10 +102,10 @@ class TagGenerationScheduler(
                     return "florence2_base"
                 }
             }
-            val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
+            val engine = AndroidAgentComposition.localLlmEngine
             return TaggerModelSelector.resolve(
                 raw = raw,
-                isAvailable = { key -> engine.isModelAvailable(key, context) }
+                isAvailable = { key -> engine.isModelAvailable(key) }
             )
         }
 
@@ -219,7 +220,7 @@ class TagGenerationScheduler(
     private val openClGuardian: OpenClGuardian by lazy {
         OpenClGuardian(
             context = context,
-            engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine(),
+            engine = AndroidAgentComposition.localLlmEngine,
             prefs = userSettingsRepository,
             modelId = taggerModelKey
         )
@@ -238,7 +239,7 @@ class TagGenerationScheduler(
             roiDevice = DevicePreference.FORCE_GPU,
             landmarkDevice = DevicePreference.FORCE_GPU
         ))
-        val llmEngine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
+        val llmEngine = AndroidAgentComposition.localLlmEngine
         val mobileClip = MobileClipEngine(context)
         val tokenizer = MobileClipTokenizer(context)
         val classifier = MobileClipTagClassifier(mobileClip, tokenizer, vocab)
@@ -384,7 +385,7 @@ class TagGenerationScheduler(
             if (strategy.needsZhTranslate) enToZhTranslator.translate(caption) else caption
         } else {
             if (!ensureModelLoaded()) return null
-            val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
+            val engine = AndroidAgentComposition.localLlmEngine
             val result = engine.imageInference(
                 bitmap = bitmap,
                 systemPrompt = strategy.systemPrompt,
@@ -1099,10 +1100,10 @@ class TagGenerationScheduler(
     }
 
     private suspend fun ensureModelLoaded(): Boolean {
-        val orchestrator = AgentOrchestrator.getInstance(context)
-        val engine = orchestrator.localModelService.getLlmEngine()
+        val orchestrator = AgentOrchestrator.getInstance()
+        val engine = AndroidAgentComposition.localLlmEngine
 
-        if (!engine.isModelAvailable(taggerModelKey, context)) {
+        if (!engine.isModelAvailable(taggerModelKey)) {
             Log.w(TAG, "Model not downloaded: $taggerModelKey")
             return false
         }
@@ -1582,7 +1583,7 @@ class TagGenerationScheduler(
      */
     private fun unloadLlm() {
         try {
-            val engine = AgentOrchestrator.getInstance(context).localModelService.getLlmEngine()
+            val engine = AndroidAgentComposition.localLlmEngine
             if (engine.isLoaded) {
                 Log.i(TAG, "Unloading LLM model to free memory")
                 engine.trimMemory()

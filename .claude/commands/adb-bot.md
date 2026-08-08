@@ -361,7 +361,7 @@ adb logcat -d > /tmp/logcat.txt
 
 ## 相关文件
 
-- [commands.md](commands.md) - 完整相机控制命令列表
+- [commands.md](skills/adb-bot/commands.md) - 完整相机控制命令列表
 - [ui-driver](/ui-driver) — UI Driver
 - [image-quality-checker](/image-quality-checker) — 截图质量分析
 

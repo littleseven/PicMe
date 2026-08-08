@@ -14,6 +14,24 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
+# 扫描时排除的镜像/生成目录（相对项目根）
+EXCLUDED_DIRS = (
+    ".git/",
+    ".worktrees/",
+    ".claude/worktrees/",
+    "docs-site/docs/",   # sync-docs.sh 生成物
+    "build/",
+    "temp/gpupixel/",
+    ".lingma/skills/",
+    ".kimi/skills/",
+    ".openclaw/skills/",
+)
+
+
+def is_excluded(rel_path: Path) -> bool:
+    s = str(rel_path) + "/"
+    return any(s.startswith(d) or f"/{d}" in s for d in EXCLUDED_DIRS)
+
 # 已删除但仍可能被引用的文档
 DELETED_FILES = {
     "Analysis_Report.md",
@@ -47,7 +65,7 @@ def check_deleted_file_references() -> list:
     for md_file in md_files:
         # 跳过 .git 和 temp/gpupixel
         rel_path = md_file.relative_to(PROJECT_ROOT)
-        if ".git" in str(rel_path) or "temp/gpupixel" in str(rel_path):
+        if is_excluded(rel_path):
             continue
 
         content = md_file.read_text(encoding="utf-8")
@@ -90,11 +108,7 @@ def check_broken_links() -> list:
     issues = []
     md_files = [
         f for f in PROJECT_ROOT.rglob("*.md")
-        if ".git" not in str(f)
-        and "temp/gpupixel" not in str(f)
-        and ".lingma/skills/" not in str(f)
-        and ".kimi/skills/" not in str(f)
-        and ".openclaw/skills/" not in str(f)
+        if not is_excluded(f.relative_to(PROJECT_ROOT))
     ]
 
     link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
@@ -112,7 +126,14 @@ def check_broken_links() -> list:
             if not link_target.endswith(".md"):
                 continue
 
+            # skills/TEMPLATE.md 的占位链接不检查
+            if rel_path == Path("skills/TEMPLATE.md"):
+                continue
+
             target_path = base_dir / link_target
+            # 回退：skills/ 与 .claude/commands/ 内链接按项目根相对解析
+            if not target_path.exists():
+                target_path = PROJECT_ROOT / link_target
             if not target_path.exists():
                 issues.append(
                     f"  [断裂链接] {rel_path}: '{link_target}' 不存在"

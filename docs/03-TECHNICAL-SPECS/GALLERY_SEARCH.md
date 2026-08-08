@@ -3,7 +3,7 @@
 > **状态**: 已实施 / 已补充 LLM 意图标准化  
 > **最后更新**: 2026-08-03  
 > **维护者**: RD Agent  
-> **关联代码**: `androidApp/src/main/java/com/mamba/picme/domain/search/`、`androidApp/src/main/java/com/mamba/picme/features/chat/capability/`、`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/`
+> **关联代码**: `androidApp/src/main/java/com/mamba/picme/domain/search/`、`androidApp/src/main/java/com/mamba/picme/features/chat/capability/`、`shared/src/commonMain/kotlin/com/mamba/picme/agent/core/model/context/`
 
 ---
 
@@ -136,7 +136,7 @@ PoLang 相册支持用户用自然语言搜索本地照片，例如：
 
 ### 4.0 LLM 意图标准化（新增）
 
-`runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/SearchIntent.kt`
+`shared/src/commonMain/kotlin/com/mamba/picme/agent/core/model/context/SearchIntent.kt`
 
 在 Chat 场景下，搜索不再依赖纯规则解析。LLM 在解析 `search_media` / `refine_media_search` 命令时，同时输出一个标准化的 `SearchIntent`：
 
@@ -330,12 +330,12 @@ MediaSearchEngine.search(filter)
 | 单阶段执行 | `domain/tag/TagGenerationScheduler.kt` | Pass 1/2/3 原子任务（Pass 3 按 `taggerModelKey` 分流 Florence-2 / Qwen3-VL-2B） |
 | 数据访问 | `data/local/MediaDao.kt` | 搜索相关 DAO 方法 |
 | UI | `features/gallery/GalleryScreen.kt` | 搜索状态、结果展示、批量操作 |
-| **LLM 意图模型** | `runtime-core/.../model/context/SearchIntent.kt` | `SearchIntent` / `TimeRange` 定义 |
-| **命令定义** | `runtime-core/.../model/command/AgentCommands.kt` | `SearchMedia` / `RefineMediaSearch` 等 |
-| ~~**本地 Prompt**~~ | ~~`runtime-core/.../inference/local/prompt/LocalPromptBuilder.kt`~~ | 已随端侧文本 LLM 移除（2026-08-02） |
-| ~~**本地解析器**~~ | ~~`runtime-core/.../inference/local/parser/LocalCommandParser.kt`~~ | 已随端侧文本 LLM 移除（2026-08-02） |
-| **远程 Prompt** | `runtime-core/.../inference/remote/prompt/RemotePromptBuilder.kt` | Tool Spec 中定义 `intent` 参数 |
-| **远程解析器** | `runtime-core/.../inference/remote/parser/ToolCallCommandParser.kt` | `arguments.intent` → `SearchIntent` |
+| **LLM 意图模型** | `shared/.../model/context/SearchIntent.kt`（commonMain） | `SearchIntent` / `TimeRange` 定义 |
+| **命令定义** | `shared/.../model/command/AgentCommands.kt`（commonMain） | `SearchMedia` / `RefineMediaSearch` 等 |
+| ~~**本地 Prompt**~~ | ~~`inference/local/prompt/LocalPromptBuilder.kt`~~ | 已随端侧文本 LLM 移除（2026-08-02） |
+| ~~**本地解析器**~~ | ~~`inference/local/parser/LocalCommandParser.kt`~~ | 已随端侧文本 LLM 移除（2026-08-02） |
+| **远程 Prompt** | `shared/.../inference/remote/prompt/RemotePromptBuilder.kt`（commonMain） | Tool Spec 中定义 `intent` 参数 |
+| ~~**远程解析器**~~ | ~~`inference/remote/parser/ToolCallCommandParser.kt`~~ | 已随 Phase 5 删除（tool_calls 由 Koog agent 循环内直接 `CapabilityRegistry.dispatch`） |
 | **Chat 搜索能力** | `features/chat/capability/ChatSearchCapability.kt` | CHAT 场景搜索命令分发 |
 | **Chat 执行层** | `features/chat/ChatViewModel.kt` | `SearchIntent` → `StructuredFilter` → `MediaSearchEngine.search(filter)` |
 

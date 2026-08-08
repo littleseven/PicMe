@@ -35,6 +35,7 @@ import com.mamba.picme.agent.core.remote.config.RemoteModelFactory
 import com.mamba.picme.core.identity.DeviceIdProvider
 import com.mamba.picme.agent.core.model.config.AiAgentMode
 import com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel
+import com.mamba.picme.agent.AndroidAgentComposition
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.js.JsRuntime
 import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
@@ -89,6 +90,13 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         /** 远程拍照回传：单次最多回传张数（防异常刷屏）。 */
         private const val MAX_REMOTE_PHOTOS_PER_REPLY = 10
+
+        /**
+         * 推荐模型预下载冷启动错峰延迟：避开 Application.onCreate 主线程峰值。
+         * 冷启动期立即 startForegroundService 会因主线程被初始化占满 → Service.onCreate
+         * 内 startForeground 超时 → ForegroundServiceDidNotStartInTimeException。延迟到主线程空闲后触发。
+         */
+        private const val RECOMMENDED_AUTO_DOWNLOAD_STARTUP_DELAY_MS = 5_000L
     }
 
     val applicationScope = CoroutineScope(SupervisorJob())
@@ -191,6 +199,9 @@ class PoLangApplication : Application(), ImageLoaderFactory {
             Logger.setModuleConfig(config)
         }
 
+        // Android 组合根：构建全部平台实现并注入 AgentOrchestrator（须早于一切 getInstance() 调用）
+        AndroidAgentComposition.initialize(this)
+
         // 注册应用级 Capability（只注册一次，永不注销）
         initializeCapabilities()
 
@@ -207,7 +218,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 预配置 AgentOrchestrator 默认远程推理配置
         // gatewayToken 异步从 DataStore 加载（syncRemoteModelConfigToOrchestrator）
         // modelId 为端侧 VLM 打标模型（qwen3_vl_2b），仅作 localModelService 默认模型
-        AgentOrchestrator.getInstance(this).configure(
+        AgentOrchestrator.getInstance().configure(
             mode = AiAgentMode.REMOTE,
             modelId = "qwen3_vl_2b",
             privacyLevel = AiAgentPrivacyLevel.STRICT,
@@ -218,7 +229,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         // 安装 LLM 调用 / tool 执行指标记录器（全构建注入）。
         // release 构建仅落纯指标（model/latency/tokens/success/errorMessage 等），
         // 绝不记录消息内容（隐私红线）；DEBUG 构建额外记录 request/response 全文。
-        // runtime-core 的 Koog agent（KoogChatAgent/KoogReActAgent）在每次 LLM 调用完成时经
+        // :shared 的 Koog agent（KoogChatAgent/KoogReActAgent）在每次 LLM 调用完成时经
         // RemoteModelFactory.recorder 录制 LlmCallRecord，
         // CommandExecutor 汇聚全部 tool 执行并上报指标，均落库到独立 DB（polang_llm_log）。
         RemoteModelFactory.captureContent = BuildConfig.DEBUG
@@ -286,7 +297,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         // 推荐模型 WiFi 静默预下载：注册网络监听 + 启动时初始检查
         registerRecommendedAutoDownloadMonitor()
-        applicationScope.launch { recommendedAutoDownloader.triggerIfEligible() }
+        // 错峰：冷启动立即触发会使 startForegroundService 的 onCreate 排在主线程峰值后 → startForeground 超时崩溃。
+        applicationScope.launch {
+            delay(RECOMMENDED_AUTO_DOWNLOAD_STARTUP_DELAY_MS)
+            recommendedAutoDownloader.triggerIfEligible()
+        }
 
         // 一次性清理已下线的 smolvlm_500m 模型目录（幂等：不存在则空操作）
         purgeSmolVlmIfFirstRun()
@@ -307,7 +322,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                 request,
                 object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: Network) {
-                        applicationScope.launch { recommendedAutoDownloader.triggerIfEligible() }
+                        // 网络恢复同样错峰，避免与冷启动峰值叠加。
+                        applicationScope.launch {
+                            delay(RECOMMENDED_AUTO_DOWNLOAD_STARTUP_DELAY_MS)
+                            recommendedAutoDownloader.triggerIfEligible()
+                        }
                     }
                 }
             )
@@ -416,7 +435,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     // distinctUntilChanged：无关 DataStore 写入会触发重放射，
                     // 值未变时跳过重配，避免打断正在运行的 agent 任务
                 }.distinctUntilChanged().collect { (mode, privacyLevel) ->
-                    val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
+                    val orchestrator = AgentOrchestrator.getInstance()
                     // 只同步 mode 相关参数，remoteConfig 由 syncRemoteModelConfigToOrchestrator 独立管理
                     // 避免两个 flow 竞态时 gatewayToken 被空值覆盖
                     orchestrator.configure(
@@ -482,7 +501,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                     // 重放射；值未变时跳过——此前每次重放射都无条件 clearFeishuAgent()，
                     // 会把正在执行多轮工具调用的飞书 agent 直接 shutdown（"Task cancelled"）
                 }.distinctUntilChanged().collect { (configsJson, selectedModelId, serverToken) ->
-                    val orchestrator = AgentOrchestrator.getInstance(this@PoLangApplication)
+                    val orchestrator = AgentOrchestrator.getInstance()
                     // deviceId 独立注入 AgentConfigurator，不受后续 remoteConfig 覆盖影响（访客试用 X-Device-Id）
                     orchestrator.setDeviceId(deviceIdProvider.get())
 
@@ -701,7 +720,7 @@ class PoLangApplication : Application(), ImageLoaderFactory {
         Logger.i(TAG, "- GalleryCapability: Application-scoped (Feishu background search)")
         Logger.i(TAG, "- AiOptimizeCapability: Application-scoped")
 
-        val orchestrator = AgentOrchestrator.getInstance(this)
+        val orchestrator = AgentOrchestrator.getInstance()
         orchestrator.registerCapability(GalleryCapability.getInstance())
         orchestrator.registerCapability(SettingsCapability.getInstance())
         Logger.i(TAG, "- SettingsCapability: SETTINGS-scoped (change_theme/language 等，补注册)")

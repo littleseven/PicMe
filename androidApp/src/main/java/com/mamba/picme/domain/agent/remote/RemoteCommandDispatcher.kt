@@ -33,7 +33,8 @@ import java.util.UUID
  * **ANR 防护**：
  * - 前一个任务未完成时收到新消息，自动取消旧任务
  * - 超时保护（120 秒），避免 LLM 推理长时间占用 CPU
- * - 使用 Dispatchers.IO 避免阻塞 Default 调度器
+ * - 相册直搜路径走 Dispatchers.IO；ReAct 路径由 `processRemoteImInput` 内部切
+ *   orchestratorDispatcher，外层无双跳
  */
 class RemoteCommandDispatcher(
     private val channel: RemoteChannel,
@@ -44,7 +45,7 @@ class RemoteCommandDispatcher(
 
     private val tag = "RemoteDispatcher"
     private val appContext = context.applicationContext
-    private val orchestrator = AgentOrchestrator.getInstance(context)
+    private val orchestrator = AgentOrchestrator.getInstance()
 
     /** 当前会话 ID = 激活通道 id（feishu / telegram），每次 dispatch 动态读取。 */
     private fun sessionId(): String = channel.channelId.ifBlank { "remote" }
@@ -115,50 +116,53 @@ class RemoteCommandDispatcher(
             return
         }
 
-        withContext(Dispatchers.IO) {
-            channel.sendMessage("⏳ 正在处理您的请求...", messageId)
+        // ReAct 路径不再外层切 Dispatchers.IO：processRemoteImInput 内部已切
+        // orchestratorDispatcher（双跳无意义）；channel.sendMessage 为非挂起 fire-and-forget、
+        // Room DAO 挂起函数自切内部 executor，均不依赖外层上下文。
+        channel.sendMessage("⏳ 正在处理您的请求...", messageId)
 
-            val wm = appContext.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-            if (wm != null) {
-                // ── ReAct Agent 路径（统一走 AgentOrchestrator）──
-                try {
-                    val result = withTimeout(TIMEOUT_MS) {
-                        orchestrator.processRemoteImInput(text, wm, TIMEOUT_MS)
-                    }
-                    val reply = result.fold(
-                        onSuccess = { it },
-                        onFailure = { error -> "❌ ${error.message ?: "未知错误"}" }
-                    )
-                    Logger.i(tag, "远程命令执行完毕，回复：$reply")
+        // WindowManager 可用性门禁保留（组合根的飞书 RPA 工具集按需自取 WindowManager，
+        // 不可用时走回退路径而非让 agent 构建期崩溃）
+        val wmAvailable = appContext.getSystemService(Context.WINDOW_SERVICE) != null
+        if (wmAvailable) {
+            // ── ReAct Agent 路径（统一走 AgentOrchestrator）──
+            try {
+                val result = withTimeout(TIMEOUT_MS) {
+                    orchestrator.processRemoteImInput(text, TIMEOUT_MS)
+                }
+                val reply = result.fold(
+                    onSuccess = { it },
+                    onFailure = { error -> "❌ ${error.message ?: "未知错误"}" }
+                )
+                Logger.i(tag, "远程命令执行完毕，回复：$reply")
 
-                    // [飞书拍照] 如果包含拍照命令，Agent 回复改为"处理中"提示
-                    // 实际拍照成功/失败由 observeFeishuPhotoCapture 通知
-                    val isPhotoCommand = text.contains("拍照") || text.contains("拍张") || text.contains("拍照片")
-                    val finalReply = if (isPhotoCommand) {
-                        // 如果 Agent 已经说了类似"拍好了"的话，保持不变
-                        // 否则替换为处理中提示
-                        if (reply.contains("拍") && (reply.contains("好") || reply.contains("成功") || reply.contains("完成"))) {
-                            "📸 正在拍照，请稍候..."
-                        } else {
-                            reply
-                        }
+                // [飞书拍照] 如果包含拍照命令，Agent 回复改为"处理中"提示
+                // 实际拍照成功/失败由 observeFeishuPhotoCapture 通知
+                val isPhotoCommand = text.contains("拍照") || text.contains("拍张") || text.contains("拍照片")
+                val finalReply = if (isPhotoCommand) {
+                    // 如果 Agent 已经说了类似"拍好了"的话，保持不变
+                    // 否则替换为处理中提示
+                    if (reply.contains("拍") && (reply.contains("好") || reply.contains("成功") || reply.contains("完成"))) {
+                        "📸 正在拍照，请稍候..."
                     } else {
                         reply
                     }
-
-                    // 持久化 Agent 回复
-                    saveAgentMessage(finalReply)
-                    channel.sendMessage(finalReply, messageId)
-                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                    val timeoutMsg = "⏰ 处理超时（${TIMEOUT_MS / 1000}秒），请稍后重试"
-                    saveAgentMessage(timeoutMsg)
-                    channel.sendMessage(timeoutMsg, messageId)
+                } else {
+                    reply
                 }
-            } else {
-                // ── 回退路径 ──
-                Logger.i(tag, "WindowManager 不可用，回退到原有路径")
-                fallbackProcess(text, messageId)
+
+                // 持久化 Agent 回复
+                saveAgentMessage(finalReply)
+                channel.sendMessage(finalReply, messageId)
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                val timeoutMsg = "⏰ 处理超时（${TIMEOUT_MS / 1000}秒），请稍后重试"
+                saveAgentMessage(timeoutMsg)
+                channel.sendMessage(timeoutMsg, messageId)
             }
+        } else {
+            // ── 回退路径 ──
+            Logger.i(tag, "WindowManager 不可用，回退到原有路径")
+            fallbackProcess(text, messageId)
         }
     }
 
@@ -300,7 +304,7 @@ class RemoteCommandDispatcher(
     /**
      * 直接执行相册搜索（并可选预览第 N 张），不经过 LLM ReAct 循环。
      */
-    private fun executeDirectGallerySearch(query: String, previewIndex: Int?, wm: WindowManager): String {
+    private suspend fun executeDirectGallerySearch(query: String, previewIndex: Int?, wm: WindowManager): String {
         return try {
             val toolService = RemoteControlToolService(wm)
             val navigateResult = toolService.navigateTo("gallery")

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -6,23 +8,25 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
-import java.util.Properties
-
 // Release signing config —— 从环境变量读取（System.getenv，非 gradle.properties）。
 // 本地构建请在 shell profile（如 ~/.zshrc）export：POLANG_RELEASE_STORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD。
 // STORE_FILE 可省略：未设置时回退到项目内置 keystore（defaultReleaseKeystore），故直接 gradle 或
 // release-automation.sh 也能出正式签名包；CI 检出无该文件时留空 → 回退 debug 签名。发版推荐 ./scripts/build.sh release。
 // 兼容旧命名 PICME_RELEASE_*（即将废弃）。
 val defaultReleaseKeystore = file("keystore/picme-release.jks")
-val releaseStoreFile: String = System.getenv("POLANG_RELEASE_STORE_FILE")
-    ?: System.getenv("PICME_RELEASE_STORE_FILE")
-    ?: if (defaultReleaseKeystore.exists()) defaultReleaseKeystore.absolutePath else ""
-val releaseStorePassword: String = System.getenv("POLANG_RELEASE_STORE_PASSWORD")
-    ?: System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
-val releaseKeyAlias: String = System.getenv("POLANG_RELEASE_KEY_ALIAS")
-    ?: System.getenv("PICME_RELEASE_KEY_ALIAS") ?: ""
-val releaseKeyPassword: String = System.getenv("POLANG_RELEASE_KEY_PASSWORD")
-    ?: System.getenv("PICME_RELEASE_KEY_PASSWORD") ?: ""
+val releaseStoreFile: String =
+    System.getenv("POLANG_RELEASE_STORE_FILE")
+        ?: System.getenv("PICME_RELEASE_STORE_FILE")
+        ?: if (defaultReleaseKeystore.exists()) defaultReleaseKeystore.absolutePath else ""
+val releaseStorePassword: String =
+    System.getenv("POLANG_RELEASE_STORE_PASSWORD")
+        ?: System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
+val releaseKeyAlias: String =
+    System.getenv("POLANG_RELEASE_KEY_ALIAS")
+        ?: System.getenv("PICME_RELEASE_KEY_ALIAS") ?: ""
+val releaseKeyPassword: String =
+    System.getenv("POLANG_RELEASE_KEY_PASSWORD")
+        ?: System.getenv("PICME_RELEASE_KEY_PASSWORD") ?: ""
 
 // 飞书远程控制 AppId/AppSecret（编译时从 local.properties 或环境变量注入。默认空字符串）
 // local.properties: polang.feishu.app.id=cli_xxxxx, polang.feishu.app.secret=yyyyy
@@ -33,19 +37,26 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
-val feishuAppId: String = localProperties.getProperty("polang.feishu.app.id")
-    ?: localProperties.getProperty("picme.feishu.app.id")
-    ?: System.getenv("POLANG_FEISHU_APP_ID")
-    ?: System.getenv("PICME_FEISHU_APP_ID") ?: ""
-val feishuAppSecret: String = localProperties.getProperty("polang.feishu.app.secret")
-    ?: localProperties.getProperty("picme.feishu.app.secret")
-    ?: System.getenv("POLANG_FEISHU_APP_SECRET")
-    ?: System.getenv("PICME_FEISHU_APP_SECRET") ?: ""
+val feishuAppId: String =
+    localProperties.getProperty("polang.feishu.app.id")
+        ?: localProperties.getProperty("picme.feishu.app.id")
+        ?: System.getenv("POLANG_FEISHU_APP_ID")
+        ?: System.getenv("PICME_FEISHU_APP_ID") ?: ""
+val feishuAppSecret: String =
+    localProperties.getProperty("polang.feishu.app.secret")
+        ?: localProperties.getProperty("picme.feishu.app.secret")
+        ?: System.getenv("POLANG_FEISHU_APP_SECRET")
+        ?: System.getenv("PICME_FEISHU_APP_SECRET") ?: ""
 
 // 远程诊断上报：构建时的 git short SHA（注入 BuildConfig.GIT_SHA）
-val gitSha: String = providers.exec {
-    commandLine("git", "rev-parse", "--short", "HEAD")
-}.standardOutput.asText.get().trim().ifEmpty { "unknown" }
+val gitSha: String =
+    providers
+        .exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText
+        .get()
+        .trim()
+        .ifEmpty { "unknown" }
 
 detekt {
     buildUponDefaultConfig = true
@@ -132,10 +143,11 @@ android {
     buildTypes {
         release {
             // 通过 project property 控制是否启用混淆，release-plain 模式不混淆
-            isMinifyEnabled = !(
-                project.findProperty("polang.release.plain")?.toString()?.toBoolean()
-                    ?: project.findProperty("picme.release.plain")?.toString()?.toBoolean()
-                    ?: false
+            isMinifyEnabled =
+                !(
+                    project.findProperty("polang.release.plain")?.toString()?.toBoolean()
+                        ?: project.findProperty("picme.release.plain")?.toString()?.toBoolean()
+                        ?: false
                 )
             isShrinkResources = isMinifyEnabled
             proguardFiles(
@@ -143,11 +155,12 @@ android {
                 "proguard-rules.pro",
             )
             // Release 包默认使用正式签名；AAB 构建时会通过注入参数覆盖
-            signingConfig = if (releaseStoreFile.isNotBlank()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig =
+                if (releaseStoreFile.isNotBlank()) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
         debug {
             isDebuggable = true
@@ -270,15 +283,24 @@ dependencies {
     implementation(project(":engines:beauty-api"))
     // 美颜引擎模块
     implementation(project(":engines:beauty-engine"))
-    implementation(project(":runtime-core"))
     implementation(project(":engines:mnn-core"))
-    // sherpa-onnx: runtime-core 编译期依赖，androidApp 模块提供运行时 AAR 打包
-    implementation(files("../runtime-core/libs/sherpa-onnx-1.13.3.aar"))
+    // sherpa-onnx: :shared androidMain 编译期 compileOnly（Phase 4 Task 11 前为 runtime-core），
+    // androidApp 模块提供运行时 AAR 打包
+    implementation(files("../shared/libs/sherpa-onnx-1.13.3.aar"))
     // Agent 核心模块（将来提取独立库）
     // GPUPixel 已移除，全部能力由自研引擎提供
 
     // SentencePiece tokenizer（OPUS-MT 编码解码 + tokenizer.json 词表映射）
     implementation(project(":engines:sentencepiece"))
+
+    // KMP shared 模块（Phase 4：原 runtime-core 引擎无关逻辑已全部迁入；模块已删）
+    implementation(project(":shared"))
+    // Koog agent 框架：androidApp 侧直接使用（RemoteControlToolService 的 @Tool/@LLMDescription、
+    // AndroidAgentComposition 的 ToolRegistry/asToolsByClass）；Task 14 前经 :runtime-core 传递
+    // 解析，模块删除后改直接依赖。serialization-jackson 排除理由同 :shared（minSdk 24 D8 限制）。
+    implementation("ai.koog:koog-agents:${libs.versions.koog.get()}") {
+        exclude(group = "ai.koog", module = "serialization-jackson")
+    }
 
     // ONNX Runtime（OPUS-MT 翻译模型推理后端）
     // 版本必须与 sherpa-onnx-1.13.3 内置的 ONNX Runtime 一致（1.24.3）

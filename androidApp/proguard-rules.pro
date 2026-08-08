@@ -54,7 +54,8 @@
 # === JS 引擎 + JSBridge（QuickJS）===
 # JS bridge：NativeHandler 工厂 object、JsBridge、JsEngine 实现经反射装配
 -keep class com.mamba.picme.agent.core.js.** { *; }
-# Koog 工具集（ChatToolService 等 ToolSet 实现）为代码直接引用、无需反射 keep；
+# Koog 工具集（RemoteControlToolService 等 @Tool 工具类；ChatToolService/CameraToolService 自
+# Task 7 起不再实现 ToolSet 标记接口，组合根经 asToolsByClass 展开）为代码直接引用、无需反射 keep；
 # langchain4j 时代的 @Tool 反射扫描 keep（PoLangToolService）已随 fork 删除（2026-08-07 Phase 6）。
 
 # Ktor: IntellijIdeaDebugDetector 引用 java.lang.management（JVM 专属 API）探测 IDE 调试器，

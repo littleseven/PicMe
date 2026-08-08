@@ -178,9 +178,9 @@ ChatScreen (二级页 - features/chat/)
     ├─ MessageRepository (对话持久化)
     └─ ModelSelector (远程模型选择 + 用户偏好)
         ↓
-AgentOrchestrator (runtime-core/)
-    ├── REMOTE: RemoteChatEngine（chat）/ RemoteReActAgent（相机）
-    │   ├── AgentConfigurator → StreamingSyncChatModel（:agent-core OpenAiChatModel）
+AgentOrchestrator (:shared commonMain)
+    ├── REMOTE: RemoteChatEngine（chat）/ KoogReActAgent（相机）
+    │   ├── AgentConfigurator → Koog OpenAILLMClient（ai.koog:koog-agents 外部依赖）
     │   └── Chat Completions · tool_calls · 流式
     ├── MemoryManager (对话上下文 + 持久化)
     ├── PrivacyGuard (隐私分级)
@@ -481,7 +481,7 @@ GPU 管线性能优化（P2）→ 1080p@30fps 不丢帧
 | `docs/03-TECHNICAL-SPECS/GALLERY_SEARCH.md` | 相册自然语言搜索完整链路 |
 | `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md` | JS 沙盒引擎（QuickJS + JSBridge） |
 | `docs/03-TECHNICAL-SPECS/FACE_DETECTION_ENGINE_ARCHITECTURE.md` | 人脸检测引擎架构 |
-| `runtime-core/AGENTS.md` | Agent Runtime 实现规范（本地/远程推理、Capability、JS 沙盒） |
+| `shared/AGENTS.md` | Agent 编排层 KMP 模块实现规范（commonMain/androidMain 分层、远程推理、Capability、JS 沙盒引擎无关层） |
 | `androidApp/src/main/java/com/mamba/picme/features/common/chat/AGENTS.md` | Chat 二级页模块实现规范 |
 | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md` | PoLang Server（Ktor 后端）实现计划：AI 网关、账号、管理后台 |
 | `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md` | 服务端海外部署（香港 VPS + Nginx + certbot） |
