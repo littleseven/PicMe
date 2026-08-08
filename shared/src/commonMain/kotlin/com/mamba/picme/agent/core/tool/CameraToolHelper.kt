@@ -8,13 +8,11 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.state.SceneManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlin.time.Clock
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.future.future
-import kotlinx.coroutines.runBlocking
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.withTimeout
 
 /**
  * 相机工具辅助类。
@@ -38,11 +36,8 @@ object CameraToolHelper {
     private const val SCENE_POLL_INTERVAL_MS = 100L
     private const val CAPABILITY_WAIT_MS = 300L
 
-    /**
-     * dispatch 常驻内部 scope（SupervisorJob 隔离单命令失败）。替代 GlobalScope：
-     * 等待超时后通过 deferred.cancel() 级联取消底层 dispatch 协程，避免协程裸跑。
-     */
-    private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /** dispatch 等待超时（毫秒），语义对齐旧 `future{}.get(5, SECONDS)`。 */
+    private const val DISPATCH_TIMEOUT_MS = 5000L
 
     /**
      * 根据方法名和参数构建对应的 AgentCommand
@@ -142,6 +137,10 @@ object CameraToolHelper {
     /**
      * 执行相机命令，确保在相机场景下执行。
      *
+     * suspend 化（KMP 抽取 Task 7）：`future{}.get(timeout)` 阻塞桥改写为 `withTimeout`
+     * 结构化等待（超时经协程取消级联终止底层 dispatch，语义对齐旧 TimeoutException 分支），
+     * 场景轮询的 `runBlocking` 改为挂起 `delay`，瞬时戳改 `kotlin.time.Clock`。
+     *
      * @param method 命令方法名（如 "capture", "switch_filter"）
      * @param params 命令参数 Map
      * @param buildCommandJson 构建命令 JSON 的 lambda（已废弃，保留参数避免破坏调用方）
@@ -149,7 +148,7 @@ object CameraToolHelper {
      * @param onError 失败时的错误消息前缀
      * @return 执行结果字符串（成功或错误信息）
      */
-    fun executeCameraCommand(
+    suspend fun executeCameraCommand(
         method: String,
         params: Map<String, Any>,
         buildCommandJson: () -> String,
@@ -168,56 +167,40 @@ object CameraToolHelper {
                 val navCommand = AgentCommand.NavigateTo(destination = "camera")
                 val navContext = AgentContext(scene = AgentScene.CAMERA)
 
-                val navDeferred = dispatchScope.future {
+                val navResult = withTimeout(NAVIGATION_TIMEOUT_MS) {
                     registry.dispatch(navCommand, navContext, null)
-                }
-                val navResult = try {
-                    navDeferred.get(NAVIGATION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                } catch (e: java.util.concurrent.TimeoutException) {
-                    // 导航等待超时：取消底层 dispatch 协程，避免超时后协程裸跑
-                    navDeferred.cancel(true)
-                    throw e
                 }
 
                 if (navResult.isFailure) {
                     return "Error: Navigation to camera failed: ${navResult.exceptionOrNull()?.message}"
                 }
 
-                // 2. 等待场景切换为 CAMERA
-                val waitStart = System.currentTimeMillis()
+                // 2. 等待场景切换为 CAMERA（挂起轮询，替代 runBlocking）
+                val waitStart = Clock.System.now().toEpochMilliseconds()
                 var waitCount = 0
-                runBlocking {
-                    while (sceneManager.currentScene.value != SceneManager.Scene.CAMERA &&
-                        waitCount < (NAVIGATION_TIMEOUT_MS / SCENE_POLL_INTERVAL_MS).toInt()
-                    ) {
-                        delay(SCENE_POLL_INTERVAL_MS)
-                        waitCount++
-                    }
+                while (sceneManager.currentScene.value != SceneManager.Scene.CAMERA &&
+                    waitCount < (NAVIGATION_TIMEOUT_MS / SCENE_POLL_INTERVAL_MS).toInt()
+                ) {
+                    delay(SCENE_POLL_INTERVAL_MS)
+                    waitCount++
                 }
 
-                val elapsed = System.currentTimeMillis() - waitStart
+                val elapsed = Clock.System.now().toEpochMilliseconds() - waitStart
                 if (sceneManager.currentScene.value != SceneManager.Scene.CAMERA) {
                     return "Error: Timeout waiting for CAMERA scene after ${elapsed}ms"
                 }
                 Logger.i(TAG, "Scene switched to CAMERA after ${elapsed}ms")
 
                 // 3. 额外等待 CameraCapability 绑定完成（delegate 初始化）
-                runBlocking { delay(CAPABILITY_WAIT_MS) }
+                delay(CAPABILITY_WAIT_MS)
             }
 
             // 4. 构建并执行目标命令
             val context = AgentContext(scene = AgentScene.CAMERA)
             val command = buildAgentCommand(method, params)
 
-            val deferred = dispatchScope.future {
+            val result = withTimeout(DISPATCH_TIMEOUT_MS) {
                 registry.dispatch(command, context, null)
-            }
-            val result = try {
-                deferred.get(5, TimeUnit.SECONDS)
-            } catch (e: java.util.concurrent.TimeoutException) {
-                // 等待 dispatch 5s 超时：取消底层 dispatch 协程，避免超时后协程裸跑
-                deferred.cancel(true)
-                throw e
             }
 
             result.fold(
@@ -232,6 +215,14 @@ object CameraToolHelper {
                     "Error: ${onError(error.message ?: "Unknown error")}"
                 }
             )
+        } catch (e: TimeoutCancellationException) {
+            // 导航/命令等待超时（语义对齐旧 java.util.concurrent.TimeoutException 重抛路径）：
+            // withTimeout 已级联取消底层 dispatch 协程，无协程裸跑。
+            Logger.e(TAG, "Camera command execution error", e)
+            "Error: Camera command error: ${e.message}"
+        } catch (e: CancellationException) {
+            // 外部取消（agent cancel）：结构化并发要求透传，不吞为错误字符串。
+            throw e
         } catch (e: Exception) {
             Logger.e(TAG, "Camera command execution error", e)
             "Error: Camera command error: ${e.message}"

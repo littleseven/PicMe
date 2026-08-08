@@ -551,25 +551,25 @@ class RemoteControlToolService(
 
     @Tool(customName = "capture")
     @LLMDescription("拍照并保存到相册")
-    fun capture(): String {
+    suspend fun capture(): String {
         return executeCameraCommand("capture", emptyMap())
     }
 
     @Tool(customName = "flip_camera")
     @LLMDescription("切换前后摄像头")
-    fun flipCamera(): String {
+    suspend fun flipCamera(): String {
         return executeCameraCommand("flip_camera", emptyMap())
     }
 
     @Tool(customName = "toggle_recording")
     @LLMDescription("切换录像状态（开始或停止录像）")
-    fun toggleRecording(): String {
+    suspend fun toggleRecording(): String {
         return executeCameraCommand("toggle_recording", emptyMap())
     }
 
     @Tool(customName = "switch_mode")
     @LLMDescription("切换拍摄模式。可选值：PHOTO（拍照）、VIDEO（录像）、PRO（专业模式）、DOCUMENT（文档模式）")
-    fun switchMode(
+    suspend fun switchMode(
         @LLMDescription("拍摄模式: PHOTO|VIDEO|PRO|DOCUMENT") mode: String
     ): String {
         val valid = setOf("PHOTO", "VIDEO", "PRO", "DOCUMENT")
@@ -581,7 +581,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "adjust_beauty")
     @LLMDescription("调整美颜参数。只传入需要调整的参数，未传入的参数保持不变。")
-    fun adjustBeauty(
+    suspend fun adjustBeauty(
         @LLMDescription("磨皮程度 0~100，留空=不变") smoothing: String,
         @LLMDescription("美白程度 0~100，留空=不变") whitening: String,
         @LLMDescription("瘦脸 -50~50，留空=不变") slimFace: String,
@@ -603,7 +603,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "adjust_exposure")
     @LLMDescription("调整曝光补偿，范围 -2 到 2")
-    fun adjustExposure(
+    suspend fun adjustExposure(
         @LLMDescription("曝光补偿 -2~2") exposure: Int
     ): String {
         return executeCameraCommand("adjust_exposure", mapOf("exposure" to exposure.coerceIn(-2, 2)))
@@ -611,7 +611,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "adjust_zoom")
     @LLMDescription("调整变焦倍数，最小 0.5x，最大 10.0x")
-    fun adjustZoom(
+    suspend fun adjustZoom(
         @LLMDescription("变焦比例 0.5~10.0") zoom: Double
     ): String {
         return executeCameraCommand("adjust_zoom", mapOf("zoom" to zoom.coerceIn(0.5, 10.0)))
@@ -619,7 +619,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "switch_filter")
     @LLMDescription("切换相机滤镜。可选值：NONE、LEICA_CLASSIC、LEICA_VIBRANT、LEICA_BW、FILM_GOLD、FILM_FUJI、VINTAGE、COOL、WARM")
-    fun switchFilter(
+    suspend fun switchFilter(
         @LLMDescription("滤镜名称: NONE|LEICA_CLASSIC|LEICA_VIBRANT|LEICA_BW|FILM_GOLD|FILM_FUJI|VINTAGE|COOL|WARM") filter: String
     ): String {
         val valid = setOf("NONE", "LEICA_CLASSIC", "LEICA_VIBRANT", "LEICA_BW", "FILM_GOLD", "FILM_FUJI", "VINTAGE", "COOL", "WARM")
@@ -631,7 +631,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "switch_style")
     @LLMDescription("切换艺术风格。可选值：NONE、TOON、SKETCH、POSTERIZE、EMBOSS、CROSSHATCH")
-    fun switchStyle(
+    suspend fun switchStyle(
         @LLMDescription("风格特效名称: NONE|TOON|SKETCH|POSTERIZE|EMBOSS|CROSSHATCH") style: String
     ): String {
         val valid = setOf("NONE", "TOON", "SKETCH", "POSTERIZE", "EMBOSS", "CROSSHATCH")
@@ -643,7 +643,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "switch_scene")
     @LLMDescription("切换场景模式。可选值：night（夜景）、moon（月亮）、none（普通）")
-    fun switchScene(
+    suspend fun switchScene(
         @LLMDescription("场景模式: night|moon|none") scene: String
     ): String {
         val valid = setOf("night", "moon", "none")
@@ -655,7 +655,7 @@ class RemoteControlToolService(
 
     @Tool(customName = "switch_ratio")
     @LLMDescription("切换画面比例。可选值：4:3、16:9、full（全屏）")
-    fun switchRatio(
+    suspend fun switchRatio(
         @LLMDescription("画幅比例: 4:3|16:9|full") ratio: String
     ): String {
         val valid = setOf("4:3", "16:9", "full")
@@ -712,7 +712,10 @@ class RemoteControlToolService(
         }
     }
 
-    private fun executeCameraCommand(method: String, params: Map<String, Any>): String {
+    // suspend（Task 7 涟漪）：CameraToolHelper.executeCameraCommand 已 suspend 化
+    //（future.get 阻塞桥 → withTimeout），相机 @Tool 方法随之 suspend（Koog 支持 suspend
+    // 工具函数；LLM-facing 工具名/描述不变）。本类其余 dispatchCommand 阻塞桥留 Task 13 处理。
+    private suspend fun executeCameraCommand(method: String, params: Map<String, Any>): String {
         return try {
             CameraToolHelper.executeCameraCommand(
                 method = method,
@@ -721,6 +724,9 @@ class RemoteControlToolService(
                 onSuccess = { "OK: $method executed" },
                 onError = { "Error: $method failed: $it" }
             )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // 外部取消（agent cancel）：结构化并发要求透传，不吞为错误字符串。
+            throw e
         } catch (e: Exception) {
             "Error: ${e.message}"
         }

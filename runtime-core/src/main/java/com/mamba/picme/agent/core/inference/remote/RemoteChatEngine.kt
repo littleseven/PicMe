@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote
 
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.core.tools.reflect.asToolsByClass
 import com.mamba.picme.agent.core.facade.AgentConfigurator
 import com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
@@ -48,7 +49,9 @@ class RemoteChatEngine internal constructor(
             """
             你是 PoLang 相册 AI 助手，通过调用工具帮助用户管理、搜索、分析本地相册。
             """.trimIndent() +
-                "\n" + ToolInventory.build(ChatToolService::class.java) + "\n" +
+                // 去反射（Task 7）：ToolInventory 改收 ToolDescriptor；反射展开经 asToolsByClass
+                //（与旧 reflect.ToolSet 扫描同一函数）在本调用点（Android）完成。
+                "\n" + ToolInventory.build(ChatToolService.getInstance().asToolsByClass().map { it.descriptor }) + "\n" +
                 """
 
         【画图规则·默认不画图】统计/盘点类问题默认只用简洁文字总结回答，**不要主动画图**——用户没要求看图时出图是打扰。仅当用户**明确要求**画图（说"画/画图/图表/柱状图/折线图/饼图"，或"把…画成图/用图展示"）时，才调用 draw_chart 把数据画成真实图片图表；此时严禁用任何文字方式画图（Markdown 表格、ASCII 字符块如 █▓▏│、emoji 柱、空格缩进等"伪图表"），文字画的图用户根本看不到效果。
@@ -284,7 +287,9 @@ class RemoteChatEngine internal constructor(
             config = cfg,
             // reflect.ToolSet 是 Koog 1.1.1 JVM-only API，commonMain 的 KoogChatAgent
             // 改收 KMP 类型 ToolRegistry；工具集→registry 的反射展开在本调用点（Android）完成。
-            toolRegistry = ToolRegistry { tools(chatToolService) },
+            //（Task 7：ChatToolService 迁 commonMain 后不再实现 ToolSet 标记接口，
+            //  asToolsByClass 与 ToolSet.asTools 同一扫描函数，LLM-facing 表面逐字节等价。）
+            toolRegistry = ToolRegistry { tools(chatToolService.asToolsByClass()) },
             memoryStore = KoogMessageMemoryStore(configurator.getContext()),
         )
         // traceId 注入（原 KoogChatAgent init 内类型判断随迁出）：tool 执行带当轮 traceId。

@@ -2,7 +2,6 @@ package com.mamba.picme.agent.core.inference.remote.tool
 
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
-import ai.koog.agents.core.tools.reflect.ToolSet
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdAware
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.model.command.AgentCommand
@@ -16,12 +15,11 @@ import com.mamba.picme.agent.core.runtime.capability.CommandExecutor
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlin.concurrent.Volatile
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.future.future
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.withTimeout
 
 /**
  * 相机场景专用 ToolService（远程 tool_calls，ADR-005 协议分离；:agent-core → Koog 迁移 Phase 5）。
@@ -31,34 +29,35 @@ import java.util.concurrent.TimeUnit
  * 命令统一进 [CapabilityRegistry]（scene=CAMERA），由页面级 CameraCapability 执行——
  * 与 [ChatToolService]（scene=CHAT）同一范式，写操作复用既有 CommandRisk/确认机制，不新造协议。
  *
- * **Koog 工具表面**：实现 [ToolSet]，用 Koog `@Tool(customName=...)`（保 LLM-facing 蛇形工具名，
- * 确定性）+ 方法级/参数级 `@LLMDescription`。Koog ToolRegistry 经反射直接派发 @Tool 方法拿到
- * 类型化参数，故各工具**直接构造 [AgentCommand]**——langchain4j 期「拼 argsJson → ToolExecutionRequest
+ * **Koog 工具表面**：用 Koog `@Tool(customName=...)`（保 LLM-facing 蛇形工具名，确定性）
+ * + 方法级/参数级 `@LLMDescription`。组合根（Android/JVM 侧）经 Koog 反射
+ *（`asToolsByClass()`，与 `reflect.ToolSet.asTools()` 同一扫描函数）展开 @Tool 方法拿到
+ * 类型化参数——`reflect.ToolSet` 标记接口是 Koog 1.1.1 jvmCommonMain API，commonMain
+ * 不可引用，故本类不实现它（KMP 抽取 Task 7）。各工具**直接构造 [AgentCommand]**——
+ * langchain4j 期「拼 argsJson → ToolExecutionRequest
  * → ToolCallCommandParser.parse」的往返已内联消除（滤镜/风格的中文别名解析随迁至本类私有函数）。
  * 仅 `adjust_beauty` 因支持 enabled 开关与「未提及参数保持当前值」语义，命令构建稍复杂
  *（当前美颜值经 [beautySettingsProvider] 由 app 注入，runtime-core 不依赖 app 的 CameraCapability）。
  *
+ * **并发模型（KMP 抽取 Task 7 suspend 化）**：@Tool 方法为 suspend（Koog 1.1.1 支持 suspend
+ * 工具函数），dispatch 从 `future{}.get(5s)` 阻塞桥改写为 `withTimeout(5s)` 结构化等待，
+ * 超时抛 `TimeoutCancellationException`（语义对齐旧 `java.util.concurrent.TimeoutException` 分支）。
+ *
  * **重要**：@Tool 参数**不能用 Kotlin 默认值**（同 [ChatToolService] 的 R8/反射约束）。可选语义
  * 用空串表示「不调整」，由 @LLMDescription 描述说明。
  */
-class CameraToolService private constructor() : ToolSet, TraceIdAware {
+class CameraToolService private constructor() : TraceIdAware {
 
     companion object {
-        @Volatile
-        private var instance: CameraToolService? = null
-        fun getInstance(): CameraToolService =
-            instance ?: synchronized(this) {
-                instance ?: CameraToolService().also { instance = it }
-            }
+        /** dispatch 等待超时（毫秒），语义对齐旧 `future{}.get(5, SECONDS)`。 */
+        private const val DISPATCH_TIMEOUT_MS = 5000L
+
+        // KMP commonMain 无 synchronized，lazy 默认 SYNCHRONIZED 模式保证同款线程安全单例语义
+        private val singleton: CameraToolService by lazy { CameraToolService() }
+        fun getInstance(): CameraToolService = singleton
     }
 
     private val tag = "CameraToolService"
-
-    /**
-     * dispatch 常驻内部 scope（SupervisorJob 隔离单命令失败）。替代 GlobalScope：
-     * 等待超时后通过 deferred.cancel() 级联取消底层 dispatch 协程，避免协程裸跑。
-     */
-    private val dispatchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** UI 事件流：dispatchCommand 执行后的原始 AgentAction 发到此 flow，供 app 侧渲染/提示。 */
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
@@ -82,19 +81,19 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     @Tool(customName = "capture")
     @LLMDescription("拍照。用户说「拍照」「拍一张」「咔嚓」时使用；延时拍摄用 delay + capture 组合。")
-    fun capture(): String = dispatchCommand(AgentCommand.CapturePhoto())
+    suspend fun capture(): String = dispatchCommand(AgentCommand.CapturePhoto())
 
     @Tool(customName = "toggle_recording")
     @LLMDescription("开始/停止录像（开关式）。")
-    fun toggleRecording(): String = dispatchCommand(AgentCommand.ToggleRecording())
+    suspend fun toggleRecording(): String = dispatchCommand(AgentCommand.ToggleRecording())
 
     @Tool(customName = "flip_camera")
     @LLMDescription("翻转前后摄像头。用户说「切前置」「换摄像头」时使用。")
-    fun flipCamera(): String = dispatchCommand(AgentCommand.FlipCamera())
+    suspend fun flipCamera(): String = dispatchCommand(AgentCommand.FlipCamera())
 
     @Tool(customName = "switch_mode")
     @LLMDescription("切换拍摄模式。mode: PHOTO(拍照)/VIDEO(录像)/PRO(专业)/DOCUMENT(文档)。")
-    fun switchMode(
+    suspend fun switchMode(
         @LLMDescription("PHOTO/VIDEO/PRO/DOCUMENT") mode: String
     ): String {
         val mediaType = runCatching { MediaType.valueOf(mode) }.getOrDefault(MediaType.PHOTO)
@@ -105,7 +104,7 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     @Tool(customName = "adjust_beauty")
     @LLMDescription("调整美颜参数。enabled: true 开美颜 / false 关美颜 / 空串=有调整参数时自动开启。smoothing(磨皮)/whitening(美白)/big_eyes(大眼)/lip_color(唇色)/blush(腮红)/eyebrow(眉毛) 0~100，slim_face(瘦脸) -50~50；未提及的参数留空串保持当前值。")
-    fun adjustBeauty(
+    suspend fun adjustBeauty(
         @LLMDescription("true/false，留空=有调整参数时自动开启") enabled: String,
         @LLMDescription("磨皮 0~100，留空=不变") smoothing: String,
         @LLMDescription("美白 0~100，留空=不变") whitening: String,
@@ -135,13 +134,13 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     @Tool(customName = "switch_filter")
     @LLMDescription("切换滤镜。filter: NONE/LEICA_CLASSIC/LEICA_VIBRANT/LEICA_BW/FILM_GOLD/FILM_FUJI/VINTAGE/COOL/WARM，中文名（如「徕卡经典」「胶片金」「冷调」）亦可。")
-    fun switchFilter(
+    suspend fun switchFilter(
         @LLMDescription("滤镜名") filter: String
     ): String = dispatchCommand(AgentCommand.SwitchFilter(filterType = resolveFilterType(filter)))
 
     @Tool(customName = "switch_style")
     @LLMDescription("切换风格特效。style: NONE/TOON(卡通)/SKETCH(素描)/POSTERIZE(海报)/EMBOSS(浮雕)/CROSSHATCH(交叉线)。")
-    fun switchStyle(
+    suspend fun switchStyle(
         @LLMDescription("风格名") style: String
     ): String = dispatchCommand(AgentCommand.SwitchStyle(styleFilter = resolveStyleFilter(style)))
 
@@ -149,19 +148,19 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     @Tool(customName = "switch_scene")
     @LLMDescription("切换场景模式。scene: night(夜景)/moon(月亮)/none(关闭)。")
-    fun switchScene(
+    suspend fun switchScene(
         @LLMDescription("night/moon/none") scene: String
     ): String = dispatchCommand(AgentCommand.SwitchScene(sceneName = scene))
 
     @Tool(customName = "switch_ratio")
     @LLMDescription("切换画幅比例。ratio: 4:3 / 16:9 / full(全屏)。")
-    fun switchRatio(
+    suspend fun switchRatio(
         @LLMDescription("4:3/16:9/full") ratio: String
     ): String = dispatchCommand(AgentCommand.SwitchRatio(ratio = ratio))
 
     @Tool(customName = "adjust_exposure")
     @LLMDescription("调整曝光补偿。exposure: -2~2 整数，正值调亮、负值调暗。")
-    fun adjustExposure(
+    suspend fun adjustExposure(
         @LLMDescription("-2~2") exposure: Long
     ): String = dispatchCommand(
         AgentCommand.AdjustExposure(exposure = exposure.toInt().coerceIn(-2, 2))
@@ -169,7 +168,7 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     @Tool(customName = "adjust_zoom")
     @LLMDescription("调整变焦。zoom: 0.5~10.0，1.0=不变，2.0=放大两倍。")
-    fun adjustZoom(
+    suspend fun adjustZoom(
         @LLMDescription("0.5~10.0") zoom: Double
     ): String = dispatchCommand(
         AgentCommand.AdjustZoom(zoomRatio = zoom.toFloat().coerceAtLeast(0.5f))
@@ -179,7 +178,7 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     @Tool(customName = "delay")
     @LLMDescription("等待指定毫秒后再执行后续操作（与其他工具组合，如延时拍照）。delay_ms 1~300000。")
-    fun delay(
+    suspend fun delay(
         @LLMDescription("延迟毫秒") delayMs: Long
     ): String = dispatchCommand(AgentCommand.Delay(delayMs = delayMs.coerceIn(1, 300000)))
 
@@ -197,13 +196,13 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
         traceId = traceIdHolder?.value
     )
 
-    private fun dispatchCommand(command: AgentCommand): String {
-        val deferred = dispatchScope.future {
-            CapabilityRegistry.getInstance()
-                .dispatch(command, currentAgentContext(), null)
-        }
+    private suspend fun dispatchCommand(command: AgentCommand): String {
         return try {
-            val result = deferred.get(5, TimeUnit.SECONDS)
+            // 结构化等待（替代 future{}.get(5s) 阻塞桥）：超时经协程取消级联终止底层 dispatch。
+            val result = withTimeout(DISPATCH_TIMEOUT_MS) {
+                CapabilityRegistry.getInstance()
+                    .dispatch(command, currentAgentContext(), null)
+            }
             result.fold(
                 onSuccess = { action ->
                     // UI 通道：把原始 AgentAction 发给 app 侧渲染/提示
@@ -218,10 +217,9 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
                 },
                 onFailure = { "Error: ${it.message}" },
             )
-        } catch (e: java.util.concurrent.TimeoutException) {
-            // 等待 dispatch 5s 超时：取消底层 dispatch 协程，避免超时后协程裸跑
-            // （CompletableFuture.cancel 会级联取消 future 协程）。
-            deferred.cancel(true)
+        } catch (e: TimeoutCancellationException) {
+            // 等待 dispatch 5s 超时（语义对齐旧 java.util.concurrent.TimeoutException 分支）：
+            // withTimeout 已级联取消底层 dispatch 协程，无协程裸跑。
             // 记调用方视角的等待超时，二者可经 traceId 关联。
             Logger.w(tag, "dispatchCommand wait timed out: ${command::class.simpleName}")
             CommandExecutor.recordDispatchEvent(
@@ -233,6 +231,9 @@ class CameraToolService private constructor() : ToolSet, TraceIdAware {
                 traceId = traceIdHolder?.value
             )
             "Error: ${e.message}"
+        } catch (e: CancellationException) {
+            // 外部取消（agent cancel）：结构化并发要求透传，不吞为错误字符串。
+            throw e
         } catch (e: Exception) {
             Logger.w(tag, "dispatchCommand failed: ${command::class.simpleName}: ${e.message}")
             "Error: ${e.message}"

@@ -1,6 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.tool
 
 import ai.koog.agents.core.tools.annotations.Tool as KoogTool
+import ai.koog.agents.core.tools.reflect.asToolsByClass
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,7 +38,9 @@ class CameraToolServiceInventoryTest {
             .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("CameraToolService 应暴露多个 @Tool", toolNames.size >= cameraCommands.size)
 
-        val inventory = ToolInventory.build(CameraToolService::class.java)
+        val inventory = ToolInventory.build(
+            CameraToolService.getInstance().asToolsByClass().map { it.descriptor }
+        )
         val missing = toolNames.filter { !inventory.contains("- $it:") }
         assertEquals("工具清单遗漏：$missing", emptyList<String>(), missing)
     }

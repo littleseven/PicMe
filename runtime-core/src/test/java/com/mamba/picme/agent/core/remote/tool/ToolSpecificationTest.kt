@@ -27,6 +27,9 @@ class ToolSpecificationTest {
             for (method in serviceClass.declaredMethods) {
                 if (method.getAnnotation(KoogTool::class.java) == null) continue
                 for (param in method.parameters) {
+                    // suspend 化（Task 7）后 JVM 签名尾部带合成 Continuation 参数，
+                    // 非 LLM-facing（Koog 经 kotlin 反射只取 valueParameters），跳过。
+                    if (param.type == kotlin.coroutines.Continuation::class.java) continue
                     if (param.getAnnotation(LLMDescription::class.java) == null) {
                         missing.add("${serviceClass.simpleName}.${method.name}(${param.name})")
                     }
