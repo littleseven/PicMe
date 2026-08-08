@@ -91,7 +91,7 @@ private struct FilterThumbnailView: View {
                         .fill(Color.accentColor.opacity(0.25))
                         .frame(width: 56, height: 56)
                     Image(systemName: "checkmark")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.accentColor)
                 }
                 // Phase 6 占位标记

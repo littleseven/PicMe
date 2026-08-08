@@ -62,27 +62,31 @@ struct CameraPreviewView: View {
 
     private var cameraLayout: some View {
         ZStack {
-            // 预览 + 手势层
+            // 预览层：edge-to-edge 延伸至刘海/Home Indicator 区（沉浸式）
             MetalViewRepresentable(controller: controller, params: container.beautyParams,
                                    faceService: faceService, onRendererReady: { renderer in
                 sharedRenderer = renderer
             })
-            .overlay {
-                CameraGesturesView(controller: controller)
-                    .allowsHitTesting(activePanel == nil) // 面板打开时禁用手势
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if activePanel != nil { withAnimation { activePanel = nil } }
-                    }
-            }
+            .ignoresSafeArea(.all) // 🔴 沉浸式：预览满血延伸
 
-            // 顶部控件层
+            // 手势层（跟随预览延伸，但仅 activePanel==nil 时可交互）
+            CameraGesturesView(controller: controller)
+                .ignoresSafeArea(.all)
+                .allowsHitTesting(activePanel == nil)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if activePanel != nil { withAnimation { activePanel = nil } }
+                }
+
+            // 顶部控件层（锚 safe area 内，不跟着延伸）
             VStack {
                 topControls
+                    .padding(.top, 0) // topControls 内部已设 padding top
                 Spacer()
             }
+            .ignoresSafeArea(edges: .bottom)
 
-            // 底部控件 + 面板
+            // 底部控件 + 面板（锚 safe area 底部内缘）
             VStack(spacing: 0) {
                 Spacer()
 
@@ -188,7 +192,7 @@ struct CameraPreviewView: View {
                 Circle()
                     .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
                     .frame(width: 48, height: 48)
-                    .overlay(Image(systemName: "photo.fill").foregroundColor(.white.opacity(0.5)))
+                    .overlay(Image(systemName: "photo.fill").font(.system(size: 18)).foregroundColor(.white.opacity(0.5)))
                     .accessibilityIdentifier("camera_gallery_thumb")
 
                 Spacer()
@@ -206,7 +210,7 @@ struct CameraPreviewView: View {
                 Circle()
                     .fill(Color.white.opacity(0.2))
                     .frame(width: 48, height: 48)
-                    .overlay(Image(systemName: "camera.rotate").foregroundColor(.white))
+                    .overlay(Image(systemName: "camera.rotate").font(.system(size: 18)).foregroundColor(.white))
                     .accessibilityIdentifier("camera_flip")
                     .onTapGesture { controller.flipCamera() }
             }
@@ -231,8 +235,9 @@ struct CircleIconButton: View {
                     .fill(isActive ? Color.accentColor : Color.black.opacity(0.5))
                     .frame(width: 48, height: 48)
                     .overlay(
+                        // dump: icon glyph 78px ÷ 3.33 = 23.4dp；SF Symbols 比 Material Icons 视觉更大，用 18pt 对齐
                         Image(systemName: systemName)
-                            .font(.system(size: 22))
+                            .font(.system(size: 18))
                             .foregroundColor(isActive ? .black : .white)
                     )
                 if hasIndicator {

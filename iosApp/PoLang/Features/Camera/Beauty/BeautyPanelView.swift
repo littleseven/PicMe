@@ -62,8 +62,9 @@ private struct TabIconButton: View {
 
     var body: some View {
         Button(action: action) {
+            // dump: tab icon glyph 78px ÷ 3.33 ≈ 23.4dp；SF Symbols 用 20pt 对齐
             Image(systemName: systemName)
-                .font(.system(size: 24))
+                .font(.system(size: 20))
                 .foregroundColor(isSelected ? .accentColor : .white.opacity(0.5))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
@@ -120,7 +121,7 @@ private struct BeautySliderRow: View {
                 Button { value = 0 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: icon)
-                            .font(.system(size: 18))
+                            .font(.system(size: 15)) // dump: icon 子节点 18dp Material → SF Symbols 15pt 对齐
                             .foregroundColor(value != 0 ? .accentColor : .white.opacity(0.6))
                         Text(label)
                             .font(.system(size: 14, weight: .medium))
