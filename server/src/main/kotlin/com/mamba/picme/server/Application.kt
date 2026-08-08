@@ -32,6 +32,7 @@ import com.mamba.picme.server.routes.claudeToolResultRoute
 import com.mamba.picme.server.routes.issueReportRoute
 import com.mamba.picme.server.routes.downloadRoute
 import com.mamba.picme.server.routes.healthzRoute
+import com.mamba.picme.server.routes.iosDownloadRoute
 import com.mamba.picme.server.routes.quotaRoute
 import com.mamba.picme.server.routes.recommendRoute
 import com.mamba.picme.server.routes.telemetryRoute
@@ -76,7 +77,16 @@ fun main() {
 }
 
 // Public routes that don't require token auth
-private val publicRoutes = setOf("/healthz", "/auth/email/send", "/auth/email/verify", "/download", "/guest/device")
+private val publicRoutes = setOf(
+    "/healthz",
+    "/auth/email/send",
+    "/auth/email/verify",
+    "/download",
+    "/download/ios",
+    "/download/ios/manifest.plist",
+    "/download/ios/udid",
+    "/guest/device",
+)
 
 fun Application.module(config: AppConfig) {
     install(CallLogging) { level = Level.INFO }
@@ -156,6 +166,7 @@ fun Application.module(config: AppConfig) {
     routing {
         // Public
         downloadRoute(cosService)
+        iosDownloadRoute(cosService)
         healthzRoute()
         authRoute(emailService)
 

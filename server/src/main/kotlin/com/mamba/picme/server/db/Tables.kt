@@ -174,6 +174,16 @@ object AiEngineerWhitelists : Table("ai_engineer_whitelist") {
     }
 }
 
+// ── iOS UDID 登记（Ad-Hoc 自测分发：用户手动报 UDID）──
+object IosUdidRegistrations : Table("ios_udid_registration") {
+    val id = integer("id").autoIncrement()
+    val udid = varchar("udid", 64)
+    val nickname = varchar("nickname", 128).nullable()
+    val createdAt = long("created_at")
+    val status = varchar("status", 16).default("pending") // pending | enrolled
+    override val primaryKey = PrimaryKey(id)
+}
+
 // ── 用户上报问题（关联 GitHub issue，全程脱敏）──
 object ReportedIssues : IntIdTable("reported_issue") {
     val accountId = integer("account_id")

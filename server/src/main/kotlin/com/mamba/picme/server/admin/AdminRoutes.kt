@@ -9,6 +9,7 @@ import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
+import com.mamba.picme.server.db.IosUdidRegistrations
 import com.mamba.picme.server.issue.GitHubIssueClient
 import com.mamba.picme.server.issue.IssueReportService
 import com.mamba.picme.server.llm.ChannelBalanceService
@@ -545,6 +546,96 @@ fun Route.adminRoute(
                 }
             }
             call.respondRedirect("/admin/apk?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+        }
+
+        // ── iOS Ad-Hoc 自测分发管理 ──
+
+        get("/ios") {
+            if (!call.adminGuard(adminToken)) return@get
+            val ipaInfo = cosService.getIpaInfo()
+            val msg = call.request.queryParameters["msg"]
+            val udidList = AdminQueries.iosUdidList()
+            call.respondText(
+                AdminViews.iosPage(
+                    fileExists = ipaInfo.exists,
+                    fileSize = ipaInfo.size,
+                    lastModified = ipaInfo.lastModified,
+                    version = ipaInfo.version,
+                    cosUrl = ipaInfo.publicUrl,
+                    cosConfigured = cosService.configured,
+                    message = msg,
+                    udidList = udidList,
+                ),
+                ContentType.Text.Html,
+            )
+        }
+
+        post("/ios/upload") {
+            if (!call.adminGuard(adminToken)) return@post
+            // IPA 通常 20-80MB，放宽 multipart 限制到 200MB
+            val multipart = call.receiveMultipart(200L * 1024 * 1024)
+            var uploaded = false
+            var errorMsg: String? = null
+            var version = ""
+            var fileName = ""
+            var fileSize = 0L
+            val tmpFile = java.io.File.createTempFile("ipa-upload-", ".ipa")
+            try {
+                multipart.forEachPart { part ->
+                    when {
+                        part is PartData.FormItem && part.name == "version" -> {
+                            version = part.value.trim()
+                        }
+                        part is PartData.FileItem && part.name == "ipafile" -> {
+                            fileName = part.originalFileName ?: ""
+                            if (!fileName.endsWith(".ipa", ignoreCase = true)) {
+                                errorMsg = "文件格式错误：请上传 .ipa 文件"
+                            } else {
+                                try {
+                                    val channel = part.provider()
+                                    tmpFile.outputStream().use { output ->
+                                        val buffer = ByteArray(8192)
+                                        while (true) {
+                                            val read = channel.readAvailable(buffer)
+                                            if (read <= 0) break
+                                            output.write(buffer, 0, read)
+                                        }
+                                    }
+                                    fileSize = tmpFile.length()
+                                    // 版本号未手填时尝试从文件名解析（如 polang-1.0.0.ipa）
+                                    if (version.isBlank()) {
+                                        version = fileName.substringBeforeLast(".ipa")
+                                            .substringAfterLast("-").ifBlank { "" }
+                                    }
+                                    uploaded = cosService.uploadIpa(tmpFile.inputStream(), fileSize, version)
+                                    if (!uploaded && errorMsg == null) {
+                                        errorMsg = "COS 上传失败：检查 COS 配置或凭证"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMsg = "上传失败：${e.message}"
+                                }
+                            }
+                        }
+                    }
+                    part.dispose()
+                }
+            } finally {
+                tmpFile.delete()
+            }
+            val msg = when {
+                uploaded -> "成功上传 iOS v${version.ifBlank { "?" }} 到 COS"
+                errorMsg != null -> errorMsg
+                else -> "未收到文件"
+            }
+            call.respondRedirect("/admin/ios?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+        }
+
+        // 一键导出 UDID 纯文本（每行一个，方便贴进 Apple Developer → Devices）
+        get("/ios/udids.txt") {
+            if (!call.adminGuard(adminToken)) return@get
+            val udidList = AdminQueries.iosUdidList()
+            val text = udidList.joinToString(separator = "\n") { row -> row.udid }
+            call.respondText(text, ContentType.Text.Plain)
         }
     }
 }

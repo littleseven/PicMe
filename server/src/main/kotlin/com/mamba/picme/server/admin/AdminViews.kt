@@ -9,6 +9,7 @@ import com.mamba.picme.server.llm.ChannelBalanceService
 import com.mamba.picme.server.llm.ChannelRow
 import com.mamba.picme.server.llm.renderModelMapLines
 import kotlinx.html.FlowContent
+import kotlinx.html.FormEncType
 import kotlinx.html.FormMethod
 import kotlinx.html.HTML
 import kotlinx.html.InputType
@@ -885,6 +886,138 @@ object AdminViews {
         }
     }
 
+    fun iosPage(
+        fileExists: Boolean,
+        fileSize: String,
+        lastModified: String,
+        version: String,
+        cosUrl: String,
+        cosConfigured: Boolean,
+        message: String? = null,
+        udidList: List<AdminQueries.IosUdidRow> = emptyList(),
+    ): String = createHTML().html {
+        adminHead("iOS 自测分发 · PoLang 管理后台")
+        body {
+            navBar()
+            h1 { +"iOS Ad-Hoc 自测分发" }
+            if (message != null) {
+                div("toast ${if (message.startsWith("成功")) "toast-ok" else "toast-err"}") { +message }
+            }
+            if (!cosConfigured) {
+                div("toast toast-err") {
+                    +"COS 未配置（COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET 为空），请在 /etc/picme/server.env 中填写后重启服务"
+                }
+            }
+
+            // 当前 IPA 信息
+            if (fileExists) {
+                div("card apk-info-card") {
+                    div("apk-info-header") {
+                        div("apk-info-title") {
+                            span("apk-badge") { +"当前版本" }
+                            +version.ifBlank { "未命名版本" }
+                        }
+                        div("apk-info-meta") {
+                            span { +fileSize }
+                            span("apk-meta-sep") { +"·" }
+                            span { +lastModified }
+                        }
+                    }
+                    div("apk-info-actions") {
+                        a(href = "https://api.polang.net/download/ios", target = "_blank", classes = "btn btn-sm btn-primary") { +"安装页" }
+                        a(href = cosUrl, target = "_blank", classes = "btn btn-sm btn-primary") { +"COS 直链" }
+                    }
+                }
+            } else {
+                div("card apk-info-card apk-empty") {
+                    div("apk-empty-icon") { +"🍎" }
+                    div("apk-empty-text") { +"COS 上暂无 IPA 文件（Phase 5 未启动，这是正常的）" }
+                }
+            }
+
+            // IPA 上传表单
+            h2 { +"上传 IPA" }
+            div("card upload-card") {
+                form(action = "/admin/ios/upload", method = FormMethod.post, encType = FormEncType.multipartFormData) {
+                    div("form-row") {
+                        label { +"版本号（可选，留空从文件名解析）" }
+                        input(type = InputType.text, name = "version", classes = "form-input") {
+                            placeholder = "如 1.0.0"
+                        }
+                    }
+                    div("form-row") {
+                        label { +"IPA 文件（.ipa）" }
+                        input(type = InputType.file, name = "ipafile") {
+                            accept = ".ipa"
+                        }
+                    }
+                    div("upload-actions") {
+                        input(type = InputType.submit, classes = "btn btn-primary") { value = "上传到 COS" }
+                    }
+                }
+            }
+
+            // UDID 登记列表
+            h2 { +"UDID 登记（${udidList.size}）" }
+            if (udidList.isEmpty()) {
+                div("card apk-empty") {
+                    div("apk-empty-text") { +"暂无 UDID 登记" }
+                }
+            } else {
+                table {
+                    tr {
+                        th { +"UDID" }
+                        th { +"备注" }
+                        th { +"登记时间" }
+                        th { +"状态" }
+                    }
+                    udidList.forEach { row ->
+                        tr {
+                            td {
+                                span("tok") { +row.udid }
+                            }
+                            td { +(row.nickname ?: "—") }
+                            td { +fmtTs(row.createdAt) }
+                            td {
+                                when (row.status) {
+                                    "enrolled" -> span("active-badge") { +"已加入" }
+                                    else -> span("err") { +"待处理" }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 一键导出
+                div("card upload-card") {
+                    div("form-row") {
+                        label { +"一键导出（复制全部 UDID，每行一个，贴进 Apple Developer → Devices）" }
+                    }
+                    textArea {
+                        readonly = true
+                        style = "width:100%;font-family:monospace;font-size:13px;min-height:120px;margin-top:8px"
+                        +udidList.joinToString(separator = "\n") { row -> row.udid }
+                    }
+                    div("upload-actions") {
+                        button(type = ButtonType.button, classes = "btn btn-primary") {
+                            attributes["onclick"] = "copyUdids(this)"
+                            +"复制全部"
+                        }
+                        +" "
+                        a(href = "/admin/ios/udids.txt", classes = "btn btn-sm") { +"下载 .txt" }
+                    }
+                    script {
+                        unsafe {
+                            raw(
+                                """function copyUdids(btn){var ta=btn.closest('.upload-card').querySelector('textarea');ta.select();document.execCommand('copy');var o=btn.textContent;btn.textContent='已复制';setTimeout(function(){btn.textContent=o},1200)}""",
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun relTime(ms: Long): String {
         val s = (ms / 1000).coerceAtLeast(0)
         return when {
@@ -1461,6 +1594,7 @@ object AdminViews {
                 a("/admin/settings", classes = "nav-link") { +"设置" }
                 a("/admin/diagnosis", classes = "nav-link") { +"问题诊断" }
                 a("/admin/apk", classes = "nav-link") { +"APK" }
+                a("/admin/ios", classes = "nav-link") { +"iOS" }
             }
             div("nav-spacer") {}
             a("/admin/logout", classes = "nav-link nav-logout") { +"退出" }

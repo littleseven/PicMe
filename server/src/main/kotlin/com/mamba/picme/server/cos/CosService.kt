@@ -27,6 +27,7 @@ class CosService(config: AppConfig) {
     private val bucket = config.cosBucket
     private val region = config.cosRegion
     private val cosKey = "apk/polang-release.apk"
+    private val ipaKey = "ios/polang.ipa"
 
     private val client: COSClient? = run {
         if (config.cosSecretId.isBlank() || config.cosSecretKey.isBlank() || bucket.isBlank()) {
@@ -45,6 +46,9 @@ class CosService(config: AppConfig) {
 
     val publicUrl: String
         get() = "https://cos.polang.net/$cosKey"
+
+    val ipaPublicUrl: String
+        get() = "https://cos.polang.net/$ipaKey"
 
     fun uploadApk(inputStream: InputStream, contentLength: Long, version: String): Boolean {
         val c = client ?: run {
@@ -82,6 +86,46 @@ class CosService(config: AppConfig) {
             )
         } catch (e: Exception) {
             logger.warn("Failed to query COS APK metadata: ${e.message}")
+            CosApkInfo(false, "", "", "", url)
+        }
+    }
+
+    fun uploadIpa(inputStream: InputStream, contentLength: Long, version: String): Boolean {
+        val c = client ?: run {
+            logger.error("COS not configured, cannot upload IPA")
+            return false
+        }
+        return try {
+            val metadata = ObjectMetadata().apply {
+                this.contentLength = contentLength
+                contentType = "application/octet-stream"
+                addUserMetadata("version", version)
+            }
+            val request = PutObjectRequest(bucket, ipaKey, inputStream, metadata)
+            c.putObject(request)
+            c.setObjectAcl(bucket, ipaKey, CannedAccessControlList.PublicRead)
+            logger.info("IPA uploaded to COS: bucket=$bucket, key=$ipaKey, version=$version, size=$contentLength")
+            true
+        } catch (e: Exception) {
+            logger.error("Failed to upload IPA to COS", e)
+            false
+        }
+    }
+
+    fun getIpaInfo(): CosApkInfo {
+        val url = ipaPublicUrl
+        val c = client ?: return CosApkInfo(false, "", "", "", url)
+        return try {
+            val metadata = c.getObjectMetadata(bucket, ipaKey)
+            CosApkInfo(
+                exists = true,
+                size = formatFileSize(metadata.contentLength),
+                lastModified = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date(metadata.lastModified.time)),
+                version = metadata.userMetadata["version"] ?: "",
+                publicUrl = url,
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to query COS IPA metadata: ${e.message}")
             CosApkInfo(false, "", "", "", url)
         }
     }

@@ -6,6 +6,7 @@ import com.mamba.picme.server.db.AnonymousDevices
 import com.mamba.picme.server.db.Accounts
 import com.mamba.picme.server.db.ApkUploads
 import com.mamba.picme.server.db.Db
+import com.mamba.picme.server.db.IosUdidRegistrations
 import com.mamba.picme.server.db.LlmCallLogs
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.or
@@ -530,6 +531,29 @@ object AdminQueries {
                         status = r[ApkUploads.status],
                         message = r[ApkUploads.message],
                         createdAt = r[ApkUploads.createdAt],
+                    )
+                }
+        }
+
+    data class IosUdidRow(
+        val id: Int,
+        val udid: String,
+        val nickname: String?,
+        val createdAt: Long,
+        val status: String,
+    )
+
+    suspend fun iosUdidList(): List<IosUdidRow> =
+        newSuspendedTransaction(Dispatchers.IO, Db.instance) {
+            IosUdidRegistrations.selectAll()
+                .orderBy(IosUdidRegistrations.createdAt to SortOrder.DESC)
+                .map { r ->
+                    IosUdidRow(
+                        id = r[IosUdidRegistrations.id],
+                        udid = r[IosUdidRegistrations.udid],
+                        nickname = r[IosUdidRegistrations.nickname],
+                        createdAt = r[IosUdidRegistrations.createdAt],
+                        status = r[IosUdidRegistrations.status],
                     )
                 }
         }

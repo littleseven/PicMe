@@ -17,12 +17,13 @@ object Migrations {
                 Rules, Assets, TelemetryEvents, LlmDailyCounters,
                 Accounts, EmailVerifications, LlmCallLogs, LlmChannels,
                 ApkUploads, AnonymousDevices, ServerSettings, AiEngineerWhitelists,
-                ReportedIssues,
+                ReportedIssues, IosUdidRegistrations,
             )
             // 给现存表补缺失列（如 llm_channel.default_model），幂等
             SchemaUtils.createMissingTablesAndColumns(
                 Accounts, LlmChannels, LlmCallLogs, ServerSettings,
                 AiEngineerWhitelists, ReportedIssues, AnonymousDevices,
+                IosUdidRegistrations,
             )
             seedRules()
         }
