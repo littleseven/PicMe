@@ -21,6 +21,8 @@ val EmailKey = AttributeKey<String>("email")
 
 val DeviceIdKey = AttributeKey<String>("deviceId")
 
+val PlatformKey = AttributeKey<String>("platform")
+
 @Serializable
 data class EmailSendRequest(val email: String)
 

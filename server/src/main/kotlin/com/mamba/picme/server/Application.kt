@@ -5,6 +5,7 @@ import com.mamba.picme.server.auth.AccountService
 import com.mamba.picme.server.auth.APP_TOKEN_HEADER
 import com.mamba.picme.server.auth.DEVICE_ID_HEADER
 import com.mamba.picme.server.auth.EmailService
+import com.mamba.picme.server.auth.PLATFORM_HEADER
 import com.mamba.picme.server.config.AppConfig
 import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.cos.CosService
@@ -19,6 +20,7 @@ import com.mamba.picme.server.llm.llmRoute
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
 import com.mamba.picme.server.routes.EmailKey
+import com.mamba.picme.server.routes.PlatformKey
 import com.mamba.picme.server.routes.TokenHashKey
 import com.mamba.picme.server.routes.accountDeletionRoute
 import com.mamba.picme.server.routes.guestDeletionRoute
@@ -100,6 +102,8 @@ fun Application.module(config: AppConfig) {
         if (uri in publicRoutes || uri == "/admin" || uri.startsWith("/admin/")) return@intercept
 
         val rawToken = call.request.headers[APP_TOKEN_HEADER]
+        val platform = call.request.headers[PLATFORM_HEADER]?.takeIf { it.isNotBlank() }
+        platform?.let { call.attributes.put(PlatformKey, it) }
         val authResult = rawToken?.let { AccountService.validateToken(it) }
         if (authResult?.valid == true) {
             // 有效账号 token → 存 hash + email 供下游额度校验与白名单判定

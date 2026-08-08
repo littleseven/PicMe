@@ -22,7 +22,7 @@ object Migrations {
             // 给现存表补缺失列（如 llm_channel.default_model），幂等
             SchemaUtils.createMissingTablesAndColumns(
                 Accounts, LlmChannels, LlmCallLogs, ServerSettings,
-                AiEngineerWhitelists, ReportedIssues,
+                AiEngineerWhitelists, ReportedIssues, AnonymousDevices,
             )
             seedRules()
         }

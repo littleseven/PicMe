@@ -11,3 +11,8 @@ const val APP_TOKEN_HEADER = "X-App-Token"
  * 命中 AnonymousDevices 设备级试用额度（GUEST_LLM_QUOTA，默认 100）。
  */
 const val DEVICE_ID_HEADER = "X-Device-Id"
+
+/**
+ * 客户端平台标识 header。值为 "android" / "ios" 等，用于 llm_call_log.platform 列与管理后台展示。
+ */
+const val PLATFORM_HEADER = "X-Platform"

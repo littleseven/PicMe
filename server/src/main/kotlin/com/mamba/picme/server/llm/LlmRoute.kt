@@ -8,6 +8,7 @@ import com.mamba.picme.server.auth.GuestService
 import com.mamba.picme.server.config.SettingsService
 import com.mamba.picme.server.ratelimit.RateLimiter
 import com.mamba.picme.server.routes.DeviceIdKey
+import com.mamba.picme.server.routes.PlatformKey
 import com.mamba.picme.server.routes.TokenHashKey
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -47,6 +48,7 @@ fun Route.llmRoute(
 
             val tokenHash = call.attributes.getOrNull(TokenHashKey)
             val deviceId = call.attributes.getOrNull(DeviceIdKey)
+            val platform = call.attributes.getOrNull(PlatformKey)
 
             if (tokenHash == null && deviceId == null) {
                 call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "unauthorized"))
@@ -71,7 +73,7 @@ fun Route.llmRoute(
                 }
             } else if (!AccountService.checkAndIncrementQuota(tokenHash)) {
                 accountId?.let {
-                    UsageRecorder.log(it, requestedModel, "", null, 0, "blocked_quota", null, prices, deviceId = deviceId)
+                    UsageRecorder.log(it, requestedModel, "", null, 0, "blocked_quota", null, prices, deviceId = deviceId, platform = platform)
                 }
                 call.respond(
                     HttpStatusCode.Forbidden,
@@ -96,6 +98,7 @@ fun Route.llmRoute(
                             latencyMs = latencyMs,
                             prices = prices,
                             deviceId = deviceId,
+                            platform = platform,
                         )
                     }
                     if (isGuest) {
@@ -152,6 +155,7 @@ fun Route.llmRoute(
                             latencyMs = streamLatencyMs,
                             prices = prices,
                             deviceId = deviceId,
+                            platform = platform,
                         )
                     }
                 }
@@ -159,7 +163,7 @@ fun Route.llmRoute(
                     // LLM call failed — revert quota increment
                     if (isGuest) GuestService.revertQuota(deviceId!!) else AccountService.revertQuota(tokenHash)
                     accountId?.let {
-                        UsageRecorder.log(it, requestedModel, "", null, 0, result.logStatus, null, prices, deviceId = deviceId)
+                        UsageRecorder.log(it, requestedModel, "", null, 0, result.logStatus, null, prices, deviceId = deviceId, platform = platform)
                     }
                     call.respond(result.status, result.body)
                 }

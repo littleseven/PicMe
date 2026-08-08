@@ -54,6 +54,8 @@ class OpenAiApiClient(
                     requestBuilder.addHeader("X-App-Token", token)
                 }
 
+                requestBuilder.addHeader("X-Platform", "android")
+
                 chain.proceed(requestBuilder.build())
             }
 
