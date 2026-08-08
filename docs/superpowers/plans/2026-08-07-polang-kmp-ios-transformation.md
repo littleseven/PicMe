@@ -161,14 +161,14 @@ polang/                          # 原 langchain4android/（git repo 改名）
 
 抽取顺序（自底向上，每层 Android 先跑通）：
 
-- [ ] **4.1 shared 骨架**：KMP 模块建立（commonMain/androidMain/iosMain），接入 androidApp 构建；CI 增加 shared JVM 单测
-- [ ] **4.2 领域与网络层**：DTO、媒体领域模型、与 server 共享的数据契约；相册访问抽象为**能力接口**——`PhotoLibraryProvider` + `AccessState` 密封枚举（`Full / Limited / Denied / AddOnly(iOS)`），权限流程留各端 UI（对应双端隐私范式差异决策）
-- [ ] **4.3 Agent 层**：runtime-core 的 Koog 编排、CapabilityRegistry、PrivacyGuard、MemoryManager 迁入 commonMain；平台依赖（存储、日志、文件、时钟——来自 Phase 1.5 清单）收敛为 expect 接口
-- [ ] **4.4 JS 引擎抽象**：`agent/core/js/` 引擎无关层迁 commonMain；QuickJS 绑定留 androidMain，iOS 侧 actual 用 Phase 2.2 验证的桥接
-- [ ] **4.5 语音引擎抽象**：`platform/voice/` 接口层（`AsrEngine`、`KeywordSpotterEngine`、`VadDetector`）→ commonMain expect；Android 实现（`SherpaOnnxAsrEngine` 等）→ androidMain actual；iOS actual 留空或 Phase 6 实现
-- [ ] **4.6 Android 专有组件归位**：`tool/accessibility/` + `tool/perception/`（无障碍服务、ViewHierarchyExtractor 等）为纯 Android 架构，iOS 无等价物——沉入 `androidApp/`，不进 shared
-- [ ] **4.7 runtime-core 消亡**：确认所有可共享代码已迁出，Android 特有残余沉入 androidMain/androidApp；`:runtime-core` 模块删除
-- [ ] **4.8 出口**：Android 全功能零回归；shared commonMain 核心逻辑 JVM 单测覆盖（这是 iOS 侧调试成本的对冲——逻辑 bug 在 JVM/Android 侧可复现可调试）
+- [x] **4.1 shared 骨架**：✅ KMP 模块建立（commonMain/androidMain/iosMain/jvmMain，android/jvm/iosX64/iosArm64/iosSimulatorArm64 五 target），接入 androidApp 构建（Task 1-3）
+- [x] **4.2 领域与网络层**：✅ DTO/媒体领域模型/UserPreferences/MediaRepository 接口迁入 commonMain（Task 4/5）；相册能力接口 `PhotoLibraryProvider` + `AccessState` 留 Phase 5 iOS 接入时落地（Android 侧现有 MediaRepository 抽象已够用）
+- [x] **4.3 Agent 层**：✅ Koog 编排（KoogChatAgent/KoogReActAgent/RemoteChatEngine）、CapabilityRegistry、PrivacyGuard、MemoryManager、ToolService suspend 化迁入 commonMain；平台依赖收敛为 expect/接口注入（AgentDependencies 9 字段组合根，`androidApp/agent/AndroidAgentComposition.kt`）（Task 6-9/12）
+- [x] **4.4 JS 引擎抽象**：✅ `agent/core/js/` 引擎无关层迁 commonMain；QuickJS 绑定与应用 handler 留 `:androidApp`（Task 10）
+- [x] **4.5 语音引擎抽象**：✅ 接口层 commonMain，SherpaOnnx 实现 androidMain（Task 11）；iOS actual 留 Phase 6
+- [x] **4.6 Android 专有组件归位**：✅ `tool/accessibility/` + `tool/perception/` + RemoteControlToolService 沉入 `androidApp/`（Task 13）
+- [x] **4.7 runtime-core 消亡**：✅ `:runtime-core` 模块删除（Task 14）；VLM JNI 拆 `:engines:agent-native`（Task 12 降级形态，审查批准）
+- [x] **4.8 出口**：✅ Android 全功能零回归（集中验证全绿 + 设备冒烟 4/4 PASS）；shared commonMain 核心逻辑 JVM 单测 107 用例全绿（Task 15）
 
 ## Phase 5：iOS App 骨架（约 6–10 周，学习曲线集中段；review 修订：原 4–8 周对单人首次 SwiftUI+AVFoundation+Metal 偏紧）
 
@@ -235,3 +235,4 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | 2026-08-08 | 修订七：Phase 2.4 美颜 Metal spike ✅ GO——美白单滤镜真机实时渲染达标（FPS:30 出图、滑杆美白即时可见）；产出报告 specs/2026-08-08-ios-beauty-metal-spike-design.md + 产物 tmp/beauty-metal-spike/（不入库）。**修正计划两处误述**：2.4 内容「渲染管线在 cpp/」实为 Kotlin 宿主 + GLSL assets；5.4「美颜 C++ 直桥」实为 shader 移植 + Kotlin 宿主 Swift/Metal 重写。**Phase 5.4 美颜工期重估 ~3 周**（shader 翻译 ~1 周 + 宿主重写 ~2 周，原估 1–2 周偏紧）。踩坑清单：MSL const→constexpr、commandQueue 初始化、相机显式 requestAccess、videoOrientation、iOS 无日志时状态画屏调试法 |
 | 2026-08-08 | 修订八：Phase 3 主体完成 ✅——细粒度计划 plans/2026-08-07-repo-restructure.md 8 Task 全执行（子代理驱动 + 每 Task 双审）：Task 2/3 目录重组（`9d06dec7`/`123447df`，含 CMakeLists 跨模块路径漏项修复）、Task 4 scripts/CI（`830e63c2`）、Task 5 文档 50 文件（`4f08ca2c`，README 删 JitPack 死段、MODULE_ARCHITECTURE 去 :agent-core）、Task 6 server 配置（`1db37a4f`）；终审「零行为变更」确认（唯一源码改动 AppConfig.kt 一行）后合并入 main（`323c3e1a`，README 与并行工具冲突已解——保留其重写版 + 应用改名）；Task 7 GitHub rename → `littleseven/polang` ✅（fetch/push URL 已更新验证）；Task 8 本地目录改名 `~/AndroidStudioProjects/polang` ✅ + 绝对路径引用更新；3.6 改名后构建冒烟与嵌套 worktree repair 待补 |
 | 2026-08-08 | 修订九：Phase 3 全部收口 ✅——3.6 出口验证补齐：7 个嵌套 worktree `git worktree repair`（双向 gitdir 指针 `langchain4android`→`polang`，无 prunable 残留）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，`polang-debug.apk` 80M）；真机安装冒烟零崩溃（相册浏览/相机预览+拍照/Chat 远程消息往返「pong ✅」/TAG 扫描控制页 Pass 1 运行中）；绝对路径引用更新（AI_TOOLS.md、kimi-cli.sh、fix_pipeline.py）随本修订提交。**Phase 3 完成，Phase 4（shared KMP 抽取）前置条件 P1 满足** |
+| 2026-08-08 | 修订十：**Phase 4 全部收口 ✅**——15 Task 全部完成（细计划 `2026-08-07-shared-kmp-extraction.md` 变更记录逐条在案），4.1-4.8 全勾；runtime-core 消亡、`:shared` 五 target 就位、组合根 `AndroidAgentComposition` 唯一直构、107 JVM 用例全绿、设备冒烟 4/4 PASS。关键偏差：4.2 相册能力接口（PhotoLibraryProvider/AccessState）缓至 Phase 5 iOS 接入时落地；4.8 iOS 消费验证降级为骨架级（klib 三 target 编译 + API 面零泄漏，XCFramework/真机留 Phase 5）。**Phase 5（iOS 骨架）前置条件 P4 满足，Task 0 硬门禁解除** |
