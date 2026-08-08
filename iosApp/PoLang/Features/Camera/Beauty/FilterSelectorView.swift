@@ -1,9 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// 滤镜选择器（对标 Android FilterSelector.kt:50-125）
-/// 5 列 LazyVGrid，固定高度 280pt（对标 Android LazyVerticalGrid height=280dp）
-/// StyleFilter 5 款留 Phase 6
+/// 滤镜选择器（对标 Android FilterSelector.kt:50-125 + dump）
+/// 5 列 LazyVGrid，面板占屏 53%，14 款（9 色调 + 5 风格占位）
 struct FilterSelectorView: View {
     @Binding var selectedFilter: FilterType
 
@@ -12,6 +11,7 @@ struct FilterSelectorView: View {
     var body: some View {
         ScrollView(.vertical) {
             LazyVGrid(columns: columns, spacing: 8) {
+                // 9 色调滤镜（已实现 ColorMatrix）
                 ForEach(FilterType.allCases) { filter in
                     FilterThumbnailView(
                         filter: filter,
@@ -20,18 +20,48 @@ struct FilterSelectorView: View {
                         selectedFilter = filter
                     }
                 }
+                // 5 风格滤镜占位（Phase 6，对标 Android style/*.glsl）
+                ForEach(StyleFilterPlaceholder.allCases) { style in
+                    FilterThumbnailView(
+                        filter: nil,
+                        stylePlaceholder: style,
+                        isSelected: false
+                    ) { }
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .frame(height: 280)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.53)
         .accessibilityIdentifier("filter_selector")
     }
 }
 
+/// 风格滤镜占位（Phase 6：TOON/SKETCH/POSTERIZE/EMBOSS/CROSSHATCH）
+/// 对标 Android StyleFilter.kt ordinal 顺序 + FilterSelector.kt:69-77 排序
+enum StyleFilterPlaceholder: String, CaseIterable, Identifiable {
+    case toon = "卡通"
+    case sketch = "素描"
+    case posterize = "色块"
+    case emboss = "浮雕"
+    case crosshatch = "交叉线"
+
+    var id: String { rawValue }
+    var thumbnailName: String {
+        switch self {
+        case .toon: return "style_toon"
+        case .sketch: return "style_sketch"
+        case .posterize: return "style_posterize"
+        case .emboss: return "style_emboss"
+        case .crosshatch: return "style_crosshatch"
+        }
+    }
+}
+
 private struct FilterThumbnailView: View {
-    let filter: FilterType
-    let isSelected: Bool
+    var filter: FilterType?
+    var stylePlaceholder: StyleFilterPlaceholder?
+    var isSelected: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -64,22 +94,40 @@ private struct FilterThumbnailView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.accentColor)
                 }
+                // Phase 6 占位标记
+                if stylePlaceholder != nil {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.4))
+                }
             }
             .scaleEffect(isSelected ? 1.08 : 1.0)
             .animation(.easeInOut(duration: 0.15), value: isSelected)
 
-            Text(filter.displayName)
+            Text(displayName)
                 .font(.system(size: 10))
                 .fontWeight(isSelected ? .bold : .regular)
                 .foregroundColor(isSelected ? .accentColor : .white.opacity(0.85))
                 .lineLimit(1)
         }
-        .accessibilityIdentifier("filter_\(filter.thumbnailName)")
+        .accessibilityIdentifier("filter_\(accessibilitySuffix)")
         .onTapGesture(perform: onTap)
     }
 
+    private var displayName: String {
+        if let filter { return filter.displayName }
+        return stylePlaceholder?.rawValue ?? ""
+    }
+
+    private var accessibilitySuffix: String {
+        if let filter { return filter.thumbnailName }
+        return stylePlaceholder?.thumbnailName ?? "unknown"
+    }
+
     private var thumbnailImage: UIImage? {
-        loadFilterThumbnail(filter.thumbnailName)
+        if let filter { return loadFilterThumbnail(filter.thumbnailName) }
+        if let stylePlaceholder { return loadFilterThumbnail(stylePlaceholder.thumbnailName) }
+        return nil
     }
 }
 

@@ -14,11 +14,11 @@ struct ShutterButton: View {
         Button(action: tap) {
             Circle()
                 .stroke(Color.white, lineWidth: 4)
-                .frame(width: 76, height: 76)
+                .frame(width: 62, height: 62)
                 .overlay(
                     Circle()
                         .fill(isPressed ? Color.white.opacity(0.8) : Color.white)
-                        .frame(width: 64, height: 64)
+                        .frame(width: 52, height: 52)
                 )
                 .scaleEffect(isPressed ? 0.9 : 1.0)
                 .animation(.easeInOut(duration: 0.1), value: isPressed)

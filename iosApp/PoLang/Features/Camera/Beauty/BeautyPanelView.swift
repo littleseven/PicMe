@@ -42,7 +42,7 @@ struct BeautyPanelView: View {
             }
             .padding(.vertical, 8)
         }
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.35)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.38)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)

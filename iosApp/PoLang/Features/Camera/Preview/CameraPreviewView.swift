@@ -110,24 +110,24 @@ struct CameraPreviewView: View {
         }
     }
 
-    // MARK: - 顶部控件（对标 Android CameraLeftControls + CameraRightControls）
+    // MARK: - 顶部控件（对标 Android CameraLeftControls + CameraRightControls + dump）
 
     private var topControls: some View {
         HStack(alignment: .top, spacing: 0) {
-            // 左侧：返回（对标 CameraLeftControls）
+            // 左侧：返回按钮（dump: bounds 52,52 156×156 = x16,y16 47×47dp）
             VStack(spacing: 8) {
                 CircleIconButton(systemName: "chevron.left") {
-                    // Tab 切换到 Gallery（横滑 Pager index 0→1 由父处理）
+                    // 退出相机（留空——Pager 横滑返回 Gallery）
                 }
             }
             .padding(.leading, 16)
-            .padding(.top, 4)
+            .padding(.top, 16)
 
             Spacer()
 
-            // 右侧功能列（对标 CameraRightControls）
-            VStack(spacing: 10) {
-                // 美颜入口
+            // 右侧功能列（dump: 6 按钮，分组配对，组内 33px≈10dp，组间 92px≈28dp）
+            VStack(spacing: 0) {
+                // 美颜入口（组1）
                 CircleIconButton(
                     systemName: "wand.and.stars",
                     isActive: activePanel == .beauty,
@@ -136,13 +136,20 @@ struct CameraPreviewView: View {
                     withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
                 }
 
-                CircleIconButton(systemName: "aspectratio") { } // 比例（Phase 6）
+                Spacer().frame(height: 28) // 组间间距（92px≈28dp）
 
-                CircleIconButton(systemName: "square.grid.3x3") { } // 网格（Phase 6）
+                // 比例（组2）
+                CircleIconButton(systemName: "aspectratio") { }
+                Spacer().frame(height: 10) // 组内间距（33px≈10dp）
+                // 网格（组2）
+                CircleIconButton(systemName: "square.grid.3x3") { }
 
-                CircleIconButton(systemName: "mountain.2") { } // 场景（Phase 6）
+                Spacer().frame(height: 28) // 组间
 
-                // 滤镜入口
+                // 场景（组3）
+                CircleIconButton(systemName: "mountain.2") { }
+                Spacer().frame(height: 10) // 组内
+                // 滤镜入口（组3）
                 CircleIconButton(
                     systemName: "circle.lefthalf.filled",
                     isActive: activePanel == .filter
@@ -150,10 +157,12 @@ struct CameraPreviewView: View {
                     withAnimation { activePanel = activePanel == .filter ? nil : .filter }
                 }
 
-                CircleIconButton(systemName: "slider.horizontal.3") { } // ProMode（Phase 6）
+                Spacer().frame(height: 28) // 组间
+                // ProMode（组4）
+                CircleIconButton(systemName: "slider.horizontal.3") { }
             }
             .padding(.trailing, 16)
-            .padding(.top, 4)
+            .padding(.top, 16)
         }
     }
 
@@ -161,10 +170,8 @@ struct CameraPreviewView: View {
 
     private var bottomControls: some View {
         VStack(spacing: 20) {
-            // 变焦预设条（对标 CameraControls.kt:99-138）
-            if activePanel == nil {
-                ZoomPresetBar(zoomPreset: $zoomPreset, controller: controller)
-            }
+            // 变焦预设条（对标 CameraControls.kt:99-138；dump: 始终可见）
+            ZoomPresetBar(zoomPreset: $zoomPreset, controller: controller)
 
             // 模式选择器（对标 CameraControls.kt:161-193）
             // PHOTO only（VIDEO/DOCUMENT 留 Phase 6）
@@ -205,7 +212,7 @@ struct CameraPreviewView: View {
             }
             .padding(.horizontal, 40)
         }
-        .padding(.bottom, 20)
+        .padding(.bottom, 33) // dump: 底排距底 110px ÷ 3.33 ≈ 33dp
     }
 }
 
