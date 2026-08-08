@@ -26,6 +26,22 @@ struct FilterSelectorView: View {
     }
 }
 
+/// 🟡8: 静态图片缓存，避免 body 内每次重复同步磁盘 IO 读 9 张 jpg
+private var filterThumbnailCache: [String: UIImage] = [:]
+
+private func loadFilterThumbnail(_ name: String) -> UIImage? {
+    if let cached = filterThumbnailCache[name] { return cached }
+    let img: UIImage?
+    if let url = Bundle.main.url(forResource: name, withExtension: "jpg", subdirectory: "Assets/filters"),
+       let data = try? Data(contentsOf: url) {
+        img = UIImage(data: data)
+    } else {
+        img = UIImage(named: name)
+    }
+    if let img { filterThumbnailCache[name] = img }
+    return img
+}
+
 private struct FilterThumbnailView: View {
     let filter: FilterType
     let isSelected: Bool
@@ -75,17 +91,7 @@ private struct FilterThumbnailView: View {
     }
 
     private var thumbnailImage: UIImage? {
-        guard let url = Bundle.main.url(
-            forResource: filter.thumbnailName, withExtension: "jpg",
-            subdirectory: "Assets/filters"),
-              let data = try? Data(contentsOf: url) else {
-            // fallback: try without subdirectory (Xcode folder reference vs group)
-            if let data = UIImage(named: filter.thumbnailName)?.pngData() {
-                return UIImage(data: data)
-            }
-            return nil
-        }
-        return UIImage(data: data)
+        loadFilterThumbnail(filter.thumbnailName)
     }
 }
 

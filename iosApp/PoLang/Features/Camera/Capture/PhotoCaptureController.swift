@@ -22,10 +22,28 @@ final class PhotoCaptureController: NSObject {
     }
 
     /// 触发拍照，返回捕获的 AVCapturePhoto（异步等待系统回调）
+    /// 🟡4: 加 5s 超时，避免快门永久挂起
     func capture() async -> AVCapturePhoto? {
-        await withCheckedContinuation { cont in
-            self.continuation = cont
-            photoOutput.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
+        let output = self.photoOutput
+        return await withRace(timeout: 5.0) {
+            await withCheckedContinuation { (cont: CheckedContinuation<AVCapturePhoto, Never>) in
+                self.continuation = cont
+                output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
+            }
+        }
+    }
+
+    /// 超时竞速：超时返回 nil
+    private func withRace<T>(timeout: TimeInterval, operation: @escaping () async -> T?) async -> T? {
+        await withTaskGroup(of: T?.self) { group in
+            group.addTask { await operation() }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                return nil
+            }
+            let result = await group.next() ?? nil
+            group.cancelAll()
+            return result
         }
     }
 

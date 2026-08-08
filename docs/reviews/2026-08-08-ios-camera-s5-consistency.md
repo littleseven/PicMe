@@ -28,8 +28,9 @@
 
 **修复内容**：
 - `BeautyPanelView.swift`：4 条 Slider 范围从 0..1 改为与 Android 一致（0..100 / -50..50）
-- `BeautyRenderer.Params`：新增归一化计算属性（`normalizedWhitening`/`normalizedSmoothing`/`normalizedSlimFace`/`normalizedBigEyes`），在传入 shader 前转换（/100 或 /50）
-- `BeautyRenderer.draw`/`renderToImage`：uniform 赋值改用归一化值
+- `BeautyRenderer.Params`：新增 shader 归一化属性（`shaderWhitening`/`shaderSmoothing`/`shaderSlimFace`/`shaderBigEyes`）
+- slimFace 映射链路修正（互审 🔴5）：`-(slimFace/50*1.35).clamped(-1,1)*0.2`，对标 Android `BeautyParamsConverter.kt:65` + `BeautyRenderer.kt:230`
+- `BeautyRenderer.draw`/`renderToImage`：uniform 赋值改用 shader 归一化值
 
 ### 滤镜枚举（FilterType 9 款）
 
@@ -53,13 +54,13 @@
 |------|---------------------------|-------------------------------|------|
 | NONE | 无矩阵（ColorMatrix()） | 返回 nil | ✅ |
 | LEICA_CLASSIC | [0.95,0,0,0/ 0,0.9,0,0/ 0,0,0.85,0/ 0,0,0,1] | 同 | ✅ |
-| LEICA_VIBRANT | setSaturation(1.3f) → 精确公式展开 | 同（setSaturation 公式逐项展开） | ✅ |
-| LEICA_BW | setSaturation(0f) → 全灰矩阵 | 同 | ✅ |
+| LEICA_VIBRANT | setSaturation(1.3f) → AOSP sRGB 权重 0.213/0.715/0.072 | 同（🔴6 修正：从 SVG 0.3086/0.6094/0.0820 → AOSP 0.213/0.715/0.072） | ✅ 已修复 |
+| LEICA_BW | setSaturation(0f) → 全灰矩阵 [0.213,0.715,0.072] | 同（🔴6 AOSP 权重） | ✅ 已修复 |
 | FILM_GOLD | [1.1,0.1,0/ 0.1,1.0,0/ 0,0,0.8] | 同 | ✅ |
 | FILM_FUJI | [0.9,0,0.1/ 0,1.1,0/ 0.1,0,1.0] | 同 | ✅ |
 | VINTAGE | [0.9,0,0/ 0,0.8,0/ 0,0.5,0] | 同 | ✅ |
 | COOL | [0.8,0,0/ 0,0.9,0/ 0,0,1.2] | 同 | ✅ |
-| WARM | [1.15,0.05,0,off:0.03/ 0.02,1.05,0/ 0,0,0.85,off:-0.03] | 同 | ✅ |
+| WARM | [1.15,0.05,0,off:0.03/ 0.02,1.05,0/ 0,0,0.85,off:-0.03] | 同（🔴7 offset 0–255 语义：0.03*255，上传 /255） | ✅ 已修复 |
 
 ### StyleFilter（5 款 — Phase 6 范围，本 Phase 不实现）
 
