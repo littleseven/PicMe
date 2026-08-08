@@ -69,7 +69,7 @@ class QuickJsEngine(
     /**
      * 统一执行入口：runBlocking + withTimeout；异常归一为 [JsBridgeException]——
      * 超时 → [JsBridgeException.SCRIPT_TIMEOUT]，dokar3 JS 执行错误 → [JsBridgeException.SCRIPT_ERROR]
-     * （runtime-core 埋点按 errorCode 分类，不可见 dokar3 类型）。
+     * （:shared 引擎无关层埋点按 errorCode 分类，不可见 dokar3 类型）。
      */
     private fun runEval(timeoutMs: Long, block: suspend () -> JsValue): JsValue = runBlocking {
         try {

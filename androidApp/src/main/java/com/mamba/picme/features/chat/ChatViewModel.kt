@@ -1721,7 +1721,7 @@ class ChatViewModel(
     }
 
     /**
-     * 将 runtime-core 的 [SearchIntent] 转换为 app 层的 [StructuredFilter]。
+     * 将 :shared 的 [SearchIntent] 转换为 app 层的 [StructuredFilter]。
      *
      * 转换前先做时间词清洗：只要 [SearchIntent.timeRange] 已给出，就把“夏天”“去年”等
      * 时间专属词从 keywords / ocrKeywords / locationKeywords 中剔除，避免引擎把

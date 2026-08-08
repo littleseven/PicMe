@@ -29,10 +29,10 @@
 |------|------|------|
 | `~/code/MNN` | 源码目录 | 本地 MNN 完整源码，可用于编译 Android `.so` 或排查 MNN 内部实现 |
 | `<project>/engines/beauty-engine/libs/mnn` | 项目内嵌头文件 | 项目构建时引用的 MNN headers，当前仅含 `include/` |
-| `<project>/runtime-core/libs/mnn` | 项目内嵌头文件 | `runtime-core` 模块引用的 MNN headers，当前仅含 `include/` |
+| `<project>/engines/agent-native/libs/mnn` | 项目内嵌头文件 | `:engines:agent-native` 模块引用的 MNN headers（Phase 4 Task 12 自 runtime-core 迁入），当前仅含 `include/` |
 | `<project>/engines/beauty-engine/src/main/cpp/` | 项目源码 | MNN JNI Bridge、MNN Face Detector / Embedder 实现 |
 
-> 项目内 `engines/beauty-engine/libs/mnn` 与 `runtime-core/libs/mnn` 目前**只包含头文件**，没有预编译库。如需更新 MNN 库文件，可从 `~/code/MNN` 编译后拷贝，或从 MNN Release 包解压后放入对应目录。
+> 项目内 `engines/beauty-engine/libs/mnn` 与 `engines/agent-native/libs/mnn` 目前**只包含头文件**，没有预编译库。如需更新 MNN 库文件，可从 `~/code/MNN` 编译后拷贝，或从 MNN Release 包解压后放入对应目录。
 
 ### 2.2 模型下载与管理工具
 
@@ -89,7 +89,7 @@ modelscope download --model <model_id> --local_dir ~/code/<target_dir>
 每次新会话开始时，Agent 应默认已知：
 
 1. **MNN 源码不在项目仓库内**，而是在 `~/code/MNN`。
-2. **项目内的 MNN 库不完整**：`engines/beauty-engine/libs/mnn` 和 `runtime-core/libs/mnn` 仅含头文件，编译 MNN 相关 Native 代码时需确认库文件是否存在。
+2. **项目内的 MNN 库不完整**：`engines/beauty-engine/libs/mnn` 和 `engines/agent-native/libs/mnn` 仅含头文件，编译 MNN 相关 Native 代码时需确认库文件是否存在。
 3. **模型优先从 `~/code` 查找**，避免不必要重复下载。
 4. **ModelScope / Hugging Face 已安装在 miniconda3 环境中**，CLI 可直接调用。
 

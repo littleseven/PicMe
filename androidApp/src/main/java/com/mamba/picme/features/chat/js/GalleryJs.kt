@@ -13,8 +13,8 @@ import org.json.JSONArray
 /**
  * JS ↔ 只读查询模型的双向转换（app 层）。
  *
- * 落在 app 层的原因：依赖 [MediaEntity]（app/data 层），runtime-core 不可见
- * （对照 GallerySummary.toResultJsValue() 能放 runtime-core，因 GallerySummary 本就在 runtime-core）。
+ * 落在 app 层的原因：依赖 [MediaEntity]（app/data 层），:shared 不可见
+ * （对照 GallerySummary.toResultJsValue() 能放 :shared，因 GallerySummary 本就在 :shared）。
  *
  * - [parseQueryFilter]：JS `bridge.callAsync('gallery.query', {...})` 的第二参 → [QueryFilter]。
  * - [toResultJsValue]：结果/元数据 → JsValue（回传 JS）。

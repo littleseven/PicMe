@@ -3,10 +3,10 @@
 > **边界声明（Boundary Statement）**
 > - 本文档定义 `:engines:beauty-api` 模块的 API 契约稳定性承诺、类型清单和演变规则。
 > - `:engines:beauty-api` 是**纯 Kotlin 库模块**（零 Android/OpenGL 依赖），仅持有接口、数据类和枚举。
-> - 实现由 `:engines:beauty-engine` 提供；消费方为 `:androidApp`、`:runtime-core` 与 `:engines:beauty-engine`。
+> - 实现由 `:engines:beauty-engine` 提供；消费方为 `:androidApp`、`:shared` 与 `:engines:beauty-engine`。
 > - 美颜引擎实现细节见 `engines/beauty-engine/AGENTS.md`；架构决策背景见 `docs/02-ARCHITECTURE/ADR/`。
 
-**模块定位**：`:engines:beauty-api` 是 PoLang 美颜系统的**接口契约层**，为 `:androidApp`、`:runtime-core`、`:engines:beauty-engine` 三个模块提供稳定的共享类型定义。该模块不包含任何实现代码，仅定义跨模块通信的"语言"。
+**模块定位**：`:engines:beauty-api` 是 PoLang 美颜系统的**接口契约层**，为 `:androidApp`、`:shared`、`:engines:beauty-engine` 三个模块提供稳定的共享类型定义。该模块不包含任何实现代码，仅定义跨模块通信的"语言"。
 
 **主要维护者**：项目开发者
 
@@ -65,7 +65,8 @@ API 变更必须保证源级兼容（source-compatible）。破坏性变更需�
 ### 3.1 模块依赖图
 
 ```
-:androidApp  ──────────────→ :engines:beauty-api ←────────────── :runtime-core
+:androidApp  ──────────────→ :engines:beauty-api ←────────────── :shared
+（:engines:beauty-api 经 `api(project(":shared"))` 透出 BeautySettings 等已迁 commonMain 的契约类型）
   │                       ↑                            │
   └──→ :engines:beauty-engine ────┘                            │
            (实现 beauty-api 接口)                       │

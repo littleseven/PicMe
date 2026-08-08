@@ -3,7 +3,7 @@ package com.mamba.picme.agent.core.runtime.capability
 /**
  * tool（Capability 命令）执行指标的接收端。
  *
- * runtime-core 仅定义此接口；具体持久化（Room 独立库 tool_call_log 表）由 :app 提供，
+ * 本模块（:shared）仅定义此接口；具体持久化（Room 独立库 tool_call_log 表）由 :androidApp 提供，
  * 在 Application 启动时注入到 [CommandExecutor.recorder]。
  *
  * 只承载纯指标（capability / commandType / latency / success / errorCode / errorMessage），

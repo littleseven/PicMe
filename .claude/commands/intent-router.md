@@ -113,9 +113,9 @@
 | 美颜参数 | 美颜调整 / AdjustBeauty | `AiAgentCommand.AdjustBeauty` | domain/agent |
 | 场景模式 | 场景切换 / SwitchScene | `AiAgentCommand.SwitchScene` | domain/agent |
 | 语音唤醒 | 唤醒词 / Wake Word | `WakeWordEngine` | camera (app) |
-| 推理模式 | 推理模式 / Inference Mode | `AgentOrchestrator` (LOCAL/REMOTE) | runtime-core |
-| 本地模型 | 端侧 LLM / On-device LLM | `LocalLlmEngine / MnnLlmClient` | runtime-core |
-| 远程模型 | 远程 LLM / Remote LLM | `RemoteChatEngine / RemoteReActAgent` | runtime-core |
+| 推理模式 | 推理模式 / Inference Mode | `AgentOrchestrator` (OFF/REMOTE/FEISHU) | shared |
+| 本地模型 | 端侧 VLM / On-device VLM | `LocalLlmEngine / MnnLlmClient` | shared(androidMain) |
+| 远程模型 | 远程 LLM / Remote LLM | `RemoteChatEngine / KoogReActAgent` | shared |
 | Capability | 能力接口 | `Capability` | domain/agent |
 
 ### 全局红线术语

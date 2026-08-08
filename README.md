@@ -26,7 +26,7 @@
 
 **PoLang（破浪相册）** —— 一个接近生产级复杂度的 **AI Agent 驱动的智能相册应用**，以相册首页为默认入口，通过自然语言对话调度搜索 / 编辑 / 抠图 / 证件照 / 标签等能力：文本推理全远程（DeepSeek / 通义等 OpenAI 兼容），端侧保留 VLM 打标 / 人脸 / 美颜等媒体处理，自研 OpenGL ES 美颜引擎，自建 Ktor 后端。
 
-PoLang 的 Agent 编排层（`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard` 等）位于 `:runtime-core`，远程推理经 **Koog**（JetBrains KMP Agent 框架）编排——2026-08 由自维护的 langchain4j fork 迁移而来，`:agent-core` 模块已随之移除。先看 [PoLang 产品特性](#polang-产品特性)。
+PoLang 的 Agent 编排层（`AgentOrchestrator`、`CapabilityRegistry`、`PrivacyGuard` 等）位于 `:shared` KMP 模块（commonMain 引擎无关层 + androidMain 平台实现），远程推理经 **Koog**（JetBrains KMP Agent 框架）编排——2026-08 由自维护的 langchain4j fork 迁移而来，`:agent-core` 模块已随之移除；原 `:runtime-core` 已于 Phase 4 整体迁入 `:shared` 后删除。先看 [PoLang 产品特性](#polang-产品特性)。
 
 ---
 
@@ -71,7 +71,7 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 ### 用户问题上报
 📝 Chat 顶部「上报问题」入口 → `POST /v1/report-issue`，服务端脱敏后自动在 GitHub 仓库创建 issue，用户无需离开 App 即可反馈问题。
 
-> **核心特点**：媒体处理端侧 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 文本推理全远程 ｜ 6 模块 monorepo（app / runtime-core / beauty-engine / beauty-api / mnn-core / sentencepiece + server）
+> **核心特点**：媒体处理端侧 · 隐私安全 ｜ Agent First 架构（Capability 可插拔）｜ 文本推理全远程 ｜ monorepo（androidApp / shared(KMP) / beauty-engine / beauty-api / mnn-core / agent-native / sentencepiece + server）
 
 ---
 
@@ -81,7 +81,7 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 ┌─────────────────────────────────────────────────────────────────────┐
 │  :androidApp（PoLang 应用 · Kotlin · Jetpack Compose）                 │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ :runtime-core（Agent Runtime 核心 · Kotlin）                  │  │
+│  │ :shared（Agent 编排层 · Kotlin Multiplatform）               │  │
 │  │  AgentOrchestrator  CapabilityRegistry  PrivacyGuard        │  │
 │  │  MemoryManager  SceneManager  LocalLlmEngine               │  │
 │  │  AiAgentUseCase（Facade，位于 :androidApp，委托 Orchestrator）│  │
@@ -126,10 +126,11 @@ Chat 页输入栏的 **AI 工程师** toggle 在两条独立 LLM 链路间切换
 | 模块 | 语言 | 说明 |
 |------|------|------|
 | `:androidApp` | Kotlin | **PoLang 应用** — Agent 编排层 + 智能相册 UI（Jetpack Compose） |
-| `:runtime-core` | Kotlin | **Agent Runtime** — AgentOrchestrator、CapabilityRegistry、PrivacyGuard、SceneManager、JS 沙盒 |
+| `:shared` | Kotlin (KMP) | **Agent 编排层** — AgentOrchestrator、CapabilityRegistry、PrivacyGuard、SceneManager、JS 沙盒引擎无关层（commonMain）+ VLM/语音/DataStore（androidMain） |
+| `:engines:agent-native` | C++ | VLM 打标 JNI 桥构建模块（`libagent_native.so`） |
 | `:engines:beauty-api` | Kotlin | 美颜接口契约层 |
 | `:engines:beauty-engine` | C++/Kotlin | 自研 GPU 美颜渲染引擎 |
-| `:engines:mnn-core` | C++ | MNN 推理运行时共享库（`:runtime-core` 和 `:engines:beauty-engine` 共用） |
+| `:engines:mnn-core` | C++ | MNN 推理运行时共享库（`:shared`（androidMain）和 `:engines:beauty-engine` 共用） |
 | `:engines:sentencepiece` | C++/JNI | SentencePiece tokenizer JNI 封装 |
 | `server/` | Kotlin | **Ktor 后端**（独立 Gradle 工程）— AI 网关、账号体系、管理后台 |
 

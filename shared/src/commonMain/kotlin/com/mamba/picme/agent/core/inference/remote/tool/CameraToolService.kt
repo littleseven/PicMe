@@ -37,7 +37,7 @@ import kotlinx.coroutines.withTimeout
  * langchain4j 期「拼 argsJson → ToolExecutionRequest
  * → ToolCallCommandParser.parse」的往返已内联消除（滤镜/风格的中文别名解析随迁至本类私有函数）。
  * 仅 `adjust_beauty` 因支持 enabled 开关与「未提及参数保持当前值」语义，命令构建稍复杂
- *（当前美颜值经 [beautySettingsProvider] 由 app 注入，runtime-core 不依赖 app 的 CameraCapability）。
+ *（当前美颜值经 [beautySettingsProvider] 由 app 注入，:shared 不依赖 app 的 CameraCapability）。
  *
  * **并发模型（KMP 抽取 Task 7 suspend 化）**：@Tool 方法为 suspend（Koog 1.1.1 支持 suspend
  * 工具函数），dispatch 从 `future{}.get(5s)` 阻塞桥改写为 `withTimeout(5s)` 结构化等待，
