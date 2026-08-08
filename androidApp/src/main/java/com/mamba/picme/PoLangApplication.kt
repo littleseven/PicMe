@@ -89,6 +89,13 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         /** 远程拍照回传：单次最多回传张数（防异常刷屏）。 */
         private const val MAX_REMOTE_PHOTOS_PER_REPLY = 10
+
+        /**
+         * 推荐模型预下载冷启动错峰延迟：避开 Application.onCreate 主线程峰值。
+         * 冷启动期立即 startForegroundService 会因主线程被初始化占满 → Service.onCreate
+         * 内 startForeground 超时 → ForegroundServiceDidNotStartInTimeException。延迟到主线程空闲后触发。
+         */
+        private const val RECOMMENDED_AUTO_DOWNLOAD_STARTUP_DELAY_MS = 5_000L
     }
 
     val applicationScope = CoroutineScope(SupervisorJob())
@@ -286,7 +293,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
 
         // 推荐模型 WiFi 静默预下载：注册网络监听 + 启动时初始检查
         registerRecommendedAutoDownloadMonitor()
-        applicationScope.launch { recommendedAutoDownloader.triggerIfEligible() }
+        // 错峰：冷启动立即触发会使 startForegroundService 的 onCreate 排在主线程峰值后 → startForeground 超时崩溃。
+        applicationScope.launch {
+            delay(RECOMMENDED_AUTO_DOWNLOAD_STARTUP_DELAY_MS)
+            recommendedAutoDownloader.triggerIfEligible()
+        }
 
         // 一次性清理已下线的 smolvlm_500m 模型目录（幂等：不存在则空操作）
         purgeSmolVlmIfFirstRun()
@@ -307,7 +318,11 @@ class PoLangApplication : Application(), ImageLoaderFactory {
                 request,
                 object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: Network) {
-                        applicationScope.launch { recommendedAutoDownloader.triggerIfEligible() }
+                        // 网络恢复同样错峰，避免与冷启动峰值叠加。
+                        applicationScope.launch {
+                            delay(RECOMMENDED_AUTO_DOWNLOAD_STARTUP_DELAY_MS)
+                            recommendedAutoDownloader.triggerIfEligible()
+                        }
                     }
                 }
             )

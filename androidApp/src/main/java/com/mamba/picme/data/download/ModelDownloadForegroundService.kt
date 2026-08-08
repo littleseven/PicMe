@@ -7,7 +7,9 @@ import android.app.Service
 import android.content.pm.ServiceInfo
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.mamba.picme.PoLangApplication
 import com.mamba.picme.core.common.Logger
@@ -23,9 +25,27 @@ class ModelDownloadForegroundService : Service() {
         private const val CHANNEL_ID = "picme_model_download"
         private const val CHANNEL_NAME = "Model Download"
         private const val NOTIFICATION_ID = 10042
+        private const val NOTIFICATION_REFRESH_INTERVAL_MS = 2000L
     }
 
     private lateinit var manager: LlmModelDownloadManager
+
+    /**
+     * 通知进度自驱刷新：service 运行期间按固定节拍拉取下载状态刷新通知，把进度刷新从
+     * 「Manager 每次 reportProgress 反复 startService 驱动」解耦为 service 自驱——
+     * Manager 只在状态转换（开始/结束）碰 service，运行中的进度通知由本 Runnable 节拍刷新。
+     */
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val notificationRefreshRunnable = object : Runnable {
+        override fun run() {
+            if (!::manager.isInitialized) return
+            val states = manager.snapshotDownloadingStates()
+            if (states.isEmpty()) return // 无下载中任务，停止自刷新（STOP 已在路上）
+            val nm = getSystemService(NotificationManager::class.java)
+            nm.notify(NOTIFICATION_ID, buildNotification(states))
+            mainHandler.postDelayed(this, NOTIFICATION_REFRESH_INTERVAL_MS)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -51,22 +71,26 @@ class ModelDownloadForegroundService : Service() {
 
         when (intent?.action) {
             ACTION_STOP -> {
+                mainHandler.removeCallbacks(notificationRefreshRunnable)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
 
             ACTION_START_OR_UPDATE -> {
-                // 更新通知为真实下载进度
                 val states = manager.snapshotDownloadingStates()
                 if (states.isEmpty()) {
+                    mainHandler.removeCallbacks(notificationRefreshRunnable)
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                     return START_NOT_STICKY
                 }
 
-                // 更新通知为真实下载进度
+                // 立即刷新一次 + 启动自驱定时刷新（进度通知由 service 自驱，
+                // 不再依赖 Manager 每次 reportProgress 反复 startService 驱动）
                 val nm = getSystemService(NotificationManager::class.java)
                 nm.notify(NOTIFICATION_ID, buildNotification(states))
+                mainHandler.removeCallbacks(notificationRefreshRunnable)
+                mainHandler.postDelayed(notificationRefreshRunnable, NOTIFICATION_REFRESH_INTERVAL_MS)
             }
         }
 
@@ -74,6 +98,16 @@ class ModelDownloadForegroundService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        mainHandler.removeCallbacks(notificationRefreshRunnable)
+        // 通知 Manager：前台服务已真正销毁，重置 fgServiceRunning，
+        // 使下次 updateServiceState 能重新走首次启动分支（闭环）。
+        if (::manager.isInitialized) {
+            manager.onServiceStopped()
+        }
+        super.onDestroy()
+    }
 
     private fun buildNotification(states: List<DownloadState>): Notification {
         val totalBytes = states.sumOf { state -> state.totalBytes }
