@@ -25,14 +25,14 @@
 
 | 层 | 模块 | 文件 | 职责 |
 |----|------|------|------|
-| 引擎无关层 | `:runtime-core` | `agent/core/js/JsEngine.kt`、`JsValue.kt`、`JsBridge.kt`、`JsRuntime.kt`、`NativeHandler.kt`、`BuiltInHandlers.kt`、`JsBridgeException.kt`、`GallerySummaryJs.kt` | JsEngine 接口 / JS 值投影 / bridge 路由 / handler SPI / 内置演示 handler / 错误码；**不依赖任何具体 JS 引擎** |
+| 引擎无关层 | `:shared`（commonMain） | `agent/core/js/JsEngine.kt`、`JsValue.kt`、`JsBridge.kt`、`JsRuntime.kt`、`NativeHandler.kt`、`BuiltInHandlers.kt`、`JsBridgeException.kt`、`GallerySummaryJs.kt` | JsEngine 接口 / JS 值投影 / bridge 路由 / handler SPI / 内置演示 handler / 错误码；**不依赖任何具体 JS 引擎** |
 | 引擎实现层 | `:androidApp` | `features/chat/js/QuickJsEngine.kt`、`QuickJsConverter.kt` | dokar3 quickjs-kt 适配器：eval 超时、bridge 注入、Promise/async 桥接 |
 | 应用 handler 层 | `:androidApp` | `features/chat/js/GalleryScriptHandlers.kt`、`GalleryJs.kt` | gallery/media/face/tag 取数 handler（唯一注册点）与 JS↔模型字段转换 |
 | 图表层 | `:androidApp` | `features/chat/js/ChartJs.kt` + `assets/js/chart_bootstrap.js` | Chart 生成器 bootstrap 加载；Chart.bar/line/pie/timeline → SVG |
 | 写通路层 | `:androidApp` | `features/chat/js/CapabilityDispatchHandler.kt`、`features/chat/WriteConfirmationController.kt`、`features/chat/capability/ChatMediaWriteCapability.kt` | capability.dispatch → CommandRisk 分级 → 用户确认 → CapabilityRegistry |
-| 风险分级 | `:runtime-core` | `agent/core/model/command/CommandRisk.kt` | READ_ONLY / REVERSIBLE_WRITE / DESTRUCTIVE 分级表 |
+| 风险分级 | `:shared`（commonMain） | `agent/core/model/command/CommandRisk.kt` | READ_ONLY / REVERSIBLE_WRITE / DESTRUCTIVE 分级表 |
 
-**依赖约束**：QuickJS 依赖（`io.github.dokar3:quickjs-kt:1.0.5`）**仅 `:androidApp` 模块**引入；`:runtime-core` 的 `js/` 包引擎无关，不依赖 QuickJS。
+**依赖约束**：QuickJS 依赖（`io.github.dokar3:quickjs-kt:1.0.5`）**仅 `:androidApp` 模块**引入；`:shared` 的 `js/` 包引擎无关，不依赖 QuickJS。
 
 ---
 
@@ -81,7 +81,7 @@
 ```
 LLM (远程 ReAct)  tool_call: run_gallery_script / draw_chart
     ↓
-ChatToolService / RemoteControlToolService (@Tool，:runtime-core)
+ChatToolService（@Tool，:shared）/ RemoteControlToolService（@Tool，:androidApp）
     ↓ dispatchCommand
 AgentCommand.ExecuteScript / DrawChart
     ↓ CapabilityRegistry (CHAT 场景)
@@ -89,14 +89,14 @@ ChatRunScriptCapability / ChatMediaWriteCapability (:androidApp)
     ↓ Delegate
 ChatViewModel.onRunScript / onDrawChart
     ↓ jsEvalMutex 串行
-JsRuntime (:runtime-core 门面) ──register── NativeHandler (白名单)
+JsRuntime (:shared 门面) ──register── NativeHandler (白名单)
     ↓ engine 注入
 QuickJsEngine (:androidApp) ──bridge.callAsync──→ JsBridge.dispatchAsync
     ↓                                        ↓
 QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 ```
 
-- `:runtime-core` 的 `js/` 包**引擎无关**：`JsEngine` 接口（`eval` / `eval(script, timeoutMs)` / `callFunction` / `installBridge` / `close`）、`JsValue`（sealed：Null/Bool/Num/Str/Obj/Arr）、`JsBridge`（handler 注册与 sync/async 分发）、`JsRuntime`（门面，引擎由调用方注入）、`NativeHandler`（Sync/Async 两种 SPI，`syncHandler`/`asyncHandler` 工厂函数）、`JsBridgeException`（错误码）。
+- `:shared` 的 `js/` 包**引擎无关**：`JsEngine` 接口（`eval` / `eval(script, timeoutMs)` / `callFunction` / `installBridge` / `close`）、`JsValue`（sealed：Null/Bool/Num/Str/Obj/Arr）、`JsBridge`（handler 注册与 sync/async 分发）、`JsRuntime`（门面，引擎由调用方注入）、`NativeHandler`（Sync/Async 两种 SPI，`syncHandler`/`asyncHandler` 工厂函数）、`JsBridgeException`（错误码）。
 - `:androidApp` 的 `QuickJsEngine` 是唯一生产引擎实现：dokar3 的 `evaluate` 是 suspend，用 `runBlocking` + `withTimeout` 适配同步 `JsEngine.eval`；协程取消可真正中断 C 层死循环。
 - 换引擎只换注入的 `JsEngine` 实现，bridge/handler/JsValue 不变。
 
@@ -139,7 +139,7 @@ QuickJS C 引擎 (沙箱)                   UseCase / DAO / CapabilityRegistry
 
 ### 4.3 内置演示 handler（4 个）
 
-`BuiltInHandlers`（`:runtime-core`）在 `JsRuntime` 初始化时自动注册：`math.add`、`string.upper`、`echo`（sync）+ `device.info`（async）。纯计算/只读，用于演示 bridge 通路与作为参考实现。
+`BuiltInHandlers`（`:shared`）在 `JsRuntime` 初始化时自动注册：`math.add`、`string.upper`、`echo`（sync）+ `device.info`（async）。纯计算/只读，用于演示 bridge 通路与作为参考实现。
 
 ---
 
@@ -195,7 +195,7 @@ JS: await bridge.callAsync('capability.dispatch', {method, params})
 
 ### 6.2 CommandRisk 风险分级
 
-`CommandRisk`（`:runtime-core` `agent/core/model/command/CommandRisk.kt`，纯数据映射）：
+`CommandRisk`（`:shared` `agent/core/model/command/CommandRisk.kt`，纯数据映射）：
 
 | 级别 | method | 处理 |
 |------|--------|------|
@@ -271,14 +271,14 @@ JS 沙盒是 **Agent 终端运行感知层**的端侧执行层：与 `llm_call_l
 每次沙盒执行产生一条结构化事件（Agent First §2.4：事件可被 AI 消费），落 `polang_llm_log.db` 的 **`js_run_log`** 表，
 三表按时间对齐即可还原一次请求的完整端侧链路。设计详见 `docs/superpowers/specs/2026-07-26-js-sandbox-observability-design.md`。
 
-- **事件模型**：`JsRunEvent`（`:runtime-core` `agent/core/js/`，引擎无关）：`source`（chat/debug_page）、`kind`（eval/evalAsync/callFunction）、
+- **事件模型**：`JsRunEvent`（`:shared` `agent/core/js/`，引擎无关）：`source`（chat/debug_page）、`kind`（eval/evalAsync/callFunction）、
   `script`（仅 DEBUG，cap 4000）、`scriptLength`、`success`、`errorCode`、`errorMessage`（含 JS 栈，cap 500）、`resultPreview`（仅 DEBUG，cap 1000）、`latencyMs`。
 - **埋点**：`JsRuntime.runRecorded` 统一包裹三个执行入口——计时 + 记录 + **错误原样重抛**（执行语义不变）；
   recorder 异常被吞（双保险：`runCatching` + Room 实现自吞）。
 - **注入**：`JsRuntime.recorder` / `JsRuntime.captureContent` 静态装配（镜像 `RemoteModelFactory.recorder`），
   `PoLangApplication` 启动时注入 `RoomJsRunRecorder`（`captureContent = BuildConfig.DEBUG`）。
 - **错误归一**：`QuickJsEngine.runEval` 把 dokar3 `QuickJsException` 包装为 `JsBridgeException(SCRIPT_ERROR)`，
-  超时为 `SCRIPT_TIMEOUT`，其余异常归 `UNKNOWN`（runtime-core 不可见 dokar3 类型）。
+  超时为 `SCRIPT_TIMEOUT`，其余异常归 `UNKNOWN`（引擎无关层不可见 dokar3 类型）。
 - **三环感知**：环内（错误即时回传 LLM 自愈，已具备）→ 环外（本表，人/QA Agent 事后消费）→ 自我感知（预留 `diag.*` 只读 handler 环内查询运行史）。
 - **保留策略**：保留最近 200 条、日级 guard prune；release 构建 `script`/`resultPreview` 为 null（仅落指标，隐私红线）。
 - **Debug 查看页**：LLM 调用日志页第三 Tab「JS 运行」：列表（时间/来源/kind/耗时/错误码）+ 详情（脚本/错误栈/结果预览，可复制）。
@@ -294,7 +294,7 @@ JS 沙盒是 **Agent 终端运行感知层**的端侧执行层：与 `llm_call_l
 | **飞书 SVG 栅格化回传** | draw_chart 在飞书链路把 SVG 栅格化为 PNG，经 `FeishuChannelHandler.sendImage(imageBytes, messageId)` 回传图片消息 | SVG → Bitmap 栅格化器；飞书链路 delegate 与 chat 页生命周期解耦 |
 | **favorite/select 持久化** | 收藏/选中从会话级 StateFlow 升级为持久化存储 | 产品定义收藏语义；DB/DataStore 落点；与 Gallery 页收藏态统一 |
 | **JS 插件化** | 用户/第三方脚本作为「智能相册插件」载体（包内或受信来源） | 远程 JS 属高合规门槛：须第一方 HTTPS 白名单 + 完整性校验 + 强沙箱 + 数据安全申报；默认不开启 |
-| **跨平台复用** | `:runtime-core` 的 js/ 包引擎无关，纯算法/参数计算类 JS 可与 Web/iOS 共享；API 稳定后可抽离独立 `:jsbridge` Gradle 模块 | QuickJS iOS 绑定或换引擎适配器 |
+| **跨平台复用** | `:shared` 的 js/ 包引擎无关（已随 Phase 4 KMP 化为 commonMain），纯算法/参数计算类 JS 可与 Web/iOS 共享；API 稳定后可抽离独立 `:jsbridge` Gradle 模块 | QuickJS iOS 绑定或换引擎适配器 |
 
 ---
 

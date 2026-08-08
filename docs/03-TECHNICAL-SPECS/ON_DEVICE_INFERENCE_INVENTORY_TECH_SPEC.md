@@ -4,7 +4,7 @@
 > **状态**: 生效中  
 > **最后更新**: 2026-08-03  
 > **维护者**: 项目开发者  
-> **范围**: `:androidApp`、`:runtime-core`、`:engines:beauty-engine`、`:engines:beauty-api`、`:engines:sentencepiece` 模块中所有本地推理引擎、模型、量化策略、tokenizer、运行时瓶颈、优化方案评估与多模型生命周期改造清单
+> **范围**: `:androidApp`、`:shared`、`:engines:beauty-engine`、`:engines:beauty-api`、`:engines:sentencepiece`、`:engines:agent-native` 模块中（`:runtime-core` 已于 2026-08-08 Phase 4 删除，内容并入 `:shared`）所有本地推理引擎、模型、量化策略、tokenizer、运行时瓶颈、优化方案评估与多模型生命周期改造清单
 
 ---
 
@@ -22,10 +22,10 @@ PoLang（破浪相册）当前在端侧同时运行 **6 套推理框架**、**15
 
 | 引擎 | 版本/包 | 运行模块 | 主要用途 | 原生库 |
 |------|---------|----------|----------|--------|
-| **MNN** | 3.5.0 | `:runtime-core`、`:engines:beauty-engine` | VLM 打标（Qwen3-VL）、人脸 ROI/关键点/Embedding | `libMNN.so`、`libMNN_CL.so` |
-| **MNN-LLM** | 内置于 MNN | `:runtime-core` | Qwen3-VL-2B VLM 图像打标 | `libMNN.so` + `libmnn_llm.so` |
-| **ONNX Runtime** | 1.24.3 | `:androidApp`、`:runtime-core` | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
-| **Sherpa-ONNX** | 1.13.3 | `:runtime-core` | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
+| **MNN** | 3.5.0 | `:shared`（androidMain）、`:engines:beauty-engine` | VLM 打标（Qwen3-VL）、人脸 ROI/关键点/Embedding | `libMNN.so`、`libMNN_CL.so` |
+| **MNN-LLM** | 内置于 MNN | `:shared`（androidMain）+ `:engines:agent-native`（JNI 桥） | Qwen3-VL-2B VLM 图像打标 | `libMNN.so` + `libmnn_llm.so` |
+| **ONNX Runtime** | 1.24.3 | `:androidApp`、`:shared`（androidMain） | MobileCLIP、OPUS-MT、Sherpa-ONNX ASR/KWS | `libonnxruntime.so` |
+| **Sherpa-ONNX** | 1.13.3 | `:shared`（androidMain） | 流式 ASR、关键词唤醒（KWS） | 通过 ONNX Runtime 运行 |
 | **MediaPipe Tasks Vision** | 0.10.26 | `:androidApp`、`:engines:beauty-engine` | 人脸 468 点 Landmark（默认路径） | `face_landmarker.task` |
 | **ML Kit** | 多个 | `:androidApp` | 仅 OCR 文字识别（~~人脸检测、图像标注~~已移除） | Google Play Services / 内置 TFLite |
 | **SentencePiece** | 项目本地 | `:engines:sentencepiece` | OPUS-MT 分词（`source.spm` / `target.spm`） | `libsentencepiece_android.so` |
@@ -1038,8 +1038,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
     - `unregisterSoftTrimListener`
     - `unregisterSafeUnloadListener`
 - **涉及文件**
-  - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
-  - `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt`
+  - `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
+  - `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt`
 - **验收标准**
   - 反复进入/退出页面、切换 ASR/LLM 100 次后，监听器数量不增长。
 
@@ -1048,7 +1048,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - `OnlineRecognizer` / `OnlineStream` 改为 `Closeable/AutoCloseable` + 显式 `close()`。
   - 业务层统一在 `try/finally` 或 `use {}` 中释放。
 - **涉及文件**
-  - `runtime-core/src/main/java/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt`
+  - `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/platform/voice/SherpaOnnxAsrEngine.kt`
   - （注：`OnlineRecognizer`/`OnlineStream` 为 sherpa-onnx `.aar` 库内类（`com.k2fsa.sherpa`），非本项目源码；Closeable 释放应在其封装层 `SherpaOnnxAsrEngine` 内用 try/finally 或 `use{}`）
 - **验收标准**
   - 不再依赖 GC 时机回收 native 资源。
@@ -1063,7 +1063,7 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
   - 人脸、ASR、LLM 都对齐这三档语义。
 - **涉及文件**
   - `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
-  - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt`
+  - `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/MnnLlmClient.kt`
   - `engines/beauty-engine/src/main/java/com/mamba/picme/beauty/internal/facedetect/mnn/MnnFaceDetector.kt`
   - `engines/beauty-engine/src/main/cpp/mnn_jni_bridge.cpp`
 - **验收标准**
@@ -1124,8 +1124,8 @@ OPUS-MT 原始训练基于 SentencePiece，但导出的 ONNX 模型输入/输出
     - **COLD**：模型未加载，首 Token 延迟 ~2s（低功耗 ~0MB native 额外占用）
 - **涉及文件**
   - `engines/mnn-core/src/main/java/com/mamba/picme/mnn/MnnResourceManager.kt`
-  - `runtime-core/src/main/java/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
-  - `runtime-core/src/main/java/com/mamba/picme/agent/core/model/context/AgentModels.kt`（新增 `ModelUsagePattern`）
+  - `shared/src/androidMain/kotlin/com/mamba/picme/agent/core/inference/local/llm/LocalLlmEngine.kt`
+  - `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/model/context/AgentModels.kt`（新增 `ModelUsagePattern`）
 - **验收标准**
   - 相机 → 相册 → 设置 → TAG 后台，VLM 全程保持 WARM+，不触发 FULL 卸载。
   - Face 离开相机页后正常卸载（不受 VLM 策略影响）。

@@ -90,7 +90,7 @@ abstract class ChatViewModelTestBase {
         coEvery { chatSessionDao.getSession(any()) } returns null
 
         mockkObject(AgentOrchestrator.Companion)
-        every { AgentOrchestrator.getInstance(any()) } returns orchestrator
+        every { AgentOrchestrator.getInstance() } returns orchestrator
     }
 
     @After

@@ -169,7 +169,7 @@ class FloatingChatBubbleService : Service() {
      * 注册全局 Capability，确保悬浮窗外也能执行系统命令。
      */
     private fun registerCapabilities() {
-        val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance(this)
+        val orchestrator = com.mamba.picme.agent.core.facade.AgentOrchestrator.getInstance()
         orchestrator.registerCapability(SystemCapability(this))
         Logger.d(TAG, "Registered system capability for floating chat")
     }

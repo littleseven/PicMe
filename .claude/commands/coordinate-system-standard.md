@@ -216,7 +216,7 @@ scripts/check-doc-coordinate-annotation.sh
 
 ### 3. Git Pre-commit Hook
 
-详见 [reference.md](reference.md) §Pre-commit Hook：坐标系标注自动检查脚本。
+详见 [reference.md](skills/coordinate-system-standard/reference.md) §Pre-commit Hook：坐标系标注自动检查脚本。
 
 ---
 

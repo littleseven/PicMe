@@ -89,7 +89,7 @@ fun rememberCameraAgentIntegration(
 ): CameraAgentIntegration {
     val context = LocalContext.current
     val orchestrator = remember {
-        AgentOrchestrator.getInstance(context).apply {
+        AgentOrchestrator.getInstance().apply {
             // 加载配置（端侧文本 LLM 已移除，相机 AI 走远程 tool_calls 链路）
             configure(
                 mode = AiAgentMode.REMOTE,

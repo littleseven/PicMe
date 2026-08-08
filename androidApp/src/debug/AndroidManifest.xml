@@ -17,6 +17,21 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- 飞书远程控制无障碍服务（自 :runtime-core debug 迁入，Task 13；与上面测试用服务并存，互不合并） -->
+        <service
+            android:name="com.mamba.picme.agent.core.tool.accessibility.PoLangAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:label="@string/picme_accessibility_service_label"
+            android:description="@string/picme_accessibility_service_description">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/picme_accessibility_service_config" />
+        </service>
+
         <!-- 备份/恢复脚本化入口：仅 debug 构建，配合 scripts/app-data-backup.sh -->
         <receiver
             android:name=".testing.backup.BackupRestoreBroadcastReceiver"

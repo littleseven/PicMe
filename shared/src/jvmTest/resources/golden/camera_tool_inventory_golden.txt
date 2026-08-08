@@ -1,0 +1,14 @@
+可用工具（13）：
+- adjust_beauty: 调整美颜参数。
+- adjust_exposure: 调整曝光补偿。
+- adjust_zoom: 调整变焦。
+- capture: 拍照。
+- delay: 等待指定毫秒后再执行后续操作（与其他工具组合，如延时拍照）。
+- finish: 任务完成时调用，提供完成摘要给用户。
+- flip_camera: 翻转前后摄像头。
+- switch_filter: 切换滤镜。
+- switch_mode: 切换拍摄模式。
+- switch_ratio: 切换画幅比例。
+- switch_scene: 切换场景模式。
+- switch_style: 切换风格特效。
+- toggle_recording: 开始/停止录像（开关式）。

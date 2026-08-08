@@ -7,10 +7,10 @@ import com.dokar.quickjs.binding.FunctionBinding
 import com.mamba.picme.agent.core.js.JsBridge
 import com.mamba.picme.agent.core.js.JsBridgeException
 import com.mamba.picme.agent.core.js.JsCallback
+import com.mamba.picme.agent.core.js.JsClosable
 import com.mamba.picme.agent.core.js.JsEngine
 import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.platform.logging.Logger
-import java.io.Closeable
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -35,7 +35,7 @@ import kotlinx.coroutines.withTimeout
 class QuickJsEngine(
     private val onLog: (String) -> Unit = {},
     private val evalTimeoutMs: Long = DEFAULT_EVAL_TIMEOUT_MS,
-) : JsEngine, Closeable {
+) : JsEngine, JsClosable {
 
     private val quickjs: QuickJs = QuickJs.create(Dispatchers.Default)
 
@@ -69,7 +69,7 @@ class QuickJsEngine(
     /**
      * 统一执行入口：runBlocking + withTimeout；异常归一为 [JsBridgeException]——
      * 超时 → [JsBridgeException.SCRIPT_TIMEOUT]，dokar3 JS 执行错误 → [JsBridgeException.SCRIPT_ERROR]
-     * （runtime-core 埋点按 errorCode 分类，不可见 dokar3 类型）。
+     * （:shared 引擎无关层埋点按 errorCode 分类，不可见 dokar3 类型）。
      */
     private fun runEval(timeoutMs: Long, block: suspend () -> JsValue): JsValue = runBlocking {
         try {

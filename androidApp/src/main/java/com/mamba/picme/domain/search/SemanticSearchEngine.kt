@@ -296,12 +296,10 @@ class SemanticSearchEngine(
      */
     private suspend fun getFilteredCandidates(filter: StructuredFilter): List<MediaEntity> {
         // 1. 基础候选集：优先用时间范围缩小，否则取全量有 embedding 的 ID
-        val candidateIds = if (filter.timeRange != null) {
-            mediaDao.getMediaIdsByTimeRange(filter.timeRange.startMs, filter.timeRange.endMs)
-                .toSet()
-        } else {
-            mediaDao.getMediaWithSemanticEmbeddingIds().toSet()
-        }
+        // timeRange 迁至 shared 后为跨模块 public API，无法 smart cast，用 ?.let 等价改写
+        val candidateIds = filter.timeRange?.let {
+            mediaDao.getMediaIdsByTimeRange(it.startMs, it.endMs).toSet()
+        } ?: mediaDao.getMediaWithSemanticEmbeddingIds().toSet()
 
         if (candidateIds.isEmpty()) {
             Log.d(TAG, "No semantic candidates after base filtering")

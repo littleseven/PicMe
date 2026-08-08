@@ -184,7 +184,7 @@ rd-reflection/
 
 ## 相关文件
 
-- [TEMPLATE.md](TEMPLATE.md) — Skill 编写模版
+- [TEMPLATE.md](skills/TEMPLATE.md) — Skill 编写模版
 ## 版本历史
 
 | 版本 | 日期 | 变更 |

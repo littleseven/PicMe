@@ -22,7 +22,9 @@ import com.mamba.picme.agent.core.inference.remote.ChatStreamEvent
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfigs
 import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
+import com.mamba.picme.agent.AndroidAgentComposition
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
+import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.core.agenttools.AppTool
 import com.mamba.picme.core.agenttools.AppToolExecutor
@@ -50,7 +52,7 @@ import com.mamba.picme.agent.core.js.JsValue
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.model.context.GallerySummary
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
-import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.AndroidMediaRepository
 import com.mamba.picme.features.chat.capability.ChatGallerySummaryCapability
 import com.mamba.picme.features.chat.capability.ChatMediaWriteCapability
 import com.mamba.picme.features.chat.capability.ChatRunScriptCapability
@@ -604,7 +606,7 @@ class ChatViewModel(
     /** 匹配“3月”“12月”“五月”等月份表达。 */
     private val monthKeywordRegex = Regex("""^(\d{1,2}月|[一二三四五六七八九十]{1,3}月)$""")
 
-    private val orchestrator = AgentOrchestrator.getInstance(context)
+    private val orchestrator = AgentOrchestrator.getInstance()
 
     private val _currentSessionId = MutableStateFlow("default")
     val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
@@ -1719,7 +1721,7 @@ class ChatViewModel(
     }
 
     /**
-     * 将 runtime-core 的 [SearchIntent] 转换为 app 层的 [StructuredFilter]。
+     * 将 :shared 的 [SearchIntent] 转换为 app 层的 [StructuredFilter]。
      *
      * 转换前先做时间词清洗：只要 [SearchIntent.timeRange] 已给出，就把“夏天”“去年”等
      * 时间专属词从 keywords / ocrKeywords / locationKeywords 中剔除，避免引擎把
@@ -1953,7 +1955,7 @@ class ChatViewModel(
     // ── ChatMediaWriteCapability.Delegate：媒体写操作（删除/收藏/选中）─────────
 
     /**
-     * 删除：复用 [MediaRepository] 删除路径；API 29/30+ 需系统授权时，
+     * 删除：复用 [AndroidMediaRepository] 删除路径；API 29/30+ 需系统授权时，
      * 通过 [deleteAuthRequest] 交给 ChatScreen 既有 launcher 弹系统授权框。
      */
     override suspend fun onDeleteMedia(mediaIds: List<String>): String {
@@ -1965,7 +1967,7 @@ class ChatViewModel(
             _deleteAuthRequest.value = MediaViewModel.DeleteAuthRequest.Api29(sender)
             return "已发起删除 ${ids.size} 项，等待系统授权"
         }
-        val pendingUris = mediaRepository.getPendingDeleteUris()
+        val pendingUris = mediaRepository.getPendingDeleteUris().map { uriString -> Uri.parse(uriString) }
         if (pendingUris.isNotEmpty()) {
             _deleteAuthRequest.value = MediaViewModel.DeleteAuthRequest.Api30(pendingUris)
             return "已发起删除 ${ids.size} 项，等待系统授权"
@@ -2479,7 +2481,9 @@ class ChatViewModel(
                     modelId = modelKey,
                     caller = "ChatViewModel:imageInference"
                 ) { engine ->
-                    engine.imageInference(
+                    // 接口视图只有 ByteArray 入参；Bitmap 便捷重载是 LocalLlmEngine 的
+                    // Android 专有 API，组合根保证实际类型（同一单例）。
+                    (engine as LocalLlmEngine).imageInference(
                         systemPrompt = strategy.systemPrompt,
                         userPrompt = strategy.userPrompt,
                         bitmap = bitmap,
@@ -2510,7 +2514,9 @@ class ChatViewModel(
                         sessionId = sessionId,
                         content = response,
                         modelUsed = modelKey,
-                        performance = orchestrator.localModelService.getLastLocalGenerationMetrics()?.toLlmPerformance()
+                        // LlmGenerationMetrics 是 Android actual 类型（shared androidMain），
+                        // commonMain 的 LocalModelService 不再透出；经组合根取同一引擎实例读取。
+                        performance = AndroidAgentComposition.localLlmEngine.lastGenerationMetrics?.toLlmPerformance()
                     )
                     // 将图片分析结果保存到 MemoryManager，使后续文本消息能引用图片上下文
                     orchestrator.appendConversation(
