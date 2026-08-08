@@ -78,38 +78,59 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 ## PoLang 架构一览
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  :androidApp（PoLang 应用 · Kotlin · Jetpack Compose）                 │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ :shared（Agent 编排层 · Kotlin Multiplatform）               │  │
-│  │  AgentOrchestrator  CapabilityRegistry  PrivacyGuard        │  │
-│  │  MemoryManager  SceneManager  LocalLlmEngine               │  │
-│  │  AiAgentUseCase（Facade，位于 :androidApp，委托 Orchestrator）│  │
-│  ├───────────────────────────────────────────────────────────────┤  │
-│  │ features/         功能模块（Capability 实现）                   │  │
-│  │  ImageEditCapability  AutoTagCapability  NavigationCapability  │  │
-│  │  SystemCapability  RemoteControlCapability  Chat*Capability   │  │
-│  │                            │ run_gallery_script               │  │
-│  │  ┌─────────────────────────▼──────────────────────────┐      │  │
-│  │  │ ★ JS 沙盒引擎（QuickJS + JSBridge · libquickjs.so）│      │  │
-│  │  │   run_gallery_script · 对话内执行相册分析/健康报告   │      │  │
-│  │  │   → 图表 SVG / 结构化文本回显到对话                  │      │  │
-│  │  └────────────────────────────────────────────────────┘      │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                            ↓ 依赖（远程推理编排）                       │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ Koog（JetBrains KMP Agent 框架 · 外部依赖）                    │  │
-│  │  AIAgent · ToolSet/ToolRegistry · ChatMemory                   │  │
-│  │  graphStrategy(poLangSingleRunStrategy) · OpenAILLMClient      │  │
-│  │  PromptExecutor · EventHandler 流式 · SSE                      │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────────┤
-│  :engines:beauty-api (Kotlin)   :engines:mnn-core (C++)              │
-│  :engines:beauty-engine (C++/Kotlin)   :engines:sentencepiece (JNI)  │
-├─────────────────────────────────────────────────────────────────────┤
-│  server/（Ktor 后端 · 独立 Gradle 工程）                              │
-│  AI 网关 / 账号体系 / 管理后台 / 推荐引擎 / 遥测收集                      │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ :androidApp    Kotlin · Jetpack Compose（应用外壳 · UI · 能力实现）            │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ features/                 ── UI（Compose）+ ViewModel                          │
+│ 用户输入："找出去年夏天的照片" / "磨皮再强点" / "给这张打标"                   │
+│ domain/usecase/AiAgentUseCase   ── Facade，委托 :shared 编排                   │
+│ agent/AndroidAgentComposition   ── 组合根，注册 14 个 Capability               │
+│ data/                     ── Repository · Room · DataStore · 模型下载          │
+└────────────────────────────────────────────────────────────────────────────────┘
+                              ▼  自然语言 → 意图编排
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ :shared    Agent 编排层 · Kotlin Multiplatform（commonMain 引擎无关层）        │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ AgentOrchestrator  →  CapabilityRegistry  →  dispatch                          │
+│ PrivacyGuard：媒体处理 100% 钉在端侧，仅文本 / 元数据上云（隐私红线）          │
+│ ├ Chat 链：  streamChat        → KoogReActAgent + ChatToolService              │
+│ ├ Camera 链：processCameraInput → KoogReActAgent + CameraToolService           │
+│ ├ MemoryManager           ── 多轮对话记忆（Room 持久化）                       │
+│ └ LocalLlmEngine          ── 仅端侧 VLM 打标（Qwen3-VL-2B），不再跑文本 LLM    │
+└────────────────────────────────────────────────────────────────────────────────┘
+                              ▼  文本 / 指令 → 远程推理编排（OpenAI 兼容 tool_calls）
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ Koog    JetBrains KMP Agent 框架（外部依赖）                                   │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ AIAgent · ToolRegistry · ChatMemory · graphStrategy(poLangSingleRunStrategy)   │
+│ OpenAILLMClient · PromptExecutor · EventHandler 流式 SSE                       │
+└────────────────────────────────────────────────────────────────────────────────┘
+                              ▼  HTTPS
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ server/    Ktor 后端（独立 Gradle 工程 · api.polang.net）                      │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ AI 网关（按模型路由 Cloudflare AI Gateway / 腾讯 TokenHub）· 账号 · 免费额度   │
+│ 管理后台 · 遥测 · /download（Android APK + iOS Ad-Hoc 自测分发）               │
+└────────────────────────────────────────────────────────────────────────────────┘
+                              ▼
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ 远程 LLM    DeepSeek / 通义 …（OpenAI 兼容 · tool_calls · 多轮 · 流式）        │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ ⚠ 只收文本 / 元数据 —— 用户图片 / 视频文件绝不上传                             │
+└────────────────────────────────────────────────────────────────────────────────┘
+                              ▲ 上方为「文本推理」链路；下方为「端侧媒体处理」链路（数据不出端）▲
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ 端侧媒体处理 · 100% 本地 · 不上云    （由 Capability 在设备端调用）            │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ :engines:beauty-engine   自研 OpenGL ES + EGL 美颜 / 滤镜（无第三方 SDK）      │
+│ :engines:beauty-api      美颜接口契约（纯 Kotlin）                             │
+│ :engines:mnn-core        MNN 推理 JNI · 人脸检测(MediaPipe 468→106 / MNN 2D106)│
+│ :engines:agent-native    VLM 打标 JNI 桥（libagent_native.so）                 │
+│ :engines:sentencepiece   tokenizer JNI                                         │
+│ 端侧能力：人脸检测 · 美颜 · OCR · 抠图 / 证件照 · 相册语义搜索 · 自动打标      │
+└────────────────────────────────────────────────────────────────────────────────┘
+                              
+                              注：:shared 为 KMP 模块（androidMain 平台实现 + 待新增 iosMain），Phase 5 iOS 应用骨架开发中。
 ```
 
 ### Chat 双模式架构
