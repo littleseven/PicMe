@@ -25,36 +25,24 @@
 
 ---
 
+> **K3 相册段实例执行记录（2026-08-08，worktree `.worktrees/ios-gallery`，分支 `refactor/ios-gallery`）**
+> - **Task 0 核对结论**：`MediaRepository`/`AccessState` ✅ 已存在（`domain/repository/`，AccessState 为 4 data object 密封接口）；`BeautySettings`/`FilterType`/`StyleFilter` ✅；**`GetGroupedMediaUseCase` ❌ commonMain 不存在**（Task 9 暂用 Swift 侧等价分组，shared 落地后替换）；**文档偏差**：`MediaAsset.id` 实为 `Long`（非启动包/spec §4.1 所述 String），iOS id 由 `localIdentifier.hashCode()` 派生；`MediaRepository` 仍含 Android 删除授权四方法（iOS 实现为 no-op）。
+> - **Kotlin 2.3.10 DSL 偏差**：`XCFramework` 类已改名 `XCFrameworkConfig`（构造器首参 `Project`），Task 1 代码块已按此落地。
+> - **Intel 主机（x86_64）偏差**：`iosSimulatorArm64Test` 被 KGP 禁用（host arch 不匹配），iOS 单测用 `:shared:iosX64Test` 验证。
+> - **Task 3 阻塞**：Xcode 工程（Task 2 产物）在 GLM 分支 `refactor/ios-camera-track`，本 worktree 无工程可 embed；冒烟待两分支会合后补做。Swift 半代码已写（经 SharedKit.h 导出签名核对 + `swiftc -parse` 语法检查），xcodebuild 编译验证随 Task 3 一并补。
+
 ## Task 0: 前置核对（Phase 4 出口验证，不写代码）
 
 **Files:**
 - 只读验证，无文件变更
 
-- [ ] **Step 1: 确认 Phase 4 已合并且 main 绿**
+- [x] **Step 1: 确认 Phase 4 已合并且 main 绿**（K3 注：`:shared:compileKotlinIosSimulatorArm64` + `:shared:jvmTest` 绿；worktree 基于已同步 main，androidApp assemble 由主会话收口验证）
 
-Run: `git log --oneline main -5 | grep -i "shared\|Phase 4" && ./gradlew :androidApp:assembleDebug :shared:allTests`
-Expected: 找到 Phase 4 合并记录；构建与全平台测试全绿。若 Phase 4 未合并，**停止**，等收口。
+- [x] **Step 2: 验证 shared commonMain 导出面**（K3 注：四项命中；`GetGroupedMediaUseCase` 缺失见段首执行记录）
 
-- [ ] **Step 2: 验证 shared commonMain 导出面**
+- [x] **Step 3: 验证 iOS target 可用**（`iosX64/iosArm64/iosSimulatorArm64` 编译通过；XCFramework 任务不存在，Task 1 新建）
 
-Run: `ls shared/src/commonMain/kotlin/com/mamba/picme/ && grep -rn "interface MediaRepository\|sealed.*AccessState\|data class BeautySettings\|enum class FilterType\|class GetGroupedMediaUseCase" shared/src/commonMain/`
-Expected 五项全部命中：
-- `MediaRepository` 接口（Phase 4 Task 4 去 `Uri`/`IntentSender` 后版本；Android 删除授权四方法应在 androidMain/androidApp，不在接口上）
-- `AccessState` 密封类（`Full/Limited/Denied/AddOnly`）
-- `BeautySettings`/`FilterType`/`StyleFilter`（Phase 4 D6）
-- `GetGroupedMediaUseCase`
-
-若 `AccessState` 缺失（编制计划时全仓库不存在，Phase 4 Task 4 负责新建）：**停止**，先在 Phase 4 补齐——它是相册权限状态机的共享契约，spec §4.2 依赖。
-
-- [ ] **Step 3: 验证 iOS target 可用**
-
-Run: `./gradlew :shared:tasks --all | grep -i "iosSimulatorArm64Test\|XCFramework\|Framework"`
-Expected: 至少有 `iosSimulatorArm64Test`（Phase 4 D8 已声明 iOS target）。XCFramework 任务预期**不存在**（Task 1 新建）。
-
-- [ ] **Step 4: 建执行 worktree**
-
-Run: `git worktree add .worktrees/feat-ios-app-skeleton -b feat/ios-app-skeleton main && cd .worktrees/feat-ios-app-skeleton`
-Expected: worktree 就绪；后续所有 Task 的相对路径以此为准（文档中路径相对仓库根，worktree 内一致）。
+- [x] **Step 4: 建执行 worktree**（主会话已建 `.worktrees/ios-gallery` + `refactor/ios-gallery`）
 
 ---
 
@@ -66,9 +54,9 @@ Expected: worktree 就绪；后续所有 Task 的相对路径以此为准（文�
 
 **背景**：Phase 4 的 `shared/build.gradle.kts` 只声明了 5 个 target（android/jvm/iosX64/iosArm64/iosSimulatorArm64），**没有** framework/XCFramework 配置。参照 `tmp/kmp-koog-spike/sharedSpike/build.gradle.kts` 的已验证模式。
 
-- [ ] **Step 1: 加 XCFramework 配置**
+- [x] **Step 1: 加 XCFramework 配置**（K3 注：Kotlin 2.3.10 中类名为 `XCFrameworkConfig(project, "SharedKit")`，原 `XCFramework` 已移除；iOS target 已具名化）
 
-在 `shared/build.gradle.kts` 的 `kotlin { ... }` 块内（iOS target 声明之后）追加：
+在 `shared/build.gradle.kts` 的 `kotlin { ... }` 块内（iOS target 声明之后）追加（实际落地用 `XCFrameworkConfig`）：
 
 ```kotlin
 // iOS framework 产物（iosApp 消费；Task 1）
@@ -84,27 +72,13 @@ listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->
 
 注意：若 iOS target 已用 `iosX64()` 等形式声明在上方，改为先 `val iosX64 = iosX64()` 等具名声明再复用，避免重复注册 target。
 
-- [ ] **Step 2: 构建 Debug XCFramework**
+- [x] **Step 2: 构建 Debug XCFramework**（✅ 4m22s 首跑成功；双切片 + SharedKit.h 齐）
 
-Run: `./gradlew :shared:assembleSharedKitDebugXCFramework`
-Expected: `BUILD SUCCESSFUL`；产物 `shared/build/XCFrameworks/debug/SharedKit.xcframework/` 存在，含 `ios-arm64` 与 `ios-arm64_x86_64-simulator` 两个切片（各含 `SharedKit.framework/Headers/SharedKit.h`）。
+- [x] **Step 3: 验证导出符号**（✅ 22 处命中；另确认 `AccessStateFull.shared`、`IosMediaRepository(bridge:)`、`FlowWatchersKt.watch(_:onEach:)` 等相册段符号导出形态）
 
-- [ ] **Step 3: 验证导出符号**
+- [x] **Step 4: 验证 Release 构建（一次性成本，记录耗时）**（✅ 双切片 111MB；`:shared:assemble` 已含 release 变体，增量复核 6s）
 
-Run: `grep -c "AgentIdGenerator\|DispatcherProvider" shared/build/XCFrameworks/debug/SharedKit.xcframework/ios-arm64/SharedKit.framework/Headers/SharedKit.h`
-Expected: ≥ 2（Kotlin object/class 已导出为 ObjC 声明）。
-
-- [ ] **Step 4: 验证 Release 构建（一次性成本，记录耗时）**
-
-Run: `time ./gradlew :shared:assembleSharedKitReleaseXCFramework`
-Expected: SUCCESSFUL（预期 ~4min，2.3 spike 实测 3m54s）；产物在 `shared/build/XCFrameworks/release/`。
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add shared/build.gradle.kts
-git commit -m "feat(shared): SharedKit XCFramework 打包配置（iosApp 消费入口，Task 1）"
-```
+- [x] **Step 5: Commit**（✅ c0a06215）
 
 ---
 
@@ -229,19 +203,21 @@ git commit -m "feat(ios): PoLang Xcode 工程骨架 + Tab 骨架（Task 2）"
 
 ## Task 3: SharedKit embed 集成 + SharedBridge 冒烟
 
+> **✅ K3 完成记录（2026-08-08，commit `112c1e92` + 勾选 commit）**：阻塞解除（camera-track 合并入 `739ac8cf`）。实际路径与原计划两处偏差：① 工程为 XcodeGen 生成（`project.yml`），embed 走 yml `dependencies: framework: ... embed: true` + `preBuildScripts` 挂 `build-shared-kit.sh`，无 GUI 步骤；② 冒烟 XCTest 2 项（smokeIds 递增 + AccessState 四态单例相等性）。**全量 `xcodebuild test` 11/11 通过**（含 GLM MediaPipe 7 项 + 相册权限/分组 2 项）。typecheck 修复 4 处见 Step 5 注；`build-shared-kit.sh` 踩坑修复见 Step 2 注。
+
 **Files:**
 - Modify: `iosApp/PoLang.xcodeproj`（GUI：加 framework + Run Script 阶段）
 - Create: `iosApp/scripts/build-shared-kit.sh`
 - Create: `iosApp/PoLang/SharedBridge/KotlinBridge.swift`
 - Test: `iosApp/PoLangTests/KotlinBridgeTests.swift`
 
-- [ ] **Step 1: embed SharedKit.xcframework**
+- [x] **Step 1: embed SharedKit.xcframework**（K3 注：XcodeGen yml 声明式 embed，Debug 链 `shared/build/XCFrameworks/debug/`；Release 切换留待首次发版）
 
 GUI：把 `shared/build/XCFrameworks/debug/SharedKit.xcframework` 拖进工程（不勾 Copy items，引用相对路径 `../shared/build/...`）；target → General → Frameworks 里设为 **Embed & Sign**。
 
 （Release 配置后续切 `release/` 产物；日常开发全用 debug——2.3 spike 实测增量 ~6s。）
 
-- [ ] **Step 2: 写 Gradle 同步脚本**
+- [x] **Step 2: 写 Gradle 同步脚本**（K3 注：新增两坑修复——① hash 文件缺失时 BSD find `-newer` 退出码非零 + pipefail + set -e 静默中止，改分支处理 + `|| true`；② Xcode 构建环境无 java/ANDROID_HOME，脚本兜底注入 `/usr/libexec/java_home` 与 `$HOME/Library/Android/sdk`；另加重建后 `touch` framework 强制 embed 重拷）
 
 `iosApp/scripts/build-shared-kit.sh`（chmod +x）：
 
@@ -264,7 +240,7 @@ mkdir -p "$(dirname "$HASH_FILE")" && touch "$HASH_FILE"
 
 Xcode：target → Build Phases → + Run Script，命名「Build SharedKit」，内容 `"$SRCROOT/scripts/build-shared-kit.sh"`，**取消勾选** "Based on dependency analysis"（脚本自判增量），移到 Compile Sources 之前。
 
-- [ ] **Step 3: 写 SharedBridge 冒烟封装**
+- [x] **Step 3: 写 SharedBridge 冒烟封装**
 
 `iosApp/PoLang/SharedBridge/KotlinBridge.swift`：
 
@@ -287,7 +263,7 @@ enum KotlinBridge {
 
 （`AgentIdGenerator` 是 shared commonMain 的 `expect object`，导出为 `SharedKitAgentIdGenerator`，Swift 名 `AgentIdGenerator.shared`。）
 
-- [ ] **Step 4: 写 XCTest**
+- [x] **Step 4: 写 XCTest**（K3 注：加第 2 项 AccessState 四态单例相等性）
 
 `iosApp/PoLangTests/KotlinBridgeTests.swift`：
 
@@ -303,12 +279,12 @@ final class KotlinBridgeTests: XCTestCase {
 }
 ```
 
-- [ ] **Step 5: 跑测试验证集成**
+- [x] **Step 5: 跑测试验证集成**（✅ 11/11 passed。相册段 Swift 首跑 typecheck 修 4 处：`presentLimitedLibraryPicker` 在 **PhotosUI** 扩展（非 Photos）；`GalleryAccessState.map` tuple switch 穷举补 `(.limited,.addOnly)`→denied；`GalleryGridView` 缺 `import SharedKit`；init 解耦 AppContainer 改默认直构 repository——**Task 4 需切回 `container.mediaRepository`**）
 
 Run: `xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang -destination 'platform=iOS Simulator,name=iPhone 16' test`
 Expected: `** TEST SUCCEEDED **`，1 test passed（证明 embed/link/签名/调用链全通）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**（`112c1e92`）
 
 ```bash
 git add iosApp/
@@ -652,7 +628,7 @@ git commit -m "chore(ios): MNN/sentencepiece/MediaPipe 模型/美颜 assets 收�
 
 **设计**：shared 的 `MediaRepository`（Phase 4 Task 4 产物，Flow 接口）的 iOS actual 写在 **Kotlin iosMain**，通过 ObjC 导出的 `IosMediaRepositoryBridge` 协议把 Photos framework 调用下沉到 Swift——Swift 只见 5 字段 DTO，不见 Kotlin Flow；相册 presentation（Swift）反向经 `FlowWatcher` 订阅 Flow。
 
-- [ ] **Step 1: 写桥协议（shared/iosMain）**
+- [x] **Step 1: 写桥协议（shared/iosMain）**（K3 注：DTO 去掉 `id` 字段——Swift `hashValue` 每次启动随机化，id 改由 Kotlin 侧 `localIdentifier.hashCode()` 派生；桥协议增补 `deleteMedia(localIdentifiers:)` 承载 PHAssetChangeRequest 删除）
 
 `shared/src/iosMain/kotlin/com/mamba/picme/data/IosMediaRepositoryBridge.kt`：
 
@@ -678,7 +654,7 @@ interface IosMediaRepositoryBridge {
 }
 ```
 
-- [ ] **Step 2: 写 IosMediaRepository（shared/iosMain）**
+- [x] **Step 2: 写 IosMediaRepository（shared/iosMain）**（K3 注：按 Task 0 核对的接口全集覆写；Android 删除授权三方法 no-op；`insertMedia` 返回 -1 待相机段落地）
 
 `shared/src/iosMain/kotlin/com/mamba/picme/data/IosMediaRepository.kt`：
 
@@ -729,7 +705,7 @@ class IosMediaRepository(
 
 > ⚠️ Task 0 已核对 Phase 4 的 `MediaRepository` 实际方法集——上覆写仅示例 `allMedia`/`getMediaById`；其余接口方法按 Task 0 核对结果逐个覆写（删除/插入走 `PHAssetChangeRequest`，在 Step 4 桥侧补方法）。`MediaAsset` 字段名以 commonMain 实际定义为准。
 
-- [ ] **Step 3: 写 FlowWatcher（Kotlin Flow → Swift 可消费）**
+- [x] **Step 3: 写 FlowWatcher（Kotlin Flow → Swift 可消费）**（导出形态已核对：`FlowWatchersKt.watch(_:onEach:)`）
 
 `shared/src/iosMain/kotlin/com/mamba/picme/shared/FlowWatchers.kt`：
 
@@ -755,7 +731,7 @@ fun <T> Flow<T>.watch(onEach: (T) -> Unit): FlowWatcher {
 }
 ```
 
-- [ ] **Step 4: 写 Kotlin 侧 iosTest**
+- [x] **Step 4: 写 Kotlin 侧 iosTest**（K3 注：Intel 主机 `iosSimulatorArm64Test` 被 KGP 禁用，改 `:shared:iosX64Test` ✅ 6 用例全过：DTO 映射/id 派生/权限快照/getMediaById/删除解析/no-op）
 
 `shared/src/iosTest/kotlin/com/mamba/picme/data/IosMediaRepositoryTest.kt`：
 
@@ -793,7 +769,7 @@ class IosMediaRepositoryTest {
 Run: `./gradlew :shared:iosSimulatorArm64Test`
 Expected: PASS（`AccessState.Full` 的具体构造以 commonMain 实际 sealed 定义为准）。
 
-- [ ] **Step 5: 写 Swift 桥实现**
+- [x] **Step 5: 写 Swift 桥实现**（K3 注：`AccessStateFull.shared` 扁平导出名已按 SharedKit.h 核对；`swiftc -parse` 过；xcodebuild 编译待 Task 3 工程）
 
 `iosApp/PoLang/Platform/PhMediaBridge.swift`：
 
@@ -861,7 +837,7 @@ extension PhMediaBridge: PHPhotoLibraryChangeObserver {
 
 > `AccessState.Full.shared` 的 ObjC 导出形态以 Task 0 核对的 sealed 实现为准（data object → `.shared`；class → 构造器）。若 `AccessState` 在 Kotlin 侧是 expect/枚举，按实际调整。
 
-- [ ] **Step 6: 写 ThumbnailLoader（Swift 侧，不进 shared）**
+- [x] **Step 6: 写 ThumbnailLoader（Swift 侧，不进 shared）**（补注：`isNetworkAccessAllowed = false`，[PRIVACY] 不触发 iCloud 拉取）
 
 `iosApp/PoLang/Platform/ThumbnailLoader.swift`：
 
@@ -903,7 +879,7 @@ final class ThumbnailLoader {
 }
 ```
 
-- [ ] **Step 7: 接 AppContainer + 真机/模拟器验证**
+- [ ] **Step 7: 接 AppContainer + 真机/模拟器验证**（⛔ 阻塞：AppContainer/Xcode 工程在 GLM 分支；wiring 契约——`AppContainer` 增 `let mediaRepository: IosMediaRepository`，init 内 `IosMediaRepository(bridge: PhMediaBridge())`）
 
 `AppContainer` 的 init 追加：
 
@@ -925,7 +901,7 @@ Task {
 
 Expected: DebugOverlay 显示模拟器照片数 > 0。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**（K3 注：随 Task 7 提交）
 
 ```bash
 git add shared/src/iosMain/ shared/src/iosTest/ iosApp/
@@ -940,7 +916,7 @@ git commit -m "feat(ios): 相册数据通路——IosMediaRepository + PhMediaBr
 - Create: `iosApp/PoLang/Features/Gallery/GalleryPermissionStore.swift`
 - Test: `iosApp/PoLangTests/GalleryPermissionStoreTests.swift`
 
-- [ ] **Step 1: 写状态机（映射函数纯化，可无设备单测）**
+- [x] **Step 1: 写状态机（映射函数纯化，可无设备单测）**（K3 注：另加 DebugOverlay 画屏 `gallery.permission`）
 
 `iosApp/PoLang/Features/Gallery/GalleryPermissionStore.swift`：
 
@@ -995,7 +971,7 @@ final class GalleryPermissionStore: ObservableObject {
 }
 ```
 
-- [ ] **Step 2: 写单测（打表覆盖全部分支）**
+- [x] **Step 2: 写单测（打表覆盖全部分支）**（K3 注：XCTest 已写，xcodebuild 执行待 Task 3 工程）
 
 `iosApp/PoLangTests/GalleryPermissionStoreTests.swift`：
 
@@ -1019,7 +995,7 @@ final class GalleryPermissionStoreTests: XCTestCase {
 Run: `xcodebuild ... test`（同 Task 3 命令）
 Expected: PASS，累计 4 tests。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**（K3 注：随 Task 8 提交）
 
 ```bash
 git add iosApp/
@@ -1037,7 +1013,7 @@ git commit -m "feat(ios): 相册权限状态机四态 + 映射打表单测（Tas
 - Modify: `iosApp/PoLang/Features/Main/MainTabView.swift`（GalleryPlaceholderView → GalleryGridView）
 - Test: `iosApp/PoLangTests/GalleryViewModelTests.swift`
 
-- [ ] **Step 1: 写 GalleryViewModel**
+- [x] **Step 1: 写 GalleryViewModel**（K3 注：分组在 Swift 侧（`GetGroupedMediaUseCase` commonMain 缺失，见 Task 0 记录）；`FlowWatchersKt.watch` 订阅）
 
 `iosApp/PoLang/Features/Gallery/GalleryViewModel.swift`：
 
@@ -1093,7 +1069,7 @@ final class GalleryViewModel: ObservableObject {
 }
 ```
 
-- [ ] **Step 2: 写 ViewModel 单测（分组逻辑纯函数验证）**
+- [x] **Step 2: 写 ViewModel 单测（分组逻辑纯函数验证）**（K3 注：时间戳取 UTC 正午保证任意时区分组边界稳定；xcodebuild 执行待 Task 3 工程）
 
 `iosApp/PoLangTests/GalleryViewModelTests.swift`：
 
@@ -1134,7 +1110,7 @@ final class GalleryViewModelTests: XCTestCase {
 
 > `AccessState.Full.shared` 形态同 Task 7 Step 5 的注（以 commonMain 实际 sealed 定义为准）。
 
-- [ ] **Step 3: 写网格视图（AI 生成，Preview + accessibilityIdentifier 全配）**
+- [x] **Step 3: 写网格视图（AI 生成，Preview + accessibilityIdentifier 全配）**（K3 注：文案全部 `String(localized:)` 英文原文键，待 GLM 侧 xcstrings 补三语——需新增键：Authorize Photo Access / Add-Only Access Hint / Manage Accessible Photos / Photo Library Unavailable / Open Settings；MainTabView 替换在 GLM 分支，随会合落地）
 
 `iosApp/PoLang/Features/Gallery/ThumbnailView.swift`：
 
@@ -1251,12 +1227,12 @@ struct GalleryGridView: View {
 
 `MainTabView` 里 `GalleryPlaceholderView()` 替换为 `GalleryGridView(container: container)`（container 从 `@EnvironmentObject` 取）。
 
-- [ ] **Step 4: dev-loop 验证**
+- [ ] **Step 4: dev-loop 验证**（⛔ 阻塞：无 Xcode 工程，随 Task 3 冒烟一并补）
 
 Run: `./scripts/ios-dev-loop.sh task9-gallery`
 Expected: 截图中网格展示模拟器照片、按日分组 header 正确；无崩溃。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**（K3 注：随 Task 9/10 提交）
 
 ```bash
 git add iosApp/ scripts/
@@ -1272,7 +1248,7 @@ git commit -m "feat(ios): 相册网格页——ViewModel/分组/缩略图/权限
 - Create: `iosApp/PoLang/Features/Gallery/AlbumListView.swift`
 - Modify: `iosApp/PoLang/Features/Gallery/GalleryGridView.swift`（cell 包 NavigationLink）
 
-- [ ] **Step 1: 写大图分页浏览**
+- [x] **Step 1: 写大图分页浏览**（swiftc -parse 过，xcodebuild 待 Task 3）
 
 `iosApp/PoLang/Features/Gallery/MediaPagerView.swift`：
 
@@ -1323,7 +1299,7 @@ private struct FullImageView: View {
 }
 ```
 
-- [ ] **Step 2: 网格 cell 接入 NavigationLink**
+- [x] **Step 2: 网格 cell 接入 NavigationLink**（随 GalleryGridView 一并落地）
 
 `GalleryGridView` 的 `ThumbnailView` 外包一层：
 
@@ -1336,7 +1312,7 @@ NavigationLink {
 .accessibilityIdentifier("cell_\(asset.uri)")
 ```
 
-- [ ] **Step 3: 写相簿列表（Swift 直连 Photos，presentation 自治）**
+- [x] **Step 3: 写相簿列表（Swift 直连 Photos，presentation 自治）**
 
 `iosApp/PoLang/Features/Gallery/AlbumListView.swift`：
 
@@ -1399,7 +1375,7 @@ struct AlbumListView: View {
 }
 ```
 
-- [ ] **Step 4: dev-loop 验证 + Commit**
+- [ ] **Step 4: dev-loop 验证 + Commit**（⛔ dev-loop 阻塞同 Task 9 Step 4；代码随 Task 9/10 提交）
 
 Run: `./scripts/ios-dev-loop.sh task10-pager`
 Expected: 网格点 cell 进大图可滑动；相簿入口进列表有数据。
@@ -1412,6 +1388,8 @@ git commit -m "feat(ios): 大图分页浏览 + 相簿列表（Task 10）"
 ---
 
 ## Task 11: 相册性能实测（5.3 出口）
+
+> **⛔ K3 注（2026-08-08）**：依赖 Xcode 工程 + 真机，随 Task 3 会合后安排；代码侧已预埋调优点（`ThumbnailLoader.startCaching` 预热窗口注释、DebugOverlay `gallery.count` 画屏）。
 
 **Files:**
 - 无代码变更；产出记录到本文件勾选备注

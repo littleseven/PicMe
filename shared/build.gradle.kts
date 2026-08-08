@@ -11,9 +11,20 @@ kotlin {
         minSdk = 24
     }
     jvm()
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    val iosX64 = iosX64()
+    val iosArm64 = iosArm64()
+    val iosSimulatorArm64 = iosSimulatorArm64()
+
+    // iOS framework 产物（iosApp 消费；Phase 5 Task 1）
+    // 注：Kotlin 2.2+ XCFramework DSL 类已改名 XCFrameworkConfig（原 XCFramework 被移除）
+    val sharedKit = org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFrameworkConfig(project, "SharedKit")
+    listOf(iosX64, iosArm64, iosSimulatorArm64).forEach { target ->
+        target.binaries.framework {
+            baseName = "SharedKit"
+            isStatic = false
+            sharedKit.add(this)
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
