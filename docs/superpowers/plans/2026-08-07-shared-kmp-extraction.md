@@ -1132,9 +1132,9 @@ git commit -m "refactor(app): Phase 4.6 accessibility/perception/RemoteControlTo
 
 ---
 
-## Task 14：runtime-core 消亡（路线图 4.7）
+## Task 14：runtime-core 消亡（路线图 4.7） ✅ 已完成（2026-08-08，commits `5baf1616`+`e9e0edc5`+审查收尾 `822d95d6`，双审 APPROVED）
 
-- [ ] **Step 1: 残余清点（必须为空才能删模块）**
+- [x] **Step 1: 残余清点（必须为空才能删模块）**（实际残留 4 测试 + 空壳 manifest；scripts/.github 零引用）
 
 Run: `find runtime-core/src -name "*.kt" -o -name "*.java" -o -name "*.cpp" -o -name "*.h" | grep -v build/`
 Expected: 无输出。若有残余文件：逐个对照清单判定去向（commonMain / androidMain / androidApp），补办迁移后回到本步
@@ -1142,19 +1142,19 @@ Expected: 无输出。若有残余文件：逐个对照清单判定去向（comm
 Run: `grep -rn "project(\":runtime-core\")" --include="*.gradle.kts" --include="*.gradle" .`
 Expected: 仅 `settings.gradle.kts` 的 include 与 androidApp 的依赖声明两处
 
-- [ ] **Step 2: 移除模块**
+- [x] **Step 2: 移除模块**（4 测试处置：KoogMessageMemoryTest→commonTest、ToolInventoryTest→jvmTest 更名 ChatToolServiceInventoryTest 消 FQN 冲突、CameraToolServiceInventoryTest→jvmTest、KeywordSpotterEngineTest→androidApp/src/test＝唯一可行落点；顺批 polish 三项：MemoryManager/LocalLlmEngine 补 dispatcherProvider 注入、RemoteCommandDispatcher 非对称删 IO 双跳——经审查独立核实判断正确；androidApp 直链 Koog 替代 runtime-core api 传递）
 
 `settings.gradle.kts` 删 `include(":runtime-core")`；`androidApp/build.gradle.kts` 删 `implementation(project(":runtime-core"))`；`git rm -r runtime-core/`；`scripts/` 与 `.github/` 中 runtime-core 引用 grep 清理（参照 Phase 3 的批量更新模式）：
 
 Run: `grep -rln "runtime-core" scripts/ .github/ 2>/dev/null`
 Expected: 逐个文件修正为 shared/androidApp 对应路径后无残留
 
-- [ ] **Step 3: 全量验证**
+- [x] **Step 3: 全量验证**（clean + assembleDebug + shared jvmTest 24/0 + androidApp 单测全绿）
 
 Run: `./gradlew clean :androidApp:assembleDebug :shared:jvmTest`
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**（实际 `5baf1616`+`e9e0edc5` 两 commit + 审查收尾 `822d95d6`）
 
 ```bash
 git add -A
@@ -1231,3 +1231,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | **Task 7**（`fdd66823`，计划标注最难任务 D4，双审 APPROVED_WITH_CONCERNS→无阻塞）：① suspend 化模式——`dispatchScope.future{}.get(5s)`→`withTimeout(5000)`、dispatchScope 删除（结构化并发级联取消）、catch 链顺序 `TimeoutCancellationException→CancellationException{throw}→Exception` 经审查核实正确；② **超时 observation 文本漂移（有意改进，记录备 Agent 行为回归对照）**：`Error: null`→`Error: Timed out waiting for N ms`（withTimeout message 比 future.get TimeoutException 更有信息量；非 @Tool/@LLMDescription 文本，不破坏 prompt 前缀缓存；golden 护栏不覆盖运行时 observation）；③ ToolSet 裁决——两服务移除 ToolSet 标记接口（JVM-only），组合根 `asToolsByClass()` 展开，字节码证实与 `ToolSet.asTools()` 同一扫描函数，golden 逐字节一致实证；④ `RemoteControlToolService` 11 @Tool 方法 suspend 涟漪（CameraToolHelper 强制波及），`dispatchCommand` 阻塞桥留 Task 13；⑤ golden 护栏在 jvmTest（reflect JVM-only），commonTest `ToolInventoryTest` 补纯格式化；⑥ `ToolInventory.kt` 重写未保 rename 历史。**Task 13 待办（审查 🟡）**：清理 `CameraToolHelper.buildCommandJson` 废弃参数（调用方传 `{ "" }` 的死代码）+ dispatchCommand 阻塞桥。审查 🔵 记录：ChatToolService.adjustImageHandler 缺 @Volatile 系旧代码既有问题 |
 | 2026-08-08 | **Task 9**（`481645e8`，Phase 4 架构收口核心，双审 APPROVED_WITH_CONCERNS→无阻塞）：① 组合根唯一直构断言经审查独立 grep 验证成立（KoogMessageMemoryStore/LocalLlmEngine/MemoryManager 直构仅 AndroidAgentComposition 一处；`getInstance(context)` 旧签名清零）；② `AgentDependencies` 9 字段（计划 4 字段扩展）——descriptors/registry 同源 `asToolsByClass()` 展开保 prompt 与工具零漂移；③ `RemoteChatEngine` 编译强制随迁 commonMain（计划 Files 未列，编译器驱动）；④ 新增 `ChatHistoryCleaner` seam、`isModelAvailable(modelId)` 1 参、`LlmModelNotFoundException` 拆文件同 FQN；⑤ prompt 函数化文本逐字节等价（脚本校验）；⑥ 飞书 RPA `remoteImToolRegistryProvider` 懒构建注入点已就绪，**Task 13 wiring 无需改签名**；⑦ initialize AtomicReference CAS + fail-fast。**后续统一收口（审查 🟡，不阻塞，归 Task 13/14 或终审 polish）**：a. `MemoryManager` 补 `dispatcherProvider` 构造参数（同 KoogMessageMemoryStore 模式）；b. `LocalLlmEngine` 补 `dispatcherProvider` 构造参数（pre-existing）；c. `RemoteCommandDispatcher` 删冗余 `withContext(Dispatchers.IO)` 外层（与 orchestratorDispatcher 双跳）；d. androidApp 单测集中验证补 `:androidApp:testDebugUnitTest`。**文档待办（Task 15）**：runtime-core/AGENTS.md 文件清单过时、根 AGENTS.md「Agent 编排层在 :runtime-core」等表述、androidApp/AGENTS.md 组合根新增 |
 | 2026-08-08 | **Task 13**（`e0a04d6c` + 审查修复 `42b9a80c`，双审 CHANGES_REQUESTED→已修复）：① 勘察 5 偏差全部按预案落地（debug manifest 全限定名/debug res/类名 PoLangAccessibilityService/双服务并存不动/ToolSpecificationTest 随迁）；② `dispatchCommand` 阻塞桥清理（future.get→withTimeout，catch 链对齐 Task 7，recordDispatchEvent 记账语义不变）+ `buildCommandJson` 死参数删除（涟漪 6 处同模块内）；③ 超时 observation 文本漂移与 Task 7 同源已登记；④ **审查 🔴 修复**：RemoteControlToolService 迁 androidApp 后脱离 shared 守卫扫描（ADR-008 盲区）——androidApp 侧补 `RemoteInferenceNoMediaUploadGuardTest`（扫 `src/main/java/.../inference/remote/`，token 列表与 shared 副本一致，已验证绿）；runtime-core 副本删除（扫描目录已空，vacuous 失效）；⑤ 组合根 wiring 零变更（同 FQN 同模块直构）；⑥ proguard 无需新增 keep（@Tool 类经 asToolsByClass 直接引用；manifest FQN 引用的 service 类 AGP 自动 keep）。审查 🔵 记录（不阻塞）：PicMeAccessibilityService.kt 文件名与类名不符（旧状沿用）；两个同名 PoLangAccessibilityService 包路径不同可后续改名消混淆。**runtime-core 残留（Task 14 处置）**：仅 4 测试（KeywordSpotterEngineTest/KoogMessageMemoryTest/ToolInventoryTest/CameraToolServiceInventoryTest）+ 空壳 main manifest + debug 空目录 |
+| 2026-08-08 | **Task 14**（`5baf1616`+`e9e0edc5`+审查收尾 `822d95d6`，双审 APPROVED）：runtime-core 整删（settings/build 引用清零，残余 grep 仅剩注释性历史引用）；4 测试按裁决落点迁移（git mv 保历史，24+6 用例全绿）；polish 三项落地——MemoryManager/LocalLlmEngine 补 dispatcherProvider 构造参数（默认值保旧行为、组合根传同一实例无双池）、RemoteCommandDispatcher 非对称删 IO 双跳（ReAct 路径删＝内部已切 orchestratorDispatcher；直搜路径留＝Thread.sleep 阻塞需 IO，审查独立核实判断正确）；androidApp 直链 Koog 依赖（排除 serialization-jackson 理由同 shared）；守卫测试注释对齐模块消亡后状态（shared + androidApp 双副本格局入注释）。**Phase 4 全部迁移任务至此完成，剩 Task 15 出口验证** |
