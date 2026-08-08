@@ -870,7 +870,7 @@ Expected: `BUILD SUCCESSFUL`；`KoogMessageMemoryCodecTest PASSED`
 
 ---
 
-## Task 9：facade 迁移与 Android 组合根收口（路线图 4.3 收尾）
+## Task 9：facade 迁移与 Android 组合根收口（路线图 4.3 收尾）✅ 已完成（2026-08-08，commit `481645e8`，双审 APPROVED_WITH_CONCERNS→无阻塞，组合根唯一直构断言经独立 grep 验证成立）
 
 **Files:**
 - Move: `runtime-core/.../facade/AgentOrchestrator.kt` → commonMain 同路径（改造）
@@ -879,7 +879,7 @@ Expected: `BUILD SUCCESSFUL`；`KoogMessageMemoryCodecTest PASSED`
 - Create: `androidApp/src/main/java/com/mamba/picme/agent/AndroidAgentComposition.kt`（Android 组合根）
 - Modify: `androidApp/` 内 `AgentOrchestrator.getInstance(context)` 调用点
 
-- [ ] **Step 1: `ImageInferenceEngine` 接口（VLM 引擎抽象，Task 12 的 Android 实现挂此接口）**
+- [x] **Step 1: `ImageInferenceEngine` 接口（VLM 引擎抽象，Task 12 的 Android 实现挂此接口）**（⏭️ 已由 Task 12 创建，本 Task 直接消费；新增 `isModelAvailable(modelId)` 1 参版替代旧 2 参）
 
 Create `shared/src/commonMain/kotlin/com/mamba/picme/agent/core/inference/local/ImageInferenceEngine.kt`：
 
@@ -898,7 +898,7 @@ interface ImageInferenceEngine {
 
 > 方法签名以现有 `LocalLlmEngine` 公开 API 为准逐项对应（Bitmap 参数统一改为 `ByteArray`，Bitmap→ByteArray 的编码在 Android actual 内完成）。
 
-- [ ] **Step 2: facade 接口注入化改造 + git mv**
+- [x] **Step 2: facade 接口注入化改造 + git mv**（`RemoteChatEngine` 编译强制随迁 commonMain——AgentOrchestrator 持有它，commonMain 不能引用 runtime-core 类型；新增 `ChatHistoryCleaner` fun interface seam 承载 MemoryManager 清记忆；`LlmModelNotFoundException` 拆文件迁 commonMain 同 FQN；prompt 组装改 public 函数 `buildChatSystemPrompt/buildCameraSystemPrompt(descriptors)`——文本经脚本逐字节比对与 HEAD 一致；Task 8 Step 4 直构收口一并落地，`KoogMessageMemoryStore` 补 `dispatcherProvider` 构造参数）
 
 `AgentConfigurator`：构造器 `context: Context` 删除，改为接收各组件工厂/实例（`chatMemoryStore: ChatMemoryStore`、`dispatcherProvider: DispatcherProvider`、`imageEngineProvider: () -> ImageInferenceEngine`）；`getContext()` 删除；`getFeishuAgent(windowManager, ...)` 的 WindowManager 参数删除（RPA 工具集经 Task 6 Step 3 的 `additionalToolSets` 注入）。
 
@@ -906,7 +906,7 @@ interface ImageInferenceEngine {
 
 `LocalModelService`：构造中 `LocalLlmEngine` 直构改为 `ImageInferenceEngine` 注入。
 
-- [ ] **Step 3: Android 组合根**
+- [x] **Step 3: Android 组合根**（`AgentDependencies` 9 字段——descriptors/registry 同源 `asToolsByClass()` 展开保 prompt 与工具零漂移；飞书 RPA 经 `remoteImToolRegistryProvider` 懒构建，**Task 13 注入点已就绪**：RemoteControlToolService 迁 androidApp 后同模块可直构、wiring 无需改签名；组合根暴露 `localLlmEngine` 具体类型作 Android 专有 API 逃生舱；initialize 用 AtomicReference CAS + fail-fast）
 
 `AndroidAgentComposition.kt`（androidApp）：
 
@@ -941,7 +941,7 @@ object AndroidAgentComposition {
 Run: `grep -rn "AgentOrchestrator.getInstance(" androidApp/src/main/java/ | grep -v "getInstance()"`
 Expected: 无输出
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**（JITPACK=true：jvmTest/compileAndroidMain/assemble/runtime-core 测试/androidApp compileDebugKotlin 全绿；androidApp 单测未编译验证——集中验证补 `:androidApp:testDebugUnitTest`）
 
 Run: `./gradlew :shared:jvmTest :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`
@@ -949,7 +949,7 @@ Expected: `BUILD SUCCESSFUL`
 安装冒烟：Chat 发一条消息、相机发一条 AI 指令（两条链路分别经 `KoogChatAgent`/`KoogReActAgent`，组合根 wiring 错误的最早暴露点）
 Expected: 双链路正常回包
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**（实际 `481645e8`）
 
 ```bash
 git add shared/ runtime-core/ androidApp/
@@ -1229,3 +1229,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | **Task 12**（提前并行，`ff16cbf2` + 审查收尾 `a3e12fc0`，双审 APPROVED_WITH_CONCERNS→🟡 已修）：① **降级预案启用且形态调整（审查批准为更优方案）**——AGP 9.1 KMP android 块不支持 externalNativeBuild（实证 + 官方文档双确认），但计划原版降级「沉 androidApp」不可行（runtime-core `LocalModelService.kt:6`/`AgentConfigurator.kt:45` 仍引用 LocalLlmEngine，库不能反向依赖 app；Task 9 未执行）；实际落地：四 Kotlin 文件按计划归 shared/androidMain，cpp/36 头文件/consumer-rules 拆新建模块 **`:engines:agent-native`**（com.android.library，ndk 28.2/abiFilters/cmake 3.22.1 逐项平移），shared androidMain `implementation` 依赖，`.so` 经 AAR 传 androidApp；此形态保留 Phase 5 iOS 扩展性、Task 14 删 runtime-core 无 native 残留；② `ImageInferenceEngine` 接口由本 Task 创建（Task 9 直接消费、跳过创建步；接口 KDoc 已精确化 `__ERROR_` 语义——仅 `imageInferenceWithTimeout` 可能产生，`imageInference` 所有错误返回空字符串；TODO 标注：Task 9+ 考虑改 sealed/Result 消魔法前缀）；③ **坑位③**：`:shared` 无 `assembleDebug`（KMP 单 variant），整体验证用 `:shared:assemble`；④ **坑位④**：commonMain 禁用裸 `@Volatile`（kotlin.jvm 不自动导入），用 `@kotlin.concurrent.Volatile`；**只有 `:shared:assemble`/metadata 编译能暴露此类问题，jvmTest/compileAndroidMain 发现不了——后续 Task 验证门槛均须含 `:shared:assemble`**；⑤ 环境坑位：Gradle daemon 毒化下载先试 `./gradlew --stop`；⑥ `engines/beauty-engine` 的 CMakeLists 有同样 mnn-core 相对路径写法但层级不同未受影响，未动 |
 | 2026-08-08 | **坑位⑤（环境，已实证解法）**：阿里云镜像对 Koog iOS metadata jar（`prompt-executor-ollama-client-iossimulatorarm64-1.1.1-metadata.jar` 等）间歇 404（目录列表有、文件没有），Gradle 不穿透到后置 mavenCentral；`--stop` 与 `--offline` 均无效（缓存记录来源仓库）。**解法：`JITPACK=true ./gradlew ...`**（settings.gradle.kts 内置开关，整体跳过阿里云走 google/mavenCentral/jitpack；Google 系依赖已缓存不需联网）。后续集中验证统一加 `JITPACK=true` |
 | 2026-08-08 | **Task 7**（`fdd66823`，计划标注最难任务 D4，双审 APPROVED_WITH_CONCERNS→无阻塞）：① suspend 化模式——`dispatchScope.future{}.get(5s)`→`withTimeout(5000)`、dispatchScope 删除（结构化并发级联取消）、catch 链顺序 `TimeoutCancellationException→CancellationException{throw}→Exception` 经审查核实正确；② **超时 observation 文本漂移（有意改进，记录备 Agent 行为回归对照）**：`Error: null`→`Error: Timed out waiting for N ms`（withTimeout message 比 future.get TimeoutException 更有信息量；非 @Tool/@LLMDescription 文本，不破坏 prompt 前缀缓存；golden 护栏不覆盖运行时 observation）；③ ToolSet 裁决——两服务移除 ToolSet 标记接口（JVM-only），组合根 `asToolsByClass()` 展开，字节码证实与 `ToolSet.asTools()` 同一扫描函数，golden 逐字节一致实证；④ `RemoteControlToolService` 11 @Tool 方法 suspend 涟漪（CameraToolHelper 强制波及），`dispatchCommand` 阻塞桥留 Task 13；⑤ golden 护栏在 jvmTest（reflect JVM-only），commonTest `ToolInventoryTest` 补纯格式化；⑥ `ToolInventory.kt` 重写未保 rename 历史。**Task 13 待办（审查 🟡）**：清理 `CameraToolHelper.buildCommandJson` 废弃参数（调用方传 `{ "" }` 的死代码）+ dispatchCommand 阻塞桥。审查 🔵 记录：ChatToolService.adjustImageHandler 缺 @Volatile 系旧代码既有问题 |
+| 2026-08-08 | **Task 9**（`481645e8`，Phase 4 架构收口核心，双审 APPROVED_WITH_CONCERNS→无阻塞）：① 组合根唯一直构断言经审查独立 grep 验证成立（KoogMessageMemoryStore/LocalLlmEngine/MemoryManager 直构仅 AndroidAgentComposition 一处；`getInstance(context)` 旧签名清零）；② `AgentDependencies` 9 字段（计划 4 字段扩展）——descriptors/registry 同源 `asToolsByClass()` 展开保 prompt 与工具零漂移；③ `RemoteChatEngine` 编译强制随迁 commonMain（计划 Files 未列，编译器驱动）；④ 新增 `ChatHistoryCleaner` seam、`isModelAvailable(modelId)` 1 参、`LlmModelNotFoundException` 拆文件同 FQN；⑤ prompt 函数化文本逐字节等价（脚本校验）；⑥ 飞书 RPA `remoteImToolRegistryProvider` 懒构建注入点已就绪，**Task 13 wiring 无需改签名**；⑦ initialize AtomicReference CAS + fail-fast。**后续统一收口（审查 🟡，不阻塞，归 Task 13/14 或终审 polish）**：a. `MemoryManager` 补 `dispatcherProvider` 构造参数（同 KoogMessageMemoryStore 模式）；b. `LocalLlmEngine` 补 `dispatcherProvider` 构造参数（pre-existing）；c. `RemoteCommandDispatcher` 删冗余 `withContext(Dispatchers.IO)` 外层（与 orchestratorDispatcher 双跳）；d. androidApp 单测集中验证补 `:androidApp:testDebugUnitTest`。**文档待办（Task 15）**：runtime-core/AGENTS.md 文件清单过时、根 AGENTS.md「Agent 编排层在 :runtime-core」等表述、androidApp/AGENTS.md 组合根新增 |
