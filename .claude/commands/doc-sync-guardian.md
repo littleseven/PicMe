@@ -282,7 +282,7 @@ git commit -m "docs: 更新拍照 GPU 化技术决策文档
 #### Step 1: 识别冗余内容
 ```bash
 # 查找重复内容
-grep -r "拍照后处理" docs/*.md app/*/AGENTS.md
+grep -r "拍照后处理" docs/*.md $(find androidApp engines runtime-core -name "AGENTS.md")
 
 # 检查顶层 AGENTS.md 是否包含模块级细节
 wc -l AGENTS.md  # 如果超过 500 行，可能需要瘦身

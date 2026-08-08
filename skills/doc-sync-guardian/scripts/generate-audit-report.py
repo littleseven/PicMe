@@ -26,7 +26,7 @@ def run_check(script_path: Path) -> tuple[int, str]:
 
 def main():
     script_dir = Path(__file__).parent
-    project_root = script_dir.parent.parent.parent.parent
+    project_root = script_dir.parent.parent.parent
     
     print("📊 开始生成综合审计报告...")
     

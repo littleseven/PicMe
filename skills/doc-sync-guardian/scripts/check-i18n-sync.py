@@ -34,9 +34,9 @@ def check_i18n_sync(project_root: Path) -> dict:
     
     # 定义三个语言的目录
     locales = {
-        'en': project_root / 'app/src/main/res/values/strings.xml',
-        'zh-CN': project_root / 'app/src/main/res/values-zh-rCN/strings.xml',
-        'zh-TW': project_root / 'app/src/main/res/values-zh-rTW/strings.xml',
+        'en': project_root / 'androidApp/src/main/res/values/strings.xml',
+        'zh-CN': project_root / 'androidApp/src/main/res/values-zh-rCN/strings.xml',
+        'zh-TW': project_root / 'androidApp/src/main/res/values-zh-rTW/strings.xml',
     }
     
     # 解析所有语言文件
@@ -159,7 +159,7 @@ def generate_report(analysis: dict) -> str:
 def main():
     # 查找项目根目录
     script_dir = Path(__file__).parent
-    project_root = script_dir.parent.parent.parent.parent
+    project_root = script_dir.parent.parent.parent
     
     print("🌍 开始 I18N 三语资源同步检查...")
     print(f"📁 项目根目录: {project_root}")

@@ -149,7 +149,7 @@ ls -lt docs/comprehensive_audit_*.md | head -1 | xargs code
    • 所有模块 AGENTS.md 均包含第 5 章
 
 ⚠️ 警告项 (3)
-   • 缺少第 5 章: app/src/main/java/com/picme/features/editor/AGENTS.md
+   • 缺少第 5 章: androidApp/src/main/java/com/mamba/picme/features/editor/AGENTS.md
    • 悬空引用: docs/01-PRODUCT/FEATURES.md -> docs/OLD_FEATURE.md
 
 ❌ 错误项 (0)

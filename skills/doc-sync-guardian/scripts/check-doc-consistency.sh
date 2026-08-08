@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 echo "🔍 开始文档一致性检查..."
 echo "📁 项目根目录: $PROJECT_ROOT"
@@ -67,7 +67,7 @@ while IFS= read -r agents_file; do
             MODULES_WITHOUT_CHAPTER5+=("$agents_file")
         fi
     fi
-done < <(find "$PROJECT_ROOT/app/src" -name "AGENTS.md" 2>/dev/null || true)
+done < <(find "$PROJECT_ROOT/androidApp" "$PROJECT_ROOT/engines" "$PROJECT_ROOT/runtime-core" -name "AGENTS.md" 2>/dev/null || true)
 
 if [ ${#MODULES_WITHOUT_CHAPTER5[@]} -eq 0 ]; then
     PASS_ITEMS+=("所有模块 AGENTS.md 均包含第 5 章")
@@ -88,7 +88,7 @@ VALUES_DIRS=("values" "values-zh-rCN" "values-zh-rTW")
 MISSING_STRINGS=()
 
 for dir in "${VALUES_DIRS[@]}"; do
-    strings_file="$PROJECT_ROOT/app/src/main/res/$dir/strings.xml"
+    strings_file="$PROJECT_ROOT/androidApp/src/main/res/$dir/strings.xml"
     if [ ! -f "$strings_file" ]; then
         MISSING_STRINGS+=("$dir/strings.xml")
     fi

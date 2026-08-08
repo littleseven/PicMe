@@ -213,7 +213,7 @@ def generate_update_draft(analysis: dict, commit_hash: str) -> str:
 3. **验证一致性**: 运行 `./check-doc-consistency.sh`
 4. **提交变更**: 
    ```bash
-   git add docs/*.md app/*/AGENTS.md
+   git add docs/*.md $(find androidApp engines runtime-core -name "AGENTS.md")
    git commit -m "docs: 同步更新 [模块名] 文档
    
    - 更新 FEATURES.md 交互说明

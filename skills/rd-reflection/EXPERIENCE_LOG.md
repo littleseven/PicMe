@@ -75,7 +75,7 @@ LaunchedEffect(Unit) {
 |------|----------|------|
 | 新增 `rd-reflection` 自我进化 skill | `skills/rd-reflection/` | ✅ 已提交 |
 | 更新 `adb-bot` skill：Gallery 命令 + 故障排除 | `skills/adb-bot/SKILL.md` | ✅ 已提交 |
-| 新增 `gallery/AGENTS.md` §3 adb 测试命令 | `app/src/main/java/com/picme/features/gallery/AGENTS.md` | ✅ 已提交 |
+| 新增 `gallery/AGENTS.md` §3 adb 测试命令 | `app/src/main/java/com/picme/features/gallery/AGENTS.md`（重组前路径） | ✅ 已提交 |
 | 更新 `CameraTestCommand` 16 个 Gallery 命令 | `features/camera/test/CameraTestCommand.kt` | ✅ 已提交 |
 | 更新 `GalleryScreen` 动态 receiver + 收集器 | `features/gallery/GalleryScreen.kt` | ✅ 已提交 |
 | 更新 `MediaPager` 命令收集器 | `features/gallery/components/MediaPager.kt` | ✅ 已提交 |
