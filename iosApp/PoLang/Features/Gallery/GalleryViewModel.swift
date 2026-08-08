@@ -25,6 +25,7 @@ final class GalleryViewModel: ObservableObject {
     }
 
     func start() {
+        watcher?.cancel()  // onAppear 多次触发时先取消旧订阅，防协程泄漏（🟡-3）
         watcher = FlowWatchersKt.watch(repository.allMedia) { [weak self] assets in
             let list = (assets as? [MediaAsset]) ?? []
             Task { @MainActor in

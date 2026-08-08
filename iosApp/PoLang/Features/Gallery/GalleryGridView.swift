@@ -21,8 +21,11 @@ struct GalleryGridView: View {
             Group {
                 switch permission.state {
                 case .full, .limited:
-                    gridBody
-                    if permission.state == .limited { limitedBanner }
+                    // 显式 VStack 容器：防 ScrollView 贪婪占满把 Limited banner 挤出可视区（🟡-6）
+                    VStack(spacing: 0) {
+                        gridBody
+                        if permission.state == .limited { limitedBanner }
+                    }
                 case .notDetermined:
                     Button(String(localized: "Authorize Photo Access")) {
                         Task { await permission.requestAccess() }

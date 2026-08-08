@@ -39,7 +39,8 @@ private struct FullImageView: View {
         .task {
             image = await ThumbnailLoader.shared.thumbnail(
                 for: localIdentifier,
-                size: CGSize(width: 1200, height: 1200))  // 接近屏宽的原图档
+                size: CGSize(width: 1200, height: 1200),  // 接近屏宽的原图档
+                highQuality: true)                        // 大图要高清档（🟡-8）
         }
     }
 }
