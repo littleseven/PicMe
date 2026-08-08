@@ -22,8 +22,8 @@ else()
     message(FATAL_ERROR "MNN headers not found. Please ensure MNN is set up.")
 endif()
 
-# MNN 库路径（从 :mnn-core 的 jniLibs 查找）
-set(MNN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../engines/mnn-core/src/main/jniLibs/${ANDROID_ABI}")
+# MNN 库路径（从 :engines:mnn-core 的 jniLibs 查找；本模块位于 engines/agent-native，需上溯 5 级到仓库根）
+set(MNN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../engines/mnn-core/src/main/jniLibs/${ANDROID_ABI}")
 
 set(MNN_SO_PATH "${MNN_LIB_DIR}/libMNN.so")
 if(EXISTS ${MNN_SO_PATH})
