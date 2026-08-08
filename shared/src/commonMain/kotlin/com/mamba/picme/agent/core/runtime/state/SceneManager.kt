@@ -13,14 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 class SceneManager private constructor() {
 
     companion object {
-        @Volatile
-        private var instance: SceneManager? = null
+        // KMP commonMain 无 synchronized，lazy 默认 SYNCHRONIZED 模式保证同款线程安全单例语义
+        private val singleton: SceneManager by lazy { SceneManager() }
 
-        fun getInstance(): SceneManager {
-            return instance ?: synchronized(this) {
-                instance ?: SceneManager().also { instance = it }
-            }
-        }
+        fun getInstance(): SceneManager = singleton
     }
 
     enum class Scene {

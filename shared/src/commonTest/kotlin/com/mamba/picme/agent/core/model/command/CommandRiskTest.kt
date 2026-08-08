@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.model.command
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * [CommandRisk.ofMethod] 映射单测（纯数据表，全分支覆盖）。

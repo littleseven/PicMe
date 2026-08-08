@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.model.command
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class AgentCommandsFeedbackTest {
     @Test

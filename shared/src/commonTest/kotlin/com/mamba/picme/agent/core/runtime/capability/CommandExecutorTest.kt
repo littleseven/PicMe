@@ -7,11 +7,11 @@ import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.PageContext
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * CommandExecutor 边界用例：recorder 异常不影响执行、traceId 透传、无 recorder 正常执行。
@@ -30,7 +30,7 @@ class CommandExecutorTest {
 
     private val recorded = mutableListOf<Recorded>()
 
-    @After
+    @AfterTest
     fun tearDown() {
         CommandExecutor.recorder = null
     }

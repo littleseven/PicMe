@@ -11,9 +11,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.time.Clock
 
 /**
  * 跨页面命令队列
@@ -47,18 +51,19 @@ class CrossPageCommandQueue(
         val context: AgentContext,
         val pageContext: PageContext?,
         val targetScene: String,
-        val enqueueTime: Long = System.currentTimeMillis(),
+        val enqueueTime: Long = Clock.System.now().toEpochMilliseconds(),
         val retryCount: Int = 0
     )
 
     private val commandQueue = mutableListOf<QueuedCommand>()
-    private val queueLock = Object()
+    // KMP commonMain 无 synchronized：改用协程 Mutex 保护队列（访问点全部 suspend 化）
+    private val queueMutex = Mutex()
 
     private val _queueEvents = MutableSharedFlow<QueueEvent>(extraBufferCapacity = 64)
     val queueEvents: SharedFlow<QueueEvent> = _queueEvents.asSharedFlow()
 
-    @Volatile
-    private var isProcessorRunning = false
+    // StateFlow 提供原 @Volatile 的跨线程可见性
+    private val isProcessorRunning = MutableStateFlow(false)
 
     sealed class QueueEvent {
         data class Enqueued(val commandType: String, val queueSize: Int) : QueueEvent()
@@ -78,7 +83,7 @@ class CrossPageCommandQueue(
     private val queueScope: CoroutineScope
         get() = externalScope ?: fallbackScope
 
-    fun enqueue(
+    suspend fun enqueue(
         command: AgentCommand,
         context: AgentContext,
         pageContext: PageContext?,
@@ -87,7 +92,7 @@ class CrossPageCommandQueue(
         val targetScene = capability.activeScenes().firstOrNull()?.name ?: SceneManager.Scene.UNKNOWN.name
         val commandType = command::class.simpleName ?: "Unknown"
 
-        synchronized(queueLock) {
+        queueMutex.withLock {
             if (commandQueue.size >= MAX_QUEUE_SIZE) {
                 logger?.w(tag, "Queue full ($MAX_QUEUE_SIZE), dropping oldest command")
                 val dropped = commandQueue.removeAt(0)
@@ -116,9 +121,9 @@ class CrossPageCommandQueue(
         startQueueProcessor()
     }
 
-    fun clear() {
+    suspend fun clear() {
         val previousSize: Int
-        synchronized(queueLock) {
+        queueMutex.withLock {
             previousSize = commandQueue.size
             commandQueue.clear()
         }
@@ -126,21 +131,21 @@ class CrossPageCommandQueue(
         _queueEvents.tryEmit(QueueEvent.QueueCleared(previousSize = previousSize))
     }
 
-    fun size(): Int = synchronized(queueLock) { commandQueue.size }
+    suspend fun size(): Int = queueMutex.withLock { commandQueue.size }
 
     private fun startQueueProcessor() {
-        if (isProcessorRunning) return
-        isProcessorRunning = true
+        if (isProcessorRunning.value) return
+        isProcessorRunning.value = true
 
         queueScope.launch {
             logger?.i(tag, "Queue processor started")
             while (true) {
                 val currentScene = sceneManager.currentScene.value
-                val now = System.currentTimeMillis()
+                val now = Clock.System.now().toEpochMilliseconds()
                 var executedCount = 0
                 var expiredCount = 0
 
-                synchronized(queueLock) {
+                queueMutex.withLock {
                     val iterator = commandQueue.iterator()
 
                     while (iterator.hasNext()) {
@@ -185,7 +190,7 @@ class CrossPageCommandQueue(
                                 if (!success && queued.retryCount < MAX_RETRY_COUNT) {
                                     logger?.w(tag, "Command failed, retrying (${queued.retryCount + 1}/$MAX_RETRY_COUNT)")
                                     val retryCommand = queued.copy(retryCount = queued.retryCount + 1)
-                                    synchronized(queueLock) {
+                                    queueMutex.withLock {
                                         commandQueue.add(retryCommand)
                                     }
                                     _queueEvents.tryEmit(
@@ -204,10 +209,10 @@ class CrossPageCommandQueue(
                     logger?.w(tag, "Queue processor expired $expiredCount commands")
                 }
 
-                val isEmpty = synchronized(queueLock) { commandQueue.isEmpty() }
+                val isEmpty = queueMutex.withLock { commandQueue.isEmpty() }
                 if (isEmpty) {
                     logger?.i(tag, "Queue processor stopped, queue empty")
-                    isProcessorRunning = false
+                    isProcessorRunning.value = false
                     break
                 }
 

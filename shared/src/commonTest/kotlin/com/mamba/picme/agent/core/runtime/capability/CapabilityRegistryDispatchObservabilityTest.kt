@@ -9,12 +9,12 @@ import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.PageContext
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * [CapabilityRegistry] 分发前置路径（查找失败 / 入队）的观测埋点单测。
@@ -37,7 +37,7 @@ class CapabilityRegistryDispatchObservabilityTest {
     private val recorded = mutableListOf<Recorded>()
     private val sceneManager = SceneManager.getInstance()
 
-    @After
+    @AfterTest
     fun tearDown() {
         CommandExecutor.recorder = null
     }
