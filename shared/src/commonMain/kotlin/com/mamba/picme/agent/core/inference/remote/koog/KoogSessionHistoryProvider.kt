@@ -2,10 +2,11 @@ package com.mamba.picme.agent.core.inference.remote.koog
 
 import ai.koog.agents.chatMemory.feature.ChatHistoryProvider
 import ai.koog.prompt.message.Message
-import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
+import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
 
 /**
- * Koog [ChatHistoryProvider] 适配器：桥接 Koog ChatMemory feature ↔ [KoogMessageMemoryStore]。
+ * Koog [ChatHistoryProvider] 适配器：桥接 Koog ChatMemory feature ↔ [ChatMemoryStore]
+ * （Android actual = DataStore 的 KoogMessageMemoryStore，见 shared androidMain）。
  *
  * Koog 在 `agent.run(input, sessionId)` 时按 sessionId 作为 runId（见 `AIAgentBase.run$suspendImpl`：
  * sessionId 非 null 即直接用作 run id；ChatMemory feature 经 `AIAgentContext.getRunId()` 取该 id
@@ -20,7 +21,7 @@ import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
  * 按原子块裁剪 + [KoogMessageMemory.sanitizeToolPairing] 双向配对兜底，三不变式逐条对齐旧 langchain4j 链路。
  */
 public class KoogSessionHistoryProvider(
-    private val store: KoogMessageMemoryStore,
+    private val store: ChatMemoryStore,
 ) : ChatHistoryProvider {
 
     override suspend fun load(id: String): List<Message> = store.load(id)

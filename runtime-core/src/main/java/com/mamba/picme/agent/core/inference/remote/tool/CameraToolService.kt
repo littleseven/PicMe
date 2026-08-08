@@ -3,6 +3,7 @@ package com.mamba.picme.agent.core.inference.remote.tool
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.agents.core.tools.reflect.ToolSet
+import com.mamba.picme.agent.core.inference.remote.log.TraceIdAware
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit
  * **重要**：@Tool 参数**不能用 Kotlin 默认值**（同 [ChatToolService] 的 R8/反射约束）。可选语义
  * 用空串表示「不调整」，由 @LLMDescription 描述说明。
  */
-class CameraToolService private constructor() : ToolSet {
+class CameraToolService private constructor() : ToolSet, TraceIdAware {
 
     companion object {
         @Volatile
@@ -63,11 +64,12 @@ class CameraToolService private constructor() : ToolSet {
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
 
     /**
-     * 当轮 traceId 持有器：由 [com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent]
-     * 每轮任务开始时写入，dispatchCommand 读取后注入 AgentContext，与 LLM 调用日志关联。
+     * 当轮 traceId 持有器：由组合根自 [com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent]
+     * 的 traceIdHolder 接线写入（agent 每轮任务开始时写值），dispatchCommand 读取后注入
+     * AgentContext，与 LLM 调用日志关联。
      */
     @Volatile
-    var traceIdHolder: TraceIdHolder? = null
+    override var traceIdHolder: TraceIdHolder? = null
 
     /**
      * 当前美颜设置供给者（由 app 相机页注入，读取 CameraCapability.beautySettings）。

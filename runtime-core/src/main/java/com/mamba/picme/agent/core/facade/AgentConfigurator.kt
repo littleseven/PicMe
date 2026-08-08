@@ -1,5 +1,6 @@
 package com.mamba.picme.agent.core.facade
 
+import ai.koog.agents.core.tools.ToolRegistry
 import android.content.Context
 import android.view.WindowManager
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
@@ -10,8 +11,11 @@ import com.mamba.picme.agent.core.inference.remote.koog.KoogReActAgent
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
+import com.mamba.picme.agent.core.inference.remote.tool.RemoteControlToolService
 import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
 import com.mamba.picme.agent.core.platform.storage.MemoryManager
+import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.policy.PrivacyGuard
 import com.mamba.picme.agent.core.runtime.state.SceneManager
@@ -236,7 +240,16 @@ class AgentConfigurator(private val context: Context) {
             return null
         }
 
-        val agent = KoogReActAgent(cfg, windowManager, callback, context)
+        // RemoteControlToolService 外部注入（KMP 抽取后 KoogReActAgent 在 commonMain，
+        // 不再直构 Android 专有的 RemoteControlToolService(windowManager)）；反射展开
+        // ToolSet→ToolRegistry 在本组合根（Android）完成。多工具集时 builder 多次 tools(...)。
+        val agent = KoogReActAgent(
+            config = cfg,
+            callback = callback,
+            dispatcherProvider = SharedDispatcherProvider.instance,
+            memoryStore = KoogMessageMemoryStore(context),
+            toolRegistry = ToolRegistry { tools(RemoteControlToolService(windowManager)) },
+        )
         agent.initialize()
         cachedFeishuAgent = agent
         cachedFeishuAgentConfig = currentConfig

@@ -12,6 +12,7 @@ import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
 import com.mamba.picme.agent.core.model.context.SearchIntent
 import com.mamba.picme.agent.core.model.context.TimeRange
+import com.mamba.picme.agent.core.inference.remote.log.TraceIdAware
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
@@ -50,7 +51,7 @@ import java.util.concurrent.TimeUnit
  * 合成方法；为保 R8/反射稳健（与 [RemoteControlToolService] 一致），所有参数必填，可选语义用空串由
  * 调用方传入（@LLMDescription 描述说明）。
  */
-class ChatToolService private constructor() : ToolSet {
+class ChatToolService private constructor() : ToolSet, TraceIdAware {
 
     companion object {
         @Volatile
@@ -73,12 +74,12 @@ class ChatToolService private constructor() : ToolSet {
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
 
     /**
-     * 当轮 traceId 持有器：由 [com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent]
-     *（chat 链路 Phase 4 起）写入，dispatchCommand 读取后注入 AgentContext，使 chat 远程 ReAct
-     * 路径下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
+     * 当轮 traceId 持有器：由组合根自 [com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent]
+     *（chat 链路 Phase 4 起）的 traceIdHolder 接线写入，dispatchCommand 读取后注入 AgentContext，
+     * 使 chat 远程 ReAct 路径下的 tool（含 JS 脚本）执行也带 traceId，与 LLM 调用关联。
      */
     @Volatile
-    var traceIdHolder: TraceIdHolder? = null
+    override var traceIdHolder: TraceIdHolder? = null
 
     /**
      * 指令驱动图片调整 handler（由 ChatViewModel 注入）。

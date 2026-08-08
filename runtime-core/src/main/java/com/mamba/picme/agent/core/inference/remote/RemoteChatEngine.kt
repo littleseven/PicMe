@@ -1,5 +1,6 @@
 package com.mamba.picme.agent.core.inference.remote
 
+import ai.koog.agents.core.tools.ToolRegistry
 import com.mamba.picme.agent.core.facade.AgentConfigurator
 import com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
@@ -278,11 +279,16 @@ class RemoteChatEngine internal constructor(
             Logger.w(tag, "Failed to build ChatAgent config", e)
             return null
         }
+        val chatToolService = ChatToolService.getInstance()
         val agent = KoogChatAgent(
             config = cfg,
-            toolSet = ChatToolService.getInstance(),
+            // reflect.ToolSet 是 Koog 1.1.1 JVM-only API，commonMain 的 KoogChatAgent
+            // 改收 KMP 类型 ToolRegistry；工具集→registry 的反射展开在本调用点（Android）完成。
+            toolRegistry = ToolRegistry { tools(chatToolService) },
             memoryStore = KoogMessageMemoryStore(configurator.getContext()),
         )
+        // traceId 注入（原 KoogChatAgent init 内类型判断随迁出）：tool 执行带当轮 traceId。
+        chatToolService.traceIdHolder = agent.traceIdHolder
         cachedChatAgent = agent
         cachedChatAgentConfig = currentConfig
         Logger.i(tag, "Chat Koog Agent created: model=${cfg.modelName}, baseUrl=${currentConfig.baseUrl.take(40)}")

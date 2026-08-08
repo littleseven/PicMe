@@ -10,6 +10,7 @@ import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.params.additionalPropertiesOf
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
+import kotlin.concurrent.Volatile
 
 /**
  * 远程模型工厂
@@ -71,7 +72,7 @@ object RemoteModelFactory {
      * 创建 Koog 执行器包（与 [createBuilder] 并行存在，旧 langchain4j 路径不受影响）。
      *
      * - 自定义 baseUrl：[OpenAIClientSettings] 仅传 baseUrl，其余默认（DeepSeek/Kimi/网关通用）。
-     * - 网关鉴权 header：[extraHeaders]（如 `X-App-Token` / `X-Device-Id`）经 :shared 的
+     * - 网关鉴权 header：[extraHeaders]（如 `X-App-Token` / `X-Device-Id`）经同包的
      *   [createKoogHttpClientFactory] 构造工厂（非空时内部包 HeaderInjectingHttpClientFactory）——
      *   auth 仍由 apiKey 经 `OpenAILLMClient(apiKey, settings, factory)` 标准路径注入
      *   （factory.create 的 `authHeaderValue` 由 client 从 apiKey 派生，装饰器原样透传），
@@ -95,7 +96,7 @@ object RemoteModelFactory {
         // META-INF/services/ai.koog.http.client.KoogHttpClient$Factory（KMP android 发布缺陷），
         // Android runtime 下 ServiceLoader 永远空 → "No KoogHttpClient.Factory provider found"
         //（真机实测 2026-08-07 复现；Ktor 自身的 HttpClientEngineContainer provider 正常在 APK 内）。
-        // createKoogHttpClientFactory（:shared，同包）内部显式构造 KtorKoogHttpClient.Factory()
+        // createKoogHttpClientFactory（同包）内部显式构造 KtorKoogHttpClient.Factory()
         // 绕过（显式构造也更利于 R8：无需为 ServiceLoader provider 加 keep），并按需包
         // HeaderInjectingHttpClientFactory 注入网关 header。
         val factory = createKoogHttpClientFactory(extraHeaders)
@@ -139,6 +140,5 @@ object RemoteModelFactory {
     private const val MAX_TOKENS: Int = 4096
 }
 
-// 注：原私有 `HeaderInjectingHttpClientFactory` 已迁至 :shared commonMain
-// `KoogHttpClientFactoryProvider.kt`（internal，由 createKoogHttpClientFactory 按需包装）——
-// KMP 抽取后同 FQN 双份定义会触发 D8 duplicate class。
+// 注：私有 `HeaderInjectingHttpClientFactory` 与本类同模块同包（KoogHttpClientFactoryProvider.kt，
+// internal，由 createKoogHttpClientFactory 按需包装）——本文件已随 KMP 抽取迁 :shared commonMain。

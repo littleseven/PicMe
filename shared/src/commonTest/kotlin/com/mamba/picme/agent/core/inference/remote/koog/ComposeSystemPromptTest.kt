@@ -1,8 +1,8 @@
 package com.mamba.picme.agent.core.inference.remote.koog
 
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.Test
 
 class ComposeSystemPromptTest {
 
