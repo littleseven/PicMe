@@ -227,7 +227,7 @@ MNN RetinaFace + 106 关键点（Phase 2.1 C++ 产物，`engines/mnn-core` iOS �
 
 ## 9. 校对点（执行前必须复核）
 
-1. **Phase 3 收尾落地后**（用户要求 2026-08-08）：复核本文档引用的所有路径/脚本名/模块名（`engines/mnn-core`、`scripts/ios-dev-loop.sh` 归位等）与 main 终态一致。
+1. ~~**Phase 3 收尾落地后**~~ ✅ **已完成（2026-08-08，`adfcc57a` 落地后复核）**：本文档引用的 10 项路径/脚本/模块（`engines/mnn-core`、`engines/sentencepiece`、`engines/beauty-engine/.../render`、`tmp/mnn-ios-spike/` 两项、`tmp/beauty-metal-spike/`、`scripts/screenshot-diff.py`、`scripts/auto-dev-loop.sh`、`androidApp/.../features/gallery`、`androidApp/.../features/camera`）与 main 终态全部一致；`adfcc57a` 仅同步 Claude/kimi 配置引用，不影响本文档内容。
 2. **Phase 4 完成后**：按 shared 实际出口复核 `MediaRepository`/`AccessState`/`GetGroupedMediaUseCase`/`BeautySettings` 的 commonMain 签名（R3）。
 3. **补验 B 决策点**：Phase 5 启动前确认 Qwen3-VL-2B 真机补验是否仍暂缓。
 
@@ -238,3 +238,4 @@ MNN RetinaFace + 106 关键点（Phase 2.1 C++ 产物，`engines/mnn-core` iOS �
 | 日期 | 变更 |
 |------|------|
 | 2026-08-08 | 初版：逐节 brainstorming 确认（S1–S10 决策锁定）；美颜方案反思后维持方案 A（否 C++ GLES 双端）；UI 生产方式由「自己写」改为「AI 生成 + 可调试内建」（S4）；双端体验一致为最高原则（S5） |
+| 2026-08-08 | 校对点 1 完成：Phase 3 收尾（`adfcc57a`）落地后复核 10 项路径/脚本/模块引用全绿；roadmap Phase 5 段补回链 + S4 修订标注（修订十） |

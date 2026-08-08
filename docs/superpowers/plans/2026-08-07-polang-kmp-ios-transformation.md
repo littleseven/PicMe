@@ -170,9 +170,11 @@ polang/                          # 原 langchain4android/（git repo 改名）
 - [ ] **4.7 runtime-core 消亡**：确认所有可共享代码已迁出，Android 特有残余沉入 androidMain/androidApp；`:runtime-core` 模块删除
 - [ ] **4.8 出口**：Android 全功能零回归；shared commonMain 核心逻辑 JVM 单测覆盖（这是 iOS 侧调试成本的对冲——逻辑 bug 在 JVM/Android 侧可复现可调试）
 
-## Phase 5：iOS App 骨架（约 6–10 周，学习曲线集中段；review 修订：原 4–8 周对单人首次 SwiftUI+AVFoundation+Metal 偏紧）
+## Phase 5：iOS App 骨架（设计 6–8 周；原估 6–10 周含手写 UI 学习缓冲，S4 后下调）
 
-> 独立细粒度计划：`docs/superpowers/plans/YYYY-MM-DD-ios-app-skeleton.md`。本 Phase 是你 iOS 学习的主战场：**前几页 UI 自己写、AI 只答疑**；相机管线压轴，AI 多承担（但 Metal shader 调试需预留弹性）。
+> **设计文档**：`docs/superpowers/specs/2026-08-08-ios-app-skeleton-design.md`（2026-08-08 逐节确认，决策锁定 S1–S10；含美颜方案 A vs C++ GLES 双端的否决论证、Chat 前瞻边界、风险 R1–R7、校对点）。
+>
+> 独立细粒度计划：`docs/superpowers/plans/YYYY-MM-DD-ios-app-skeleton.md`（writing-plans 产出，待 Phase 4 收口后开工，一次对准终态）。~~本 Phase 是你 iOS 学习的主战场：前几页 UI 自己写、AI 只答疑~~——**2026-08-08 起按设计文档 S4 修订为「UI 也 AI 生成 + 可调试性内建」（单一状态源 / SwiftUI Preview 全覆盖 / accessibilityIdentifier 全量标注 / DebugOverlay 状态画屏）**；相机管线压轴，Metal shader 调试预留弹性。
 
 - [ ] **5.1 工程与基建**：Xcode 工程、Bundle ID、签名、SPM/依赖、shared XCFramework 集成、xcode-kotlin 调试、基础 CI（xcodebuild）；**初始化 Privacy Manifest（`PrivacyInfo.xcprivacy`）**（review 增补：2024/05 起强制，声明 FileTimestamp/SystemBootTime/DiskSpace 等 API 使用原因，勿等 Phase 6.3）；统一 MNN/sentencepiece/美颜三组件的 XCFramework 构建与 SPM binary target 分发策略
 - [ ] **5.2 首批页面（学习区）**：相册网格 + 相簿列表（SwiftUI + Photos framework + shared 领域层）；权限流按 iOS 范式实现（Limited Access 一等公民）
@@ -235,3 +237,4 @@ polang/                          # 原 langchain4android/（git repo 改名）
 | 2026-08-08 | 修订七：Phase 2.4 美颜 Metal spike ✅ GO——美白单滤镜真机实时渲染达标（FPS:30 出图、滑杆美白即时可见）；产出报告 specs/2026-08-08-ios-beauty-metal-spike-design.md + 产物 tmp/beauty-metal-spike/（不入库）。**修正计划两处误述**：2.4 内容「渲染管线在 cpp/」实为 Kotlin 宿主 + GLSL assets；5.4「美颜 C++ 直桥」实为 shader 移植 + Kotlin 宿主 Swift/Metal 重写。**Phase 5.4 美颜工期重估 ~3 周**（shader 翻译 ~1 周 + 宿主重写 ~2 周，原估 1–2 周偏紧）。踩坑清单：MSL const→constexpr、commandQueue 初始化、相机显式 requestAccess、videoOrientation、iOS 无日志时状态画屏调试法 |
 | 2026-08-08 | 修订八：Phase 3 主体完成 ✅——细粒度计划 plans/2026-08-07-repo-restructure.md 8 Task 全执行（子代理驱动 + 每 Task 双审）：Task 2/3 目录重组（`9d06dec7`/`123447df`，含 CMakeLists 跨模块路径漏项修复）、Task 4 scripts/CI（`830e63c2`）、Task 5 文档 50 文件（`4f08ca2c`，README 删 JitPack 死段、MODULE_ARCHITECTURE 去 :agent-core）、Task 6 server 配置（`1db37a4f`）；终审「零行为变更」确认（唯一源码改动 AppConfig.kt 一行）后合并入 main（`323c3e1a`，README 与并行工具冲突已解——保留其重写版 + 应用改名）；Task 7 GitHub rename → `littleseven/polang` ✅（fetch/push URL 已更新验证）；Task 8 本地目录改名 `~/AndroidStudioProjects/polang` ✅ + 绝对路径引用更新；3.6 改名后构建冒烟与嵌套 worktree repair 待补 |
 | 2026-08-08 | 修订九：Phase 3 全部收口 ✅——3.6 出口验证补齐：7 个嵌套 worktree `git worktree repair`（双向 gitdir 指针 `langchain4android`→`polang`，无 prunable 残留）；改名后 `:androidApp:assembleDebug` 全量构建通过（3m44s，`polang-debug.apk` 80M）；真机安装冒烟零崩溃（相册浏览/相机预览+拍照/Chat 远程消息往返「pong ✅」/TAG 扫描控制页 Pass 1 运行中）；绝对路径引用更新（AI_TOOLS.md、kimi-cli.sh、fix_pipeline.py）随本修订提交。**Phase 3 完成，Phase 4（shared KMP 抽取）前置条件 P1 满足** |
+| 2026-08-08 | 修订十：Phase 5 设计文档产出 ✅（specs/2026-08-08-ios-app-skeleton-design.md，commit `7dc41f82`）——决策锁定 S1–S10：分模块边界（相册 Swift 主导 presentation/相机纯 Swift+Metal/Agent 薄壳复用 shared）、美颜方案 A（Swift/Metal 宿主 + GLSL→MSL，**否 C++ GLES 双端方案**——deprecated API + 动 Android 已验证宿主冲撞零回归）、美颜 MVP 子集（磨皮/美白/瘦脸/大眼+LUT 进 5.4，全量 25 shader 移 Phase 6）、**UI 生产方式改为「AI 生成 + 可调试性内建」**（S4，取代「前几页自己写」）、双端体验一致为最高原则（S5）；工期 6–8 周；细粒度计划待 Phase 4 收口后经 writing-plans 一次对准终态 |
