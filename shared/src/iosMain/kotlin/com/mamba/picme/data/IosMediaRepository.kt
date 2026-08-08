@@ -22,7 +22,7 @@ class IosMediaRepository(
     override val allMedia: Flow<List<MediaAsset>> = callbackFlow {
         trySend(fetch())
         bridge.addChangeListener { trySend(fetch()) }
-        awaitClose { }
+        awaitClose { bridge.removeChangeListener() }
     }
 
     /** 快照语义（接口契约）：每次收集反映收集时刻权限态，不监听运行时变更。 */
@@ -70,7 +70,7 @@ class IosMediaRepository(
         uri = item.localIdentifier,
         type = if (item.mediaType == "VIDEO") MediaType.VIDEO else MediaType.PHOTO,
         captureDate = item.captureDateMs,
-        fileName = item.localIdentifier,
+        fileName = item.fileName,
         duration = item.durationMs
     )
 }

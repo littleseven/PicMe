@@ -14,7 +14,9 @@ data class IosMediaItem(
     /** "PHOTO" | "VIDEO"（字符串而非枚举，避免 K/N 枚举导出名碰撞） */
     val mediaType: String,
     val captureDateMs: Long,
-    val durationMs: Long? = null
+    val durationMs: Long? = null,
+    /** PHAssetResource.originalFilename，对齐 Android MediaStore DISPLAY_NAME（S5） */
+    val fileName: String
 )
 
 /**
@@ -36,6 +38,9 @@ interface IosMediaRepositoryBridge {
 
     /** PHPhotoLibraryObserver 变更回调注册；触发即全量重取（相册量级下成本可接受）。 */
     fun addChangeListener(listener: () -> Unit)
+
+    /** 注销变更回调（awaitClose 时调用，防 listener 泄漏）。 */
+    fun removeChangeListener()
 
     /**
      * 经 PHAssetChangeRequest 删除（iOS 系统弹确认窗，天然免 Android 11+ IntentSender 授权逻辑）。
