@@ -1,7 +1,7 @@
 package com.mamba.picme.agent.core.inference.remote.tool
 
-import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool as KoogTool
+import ai.koog.agents.core.tools.reflect.asToolsByClass
 import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -12,48 +12,21 @@ import org.junit.Test
  *
  * 门禁：chat 远程 agent 的 system prompt 必须覆盖 [ChatToolService] 的全部 @Tool，
  * 手写清单漂移（漏加/漏删工具）在此 fail-fast。
+ *
+ * Task 7 变更：`ToolInventory.build` 改收 Koog `ToolDescriptor` 列表（去 java 反射），
+ * 反射展开经 `asToolsByClass()`（与旧 `reflect.ToolSet` 扫描同一函数）；排序/首句截断的
+ * 格式化单测已迁 :shared commonTest `ToolInventoryTest`，逐字节防漂移护栏见 :shared
+ * jvmTest `ToolPromptDeterminismTest`。
  */
 class ToolInventoryTest {
 
-    @Suppress("unused")
-    private class Fixture {
-        @KoogTool(customName = "b_tool")
-        @LLMDescription("第二工具。更多细节忽略")
-        fun b(): String = ""
-
-        @KoogTool(customName = "a_tool")
-        @LLMDescription("首行即描述\n第二行忽略")
-        fun a(): String = ""
-
-        @KoogTool
-        @LLMDescription("未命名工具。")
-        fun c_tool(): String = ""
-
-        fun notATool(): String = ""
-    }
-
-    @Test
-    fun `build sorts by name and truncates description to first sentence`() {
-        val output = ToolInventory.build(Fixture::class.java)
-
-        val lines = output.lineSequence().filter { it.startsWith("- ") }.toList()
-        assertEquals(3, lines.size)
-        assertEquals("- a_tool: 首行即描述", lines[0])
-        assertEquals("- b_tool: 第二工具。", lines[1])
-        // name 缺省回退方法名
-        assertEquals("- c_tool: 未命名工具。", lines[2])
-        assertTrue(output.startsWith("可用工具（3）："))
-    }
-
     @Test
     fun `inventory contains every @Tool of ChatToolService`() {
-        // Phase 4：ChatToolService 已迁到 Koog @Tool（customName 保蛇形 LLM-facing 名），
-        // 扫 KoogTool.customName（与 ToolInventory.build 的 Koog 扫描分支一致）。
         val toolNames = ChatToolService::class.java.declaredMethods
             .mapNotNull { it.getAnnotation(KoogTool::class.java)?.customName?.takeIf { name -> name.isNotBlank() } }
         assertTrue("ChatToolService 应暴露多个 @Tool", toolNames.size > 20)
 
-        val inventory = ToolInventory.build(ChatToolService::class.java)
+        val inventory = chatInventory()
         val missing = toolNames.filter { !inventory.contains("- $it:") }
         assertEquals("工具清单遗漏：$missing", emptyList<String>(), missing)
     }
@@ -70,10 +43,7 @@ class ToolInventoryTest {
 
     @Test
     fun `inventory output is deterministic`() {
-        assertEquals(
-            ToolInventory.build(ChatToolService::class.java),
-            ToolInventory.build(ChatToolService::class.java)
-        )
+        assertEquals(chatInventory(), chatInventory())
     }
 
     @Test
@@ -83,4 +53,8 @@ class ToolInventoryTest {
             .filter { it.startsWith(" ") || it.startsWith("\t") }
         assertEquals("system prompt 存在前导缩进行：$indented", emptyList<String>(), indented)
     }
+
+    private fun chatInventory(): String = ToolInventory.build(
+        ChatToolService.getInstance().asToolsByClass().map { it.descriptor }
+    )
 }

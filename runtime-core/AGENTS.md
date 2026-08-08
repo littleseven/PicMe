@@ -68,8 +68,8 @@
 | `RemotePromptBuilder` | 远程模型 Tool Schema + ChatRequest 构建 | `agent.core.inference.remote.prompt` |
 | `KoogChatAgent` | chat 链路 Koog Agent（Phase 4） | `agent.core.inference.remote.koog` |
 | `KoogReActAgent` | 相机/飞书链路 Koog Agent（Phase 5，回调式 API 对齐旧 RemoteReActAgent） | `agent.core.inference.remote.koog` |
-| `ChatToolService` | chat 场域 @Tool 工具集（scene=CHAT） | `agent.core.inference.remote.tool` |
-| `CameraToolService` | 相机场域 @Tool 工具集（scene=CAMERA，远程 tool_calls） | `agent.core.inference.remote.tool` |
+| `ChatToolService` | chat 场域 @Tool 工具集（scene=CHAT；已迁 `:shared` commonMain，Task 7） | `agent.core.inference.remote.tool` |
+| `CameraToolService` | 相机场域 @Tool 工具集（scene=CAMERA，远程 tool_calls；已迁 `:shared` commonMain，Task 7） | `agent.core.inference.remote.tool` |
 | `RemoteControlToolService` | IM 远程控制 RPA @Tool 工具集 | `agent.core.inference.remote.tool` |
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
 | `Logger` | 日志接口（已迁 `:shared` commonMain，包名不变） | `agent.core.platform.logging`（:shared） |
@@ -92,7 +92,7 @@
 | `platform/` | `logging/`, `storage/`, `thread/`, `voice/` | 平台能力：日志、存储、线程、语音 |
 | `remote/` | `config/` | 远程模型配置与工厂 |
 | `runtime/` | `capability/`, `execution/`, `policy/`, `state/` | 运行时能力：Capability、执行、隐私策略、场景状态 |
-| `tool/` | `accessibility/`, `perception/`, `CameraToolHelper` | Agent 工具与辅助功能 |
+| `tool/` | `accessibility/`, `perception/`（`CameraToolHelper` 已迁 `:shared`，Task 7） | Agent 工具与辅助功能 |
 
 > **2026-06-15 架构更新（ADR-005）**：
 > - 移除 `InferenceRouter`（拆分为 `LocalInferencePipeline` + `RemoteReActAgent`）
@@ -181,6 +181,13 @@
 > - `RemoteModelFactory` 私有 `HeaderInjectingHttpClientFactory` 迁至 `:shared` commonMain（internal）；`createKoogExecutor` 改调同包 `createKoogHttpClientFactory`（同 FQN 双份定义触发 D8 duplicate class，须同批处理）
 > - `runtime-core/build.gradle.kts` 新增 `api(project(":shared"))`
 
+> **2026-08-08 KMP 抽取 Task 7（ToolService suspend 化迁 commonMain）**：
+> - `CameraToolService`/`ChatToolService`/`ToolInventory`/`GalleryToolDocs`（`inference/remote/tool/`）+ `CameraToolHelper`（`tool/`）git mv 至 `:shared` commonMain（包名不变），全部 suspend 化：`future{}.get(5s)` 阻塞桥 → `withTimeout(5s)` 结构化等待、超时 `java.util.concurrent.TimeoutException` → `TimeoutCancellationException`（超时语义不变）、`runBlocking` → 挂起、`System.currentTimeMillis` → `kotlin.time.Clock`、单例 `synchronized` → `lazy(SYNCHRONIZED)`；外部取消经 `catch (CancellationException) { throw e }` 透传（Koog agent cancel 依赖协程取消传播）
+> - `reflect.ToolSet` 标记接口从两 ToolService 移除（Koog 1.1.1 jvmCommonMain API，commonMain 不可引用）；组合根（`AgentOrchestrator`/`RemoteChatEngine`）改 `ToolRegistry { tools(service.asToolsByClass()) }`——与旧 `ToolSet.asTools()` 同一扫描函数，LLM-facing 工具名/描述逐字节等价（`ToolPromptDeterminismTest` golden 钉死：chat 35 工具/camera 13 工具）
+> - `ToolInventory` 去 java 反射：改收 Koog KMP 类型 `ToolDescriptor` 列表，反射展开收敛到组合根调用点
+> - `RemoteControlToolService`（留本模块，Task 13 沉 androidApp）11 个相机 @Tool 方法 + `executeCameraCommand` wrapper 随 `CameraToolHelper` suspend 化涟漪改 suspend；其自身 `dispatchCommand` 阻塞桥不在本 Task 范围
+> - 护栏：`:shared` jvmTest `ToolPromptDeterminismTest`（golden 逐字节）+ commonTest `ToolInventoryTest`（格式化）；runtime-core `ToolSpecificationTest` 跳过 suspend 合成 Continuation 参数
+
 ## 设计原则
 
 - **零业务依赖**：不直接依赖 `BeautySettings`、`FilterType`、`MediaType`、`ExecutionPlan`（业务）等业务类型，通过泛型 `<T, C, P, A>` 让业务模块注入具体类型。
@@ -231,11 +238,8 @@
 - `RemoteReActAgentConfig.kt` — ReAct 配置
 
 ### `inference/remote/tool/`
-- `RemoteControlToolService.kt` — IM 远程控制 RPA @Tool 工具集（飞书/Telegram 通道）
-- `ChatToolService.kt` — chat 会话 agent @Tool 工具集（scene=CHAT）
-- `CameraToolService.kt` — 相机 agent @Tool 工具集（scene=CAMERA，远程 tool_calls；`beautySettingsProvider` 由 app 注入）
-- `ToolInventory.kt` — @Tool 元数据 → system prompt 工具清单段（确定性生成，防手写漂移）
-- `GalleryToolDocs.kt` — chat / IM 远程控制两 agent 共享的 @Tool 描述文本
+- `RemoteControlToolService.kt` — IM 远程控制 RPA @Tool 工具集（飞书/Telegram 通道；相机 @Tool 方法已随 Task 7 suspend 化涟漪改 suspend，其 dispatchCommand 阻塞桥留 Task 13）
+- （`ChatToolService.kt` / `CameraToolService.kt` / `ToolInventory.kt` / `GalleryToolDocs.kt` 已迁 `:shared` commonMain，包名不变；Task 7 suspend 化 + `reflect.ToolSet` 标记接口移除——组合根经 `asToolsByClass()` 反射展开，与旧 `ToolSet.asTools()` 同一扫描函数，`ToolInventory` 改收 Koog `ToolDescriptor` 列表）
 
 ### `inference/remote/`
 - `RemoteChatEngine.kt` — chat 远程 ReAct 链路引擎
@@ -309,7 +313,7 @@
 - `SceneManager.kt` — 场景管理器
 
 ### `tool/`
-- `CameraToolHelper.kt` — 相机工具辅助
+- （`CameraToolHelper.kt` 已迁 `:shared` commonMain，包名不变；Task 7 suspend 化——`future.get`/`runBlocking` → `withTimeout`/挂起 `delay`，`System.currentTimeMillis` → `kotlin.time.Clock`）
 
 ### `tool/accessibility/`
 - `AccessibilityActionPerformer.kt` — 无障碍动作执行
