@@ -2,7 +2,7 @@
 
 > Claude Code 命令索引。所有命令定义在 `.claude/commands/*.md`，对话中通过 `/command-name` 调用。历史命令曾从 `.qoder/skills/` 迁移而来，当前以 `.claude/commands/` 为唯一事实来源。
 
-## 可用 Commands（共 21 个）
+## 可用 Commands（共 28 个）
 
 ### 🔧 开发与构建
 | Command | 说明 |
@@ -55,6 +55,19 @@
 | `/perf-optimizer` | 性能优化（内存泄漏/卡顿/帧率） |
 | `/rd-reflection` | RD 自我进化系统（复盘/经验/检查清单） |
 
+### 🍎 iOS 开发与渲染
+| Command | 说明 |
+|---------|------|
+| `/ios-build-debug` | iOS 编译、模拟器/真机安装、日志调试（xcodebuild/simctl） |
+| `/ios-dev-loop` | iOS 一键闭环验证（编译→安装→截屏→基线对比） |
+| `/swiftui-expert` | SwiftUI 布局/状态/重组/Preview，双端视觉对标 |
+| `/metal-render-expert` | Metal/MSL 渲染诊断（黑屏/shader）+ GLSL→MSL 翻译 |
+| `/mnn-ios-integration` | MNN.framework iOS 构建/embed + 人脸检测推理 |
+| `/kmp-ios-interop` | Kotlin/Native↔Swift 互操作（signal 6/Flow/XCFramework） |
+| `/ios-i18n-validator` | iOS 三语（xcstrings）同步 + 双端键对齐 |
+
+> Phase 5 iOS 应用骨架配套 skill（对标 Android 侧 av-gl-expert / compose-ui-expert / mnn-integration 等，106pt 坐标体系双端同源）；详见 `docs/superpowers/specs/2026-08-08-ios-skills-design.md`。
+
 ---
 
 ## 使用方式
@@ -71,4 +84,4 @@
 > 命令源文件：`.claude/commands/*.md`
 > 历史源文件：`.qoder/skills/*/SKILL.md`（已迁出，`.qoder/` 已删除）
 > Canonical skills 源（SSOT）：`skills/`（经 `.kimi/skills` 软链供 kimi/OpenCode 共享）；`.claude/commands/` 为 Claude Code 专用镜像（无 frontmatter），由 `scripts/check-skill-sync.sh` 校验、从 `skills/` 同步
-> 最近整理：2026-08-03（移除已下线 `ncnn-integration` 条目；清理 InsightFace→MNN、`/agent-test`→`/ui-driver`、`/qa-acceptance` 等过时引用；去掉易过期的「行数」列；确认 21 个命令与 `.claude/commands/` 一一对应）
+> 最近整理：2026-08-08（补充 iOS 部分 7 个 skill：ios-build-debug / ios-dev-loop / swiftui-expert / metal-render-expert / mnn-ios-integration / kmp-ios-interop / ios-i18n-validator；命令数 21→28）。2026-08-03 整理记录：移除已下线 `ncnn-integration` 条目；清理 InsightFace→MNN、`/agent-test`→`/ui-driver`、`/qa-acceptance` 等过时引用；去掉易过期的「行数」列。

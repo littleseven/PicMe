@@ -6,7 +6,7 @@
 ## 项目速览
 
 - **名称**: PoLang
-- **类型**: Android 相机应用（Kotlin + Jetpack Compose）
+- **类型**: Android + iOS 跨平台应用（Kotlin/Jetpack Compose + Swift/SwiftUI，KMP 共享 core；详见 `docs/superpowers/specs/2026-08-08-ios-app-skeleton-design.md`）
 - **包名**: com.mamba.picme
 - **架构**: Clean Architecture + MVVM
 - **关键约束**: 100% 本地 AI 处理、交互反馈 < 100ms、三语言 I18N（EN/CN/TW）
@@ -32,15 +32,18 @@
 - **精准定位**：未知路径时，优先使用 `Grep` 配合正则表达式定位，减少 `Glob` 的无效遍历。
 
 ### 构建与验证
-- 代码修改后必须执行 `./gradlew assembleDebug` 验证编译
+- Android 代码修改后必须执行 `./gradlew :androidApp:assembleDebug` 验证编译
+- iOS 代码修改后用 `xcodebuild -scheme PoLang -destination 'generic/platform=iOS' build` 验证（模拟器安装/截屏见 `/ios-build-debug`、`/ios-dev-loop`）
 - 构建失败时基于日志自主修复，单任务最多自动修复 2 次
-- 使用 `adb logcat -s "PoLang:*"` 查看运行时日志
+- Android 使用 `adb logcat -s "PoLang:*"` 查看运行时日志；iOS 真机用 DebugOverlay 状态画屏
 
 ### 多语言同步（I18N）
-- 新增或修改用户可见字符串时，必须同步更新以下三个文件：
-  - `app/src/main/res/values/strings.xml`（英文/默认）
-  - `app/src/main/res/values-zh-rCN/strings.xml`（简体中文）
-  - `app/src/main/res/values-zh-rTW/strings.xml`（繁体中文）
+- 新增或修改用户可见字符串时，必须同步更新以下三个语言集：
+  - Android `androidApp/src/main/res/values/strings.xml`（英文/默认）
+  - Android `androidApp/src/main/res/values-zh-rCN/strings.xml`（简体中文）
+  - Android `androidApp/src/main/res/values-zh-rTW/strings.xml`（繁体中文）
+  - iOS `iosApp/PoLang/Localizable.xcstrings`（String Catalog，en / zh-Hans / zh-Hant 三语）
+- 双端同义键语义对齐（S5 双端体验一致），详见 `/i18n-validator` 与 `/ios-i18n-validator`
 
 ### 日志规范
 - 统一标签格式：`PoLang:[ModuleName]`

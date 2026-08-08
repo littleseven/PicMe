@@ -414,6 +414,38 @@ Log.d(TAG, "Step4 [像素映射]: screen=($screenX,$screenY)")
 
 ---
 
+## 📱 iOS / Metal 平台适配（Phase 5）
+
+> **关键**：106pt 坐标系本身**平台无关**——关键点索引、图像/人脸坐标系定义、镜像规则在 Android 与 iOS **完全同源**（shared 纯类型保证，S5 双端一致）。下方仅列 iOS 特有的实现差异。
+
+### Metal 渲染层（对照 OpenGL ES）
+
+| 维度 | Android（OpenGL ES） | iOS（Metal） |
+|------|---------------------|--------------|
+| 渲染层坐标系 | **必须**图像坐标系（同规则） | **必须**图像坐标系（同规则） |
+| 纹理 UV 原点 | 左下角（GL 默认） | 左上角（Metal 默认，Y 方向与 GL 相反！） |
+| shader uniform | `glUniform` | `setFragmentBytes`（小结构）/ `MTLBuffer`（大数组，如 `uFacePoints[212]`） |
+| 前置镜像 | `x = 1 - x` | `x = 1 - x`（同；`AVCaptureConnection.isVideoMirrored`） |
+
+> ⚠️ **GL↔Metal 纹理 Y 翻转**：Metal `texture.sample` 的 UV 原点在左上，GL 在左下。GLSL→MSL 翻译时若直接照搬 UV 会出现上下颠倒，需在采样或顶点 UV 处补偿（详见 [metal-render-expert](/metal-render-expert)）。
+
+### 关键点传递（C++ → Metal）
+
+RetinaFace 106pt 输出（图像坐标系）经 `engines/mnn-core` iOS 封装，以 `MTLBuffer`（device address space）传给美颜 shader，数量对齐 106（或镜像补齐 212）。详见 [mnn-ios-integration](/mnn-ios-integration)。
+
+### Swift 命名约定
+
+| 层级 | 命名 |
+|------|------|
+| 渲染 / 算法 | `imageLeftEye` / `imageRightEye`（同 Android 规则） |
+| SwiftUI / 业务 | `userLeftEye` / `userRightEye`（同 Android 规则） |
+
+### 调试（iOS 真机）
+
+真机无 logcat 等价物：用 DebugOverlay 把 Step1~Step4 坐标转换过程画到屏幕（见 [ios-build-debug](/ios-build-debug) DebugOverlay）。
+
+---
+
 ## 🔄 版本历史
 
 | 版本 | 日期 | 变更内容 |
@@ -432,3 +464,4 @@ Log.d(TAG, "Step4 [像素映射]: screen=($screenX,$screenY)")
 | 版本 | 日期 | 变更 |
 |------|------|------|
 | 1.1.0 | 2026-05-03 | 初始版本 |
+| 1.2.0 | 2026-08-08 | 补充 iOS / Metal 平台适配章节（106pt 双端同源 + GL↔Metal Y 翻转） |
