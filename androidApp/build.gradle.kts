@@ -14,15 +14,19 @@ plugins {
 // release-automation.sh 也能出正式签名包；CI 检出无该文件时留空 → 回退 debug 签名。发版推荐 ./scripts/build.sh release。
 // 兼容旧命名 PICME_RELEASE_*（即将废弃）。
 val defaultReleaseKeystore = file("keystore/picme-release.jks")
-val releaseStoreFile: String = System.getenv("POLANG_RELEASE_STORE_FILE")
-    ?: System.getenv("PICME_RELEASE_STORE_FILE")
-    ?: if (defaultReleaseKeystore.exists()) defaultReleaseKeystore.absolutePath else ""
-val releaseStorePassword: String = System.getenv("POLANG_RELEASE_STORE_PASSWORD")
-    ?: System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
-val releaseKeyAlias: String = System.getenv("POLANG_RELEASE_KEY_ALIAS")
-    ?: System.getenv("PICME_RELEASE_KEY_ALIAS") ?: ""
-val releaseKeyPassword: String = System.getenv("POLANG_RELEASE_KEY_PASSWORD")
-    ?: System.getenv("PICME_RELEASE_KEY_PASSWORD") ?: ""
+val releaseStoreFile: String =
+    System.getenv("POLANG_RELEASE_STORE_FILE")
+        ?: System.getenv("PICME_RELEASE_STORE_FILE")
+        ?: if (defaultReleaseKeystore.exists()) defaultReleaseKeystore.absolutePath else ""
+val releaseStorePassword: String =
+    System.getenv("POLANG_RELEASE_STORE_PASSWORD")
+        ?: System.getenv("PICME_RELEASE_STORE_PASSWORD") ?: ""
+val releaseKeyAlias: String =
+    System.getenv("POLANG_RELEASE_KEY_ALIAS")
+        ?: System.getenv("PICME_RELEASE_KEY_ALIAS") ?: ""
+val releaseKeyPassword: String =
+    System.getenv("POLANG_RELEASE_KEY_PASSWORD")
+        ?: System.getenv("PICME_RELEASE_KEY_PASSWORD") ?: ""
 
 // 飞书远程控制 AppId/AppSecret（编译时从 local.properties 或环境变量注入。默认空字符串）
 // local.properties: polang.feishu.app.id=cli_xxxxx, polang.feishu.app.secret=yyyyy
