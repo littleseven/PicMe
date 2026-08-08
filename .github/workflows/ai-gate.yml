@@ -53,3 +53,27 @@ jobs:
           path: |
             androidApp/build/reports/tests/
             engines/beauty-engine/build/reports/tests/
+
+  ios-build:
+    name: iOS Build + Test (XcodeGen + xcodebuild)
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd iosApp && xcodegen generate
+
+      - name: Build (Simulator)
+        run: |
+          xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang \
+            -destination 'generic/platform=iOS Simulator' build
+
+      - name: Test (Simulator)
+        run: |
+          xcodebuild -project iosApp/PoLang.xcodeproj -scheme PoLang \
+            -destination 'platform=iOS Simulator,name=iPhone 16' test

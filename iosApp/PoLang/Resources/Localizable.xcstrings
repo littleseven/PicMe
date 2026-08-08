@@ -1,0 +1,216 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Gallery" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相册"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gallery"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アルバム"
+          }
+        }
+      }
+    },
+    "Camera" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラ"
+          }
+        }
+      }
+    },
+    "Whitening" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "美白"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whitening"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "美白"
+          }
+        }
+      }
+    },
+    "Smoothing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磨皮"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smoothing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "肌補正"
+          }
+        }
+      }
+    },
+    "Slim Face" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "瘦脸"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slim Face"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小顔"
+          }
+        }
+      }
+    },
+    "Big Eyes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大眼"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Big Eyes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デカ目"
+          }
+        }
+      }
+    },
+    "filter_none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "原图" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Original" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オリジナル" } }
+      }
+    },
+    "filter_leica_classic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "经典" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Classic" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "クラシック" } }
+      }
+    },
+    "filter_leica_vibrant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "鲜艳" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Vibrant" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ビビッド" } }
+      }
+    },
+    "filter_leica_bw" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "黑白" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "B&W" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "モノクロ" } }
+      }
+    },
+    "filter_film_gold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "金调" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Gold" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ゴールド" } }
+      }
+    },
+    "filter_film_fuji" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "富士" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fuji" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "フジ" } }
+      }
+    },
+    "filter_vintage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "复古" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Vintage" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ヴィンテージ" } }
+      }
+    },
+    "filter_cool" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "冷调" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cool" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "クール" } }
+      }
+    },
+    "filter_warm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暖调" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Warm" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ウォーム" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

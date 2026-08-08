@@ -1,0 +1,18 @@
+import Foundation
+
+/// 组合根：shared 接口的 iOS actual 在此构造并注入。
+/// shared 不知道任何 iOS 类型（spec §2.3）。各 feature 的实际注入在对应 Task 追加。
+///
+/// Phase 5 Task 4：基建骨架——DebugOverlayState 已就位；
+/// Task 7 后追加 mediaRepository（需 SharedKit XCFramework，依赖 K3 侧 Task 1）。
+@MainActor
+final class AppContainer: ObservableObject {
+    static let shared = AppContainer()
+
+    /// 美颜渲染参数（全局共享，BeautyPanelView ↔ BeautyRenderer 双向绑定）
+    @Published var beautyParams = BeautyRenderer.Params()
+
+    private init() {
+        // Task 7 后追加：mediaRepository 等 shared actual 注入
+    }
+}
