@@ -6,7 +6,7 @@ import com.mamba.picme.agent.core.inference.local.llm.MnnLlmClient.NativeRelease
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.mnn.MnnGlobalReleaseLock
 import com.mamba.picme.mnn.MnnResourceManager
-import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
+import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -50,7 +50,7 @@ class LocalLlmEngine(private val context: Context) {
     private val engineMutex = Mutex()
     private val resourceManager = MnnResourceManager.getInstance(context)
 
-    private val modelDispatcher: CoroutineDispatcher = ThreadPoolManager.getInstance().modelDispatcher
+    private val modelDispatcher: CoroutineDispatcher = SharedDispatcherProvider.instance.modelDispatcher
 
     /**
      * 后台协程作用域，用于 fire-and-forget 异步任务（如 trimMemory、unload 投递）。

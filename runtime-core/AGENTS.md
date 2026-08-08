@@ -33,6 +33,7 @@
 ```
 :runtime-core
     ├── ai.koog:koog-agents (api，外部依赖；替代已删除的 :agent-core fork)
+    ├── :shared (api，KMP 共享模块；平台原语 DispatcherProvider/AgentIdGenerator/createKoogHttpClientFactory 与 Logger 所在)
     ├── :engines:beauty-api
     ├── :engines:mnn-core
     └── Sherpa-ONNX AAR (compileOnly)
@@ -71,8 +72,8 @@
 | `CameraToolService` | 相机场域 @Tool 工具集（scene=CAMERA，远程 tool_calls） | `agent.core.inference.remote.tool` |
 | `RemoteControlToolService` | IM 远程控制 RPA @Tool 工具集 | `agent.core.inference.remote.tool` |
 | `RemoteModelConfig` / `RemoteModelFactory` | 远程模型配置与工厂 | `agent.core.remote.config` |
-| `Logger` | 日志接口 | `agent.core.platform.logging` |
-| `ThreadPoolManager` | 线程池管理 | `agent.core.platform.thread` |
+| `Logger` | 日志接口（已迁 `:shared` commonMain，包名不变） | `agent.core.platform.logging`（:shared） |
+| `DispatcherProvider` | 平台命名 dispatcher（expect/actual，替代已删除的 `ThreadPoolManager`；共享实例 `SharedDispatcherProvider`） | `agent.core.platform.thread`（:shared） |
 | `MnnResourceManager` / `MnnGlobalReleaseLock` | MNN 资源管理 | `:engines:mnn-core`（已下沉） |
 | `ExecutionEngine` / `ExecutionReporter` / `ExecutionState` / `InferenceResult` | 执行引擎与执行状态 | `agent.core.runtime.execution` |
 | `AgentCommands` / `AgentModels` / `AiAgentConfig` / `MediaAsset` / `PageContext` / `SceneContext` / `ExecutionPlan` | 数据模型 | `agent.core.model.*` |
@@ -172,6 +173,13 @@
 > - 测试侧：`ToolInventoryTest` / `ChatToolCapabilityCoverageTest` fixture 迁 Koog 注解；`MemoryManagerTrimTest`（fork 消息 trim 语义）随删——三不变式等价覆盖由 `KoogMessageMemoryTest` / `KoogMessageMemoryCodecTest` 承担；`MobileClipTokenizerTest` 顺手修 createTempDir 弃用（Kotlin 2.3 升级为 error）
 > - `androidApp/proguard-rules.pro` 删失效 keep（`PoLangToolService` 类已不存在；Koog 工具集为代码直接引用，无需 langchain4j 式 @Tool 反射 keep）
 > - 清理死代码 `RemoteModelFactory.DEFAULT_SOURCE`（无引用）；`RemotePromptBuilder` 早已随端侧文本 LLM 移除（仅历史 ADR 提及）
+>
+> **2026-08-08 KMP 抽取 Task 2（平台原语层）**：
+> - `platform/logging/Logger.kt` git mv 至 `:shared` commonMain（PURE，包名不变，引用零改动）
+> - `platform/thread/ThreadPoolManager.kt` 删除，由 `:shared` expect `DispatcherProvider`（android/jvm/ios 三端 actual，线程池类型/数量/线程名逐行对齐）+ commonMain `SharedDispatcherProvider` 共享实例替代；5 处调用点（`KoogMessageMemoryStore`/`MemoryManager`/`LocalModelService`/`LocalLlmEngine`/`AgentOrchestrator`）改经共享实例取 dispatcher，行为零变更
+> - `AgentModels.kt` 内 `object AgentIdGenerator`（AtomicInteger）删除，由 `:shared` 同包同 FQN 的 expect `AgentIdGenerator` 替代（引用零变更）；语义从「MAX_VALUE 回绕」简化为纯递增
+> - `RemoteModelFactory` 私有 `HeaderInjectingHttpClientFactory` 迁至 `:shared` commonMain（internal）；`createKoogExecutor` 改调同包 `createKoogHttpClientFactory`（同 FQN 双份定义触发 D8 duplicate class，须同批处理）
+> - `runtime-core/build.gradle.kts` 新增 `api(project(":shared"))`
 
 ## 设计原则
 
@@ -263,14 +271,14 @@
 - `ExecutionPlan.kt` — 执行计划
 
 ### `platform/logging/`
-- `Logger.kt` — 日志接口
+- （`Logger.kt` 已迁 `:shared` commonMain，包名 `agent.core.platform.logging` 不变，引用零改动）
 
 ### `platform/storage/`
 - `KoogMessageMemoryStore.kt` — Koog 版 DataStore 对话历史持久化（键前缀 `koog_memory_`）
 - `MemoryManager.kt` — 记忆管理
 
 ### `platform/thread/`
-- `ThreadPoolManager.kt` — 线程池管理
+- （`ThreadPoolManager.kt` 已删除，由 `:shared` 的 expect `DispatcherProvider` + `SharedDispatcherProvider` 共享实例替代）
 
 ### `platform/voice/`
 - `AsrEngine.kt` — ASR 引擎接口

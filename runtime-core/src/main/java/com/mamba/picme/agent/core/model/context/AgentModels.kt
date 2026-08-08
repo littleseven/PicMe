@@ -4,7 +4,6 @@ import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Agent 运行上下文
@@ -102,19 +101,8 @@ enum class ModelUsagePattern {
     SESSION_SCOPED
 }
 
-/**
- * 32位自增 ID 生成器
- *
- * 线程安全，使用 AtomicInteger 实现，循环使用（到达 Int.MAX_VALUE 后回到 1）。
- * ID 0 保留给系统/无效状态。
- */
-object AgentIdGenerator {
-    private val counter = AtomicInteger(1)
-
-    fun nextId(): Int = counter.getAndUpdate { current ->
-        if (current >= Int.MAX_VALUE - 1) 1 else current + 1
-    }
-}
+// 注：原 `object AgentIdGenerator`（AtomicInteger 实现）已迁至 :shared commonMain 的
+// expect AgentIdGenerator（同包同 FQN，本文件及全部调用点零变更）。
 
 /**
  * 结构化错误码定义

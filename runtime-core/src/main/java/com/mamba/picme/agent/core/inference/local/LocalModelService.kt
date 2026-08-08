@@ -5,7 +5,7 @@ import com.mamba.picme.agent.core.inference.local.llm.LlmGenerationMetrics
 import com.mamba.picme.agent.core.inference.local.llm.LlmModelNotFoundException
 import com.mamba.picme.agent.core.inference.local.llm.LocalLlmEngine
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
+import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import com.mamba.picme.agent.core.runtime.state.SceneManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -30,7 +30,7 @@ class LocalModelService internal constructor(
 ) {
 
     private val tag = "LocalModelService"
-    private val orchestratorDispatcher = ThreadPoolManager.getInstance().orchestratorDispatcher
+    private val orchestratorDispatcher = SharedDispatcherProvider.instance.orchestratorDispatcher
 
     /**
      * 后台作用域：场景驱动的 LLM 卸载等 fire-and-forget 任务。

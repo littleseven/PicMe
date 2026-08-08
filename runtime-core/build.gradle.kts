@@ -41,6 +41,11 @@ android {
 
 
 dependencies {
+    // :shared（KMP 共享模块，Phase 4 抽取）：平台原语（DispatcherProvider/AgentIdGenerator/
+    // createKoogHttpClientFactory）与 Logger 已迁入其 commonMain。用 api 传递暴露——
+    // androidApp 直接使用 shared 的公开类型（如 AgentIdGenerator，原 runtime-core AgentModels
+    // 同 FQN 迁出），消费方编译期须能解析。
+    api(project(":shared"))
     implementation(project(":engines:beauty-api"))
     implementation(project(":engines:mnn-core"))
     implementation(libs.kotlinx.coroutines.android)

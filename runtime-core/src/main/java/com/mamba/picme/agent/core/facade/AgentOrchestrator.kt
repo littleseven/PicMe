@@ -18,7 +18,7 @@ import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.inference.local.LocalModelService
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.KoogMessageMemoryStore
-import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
+import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import com.mamba.picme.agent.core.runtime.capability.CapabilityRegistry
 import com.mamba.picme.agent.core.runtime.execution.InferenceResult
 import com.mamba.picme.agent.core.runtime.state.SceneManager
@@ -38,7 +38,8 @@ import kotlin.coroutines.suspendCoroutine
  * Agent 编排器（统一入口）
  *
  * **线程模型**：
- * 所有专有线程池由 [ThreadPoolManager] 集中管理，四线程池完全隔离：
+ * 所有专有线程池由 [DispatcherProvider]（:shared，经 [SharedDispatcherProvider] 共享实例）
+ * 集中管理，四线程池完全隔离：
  * - **编排线程**（PoLang-Orchestrator-Thread）：双线程，处理用户输入的整个生命周期
  * - **LLM 推理线程**（PoLang-LLM-Model-Thread）：单线程，模型加载和推理
  * - **DataStore 线程**（PoLang-DataStore-Thread）：单线程，对话历史持久化
@@ -88,7 +89,7 @@ class AgentOrchestrator private constructor(context: Context) {
     /** 端侧 VLM 模型加载服务（TAG 打标 Worker / 图像理解专用，经 `getLlmEngine()` 取引擎）。 */
     val localModelService = LocalModelService(configurator)
 
-    private val orchestratorDispatcher = ThreadPoolManager.getInstance().orchestratorDispatcher
+    private val orchestratorDispatcher = SharedDispatcherProvider.instance.orchestratorDispatcher
 
     /**
      * 后台作用域：用于 fire-and-forget 异步操作（如对话历史保存）。

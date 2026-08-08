@@ -1,7 +1,5 @@
 package com.mamba.picme.agent.core.remote.config
 
-import ai.koog.http.client.KoogHttpClient
-import ai.koog.http.client.ktor.KtorKoogHttpClient
 import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
@@ -12,7 +10,6 @@ import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.params.additionalPropertiesOf
 import com.mamba.picme.agent.core.inference.remote.log.LlmCallRecorder
-import kotlinx.serialization.json.Json
 
 /**
  * 远程模型工厂
@@ -74,11 +71,11 @@ object RemoteModelFactory {
      * 创建 Koog 执行器包（与 [createBuilder] 并行存在，旧 langchain4j 路径不受影响）。
      *
      * - 自定义 baseUrl：[OpenAIClientSettings] 仅传 baseUrl，其余默认（DeepSeek/Kimi/网关通用）。
-     * - 网关鉴权 header：[extraHeaders]（如 `X-App-Token` / `X-Device-Id`）非空时，用
-     *   [HeaderInjectingHttpClientFactory] 包一层默认 Ktor 工厂——auth 仍由 apiKey 经
-     *   `OpenAILLMClient(apiKey, settings, factory)` 标准路径注入（factory.create 的
-     *   `authHeaderValue` 由 client 从 apiKey 派生，装饰器原样透传），extraHeaders 合并进
-     *   factory.create 的 headers map。空 map 时直接用默认工厂，零额外开销。
+     * - 网关鉴权 header：[extraHeaders]（如 `X-App-Token` / `X-Device-Id`）经 :shared 的
+     *   [createKoogHttpClientFactory] 构造工厂（非空时内部包 HeaderInjectingHttpClientFactory）——
+     *   auth 仍由 apiKey 经 `OpenAILLMClient(apiKey, settings, factory)` 标准路径注入
+     *   （factory.create 的 `authHeaderValue` 由 client 从 apiKey 派生，装饰器原样透传），
+     *   extraHeaders 合并进 factory.create 的 headers map。空 map 时直接用默认工厂，零额外开销。
      * - DeepSeek `thinking.type=disabled`：经 `additionalProperties` 由 Koog 的
      *   `AdditionalPropertiesFlatteningSerializer` 平铺到请求体顶层（Phase 0 已源码级证实 +
      *   配方测试）。
@@ -98,11 +95,10 @@ object RemoteModelFactory {
         // META-INF/services/ai.koog.http.client.KoogHttpClient$Factory（KMP android 发布缺陷），
         // Android runtime 下 ServiceLoader 永远空 → "No KoogHttpClient.Factory provider found"
         //（真机实测 2026-08-07 复现；Ktor 自身的 HttpClientEngineContainer provider 正常在 APK 内）。
-        // 显式构造 KtorKoogHttpClient.Factory() 绕过（无参构造内部 new 默认 Ktor HttpClient，已配
-        // DefaultRequest/ContentNegotiation/HttpTimeout）。显式构造也更利于 R8：无需为 ServiceLoader
-        // provider 加 keep。有网关 header 时包一层 HeaderInjectingHttpClientFactory。
-        val baseFactory = KtorKoogHttpClient.Factory()
-        val factory = if (extraHeaders.isEmpty()) baseFactory else HeaderInjectingHttpClientFactory(baseFactory, extraHeaders)
+        // createKoogHttpClientFactory（:shared，同包）内部显式构造 KtorKoogHttpClient.Factory()
+        // 绕过（显式构造也更利于 R8：无需为 ServiceLoader provider 加 keep），并按需包
+        // HeaderInjectingHttpClientFactory 注入网关 header。
+        val factory = createKoogHttpClientFactory(extraHeaders)
         val client = OpenAILLMClient(
             effectiveApiKey,
             OpenAIClientSettings(baseUrl = config.baseUrl),
@@ -143,38 +139,6 @@ object RemoteModelFactory {
     private const val MAX_TOKENS: Int = 4096
 }
 
-/**
- * 给 Koog HttpClient 工厂注入额外请求 header（picme-server 网关鉴权 `X-App-Token` / `X-Device-Id`）。
- *
- * `OpenAIClientSettings` 无 header 参数；`OpenAILLMClient(apiKey, settings, factory)` 的 apiKey 只
- * 派生 `Authorization`。网关要求的自定义 header 经此装饰器合并进 `KoogHttpClient.Factory.create` 的
- * `headers` 形参（位置参数透传，authHeaderValue 等 7 个其余参数原样转交委托工厂——auth 仍走 apiKey
- * 标准路径，不在此重写）。
- *
- * `headers + extraHeaders`：委托工厂（默认 Ktor）传入的 headers 全保留，extraHeaders 同名键覆盖
- * （本场景 extraHeaders 仅含网关鉴权键，不与默认 headers 冲突）。
- */
-private class HeaderInjectingHttpClientFactory(
-    private val delegate: KoogHttpClient.Factory,
-    private val extraHeaders: Map<String, String>,
-) : KoogHttpClient.Factory {
-    override fun create(
-        baseURL: String,
-        authHeaderValue: String,
-        headers: Map<String, String>,
-        queryParams: Map<String, String>,
-        connectTimeoutMs: Long,
-        socketTimeoutMs: Long,
-        requestTimeoutMs: Long,
-        json: Json,
-    ): KoogHttpClient = delegate.create(
-        baseURL,
-        authHeaderValue,
-        headers + extraHeaders,
-        queryParams,
-        connectTimeoutMs,
-        socketTimeoutMs,
-        requestTimeoutMs,
-        json,
-    )
-}
+// 注：原私有 `HeaderInjectingHttpClientFactory` 已迁至 :shared commonMain
+// `KoogHttpClientFactoryProvider.kt`（internal，由 createKoogHttpClientFactory 按需包装）——
+// KMP 抽取后同 FQN 双份定义会触发 D8 duplicate class。

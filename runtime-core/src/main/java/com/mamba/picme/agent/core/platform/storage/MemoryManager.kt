@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
+import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -22,7 +22,7 @@ private val Context.agentMemoryDataStore: DataStore<Preferences> by preferencesD
  * [AgentOrchestrator] 重置会话时调用 [clearHistory]。
  * 旧 `memory_*` 键的存量数据成为孤儿，不做迁移。
  *
- * **线程模型**：DataStore 读写由 [ThreadPoolManager] 的专用单线程
+ * **线程模型**：DataStore 读写由 [DispatcherProvider] 的专用单线程
  * （PoLang-DataStore-Thread）串行执行，与网络请求隔离。
  *
  * @param context Application Context
@@ -32,7 +32,7 @@ class MemoryManager(private val context: Context) {
     private val tag = "MemoryManager"
     private val dataStore = context.agentMemoryDataStore
 
-    private val dataStoreDispatcher = ThreadPoolManager.getInstance().dataStoreDispatcher
+    private val dataStoreDispatcher = SharedDispatcherProvider.instance.dataStoreDispatcher
 
     /**
      * 清空指定 session 的对话历史

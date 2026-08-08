@@ -9,7 +9,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import ai.koog.prompt.message.Message
 import com.mamba.picme.agent.core.inference.remote.koog.KoogMessageMemory
 import com.mamba.picme.agent.core.platform.logging.Logger
-import com.mamba.picme.agent.core.platform.thread.ThreadPoolManager
+import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
+import com.mamba.picme.agent.core.platform.thread.SharedDispatcherProvider
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -31,7 +32,7 @@ private val Context.koogChatMemoryDataStore: DataStore<Preferences> by preferenc
  *
  * - **持久化键**：`koog_memory_$sessionId`（与旧 langchain4j 路径的 `memory_$sessionId` 同文件不同键，
  *   迁移重叠期互不干扰；切到 Koog 后历史从空开始，符合一次性迁移预期）。
- * - **线程模型**：与 [MemoryManager] 一致，经 [ThreadPoolManager.dataStoreDispatcher] 串行执行，
+ * - **线程模型**：与 [MemoryManager] 一致，经 [DispatcherProvider.dataStoreDispatcher] 串行执行，
  *   与本地推理/网络请求隔离。
  * - **序列化**：Koog [Message] 是 `@Serializable` 的密封接口，直接用 kotlinx-serialization 多态
  *   编解码；编解码逻辑抽到独立的 [encodeKoogMessages] / [decodeKoogMessages] 顶层函数，便于纯 JVM 单测。
@@ -43,7 +44,7 @@ public class KoogMessageMemoryStore(private val context: Context) {
 
     private val tag = "KoogMessageMemoryStore"
     private val dataStore = context.koogChatMemoryDataStore
-    private val dataStoreDispatcher = ThreadPoolManager.getInstance().dataStoreDispatcher
+    private val dataStoreDispatcher = SharedDispatcherProvider.instance.dataStoreDispatcher
 
     /** 加载指定 session 的历史：解码 → 剔除 System（不变式①）→ 双向配对 sanitize（不变式③）。 */
     public suspend fun load(sessionId: String): List<Message> = withContext(dataStoreDispatcher) {
