@@ -135,7 +135,7 @@ grep -E "交互|反馈|动效|动画" docs/01-PRODUCT/FEATURES.md
 #### Step 3: 验证模块 AGENTS.md 实现完整性
 ```bash
 # 遍历所有模块 AGENTS.md
-find app/src -name "AGENTS.md" -exec grep -l "Product Alignment" {} \;
+find androidApp engines runtime-core -name "AGENTS.md" -exec grep -l "Product Alignment" {} \;
 ```
 
 **检查项**：
@@ -323,7 +323,7 @@ wc -l AGENTS.md  # 如果超过 500 行，可能需要瘦身
 
 ### 移动到模块 AGENTS.md
 📦 移动: 美颜引擎技术选型 -> `app/.../camera/AGENTS.md Section 2`
-📦 移动: 滤镜算法实现 -> `beauty-engine/AGENTS.md Section 2`
+📦 移动: 滤镜算法实现 -> `engines/beauty-engine/AGENTS.md Section 2`
 
 ### 移动到技术专项文档
 📦 移动: MediaPipe 468→106 映射详解 -> `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md`

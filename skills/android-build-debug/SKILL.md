@@ -112,7 +112,7 @@ adb shell am start -n com.mamba.picme/.MainActivity
 ## 项目特定路径
 
 - APK 输出：`androidApp/build/outputs/apk/debug/polang-debug.apk`
-- Shader 目录：`beauty-engine/src/main/assets/shaders/`
+- Shader 目录：`engines/beauty-engine/src/main/assets/shaders/`
 - Java/Kotlin 源码：`androidApp/src/main/java/com/mamba/picme/`
 - 日志标签过滤：`adb logcat -s PoLang:* *:S`
 
@@ -121,6 +121,7 @@ adb shell am start -n com.mamba.picme/.MainActivity
 - [error-healer](/error-healer) — 编译错误自动分类与修复
 - [adb-bot](/adb-bot) — 设备控制与日志收集
 - [dev-loop](/dev-loop) — Dev Loop
+- [ios-build-debug](/ios-build-debug) — iOS xcodebuild / simctl 对标
 
 ## 版本历史
 

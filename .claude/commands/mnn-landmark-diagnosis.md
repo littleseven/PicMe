@@ -206,7 +206,7 @@ adb install -r androidApp/build/outputs/apk/debug/polang-debug.apk
 
 ### Step 2: 启动对比测试
 
-> 注：ONNX（InsightFace 2D106）检测器已从 app 移除，仓库不再内置 MNN↔ONNX 并行对比埋点。若需以原始 ONNX 模型作外部基准校验 MNN 输出，需在 `MnnLandmarkDetector` / `FaceDetectorManager` 中**临时**加回并行推理与日志（自定义 tag，如 `MNN vs ONNX`），再按下方流程收集：
+> 注：ONNX（InsightFace 2D106）检测器已从 androidApp 移除，仓库不再内置 MNN↔ONNX 并行对比埋点。若需以原始 ONNX 模型作外部基准校验 MNN 输出，需在 `MnnLandmarkDetector` / `FaceDetectorManager` 中**临时**加回并行推理与日志（自定义 tag，如 `MNN vs ONNX`），再按下方流程收集：
 
 ```bash
 adb logcat -c

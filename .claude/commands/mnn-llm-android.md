@@ -237,8 +237,8 @@ val prompt = buildString {
 
 - [MNN GitHub](https://github.com/alibaba/MNN)
 - [MNN-LLM 官方 Android Demo](https://github.com/alibaba/MNN/tree/master/apps/Android/MnnLlmChat)
-- `beauty-engine/src/main/cpp/llm_jni_bridge.cpp` — 项目 JNI 桥接实现
-- `beauty-engine/libs/mnn/include/MNN/llm/llm.hpp` — MNN-LLM 头文件
+- `engines/beauty-engine/src/main/cpp/llm_jni_bridge.cpp` — 项目 JNI 桥接实现
+- `engines/beauty-engine/libs/mnn/include/MNN/llm/llm.hpp` — MNN-LLM 头文件
 
 ---
 

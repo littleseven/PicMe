@@ -143,9 +143,9 @@
   - androidApp/src/main/java/com/mamba/picme/features/gallery/*.kt
 
 [Feature] + beauty:
-  - beauty-engine/AGENTS.md
+  - engines/beauty-engine/AGENTS.md
   - docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md
-  - beauty-engine/src/main/java/com/mamba/picme/beauty/**/*.kt
+  - engines/beauty-engine/src/main/java/com/mamba/picme/beauty/**/*.kt
 
 [Feature] + agent:
   - docs/02-ARCHITECTURE/AGENT_ARCHITECTURE.md
@@ -168,8 +168,8 @@
 
 [UIAdjust]:
   - 目标 Compose 文件
-  - app/src/main/res/values/themes.xml
-  - app/src/main/res/values/colors.xml
+  - androidApp/src/main/res/values/themes.xml
+  - androidApp/src/main/res/values/colors.xml
   - docs/01-PRODUCT/FEATURES.md (设计规范章节)
   - [/compose-ui-expert](/compose-ui-expert)
 
@@ -232,7 +232,7 @@ Intent Router 处理:
 1. 意图分类: [BugFix] + camera/beauty
 2. 术语对齐: "偏红" → 色温/白平衡 / `temperature` / `tint`
 3. 上下文加载:
-   - beauty-engine/AGENTS.md
+   - engines/beauty-engine/AGENTS.md
    - docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md (调色章节)
    - PhotoProcessorImpl.kt, BeautySettings.kt
 4. 影响推断: beauty-engine 模块，调色参数问题

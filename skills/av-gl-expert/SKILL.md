@@ -424,6 +424,8 @@ MediaPipe 468 点 → 468→106 语义映射 → 旋转校正 → 归一化 → 
 
 ## 相关文件
 
+- [metal-render-expert](/metal-render-expert) — iOS Metal 渲染对标（GLSL→MSL 翻译 + CVMetalTextureCache）
+
 ## 版本历史
 
 | 版本 | 日期 | 变更 |

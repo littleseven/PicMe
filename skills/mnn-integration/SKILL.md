@@ -329,12 +329,14 @@ strings model.mnn | grep -E "minusscalar|mulscalar"
 - [MNN GitHub](https://github.com/alibaba/MNN)
 - [MNN 文档](https://mnn-docs.readthedocs.io/)
 - `docs/03-TECHNICAL-SPECS/MNN_LANDMARK_DIAGNOSIS.md` — MNN 人脸关键点对齐诊断
-- `beauty-engine/src/main/cpp/mnn_face_detector.cpp` — CV 推理参考实现
-- `beauty-engine/src/main/cpp/llm_jni_bridge.cpp` — LLM JNI 桥接参考实现
+- `engines/beauty-engine/src/main/cpp/mnn_face_detector.cpp` — CV 推理参考实现
+- `engines/beauty-engine/src/main/cpp/llm_jni_bridge.cpp` — LLM JNI 桥接参考实现
 
 ---
 
 ## 相关文件
+
+- [mnn-ios-integration](/mnn-ios-integration) — iOS MNN.framework 对标（构建/embed + Precision_High 坑）
 
 ## 版本历史
 

@@ -78,6 +78,7 @@
 - [perf-optimizer](/perf-optimizer) — 重组性能分析
 - [i18n-validator](/i18n-validator) — UI 文案多语言验证
 - [intent-router](/intent-router) — UI 需求意图路由
+- [swiftui-expert](/swiftui-expert) — iOS SwiftUI 对标（双端视觉一致）
 
 ---
 

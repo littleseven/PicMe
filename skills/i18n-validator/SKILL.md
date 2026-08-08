@@ -120,6 +120,7 @@ python3 scripts/check_i18n_sync.py
 - [PRODUCT.md](PRODUCT.md) — I18N 规范定义
 - [compose-ui-expert](/compose-ui-expert) — UI 文案硬编码检查
 - [doc-sync-guardian](/doc-sync-guardian) — 文档一致性同步
+- [ios-i18n-validator](/ios-i18n-validator) — iOS xcstrings 三语对标（双端键对齐）
 
 ## 版本历史
 

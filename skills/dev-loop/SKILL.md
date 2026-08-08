@@ -220,6 +220,7 @@ fi
 - `/compose-ui-expert` — UI 验证参考
 - `/perf-optimizer` — 性能基线对比
 - `/i18n-validator` — 多语言验证
+- `/ios-dev-loop` — iOS 闭环对标（simctl / screenshot-diff）
 
 ## 版本历史
 
