@@ -12,7 +12,7 @@
 //   - `uFacePoints[212]` (flat float[106*2]) → `constant float* facePoints [[buffer(1)]]`
 //   - `uAspectRatio/uHasFace/uSlimFace/uBigEyes` → `WarpUniforms` struct `[[buffer(0)]]`
 //   - `uTextureTransform` (SurfaceTexture 矩阵) → 删除（iOS 无 SurfaceTexture）
-//   - Metal UV 原点左上 vs GL 左下 → 顶点 UV 翻转补偿（见 quad_vertex）
+//   - Metal UV 原点左上 vs GL 左下 → quad_vertex UV 映射适配（🔴10 统一约定见 yuv.metal）
 
 #include <metal_stdlib>
 using namespace metal;

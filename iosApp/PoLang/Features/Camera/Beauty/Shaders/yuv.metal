@@ -2,6 +2,14 @@
 //
 // 移植源: tmp/beauty-metal-spike/BeautyMetalSpike/Shaders.metal (BT.601)
 // 用途: 相机 CVPixelBuffer (Y=R8Unorm + UV=RG8Unorm) → RGB 中间纹理 / drawable
+//
+// 🔴10 UV 翻转约定（Metal vs GL）:
+//   Metal 纹理 UV 原点 = 左上角（GL = 左下角）。
+//   quad_vertex 的 UV 映射 {0,0}→左下NDC, {1,1}→右上NDC，
+//   对应 Metal 纹理左上→右下（与 GL 相反，但 Metal 渲染目标和采样纹理都是左上原点，
+//   所以全管线 pass-to-pass 传递不翻转）。
+//   预览 drawable 也是左上原点，因此最终画面方向正确。
+//   真机验证清单：预览不上下颠倒 + 拍照保存方向与预览一致。
 
 #include <metal_stdlib>
 using namespace metal;

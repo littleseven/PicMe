@@ -250,6 +250,22 @@
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Settings" } },
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定を開く" } }
       }
+    },
+    "Camera Permission Required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要相机权限" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Camera Permission Required" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "カメラの許可が必要です" } }
+      }
+    },
+    "Albums" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "相簿" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Albums" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アルバム" } }
+      }
     }
   },
   "version" : "1.0"

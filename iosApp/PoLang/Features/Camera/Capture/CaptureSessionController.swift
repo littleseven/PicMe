@@ -8,20 +8,19 @@ final class CaptureSessionController: NSObject {
     private let videoOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "polang.camera.capture")
 
-    /// 最新帧（渲染线程读取；retain/release 由 ARC 管理 CVPixelBuffer）
     private(set) var currentPixelBuffer: CVPixelBuffer?
     private let bufferLock = NSLock()
     private(set) var frameCount: Int = 0
 
     var onFirstFrame: (() -> Void)?
+    /// 🔴1: 帧回调——投递给 FaceLandmarkService
+    var onFrame: ((CVPixelBuffer, Int) -> Void)?
 
     func checkAuthorizationAndStart() async -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            start()
-            return true
+            start(); return true
         case .notDetermined:
-            // spike 踩坑：相机权限需显式请求
             let granted = await AVCaptureDevice.requestAccess(for: .video)
             if granted { start() }
             return granted
@@ -39,7 +38,9 @@ final class CaptureSessionController: NSObject {
                   let input = try? AVCaptureDeviceInput(device: device),
                   session.canAddInput(input), session.canAddOutput(videoOutput) else {
                 session.commitConfiguration()
-                DebugOverlayState.shared.set("camera.error", "session config failed")
+                DispatchQueue.main.async {
+                    DebugOverlayState.shared.set("camera.error", "session config failed")
+                }
                 return
             }
             session.addInput(input)
@@ -51,7 +52,6 @@ final class CaptureSessionController: NSObject {
             videoOutput.setSampleBufferDelegate(self, queue: queue)
             session.addOutput(videoOutput)
             if let conn = videoOutput.connection(with: .video) {
-                // spike 踩坑：修正传感器横置
                 conn.videoOrientation = .portrait
             }
             session.commitConfiguration()
@@ -61,12 +61,14 @@ final class CaptureSessionController: NSObject {
 
     func stop() { queue.async { [self] in session.stopRunning() } }
 
-    fileprivate func swapBuffer(_ pb: CVPixelBuffer) {
+    fileprivate func swapBuffer(_ pb: CVPixelBuffer, timestampMs: Int) {
         bufferLock.lock()
         currentPixelBuffer = pb
         bufferLock.unlock()
         frameCount += 1
         if frameCount == 1 { DispatchQueue.main.async { self.onFirstFrame?() } }
+        // 🔴1: 帧回调——投递给人脸检测
+        onFrame?(pb, timestampMs)
     }
 
     func readBuffer() -> CVPixelBuffer? {
@@ -79,7 +81,16 @@ final class CaptureSessionController: NSObject {
     func focus(at point: CGPoint) {
         queue.async { [self] in
             guard let device = (session.inputs.first as? AVCaptureDeviceInput)?.device else { return }
-            try? device.lockForConfiguration()
+            // 🔴9: lockForConfiguration 失败时不能裸写 setter
+            do {
+                try device.lockForConfiguration()
+            } catch {
+                DispatchQueue.main.async {
+                    DebugOverlayState.shared.set("camera.focus", "lock failed")
+                }
+                return
+            }
+            defer { device.unlockForConfiguration() }
             if device.isFocusPointOfInterestSupported {
                 device.focusPointOfInterest = point
                 device.focusMode = .autoFocus
@@ -88,28 +99,38 @@ final class CaptureSessionController: NSObject {
                 device.exposurePointOfInterest = point
                 device.exposureMode = .autoExpose
             }
-            device.unlockForConfiguration()
-            DebugOverlayState.shared.set("camera.focus", String(format: "%.2f, %.2f", point.x, point.y))
+            let focusStr = String(format: "%.2f, %.2f", point.x, point.y)
+            DispatchQueue.main.async {
+                DebugOverlayState.shared.set("camera.focus", focusStr)
+            }
         }
     }
 
     func setZoom(_ factor: CGFloat) {
         queue.async { [self] in
             guard let device = (session.inputs.first as? AVCaptureDeviceInput)?.device else { return }
-            try? device.lockForConfiguration()
+            // 🔴9
+            guard (try? device.lockForConfiguration()) != nil else { return }
+            defer { device.unlockForConfiguration() }
             device.videoZoomFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
-            DebugOverlayState.shared.set("camera.zoom", String(format: "%.1f", device.videoZoomFactor))
-            device.unlockForConfiguration()
+            let zoomStr = String(format: "%.1f", device.videoZoomFactor)
+            DispatchQueue.main.async {
+                DebugOverlayState.shared.set("camera.zoom", zoomStr)
+            }
         }
     }
 
     func setExposureBias(_ bias: Float) {
         queue.async { [self] in
             guard let device = (session.inputs.first as? AVCaptureDeviceInput)?.device else { return }
-            try? device.lockForConfiguration()
+            // 🔴9
+            guard (try? device.lockForConfiguration()) != nil else { return }
+            defer { device.unlockForConfiguration() }
             device.setExposureTargetBias(bias)
-            DebugOverlayState.shared.set("camera.exposure", String(format: "%.2f", bias))
-            device.unlockForConfiguration()
+            let expStr = String(format: "%.2f", bias)
+            DispatchQueue.main.async {
+                DebugOverlayState.shared.set("camera.exposure", expStr)
+            }
         }
     }
 }
@@ -119,6 +140,8 @@ extension CaptureSessionController: AVCaptureVideoDataOutputSampleBufferDelegate
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        swapBuffer(pb)
+        let ts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let tsMs = Int(CMTimeGetSeconds(ts) * 1000)
+        swapBuffer(pb, timestampMs: tsMs)
     }
 }

@@ -29,7 +29,8 @@ final class PhotoCaptureController: NSObject {
         }
     }
 
-    /// AVCapturePhoto → CVPixelBuffer（用于离屏美颜渲染）
+    /// AVCapturePhoto → CVPixelBuffer（32BGRA，竖屏 portrait 方向）
+    /// 🟡4: 使用 photo.connection(.video) 设 portrait orientation 避免 EXIF 旋转
     static func pixelBuffer(from photo: AVCapturePhoto) -> CVPixelBuffer? {
         guard let data = photo.fileDataRepresentation(),
               let cgImage = UIImage(data: data)?.cgImage else { return nil }

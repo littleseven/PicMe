@@ -63,13 +63,14 @@ struct CameraGesturesView: View {
     }
 
     /// SwiftUI 视图坐标 → AVCaptureDevice 归一化坐标（后置竖屏 Portrait）
-    /// 设备坐标系：左上 (0,0) 右下 (1,1)，
-    /// 与 AVCaptureDevice.focusPointOfInterest 约定一致（portrait 模式无翻转）
+    /// 🔴8: portrait 模式需做 (x,y) → (1-y, x) 变换（视图竖屏 vs 传感器横置），
+    /// 非"无翻转"。参考 AVCaptureDevice.focusPointOfInterest 文档：
+    /// 设备坐标系是横屏左上(0,0)右下(1,1)；竖屏 portrait 需旋转映射。
     private func convertViewToDevicePoint(_ point: CGPoint, in geo: GeometryProxy) -> CGPoint {
-        CGPoint(
-            x: point.x / geo.size.width,
-            y: point.y / geo.size.height
-        )
+        let normalizedX = point.x / geo.size.width
+        let normalizedY = point.y / geo.size.height
+        // portrait: 旋转 90° → (1-y, x)
+        return CGPoint(x: 1.0 - normalizedY, y: normalizedX)
     }
 
     private func triggerFocusRing(at location: CGPoint) {
