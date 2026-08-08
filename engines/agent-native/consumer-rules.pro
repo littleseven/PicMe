@@ -1,4 +1,4 @@
-# runtime-core JNI ProGuard rules
+# agent-native JNI ProGuard rules（自 :runtime-core 迁入，Phase 4 Task 12）
 # Keep MNN-LLM JNI bridge class and its native methods
 -keep class com.mamba.picme.agent.core.inference.local.llm.MnnLlmClient {
     native <methods>;

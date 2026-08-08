@@ -24,9 +24,9 @@
 - `MemoryManager` / `KoogMessageMemoryStore`（`platform.storage`）：对话历史管理（Koog 版持久化）
 - `SceneManager`（`runtime.state`）：页面场景状态管理
 - `KoogChatAgent` / `KoogReActAgent`（`inference.remote.koog`）：远程 ReAct 推理管道（Koog 驱动）
-- `LocalLlmEngine`（`inference.local.llm`）：端侧 VLM 引擎（TAG 打标 / 图像理解专用）
+- `LocalLlmEngine`（`inference.local.llm`）：端侧 VLM 引擎（TAG 打标 / 图像理解专用；已迁 `:shared` androidMain，包名不变）
 - 语音交互（`platform.voice`：Sherpa-ONNX ASR / Keyword Spotter）
-- 端侧 VLM 推理 JNI（`libagent_native.so`）
+- ~~端侧 VLM 推理 JNI（`libagent_native.so`）~~ 已迁 `:engines:agent-native`（Phase 4 Task 12）
 
 ## 依赖方向
 
@@ -60,10 +60,10 @@
 | `MemoryManager` | 对话历史管理 | `agent.core.platform.storage` |
 | `DataStoreChatMemoryStore` | DataStore 持久化的 ChatMemory 存储 | `agent.core.platform.storage` |
 | `SceneManager` | 页面场景状态管理 | `agent.core.runtime.state` |
-| `LocalLlmEngine` | 端侧 VLM 引擎（**TAG 打标 / 图像理解专用**：`imageInference`/`imageInferenceWithTimeout` + 模型生命周期；文本 chat 面已移除） | `agent.core.inference.local.llm` |
+| `LocalLlmEngine` | 端侧 VLM 引擎（**TAG 打标 / 图像理解专用**：`imageInference`/`imageInferenceWithTimeout` + 模型生命周期；文本 chat 面已移除；已迁 `:shared` androidMain，实现 commonMain `ImageInferenceEngine` 接口） | `agent.core.inference.local.llm`（:shared） |
 | `LocalModelService` | 端侧 VLM 模型加载服务（打标 Worker / 图像理解经 `getLlmEngine()` 取引擎） | `agent.core.inference.local` |
-| `LlmModelManager` | 端侧 VLM 模型管理 | `agent.core.inference.local.llm` |
-| `MnnLlmClient` | MNN LLM 客户端（VLM 打标 JNI 桥） | `agent.core.inference.local.llm` |
+| `LlmModelManager` | 端侧 VLM 模型管理（已迁 `:shared` androidMain） | `agent.core.inference.local.llm`（:shared） |
+| `MnnLlmClient` | MNN LLM 客户端（VLM 打标 JNI 桥；已迁 `:shared` androidMain，native 侧在 `:engines:agent-native`） | `agent.core.inference.local.llm`（:shared） |
 | `RemoteReActAgentConfig` | ReAct 配置（三链路共用） | `agent.core.inference.remote.react` |
 | `RemotePromptBuilder` | 远程模型 Tool Schema + ChatRequest 构建 | `agent.core.inference.remote.prompt` |
 | `KoogChatAgent` | chat 链路 Koog Agent（Phase 4） | `agent.core.inference.remote.koog` |
@@ -211,10 +211,10 @@
 ### `inference/local/`
 - `LocalModelService.kt` — 端侧 VLM 模型加载服务（**打标专用**：`ensureModelLoaded`/`withModelLoaded`/`getLlmEngine`）
 
-### `inference/local/llm/`（VLM 打标专用）
+### `inference/local/llm/`（VLM 打标专用；**已整体迁 `:shared` androidMain**，Phase 4 Task 12，包名不变；JNI native 侧在 `:engines:agent-native`）
 - `LlmGenerationMetrics.kt` — 生成指标
 - `LlmModelManager.kt` — 端侧 VLM 模型管理
-- `LocalLlmEngine.kt` — 端侧 VLM 推理引擎（`imageInference`/`imageInferenceWithTimeout` + 生命周期）
+- `LocalLlmEngine.kt` — 端侧 VLM 推理引擎（`imageInference`/`imageInferenceWithTimeout` + 生命周期；实现 commonMain `ImageInferenceEngine` 接口）
 - `MnnLlmClient.kt` — MNN LLM 客户端（VLM 打标 JNI 桥）
 
 ### `inference/remote/prompt/`

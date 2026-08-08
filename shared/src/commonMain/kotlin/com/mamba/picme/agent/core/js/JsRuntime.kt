@@ -144,11 +144,11 @@ class JsRuntime(
          * 全局 [JsRunRecorder]（:app 启动时注入，null 则不记录）。
          * 镜像 `RemoteModelFactory.recorder` 既定模式。
          */
-        @Volatile
+        @kotlin.concurrent.Volatile
         var recorder: JsRunRecorder? = null
 
         /** true 时事件含脚本文本与结果预览（DEBUG）；false 仅落指标（release，隐私红线）。 */
-        @Volatile
+        @kotlin.concurrent.Volatile
         var captureContent: Boolean = false
     }
 }

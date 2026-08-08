@@ -2,6 +2,8 @@ package com.mamba.picme.agent.core.inference.local.llm
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import com.mamba.picme.agent.core.inference.local.ImageInferenceEngine
 import com.mamba.picme.agent.core.inference.local.llm.MnnLlmClient.NativeReleaseTarget
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.mnn.MnnGlobalReleaseLock
@@ -43,7 +45,7 @@ class LlmModelNotFoundException(
  *
  * @param context Application Context
  */
-class LocalLlmEngine(private val context: Context) {
+class LocalLlmEngine(private val context: Context) : ImageInferenceEngine {
 
     private val tag = "LocalLlmEngine"
     private val client = MnnLlmClient(context)
@@ -75,7 +77,7 @@ class LocalLlmEngine(private val context: Context) {
     /**
      * 模型是否已加载
      */
-    val isLoaded: Boolean
+    override val isLoaded: Boolean
         get() = client.isLoaded
 
     /**
@@ -112,7 +114,7 @@ class LocalLlmEngine(private val context: Context) {
      * @param modelId 模型注册表中的 key，如 "qwen3_5_2b" 或 "qwen3_0_6b"
      * @return 加载结果，失败时返回具体错误原因
      */
-    suspend fun loadModel(modelId: String, useOpencl: Boolean = false): Result<Unit> = withContext(modelDispatcher) {
+    override suspend fun loadModel(modelId: String, useOpencl: Boolean): Result<Unit> = withContext(modelDispatcher) {
         engineMutex.withLock {
             // 双重检查：已加载且是同一模型、同一后端，直接返回
             if (client.isLoaded && currentModelId == modelId && currentUseOpencl == useOpencl) {
@@ -194,6 +196,20 @@ class LocalLlmEngine(private val context: Context) {
         private set
 
     /**
+     * 接口方法（ByteArray 入参）：内部 `BitmapFactory.decodeByteArray` 解码后
+     * 经 Bitmap 便捷重载复用现有逻辑。解码失败返回空字符串。
+     */
+    override suspend fun imageInference(
+        imageBytes: ByteArray,
+        systemPrompt: String,
+        userPrompt: String,
+        maxTokens: Int
+    ): String {
+        val bitmap = decodeImageBytes(imageBytes) ?: return ""
+        return imageInference(bitmap, systemPrompt, userPrompt, maxTokens)
+    }
+
+    /**
      * 使用本地多模态模型对图片进行推理。
      *
      * 将 [systemPrompt] 和 [userPrompt] 与 [bitmap] 一起发送给 MNN-LLM 视觉编码器，
@@ -249,6 +265,21 @@ class LocalLlmEngine(private val context: Context) {
                 ""
             }
         }
+    }
+
+    /**
+     * 接口方法（ByteArray 入参）：内部 `BitmapFactory.decodeByteArray` 解码后
+     * 经 Bitmap 便捷重载复用现有逻辑。解码失败返回空字符串。
+     */
+    override suspend fun imageInferenceWithTimeout(
+        imageBytes: ByteArray,
+        systemPrompt: String,
+        userPrompt: String,
+        maxTokens: Int,
+        timeoutMs: Int
+    ): String {
+        val bitmap = decodeImageBytes(imageBytes) ?: return ""
+        return imageInferenceWithTimeout(bitmap, systemPrompt, userPrompt, maxTokens, timeoutMs)
     }
 
     /**
@@ -308,7 +339,7 @@ class LocalLlmEngine(private val context: Context) {
      *
      * 通过 ResourceManager 协调释放，避免与 ASR 的 MNN 全局状态冲突。
      */
-    fun unload() {
+    override fun unload() {
         resourceManager.releaseLlm(
             owner = "LocalLlmEngine",
             onSafeUnload = { enqueueUnload() },
@@ -439,5 +470,16 @@ class LocalLlmEngine(private val context: Context) {
             engineMutex.unlock()
         }
         isRegistered.set(false)
+    }
+
+    /**
+     * 将编码后的图片字节（JPEG/PNG 等）解码为 Bitmap；失败时记日志并返回 null。
+     */
+    private fun decodeImageBytes(imageBytes: ByteArray): Bitmap? {
+        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+        if (bitmap == null) {
+            Logger.e(tag, "Failed to decode image bytes (${imageBytes.size} bytes)")
+        }
+        return bitmap
     }
 }
