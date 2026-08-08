@@ -722,7 +722,7 @@ class KoogReActAgent(
 
 ---
 
-## Task 7：ToolService suspend 化改写（路线图 4.3 难点，D4）
+## Task 7：ToolService suspend 化改写（路线图 4.3 难点，D4）✅ 已完成（2026-08-08，commit `fdd66823`，双审 APPROVED_WITH_CONCERNS→无阻塞，🟡 见变更记录）
 
 三个 SEAM 文件。这是 Phase 4 侵入性最强的改造：**只允许并发模型改写，禁止动工具名/@LLMDescription 文本/业务语义**（ToolInventory 确定性，DeepSeek 上下文缓存依赖——见 runtime-core AGENTS.md 2026-08-07 条目）。
 
@@ -733,7 +733,7 @@ class KoogReActAgent(
 - Move: `runtime-core/.../tool/CameraToolHelper.kt` → commonMain 同路径（SEAM）
 - Test: `shared/src/commonTest/kotlin/com/mamba/picme/agent/core/inference/remote/tool/ToolPromptDeterminismTest.kt`（新建）
 
-- [ ] **Step 1: 先写确定性护栏测试（防 prompt 漂移）**
+- [x] **Step 1: 先写确定性护栏测试（防 prompt 漂移）**（实际在 jvmTest 非 commonTest——Koog reflect 是 JVM-only；golden 基线在改写前由旧反射版抓取：chat 35 工具/camera 13 工具逐字节比对；纯格式化部分由 commonTest `ToolInventoryTest` synthetic descriptor 补足）
 
 迁移前，在 runtime-core 记录现状基线：
 
@@ -742,7 +742,7 @@ Expected: PASSED，且把三个 ToolService 的 `ToolInventory` 生成的工具�
 
 新建 `ToolPromptDeterminismTest.kt`：对 `ChatToolService`/`CameraToolService` 各生成一次工具清单，与 golden 文本 `assertEquals`（逐字节）。改写完成后此测试必须绿。
 
-- [ ] **Step 2: suspend 化改写（`CameraToolService`/`ChatToolService`/`CameraToolHelper` 同一模式）**
+- [x] **Step 2: suspend 化改写（`CameraToolService`/`ChatToolService`/`CameraToolHelper` 同一模式）**（future.get(5s)→withTimeout(5000)、dispatchScope 整体删除、runBlocking→直接挂起、catch 链 `TimeoutCancellationException → CancellationException{throw} → Exception` 顺序经审查核实正确；超时 observation 文本漂移 `Error: null`→`Error: Timed out waiting for N ms` 属有意改进）
 
 逐文件执行（改写点行号以迁移日实际文件为准，清单给出的参考点：`CameraToolService` 的 `future{}.get` 调用、`ChatToolService:215 runBlocking` 与 `:228 org.json`、`CameraToolHelper:171,175,212,216 future.get/TimeoutException` 与 `:187,198 System.currentTimeMillis()`）：
 
@@ -771,7 +771,7 @@ EditParams.fromJson(edits)  // edits: String
 // 改后：@Tool 方法直接声明 suspend（Koog 1.1.1 支持 suspend 工具函数），runBlocking 删除
 ```
 
-- [ ] **Step 3: `ToolInventory` 去反射**
+- [x] **Step 3: `ToolInventory` 去反射**（形态调整：收 `List<ToolDescriptor>` KMP common 类型；两服务移除 ToolSet 标记接口、组合根 `asToolsByClass()` 展开——经字节码证实与 `ToolSet.asTools()` 同一扫描函数）
 
 现有实现用 `java.lang.reflect.Method` 扫描 @Tool 注解（约 L6）。迁移时处理：
 
@@ -779,11 +779,11 @@ EditParams.fromJson(edits)  // edits: String
 2. Koog 分支若依赖 JVM 反射：改用 Koog 自带的工具描述 API（Koog 1.1.1 `ToolSet`/`ToolDescriptor` 为 KMP 类型），从注入的 ToolSet 列举生成清单段
 3. **Step 1 的确定性测试是本步验收**：生成文本必须与 golden 逐字节一致
 
-- [ ] **Step 4: git mv + 接线**
+- [x] **Step 4: git mv + 接线**（`ToolInventory.kt` 内容重写超相似度阈值未保 rename 历史，包名不变；`RemoteControlToolService` 11 @Tool 方法 suspend 涟漪编译强制波及，dispatchCommand 阻塞桥留 Task 13）
 
 四个文件 `git mv` 到 commonMain 后：`ChatToolService` 的 `beautySettingsProvider` 等注入点保持现状（接口已在 commonMain）；facade 组合根在 Task 9 统一收口。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**（jvmTest 73/0、compileAndroidMain、assemble（JITPACK=true）、runtime-core 33/0 全绿；相机冒烟留设备验证）
 
 Run: `./gradlew :shared:jvmTest`
 Expected: `BUILD SUCCESSFUL`；`ToolPromptDeterminismTest PASSED`（golden 逐字节）
@@ -796,7 +796,7 @@ Expected: `BUILD SUCCESSFUL`
 Run: `./scripts/auto-dev-loop.sh`（或手动安装后相机页发一条 AI 指令，如「美白调到 50」）
 Expected: 指令解析执行成功，logcat 无 `TimeoutCancellationException` 未捕获堆栈
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**（实际 `fdd66823`）
 
 ```bash
 git add shared/ runtime-core/ androidApp/
@@ -1228,3 +1228,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 2026-08-08 | **Task 6**（`3e1bc761`，并行 worktree，双审 APPROVED）：① **核心架构裁决**——计划 Step 3 的 `additionalToolSets: List<reflect.ToolSet>` 不可行（reflect.ToolSet 经审查独立求证为 Koog 1.1.1 jvmCommonMain API，common metadata klib 无 reflect 包），改用 KMP common 类型 `toolRegistry: ToolRegistry` 注入；**Task 13 接线方式**：组合根 `ToolRegistry { tools(RemoteControlToolService(windowManager)) }`，`RemoteControlToolService(windowManager!!)` 直构已删、`WindowManager`/`appContext` 参数已出构造器；② 旧 init 块 `is ChatToolService/CameraToolService` 类型判断改 `TraceIdAware` 接口（RemoteControlToolService 不实现＝飞书跳过语义对齐）+ `recordSource` 参数化（companion 常量 RECORD_SOURCE_CAMERA/FEISHU）；③ `KoogChatAgent` 用 `kotlin.concurrent.atomics`（@ExperimentalAtomicApi，token 计数高频 addAndFetch 场景必需，已 OptIn）；④ `MemoryContextProvider.kt` 自 Task 7 清单提前迁移（RemoteReActAgentConfig 硬依赖，**Task 7 视为已迁**）；⑤ 护栏测试双份（shared jvmTest + runtime-core 副本，Task 7/13 迁完后副本随 runtime-core 删除）；⑥ `graphStrategy(poLangSingleRunStrategy())`（命名 lambda 重载 JVM-only）。审查 🟡 记录（不阻塞）：KoogChatAgent `running` 普通 Boolean 未加 @Volatile（KoogReActAgent 用 AtomicBoolean，建议统一）；exampleTimestamps 放宽 internal 仅为测试可见性 |
 | 2026-08-08 | **Task 12**（提前并行，`ff16cbf2` + 审查收尾 `a3e12fc0`，双审 APPROVED_WITH_CONCERNS→🟡 已修）：① **降级预案启用且形态调整（审查批准为更优方案）**——AGP 9.1 KMP android 块不支持 externalNativeBuild（实证 + 官方文档双确认），但计划原版降级「沉 androidApp」不可行（runtime-core `LocalModelService.kt:6`/`AgentConfigurator.kt:45` 仍引用 LocalLlmEngine，库不能反向依赖 app；Task 9 未执行）；实际落地：四 Kotlin 文件按计划归 shared/androidMain，cpp/36 头文件/consumer-rules 拆新建模块 **`:engines:agent-native`**（com.android.library，ndk 28.2/abiFilters/cmake 3.22.1 逐项平移），shared androidMain `implementation` 依赖，`.so` 经 AAR 传 androidApp；此形态保留 Phase 5 iOS 扩展性、Task 14 删 runtime-core 无 native 残留；② `ImageInferenceEngine` 接口由本 Task 创建（Task 9 直接消费、跳过创建步；接口 KDoc 已精确化 `__ERROR_` 语义——仅 `imageInferenceWithTimeout` 可能产生，`imageInference` 所有错误返回空字符串；TODO 标注：Task 9+ 考虑改 sealed/Result 消魔法前缀）；③ **坑位③**：`:shared` 无 `assembleDebug`（KMP 单 variant），整体验证用 `:shared:assemble`；④ **坑位④**：commonMain 禁用裸 `@Volatile`（kotlin.jvm 不自动导入），用 `@kotlin.concurrent.Volatile`；**只有 `:shared:assemble`/metadata 编译能暴露此类问题，jvmTest/compileAndroidMain 发现不了——后续 Task 验证门槛均须含 `:shared:assemble`**；⑤ 环境坑位：Gradle daemon 毒化下载先试 `./gradlew --stop`；⑥ `engines/beauty-engine` 的 CMakeLists 有同样 mnn-core 相对路径写法但层级不同未受影响，未动 |
 | 2026-08-08 | **坑位⑤（环境，已实证解法）**：阿里云镜像对 Koog iOS metadata jar（`prompt-executor-ollama-client-iossimulatorarm64-1.1.1-metadata.jar` 等）间歇 404（目录列表有、文件没有），Gradle 不穿透到后置 mavenCentral；`--stop` 与 `--offline` 均无效（缓存记录来源仓库）。**解法：`JITPACK=true ./gradlew ...`**（settings.gradle.kts 内置开关，整体跳过阿里云走 google/mavenCentral/jitpack；Google 系依赖已缓存不需联网）。后续集中验证统一加 `JITPACK=true` |
+| 2026-08-08 | **Task 7**（`fdd66823`，计划标注最难任务 D4，双审 APPROVED_WITH_CONCERNS→无阻塞）：① suspend 化模式——`dispatchScope.future{}.get(5s)`→`withTimeout(5000)`、dispatchScope 删除（结构化并发级联取消）、catch 链顺序 `TimeoutCancellationException→CancellationException{throw}→Exception` 经审查核实正确；② **超时 observation 文本漂移（有意改进，记录备 Agent 行为回归对照）**：`Error: null`→`Error: Timed out waiting for N ms`（withTimeout message 比 future.get TimeoutException 更有信息量；非 @Tool/@LLMDescription 文本，不破坏 prompt 前缀缓存；golden 护栏不覆盖运行时 observation）；③ ToolSet 裁决——两服务移除 ToolSet 标记接口（JVM-only），组合根 `asToolsByClass()` 展开，字节码证实与 `ToolSet.asTools()` 同一扫描函数，golden 逐字节一致实证；④ `RemoteControlToolService` 11 @Tool 方法 suspend 涟漪（CameraToolHelper 强制波及），`dispatchCommand` 阻塞桥留 Task 13；⑤ golden 护栏在 jvmTest（reflect JVM-only），commonTest `ToolInventoryTest` 补纯格式化；⑥ `ToolInventory.kt` 重写未保 rename 历史。**Task 13 待办（审查 🟡）**：清理 `CameraToolHelper.buildCommandJson` 废弃参数（调用方传 `{ "" }` 的死代码）+ dispatchCommand 阻塞桥。审查 🔵 记录：ChatToolService.adjustImageHandler 缺 @Volatile 系旧代码既有问题 |
