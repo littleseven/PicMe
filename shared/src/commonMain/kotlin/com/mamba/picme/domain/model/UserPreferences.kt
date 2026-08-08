@@ -4,6 +4,9 @@ import com.mamba.picme.agent.core.model.context.MediaType
 import com.mamba.picme.beauty.api.BeautySettings
 import com.mamba.picme.beauty.api.FilterType
 import com.mamba.picme.beauty.api.StyleFilter
+// commonMain 跨端编译需显式导入：kotlin.jvm 包仅在 JVM/Android 自动导入，
+// Native 后端不自动导入；kotlin.jvm.JvmInline 在 common stdlib 为 expect 注解，全平台可解析。
+import kotlin.jvm.JvmInline
 
 /**
  * 主题模式（领域模型，与 Android 平台无关）

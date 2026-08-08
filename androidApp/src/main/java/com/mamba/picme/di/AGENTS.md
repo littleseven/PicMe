@@ -33,7 +33,7 @@
 **代码示例**:
 ```kotlin
 interface AppContainer {
-    val repository: MediaRepository
+    val repository: AndroidMediaRepository
     val userPreferencesRepository: UserSettingsRepository
     val imageProcessor: ImageProcessor
     val faceDetector: FaceDetector
@@ -45,7 +45,7 @@ interface AppContainer {
 class AppContainerImpl(private val context: Context) : AppContainer {
     private val database by lazy { AppDatabase.getDatabase(context) }
     
-    override val repository: MediaRepository by lazy {
+    override val repository: AndroidMediaRepository by lazy {
         MediaRepositoryImpl(database.mediaDao(), context)
     }
     

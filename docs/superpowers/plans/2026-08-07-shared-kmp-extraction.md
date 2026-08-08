@@ -433,7 +433,7 @@ git commit -m "feat(shared): Phase 4 平台原语层——DispatcherProvider/Age
 
 ---
 
-## Task 3：领域与网络层迁移（路线图 4.2 前半）
+## Task 3：领域与网络层迁移（路线图 4.2 前半）✅ 已完成（2026-08-08，commit `bd2fd8e2`）
 
 app 侧 27 个 PURE 文件 + 2 个领域接口迁入 shared。包名不变，纯搬家。
 
@@ -442,7 +442,7 @@ app 侧 27 个 PURE 文件 + 2 个领域接口迁入 shared。包名不变，纯
 - Move: `domain/repository/UserSettingsRepository.kt` → 同路径
 - Move: `domain/tag/` 15 个 PURE 文件（`scan/ScanQueuePolicy.kt`、`scan/TagScanQuery.kt`、`scan/StreamingClusterAccumulator.kt`、`scan/DbscanRefinementPolicy.kt`、`TagCategory.kt`、`TaggerModelSelector.kt`、`ClusteringConfig.kt`、`MergeDecision.kt`、`ImageDescriptionStrategy.kt`、`i18n/LabelSinicizer.kt`、`i18n/TagTranslator.kt`、`prompt/DefaultTagPromptProvider.kt`、`prompt/TagPromptProvider.kt`、`florence2/Florence2Preprocess.kt`、`florence2/Florence2ResultParser.kt`）→ 同路径
 
-- [ ] **Step 1: 迁移前纯净度复验（防止清单漂移）**
+- [x] **Step 1: 迁移前纯净度复验（防止清单漂移）**
 
 Run: `grep -rln "^import android\|^import java\.\|^import org\.json" androidApp/src/main/java/com/mamba/picme/domain/model/ androidApp/src/main/java/com/mamba/picme/domain/repository/UserSettingsRepository.kt`
 Expected: 无输出（若有输出，该文件从本批剔除并记录原因，不得带入 commonMain）
@@ -453,7 +453,7 @@ Expected: 仅 `domain/model/UserPreferences.kt` 命中——它依赖的 beauty 
 Run: `for f in scan/ScanQueuePolicy.kt scan/TagScanQuery.kt scan/StreamingClusterAccumulator.kt scan/DbscanRefinementPolicy.kt TagCategory.kt TaggerModelSelector.kt ClusteringConfig.kt MergeDecision.kt ImageDescriptionStrategy.kt i18n/LabelSinicizer.kt i18n/TagTranslator.kt prompt/DefaultTagPromptProvider.kt prompt/TagPromptProvider.kt florence2/Florence2Preprocess.kt florence2/Florence2ResultParser.kt; do grep -l "^import android\|^import java\.\|^import org\.json" "androidApp/src/main/java/com/mamba/picme/domain/tag/$f"; done`
 Expected: 无输出（同上规则）
 
-- [ ] **Step 2: git mv 批量迁移（`UserPreferences.kt` 按 Step 1 结论明确排除）**
+- [x] **Step 2: git mv 批量迁移（`UserPreferences.kt` 按 Step 1 结论明确排除）**
 
 ```bash
 mkdir -p shared/src/commonMain/kotlin/com/mamba/picme/domain/model \
@@ -481,12 +481,12 @@ done
 cd -
 ```
 
-- [ ] **Step 3: 验证编译（app 引用零改动——包名未变）**
+- [x] **Step 3: 验证编译（app 引用零改动——包名未变）**
 
 Run: `./gradlew :shared:compileDebugKotlinAndroid :androidApp:assembleDebug`
 Expected: `BUILD SUCCESSFUL`。若 androidApp 编译报 `unresolved reference` 指向被迁类：说明该类有传递依赖未随迁，被依赖文件同批补迁（禁止在 androidApp 侧新建重复类型绕路）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add shared/ androidApp/
@@ -495,7 +495,7 @@ git commit -m "refactor(shared): Phase 4.2 领域模型与 TAG 纯逻辑迁 comm
 
 ---
 
-## Task 4：beauty 纯类型迁移 + 相册访问能力接口（路线图 4.2 后半）
+## Task 4：beauty 纯类型迁移 + 相册访问能力接口（路线图 4.2 后半）✅ 已完成（2026-08-08，commit 待填，双审待审）
 
 **Files:**
 - Move: `engines/beauty-api/src/main/java/com/mamba/picme/beauty/api/BeautySettings.kt` → `shared/src/commonMain/kotlin/com/mamba/picme/beauty/api/BeautySettings.kt`
@@ -506,12 +506,12 @@ git commit -m "refactor(shared): Phase 4.2 领域模型与 TAG 纯逻辑迁 comm
 - Move（若存在）: `androidApp/.../domain/repository/MediaRepository.kt` → `shared/src/commonMain/kotlin/com/mamba/picme/domain/repository/MediaRepository.kt`
 - Modify: `engines/beauty-api/build.gradle.kts`（追加 shared 依赖，供 Face/facedetect 继续引用同包类型）
 
-- [ ] **Step 1: 纯净度终验（清单已核，迁移日再核一次防漂移）**
+- [x] **Step 1: 纯净度终验（清单已核，迁移日再核一次防漂移）**
 
 Run: `grep -n "^import" engines/beauty-api/src/main/java/com/mamba/picme/beauty/api/{BeautySettings,FilterType,StyleFilter}.kt`
 Expected: 仅 Kotlin 标准库 / kotlinx import；无 `android.*`。若出现 android import，停止本 Task，回到清单修订拆分线
 
-- [ ] **Step 2: git mv 三类型 + UserPreferences**
+- [x] **Step 2: git mv 三类型 + UserPreferences**
 
 ```bash
 mkdir -p shared/src/commonMain/kotlin/com/mamba/picme/beauty/api
@@ -523,7 +523,7 @@ git mv androidApp/src/main/java/com/mamba/picme/domain/model/UserPreferences.kt 
        shared/src/commonMain/kotlin/com/mamba/picme/domain/model/UserPreferences.kt
 ```
 
-- [ ] **Step 3: beauty-api 模块接 shared 依赖**
+- [x] **Step 3: beauty-api 模块接 shared 依赖**
 
 `engines/beauty-api/build.gradle.kts` 的 `dependencies {}` 追加：
 
@@ -533,7 +533,7 @@ implementation(project(":shared"))
 
 > beauty-api 其余文件（`Face.kt`/`facedetect/*`/`BeautyProcessor.kt` 等）与迁走的三类型同包（`com.mamba.picme.beauty.api`），FQN 不变，加上模块依赖后引用继续解析。
 
-- [ ] **Step 4: `AccessState` 密封枚举（双端相册权限范式抽象，路线图 4.2 指定交付物）**
+- [x] **Step 4: `AccessState` 密封枚举（双端相册权限范式抽象，路线图 4.2 指定交付物）**
 
 `shared/src/commonMain/kotlin/com/mamba/picme/domain/repository/AccessState.kt`：
 
@@ -560,7 +560,7 @@ sealed interface AccessState {
 }
 ```
 
-- [ ] **Step 5: MediaRepository 接口迁移（即路线图 4.2 的「PhotoLibraryProvider」角色）**
+- [x] **Step 5: MediaRepository 接口迁移（即路线图 4.2 的「PhotoLibraryProvider」角色）**
 
 > **命名决策**：路线图 4.2 写「相册访问抽象为能力接口 `PhotoLibraryProvider` + `AccessState`」。app 侧已存在 `MediaRepository` 领域接口承担同一角色，直接复用并追加 `AccessState`，不新造 `PhotoLibraryProvider` 类型（避免双接口并存的概念漂移）。执行时若发现 `MediaRepository` 接口方法面与「相册提供」语义差距过大，再按路线图原名新建。
 
@@ -570,12 +570,12 @@ Expected: 确认 `MediaRepository.kt`（接口）存在。
 - 若存在：`git mv` 到 `shared/src/commonMain/kotlin/com/mamba/picme/domain/repository/`，并将其 import 的 Android 类型逐一替换为领域类型（接口若有 `android.net.Uri` 参数，改为 `String`（uri 字面值）——逐个方法签名处理，**修改接口签名时同步修改 `MediaRepositoryImpl` 与全部调用点**，此为本 Task 唯一允许的非机械改动）
 - 在接口中追加 `val accessState: kotlinx.coroutines.flow.Flow<AccessState>` 声明；`MediaRepositoryImpl` 的 Android 实现：有 `READ_MEDIA_IMAGES`→`Full`，`READ_MEDIA_VISUAL_USER_SELECTED`→`Limited`，否则→`Denied`（`AddOnly` 仅 iOS）
 
-- [ ] **Step 6: 验证**
+- [x] **Step 6: 验证**
 
 Run: `./gradlew :shared:jvmTest :shared:compileKotlinIosSimulatorArm64 :engines:beauty-api:assembleDebug :androidApp:assembleDebug`
 Expected: 全部 `BUILD SUCCESSFUL`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add shared/ engines/beauty-api/ androidApp/
@@ -1268,3 +1268,4 @@ git commit -m "docs(shared): Phase 4.8 出口验证记录 + 文档同步（runti
 | 日期 | 变更 |
 |------|------|
 | 2026-08-07 | 初版：基于耦合点清单（specs/2026-08-07-runtime-core-platform-coupling-inventory.md）与路线图 Phase 4 编写；执行前置 = Phase 1 合并 + Phase 3 完成 |
+| 2026-08-08 | Task 4 执行偏差记录：① `MediaAsset.kt`（含 `MediaType`，PURE 零 import）从 Task 5 提前补迁——`UserPreferences` 与 `MediaRepository` 接口均引用 `agent.core.model.context.MediaType/MediaAsset`，属「被依赖文件同批补迁」规则适用；Task 5 执行时该文件视为已迁。② beauty-api 用 `api(project(":shared"))` 而非计划写的 `implementation`——迁走的三类型本是 beauty-api 公开 API 面，`implementation` 会让 beauty-engine 等消费者失解析。③ IntentSender 专有方法从接口移除后，androidApp 新增 `AndroidMediaRepository : MediaRepository` 子接口承载（计划允许「面向接口则需调整」），`MediaViewModel`/`ChatViewModelDependencies`/`AppContainer` 改面此子接口，分层约束不破。④ `UserPreferences.kt` 补 `import kotlin.jvm.JvmInline`（Native 后端不自动导入 kotlin.jvm 包），Android 行为零变更 |

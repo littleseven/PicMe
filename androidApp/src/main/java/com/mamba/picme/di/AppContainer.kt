@@ -29,7 +29,7 @@ import com.mamba.picme.data.repository.MediaRepositoryImpl
 import com.mamba.picme.data.repository.PhotoEditRecipeRepository
 import com.mamba.picme.domain.aesthetic.AestheticScoreWorker
 import com.mamba.picme.domain.repository.ChatImageStore
-import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.AndroidMediaRepository
 import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.search.ExplicitFirstSearchPipeline
 import com.mamba.picme.domain.search.MediaFeedbackUseCase
@@ -96,7 +96,7 @@ import java.util.concurrent.Executors
 import kotlinx.coroutines.asCoroutineDispatcher
 
 data class MediaViewModelDependencies(
-    val repository: MediaRepository,
+    val repository: AndroidMediaRepository,
     val getGroupedMediaUseCase: GetGroupedMediaUseCase,
     val findDuplicateMediaUseCase: FindDuplicateMediaUseCase,
     val ocrUseCase: OcrProcessor,
@@ -140,7 +140,7 @@ class ChatViewModelFactory(
 }
 
 interface AppContainer {
-    val repository: MediaRepository
+    val repository: AndroidMediaRepository
     val userPreferencesRepository: UserSettingsRepository
     val imageProcessor: ImageProcessor
     val faceDetector: FaceDetector
@@ -385,7 +385,7 @@ class AppContainerImpl(
         GpuBeautyProcessor(context)
     }
 
-    override val repository: MediaRepository by lazy {
+    override val repository: AndroidMediaRepository by lazy {
         MediaRepositoryImpl(database.mediaDao(), context)
     }
 

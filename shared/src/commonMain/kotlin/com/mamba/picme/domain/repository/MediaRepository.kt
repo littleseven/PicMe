@@ -1,12 +1,13 @@
 package com.mamba.picme.domain.repository
 
-import android.net.Uri
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import kotlinx.coroutines.flow.Flow
-import android.content.IntentSender
 
 interface MediaRepository {
     val allMedia: Flow<List<MediaAsset>>
+
+    /** 相册访问授权状态（双端统一抽象；Android 实现按 READ_MEDIA_* 权限映射，AddOnly 仅 iOS） */
+    val accessState: Flow<AccessState>
 
     suspend fun insertMedia(mediaAsset: MediaAsset): Long
 
@@ -22,24 +23,14 @@ interface MediaRepository {
     fun refreshLabels()
 
     /**
-     * 获取需要用户授权删除的 URI 列表（Android 11+）
+     * 获取需要用户授权删除的 URI 字面值列表（Android 11+）
      */
-    fun getPendingDeleteUris(): List<Uri>
+    fun getPendingDeleteUris(): List<String>
 
     /**
      * 清除待删除的 URI 列表
      */
     fun clearPendingDeleteUris()
-
-    /**
-     * 获取 Android 10 (API 29) 的单条恢复性删除 IntentSender
-     */
-    fun getPendingRecoverableIntentSender(): IntentSender?
-
-    /**
-     * 清除 Android 10 的恢复性删除状态
-     */
-    fun clearPendingRecoverable()
 
     /**
      * 在用户授权后执行删除操作

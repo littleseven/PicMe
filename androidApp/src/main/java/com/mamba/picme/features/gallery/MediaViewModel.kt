@@ -12,7 +12,7 @@ import com.mamba.picme.domain.model.DuplicateGroup
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.agent.core.model.context.MediaAsset
-import com.mamba.picme.domain.repository.MediaRepository
+import com.mamba.picme.domain.repository.AndroidMediaRepository
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 
 
 class MediaViewModel(
-    private val repository: MediaRepository,
+    private val repository: AndroidMediaRepository,
     private val getGroupedMediaUseCase: GetGroupedMediaUseCase,
     private val findDuplicateMediaUseCase: FindDuplicateMediaUseCase,
     private val ocrUseCase: OcrProcessor,
@@ -158,7 +158,7 @@ class MediaViewModel(
                 return@launch
             }
 
-            val pendingUris = repository.getPendingDeleteUris()
+            val pendingUris = repository.getPendingDeleteUris().map { uriString -> Uri.parse(uriString) }
             if (pendingUris.isNotEmpty()) {
                 _deleteAuthRequest.value = DeleteAuthRequest.Api30(pendingUris)
             }
