@@ -100,12 +100,12 @@ struct CameraPreviewView: View {
                         .overlay(alignment: .top) { engineToggle.padding(.top, realSafeTop + 4) }
                 }
 
-                // 快门白闪反馈（对标 Android 拍照闪屏，确认点击已注册）
-                Color.white
-                    .opacity(shutterFlash ? 0.9 : 0)
+                // 快门黑闪反馈（对标 Android CameraScreen.kt:1517-1523 拍照黑场闪屏）
+                Color.black
+                    .opacity(shutterFlash ? ShutterTokens.flashAlpha : 0)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
-                    .animation(.easeOut(duration: 0.25), value: shutterFlash)
+                    .animation(.easeOut(duration: ShutterTokens.flashFadeMs / 1000), value: shutterFlash)
             }
         }
         .ignoresSafeArea(.all) // 🔴 全出血：整个 GeometryReader 忽略 safe area

@@ -1,6 +1,8 @@
 import SwiftUI
 import Photos
 import AVFoundation
+import AudioToolbox
+import UIKit
 
 /// 快门按钮（对标 Android CameraControls.kt:196-228）
 /// 76pt 外径，4pt 白色边框，6pt 内边距，拍照=白填，录像=红填（Phase 6）
@@ -14,11 +16,11 @@ struct ShutterButton: View {
         Button(action: tap) {
             Circle()
                 .stroke(Color.white, lineWidth: 4)
-                .frame(width: 62, height: 62)
+                .frame(width: ShutterTokens.diameter, height: ShutterTokens.diameter)
                 .overlay(
                     Circle()
                         .fill(isPressed ? Color.white.opacity(0.8) : Color.white)
-                        .frame(width: 52, height: 52)
+                        .frame(width: ShutterTokens.innerDiameter, height: ShutterTokens.innerDiameter)
                 )
                 .scaleEffect(isPressed ? 0.9 : 1.0)
                 .animation(.easeInOut(duration: 0.1), value: isPressed)
@@ -37,6 +39,9 @@ struct ShutterButton: View {
         let now = Date()
         guard now.timeIntervalSince(lastClickTime) > 0.5 else { return }
         lastClickTime = now
+        // 快门反馈三件套（对标 Android: LONG_PRESS haptic + CLICK 音效；黑闪在 CameraPreviewView）
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        AudioServicesPlaySystemSound(1108) // 系统拍照快门音
         action()
     }
 }
