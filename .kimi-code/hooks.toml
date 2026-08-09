@@ -1,0 +1,26 @@
+# >>> polang kimi-code hooks (managed; SSOT=polang/.kimi-code/hooks.toml) >>>
+# Installed into ~/.kimi-code/config.toml by .kimi-code/install-hooks.sh.
+# Self-isolating: each command is a relative path guarded by [ -x ... ], so the
+# scripts only run inside the polang repo (cwd); other repos no-op via `|| true`.
+
+[[hooks]]
+event = "PostToolUse"
+matcher = "Edit|Write"
+command = "[ -x .kimi-code/hooks/post-edit-check.sh ] && .kimi-code/hooks/post-edit-check.sh || true"
+timeout = 30
+
+[[hooks]]
+event = "Stop"
+command = "[ -x .kimi-code/hooks/stop-auto-review.sh ] && .kimi-code/hooks/stop-auto-review.sh || true"
+timeout = 10
+
+[[hooks]]
+event = "SubagentStop"
+command = "[ -x .kimi-code/hooks/notify.sh ] && .kimi-code/hooks/notify.sh subagent || true"
+timeout = 5
+
+[[hooks]]
+event = "Notification"
+command = "[ -x .kimi-code/hooks/notify.sh ] && .kimi-code/hooks/notify.sh notification || true"
+timeout = 5
+# <<< polang kimi-code hooks <<<
