@@ -261,13 +261,13 @@ struct DataPrivacyView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let sections: [(title: String, body: String)] = [
-        ("Account Data", "Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes."),
-        ("Device Identifier", "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties."),
-        ("Data Retention", "After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs."),
-        ("Delete Your Account", "You can delete your account through Settings → Account → Delete Account, or by emailing us."),
-        ("Local Processing", "Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server."),
-        ("Remote Inference", "After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content."),
-        ("Contact Us", "budao.gs@gmail.com"),
+        (String(localized: "Account Data"), String(localized: "Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes.")),
+        (String(localized: "Device Identifier"), String(localized: "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties.")),
+        (String(localized: "Data Retention"), String(localized: "After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs.")),
+        (String(localized: "Delete Your Account"), String(localized: "You can delete your account through Settings → Account → Delete Account, or by emailing us.")),
+        (String(localized: "Local Processing"), String(localized: "Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server.")),
+        (String(localized: "Remote Inference"), String(localized: "After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content.")),
+        (String(localized: "Contact Us"), "budao.gs@gmail.com"),
     ]
 
     var body: some View {

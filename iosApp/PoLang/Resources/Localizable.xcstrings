@@ -1,6 +1,22 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成设备标识符用于统计未注册访客的免费试用次数。该标识符发送至 api.polang.net，不用于个人身份识别，也不与第三方共享。"
+          }
+        }
+      }
+    },
     "AI Assistant": {
       "extractionState": "manual",
       "localizations": {
@@ -134,6 +150,22 @@
         }
       }
     },
+    "Account Data": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account Data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号数据"
+          }
+        }
+      }
+    },
     "Account registration coming in a future version.": {
       "localizations": {
         "en": {
@@ -201,6 +233,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "追加のみ可能"
+          }
+        }
+      }
+    },
+    "After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账号删除后，数据将保留 90 天（用于反欺诈和恢复目的），然后永久删除，包括使用日志。"
+          }
+        }
+      }
+    },
+    "After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "认证后，远程 LLM 对话经 api.polang.net 代理转发至 LLM 供应商，仅处理当前请求。服务器只记录调用次数和 Token 用量，不记录对话内容。"
           }
         }
       }
@@ -682,6 +746,22 @@
         }
       }
     },
+    "Contact Us": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contact Us"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联系我们"
+          }
+        }
+      }
+    },
     "Current Model": {
       "localizations": {
         "en": {
@@ -733,6 +813,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "データとプライバシー"
+          }
+        }
+      }
+    },
+    "Data Retention": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data Retention"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据保留"
           }
         }
       }
@@ -822,6 +918,22 @@
         }
       }
     },
+    "Delete Your Account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Your Account"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除您的账号"
+          }
+        }
+      }
+    },
     "Delete model?": {
       "localizations": {
         "en": {
@@ -873,6 +985,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "开发者选项"
+          }
+        }
+      }
+    },
+    "Device Identifier": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device Identifier"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备标识"
           }
         }
       }
@@ -1616,6 +1744,22 @@
         }
       }
     },
+    "Local Processing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Processing"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地处理"
+          }
+        }
+      }
+    },
     "Location": {
       "extractionState": "manual",
       "localizations": {
@@ -2052,6 +2196,22 @@
         }
       }
     },
+    "Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片、美颜滤镜、人脸关键点、OCR 文字、媒体位置和聊天记忆全部在设备本地处理，绝不上传至服务器。"
+          }
+        }
+      }
+    },
     "PoLang · AI Agent Album": {
       "localizations": {
         "en": {
@@ -2128,6 +2288,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "远程 AI 推理、语音控制"
+          }
+        }
+      }
+    },
+    "Remote Inference": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote Inference"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程推理"
           }
         }
       }
@@ -2644,6 +2820,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "当前为访客模式，额度有限。"
+          }
+        }
+      }
+    },
+    "You can delete your account through Settings → Account → Delete Account, or by emailing us.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can delete your account through Settings → Account → Delete Account, or by emailing us."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您可以通过「设置 → 账号 → 删除账号」删除账号，或邮件联系我们。"
+          }
+        }
+      }
+    },
+    "Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅用于账号登录和 LLM 免费试用次数统计（默认 100 次）。不收集密码，登录使用邮箱验证码。"
           }
         }
       }
