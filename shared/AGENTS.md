@@ -5,7 +5,7 @@
 > - 顶层治理规则（全局红线、文档流程）以根目录 `AGENTS.md` 为准。
 > - 禁止将模块级实现细节回填到顶层 `AGENTS.md`。
 
-**模块定位**：`:shared` 是 PoLang Agent 编排层的 Kotlin Multiplatform 模块（Phase 4 自 `:runtime-core` 整体抽取，后者已于 2026-08-08 删除）。承载 Agent 编排、远程推理（Koog）、JS 引擎无关层、命令/能力模型、隐私守卫等**引擎无关逻辑**与**Android 平台实现**，供 `:androidApp` 消费；iOS target 为骨架级（Phase 5 扩展）。
+**模块定位**：`:shared` 是 PoLang Agent 编排层的 Kotlin Multiplatform 模块（Phase 4 自 `:runtime-core` 整体抽取，后者已于 2026-08-08 删除）。承载 Agent 编排、远程推理（Koog）、JS 引擎无关层、命令/能力模型、隐私守卫等**引擎无关逻辑**与**Android 平台实现**，供 `:androidApp` 消费；iOS target 已实装 Phase 6.2 chat 全链路（组合根/桥/能力/记忆存储，见 §1 iosMain）。
 
 **主要维护者**：项目开发者
 
@@ -17,12 +17,13 @@
 
 ```
 shared/src/
-├── commonMain/    ← 引擎无关层（91 个 Kotlin 文件，见 §2）
-├── androidMain/   ← Android 平台实现（VLM/语音/DataStore/dispatcher actual，12 文件）
-├── iosMain/       ← iOS actual（AgentIdGenerator/DispatcherProvider/KoogHttpClientFactoryProvider + Phase 5 相册：IosMediaRepository/IosMediaRepositoryBridge 桥协议/FlowWatcher）
-├── jvmMain/       ← JVM actual（同 iosMain 三项）
-├── commonTest/    ← 多平台测试（kotlin.test，21 文件）
-└── jvmTest/       ← JVM-only 测试（@Tool 反射清单/prompt golden/守卫扫描，5 文件）
+├── commonMain/    ← 引擎无关层（96 个 Kotlin 文件，见 §2）
+├── androidMain/   ← Android 平台实现（VLM/语音/DataStore/dispatcher actual，13 文件）
+├── iosMain/       ← iOS actual + Phase 6.2 chat 全链路（14 文件）：IosAgentComposition 组合根/ChatAgentBridge（Swift↔Kotlin 桥）/IosChatGalleryCapability/IosKoogMessageMemoryStore（NSUserDefaults）/IosMediaRepository(+Bridge)/FlowWatchers/ChatUiActionDto/IosChatPrompt；唯一 stub 为 IosUnavailableImageInferenceEngine（端侧 VLM 未落地，显式空契约）
+├── jvmMain/       ← JVM actual（4 文件，同 android 三项 actual + Platform）
+├── commonTest/    ← 多平台测试（kotlin.test，25 文件）
+├── iosTest/       ← iOS 测试（5 文件）
+└── jvmTest/       ← JVM-only 测试（@Tool 反射清单/prompt golden/守卫扫描，7 文件）
 ```
 
 Gradle target：`android`（KMP android library 插件）+ `jvm()` + `iosX64()` + `iosArm64()` + `iosSimulatorArm64()`。
@@ -96,5 +97,5 @@ JITPACK=true ./gradlew :shared:assembleSharedKitDebugXCFramework
 ---
 
 > **维护者**：项目开发者
-> **最后更新**：2026-08-08
+> **最后更新**：2026-08-09
 > **状态**：生效中

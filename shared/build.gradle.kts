@@ -59,6 +59,6 @@ kotlin {
             implementation(project(":engines:mnn-core"))
             implementation(project(":engines:agent-native"))
         }
-        // iosMain.dependencies 在后续 Task 按需追加
+        // iosMain 暂无额外依赖（Phase 6.2 chat 链路仅用 commonMain 传递依赖 + K/N 平台 API）
     }
 }
