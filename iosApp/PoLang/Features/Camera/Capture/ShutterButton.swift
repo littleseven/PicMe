@@ -43,10 +43,15 @@ struct ShutterButton: View {
 
 /// 拍照保存管理器（触发系统 AddOnly 授权流）
 enum PhotoSaver {
-    static func saveToLibrary(_ image: CGImage) async throws {
+    /// 存 UIImage：EXIF 方向由系统正确写入（勿传 UIImage 的 .cgImage，会丢方向）
+    static func saveToLibrary(_ image: UIImage) async throws {
         try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.creationRequestForAsset(from: UIImage(cgImage: image))
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
         }
+    }
+
+    static func saveToLibrary(_ image: CGImage) async throws {
+        try await saveToLibrary(UIImage(cgImage: image))
     }
 }
 
@@ -103,10 +108,11 @@ final class CaptureFlow: ObservableObject {
             guard let image = renderedImage else {
                 print("[PoLang] shutter.FAIL: renderToImage nil → 兜底保存原图")
                 // 兜底：美颜渲染失败不丢照片——直接保存未美颜原图
+                // （传 UIImage 保 EXIF 方向；renderToImage 出的 CGImage 已归一化，方向正确）
                 if let data = photo.fileDataRepresentation(),
-                   let uiImage = UIImage(data: data), let cg = uiImage.cgImage {
+                   let uiImage = UIImage(data: data) {
                     do {
-                        try await PhotoSaver.saveToLibrary(cg)
+                        try await PhotoSaver.saveToLibrary(uiImage)
                         print("[PoLang] shutter.SAVED(raw) 原图兜底")
                         DebugOverlayState.shared.set("camera.shutter", "saved(raw)")
                         onSaved?()

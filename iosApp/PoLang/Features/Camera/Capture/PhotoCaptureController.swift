@@ -51,7 +51,14 @@ final class PhotoCaptureController: NSObject {
     /// 🟡4: 使用 photo.connection(.video) 设 portrait orientation 避免 EXIF 旋转
     static func pixelBuffer(from photo: AVCapturePhoto) -> CVPixelBuffer? {
         guard let data = photo.fileDataRepresentation(),
-              let cgImage = UIImage(data: data)?.cgImage else { return nil }
+              let uiImage = UIImage(data: data) else { return nil }
+        // 🔴 UIImage(data:) 的 .cgImage 是传感器原始横向像素，EXIF 旋转只挂在
+        // imageOrientation 上——直接 draw cgImage 会逆时针旋转 90°（拍照横屏根因）。
+        // 先按 EXIF 归一化位图（uiImage.draw 会自动应用方向）。
+        let normalized = UIGraphicsImageRenderer(size: uiImage.size).image { _ in
+            uiImage.draw(in: CGRect(origin: .zero, size: uiImage.size))
+        }
+        guard let cgImage = normalized.cgImage else { return nil }
         let w = cgImage.width, h = cgImage.height
         var pixelBuffer: CVPixelBuffer?
         // 🔴 必须 IOSurface 属性：CVMetalTextureCacheCreateTextureFromImage 只接受

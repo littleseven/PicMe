@@ -106,6 +106,8 @@ final class PoLangUITests: XCTestCase {
 
         thumb.tap()
         try requireElement("gallery_grid", timeout: 5, "点相册入口应切到相册页")
+        usleep(800_000)
+        attachScreenshot(name: "gallery_after_entry") // 左上角最新格可肉眼核对拍照方向
     }
 
     // MARK: - helpers
