@@ -11,7 +11,7 @@ import CoreVideo
 /// vertex function 名：`quad_vertex`（唯一定义在 yuv.metal，linker 解析）
 final class BeautyRenderer: NSObject {
     /// [S5] 滑杆范围与 Android BeautyPanel.kt 一致
-    struct Params {
+    struct Params: Equatable {
         var whitening: Float = 0       // 0..100 (Android)
         var smoothing: Float = 0       // 0..100 (Android)
         var slimFace: Float = 0        // -50..50 (Android)

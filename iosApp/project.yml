@@ -29,6 +29,7 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_NSCameraUsageDescription: "PoLang needs camera access for real-time beauty preview and photo capture."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "PoLang needs photo library access to browse and save photos."

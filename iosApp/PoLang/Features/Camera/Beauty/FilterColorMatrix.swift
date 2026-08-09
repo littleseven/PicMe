@@ -11,7 +11,7 @@ import simd
 /// 🔴6 修正：Android ColorMatrix.setSaturation() 使用 AOSP sRGB 亮度权重
 ///   sr=0.213f, sg=0.715f, sb=0.072f（非 SVG feColorMatrix 的 0.3086/0.6094/0.0820）
 ///   AOSP 源码：frameworks/base/graphics/java/android/graphics/ColorMatrix.java
-enum FilterType: Int, CaseIterable, Identifiable {
+enum FilterType: Int, CaseIterable, Identifiable, Equatable {
     case none = 0
     case leicaClassic = 1
     case leicaVibrant = 2
