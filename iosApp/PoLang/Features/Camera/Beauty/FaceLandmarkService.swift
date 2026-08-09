@@ -20,7 +20,16 @@ final class FaceLandmarkService: FaceLandmarkEngine {
 
     var isFrontCamera: Bool = false
 
-    init() {
+    /// 🔴 懒加载：仅在被路由器选为活跃引擎时 boot()。避免非活跃时加载 face_landmarker.task
+    /// （Phase 5 未内置）报错污染 DebugOverlay。bootStarted 同步置位 → 幂等。
+    private var bootStarted = false
+    var booted: Bool { bootStarted }
+
+    init() {}
+
+    func boot() {
+        guard !bootStarted else { return }
+        bootStarted = true
         queue.async { [self] in
             // 模型路径：bundle resource（Task 6 收编布局）
             guard let modelPath = Bundle.main.path(
@@ -30,7 +39,7 @@ final class FaceLandmarkService: FaceLandmarkEngine {
                 guard let modelPath2 = Bundle.main.path(
                         forResource: "face_landmarker", ofType: "task") else {
                     DispatchQueue.main.async {
-                        DebugOverlayState.shared.set("face.error", "model missing")
+                        DebugOverlayState.shared.set("face.error", "MediaPipe: no face_landmarker.task")
                     }
                     return
                 }

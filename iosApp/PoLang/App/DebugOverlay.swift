@@ -17,6 +17,15 @@ final class DebugOverlayState: ObservableObject {
         map[key] = value
         entries = map.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
     }
+
+    /// 移除一个遥测项（引擎切换时清非活跃引擎的遗留错误，避免误读）。
+    nonisolated func clear(_ key: String) {
+        DispatchQueue.main.async { [key] in
+            guard Self.shared.map[key] != nil else { return }
+            Self.shared.map.removeValue(forKey: key)
+            Self.shared.entries = Self.shared.map.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
+        }
+    }
 }
 
 struct DebugOverlayView: View {

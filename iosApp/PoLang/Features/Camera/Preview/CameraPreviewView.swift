@@ -94,7 +94,7 @@ struct CameraPreviewView: View {
             DebugOverlayState.shared.isEnabled =
                 (UserDefaults.standard.object(forKey: "camera_debug_overlay") as? Bool) ?? true
             // 引擎：启动参数 > 设置页；自动化验收用 -mnnEngine / -useMediaPipe 覆盖
-            faceRouter.useMnn = useMnnEngine
+            faceRouter.setUseMnn(useMnnEngine)
             // 瘦脸/大眼/形变强度：验收 -slim 覆盖；否则用设置页持久值（beauty_slim_debug 等）
             if let slim = Self.parseLaunchFloat("-slim") {
                 container.beautyParams.slimFace = slim
@@ -131,8 +131,7 @@ struct CameraPreviewView: View {
             // 设置页改了默认引擎：实时同步（启动参数锁定引擎时不覆盖，保留验收确定性）
             guard !Self.parseLaunchFlag("-mnnEngine"), !Self.parseLaunchFlag("-useMediaPipe") else { return }
             useMnnEngine = v
-            faceRouter.useMnn = v
-            DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
+            faceRouter.setUseMnn(v)
             print("[PoLang] face.engine (settings) → \(faceRouter.activeLabel)")
         }
         .onDisappear { controller.stop() }
@@ -176,8 +175,7 @@ struct CameraPreviewView: View {
     private var engineToggle: some View {
         Button {
             useMnnEngine.toggle()
-            faceRouter.useMnn = useMnnEngine
-            DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
+            faceRouter.setUseMnn(useMnnEngine)
             print("[PoLang] face.engine switch → \(faceRouter.activeLabel)")
         } label: {
             HStack(spacing: 5) {

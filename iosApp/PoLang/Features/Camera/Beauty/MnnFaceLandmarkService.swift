@@ -22,10 +22,20 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
     private var busy = false
     private var loaded = false
     private(set) var latest: Result?
+    /// 🔴 首帧记录相机 buffer 尺寸（验证 videoOrientation=.portrait 是否生效：portrait 应 720×1280）。
+    private var dimLogged = false
 
     var isFrontCamera: Bool = false
 
-    init() {
+    /// 🔴 懒加载：仅活跃时 boot()。幂等（bootStarted 同步置位）。
+    private var bootStarted = false
+    var booted: Bool { bootStarted }
+
+    init() {}
+
+    func boot() {
+        guard !bootStarted else { return }
+        bootStarted = true
         queue.async { [self] in
             self.initDetector()
         }
@@ -60,6 +70,13 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
             guard let bgra = Self.convertToBGRA(pixelBuffer) else { return }
             let w = CVPixelBufferGetWidth(bgra)
             let h = CVPixelBufferGetHeight(bgra)
+            // 🔴 首帧记录 buffer 尺寸到遥测：portrait=720×1280（videoOrientation 生效）；
+            //   landscape=1280×720（未旋正 → RetinaFace 看到侧躺人脸 → 检测不到）
+            if !dimLogged {
+                dimLogged = true
+                let dim = "\(w)x\(h)"
+                DispatchQueue.main.async { DebugOverlayState.shared.set("face.mnn.dim", dim) }
+            }
 
             CVPixelBufferLockBaseAddress(bgra, .readOnly)
             defer { CVPixelBufferUnlockBaseAddress(bgra, .readOnly) }
