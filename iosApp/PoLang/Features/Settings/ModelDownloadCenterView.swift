@@ -40,6 +40,10 @@ struct ModelDownloadCenterView: View {
                 }
             }
         }
+        .onAppear {
+            // 确保目录加载后刷新已下载状态（修复 init 时序问题）
+            manager.refreshStates()
+        }
     }
 
     // MARK: - Category Tab Bar

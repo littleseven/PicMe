@@ -285,6 +285,11 @@ final class ModelDownloadManager: ObservableObject {
         downloadStates[modelId] = state
     }
 
+    /// 刷新所有模型状态（启动/页面出现时检查已下载的模型）
+    func refreshStates() {
+        refreshAllStates()
+    }
+
     private func refreshAllStates() {
         for entry in ModelCatalog.shared.models {
             if isModelDownloaded(entry.id) {
