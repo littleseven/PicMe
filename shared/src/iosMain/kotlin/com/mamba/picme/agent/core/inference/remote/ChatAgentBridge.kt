@@ -4,66 +4,74 @@ import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
 import com.mamba.picme.agent.core.model.context.AgentContext
 import com.mamba.picme.agent.core.model.context.AgentScene
+import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.shared.FlowWatcher
 import com.mamba.picme.shared.watch
-import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 
 /**
- * Swift → chat 推理链路的桥（Phase 6.2 T5）。
+ * Swift ↔ Kotlin chat 桥（Phase 6.2 T5）。
  *
- * 回调式非 suspend API（K/N → ObjC 导出友好；suspend 函数导出为 completion-handler
- * 形式，SwiftUI 组合不如闭包直观）。所有回调在 Kotlin 后台调度器线程触发，
- * **Swift 侧须自行 dispatch 到 main queue 再更新 UI**。
+ * signal 6 纪律（kmp-ios-interop 铁律 1-3）：
+ * - **非 suspend**：所有方法返回 [FlowWatcher]（Swift 持有并在离开时 `cancel()`），
+ *   不跨边界 expose suspend 函数（K/N ObjC 导出 suspend → completion handler，
+ *   Swift 侧 GCD/Task 交织易引发线程安全或取消级联问题）。
+ * - **try/catch(Throwable) 全兜**：CancellationException 语义保留（重新抛出不吞），
+ *   其余异常在 Kotlin 侧吞掉，经 `onComplete(errorMessage)` 回传 Swift——
+ *   未声明 @Throws 的异常逃逸到 Swift 会 signal 6 (SIGABRT)。
+ * - **回调线程**：onText/onToolCall/onAction 可在任意调度器线程触发；
+ *   Swift 侧必须在 `Task { @MainActor in }` 内更新 UI（漏一处即 UI 线程违规）。
  *
- * SharedBridge 铁律（kmp-ios-interop）：异常绝不跨边界逃逸——所有入口
- * try/catch(Throwable) 全兜（[CancellationException] 属正常取消语义，继续上抛）。
+ * 设计说明：
+ * - `sendMessage` 启动协程跑 [RemoteChatEngine.streamChat]，流式事件经回调闭包实时上报；
+ *   返回 [FlowWatcher]（内含 Job），Swift 可 `cancel()` 取消当前推理。
+ * - `watchUiActions` 订阅 [ChatToolService.uiActions]（SharedFlow），工具执行产出
+ *   [ChatUiActionDto] 经回调上报（媒体卡片 / 文本提示）。
+ * - `clearHistory` 清空 Koog 记忆层（`koog_memory_default` 键空间）。
+ * - `isRunning` 供 Swift 侧串行发送守卫（同一时刻只跑一轮推理）。
  *
- * 生产链路非流式（poLangSingleRunStrategy 走 execute 而非流式），[onText] 通常只在
- * 末帧到达一次；Swift 按「累计全文快照直接替换气泡内容」消费即可。
+ * @param orchestrator 已初始化的 [AgentOrchestrator] 实例
+ * @param sessionId Koog 记忆 session id，默认 "default"（单会话版）
  */
 class ChatAgentBridge(
     private val orchestrator: AgentOrchestrator,
+    private val sessionId: String = DEFAULT_SESSION_ID
 ) {
+    private val tag = "ChatAgentBridge"
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    @Volatile
-    private var runningJob: Job? = null
-
-    /** 当前是否有推理在进行（Swift 用于发送按钮置灰/loading 态）。 */
-    fun isRunning(): Boolean = runningJob?.isActive == true
+    private var currentJob: Job? = null
 
     /**
-     * 发送用户消息。
+     * 发送消息（启动流式远程推理）。
      *
-     * @param input 用户输入文本
-     * @param onText 本轮累计全文快照（UI 直接替换气泡内容）
-     * @param onToolCall 进入工具调用轮时触发（UI 显示「正在调用工具…」）
-     * @param onComplete 完成回调：(fullResponse, errorMessage) 二选一——
-     *   成功时 errorMessage 为 null；失败/并发冲突时 fullResponse 为空串、errorMessage 非空。
+     * @param input 用户文本输入
+     * @param onText 模型本轮累计文本快照回调（非 delta，整体替换）
+     * @param onToolCall 工具调用开始回调（可触发「正在搜索…」状态文案）
+     * @param onComplete 推理结束回调：summary 为最终文本，errorMessage 非空表示出错
+     * @return [FlowWatcher]，Swift 持有并可在离开时 cancel 中止推理
      */
     fun sendMessage(
         input: String,
         onText: (String) -> Unit,
         onToolCall: () -> Unit,
-        onComplete: (String, String?) -> Unit
-    ) {
-        if (isRunning()) {
-            onComplete("", "Agent 正在执行其他任务，请稍后")
-            return
-        }
-        runningJob = scope.launch {
+        onComplete: (summary: String, errorMessage: String?) -> Unit
+    ): FlowWatcher {
+        val job = bridgeScope.launch {
             try {
+                val context = AgentContext(
+                    scene = AgentScene.CHAT,
+                    memorySessionId = sessionId
+                )
                 val result = orchestrator.remoteChatEngine.streamChat(
                     input = input,
-                    agentContext = AgentContext(scene = AgentScene.CHAT, memorySessionId = SESSION_ID),
+                    agentContext = context,
                     onEvent = { event ->
                         when (event) {
                             is ChatStreamEvent.TextSnapshot -> onText(event.text)
@@ -72,41 +80,69 @@ class ChatAgentBridge(
                     }
                 )
                 result.fold(
-                    onSuccess = { onComplete(it.fullResponse, null) },
-                    onFailure = { onComplete("", it.message ?: "未知错误") },
+                    onSuccess = { streamResult ->
+                        onComplete(streamResult.fullResponse, null)
+                    },
+                    onFailure = { e ->
+                        Logger.e(tag, "sendMessage failed", e)
+                        onComplete("", e.message ?: "未知错误")
+                    }
                 )
-            } catch (t: Throwable) {
-                if (t is CancellationException) throw t
-                onComplete("", t.message ?: "未知错误")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.e(tag, "sendMessage exception", e)
+                onComplete("", e.message ?: "未知错误")
+            }
+        }
+        currentJob = job
+        return FlowWatcher(job)
+    }
+
+    /**
+     * 订阅 chat 工具执行产出的 UI 动作（媒体卡片 / 文本提示）。
+     * Swift 侧在页面出现时调用并持有 watcher，页面消失时 cancel。
+     *
+     * @param onAction 回调，参数为 Swift 安全的 [ChatUiActionDto]
+     * @return [FlowWatcher]
+     */
+    fun watchUiActions(onAction: (ChatUiActionDto) -> Unit): FlowWatcher {
+        val flow = ChatToolService.getInstance().uiActions
+        return flow.watch { action ->
+            val dto = ChatUiActionDto.from(action)
+            if (dto != null) {
+                onAction(dto)
             }
         }
     }
 
     /**
-     * 订阅工具执行产出的 UI 动作（搜索结果卡片 / 文本回复 / 直通命令 / 错误）。
+     * 清空对话记忆（Koog koog_memory_<sessionId> 键空间）。
      *
-     * @return [FlowWatcher]，Swift 退出 chat 页时 `cancel()` 防泄漏。
+     * @param onDone 完成回调（成功或失败均调用，Swift 侧刷新 UI）
+     * @return [FlowWatcher]
      */
-    fun watchUiActions(onAction: (ChatUiActionDto) -> Unit): FlowWatcher =
-        ChatToolService.getInstance().uiActions
-            .mapNotNull { ChatUiActionDto.from(it) }
-            .watch(onAction)
-
-    /** 清空 chat 会话记忆（Koog 记忆 NSUserDefaults 键 + no-op 旧键空间清理）。 */
-    fun clearHistory(onDone: () -> Unit) {
-        scope.launch {
+    fun clearHistory(onDone: () -> Unit): FlowWatcher {
+        val job = bridgeScope.launch {
             try {
-                orchestrator.clearChatMemory(SESSION_ID)
-            } catch (t: Throwable) {
-                if (t is CancellationException) throw t
-                // 清空失败不致命（下次加载以 store 现状为准），静默后继续回调
+                orchestrator.clearChatMemory(sessionId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.e(tag, "clearHistory exception", e)
+            } finally {
+                onDone()
             }
-            onDone()
         }
+        return FlowWatcher(job)
     }
 
+    /**
+     * 当前是否有推理在进行（Swift 侧串行发送守卫）。
+     */
+    fun isRunning(): Boolean = currentJob?.isActive == true
+
     companion object {
-        /** iOS v1 单会话 id（与 Android 默认 sessionId="chat" 对齐）。 */
-        const val SESSION_ID = "chat"
+        const val DEFAULT_SESSION_ID = "default"
     }
 }

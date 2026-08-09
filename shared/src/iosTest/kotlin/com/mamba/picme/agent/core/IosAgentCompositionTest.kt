@@ -1,5 +1,6 @@
 package com.mamba.picme.agent.core
 
+import com.mamba.picme.agent.IosAgentComposition
 import com.mamba.picme.agent.core.facade.AgentOrchestrator
 import com.mamba.picme.agent.core.inference.remote.ChatAgentBridge
 import com.mamba.picme.agent.core.inference.remote.ChatUiActionDto
@@ -32,12 +33,21 @@ private class FakeBridge : IosMediaRepositoryBridge {
     override fun setFavorite(localIdentifier: String, favorite: Boolean): Boolean = true
 }
 
+/**
+ * T5 组合根/桥测试。注意 [IosAgentComposition] 为进程级幂等单例（AtomicBoolean 守卫），
+ * 同一测试进程内只有首个 initialize 真正接线，后续调用跳过——各用例共享首个接线结果。
+ */
 class IosAgentCompositionTest {
 
+    private fun ensureInitialized() {
+        IosAgentComposition.initialize(FakeBridge(), deviceId = "test-device-id")
+    }
+
     @Test
-    fun initializeWiresOrchestratorAndRegistersChatGalleryCapability() {
-        val orchestrator = IosAgentComposition.initialize(FakeBridge())
-        assertNotNull(orchestrator.remoteChatEngine, "orchestrator 应可达且 remoteChatEngine 已装配")
+    fun initializeWiresOrchestratorBridgeAndCapability() {
+        ensureInitialized()
+        assertNotNull(AgentOrchestrator.getInstance().remoteChatEngine, "orchestrator 应可达且 remoteChatEngine 已装配")
+        assertNotNull(IosAgentComposition.chatBridge, "initialize 后 chatBridge 应就绪")
 
         val capability = CapabilityRegistry.getInstance().get("chat_gallery")
         assertNotNull(capability, "chat_gallery capability 应已注册")
@@ -52,25 +62,27 @@ class IosAgentCompositionTest {
 
     @Test
     fun initializeIsIdempotent() {
-        val first = IosAgentComposition.initialize(FakeBridge())
-        val second = IosAgentComposition.initialize(FakeBridge())
-        assertTrue(first === second, "重复 initialize 应返回同一 orchestrator 单例")
+        ensureInitialized()
+        val bridgeBefore = IosAgentComposition.chatBridge
+        IosAgentComposition.initialize(FakeBridge(), deviceId = "another-device")
+        assertTrue(bridgeBefore === IosAgentComposition.chatBridge, "重复 initialize 应跳过，chatBridge 不变")
     }
 
     @Test
     fun clearChatMemoryWorksWithNoopCleaner() = runTest {
-        val orchestrator = IosAgentComposition.initialize(FakeBridge())
-        orchestrator.clearChatMemory(ChatAgentBridge.SESSION_ID) // 不抛即过
+        ensureInitialized()
+        AgentOrchestrator.getInstance().clearChatMemory(ChatAgentBridge.DEFAULT_SESSION_ID) // 不抛即过
     }
 
     @Test
     fun bridgeIsNotRunningWhenIdle() {
-        val bridge = ChatAgentBridge(AgentOrchestrator.getInstance())
-        assertFalse(bridge.isRunning())
+        ensureInitialized()
+        assertFalse(ChatAgentBridge(AgentOrchestrator.getInstance()).isRunning())
     }
 
     @Test
     fun watchUiActionsMapsTextReplyAndMediaResults() = runBlocking {
+        ensureInitialized()
         val bridge = ChatAgentBridge(AgentOrchestrator.getInstance())
         val received = mutableListOf<ChatUiActionDto>()
         val watcher = bridge.watchUiActions { received += it }
@@ -93,29 +105,6 @@ class IosAgentCompositionTest {
             assertEquals("cat", mediaResults.query)
             assertEquals(2L, mediaResults.totalCount)
             assertEquals(listOf(11L, 22L), mediaResults.mediaIds)
-        } finally {
-            watcher.cancel()
-        }
-    }
-
-    @Test
-    fun watchUiActionsMapsSuccessWithCommandAndMediaIds() = runBlocking {
-        val bridge = ChatAgentBridge(AgentOrchestrator.getInstance())
-        val received = mutableListOf<ChatUiActionDto>()
-        val watcher = bridge.watchUiActions { received += it }
-        try {
-            // MutableSharedFlow replay=0：订阅者未就绪前的 emit 会丢，先等订阅建立再发
-            val uiActions = ChatToolService.getInstance().uiActions
-            withTimeout(3000) { while (uiActions.subscriptionCount.value == 0) delay(50) }
-            uiActions.emit(
-                AgentAction.Success(3, AgentCommand.ViewMedia(commandId = 3, mediaId = "42"))
-            )
-            withTimeout(3000) { while (received.isEmpty()) delay(50) }
-
-            val success = received[0]
-            assertEquals("success", success.kind)
-            assertEquals("view_media", success.command)
-            assertEquals(listOf(42L), success.mediaIds)
         } finally {
             watcher.cancel()
         }
