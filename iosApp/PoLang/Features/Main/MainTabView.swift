@@ -32,7 +32,9 @@ struct MainTabView: View {
 
             // 聊天页（Phase 6.2）
             if currentPage == 2 {
-                ChatView()
+                ChatView(onBack: {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
+                })
                     .environmentObject(container)
             }
             if currentPage == 3 {
@@ -54,9 +56,9 @@ struct MainTabView: View {
             showPlaceholder = nil
             IosAgentComposition.shared.onMainPageChanged(page: Int64(page))
         }
-        // 悬浮 Tab：除相机页（沉浸式）外常驻，占位页也能切出
+        // 悬浮 Tab：相册/人物页常驻；相机页（沉浸式）与聊天页（避免遮挡输入栏，返回键可出）不显示
         .overlay(alignment: .bottom) {
-            if currentPage != 0 {
+            if currentPage != 0 && currentPage != 2 {
                 FloatingBottomTab(currentPage: $currentPage, onPlaceholderTap: { icon in
                     showPlaceholder = icon
                 })

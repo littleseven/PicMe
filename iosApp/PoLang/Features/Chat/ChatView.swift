@@ -5,11 +5,16 @@ import SharedKit
 /// Chat 主视图（1:1 对标 Android ChatScreen.kt）。
 /// spec: specs/screens/chat.yaml
 struct ChatView: View {
+    /// 返回动作（pager 场景 = 回相册页）；nil 时返回键占位
+    var onBack: (() -> Void)? = nil
+
     @StateObject private var viewModel = ChatViewModel()
     @EnvironmentObject private var container: AppContainer
     @State private var inputText = ""
     @FocusState private var inputFocused: Bool
     @State private var showClearConfirm = false
+    /// 诚实占位：功能未实现时的说明（spec §11 允许差异外的项后续补齐）
+    @State private var comingSoonFeature: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,26 +46,65 @@ struct ChatView: View {
             }
             Button(String(localized: "Cancel"), role: .cancel) {}
         }
+        .alert(
+            String(localized: "Coming Soon"),
+            isPresented: Binding(
+                get: { comingSoonFeature != nil },
+                set: { if !$0 { comingSoonFeature = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            Text(comingSoonFeature ?? "")
+        }
     }
 
-    // MARK: - Top Bar (48dp, 无标题)
+    // MARK: - Top Bar (48dp, 无标题，spec §2)
 
     private var chatTopBar: some View {
         HStack(spacing: 8) {
-            // 返回
-            Button {} label: {
-                Image(matIcon: "chevron.left").font(.system(size: 22))
+            // 返回（pager 场景回相册页）
+            Button { onBack?() } label: {
+                MatIcon(name: "mat_arrow_back", size: 22)
+                    .foregroundColor(Color(.label))
             }
             .frame(width: 36, height: 36)
+            .accessibilityIdentifier("chat_back")
+
+            // 菜单（侧栏：Android 为对话历史抽屉，iOS 单会话 v1 占位）
+            Button { comingSoonFeature = String(localized: "Chat history sidebar is not available in this version.") } label: {
+                MatIcon(name: "mat_menu", size: 22)
+                    .foregroundColor(Color(.label))
+            }
+            .frame(width: 36, height: 36)
+            .accessibilityIdentifier("chat_menu")
 
             Spacer()
+
+            // 上报问题（Android 走 /v1/report-issue 建 GitHub issue，iOS 通道未接）
+            Button { comingSoonFeature = String(localized: "Issue reporting is not available in this version.") } label: {
+                MatIcon(name: "mat_bug_report", size: 22)
+                    .foregroundColor(Color(.label))
+            }
+            .frame(width: 36, height: 36)
+            .accessibilityIdentifier("chat_report")
+
+            // 新对话（单会话实现 = 清空当前会话上下文）
+            Button { viewModel.clearHistory() } label: {
+                MatIcon(name: "mat_add_comment", size: 22)
+                    .foregroundColor(Color(.label))
+            }
+            .frame(width: 36, height: 36)
+            .accessibilityIdentifier("chat_new")
 
             // 清空对话（仅有消息时显示）
             if !viewModel.messages.isEmpty {
                 Button { showClearConfirm = true } label: {
-                    Image(matIcon: "delete").font(.system(size: 22))
+                    MatIcon(name: "mat_delete_sweep", size: 22)
+                        .foregroundColor(Color(.label))
                 }
                 .frame(width: 36, height: 36)
+                .accessibilityIdentifier("chat_clear")
             }
         }
         .padding(.horizontal, 8)
@@ -96,28 +140,55 @@ struct ChatView: View {
         }
     }
 
-    // MARK: - Input Bar (24dp 大圆角卡片)
+    // MARK: - Input Bar（spec §7：24dp 大圆角卡片，行1 文本 + 行2 按钮栏）
 
     private var inputBar: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .bottom, spacing: 8) {
-                // 文本输入（处理中仍可编辑，只是无发送按钮）
+            VStack(spacing: 8) {
+                // 行 1：文本输入（通栏；处理中仍可编辑）
                 TextField(String(localized: "Ask AI Agent..."), text: $inputText, axis: .vertical)
                     .font(.system(size: 16))
                     .lineSpacing(8)
+                    .foregroundColor(Color(.label))
                     .focused($inputFocused)
                     .lineLimit(1...5)
                     .submitLabel(.send)
                     .onSubmit(send)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("chat_input")
 
-                // 发送按钮：仅有内容 && 非处理中时显示（Android 无 stop 按钮）
-                if canSend {
-                    Button(action: send) {
-                        Image(matIcon: "arrow_upward")
-                            .font(.system(size: 22))
-                            .foregroundColor(.accentColor)
+                // 行 2：按钮栏（SpaceBetween）
+                HStack(spacing: 8) {
+                    // 相册胶囊（spec gallery_capsule：Android 打开图片选择器；
+                    // iOS chat v1 无图片消息，诚实占位）
+                    Button {
+                        comingSoonFeature = String(localized: "Attaching photos in chat is not available in this version.")
+                    } label: {
+                        HStack(spacing: 6) {
+                            MatIcon(name: "mat_photo_library", size: 16)
+                            Text(String(localized: "Gallery"))
+                                .font(.system(size: 12))
+                        }
+                        .foregroundColor(Color(.label).opacity(0.7))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(.secondarySystemBackground).opacity(0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
-                    .frame(width: 36, height: 36)
+                    .disabled(viewModel.isProcessing)
+                    .accessibilityIdentifier("chat_gallery_capsule")
+
+                    Spacer()
+
+                    // 发送按钮（36dp 圆形，primary tint；仅有内容 && 非处理中时显示）
+                    if canSend {
+                        Button(action: send) {
+                            MatIcon(name: "mat_send", size: 22)
+                                .foregroundColor(.accentColor)
+                        }
+                        .frame(width: 36, height: 36)
+                        .accessibilityIdentifier("chat_send")
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -170,6 +241,7 @@ private struct MessageBubble: View {
                             .foregroundColor(message.role == .user ? .white : Color(.label))
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: 360, alignment: .leading)
+                            .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
                     }
 
                     // 流式光标（有文本且仍在流式）
