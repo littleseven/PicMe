@@ -129,15 +129,13 @@ struct CameraPreviewView: View {
             // 左列：返回（裸箭头）+ Refresh（裸图标，无圆底，对标 Android CameraControlButtons.kt 左列）
             VStack(spacing: 8) {
                 Button { } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20))
+                    MatIcon(name: "chevron.left", size: 20)
                         .foregroundColor(.white)
                         .frame(width: buttonSize, height: buttonSize)
                 }
                 // Refresh: 裸图标（Android 左列是裸图标无圆底容器）
                 Button { } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 18))
+                    MatIcon(name: "arrow.clockwise", size: 18)
                         .foregroundColor(.white)
                         .frame(width: buttonSize, height: buttonSize)
                 }
@@ -208,7 +206,7 @@ struct CameraPreviewView: View {
                 Circle()
                     .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
                     .frame(width: 48, height: 48)
-                    .overlay(Image(systemName: "photo.fill").font(.system(size: 18)).foregroundColor(.white.opacity(0.5)))
+                    .overlay(MatIcon(name: "photo.fill", size: 18).foregroundColor(.white.opacity(0.5)))
                     .accessibilityIdentifier("camera_gallery_thumb")
 
                 Spacer()
@@ -224,7 +222,7 @@ struct CameraPreviewView: View {
                 Circle()
                     .fill(Color.white.opacity(0.2))
                     .frame(width: 48, height: 48)
-                    .overlay(Image(systemName: "camera.rotate").font(.system(size: 18)).foregroundColor(.white))
+                    .overlay(MatIcon(name: "camera.rotate", size: 18).foregroundColor(.white))
                     .accessibilityIdentifier("camera_flip")
                     .onTapGesture { controller.flipCamera() }
             }
@@ -249,8 +247,7 @@ struct CircleIconButton: View {
                     .fill(isActive ? Color.accentColor : Color.black.opacity(0.5))
                     .frame(width: 48, height: 48)
                     .overlay(
-                        Image(systemName: systemName)
-                            .font(.system(size: 18))
+                        MatIcon(name: systemName, size: 18)
                             .foregroundColor(isActive ? .black : .white)
                     )
                 if hasIndicator {

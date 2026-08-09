@@ -90,14 +90,12 @@ private struct FilterThumbnailView: View {
                     Circle()
                         .fill(Color.accentColor.opacity(0.25))
                         .frame(width: 56, height: 56)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
+                    MatIcon(name: "checkmark", size: 14)
                         .foregroundColor(.accentColor)
                 }
                 // Phase 6 占位标记
                 if stylePlaceholder != nil {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 14))
+                    MatIcon(name: "lock.fill", size: 14)
                         .foregroundColor(.white.opacity(0.4))
                 }
             }
