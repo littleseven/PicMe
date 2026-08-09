@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import CoreGraphics
+import simd
 
 /// MNN 端侧推理离线自检（真机自动化验收用）。
 ///
