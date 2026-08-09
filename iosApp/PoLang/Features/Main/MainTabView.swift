@@ -4,7 +4,14 @@ import UIKit
 /// 对标 Android MainPagerHost：4 页 Pager（相机/相册/聊天/人物）
 /// 相册(1)为初始页，悬浮 Tab 切换页
 struct MainTabView: View {
-    @State private var currentPage = 1 // 初始页 = 相册（对标 Android）
+    // 初始页 = 相册（对标 Android）；UI 自动化可用 launch arg `-startPage <0-3>` 指定起始页
+    @State private var currentPage: Int = {
+        guard let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-startPage"),
+              ProcessInfo.processInfo.arguments.count > idx + 1,
+              let page = Int(ProcessInfo.processInfo.arguments[idx + 1]),
+              (0...3).contains(page) else { return 1 }
+        return page
+    }()
     @EnvironmentObject private var container: AppContainer
     @State private var showPlaceholder: String?
 
