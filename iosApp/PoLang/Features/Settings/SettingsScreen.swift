@@ -172,6 +172,8 @@ struct SettingsScreen: View {
 
         Group {
             switch cat.target {
+            case .aiAgent:
+                NavigationLink { AiAgentSettingsView() } label: { cardContent }
             case .apiModels:
                 NavigationLink { ModelCenterView().environmentObject(ModelConfigStore.shared) } label: { cardContent }
             case .modelCenter:
@@ -180,6 +182,12 @@ struct SettingsScreen: View {
                 NavigationLink { DataPrivacyView() } label: { cardContent }
             case .about:
                 NavigationLink { AboutView() } label: { cardContent }
+            case .memoryFacts:
+                NavigationLink { MemoryFactsView() } label: { cardContent }
+            case .channels:
+                NavigationLink { CommunicationChannelView() } label: { cardContent }
+            case .developer:
+                NavigationLink { DeveloperSettingsView() } label: { cardContent }
             default:
                 cardContent.opacity(0.5)
             }
@@ -190,17 +198,17 @@ struct SettingsScreen: View {
     private var categories: [SettingsCategoryItem] {
         [
             // Row 1
-            .init(icon: "smart_toy", title: String(localized: "AI Assistant"), desc: String(localized: "Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: true),
-            .init(icon: "psychology", title: String(localized: "AI Memory"), desc: String(localized: "View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: true),
+            .init(icon: "smart_toy", title: String(localized: "AI Assistant"), desc: String(localized: "Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: false),
+            .init(icon: "psychology", title: String(localized: "AI Memory"), desc: String(localized: "View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: false),
             // Row 2
             .init(icon: "person", title: String(localized: "People"), desc: String(localized: "View and name face clusters"), target: .people, isPlaceholder: true),
-            .init(icon: "forum", title: String(localized: "Channels"), desc: String(localized: "Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: true),
+            .init(icon: "forum", title: String(localized: "Channels"), desc: String(localized: "Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
             // Row 3
             .init(icon: "photo_library", title: String(localized: "Gallery"), desc: String(localized: "Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
             .init(icon: "camera_alt", title: String(localized: "Camera & Beauty"), desc: String(localized: "Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: true),
             // Row 4
             .init(icon: "cloud_download", title: String(localized: "Model Center"), desc: String(localized: "Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
-            .init(icon: "terminal", title: String(localized: "Developer"), desc: String(localized: "Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: true),
+            .init(icon: "terminal", title: String(localized: "Developer"), desc: String(localized: "Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: false),
             // Row 5
             .init(icon: "storage", title: String(localized: "Backup & Restore"), desc: String(localized: "Export or import TAG, face clusters, OCR, settings"), target: .backup, isPlaceholder: true),
             .init(icon: "privacy_tip", title: String(localized: "Data & Privacy"), desc: String(localized: "Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),

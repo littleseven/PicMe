@@ -214,6 +214,22 @@
         }
       }
     },
+    "Add your own model to remove restrictions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your own model to remove restrictions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加自有模型以解除限制"
+          }
+        }
+      }
+    },
     "Add-Only Access Hint": {
       "extractionState": "manual",
       "localizations": {
@@ -338,6 +354,22 @@
         }
       }
     },
+    "Allowed Chat ID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allowed Chat ID"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许的 Chat ID"
+          }
+        }
+      }
+    },
     "Analyze my photos by tag and time": {
       "localizations": {
         "en": {
@@ -405,6 +437,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "写真へのアクセスを許可"
+          }
+        }
+      }
+    },
+    "Auto-Execute Multi-Step Plans": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-Execute Multi-Step Plans"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动执行多步骤计划"
           }
         }
       }
@@ -659,6 +707,38 @@
         }
       }
     },
+    "Clear All": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear All"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空全部"
+          }
+        }
+      }
+    },
+    "Clear all memories?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear all memories?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空全部记忆？"
+          }
+        }
+      }
+    },
     "Clear conversation?": {
       "localizations": {
         "en": {
@@ -746,6 +826,38 @@
         }
       }
     },
+    "Connect Feishu to receive remote commands via IM messages.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect Feishu to receive remote commands via IM messages."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接飞书，通过 IM 消息接收远程指令。"
+          }
+        }
+      }
+    },
+    "Connect via Telegram Bot long polling (no public IP needed).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect via Telegram Bot long polling (no public IP needed)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过 Telegram Bot 长轮询连接（无需公网 IP）。"
+          }
+        }
+      }
+    },
     "Contact Us": {
       "localizations": {
         "en": {
@@ -758,6 +870,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "联系我们"
+          }
+        }
+      }
+    },
+    "Control camera shooting via voice commands.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control camera shooting via voice commands."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过语音指令控制相机拍摄和参数调整。"
+          }
+        }
+      }
+    },
+    "Create a bot via @BotFather then paste its token.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create a bot via @BotFather then paste its token."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 @BotFather 创建机器人后粘贴其 token。"
+          }
+        }
+      }
+    },
+    "Current Channel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current Channel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前通道"
           }
         }
       }
@@ -856,6 +1016,38 @@
         }
       }
     },
+    "Debug": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试"
+          }
+        }
+      }
+    },
+    "Debug Tools": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug Tools"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试工具"
+          }
+        }
+      }
+    },
     "Debug overlay and advanced diagnostics": {
       "localizations": {
         "en": {
@@ -868,6 +1060,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "调试浮层与高级诊断。"
+          }
+        }
+      }
+    },
+    "Default remote model has time limits": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default remote model has time limits"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认远程模型有时长限制"
           }
         }
       }
@@ -1255,6 +1463,54 @@
         }
       }
     },
+    "Feishu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feishu"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飞书"
+          }
+        }
+      }
+    },
+    "Feishu App ID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feishu App ID"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飞书应用的 App ID"
+          }
+        }
+      }
+    },
+    "Feishu App Secret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feishu App Secret"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飞书应用的 App Secret"
+          }
+        }
+      }
+    },
     "File Name": {
       "extractionState": "manual",
       "localizations": {
@@ -1620,6 +1876,22 @@
         }
       }
     },
+    "Inference Mode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inference Mode"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推理模式"
+          }
+        }
+      }
+    },
     "Info": {
       "extractionState": "manual",
       "localizations": {
@@ -1939,6 +2211,22 @@
         }
       }
     },
+    "No memories yet. Tell Xiaolang remember in chat to add.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No memories yet. Tell Xiaolang “remember…” in chat to add."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有记忆。在聊天中对小浪说“帮我记住…”即可添加"
+          }
+        }
+      }
+    },
     "No models available": {
       "localizations": {
         "en": {
@@ -1967,6 +2255,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "未找到"
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不启用"
+          }
+        }
+      }
+    },
+    "Not Available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Available"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不可用"
           }
         }
       }
@@ -2006,6 +2326,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "端侧模型"
+          }
+        }
+      }
+    },
+    "Only this chat can send commands (security whitelist). Without Chat ID, the bot rejects all messages.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only this chat can send commands (security whitelist). Without Chat ID, the bot rejects all messages."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅该聊天可下发指令（安全白名单）。未填写「允许的 Chat ID」时，为安全起见机器人将拒绝所有消息。"
           }
         }
       }
@@ -2276,6 +2612,22 @@
         }
       }
     },
+    "Recommended for debugging only.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended for debugging only."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅建议调试环境开启。"
+          }
+        }
+      }
+    },
     "Remote AI inference, voice control": {
       "localizations": {
         "en": {
@@ -2304,6 +2656,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "远程推理"
+          }
+        }
+      }
+    },
+    "Remote Model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote Model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程模型"
           }
         }
       }
@@ -2487,6 +2855,54 @@
         }
       }
     },
+    "Show Camera Info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Camera Info"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示相机信息"
+          }
+        }
+      }
+    },
+    "Show Face Debug": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Face Debug"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示人脸调试"
+          }
+        }
+      }
+    },
+    "Show Log Overlay": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Log Overlay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示日志浮层"
+          }
+        }
+      }
+    },
     "Sign in for more quota and features": {
       "localizations": {
         "en": {
@@ -2659,6 +3075,22 @@
         }
       }
     },
+    "Use remote model for natural language camera control.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use remote model for natural language camera control."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用远程模型，启用自然语言控制相机功能。"
+          }
+        }
+      }
+    },
     "Version": {
       "extractionState": "manual",
       "localizations": {
@@ -2765,6 +3197,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "语音"
+          }
+        }
+      }
+    },
+    "Voice Control": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音控制"
+          }
+        }
+      }
+    },
+    "Voice Mode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice Mode"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音交互模式"
+          }
+        }
+      }
+    },
+    "When disabled, Agent requires confirmation before executing multi-step plans.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When disabled, Agent requires confirmation before executing multi-step plans."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，Agent 执行多步骤计划前会要求确认。"
           }
         }
       }
