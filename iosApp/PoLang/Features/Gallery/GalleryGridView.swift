@@ -62,8 +62,10 @@ struct GalleryGridView: View {
         .sheet(item: $sharePayload) { payload in
             ActivityView(activityItems: payload.images)
         }
-        .sheet(isPresented: $showSettings) {
-            SettingsScreen()
+        .fullScreenCover(isPresented: $showSettings) {
+            NavigationStack {
+                SettingsScreen()
+            }
         }
         .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
                             titleVisibility: .visible) {
