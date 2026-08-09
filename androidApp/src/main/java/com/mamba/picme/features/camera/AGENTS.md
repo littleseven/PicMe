@@ -212,7 +212,7 @@ val screenY = adjustedY * previewHeight
     - 进入沉浸式：`PoLangLogger.d("PoLang:Camera", "Immersive mode enabled")`
     - 退出沉浸式：`PoLangLogger.d("PoLang:Camera", "Immersive mode disabled")`
   - **注意事项**：
-    - 不需要手动调整UI元素的padding（EdgeToEdge已在MainActivity配置）
+    - 🔴 隐藏系统栏后 `Type.statusBars()` inset 会归零，普通 `statusBarsPadding()` 失效——需要稳定避让刘海/挖孔的控件（如顶部左右按钮列）必须用 `WindowInsets.statusBarsIgnoringVisibility`（2026-08-09 刘海屏修复，`CameraControlButtons.kt`）
     - 确保获取到Activity窗口引用（需要类型转换 `context as? Activity`）
 
 ## 4. 常见陷阱检查清单 (Checklist)

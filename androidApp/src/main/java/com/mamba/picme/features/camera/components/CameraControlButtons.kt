@@ -5,11 +5,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
@@ -40,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mamba.picme.R
 
+@OptIn(ExperimentalLayoutApi::class) // statusBarsIgnoringVisibility：沉浸式下仍避让刘海
 @Composable
 fun CameraLeftControls(
     onResetCameraMemoryState: () -> Unit,
@@ -54,7 +58,9 @@ fun CameraLeftControls(
     Column(
         modifier = modifier
             .padding(16.dp)
-            .statusBarsPadding(),
+            // 🔴 相机页沉浸式隐藏系统栏后 statusBars inset 归零（statusBarsPadding 失效），
+            // 必须用 IgnoringVisibility 才能稳定避让刘海/挖孔区域
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ControlButton(
@@ -96,6 +102,7 @@ fun CameraLeftControls(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class) // statusBarsIgnoringVisibility：沉浸式下仍避让刘海
 @Composable
 fun CameraRightControls(
     onToggleBeauty: () -> Unit,
@@ -118,7 +125,8 @@ fun CameraRightControls(
     Column(
         modifier = modifier
             .padding(16.dp)
-            .statusBarsPadding(),
+            // 🔴 同左列：沉浸式下 statusBarsPadding 归零，改用 IgnoringVisibility 避让刘海
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.End
     ) {

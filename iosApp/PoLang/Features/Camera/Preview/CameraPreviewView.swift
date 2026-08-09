@@ -93,9 +93,11 @@ struct CameraPreviewView: View {
                     Color.black
                     permissionView
                 } else {
-                    // 控件层：锚 safe area（通过 padding 避让）
-                    cameraOverlay(screenHeight: geo.size.height, safeTop: geo.safeAreaInsets.top)
-                        .overlay(alignment: .top) { engineToggle }
+                    // 控件层：锚安全区（🔴 根 GeometryReader 忽略了 safe area，
+                    // geo.safeAreaInsets 恒为 0，必须用 UIKit 读真实安全区）
+                    cameraOverlay(screenHeight: geo.size.height, safeTop: realSafeTop)
+                        // 引擎切换胶囊同样避让刘海（safeTop + 4）
+                        .overlay(alignment: .top) { engineToggle.padding(.top, realSafeTop + 4) }
                 }
 
                 // 快门白闪反馈（对标 Android 拍照闪屏，确认点击已注册）
@@ -199,6 +201,7 @@ struct CameraPreviewView: View {
     // MARK: - 人脸引擎切换（MediaPipe 默认 / MNN 双引擎可切换）
 
     /// 顶部胶囊：点击切换人脸检测引擎。亮色 = 当前引擎。
+    ///（top padding 由调用方按 safeTop 避让刘海，本视图不内嵌）
     private var engineToggle: some View {
         Button {
             useMnnEngine.toggle()
@@ -223,10 +226,19 @@ struct CameraPreviewView: View {
             .background(.ultraThinMaterial, in: Capsule())
             .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
         }
-        .padding(.top, 4)
     }
 
-    // MARK: - 控件层（锚 safe area，不跟随预览延伸）
+    // MARK: - 控件层（锚安全区，不跟随预览延伸）
+
+    /// 真实顶部安全区高度（刘海/灵动岛）。
+    /// 🔴 不能读 `GeometryProxy.safeAreaInsets`：根 GeometryReader 打了 `.ignoresSafeArea(.all)`，
+    /// proxy 报告的 insets 恒为 0（SwiftUI 陷阱），只能从 UIKit keyWindow 拿真实值。
+    private var realSafeTop: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?.safeAreaInsets.top ?? 0
+    }
 
     private func cameraOverlay(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
         ZStack {
@@ -265,22 +277,23 @@ struct CameraPreviewView: View {
         }
     }
 
-    // MARK: - 顶部控件（对标 Android dump y% 布局）
+    // MARK: - 顶部控件（右列锚定 safeTop，间距保持 Android dump 节奏）
 
-    /// 右列按钮中心 y 占屏高百分比（dump 实测）:
-    /// wand 4.87% / ratio 14.16% / grid 21.24% / scene 30.52% / filter 37.60% / tune 46.89%
+    /// 右列相邻按钮中心 y% 差（dump 实测）：ratio-wand 9.29% / grid-ratio 7.08% /
+    /// scene-grid 9.28% / filter-scene 7.08% / tune-filter 9.29%
     private func topControls(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
-        // 按钮中心 y 绝对坐标 = screenHeight * 百分比
         // 按钮容器 48pt，中心到底/顶各 24pt
         let buttonSize: CGFloat = 48
         let halfButton = buttonSize / 2
 
-        let yWand = screenHeight * 0.0487
-        let yRatio = screenHeight * 0.1416
-        let yGrid = screenHeight * 0.2124
-        let yScene = screenHeight * 0.3052
-        let yFilter = screenHeight * 0.3760
-        let yTune = screenHeight * 0.4689
+        // 🔴 刘海屏适配：首按钮锚定 safeTop（与左列同一基线），不再用屏高绝对 y%——
+        // 旧 wand 中心 = 屏高 4.87%（刘海机上 ~41pt < safeTop 59pt），撞刘海/灵动岛
+        let yWand = safeTop + halfButton + 8
+        let yRatio = yWand + screenHeight * 0.0929
+        let yGrid = yRatio + screenHeight * 0.0708
+        let yScene = yGrid + screenHeight * 0.0928
+        let yFilter = yScene + screenHeight * 0.0708
+        let yTune = yFilter + screenHeight * 0.0929
 
         return ZStack {
             // 左列：返回（裸箭头）+ Refresh（裸图标，无圆底，对标 Android CameraControlButtons.kt 左列）
@@ -297,7 +310,9 @@ struct CameraPreviewView: View {
                         .frame(width: buttonSize, height: buttonSize)
                 }
             }
-            .position(x: 16 + halfButton, y: safeTop + halfButton + 8) // 距顶 safeTop + 8pt
+            // 🔴 .position 锚的是整个 VStack 的中心（2×48+8=104pt，半高 52）：
+            // 首按钮中心 = safeTop+8+52-52+24 = safeTop+32，与右列 wand 同基线
+            .position(x: 16 + halfButton, y: safeTop + 8 + 52)
 
             // 右列：6 按钮按 dump y% 绝对定位
             rightColumnButton("wand.and.stars", y: yWand, isActive: activePanel == .beauty,

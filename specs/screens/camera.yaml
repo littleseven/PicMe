@@ -45,13 +45,15 @@ back_stack:
 # ============================================================================
 # 3. 顶部左侧控件组（CameraLeftControls）
 # ============================================================================
-# 位置：Alignment.TopStart，statusBarsPadding 内避让
+# 位置：Alignment.TopStart，避让状态栏/刘海区域
+# 🔴 系统栏隐藏时避让语义：相机页沉浸式 hide(systemBars) 后 Type.statusBars inset 归零，
+#    Android 必须用 statusBarsIgnoringVisibility，iOS 用 safeTop 锚定（2026-08-09 刘海屏修复）
 # 布局：Column，spacing = 8dp（topBar.spacing），padding = 16dp
 top_left_controls:
   anchor: top_start
   layout: column
   padding: 16                 # 外边距 16dp
-  status_bar_padding: true    # 避让状态栏
+  status_bar_padding: ignoring_visibility  # 避让状态栏区域（隐藏时仍生效）
   spacing: 8                  # topBar.spacing = 8dp
   items:
     - id: back_button
@@ -126,14 +128,14 @@ top_left_controls:
 # ============================================================================
 # 4. 顶部右侧功能列（CameraRightControls）
 # ============================================================================
-# 位置：Alignment.TopEnd，statusBarsPadding 内避让
+# 位置：Alignment.TopEnd，避让状态栏/刘海区域（同 §3 ignoring_visibility 语义）
 # 布局：Column，spacing = 10dp（控件间默认），含 8dp Spacer 分隔组
 # 每个按钮 = FilledIconButton，48dp，24dp 图标
 top_right_controls:
   anchor: top_end
   layout: column
   padding: 16
-  status_bar_padding: true
+  status_bar_padding: ignoring_visibility  # 避让状态栏区域（隐藏时仍生效）
   spacing: 10                     # 按钮间距
   items:
 
