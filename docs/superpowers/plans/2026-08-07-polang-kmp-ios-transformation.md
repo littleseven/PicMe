@@ -254,7 +254,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 - [ ] **6.1 TAG 流水线**：MNN 推理接入（Phase 2.1 产物），3-Pass 控制页；**设计并实现 iOS MetalGuardian（替代 OpenClGuardian）**（review 修订：iOS 无 OpenCL，非「策略对齐」而是新设计——Metal kernel warmup 超时检测、Metal→CPU 降级含模型卸载重载、MTLDevice 丢失处理、黑名单持久化）；4 模型（RetinaFace/R100/MobileCLIP-S2/Qwen3-VL-2B）顺序加载内存峰值用 Instruments 验证
 - [ ] **6.2 Chat 与 AI 指令**：shared Agent 层直接消费；JS 沙盒 handler 对齐
 - [ ] **6.3 设置与账号**：server 账号体系接入；隐私政策页（双端权限声明差异：iOS Privacy Manifest、相册用途描述）；🔴 **App Store Guideline 2.5.2 合规分析（review 增补，需在 Chat code-interpreter 上线前完成）**：`JS_ENGINE_TECH_SPEC.md` §2.2 合规矩阵目前仅覆盖 Google Play，需补 App Store 列并出三级结论——① bundled JS（`assets/js/` 内脚本）基本合规；② LLM 会话下发 JS（不持久化、白名单 handler、QuickJS 无 JIT 纯解释）需明确合规分析，2026 年 Apple 正以此拒绝「LLM 生成并执行代码」类 app，iOS 端或需限制为白名单 handler 调用；③ 下载执行远程 JS bundle 为红线不做。如需功能降级，写入双端功能差异清单
-- [x] **6.4 server 端 iOS 适配**：✅ **适配点清查已完成（2026-08-08）**——审计 report：`docs/superpowers/specs/2026-08-08-server-ios-adaptation-audit.md`。核心结论：**server 端纯平台无关，iOS 可直接消费全部现有 API，零阻塞**。产出 5 个适配点（设备标识 IDFV / 平台维度 X-Platform header / download 页 UA 分支 / Apple Sign In 按需 / APNs 远期），仅 #2（X-Platform）建议 TestFlight 前落地（管理后台可见性），其余按需推进。后续实现项（Apple Sign In / APNs 等）改动量大时由独立计划承载
+- [ ] **6.4 server 端 iOS 适配**：✅ **适配点清查已完成（2026-08-08）**——审计 report：`docs/superpowers/specs/2026-08-08-server-ios-adaptation-audit.md`。核心结论：**server 端纯平台无关，iOS 可直接消费全部现有 API，零阻塞**。产出 5 个适配点（设备标识 IDFV / 平台维度 X-Platform header / download 页 UA 分支 / Apple Sign In 按需 / APNs 远期），仅 #2（X-Platform）建议 TestFlight 前落地（管理后台可见性），其余按需推进。后续实现项（Apple Sign In / APNs 等）改动量大时由独立计划承载
 - [ ] **6.5 验收对齐**：核心验收测试 iOS 版；结构化日志（llm/tool/js 三层）iOS 落地
 
 ## Phase 7：演进（持续）

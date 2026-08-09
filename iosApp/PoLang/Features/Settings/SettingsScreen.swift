@@ -14,14 +14,14 @@ struct SettingsScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 10) {
+            VStack(spacing: 14) {
                 accountHeroCard
                 themeCard
                 languageCard
                 categoryGrid
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(String(localized: "Settings"))
@@ -85,7 +85,7 @@ struct SettingsScreen: View {
                 filterChip("dark", label: String(localized: "Dark"))
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -104,7 +104,7 @@ struct SettingsScreen: View {
                 filterChip("chinese_traditional", label: "繁體中文", isSelected: appLanguage == "chinese_traditional")
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -166,7 +166,7 @@ struct SettingsScreen: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(16)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
 
