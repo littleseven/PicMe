@@ -1,5 +1,6 @@
 package com.mamba.picme.agent.core.inference.remote
 
+import com.mamba.picme.agent.core.model.command.AgentCommand
 import com.mamba.picme.agent.core.model.context.AgentAction
 
 /**
@@ -17,14 +18,17 @@ import com.mamba.picme.agent.core.model.context.AgentAction
  * @property message 文本内容（TextReply.message / Error.message / 空串）
  * @property query 搜索关键词（仅 media_results 有值）
  * @property totalCount 命中数量（仅 media_results）
- * @property mediaIds 命中媒体 id 列表（仅 media_results，用于 Swift 取缩略图）
+ * @property mediaIds 媒体 id 列表（media_results = 命中集；success = 直通命令的目标媒体）
+ * @property command 命令方法名（仅 success 有值，如 view_media/select_media/share_media；
+ *   Swift 据此执行跳转/选中/分享等 UI 直通动作）
  */
 data class ChatUiActionDto(
     val kind: String,
     val message: String = "",
     val query: String = "",
     val totalCount: Long = 0,
-    val mediaIds: List<Long> = emptyList()
+    val mediaIds: List<Long> = emptyList(),
+    val command: String = ""
 ) {
 
     companion object {
@@ -49,13 +53,25 @@ data class ChatUiActionDto(
                 message = action.message
             )
             is AgentAction.Success -> ChatUiActionDto(
-                kind = KIND_SUCCESS
+                kind = KIND_SUCCESS,
+                mediaIds = mediaIdsOf(action.command),
+                command = AgentCommand.getMethodName(action.command)
             )
             is AgentAction.Error -> ChatUiActionDto(
                 kind = KIND_ERROR,
                 message = action.message
             )
             is AgentAction.BatchResult -> null
+        }
+
+        /** 提取直通命令的目标媒体 id（id 为 String 化的 Long，解析失败项丢弃）。 */
+        private fun mediaIdsOf(command: AgentCommand): List<Long> = when (command) {
+            is AgentCommand.ViewMedia -> listOfNotNull(command.mediaId?.toLongOrNull())
+            is AgentCommand.SelectMedia -> listOfNotNull(command.mediaId.toLongOrNull())
+            is AgentCommand.ShareMedia -> command.mediaIds.mapNotNull { it.toLongOrNull() }
+            is AgentCommand.DeleteMedia -> command.mediaIds.mapNotNull { it.toLongOrNull() }
+            is AgentCommand.FavoriteMedia -> listOfNotNull(command.mediaId.toLongOrNull())
+            else -> emptyList()
         }
     }
 }
