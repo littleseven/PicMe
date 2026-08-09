@@ -19,6 +19,7 @@ private final class StubBridge: NSObject, IosMediaRepositoryBridge {
     func addChangeListener(listener: @escaping () -> Void) {}
     func removeChangeListener() {}
     func deleteMedia(localIdentifiers: [String]) -> Bool { true }
+    func setFavorite(localIdentifier: String, favorite: Bool) -> Bool { true }
 }
 
 @MainActor

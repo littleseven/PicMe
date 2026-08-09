@@ -53,10 +53,10 @@ struct ChatView: View {
                 Button {
                     viewModel.clearHistory()
                 } label: {
-                    Image(matIcon: "trash")
-                        .font(.system(size: 20))
+                    MatIcon(name: "trash", size: 20)
                         .foregroundColor(.white.opacity(0.4))
                 }
+                .accessibilityIdentifier("chat_clear")
             }
 
             // 停止按钮（推理中显示）
@@ -68,6 +68,7 @@ struct ChatView: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white.opacity(0.6))
                 }
+                .accessibilityIdentifier("chat_stop")
             }
 
             // 输入框
@@ -81,14 +82,15 @@ struct ChatView: View {
                 .lineLimit(1...4)
                 .submitLabel(.send)
                 .onSubmit(send)
+                .accessibilityIdentifier("chat_input")
 
             // 发送按钮
             Button(action: send) {
-                Image(matIcon: "arrow.up")
-                    .font(.system(size: 20))
+                MatIcon(name: "arrow.up", size: 20)
                     .foregroundColor(canSend ? .white : .white.opacity(0.3))
             }
             .disabled(!canSend)
+            .accessibilityIdentifier("chat_send")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -124,6 +126,7 @@ private struct MessageBubble: View {
                         .padding(.vertical, 10)
                         .background(bubbleColor)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .accessibilityIdentifier(message.role == .user ? "chat_user_bubble" : "chat_ai_bubble")
                 }
 
                 // 流式光标
@@ -191,6 +194,7 @@ private struct MediaCardRow: View {
                 }
             }
         }
+        .accessibilityIdentifier("chat_media_row")
     }
 }
 

@@ -35,6 +35,20 @@
                ReferencedContainer = "container:PoLang.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "912B5FFBF91CEB7CD4147AB3"
+               BuildableName = "PoLangUITests.xctest"
+               BlueprintName = "PoLangUITests"
+               ReferencedContainer = "container:PoLang.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -61,6 +75,17 @@
                BlueprintIdentifier = "8B5E6BAF2CEC47A1D4FAEB48"
                BuildableName = "PoLangTests.xctest"
                BlueprintName = "PoLangTests"
+               ReferencedContainer = "container:PoLang.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "912B5FFBF91CEB7CD4147AB3"
+               BuildableName = "PoLangUITests.xctest"
+               BlueprintName = "PoLangUITests"
                ReferencedContainer = "container:PoLang.xcodeproj">
             </BuildableReference>
          </TestableReference>
