@@ -1656,6 +1656,29 @@
           }
         }
       }
+    },
+    "Makeup (Phase 6)": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "妆容（Phase 6）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Makeup (Phase 6)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メイク（Phase 6）"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

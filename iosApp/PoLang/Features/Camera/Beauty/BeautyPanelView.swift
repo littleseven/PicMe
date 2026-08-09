@@ -153,7 +153,7 @@ private struct BeautySliderRow: View {
 private struct MakeupPlaceholderContent: View {
     var body: some View {
         VStack(spacing: 12) {
-            Text("Makeup (Phase 6)")
+            Text(String(localized: "Makeup (Phase 6)"))
                 .font(.system(size: 14))
                 .foregroundColor(.white.opacity(0.4))
         }
