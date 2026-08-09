@@ -84,8 +84,8 @@ class AdminViewsTest {
     @Test
     fun `devices page lists masked ids quota and delete action`() {
         val rows = listOf(
-            DeviceRow(1, "abcdef••••7890", 5, 1_700_000_000_000L, 1_700_000_001_000L),
-            DeviceRow(2, "zzzzzz••••1111", 100, 1_700_000_000_000L, 1_700_000_002_000L),
+            DeviceRow(1, "abcdef••••7890", 5, 1_700_000_000_000L, 1_700_000_001_000L, "android"),
+            DeviceRow(2, "zzzzzz••••1111", 100, 1_700_000_000_000L, 1_700_000_002_000L, "ios"),
         )
         val html = AdminViews.devicesPage(rows, usersCount = 3L, guestLimit = 100)
         assertTrue(html.contains("未注册设备"))
@@ -97,6 +97,34 @@ class AdminViewsTest {
         assertTrue(html.contains("5 / 100"))
         assertTrue(html.contains("100 / 100")) // 超额行
         assertTrue(html.contains("btn-danger")) // 删除按钮
+        assertTrue(html.contains("平台")) // 表头
+        assertTrue(html.contains("android"))
+        assertTrue(html.contains("ios"))
+    }
+
+    @Test
+    fun `devices page renders platform filter tabs and highlights active`() {
+        val rows = listOf(
+            DeviceRow(1, "abcdef••••7890", 5, 1L, 2L, "android"),
+        )
+        // no filter → "全部" active
+        val htmlAll = AdminViews.devicesPage(rows, usersCount = 1L, guestLimit = 100)
+        assertTrue(htmlAll.contains("""href="/admin/devices" class="ctrl active">全部"""))
+        assertTrue(htmlAll.contains("/admin/devices?platform=android"))
+        assertTrue(htmlAll.contains("/admin/devices?platform=ios"))
+
+        // ios filter → "iOS" active
+        val htmlIos = AdminViews.devicesPage(rows, usersCount = 1L, guestLimit = 100, platformFilter = "ios")
+        assertTrue(htmlIos.contains("""href="/admin/devices?platform=ios" class="ctrl active">iOS"""))
+    }
+
+    @Test
+    fun `devices page shows dash for null platform`() {
+        val rows = listOf(
+            DeviceRow(1, "abcdef••••7890", 5, 1L, 2L, null),
+        )
+        val html = AdminViews.devicesPage(rows, usersCount = 0L, guestLimit = 100)
+        assertTrue(html.contains("—"))
     }
 
 }

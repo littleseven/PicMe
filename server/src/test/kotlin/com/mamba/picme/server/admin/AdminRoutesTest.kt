@@ -175,6 +175,7 @@ class AdminRoutesTest {
                 it[AnonymousDevices.llmCallsUsed] = 7
                 it[AnonymousDevices.createdAt] = 1_700_000_000_000L
                 it[AnonymousDevices.lastSeenAt] = 1_700_000_001_000L
+                it[AnonymousDevices.platform] = "android"
             }
         }
         application { routing { adminRoute(token, cos, balance) } }
@@ -190,6 +191,8 @@ class AdminRoutesTest {
         assertTrue(html.contains("abcdef••••7890")) // 掩码
         assertTrue(html.contains("7 / 100")) // 额度
         assertTrue(html.contains("/admin/devices/5/delete"))
+        assertTrue(html.contains("平台")) // 表头
+        assertTrue(html.contains("android")) // platform 值
 
         // raw 返回完整 device_id（cookie 鉴权）
         val raw = c.get("/admin/devices/5/raw") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
@@ -204,6 +207,60 @@ class AdminRoutesTest {
         val del = c.post("/admin/devices/5/delete") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
         assertEquals(HttpStatusCode.Found, del.status)
         assertEquals("/admin/devices", del.headers[HttpHeaders.Location])
+    }
+
+    @Test
+    fun `devices page filters by platform`() = testApplication {
+        TestDb.init(Accounts, LlmCallLogs, AnonymousDevices)
+        transaction(Db.instance) {
+            Accounts.insert {
+                it[Accounts.id] = 1
+                it[Accounts.email] = "a@x.com"
+                it[Accounts.tokenHash] = "h1"
+                it[Accounts.status] = "active"
+                it[Accounts.llmCallsUsed] = 0
+                it[Accounts.llmCallsLimit] = 100
+                it[Accounts.createdAt] = 1_700_000_000_000L
+            }
+            AnonymousDevices.insert {
+                it[AnonymousDevices.id] = 5
+                it[AnonymousDevices.deviceId] = "android_device_001"
+                it[AnonymousDevices.llmCallsUsed] = 3
+                it[AnonymousDevices.createdAt] = 1_700_000_000_000L
+                it[AnonymousDevices.lastSeenAt] = 1_700_000_001_000L
+                it[AnonymousDevices.platform] = "android"
+            }
+            AnonymousDevices.insert {
+                it[AnonymousDevices.id] = 6
+                it[AnonymousDevices.deviceId] = "ios_device_000002"
+                it[AnonymousDevices.llmCallsUsed] = 5
+                it[AnonymousDevices.createdAt] = 1_700_000_000_000L
+                it[AnonymousDevices.lastSeenAt] = 1_700_000_002_000L
+                it[AnonymousDevices.platform] = "ios"
+            }
+        }
+        application { routing { adminRoute(token, cos, balance) } }
+        val c = createClient { followRedirects = false }
+
+        // 无筛选：2 台
+        val all = c.get("/admin/devices") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        val allHtml = all.bodyAsText()
+        assertTrue(allHtml.contains("未注册设备 (2)"))
+        // device_id 掩码：take(6)+••••+takeLast(4)
+        assertTrue(allHtml.contains("androi••••_001"))
+        assertTrue(allHtml.contains("ios_de••••0002"))
+
+        // 筛选 android：只显示 android 设备
+        val android = c.get("/admin/devices?platform=android") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        val androidHtml = android.bodyAsText()
+        assertTrue(androidHtml.contains("androi••••_001"))
+        assertTrue(!androidHtml.contains("ios_de••••0002"))
+
+        // 筛选 ios：只显示 ios 设备
+        val ios = c.get("/admin/devices?platform=ios") { cookie(AdminAuth.COOKIE_NAME, cookieVal) }
+        val iosHtml = ios.bodyAsText()
+        assertTrue(iosHtml.contains("ios_de••••0002"))
+        assertTrue(!iosHtml.contains("androi••••_001"))
     }
 
     @Test
