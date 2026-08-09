@@ -279,8 +279,14 @@ private struct ZoomablePagerPage: View {
         .onChange(of: isActive) { active in  // iOS 16 部署目标：用单参闭包形式
             if !active { resetZoom() } else { detectIfNeeded() }
         }
-        .onChange(of: showFaceOverlay) { on in
-            if on { detectIfNeeded() } else { faceState = .idle }
+        .task(id: showFaceOverlay) {
+            // 用 .task(id:) 而非 onChange：父层开关变化在 TabView 页面里 onChange 偶发不触发，
+            // .task(id:) 在 id 变化时必然重跑，更可靠地驱动 detectIfNeeded。
+            guard showFaceOverlay else {
+                faceState = .idle
+                return
+            }
+            detectIfNeeded()
         }
         .task(id: localIdentifier) {
             faceState = .idle  // 切页重置：新图重新走 idle→loading→...
