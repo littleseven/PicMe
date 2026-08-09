@@ -32,7 +32,7 @@ struct FilterSelectorView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.53)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.50) // 对标 Android ControlPanel PANEL_HEIGHT_RATIO=0.50
         .accessibilityIdentifier("filter_selector")
     }
 }

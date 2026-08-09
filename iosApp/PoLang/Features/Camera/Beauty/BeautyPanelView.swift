@@ -42,7 +42,7 @@ struct BeautyPanelView: View {
             }
             .padding(.vertical, 8)
         }
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.38)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.35) // 对标 Android BeautyPanel PANEL_HEIGHT_RATIO=0.35
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)

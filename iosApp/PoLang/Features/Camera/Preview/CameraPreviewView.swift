@@ -446,7 +446,7 @@ struct CircleIconButton: View {
                     )
                 if hasIndicator {
                     Circle()
-                        .fill(Color(red: 0.0, green: 0.9, blue: 0.4)) // 绿色 badge
+                        .fill(Color.accentColor) // 启用 badge（对标 Android primary 色）
                         .frame(width: 8, height: 8)
                         .overlay(Circle().stroke(Color.black.opacity(0.6), lineWidth: 1))
                         .padding(.top, 4)
