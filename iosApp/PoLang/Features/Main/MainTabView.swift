@@ -44,7 +44,10 @@ struct MainTabView: View {
                     .environmentObject(container)
             }
             if currentPage == 3 {
-                PlaceholderPage(title: String(localized: "People Coming Soon"))
+                PersonView(onBack: {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
+                })
+                .environmentObject(container)
             }
 
             // 打标占位 push

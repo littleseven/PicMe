@@ -185,7 +185,7 @@ struct SettingsScreen: View {
                 NavigationLink { CommunicationChannelView() } label: { cardContent }
             case .people:
                 NavigationLink {
-                    Text("Coming Soon")
+                    PersonView().environmentObject(AppContainer.shared)
                 } label: { cardContent }
             case .developer:
                 NavigationLink { DeveloperSettingsView() } label: { cardContent }

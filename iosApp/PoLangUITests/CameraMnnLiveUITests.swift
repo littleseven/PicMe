@@ -42,12 +42,8 @@ final class CameraMnnLiveUITests: XCTestCase {
         // 3. 等 MNN 异步加载模型（initDetector 在 queue.async）+ 检测镜头前人脸
         sleep(8)
 
-        // 4. 展开 DebugOverlay，使 face.mnn: 106pts / face.engine.active: MNN 等遥测入屏
-        let summary = app.descendants(matching: .any)["debug_summary"].firstMatch
-        if summary.waitForExistence(timeout: 3) {
-            summary.tap()
-            sleep(1)  // 等展开动画 + 遥测刷新
-        }
+        // 4. DebugOverlay 默认展开，face.mnn / face.engine.active / camera.fps 等遥测已入屏
+        sleep(1)  // 等遥测刷新
 
         // 5. 采集（MNN + 瘦脸 40）
         attach("camera_mnn_live_slim40")

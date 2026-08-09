@@ -183,7 +183,7 @@ final class PersonDetailViewModel: ObservableObject {
                 subjectPersonId: personId,
                 objectPersonId: objectPersonId,
                 predicate: predicate,
-                source: RelationSource.RENAME_DIALOG.name,  // iOS 暂无聊天声明通道，统一记为对话框来源
+                source: RelationSource.renameDialog.name,  // iOS 暂无聊天声明通道，统一记为对话框来源
                 customLabel: nil)
             reload()
         } catch {

@@ -30,11 +30,8 @@ final class SlimOffUITests: XCTestCase {
         XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
         sleep(8)  // 等 MNN 异步加载 + 检测同一张人脸
-        let summary = app.descendants(matching: .any)["debug_summary"].firstMatch
-        if summary.waitForExistence(timeout: 3) {
-            summary.tap()
-            sleep(1)
-        }
+        // DebugOverlay 默认展开，无需点击
+        sleep(1)  // 等遥测刷新
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = "slim0_face"
         attachment.lifetime = .keepAlways

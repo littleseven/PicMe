@@ -1,12 +1,12 @@
 import SwiftUI
 
 /// iOS 设备日志工具链不可用（spike 实测），内部状态直接画屏。
-/// 🟡 P1.5: 对齐 Android「顶部一行小字」形式，默认折叠仅显示摘要行
+/// 🟡 P1.5: 对齐 Android「顶部一行小字」形式；默认展开（验收期直接显示全部遥测）。
 @MainActor
 final class DebugOverlayState: ObservableObject {
     static let shared = DebugOverlayState()
     @Published private(set) var entries: [(key: String, value: String)] = []
-    @Published var isExpanded = false
+    @Published var isExpanded = true  // 默认展开（验收期直接显示 face.mnn/face.engine.active/camera.fps；点摘要行可折叠）
     private var map: [String: String] = [:]
     var isEnabled = true
 
@@ -48,18 +48,14 @@ struct DebugOverlayView: View {
         }
     }
 
-    /// 一行摘要：face + fps + 错误（对标 Android 顶部状态行）
+    /// 一行摘要：当前人脸引擎 + fps（对标 Android 顶部状态行）
+    /// 读 `face.engine.active`（MNN/MediaPipe）；此前误读从不写入的 `face.engine` → 恒显 OFF。
     private var summaryLine: some View {
         let fps = state.entries.first { $0.key == "camera.fps" }?.value ?? "--"
-        let face = state.entries.first { $0.key == "face.engine" }?.value
-        let faceStr: String
-        if let face, face == "ok" {
-            faceStr = "ACTIVE"
-        } else {
-            faceStr = "OFF"
-        }
+        let engine = state.entries.first { $0.key == "face.engine.active" }?.value
+        let engineStr = engine ?? "OFF"
         let arrow = state.isExpanded ? "▲" : "▼"
-        return Text("Beauty: \(faceStr) \(fps)fps \(arrow)")
+        return Text("Beauty: \(engineStr) \(fps)fps \(arrow)")
             .font(.system(size: 11, design: .monospaced))
             .foregroundColor(.green)
     }
@@ -69,6 +65,7 @@ struct DebugOverlayView: View {
     DebugOverlayView()
         .onAppear {
             DebugOverlayState.shared.set("camera.fps", "30")
-            DebugOverlayState.shared.set("face.engine", "ok")
+            DebugOverlayState.shared.set("face.engine.active", "MNN")
+            DebugOverlayState.shared.set("face.mnn", "106pts")
         }
 }
