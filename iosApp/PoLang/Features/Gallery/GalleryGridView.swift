@@ -343,6 +343,7 @@ private final class GalleryPreviewBridge: NSObject, IosMediaRepositoryBridge {
     func addChangeListener(listener: @escaping () -> Void) {}
     func removeChangeListener() {}
     func deleteMedia(localIdentifiers: [String]) -> Bool { true }
+    func setFavorite(localIdentifier: String, favorite: Bool) -> Bool { true }
 }
 
 private func previewRepository(itemCount: Int) -> IosMediaRepository {

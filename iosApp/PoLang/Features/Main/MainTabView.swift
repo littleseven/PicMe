@@ -28,9 +28,10 @@ struct MainTabView: View {
                     .environmentObject(container)
             }
 
-            // 聊天/人物占位页
+            // 聊天页（Phase 6.2）
             if currentPage == 2 {
-                PlaceholderPage(title: String(localized: "Chat Coming Soon"))
+                ChatView()
+                    .environmentObject(container)
             }
             if currentPage == 3 {
                 PlaceholderPage(title: String(localized: "People Coming Soon"))
