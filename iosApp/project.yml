@@ -33,6 +33,7 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: "PoLang needs camera access for real-time beauty preview and photo capture."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "PoLang needs photo library access to browse and save photos."
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "PoLang needs permission to save beauty-enhanced photos to your library."
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         METAL_LANGUAGE_VERSION: "2.4"
 
   PoLangTests:
