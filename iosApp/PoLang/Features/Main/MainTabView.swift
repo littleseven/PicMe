@@ -87,9 +87,14 @@ struct MainTabView: View {
                 }
         )
         // 调试悬浮窗仅相机页（排查美颜/快门用），其余页面不干扰观感
-        .overlay(alignment: .top) {
+        // 🔴 避让相机控件：顶推 116pt 越过左列按钮区（safeTop 系坐标：8 + 2×48+8 + 4 余量），
+        //    右缘收 76pt 避开右列按钮（48 按钮 + 16 边距 + 余量），宽度封顶防长行伸进右列
+        .overlay(alignment: .topLeading) {
             if currentPage == 0 {
                 DebugOverlayView()
+                    .frame(maxWidth: UIScreen.main.bounds.width - 84, alignment: .leading)
+                    .padding(.leading, 4)
+                    .padding(.top, 116)
             }
         }
     }
