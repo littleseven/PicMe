@@ -63,7 +63,7 @@
 ### `.kimi-code/hooks.toml`(SSOT 配置片段)
 
 ```toml
-# >>> polang kimi-code hooks (managed; SSOT=polang/.kimi-code/hooks.toml; 勿手改) >>>
+# >>> polang kimi-code hooks (managed; SSOT=polang/.kimi-code/hooks.toml) >>>
 [[hooks]]
 event = "PostToolUse"
 matcher = "Edit|Write"
