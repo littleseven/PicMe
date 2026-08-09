@@ -85,6 +85,7 @@ object AnonymousDevices : Table("anonymous_device") {
     val llmCallsUsed = integer("llm_calls_used").default(0)
     val createdAt = long("created_at")
     val lastSeenAt = long("last_seen_at")
+    val platform = varchar("platform", 16).nullable() // android | ios | null（老数据）
     override val primaryKey = PrimaryKey(id)
 
     init {

@@ -20,7 +20,7 @@ object GuestService {
 
     data class GuestQuotaResult(val allowed: Boolean, val remaining: Int)
 
-    suspend fun checkAndIncrementQuota(deviceId: String, limit: Int): GuestQuotaResult {
+    suspend fun checkAndIncrementQuota(deviceId: String, limit: Int, platform: String? = null): GuestQuotaResult {
         val now = Instant.now().toEpochMilli()
         return newSuspendedTransaction(Dispatchers.IO, Db.instance) {
             val row = AnonymousDevices.selectAll()
@@ -34,6 +34,7 @@ object GuestService {
                     it[AnonymousDevices.llmCallsUsed] = 1
                     it[AnonymousDevices.createdAt] = now
                     it[AnonymousDevices.lastSeenAt] = now
+                    it[AnonymousDevices.platform] = platform
                 }
                 GuestQuotaResult(true, (limit - 1).coerceAtLeast(0))
             } else {

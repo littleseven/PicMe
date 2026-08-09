@@ -123,9 +123,15 @@ fun Route.adminRoute(
 
         get("/devices") {
             if (!call.adminGuard(adminToken)) return@get
-            val rows = AdminQueries.devicesList()
+            val platformFilter = call.request.queryParameters["platform"]?.takeIf { it.isNotBlank() }
+            val rows = AdminQueries.devicesList(platform = platformFilter)
             call.respondText(
-                AdminViews.devicesPage(rows, AdminQueries.usersCount(), SettingsService.snapshot().guestLlmQuota),
+                AdminViews.devicesPage(
+                    rows,
+                    AdminQueries.usersCount(),
+                    SettingsService.snapshot().guestLlmQuota,
+                    platformFilter,
+                ),
                 ContentType.Text.Html,
             )
         }

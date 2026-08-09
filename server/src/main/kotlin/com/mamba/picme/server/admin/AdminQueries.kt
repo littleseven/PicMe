@@ -106,6 +106,7 @@ data class DeviceRow(
     val llmCallsUsed: Int,
     val createdAt: Long,
     val lastSeenAt: Long,
+    val platform: String?,
 )
 
 data class ChannelUsage(
@@ -451,9 +452,14 @@ object AdminQueries {
                 }
         }
 
-    suspend fun devicesList(limit: Int = 1000): List<DeviceRow> =
+    suspend fun devicesList(limit: Int = 1000, platform: String? = null): List<DeviceRow> =
         newSuspendedTransaction(Dispatchers.IO, Db.instance) {
-            AnonymousDevices.selectAll()
+            val query = if (!platform.isNullOrBlank()) {
+                AnonymousDevices.selectAll().where { AnonymousDevices.platform eq platform }
+            } else {
+                AnonymousDevices.selectAll()
+            }
+            query
                 .orderBy(AnonymousDevices.lastSeenAt to SortOrder.DESC)
                 .limit(limit)
                 .map { r ->
@@ -463,6 +469,7 @@ object AdminQueries {
                         llmCallsUsed = r[AnonymousDevices.llmCallsUsed],
                         createdAt = r[AnonymousDevices.createdAt],
                         lastSeenAt = r[AnonymousDevices.lastSeenAt],
+                        platform = r[AnonymousDevices.platform],
                     )
                 }
         }

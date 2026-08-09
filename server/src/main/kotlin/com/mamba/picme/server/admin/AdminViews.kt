@@ -182,12 +182,26 @@ object AdminViews {
         }
     }
 
-    fun devicesPage(rows: List<DeviceRow>, usersCount: Long, guestLimit: Int): String = createHTML().html {
+    fun devicesPage(
+        rows: List<DeviceRow>,
+        usersCount: Long,
+        guestLimit: Int,
+        platformFilter: String? = null,
+    ): String = createHTML().html {
         adminHead("未注册设备 · PoLang 管理后台")
         body {
             navBar()
             userTabs(usersCount, rows.size.toLong(), "/admin/devices")
             h1 { +"未注册设备（${rows.size}）" }
+            div("page-controls") {
+                div("ctrl-group") {
+                    val current = platformFilter ?: "all"
+                    listOf("all" to "全部", "android" to "Android", "ios" to "iOS").forEach { (v, label) ->
+                        val href = if (v == "all") "/admin/devices" else "/admin/devices?platform=$v"
+                        a(href, classes = if (v == current) "ctrl active" else "ctrl") { +label }
+                    }
+                }
+            }
             p("meta") { +"按最后活跃倒序;数据量大时仅展示最近 1000 条" }
             if (rows.isEmpty()) {
                 div("card apk-empty") {
@@ -198,6 +212,7 @@ object AdminViews {
                     tr {
                         th { +"ID" }
                         th { +"Device ID" }
+                        th { +"平台" }
                         th { +"额度（已用 / 上限）" }
                         th { +"首次出现" }
                         th { +"最后活跃" }
@@ -214,6 +229,7 @@ object AdminViews {
                                     +"复制"
                                 }
                             }
+                            td { +(d.platform ?: "—") }
                             td {
                                 val text = "${d.llmCallsUsed} / $guestLimit"
                                 if (d.llmCallsUsed >= guestLimit) span("err") { +text } else +text

@@ -63,7 +63,7 @@ fun Route.llmRoute(
 
             // Quota check — account OR guest（各只增量一次）
             if (isGuest) {
-                val guest = GuestService.checkAndIncrementQuota(deviceId!!, guestLlmQuota)
+                val guest = GuestService.checkAndIncrementQuota(deviceId!!, guestLlmQuota, platform)
                 if (!guest.allowed) {
                     call.respond(
                         HttpStatusCode.Forbidden,
