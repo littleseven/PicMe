@@ -1823,10 +1823,10 @@
             "value": "正在检测人脸关键点…"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顔ランドマークを検出中…"
+            "value": "正在檢測人臉關鍵點…"
           }
         }
       }
@@ -1846,10 +1846,10 @@
             "value": "未检测到人脸"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顔が検出されませんでした"
+            "value": "未檢測到人臉"
           }
         }
       }
