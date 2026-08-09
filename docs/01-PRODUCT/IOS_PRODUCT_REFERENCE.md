@@ -159,7 +159,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | Agent 编排 | 14 个已注册 Capability（11 app/chat + 2 activity + 1 page） | ✅ | iOS 部分（仅 1 个） | `Capability` | §2.5 |
 | Agent 编排 | 远程 OpenAI tool_calls 编排（Koog） | ✅ | iOS 已有（chat 链路） | `KoogChatAgent`/`RemoteChatEngine` | §2.5 |
 | Agent 编排 | 飞书/Telegram 远程控制（跨应用 a11y RPA） | ✅ | iOS 不对齐（平台无 a11y） | — | §2.5 |
-| **人物/记忆** | 人物命名 / 全局唯一「我」标记 | ✅ | iOS 缺口 | `PersonRelationCapability` | §2.6 |
+| **人物/记忆** | 人物命名 / 全局唯一「我」标记 | ✅ | iOS 部分（UI 骨架有，后端未接） | `PersonRelationCapability` | §2.6 |
 | 人物/记忆 | 人物关系图谱（23 谓词封闭枚举 + 幂等覆盖） | ✅ | iOS 缺口 | — | §2.6 |
 | 人物/记忆 | 事实记忆（remember/forget/recall） | ✅ | iOS 缺口 | `MemoryCapability` | §2.6 |
 | 人物/记忆 | 人物封面美学选择（NIMA + eDifFIQA 加权） | ✅ | iOS 缺口 | — | §2.6 |
@@ -772,7 +772,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 **能力状态**：**已注册 main 并完整实现**（`PoLangApplication.kt:742/744` 注册 PersonRelationCapability / MemoryCapability）。
 
-> **iOS 落点**：iOS ❌ 全缺口。`iosApp/` 无 person/relation/memory/cover/aesthetic/kinship 任何实现（0 文件）。Phase 6+ 对齐，依赖人脸聚类 + TAG（Phase 6.1）先行。
+> **iOS 落点**：🔄 UI 骨架已建（`iosApp/PoLang/Features/Person/` 1311 行：`PersonView`/`PersonInfoView`/`PersonViewModel`/`PersonStore`，commit `02806687`）；但**后端未接**——关系图谱/封面美学/事实记忆均未消费 shared `PersonRelationCapability`/`MemoryCapability`（iOS 组合根 `IosAgentComposition` 仅注册 `IosChatGalleryCapability`）。命名/关系/「我」待接 shared，依赖人脸聚类（Phase 6.1 Pass2）先行。
 
 ### 2. 入口与导航
 
@@ -835,7 +835,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 ### 8. iOS 对齐要点
 
-- iOS ❌ 全缺口：人物页 UI、命名/关系/「我」、封面美学选择、KinshipLexicon、PersonQueryResolver、MemoryRepository 均无。
+- iOS 🔄 UI 骨架已有（`PersonView`/`PersonInfoView` 1311 行，commit `02806687`）；**后端缺口**：命名/关系/「我」、封面美学选择、KinshipLexicon、PersonQueryResolver、MemoryRepository 均未接 shared（iOS 组合根仅注册 1 Capability）。
 - 依赖：人脸聚类（Phase 6.1 TAG Pass2 产物）+ 人物命名/关系为上层。
 - Room → SQLDelight；NNAPI（NIMA/eDifFIQA）→ CoreML/Metal；`CoverSelector` 纯算法可共享。
 - `KinshipLexicon` / `PersonQueryResolver` 纯 Kotlin，宜下沉 `shared/commonMain` 双端复用。
@@ -1239,7 +1239,7 @@ SettingsScreen (MAIN)
 
 **命名约定**：实际为 **snake_case 小写**（非小驼峰），形如 `tag_scan_control`、`gallery_people_entry`。运行时语言切换（`attachBaseContext` + `setLocale`，EN / 简中 / 繁中 / 跟随系统，切换触发 `recreate()`）。
 
-**iOS 对齐现状**：`Localizable.xcstrings` 仅 **191** key（vs Android 981，覆盖严重不足）；语言仅 `en` + `zh-Hans`，**缺 `zh-Hant`（繁中）**；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`。
+**iOS 对齐现状**：`Localizable.xcstrings` **239** key（vs Android 981，覆盖仍不足）；三语 `en`/`zh-Hans`/`zh-Hant` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
 
 ### 3.6 设计系统
 
@@ -1307,7 +1307,7 @@ SettingsScreen (MAIN)
 | 搜索 | 整条搜索链路（Parser/Segmenter/Vocabulary/Pipeline/Engine） | 前置依赖 VLM 标签+人脸聚类+MobileCLIP+OCR+SQLite；`QueryParser` 用 `java.util.Calendar` 需换 `kotlinx-datetime` |
 | TAG | 3-Pass 流水线（RetinaFace/R100/MobileCLIP/Florence-2） | MNN Metal 后端（**precision 档位锁定坑**）+ **MetalGuardian 新设计** + FGS→BGTaskScheduler（**iOS ~30s 限制，需改增量/手动**） |
 | 编辑 | 静态美颜编辑器/抠图/证件照/AI 优化抽卡 | FBO→Metal MSL；`BeautyParams`/`FilterType`/`StyleFilter` 已 commonMain；ONNX Runtime iOS 可用；FUSION 纯数组可移植 |
-| 人物/记忆 | 人物命名/关系/「我」/封面美学/事实记忆 | Room→SQLDelight；NNAPI→CoreML/Metal；`KinshipLexicon`/`PersonQueryResolver` 纯 Kotlin 宜下沉 shared |
+| 人物/记忆 | 人物关系图谱/封面美学/事实记忆**后端**（UI 骨架 1311 行已建，未接 shared） | Room→SQLDelight；NNAPI→CoreML/Metal；`KinshipLexicon`/`PersonQueryResolver` 纯 Kotlin 宜下沉 shared |
 | 相机 | 录像（美颜录制）/ 十字星 / 风格特效 / 语音入口 | Metal 美颜录制；语音 Sherpa-ONNX iOS 单独实现 |
 | 设置 | 账号登录 / quota / WiFi 静默预下载 / 备份恢复 | `PoLangAuthClient` 等价层 + `X-Platform: ios` + `UIDocumentPicker` + App Store 2.5.2（JS 下发声明） |
 
@@ -1340,7 +1340,7 @@ SettingsScreen (MAIN)
 | N2 | i18n 命名「`[feature]_[desc]` 小驼峰」 | 实际 snake_case 小写（`tag_scan_control`） | 低 |
 | N3 | CLAUDE.md「三语：values/values-zh-rCN/values-zh-rTW」 | 额外存在 `values-zh/`（679 key，陈旧冗余） | 中 |
 | N4 | 繁中对齐 | values-zh-rTW 仅 963 key（差 18），未完全对齐 | 中 |
-| N5 | iOS 三语双端对齐 | iOS xcstrings 仅 191 key + 仅 en/zh-Hans，**无 zh-Hant** | 高 |
+| N5 | iOS 三语双端对齐 | iOS xcstrings 239 key（vs 981）+ 三语就绪（zh-Hant 2026-08-10 补齐）；~~仅 en/zh-Hans 无 zh-Hant~~（已修正） | 中（降级：仅余 key 覆盖缺口） |
 | N6 | NFR 含 LLM 首 token<2s、命令<3s、包体积<150MB | NFR_SPEC.md 无此三项 | 中 |
 
 **相册与浏览（02）**
@@ -1467,6 +1467,7 @@ SettingsScreen (MAIN)
 | 日期 | 变更 |
 |------|------|
 | 2026-08-09 | 初版。全量核验 Android main 分支 9 功能域 + 7 跨切面契约，产出 iOS 产品规格基线。iOS 状态截至 Phase 6.3。 |
+| 2026-08-10 | 漂移回写（D1/D4）：人物页 UI 骨架已落地 1311 行（原记「0 文件」）；i18n zh-Hant 已补齐、key 191→239（原记「无 zh-Hant」）。状态同步至代码实况。 |
 
 ---
 
