@@ -13,11 +13,21 @@ struct CameraPreviewView: View {
     @State private var photoController = PhotoCaptureController()
     @State private var faceRouter = FaceEngineRouter()
     /// 引擎开关镜像（值类型 @State → 触发 toggle 视图重绘；同步到 faceRouter.useMnn）
-    /// **默认 MNN 引擎**：iOS 端 MediaPipe `face_landmarker.task` 未内置（走模型中心下载，Phase 6 才做）
-    /// → MediaPipe 无检测；MNN 两阶段 RetinaFace det_500m → 2d106 已真机 live 验证可用。
-    /// 运行时仍可点顶部 MNN/MediaPipe 胶囊切换；自动化验收用 `-useMediaPipe` 强制 MediaPipe（默认 MNN）。
-    /// 瘦脸强度仍走 `-slim <Float>`（range -50..50）。
-    @State private var useMnnEngine = !Self.parseLaunchFlag("-useMediaPipe")
+    /// **来源优先级**：自动化验收启动参数(`-mnnEngine` / `-useMediaPipe`) > 设置页 `camera_use_mnn`(默认 true)。
+    /// iOS 端 MediaPipe `face_landmarker.task` 未内置（走模型中心下载，Phase 6 才做）→ MediaPipe 无检测，
+    /// 故默认 MNN；MNN 两阶段 RetinaFace det_500m → 2d106 已真机 live 验证可用。
+    /// 运行时仍可点顶部 MNN/MediaPipe 胶囊切换，或在 设置→相机与美颜 切换默认引擎。
+    /// 瘦脸强度走 设置→相机与美颜（持久化）或 `-slim <Float>`（验收覆盖，range -50..50）。
+    @State private var useMnnEngine = Self.resolveUseMnn()
+    /// 设置页引擎默认值镜像（@AppStorage 持久化；onChange 实时同步到 faceRouter，设置页改即生效）
+    @AppStorage("camera_use_mnn") private var settingsUseMnn = true
+
+    /// 引擎默认值解析：启动参数覆盖 > 设置页持久值 > 兜底 MNN(true)
+    private static func resolveUseMnn() -> Bool {
+        if parseLaunchFlag("-useMediaPipe") { return false }
+        if parseLaunchFlag("-mnnEngine") { return true }
+        return (UserDefaults.standard.object(forKey: "camera_use_mnn") as? Bool) ?? true
+    }
 
     /// 启动参数解析（与 MainTabView -startPage 同模式；仅自动化验收用，不影响产品默认）。
     private static func parseLaunchFlag(_ key: String) -> Bool {
@@ -80,13 +90,31 @@ struct CameraPreviewView: View {
             MnnSelfTest.runIfRequested()
             authorized = await controller.checkAuthorizationAndStart()
             DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
-            // 自动化验收：启动参数指定引擎 / 瘦脸强度（不改变产品默认）
+            // Debug 叠加层：设置页开关控制（默认启用，验收期直接看遥测）
+            DebugOverlayState.shared.isEnabled =
+                (UserDefaults.standard.object(forKey: "camera_debug_overlay") as? Bool) ?? true
+            // 引擎：启动参数 > 设置页；自动化验收用 -mnnEngine / -useMediaPipe 覆盖
             faceRouter.useMnn = useMnnEngine
+            // 瘦脸/大眼/形变强度：验收 -slim 覆盖；否则用设置页持久值（beauty_slim_debug 等）
             if let slim = Self.parseLaunchFloat("-slim") {
                 container.beautyParams.slimFace = slim
+            } else if let savedSlim = UserDefaults.standard.object(forKey: "beauty_slim_debug") as? Float {
+                container.beautyParams.slimFace = savedSlim
+            }
+            if let savedBigEyes = UserDefaults.standard.object(forKey: "beauty_bigeyes_debug") as? Float {
+                container.beautyParams.bigEyes = savedBigEyes
+            }
+            if let savedStrength = UserDefaults.standard.object(forKey: "beauty_warp_strength") as? Float {
+                container.beautyParams.warpStrength = savedStrength
+            }
+            // 验收覆盖：-warpStrength <Float> 强制形变倍率（A/B 排查强度；默认 1.0）
+            if let ws = Self.parseLaunchFloat("-warpStrength") {
+                container.beautyParams.warpStrength = ws
             }
             DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
-            print("[PoLang] launch.args: mnnEngine=\(useMnnEngine) slim=\(Self.parseLaunchFloat("-slim") ?? -1)")
+            print("[PoLang] launch.args: mnnEngine=\(useMnnEngine) slim=\(Self.parseLaunchFloat("-slim") ?? -1) " +
+                  "persistedSlim=\(UserDefaults.standard.object(forKey: "beauty_slim_debug") as? Float ?? -1) " +
+                  "warpStrength=\(UserDefaults.standard.object(forKey: "beauty_warp_strength") as? Float ?? 1)")
             if authorized {
                 // 🔴 串行挂载：走 capture 队列与 session 配置块保序（主线程直挂会和配置竞态）
                 controller.attachOutput(photoController.photoOutput)
@@ -98,6 +126,14 @@ struct CameraPreviewView: View {
                 }
             }
             refreshLatestThumb()
+        }
+        .onChange(of: settingsUseMnn) { v in
+            // 设置页改了默认引擎：实时同步（启动参数锁定引擎时不覆盖，保留验收确定性）
+            guard !Self.parseLaunchFlag("-mnnEngine"), !Self.parseLaunchFlag("-useMediaPipe") else { return }
+            useMnnEngine = v
+            faceRouter.useMnn = v
+            DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
+            print("[PoLang] face.engine (settings) → \(faceRouter.activeLabel)")
         }
         .onDisappear { controller.stop() }
     }

@@ -17,15 +17,22 @@ final class BeautyRenderer: NSObject {
         var slimFace: Float = 0        // -50..50 (Android)
         var bigEyes: Float = 0         // 0..100 (Android)
         var colorFilter: FilterType = .none
+        /// 🔴 调试倍率（2026-08-09）：GPUPixel point-index 瘦脸法在 ±0.2 delta 下形变较弱（~2-3% 像素位移），
+        /// 肉眼近乎不可见（用户实测「瘦脸无效」；遥测确认 hasFace=1/slim=-0.2 已达 shader，故为强度不足）。
+        /// 默认 4.0：slim 满档(±50)→ delta≈0.8 → ~8% 收窄，肉眼清晰；设置页滑杆 0..8 可调。
+        /// Android 已弃用此 point-index 法改走几何 warp.glsl（同 delta 更强），iOS 暂留此路径 + 倍率补偿。
+        var warpStrength: Float = 4.0
 
         /// shader 侧归一化值（对应 Android BeautyParamsConverter.kt + BeautyRenderer.kt 的链路）
         /// slimFace: Android BeautyParamsConverter.kt:65 → -(slimFace/50*1.35).coerceIn(-1,1)
         ///           then BeautyRenderer.kt:230 → *0.2 coerceIn(-0.2,0.2)
+        ///           iOS 追加 warpStrength 倍率（Android 无此值；仅 iOS 调试用）
         var shaderWhitening: Float { whitening / 100.0 }
         var shaderSmoothing: Float { smoothing / 100.0 }
         var shaderSlimFace: Float {
             let raw = -(slimFace / 50.0 * 1.35).clamped(-1.0...1.0)
-            return (raw * 0.2).clamped(-0.2...0.2)
+            let strength = Swift.max(0.0, warpStrength)
+            return (raw * 0.2 * strength).clamped(-1.0...1.0)
         }
         var shaderBigEyes: Float { bigEyes / 100.0 }
     }
@@ -252,12 +259,27 @@ final class BeautyRenderer: NSObject {
 
         // 周期性结构化日志（每 60 帧 ≈ 2s @30fps）
         if drawFrameCount % 60 == 0 {
+            let hasFace = facePointsBuffer != nil
             let activePasses = "yuv" +
                 (params.shaderSmoothing > 0.001 ? "+smooth" : "") +
                 (params.colorFilter != .none ? "+lut(\(params.colorFilter.rawValue))" : "") +
                 "+beauty"
-            print("[PoLang] draw.frame=\(drawFrameCount) \(activePasses) w=\(w) h=\(h) face=\(facePointsBuffer != nil) " +
+            print("[PoLang] draw.frame=\(drawFrameCount) \(activePasses) w=\(w) h=\(h) face=\(hasFace) " +
                   "whiten=\(String(format: "%.2f", params.shaderWhitening)) smooth=\(String(format: "%.2f", params.shaderSmoothing)) slim=\(String(format: "%.2f", params.shaderSlimFace)) eye=\(String(format: "%.2f", params.shaderBigEyes))")
+            // 🔴 瘦脸诊断遥测写入 DebugOverlay（设备直接可见）：
+            //   beauty.hasFace=0 → 关键点未送达 shader（warp 根本没跑），slim 必然无效；
+            //   beauty.hasFace=1 且 slim≠0 仍不可见 → 形变强度不足（调 warpStrength 放大）。
+            //   注：draw 非 @objc（不像 MTKViewDelegate），DebugOverlayState 为 @MainActor，须切主线程写。
+            let slimVal = String(format: "%.3f", params.shaderSlimFace)
+            let eyeVal = String(format: "%.3f", params.shaderBigEyes)
+            let hasFaceStr = hasFace ? "1" : "0"
+            DispatchQueue.main.async {
+                let dbg = DebugOverlayState.shared
+                dbg.set("beauty.hasFace", hasFaceStr)
+                dbg.set("beauty.slim", slimVal)
+                dbg.set("beauty.warp", "gpupixel")
+                dbg.set("beauty.eye", eyeVal)
+            }
         }
     }
 

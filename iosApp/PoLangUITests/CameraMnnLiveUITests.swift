@@ -53,6 +53,75 @@ final class CameraMnnLiveUITests: XCTestCase {
         attach("camera_mnn_live_slim40_b")
     }
 
+    /// 瘦脸强度 A/B：slim40 固定，仅 warpStrength 不同（1.0 默认 vs 5.0 放大）。
+    /// 诊断目标：若 hasFace=1、slim=-0.2 已确认（warp 在跑）但真机不可见，
+    /// 则比较 warp1 vs warp5 的人脸宽度——若 warp5 明显收窄，证明是「强度不足」。
+    func testSlimStrengthAB() throws {
+        // A: 当前实例 = slim40 + warpStrength 默认(1.0)，先稳一帧
+        let preview = app.descendants(matching: .any)["camera_preview"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
+        sleep(8)
+        attach("slim40_warp1")
+
+        // B: 重启 = slim40 + warpStrength 5.0（放大形变）
+        app.terminate()
+        app.launchArguments = ["-startPage", "0", "-mnnEngine", "-slim", "40", "-warpStrength", "5"]
+        app.launch()
+        XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪（重启后）")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
+        sleep(8)
+        attach("slim40_warp5")
+    }
+
+    /// 瘦脸 开/关 对照（默认 warpStrength=4.0）：
+    /// A/B = slim40 同设置两帧（噪声/对齐基线），C = slim0（无形变）。
+    /// 客观判定：|A−C|（瘦脸信号）应远大于 |A−B|（噪声底），且集中于下颌行。
+    func testSlimOnOffDefault() throws {
+        let preview = app.descendants(matching: .any)["camera_preview"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
+        sleep(8)
+        attach("slim40_on_A")
+        sleep(3)
+        attach("slim40_on_B")   // 同设置第二帧 = 噪声/对齐底
+
+        // C: slim0（无形变基线）
+        app.terminate()
+        app.launchArguments = ["-startPage", "0", "-mnnEngine", "-slim", "0"]
+        app.launch()
+        XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪（重启后）")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
+        sleep(8)
+        attach("slim0_off_C")
+    }
+
+    /// 导出 DebugOverlay 全部遥测行（纯文本，无图像）→ 判定 model missing / engine / hasFace。
+    /// 诊断「model 并未找到」：区分 (a) 模型文件缺失 face.mnn.error=model missing，
+    /// 还是 (b) 模型已加载但未检测到人脸 face.mnn=<debugInfo>。
+    func testDumpOverlayTelemetry() throws {
+        let preview = app.descendants(matching: .any)["camera_preview"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
+        sleep(12)  // 等 MNN 异步加载 + 若干检测帧 + 遥测刷新
+        // 再稳一帧后重采
+        sleep(3)
+
+        var lines: [String] = []
+        let summary = app.descendants(matching: .any)["debug_summary"].firstMatch
+        if summary.exists { lines.append("SUMMARY: \(summary.label)") }
+        let entries = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'debug_entry_'"))
+        for i in 0..<entries.count {
+            let e = entries.element(boundBy: i)
+            if e.exists { lines.append(e.label) }
+        }
+        lines.sort()
+        let dump = lines.isEmpty ? "<no overlay entries>" : lines.joined(separator: "\n")
+        let att = XCTAttachment(string: dump)
+        att.name = "overlay_dump.txt"; att.lifetime = .keepAlways
+        add(att)
+    }
+
     // MARK: - helpers
 
     private func attach(_ name: String) {

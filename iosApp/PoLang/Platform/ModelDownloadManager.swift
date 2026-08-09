@@ -98,8 +98,7 @@ final class ModelDownloadManager: ObservableObject {
 
     func cancel(_ modelId: String) {
         cancelledModels.insert(modelId)
-        let dir = modelsDir.appendingPathComponent(modelId)
-        try? FileManager.default.removeItem(at: dir)
+        // 不删文件——保留已下载部分供下次续传
         downloadStates.removeValue(forKey: modelId)
     }
 
@@ -170,62 +169,107 @@ final class ModelDownloadManager: ObservableObject {
         }
     }
 
-    /// 流式下载：用 URLSession.bytes 逐块写入文件，实时报告进度
+    /// 流式下载：用 URLSession 下载数据块写入文件，实时报告进度
+    /// 支持 Range 续传（如目标文件已有部分数据，从断点继续）
     private func downloadFileStreaming(
         url: URL, to destUrl: URL, modelId: String,
         bytesAlreadyDownloaded: Int64, totalModelSize: Int64
     ) async throws -> Int64 {
-        let (bytes, response) = try await URLSession.shared.bytes(from: url)
-        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
+        // 检查已有文件大小（断点续传）
+        var existingSize: Int64 = 0
+        if FileManager.default.fileExists(atPath: destUrl.path) {
+            existingSize = (try? FileManager.default.attributesOfItem(atPath: destUrl.path)[.size] as? Int64) ?? 0
+        }
+
+        // 构建请求（带 Range 头支持续传）
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 60
+        if existingSize > 0 {
+            request.setValue("bytes=\(existingSize)-", forHTTPHeaderField: "Range")
+        }
+
+        // 用 URLSession 的 data task with delegate 获取块级回调
+        let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
+
+        let httpResp = response as? HTTPURLResponse
+        let statusCode = httpResp?.statusCode ?? 0
+        // 200 = 全新下载, 206 = Range 续传成功
+        guard statusCode == 200 || statusCode == 206 else {
             throw URLError(.badServerResponse)
         }
 
-        // 获取 Content-Length 用于此文件的进度
-        let fileTotalBytes = Int64(httpResp.value(forHTTPHeaderField: "Content-Length") ?? "") ?? 0
-        var fileDownloaded: Int64 = 0
-        var lastReportTime = Date()
-        var buffer = Data()
-        buffer.reserveCapacity(bufferSize)
+        let isResuming = (statusCode == 206)
+        let contentLength = Int64(httpResp?.value(forHTTPHeaderField: "Content-Length") ?? "") ?? 0
+        let fileTotalSize = isResuming ? existingSize + contentLength : contentLength
 
-        FileManager.default.createFile(atPath: destUrl.path, contents: nil)
-        let fileHandle = try FileHandle(forWritingTo: destUrl)
+        // 打开文件（追加模式 or 新建）
+        if isResuming {
+            // 追加写入已有文件
+            guard let fileHandle = try? FileHandle(forWritingTo: destUrl) else {
+                throw URLError(.cannotOpenFile)
+            }
+            try fileHandle.seekToEnd()
+            return try await writeBytes(asyncBytes, to: fileHandle, modelId: modelId,
+                                        bytesAlreadyDownloaded: bytesAlreadyDownloaded + existingSize,
+                                        startingOffset: existingSize)
+        } else {
+            // 全新文件
+            FileManager.default.createFile(atPath: destUrl.path, contents: nil)
+            guard let fileHandle = try? FileHandle(forWritingTo: destUrl) else {
+                throw URLError(.cannotOpenFile)
+            }
+            return try await writeBytes(asyncBytes, to: fileHandle, modelId: modelId,
+                                        bytesAlreadyDownloaded: bytesAlreadyDownloaded,
+                                        startingOffset: 0)
+        }
+    }
+
+    /// 高效写入：按块（而非逐字节）读取 async bytes
+    private func writeBytes(
+        _ bytes: URLSession.AsyncBytes,
+        to fileHandle: FileHandle,
+        modelId: String,
+        bytesAlreadyDownloaded: Int64,
+        startingOffset: Int64
+    ) async throws -> Int64 {
+        var downloaded: Int64 = startingOffset
+        var lastReportTime = Date()
+        let chunkSize = 64 * 1024  // 64KB 块读取（非逐字节）
+        var chunk = Data()
+        chunk.reserveCapacity(chunkSize)
 
         do {
             for try await byte in bytes {
                 if cancelledModels.contains(modelId) {
                     try? fileHandle.close()
-                    try? FileManager.default.removeItem(at: destUrl)
-                    return 0
+                    // 不删文件——保留已下载部分供续传
+                    return downloaded - startingOffset
                 }
 
-                buffer.append(byte)
-                fileDownloaded += 1
+                chunk.append(byte)
+                downloaded += 1
 
-                if buffer.count >= bufferSize {
-                    try fileHandle.write(contentsOf: buffer)
-                    buffer.removeAll(keepingCapacity: true)
+                if chunk.count >= chunkSize {
+                    try fileHandle.write(contentsOf: chunk)
+                    chunk.removeAll(keepingCapacity: true)
 
-                    // 节流：500ms 或 1MB 上报一次
+                    // 节流进度上报：500ms
                     let now = Date()
-                    if now.timeIntervalSince(lastReportTime) > 0.5 || fileDownloaded % (1024*1024) == 0 {
-                        let cumulative = bytesAlreadyDownloaded + fileDownloaded
-                        updateProgress(modelId, cumulative)
+                    if now.timeIntervalSince(lastReportTime) > 0.5 {
+                        updateProgress(modelId, bytesAlreadyDownloaded + downloaded - startingOffset)
                         lastReportTime = now
                     }
                 }
             }
 
-            // 写入剩余缓冲
-            if !buffer.isEmpty {
-                try fileHandle.write(contentsOf: buffer)
+            // 写入最后一块
+            if !chunk.isEmpty {
+                try fileHandle.write(contentsOf: chunk)
             }
             try fileHandle.close()
 
-            // 最终进度上报
-            let cumulative = bytesAlreadyDownloaded + fileDownloaded
-            updateProgress(modelId, cumulative)
-
-            return fileDownloaded
+            updateProgress(modelId, bytesAlreadyDownloaded + downloaded - startingOffset)
+            return downloaded - startingOffset
         } catch {
             try? fileHandle.close()
             throw error

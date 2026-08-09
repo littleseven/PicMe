@@ -329,6 +329,126 @@ struct DeveloperSettingsView: View {
     }
 }
 
+// MARK: - Camera & Beauty Settings View
+
+/// 相机与美颜调试设置（对标 Android SettingsScreen 的 cameraBeauty 入口）。
+/// 🔴 瘦脸诊断中枢：实时瘦脸/大眼/形变强度 + 人脸引擎切换 + 调试可视化开关 + live 遥测。
+///
+/// 设计动机：相机页美颜面板(wand 图标)已有 Slim/BigEyes 滑杆，但瘦脸真机不可见；
+/// 此页补充 ① 形变强度倍率(warpStrength)排查「强度不足」、② hasFace 遥测排查「关键点未送达」、
+/// ③ 引擎默认值持久化、④ 调试开关集中入口。
+struct CameraBeautySettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var container = AppContainer.shared
+    @ObservedObject private var dbg = DebugOverlayState.shared
+    @AppStorage("camera_use_mnn") private var cameraUseMnn = true
+    @AppStorage("camera_debug_overlay") private var debugOverlay = true
+    @AppStorage("camera_show_landmarks") private var showLandmarks = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                // Section: 美颜实时调试
+                settingsSection(L("Beauty Debug"), L("Live slim/big-eyes strength. Also adjustable on the camera beauty panel (wand icon).")) {
+                    VStack(spacing: 0) {
+                        sliderRow(L("Slim Face"), value: $container.beautyParams.slimFace, range: -50...50)
+                            .onChange(of: container.beautyParams.slimFace) { v in
+                                UserDefaults.standard.set(v, forKey: "beauty_slim_debug")
+                            }
+                        Divider()
+                        sliderRow(L("Big Eyes"), value: $container.beautyParams.bigEyes, range: 0...100)
+                            .onChange(of: container.beautyParams.bigEyes) { v in
+                                UserDefaults.standard.set(v, forKey: "beauty_bigeyes_debug")
+                            }
+                        Divider()
+                        sliderRow(L("Warp Strength"), value: $container.beautyParams.warpStrength,
+                                  range: 0...8, step: 0.5, format: { String(format: "%.1fx", $0) })
+                            .onChange(of: container.beautyParams.warpStrength) { v in
+                                UserDefaults.standard.set(v, forKey: "beauty_warp_strength")
+                            }
+                        Text(L("Warp strength magnifies the slim delta. 1.0 = default (subtle); raise it to test if slim is too weak to see."))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 6)
+                    }
+                }
+
+                // Section: 人脸检测引擎
+                settingsSection(L("Face Detection Engine"),
+                                L("Default engine. MNN ships on-device models (RetinaFace + 2d106); MediaPipe needs a downloaded model.")) {
+                    HStack(spacing: 8) {
+                        engineChip(mnn: true, label: "MNN")
+                        engineChip(mnn: false, label: "MediaPipe")
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                // Section: 调试可视化
+                settingsSection(L("Debug Visualization")) {
+                    VStack(spacing: 0) {
+                        toggleRow(L("Debug Overlay"), isOn: $debugOverlay)
+                            .onChange(of: debugOverlay) { v in DebugOverlayState.shared.isEnabled = v }
+                        Divider()
+                        toggleRow(L("Show Face Landmarks"), isOn: $showLandmarks)
+                        Text(L("Draw detected face landmarks on the preview to verify detection feeds the renderer."))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 6)
+                    }
+                }
+
+                // Section: live 诊断遥测
+                settingsSection(L("Live Diagnostics"),
+                                L("Read-only. beauty.hasFace=0 means face points never reach the shader — slim cannot work no matter the strength.")) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(dbg.entries, id: \.key) { entry in
+                            HStack {
+                                Text(entry.key)
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(entry.value)
+                                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(diagnosticColor(entry.key, entry.value))
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle(L("Camera & Beauty"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
+            }
+        }
+    }
+
+    private func engineChip(mnn: Bool, label: String) -> some View {
+        let selected = cameraUseMnn == mnn
+        return Button { cameraUseMnn = mnn } label: {
+            Text(label)
+                .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                .foregroundColor(selected ? .white : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .clipShape(Capsule())
+        }
+    }
+
+    /// 遥测着色：hasFace=1 绿 / =0 红，方便一眼判断 warp 是否在跑
+    private func diagnosticColor(_ key: String, _ value: String) -> Color {
+        if key == "beauty.hasFace" { return value == "1" ? .green : .red }
+        if key == "face.error" { return .orange }
+        return .primary
+    }
+}
+
 // MARK: - Reusable Components
 
 private func settingsSection<C: View>(_ title: String, _ desc: String? = nil, @ViewBuilder content: () -> C) -> some View {
@@ -356,6 +476,41 @@ private func toggleRow(_ title: String, isOn: Binding<Bool>) -> some View {
         Toggle("", isOn: isOn).labelsHidden()
     }
     .padding(.vertical, 8)
+}
+
+/// 调试滑杆行（相机美颜设置专用）：标签 + 当前值 + Slider。
+private struct DebugSliderRow: View {
+    let label: String
+    @Binding var value: Float
+    let range: ClosedRange<Float>
+    var step: Float = 1.0
+    var format: ((Float) -> String)?
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text(label).font(.system(size: 14))
+                Spacer()
+                Text(displayText)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(value != 0 ? .accentColor : .secondary)
+            }
+            Slider(value: $value, in: range, step: step) { Text(label) }
+                .tint(.accentColor)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var displayText: String {
+        if let format { return format(value) }
+        return value == 0 ? "--" : "\(Int(value))"
+    }
+}
+
+/// 文件内 sliderRow 视图构造器（包 DebugSliderRow，供 CameraBeautySettingsView 使用）
+private func sliderRow(_ label: String, value: Binding<Float>, range: ClosedRange<Float>,
+                        step: Float = 1.0, format: ((Float) -> String)? = nil) -> DebugSliderRow {
+    DebugSliderRow(label: label, value: value, range: range, step: step, format: format)
 }
 
 private func credentialField(title: String, text: Binding<String>, placeholder: String, isPassword: Bool = false) -> some View {

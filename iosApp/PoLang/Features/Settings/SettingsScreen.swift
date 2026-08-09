@@ -189,6 +189,8 @@ struct SettingsScreen: View {
                 } label: { cardContent }
             case .developer:
                 NavigationLink { DeveloperSettingsView() } label: { cardContent }
+            case .cameraBeauty:
+                NavigationLink { CameraBeautySettingsView() } label: { cardContent }
             default:
                 cardContent.opacity(0.5)
             }
@@ -206,7 +208,7 @@ struct SettingsScreen: View {
             .init(icon: "forum", title: L("Channels"), desc: L("Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
             // Row 3
             .init(icon: "photo_library", title: L("Gallery"), desc: L("Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
-            .init(icon: "camera_alt", title: L("Camera & Beauty"), desc: L("Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: true),
+            .init(icon: "camera_alt", title: L("Camera & Beauty"), desc: L("Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: false),
             // Row 4
             .init(icon: "cloud_download", title: L("Model Center"), desc: L("Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
             .init(icon: "terminal", title: L("Developer"), desc: L("Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: false),
