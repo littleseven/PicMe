@@ -122,6 +122,19 @@ final class CameraMnnLiveUITests: XCTestCase {
         add(att)
     }
 
+    /// 触发 MNN 离线自检（-mnnSelfTest）：bundle 内固定人脸图 face_test.jpg → 两阶段检测 →
+    /// 写 Documents/mnn-verify.txt。判定「retina:no-face」是检测根本失效还是仅相机输入问题。
+    /// 自检成功(faceFound=1)→ 检测链路正常，live 无脸=相机输入/取景问题；
+    /// 自检失败(faceFound=0)→ 检测本身在 iOS 上失效（预处理/格式/模型），需深查。
+    func testRunMnnSelfTest() throws {
+        app.terminate()
+        app.launchArguments = ["-startPage", "0", "-mnnEngine", "-mnnSelfTest"]
+        app.launch()
+        let preview = app.descendants(matching: .any)["camera_preview"].firstMatch
+        _ = preview.waitForExistence(timeout: 20)
+        sleep(10)  // 等自检（.userInitiated 队列）跑完写 mnn-verify.txt
+    }
+
     // MARK: - helpers
 
     private func attach(_ name: String) {

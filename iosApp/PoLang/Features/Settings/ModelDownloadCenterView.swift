@@ -176,7 +176,11 @@ private struct ModelDownloadCard: View {
     @State private var showProperties = false
 
     private var state: DownloadState? { manager.downloadStates[entry.id] }
-    private var isDownloaded: Bool { manager.isModelDownloaded(entry.id) }
+    private var isDownloaded: Bool {
+        // 优先用 state 判断（避免文件系统时序问题）
+        if state?.status == .completed { return true }
+        return manager.isModelDownloaded(entry.id)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
