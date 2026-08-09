@@ -47,4 +47,11 @@ interface IosMediaRepositoryBridge {
      * 返回是否成功调度删除请求；实际结果经 changeListener 刷新体现。
      */
     fun deleteMedia(localIdentifiers: List<String>): Boolean
+
+    /**
+     * 收藏/取消收藏（PHAssetChangeRequest 改 isFavorite，无系统确认窗）。
+     * 返回是否成功提交变更；实际结果经 changeListener 刷新体现。
+     * （Phase 6.2 chat favorite_media 工具用）
+     */
+    fun setFavorite(localIdentifier: String, favorite: Boolean): Boolean
 }

@@ -34,6 +34,7 @@ private class FakeBridge(
         deleted = localIdentifiers
         return true
     }
+    override fun setFavorite(localIdentifier: String, favorite: Boolean): Boolean = true
 }
 
 class IosMediaRepositoryTest {

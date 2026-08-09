@@ -1,0 +1,266 @@
+[
+  {
+    "id": "sherpa-onnx-zipformer-zh-en",
+    "name": "Sherpa-ONNX Zipformer 中英双语",
+    "description": "ONNX 流式语音识别模型，支持中文+英文，ONNX Runtime 端侧实时推理",
+    "type": "ASR",
+    "size": 198270793,
+    "sources": {
+      "ModelScope": "budaoshou/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20"
+    },
+    "files": [
+      "encoder-epoch-99-avg-1.int8.onnx",
+      "decoder-epoch-99-avg-1.int8.onnx",
+      "joiner-epoch-99-avg-1.int8.onnx",
+      "tokens.txt"
+    ],
+    "tags": ["chat", "ASR", "speech", "chinese", "english", "onnx", "recommended"]
+  },
+  {
+    "id": "sherpa-onnx-kws-zipformer-wenetspeech",
+    "name": "Sherpa-ONNX KWS 唤醒词",
+    "description": "轻量级关键词识别模型，~5MB，支持自定义唤醒词（always-on 超低功耗）",
+    "type": "KWS",
+    "size": 5055221,
+    "sources": {
+      "ModelScope": "budaoshou/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01"
+    },
+    "files": [
+      "encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+      "decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+      "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+      "tokens.txt",
+      "keywords.txt"
+    ],
+    "tags": ["chat", "KWS", "wake-word", "keyword", "always-on", "onnx"]
+  },
+  {
+    "id": "qwen3_vl_2b",
+    "name": "Qwen3-VL-2B-Instruct-MNN",
+    "description": "阿里通义千问 Qwen3-VL-2B-Instruct 多模态版（MNN 4bit 量化），Vision-Language 能力更强，作为 Florence-2 的备选打标模型",
+    "type": "LLM",
+    "size": 1475225454,
+    "sources": {
+      "ModelScope": "MNN/Qwen3-VL-2B-Instruct-MNN"
+    },
+    "files": [
+      "config.json",
+      "llm_config.json",
+      "llm.mnn",
+      "llm.mnn.json",
+      "llm.mnn.weight",
+      "tokenizer.txt",
+      "visual.mnn",
+      "visual.mnn.weight"
+    ],
+    "tags": ["photo-tagging", "vision", "tagging", "multilingual"]
+  },
+  {
+    "id": "face-det-retina10g-mnn",
+    "name": "RetinaFace Det10G",
+    "description": "RetinaFace 人脸检测模型 (MNN 格式)，用于 ROI 区域检测，GPU 加速",
+    "type": "FACE_DETECTION",
+    "size": 16925304,
+    "sources": {
+      "ModelScope": "budaoshou/InsightFace-Det10G-MNN"
+    },
+    "files": [
+      "det_10g.mnn"
+    ],
+    "tags": ["beauty-camera", "face", "detection", "mnn"]
+  },
+  {
+    "id": "face-landmark-2d106-mnn",
+    "name": "2D106 Landmark",
+    "description": "2D106 人脸关键点模型 (MNN 格式)，用于 106 点面部关键点检测，GPU 加速",
+    "type": "FACE_DETECTION",
+    "size": 4975640,
+    "sources": {
+      "ModelScope": "budaoshou/InsightFace-2D106Det-MNN"
+    },
+    "files": [
+      "2d106det.mnn"
+    ],
+    "tags": ["must-have", "beauty-camera", "face", "landmark", "mnn"]
+  },
+
+  {
+    "id": "face-det-retina500m-mnn",
+    "name": "RetinaFace Det500M",
+    "description": "RetinaFace-MobileNet0.25 人脸检测模型 (MNN 格式)，用于 ROI 区域检测，GPU 加速",
+    "type": "FACE_DETECTION",
+    "size": 1285612,
+    "sources": {
+      "ModelScope": "budaoshou/InsightFace-Det500M-MNN"
+    },
+    "files": [
+      "det_500m.mnn"
+    ],
+    "tags": ["must-have", "beauty-camera", "face", "detection", "mnn"]
+  },
+
+  {
+    "id": "face-embedding-glint360k-r100-mnn",
+    "name": "Glint360K R100 MNN",
+    "description": "Glint360K 上训练的 ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，~248MB",
+    "type": "FACE_EMBEDDING",
+    "size": 260598260,
+    "sources": {
+      "ModelScope": "budaoshou/Glint360K-R100-MNN"
+    },
+    "files": [
+      "glintr100.mnn"
+    ],
+    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface", "glint360k"]
+  },
+  {
+    "id": "mobileclip-onnx",
+    "name": "MobileCLIP-S2-ONNX-FP32",
+    "description": "MobileCLIP-S2 多模态语义编码模型 (ONNX fp32 格式)，512维图像/文本embedding，用于语义搜索。fp16 在 ONNX Runtime Android CPU 上会出现 NaN/Inf，因此使用 fp32",
+    "type": "VISION",
+    "size": 399139066,
+    "sources": {
+      "ModelScope": "budaoshou/MobileCLIP-ONNX"
+    },
+    "files": [
+      "vision_model.onnx",
+      "text_model.onnx",
+      "tokenizer.json"
+    ],
+    "tags": ["must-have", "photo-tagging", "vision", "clip", "onnx", "semantic"]
+  },
+  {
+    "id": "opus-mt-zh-en",
+    "name": "OPUS-MT 中英翻译",
+    "description": "Helsinki-NLP OPUS-MT 中文→英文翻译模型 (ONNX INT8 量化)，~233MB，用于语义搜索时中文查询翻译",
+    "type": "TRANSLATION",
+    "size": 244426169,
+    "sources": {
+      "ModelScope": "budaoshou/OPUS-MT-Zh-En-ONNX-INT8"
+    },
+    "files": [
+      "encoder_model_quantized.onnx",
+      "decoder_model_quantized.onnx",
+      "decoder_with_past_model_quantized.onnx",
+      "tokenizer.json",
+      "config.json",
+      "source.spm",
+      "target.spm"
+    ],
+    "tags": ["must-have", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
+  },
+  {
+    "id": "opus-mt-en-zh",
+    "name": "OPUS-MT 英中翻译",
+    "description": "Helsinki-NLP OPUS-MT 英文→中文翻译模型 (ONNX INT8 量化)，~443MB，用于英文打标 summary 汉化（labelsZh.summary）",
+    "type": "TRANSLATION",
+    "size": 443347908,
+    "sources": {
+      "ModelScope": "budaoshou/OPUS-MT-En-Zh-ONNX-INT8"
+    },
+    "files": [
+      "encoder_model_quantized.onnx",
+      "decoder_model_quantized.onnx",
+      "decoder_with_past_model_quantized.onnx",
+      "tokenizer.json",
+      "config.json",
+      "source.spm",
+      "target.spm"
+    ],
+    "tags": ["must-have", "photo-tagging", "translation", "chinese", "english", "onnx", "nlp"]
+  },
+  {
+    "id": "florence2_base",
+    "name": "Florence-2-Base 打标",
+    "description": "Microsoft Florence-2-base (231M) 视觉语言模型，ONNX INT8 量化，专为结构化物体检测+图像描述设计，~266MB",
+    "type": "VISION_LLM",
+    "size": 278936295,
+    "sources": {
+      "ModelScope": "budaoshou/Florence-2-base-ONNX"
+    },
+    "files": [
+      "vision_encoder_quantized.onnx",
+      "encoder_model_quantized.onnx",
+      "decoder_model_merged_quantized.onnx",
+      "embed_tokens_int8.onnx",
+      "config.json",
+      "generation_config.json",
+      "preprocessor_config.json",
+      "tokenizer.json",
+      "tokenizer_config.json",
+      "vocab.json",
+      "merges.txt",
+      "added_tokens.json",
+      "special_tokens_map.json"
+    ],
+    "tags": ["must-have", "photo-tagging", "vision-llm", "onnx", "structured-output"]
+  },
+  {
+    "id": "modnet-onnx",
+    "name": "MODNet ONNX",
+    "description": "MODNet 人像抠图 ONNX 模型，用于去背景/证件照，~26MB",
+    "type": "MATTING",
+    "size": 25969398,
+    "sources": {
+      "ModelScope": "budaoshou/ModNet-ONNX"
+    },
+    "files": [
+      "modnet.onnx"
+    ],
+    "tags": ["matting", "onnx", "editor", "recommended"]
+  },
+  {
+    "id": "u2netp-onnx",
+    "name": "U2NetP ONNX",
+    "description": "U2NetP 轻量抠图 ONNX 模型，用于去背景/证件照，~4.6MB",
+    "type": "MATTING",
+    "size": 4574861,
+    "sources": {
+      "ModelScope": "budaoshou/U2NetP-ONNX"
+    },
+    "files": [
+      "u2netp.onnx"
+    ],
+    "tags": ["matting", "onnx", "editor", "recommended"]
+  },
+  {
+    "id": "mediapipe-face-landmarker",
+    "name": "MediaPipe Face Landmarker",
+    "description": "MediaPipe 人脸 468 点关键点检测模型，用于相册人脸标记预览",
+    "type": "FACE_LANDMARKER",
+    "size": 3758596,
+    "sources": {
+      "ModelScope": "budaoshou/google-model"
+    },
+    "files": [
+      "face_landmarker.task"
+    ],
+    "tags": ["recommended", "photo-tagging", "face", "landmark", "mediapipe"]
+  },
+  {
+    "id": "ediffiqa-face-quality-onnx",
+    "name": "eDifFIQA 人脸画质",
+    "description": "eDifFIQA 人脸图像质量评估 ONNX (~7MB)，为人脸聚类挑最佳封面（人脸清晰度/光照/正脸）",
+    "size": 7272678,
+    "sources": {
+      "ModelScope": "budaoshou/ediffiqa-face-quality-onnx"
+    },
+    "files": [
+      "ediffiqa_tiny.onnx"
+    ],
+    "tags": ["recommended", "photo-tagging", "face", "onnx", "quality"]
+  },
+  {
+    "id": "nima-aesthetic-onnx",
+    "name": "NIMA 美学评分",
+    "description": "NIMA MobileNet (idealo) 图像美学评分 ONNX (~12MB)，为人物聚类挑最佳封面（构图/美学）",
+    "size": 12867270,
+    "sources": {
+      "ModelScope": "budaoshou/nima-aesthetic-onnx"
+    },
+    "files": [
+      "nima_mobilenet_aesthetic.onnx"
+    ],
+    "tags": ["recommended", "photo-tagging", "aesthetic", "onnx"]
+  }
+]

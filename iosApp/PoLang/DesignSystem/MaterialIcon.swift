@@ -32,6 +32,8 @@ enum MaterialIconMap {
         // FloatingBottomTab + Settings + Gallery
         "camera":                   "mat_camera_alt",
         "camera.fill":              "mat_camera_alt",
+        "arrow.down.circle":        "mat_download",
+        "download":                 "mat_download",
         "bubble.left":              "mat_chat_bubble",
         "bubble.left.fill":         "mat_chat_bubble",
         "tag":                      "mat_sell",

@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import SharedKit
 
 /// 对标 Android MainPagerHost：4 页 Pager（相机/相册/聊天/人物）
 /// 相册(1)为初始页，悬浮 Tab 切换页
@@ -29,9 +30,10 @@ struct MainTabView: View {
                     .environmentObject(container)
             }
 
-            // 聊天/人物占位页
+            // 聊天页（Phase 6.2）
             if currentPage == 2 {
-                PlaceholderPage(title: String(localized: "Chat Coming Soon"))
+                ChatView()
+                    .environmentObject(container)
             }
             if currentPage == 3 {
                 PlaceholderPage(title: String(localized: "People Coming Soon"))
@@ -44,8 +46,14 @@ struct MainTabView: View {
             }
         }
         .preferredColorScheme(.dark)
-        // 切页时关闭打标占位 push，避免残留遮罩盖住目标页
-        .onChange(of: currentPage) { _ in showPlaceholder = nil }
+        // 切页：关闭打标占位 push + 同步 SceneManager（chat 工具按场景路由，不同步会被入队不执行）
+        .onAppear {
+            IosAgentComposition.shared.onMainPageChanged(page: Int64(currentPage))
+        }
+        .onChange(of: currentPage) { page in
+            showPlaceholder = nil
+            IosAgentComposition.shared.onMainPageChanged(page: Int64(page))
+        }
         // 悬浮 Tab：除相机页（沉浸式）外常驻，占位页也能切出
         .overlay(alignment: .bottom) {
             if currentPage != 0 {

@@ -1679,6 +1679,29 @@
           }
         }
       }
+    },
+    "Found %lld results for「%@」": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Found %lld results for「%@」"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找到 %lld 张「%@」"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 件「%@」"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

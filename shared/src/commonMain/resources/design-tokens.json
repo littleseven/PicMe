@@ -1,0 +1,93 @@
+{
+  "_comment": "PoLang 双端 Design Token SSOT。Android/iOS 各自从此文件同步到代码常量。修改 token 时先改此文件，再两端同步。",
+  "_version": "1.0.0",
+  "_updated": "2026-08-09",
+
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32
+  },
+
+  "topBar": {
+    "height": 48,
+    "buttonSize": 36,
+    "iconSize": 22,
+    "titleFontSize": 17,
+    "spacing": 8,
+    "horizontalPadding": 8
+  },
+
+  "shutter": {
+    "diameter": 76,
+    "innerDiameter": 58
+  },
+
+  "beautyPanel": {
+    "topCornerRadius": 24,
+    "iconSize": 24,
+    "sliderThumbSize": 18,
+    "sliderTrackHeight": 6,
+    "heightRatio": 0.35
+  },
+
+  "grid": {
+    "minCellSize": 110,
+    "spacing": 2,
+    "cornerRadius": 2
+  },
+
+  "pager": {
+    "pageSpacing": 16,
+    "actionIconSize": 32,
+    "overlayMaxWidth": 400,
+    "overlayMaxHeight": 500
+  },
+
+  "radius": {
+    "panel": 24,
+    "card": 12,
+    "button": 10,
+    "small": 8,
+    "thumbnail": 2
+  },
+
+  "icon": {
+    "sm": 18,
+    "md": 22,
+    "lg": 24,
+    "xl": 32
+  },
+
+  "color": {
+    "focusRing": "#FF00E5FF",
+    "panelBackground": "#CC000000",
+    "shutterRing": "#FFFFFFFF",
+    "sliderThumb": "#FFFFFFFF",
+    "vibrantGreen": "#FF00E676",
+    "vibrantBlue": "#FF2979FF",
+    "vibrantOrange": "#FFFF9100",
+    "vibrantPink": "#FFFF4081"
+  },
+
+  "modelCenter": {
+    "_comment": "模型下载中心专属 token（specs/screens/model-download-center.yaml 引用）",
+    "tagColorMustHave": "#FFE53935",
+    "tagColorRecommended": "#FFFF9800",
+    "tagColorChat": "#FF2196F3",
+    "tagColorPhotoTagging": "#FF9C27B0",
+    "tagColorBeautyCamera": "#FFFF9800",
+    "tagColorDefault": "#FF9E9E9E",
+    "requiredBadgeBg": "#FFE53935",
+    "chipHeight": 36,
+    "chipIconSize": 14,
+    "actionButtonSize": 36,
+    "actionButtonSmallSize": 32,
+    "tagBadgeRadius": 6,
+    "miniBadgeRadius": 4,
+    "tagBadgeDotSize": 6
+  }
+}

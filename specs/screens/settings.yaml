@@ -1,0 +1,274 @@
+# ============================================================================
+# 设置屏完整产品规格书（Settings Screen Spec）
+# ============================================================================
+# 基准端：Android SettingsScreen.kt (1319行) + SettingsBaseComponents.kt +
+#        SettingsAiAgent.kt + SettingsServerAuth.kt + DataPrivacyScreen.kt
+# 用途：iOS 重做的唯一输入，不读 Android 源码
+# 范围：iOS 当前阶段可实现的设置项（Android 专属项如 MIUI/电池优化/无障碍 标为 not_applicable）
+
+# ============================================================================
+# 1. 总体结构
+# ============================================================================
+root:
+  type: navigation_stack
+  background: "systemGroupedBackground"
+  main_menu:
+    layout: scrollable_column
+    padding: { horizontal: 10, vertical: 6 }
+
+# ============================================================================
+# 2. 主菜单（SettingsMainMenu）
+# ============================================================================
+main_menu:
+  # ① 账号英雄卡片（顶部全宽）
+  account_hero_card:
+    type: card
+    shape: { corner_radius: 16 }
+    background: "surfaceContainerHighest"
+    padding: 16
+    content:
+      avatar:
+        icon: person
+        size: 48
+        background: "primaryContainer"
+        tint: "onPrimaryContainer"
+      info:
+        logged_in:
+          email_font: { size: 16, weight: medium }   # titleMedium
+          quota_text: "$used / $limit"                # bodySmall, onSurfaceVariant
+        not_logged_in:
+          title: "Account"                             # 账号
+          desc: "Sign in for more quota and features"  # 注册账号享受更多额度与功能
+      click: navigate_account
+
+  # ② 主题模式卡片
+  theme_card:
+    type: card
+    background: "surfaceContainerHighest"
+    content:
+      title: "Theme"                                   # 主题模式
+      font: { size: 14, weight: medium }              # titleSmall
+      options: [system, light, dark]                   # 3 FilterChips
+      default: system
+      chip_style:
+        selected: "primary bg, onPrimary text"
+        unselected: "surfaceVariant bg, onSurface text"
+
+  # ③ 语言卡片
+  language_card:
+    type: card
+    background: "surfaceContainerHighest"
+    content:
+      title: "Language"                                # 语言
+      font: { size: 14, weight: medium }
+      options: [english, chinese_simplified, chinese_traditional]
+      default: system                                  # 实际显示三语选项
+
+  # ④ 分类网格（2 列卡片）
+  category_grid:
+    columns: 2
+    spacing: 10
+    card_style:
+      background: "surfaceContainerHighest"
+      shape: { corner_radius: 12 }
+      padding: 14
+      icon: { size: 28, tint: "primary" }
+      title: { font: { size: 14, weight: medium } }  # titleSmall
+      desc: { font: { size: 12 }, color: "onSurfaceVariant", max_lines: 2 }
+
+    cards:
+      - { icon: smart_toy, title: "AI Assistant", desc: "Remote model, voice control", target: ai_agent }
+      - { icon: psychology, title: "AI Memory", desc: "View and manage remembered facts", target: memory_facts }
+      - { icon: account_circle, title: "People", desc: "Face clusters and relationships", target: people }
+      - { icon: forum, title: "Channels", desc: "Feishu, Telegram remote control", target: channels }
+      - { icon: photo_library, title: "Gallery", desc: "Tags, duplicates, search engine", target: gallery }
+      - { icon: camera_alt, title: "Camera & Beauty", desc: "Face detection, landmarks", target: camera_beauty }
+      - { icon: cloud_download, title: "Model Center", desc: "Download AI models", target: model_center }
+      - { icon: api_key, title: "API Models", desc: "Remote LLM configuration", target: api_models }
+      - { icon: privacy_tip, title: "Data & Privacy", desc: "Privacy policy and data control", target: data_privacy }
+      - { icon: info, title: "About", desc: "Version and open source info", target: about }
+
+# ============================================================================
+# 3. AI Assistant 分类页（ai_agent）
+# ============================================================================
+ai_agent:
+  sections:
+    - title: "AI Agent"
+      desc: "AI assistant configuration"
+      items:
+        - auto_execute_plans:
+            type: switch
+            title: "Auto Execute Plans"
+            default: true
+            desc: "Automatically execute plans without confirmation"
+        - agent_mode:
+            type: chips
+            title: "Mode"
+            options: [remote]
+            default: remote
+
+    - title: "Remote Models"           # 远程推理
+      items:
+        - remote_models_section:
+            type: custom                # AiAgentRemoteModelsSection（已在 iOS 实现）
+
+    - title: "Voice Control"            # 语音控制
+      items:
+        - voice_mode:
+            type: chips
+            title: "Voice Command"
+            options: [disabled, push_to_talk, wake_word]
+            default: disabled
+        - asr_model:                   # 仅 mode≠disabled 时显示
+            type: chips
+            show_when: "voice_mode != disabled"
+            options: "downloaded ASR models or fallback text"
+        - kws_model:
+            type: chips
+            show_when: "voice_mode == wake_word"
+            options: "downloaded KWS models or fallback text"
+
+# ============================================================================
+# 4. 账号分类页（account）
+# ============================================================================
+account:
+  logged_in:
+    header:
+      avatar: { icon: person, size: 56, background: "primaryContainer" }
+      email_font: { size: 16, weight: medium }
+      subtitle: "Server Account"
+    quota_card:
+      shape: { corner_radius: 16 }
+      background: "surfaceContainerLow"
+      content:
+        title: "Quota"
+        value: "$used / $limit"
+        value_color: "primary (or error if ≥90%)"
+        progress_bar: { height: 8, color: "primary" }
+        remaining_text: "$remaining inferences remaining"
+    actions:
+      - { type: filled_tonal, icon: refresh, text: "Refresh" }
+      - { type: outlined, icon: logout, text: "Logout" }
+    danger_zone:
+      - { icon: delete_sweep, text: "Clear Guest Data", color: error }
+      - { icon: delete, text: "Delete Account", color: error, confirm: true }
+
+  not_logged_in:
+    registration_form:
+      title: "Register"
+      desc: "Create an account for more quota"
+      fields:
+        email: { type: text, placeholder: "Email" }
+        verification_code: { type: text, placeholder: "Verification Code" }
+      buttons:
+        - { text: "Send Code", action: send_verification }
+        - { text: "Register / Login", action: verify_code }
+
+# ============================================================================
+# 5. 数据与隐私（data_privacy）
+# ============================================================================
+data_privacy:
+  sections:
+    - title: "Account Data"
+      body: "Your email is used only for authentication..."
+    - title: "Device Identifier"
+      body: "A device ID is generated for guest quota tracking..."
+    - title: "Data Retention"
+      body: "Chat history is stored locally on your device..."
+    - title: "Data Deletion"
+      body: "You can delete all data at any time..."
+    - title: "Local Processing"
+      body: "All media processing (beauty, tagging, face detection) runs 100% on-device..."
+    - title: "Remote Processing"
+      body: "Only text and metadata are sent to remote LLMs for inference. No photos or videos leave your device."
+    - title: "Contact"
+      body: "budao.gs@gmail.com"
+  link:
+    text: "View Full Privacy Policy"
+    url: "https://polang.net/privacy-policy/"
+
+# ============================================================================
+# 6. 关于（about）
+# ============================================================================
+about:
+  items:
+    - version: { label: "Version", value: "{CFBundleShortVersionString} ({CFBundleVersion})" }
+    - open_source: { label: "Open Source Licenses", target: license_list }
+    - github: { label: "GitHub", url: "https://github.com/littleseven/polang" }
+
+# ============================================================================
+# 7. iOS 当前阶段实现范围
+# ============================================================================
+ios_scope:
+  implement_now:
+    - "主菜单结构（账号英雄卡片 + 主题 + 语言 + 分类网格）"
+    - "API Models（已完成）"
+    - "Model Center（已完成）"
+    - "Data & Privacy（隐私政策文本页）"
+    - "About（版本号 + GitHub 链接）"
+    - "主题切换（system/light/dark → colorScheme）"
+    - "语言切换（english/中文/繁體 → bundle locale）"
+
+  placeholder_show_coming_soon:
+    - "AI Memory（Phase 6.3 后续）"
+    - "People（Phase 6.1 TAG 前置）"
+    - "Channels（飞书/Telegram 远程控制）"
+    - "Gallery（TAG 控制页等 Phase 6.1）"
+    - "Camera & Beauty（人脸检测配置等 Phase 6.1）"
+
+  not_applicable:
+    - "Floating Chat Bubble（Android 悬浮窗，iOS 无等价）"
+    - "Battery Optimization（Android 专属）"
+    - "MIUI Auto Start / Permission Editor（小米专属）"
+    - "Accessibility Service（Android 专属）"
+    - "Developer Options → Image Download Test / Search Test / JS Bridge（Android debug 专属）"
+    - "LLM Call Log viewer（Android Room DB 专属）"
+
+# ============================================================================
+# 8. 通用组件规格
+# ============================================================================
+components:
+  settings_section:
+    type: card
+    background: "surfaceContainerHighest"  # iOS: secondarySystemBackground
+    elevation: 0
+    shape: { corner_radius: 12 }
+    padding: { horizontal: 12, vertical: 10 }
+    title_font: { size: 14, weight: medium }
+    title_color: "onSurface"
+    desc_font: { size: 12 }
+    desc_color: "onSurfaceVariant.opacity(0.6)"
+
+  debug_option_row:       # Switch 行
+    height: 44
+    title_font: { size: 14 }
+    title_color: "onSurface"
+    desc_font: { size: 12 }
+    desc_color: "onSurfaceVariant.opacity(0.6)"
+
+  settings_clickable_row: # 导航行
+    icon_size: 24
+    icon_tint: "primary"
+    title_font: { size: 14 }
+    value_font: { size: 14 }
+    value_color: "primary"
+    arrow_icon: arrow_forward
+    arrow_size: 20
+
+  filter_chip:
+    selected_bg: "primary"
+    selected_text: "onPrimary"  # white
+    unselected_bg: "surfaceVariant"
+    unselected_text: "onSurface"
+    font: { size: 13 }
+
+# ============================================================================
+# 9. 允许的平台差异
+# ============================================================================
+allowed_differences:
+  - "卡片材质（Material elevation vs SwiftUI background）"
+  - "Switch 控件原生外观"
+  - "导航转场动画"
+  - "开发者选项（iOS 暂不做 Debug 页面）"
+  - "语音控制（iOS 暂无 sherpa-onnx）"
+  - "相册 TAG 控制页（iOS Phase 6.1 未落地）"
