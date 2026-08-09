@@ -25,7 +25,10 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(themeMode, forKey: "theme_mode") }
     }
     @Published var appLanguage: String {
-        didSet { UserDefaults.standard.set(appLanguage, forKey: "app_language") }
+        didSet {
+            UserDefaults.standard.set(appLanguage, forKey: "app_language")
+            LanguageManager.shared.currentLanguage = appLanguage
+        }
     }
 
     var colorScheme: ColorScheme? {
@@ -48,5 +51,7 @@ final class AppSettings: ObservableObject {
     private init() {
         themeMode = UserDefaults.standard.string(forKey: "theme_mode") ?? "system"
         appLanguage = UserDefaults.standard.string(forKey: "app_language") ?? "system"
+        // 初始化语言管理器（触发 Bundle swizzling + 恢复上次选择）
+        _ = LanguageManager.shared
     }
 }
