@@ -462,9 +462,11 @@ private struct MetalViewRepresentable: UIViewRepresentable {
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
         func draw(in view: MTKView) {
-            guard let pb = controller?.readBuffer() else { return }
+            // 🔴 用 readFrame() 拿 (buffer, 相机PTS毫秒)：检测端 latest.timestampMs 也来自同一 PTS，
+            // 两者同域 → latestWithinWindow 的 200ms 窗口 join 才成立（此前误用墙钟 epoch ms，
+            // 与相机 PTS 差万亿 ms → 恒 nil → 106 点进不了渲染器 → 瘦脸无效）。
+            guard let (pb, tsMs) = controller?.readFrame() else { return }
             if let fs = faceRouter {
-                let tsMs = Int(Date().timeIntervalSince1970 * 1000)
                 if let points = fs.latestWithinWindow(currentTimestampMs: tsMs) {
                     renderer?.updateFacePoints(points, hasFace: true)
                 } else {

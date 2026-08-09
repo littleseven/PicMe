@@ -97,27 +97,45 @@ final class CameraMnnLiveUITests: XCTestCase {
     }
 
     /// 导出 DebugOverlay 全部遥测行（纯文本，无图像）→ 判定 model missing / engine / hasFace。
-    /// 诊断「model 并未找到」：区分 (a) 模型文件缺失 face.mnn.error=model missing，
-    /// 还是 (b) 模型已加载但未检测到人脸 face.mnn=<debugInfo>。
+    /// 轮询采样 ~18s：记录 `beauty.hasFace` / `face.mnn` 出现过的取值集合（峰值），
+    /// 即使检测间歇也捕获；末尾附最终全量遥测。
     func testDumpOverlayTelemetry() throws {
         let preview = app.descendants(matching: .any)["camera_preview"].firstMatch
         XCTAssertTrue(preview.waitForExistence(timeout: 20), "相机预览应就绪")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
-        sleep(12)  // 等 MNN 异步加载 + 若干检测帧 + 遥测刷新
-        // 再稳一帧后重采
-        sleep(3)
+        sleep(4)  // 等 MNN 异步加载 + 首检测帧 + 遥测刷新
+
+        func readEntry(_ key: String) -> String {
+            let e = app.staticTexts["debug_entry_\(key)"]
+            return e.exists ? e.label : "\(key): <none>"
+        }
+        func readSummary() -> String {
+            let s = app.descendants(matching: .any)["debug_summary"].firstMatch
+            return s.exists ? s.label : "<no summary>"
+        }
+
+        var hasFaceSeen = Set<String>()
+        var faceMnnSeen = Set<String>()
+        for _ in 0..<10 {           // 每 ~1.8s 采一次，共 ~18s
+            hasFaceSeen.insert(readEntry("beauty.hasFace"))
+            faceMnnSeen.insert(readEntry("face.mnn"))
+            sleep(2)
+        }
 
         var lines: [String] = []
-        let summary = app.descendants(matching: .any)["debug_summary"].firstMatch
-        if summary.exists { lines.append("SUMMARY: \(summary.label)") }
+        let sep = " | "
+        lines.append("SUMMARY: \(readSummary())")
+        lines.append("PEAK beauty.hasFace: \(hasFaceSeen.sorted().joined(separator: sep))")
+        lines.append("PEAK face.mnn: \(faceMnnSeen.sorted().joined(separator: sep))")
+        lines.append("---- final full dump ----")
         let entries = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'debug_entry_'"))
+        var finalLines: [String] = []
         for i in 0..<entries.count {
             let e = entries.element(boundBy: i)
-            if e.exists { lines.append(e.label) }
+            if e.exists { finalLines.append(e.label) }
         }
-        lines.sort()
-        let dump = lines.isEmpty ? "<no overlay entries>" : lines.joined(separator: "\n")
-        let att = XCTAttachment(string: dump)
+        lines.append(contentsOf: finalLines.sorted())
+        let att = XCTAttachment(string: lines.joined(separator: "\n"))
         att.name = "overlay_dump.txt"; att.lifetime = .keepAlways
         add(att)
     }

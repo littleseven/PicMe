@@ -9,6 +9,10 @@ final class CaptureSessionController: NSObject {
     private let queue = DispatchQueue(label: "polang.camera.capture")
 
     private(set) var currentPixelBuffer: CVPixelBuffer?
+    /// 🔴 与 currentPixelBuffer 同源的时间戳（相机 PTS 毫秒）；与检测端 enqueue(timestampMs:) 同域。
+    /// 渲染端用它与 latestWithinWindow 做 200ms 时间窗 join——此前渲染端误用墙钟(Date().timeIntervalSince1970)
+    /// 与相机 PTS 比，差万亿 ms → 窗口恒 false → 106 点永远进不了渲染器 → 瘦脸无效。
+    private(set) var currentTimestampMs: Int = 0
     private let bufferLock = NSLock()
     private(set) var frameCount: Int = 0
 
@@ -129,6 +133,7 @@ final class CaptureSessionController: NSObject {
     fileprivate func swapBuffer(_ pb: CVPixelBuffer, timestampMs: Int) {
         bufferLock.lock()
         currentPixelBuffer = pb
+        currentTimestampMs = timestampMs
         bufferLock.unlock()
         frameCount += 1
         if frameCount == 1 { DispatchQueue.main.async { self.onFirstFrame?() } }
@@ -139,6 +144,14 @@ final class CaptureSessionController: NSObject {
     func readBuffer() -> CVPixelBuffer? {
         bufferLock.lock(); defer { bufferLock.unlock() }
         return currentPixelBuffer
+    }
+
+    /// 🔴 原子读 (pixelBuffer, 相机PTS毫秒)：渲染端用它查 latestWithinWindow，
+    /// 与检测端 latest.timestampMs 同域（都来自 CMSampleBuffer PTS）→ 200ms 窗口 join 才成立。
+    func readFrame() -> (CVPixelBuffer, Int)? {
+        bufferLock.lock(); defer { bufferLock.unlock() }
+        guard let pb = currentPixelBuffer else { return nil }
+        return (pb, currentTimestampMs)
     }
 
     // MARK: - 手势控制（Task 19）
