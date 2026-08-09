@@ -462,24 +462,49 @@ fun Route.adminRoute(
             call.respondRedirect("/admin/diagnosis?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
+        // ── 发包：Android APK + iOS IPA 合并页（Tab 切换） ──
+        get("/release") {
+            if (!call.adminGuard(adminToken)) return@get
+            val tab = call.request.queryParameters["tab"]?.takeIf { it == "ios" } ?: "android"
+            val msg = call.request.queryParameters["msg"]
+            val html = if (tab == "ios") {
+                val ipaInfo = cosService.getIpaInfo()
+                AdminViews.releasePage(
+                    tab = tab,
+                    message = msg,
+                    ios = AdminViews.IosReleaseData(
+                        fileExists = ipaInfo.exists,
+                        fileSize = ipaInfo.size,
+                        lastModified = ipaInfo.lastModified,
+                        version = ipaInfo.version,
+                        cosUrl = ipaInfo.publicUrl,
+                        cosConfigured = cosService.configured,
+                        udidList = AdminQueries.iosUdidList(),
+                    ),
+                )
+            } else {
+                val apkInfo = cosService.getApkInfo()
+                AdminViews.releasePage(
+                    tab = tab,
+                    message = msg,
+                    android = AdminViews.AndroidReleaseData(
+                        fileExists = apkInfo.exists,
+                        fileSize = apkInfo.size,
+                        lastModified = apkInfo.lastModified,
+                        version = apkInfo.version,
+                        cosUrl = apkInfo.publicUrl,
+                        cosConfigured = cosService.configured,
+                        history = AdminQueries.apkUploadHistory(30),
+                    ),
+                )
+            }
+            call.respondText(html, ContentType.Text.Html)
+        }
+
+        // 旧入口保留兼容：跳转到发包页对应 Tab
         get("/apk") {
             if (!call.adminGuard(adminToken)) return@get
-            val apkInfo = cosService.getApkInfo()
-            val msg = call.request.queryParameters["msg"]
-            val history = AdminQueries.apkUploadHistory(30)
-            call.respondText(
-                AdminViews.apkPage(
-                    fileExists = apkInfo.exists,
-                    fileSize = apkInfo.size,
-                    lastModified = apkInfo.lastModified,
-                    version = apkInfo.version,
-                    cosUrl = apkInfo.publicUrl,
-                    cosConfigured = cosService.configured,
-                    message = msg,
-                    history = history,
-                ),
-                ContentType.Text.Html,
-            )
+            call.respondRedirect("/admin/release?tab=android")
         }
 
         post("/apk/upload") {
@@ -545,29 +570,14 @@ fun Route.adminRoute(
                     it[ApkUploads.createdAt] = System.currentTimeMillis()
                 }
             }
-            call.respondRedirect("/admin/apk?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/release?tab=android&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
         // ── iOS Ad-Hoc 自测分发管理 ──
 
         get("/ios") {
             if (!call.adminGuard(adminToken)) return@get
-            val ipaInfo = cosService.getIpaInfo()
-            val msg = call.request.queryParameters["msg"]
-            val udidList = AdminQueries.iosUdidList()
-            call.respondText(
-                AdminViews.iosPage(
-                    fileExists = ipaInfo.exists,
-                    fileSize = ipaInfo.size,
-                    lastModified = ipaInfo.lastModified,
-                    version = ipaInfo.version,
-                    cosUrl = ipaInfo.publicUrl,
-                    cosConfigured = cosService.configured,
-                    message = msg,
-                    udidList = udidList,
-                ),
-                ContentType.Text.Html,
-            )
+            call.respondRedirect("/admin/release?tab=ios")
         }
 
         post("/ios/upload") {
@@ -627,7 +637,7 @@ fun Route.adminRoute(
                 errorMsg != null -> errorMsg
                 else -> "未收到文件"
             }
-            call.respondRedirect("/admin/ios?msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+            call.respondRedirect("/admin/release?tab=ios&msg=${java.net.URLEncoder.encode(msg, "UTF-8")}")
         }
 
         // 一键导出 UDID 纯文本（每行一个，方便贴进 Apple Developer → Devices）
