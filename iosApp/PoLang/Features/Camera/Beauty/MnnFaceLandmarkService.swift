@@ -67,8 +67,10 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
             busy = true
             defer { busy = false }
 
-            // 与 MediaPipe 一致：YUV bi-planar → BGRA（CIContext 渲染）
+            // 与 MediaPipe 一致：YUV bi-planar → BGRA（复用 CIContext，避免每帧新建）
+            let tConv = CFAbsoluteTimeGetCurrent()
             guard let bgra = Self.convertToBGRA(pixelBuffer) else { return }
+            let convMs = (CFAbsoluteTimeGetCurrent() - tConv) * 1000.0
             let w = CVPixelBufferGetWidth(bgra)
             let h = CVPixelBufferGetHeight(bgra)
             // 🔴 首帧记录 buffer 尺寸到遥测：portrait=720×1280（videoOrientation 生效）；
@@ -85,14 +87,17 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
             let bpr = CVPixelBufferGetBytesPerRow(bgra)
 
             var raw = [Float](repeating: 0, count: 212)
+            let tDet = CFAbsoluteTimeGetCurrent()
             let found = raw.withUnsafeMutableBufferPointer { ptr -> Bool in
                 guard let out = ptr.baseAddress else { return false }
                 return detector.detect(base.assumingMemoryBound(to: UInt8.self),
                                        width: Int32(w), height: Int32(h),
                                        bytesPerRow: Int32(bpr), outPoints: out)
             }
+            let detMs = (CFAbsoluteTimeGetCurrent() - tDet) * 1000.0
             guard found, let pts = MnnLandmarkAdapter.adapt(raw, isFrontCamera: isFrontCamera) else {
                 DispatchQueue.main.async { DebugOverlayState.shared.set("face.mnn", self.detector.debugInfo) }
+                Self.recordPerf(convMs: convMs, detMs: detMs, found: false)
                 return
             }
             latest = Result(points106: pts, timestampMs: timestampMs)
@@ -100,18 +105,17 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
             //   供离线数值重建（无任何人脸像素，隐私安全）：判定点云是正向椭圆(点正确)
             //   还是旋转/歪斜/镜像(坐标 bug)——裁决「瘦脸偏转」根因。
             Self.dumpLandmarksOnce(pts: pts, isFrontCamera: isFrontCamera, width: w, height: h)
-            // 🔴 捕获 MNN 实际处理的 BGRA 帧 + 标注 106 点（-captureFrame，仅一次）：
-            //   frame-bgra.png = MNN 看到的原始画面；frame-landmarks.png = 同一画面叠加 106 点+轮廓。
-            //   直接像素级绘制（无 UIImage 重定向）→ 裁决：点是否落在 MNN 所见 buffer 的人脸上。
-            //   落上→检测正确，bug 在 overlay/render 映射；落偏→bug 在 BGRA 朝向/检测/remap。
-            // 🔴 同时 dump det_500m(Stage1) 检测框（detectAllFaces 二次推理）→ frame-boxes.png/.txt：
-            //   框落真脸→Stage1 对，bug 在 Stage2 关键点逆映射；框落平区/偏移→Stage1 检测本身错误
-            //   （暗光降质 / 朝向不对 / 假阳）。这是定位「检测错误 vs 关键点映射错误」的 ground truth。
-            let detBoxes = self.detector.detectAllFaces(
-                base.assumingMemoryBound(to: UInt8.self),
-                width: Int32(w), height: Int32(h), bytesPerRow: Int32(bpr))
+            // 🔴 [性能] detectAllFaces 是「第二次完整 retina 推理」，仅供 -captureFrame 诊断取框用。
+            //   之前每帧无条件调用 → retina 成本翻倍 → 预览卡顿/不跟脸。现仅在诊断开启且未捕获时跑一次。
+            let needBoxes = ProcessInfo.processInfo.arguments.contains("-captureFrame") && !Self.frameCaptured
+            let detBoxes: [PLDetectedFace] = needBoxes
+                ? self.detector.detectAllFaces(
+                    base.assumingMemoryBound(to: UInt8.self),
+                    width: Int32(w), height: Int32(h), bytesPerRow: Int32(bpr))
+                : []
             Self.captureFrameOnce(yuv: pixelBuffer, bgra: bgra, pts: pts,
                                   boxes: detBoxes, isFrontCamera: isFrontCamera)
+            Self.recordPerf(convMs: convMs, detMs: detMs, found: true)
             DispatchQueue.main.async {
                 DebugOverlayState.shared.set("face.mnn", "\(pts.count)pts")
                 DebugOverlayState.shared.set("face.mnn.dbg", self.detector.debugInfo)
@@ -384,6 +388,9 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
 
     // MARK: - YUV → BGRA（与 FaceLandmarkService.convertToBGRA 同实现）
 
+    /// 复用 CIContext：每帧 `CIContext()` 新建很贵，是预览卡顿主因之一。
+    private static let sharedCIContext = CIContext()
+
     private static func convertToBGRA(_ yuvBuffer: CVPixelBuffer) -> CVPixelBuffer? {
         let srcFormat = CVPixelBufferGetPixelFormatType(yuvBuffer)
         if srcFormat == kCVPixelFormatType_32BGRA { return yuvBuffer }
@@ -398,7 +405,34 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
             &bgraBuffer)
         guard status == kCVReturnSuccess, let bgra = bgraBuffer else { return nil }
         let ciImage = CIImage(cvPixelBuffer: yuvBuffer)
-        CIContext().render(ciImage, to: bgra)
+        sharedCIContext.render(ciImage, to: bgra)
         return bgra
+    }
+
+    // MARK: - 性能计量（写 Documents/face-perf.txt：裁决卡顿根因——convert / detect 谁慢）
+
+    private static var perfN = 0
+    private static var perfFound = 0
+    private static var convMin = Double.infinity, convMax = 0.0, convSum = 0.0
+    private static var detMin = Double.infinity, detMax = 0.0, detSum = 0.0
+
+    private static func recordPerf(convMs: Double, detMs: Double, found: Bool) {
+        perfN += 1
+        if found { perfFound += 1 }
+        convMin = min(convMin, convMs); convMax = max(convMax, convMs); convSum += convMs
+        detMin = min(detMin, detMs); detMax = max(detMax, detMs); detSum += detMs
+        guard perfN % 30 == 0,
+              let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let n = Double(perfN)
+        let total = convSum / n + detSum / n
+        let lines = [
+            "# polang face.mnn perf (n=\(perfN) frames, found=\(perfFound), backend=CPU Precision_High numThread=4)",
+            String(format: "convertBGRA(YUV→BGRA) ms: min=%.1f avg=%.1f max=%.1f", convMin, convSum / n, convMax),
+            String(format: "detect(retina+2d106det) ms: min=%.1f avg=%.1f max=%.1f", detMin, detSum / n, detMax),
+            String(format: "frame total avg=%.1f ms → %.1f fps  (30fps 预算=33.3ms, 60fps=16.7ms)", total,
+                   1000.0 / max(total, 0.001))
+        ]
+        try? lines.joined(separator: "\n").write(
+            to: dir.appendingPathComponent("face-perf.txt"), atomically: true, encoding: .utf8)
     }
 }
