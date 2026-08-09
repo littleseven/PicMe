@@ -233,13 +233,21 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 >
 > 独立细粒度计划：`docs/superpowers/plans/YYYY-MM-DD-ios-app-skeleton.md`（writing-plans 产出，待 Phase 4 收口后开工，一次对准终态）。~~本 Phase 是你 iOS 学习的主战场：前几页 UI 自己写、AI 只答疑~~——**2026-08-08 起按设计文档 S4 修订为「UI 也 AI 生成 + 可调试性内建」（单一状态源 / SwiftUI Preview 全覆盖 / accessibilityIdentifier 全量标注 / DebugOverlay 状态画屏）**；相机管线压轴，Metal shader 调试预留弹性。
 
-- [ ] **5.1 工程与基建**：Xcode 工程、Bundle ID、签名、SPM/依赖、shared XCFramework 集成、xcode-kotlin 调试、基础 CI（xcodebuild）；**初始化 Privacy Manifest（`PrivacyInfo.xcprivacy`）**（review 增补：2024/05 起强制，声明 FileTimestamp/SystemBootTime/DiskSpace 等 API 使用原因，勿等 Phase 6.3）；统一 MNN/sentencepiece/美颜三组件的 XCFramework 构建与 SPM binary target 分发策略
-- [ ] **5.2 首批页面（学习区）**：相册网格 + 相簿列表（SwiftUI + Photos framework + shared 领域层）；权限流按 iOS 范式实现（Limited Access 一等公民）
-- [ ] **5.3 相册网格性能实测**：1000+ 缩略图滚动帧率/内存达标验证（此前评估为 iOS 端最重 UI 场景）
-- [ ] **5.4 相机管线（压轴）**：AVFoundation 采集 → 美颜引擎 → MTKView 渲染；对焦/变焦/曝光手势；对标 Android [PERF] 红线（交互 <100ms、快门 <50ms）
+- [x] **5.1 工程与基建**：✅ Xcode 工程（XcodeGen CLI 生成 `project.yml` → `PoLang.xcodeproj`）；Bundle ID `com.mamba.picme`；签名 Team `6NPE45262A`（免费 Apple Development）；SharedKit XCFramework embed 集成（Debug 日常 ~6s 增量）；Privacy Manifest（FileTimestamp/DiskSpace）；DebugOverlay 状态画屏；ios-dev-loop 闭环脚本；CI iOS build job。**执行偏差**：XcodeGen 替代 GUI 建 Xcode 工程（Agent 无 GUI 能力）；MediaPipe 走 CocoaPods（`pod 'MediaPipeTasksVision'`）非 SPM（官方无 SPM repo）；MNN/sentencepiece 仅收编构建脚本（Phase 5 相机美颜走 MediaPipe 非 MNN）
+- [x] **5.2 首批页面**：✅ 相册网格 + 相簿列表 + 大图浏览 + 选择模式（K3 实例）；权限四态（Full/Limited/AddOnly/Denied）一等公民
+- [ ] **5.3 相册网格性能实测**：⏸ 延期至发版门前（版本优先级：功能 > UI > 性能）；首轮初探达标（滚动 50–55fps、内存 ~110MB），周期性 ~1.7s 主线程尖刺疑似 `ThumbnailLoader` 标 `@MainActor` 致 PHAsset 请求串行堆积，待去 MainActor + 缓存预热修法后复测
+- [x] **5.4 相机管线（压轴）**：✅ AVFoundation 720p 采集 → Metal 4 pass（yuv→smoothing→lut→beauty）→ MTKView 渲染；美颜 MVP（磨皮/美白/瘦脸/大眼 + 9 款 ColorMatrix LUT + 5 款风格占位）；MediaPipe FaceLandmarker 468→106 人脸关键点 + warp 形变；对焦/变焦/曝光手势；拍照链路（AVCapturePhotoOutput → 离屏美颜 → PHPhotoLibrary 保存）。**执行偏差**：人脸关键点走 MediaPipe Face Landmarker（非 MNN RetinaFace，计划已修正）；GLSL→MSL 全量翻译（5 个 .metal）；宿主按 spike 结论从 Kotlin/EGL/GLES 重写为 Swift/Metal
   - ⚠️ **美颜引擎非「C++ 直桥」（Phase 2.4 spike 已证，2026-08-08）**：渲染宿主是 Kotlin（绑定 EGL/GLES/SurfaceTexture，无法移植），iOS 须用 Swift/Metal/AVFoundation **从零重写管线宿主**（~2 周）；只有 GLSL shader 可移植（GLSL→MSL，~1 周，hard 仅 3 个 warp）。详见 spike 报告 `specs/2026-08-08-ios-beauty-metal-spike-design.md` §4。MNN 人脸推理（106 关键点）那部分才是走 Phase 2.1 C++ 产物
-  - 美颜子工期据此重估为 **~3 周**（shader 翻译 ~1 周 + 宿主重写 ~2 周），原 Phase 5 总预算需相应调宽
-- [ ] **5.5 TestFlight 内测包**：相机预览 + 拍照 + 相册浏览可用
+- [x] **5.5 TestFlight 内测包**：⚠️ 受限完成——免费 Apple Development 账号下只能出 ad-hoc 真机包（7 天重签），TestFlight 顺延（R1 风险）。相机预览 + 拍照 + 相册浏览 + MVP 美颜可用，出口检查单全绿
+
+> **Phase 5 执行修订（2026-08-09）**：
+> - **双轨并行模型**：K3（相册段 + 基建-KMP）与 GLM（相机段 + 基建-iOS）两实例并行，文件零冲突，合并超集支 `refactor/ios-camera-track`
+> - **UILaunchScreen 根因**：`project.yml` 缺 `INFOPLIST_KEY_UILaunchScreen_Generation=YES` 导致 App 以兼容模式渲染（上下黑带），影响全 App 所有页面——K3 定位并双轨修复
+> - **UI 对齐专题**：多轮 B1 迭代（读 Compose 源码→dump 量化→截图+像素验证），方法论沉淀 `IOS_ANDROID_UI_PARITY.md`
+> - **F1 框架补全**：悬浮导航（FloatingBottomTab）+ 设置页框架 + 4 页 Pager（相机/相册/聊天/人物）+ 双端图标统一 Material Icons Round（46 imageset SVG）
+> - **缩略图低清根因**：`.opportunistic` 首帧 degraded 低清定格，修法=跳过 degraded 帧 + 终结帧兜底 resume（`08798780`）
+> - **Task 11 延期**：性能实测首轮初探达标但尖刺待复测，按版本优先级延期至发版门前
+> - **图标统一**：iOS Camera 域 + Gallery 域全部 SF Symbols 替换为 Material Icons Round（与 Android `Icons.Rounded.*` 同源 SVG 矢量资产）
 
 ## Phase 6：iOS 功能对齐与发布准备（持续）
 

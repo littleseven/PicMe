@@ -239,3 +239,4 @@ MNN RetinaFace + 106 关键点（Phase 2.1 C++ 产物，`engines/mnn-core` iOS �
 |------|------|
 | 2026-08-08 | 初版：逐节 brainstorming 确认（S1–S10 决策锁定）；美颜方案反思后维持方案 A（否 C++ GLES 双端）；UI 生产方式由「自己写」改为「AI 生成 + 可调试内建」（S4）；双端体验一致为最高原则（S5） |
 | 2026-08-08 | 校对点 1 完成：Phase 3 收尾（`adfcc57a`）落地后复核 10 项路径/脚本/模块引用全绿；roadmap Phase 5 段补回链 + S4 修订标注（修订十） |
+| 2026-08-09 | 执行修订：§5.4 人脸关键点修正为 MediaPipe Face Landmarker + 468→106（原述 MNN RetinaFace 仅检测）；美颜方案 A（Metal 重写宿主 + GLSL→MSL 翻译）落地确认；免费账号 ad-hoc 路径落实（TestFlight 顺延 R1）；双端图标统一 Material Icons Round 同源决策（iOS SF Symbols → Material SVG 矢量资产 46 imageset）；相册缩略图低清根因修复（跳过 `.opportunistic` degraded 帧，`08798780`）；F1 主体框架补全（悬浮导航 + 设置页 + 4 页 Pager） |

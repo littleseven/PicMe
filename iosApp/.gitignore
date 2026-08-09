@@ -1,0 +1,8 @@
+xcuserdata/
+*.xcuserstate
+DerivedData/
+Frameworks/MNN.framework/
+Frameworks/SharedKit.xcframework/
+!Frameworks/.gitkeep
+*.task
+Pods/
