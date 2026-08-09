@@ -1808,6 +1808,52 @@
         }
       }
     },
+    "landmark_loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detecting face landmarks…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在检测人脸关键点…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顔ランドマークを検出中…"
+          }
+        }
+      }
+    },
+    "landmark_no_face_detected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No face detected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未检测到人脸"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顔が検出されませんでした"
+          }
+        }
+      }
+    },
     "Face detection, beauty engine, camera behavior": {
       "localizations": {
         "en": {
