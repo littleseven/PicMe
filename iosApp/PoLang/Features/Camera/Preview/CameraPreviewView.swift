@@ -11,7 +11,21 @@ struct CameraPreviewView: View {
     @State private var authorized = false
     @State private var controller = CaptureSessionController()
     @State private var photoController = PhotoCaptureController()
-    @State private var faceService = FaceLandmarkService()
+    @State private var faceRouter = FaceEngineRouter()
+    /// 引擎开关镜像（值类型 @State → 触发 toggle 视图重绘；同步到 faceRouter.useMnn）
+    /// 支持启动参数 -mnnEngine（无值开关）/ -slim <Float>，用于真机自动化验收（默认行为不变）。
+    @State private var useMnnEngine = Self.parseLaunchFlag("-mnnEngine")
+
+    /// 启动参数解析（与 MainTabView -startPage 同模式；仅自动化验收用，不影响产品默认）。
+    private static func parseLaunchFlag(_ key: String) -> Bool {
+        ProcessInfo.processInfo.arguments.contains(key)
+    }
+    private static func parseLaunchFloat(_ key: String) -> Float? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: key), args.count > i + 1,
+              let v = Float(args[i + 1]) else { return nil }
+        return v
+    }
 
     @State private var activePanel: ActivePanel? = nil
     // 🔴 renderer 提到视图层直持：快门链路不再依赖 representable 回调往返（nil 则拍照静默失败）
@@ -36,7 +50,7 @@ struct CameraPreviewView: View {
                 // 预览层：铺满全屏（全出血）
                 // 🔴 camera_preview 标识只挂叶子视图：挂容器会沿子树传播、覆盖子孙自身标识符
                 MetalViewRepresentable(controller: controller, renderer: sharedRenderer,
-                                       params: container.beautyParams, faceService: faceService)
+                                       params: container.beautyParams, faceRouter: faceRouter)
                 .frame(width: geo.size.width, height: geo.size.height)
                 .accessibilityIdentifier("camera_preview")
 
@@ -46,6 +60,7 @@ struct CameraPreviewView: View {
                 } else {
                     // 控件层：锚 safe area（通过 padding 避让）
                     cameraOverlay(screenHeight: geo.size.height, safeTop: geo.safeAreaInsets.top)
+                        .overlay(alignment: .top) { engineToggle }
                 }
 
                 // 快门白闪反馈（对标 Android 拍照闪屏，确认点击已注册）
@@ -60,14 +75,21 @@ struct CameraPreviewView: View {
         .task {
             authorized = await controller.checkAuthorizationAndStart()
             DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
+            // 自动化验收：启动参数指定引擎 / 瘦脸强度（不改变产品默认）
+            faceRouter.useMnn = useMnnEngine
+            if let slim = Self.parseLaunchFloat("-slim") {
+                container.beautyParams.slimFace = slim
+            }
+            DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
+            print("[PoLang] launch.args: mnnEngine=\(useMnnEngine) slim=\(Self.parseLaunchFloat("-slim") ?? -1)")
             if authorized {
                 // 🔴 串行挂载：走 capture 队列与 session 配置块保序（主线程直挂会和配置竞态）
                 controller.attachOutput(photoController.photoOutput)
-                controller.onFrame = { [faceService] pixelBuffer, ts in
-                    faceService.enqueue(pixelBuffer: pixelBuffer, timestampMs: ts)
+                controller.onFrame = { [faceRouter] pixelBuffer, ts in
+                    faceRouter.enqueue(pixelBuffer: pixelBuffer, timestampMs: ts)
                 }
-                controller.faceServiceIsFrontCamera = { [faceService] isFront in
-                    faceService.isFrontCamera = isFront
+                controller.faceServiceIsFrontCamera = { [faceRouter] isFront in
+                    faceRouter.setFrontCamera(isFront)
                 }
             }
             refreshLatestThumb()
@@ -105,6 +127,37 @@ struct CameraPreviewView: View {
             }
         }
         .accessibilityIdentifier("camera_denied")
+    }
+
+    // MARK: - 人脸引擎切换（MediaPipe 默认 / MNN 双引擎可切换）
+
+    /// 顶部胶囊：点击切换人脸检测引擎。亮色 = 当前引擎。
+    private var engineToggle: some View {
+        Button {
+            useMnnEngine.toggle()
+            faceRouter.useMnn = useMnnEngine
+            DebugOverlayState.shared.set("face.engine.active", faceRouter.activeLabel)
+            print("[PoLang] face.engine switch → \(faceRouter.activeLabel)")
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: useMnnEngine ? "cpu" : "faceid")
+                    .font(.system(size: 11, weight: .bold))
+                Text("MNN")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(useMnnEngine ? .yellow : .white.opacity(0.45))
+                Text("/")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white.opacity(0.35))
+                Text("MediaPipe")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(useMnnEngine ? .white.opacity(0.45) : .yellow)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+        }
+        .padding(.top, 4)
     }
 
     // MARK: - 控件层（锚 safe area，不跟随预览延伸）
@@ -329,7 +382,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
     let controller: CaptureSessionController
     let renderer: BeautyRenderer?
     let params: BeautyRenderer.Params
-    let faceService: FaceLandmarkService
+    let faceRouter: FaceEngineRouter
 
     func makeUIView(context: Context) -> MTKView {
         let view = MTKView()
@@ -350,7 +403,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
             context.coordinator.renderer = fallback
         }
         context.coordinator.controller = controller
-        context.coordinator.faceService = faceService
+        context.coordinator.faceRouter = faceRouter
         return view
     }
 
@@ -363,7 +416,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
     final class Coordinator: NSObject, MTKViewDelegate {
         var renderer: BeautyRenderer?
         var controller: CaptureSessionController?
-        var faceService: FaceLandmarkService?
+        var faceRouter: FaceEngineRouter?
         private var frames = 0
         private var lastFpsTick = Date()
 
@@ -371,7 +424,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
 
         func draw(in view: MTKView) {
             guard let pb = controller?.readBuffer() else { return }
-            if let fs = faceService {
+            if let fs = faceRouter {
                 let tsMs = Int(Date().timeIntervalSince1970 * 1000)
                 if let points = fs.latestWithinWindow(currentTimestampMs: tsMs) {
                     renderer?.updateFacePoints(points, hasFace: true)

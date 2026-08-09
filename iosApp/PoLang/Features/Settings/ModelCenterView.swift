@@ -19,7 +19,7 @@ struct ModelCenterView: View {
             Section {
                 currentModelCard
             } header: {
-                Text(String(localized: "Current Model"))
+                Text(L("Current Model"))
             }
 
             // 已配置模型列表
@@ -29,7 +29,7 @@ struct ModelCenterView: View {
                         modelRow(config)
                     }
                 } header: {
-                    Text(String(localized: "Configured Models"))
+                    Text(L("Configured Models"))
                 }
             }
 
@@ -40,11 +40,11 @@ struct ModelCenterView: View {
                         Image(matIcon: "info")
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
-                        Text(String(localized: "Guest Mode"))
+                        Text(L("Guest Mode"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                     }
-                    Text(String(localized: "Without a configured model, PoLang uses a free proxy server with limited guest quota. Add your own API key for unlimited access."))
+                    Text(L("Without a configured model, PoLang uses a free proxy server with limited guest quota. Add your own API key for unlimited access."))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary.opacity(0.8))
                 }
@@ -52,7 +52,7 @@ struct ModelCenterView: View {
                 EmptyView()
             }
         }
-        .navigationTitle(String(localized: "Model Center"))
+        .navigationTitle(L("Model Center"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -92,7 +92,7 @@ struct ModelCenterView: View {
             }
             Spacer()
             if store.activeConfig().isConfigured {
-                Text(String(localized: "API Key"))
+                Text(L("API Key"))
                     .font(.system(size: 10))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -100,7 +100,7 @@ struct ModelCenterView: View {
                     .foregroundColor(.green)
                     .clipShape(Capsule())
             } else {
-                Text(String(localized: "Guest"))
+                Text(L("Guest"))
                     .font(.system(size: 10))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -183,7 +183,7 @@ struct AddModelSheet: View {
         NavigationStack {
             Form {
                 // 供应商选择
-                Section(String(localized: "Provider")) {
+                Section(L("Provider")) {
                     ForEach(providers, id: \.providerId) { provider in
                         providerChip(provider)
                     }
@@ -191,7 +191,7 @@ struct AddModelSheet: View {
 
                 // 模型选择
                 if !availableModels.isEmpty {
-                    Section(String(localized: "Model")) {
+                    Section(L("Model")) {
                         ForEach(availableModels, id: \.self) { modelId in
                             modelChip(modelId)
                         }
@@ -199,25 +199,25 @@ struct AddModelSheet: View {
                 }
 
                 // API Key
-                Section(String(localized: "API Key")) {
-                    SecureField(String(localized: "Enter API Key"), text: $apiKey)
+                Section(L("API Key")) {
+                    SecureField(L("Enter API Key"), text: $apiKey)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     if let provider = selectedProvider {
-                        Link(String(localized: "Get API Key"),
+                        Link(L("Get API Key"),
                              destination: URL(string: apiKeyUrl(for: provider.providerId))!)
                             .font(.caption)
                     }
                 }
             }
-            .navigationTitle(String(localized: "Add Model"))
+            .navigationTitle(L("Add Model"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(String(localized: "Cancel")) { dismiss() }
+                    Button(L("Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "Add")) {
+                    Button(L("Add")) {
                         if let provider = selectedProvider {
                             onConfirm(provider, selectedModelId, apiKey.trimmingCharacters(in: .whitespaces))
                             dismiss()

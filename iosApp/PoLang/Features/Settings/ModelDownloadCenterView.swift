@@ -31,7 +31,7 @@ struct ModelDownloadCenterView: View {
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Model Center"))
+        .navigationTitle(L("Model Center"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -114,7 +114,7 @@ struct ModelDownloadCenterView: View {
             Image(systemName: "cpu")
                 .font(.system(size: 64))
                 .foregroundColor(.secondary.opacity(0.4))
-            Text(String(localized: "No models available"))
+            Text(L("No models available"))
                 .font(.system(size: 16))
                 .foregroundColor(.secondary)
         }
@@ -132,10 +132,10 @@ private struct MustHaveHeaderCard: View {
         let missing = required.filter { !manager.isModelDownloaded($0.id) }
 
         VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "Must Have"))
+            Text(L("Must Have"))
                 .font(.system(size: 16, weight: .semibold))
 
-            Text("\(required.count) \(String(localized: "required models,")) \(missing.count) \(String(localized: "not downloaded"))")
+            Text("\(required.count) \(L("required models,")) \(missing.count) \(L("not downloaded"))")
                 .font(.system(size: 13))
                 .foregroundColor(.secondary)
 
@@ -147,7 +147,7 @@ private struct MustHaveHeaderCard: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(matIcon: "download").font(.system(size: 16))
-                            Text(String(localized: "Download Missing"))
+                            Text(L("Download Missing"))
                                 .font(.system(size: 13, weight: .semibold))
                         }
                         .foregroundColor(.white)
@@ -223,7 +223,7 @@ private struct ModelDownloadCard: View {
                         .tint(state.status == .paused ? .secondary : .accentColor)
                     HStack {
                         if state.status == .paused {
-                            Text(String(localized: "Pause"))
+                            Text(L("Pause"))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -236,7 +236,7 @@ private struct ModelDownloadCard: View {
                 .padding(.top, 10)
             }
             if let state, state.status == .failed {
-                Text(String(localized: "Download failed. Please try again."))
+                Text(L("Download failed. Please try again."))
                     .font(.system(size: 11))
                     .foregroundColor(.red)
                     .padding(.top, 6)
@@ -250,16 +250,16 @@ private struct ModelDownloadCard: View {
             showProperties = true
         }
         .confirmationDialog(
-            String(localized: "Delete model?"),
+            L("Delete model?"),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "Delete"), role: .destructive) {
+            Button(L("Delete"), role: .destructive) {
                 manager.delete(entry.id)
             }
-            Button(String(localized: "Cancel"), role: .cancel) {}
+            Button(L("Cancel"), role: .cancel) {}
         } message: {
-            Text(String(localized: "Are you sure you want to delete") + " \(entry.name)?")
+            Text(L("Are you sure you want to delete") + " \(entry.name)?")
         }
         .sheet(isPresented: $showProperties) {
             ModelPropertiesSheet(entry: entry)
@@ -369,7 +369,7 @@ private struct TagBadge: View {
 
 private struct LightweightBadge: View {
     var body: some View {
-        Text(String(localized: "Lightweight"))
+        Text(L("Lightweight"))
             .font(.system(size: 10))
             .foregroundColor(.secondary)
             .padding(.horizontal, 6)
@@ -381,7 +381,7 @@ private struct LightweightBadge: View {
 
 private struct RequiredBadge: View {
     var body: some View {
-        Text(String(localized: "Must Have"))
+        Text(L("Must Have"))
             .font(.system(size: 10, weight: .bold))
             .foregroundColor(.white)
             .padding(.horizontal, 6)
@@ -420,11 +420,11 @@ private struct ModelPropertiesSheet: View {
                     .font(.system(size: 12, design: .monospaced))
                     .padding(16)
             }
-            .navigationTitle(String(localized: "Model Properties"))
+            .navigationTitle(L("Model Properties"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "Close")) { dismiss() }
+                    Button(L("Close")) { dismiss() }
                 }
             }
         }

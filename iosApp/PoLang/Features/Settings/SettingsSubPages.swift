@@ -11,14 +11,14 @@ struct AiAgentSettingsView: View {
         ScrollView {
             VStack(spacing: 12) {
                 // Section: AI 智能助手
-                settingsSection(String(localized: "AI Assistant"), String(localized: "Use remote model for natural language camera control.")) {
+                settingsSection(L("AI Assistant"), L("Use remote model for natural language camera control.")) {
                     VStack(spacing: 0) {
                         // 自动执行计划
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(String(localized: "Auto-Execute Multi-Step Plans"))
+                                Text(L("Auto-Execute Multi-Step Plans"))
                                     .font(.system(size: 14))
-                                Text(String(localized: "When disabled, Agent requires confirmation before executing multi-step plans."))
+                                Text(L("When disabled, Agent requires confirmation before executing multi-step plans."))
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                             }
@@ -31,27 +31,27 @@ struct AiAgentSettingsView: View {
 
                         // 推理模式
                         HStack {
-                            Text(String(localized: "Inference Mode")).font(.system(size: 14))
+                            Text(L("Inference Mode")).font(.system(size: 14))
                             Spacer()
-                            chip(String(localized: "Remote Model"), isSelected: true)
+                            chip(L("Remote Model"), isSelected: true)
                         }
                         .padding(.vertical, 8)
                     }
                 }
 
                 // Section: 远程推理
-                settingsSection(String(localized: "Remote Inference")) {
+                settingsSection(L("Remote Inference")) {
                     AiAgentRemoteModelsSection()
                         .environmentObject(ModelConfigStore.shared)
                 }
 
                 // Section: 语音控制
-                settingsSection(String(localized: "Voice Control"), String(localized: "Control camera shooting via voice commands.")) {
+                settingsSection(L("Voice Control"), L("Control camera shooting via voice commands.")) {
                     VStack(spacing: 8) {
                         HStack {
-                            Text(String(localized: "Voice Mode")).font(.system(size: 14))
+                            Text(L("Voice Mode")).font(.system(size: 14))
                             Spacer()
-                            Text(String(localized: "Not Available"))
+                            Text(L("Not Available"))
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         }
@@ -63,7 +63,7 @@ struct AiAgentSettingsView: View {
             .padding(.vertical, 6)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "AI Assistant"))
+        .navigationTitle(L("AI Assistant"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -95,7 +95,7 @@ private struct AiAgentRemoteModelsSection: View {
             HStack {
                 Image(matIcon: "check").font(.system(size: 18)).foregroundColor(.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(String(localized: "Current Model"))
+                    Text(L("Current Model"))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Text(store.activeConfig().modelId)
@@ -110,10 +110,10 @@ private struct AiAgentRemoteModelsSection: View {
             // 模型列表
             if store.configs.isEmpty {
                 VStack(spacing: 4) {
-                    Text(String(localized: "Default remote model has time limits"))
+                    Text(L("Default remote model has time limits"))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
-                    Text(String(localized: "Add your own model to remove restrictions"))
+                    Text(L("Add your own model to remove restrictions"))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary.opacity(0.7))
                 }
@@ -147,7 +147,7 @@ private struct AiAgentRemoteModelsSection: View {
             Button { showAddSheet = true } label: {
                 HStack {
                     Image(matIcon: "add").font(.system(size: 16))
-                    Text(String(localized: "Add Model")).font(.system(size: 14, weight: .medium))
+                    Text(L("Add Model")).font(.system(size: 14, weight: .medium))
                 }
                 .foregroundColor(.accentColor)
             }
@@ -179,12 +179,12 @@ struct CommunicationChannelView: View {
         ScrollView {
             VStack(spacing: 12) {
                 // Channel selection
-                settingsSection(String(localized: "Current Channel")) {
+                settingsSection(L("Current Channel")) {
                     VStack(spacing: 8) {
                         HStack(spacing: 8) {
-                            channelChip("feishu", label: String(localized: "Feishu"))
+                            channelChip("feishu", label: L("Feishu"))
                             channelChip("telegram", label: "Telegram")
-                            channelChip("none", label: String(localized: "None"))
+                            channelChip("none", label: L("None"))
                         }
                         .padding(.vertical, 4)
                     }
@@ -192,23 +192,23 @@ struct CommunicationChannelView: View {
 
                 // Feishu config
                 if channelType == "feishu" {
-                    settingsSection(String(localized: "Feishu"), String(localized: "Connect Feishu to receive remote commands via IM messages.")) {
+                    settingsSection(L("Feishu"), L("Connect Feishu to receive remote commands via IM messages.")) {
                         VStack(spacing: 10) {
-                            credentialField(title: "App ID", text: $feishuAppId, placeholder: String(localized: "Feishu App ID"))
-                            credentialField(title: "App Secret", text: $feishuAppSecret, placeholder: String(localized: "Feishu App Secret"), isPassword: true)
+                            credentialField(title: "App ID", text: $feishuAppId, placeholder: L("Feishu App ID"))
+                            credentialField(title: "App Secret", text: $feishuAppSecret, placeholder: L("Feishu App Secret"), isPassword: true)
                         }
                     }
                 }
 
                 // Telegram config
                 if channelType == "telegram" {
-                    settingsSection("Telegram", String(localized: "Connect via Telegram Bot long polling (no public IP needed).")) {
+                    settingsSection("Telegram", L("Connect via Telegram Bot long polling (no public IP needed).")) {
                         VStack(spacing: 10) {
                             credentialField(title: "Bot Token", text: $telegramBotToken, placeholder: "123456:ABC-DEF...", isPassword: true)
-                            credentialField(title: String(localized: "Allowed Chat ID"), text: $telegramChatId, placeholder: "123456789")
-                            Text(String(localized: "Create a bot via @BotFather then paste its token."))
+                            credentialField(title: L("Allowed Chat ID"), text: $telegramChatId, placeholder: "123456789")
+                            Text(L("Create a bot via @BotFather then paste its token."))
                                 .font(.system(size: 11)).foregroundColor(.secondary)
-                            Text(String(localized: "Only this chat can send commands (security whitelist). Without Chat ID, the bot rejects all messages."))
+                            Text(L("Only this chat can send commands (security whitelist). Without Chat ID, the bot rejects all messages."))
                                 .font(.system(size: 11)).foregroundColor(.orange)
                         }
                     }
@@ -218,7 +218,7 @@ struct CommunicationChannelView: View {
             .padding(.vertical, 6)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Channels"))
+        .navigationTitle(L("Channels"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -269,7 +269,7 @@ struct MemoryFactsView: View {
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "AI Memory"))
+        .navigationTitle(L("AI Memory"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -277,14 +277,14 @@ struct MemoryFactsView: View {
             }
             if !facts.isEmpty {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "Clear All")) { showClearConfirm = true }
+                    Button(L("Clear All")) { showClearConfirm = true }
                         .foregroundColor(.red)
                 }
             }
         }
-        .confirmationDialog(String(localized: "Clear all memories?"), isPresented: $showClearConfirm, titleVisibility: .visible) {
-            Button(String(localized: "Clear"), role: .destructive) { facts = [] }
-            Button(String(localized: "Cancel"), role: .cancel) {}
+        .confirmationDialog(L("Clear all memories?"), isPresented: $showClearConfirm, titleVisibility: .visible) {
+            Button(L("Clear"), role: .destructive) { facts = [] }
+            Button(L("Cancel"), role: .cancel) {}
         }
     }
 }
@@ -301,16 +301,16 @@ struct DeveloperSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                settingsSection(String(localized: "Debug Tools"), String(localized: "Recommended for debugging only.")) {
+                settingsSection(L("Debug Tools"), L("Recommended for debugging only.")) {
                     VStack(spacing: 0) {
-                        toggleRow(String(localized: "Debug"), isOn: $debugEnabled)
+                        toggleRow(L("Debug"), isOn: $debugEnabled)
                         if debugEnabled {
                             Divider()
-                            toggleRow(String(localized: "Show Camera Info"), isOn: $showCameraInfo)
+                            toggleRow(L("Show Camera Info"), isOn: $showCameraInfo)
                             Divider()
-                            toggleRow(String(localized: "Show Face Debug"), isOn: $showFaceDebug)
+                            toggleRow(L("Show Face Debug"), isOn: $showFaceDebug)
                             Divider()
-                            toggleRow(String(localized: "Show Log Overlay"), isOn: $showLogOverlay)
+                            toggleRow(L("Show Log Overlay"), isOn: $showLogOverlay)
                         }
                     }
                 }
@@ -319,7 +319,7 @@ struct DeveloperSettingsView: View {
             .padding(.vertical, 6)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Developer"))
+        .navigationTitle(L("Developer"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {

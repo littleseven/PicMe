@@ -7,7 +7,7 @@ import MediaPipeTasksVision
 ///
 /// ⚠️ 单线程串行队列；跳帧策略：推理中丢帧不排队。
 /// 输出经 MediaPipe468Adapter.map() 转为 106 点归一化坐标。
-final class FaceLandmarkService {
+final class FaceLandmarkService: FaceLandmarkEngine {
     struct Result {
         let points106: [SIMD2<Float>]
         let timestampMs: Int

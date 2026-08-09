@@ -17,6 +17,11 @@ targets:
     dependencies:
       - framework: ../shared/build/XCFrameworks/debug/SharedKit.xcframework
         embed: true
+      # MNN 人脸检测（端侧推理）：静态 framework，仅 link 不 embed
+      - framework: Frameworks/MNN.framework
+        embed: false
+      - sdk: Metal.framework
+      - sdk: Accelerate.framework
     preBuildScripts:
       - name: Build SharedKit
         script: "\"$SRCROOT/scripts/build-shared-kit.sh\"\n"
@@ -36,6 +41,13 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "PoLang needs permission to save beauty-enhanced photos to your library."
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
         METAL_LANGUAGE_VERSION: "2.4"
+        # ⚠️ 必须带 $(inherited)：CocoaPods xcconfig（baseConfigurationReference）注入了
+        # MediaPipe 搜索路径/链接标志（含 -ObjC）。target 级裸值会整体覆盖、丢掉 Pod 链接 →
+        # “no such module MediaPipeTasksVision”。MNN.framework 在 Frameworks/，需追加该路径解析 <MNN/*.hpp>。
+        OTHER_LDFLAGS: ["-ObjC", "$(inherited)"]
+        FRAMEWORK_SEARCH_PATHS: ["$(SRCROOT)/Frameworks", "$(inherited)"]
+        # Swift ↔ ObjC++ 桥接（暴露 PLMnnFaceDetector 给 Swift）
+        SWIFT_OBJC_BRIDGING_HEADER: "PoLang/PoLang-Bridging-Header.h"
 
   PoLangTests:
     type: bundle.unit-test
@@ -51,6 +63,8 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/PoLang.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PoLang"
+        FRAMEWORK_SEARCH_PATHS: ["$(SRCROOT)/Frameworks", "$(inherited)"]
+        OTHER_LDFLAGS: ["-ObjC", "$(inherited)"]
 
   PoLangUITests:
     type: bundle.ui-testing

@@ -23,7 +23,7 @@ struct SettingsScreen: View {
             .padding(.vertical, 8)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Settings"))
+        .navigationTitle(L("Settings"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -51,9 +51,9 @@ struct SettingsScreen: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(String(localized: "Account"))
+                    Text(L("Account"))
                         .font(.system(size: 16, weight: .medium))
-                    Text(String(localized: "Sign in for more quota and features"))
+                    Text(L("Sign in for more quota and features"))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -75,13 +75,13 @@ struct SettingsScreen: View {
 
     private var themeCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "Theme"))
+            Text(L("Theme"))
                 .font(.system(size: 14, weight: .medium))
 
             HStack(spacing: 8) {
-                filterChip("system", label: String(localized: "System Default"))
-                filterChip("light", label: String(localized: "Light"))
-                filterChip("dark", label: String(localized: "Dark"))
+                filterChip("system", label: L("System Default"))
+                filterChip("light", label: L("Light"))
+                filterChip("dark", label: L("Dark"))
             }
         }
         .padding(16)
@@ -94,7 +94,7 @@ struct SettingsScreen: View {
 
     private var languageCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "Language"))
+            Text(L("Language"))
                 .font(.system(size: 14, weight: .medium))
 
             HStack(spacing: 8) {
@@ -156,7 +156,7 @@ struct SettingsScreen: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.primary)
                 .lineLimit(1)
-            Text(cat.isPlaceholder ? String(localized: "Coming Soon") : cat.desc)
+            Text(cat.isPlaceholder ? L("Coming Soon") : cat.desc)
                 .font(.system(size: 12))
                 .foregroundColor(cat.isPlaceholder ? .secondary.opacity(0.5) : .secondary)
                 .lineLimit(2)
@@ -195,20 +195,20 @@ struct SettingsScreen: View {
     private var categories: [SettingsCategoryItem] {
         [
             // Row 1
-            .init(icon: "smart_toy", title: String(localized: "AI Assistant"), desc: String(localized: "Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: false),
-            .init(icon: "psychology", title: String(localized: "AI Memory"), desc: String(localized: "View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: false),
+            .init(icon: "smart_toy", title: L("AI Assistant"), desc: L("Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: false),
+            .init(icon: "psychology", title: L("AI Memory"), desc: L("View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: false),
             // Row 2
-            .init(icon: "person", title: String(localized: "People"), desc: String(localized: "View and name face clusters"), target: .people, isPlaceholder: true),
-            .init(icon: "forum", title: String(localized: "Channels"), desc: String(localized: "Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
+            .init(icon: "person", title: L("People"), desc: L("View and name face clusters"), target: .people, isPlaceholder: true),
+            .init(icon: "forum", title: L("Channels"), desc: L("Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
             // Row 3
-            .init(icon: "photo_library", title: String(localized: "Gallery"), desc: String(localized: "Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
-            .init(icon: "camera_alt", title: String(localized: "Camera & Beauty"), desc: String(localized: "Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: true),
+            .init(icon: "photo_library", title: L("Gallery"), desc: L("Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
+            .init(icon: "camera_alt", title: L("Camera & Beauty"), desc: L("Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: true),
             // Row 4
-            .init(icon: "cloud_download", title: String(localized: "Model Center"), desc: String(localized: "Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
-            .init(icon: "terminal", title: String(localized: "Developer"), desc: String(localized: "Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: false),
+            .init(icon: "cloud_download", title: L("Model Center"), desc: L("Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
+            .init(icon: "terminal", title: L("Developer"), desc: L("Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: false),
             // Row 5
-            .init(icon: "storage", title: String(localized: "Backup & Restore"), desc: String(localized: "Export or import TAG, face clusters, OCR, settings"), target: .backup, isPlaceholder: true),
-            .init(icon: "privacy_tip", title: String(localized: "Data & Privacy"), desc: String(localized: "Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),
+            .init(icon: "storage", title: L("Backup & Restore"), desc: L("Export or import TAG, face clusters, OCR, settings"), target: .backup, isPlaceholder: true),
+            .init(icon: "privacy_tip", title: L("Data & Privacy"), desc: L("Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),
         ]
     }
 }
@@ -239,18 +239,18 @@ struct AccountSettingsView: View {
             Image(matIcon: "person")
                 .font(.system(size: 64))
                 .foregroundColor(.secondary.opacity(0.3))
-            Text(String(localized: "Account registration coming in a future version."))
+            Text(L("Account registration coming in a future version."))
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-            Text(String(localized: "You are currently using guest mode with limited quota."))
+            Text(L("You are currently using guest mode with limited quota."))
                 .font(.system(size: 13))
                 .foregroundColor(.secondary.opacity(0.7))
             Spacer()
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Account"))
+        .navigationTitle(L("Account"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -266,13 +266,13 @@ struct DataPrivacyView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let sections: [(title: String, body: String)] = [
-        (String(localized: "Account Data"), String(localized: "Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes.")),
-        (String(localized: "Device Identifier"), String(localized: "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties.")),
-        (String(localized: "Data Retention"), String(localized: "After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs.")),
-        (String(localized: "Delete Your Account"), String(localized: "You can delete your account through Settings → Account → Delete Account, or by emailing us.")),
-        (String(localized: "Local Processing"), String(localized: "Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server.")),
-        (String(localized: "Remote Inference"), String(localized: "After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content.")),
-        (String(localized: "Contact Us"), "budao.gs@gmail.com"),
+        (L("Account Data"), L("Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes.")),
+        (L("Device Identifier"), L("A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties.")),
+        (L("Data Retention"), L("After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs.")),
+        (L("Delete Your Account"), L("You can delete your account through Settings → Account → Delete Account, or by emailing us.")),
+        (L("Local Processing"), L("Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server.")),
+        (L("Remote Inference"), L("After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content.")),
+        (L("Contact Us"), "budao.gs@gmail.com"),
     ]
 
     var body: some View {
@@ -290,7 +290,7 @@ struct DataPrivacyView: View {
                 }
 
                 if let url = URL(string: "https://polang.net/privacy-policy/") {
-                    Link(String(localized: "View Full Privacy Policy"), destination: url)
+                    Link(L("View Full Privacy Policy"), destination: url)
                         .font(.system(size: 14, weight: .medium))
                         .padding(.top, 8)
                 }
@@ -298,7 +298,7 @@ struct DataPrivacyView: View {
             .padding(20)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Data & Privacy"))
+        .navigationTitle(L("Data & Privacy"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -328,14 +328,14 @@ struct AboutView: View {
                         .foregroundColor(.accentColor)
                     Text("PoLang")
                         .font(.system(size: 20, weight: .bold))
-                    Text(String(localized: "PoLang · AI Agent Album"))
+                    Text(L("PoLang · AI Agent Album"))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 20)
 
                 VStack(spacing: 0) {
-                    infoRow(label: String(localized: "Version"), value: appVersion)
+                    infoRow(label: L("Version"), value: appVersion)
                     Divider().background(Color(.separator))
                     if let url = URL(string: "https://github.com/littleseven/polang") {
                         Link(destination: url) {
@@ -348,7 +348,7 @@ struct AboutView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
 
-                Text(String(localized: "Built with Kotlin Multiplatform, Koog, SwiftUI, Metal, MNN"))
+                Text(L("Built with Kotlin Multiplatform, Koog, SwiftUI, Metal, MNN"))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -358,7 +358,7 @@ struct AboutView: View {
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "About"))
+        .navigationTitle(L("About"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
