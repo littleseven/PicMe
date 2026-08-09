@@ -105,9 +105,9 @@ ForEach(items) { item in
 > 实现或修改任何屏幕的 UI 时，必须遵循 `ui-parity-guard` skill 的 5 步硬规则。
 
 **核心约束**：
-1. **先读 `specs/screens/<screen>.yaml`**，不存在则先创建。禁止通过读对端源码翻译布局。
+1. **先读 `specs/screens/<screen>.yaml`**——不存在则要求 Android 端先固化 spec。**禁止通过读 Android 源码翻译布局**（此路线已被两轮真机验收证伪）。
 2. **引用 design token 常量**（`Spacing` / `AppShapes` / `AppColors`），禁止硬编码 `.frame(width:)` / `Color(red:)`。Token SSOT: `shared/src/commonMain/resources/design-tokens.json`。
-3. 引入新值时先更新 `design-tokens.json`，再同步两端代码。
-4. 改了布局结构时同步更新 spec YAML。
+3. **定稿截图作视觉参照**（`tmp/ui-reference/`）——看"长什么样"，但代码参照是 spec 不是 Android 源码。
+4. 后续修改走三同步：改 spec → 同步改两端代码 → 同步改 token。
 
-详见：[`ui-parity-guard`](/ui-parity-guard) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)
+详见：[`ui-parity-guard`](/ui-parity-guard) · [`specs/README.md`](/specs/README.md) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)

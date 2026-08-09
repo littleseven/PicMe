@@ -21,56 +21,38 @@ tags:
 # UI Parity Guard Skill
 
 > **定位**：双端 UI 一致性的强制约束层——让 K3（写 Compose）和 GLM（写 SwiftUI）各自只看共享的 token/spec，不靠"读对端源码脑补"。
-> **触发时机**：实现/修改任何屏幕的 UI（布局、元素增减、尺寸/颜色/间距变更）时自动启用。
+> **触发时机**：① iOS 实现/修改任何屏幕的 UI 时自动启用；② Android 新页面 UI 定稿后固化 spec 时启用。
+> **研发模式**：Android vibe coding 自由迭代 → 定稿后固化 spec（②）→ iOS 按 spec 实现（③）。详见 `specs/README.md`。
 
 ---
 
 ## 🔴 硬规则（RULE）
 
-实现/修改任何 UI 屏幕前，**必须按序执行以下 5 步**：
+### Android 端：定稿后固化（Vibe Coding 不受约束）
 
-### 1. 先读 spec
+Android 新页面开发期间无 spec 约束，自由迭代。**UI 定稿后（iOS 开工前）**，必须执行：
 
-读 `specs/screens/<screen>.yaml`。如果 spec **不存在**，先创建它（参照 camera.yaml / gallery-grid.yaml 格式），再写代码。
+1. **固化 spec**：从定稿代码/截图反向提取 `specs/screens/<screen>.yaml`（可派 AI 提取）。不存在则创建。
+2. **提取 token**：定稿中的新尺寸/颜色/圆角加到 `design-tokens.json`，同步到 Android（`Spacing.kt` / `AppShapes.kt` / `Color.kt`）和 iOS（`DesignTokens.swift`）。
+3. **建议替换硬编码**：Android 代码中的关键硬编码值替换为 token 引用（`MaterialTheme.spacing.xxx`），使后续 token 改动生效。
+4. **采集定稿截图**：`adb exec-out screencap -p > tmp/ui-reference/<screen>.png`，作为 iOS 视觉参照。
 
-**禁止跳过此步直接写 UI 代码。禁止通过读对端源码来"翻译"布局**（此路线已被两轮真机验收证伪）。
+### iOS 端：按 spec 实现（禁止读 Android 源码）
 
-### 2. 引用 design tokens
+iOS 实现/修改任何屏幕的 UI 时，**必须**：
 
-尺寸/颜色/间距/圆角必须引用 token 常量，禁止硬编码数值：
+1. **先读 `specs/screens/<screen>.yaml`**。不存在则要求 Android 端先固化 spec。
+2. **引用 design token 常量**（`Spacing.xxx` / `AppShapes.xxx` / `AppColors.xxx`），禁止硬编码 `.frame(width:)` / `Color(red:)`。
+3. **定稿截图作视觉参照**（`tmp/ui-reference/<screen>.png`）——看"长什么样"，但**代码参照是 spec 不是 Android 源码**。
 
-| 平台 | 间距 | 圆角 | 功能色 | 主题色 |
-|------|------|------|--------|--------|
-| Android | `MaterialTheme.spacing.sm` | `MaterialTheme.appShapes.panel` | `MaterialTheme.appColors.focusRing` | `MaterialTheme.colorScheme.primary` |
-| iOS | `Spacing.sm` | `AppShapes.panel` | `AppColors.focusRing` | 系统 `.primary` / `.secondary` |
+### 后续修改：三同步
 
-**Token SSOT**：所有值的唯一事实来源是 `shared/src/commonMain/resources/design-tokens.json`。
+UI 定稿后的改动（两端都已实现后），走三同步：
+1. 改 `specs/screens/<screen>.yaml`
+2. 同步改 Android（Compose，引用 token）+ iOS（SwiftUI，引用 token）
+3. 同步改 `design-tokens.json` → 两端常量（如有新值）
 
-### 3. 如果引入新尺寸值
-
-如果 spec / token 中没有你要用的值：
-
-1. 先加到 `design-tokens.json`
-2. 同步到 Android（`Spacing.kt` / `AppShapes.kt` / `Color.kt`）和 iOS（`DesignTokens.swift`）
-3. 在代码中引用 token 常量
-
-**禁止直接在代码中写 `16.dp` 或 `.frame(width: 48)` 等"巧合性"硬编码。**
-
-### 4. 如果改了布局结构
-
-同步更新 `specs/screens/<screen>.yaml`：
-- 增减了元素 → 更新元素树
-- 改了 anchor / 尺寸比例 → 更新对应参数
-- 改了状态机 → 更新 states 列表
-- 新增了平台差异 → 登记到 allowed_differences
-
-### 5. 提交截图（验证闭环）
-
-改完 UI 后，采集截图供 diff 检查：
-- **Android**：`adb exec-out screencap -p > tmp/shots/<screen>_<state>.png`
-- **iOS**：`xcrun simctl io <device> screenshot tmp/shots/<screen>_<state>.png`
-
-每屏至少采集 2 个状态（idle + 最常见的交互态，如 panel_expanded）。
+**禁止只改一端代码不改 spec。禁止通过读对端源码来"翻译"布局**（此路线已被两轮真机验收证伪）。
 
 ---
 
