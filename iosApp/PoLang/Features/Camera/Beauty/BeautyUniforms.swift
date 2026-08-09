@@ -12,5 +12,9 @@ struct BeautyUniforms {
     var hasFace: Float = 0
     var aspectRatio: Float = 1
     var useGpupixelWarp: Int32 = 1
+    // 宽高比校正（aspect-fill 裁剪）：上屏 pass 用，离屏/中间 pass 保持恒等 (1,1)/(0,0)
+    // 🔴 必须与两个 .metal 文件的 BeautyUniforms 布局一致
+    var cropScale: SIMD2<Float> = SIMD2(1, 1)
+    var cropOffset: SIMD2<Float> = SIMD2(0, 0)
     // uFacePoints[212] 走独立 MTLBuffer（数组不可进 setFragmentBytes 内联结构），Task 16 接
 }

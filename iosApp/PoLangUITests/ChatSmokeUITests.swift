@@ -15,32 +15,14 @@ final class ChatSmokeUITests: XCTestCase {
     /// T0 冒烟：进入 Chat 页发 "pong"，验证远程推理链路可达
     func testT0_SmokeChat() throws {
         let device = XCUIDevice.shared
-        let chatTab = app.buttons["chat_tab"]
-            .exists ? app.buttons["chat_tab"] : app.staticTexts["chat_tab"]
-
-        // 找聊天 tab（悬浮导航第 3 个图标）
-        // FloatingBottomTab 用图标，无 accessibilityIdentifier，用坐标点击
-        let screenWidth = app.windows.firstMatch.frame.width
-        let screenHeight = app.windows.firstMatch.frame.height
-
-        // 悬浮 tab 在底部，3 个等分图标，聊天是第 3 个（index 2）
-        let tabY = screenHeight - 30
-        let chatX = screenWidth * 0.83  // 第 3 个 tab 位置（4 tab 等分，第 3 个约 0.83）
-
-        // 先点相册 tab（第 2 个）确保在可交互状态
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)).tap()
-        sleep(1)
-
-        // 点聊天 tab
-        app.coordinate(withNormalizedOffset: CGVector(dx: chatX / screenWidth, dy: tabY / screenHeight)).tap()
-        sleep(2)
+        // 悬浮 Tab 已有 accessibilityIdentifier（tab_chat），直接点（替代旧坐标点击）
+        let gallery = app.descendants(matching: .any)["gallery_grid"].firstMatch
+        XCTAssertTrue(gallery.waitForExistence(timeout: 12), "初始页应为相册网格")
+        app.buttons["tab_chat"].tap()
 
         // 找输入框
-        let inputField = app.textFields.firstMatch
-        let inputFieldAlt = app.textViews.firstMatch
-
-        let targetField = inputField.exists ? inputField : inputFieldAlt
-        XCTAssertTrue(targetField.waitForExistence(timeout: 10), "Chat input field should exist")
+        let targetField = app.textFields["chat_input"]
+        XCTAssertTrue(targetField.waitForExistence(timeout: 12), "Chat input field should exist")
 
         // 输入 "pong" 并发送
         targetField.tap()
@@ -117,22 +99,18 @@ final class ChatSmokeUITests: XCTestCase {
     // MARK: - Helpers
 
     private func navigateToChat() {
-        let screenWidth = app.windows.firstMatch.frame.width
-        let screenHeight = app.windows.firstMatch.frame.height
-        let tabY = screenHeight - 30
-        let chatX = screenWidth * 0.83
-
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)).tap()
+        let gallery = app.descendants(matching: .any)["gallery_grid"].firstMatch
+        _ = gallery.waitForExistence(timeout: 12)
+        app.buttons["tab_chat"].tap()
         sleep(1)
-        app.coordinate(withNormalizedOffset: CGVector(dx: chatX / screenWidth, dy: tabY / screenHeight)).tap()
-        sleep(2)
     }
 
     private func tapSend() {
-        if app.buttons.count > 0 {
-            app.buttons.allElementsBoundByIndex.last?.tap()
+        let send = app.buttons["chat_send"]
+        if send.waitForExistence(timeout: 3) {
+            send.tap()
         } else {
-            app.textFields.firstMatch.typeText("\n")
+            app.buttons.allElementsBoundByIndex.last?.tap()
         }
     }
 }

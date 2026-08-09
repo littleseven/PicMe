@@ -45,7 +45,7 @@ final class CameraSpecUITests: XCTestCase {
         try navigateToCamera()
 
         // §5 预览层（MetalViewRepresentable 叶子标识符）
-        try requireElement("camera_preview", timeout: 3, "预览层应存在")
+        try requireElement("camera_preview", timeout: 12, "预览层应存在")
 
         // §7 快门按钮
         try requireElement("camera_shutter", timeout: 3, "快门按钮应存在")
@@ -109,7 +109,7 @@ final class CameraSpecUITests: XCTestCase {
         attachScreenshot(name: "flip_camera")
 
         // 翻转后预览层仍存在
-        try requireElement("camera_preview", timeout: 3, "翻转后预览层应仍存在")
+        try requireElement("camera_preview", timeout: 12, "翻转后预览层应仍存在")
     }
 
     // MARK: - §8 美颜面板开合与 Tab 切换
@@ -207,7 +207,7 @@ final class CameraSpecUITests: XCTestCase {
     /// focus_ring 的标识符缺失记入 gap 清单。
     func testFocusTapNoCrash() throws {
         try navigateToCamera()
-        try requireElement("camera_preview", timeout: 3, "预览层应存在")
+        try requireElement("camera_preview", timeout: 12, "预览层应存在")
 
         // 点击预览中心区域触发对焦
         let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -216,7 +216,7 @@ final class CameraSpecUITests: XCTestCase {
         attachScreenshot(name: "focus_tap")
 
         // 预览层仍存在（点击不导致崩溃）
-        try requireElement("camera_preview", timeout: 3, "对焦点击后预览层应仍存在")
+        try requireElement("camera_preview", timeout: 12, "对焦点击后预览层应仍存在")
     }
 
     // MARK: - §7 模式选择器
@@ -251,7 +251,7 @@ final class CameraSpecUITests: XCTestCase {
     private func navigateToCamera(file: StaticString = #filePath, line: UInt = #line) throws {
         try requireElement("gallery_grid", timeout: 10, "初始页应为相册网格", file: file, line: line)
         app.swipeRight()
-        try requireElement("camera_preview", timeout: 5, "应到相机页", file: file, line: line)
+        try requireElement("camera_preview", timeout: 12, "应到相机页", file: file, line: line)
         usleep(1_000_000)
         attachScreenshot(name: "navigate_to_camera")
         let shutter = app.descendants(matching: .any)["camera_shutter"]

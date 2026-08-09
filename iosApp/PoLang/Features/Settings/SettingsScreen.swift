@@ -9,8 +9,7 @@ import Photos
 /// 结构：账号英雄卡片 → 主题模式卡片 → 语言卡片 → 分类网格（2 列×5 行 = 10 卡片）
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("theme_mode") private var themeMode: String = "system"
-    @AppStorage("app_language") private var appLanguage: String = "system"
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         ScrollView {
@@ -99,9 +98,9 @@ struct SettingsScreen: View {
                 .font(.system(size: 14, weight: .medium))
 
             HStack(spacing: 8) {
-                filterChip("english", label: "English", isSelected: appLanguage == "english")
-                filterChip("chinese_simplified", label: "中文", isSelected: appLanguage == "chinese_simplified")
-                filterChip("chinese_traditional", label: "繁體中文", isSelected: appLanguage == "chinese_traditional")
+                filterChip("english", label: "English", isSelected: settings.appLanguage == "english")
+                filterChip("chinese_simplified", label: "中文", isSelected: settings.appLanguage == "chinese_simplified")
+                filterChip("chinese_traditional", label: "繁體中文", isSelected: settings.appLanguage == "chinese_traditional")
             }
         }
         .padding(16)
@@ -112,17 +111,15 @@ struct SettingsScreen: View {
 
     // 通用 FilterChip（主题用）
     private func filterChip(_ value: String, label: String) -> some View {
-        filterChip(value, label: label, isSelected: themeMode == value)
+        filterChip(value, label: label, isSelected: settings.themeMode == value)
     }
 
     private func filterChip(_ value: String, label: String, isSelected: Bool) -> some View {
         Button {
-            // 根据调用上下文判断是主题还是语言
-            // 用一个 hack：如果 value 在主题选项里则设主题
             if ["system", "light", "dark"].contains(value) {
-                themeMode = value
+                settings.themeMode = value
             } else {
-                appLanguage = value
+                settings.appLanguage = value
             }
         } label: {
             Text(label)

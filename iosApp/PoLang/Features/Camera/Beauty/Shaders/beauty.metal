@@ -26,6 +26,10 @@ struct BeautyUniforms {
     float hasFace;
     float aspectRatio;
     int   useGpupixelWarp;
+    // 宽高比校正（aspect-fill 裁剪）：上屏 pass 用，离屏恒等 (1,1)/(0,0)
+    // 🔴 必须与 Swift BeautyUniforms / warp.metal 布局一致
+    float2 cropScale;
+    float2 cropOffset;
 };
 
 // Vout（Metal 每文件独立编译，struct 在每个 .metal 内重复定义）
@@ -78,10 +82,14 @@ fragment float4 beauty_fragment(
     constant BeautyUniforms& uni [[buffer(0)]],
     constant float* facePoints [[buffer(1)]])  // 可选：hasFace>0.5 时 warp 需要
 {
-    // warp 形变 UV（对应 main.glsl 的 warp 调用序）
-    float2 warpedUv = in.uv;
+    // 宽高比校正：全屏 quad 会把纹理拉伸到 drawable（720×1280 → 屏 0.4616 纵向拉伸 22% 根因）
+    // aspect-fill：等比放大后居中裁剪，UV 先映射回可见纹理区域（离屏 pass crop=恒等无影响）
+    float2 uv = in.uv * uni.cropScale + uni.cropOffset;
+
+    // warp 形变 UV（对应 main.glsl 的 warp 调用序；warp 在纹理空间做，用裁剪后 uv 一致）
+    float2 warpedUv = uv;
     if (uni.hasFace > 0.5 && uni.useGpupixelWarp > 0) {
-        warpedUv = computeWarpedUv(in.uv, uni, facePoints);
+        warpedUv = computeWarpedUv(uv, uni, facePoints);
     }
 
     float4 color = inputTexture.sample(bilinear, warpedUv);

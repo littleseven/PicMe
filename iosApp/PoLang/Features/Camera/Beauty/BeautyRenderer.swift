@@ -228,6 +228,14 @@ final class BeautyRenderer: NSObject {
         uniforms.aspectRatio = Float(w) / Float(h)
         uniforms.hasFace = facePointsBuffer != nil ? 1.0 : 0.0
         uniforms.useGpupixelWarp = 1
+        // 宽高比校正（aspect-fill）：等比放大至覆盖 drawable，居中裁剪溢出（对标 Android 预览 center-crop）
+        let dW = Float(view.drawableSize.width), dH = Float(view.drawableSize.height)
+        if dW > 0, dH > 0 {
+            let scale = max(dW / Float(w), dH / Float(h))
+            let visW = dW / (Float(w) * scale), visH = dH / (Float(h) * scale)
+            uniforms.cropScale = SIMD2(visW, visH)
+            uniforms.cropOffset = SIMD2((1 - visW) / 2, (1 - visH) / 2)
+        }
 
         if let enc = cmd.makeRenderCommandEncoder(descriptor: d2) {
             enc.setRenderPipelineState(beautyPipeline)
@@ -267,12 +275,15 @@ final class BeautyRenderer: NSObject {
         let snapFacePoints = facePointsBuffer
 
         // Pass 1: copy BGRA → rgbTexture（作为后续 pass 输入）
+        // 🔴 必须绑定恒等 BeautyUniforms：不绑定 buffer(0) 时 shader 读到的是未定义值，
+        // cropScale 一旦非 (1,1)（实测为 0）会把 UV 塌缩成单点 → 出图纯色块
         let rgbTex = ensureTexture(nil, w: w, h: h)
         guard let rgbTex else { return nil }
+        var copyUni = BeautyUniforms() // 默认值即直通：美颜全 0、crop 恒等 (1,1)/(0,0)
         encodePass(cmd: cmd, pipeline: beautyPipeline, dest: rgbTex,
                    textures: [(0, bgraTex)], sampler: true,
-                   fragmentBytes: nil, fragmentBytesLength: 0, bufferIndex: 0,
-                   useIdentityBeauty: true)
+                   fragmentBytes: &copyUni, fragmentBytesLength: MemoryLayout<BeautyUniforms>.stride,
+                   bufferIndex: 0)
 
         // Pass 2: smoothing
         var sourceForNext = rgbTex
@@ -368,8 +379,8 @@ final class BeautyRenderer: NSObject {
 
     // MARK: - Pass 编码辅助
 
-    /// 通用 render pass 编码（uniforms=nil 时不绑定 buffer(0)）
-    /// useIdentityBeauty=true 时用 beautyPipeline 做直通（zeroed uniforms）
+    /// 通用 render pass 编码（fragmentBytes=nil 时不绑定 buffer(0)，
+    /// 注意：beautyPipeline 必须绑定恒等 BeautyUniforms，否则 UV 变换读到未定义值）
     private func encodePass(
         cmd: MTLCommandBuffer,
         pipeline: MTLRenderPipelineState,
@@ -378,8 +389,7 @@ final class BeautyRenderer: NSObject {
         sampler: Bool,
         fragmentBytes: UnsafeMutableRawPointer? = nil,
         fragmentBytesLength: Int = 0,
-        bufferIndex: Int = 0,
-        useIdentityBeauty: Bool = false
+        bufferIndex: Int = 0
     ) {
         let d = MTLRenderPassDescriptor()
         d.colorAttachments[0].texture = dest
