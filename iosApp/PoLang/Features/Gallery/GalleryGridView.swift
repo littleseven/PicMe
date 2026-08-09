@@ -23,6 +23,8 @@ struct GalleryGridView: View {
     @State private var showDeleteConfirm = false
     @State private var showSettings = false
     @State private var showModelCenter = false
+    /// TAG 扫描页（SP-B）：相册顶栏扫描图标进入
+    @State private var showScanScreen = false
     /// 搜索/扫描 Phase 6 未实现：点击顶栏图标时弹"敬请期待"诚实占位（对齐 ChatView 模式）
     @State private var comingSoonFeature: String? = nil
     /// 删除直调 Swift 桥（PHAssetChangeRequest 自带系统确认；成功后观察者驱动网格刷新）
@@ -77,6 +79,9 @@ struct GalleryGridView: View {
                 ModelDownloadCenterView()  // 端侧模型下载中心（对齐 Settings「Model Center」入口）
             }
         }
+        .fullScreenCover(isPresented: $showScanScreen) {
+            TagScanScreen(onDismiss: { showScanScreen = false })
+        }
         .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
                             titleVisibility: .visible) {
             Button(String(localized: "Delete"), role: .destructive) { deleteSelected() }
@@ -111,7 +116,7 @@ struct GalleryGridView: View {
                             accessibilityID: "topbar_model_center") { showModelCenter = true }
             AppTopBarAction(systemName: "play.circle",
                             accessibilityID: "topbar_scan") {
-                comingSoonFeature = String(localized: "Tag scanning is not available in this version.")
+                showScanScreen = true
             }
             AppTopBarAction(systemName: "magnifyingglass",
                             accessibilityID: "topbar_search") {
