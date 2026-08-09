@@ -14,6 +14,12 @@
             "state": "translated",
             "value": "生成设备标识符用于统计未注册访客的免费试用次数。该标识符发送至 api.polang.net，不用于个人身份识别，也不与第三方共享。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "產生裝置識別碼用於統計未註冊訪客的免費試用次數。該識別碼傳送至 api.polang.net，不用於個人身份識別，也不與第三方共享。"
+          }
         }
       }
     },
@@ -32,10 +38,10 @@
             "value": "AI Assistant"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "AIアシスタント"
+            "value": "AI 設定"
           }
         }
       }
@@ -53,6 +59,12 @@
             "state": "translated",
             "value": "AI 记忆"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 記憶"
+          }
         }
       }
     },
@@ -69,6 +81,12 @@
             "state": "translated",
             "value": "API 密钥"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API Key"
+          }
         }
       }
     },
@@ -81,6 +99,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API 模型"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "API 模型"
@@ -103,10 +127,10 @@
             "value": "About"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "情報"
+            "value": "關於"
           }
         }
       }
@@ -123,6 +147,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "账号"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帳號"
           }
         }
       }
@@ -142,10 +172,10 @@
             "value": "Account & Services"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "アカウントとサービス"
+            "value": "帳號與服務"
           }
         }
       }
@@ -163,6 +193,12 @@
             "state": "translated",
             "value": "账号数据"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帳號資料"
+          }
         }
       }
     },
@@ -178,6 +214,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "账号注册功能即将上线。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帳號註冊功能即將上線。"
           }
         }
       }
@@ -195,6 +237,12 @@
             "state": "translated",
             "value": "添加"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加"
+          }
         }
       }
     },
@@ -207,6 +255,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加模型"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "添加模型"
@@ -229,10 +283,10 @@
             "value": "添加人物"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "人物を追加"
+            "value": "添加人物"
           }
         }
       }
@@ -252,10 +306,10 @@
             "value": "添加照片"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真を追加"
+            "value": "添加照片"
           }
         }
       }
@@ -275,10 +329,10 @@
             "value": "添加关系"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "関係を追加"
+            "value": "添加關係"
           }
         }
       }
@@ -298,10 +352,10 @@
             "value": "添加你在意的人，便于整理和回忆。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "大切な人を追加して整理・記録しましょう。"
+            "value": "添加你在意的人，便於整理和回憶。"
           }
         }
       }
@@ -318,6 +372,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "添加自有模型以解除限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增自有模型以解除限制"
           }
         }
       }
@@ -337,10 +397,10 @@
             "value": "Add-Only Access"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "追加のみ可能"
+            "value": "目前僅可添加照片"
           }
         }
       }
@@ -358,6 +418,12 @@
             "state": "translated",
             "value": "账号删除后，数据将保留 90 天（用于反欺诈和恢复目的），然后永久删除，包括使用日志。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除帳號後，資料將保留 90 天（用於反詐欺與找回），隨後徹底刪除，包括用量日誌。"
+          }
         }
       }
     },
@@ -373,6 +439,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "认证后，远程 LLM 对话经 api.polang.net 代理转发至 LLM 供应商，仅处理当前请求。服务器只记录调用次数和 Token 用量，不记录对话内容。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入後，遠端 LLM 對話經 api.polang.net 代理轉發至 LLM 供應商，僅用於本次請求。伺服器僅記錄呼叫次數與 Token 用量，不儲存對話內容。"
           }
         }
       }
@@ -392,10 +464,10 @@
             "value": "Albums"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "アルバム"
+            "value": "相簿"
           }
         }
       }
@@ -415,10 +487,10 @@
             "value": "All"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "すべて"
+            "value": "全部"
           }
         }
       }
@@ -438,10 +510,10 @@
             "value": "Allow access to browse and manage your photos and videos"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真やビデオの閲覧・管理のためにアクセスを許可してください"
+            "value": "允許存取以瀏覽和管理您的照片與影片"
           }
         }
       }
@@ -459,6 +531,12 @@
             "state": "translated",
             "value": "允许的 Chat ID"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允許的 Chat ID"
+          }
         }
       }
     },
@@ -474,6 +552,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "按标签和时间交叉分析我的照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按標籤和時間交叉分析我的照片"
           }
         }
       }
@@ -491,6 +575,12 @@
             "state": "translated",
             "value": "确定要删除"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確定要刪除"
+          }
         }
       }
     },
@@ -506,6 +596,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "向 AI 助手提问..."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向 AI 助手提問..."
           }
         }
       }
@@ -525,10 +621,10 @@
             "value": "已指派的照片将取消指派，不会被删除。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "割り当てた写真は解除されるだけで削除されません。"
+            "value": "已指派的照片將取消指派，不會被刪除。"
           }
         }
       }
@@ -548,10 +644,10 @@
             "value": "Authorize Photo Access"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真へのアクセスを許可"
+            "value": "授權存取相簿"
           }
         }
       }
@@ -569,6 +665,12 @@
             "state": "translated",
             "value": "自动执行多步骤计划"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動執行多步驟計劃"
+          }
         }
       }
     },
@@ -585,6 +687,12 @@
             "state": "translated",
             "value": "备份与恢复"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份與還原"
+          }
         }
       }
     },
@@ -600,6 +708,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "美颜相机"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美顏相機"
           }
         }
       }
@@ -618,10 +732,10 @@
             "value": "美颜调试"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "美顔デバッグ"
+            "value": "美顏調試"
           }
         }
       }
@@ -640,10 +754,10 @@
             "value": "Big Eyes"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "デカ目"
+            "value": "大眼"
           }
         }
       }
@@ -661,6 +775,12 @@
             "state": "translated",
             "value": "基于 Kotlin Multiplatform · Koog · SwiftUI · Metal · MNN 构建"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "基於 Kotlin Multiplatform · Koog · SwiftUI · Metal · MNN 打造"
+          }
         }
       }
     },
@@ -676,6 +796,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在调用工具…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在呼叫工具…"
           }
         }
       }
@@ -695,10 +821,10 @@
             "value": "Camera"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "カメラ"
+            "value": "相機"
           }
         }
       }
@@ -715,6 +841,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "相机与美颜"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相機與美顏"
           }
         }
       }
@@ -734,10 +866,10 @@
             "value": "Camera Permission Required"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "カメラの許可が必要です"
+            "value": "需要相機權限"
           }
         }
       }
@@ -757,10 +889,10 @@
             "value": "Cancel"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "キャンセル"
+            "value": "取消"
           }
         }
       }
@@ -780,10 +912,10 @@
             "value": "Captured"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "撮影日時"
+            "value": "拍攝時間"
           }
         }
       }
@@ -803,10 +935,10 @@
             "value": "更换封面"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "カバーを変更"
+            "value": "更換封面"
           }
         }
       }
@@ -820,6 +952,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通信通道"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "通信通道"
@@ -842,10 +980,10 @@
             "value": "Chat Coming Soon"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "チャット機能は近日公開"
+            "value": "聊天功能即將推出"
           }
         }
       }
@@ -859,6 +997,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "清空"
@@ -879,6 +1023,12 @@
             "state": "translated",
             "value": "清空全部"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空全部"
+          }
         }
       }
     },
@@ -894,6 +1044,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "清空全部记忆？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空全部記憶？"
           }
         }
       }
@@ -911,6 +1067,12 @@
             "state": "translated",
             "value": "清空对话？"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空對話？"
+          }
         }
       }
     },
@@ -926,6 +1088,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "关闭"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉"
           }
         }
       }
@@ -945,10 +1113,10 @@
             "value": "Coming Soon"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "近日公開"
+            "value": "敬請期待"
           }
         }
       }
@@ -966,6 +1134,12 @@
             "state": "translated",
             "value": "配置飞书 / Telegram 远程控制通道。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定飛書 / Telegram 遠端控制通道。"
+          }
         }
       }
     },
@@ -981,6 +1155,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "已配置模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已設定模型"
           }
         }
       }
@@ -998,6 +1178,12 @@
             "state": "translated",
             "value": "连接飞书，通过 IM 消息接收远程指令。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連接飛書，透過 IM 訊息接收遠端指令。"
+          }
         }
       }
     },
@@ -1013,6 +1199,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "通过 Telegram Bot 长轮询连接（无需公网 IP）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "透過 Telegram Bot 長輪詢連線（免公網 IP）。"
           }
         }
       }
@@ -1030,6 +1222,12 @@
             "state": "translated",
             "value": "联系我们"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聯絡我們"
+          }
         }
       }
     },
@@ -1045,6 +1243,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "通过语音指令控制相机拍摄和参数调整。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "透過語音指令控制相機拍攝和參數調整。"
           }
         }
       }
@@ -1064,10 +1268,10 @@
             "value": "创建"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "作成"
+            "value": "建立"
           }
         }
       }
@@ -1085,6 +1289,12 @@
             "state": "translated",
             "value": "在 @BotFather 创建机器人后粘贴其 token。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 @BotFather 建立機器人後貼上其 token。"
+          }
         }
       }
     },
@@ -1100,6 +1310,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "当前通道"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前通道"
           }
         }
       }
@@ -1117,6 +1333,12 @@
             "state": "translated",
             "value": "当前模型"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前模型"
+          }
         }
       }
     },
@@ -1129,6 +1351,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "深色"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "深色"
@@ -1151,10 +1379,10 @@
             "value": "Data & Privacy"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "データとプライバシー"
+            "value": "資料與隱私"
           }
         }
       }
@@ -1171,6 +1399,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "数据保留"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資料保留"
           }
         }
       }
@@ -1190,10 +1424,10 @@
             "value": "Date"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "日付"
+            "value": "日期"
           }
         }
       }
@@ -1210,6 +1444,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "调试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "調試"
           }
         }
       }
@@ -1228,10 +1468,10 @@
             "value": "调试叠加层"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "デバッグオーバーレイ"
+            "value": "調試浮層"
           }
         }
       }
@@ -1248,6 +1488,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "调试工具"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "調試工具"
           }
         }
       }
@@ -1266,10 +1512,10 @@
             "value": "调试可视化"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "デバッグ可視化"
+            "value": "調試視覺化"
           }
         }
       }
@@ -1286,6 +1532,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "调试浮层与高级诊断。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "調試浮層與進階診斷。"
           }
         }
       }
@@ -1304,10 +1556,10 @@
             "value": "默认引擎。MNN 内置端侧模型（RetinaFace + 2d106）；MediaPipe 需下载模型。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "デフォルトエンジン。MNN はオンデバイスモデル（RetinaFace + 2d106）を同梱、MediaPipe はダウンロードが必要。"
+            "value": "預設引擎。MNN 內建端側模型（RetinaFace + 2d106）；MediaPipe 需下載模型。"
           }
         }
       }
@@ -1324,6 +1576,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "默认远程模型有时长限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設遠端模型有時長限制"
           }
         }
       }
@@ -1343,10 +1601,10 @@
             "value": "Delete"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "削除"
+            "value": "刪除"
           }
         }
       }
@@ -1366,10 +1624,10 @@
             "value": "Delete %lld photos?"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld 枚の写真を削除しますか？"
+            "value": "刪除 %lld 張照片？"
           }
         }
       }
@@ -1389,10 +1647,10 @@
             "value": "删除人物"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "人物を削除"
+            "value": "刪除人物"
           }
         }
       }
@@ -1410,6 +1668,12 @@
             "state": "translated",
             "value": "删除您的账号"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除您的帳號"
+          }
         }
       }
     },
@@ -1425,6 +1689,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "删除模型？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除模型？"
           }
         }
       }
@@ -1444,10 +1714,10 @@
             "value": "删除此人物？"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "この人物を削除しますか？"
+            "value": "刪除此人物？"
           }
         }
       }
@@ -1467,10 +1737,10 @@
             "value": "Delete this photo?"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "この写真を削除しますか？"
+            "value": "刪除這張照片？"
           }
         }
       }
@@ -1488,6 +1758,12 @@
             "state": "translated",
             "value": "开发者选项"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開發者選項"
+          }
         }
       }
     },
@@ -1503,6 +1779,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "设备标识"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "裝置識別碼"
           }
         }
       }
@@ -1522,10 +1804,10 @@
             "value": "Done"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "完了"
+            "value": "完成"
           }
         }
       }
@@ -1543,6 +1825,12 @@
             "state": "translated",
             "value": "下载"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載"
+          }
         }
       }
     },
@@ -1558,6 +1846,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "下载缺失"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載缺失"
           }
         }
       }
@@ -1575,6 +1869,12 @@
             "state": "translated",
             "value": "统一下载和管理所有本地模型。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "統一下載和管理所有本地模型。"
+          }
         }
       }
     },
@@ -1590,6 +1890,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "下载失败，请重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載失敗，請重試。"
           }
         }
       }
@@ -1608,10 +1914,10 @@
             "value": "在预览上绘制检测到的人脸关键点，验证检测结果是否送达渲染器。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "検出された顔ランドマークをプレビューに描画し、検出がレンダラに届いているか確認します。"
+            "value": "在預覽上繪製檢測到的人臉關鍵點，驗證檢測結果是否送達渲染器。"
           }
         }
       }
@@ -1631,10 +1937,10 @@
             "value": "Duration"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "長さ"
+            "value": "時長"
           }
         }
       }
@@ -1654,10 +1960,10 @@
             "value": "Edit"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "編集"
+            "value": "編輯"
           }
         }
       }
@@ -1674,6 +1980,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "输入 API Key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入 API Key"
           }
         }
       }
@@ -1693,10 +2005,10 @@
             "value": "输入名称"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "名前を入力"
+            "value": "輸入名稱"
           }
         }
       }
@@ -1713,6 +2025,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "导出或导入 TAG 扫描、人脸聚类、OCR 与设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯出或匯入 TAG 掃描、人臉聚類、OCR 與設定。"
           }
         }
       }
@@ -1732,10 +2050,10 @@
             "value": "Extract Text"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "テキスト抽出"
+            "value": "提取文字"
           }
         }
       }
@@ -1755,10 +2073,10 @@
             "value": "Face"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顔"
+            "value": "人臉"
           }
         }
       }
@@ -1777,10 +2095,10 @@
             "value": "人脸检测引擎"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顔検出エンジン"
+            "value": "人臉檢測引擎"
           }
         }
       }
@@ -1800,10 +2118,10 @@
             "value": "Face Landmarks"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顔ランドマーク"
+            "value": "人臉關鍵點"
           }
         }
       }
@@ -1867,6 +2185,12 @@
             "state": "translated",
             "value": "人脸检测、美颜引擎与相机行为。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉檢測、美顏引擎與相機行為。"
+          }
         }
       }
     },
@@ -1885,10 +2209,10 @@
             "value": "亲属"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "家族"
+            "value": "家庭"
           }
         }
       }
@@ -1906,6 +2230,12 @@
             "state": "translated",
             "value": "飞书"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飛書"
+          }
         }
       }
     },
@@ -1922,6 +2252,12 @@
             "state": "translated",
             "value": "飞书应用的 App ID"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飛書應用的 App ID"
+          }
         }
       }
     },
@@ -1937,6 +2273,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "飞书应用的 App Secret"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "飛書應用的 App Secret"
           }
         }
       }
@@ -1956,10 +2298,10 @@
             "value": "File Name"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "ファイル名"
+            "value": "檔案名稱"
           }
         }
       }
@@ -1977,6 +2319,12 @@
             "state": "translated",
             "value": "找去年夏天的照片"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找去年夏天的照片"
+          }
         }
       }
     },
@@ -1989,6 +2337,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找有人物的照片"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "找有人物的照片"
@@ -2011,10 +2365,10 @@
             "value": "Follow System"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "システムに従う"
+            "value": "跟隨系統"
           }
         }
       }
@@ -2034,10 +2388,10 @@
             "value": "找到"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld 件「%@」"
+            "value": "找到 %lld 項「%@」的結果"
           }
         }
       }
@@ -2057,10 +2411,10 @@
             "value": "Full Access"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "フルアクセス"
+            "value": "完整存取"
           }
         }
       }
@@ -2080,10 +2434,10 @@
             "value": "Gallery"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "アルバム"
+            "value": "相簿"
           }
         }
       }
@@ -2103,10 +2457,10 @@
             "value": "Gallery Access"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真アクセス"
+            "value": "相簿存取權限"
           }
         }
       }
@@ -2124,6 +2478,12 @@
             "state": "translated",
             "value": "获取 API Key"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得 API Key"
+          }
         }
       }
     },
@@ -2139,6 +2499,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "给我一份相册健康度报告"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "給我一份相簿健康度報告"
           }
         }
       }
@@ -2158,10 +2524,10 @@
             "value": "Grant Permissions"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "アクセスを許可"
+            "value": "授予權限"
           }
         }
       }
@@ -2181,10 +2547,10 @@
             "value": "Granted"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "許可済み"
+            "value": "已授權"
           }
         }
       }
@@ -2204,10 +2570,10 @@
             "value": "Group By"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "グループ分け"
+            "value": "分組"
           }
         }
       }
@@ -2225,6 +2591,12 @@
             "state": "translated",
             "value": "访客模式"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "訪客模式"
+          }
         }
       }
     },
@@ -2237,6 +2609,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你好，我是智能助手小浪"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "你好，我是智能助手小浪"
@@ -2257,6 +2635,12 @@
             "state": "translated",
             "value": "我能搜相册·修图·调美颜·找人找场景，随便问！"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我能搜相簿·修圖·調美顏·找人找場景，隨便問！"
+          }
         }
       }
     },
@@ -2275,10 +2659,10 @@
             "value": "ID"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "証明写真"
+            "value": "證照"
           }
         }
       }
@@ -2298,10 +2682,10 @@
             "value": "Image Analysis"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "画像解析"
+            "value": "圖像理解"
           }
         }
       }
@@ -2315,6 +2699,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推理模式"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "推理模式"
@@ -2337,10 +2727,10 @@
             "value": "Info"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "情報"
+            "value": "詳情"
           }
         }
       }
@@ -2360,7 +2750,7 @@
             "value": "Landscape"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "風景"
@@ -2383,10 +2773,10 @@
             "value": "Language"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "言語"
+            "value": "語言"
           }
         }
       }
@@ -2404,6 +2794,12 @@
             "state": "translated",
             "value": "浅色"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "淺色"
+          }
         }
       }
     },
@@ -2419,6 +2815,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "轻量版"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輕量版"
           }
         }
       }
@@ -2438,10 +2840,10 @@
             "value": "Limited Access"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "制限付きアクセス"
+            "value": "限制存取"
           }
         }
       }
@@ -2460,10 +2862,10 @@
             "value": "实时诊断"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "リアルタイム診断"
+            "value": "即時診斷"
           }
         }
       }
@@ -2482,10 +2884,10 @@
             "value": "实时瘦脸/大眼强度。也可在相机美颜面板（魔棒图标）调整。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "リアルタイム小顔/デカ目強度。カメラの美容パネル（魔法の杖アイコン）でも調整可能。"
+            "value": "即時瘦臉/大眼強度。也可在相機美顏面板（魔棒圖示）調整。"
           }
         }
       }
@@ -2502,6 +2904,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "本地处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本機處理"
           }
         }
       }
@@ -2521,10 +2929,10 @@
             "value": "Location"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "場所"
+            "value": "地點"
           }
         }
       }
@@ -2544,10 +2952,10 @@
             "value": "Makeup (Phase 6)"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "メイク（Phase 6）"
+            "value": "妝容（Phase 6）"
           }
         }
       }
@@ -2567,10 +2975,10 @@
             "value": "Manage Accessible Photos"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "アクセス可能な写真を管理"
+            "value": "管理可存取照片"
           }
         }
       }
@@ -2590,10 +2998,10 @@
             "value": "管理人物与关系"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "人物と関係を管理"
+            "value": "管理人物與關係"
           }
         }
       }
@@ -2613,10 +3021,10 @@
             "value": "我"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "自分"
+            "value": "我"
           }
         }
       }
@@ -2630,6 +3038,12 @@
           }
         },
         "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型"
+          }
+        },
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "模型"
@@ -2652,10 +3066,10 @@
             "value": "Model Center"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "モデルセンター"
+            "value": "模型中心"
           }
         }
       }
@@ -2673,6 +3087,12 @@
             "state": "translated",
             "value": "模型下载"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型下載"
+          }
         }
       }
     },
@@ -2689,6 +3109,12 @@
             "state": "translated",
             "value": "模型属性"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型屬性"
+          }
         }
       }
     },
@@ -2704,6 +3130,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "必须"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必須"
           }
         }
       }
@@ -2723,10 +3155,10 @@
             "value": "名称"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "名前"
+            "value": "名稱"
           }
         }
       }
@@ -2746,10 +3178,10 @@
             "value": "No media found"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "メディアが見つかりません"
+            "value": "未找到媒體文件"
           }
         }
       }
@@ -2767,6 +3199,12 @@
             "state": "translated",
             "value": "还没有记忆。在聊天中对小浪说“帮我记住…”即可添加"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有記憶。在聊天中對小浪說「幫我記住…」即可新增"
+          }
         }
       }
     },
@@ -2782,6 +3220,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "暂无可用模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無可用模型"
           }
         }
       }
@@ -2801,10 +3245,10 @@
             "value": "暂无其他人物"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "他の人物はまだいません"
+            "value": "暫無其他人物"
           }
         }
       }
@@ -2824,10 +3268,10 @@
             "value": "还没有人物"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "人物がまだいません"
+            "value": "還沒有人物"
           }
         }
       }
@@ -2847,10 +3291,10 @@
             "value": "未指派照片"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "割り当てられた写真はありません"
+            "value": "未指派照片"
           }
         }
       }
@@ -2870,10 +3314,10 @@
             "value": "暂无关系"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "関係はまだありません"
+            "value": "暫無關係"
           }
         }
       }
@@ -2891,6 +3335,12 @@
             "state": "translated",
             "value": "未找到"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到「%@」的結果"
+          }
         }
       }
     },
@@ -2907,6 +3357,12 @@
             "state": "translated",
             "value": "不启用"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不啟用"
+          }
         }
       }
     },
@@ -2922,6 +3378,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "暂不可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不可用"
           }
         }
       }
@@ -2941,10 +3403,10 @@
             "value": "Not Granted"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "未許可"
+            "value": "未授權"
           }
         }
       }
@@ -2963,10 +3425,10 @@
             "value": "好"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "OK"
+            "value": "好"
           }
         }
       }
@@ -2984,6 +3446,12 @@
             "state": "translated",
             "value": "端侧模型"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端側模型"
+          }
         }
       }
     },
@@ -2999,6 +3467,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "仅该聊天可下发指令（安全白名单）。未填写「允许的 Chat ID」时，为安全起见机器人将拒绝所有消息。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅該聊天可下發指令（安全白名單）。未填寫「允許的 Chat ID」時，為安全起見機器人將拒絕所有訊息。"
           }
         }
       }
@@ -3018,10 +3492,10 @@
             "value": "Open Settings"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "設定を開く"
+            "value": "前往設定開啟"
           }
         }
       }
@@ -3041,10 +3515,10 @@
             "value": "其他"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "その他"
+            "value": "其他"
           }
         }
       }
@@ -3061,6 +3535,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "暂停"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫停"
           }
         }
       }
@@ -3079,7 +3559,7 @@
             "value": "人物"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "人物"
@@ -3102,10 +3582,10 @@
             "value": "People Coming Soon"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "人物機能は近日公開"
+            "value": "人物功能即將推出"
           }
         }
       }
@@ -3125,10 +3605,10 @@
             "value": "Permissions"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "権限"
+            "value": "權限"
           }
         }
       }
@@ -3148,7 +3628,7 @@
             "value": "Person"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "人物"
@@ -3171,10 +3651,10 @@
             "value": "Photo"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真"
+            "value": "照片"
           }
         }
       }
@@ -3194,10 +3674,10 @@
             "value": "Photo Library Unavailable"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真ライブラリにアクセスできません"
+            "value": "無法存取相簿"
           }
         }
       }
@@ -3214,6 +3694,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "相册打标"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相簿打標"
           }
         }
       }
@@ -3233,10 +3719,10 @@
             "value": "照片"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "写真"
+            "value": "照片"
           }
         }
       }
@@ -3254,6 +3740,12 @@
             "state": "translated",
             "value": "照片、美颜滤镜、人脸关键点、OCR 文字、媒体位置和聊天记忆全部在设备本地处理，绝不上传至服务器。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片、美顏濾鏡、人臉關鍵點、OCR 文字、媒體位置和聊天記憶全部在裝置本機處理，絕不上傳伺服器。"
+          }
         }
       }
     },
@@ -3269,6 +3761,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "破浪相册 · AI Agent 智能相册"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破浪相冊 · AI Agent 智慧相簿"
           }
         }
       }
@@ -3286,6 +3784,12 @@
             "state": "translated",
             "value": "隐私政策、数据保留与删除方式。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱私政策、資料保留與刪除方式。"
+          }
         }
       }
     },
@@ -3301,6 +3805,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "供应商"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "供應商"
           }
         }
       }
@@ -3319,10 +3829,10 @@
             "value": "只读。beauty.hasFace=0 表示关键点从未送达 shader——无论强度多大瘦脸都不会生效。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "読み取り専用。beauty.hasFace=0 はキーポイントがシェーダに届いていないことを意味し、強度を上げても小顔は効きません。"
+            "value": "唯讀。beauty.hasFace=0 表示關鍵點從未送達 shader——無論強度多大瘦臉都不會生效。"
           }
         }
       }
@@ -3340,6 +3850,12 @@
             "state": "translated",
             "value": "推荐"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推薦"
+          }
         }
       }
     },
@@ -3355,6 +3871,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "仅建议调试环境开启。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅建議在除錯環境開啟。"
           }
         }
       }
@@ -3374,10 +3896,10 @@
             "value": "关系"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "関係"
+            "value": "人物關係"
           }
         }
       }
@@ -3395,6 +3917,12 @@
             "state": "translated",
             "value": "远程 AI 推理、语音控制"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遠端 AI 推理、語音控制"
+          }
         }
       }
     },
@@ -3411,6 +3939,12 @@
             "state": "translated",
             "value": "远程推理"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遠端推理"
+          }
         }
       }
     },
@@ -3426,6 +3960,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "远程模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遠端模型"
           }
         }
       }
@@ -3445,10 +3985,10 @@
             "value": "移除封面"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "カバーを削除"
+            "value": "移除封面"
           }
         }
       }
@@ -3468,10 +4008,10 @@
             "value": "重命名"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "名前を変更"
+            "value": "重新命名"
           }
         }
       }
@@ -3491,10 +4031,10 @@
             "value": "Requires on-device indexing"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "オンデバイスインデックスが必要です"
+            "value": "需要端側索引資料"
           }
         }
       }
@@ -3512,6 +4052,12 @@
             "state": "translated",
             "value": "继续"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續"
+          }
         }
       }
     },
@@ -3527,6 +4073,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重試"
           }
         }
       }
@@ -3546,10 +4098,10 @@
             "value": "保存"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存"
+            "value": "儲存"
           }
         }
       }
@@ -3567,6 +4119,12 @@
             "state": "translated",
             "value": "搜索海边的照片"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋海邊的照片"
+          }
         }
       }
     },
@@ -3582,6 +4140,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜索夜景照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋夜景照片"
           }
         }
       }
@@ -3600,10 +4164,10 @@
             "value": "当前版本的相册搜索暂未上线。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "このバージョンでは写真検索はご利用いただけません。"
+            "value": "目前版本的相簿搜尋尚未上線。"
           }
         }
       }
@@ -3623,10 +4187,10 @@
             "value": "选择人物"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "人物を選択"
+            "value": "選擇人物"
           }
         }
       }
@@ -3646,10 +4210,10 @@
             "value": "选择关系"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "関係を選択"
+            "value": "選擇關係"
           }
         }
       }
@@ -3669,10 +4233,10 @@
             "value": "Selected %lld"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld 件選択"
+            "value": "已選擇 %lld 項"
           }
         }
       }
@@ -3692,10 +4256,10 @@
             "value": "Send"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "送信"
+            "value": "傳送"
           }
         }
       }
@@ -3715,10 +4279,10 @@
             "value": "设置封面"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "カバーを設定"
+            "value": "設定封面"
           }
         }
       }
@@ -3738,7 +4302,7 @@
             "value": "Settings"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "設定"
@@ -3761,10 +4325,10 @@
             "value": "Share"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "共有"
+            "value": "分享"
           }
         }
       }
@@ -3782,6 +4346,12 @@
             "state": "translated",
             "value": "显示相机信息"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示相機資訊"
+          }
         }
       }
     },
@@ -3797,6 +4367,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "显示人脸调试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示人臉調試"
           }
         }
       }
@@ -3815,10 +4391,10 @@
             "value": "显示人脸关键点"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "顔ランドマークを表示"
+            "value": "顯示人臉關鍵點"
           }
         }
       }
@@ -3836,6 +4412,12 @@
             "state": "translated",
             "value": "显示日志浮层"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示日誌浮層"
+          }
         }
       }
     },
@@ -3851,6 +4433,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "注册账号享受更多额度与功能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "註冊帳號享有更多額度與功能"
           }
         }
       }
@@ -3869,10 +4457,10 @@
             "value": "Slim Face"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "小顔"
+            "value": "瘦臉"
           }
         }
       }
@@ -3892,10 +4480,10 @@
             "value": "Smoothing"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "肌補正"
+            "value": "磨皮"
           }
         }
       }
@@ -3912,6 +4500,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "系统默认"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統預設"
           }
         }
       }
@@ -3931,10 +4525,10 @@
             "value": "Tag Scan Coming Soon"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "タグスキャン機能は近日公開"
+            "value": "打標功能即將推出"
           }
         }
       }
@@ -3953,10 +4547,10 @@
             "value": "当前版本的扫描打标暂未上线。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "このバージョンではタグスキャンはご利用いただけません。"
+            "value": "目前版本的掃描打標尚未上線。"
           }
         }
       }
@@ -3974,6 +4568,12 @@
             "state": "translated",
             "value": "打标扫描、人脸聚类与模型下载管理。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打標掃描、人臉聚類與模型下載管理。"
+          }
         }
       }
     },
@@ -3989,6 +4589,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "主题模式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主題模式"
           }
         }
       }
@@ -4008,10 +4614,10 @@
             "value": "这是我"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "自分です"
+            "value": "這是我"
           }
         }
       }
@@ -4028,6 +4634,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "试试这些："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試試這些："
           }
         }
       }
@@ -4047,10 +4659,10 @@
             "value": "Type"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "種類"
+            "value": "類型"
           }
         }
       }
@@ -4070,10 +4682,10 @@
             "value": "未知"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "不明"
+            "value": "未知"
           }
         }
       }
@@ -4090,6 +4702,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "使用远程模型，启用自然语言控制相机功能。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用遠端模型，啟用自然語言控制相機功能。"
           }
         }
       }
@@ -4109,10 +4727,10 @@
             "value": "Version"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "バージョン"
+            "value": "版本"
           }
         }
       }
@@ -4132,10 +4750,10 @@
             "value": "Video"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "ビデオ"
+            "value": "影片"
           }
         }
       }
@@ -4153,6 +4771,12 @@
             "state": "translated",
             "value": "查看完整隐私政策"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看完整隱私權政策"
+          }
         }
       }
     },
@@ -4168,6 +4792,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "查看并命名人脸聚类"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看並命名人臉聚類"
           }
         }
       }
@@ -4185,6 +4815,12 @@
             "state": "translated",
             "value": "查看、编辑、删除 AI 记住的事实"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看、編輯、刪除 AI 記住的事實"
+          }
         }
       }
     },
@@ -4200,6 +4836,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "语音"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語音"
           }
         }
       }
@@ -4217,6 +4859,12 @@
             "state": "translated",
             "value": "语音控制"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語音控制"
+          }
         }
       }
     },
@@ -4232,6 +4880,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "语音交互模式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語音互動模式"
           }
         }
       }
@@ -4250,10 +4904,10 @@
             "value": "形变强度"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "変形強度"
+            "value": "形變強度"
           }
         }
       }
@@ -4272,10 +4926,10 @@
             "value": "形变强度放大瘦脸位移。1.0=默认（较微弱）；调高可测试瘦脸是否因强度不足而不可见。"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "変形強度は小顔のデルタを増幅します。1.0=デフォルト（控えめ）。小顔が弱くて見えない場合、上げて確認してください。"
+            "value": "形變強度放大瘦臉位移。1.0=預設（較微弱）；調高可測試瘦臉是否因強度不足而不可見。"
           }
         }
       }
@@ -4292,6 +4946,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "关闭后，Agent 执行多步骤计划前会要求确认。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉後，Agent 執行多步驟計劃前會要求確認。"
           }
         }
       }
@@ -4311,7 +4971,7 @@
             "value": "Whitening"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "美白"
@@ -4332,6 +4992,12 @@
             "state": "translated",
             "value": "未配置模型时，PoLang 使用免费代理服务器（访客额度有限）。添加自有 API Key 可解除限制。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未設定模型時，PoLang 使用免費代理伺服器（訪客額度有限）。新增自有 API Key 可解除限制。"
+          }
         }
       }
     },
@@ -4350,10 +5016,10 @@
             "value": "你"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "あなた"
+            "value": "你"
           }
         }
       }
@@ -4371,6 +5037,12 @@
             "state": "translated",
             "value": "当前为访客模式，额度有限。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前為訪客模式，額度有限。"
+          }
         }
       }
     },
@@ -4387,6 +5059,12 @@
             "state": "translated",
             "value": "您可以通过「设置 → 账号 → 删除账号」删除账号，或邮件联系我们。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "您可以透過「設定 → 帳號 → 刪除帳號」刪除帳號，或來信聯絡我們。"
+          }
         }
       }
     },
@@ -4402,6 +5080,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "仅用于账号登录和 LLM 免费试用次数统计（默认 100 次）。不收集密码，登录使用邮箱验证码。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅用於帳號登入和 LLM 免費試用次數統計（預設 100 次）。不收集密碼，登入使用郵件驗證碼。"
           }
         }
       }
@@ -4421,10 +5105,10 @@
             "value": "Cool"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "クール"
+            "value": "冷色"
           }
         }
       }
@@ -4444,10 +5128,10 @@
             "value": "Fuji"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "フジ"
+            "value": "富士膠捲"
           }
         }
       }
@@ -4467,10 +5151,10 @@
             "value": "Gold"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "ゴールド"
+            "value": "膠捲金"
           }
         }
       }
@@ -4490,10 +5174,10 @@
             "value": "B&W"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "モノクロ"
+            "value": "徠卡黑白"
           }
         }
       }
@@ -4513,10 +5197,10 @@
             "value": "Classic"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "クラシック"
+            "value": "徠卡經典"
           }
         }
       }
@@ -4536,10 +5220,10 @@
             "value": "Vibrant"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "ビビッド"
+            "value": "徠卡生動"
           }
         }
       }
@@ -4559,10 +5243,10 @@
             "value": "Original"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "オリジナル"
+            "value": "原圖"
           }
         }
       }
@@ -4582,10 +5266,10 @@
             "value": "Vintage"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "ヴィンテージ"
+            "value": "復古"
           }
         }
       }
@@ -4605,10 +5289,10 @@
             "value": "Warm"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "ウォーム"
+            "value": "暖色"
           }
         }
       }
@@ -4625,6 +5309,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "个未下载"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個未下載"
           }
         }
       }
@@ -4644,10 +5334,10 @@
             "value": "张照片"
           }
         },
-        "ja": {
+        "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "枚の写真"
+            "value": "張照片"
           }
         }
       }
@@ -4664,6 +5354,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "个必须模型，"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個必須模型，"
           }
         }
       }
