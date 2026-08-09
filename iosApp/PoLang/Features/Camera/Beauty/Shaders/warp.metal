@@ -29,6 +29,9 @@ struct BeautyUniforms {
     float hasFace;       // 对应 GLSL uHasFace (0 or 1)
     float aspectRatio;   // 对应 GLSL uAspectRatio
     int   useGpupixelWarp; // 对应 GLSL uUseGpupixelWarp (0 or 1)
+    // 宽高比校正（aspect-fill 裁剪）——warp 不用但必须保持布局一致
+    float2 cropScale;
+    float2 cropOffset;
 };
 
 // ===========================================================================

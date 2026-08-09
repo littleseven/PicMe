@@ -228,6 +228,14 @@ final class BeautyRenderer: NSObject {
         uniforms.aspectRatio = Float(w) / Float(h)
         uniforms.hasFace = facePointsBuffer != nil ? 1.0 : 0.0
         uniforms.useGpupixelWarp = 1
+        // 宽高比校正（aspect-fill）：等比放大至覆盖 drawable，居中裁剪溢出（对标 Android 预览 center-crop）
+        let dW = Float(view.drawableSize.width), dH = Float(view.drawableSize.height)
+        if dW > 0, dH > 0 {
+            let scale = max(dW / Float(w), dH / Float(h))
+            let visW = dW / (Float(w) * scale), visH = dH / (Float(h) * scale)
+            uniforms.cropScale = SIMD2(visW, visH)
+            uniforms.cropOffset = SIMD2((1 - visW) / 2, (1 - visH) / 2)
+        }
 
         if let enc = cmd.makeRenderCommandEncoder(descriptor: d2) {
             enc.setRenderPipelineState(beautyPipeline)
