@@ -9,9 +9,9 @@ struct FloatingBottomTab: View {
     var body: some View {
         HStack(spacing: 0) {
             tabItem(icon: "camera", page: 0)
-            tabItem(icon: "bubble.left", page: 2, isPlaceholder: true)
+            tabItem(icon: "bubble.left", page: 2)
             tabItem(icon: "tag", page: -1, isPlaceholder: true) // 打标无独立页
-            tabItem(icon: "person.2", page: 3, isPlaceholder: true)
+            tabItem(icon: "person.2", page: 3)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -36,6 +36,8 @@ struct FloatingBottomTab: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
         }
+        // UI 自动化锚点：tab_camera / tab_chat / tab_tag / tab_person
+        .accessibilityIdentifier("tab_\(icon == "bubble.left" ? "chat" : icon == "person.2" ? "person" : icon)")
     }
 
     var onPlaceholderTap: ((String) -> Void)?

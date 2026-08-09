@@ -27,6 +27,7 @@ struct DebugOverlayView: View {
             VStack(alignment: .leading, spacing: 2) {
                 // 摘要行（对标 Android "Beauty: ACTIVE 14.6fps ▼"）
                 summaryLine
+                    .accessibilityIdentifier("debug_summary")
                     .onTapGesture { state.isExpanded.toggle() }
 
                 // 展开详情
@@ -35,6 +36,7 @@ struct DebugOverlayView: View {
                         Text("\(entry.key): \(entry.value)")
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(.green)
+                            .accessibilityIdentifier("debug_entry_\(entry.key)")
                     }
                 }
             }

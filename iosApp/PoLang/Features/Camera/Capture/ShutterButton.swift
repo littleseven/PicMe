@@ -59,6 +59,9 @@ final class CaptureFlow: ObservableObject {
     private let photoController: PhotoCaptureController
     private let renderer: BeautyRenderer?
 
+    /// 保存成功回调（主线程，供相机页刷新相册入口缩略图）
+    var onSaved: (() -> Void)?
+
     init(photoController: PhotoCaptureController, renderer: BeautyRenderer?) {
         self.photoController = photoController
         self.renderer = renderer
@@ -73,10 +76,8 @@ final class CaptureFlow: ObservableObject {
 
         Task {
             defer {
-                Task { @MainActor in
-                    self.isCapturing = false
-                    DebugOverlayState.shared.set("camera.shutter", "idle")
-                }
+                // 只复位忙碌标志——终态(saved/error)保留上屏供自动化/肉眼验收，下次拍照由 capturing 覆盖
+                Task { @MainActor in self.isCapturing = false }
             }
 
             guard let photo = await photoController.capture() else {
@@ -100,17 +101,43 @@ final class CaptureFlow: ObservableObject {
             let renderMs = Date().timeIntervalSince(renderStart) * 1000
 
             guard let image = renderedImage else {
-                print("[PoLang] shutter.FAIL: renderToImage nil")
-                await setError("render failed")
+                print("[PoLang] shutter.FAIL: renderToImage nil → 兜底保存原图")
+                // 兜底：美颜渲染失败不丢照片——直接保存未美颜原图
+                if let data = photo.fileDataRepresentation(),
+                   let uiImage = UIImage(data: data), let cg = uiImage.cgImage {
+                    do {
+                        try await PhotoSaver.saveToLibrary(cg)
+                        print("[PoLang] shutter.SAVED(raw) 原图兜底")
+                        DebugOverlayState.shared.set("camera.shutter", "saved(raw)")
+                        onSaved?()
+                    } catch {
+                        print("[PoLang] shutter.SAVE_ERROR(raw): \(error.localizedDescription)")
+                        await setError("save raw: \(error.localizedDescription)")
+                    }
+                } else {
+                    await setError("render failed")
+                }
                 return
             }
             print("[PoLang] shutter.rendered in \(String(format: "%.1f", renderMs))ms → CGImage \(image.width)x\(image.height)")
+
+            // 保存前确保 AddOnly 授权（被拒直接报错上屏，不静默失败）
+            var addStatus = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+            if addStatus == .notDetermined {
+                addStatus = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            }
+            guard addStatus == .authorized || addStatus == .limited else {
+                print("[PoLang] shutter.SAVE_DENIED: addOnly status=\(addStatus.rawValue)")
+                await setError("photos add permission denied")
+                return
+            }
 
             do {
                 try await PhotoSaver.saveToLibrary(image)
                 let totalMs = Date().timeIntervalSince(shutterStart) * 1000
                 print("[PoLang] shutter.SAVED total=\(String(format: "%.1f", totalMs))ms (capture+\(String(format: "%.1f", captureMs))+render+\(String(format: "%.1f", renderMs)))")
                 DebugOverlayState.shared.set("camera.shutter", "saved")
+                onSaved?()
             } catch {
                 print("[PoLang] shutter.SAVE_ERROR: \(error.localizedDescription)")
                 await setError("save: \(error.localizedDescription)")

@@ -9,28 +9,28 @@ import UIKit
 /// [PERF] 快门 <50ms：capturePhoto() 异步回调后，离屏美颜渲染在后台 Task 进行，
 /// ShutterButton 即刻复位不阻塞。
 final class PhotoCaptureController: NSObject {
-    private let photoOutput = AVCapturePhotoOutput()
+    /// 经 CaptureSessionController.attachOutput 串行挂载（勿主线程直接 addOutput）
+    let photoOutput = AVCapturePhotoOutput()
 
     /// 当前异步回调 continuation（一次仅一张）
     private var continuation: CheckedContinuation<AVCapturePhoto, Never>?
-
-    /// 把 photoOutput 挂到 session（CaptureSessionController.start 中调用）
-    func attach(to session: AVCaptureSession) {
-        if session.canAddOutput(photoOutput) {
-            session.addOutput(photoOutput)
-        }
-    }
 
     /// 触发拍照，返回捕获的 AVCapturePhoto（异步等待系统回调）
     /// 🟡4: 加 5s 超时，避免快门永久挂起
     func capture() async -> AVCapturePhoto? {
         let output = self.photoOutput
-        return await withRace(timeout: 5.0) {
+        let result = await withRace(timeout: 5.0) {
             await withCheckedContinuation { (cont: CheckedContinuation<AVCapturePhoto, Never>) in
                 self.continuation = cont
                 output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
             }
         }
+        if result == nil {
+            // 超时：丢弃旧 continuation，避免迟到的 delegate 回调误 resume 下一次拍照
+            self.continuation = nil
+            print("[PoLang] shutter.TIMEOUT: capturePhoto 5s 无回调")
+        }
+        return result
     }
 
     /// 超时竞速：超时返回 nil
@@ -54,10 +54,13 @@ final class PhotoCaptureController: NSObject {
               let cgImage = UIImage(data: data)?.cgImage else { return nil }
         let w = cgImage.width, h = cgImage.height
         var pixelBuffer: CVPixelBuffer?
+        // 🔴 必须 IOSurface 属性：CVMetalTextureCacheCreateTextureFromImage 只接受
+        // IOSurface-backed buffer，否则美颜离屏渲染建纹理必然失败（拍照"render failed"根因）
         CVPixelBufferCreate(kCFAllocatorDefault, w, h,
                             kCVPixelFormatType_32BGRA,
                             [kCVPixelBufferCGImageCompatibilityKey: true,
-                             kCVPixelBufferCGBitmapContextCompatibilityKey: true] as CFDictionary,
+                             kCVPixelBufferCGBitmapContextCompatibilityKey: true,
+                             kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary] as CFDictionary,
                             &pixelBuffer)
         guard let pb = pixelBuffer else { return nil }
         CVPixelBufferLockBaseAddress(pb, [])

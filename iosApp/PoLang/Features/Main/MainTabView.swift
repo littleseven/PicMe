@@ -13,18 +13,12 @@ struct MainTabView: View {
             // 相册页（初始页，常驻 — 含悬浮 Tab）
             GalleryGridView(repository: container.mediaRepository)
                 .environmentObject(container)
-                .overlay(alignment: .bottom) {
-                    if currentPage == 1 {
-                        FloatingBottomTab(currentPage: $currentPage, onPlaceholderTap: { icon in
-                            showPlaceholder = icon
-                        })
-                        .padding(.bottom, 16)
-                    }
-                }
 
             // 相机页（全出血，覆盖在相册之上时可见）
             if currentPage == 0 {
-                CameraPreviewView()
+                CameraPreviewView(onGalleryTap: {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
+                })
                     .environmentObject(container)
             }
 
@@ -43,6 +37,30 @@ struct MainTabView: View {
             }
         }
         .preferredColorScheme(.dark)
+        // 切页时关闭打标占位 push，避免残留遮罩盖住目标页
+        .onChange(of: currentPage) { _ in showPlaceholder = nil }
+        // 悬浮 Tab：除相机页（沉浸式）外常驻，占位页也能切出
+        .overlay(alignment: .bottom) {
+            if currentPage != 0 {
+                FloatingBottomTab(currentPage: $currentPage, onPlaceholderTap: { icon in
+                    showPlaceholder = icon
+                })
+                .padding(.bottom, 16)
+            }
+        }
+        // 全局左右滑切页（对标 Android HorizontalPager）：水平主导滑动手势切页；
+        // 用 simultaneousGesture 保证不抢相机页的对焦/变焦/曝光手势（垂直拖动仍归曝光）
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40)
+                .onEnded { value in
+                    let dx = value.translation.width, dy = value.translation.height
+                    guard abs(dx) > abs(dy) * 1.5, abs(dx) > 60 else { return }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        if dx < 0, currentPage < 3 { currentPage += 1 }
+                        else if dx > 0, currentPage > 0 { currentPage -= 1 }
+                    }
+                }
+        )
         .overlay(alignment: .top) {
             DebugOverlayView()
         }
@@ -64,6 +82,7 @@ struct PlaceholderPage: View {
                     .foregroundColor(.white.opacity(0.5))
             }
         }
+        .accessibilityIdentifier("page_placeholder")
     }
 }
 

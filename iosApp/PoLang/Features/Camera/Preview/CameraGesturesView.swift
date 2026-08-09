@@ -41,6 +41,8 @@ struct CameraGesturesView: View {
                     .gesture(
                         DragGesture(minimumDistance: 20)
                             .onChanged { value in
+                                // 只响应垂直主导拖动（水平滑动留给全局切页手势，避免误清曝光）
+                                guard abs(value.translation.height) > abs(value.translation.width) else { return }
                                 let normalized = -Float(value.translation.height / geo.size.height) * 4.0
                                 let clamped = max(-2.0, min(2.0, normalized))
                                 controller.setExposureBias(clamped)

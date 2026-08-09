@@ -1,32 +1,44 @@
 import SwiftUI
 import MetalKit
+import Photos
 
 /// 相机主页面（对标 Android CameraPreviewContent.kt）
 /// 🔴 预览全出血 edge-to-edge + 控件锚 safe area
 struct CameraPreviewView: View {
     @EnvironmentObject private var container: AppContainer
+    /// 相册入口回调（MainTabView 注入：切到相册页）
+    var onGalleryTap: () -> Void = {}
     @State private var authorized = false
     @State private var controller = CaptureSessionController()
     @State private var photoController = PhotoCaptureController()
     @State private var faceService = FaceLandmarkService()
 
     @State private var activePanel: ActivePanel? = nil
-    @State private var sharedRenderer: BeautyRenderer?
+    // 🔴 renderer 提到视图层直持：快门链路不再依赖 representable 回调往返（nil 则拍照静默失败）
+    @State private var sharedRenderer: BeautyRenderer? = CameraPreviewView.makeRenderer()
     @State private var zoomPreset: CGFloat = 1.0
     @State private var selectedMode: CameraMode = .photo
+    @State private var shutterFlash = false
+    @State private var lastThumb: UIImage?
 
     enum ActivePanel: Equatable { case beauty, filter }
     enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
+
+    /// 视图层直建 renderer（failable init，失败时快门报错而非静默）
+    private static func makeRenderer() -> BeautyRenderer? {
+        guard let device = MTLCreateSystemDefaultDevice() else { return nil }
+        return BeautyRenderer(device: device)
+    }
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 // 预览层：铺满全屏（全出血）
-                MetalViewRepresentable(controller: controller, params: container.beautyParams,
-                                       faceService: faceService, onRendererReady: { renderer in
-                    sharedRenderer = renderer
-                })
+                // 🔴 camera_preview 标识只挂叶子视图：挂容器会沿子树传播、覆盖子孙自身标识符
+                MetalViewRepresentable(controller: controller, renderer: sharedRenderer,
+                                       params: container.beautyParams, faceService: faceService)
                 .frame(width: geo.size.width, height: geo.size.height)
+                .accessibilityIdentifier("camera_preview")
 
                 if !authorized {
                     Color.black
@@ -35,6 +47,13 @@ struct CameraPreviewView: View {
                     // 控件层：锚 safe area（通过 padding 避让）
                     cameraOverlay(screenHeight: geo.size.height, safeTop: geo.safeAreaInsets.top)
                 }
+
+                // 快门白闪反馈（对标 Android 拍照闪屏，确认点击已注册）
+                Color.white
+                    .opacity(shutterFlash ? 0.9 : 0)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .animation(.easeOut(duration: 0.25), value: shutterFlash)
             }
         }
         .ignoresSafeArea(.all) // 🔴 全出血：整个 GeometryReader 忽略 safe area
@@ -42,7 +61,8 @@ struct CameraPreviewView: View {
             authorized = await controller.checkAuthorizationAndStart()
             DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
             if authorized {
-                photoController.attach(to: controller.session)
+                // 🔴 串行挂载：走 capture 队列与 session 配置块保序（主线程直挂会和配置竞态）
+                controller.attachOutput(photoController.photoOutput)
                 controller.onFrame = { [faceService] pixelBuffer, ts in
                     faceService.enqueue(pixelBuffer: pixelBuffer, timestampMs: ts)
                 }
@@ -50,12 +70,30 @@ struct CameraPreviewView: View {
                     faceService.isFrontCamera = isFront
                 }
             }
+            refreshLatestThumb()
         }
         .onDisappear { controller.stop() }
-        .accessibilityIdentifier("camera_preview")
     }
 
     // MARK: - 权限页
+
+    /// 拉取相册最新一张照片缩略图（48pt@3x），显示在左下相册入口上
+    private func refreshLatestThumb() {
+        let opts = PHFetchOptions()
+        opts.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        opts.fetchLimit = 1
+        guard let asset = PHAsset.fetchAssets(with: .image, options: opts).firstObject else { return }
+        let req = PHImageRequestOptions()
+        req.deliveryMode = .highQualityFormat
+        req.isNetworkAccessAllowed = false
+        PHImageManager.default().requestImage(
+            for: asset, targetSize: CGSize(width: 144, height: 144),
+            contentMode: .aspectFill, options: req
+        ) { image, _ in
+            guard let image else { return }
+            DispatchQueue.main.async { self.lastThumb = image }
+        }
+    }
 
     private var permissionView: some View {
         VStack(spacing: 12) {
@@ -206,14 +244,36 @@ struct CameraPreviewView: View {
                 Circle()
                     .fill(Color(red: 0.25, green: 0.25, blue: 0.25))
                     .frame(width: 48, height: 48)
-                    .overlay(MatIcon(name: "photo.fill", size: 18).foregroundColor(.white.opacity(0.5)))
+                    .overlay(
+                        Group {
+                            if let lastThumb {
+                                Image(uiImage: lastThumb)
+                                    .resizable()
+                                    .scaledToFill()
+                            } else {
+                                MatIcon(name: "photo.fill", size: 18)
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                    )
+                    .clipShape(Circle())
                     .accessibilityIdentifier("camera_gallery_thumb")
+                    .contentShape(Circle())
+                    .onTapGesture { onGalleryTap() }
 
                 Spacer()
 
                 ShutterButton {
-                    guard let renderer = sharedRenderer else { return }
+                    // 白闪反馈（确认点击注册，对标 Android 拍照闪屏）
+                    shutterFlash = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { shutterFlash = false }
+                    guard let renderer = sharedRenderer else {
+                        print("[PoLang] shutter.FAIL: sharedRenderer nil")
+                        DebugOverlayState.shared.set("camera.shutter", "error: renderer nil")
+                        return
+                    }
                     let flow = CaptureFlow(photoController: photoController, renderer: renderer)
+                    flow.onSaved = { refreshLatestThumb() }
                     flow.captureAndSave()
                 }
 
@@ -267,9 +327,9 @@ struct CircleIconButton: View {
 
 private struct MetalViewRepresentable: UIViewRepresentable {
     let controller: CaptureSessionController
+    let renderer: BeautyRenderer?
     let params: BeautyRenderer.Params
     let faceService: FaceLandmarkService
-    let onRendererReady: (BeautyRenderer) -> Void
 
     func makeUIView(context: Context) -> MTKView {
         let view = MTKView()
@@ -281,13 +341,13 @@ private struct MetalViewRepresentable: UIViewRepresentable {
         view.isOpaque = true
         view.backgroundColor = .black
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        if let device = view.device {
-            let renderer = BeautyRenderer(device: device)
+        // renderer 由视图层注入（快门与预览同一实例）；兜底再自建
+        if let renderer {
+            renderer.params = params
             context.coordinator.renderer = renderer
-            if let renderer {
-                renderer.params = params
-                onRendererReady(renderer)
-            }
+        } else if let device = view.device, let fallback = BeautyRenderer(device: device) {
+            fallback.params = params
+            context.coordinator.renderer = fallback
         }
         context.coordinator.controller = controller
         context.coordinator.faceService = faceService

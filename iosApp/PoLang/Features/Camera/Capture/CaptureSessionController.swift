@@ -80,6 +80,17 @@ final class CaptureSessionController: NSObject {
     private var currentPosition: AVCaptureDevice.Position = .back
     private var currentDeviceInput: AVCaptureDeviceInput?
 
+    /// 把额外 output（如拍照 photoOutput）串行挂到 session。
+    /// 🔴 必须走 capture 队列：与 start()/flipCamera() 的 beginConfiguration 块保序，
+    /// 禁止从主线程直接 addOutput（与配置块竞态 → capturePhoto 无回调）
+    func attachOutput(_ output: AVCaptureOutput) {
+        queue.async { [self] in
+            if !session.outputs.contains(output), session.canAddOutput(output) {
+                session.addOutput(output)
+            }
+        }
+    }
+
     /// 翻转摄像头
     func flipCamera() {
         currentPosition = currentPosition == .back ? .front : .back
