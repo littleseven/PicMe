@@ -7,6 +7,15 @@ import Combine
 /// 从 ModelScope CDN 下载端侧 AI 模型（MNN/ONNX），SHA256 校验，
 /// 支持 暂停/恢复/取消/删除，进度实时上报。
 ///
+/// 下载核心：
+/// - 经典 `URLSessionDownloadTask` + `DownloadTaskHub` delegate 拿实时进度。
+///   ⚠️ 不可用 async/await `session.download(for:)`——实测其完全不回调
+///   `didWriteData`（含 per-task delegate 变体），进度恒为 0（旧「进度条不动」根因）。
+/// - 大文件（> 32MB）走 `ParallelFileDownloader` 分块并行（对齐 Android），
+///   chunk 级断点续传（`.part` + `.part.meta`）。
+/// - 暂停/取消/删除会真正 cancel 系统任务——旧实现只置标志位，僵尸任务继续
+///   占满带宽跑到完再丢弃，是「越下越慢」的主因之一。
+///
 /// 存储路径：`Documents/llm_models/<modelId>/`
 
 // MARK: - Types
@@ -53,7 +62,12 @@ final class ModelDownloadManager: ObservableObject {
     }
 
     private var cancelledModels: Set<String> = []
-    private let bufferSize = 256 * 1024
+    /// 单文件下载中的系统任务（按 modelId）——暂停/取消/删除时真正 cancel
+    private var activeTasks: [String: [URLSessionDownloadTask]] = [:]
+    /// 分块并行下载器（按 modelId）——暂停/取消/删除时 cancelAll
+    private var activeDownloaders: [String: ParallelFileDownloader] = [:]
+    /// 进度节流：每个 modelId 的上次上报时间
+    private var lastProgressReport: [String: Date] = [:]
 
     private init() {
         refreshAllStates()
@@ -64,6 +78,7 @@ final class ModelDownloadManager: ObservableObject {
     func isModelDownloaded(_ modelId: String) -> Bool {
         guard let entry = ModelCatalog.shared.model(byId: modelId) else { return false }
         let dir = modelsDir.appendingPathComponent(modelId)
+        // 只认最终文件名；下载中的 `.part` 不算已下载
         return entry.files.allSatisfy { FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path) }
     }
 
@@ -76,6 +91,8 @@ final class ModelDownloadManager: ObservableObject {
     func download(_ modelId: String) {
         guard let entry = ModelCatalog.shared.model(byId: modelId) else { return }
         guard let repo = entry.modelScopeRepo else { return }
+        // 防重复启动（旧实现会并发起两个任务互抢带宽）
+        guard downloadStates[modelId]?.status != .downloading else { return }
 
         cancelledModels.remove(modelId)
         downloadStates[modelId] = DownloadState(
@@ -88,6 +105,7 @@ final class ModelDownloadManager: ObservableObject {
 
     func pause(_ modelId: String) {
         cancelledModels.insert(modelId)
+        cancelActiveWork(modelId)
         updateStatus(modelId, .paused)
     }
 
@@ -98,12 +116,14 @@ final class ModelDownloadManager: ObservableObject {
 
     func cancel(_ modelId: String) {
         cancelledModels.insert(modelId)
-        // 不删文件——保留已下载部分供下次续传
+        cancelActiveWork(modelId)
+        // 不删文件——保留已下载部分（含 `.part`）供下次续传
         downloadStates.removeValue(forKey: modelId)
     }
 
     func delete(_ modelId: String) {
         cancelledModels.insert(modelId)
+        cancelActiveWork(modelId)
         let dir = modelsDir.appendingPathComponent(modelId)
         try? FileManager.default.removeItem(at: dir)
         downloadStates.removeValue(forKey: modelId)
@@ -117,7 +137,7 @@ final class ModelDownloadManager: ObservableObject {
         }
     }
 
-    // MARK: - Core Download Logic（流式逐块下载 + 实时进度）
+    // MARK: - Core Download Logic
 
     private func performDownload(entry: ModelEntry, repo: String) async {
         let modelId = entry.id
@@ -127,39 +147,60 @@ final class ModelDownloadManager: ObservableObject {
         let fileInfos = await fetchFileList(repo: repo)
         let fileInfoMap = Dictionary(uniqueKeysWithValues: fileInfos.map { ($0.name, $0) })
 
+        // 与 Android 对齐：总大小以 API 文件清单为准（≥ entry.size），
+        // 避免目录大小与实际不符导致进度提前 100% 或永远到不了 100%
+        let actualTotal = max(
+            entry.files.reduce(Int64(0)) { $0 + (fileInfoMap[$1]?.size ?? 0) },
+            entry.size
+        )
+        updateTotalBytes(modelId, actualTotal)
+
         var totalDownloaded: Int64 = 0
-        let lastProgressUpdate = Date()
 
         for fileName in entry.files {
             if cancelledModels.contains(modelId) { return }
 
             let destUrl = modelDir.appendingPathComponent(fileName)
+            let info = fileInfoMap[fileName]
 
-            // 已存在 → 校验跳过
+            // 已存在 → 校验跳过（大文件 SHA256 流式计算，放后台线程避免卡 UI）
             if FileManager.default.fileExists(atPath: destUrl.path) {
-                let info = fileInfoMap[fileName]
-                if let info, verifySHA256(file: destUrl, expected: info.sha256) {
-                    totalDownloaded += info.size
+                let verified = await Task.detached(priority: .utility) {
+                    Self.verifyExistingFile(destUrl, info: info)
+                }.value
+                if verified {
+                    totalDownloaded += Self.fileSize(of: destUrl)
                     updateProgress(modelId, totalDownloaded)
                     continue
                 }
                 try? FileManager.default.removeItem(at: destUrl)
             }
 
-            // 流式下载（逐块写入 + 实时进度）
             let url = URL(string: "https://modelscope.cn/models/\(repo)/resolve/master/\(fileName)")!
+            let expectedSize = info?.size ?? 0
+
             do {
-                let downloaded = try await downloadFileStreaming(
-                    url: url, to: destUrl, modelId: modelId,
-                    bytesAlreadyDownloaded: totalDownloaded,
-                    totalModelSize: entry.size
-                )
-                totalDownloaded += downloaded
+                if expectedSize > ParallelFileDownloader.parallelThreshold {
+                    // 大文件：分块并行（单连接受 CDN 单流限速，多段并发提速）
+                    let base = totalDownloaded
+                    try await downloadFileParallel(
+                        url: url, fileName: fileName, modelDir: modelDir,
+                        expectedSize: expectedSize, expectedSha256: info?.sha256,
+                        modelId: modelId, base: base)
+                    totalDownloaded += expectedSize
+                } else {
+                    let base = totalDownloaded
+                    let downloaded = try await downloadFileSingle(
+                        url: url, destUrl: destUrl, modelId: modelId, base: base)
+                    totalDownloaded += downloaded
+                }
+                if cancelledModels.contains(modelId) { return }
                 updateProgress(modelId, totalDownloaded)
             } catch {
                 if !cancelledModels.contains(modelId) {
                     updateStatus(modelId, .failed)
                 }
+                cancelActiveWork(modelId)
                 return
             }
         }
@@ -167,125 +208,91 @@ final class ModelDownloadManager: ObservableObject {
         if !cancelledModels.contains(modelId) {
             updateStatus(modelId, .completed)
         }
+        cancelActiveWork(modelId)
     }
 
-    /// 流式下载：用 URLSessionDownloadTask（系统原生下载 + delegate 进度回调）
-    /// 支持 Range 续传 + 实时进度
-    private func downloadFileStreaming(
-        url: URL, to destUrl: URL, modelId: String,
-        bytesAlreadyDownloaded: Int64, totalModelSize: Int64
+    /// 单连接下载（小文件）。经典 downloadTask + delegate 实时进度。
+    private func downloadFileSingle(
+        url: URL, destUrl: URL, modelId: String, base: Int64
     ) async throws -> Int64 {
-        // 检查已有文件大小（断点续传）
-        var existingSize: Int64 = 0
-        if FileManager.default.fileExists(atPath: destUrl.path) {
-            existingSize = (try? FileManager.default.attributesOfItem(atPath: destUrl.path)[.size] as? Int64) ?? 0
-        }
-
-        // 用 DownloadProgressDelegate 获取实时进度 + 完成回调
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 120
-        config.timeoutIntervalForResource = 0  // 不限总时长
-
-        let progressTracker = DownloadProgressTracker(modelId: modelId,
-                                                       bytesAlreadyDownloaded: bytesAlreadyDownloaded,
-                                                       existingSize: existingSize,
-                                                       updateProgress: { [weak self] mid, downloaded in
-            self?.updateProgress(mid, downloaded)
-        },
-                                                       isCancelled: { [weak self] mid in
-            self?.cancelledModels.contains(mid) ?? false
-        })
-
-        let session = URLSession(configuration: config, delegate: progressTracker, delegateQueue: nil)
-
         var request = URLRequest(url: url)
         request.timeoutInterval = 120
-        if existingSize > 0 {
-            request.setValue("bytes=\(existingSize)-", forHTTPHeaderField: "Range")
+        request.setValue("PoLang-iOS/1.0", forHTTPHeaderField: "User-Agent")
+
+        let (tempUrl, response) = try await withCheckedThrowingContinuation {
+            (cont: CheckedContinuation<(tempFile: URL, response: HTTPURLResponse?), Error>) in
+            let task = DownloadTaskHub.shared.startTask(
+                with: request,
+                onProgress: { written in
+                    DispatchQueue.main.async { [weak self] in
+                        self?.reportProgressThrottled(modelId, base + written)
+                    }
+                },
+                onCompletion: { cont.resume(with: $0) }
+            )
+            // continuation body 同步执行且继承 MainActor 隔离，append 与 cancelActiveWork 无并发
+            activeTasks[modelId, default: []].append(task)
         }
+        defer { try? FileManager.default.removeItem(at: tempUrl) }
 
-        let (tempUrl, response) = try await session.download(for: request)
+        let statusCode = response?.statusCode ?? 0
+        guard statusCode == 200 else { throw URLError(.badServerResponse) }
 
-        let httpResp = response as? HTTPURLResponse
-        let statusCode = httpResp?.statusCode ?? 0
-        guard statusCode == 200 || statusCode == 206 else {
-            throw URLError(.badServerResponse)
+        if cancelledModels.contains(modelId) { return 0 }
+
+        if FileManager.default.fileExists(atPath: destUrl.path) {
+            try FileManager.default.removeItem(at: destUrl)
         }
-
-        if cancelledModels.contains(modelId) {
-            try? FileManager.default.removeItem(at: tempUrl)
-            return 0
-        }
-
-        let downloadedSize = (try? FileManager.default.attributesOfItem(atPath: tempUrl.path)[.size] as? Int64) ?? 0
-
-        if statusCode == 206 {
-            // Range 续传：追加到已有文件
-            let existingData = try Data(contentsOf: destUrl)
-            let newData = try Data(contentsOf: tempUrl)
-            try (existingData + newData).write(to: destUrl, options: .atomic)
-            try? FileManager.default.removeItem(at: tempUrl)
-        } else {
-            if FileManager.default.fileExists(atPath: destUrl.path) {
-                try FileManager.default.removeItem(at: destUrl)
-            }
-            try FileManager.default.moveItem(at: tempUrl, to: destUrl)
-        }
-
-        updateProgress(modelId, bytesAlreadyDownloaded + existingSize + downloadedSize)
-        return existingSize + downloadedSize
+        try FileManager.default.moveItem(at: tempUrl, to: destUrl)
+        return Self.fileSize(of: destUrl)
     }
 
-    /// 高效写入（已弃用，保留接口兼容）
-    private func writeBytes(
-        _ bytes: URLSession.AsyncBytes,
-        to fileHandle: FileHandle,
-        modelId: String,
-        bytesAlreadyDownloaded: Int64,
-        startingOffset: Int64
-    ) async throws -> Int64 {
-        var downloaded: Int64 = startingOffset
-        var lastReportTime = Date()
-        let chunkSize = 64 * 1024  // 64KB 块读取（非逐字节）
-        var chunk = Data()
-        chunk.reserveCapacity(chunkSize)
+    /// 大文件分块并行下载（`.part` 暂存，完成后转正；`.part.meta` 记录已完成 chunk 供续传）。
+    /// 完成后若 API 提供了 SHA256 立即流式校验（并发偏移写错的防线，不等下次启动才发现）。
+    private func downloadFileParallel(
+        url: URL, fileName: String, modelDir: URL,
+        expectedSize: Int64, expectedSha256: String?, modelId: String, base: Int64
+    ) async throws {
+        let partUrl = modelDir.appendingPathComponent(fileName + ".part")
+        let downloader = ParallelFileDownloader()
+        activeDownloaders[modelId] = downloader
+        defer { activeDownloaders.removeValue(forKey: modelId) }
 
-        do {
-            for try await byte in bytes {
-                if cancelledModels.contains(modelId) {
-                    try? fileHandle.close()
-                    // 不删文件——保留已下载部分供续传
-                    return downloaded - startingOffset
-                }
-
-                chunk.append(byte)
-                downloaded += 1
-
-                if chunk.count >= chunkSize {
-                    try fileHandle.write(contentsOf: chunk)
-                    chunk.removeAll(keepingCapacity: true)
-
-                    // 节流进度上报：500ms
-                    let now = Date()
-                    if now.timeIntervalSince(lastReportTime) > 0.5 {
-                        updateProgress(modelId, bytesAlreadyDownloaded + downloaded - startingOffset)
-                        lastReportTime = now
-                    }
-                }
+        try await downloader.download(url: url, partUrl: partUrl, totalSize: expectedSize) { withinFile in
+            DispatchQueue.main.async { [weak self] in
+                self?.reportProgressThrottled(modelId, base + withinFile)
             }
-
-            // 写入最后一块
-            if !chunk.isEmpty {
-                try fileHandle.write(contentsOf: chunk)
-            }
-            try fileHandle.close()
-
-            updateProgress(modelId, bytesAlreadyDownloaded + downloaded - startingOffset)
-            return downloaded - startingOffset
-        } catch {
-            try? fileHandle.close()
-            throw error
         }
+
+        if cancelledModels.contains(modelId) { return }  // 保留 .part/.meta 供续传
+
+        if let sha256 = expectedSha256, !sha256.isEmpty {
+            let verified = await Task.detached(priority: .utility) {
+                Self.verifySHA256(file: partUrl, expected: sha256)
+            }.value
+            if !verified {
+                // 校验失败：删除 .part/.meta 重来（续传会从头开始该文件）
+                try? FileManager.default.removeItem(at: partUrl)
+                try? FileManager.default.removeItem(at: partUrl.appendingPathExtension("meta"))
+                throw URLError(.cannotDecodeContentData)
+            }
+        }
+
+        if cancelledModels.contains(modelId) { return }  // 校验耗时，复检一次
+
+        let destUrl = modelDir.appendingPathComponent(fileName)
+        if FileManager.default.fileExists(atPath: destUrl.path) {
+            try FileManager.default.removeItem(at: destUrl)
+        }
+        try FileManager.default.moveItem(at: partUrl, to: destUrl)
+    }
+
+    /// 真正取消进行中的系统任务/并行下载器（旧实现只置标志位，僵尸任务继续吃带宽）。
+    /// 任务取消后以 URLError.cancelled 收尾，performDownload 依 cancelledModels 判定不报 failed。
+    private func cancelActiveWork(_ modelId: String) {
+        activeTasks.removeValue(forKey: modelId)?.forEach { $0.cancel() }
+        activeDownloaders.removeValue(forKey: modelId)?.cancelAll()
+        lastProgressReport.removeValue(forKey: modelId)
     }
 
     // MARK: - ModelScope API
@@ -311,23 +318,61 @@ final class ModelDownloadManager: ObservableObject {
         } catch { return [] }
     }
 
-    // MARK: - SHA256
+    // MARK: - 文件校验（后台线程执行，流式不整读进内存）
 
-    private func verifySHA256(file: URL, expected: String) -> Bool {
+    /// 校验已存在文件是否完整：大小匹配（API 有 size 时）+ SHA256（API 有 sha 时）。
+    private nonisolated static func verifyExistingFile(_ fileUrl: URL, info: ModelFileInfo?) -> Bool {
+        let actualSize = fileSize(of: fileUrl)
+        guard actualSize > 0 else { return false }
+        guard let info else { return true }  // API 无信息：存在即视为完整（对齐旧行为）
+        if info.size > 0 && info.size != actualSize { return false }
+        if !info.sha256.isEmpty {
+            return verifySHA256(file: fileUrl, expected: info.sha256)
+        }
+        return true
+    }
+
+    /// 流式 SHA256（旧实现 `Data(contentsOf:)` 整文件读入内存，1.4GB 文件直接卡死/崩溃）
+    private nonisolated static func verifySHA256(file: URL, expected: String) -> Bool {
         guard !expected.isEmpty else { return true }
-        guard let data = try? Data(contentsOf: file) else { return false }
-        let hash = SHA256.hash(data: data)
-        let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
+        guard let handle = try? FileHandle(forReadingFrom: file) else { return false }
+        defer { try? handle.close() }
+
+        var hasher = SHA256()
+        while true {
+            let chunk = autoreleasepool { handle.readData(ofLength: 1024 * 1024) }
+            if chunk.isEmpty { break }
+            hasher.update(data: chunk)
+        }
+        let hashString = hasher.finalize().compactMap { String(format: "%02x", $0) }.joined()
         return hashString.lowercased() == expected.lowercased()
+    }
+
+    private nonisolated static func fileSize(of url: URL) -> Int64 {
+        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return (attrs?[.size] as? Int64) ?? 0
     }
 
     // MARK: - State Helpers
 
+    /// 仅在 downloading 状态下更新进度——暂停/取消后在途的进度回调不得把状态翻回 downloading
     private func updateProgress(_ modelId: String, _ downloaded: Int64) {
-        var state = downloadStates[modelId] ?? DownloadState(
-            modelId: modelId, downloadedBytes: 0, totalBytes: 0, status: .downloading)
+        guard var state = downloadStates[modelId], state.status == .downloading else { return }
         state.downloadedBytes = downloaded
-        state.status = .downloading
+        downloadStates[modelId] = state
+    }
+
+    /// 节流 500ms 的进度上报（delegate 队列回调经 main.async 汇入）
+    private func reportProgressThrottled(_ modelId: String, _ downloaded: Int64) {
+        let now = Date()
+        if let last = lastProgressReport[modelId], now.timeIntervalSince(last) < 0.5 { return }
+        lastProgressReport[modelId] = now
+        updateProgress(modelId, downloaded)
+    }
+
+    private func updateTotalBytes(_ modelId: String, _ total: Int64) {
+        guard var state = downloadStates[modelId] else { return }
+        state.totalBytes = total
         downloadStates[modelId] = state
     }
 
@@ -362,48 +407,5 @@ final class ModelDownloadManager: ObservableObject {
 
     var missingRequiredSize: Int64 {
         missingRequiredModels.reduce(0) { $0 + $1.size }
-    }
-}
-
-// MARK: - Download Progress Tracker（URLSessionDownloadTask delegate）
-
-/// 下载进度追踪器——URLSessionDownloadDelegate 实现，
-/// 实时回调下载进度，不经过 Swift 逐字节迭代。
-final class DownloadProgressTracker: NSObject, URLSessionDownloadDelegate {
-    let modelId: String
-    let bytesAlreadyDownloaded: Int64
-    let existingSize: Int64
-    let updateProgress: (String, Int64) -> Void
-    let isCancelled: (String) -> Bool
-    private var lastReportTime = Date()
-
-    init(modelId: String, bytesAlreadyDownloaded: Int64, existingSize: Int64,
-         updateProgress: @escaping (String, Int64) -> Void,
-         isCancelled: @escaping (String) -> Bool) {
-        self.modelId = modelId
-        self.bytesAlreadyDownloaded = bytesAlreadyDownloaded
-        self.existingSize = existingSize
-        self.updateProgress = updateProgress
-        self.isCancelled = isCancelled
-    }
-
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
-                    totalBytesExpectedToWrite: Int64) {
-        // 节流 500ms
-        let now = Date()
-        guard now.timeIntervalSince(lastReportTime) > 0.5 else { return }
-        lastReportTime = now
-
-        let cumulative = bytesAlreadyDownloaded + existingSize + totalBytesWritten
-        // 必须在主线程更新 @Published（ModelDownloadManager 是 @MainActor）
-        DispatchQueue.main.async { [modelId, cumulative] in
-            self.updateProgress(modelId, cumulative)
-        }
-    }
-
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didFinishDownloadingTo location: URL) {
-        // 文件处理在 async 调用方完成（session.download(for:) 返回临时 URL）
     }
 }
