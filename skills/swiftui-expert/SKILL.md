@@ -96,3 +96,18 @@ ForEach(items) { item in
 | 版本 | 日期 | 变更 |
 |------|------|------|
 | 1.0.0 | 2026-08-08 | 初始版本（Phase 5.2–5.4） |
+| 1.1.0 | 2026-08-09 | 追加 [PARITY] 双端一致性规则段 |
+
+---
+
+## [PARITY] 双端 UI 一致性（强制）
+
+> 实现或修改任何屏幕的 UI 时，必须遵循 `ui-parity-guard` skill 的 5 步硬规则。
+
+**核心约束**：
+1. **先读 `specs/screens/<screen>.yaml`**，不存在则先创建。禁止通过读对端源码翻译布局。
+2. **引用 design token 常量**（`Spacing` / `AppShapes` / `AppColors`），禁止硬编码 `.frame(width:)` / `Color(red:)`。Token SSOT: `shared/src/commonMain/resources/design-tokens.json`。
+3. 引入新值时先更新 `design-tokens.json`，再同步两端代码。
+4. 改了布局结构时同步更新 spec YAML。
+
+详见：[`ui-parity-guard`](/ui-parity-guard) · [`IOS_ANDROID_UI_PARITY.md`](/docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md)

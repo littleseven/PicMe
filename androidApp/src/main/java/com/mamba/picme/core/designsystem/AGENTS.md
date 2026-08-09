@@ -10,7 +10,8 @@
 
 ## 1. 核心设计准则 (Design Tokens)
 
-- **[TOKENS] 严禁硬编码**：禁止在 Compose 代码中直接使用 `Color(0xFF...)` 或 `16.dp`。必须引用 `PoLangTheme.colors` 和 `PoLangTheme.spacing`。
+- **[TOKENS] 严禁硬编码**：禁止在 Compose 代码中直接使用 `Color(0xFF...)` 或 `16.dp`。必须引用 `MaterialTheme.spacing`（`Spacing` object）、`MaterialTheme.appShapes`（`AppShapes` object）、`MaterialTheme.appColors`（`AppColors` object）或 `MaterialTheme.colorScheme`（M3 主题色）。
+- **[TOKENS-SOURCE] 双端 SSOT**：所有 token 的唯一事实来源是 `shared/src/commonMain/resources/design-tokens.json`。新增/修改 UI 尺寸时，先更新 JSON 源文件，再同步 Android（`Spacing.kt` / `AppShapes.kt` / `Color.kt`）和 iOS（`DesignTokens.swift`）。两端代码中的值必须与 JSON 一致。
 - **[THEME] 主题色适配**：所有文字和图标颜色必须使用 Material 3 主题色：
     - **前景色**：`MaterialTheme.colorScheme.onSurface` - 自动适配浅色/深色模式
     - **主色**：`MaterialTheme.colorScheme.primary` - 强调和高亮
@@ -22,7 +23,7 @@
 - **[SHAPE] 圆角标准**：
     - 顶层卡片/面板：`24.dp`。
     - 交互按钮：`CircleShape` (全圆角)。
-    - 列表项/网格项：依据 `PoLangTheme.shapes` 定义。
+    - 列表项/网格项：引用 `MaterialTheme.appShapes.thumbnail`（2dp）。
 
 ## 2. 交互与动效规范
 - **[EASING] 非线性动效**：所有动画必须使用 `FastOutSlowInEasing` 或 `StandardEasing`，严禁使用线性动画。

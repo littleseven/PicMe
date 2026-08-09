@@ -62,3 +62,30 @@ val VibrantPink = Color(0xFFFF4081)
 
 // Component tokens (fixed component-level colors, not part of ColorScheme)
 val SliderThumbColor = Color(0xFFFFFFFF)
+
+// ── 功能色（双端 SSOT: design-tokens.json）─────────────────────────────────────────
+// 相机/相册等功能场景使用的固定颜色，不随主题切换。引用方式：MaterialTheme.appColors.focusRing
+
+/** 对焦框青色环（相机对焦成功反馈）。 */
+val FocusRingColor = Color(0xFF00E5FF)
+
+/** 底部弹出面板半透明黑色背景。 */
+val PanelBackgroundColor = Color(0xCC000000)
+
+/** 快门外环颜色。 */
+val ShutterRingColor = Color(0xFFFFFFFF)
+
+/**
+ * 功能色集合，通过 [MaterialTheme.appColors] 访问。
+ * 不随 Light/Dark 主题切换的固定色值。
+ */
+object AppColors {
+    val focusRing = FocusRingColor
+    val panelBackground = PanelBackgroundColor
+    val shutterRing = ShutterRingColor
+    val sliderThumb = SliderThumbColor
+    val vibrantGreen = VibrantGreen
+    val vibrantBlue = VibrantBlue
+    val vibrantOrange = VibrantOrange
+    val vibrantPink = VibrantPink
+}

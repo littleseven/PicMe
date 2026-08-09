@@ -8,8 +8,24 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
 import com.mamba.picme.domain.model.ThemeMode
+
+// ── MaterialTheme 扩展：兑现 designsystem/AGENTS.md 的 [TOKENS] 规范 ────────────────
+// 新增 UI 引用 MaterialTheme.spacing / MaterialTheme.appShapes，禁止硬编码 dp/shape。
+
+/** 间距令牌，引用方式：`MaterialTheme.spacing.sm`。 */
+val MaterialTheme.spacing: Spacing
+    @Composable @ReadOnlyComposable get() = Spacing
+
+/** 圆角令牌，引用方式：`MaterialTheme.appShapes.panel`。 */
+val MaterialTheme.appShapes: AppShapes
+    @Composable @ReadOnlyComposable get() = AppShapes
+
+/** 功能色令牌，引用方式：`MaterialTheme.appColors.focusRing`。 */
+val MaterialTheme.appColors: AppColors
+    @Composable @ReadOnlyComposable get() = AppColors
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryLight,

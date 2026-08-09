@@ -1,0 +1,222 @@
+# 相机屏规格契约（Camera Screen Spec）
+#
+> **基准端**：Android `CameraPreviewContent.kt`（main 分支）
+> **用途**：双端 AI 工具实现/修改相机 UI 时，**先读此文件，不看对端源码**
+> **双端对齐原则**：结构零容差一致（信息层级/布局结构/功能默认/文案状态），平台材质各自原生
+> **值引用**：尺寸引用 `design-tokens.json` 的 token 名（如 `topBar.height`），不直接写数值
+
+---
+
+## 系统栏状态
+
+```yaml
+status_bar:
+  visible: false          # 相机页沉浸式，状态栏隐藏（Android）或 lightContent（iOS）
+  content_color: light    # 浅色图标（黑底白字）
+home_indicator:
+  defer_gestures: true    # iOS: preferredScreenEdgesDeferringSystemGestures（底部上划不直接回桌面）
+  android_immersive: true # Android: 沉浸模式，边缘二次确认
+```
+
+## Back 栈优先级链
+
+```yaml
+back_stack:
+  - panel_expanded → close_panel   # 有面板展开时，Back 先关面板
+  - default → exit_camera          # 无面板时 Back 退出相机
+```
+
+## 元素树
+
+```yaml
+root:
+  type: full_screen
+  background: black
+  fill_strategy: edge_to_edge      # 预览延伸至屏幕物理边缘
+
+  # ── 顶部区域 ──────────────────────────────────────────────
+  top_bar:
+    anchor: safe_area_top
+    layout: row_space_between
+    height: topBar.height           # 48dp
+    children:
+      left_group:
+        anchor: top_start
+        items:
+          - id: back_button
+            type: icon_button
+            size: topBar.buttonSize # 36dp
+            icon: arrow_back
+          - id: reset_button
+            type: icon_button
+            size: topBar.buttonSize
+            icon: reset
+            visible_when: any_beauty_active
+          - id: debug_toggle
+            type: icon_button
+            size: topBar.buttonSize
+            icon: bug_report
+            visible_when: debug_mode
+      right_group:
+        anchor: top_end
+        layout: column
+        spacing: topBar.spacing     # 8dp
+        items:
+          - id: beauty_toggle
+            type: icon_button
+            size: topBar.buttonSize
+            icon: face
+          - id: ratio_switch
+            type: icon_button
+            size: topBar.buttonSize
+            icon: aspect_ratio
+          - id: grid_toggle
+            type: icon_button
+            size: topBar.buttonSize
+            icon: grid
+          - id: scene_mode
+            type: icon_button
+            size: topBar.buttonSize
+            icon: auto_mode
+          - id: filter_button
+            type: icon_button
+            size: topBar.buttonSize
+            icon: filter
+          - id: pro_mode
+            type: icon_button
+            size: topBar.buttonSize
+            icon: tune
+
+  # ── 预览区 ────────────────────────────────────────────────
+  preview:
+    type: camera_surface
+    fill: full_screen
+    aspect_ratio: 4_3_crop          # 4:3 裁剪填充（双端同策）
+    overlays:
+      - id: composition_grid        # 构图辅助线（三分线），toggle 开关
+        lines: 3x3
+        color: white_alpha_30
+        width: 0.5dp
+      - id: focus_ring              # 对焦框
+        shape: circle_or_square
+        size: 100dp                 # 固定外径
+        color: appColors.focusRing  # #00E5FF
+        stroke_width: 2dp
+        animation: scale_fade_in    # 对焦时缩放淡入
+
+  # ── 底部区域 ──────────────────────────────────────────────
+  bottom_area:
+    anchor: bottom_center
+    layout: column
+    background: gradient_black_bottom  # 底部黑色渐变（辅助可读性）
+
+    zoom_selector:
+      layout: row_center
+      spacing: spacing.md            # 12dp
+      items:
+        - id: zoom_0_6x
+          label: "0.6x"
+        - id: zoom_1x
+          label: "1x"
+          default_selected: true
+        - id: zoom_2x
+          label: "2x"
+        - id: zoom_3_2x
+          label: "3.2x"
+
+    mode_selector:
+      layout: row_center
+      spacing: spacing.xl            # 24dp
+      items:
+        - id: video_mode
+          label: "VIDEO"
+        - id: photo_mode
+          label: "PHOTO"
+          default_selected: true
+        - id: document_mode
+          label: "DOCUMENT"
+
+    shutter_row:
+      layout: row_space_between_center
+      items:
+        - id: gallery_thumbnail      # 左侧：相册最近一张缩略图入口
+          anchor: bottom_start
+          shape: circle
+          size: 52dp
+          corner_radius: thumbnail
+          content_padding: spacing.xs  # 2dp 白色边框
+        - id: shutter_button         # 中间：快门
+          anchor: bottom_center
+          shape: circle
+          diameter: shutter.diameter   # 76dp 外环
+          inner_diameter: shutter.innerDiameter  # 58dp 内圈
+          ring_color: appColors.shutterRing  # 白色
+          ring_width: 4dp
+        - id: flip_camera            # 右侧：翻转摄像头
+          anchor: bottom_end
+          shape: circle
+          size: 52dp
+          icon: flip_camera_android
+
+  # ── 右下角浮动按钮 ────────────────────────────────────────
+  floating_actions:
+    anchor: bottom_end
+    layout: column
+    spacing: spacing.md             # 12dp
+    margin_bottom: 180dp            # 避让底部控件区
+    margin_end: spacing.lg          # 16dp
+    items:
+      - id: voice_fab
+        shape: circle
+        size: 52dp
+        icon: mic
+      - id: ai_chat_fab
+        shape: circle
+        size: 52dp
+        icon: chat
+
+# ── 底部弹出面板（Bottom Sheet）────────────────────────────
+bottom_panels:
+  beauty_panel:
+    trigger: beauty_toggle
+    anchor: bottom_sheet
+    top_corner_radius: beautyPanel.topCornerRadius  # 24dp（顶部两角）
+    height_ratio: beautyPanel.heightRatio           # 35% 屏高
+    background: appColors.panelBackground           # #CC000000
+    shadow_elevation: spacing.lg                    # 16dp
+    border: 0.5dp white_alpha_20
+    handle_bar:
+      width: 36dp
+      height: 4dp
+      color: white_alpha_40
+      margin_top: spacing.sm                        # 8dp
+    items:
+      - smoothing (slider)
+      - whitening (slider)
+      - big_eyes (slider)
+      - lip_color (slider)
+      - blush (slider)
+      - slim_face (slider)
+    back_action: close_panel
+
+  filter_panel:
+    trigger: filter_button
+    anchor: bottom_sheet
+    top_corner_radius: beautyPanel.topCornerRadius
+    items:
+      - horizontal_scroll_of_filter_thumbnails (56dp each)
+
+# ── 状态机 ─────────────────────────────────────────────────
+states:
+  - idle                          # 默认：预览 + 顶部按钮 + 底部控件
+  - beauty_panel_expanded         # 美颜面板展开（Back 关闭面板）
+  - filter_panel_expanded         # 滤镜面板展开（Back 关闭面板）
+  - capturing                     # 拍照中（快门动画，所有交互禁用）
+  - focusing                      # 对焦中（focus_ring 显示）
+
+# ── 已知差异（允许的平台原生差异）──────────────────────────
+allowed_differences:
+  - 字体: Android Roboto / iOS SF
+  - 图标: Material Icons / SF Symbols（语义一致即可）
+  - 对焦动画曲线: 各自平台原生 easing
+  - 快门反馈: Android 振动 / iOS Haptic Feedback

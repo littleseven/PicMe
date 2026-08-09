@@ -1,0 +1,178 @@
+# 相册网格屏规格契约（Gallery Grid Screen Spec）
+#
+> **基准端**：Android `GalleryScreen.kt` / `MediaGrid.kt`（main 分支）
+> **用途**：双端 AI 工具实现/修改相册 UI 时，**先读此文件，不看对端源码**
+> **双端对齐原则**：结构零容差一致（信息层级/布局结构/功能默认/文案状态），平台材质各自原生
+> **值引用**：尺寸引用 `design-tokens.json` 的 token 名
+
+---
+
+## 系统栏状态
+
+```yaml
+status_bar:
+  visible: true
+  content_color: dark_to_light  # 跟随主题（浅色页 dark 图标 / 深色页 light 图标）
+home_indicator:
+  defer_gestures: false         # 相册页不 defer（正常 home 手势）
+```
+
+## Back 栈优先级链
+
+```yaml
+back_stack:
+  - search_active → clear_search_close_search_bar  # 搜索激活时 Back 退出搜索
+  - selection_mode → exit_selection_mode           # 选择模式时 Back 退出选择
+  - default → leave_gallery                        # 默认 Back 离开相册（回到上屏或 Tab）
+```
+
+## 元素树
+
+```yaml
+root:
+  type: full_screen
+  background: MaterialTheme.colorScheme.background
+
+  # ── 顶栏 ──────────────────────────────────────────────────
+  top_bar:
+    type: AppTopBar
+    height: topBar.height                      # 48dp
+    anchor: safe_area_top
+    title: "相册"
+    title_font_size: topBar.titleFontSize      # 17sp
+    title_font_weight: bold
+    title_color: colorScheme.primary
+    actions:
+      - id: model_center                       # 模型中心
+        icon: smart_toy
+      - id: scan_toggle                        # TAG 扫描开关
+        icon: radar
+      - id: search                             # 搜索入口
+        icon: search
+      - id: sort_menu                          # 分组模式菜单
+        icon: sort
+        options: [DATE, FACE, PERSON, LANDSCAPE, LOCATION, NONE]
+      - id: settings                           # 设置
+        icon: settings
+
+  # ── 扫描进度条（条件显示）──────────────────────────────────
+  scan_progress:
+    visible_when: tag_scanning_active
+    type: linear_progress_indicator
+    anchor: below_top_bar
+    height: 2dp
+    color: colorScheme.primary
+
+  # ── 搜索栏（条件显示）──────────────────────────────────────
+  search_bar:
+    visible_when: search_mode_active
+    type: SearchTopBar
+    placeholder: "搜索照片、人、地点…"
+    debounce_ms: 300
+    result_count_display: true
+
+  # ── 网格 ──────────────────────────────────────────────────
+  grid:
+    type: lazy_vertical_grid
+    column_strategy: adaptive_min_width
+    min_cell_size: grid.minCellSize            # 110dp
+    spacing: grid.spacing                      # 2dp 水平 + 垂直
+    content_padding: grid.spacing              # 2dp
+    fill: remaining_space
+
+    group_header:
+      type: MediaGroupHeader
+      span: full_width
+      title:
+        font: titleMedium
+        weight: bold
+        color: colorScheme.primary
+      count:
+        font: bodyMedium
+        color: colorScheme.secondary  # "(N)" 计数
+        format: "({count})"
+      padding_horizontal: spacing.lg           # 16dp
+      padding_vertical: spacing.sm             # 8dp
+
+    thumbnail_item:
+      aspect_ratio: 1_1                        # 正方形
+      content_scale: crop
+      corner_radius: grid.cornerRadius         # 2dp
+      face_aware_alignment: true               # 人脸感知纵向对齐（FaceAwareVerticalAlignment）
+      video_indicator:
+        visible_when: is_video
+        icon: play_circle
+        size: icon.xl                          # 32dp
+        color: white_alpha_80
+        anchor: center
+      selection_state:
+        trigger: long_press
+        overlay: black_alpha_30
+        checkbox: check_circle / radio_button_unchecked
+        checkbox_size: icon.lg                 # 24dp
+        checkbox_anchor: top_end
+        drag_multi_select: true                # 拖拽多选
+
+  # ── 底部导航 ──────────────────────────────────────────────
+  bottom_nav:
+    type: FloatingBottomTab                    # 圆角胶囊悬浮
+    anchor: bottom_center
+    shape: circle_button
+    items:
+      - id: camera_tab
+        icon: camera_alt
+      - id: chat_tab
+        icon: chat
+      - id: tag_tab
+        icon: label
+      - id: people_tab
+        icon: people
+
+# ── 权限态 ─────────────────────────────────────────────────
+permission_states:
+  granted:
+    grid_visible: true
+  denied:
+    show_permission_request:
+      icon: photo_library
+      icon_size: 64dp
+      title: "需要相册权限"
+      message: "允许访问以浏览和管理你的照片和视频"
+      button_grant: "授予权限"
+      padding_horizontal: spacing.xxl          # 32dp
+  limited_ios:
+    note: "iOS Limited Access — 与 Android Photo Picker 范式不同，UI 呈现按 Android 对应态布局"
+
+# ── 分组模式（顶栏 Sort 菜单切换）──────────────────────────
+grouping_modes:
+  DATE:
+    header: 日期分组（如"今天"/"昨天"/"2026年8月"）
+    sort: descending
+  FACE:
+    header: 人脸聚类分组
+  PERSON:
+    header: 已确认人物分组
+  LANDSCAPE:
+    header: 风景/场景分组
+  LOCATION:
+    header: 地点分组
+  NONE:
+    no_header: true
+    flat_grid: true
+
+# ── 状态机 ─────────────────────────────────────────────────
+states:
+  - idle                          # 默认：网格 + 分组头 + 顶栏 + 底栏
+  - scrolling                     # 滚动中（分组头随滚动）
+  - search_active                 # 搜索激活（搜索栏显示，结果替代全量网格）
+  - selection_mode                # 选择模式（遮罩 + checkbox + 底部操作栏）
+  - scanning                      # TAG 扫描进行中（进度条显示）
+  - permission_denied             # 权限拒绝（引导页）
+
+# ── 已知差异（允许的平台原生差异）──────────────────────────
+allowed_differences:
+  - 权限流程: Android Photo Picker vs iOS Limited Access（状态语义对齐，UI 形态各端原生）
+  - 字体: Android Roboto / iOS SF
+  - 图标: Material Icons / SF Symbols（语义一致即可）
+  - 底部导航返回手势: Android 系统 Back / iOS 左缘右划（语义映射见 Back 栈）
+  - 滚动行为: Android LazyVerticalGrid sticky item / iOS LazyVGrid pinnedViews
