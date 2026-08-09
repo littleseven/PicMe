@@ -2,17 +2,14 @@ import Foundation
 import Combine
 import SharedKit
 
-/// Chat ViewModel（MV 模式，对齐 GalleryViewModel）。
+/// Chat ViewModel（MV 模式，对齐 Android ChatViewModel）。
 ///
-/// 状态管理（spec S4 单一状态源）：
-/// - messages：全量 UI 消息（user + assistant），含流式占位与最终结果；
-/// - isProcessing：串行发送守卫（plan 风险 5：Dispatchers.Default 无串行语义，必须排他）；
-/// - 流式期间经 onText 回调逐 token 替换 assistant 占位气泡内容。
-///
-/// Bridge 交互（signal 6 纪律）：
-/// - ChatAgentBridge 非 suspend 回调式，回调线程非主线程 → 必须 `Task { @MainActor in }`；
-/// - sendMessage 返回 FlowWatcher，sendWatcher 持有；新消息前 cancel 旧的防并发；
-/// - watchUiActions 在 onAppear 注册、onDisappear cancel。
+/// 交互模型（spec chat.yaml §9.1）：
+/// - 发送流程：user 消息即追加 → thinking 占位（3 点）→ streaming（文本 + 光标）
+///   → toolCalling（「正在调用工具…」）→ complete
+/// - 发送按钮仅在有内容 && !isProcessing 时显示（Android 无 stop 按钮）
+/// - 媒体结果作为独立消息项（不嵌入文本气泡）
+/// - 空状态示例 chips 点击直接发送
 @MainActor
 final class ChatViewModel: ObservableObject {
     @Published private(set) var messages: [ChatMessage] = []
@@ -23,14 +20,14 @@ final class ChatViewModel: ObservableObject {
 
     func configure(bridge: ChatAgentBridge) {
         self.bridge = bridge
-        // 加载 UI 历史
         messages = ChatHistoryStore.shared.load()
-        // 订阅工具产出（媒体卡片 / 文本提示）
         actionWatcher?.cancel()
         actionWatcher = bridge.watchUiActions { [weak self] dto in
             Task { @MainActor in self?.handleUiAction(dto) }
         }
     }
+
+    // MARK: - Send (对齐 Android sendMessage 流程)
 
     func send(_ input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -41,22 +38,27 @@ final class ChatViewModel: ObservableObject {
         messages.append(ChatMessage(role: .user, text: trimmed))
         persist()
 
-        // 2. assistant 占位（流式更新）
+        // 2. assistant 占位：thinking 态（首 token 前显示 3 点动画）
         let placeholderId = UUID()
-        messages.append(ChatMessage(id: placeholderId, role: .assistant, text: "", isStreaming: true))
+        messages.append(ChatMessage(
+            id: placeholderId, role: .assistant,
+            text: "", isStreaming: true, isThinking: true
+        ))
         isProcessing = true
 
-        // 3. 启动新推理（sendMessage 返回 void，取消经 cancelCurrent()）
+        // 3. 启动推理
         bridge.sendMessage(
             input: trimmed,
             onText: { [weak self] snapshot in
                 Task { @MainActor in
-                    self?.updateMessage(id: placeholderId, text: snapshot)
+                    // 首 token 到达：退出 thinking，进入 streaming
+                    self?.streamingUpdate(id: placeholderId, text: snapshot)
                 }
             },
             onToolCall: { [weak self] in
                 Task { @MainActor in
-                    self?.updateMessage(id: placeholderId, text: String(localized: "Searching…"))
+                    // 工具调用：替换为状态文案，清空文本（下一轮从空重新累计）
+                    self?.toolCallingUpdate(id: placeholderId)
                 }
             },
             onComplete: { [weak self] summary, errorMessage in
@@ -70,7 +72,6 @@ final class ChatViewModel: ObservableObject {
 
     func clearHistory() {
         guard let bridge else { return }
-        // 清 Koog 记忆 + UI 历史
         bridge.clearHistory { [weak self] in
             Task { @MainActor in
                 self?.messages = []
@@ -79,40 +80,34 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
-    func stop() {
-        bridge?.cancelCurrent()
-        isProcessing = false
-        // 把最后一个流式消息标记为已完成（防 UI 残留光标）
-        if let idx = messages.indices.last(where: { messages[$0].isStreaming }) {
-            messages[idx].isStreaming = false
-            if messages[idx].text.isEmpty {
-                messages[idx].text = String(localized: "Cancelled")
-            }
-            persist()
-        }
-    }
-
-    /// onDisappear 取消 uiActions 订阅：FlowWatcher 持有 Kotlin 协程 Job，
-    /// Swift 属性释放不会自动 cancel Kotlin 侧 Job，必须显式取消
-    func stopWatching() {
-        actionWatcher?.cancel()
-        actionWatcher = nil
-    }
-
     deinit {
         actionWatcher?.cancel()
     }
 
-    // MARK: - Private
+    // MARK: - Streaming State Updates
 
-    private func updateMessage(id: UUID, text: String) {
+    /// 首 token 到达或后续 token：退出 thinking/toolCalling，显示流式文本
+    private func streamingUpdate(id: UUID, text: String) {
         guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[idx].isThinking = false
+        messages[idx].isToolCalling = false
         messages[idx].text = text
     }
 
+    /// 工具调用开始：显示状态文案
+    private func toolCallingUpdate(id: UUID) {
+        guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[idx].isThinking = false
+        messages[idx].isToolCalling = true
+        messages[idx].text = String(localized: "Calling tools…")  // 正在调用工具…
+    }
+
+    /// 推理完成
     private func completeMessage(id: UUID, summary: String, errorMessage: String?) {
         guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[idx].isStreaming = false
+        messages[idx].isThinking = false
+        messages[idx].isToolCalling = false
         if let errorMessage, !errorMessage.isEmpty {
             messages[idx].text = errorMessage
             messages[idx].error = errorMessage
@@ -122,27 +117,32 @@ final class ChatViewModel: ObservableObject {
         persist()
     }
 
+    // MARK: - UI Actions（媒体结果 = 独立消息）
+
     private func handleUiAction(_ dto: ChatUiActionDto) {
         switch dto.kind {
         case "media_results":
-            // 追加一条带媒体卡片的 assistant 消息
+            // 媒体结果作为独立消息项追加（不嵌入文本气泡）
             let ids = dto.mediaIds.map { $0.int64Value }
+            let header = dto.totalCount > 0
+                ? String(localized: "Found \(dto.totalCount) results for「\(dto.query)」")
+                : String(localized: "No results found for「\(dto.query)」")
             messages.append(ChatMessage(
                 role: .assistant,
-                text: String(localized: "Found \(dto.totalCount) results for「\(dto.query)」"),
+                text: header,
                 mediaIds: ids
             ))
             persist()
-        case "text_reply" where !dto.message.isEmpty:
-            // 工具产出的文本提示（如「已收藏」「删除请求已提交」）
-            // 已在流式回复中体现，不重复追加
-            break
         default:
             break
         }
     }
 
+    // MARK: - Persistence
+
     private func persist() {
-        ChatHistoryStore.shared.save(messages)
+        // 只持久化非流式消息
+        let persisted = messages.filter { !$0.isStreaming }
+        ChatHistoryStore.shared.save(persisted)
     }
 }

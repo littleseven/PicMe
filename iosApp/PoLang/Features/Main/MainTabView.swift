@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import SharedKit
 
 /// 对标 Android MainPagerHost：4 页 Pager（相机/相册/聊天/人物）
 /// 相册(1)为初始页，悬浮 Tab 切换页
@@ -44,6 +45,14 @@ struct MainTabView: View {
             }
         }
         .preferredColorScheme(.dark)
+        // 翻页同步 SceneManager（chat 工具按场景路由，不同步会被入队不执行）
+        .onAppear {
+            IosAgentComposition.shared.onMainPageChanged(page: Int64(currentPage))
+        }
+        .onChange(of: currentPage) { page in
+            showPlaceholder = nil
+            IosAgentComposition.shared.onMainPageChanged(page: Int64(page))
+        }
         .overlay(alignment: .top) {
             DebugOverlayView()
         }

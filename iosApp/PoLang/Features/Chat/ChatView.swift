@@ -3,8 +3,6 @@ import Photos
 import SharedKit
 
 /// Chat 主视图（1:1 对标 Android ChatScreen.kt）。
-///
-/// 结构：顶部栏 + 消息列表 + 输入卡片。
 /// spec: specs/screens/chat.yaml
 struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
@@ -17,17 +15,14 @@ struct ChatView: View {
         VStack(spacing: 0) {
             chatTopBar
 
-            // 消息列表 或 空状态
             if viewModel.messages.isEmpty {
-                ChatEmptyState(onExampleTap: { prompt in
-                    inputText = prompt
-                    send()
-                })
+                ChatEmptyState { prompt in
+                    viewModel.send(prompt)  // 直接发送，不填充输入框
+                }
             } else {
                 messageList
             }
 
-            // 输入栏
             inputBar
         }
         .background(Color(.systemBackground).ignoresSafeArea())
@@ -48,11 +43,11 @@ struct ChatView: View {
         }
     }
 
-    // MARK: - Top Bar (48dp, no title)
+    // MARK: - Top Bar (48dp, 无标题)
 
     private var chatTopBar: some View {
         HStack(spacing: 8) {
-            // 左侧：返回
+            // 返回
             Button {} label: {
                 Image(matIcon: "chevron.left").font(.system(size: 22))
             }
@@ -60,20 +55,12 @@ struct ChatView: View {
 
             Spacer()
 
-            // 右侧：清空对话
+            // 清空对话（仅有消息时显示）
             if !viewModel.messages.isEmpty {
                 Button { showClearConfirm = true } label: {
                     Image(matIcon: "delete").font(.system(size: 22))
                 }
                 .frame(width: 36, height: 36)
-
-                // 停止按钮（推理中）
-                if viewModel.isProcessing {
-                    Button { viewModel.stop() } label: {
-                        Image(matIcon: "close").font(.system(size: 22))
-                    }
-                    .frame(width: 36, height: 36)
-                }
             }
         }
         .padding(.horizontal, 8)
@@ -96,12 +83,8 @@ struct ChatView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
             }
-            .onChange(of: viewModel.messages.count) { _ in
-                scrollToBottom(proxy)
-            }
-            .onChange(of: viewModel.messages.last?.text) { _ in
-                scrollToBottom(proxy)
-            }
+            .onChange(of: viewModel.messages.count) { _ in scrollToBottom(proxy) }
+            .onChange(of: viewModel.messages.last?.text) { _ in scrollToBottom(proxy) }
         }
     }
 
@@ -113,30 +96,28 @@ struct ChatView: View {
         }
     }
 
-    // MARK: - Input Bar (大圆角卡片)
+    // MARK: - Input Bar (24dp 大圆角卡片)
 
     private var inputBar: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                HStack(alignment: .bottom, spacing: 8) {
-                    // 文本输入
-                    TextField(String(localized: "Ask AI Agent..."), text: $inputText, axis: .vertical)
-                        .font(.system(size: 16))
-                        .lineSpacing(8)
-                        .focused($inputFocused)
-                        .lineLimit(1...5)
-                        .submitLabel(.send)
-                        .onSubmit(send)
+            HStack(alignment: .bottom, spacing: 8) {
+                // 文本输入（处理中仍可编辑，只是无发送按钮）
+                TextField(String(localized: "Ask AI Agent..."), text: $inputText, axis: .vertical)
+                    .font(.system(size: 16))
+                    .lineSpacing(8)
+                    .focused($inputFocused)
+                    .lineLimit(1...5)
+                    .submitLabel(.send)
+                    .onSubmit(send)
 
-                    // 发送按钮（仅有内容且非处理中时显示）
-                    if canSend {
-                        Button(action: send) {
-                            Image(matIcon: "arrow_upward")
-                                .font(.system(size: 22))
-                                .foregroundColor(.accentColor)
-                        }
-                        .frame(width: 36, height: 36)
+                // 发送按钮：仅有内容 && 非处理中时显示（Android 无 stop 按钮）
+                if canSend {
+                    Button(action: send) {
+                        Image(matIcon: "arrow_upward")
+                            .font(.system(size: 22))
+                            .foregroundColor(.accentColor)
                     }
+                    .frame(width: 36, height: 36)
                 }
             }
             .padding(.horizontal, 16)
@@ -149,6 +130,7 @@ struct ChatView: View {
         .padding(.bottom, 8)
     }
 
+    /// 对齐 Android：发送按钮仅在 text 非空 && !isProcessing 时出现
     private var canSend: Bool {
         !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isProcessing
     }
@@ -161,7 +143,7 @@ struct ChatView: View {
     }
 }
 
-// MARK: - Message Bubble (1:1 对标 spec §5)
+// MARK: - Message Bubble
 
 private struct MessageBubble: View {
     let message: ChatMessage
@@ -170,48 +152,57 @@ private struct MessageBubble: View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
 
-            // 气泡内容
             VStack(alignment: .leading, spacing: 0) {
-                if message.isStreaming && message.text.isEmpty {
-                    // 思考态：三个圆点
+                if message.isThinking {
+                    // 思考态：3 点动画（首 token 前）
                     ThinkingIndicator()
-                } else if !message.text.isEmpty {
-                    // 文本内容
+                } else if message.isToolCalling {
+                    // 工具调用态：状态文案
                     Text(message.text)
                         .font(.system(size: 14))
-                        .lineSpacing(6)
-                        .foregroundColor(message.role == .user ? .white : Color(.label))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: 360, alignment: .leading)
-                }
+                        .foregroundColor(Color(.secondaryLabel))
+                } else if !message.text.isEmpty || !message.mediaIds.isEmpty {
+                    // 正常文本
+                    if !message.text.isEmpty {
+                        Text(message.text)
+                            .font(.system(size: 14))
+                            .lineSpacing(6)
+                            .foregroundColor(message.role == .user ? .white : Color(.label))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: 360, alignment: .leading)
+                    }
 
-                // 流式光标（有文本且仍在流式）
-                if message.isStreaming && !message.text.isEmpty {
-                    Text(">")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Color(.label))
-                        .padding(.leading, 2)
-                }
+                    // 流式光标（有文本且仍在流式）
+                    if message.isStreaming && !message.text.isEmpty {
+                        HStack(spacing: 2) {
+                            Text(message.text.isEmpty ? "" : "")
+                            BlinkCursor()
+                        }
+                    }
 
-                // 媒体卡片
-                if !message.mediaIds.isEmpty {
-                    MediaCardRow(mediaIds: message.mediaIds)
-                        .padding(.top, 6)
+                    // 媒体卡片（独立消息项）
+                    if !message.mediaIds.isEmpty {
+                        MediaCardRow(mediaIds: message.mediaIds)
+                            .padding(.top, 6)
+                    }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(bubbleBackground)
             .clipShape(bubbleShape)
+            .contentShape(Rectangle())
+            .onLongPressGesture {
+                // 长按复制（对齐 Android）
+                UIPasteboard.general.string = message.text
+            }
 
             if message.role == .assistant { Spacer(minLength: 40) }
         }
     }
 
-    // 圆角：user 底右 4dp 尖角，agent 底左 4dp 尖角
     private var bubbleShape: UnevenRoundedRectangle {
-        let r: CGFloat = 20
-        let sharp: CGFloat = 4
+        let r: CGFloat = 20, sharp: CGFloat = 4
         if message.role == .user {
             return UnevenRoundedRectangle(
                 topLeadingRadius: r, bottomLeadingRadius: r,
@@ -258,7 +249,25 @@ private struct ThinkingIndicator: View {
     }
 }
 
-// MARK: - Media Card Row (120×150 cards, spec §9)
+// MARK: - Blink Cursor (> 字符闪烁)
+
+private struct BlinkCursor: View {
+    @State private var visible = true
+
+    var body: some View {
+        Text(">")
+            .font(.system(size: 14, weight: .bold))
+            .foregroundColor(Color(.label))
+            .opacity(visible ? 1.0 : 0.3)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                    visible = false
+                }
+            }
+    }
+}
+
+// MARK: - Media Card Row (120×150)
 
 private struct MediaCardRow: View {
     let mediaIds: [Int64]
@@ -273,7 +282,7 @@ private struct MediaCardRow: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
         }
         .task(id: mediaIds) {
             var map: [Int64: String] = [:]
@@ -311,14 +320,13 @@ private struct MediaThumbnail: View {
         }
         .task(id: localIdentifier) {
             guard let localIdentifier, image == nil else { return }
-            let size = CGSize(width: 360, height: 450)  // 120×150 @3x
             image = await ThumbnailLoader.shared.thumbnail(
-                for: localIdentifier, size: size)
+                for: localIdentifier, size: CGSize(width: 360, height: 450))
         }
     }
 }
 
-// MARK: - Empty State (spec §4)
+// MARK: - Empty State
 
 struct ChatEmptyState: View {
     let onExampleTap: (String) -> Void
@@ -340,26 +348,19 @@ struct ChatEmptyState: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 18)
                     .fill(Color(.tertiarySystemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color(.separator), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color(.separator), lineWidth: 1))
                     .frame(width: 64, height: 64)
-                Image(matIcon: "chat_bubble")
-                    .font(.system(size: 32))
-                    .foregroundColor(.accentColor)
+                Image(matIcon: "chat_bubble").font(.system(size: 32)).foregroundColor(.accentColor)
             }
 
             Spacer().frame(height: 16)
 
-            // Title
             Text("Hi, I'm Xiaolang, your smart assistant")
                 .font(.system(size: 24, weight: .bold))
                 .foregroundColor(Color(.label))
 
             Spacer().frame(height: 6)
 
-            // Subtitle
             Text("I can search, edit, adjust beauty, find people/scenes—ask anything!")
                 .font(.system(size: 14))
                 .foregroundColor(Color(.secondaryLabel))
@@ -368,13 +369,11 @@ struct ChatEmptyState: View {
 
             Spacer()
 
-            // Examples
             Text("Try these:")
                 .font(.system(size: 14))
                 .foregroundColor(Color(.secondaryLabel))
                 .padding(.bottom, 10)
 
-            // Chips
             FlowLayout(spacing: 8) {
                 ForEach(examples, id: \.self) { prompt in
                     Button { onExampleTap(prompt) } label: {
@@ -395,49 +394,36 @@ struct ChatEmptyState: View {
     }
 }
 
-// MARK: - FlowLayout (简易流式布局)
+// MARK: - FlowLayout
 
 struct FlowLayout: Layout {
     let spacing: CGFloat
-
     init(spacing: CGFloat = 8) { self.spacing = spacing }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
-        var totalHeight: CGFloat = 0
-        var x: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
+        var totalHeight: CGFloat = 0, x: CGFloat = 0, rowHeight: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > maxWidth && x > 0 {
-                totalHeight += rowHeight + spacing
-                x = 0
-                rowHeight = 0
+                totalHeight += rowHeight + spacing; x = 0; rowHeight = 0
             }
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
         }
         totalHeight += rowHeight
         return CGSize(width: maxWidth, height: totalHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let maxWidth = bounds.width
-        var x: CGFloat = bounds.minX
-        var y: CGFloat = bounds.minY
-        var rowHeight: CGFloat = 0
-
+        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+        let maxX = bounds.minX + bounds.width
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > bounds.minX + maxWidth && x > bounds.minX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
+            if x + size.width > maxX && x > bounds.minX {
+                x = bounds.minX; y += rowHeight + spacing; rowHeight = 0
             }
             subview.place(at: CGPoint(x: x, y: y), proposal: .init(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
         }
     }
 }

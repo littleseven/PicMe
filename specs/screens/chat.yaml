@@ -289,6 +289,64 @@ media_results:
     card_date_label: "yyyy-MM-dd"
 
 # ============================================================================
+# 9.1 交互模型（Interaction Model）
+# ============================================================================
+interaction_model:
+  # 消息列表是 flat（无日期分隔/无对话分组），按时间顺序排列
+  message_list_structure: flat_chronological
+
+  # 发送消息流程
+  send_flow:
+    1_type_input: "send button appears only when text non-blank && !isProcessing"
+    2_press_send: "user message immediately appears in list"
+    3_thinking_state:
+      duration: "before first token"
+      visual: "agent placeholder bubble with ThinkingIndicator (3 dots)"
+      text: empty
+    4_streaming_state:
+      trigger: "first TextSnapshot event"
+      visual: "text appears incrementally + BlinkCursor '>' at bottom"
+      markdown_rendering: "live (MarkdownText during streaming)"
+    5_tool_calling_state:
+      trigger: "ToolCallStarted event"
+      visual: "bubble text replaced with '正在调用工具…', cursor hidden"
+      recovery: "next TextSnapshot restarts from empty"
+    6_complete:
+      action: "streaming placeholder discarded, final text saved as new AGENT_TEXT message"
+
+  # 消息类型渲染分发
+  message_type_rendering:
+    USER_TEXT: "right bubble, primary bg, white text"
+    AGENT_TEXT: "left bubble, surfaceVariant bg, segmented Markdown (text+table+code)"
+    MEDIA_RESULTS: "⚠️ separate full-width message (MediaResultsCarousel), NOT inline in text bubble"
+    CHART: "separate full-width message (SVG card)"
+    error: "⚠️ 同 agent 正常气泡（无特殊错误色），content='推理出错：...'"
+
+  # 媒体结果：独立消息项
+  media_results_as_separate_message: true  # 不嵌入文本气泡
+
+  # 长按 = 复制（无右键菜单）
+  long_press: copy_to_clipboard
+  tap_text_bubble: none  # 文本气泡无点击动作
+
+  # 空状态示例 chips：点击直接发送，不填充输入框
+  example_chip_tap: send_directly  # 不是 fill_input
+
+  # 输入栏交互
+  input_bar_behavior:
+    send_button_visibility: "show only when hasContent && !isProcessing"
+    processing_state: "send button hidden (NOT replaced with stop). Input field stays editable."
+    stop_button: none  # ⚠️ Android 无 stop/abort 按钮（设计决策）
+    model_capsule_visible_when: "hasUserKey (only if user configured own API key)"
+    gallery_capsule: "opens photo picker (disabled during processing)"
+    voice_button: "switches to push-to-talk voice mode"
+
+  # 顶部栏操作
+  top_bar_actions:
+    left: [back, sidebar_toggle]
+    right: [report_issue, new_chat, clear_chat]
+
+# ============================================================================
 # 10. 颜色参考
 # ============================================================================
 colors:
