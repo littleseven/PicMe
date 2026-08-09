@@ -175,7 +175,7 @@ run_task() {
 
   # DRY-RUN：只记录命令，不执行
   if [ "$DRY_RUN" = "1" ]; then
-    echo "[dry-run] cd \"$wt\" && $KIMI_BIN --auto -y ${KIMI_MODEL:+-m $KIMI_MODEL} -p \"<prompt>\" $KIMI_EXTRA" >> "$log"
+    echo "[dry-run] cd \"$wt\" && $KIMI_BIN ${KIMI_MODEL:+-m $KIMI_MODEL} -p \"<prompt>\" $KIMI_EXTRA" >> "$log"
     echo "OK $logname (dry-run)" > "$status_file"
     return 0
   fi
@@ -186,9 +186,9 @@ run_task() {
 
   while [ "$attempt" -le "$RETRY_MAX" ]; do
     if [ -n "$TIMEOUT_BIN" ]; then
-      ( cd "$wt" && "$TIMEOUT_BIN" "$TASK_TIMEOUT" "$KIMI_BIN" --auto -y "${model_args[@]}" -p "$prompt" $KIMI_EXTRA ) >> "$log" 2>&1
+      ( cd "$wt" && "$TIMEOUT_BIN" "$TASK_TIMEOUT" "$KIMI_BIN" ${model_args[@]+"${model_args[@]}"} -p "$prompt" $KIMI_EXTRA ) >> "$log" 2>&1
     else
-      ( cd "$wt" && "$KIMI_BIN" --auto -y "${model_args[@]}" -p "$prompt" $KIMI_EXTRA ) >> "$log" 2>&1
+      ( cd "$wt" && "$KIMI_BIN" ${model_args[@]+"${model_args[@]}"} -p "$prompt" $KIMI_EXTRA ) >> "$log" 2>&1
     fi
     rc=$?
     [ "$rc" -eq 0 ] && break
