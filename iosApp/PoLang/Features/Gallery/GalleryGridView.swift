@@ -3,7 +3,7 @@ import SharedKit
 
 /// 相册网格页（对齐 Android `GalleryScreen.kt` + `MediaGrid.kt`，量化基准 = dump 1200px/360dp）：
 /// - 自建 48pt `AppTopBar`（去系统 NavigationStack 大标题），操作组对齐 GalleryTopBar：
-///   模型中心/扫描/搜索/设置依赖 TAG/VLM 管线（iOS Phase 6 才落地），灰置降级不假造交互；
+///   模型中心→ModelDownloadCenterView（端侧模型下载中心，对齐 Settings 入口）；搜索/扫描依赖 Phase 6 管线，点击弹"敬请期待"诚实占位；
 ///   分组菜单扁平 6 项（对齐 dump 下拉：全部/日期/人脸/人物/风景/地点），NONE/DATE 实做，
 ///   其余依赖 Phase 6 索引数据灰置。
 /// - 网格：**固定 3 列**（dump 实测 3 列、间距/边距 7px≈2dp；列数固定、格宽 = 屏宽/列数导出）。
@@ -22,6 +22,9 @@ struct GalleryGridView: View {
     @State private var sharePayload: SharePayload? = nil
     @State private var showDeleteConfirm = false
     @State private var showSettings = false
+    @State private var showModelCenter = false
+    /// 搜索/扫描 Phase 6 未实现：点击顶栏图标时弹"敬请期待"诚实占位（对齐 ChatView 模式）
+    @State private var comingSoonFeature: String? = nil
     /// 删除直调 Swift 桥（PHAssetChangeRequest 自带系统确认；成功后观察者驱动网格刷新）
     private let bridge = PhMediaBridge()
 
@@ -69,10 +72,26 @@ struct GalleryGridView: View {
         .fullScreenCover(isPresented: $showSettings) {
             SettingsRoot()
         }
+        .fullScreenCover(isPresented: $showModelCenter) {
+            NavigationStack {
+                ModelDownloadCenterView()  // 端侧模型下载中心（对齐 Settings「Model Center」入口）
+            }
+        }
         .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
                             titleVisibility: .visible) {
             Button(String(localized: "Delete"), role: .destructive) { deleteSelected() }
             Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+        .alert(
+            String(localized: "Coming Soon"),
+            isPresented: Binding(
+                get: { comingSoonFeature != nil },
+                set: { if !$0 { comingSoonFeature = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            Text(comingSoonFeature ?? "")
         }
         .onAppear {
             if permissionOverride == nil { permission.refresh() }
@@ -83,15 +102,21 @@ struct GalleryGridView: View {
 
     // MARK: - 顶栏（常态 / 选择态 morph，对齐 gallery_grid / gallery_longpress dump）
 
-    /// 常态顶栏：标题 + 5 操作组（模型中心/扫描/搜索/分组/设置；无管线者灰置）
+    /// 常态顶栏：标题 + 5 操作组（对齐 Android GalleryTopBar）：
+    /// 模型中心→ModelDownloadCenterView（端侧模型下载中心）；搜索/扫描 Phase 6 管线未实现，点击弹"敬请期待"诚实占位；
+    /// 分组菜单/设置可用。
     private var normalTopBar: some View {
         AppTopBar(title: String(localized: "Gallery")) {
             AppTopBarAction(systemName: "icloud.and.arrow.down",
-                            accessibilityID: "topbar_model_center", isEnabled: false) {}
+                            accessibilityID: "topbar_model_center") { showModelCenter = true }
             AppTopBarAction(systemName: "play.circle",
-                            accessibilityID: "topbar_scan", isEnabled: false) {}
+                            accessibilityID: "topbar_scan") {
+                comingSoonFeature = String(localized: "Tag scanning is not available in this version.")
+            }
             AppTopBarAction(systemName: "magnifyingglass",
-                            accessibilityID: "topbar_search", isEnabled: false) {}
+                            accessibilityID: "topbar_search") {
+                comingSoonFeature = String(localized: "Searching photos is not available in this version.")
+            }
             groupingMenu
             AppTopBarAction(systemName: "gearshape",
                             accessibilityID: "topbar_settings") { showSettings = true }

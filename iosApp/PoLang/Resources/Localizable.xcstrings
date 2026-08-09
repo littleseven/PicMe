@@ -2025,7 +2025,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "相册打标"
+            "value": "相册"
           }
         },
         "en": {
@@ -2903,6 +2903,28 @@
         }
       }
     },
+    "OK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
     "On-Device Models": {
       "localizations": {
         "en": {
@@ -3518,6 +3540,28 @@
         }
       }
     },
+    "Searching photos is not available in this version.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching photos is not available in this version."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前版本的相册搜索暂未上线。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このバージョンでは写真検索はご利用いただけません。"
+          }
+        }
+      }
+    },
     "Select Person": {
       "extractionState": "manual",
       "localizations": {
@@ -3845,6 +3889,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "タグスキャン機能は近日公開"
+          }
+        }
+      }
+    },
+    "Tag scanning is not available in this version.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag scanning is not available in this version."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前版本的扫描打标暂未上线。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このバージョンではタグスキャンはご利用いただけません。"
           }
         }
       }
