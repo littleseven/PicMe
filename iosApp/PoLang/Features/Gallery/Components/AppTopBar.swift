@@ -41,8 +41,7 @@ struct AppTopBarAction: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 22))
+            MatIcon(name: systemName, size: 22)
                 .frame(width: 36, height: 36)
                 .contentShape(Rectangle())
         }

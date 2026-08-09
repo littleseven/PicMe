@@ -21,6 +21,7 @@ struct GalleryGridView: View {
     @State private var selected: Set<String> = []
     @State private var sharePayload: SharePayload? = nil
     @State private var showDeleteConfirm = false
+    @State private var showSettings = false
     /// 删除直调 Swift 桥（PHAssetChangeRequest 自带系统确认；成功后观察者驱动网格刷新）
     private let bridge = PhMediaBridge()
 
@@ -61,6 +62,9 @@ struct GalleryGridView: View {
         .sheet(item: $sharePayload) { payload in
             ActivityView(activityItems: payload.images)
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsScreen()
+        }
         .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
                             titleVisibility: .visible) {
             Button(String(localized: "Delete"), role: .destructive) { deleteSelected() }
@@ -86,7 +90,7 @@ struct GalleryGridView: View {
                             accessibilityID: "topbar_search", isEnabled: false) {}
             groupingMenu
             AppTopBarAction(systemName: "gearshape",
-                            accessibilityID: "topbar_settings", isEnabled: false) {}
+                            accessibilityID: "topbar_settings") { showSettings = true }
         }
     }
 
