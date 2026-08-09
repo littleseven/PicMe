@@ -115,7 +115,10 @@ object IosAgentComposition {
 
     /**
      * 翻页同步 SceneManager（MainTabView currentPage → scene 切换）。
-     * chat 工具按场景路由，不同步会被入队不执行。
+     *
+     * 不同步的后果：CapabilityRegistry 按 currentScene 路由，chat_gallery 只在 CHAT
+     * 场景激活；iOS 此前从不切场景（恒 UNKNOWN），所有 chat 工具命令被入队并回复
+     * 「正在为您切换到对应页面执行操作...」——真机四链路工具层全废的根因（T7 gap）。
      *
      * @param page 0=camera, 1=gallery, 2=chat, 3=people
      */
@@ -128,23 +131,5 @@ object IosAgentComposition {
             else -> SceneManager.Scene.UNKNOWN
         }
         orchestrator.transitionToScene(scene, saveToHistory = false)
-    }
-
-    /**
-     * 主 Pager 翻页同步 SceneManager（Swift MainTabView.onChange 调用）。
-     *
-     * 不同步的后果：CapabilityRegistry 按 currentScene 路由，chat_gallery 只在 CHAT
-     * 场景激活；iOS 此前从不切场景（恒 UNKNOWN），所有 chat 工具命令被入队并回复
-     * 「正在为您切换到对应页面执行操作...」——真机四链路工具层全废的根因（T7 gap）。
-     *
-     * @param page 0=相机 1=相册 2=聊天 3=人物（人物页占位，归相册域）
-     */
-    fun onMainPageChanged(page: Long) {
-        val scene = when (page) {
-            0L -> SceneManager.Scene.CAMERA
-            2L -> SceneManager.Scene.CHAT
-            else -> SceneManager.Scene.GALLERY // 1=相册；3=人物占位归相册域
-        }
-        SceneManager.getInstance().transitionTo(scene)
     }
 }
