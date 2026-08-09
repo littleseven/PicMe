@@ -1,5 +1,8 @@
 # Per-Screen UI 研发流程
 
+> **总纲**：`specs/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引）
+> **红线**：[PARITY] 已纳入根 `AGENTS.md` §5 全局红线
+
 > **适用**：PoLang 项目所有新页面的 UI 开发（双端：Android Compose + iOS SwiftUI）
 > **前置依赖**：`design-tokens.json`（Token SSOT）、`skills/ui-parity-guard/SKILL.md`（硬规则）
 > **角色**：个人开发者，Android 为主栈，Vibe Coding 风格，无设计稿

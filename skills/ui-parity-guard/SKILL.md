@@ -20,6 +20,9 @@ tags:
 
 # UI Parity Guard Skill
 
+> **总纲**：`specs/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引）
+> **红线**：[PARITY] 已纳入根 `AGENTS.md` §5 全局红线
+
 > **定位**：双端 UI 一致性的强制约束层——让 K3（写 Compose）和 GLM（写 SwiftUI）各自只看共享的 token/spec，不靠"读对端源码脑补"。
 > **触发时机**：① iOS 实现/修改任何屏幕的 UI 时自动启用；② Android 新页面 UI 定稿后固化 spec 时启用。
 > **研发模式**：Android vibe coding 自由迭代 → 定稿后固化 spec（②）→ iOS 按 spec 实现（③）。详见 `specs/README.md`。

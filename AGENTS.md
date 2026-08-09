@@ -233,6 +233,9 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **[I18N]** | 禁止硬编码，三语同步 | 资源文件检查 |
 | **[DOC-SYNC]** | 代码变更必须同步文档 | CI 文档检查 |
 | **[AGENT-FIRST]** | 新代码必须遵循 Agent First 原则 | 代码审查 |
+| **[PARITY]** | 双端 UI 一致性：信息层级/布局结构/功能默认/文案状态/无障碍语义零容差一致。新页面 Android 定稿后必须固化 spec；iOS 实现必须读 spec 不读 Android 源码；后续修改走三同步（spec + 双端代码 + token） | Spec 完整性检查、截图比对、gap analysis。详见 `specs/PARITY_MASTER_PLAN.md` |
+
+> **版本优先级原则（2026-08-09 用户定，iOS 首个版本完成前有效）**：**功能 > UI > 性能**。资源分配与排期按此序——功能缺位优先补，UI 对齐/美观其次，性能实测与优化最后（发版门前再集中过 [PERF] 红线）。例外：崩溃、数据错误、明显卡顿到不可用的缺陷属「功能可用性」范畴，不按性能往后排。
 
 ---
 
@@ -264,6 +267,8 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | 类型 | 文档 |
 |------|------|
 | **顶层治理** | `AGENTS.md`（本文档） |
+| **★ 双端 UI 一致性总纲** | `specs/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引） |
+| **★ 双端 UI 研发流程** | `specs/README.md`（Vibe Coding → 固化 Spec → iOS 翻译） |
 | **AI 工具配置索引** | `AI_TOOLS.md`（四工具配置位置、Skills/Plans/Specs SSOT 约定） |
 | **产品定义** | `PRODUCT.md` |
 | **交互规范** | `docs/01-PRODUCT/FEATURES.md` |
@@ -278,6 +283,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **语音栈** | `docs/03-TECHNICAL-SPECS/VOICE_STACK.md`（含 ASR Language Model 说明） |
 | **大美丽美颜引擎** | `docs/03-TECHNICAL-SPECS/BEAUTY_ENGINE_TECH_SPEC.md`（含相机预览比例、帧同步美妆、容灾降级） |
 | **人脸关键点** | `docs/03-TECHNICAL-SPECS/FACE_LANDMARKS.md` |
+| **双端 UI 对齐方法论** | `docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`（S5 落地方法：一致性分层 / dp≈pt 度量 / 截图+dump 地面真值 / tokens SSOT / 验证闭环） |
 | **JS Engine** | `docs/03-TECHNICAL-SPECS/JS_ENGINE_TECH_SPEC.md`（QuickJS 沙箱 + JSBridge：run_gallery_script 取数、draw_chart 图卡、capability.dispatch 写通路） |
 | **能力注册与实现** | `docs/04-AGENT-CAPABILITIES/CAPABILITY_REGISTRY.md`（含实现指南与生命周期规范） |
 | **开发规范** | `docs/05-DEVELOPMENT/DEVELOPMENT.md`（含代码审查与任务标记规范） |

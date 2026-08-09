@@ -21,6 +21,7 @@ print((d.get("tool_input") or {}).get("path") or "")
 case "$(basename "$PATH_")" in
   *.kt|*.java)
     "$LIB/i18n-hardcode.sh" "$PATH_" || true
+    "$LIB/parity-hardcode.sh" "$PATH_" || true
     ;;
   *.md)
     case "$PATH_" in
