@@ -12,6 +12,9 @@ final class ThumbnailLoader {
 
     /// highQuality = true 走 .highQualityFormat（单次高清回调，大图浏览用）——
     /// 否则大图复用 opportunistic 首帧会永久模糊（🟡-8）。
+    /// 网格默认路径（opportunistic）：degraded 低清帧直接跳过、首个非 degraded 帧才 resume——
+    /// 否则网格缩略图永久定格在低清首帧（同 🟡-8 根因，用户报模糊）；
+    /// 终结帧（nil，如 iCloud 素材断网放弃）兜底 resume，防 continuation 挂起。
     func thumbnail(for localIdentifier: String, size: CGSize,
                    highQuality: Bool = false) async -> UIImage? {
         let result = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
@@ -22,12 +25,16 @@ final class ThumbnailLoader {
             opts.isNetworkAccessAllowed = false
             var resumed = false
             manager.requestImage(for: asset, targetSize: size, contentMode: .aspectFill,
-                                 options: opts) { image, _ in
-                // opportunistic 可能回调两次（先低清后高清），只取第一次非 nil；
-                // highQualityFormat 单次回调，天然满足
-                guard !resumed, let image else { return }
-                resumed = true
-                cont.resume(returning: image)
+                                 options: opts) { image, info in
+                guard !resumed else { return }
+                let degraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                if let image, !degraded {
+                    resumed = true
+                    cont.resume(returning: image)
+                } else if image == nil {
+                    resumed = true
+                    cont.resume(returning: nil)
+                }
             }
         }
     }
