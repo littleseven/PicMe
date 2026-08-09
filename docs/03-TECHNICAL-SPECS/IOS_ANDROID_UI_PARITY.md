@@ -1,7 +1,7 @@
 # 双端 UI 对齐方法论（Android ↔ iOS）
 
-> **版本**：1.0（2026-08-08）
-> **背景**：Phase 5 iOS 转型中，两轮「读 Compose 源码翻译布局」的对齐方法均被真机验收证伪；确立「视觉+量化地面真值」方法后沉淀本文。
+> **版本**：2.0（2026-08-09）补充行业无障碍/深色模式/动效/RTL/键盘适配规范
+> **背景**：Phase 5 iOS 转型中，两轮「读 Compose 源码翻译布局」的对齐方法均被真机验收证伪；确立「视觉+量化地面真值」方法后沉淀本文。v2.0 补充 §4.1–§4.5 行业标准适配规范。
 > **适用**：polang iOS 端一切以 Android 为基准的 UI 对齐工作（S5：双端体验一致为最高原则）。
 
 ---
@@ -16,9 +16,13 @@
 | **布局结构** | 元素的相对位置、锚定关系、尺寸比例 | 🔴 零容差一致（归一化后） |
 | **功能与默认** | 功能集、默认值、排序、状态机 | 🔴 零容差一致（S5 既有纪律） |
 | **文案与状态** | 文案内容（经 i18n）、空态/加载态/权限态 | 🔴 零容差一致 |
+| **无障碍语义** | 交互元素 label/role/state、焦点顺序、触控目标 | 🔴 零容差一致（§4.1） |
+| **深色/浅色模式** | 每个页面的主题色适配、对比度达标 | 🔴 零容差一致（§4.2） |
+| **触发时机** | 动效/触觉反馈的触发条件一致 | 🔴 零容差一致（§4.3） |
 | **字体/图标** | Roboto vs SF、Material Icons vs SF Symbols | 🟢 平台原生，不强求一致 |
 | **系统交互** | 导航返回方式、权限申请流、picker 形态 | 🟢 遵从平台 HIG/Material 惯例 |
-| **材质细节** | 涟漪 vs 高亮、阴影风格、系统动画曲线 | 🟢 平台原生 |
+| **动效曲线/实现** | 缓动函数、spring 参数、涟漪 vs 高亮 | 🟢 平台原生（触发时机一致即可） |
+| **材质细节** | 涟漪 vs 高亮、阴影风格 | 🟢 平台原生 |
 
 > 原则：**用户的心智模型和任务流一致；平台的视觉语言各自原生**。凡是「允许不同」的项，必须登记进「已知差异清单」——不允许悄悄不同。
 
@@ -125,6 +129,73 @@ Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
 - **字体缩放**：iOS Dynamic Type / Android 字体缩放在 MVP 期锁定默认档，后续 Phase 评估
 - ** keyboard/刘海/折叠屏/平板**：MVP 期手机竖屏单形态，尺寸类别适配留后续（[Android 自适应尺寸类别](https://developer.android.com/design/ui/mobile/guides/layout-and-content/grids-and-units?hl=zh-cn)）
 
+### 4.1 无障碍（Accessibility）双端对齐
+
+> 无障碍不是可选附加——VoiceOver / TalkBack 能正确读到的 UI，通常在极端机型和网络条件下也更健壮。([QAwerk 无障碍清单](https://qawerk.com/blog/mobile-app-accessibility-testing/))
+
+| 维度 | Android | iOS | 对齐要求 |
+|------|---------|-----|---------|
+| **屏幕阅读器** | TalkBack | VoiceOver | 🔴 所有交互元素必须暴露 label + role + state；swipe 导航顺序 = 视觉阅读顺序 |
+| **语义标注** | `Modifier.semantics { contentDescription = "..." }` / `testTag` | `.accessibilityLabel("...")` / `.accessibilityHint("...")` | 🔴 label 文案双端一致（经 i18n）；纯装饰元素标记为不可聚焦 |
+| **焦点管理** | `FocusRequester` + 弹窗 `Modifier.focusGroup()` | `@FocusState` + `.accessibilityAddTraits(.isModal)` | 🔴 弹窗打开时焦点进入弹窗、关闭时返回触发器；隐藏元素不得接收焦点 |
+| **触控目标** | ≥ **48×48dp** | ≥ **44×44pt** | 🟢 以 Android 48dp 为基准 → iOS 用 48pt，天然双达标 |
+| **色彩对比度** | WCAG 2.1 AA：正文 ≥ **4.5:1**、大字 ≥ **3:1** | 同上 + 系统「增强对比度」开关 | 🔴 双端在浅色/深色模式下均需达标；用 `MaterialTheme.colorScheme` / 语义色自动适配 |
+| **动效减弱** | `Settings.Global.ANIMATOR_DURATION_SCALE = 0` | `UIAccessibility.isReduceMotionEnabled` | 🟡 检测系统「减弱动效」开关，降级为淡入淡出或瞬时切换 |
+
+**AI 工具规则**：每屏 spec 的元素树中，交互元素必须标注 `accessibility_label` 字段。spec 验收清单追加一项：TalkBack/VoiceOver 通读无遗漏。
+
+### 4.2 深色/浅色模式一致性
+
+> **语义色 > 硬编码色**：颜色用平台语义色（`MaterialTheme.colorScheme.surface` / `Color(uiColor: .systemBackground)`），让系统自动适配深色/浅色。([Apple Dark Mode 指南](https://developer.apple.com/documentation/uikit/supporting-dark-mode-in-your-interface))
+
+| 规则 | 说明 |
+|------|------|
+| **禁止硬编码白/黑** | `Color.White` / `Color.Black` 在浅色模式下文字不可见——用 `colorScheme.onSurface` / `colorScheme.surface` 替代 |
+| **功能色固定** | 不随主题切换的固定色（对焦青 #00E5FF、面板半透明黑）登记在 `AppColors`，与主题色分离 |
+| **半透明分层** | 双端统一用 `surface.copy(alpha = 0.3f)` / `Color.primary.opacity(0.3)` 分层，不用裸 rgba |
+| **深色模式验证** | 每屏验收必须在**浅色 + 深色**两种模式下截图比对——浅色通过不代表深色通过 |
+
+### 4.3 动效与触觉反馈映射
+
+> 动效一致性是**时长 + 曲线的语义对齐**，不是逐帧复刻。([200ms 规则](https://www.appypie.com/blog/mobile-app-animation-guide))
+
+| 动效类型 | 推荐时长 | Android（Compose） | iOS（SwiftUI） |
+|---------|---------|-------------------|---------------|
+| **微交互**（tap/ripple/toggle） | 100–200ms | `tween(150)` + `FastOutSlowInEasing` | `.easeInOut(duration: 0.15)` |
+| **面板展开/收起** | 250–350ms | `tween(300)` + `FastOutSlowInEasing` | `.spring(response: 0.3, dampingFraction: 0.8)` |
+| **页面转场** | 300–400ms | 平台默认 NavHost 过渡 | 平台默认 NavigationStack push/pop |
+| **弹簧/物理** | — | `spring(dampingRatio, stiffness)` | `.spring(response:dampingFraction:)`——参数语义不同，需调试匹配 |
+
+**触觉反馈**（Haptic Feedback）：
+
+| 场景 | Android | iOS |
+|------|---------|-----|
+| 开关切换 / 模式选择 | `HapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)` | `UIImpactFeedbackGenerator(.light).impactOccurred()` |
+| 快门拍照 | `HapticFeedbackType.HandleMoveDown` | `UIImpactFeedbackGenerator(.medium).impactOccurred()` |
+| 长按确认 | `HapticFeedbackType.LongPress` | `UIImpactFeedbackGenerator(.heavy).impactOccurred()` |
+
+> 🟡 动效和触觉反馈属"平台原生质感"层——曲线和实现各自原生，但**触发时机一致**（同一操作在两端都触发反馈）。
+
+### 4.4 RTL 与本地化
+
+> 本项目当前三语（en / zh-CN / zh-TW），均为 LTR 语言。RTL 预留扩展点，暂不实现。([Bitrise i18n 指南](https://bitrise.com/blog/post/introduction-to-app-localization-in-ios-and-android))
+
+| 维度 | 规则 | 当前状态 |
+|------|------|---------|
+| **字符串** | 🔴 禁止硬编码用户可见文案——必须走 `strings.xml`（Android）/ `Localizable.strings`（iOS）；三语同步（[I18N] 红线） | ✅ 已落地 |
+| **RTL 布局** | 🟡 预留：布局用 `start/end` 而非 `left/right`（Android）/ `.leading/.trailing`（iOS） | 🟡 Compose 已用 `start/end`；iOS 待 Phase 5 验证 |
+| **日期/数字** | 🟡 双端用平台 locale 格式化器（`DateTimeFormatter` / `java.time.format.DateTimeFormatter`），不手动拼接 | ✅ 已落地 |
+| **复数** | 🟡 使用平台复数资源（Android plurals.xml / iOS stringsdict 或 String Catalog） | 🟡 暂未使用，当前三语无复数差异 |
+| **字符长度** | 🟡 德语/俄语等翻译后文案可能膨胀 30%+，布局需弹性（不裁断、不溢出） | 🟡 当前三语长度接近，暂无问题 |
+
+### 4.5 软键盘适配
+
+| 维度 | Android | iOS | 对齐要求 |
+|------|---------|-----|---------|
+| **弹出避让** | `WindowInsets.ime` / `imePadding()` | `.ignoresSafeArea(.keyboard)` + 手动 offset 或 `TextField` 自带行为 | 🔴 键盘弹出时输入框不被遮挡，底栏上移或收起 |
+| **返回键收键盘** | `BackHandler` 在键盘弹出时先收键盘 | 点击空白处 / 拖拽下划收键盘 | 🔴 Android Back 先收键盘（不退出页面）对应 iOS 点击空白收键盘 |
+| **键盘类型** | `KeyboardType.Number` / `.Email` / `.Password` | `.keyboardType(.numberPad)` / `.emailAddress` / `.secure` | 🔴 同一输入框双端 keyboardType 一致 |
+
 ## 5. 验证闭环（对齐必须可度量）
 
 ```
@@ -147,10 +218,14 @@ Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
 | 忽略 safe area | 顶栏被刘海吃、底栏被手势条挡 |
 | 用平台默认控件拼装（NavigationStack/TabView/List 默认样式） | 信息层级全面缺失（相册差距分析 🔴26 项的根因） |
 | 位图只供单倍率 | 高倍屏模糊 |
+| 硬编码 Color.White / Color.Black | 深色模式下文字不可见 |
+| 交互元素无 accessibilityLabel | TalkBack/VoiceOver 读不出功能，视障用户完全无法使用 |
+| 动效时长不一致 | 双端体验割裂感（一端「跟手」另一端「拖沓」） |
+| 键盘弹出不避让 | 输入框被遮挡，用户看不到正在输入什么 |
 
 ## 7. 一句话总结
 
-> **参照用眼睛和数字（截图+dump 归一化），尺寸用 dp/pt 三件套（锚定+固定+比例），系统栏与 Back 逐页登记显式映射（§1.3），一致看结构与功能不看像素与材质，差异必须登记，验收走双端截图比对闭环。**
+> **参照用眼睛和数字（截图+dump 归一化），尺寸用 dp/pt 三件套（锚定+固定+比例），系统栏与 Back 逐页登记显式映射（§1.3），无障碍/深色/动效/RTL/键盘按 §4 显式处理，一致看结构与功能不看像素与材质，差异必须登记，验收走双端截图比对闭环（浅色+深色双跑）。**
 
 ---
 
@@ -160,4 +235,10 @@ Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
 - [Smart Interface Design Patterns：Designing for Mobile（375pt/360dp 设计基准宽）](https://smart-interface-design-patterns.com/articles/designing-for-mobile-ios-android-guide/)
 - [Muzli：Responsive UI、Densities and Asset Scaling](https://medium.muz.li/designing-for-mobile-a-deep-dive-into-responsive-ui-screen-densities-and-asset-scaling-f8766363ab08)
 - [Moldstud：跨平台一致 UI（共享 style guide、相对单位、矢量资源、字阶）](https://moldstud.com/articles/p-multi-platform-game-development-ensuring-consistent-ui-design-for-ios-and-android)
+- [QAwerk：Mobile App Accessibility Checklist](https://qawerk.com/blog/mobile-app-accessibility-testing/)
+- [Requestly：Mobile Accessibility Checklist for Android and iOS](https://requestly.com/blog/mobile-accessibility-checklist/)
+- [Apple Developer：Supporting Dark Mode in Your Interface](https://developer.apple.com/documentation/uikit/supporting-dark-mode-in-your-interface)
+- [Swift by Sundell：Defining Dynamic Colors in Swift](https://www.swiftbysundell.com/articles/defining-dynamic-colors-in-swift)
+- [Appy Pie：200ms Rule for Mobile Animation](https://www.appypie.com/blog/mobile-app-animation-guide)
+- [Bitrise：Introduction to App Localization in iOS and Android](https://bitrise.com/blog/post/introduction-to-app-localization-in-ios-and-android)
 - 本项目实证：`docs/reviews/2026-08-08-ios-camera-ui-gap-analysis.md`、`docs/reviews/2026-08-08-ios-gallery-ui-gap-analysis.md`

@@ -66,9 +66,20 @@ UI 定稿后的改动（两端都已实现后），走三同步：
 | 文案与状态 | 🔴 零容差 | 空态/加载态/权限态（经 i18n） |
 | 字体/图标 | 🟢 平台原生 | Roboto vs SF、Material vs SF Symbols |
 | 系统交互 | 🟢 平台原生 | 导航返回方式、权限申请流、picker 形态 |
+| 动效曲线/实现 | 🟢 平台原生 | 缓动函数、spring 参数（但触发时机必须一致） |
 | 材质细节 | 🟢 平台原生 | 涟漪 vs 高亮、阴影风格、动画曲线 |
 
 > **原则**：用户的心智模型和任务流一致；平台的视觉语言各自原生。凡是允许不同的项，必须登记进 spec 的 `allowed_differences`，不允许悄悄不同。
+
+### 行业标准适配（§4.1–§4.5，详见 IOS_ANDROID_UI_PARITY.md）
+
+实现 UI 时还需检查以下维度：
+
+- **无障碍**：交互元素必须有 accessibilityLabel（Android `contentDescription` / iOS `.accessibilityLabel`）；焦点顺序 = 视觉阅读顺序；触控目标 ≥ 48dp
+- **深色模式**：禁止硬编码 `Color.White`/`Color.Black`；用 `colorScheme` 语义色；每屏验收必须浅色+深色双跑
+- **动效**：微交互 100–200ms、面板展开 250–350ms；同一操作在两端都触发触觉反馈
+- **RTL/本地化**：布局用 `start/end`（Android）/ `.leading/.trailing`（iOS）而非 left/right；用户可见文案必须走资源文件
+- **键盘**：弹出时输入框不被遮挡；Android Back 先收键盘不退出页面
 
 ---
 
@@ -81,7 +92,11 @@ UI 定稿后的改动（两端都已实现后），走三同步：
 | 硬编码绝对坐标 | 换机型/换刘海形态即错位 |
 | 忽略 safe area | 顶栏被刘海吃、底栏被手势条挡 |
 | 用平台默认控件拼装 | 信息层级全面缺失 |
+| 硬编码 Color.White / Color.Black | 深色模式下文字不可见 |
+| 交互元素无 accessibilityLabel | TalkBack/VoiceOver 读不出功能 |
+| 动效时长/触发不一致 | 双端体验割裂感 |
 | 不更新 spec 就改 UI | 双端持续漂移，gap analysis 永远清不完 |
+| 键盘弹出不避让 | 输入框被遮挡 |
 
 ---
 
