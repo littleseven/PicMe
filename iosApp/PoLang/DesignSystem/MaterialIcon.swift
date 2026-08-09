@@ -82,6 +82,15 @@ enum MaterialIconMap {
         "arrow.triangle.2.circlepath": "mat_update",
         "creditcard":               "mat_badge",
         "xmark.circle":             "mat_cancel",
+        // Settings category icons (direct name → mat_ prefix)
+        "smart_toy":                "mat_smart_toy",
+        "psychology":               "mat_psychology",
+        "forum":                    "mat_forum",
+        "terminal":                 "mat_terminal",
+        "storage":                  "mat_storage",
+        "privacy_tip":              "mat_privacy_tip",
+        "arrow_forward":            "mat_arrow_forward",
+        "person":                   "mat_person",
     ]
 }
 

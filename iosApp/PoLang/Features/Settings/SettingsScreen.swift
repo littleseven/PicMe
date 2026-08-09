@@ -4,8 +4,9 @@ import Photos
 
 /// 设置主屏（1:1 对标 Android SettingsScreen.kt）。
 /// spec: specs/screens/settings.yaml
+/// 截图参考: /tmp/android-ui-reference/02-settings-main.png
 ///
-/// 结构：账号英雄卡片 + 主题卡片 + 语言卡片 + 分类网格（2 列）
+/// 结构：账号英雄卡片 → 主题模式卡片 → 语言卡片 → 分类网格（2 列×5 行 = 10 卡片）
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("theme_mode") private var themeMode: String = "system"
@@ -13,7 +14,7 @@ struct SettingsScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 accountHeroCard
                 themeCard
                 languageCard
@@ -41,7 +42,6 @@ struct SettingsScreen: View {
             AccountSettingsView()
         } label: {
             HStack(spacing: 12) {
-                // Avatar
                 ZStack {
                     Circle()
                         .fill(Color.accentColor.opacity(0.15))
@@ -61,7 +61,7 @@ struct SettingsScreen: View {
                 }
 
                 Spacer()
-                Image(matIcon: "chevron.right")
+                Image(matIcon: "arrow_forward")
                     .font(.system(size: 16))
                     .foregroundColor(.secondary)
             }
@@ -72,51 +72,36 @@ struct SettingsScreen: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - ② Theme Card
+    // MARK: - ② Theme Mode Card
 
     private var themeCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(String(localized: "Theme"))
                 .font(.system(size: 14, weight: .medium))
 
             HStack(spacing: 8) {
-                themeChip("system", label: String(localized: "System"))
-                themeChip("light", label: String(localized: "Light"))
-                themeChip("dark", label: String(localized: "Dark"))
+                filterChip("system", label: String(localized: "System Default"))
+                filterChip("light", label: String(localized: "Light"))
+                filterChip("dark", label: String(localized: "Dark"))
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func themeChip(_ value: String, label: String) -> some View {
-        let selected = themeMode == value
-        return Button {
-            themeMode = value
-        } label: {
-            Text(label)
-                .font(.system(size: 13, weight: selected ? .semibold : .regular))
-                .foregroundColor(selected ? .white : .primary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
-                .clipShape(Capsule())
-        }
     }
 
     // MARK: - ③ Language Card
 
     private var languageCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(String(localized: "Language"))
                 .font(.system(size: 14, weight: .medium))
 
             HStack(spacing: 8) {
-                langChip("english", label: "English")
-                langChip("chinese_simplified", label: "中文")
-                langChip("chinese_traditional", label: "繁體中文")
+                filterChip("english", label: "English", isSelected: appLanguage == "english")
+                filterChip("chinese_simplified", label: "中文", isSelected: appLanguage == "chinese_simplified")
+                filterChip("chinese_traditional", label: "繁體中文", isSelected: appLanguage == "chinese_traditional")
             }
         }
         .padding(14)
@@ -125,22 +110,32 @@ struct SettingsScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private func langChip(_ value: String, label: String) -> some View {
-        let selected = appLanguage == value
-        return Button {
-            appLanguage = value
+    // 通用 FilterChip（主题用）
+    private func filterChip(_ value: String, label: String) -> some View {
+        filterChip(value, label: label, isSelected: themeMode == value)
+    }
+
+    private func filterChip(_ value: String, label: String, isSelected: Bool) -> some View {
+        Button {
+            // 根据调用上下文判断是主题还是语言
+            // 用一个 hack：如果 value 在主题选项里则设主题
+            if ["system", "light", "dark"].contains(value) {
+                themeMode = value
+            } else {
+                appLanguage = value
+            }
         } label: {
             Text(label)
-                .font(.system(size: 13, weight: selected ? .semibold : .regular))
-                .foregroundColor(selected ? .white : .primary)
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                .foregroundColor(isSelected ? .white : .primary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
-                .background(selected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .background(isSelected ? Color.accentColor : Color(.tertiarySystemBackground))
                 .clipShape(Capsule())
         }
     }
 
-    // MARK: - ④ Category Grid (2 columns)
+    // MARK: - ④ Category Grid (2 columns × 5 rows = 10 cards)
 
     private var categoryGrid: some View {
         let columns = [
@@ -154,30 +149,10 @@ struct SettingsScreen: View {
         }
     }
 
-    private func categoryCard(_ cat: SettingsCategory) -> some View {
-        Group {
-            switch cat.target {
-            case .apiModels:
-                NavigationLink { ModelCenterView().environmentObject(ModelConfigStore.shared) } label: { cardLabel(cat) }
-            case .modelCenter:
-                NavigationLink { ModelDownloadCenterView() } label: { cardLabel(cat) }
-            case .dataPrivacy:
-                NavigationLink { DataPrivacyView() } label: { cardLabel(cat) }
-            case .about:
-                NavigationLink { AboutView() } label: { cardLabel(cat) }
-            default:
-                if cat.isPlaceholder {
-                    cardLabel(cat)
-                        .opacity(0.5)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func cardLabel(_ cat: SettingsCategory) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(matIcon: cat.iconSF)
+    @ViewBuilder
+    private func categoryCard(_ cat: SettingsCategoryItem) -> some View {
+        let cardContent = VStack(alignment: .leading, spacing: 8) {
+            Image(matIcon: cat.icon)
                 .font(.system(size: 28))
                 .foregroundColor(.accentColor)
             Text(cat.title)
@@ -188,19 +163,55 @@ struct SettingsScreen: View {
                 .font(.system(size: 12))
                 .foregroundColor(cat.isPlaceholder ? .secondary.opacity(0.5) : .secondary)
                 .lineLimit(2)
-                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+
+        Group {
+            switch cat.target {
+            case .apiModels:
+                NavigationLink { ModelCenterView().environmentObject(ModelConfigStore.shared) } label: { cardContent }
+            case .modelCenter:
+                NavigationLink { ModelDownloadCenterView() } label: { cardContent }
+            case .dataPrivacy:
+                NavigationLink { DataPrivacyView() } label: { cardContent }
+            case .about:
+                NavigationLink { AboutView() } label: { cardContent }
+            default:
+                cardContent.opacity(0.5)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var categories: [SettingsCategoryItem] {
+        [
+            // Row 1
+            .init(icon: "smart_toy", title: String(localized: "AI Assistant"), desc: String(localized: "Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: true),
+            .init(icon: "psychology", title: String(localized: "AI Memory"), desc: String(localized: "View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: true),
+            // Row 2
+            .init(icon: "person", title: String(localized: "People"), desc: String(localized: "View and name face clusters"), target: .people, isPlaceholder: true),
+            .init(icon: "forum", title: String(localized: "Channels"), desc: String(localized: "Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: true),
+            // Row 3
+            .init(icon: "photo_library", title: String(localized: "Gallery"), desc: String(localized: "Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
+            .init(icon: "camera_alt", title: String(localized: "Camera & Beauty"), desc: String(localized: "Face detection, beauty engine, camera behavior"), target: .cameraBeauty, isPlaceholder: true),
+            // Row 4
+            .init(icon: "cloud_download", title: String(localized: "Model Center"), desc: String(localized: "Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
+            .init(icon: "terminal", title: String(localized: "Developer"), desc: String(localized: "Debug overlay and advanced diagnostics"), target: .developer, isPlaceholder: true),
+            // Row 5
+            .init(icon: "storage", title: String(localized: "Backup & Restore"), desc: String(localized: "Export or import TAG, face clusters, OCR, settings"), target: .backup, isPlaceholder: true),
+            .init(icon: "privacy_tip", title: String(localized: "Data & Privacy"), desc: String(localized: "Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),
+        ]
     }
 }
 
-// MARK: - Categories
+// MARK: - Category Item Model
 
-struct SettingsCategory {
-    let iconSF: String
+struct SettingsCategoryItem {
+    let icon: String
     let title: String
     let desc: String
     let target: Target
@@ -208,28 +219,11 @@ struct SettingsCategory {
 
     enum Target {
         case aiAgent, memoryFacts, people, channels, gallery, cameraBeauty
-        case modelCenter, apiModels, dataPrivacy, about
+        case modelCenter, apiModels, developer, backup, dataPrivacy, about
     }
 }
 
-private extension SettingsScreen {
-    var categories: [SettingsCategory] {
-        [
-            .init(iconSF: "smart_toy", title: "AI Assistant", desc: "Remote model, voice control", target: .aiAgent, isPlaceholder: true),
-            .init(iconSF: "psychology", title: "AI Memory", desc: "Manage remembered facts", target: .memoryFacts, isPlaceholder: true),
-            .init(iconSF: "account_circle", title: "People", desc: "Face clusters & relationships", target: .people, isPlaceholder: true),
-            .init(iconSF: "forum", title: "Channels", desc: "Feishu, Telegram control", target: .channels, isPlaceholder: true),
-            .init(iconSF: "photo_library", title: "Gallery", desc: "Tags, duplicates, search", target: .gallery, isPlaceholder: true),
-            .init(iconSF: "camera_alt", title: "Camera & Beauty", desc: "Face detection, landmarks", target: .cameraBeauty, isPlaceholder: true),
-            .init(iconSF: "download", title: "Model Center", desc: "Download AI models", target: .modelCenter, isPlaceholder: false),
-            .init(iconSF: "api_key", title: "API Models", desc: "Remote LLM config", target: .apiModels, isPlaceholder: false),
-            .init(iconSF: "privacy_tip", title: "Data & Privacy", desc: "Privacy policy, data control", target: .dataPrivacy, isPlaceholder: false),
-            .init(iconSF: "info", title: "About", desc: "Version, open source", target: .about, isPlaceholder: false),
-        ]
-    }
-}
-
-// MARK: - Account Settings (placeholder for Phase 6.3)
+// MARK: - Account Settings
 
 struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -267,13 +261,13 @@ struct DataPrivacyView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let sections: [(title: String, body: String)] = [
-        ("Account Data", "Your email is used only for authentication. No password is stored — we use verification code login."),
-        ("Device Identifier", "A device ID is generated for guest quota tracking. This resets when you reinstall the app."),
-        ("Data Retention", "Chat history is stored locally on your device. AI memory facts persist until you delete them."),
-        ("Data Deletion", "You can delete all data at any time: chat history (clear in chat), AI memory (clear in settings), and model files (delete in model center)."),
-        ("Local Processing", "All media processing (beauty, tagging, face detection) runs 100% on-device. Your photos and videos never leave your device."),
-        ("Remote Processing", "Only text and metadata (file names, dates, counts) are sent to remote LLMs for inference. No photos or videos are uploaded."),
-        ("Contact", "budao.gs@gmail.com"),
+        ("Account Data", "Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes."),
+        ("Device Identifier", "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties."),
+        ("Data Retention", "After an account is deleted, data will be retained for 90 days (for anti-fraud and recovery purposes) before being permanently deleted, including usage logs."),
+        ("Delete Your Account", "You can delete your account through Settings → Account → Delete Account, or by emailing us."),
+        ("Local Processing", "Photos, beauty filters, facial keypoints, OCR text, media location, and chat memory are all processed locally on your device and are never uploaded to a server."),
+        ("Remote Inference", "After authenticating, remote LLM conversations are proxied through api.polang.net to the LLM provider for the current request only. The server only records call counts and token usage, not conversation content."),
+        ("Contact Us", "budao.gs@gmail.com"),
     ]
 
     var body: some View {
@@ -323,20 +317,18 @@ struct AboutView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // App icon + name
                 VStack(spacing: 8) {
                     Image(matIcon: "photo_library")
                         .font(.system(size: 48))
                         .foregroundColor(.accentColor)
                     Text("PoLang")
                         .font(.system(size: 20, weight: .bold))
-                    Text(String(localized: "破浪相册 · AI Agent Album"))
+                    Text(String(localized: "PoLang · AI Agent Album"))
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 20)
 
-                // Info rows
                 VStack(spacing: 0) {
                     infoRow(label: String(localized: "Version"), value: appVersion)
                     Divider().background(Color(.separator))
@@ -379,7 +371,7 @@ struct AboutView: View {
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
             if showArrow {
-                Image(matIcon: "chevron.right")
+                Image(matIcon: "arrow_forward")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
