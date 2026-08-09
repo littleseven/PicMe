@@ -223,6 +223,12 @@ final class TagScanOrchestrator: @unchecked Sendable {
     // MARK: - 运行循环（后台 Task）
 
     private func runLoop() async {
+        // 确保模型已加载（首次）。RetinaFace/2d106 已 bundled；glintr100/mobileclip 需在
+        // Model Center 预下载——缺失时 loadModels 返回 false，扫描仍跑但仅 RetinaFace 出人脸、
+        // 无 embedding/语义向量。modelsReady 一旦为 true 后续启动跳过重复加载。
+        if !Pass1Pipeline.shared.modelsReady {
+            _ = Pass1Pipeline.shared.loadModels()
+        }
         let sid = read { $0.sessionId } ?? ""
         var localSamples: [Int] = []
         while !Task.isCancelled {
