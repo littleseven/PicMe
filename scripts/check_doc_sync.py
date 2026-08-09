@@ -22,6 +22,9 @@ EXCLUDED_DIRS = (
     "docs-site/docs/",   # sync-docs.sh 生成物
     "build/",
     "temp/gpupixel/",
+    "tmp/",
+    "iosApp/Pods/",
+    "iosApp/build/",
     ".lingma/skills/",
     ".kimi/skills/",
     ".openclaw/skills/",
@@ -131,9 +134,9 @@ def check_broken_links() -> list:
                 continue
 
             target_path = base_dir / link_target
-            # 回退：skills/ 与 .claude/commands/ 内链接按项目根相对解析
+            # 回退：skills/ 与 .claude/commands/ 内链接 / leading-slash 根相对链接按项目根解析
             if not target_path.exists():
-                target_path = PROJECT_ROOT / link_target
+                target_path = PROJECT_ROOT / link_target.lstrip("/")
             if not target_path.exists():
                 issues.append(
                     f"  [断裂链接] {rel_path}: '{link_target}' 不存在"
