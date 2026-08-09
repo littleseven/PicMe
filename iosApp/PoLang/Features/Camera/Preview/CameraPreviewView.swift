@@ -29,6 +29,12 @@ struct CameraPreviewView: View {
         return (UserDefaults.standard.object(forKey: "camera_use_mnn") as? Bool) ?? true
     }
 
+    /// 关键点/人脸框 overlay：启动参数锁定开；否则跟随设置页持久值。
+    private static func resolveShowLandmarks() -> Bool {
+        if parseLaunchFlag("-showLandmarks") { return true }
+        return (UserDefaults.standard.object(forKey: "camera_show_landmarks") as? Bool) ?? false
+    }
+
     /// 启动参数解析（与 MainTabView -startPage 同模式；仅自动化验收用，不影响产品默认）。
     private static func parseLaunchFlag(_ key: String) -> Bool {
         ProcessInfo.processInfo.arguments.contains(key)
@@ -44,7 +50,10 @@ struct CameraPreviewView: View {
     /// `-showLandmarks` 开启：把 BeautyRenderer 消费的 106 点 + 9 对瘦脸/2 对大眼控制点画到预览，
     /// 肉眼裁决「形变区域不对/偏转」= 点云错位还是 warp 感知问题。
     @StateObject private var landmarkStore = LandmarkOverlayStore()
-    @State private var showLandmarks = Self.parseLaunchFlag("-showLandmarks")
+    /// 🔴 关键点/人脸框 overlay 开关：启动参数 `-showLandmarks` 锁定开（自动化验收）；
+    /// 否则跟随 设置→相机与美颜 的 `camera_show_landmarks` 开关（对标 Android face debug overlay）。
+    @State private var showLandmarks = Self.resolveShowLandmarks()
+    @AppStorage("camera_show_landmarks") private var settingsShowLandmarks = false
 
     @State private var activePanel: ActivePanel? = nil
     // 🔴 renderer 提到视图层直持：快门链路不再依赖 representable 回调往返（nil 则拍照静默失败）
@@ -146,6 +155,11 @@ struct CameraPreviewView: View {
             useMnnEngine = v
             faceRouter.setUseMnn(v)
             print("[PoLang] face.engine (settings) → \(faceRouter.activeLabel)")
+        }
+        .onChange(of: settingsShowLandmarks) { v in
+            // 关键点 overlay 实时同步（启动参数锁定开时不覆盖）
+            guard !Self.parseLaunchFlag("-showLandmarks") else { return }
+            showLandmarks = v
         }
         .onDisappear { controller.stop() }
     }
@@ -488,7 +502,14 @@ private struct MetalViewRepresentable: UIViewRepresentable {
                     // 🔴 转发到逐点调试 overlay（主线程；@Published 合并重绘）
                     if let store = landmarkStore {
                         let snap = points
-                        DispatchQueue.main.async { store.points = snap }
+                        // overlay 的 aspect-fill crop 需与 BeautyRenderer 同 buffer 尺寸（portrait 720×1280）；
+                        // 从当前帧实测，避免硬编码假设（裁剪错位会让人脸框/关键点整体偏移）。
+                        let bw = CVPixelBufferGetWidth(pb)
+                        let bh = CVPixelBufferGetHeight(pb)
+                        DispatchQueue.main.async {
+                            store.bufferSize = CGSize(width: bw, height: bh)
+                            store.points = snap
+                        }
                     }
                 } else {
                     renderer?.updateFacePoints([], hasFace: false)

@@ -45,8 +45,20 @@ enum MnnLandmarkAdapter {
     /// 将 MNN 原生 106 点（212 floats，归一化 [0,1]，Y-down）转为统一 106 点。
     /// - Parameters:
     ///   - native: 212 元素扁平数组 [x0,y0,x1,y1,...]，InsightFace 原始点序
-    ///   - isFrontCamera: 前置摄像头时 x = 1 - x（与 MediaPipe468Adapter 一致）
+    ///   - isFrontCamera: 预留参数（iOS 上**不做**前置镜像，见下；保留签名与 Android 对齐）
     /// - Returns: 106 个 SIMD2<Float> 统一关键点，或 nil（输入不足）
+    ///
+    /// 🔴 iOS vs Android 镜像差异（关键）：
+    /// Android 的 `MnnLandmarkAdapter` 对前置摄像头做 `x = 1 - x`——因为 Android 上
+    /// 「检测缓冲(ImageProxy，原始传感器=非镜像)」与「渲染纹理(镜像预览)」是**两个分离的**
+    /// 缓冲，适配器需把非镜像检测结果翻转到镜像预览空间，warp 控制点才能落在正确区域。
+    /// 而 iOS 的 `CaptureSessionController.swapBuffer` 让检测(`onFrame`)与渲染(`readFrame`)
+    /// **共用同一个 CVPixelBuffer**——native 关键点本就与 warp 采样的纹理同处一个水平空间
+    /// （前置时该 buffer 已被 `isVideoMirrored=true` 翻转，后置时未翻转）。此时再叠加 `1-x`
+    /// 会**二次镜像**，使关键点脱离纹理空间 → 瘦脸形变打到错误的一侧（用户反馈「区域不对/偏转」）。
+    /// 结论：iOS 上统一关键点恒等于 native 重排结果，**永不镜像**。该结论与 isVideoMirrored
+    /// 是否对 VideoDataOutput 生效无关——因为检测/渲染同源，native 恒在纹理空间。
+    /// 自检(静态图 isFrontCamera=false)不受影响：本就不镜像，输出与历史一致。
     static func adapt(_ native: [Float], isFrontCamera: Bool) -> [SIMD2<Float>]? {
         guard native.count >= 106 * 2 else { return nil }
         var out = [SIMD2<Float>](repeating: .zero, count: 106)
@@ -54,8 +66,9 @@ enum MnnLandmarkAdapter {
             let src = fullRemap[unified]
             let sx = native[src * 2]
             let sy = native[src * 2 + 1]
-            let ux = isFrontCamera ? 1.0 - sx : sx
-            out[unified] = SIMD2<Float>(ux, sy)
+            // iOS：检测/渲染同源 buffer → native 已在纹理空间，不再 1-x 镜像（见上文说明）
+            _ = isFrontCamera
+            out[unified] = SIMD2<Float>(sx, sy)
         }
         return out
     }

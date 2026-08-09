@@ -61,6 +61,10 @@ NS_ASSUME_NONNULL_BEGIN
    bytesPerRow:(int)bytesPerRow
      outPoints:(float *)outPoints;
 
+/// 开启输入朝向探针（静态诊断用）：detect 后额外以 4 种旋转跑 landmark 模型，
+/// 结果写入 stage1Dump 的 ORIENT-PROBE 段（裁决宽扁形变是否源于输入 X/Y 转置）。
+- (void)setOrientProbe:(BOOL)on;
+
 /// 多人脸检测（仅 RetinaFace 第一阶段，不做 2D106 关键点）。
 /// 对标 Android `MnnFaceDetector.detectRetinaFaces()` (MnnFaceDetector.kt:272-295) →
 /// JNI `nativeDetectRetinaFaces` (mnn_jni_bridge.cpp:153-221) → C++ `detectRetinaFace`
@@ -81,6 +85,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// 最近一次 detect 的调试信息（后端/耗时/box），供 DebugOverlay 展示。
 @property (nonatomic, readonly, copy) NSString *debugInfo;
+
+/// 最近一次 detect 的 Stage-1 诊断（-galleryFace 用）：定位「人脸框竖向压扁」根因。
+/// 含 320 空间 RetinaFace box（aspect 是裁决关键）、逆 letterbox 参数、图像空间 box、
+/// ×1.2 扩展后 ROI。无人脸时为字面量 "no-stage1"。
+/// 仅坐标/尺寸（无人脸像素），隐私安全。
+@property (nonatomic, readonly, copy) NSString *stage1Dump;
 
 @end
 

@@ -135,7 +135,7 @@ enum GalleryFaceAutoCheck {
         opts.fetchLimit = 12
         let fetch = PHAsset.fetchAssets(with: .image, options: opts)
         var tried = 0
-        var firstFace: (idx: Int, orient: Int, points: [SIMD2<Float>], imgSize: CGSize, stage1: String, debug: String)? = nil
+        var faces: [(idx: Int, orient: Int, points: [SIMD2<Float>], imgSize: CGSize, stage1: String, debug: String)] = []
         for i in 0..<fetch.count {
             tried += 1
             let asset = fetch.object(at: i)
@@ -158,12 +158,32 @@ enum GalleryFaceAutoCheck {
                                 i, orient, rawW, rawH, rawAspect, ow, oh, orientedAspect,
                                 sideways ? "SIDEWAYS→需归一化" : "upright"))
             // run() 已在后台执行器（PoLangApp 经 Task.detached 启动）；detect 同步推理，直接调用
-            if firstFace == nil, let outcome = StaticFaceDetector.detect(img) {
-                firstFace = (i, orient, outcome.points, outcome.imageSize, outcome.stage1Dump, outcome.debugInfo)
+            if faces.count < 4, let outcome = StaticFaceDetector.detect(img) {
+                faces.append((i, orient, outcome.points, outcome.imageSize, outcome.stage1Dump, outcome.debugInfo))
             }
         }
-        lines.append("tried=\(tried)")
-        if let f = firstFace {
+        lines.append("tried=\(tried) faces=\(faces.count)")
+        // 🔴 多脸「像素级」裁决（修复验证）：每张脸 106 点包围盒的【像素宽×像素高】+ 解剖。
+        //   注意：stage1Dump 里的 "aspect(w/h)" 用归一化值(÷不同图像维)计算，会误导；这里用真实像素。
+        //   正确（归一化修复后）：像素宽≈RetinaFace 框宽，像素高≥像素宽（高脸/近方形），anatomy 全 Y。
+        //   修复前（raw 喂入）：像素宽明显>像素高（宽扁），框不含脸。
+        for f in faces {
+            let iw = Double(f.imgSize.width), ih = Double(f.imgSize.height)
+            let xs = f.points.map { Double($0.x) }, ys = f.points.map { Double($0.y) }
+            let bx0 = xs.min() ?? 0, bx1 = xs.max() ?? 0, by0 = ys.min() ?? 0, by1 = ys.max() ?? 0
+            let pw = (bx1 - bx0) * iw, ph = (by1 - by0) * ih
+            var anat = ""
+            if f.points.count >= 76 {
+                let p = f.points
+                anat = String(format: " chinBelow=%@ noseBetween=%@",
+                              (p[16].y > p[0].y && p[16].y > p[32].y) ? "Y" : "N",
+                              (p[72].x < p[49].x && p[49].x < p[75].x) ? "Y" : "N")
+            }
+            lines.append(String(format: "face photo[%d] %dx%d pixelbox=%.0fw x %.0fh (h/w=%.2f → %@)%@",
+                                f.idx, Int(iw), Int(ih), pw, ph, ph / max(pw, 1e-9),
+                                ph >= pw * 0.85 ? "OK高/方" : "WRONG宽扁", anat))
+        }
+        if let f = faces.first {
             let pts = f.points
             let iw = Int(f.imgSize.width)
             let ih = Int(f.imgSize.height)

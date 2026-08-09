@@ -53,5 +53,9 @@ final class AppSettings: ObservableObject {
         appLanguage = UserDefaults.standard.string(forKey: "app_language") ?? "system"
         // 初始化语言管理器（触发 Bundle swizzling + 恢复上次选择）
         _ = LanguageManager.shared
+        // -galleryFace：自动拉真实相册照片验证人脸检测（裁决 UIImage 朝向假设），无需 UI 导航
+        if ProcessInfo.processInfo.arguments.contains("-galleryFace") {
+            Task.detached(priority: .utility) { await GalleryFaceAutoCheck.run() }
+        }
     }
 }

@@ -4,10 +4,11 @@ import Foundation
 ///
 /// 移植源: engines/beauty-engine/.../facedetect/adapter/MediaPipe468Adapter.kt
 ///
-/// 映射规则（严格遵循 Kotlin 版实现，零修改）：
+/// 映射规则（严格遵循 Kotlin 版映射表，零修改）：
 /// - 轮廓 33 点（0-32）：基于 MediaPipe FACE_OVAL 路径插值生成
 /// - 非轮廓 73 点（33-105）：通过固定映射表 NON_CONTOUR_MAPPING 直接转换
-/// - 前置摄像头时水平镜像 x 坐标（x = 1 - x）
+/// - 前置镜像：iOS 与 Kotlin 版**不同**——iOS 检测/渲染同源 buffer，native 已在纹理空间，
+///   不做 `x=1-x`（否则二次镜像）。详见 map(...) 与 MnnLandmarkAdapter.adapt 说明。
 ///
 /// [图像坐标系] 输出 106 点归一化坐标 [0,1]
 enum MediaPipe468Adapter {
@@ -65,7 +66,7 @@ enum MediaPipe468Adapter {
     /// 将 468 个 MediaPipe Landmark 映射为 106 个统一关键点
     /// - Parameters:
     ///   - landmarks: MediaPipe 468 个归一化关键点
-    ///   - isFrontCamera: 是否前置摄像头（true 时 x = 1 - x 镜像）
+    ///   - isFrontCamera: 预留（iOS 不做前置镜像，保留签名与 Android 对齐；详见 MnnLandmarkAdapter.adapt）
     ///   - rotationDegrees: 图像旋转角度（0/90/180/270）
     /// - Returns: 106 个 SIMD2<Float> 归一化坐标
     static func map(
@@ -87,7 +88,9 @@ enum MediaPipe468Adapter {
             }
         }
 
-        // 辅助：获取 MediaPipe 点坐标（含旋转 + 前置镜像）
+        // 辅助：获取 MediaPipe 点坐标（含旋转）
+        // 🔴 前置镜像说明见 map(...) 文档注释：iOS 检测/渲染同源 buffer，native 已在纹理空间，
+        //   不再做 1-x 镜像（否则二次镜像 → 瘦脸打到错误一侧）。
         func getMpPoint(_ index: Int) -> (Float, Float)? {
             guard index < landmarks.count else { return nil }
             var x = landmarks[index].x
@@ -95,7 +98,6 @@ enum MediaPipe468Adapter {
             let (rx, ry) = rotateNormalized(x, y, degrees: rotationDegrees)
             x = rx
             let finalY = ry
-            if isFrontCamera { x = 1 - x }
             return (x, finalY)
         }
 
@@ -151,7 +153,6 @@ enum MediaPipe468Adapter {
             var y = landmarks[mpIndex].y
             let (rx, ry) = rotateNormalized(x, y, degrees: rotationDegrees)
             x = rx; y = ry
-            if isFrontCamera { x = 1 - x }
             result[33 + i] = SIMD2(clamp01(x), clamp01(y))
         }
 

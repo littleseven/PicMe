@@ -204,7 +204,7 @@ struct SettingsScreen: View {
             .init(icon: "smart_toy", title: L("AI Assistant"), desc: L("Remote AI inference, voice control"), target: .aiAgent, isPlaceholder: false),
             .init(icon: "psychology", title: L("AI Memory"), desc: L("View, edit, delete AI remembered facts"), target: .memoryFacts, isPlaceholder: false),
             // Row 2
-            .init(icon: "person", title: L("People"), desc: L("Manage people and relationships"), target: .people, isPlaceholder: false),
+            .init(icon: "account_circle", title: L("People"), desc: L("Manage people and relationships"), target: .people, isPlaceholder: false),
             .init(icon: "forum", title: L("Channels"), desc: L("Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
             // Row 3
             .init(icon: "photo_library", title: L("Gallery"), desc: L("Tag scanning, face clustering, model management"), target: .gallery, isPlaceholder: true),
