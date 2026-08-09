@@ -169,8 +169,8 @@ final class ModelDownloadManager: ObservableObject {
         }
     }
 
-    /// 流式下载：用 URLSession 下载数据块写入文件，实时报告进度
-    /// 支持 Range 续传（如目标文件已有部分数据，从断点继续）
+    /// 流式下载：用 URLSessionDownloadTask（系统原生下载 + delegate 进度回调）
+    /// 支持 Range 续传 + 实时进度
     private func downloadFileStreaming(
         url: URL, to destUrl: URL, modelId: String,
         bytesAlreadyDownloaded: Int64, totalModelSize: Int64
@@ -181,50 +181,62 @@ final class ModelDownloadManager: ObservableObject {
             existingSize = (try? FileManager.default.attributesOfItem(atPath: destUrl.path)[.size] as? Int64) ?? 0
         }
 
-        // 构建请求（带 Range 头支持续传）
+        // 用 DownloadProgressDelegate 获取实时进度 + 完成回调
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 0  // 不限总时长
+
+        let progressTracker = DownloadProgressTracker(modelId: modelId,
+                                                       bytesAlreadyDownloaded: bytesAlreadyDownloaded,
+                                                       existingSize: existingSize,
+                                                       updateProgress: { [weak self] mid, downloaded in
+            self?.updateProgress(mid, downloaded)
+        },
+                                                       isCancelled: { [weak self] mid in
+            self?.cancelledModels.contains(mid) ?? false
+        })
+
+        let session = URLSession(configuration: config, delegate: progressTracker, delegateQueue: nil)
+
         var request = URLRequest(url: url)
-        request.timeoutInterval = 60
+        request.timeoutInterval = 120
         if existingSize > 0 {
             request.setValue("bytes=\(existingSize)-", forHTTPHeaderField: "Range")
         }
 
-        // 用 URLSession 的 data task with delegate 获取块级回调
-        let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
+        let (tempUrl, response) = try await session.download(for: request)
 
         let httpResp = response as? HTTPURLResponse
         let statusCode = httpResp?.statusCode ?? 0
-        // 200 = 全新下载, 206 = Range 续传成功
         guard statusCode == 200 || statusCode == 206 else {
             throw URLError(.badServerResponse)
         }
 
-        let isResuming = (statusCode == 206)
-        let contentLength = Int64(httpResp?.value(forHTTPHeaderField: "Content-Length") ?? "") ?? 0
-        let fileTotalSize = isResuming ? existingSize + contentLength : contentLength
-
-        // 打开文件（追加模式 or 新建）
-        if isResuming {
-            // 追加写入已有文件
-            guard let fileHandle = try? FileHandle(forWritingTo: destUrl) else {
-                throw URLError(.cannotOpenFile)
-            }
-            try fileHandle.seekToEnd()
-            return try await writeBytes(asyncBytes, to: fileHandle, modelId: modelId,
-                                        bytesAlreadyDownloaded: bytesAlreadyDownloaded + existingSize,
-                                        startingOffset: existingSize)
-        } else {
-            // 全新文件
-            FileManager.default.createFile(atPath: destUrl.path, contents: nil)
-            guard let fileHandle = try? FileHandle(forWritingTo: destUrl) else {
-                throw URLError(.cannotOpenFile)
-            }
-            return try await writeBytes(asyncBytes, to: fileHandle, modelId: modelId,
-                                        bytesAlreadyDownloaded: bytesAlreadyDownloaded,
-                                        startingOffset: 0)
+        if cancelledModels.contains(modelId) {
+            try? FileManager.default.removeItem(at: tempUrl)
+            return 0
         }
+
+        let downloadedSize = (try? FileManager.default.attributesOfItem(atPath: tempUrl.path)[.size] as? Int64) ?? 0
+
+        if statusCode == 206 {
+            // Range 续传：追加到已有文件
+            let existingData = try Data(contentsOf: destUrl)
+            let newData = try Data(contentsOf: tempUrl)
+            try (existingData + newData).write(to: destUrl, options: .atomic)
+            try? FileManager.default.removeItem(at: tempUrl)
+        } else {
+            if FileManager.default.fileExists(atPath: destUrl.path) {
+                try FileManager.default.removeItem(at: destUrl)
+            }
+            try FileManager.default.moveItem(at: tempUrl, to: destUrl)
+        }
+
+        updateProgress(modelId, bytesAlreadyDownloaded + existingSize + downloadedSize)
+        return existingSize + downloadedSize
     }
 
-    /// 高效写入：按块（而非逐字节）读取 async bytes
+    /// 高效写入（已弃用，保留接口兼容）
     private func writeBytes(
         _ bytes: URLSession.AsyncBytes,
         to fileHandle: FileHandle,
@@ -350,5 +362,45 @@ final class ModelDownloadManager: ObservableObject {
 
     var missingRequiredSize: Int64 {
         missingRequiredModels.reduce(0) { $0 + $1.size }
+    }
+}
+
+// MARK: - Download Progress Tracker（URLSessionDownloadTask delegate）
+
+/// 下载进度追踪器——URLSessionDownloadDelegate 实现，
+/// 实时回调下载进度，不经过 Swift 逐字节迭代。
+final class DownloadProgressTracker: NSObject, URLSessionDownloadDelegate {
+    let modelId: String
+    let bytesAlreadyDownloaded: Int64
+    let existingSize: Int64
+    let updateProgress: (String, Int64) -> Void
+    let isCancelled: (String) -> Bool
+    private var lastReportTime = Date()
+
+    init(modelId: String, bytesAlreadyDownloaded: Int64, existingSize: Int64,
+         updateProgress: @escaping (String, Int64) -> Void,
+         isCancelled: @escaping (String) -> Bool) {
+        self.modelId = modelId
+        self.bytesAlreadyDownloaded = bytesAlreadyDownloaded
+        self.existingSize = existingSize
+        self.updateProgress = updateProgress
+        self.isCancelled = isCancelled
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                    didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
+                    totalBytesExpectedToWrite: Int64) {
+        // 节流 500ms
+        let now = Date()
+        guard now.timeIntervalSince(lastReportTime) > 0.5 else { return }
+        lastReportTime = now
+
+        let cumulative = bytesAlreadyDownloaded + existingSize + totalBytesWritten
+        updateProgress(modelId, cumulative)
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                    didFinishDownloadingTo location: URL) {
+        // 文件处理在 async 调用方完成（session.download(for:) 返回临时 URL）
     }
 }
