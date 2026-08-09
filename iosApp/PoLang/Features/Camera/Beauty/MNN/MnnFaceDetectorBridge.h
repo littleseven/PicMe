@@ -14,8 +14,27 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 
 NS_ASSUME_NONNULL_BEGIN
+
+/// 单张人脸检测结果（多人脸检测 detectAllFaces 返回）。
+/// 对标 Android `FaceBox` (FaceBox.kt) —— RetinaFace 第一阶段输出。
+@interface PLDetectedFace : NSObject
+
+/// ROI（原始图像像素坐标，已 clamp 到图像边界内）。
+@property (nonatomic, readonly) CGRect roi;
+
+/// 检测置信度 [0,1]。
+@property (nonatomic, readonly) float confidence;
+
+/// 获取 5 点关键点（10 float: x0,y0,x1,y1,...,x4,y4），原始图像像素坐标。
+/// 关键点顺序：left_eye, right_eye, nose, mouth_left, mouth_right（InsightFace 标准，
+/// 对标 Android mnn_face_detector.cpp:1073-1078 processRetinaFaceOutput landmark 解析）。
+/// @param outLandmarks 调用方分配的 10 float 缓冲区。
+- (void)getLandmarks:(float *)outLandmarks;
+
+@end
 
 /// MNN 人脸检测桥接（RetinaFace box + 2D106 关键点两阶段）
 @interface PLMnnFaceDetector : NSObject
@@ -41,6 +60,24 @@ NS_ASSUME_NONNULL_BEGIN
        height:(int)height
    bytesPerRow:(int)bytesPerRow
      outPoints:(float *)outPoints;
+
+/// 多人脸检测（仅 RetinaFace 第一阶段，不做 2D106 关键点）。
+/// 对标 Android `MnnFaceDetector.detectRetinaFaces()` (MnnFaceDetector.kt:272-295) →
+/// JNI `nativeDetectRetinaFaces` (mnn_jni_bridge.cpp:153-221) → C++ `detectRetinaFace`
+/// (mnn_face_detector.cpp:244-614) 的多脸路径。
+///
+/// 每张脸包含：ROI（CGRect 像素坐标）、5 点关键点（10 float 像素坐标）、置信度。
+/// 返回数组按置信度降序排列（NMS 已排序）。
+///
+/// @param bgra        源 BGRA 像素（CVPixelBuffer kCVPixelFormatType_32BGRA）
+/// @param width       像素宽
+/// @param height      像素高
+/// @param bytesPerRow 行字节数（可能 > width*4）
+/// @return 所有人脸；空数组 = 未检测到人脸。
+- (NSArray<PLDetectedFace *> *)detectAllFaces:(const uint8_t *)bgra
+                                        width:(int)width
+                                       height:(int)height
+                                  bytesPerRow:(int)bytesPerRow;
 
 /// 最近一次 detect 的调试信息（后端/耗时/box），供 DebugOverlay 展示。
 @property (nonatomic, readonly, copy) NSString *debugInfo;

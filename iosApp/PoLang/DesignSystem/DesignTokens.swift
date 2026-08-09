@@ -1,9 +1,11 @@
 import SwiftUI
+import Foundation
 
 // MARK: - Design Tokens（双端 SSOT: shared/src/commonMain/resources/design-tokens.json）
 //
 // 修改 token 时：先更新 JSON 源文件，再同步此文件。
 // 所有新增 UI 必须引用这些常量，禁止硬编码尺寸/颜色/圆角。
+// 完整提取方法学/漂移记录/内容色板见 docs/03-TECHNICAL-SPECS/DESIGN_TOKENS_SPEC.md。
 
 // MARK: - Spacing
 
@@ -16,6 +18,221 @@ enum Spacing {
     static let xxl: CGFloat = 32
 }
 
+// MARK: - Radius
+
+enum AppRadius {
+    static let panel: CGFloat = 24
+    static let card: CGFloat = 12
+    static let button: CGFloat = 10
+    static let small: CGFloat = 8
+    static let thumbnail: CGFloat = 2
+}
+
+enum AppShapes {
+    static let panel = RoundedRectangle(cornerRadius: AppRadius.panel, style: .continuous)
+    static let card = RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
+    static let button = RoundedRectangle(cornerRadius: AppRadius.button, style: .continuous)
+    static let small = RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
+    static let thumbnail = RoundedRectangle(cornerRadius: AppRadius.thumbnail, style: .continuous)
+}
+
+// MARK: - Icon Sizes
+
+enum IconSize {
+    static let sm: CGFloat = 18
+    static let md: CGFloat = 22
+    static let lg: CGFloat = 24
+    static let xl: CGFloat = 32
+}
+
+// MARK: - App Colors（不随主题切换的固定功能色）
+
+enum AppColors {
+    static let focusRing = Color(hex: "FF00E5FF")
+    static let panelBackground = Color(hex: "CC000000")
+    static let shutterRing = Color.white
+    static let sliderThumb = Color.white
+    static let vibrantGreen = Color(hex: "FF00E676")
+    static let vibrantBlue = Color(hex: "FF2979FF")
+    static let vibrantOrange = Color(hex: "FFFF9100")
+    static let vibrantPink = Color(hex: "FFFF4081")
+}
+
+// MARK: - Typography（M3 baseline 字号阶梯，仅 bodyLarge 为定制）
+
+/// 字号角色。`font` 直接产出 SwiftUI Font；`lineHeight`/`letterSpacing` 供 `.lineSpacing`/`.tracking` 使用。
+struct TypeStyle {
+    let size: CGFloat
+    let lineHeight: CGFloat
+    let weight: Font.Weight
+    let letterSpacing: CGFloat
+
+    var font: Font { .system(size: size, weight: weight) }
+}
+
+enum AppTypography {
+    static let displayLarge   = TypeStyle(size: 57, lineHeight: 64, weight: .regular, letterSpacing: -0.25)
+    static let displayMedium  = TypeStyle(size: 45, lineHeight: 52, weight: .regular, letterSpacing: 0)
+    static let displaySmall   = TypeStyle(size: 36, lineHeight: 44, weight: .regular, letterSpacing: 0)
+    static let headlineLarge  = TypeStyle(size: 32, lineHeight: 40, weight: .regular, letterSpacing: 0)
+    static let headlineMedium = TypeStyle(size: 28, lineHeight: 36, weight: .regular, letterSpacing: 0)
+    static let headlineSmall  = TypeStyle(size: 24, lineHeight: 32, weight: .regular, letterSpacing: 0)
+    static let titleLarge     = TypeStyle(size: 22, lineHeight: 28, weight: .regular, letterSpacing: 0)
+    static let titleMedium    = TypeStyle(size: 16, lineHeight: 24, weight: .medium, letterSpacing: 0.15)
+    static let titleSmall     = TypeStyle(size: 14, lineHeight: 20, weight: .medium, letterSpacing: 0.1)
+    static let bodyLarge      = TypeStyle(size: 16, lineHeight: 24, weight: .regular, letterSpacing: 0.5)
+    static let bodyMedium     = TypeStyle(size: 14, lineHeight: 20, weight: .regular, letterSpacing: 0.25)
+    static let bodySmall      = TypeStyle(size: 12, lineHeight: 16, weight: .regular, letterSpacing: 0.4)
+    static let labelLarge     = TypeStyle(size: 14, lineHeight: 20, weight: .medium, letterSpacing: 0.1)
+    static let labelMedium    = TypeStyle(size: 12, lineHeight: 16, weight: .medium, letterSpacing: 0.5)
+    static let labelSmall     = TypeStyle(size: 11, lineHeight: 16, weight: .medium, letterSpacing: 0.5)
+
+    /// 内联字重覆盖（Android 在 M3 role 之上叠加：模型卡名 SemiBold、必备徽章 Bold 等）。
+    enum WeightOverride {
+        static let semibold: Font.Weight = .semibold
+        static let bold: Font.Weight = .bold
+    }
+}
+
+// MARK: - Color Scheme（M3 baseline，iOS 无动态取色，以此为语义色基准）
+
+/// 一组随主题切换的语义色。Android 12+ 走 Material You 动态取色，iOS 无等价物，统一用此基准。
+/// 已修正 Android 端两处 bug：ErrorLight alpha=00 透明、Dark tertiaryContainer 误指 TertiaryDark。
+struct SchemeColors {
+    let primary: Color
+    let onPrimary: Color
+    let primaryContainer: Color
+    let onPrimaryContainer: Color
+    let secondary: Color
+    let onSecondary: Color
+    let secondaryContainer: Color
+    let onSecondaryContainer: Color
+    let tertiary: Color
+    let onTertiary: Color
+    let tertiaryContainer: Color
+    let onTertiaryContainer: Color
+    let error: Color
+    let onError: Color
+    let errorContainer: Color
+    let onErrorContainer: Color
+    let background: Color
+    let onBackground: Color
+    let surface: Color
+    let onSurface: Color
+    let surfaceVariant: Color
+    let onSurfaceVariant: Color
+    let outline: Color
+    let outlineVariant: Color
+    let surfaceContainerLowest: Color
+    let surfaceContainerLow: Color
+    let surfaceContainer: Color
+    let surfaceContainerHigh: Color
+    let surfaceContainerHighest: Color
+}
+
+enum AppColorScheme {
+    static let light = SchemeColors(
+        primary: Color(hex: "FF6750A4"), onPrimary: .white,
+        primaryContainer: Color(hex: "FFEADDFF"), onPrimaryContainer: Color(hex: "FF21005D"),
+        secondary: Color(hex: "FF625B71"), onSecondary: .white,
+        secondaryContainer: Color(hex: "FFE8DEF8"), onSecondaryContainer: Color(hex: "FF1D192B"),
+        tertiary: Color(hex: "FF7D5260"), onTertiary: .white,
+        tertiaryContainer: Color(hex: "FFFFD8E4"), onTertiaryContainer: Color(hex: "FF31111D"),
+        error: Color(hex: "FFB3261E"), onError: .white,
+        errorContainer: Color(hex: "FFF9DEDC"), onErrorContainer: Color(hex: "FF410E0B"),
+        background: Color(hex: "FFFFFBFE"), onBackground: Color(hex: "FF1C1B1F"),
+        surface: Color(hex: "FFFFFBFE"), onSurface: Color(hex: "FF1C1B1F"),
+        surfaceVariant: Color(hex: "FFE7E0EC"), onSurfaceVariant: Color(hex: "FF49454F"),
+        outline: Color(hex: "FF79747E"), outlineVariant: Color(hex: "FFCAC4D0"),
+        surfaceContainerLowest: Color(hex: "FFFFFFFF"), surfaceContainerLow: Color(hex: "FFF7F2FA"),
+        surfaceContainer: Color(hex: "FFF3EDF7"), surfaceContainerHigh: Color(hex: "FFEDE7F0"),
+        surfaceContainerHighest: Color(hex: "FFE6E0E9")
+    )
+
+    static let dark = SchemeColors(
+        primary: Color(hex: "FFD0BCFF"), onPrimary: Color(hex: "FF381E72"),
+        primaryContainer: Color(hex: "FF4F378B"), onPrimaryContainer: Color(hex: "FFEADDFF"),
+        secondary: Color(hex: "FFCCC2DC"), onSecondary: Color(hex: "FF332D41"),
+        secondaryContainer: Color(hex: "FF4A4458"), onSecondaryContainer: Color(hex: "FFE8DEF8"),
+        tertiary: Color(hex: "FFEFB8C8"), onTertiary: Color(hex: "FF492532"),
+        tertiaryContainer: Color(hex: "FF633B48"), onTertiaryContainer: Color(hex: "FFFFD8E4"),
+        error: Color(hex: "FFF2B8B5"), onError: Color(hex: "FF601410"),
+        errorContainer: Color(hex: "FF8C1D18"), onErrorContainer: Color(hex: "FFF9DEDC"),
+        background: Color(hex: "FF1C1B1F"), onBackground: Color(hex: "FFE6E1E5"),
+        surface: Color(hex: "FF1C1B1F"), onSurface: Color(hex: "FFE6E1E5"),
+        surfaceVariant: Color(hex: "FF49454F"), onSurfaceVariant: Color(hex: "FFCAC4D0"),
+        outline: Color(hex: "FF938F99"), outlineVariant: Color(hex: "FF49454F"),
+        surfaceContainerLowest: Color(hex: "FF0F0D13"), surfaceContainerLow: Color(hex: "FF1D1B20"),
+        surfaceContainer: Color(hex: "FF211F26"), surfaceContainerHigh: Color(hex: "FF2B2930"),
+        surfaceContainerHighest: Color(hex: "FF36343B")
+    )
+}
+
+// MARK: - Alpha（透明度语义阶梯）
+
+/// 派生色用法：`scheme.onSurface.opacity(AppAlpha.secondary)`。
+enum AppAlpha {
+    static let scrimModal: Double = 0.7
+    static let scrim: Double = 0.55
+    static let scrimDeep: Double = 0.82
+    static let surfaceTranslucent: Double = 0.95
+    static let fieldBackground: Double = 0.7
+    static let primaryTint: Double = 0.12
+    static let primaryTintSoft: Double = 0.15
+    static let primaryTintMedium: Double = 0.2
+    static let primaryTintStrong: Double = 0.25
+    static let emphasisHigh: Double = 0.85
+    static let emphasis: Double = 0.8
+    static let secondary: Double = 0.6
+    static let hint: Double = 0.5
+    static let placeholder: Double = 0.4
+    static let faint: Double = 0.3
+    static let ghost: Double = 0.2
+}
+
+// MARK: - Status Color（语义状态色，不随主题）
+
+enum StatusColor {
+    static let success = Color(hex: "FF4CAF50")
+    static let warning = Color(hex: "FFFF9800")
+    static let warningAmber = Color(hex: "FFFFA000")
+    static let error = Color(hex: "FFE53935")
+    static let info = Color(hex: "FF2196F3")
+}
+
+// MARK: - Motion（动效时长 + 缓动）
+
+/// FastOutSlowInEasing 在 SwiftUI 的等价是 `.easeInOut`；禁用线性动画。
+enum AppMotion {
+    static let instantMs: Double = 80
+    static let fastMs: Double = 150
+    static let mediumMs: Double = 300
+    static let slowMs: Double = 400
+    static let blinkMs: Double = 500
+    static let pulseMs: Double = 1200
+
+    static let staggerMs: Double = 160
+    static let searchDebounceMs: Double = 300
+    static let shutterDebounceMs: Double = 500
+
+    /// 相册预览进场（fade + scale，scale 0.2↔1.0）。
+    static let galleryPreviewFadeMs: Double = 300
+    static let galleryPreviewScaleMs: Double = 400
+    static let galleryPreviewScaleFrom: CGFloat = 0.2
+    static let galleryPreviewScaleTo: CGFloat = 1.0
+}
+
+// MARK: - Elevation（阴影/tonal 阶径）
+
+enum AppElevation {
+    static let none: CGFloat = 0
+    static let low: CGFloat = 1
+    static let medium: CGFloat = 2
+    static let high: CGFloat = 4
+    static let floating: CGFloat = 6
+    static let sheet: CGFloat = 16
+}
+
 // MARK: - TopBar
 
 enum TopBarTokens {
@@ -23,6 +240,7 @@ enum TopBarTokens {
     static let buttonSize: CGFloat = 36
     static let iconSize: CGFloat = 22
     static let titleFontSize: CGFloat = 17
+    static let titleFontWeight: Font.Weight = .medium
     static let spacing: CGFloat = 8
     static let horizontalPadding: CGFloat = 8
 }
@@ -32,6 +250,12 @@ enum TopBarTokens {
 enum ShutterTokens {
     static let diameter: CGFloat = 76
     static let innerDiameter: CGFloat = 58
+    static let recordingInnerDiameter: CGFloat = 28
+    static let recordingInnerCornerRadius: CGFloat = 4
+    static let ringWidth: CGFloat = 4
+    static let pressDebounceMs: Double = 500
+    static let flashAlpha: Double = 0.6
+    static let flashFadeMs: Double = 80
 }
 
 // MARK: - Beauty Panel
@@ -42,6 +266,166 @@ enum BeautyPanelTokens {
     static let sliderThumbSize: CGFloat = 18
     static let sliderTrackHeight: CGFloat = 6
     static let heightRatio: CGFloat = 0.35
+    static let heightRatioMin: CGFloat = 0.2
+    static let heightRatioMax: CGFloat = 0.75
+}
+
+// MARK: - App Slider（全 app 统一滑杆）
+
+enum AppSliderTokens {
+    static let trackHeight: CGFloat = 6
+    static let thumbSize: CGFloat = 18
+    static let thumbPressedScale: CGFloat = 1.15
+    static let thumbShadowElevation: CGFloat = 2
+    static let thumbBorderWidth: CGFloat = 2
+    static let thumbColor: Color = .white
+    static let inactiveTrackAlpha: Double = 0.12
+    static let animDurationMs: Double = 150
+}
+
+// MARK: - Bottom Tab（悬浮胶囊导航）
+
+enum BottomTabTokens {
+    static let cornerRadius: CGFloat = 28
+    static let tonalElevation: CGFloat = 3
+    static let shadowElevation: CGFloat = 6
+    static let containerPaddingH: CGFloat = 12
+    static let containerPaddingV: CGFloat = 8
+    static let itemPaddingH: CGFloat = 16
+    static let itemPaddingVIconOnly: CGFloat = 10
+    static let itemPaddingVWithLabel: CGFloat = 4
+    static let iconSize: CGFloat = 24
+    static let labelTopPadding: CGFloat = 2
+}
+
+// MARK: - Bottom Sheet（相机/编辑器共享面板外壳）
+
+enum BottomSheetTokens {
+    static let topCornerRadius: CGFloat = 24
+    static let shadowElevation: CGFloat = 16
+    static let surfaceAlpha: Double = 0.95
+    static let borderWidth: CGFloat = 0.5
+    static let borderColorAlpha: Double = 0.25
+    static let handleWidth: CGFloat = 36
+    static let handleHeight: CGFloat = 4
+    static let handleColorAlpha: Double = 0.2
+    static let contentPaddingH: CGFloat = 24
+    static let contentPaddingV: CGFloat = 8
+    static let contentSpacing: CGFloat = 12
+
+    /// 渐变 scrim stops: [透明, 黑@0.55, 黑@0.82]
+    static let gradientStops: [Color] = [
+        Color.clear,
+        Color.black.opacity(0.55),
+        Color.black.opacity(0.82)
+    ]
+}
+
+// MARK: - Chip
+
+enum ChipTokens {
+    static let height: CGFloat = 36
+    static let smallHeight: CGFloat = 32
+    static let unselectedContainerAlpha: Double = 0.5
+    static let selectedShadowElevation: CGFloat = 2
+}
+
+// MARK: - Badge
+
+enum BadgeTokens {
+    static let tagRadius: CGFloat = 6
+    static let tagBackgroundAlpha: Double = 0.12
+    static let tagDotSize: CGFloat = 6
+    static let tagPaddingH: CGFloat = 8
+    static let tagPaddingV: CGFloat = 3
+    static let tagDotLabelGap: CGFloat = 4
+    static let miniRadius: CGFloat = 4
+    static let requiredRadius: CGFloat = 4
+    static let requiredBg = Color(hex: "FFE53935")
+    static let requiredLabelWeight: Font.Weight = .bold
+    static let requiredLabelColor = Color.white
+}
+
+// MARK: - Camera（强制深色 overlay）
+
+enum CameraTokens {
+    static let focusRingDiameter: CGFloat = 100
+    static let focusRingStrokeWidth: CGFloat = 3
+    static let focusRingCornerRadius: CGFloat = 20
+    static let focusRingCrossLength: CGFloat = 16
+    static let controlButtonSize: CGFloat = 48
+    static let controlButtonIconSize: CGFloat = 24
+    static let controlButtonIdleAlpha: Double = 0.5
+    static let modeTabFontSize: CGFloat = 13
+    static let modeTabUnselectedAlpha: Double = 0.6
+    static let voicePulseMs: Double = 1200
+    static let voicePulseAlphaFrom: Double = 0.3
+    static let voicePulseAlphaTo: Double = 1.0
+    static let filterSelectorColumns: Int = 5
+    static let filterSelectorHeight: CGFloat = 280
+    static let filterSelectedScale: CGFloat = 1.08
+    static let filterSelectedBorderWidth: CGFloat = 2.5
+}
+
+// MARK: - Chat Bubble
+
+enum ChatBubbleTokens {
+    static let bubbleMaxWidth: CGFloat = 360
+    static let imageMaxWidth: CGFloat = 240
+    static let paddingH: CGFloat = 16
+    static let paddingV: CGFloat = 12
+    static let cornerRadius: CGFloat = 20
+    static let tailCornerRadius: CGFloat = 4
+    static let textSize: CGFloat = 14
+    static let textLineHeight: CGFloat = 20
+    static let inputCornerRadius: CGFloat = 24
+    static let inputShadowElevation: CGFloat = 4
+    static let capsuleCornerRadius: CGFloat = 16
+    static let capsuleActiveAlpha: Double = 0.12
+    static let capsuleInactiveAlpha: Double = 0.5
+    static let overlayBubbleColor = Color(hex: "FF2D2D2D")
+    static let overlayPanelCornerRadius: CGFloat = 20
+    static let typingMs: Double = 400
+    static let blinkMs: Double = 500
+}
+
+// MARK: - Settings
+
+enum SettingsTokens {
+    static let rowHeightNoSubtitle: CGFloat = 56
+    static let rowHeightWithSubtitle: CGFloat = 64
+    static let rowPaddingH: CGFloat = 12
+    static let rowElementGap: CGFloat = 12
+    static let rowLeadingIconSize: CGFloat = 24
+    static let rowChevronSize: CGFloat = 20
+    static let rowChevronAlpha: Double = 0.6
+    static let toggleRowHeight: CGFloat = 44
+    static let sectionPaddingH: CGFloat = 12
+    static let sectionPaddingV: CGFloat = 10
+    static let heroAvatarSize: CGFloat = 48
+    static let categoryCardIconSize: CGFloat = 28
+}
+
+// MARK: - Editor
+
+enum EditorTokens {
+    static let filterPanelHeight: CGFloat = 120
+    static let filterItemWidth: CGFloat = 72
+    static let filterThumbSize: CGFloat = 64
+    static let filterLabelSize: CGFloat = 10
+    static let filterSelectedBorderWidth: CGFloat = 3
+    static let filterUnselectedBorderWidth: CGFloat = 1
+    static let gachaCardThumbSize: CGFloat = 84
+    static let gachaCardCornerRadius: CGFloat = 8
+    static let gachaCardThumbCornerRadius: CGFloat = 6
+    static let checkerboardCellSize: CGFloat = 16
+    static let checkerboardLight = Color(hex: "FFE6E6E6")
+    static let checkerboardDark = Color(hex: "FFBDBDBD")
+    static let cropTransformButtonSize: CGFloat = 44
+    static let cropTransformButtonBgAlpha: Double = 0.45
+    static let adjustPanelMaxHeight: CGFloat = 220
+    static let markupSwatchSelected: CGFloat = 32
+    static let markupSwatchUnselected: CGFloat = 24
 }
 
 // MARK: - Grid
@@ -61,44 +445,36 @@ enum PagerTokens {
     static let overlayMaxHeight: CGFloat = 500
 }
 
-// MARK: - Radius
+// MARK: - Model Center
 
-enum AppRadius {
-    static let panel: CGFloat = 24
-    static let card: CGFloat = 12
-    static let button: CGFloat = 10
-    static let small: CGFloat = 8
-    static let thumbnail: CGFloat = 2
+enum ModelCenterTokens {
+    static let tagColorMustHave = Color(hex: "FFE53935")
+    static let tagColorRecommended = Color(hex: "FFFF9800")
+    static let tagColorChat = Color(hex: "FF2196F3")
+    static let tagColorPhotoTagging = Color(hex: "FF9C27B0")
+    static let tagColorBeautyCamera = Color(hex: "FFFF9800")
+    static let tagColorDefault = Color(hex: "FF9E9E9E")
+    static let requiredBadgeBg = Color(hex: "FFE53935")
+    static let chipHeight: CGFloat = 36
+    static let chipIconSize: CGFloat = 14
+    static let actionButtonSize: CGFloat = 36
+    static let actionButtonSmallSize: CGFloat = 32
+    static let tagBadgeRadius: CGFloat = 6
+    static let miniBadgeRadius: CGFloat = 4
+    static let tagBadgeDotSize: CGFloat = 6
 }
 
-// MARK: - Icon Sizes
+// MARK: - Color(hex:) 工具（ARGB 十六进制，与 JSON 一致）
 
-enum IconSize {
-    static let sm: CGFloat = 18
-    static let md: CGFloat = 22
-    static let lg: CGFloat = 24
-    static let xl: CGFloat = 32
-}
-
-// MARK: - App Colors（不随主题切换的固定功能色）
-
-enum AppColors {
-    static let focusRing = Color(red: 0, green: 0.9, blue: 1)        // #00E5FF
-    static let panelBackground = Color.black.opacity(0.8)              // #CC000000
-    static let shutterRing = Color.white                               // #FFFFFF
-    static let sliderThumb = Color.white                               // #FFFFFF
-    static let vibrantGreen = Color(red: 0, green: 0.902, blue: 0.463) // #00E676
-    static let vibrantBlue = Color(red: 0.161, green: 0.475, blue: 1)  // #2979FF
-    static let vibrantOrange = Color(red: 1, green: 0.569, blue: 0)    // #FF9100
-    static let vibrantPink = Color(red: 1, green: 0.251, blue: 0.506)  // #FF4081
-}
-
-// MARK: - App Shapes
-
-enum AppShapes {
-    static let panel = RoundedRectangle(cornerRadius: AppRadius.panel, style: .continuous)
-    static let card = RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
-    static let button = RoundedRectangle(cornerRadius: AppRadius.button, style: .continuous)
-    static let small = RoundedRectangle(cornerRadius: AppRadius.small, style: .continuous)
-    static let thumbnail = RoundedRectangle(cornerRadius: AppRadius.thumbnail, style: .continuous)
+private extension Color {
+    init(hex: String) {
+        let scanner = Scanner(string: hex)
+        var hexNumber: UInt64 = 0
+        scanner.scanHexInt64(&hexNumber)
+        let a = Double((hexNumber & 0xFF00_0000) >> 24) / 255
+        let r = Double((hexNumber & 0x00FF_0000) >> 16) / 255
+        let g = Double((hexNumber & 0x0000_FF00) >> 8) / 255
+        let b = Double(hexNumber & 0x0000_00FF) / 255
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
+    }
 }

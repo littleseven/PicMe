@@ -3,4 +3,5 @@ platform :ios, '16.0'
 target 'PoLang' do
   use_frameworks!
   pod 'MediaPipeTasksVision', '~> 0.10.14'
+  pod 'onnxruntime-objc', '~> 1.28.0'
 end

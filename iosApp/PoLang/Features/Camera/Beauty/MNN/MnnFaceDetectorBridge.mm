@@ -37,10 +37,20 @@ namespace polang_mnn {
 
 struct FaceBox {
     float x1, y1, x2, y2, confidence;
+    // 5-point landmarks (x0,y0,...,x4,y4) in model input space (320×320).
+    // Decoded as cx + delta*stride, matching Android mnn_face_detector.cpp:1073-1078.
+    float landmarks[10] = {};
     float area() const {
         float w = x2 - x1, h = y2 - y1;
         return (w > 0 && h > 0) ? w * h : 0;
     }
+};
+
+// 检测结果（原始图像像素坐标）—— detectAll 返回
+struct PixelFace {
+    float roiX, roiY, roiW, roiH;   // ROI 原点 + 尺寸（已 clamp 到图像边界内）
+    float confidence;
+    float landmarks[10];             // 5-point 像素坐标（逆 letterbox 变换后）
 };
 
 static inline float clampf(float v, float lo, float hi) {
@@ -122,9 +132,20 @@ public:
     bool loadBoth(const std::string &rp, const std::string &lp);
     bool detect(const uint8_t *bgra, int w, int h, int bpr, float *out212);
 
+    /// 多人脸检测（仅 RetinaFace 第一阶段，不做 2D106 关键点）。
+    /// 对标 Android MnnFaceDetector.detectRetinaFaces() (MnnFaceDetector.kt:272-295)。
+    /// 返回所有 NMS 保留的人脸，ROI + 5 点关键点已逆变换为原图像素坐标。
+    std::vector<PixelFace> detectAll(const uint8_t *bgra, int w, int h, int bpr);
+
 private:
     void bgraToRgb(const uint8_t *bgra, int w, int h, int bpr);
     inline void sampleRgb(float fx, float fy, int w, int h, float &R, float &G, float &B) const;
+
+    /// RetinaFace 推理 + 3-scale 解码 + NMS。
+    /// 返回所有 NMS 保留的人脸（320×320 模型空间，含 5 点关键点）。
+    std::vector<FaceBox> runRetinaInfer(int w, int h);
+
+    /// 单脸：从 runRetinaInfer 结果中取面积最大者。
     bool runRetina(int w, int h, FaceBox &outBox);
     void processScale(int nameIdx, int stride, float threshold, std::vector<FaceBox> &out);
     std::vector<FaceBox> nms(std::vector<FaceBox> &faces, float threshold);
@@ -184,7 +205,10 @@ inline void Detector::sampleRgb(float fx, float fy, int w, int h,
 
 // ───────────────────────── Stage 1: RetinaFace ─────────────────────────
 
-bool Detector::runRetina(int w, int h, FaceBox &outBox) {
+std::vector<FaceBox> Detector::runRetinaInfer(int w, int h) {
+    // RetinaFace 推理：letterbox 预处理 → 前向 → 3-scale 解码 → NMS
+    // 对标 Android detectRetinaFace() (mnn_face_detector.cpp:244-614)，
+    // 返回所有 NMS 保留的人脸（320×320 模型空间，含 5 点关键点）。
     Stage *st = &retina;
     int S = st->inputSize;  // 320
     int totalPx = S * S;
@@ -192,7 +216,7 @@ bool Detector::runRetina(int w, int h, FaceBox &outBox) {
 
     MNN::Tensor tmpIn(st->input, st->input->getDimensionType());
     float *in = tmpIn.host<float>();
-    if (!in) return false;
+    if (!in) return {};
 
     // 填充归一化黑底
     float black = (0.0f - mean) / stdv;
@@ -227,15 +251,20 @@ bool Detector::runRetina(int w, int h, FaceBox &outBox) {
     st->input->copyFromHostTensor(&tmpIn);
     st->interp->runSession(st->session);
 
+    // 3-scale 解码（confidence=0.5, NMS IoU=0.4 —— Android 默认值）
     std::vector<FaceBox> all;
     processScale(0, 8, 0.5f, all);
     processScale(1, 16, 0.5f, all);
     processScale(2, 32, 0.5f, all);
 
-    auto kept = nms(all, 0.4f);
+    return nms(all, 0.4f);  // 已按置信度降序排序
+}
+
+bool Detector::runRetina(int w, int h, FaceBox &outBox) {
+    auto kept = runRetinaInfer(w, h);
     if (kept.empty()) return false;
 
-    // 取面积最大的脸
+    // 取面积最大的脸（与原逻辑一致）
     FaceBox best = kept[0];
     for (const auto &b : kept) {
         if (b.area() > best.area()) best = b;
@@ -280,6 +309,20 @@ void Detector::processScale(int nameIdx, int stride, float threshold,
     const float *bd = bboxH.host<float>();
     if (!sd || !bd) return;
 
+    // 5-point landmark 输出（Android mnn_face_detector.cpp:370, outputNames[6..8]）
+    // CAFFE 布局读取，保证 [anchorIdx*10+ch] 线性索引正确
+    const float *ld = nullptr;
+    std::unique_ptr<MNN::Tensor> landmarkH;
+    if (st->outputNames.size() > (size_t)(nameIdx + 6)) {
+        MNN::Tensor *landmarkOut = st->interp->getSessionOutput(
+            st->session, st->outputNames[nameIdx + 6].c_str());
+        if (landmarkOut) {
+            landmarkH = std::make_unique<MNN::Tensor>(landmarkOut, MNN::Tensor::CAFFE);
+            landmarkOut->copyToHostTensor(landmarkH.get());
+            ld = landmarkH->host<float>();
+        }
+    }
+
     int spatial = featureSize * featureSize;
     int numAnchor = 2;
     int totalAnchor = spatial * numAnchor;
@@ -306,7 +349,21 @@ void Detector::processScale(int nameIdx, int stride, float threshold,
                 float y2 = clampf(acy + dh * stride, 0, maxSize);
                 if (x1 >= x2 || y1 >= y2) continue;
 
-                out.push_back({x1, y1, x2, y2, faceScore});
+                FaceBox box;
+                box.x1 = x1;
+                box.y1 = y1;
+                box.x2 = x2;
+                box.y2 = y2;
+                box.confidence = faceScore;
+                // Decode 5-point landmarks: cx + delta*stride
+                // (Android mnn_face_detector.cpp:1073-1078, processRetinaFaceOutput)
+                if (ld) {
+                    for (int i = 0; i < 5; i++) {
+                        box.landmarks[i * 2]     = acx + ld[ai * 10 + i * 2]     * stride;
+                        box.landmarks[i * 2 + 1] = acy + ld[ai * 10 + i * 2 + 1] * stride;
+                    }
+                }
+                out.push_back(box);
             }
         }
     }
@@ -448,9 +505,88 @@ bool Detector::detect(const uint8_t *bgra, int w, int h, int bpr, float *out212)
     return ok;
 }
 
-}  // namespace polang_mnn
+// ───────────────────────── 多人脸 detectAll ─────────────────────────
+
+std::vector<PixelFace> Detector::detectAll(const uint8_t *bgra, int w, int h, int bpr) {
+    // 仅需 RetinaFace 第一阶段（不需 landmark 模型）。
+    // 对标 Android MnnFaceDetector.detectRetinaFaces() (MnnFaceDetector.kt:272-295)。
+    if (!retina.ok) { debugInfo = "not-ready"; return {}; }
+
+    bgraToRgb(bgra, w, h, bpr);
+
+    auto kept = runRetinaInfer(w, h);  // 320×320 模型空间，含 5 点关键点
+    if (kept.empty()) { debugInfo = "retina:no-face"; return {}; }
+
+    // letterbox 逆变换：320 空间 → 原图像素（与 detect() 中相同的逆变换）
+    float scale = 320.0f / std::max((float)w, (float)h);
+    int scaledW = (int)((float)w * scale);
+    int scaledH = (int)((float)h * scale);
+    float padLeft = (320 - scaledW) / 2.0f;
+    float padTop = (320 - scaledH) / 2.0f;
+
+    std::vector<PixelFace> result;
+    result.reserve(kept.size());
+    for (const auto &box : kept) {
+        PixelFace pf;
+        // ROI 逆变换 + clamp 到图像边界
+        float mx1 = clampf((box.x1 - padLeft) / scale, 0.0f, (float)w);
+        float my1 = clampf((box.y1 - padTop) / scale, 0.0f, (float)h);
+        float mx2 = clampf((box.x2 - padLeft) / scale, 0.0f, (float)w);
+        float my2 = clampf((box.y2 - padTop) / scale, 0.0f, (float)h);
+        pf.roiX = mx1;
+        pf.roiY = my1;
+        pf.roiW = mx2 - mx1;
+        pf.roiH = my2 - my1;
+        pf.confidence = box.confidence;
+        // 5-point landmark 逆变换 + clamp
+        for (int i = 0; i < 5; i++) {
+            pf.landmarks[i * 2]     = clampf((box.landmarks[i * 2]     - padLeft) / scale, 0.0f, (float)w);
+            pf.landmarks[i * 2 + 1] = clampf((box.landmarks[i * 2 + 1] - padTop)  / scale, 0.0f, (float)h);
+        }
+        result.push_back(pf);
+    }
+
+    debugInfo = std::string("ok faces=") + std::to_string(kept.size());
+    return result;
+}
 
 // ───────────────────────── ObjC 桥接 ─────────────────────────
+
+// PLDetectedFace 私有工厂（仅 .mm 内部使用）
+@interface PLDetectedFace ()
++ (instancetype)faceWithRoi:(CGRect)roi
+                confidence:(float)confidence
+                 landmarks:(const float *)landmarks;
+@end
+
+@implementation PLDetectedFace {
+    CGRect _roi;
+    float _confidence;
+    float _landmarks[10];
+}
+
+- (CGRect)roi { return _roi; }
+- (float)confidence { return _confidence; }
+
+- (void)getLandmarks:(float *)outLandmarks {
+    if (outLandmarks) {
+        memcpy(outLandmarks, _landmarks, sizeof(float) * 10);
+    }
+}
+
++ (instancetype)faceWithRoi:(CGRect)roi
+                confidence:(float)confidence
+                 landmarks:(const float *)landmarks {
+    PLDetectedFace *f = [[PLDetectedFace alloc] init];
+    f->_roi = roi;
+    f->_confidence = confidence;
+    if (landmarks) {
+        memcpy(f->_landmarks, landmarks, sizeof(float) * 10);
+    }
+    return f;
+}
+
+@end
 
 @interface PLMnnFaceDetector () {
     polang_mnn::Detector *_det;
@@ -486,6 +622,23 @@ bool Detector::detect(const uint8_t *bgra, int w, int h, int bpr, float *out212)
    bytesPerRow:(int)bytesPerRow
      outPoints:(float *)outPoints {
     return _det->detect(bgra, width, height, bytesPerRow, outPoints);
+}
+
+- (NSArray<PLDetectedFace *> *)detectAllFaces:(const uint8_t *)bgra
+                                        width:(int)width
+                                       height:(int)height
+                                  bytesPerRow:(int)bytesPerRow {
+    auto faces = _det->detectAll(bgra, width, height, bytesPerRow);
+    if (faces.empty()) return @[];
+
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:faces.size()];
+    for (const auto &f : faces) {
+        CGRect roi = CGRectMake(f.roiX, f.roiY, f.roiW, f.roiH);
+        [result addObject:[PLDetectedFace faceWithRoi:roi
+                                          confidence:f.confidence
+                                           landmarks:f.landmarks]];
+    }
+    return result;
 }
 
 - (NSString *)debugInfo {

@@ -5,11 +5,15 @@ package com.mamba.picme.domain.person
  *
  * 每个取值带中/英/日三语标签，供命名对话框下拉与聊天工具展示使用；
  * 数据库存储枚举名（[name]），通过 [fromStored] 还原。
+ *
+ * 2026-08-09：由 androidApp 下沉至 :shared/commonMain，作为人物域的跨端单一事实来源
+ * （iOS 人物页关系选择器经 [PersonRelationSupport] 消费）。包名保持
+ * `com.mamba.picme.domain.person` 不变，androidApp 既有引用同包自动解析。
  */
 enum class RelationPredicate(
     val labelZh: String,
     val labelEn: String,
-    val labelJa: String
+    val labelJa: String,
 ) {
     SPOUSE(labelZh = "配偶", labelEn = "Spouse", labelJa = "配偶者"),
     PARTNER(labelZh = "恋人", labelEn = "Partner", labelJa = "恋人"),
