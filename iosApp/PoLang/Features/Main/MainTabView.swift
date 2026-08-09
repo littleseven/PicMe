@@ -8,6 +8,7 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $currentPage) {
+            // 🔴 CameraPreviewView 自身 body 已有 .ignoresSafeArea(.all)
             CameraPreviewView()
                 .environmentObject(container)
                 .tag(0)
@@ -17,6 +18,7 @@ struct MainTabView: View {
                 .tag(1)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        .ignoresSafeArea(.all) // 🔴 整个 Pager ignoresSafeArea — 允许页面内容延伸到安全区
         .overlay(alignment: .top) {
             DebugOverlayView()
         }

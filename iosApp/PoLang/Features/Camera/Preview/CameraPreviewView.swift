@@ -2,6 +2,7 @@ import SwiftUI
 import MetalKit
 
 /// 相机主页面（对标 Android CameraPreviewContent.kt）
+/// 🔴 预览全出血 edge-to-edge + 控件锚 safe area
 struct CameraPreviewView: View {
     @EnvironmentObject private var container: AppContainer
     @State private var authorized = false
@@ -18,21 +19,25 @@ struct CameraPreviewView: View {
     enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
 
     var body: some View {
-        ZStack {
-            // 预览层（UILaunchScreen 修复后 TabView 不再 letterbox）
-            MetalViewRepresentable(controller: controller, params: container.beautyParams,
-                                   faceService: faceService, onRendererReady: { renderer in
-                sharedRenderer = renderer
-            })
+        GeometryReader { geo in
+            ZStack {
+                // 预览层：铺满全屏（全出血）
+                MetalViewRepresentable(controller: controller, params: container.beautyParams,
+                                       faceService: faceService, onRendererReady: { renderer in
+                    sharedRenderer = renderer
+                })
+                .frame(width: geo.size.width, height: geo.size.height)
 
-            if !authorized {
-                Color.black.ignoresSafeArea()
-                permissionView
-            } else {
-                cameraOverlay
+                if !authorized {
+                    Color.black
+                    permissionView
+                } else {
+                    // 控件层：锚 safe area（通过 padding 避让）
+                    cameraOverlay(screenHeight: geo.size.height, safeTop: geo.safeAreaInsets.top)
+                }
             }
         }
-        .ignoresSafeArea(.all)
+        .ignoresSafeArea(.all) // 🔴 全出血：整个 GeometryReader 忽略 safe area
         .task {
             authorized = await controller.checkAuthorizationAndStart()
             DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
@@ -64,10 +69,9 @@ struct CameraPreviewView: View {
         .accessibilityIdentifier("camera_denied")
     }
 
-    // MARK: - 叠加层（手势 + 顶部控件 + 底部控件 + 面板）
+    // MARK: - 控件层（锚 safe area，不跟随预览延伸）
 
-    @ViewBuilder
-    private var cameraOverlay: some View {
+    private func cameraOverlay(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
         ZStack {
             // 手势层
             CameraGesturesView(controller: controller)
@@ -78,15 +82,11 @@ struct CameraPreviewView: View {
                 }
 
             // 顶部控件
-            VStack {
-                topControls
-                Spacer()
-            }
+            topControls(screenHeight: screenHeight, safeTop: safeTop)
 
             // 底部控件 + 面板
             VStack(spacing: 0) {
                 Spacer()
-
                 if let panel = activePanel {
                     switch panel {
                     case .beauty:
@@ -103,73 +103,77 @@ struct CameraPreviewView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-
                 bottomControls
             }
         }
     }
 
-    // MARK: - 顶部控件（对标 Android dump 百分比布局）
+    // MARK: - 顶部控件（对标 Android dump y% 布局）
 
-    private var topControls: some View {
-        GeometryReader { geo in
-            HStack(alignment: .top, spacing: 0) {
-                // 左列：返回（裸箭头无圆底）+ Refresh（重置相机状态，产品按钮）
-                VStack(spacing: 8) {
-                    Button { } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
-                            .frame(width: 48, height: 48)
-                    }
-                    CircleIconButton(systemName: "arrow.clockwise") { }
+    /// 右列按钮中心 y 占屏高百分比（dump 实测）:
+    /// wand 4.87% / ratio 14.16% / grid 21.24% / scene 30.52% / filter 37.60% / tune 46.89%
+    private func topControls(screenHeight: CGFloat, safeTop: CGFloat) -> some View {
+        // 按钮中心 y 绝对坐标 = screenHeight * 百分比
+        // 按钮容器 48pt，中心到底/顶各 24pt
+        let buttonSize: CGFloat = 48
+        let halfButton = buttonSize / 2
+
+        let yWand = screenHeight * 0.0487
+        let yRatio = screenHeight * 0.1416
+        let yGrid = screenHeight * 0.2124
+        let yScene = screenHeight * 0.3052
+        let yFilter = screenHeight * 0.3760
+        let yTune = screenHeight * 0.4689
+
+        return ZStack {
+            // 左列：返回（裸箭头）+ Refresh（裸图标，无圆底，对标 Android CameraControlButtons.kt 左列）
+            VStack(spacing: 8) {
+                Button { } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
+                        .frame(width: buttonSize, height: buttonSize)
                 }
-                .padding(.leading, 16)
-                .padding(.top, 16)
-
-                Spacer()
-
-                // 右列 6 按钮（Android 百分比：wand≈4% / ratio≈13% / grid≈20% / scene≈30% / filter≈37% / tune≈47%）
-                VStack(spacing: 0) {
-                    CircleIconButton(
-                        systemName: "wand.and.stars",
-                        isActive: activePanel == .beauty,
-                        hasIndicator: container.beautyParams.whitening > 0 || container.beautyParams.smoothing > 0
-                    ) {
-                        withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
-                    }
-
-                    Spacer().frame(height: geo.size.height * 0.09)
-
-                    CircleIconButton(systemName: "aspectratio") { }
-                    Spacer().frame(height: geo.size.height * 0.07)
-                    CircleIconButton(systemName: "square.grid.3x3") { }
-
-                    Spacer().frame(height: geo.size.height * 0.10)
-
-                    CircleIconButton(systemName: "mountain.2") { }
-                    Spacer().frame(height: geo.size.height * 0.07)
-                    CircleIconButton(
-                        systemName: "circle.lefthalf.filled",
-                        isActive: activePanel == .filter
-                    ) {
-                        withAnimation { activePanel = activePanel == .filter ? nil : .filter }
-                    }
-
-                    Spacer().frame(height: geo.size.height * 0.10)
-                    CircleIconButton(systemName: "slider.horizontal.3") { }
+                // Refresh: 裸图标（Android 左列是裸图标无圆底容器）
+                Button { } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .frame(width: buttonSize, height: buttonSize)
                 }
-                .padding(.trailing, 16)
-                .padding(.top, 16)
             }
+            .position(x: 16 + halfButton, y: safeTop + halfButton + 8) // 距顶 safeTop + 8pt
+
+            // 右列：6 按钮按 dump y% 绝对定位
+            rightColumnButton("wand.and.stars", y: yWand, isActive: activePanel == .beauty,
+                              hasIndicator: container.beautyParams.whitening > 0 || container.beautyParams.smoothing > 0) {
+                withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
+            }
+            rightColumnButton("aspectratio", y: yRatio) { }
+            rightColumnButton("square.grid.3x3", y: yGrid) { }
+            rightColumnButton("mountain.2", y: yScene) { }
+            rightColumnButton("circle.lefthalf.filled", y: yFilter, isActive: activePanel == .filter) {
+                withAnimation { activePanel = activePanel == .filter ? nil : .filter }
+            }
+            rightColumnButton("slider.horizontal.3", y: yTune) { }
         }
+        .frame(width: UIScreen.main.bounds.width, height: screenHeight, alignment: .topLeading)
+    }
+
+    /// 右列单个按钮绝对定位
+    @ViewBuilder
+    private func rightColumnButton(_ systemName: String, y: CGFloat,
+                                   isActive: Bool = false, hasIndicator: Bool = false,
+                                   action: @escaping () -> Void) -> some View {
+        CircleIconButton(systemName: systemName, isActive: isActive, hasIndicator: hasIndicator, action: action)
+            .position(x: UIScreen.main.bounds.width - 16 - 24, y: y) // 右缘 16pt + 半按钮 24pt
     }
 
     // MARK: - 底部三行控件
 
     private var bottomControls: some View {
         VStack(spacing: 20) {
-            // 变焦条（纯文本行无 pill 底色）
+            // 变焦条（纯文本行无 pill）
             HStack(spacing: 12) {
                 ForEach([(0.6, "0.6x"), (1.0, "1x"), (2.0, "2x"), (3.2, "3.2x")], id: \.0) { val, label in
                     Button {
@@ -188,7 +192,7 @@ struct CameraPreviewView: View {
             }
             .accessibilityIdentifier("camera_zoom_bar")
 
-            // 模式选择器（选中=白 Bold / 未选=灰）
+            // 模式选择器（白 Bold / 灰）
             HStack(spacing: 16) {
                 ForEach(CameraMode.allCases, id: \.self) { mode in
                     Text(mode.rawValue)
@@ -230,7 +234,7 @@ struct CameraPreviewView: View {
     }
 }
 
-// MARK: - 圆形图标按钮
+// MARK: - 圆形图标按钮（右列容器，对标 Android FilledIconButton 48dp）
 
 struct CircleIconButton: View {
     let systemName: String
@@ -251,7 +255,7 @@ struct CircleIconButton: View {
                     )
                 if hasIndicator {
                     Circle()
-                        .fill(Color.accentColor)
+                        .fill(Color(red: 0.0, green: 0.9, blue: 0.4)) // 绿色 badge
                         .frame(width: 8, height: 8)
                         .overlay(Circle().stroke(Color.black.opacity(0.6), lineWidth: 1))
                         .padding(.top, 4)
@@ -262,7 +266,7 @@ struct CircleIconButton: View {
     }
 }
 
-// MARK: - MetalView bridge（简洁版，UILaunchScreen 修复后无需 hack）
+// MARK: - MetalView bridge
 
 private struct MetalViewRepresentable: UIViewRepresentable {
     let controller: CaptureSessionController
@@ -279,6 +283,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
         view.colorPixelFormat = .bgra8Unorm
         view.isOpaque = true
         view.backgroundColor = .black
+        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         if let device = view.device {
             let renderer = BeautyRenderer(device: device)
             context.coordinator.renderer = renderer
