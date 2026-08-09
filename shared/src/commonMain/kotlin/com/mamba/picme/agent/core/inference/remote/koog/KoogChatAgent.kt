@@ -10,6 +10,7 @@ import com.mamba.picme.agent.core.inference.remote.log.TraceIdAware
 import com.mamba.picme.agent.core.inference.remote.log.TraceIdHolder
 import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
+import com.mamba.picme.agent.core.platform.currentPlatform
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
 import com.mamba.picme.agent.core.remote.config.RemoteModelConfig
@@ -218,12 +219,13 @@ class KoogChatAgent(
 
     /**
      * 网关鉴权 header（与 RemoteReActAgent 经 MambaAgentFactory.customHeader 注入的等价）：
-     * X-App-Token=gatewayToken（注册/访客均带）、X-Device-Id=deviceId。
+     * X-App-Token=gatewayToken（注册/访客均带）、X-Device-Id=deviceId、X-Platform=currentPlatform。
      */
     private fun buildGatewayHeaders(): Map<String, String> {
         val headers = mutableMapOf<String, String>()
         config.gatewayToken?.takeIf { it.isNotBlank() }?.let { token -> headers["X-App-Token"] = token }
         if (config.deviceId.isNotBlank()) headers["X-Device-Id"] = config.deviceId
+        headers["X-Platform"] = currentPlatform
         return headers
     }
 

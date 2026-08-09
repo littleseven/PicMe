@@ -12,6 +12,7 @@ import com.mamba.picme.agent.core.inference.remote.react.AgentExecutionMetrics
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentCallback
 import com.mamba.picme.agent.core.inference.remote.react.RemoteReActAgentConfig
 import com.mamba.picme.agent.core.inference.remote.tool.MemoryContextProvider
+import com.mamba.picme.agent.core.platform.currentPlatform
 import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
 import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
@@ -50,7 +51,7 @@ import kotlinx.coroutines.launch
  *   LlmCallRecord 来源标签不再靠 `is CameraToolService` 类型判断，改由调用方经
  *   [recordSource] 显式声明（[RECORD_SOURCE_CAMERA] / [RECORD_SOURCE_FEISHU]）。
  * - **网关 header**：经 [RemoteModelFactory.createKoogExecutor] 的 extraHeaders 注入
- *   （X-App-Token / X-Device-Id，照 [KoogChatAgent] 的 buildGatewayHeaders 模式）。
+ *   （X-App-Token / X-Device-Id / X-Platform，照 [KoogChatAgent] 的 buildGatewayHeaders 模式）。
  * - **流式**：onLLMStreamingFrameReceived 把 TextDelta 累积成本轮快照 → cb.onPartialText（累计全文非
  *   delta，与旧 StreamingSyncChatModel 旁路语义一致）；onLLMStreamingStarting 重置（新一轮从空累计）。
  * - **指标**：onLLMCallCompleted 累加 token + 录制 [LlmCallRecord]（DEBUG 全文 / release 纯指标，
@@ -337,12 +338,13 @@ class KoogReActAgent(
 
     /**
      * 网关鉴权 header（与旧 RemoteReActAgent 经 MambaAgentFactory.customHeader 注入的等价）：
-     * X-App-Token=gatewayToken（注册/访客均带）、X-Device-Id=deviceId（非空才带）。
+     * X-App-Token=gatewayToken（注册/访客均带）、X-Device-Id=deviceId（非空才带）、X-Platform=currentPlatform。
      */
     private fun buildGatewayHeaders(): Map<String, String> {
         val headers = mutableMapOf<String, String>()
         config.gatewayToken?.takeIf { it.isNotBlank() }?.let { token -> headers["X-App-Token"] = token }
         if (config.deviceId.isNotBlank()) headers["X-Device-Id"] = config.deviceId
+        headers["X-Platform"] = currentPlatform
         return headers
     }
 
