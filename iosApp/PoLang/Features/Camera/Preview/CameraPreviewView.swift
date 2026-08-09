@@ -73,6 +73,8 @@ struct CameraPreviewView: View {
         }
         .ignoresSafeArea(.all) // 🔴 全出血：整个 GeometryReader 忽略 safe area
         .task {
+            // MNN 端侧推理离线自检（-mnnSelfTest 时跑；写 Documents/mnn-verify.txt 供验收拉取）
+            MnnSelfTest.runIfRequested()
             authorized = await controller.checkAuthorizationAndStart()
             DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
             // 自动化验收：启动参数指定引擎 / 瘦脸强度（不改变产品默认）

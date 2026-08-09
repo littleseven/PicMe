@@ -42,18 +42,22 @@ struct GalleryGridView: View {
     private var allItems: [MediaAsset] { vm.groups.flatMap(\.items) }
 
     var body: some View {
-        ZStack {
-            // §1.3：状态栏区填 surface 色（勿露黑底），内容仍锚 safe area 下缘
-            Color(.systemBackground).ignoresSafeArea()
-            VStack(spacing: 0) {
-                if isSelectionMode {
-                    selectionTopBar
-                } else {
-                    normalTopBar
-                }
-                content
+        // ⚠️ 刘海屏适配：背景必须用 .background modifier，而非 ZStack 兄弟 Color.ignoresSafeArea()。
+        // 兄弟 Color 忽略 safe area 会把 ZStack 布局区扩展到全屏，连带把 VStack 顶栏拉到 y=0，
+        // 顶栏被刘海/灵动岛遮挡。改为 .background 后 VStack 保留顶部 safe-area inset，填色仍渗到状态栏。
+        VStack(spacing: 0) {
+            if isSelectionMode {
+                selectionTopBar
+            } else {
+                normalTopBar
             }
+            content
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            // §1.3：状态栏区填 surface 色（勿露黑底）
+            Color(.systemBackground).ignoresSafeArea()
+        )
         .fullScreenCover(isPresented: Binding(
             get: { pagerInitial != nil },
             set: { if !$0 { pagerInitial = nil } })) {
