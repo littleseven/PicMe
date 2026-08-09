@@ -1,5 +1,7 @@
 # iOS 相机界面 Android↔iOS 逐元素结构对照
 
+> ⚠️ **2026-08-08 快照（commit `83d70270`）**——相机视图层已于 2026-08-09 大幅重构（B1 批），本差距清单约 18/25 P0-P2 项已关闭。**当前验收以 [`2026-08-09-ios-ui-parity-spec.md`](../superpowers/specs/2026-08-09-ios-ui-parity-spec.md) 为合同**，本文仅作历史对照。漂移明细见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](2026-08-10-ios-kmp-doc-drift-audit.md)。
+
 > **产出日期**：2026-08-08  
 > **基准**：Android `androidApp/` 相机 Compose 实现（当前 `main` 分支）  
 > **被审对象**：iOS `.worktrees/ios-camera-track/iosApp/PoLang/Features/Camera/`  

@@ -1,5 +1,7 @@
 # iOS 相册界面 Android↔iOS 逐元素结构对照
 
+> ⚠️ **2026-08-08 快照（commit `83d70270`）**——相册视图层已于后续大幅重构，本差距清单约 16/26 🔴 项已关闭（含选择模式/人脸感知裁切/顶底栏/信息弹窗/空态/缩放翻页）。**当前验收以 [`2026-08-09-ios-ui-parity-spec.md`](../superpowers/specs/2026-08-09-ios-ui-parity-spec.md) 为合同**，本文仅作历史对照。漂移明细见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](2026-08-10-ios-kmp-doc-drift-audit.md)。
+
 > **日期**：2026-08-08
 > **基准（Android）**：`androidApp/` Compose 实现（master `bf97033e`）
 > **被审对象（iOS）**：`.worktrees/ios-camera-track/iosApp/PoLang/Features/Gallery/`（SwiftUI，commit `83d70270`）

@@ -142,7 +142,7 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 - [x] **1.1 映射表与依赖接入**：✅ Koog 1.1.1 接入 `runtime-core`（api 依赖），agent-core API → Koog 逐项映射完成（Phase 1-2，commit `21d3db96`）
 - [x] **1.2 运行时迁移**：✅ Chat（`KoogChatAgent`，Phase 4 `ee6065b2`）+ 相机/飞书（`KoogReActAgent` + 自定义 `poLangSingleRunStrategy`，Phase 5 `5a0fa092`）切 Koog；编排层保留自研 ReAct 循环语义，未迁 graph workflow（Koog 内建策略有丢工具调用缺陷，自定义策略更可控）
 - [x] **1.3 删除自研兼容层**：✅ DeepSeek 适配收敛为 Koog `additionalProperties` 注入 `thinking.type=disabled` + LLModel capabilities 显式声明；旧 `StreamingSyncChatModel`/`ToolCallCommandParser`/`CapturingChatModelListener` 已删
-- [x] **1.4 回归与删除**：✅ 相机 AI 指令、Chat、tool_calls、飞书远程控制（拍照/比例/回传）全链路真机回归；`llm_call_log`/`tool_call_log` 日志链路保持（`TraceIdHolder` + `LlmCallRecord` 迁 Koog listener）；`:agent-core` 模块已删除（Phase 6，`1cbe9353` + `d09fbb77`，310 文件 ~3.4 万行）
+- [x] **1.4 回归与删除**：✅ 相机 AI 指令、Chat、tool_calls、飞书远程控制（拍照/比例/回传）全链路真机回归；`llm_call_log`/`tool_call_log` 日志链路保持（`TraceIdHolder` + `LlmCallRecord` 迁 Koog listener）；`:agent-core` 模块已删除（Koog 迁移内部子 Phase 6，`1cbe9353` + `d09fbb77`，310 文件 ~3.4 万行）
 - [x] **1.5 平台耦合点审计**：✅ 清单已产出（`docs/superpowers/specs/2026-08-07-runtime-core-platform-coupling-inventory.md`，基于 worktree HEAD `1cbe9353`（Phase 6 删除后状态）逐文件审计：runtime-core 79 文件 + app 热点 56 文件，含 PURE/SEAM/ANDROID_ONLY 判定与 expect 设计）；Phase 4 开工时按 main 现状复核一次防漂移
 - [x] **1.6 文档**：✅ 根 AGENTS.md「架构说明」段已更新（Koog 编排、JS Engine、AI 工程师模式等）；`agent-core/LANGCHAIN4J_MIGRATION.md` 随模块删除（自然 superseded）；`docs/02-ARCHITECTURE/` 更新并入 Phase 3 文档批量更新。**2026-08-08 补**：README.md + CLAUDE.md 的 agent-core/langchain4j 漂移已同步为 Koog + 6 模块（push `8bb9ef30` / `870ee533`，删整章「作为库使用 langchain4android」），对外 + 指令文档最显眼漂移提前清零；Phase 3.4 批量更新按改名后结构复核即可
 
@@ -276,17 +276,17 @@ Phase 6（语言轴：K3 = Kotlin/shared/server ｜ GLM = Swift/iOS/合规）
 
 | 风险 | 等级 | 缓解 |
 |------|------|------|
-| MNN Metal 后端正确性未验证（spike 输出全 0） | 🔴 方案级（2026-08-07 review 新增） | Phase 2.1 补验 A：真实图像 Metal vs CPU 输出一致性对比，通过前不启动 Phase 5 |
+| MNN Metal 后端正确性（原 spike 输出全 0） | 🟢 **已缓解**（2026-08-10 回写）：补验 A PASS（`Precision_High` cos≥0.9999）；Phase 5 已发；残留 fp16 precision 坑纳入 6.1 MetalGuardian | 原缓解（补验 A）已执行并通过 |
 | MNN/Qwen3-VL 在 iOS 不可用或性能不达标 | 🔴 方案级 | Phase 2.1 补验 B 真机前置；失败预案注意 MLX 不支持 iOS、CoreML LLM 支持有限，实际替代路径极少 |
 | App Store 2.5.2（LLM 生成代码端侧执行）拒审 | 🔴（2026-08-07 review 新增） | Phase 6.3 前完成合规三级分析；iOS 端 code-interpreter 或需限为白名单 handler 调用 |
-| Kotlin/Native 构建慢拖垮 AI 迭代循环 | 🟡 偏高（2026-08-07 review 上调） | Phase 2.3 强制实测增量/全量构建耗时（社区有 30+ 分钟报告、KT-78518）；shared 逻辑以 JVM 单测为主验证路径；评估 SPM binary target 预编译加速 |
+| Kotlin/Native 构建慢拖垮 AI 迭代循环 | 🔵（2026-08-10 降级）：Phase 2.3 实测 debug 增量 ~5-6s 可控；全量 3m54s 为一次性成本 | shared 逻辑以 JVM 单测为主验证路径 |
 | 单人带宽：Android 维护与 iOS 开发并行 | 🔵（2026-08-08 下调，原 🟡） | 多 `kimi-code` 实例并行执行（见 §3.1）：Kotlin 轨与 Swift/iOS 轨文件零冲突、Phase 5 相册/相机段真并行；单人带宽从「串行瓶颈」降为「协调成本」 |
-| Koog 1.x API 与实际需求不匹配（如相机 tool_calls 场域、iOS 无 ServiceLoader 的初始化差异） | 🟡 | Phase 1.1 映射表先行，差距早发现；Phase 2.3 真机验证 Koog 1.1.1 iOS 初始化；Koog 是 JetBrains 官方项目可提 issue/贡献 |
+| Koog 1.x API 与实际需求不匹配（相机 tool_calls / iOS ServiceLoader） | 🔵 **已缓解**（2026-08-10 回写）：iOS 初始化 Phase 2.3 验证（显式构造 `KtorKoogHttpClient.Factory`）；相机 tool_calls 由自定义 `poLangSingleRunStrategy` 绕过，均落 main | Koog 为 JetBrains 官方项目可提 issue |
 | Kotlin/Native ↔ Swift 互操作坑（retain cycle、类型映射语义损失、framework 体积） | 🟡（2026-08-07 review 新增） | Phase 2.3/4 实测互操作边界；framework 体积监控 |
-| 美颜引擎 GLSL→MSL shader 迁移量未知 | 🟡（2026-08-07 review 新增） | Phase 2.4 spike 前置评估；或 Phase 5.4 内独立工项 1–2 周 |
+| 美颜引擎 GLSL→MSL shader 迁移（原「迁移量未知」） | 🟢 **已关闭**（2026-08-10 回写）：spike 2.4 已量化（shader ~1w + Kotlin→Swift/Metal 宿主重写 ~2w）并 GO；Phase 5.4 已落地 | — |
 | App Store 审核（相册权限用途、AI 功能声明） | 🟡 | Phase 6.3 隐私清单提前准备；Phase 5.1 初始化 Privacy Manifest；Limited Access 友好设计是加分项 |
-| server 端 iOS 适配项被延迟发现 | 🟡 | Phase 6.4 显式清查；若改动量大提前拆独立计划 |
-| repo 改名打断协作者/外部链接 | 🔵 | GitHub 自动重定向；延后至 Phase 3 执行（3.5） |
+| server 端 iOS 适配项被延迟发现 | 🟢 **已关闭**（2026-08-10 回写）：Phase 6.4 审计完成，server 纯平台无关，5 适配点零阻塞 | — |
+| repo 改名打断协作者/外部链接 | 🟢 **已关闭**（2026-08-10 回写）：Phase 3.5 已执行（GitHub 自动重定向） | — |
 
 ## 5. 全局纪律（贯穿所有 Phase）
 

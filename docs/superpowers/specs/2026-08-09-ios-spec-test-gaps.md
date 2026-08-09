@@ -62,7 +62,8 @@
 | §8 splash_placeholder | 冷启动名言占位页 | ⚠️ 已实现 | `SplashPlaceholder` 存在且有 `gallery_splash` 标识符 |
 | §10 search_no_result | 搜索无结果提示 | ❌ 未实现 | 依赖搜索功能 |
 | §13-17 media_pager | 缩放手势（ZoomableImage） | ⚠️ 已实现 | `ZoomablePagerPage` 支持 pinch zoom 1-4x，但无法通过 XCUITest 验证缩放效果 |
-| §17 top_controls | 图像理解/OCR/人脸关键点叠层 | ❌ 未实现 | `pager_more` 菜单项灰置 |
+| §17 top_controls | 人脸关键点叠层 | ✅ 已实现（debug 门控） | `MediaPagerView.swift:123-318`，`GalleryFaceOverlay`/`GalleryFaceFeedback`（`9cb910e1`/`8d4c40ec`） |
+| §17 top_controls | 图像理解 / OCR 叠层 | ❌ 未实现 | `pager_more` 菜单项灰置（Phase 6） |
 | §19 long_press | 长按打开编辑器 | ❌ 未实现 | 长按用于选择模式，不打开编辑器 |
 | §20 photo_info_dialog | 照片信息弹窗（完整字段） | ⚠️ 部分 | `PhotoInfoSheet` 显示文件名/类型/时间/时长，缺 OCR/Vision/标签/美学评分 |
 | §24 video_player | 视频播放 | ❌ 未实现 | `ZoomablePagerPage` 对视频项仅显示缩略图 |

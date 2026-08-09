@@ -90,9 +90,12 @@
 - **状态机**——idle / panel_expanded / searching / selection_mode / permission_denied 等
 - **已知差异**——允许的平台原生差异项必须显式登记
 
-现有 spec：
+现有 spec（持续扩充，见 `specs/screens/` 目录）：
 - `specs/screens/camera.yaml` — 相机屏
 - `specs/screens/gallery-grid.yaml` — 相册网格屏
+- `specs/screens/chat.yaml` — 聊天屏
+- `specs/screens/settings.yaml` — 设置屏
+- `specs/screens/model-download-center.yaml` — 模型下载中心
 
 ### 2.2 实现后：视觉 + 量化地面真值
 
@@ -183,7 +186,7 @@ Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
 | 维度 | 规则 | 当前状态 |
 |------|------|---------|
 | **字符串** | 🔴 禁止硬编码用户可见文案——必须走 `strings.xml`（Android）/ `Localizable.strings`（iOS）；三语同步（[I18N] 红线） | ✅ 已落地 |
-| **RTL 布局** | 🟡 预留：布局用 `start/end` 而非 `left/right`（Android）/ `.leading/.trailing`（iOS） | 🟡 Compose 已用 `start/end`；iOS 待 Phase 5 验证 |
+| **RTL 布局** | 🟡 预留：布局用 `start/end` 而非 `left/right`（Android）/ `.leading/.trailing`（iOS） | 🟡 Compose 已用 `start/end`；iOS 待 Phase 6.x 验证（Phase 5 已发，三语均 LTR，RTL 暂不实现） |
 | **日期/数字** | 🟡 双端用平台 locale 格式化器（`DateTimeFormatter` / `java.time.format.DateTimeFormatter`），不手动拼接 | ✅ 已落地 |
 | **复数** | 🟡 使用平台复数资源（Android plurals.xml / iOS stringsdict 或 String Catalog） | 🟡 暂未使用，当前三语无复数差异 |
 | **字符长度** | 🟡 德语/俄语等翻译后文案可能膨胀 30%+，布局需弹性（不裁断、不溢出） | 🟡 当前三语长度接近，暂无问题 |
@@ -216,7 +219,7 @@ Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
 | px 直接当 dp 用 | 高密度机上整体放大 2~3 倍 |
 | 硬编码绝对坐标 | 换机型/换刘海形态即错位 |
 | 忽略 safe area | 顶栏被刘海吃、底栏被手势条挡 |
-| 用平台默认控件拼装（NavigationStack/TabView/List 默认样式） | 信息层级全面缺失（相册差距分析 🔴26 项的根因） |
+| 用平台默认控件拼装（NavigationStack/TabView/List 默认样式） | 信息层级全面缺失（相册差距分析 🔴26 项的根因；注：该分析为 2026-08-08 快照，多数 gap 已于后续重构关闭，见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](../reviews/2026-08-10-ios-kmp-doc-drift-audit.md)） |
 | 位图只供单倍率 | 高倍屏模糊 |
 | 硬编码 Color.White / Color.Black | 深色模式下文字不可见 |
 | 交互元素无 accessibilityLabel | TalkBack/VoiceOver 读不出功能，视障用户完全无法使用 |
@@ -241,4 +244,4 @@ Token 表放 `docs/reviews/` 或本文件附录，改动走 [DOC-SYNC]。
 - [Swift by Sundell：Defining Dynamic Colors in Swift](https://www.swiftbysundell.com/articles/defining-dynamic-colors-in-swift)
 - [Appy Pie：200ms Rule for Mobile Animation](https://www.appypie.com/blog/mobile-app-animation-guide)
 - [Bitrise：Introduction to App Localization in iOS and Android](https://bitrise.com/blog/post/introduction-to-app-localization-in-ios-and-android)
-- 本项目实证：`docs/reviews/2026-08-08-ios-camera-ui-gap-analysis.md`、`docs/reviews/2026-08-08-ios-gallery-ui-gap-analysis.md`
+- 本项目实证（2026-08-08 快照；相机/相册视图层已大幅重构，多数 gap 已关闭，勿用于当前规划，见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](../reviews/2026-08-10-ios-kmp-doc-drift-audit.md)）：`docs/reviews/2026-08-08-ios-camera-ui-gap-analysis.md`、`docs/reviews/2026-08-08-ios-gallery-ui-gap-analysis.md`

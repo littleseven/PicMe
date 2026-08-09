@@ -113,7 +113,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 
 `*` 仅 DEBUG 构建。
 
-> **iOS 落点**：`MainTabView.swift` + `FloatingBottomTab.swift` 已实现悬浮 Tab + 相册默认首页，4 Tab 顺序与图标语义一致（camera/chat/tag/person，Material Icons）。**但 iOS 主页面为 ZStack + 条件渲染，非真正跟手 Pager**——无横滑手势、无页面常驻、无物理吸附。`iOS 待对齐`：横滑跟手 + 4 页常驻。
+> **iOS 落点**：`MainTabView.swift` + `FloatingBottomTab.swift` 已实现悬浮 Tab + 相册默认首页，4 Tab 顺序与图标语义一致（camera/chat/tag/person，Material Icons）。**iOS 主页面为 ZStack + 条件渲染，已有 swipe 切页手势**（`MainTabView.swift:78-88` `simultaneousGesture`，水平主导滑动切页），但**非真正跟手 drag-tracking Pager**——无页面常驻、无物理吸附。`iOS 待对齐`：跟手 drag-tracking + 4 页常驻。
 
 ### 1.3 功能能力地图
 
@@ -123,8 +123,8 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 |---|---|---|---|---|---|
 | **导航/骨架** | 相册默认首页 + 4 页 Pager（相机/相册/聊天/人物） | ✅ | iOS 已有（默认页）；待对齐（跟手 Pager） | — | §1.2 |
 | 导航/骨架 | 悬浮底部 Tab（相机/聊天/打标/人物，纯图标无文字） | ✅ | iOS 已有 | — | §1.2 |
-| 导航/骨架 | 设置入口（相册顶部栏最右） | ✅ | iOS 待对齐 | — | §1.2 / §2.9 |
-| 导航/骨架 | 二级页导航（Settings/ModelCenter/PhotoEditor/IDPhoto/Debug…） | ✅ | iOS 缺口（多数未实现） | `NavigationCapability` | §3.1 |
+| 导航/骨架 | 设置入口（相册顶部栏最右） | ✅ | iOS 已有 | — | §1.2 / §2.9 |
+| 导航/骨架 | 二级页导航（Settings/ModelCenter/PhotoEditor/IDPhoto/Debug…） | ✅ | iOS 部分（Settings/ModelCenter 已实现；PhotoEditor/IDPhoto/Tag 等缺口） | `NavigationCapability` | §3.1 |
 | **相册/浏览** | 等比方块网格（Adaptive 110dp）+ 人脸感知对齐 | ✅ | iOS 已有（`GalleryGridView`） | `MediaAsset` | §2.1 |
 | 相册/浏览 | 分组菜单下拉（日期/有脸/无脸/人物/风景/地点） | ✅ | iOS 待对齐 | — | §2.1 |
 | 相册/浏览 | 媒体查看器（双指缩放 1-4x + 横滑翻页） | ✅ | iOS 已有（`MediaPagerView`） | — | §2.1 |
@@ -163,7 +163,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 | 人物/记忆 | 人物关系图谱（23 谓词封闭枚举 + 幂等覆盖） | ✅ | iOS 缺口 | — | §2.6 |
 | 人物/记忆 | 事实记忆（remember/forget/recall） | ✅ | iOS 缺口 | `MemoryCapability` | §2.6 |
 | 人物/记忆 | 人物封面美学选择（NIMA + eDifFIQA 加权） | ✅ | iOS 缺口 | — | §2.6 |
-| **自动标签** | TAG 3-Pass 流水线（检测+聚类+VLM 打标） | ✅ | iOS 缺口 | `ChatStartTagScanCapability` | §2.7 |
+| **自动标签** | TAG 3-Pass 流水线（检测+聚类+VLM 打标） | ✅ | iOS 部分（Pass1 已移植） | `ChatStartTagScanCapability` | §2.7 |
 | 自动标签 | 人脸检测 RetinaFace + R100 embedding + MobileCLIP | ✅ | iOS 缺口 | — | §2.7 |
 | 自动标签 | VLM 内容打标（Florence-2 默认 / Qwen3-VL 备选） | ✅ | iOS 缺口 | — | §2.7 |
 | 自动标签 | 中英双字段 + MT 汉化（ControlledVocab + Opus-MT） | ✅ | iOS 缺口 | — | §2.7 |
@@ -268,7 +268,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 
 - **权限范式差异**：Android 二态；iOS PhotoKit 四态（limited 一等公民，仅显已选 + 常驻「管理可访问照片」，`presentLimitedLibraryPicker` 已实现）。
 - **媒体源**：iOS = PhotoKit `PHFetchResult`（`PhMediaBridge.swift`），无需手动 sync 本地 DB，但需处理 limited 增量重查。
-- **Phase 5 已落地**：`GalleryGridView` / `AlbumListView` / `MediaPagerView` / `GalleryPermissionStore` 四态 / `ThumbnailView`+`ThumbnailLoader` / `GroupHeaderView` / `SplashPlaceholder` / `ShareSheet`。
+- **Phase 5 已落地**：`GalleryGridView` / `AlbumListView` / `MediaPagerView` / `GalleryPermissionStore` 四态 / `ThumbnailView`+`ThumbnailLoader` / `GroupHeaderView` / `SplashPlaceholder` / `ShareSheet` / `GalleryFaceDebug` 人脸关键点调试 overlay（debug 门控，`MediaPagerView.swift:123-318`）。
 - **缺口（待补）**：分组模式下拉菜单 / 拖拽多选 / 重复照片检测 / 备份恢复（v5 JSON → `UIDocumentPicker` + 同 schema）/ OCR 与图像理解浮层 / 自定义相册与存储管理（双端均缺）。
 
 ---
@@ -758,7 +758,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 - **shared 已就绪直接消费**：`AgentOrchestrator`/`CapabilityRegistry`/`KoogChatAgent`/`RemoteChatEngine` 全在 commonMain，iOS 经 `IosAgentComposition` 接线。
 - **iOS 当前能力面**：仅注册 `IosChatGalleryCapability`（CHAT）；chat 工具用手工清单 `ChatToolManifest`（替代 JVM 反射）；相机 AI / 飞书 RPA / 端侧 VLM 均 stub 或空。
-- **场景同步关键 gap**：iOS 必须调 `onMainPageChanged(page)` 同步 SceneManager，否则 CapabilityRegistry 按 currentScene 路由会恒 UNKNOWN，所有 chat 工具命令被入队。
+- **场景同步已接入**：`MainTabView.swift:60-66` 已在 onAppear + onChange(of: currentPage) 调 `IosAgentComposition.shared.onMainPageChanged(page:)` 同步 SceneManager（不再为 gap）。
 - **不可移植项**：iOS 无 Android AccessibilityService，跨应用 a11y 自动操作（`RemoteControlToolService` 的 click/scroll/input/get_screen_info）不可移植 → 飞书 RPA 链路 iOS 不可用。`SystemCapability` 的 `launch_app`/`open_system_settings` 在 iOS 受沙盒限制，能力远弱于 Android。
 - **语音**：ASR/VAD/唤醒词均为 Android 平台实现，iOS 需单独实现（Phase 6+）。
 
@@ -849,7 +849,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 端侧多模型 3-Pass 自动打标流水线：为人脸（检测+embedding+聚类）、内容（场景/物体/活动 VLM 打标）、语义（MobileCLIP 向量）三类维度生成结构化标签，支撑自然语言搜索召回与人物分组。全程端侧。前台 Service 驱动，可对话/手动触发、可中断、进度可见。
 
-> **iOS 落点**：iOS ❌ 全缺口，Phase 6.1。关键差异：MNN Metal 后端（precision 档位锁定坑）、ForegroundService→BGTaskScheduler（iOS ~30s 限制，全量扫描需改增量/手动）、MetalGuardian 新设计。
+> **iOS 落点**：🔄 Pass1 基建已移植（`Pass1Pipeline.swift`/`FaceAlignment`/`MobileClipEncoder`/`TagDatabase`，commit `25414e12`）；Pass2 聚类 / Pass3 VLM / MetalGuardian / 控制页未组装。关键差异：MNN Metal 后端（precision 档位锁定坑）、ForegroundService→BGTaskScheduler（iOS ~30s 限制，全量扫描需改增量/手动）、MetalGuardian 新设计。
 
 ### 2. 入口与导航
 
@@ -932,7 +932,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 ### 8. iOS 对齐要点
 
-- iOS ❌ 全缺口，Phase 6.1。MNN 推理接入（Phase 2.1：arm64 + Metal 后端 XCFramework）。
+- iOS 🔄 Pass1 已移植（`25414e12`），Pass2/Pass3/MetalGuardian/控制页未组装。MNN 推理接入（Phase 2.1：arm64 + Metal 后端 XCFramework）。
 - **MetalGuardian 新设计**（替代 OpenClGuardian，iOS 无 OpenCL）：Metal kernel warmup 超时检测、Metal→CPU 降级（含模型卸载重载）、MTLDevice 丢失处理、黑名单持久化。
 - **precision 档位锁定坑**（Phase 2.1 已知）：默认 `Precision_Normal`(fp16) 数值全错（cos≈-0.5），须显式锁定 `Precision_High` 或 `Precision_Low`。
 - **Qwen3-VL-2B 真机未验证**：内存峰值/Metal 算子/首 token 风险仍在案；失败则 iOS TAG VLM 需重开选型（MLX 不支持 iOS、CoreML LLM 支持有限）。
@@ -1033,7 +1033,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 ### 8. iOS 对齐要点
 
-Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beauty）+ MediaPipe 468→106 warp 形变 + 美颜 MVP（磨皮/美白/瘦脸/大眼）+ 9 ColorMatrix LUT + 5 风格占位 + 对焦/变焦/曝光 + 拍照离屏美颜存 PHPhotoLibrary。
+Phase 5.4 已落地：AVFoundation + Metal 4-pass（yuv→smoothing→lut→beauty）+ MediaPipe 468→106 warp 形变（+ MNN 2d106 双引擎运行时切换，`FaceEngineRouter`/`MnnFaceLandmarkService`，`9cb910e1`）+ 美颜 MVP（磨皮/美白/瘦脸/大眼）+ 9 ColorMatrix LUT + 5 风格占位 + 对焦/变焦/曝光 + 拍照离屏美颜存 PHPhotoLibrary。
 
 **Phase 6 增量补全**：美颜默认值统一为 **0**（勿照搬 FEATURES 的 35/25/20/40/20）+ 唇色/腮红色板；总开关三分支语义复刻；滤镜色调/风格**互斥**；快门反馈触感+音效+黑场（**80ms**，按钮缩放可补齐）；十字星时序；场景模式**手动+Agent**；录像线；语音入口默认隐藏。
 
@@ -1149,7 +1149,7 @@ SettingsScreen (MAIN)
 | `debug` / `jsbridge` / `search_test` / `sentencepiece_test` | Debug 类页 | 设置→Debug | 否 | — | `MainActivity.kt:513,527,532,537`（jsbridge/search_test/sentencepiece_test **仅 DEBUG**） |
 | `llm_log` | `LlmCallLogScreen` | 设置→LLM 调用日志 | 否 | — | `MainActivity.kt:544`（release 仅指标，无消息内容） |
 
-> iOS 落点：路由表为 Android NavGraph 概念；iOS 目前仅实现主页面 4 页 + 部分 Tab 占位（人物为占位页），二级页多为缺口。
+> iOS 落点：路由表为 Android NavGraph 概念；iOS 已实现主页面 4 页（人物页 UI 骨架 1311 行，非占位），二级页部分已实现（Settings/ModelCenter），PhotoEditor/IDPhoto/Tag 等仍缺口。
 
 ### 3.2 Capability → 意图路由表
 
@@ -1289,15 +1289,15 @@ SettingsScreen (MAIN)
 | Agent 编排（shared） | `IosAgentComposition.kt`（commonMain 全复用） | iOS 已有（编排层）；仅注册 1 Capability |
 | 设置主页 + 模型中心骨架 | `SettingsScreen.swift` / `ModelCenterView.swift` / `ModelConfigStore.swift`（消费 KMP `RemoteModelConfigs`） | iOS 已有（骨架）；账号/quota/预下载待补 |
 | 设计系统 token 镜像 | `DesignTokens.swift`（1:1） | iOS 已有 |
+| 场景同步（onMainPageChanged） | `MainTabView.swift:60-66`（onAppear + onChange(of: currentPage) 调 `IosAgentComposition`） | iOS 已有 |
 
 ### 4.2 进行中 / 待对齐（Phase 6.x）
 
 | 功能 | 缺口 | 平台注意 |
 |------|------|----------|
-| 跟手横滑 Pager + 4 页常驻 | iOS 为 ZStack 条件渲染，无手势/常驻 | 需重构为 SwiftUI 等价跟手容器 |
+| 跟手横滑 Pager + 4 页常驻 | iOS 为 ZStack 条件渲染（已有 swipe 切页手势，非跟手 drag-tracking）；无页面常驻/物理吸附 | 需重构为 SwiftUI 等价跟手容器 |
 | chat 多消息类型 | 仅消费 `media_results`，`text_reply`/`success`/`error` 被 `default:break` 丢弃 | 补全 `handleUiAction` 分支 |
-| 场景同步 | 未调 `onMainPageChanged(page)`，Capability 路由恒 UNKNOWN | 必须翻页同步 SceneManager |
-| iOS i18n | xcstrings 191 key（vs 981）+ 缺 zh-Hant | 补 zh-Hant + 扩 key 集 |
+| iOS i18n | xcstrings 239 key（vs 981，覆盖仍不足）；三语就绪（zh-Hant 已补） | 扩 key 集 |
 | Telegram 通信通道 | 飞书未接入 | 用户自配置 IM，非推理上传 |
 
 ### 4.3 缺口（Phase 6+，需新建）
