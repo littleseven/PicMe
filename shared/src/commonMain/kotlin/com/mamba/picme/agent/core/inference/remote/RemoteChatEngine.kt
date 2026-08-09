@@ -39,6 +39,7 @@ class RemoteChatEngine internal constructor(
     private val configurator: AgentConfigurator,
     chatToolDescriptors: List<ToolDescriptor>,
     private val chatToolRegistry: ToolRegistry,
+    private val chatPromptBuilder: (List<ToolDescriptor>) -> String = ::buildChatSystemPrompt,
 ) {
 
     private val tag = "RemoteChatEngine"
@@ -138,8 +139,8 @@ class RemoteChatEngine internal constructor(
     private var cachedChatAgent: KoogChatAgent? = null
     private var cachedChatAgentConfig: RemoteModelConfig? = null
 
-    /** chat system prompt（由组合根注入的工具描述元数据确定性组装，agent 构建期拼接当前日期）。 */
-    private val chatSystemPrompt = buildChatSystemPrompt(chatToolDescriptors)
+    /** chat system prompt（由组合根注入的工具描述元数据经注入的 prompt 组装器确定性组装，agent 构建期拼接当前日期）。 */
+    private val chatSystemPrompt = chatPromptBuilder(chatToolDescriptors)
 
     /**
      * 流式自由聊天（chat 远程 ReAct）。流式期间经 [onEvent] 实时上报：

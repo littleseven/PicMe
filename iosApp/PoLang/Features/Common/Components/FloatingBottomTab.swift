@@ -9,7 +9,7 @@ struct FloatingBottomTab: View {
     var body: some View {
         HStack(spacing: 0) {
             tabItem(icon: "camera", page: 0)
-            tabItem(icon: "bubble.left", page: 2)
+            tabItem(icon: "bubble.left", page: 2) // Chat 已落地（Phase 6.2）
             tabItem(icon: "tag", page: -1, isPlaceholder: true) // 打标无独立页
             tabItem(icon: "person.2", page: 3)
         }
@@ -37,7 +37,15 @@ struct FloatingBottomTab: View {
                 .padding(.vertical, 10)
         }
         // UI 自动化锚点：tab_camera / tab_chat / tab_tag / tab_person
-        .accessibilityIdentifier("tab_\(icon == "bubble.left" ? "chat" : icon == "person.2" ? "person" : icon)")
+        .accessibilityIdentifier("tab_\(tabId(for: icon))")
+    }
+
+    private func tabId(for icon: String) -> String {
+        switch icon {
+        case "bubble.left": return "chat"
+        case "person.2": return "person"
+        default: return icon
+        }
     }
 
     var onPlaceholderTap: ((String) -> Void)?

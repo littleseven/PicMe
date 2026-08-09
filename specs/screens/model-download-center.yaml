@@ -1,0 +1,390 @@
+# ============================================================================
+# 模型下载中心规格书（Model Download Center Spec）
+# ============================================================================
+# 基准端：Android LlmModelManagerScreen.kt / LlmModelDownloadManager.kt (ModelConfig)
+# 用途：iOS 重做的唯一输入，不读 Android 源码
+# 双端对齐原则：结构零容差一致，平台材质各自原生
+# 值引用：尺寸引用 design-tokens.json 的 token 名
+
+# ============================================================================
+# 1. 总体结构
+# ============================================================================
+root:
+  type: scaffold              # NavigationStack + ScrollView / TabView
+  background: "systemGroupedBackground"
+  top_bar:
+    title: "Model Center"     # 模型中心
+    style: inline              # navigationBarTitleDisplayMode(.inline)
+    back_button:
+      icon:
+        material: arrow_back
+        sf_symbol: "chevron.left"
+      size: topBar.buttonSize   # 36dp
+
+# ============================================================================
+# 2. 分类 Tab Bar（横向滚动 Chip）
+# ============================================================================
+# 对齐 Android ScrollableCategoryTabs + HorizontalPager
+category_tabs:
+  layout: horizontal_scroll    # 水平滚动，不显示滚动条
+  padding:
+    horizontal: 12
+    vertical: 8
+  chip_spacing: 8
+  background: "systemBackground"
+
+  chip:
+    shape: capsule             # CircleShape（全圆角胶囊）
+    height: 36
+    padding:
+      horizontal: 14
+      vertical: 8
+    content:
+      layout: row
+      spacing: 6
+      items:
+        - icon: 14             # 分类图标 14dp
+        - text: 14             # 标签文字 labelLarge
+    selected_style:
+      background: "accentColor"   # primaryContainer
+      text_color: "white"         # onPrimaryContainer
+      text_weight: semibold
+      shadow: { radius: 2, y: 1, opacity: 0.15 }
+    unselected_style:
+      background: "tertiarySystemBackground"
+      text_color: "secondary"     # onSurfaceVariant
+      text_weight: regular
+      shadow: none
+
+  # 分类定义（固定顺序，空 Tab 隐藏）
+  categories:
+    - id: "must-have"
+      label: "Must Have"       # 必须
+      icon:
+        material: star
+        sf_symbol: "star.fill"
+      models_source: "isRequired == true"  # 出现条件：模型 isRequired
+    - id: "recommended"
+      label: "Recommended"     # 推荐
+      icon:
+        material: download
+        sf_symbol: "arrow.down.circle"
+      models_source: "isRecommended == true"
+    - id: "photo-tagging"
+      label: "Photo Tagging"   # 相册打标
+      icon:
+        material: photo
+        sf_symbol: "photo"
+      models_source: "tags contains 'photo-tagging'"
+    - id: "beauty-camera"
+      label: "Beauty Camera"   # 美颜相机
+      icon:
+        material: camera_alt
+        sf_symbol: "camera"
+      models_source: "tags contains 'beauty-camera'"
+    - id: "chat"
+      label: "Voice"           # ⚠️ 标签是「语音」非「聊天」
+      icon:
+        material: chat
+        sf_symbol: "mic.fill"
+      models_source: "tags contains 'chat'"
+
+  # ⚠️ 关键：一个模型可出现在多个 Tab（如 must-have 的 face 模型同时出现在 beauty-camera）
+  # 翻页：TabView page style（HorizontalPager 等价），chip 自动居中滚动
+
+# ============================================================================
+# 3. 页面内容（每个 Tab 内）
+# ============================================================================
+page_content:
+  layout: lazy_column          # LazyColumn / ScrollView + LazyVStack
+  padding:
+    horizontal: 16
+    top: 12                    # Tab Bar 下方 12dp（+Tab Bar 自身高度偏移）
+    bottom: 32
+  item_spacing: 10
+
+  # 空状态
+  empty_state:
+    icon:
+      material: smart_toy      # 64dp
+      sf_symbol: "cpu"
+      size: 64
+      opacity: 0.4
+    text: "No models available"  # 暂无可用模型
+    text_style: bodyLarge
+    text_color: secondary
+
+# ============================================================================
+# 4. Must-Have 头部卡片（仅 must-have Tab）
+# ============================================================================
+must_have_header:
+  show_when: "category == must-have"
+  shape: card                  # radius.card = 12dp
+  background: "accentColor.opacity(0.12)"  # primaryContainer
+  padding: 16
+  content:
+    title:
+      text: "Must Have"        # 必须
+      font: { size: 16, weight: semibold }
+    summary:
+      text_template: "{requiredCount} required models, {missingCount} not downloaded"
+      # 共 N 个必须模型，M 个未下载
+      font: { size: 13 }
+      color: secondary
+    download_button:           # 仅当 missingCount > 0 时显示
+      show_when: "missingCount > 0"
+      alignment: trailing      # 右对齐
+      layout: row
+      spacing: 6
+      content:
+        - icon:
+            material: download  # 18dp
+            size: 16
+        - text: "Download Missing"  # 下载缺失
+      style:
+        background: "accentColor"
+        text_color: "white"
+        font: { size: 13, weight: semibold }
+        shape: capsule
+        padding: { horizontal: 16, vertical: 8 }
+
+# ============================================================================
+# 5. 模型卡片（ModelDownloadCard）
+# ============================================================================
+model_card:
+  shape: card                  # radius.card = 12dp
+  background: "secondarySystemBackground"  # surface
+  elevation: 1
+  padding: 14
+  long_press: show_properties  # 长按 → 属性弹窗
+
+  # 上部布局：Row（SpaceBetween）
+  layout:
+    type: row
+    alignment: top
+    left_column:
+      weight: 1
+      spacing: 4
+    right_column:
+      type: action_buttons
+
+  # ── 左列内容 ──────────────────────────────────────────
+  left_column:
+    # 行 1：模型名 + TagBadge
+    - name_row:
+        layout: row
+        spacing: 8
+        alignment: center
+        items:
+          - model_name:
+              font: { size: 15, weight: semibold }  # titleMedium
+              max_lines: 1
+              ellipsis: true
+          - tag_badge: *tag_badge_spec
+
+    # 行 2：描述
+    - description:
+        font: { size: 12 }       # bodySmall
+        color: secondary         # onSurfaceVariant
+        max_lines: 2
+        ellipsis: true
+
+    # 行 3：信息行
+    - info_row:
+        layout: row
+        spacing: 8
+        alignment: center
+        padding_top: 2
+        items:
+          - file_size:
+              font: { size: 12, weight: medium }  # labelMedium
+              color: accentColor    # primary
+              value_template: "formatFileSize(model.size)"
+              # ≥1GiB → "%.2f GB", ≥1MiB → "%.2f MB", ≥1KiB → "%.2f KB", else "N B"
+          - lightweight_badge: *lightweight_badge_spec
+              show_when: "model.size < 50MB"
+          - required_badge: *required_badge_spec
+              show_when: "model.isRequired"
+
+  # ── 右列：操作按钮 ──────────────────────────────────
+  right_column:
+    type: column
+    spacing: 4
+    items:
+      - primary_action: *action_button_states
+      - delete_button: *delete_button_spec
+
+# ============================================================================
+# 6. Badge 规格
+# ============================================================================
+tag_badge_spec: &tag_badge_spec
+  shape: rounded_corner        # RoundedCornerShape(6dp)
+  corner_radius: 6
+  padding: { horizontal: 8, vertical: 3 }
+  background: "tagColor.opacity(0.12)"  # color.copy(alpha=0.12f)
+  content:
+    layout: row
+    spacing: 4
+    items:
+      - circle:
+          size: 6              # 6dp filled circle
+          color: "tagColor"
+      - text:
+          font: { size: 10 }   # labelSmall
+          color: "tagColor"
+          max_lines: 1
+          value_template: "tagDisplayName(primaryTag)"
+  # tag → 颜色映射（对齐 Android getTagColor）
+  tag_colors:
+    "must-have": 0xE53935      # red
+    "recommended": 0xFF9800    # tertiary/orange
+    "chat": 0x2196F3           # primary/blue
+    "photo-tagging": 0x9C27B0  # purple
+    "beauty-camera": 0xFF9800  # tertiary/orange
+    "voice": 0x03A9F4          # secondary/light-blue
+    "vision": 0xFF9800
+    "face": 0xFF9800
+    default: 0x9E9E9E          # outline/grey
+
+lightweight_badge_spec: &lightweight_badge_spec
+  text: "Lightweight"          # 轻量版
+  font: { size: 10 }
+  color: secondary
+  shape: rounded_corner
+  corner_radius: 4
+  background: "tertiarySystemBackground.opacity(0.6)"  # surfaceVariant@60%
+  padding: { horizontal: 6, vertical: 2 }
+
+required_badge_spec: &required_badge_spec
+  text: "Must Have"            # 必须
+  font: { size: 10, weight: bold }  # ⚠️ Bold 白字
+  color: white
+  shape: rounded_corner
+  corner_radius: 4
+  background: 0xE53935         # ⚠️ 红底 #E53935
+  padding: { horizontal: 6, vertical: 2 }
+
+# ============================================================================
+# 7. 操作按钮状态机（ModelActionButton）
+# ============================================================================
+action_button_states: &action_button_states
+  # 主操作按钮：按下载状态切换
+  states:
+    downloaded:                # 已下载（isDownloaded && 非下载中/暂停）
+      icon:
+        material: check        # 24dp
+        sf_symbol: "checkmark"
+        size: 22
+        color: accentColor     # primary
+      button_size: 36
+      action: confirm_delete   # ⚠️ 点击 Check → 弹删除确认
+
+    downloading:
+      layout: row
+      spacing: 2
+      buttons:
+        - pause:
+            icon: { material: pause, size: 18, color: accentColor }
+            button_size: 32
+            action: pause_download
+        - cancel:
+            icon: { material: close, size: 18, color: error }  # 红色
+            button_size: 32
+            action: cancel_download
+
+    paused:
+      icon:
+        material: play_arrow   # 22dp
+        sf_symbol: "play.fill"
+        size: 22
+        color: accentColor
+      button_size: 36
+      action: resume_download
+
+    failed:
+      icon:
+        material: download     # 20dp
+        size: 20
+        color: accentColor
+      button_size: 36
+      action: retry_download
+
+    not_downloaded:            # 默认/PENDING/CANCELLED
+      icon:
+        material: download     # 20dp
+        sf_symbol: "arrow.down.circle"
+        size: 20
+        color: accentColor
+      button_size: 36
+      action: start_download
+
+delete_button_spec: &delete_button_spec
+  # ⚠️ 始终显示（所有状态都有）
+  icon:
+    material: delete           # 18dp
+    sf_symbol: "trash"
+    size: 18
+    color: "error.opacity(0.6)"  # error @ 60% alpha
+  button_size: 36
+  action: confirm_delete
+
+# ============================================================================
+# 8. 进度条（仅 DOWNLOADING / PAUSED / FAILED）
+# ============================================================================
+progress_section:
+  show_when: "status in [downloading, paused]"
+  padding_top: 10
+  content:
+    progress_bar:
+      type: linear              # LinearProgressIndicator
+      value: "downloadedBytes / totalBytes, clamped [0, 1]"
+      bar_color:
+        downloading: accentColor   # primary
+        paused: secondary          # outline
+      track_color: "tertiarySystemBackground"  # surfaceVariant
+    status_text:
+      layout: row
+      spacing: 0
+      font: { size: 11 }       # labelSmall
+      color: secondary
+      content:
+        paused: "Pause"        # 暂停
+        downloading_percentage: "{progress}%"
+
+  failed_text:
+    show_when: "status == failed"
+    padding_top: 6
+    text: "Download failed. Please try again."  # 下载失败，请重试。
+    font: { size: 11 }
+    color: error               # 红色
+
+# ============================================================================
+# 9. 弹窗
+# ============================================================================
+delete_confirm_dialog:
+  type: confirmation_dialog
+  title: "Delete model?"       # 删除模型？
+  message_template: "Are you sure you want to delete {model.name}?"
+  buttons:
+    - { text: "Delete", role: destructive, action: delete_model }
+    - { text: "Cancel", role: cancel }
+
+properties_sheet:              # 长按触发
+  type: sheet                  # Android: Dialog → iOS: sheet
+  title: "Model Properties"    # 模型属性
+  content:
+    format: json_pretty        # pretty-printed JSON
+    font: { size: 12, design: monospace }
+    fields: [id, name, description, size, sizeFormatted, tags, files, sources, isSmallModel]
+  close_button: "Close"        # 关闭
+
+# ============================================================================
+# 10. 允许的平台差异
+# ============================================================================
+allowed_differences:
+  - "图标具体形状（Material Icons vs SF Symbols）"
+  - "字体回退（Android Roboto vs iOS SF Pro）"
+  - "卡片阴影渲染方式（elevation vs shadow）"
+  - "弹窗呈现方式（Android Dialog/AlertDialog vs iOS sheet/confirmationDialog）"
+  - "进度条原生外观（Material LinearProgressIndicator vs SwiftUI ProgressView）"
+  - "翻页交互（Android HorizontalPager vs iOS TabView page style）"

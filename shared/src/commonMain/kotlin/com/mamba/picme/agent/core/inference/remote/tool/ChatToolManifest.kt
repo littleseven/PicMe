@@ -1,0 +1,157 @@
+package com.mamba.picme.agent.core.inference.remote.tool
+
+import ai.koog.agents.core.tools.SimpleTool
+import ai.koog.agents.core.tools.ToolBase
+import ai.koog.agents.core.tools.ToolDescriptor
+import ai.koog.agents.core.tools.annotations.LLMDescription
+import ai.koog.serialization.typeToken
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+
+/**
+ * iOS chat 工具手工清单（Phase 6.2 T2）：K/N 无反射，`asToolsByClass()` 不可用，
+ * 用 [SimpleTool] 子类逐字面对齐 [ChatToolService] 的 8 个相册工具。
+ *
+ * 一致性纪律：name/description/参数名/参数描述**逐字节**照抄 @Tool(customName) 与
+ * @LLMDescription 原文（改任何一侧都会触发 jvmTest `ChatToolManifestConsistencyTest`
+ * 红——该测试用 JVM 反射展开结果与本清单逐项比对）。
+ *
+ * 工具实现直接委托 [ChatToolService] 的 suspend 方法（同一 dispatchCommand →
+ * CapabilityRegistry(scene=CHAT) + uiActions 通路，Android/iOS 行为同源）。
+ *
+ * 未纳入的 @Tool（JS/修图/记忆/设置/导航等）见 plan §1「不进第一版」——iOS prompt
+ * （IosChatPrompt）不引用这些能力，LLM 无从幻觉调用。
+ */
+@OptIn(ExperimentalSerializationApi::class)
+object ChatToolManifest {
+
+    // ── 参数包（@Serializable，属性名= JVM 反射参数名，@LLMDescription= 参数描述）────
+
+    @Serializable
+    class EmptyArgs
+
+    @Serializable
+    class SearchMediaArgs(
+        @property:LLMDescription("自然语言搜索词") val query: String,
+    )
+
+    @Serializable
+    class RefineMediaSearchArgs(
+        @property:LLMDescription("细化条件") val constraint: String,
+        @property:LLMDescription("时间起点（毫秒），如某月起始；空串=不限") val fromMs: String,
+        @property:LLMDescription("时间终点（毫秒），如某月末；空串=不限") val toMs: String,
+    )
+
+    @Serializable
+    class ViewMediaArgs(
+        @property:LLMDescription("媒体 id/URI，无则空串") val mediaId: String,
+    )
+
+    @Serializable
+    class SelectMediaArgs(
+        @property:LLMDescription("媒体 id") val mediaId: String,
+        @property:LLMDescription("true 选中 / false 取消") val selected: Boolean,
+    )
+
+    @Serializable
+    class FavoriteMediaArgs(
+        @property:LLMDescription("媒体 id") val mediaId: String,
+        @property:LLMDescription("true 收藏 / false 取消") val favorite: Boolean,
+    )
+
+    @Serializable
+    class MediaIdsArgs(
+        @property:LLMDescription("媒体 id 列表逗号分隔，无则空串") val mediaIds: String,
+    )
+
+    // ── 工具实现（委托 ChatToolService 同名 suspend 方法）─────────────────────────
+
+    private class GetGallerySummaryTool : SimpleTool<EmptyArgs>(
+        argsType = typeToken<EmptyArgs>(),
+        name = "get_gallery_summary",
+        description = "获取本地相册摘要：照片/视频/媒体总数、含人脸数、人物聚类数、已/未打标数、语义向量数、扫描建议。",
+    ) {
+        override suspend fun execute(args: EmptyArgs): String =
+            ChatToolService.getInstance().getGallerySummary()
+    }
+
+    private class SearchMediaTool : SimpleTool<SearchMediaArgs>(
+        argsType = typeToken<SearchMediaArgs>(),
+        name = "search_media",
+        description = "搜索本地相册。query 为自然语言搜索词，如'去年夏天海边的小孩'。返回匹配照片。",
+    ) {
+        override suspend fun execute(args: SearchMediaArgs): String =
+            ChatToolService.getInstance().searchMedia(args.query)
+    }
+
+    private class RefineMediaSearchTool : SimpleTool<RefineMediaSearchArgs>(
+        argsType = typeToken<RefineMediaSearchArgs>(),
+        name = "refine_media_search",
+        description = "在上一轮搜索结果内细化过滤，如'只要夜景''找找4月的'。constraint 为细化条件；时间窄化务必传 fromMs/toMs（毫秒，据当前日期算）做精确交集，留空串=不限。",
+    ) {
+        override suspend fun execute(args: RefineMediaSearchArgs): String =
+            ChatToolService.getInstance().refineMediaSearch(args.constraint, args.fromMs, args.toMs)
+    }
+
+    private class ViewMediaTool : SimpleTool<ViewMediaArgs>(
+        argsType = typeToken<ViewMediaArgs>(),
+        name = "view_media",
+        description = "查看指定媒体。mediaId 为媒体 URI 或 id，无则留空串。",
+    ) {
+        override suspend fun execute(args: ViewMediaArgs): String =
+            ChatToolService.getInstance().viewMedia(args.mediaId)
+    }
+
+    private class SelectMediaTool : SimpleTool<SelectMediaArgs>(
+        argsType = typeToken<SelectMediaArgs>(),
+        name = "select_media",
+        description = "选择/取消选择媒体。selected 为 true 选中 / false 取消。",
+    ) {
+        override suspend fun execute(args: SelectMediaArgs): String =
+            ChatToolService.getInstance().selectMedia(args.mediaId, args.selected)
+    }
+
+    private class FavoriteMediaTool : SimpleTool<FavoriteMediaArgs>(
+        argsType = typeToken<FavoriteMediaArgs>(),
+        name = "favorite_media",
+        description = "收藏/取消收藏媒体。favorite 为 true 收藏 / false 取消。",
+    ) {
+        override suspend fun execute(args: FavoriteMediaArgs): String =
+            ChatToolService.getInstance().favoriteMedia(args.mediaId, args.favorite)
+    }
+
+    private class DeleteMediaTool : SimpleTool<MediaIdsArgs>(
+        argsType = typeToken<MediaIdsArgs>(),
+        name = "delete_media",
+        description = "删除媒体。mediaIds 为 id 列表逗号分隔，无则空串。",
+    ) {
+        override suspend fun execute(args: MediaIdsArgs): String =
+            ChatToolService.getInstance().deleteMedia(args.mediaIds)
+    }
+
+    private class ShareMediaTool : SimpleTool<MediaIdsArgs>(
+        argsType = typeToken<MediaIdsArgs>(),
+        name = "share_media",
+        description = "分享媒体。mediaIds 为 id 列表逗号分隔，无则空串。",
+    ) {
+        override suspend fun execute(args: MediaIdsArgs): String =
+            ChatToolService.getInstance().shareMedia(args.mediaIds)
+    }
+
+    /** 8 个工具实例（stateless，共享一份即可；registry 与 descriptors 同源派生）。 */
+    val tools: List<ToolBase<*, *>> by lazy {
+        listOf(
+            GetGallerySummaryTool(),
+            SearchMediaTool(),
+            RefineMediaSearchTool(),
+            ViewMediaTool(),
+            SelectMediaTool(),
+            FavoriteMediaTool(),
+            DeleteMediaTool(),
+            ShareMediaTool(),
+        )
+    }
+
+    /** system prompt 清单段用的描述元数据（与 [tools] 同源，零漂移）。 */
+    fun buildDescriptors(): List<ToolDescriptor> = tools.map { it.descriptor }
+}

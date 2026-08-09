@@ -1,0 +1,131 @@
+package com.mamba.picme.agent.core.inference.remote
+
+import com.mamba.picme.agent.core.facade.AgentOrchestrator
+import com.mamba.picme.agent.core.inference.remote.tool.ChatToolService
+import com.mamba.picme.agent.core.model.context.AgentContext
+import com.mamba.picme.agent.core.model.context.AgentScene
+import com.mamba.picme.agent.core.platform.logging.Logger
+import com.mamba.picme.shared.FlowWatcher
+import com.mamba.picme.shared.watch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
+/**
+ * Swift ↔ Kotlin chat 桥（Phase 6.2 T5）。
+ *
+ * signal 6 纪律（kmp-ios-interop 铁律 1-3）：
+ * - **非 suspend**：所有方法返回 Unit（void），watcher 生命周期由本类内部管理；
+ *   Swift 经 [cancelCurrent] 取消推理，经 [watchUiActions] 拿 FlowWatcher（单参数方法 K/N 不丢返回类型）。
+ * - **try/catch(Throwable) 全兜**：CancellationException 语义保留（重新抛出不吞），
+ *   其余异常在 Kotlin 侧吞掉，经 `onComplete(errorMessage)` 回传 Swift——
+ *   未声明 @Throws 的异常逃逸到 Swift 会 signal 6 (SIGABRT)。
+ * - **回调线程**：onText/onToolCall/onAction 可在任意调度器线程触发；
+ *   Swift 侧必须在 `Task { @MainActor in }` 内更新 UI（漏一处即 UI 线程违规）。
+ *
+ * @param orchestrator 已初始化的 [AgentOrchestrator] 实例
+ * @param sessionId Koog 记忆 session id，默认 "default"（单会话版）
+ */
+class ChatAgentBridge(
+    private val orchestrator: AgentOrchestrator,
+    private val sessionId: String = DEFAULT_SESSION_ID
+) {
+    private val tag = "ChatAgentBridge"
+
+    private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private var currentJob: Job? = null
+
+    /**
+     * 发送消息（启动流式远程推理）。返回 void（K/N 多参数方法丢返回类型，
+     * watcher 生命周期内部管理，Swift 经 [cancelCurrent] 取消）。
+     */
+    fun sendMessage(
+        input: String,
+        onText: (String) -> Unit,
+        onToolCall: () -> Unit,
+        onComplete: (summary: String, errorMessage: String?) -> Unit
+    ) {
+        currentJob = bridgeScope.launch {
+            try {
+                val context = AgentContext(
+                    scene = AgentScene.CHAT,
+                    memorySessionId = sessionId
+                )
+                val result = orchestrator.remoteChatEngine.streamChat(
+                    input = input,
+                    agentContext = context,
+                    onEvent = { event ->
+                        when (event) {
+                            is ChatStreamEvent.TextSnapshot -> onText(event.text)
+                            is ChatStreamEvent.ToolCallStarted -> onToolCall()
+                        }
+                    }
+                )
+                result.fold(
+                    onSuccess = { streamResult ->
+                        onComplete(streamResult.fullResponse, null)
+                    },
+                    onFailure = { e ->
+                        Logger.e(tag, "sendMessage failed", e)
+                        onComplete("", e.message ?: "未知错误")
+                    }
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.e(tag, "sendMessage exception", e)
+                onComplete("", e.message ?: "未知错误")
+            }
+        }
+    }
+
+    /**
+     * 订阅 chat 工具执行产出的 UI 动作（媒体卡片 / 文本提示）。
+     * Swift 侧在页面出现时调用并持有 watcher，页面消失时 cancel。
+     *
+     * @return [FlowWatcher]（单参数方法，K/N 导出保留返回类型）
+     */
+    fun watchUiActions(onAction: (ChatUiActionDto) -> Unit): FlowWatcher {
+        val flow = ChatToolService.getInstance().uiActions
+        return flow.watch { action ->
+            val dto = ChatUiActionDto.from(action)
+            if (dto != null) {
+                onAction(dto)
+            }
+        }
+    }
+
+    /**
+     * 清空对话记忆（Koog koog_memory_<sessionId> 键空间）。返回 void。
+     */
+    fun clearHistory(onDone: () -> Unit) {
+        bridgeScope.launch {
+            try {
+                orchestrator.clearChatMemory(sessionId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Logger.e(tag, "clearHistory exception", e)
+            } finally {
+                onDone()
+            }
+        }
+    }
+
+    /** 当前是否有推理在进行（Swift 侧串行发送守卫）。 */
+    fun isRunning(): Boolean = currentJob?.isActive == true
+
+    /** 取消当前推理（Swift 侧 stop 按钮调用）。幂等：无推理进行时无操作。 */
+    fun cancelCurrent() {
+        currentJob?.cancel()
+        currentJob = null
+    }
+
+    companion object {
+        const val DEFAULT_SESSION_ID = "default"
+    }
+}

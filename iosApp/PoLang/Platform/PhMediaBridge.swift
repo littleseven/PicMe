@@ -85,6 +85,20 @@ import SharedKit
         }, completionHandler: { _, _ in })
         return true
     }
+
+    /// 收藏/取消收藏（PHAssetChangeRequest 改 isFavorite，无系统确认窗）。
+    func setFavorite(localIdentifier: String, favorite: Bool) -> Bool {
+        guard !localIdentifier.isEmpty else { return false }
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+        guard assets.count > 0 else { return false }
+        PHPhotoLibrary.shared().performChanges({
+            assets.enumerateObjects { asset, _, _ in
+                let req = PHAssetChangeRequest(for: asset)
+                req.isFavorite = favorite
+            }
+        }, completionHandler: { _, _ in })
+        return true
+    }
 }
 
 extension PhMediaBridge: PHPhotoLibraryChangeObserver {

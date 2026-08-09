@@ -3,6 +3,7 @@ package com.mamba.picme.agent.core.facade
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolRegistry
 import com.mamba.picme.agent.core.inference.local.ImageInferenceEngine
+import com.mamba.picme.agent.core.inference.remote.RemoteChatEngine
 import com.mamba.picme.agent.core.platform.storage.ChatHistoryCleaner
 import com.mamba.picme.agent.core.platform.storage.ChatMemoryStore
 import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
@@ -49,4 +50,11 @@ data class AgentDependencies(
 
     /** 飞书 RPA 工具注册表按需构建（RemoteControlToolService 依赖 WindowManager，懒创建时取用）。 */
     val remoteImToolRegistryProvider: () -> ToolRegistry,
+
+    /**
+     * chat system prompt 组装器（Phase 6.2 iOS 注入点）：输入 chat 工具描述元数据，输出完整 prompt。
+     * 默认 = [RemoteChatEngine.buildChatSystemPrompt]（Android 现状，零行为变化）；iOS 组合根注入
+     * `IosChatPrompt.build`（精简版——iOS v1 无 JS/修图/记忆工具，沿用全量 prompt 会诱使 LLM 幻觉调用）。
+     */
+    val chatPromptBuilder: (List<ToolDescriptor>) -> String = RemoteChatEngine::buildChatSystemPrompt,
 )

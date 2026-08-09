@@ -71,5 +71,23 @@
     "vibrantBlue": "#FF2979FF",
     "vibrantOrange": "#FFFF9100",
     "vibrantPink": "#FFFF4081"
+  },
+
+  "modelCenter": {
+    "_comment": "模型下载中心专属 token（specs/screens/model-download-center.yaml 引用）",
+    "tagColorMustHave": "#FFE53935",
+    "tagColorRecommended": "#FFFF9800",
+    "tagColorChat": "#FF2196F3",
+    "tagColorPhotoTagging": "#FF9C27B0",
+    "tagColorBeautyCamera": "#FFFF9800",
+    "tagColorDefault": "#FF9E9E9E",
+    "requiredBadgeBg": "#FFE53935",
+    "chipHeight": 36,
+    "chipIconSize": 14,
+    "actionButtonSize": 36,
+    "actionButtonSmallSize": 32,
+    "tagBadgeRadius": 6,
+    "miniBadgeRadius": 4,
+    "tagBadgeDotSize": 6
   }
 }

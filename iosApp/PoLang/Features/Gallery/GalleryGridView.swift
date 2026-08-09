@@ -62,8 +62,10 @@ struct GalleryGridView: View {
         .sheet(item: $sharePayload) { payload in
             ActivityView(activityItems: payload.images)
         }
-        .sheet(isPresented: $showSettings) {
-            SettingsScreen()
+        .fullScreenCover(isPresented: $showSettings) {
+            NavigationStack {
+                SettingsScreen()
+            }
         }
         .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
                             titleVisibility: .visible) {
@@ -343,6 +345,7 @@ private final class GalleryPreviewBridge: NSObject, IosMediaRepositoryBridge {
     func addChangeListener(listener: @escaping () -> Void) {}
     func removeChangeListener() {}
     func deleteMedia(localIdentifiers: [String]) -> Bool { true }
+    func setFavorite(localIdentifier: String, favorite: Bool) -> Bool { true }
 }
 
 private func previewRepository(itemCount: Int) -> IosMediaRepository {
