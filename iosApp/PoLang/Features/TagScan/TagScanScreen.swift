@@ -1,64 +1,69 @@
 import SwiftUI
 
-/// TAG 扫描控制页（完全复刻 Android TagGenerationControlScreen 的 8 个 section）。
-/// SP-B 仅 Pass1 可用；依赖 Pass2/Pass3 的控件渲染但置灰 +「后续阶段」徽标，点击 toast。
+/// TAG 扫描控制页（完全复刻 Android TagGenerationControlScreen 的结构 + 视觉规范）。
+/// 使用本 App 设计系统（DesignTokens / MatIcon / AppTopBar / 卡片习惯），SP-B 仅 Pass1 真正可用。
 struct TagScanScreen: View {
     @StateObject private var vm = TagScanViewModel()
-    @Environment(\.dismiss) private var dismiss
     @State private var showComingSoon = false
 
-    /// 由父视图注入的关闭回调；nil 时不显示右上角关闭按钮（用作 tab 根视图时）。
+    /// 由父视图注入的关闭回调（TAB 与 fullScreenCover 均注入）。
     var onDismiss: (() -> Void)? = nil
 
+    private var state: ScanSessionState { vm.progress?.state ?? .idle }
+    private var showControls: Bool { state == .running || state == .paused }
+    private var showQuick: Bool { state == .idle && !vm.hasUnfinishedSession }
+
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            AppTopBar(title: NSLocalizedString("scan_page_title", comment: ""),
+                      showsBackButton: true,
+                      onBack: { onDismiss?() }) {
+                EmptyView()
+            }
             ScrollView {
-                VStack(spacing: 16) {
-                    if vm.hasUnfinishedSession && !vm.isScanning && (vm.progress?.state ?? .idle) != .running {
-                        resumePromptRow
+                VStack(spacing: Spacing.lg) {
+                    if vm.hasUnfinishedSession && state != .running {
+                        resumeRow
                     }
-                    ScanBackgroundBanner()                     // 1) 后台守护横幅
-                    ScanProgressCard(progress: vm.progress)    // 2) 进度卡
-                    ScanControlRow(vm: vm)                     // 3) 会话控制条
-                    ScanStatsCard(stats: vm.stats)             // 4) 统计卡
-                    ScanPipelineOverview()                     // 5) 管线概览
-                    ScanQuickActions(vm: vm)                   // 6) 全量/增量
-                    ScanPassControlSection(vm: vm,             // 7) 4 张 PassControlCard
-                                           onDisabled: { showComingSoon = true })
-                    ScanFineControlSection(onDisabled: { showComingSoon = true }) // 8) 精细控制
-                }
-                .padding()
-            }
-            .navigationTitle(Text("scan_title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if let onDismiss {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: onDismiss) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .accessibilityIdentifier("scan_close")
+                    if let p = vm.progress {
+                        ScanProgressCard(progress: p)
                     }
+                    if showControls {
+                        ScanControlRow(vm: vm)
+                    }
+                    ScanStatsCard(stats: vm.stats)
+                    ScanPipelineOverview()
+                    if showQuick {
+                        ScanQuickActions(vm: vm)
+                    }
+                    ScanPassControlSection(vm: vm, onDisabled: { showComingSoon = true })
                 }
+                .padding(Spacing.lg)
             }
-            .onAppear { vm.refreshStats() }
-            .alert(Text("scan_coming_soon_toast"), isPresented: $showComingSoon) {
-                Button("OK", role: .cancel) {}
-            }
+        }
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .onAppear { vm.refreshStats() }
+        .alert(Text("scan_coming_soon_toast"), isPresented: $showComingSoon) {
+            Button("OK", role: .cancel) {}
         }
     }
 
-    private var resumePromptRow: some View {
+    private var resumeRow: some View {
         HStack {
-            Text("scan_resume_unfinished").font(.subheadline)
+            Text("scan_resume_unfinished").font(AppTypography.bodyMedium.font)
             Spacer()
-            Button("scan_action_resume") { vm.resumeUnfinished() }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("scan_resume_unfinished_btn")
+            Button(action: { vm.resumeUnfinished() }) {
+                Text("scan_action_resume")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, Spacing.md).padding(.vertical, 6)
+                    .background(Color.accentColor)
+                    .clipShape(Capsule())
+            }
+            .accessibilityIdentifier("scan_resume_unfinished_btn")
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(Spacing.md)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(AppShapes.card)
     }
 }
