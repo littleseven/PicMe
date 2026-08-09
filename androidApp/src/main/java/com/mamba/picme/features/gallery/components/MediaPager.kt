@@ -149,6 +149,7 @@ fun MediaPager(
     onReTag: suspend (Uri) -> String? = { null },
     onDescribeImage: suspend (Uri) -> String? = { null },
     onTriggerSummary: (Long) -> Unit = {},
+    onDetectLandmarks: suspend (String) -> MediaViewModel.FaceLandmarkResult? = { null },
     debugUiEnabled: Boolean = false
 ) {
     key(initialIndex) {
@@ -164,10 +165,50 @@ fun MediaPager(
         val scope = rememberCoroutineScope()
         val currentAsset = assets.getOrNull(pagerState.currentPage)
 
-        val landmarkState = rememberFaceLandmarkDetection(
-            imageUri = currentAsset?.uri.orEmpty(),
-            enabled = showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO
-        )
+        val landmarkImageUri = currentAsset?.uri.orEmpty()
+        val landmarkEnabled = showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO
+        var landmarkState by remember { mutableStateOf(FaceLandmarkDetectionState.IDLE) }
+        LaunchedEffect(landmarkImageUri, landmarkEnabled) {
+            if (!landmarkEnabled) {
+                landmarkState = FaceLandmarkDetectionState.IDLE
+            } else {
+                landmarkState = FaceLandmarkDetectionState(
+                    imageWidth = 0,
+                    imageHeight = 0,
+                    points106 = null,
+                    isLoading = true,
+                    noFace = false,
+                    errorMessage = null
+                )
+                landmarkState = when (val result = onDetectLandmarks(landmarkImageUri)) {
+                    is MediaViewModel.FaceLandmarkResult.Success -> FaceLandmarkDetectionState(
+                        imageWidth = result.imageWidth,
+                        imageHeight = result.imageHeight,
+                        points106 = result.points106,
+                        isLoading = false,
+                        noFace = false,
+                        errorMessage = null
+                    )
+                    MediaViewModel.FaceLandmarkResult.NoFace -> FaceLandmarkDetectionState(
+                        imageWidth = 0,
+                        imageHeight = 0,
+                        points106 = null,
+                        isLoading = false,
+                        noFace = true,
+                        errorMessage = null
+                    )
+                    is MediaViewModel.FaceLandmarkResult.Error -> FaceLandmarkDetectionState(
+                        imageWidth = 0,
+                        imageHeight = 0,
+                        points106 = null,
+                        isLoading = false,
+                        noFace = false,
+                        errorMessage = result.message
+                    )
+                    null -> FaceLandmarkDetectionState.IDLE
+                }
+            }
+        }
 
         LaunchedEffect(pagerState.currentPage) {
             currentPageZoomed = false
@@ -307,6 +348,7 @@ fun MediaPager(
 
             if (showLandmarkOverlay && currentAsset?.type == MediaType.PHOTO) {
                 FaceLandmarkCanvasOverlay(state = landmarkState)
+                FaceLandmarkFeedback(state = landmarkState)
             }
 
             // Photo Info Dialog (取代旧的 SourceInfoOverlay)

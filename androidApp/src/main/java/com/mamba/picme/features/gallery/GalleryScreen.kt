@@ -944,6 +944,7 @@ fun GalleryScreen(
                         onDescribeImage = { uri ->
                             app.container.tagGenerationScheduler.describeImage(uri.toString())
                         },
+                        onDetectLandmarks = { uri -> viewModel.detectFaceLandmarks(context, uri) },
                         debugUiEnabled = debugUiEnabled
                     )
                 }

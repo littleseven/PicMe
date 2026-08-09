@@ -102,7 +102,8 @@ data class MediaViewModelDependencies(
     val ocrUseCase: OcrProcessor,
     val photoProcessor: PhotoProcessor,
     val faceDetector: FaceDetector,
-    val generateSummaryOnDemandUseCase: GenerateSummaryOnDemandUseCase
+    val generateSummaryOnDemandUseCase: GenerateSummaryOnDemandUseCase,
+    val userSettingsRepository: UserSettingsRepository
 )
 
 class MediaViewModelFactory(
@@ -119,7 +120,8 @@ class MediaViewModelFactory(
                 ocrUseCase = dependencies.ocrUseCase,
                 photoProcessor = dependencies.photoProcessor,
                 faceDetector = dependencies.faceDetector,
-                generateSummaryOnDemandUseCase = dependencies.generateSummaryOnDemandUseCase
+                generateSummaryOnDemandUseCase = dependencies.generateSummaryOnDemandUseCase,
+                userSettingsRepository = dependencies.userSettingsRepository
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
@@ -603,7 +605,8 @@ class AppContainerImpl(
             ocrUseCase = ocrProcessor,
             photoProcessor = photoProcessor,
             faceDetector = faceDetector,
-            generateSummaryOnDemandUseCase = generateSummaryOnDemandUseCase
+            generateSummaryOnDemandUseCase = generateSummaryOnDemandUseCase,
+            userSettingsRepository = userPreferencesRepository
         )
     }
 

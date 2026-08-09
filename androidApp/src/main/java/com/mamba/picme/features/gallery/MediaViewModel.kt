@@ -2,28 +2,42 @@ package com.mamba.picme.features.gallery
 
 import android.content.Context
 import android.content.IntentSender
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import com.mamba.picme.core.common.Logger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mamba.picme.beauty.api.PhotoProcessor
+import com.mamba.picme.beauty.api.facedetect.DetectionPipelineConfig
 import com.mamba.picme.beauty.api.facedetect.FaceDetector
 import com.mamba.picme.domain.model.DuplicateGroup
 import com.mamba.picme.domain.model.GroupedMedia
 import com.mamba.picme.domain.model.GroupingMode
 import com.mamba.picme.agent.core.model.context.MediaAsset
 import com.mamba.picme.domain.repository.AndroidMediaRepository
+import com.mamba.picme.domain.repository.UserSettingsRepository
 import com.mamba.picme.domain.usecase.FindDuplicateMediaUseCase
 import com.mamba.picme.domain.usecase.GenerateSummaryOnDemandUseCase
 import com.mamba.picme.domain.usecase.GetGroupedMediaUseCase
 import com.mamba.picme.domain.usecase.OcrProcessor
+import com.mamba.picme.features.camera.toDevicePreference
+import com.mamba.picme.features.camera.toInferenceBackendType
+import com.mamba.picme.features.camera.toLandmarkDetectorType
+import com.mamba.picme.features.camera.toRoiDetectorType
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MediaViewModel(
@@ -33,7 +47,8 @@ class MediaViewModel(
     private val ocrUseCase: OcrProcessor,
     private val photoProcessor: PhotoProcessor,
     private val faceDetector: FaceDetector,
-    private val generateSummaryOnDemandUseCase: GenerateSummaryOnDemandUseCase
+    private val generateSummaryOnDemandUseCase: GenerateSummaryOnDemandUseCase,
+    private val userSettingsRepository: UserSettingsRepository
 ) : ViewModel() {
 
     companion object {
@@ -66,6 +81,148 @@ class MediaViewModel(
     fun clearOcrResult() {
         Logger.d(TAG, "Clearing OCR result")
         _ocrState.value = null
+    }
+
+    /**
+     * 相册大图页人脸关键点检测结果（对标 iOS GalleryFaceDebug）。
+     *
+     * 复用与编辑器同源的 [FaceDetector.detectPhoto]（基于必装 MNN 模型，非可选下载），
+     * 保证关键点稳定产出；points106 为归一化 [0,1] 坐标（偶数索引=x，奇数索引=y），Y-down，
+     * 与解码后已应用 EXIF 朝向的 bitmap（即屏幕显示方向）一致。
+     */
+    sealed class FaceLandmarkResult {
+        data class Success(val points106: FloatArray, val imageWidth: Int, val imageHeight: Int) : FaceLandmarkResult()
+        data object NoFace : FaceLandmarkResult()
+        data class Error(val message: String?) : FaceLandmarkResult()
+    }
+
+    /**
+     * 对静态图执行人脸 106 关键点检测，供相册大图页叠加显示。
+     *
+     * 与编辑器 [PhotoEditorViewModel.detectFace] 同源：先确保检测流水线拿到设置页配置
+     * （否则 FaceDetectorManager.detectPhoto 会因 isPipelineInitialized=false 直接返回 null），
+     * 再以 lensFacing=BACK（camera2=1）触发，跳过 adapter 镜像（静态图已在显示方向）。
+     * 100% 端侧推理（隐私红线：人脸检测不上云）。
+     */
+    @Suppress("TooGenericExceptionCaught") // bitmap 解码可能抛多种受检/运行时异常（IO/Security/解码失败），统一兜底
+    suspend fun detectFaceLandmarks(context: Context, uri: String): FaceLandmarkResult = withContext(Dispatchers.Default) {
+        ensureFaceDetectionPipeline()
+        val bitmap = try {
+            decodeSampledBitmap(context, uri)
+        } catch (error: Exception) {
+            Logger.e(TAG, "Decode bitmap failed for landmark detection", error)
+            return@withContext FaceLandmarkResult.Error(error.message)
+        } ?: return@withContext FaceLandmarkResult.Error(null)
+
+        try {
+            val result = runCatching { faceDetector.detectPhoto(bitmap, lensFacing = 1) }
+                .onFailure { error -> Logger.e(TAG, "Face landmark detection failed", error) }
+                .getOrNull()
+            val points = result?.landmarks106
+            if (points != null && points.size >= 2) {
+                FaceLandmarkResult.Success(points, bitmap.width, bitmap.height)
+            } else {
+                FaceLandmarkResult.NoFace
+            }
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /**
+     * 确保人脸检测流水线已按用户设置初始化（ROI + Landmark 阶段配置）。
+     *
+     * 相册页不一定经过相机页，pipelineConfig 可能为 null，导致 detectPhoto 被跳过。
+     * 逻辑与编辑器 [PhotoEditorViewModel.ensureFaceDetectionPipeline] 完全一致。
+     */
+    @Suppress("TooGenericExceptionCaught") // DataStore 读取/配置下发异常种类不定，初始化失败不应阻断看图
+    private suspend fun ensureFaceDetectionPipeline() {
+        try {
+            val roiStageConfig = userSettingsRepository.roiStageConfigFlow.first()
+            val landmarkStageConfig = userSettingsRepository.landmarkStageConfigFlow.first()
+            val config = DetectionPipelineConfig(
+                roiDetector = roiStageConfig.modelType.toRoiDetectorType(),
+                landmarkDetector = landmarkStageConfig.modelType.toLandmarkDetectorType(),
+                roiEngine = roiStageConfig.engineType.toInferenceBackendType(),
+                landmarkEngine = landmarkStageConfig.engineType.toInferenceBackendType(),
+                roiDevice = roiStageConfig.devicePreference.toDevicePreference(),
+                landmarkDevice = landmarkStageConfig.devicePreference.toDevicePreference()
+            )
+            faceDetector.updatePipelineConfig(config)
+            Logger.d(TAG, "Face detection pipeline initialized for gallery landmark")
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            Logger.e(TAG, "Failed to init face detection pipeline for gallery landmark", error)
+        }
+    }
+
+    /** 解码 URI 为 bitmap（按需降采样，并应用 EXIF 朝向，使其与屏幕显示方向一致）。 */
+    private fun decodeSampledBitmap(context: Context, uri: String, maxDimension: Int = 2048): Bitmap? {
+        val parsedUri = uri.let { runCatching { Uri.parse(it) }.getOrNull() } ?: return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(parsedUri)?.use { inputStream ->
+            BitmapFactory.decodeStream(inputStream, null, bounds)
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            return null
+        }
+
+        var sampleSize = 1
+        while (bounds.outWidth / sampleSize > maxDimension || bounds.outHeight / sampleSize > maxDimension) {
+            sampleSize *= 2
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        val decodedBitmap = context.contentResolver.openInputStream(parsedUri)?.use { inputStream ->
+            BitmapFactory.decodeStream(inputStream, null, decodeOptions)
+        } ?: return null
+
+        return normalizeBitmapOrientation(context, parsedUri, decodedBitmap)
+    }
+
+    @Suppress("MagicNumber") // EXIF 朝向旋转角度（90/180/270）与翻转缩放（-1/1）为既定语义
+    private fun normalizeBitmapOrientation(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
+        val orientation = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            ExifInterface(inputStream).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+        } ?: ExifInterface.ORIENTATION_NORMAL
+
+        val transform = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> transform.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> transform.postRotate(180f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> transform.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                transform.postRotate(90f)
+                transform.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_90 -> transform.postRotate(90f)
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                transform.postRotate(270f)
+                transform.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_270 -> transform.postRotate(270f)
+        }
+
+        if (transform.isIdentity) {
+            return bitmap
+        }
+        return runCatching {
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, transform, true)
+        }.onSuccess { transformedBitmap ->
+            if (transformedBitmap !== bitmap) {
+                bitmap.recycle()
+            }
+        }.getOrElse { error ->
+            Logger.w(TAG, "Failed to normalize bitmap orientation, using original", error)
+            bitmap
+        }
     }
 
     /**
