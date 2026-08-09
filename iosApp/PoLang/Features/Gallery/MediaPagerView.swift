@@ -49,6 +49,8 @@ struct MediaPagerView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))  // 去 page dots（Android 无指示器）
             .ignoresSafeArea()
+            // 🔴 标识符挂 TabView（页内容叶子侧）：挂根 ZStack 会传播覆盖 pager_back/info/more 等全部子标识符
+            .accessibilityIdentifier("media_pager")
 
             if barsVisible && !isZoomed {
                 VStack(spacing: 0) {
@@ -72,7 +74,6 @@ struct MediaPagerView: View {
             Button(String(localized: "Delete"), role: .destructive) { deleteCurrent() }
             Button(String(localized: "Cancel"), role: .cancel) {}
         }
-        .accessibilityIdentifier("media_pager")
     }
 
     /// 顶栏（dump：栏内容高 68dp、按钮 48dp/字形 24dp、右缘 16dp）：
