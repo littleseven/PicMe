@@ -1,0 +1,328 @@
+# ============================================================================
+# 聊天屏完整产品规格书（Chat Screen Spec）
+# ============================================================================
+# 基准端：Android ChatScreen.kt / ChatEmptyState.kt / BlinkCursor.kt
+#        / MediaResultsCarousel.kt / ModelSelector.kt / Color.kt / Typography.kt
+# 用途：iOS 重做的唯一输入，不读 Android 源码
+# 值引用：尺寸引用 design-tokens.json 的 token 名
+
+# ============================================================================
+# 1. 总体结构
+# ============================================================================
+root:
+  type: full_screen
+  background: "background"          # MaterialTheme.colorScheme.background
+  layout: vbox
+  insets: "0,0,0,0"                 # Scaffold contentWindowInsets = 0
+  ime_padding: true                 # Column.imePadding()，键盘弹起推输入栏上移
+
+# ============================================================================
+# 2. 顶部栏（ChatTopBar）
+# ============================================================================
+top_bar:
+  height: topBar.height             # 48dp（非 Material3 64dp）
+  background: "surface"
+  status_bar_padding: true
+  title: ""                         # ⚠️ 无标题文字
+  left_actions:
+    - { icon: arrow_back, size: topBar.iconSize, button: topBar.buttonSize }  # 返回
+    - { icon: menu, size: topBar.iconSize, button: topBar.buttonSize }        # 菜单（侧栏）
+  right_actions:
+    - { icon: bug_report, size: topBar.iconSize, button: topBar.buttonSize }   # 上报问题
+    - { icon: add_comment, size: topBar.iconSize, button: topBar.buttonSize }  # 新对话
+    - { icon: delete_sweep, size: topBar.iconSize, button: topBar.buttonSize } # 清空对话
+  left_spacing: topBar.spacing      # 8dp
+  right_spacing: topBar.spacing
+  horizontal_padding: topBar.horizontalPadding  # 8dp
+  hide_when: fullscreen_preview_open
+
+# ============================================================================
+# 3. 消息列表
+# ============================================================================
+message_list:
+  layout: lazy_column
+  weight: 1                         # 填充可用空间
+  horizontal_padding: 12
+  item_spacing: 8                   # 消息间距 8dp
+  auto_scroll:                      # 自动滚到底部
+    triggers: [message_count_changed, last_message_content_changed]
+    animation: ease
+
+# ============================================================================
+# 4. 空状态（ChatEmptyState）
+# ============================================================================
+empty_state:
+  layout: column
+  fill: true                        # fillMaxHeight
+  horizontal_padding: 20
+  alignment: center
+  content:
+    top_spacer: 40
+    logo:
+      box_size: 64                  # 64dp
+      corner_radius: 18
+      background: "surfaceVariant"
+      border: { width: 1, color: "outlineVariant" }
+      inner_image_size: 104         # ic_launcher_foreground，溢出 box 但视觉居中
+    title_spacer: 16
+    title:
+      text: "Hi, I'm Xiaolang, your smart assistant"  # 你好，我是智能助手小浪
+      font: { size: 24, weight: bold }  # headlineSmall
+      color: "onSurface"
+    subtitle_spacer: 6
+    subtitle:
+      text: "I can search, edit, adjust beauty, find people/scenes—ask anything!"
+      font: { size: 14 }            # bodyMedium
+      color: "onSurfaceVariant"
+    # 访客模式卡片（可选）
+    guest_card:
+      show_when: "isGuestMode"
+      spacer_before: 20
+      shape: { corner_radius: 20 }
+      background: "primaryContainer"
+      tonal_elevation: 2
+      padding: 20
+      title: { font: titleSmall_bold, color: "onPrimaryContainer" }
+      subtitle: { font: bodySmall, color: "onPrimaryContainer" }
+      button: standard_button
+    flex_spacer: weight_1           # 把示例推到底部
+    examples_label:
+      text: "Try these:"
+      font: { size: 14 }            # labelLarge
+      color: "onSurfaceVariant"
+      padding_bottom: 10
+    example_chips:
+      layout: flow_row
+      spacing: 8
+      chip_style:
+        shape: { corner_radius: 24 }
+        background: "surfaceVariant"
+        text_font: { size: 14, weight: medium }  # bodySmall
+        text_color: "onSurfaceVariant"
+        padding: { horizontal: 16, vertical: 10 }
+      prompts:
+        - "Find photos from last summer"
+        - "Search beach photos"
+        - "Find photos with people"
+        - "Search night scenes"
+        - "Give me an album health report"
+        - "Analyze my photos by tag and time"
+
+# ============================================================================
+# 5. 消息气泡（ChatMessageItem）
+# ============================================================================
+message_bubble:
+  container:
+    layout: box
+    fill_width: true
+    alignment: "user → centerEnd | agent → centerStart"
+
+  max_width:
+    text: 360                       # 文本消息最大宽度 360dp
+    image: 240                      # 图片消息最大宽度 240dp
+
+  # 圆角（不同角色不同切角）
+  corner_radius:
+    user: [20, 20, 4, 20]           # topLeft=20, topRight=20, bottomLeft=4, bottomRight=20
+    agent: [20, 20, 20, 4]          # topLeft=20, topRight=20, bottomLeft=20, bottomRight=4
+
+  # 背景色
+  background:
+    user_text: "primary.opacity(0.9)"    # 紫色 #6750A4 @ 90%
+    agent_text: "surfaceVariant.opacity(0.85)"
+    image: "surfaceVariant.opacity(0.4)"
+    error: "surfaceVariant.opacity(0.85)"  # ⚠️ 错误无特殊色，同 agent 正常
+
+  # 内边距
+  padding:
+    text: { horizontal: 16, vertical: 12 }
+    image: { horizontal: 6, vertical: 6 }
+
+  # 文字样式
+  text:
+    user:
+      color: white                  # 硬编码白色
+      font_size: 14
+      line_height: 20
+    agent:
+      color: "onSurface"
+      font_size: 14
+      line_height: 20
+      markdown: true                # MarkdownText 渲染
+
+  # 无时间戳显示
+  timestamp_visible: false
+
+  # 长按复制
+  long_press:
+    action: copy_to_clipboard
+    toast: "Copied"
+
+# ============================================================================
+# 6. 流式指示器
+# ============================================================================
+streaming:
+  # 思考态（首 token 到达前）
+  thinking_indicator:
+    layout: row
+    dot_size: 6                     # 6dp 圆点
+    dot_spacing: 5                  # 5dp
+    vertical_padding: 4
+    color: "onSurface"
+    animation:
+      type: alpha_pulse
+      range: [0.3, 1.0]
+      duration_ms: 400
+      easing: ease_in_out
+      stagger_ms: 160               # dot0=0, dot1=160, dot2=320
+      repeat: reverse
+
+  # 打字光标（流式中）
+  blink_cursor:
+    char: ">"                       # 终端风格 > 字符
+    color: "onSurface"
+    font: { size: 14, weight: bold }
+    padding: { start: 2, bottom: 1 }
+    animation:
+      type: alpha_blink
+      range: [1.0, 0.3]
+      duration_ms: 500
+      repeat: reverse
+
+  # 流式布局
+  layout:
+    type: row
+    alignment: bottom
+    content:
+      - text_column: { weight: 1 }  # Markdown 渲染区
+      - cursor: { show_when: "showCursor" }
+
+# ============================================================================
+# 7. 输入栏（ChatInputArea）
+# ============================================================================
+input_bar:
+  outer:
+    padding: { horizontal: 12, vertical: 8 }
+    nav_bar_padding: true           # navigationBarsPadding
+
+  card:
+    shape: { corner_radius: 24 }    # 大圆角卡片
+    shadow: { elevation: 4, ambient_alpha: 0.08, spot_alpha: 0.12 }
+    background: "surfaceContainerLowest"  # 白色卡片
+    padding: { horizontal: 16, vertical: 12 }
+
+    # 行 1：文本输入
+    text_field:
+      placeholder: "Ask AI Agent..."  # 向 AI 助手提问…
+      placeholder_style: { font_size: 16, color: "onSurface.opacity(0.35)" }
+      text_style: { font_size: 16, line_height: 24, color: "onSurface" }
+      max_lines: 5
+      keyboard: send
+
+    # 行 2：按钮栏（SpaceBetween）
+    button_bar:
+      layout: row
+      alignment: space_between
+      left_group:
+        spacing: 8
+        items:
+          - model_capsule:
+              show_when: "hasUserKey"
+              style: *capsule_style
+              dot_color: { official: 0x2196F3, user_key: 0xFF9800 }
+              text: "selectedModel.displayName"
+          - gallery_capsule:
+              icon: photo_library
+              text: "Gallery"
+              style: *capsule_style
+          - ai_engineer_capsule:
+              icon: smart_toy
+              style: *capsule_style
+              active_bg: "primary.opacity(0.12)"
+      right_group:
+        spacing: 8
+        items:
+          - voice_button: *circular_button
+            icon: keyboard_voice
+          - send_button:
+              show_when: "hasContent && !isProcessing"
+              style: *circular_button
+              icon: send
+              tint: "primary"
+
+# ============================================================================
+# 8. 复用组件规格
+# ============================================================================
+capsule_style: &capsule_style
+  shape: { corner_radius: 16 }
+  background: "surfaceVariant.opacity(0.5)"
+  active_background: "primary.opacity(0.12)"
+  padding: { horizontal: 10, vertical: 6 }
+  icon_size: 16
+  text_font: { size: 12 }
+  text_color: "onSurface.opacity(0.7)"
+  active_color: "primary"
+
+circular_button: &circular_button
+  size: 36                          # 36dp 圆形
+  icon_size: 22
+  default_tint: "onSurface.opacity(0.6)"
+
+# ============================================================================
+# 9. 媒体结果轮播（MediaResultsCarousel）
+# ============================================================================
+media_results:
+  container:
+    padding: { horizontal: 12, vertical: 4 }
+  title:
+    found_template: "Found {N} photos for '{query}'"  # 找到 N 张「query」的照片
+    refine_template: "Refined: {query} ({N})"          # 细化：query（N 张）
+    empty_template: "No photos found for '{query}', try another word"
+    font: { found: titleSmall_primary, empty: bodySmall_onSurfaceVariant }
+  carousel:
+    layout: lazy_row
+    spacing: 8
+    card_size: { width: 120, height: 150 }
+    card_radius: 12
+    card_image_scale: crop
+    card_feedback_buttons: [thumb_up, thumb_down, refresh]
+    card_date_label: "yyyy-MM-dd"
+
+# ============================================================================
+# 10. 颜色参考
+# ============================================================================
+colors:
+  primary: "#6750A4"                # Material3 purple
+  onPrimary: "#FFFFFF"
+  primaryContainer: "#EADDFF"
+  surface: "#FFFBFE"
+  onSurface: "#1C1B1F"
+  surfaceVariant: "#E7E0EC"
+  surfaceContainerLowest: "#FFFFFF"
+  background: "#FFFBFE"
+  error: "#B32610"
+  model_dot_official: "#2196F3"
+  model_dot_user_key: "#FF9800"
+  voice_cancel: "#E53935"
+  # Dark mode 对应（iOS 默认 .dark）
+  # primary → #D0BCFF
+  # onSurface → #E6E1E5
+  # surfaceVariant → #49454F
+  # surface → #1C1B1F
+  # background → #1C1B1F
+
+# ============================================================================
+# 11. 允许的平台差异
+# ============================================================================
+allowed_differences:
+  - "Markdown 渲染引擎差异（Android MarkDown lib vs iOS AttributedString）"
+  - "图标具体形状（Material Icons vs SF Symbols）"
+  - "字体回退（Roboto vs SF Pro）"
+  - "阴影渲染（elevation vs shadow）"
+  - "键盘交互（Android imePadding vs iOS focused state）"
+  - "语音输入（sherpa-onnx Android vs iOS Phase 6 未实现）"
+  - "AI 工程师模式（chisel 隧道，iOS Phase 6.3 未实现）"
+  - "代码块折叠/复制 UI 细节"
+  - "表格渲染（Android Compose Grid vs iOS LazyVGrid）"
+  - "性能指标行（Android LlmPerformance 展示，iOS v1 省略）"
+  - "Claude Agent Steps（iOS 无 AI 工程师模式）"
