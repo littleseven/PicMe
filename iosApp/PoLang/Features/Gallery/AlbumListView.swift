@@ -22,10 +22,16 @@ struct AlbumListView: View {
             .accessibilityIdentifier("album_\(album.id)")
         }
         .navigationTitle(String(localized: "Albums"))
-        .onAppear(perform: load)
+        // 后台取数主线程赋值（🟡-9）：逐相簿 count 是 O(相簿数) 同步 Photos 查询，不得堵主线程
+        .task {
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.fetchAlbums()
+            }.value
+            albums = result
+        }
     }
 
-    private func load() {
+    private nonisolated static func fetchAlbums() -> [Album] {
         var result: [Album] = []
         let smart = PHAssetCollection.fetchAssetCollections(
             with: .smartAlbum, subtype: .any, options: nil)
@@ -39,7 +45,7 @@ struct AlbumListView: View {
                                     count: count))
             }
         }
-        albums = result
+        return result
     }
 }
 

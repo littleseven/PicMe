@@ -20,6 +20,17 @@ enum GalleryAccessState: Equatable {
         case (.denied, _), (.restricted, _), (.limited, .addOnly): return .denied
         }
     }
+
+    /// readWrite 态 + addOnly 级授权的复合映射（🟡-4 修复后 refresh 的实际语义，纯化以便打表）。
+    /// readWrite 未授权（denied/notDetermined）但 addOnly 已授权 → AddOnly 一等态。
+    static func mapWithAddOnlyFallback(rwStatus: AuthStatusInput,
+                                       addOnlyAuthorized: Bool) -> GalleryAccessState {
+        var mapped = map(status: rwStatus, level: .readWrite)
+        if (mapped == .denied || mapped == .notDetermined) && addOnlyAuthorized {
+            mapped = map(status: .authorized, level: .addOnly)
+        }
+        return mapped
+    }
 }
 
 enum AuthStatusInput { case authorized, limited, denied, restricted, notDetermined }
@@ -39,7 +50,10 @@ final class GalleryPermissionStore: ObservableObject {
         case .restricted: status = .restricted
         default: status = .notDetermined
         }
-        state = GalleryAccessState.map(status: status, level: .readWrite)
+        // AddOnly 一等检测（🟡-4）：readWrite 未授权时查 addOnly 级授权
+        state = GalleryAccessState.mapWithAddOnlyFallback(
+            rwStatus: status,
+            addOnlyAuthorized: PHPhotoLibrary.authorizationStatus(for: .addOnly) == .authorized)
         DebugOverlayState.shared.set("gallery.permission", "\(state)")
     }
 

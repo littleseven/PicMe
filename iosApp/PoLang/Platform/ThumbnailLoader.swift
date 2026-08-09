@@ -10,17 +10,21 @@ final class ThumbnailLoader {
     static let shared = ThumbnailLoader()
     private let manager = PHCachingImageManager()
 
-    func thumbnail(for localIdentifier: String, size: CGSize) async -> UIImage? {
+    /// highQuality = true 走 .highQualityFormat（单次高清回调，大图浏览用）——
+    /// 否则大图复用 opportunistic 首帧会永久模糊（🟡-8）。
+    func thumbnail(for localIdentifier: String, size: CGSize,
+                   highQuality: Bool = false) async -> UIImage? {
         let result = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
         guard let asset = result.firstObject else { return nil }
         return await withCheckedContinuation { cont in
             let opts = PHImageRequestOptions()
-            opts.deliveryMode = .opportunistic
+            opts.deliveryMode = highQuality ? .highQualityFormat : .opportunistic
             opts.isNetworkAccessAllowed = false
             var resumed = false
             manager.requestImage(for: asset, targetSize: size, contentMode: .aspectFill,
                                  options: opts) { image, _ in
-                // opportunistic 可能回调两次（先低清后高清），只取第一次非 nil
+                // opportunistic 可能回调两次（先低清后高清），只取第一次非 nil；
+                // highQualityFormat 单次回调，天然满足
                 guard !resumed, let image else { return }
                 resumed = true
                 cont.resume(returning: image)

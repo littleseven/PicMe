@@ -22,27 +22,40 @@ import SharedKit
         switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
         case .authorized: return AccessStateFull.shared
         case .limited: return AccessStateLimited.shared
-        // notDetermined 按 Denied 呈现（请求授权走 UI 层 GalleryPermissionStore）
-        case .denied, .restricted, .notDetermined: return AccessStateDenied.shared
+        case .denied, .restricted, .notDetermined:
+            // AddOnly 一等检测（🟡-4 修复，此前四态退化三态）：
+            // readWrite 未授权但 addOnly 已授权 → AddOnly
+            if PHPhotoLibrary.authorizationStatus(for: .addOnly) == .authorized {
+                return AccessStateAddOnly.shared
+            }
+            return AccessStateDenied.shared
         @unknown default: return AccessStateDenied.shared
         }
     }
 
     /// creationDate 降序，与 Android MediaStore 排序对齐（S5 双端一致）。
+    /// 谓词过滤 image/video——audio 资产不得误入 PHOTO（🟡-5 修复）。
     func fetchAllMedia() -> [IosMediaItem] {
         let opts = PHFetchOptions()
         opts.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        opts.predicate = NSPredicate(
+            format: "mediaType == %d OR mediaType == %d",
+            PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
         let result = PHAsset.fetchAssets(with: opts)
         var items: [IosMediaItem] = []
         items.reserveCapacity(result.count)
         result.enumerateObjects { asset, _, _ in
+            // fileName 取 PHAssetResource 原始文件名，对齐 Android DISPLAY_NAME（S5）
+            let fileName = PHAssetResource.assetResources(for: asset).first?.originalFilename
+                ?? asset.localIdentifier
             items.append(IosMediaItem(
                 localIdentifier: asset.localIdentifier,
                 mediaType: asset.mediaType == .video ? "VIDEO" : "PHOTO",
                 captureDateMs: Int64((asset.creationDate?.timeIntervalSince1970 ?? 0) * 1000),
                 durationMs: asset.mediaType == .video
                     ? KotlinLong(longLong: Int64(asset.duration * 1000))
-                    : nil
+                    : nil,
+                fileName: fileName
             ))
         }
         return items
@@ -56,6 +69,10 @@ import SharedKit
 
     func addChangeListener(listener: @escaping () -> Void) {
         self.changeListener = listener
+    }
+
+    func removeChangeListener() {
+        self.changeListener = nil
     }
 
     /// iOS 删除走 PHAssetChangeRequest（系统弹确认窗），免 Android 11+ IntentSender 授权队列。
