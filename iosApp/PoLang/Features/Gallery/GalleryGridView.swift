@@ -1,24 +1,36 @@
 import SwiftUI
 import SharedKit
 
-/// 相册网格页（对齐 Android `GalleryScreen.kt` + `MediaGrid.kt` 重做，非打补丁）：
-/// - 自建 48pt `AppTopBar`（去系统 NavigationStack 大标题），操作组对齐 Android GalleryTopBar：
-///   模型中心/扫描/搜索依赖 TAG/VLM 管线（iOS Phase 6 才落地），灰置降级不假造交互；
-///   分组菜单实做 NONE/DATE（FACE 等依赖 Phase 6 索引数据，菜单内列出但灰置）。
-/// - 网格：`GridItem(.adaptive(minimum: 110))` + 间距 2 + contentPadding 2，按日 pinned 分组头。
-/// - 冷启动 `SplashPlaceholder`（isLoading）、空相册 `EmptyGalleryMessage`、
-///   权限四态 `PermissionMessageView`（notDetermined/denied/addOnly 引导，Limited 网格+常驻管理条）。
+/// 相册网格页（对齐 Android `GalleryScreen.kt` + `MediaGrid.kt`，量化基准 = dump 1200px/360dp）：
+/// - 自建 48pt `AppTopBar`（去系统 NavigationStack 大标题），操作组对齐 GalleryTopBar：
+///   模型中心/扫描/搜索/设置依赖 TAG/VLM 管线（iOS Phase 6 才落地），灰置降级不假造交互；
+///   分组菜单扁平 6 项（对齐 dump 下拉：全部/日期/人脸/人物/风景/地点），NONE/DATE 实做，
+///   其余依赖 Phase 6 索引数据灰置。
+/// - 网格：**固定 3 列**（dump 实测 3 列、间距/边距 7px≈2dp；列数固定、格宽 = 屏宽/列数导出）。
+/// - 长按进选择模式（对齐 gallery_longpress dump）：顶栏 morph 为 返回/已选 N 项/全选/分享/删除，
+///   缩略图右上角勾选圈（未选灰圈/选中蓝底白勾+浅蓝遮罩）。
+/// - 冷启动 `SplashPlaceholder`、空相册 `EmptyGalleryMessage`、权限四态 `PermissionMessageView`。
 /// [I18N] 所有文案走 String(localized:)，键为英文原文，入 Localizable.xcstrings 三语。
 struct GalleryGridView: View {
     @StateObject private var vm: GalleryViewModel
     @StateObject private var permission = GalleryPermissionStore()
     /// 全屏大图页：nil = 关闭，否则为初始素材 localIdentifier
     @State private var pagerInitial: String? = nil
+    /// 选择模式（gallery_longpress 对齐）
+    @State private var isSelectionMode = false
+    @State private var selected: Set<String> = []
+    @State private var sharePayload: SharePayload? = nil
+    @State private var showDeleteConfirm = false
+    /// 删除直调 Swift 桥（PHAssetChangeRequest 自带系统确认；成功后观察者驱动网格刷新）
+    private let bridge = PhMediaBridge()
 
     /// Preview 专用：注入权限态与跳过系统权限查询（Preview 环境无授权上下文）
     private let permissionOverride: GalleryAccessState?
 
-    private let columns = [GridItem(.adaptive(minimum: 110), spacing: 2)]
+    /// 固定 3 列（dump：1200px 屏宽 3×391px 列 + 7px 间距/边距 ≈ 2dp）
+    private let columns = [GridItem(.flexible(), spacing: 2),
+                           GridItem(.flexible(), spacing: 2),
+                           GridItem(.flexible(), spacing: 2)]
 
     init(repository: IosMediaRepository, permissionOverride: GalleryAccessState? = nil) {
         _vm = StateObject(wrappedValue: GalleryViewModel(repository: repository))
@@ -26,37 +38,110 @@ struct GalleryGridView: View {
     }
 
     private var accessState: GalleryAccessState { permissionOverride ?? permission.state }
+    private var allItems: [MediaAsset] { vm.groups.flatMap(\.items) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            AppTopBar(title: String(localized: "Gallery")) {
-                // ↓ 对齐 Android GalleryTopBar 操作组顺序：模型中心/扫描/搜索/分组/设置
-                // 模型中心/扫描/搜索/设置依赖 TAG/VLM/Settings 管线（iOS Phase 6），灰置降级
-                AppTopBarAction(systemName: "icloud.and.arrow.down",
-                                accessibilityID: "topbar_model_center", isEnabled: false) {}
-                AppTopBarAction(systemName: "play.circle",
-                                accessibilityID: "topbar_scan", isEnabled: false) {}
-                AppTopBarAction(systemName: "magnifyingglass",
-                                accessibilityID: "topbar_search", isEnabled: false) {}
-                groupingMenu
-                AppTopBarAction(systemName: "gearshape",
-                                accessibilityID: "topbar_settings", isEnabled: false) {}
+        ZStack {
+            // §1.3：状态栏区填 surface 色（勿露黑底），内容仍锚 safe area 下缘
+            Color(.systemBackground).ignoresSafeArea()
+            VStack(spacing: 0) {
+                if isSelectionMode {
+                    selectionTopBar
+                } else {
+                    normalTopBar
+                }
+                content
             }
-            content
         }
-        .background(Color(.systemBackground))
         .fullScreenCover(isPresented: Binding(
             get: { pagerInitial != nil },
             set: { if !$0 { pagerInitial = nil } })) {
-                MediaPagerView(items: vm.groups.flatMap(\.items),
-                               initial: pagerInitial ?? "")
+                MediaPagerView(items: allItems, initial: pagerInitial ?? "")
             }
+        .sheet(item: $sharePayload) { payload in
+            ActivityView(activityItems: payload.images)
+        }
+        .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
+                            titleVisibility: .visible) {
+            Button(String(localized: "Delete"), role: .destructive) { deleteSelected() }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        }
         .onAppear {
             if permissionOverride == nil { permission.refresh() }
             vm.start()
         }
         .onDisappear { vm.stop() }
     }
+
+    // MARK: - 顶栏（常态 / 选择态 morph，对齐 gallery_grid / gallery_longpress dump）
+
+    /// 常态顶栏：标题 + 5 操作组（模型中心/扫描/搜索/分组/设置；无管线者灰置）
+    private var normalTopBar: some View {
+        AppTopBar(title: String(localized: "Gallery")) {
+            AppTopBarAction(systemName: "icloud.and.arrow.down",
+                            accessibilityID: "topbar_model_center", isEnabled: false) {}
+            AppTopBarAction(systemName: "play.circle",
+                            accessibilityID: "topbar_scan", isEnabled: false) {}
+            AppTopBarAction(systemName: "magnifyingglass",
+                            accessibilityID: "topbar_search", isEnabled: false) {}
+            groupingMenu
+            AppTopBarAction(systemName: "gearshape",
+                            accessibilityID: "topbar_settings", isEnabled: false) {}
+        }
+    }
+
+    /// 选择态顶栏（dump：返回 ← + "已选择 N 项" + 全选/分享/删除，原位 morph）
+    private var selectionTopBar: some View {
+        AppTopBar(title: String(format: String(localized: "Selected %lld"), selected.count),
+                  showsBackButton: true,
+                  onBack: { exitSelectionMode() }) {
+            AppTopBarAction(systemName: "square.dashed",
+                            accessibilityID: "topbar_select_all") { toggleSelectAll() }
+            AppTopBarAction(systemName: "square.and.arrow.up",
+                            accessibilityID: "topbar_share",
+                            isEnabled: !selected.isEmpty) { shareSelected() }
+            AppTopBarAction(systemName: "trash",
+                            accessibilityID: "topbar_delete",
+                            isEnabled: !selected.isEmpty) { showDeleteConfirm = true }
+        }
+    }
+
+    /// 分组菜单（对齐 dump gallery_grouping_dropdown：扁平 6 项、当前项带 ✓；
+    /// 人脸/人物/风景/地点依赖 Phase 6 人脸/标签/位置索引数据，列出但灰置）
+    private var groupingMenu: some View {
+        Menu {
+            menuItem(String(localized: "All"), mode: .none)
+            menuItem(String(localized: "Date"), mode: .date)
+            Button {} label: { Text(String(localized: "Face")) }.disabled(true)
+            Button {} label: { Text(String(localized: "Person")) }.disabled(true)
+            Button {} label: { Text(String(localized: "Landscape")) }.disabled(true)
+            Button {} label: { Text(String(localized: "Location")) }.disabled(true)
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease")  // Android Sort 图标的 SF 语义映射
+                .font(.system(size: 22))
+                .foregroundStyle(Color.primary)  // dump：图标深色（非 accent）
+                .frame(width: 36, height: 36)
+                .contentShape(Rectangle())
+        }
+        // Menu 内建按钮样式自带横向 padding（会把后续按钮挤出栏外），定死 36 框
+        .frame(width: 36, height: 36)
+        .menuIndicator(.hidden)
+        .accessibilityIdentifier("topbar_grouping")
+    }
+
+    private func menuItem(_ title: String, mode: GalleryViewModel.GroupingMode) -> some View {
+        Button {
+            vm.groupingMode = mode
+        } label: {
+            if vm.groupingMode == mode {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
+        }
+    }
+
+    // MARK: - 内容区
 
     @ViewBuilder
     private var content: some View {
@@ -101,44 +186,6 @@ struct GalleryGridView: View {
         }
     }
 
-    /// 分组菜单（对齐 Android GalleryTopBar 的 Sort DropdownMenu）：
-    /// NONE/DATE 实做；FACE/PERSON/LANDSCAPE/LOCATION 依赖 Phase 6 人脸/标签/位置索引，列出但灰置。
-    private var groupingMenu: some View {
-        Menu {
-            Section(String(localized: "Group By")) {
-                menuItem(String(localized: "All"), mode: .none)
-                menuItem(String(localized: "Date"), mode: .date)
-            }
-            Section {
-                Text(String(localized: "Face"))
-                Text(String(localized: "Person"))
-                Text(String(localized: "Landscape"))
-                Text(String(localized: "Location"))
-            } header: {
-                Text(String(localized: "Requires on-device indexing"))
-            }
-            .disabled(true)
-        } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .font(.system(size: 20))
-                .frame(width: 36, height: 36)
-                .contentShape(Rectangle())
-        }
-        .accessibilityIdentifier("topbar_grouping")
-    }
-
-    private func menuItem(_ title: String, mode: GalleryViewModel.GroupingMode) -> some View {
-        Button {
-            vm.groupingMode = mode
-        } label: {
-            if vm.groupingMode == mode {
-                Label(title, systemImage: "checkmark")
-            } else {
-                Text(title)
-            }
-        }
-    }
-
     private var gridBody: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 2, pinnedViews: .sectionHeaders) {
@@ -153,7 +200,7 @@ struct GalleryGridView: View {
                     }
                 }
             }
-            .padding(2)  // 对齐 Android contentPadding 2dp
+            .padding(2)  // dump：边距 7px≈2dp
         }
         .accessibilityIdentifier("gallery_grid")
     }
@@ -161,16 +208,106 @@ struct GalleryGridView: View {
     private func cells(for items: [MediaAsset]) -> some View {
         ForEach(items, id: \.uri) { asset in
             Button {
-                pagerInitial = asset.uri
+                if isSelectionMode {
+                    toggleSelection(asset.uri)
+                } else {
+                    pagerInitial = asset.uri
+                }
             } label: {
                 ThumbnailView(localIdentifier: asset.uri,
                               faceFocusY: asset.faceFocusY?.floatValue,
                               isVideo: asset.type == MediaType.video)
+                    .overlay { selectionOverlay(for: asset.uri) }
             }
             .buttonStyle(.plain)
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in
+                if !isSelectionMode {
+                    isSelectionMode = true
+                    selected = [asset.uri]
+                }
+            })
             .accessibilityIdentifier("cell_\(asset.uri)")
         }
     }
+
+    /// 勾选覆盖层（对齐 gallery_longpress 截图：选择态下每格右上角 24dp 圈；
+    /// 未选=灰圈描边，选中=accentColor 底白勾 + 浅蓝遮罩）
+    @ViewBuilder
+    private func selectionOverlay(for uri: String) -> some View {
+        if isSelectionMode {
+            ZStack {
+                if selected.contains(uri) {
+                    Color.accentColor.opacity(0.25)
+                }
+                VStack {
+                    HStack {
+                        Spacer()
+                        Image(systemName: selected.contains(uri)
+                              ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 24))
+                            .foregroundStyle(selected.contains(uri)
+                                             ? Color.accentColor : Color.white.opacity(0.9))
+                            .shadow(radius: 1)
+                            .padding(6)
+                    }
+                    Spacer()
+                }
+            }
+            .allowsHitTesting(false)  // 手势归 cell Button，覆盖层纯展示
+        }
+    }
+
+    // MARK: - 选择模式操作
+
+    private func toggleSelection(_ uri: String) {
+        if selected.contains(uri) {
+            selected.remove(uri)
+        } else {
+            selected.insert(uri)
+        }
+    }
+
+    private func exitSelectionMode() {
+        isSelectionMode = false
+        selected = []
+    }
+
+    private func toggleSelectAll() {
+        if selected.count == allItems.count {
+            selected = []
+        } else {
+            selected = Set(allItems.map(\.uri))
+        }
+    }
+
+    private var deleteConfirmTitle: String {
+        selected.count == 1
+            ? String(localized: "Delete this photo?")
+            : String(format: String(localized: "Delete %lld photos?"), selected.count)
+    }
+
+    private func shareSelected() {
+        let uris = allItems.map(\.uri).filter { selected.contains($0) }  // 保持网格序
+        Task {
+            var images: [UIImage] = []
+            for uri in uris {
+                if let image = await ThumbnailLoader.shared.thumbnail(
+                    for: uri, size: CGSize(width: 1000, height: 1000), highQuality: true) {
+                    images.append(image)
+                }
+            }
+            if !images.isEmpty {
+                sharePayload = SharePayload(images: images)
+            }
+        }
+    }
+
+    private func deleteSelected() {
+        _ = bridge.deleteMedia(localIdentifiers: Array(selected))
+        exitSelectionMode()  // 网格经 PHPhotoLibraryObserver 自动刷新
+    }
+
+    // MARK: - Limited / 权限
 
     private var limitedBanner: some View {
         Button(String(localized: "Manage Accessible Photos")) {
