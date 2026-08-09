@@ -109,3 +109,7 @@ docs-site/docs/
 
 # kimi-batch 多实例并行产物（每任务日志/状态，不入库）
 .kimi-batch/
+
+# kimi-code hooks run-state (managed; not the scripts/config, which ARE committed)
+.kimi-code/.last-review
+.kimi-code/.last-review.log
