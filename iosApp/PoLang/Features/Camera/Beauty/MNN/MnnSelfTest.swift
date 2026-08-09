@@ -85,6 +85,12 @@ enum MnnSelfTest {
                 let sample = unified.prefix(10).map { String(format: "(%.3f,%.3f)", $0.x, $0.y) }
                     .joined(separator: " ")
                 lines.append("sample10: \(sample)")
+                // 🔴 全量 106 unified 点 dump（-dumpLandmarks）→ Documents/landmarks-selftest.txt。
+                //   静态正向脸(face_test.jpg)：点云应为正向椭圆。用于隔离 remap/adapter 是否正确
+                //   （与相机 buffer 朝向解耦）。裁决「瘦脸偏转」：静态正→remap 没问题，偏转在 live 朝向。
+                if ProcessInfo.processInfo.arguments.contains("-dumpLandmarks") {
+                    Self.dumpUnified(unified, width: w, height: h)
+                }
             } else {
                 lines.append("landmarksUnified: ADAPT_FAILED")
             }
@@ -122,6 +128,31 @@ enum MnnSelfTest {
         }
         ctx?.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
         return ctx != nil ? data : nil
+    }
+
+    /// 写 106 unified 点到 Documents/landmarks-selftest.txt（静态正向脸；离线几何重建用）。
+    private static func dumpUnified(_ pts: [SIMD2<Float>], width: Int, height: Int) {
+        guard let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let url = dir.appendingPathComponent("landmarks-selftest.txt")
+        func f(_ i: Int) -> String {
+            guard i < pts.count else { return "(oob)" }
+            return "(\(String(format: "%.4f", pts[i].x)),\(String(format: "%.4f", pts[i].y)))"
+        }
+        var lines: [String] = []
+        lines.append("# polang landmarks SELF-TEST (face_test.jpg, unified 106, normalized [0,1], Y-down)")
+        lines.append("image=face_test.jpg buffer=\(width)x\(height) count=\(pts.count)")
+        lines.append("# key: p0=右鬓角 p16=下巴 p44/45/46=鼻梁上/中/下 p49=鼻尖中心 p72=右眼内角 p75=左眼内角 p84=左嘴角 p90=右嘴角")
+        lines.append("p0=\(f(0)) p16=\(f(16)) p44=\(f(44)) p45=\(f(45)) p46=\(f(46)) p49=\(f(49)) p72=\(f(72)) p75=\(f(75)) p84=\(f(84)) p90=\(f(90))")
+        lines.append("# contour 0-32 (右鬓角0→下巴16→左鬓角32)")
+        for i in 0..<min(33, pts.count) {
+            lines.append("\(i) \(String(format: "%.4f", pts[i].x)) \(String(format: "%.4f", pts[i].y))")
+        }
+        lines.append("# rest 33-105")
+        for i in 33..<pts.count {
+            lines.append("\(i) \(String(format: "%.4f", pts[i].x)) \(String(format: "%.4f", pts[i].y))")
+        }
+        try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        NSLog("[PoLang] face.mnn self-test landmarks dumped: %@", url.path)
     }
 
     private static func write(_ result: Result) {

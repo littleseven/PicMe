@@ -40,6 +40,12 @@ struct CameraPreviewView: View {
         return v
     }
 
+    /// 🔴 逐点关键点调试 overlay（对标 Android FaceDebugOverlayBigBeauty）。
+    /// `-showLandmarks` 开启：把 BeautyRenderer 消费的 106 点 + 9 对瘦脸/2 对大眼控制点画到预览，
+    /// 肉眼裁决「形变区域不对/偏转」= 点云错位还是 warp 感知问题。
+    @StateObject private var landmarkStore = LandmarkOverlayStore()
+    @State private var showLandmarks = Self.parseLaunchFlag("-showLandmarks")
+
     @State private var activePanel: ActivePanel? = nil
     // 🔴 renderer 提到视图层直持：快门链路不再依赖 representable 回调往返（nil 则拍照静默失败）
     @State private var sharedRenderer: BeautyRenderer? = CameraPreviewView.makeRenderer()
@@ -63,9 +69,16 @@ struct CameraPreviewView: View {
                 // 预览层：铺满全屏（全出血）
                 // 🔴 camera_preview 标识只挂叶子视图：挂容器会沿子树传播、覆盖子孙自身标识符
                 MetalViewRepresentable(controller: controller, renderer: sharedRenderer,
-                                       params: container.beautyParams, faceRouter: faceRouter)
+                                       params: container.beautyParams, faceRouter: faceRouter,
+                                       landmarkStore: landmarkStore)
                 .frame(width: geo.size.width, height: geo.size.height)
                 .accessibilityIdentifier("camera_preview")
+
+                // 🔴 逐点关键点 overlay（-showLandmarks）：铺在预览之上、控件之下
+                if showLandmarks {
+                    LandmarkDebugOverlay(store: landmarkStore)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                }
 
                 if !authorized {
                     Color.black
@@ -422,6 +435,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
     let renderer: BeautyRenderer?
     let params: BeautyRenderer.Params
     let faceRouter: FaceEngineRouter
+    let landmarkStore: LandmarkOverlayStore
 
     func makeUIView(context: Context) -> MTKView {
         let view = MTKView()
@@ -443,6 +457,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
         }
         context.coordinator.controller = controller
         context.coordinator.faceRouter = faceRouter
+        context.coordinator.landmarkStore = landmarkStore
         return view
     }
 
@@ -456,6 +471,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
         var renderer: BeautyRenderer?
         var controller: CaptureSessionController?
         var faceRouter: FaceEngineRouter?
+        var landmarkStore: LandmarkOverlayStore?
         private var frames = 0
         private var lastFpsTick = Date()
 
@@ -469,6 +485,11 @@ private struct MetalViewRepresentable: UIViewRepresentable {
             if let fs = faceRouter {
                 if let points = fs.latestWithinWindow(currentTimestampMs: tsMs) {
                     renderer?.updateFacePoints(points, hasFace: true)
+                    // 🔴 转发到逐点调试 overlay（主线程；@Published 合并重绘）
+                    if let store = landmarkStore {
+                        let snap = points
+                        DispatchQueue.main.async { store.points = snap }
+                    }
                 } else {
                     renderer?.updateFacePoints([], hasFace: false)
                 }

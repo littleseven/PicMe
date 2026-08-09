@@ -396,7 +396,10 @@ final class DownloadProgressTracker: NSObject, URLSessionDownloadDelegate {
         lastReportTime = now
 
         let cumulative = bytesAlreadyDownloaded + existingSize + totalBytesWritten
-        updateProgress(modelId, cumulative)
+        // 必须在主线程更新 @Published（ModelDownloadManager 是 @MainActor）
+        DispatchQueue.main.async { [modelId, cumulative] in
+            self.updateProgress(modelId, cumulative)
+        }
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,

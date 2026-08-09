@@ -95,6 +95,10 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
                 return
             }
             latest = Result(points106: pts, timestampMs: timestampMs)
+            // 🔴 一次性 dump 106 unified 点（-dumpLandmarks）→ Documents/landmarks-dump.txt。
+            //   供离线数值重建（无任何人脸像素，隐私安全）：判定点云是正向椭圆(点正确)
+            //   还是旋转/歪斜/镜像(坐标 bug)——裁决「瘦脸偏转」根因。
+            Self.dumpLandmarksOnce(pts: pts, isFrontCamera: isFrontCamera, width: w, height: h)
             DispatchQueue.main.async {
                 DebugOverlayState.shared.set("face.mnn", "\(pts.count)pts")
                 DebugOverlayState.shared.set("face.mnn.dbg", self.detector.debugInfo)
@@ -117,6 +121,44 @@ final class MnnFaceLandmarkService: FaceLandmarkEngine {
             }
         }
         return Bundle.main.path(forResource: name, ofType: ext)
+    }
+
+    // MARK: - 一次性关键点 dump（-dumpLandmarks；离线数值重建用）
+
+    private static var landmarksDumped = false
+
+    /// 把 106 unified 点写到 Documents/landmarks-dump.txt（仅一次）。附关键解剖点速查。
+    private static func dumpLandmarksOnce(pts: [SIMD2<Float>], isFrontCamera: Bool, width: Int, height: Int) {
+        guard !landmarksDumped else { return }
+        guard ProcessInfo.processInfo.arguments.contains("-dumpLandmarks") else { return }
+        landmarksDumped = true
+        guard let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let url = dir.appendingPathComponent("landmarks-dump.txt")
+
+        func f(_ i: Int) -> String {
+            guard i < pts.count else { return "(oob)" }
+            let p = pts[i]
+            return "(\(String(format: "%.4f", p.x)),\(String(format: "%.4f", p.y)))"
+        }
+        var lines: [String] = []
+        lines.append("# polang landmarks dump (unified 106, normalized [0,1], Y-down, post front-mirror)")
+        lines.append("buffer=\(width)x\(height) isFrontCamera=\(isFrontCamera) count=\(pts.count)")
+        lines.append("# key: p0=右鬓角 p16=下巴 p44/45/46=鼻梁上/中/下 p49=鼻尖中心 p72=右眼内角 p75=左眼内角 p84=左嘴角 p90=右嘴角")
+        lines.append("p0=\(f(0)) p16=\(f(16)) p44=\(f(44)) p45=\(f(45)) p46=\(f(46)) p49=\(f(49)) p72=\(f(72)) p75=\(f(75)) p84=\(f(84)) p90=\(f(90))")
+        lines.append("# contour 0-32 (右鬓角0→下巴16→左鬓角32)")
+        for i in 0..<min(33, pts.count) {
+            lines.append("\(i) \(String(format: "%.4f", pts[i].x)) \(String(format: "%.4f", pts[i].y))")
+        }
+        lines.append("# rest 33-105")
+        for i in 33..<pts.count {
+            lines.append("\(i) \(String(format: "%.4f", pts[i].x)) \(String(format: "%.4f", pts[i].y))")
+        }
+        do {
+            try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            NSLog("[PoLang] face.mnn landmarks dumped: %@", url.path)
+        } catch {
+            NSLog("[PoLang] face.mnn landmarks dump FAIL: %@", error.localizedDescription)
+        }
     }
 
     // MARK: - YUV → BGRA（与 FaceLandmarkService.convertToBGRA 同实现）
