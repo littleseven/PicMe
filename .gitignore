@@ -77,6 +77,9 @@ __pycache__/
 # Generated visualization output
 output_images/
 
+# 测试输入图片（本地保留；含人脸生物特征数据，不入库）
+input_images/
+
 # Temporary model download cache
 tmp_models/
 
