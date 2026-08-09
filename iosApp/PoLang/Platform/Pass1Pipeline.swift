@@ -10,7 +10,7 @@ import Foundation
 ///   → RetinaFace 多脸检测 → [FaceROI + 5pt landmarks]
 ///   → 每人脸: 仿射对齐 112×112 → Glint360K embedding → 512d (L2 normalized)
 ///   → MobileCLIP 编码 → 512d 语义 embedding (Base64)
-///   → 存储: face_embeddings + media_tags
+///   → 存储: face_embeddings + media_assets
 /// ```
 ///
 /// 模型依赖（需通过 ModelDownloadCenter 预先下载）：
@@ -105,6 +105,11 @@ class Pass1Pipeline {
 
     /// 处理单张照片（对标 stage1WithEmbeddings）
     func process(_ image: UIImage, mediaId: Int64) -> Pass1Result {
+        let t0 = CFAbsoluteTimeGetCurrent()
+        defer {
+            let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
+            print("PoLang:TagScan pass1 mediaId=\(mediaId) cost=\(ms)ms")
+        }
         // 1. 缩放到 640px（保持宽高比）
         guard let scaledImage = resizeIfNeeded(image, maxLongSide: maxDetectSize) else {
             return Pass1Result(hasFace: false, faceCount: 0, isSelfie: false,
@@ -182,14 +187,15 @@ class Pass1Pipeline {
             faceRoiJson: hasFace ? "placeholder" : nil
         )
 
-        // 7. 存储到 SQLite
+        // 7. 存储到 SQLite（embeddings → face_embeddings；扫描列 → media_assets，对齐 Android）
         database.insertEmbeddings(mediaId: mediaId, embeddings: embeddings)
-        database.updateMediaTags(
+        database.updateMediaAssetsScanFields(
             mediaId: mediaId,
             hasFace: hasFace,
             faceRoiResult: result.faceRoiResultJson,
             faceFocusY: faceFocusY,
-            semanticEmbedding: semanticBase64
+            semanticEmbedding: semanticBase64,
+            lastTagScanPasses: "{\"1\":\(Int64(Date().timeIntervalSince1970 * 1000))}"
         )
 
         return result
