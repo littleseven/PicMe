@@ -102,12 +102,17 @@ static float2 gpupixelThinFace(
     float aspectRatio)
 {
     // 9 对控制点映射（originIndex -> targetIndex）
+    // 🔴 索引修正（2026-08-09）：facePoints 为「统一 106 点序」，非 GPUPixel 原生序。
+    //   统一序中 49=鼻尖中心、下巴中心=16（见 Android Face106ToWarpParams.kt）。
+    //   GPUPixel 原注释误把 49 当「下巴中心」，导致 14→49 / 18→49 / 16→49 把下颌往鼻尖拉
+    //   （纵向挤压）而非往下巴中心拉（横向收窄）→ 瘦脸形变打偏、肉眼不可见。
+    //   修正：下巴相关目标统一改为 16；第 9 对 origin 用 15（下巴旁），避免 origin==target 致除零。
     const float2 faceIndexs[9] = {
-        float2(3.0, 44.0),  float2(29.0, 44.0),
-        float2(7.0, 45.0),  float2(25.0, 45.0),
-        float2(10.0, 46.0), float2(22.0, 46.0),
-        float2(14.0, 49.0), float2(18.0, 49.0),
-        float2(16.0, 49.0)
+        float2(3.0, 44.0),  float2(29.0, 44.0),  // 轮廓上 → 鼻梁上(44)
+        float2(7.0, 45.0),  float2(25.0, 45.0),  // 脸颊 → 鼻梁中(45)
+        float2(10.0, 46.0), float2(22.0, 46.0),  // 下颌 → 鼻梁下(46)
+        float2(14.0, 16.0), float2(18.0, 16.0),  // 下颌角 → 下巴中心(16)
+        float2(15.0, 16.0)                        // 下巴旁 → 下巴中心(16)
     };
 
     for (int i = 0; i < 9; i++) {

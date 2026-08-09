@@ -145,9 +145,10 @@ class Pass1Pipeline {
 
             // Glint360K embedding
             guard let rgbData = rgbBytesFromImage(alignedFace, size: 112) else { continue }
-            if let embedding = rgbData.withUnsafeBytes({ (ptr: UnsafeRawBufferPointer) -> NSData? in
+            if let embedding = rgbData.withUnsafeBytes({ (ptr: UnsafeRawBufferPointer) -> Data? in
                 guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return nil }
-                return faceEmbedder.extractEmbedding(base, width: 112, height: 112)
+                guard let nsdata = faceEmbedder.extractEmbedding(base, width: 112, height: 112) else { return nil }
+                return nsdata as Data
             }) {
                 // 验证 embedding 非零非 NaN
                 if isValidEmbedding(embedding) {

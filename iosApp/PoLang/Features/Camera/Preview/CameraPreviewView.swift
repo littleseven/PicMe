@@ -13,8 +13,11 @@ struct CameraPreviewView: View {
     @State private var photoController = PhotoCaptureController()
     @State private var faceRouter = FaceEngineRouter()
     /// 引擎开关镜像（值类型 @State → 触发 toggle 视图重绘；同步到 faceRouter.useMnn）
-    /// 支持启动参数 -mnnEngine（无值开关）/ -slim <Float>，用于真机自动化验收（默认行为不变）。
-    @State private var useMnnEngine = Self.parseLaunchFlag("-mnnEngine")
+    /// **默认 MNN 引擎**：iOS 端 MediaPipe `face_landmarker.task` 未内置（走模型中心下载，Phase 6 才做）
+    /// → MediaPipe 无检测；MNN 两阶段 RetinaFace det_500m → 2d106 已真机 live 验证可用。
+    /// 运行时仍可点顶部 MNN/MediaPipe 胶囊切换；自动化验收用 `-useMediaPipe` 强制 MediaPipe（默认 MNN）。
+    /// 瘦脸强度仍走 `-slim <Float>`（range -50..50）。
+    @State private var useMnnEngine = !Self.parseLaunchFlag("-useMediaPipe")
 
     /// 启动参数解析（与 MainTabView -startPage 同模式；仅自动化验收用，不影响产品默认）。
     private static func parseLaunchFlag(_ key: String) -> Bool {

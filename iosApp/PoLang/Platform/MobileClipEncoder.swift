@@ -164,7 +164,7 @@ final class MobileClipEncoder {
         //    guarantee this under ARC (even with -O optimizations).
         let tensorData = NSMutableData(bytes: preprocessed,
                                        length: preprocessed.count * MemoryLayout<Float>.size)
-        let shape: [NSNumber] = [1, 3, inputSize, inputSize]
+        let shape: [NSNumber] = [1, 3, NSNumber(value: MobileClipEncoder.inputSize), NSNumber(value: MobileClipEncoder.inputSize)]
 
         do {
             let inputValue = try ORTValue(tensorData: tensorData,
@@ -230,12 +230,7 @@ final class MobileClipEncoder {
 
         // Copy raw bytes into [Float].
         var embedding = [Float](repeating: 0, count: Self.embeddingDim)
-        outputData.withBytes { rawBuffer in
-            let floatPtr = rawBuffer.bindMemory(to: Float.self)
-            for i in 0..<Self.embeddingDim {
-                embedding[i] = floatPtr[i]
-            }
-        }
+        outputData.getBytes(&embedding, length: Self.embeddingDim * MemoryLayout<Float>.size)
 
         // Validate + L2 normalize.
         return validateAndNormalize(&embedding)

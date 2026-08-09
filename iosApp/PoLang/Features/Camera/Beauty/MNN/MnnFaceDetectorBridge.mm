@@ -550,6 +550,8 @@ std::vector<PixelFace> Detector::detectAll(const uint8_t *bgra, int w, int h, in
     return result;
 }
 
+} // namespace polang_mnn
+
 // ───────────────────────── ObjC 桥接 ─────────────────────────
 
 // PLDetectedFace 私有工厂（仅 .mm 内部使用）

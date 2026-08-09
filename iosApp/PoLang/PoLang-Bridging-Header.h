@@ -8,5 +8,6 @@
 #define PoLang_Bridging_Header_h
 
 #import "Features/Camera/Beauty/MNN/MnnFaceDetectorBridge.h"
+#import "Features/Camera/Beauty/MNN/MnnFaceEmbedderBridge.h"
 
 #endif /* PoLang_Bridging_Header_h */

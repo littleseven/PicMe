@@ -29,6 +29,7 @@ import SQLite3  // iOS/macOS 系统 sqlite3 C API 模块（等价于 C 层 #incl
 /// - `androidApp/.../data/local/MediaDao.kt`               — media tag 写入 DAO
 /// - `androidApp/.../domain/tag/TagGenerationScheduler.kt` — Pass 1 写入路径
 final class TagDatabase {
+    static let shared = TagDatabase()
 
     // MARK: - Properties
 

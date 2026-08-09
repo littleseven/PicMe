@@ -1,20 +1,36 @@
 PODS:
+  - GRDB.swift (6.24.1):
+    - GRDB.swift/standard (= 6.24.1)
+  - GRDB.swift/standard (6.24.1)
   - MediaPipeTasksCommon (0.10.35)
   - MediaPipeTasksVision (0.10.35):
     - MediaPipeTasksCommon (= 0.10.35)
+  - onnxruntime-c (1.28.0)
+  - onnxruntime-objc (1.28.0):
+    - onnxruntime-objc/Core (= 1.28.0)
+  - onnxruntime-objc/Core (1.28.0):
+    - onnxruntime-c (= 1.28.0)
 
 DEPENDENCIES:
+  - GRDB.swift
   - MediaPipeTasksVision (~> 0.10.14)
+  - onnxruntime-objc (~> 1.28.0)
 
 SPEC REPOS:
   trunk:
+    - GRDB.swift
     - MediaPipeTasksCommon
     - MediaPipeTasksVision
+    - onnxruntime-c
+    - onnxruntime-objc
 
 SPEC CHECKSUMS:
+  GRDB.swift: 136dcb5d8dddca50aae3ba7d77475f79e7232cd8
   MediaPipeTasksCommon: ae27d88c4d185db114a1a768c504f8270dda79b5
   MediaPipeTasksVision: 1d6c3efa89830a131dbd0dc4fb80dea283fac521
+  onnxruntime-c: 1cf87aaca94f53ab33bb9729104ec0a5b88291e9
+  onnxruntime-objc: f98b9629e1f78020afc354e33a5afd947654c76d
 
-PODFILE CHECKSUM: 9d4e295fa474f2800a890bbe041f2b5f6c6cde9c
+PODFILE CHECKSUM: b1568e2301ed2eec6ecf036f466b6f80df470c50
 
 COCOAPODS: 1.17.0
