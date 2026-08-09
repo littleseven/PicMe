@@ -68,8 +68,11 @@ struct MainTabView: View {
                     }
                 }
         )
+        // 调试悬浮窗仅相机页（排查美颜/快门用），其余页面不干扰观感
         .overlay(alignment: .top) {
-            DebugOverlayView()
+            if currentPage == 0 {
+                DebugOverlayView()
+            }
         }
     }
 }
