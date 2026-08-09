@@ -31,8 +31,8 @@ for i, ln in enumerate(lines, 1):
             continue
         if re.fullmatch(r"[A-Z0-9_]+", val):        # CONST_LIKE_KEY
             continue
-        if re.fullmatch(r"[a-z][a-z0-9_]*", val) and len(val) <= 12:
-            continue                                # likely an identifier/key (user_id, api_key, db_name)
+        if re.fullmatch(r"[a-z][a-z0-9_]*", val) and "_" in val:
+            continue                                # snake_case identifier/key (user_id, api_key, db_name); bare lowercase words stay flagged
         hits.append(f'  ⚠️  L{i}: "{val}"')
         break
 for h in hits[:20]:

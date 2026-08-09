@@ -22,5 +22,8 @@ else:
 ' "$kind")"
 
 [ "$DEBUG" = "1" ] && echo "[notify] kind=$kind msg=$MSG" >&2
-/usr/bin/osascript -e "display notification \"${MSG:-完成}\" with title \"Kimi\" sound name \"Glass\"" >/dev/null 2>&1 || true
+# escape backslash + double-quote so a title/body containing them can't break AppleScript compilation
+MSG_ESC="${MSG//\\/\\\\}"
+MSG_ESC="${MSG_ESC//\"/\\\"}"
+/usr/bin/osascript -e "display notification \"${MSG_ESC:-完成}\" with title \"Kimi\" sound name \"Glass\"" >/dev/null 2>&1 || true
 exit 0
