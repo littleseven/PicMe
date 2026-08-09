@@ -1,5 +1,6 @@
 import Foundation
 import SharedKit
+import UIKit
 
 /// 组合根：shared 接口的 iOS actual 在此构造并注入。
 /// shared 不知道任何 iOS类型（spec §2.3）。各 feature 的实际注入在对应 Task 追加。

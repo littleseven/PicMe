@@ -1,34 +1,37 @@
 import SwiftUI
 
-/// 端侧模型下载中心（对标 Android `ModelCenterScreen`）。
+/// 端侧模型下载中心（1:1 对标 Android `ModelCenterScreen`）。
 ///
-/// 分类 Tab + 模型卡片 + 进度条 + 一键下载 + 删除。
+/// 结构：分类 Tab（横向滚动 chip）+ Tab 内容（头部卡片 + 模型卡片列表）。
+/// 模型可出现在多个 Tab（如 must-have 同时在 beauty-camera）。
 struct ModelDownloadCenterView: View {
     @StateObject private var manager = ModelDownloadManager.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedCategory: ModelCategory = .mustHave
+
+    /// 非空分类 Tab（按固定顺序）
+    private var visibleCategories: [(ModelCategory, [ModelEntry])] {
+        ModelCatalog.shared.groupedByCategory()
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 分类 Tab
-            categoryTabs
-
-            // 内容
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    categoryHeader
-                    ForEach(currentModels) { entry in
-                        ModelDownloadCard(entry: entry)
-                            .environmentObject(manager)
+            if visibleCategories.isEmpty {
+                emptyState
+            } else {
+                TabView(selection: $manager.selectedCategory) {
+                    ForEach(visibleCategories, id: \.0) { cat, models in
+                        categoryPage(cat, models: models)
+                            .tag(cat)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 32)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .overlay(alignment: .top) {
+                    categoryTabBar
+                }
             }
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(String(localized: "Model Downloads"))
+        .navigationTitle(String(localized: "Model Center"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
@@ -39,224 +42,402 @@ struct ModelDownloadCenterView: View {
         }
     }
 
-    // MARK: - Category Tabs
+    // MARK: - Category Tab Bar
 
-    private var categoryTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ModelCategory.allCases, id: \.self) { cat in
-                    let count = modelsInCategory(cat).count
-                    Button {
-                        selectedCategory = cat
-                    } label: {
-                        Text("\(cat.displayName) (\(count))")
-                            .font(.system(size: 13, weight: selectedCategory == cat ? .semibold : .regular))
-                            .foregroundColor(selectedCategory == cat ? .white : .secondary)
+    private var categoryTabBar: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(visibleCategories.map { $0.0 }, id: \.self) { cat in
+                        let isSelected = manager.selectedCategory == cat
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                manager.selectedCategory = cat
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: cat.iconSystemName)
+                                    .font(.system(size: 14))
+                                Text(cat.displayName)
+                                    .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
+                            }
+                            .foregroundColor(isSelected ? .white : .secondary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(selectedCategory == cat ? Color.accentColor : Color(.tertiarySystemBackground))
+                            .background(isSelected ? Color.accentColor : Color(.tertiarySystemBackground))
                             .clipShape(Capsule())
+                            .shadow(color: isSelected ? .black.opacity(0.15) : .clear, radius: 2, y: 1)
+                        }
+                        .id(cat)
                     }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            .background(Color(.systemBackground))
+            .onChange(of: manager.selectedCategory) { newCat in
+                withAnimation { proxy.scrollTo(newCat, anchor: .center) }
+            }
+        }
+    }
+
+    // MARK: - Category Page
+
+    private func categoryPage(_ cat: ModelCategory, models: [ModelEntry]) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                // 头部卡片
+                if cat == .mustHave {
+                    MustHaveHeaderCard()
+                        .environmentObject(manager)
+                }
+                // 模型卡片
+                ForEach(models) { entry in
+                    ModelDownloadCard(entry: entry)
+                        .environmentObject(manager)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-        }
-        .background(Color(.systemBackground))
-    }
-
-    // MARK: - Category Header
-
-    @ViewBuilder
-    private var categoryHeader: some View {
-        if selectedCategory == .mustHave && !manager.missingRequiredModels.isEmpty {
-            MustHaveHeaderCard()
-                .environmentObject(manager)
+            .padding(.top, 56)  // 留出 Tab Bar 空间
+            .padding(.bottom, 32)
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Empty State
 
-    private var currentModels: [ModelEntry] {
-        modelsInCategory(selectedCategory)
-    }
-
-    private func modelsInCategory(_ cat: ModelCategory) -> [ModelEntry] {
-        ModelCatalog.shared.models.filter { $0.category == cat }
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "cpu")
+                .font(.system(size: 64))
+                .foregroundColor(.secondary.opacity(0.4))
+            Text(String(localized: "No models available"))
+                .font(.system(size: 16))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - Must-Have Header
+// MARK: - Must-Have Header Card
 
 private struct MustHaveHeaderCard: View {
     @EnvironmentObject private var manager: ModelDownloadManager
 
     var body: some View {
-        let missing = manager.missingRequiredModels
-        let totalSize = manager.missingRequiredSize
+        let required = ModelCatalog.shared.models.filter { $0.isRequired }
+        let missing = required.filter { !manager.isModelDownloaded($0.id) }
 
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(matIcon: "download")
-                    .font(.system(size: 20))
-                    .foregroundColor(.accentColor)
-                Text(String(localized: "Download All Required"))
-                    .font(.system(size: 15, weight: .semibold))
-                Spacer()
-            }
-            Text("\(missing.count) \(String(localized: "models missing")) · \(ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file))")
-                .font(.system(size: 12))
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Must Have"))
+                .font(.system(size: 16, weight: .semibold))
+
+            Text("\(required.count) \(String(localized: "required models,")) \(missing.count) \(String(localized: "not downloaded"))")
+                .font(.system(size: 13))
                 .foregroundColor(.secondary)
-            Button {
-                manager.downloadAllRequired()
-            } label: {
-                Text(String(localized: "Download All"))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            if !missing.isEmpty {
+                HStack {
+                    Spacer()
+                    Button {
+                        manager.downloadAllRequired()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(matIcon: "download").font(.system(size: 16))
+                            Text(String(localized: "Download Missing"))
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.accentColor)
+                        .clipShape(Capsule())
+                    }
+                }
+                .padding(.top, 8)
             }
         }
-        .padding(14)
-        .background(Color(.secondarySystemBackground))
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.accentColor.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
-// MARK: - Model Card
+// MARK: - Model Download Card
 
 private struct ModelDownloadCard: View {
     let entry: ModelEntry
     @EnvironmentObject private var manager: ModelDownloadManager
+    @State private var showDeleteConfirm = false
+    @State private var showProperties = false
 
     private var state: DownloadState? { manager.downloadStates[entry.id] }
     private var isDownloaded: Bool { manager.isModelDownloaded(entry.id) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 标题行
-            HStack(spacing: 8) {
-                Text(entry.name)
-                    .font(.system(size: 14, weight: .semibold))
-                if entry.isRequired {
-                    tierBadge(String(localized: "Required"), color: .red)
-                } else if entry.isRecommended {
-                    tierBadge(String(localized: "Recommended"), color: .orange)
+        VStack(alignment: .leading, spacing: 0) {
+            // 上部：信息 + 操作按钮
+            HStack(alignment: .top, spacing: 10) {
+                // 左侧信息列
+                VStack(alignment: .leading, spacing: 4) {
+                    // 名称 + Tag Badge
+                    HStack(spacing: 8) {
+                        Text(entry.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .lineLimit(1)
+                        TagBadge(tag: entry.primaryTag)
+                    }
+                    // 描述
+                    Text(entry.description)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                    // 信息行
+                    HStack(spacing: 8) {
+                        Text(entry.formattedSize)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.accentColor)
+                        if entry.isLightweight {
+                            LightweightBadge()
+                        }
+                        if entry.isRequired {
+                            RequiredBadge()
+                        }
+                    }
+                    .padding(.top, 2)
                 }
-                if entry.isLightweight {
-                    tierBadge(String(localized: "Lite"), color: .green)
-                }
+                Spacer(minLength: 8)
+
+                // 右侧操作按钮
+                actionColumn
             }
 
-            // 描述
-            Text(entry.description)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-
-            // 大小
-            HStack {
-                Image(matIcon: "storage")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                Text(entry.formattedSize)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-
-            // 进度条（下载中/暂停）
+            // 进度条（下载中 / 暂停 / 失败）
             if let state, state.status == .downloading || state.status == .paused {
-                VStack(spacing: 4) {
-                    ProgressView(value: state.progress)
-                        .tint(state.status == .paused ? .orange : .accentColor)
+                VStack(alignment: .leading, spacing: 4) {
+                    ProgressView(value: max(0.001, state.progress))
+                        .tint(state.status == .paused ? .secondary : .accentColor)
                     HStack {
-                        Text("\(ByteCountFormatter.string(fromByteCount: state.downloadedBytes, countStyle: .file)) / \(entry.formattedSize)")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
+                        if state.status == .paused {
+                            Text(String(localized: "Pause"))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
                         Spacer()
-                        Text(state.status == .paused
-                             ? String(localized: "Paused")
-                             : "\(Int(state.progress * 100))%")
-                            .font(.system(size: 10))
+                        Text("\(Int(state.progress * 100))%")
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
+                .padding(.top, 10)
             }
-
-            // 操作按钮
-            actionBar
+            if let state, state.status == .failed {
+                Text(String(localized: "Download failed. Please try again."))
+                    .font(.system(size: 11))
+                    .foregroundColor(.red)
+                    .padding(.top, 6)
+            }
         }
         .padding(14)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onLongPressGesture {
+            showProperties = true
+        }
+        .confirmationDialog(
+            String(localized: "Delete model?"),
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete"), role: .destructive) {
+                manager.delete(entry.id)
+            }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "Are you sure you want to delete") + " \(entry.name)?")
+        }
+        .sheet(isPresented: $showProperties) {
+            ModelPropertiesSheet(entry: entry)
+        }
     }
 
+    // MARK: - Action Column
+
     @ViewBuilder
-    private var actionBar: some View {
-        HStack(spacing: 8) {
-            if isDownloaded {
-                // 已下载 → 删除按钮
-                Button(role: .destructive) {
-                    manager.delete(entry.id)
-                } label: {
-                    labelButton(icon: "delete", text: String(localized: "Delete"), color: .red)
+    private var actionColumn: some View {
+        VStack(spacing: 4) {
+            // 主操作按钮（按状态切换）
+            if isDownloaded && state?.status != .downloading && state?.status != .paused {
+                // 已下载 → Check 图标
+                Button { showDeleteConfirm = true } label: {
+                    Image(matIcon: "check")
+                        .font(.system(size: 22))
+                        .foregroundColor(.accentColor)
                 }
+                .frame(width: 36, height: 36)
             } else if let state {
                 switch state.status {
                 case .downloading:
-                    Button { manager.pause(entry.id) } label: {
-                        labelButton(icon: "pause", text: String(localized: "Pause"), color: .orange)
-                    }
-                    Button { manager.cancel(entry.id) } label: {
-                        labelButton(icon: "close", text: String(localized: "Cancel"), color: .red)
+                    HStack(spacing: 2) {
+                        Button { manager.pause(entry.id) } label: {
+                            Image(matIcon: "pause")
+                                .font(.system(size: 18))
+                                .foregroundColor(.accentColor)
+                        }
+                        .frame(width: 32, height: 32)
+                        Button { manager.cancel(entry.id) } label: {
+                            Image(matIcon: "close")
+                                .font(.system(size: 18))
+                                .foregroundColor(.red)
+                        }
+                        .frame(width: 32, height: 32)
                     }
                 case .paused:
                     Button { manager.resume(entry.id) } label: {
-                        labelButton(icon: "play_arrow", text: String(localized: "Resume"), color: .accentColor)
+                        Image(matIcon: "play_arrow")
+                            .font(.system(size: 22))
+                            .foregroundColor(.accentColor)
                     }
-                    Button { manager.cancel(entry.id) } label: {
-                        labelButton(icon: "close", text: String(localized: "Cancel"), color: .red)
-                    }
+                    .frame(width: 36, height: 36)
                 case .failed:
                     Button { manager.download(entry.id) } label: {
-                        labelButton(icon: "refresh", text: String(localized: "Retry"), color: .accentColor)
+                        Image(matIcon: "download")
+                            .font(.system(size: 20))
+                            .foregroundColor(.accentColor)
                     }
+                    .frame(width: 36, height: 36)
                 default:
-                    Button { manager.download(entry.id) } label: {
-                        labelButton(icon: "download", text: String(localized: "Download"), color: .accentColor)
-                    }
+                    downloadButton
                 }
             } else {
-                Button { manager.download(entry.id) } label: {
-                    labelButton(icon: "download", text: String(localized: "Download"), color: .accentColor)
+                downloadButton
+            }
+
+            // 删除按钮（始终显示）
+            Button { showDeleteConfirm = true } label: {
+                Image(matIcon: "delete")
+                    .font(.system(size: 18))
+                    .foregroundColor(.red.opacity(0.6))
+            }
+            .frame(width: 36, height: 36)
+        }
+    }
+
+    private var downloadButton: some View {
+        Button { manager.download(entry.id) } label: {
+            Image(matIcon: "download")
+                .font(.system(size: 20))
+                .foregroundColor(.accentColor)
+        }
+        .frame(width: 36, height: 36)
+    }
+}
+
+// MARK: - Badges
+
+private struct TagBadge: View {
+    let tag: String
+
+    private var color: Color {
+        Color(rgb: ModelEntry.tagColorHex(tag))
+    }
+    private var label: String {
+        ModelEntry.tagDisplayName(tag)
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(color)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct LightweightBadge: View {
+    var body: some View {
+        Text(String(localized: "Lightweight"))
+            .font(.system(size: 10))
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color(.tertiarySystemBackground).opacity(0.6))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+}
+
+private struct RequiredBadge: View {
+    var body: some View {
+        Text(String(localized: "Must Have"))
+            .font(.system(size: 10, weight: .bold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color(rgb: 0xE53935))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+}
+
+// MARK: - Properties Sheet
+
+private struct ModelPropertiesSheet: View {
+    let entry: ModelEntry
+    @Environment(\.dismiss) private var dismiss
+
+    private var jsonText: String {
+        let dict: [String: Any] = [
+            "id": entry.id,
+            "name": entry.name,
+            "description": entry.description,
+            "size": entry.size,
+            "sizeFormatted": entry.formattedSize,
+            "tags": entry.tags,
+            "files": entry.files,
+            "sources": entry.sources,
+            "isSmallModel": entry.isLightweight,
+        ]
+        let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys])
+        return String(data: data ?? Data(), encoding: .utf8) ?? ""
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(jsonText)
+                    .font(.system(size: 12, design: .monospaced))
+                    .padding(16)
+            }
+            .navigationTitle(String(localized: "Model Properties"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(String(localized: "Close")) { dismiss() }
                 }
             }
         }
     }
+}
 
-    private func tierBadge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.system(size: 9, weight: .medium))
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15))
-            .foregroundColor(color)
-            .clipShape(Capsule())
-    }
+// MARK: - Color Extension
 
-    private func labelButton(icon: String, text: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(matIcon: icon).font(.system(size: 14))
-            Text(text).font(.system(size: 12, weight: .medium))
-        }
-        .foregroundColor(color)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(color.opacity(0.1))
-        .clipShape(Capsule())
+extension Color {
+    init(rgb: UInt32) {
+        self.init(
+            .sRGB,
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255,
+            opacity: 1
+        )
     }
 }
 

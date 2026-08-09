@@ -37,11 +37,11 @@ final class ModelDownloadCenterTest: XCTestCase {
 
     /// T3：分类 Tab 分组
     func testCategoryGrouping() {
-        let groups = ModelCatalog.shared.groupByCategory()
+        let groups = ModelCatalog.shared.groupedByCategory()
         XCTAssertFalse(groups.isEmpty, "Should have at least one category")
 
         // Must-have tab should contain the required models
-        let mustHave = groups.first { $0.0 == .mustHave }
+        let mustHave = groups.first { $0.0 == ModelCategory.mustHave }
         XCTAssertNotNil(mustHave)
         XCTAssertGreaterThanOrEqual(mustHave!.1.count, 1)
     }

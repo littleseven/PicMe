@@ -92,6 +92,17 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    /// onDisappear 取消 uiActions 订阅：FlowWatcher 持有 Kotlin 协程 Job，
+    /// Swift 属性释放不会自动 cancel Kotlin 侧 Job，必须显式取消
+    func stopWatching() {
+        actionWatcher?.cancel()
+        actionWatcher = nil
+    }
+
+    deinit {
+        actionWatcher?.cancel()
+    }
+
     // MARK: - Private
 
     private func updateMessage(id: UUID, text: String) {

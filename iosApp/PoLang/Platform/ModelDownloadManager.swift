@@ -47,6 +47,9 @@ final class ModelDownloadManager: ObservableObject {
     /// 所有模型的下载状态（单一状态源，UI 绑定）
     @Published private(set) var downloadStates: [String: DownloadState] = [:]
 
+    /// 当前选中的分类 Tab（UI 绑定）
+    @Published var selectedCategory: ModelCategory = .mustHave
+
     /// 下载目录
     var modelsDir: URL {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
