@@ -280,5 +280,4 @@ struct AddModelSheet: View {
         ModelCenterView()
             .environmentObject(ModelConfigStore.shared)
     }
-    .preferredColorScheme(.dark)
 }

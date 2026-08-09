@@ -445,5 +445,4 @@ extension Color {
     NavigationStack {
         ModelDownloadCenterView()
     }
-    .preferredColorScheme(.dark)
 }

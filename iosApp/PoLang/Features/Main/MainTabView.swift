@@ -8,6 +8,15 @@ struct MainTabView: View {
     @State private var currentPage = 1 // 初始页 = 相册（对标 Android）
     @EnvironmentObject private var container: AppContainer
     @State private var showPlaceholder: String?
+    @AppStorage("theme_mode") private var themeMode: String = "system"
+
+    private var colorScheme: ColorScheme? {
+        switch themeMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil  // system
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -44,7 +53,7 @@ struct MainTabView: View {
                     .transition(.opacity)
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(colorScheme)
         // 翻页同步 SceneManager（chat 工具按场景路由，不同步会被入队不执行）
         .onAppear {
             IosAgentComposition.shared.onMainPageChanged(page: Int64(currentPage))
