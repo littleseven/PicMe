@@ -41,18 +41,34 @@ struct SettingsScreen: View {
                 Section(String(localized: "Data & Privacy")) {
                     Phase6PlaceholderRow(title: String(localized: "Data & Privacy"))
                 }
-                Section(String(localized: "Model Center")) {
+                // 远程 API 模型配置（BYOK）
+                Section(String(localized: "API Models")) {
                     NavigationLink {
                         ModelCenterView()
                             .environmentObject(ModelConfigStore.shared)
                     } label: {
                         HStack {
-                            Text(String(localized: "Model Center"))
+                            Text(String(localized: "API Models"))
                             Spacer()
                             Text(ModelConfigStore.shared.selectedDisplayName)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
+                        }
+                    }
+                }
+                // 端侧模型下载中心
+                Section(String(localized: "On-Device Models")) {
+                    NavigationLink {
+                        ModelDownloadCenterView()
+                    } label: {
+                        HStack {
+                            Text(String(localized: "Model Downloads"))
+                            Spacer()
+                            let count = ModelDownloadManager.shared.downloadedModelIds.count
+                            Text("\(count) / \(ModelCatalog.shared.models.count)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }

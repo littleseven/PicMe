@@ -118,7 +118,7 @@ final class ChatViewModel: ObservableObject {
             let ids = dto.mediaIds.map { $0.int64Value }
             messages.append(ChatMessage(
                 role: .assistant,
-                text: "找到 \(dto.totalCount) 张「\(dto.query)」",
+                text: String(localized: "Found \(dto.totalCount) results for「\(dto.query)」"),
                 mediaIds: ids
             ))
             persist()

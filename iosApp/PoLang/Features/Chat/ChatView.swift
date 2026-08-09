@@ -31,6 +31,12 @@ struct ChatView: View {
                         }
                     }
                 }
+                // 流式 token 只改最后一条 text，count 不变，需单独监听以跟随滚动
+                .onChange(of: viewModel.messages.last?.text.count) { _ in
+                    if let lastId = viewModel.messages.last?.id {
+                        proxy.scrollTo(lastId, anchor: .bottom)
+                    }
+                }
             }
 
             Divider().background(Color.white.opacity(0.1))
@@ -101,6 +107,8 @@ struct ChatView: View {
     }
 
     private func send() {
+        // 先守卫再清空：onSubmit 不受 Button.disabled 约束，处理中回车不能丢文本
+        guard canSend else { return }
         let text = inputText
         inputText = ""
         viewModel.send(text)
@@ -159,8 +167,7 @@ private struct MessageBubble: View {
                 // 错误标记
                 if message.error != nil {
                     HStack(spacing: 4) {
-                        Image(matIcon: "error")
-                            .font(.system(size: 12))
+                        MatIcon(name: "error", size: 12)
                         Text(String(localized: "Guest quota exhausted. Future versions support account registration."))
                             .font(.system(size: 12))
                     }
@@ -183,23 +190,42 @@ private struct MessageBubble: View {
 
 private struct MediaCardRow: View {
     let mediaIds: [Int64]
+    @State private var idToIdentifier: [Int64: String] = [:]
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(mediaIds, id: \.self) { id in
-                    MediaThumbnail(mediaId: id)
+                    MediaThumbnail(localIdentifier: idToIdentifier[id])
                         .frame(width: 72, height: 72)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
         .accessibilityIdentifier("chat_media_row")
+        .task(id: mediaIds) {
+            // mediaId 是 Kotlin 侧 localIdentifier.hashCode()（Java 确定性 31 多项式），
+            // Swift String.hashValue 是 SipHash 每进程随机，绝不匹配——必须用等价实现反查。
+            // 每次搜索结果一次扫描建映射，避免逐卡片 O(n) 全表扫
+            var map: [Int64: String] = [:]
+            let result = PHAsset.fetchAssets(with: nil)
+            result.enumerateObjects { asset, _, _ in
+                map[Self.javaHashCode(asset.localIdentifier)] = asset.localIdentifier
+            }
+            idToIdentifier = map
+        }
+    }
+
+    /// Java String.hashCode() 等价（UTF-16 码元 31 多项式；localIdentifier 为 ASCII，无代理对问题）
+    static func javaHashCode(_ s: String) -> Int64 {
+        var h: Int64 = 0
+        for u in s.utf16 { h = 31 &* h &+ Int64(u) }
+        return h
     }
 }
 
 private struct MediaThumbnail: View {
-    let mediaId: Int64
+    let localIdentifier: String?
     @State private var image: UIImage?
 
     var body: some View {
@@ -210,31 +236,16 @@ private struct MediaThumbnail: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {
-                Image(matIcon: "photo")
-                    .font(.system(size: 20))
+                MatIcon(name: "photo", size: 20)
                     .foregroundColor(.white.opacity(0.2))
             }
         }
-        .task(id: mediaId) {
-            await loadThumbnail()
+        .task(id: localIdentifier) {
+            guard let localIdentifier, image == nil else { return }
+            let size = CGSize(width: 216, height: 216) // 72pt @3x
+            image = await ThumbnailLoader.shared.thumbnail(
+                for: localIdentifier, size: size)
         }
-    }
-
-    /// mediaId 是 localIdentifier.hashCode()，需反查 localIdentifier。
-    /// 走 PHAsset 全量后匹配 hashCode（相册量级下成本可接受）。
-    private func loadThumbnail() async {
-        let result = PHAsset.fetchAssets(with: nil)
-        var found: PHAsset?
-        result.enumerateObjects { asset, _, stop in
-            if Int64(asset.localIdentifier.hashValue) == mediaId {
-                found = asset
-                stop.pointee = true
-            }
-        }
-        guard let asset = found else { return }
-        let size = CGSize(width: 216, height: 216) // 72pt @3x
-        image = await ThumbnailLoader.shared.thumbnail(
-            for: asset.localIdentifier, size: size)
     }
 }
 
