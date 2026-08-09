@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import CoreImage
 import MediaPipeTasksVision
 
 /// 人脸 468 点检测（video 模式）→ 106 点输出。
@@ -73,7 +74,10 @@ final class FaceLandmarkService {
             defer { busy = false }
 
             do {
-                let mpImage = try MPImage(pixelBuffer: pixelBuffer)
+                // 🔴 #9: MediaPipe MPImage 要求 BGRA 格式，相机输出是 YUV bi-planar
+                // 需先转换 pixelBuffer 格式
+                let bgraBuffer = Self.convertToBGRA(pixelBuffer) ?? pixelBuffer
+                let mpImage = try MPImage(pixelBuffer: bgraBuffer)
                 let result = try landmarker.detect(
                     videoFrame: mpImage,
                     timestampInMilliseconds: timestampMs)
@@ -101,5 +105,43 @@ final class FaceLandmarkService {
         guard let result = latest,
               abs(currentTimestampMs - result.timestampMs) < 200 else { return nil }
         return result.points106
+    }
+
+    // MARK: - YUV → BGRA 转换（MediaPipe 要求 BGRA）
+
+    /// 🔴 #9: MediaPipe MPImage 不支持 YUV bi-planar（kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange）
+    /// 用 vImage 将 YUV 转 BGRA 后再喂给 FaceLandmarker
+    private static let bgraQueue = DispatchQueue(label: "polang.face.bgra")
+
+    private static func convertToBGRA(_ yuvBuffer: CVPixelBuffer) -> CVPixelBuffer? {
+        let srcFormat = CVPixelBufferGetPixelFormatType(yuvBuffer)
+        if srcFormat == kCVPixelFormatType_32BGRA { return yuvBuffer } // 已是 BGRA
+
+        let w = CVPixelBufferGetWidth(yuvBuffer)
+        let h = CVPixelBufferGetHeight(yuvBuffer)
+
+        var bgraBuffer: CVPixelBuffer?
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault, w, h,
+            kCVPixelFormatType_32BGRA,
+            [kCVPixelBufferCGImageCompatibilityKey: true,
+             kCVPixelBufferCGBitmapContextCompatibilityKey: true] as CFDictionary,
+            &bgraBuffer
+        )
+        guard status == kCVReturnSuccess, let bgra = bgraBuffer else { return nil }
+
+        CVPixelBufferLockBaseAddress(yuvBuffer, .readOnly)
+        CVPixelBufferLockBaseAddress(bgra, [])
+        defer {
+            CVPixelBufferUnlockBaseAddress(yuvBuffer, .readOnly)
+            CVPixelBufferUnlockBaseAddress(bgra, [])
+        }
+
+        // 用 CoreImage 做 YUV→RGB（最简洁可靠）
+        let ciImage = CIImage(cvPixelBuffer: yuvBuffer)
+        let ciContext = CIContext()
+        ciContext.render(ciImage, to: bgra)
+
+        return bgra
     }
 }
