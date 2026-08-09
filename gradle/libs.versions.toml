@@ -34,7 +34,6 @@ cameraVideo = "1.5.0"
 loggingInterceptor = "5.2.1"
 okhttp = "5.2.1"
 koog = "1.1.1"
-ktor = "3.3.3"
 kotlinxSerialization = "1.10.0"
 moshiKotlin = "1.15.2"
 moshiKotlinCodegen = "1.15.2"
@@ -45,11 +44,9 @@ mlkitTextRecognition = "16.0.1"
 mediapipeFaceLandmarker = "0.10.26"
 onnxRuntimeAndroid = "1.24.3"
 kotlinxCoroutinesPlayServices = "1.10.2"
-recyclerView = "1.4.0"
 mockk = "1.13.8"
 oapi = "2.5.3"
 telegramBot = "5.5.0"
-ktlint = "1.3.1"
 detekt = "1.23.6"
 composeMarkdown = "0.5.4"
 androidsvg = "1.4"
@@ -97,7 +94,6 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "cameraVideo" }
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "loggingInterceptor" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-koog-agents = { group = "ai.koog", name = "koog-agents", version.ref = "koog" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 oapi-sdk = { module = "com.larksuite.oapi:oapi-sdk", version.ref = "oapi" }
 telegram-bot = { module = "com.github.pengrad:java-telegram-bot-api", version.ref = "telegramBot" }
@@ -114,13 +110,10 @@ onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime
 google-mlkit-text-recognition-chinese = { group = "com.google.mlkit", name = "text-recognition-chinese", version.ref = "mlkitTextRecognition" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
-androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerView" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
 androidsvg = { group = "com.caverock", name = "androidsvg-aar", version.ref = "androidsvg" }
 quickjs-kt = { group = "io.github.dokar3", name = "quickjs-kt", version.ref = "dokar3Quickjs" }
-ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlint" }
-detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 [plugins]
