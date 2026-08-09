@@ -18,6 +18,9 @@ struct MediaPagerView: View {
     @State private var showInfo = false
     @State private var sharePayload: SharePayload? = nil
     @State private var showDeleteConfirm = false
+    /// debug 开关门控「人脸关键点」入口（对齐 Android debugUiEnabled）
+    @AppStorage("debug_ui_enabled") private var debugEnabled = false
+    @State private var showFaceOverlay = false
     @Environment(\.dismiss) private var dismiss
     /// 删除直调 Swift 桥（PHAssetChangeRequest 自带系统确认；成功后观察者驱动网格刷新）
     private let bridge = PhMediaBridge()
@@ -39,6 +42,7 @@ struct MediaPagerView: View {
                     ZoomablePagerPage(
                         localIdentifier: asset.uri,
                         isActive: i == index,
+                        showFaceOverlay: showFaceOverlay,
                         onTap: { withAnimation(.easeInOut(duration: 0.2)) { barsVisible.toggle() } },
                         onZoomChange: { zoomed in
                             if zoomed { isZoomed = true } else if i == index { isZoomed = false }
@@ -76,94 +80,118 @@ struct MediaPagerView: View {
         }
     }
 
-    /// 顶栏（dump：栏内容高 68dp、按钮 48dp/字形 24dp、右缘 16dp）：
-    /// 关闭 ← + 日期（20sp）+ 图片信息 + 更多（图像理解/提取文字/人脸关键点，
-    /// 均依赖 Phase 6 VLM/OCR/人脸管线，列出但灰置）
+    /// 顶栏（对齐 Android `mediaPagerTopControls`：黑 0.85 底、h16/v10 padding（内容高 68dp）、
+    /// 按钮 48dp）：返回 mat_arrow_back 24dp + 日期 14sp/白 0.85（间距 12），
+    /// 右侧 mat_info/mat_more_horiz 22dp（间距 4）；更多菜单（图像理解/提取文字/人脸关键点，
+    /// 均依赖 Phase 6 VLM/OCR/人脸管线，列出但灰置，菜单项图标 20dp 对齐 Android 下拉项）
     private var topBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 24))
+                MatIcon(name: "mat_arrow_back", size: 24)
                     .frame(width: 48, height: 48)
                     .contentShape(Rectangle())
             }
             .accessibilityIdentifier("pager_back")
             Text(formattedDate(currentAsset?.captureDate))
-                .font(.system(size: 20, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.85))
                 .lineLimit(1)
+                .padding(.leading, 12)
             Spacer()
-            Button { showInfo = true } label: {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 24))
-                    .frame(width: 48, height: 48)
-                    .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                Button { showInfo = true } label: {
+                    MatIcon(name: "mat_info", size: 22)
+                        .frame(width: 48, height: 48)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("pager_info")
+                Menu {
+                    Button {} label: {
+                        Label {
+                            Text(String(localized: "Image Analysis"))
+                        } icon: {
+                            MatIcon(name: "mat_auto_awesome", size: 20)
+                        }
+                    }.disabled(true)
+                    Button {} label: {
+                        Label {
+                            Text(String(localized: "Extract Text"))
+                        } icon: {
+                            MatIcon(name: "mat_text_snippet", size: 20)
+                        }
+                    }.disabled(true)
+                    Button { showFaceOverlay.toggle() } label: {
+                        Label {
+                            Text(String(localized: "Face Landmarks"))
+                        } icon: {
+                            MatIcon(name: "mat_face", size: 20)
+                        }
+                    }
+                    .disabled(!debugEnabled || currentAsset?.type == .video)
+                } label: {
+                    MatIcon(name: "mat_more_horiz", size: 22)
+                        .frame(width: 48, height: 48)
+                        .contentShape(Rectangle())
+                }
+                // Menu 内建按钮样式自带横向 padding，定死 48 框防挤压顶栏布局
+                .frame(width: 48, height: 48)
+                .menuIndicator(.hidden)
+                .accessibilityIdentifier("pager_more")
             }
-            .accessibilityIdentifier("pager_info")
-            Menu {
-                Button {} label: { Text(String(localized: "Image Analysis")) }.disabled(true)
-                Button {} label: { Text(String(localized: "Extract Text")) }.disabled(true)
-                Button {} label: { Text(String(localized: "Face Landmarks")) }.disabled(true)
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 24))
-                    .frame(width: 48, height: 48)
-                    .contentShape(Rectangle())
-            }
-            // Menu 内建按钮样式自带横向 padding，定死 48 框防挤压顶栏布局
-            .frame(width: 48, height: 48)
-            .menuIndicator(.hidden)
-            .accessibilityIdentifier("pager_more")
         }
-        .padding(.leading, 4)
-        .padding(.trailing, 16)  // dump：更多按钮右缘 52px≈16dp
-        .frame(height: 68)       // dump：栏内容高 (362-133)px≈69dp
+        .padding(.horizontal, 16)
+        .frame(height: 68)  // = Android v10 padding + 48dp 按钮
         .foregroundStyle(.white)
         .background(Color.black.opacity(0.85))
     }
 
-    /// 底栏（dump：4 位 SpaceEvenly，按钮 48dp，icon 22dp + label 12sp）：
+    /// 底栏（对齐 Android `mediaPagerBottomBar`：4 位 SpaceEvenly、h8/v4 padding、
+    /// 按钮 48dp、icon 22dp/白 0.9 + label 10sp/白 0.7）：
     /// 发送/删除实做；编辑/证照 iOS 无功能（Phase 6）灰置占位，保持 4 位节奏
     private var bottomBar: some View {
         HStack(spacing: 0) {
             Spacer()
-            bottomBarItem(systemName: "paperplane",
+            bottomBarItem(icon: "mat_send",
                           title: String(localized: "Send"),
                           accessibilityID: "pager_share") { shareCurrent() }
             Spacer()
-            bottomBarItem(systemName: "wand.and.stars",
+            bottomBarItem(icon: "mat_autofix",
                           title: String(localized: "Edit"),
                           accessibilityID: "pager_edit",
                           isEnabled: false) {}
             Spacer()
-            bottomBarItem(systemName: "person.text.rectangle",
+            bottomBarItem(icon: "mat_badge",
                           title: String(localized: "ID"),
                           accessibilityID: "pager_id_photo",
                           isEnabled: false) {}
             Spacer()
-            bottomBarItem(systemName: "trash",
+            bottomBarItem(icon: "mat_delete",
                           title: String(localized: "Delete"),
                           accessibilityID: "pager_delete") { showDeleteConfirm = true }
             Spacer()
         }
-        .padding(.vertical, 10)
-        .foregroundStyle(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
         .background(Color.black.opacity(0.85))
     }
 
-    private func bottomBarItem(systemName: String, title: String,
+    private func bottomBarItem(icon: String, title: String,
                                accessibilityID: String,
                                isEnabled: Bool = true,
                                action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: systemName).font(.system(size: 22))
-                Text(title).font(.system(size: 12))
+            VStack(spacing: 2) {
+                MatIcon(name: icon, size: 22)
+                    .foregroundStyle(Color.white.opacity(0.9))
+                Text(title)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.white.opacity(0.7))
             }
             .frame(width: 48, height: 48)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isEnabled ? Color.white : Color.white.opacity(0.3))
+        .opacity(isEnabled ? 1 : 0.3)
         .disabled(!isEnabled)
         .accessibilityIdentifier(accessibilityID)
     }
@@ -198,6 +226,7 @@ struct MediaPagerView: View {
 private struct ZoomablePagerPage: View {
     let localIdentifier: String
     let isActive: Bool
+    let showFaceOverlay: Bool
     let onTap: () -> Void
     let onZoomChange: (Bool) -> Void
 
@@ -207,11 +236,32 @@ private struct ZoomablePagerPage: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
 
+    /// 人脸关键点检测状态机：idle→loading→success(画点)/noFace(反馈)。
+    /// 对标 Android FaceLandmarkDetectionState；成功态 overlay 留在本 ZStack 跟随缩放。
+    private enum FaceState {
+        case idle, loading
+        case success(StaticFaceDetector.Outcome)
+        case noFace
+    }
+    @State private var faceState: FaceState = .idle
+
     var body: some View {
         GeometryReader { geo in
             Group {
                 if let image {
-                    Image(uiImage: image).resizable().scaledToFit()
+                    // 🔴 静态检测 overlay 与 Image 同 ZStack、同 frame，跟踪 scaleEffect/offset（缩放时一起动）
+                    ZStack {
+                        Image(uiImage: image).resizable().scaledToFit()
+                        if showFaceOverlay {
+                            if case .success(let outcome) = faceState {
+                                GalleryFaceOverlay(points: outcome.points, imageSize: outcome.imageSize)
+                            } else if case .loading = faceState {
+                                GalleryFaceFeedback(phase: .loading)
+                            } else if case .noFace = faceState {
+                                GalleryFaceFeedback(phase: .noFace)
+                            }
+                        }
+                    }
                 } else {
                     ProgressView().tint(.white)
                 }
@@ -227,13 +277,37 @@ private struct ZoomablePagerPage: View {
         }
         .clipped()
         .onChange(of: isActive) { active in  // iOS 16 部署目标：用单参闭包形式
-            if !active { resetZoom() }
+            if !active { resetZoom() } else { detectIfNeeded() }
+        }
+        .onChange(of: showFaceOverlay) { on in
+            if on { detectIfNeeded() } else { faceState = .idle }
         }
         .task(id: localIdentifier) {
+            faceState = .idle  // 切页重置：新图重新走 idle→loading→...
             image = await ThumbnailLoader.shared.thumbnail(
                 for: localIdentifier,
                 size: CGSize(width: 1600, height: 1600),
-                highQuality: true)  // 大图要高清档（🟡-8）
+                highQuality: true)
+            detectIfNeeded()  // 图就绪后，若仍「激活+开关开」则触发检测
+        }
+    }
+
+    /// 满足「开关开 + 当前页 + 图已加载 + idle」时触发一次 MNN 检测；否则空操作。
+    private func detectIfNeeded() {
+        guard showFaceOverlay, isActive, let image else { return }
+        guard case .idle = faceState else { return }  // 已在检测/已有结果则不重复
+        faceState = .loading
+        let snapshot = image
+        Task.detached(priority: .userInitiated) {
+            let outcome = StaticFaceDetector.detect(snapshot)
+            await MainActor.run {
+                guard showFaceOverlay, isActive else { return }  // 仍开且仍是当前页
+                if let outcome {
+                    faceState = .success(outcome)
+                } else {
+                    faceState = .noFace
+                }
+            }
         }
     }
 
