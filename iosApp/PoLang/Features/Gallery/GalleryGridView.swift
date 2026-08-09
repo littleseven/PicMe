@@ -63,10 +63,7 @@ struct GalleryGridView: View {
             ActivityView(activityItems: payload.images)
         }
         .fullScreenCover(isPresented: $showSettings) {
-            NavigationStack {
-                SettingsScreen()
-                    .environmentObject(AppSettings.shared)
-            }
+            SettingsRoot()
         }
         .confirmationDialog(deleteConfirmTitle, isPresented: $showDeleteConfirm,
                             titleVisibility: .visible) {

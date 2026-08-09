@@ -180,6 +180,17 @@ struct ChatView: View {
 
                     Spacer()
 
+                    // 语音切换按钮（常驻，36dp 圆形；对齐 Android voice_button。
+                    // iOS chat v1 无语音输入模式，诚实占位）
+                    Button {
+                        comingSoonFeature = String(localized: "Voice input is not available in this version.")
+                    } label: {
+                        MatIcon(name: "mat_keyboard_voice", size: 22)
+                            .foregroundColor(Color(.label).opacity(0.7))
+                    }
+                    .frame(width: 36, height: 36)
+                    .accessibilityIdentifier("chat_voice")
+
                     // 发送按钮（36dp 圆形，primary tint；仅有内容 && 非处理中时显示）
                     if canSend {
                         Button(action: send) {
