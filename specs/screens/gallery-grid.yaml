@@ -1,178 +1,863 @@
-# 相册网格屏规格契约（Gallery Grid Screen Spec）
+# ============================================================================
+# 相册网格屏完整产品规格书（Gallery Grid Screen — Full Spec）
+# ============================================================================
 #
-> **基准端**：Android `GalleryScreen.kt` / `MediaGrid.kt`（main 分支）
-> **用途**：双端 AI 工具实现/修改相册 UI 时，**先读此文件，不看对端源码**
-> **双端对齐原则**：结构零容差一致（信息层级/布局结构/功能默认/文案状态），平台材质各自原生
-> **值引用**：尺寸引用 `design-tokens.json` 的 token 名
+# 基准端：Android GalleryScreen.kt / MediaGrid.kt / MediaPager.kt（master）
+# 用途：iOS 重做的唯一输入——不读 Android 源码，照此文件写代码
+# 值引用：尺寸/颜色引用 design-tokens.json 的 token 名（括号内为 dp/sp 速查）
+# 图标：Material Icon 名称 → iOS 实现时映射到语义最接近的 SF Symbol
+#
+# 红线规则（来自 gap analysis 根因总结）：
+#   R1. 禁止使用系统默认 NavigationStack / TabView / List
+#       —— 顶栏必须自建 48dp AppTopBar，底部必须自建 FloatingBottomTab
+#   R2. 大图页打开/关闭用 scaleIn/scaleOut 转场，不用 NavigationLink push
+#   R3. 缩略图必须 faceAwareVerticalAlignment——否则人像"砍头杀"
+#   R4. 网格列数必须 Adaptive(minimum: 110dp)，不固定列数
+#   R5. 所有 🔴 gap analysis 项必须在本 spec 中有对应描述
 
----
+# ============================================================================
+# 第一部分：网格页（Grid Page）
+# ============================================================================
 
-## 系统栏状态
+grid_page:
 
-```yaml
-status_bar:
-  visible: true
-  content_color: dark_to_light  # 跟随主题（浅色页 dark 图标 / 深色页 light 图标）
-home_indicator:
-  defer_gestures: false         # 相册页不 defer（正常 home 手势）
-```
+  # ── 1. 总体结构 ──────────────────────────────────────────────
+  #
+  # 整体是一个全屏 ZStack：
+  #   - 底层 background(colorScheme.background)
+  #   - VStack 内容层（顶栏 → 扫描进度条 → 网格区）
+  #   - 浮层 FloatingBottomTab（ZStack overlay，bottom 对齐）
+  #   - 浮层 MediaPager（条件，scale 转场覆盖全屏）
+  #
+  # 🔴 R1：不使用 NavigationStack。顶栏自建，自己处理 safe area 顶部避让。
 
-## Back 栈优先级链
+  structure:
+    type: full_screen_zstack
+    background: colorScheme.background
+    layers:
+      - layer: content_vstack
+        children: [top_bar, scan_progress, grid_or_placeholder]
+      - layer: floating_bottom_tab
+        anchor: bottom_center
+        z_above_content: true
+      - layer: media_pager_overlay
+        visible_when: media_pager_open
+        z_top: true
 
-```yaml
-back_stack:
-  - search_active → clear_search_close_search_bar  # 搜索激活时 Back 退出搜索
-  - selection_mode → exit_selection_mode           # 选择模式时 Back 退出选择
-  - default → leave_gallery                        # 默认 Back 离开相册（回到上屏或 Tab）
-```
+  # ── 2. 系统栏 ────────────────────────────────────────────────
 
-## 元素树
+  status_bar:
+    visible: true
+    content_color: follows_theme            # 浅色主题 dark 图标 / 深色主题 light 图标
 
-```yaml
-root:
-  type: full_screen
-  background: MaterialTheme.colorScheme.background
+  home_indicator:
+    defer_gestures: false                   # 相册页不 defer，正常 home 手势
 
-  # ── 顶栏 ──────────────────────────────────────────────────
+  # ── 3. Back 栈优先级链 ───────────────────────────────────────
+  # 系统返回键 / iOS 边缘右划，按此链匹配第一个命中项执行。
+
+  back_stack:
+    - when: search_active
+      action: clear_search_and_close_search_bar
+    - when: selection_mode
+      action: exit_selection_mode
+    - when: media_pager_open
+      action: close_media_pager_with_scale_out
+    - when: sort_menu_expanded
+      action: dismiss_sort_menu
+    - default: leave_gallery                # 回到上屏或 Tab
+
+  # ── 4. 顶栏 AppTopBar ────────────────────────────────────────
+  # 🔴 R1：自建，不用 NavigationStack 大标题。
+
   top_bar:
-    type: AppTopBar
-    height: topBar.height                      # 48dp
-    anchor: safe_area_top
-    title: "相册"
-    title_font_size: topBar.titleFontSize      # 17sp
-    title_font_weight: bold
-    title_color: colorScheme.primary
-    actions:
-      - id: model_center                       # 模型中心
-        icon: smart_toy
-      - id: scan_toggle                        # TAG 扫描开关
-        icon: radar
-      - id: search                             # 搜索入口
-        icon: search
-      - id: sort_menu                          # 分组模式菜单
-        icon: sort
-        options: [DATE, FACE, PERSON, LANDSCAPE, LOCATION, NONE]
-      - id: settings                           # 设置
-        icon: settings
+    type: AppTopBar                         # 自建组件
+    height: topBar.height                   # 48dp
+    background: colorScheme.surface
+    anchor: safe_area_top                   # 自动避让状态栏
+    layout: row_space_between               # 左标题 / 右操作组 HStack
 
-  # ── 扫描进度条（条件显示）──────────────────────────────────
+    # ── 标题 ──
+    title:
+      text: "相册"
+      font_size: topBar.titleFontSize       # 17sp
+      font_weight: medium                   # iOS: .system(size: 17, weight: .medium)
+      color: colorScheme.primary
+      position: leading
+      padding_leading: topBar.horizontalPadding  # 8dp
+
+    # ── 操作组 ──
+    actions:
+      row:
+        spacing: topBar.spacing             # 8dp
+        padding_trailing: topBar.horizontalPadding  # 8dp
+
+      items:
+        # (a) 模型中心
+        - id: model_center
+          material_icon: smart_toy
+          sf_symbol: "cpu"                  # 或 "sparkles"
+          size: topBar.iconSize             # 22dp
+          tint: colorScheme.onSurface
+          behavior: navigate_to_model_center
+
+        # (b) TAG 扫描开关
+        - id: scan_toggle
+          material_icon: radar
+          sf_symbol: "antenna.radiowaves.left.and.right"
+          size: topBar.iconSize             # 22dp
+          tint: colorScheme.onSurface
+          behavior: toggle_tag_scanning     # 开始扫描→显示进度条；暂停→隐藏
+          note: "图标可随状态切换：扫描中显示 stop/pause 图标"
+
+        # (c) 搜索入口
+        - id: search
+          material_icon: search
+          sf_symbol: "magnifyingglass"
+          size: topBar.iconSize             # 22dp
+          tint: colorScheme.onSurface
+          behavior: activate_search_mode    # → 顶栏切换为 SearchTopBar
+
+        # (d) 分组模式菜单
+        - id: sort_menu
+          material_icon: sort
+          sf_symbol: "arrow.up.arrow.down"
+          size: topBar.iconSize             # 22dp
+          tint: colorScheme.onSurface
+          behavior: show_dropdown_menu
+          menu:
+            type: dropdown_overlay          # 下拉浮层，不弹 Dialog
+            options:
+              - DATE:      "按日期分组"
+              - FACE:      "按人脸分组"
+              - PERSON:    "按人物分组"
+              - LANDSCAPE: "按风景分组"
+              - LOCATION:  "按位置分组"
+              - NONE:      "不分组"
+            current_selection_checkmark: true
+            on_select: set_grouping_mode($option)
+
+        # (e) 设置
+        - id: settings
+          material_icon: settings
+          sf_symbol: "gearshape"
+          size: topBar.iconSize             # 22dp
+          tint: colorScheme.onSurface
+          behavior: navigate_to_settings
+
+  # ── 5. 搜索激活态顶栏 SearchTopBar ───────────────────────────
+  # 🔴 gap #13：iOS 完全缺失搜索功能。
+
+  search_top_bar:
+    visible_when: search_active
+    type: SearchTopBar                      # 替换普通 AppTopBar
+    height: topBar.height                   # 48dp
+    background: colorScheme.surface
+    layout:
+      leading:
+        icon: arrow_back                    # 返回，material: ArrowBack / SF: "chevron.left"
+        size: topBar.iconSize               # 22dp
+        behavior: clear_search_and_close    # = back_stack search_active 分支
+      center:
+        type: text_field
+        placeholder: "搜索照片、人、地点…"
+        font_size: topBar.titleFontSize     # 17sp → iOS .body
+        debounce_ms: 300                    # 输入防抖，300ms 后触发搜索
+        autofocus: true
+      trailing:
+        icon: close                         # 清空输入 / material: Close / SF: "xmark"
+        size: topBar.iconSize
+        behavior: clear_query
+    result_count:
+      display: true                         # 搜索结果计数
+      format: "找到 {count} 张照片"
+      position: below_search_bar            # 或内嵌于网格上方一行
+      font: bodySmall
+      color: colorScheme.secondary
+
+  # ── 6. TAG 扫描进度条 ────────────────────────────────────────
+  # 🔴 gap #14：iOS 完全缺失。
+
   scan_progress:
     visible_when: tag_scanning_active
     type: linear_progress_indicator
     anchor: below_top_bar
-    height: 2dp
+    height: 2                               # 固定 2dp
+    width: full_width
     color: colorScheme.primary
+    track_color: colorScheme.surfaceVariant
+    behavior: indeterminate_or_determinate  # 有进度值则 determinate，否则 indeterminate
 
-  # ── 搜索栏（条件显示）──────────────────────────────────────
-  search_bar:
-    visible_when: search_mode_active
-    type: SearchTopBar
-    placeholder: "搜索照片、人、地点…"
-    debounce_ms: 300
-    result_count_display: true
+  # ── 7. 网格区 ────────────────────────────────────────────────
 
-  # ── 网格 ──────────────────────────────────────────────────
   grid:
     type: lazy_vertical_grid
-    column_strategy: adaptive_min_width
-    min_cell_size: grid.minCellSize            # 110dp
-    spacing: grid.spacing                      # 2dp 水平 + 垂直
-    content_padding: grid.spacing              # 2dp
-    fill: remaining_space
+    fill: remaining_space                   # 填满顶栏以下到底栏以上的剩余空间
+    background: colorScheme.background
 
+    # ── 列策略 ──
+    # 🔴 R4 / gap #1：必须自适应，不固定列数。
+    columns:
+      strategy: adaptive
+      minimum_cell_width: grid.minCellSize  # 110dp → iOS GridItem(.adaptive(minimum: 110))
+      # 大屏自动多列（如 iPad 可能 6+ 列），小屏 3 列，不硬编码
+
+    # ── 间距 ──
+    spacing:
+      horizontal: grid.spacing             # 2dp
+      vertical: grid.spacing               # 2dp
+    content_padding:
+      all: grid.spacing                     # 2dp 四周
+
+    # ── 分组头 MediaGroupHeader ──
+    # 🔴 gap #8/#45：iOS 纯文本无计数、无颜色区分，必须补齐。
     group_header:
       type: MediaGroupHeader
-      span: full_width
-      title:
-        font: titleMedium
-        weight: bold
-        color: colorScheme.primary
-      count:
-        font: bodyMedium
-        color: colorScheme.secondary  # "(N)" 计数
-        format: "({count})"
-      padding_horizontal: spacing.lg           # 16dp
-      padding_vertical: spacing.sm             # 8dp
+      span: full_width                      # 跨满所有列
+      sticky: true                          # 随滚动吸附顶部
 
+      title:
+        text_source: group_label            # 如"今天"/"昨天"/"2026年8月"
+        font: titleMedium                   # ≈ iOS .title3 / 16sp
+        weight: bold
+        color: colorScheme.primary          # 🔴 不是默认色，是 primary
+
+      count:
+        format: "({count})"                 # 如 "(42)"
+        font: bodyMedium                    # ≈ iOS .body / 14sp
+        color: colorScheme.secondary
+
+      padding:
+        horizontal: spacing.lg              # 16dp
+        vertical: spacing.sm                # 8dp
+      background: colorScheme.background    # 不透明，确保 sticky 遮挡下方内容
+      tappable: false                       # 整行不可点击（仅展示信息）
+
+    # ── 缩略图项 ThumbnailItem ──
+    # 🔴 gap #5：faceAwareVerticalAlignment 是 P0-3，砍头杀根因。
     thumbnail_item:
-      aspect_ratio: 1_1                        # 正方形
-      content_scale: crop
-      corner_radius: grid.cornerRadius         # 2dp
-      face_aware_alignment: true               # 人脸感知纵向对齐（FaceAwareVerticalAlignment）
+      type: ThumbnailItem
+      shape:
+        aspect_ratio: "1:1"                 # 正方形
+        corner_radius: grid.cornerRadius    # 2dp → 🔴 gap #4：必须圆角，不能直角
+      content_scale: crop                   # 填满裁切
+      placeholder_color: colorScheme.surface  # 加载前底色，防深色闪烁
+
+      # ── 人脸感知纵向对齐 ──
+      # 🔴 R3 / P0-3：这是最关键的对齐项。
+      # 每张人像照片在裁切时，不应默认从顶部裁，而应根据人脸关键点的 Y 坐标
+      # （faceFocusY ∈ [0,1]，来自端侧人脸检测）调整纵向偏移，确保脸部完整可见。
+      face_aware_vertical_alignment:
+        priority: P0                        # 🔴 最高优先级
+        input: faceFocusY                   # float [0,1]，0=顶 1=底
+        behavior: |
+          当 faceFocusY 存在时，缩略图裁切区域以 faceFocusY 为纵向中心。
+          例：faceFocusY=0.3 → 裁切框中心取原图 30% 高度处，
+          而非默认 50%，从而保留头顶到下巴的完整人脸。
+        fallback: center_crop               # 无 faceFocusY 数据时退回居中裁切
+
+      # ── 视频标记 ──
+      # 🔴 gap #6：iOS 完全缺失。
       video_indicator:
         visible_when: is_video
-        icon: play_circle
-        size: icon.xl                          # 32dp
-        color: white_alpha_80
-        anchor: center
-      selection_state:
-        trigger: long_press
-        overlay: black_alpha_30
-        checkbox: check_circle / radio_button_unchecked
-        checkbox_size: icon.lg                 # 24dp
-        checkbox_anchor: top_end
-        drag_multi_select: true                # 拖拽多选
+        material_icon: play_circle          # PlayCircle
+        sf_symbol: "play.circle.fill"
+        size: icon.xl                       # 32dp
+        color: white_alpha_80               # 白色 80% 不透明
+        anchor: center                      # 居中于缩略图
+        shadow: true                        # 增强可读性
 
-  # ── 底部导航 ──────────────────────────────────────────────
-  bottom_nav:
-    type: FloatingBottomTab                    # 圆角胶囊悬浮
+      # ── 选择态 ──
+      # 🔴 gap #7：iOS 完全缺失选择模式。
+      selection_state:
+        trigger: long_press                 # 长按缩略图进入选择模式
+        overlay:
+          color: black_alpha_30             # 黑色 30% 不透明遮罩
+          covers: full_thumbnail
+        checkbox:
+          material_icon_selected: check_circle
+          material_icon_unselected: radio_button_unchecked
+          sf_symbol_selected: "checkmark.circle.fill"
+          sf_symbol_unselected: "circle"
+          size: icon.lg                     # 24dp
+          color: colorScheme.primary        # 选中时 primary 色
+          anchor: top_end                   # 右上角
+          padding: 4dp                      # 距缩略图边缘
+        drag_multi_select:
+          enabled: true                     # 🔴 gap P1-3：拖拽多选
+          behavior: |
+            进入选择模式后，手指不抬起继续滑动，经过的缩略图自动切换选中态。
+            用于快速选择连续多张照片。
+        # 选择模式下的底部操作栏（替换 FloatingBottomTab）
+        selection_bottom_bar:
+          visible_when: selection_mode
+          actions: [share, delete, select_all, cancel]
+
+  # ── 8. 冷启动占位页 GallerySplashPlaceholder ──
+  # 🔴 gap #39/#40 / P0-4：iOS 完全缺失，数据加载时直接空网格闪烁。
+
+  splash_placeholder:
+    visible_when: loading_and_media_not_loaded_yet
+    type: GallerySplashPlaceholder
+    anchor: full_screen_center
+
+    content:
+      type: quote_display
+      quote:
+        text_font: serif_italic             # 衬线体 + 斜体
+        text_size: 20                       # 20sp → iOS .system(size: 20, design: .serif).italic()
+        color: colorScheme.onBackground
+        text_source: quotes_pool            # 名人名言池
+        locale_aware: true                  # 按 locale 取对应语言的名言
+      author:
+        text_font: serif
+        text_size: 16                       # subheadline
+        color: colorScheme.secondary
+        format: "— {author}"
+        below_quote: true
+        spacing_above: spacing.sm           # 8dp
+
+    # 🔴 P0-4：顶部 28% 高度留白（名言不是垂直居中，而是偏下）
+    top_padding_ratio: 0.28                 # = screenHeight × 28%
+
+    persistence:
+      note: |
+        iOS 用 @State 天然稳定，无需 rememberSaveable 等价。
+        关键是不让占位页在每次数据刷新时闪烁重建——
+        应在 mediaList 首次非空后才永久切换到网格。
+
+  # ── 9. 空态 EmptyGalleryMessage ──
+  # 🔴 gap #41 / P1-8：有权限但无媒体文件时必须显示提示。
+
+  empty_gallery:
+    visible_when: permission_granted_and_media_list_empty
+    type: EmptyGalleryMessage
+    anchor: full_screen_center
+    content:
+      text: "未找到任何媒体文件"
+      font: bodyLarge
+      color: colorScheme.secondary
+
+  # ── 10. 搜索无结果态 ──
+  # 🔴 gap #42：搜索结果为空时必须显示提示。
+
+  search_no_result:
+    visible_when: search_active_and_result_empty
+    type: EmptyGalleryMessage
+    content:
+      text: '未找到匹配 "{query}" 的照片'
+      font: bodyLarge
+      color: colorScheme.secondary
+
+  # ── 11. 权限态 UI ──
+  # 🔴 gap #35/#38：iOS 权限拒绝/未决定态无图标无标题。
+
+  permission_states:
+
+    granted:
+      grid_visible: true
+
+    denied_or_not_determined:
+      # 有权限但拒绝 / 从未请求过 → 显示授权引导页
+      type: GalleryPermissionMessage
+      anchor: full_screen_center
+      icon:
+        material_icon: photo_library
+        sf_symbol: "photo.on.rectangle"
+        size: 64                            # 64dp
+        color: colorScheme.primary
+        anchor: above_title
+        spacing_below: spacing.lg           # 16dp
+      title:
+        text: "需要相册权限"
+        font: headlineSmall                 # ≈ iOS .headline / 24sp
+        color: colorScheme.onBackground
+      message:
+        text: "允许访问以浏览和管理你的照片和视频"
+        font: bodyMedium                    # 14sp
+        color: colorScheme.secondary
+        spacing_above: spacing.sm           # 8dp
+      button:
+        text: "授予权限"
+        font: labelLarge
+        background: colorScheme.primary
+        foreground: colorScheme.onPrimary
+        behavior: request_permission
+        spacing_above: spacing.lg           # 16dp
+      padding:
+        horizontal: spacing.xxl             # 32dp → 🔴 gap analysis 要求 32dp
+
+    limited_ios_only:
+      # iOS 独有：Limited Access 模式
+      # 合理的平台差异，不影响对齐
+      behavior: show_grid_with_manage_banner
+      banner_text: "管理可访问的照片"
+      note: "iOS Limited Access — Android 用 Photo Picker 范式替代，此处允许平台原生差异"
+
+  # ── 12. 悬浮底部 Tab FloatingBottomTab ──
+  # 🔴 gap #12/#47 / P2-1：iOS 用系统 TabView，必须改为自建悬浮胶囊。
+
+  floating_bottom_tab:
+    type: FloatingBottomTab
     anchor: bottom_center
-    shape: circle_button
+    z_above_content: true
+    margin_bottom: spacing.lg               # 16dp 距屏底
+
+    shape:
+      type: capsule                         # 胶囊形
+      corner_radius: 28                     # 28dp
+      background: colorScheme.surface
+      tonal_elevation: 3                    # dp，Material tonal 层级
+      shadow_elevation: 6                   # dp，投影深度
+
     items:
       - id: camera_tab
-        icon: camera_alt
+        material_icon: camera_alt
+        sf_symbol: "camera.fill"
+        size: icon.lg                       # 24dp
+        behavior: navigate_to_camera
       - id: chat_tab
-        icon: chat
+        material_icon: chat
+        sf_symbol: "message.fill"
+        size: icon.lg
+        behavior: navigate_to_chat
       - id: tag_tab
-        icon: label
+        material_icon: label
+        sf_symbol: "tag.fill"
+        size: icon.lg
+        behavior: navigate_to_tag_management
       - id: people_tab
-        icon: people
+        material_icon: people
+        sf_symbol: "person.2.fill"
+        size: icon.lg
+        behavior: navigate_to_people
 
-# ── 权限态 ─────────────────────────────────────────────────
-permission_states:
-  granted:
-    grid_visible: true
-  denied:
-    show_permission_request:
-      icon: photo_library
-      icon_size: 64dp
-      title: "需要相册权限"
-      message: "允许访问以浏览和管理你的照片和视频"
-      button_grant: "授予权限"
-      padding_horizontal: spacing.xxl          # 32dp
-  limited_ios:
-    note: "iOS Limited Access — 与 Android Photo Picker 范式不同，UI 呈现按 Android 对应态布局"
+# ============================================================================
+# 第二部分：大图页（Media Pager / 详情页）
+# ============================================================================
+# 🔴 gap analysis 显示 iOS 大图页几乎全空：
+#    无顶栏、无底栏、无缩放、无信息弹窗、无视频播放、无 OCR/Vision 叠层。
+#    以下为完整规格，所有项均为 P0 或 P1。
 
-# ── 分组模式（顶栏 Sort 菜单切换）──────────────────────────
+media_pager:
+
+  # ── 13. 打开转场 ──
+  # 🔴 gap #15 / P2-2：iOS 用系统 push，必须改为 scale 转场。
+  open_transition:
+    type: scale_in
+    initial_scale: 0.2                      # 从缩略图大小开始
+    final_scale: 1.0                        # 放大到全屏
+    transform_origin: thumbnail_rect        # 从被点击缩略图的屏幕坐标展开
+    accompanying: fade_in
+    duration_ms: 300
+    note: |
+      🔴 禁止使用 NavigationLink push（左滑入）。
+      iOS 可用 matchedGeometryEffect 或自定义 transition + offset 实现。
+
+  # ── 14. 关闭转场 ──
+  # 🔴 gap #16：必须原路缩回。
+  close_transition:
+    type: scale_out
+    initial_scale: 1.0
+    final_scale: 0.2
+    transform_origin: original_thumbnail_position
+    accompanying: fade_out
+    duration_ms: 250
+    trigger: back_button_or_swipe_down      # 返回键 / 向下滑动手势
+
+  # ── 15. 图片区域 ──
+  # gap #17：此部分 iOS 已对齐。
+  image_area:
+    type: paged_horizontal_gallery          # 水平翻页
+    background: black                       # 纯黑底
+    content_scale: fit                      # 等比缩放完整显示（不裁切）
+    fill: full_screen
+    page_spacing: pager.pageSpacing         # 16dp → 🔴 gap #18：iOS 无页间距，必须加
+    paging_gesture: swipe_horizontal        # 左右滑动翻页
+
+  # ── 16. 缩放手势 ZoomableImage ──
+  # 🔴 gap #19 / P0-2：iOS 完全缺失缩放。
+  zoomable_image:
+    priority: P0
+    pinch_zoom:
+      min_scale: 1.0
+      max_scale: 4.0                        # 双指缩放 1–4x
+      behavior: |
+        双指捏合放大/缩小。缩放时禁用横滑翻页（避免缩放和翻页冲突）。
+        松手后若 scale < 1.0 自动回弹到 1.0。
+    pan:
+      enabled_when: current_scale > 1.0
+      behavior: |
+        放大状态下单指拖动平移。拖动有边界 clamp——
+        不会拖出图片边界留下空白。
+    double_tap:
+      behavior: toggle_zoom                 # 双击在 1x ↔ 2.5x 之间切换
+    gesture_conflict_handling: |
+      缩放/平移手势激活时，拦截横向翻页手势；
+      回到 1.0 scale 后恢复翻页。
+
+  # ── 17. 顶栏（动画显隐）──
+  # 🔴 gap #21 / P0-1：iOS 无顶栏，无法返回。
+  top_controls:
+    priority: P0
+    visible_default: true
+    toggle: tap_on_image                   # 单击图片切换显隐
+    animation: slide_and_fade               # 上下滑入/滑出 + 淡入/淡出
+    background: black_alpha_85              # 黑色 85% 不透明半透明栏
+    anchor: top                             # 顶部对齐 safe area
+
+    layout: row_space_between
+
+    # ── 左侧 ──
+    left_group:
+      items:
+        - id: back
+          material_icon: arrow_back
+          sf_symbol: "chevron.left"
+          size: pager.actionIconSize        # 32dp
+          color: white
+          behavior: close_media_pager       # 触发 close_transition
+        - id: date_label
+          text_source: media_date_formatted # 如"2026年8月8日"
+          font: bodyMedium
+          color: white
+          spacing_leading: spacing.sm       # 8dp
+
+    # ── 右侧 ──
+    right_group:
+      spacing: spacing.md                   # 12dp
+      items:
+        - id: info
+          material_icon: info
+          sf_symbol: "info.circle"
+          size: pager.actionIconSize        # 32dp
+          color: white
+          behavior: show_photo_info_dialog  # → 见 photo_info_dialog
+        - id: more_menu
+          material_icon: more_vert
+          sf_symbol: "ellipsis"
+          size: pager.actionIconSize        # 32dp
+          color: white
+          behavior: show_more_menu
+          menu:
+            options:
+              - image_understanding: "图像理解"   # → VisionResultOverlay
+              - ocr: "文字识别 (OCR)"              # → OcrResultOverlay
+              - face_landmarks: "人脸关键点"       # → FaceLandmarkCanvasOverlay (debug)
+
+  # ── 18. 底栏（动画显隐）──
+  # 🔴 gap #22 / P0-1：iOS 无底栏，无法分享/编辑/删除。
+  bottom_bar:
+    priority: P0
+    visible_default: true
+    toggle: same_as_top_controls            # 与顶栏同步显隐
+    animation: slide_and_fade
+    background: black_alpha_85
+    anchor: bottom                          # 底部对齐 safe area
+
+    layout: row_evenly_spaced               # 均匀分布
+    visible_when: is_photo                  # 仅照片显示底栏（视频见 video_player）
+
+    items:
+      - id: share
+        material_icon: send
+        sf_symbol: "paperplane.fill"
+        size: icon.xl                       # 32dp
+        label: "发送"
+        label_font: bodySmall
+        label_color: white
+        behavior: share_media
+      - id: edit
+        material_icon: edit
+        sf_symbol: "slider.horizontal.3"    # 或 "wand.and.stars"
+        size: icon.xl
+        label: "编辑"
+        label_font: bodySmall
+        label_color: white
+        behavior: open_photo_editor
+      - id: id_photo
+        material_icon: badge
+        sf_symbol: "person.crop.square"
+        size: icon.xl
+        label: "证件照"
+        label_font: bodySmall
+        label_color: white
+        behavior: open_id_photo_mode
+      - id: delete
+        material_icon: delete
+        sf_symbol: "trash"
+        size: icon.xl
+        label: "删除"
+        label_font: bodySmall
+        label_color: white
+        behavior: delete_media_with_confirm
+
+  # ── 19. 长按手势 ──
+  # 🔴 gap #24：iOS 缺失。
+  long_press:
+    behavior: open_photo_editor_and_haptic_feedback
+    haptic: light_impact                    # 触觉反馈
+
+  # ── 20. 照片信息弹窗 PhotoInfoDialog ──
+  # 🔴 gap #25 / P1-4：iOS 完全缺失。
+  photo_info_dialog:
+    priority: P1
+    trigger: info_button_tap                # 顶栏 info 图标
+    type: bottom_sheet_or_dialog            # iOS: bottom sheet / Android: Dialog
+    max_width: pager.overlayMaxWidth        # 400dp
+    max_height: pager.overlayMaxHeight      # 500dp
+
+    fields:
+      - field: file_name
+        label: "文件名"
+        value_source: media_file_name
+      - field: type
+        label: "类型"
+        value_source: media_mime_type       # 如 "JPEG" / "MP4"
+      - field: date
+        label: "日期"
+        value_source: media_date_full       # 完整时间戳
+      - field: duration
+        label: "时长"
+        value_source: media_duration        # 仅视频，格式 "00:32"
+        visible_when: is_video
+      - field: source
+        label: "来源"
+        value_source: media_source          # 如 "相机拍摄" / "截图"
+      - field: location
+        label: "位置"
+        value_source: media_location_text   # 如 "北京市朝阳区"
+        tappable: true                      # 🔴 可点击跳转地图
+        behavior: open_map_app
+      - field: aesthetic_score
+        label: "美学评分"
+        value_source: media_aesthetic_score # 如 "7.2 / 10"
+      - field: face_info
+        label: "人脸信息"
+        value_source: media_face_details    # 检测到的人脸数量与属性
+      - field: tags
+        label: "标签"
+        type: flow_row                      # 🔴 FlowRow 标签流式布局
+        value_source: media_tag_list        # 如 ["风景", "日落", "海边"]
+      - field: ocr_text
+        label: "OCR 文本"
+        value_source: media_ocr_text        # 识别到的文字内容
+
+  # ── 21. OCR 结果叠层 OcrResultOverlay ──
+  # 🔴 gap #26：iOS 缺失。
+  ocr_overlay:
+    trigger: more_menu → "文字识别 (OCR)"
+    type: result_overlay
+    content:
+      recognized_text: ocr_engine_result
+      actions: [copy_text, share_text]
+
+  # ── 22. 图像理解叠层 VisionResultOverlay ──
+  # 🔴 gap #27：iOS 缺失。
+  vision_overlay:
+    trigger: more_menu → "图像理解"
+    type: result_overlay
+    content:
+      description: vlm_description          # Markdown 渲染的图像描述
+      render: markdown
+      actions: [copy, share]
+
+  # ── 23. 人脸关键点叠层 FaceLandmarkCanvasOverlay ──
+  # 🔴 gap #28：iOS 缺失（debug 模式专用）。
+  face_landmark_overlay:
+    trigger: more_menu → "人脸关键点"
+    type: debug_canvas_overlay
+    visible_when: debug_mode_enabled
+    content: face_landmark_points_drawn_on_image
+
+  # ── 24. 视频播放 VideoPlayer ──
+  # 🔴 gap #20 / P1-1：iOS 大图页无视频支持。
+  video_player:
+    priority: P1
+    visible_when: is_video
+    type: video_player_with_controls
+    controls: native_player_controls        # 播放/暂停/进度条/全屏
+    behavior: |
+      视频项打开时自动播放或显示播放按钮。
+      控制条叠加在视频上方，与顶/底栏独立显隐。
+    note: "iOS 用 AVKit AVPlayerViewController 等价实现"
+
+  # ── 25. 分页指示器 ──
+  paging_indicator:
+    visible: false                          # 🔴 Android 无页码点，iOS 也不应有
+    note: "禁止显示系统默认 page dots（gap #30 标记为多余）"
+
+# ============================================================================
+# 第三部分：分组模式（Grouping Modes）
+# ============================================================================
+# 🔴 gap #9 / P1-5：iOS 仅 DATE 一种，必须实现全部 6 种。
+# 通过顶栏 Sort 菜单切换，改变网格的分组与分组头显示。
+
 grouping_modes:
+
   DATE:
-    header: 日期分组（如"今天"/"昨天"/"2026年8月"）
-    sort: descending
+    label: "按日期分组"
+    header_source: date_label               # "今天"/"昨天"/"2026年8月"
+    header_format: localized_date_string
+    sort: descending                        # 最新在前
+    is_default: true
+
   FACE:
-    header: 人脸聚类分组
+    label: "按人脸分组"
+    header_source: face_cluster_id          # 人脸聚类 ID / 代表标签
+    behavior: 按人脸检测结果聚类，相同人脸的照片归为一组
+
   PERSON:
-    header: 已确认人物分组
+    label: "按人物分组"
+    header_source: person_name              # 已命名确认的人物
+    behavior: 已确认身份的人物分组（区别于 FACE 的自动聚类）
+
   LANDSCAPE:
-    header: 风景/场景分组
+    label: "按风景分组"
+    header_source: scene_label              # 风景/场景标签
+    behavior: 按 VLM 场景识别结果分组
+
   LOCATION:
-    header: 地点分组
+    label: "按位置分组"
+    header_source: location_name            # 地理位置 / 城市名
+    behavior: 按 GPS 坐标反编码的地理位置分组
+
   NONE:
+    label: "不分组"
     no_header: true
-    flat_grid: true
+    flat_grid: true                         # 纯网格，无分组头，无 Section
 
-# ── 状态机 ─────────────────────────────────────────────────
+# ============================================================================
+# 第四部分：状态枚举（State Machine）
+# ============================================================================
+
 states:
-  - idle                          # 默认：网格 + 分组头 + 顶栏 + 底栏
-  - scrolling                     # 滚动中（分组头随滚动）
-  - search_active                 # 搜索激活（搜索栏显示，结果替代全量网格）
-  - selection_mode                # 选择模式（遮罩 + checkbox + 底部操作栏）
-  - scanning                      # TAG 扫描进行中（进度条显示）
-  - permission_denied             # 权限拒绝（引导页）
 
-# ── 已知差异（允许的平台原生差异）──────────────────────────
+  idle:
+    description: "默认状态：网格 + 分组头 + 顶栏 + 底栏"
+    top_bar: AppTopBar
+    bottom: FloatingBottomTab
+    grid: visible
+    scan_progress: hidden
+    media_pager: closed
+
+  scrolling:
+    description: "网格滚动中"
+    behavior: |
+      分组头随滚动（sticky 吸附）。
+      顶栏和底栏保持可见（不自动隐藏）。
+
+  search_active:
+    description: "搜索模式激活"
+    top_bar: SearchTopBar                   # 顶栏切换为搜索框
+    grid: search_results                    # 网格显示搜索结果替代全量
+    back: clear_search                      # Back → 退出搜索
+    sub_states:
+      - search_has_results
+      - search_no_result                    # → 显示"未找到匹配…"提示
+
+  selection_mode:
+    description: "多选模式（长按触发）"
+    trigger: long_press_thumbnail
+    overlay: black_alpha_30_on_selected     # 选中项遮罩
+    checkbox: visible_on_all_items          # 所有项显示 checkbox
+    bottom: selection_bottom_bar            # 底栏替换为选择操作栏
+    drag: drag_multi_select                 # 拖拽连续选择
+    back: exit_selection_mode               # Back → 退出选择
+
+  scanning:
+    description: "TAG 扫描进行中"
+    scan_progress: visible                  # 顶栏下显示进度条
+    behavior: 进度条显示扫描进度，扫描完成后自动隐藏
+
+  permission_denied:
+    description: "权限拒绝 / 未授权"
+    grid: hidden
+    show: GalleryPermissionMessage          # 显示授权引导页
+
+  loading:
+    description: "冷启动数据加载中"
+    grid: hidden
+    show: GallerySplashPlaceholder          # 显示名言占位页
+
+  media_pager_open:
+    description: "大图页已打开，覆盖在网格之上"
+    media_pager: visible                    # scale 转场展开
+    grid: behind_pager                      # 网格在底层不可见
+    back: close_media_pager                 # Back → scale 关闭大图页
+
+# ============================================================================
+# 第五部分：允许的平台差异
+# ============================================================================
+
 allowed_differences:
-  - 权限流程: Android Photo Picker vs iOS Limited Access（状态语义对齐，UI 形态各端原生）
-  - 字体: Android Roboto / iOS SF
-  - 图标: Material Icons / SF Symbols（语义一致即可）
-  - 底部导航返回手势: Android 系统 Back / iOS 左缘右划（语义映射见 Back 栈）
-  - 滚动行为: Android LazyVerticalGrid sticky item / iOS LazyVGrid pinnedViews
+
+  - dimension: permission_flow
+    android: "Photo Picker 范式"
+    ios: "Limited Access / Full Access / Add-Only 多态"
+    rule: "状态语义对齐（有权限/无权限），UI 形态各端原生"
+
+  - dimension: font_family
+    android: "Roboto"
+    ios: "SF Pro"
+    rule: "字号/字重对齐，字体族各自原生"
+
+  - dimension: icon_system
+    android: "Material Icons"
+    ios: "SF Symbols"
+    rule: "语义一致即可，本 spec 每个 icon 已给出 SF Symbol 建议"
+
+  - dimension: back_gesture
+    android: "系统 Back 键"
+    ios: "左缘右划"
+    rule: "按 back_stack 优先级链语义映射"
+
+  - dimension: scroll_sticky_header
+    android: "LazyVerticalGrid sticky item"
+    ios: "LazyVGrid pinnedViews: .sectionHeaders"
+    rule: "分组头吸附效果一致即可"
+
+  - dimension: video_player_engine
+    android: "ExoPlayer + PlayerView"
+    ios: "AVPlayer + AVPlayerViewController"
+    rule: "控制条风格各端原生，播放功能必须存在"
+
+  - dimension: limited_access_banner
+    android: "无（Photo Picker 范式无 limited 概念）"
+    ios: "Limited Access banner + '管理可访问的照片' 按钮"
+    rule: "iOS 独有合理差异，gap analysis ✅"
+
+# ============================================================================
+# 第六部分：禁止事项（iOS 实现红线）
+# ============================================================================
+# 以下行为是 gap analysis 的根因——iOS AI 回退到系统默认控件导致不对齐。
+
+prohibited:
+
+  - id: no_navigation_stack
+    rule: "禁止使用 NavigationStack / NavigationLink 实现相册顶栏和大图页导航"
+    reason: "顶栏必须自建 48dp AppTopBar；大图页必须 scale 转场"
+
+  - id: no_system_tabview
+    rule: "禁止使用系统 TabView 作为底部导航"
+    reason: "必须自建 FloatingBottomTab 悬浮胶囊"
+
+  - id: no_system_list
+    rule: "禁止使用系统 List 作为网格或分组容器"
+    reason: "必须用 LazyVGrid + Adaptive 列"
+
+  - id: no_fixed_column_count
+    rule: "禁止固定 3 列（或任何固定列数）"
+    reason: "必须 Adaptive(minimum: 110dp) 自适应"
+
+  - id: no_default_center_crop_for_faces
+    rule: "禁止对人像缩略图使用默认居中裁切"
+    reason: "必须 faceAwareVerticalAlignment(faceFocusY)，否则砍头杀"
+
+  - id: no_page_dots
+    rule: "禁止在大图页显示分页指示器（page dots）"
+    reason: "Android 无此指示器，gap #30 标记为多余"
+
+  - id: no_plain_text_group_header
+    rule: "禁止用纯文本无颜色区分的分组头"
+    reason: "必须 titleMedium+bold+primary 标题 + bodyMedium+secondary 计数"

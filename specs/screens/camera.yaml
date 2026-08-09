@@ -1,222 +1,1374 @@
-# 相机屏规格契约（Camera Screen Spec）
-#
-> **基准端**：Android `CameraPreviewContent.kt`（main 分支）
-> **用途**：双端 AI 工具实现/修改相机 UI 时，**先读此文件，不看对端源码**
-> **双端对齐原则**：结构零容差一致（信息层级/布局结构/功能默认/文案状态），平台材质各自原生
-> **值引用**：尺寸引用 `design-tokens.json` 的 token 名（如 `topBar.height`），不直接写数值
+# ============================================================================
+# 相机屏完整产品规格书（Camera Screen Spec）
+# ============================================================================
+# 基准端：Android CameraScreen.kt / CameraPreviewContent.kt / CameraControls.kt
+#        / CameraControlButtons.kt / BeautyPanel.kt / FilterSelector.kt
+#        / CameraBaseComponents.kt / ProModeControls.kt / ColorSelectors.kt
+#        / CameraOverlays.kt / CameraRuntimeState.kt
+# 用途：iOS 重做的唯一输入，不读 Android 源码
+# 双端对齐原则：结构零容差一致（信息层级/布局结构/功能默认/文案状态），平台材质各自原生
+# 值引用：尺寸引用 design-tokens.json 的 token 名（如 topBar.height），数值在注释中标注
+# 颜色引用：appColors.* 对应 design-tokens.json color 节点
+# 图标映射：Material Icons (Android) → SF Symbols (iOS)
 
----
-
-## 系统栏状态
-
-```yaml
-status_bar:
-  visible: false          # 相机页沉浸式，状态栏隐藏（Android）或 lightContent（iOS）
-  content_color: light    # 浅色图标（黑底白字）
-home_indicator:
-  defer_gestures: true    # iOS: preferredScreenEdgesDeferringSystemGestures（底部上划不直接回桌面）
-  android_immersive: true # Android: 沉浸模式，边缘二次确认
-```
-
-## Back 栈优先级链
-
-```yaml
-back_stack:
-  - panel_expanded → close_panel   # 有面板展开时，Back 先关面板
-  - default → exit_camera          # 无面板时 Back 退出相机
-```
-
-## 元素树
-
-```yaml
+# ============================================================================
+# 1. 总体结构
+# ============================================================================
 root:
-  type: full_screen
-  background: black
-  fill_strategy: edge_to_edge      # 预览延伸至屏幕物理边缘
+  type: full_screen          # 全屏 Box
+  background: "#000000"      # 纯黑底色
+  fill_strategy: edge_to_edge # 预览延伸至屏幕物理边缘（四边）
+  layout: zstack             # ZStack（层叠），预览在底层，所有控件浮在预览之上
+  click_to_dismiss:
+    enabled_when: any_panel_open  # 任何面板打开时，点击预览空白处关闭面板
+    action: close_all_panels       # ProPanel 单独关闭，其余一键全关
 
-  # ── 顶部区域 ──────────────────────────────────────────────
-  top_bar:
-    anchor: safe_area_top
-    layout: row_space_between
-    height: topBar.height           # 48dp
-    children:
-      left_group:
-        anchor: top_start
-        items:
-          - id: back_button
-            type: icon_button
-            size: topBar.buttonSize # 36dp
-            icon: arrow_back
-          - id: reset_button
-            type: icon_button
-            size: topBar.buttonSize
-            icon: reset
-            visible_when: any_beauty_active
-          - id: debug_toggle
-            type: icon_button
-            size: topBar.buttonSize
-            icon: bug_report
-            visible_when: debug_mode
-      right_group:
-        anchor: top_end
-        layout: column
-        spacing: topBar.spacing     # 8dp
-        items:
-          - id: beauty_toggle
-            type: icon_button
-            size: topBar.buttonSize
-            icon: face
-          - id: ratio_switch
-            type: icon_button
-            size: topBar.buttonSize
-            icon: aspect_ratio
-          - id: grid_toggle
-            type: icon_button
-            size: topBar.buttonSize
-            icon: grid
-          - id: scene_mode
-            type: icon_button
-            size: topBar.buttonSize
-            icon: auto_mode
-          - id: filter_button
-            type: icon_button
-            size: topBar.buttonSize
-            icon: filter
-          - id: pro_mode
-            type: icon_button
-            size: topBar.buttonSize
-            icon: tune
+# ============================================================================
+# 2. 系统栏状态
+# ============================================================================
+status_bar:
+  visible: false              # 沉浸式隐藏（Android: WindowInsetsControllerCompat.hide(systemBars)）
+  content_color: light        # iOS: lightContent（浅色图标，黑底白字）
+  ios_note: ".ignoresSafeArea() + preferredStatusBarStyle = .lightContent"
 
-  # ── 预览区 ────────────────────────────────────────────────
-  preview:
-    type: camera_surface
-    fill: full_screen
-    aspect_ratio: 4_3_crop          # 4:3 裁剪填充（双端同策）
-    overlays:
-      - id: composition_grid        # 构图辅助线（三分线），toggle 开关
-        lines: 3x3
-        color: white_alpha_30
-        width: 0.5dp
-      - id: focus_ring              # 对焦框
-        shape: circle_or_square
-        size: 100dp                 # 固定外径
-        color: appColors.focusRing  # #00E5FF
-        stroke_width: 2dp
-        animation: scale_fade_in    # 对焦时缩放淡入
+home_indicator:
+  defer_gestures: true        # iOS: preferredScreenEdgesDeferringSystemGestures（底部上划需二次确认才回桌面）
+  android_immersive: true     # Android: 沉浸模式，边缘二次确认
 
-  # ── 底部区域 ──────────────────────────────────────────────
-  bottom_area:
-    anchor: bottom_center
-    layout: column
-    background: gradient_black_bottom  # 底部黑色渐变（辅助可读性）
+# Back 栈优先级链（Back 按键 / 手势返回）
+back_stack:
+  - condition: panel_expanded  # 有面板展开时
+    action: close_panel         # Back 先关面板（不分类型，全关）
+  - condition: default          # 无面板时
+    action: exit_camera         # Back 退出相机
 
-    zoom_selector:
-      layout: row_center
-      spacing: spacing.md            # 12dp
-      items:
-        - id: zoom_0_6x
-          label: "0.6x"
-        - id: zoom_1x
-          label: "1x"
-          default_selected: true
-        - id: zoom_2x
-          label: "2x"
-        - id: zoom_3_2x
-          label: "3.2x"
+# ============================================================================
+# 3. 顶部左侧控件组（CameraLeftControls）
+# ============================================================================
+# 位置：Alignment.TopStart，statusBarsPadding 内避让
+# 布局：Column，spacing = 8dp（topBar.spacing），padding = 16dp
+top_left_controls:
+  anchor: top_start
+  layout: column
+  padding: 16                 # 外边距 16dp
+  status_bar_padding: true    # 避让状态栏
+  spacing: 8                  # topBar.spacing = 8dp
+  items:
+    - id: back_button
+      type: filled_icon_button  # FilledIconButton
+      size: 48                   # 48dp（实际 ControlButton 用 48dp，非 topBar.buttonSize 36dp）
+      icon:
+        material: arrow_back     # Icons.AutoMirrored.Rounded.ArrowBack
+        sf_symbol: "chevron.left"
+      icon_size: 24              # icon.lg = 24dp
+      container_color:
+        active: "colorScheme.primary"      # 激活态=primary 色
+        inactive: "black_alpha_50"         # 非激活=黑 50% 透明
+      content_color:
+        active: "black"                    # 激活=黑字
+        inactive: "white"                  # 非激活=白字
+      behavior:
+        click: navigate_back               # 点击返回（退出相机页）
 
-    mode_selector:
-      layout: row_center
-      spacing: spacing.xl            # 24dp
-      items:
-        - id: video_mode
-          label: "VIDEO"
-        - id: photo_mode
-          label: "PHOTO"
-          default_selected: true
-        - id: document_mode
-          label: "DOCUMENT"
+    - id: reset_button
+      type: filled_icon_button
+      size: 48
+      icon:
+        material: refresh       # Icons.Rounded.Refresh
+        sf_symbol: "arrow.clockwise"
+      icon_size: 24
+      behavior:
+        click: reset_camera_memory_state  # 重置相机内存状态
+      container_color: "black_alpha_50"    # 默认非激活态
+      content_color: "white"
 
-    shutter_row:
-      layout: row_space_between_center
-      items:
-        - id: gallery_thumbnail      # 左侧：相册最近一张缩略图入口
-          anchor: bottom_start
-          shape: circle
-          size: 52dp
-          corner_radius: thumbnail
-          content_padding: spacing.xs  # 2dp 白色边框
-        - id: shutter_button         # 中间：快门
-          anchor: bottom_center
-          shape: circle
-          diameter: shutter.diameter   # 76dp 外环
-          inner_diameter: shutter.innerDiameter  # 58dp 内圈
-          ring_color: appColors.shutterRing  # 白色
-          ring_width: 4dp
-        - id: flip_camera            # 右侧：翻转摄像头
-          anchor: bottom_end
-          shape: circle
-          size: 52dp
-          icon: flip_camera_android
+    - id: debug_toggle
+      type: filled_icon_button
+      size: 48
+      visible_when: debug_ui_enabled  # 仅 debug 模式显示
+      icon:
+        material: terminal      # Icons.Rounded.Terminal
+        sf_symbol: "terminal"
+      icon_size: 24
+      behavior:
+        click: toggle_log_overlay       # 切换日志覆盖层
+      active_state:
+        container_color: "colorScheme.primary"
+        content_color: "black"
+      inactive_state:
+        container_color: "black_alpha_50"
+        content_color: "white"
 
-  # ── 右下角浮动按钮 ────────────────────────────────────────
-  floating_actions:
-    anchor: bottom_end
-    layout: column
-    spacing: spacing.md             # 12dp
-    margin_bottom: 180dp            # 避让底部控件区
-    margin_end: spacing.lg          # 16dp
+    - id: llm_release_button         # 仅 debug 模式
+      type: filled_icon_button
+      size: 36                       # 比其他按钮小
+      visible_when: debug_ui_enabled
+      icon:
+        material: psychology         # Icons.Rounded.Psychology
+        sf_symbol: "brain"
+      icon_size: 24
+      tint: "#64B5F6"               # 浅蓝色（固定）
+      behavior:
+        click: release_llm           # 全量释放 LLM 引擎
+
+    - id: face_detect_release_button  # 仅 debug 模式
+      type: filled_icon_button
+      size: 36
+      visible_when: debug_ui_enabled
+      icon:
+        material: face              # Icons.Rounded.Face
+        sf_symbol: "face.smiling"
+      icon_size: 24
+      tint: "#81C784"              # 浅绿色（固定）
+      behavior:
+        click: release_face_detect  # 全量释放人脸检测
+
+# ============================================================================
+# 4. 顶部右侧功能列（CameraRightControls）
+# ============================================================================
+# 位置：Alignment.TopEnd，statusBarsPadding 内避让
+# 布局：Column，spacing = 10dp（控件间默认），含 8dp Spacer 分隔组
+# 每个按钮 = FilledIconButton，48dp，24dp 图标
+top_right_controls:
+  anchor: top_end
+  layout: column
+  padding: 16
+  status_bar_padding: true
+  spacing: 10                     # 按钮间距
+  items:
+
+    # ── 美颜入口（特殊按钮，有总开关+面板开关双功能）──
+    - id: beauty_entry
+      type: beauty_entry_button   # 特殊组件 BeautyEntryButton
+      size: 48
+      icon:
+        material: auto_fix_high   # Icons.Rounded.AutoFixHigh
+        sf_symbol: "wand.and.stars"
+      icon_size: 24
+      # 三态容器颜色
+      container_color:
+        panel_open: "colorScheme.primary"           # 面板开 → primary 底
+        beauty_enabled_not_open: "primary_alpha_25"  # 美颜启用但面板关 → primary 25% 透明底
+        disabled: "black_alpha_50"                   # 未启用 → 黑 50% 透明底
+      content_color:
+        panel_open: "black"                          # 面板开 → 黑字
+        beauty_enabled_not_open: "colorScheme.primary"
+        disabled: "white_alpha_55"
+      # 右上角角标：美颜启用且面板未开时
+      badge:
+        visible_when: "beauty_enabled && !beauty_panel_open"
+        size: 8
+        color: "colorScheme.primary"
+        border: "1dp black_alpha_60"
+        position: top_end
+        offset: "top=4dp, end=4dp"
+      behavior:
+        click: toggle_beauty_panel     # 点击 = 开/关美颜面板
+        # 注：Android 源码有 onToggleBeautyEnabled 但实际接线为面板切换，
+        #   long_press 可预留为美颜总开关 toggle（当前未实现长按）
+
+    # 8dp Spacer 分隔
+
+    # ── 比例选择 ──
+    - id: ratio_switch
+      type: filled_icon_button
+      size: 48
+      icon:
+        material_dynamic: true       # 图标随当前比例变化
+        ratio_4_3: aspect_ratio      # Icons.Rounded.AspectRatio → "aspectratio"
+        ratio_16_9: crop_16_9        # Icons.Rounded.Crop169 → "crop.16.9"
+        ratio_full: crop_square      # Icons.Rounded.CropSquare → "crop.square"（注：当前 FULL=2 用 CropSquare）
+        sf_symbol_default: "crop"
+      icon_size: 24
+      active_state:
+        container_color: "colorScheme.primary"
+        content_color: "black"
+      inactive_state:
+        container_color: "black_alpha_50"
+        content_color: "white"
+      behavior:
+        click: toggle_ratio_panel    # 点击弹出/收起比例选择器面板
+
+    # ── 网格选择 ──
+    - id: grid_toggle
+      type: filled_icon_button
+      size: 48
+      icon:
+        material: grid_on            # Icons.Rounded.GridOn
+        sf_symbol: "square.grid.3x3"
+      icon_size: 24
+      active_state:
+        container_color: "colorScheme.primary"
+        content_color: "black"
+      inactive_state:
+        container_color: "black_alpha_50"
+        content_color: "white"
+      behavior:
+        click: toggle_grid_panel
+
+    # 8dp Spacer 分隔
+
+    # ── 场景选择 ──
+    - id: scene_mode
+      type: filled_icon_button
+      size: 48
+      icon:
+        material: landscape          # Icons.Rounded.Landscape
+        sf_symbol: "mountain.2"
+      icon_size: 24
+      active_state:
+        container_color: "colorScheme.primary"  # scene != NONE 时激活
+        content_color: "black"
+      inactive_state:
+        container_color: "black_alpha_50"
+        content_color: "white"
+      behavior:
+        click: toggle_scene_panel
+
+    # ── 滤镜选择 ──
+    - id: filter_button
+      type: filled_icon_button
+      size: 48
+      icon:
+        material: filter_b_and_w     # Icons.Rounded.FilterBAndW
+        sf_symbol: "camera.filters"
+      icon_size: 24
+      active_state:
+        container_color: "colorScheme.primary"
+        content_color: "black"
+      inactive_state:
+        container_color: "black_alpha_50"
+        content_color: "white"
+      behavior:
+        click: toggle_filter_panel
+
+    # 8dp Spacer 分隔
+
+    # ── ProMode ──
+    - id: pro_mode
+      type: filled_icon_button
+      size: 48
+      icon:
+        material: tune               # Icons.Filled.Tune
+        sf_symbol: "slider.horizontal.3"
+      icon_size: 24
+      active_state:
+        container_color: "colorScheme.primary"
+        content_color: "black"
+      inactive_state:
+        container_color: "black_alpha_50"
+        content_color: "white"
+      behavior:
+        click: toggle_pro_panel      # 独立轨道，不走 PrimaryPanel 互斥
+
+# ============================================================================
+# 5. 预览区
+# ============================================================================
+preview:
+  type: camera_surface
+  fill: full_screen                # 全屏填充
+  background: "#000000"            # 纯黑底
+  aspect_ratio_modes:
+    - id: ratio_4_3
+      value: 0                      # AspectRatio.RATIO_4_3
+      scale_type: fit_center        # FIT_CENTER（留黑边）
+      label: "4:3"
+    - id: ratio_16_9
+      value: 1
+      scale_type: fit_center
+      label: "16:9"
+    - id: ratio_full
+      value: 2
+      scale_type: fill_center       # FILL_CENTER（裁剪填充全屏）
+      label: "FULL"
+  default: ratio_full               # 默认 FULL
+
+  # ── 对焦框（FaceFocusCrosshair）──
+  # 🔴 iOS 当前最严重对齐项之一：尺寸/颜色/形状/动画全不同
+  focus_ring:
+    component: "FaceFocusCrosshair"
+    outer_size: 100                 # 100dp 外框（固定）
+    corner_mark_style: L_shaped     # 4 角 L 型线段（非圆角方框！）
+    corner_length: 20               # 每角 L 拐角长度 20dp
+    stroke_width: 3                 # L 角线宽 3dp
+    color: "#00E5FF"                # appColors.focusRing = #00E5FF（青色/cyan）
+    active_alpha: 1.0               # isActive 时 alpha=1.0
+    inactive_alpha: 0.5             # 非 active 时 alpha=0.5
+    center_cross:
+      size: 16                      # 中心十字 16dp
+      stroke_width: 2               # 十字线宽 2dp
+      alpha: 0.8                    # 十字 alpha=0.8（比角标记淡）
+    center_dot:
+      radius: 3                     # 中心点圆半径 3dp
+      alpha: 1.0                    # 实心
+    animation:
+      type: spring                  # 弹簧动画（非 ease-out！）
+      spec:
+        damping_ratio: medium_bouncy  # Spring.DampingRatioMediumBouncy
+        stiffness: medium              # Spring.StiffnessMedium
+      scale_range:
+        visible: 1.0                # alpha > 0.5 时缩放到 1.0
+        hidden: 0.6                 # alpha <= 0.5 时缩放到 0.6
+    trigger: face_detection         # 联动人脸检测，显示位置为人脸中心
+    duration: controlled_by_focus_alpha  # 持续时间由 focusAlpha 状态值控制
+
+# ============================================================================
+# 6. 构图网格叠加（CompositionGrid）
+# ============================================================================
+# 🔴 iOS 完全缺失
+composition_grid:
+  component: "CompositionGrid"
+  full_screen_overlay: true         # 覆盖整个预览区
+  modes:
+    - id: none
+      value: NONE                   # GridType.NONE
+      visible: false
+    - id: thirds
+      value: THIRDS                 # GridType.THIRDS
+      description: "三分线（九宫格）"
+      lines: 2_vertical + 2_horizontal  # 2 竖线 + 2 横线，均分三等分
+    - id: golden
+      value: GOLDEN                 # GridType.GOLDEN
+      description: "黄金比例线"
+      ratio: 0.618                  # 线位置在 0.618 和 (1-0.618)=0.382 处
+      lines: 2_vertical + 2_horizontal
+  line_style:
+    color: "white_alpha_50"         # 白色 50% 透明
+    width: 1                        # 1dp 线宽
+    dash_pattern: [10, 10]          # 虚线：10px 实线 + 10px 空白
+  toggle: via_grid_panel            # 通过网格选择面板切换
+
+# ============================================================================
+# 7. 底部控件区（CameraBottomControls）
+# ============================================================================
+# 位置：Alignment.BottomCenter
+# 布局：Column，center 水平对齐
+# padding: bottom=20dp, navigationBarsPadding
+# spacing: 20dp（行间距）
+bottom_area:
+  anchor: bottom_center
+  layout: column
+  horizontal_alignment: center
+  padding_bottom: 20
+  navigation_bars_padding: true
+  row_spacing: 20                   # 行间距 20dp
+  background: none                  # 无背景（透明，预览内容直接可见）
+
+  # ── 第 1 行：变焦预设条（ZoomControls）──
+  # 🔴 iOS 完全缺失
+  zoom_presets:
+    visible_when: "!isAnyPanelOpen"  # 面板打开时隐藏
+    layout: row_center
+    spacing: 12                      # spacing.md = 12dp（按钮间距）
+    container:
+      shape: rounded_corner_20       # RoundedCornerShape(20dp)
+      background: "black_alpha_40"   # 黑 40% 透明底
+      padding_horizontal: 12
+      padding_vertical: 6
     items:
-      - id: voice_fab
-        shape: circle
-        size: 52dp
-        icon: mic
-      - id: ai_chat_fab
-        shape: circle
-        size: 52dp
-        icon: chat
+      - id: zoom_0_6x
+        label: "0.6x"
+        visible_when: "minZoomRatio <= 0.6"  # 仅设备支持超广角时显示
+        selected_when: "zoomRatio < 0.9"
+        size: 32                     # 32dp 圆形按钮
+        selected_style:
+          background: white           # 白底
+          text_color: black           # 黑字
+        unselected_style:
+          background: transparent
+          text_color: white
+        text_size: 10                # 10sp
+        text_weight: bold
+        behavior:
+          click: set_zoom_ratio(0.6)
 
-# ── 底部弹出面板（Bottom Sheet）────────────────────────────
-bottom_panels:
-  beauty_panel:
-    trigger: beauty_toggle
-    anchor: bottom_sheet
-    top_corner_radius: beautyPanel.topCornerRadius  # 24dp（顶部两角）
-    height_ratio: beautyPanel.heightRatio           # 35% 屏高
-    background: appColors.panelBackground           # #CC000000
-    shadow_elevation: spacing.lg                    # 16dp
-    border: 0.5dp white_alpha_20
-    handle_bar:
-      width: 36dp
-      height: 4dp
-      color: white_alpha_40
-      margin_top: spacing.sm                        # 8dp
+      - id: zoom_1x
+        label: "1x"
+        selected_when: "zoomRatio >= 0.9 && zoomRatio < 1.5"
+        default_selected: true
+        size: 32
+        behavior:
+          click: set_zoom_ratio(1.0)
+
+      - id: zoom_2x
+        label: "2x"
+        selected_when: "zoomRatio >= 1.5 && zoomRatio < 2.8"
+        size: 32
+        behavior:
+          click: set_zoom_ratio(2.0)
+
+      - id: zoom_3_2x
+        label: "3.2x"
+        visible_when: "maxZoomRatio >= 3.2"  # 仅设备支持时显示
+        selected_when: "zoomRatio >= 2.8"
+        size: 32
+        behavior:
+          click: set_zoom_ratio(3.2)
+
+  # ── 第 2 行：模式选择器（ModeSelector）──
+  # 🔴 iOS 完全缺失
+  mode_selector:
+    layout: row_center
+    padding_vertical: 8
     items:
-      - smoothing (slider)
-      - whitening (slider)
-      - big_eyes (slider)
-      - lip_color (slider)
-      - blush (slider)
-      - slim_face (slider)
-    back_action: close_panel
+      - id: video_mode
+        label: "VIDEO"              # 文案常量（三语 i18n）
+        capture_mode: VIDEO
+        selected_style:
+          color: "colorScheme.primary"   # 当前模式 = primary 色
+          weight: bold                    # Bold
+          size: 13                        # 13sp
+        unselected_style:
+          color: "white_alpha_60"        # 白 60% 透明
+          weight: normal
+          size: 13
+        padding_horizontal: 12           # 左右各 12dp
 
-  filter_panel:
-    trigger: filter_button
-    anchor: bottom_sheet
-    top_corner_radius: beautyPanel.topCornerRadius
-    items:
-      - horizontal_scroll_of_filter_thumbnails (56dp each)
+      - id: photo_mode
+        label: "PHOTO"
+        capture_mode: PHOTO
+        default_selected: true
+        padding_horizontal: 12
 
-# ── 状态机 ─────────────────────────────────────────────────
+      - id: document_mode
+        label: "DOCUMENT"
+        capture_mode: DOCUMENT
+        padding_horizontal: 12
+
+  # ── 第 3 行：快门行（缩略图 | 快门 | 翻转）──
+  shutter_row:
+    layout: row_space_between_center
+    padding_horizontal: 40           # 左右各 40dp
+
+    # ── 左侧：相册缩略图 ──
+    # 🔴 iOS 完全缺失
+    - id: gallery_thumbnail
+      shape: circle
+      size: 48                       # 48dp 圆形
+      background: "dark_gray"        # Color.DarkGray 底（无媒体时）
+      content:
+        type: latest_media_image     # 最近一张媒体缩略图
+        scale: crop                  # ContentScale.Crop
+        crossfade: true
+      behavior:
+        click: navigate_to_gallery   # 跳转相册页
+      accessibility_label: "Gallery"
+
+    # ── 中间：快门按钮 ──
+    # 🔴 iOS 尺寸差(72 vs 76)、缺录像态、缺防抖
+    - id: shutter_button
+      shape: circle
+      outer_diameter: 76             # shutter.diameter = 76dp
+      ring:
+        width: 4                     # 4dp 白色圆环边框
+        color: "white"               # appColors.shutterRing = #FFFFFFFF
+      inner_padding: 6               # 圆环与内填之间 6dp padding
+      inner_diameter: 58             # shutter.innerDiameter = 58dp
+      # 内填颜色随模式变化
+      inner_color:
+        photo_mode: "white"          # 拍照 = 白色填充
+        video_mode: "red"            # 录像 = 红色填充（Color.Red）
+      # 录像态：内填变为 28dp 白色圆角方块
+      recording_state:
+        visible_when: "isRecording"
+        center_block:
+          size: 28                   # 28dp 白色圆角方块
+          corner_radius: 4           # RoundedCornerShape(4dp)
+          color: "white"
+      debounce:
+        interval_ms: 500             # 500ms 防抖（lastClickTime 模式）
+      accessibility_label: "Shutter"
+
+    # ── 右侧：翻转摄像头 ──
+    # 🔴 iOS 完全缺失
+    - id: flip_camera
+      shape: circle
+      size: 48                       # 48dp 圆形
+      background: "white_alpha_20"   # 白 20% 透明底
+      icon:
+        material: cameraswitch       # Icons.Rounded.Cameraswitch
+        sf_symbol: "camera.rotate"
+      icon_color: white
+      behavior:
+        click: flip_camera           # 切换前/后摄
+
+  # ── 快门闪屏动画 ──
+  # 🔴 iOS 完全缺失
+  shutter_flash:
+    type: full_screen_overlay        # 全屏黑色覆盖层
+    color: black
+    animation:
+      property: opacity              # Animatable(0f) → 0→1→0
+      trigger: on_photo_captured     # 拍照触发
+      duration: "闪一下（短暂 opacity 峰值后回落）"
+
+# ============================================================================
+# 8. 美颜面板（BeautyPanel）
+# ============================================================================
+# 🔴 iOS 缺 Tab 切换、缺拖拽手柄、缺滑杆图标/数值/重置、缺整个 MAKEUP Tab
+beauty_panel:
+  trigger: beauty_entry_button       # 右上角美颜入口按钮触发
+  anchor: bottom_sheet
+  animation:
+    enter: slide_in_vertically + fade_in   # 从底部滑入 + 淡入
+    exit: slide_out_vertically + fade_out
+  height: "screenHeight * 0.35"      # beautyPanel.heightRatio = 35% 屏高
+  max_height_clamp: "0.2 ~ 0.75"    # clamp(0.2f, 0.75f)
+
+  container:
+    top_corner_radius: 24            # beautyPanel.topCornerRadius = 24dp（仅顶部两角）
+    background:
+      panel_surface: "colorScheme.surface_alpha_95"  # surface.copy(alpha=0.95)
+      gradient_overlay:              # 面板下方的底部渐变遮罩（在面板之外）
+        colors: ["transparent", "black_alpha_55", "black_alpha_82"]
+    shadow_elevation: 16             # 16dp 阴影
+    border: "0.5dp outlineVariant_alpha_25"  # 0.5dp 边框
+    navigation_bars_padding: true
+
+  # ── 拖拽手柄 ──
+  # 🔴 iOS 缺失
+  drag_handle:
+    width: 36                        # 36dp
+    height: 4                        # 4dp
+    shape: circle                    # 胶囊形（CircleShape clip）
+    color: "onSurface_alpha_20"      # onSurface 20% 透明
+    position: top_center
+    margin_top: 10
+    margin_bottom: 4
+
+  # ── 面板内容区 ──
+  content_area:
+    padding_horizontal: 24
+    padding_vertical: 8
+    spacing: 12                      # 滑杆间距 12dp
+    scrollable: true                 # verticalScroll
+
+  # ── 底部 Tab 栏 ──
+  # 🔴 iOS 缺失（当前只有 flat 4 条滑杆，无 Tab）
+  tab_bar:
+    position: panel_bottom           # 面板底部固定
+    background: "colorScheme.surface"
+    padding_vertical: 8
+    tabs:
+      - id: face_tab
+        label: "面部精修"            # "面部精修" / "Facial Refinement"
+        icon:
+          material: face_retouching_natural  # Icons.Rounded.FaceRetouchingNatural
+          sf_symbol: "face.smiling"
+        icon_size: 24                # beautyPanel.iconSize = 24dp
+        selected_style:
+          background: "primary_alpha_12"    # primary 12% 透明底
+          icon_tint: "colorScheme.primary"
+        unselected_style:
+          background: transparent
+          icon_tint: "onSurface_alpha_50"
+        corner_radius: 10            # RoundedCornerShape(10dp)
+        padding_vertical: 8
+
+      - id: makeup_tab
+        label: "妆容"                # "妆容" / "Makeup"
+        icon:
+          material: color_lens       # Icons.Rounded.ColorLens
+          sf_symbol: "paintpalette"
+        icon_size: 24
+        # 同上样式
+
+  # ── FACE Tab 内容：4 条滑杆 ──
+  face_tab_sliders:
+
+    # 每条 BeautySlider 的通用结构：
+    # ┌──────────────────────────────────────────┐
+    # │ [icon] Label          (点击重置)   42    │ ← Row: 图标+标签(可点击重置) | 数值显示
+    │ │─────── AppSlider ─────────────────────│ ← 滑杆
+    # └──────────────────────────────────────────┘
+    #
+    # 图标：非零=primary 色，零=onSurface 60% 透明
+    # 数值：非零=primary 色 Bold 数字，零="--" onSurface 40% 透明
+    # 重置：点击图标+标签行 → 该项重置为 0
+    # 滑杆：AppSlider，fillMaxWidth，height=32dp
+
+    - id: smoothing
+      label: "磨皮"                  # "磨皮" / "Smoothing"
+      icon:
+        material: face               # Icons.Rounded.Face
+        sf_symbol: "face.smiling"
+        size: 18                     # beautyPanel.iconSize 滑杆图标实际 18dp
+      value_range: [0, 100]          # 0f..100f
+      default_value: 0
+      display_format: integer        # 整数显示（0-100）
+      reset_value: 0
+      on_reset: "smoothing = 0f"
+
+    - id: whitening
+      label: "美白"                  # "美白" / "Whitening"
+      icon:
+        material: auto_fix_high      # Icons.Rounded.AutoFixHigh
+        sf_symbol: "wand.and.stars"
+        size: 18
+      value_range: [0, 100]
+      default_value: 0
+      display_format: integer
+      reset_value: 0
+      on_reset: "whitening = 0f"
+
+    - id: slim_face
+      label: "瘦脸"                  # "瘦脸" / "Slim Face"
+      icon:
+        material: face_retouching_natural  # Icons.Rounded.FaceRetouchingNatural
+        sf_symbol: "face.dashed"
+        size: 18
+      value_range: [-50, 50]         # -50f..50f（唯一支持负值的滑杆）
+      default_value: 0
+      display_format: signed_integer # 带符号整数显示
+      reset_value: 0
+      on_reset: "slimFace = 0f"
+
+    - id: big_eyes
+      label: "大眼"                  # "大眼" / "Big Eyes"
+      icon:
+        material: visibility         # Icons.Rounded.Visibility
+        sf_symbol: "eye"
+        size: 18
+      value_range: [0, 100]
+      default_value: 0
+      display_format: integer
+      reset_value: 0
+      on_reset: "bigEyes = 0f"
+
+  # ── MAKEUP Tab 内容 ──
+  # 🔴 iOS 整个 Tab 缺失
+  makeup_tab_content:
+
+    # ── 唇彩选择器（LipColorSelector）──
+    lip_color:
+      header:
+        icon:
+          material: color_lens       # Icons.Rounded.ColorLens
+          sf_symbol: "paintpalette"
+          size: 18
+        label: "唇彩"                # "唇彩" / "Lip Color"
+        click_to_reset: true         # 点击图标+标签行重置
+        value_display:
+          active: "strength.toInt()"  # 强度数值
+          inactive: "--"
+          color_active: "colorScheme.primary"
+          color_inactive: "onSurface_alpha_40"
+
+      # 12 色调色板
+      color_palette:
+        layout: lazy_horizontal_grid  # LazyHorizontalGrid
+        rows: 2                       # 2 行
+        height: 64                    # 64dp
+        spacing: 8                    # 水平/垂直各 8dp
+        colors:
+          - "#D4757D"  # 珊瑚粉
+          - "#C43343"  # 正红
+          - "#FF7F50"  # 珊瑚橙
+          - "#E0527C"  # 玫红
+          - "#FF6B9D"  # 粉红
+          - "#9B2335"  # 深红
+          - "#FFA07A"  # 浅鲑鱼色
+          - "#CD5C5C"  # 印度红
+          - "#DC143C"  # 猩红
+          - "#FFB6C1"  # 浅粉
+          - "#B22222"  # 火砖红
+          - "#FF1493"  # 深粉
+        item_size: [48, 28]          # 每个 48x28dp
+        item_corner_radius: 8         # RoundedCornerShape(8dp)
+        selected_style:
+          border_width: 3            # 3dp
+          border_color: "colorScheme.primary"
+        unselected_style:
+          border_width: 1
+          border_color: "white_alpha_30"
+        default_selected_index: 0
+
+      # 唇彩强度滑杆
+      strength_slider:
+        value_range: [0, 100]
+        default_value: 0             # DEFAULT_LIP_COLOR = 0f
+        reset_value: 0
+        height: 32
+
+    # ── 腮红色系选择器（BlushColorFamilySelector）──
+    blush_color_family:
+      label: "腮红色系"              # "腮红色系" / "Blush Color Family"
+      label_size: 13
+      label_weight: medium
+      layout: row
+      spacing: 8
+      families:
+        - id: pink
+          label: "粉色"              # "粉色" / "Pink"
+          color_dot: "#FF8DAA"
+          dot_size: 10
+        - id: orange
+          label: "橙色"              # "橙色" / "Orange"
+          color_dot: "#FFA85C"
+          dot_size: 10
+        - id: plum
+          label: "梅色"              # "梅色" / "Plum"
+          color_dot: "#9B3D6A"
+          dot_size: 10
+      item_style:
+        shape: rounded_corner_12     # RoundedCornerShape(12dp)
+        padding_horizontal: 10
+        padding_vertical: 6
+        selected:
+          background: "primary_alpha_15"
+          border_width: 1.5
+          border_color: "colorScheme.primary"
+          text_color: "colorScheme.primary"
+        unselected:
+          background: "surfaceVariant_alpha_25"
+          border_width: 1
+          border_color: "outline_alpha_30"
+          text_color: "onSurface_alpha_85"
+      default_selected_index: 0
+
+    # ── 腮红强度滑杆 ──
+    blush_slider:
+      icon:
+        material: favorite_border    # Icons.Rounded.FavoriteBorder
+        sf_symbol: "heart"
+        size: 18
+      label: "腮红"                  # "腮红" / "Blush"
+      value_range: [0, 100]
+      default_value: 0               # DEFAULT_BLUSH = 0f
+      display_format: integer
+      reset_value: 0                 # BeautySettings.DEFAULT_BLUSH
+      click_to_reset: true
+
+# ============================================================================
+# 9. 滤镜面板（UnifiedFilterSelector）
+# ============================================================================
+# 🔴 iOS 布局不同（横滑条 vs 5 列网格）+ 缺 5 款风格滤镜
+filter_panel:
+  trigger: filter_button
+  anchor: bottom_sheet               # 复用通用 ControlPanel 容器
+  container:
+    # 与美颜面板容器样式一致（渐变遮罩 + Surface 面板 + 圆角 + 阴影 + 手柄）
+    top_corner_radius: 24
+    shadow_elevation: 16
+    border: "0.5dp outlineVariant_alpha_25"
+    drag_handle:
+      width: 36
+      height: 4
+      color: "onSurface_alpha_20"
+    panel_height_ratio: 0.5          # ControlPanel 使用 50% 屏高（非美颜的 35%）
+    padding_horizontal: 24
+    padding_vertical: 12
+
+  grid:
+    layout: vertical_grid            # LazyVerticalGrid
+    columns: 5                       # 固定 5 列
+    height: 280                      # 固定高度 280dp
+    padding_vertical: 8
+    horizontal_spacing: 4
+    vertical_spacing: 8
+    content_padding_horizontal: 12
+    item_width: "(screenWidth - 20dp) / 5"  # 动态计算
+
+  filter_list:
+    # ── 9 款色调滤镜（FilterType）──
+    color_filters:
+      - id: NONE
+        display_name: "原图"         # "原图" / "None"
+        asset: "filters/filter_none.jpg"
+      - id: LEICA_CLASSIC
+        display_name: "经典"         # "经典" / "Leica Classic"
+        asset: "filters/filter_leica_classic.jpg"
+      - id: LEICA_VIBRANT
+        display_name: "鲜艳"         # "鲜艳" / "Leica Vibrant"
+        asset: "filters/filter_leica_vibrant.jpg"
+      - id: LEICA_BW
+        display_name: "黑白"         # "黑白" / "Leica B&W"
+        asset: "filters/filter_leica_bw.jpg"
+      - id: FILM_GOLD
+        display_name: "金胶片"       # "金胶片" / "Film Gold"
+        asset: "filters/filter_film_gold.jpg"
+      - id: FILM_FUJI
+        display_name: "富士"         # "富士" / "Film Fuji"
+        asset: "filters/filter_film_fuji.jpg"
+      - id: VINTAGE
+        display_name: "复古"         # "复古" / "Vintage"
+        asset: "filters/filter_vintage.jpg"
+      - id: COOL
+        display_name: "冷调"         # "冷调" / "Cool"
+        asset: "filters/filter_cool.jpg"
+      - id: WARM
+        display_name: "暖调"         # "暖调" / "Warm"
+        asset: "filters/filter_warm.jpg"
+
+    # ── 5 款风格滤镜（StyleFilter）──
+    # 🔴 iOS 完全缺失
+    style_filters:
+      - id: TOON
+        display_name: "卡通"         # "卡通" / "Toon"
+        asset: "filters/style_toon.jpg"
+      - id: SKETCH
+        display_name: "素描"         # "素描" / "Sketch"
+        asset: "filters/style_sketch.jpg"
+      - id: POSTERIZE
+        display_name: "色调分离"     # "色调分离" / "Posterize"
+        asset: "filters/style_posterize.jpg"
+      - id: EMBOSS
+        display_name: "浮雕"         # "浮雕" / "Emboss"
+        asset: "filters/style_emboss.jpg"
+      - id: CROSSHATCH
+        display_name: "交叉影线"     # "交叉影线" / "Crosshatch"
+        asset: "filters/style_crosshatch.jpg"
+
+  # ── 互斥逻辑：色调和风格不能同时选中 ──
+  selection_rule:
+    when_color_selected: "selectedStyleFilter = NONE"
+    when_style_selected: "selectedFilter = NONE"
+
+  # ── 滤镜缩略图项样式 ──
+  item_style:
+    thumbnail:
+      shape: circle                  # 圆形缩略图
+      image_size: "itemWidth * 0.72" # 图片尺寸 = item 宽 × 0.72
+      scale: crop                    # ContentScale.Crop
+      fallback: "radial_gradient(surfaceVariant, onSurface_alpha_20)"
+    selected_border:
+      width: 2.5                     # 2.5dp
+      brush: linear_gradient         # primary → onSurface 线性渐变
+      colors: ["colorScheme.primary", "colorScheme.onSurface"]
+    unselected_border:
+      width: 1
+      brush: linear_gradient
+      colors: ["onSurface_alpha_30", "onSurface_alpha_10"]
+    selected_overlay:
+      mask: "primary_alpha_25"       # primary 25% 透明遮罩
+      check_icon:
+        material: check              # Icons.Rounded.Check
+        sf_symbol: "checkmark"
+        tint: "colorScheme.primary"
+        size: "imageSize * 0.38"
+    scale_animation:
+      selected: 1.08                 # 选中时 1.08x 放大
+      unselected: 1.0
+    label:
+      size: 10                       # 10sp
+      selected_style:
+        color: "colorScheme.primary"
+        weight: bold
+      unselected_style:
+        color: "onSurface_alpha_85"
+        weight: medium               # Medium
+      max_lines: 1
+
+# ============================================================================
+# 10. 比例选择器面板（RatioSelector）
+# ============================================================================
+ratio_panel:
+  trigger: ratio_switch
+  anchor: bottom_sheet               # 复用 ControlPanel
+  container:
+    # 同滤镜面板容器样式
+    top_corner_radius: 24
+    shadow_elevation: 16
+    panel_height_ratio: 0.5
+    drag_handle: standard
+    padding_horizontal: 24
+    padding_vertical: 12
+  layout: row
+  spacing: 16                        # 按钮间距 16dp
+  items:
+    - id: ratio_4_3
+      label: "4:3"                   # "4:3"
+      value: 0                       # AspectRatio.RATIO_4_3
+      style:
+        type: button                 # Material Button
+        selected:
+          container_color: "colorScheme.primary"
+          text_color: "colorScheme.onPrimary"
+        unselected:
+          container_color: "dark_gray"  # Color.DarkGray
+          text_color: "colorScheme.onSurface"
+        text_size: 12                # 12sp
+        padding: "horizontal=12dp, vertical=8dp"
+
+    - id: ratio_16_9
+      label: "16:9"                  # "16:9"
+      value: 1
+
+    - id: ratio_full
+      label: "全屏"                  # "全屏" / "FULL"
+      value: 2
+  behavior:
+    on_select: "set_aspect_ratio + close_panel"  # 选择后立即关闭面板
+
+# ============================================================================
+# 11. 场景选择器面板（SceneSelector）
+# ============================================================================
+scene_panel:
+  trigger: scene_mode
+  anchor: bottom_sheet               # 复用 ControlPanel
+  container:
+    top_corner_radius: 24
+    shadow_elevation: 16
+    panel_height_ratio: 0.5
+    drag_handle: standard
+    padding_horizontal: 24
+    padding_vertical: 12
+  layout: row
+  spacing: 12                        # 按钮间距 12dp
+  items:
+    - id: scene_none
+      label: "无"                    # "无" / "None"
+      value: NONE                    # ScenePreset.NONE
+      style:
+        selected:
+          container_color: "colorScheme.primary"
+          text_color: black
+        unselected:
+          container_color: "dark_gray"
+          text_color: white
+
+    - id: scene_night
+      label: "夜景"                  # "夜景" / "Night"
+      value: NIGHT                   # ScenePreset.NIGHT
+
+    - id: scene_moon
+      label: "月亮"                  # "月亮" / "Moon"
+      value: MOON                    # ScenePreset.MOON
+  behavior:
+    on_select: "set_scene + close_panel"
+
+# ============================================================================
+# 12. 网格选择器面板（GridSelector）
+# ============================================================================
+grid_panel:
+  trigger: grid_toggle
+  anchor: bottom_sheet               # 复用 ControlPanel
+  container:
+    top_corner_radius: 24
+    shadow_elevation: 16
+    panel_height_ratio: 0.5
+    drag_handle: standard
+    padding_horizontal: 24
+    padding_vertical: 12
+  layout: row
+  spacing: 12
+  items:
+    - id: grid_none
+      label: "无"                    # "无" / "None"
+      value: NONE                    # GridType.NONE
+      style:
+        selected:
+          container_color: "colorScheme.primary"
+          text_color: black
+        unselected:
+          container_color: "dark_gray"
+          text_color: white
+
+    - id: grid_thirds
+      label: "三分线"                # "三分线" / "Thirds"
+      value: THIRDS                  # GridType.THIRDS
+
+    - id: grid_golden
+      label: "黄金比例"              # "黄金比例" / "Golden"
+      value: GOLDEN                  # GridType.GOLDEN
+  behavior:
+    on_select: "set_grid + close_panel"
+
+# ============================================================================
+# 13. ProMode 面板（ProModeControls）
+# ============================================================================
+# 🔴 iOS 完全缺失
+pro_mode_panel:
+  trigger: pro_mode_button
+  anchor: bottom_sheet
+  animation:
+    enter: slide_in_vertically + fade_in
+    exit: slide_out_vertically + fade_out
+    # 🔴 可见性条件：isProPanelOpen && !isAnyPanelOpen
+    # 即：当 Filter/Ratio/Scene/Grid 任一面板打开时，ProMode 面板不渲染
+  container:
+    top_corner_radius: 24
+    shadow_elevation: 16
+    border: "0.5dp outlineVariant_alpha_25"
+    panel_height_ratio: 0.5          # 50% 屏高
+    padding_horizontal: 24
+    padding_top: 0
+    padding_bottom: 16
+    spacing: 16                      # 控件间距 16dp
+    scrollable: true
+
+  # 拖拽手柄（点击可关闭面板）
+  drag_handle:
+    width: 36
+    height: 4
+    color: "onSurface_alpha_20"
+    clickable: true                  # 点击手柄区域 = 关闭面板
+    margin_top: 10
+
+  controls:
+
+    # ── 白平衡（LazyRow FilterChip 横滑选择）──
+    - id: white_balance
+      label: "白平衡"                # "白平衡" / "White Balance"
+      label_color: "onSurface_alpha_70"
+      label_size: 12
+      layout: lazy_row
+      spacing: 8
+      modes:
+        - value: 0
+          label: "自动"              # "自动" / "Auto"
+        - value: 1
+          label: "晴天"              # "晴天" / "Sunny"
+        - value: 2
+          label: "阴天"              # "阴天" / "Cloudy"
+        - value: 3
+          label: "白炽灯"            # "白炽灯" / "Incandescent"
+        - value: 4
+          label: "荧光灯"            # "荧光灯" / "Fluorescent"
+      chip_style:                    # FilterChip
+        selected:
+          container_color: "colorScheme.primary"
+          label_color: black
+        unselected:
+          container_color: "onSurface_alpha_06"
+          label_color: "onSurface_alpha_70"
+        text_size: 12
+        max_lines: 1
+
+    # ── 曝光 EV 滑杆 ──
+    - id: exposure_ev
+      label: "曝光"                  # "曝光" / "Exposure"
+      type: pro_mode_slider          # 标签+数值在 Row，下方滑杆
+      value_range: "exposureRange.first..exposureRange.last"  # 动态范围（设备相关）
+      steps: "exposureRange.last - exposureRange.first - 1"     # 离散步进
+      display_format:
+        positive: "+value"           # 正值显示 +N
+        negative: "value"            # 负值显示 N
+        zero: "0"
+      is_default: "exposure == 0"
+      default_display: "--"          # 默认显示 "--"
+      slider_height: 36
+      label_color: "onSurface_alpha_70"
+      value_color:
+        changed: "colorScheme.primary"
+        default: "onSurface_alpha_35"
+
+    # ── 0.5dp 分隔线 ──
+    - id: divider
+      type: horizontal_divider
+      height: 0.5
+      color: "onSurface_alpha_10"
+
+    # ── 对比度滑杆 ──
+    - id: contrast
+      label: "对比度"                # "对比度" / "Contrast"
+      type: pro_mode_slider
+      value_range: [0, 200]
+      default_value: 50              # 默认 50
+      display_format: integer
+      is_default: "abs(contrast - 50) <= 0.5"
+      default_display: "--"
+      slider_height: 36
+
+    # ── 饱和度滑杆 ──
+    - id: saturation
+      label: "饱和度"                # "饱和度" / "Saturation"
+      type: pro_mode_slider
+      value_range: [0, 200]
+      default_value: 100             # 默认 100
+      display_format: integer
+      is_default: "abs(saturation - 100) <= 0.5"
+      default_display: "--"
+      slider_height: 36
+
+    # ── 色温滑杆 ──
+    - id: color_temperature
+      label: "色温"                  # "色温" / "Color Temperature"
+      type: pro_mode_slider
+      value_range: [2000, 8000]      # 2000K..8000K
+      default_value: 5000            # 默认 5000K
+      display_format: "valueK"       # 带 K 后缀，如 "5500K"
+      is_default: "abs(temperature - 5000) <= 50"
+      default_display: "--"
+      slider_height: 36
+
+# ============================================================================
+# 14. 右下角浮动 FAB（CameraFloatingActionButtons）
+# ============================================================================
+# 🔴 iOS 完全缺失
+floating_actions:
+  anchor: bottom_end                 # Alignment.BottomEnd
+  layout: column
+  spacing: 12                        # spacing.md = 12dp
+  padding:
+    end: 16                          # spacing.lg = 16dp
+    bottom: 180                      # 避让底部控件区
+  navigation_bars_padding: true
+  horizontal_alignment: end
+
+  items:
+
+    # ── 语音控制 FAB ──
+    # 仅设置中开启「语音控制入口」时显示
+    - id: voice_fab
+      visible_when: voice_entry_enabled  # uiState.voiceEntryEnabled
+      shape: circle
+      size: 52                       # 52dp
+      container_color:
+        active: "colorScheme.primary"    # 语音控制启用时
+        inactive: "black_alpha_60"       # 未启用时
+      icon:
+        material: record_voice_over  # Icons.Rounded.RecordVoiceOver
+        sf_symbol: "waveform"
+        size: 24                     # icon.lg = 24dp
+        tint: white
+      # 耳机连接状态角标
+      headset_badge:
+        visible_when: headset_or_bluetooth_connected
+        position: top_end
+        size: 16                     # 16dp
+        background: "surface_alpha_90"
+        icon:
+          material: headphones       # Icons.Rounded.Headphones
+          sf_symbol: "headphones"
+          size: 12
+        tint:
+          bluetooth: "#4FC3F7"       # 浅蓝
+          wired: "#81C784"           # 浅绿
+
+    # ── AI Chat FAB ──
+    - id: ai_chat_fab
+      shape: circle
+      size: 52                       # 52dp
+      container_color: "colorScheme.primary"  # 始终 primary 色
+      icon:
+        material: keyboard_voice     # Icons.Rounded.KeyboardVoice
+        sf_symbol: "mic.fill"
+        size: 24                     # icon.lg = 24dp
+        tint: white
+
+# ============================================================================
+# 15. 唤醒词状态指示器（VoiceWakeIndicator）
+# ============================================================================
+# 顶部居中，语音唤醒监听状态提示
+wake_word_indicator:
+  position: top_center
+  visible_when: isWakeWordActive
+  # P2 辅助功能，具体样式由 VoiceWakeIndicator 组件定义
+
+# ============================================================================
+# 16. 文档检测覆盖层（DocumentDetectionOverlay）
+# ============================================================================
+document_overlay:
+  visible_when: "captureMode == DOCUMENT && !isAnyPanelOpen"
+  full_screen: true
+  # 显示文档边缘检测框，具体样式由 DocumentDetectionOverlay 组件定义
+
+# ============================================================================
+# 17. 面板状态机（互斥逻辑）
+# ============================================================================
+# 🔴 iOS 当前最严重的交互逻辑错误：无互斥，面板可同时弹出
+panel_state_machine:
+  description: |
+    面板分两个轨道：Primary Panel 轨道 + ProMode 独立轨道。
+    Primary Panel 之间严格互斥（同时只能开一个）。
+    ProMode 独立于 Primary，但渲染时受 isAnyPanelOpen 抑制。
+
+  primary_panels:
+    members:
+      - beauty_panel     # showBeautySelector
+      - filter_panel     # showFilterSelector
+      - ratio_panel      # showRatioSelector
+      - scene_panel      # showSceneSelector
+      - grid_panel       # showGridSelector
+    mutex_rule: |
+      togglePrimaryPanel(panel):
+        1. nextVisibility = !panel.isVisible
+        2. closePrimaryPanels()   ← 关闭全部 5 个 Primary Panel
+        3. panel.isVisible = nextVisibility
+      结果：同一时刻最多 1 个 Primary Panel 可见
+
+  pro_mode_track:
+    member: pro_mode_panel          # showProPanel
+    toggle_rule: "直接 toggle，不走 closePrimaryPanels()"
+    render_rule: "visible = showProPanel && !isAnyPanelOpen"
+    # 即：即使 showProPanel=true，只要 Filter/Ratio/Scene/Grid 任一打开，ProMode 面板不渲染
+    # 但 ProMode 和 BeautyPanel 可以同时渲染（Beauty 不在 isAnyPanelOpen 中）
+
+  dismiss_rules:
+    # 点击预览空白处
+    click_blank_area:
+      enabled_when: "isAnyPanelOpen || isBeautyPanelOpen || isProPanelOpen"
+      action: |
+        if (isProPanelOpen) {
+          toggleProPanel()         # 单独关 ProMode
+        } else {
+          closeAllPanels()         # 关闭全部（Primary + 美颜子面板）
+        }
+    # Back 按键
+    back_button:
+      action: "closeAllPanels() + toggleProPanel()"  # 全关
+
+  isAnyPanelOpen_definition: |
+    isAnyPanelOpen = showFilterSelector || showRatioSelector ||
+                     showSceneSelector || showGridSelector
+    （不含 showBeautySelector、不含 showProPanel）
+
+# ============================================================================
+# 18. 所有状态枚举
+# ============================================================================
 states:
-  - idle                          # 默认：预览 + 顶部按钮 + 底部控件
-  - beauty_panel_expanded         # 美颜面板展开（Back 关闭面板）
-  - filter_panel_expanded         # 滤镜面板展开（Back 关闭面板）
-  - capturing                     # 拍照中（快门动画，所有交互禁用）
-  - focusing                      # 对焦中（focus_ring 显示）
 
-# ── 已知差异（允许的平台原生差异）──────────────────────────
+  # ── 拍照模式 ──
+  capture_mode:
+    - VIDEO
+    - PHOTO                          # 默认
+    - DOCUMENT
+
+  # ── 比例 ──
+  aspect_ratio:
+    - RATIO_4_3                      # value=0, FIT_CENTER
+    - RATIO_16_9                     # value=1, FIT_CENTER
+    - RATIO_FULL                     # value=2, FILL_CENTER（默认）
+
+  # ── 网格 ──
+  grid_type:
+    - NONE                           # 默认
+    - THIRDS                         # 三分线
+    - GOLDEN                         # 黄金比例
+
+  # ── 场景 ──
+  scene_preset:
+    - NONE                           # 默认
+    - NIGHT                          # 夜景
+    - MOON                           # 月亮
+
+  # ── 滤镜（色调 9 款）──
+  filter_type:
+    - NONE                           # 默认（原图）
+    - LEICA_CLASSIC
+    - LEICA_VIBRANT
+    - LEICA_BW
+    - FILM_GOLD
+    - FILM_FUJI
+    - VINTAGE
+    - COOL
+    - WARM
+
+  # ── 滤镜（风格 5 款）──
+  style_filter:
+    - NONE                           # 默认
+    - TOON
+    - SKETCH
+    - POSTERIZE
+    - EMBOSS
+    - CROSSHATCH
+
+  # ── 面板可见状态（互斥组）──
+  panel_visibility:
+    primary_group:                   # 互斥，同时最多 1 个为 true
+      showBeautySelector: false      # 美颜面板
+      showFilterSelector: false      # 滤镜面板
+      showRatioSelector: false       # 比例面板
+      showSceneSelector: false       # 场景面板
+      showGridSelector: false        # 网格面板
+    independent:
+      showProPanel: false            # ProMode 面板（独立轨道）
+
+  # ── 美颜 Tab ──
+  beauty_tab:
+    - FACE                           # 面部精修（默认）
+    - MAKEUP                         # 妆容
+
+  # ── 腮红色系 ──
+  blush_color_family:
+    - 0                              # 粉色 Pink (#FF8DAA)
+    - 1                              # 橙色 Orange (#FFA85C)
+    - 2                              # 梅色 Plum (#9B3D6A)
+
+  # ── 白平衡模式 ──
+  white_balance:
+    - 0                              # Auto
+    - 1                              # Sunny
+    - 2                              # Cloudy
+    - 3                              # Incandescent
+    - 4                              # Fluorescent
+
+  # ── 镜头朝向 ──
+  lens_facing:
+    - 0                              # 前摄 (FRONT)
+    - 1                              # 后摄 (BACK)（默认）
+
+  # ── 页面交互状态 ──
+  interaction_state:
+    - idle                           # 默认：预览 + 顶部按钮 + 底部控件
+    - panel_open                     # 面板展开（Back/空白点击关闭）
+    - capturing                      # 拍照中（快门动画+闪屏，交互禁用）
+    - recording                      # 录像中（快门变红底方块）
+    - focusing                       # 对焦中（focus_ring 显示）
+
+# ============================================================================
+# 19. 美颜设置默认值（BeautySettings）
+# ============================================================================
+beauty_settings_defaults:
+  enabled: false                     # 美颜总开关，默认关
+  smoothing: 0                      # 磨皮 0-100
+  whitening: 0                      # 美白 0-100
+  slimFace: 0                       # 瘦脸 -50~50
+  bigEyes: 0                        # 大眼 0-100
+  lipColor: 0                       # 唇彩强度 0-100（DEFAULT_LIP_COLOR = 0）
+  lipColorIndex: 0                  # 唇彩色号索引 0-11
+  blush: 0                          # 腮红强度 0-100（DEFAULT_BLUSH = 0）
+  blushColorFamily: 0               # 腮红色系 0-2
+  contrast: 50                      # 对比度 0-200（默认 50）
+  saturation: 100                   # 饱和度 0-200（默认 100）
+  temperature: 5000                 # 色温 2000-8000K（默认 5000）
+
+# ============================================================================
+# 20. 允许的平台差异
+# ============================================================================
 allowed_differences:
-  - 字体: Android Roboto / iOS SF
-  - 图标: Material Icons / SF Symbols（语义一致即可）
-  - 对焦动画曲线: 各自平台原生 easing
-  - 快门反馈: Android 振动 / iOS Haptic Feedback
+  - dimension: font
+    android: Roboto
+    ios: SF Pro
+    note: "字体族差异可接受"
+
+  - dimension: icon_set
+    android: Material Icons (Icons.Rounded.*)
+    ios: SF Symbols
+    note: "语义一致即可，尺寸/颜色保持一致"
+    mapping_examples:
+      arrow_back: "chevron.left"
+      refresh: "arrow.clockwise"
+      auto_fix_high: "wand.and.stars"
+      aspect_ratio: "aspectratio"
+      grid_on: "square.grid.3x3"
+      landscape: "mountain.2"
+      filter_b_and_w: "camera.filters"
+      tune: "slider.horizontal.3"
+      cameraswitch: "camera.rotate"
+      record_voice_over: "waveform"
+      keyboard_voice: "mic.fill"
+
+  - dimension: focus_animation_curve
+    android: "Spring(DampingRatioMediumBouncy, StiffnessMedium)"
+    ios: "iOS spring animation（近似弹性参数）"
+    note: "动画曲线细节可各用平台原生"
+
+  - dimension: shutter_feedback
+    android: "可选振动（Vibrator）"
+    ios: "Haptic Feedback（UIImpactFeedbackGenerator）"
+    note: "触觉反馈各用平台原生"
+
+  - dimension: panel_material
+    android: "surface.copy(alpha=0.95) + 渐变遮罩"
+    ios: ".ultraThinMaterial（毛玻璃）或近似"
+    note: "面板背景材质差异可接受，但圆角值必须用 24dp/pt"
+
+  - dimension: filter_selected_border
+    android: "linearGradient(primary, onSurface) 2.5dp"
+    ios: "AngularGradient 近似或实色 accentColor 2.5pt"
+    note: "渐变 vs 实色风格差异可接受"
+
+  - dimension: preview_zoom_gesture
+    note: "iOS 可保留 pinch-to-zoom（MagnificationGesture）作为原生增强，但必须同时有底部预设按钮条"
