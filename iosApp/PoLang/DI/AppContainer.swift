@@ -33,6 +33,8 @@ final class AppContainer: ObservableObject {
             deviceId: deviceId
         )
         chatBridge = IosAgentComposition.shared.chatBridge
+        // 应用用户保存的模型配置（有自定义模型则覆盖访客默认，无则保持 PICME_SERVER_DEFAULT）
+        ModelConfigStore.shared.applyToOrchestrator()
     }
 }
 

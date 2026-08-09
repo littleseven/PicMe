@@ -42,7 +42,19 @@ struct SettingsScreen: View {
                     Phase6PlaceholderRow(title: String(localized: "Data & Privacy"))
                 }
                 Section(String(localized: "Model Center")) {
-                    Phase6PlaceholderRow(title: String(localized: "Model Center"))
+                    NavigationLink {
+                        ModelCenterView()
+                            .environmentObject(ModelConfigStore.shared)
+                    } label: {
+                        HStack {
+                            Text(String(localized: "Model Center"))
+                            Spacer()
+                            Text(ModelConfigStore.shared.selectedDisplayName)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
                 }
 
                 // 关于

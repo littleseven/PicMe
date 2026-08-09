@@ -96,7 +96,8 @@ object IosAgentComposition {
         val orchestrator = AgentOrchestrator.getInstance()
         orchestrator.setDeviceId(deviceId)
 
-        // 配置远程推理：访客模式，PICME_SERVER_DEFAULT（baseUrl/apiKey 兜底由 getChatAgent 内处理）
+        // 远程推理配置由 Swift 侧 ModelConfigStore 决定（用户自定义 > 访客 PICME_SERVER_DEFAULT）。
+        // 初始值先设访客模式兜底，Swift AppContainer.init 完成后 ModelConfigStore.applyToOrchestrator() 会覆盖。
         orchestrator.updateRemoteRuntimeConfig(
             remoteConfig = com.mamba.picme.agent.core.remote.config.RemoteModelConfig.PICME_SERVER_DEFAULT,
             privacyLevel = com.mamba.picme.agent.core.model.config.AiAgentPrivacyLevel.PERMISSIVE,
