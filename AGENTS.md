@@ -269,6 +269,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **顶层治理** | `AGENTS.md`（本文档） |
 | **★ 双端 UI 一致性总纲** | `specs/PARITY_MASTER_PLAN.md`（五层防线体系 + 子文档索引） |
 | **★ 双端 UI 研发流程** | `specs/README.md`（Vibe Coding → 固化 Spec → iOS 翻译） |
+| **iOS 对等跟随编排** | `docs/superpowers/specs/2026-08-10-ios-follow-command-design.md`（/ios-follow 六阶段管线设计 SSOT + platform_differences 台账层；可执行形态 `skills/ios-follow/SKILL.md`） |
 | **AI 工具配置索引** | `AI_TOOLS.md`（四工具配置位置、Skills/Plans/Specs SSOT 约定） |
 | **产品定义** | `PRODUCT.md` |
 | **交互规范** | `docs/01-PRODUCT/FEATURES.md` |

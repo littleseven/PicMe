@@ -110,6 +110,7 @@ docs/superpowers/
 | `/intent-router` | 意图路由：自然语言需求→技术任务 |
 | `/mnn-llm-android` | MNN-LLM 端侧大模型推理（Qwen/下载/调试） |
 | `/av-gl-expert` | OpenGL/CameraX 诊断（黑屏/Shader/EGL） |
+| `/ios-follow` | Android 完成后 iOS 一键对等跟随（六阶段编排管线） |
 
 ---
 
@@ -130,6 +131,7 @@ docs/superpowers/
 | `i18n-validator` | 国际化资源检查与三语同步验证 |
 | `image-quality-checker` | 截屏图片质量分析 |
 | `intent-router` | 自然语言需求解析与上下文加载 |
+| `ios-follow` | Android 完成后 iOS 一键对等跟随（spec/tokens/平台差异台账契约化 + 双端验收） |
 | `layout-inspector-expert` | Android 布局检查与 UI 结构分析专家 |
 | `mediapipe-landmark-mapping` | MediaPipe 关键点映射规范 |
 | `mnn-integration` | MNN 推理引擎集成规范 |
