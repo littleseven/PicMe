@@ -68,13 +68,28 @@ final class CaptureFlow: ObservableObject {
 
     private let photoController: PhotoCaptureController
     private let renderer: BeautyRenderer?
+    /// 拍照裁剪目标 h/w（nil=不裁 FULL；4:3/16:9 居中裁到目标比例）
+    private let cropHPerW: CGFloat?
 
     /// 保存成功回调（主线程，供相机页刷新相册入口缩略图）
     var onSaved: (() -> Void)?
 
-    init(photoController: PhotoCaptureController, renderer: BeautyRenderer?) {
+    init(photoController: PhotoCaptureController, renderer: BeautyRenderer?, cropHPerW: CGFloat? = nil) {
         self.photoController = photoController
         self.renderer = renderer
+        self.cropHPerW = cropHPerW
+    }
+
+    /// 居中裁剪到目标 h/w 比例（对标 Android 拍照 aspect crop）
+    private func croppedToRatio(_ img: CGImage) -> CGImage {
+        guard let hPerW = cropHPerW else { return img }
+        let w = CGFloat(img.width), h = CGFloat(img.height)
+        let cur = h / w
+        if abs(cur - hPerW) < 0.01 { return img }
+        var cw = w, ch = h
+        if cur > hPerW { ch = w * hPerW } else { cw = h / hPerW }
+        let rect = CGRect(x: (w - cw) / 2, y: (h - ch) / 2, width: cw, height: ch)
+        return img.cropping(to: rect) ?? img
     }
 
     func captureAndSave() {
@@ -144,7 +159,7 @@ final class CaptureFlow: ObservableObject {
             }
 
             do {
-                try await PhotoSaver.saveToLibrary(image)
+                try await PhotoSaver.saveToLibrary(croppedToRatio(image))
                 let totalMs = Date().timeIntervalSince(shutterStart) * 1000
                 print("[PoLang] shutter.SAVED total=\(String(format: "%.1f", totalMs))ms (capture+\(String(format: "%.1f", captureMs))+render+\(String(format: "%.1f", renderMs)))")
                 DebugOverlayState.shared.set("camera.shutter", "saved")

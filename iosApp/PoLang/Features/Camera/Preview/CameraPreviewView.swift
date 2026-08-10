@@ -46,6 +46,14 @@ struct CameraPreviewView: View {
         return v
     }
 
+    /// 比例启动覆盖（验收/诊断用；-ratio43 / -ratio169，否则 FULL）
+    private static func resolveRatio() -> AspectMode {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-ratio43") { return .ratio43 }
+        if args.contains("-ratio169") { return .ratio169 }
+        return .full
+    }
+
     /// 🔴 逐点关键点调试 overlay（对标 Android FaceDebugOverlayBigBeauty）。
     /// `-showLandmarks` 开启：把 BeautyRenderer 消费的 106 点 + 9 对瘦脸/2 对大眼控制点画到预览，
     /// 肉眼裁决「形变区域不对/偏转」= 点云错位还是 warp 感知问题。
@@ -65,7 +73,7 @@ struct CameraPreviewView: View {
     // 右列对齐（B2a）：构图网格 + 场景模式（对标 Android currentGrid / currentScene）
     @State private var currentGrid: GridType = .off
     @State private var currentScene: ScenePreset = .off
-    @State private var currentRatio: AspectMode = .full
+    @State private var currentRatio: AspectMode = Self.resolveRatio()
     // ProMode 独立轨道（对标 Android showProPanel；与 primary 组互斥渲染，可与 beauty 并存）
     @State private var showProPanel = false
     @State private var exposureComp: Double = 0      // EV -2..2（AVCapture setExposureBias）
@@ -89,14 +97,12 @@ struct CameraPreviewView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // 留黑边底（比例 FIT letterbox；与快门黑闪同色）
-                Color.black
-                // 预览层：按比例裁剪高度（FULL=全屏，4:3/16:9=竖向留黑边）
+                // 预览层：铺满全屏（全出血）
                 // 🔴 camera_preview 标识只挂叶子视图：挂容器会沿子树传播、覆盖子孙自身标识符
                 MetalViewRepresentable(controller: controller, renderer: sharedRenderer,
                                        params: container.beautyParams, faceRouter: faceRouter,
                                        landmarkStore: landmarkStore)
-                .frame(width: geo.size.width, height: previewHeight(width: geo.size.width, screenHeight: geo.size.height))
+                .frame(width: geo.size.width, height: geo.size.height)
                 .accessibilityIdentifier("camera_preview")
 
                 // 构图网格叠加（对标 Android CompositionGrid：虚线 white 0.5，THIRDS/GOLDEN）
@@ -253,12 +259,12 @@ struct CameraPreviewView: View {
 
     private func closePanel() { withAnimation { activePanel = nil } }
 
-    /// 预览高度（按比例：FULL=全屏，4:3/16:9=竖向短于屏 → 留黑边 letterbox，对标 Android FIT_CENTER）
-    private func previewHeight(width: CGFloat, screenHeight: CGFloat) -> CGFloat {
+    /// 当前比例对应的拍照裁剪 h/w（FULL=nil 不裁；4:3→4/3，16:9→16/9，对标 Android 拍照 aspect crop）
+    private var captureCropHPerW: CGFloat? {
         switch currentRatio {
-        case .full: return screenHeight
-        case .ratio169: return min(screenHeight, width * 16.0 / 9.0)
-        case .ratio43: return min(screenHeight, width * 4.0 / 3.0)
+        case .full: return nil
+        case .ratio43: return 4.0 / 3.0
+        case .ratio169: return 16.0 / 9.0
         }
     }
 
@@ -532,7 +538,7 @@ struct CameraPreviewView: View {
                         DebugOverlayState.shared.set("camera.shutter", "error: renderer nil")
                         return
                     }
-                    let flow = CaptureFlow(photoController: photoController, renderer: renderer)
+                    let flow = CaptureFlow(photoController: photoController, renderer: renderer, cropHPerW: captureCropHPerW)
                     flow.onSaved = { refreshLatestThumb() }
                     flow.captureAndSave()
                 }
