@@ -45,8 +45,20 @@ final class TagScanOrchestrator: @unchecked Sendable {
         var failed: Int = 0
         var total: Int = 0
         var task: Task<Void, Never>?
+        var pass3Enqueued: Bool = false
     }
     private var box = Box()
+
+    /// Florence-2 打标器（Pass3），懒加载
+    private var florence2Tagger: Florence2Tagger?
+
+    /// Florence-2 模型目录：Documents/llm_models/florence2_base/
+    private var florence2ModelDir: String {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("llm_models")
+            .appendingPathComponent("florence2_base")
+            .path
+    }
 
     private init() {
         // 中断恢复：把上次 RUNNING 重置为 PENDING，等用户在扫描页点恢复。
@@ -125,6 +137,7 @@ final class TagScanOrchestrator: @unchecked Sendable {
             box.processed = 0; box.failed = 0
             box.samples = []
             box.pauseRequested = false; box.cancelRequested = false
+            box.pass3Enqueued = false
             box.task = Task.detached(priority: .utility) { [weak self] in
                 await self?.runLoop()
             }
@@ -271,9 +284,27 @@ final class TagScanOrchestrator: @unchecked Sendable {
                 // 队列空：再次确认未被取消，否则完成
                 let cancelled = read { $0.cancelRequested }
                 if cancelled { return }
-                // Pass1 会话结束 → 跑一次 Pass2 人物聚类（DBSCAN）
-                scanDebugLog("TS Pass1 done → run Pass2 clustering")
-                _ = Pass2Pipeline.runClustering()
+
+                // 判断是否已入队 Pass3
+                let pass3Done = read { $0.pass3Enqueued }
+                if !pass3Done {
+                    // ── Pass1 会话结束 → 跑一次 Pass2 人物聚类（DBSCAN）──
+                    scanDebugLog("TS Pass1 done → run Pass2 clustering")
+                    _ = Pass2Pipeline.runClustering()
+
+                    // ── 入队 Pass3（Florence-2 内容打标）──
+                    let pass3Enqueued = enqueuePass3IfNeeded(sessionId: sid)
+                    mutate { box in box.pass3Enqueued = pass3Enqueued }
+                    if pass3Enqueued {
+                        scanDebugLog("TS Pass3 tasks enqueued, continuing loop")
+                        // 继续 runLoop 处理 Pass3 任务
+                        try? await Task.sleep(nanoseconds: 50_000_000)
+                        continue
+                    }
+                }
+
+                // Pass3 已完成（或未入队）→ 会话结束
+                scanDebugLog("TS All passes done → complete")
                 let snap = mutate { box -> TagScanSessionProgress in
                     box.sessionState = box.sessionState.transition(.complete) ?? .completed
                     return self.snapshotLocked(box)
@@ -281,35 +312,126 @@ final class TagScanOrchestrator: @unchecked Sendable {
                 emit(.progress(snap)); emit(.finished(.completed))
                 return
             }
-            // 3) 执行 Pass1（同步、串行、后台线程）
+            // 3) 按 pass 类型执行任务
             let lid = db.localIdentifier(forMediaId: task.mediaId)
-            NSLog("PoLang:TagScan task mediaId=\(task.mediaId) lid=\(lid ?? "nil")")
-            if let lid = lid, let image = ScanImageLoader.load(localIdentifier: lid) {
-                NSLog("PoLang:TagScan calling process mediaId=\(task.mediaId)")
-                let t0 = CFAbsoluteTimeGetCurrent()
-                _ = Pass1Pipeline.shared.process(image, mediaId: task.mediaId)
-                NSLog("PoLang:TagScan process done mediaId=\(task.mediaId)")
-                let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
-                localSamples.append(ms)
-                db.markCompleted(taskId: task.taskId, now: Self.nowMs())
-                let snap = mutate { box -> TagScanSessionProgress in
-                    box.processed += 1
-                    box.samples = localSamples
-                    return self.snapshotLocked(box)
-                }
-                emit(.progress(snap))
+            NSLog("PoLang:TagScan task mediaId=\(task.mediaId) pass=\(task.pass) lid=\(lid ?? "nil")")
+            if task.pass == "IMAGE_TAGGING" {
+                // ── Pass3: Florence-2 内容打标 ──
+                processPass3Task(task: task, lid: lid, now: now)
             } else {
-                db.markFailed(taskId: task.taskId, now: now,
-                              errorMessage: "image load failed", backoffMs: 5_000)
-                let snap = mutate { box -> TagScanSessionProgress in
-                    box.failed += 1
-                    return self.snapshotLocked(box)
+                // ── Pass1: 人脸检测 + embedding + MobileCLIP ──
+                if let lid = lid, let image = ScanImageLoader.load(localIdentifier: lid) {
+                    NSLog("PoLang:TagScan calling process mediaId=\(task.mediaId)")
+                    let t0 = CFAbsoluteTimeGetCurrent()
+                    _ = Pass1Pipeline.shared.process(image, mediaId: task.mediaId)
+                    NSLog("PoLang:TagScan process done mediaId=\(task.mediaId)")
+                    let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
+                    localSamples.append(ms)
+                    db.markCompleted(taskId: task.taskId, now: Self.nowMs())
+                    let snap = mutate { box -> TagScanSessionProgress in
+                        box.processed += 1
+                        box.samples = localSamples
+                        return self.snapshotLocked(box)
+                    }
+                    emit(.progress(snap))
+                } else {
+                    db.markFailed(taskId: task.taskId, now: now,
+                                  errorMessage: "image load failed", backoffMs: 5_000)
+                    let snap = mutate { box -> TagScanSessionProgress in
+                        box.failed += 1
+                        return self.snapshotLocked(box)
+                    }
+                    emit(.progress(snap))
                 }
-                emit(.progress(snap))
             }
             // 4) 任务间轻让步
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
+    }
+
+    // MARK: - Pass3（Florence-2 内容打标）
+
+    /// 尝试入队 Pass3 任务。如果 Florence-2 模型未下载或无待打标图片，返回 false。
+    private func enqueuePass3IfNeeded(sessionId: String) -> Bool {
+        // 检查 Florence-2 模型是否已下载
+        let modelDir = florence2ModelDir
+        guard Florence2Tagger.modelsAvailable(modelDir: modelDir) else {
+            scanDebugLog("TS Pass3 skipped: Florence-2 models not downloaded")
+            return false
+        }
+        // 规划 Pass3 任务集（增量：跳过已有 labelsEn 的图片）
+        let allIds = db.allImageMediaIds()
+        let covered = db.labelsEnCoveredMediaIds()
+        let planned = allIds.filter { !covered.contains($0) }
+        guard !planned.isEmpty else {
+            scanDebugLog("TS Pass3 skipped: all images already tagged")
+            return false
+        }
+        db.enqueueImageTaggingTasks(sessionId: sessionId, mediaIds: planned, now: Self.nowMs())
+        scanDebugLog("TS Pass3 enqueued \(planned.count) image tagging tasks")
+        return true
+    }
+
+    /// 执行单个 Pass3 任务（Florence-2 打标）。
+    private func processPass3Task(task: TagDatabase.QueuedTask, lid: String?, now: Int64) {
+        // 懒加载 Florence2Tagger
+        if florence2Tagger == nil {
+            let tagger = Florence2Tagger()
+            if tagger.load(modelDir: florence2ModelDir) {
+                florence2Tagger = tagger
+            }
+        }
+        guard let tagger = florence2Tagger, tagger.isLoaded else {
+            NSLog("PoLang:TagScan Pass3 Florence-2 not loaded, skipping task")
+            db.markFailed(taskId: task.taskId, now: now,
+                          errorMessage: "Florence-2 models not loaded", backoffMs: 60_000)
+            let snap = mutate { box -> TagScanSessionProgress in
+                box.failed += 1
+                return self.snapshotLocked(box)
+            }
+            emit(.progress(snap))
+            return
+        }
+
+        guard let lid = lid, let image = ScanImageLoader.load(localIdentifier: lid) else {
+            db.markFailed(taskId: task.taskId, now: now,
+                          errorMessage: "image load failed", backoffMs: 5_000)
+            let snap = mutate { box -> TagScanSessionProgress in
+                box.failed += 1
+                return self.snapshotLocked(box)
+            }
+            emit(.progress(snap))
+            return
+        }
+
+        NSLog("PoLang:TagScan Pass3 tagging mediaId=\(task.mediaId)")
+        let t0 = CFAbsoluteTimeGetCurrent()
+        let result = tagger.tag(image)
+        let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
+        NSLog("PoLang:TagScan Pass3 done mediaId=\(task.mediaId) in \(ms)ms")
+
+        if let result = result {
+            let labelsJson = Self.encodeLabelsEn(result.labelsEn)
+            db.updateLabelsEn(mediaId: task.mediaId, labelsEn: labelsJson)
+        } else {
+            // 推理失败 → 写入空数组标记已处理（避免重试循环）
+            db.updateLabelsEn(mediaId: task.mediaId, labelsEn: "[]")
+        }
+        db.markCompleted(taskId: task.taskId, now: Self.nowMs())
+        let snap = mutate { box -> TagScanSessionProgress in
+            box.processed += 1
+            return self.snapshotLocked(box)
+        }
+        emit(.progress(snap))
+    }
+
+    /// 将标签数组编码为 JSON 字符串（labelsEn 列存储格式）。
+    private static func encodeLabelsEn(_ labels: [String]) -> String {
+        if let data = try? JSONSerialization.data(withJSONObject: labels),
+           let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        return "[]"
     }
 
     // MARK: - 辅助

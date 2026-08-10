@@ -9,5 +9,6 @@
 
 #import "Features/Camera/Beauty/MNN/MnnFaceDetectorBridge.h"
 #import "Features/Camera/Beauty/MNN/MnnFaceEmbedderBridge.h"
+#import "Platform/Tag/ORTBoolTensorHelper.h"
 
 #endif /* PoLang_Bridging_Header_h */

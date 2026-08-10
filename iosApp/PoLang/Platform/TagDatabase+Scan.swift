@@ -161,7 +161,7 @@ extension TagDatabase {
             return ScanDbStats(
                 totalMedia: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE';"),
                 withFace: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND hasFace=1;"),
-                withLabels: 0,
+                withLabels: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND labelsEn IS NOT NULL;"),
                 withSemantic: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND semanticEmbedding IS NOT NULL;"),
                 personCount: 0,
                 namedPersonCount: 0,
@@ -170,7 +170,9 @@ extension TagDatabase {
                     SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND (
                         lastTagScanPasses IS NULL OR lastTagScanPasses NOT LIKE '%\"1\"%');
                     """),
-                remainingPass3: 0
+                remainingPass3: countInt("""
+                    SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND labelsEn IS NULL;
+                    """)
             )
         }
     }
@@ -452,6 +454,67 @@ extension TagDatabase {
             }
             sqlite3_finalize(stmt)
             return sid
+        }
+    }
+
+    // MARK: - Pass3（Florence-2 内容打标）: labelsEn 写入 / 查询 / 队列
+
+    /// 写 media_assets.labelsEn（JSON 数组字符串，如 `["dog","park"]`）。
+    func updateLabelsEn(mediaId: Int64, labelsEn: String?) {
+        queue.sync {
+            guard let db = db else { return }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "UPDATE media_assets SET labelsEn=? WHERE id=?;", -1, &stmt, nil)
+            if let s = labelsEn {
+                sqlite3_bind_text(stmt, 1, s, -1, SQLITE_TRANSIENT)
+            } else {
+                sqlite3_bind_null(stmt, 1)
+            }
+            sqlite3_bind_int64(stmt, 2, mediaId)
+            sqlite3_step(stmt)
+            sqlite3_finalize(stmt)
+        }
+    }
+
+    /// 已有 labelsEn 的 mediaId 集合（Pass3 增量去重用）。
+    func labelsEnCoveredMediaIds() -> Set<Int64> {
+        queue.sync {
+            guard let db = db else { return [] }
+            var out = Set<Int64>()
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+            SELECT id FROM media_assets WHERE type='IMAGE' AND labelsEn IS NOT NULL;
+            """, -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                out.insert(sqlite3_column_int64(stmt, 0))
+            }
+            sqlite3_finalize(stmt)
+            return out
+        }
+    }
+
+    /// 批量入队 Pass3 内容打标任务（pass='IMAGE_TAGGING'）。
+    func enqueueImageTaggingTasks(sessionId: String, mediaIds: [Int64], now: Int64) {
+        guard !mediaIds.isEmpty else { return }
+        queue.sync {
+            guard let db = db else { return }
+            exec("BEGIN TRANSACTION;")
+            defer { exec("COMMIT;") }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, """
+            INSERT INTO tag_scan_tasks (sessionId, mediaId, pass, status, priority, attemptCount, createdAt, scheduledAt)
+            VALUES (?, ?, 'IMAGE_TAGGING', 'PENDING', 0, 0, ?, ?);
+            """, -1, &stmt, nil)
+            for mid in mediaIds {
+                sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_int64(stmt, 2, mid)
+                sqlite3_bind_int64(stmt, 3, now)
+                sqlite3_bind_int64(stmt, 4, now)
+                sqlite3_step(stmt)
+                sqlite3_reset(stmt)
+                sqlite3_clear_bindings(stmt)
+            }
+            sqlite3_finalize(stmt)
         }
     }
 }
