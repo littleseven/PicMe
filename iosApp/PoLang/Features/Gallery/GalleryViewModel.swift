@@ -14,10 +14,11 @@ final class GalleryViewModel: ObservableObject {
         let items: [MediaAsset]
     }
 
-    /// 分组模式（对齐 Android GroupingMode 子集）：date=按日 / none=全部。
-    /// FACE/PERSON/LANDSCAPE/LOCATION 依赖 Phase 6 人脸/标签/位置索引数据，落地后扩展。
+    /// 分组模式（对齐 Android GroupingMode）：none=全部 / date=按日 /
+    /// face=按是否含人脸（接 Pass1 hasFace）/ person·landscape·location 数据依赖后续扫描阶段，
+    /// 先以占位分组开放下拉项。
     enum GroupingMode: String {
-        case none, date
+        case none, date, face, person, landscape, location
     }
 
     @Published private(set) var groups: [DayGroup] = []
@@ -65,6 +66,31 @@ final class GalleryViewModel: ObservableObject {
                 map[key, default: []].append(a)
             }
             groups = map.sorted { $0.key > $1.key }.map { DayGroup(id: $0.key, items: $0.value) }
+        case .face:
+            // 接 Pass1 扫描产出（media_assets.hasFace）：含脸 / 无脸 两组。
+            let faceSet = TagDatabase.shared.hasFaceLocalIdentifiers()
+            var withFace: [MediaAsset] = []
+            var noFace: [MediaAsset] = []
+            for a in assets {
+                if faceSet.contains(a.uri) { withFace.append(a) } else { noFace.append(a) }
+            }
+            var gs: [DayGroup] = []
+            if !withFace.isEmpty {
+                gs.append(DayGroup(id: NSLocalizedString("gallery_group_with_face", comment: ""), items: withFace))
+            }
+            if !noFace.isEmpty {
+                gs.append(DayGroup(id: NSLocalizedString("gallery_group_no_face", comment: ""), items: noFace))
+            }
+            groups = gs
+        case .person, .landscape, .location:
+            // 数据依赖后续扫描阶段（人物聚类 Pass2 / 内容标签 Pass3 / 地理），先以占位分组开放下拉项。
+            let key: String
+            switch groupingMode {
+            case .person: key = NSLocalizedString("gallery_group_person_pending", comment: "")
+            case .landscape: key = NSLocalizedString("gallery_group_landscape_pending", comment: "")
+            default: key = NSLocalizedString("gallery_group_location_pending", comment: "")
+            }
+            groups = assets.isEmpty ? [] : [DayGroup(id: key, items: assets)]
         }
         isLoading = false
         DebugOverlayState.shared.set("gallery.count", "\(assets.count)")

@@ -150,10 +150,10 @@ struct GalleryGridView: View {
         Menu {
             menuItem(String(localized: "All"), mode: .none)
             menuItem(String(localized: "Date"), mode: .date)
-            Button {} label: { Text(String(localized: "Face")) }.disabled(true)
-            Button {} label: { Text(String(localized: "Person")) }.disabled(true)
-            Button {} label: { Text(String(localized: "Landscape")) }.disabled(true)
-            Button {} label: { Text(String(localized: "Location")) }.disabled(true)
+            menuItem(String(localized: "Face"), mode: .face)
+            menuItem(String(localized: "Person"), mode: .person)
+            menuItem(String(localized: "Landscape"), mode: .landscape)
+            menuItem(String(localized: "Location"), mode: .location)
         } label: {
             Image(systemName: "line.3.horizontal.decrease")  // Android Sort 图标的 SF 语义映射
                 .font(.system(size: 22))

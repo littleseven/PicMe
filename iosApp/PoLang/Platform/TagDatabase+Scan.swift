@@ -345,6 +345,21 @@ extension TagDatabase {
         }
     }
 
+    /// 含人脸的 localIdentifier 集合（= media_assets.uri，供相册「按人脸分组」用）。
+    func hasFaceLocalIdentifiers() -> Set<String> {
+        queue.sync {
+            guard let db = db else { return [] }
+            var out = Set<String>()
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT uri FROM media_assets WHERE hasFace=1;", -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let cs = sqlite3_column_text(stmt, 0) { out.insert(String(cString: cs)) }
+            }
+            sqlite3_finalize(stmt)
+            return out
+        }
+    }
+
     /// 是否存在未完成 session（扫描页中断恢复提示用）。
     func unfinishedSessionId() -> String? {
         queue.sync {
