@@ -39,9 +39,25 @@ final class ThumbnailLoader {
         }
     }
 
+    /// 全分辨率原图（编辑器保存路径专用）：PHImageManagerMaximumSize + .aspectFit，
+    /// 不裁剪、不降采样。与 thumbnail()（aspectFill 降采样）区分。
+    /// [PRIVACY] isNetworkAccessAllowed = false，100% 端侧。
+    func fullResolution(for localIdentifier: String) async -> UIImage? {
+        let result = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+        guard let asset = result.firstObject else { return nil }
+        return await withCheckedContinuation { cont in
+            let opts = PHImageRequestOptions()
+            opts.deliveryMode = .highQualityFormat
+            opts.isNetworkAccessAllowed = false
+            manager.requestImage(for: asset, targetSize: PHImageManagerMaximumSize,
+                                 contentMode: .aspectFit, options: opts) { image, _ in
+                cont.resume(returning: image)
+            }
+        }
+    }
+
     /// 预热窗口（Task 11 性能调优点）：滚动时对可见区 ±2 屏 identifiers 调本方法。
-    func startCaching(identifiers: [String], size: CGSize) {
-        let assets = PHAsset.fetchAssets(withLocalIdentifiers: identifiers, options: nil)
+    func startCaching(identifiers: [String], size: CGSize) {        let assets = PHAsset.fetchAssets(withLocalIdentifiers: identifiers, options: nil)
         manager.startCachingImages(for: assets.objects(at: IndexSet(integersIn: 0..<assets.count)),
                                    targetSize: size, contentMode: .aspectFill, options: nil)
     }

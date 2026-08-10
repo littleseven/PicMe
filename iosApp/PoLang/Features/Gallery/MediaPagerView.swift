@@ -18,6 +18,8 @@ struct MediaPagerView: View {
     @State private var showInfo = false
     @State private var sharePayload: SharePayload? = nil
     @State private var showDeleteConfirm = false
+    /// 编辑器 fullScreenCover 载体（Edit 按钮 → PhotoEditorScreen）
+    @State private var editTarget: EditorTarget?
     /// debug 开关门控「人脸关键点」入口（对齐 Android debugUiEnabled）
     @AppStorage("debug_ui_enabled") private var debugEnabled = false
     @State private var showFaceOverlay = false
@@ -77,6 +79,9 @@ struct MediaPagerView: View {
                             isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button(String(localized: "Delete"), role: .destructive) { deleteCurrent() }
             Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+        .fullScreenCover(item: $editTarget) { target in
+            PhotoEditorScreen(localIdentifier: target.id)
         }
     }
 
@@ -158,7 +163,9 @@ struct MediaPagerView: View {
             bottomBarItem(icon: "mat_autofix",
                           title: String(localized: "Edit"),
                           accessibilityID: "pager_edit",
-                          isEnabled: false) {}
+                          isEnabled: true) {
+                if let uri = currentAsset?.uri { editTarget = EditorTarget(localIdentifier: uri) }
+            }
             Spacer()
             bottomBarItem(icon: "mat_badge",
                           title: String(localized: "ID"),
