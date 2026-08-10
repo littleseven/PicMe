@@ -44,7 +44,7 @@ final class TagScanViewModel: ObservableObject {
     func retryFailed() { orchestrator.retryFailed() }
 
     // MARK: - 分阶段独立控制（PassControlCard）
-    func runPass2() { orchestrator.runPass2Clustering(); refreshStats() }
+    func runPass2() { orchestrator.runPass2Clustering() }
     func startPass3Incremental() { orchestrator.startPass3(mode: .incremental); refreshStats() }
     func startPass3Full() { orchestrator.startPass3(mode: .full); refreshStats() }
 
