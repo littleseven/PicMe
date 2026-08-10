@@ -119,4 +119,44 @@ final class TagDatabaseScanTests: XCTestCase {
         db.cancelSession(sessionId: "S7")
         XCTAssertNil(db.unfinishedSessionId(), "全部 CANCELLED 后无未完成 session")
     }
+
+    // MARK: persons / Pass2 clustering DAO
+    func testInsertPersonAndAssign() {
+        let db = makeDb()
+        let mid1 = db.getOrCreateMedia(localIdentifier: "L-1", type: "IMAGE", captureDateMs: 1, fileName: "a")
+        let mid2 = db.getOrCreateMedia(localIdentifier: "L-2", type: "IMAGE", captureDateMs: 2, fileName: "b")
+        let emb = Data(repeating: 0, count: 2048) // 512 Float32
+        db.insertEmbeddings(mediaId: mid1, embeddings: [emb])
+        db.insertEmbeddings(mediaId: mid2, embeddings: [emb])
+
+        let pid = db.insertPerson(name: nil, coverMediaId: mid1, faceCount: 2, isSelf: false)
+        XCTAssertGreaterThan(pid, 0)
+
+        let mediaIds = [mid1, mid2]
+        db.assignEmbeddingsByMediaIds(mediaIds, personId: pid)
+        db.updateFaceIdBatch(mediaIds, faceId: String(pid))
+
+        let map = db.faceIdByLocalIdentifier()
+        XCTAssertEqual(map["L-1"], String(pid))
+        XCTAssertEqual(map["L-2"], String(pid))
+
+        XCTAssertTrue(db.getUnassignedEmbeddings().isEmpty, "赋值后无未分配 embedding")
+    }
+
+    func testClearAndReset() {
+        let db = makeDb()
+        let mid = db.getOrCreateMedia(localIdentifier: "L-1", type: "IMAGE", captureDateMs: 1, fileName: "a")
+        db.insertEmbeddings(mediaId: mid, embeddings: [Data(repeating: 0, count: 2048)])
+        let pid = db.insertPerson(name: "Test", coverMediaId: mid, faceCount: 1, isSelf: false)
+        db.assignEmbeddingsByMediaIds([mid], personId: pid)
+        db.updateFaceIdBatch([mid], faceId: String(pid))
+
+        // 清空
+        db.clearAllPersons()
+        db.resetAllEmbeddingAssignments()
+        db.resetAllFaceIds()
+
+        XCTAssertTrue(db.faceIdByLocalIdentifier().isEmpty, "清空后无 faceId")
+        XCTAssertFalse(db.getUnassignedEmbeddings().isEmpty, "reset 后 embedding 重新未分配")
+    }
 }

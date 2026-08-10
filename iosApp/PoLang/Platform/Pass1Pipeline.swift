@@ -131,7 +131,6 @@ class Pass1Pipeline {
 
     /// 处理单张照片（对标 stage1WithEmbeddings）—— 须在 ioQueue 上调用。
     private func processImpl(_ image: UIImage, mediaId: Int64) -> Pass1Result {
-        scanDebugLog("P1 enter mediaId=\(mediaId)")
         let t0 = CFAbsoluteTimeGetCurrent()
         defer {
             let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
@@ -170,17 +169,14 @@ class Pass1Pipeline {
                                                         outBuf: fbase, maxFaces: Int32(maxFaces))
             })
         }
-        scanDebugLog("P1 faces=\(faceCount)")
 
         // 3. 每人脸: 仿射对齐 → Glint360K embedding
         var embeddings: [Data] = []
         var allLandmarks5: [[Float]] = []
 
         for fi in 0..<faceCount {
-            scanDebugLog("P1 face[\(fi)] start")
             let off = fi * 15
             let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // 10 float 5pt landmarks
-            scanDebugLog("P1 face[\(fi)] lm.count=\(lm5.count)")
             allLandmarks5.append(lm5)
 
             // 仿射对齐到 112×112
@@ -201,16 +197,12 @@ class Pass1Pipeline {
         }
 
         // 4. MobileCLIP 语义编码
-        scanDebugLog("P1 mobileclip start")
         let semanticBase64 = mobileClip.encode(scaledImage).flatMap { floats in
             floatArrayToBase64(floats)
         }
-        scanDebugLog("P1 mobileclip done")
 
         // 5. 计算 faceFocusY（人脸垂直焦点）
-        scanDebugLog("P1 focusY start allLandmarks=\(allLandmarks5.count)")
         let faceFocusY = computeFaceFocusY(allLandmarks5, imageHeight: height)
-        scanDebugLog("P1 focusY done")
 
         // 6. 构建 faceRoiResult JSON
         let hasFace = faceCount > 0
