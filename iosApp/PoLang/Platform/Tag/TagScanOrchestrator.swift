@@ -61,6 +61,11 @@ final class TagScanOrchestrator: @unchecked Sendable {
     }
 
     private init() {
+        // ORT 共享环境修复后，一次性清除旧 dual-env 崩溃标记
+        if !UserDefaults.standard.bool(forKey: "ort_shared_env_fix") {
+            UserDefaults.standard.set(false, forKey: "florence2_attempting")
+            UserDefaults.standard.set(true, forKey: "ort_shared_env_fix")
+        }
         // 中断恢复：把上次 RUNNING 重置为 PENDING，等用户在扫描页点恢复。
         if let sid = db.unfinishedSessionId() {
             db.resetRunningToPending(sessionId: sid)
