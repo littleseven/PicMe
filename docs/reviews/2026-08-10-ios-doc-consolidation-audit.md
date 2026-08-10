@@ -6,7 +6,7 @@
 > **前置**：继承 [`2026-08-10-ios-kmp-doc-drift-audit.md`](2026-08-10-ios-kmp-doc-drift-audit.md)（25 处漂移已修）；本次聚焦其后的**进展漂移**与**结构性整合**。
 > **两项策略决策（用户拍板）**：
 > 1. **跟踪策略**：进度状态以 **origin/main** 为准；未合并分支工作在对应子项标注「in-flight: `<分支>` 待合并」。
-> 2. **归档策略**：**混合**——仅移动无人引用的过程产物（kickoff 派发），其余历史文档原地加横幅，另建整合索引 [`IOS_DOC_INDEX.md`](../01-PRODUCT/IOS_DOC_INDEX.md) 作前门。
+> 2. **归档策略**：**删减**——冗余/历史文档直接删除（git 历史保留可恢复），只保留活文档 SSOT + 前门索引 [`IOS_DOC_INDEX.md`](../01-PRODUCT/IOS_DOC_INDEX.md)；in-flight 的 TAG design+plan 暂留至分支合并。共删 19 份。
 
 ---
 
@@ -58,15 +58,19 @@
 
 ---
 
-## §4 历史文档处置（混合策略）
+## §4 冗余/历史文档删减（git 留史，可恢复）
 
-**移入 `docs/archived/2026-08-ios-coldstart/`（无人引用的过程产物，2 份）：**
-- `plans/2026-08-08-ios-camera-glm-kickoff.md`（Phase 5 GLM 派发包）
-- `plans/2026-08-08-ios-gallery-k3-kickoff.md`（Phase 5 K3 派发包）
+**已删除 19 份**（事实已沉淀进活文档/代码）：
+- 4 spike（mnn / spm-quickjs / kmp-koog / beauty-metal）→ 结论在路线图 Phase 2
+- app-skeleton design + plan、camera-s5-consistency、phase5-task20-21-verification → Phase 5 已交付
+- adhoc-distribution-page-design、server-ios-adaptation-audit、product-reference-design、gallery-face-landmark design + plan、chat-phase6.2 plan、ios-ui-parity-spec → 已实现/已完成/已被取代
+- 08-08 camera / gallery UI gap-analysis → 被 `2026-08-10-ios-android-consistency-gap.md` 取代
+- camera-gallery-gap plan（相册 G1-G4 → 看板 §6.6）、spec-test-gaps（gap 项 → 看板 §6.5）→ 已吸收
+- 2 份 Phase 5 kickoff 派发 → 过程产物
 
-> spikes（mnn/quickjs/kmp-koog/beauty-metal）与 phase5-task20-21-verification 虽为历史，但被**现行路线图 / app-skeleton-design 交叉引用**；移走将制造断链 churn，故**原地加横幅**而非移动（安全性优先）。完整分类见 [`IOS_DOC_INDEX.md`](../01-PRODUCT/IOS_DOC_INDEX.md)。
+**暂留**：TAG scan-core design + plan（🔄 in-flight 分支 `feat/ios-tag-scan-core` 待合并；合并后删）。
 
-**原地加「📜 历史/已结算/已被取代」横幅（13 份）：** 4 spikes、app-skeleton design+plan、camera-s5-consistency、adhoc-distribution-page-design、server-ios-adaptation-audit、product-reference-design、gallery-face-landmark plan、chat-phase6.2-plan、tag-scan-core design+plan、ios-ui-parity-spec。（2 份 gap-analysis 与 gallery-face-landmark-design 已有横幅，跳过。）
+**无断链**：存活文档对被删文档的引用全部为 backtick 文本提及（非可点击 markdown 链接，已核验），删除不产生断链；提及自然成为 git 历史引用。完整清单见 [`IOS_DOC_INDEX.md`](../01-PRODUCT/IOS_DOC_INDEX.md) §2。
 
 ---
 

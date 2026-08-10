@@ -119,7 +119,7 @@
 | 2026-08-10 | D3「44 commits 未 push」 | → 已全推，main 与 origin 同步 | `7832df62` |
 | 2026-08-10 | D4 i18n「无 zh-Hant」 | → 三语就绪，key 191→239 | `7832df62` |
 | 2026-08-10 | 全面漂移扫描（A/B/C/D/E 共 25 处） | 6 文档修正：产品参考 11 处（场景同步已接入 / TAG Pass1 已移植 / 人物页非占位 / swipe 手势 / i18n §4.2 传播遗漏等）、路线图风险登记 6 项已解风险关闭、parity spec 清单+RTL+gap 引用、2 份 gap-analysis 加快照 banner；详见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](../reviews/2026-08-10-ios-kmp-doc-drift-audit.md) | 见审计报告 §1 |
-| 2026-08-10 | **整合审计**：TAG Pass2/3/控制页「未实现/未接线」→ in-flight 分支待合并；相机「下一步」→ 已对齐合并；i18n 分支 ~323 待合并；PARITY_MASTER_PLAN 自诊错误；跟踪策略明确（main 为准 + in-flight） | 本文 §6.1 + §7 + 产品参考/路线图/implementation-tasks/parity/gap 7 文档修正 + 13 历史横幅 + 2 kickoff 归档 + 新建 [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md) | 见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md) |
+| 2026-08-10 | **整合审计**：TAG Pass2/3/控制页「未实现/未接线」→ in-flight 分支待合并；相机「下一步」→ 已对齐合并；i18n 分支 ~323 待合并；PARITY_MASTER_PLAN 自诊错误；跟踪策略明确（main 为准 + in-flight） | 本文 §6.1 + §7 + 产品参考/路线图/implementation-tasks/parity/gap 7 文档修正 + **删 19 份冗余/历史文档（git 留史）** + [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md) 瘦身为前门 | 见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md) |
 
 ---
 
@@ -127,6 +127,6 @@
 
 - **更新时机**：每完成一个 Phase 6 子项 / 缺口功能落地 / 发现新漂移时更新本文 §2 / §3 / §6。
 - **状态判定**：以 **origin/main** 为准（稳定/已交付）；未合并分支工作在对应子项标注「🔄 in-flight: `<分支>` 待合并」。代码核验以 `iosApp/PoLang/Features/` 实际 Swift 文件 + git commit 为辅证（非文档自述）。
-- **文档入口**：全部 iOS 文档的「活/历史/归档」分类见 [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md)；本轮整合留痕见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md)。
+- **文档入口**：活文档清单见 [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md)（历史/冗余文档已于 2026-08-10 删除，git 历史可查）；本轮整合留痕见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md)。
 - **新建功能**：落地后从 §3 移至 §2 对应子项（或新增 ✅ 行），并在 §6 登记漂移修正。
 - **不收录**：纯 Android 侧变更（除非影响 shared 契约面）。

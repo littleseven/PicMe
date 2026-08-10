@@ -266,6 +266,12 @@ final class TagScanOrchestrator: @unchecked Sendable {
 
     /// 手动触发 Pass3 内容打标（增量/全量）。
     func startPass3(mode: ScanMode) {
+        // 崩溃防护：上次 Florence-2 推理崩溃 → 跳过 Pass3
+        if UserDefaults.standard.bool(forKey: "florence2_attempting") {
+            scanDebugLog("TS startPass3 SKIPPED — Florence-2 上次崩溃，已禁用")
+            emit(.modelsNeeded)
+            return
+        }
         scanDebugLog("TS startPass3 mode=\(mode.rawValue)")
         let canStart = read { $0.sessionState == .idle || $0.sessionState.isTerminal }
         guard canStart else { scanDebugLog("TS startPass3 rejected (not idle)"); return }
@@ -472,8 +478,11 @@ final class TagScanOrchestrator: @unchecked Sendable {
         }
 
         scanDebugLog("TS P3 calling tagger.tag mediaId=\(task.mediaId)")
+        // 崩溃防护：标记「正在尝试 Florence-2」，如果 app 崩溃则标记残留 → 下次跳过
+        UserDefaults.standard.set(true, forKey: "florence2_attempting")
         let t0 = CFAbsoluteTimeGetCurrent()
         let result = tagger.tag(image)
+        UserDefaults.standard.set(false, forKey: "florence2_attempting")  // 成功返回 → 清除标记
         let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
         scanDebugLog("TS P3 tag done mediaId=\(task.mediaId) in \(ms)ms result=\(result != nil)")
 
