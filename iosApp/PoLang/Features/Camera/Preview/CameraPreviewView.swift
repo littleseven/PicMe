@@ -350,15 +350,11 @@ struct CameraPreviewView: View {
                     switch panel {
                     case .beauty:
                         BeautyPanelView(params: $container.beautyParams)
-                            .padding(.horizontal, 24)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .filter:
-                        VStack {
+                        ControlPanel {
                             FilterSelectorView(selectedFilter: $container.beautyParams.colorFilter)
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 24))
                         }
-                        .padding(.horizontal, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .grid:
                         ControlPanel {

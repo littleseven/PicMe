@@ -45,10 +45,15 @@ struct BeautyPanelView: View {
         .frame(maxHeight: UIScreen.main.bounds.height * 0.35) // 对标 Android BeautyPanel PANEL_HEIGHT_RATIO=0.35
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.3), radius: 16)
+                .fill(Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95))
                 .ignoresSafeArea(edges: .bottom)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                .ignoresSafeArea(edges: .bottom)
+        )
+        .shadow(color: .black.opacity(0.5), radius: 16)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
