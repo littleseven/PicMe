@@ -65,17 +65,20 @@ struct CameraPreviewView: View {
     // 右列对齐（B2a）：构图网格 + 场景模式（对标 Android currentGrid / currentScene）
     @State private var currentGrid: GridType = .off
     @State private var currentScene: ScenePreset = .off
+    @State private var currentRatio: AspectMode = .full
     // ProMode 独立轨道（对标 Android showProPanel；与 primary 组互斥渲染，可与 beauty 并存）
     @State private var showProPanel = false
     @State private var exposureComp: Double = 0      // EV -2..2（AVCapture setExposureBias）
     @State private var whiteBalanceMode = 0          // 0=auto/1=sunny/2=cloudy/3=incandescent/4=fluorescent
 
-    enum ActivePanel: Equatable { case beauty, filter, grid, scene }
+    enum ActivePanel: Equatable { case beauty, filter, grid, scene, ratio }
     enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
     // 构图网格（对标 Android GridType）
     enum GridType: Equatable { case off, thirds, golden }
     // 场景模式（对标 Android ScenePreset；NIGHT→EV+1，MOON→EV-2+3.2x）
     enum ScenePreset: Equatable { case off, night, moon }
+    // 画面比例（对标 Android CameraAspectRatio：FULL=填充裁剪，4:3/16:9=FIT 留黑边）
+    enum AspectMode: Equatable { case full, ratio43, ratio169 }
 
     /// 视图层直建 renderer（failable init，失败时快门报错而非静默）
     private static func makeRenderer() -> BeautyRenderer? {
@@ -86,12 +89,14 @@ struct CameraPreviewView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // 预览层：铺满全屏（全出血）
+                // 留黑边底（比例 FIT letterbox；与快门黑闪同色）
+                Color.black
+                // 预览层：按比例裁剪高度（FULL=全屏，4:3/16:9=竖向留黑边）
                 // 🔴 camera_preview 标识只挂叶子视图：挂容器会沿子树传播、覆盖子孙自身标识符
                 MetalViewRepresentable(controller: controller, renderer: sharedRenderer,
                                        params: container.beautyParams, faceRouter: faceRouter,
                                        landmarkStore: landmarkStore)
-                .frame(width: geo.size.width, height: geo.size.height)
+                .frame(width: geo.size.width, height: previewHeight(width: geo.size.width, screenHeight: geo.size.height))
                 .accessibilityIdentifier("camera_preview")
 
                 // 构图网格叠加（对标 Android CompositionGrid：虚线 white 0.5，THIRDS/GOLDEN）
@@ -248,6 +253,15 @@ struct CameraPreviewView: View {
 
     private func closePanel() { withAnimation { activePanel = nil } }
 
+    /// 预览高度（按比例：FULL=全屏，4:3/16:9=竖向短于屏 → 留黑边 letterbox，对标 Android FIT_CENTER）
+    private func previewHeight(width: CGFloat, screenHeight: CGFloat) -> CGFloat {
+        switch currentRatio {
+        case .full: return screenHeight
+        case .ratio169: return min(screenHeight, width * 16.0 / 9.0)
+        case .ratio43: return min(screenHeight, width * 4.0 / 3.0)
+        }
+    }
+
     private var permissionView: some View {
         VStack(spacing: 12) {
             Text(String(localized: "Camera Permission Required"))
@@ -350,6 +364,14 @@ struct CameraPreviewView: View {
                                 OptionButton(titleKey: "Moon", isSelected: currentScene == .moon) { currentScene = .moon; closePanel() }
                             }
                         }
+                    case .ratio:
+                        ControlPanel {
+                            HStack(spacing: 16) {
+                                OptionButton(titleKey: "Ratio 4:3", isSelected: currentRatio == .ratio43) { currentRatio = .ratio43; closePanel() }
+                                OptionButton(titleKey: "Ratio 16:9", isSelected: currentRatio == .ratio169) { currentRatio = .ratio169; closePanel() }
+                                OptionButton(titleKey: "Full Screen", isSelected: currentRatio == .full) { currentRatio = .full; closePanel() }
+                            }
+                        }
                     }
                 }
                 // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene primary 面板抑制渲染）
@@ -415,7 +437,9 @@ struct CameraPreviewView: View {
                               hasIndicator: container.beautyParams.whitening > 0 || container.beautyParams.smoothing > 0) {
                 withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
             }
-            rightColumnButton("aspectratio", y: yRatio) { }
+            rightColumnButton("aspectratio", y: yRatio, isActive: activePanel == .ratio) {
+                withAnimation { activePanel = activePanel == .ratio ? nil : .ratio }
+            }
             rightColumnButton("square.grid.3x3", y: yGrid, isActive: activePanel == .grid) {
                 withAnimation { activePanel = activePanel == .grid ? nil : .grid }
             }
