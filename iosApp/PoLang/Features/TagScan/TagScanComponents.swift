@@ -215,8 +215,8 @@ struct ScanPipelineOverview: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("scan_pipeline_overview_title").font(.system(size: 14, weight: .semibold))
             pipelineRow("checkmark.circle", "scan_pipeline_face", done: true)
-            pipelineRow("hourglass", "scan_pipeline_cluster", done: false)
-            pipelineRow("hourglass", "scan_pipeline_content", done: false)
+            pipelineRow("checkmark.circle", "scan_pipeline_cluster", done: true)
+            pipelineRow("checkmark.circle", "scan_pipeline_content", done: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .scanCard()
@@ -341,11 +341,11 @@ struct ScanPassControlSection: View {
                             fraction: p1Fraction,
                             onIncremental: { vm.startIncremental() }, onFull: { vm.startFull() })
             PassControlCard(titleKey: "scan_pass2_title", descKey: "scan_pass2_desc",
-                            onIncremental: onDisabled, onFull: onDisabled)
+                            onIncremental: { vm.runPass2() }, onFull: { vm.runPass2() })
             PassControlCard(titleKey: "scan_pass3_title", descKey: "scan_pass3_desc",
-                            onIncremental: onDisabled, onFull: onDisabled)
+                            onIncremental: { vm.startPass3Incremental() }, onFull: { vm.startPass3Full() })
             PassControlCard(titleKey: "scan_aesthetic_title", descKey: "scan_aesthetic_desc",
-                            onIncremental: onDisabled, onFull: onDisabled)
+                            onIncremental: { onDisabled() }, onFull: { onDisabled() })
 
             Divider().padding(.vertical, Spacing.xs)
 
@@ -374,10 +374,9 @@ struct ScanPassControlSection: View {
                     Text("scan_mode_inc")
                 }
             }
-            .disabled(true)
             .padding(.top, Spacing.sm)
 
-            Button(action: onDisabled) {
+            Button(action: { vm.startPass3Full() }) {
                 HStack(spacing: 4) {
                     MatIcon(name: "slider.horizontal.3", size: IconSize.sm)
                     Text("scan_regenerate_selected").font(AppTypography.labelSmall.font)

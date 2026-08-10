@@ -242,6 +242,57 @@ final class TagScanOrchestrator: @unchecked Sendable {
     /// 前台优先：进后台时由调用方触发（仅 running 时协作暂停）。
     func pauseForBackground() { pause() }
 
+    // MARK: - 分阶段独立控制（PassControlCard 入口）
+
+    /// 手动触发 Pass2 聚类（直接跑，不需任务队列）。
+    func runPass2Clustering() {
+        Task.detached(priority: .utility) { [weak self] in
+            let n = Pass2Pipeline.runClustering()
+            scanDebugLog("TS manual Pass2: \(n) persons")
+            guard let self else { return }
+            self.emit(.progress(self.snapshot()))
+        }
+    }
+
+    /// 手动触发 Pass3 内容打标（增量/全量）。
+    func startPass3(mode: ScanMode) {
+        let canStart = read { $0.sessionState == .idle || $0.sessionState.isTerminal }
+        guard canStart else { return }
+
+        guard Florence2Tagger.modelsAvailable(modelDir: florence2ModelDir) else {
+            emit(.modelsNeeded)
+            return
+        }
+
+        let allIds = db.allImageMediaIds()
+        let covered = mode == .incremental ? db.labelsEnCoveredMediaIds() : []
+        let planned = allIds.filter { !covered.contains($0) }
+        guard !planned.isEmpty else {
+            scanDebugLog("TS Pass3: nothing to tag")
+            return
+        }
+
+        let sid = "tag-\(UUID().uuidString.prefix(8))"
+        db.enqueueImageTaggingTasks(sessionId: sid, mediaIds: planned, now: Self.nowMs())
+        scanDebugLog("TS Pass3 start: \(planned.count) tasks")
+
+        let snap = mutate { box -> TagScanSessionProgress in
+            box.task?.cancel()
+            box.sessionId = sid
+            box.sessionState = .running
+            box.total = planned.count
+            box.processed = 0; box.failed = 0
+            box.samples = []
+            box.pauseRequested = false; box.cancelRequested = false
+            box.pass3Enqueued = true
+            box.task = Task.detached(priority: .utility) { [weak self] in
+                await self?.runLoop()
+            }
+            return self.snapshotLocked(box)
+        }
+        emit(.progress(snap))
+    }
+
     // MARK: - 运行循环（后台 Task）
 
     private func runLoop() async {

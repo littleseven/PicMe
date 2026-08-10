@@ -43,6 +43,11 @@ final class TagScanViewModel: ObservableObject {
     func cancel() { orchestrator.cancel() }
     func retryFailed() { orchestrator.retryFailed() }
 
+    // MARK: - 分阶段独立控制（PassControlCard）
+    func runPass2() { orchestrator.runPass2Clustering(); refreshStats() }
+    func startPass3Incremental() { orchestrator.startPass3(mode: .incremental); refreshStats() }
+    func startPass3Full() { orchestrator.startPass3(mode: .full); refreshStats() }
+
     func refreshStats() {
         stats = TagDatabase.shared.scanStats()
         hasUnfinishedSession = orchestrator.hasUnfinishedSession
