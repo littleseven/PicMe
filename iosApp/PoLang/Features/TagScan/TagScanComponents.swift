@@ -270,6 +270,7 @@ struct PassControlCard: View {
     let descKey: LocalizedStringKey
     var fraction: Double?        // nil = 不显示进度条
     var progressText: String?
+    var tag: String = ""          // accessibility 前缀（pass1/pass2/pass3/aesthetic）
     var onIncremental: () -> Void
     var onFull: () -> Void
 
@@ -296,7 +297,9 @@ struct PassControlCard: View {
             Spacer(minLength: Spacing.sm)
             VStack(alignment: .trailing, spacing: 2) {
                 iconRow("plus.circle", "scan_action_incremental", onIncremental)
+                    .accessibilityIdentifier("\(tag)_incremental")
                 iconRow("arrow.clockwise.circle", "scan_action_full", onFull)
+                    .accessibilityIdentifier("\(tag)_full")
             }
         }
         .padding(Spacing.md)
@@ -338,13 +341,16 @@ struct ScanPassControlSection: View {
             Text("scan_passctl_sub").font(AppTypography.bodySmall.font).foregroundColor(.secondary)
 
             PassControlCard(titleKey: "scan_pass1_title", descKey: "scan_pass1_desc",
-                            fraction: p1Fraction,
+                            fraction: p1Fraction, tag: "pass1",
                             onIncremental: { vm.startIncremental() }, onFull: { vm.startFull() })
             PassControlCard(titleKey: "scan_pass2_title", descKey: "scan_pass2_desc",
+                            tag: "pass2",
                             onIncremental: { vm.runPass2() }, onFull: { vm.runPass2() })
             PassControlCard(titleKey: "scan_pass3_title", descKey: "scan_pass3_desc",
+                            tag: "pass3",
                             onIncremental: { vm.startPass3Incremental() }, onFull: { vm.startPass3Full() })
             PassControlCard(titleKey: "scan_aesthetic_title", descKey: "scan_aesthetic_desc",
+                            tag: "aesthetic",
                             onIncremental: { onDisabled() }, onFull: { onDisabled() })
 
             Divider().padding(.vertical, Spacing.xs)
