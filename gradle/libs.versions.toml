@@ -52,6 +52,7 @@ composeMarkdown = "0.5.4"
 androidsvg = "1.4"
 dokar3Quickjs = "1.0.5"
 kotlinxDatetime = "0.7.1"
+skie = "0.10.14"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -127,3 +128,4 @@ google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDev
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+skie = { id = "co.touchlab.skie", version.ref = "skie" }

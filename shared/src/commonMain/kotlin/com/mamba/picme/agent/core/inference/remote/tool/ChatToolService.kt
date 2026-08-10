@@ -20,6 +20,7 @@ import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.withTimeout
 
 /**
@@ -72,6 +73,13 @@ class ChatToolService private constructor() : TraceIdAware {
 
     /** UI 事件流：dispatchCommand 执行后的原始 AgentAction 发到此 flow，ChatViewModel collect 渲染卡片/跳转。 */
     val uiActions = MutableSharedFlow<AgentAction>(extraBufferCapacity = 16)
+
+    /**
+     * [uiActions] 的只读视图（SKIE spike S5）：SKIE 不转换 MutableSharedFlow 属性，
+     * 只读 SharedFlow 才会生成 Swift `AsyncSequence` 包装（`for await` 直消费）。
+     * Swift 侧订阅一律用此属性；`uiActions` 保留为 Kotlin 内部发射口。
+     */
+    val uiActionsReadOnly: SharedFlow<AgentAction> get() = uiActions
 
     /**
      * 当轮 traceId 持有器：由组合根自 [com.mamba.picme.agent.core.inference.remote.koog.KoogChatAgent]
