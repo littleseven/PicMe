@@ -1,0 +1,99 @@
+{
+    // PoLang 构建任务。统一用项目自带脚本（build.sh / ios-dev-loop.sh），
+    // JAVA_HOME 全部指向 Android Studio JBR 21（项目要求 toolchainVersion=21）。
+    // 快捷键：⇧⌘B 运行默认构建任务（Android Debug APK）
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "polang: Android Debug APK",
+            "detail": "./scripts/build.sh debug  →  :androidApp:assembleDebug",
+            "type": "shell",
+            "command": "./scripts/build.sh debug",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "polang: Android Release APK（不混淆，调试 release 用）",
+            "type": "shell",
+            "command": "./scripts/build.sh release-plain",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "polang: AAB（Google Play 上架格式）",
+            "type": "shell",
+            "command": "./scripts/build.sh aab",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "polang: iOS 构建/部署闭环",
+            "detail": "./scripts/ios-dev-loop.sh（转发到 ios-auto-dev-loop.sh，5 阶段）",
+            "type": "shell",
+            "command": "./scripts/ios-dev-loop.sh",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "polang: ktlint 格式化",
+            "detail": "./gradlew ktlintFormat",
+            "type": "shell",
+            "command": "./gradlew ktlintFormat",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "polang: detekt 静态检查",
+            "type": "shell",
+            "command": "./gradlew detekt",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "polang: clean",
+            "type": "shell",
+            "command": "./gradlew clean",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+                }
+            },
+            "problemMatcher": []
+        }
+    ]
+}

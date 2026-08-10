@@ -96,3 +96,4 @@ K/N 崩溃栈在 Firebase/系统层面不可读是公认痛点（[firebase-ios-s
 | 日期 | 变更 |
 |------|------|
 | 2026-08-10 | 初版：两路调研（官方最佳实践 / 生产级项目经验）+ 本地核查合成；结论「方向不修正，收 SKIE 与 AndroidX KMP 两处红利」 |
+| 2026-08-10 | K1 闭环：SKIE 0.10.14 spike GO 合入 main——三件套（suspend→async throws / sealed→enum onEnum / Flow→AsyncSequence）真机实证，GalleryViewModel 首条 FlowWatcher 链路退役；体积 +3.35MB、clean 构建 +4.7%。**追齐期策略**：新链路一律 SKIE 形态、不再新增 FlowWatcher 式桥；存量桥迁移冻结至 iOS 1.0 功能冻结后 |

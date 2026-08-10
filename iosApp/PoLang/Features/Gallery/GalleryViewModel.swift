@@ -27,7 +27,7 @@ final class GalleryViewModel: ObservableObject {
         didSet { applyGrouping(lastAssets) }
     }
 
-    private var watcher: FlowWatcher?
+    private var watchTask: Task<Void, Never>?
     private var lastAssets: [MediaAsset] = []
     private let repository: IosMediaRepository
 
@@ -36,18 +36,20 @@ final class GalleryViewModel: ObservableObject {
     }
 
     func start() {
-        watcher?.cancel()  // onAppear 多次触发时先取消旧订阅，防协程泄漏（🟡-3）
-        watcher = FlowWatchersKt.watch(repository.allMedia) { [weak self] assets in
-            let list = (assets as? [MediaAsset]) ?? []
-            Task { @MainActor in
-                self?.applyGrouping(list)
+        watchTask?.cancel()  // onAppear 多次触发时先取消旧订阅，防协程泄漏（🟡-3）
+        // SKIE 直消费（spike/skie 迁移实证）：SkieSwiftFlow<[MediaAsset]> 即 AsyncSequence，
+        // 泛型保留免强转；Task 取消经 SKIE 双向取消传播回 Kotlin 协程。
+        watchTask = Task { @MainActor [weak self] in
+            guard let repository = self?.repository else { return }
+            for await assets in repository.allMedia {
+                self?.applyGrouping(assets)
             }
         }
     }
 
     func stop() {
-        watcher?.cancel()
-        watcher = nil
+        watchTask?.cancel()
+        watchTask = nil
     }
 
     /// 分组：date=按日降序（字典插入序 = 输入序 = 降序，组内顺序保持）；
