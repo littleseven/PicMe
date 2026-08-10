@@ -62,9 +62,16 @@ struct CameraPreviewView: View {
     @State private var selectedMode: CameraMode = .photo
     @State private var shutterFlash = false
     @State private var lastThumb: UIImage?
+    // 右列对齐（B2a）：构图网格 + 场景模式（对标 Android currentGrid / currentScene）
+    @State private var currentGrid: GridType = .off
+    @State private var currentScene: ScenePreset = .off
 
-    enum ActivePanel: Equatable { case beauty, filter }
+    enum ActivePanel: Equatable { case beauty, filter, grid, scene }
     enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
+    // 构图网格（对标 Android GridType）
+    enum GridType: Equatable { case off, thirds, golden }
+    // 场景模式（对标 Android ScenePreset；NIGHT→EV+1，MOON→EV-2+3.2x）
+    enum ScenePreset: Equatable { case off, night, moon }
 
     /// 视图层直建 renderer（failable init，失败时快门报错而非静默）
     private static func makeRenderer() -> BeautyRenderer? {
@@ -82,6 +89,11 @@ struct CameraPreviewView: View {
                                        landmarkStore: landmarkStore)
                 .frame(width: geo.size.width, height: geo.size.height)
                 .accessibilityIdentifier("camera_preview")
+
+                // 构图网格叠加（对标 Android CompositionGrid：虚线 white 0.5，THIRDS/GOLDEN）
+                if currentGrid != .off {
+                    compositionGridOverlay(width: geo.size.width, height: geo.size.height)
+                }
 
                 // 🔴 逐点关键点 overlay（-showLandmarks）：铺在预览之上、控件之下
                 if showLandmarks {
@@ -163,6 +175,10 @@ struct CameraPreviewView: View {
             guard !Self.parseLaunchFlag("-showLandmarks") else { return }
             showLandmarks = v
         }
+        .onChange(of: currentScene) { s in
+            // 场景模式作用相机（NIGHT→EV+1，MOON→EV-2+3.2x，NONE→EV 0）
+            applyScene(s)
+        }
         .onDisappear { controller.stop() }
     }
 
@@ -184,6 +200,66 @@ struct CameraPreviewView: View {
             guard let image else { return }
             DispatchQueue.main.async { self.lastThumb = image }
         }
+    }
+
+    /// 构图网格（对标 Android CompositionGrid：white alpha 0.5，1pt，虚线 [10,10]）
+    @ViewBuilder
+    private func compositionGridOverlay(width: CGFloat, height: CGFloat) -> some View {
+        Canvas { ctx, size in
+            let isThirds = currentGrid == .thirds
+            let xs = isThirds ? [size.width / 3.0, 2.0 * size.width / 3.0]
+                              : [size.width * 0.382, size.width * 0.618]
+            let ys = isThirds ? [size.height / 3.0, 2.0 * size.height / 3.0]
+                              : [size.height * 0.382, size.height * 0.618]
+            var path = Path()
+            for x in xs {
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: size.height))
+            }
+            for y in ys {
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+            }
+            ctx.stroke(path, with: .color(.white.opacity(0.5)),
+                       style: StrokeStyle(lineWidth: 1, dash: [10, 10]))
+        }
+        .frame(width: width, height: height)
+        .allowsHitTesting(false)
+    }
+
+    /// 场景模式作用到相机（对标 Android：NIGHT→EV+1，MOON→EV-2+3.2x，NONE→EV 0）
+    private func applyScene(_ s: ScenePreset) {
+        switch s {
+        case .off: controller.setExposureBias(0)
+        case .night: controller.setExposureBias(1)
+        case .moon:
+            controller.setExposureBias(-2)
+            controller.setZoom(3.2)
+        }
+    }
+
+    private func closePanel() { withAnimation { activePanel = nil } }
+
+    /// 通用单选 chip 面板（grid/scene 用；对标 Android RatioSelector / SceneSelector）
+    @ViewBuilder
+    private func selectorPanel(options: [(label: String, isSelected: Bool, action: () -> Void)]) -> some View {
+        HStack(spacing: 12) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
+                Button(action: opt.action) {
+                    Text(LocalizedStringKey(opt.label))
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(opt.isSelected ? .black : .white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(opt.isSelected ? Color.accentColor : Color.white.opacity(0.12)))
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private var permissionView: some View {
@@ -270,6 +346,18 @@ struct CameraPreviewView: View {
                         }
                         .padding(.horizontal, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
+                    case .grid:
+                        selectorPanel(options: [
+                            ("None", currentGrid == .off, { currentGrid = .off; closePanel() }),
+                            ("Thirds", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
+                            ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() })
+                        ])
+                    case .scene:
+                        selectorPanel(options: [
+                            ("None", currentScene == .off, { currentScene = .off; closePanel() }),
+                            ("Night", currentScene == .night, { currentScene = .night; closePanel() }),
+                            ("Moon", currentScene == .moon, { currentScene = .moon; closePanel() })
+                        ])
                     }
                 }
                 bottomControls
@@ -320,8 +408,12 @@ struct CameraPreviewView: View {
                 withAnimation { activePanel = activePanel == .beauty ? nil : .beauty }
             }
             rightColumnButton("aspectratio", y: yRatio) { }
-            rightColumnButton("square.grid.3x3", y: yGrid) { }
-            rightColumnButton("mountain.2", y: yScene) { }
+            rightColumnButton("square.grid.3x3", y: yGrid, isActive: activePanel == .grid) {
+                withAnimation { activePanel = activePanel == .grid ? nil : .grid }
+            }
+            rightColumnButton("mountain.2", y: yScene, isActive: activePanel == .scene) {
+                withAnimation { activePanel = activePanel == .scene ? nil : .scene }
+            }
             rightColumnButton("circle.lefthalf.filled", y: yFilter, isActive: activePanel == .filter) {
                 withAnimation { activePanel = activePanel == .filter ? nil : .filter }
             }
