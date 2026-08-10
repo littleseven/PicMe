@@ -220,6 +220,7 @@ final class Florence2Tagger {
     /// - Returns: 打标结果，模型未加载或推理失败返回 nil
     func tag(_ image: UIImage) -> Florence2TagResult? {
         scanDebugLog("F2 tag enter")
+        p3mark("tag_enter")
         guard isLoaded else {
             NSLog("PoLang:Florence2 Not initialized")
             return nil
@@ -233,6 +234,7 @@ final class Florence2Tagger {
             NSLog("PoLang:Florence2 Image preprocessing failed")
             return nil
         }
+        p3mark("preprocess_done")
         let preprocessMs = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
 
         scanDebugLog("F2 visionEncoder")
@@ -243,11 +245,13 @@ final class Florence2Tagger {
         let visionMs = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000) - preprocessMs
 
         // ── 2. OD 任务（物体检测 → objects/tags）──
+        p3mark("od_task_enter")
         scanDebugLog("F2 OD task")
         let odText = runTask(imageFeatures: imageFeatures, taskTokenIds: Self.taskOD) ?? ""
         let objects = Self.parseODLabels(odText)
 
         // ── 3. MORE_DETAILED_CAPTION 任务（→ summary + scene/activity）──
+        p3mark("caption_task_enter")
         scanDebugLog("F2 caption task")
         let captionText = runTask(
             imageFeatures: imageFeatures, taskTokenIds: Self.taskMoreDetailedCaption) ?? ""
@@ -347,6 +351,7 @@ final class Florence2Tagger {
                                            elementType: .float,
                                            shape: shape)
             let inputs: [String: ORTValue] = ["pixel_values": inputValue]
+            p3mark("vision_session_run_enter")
             scanDebugLog("F2 vision session.run")
             let outName = visionEncOutputName
             var outputs: [String: ORTValue]?
@@ -360,7 +365,8 @@ final class Florence2Tagger {
                     }
                 } catch { ortError = error }
             }
-            if !ok { scanDebugLog("F2 vision ❌ NSException caught"); return nil }
+            if !ok { p3mark("vision_NSException"); scanDebugLog("F2 vision ❌ NSException caught"); return nil }
+            p3mark("vision_session_run_done")
             if let e = ortError { NSLog("PoLang:Florence2 Vision error: \(e)"); return nil }
             guard let outputValue = outputs?[outName] else { return nil }
             return readFloatTensor(outputValue)

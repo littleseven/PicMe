@@ -344,3 +344,9 @@ class Pass1Pipeline {
         return center / Double(imageHeight)
     }
 }
+
+/// Pass3 诊断标记（UserDefaults，SIGKILL 也可靠持久化）。
+func p3mark(_ step: String) {
+    let avail = os_proc_available_memory() / 1024 / 1024
+    UserDefaults.standard.set("\(step)|mem=\(avail)MB", forKey: "p3_last_step")
+}
