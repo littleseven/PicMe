@@ -62,15 +62,8 @@ final class TagScanOrchestrator: @unchecked Sendable {
     }
 
     private init() {
-        // ORT 共享环境修复后，一次性清除旧 dual-env 崩溃标记
-        if !UserDefaults.standard.bool(forKey: "ort_shared_env_fix") {
-            UserDefaults.standard.set(false, forKey: "florence2_attempting")
-            UserDefaults.standard.set(true, forKey: "ort_shared_env_fix")
-        }
-        if !UserDefaults.standard.bool(forKey: "pass3only_fix") {
-            UserDefaults.standard.set(false, forKey: "florence2_attempting")
-            UserDefaults.standard.set(true, forKey: "pass3only_fix")
-        }
+        // 每次启动清除 Florence-2 崩溃标记（让 Pass3 总能触发）
+        UserDefaults.standard.set(false, forKey: "florence2_attempting")
         // 中断恢复：把上次 RUNNING 重置为 PENDING，等用户在扫描页点恢复。
         if let sid = db.unfinishedSessionId() {
             db.resetRunningToPending(sessionId: sid)
@@ -489,8 +482,21 @@ final class TagScanOrchestrator: @unchecked Sendable {
             return
         }
 
+        // 内存检查：Florence-2 4 模型 + 推理中间张量需要大量内存，不足时跳过防 OS SIGKILL
+        let availBytes = os_proc_available_memory()
+        let availMB = Int(availBytes / 1024 / 1024)
+        scanDebugLog("TS P3 mem check: \(availMB)MB available")
+        if availMB < 300 {
+            scanDebugLog("TS P3 SKIP: low memory (\(availMB)MB < 300MB), cannot run Florence-2")
+            db.markFailed(taskId: task.taskId, now: now, errorMessage: "low memory (\(availMB)MB)", backoffMs: 60_000)
+            let snap = mutate { box -> TagScanSessionProgress in
+                box.failed += 1
+                return self.snapshotLocked(box)
+            }
+            emit(.progress(snap))
+            return
+        }
         scanDebugLog("TS P3 calling tagger.tag mediaId=\(task.mediaId)")
-        // 崩溃防护：标记「正在尝试 Florence-2」，如果 app 崩溃则标记残留 → 下次跳过
         UserDefaults.standard.set(true, forKey: "florence2_attempting")
         let t0 = CFAbsoluteTimeGetCurrent()
         let result = tagger.tag(image)
