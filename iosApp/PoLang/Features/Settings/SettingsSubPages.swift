@@ -294,9 +294,9 @@ struct MemoryFactsView: View {
 struct DeveloperSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("debug_ui_enabled") private var debugEnabled = false
-    @AppStorage("show_camera_info_in_preview") private var showCameraInfo = false
-    @AppStorage("show_face_debug_overlay") private var showFaceDebug = false
-    @AppStorage("show_log_overlay") private var showLogOverlay = false
+    @AppStorage("show_camera_info_in_preview") private var showCameraInfo = true
+    @AppStorage("show_face_debug_overlay") private var showFaceDebug = true
+    @AppStorage("show_log_overlay") private var showLogOverlay = true
 
     var body: some View {
         ScrollView {

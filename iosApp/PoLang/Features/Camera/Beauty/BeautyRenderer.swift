@@ -17,6 +17,10 @@ final class BeautyRenderer: NSObject {
         var slimFace: Float = 0        // -50..50 (Android)
         var bigEyes: Float = 0         // 0..100 (Android)
         var colorFilter: FilterType = .none
+        // ProMode 调色（对标 Android BeautySettings：contrast/saturation/temperature）
+        var contrast: Float = 50       // UI 0..200，50=原始（shader=contrast/50）
+        var saturation: Float = 100    // UI 0..200，100=原始（shader=saturation/100）
+        var temperature: Float = 5000  // UI 2000..8000K，5000=原始（shader=(temperature-5000)/3000）
         /// 🔴 调试倍率（2026-08-09）：GPUPixel point-index 瘦脸法在 ±0.2 delta 下形变较弱（~2-3% 像素位移），
         /// 肉眼近乎不可见（用户实测「瘦脸无效」；遥测确认 hasFace=1/slim=-0.2 已达 shader，故为强度不足）。
         /// 默认 4.0：slim 满档(±50)→ delta≈0.8 → ~8% 收窄，肉眼清晰；设置页滑杆 0..8 可调。
@@ -35,6 +39,13 @@ final class BeautyRenderer: NSObject {
             return (raw * 0.2 * strength).clamped(-1.0...1.0)
         }
         var shaderBigEyes: Float { bigEyes / 100.0 }
+        // color-grade shader 归一化（对标 Android BeautyParamsConverter）
+        var shaderContrast: Float { (contrast / 50.0).clamped(0...4) }           // 1.0=原始
+        var shaderSaturation: Float { (saturation / 100.0).clamped(0...2) }      // 1.0=原始
+        var shaderTemperature: Float { ((temperature - 5000) / 3000.0).clamped(-1...1) } // 0=原始
+        var needsColorGrade: Bool {
+            abs(contrast - 50) > 0.01 || abs(saturation - 100) > 0.01 || abs(temperature - 5000) > 0.01
+        }
     }
 
     private let device: MTLDevice
@@ -210,7 +221,7 @@ final class BeautyRenderer: NSObject {
         }
 
         // Pass 3: LUT / ColorMatrix（仅 colorFilter != .none 时启用）
-        if params.colorFilter != .none, let lutFragUniforms = makeColorGradeUniforms() {
+        if let lutFragUniforms = makeColorGradeUniforms() {
             lutTexture = ensureTexture(lutTexture, w: w, h: h)
             if let lutTex = lutTexture {
                 var cgUni = lutFragUniforms
@@ -326,7 +337,7 @@ final class BeautyRenderer: NSObject {
         }
 
         // Pass 3: LUT
-        if snapParams.colorFilter != .none, let cgUni = makeColorGradeUniforms(snap: snapParams) {
+        if let cgUni = makeColorGradeUniforms(snap: snapParams) {
             let lutTex = ensureTexture(nil, w: w, h: h)
             if let lutTex {
                 var uni = cgUni
@@ -434,14 +445,23 @@ final class BeautyRenderer: NSObject {
 
     private func makeColorGradeUniforms(snap: Params? = nil) -> ColorGradeUniforms? {
         let p = snap ?? params
-        guard let cm = p.colorFilter.colorMatrix else { return nil }
+        let cm = p.colorFilter.colorMatrix
+        // 无滤镜且无 ProMode 调色 → 跳过 pass（中性值跑 pass 也是 no-op，此处省性能）
+        guard cm != nil || p.needsColorGrade else { return nil }
         // 🔴7: Android offset 语义 0–255，上传 /255f（BeautyRenderer.kt:751）
         return ColorGradeUniforms(
-            cmRow0: cm.rows.0, cmRow1: cm.rows.1, cmRow2: cm.rows.2, cmRow3: cm.rows.3,
-            cmOffset: SIMD4(cm.offset.x / 255.0, cm.offset.y / 255.0, cm.offset.z / 255.0, cm.offset.w / 255.0),
-            hasColorMatrix: 1.0,
-            exposure: 0, contrast: 1, saturation: 1, temperature: 0, tint: 0,
-            brightness: 0, warmth: 0,
+            cmRow0: cm?.rows.0 ?? SIMD4<Float>(1, 0, 0, 0),
+            cmRow1: cm?.rows.1 ?? SIMD4<Float>(0, 1, 0, 0),
+            cmRow2: cm?.rows.2 ?? SIMD4<Float>(0, 0, 1, 0),
+            cmRow3: cm?.rows.3 ?? SIMD4<Float>(0, 0, 0, 1),
+            cmOffset: SIMD4((cm?.offset.x ?? 0) / 255.0, (cm?.offset.y ?? 0) / 255.0,
+                            (cm?.offset.z ?? 0) / 255.0, (cm?.offset.w ?? 0) / 255.0),
+            hasColorMatrix: cm != nil ? 1.0 : 0.0,
+            exposure: 0,
+            contrast: p.shaderContrast,
+            saturation: p.shaderSaturation,
+            temperature: p.shaderTemperature,
+            tint: 0, brightness: 0, warmth: 0,
             redAdj: 1, greenAdj: 1, blueAdj: 1,
             intensity: 1.0
         )

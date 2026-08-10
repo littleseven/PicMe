@@ -30,18 +30,30 @@ final class DebugOverlayState: ObservableObject {
 
 struct DebugOverlayView: View {
     @ObservedObject var state = DebugOverlayState.shared
+    // 开发者选项 3 开关（对标 Android show_camera_info/show_face_debug/show_log_overlay）：
+    // 按遥测 key 前缀分类过滤——camera.*/face.*/其余(log.*)，使开关真正生效。
+    @AppStorage("show_camera_info_in_preview") private var showCamera = true
+    @AppStorage("show_face_debug_overlay") private var showFace = true
+    @AppStorage("show_log_overlay") private var showLog = true
+
+    private func passes(_ key: String) -> Bool {
+        if key.hasPrefix("camera.") { return showCamera }
+        if key.hasPrefix("face.") { return showFace }
+        return showLog
+    }
 
     var body: some View {
-        if state.isEnabled && !state.entries.isEmpty {
+        if state.isEnabled {
+            let filtered = state.entries.filter { passes($0.key) }
             VStack(alignment: .leading, spacing: 2) {
                 // 摘要行（对标 Android "Beauty: ACTIVE 14.6fps ▼"）
                 summaryLine
                     .accessibilityIdentifier("debug_summary")
                     .onTapGesture { state.isExpanded.toggle() }
 
-                // 展开详情
-                if state.isExpanded {
-                    ForEach(state.entries, id: \.key) { entry in
+                // 展开详情（按开发者开关过滤）
+                if state.isExpanded && !filtered.isEmpty {
+                    ForEach(filtered, id: \.key) { entry in
                         Text("\(entry.key): \(entry.value)")
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(.green)
