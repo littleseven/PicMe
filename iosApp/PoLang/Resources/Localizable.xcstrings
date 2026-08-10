@@ -7088,6 +7088,52 @@
           }
         }
       }
+    },
+    "scan_models_needed_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Models required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要下载模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要下載模型"
+          }
+        }
+      }
+    },
+    "scan_models_needed_msg": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download the face-embedding (glintr100) and semantic (mobileclip) models in Settings → Model Center first, then retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描需要先在「设置 → Model Center」下载 人脸嵌入(glintr100) 与 语义(mobileclip) 模型，下载后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掃描需要先在「設定 → Model Center」下載 人臉嵌入(glintr100) 與 語意(mobileclip) 模型，下載後重試。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -46,6 +46,11 @@ struct TagScanScreen: View {
         .alert(Text("scan_coming_soon_toast"), isPresented: $showComingSoon) {
             Button("OK", role: .cancel) {}
         }
+        .alert(Text("scan_models_needed_title"), isPresented: $vm.showModelsNeeded) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("scan_models_needed_msg")
+        }
     }
 
     private var resumeRow: some View {

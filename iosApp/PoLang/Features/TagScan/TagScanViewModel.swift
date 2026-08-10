@@ -8,6 +8,8 @@ final class TagScanViewModel: ObservableObject {
         personCount: 0, namedPersonCount: 0, faceEmbeddingCount: 0,
         remainingPass1: 0, remainingPass3: 0)
     @Published private(set) var hasUnfinishedSession: Bool = false
+    /// 模型未就绪（glintr100/mobileclip 未下载）→ 扫描页弹提示去 Model Center。
+    @Published var showModelsNeeded = false
 
     private let orchestrator = TagScanOrchestrator.shared
 
@@ -19,6 +21,9 @@ final class TagScanViewModel: ObservableObject {
                 case .progress(let p):
                     self.progress = p
                 case .finished:
+                    self.refreshStats()
+                case .modelsNeeded:
+                    self.showModelsNeeded = true
                     self.refreshStats()
                 }
             }

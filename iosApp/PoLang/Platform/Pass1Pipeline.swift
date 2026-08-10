@@ -1,6 +1,23 @@
 import UIKit
 import Foundation
 
+/// 扫描诊断日志（写 Documents/scan_debug.log，可 devicectl copy from 拉取；syslog 在本机不可靠）。
+func scanDebugLog(_ msg: String) {
+    let line = "\(msg)\n"
+    guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+    let url = docs.appendingPathComponent("scan_debug.log")
+    let data = Data(line.utf8)
+    if FileManager.default.fileExists(atPath: url.path) {
+        if let h = try? FileHandle(forWritingTo: url) {
+            _ = try? h.seekToEnd()
+            _ = try? h.write(contentsOf: data)
+            try? h.close()
+        }
+    } else {
+        try? data.write(to: url)
+    }
+}
+
 /// Pass 1 编排器——对标 Android TagGenerationPipeline.stage1WithEmbeddings。
 ///
 /// 数据流：
@@ -56,7 +73,8 @@ class Pass1Pipeline {
     // MARK: - Model Loading
 
     /// 加载所有模型（det_500m/2d106 已 bundled，glintr100 + MobileCLIP 需下载）
-    func loadModels() -> Bool {
+    func loadModels() -> Bool { ioQueue.sync { loadModelsImpl() } }
+    private func loadModelsImpl() -> Bool {
         // 1. RetinaFace + 2D106（bundled assets）
         guard let retinaPath = resolveBundledModel(name: "det_500m", ext: "mnn"),
               let landmarkPath = resolveBundledModel(name: "2d106det", ext: "mnn") else {
@@ -103,12 +121,21 @@ class Pass1Pipeline {
 
     // MARK: - Core Processing
 
-    /// 处理单张照片（对标 stage1WithEmbeddings）
+    /// 串行化队列：MNN/PLMnn* 桥为单线程模型（非线程安全）。process/loadModels 必须串行，
+    /// 否则并发推理会破坏 MNN 会话状态 → 返回数组损坏 → 下标越界崩溃。
+    private let ioQueue = DispatchQueue(label: "com.mamba.picme.pass1", qos: .userInitiated)
+
     func process(_ image: UIImage, mediaId: Int64) -> Pass1Result {
+        ioQueue.sync { processImpl(image, mediaId: mediaId) }
+    }
+
+    /// 处理单张照片（对标 stage1WithEmbeddings）—— 须在 ioQueue 上调用。
+    private func processImpl(_ image: UIImage, mediaId: Int64) -> Pass1Result {
+        scanDebugLog("P1 enter mediaId=\(mediaId)")
         let t0 = CFAbsoluteTimeGetCurrent()
         defer {
             let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
-            print("PoLang:TagScan pass1 mediaId=\(mediaId) cost=\(ms)ms")
+            scanDebugLog("P1 done mediaId=\(mediaId) cost=\(ms)ms")
         }
         // 1. 缩放到 640px（保持宽高比）
         guard let scaledImage = resizeIfNeeded(image, maxLongSide: maxDetectSize) else {
@@ -134,15 +161,18 @@ class Pass1Pipeline {
             guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return [] }
             return faceDetector.detectAllFaces(base, width: Int32(width), height: Int32(height), bytesPerRow: Int32(bytesPerRow))
         }
+        scanDebugLog("P1 faces=\(faces.count)")
 
         // 3. 每人脸: 仿射对齐 → Glint360K embedding
         var embeddings: [Data] = []
         var allLandmarks5: [[Float]] = []
 
-        for face in faces {
+        for (fi, face) in faces.enumerated() {
+            scanDebugLog("P1 face[\(fi)] start")
             // 获取 5pt landmarks（像素坐标）
             var lm5 = [Float](repeating: 0, count: 10)
             face.getLandmarks(&lm5)
+            scanDebugLog("P1 face[\(fi)] lm.count=\(lm5.count)")
             allLandmarks5.append(lm5)
 
             // 仿射对齐到 112×112
@@ -163,12 +193,16 @@ class Pass1Pipeline {
         }
 
         // 4. MobileCLIP 语义编码
+        scanDebugLog("P1 mobileclip start")
         let semanticBase64 = mobileClip.encode(scaledImage).flatMap { floats in
             floatArrayToBase64(floats)
         }
+        scanDebugLog("P1 mobileclip done")
 
         // 5. 计算 faceFocusY（人脸垂直焦点）
+        scanDebugLog("P1 focusY start allLandmarks=\(allLandmarks5.count)")
         let faceFocusY = computeFaceFocusY(allLandmarks5, imageHeight: height)
+        scanDebugLog("P1 focusY done")
 
         // 6. 构建 faceRoiResult JSON
         let hasFace = !faces.isEmpty

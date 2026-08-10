@@ -17,6 +17,7 @@ struct TagScanSessionProgress: Sendable, Equatable {
 enum ScanEvent: Sendable {
     case progress(TagScanSessionProgress)
     case finished(ScanSessionState) // completed / cancelled
+    case modelsNeeded // 模型未就绪（glintr100/mobileclip 未下载）→ 提示用户去 Model Center
 }
 
 /// TAG 扫描编排器。
@@ -80,17 +81,21 @@ final class TagScanOrchestrator: @unchecked Sendable {
 
     /// 启动新扫描会话。
     func start(mode: ScanMode) {
+        NSLog("PoLang:TagScan start mode=\(mode.rawValue) isMain=\(Thread.isMainThread)")
         let canStart = read { $0.sessionState == .idle || $0.sessionState.isTerminal }
-        guard canStart else { return }
+        guard canStart else { NSLog("PoLang:TagScan start rejected (busy)"); return }
 
         // 1) 同步 media_assets 索引（get-or-create 全量，不持 lockQueue）
         let now = Self.nowMs()
-        for item in media.fetchAllMedia() where item.mediaType == "PHOTO" {
+        let fetched = media.fetchAllMedia()
+        NSLog("PoLang:TagScan fetched \(fetched.count) media; indexing isMain=\(Thread.isMainThread)")
+        for item in fetched where item.mediaType == "PHOTO" {
             db.getOrCreateMedia(localIdentifier: item.localIdentifier,
                                 type: "IMAGE",
                                 captureDateMs: item.captureDateMs,
                                 fileName: item.fileName)
         }
+        NSLog("PoLang:TagScan indexed media_assets")
         // 2) 规划 Pass1 任务集
         let allIds = db.allImageMediaIds()
         let covered = db.pass1CoveredMediaIds()
@@ -172,7 +177,11 @@ final class TagScanOrchestrator: @unchecked Sendable {
     /// 恢复上次未完成 session（App 重启后扫描页「恢复」用）。
     /// 从 DB 采纳未完成 sessionId，置 running 并启动循环（不重新入队）。
     func resumeUnfinishedSession() {
-        guard let sid = db.unfinishedSessionId() else { return }
+        scanDebugLog("resumeUnfinished enter; unfinishedSid=\(db.unfinishedSessionId() ?? "nil")")
+        guard let sid = db.unfinishedSessionId() else {
+            scanDebugLog("resumeUnfinished: no sid, return")
+            return
+        }
         let counts = db.sessionCounts(sid)
         let snap = mutate { box -> TagScanSessionProgress in
             box.task?.cancel()
@@ -223,11 +232,23 @@ final class TagScanOrchestrator: @unchecked Sendable {
     // MARK: - 运行循环（后台 Task）
 
     private func runLoop() async {
+        scanDebugLog("TS runLoop enter isMain=\(Thread.isMainThread)")
         // 确保模型已加载（首次）。RetinaFace/2d106 已 bundled；glintr100/mobileclip 需在
-        // Model Center 预下载——缺失时 loadModels 返回 false，扫描仍跑但仅 RetinaFace 出人脸、
-        // 无 embedding/语义向量。modelsReady 一旦为 true 后续启动跳过重复加载。
+        // Model Center 预下载——缺失时 loadModels 返回 false。
         if !Pass1Pipeline.shared.modelsReady {
-            _ = Pass1Pipeline.shared.loadModels()
+            let ok = Pass1Pipeline.shared.loadModels()
+            scanDebugLog("TS loadModels ok=\(ok) ready=\(Pass1Pipeline.shared.modelsReady)")
+        }
+        // 模型未就绪（glintr100/mobileclip 未下载）→ 不跑 process()（否则空 MNN session 推理
+        // 会 C++ 堆损坏 → 返回数组损坏 → Swift 下标越界崩溃）。回退到 idle 并提示用户下载。
+        guard Pass1Pipeline.shared.modelsReady else {
+            scanDebugLog("TS abort: models NOT ready — 请在 Model Center 下载 glintr100 + mobileclip")
+            mutate { box in
+                box.sessionState = .idle
+                box.task = nil
+            }
+            emit(.modelsNeeded)
+            return
         }
         let sid = read { $0.sessionId } ?? ""
         var localSamples: [Int] = []
@@ -259,9 +280,12 @@ final class TagScanOrchestrator: @unchecked Sendable {
             }
             // 3) 执行 Pass1（同步、串行、后台线程）
             let lid = db.localIdentifier(forMediaId: task.mediaId)
+            NSLog("PoLang:TagScan task mediaId=\(task.mediaId) lid=\(lid ?? "nil")")
             if let lid = lid, let image = ScanImageLoader.load(localIdentifier: lid) {
+                NSLog("PoLang:TagScan calling process mediaId=\(task.mediaId)")
                 let t0 = CFAbsoluteTimeGetCurrent()
                 _ = Pass1Pipeline.shared.process(image, mediaId: task.mediaId)
+                NSLog("PoLang:TagScan process done mediaId=\(task.mediaId)")
                 let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
                 localSamples.append(ms)
                 db.markCompleted(taskId: task.taskId, now: Self.nowMs())

@@ -49,6 +49,7 @@ final class AppSettings: ObservableObject {
     }
 
     private init() {
+        scanDebugLog("=== app init ===")
         themeMode = UserDefaults.standard.string(forKey: "theme_mode") ?? "system"
         appLanguage = UserDefaults.standard.string(forKey: "app_language") ?? "system"
         // 初始化语言管理器（触发 Bundle swizzling + 恢复上次选择）
@@ -56,6 +57,13 @@ final class AppSettings: ObservableObject {
         // -galleryFace：自动拉真实相册照片验证人脸检测（裁决 UIImage 朝向假设），无需 UI 导航
         if ProcessInfo.processInfo.arguments.contains("-galleryFace") {
             Task.detached(priority: .utility) { await GalleryFaceAutoCheck.run() }
+        }
+        // -tagScan：自动触发 Pass1 增量扫描（扫描诊断用；走与 UI 相同的 start 路径，MainActor）
+        if ProcessInfo.processInfo.arguments.contains("-tagScan") {
+            Task.detached(priority: .utility) {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run { TagScanOrchestrator.shared.start(mode: .incremental) }
+            }
         }
     }
 }
