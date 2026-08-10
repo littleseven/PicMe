@@ -157,21 +157,29 @@ class Pass1Pipeline {
         let height = Int(scaledImage.size.height)
         let bytesPerRow = width * 4
 
-        let faces = pixelData.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) -> [PLDetectedFace] in
-            guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return [] }
-            return faceDetector.detectAllFaces(base, width: Int32(width), height: Int32(height), bytesPerRow: Int32(bytesPerRow))
+        // 多人脸检测：扁平 float 缓冲（避开 NSArray<PLDetectedFace> 桥接——该桥接返回的
+        // Swift 数组存储损坏致 faces[0] 越界崩溃）。每脸 15 float：roi(4)+conf+lm(10)。
+        let maxFaces = 32
+        var faceBuf = [Float](repeating: 0, count: 15 * maxFaces)
+        let faceCount: Int = faceBuf.withUnsafeMutableBufferPointer { fbuf -> Int in
+            guard let fbase = fbuf.baseAddress else { return 0 }
+            return Int(pixelData.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Int32 in
+                guard let bgra = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return 0 }
+                return faceDetector.detectAllFacesFlat(bgra, width: Int32(width), height: Int32(height),
+                                                        bytesPerRow: Int32(bytesPerRow),
+                                                        outBuf: fbase, maxFaces: Int32(maxFaces))
+            })
         }
-        scanDebugLog("P1 faces=\(faces.count)")
+        scanDebugLog("P1 faces=\(faceCount)")
 
         // 3. 每人脸: 仿射对齐 → Glint360K embedding
         var embeddings: [Data] = []
         var allLandmarks5: [[Float]] = []
 
-        for (fi, face) in faces.enumerated() {
+        for fi in 0..<faceCount {
             scanDebugLog("P1 face[\(fi)] start")
-            // 获取 5pt landmarks（像素坐标）
-            var lm5 = [Float](repeating: 0, count: 10)
-            face.getLandmarks(&lm5)
+            let off = fi * 15
+            let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // 10 float 5pt landmarks
             scanDebugLog("P1 face[\(fi)] lm.count=\(lm5.count)")
             allLandmarks5.append(lm5)
 
@@ -205,8 +213,7 @@ class Pass1Pipeline {
         scanDebugLog("P1 focusY done")
 
         // 6. 构建 faceRoiResult JSON
-        let hasFace = !faces.isEmpty
-        let faceCount = faces.count
+        let hasFace = faceCount > 0
         let isSelfie = faceCount == 1
         let isGroupPhoto = faceCount >= 2
 
@@ -248,34 +255,37 @@ class Pass1Pipeline {
 
     private func resizeIfNeeded(_ image: UIImage, maxLongSide: CGFloat) -> UIImage? {
         let longSide = max(image.size.width, image.size.height)
-        if longSide <= maxLongSide { return image }
-
-        let scale = maxLongSide / longSide
-        let newWidth = Int(image.size.width * scale)
-        let newHeight = Int(image.size.height * scale)
-
+        let scale = min(1.0, maxLongSide / longSide) // >640 缩到 640；<=640 保持原尺寸
+        let newWidth = max(1, Int((image.size.width * scale).rounded()))
+        let newHeight = max(1, Int((image.size.height * scale).rounded()))
+        // 恒以 UIGraphicsImageRenderer(scale=1) 重绘 → 朝向归一化(.up) + 像素尺寸==size，
+        // 保证 pixelDataFromImage 的 cg 尺寸与返回 size 一致（避免旋转图维度错配）。
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1.0  // 像素精确
+        format.scale = 1.0
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: newWidth, height: newHeight), format: format)
         return renderer.image { _ in
             image.draw(in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
         }
     }
 
+    /// UIImage → **BGRA**（B,G,R,A；PLMnnFaceDetector.detect/detectAllFaces 期望 BGRA，
+    /// 与 StaticFaceDetector.rasterizeBGRA / MnnSelfTest 同实现）。
+    /// 此前用 RGBA(noneSkipLast) → RetinaFace 通道错位 → 垃圾 ROI → 2d106 裁剪越界 → 堆损坏崩溃。
     private func pixelDataFromImage(_ image: UIImage) -> Data? {
         guard let cgImage = image.cgImage else { return nil }
-        let width = Int(image.size.width)
-        let height = Int(image.size.height)
+        let width = cgImage.width
+        let height = cgImage.height
         let bytesPerRow = width * 4
         var data = Data(count: bytesPerRow * height)
-        data.withUnsafeMutableBytes { ptr in
-            guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return }
-            let colorSpace = CGColorSpaceCreateDeviceRGB()
-            guard let context = CGContext(data: base, width: width, height: height,
-                                          bitsPerComponent: 8, bytesPerRow: bytesPerRow,
-                                          space: colorSpace,
-                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return }
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        data.withUnsafeMutableBytes { rawBuffer in
+            guard let base = rawBuffer.baseAddress else { return }
+            let ctx = CGContext(
+                data: base, width: width, height: height,
+                bitsPerComponent: 8, bytesPerRow: bytesPerRow,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
+            )
+            ctx?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         }
         return data
     }

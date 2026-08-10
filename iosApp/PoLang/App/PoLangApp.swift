@@ -49,7 +49,6 @@ final class AppSettings: ObservableObject {
     }
 
     private init() {
-        scanDebugLog("=== app init ===")
         themeMode = UserDefaults.standard.string(forKey: "theme_mode") ?? "system"
         appLanguage = UserDefaults.standard.string(forKey: "app_language") ?? "system"
         // 初始化语言管理器（触发 Bundle swizzling + 恢复上次选择）
