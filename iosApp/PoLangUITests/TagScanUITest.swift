@@ -110,8 +110,8 @@ final class TagScanUITest: XCTestCase {
         XCTAssertTrue(pass3Inc.waitForExistence(timeout: 5), "❌ Pass3 增量按钮不存在")
         pass3Inc.tap()
         // 等 20s 让 Florence-2 加载 + 推理（如果崩溃会在这期间退出）
-        sleep(20)
+        sleep(90)
         // 如果 app 还活着说明没崩
-        print("✅ Pass3 触发后 app 存活 20s")
+        print("✅ Pass3 触发后 app 存活 90s")
     }
 }

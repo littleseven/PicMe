@@ -41,7 +41,7 @@ final class Florence2Tagger {
     static let imageSize = 768
     static let hiddenSize = 768
     static let vocabSize = 51289
-    static let maxNewTokens = 256
+    static let maxNewTokens = 30
     static let decoderStartTokenId: Int64 = 2
     static let eosTokenId: Int64 = 2
 
@@ -529,9 +529,11 @@ final class Florence2Tagger {
         let dummyEncShape: [NSNumber] = [1, NSNumber(value: Self.numHeads),
                                          NSNumber(value: encoderLen), NSNumber(value: Self.headDim)]
 
-        // use_cache_branch = false（BOOL 类型标量，通过 C++ helper 创建）
-        guard let useCacheFalse = ortCreateBoolTensor(false, nil) else {
-            NSLog("PoLang:Florence2 Failed to create use_cache_branch tensor")
+        // use_cache_branch = false（BOOL 类型——必须用 ortCreateBoolTensor 创建，
+        // ORT ObjC API 不支持 BOOL 类型但模型要求它；int8 替代会致类型混淆→堆损坏）
+        var boolError: NSError?
+        guard let useCacheFalse = ortCreateBoolTensor(false, &boolError) else {
+            NSLog("PoLang:Florence2 Failed to create use_cache_branch: \(String(describing: boolError))")
             return nil
         }
 
@@ -587,7 +589,8 @@ final class Florence2Tagger {
     ) throws -> [Int64] {
         let outName = decoderOutputName
 
-        for _ in 0..<Self.maxNewTokens {
+        for step in 0..<Self.maxNewTokens {
+            if step % 10 == 0 { p3mark("dec_step_\(step)") }
             // embed 当前完整序列 [DEC_START, *gen]
             let decLen = seq.count
             guard let decEmbeds = runEmbedTokens(seq) else { return generatedIds }
