@@ -79,7 +79,7 @@ docs/superpowers/
 
 ## 6. 索引
 
-- 现有 specs（52 篇）：见 `specs/` 目录
+- 现有 specs（53 篇）：见 `specs/` 目录
 - 现有 plans（2 篇）：见 `plans/` 目录
 - 阶段汇总：`claude-tunnel-summary.md`、`nightly-2026-07-19.md`
 
