@@ -46,6 +46,7 @@ final class TagScanOrchestrator: @unchecked Sendable {
         var total: Int = 0
         var task: Task<Void, Never>?
         var pass3Enqueued: Bool = false
+        var pass3Only: Bool = false
     }
     private var box = Box()
 
@@ -65,6 +66,10 @@ final class TagScanOrchestrator: @unchecked Sendable {
         if !UserDefaults.standard.bool(forKey: "ort_shared_env_fix") {
             UserDefaults.standard.set(false, forKey: "florence2_attempting")
             UserDefaults.standard.set(true, forKey: "ort_shared_env_fix")
+        }
+        if !UserDefaults.standard.bool(forKey: "pass3only_fix") {
+            UserDefaults.standard.set(false, forKey: "florence2_attempting")
+            UserDefaults.standard.set(true, forKey: "pass3only_fix")
         }
         // 中断恢复：把上次 RUNNING 重置为 PENDING，等用户在扫描页点恢复。
         if let sid = db.unfinishedSessionId() {
@@ -143,6 +148,7 @@ final class TagScanOrchestrator: @unchecked Sendable {
             box.samples = []
             box.pauseRequested = false; box.cancelRequested = false
             box.pass3Enqueued = false
+            box.pass3Only = false
             box.task = Task.detached(priority: .utility) { [weak self] in
                 await self?.runLoop()
             }
@@ -308,6 +314,7 @@ final class TagScanOrchestrator: @unchecked Sendable {
             box.samples = []
             box.pauseRequested = false; box.cancelRequested = false
             box.pass3Enqueued = true
+            box.pass3Only = true
             box.task = Task.detached(priority: .utility) { [weak self] in
                 await self?.runLoop()
             }
@@ -320,22 +327,22 @@ final class TagScanOrchestrator: @unchecked Sendable {
 
     private func runLoop() async {
         scanDebugLog("TS runLoop enter isMain=\(Thread.isMainThread)")
-        // 确保模型已加载（首次）。RetinaFace/2d106 已 bundled；glintr100/mobileclip 需在
-        // Model Center 预下载——缺失时 loadModels 返回 false。
-        if !Pass1Pipeline.shared.modelsReady {
-            let ok = Pass1Pipeline.shared.loadModels()
-            scanDebugLog("TS loadModels ok=\(ok) ready=\(Pass1Pipeline.shared.modelsReady)")
-        }
-        // 模型未就绪（glintr100/mobileclip 未下载）→ 不跑 process()（否则空 MNN session 推理
-        // 会 C++ 堆损坏 → 返回数组损坏 → Swift 下标越界崩溃）。回退到 idle 并提示用户下载。
-        guard Pass1Pipeline.shared.modelsReady else {
-            scanDebugLog("TS abort: models NOT ready — 请在 Model Center 下载 glintr100 + mobileclip")
-            mutate { box in
-                box.sessionState = .idle
-                box.task = nil
+        // Pass3-only 会话不加载 Pass1 的 MNN 模型（省 ~660MB 内存给 Florence-2 ORT）。
+        let isPass3Only = read { $0.pass3Only }
+        if !isPass3Only {
+            // 确保 Pass1 模型已加载
+            if !Pass1Pipeline.shared.modelsReady {
+                let ok = Pass1Pipeline.shared.loadModels()
+                scanDebugLog("TS loadModels ok=\(ok) ready=\(Pass1Pipeline.shared.modelsReady)")
             }
-            emit(.modelsNeeded)
-            return
+            guard Pass1Pipeline.shared.modelsReady else {
+                scanDebugLog("TS abort: models NOT ready")
+                mutate { box in box.sessionState = .idle; box.task = nil }
+                emit(.modelsNeeded)
+                return
+            }
+        } else {
+            scanDebugLog("TS Pass3-only: skip Pass1 MNN models (save ~660MB)")
         }
         let sid = read { $0.sessionId } ?? ""
         var localSamples: [Int] = []
