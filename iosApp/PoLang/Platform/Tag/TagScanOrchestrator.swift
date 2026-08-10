@@ -244,13 +244,22 @@ final class TagScanOrchestrator: @unchecked Sendable {
 
     // MARK: - 分阶段独立控制（PassControlCard 入口）
 
-    /// 手动触发 Pass2 聚类（直接跑，不需任务队列）。完成后 emit .finished 触发 ViewModel 刷新统计。
+    /// 手动触发 Pass2 聚类（直接跑，不需任务队列）。点 Pass2 卡片时立即显示「聚类中」反馈，
+    /// 完成后显示「完成」并 emit .finished 触发 ViewModel 刷新统计。
     func runPass2Clustering() {
+        emit(.progress(TagScanSessionProgress(
+            sessionId: "pass2-manual", state: .running, currentPass: .dbscan,
+            processed: 0, total: 0, pending: 0, failed: 0,
+            estimatedRemainingMs: 0, message: ScanSessionState.running.localizationKey)))
         Task.detached(priority: .utility) { [weak self] in
             scanDebugLog("TS runPass2Clustering start")
             let n = Pass2Pipeline.runClustering()
             scanDebugLog("TS runPass2Clustering done: \(n) persons")
             guard let self else { return }
+            self.emit(.progress(TagScanSessionProgress(
+                sessionId: "pass2-manual", state: .completed, currentPass: .dbscan,
+                processed: 0, total: 0, pending: 0, failed: 0,
+                estimatedRemainingMs: 0, message: ScanSessionState.completed.localizationKey)))
             self.emit(.finished(.completed))
         }
     }

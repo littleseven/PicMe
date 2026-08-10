@@ -163,8 +163,8 @@ extension TagDatabase {
                 withFace: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND hasFace=1;"),
                 withLabels: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND labelsEn IS NOT NULL;"),
                 withSemantic: countInt("SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND semanticEmbedding IS NOT NULL;"),
-                personCount: 0,
-                namedPersonCount: 0,
+                personCount: countInt("SELECT COUNT(*) FROM persons;"),
+                namedPersonCount: countInt("SELECT COUNT(*) FROM persons WHERE name IS NOT NULL AND name != '';"),
                 faceEmbeddingCount: countInt("SELECT COUNT(*) FROM face_embeddings;"),
                 remainingPass1: countInt("""
                     SELECT COUNT(*) FROM media_assets WHERE type='IMAGE' AND (
