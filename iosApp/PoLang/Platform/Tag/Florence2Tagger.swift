@@ -72,10 +72,9 @@ final class Florence2Tagger {
 
     // MARK: - Properties
 
-    /// Process-level ORT environment（与 MobileClipEncoder 同模式：进程级，不释放）
-    private var env: ORTEnv?
-
-    /// 4 个 ORT 推理会话
+    /// 4 个 ORT 推理会话。
+    /// ORT 环境使用进程级共享单例 `ORTSharedEnv.env`（创建多个 ORTEnv 会
+    /// 导致 ORT 内部冲突——Florence-2 vision encoder session.run() SIGSEGV）。
     private var visionEncSession: ORTSession?
     private var textEncSession: ORTSession?
     private var decoderSession: ORTSession?
@@ -130,25 +129,26 @@ final class Florence2Tagger {
         }
 
         do {
-            env = try ORTEnv(loggingLevel: .warning)
+            // 复用进程级共享 ORTEnv（ORTSharedEnv）——创建多个 ORTEnv 实例
+            // 会导致 ORT 内部冲突（Florence-2 vision encoder 推理 SIGSEGV）。
             let options = try ORTSessionOptions()
             try options.setIntraOpNumThreads(4)
             try options.setGraphOptimizationLevel(.all)
 
             visionEncSession = try ORTSession(
-                env: env!,
+                env: ORTSharedEnv.env,
                 modelPath: (modelDir as NSString).appendingPathComponent(Self.visionEncoderFile),
                 sessionOptions: options)
             textEncSession = try ORTSession(
-                env: env!,
+                env: ORTSharedEnv.env,
                 modelPath: (modelDir as NSString).appendingPathComponent(Self.textEncoderFile),
                 sessionOptions: options)
             decoderSession = try ORTSession(
-                env: env!,
+                env: ORTSharedEnv.env,
                 modelPath: (modelDir as NSString).appendingPathComponent(Self.decoderFile),
                 sessionOptions: options)
             embedTokensSession = try ORTSession(
-                env: env!,
+                env: ORTSharedEnv.env,
                 modelPath: (modelDir as NSString).appendingPathComponent(Self.embedTokensFile),
                 sessionOptions: options)
 
@@ -206,7 +206,7 @@ final class Florence2Tagger {
         textEncSession = nil
         decoderSession = nil
         embedTokensSession = nil
-        // ORTEnv 进程级保留（与 MobileClipEncoder 同策略）
+        // ORTEnv 是进程级共享单例（ORTSharedEnv），不在此释放
         isLoaded = false
     }
 

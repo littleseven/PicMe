@@ -59,14 +59,11 @@ final class MobileClipEncoder {
 
     // MARK: - Properties
 
-    /// Process-level ORT environment. Created once and kept alive for the
-    /// lifetime of the encoder. ORTEnv is process-global — do not dispose it
-    /// while other ORT sessions (ASR, translation, etc.) may be active.
-    /// Source: same reasoning as Android `release()` comment in
-    /// `MobileClipOnnxBackend.kt:152-154`.
-    private var env: ORTEnv?
-
     /// ORT inference session for `vision_model.onnx`.
+    ///
+    /// The ORT environment is shared process-wide via `ORTSharedEnv.env`
+    /// (creating multiple ORTEnv instances per process causes ORT-internal
+    /// conflicts — see `ORTSharedEnv` docs).
     private var session: ORTSession?
 
     /// Whether the model has been loaded successfully.
@@ -90,10 +87,9 @@ final class MobileClipEncoder {
         }
 
         do {
-            // Create ORTEnv with warning-level logging.
+            // Reuse the process-wide shared ORTEnv (ORTSharedEnv).
             // Source: Android uses `OrtEnvironment.getEnvironment()` which
-            // defaults to warning level.
-            env = try ORTEnv(loggingLevel: .warning)
+            // is also a singleton.
 
             // Configure session: 2 intra-op threads (matches Android
             // `setIntraOpNumThreads(2)` / `setInterOpNumThreads(2)`).
@@ -108,7 +104,7 @@ final class MobileClipEncoder {
             //   try options.appendExecutionProvider("coreml",
             //                                        providerOptions: [:])
 
-            session = try ORTSession(env: env!,
+            session = try ORTSession(env: ORTSharedEnv.env,
                                      modelPath: modelPath,
                                      sessionOptions: options)
 
@@ -125,12 +121,12 @@ final class MobileClipEncoder {
         }
     }
 
-    /// Releases the ORT session. The ORTEnv is intentionally kept alive
-    /// (process-global singleton, shared with other ORT sessions).
+    /// Releases the ORT session. The shared ORTEnv (ORTSharedEnv) is a
+    /// process-global singleton and is intentionally never released.
     func release() {
         session = nil
         #if DEBUG
-        print("[MobileClipEncoder] Session released (ORTEnv kept alive)")
+        print("[MobileClipEncoder] Session released (shared ORTEnv kept alive)")
         #endif
     }
 
