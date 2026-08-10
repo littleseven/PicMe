@@ -77,7 +77,7 @@ final class TagScanUITest: XCTestCase {
         XCTAssertTrue(aestheticInc.exists, "❌ 美学增量按钮不存在")
         aestheticInc.tap()
 
-        let okButton = app.buttons["OK"]
+        let okButton = app.alerts.firstMatch.buttons.firstMatch
         let alertShown = okButton.waitForExistence(timeout: 5)
         XCTAssertTrue(alertShown, "❌ 美学卡点击后未弹提示")
         okButton.tap()
@@ -90,7 +90,7 @@ final class TagScanUITest: XCTestCase {
         let app = launchApp()
         openTagScanPage(app)
 
-        let closeBtn = app.buttons["scan_close"]
+        let closeBtn = app.buttons["topbar_back"]
         XCTAssertTrue(closeBtn.exists, "❌ 关闭按钮不存在")
         closeBtn.tap()
         sleep(1)
