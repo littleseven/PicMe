@@ -12,10 +12,6 @@ struct PoLangApp: App {
                 .environmentObject(settings)
                 .preferredColorScheme(settings.colorScheme)
                 .environment(\.locale, settings.locale)
-                #if DEBUG
-                // SKIE spike S5 冒烟（spike/skie 分支临时，GO 后移除）
-                .onAppear { SkieSmoke.run() }
-                #endif
         }
     }
 }
