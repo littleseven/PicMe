@@ -91,6 +91,17 @@ spec 已经包含所有需要的信息：元素树（anchor + size）、系统�
 
 ---
 
+## 自动化封装：/ios-follow（一条命令跑完 ②③④）
+
+上述 ②固化 Spec → ③iOS 实现 → ④验收 已编排为单命令 skill：`skills/ios-follow/SKILL.md`（镜像 `.claude/commands/ios-follow.md`，设计 SSOT `docs/superpowers/specs/2026-08-10-ios-follow-command-design.md`）。
+
+- `/ios-follow`（无参数）：新功能模式——分析当前分支 `main...HEAD` diff，自动推断涉及屏 / shared 契约 / 平台调用点
+- `/ios-follow <功能或屏名>`：**追齐模式（iOS 1.0 追齐期主用）**——不依赖分支 diff，从 Android 现状反向提取契约（spec 缺失时先补 spec）
+
+契约固化阶段除 spec/tokens 外还会登记**平台差异台账**（spec 内 `platform_differences` 节：权限模型映射 / API 能力矩阵 / 隐私披露对照）。断点续跑锚点：`tmp/ios-follow/<branch|feature>/`。
+
+---
+
 ## 后续修改流程
 
 UI 定稿后，后续的改动（加功能、调尺寸）走**三同步**：

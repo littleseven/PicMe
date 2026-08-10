@@ -135,6 +135,16 @@
 5. **允许差异登记**——平台原生差异（字体/图标/材质/动画曲线）显式登记到 `allowed_differences`
 6. **红线规则前置**——如"禁止系统默认 NavigationStack/TabView"等硬约束
 
+### 4.3 platform_differences 台账（2026-08-10 新增契约层）
+
+底层平台差异（权限/API 能力/隐私披露）此前无契约化载体，靠实现时临场处理。现登记为 spec 内 `platform_differences` 节，三个子节：
+
+- `permission`：双端权限模型与状态机映射（如 Android 单次授权 vs iOS Full/Limited/AddOnly/Denied 四态）→ shared 语义对齐点
+- `capabilities`：API 能力矩阵（功能 × 端 → 支持 / 替代方案 / 平台独有流程），shared 接口只暴露业务语义
+- `privacy_disclosure`：Android（Manifest + Play Data Safety）与 iOS（purpose string + `PrivacyInfo.xcprivacy` + 隐私标签）披露对照
+
+由 `/ios-follow` Stage 2 在契约固化时随 spec 一并产出/更新；设计见 `docs/superpowers/specs/2026-08-10-ios-follow-command-design.md` §2 Stage 2。
+
 ---
 
 ## 5. L2 数据层：Design Tokens SSOT
@@ -241,6 +251,8 @@ iOS 按 spec 修复 → 再审 → 直到 🔴 = 0
 | **Spec** | `specs/screens/*.yaml` | 逐屏完整规格 |
 | **Token** | `shared/src/commonMain/resources/design-tokens.json` | 尺寸/颜色/圆角唯一事实来源 |
 | **Skill** | `skills/ui-parity-guard/SKILL.md` | 5 步硬规则 |
+| **编排** | `skills/ios-follow/SKILL.md`（镜像 `.claude/commands/ios-follow.md`） | /ios-follow：Android 完成后 iOS 一键对等跟随（六阶段管线 + 断点续跑） |
+| **设计** | `docs/superpowers/specs/2026-08-10-ios-follow-command-design.md` | /ios-follow 设计 SSOT；platform_differences 台账层定义 |
 | **Skill** | `skills/compose-ui-expert/SKILL.md` [PARITY] 段 | Android 侧约束 |
 | **Skill** | `skills/swiftui-expert/SKILL.md` [PARITY] 段 | iOS 侧约束 |
 | **Hook** | `.kimi-code/hooks/post-edit-check.sh` | 硬编码拦截 |
