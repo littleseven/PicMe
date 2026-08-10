@@ -27,11 +27,11 @@ Wave 0 (gating)        Wave 1 (critical path)        Wave 2 (unlocked)         W
 T0 补验 B ─────┐       T1 TAG 控制页+编排(组装Pass1)  T5 人物后端(需 T3)        T8 编辑器(G3)
 (硬件验证)     │       T2 MetalGuardian              T6 搜索(需 T1/T4)         T9 相机补全(G5)
                │       T3 Pass2 聚类                 T7 Gallery 叠层(需 T1)    T10 设置账号/备份(G6)
-               └──────►T4 Pass3 VLM 🔴阻塞本项       T7a 跟手 Pager(独立)      T11 Chat 补全(G7)
+               └──────►T4 Pass3 VLM(默认Florence-2)  T7a 跟手 Pager(独立)      T11 Chat 补全(G7)
                                                        T7b 相机规格 gap
 ```
 
-**关键解锁链**：T1（组装现有 Pass1 基建到可运行 TAG 控制页）是最高 ROI——它让已建好的 `Pass1Pipeline` 真正可用，且为 T3/T4/T6/T7 铺路。T4（Pass3 VLM）被 T0 硬阻塞。
+**关键解锁链**：T1（组装现有 Pass1 基建到可运行 TAG 控制页）是最高 ROI——它让已建好的 `Pass1Pipeline` 真正可用，且为 T3/T4/T6/T7 铺路。T4 默认走 Florence-2（ORT），**不阻塞于 T0**（补验 B/Qwen3-VL 仅备选路径需）。🔄 **T1/T3/T4 现均 in-flight 于分支 `feat/ios-tag-scan-core`（18 commits 待合并，2026-08-10）**，合并 main 后即关闭。
 
 **派发建议**：Wave 1 内 T1/T2/T3 文件零冲突可真并行（T1=UI/编排、T2=守护进程、T3=聚类算法）；Wave 3 的 T8/T9/T10/T11 互相独立，可四实例并行（对标项目既有并行执行模型，见 plan doc §3.1）。
 
@@ -39,7 +39,9 @@ T0 补验 B ─────┐       T1 TAG 控制页+编排(组装Pass1)  T5 �
 
 ## Wave 0 — 解除阻塞（前置）
 
-### T0: 补验 B — Qwen3-VL-2B 真机验证（gating）
+### T0: 补验 B — Qwen3-VL-2B 真机验证（gating；2026-08-10 起：仅备选路径）
+
+> ⬇️ **降级（2026-08-10 整合审计）**：默认 Pass3 已选定 **Florence-2（ONNX Runtime）**（代码完成 `869721c3`，in-flight 待合并），故本补验仅在**选 Qwen3-VL/MNN 备选 VLM 路径**时为前置；不再硬阻塞 T4/G1。
 
 **范围**：iOS 端跑 Qwen3-VL-2B（MNN Metal 后端）真机推理，验证内存峰值 / Metal 算子覆盖 / 首 token 延迟 / precision 档位（必须 `Precision_High`/`Low`，默认 `Normal`=fp16 数值全错，见 plan doc Phase 2.1 补验 A）。失败则 TAG Pass3 VLM 需重开选型（MLX 不支持 iOS、CoreML LLM 支持有限，替代路径极少）。
 
@@ -59,6 +61,8 @@ T0 补验 B ─────┐       T1 TAG 控制页+编排(组装Pass1)  T5 �
 > 三者文件零冲突，可并行派发。
 
 ### T1: TAG 控制页 + 扫描编排（把 Pass1 基建接进可运行 UI）
+
+> 🔄 **in-flight（分支 `feat/ios-tag-scan-core` 待合并，2026-08-10）**：本任务产物 `TagScanScreen`/`TagScanViewModel`/`TagScanOrchestrator` + `Pass1Pipeline` 接线均已实现并全开放（`8184b85a`/`9c7bfaba`/`2b06089f`）。合并 main 后本 Epic 关闭。
 
 **范围**：新建 TAG 控制页（对标 Android `TagGenerationControlScreen`），把已建但未接线的 `Pass1Pipeline.swift` 编排进一个可触发/查看进度/中断的扫描流程。**首版只跑 Pass1（人脸检测+embedding+语义）**，Pass2/Pass3 接口预留（T3/T4 填充）。
 
@@ -103,6 +107,8 @@ xcodebuild ... build   # 绿构建
 
 ### T3: Pass2 人脸聚类（自适应 k-NN 连通分量）
 
+> 🔄 **in-flight（分支 `feat/ios-tag-scan-core` 待合并，2026-08-10）**：`FaceClusterer.swift`（k-NN 连通分量 k=2/minSim=0.65/minSize=2）+ `FaceClustererTests.swift`（5 用例含 2-clusters+noise）已实现并真机跑过（2 persons/34 embeddings，`7b674428`/`d9d89f92`）。合并 main 后本 Epic 关闭。
+
 **范围**：对标 Android `TagGenerationPipeline` Pass2（默认自适应 k-NN 连通分量 Plan B，`preserveNamedPersons` cos≥0.65 保留已命名簇）。输入 `face_embeddings`（R100 512d），输出 `persons` 表 + 回写 `media_assets.faceId`。
 
 **文件**：
@@ -120,7 +126,9 @@ xcodebuild ... build
 
 **依赖**：T1（Orchestrator 容器）· **派发**：K3（算法纯 Kotlin 可先 JVM 验证再迁 Swift，或直接 Swift 单测）
 
-### T4: Pass3 VLM 打标 🔴 阻塞于 T0
+### T4: Pass3 VLM 打标（默认 Florence-2，不阻塞 T0）
+
+> 🔄 **in-flight（分支 `feat/ios-tag-scan-core` 待合并，2026-08-10）**：默认路径 **Florence-2（ONNX Runtime 4-session INT8）** 已代码完成+编译过（`Florence2Tagger.swift`/`Florence2Tokenizer.swift`，`869721c3`），**不依赖 T0**（补验 B/Qwen3-VL 仅备选路径需）。待真机验证（需下 266MB `florence2_base`）。
 
 **范围**：Florence-2（默认）/ Qwen3-VL-2B（备选）端侧内容打标 + `TagNormalizer` + `ControlledVocab` 规范化 + `LabelSinicizer` 汉化（词表→MT 兜底）→ 写 `media_assets.labelsEn/labelsZh/labels`。**T0 通过方可开工**。
 
@@ -242,7 +250,7 @@ xcodebuild -workspace iosApp/PoLang.xcworkspace -scheme PoLang \
 
 1. **T7a（跟手 Pager）+ T7b（相机规格 gap）**：零依赖、零阻塞、纯 iOS UI，立刻可派 GLM 并行两实例。
 2. **T1（TAG 控制页组装）**：最高 ROI——让已建的 Pass1 基建可用，解锁 T3/T6/T7c。紧接 T2/T3 并行。
-3. **T0（补验 B）**：尽早安排真机 spike，解除 T4 阻塞（影响 G1 完整性与 G2 标签来源）。
+3. **T0（补验 B）**：已降级——默认 Pass3 选 Florence-2（in-flight），T0 仅备选 Qwen3-VL 路径前置，不再硬阻塞 T4。
 
 **建议首批派发**：T7a + T7b + T1（三 worktree 并行，文件零冲突），同时排队 T0 真机验证。
 

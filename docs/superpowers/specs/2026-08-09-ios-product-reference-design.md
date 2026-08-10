@@ -1,5 +1,8 @@
 # iOS 实现参考·产品文档 设计说明（Spec）
 
+> 📜 **已被取代**——本设计说明定义的结构/模板已产出 `docs/01-PRODUCT/IOS_PRODUCT_REFERENCE.md`（现行事实来源），本文仅留作设计过程记录。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.4。
+
+
 > **性质**：brainstorming 产出的设计说明（spec）。定义要产出的「iOS 实现参考产品文档」的目标、结构、模板、核验方法论。审批后经 writing-plans 产出细粒度执行计划，再进入实际抽取与撰写。
 >
 > **日期**：2026-08-09 · **作者**：Claude（brainstorming）

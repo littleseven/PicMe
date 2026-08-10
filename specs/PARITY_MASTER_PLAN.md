@@ -14,7 +14,7 @@
 
 | 断裂点 | 现状 | 后果 |
 |--------|------|------|
-| **Spec 不在 AGENTS.md 红线中** | 根 AGENTS.md 定义了 [PRIVACY]/[PERF]/[I18N]/[DOC-SYNC]/[AGENT-FIRST] 五条红线，**没有 [PARITY]** | AI 工具不知道双端一致性是红线级要求 |
+| **~~Spec 不在 AGENTS.md 红线中~~** ✅ 已解决（2026-08-10） | ~~根 AGENTS.md 定义了 [PRIVACY]/[PERF]/[I18N]/[DOC-SYNC]/[AGENT-FIRST] 五条红线，没有 [PARITY]~~ → **`[PARITY]` 已入 `AGENTS.md` §5（L236）**；`specs/README.md` 顶部亦引用本文为总纲 | ✅ AI 工具加载 AGENTS.md 即见 [PARITY] 红线 |
 | **Skill 引用未自动触发** | `compose-ui-expert`/`swiftui-expert` 追加了 [PARITY] 段，但 AI 不一定在每次 UI 任务中加载这些 skill | 约束存在但不执行 |
 | **Token SSOT 未被消费** | `design-tokens.json` 已建，但 Android 端 1432 处硬编码 `.dp` 全量保留，新代码也不一定引用 token | Token 体系形同虚设 |
 | **Spec 只覆盖 2 屏** | 相机/相册已完整，但其他屏（Chat / 设置 / 编辑器 / 证件照）无 spec | 非核心屏继续漂移 |
@@ -23,6 +23,8 @@
 | **根 AGENTS.md 无双端章节** | 顶层治理文档没有双端一致性的章节 | 新来的 AI 实例不知道双端流程 |
 
 **一句话根因：零件齐全，但缺少一个将它们强制编排运转的总纲。**
+
+> **2026-08-10 整合审计复核**：本诊断为 2026-08-09 建立时快照。首行（`[PARITY]` 红线）与「根 AGENTS.md 无双端章节」**均已落实**——`[PARITY]` 在 `AGENTS.md` §5:236，双端总纲/方法论已入 §7 文档索引（L270/286）。其余行（token 存量替换 A6-A8、CI 自动截图 A10）仍成立。
 
 ---
 
@@ -65,7 +67,7 @@
 
 ## 3. L4 流程层：Vibe Coding 研发模式
 
-**载体**：`specs/README.md`（已存在，内容完整）
+**载体**：`specs/README.md`（已存在，内容完整）。⚠️ 本节为摘要；**完整流程（新页面/老页面/修改/何时 spec）以 `specs/README.md` 为 SSOT，勿在两处重复维护**（2026-08-10 整合审计）。
 
 ### 3.1 新页面流程
 
@@ -118,8 +120,8 @@
 |------|------|------|--------|
 | `camera.yaml` | ✅ 完整 | 1374 | gap analysis 全部 P0/P1/P2 |
 | `gallery-grid.yaml` | ✅ 完整 | 863 | gap analysis 全部 P0/P1/P2 |
-| `chat.yaml` | ❌ 待建 | — | Phase 6.2 |
-| `settings.yaml` | ❌ 待建 | — | 低优先级（系统控件多） |
+| `chat.yaml` | ✅ 已建（2026-08-09，`ea798114`/`3f315255`） | — | Chat 交互段固化 |
+| `settings.yaml` | ✅ 已建（2026-08-09，`8f30981e`） | — | 设置页固化 |
 | `editor.yaml` | ❌ 待建 | — | 中优先级 |
 | `idphoto.yaml` | ❌ 待建 | — | 中优先级 |
 
@@ -252,11 +254,11 @@ iOS 按 spec 修复 → 再审 → 直到 🔴 = 0
 
 | # | 行动 | 优先级 | 工作量 | 依赖 |
 |---|------|--------|--------|------|
-| **A1** | 根 AGENTS.md §5 新增 [PARITY] 红线 | 🔴 P0 | 小 | 无 |
+| **A1** | 根 AGENTS.md §5 新增 [PARITY] 红线 | ✅ 已完成（`AGENTS.md` §5:236，2026-08-09） | 小 | 无 |
 | **A2** | `post-edit-check.sh` 追加 dp/color 硬编码检测 | 🔴 P0 | 小 | 无 |
-| **A3** | `specs/README.md` 顶部引用本文为总纲 | 🟡 P1 | 极小 | A1 |
+| **A3** | `specs/README.md` 顶部引用本文为总纲 | ✅ 已完成（`specs/README.md` L2） | 极小 | A1 |
 | **A4** | `ui-parity-guard` SKILL.md 顶部引用本文为总纲 | 🟡 P1 | 极小 | A1 |
-| **A5** | 根 AGENTS.md §7 文档索引新增本文 + spec/README.md | 🟡 P1 | 极小 | A1 |
+| **A5** | 根 AGENTS.md §7 文档索引新增本文 + spec/README.md | ✅ 已完成（`AGENTS.md` §7 L270/286） | 极小 | A1 |
 | **A6** | 存量 token 替换：CameraPreviewContent.kt（68 处） | 🟡 P1 | 中 | 无 |
 | **A7** | 存量 token 替换：MediaPager.kt（80 处） | 🟡 P1 | 中 | 无 |
 | **A8** | 存量 token 替换：BeautyPanel.kt（15 处） | 🟢 P2 | 小 | 无 |

@@ -1,5 +1,8 @@
 # Phase 5 iOS App 骨架设计（iosApp）
 
+> 📜 **Phase 5 历史设计**（S1-S10 决策）。Phase 5（iOS 骨架+相机管线）已交付，决策摘要见路线图修订十，代码为现行事实来源。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.2。
+
+
 > **日期**：2026-08-08
 > **状态**：已确认（用户逐节审批通过）
 > **上游**：`docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md` §Phase 5

@@ -1,5 +1,7 @@
 # iOS 规格书驱动 UITest Gap 清单
 
+> 📌 **2026-08-10 整合审计状态**：§一 相机面板项（§10 ratio / §11 scene / §12 grid / §6 composition / §13 pro_mode）**已于 2026-08-10 实现并合并 main**（下表已标 ✅）。§三 相册项（搜索/扫描/视频/分组等）与 §五 a11y identifier 清单**仍准**，本文继续作为活文档维护。
+
 > **创建时间**：2026-08-09
 > **关联文件**：`specs/screens/camera.yaml`、`specs/screens/gallery-grid.yaml`
 > **测试文件**：`iosApp/PoLangUITests/CameraSpecUITests.swift`、`GallerySpecUITests.swift`
@@ -17,11 +19,11 @@
 | §8 makeup_tab_content | 唇彩选择器（LipColorSelector） | ❌ 占位 | `MakeupPlaceholderContent` 仅显示 "Makeup (Phase 6)" 文字 |
 | §8 makeup_tab_content | 腮红色系选择器 + 强度滑杆 | ❌ 占位 | 同上 |
 | §9 style_filters | 5 款风格滤镜（TOON/SKETCH/POSTERIZE/EMBOSS/CROSSHATCH） | ❌ 占位 | `StyleFilterPlaceholder` 显示锁标记，点击无效 |
-| §10 ratio_panel | 比例选择器面板（4:3 / 16:9 / 全屏） | ❌ 未实现 | ratio 按钮（`mat_aspect_ratio`）存在但点击空操作 |
-| §11 scene_panel | 场景选择器面板（无/夜景/月亮） | ❌ 未实现 | scene 按钮（`mat_landscape`）存在但点击空操作 |
-| §12 grid_panel | 网格选择器面板（无/三分线/黄金比例） | ❌ 未实现 | grid 按钮（`mat_grid_on`）存在但点击空操作 |
-| §6 composition_grid | 构图网格叠加（三分线/黄金比例虚线） | ❌ 未实现 | 无渲染逻辑 |
-| §13 pro_mode_panel | ProMode 面板（白平衡/曝光/对比度/饱和度/色温） | ❌ 未实现 | pro 按钮（`mat_tune`）存在但点击空操作 |
+| §10 ratio_panel | 比例选择器面板（4:3 / 16:9 / 全屏） | ✅ 已实现（2026-08-10 合并 main，`0267b62f`） | ~~ratio 按钮点击空操作~~ |
+| §11 scene_panel | 场景选择器面板（无/夜景/月亮） | ✅ 已实现（`262bf406`） | ~~scene 按钮点击空操作~~ |
+| §12 grid_panel | 网格选择器面板（无/三分线/黄金比例） | ✅ 已实现（`262bf406`） | ~~grid 按钮点击空操作~~ |
+| §6 composition_grid | 构图网格叠加（三分线/黄金比例虚线） | ✅ 已实现（`262bf406`） | ~~无渲染逻辑~~ |
+| §13 pro_mode_panel | ProMode 面板（白平衡/曝光/对比度/饱和度/色温） | ✅ 已实现（`19ae5942`） | ~~pro 按钮点击空操作~~ |
 | §14 floating_actions | 语音控制 FAB + AI Chat FAB | ❌ 未实现 | 无 FAB 组件 |
 | §7 mode_selector | VIDEO 模式录像功能 | ❌ 未实现 | 模式标签可点击切换，但无录像逻辑 |
 | §7 mode_selector | DOCUMENT 模式文档检测 | ❌ 未实现 | 同上 |

@@ -1,5 +1,8 @@
 # iOS 相册大图页人脸关键点交互检测 — 实现计划
 
+> 📜 **历史实现计划**。功能已实现（debug 门控，`9cb910e1`/`8d4c40ec`），现行事实见 `IOS_PRODUCT_REFERENCE.md` §2.1。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.3。
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 iOS 相册大图页（`MediaPagerView`）支持「点一下标出人脸关键点」的交互式检测，调试门控、带反馈、点位跟随缩放，对标 Android（commit cf295fe2）。

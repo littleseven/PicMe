@@ -1,5 +1,8 @@
 # KMP + Koog 端到端连通验证 Spike 设计（Phase 2.3）
 
+> 📜 **历史 Spike 报告**（Phase 2.3 排雷）。结论已沉淀进路线图；保留作审计链。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.1。
+
+
 > **日期**：2026-08-07
 > **关联**：`docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md` Phase 2.3（🔴 阻塞前置：Phase 4 开工前必须完成）
 > **性质**：本文档是**执行计划 + 报告模板**。执行完成后将「7. 验证结果」各节填实，结论改为 GO / NO-GO。

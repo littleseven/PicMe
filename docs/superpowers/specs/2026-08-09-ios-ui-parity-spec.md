@@ -1,5 +1,8 @@
 # iOS UI 对齐专题 Spec（S5 落地合同）
 
+> 📜 **历史定量合同**（2026-08-09）。相机对齐部分已完成（2026-08-10 合并 main），相册余项已并入 `specs/screens/gallery-grid.yaml`。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.3。
+
+
 > **版本**：1.0（2026-08-09）
 > **状态**：生效中——相机/相册 UI 对齐的唯一验收合同，此前所有对齐工作（代码对照法两轮 + dump 对齐一轮）的验收均以本文为准重审
 > **方法论**：`docs/03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md`（dp≈pt / 三件套布局 / 系统栏 §1.3）

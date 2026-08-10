@@ -28,17 +28,17 @@
 
 ## §2 Phase 6 详细（当前主战场）
 
-### 6.1 TAG 3-Pass 流水线 — 🔄 基建层已建，端到端未组装
+### 6.1 TAG 3-Pass 流水线 — 🔄 main 基建已建；Pass2/Pass3/控制页 in-flight（分支 `feat/ios-tag-scan-core` 待合并）
 
 | 子项 | 状态 | 证据 / 缺口 |
 |---|---|---|
 | 模型中心（16 模型下载/进度/删除） | ✅ | `ModelCenterView` 真机 6/6 绿 |
 | Pass1 基建（编排/对齐/embedding/MobileCLIP/GRDB） | ✅ | `Pass1Pipeline.swift` / `FaceAlignment` / `MobileClipEncoder` / `TagDatabase`（`25414e12` Step1-6） |
 | 人脸检测可用（MNN 106pt + MediaPipe 468→106） | ✅ | self-test faceFound=true/106pt；2d106det 预归一化修复 |
-| Pass2 聚类（DBSCAN / 自适应 k-NN 连通分量） | ❌ | 未实现 |
-| Pass3 VLM 打标（Florence-2 默认 / Qwen3-VL 备选） | ❌ | 🔴 阻塞于补验 B（Qwen3-VL-2B 真机未验证） |
+| Pass2 聚类（DBSCAN / 自适应 k-NN 连通分量） | 🔄 in-flight | 分支 `feat/ios-tag-scan-core`：`FaceClusterer.swift` k-NN 连通分量（k=2/minSim=0.65），已单测+真机跑过（2 persons/34 embeddings，`7b674428`），**待合并 main** |
+| Pass3 VLM 打标（Florence-2 默认 / Qwen3-VL 备选） | 🔄 in-flight | 分支：`Florence2Tagger.swift` ORT 4-session 代码完成+编译过（`869721c3`），**待真机验证**（需下 266MB `florence2_base`）；默认走 Florence-2，**不阻塞补验 B**（仅备选 Qwen3-VL 路径需） |
 | iOS MetalGuardian（替代 OpenClGuardian） | ❌ | 新设计：warmup 超时 + Metal→CPU 降级（含模型卸载重载）+ MTLDevice 丢失 + 黑名单持久化 |
-| TAG 控制页 + 扫描编排 | ❌ | `Pass1Pipeline` 当前**未接线任何 UI/VM** |
+| TAG 控制页 + 扫描编排 | 🔄 in-flight | 分支：`TagScanScreen`/`TagScanViewModel`/`TagScanOrchestrator` 已建并全开放（`8184b85a`/`9c7bfaba`/`2b06089f`）；**main 上 `Pass1Pipeline` 仍为孤立编排器，未接 UI/VM** |
 | 后台扫描（ForegroundService → BGTaskScheduler） | ❌ | iOS ~30s 限制 → 改「充电+锁屏增量」或「手动触发」（双端功能差异） |
 
 ### 6.2 Chat 与 AI 指令 — ✅ 完成（基础链路）
@@ -119,12 +119,14 @@
 | 2026-08-10 | D3「44 commits 未 push」 | → 已全推，main 与 origin 同步 | `7832df62` |
 | 2026-08-10 | D4 i18n「无 zh-Hant」 | → 三语就绪，key 191→239 | `7832df62` |
 | 2026-08-10 | 全面漂移扫描（A/B/C/D/E 共 25 处） | 6 文档修正：产品参考 11 处（场景同步已接入 / TAG Pass1 已移植 / 人物页非占位 / swipe 手势 / i18n §4.2 传播遗漏等）、路线图风险登记 6 项已解风险关闭、parity spec 清单+RTL+gap 引用、2 份 gap-analysis 加快照 banner；详见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](../reviews/2026-08-10-ios-kmp-doc-drift-audit.md) | 见审计报告 §1 |
+| 2026-08-10 | **整合审计**：TAG Pass2/3/控制页「未实现/未接线」→ in-flight 分支待合并；相机「下一步」→ 已对齐合并；i18n 分支 ~323 待合并；PARITY_MASTER_PLAN 自诊错误；跟踪策略明确（main 为准 + in-flight） | 本文 §6.1 + §7 + 产品参考/路线图/implementation-tasks/parity/gap 7 文档修正 + 13 历史横幅 + 2 kickoff 归档 + 新建 [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md) | 见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md) |
 
 ---
 
 ## §7 维护说明
 
 - **更新时机**：每完成一个 Phase 6 子项 / 缺口功能落地 / 发现新漂移时更新本文 §2 / §3 / §6。
-- **状态判定**：以 `iosApp/PoLang/Features/` 实际 Swift 文件 + git commit 为准（非文档自述）。
+- **状态判定**：以 **origin/main** 为准（稳定/已交付）；未合并分支工作在对应子项标注「🔄 in-flight: `<分支>` 待合并」。代码核验以 `iosApp/PoLang/Features/` 实际 Swift 文件 + git commit 为辅证（非文档自述）。
+- **文档入口**：全部 iOS 文档的「活/历史/归档」分类见 [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md)；本轮整合留痕见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md)。
 - **新建功能**：落地后从 §3 移至 §2 对应子项（或新增 ✅ 行），并在 §6 登记漂移修正。
 - **不收录**：纯 Android 侧变更（除非影响 shared 契约面）。

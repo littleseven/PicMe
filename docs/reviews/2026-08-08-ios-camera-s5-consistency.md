@@ -1,5 +1,8 @@
 # S5 双端一致性自查报告：iOS 相机段 vs Android 美颜参数
 
+> 📜 **历史一致性自查**（2026-08-08）。修复已落代码（BeautyPanelView/FilterColorMatrix.swift）。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.2。
+
+
 > **日期**：2026-08-08
 > **执行者**：GLM 相机段实例
 > **范围**：BeautySettings 参数（滑杆范围/默认值/名称排序）+ FilterType 九款 ColorMatrix

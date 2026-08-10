@@ -1,5 +1,8 @@
 # sentencepiece + QuickJS iOS 编译验证 Spike 报告（Phase 2.2）
 
+> 📜 **历史 Spike 报告**（Phase 2.2 排雷）。结论已沉淀进路线图；保留作审计链。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.1。
+
+
 > **日期**：2026-08-07
 > **关联**：`docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md` Phase 2.2
 > **结论**：✅ **GO** — sentencepiece iOS 静态库编译通过，QuickJS 通过 KMP klib 零编译可用；~~⚠️ 两者均未做**运行时**调用验证~~ **运行时验证已于 2026-08-07 晚真机完成（两项均 PASS）**，见 §4（2026-08-07 review 修订 → 2026-08-07 晚补验收口）

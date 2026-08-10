@@ -1,5 +1,7 @@
 # iOS 相机/相册 功能深化（Phase 6.6）落地计划
 
+> 📌 **2026-08-10 整合审计状态**：📷 **相机域 C1（面板系统：比例/场景/网格/ProMode/互斥状态机 + 构图网格）+ §5 zh-Hant 繁体 已完成并合并 main**（`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e` + zh-Hant `4de9221b`/`da2b78ae`）。§1 相机域表为 08-09 基线快照（多数已关）。🖼️ **相册域 G1-G4（视频播放/拖拽多选/相簿入口/PhotoInfo）仍为缺口**，见 [`IOS_TASK_STATUS.md`](../../01-PRODUCT/IOS_TASK_STATUS.md) §6.6。
+
 > **性质**：Phase 6.6「功能深化对齐」的相机/相册轨细粒度计划（roadmap 修订十五增补 §6.6 的子计划）。
 > **日期**：2026-08-09 · **产出方**：Claude（规划+审查），执行派 kimi-code 实例
 > **上游 SSOT**：`specs/screens/camera.yaml`、`specs/screens/gallery-grid.yaml`、`specs/2026-08-09-ios-spec-test-gaps.md`、`docs/superpowers/specs/2026-08-08-ios-app-skeleton-design.md`
@@ -156,7 +158,7 @@
 
 ## 5. [I18N] 红线缺口（独立快速修，建议与 C1/G1 并行）
 
-`Localizable.xcstrings`（191 keys）**无 zh-Hant 译文**（落 zh-Hans）、`ja` 仅 74/191（39%）。
+✅ **zh-Hant 已于 2026-08-10 补齐**（`4de9221b`/`da2b78ae`，三语 key 191→239 on main；分支含 TAG 键 ~323）。~~`Localizable.xcstrings`（191 keys）无 zh-Hant 译文（落 zh-Hans）~~。`ja` 仅 74/191（39%）——评估是否纳入支持集（<50% 完整度建议暂移出 UI 语言选项）。
 - **zh-Hant 补齐**：191 keys 全量繁体翻译（可由 zh-Hans 转换 + 校对；`LanguageManager` 已支持 zh-Hant lproj 路径，补译文即生效）
 - **ja**：评估是否纳入支持集（<50% 完整度建议暂从 UI 语言选项移除，避免半成品）
 - 执行：独立 worktree + `/ios-i18n-validator` skill；不阻塞 C1/G1

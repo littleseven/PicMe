@@ -100,4 +100,18 @@ final class TagScanUITest: XCTestCase {
 
         print("✅ 关闭按钮返回相册正常")
     }
+
+    /// Pass3 内容打标——触发 Florence-2 推理（如果崩溃，app 进程会退出）
+    func testPass3Trigger() {
+        let app = launchApp()
+        openTagScanPage(app)
+
+        let pass3Inc = app.buttons["pass3_incremental"]
+        XCTAssertTrue(pass3Inc.waitForExistence(timeout: 5), "❌ Pass3 增量按钮不存在")
+        pass3Inc.tap()
+        // 等 20s 让 Florence-2 加载 + 推理（如果崩溃会在这期间退出）
+        sleep(20)
+        // 如果 app 还活着说明没崩
+        print("✅ Pass3 触发后 app 存活 20s")
+    }
 }

@@ -1,6 +1,6 @@
 # 双端体验一致性差异清单（Android ↔ iOS）
 
-> **目的**：逐屏 code 级结构对齐审计，产出按「用户体感影响」排序的差异清单，驱动对齐工作（下一步：相机页）。
+> **目的**：逐屏 code 级结构对齐审计，产出按「用户体感影响」排序的差异清单，驱动对齐工作（**相机页高 ROI 项 #1/#3 已于 2026-08-10 对齐合并 main**；下一优先见 §0 策略）。
 > **基准**：Android `main` 为 ground truth；契约 SSOT = `specs/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。
 > **方法**：5 个并行只读 subagent 逐屏比对 Android Compose 实现 vs iOS SwiftUI 实现；高严重度项附双侧 `文件:行` 证据。一致性框架见 [`IOS_ANDROID_UI_PARITY.md`](../03-TECHNICAL-SPECS/IOS_ANDROID_UI_PARITY.md) §0。
 > **日期**：2026-08-10 · 真机 baseline 已采（iPhone 15，`scripts/auto_test_output/ios_20260810_005256/`）。
@@ -31,7 +31,7 @@
 | 17 | 美颜角标绿≠accent / 面板高 38%≠35% / 滤镜面板 53%≠50% | 相机 | 低 | 极低 | token 已有正确值 |
 | 18 | 相机左列 返回/Reset no-op | 相机 | 中（返回断链） | 低 | 接线 dismiss/重置 |
 
-> **策略**：相机是下一步重点。相机节高 ROI 项 = #1（快门，极低代价）→ #3（右列面板）→ #8（十字星）→ #9（makeup/滤镜）→ #6（录像，大工程留后）。**聊天的两个 bug（#13）代价极低、有数据丢失风险，可与相机首批并行速修**。相册/设置的「整块功能缺失」(#4/#5/#7) 与聊天大功能(#14) 属 Phase 6 功能建，单列计划，不混入纯对齐批次。
+> **策略**：~~相机是下一步重点~~ ✅ **相机高 ROI 项 #1（快门 token+黑闪+反馈）/ #3（右列 4 面板）已于 2026-08-10 对齐合并 main**（`f050d6ea`/`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。剩 #8（十字星接人脸）→ #9（makeup/滤镜）→ #6（录像，大工程留后）属 **G5 功能深化**（见 `IOS_TASK_STATUS.md` §6.6）。**聊天的两个 bug（#13）代价极低、有数据丢失风险，应速修**。相册/设置的「整块功能缺失」(#4/#5/#7) 与聊天大功能(#14) 属 Phase 6 功能建，单列计划，不混入纯对齐批次。
 
 ---
 
@@ -80,7 +80,7 @@
 
 ## §3 相机（重点屏，下一步对齐对象）
 
-骨架（顶/底/快门/美颜面板布局）**高度对齐**，但功能可用率约 40%。**最关键发现：`DesignTokens.swift` 已定义正确 token 却全是死代码**（快门 76/58pt、闪屏 0.6/80ms 等未启用，实际用错值）。
+骨架（顶/底/快门/美颜面板布局）**高度对齐**，但功能可用率约 40%。**~~最关键发现：`DesignTokens.swift` 已定义正确 token 却全是死代码~~** ✅ **死代码已启用**（2026-08-10 相机对齐 B1 合并 main，`f050d6ea`：快门 76/58pt、闪屏 0.6/80ms 等 token 已生效）。§3.1 快门/§3.2 右列面板的 gap 已关；§3.3-3.5 录像/十字星/makeup 仍属 G5。
 
 ### 3.1 快门（最该先治，代价极低）
 
@@ -183,7 +183,7 @@
 
 - **契约 SSOT**：`specs/screens/*.yaml`（camera/gallery-grid/chat/settings/model-download-center）。对齐 = iOS 实现 → yaml 契约（yaml 镜像 Android）。
 - **真机验证**：`./scripts/ios-auto-dev-loop.sh --quick --screenshot <name>`（baseline 已采，iPhone 15）。相机视觉类改动用 before/after 截图 + syslog 崩溃检查。
-- **下一步（用户指定）**：相机页对齐（T7b）。基于 §3，先出细计划（writing-plans），首批做高 ROI 低代价项：快门 token 启用 + 闪屏黑 + 反馈 → 右列 4 面板最小功能 → 十字星接人脸。
+- **下一步**：~~相机页对齐（T7b）~~ ✅ **已完成并合并 main（2026-08-10）**——快门 token 启用+黑闪+反馈（`f050d6ea`）+ 右列 4 面板（比例/网格/场景/ProMode + 面板互斥状态机，`262bf406`/`0267b62f`/`19ae5942`/`04b912fa`/`e965445e`）。§3 剩余 #8 十字星接人脸 / #9 makeup·风格滤镜 / #6 录像属 **G5 功能深化**（见 [`IOS_TASK_STATUS.md`](../../01-PRODUCT/IOS_TASK_STATUS.md) §6.6 / [`plans/2026-08-10-ios-implementation-tasks.md`](../superpowers/plans/2026-08-10-ios-implementation-tasks.md) T9）。
 - **不混入本批**：相册/设置的「整块功能缺失」（搜索/编辑/账号/录像等 Phase 6 大功能）单列计划，不在纯对齐批次内。
 
 ---

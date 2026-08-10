@@ -1,5 +1,8 @@
 # 美颜引擎 iOS Metal 渲染验证 Spike 报告
 
+> 📜 **历史 Spike 报告**（Phase 2.4 排雷）。结论已沉淀进路线图（shader~1w+宿主~2w）；保留作审计链。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.1。
+
+
 > **日期**：2026-08-08
 > **关联**：`docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md` Phase 2.4 / Phase 5.4
 > **结论**：✅ **GO** — 美白单滤镜 Metal 实时渲染真机达标（30fps 出图、滑杆美白即时可见）。GLSL→MSL 翻译可行；全滤镜机械转换无阻塞，仅 3 个 warp 文件偏硬。**真正成本在 Kotlin 渲染宿主重写（EGL/GLES/SurfaceTexture → Metal/AVFoundation），非 shader 本身**；Phase 5.4 工期建议按 shader 翻译 ~1 周 + 宿主重写 ~2 周 计（计划原估 1–2 周偏紧，只覆盖了 shader 没覆盖宿主重写）。

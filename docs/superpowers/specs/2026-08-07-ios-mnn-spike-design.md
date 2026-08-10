@@ -1,5 +1,8 @@
 # MNN iOS 编译与推理验证 Spike 报告
 
+> 📜 **历史 Spike 报告**（Phase 2.1 排雷）。结论已沉淀进路线图 `2026-08-07-polang-kmp-ios-transformation.md`；保留作审计链（linker `-ObjC`/Precision_High 档位坑）。⚠️ 本文「补验 B（Qwen3-VL-2B）为 Phase 6.1 TAG 前置」框架已过时——默认 Pass3 改走 Florence-2（ORT），补验 B 仅备选路径需（见 `IOS_TASK_STATUS.md` §6.1）。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.1。
+
+
 > **日期**：2026-08-07
 > **关联**：`docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md` Phase 2.1
 > **结论**：⚠️ **有条件 GO** — CPU 推理路径已验证通过；**Metal 输出全 0 未解决（正确性未验证）、Qwen3-VL-2B 未验证**，两项补验通过前不构成完整 GO（见 §4「阻塞补验项」，2026-08-07 review 修订）

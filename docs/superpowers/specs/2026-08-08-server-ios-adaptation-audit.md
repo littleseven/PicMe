@@ -1,5 +1,8 @@
 # Phase 6.4：Server 端 iOS 适配点清查
 
+> 📜 **Phase 6.4 历史审计**（2026-08-08）。适配点 #1/#2/#3 已落地（`0b89ee3a`/`553fefba`/`a5ecf2f5`），6.4 ✅ 完成；完成状态见路线图。⚠️ §7「建议执行优先级」读起来像待办，实际多已落地。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.4。
+
+
 > **性质**：适配点清查（audit），非实现计划
 > **产出路径**：本文档
 > **上游**：`docs/superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md` Phase 6.4

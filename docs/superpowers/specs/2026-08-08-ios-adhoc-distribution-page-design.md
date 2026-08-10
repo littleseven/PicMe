@@ -1,5 +1,8 @@
 # iOS Ad-Hoc 自测分发页（api.polang.net /download/ios）
 
+> 📜 **已实现**（`server/` DownloadRoute，api.polang.net/download/ios）。⚠️ 背景「Phase 5 尚未启动/无 IPA」描述已过时（Phase 5 已完成）。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.4。
+
+
 - 日期：2026-08-08
 - 状态：已实现（待提交；Phase 5 IPA 上线前页面显示「暂无可用 iOS 版本」）
 - 受众：开发者本人 + 小名单朋友（约 10–50 人）

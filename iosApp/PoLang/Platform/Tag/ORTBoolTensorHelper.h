@@ -22,4 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// @return ORTValue 实例（BOOL 张量），失败返回 nil
 FOUNDATION_EXPORT ORTValue *_Nullable ortCreateBoolTensor(BOOL value, NSError *_Nullable *_Nullable error);
 
+/// 安全执行 block——捕获 ObjC NSException（Swift do-catch 无法捕获 NSException，
+/// ORT C++ 内部错误可能以 NSException 形式抛出，导致 app 崩溃）。
+/// @return YES 成功；NO 捕获到 NSException（错误打到 NSLog）。
+FOUNDATION_EXPORT BOOL ortCatchException(void (^block)(void));
+
 NS_ASSUME_NONNULL_END

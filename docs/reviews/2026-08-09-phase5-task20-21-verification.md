@@ -1,5 +1,8 @@
 # Phase 5 Task 20/21 验收记录
 
+> 📜 **Phase 5 出口验收记录**（2026-08-09）。Phase 5 已完成。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.2。
+
+
 > **日期**: 2026-08-09
 > **设备**: iPhone 15 (iPhone15,4, iOS 17)
 > **分支**: `refactor/ios-camera-track`

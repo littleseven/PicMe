@@ -58,3 +58,15 @@ ORTValue *_Nullable ortCreateBoolTensor(BOOL value, NSError **error) {
         return nil;
     }
 }
+
+// MARK: - ObjC NSException 捕获
+
+BOOL ortCatchException(void (^block)(void)) {
+    @try {
+        block();
+        return YES;
+    } @catch (NSException *exception) {
+        NSLog(@"PoLang:ORT ⚠️ ObjC exception caught: %@ - %@", exception.name, exception.reason);
+        return NO;
+    }
+}

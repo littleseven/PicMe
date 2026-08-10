@@ -266,8 +266,9 @@ final class TagScanOrchestrator: @unchecked Sendable {
 
     /// 手动触发 Pass3 内容打标（增量/全量）。
     func startPass3(mode: ScanMode) {
+        scanDebugLog("TS startPass3 mode=\(mode.rawValue)")
         let canStart = read { $0.sessionState == .idle || $0.sessionState.isTerminal }
-        guard canStart else { return }
+        guard canStart else { scanDebugLog("TS startPass3 rejected (not idle)"); return }
 
         guard Florence2Tagger.modelsAvailable(modelDir: florence2ModelDir) else {
             emit(.modelsNeeded)
@@ -277,6 +278,7 @@ final class TagScanOrchestrator: @unchecked Sendable {
         let allIds = db.allImageMediaIds()
         let covered = mode == .incremental ? db.labelsEnCoveredMediaIds() : []
         let planned = allIds.filter { !covered.contains($0) }
+        scanDebugLog("TS startPass3: planned=\(planned.count) tasks")
         guard !planned.isEmpty else {
             scanDebugLog("TS Pass3: nothing to tag")
             return
@@ -435,15 +437,19 @@ final class TagScanOrchestrator: @unchecked Sendable {
 
     /// 执行单个 Pass3 任务（Florence-2 打标）。
     private func processPass3Task(task: TagDatabase.QueuedTask, lid: String?, now: Int64) {
+        scanDebugLog("TS P3 task mediaId=\(task.mediaId)")
         // 懒加载 Florence2Tagger
         if florence2Tagger == nil {
             let tagger = Florence2Tagger()
-            if tagger.load(modelDir: florence2ModelDir) {
+            scanDebugLog("TS P3 loading Florence2Tagger...")
+            let ok = tagger.load(modelDir: florence2ModelDir)
+            scanDebugLog("TS P3 Florence2Tagger load ok=\(ok)")
+            if ok {
                 florence2Tagger = tagger
             }
         }
         guard let tagger = florence2Tagger, tagger.isLoaded else {
-            NSLog("PoLang:TagScan Pass3 Florence-2 not loaded, skipping task")
+            scanDebugLog("TS P3 tagger not loaded, skip")
             db.markFailed(taskId: task.taskId, now: now,
                           errorMessage: "Florence-2 models not loaded", backoffMs: 60_000)
             let snap = mutate { box -> TagScanSessionProgress in
@@ -465,11 +471,11 @@ final class TagScanOrchestrator: @unchecked Sendable {
             return
         }
 
-        NSLog("PoLang:TagScan Pass3 tagging mediaId=\(task.mediaId)")
+        scanDebugLog("TS P3 calling tagger.tag mediaId=\(task.mediaId)")
         let t0 = CFAbsoluteTimeGetCurrent()
         let result = tagger.tag(image)
         let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
-        NSLog("PoLang:TagScan Pass3 done mediaId=\(task.mediaId) in \(ms)ms")
+        scanDebugLog("TS P3 tag done mediaId=\(task.mediaId) in \(ms)ms result=\(result != nil)")
 
         if let result = result {
             let labelsJson = Self.encodeLabelsEn(result.labelsEn)

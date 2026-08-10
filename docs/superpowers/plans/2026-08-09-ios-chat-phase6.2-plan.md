@@ -1,5 +1,8 @@
 # iOS Chat 功能（Phase 6.2）落地实现规划
 
+> 📜 **历史实现计划**。Chat 6.2 已完成（merge `f805abc5`），缺口见 `IOS_TASK_STATUS.md` §6.2。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.3。
+
+
 > 2026-08-09 K3 plan agent 产出（只读调研，全部结论经读码验证，worktree refactor/ios-camera-track 分支为准）
 > 执行纪律：新 worktree `.worktrees/ios-chat` + 分支 `feat/ios-chat`（从 refactor/ios-camera-track tip 切出）
 

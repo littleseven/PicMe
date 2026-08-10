@@ -1,5 +1,8 @@
 # Phase 5 iOS App 骨架（iosApp）实现计划
 
+> 📜 **Phase 5 历史实现计划**（Task 0-21）。Phase 5 已交付（Task 20/21 验收通过），代码为现行事实来源。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.2。
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 新建 `iosApp/`（SwiftUI），交付 TestFlight/ad-hoc 内测包：相册浏览（含 Limited 权限一等公民）+ 相机预览（MVP 美颜：磨皮/美白/瘦脸/大眼 + LUT 滤镜）+ 拍照，双端体验对齐 Android。

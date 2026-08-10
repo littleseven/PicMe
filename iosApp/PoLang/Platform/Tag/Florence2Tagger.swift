@@ -219,6 +219,7 @@ final class Florence2Tagger {
     /// - Parameter image: 输入图片
     /// - Returns: 打标结果，模型未加载或推理失败返回 nil
     func tag(_ image: UIImage) -> Florence2TagResult? {
+        scanDebugLog("F2 tag enter")
         guard isLoaded else {
             NSLog("PoLang:Florence2 Not initialized")
             return nil
@@ -227,12 +228,14 @@ final class Florence2Tagger {
         let t0 = CFAbsoluteTimeGetCurrent()
 
         // ── 1. 图像预处理 → vision encoder（每张图只跑一次）──
+        scanDebugLog("F2 preprocess")
         guard let pixelValues = preprocessImage(image) else {
             NSLog("PoLang:Florence2 Image preprocessing failed")
             return nil
         }
         let preprocessMs = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
 
+        scanDebugLog("F2 visionEncoder")
         guard let imageFeatures = runVisionEncoder(pixelValues) else {
             NSLog("PoLang:Florence2 Vision encoder failed")
             return nil
@@ -240,10 +243,12 @@ final class Florence2Tagger {
         let visionMs = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000) - preprocessMs
 
         // ── 2. OD 任务（物体检测 → objects/tags）──
+        scanDebugLog("F2 OD task")
         let odText = runTask(imageFeatures: imageFeatures, taskTokenIds: Self.taskOD) ?? ""
         let objects = Self.parseODLabels(odText)
 
         // ── 3. MORE_DETAILED_CAPTION 任务（→ summary + scene/activity）──
+        scanDebugLog("F2 caption task")
         let captionText = runTask(
             imageFeatures: imageFeatures, taskTokenIds: Self.taskMoreDetailedCaption) ?? ""
 
@@ -342,13 +347,22 @@ final class Florence2Tagger {
                                            elementType: .float,
                                            shape: shape)
             let inputs: [String: ORTValue] = ["pixel_values": inputValue]
-            // 保持 tensorData 活跃直到 run 完成
-            let outputs = try withExtendedLifetime(tensorData) {
-                try session.run(withInputs: inputs,
-                                outputNames: [visionEncOutputName],
-                                runOptions: nil)
+            scanDebugLog("F2 vision session.run")
+            let outName = visionEncOutputName
+            var outputs: [String: ORTValue]?
+            var ortError: Error?
+            let ok = ortCatchException {
+                do {
+                    outputs = try withExtendedLifetime(tensorData) {
+                        try session.run(withInputs: inputs,
+                                        outputNames: [outName],
+                                        runOptions: nil)
+                    }
+                } catch { ortError = error }
             }
-            guard let outputValue = outputs[visionEncOutputName] else { return nil }
+            if !ok { scanDebugLog("F2 vision ❌ NSException caught"); return nil }
+            if let e = ortError { NSLog("PoLang:Florence2 Vision error: \(e)"); return nil }
+            guard let outputValue = outputs?[outName] else { return nil }
             return readFloatTensor(outputValue)
         } catch {
             NSLog("PoLang:Florence2 Vision encoder error: \(error)")
@@ -413,6 +427,7 @@ final class Florence2Tagger {
                                            elementType: .int64,
                                            shape: shape)
             let inputs: [String: ORTValue] = ["input_ids": inputValue]
+            scanDebugLog("F2 vision session.run")
             let outputs = try withExtendedLifetime(tensorData) {
                 try session.run(withInputs: inputs,
                                 outputNames: [embedTokensOutputName],

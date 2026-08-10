@@ -1,5 +1,8 @@
 # iOS TAG 扫描核心（SP-B）实现计划
 
+> 📜 **SP-B 历史实现计划**。已执行并扩展到 SP-C/SP-D，🔄 **in-flight 分支 `feat/ios-tag-scan-core` 待合并**（Pass3 待真机验证）。checkbox 未回填但工作已完成。现行状态见 `IOS_TASK_STATUS.md` §6.1。归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §2.3。
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 iOS 把 Pass 1（人脸检测 + 嵌入 + MobileCLIP）跑遍整个相册，配一个完全复刻 Android `TagGenerationControlScreen` 的扫描页 + 后台任务系统（状态机 / 任务队列 / 暂停-恢复-取消 / ETA / 中断恢复）。
