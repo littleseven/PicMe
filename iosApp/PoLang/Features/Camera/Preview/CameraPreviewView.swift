@@ -65,6 +65,10 @@ struct CameraPreviewView: View {
     // 右列对齐（B2a）：构图网格 + 场景模式（对标 Android currentGrid / currentScene）
     @State private var currentGrid: GridType = .off
     @State private var currentScene: ScenePreset = .off
+    // ProMode 独立轨道（对标 Android showProPanel；与 primary 组互斥渲染，可与 beauty 并存）
+    @State private var showProPanel = false
+    @State private var exposureComp: Double = 0      // EV -2..2（AVCapture setExposureBias）
+    @State private var whiteBalanceMode = 0          // 0=auto/1=sunny/2=cloudy/3=incandescent/4=fluorescent
 
     enum ActivePanel: Equatable { case beauty, filter, grid, scene }
     enum CameraMode: String, CaseIterable { case video = "视频", photo = "照片", document = "文档" }
@@ -178,6 +182,10 @@ struct CameraPreviewView: View {
         .onChange(of: currentScene) { s in
             // 场景模式作用相机（NIGHT→EV+1，MOON→EV-2+3.2x，NONE→EV 0）
             applyScene(s)
+        }
+        .onChange(of: exposureComp) { ev in
+            // ProMode EV → AVCapture 曝光补偿（-2..2；场景模式也写 EV，后到者覆盖，对标 Android）
+            controller.setExposureBias(Float(ev))
         }
         .onDisappear { controller.stop() }
     }
@@ -323,7 +331,9 @@ struct CameraPreviewView: View {
                 .allowsHitTesting(activePanel == nil)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if activePanel != nil { withAnimation { activePanel = nil } }
+                    // ProMode 独立轨道：开则单关 Pro；否则关 primary 面板（对标 Android 空白点击语义）
+                    if showProPanel { withAnimation { showProPanel = false } }
+                    else if activePanel != nil { withAnimation { activePanel = nil } }
                 }
 
             // 顶部控件
@@ -359,6 +369,21 @@ struct CameraPreviewView: View {
                             ("Moon", currentScene == .moon, { currentScene = .moon; closePanel() })
                         ])
                     }
+                }
+                // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene primary 面板抑制渲染）
+                if showProPanel && activePanel != .filter && activePanel != .grid && activePanel != .scene {
+                    ProModePanel(
+                        exposure: $exposureComp,
+                        whiteBalance: $whiteBalanceMode,
+                        contrast: Binding(get: { Double(container.beautyParams.contrast) },
+                                          set: { container.beautyParams.contrast = Float($0) }),
+                        saturation: Binding(get: { Double(container.beautyParams.saturation) },
+                                            set: { container.beautyParams.saturation = Float($0) }),
+                        temperature: Binding(get: { Double(container.beautyParams.temperature) },
+                                             set: { container.beautyParams.temperature = Float($0) })
+                    )
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 bottomControls
             }
@@ -417,7 +442,9 @@ struct CameraPreviewView: View {
             rightColumnButton("circle.lefthalf.filled", y: yFilter, isActive: activePanel == .filter) {
                 withAnimation { activePanel = activePanel == .filter ? nil : .filter }
             }
-            rightColumnButton("slider.horizontal.3", y: yTune) { }
+            rightColumnButton("slider.horizontal.3", y: yTune, isActive: showProPanel) {
+                withAnimation { showProPanel.toggle() }
+            }
         }
         .frame(width: UIScreen.main.bounds.width, height: screenHeight, alignment: .topLeading)
     }
@@ -515,6 +542,62 @@ struct CameraPreviewView: View {
             .padding(.horizontal, 40)
         }
         .padding(.bottom, 33)
+    }
+}
+
+// MARK: - ProMode 面板（对标 Android ProModeControls：WB chips + EV/对比度/饱和度/色温）
+
+private struct ProModePanel: View {
+    @Binding var exposure: Double
+    @Binding var whiteBalance: Int
+    @Binding var contrast: Double
+    @Binding var saturation: Double
+    @Binding var temperature: Double
+
+    private let wbOptions: [(label: String, value: Int)] = [
+        ("Auto", 0), ("Sunny", 1), ("Cloudy", 2), ("Incandescent", 3), ("Fluorescent", 4)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("White Balance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(wbOptions, id: \.value) { opt in
+                            Button { whiteBalance = opt.value } label: {
+                                Text(LocalizedStringKey(opt.label))
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(whiteBalance == opt.value ? .black : .white)
+                                    .padding(.horizontal, 14).padding(.vertical, 6)
+                                    .background(Capsule().fill(whiteBalance == opt.value ? Color.accentColor : Color.white.opacity(0.12)))
+                            }
+                        }
+                    }
+                }
+            }
+            sliderRow(label: "Exposure", value: $exposure, range: -2...2, step: 1, display: String(format: "%+.0f", exposure))
+            sliderRow(label: "Contrast", value: $contrast, range: 0...200, step: 1, display: "\(Int(contrast))")
+            sliderRow(label: "Saturation", value: $saturation, range: 0...200, step: 1, display: "\(Int(saturation))")
+            sliderRow(label: "Color Temperature", value: $temperature, range: 2000...8000, step: 50, display: "\(Int(temperature))K")
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.5)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func sliderRow(label: LocalizedStringKey, value: Binding<Double>,
+                           range: ClosedRange<Double>, step: Double, display: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(label).font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
+                Spacer()
+                Text(display).font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+            }
+            Slider(value: value, in: range, step: step).tint(.accentColor)
+        }
     }
 }
 
