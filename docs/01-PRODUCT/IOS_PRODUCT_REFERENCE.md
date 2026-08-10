@@ -2,7 +2,7 @@
 
 > **文档性质**：iOS 端功能对齐的产品侧唯一参考。以 **Android `main` 分支实际代码为唯一事实来源**（非 `PRODUCT.md` / `FEATURES.md`），逐功能项核验落地状态与产品行为。
 >
-> **日期**：2026-08-09 · **基线**：app v1.0.34 · **iOS 对齐状态截至**：2026-08-09（Phase 6.3）
+> **日期**：2026-08-09（2026-08-10 整合审计回写） · **基线**：app v1.0.34 · **iOS 对齐状态截至**：2026-08-10（Phase 6.x）
 >
 > **设计依据**：`docs/superpowers/specs/2026-08-09-ios-product-reference-design.md`
 
@@ -849,7 +849,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 端侧多模型 3-Pass 自动打标流水线：为人脸（检测+embedding+聚类）、内容（场景/物体/活动 VLM 打标）、语义（MobileCLIP 向量）三类维度生成结构化标签，支撑自然语言搜索召回与人物分组。全程端侧。前台 Service 驱动，可对话/手动触发、可中断、进度可见。
 
-> **iOS 落点**：🔄 Pass1 基建已移植（`Pass1Pipeline.swift`/`FaceAlignment`/`MobileClipEncoder`/`TagDatabase`，commit `25414e12`）；Pass2 聚类 / Pass3 VLM / MetalGuardian / 控制页未组装。关键差异：MNN Metal 后端（precision 档位锁定坑）、ForegroundService→BGTaskScheduler（iOS ~30s 限制，全量扫描需改增量/手动）、MetalGuardian 新设计。
+> **iOS 落点**：✅ Pass1 基建于 main（`Pass1Pipeline.swift`/`FaceAlignment`/`MobileClipEncoder`/`TagDatabase`，`25414e12`）。🔄 **in-flight（分支 `feat/ios-tag-scan-core` 18 commits 待合并）**：Pass2 聚类（`FaceClusterer.swift` k-NN 连通分量，已单测+真机 2 persons/34 embeddings）、Pass3 VLM（`Florence2Tagger.swift` Florence-2 ORT 4-session，代码完成+编译过，**待真机验证** 266MB `florence2_base`；默认 Florence-2，**不阻塞补验 B**）、控制页+编排（`TagScanScreen`/`ViewModel`/`Orchestrator`，已建并全开放）。❌ MetalGuardian（新设计，推迟 SP-A）/ 后台扫描（iOS ~30s→增量/手动）。关键差异：MNN Metal 后端（precision 档位锁定坑）、ForegroundService→BGTaskScheduler、MetalGuardian 新设计。
 
 ### 2. 入口与导航
 
@@ -1239,7 +1239,7 @@ SettingsScreen (MAIN)
 
 **命名约定**：实际为 **snake_case 小写**（非小驼峰），形如 `tag_scan_control`、`gallery_people_entry`。运行时语言切换（`attachBaseContext` + `setLocale`，EN / 简中 / 繁中 / 跟随系统，切换触发 `recreate()`）。
 
-**iOS 对齐现状**：`Localizable.xcstrings` **239** key（vs Android 981，覆盖仍不足）；三语 `en`/`zh-Hans`/`zh-Hant` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
+**iOS 对齐现状**：`Localizable.xcstrings` **main = 239 key**（vs Android 981，覆盖仍不足）；分支 `feat/ios-tag-scan-core` 含 TAG 50+ 键，合并后 **~323**；三语 `en`/`zh-Hans`/`zh-Hant` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
 
 ### 3.6 设计系统
 

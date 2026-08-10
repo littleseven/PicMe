@@ -14,7 +14,7 @@
 
 ## 决策
 
-- **iOS 呈现方式 = 轻量**：首页 Hero 徽章「📱 iOS 即将支持 / coming soon」+ FAQ 设备项补充「iOS 版本开发中」。不加下载按钮（iOS 无法像 Android 扫码直装；IPA 自测分发走独立页面，见 [iOS Ad-Hoc 自测分发页](2026-08-08-ios-adhoc-distribution-page-design.md)）。
+- **iOS 呈现方式 = 轻量**：首页 Hero 徽章「📱 iOS 即将支持 / coming soon」+ FAQ 设备项补充「iOS 版本开发中」。不加下载按钮（iOS 无法像 Android 扫码直装；IPA 自测分发走独立页面，已实现于 `server/` DownloadRoute，api.polang.net/download/ios）。
 - **端云表述修正**：把「所有 AI 在本地」过度断言改为「人脸检测、美颜、打标等媒体处理在本地」；AI 对话明确标注需联网。
 - **隐私政策**：3.3 节由「远程模式（可选）」改写为「AI 对话推理（远程）」，如实说明对话文本/指令走远程推理、媒体文件绝不上传；INTERNET 权限行、离线使用权同步修正。
 - **模型数量**：「必需 7 个 / 约 1.5 GB」保持不变（新增 CODEFORMER 属可选，未改必需计数，避免未经验证数字）。
