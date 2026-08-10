@@ -337,7 +337,13 @@ struct CameraPreviewView: View {
             // 顶部控件
             topControls(screenHeight: screenHeight, safeTop: safeTop)
 
-            // 底部控件 + 面板
+            // 底部控件（底对齐，独立层）
+            VStack(spacing: 0) {
+                Spacer()
+                bottomControls
+            }
+
+            // 面板层：底对齐、覆盖底栏（Z 序在底栏之上，对标 Android align(BottomCenter) 覆盖 CameraBottomControls）
             VStack(spacing: 0) {
                 Spacer()
                 if let panel = activePanel {
@@ -362,6 +368,7 @@ struct CameraPreviewView: View {
                                 OptionButton(titleKey: "Golden Ratio", isSelected: currentGrid == .golden) { currentGrid = .golden; closePanel() }
                             }
                         }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .scene:
                         ControlPanel {
                             HStack(spacing: 12) {
@@ -370,6 +377,7 @@ struct CameraPreviewView: View {
                                 OptionButton(titleKey: "Moon", isSelected: currentScene == .moon) { currentScene = .moon; closePanel() }
                             }
                         }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .ratio:
                         ControlPanel {
                             HStack(spacing: 16) {
@@ -378,6 +386,7 @@ struct CameraPreviewView: View {
                                 OptionButton(titleKey: "Full Screen", isSelected: currentRatio == .full) { currentRatio = .full; closePanel() }
                             }
                         }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene primary 面板抑制渲染）
@@ -396,7 +405,6 @@ struct CameraPreviewView: View {
                     .padding(.horizontal, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                bottomControls
             }
         }
     }
