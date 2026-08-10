@@ -33,6 +33,7 @@ Gradle target：`android`（KMP android library 插件）+ `jvm()` + `iosX64()` 
 - **commonMain**：只依赖 Koog `koog-agents`（排除 `serialization-jackson`，jackson-module-kotlin 需 API 26，minSdk 24 下 D8 拒绝 dex）、kotlinx-coroutines/serialization/datetime。🔴 禁止 `import android.*` / `java.*`（iOS 编译会炸；Task 15 复验零泄漏）。
 - **androidMain**：VLM 引擎（`inference/local/llm/`：LocalLlmEngine/MnnLlmClient/LlmModelManager）、语音（`platform/voice/`：SherpaOnnxAsrEngine/KeywordSpotterEngine/AudioRecorder）、DataStore 存储（`platform/storage/`：KoogMessageMemoryStore/MemoryManager）、`DispatcherProvider`/`AgentIdGenerator`/`KoogHttpClientFactoryProvider` actual。依赖 `:engines:mnn-core` + `:engines:agent-native`（VLM JNI `.so` 经 AAR 传递至 androidApp）。
 - **jvmTest vs commonTest**：涉及 `@Tool` 元数据反射展开（`asToolsByClass`，Koog JVM-only API）、prompt 逐字节 golden、java.io 文件扫描（隐私守卫）的测试放 jvmTest；纯 common 逻辑放 commonTest（经 jvmTest 运行）。
+- **iOS 互操作（2026-08-10 起）**：SKIE 0.10.14 插件已接入（`build.gradle.kts` 顶部 `alias(libs.plugins.skie)`）——suspend→`async throws`、sealed→Swift enum（`onEnum`）、Flow→`AsyncSequence` 直出 Swift 形态。**新链路一律用 SKIE 形态，不再新增 FlowWatcher 式手写桥**；存量桥迁移冻结至 iOS 1.0 功能冻结后。铁律详见 `skills/kmp-ios-interop`。
 
 ## 2. commonMain 核心组件（`agent/core/`）
 

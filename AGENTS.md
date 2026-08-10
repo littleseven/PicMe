@@ -292,7 +292,7 @@ AI 可直接解析 Spec 中的任务标记，生成执行计划：
 | **服务端部署** | `docs/03-TECHNICAL-SPECS/OVERSEAS_SERVER_DEPLOYMENT.md`（香港 VPS + Nginx + certbot，DNS-only 无 Cloudflare 代理） |
 | **服务端实现** | `docs/03-TECHNICAL-SPECS/SERVER_IMPLEMENTATION_PLAN.md`（Ktor 后端：AI 网关、账号、管理后台） |
 | **备份恢复** | `docs/05-DEVELOPMENT/RELEASE_PACKAGE_BACKUP_RESTORE.md`（Release 包数据备份与恢复） |
-| **KMP 最佳实践评估** | `docs/reviews/2026-08-10-kmp-best-practices-architecture-review.md`（KMP 路线评估：方向不修正；行动项 SKIE spike / CrashKiOS / AndroidX KMP 存储收编盘点） |
+| **KMP 最佳实践评估** | `docs/reviews/2026-08-10-kmp-best-practices-architecture-review.md`（KMP 路线评估：方向不修正；K1 SKIE ✅ 已合入 main（spike GO，`2026-08-10-skie-spike-design.md` §7），余 CrashKiOS / AndroidX KMP 存储收编盘点） |
 
 > **架构说明（2026-08-07 更新）**：
 > - **Agent 框架为 JetBrains Koog（`ai.koog:koog-agents` 外部依赖）**：原 `:agent-core`（langchain4j 1.13.0 vendored fork）已于 2026-08-07 Phase 6 整体删除；chat/相机/飞书链路分别由 `KoogChatAgent` / `KoogReActAgent`（`shared/src/commonMain/.../inference/remote/koog/`）驱动；`ChatToolService`/`CameraToolService` 为 commonMain 纯 @Tool 类（不再实现 JVM-only 的 `reflect.ToolSet`），由 Android 组合根 `asToolsByClass()` 反射展开为 ToolDescriptor 清单 + ToolRegistry 同源注入；`RemoteControlToolService` 在 `:androidApp`，仍实现 `reflect.ToolSet`
