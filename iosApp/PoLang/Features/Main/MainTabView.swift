@@ -90,7 +90,8 @@ struct MainTabView: View {
         // 🔴 避让相机控件：顶推 116pt 越过左列按钮区（safeTop 系坐标：8 + 2×48+8 + 4 余量），
         //    右缘收 76pt 避开右列按钮（48 按钮 + 16 边距 + 余量），宽度封顶防长行伸进右列
         .overlay(alignment: .topLeading) {
-            if currentPage == 0 {
+            // SKIE spike：临时全页面显示 overlay（验证 skie.* 遥测，GO 后恢复 currentPage == 0）
+            if true {
                 DebugOverlayView()
                     .frame(maxWidth: UIScreen.main.bounds.width - 84, alignment: .leading)
                     .padding(.leading, 4)
