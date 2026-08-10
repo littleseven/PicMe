@@ -248,28 +248,6 @@ struct CameraPreviewView: View {
 
     private func closePanel() { withAnimation { activePanel = nil } }
 
-    /// 通用单选 chip 面板（grid/scene 用；对标 Android RatioSelector / SceneSelector）
-    @ViewBuilder
-    private func selectorPanel(options: [(label: String, isSelected: Bool, action: () -> Void)]) -> some View {
-        HStack(spacing: 12) {
-            ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
-                Button(action: opt.action) {
-                    Text(LocalizedStringKey(opt.label))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(opt.isSelected ? .black : .white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(opt.isSelected ? Color.accentColor : Color.white.opacity(0.12)))
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-
     private var permissionView: some View {
         VStack(spacing: 12) {
             Text(String(localized: "Camera Permission Required"))
@@ -357,17 +335,21 @@ struct CameraPreviewView: View {
                         .padding(.horizontal, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     case .grid:
-                        selectorPanel(options: [
-                            ("None", currentGrid == .off, { currentGrid = .off; closePanel() }),
-                            ("Thirds", currentGrid == .thirds, { currentGrid = .thirds; closePanel() }),
-                            ("Golden Ratio", currentGrid == .golden, { currentGrid = .golden; closePanel() })
-                        ])
+                        ControlPanel {
+                            HStack(spacing: 12) {
+                                OptionButton(titleKey: "None", isSelected: currentGrid == .off) { currentGrid = .off; closePanel() }
+                                OptionButton(titleKey: "Thirds", isSelected: currentGrid == .thirds) { currentGrid = .thirds; closePanel() }
+                                OptionButton(titleKey: "Golden Ratio", isSelected: currentGrid == .golden) { currentGrid = .golden; closePanel() }
+                            }
+                        }
                     case .scene:
-                        selectorPanel(options: [
-                            ("None", currentScene == .off, { currentScene = .off; closePanel() }),
-                            ("Night", currentScene == .night, { currentScene = .night; closePanel() }),
-                            ("Moon", currentScene == .moon, { currentScene = .moon; closePanel() })
-                        ])
+                        ControlPanel {
+                            HStack(spacing: 12) {
+                                OptionButton(titleKey: "None", isSelected: currentScene == .off) { currentScene = .off; closePanel() }
+                                OptionButton(titleKey: "Night", isSelected: currentScene == .night) { currentScene = .night; closePanel() }
+                                OptionButton(titleKey: "Moon", isSelected: currentScene == .moon) { currentScene = .moon; closePanel() }
+                            }
+                        }
                     }
                 }
                 // ProMode 独立面板（与 beauty 可并存；被 filter/grid/scene primary 面板抑制渲染）
@@ -380,7 +362,8 @@ struct CameraPreviewView: View {
                         saturation: Binding(get: { Double(container.beautyParams.saturation) },
                                             set: { container.beautyParams.saturation = Float($0) }),
                         temperature: Binding(get: { Double(container.beautyParams.temperature) },
-                                             set: { container.beautyParams.temperature = Float($0) })
+                                             set: { container.beautyParams.temperature = Float($0) }),
+                        onDismiss: { withAnimation { showProPanel = false } }
                     )
                     .padding(.horizontal, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -545,6 +528,58 @@ struct CameraPreviewView: View {
     }
 }
 
+// MARK: - ControlPanel 容器（对标 Android ControlPanel：半屏 50% + 顶部圆角 24 + 拖拽手柄 + 底部渐变遮罩 + 边框 + 实色 surface）
+
+private struct ControlPanel<Content: View>: View {
+    var onDismiss: (() -> Void)? = nil
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // 底部渐变遮罩（Transparent→Black0.55→Black0.82），在 surface 之后（对标 Android ControlPanel 外层 Box）
+            LinearGradient(colors: [.clear, .black.opacity(0.55), .black.opacity(0.82)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(maxWidth: .infinity)
+                .frame(height: UIScreen.main.bounds.height * 0.5 + 24)
+                .allowsHitTesting(false)
+            VStack(spacing: 0) {
+                // 拖拽手柄 36×4（onSurface alpha 0.2）；可点关闭
+                Capsule().fill(Color.white.opacity(0.2))
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 10).padding(.bottom, 4)
+                    .onTapGesture { onDismiss?() }
+                ScrollView(showsIndicators: false) {
+                    content().frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24).padding(.vertical, 12)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.5, alignment: .top)
+            .background(RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(red: 0.11, green: 0.10, blue: 0.12).opacity(0.95)))
+            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.25), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.5), radius: 16)
+        }
+    }
+}
+
+// 选项按钮（对标 Android RatioItem：selected=primary/onPrimary，unselected=DarkGray/onSurface，12sp）
+private struct OptionButton: View {
+    let titleKey: LocalizedStringKey
+    let isSelected: Bool
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Text(titleKey).font(.system(size: 12))
+                .foregroundColor(isSelected ? .black : .white)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isSelected ? Color.accentColor : Color(white: 0.25)))
+        }
+    }
+}
+
 // MARK: - ProMode 面板（对标 Android ProModeControls：WB chips + EV/对比度/饱和度/色温）
 
 private struct ProModePanel: View {
@@ -553,39 +588,33 @@ private struct ProModePanel: View {
     @Binding var contrast: Double
     @Binding var saturation: Double
     @Binding var temperature: Double
+    var onDismiss: () -> Void
 
     private let wbOptions: [(label: String, value: Int)] = [
         ("Auto", 0), ("Sunny", 1), ("Cloudy", 2), ("Incandescent", 3), ("Fluorescent", 4)
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("White Balance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(wbOptions, id: \.value) { opt in
-                            Button { whiteBalance = opt.value } label: {
-                                Text(LocalizedStringKey(opt.label))
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(whiteBalance == opt.value ? .black : .white)
-                                    .padding(.horizontal, 14).padding(.vertical, 6)
-                                    .background(Capsule().fill(whiteBalance == opt.value ? Color.accentColor : Color.white.opacity(0.12)))
+        ControlPanel(onDismiss: onDismiss) {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("White Balance").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(wbOptions, id: \.value) { opt in
+                                OptionButton(titleKey: LocalizedStringKey(opt.label), isSelected: whiteBalance == opt.value) {
+                                    whiteBalance = opt.value
+                                }
                             }
                         }
                     }
                 }
+                sliderRow(label: "Exposure", value: $exposure, range: -2...2, step: 1, display: String(format: "%+.0f", exposure))
+                sliderRow(label: "Contrast", value: $contrast, range: 0...200, step: 1, display: "\(Int(contrast))")
+                sliderRow(label: "Saturation", value: $saturation, range: 0...200, step: 1, display: "\(Int(saturation))")
+                sliderRow(label: "Color Temperature", value: $temperature, range: 2000...8000, step: 50, display: "\(Int(temperature))K")
             }
-            sliderRow(label: "Exposure", value: $exposure, range: -2...2, step: 1, display: String(format: "%+.0f", exposure))
-            sliderRow(label: "Contrast", value: $contrast, range: 0...200, step: 1, display: "\(Int(contrast))")
-            sliderRow(label: "Saturation", value: $saturation, range: 0...200, step: 1, display: "\(Int(saturation))")
-            sliderRow(label: "Color Temperature", value: $temperature, range: 2000...8000, step: 50, display: "\(Int(temperature))K")
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.5)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private func sliderRow(label: LocalizedStringKey, value: Binding<Double>,
