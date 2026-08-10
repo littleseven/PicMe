@@ -582,10 +582,10 @@ private struct ControlPanel<Content: View>: View {
                     .frame(width: 36, height: 4)
                     .padding(.top, 10).padding(.bottom, 4)
                     .onTapGesture { onDismiss?() }
-                ScrollView(showsIndicators: false) {
-                    content().frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24).padding(.vertical, 12)
-                }
+                // 内容自适应高度（maxHeight 上限 50%，非 ScrollView 强制占满；对标 Android heightIn(max)）
+                content()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24).padding(.vertical, 12)
             }
             .frame(maxWidth: .infinity)
             .frame(maxHeight: UIScreen.main.bounds.height * 0.5, alignment: .top)
