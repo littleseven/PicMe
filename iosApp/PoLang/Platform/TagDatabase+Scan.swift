@@ -360,6 +360,83 @@ extension TagDatabase {
         }
     }
 
+    // MARK: - persons / 聚类赋值（Pass2 DBSCAN）
+
+    /// 插入一个人物，返回 person_id。
+    @discardableResult
+    func insertPerson(name: String?, coverMediaId: Int64?, faceCount: Int, isSelf: Bool) -> Int64 {
+        queue.sync {
+            guard let db = db else { return -1 }
+            let now = Int64(Date().timeIntervalSince1970 * 1000)
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "INSERT INTO persons (name, cover_media_id, face_count, is_self, created_at, updated_at) VALUES (?,?,?,?,?,?);", -1, &stmt, nil)
+            if let n = name { sqlite3_bind_text(stmt, 1, n, -1, SQLITE_TRANSIENT) } else { sqlite3_bind_null(stmt, 1) }
+            if let c = coverMediaId { sqlite3_bind_int64(stmt, 2, c) } else { sqlite3_bind_null(stmt, 2) }
+            sqlite3_bind_int(stmt, 3, Int32(faceCount))
+            sqlite3_bind_int(stmt, 4, isSelf ? 1 : 0)
+            sqlite3_bind_int64(stmt, 5, now)
+            sqlite3_bind_int64(stmt, 6, now)
+            sqlite3_step(stmt); sqlite3_finalize(stmt)
+            return sqlite3_last_insert_rowid(db)
+        }
+    }
+
+    /// 把这些 media 的全部 embedding 赋给 personId。
+    func assignEmbeddingsByMediaIds(_ mediaIds: [Int64], personId: Int64) {
+        guard !mediaIds.isEmpty else { return }
+        queue.sync {
+            guard let db = db else { return }
+            exec("BEGIN TRANSACTION;"); defer { exec("COMMIT;") }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "UPDATE face_embeddings SET person_id=? WHERE media_id=?;", -1, &stmt, nil)
+            for mid in mediaIds {
+                sqlite3_bind_int64(stmt, 1, personId)
+                sqlite3_bind_int64(stmt, 2, mid)
+                sqlite3_step(stmt); sqlite3_reset(stmt); sqlite3_clear_bindings(stmt)
+            }
+            sqlite3_finalize(stmt)
+        }
+    }
+
+    /// 批量写 media_assets.faceId（= personId 字符串）。
+    func updateFaceIdBatch(_ mediaIds: [Int64], faceId: String) {
+        guard !mediaIds.isEmpty else { return }
+        queue.sync {
+            guard let db = db else { return }
+            exec("BEGIN TRANSACTION;"); defer { exec("COMMIT;") }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "UPDATE media_assets SET faceId=? WHERE id=?;", -1, &stmt, nil)
+            for mid in mediaIds {
+                sqlite3_bind_text(stmt, 1, faceId, -1, SQLITE_TRANSIENT)
+                sqlite3_bind_int64(stmt, 2, mid)
+                sqlite3_step(stmt); sqlite3_reset(stmt); sqlite3_clear_bindings(stmt)
+            }
+            sqlite3_finalize(stmt)
+        }
+    }
+
+    /// 全量重聚类前的清空（对标 Android isFullRescan=true）。
+    func clearAllPersons() { queue.sync { exec("DELETE FROM persons;") } }
+    func resetAllEmbeddingAssignments() { queue.sync { exec("UPDATE face_embeddings SET person_id=NULL;") } }
+    func resetAllFaceIds() { queue.sync { exec("UPDATE media_assets SET faceId=NULL;") } }
+
+    /// localIdentifier(=uri) → faceId，供相册「按人物分组」。仅含已聚类（faceId 非空）的 media。
+    func faceIdByLocalIdentifier() -> [String: String] {
+        queue.sync {
+            guard let db = db else { return [:] }
+            var out: [String: String] = [:]
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT uri, faceId FROM media_assets WHERE faceId IS NOT NULL AND faceId != '';", -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let uri = sqlite3_column_text(stmt, 0), let fid = sqlite3_column_text(stmt, 1) {
+                    out[String(cString: uri)] = String(cString: fid)
+                }
+            }
+            sqlite3_finalize(stmt)
+            return out
+        }
+    }
+
     /// 是否存在未完成 session（扫描页中断恢复提示用）。
     func unfinishedSessionId() -> String? {
         queue.sync {

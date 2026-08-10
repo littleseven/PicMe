@@ -271,6 +271,9 @@ final class TagScanOrchestrator: @unchecked Sendable {
                 // 队列空：再次确认未被取消，否则完成
                 let cancelled = read { $0.cancelRequested }
                 if cancelled { return }
+                // Pass1 会话结束 → 跑一次 Pass2 人物聚类（DBSCAN）
+                scanDebugLog("TS Pass1 done → run Pass2 clustering")
+                _ = Pass2Pipeline.runClustering()
                 let snap = mutate { box -> TagScanSessionProgress in
                     box.sessionState = box.sessionState.transition(.complete) ?? .completed
                     return self.snapshotLocked(box)

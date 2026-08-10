@@ -82,14 +82,32 @@ final class GalleryViewModel: ObservableObject {
                 gs.append(DayGroup(id: NSLocalizedString("gallery_group_no_face", comment: ""), items: noFace))
             }
             groups = gs
-        case .person, .landscape, .location:
-            // 数据依赖后续扫描阶段（人物聚类 Pass2 / 内容标签 Pass3 / 地理），先以占位分组开放下拉项。
-            let key: String
-            switch groupingMode {
-            case .person: key = NSLocalizedString("gallery_group_person_pending", comment: "")
-            case .landscape: key = NSLocalizedString("gallery_group_landscape_pending", comment: "")
-            default: key = NSLocalizedString("gallery_group_location_pending", comment: "")
+        case .person:
+            // 接 Pass2 聚类产出（media_assets.faceId）：按人物分组。
+            let faceIdMap = TagDatabase.shared.faceIdByLocalIdentifier()
+            var byPerson: [String: [MediaAsset]] = [:]
+            var none: [MediaAsset] = []
+            for a in assets {
+                if let fid = faceIdMap[a.uri], !fid.isEmpty {
+                    byPerson[fid, default: []].append(a)
+                } else {
+                    none.append(a)
+                }
             }
+            var gs: [DayGroup] = []
+            for (fid, items) in byPerson.sorted(by: { $0.value.count > $1.value.count }) {
+                gs.append(DayGroup(id: NSLocalizedString("gallery_group_person_label", comment: "") + " \(fid)",
+                                   items: items))
+            }
+            if !none.isEmpty {
+                gs.append(DayGroup(id: NSLocalizedString("gallery_group_person_none", comment: ""), items: none))
+            }
+            groups = gs
+        case .landscape, .location:
+            // 数据依赖后续扫描阶段（内容标签 Pass3 / 地理），先以占位分组开放下拉项。
+            let key: String = groupingMode == .landscape
+                ? NSLocalizedString("gallery_group_landscape_pending", comment: "")
+                : NSLocalizedString("gallery_group_location_pending", comment: "")
             groups = assets.isEmpty ? [] : [DayGroup(id: key, items: assets)]
         }
         isLoading = false
