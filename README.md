@@ -77,62 +77,11 @@ PoLang 以「对话即操作」为核心：用户用自然语言与相册交互�
 
 ## PoLang 架构一览
 
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    fontSize: 14px
----
-flowchart TB
-    subgraph CLIENTS["客户端层（双端）"]
-        direction LR
-        AA["<b>:androidApp</b> · Kotlin / Compose<br/>features/ UI + ViewModel<br/>AndroidAgentComposition（组合根）<br/>ChatToolService · CameraToolService<br/>RemoteControlToolService（飞书/TG）"]
-        IOS["<b>iosApp/</b> · SwiftUI<br/>相机 · 相册 · Chat · 设置<br/>IosAgentComposition（组合根）<br/>ChatAgentBridge ── SKIE 消费 shared<br/>Metal 4-pass 美颜 · MNN/MediaPipe"]
-        AA ~~~ IOS
-    end
+<p align="center">
+  <img src="docs/assets/architecture.svg" alt="PoLang 架构图" width="920">
+</p>
 
-    subgraph SHARED[":shared · Agent 编排层（KMP：commonMain + androidMain + iosMain）"]
-        ORCH["<b>commonMain（引擎无关）</b><br/>AgentOrchestrator → CapabilityRegistry → dispatch<br/>PrivacyGuard：媒体处理 100% 钉在端侧，仅文本 / 元数据上云"]
-        CHAIN["Chat 链 streamChat → KoogReActAgent + ChatToolService<br/>Camera 链 processCameraInput → KoogReActAgent + CameraToolService<br/>MemoryManager ── 多轮对话记忆（持久化，重启恢复）"]
-        PLAT["androidMain：LocalLlmEngine（端侧 VLM 打标）· 语音 · DataStore<br/>iosMain：ChatAgentBridge · IosChatGalleryCapability（端侧 VLM 仍 stub）"]
-        ORCH --> CHAIN --> PLAT
-    end
-
-    KOOG["<b>Koog</b> · JetBrains KMP Agent 框架（外部依赖 · 双端共用）<br/>AIAgent · ToolRegistry · ChatMemory · poLangSingleRunStrategy<br/>OpenAILLMClient · PromptExecutor · EventHandler 流式 SSE"]
-
-    SRV["<b>server/</b> · Ktor 后端（独立 Gradle 工程 · api.polang.net）<br/>AI 网关（Cloudflare AI Gateway / 腾讯 TokenHub）· 账号 · 免费额度<br/>管理后台 · 遥测 · /download（APK + iOS Ad-Hoc 分发）"]
-
-    LLM["<b>远程 LLM</b> · DeepSeek / 通义 …（OpenAI 兼容 · tool_calls · 多轮 · 流式）<br/>⚠ 只收文本 / 元数据 —— 用户图片 / 视频文件绝不上传"]
-
-    subgraph MEDIA["端侧媒体处理 · 100% 本地 · 不上云（由 Capability 在设备端调用）"]
-        direction LR
-        ME["<b>Android（Gradle 模块）</b><br/>:engines:beauty-engine OpenGL 美颜<br/>:engines:mnn-core MNN 推理 JNI<br/>:engines:agent-native VLM 打标 JNI<br/>:engines:sentencepiece tokenizer<br/>人脸 · 美颜 · OCR · 抠图/证件照 · 语义搜索 · 打标 · 聚类"]
-        MI["<b>iOS（Framework / 原生管线）</b><br/>Metal 4-pass 美颜（相机实时）<br/>MNN.framework ── 人脸检测 · Florence-2<br/>MediaPipe ── 468 关键点（双源之一）<br/>TagDatabase（GRDB）── 打标 / 聚类<br/>端侧 VLM（Qwen3-VL）── 待接 stub"]
-        ME ~~~ MI
-    end
-
-    AA --> ORCH
-    IOS -->|SharedKit XCFramework| ORCH
-    ORCH -->|"文本 / 指令（自然语言 → 意图编排）"| KOOG
-    KOOG -->|HTTPS| SRV
-    SRV --> LLM
-    PLAT -.->|"媒体数据不出端"| MEDIA
-
-    classDef client fill:#E8F0FE,stroke:#1A73E8,stroke-width:1.5px,color:#111
-    classDef shared fill:#E6F4EA,stroke:#188038,stroke-width:1.5px,color:#111
-    classDef infra fill:#FEF7E0,stroke:#F9AB00,stroke-width:1.5px,color:#111
-    classDef remote fill:#FCE8E6,stroke:#D93025,stroke-width:1.5px,color:#111
-    classDef media fill:#F3E8FD,stroke:#9334E6,stroke-width:1.5px,color:#111
-
-    class AA,IOS client
-    class ORCH,CHAIN,PLAT shared
-    class KOOG,SRV infra
-    class LLM remote
-    class ME,MI media
-```
-
-> 注：`:shared` 五 target（android / jvm / iosX64 / iosArm64 / iosSimulatorArm64），iOS 经 SharedKit XCFramework 消费；iosApp 相机 / 相册 / Chat / 设置已落地，人物页聚类已对齐，端侧 VLM 打标与部分能力仍为 stub，按 [`specs/PARITY_MASTER_PLAN.md`](specs/PARITY_MASTER_PLAN.md) 逐屏追齐。图源文件：[`docs/assets/architecture.mmd`](docs/assets/architecture.mmd)（Mermaid，GitHub 原生渲染）。
+> 注：`:shared` 五 target（android / jvm / iosX64 / iosArm64 / iosSimulatorArm64），iOS 经 SharedKit XCFramework 消费；iosApp 相机 / 相册 / Chat / 设置已落地，人物页聚类已对齐，端侧 VLM 打标与部分能力仍为 stub，按 [`specs/PARITY_MASTER_PLAN.md`](specs/PARITY_MASTER_PLAN.md) 逐屏追齐。架构图由 [`scripts/gen_arch_svg.py`](scripts/gen_arch_svg.py) 网格化生成（改内容跑一遍脚本即可，保证排版整齐）。
 
 ### Chat 双模式架构
 
