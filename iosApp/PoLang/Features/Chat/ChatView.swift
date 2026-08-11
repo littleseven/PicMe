@@ -13,22 +13,55 @@ struct ChatView: View {
     @State private var inputText = ""
     @FocusState private var inputFocused: Bool
     @State private var showClearConfirm = false
+    @State private var isSidebarOpen = false
     /// 诚实占位：功能未实现时的说明（spec §11 允许差异外的项后续补齐）
     @State private var comingSoonFeature: String? = nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            chatTopBar
+        ZStack(alignment: .leading) {
+            VStack(spacing: 0) {
+                chatTopBar
 
-            if viewModel.messages.isEmpty {
-                ChatEmptyState { prompt in
-                    viewModel.send(prompt)  // 直接发送，不填充输入框
+                if viewModel.messages.isEmpty {
+                    ChatEmptyState { prompt in
+                        viewModel.send(prompt)  // 直接发送，不填充输入框
+                    }
+                } else {
+                    messageList
                 }
-            } else {
-                messageList
+
+                inputBar
             }
 
-            inputBar
+            // 会话历史侧栏（spec §2.5）：常驻渲染 + offset 抽屉（条件插入在真机上偶发不展开）
+            Color.black.opacity(isSidebarOpen ? 0.3 : 0)
+                .ignoresSafeArea()
+                .allowsHitTesting(isSidebarOpen)
+                .onTapGesture { withAnimation { isSidebarOpen = false } }
+
+            ChatThreadSidebarView(
+                threads: viewModel.filteredThreads,
+                currentSessionId: viewModel.currentSessionId,
+                searchQuery: $viewModel.searchQuery,
+                onThreadSelected: { sessionId in
+                    viewModel.switchSession(sessionId)
+                    withAnimation { isSidebarOpen = false }
+                },
+                onNewChat: {
+                    viewModel.newSession()
+                    withAnimation { isSidebarOpen = false }
+                },
+                onRename: { sessionId, newTitle in
+                    viewModel.renameSession(sessionId, newTitle: newTitle)
+                },
+                onDelete: { sessionId in
+                    viewModel.deleteSession(sessionId)
+                },
+                onDismiss: { withAnimation { isSidebarOpen = false } }
+            )
+            .offset(x: isSidebarOpen ? 0 : -300)
+            .allowsHitTesting(isSidebarOpen)
+            .accessibilityHidden(!isSidebarOpen)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .onAppear {
@@ -71,8 +104,8 @@ struct ChatView: View {
             .frame(width: 36, height: 36)
             .accessibilityIdentifier("chat_back")
 
-            // 菜单（侧栏：Android 为对话历史抽屉，iOS 单会话 v1 占位）
-            Button { comingSoonFeature = String(localized: "Chat history sidebar is not available in this version.") } label: {
+            // 菜单（打开会话历史侧栏，spec §2.5）
+            Button { withAnimation { isSidebarOpen = true } } label: {
                 MatIcon(name: "mat_menu", size: 22)
                     .foregroundColor(Color(.label))
             }
@@ -89,8 +122,8 @@ struct ChatView: View {
             .frame(width: 36, height: 36)
             .accessibilityIdentifier("chat_report")
 
-            // 新对话（单会话实现 = 清空当前会话上下文）
-            Button { viewModel.clearHistory() } label: {
+            // 新对话（= 新建会话并切换，对齐 Android onNewChat；非清空当前会话）
+            Button { viewModel.newSession() } label: {
                 MatIcon(name: "mat_add_comment", size: 22)
                     .foregroundColor(Color(.label))
             }
@@ -414,26 +447,30 @@ private struct MediaThumbnail: View {
 struct ChatEmptyState: View {
     let onExampleTap: (String) -> Void
 
-    private let examples = [
-        "Find photos from last summer",
-        "Search beach photos",
-        "Find photos with people",
-        "Search night scenes",
-        "Give me an album health report",
-        "Analyze my photos by tag and time",
+    // 本地化热词（key 已在 Localizable.xcstrings 配齐 zh-Hans/zh-Hant），
+    // 显示与点击发送均用本地化串（对齐 Android stringArray 行为）
+    private let examples: [String] = [
+        String(localized: "Find photos from last summer"),
+        String(localized: "Search beach photos"),
+        String(localized: "Find photos with people"),
+        String(localized: "Search night scenes"),
+        String(localized: "Give me an album health report"),
+        String(localized: "Analyze my photos by tag and time"),
     ]
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer().frame(height: 40)
 
-            // Logo
+            // Logo（品牌前景图 104pt 溢出盒内居中不裁切，对齐 spec empty_state.logo）
             ZStack {
                 RoundedRectangle(cornerRadius: 18)
                     .fill(Color(.tertiarySystemBackground))
                     .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color(.separator), lineWidth: 1))
                     .frame(width: 64, height: 64)
-                Image(matIcon: "chat_bubble").font(.system(size: 32)).foregroundColor(.accentColor)
+                Image("chat_logo")
+                    .resizable()
+                    .frame(width: 104, height: 104)
             }
 
             Spacer().frame(height: 16)

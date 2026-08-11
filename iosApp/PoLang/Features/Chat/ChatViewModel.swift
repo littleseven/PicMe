@@ -2,7 +2,7 @@ import Foundation
 import Combine
 import SharedKit
 
-/// Chat ViewModel（MV 模式，对齐 Android ChatViewModel）。
+/// Chat ViewModel（MV 模式，对齐 Android ChatViewModel 多会话语义，spec chat.yaml §9.1 session_model）。
 ///
 /// 交互模型（spec chat.yaml §9.1）：
 /// - 发送流程：user 消息即追加 → thinking 占位（3 点）→ streaming（文本 + 光标）
@@ -10,17 +10,41 @@ import SharedKit
 /// - 发送按钮仅在有内容 && !isProcessing 时显示（Android 无 stop 按钮）
 /// - 媒体结果作为独立消息项（不嵌入文本气泡）
 /// - 空状态示例 chips 点击直接发送
+///
+/// 多会话（spec §2.5/§9.1）：
+/// - 会话索引 + 每会话消息文件（ChatHistoryStore）；LLM 记忆按 sessionId 分键隔离
+/// - 首条用户消息自动生成标题（仅默认标题时覆盖，重命名后不覆盖）
+/// - 当前会话 ID 持久化，冷启校验存在否则回退 default；删除当前会话回退 default
 @MainActor
 final class ChatViewModel: ObservableObject {
     @Published private(set) var messages: [ChatMessage] = []
     @Published private(set) var isProcessing = false
+    @Published private(set) var threads: [ChatThread] = []
+    @Published private(set) var currentSessionId: String = ChatHistoryStore.defaultSessionId
+    @Published var searchQuery = ""
 
     private var bridge: ChatAgentBridge?
     private var actionWatcher: FlowWatcher?
 
+    /// 侧栏列表：标题或预览模糊过滤（对齐 Android filteredThreads）
+    var filteredThreads: [ChatThread] {
+        let query = searchQuery.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return threads }
+        return threads.filter {
+            $0.title.range(of: query, options: .caseInsensitive) != nil ||
+            $0.lastMessagePreview.range(of: query, options: .caseInsensitive) != nil
+        }
+    }
+
+    /// 幂等：同一 bridge 重复 configure（tab 切换 onAppear）不重载磁盘，
+    /// 避免覆盖流式中的内存消息（Android 侧 Room Flow 天然无此问题）。
     func configure(bridge: ChatAgentBridge) {
+        if self.bridge === bridge { return }
         self.bridge = bridge
-        messages = ChatHistoryStore.shared.load()
+        currentSessionId = ChatHistoryStore.shared.currentSessionId
+        bridge.setSessionId(id: currentSessionId)
+        messages = ChatHistoryStore.shared.loadMessages(sessionId: currentSessionId)
+        threads = ChatHistoryStore.shared.loadThreads()
         actionWatcher?.cancel()
         actionWatcher = bridge.watchUiActions { [weak self] dto in
             Task { @MainActor in self?.handleUiAction(dto) }
@@ -36,6 +60,8 @@ final class ChatViewModel: ObservableObject {
 
         // 1. user 消息即追加
         messages.append(ChatMessage(role: .user, text: trimmed))
+        autoTitleIfNeeded(firstUserText: trimmed)
+        touchThread(preview: trimmed)
         persist()
 
         // 2. assistant 占位：thinking 态（首 token 前显示 3 点动画）
@@ -46,7 +72,7 @@ final class ChatViewModel: ObservableObject {
         ))
         isProcessing = true
 
-        // 3. 启动推理
+        // 3. 启动推理（bridge 已指向当前 sessionId，LLM 记忆按会话隔离）
         bridge.sendMessage(
             input: trimmed,
             onText: { [weak self] snapshot in
@@ -70,14 +96,62 @@ final class ChatViewModel: ObservableObject {
         )
     }
 
+    // MARK: - 会话管理（对齐 Android switchSession/newSession/renameSession/deleteSession）
+
+    /// 切换会话：换 UI 消息 + 换 bridge memory ID，持久化当前会话
+    func switchSession(_ sessionId: String) {
+        guard sessionId != currentSessionId else { return }
+        persist()
+        currentSessionId = sessionId
+        ChatHistoryStore.shared.currentSessionId = sessionId
+        bridge?.setSessionId(id: sessionId)
+        messages = ChatHistoryStore.shared.loadMessages(sessionId: sessionId)
+    }
+
+    /// 新建会话并切换过去（顶栏 + / 侧栏 +）
+    func newSession() {
+        let sessionId = UUID().uuidString
+        ChatHistoryStore.shared.upsertThread(ChatThread(
+            sessionId: sessionId,
+            title: String(localized: "New Chat")
+        ))
+        threads = ChatHistoryStore.shared.loadThreads()
+        switchSession(sessionId)
+    }
+
+    /// 重命名会话（空白忽略；重命名后不再被自动标题覆盖）
+    func renameSession(_ sessionId: String, newTitle: String) {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              var thread = threads.first(where: { $0.sessionId == sessionId }) else { return }
+        thread.title = trimmed
+        ChatHistoryStore.shared.upsertThread(thread)
+        threads = ChatHistoryStore.shared.loadThreads()
+    }
+
+    /// 删除会话：删消息 + 会话记录 + 该会话 LLM 记忆；删除当前会话回退 default
+    func deleteSession(_ sessionId: String) {
+        ChatHistoryStore.shared.deleteThread(sessionId: sessionId)
+        bridge?.clearHistory(sessionId: sessionId) { }
+        if currentSessionId == sessionId {
+            let fallback = ChatHistoryStore.defaultSessionId
+            currentSessionId = fallback
+            ChatHistoryStore.shared.currentSessionId = fallback
+            bridge?.setSessionId(id: fallback)
+            messages = ChatHistoryStore.shared.loadMessages(sessionId: fallback)
+        }
+        threads = ChatHistoryStore.shared.loadThreads()
+    }
+
+    /// 清空当前会话（顶栏 delete_sweep）：清当前会话消息 + 当前会话 LLM 记忆
     func clearHistory() {
         guard let bridge else { return }
-        bridge.clearHistory { [weak self] in
-            Task { @MainActor in
-                self?.messages = []
-                ChatHistoryStore.shared.clear()
-            }
-        }
+        let sessionId = currentSessionId
+        // UI 消息与预览同步清（文件操作不依赖异步回调，避免清记忆途中切会话漏清）
+        messages = []
+        ChatHistoryStore.shared.clearMessages(sessionId: sessionId)
+        touchThread(preview: "")
+        bridge.clearCurrentHistory { }
     }
 
     deinit {
@@ -114,6 +188,7 @@ final class ChatViewModel: ObservableObject {
         } else {
             messages[idx].text = summary.isEmpty ? String(localized: "(No response)") : summary
         }
+        touchThread(preview: messages[idx].text)
         persist()
     }
 
@@ -132,17 +207,72 @@ final class ChatViewModel: ObservableObject {
                 text: header,
                 mediaIds: ids
             ))
+            touchThread(preview: header)
             persist()
         default:
             break
         }
     }
 
+    // MARK: - 会话标题与索引
+
+    /// 首条用户消息自动生成标题：仅当标题仍为默认值时覆盖（对齐 Android updateSessionTitleIfDefault）
+    private func autoTitleIfNeeded(firstUserText: String) {
+        guard var thread = threads.first(where: { $0.sessionId == currentSessionId }) else {
+            // default 会话首次发消息时补建会话记录（对齐 Android ensureSessionExists）
+            let thread = ChatThread(
+                sessionId: currentSessionId,
+                title: Self.sanitizeTitle(firstUserText)
+            )
+            ChatHistoryStore.shared.upsertThread(thread)
+            threads = ChatHistoryStore.shared.loadThreads()
+            return
+        }
+        guard Self.isDefaultTitle(thread.title) else { return }
+        thread.title = Self.sanitizeTitle(firstUserText)
+        ChatHistoryStore.shared.upsertThread(thread)
+        threads = ChatHistoryStore.shared.loadThreads()
+    }
+
+    /// 更新会话预览与更新时间（对齐 Android touchSession）
+    private func touchThread(preview: String) {
+        guard var thread = threads.first(where: { $0.sessionId == currentSessionId }) else { return }
+        thread.updatedAt = Date()
+        thread.lastMessagePreview = String(preview.prefix(50))
+        ChatHistoryStore.shared.upsertThread(thread)
+        threads = ChatHistoryStore.shared.loadThreads()
+    }
+
+    /// 默认标题判定（对齐 Android isDefaultTitle：空 / "New Chat" / "Chat" / 本地化"新建聊天"）
+    private static func isDefaultTitle(_ title: String) -> Bool {
+        if title.isEmpty || title == "New Chat" || title == "Chat" { return true }
+        return title == String(localized: "New Chat")
+    }
+
+    /// 标题清洗（对齐 Android ChatTitleGenerator.sanitizeTitle：
+    /// 去首尾标点、换行/连续空白折叠、>20 字符截断加 …）
+    static func sanitizeTitle(_ content: String) -> String {
+        let fallback = String(localized: "New Chat")
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return fallback }
+
+        let trimChars = CharacterSet(charactersIn: ".,!?;:。，！？；：\"'「」『』()（）[]【】{}")
+        let collapsed = trimmed
+            .components(separatedBy: .newlines).joined(separator: " ")
+            .components(separatedBy: .whitespaces).filter { !$0.isEmpty }.joined(separator: " ")
+        var cleaned = collapsed.trimmingCharacters(in: trimChars)
+
+        if cleaned.count > 20 {
+            cleaned = String(cleaned.prefix(20)).trimmingCharacters(in: trimChars) + "…"
+        }
+        return cleaned.isEmpty ? fallback : cleaned
+    }
+
     // MARK: - Persistence
 
     private func persist() {
-        // 只持久化非流式消息
+        // 只持久化非流式消息，落当前会话文件
         let persisted = messages.filter { !$0.isStreaming }
-        ChatHistoryStore.shared.save(persisted)
+        ChatHistoryStore.shared.saveMessages(sessionId: currentSessionId, messages: persisted)
     }
 }
