@@ -174,6 +174,13 @@ final class PexelsViewModel: ObservableObject {
     private func runDownload(_ targets: [PexelsPhoto]) async {
         state.downloading = true
         state.progress = "0/\(targets.count)"
+        // 保存前确保 AddOnly 授权（对标 ShutterButton；被拒直接提示，不静默失败）
+        guard await Self.ensureAddPermission() else {
+            state.downloading = false
+            state.progress = ""
+            toast = L("Photos add permission denied")
+            return
+        }
         var success = 0
         for (i, photo) in targets.enumerated() {
             state.progress = "\(i + 1)/\(targets.count)"
@@ -186,6 +193,12 @@ final class PexelsViewModel: ObservableObject {
         state.progress = ""
         state.selectedIds = []
         toast = String(format: L("Done: %1$d/%2$d saved"), success, targets.count)
+    }
+
+    /// 确保相册 AddOnly 授权（对标 ShutterButton：notDetermined 触发系统弹窗，被拒返回 false）。
+    private static func ensureAddPermission() async -> Bool {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        return status == .authorized || status == .limited
     }
 
     // MARK: - 下载 + 存相册

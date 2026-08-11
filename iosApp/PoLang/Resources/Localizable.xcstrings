@@ -1,6 +1,29 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Photos add permission denied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos add permission denied — enable in Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相册添加权限被拒，请在设置开启"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相簿加入權限被拒，請在設定開啟"
+          }
+        }
+      }
+    },
     "analysis.failed": {
       "localizations": {
         "en": {
@@ -9177,44 +9200,134 @@
     },
     "Chat History": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Chat History" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "聊天历史" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "聊天歷史" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊天历史"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊天歷史"
+          }
+        }
       }
     },
     "New Chat": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "New Chat" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "新建聊天" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "新建聊天" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Chat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建聊天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建聊天"
+          }
+        }
       }
     },
     "Search history": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Search history" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "搜索历史" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "搜尋歷史" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search history"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索历史"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋歷史"
+          }
+        }
       }
     },
     "Delete chat": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Delete chat" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "删除聊天" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "刪除聊天" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete chat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除聊天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除聊天"
+          }
+        }
       }
     },
     "Delete Chat": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Delete Chat" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "删除聊天" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "刪除聊天" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Chat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除聊天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除聊天"
+          }
+        }
       }
     },
     "Delete \"%@\"? This cannot be undone.": {
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Delete \"%@\"? This cannot be undone." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "删除「%@」？此操作不可撤销。" } },
-        "zh-Hant": { "stringUnit": { "state": "translated", "value": "刪除「%@」？此操作不可復原。" } }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete \"%@\"? This cannot be undone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除「%@」？此操作不可撤销。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除「%@」？此操作不可復原。"
+          }
+        }
       }
     },
     "gallery_search_hint": {
