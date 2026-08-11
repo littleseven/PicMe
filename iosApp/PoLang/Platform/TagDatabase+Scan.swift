@@ -485,6 +485,17 @@ extension TagDatabase {
     func resetAllEmbeddingAssignments() { queue.sync { exec("UPDATE face_embeddings SET person_id=NULL;") } }
     func resetAllFaceIds() { queue.sync { exec("UPDATE media_assets SET faceId=NULL;") } }
 
+    /// 「全量扫描」硬重置：仅清空本次扫描会重新产出的数据——face_embeddings / persons / person_relations。
+    /// 不触碰 media_assets 的字段（那些由 Pass1 在扫描过程中按图逐张更新，属扫描过程更新而非启动重置），
+    /// 也不触碰非扫描产物（如画质/美学评分）。从 0 重新计数，结果只反映本次扫描。
+    func clearAllFaceClusteringData() {
+        queue.sync {
+            exec("DELETE FROM face_embeddings;")
+            exec("DELETE FROM persons;")
+            exec("DELETE FROM person_relations;")
+        }
+    }
+
     /// localIdentifier(=uri) → faceId，供相册「按人物分组」。仅含已聚类（faceId 非空）的 media。
     func faceIdByLocalIdentifier() -> [String: String] {
         queue.sync {

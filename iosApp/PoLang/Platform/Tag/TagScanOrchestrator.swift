@@ -144,6 +144,11 @@ final class TagScanOrchestrator: @unchecked Sendable {
         }
         // 3) 入队（先清空旧会话残留任务，防累积——否则任务数远超照片数、扫描不终止）
         db.clearAllTasks()
+        if mode == .full {
+            // 全量扫描：硬重置人脸聚类产物（embedding/person/relation + media 脸部字段），
+            // 从 0 重新计数——Pass1 重新生成、Pass2 重新聚类，结果只反映本次扫描。
+            db.clearAllFaceClusteringData()
+        }
         db.enqueuePass1Tasks(sessionId: sid, mediaIds: planned, now: now)
         // 4) 置状态 + 启运行循环（持锁）
         let snap = mutate { box -> TagScanSessionProgress in

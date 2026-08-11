@@ -13,14 +13,14 @@ import Foundation
 
 /// 聚类维护参数（镜像 shared/.../ClusteringConfig.kt）。
 private enum ClusterParams {
-    static let cosineThreshold: Float = 0.65          // COSINE_THRESHOLD
-    static let mergeSimilarityThreshold: Float = 0.65  // MERGE_SIMILARITY_THRESHOLD
-    static let mergeSmallSimThreshold: Float = 0.50    // MERGE_SMALL_CLUSTER_SIMILARITY_THRESHOLD
+    static let cosineThreshold: Float = 0.45          // 对齐 minSimilarity，重分配同人碎片
+    static let mergeSimilarityThreshold: Float = 0.50  // 合并同人碎片
+    static let mergeSmallSimThreshold: Float = 0.42    // 小簇合并再放宽
     static let mergeSmallMaxSize = 4                    // MERGE_SMALL_CLUSTER_MAX_SIZE
-    static let splitIntraMin: Float = 0.55             // SPLIT_INTRA_MIN
+    static let splitIntraMin: Float = 0.45             // 降低以拆分「同人组混入异人」（iOS 5pt sim~0.5）
     static let splitCrossMax: Float = 0.45             // SPLIT_CROSS_MAX
     static let splitMinClusterSize = 4                  // SPLIT_MIN_CLUSTER_SIZE
-    static let sinkCohesionMax: Float = 0.40           // SINK_COHESION_MAX
+    static let sinkCohesionMax: Float = 0.40           // 兜底解散桥接链式 sink（median<0.40）
     static let sinkMinSize = 8                          // SINK_MIN_SIZE
     static let sinkSampleCap = 30                       // SINK_SAMPLE_CAP
     static let maxMergeIterations = 200

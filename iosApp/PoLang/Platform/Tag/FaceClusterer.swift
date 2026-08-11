@@ -7,7 +7,7 @@ import Foundation
 /// 不需全局统一 eps。embedding 须 L2 归一化（cosine = dot）。
 enum FaceClusterer {
     static let knnK = 2
-    static let minSimilarity: Float = 0.65
+    static let minSimilarity: Float = 0.45
     static let minClusterSize = 2
 
     /// 聚类：返回 (人物簇数组[每簇=输入下标列表], 噪声下标列表)。

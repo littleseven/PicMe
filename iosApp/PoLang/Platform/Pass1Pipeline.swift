@@ -68,12 +68,6 @@ class Pass1Pipeline {
     /// 最大人脸检测尺寸（长边像素），对标 Android MAX_FACE_DETECT_SIZE
     private let maxDetectSize: CGFloat = 640
 
-    #if DEBUG
-    /// 对齐诊断 dump 计数（限制总量，避免磁盘膨胀）。
-    private var alignDiagCount = 0
-    private let alignDiagCap = 60
-    #endif
-
     private init() {}
 
     // MARK: - Model Loading
@@ -81,13 +75,6 @@ class Pass1Pipeline {
     /// 加载所有模型（det_500m/2d106 已 bundled，glintr100 + MobileCLIP 需下载）
     func loadModels() -> Bool { ioQueue.sync { loadModelsImpl() } }
     private func loadModelsImpl() -> Bool {
-        #if DEBUG
-        // 清空上次的 align 诊断 dump + 重置计数，确保拉到的是本次扫描的结果
-        alignDiagCount = 0
-        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            try? FileManager.default.removeItem(at: docs.appendingPathComponent("align_diag"))
-        }
-        #endif
         // 1. RetinaFace + 2D106（bundled assets）
         guard let retinaPath = resolveBundledModel(name: "det_500m", ext: "mnn"),
               let landmarkPath = resolveBundledModel(name: "2d106det", ext: "mnn") else {
@@ -189,7 +176,7 @@ class Pass1Pipeline {
 
         for fi in 0..<faceCount {
             let off = fi * 15
-            let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // RetinaFace 原生 5 点（已验证正确）
+            let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // RetinaFace 原生 5 点
             allLandmarks5.append(lm5)
 
             // 仿射对齐到 112×112
@@ -197,15 +184,6 @@ class Pass1Pipeline {
 
             // Glint360K embedding（ONNX Runtime，替代 MNN）
             guard let rgbData = rgbBytesFromImage(alignedFace, size: 112) else { continue }
-
-            #if DEBUG
-            // 对齐质量诊断：dump 对齐脸 + ONNX 实际输入（RGB 重建），拉到本机肉眼比对
-            // aligned 正常但 onnx_input 异常 → rgbBytesFromImage 通道/损坏；两者都异常 → warp/landmark
-            dumpAlignDiag(alignedFace, mediaId: mediaId, faceIdx: fi, kind: "aligned")
-            if let onnxInput = imageFromRGBBytes(rgbData, size: 112) {
-                dumpAlignDiag(onnxInput, mediaId: mediaId, faceIdx: fi, kind: "onnx_input")
-            }
-            #endif
             if let embedding = rgbData.withUnsafeBytes({ (ptr: UnsafeRawBufferPointer) -> Data? in
                 guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return nil }
                 return faceEmbedder.extractEmbedding(base, width: 112, height: 112)
@@ -331,50 +309,6 @@ class Pass1Pipeline {
         }
         return rgbData
     }
-
-    #if DEBUG
-    /// 把对齐诊断图写到 Documents/align_diag/（DEBUG 专用，限量 alignDiagCap 张）。
-    private func dumpAlignDiag(_ image: UIImage, mediaId: Int64, faceIdx: Int, kind: String) {
-        guard alignDiagCount < alignDiagCap else { return }
-        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let dir = docs.appendingPathComponent("align_diag")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        guard let png = image.pngData() else { return }
-        let url = dir.appendingPathComponent("\(kind)_m\(mediaId)_f\(faceIdx).png")
-        try? png.write(to: url)
-        alignDiagCount += 1
-    }
-
-    /// 从 RGB 交错字节（每像素 3 字节，即 ONNX 实际输入）重建 UIImage，用于肉眼核对通道/完整性。
-    private func imageFromRGBBytes(_ rgb: Data, size: Int) -> UIImage? {
-        guard rgb.count == size * size * 3 else { return nil }
-        var rgba = Data(count: size * size * 4)
-        rgb.withUnsafeBytes { rPtr in
-            rgba.withUnsafeMutableBytes { wPtr in
-                guard let rb = rPtr.bindMemory(to: UInt8.self).baseAddress,
-                      let wb = wPtr.bindMemory(to: UInt8.self).baseAddress else { return }
-                for i in 0..<(size * size) {
-                    wb[i * 4] = rb[i * 3]           // R
-                    wb[i * 4 + 1] = rb[i * 3 + 1]   // G
-                    wb[i * 4 + 2] = rb[i * 3 + 2]   // B
-                    wb[i * 4 + 3] = 255             // A
-                }
-            }
-        }
-        guard let provider = CGDataProvider(data: rgba as CFData) else { return nil }
-        guard let cg = CGImage(
-            width: size, height: size,
-            bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: size * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-            provider: provider,
-            decode: nil as UnsafePointer<CGFloat>?,
-            shouldInterpolate: false,
-            intent: .defaultIntent
-        ) else { return nil }
-        return UIImage(cgImage: cg)
-    }
-    #endif
 
     private func isValidEmbedding(_ data: Data) -> Bool {
         guard data.count == 512 * 4 else { return false }
