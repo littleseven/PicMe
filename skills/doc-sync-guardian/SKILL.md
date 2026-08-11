@@ -5,7 +5,7 @@ description: |
 version: 1.1.0
 created: 2026-05-03
 updated: 2026-08-03
-maintainer: [CR] 规范守护者 + [CO] 协调者
+maintainer: "[CR] 规范守护者 + [CO] 协调者"
 tags:
   - documentation
   - sync

@@ -5,7 +5,7 @@ description: |
 version: 1.1.0
 created: 2026-05-03
 updated: 2026-08-03
-maintainer: [PM] 产品经理 + [CO] 协调者
+maintainer: "[PM] 产品经理 + [CO] 协调者"
 tags:
   - requirement
   - routing

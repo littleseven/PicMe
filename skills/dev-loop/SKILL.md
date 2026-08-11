@@ -4,7 +4,7 @@ description: Use when running the full PoLang development self-heal loop from co
 version: 2.2.0
 created: 2026-05-03
 updated: 2026-08-03
-maintainer: [RD] 全栈工程师
+maintainer: "[RD] 全栈工程师"
 tags:
   - android
   - build

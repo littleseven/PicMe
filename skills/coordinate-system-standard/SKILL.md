@@ -5,7 +5,7 @@ description: |
 version: 1.2.0
 created: 2026-05-03
 updated: 2026-08-08
-maintainer: [RD] 全栈工程师 + [CR] 规范守护者
+maintainer: "[RD] 全栈工程师 + [CR] 规范守护者"
 tags:
   - coordinate-system
   - landmark

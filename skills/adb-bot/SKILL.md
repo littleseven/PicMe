@@ -4,7 +4,7 @@ description: Use when connecting Android devices, controlling app lifecycle, fil
 version: 2.0.0
 created: 2026-05-03
 updated: 2026-08-03
-maintainer: [RD] 全栈工程师
+maintainer: "[RD] 全栈工程师"
 tags:
   - adb
   - android
