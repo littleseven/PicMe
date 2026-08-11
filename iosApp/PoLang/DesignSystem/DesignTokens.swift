@@ -444,6 +444,24 @@ enum GridTokens {
     static let cornerRadius: CGFloat = 2
 }
 
+// MARK: - SearchField（SearchTopBar 内嵌胶囊搜索框；SSOT: design-tokens.json searchField）
+
+enum SearchFieldTokens {
+    static let cornerRadius: CGFloat = 24
+    static let paddingH: CGFloat = 12
+    static let paddingV: CGFloat = 8
+    static let backgroundAlpha: CGFloat = 0.7
+    static let fontSize: CGFloat = 14
+    static let iconGap: CGFloat = 8
+    static let iconAlpha: CGFloat = 0.5
+    static let placeholderAlpha: CGFloat = 0.4
+    static let clearButtonSize: CGFloat = 20
+    static let clearIconSize: CGFloat = 16
+    static let resultCountFontSize: CGFloat = 12
+    static let resultCountAlpha: CGFloat = 0.6
+    static let resultCountGap: CGFloat = 8
+}
+
 // MARK: - Pager
 
 enum PagerTokens {

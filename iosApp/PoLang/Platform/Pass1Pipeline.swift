@@ -391,14 +391,11 @@ class Pass1Pipeline {
         }
     }
 
+    /// semanticEmbedding 编码（contracts §5.5/R6：大端 float32×512 → Base64.NO_WRAP，
+    /// 与 Android 逐字节一致）。此前为原生小端内存拷贝（LE），与契约格式不符——
+    /// 本改动前写入库的旧行需重跑 Pass1 覆盖（语义召回此前无消费方，无线上影响）。
     private func floatArrayToBase64(_ floats: [Float]) -> String? {
-        var data = Data(count: floats.count * 4)
-        data.withUnsafeMutableBytes { ptr in
-            floats.withUnsafeBufferPointer { src in
-                ptr.copyMemory(from: UnsafeRawBufferPointer(src))
-            }
-        }
-        return data.base64EncodedString()
+        SemanticEmbeddingCodec.encode(floats)
     }
 
     /// 对标 Android computeFaceFocusY：人脸 ROI 垂直中心的并集

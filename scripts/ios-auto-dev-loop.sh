@@ -195,7 +195,7 @@ run_phase1() {
     else
         echo ""
         echo "→ shared:jvmTest..."
-        if ./gradlew :shared:jvmTest > "$OUTPUT_DIR/jvm_test.log" 2>&1; then
+        if JITPACK=true ./gradlew :shared:jvmTest > "$OUTPUT_DIR/jvm_test.log" 2>&1; then
             local summary
             summary=$(grep -E "tests? completed|BUILD SUCCESSFUL" "$OUTPUT_DIR/jvm_test.log" | tail -1 || echo "完成")
             log_ok "shared:jvmTest — $summary"

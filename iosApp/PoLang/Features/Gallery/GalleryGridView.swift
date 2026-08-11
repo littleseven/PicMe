@@ -3,9 +3,9 @@ import SharedKit
 
 /// 相册网格页（对齐 Android `GalleryScreen.kt` + `MediaGrid.kt`，量化基准 = dump 1200px/360dp）：
 /// - 自建 48pt `AppTopBar`（去系统 NavigationStack 大标题），操作组对齐 GalleryTopBar：
-///   模型中心→ModelDownloadCenterView（端侧模型下载中心，对齐 Settings 入口）；搜索/扫描依赖 Phase 6 管线，点击弹"敬请期待"诚实占位；
-///   分组菜单扁平 6 项（对齐 dump 下拉：全部/日期/人脸/人物/风景/地点），NONE/DATE 实做，
-///   其余依赖 Phase 6 索引数据灰置。
+///   模型中心→ModelDownloadCenterView（端侧模型下载中心，对齐 Settings 入口）；搜索→激活 SearchTopBar（防抖 300ms，
+///   MediaSearchEngine 端侧检索）；扫描→TagScanScreen；分组菜单扁平 6 项（对齐 dump 下拉：全部/日期/人脸/人物/风景/地点），
+///   NONE/DATE 实做，其余依赖 Phase 6 索引数据灰置。
 /// - 网格：**固定 3 列**（dump 实测 3 列、间距/边距 7px≈2dp；列数固定、格宽 = 屏宽/列数导出）。
 /// - 长按进选择模式（对齐 gallery_longpress dump）：顶栏 morph 为 返回/已选 N 项/全选/分享/删除，
 ///   缩略图右上角勾选圈（未选灰圈/选中蓝底白勾+浅蓝遮罩）。
@@ -25,8 +25,6 @@ struct GalleryGridView: View {
     @State private var showModelCenter = false
     /// TAG 扫描页（SP-B）：相册顶栏扫描图标进入
     @State private var showScanScreen = false
-    /// 搜索/扫描 Phase 6 未实现：点击顶栏图标时弹"敬请期待"诚实占位（对齐 ChatView 模式）
-    @State private var comingSoonFeature: String? = nil
     /// 删除直调 Swift 桥（PHAssetChangeRequest 自带系统确认；成功后观察者驱动网格刷新）
     private let bridge = PhMediaBridge()
 
@@ -44,14 +42,23 @@ struct GalleryGridView: View {
     }
 
     private var accessState: GalleryAccessState { permissionOverride ?? permission.state }
-    private var allItems: [MediaAsset] { vm.groups.flatMap(\.items) }
+    private var allItems: [MediaAsset] {
+        vm.isSearchActive ? vm.searchResults : vm.groups.flatMap(\.items)
+    }
 
     var body: some View {
         // ⚠️ 刘海屏适配：背景必须用 .background modifier，而非 ZStack 兄弟 Color.ignoresSafeArea()。
         // 兄弟 Color 忽略 safe area 会把 ZStack 布局区扩展到全屏，连带把 VStack 顶栏拉到 y=0，
         // 顶栏被刘海/灵动岛遮挡。改为 .background 后 VStack 保留顶部 safe-area inset，填色仍渗到状态栏。
         VStack(spacing: 0) {
-            if isSelectionMode {
+            if vm.isSearchActive {
+                SearchTopBar(
+                    query: $vm.searchQuery,
+                    resultCount: vm.hasSearched ? vm.searchResults.count : nil,
+                    onBack: { vm.exitSearch() },
+                    onQueryChange: { vm.handleQueryChange($0) }
+                )
+            } else if isSelectionMode {
                 selectionTopBar
             } else {
                 normalTopBar
@@ -87,17 +94,6 @@ struct GalleryGridView: View {
             Button(String(localized: "Delete"), role: .destructive) { deleteSelected() }
             Button(String(localized: "Cancel"), role: .cancel) {}
         }
-        .alert(
-            String(localized: "Coming Soon"),
-            isPresented: Binding(
-                get: { comingSoonFeature != nil },
-                set: { if !$0 { comingSoonFeature = nil } }
-            )
-        ) {
-            Button(String(localized: "OK"), role: .cancel) {}
-        } message: {
-            Text(comingSoonFeature ?? "")
-        }
         .onAppear {
             if permissionOverride == nil { permission.refresh() }
             vm.start()
@@ -108,7 +104,7 @@ struct GalleryGridView: View {
     // MARK: - 顶栏（常态 / 选择态 morph，对齐 gallery_grid / gallery_longpress dump）
 
     /// 常态顶栏：标题 + 5 操作组（对齐 Android GalleryTopBar）：
-    /// 模型中心→ModelDownloadCenterView（端侧模型下载中心）；搜索/扫描 Phase 6 管线未实现，点击弹"敬请期待"诚实占位；
+    /// 模型中心→ModelDownloadCenterView（端侧模型下载中心）；搜索→激活 SearchTopBar（端侧搜索）；
     /// 分组菜单/设置可用。
     private var normalTopBar: some View {
         AppTopBar(title: String(localized: "Gallery")) {
@@ -120,7 +116,7 @@ struct GalleryGridView: View {
             }
             AppTopBarAction(systemName: "magnifyingglass",
                             accessibilityID: "topbar_search") {
-                comingSoonFeature = String(localized: "Searching photos is not available in this version.")
+                vm.enterSearch()
             }
             groupingMenu
             AppTopBarAction(systemName: "gearshape",
@@ -183,45 +179,84 @@ struct GalleryGridView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch accessState {
-        case .full, .limited:
-            if vm.isLoading {
-                SplashPlaceholder()
-            } else if vm.groups.isEmpty {
-                EmptyGalleryMessage(text: String(localized: "No media found"))
-            } else {
-                // 显式 VStack 容器：防 ScrollView 贪婪占满把 Limited banner 挤出可视区（🟡-6）
-                VStack(spacing: 0) {
-                    gridBody
-                    if accessState == .limited { limitedBanner }
+        // 搜索态优先（spec states.search_active：grid → search_results）
+        if vm.isSearchActive {
+            searchContent
+        } else {
+            switch accessState {
+            case .full, .limited:
+                if vm.isLoading {
+                    SplashPlaceholder()
+                } else if vm.groups.isEmpty {
+                    EmptyGalleryMessage(text: String(localized: "No media found"))
+                } else {
+                    // 显式 VStack 容器：防 ScrollView 贪婪占满把 Limited banner 挤出可视区（🟡-6）
+                    VStack(spacing: 0) {
+                        gridBody
+                        if accessState == .limited { limitedBanner }
+                    }
+                }
+            case .notDetermined:
+                PermissionMessageView(
+                    title: String(localized: "Gallery Access"),
+                    description: String(localized: "Allow access to browse and manage your photos and videos"),
+                    primaryButton: .init(title: String(localized: "Grant Permissions"),
+                                         accessibilityID: "gallery_auth_button") {
+                        Task { await permission.requestAccess() }
+                    })
+            case .addOnly:
+                PermissionMessageView(
+                    title: String(localized: "Gallery Access"),
+                    description: String(localized: "Add-Only Access Hint"),
+                    primaryButton: .init(title: String(localized: "Open Settings"),
+                                         accessibilityID: "gallery_addonly_settings") {
+                        openSystemSettings()
+                    })
+                .accessibilityIdentifier("gallery_addonly_hint")
+            case .denied:
+                PermissionMessageView(
+                    title: String(localized: "Photo Library Unavailable"),
+                    description: String(localized: "Allow access to browse and manage your photos and videos"),
+                    primaryButton: .init(title: String(localized: "Open Settings")) {
+                        openSystemSettings()
+                    })
+                .accessibilityIdentifier("gallery_denied")
+            }
+        }
+    }
+
+    // MARK: - 搜索内容区（spec §search_results / §search_no_result / states.search_active）
+
+    @ViewBuilder
+    private var searchContent: some View {
+        if vm.isSearchLoading {
+            // spec §search_results.loading: 首次搜索无旧结果 → 全屏 Loading
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if vm.searchResults.isEmpty {
+            // spec §search_no_result: 搜索结果为空 → 居中提示
+            EmptyGalleryMessage(
+                text: String(format: String(localized: "gallery_search_no_result_with_query"),
+                             vm.lastSearchQuery))
+        } else {
+            // spec §search_results: 网格替换为搜索结果，复用主网格全部能力
+            searchGridBody
+        }
+    }
+
+    private var searchGridBody: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: GridTokens.spacing, pinnedViews: .sectionHeaders) {
+                ForEach(vm.searchGroup.map { [$0] } ?? []) { group in
+                    Section(header: GroupHeaderView(title: group.id,
+                                                    count: group.items.count)) {
+                        cells(for: group.items)
+                    }
                 }
             }
-        case .notDetermined:
-            PermissionMessageView(
-                title: String(localized: "Gallery Access"),
-                description: String(localized: "Allow access to browse and manage your photos and videos"),
-                primaryButton: .init(title: String(localized: "Grant Permissions"),
-                                     accessibilityID: "gallery_auth_button") {
-                    Task { await permission.requestAccess() }
-                })
-        case .addOnly:
-            PermissionMessageView(
-                title: String(localized: "Gallery Access"),
-                description: String(localized: "Add-Only Access Hint"),
-                primaryButton: .init(title: String(localized: "Open Settings"),
-                                     accessibilityID: "gallery_addonly_settings") {
-                    openSystemSettings()
-                })
-            .accessibilityIdentifier("gallery_addonly_hint")
-        case .denied:
-            PermissionMessageView(
-                title: String(localized: "Photo Library Unavailable"),
-                description: String(localized: "Allow access to browse and manage your photos and videos"),
-                primaryButton: .init(title: String(localized: "Open Settings")) {
-                    openSystemSettings()
-                })
-            .accessibilityIdentifier("gallery_denied")
+            .padding(GridTokens.spacing)
         }
+        .accessibilityIdentifier("search_results_grid")
     }
 
     private var gridBody: some View {

@@ -12,6 +12,7 @@ import com.mamba.picme.agent.core.platform.logging.Logger
 import com.mamba.picme.agent.core.platform.storage.ChatHistoryCleaner
 import com.mamba.picme.agent.core.platform.thread.DispatcherProvider
 import com.mamba.picme.agent.core.runtime.state.SceneManager
+import com.mamba.picme.data.IosChatSearchBridge
 import com.mamba.picme.data.IosMediaRepository
 import com.mamba.picme.data.IosMediaRepositoryBridge
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -39,8 +40,9 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * 能路由到 iOS 相册能力执行端。
  *
  * 调用方式：Swift `AppContainer` 在初始化时经 SharedKit framework 调
- * [initialize]，传入 Swift 实现的 [IosMediaRepositoryBridge]（PhMediaBridge）和
- * `deviceId`（identifierForVendor + UserDefaults 持久化），随后取 [chatBridge] 供
+ * [initialize]，传入 Swift 实现的 [IosMediaRepositoryBridge]（PhMediaBridge）、
+ * `deviceId`（identifierForVendor + UserDefaults 持久化）与 [IosChatSearchBridge]
+ * （PhSearchBridge → MediaSearchEngine，chat 搜索链路契约 §9），随后取 [chatBridge] 供
  * `ChatViewModel` 消费。
  *
  * [PRIVACY] 红线：组合根不注入任何 [com.mamba.picme.agent.core.inference.local.ImageInferenceEngine]
@@ -65,8 +67,14 @@ object IosAgentComposition {
      *
      * @param bridge Swift 侧 Photos framework 桥实现（PhMediaBridge）
      * @param deviceId 设备标识（identifierForVendor + UserDefaults 持久化），作访客 X-Device-Id
+     * @param searchBridge Swift 侧搜索引擎桥（PhSearchBridge → MediaSearchEngine）；null 时
+     *                     chat 搜索保持文件名匹配降级（防御路径，契约 §9）
      */
-    fun initialize(bridge: IosMediaRepositoryBridge, deviceId: String) {
+    fun initialize(
+        bridge: IosMediaRepositoryBridge,
+        deviceId: String,
+        searchBridge: IosChatSearchBridge? = null
+    ) {
         if (!initialized.compareAndSet(false, true)) {
             Logger.w(TAG, "initialize called twice, skipping")
             return
@@ -105,7 +113,7 @@ object IosAgentComposition {
         )
 
         // 注册 iOS chat 相册能力（T4），使 ChatToolService.dispatchCommand → CapabilityRegistry(CHAT) 路由可达
-        orchestrator.registerCapability(IosChatGalleryCapability(mediaRepository, bridge))
+        orchestrator.registerCapability(IosChatGalleryCapability(mediaRepository, bridge, searchBridge))
 
         // 创建 chat 桥
         chatBridge = ChatAgentBridge(orchestrator)
