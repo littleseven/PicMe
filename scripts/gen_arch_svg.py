@@ -20,11 +20,12 @@ FONT = "-apple-system, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', san
 MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
 
 LAYER = {
-    "client": ("#E8F0FE", "#1A73E8"),
-    "shared": ("#E6F4EA", "#188038"),
-    "infra":  ("#FEF7E0", "#B26A00"),
-    "remote": ("#FCE8E6", "#D93025"),
-    "media":  ("#F3E8FD", "#9334E6"),
+    "client": ("#E8F0FE", "#1A73E8", "📱"),
+    "shared": ("#E6F4EA", "#188038", "🧠"),
+    "infra":  ("#FEF7E0", "#B26A00", "🧩"),
+    "server": ("#FEF7E0", "#B26A00", "🖥️"),
+    "remote": ("#FCE8E6", "#D93025", "☁️"),
+    "media":  ("#F3E8FD", "#9334E6", "🎨"),
 }
 
 
@@ -38,7 +39,7 @@ def text_w(s: str) -> int:
 
 class Box:
     def __init__(self, layer, title, lines, x, w):
-        self.fill, self.stroke = LAYER[layer]
+        self.fill, self.stroke, self.icon = LAYER[layer]
         self.title, self.lines = title, lines
         self.x, self.w = x, w
         self.h = PAD_V + TITLE_H + LINE_H * len(lines) + PAD_V - 6
@@ -47,6 +48,10 @@ class Box:
     @property
     def cx(self):
         return self.x + self.w / 2
+
+    @property
+    def header_h(self):
+        return PAD_V + TITLE_H - 2
 
 
 # ── 图内容（SSOT：改这里） ──────────────────────────────────────────────
@@ -91,7 +96,7 @@ def build_bands():
            ["AIAgent · ToolRegistry · ChatMemory · graphStrategy(poLangSingleRunStrategy)",
             "OpenAILLMClient · PromptExecutor · EventHandler 流式 SSE"])
 
-    single("infra",
+    single("server",
            "server/ · Ktor 后端（独立 Gradle 工程 · api.polang.net）",
            ["AI 网关（Cloudflare AI Gateway / 腾讯 TokenHub）· 账号 · 免费额度",
             "管理后台 · 遥测 · /download（Android APK + iOS Ad-Hoc 分发）"])
@@ -146,9 +151,14 @@ def main():
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{total_h}" '
         f'viewBox="0 0 {W} {total_h}" font-family="{FONT}">',
         '<rect width="100%" height="100%" fill="#FFFFFF"/>',
-        '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" '
+        '<defs>'
+        '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" '
         'markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
-        '<path d="M 0 0 L 10 5 L 0 10 z" fill="#5F6368"/></marker></defs>',
+        '<path d="M 0 0 L 10 5 L 0 10 z" fill="#5F6368"/></marker>'
+        '<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">'
+        '<feDropShadow dx="0" dy="2.5" stdDeviation="4" flood-color="#3C4043" flood-opacity="0.16"/>'
+        '</filter>'
+        '</defs>',
     ]
 
     # 箭头（画在盒下层）
@@ -174,15 +184,26 @@ def main():
     # 盒子
     for band in bands:
         for b in band:
-            out.append(f'<rect x="{b.x}" y="{b.y}" width="{b.w}" height="{b.h}" rx="14" '
-                       f'fill="{b.fill}" stroke="{b.stroke}" stroke-width="1.8"/>')
+            r = 14
+            out.append(f'<rect x="{b.x}" y="{b.y}" width="{b.w}" height="{b.h}" rx="{r}" '
+                       f'fill="{b.fill}" stroke="{b.stroke}" stroke-width="1.8" filter="url(#shadow)"/>')
+            # 标题色带（仅顶部圆角）
+            hh = b.header_h
+            out.append(f'<path d="M {b.x} {b.y + hh} L {b.x} {b.y + r} Q {b.x} {b.y} {b.x + r} {b.y} '
+                       f'L {b.x + b.w - r} {b.y} Q {b.x + b.w} {b.y} {b.x + b.w} {b.y + r} '
+                       f'L {b.x + b.w} {b.y + hh} Z" fill="{b.stroke}" fill-opacity="0.12"/>')
             out.append(f'<text x="{b.x + PAD_H}" y="{b.y + PAD_V + 18}" font-size="16" '
-                       f'font-weight="700" fill="{b.stroke}">{esc(b.title)}</text>')
+                       f'font-weight="700" fill="{b.stroke}">{b.icon}  {esc(b.title)}</text>')
             for i, line in enumerate(b.lines):
                 ly = b.y + PAD_V + TITLE_H + 12 + i * LINE_H
                 mono = line.startswith(":") or line.startswith("commonMain") or line.startswith("androidMain") or line.startswith("iosMain")
-                fam = MONONO = MONO if mono else FONT
-                out.append(f'<text x="{b.x + PAD_H}" y="{ly}" font-size="14" fill="#202124" '
+                warn = line.startswith("⚠")
+                fam = MONO if mono else FONT
+                color = "#D93025" if warn else "#3C4043"
+                # 行首小圆点
+                out.append(f'<circle cx="{b.x + PAD_H + 3}" cy="{ly - 4.5}" r="2.6" '
+                           f'fill="{b.stroke}" fill-opacity="0.55"/>')
+                out.append(f'<text x="{b.x + PAD_H + 14}" y="{ly}" font-size="13.5" fill="{color}" '
                            f'font-family="{fam}">{esc(line)}</text>')
 
     out.append("</svg>")
