@@ -28,11 +28,13 @@ struct FaceAlignment {
 
     // MARK: - 106→5 转换
 
-    /// 106-point landmarks → ArcFace 5-point landmarks (x,y interleaved, normalized [0,1]).
+    /// 统一 106 点 → ArcFace 5 点(扁平 x,y 交错,归一化 [0,1])。
     ///
-    /// Port of `TagGenerationPipeline.convert106ToLandmarks5`.
-    /// 106-point order: InsightFace 2D106det canonical order.
-    /// ArcFace order: left_eye, right_eye, nose, left_mouth, right_mouth.
+    /// 对标 `TagGenerationPipeline.convert106ToLandmarks5`。
+    /// ⚠️ 输入必须是经 `MnnLandmarkAdapter.adapt` 重排后的**统一 106 序**,
+    ///    而非 2d106det 模型直出的 InsightFace 原生序——索引(52-57 等)按统一序定义,
+    ///    喂原生序会取到错误解剖位置(如眼取到嘴)。
+    /// ArcFace 顺序:left_eye, right_eye, nose, left_mouth, right_mouth。
     static func convert106ToLandmarks5(landmarks106: [Float], width: Int, height: Int) -> [Float] {
         let w = Float(width)
         let h = Float(height)
