@@ -61,12 +61,18 @@ class Pass1Pipeline {
     static let shared = Pass1Pipeline()
 
     private let faceDetector = PLMnnFaceDetector()
-    private let faceEmbedder = PLMnnFaceEmbedder()
+    private let faceEmbedder = ORTFaceEmbedder()
     private let mobileClip = MobileClipEncoder()
     private let database = TagDatabase.shared
 
     /// 最大人脸检测尺寸（长边像素），对标 Android MAX_FACE_DETECT_SIZE
     private let maxDetectSize: CGFloat = 640
+
+    #if DEBUG
+    /// 对齐诊断 dump 计数（限制总量，避免磁盘膨胀）。
+    private var alignDiagCount = 0
+    private let alignDiagCap = 60
+    #endif
 
     private init() {}
 
@@ -75,6 +81,13 @@ class Pass1Pipeline {
     /// 加载所有模型（det_500m/2d106 已 bundled，glintr100 + MobileCLIP 需下载）
     func loadModels() -> Bool { ioQueue.sync { loadModelsImpl() } }
     private func loadModelsImpl() -> Bool {
+        #if DEBUG
+        // 清空上次的 align 诊断 dump + 重置计数，确保拉到的是本次扫描的结果
+        alignDiagCount = 0
+        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            try? FileManager.default.removeItem(at: docs.appendingPathComponent("align_diag"))
+        }
+        #endif
         // 1. RetinaFace + 2D106（bundled assets）
         guard let retinaPath = resolveBundledModel(name: "det_500m", ext: "mnn"),
               let landmarkPath = resolveBundledModel(name: "2d106det", ext: "mnn") else {
@@ -89,12 +102,12 @@ class Pass1Pipeline {
         // 2. Glint360K R100（从 Documents/llm_models/ 加载）
         let modelsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("llm_models")
-        let glintrPath = modelsDir.appendingPathComponent("face-embedding-glint360k-r100-mnn/glintr100.mnn").path
+        let glintrPath = modelsDir.appendingPathComponent("face-embedding-glint360k-r100-onnx/glintr100.onnx").path
         guard FileManager.default.fileExists(atPath: glintrPath) else {
-            print("⚠️ Pass1: glintr100.mnn not downloaded. Use ModelDownloadCenter to download 'face-embedding-glint360k-r100-mnn'")
+            print("⚠️ Pass1: glintr100.onnx not found at \(glintrPath)")
             return false
         }
-        guard faceEmbedder.loadModel(glintrPath) else {
+        guard faceEmbedder.load(modelPath: glintrPath) else {
             print("⚠️ Pass1: failed to load Glint360K model")
             return false
         }
@@ -176,41 +189,26 @@ class Pass1Pipeline {
 
         for fi in 0..<faceCount {
             let off = fi * 15
-            let roiX = faceBuf[off], roiY = faceBuf[off + 1]
-            let roiW = faceBuf[off + 2], roiH = faceBuf[off + 3]
-
-            // 106 点精对齐（对标 Android：RetinaFace ROI → 2D106det → convert106ToLandmarks5）
-            // ROI 已验证正确；106 点比 RetinaFace 原生 5 点精度高得多 → 更好的 ArcFace 对齐
-            var lm5: [Float]
-            var out212 = [Float](repeating: 0, count: 212)
-            let ok106 = out212.withUnsafeMutableBufferPointer { p -> Bool in
-                guard let base = p.baseAddress else { return false }
-                return pixelData.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Bool in
-                    guard let bgra = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return false }
-                    return faceDetector.detectLandmarks106(bgra, width: Int32(width), height: Int32(height),
-                                                            bytesPerRow: Int32(bytesPerRow),
-                                                            roiX: roiX, roiY: roiY, roiW: roiW, roiH: roiH,
-                                                            outPoints: base)
-                }
-            }
-            if ok106 {
-                lm5 = FaceAlignment.convert106ToLandmarks5(landmarks106: out212, width: width, height: height)
-            } else {
-                lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // 回退 RetinaFace 原生 5 点
-            }
+            let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // RetinaFace 原生 5 点（已验证正确）
             allLandmarks5.append(lm5)
 
             // 仿射对齐到 112×112
             guard let alignedFace = FaceAlignment.alignFace(image: scaledImage, landmarks5: lm5) else { continue }
-            Self.dumpAlignedDiag(alignedFace, mediaId: mediaId, fi: fi)
 
-            // Glint360K embedding
+            // Glint360K embedding（ONNX Runtime，替代 MNN）
             guard let rgbData = rgbBytesFromImage(alignedFace, size: 112) else { continue }
-            Self.dumpRgbInputDiag(rgbData, mediaId: mediaId, fi: fi)
+
+            #if DEBUG
+            // 对齐质量诊断：dump 对齐脸 + ONNX 实际输入（RGB 重建），拉到本机肉眼比对
+            // aligned 正常但 onnx_input 异常 → rgbBytesFromImage 通道/损坏；两者都异常 → warp/landmark
+            dumpAlignDiag(alignedFace, mediaId: mediaId, faceIdx: fi, kind: "aligned")
+            if let onnxInput = imageFromRGBBytes(rgbData, size: 112) {
+                dumpAlignDiag(onnxInput, mediaId: mediaId, faceIdx: fi, kind: "onnx_input")
+            }
+            #endif
             if let embedding = rgbData.withUnsafeBytes({ (ptr: UnsafeRawBufferPointer) -> Data? in
                 guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return nil }
-                guard let nsdata = faceEmbedder.extractEmbedding(base, width: 112, height: 112) else { return nil }
-                return nsdata as Data
+                return faceEmbedder.extractEmbedding(base, width: 112, height: 112)
             }) {
                 // 验证 embedding 非零非 NaN
                 if isValidEmbedding(embedding) {
@@ -334,6 +332,50 @@ class Pass1Pipeline {
         return rgbData
     }
 
+    #if DEBUG
+    /// 把对齐诊断图写到 Documents/align_diag/（DEBUG 专用，限量 alignDiagCap 张）。
+    private func dumpAlignDiag(_ image: UIImage, mediaId: Int64, faceIdx: Int, kind: String) {
+        guard alignDiagCount < alignDiagCap else { return }
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let dir = docs.appendingPathComponent("align_diag")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        guard let png = image.pngData() else { return }
+        let url = dir.appendingPathComponent("\(kind)_m\(mediaId)_f\(faceIdx).png")
+        try? png.write(to: url)
+        alignDiagCount += 1
+    }
+
+    /// 从 RGB 交错字节（每像素 3 字节，即 ONNX 实际输入）重建 UIImage，用于肉眼核对通道/完整性。
+    private func imageFromRGBBytes(_ rgb: Data, size: Int) -> UIImage? {
+        guard rgb.count == size * size * 3 else { return nil }
+        var rgba = Data(count: size * size * 4)
+        rgb.withUnsafeBytes { rPtr in
+            rgba.withUnsafeMutableBytes { wPtr in
+                guard let rb = rPtr.bindMemory(to: UInt8.self).baseAddress,
+                      let wb = wPtr.bindMemory(to: UInt8.self).baseAddress else { return }
+                for i in 0..<(size * size) {
+                    wb[i * 4] = rb[i * 3]           // R
+                    wb[i * 4 + 1] = rb[i * 3 + 1]   // G
+                    wb[i * 4 + 2] = rb[i * 3 + 2]   // B
+                    wb[i * 4 + 3] = 255             // A
+                }
+            }
+        }
+        guard let provider = CGDataProvider(data: rgba as CFData) else { return nil }
+        guard let cg = CGImage(
+            width: size, height: size,
+            bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: provider,
+            decode: nil as UnsafePointer<CGFloat>?,
+            shouldInterpolate: false,
+            intent: .defaultIntent
+        ) else { return nil }
+        return UIImage(cgImage: cg)
+    }
+    #endif
+
     private func isValidEmbedding(_ data: Data) -> Bool {
         guard data.count == 512 * 4 else { return false }
         return data.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) -> Bool in
@@ -360,90 +402,6 @@ class Pass1Pipeline {
     }
 
     /// 对标 Android computeFaceFocusY：人脸 ROI 垂直中心的并集
-    // [诊断] dump 前 N 张对齐脸到 Documents/aligned_diag，供 devicectl pull 检查对齐质量
-    // [诊断] dump embedder 实际收到的 RGB 输入（重建 PNG），与 aligned_diag 逐像素对比
-    private static var rgbDumpCount = 0
-    private static func dumpRgbInputDiag(_ rgbData: Data, mediaId: Int64, fi: Int) {
-        let n = Self.rgbDumpCount
-        guard n < 12 else { return }
-        Self.rgbDumpCount += 1
-        let size = 112
-        let totalPixels = size * size
-        guard rgbData.count >= totalPixels * 3 else { return }
-        // RGB → CGImage → UIImage → PNG
-        var rgbaData = Data(count: totalPixels * 4)
-        rgbData.withUnsafeBytes { rgb in
-            guard let rgbBase = rgb.bindMemory(to: UInt8.self).baseAddress else { return }
-            rgbaData.withUnsafeMutableBytes { rgba in
-                guard let rgbaBase = rgba.bindMemory(to: UInt8.self).baseAddress else { return }
-                for i in 0..<totalPixels {
-                    rgbaBase[i*4] = rgbBase[i*3]       // R
-                    rgbaBase[i*4+1] = rgbBase[i*3+1]   // G
-                    rgbaBase[i*4+2] = rgbBase[i*3+2]   // B
-                    rgbaBase[i*4+3] = 255               // A
-                }
-            }
-        }
-        guard let provider = CGDataProvider(data: rgbaData as CFData),
-              let cgImage = CGImage(width: size, height: size,
-                                    bitsPerComponent: 8, bitsPerPixel: 32,
-                                    bytesPerRow: size * 4, space: CGColorSpaceCreateDeviceRGB(),
-                                    bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-                                    provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
-        else { return }
-        let img = UIImage(cgImage: cgImage)
-        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let dir = docs.appendingPathComponent("rgb_input_diag", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        if let png = img.pngData() {
-            try? png.write(to: dir.appendingPathComponent("m\(mediaId)_f\(fi)_\(n).png"))
-        }
-    }
-
-    private static var alignedDumpCount = 0
-    private static func dumpAlignedDiag(_ img: UIImage, mediaId: Int64, fi: Int) {
-        let n = Self.alignedDumpCount
-        guard n < 24 else { return }
-        Self.alignedDumpCount += 1
-        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let dir = docs.appendingPathComponent("aligned_diag", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        if let png = img.pngData() {
-            try? png.write(to: dir.appendingPathComponent("m\(mediaId)_f\(fi)_\(n).png"))
-        }
-    }
-
-    // [诊断] 在原图上叠加 ROI(红框) + 5 关键点(黄点)，dump 检查二者是否落在脸上
-    private static var roiDumpCount = 0
-    private static func dumpRoiDiag(_ img: UIImage, roiX: Float, roiY: Float, roiW: Float, roiH: Float, lm5: [Float], mediaId: Int64, fi: Int) {
-        let n = Self.roiDumpCount
-        guard n < 12 else { return }
-        Self.roiDumpCount += 1
-        let renderer = UIGraphicsImageRenderer(size: img.size)
-        let overlay = renderer.image { context in
-            img.draw(at: .zero)
-            let cg = context.cgContext
-            // ROI 红框
-            let r = CGRect(x: CGFloat(roiX), y: CGFloat(roiY), width: CGFloat(roiW), height: CGFloat(roiH))
-            cg.setStrokeColor(UIColor.red.cgColor)
-            cg.setLineWidth(max(2, img.size.width / 200))
-            cg.stroke(r)
-            // 5 关键点黄点
-            cg.setFillColor(UIColor.yellow.cgColor)
-            let dot = max(6.0, img.size.width / 80)
-            for i in 0..<5 {
-                let px = CGFloat(lm5[i * 2])
-                let py = CGFloat(lm5[i * 2 + 1])
-                cg.fillEllipse(in: CGRect(x: px - dot / 2, y: py - dot / 2, width: dot, height: dot))
-            }
-        }
-        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let dir = docs.appendingPathComponent("roi_diag", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        if let png = overlay.pngData() {
-            try? png.write(to: dir.appendingPathComponent("m\(mediaId)_f\(fi)_\(n).png"))
-        }
-    }
 
     private func computeFaceFocusY(_ landmarks5: [[Float]], imageHeight: Int) -> Double? {
         guard !landmarks5.isEmpty else { return nil }

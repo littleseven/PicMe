@@ -100,18 +100,18 @@
   },
 
   {
-    "id": "face-embedding-glint360k-r100-mnn",
-    "name": "Glint360K R100 MNN",
-    "description": "Glint360K 上训练的 ArcFace ResNet100 人脸特征提取模型 (MNN 格式)，512 维 embedding，~248MB",
+    "id": "face-embedding-glint360k-r100-onnx",
+    "name": "Glint360K R100 ONNX",
+    "description": "Glint360K 上训练的 ArcFace ResNet100 人脸特征提取模型 (ONNX 格式，ONNX Runtime 推理)，512 维 embedding，~248MB",
     "type": "FACE_EMBEDDING",
-    "size": 260598260,
+    "size": 260665334,
     "sources": {
-      "ModelScope": "budaoshou/Glint360K-R100-MNN"
+      "ModelScope": "budaoshou/Glint360K-R100-ONNX"
     },
     "files": [
-      "glintr100.mnn"
+      "glintr100.onnx"
     ],
-    "tags": ["must-have", "beauty-camera", "face", "embedding", "mnn", "arcface", "glint360k"]
+    "tags": ["must-have", "beauty-camera", "face", "embedding", "onnx", "arcface", "glint360k"]
   },
   {
     "id": "mobileclip-onnx",
