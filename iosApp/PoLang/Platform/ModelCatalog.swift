@@ -23,7 +23,7 @@ struct ModelEntry: Codable, Identifiable {
     private static let requiredIds: Set<String> = [
         "face-det-retina500m-mnn",
         "face-landmark-2d106-mnn",
-        "face-embedding-glint360k-r100-mnn",
+        "face-embedding-glint360k-r100-onnx",
         "florence2_base",
         "mobileclip-onnx",
         "opus-mt-zh-en",
