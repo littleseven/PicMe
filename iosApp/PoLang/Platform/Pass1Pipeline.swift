@@ -1,5 +1,6 @@
 import UIKit
 import Foundation
+import simd
 
 /// 扫描诊断日志（写 Documents/scan_debug.log，可 devicectl copy from 拉取；syslog 在本机不可靠）。
 func scanDebugLog(_ msg: String) {
@@ -176,7 +177,44 @@ class Pass1Pipeline {
 
         for fi in 0..<faceCount {
             let off = fi * 15
-            let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // RetinaFace 原生 5 点
+            let roiX = faceBuf[off + 0]
+            let roiY = faceBuf[off + 1]
+            let roiW = faceBuf[off + 2]
+            let roiH = faceBuf[off + 3]
+            let retinaLm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // RetinaFace 原生 5 点(fallback)
+
+            // 方案 B(对标 Android):ROI → 2D106 → adapt(原生→统一)→ convert106To5。
+            // 失败回退 RetinaFace 原生 5 点(与 Android fallback 一致)。
+            let lm5: [Float]
+            var native106 = [Float](repeating: 0, count: 212)
+            let ok106: Bool = native106.withUnsafeMutableBufferPointer { pbuf -> Bool in
+                guard let pbase = pbuf.baseAddress else { return false }
+                return pixelData.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Bool in
+                    guard let bgra = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return false }
+                    return faceDetector.detectLandmarks106(bgra, width: Int32(width), height: Int32(height),
+                                                           bytesPerRow: Int32(bytesPerRow),
+                                                           roiX: roiX, roiY: roiY, roiW: roiW, roiH: roiH,
+                                                           outPoints: pbase)
+                }
+            }
+            if ok106, let unified = MnnLandmarkAdapter.adapt(native106, isFrontCamera: false) {
+                // adapt 输出 [SIMD2<Float>](统一序,归一化)→ 扁平化喂 convert106ToLandmarks5
+                var flat106 = [Float](repeating: 0, count: 212)
+                for i in 0..<106 {
+                    flat106[i * 2] = unified[i].x
+                    flat106[i * 2 + 1] = unified[i].y
+                }
+                lm5 = FaceAlignment.convert106ToLandmarks5(landmarks106: flat106, width: width, height: height)
+                // 🔬 点序诊断:统一序 49(应=鼻尖) vs RetinaFace nose ground truth。
+                // 跨多张脸 pxRel 稳定小 → 点序稳定(adapt+convert 可用);跳/大 → 点序错乱。
+                let rnx = retinaLm5[4], rny = retinaLm5[5]
+                let u49x = unified[49].x * Float(width), u49y = unified[49].y * Float(height)
+                let d = ((u49x - rnx) * (u49x - rnx) + (u49y - rny) * (u49y - rny)).squareRoot()
+                scanDebugLog("P1 diag face=\(fi) idx49=(\(u49x),\(u49y)) retinaNose=(\(rnx),\(rny)) pxRel=\(d / Float(width))")
+            } else {
+                scanDebugLog("P1 face=\(fi) fallback native5pt ok106=\(ok106)")
+                lm5 = retinaLm5
+            }
             allLandmarks5.append(lm5)
 
             // 仿射对齐到 112×112
