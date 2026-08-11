@@ -12,6 +12,13 @@ import SQLite3  // iOS/macOS 系统 sqlite3 C API 模块（等价于 C 层 #incl
 /// - `media_assets`     ← `MediaEntity`（28 列，扫描列并入；`mediaId=Int64` + `localIdentifier` 映射）
 /// - `tag_scan_tasks`   ← `TagScanTaskEntity`（扫描任务队列）
 /// - `persons`          ← `PersonEntity`（人脸聚类后的人物去重表）
+/// - `person_relations` ← `PersonRelationEntity`（人物关系图谱边）
+///
+/// **搜索辅助表**（contracts §14 R9；schema 对齐 Android，查询见 TagDatabase+Search.swift）：
+/// - `tags` / `media_tag_cross_ref`           ← `TagEntity` / `MediaTagCrossRef`
+/// - `ocr_words` / `ocr_word_occurrences`     ← `OcrWordEntity` / `OcrWordOccurrence`
+/// - `location_hierarchy` / `media_locations` ← `LocationHierarchyEntity` / `MediaLocationEntity`
+/// - `media_feedback`                         ← `MediaFeedbackEntity`（搜索反馈加权）
 ///
 /// 注：旧 `media_tags` 表已废弃，扫描列并入 `media_assets`（见 TagScanOrchestrator 写入路径）。
 ///
@@ -176,6 +183,97 @@ final class TagDatabase {
             );
             """)
         exec("CREATE INDEX IF NOT EXISTS idx_person_relations_subject ON person_relations(subjectPersonId);")
+
+        // ── 搜索辅助表（contracts §14 R9；schema 逐字对齐 Android Room Entity，列名/类型/索引一致）──
+
+        // tags ← TagEntity（规范化标签词典；name 唯一索引对齐 Room Index("name", unique=true)）
+        exec("""
+            CREATE TABLE IF NOT EXISTS tags (
+                tagId    INTEGER PRIMARY KEY AUTOINCREMENT,
+                name     TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'scene'
+            );
+            """)
+        exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name ON tags(name);")
+
+        // media_tag_cross_ref ← MediaTagCrossRef（媒体-标签 M:N；复合主键 + 双 FK 级联）
+        exec("""
+            CREATE TABLE IF NOT EXISTS media_tag_cross_ref (
+                mediaId    INTEGER NOT NULL,
+                tagId      INTEGER NOT NULL,
+                confidence REAL,
+                PRIMARY KEY (mediaId, tagId),
+                FOREIGN KEY(mediaId) REFERENCES media_assets(id) ON DELETE CASCADE,
+                FOREIGN KEY(tagId) REFERENCES tags(tagId) ON DELETE CASCADE
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS idx_media_tag_cross_ref_tagId ON media_tag_cross_ref(tagId);")
+
+        // ocr_words ← OcrWordEntity（OCR 倒排索引词条表）
+        exec("""
+            CREATE TABLE IF NOT EXISTS ocr_words (
+                wordId         INTEGER PRIMARY KEY AUTOINCREMENT,
+                word           TEXT NOT NULL,
+                normalizedWord TEXT NOT NULL
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS idx_ocr_words_normalizedWord ON ocr_words(normalizedWord);")
+
+        // ocr_word_occurrences ← OcrWordOccurrence（词条-媒体命中表；复合主键 + 双 FK 级联）
+        exec("""
+            CREATE TABLE IF NOT EXISTS ocr_word_occurrences (
+                wordId      INTEGER NOT NULL,
+                mediaId     INTEGER NOT NULL,
+                confidence  REAL,
+                boundingBox TEXT,
+                PRIMARY KEY (wordId, mediaId),
+                FOREIGN KEY(wordId) REFERENCES ocr_words(wordId) ON DELETE CASCADE,
+                FOREIGN KEY(mediaId) REFERENCES media_assets(id) ON DELETE CASCADE
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS idx_ocr_word_occurrences_mediaId ON ocr_word_occurrences(mediaId);")
+
+        // location_hierarchy ← LocationHierarchyEntity（行政区划 + POI 层级）
+        exec("""
+            CREATE TABLE IF NOT EXISTS location_hierarchy (
+                locationId INTEGER PRIMARY KEY AUTOINCREMENT,
+                country    TEXT,
+                province   TEXT,
+                city       TEXT,
+                district   TEXT,
+                poi        TEXT,
+                latitude   REAL,
+                longitude  REAL
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS idx_location_hierarchy_city ON location_hierarchy(city);")
+        exec("CREATE INDEX IF NOT EXISTS idx_location_hierarchy_province ON location_hierarchy(province);")
+
+        // media_locations ← MediaLocationEntity（媒体-位置关联；复合主键 + 双 FK 级联）
+        exec("""
+            CREATE TABLE IF NOT EXISTS media_locations (
+                mediaId    INTEGER NOT NULL,
+                locationId INTEGER NOT NULL,
+                accuracy   REAL,
+                PRIMARY KEY (mediaId, locationId),
+                FOREIGN KEY(mediaId) REFERENCES media_assets(id) ON DELETE CASCADE,
+                FOREIGN KEY(locationId) REFERENCES location_hierarchy(locationId) ON DELETE CASCADE
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS idx_media_locations_locationId ON media_locations(locationId);")
+
+        // media_feedback ← MediaFeedbackEntity（搜索反馈加权；media_id 为 TEXT 对齐 Android）
+        exec("""
+            CREATE TABLE IF NOT EXISTS media_feedback (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                media_id      TEXT NOT NULL,
+                feedback_type TEXT NOT NULL,
+                query_text    TEXT NOT NULL,
+                session_id    TEXT NOT NULL,
+                created_at    INTEGER NOT NULL
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS index_media_feedback_lookup ON media_feedback(media_id, query_text, feedback_type);")
     }
 
     // MARK: - face_embeddings: Insert

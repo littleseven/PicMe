@@ -14,6 +14,9 @@ final class AppContainer: ObservableObject {
     /// 相册桥（共享给 IosAgentComposition + GalleryViewModel + Camera）
     let mediaBridge: PhMediaBridge
 
+    /// chat 搜索桥（IosChatGalleryCapability → MediaSearchEngine，契约 §9 Chat 搜索链路）
+    let searchBridge: PhSearchBridge
+
     /// 美颜渲染参数（全局共享，BeautyPanelView ↔ BeautyRenderer 双向绑定）
     @Published var beautyParams = BeautyRenderer.Params()
 
@@ -23,6 +26,7 @@ final class AppContainer: ObservableObject {
     private init() {
         self.mediaBridge = PhMediaBridge()
         self.mediaRepository = IosMediaRepository(bridge: mediaBridge)
+        self.searchBridge = PhSearchBridge()
         setupAgentComposition()
     }
 
@@ -31,7 +35,8 @@ final class AppContainer: ObservableObject {
         let deviceId = DeviceIdStore.shared.getOrCreate()
         IosAgentComposition.shared.initialize(
             bridge: mediaBridge,
-            deviceId: deviceId
+            deviceId: deviceId,
+            searchBridge: searchBridge
         )
         chatBridge = IosAgentComposition.shared.chatBridge
         // 应用用户保存的模型配置（有自定义模型则覆盖访客默认，无则保持 PICME_SERVER_DEFAULT）

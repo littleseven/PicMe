@@ -31,6 +31,19 @@ final class GalleryViewModel: ObservableObject {
         didSet { applyGrouping(lastAssets) }
     }
 
+    // MARK: - 搜索状态（spec §search_top_bar / §search_results / §search_no_result）
+
+    /// 搜索框文本（双向绑定 SearchTopBar）
+    @Published var searchQuery = ""
+    /// 搜索模式是否激活（顶栏切换 + 网格替换）
+    @Published private(set) var isSearchActive = false
+    /// 搜索结果（映射回 MediaAsset；空 = 无结果）
+    @Published private(set) var searchResults: [MediaAsset] = []
+    /// 全屏 Loading（仅首次搜索、无旧结果时显示，防闪烁）
+    @Published private(set) var isSearchLoading = false
+    /// 是否已完成至少一次搜索（控制 trailing resultCount 可见性）
+    @Published private(set) var hasSearched = false
+
     private var watchTask: Task<Void, Never>?
     private var lastAssets: [MediaAsset] = []
     private let repository: IosMediaRepository
@@ -54,6 +67,90 @@ final class GalleryViewModel: ObservableObject {
     func stop() {
         watchTask?.cancel()
         watchTask = nil
+        searchTask?.cancel()
+        searchTask = nil
+    }
+
+    // MARK: - 搜索（spec §search_top_bar / §search_results / states.search_active）
+
+    private var searchTask: Task<Void, Never>?
+    /// 最近一次实际提交搜索的（trimmed）查询串，用于结果标题/空态文案
+    private(set) var lastSearchQuery = ""
+
+    /// 激活搜索态（spec states.search_active: 顶栏→SearchTopBar，网格→搜索结果）
+    func enterSearch() {
+        isSearchActive = true
+        searchQuery = ""
+        searchResults = []
+        isSearchLoading = false
+        hasSearched = false
+        lastSearchQuery = ""
+    }
+
+    /// 退出搜索态（spec back_stack search_active → clear_search_and_close_search_bar）
+    func exitSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        isSearchActive = false
+        searchQuery = ""
+        searchResults = []
+        isSearchLoading = false
+        hasSearched = false
+        lastSearchQuery = ""
+    }
+
+    /// 查询文本变化回调：防抖 300ms（spec motion.searchDebounceMs），query 非空白才触发搜索。
+    /// - 空白 → 立即清空结果、不 Loading
+    /// - 非空白 → debounce 后搜索；首次搜索（无旧结果）显示全屏 Loading，有旧结果时不显示（防闪烁）
+    func handleQueryChange(_ query: String) {
+        searchTask?.cancel()
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            searchResults = []
+            isSearchLoading = false
+            hasSearched = false
+            return
+        }
+        // 在 debounce 前捕获，判断是否首次搜索（有旧结果则不闪烁）
+        let firstSearch = searchResults.isEmpty
+        searchTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: UInt64(AppMotion.searchDebounceMs * 1_000_000))
+            if Task.isCancelled { return }
+            if firstSearch { self.isSearchLoading = true }
+            self.lastSearchQuery = trimmed
+            let lang = Self.currentLang()
+            let rows = await MediaSearchEngine.shared.search(query: trimmed, lang: lang)
+            if Task.isCancelled { return }
+            // 映射 SearchMediaRow.localIdentifier → 现有 MediaAsset（按引擎 mergeAndRank 分数序；
+            // DB 有记录但 PHAsset 不在当前相册的条目跳过）
+            let assetById = Dictionary(self.lastAssets.map { ($0.uri, $0) },
+                                       uniquingKeysWith: { first, _ in first })
+            self.searchResults = rows.compactMap { assetById[$0.localIdentifier] }
+            self.isSearchLoading = false
+            self.hasSearched = true
+        }
+    }
+
+    /// 搜索结果分组（spec §search_results.group_header：标题 '搜索 "{query}"（{count} 张）'）
+    var searchGroup: DayGroup? {
+        guard isSearchActive && !searchResults.isEmpty else { return nil }
+        let title = String(format: NSLocalizedString("gallery_search_results_title", comment: ""),
+                           lastSearchQuery, searchResults.count)
+        return DayGroup(id: title, items: searchResults)
+    }
+
+    /// 搜索语言（契约：引擎词表/停用词按 zh/en 二分）。
+    /// 对齐 Android 语义：显式英文 → "en"，其余默认 "zh"；跟随系统时按系统语言判 en/zh。
+    private static func currentLang() -> String {
+        switch LanguageManager.shared.currentLanguage {
+        case "english":
+            return "en"
+        case "chinese_simplified", "chinese_traditional":
+            return "zh"
+        default:
+            return Locale.current.language.languageCode?.identifier == "en" ? "en" : "zh"
+        }
     }
 
     /// 分组：date=按日降序（字典插入序 = 输入序 = 降序，组内顺序保持）；

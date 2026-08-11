@@ -146,7 +146,9 @@ grid_page:
           behavior: navigate_to_settings
 
   # ── 5. 搜索激活态顶栏 SearchTopBar ───────────────────────────
-  # 🔴 gap #13：iOS 完全缺失搜索功能。
+  # 🔴 gap #13：iOS 完全缺失搜索功能（/ios-follow gallery-search 2026-08-11 实现后关闭）。
+  # 契约来源：Android SearchTopBar.kt + SearchField.kt 定稿反向提取（2026-08-11 校正漂移：
+  # placeholder/结果计数格式与位置以代码为准）。
 
   search_top_bar:
     visible_when: search_active
@@ -159,21 +161,41 @@ grid_page:
         size: topBar.iconSize               # 22dp
         behavior: clear_search_and_close    # = back_stack search_active 分支
       center:
-        type: text_field
-        placeholder: "搜索照片、人、地点…"
-        font_size: topBar.titleFontSize     # 17sp → iOS .body
-        debounce_ms: 300                    # 输入防抖，300ms 后触发搜索
+        type: search_field                  # 通用组件 SearchField（圆角胶囊，Chat/Gallery 共用）
+        string_key_placeholder: gallery_search_hint
+        placeholder: "按内容、地点、文字搜索…"   # EN "Search by content, location, text…" / zh-TW "按內容、地點、文字搜尋…"
+        font_size: searchField.fontSize     # 14sp
+        text_color: colorScheme.onSurface
+        cursor_color: colorScheme.primary
+        background: "colorScheme.surfaceVariant @ alpha 0.7"
+        corner_radius: searchField.cornerRadius   # 24dp 胶囊
+        padding_h: searchField.paddingH     # 12dp
+        padding_v: searchField.paddingV     # 8dp
+        leading_icon:
+          material_icon: search             # SF: "magnifyingglass"
+          tint: "colorScheme.onSurface @ alpha 0.5"
+          gap_after: searchField.iconGap    # 8dp
+        clear_button:
+          visible_when: query_not_empty
+          material_icon: clear              # SF: "xmark"
+          button_size: searchField.clearButtonSize   # 20dp
+          icon_size: searchField.clearIconSize       # 16dp
+          tint: "colorScheme.onSurface @ alpha 0.5"
+          string_key_cd: cd_clear_search
+          behavior: clear_query             # 仅清空输入，不退出搜索态
+        placeholder_color: "colorScheme.onSurface @ alpha 0.4"
+        debounce_ms: motion.searchDebounceMs   # 300（snapshotFlow + debounce）
         autofocus: true
+        single_line: true
+        accessibility_id: search_field      # Android contentDescription="搜索框"
       trailing:
-        icon: close                         # 清空输入 / material: Close / SF: "xmark"
-        size: topBar.iconSize
-        behavior: clear_query
-    result_count:
-      display: true                         # 搜索结果计数
-      format: "找到 {count} 张照片"
-      position: below_search_bar            # 或内嵌于网格上方一行
-      font: bodySmall
-      color: colorScheme.secondary
+        result_count:
+          visible_when: search_finished     # resultCount==null（未搜索过）时不渲染
+          string_key: people_photos_count   # EN "%1$d photos" / zh-CN "%1$d 张" / zh-TW "%1$d 張"
+          position: inline_trailing         # 内嵌顶栏右侧（非网格上方独立行）
+          font_size: searchField.resultCountFontSize   # 12sp
+          color: "colorScheme.onSurface @ alpha 0.6"
+          gap_before: searchField.resultCountGap       # 8dp
 
   # ── 6. TAG 扫描进度条 ────────────────────────────────────────
   # 🔴 gap #14：iOS 完全缺失。
@@ -350,14 +372,40 @@ grid_page:
 
   # ── 10. 搜索无结果态 ──
   # 🔴 gap #42：搜索结果为空时必须显示提示。
+  # ⚠️ Android 现网为空态文案 Kotlin 硬编码中文（技术债，contracts.md §14 R7）；
+  # iOS 必须走 xcstrings 三语，key=gallery_search_no_result_with_query。
 
   search_no_result:
     visible_when: search_active_and_result_empty
     type: EmptyGalleryMessage
+    anchor: full_screen_center
     content:
       text: '未找到匹配 "{query}" 的照片'
+      i18n:
+        en: 'No photos matching "{query}"'
+        zh-Hans: '未找到匹配 "{query}" 的照片'
+        zh-Hant: '未找到符合「{query}」的照片'
       font: bodyLarge
       color: colorScheme.secondary
+
+  # ── 10b. 搜索结果态 ──
+  # 结果非空时：网格替换为搜索结果，复用主网格全部能力（选择/删除/分享/预览/faceAware 对齐）。
+
+  search_results:
+    visible_when: search_active_and_result_not_empty
+    group_header:
+      title_format: '搜索 "{query}"（{count} 张）'   # GroupTitleType.SEARCH 渲染规则（Android GalleryUtils 硬编码中文，技术债 R7，iOS 进 xcstrings）
+      i18n:
+        en: 'Search "{query}" ({count} photos)'
+        zh-Hans: '搜索 "{query}"（{count} 张）'
+        zh-Hant: '搜尋 "{query}"（{count} 張）'
+      trailing_count: '({count})'             # 与主网格分组头一致的右侧计数样式
+    grid: same_as_main_grid                 # 同一 MediaGrid：adaptive 列/2dp 间距/2dp 圆角/faceAwareVerticalAlignment
+    interactions: inherit_main_grid         # 点按预览、长按多选、删除/分享与主网格一致
+    loading:
+      visible_when: search_in_flight_and_no_results_yet   # 首次搜索（无旧结果）→ 全屏 Loading
+      type: circular_progress_center
+      note: "已有结果时再次搜索不显示 Loading，保持旧结果直到新结果返回（防闪烁）"
 
   # ── 11. 权限态 UI ──
   # 🔴 gap #35/#38：iOS 权限拒绝/未决定态无图标无标题。
@@ -733,6 +781,18 @@ media_pager:
         tech_debt: "后续需新建 MODNet/U2Net ORT runner + IDPhotoScreen + IDPhotoSpecs 对齐"
       note: "ios-follow 2026-08-11 决策：推迟，本轮不实现"
 
+    search:
+      android_actual:
+        engine: "MediaSearchEngine 三层混合检索（QueryParser 规则 → Room SQL 显式召回 → MobileCLIP 语义 → mergeAndRank 0.25/0.65/0.1 融合），全部在 androidApp 模块（非 shared）"
+        data: "Room v19：media_assets + tags/ocr_words/location_hierarchy/face_embeddings/persons/person_relations/media_feedback 辅助表"
+      ios_actual:
+        engine: "Swift 全量对等实现（行为契约 tmp/ios-follow/gallery-search/contracts.md，含语义/跨语言/人物解析；QueryBuilder+SearchRanker 为 Android 死代码不移植，线上仅 mergeAndRank 一套）"
+        data: "TagDatabase SQLite（表结构对齐 Room）+ 需补六张辅助表（contracts §14 R9，缺表则对应维度静默空召回）"
+        semantic_embedding_format: "TEXT 列 Base64 大端 float32×512（2048B，NO_WRAP）——双端必须同格式，加往返单测钉住（contracts §14 R6）"
+      permission: "无新权限（本地 DB + 已有相册访问）"
+      privacy: "搜索 100% 端侧（SQL + 端侧 MobileCLIP）；Chat 入口的 query 文本经远程 LLM 解析意图属既有合规路径（文本/元数据可远程，ADR-008），图片不出端"
+      known_android_bugs: "裸「冬天」跨年 startMs>endMs 恒空、removeTimeWords 正则 \\\\d 转义失效（contracts §14 R4/R5）——iOS 按正确语义实现，Android 不修（铁律 1），见 allowed_differences.search_engine_edge_cases"
+
     allowed_ios_differences:
       - "video 项禁用 image_understanding/ocr（iOS 无视频帧抽取管线；Android vision 静默 no-op，iOS 直接 disabled 更清晰）"
       - "image_understanding caption 暂为英文（Android Florence-2 路径同样先出英文再翻译；iOS 翻译留后续）"
@@ -876,6 +936,16 @@ allowed_differences:
     android: "无（Photo Picker 范式无 limited 概念）"
     ios: "Limited Access banner + '管理可访问的照片' 按钮"
     rule: "iOS 独有合理差异，gap analysis ✅"
+
+  - dimension: search_engine_edge_cases
+    android: "现网两个边界 bug：裸「冬天」时间范围 startMs>endMs 恒空；「近N个月」removeTimeWords 正则转义失效致清洗残留"
+    ios: "按正确语义实现（冬天=跨年范围、近N个月正常解析）"
+    rule: "bug 不对齐：iOS 做对的事，Android 修复登记技术债（铁律 1 不动已验证代码），详见 contracts.md §14 R4/R5"
+
+  - dimension: search_engine_hosting
+    android: "搜索引擎在 androidApp 模块（Kotlin + Room）"
+    ios: "Swift 对等实现 + TagDatabase SQLite"
+    rule: "行为契约对齐（contracts.md），实现语言/ORM 各自原生；远期可评估纯逻辑上 shared commonMain（技术债）"
 
 # ============================================================================
 # 第六部分：禁止事项（iOS 实现红线）
