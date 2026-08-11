@@ -873,6 +873,24 @@ std::vector<PixelFace> Detector::detectAll(const uint8_t *bgra, int w, int h, in
     return result;
 }
 
+- (int)detectAllFacesFlat:(const uint8_t *)bgra
+                    width:(int)width
+                   height:(int)height
+              bytesPerRow:(int)bytesPerRow
+                   outBuf:(float *)outBuf
+                 maxFaces:(int)maxFaces {
+    auto faces = _det->detectAll(bgra, width, height, bytesPerRow);
+    int n = (int)std::min((size_t)maxFaces, faces.size());
+    for (int i = 0; i < n; i++) {
+        const auto &f = faces[i];
+        float *p = outBuf + (size_t)i * 15;
+        p[0] = f.roiX; p[1] = f.roiY; p[2] = f.roiW; p[3] = f.roiH;
+        p[4] = f.confidence;
+        for (int j = 0; j < 10; j++) p[5 + j] = f.landmarks[j];
+    }
+    return n;
+}
+
 - (NSString *)debugInfo {
     return [NSString stringWithUTF8String:_det->debugInfo.c_str()];
 }

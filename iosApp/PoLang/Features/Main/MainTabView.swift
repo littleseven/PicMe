@@ -14,6 +14,7 @@ struct MainTabView: View {
         return page
     }()
     @EnvironmentObject private var container: AppContainer
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showPlaceholder: String?
 
     var body: some View {
@@ -50,10 +51,16 @@ struct MainTabView: View {
                 .environmentObject(container)
             }
 
-            // 打标占位 push
+            // 打标页 push：TAG tab 进入 TagScanScreen（SP-B）；其余占位保持 Coming Soon
             if let ph = showPlaceholder {
-                PlaceholderPage(title: ph == "tag" ? String(localized: "Tag Scan Coming Soon") : String(localized: "Coming Soon"))
-                    .transition(.opacity)
+                if ph == "tag" {
+                    TagScanScreen(onDismiss: { showPlaceholder = nil })
+                        .transition(.opacity)
+                        .zIndex(10)
+                } else {
+                    PlaceholderPage(title: String(localized: "Coming Soon"))
+                        .transition(.opacity)
+                }
             }
         }
         // 翻页同步 SceneManager（chat 工具按场景路由，不同步会被入队不执行）
@@ -63,6 +70,10 @@ struct MainTabView: View {
         .onChange(of: currentPage) { page in
             showPlaceholder = nil
             IosAgentComposition.shared.onMainPageChanged(page: Int64(page))
+        }
+        .onChange(of: scenePhase) { phase in
+            // 前台优先：进后台协作暂停扫描（SP-B）；回前台不自动续，由用户在扫描页点恢复
+            if phase == .background { TagScanOrchestrator.shared.pauseForBackground() }
         }
         // 悬浮 Tab：相册/人物页常驻；相机页（沉浸式）与聊天页（避免遮挡输入栏，返回键可出）不显示
         .overlay(alignment: .bottom) {

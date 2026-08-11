@@ -85,7 +85,7 @@ K/N 崩溃栈在 Firebase/系统层面不可读是公认痛点（[firebase-ios-s
 
 | # | 行动 | 优先级 | 性质 |
 |---|------|--------|------|
-| K1 | ~~SKIE spike（chat 链路试点：Flow→AsyncSequence、sealed→enum、signal 6 纪律验证）~~ ✅ 已完成（2026-08-10，spike GO 合入 main；报告 `docs/superpowers/specs/2026-08-10-skie-spike-design.md` §7） | 🔴 P0 | spike → spec |
+| K1 | SKIE spike（chat 链路试点：Flow→AsyncSequence、sealed→enum、signal 6 纪律验证） | 🔴 P0 | spike → spec |
 | K2 | 引入 CrashKiOS | 🟡 P1 | 小任务 |
 | K3 | 盘点 Android 侧 TAG 存储实现，评估 Room KMP 收编 | 🟡 P1 | 只读盘点 → 决策 |
 | K4 | DataStore KMP 统一 chat 记忆存储（删 IosKoogMessageMemoryStore） | 🟢 P2 | 随 K3 决策合并排期 |

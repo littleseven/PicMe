@@ -57,5 +57,12 @@ final class AppSettings: ObservableObject {
         if ProcessInfo.processInfo.arguments.contains("-galleryFace") {
             Task.detached(priority: .utility) { await GalleryFaceAutoCheck.run() }
         }
+        // -tagScan：自动触发 Pass1 增量扫描（扫描诊断用；走与 UI 相同的 start 路径，MainActor）
+        if ProcessInfo.processInfo.arguments.contains("-tagScan") {
+            Task.detached(priority: .utility) {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run { TagScanOrchestrator.shared.start(mode: .incremental) }
+            }
+        }
     }
 }

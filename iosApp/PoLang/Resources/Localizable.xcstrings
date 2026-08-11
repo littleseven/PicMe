@@ -1,6 +1,350 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Batch Generate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Batch Generate" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "批量生成" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "批量產生" } }
+      }
+    },
+    "Data Generation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Data Generation" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "数据生成" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "數據生成" } }
+      }
+    },
+    "Swimwear": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Swimwear" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "泳装" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "泳裝" } }
+      }
+    },
+    "Sexy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Sexy" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "性感" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "性感" } }
+      }
+    },
+    "Clear Test Data": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Clear Test Data" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "清除测试数据" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "清除測試數據" } }
+      }
+    },
+    "Stop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Stop" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "停止" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "停止" } }
+      }
+    },
+    "Grep logs...": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Grep logs..." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Grep logs..." } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Grep logs..." } }
+      }
+    },
+    "Pexels Gallery": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pexels Gallery" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Pexels 图库" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Pexels 圖庫" } }
+      }
+    },
+    "Image Download": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Image Download" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "图片下载页" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "圖片下載頁" } }
+      }
+    },
+    "Enter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Enter" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "进入" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "進入" } }
+      }
+    },
+    "Enter Pexels API Key": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Enter Pexels API Key" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "输入 Pexels API Key" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "輸入 Pexels API Key" } }
+      }
+    },
+    "Invalid API Key, please re-enter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Invalid API Key, please re-enter" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Key 无效，请重新输入" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Key 無效，請重新輸入" } }
+      }
+    },
+    "Get a free key at pexels.com/api": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Get a free key at pexels.com/api" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "前往 pexels.com/api 免费申请 Key" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "前往 pexels.com/api 免費申請 Key" } }
+      }
+    },
+    "API Key configured": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "API Key configured" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "API Key 已配置" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "API Key 已配置" } }
+      }
+    },
+    "Change": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Change" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "修改" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "修改" } }
+      }
+    },
+    "Search keywords (empty = curated)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Search keywords (empty = curated)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "搜索关键词，留空加载精选" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "搜尋關鍵詞，留空載入精選" } }
+      }
+    },
+    "Photos provided by Pexels": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Photos provided by Pexels" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Photos provided by Pexels" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Photos provided by Pexels" } }
+      }
+    },
+    "Pexels rate limit reached (200/hour), try later": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pexels rate limit reached (200/hour), try later" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Pexels 额度已用尽（200 次/小时），请稍后再试" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Pexels 額度已用盡（200 次/小時），請稍後再試" } }
+      }
+    },
+    "Network error, please retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Network error, please retry" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "网络错误，请重试" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "網路錯誤，請重試" } }
+      }
+    },
+    "No results": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "No results" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无结果" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無結果" } }
+      }
+    },
+    "Photo by %1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Photo by %1$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$@ 拍摄的照片" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "%1$@ 拍攝的照片" } }
+      }
+    },
+    "Downloading %1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Downloading %1$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "下载中 %1$@" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "下載中 %1$@" } }
+      }
+    },
+    "%1$d selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$d selected" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已选 %1$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已選 %1$d 張" } }
+      }
+    },
+    "Download Selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Download Selected" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "下载所选" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "下載所選" } }
+      }
+    },
+    "Batch %1$d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Batch %1$d" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "批量 %1$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "批量 %1$d 張" } }
+      }
+    },
+    "Done: %1$d/%2$d saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Done: %1$d/%2$d saved" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "完成：成功保存 %1$d/%2$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "完成：成功儲存 %1$d/%2$d 張" } }
+      }
+    },
+    "People (%1$d/%2$d)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "People (%1$d/%2$d)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "人物 (%1$d/%2$d)" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "人物 (%1$d/%2$d)" } }
+      }
+    },
+    "Show all people": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Show all people" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "显示全部人物" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "顯示全部人物" } }
+      }
+    },
+    "Hide unnamed single-face groups": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hide unnamed single-face groups" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "隐藏未命名单人分组" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "隱藏未命名单人分組" } }
+      }
+    },
+    "Hidden %1$d unnamed single-face groups; tap filter to show all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hidden %1$d unnamed single-face groups; tap filter to show all" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已隐藏 %1$d 个未命名单人分组，点击筛选按钮可显示全部" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已隱藏 %1$d 個未命名单人分組，點擊篩選按鈕可顯示全部" } }
+      }
+    },
+    "Person #%1$d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Person #%1$d" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "人物 #%1$d" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "人物 #%1$d" } }
+      }
+    },
+    "%1$d photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$d photos" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "%1$d 張" } }
+      }
+    },
+    "Re-cluster faces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Re-cluster faces" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "重新聚类" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "重新聚類" } }
+      }
+    },
+    "Re-clustering started (faces only, may take a while). Re-enter this page to refresh when done.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Re-clustering started (faces only, may take a while). Re-enter this page to refresh when done." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已开始重新聚类（仅有人脸，耗时较长），完成后返回本页自动刷新" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已開始重新聚類（僅有人臉，耗時較長），完成後返回本頁自動整理" } }
+      }
+    },
+    "Cluster #%1$d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Cluster #%1$d" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "簇 #%1$d" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "簇 #%1$d" } }
+      }
+    },
+    "Tap to name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Tap to name" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "点击命名" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "點擊命名" } }
+      }
+    },
+    "Tap to set cover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Tap to set cover" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "点击设置封面" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "點擊設置封面" } }
+      }
+    },
+    "Select cover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Select cover" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "选择封面" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "選擇封面" } }
+      }
+    },
+    "Not set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not set" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "不设置" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "不設定" } }
+      }
+    },
+    "Social": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Social" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "社会" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "社會" } }
+      }
+    },
+    "Person info": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Person info" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "人物信息" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "人物資訊" } }
+      }
+    },
+    "e.g. childhood buddy, second son": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "e.g. childhood buddy, second son" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "如：发小、二儿子" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "如：髮小、二兒子" } }
+      }
+    },
+    "Custom text takes priority when filled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Custom text takes priority when filled" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "填写后以自定义称呼为准" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "填寫後以自訂稱呼為準" } }
+      }
+    },
     "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties.": {
       "localizations": {
         "en": {
@@ -5364,376 +5708,1934 @@
         }
       }
     },
-    "Thirds": {
+    "scan_title": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thirds"
+            "value": "Tag Scan"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "三分线"
+            "value": "扫描打标"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "三分線"
+            "value": "掃描打標"
           }
         }
       }
     },
-    "Golden Ratio": {
+    "scan_coming_soon_toast": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Golden Ratio"
+            "value": "This feature arrives in a later version."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "黄金比例"
+            "value": "该功能在后续版本"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "黃金比例"
+            "value": "該功能在後續版本"
           }
         }
       }
     },
-    "Night": {
+    "scan_resume_unfinished": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Night"
+            "value": "A previous scan did not finish."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "夜景"
+            "value": "上次的扫描未完成"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "夜景"
+            "value": "上次的掃描未完成"
           }
         }
       }
     },
-    "Moon": {
+    "scan_action_resume": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Moon"
+            "value": "Resume"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "月亮"
+            "value": "继续"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "月亮"
+            "value": "繼續"
           }
         }
       }
     },
-    "White Balance": {
+    "scan_background_banner": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "White Balance"
+            "value": "Scanning runs only in the foreground and pauses in the background. Keep the app open for large libraries."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "白平衡"
+            "value": "扫描仅在前台运行，进入后台会暂停；相册较大请保持 App 在前台。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "白平衡"
+            "value": "掃描僅在前台執行，進入背景會暫停；相簿較大請保持 App 在前景。"
           }
         }
       }
     },
-    "Auto": {
+    "scan_state_idle": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auto"
+            "value": "Idle"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "自动"
+            "value": "待机"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "自動"
+            "value": "待機"
           }
         }
       }
     },
-    "Sunny": {
+    "scan_state_running": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sunny"
+            "value": "Scanning"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "晴天"
+            "value": "扫描中"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "晴天"
+            "value": "掃描中"
           }
         }
       }
     },
-    "Cloudy": {
+    "scan_state_pausing": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cloudy"
+            "value": "Pausing"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "阴天"
+            "value": "暂停中"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "陰天"
+            "value": "暫停中"
           }
         }
       }
     },
-    "Incandescent": {
+    "scan_state_paused": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Incandescent"
+            "value": "Paused"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "白炽灯"
+            "value": "已暂停"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "白熾燈"
+            "value": "已暫停"
           }
         }
       }
     },
-    "Fluorescent": {
+    "scan_state_cancelling": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fluorescent"
+            "value": "Cancelling"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "荧光灯"
+            "value": "取消中"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "螢光燈"
+            "value": "取消中"
           }
         }
       }
     },
-    "Exposure": {
+    "scan_state_cancelled": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Exposure"
+            "value": "Cancelled"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "曝光"
+            "value": "已取消"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "曝光"
+            "value": "已取消"
           }
         }
       }
     },
-    "Contrast": {
+    "scan_state_completed": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contrast"
+            "value": "Completed"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "对比度"
+            "value": "已完成"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "對比度"
+            "value": "已完成"
           }
         }
       }
     },
-    "Saturation": {
+    "scan_action_pause": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saturation"
+            "value": "Pause"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "饱和度"
+            "value": "暂停"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "飽和度"
+            "value": "暫停"
           }
         }
       }
     },
-    "Color Temperature": {
+    "scan_action_cancel": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Color Temperature"
+            "value": "Cancel"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "色温"
+            "value": "取消"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "色溫"
+            "value": "取消"
           }
         }
       }
     },
-    "Ratio 4:3": {
+    "scan_action_retry": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "4:3"
+            "value": "Retry failed"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "4:3"
+            "value": "重试失败"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "4:3"
+            "value": "重試失敗"
           }
         }
       }
     },
-    "Ratio 16:9": {
+    "scan_stat_total": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "16:9"
+            "value": "Photos"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "16:9"
+            "value": "照片"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "16:9"
+            "value": "照片"
           }
         }
       }
     },
-    "Full Screen": {
+    "scan_stat_with_face": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Full Screen"
+            "value": "With face"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "全屏"
+            "value": "含人脸"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "全螢幕"
+            "value": "含人臉"
+          }
+        }
+      }
+    },
+    "scan_stat_with_labels": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With tags"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含标签"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含標籤"
+          }
+        }
+      }
+    },
+    "scan_stat_with_semantic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With semantic"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语义向量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語意向量"
+          }
+        }
+      }
+    },
+    "scan_stat_person_count": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物"
+          }
+        }
+      }
+    },
+    "scan_stat_embedding_count": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face vectors"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸向量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉向量"
+          }
+        }
+      }
+    },
+    "scan_stat_remaining_pass1": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remaining (scan)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待扫(扫描)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待掃(掃描)"
+          }
+        }
+      }
+    },
+    "scan_stat_remaining_pass3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remaining (tag)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待打标"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待打標"
+          }
+        }
+      }
+    },
+    "scan_pipeline_face": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face detection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸检测"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉偵測"
+          }
+        }
+      }
+    },
+    "scan_pipeline_cluster": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person clustering"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物聚类"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物聚類"
+          }
+        }
+      }
+    },
+    "scan_pipeline_content": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content tagging"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容打标"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容打標"
+          }
+        }
+      }
+    },
+    "scan_pipeline_coming": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后续"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "後續"
+          }
+        }
+      }
+    },
+    "scan_action_scan_full": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan all"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全量扫描"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全量掃描"
+          }
+        }
+      }
+    },
+    "scan_action_scan_incremental": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan new"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增量扫描"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增量掃描"
+          }
+        }
+      }
+    },
+    "scan_pass_section_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per-stage control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分阶段控制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分階段控制"
+          }
+        }
+      }
+    },
+    "scan_pass1_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass 1 · Faces"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阶段1·人脸"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "階段1·人臉"
+          }
+        }
+      }
+    },
+    "scan_pass2_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass 2 · Clustering"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阶段2·聚类"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "階段2·聚類"
+          }
+        }
+      }
+    },
+    "scan_pass3_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass 3 · Tagging"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阶段3·打标"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "階段3·打標"
+          }
+        }
+      }
+    },
+    "scan_aesthetic_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aesthetic score"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美学评分"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美學評分"
+          }
+        }
+      }
+    },
+    "scan_action_incremental": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incremental"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增量"
+          }
+        }
+      }
+    },
+    "scan_action_full": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全量"
+          }
+        }
+      }
+    },
+    "scan_coming_soon_badge": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后续"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "後續"
+          }
+        }
+      }
+    },
+    "scan_fine_control_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fine control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "精细控制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "精細控制"
+          }
+        }
+      }
+    },
+    "scan_cat_face": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉"
+          }
+        }
+      }
+    },
+    "scan_cat_scene": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scene"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "场景"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "場景"
+          }
+        }
+      }
+    },
+    "scan_cat_activity": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activity"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活动"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活動"
+          }
+        }
+      }
+    },
+    "scan_cat_objects": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Objects"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "物体"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "物體"
+          }
+        }
+      }
+    },
+    "scan_cat_tags": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标签"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標籤"
+          }
+        }
+      }
+    },
+    "scan_cat_summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "摘要"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "摘要"
+          }
+        }
+      }
+    },
+    "scan_range_all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
+          }
+        }
+      }
+    },
+    "scan_range_7d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7天"
+          }
+        }
+      }
+    },
+    "scan_range_30d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30天"
+          }
+        }
+      }
+    },
+    "scan_range_90d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90天"
+          }
+        }
+      }
+    },
+    "scan_full_regenerate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full regenerate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全量重生成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全量重新產生"
+          }
+        }
+      }
+    },
+    "scan_regenerate_selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regenerate selected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按选择重新生成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依選擇重新產生"
+          }
+        }
+      }
+    },
+    "scan_page_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAG Generation Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAG 生成控制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAG 生成控制"
+          }
+        }
+      }
+    },
+    "scan_db_stats_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Database statistics"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据库累计统计"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資料庫累計統計"
+          }
+        }
+      }
+    },
+    "scan_sub_media": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "媒体总量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "媒體總量"
+          }
+        }
+      }
+    },
+    "scan_sub_face": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faces & people"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸与人物"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉與人物"
+          }
+        }
+      }
+    },
+    "scan_sub_stage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stage progress"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阶段进度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "階段進度"
+          }
+        }
+      }
+    },
+    "scan_col_stage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stage"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阶段"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "階段"
+          }
+        }
+      }
+    },
+    "scan_col_done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成"
+          }
+        }
+      }
+    },
+    "scan_col_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pending"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待處理"
+          }
+        }
+      }
+    },
+    "scan_pipeline_overview_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pipeline overview"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理阶段概览"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "處理階段概覽"
+          }
+        }
+      }
+    },
+    "scan_passctl_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per-stage control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分阶段独立控制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分階段獨立控制"
+          }
+        }
+      }
+    },
+    "scan_passctl_sub": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each stage can be incrementally added or fully regenerated."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个阶段均可独立增量补充或全量重新生成。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每個階段均可獨立增量補充或全量重新生成。"
+          }
+        }
+      }
+    },
+    "scan_pass1_desc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detect faces; generate 512-d embeddings & semantic vectors."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检测人脸，生成 512 维嵌入与语义向量。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偵測人臉，產生 512 維嵌入與語意向量。"
+          }
+        }
+      }
+    },
+    "scan_pass2_desc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cluster faces into people."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸聚类为人物。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉聚類為人物。"
+          }
+        }
+      }
+    },
+    "scan_pass3_desc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Understand image content & generate tags."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "理解图像内容并生成标签。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "理解影像內容並產生標籤。"
+          }
+        }
+      }
+    },
+    "scan_aesthetic_desc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Score photo aesthetics for best-cover selection."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美学评分，用于封面挑选。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美學評分，用於封面挑選。"
+          }
+        }
+      }
+    },
+    "scan_cat_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TAG categories"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 TAG 类别"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇 TAG 類別"
+          }
+        }
+      }
+    },
+    "scan_range_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time range"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时间范围"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間範圍"
+          }
+        }
+      }
+    },
+    "scan_mode_full": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode: full regenerate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模式：全量重标"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模式：全量重標"
+          }
+        }
+      }
+    },
+    "scan_mode_inc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fill missing only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅补充缺失"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅補充缺失"
+          }
+        }
+      }
+    },
+    "scan_eta_prefix": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ETA"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预计剩余"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預計剩餘"
+          }
+        }
+      }
+    },
+    "scan_no_media": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无照片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無照片"
+          }
+        }
+      }
+    },
+    "scan_stat_named_person_count": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Named"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已命名人"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已命名人"
+          }
+        }
+      }
+    },
+    "scan_pass_stage_face": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face detection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸检测"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人臉偵測"
+          }
+        }
+      }
+    },
+    "scan_pass_stage_content": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content tags"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容打标"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容打標"
+          }
+        }
+      }
+    },
+    "scan_progress_summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task %1$d/%2$d done · pending %3$d · failed %4$d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务 %1$d/%2$d 完成 · 待处理 %3$d · 失败 %4$d"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任務 %1$d/%2$d 完成 · 待處理 %3$d · 失敗 %4$d"
+          }
+        }
+      }
+    },
+    "scan_models_needed_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Models required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要下载模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要下載模型"
+          }
+        }
+      }
+    },
+    "scan_models_needed_msg": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download the face-embedding (glintr100) and semantic (mobileclip) models in Settings → Model Center first, then retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描需要先在「设置 → Model Center」下载 人脸嵌入(glintr100) 与 语义(mobileclip) 模型，下载后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掃描需要先在「設定 → Model Center」下載 人臉嵌入(glintr100) 與 語意(mobileclip) 模型，下載後重試。"
+          }
+        }
+      }
+    },
+    "gallery_group_with_face": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With faces"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含人脸"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "含人臉"
+          }
+        }
+      }
+    },
+    "gallery_group_no_face": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No faces"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无人脸"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無人臉"
+          }
+        }
+      }
+    },
+    "gallery_group_person_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person groups — clustering pending"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物分组（需完成人脸聚类）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物分組（需完成人臉聚類）"
+          }
+        }
+      }
+    },
+    "gallery_group_landscape_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scenery groups — tagging pending"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "风景分组（需内容打标）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "風景分組（需內容打標）"
+          }
+        }
+      }
+    },
+    "gallery_group_location_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location groups — geo pending"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地点分组（需地理位置）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地點分組（需地理位置）"
+          }
+        }
+      }
+    },
+    "gallery_group_person_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物"
+          }
+        }
+      }
+    },
+    "gallery_group_person_none": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungrouped (no face / not clustered)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未分组（无人脸/未聚类）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未分組（無人臉/未聚類）"
           }
         }
       }

@@ -48,6 +48,8 @@ targets:
         FRAMEWORK_SEARCH_PATHS: ["$(SRCROOT)/Frameworks", "$(inherited)"]
         # Swift ↔ ObjC++ 桥接（暴露 PLMnnFaceDetector 给 Swift）
         SWIFT_OBJC_BRIDGING_HEADER: "PoLang/PoLang-Bridging-Header.h"
+        # ORT C API 头文件使用 noexcept in typedefs，需要 C++17（默认 gnu++14 会报错）
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++17"
 
   PoLangTests:
     type: bundle.unit-test

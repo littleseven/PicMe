@@ -64,151 +64,171 @@ enum RelationOptions {
 
 // MARK: - 人物列表 ViewModel
 
-/// 人物页（列表）状态。对标 Android `PersonViewModel`：加载/增/删/改名/设封面/设本人。
+/// 人物页（列表）状态。对标 Android `PersonViewModel`：
+/// reconcileAndLoad / 行内改名 / 筛选 / 重聚类。读聚类数据（`PersonRepository`）。
 @MainActor
 final class PersonViewModel: ObservableObject {
 
-    @Published private(set) var persons: [PersonStore.PersonRow] = []
+    @Published private(set) var items: [PersonDisplayItem] = []
+    @Published private(set) var totalCount: Int = 0
+    @Published private(set) var showAll: Bool = false
     @Published private(set) var isLoading = false
+    @Published private(set) var editingPersonId: Int64?
+    /// 瞬时提示（重聚类已启动 / 已隐藏 N 个单人组）。view 侧消费后置 nil。
+    @Published var toast: String?
 
-    private let store: PersonStore
+    private let repo: PersonRepository
 
-    init(store: PersonStore = .shared) {
-        self.store = store
+    init(repo: PersonRepository = .shared) {
+        self.repo = repo
     }
 
-    func load() {
+    /// 进入页：reconcile → load（幂等）。DB 工作后台执行，不阻塞主线程。
+    func onAppear() {
+        reload(reconcile: true)
+    }
+
+    private func reload(reconcile: Bool) {
         isLoading = true
-        defer { isLoading = false }
-        do {
-            persons = try store.allPersonsSorted()
-        } catch {
-            NSLog("PoLang:Person load failed: \(error)")
-            persons = []
+        let repo = self.repo
+        let showAll = self.showAll
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let snapshot = reconcile
+                ? repo.reconcileAndLoad(showAll: showAll)
+                : repo.load(showAll: showAll)
+            await MainActor.run {
+                guard let self else { return }
+                self.items = snapshot.items
+                self.totalCount = snapshot.totalCount
+                self.isLoading = false
+                self.emitHiddenHintIfNeeded()
+            }
         }
     }
 
-    func createPerson(name: String, coverMediaId: String?, isSelf: Bool) {
+    func toggleShowAll() {
+        showAll.toggle()
+        toast = nil
+        reload(reconcile: false)
+    }
+
+    /// 详情页返回后刷新列表（不做 reconcile）。
+    func refresh() { reload(reconcile: false) }
+
+    // MARK: 行内改名
+
+    func startEditing(personId: Int64) { editingPersonId = personId }
+    func stopEditing() { editingPersonId = nil }
+
+    /// 行内改名保存：trim 后空名 = 取消命名（存 nil）。保存后停止编辑 + 刷新。
+    func updateName(personId: Int64, name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        do {
-            _ = try store.createPerson(name: trimmed, coverMediaId: coverMediaId, isSelf: isSelf)
-            persons = try store.allPersonsSorted()
-        } catch {
-            NSLog("PoLang:Person create failed: \(error)")
+        let effective = trimmed.isEmpty ? nil : trimmed
+        let repo = self.repo
+        let showAll = self.showAll
+        stopEditing()
+        Task.detached(priority: .userInitiated) { [weak self] in
+            repo.rename(personId: personId, name: effective)
+            let snapshot = repo.load(showAll: showAll)
+            await MainActor.run {
+                guard let self else { return }
+                self.items = snapshot.items
+                self.totalCount = snapshot.totalCount
+            }
         }
     }
 
-    func rename(id: Int64, name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let current = persons.first(where: { $0.id == id }) else { return }
-        do {
-            try store.updatePerson(id: id, name: trimmed, coverMediaId: current.coverMediaId, isSelf: current.isSelf)
-            persons = try store.allPersonsSorted()
-        } catch {
-            NSLog("PoLang:Person rename failed: \(error)")
-        }
+    // MARK: 重聚类
+
+    /// 触发 Pass2 全量重聚类（fire-and-forget），提示用户完成后返回本页刷新。
+    /// ⚠️ iOS Pass2 为全量重扫，会清空 persons（含名字/关系）；与 Android 增量 split/merge 不同。
+    func recluster() {
+        TagScanOrchestrator.shared.runPass2Clustering()
+        toast = L("Re-clustering started (faces only, may take a while). Re-enter this page to refresh when done.")
     }
 
-    func setCover(id: Int64, coverMediaId: String?) {
-        guard let current = persons.first(where: { $0.id == id }) else { return }
-        do {
-            try store.updatePerson(id: id, name: current.name, coverMediaId: coverMediaId, isSelf: current.isSelf)
-            persons = try store.allPersonsSorted()
-        } catch {
-            NSLog("PoLang:Person setCover failed: \(error)")
-        }
-    }
-
-    func setSelf(id: Int64, isSelf: Bool) {
-        guard let current = persons.first(where: { $0.id == id }) else { return }
-        do {
-            try store.updatePerson(id: id, name: current.name, coverMediaId: current.coverMediaId, isSelf: isSelf)
-            persons = try store.allPersonsSorted()
-        } catch {
-            NSLog("PoLang:Person setSelf failed: \(error)")
-        }
-    }
-
-    func deletePerson(id: Int64) {
-        do {
-            try store.deletePerson(id: id)
-            persons = try store.allPersonsSorted()
-        } catch {
-            NSLog("PoLang:Person delete failed: \(error)")
-        }
+    /// 默认筛选下隐藏了单人组时，提示用户。
+    private func emitHiddenHintIfNeeded() {
+        guard !showAll else { return }
+        let hidden = totalCount - items.count
+        guard hidden > 0 else { return }
+        toast = String(format: L("Hidden %1$d unnamed single-face groups; tap filter to show all"), hidden)
     }
 }
 
 // MARK: - 人物详情 ViewModel
 
-/// 人物详情状态：本体 + 发出关系 + 已指派照片。支持关系增删、照片批量指派。
+/// 人物详情状态：本体 + 对己关系 + 封面候选。编辑由 view 持本地态，保存回调本 VM 持久化 + 刷新。
 @MainActor
 final class PersonDetailViewModel: ObservableObject {
 
-    @Published private(set) var person: PersonStore.PersonRow?
-    @Published private(set) var relations: [PersonStore.RelationRow] = []
-    @Published private(set) var assignedMediaIds: [String] = []
+    @Published private(set) var person: PersonDbRow?
+    @Published private(set) var relation: PersonRelationDb?
+    @Published private(set) var coverCandidates: [MediaCoverInfo] = []
     @Published private(set) var isLoading = false
 
-    private let store: PersonStore
-    private let personId: Int64
+    private let repo: PersonRepository
+    let personId: Int64
 
-    init(personId: Int64, store: PersonStore = .shared) {
+    init(personId: Int64, repo: PersonRepository = .shared) {
         self.personId = personId
-        self.store = store
+        self.repo = repo
     }
 
     func load() {
         isLoading = true
-        defer { isLoading = false }
-        reload()
-    }
-
-    private func reload() {
-        do {
-            person = try store.person(id: personId)
-            relations = try store.relations(subjectPersonId: personId)
-            assignedMediaIds = try store.assignedMediaIds(personId: personId)
-        } catch {
-            NSLog("PoLang:PersonDetail load failed: \(error)")
+        let repo = self.repo
+        let pid = personId
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let person = repo.person(pid)
+            let relation = repo.relation(personId: pid)
+            let covers = repo.coverCandidates(personId: pid)
+            await MainActor.run {
+                guard let self else { return }
+                self.person = person
+                self.relation = relation
+                self.coverCandidates = covers
+                self.isLoading = false
+            }
         }
     }
 
-    // MARK: 关系
+    // MARK: 编辑（每次保存后 reload 详情）
 
-    func addRelation(objectPersonId: Int64, predicate: String) {
-        do {
-            try store.upsertRelation(
-                subjectPersonId: personId,
-                objectPersonId: objectPersonId,
-                predicate: predicate,
-                source: RelationSource.renameDialog.name,  // iOS 暂无聊天声明通道，统一记为对话框来源
-                customLabel: nil)
-            reload()
-        } catch {
-            NSLog("PoLang:PersonDetail addRelation failed: \(error)")
+    func saveName(_ name: String?) {
+        let repo = self.repo
+        Task.detached(priority: .userInitiated) { [weak self] in
+            repo.rename(personId: self?.personId ?? 0, name: name)
+            await MainActor.run { self?.load() }
         }
     }
 
-    func deleteRelation(relationId: Int64) {
-        do {
-            try store.deleteRelation(relationId: relationId)
-            reload()
-        } catch {
-            NSLog("PoLang:PersonDetail deleteRelation failed: \(error)")
+    func saveCover(_ mediaId: Int64?) {
+        let repo = self.repo
+        let pid = personId
+        Task.detached(priority: .userInitiated) { [weak self] in
+            repo.updateCover(personId: pid, mediaId: mediaId)
+            await MainActor.run { self?.load() }
         }
     }
 
-    // MARK: 照片指派
+    func saveSelf(_ isSelf: Bool) {
+        let repo = self.repo
+        let pid = personId
+        Task.detached(priority: .userInitiated) { [weak self] in
+            repo.setSelf(personId: pid, isSelf: isSelf)
+            await MainActor.run { self?.load() }
+        }
+    }
 
-    func applyAssignments(add: [String], remove: [String]) {
-        guard !(add.isEmpty && remove.isEmpty) else { return }
-        do {
-            try store.applyAssignments(personId: personId, add: add, remove: remove)
-            reload()
-        } catch {
-            NSLog("PoLang:PersonDetail applyAssignments failed: \(error)")
+    /// 保存对己关系（customLabel 非空→OTHER）。source 固定 renameDialog（iOS 暂无聊天声明通道）。
+    func saveRelation(predicate: String?, customLabel: String?) {
+        let repo = self.repo
+        let pid = personId
+        let source = RelationSource.renameDialog.name
+        Task.detached(priority: .userInitiated) { [weak self] in
+            repo.saveRelation(personId: pid, predicate: predicate, customLabel: customLabel, source: source)
+            await MainActor.run { self?.load() }
         }
     }
 }

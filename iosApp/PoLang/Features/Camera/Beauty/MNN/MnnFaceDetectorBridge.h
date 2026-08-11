@@ -83,6 +83,17 @@ NS_ASSUME_NONNULL_BEGIN
                                        height:(int)height
                                   bytesPerRow:(int)bytesPerRow;
 
+/// 多人脸检测（扁平 float 输出，避开 NSArray<PLDetectedFace> 桥接）。
+/// 每张脸 15 个 float：roiX,roiY,roiW,roiH,confidence,lm0..lm9（原始图像像素坐标）。
+/// @param outBuf 调用方分配的 maxFaces*15 float 缓冲区。
+/// @return 写入的脸数（0 = 未检测到人脸）。
+- (int)detectAllFacesFlat:(const uint8_t *)bgra
+                    width:(int)width
+                   height:(int)height
+              bytesPerRow:(int)bytesPerRow
+                   outBuf:(float *)outBuf
+                 maxFaces:(int)maxFaces;
+
 /// 最近一次 detect 的调试信息（后端/耗时/box），供 DebugOverlay 展示。
 @property (nonatomic, readonly, copy) NSString *debugInfo;
 

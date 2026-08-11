@@ -417,5 +417,19 @@
     "tagBadgeRadius": 6,
     "miniBadgeRadius": 4,
     "tagBadgeDotSize": 6
+  },
+
+  "person": {
+    "_comment": "人物页（列表+详情）。聚类模型，对标 Android PersonScreen/PersonInfoScreen。cardRadius=16 区别于通用 radius.card=12（Android PersonListItem 显式 16dp）。",
+    "cardRadius": 16,
+    "gridColumns": 2,
+    "gridSpacing": 12,
+    "coverAspectRatio": 1.0,
+    "detailCoverHeight": 180,
+    "detailCoverWidthRatio": 0.55,
+    "coverPickerColumns": 3,
+    "nameFontSize": 16,
+    "photoCountFontSize": 13,
+    "relationChipRadius": 8
   }
 }

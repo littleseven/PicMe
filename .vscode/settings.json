@@ -1,0 +1,33 @@
+{
+    // ============ Kotlin 语言服务器（fwcd.kotlin）============
+    // 关键：项目要求 JDK 21（toolchainVersion=21），指向 Android Studio 自带 JBR
+    "kotlin.java.home": "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
+    "kotlin.languageServer.enabled": true,
+    "kotlin.compiler.jvm.target": "21",
+    // 启用 .kts / .gradle.kts 脚本支持（实验性，但对 KMP 工程有用）
+    "kotlin.scripts.enabled": true,
+    "kotlin.scripts.buildScriptsEnabled": true,
+    "kotlin.diagnostics.enabled": true,
+    "kotlin.indexing.enabled": true,
+    "kotlin.completion.snippets.enabled": true,
+
+    // ============ Kotlin 编辑器（格式化交给项目自带 ktlint/detekt）============
+    "[kotlin]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+
+    // ============ 文件/搜索排除（隐藏 Gradle/构建产物，降噪）============
+    "files.exclude": {
+        "**/.gradle": true,
+        "**/build": true,
+        "**/.idea": true,
+        "**/.cxx": true
+    },
+    "search.exclude": {
+        "**/build": true,
+        "**/.gradle": true,
+        "**/.idea": true,
+        "**/generated": true
+    }
+}
