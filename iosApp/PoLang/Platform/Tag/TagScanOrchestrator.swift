@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// 扫描进度快照（对齐 Android TagScanSessionProgress）。
 struct TagScanSessionProgress: Sendable, Equatable {
@@ -18,6 +19,14 @@ enum ScanEvent: Sendable {
     case progress(TagScanSessionProgress)
     case finished(ScanSessionState) // completed / cancelled
     case modelsNeeded // 模型未就绪（glintr100/mobileclip 未下载）→ 提示用户去 Model Center
+}
+
+/// 按需图像理解结果（gallery 大图页「图像理解」入口，对齐 Android describeImage）。
+enum VisionDescribeOutcome {
+    case success(String)        // Florence-2 caption（英文，端侧）
+    case modelsNotDownloaded    // Florence-2 模型未下载 → 提示去 Model Center
+    case lowMemory              // 可用内存 <300MB（防 OS SIGKILL）
+    case failed                 // 加载/推理失败
 }
 
 /// TAG 扫描编排器。
@@ -420,6 +429,58 @@ final class TagScanOrchestrator: @unchecked Sendable {
             }
             // 4) 任务间轻让步
             try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+    }
+
+    // MARK: - 按需图像理解（gallery 大图页「图像理解」入口）
+
+    /// on-demand 串行队列：保护 onDemandTagger，并串行化按需推理（与 Pass3 的 florence2Tagger
+    /// 隔离，避免后台扫描与按需理解两条路径竞争同一 tagger 实例）。
+    private let visionQueue = DispatchQueue(label: "com.mamba.picme.vision", qos: .userInitiated)
+    /// 按需图像理解专用 Florence-2 实例（懒加载；与 Pass3 的 florence2Tagger 独立）。
+    private var onDemandTagger: Florence2Tagger?
+
+    /// 按需图像理解：对单张图返回 Florence-2 caption（英文，端侧，对齐 Android describeImage 的
+    /// Florence-2 路径）。安全模式镜像 `processPass3Task`（modelsAvailable 检查 → 懒加载 →
+    /// isLoaded → ≥300MB 内存保护 → `florence2_attempting` 崩溃标记）。
+    ///
+    /// - Warning: 同步阻塞（Florence-2 推理数秒），调用方**必须**在后台线程（`Task.detached`）调，
+    ///   不可在主线程或持有协作线程关键资源的上下文直接调。
+    func describeImage(_ image: UIImage) -> VisionDescribeOutcome {
+        visionQueue.sync {
+            // 1) 模型未下载
+            guard Florence2Tagger.modelsAvailable(modelDir: florence2ModelDir) else {
+                NSLog("PoLang:Florence2 onDemand: models not downloaded")
+                return .modelsNotDownloaded
+            }
+            // 2) 懒加载（与 processPass3Task 一致）
+            if onDemandTagger == nil {
+                let tagger = Florence2Tagger()
+                NSLog("PoLang:Florence2 onDemand: loading...")
+                if tagger.load(modelDir: florence2ModelDir) {
+                    onDemandTagger = tagger
+                }
+            }
+            guard let tagger = onDemandTagger, tagger.isLoaded else {
+                NSLog("PoLang:Florence2 onDemand: tagger not loaded")
+                return .failed
+            }
+            // 3) 低内存保护（Florence-2 4 模型 + 中间张量吃内存，不足防 OS SIGKILL）
+            let availMB = Int(os_proc_available_memory() / 1024 / 1024)
+            guard availMB >= 300 else {
+                NSLog("PoLang:Florence2 onDemand SKIP: low memory (\(availMB)MB < 300MB)")
+                return .lowMemory
+            }
+            // 4) 崩溃标记 + 推理（与 Pass3 一致）
+            NSLog("PoLang:Florence2 onDemand: calling tag...")
+            UserDefaults.standard.set(true, forKey: "florence2_attempting")
+            let t0 = CFAbsoluteTimeGetCurrent()
+            let result = tagger.tag(image)
+            UserDefaults.standard.set(false, forKey: "florence2_attempting")
+            let ms = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
+            NSLog("PoLang:Florence2 onDemand: tag done in \(ms)ms result=\(result != nil)")
+            guard let summary = result?.summary, !summary.isEmpty else { return .failed }
+            return .success(summary)
         }
     }
 

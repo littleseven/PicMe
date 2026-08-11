@@ -687,6 +687,46 @@ media_pager:
     visible: false                          # 🔴 Android 无页码点，iOS 也不应有
     note: "禁止显示系统默认 page dots（gap #30 标记为多余）"
 
+  # ── 26. 平台差异台账（ios-follow 2026-08-11：放开全部入口）──
+  # 登记 more_menu 三项 + 底栏 id_photo 的双端实际路径与隐私披露对齐。
+  platform_differences:
+
+    image_understanding:
+      android_actual:
+        engine: "Florence-2 (`Florence2Tagger.tag().summary`) 或 local VLM `localLlmEngine.imageInference`（Qwen3-VL）"
+        entrypoint: "TagGenerationScheduler.describeImage → VisionResultOverlay（Copy/Share）"
+      ios_actual:
+        engine: "复用既有 `Florence2Tagger.tag().summary`（同一 Florence-2-base INT8 ORT，端侧）"
+        entrypoint: "TagScanOrchestrator.describeImage(_:) → VisionResultOverlay（Copy/Share）"
+        language: "英文 caption（对齐 Android Florence-2 原始输出；中文翻译留后续）"
+        gating: "仅 PHOTO；模型未下载/低内存(<300MB)/失败 → 失败态文案"
+      privacy: "100% 端侧（图片文件不出端，合规 ADR-008）"
+
+    ocr:
+      android_actual:
+        engine: "Google ML Kit 中文识别（`MlKitOcrProcessor`，端侧）"
+        entrypoint: "MediaViewModel.recognizeTextFromCurrentImage → OcrResultOverlay（Copy/Share + 字数）"
+      ios_actual:
+        engine: "Apple Vision `VNRecognizeTextRequest`（accurate，zh-Hans/zh-Hant/en-US/en-GB，端侧）"
+        entrypoint: "OcrRecognizer.recognize(_:) → OcrResultOverlay（Copy/Share + 字数）"
+        gating: "仅 PHOTO；无文字 → 「未识别到文字」；失败 → 失败态文案"
+        db_write: "本功能不写 TagDatabase.ocrText（仅 overlay 即时态，对齐 Android OcrResultOverlay）"
+      privacy: "100% 端侧（Vision on-device，合规 ADR-008）"
+
+    id_photo:
+      android_actual:
+        engine: "端侧抠图（`IDPhotoComposer` + IDPhotoSpecs）"
+        entrypoint: "Screen.IDPhoto → IDPhotoScreen（背景色/证件尺寸/输出）"
+      ios_actual:
+        status: "DEFERRED（技术债）—— ORT 运行时已在（Florence2Tagger 已用 onnxruntime_objc），但无 matting runner、无 IDPhotoScreen"
+        entrypoint: "保留诚实「敬请期待」占位（不假造交互）"
+        tech_debt: "后续需新建 MODNet/U2Net ORT runner + IDPhotoScreen + IDPhotoSpecs 对齐"
+      note: "ios-follow 2026-08-11 决策：推迟，本轮不实现"
+
+    allowed_ios_differences:
+      - "video 项禁用 image_understanding/ocr（iOS 无视频帧抽取管线；Android vision 静默 no-op，iOS 直接 disabled 更清晰）"
+      - "image_understanding caption 暂为英文（Android Florence-2 路径同样先出英文再翻译；iOS 翻译留后续）"
+
 # ============================================================================
 # 第三部分：分组模式（Grouping Modes）
 # ============================================================================

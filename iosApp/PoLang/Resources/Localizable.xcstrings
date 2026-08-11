@@ -1,6 +1,69 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "analysis.failed": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Analysis failed. Please try again." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "分析失败，请重试" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "分析失敗，請重試" } }
+      }
+    },
+    "analysis.low.memory": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not enough memory to run analysis. Close other apps and retry." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "内存不足，无法运行分析，请关闭其他应用后重试" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "記憶體不足，無法執行分析，請關閉其他應用後重試" } }
+      }
+    },
+    "analyzing": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Analyzing…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在分析…" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "正在分析…" } }
+      }
+    },
+    "chars": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "chars" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "字" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "字" } }
+      }
+    },
+    "copied.toast": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Copied" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已复制" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已複製" } }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Copy" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "复制" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "複製" } }
+      }
+    },
+    "feature.coming.soon": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "This feature is coming soon" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "功能敬请期待" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "功能敬請期待" } }
+      }
+    },
+    "ocr.no.text": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "No text recognized." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "未识别到文字" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "未識別到文字" } }
+      }
+    },
+    "vision.models.needed": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Image analysis model not downloaded. Download it in Model Center." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "图像理解模型未下载，请在模型中心下载" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "圖像理解模型未下載，請在模型中心下載" } }
+      }
+    },
     "Batch Generate": {
       "extractionState": "manual",
       "localizations": {

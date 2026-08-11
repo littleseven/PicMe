@@ -2,6 +2,21 @@ import SwiftUI
 import SharedKit
 import UIKit
 
+/// 按需分析（图像理解 / OCR）状态机：idle→loading→done(text)/failed(reason)。
+/// 两条通道独立（同时只一条活跃），共用此状态类型。
+private enum AnalysisState: Equatable {
+    case idle
+    case loading
+    case done(text: String)
+    case failed(reason: String)
+}
+
+/// 文本分享载体（Identifiable 驱动 sheet(item:)）。
+private struct ShareText: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
 /// 大图浏览（对齐 Android `MediaPager.kt`，量化基准 = dump gallery_pager，密度 3.33）：
 /// 黑底横滑分页（去系统 page dots，页间距 16）、双指缩放 1–4x + 平移（clamp 公式对齐
 /// `ZoomableImage:344-417`）、单击切换顶/底栏显隐（缩放时强制隐藏）。
@@ -22,6 +37,15 @@ struct MediaPagerView: View {
     @State private var editTarget: EditorTarget?
     /// 证照入口「敬请期待」toast（iOS 无 ID-photo 流程，Phase 6）
     @State private var showIdComingSoon = false
+    /// 按需分析状态：图像理解 / OCR（同时只一条活跃；复用 AnalysisState）。
+    /// 图像理解 → Florence-2 caption（端侧，对齐 Android describeImage）；
+    /// OCR → Apple Vision（端侧，对齐 Android ML Kit）。
+    @State private var visionState: AnalysisState = .idle
+    @State private var ocrState: AnalysisState = .idle
+    /// 分析结果文本分享载体（Copy/Share 用）
+    @State private var shareTextPayload: ShareText?
+    /// 「已复制」瞬时 toast
+    @State private var showCopiedToast = false
     /// debug 开关门控「人脸关键点」入口（对齐 Android debugUiEnabled）
     @AppStorage("debug_ui_enabled") private var debugEnabled = false
     @State private var showFaceOverlay = false
@@ -77,6 +101,9 @@ struct MediaPagerView: View {
         .sheet(item: $sharePayload) { payload in
             ActivityView(activityItems: payload.images)
         }
+        .sheet(item: $shareTextPayload) { st in
+            ActivityView(activityItems: [st.text])
+        }
         .confirmationDialog(String(localized: "Delete this photo?"),
                             isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button(String(localized: "Delete"), role: .destructive) { deleteCurrent() }
@@ -86,8 +113,11 @@ struct MediaPagerView: View {
             PhotoEditorScreen(localIdentifier: target.id)
         }
         .overlay {
-            if showIdComingSoon {
-                Text("This feature is coming soon")
+            // 顶部瞬时 toast：证照「敬请期待」/ 「已复制」
+            if showIdComingSoon || showCopiedToast {
+                Text(showIdComingSoon
+                     ? String(localized: "feature.coming.soon")
+                     : String(localized: "copied.toast"))
                     .font(.system(size: 14))
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(Color.black.opacity(0.8))
@@ -95,10 +125,19 @@ struct MediaPagerView: View {
                     .transition(.opacity)
             }
         }
+        .overlay(alignment: .bottom) {
+            // 按需分析结果卡（图像理解 / OCR；同时只一条活跃）
+            analysisOverlay
+        }
         .animation(.easeInOut(duration: 0.2), value: showIdComingSoon)
+        .animation(.easeInOut(duration: 0.2), value: showCopiedToast)
         .onChange(of: showIdComingSoon) { onset in
             guard onset else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { showIdComingSoon = false }
+        }
+        .onChange(of: showCopiedToast) { onset in
+            guard onset else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { showCopiedToast = false }
         }
     }
 
@@ -128,20 +167,22 @@ struct MediaPagerView: View {
                 }
                 .accessibilityIdentifier("pager_info")
                 Menu {
-                    Button {} label: {
+                    Button { runVision() } label: {
                         Label {
                             Text(String(localized: "Image Analysis"))
                         } icon: {
                             MatIcon(name: "mat_auto_awesome", size: 20)
                         }
-                    }.disabled(true)
-                    Button {} label: {
+                    }
+                    .disabled(currentAsset?.type == .video)
+                    Button { runOcr() } label: {
                         Label {
                             Text(String(localized: "Extract Text"))
                         } icon: {
                             MatIcon(name: "mat_text_snippet", size: 20)
                         }
-                    }.disabled(true)
+                    }
+                    .disabled(currentAsset?.type == .video)
                     Button { showFaceOverlay.toggle() } label: {
                         Label {
                             Text(String(localized: "Face Landmarks"))
@@ -242,6 +283,95 @@ struct MediaPagerView: View {
         guard let asset = currentAsset else { return }
         _ = bridge.deleteMedia(localIdentifiers: [asset.uri])
         dismiss()  // 删除后退出大图页；网格经 PHPhotoLibraryObserver 自动刷新
+    }
+
+    // MARK: - 按需分析（图像理解 / OCR）
+
+    /// 图像理解：端侧 Florence-2 caption（复用 TagScanOrchestrator.describeImage，
+    /// 对齐 Android describeImage 的 Florence-2 路径）。模型未下载/低内存/失败 → 失败态文案。
+    private func runVision() {
+        guard let uri = currentAsset?.uri else { return }
+        visionState = .loading
+        Task.detached(priority: .userInitiated) {
+            let image = await ThumbnailLoader.shared.thumbnail(
+                for: uri, size: CGSize(width: 2000, height: 2000), highQuality: true)
+            guard let image else {
+                await MainActor.run { visionState = .failed(reason: String(localized: "analysis.failed")) }
+                return
+            }
+            let outcome = TagScanOrchestrator.shared.describeImage(image)
+            await MainActor.run {
+                switch outcome {
+                case .success(let caption):
+                    visionState = .done(text: caption)
+                case .modelsNotDownloaded:
+                    visionState = .failed(reason: String(localized: "vision.models.needed"))
+                case .lowMemory:
+                    visionState = .failed(reason: String(localized: "analysis.low.memory"))
+                case .failed:
+                    visionState = .failed(reason: String(localized: "analysis.failed"))
+                }
+            }
+        }
+    }
+
+    /// 提取文字：端侧 Apple Vision OCR（OcrRecognizer，对齐 Android ML Kit 中文识别）。
+    private func runOcr() {
+        guard let uri = currentAsset?.uri else { return }
+        ocrState = .loading
+        Task.detached(priority: .userInitiated) {
+            let image = await ThumbnailLoader.shared.thumbnail(
+                for: uri, size: CGSize(width: 2200, height: 2200), highQuality: true)
+            guard let image else {
+                await MainActor.run { ocrState = .failed(reason: String(localized: "analysis.failed")) }
+                return
+            }
+            let outcome = OcrRecognizer.recognize(image)
+            await MainActor.run {
+                switch outcome {
+                case .success(let text):
+                    ocrState = .done(text: text)
+                case .noText:
+                    ocrState = .failed(reason: String(localized: "ocr.no.text"))
+                case .failure:
+                    ocrState = .failed(reason: String(localized: "analysis.failed"))
+                }
+            }
+        }
+    }
+
+    private func copyAnalysis(_ text: String) {
+        UIPasteboard.general.string = text
+        showCopiedToast = true
+    }
+
+    private func shareAnalysis(_ text: String) {
+        shareTextPayload = ShareText(text: text)
+    }
+
+    /// 分析结果卡（vision 优先于 ocr；同时只一条活跃）。底栏可见时上抬避让。
+    @ViewBuilder
+    private var analysisOverlay: some View {
+        if visionState != .idle || ocrState != .idle {
+            Group {
+                if visionState != .idle {
+                    AnalysisResultCard(
+                        title: String(localized: "Image Analysis"),
+                        state: visionState, showsCharCount: false,
+                        onCopy: { copyAnalysis($0) }, onShare: { shareAnalysis($0) },
+                        onClose: { visionState = .idle })
+                } else {
+                    AnalysisResultCard(
+                        title: String(localized: "Extract Text"),
+                        state: ocrState, showsCharCount: true,
+                        onCopy: { copyAnalysis($0) }, onShare: { shareAnalysis($0) },
+                        onClose: { ocrState = .idle })
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, (barsVisible && !isZoomed) ? 88 : 12)
+            .transition(.opacity)
+        }
     }
 }
 
@@ -440,6 +570,106 @@ private struct PhotoInfoSheet: View {
     private func formatDuration(_ ms: Int64) -> String {
         let totalSeconds = ms / 1000
         return String(format: "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+    }
+}
+
+/// 按需分析结果卡（图像理解 caption / OCR 文本，对齐 Android OcrResultOverlay/VisionResultOverlay）。
+/// 状态机：loading → ProgressView；done(text) → 文本 + Copy/Share；failed(reason) → 提示文案。
+private struct AnalysisResultCard: View {
+    let title: String
+    let state: AnalysisState
+    let showsCharCount: Bool
+    let onCopy: (String) -> Void
+    let onShare: (String) -> Void
+    let onClose: () -> Void
+
+    private var resultText: String? {
+        if case .done(let text) = state { return text }
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // 标题 + 关闭
+            HStack(spacing: 0) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                Spacer()
+                Button { onClose() } label: {
+                    MatIcon(name: "mat_close", size: 20)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 主体（按状态）
+            switch state {
+            case .idle:
+                EmptyView()
+            case .loading:
+                HStack(spacing: 8) {
+                    ProgressView().tint(.white)
+                    Text(String(localized: "analyzing"))
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            case .done(let text):
+                ScrollView(.vertical) {
+                    Text(text)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                .frame(maxHeight: 200)
+                if showsCharCount {
+                    Text("\(text.count) " + String(localized: "chars"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            case .failed(let reason):
+                Text(reason)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            // 操作行（仅 done 态）
+            if let resultText {
+                HStack(spacing: 10) {
+                    actionButton(icon: "mat_content_copy",
+                                 label: String(localized: "Copy")) { onCopy(resultText) }
+                    actionButton(icon: "mat_share",
+                                 label: String(localized: "Share")) { onShare(resultText) }
+                    Spacer()
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(16)
+        .background(Color.black.opacity(0.9))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func actionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                MatIcon(name: icon, size: 16)
+                    .foregroundStyle(.white)
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.12))
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 
