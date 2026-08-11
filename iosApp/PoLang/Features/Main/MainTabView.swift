@@ -19,39 +19,27 @@ struct MainTabView: View {
 
     var body: some View {
         ZStack {
-            // 相册页（初始页，常驻 — 含悬浮 Tab）
-            GalleryGridView(repository: container.mediaRepository)
-                .environmentObject(container)
-                .overlay(alignment: .bottom) {
-                    if currentPage == 1 {
-                        FloatingBottomTab(currentPage: $currentPage, onPlaceholderTap: { icon in
-                            showPlaceholder = icon
-                        })
-                        .padding(.bottom, 16)
-                    }
-                }
-
-            // 相机页（全出血，覆盖在相册之上时可见）
-            if currentPage == 0 {
-                CameraPreviewView()
+            // 🔴 主页面容器：TabView(.page) 原生跟手 pager（对标 Android HorizontalPager）——
+            // 手指拖动 offset 实时跟随、松手物理吸附。替换原「ZStack 条件渲染 + 仅 onEnded 手势」
+            // （拖动期零位移、松手才跳 → 不跟手）。全 4 页常驻组合（对标 beyondViewportPageCount=N-1）。
+            TabView(selection: $currentPage) {
+                CameraPreviewView(isActive: currentPage == 0)
                     .environmentObject(container)
-            }
-
-            // 聊天页（Phase 6.2）
-            if currentPage == 2 {
-                ChatView(onBack: {
-                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
-                })
+                    .tag(0)
+                GalleryGridView(repository: container.mediaRepository)
                     .environmentObject(container)
+                    .tag(1)
+                ChatView(onBack: { currentPage = 1 })
+                    .environmentObject(container)
+                    .tag(2)
+                PersonView(onBack: { currentPage = 1 })
+                    .environmentObject(container)
+                    .tag(3)
             }
-            if currentPage == 3 {
-                PersonView(onBack: {
-                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
-                })
-                .environmentObject(container)
-            }
+            .tabViewStyle(.page(indexDisplayMode: .never))  // 去页码点（Android 无指示器）
+            .ignoresSafeArea()  // 容器全出血；各页自理 safe area（相机页已 ignoresSafeArea）
 
-            // 打标页 push：TAG tab 进入 TagScanScreen（SP-B）；其余占位保持 Coming Soon
+            // 打标页 push（覆盖在 pager 之上）：TAG tab → TagScanScreen（SP-B）；其余占位 Coming Soon
             if let ph = showPlaceholder {
                 if ph == "tag" {
                     TagScanScreen(onDismiss: { showPlaceholder = nil })
@@ -75,7 +63,7 @@ struct MainTabView: View {
             // 前台优先：进后台协作暂停扫描（SP-B）；回前台不自动续，由用户在扫描页点恢复
             if phase == .background { TagScanOrchestrator.shared.pauseForBackground() }
         }
-        // 悬浮 Tab：相册/人物页常驻；相机页（沉浸式）与聊天页（避免遮挡输入栏，返回键可出）不显示
+        // 悬浮 Tab：相册/人物页显示；相机页（沉浸式）与聊天页（避免遮挡输入栏，返回键可出）隐藏
         .overlay(alignment: .bottom) {
             if currentPage != 0 && currentPage != 2 {
                 FloatingBottomTab(currentPage: $currentPage, onPlaceholderTap: { icon in
@@ -84,19 +72,7 @@ struct MainTabView: View {
                 .padding(.bottom, 16)
             }
         }
-        // 全局左右滑切页（对标 Android HorizontalPager）：水平主导滑动手势切页；
-        // 用 simultaneousGesture 保证不抢相机页的对焦/变焦/曝光手势（垂直拖动仍归曝光）
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 40)
-                .onEnded { value in
-                    let dx = value.translation.width, dy = value.translation.height
-                    guard abs(dx) > abs(dy) * 1.5, abs(dx) > 60 else { return }
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        if dx < 0, currentPage < 3 { currentPage += 1 }
-                        else if dx > 0, currentPage > 0 { currentPage -= 1 }
-                    }
-                }
-        )
+        // 🔴 左右滑切页改由 TabView(.page) 原生跟手处理（见上方 TabView），不再用 onEnded 手势。
         // 调试悬浮窗仅相机页（排查美颜/快门用），其余页面不干扰观感
         // 🔴 避让相机控件：顶推 116pt 越过左列按钮区（safeTop 系坐标：8 + 2×48+8 + 4 余量），
         //    右缘收 76pt 避开右列按钮（48 按钮 + 16 边距 + 余量），宽度封顶防长行伸进右列

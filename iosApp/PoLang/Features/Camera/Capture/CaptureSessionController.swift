@@ -130,6 +130,11 @@ final class CaptureSessionController: NSObject {
 
     func stop() { queue.async { [self] in session.stopRunning() } }
 
+    /// 🔴 isActive 门控恢复：已授权且已配置前提下恢复 running。对标 Android `isActivePage` 门控——
+    /// 首次配置/授权仍走 `checkAuthorizationAndStart`（内部 `start()` 会完整配置 session），
+    /// 后续进出相机页只 toggle `startRunning`/`stopRunning`，避免反复 `beginConfiguration` 重配。
+    func resume() { queue.async { [self] in if !session.isRunning { session.startRunning() } } }
+
     fileprivate func swapBuffer(_ pb: CVPixelBuffer, timestampMs: Int) {
         bufferLock.lock()
         currentPixelBuffer = pb

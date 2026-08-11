@@ -8,6 +8,10 @@ struct CameraPreviewView: View {
     @EnvironmentObject private var container: AppContainer
     /// 相册入口回调（MainTabView 注入：切到相册页）
     var onGalleryTap: () -> Void = {}
+    /// 🔴 相机激活门控（对标 Android `isActivePage = currentPage == CAMERA`）：全常驻 pager 下相机页
+    /// 不会 disappear，改由 MainTabView 传 `currentPage == 0` 驱动 start/stop——
+    /// true→授权/start/resume；false→stop 省电防发热。
+    var isActive: Bool = false
     @State private var authorized = false
     @State private var controller = CaptureSessionController()
     @State private var photoController = PhotoCaptureController()
@@ -101,7 +105,7 @@ struct CameraPreviewView: View {
                 // 🔴 camera_preview 标识只挂叶子视图：挂容器会沿子树传播、覆盖子孙自身标识符
                 MetalViewRepresentable(controller: controller, renderer: sharedRenderer,
                                        params: container.beautyParams, faceRouter: faceRouter,
-                                       landmarkStore: landmarkStore)
+                                       landmarkStore: landmarkStore, isActive: isActive)
                 .frame(width: geo.size.width, height: geo.size.height)
                 .accessibilityIdentifier("camera_preview")
 
@@ -136,11 +140,36 @@ struct CameraPreviewView: View {
             }
         }
         .ignoresSafeArea(.all) // 🔴 全出血：整个 GeometryReader 忽略 safe area
+        // 🔴 相机硬件由 isActive 门控（对标 Android `isActivePage`）：全常驻 pager 下相机页不会 disappear，
+        // 改由 MainTabView 传 `currentPage == 0` 驱动 start/stop——滑离相机页 stop 省电防发热，滑回 resume。
+        // 用 .task(id:) 而非 onChange：首次 view 组合也会跑（onChange 不触发初值），-startPage 0 直进相机页也覆盖。
+        .task(id: isActive) {
+            if isActive {
+                if authorized {
+                    controller.resume()   // 已授权已配置：恢复 running（不重配 session）
+                } else {
+                    // 首次：授权 + 完整配置 session + start
+                    authorized = await controller.checkAuthorizationAndStart()
+                    DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
+                    if authorized {
+                        // 🔴 串行挂载：走 capture 队列与 session 配置块保序（主线程直挂会和配置竞态）
+                        controller.attachOutput(photoController.photoOutput)
+                        controller.onFrame = { [faceRouter] pixelBuffer, ts in
+                            faceRouter.enqueue(pixelBuffer: pixelBuffer, timestampMs: ts)
+                        }
+                        controller.faceServiceIsFrontCamera = { [faceRouter] isFront in
+                            faceRouter.setFrontCamera(isFront)
+                        }
+                    }
+                }
+            } else if authorized {
+                controller.stop()         // 滑离相机页：腾出相机给系统
+            }
+        }
+        // 🔴 一次性配置（不随进出相机页重复）：MNN 自检 / Debug 叠加层 / 引擎 / 美颜参数 / 缩略图
         .task {
             // MNN 端侧推理离线自检（-mnnSelfTest 时跑；写 Documents/mnn-verify.txt 供验收拉取）
             MnnSelfTest.runIfRequested()
-            authorized = await controller.checkAuthorizationAndStart()
-            DebugOverlayState.shared.set("camera.auth", authorized ? "granted" : "denied")
             // Debug 叠加层：设置页开关控制（默认启用，验收期直接看遥测）
             DebugOverlayState.shared.isEnabled =
                 (UserDefaults.standard.object(forKey: "camera_debug_overlay") as? Bool) ?? true
@@ -166,16 +195,6 @@ struct CameraPreviewView: View {
             print("[PoLang] launch.args: mnnEngine=\(useMnnEngine) slim=\(Self.parseLaunchFloat("-slim") ?? -1) " +
                   "persistedSlim=\(UserDefaults.standard.object(forKey: "beauty_slim_debug") as? Float ?? -1) " +
                   "warpStrength=\(UserDefaults.standard.object(forKey: "beauty_warp_strength") as? Float ?? 1)")
-            if authorized {
-                // 🔴 串行挂载：走 capture 队列与 session 配置块保序（主线程直挂会和配置竞态）
-                controller.attachOutput(photoController.photoOutput)
-                controller.onFrame = { [faceRouter] pixelBuffer, ts in
-                    faceRouter.enqueue(pixelBuffer: pixelBuffer, timestampMs: ts)
-                }
-                controller.faceServiceIsFrontCamera = { [faceRouter] isFront in
-                    faceRouter.setFrontCamera(isFront)
-                }
-            }
             refreshLatestThumb()
         }
         .onChange(of: settingsUseMnn) { v in
@@ -198,7 +217,8 @@ struct CameraPreviewView: View {
             // ProMode EV → AVCapture 曝光补偿（-2..2；场景模式也写 EV，后到者覆盖，对标 Android）
             controller.setExposureBias(Float(ev))
         }
-        .onDisappear { controller.stop() }
+        // 相机 stop 改由 isActive 门控（见 .task(id: isActive)）：全常驻 pager 下相机页不会 disappear，
+        // onDisappear 不触发，故移除——滑离相机页由 isActive=false → controller.stop()。
     }
 
     // MARK: - 权限页
@@ -703,13 +723,15 @@ private struct MetalViewRepresentable: UIViewRepresentable {
     let params: BeautyRenderer.Params
     let faceRouter: FaceEngineRouter
     let landmarkStore: LandmarkOverlayStore
+    /// 🔴 相机激活门控透传：isActive=false 时暂停 MTKView 自循环，防全常驻 pager 下非活跃相机页 GPU 空转发热
+    var isActive: Bool = true
 
     func makeUIView(context: Context) -> MTKView {
         let view = MTKView()
         view.device = MTLCreateSystemDefaultDevice()
         view.delegate = context.coordinator
         view.enableSetNeedsDisplay = false
-        view.isPaused = false
+        view.isPaused = !isActive   // 🔴 活跃才自循环渲染；非活跃暂停防 GPU 空转发热
         view.colorPixelFormat = .bgra8Unorm
         view.isOpaque = true
         view.backgroundColor = .black
@@ -730,6 +752,7 @@ private struct MetalViewRepresentable: UIViewRepresentable {
 
     func updateUIView(_ uiView: MTKView, context: Context) {
         context.coordinator.renderer?.params = params
+        uiView.isPaused = !isActive   // 🔴 isActive 变化同步暂停/恢复 MTKView 自循环
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
