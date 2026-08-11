@@ -1,6 +1,14 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Photos add permission denied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Photos add permission denied — enable in Settings" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "相册添加权限被拒，请在设置开启" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "相簿加入權限被拒，請在設定開啟" } }
+      }
+    },
     "Batch Generate": {
       "extractionState": "manual",
       "localizations": {

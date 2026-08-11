@@ -92,6 +92,12 @@ final class SampleDataGenerator: ObservableObject {
         if isGenerating && !isPaused { return }
         isGenerating = true; isPaused = false
         downloadedCount = 0
+        // 保存前确保 AddOnly 授权（对标 ShutterButton；被拒直接提示，不静默失败）
+        guard await Self.ensureAddPermission() else {
+            addLog(L("Photos add permission denied"))
+            isGenerating = false; isPaused = false; progress = ""
+            return
+        }
         addLog("Starting generation for \(prefix)...")
         var attempts: [String: Int] = [:]
         var success: [String: Int] = [:]
@@ -155,6 +161,7 @@ final class SampleDataGenerator: ObservableObject {
             addLog("Saved to album [\(candidate.source.uppercased())]")
             return Outcome(saved: true, source: candidate.source)
         }
+        addLog("Save failed [\(candidate.source.uppercased())]")
         return Outcome(saved: false, source: candidate.source)
     }
 
@@ -198,37 +205,40 @@ final class SampleDataGenerator: ObservableObject {
     // MARK: - 搜索（Baidu / Weibo，非隔离静态）
 
     private nonisolated static func searchImagesParallel(keyword: String, isLandscape: Bool) async -> [ImageCandidate] {
-        async let dbaidu = searchBaidu(keyword)
+        // ⚠️ 百度源头已禁用（注释）：image.baidu.com acjson 服务端反爬返回
+        //   {"antiFlag":1,"message":"Forbid spider access"}，被识别/非国内网络下 0 候选，
+        //   且 9 个 site: 搜索全部经百度 → 一并禁用。仅保留 Weibo 源。
         if isLandscape {
-            async let dNatGeo = searchBaidu("site:nationalgeographic.com \(keyword)")
-            async let dUnsplash = searchBaidu("site:unsplash.com \(keyword)")
-            async let dPexels = searchBaidu("site:pexels.com \(keyword)")
-            let natgeo = await dNatGeo.map { ImageCandidate(url: $0, source: "natgeo") }
-            let unsplash = await dUnsplash.map { ImageCandidate(url: $0, source: "unsplash") }
-            let pexels = await dPexels.map { ImageCandidate(url: $0, source: "pexels") }
-            let baidu = await dbaidu.map { ImageCandidate(url: $0, source: "baidu") }
-            return natgeo + unsplash + pexels + baidu.shuffled()
+            // 风景源（natgeo/unsplash/pexels/baidu）全部经 searchBaidu → 同被反爬，整体禁用。
+            // async let dNatGeo = searchBaidu("site:nationalgeographic.com \(keyword)")
+            // async let dUnsplash = searchBaidu("site:unsplash.com \(keyword)")
+            // async let dPexels  = searchBaidu("site:pexels.com \(keyword)")
+            // async let dbaidu   = searchBaidu(keyword)
+            return []
         }
-        async let dDuitang = searchBaidu("site:duitang.com \(keyword)")
-        async let dXiuren = searchBaidu("site:xiuren.org \(keyword)")
-        async let dTuchong = searchBaidu("site:tuchong.com \(keyword)")
-        async let dMetCn = searchBaidu("site:metcn.com \(keyword)")
-        async let dMetArt = searchBaidu("site:met-art.com \(keyword)")
-        async let d500 = searchBaidu("site:500px.com \(keyword)")
-        async let dXhs = searchBaidu("site:xiaohongshu.com \(keyword)")
-        async let dHuaban = searchBaidu("site:huaban.com \(keyword)")
         async let dWeibo = searchWeibo(keyword)
-        let duitang = await dDuitang.map { ImageCandidate(url: $0, source: "duitang") }
-        let xiuren = await dXiuren.map { ImageCandidate(url: $0, source: "xiuren") }
-        let tuchong = await dTuchong.map { ImageCandidate(url: $0, source: "tuchong") }
-        let metcn = await dMetCn.map { ImageCandidate(url: $0, source: "metcn") }
-        let metart = await dMetArt.map { ImageCandidate(url: $0, source: "metart") }
-        let p500 = await d500.map { ImageCandidate(url: $0, source: "500px") }
-        let xhs = await dXhs.map { ImageCandidate(url: $0, source: "xiaohongshu") }
-        let huaban = await dHuaban.map { ImageCandidate(url: $0, source: "huaban") }
         let weibo = await dWeibo.map { ImageCandidate(url: $0, source: "weibo") }
-        let baidu = await dbaidu.map { ImageCandidate(url: $0, source: "baidu") }
-        return duitang + xiuren + tuchong + metcn + metart + p500 + xhs + huaban + weibo + baidu.shuffled()
+        return weibo
+        // —— 原 Baidu 源（保留备查，已禁用）——
+        // async let dbaidu   = searchBaidu(keyword)
+        // async let dDuitang = searchBaidu("site:duitang.com \(keyword)")
+        // async let dXiuren  = searchBaidu("site:xiuren.org \(keyword)")
+        // async let dTuchong = searchBaidu("site:tuchong.com \(keyword)")
+        // async let dMetCn   = searchBaidu("site:metcn.com \(keyword)")
+        // async let dMetArt  = searchBaidu("site:met-art.com \(keyword)")
+        // async let d500     = searchBaidu("site:500px.com \(keyword)")
+        // async let dXhs     = searchBaidu("site:xiaohongshu.com \(keyword)")
+        // async let dHuaban  = searchBaidu("site:huaban.com \(keyword)")
+        // let duitang = await dDuitang.map { ImageCandidate(url: $0, source: "duitang") }
+        // let xiuren  = await dXiuren.map  { ImageCandidate(url: $0, source: "xiuren") }
+        // let tuchong = await dTuchong.map { ImageCandidate(url: $0, source: "tuchong") }
+        // let metcn   = await dMetCn.map   { ImageCandidate(url: $0, source: "metcn") }
+        // let metart  = await dMetArt.map  { ImageCandidate(url: $0, source: "metart") }
+        // let p500    = await d500.map     { ImageCandidate(url: $0, source: "500px") }
+        // let xhs     = await dXhs.map     { ImageCandidate(url: $0, source: "xiaohongshu") }
+        // let huaban  = await dHuaban.map  { ImageCandidate(url: $0, source: "huaban") }
+        // let baidu   = await dbaidu.map   { ImageCandidate(url: $0, source: "baidu") }
+        // return duitang + xiuren + tuchong + metcn + metart + p500 + xhs + huaban + weibo + baidu.shuffled()
     }
 
     private nonisolated static func extractUrls(_ text: String) -> [String] {
@@ -345,6 +355,12 @@ final class SampleDataGenerator: ObservableObject {
     }
 
     // MARK: - 存 Photos（随机拍摄时间）
+
+    /// 确保相册 AddOnly 授权（对标 ShutterButton：notDetermined 触发系统弹窗，被拒返回 false）。
+    private nonisolated static func ensureAddPermission() async -> Bool {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        return status == .authorized || status == .limited
+    }
 
     private nonisolated static func saveToPhotos(_ image: UIImage, creationDate: Date) async -> String? {
         do {
