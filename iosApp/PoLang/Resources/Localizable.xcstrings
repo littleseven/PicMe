@@ -64,6 +64,86 @@
         "zh-Hant": { "stringUnit": { "state": "translated", "value": "圖像理解模型未下載，請在模型中心下載" } }
       }
     },
+    "editor_feature_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "This feature is coming soon" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "该功能敬请期待" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "此功能敬請期待" } }
+      }
+    },
+    "beauty_preview_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Beauty effects will be supported in a later version" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "美颜效果将在后续版本支持" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "美顏效果將在後續版本支持" } }
+      }
+    },
+    "style_toon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Toon" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "卡通" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "卡通" } }
+      }
+    },
+    "style_sketch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Sketch" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "素描" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "素描" } }
+      }
+    },
+    "style_posterize": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Posterize" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "色调分离" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "色調分離" } }
+      }
+    },
+    "style_emboss": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Emboss" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "浮雕" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "浮雕" } }
+      }
+    },
+    "style_crosshatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Crosshatch" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "交叉影线" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "交叉影線" } }
+      }
+    },
+    "Lip Color": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Lip Color" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "唇色" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "唇色" } }
+      }
+    },
+    "Blush": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Blush" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "腮红" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "腮紅" } }
+      }
+    },
+    "Custom label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Custom label" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自定义称呼" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "自訂稱呼" } }
+      }
+    },
     "Batch Generate": {
       "extractionState": "manual",
       "localizations": {

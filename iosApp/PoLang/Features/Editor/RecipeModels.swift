@@ -166,14 +166,53 @@ enum MarkupConstants {
     ]
 }
 
-// MARK: - BeautySettings（本轮本地最小结构；BEAUTY 渲染 DEFER）
+// MARK: - BeautySettings（本地镜像；BEAUTY 渲染 DEFER，参数仅存档）
 
 struct BeautySettings: Codable, Equatable, Hashable {
     var enabled: Bool = true
-    var smoothing: Float = 0
-    var whitening: Float = 0
-    var slimFace: Float = 0
-    var bigEyes: Float = 0
+    var smoothing: Float = 0      // 磨皮 0...100
+    var whitening: Float = 0      // 美白 0...100
+    var slimFace: Float = 0       // 瘦脸 0...100
+    var bigEyes: Float = 0        // 大眼 0...100
+    var lipColor: Float = 0       // 唇色 0...100
+    var blush: Float = 0          // 腮红 0...100
+
+    enum Param: String, CaseIterable {
+        case smoothing, whitening, slimFace, bigEyes, lipColor, blush
+
+        var labelKey: String {
+            switch self {
+            case .smoothing: return "Smoothing"
+            case .whitening: return "Whitening"
+            case .slimFace:  return "Slim Face"
+            case .bigEyes:   return "Big Eyes"
+            case .lipColor:  return "Lip Color"
+            case .blush:     return "Blush"
+            }
+        }
+        static let range: ClosedRange<Float> = 0...100
+
+        func get(_ b: BeautySettings) -> Float {
+            switch self {
+            case .smoothing: return b.smoothing
+            case .whitening: return b.whitening
+            case .slimFace:  return b.slimFace
+            case .bigEyes:   return b.bigEyes
+            case .lipColor:  return b.lipColor
+            case .blush:     return b.blush
+            }
+        }
+        func set(_ b: inout BeautySettings, _ v: Float) {
+            switch self {
+            case .smoothing: b.smoothing = v
+            case .whitening: b.whitening = v
+            case .slimFace:  b.slimFace = v
+            case .bigEyes:   b.bigEyes = v
+            case .lipColor:  b.lipColor = v
+            case .blush:     b.blush = v
+            }
+        }
+    }
 }
 
 // MARK: - CutoutRecipe（DEFER 占位；本轮 EditRecipe.cutout 恒 nil）
@@ -183,8 +222,34 @@ struct CutoutRecipe: Codable, Equatable, Hashable {
     enum BgMode: String, Codable { case transparent, color, blur }
 }
 
+// MARK: - StyleFilter（风格滤镜；本地镜像 :shared StyleFilter）
+// spec filter_panel.items.style_filters: TOON/SKETCH/POSTERIZE/EMBOSS/CROSSHATCH
+// 渲染走 Core Image 近似（见 RecipeApplier.filterStyle）。
+
+enum StyleFilter: Int, CaseIterable, Identifiable, Equatable {
+    case none = 0
+    case toon = 1
+    case sketch = 2
+    case posterize = 3
+    case emboss = 4
+    case crosshatch = 5
+
+    var id: Int { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .none:       return String(localized: "filter_none")
+        case .toon:       return String(localized: "style_toon")
+        case .sketch:     return String(localized: "style_sketch")
+        case .posterize:  return String(localized: "style_posterize")
+        case .emboss:     return String(localized: "style_emboss")
+        case .crosshatch: return String(localized: "style_crosshatch")
+        }
+    }
+}
+
 // MARK: - EditRecipe（配方根；colorFilter 复用 FilterColorMatrix.FilterType）
-// 仅 Equatable：FilterType 非 Codable/Hashable；配方持久化本轮 DEFER，故不强求 Codable。
+// 仅 Equatable：FilterType/StyleFilter 非 Codable/Hashable；配方持久化本轮 DEFER，故不强求 Codable。
 
 struct EditRecipe: Equatable {
     var sourceUri: String
@@ -192,11 +257,11 @@ struct EditRecipe: Equatable {
     var adjustments: AdjustmentRecipe = .init()
     var beauty: BeautySettings = .init()
     var colorFilter: FilterType = .none
+    var styleFilter: StyleFilter = .none   // spec §13；与 colorFilter 互斥
     var filterIntensity: Float = 1.0
     var markup: [MarkupAction] = []
     var cutout: CutoutRecipe? = nil   // 本轮恒 nil（DEFER）
     var version: Int = 2
-    // 注：styleFilter 本轮 DEFER（5 风格滤镜需 Metal kernel），故不在此建模。
 }
 
 // MARK: - EditorTarget（MediaPagerView → 编辑页的路由载体）

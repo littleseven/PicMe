@@ -12,9 +12,7 @@ extension View {
     }
 }
 
-private func appScheme(_ cs: ColorScheme) -> SchemeColors {
-    cs == .dark ? AppColorScheme.dark : AppColorScheme.light
-}
+// appScheme 已提升为 DesignSystem 共享 helper（DesignTokens.swift），本文件直接复用。
 
 /// 对齐 Android formatDuration：d>0→Xd Yh；h>0→Xh Ym；m>0→Xm Ys；else→Xs。
 private func formatDuration(_ ms: Int) -> String {

@@ -5,7 +5,7 @@ import CoreText
 import UIKit
 
 /// 配方应用器（iOS lite actual，对齐 androidApp `RecipeApplier.kt` 处理顺序）。
-/// 顺序：crop → adjust → filterColor → markup（beauty 本轮 no-op；styleFilter DEFER 需 Metal kernel）。
+/// 顺序：crop → adjust → filterColor → filterStyle → markup（beauty 本轮 no-op）。
 /// 任一步异常→退回上一步结果，绝不产出黑屏（editor.yaml §12 fallback）。
 /// contracts.md §C。
 enum RecipeApplier {
@@ -17,6 +17,7 @@ enum RecipeApplier {
         img = crop(img, recipe.crop)
         img = adjust(img, recipe.adjustments)
         img = filterColor(img, recipe.colorFilter, intensity: recipe.filterIntensity)
+        img = filterStyle(img, recipe.styleFilter)
         img = markup(img, recipe.markup)
         return img
     }
@@ -109,6 +110,60 @@ enum RecipeApplier {
                                  z: CGFloat(m.offset.z / 255),
                                  w: CGFloat(m.offset.w / 255))
         return cm.outputImage ?? image
+    }
+
+    // MARK: FilterStyle（近似渲染，观感对齐留真机终验）
+    // Core Image 无一一对应滤镜，每个 style 用最接近的 CI 内建滤镜近似。
+    // 详见 editor.yaml §12 ios_lite_actual.apply_filter_style。
+
+    static func filterStyle(_ image: CIImage, _ filter: StyleFilter) -> CIImage {
+        guard filter != .none else { return image }
+        switch filter {
+        case .none:
+            return image
+        case .toon:
+            // 近似渲染：CIComicEffect — 色块化 + 边缘增强，卡通风格
+            let f = CIFilter.comicEffect()
+            f.inputImage = image
+            return f.outputImage ?? image
+        case .sketch:
+            // 近似渲染：CILineOverlay — 边缘检测生成黑白线稿
+            if let f = CIFilter(name: "CILineOverlay") {
+                f.setValue(image, forKey: kCIInputImageKey)
+                return f.outputImage ?? image
+            }
+            return image
+        case .posterize:
+            // 近似渲染：CIColorPosterize — 减少色阶（inputLevels=8）
+            if let f = CIFilter(name: "CIColorPosterize") {
+                f.setValue(image, forKey: kCIInputImageKey)
+                f.setValue(8.0, forKey: "inputLevels")
+                return f.outputImage ?? image
+            }
+            return image
+        case .emboss:
+            // 近似渲染：CIEdges + CIPhotoEffectMono — 边缘高光近似浮雕
+            // Core Image 无 CIEmbossFilter，用边缘检测 + 单色化实现 bas-relief 效果
+            if let edgeF = CIFilter(name: "CIEdges") {
+                edgeF.setValue(image, forKey: kCIInputImageKey)
+                edgeF.setValue(8.0, forKey: "inputIntensity")
+                if let edgeImg = edgeF.outputImage {
+                    let mono = CIFilter.photoEffectMono()
+                    mono.inputImage = edgeImg
+                    return mono.outputImage ?? edgeImg
+                }
+            }
+            return image
+        case .crosshatch:
+            // 近似渲染：CILineScreen — 线屏半色调图案近似交叉影线
+            if let f = CIFilter(name: "CILineScreen") {
+                f.setValue(image, forKey: kCIInputImageKey)
+                f.setValue(CIVector(x: image.extent.midX, y: image.extent.midY),
+                           forKey: "inputCenter")
+                return f.outputImage ?? image
+            }
+            return image
+        }
     }
 
     // MARK: Markup（Core Graphics 烘焙：doodle/mosaic/text，归一化坐标）

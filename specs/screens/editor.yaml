@@ -392,6 +392,11 @@ allowed_differences:
   - id: B6_conversational_edit_absent
     severity: known_gap
     desc: 对话式 ImageEditScreen / edit_image capability 本轮不实现（依赖完整管线 + chat 集成）
+  - id: B7_style_filter_approx_render
+    severity: acceptable
+    desc: 5 个 style 滤镜（TOON/SKETCH/POSTERIZE/EMBOSS/CROSSHATCH）UI/配方/互斥已对齐；渲染用 Core Image 内建滤镜近似（CIComicEffect/CILineOverlay/CIColorPosterize/CIEdges+Mono/CILineScreen），非 Android GPU shader 逐像素等价
+    reason: Core Image 无一一对应滤镜（无 EmbossFilter/CrosshatchFilter）
+    followup: 观感对齐留真机终验；如需逐像素对齐再评估 Metal kernel 或 LUT 烘焙
 
 # ============================================================================
 # 15. platform_differences（契约层台账）
