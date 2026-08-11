@@ -120,6 +120,10 @@ final class TagScanOrchestrator: @unchecked Sendable {
                                 fileName: item.fileName)
         }
         NSLog("PoLang:TagScan indexed media_assets")
+        // reconcile：清理已从系统相册删除的孤儿 media_assets（防线2，兜底任何来源的删除：
+        // 系统相册 app / 其它 app）。复用已在作用域的 fetched，不二次访问 Photos framework。
+        let systemLids = Set(fetched.filter { $0.mediaType == "PHOTO" }.map { $0.localIdentifier })
+        db.reconcileMediaAssets(keepLocalIdentifiers: systemLids)
         // 2) 规划 Pass1 任务集
         let allIds = db.allImageMediaIds()
         let covered = db.pass1CoveredMediaIds()
@@ -138,7 +142,8 @@ final class TagScanOrchestrator: @unchecked Sendable {
             emit(.progress(snap)); emit(.finished(.completed))
             return
         }
-        // 3) 入队
+        // 3) 入队（先清空旧会话残留任务，防累积——否则任务数远超照片数、扫描不终止）
+        db.clearAllTasks()
         db.enqueuePass1Tasks(sessionId: sid, mediaIds: planned, now: now)
         // 4) 置状态 + 启运行循环（持锁）
         let snap = mutate { box -> TagScanSessionProgress in

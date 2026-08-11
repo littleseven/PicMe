@@ -76,13 +76,20 @@ import SharedKit
     }
 
     /// iOS 删除走 PHAssetChangeRequest（系统弹确认窗），免 Android 11+ IntentSender 授权队列。
+    /// 系统确认删除成功后同步清理 TagDatabase 的 media_assets 快照（防线1，对齐 Android deleteMediaByIds）。
     func deleteMedia(localIdentifiers: [String]) -> Bool {
         guard !localIdentifiers.isEmpty else { return false }
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: localIdentifiers, options: nil)
         guard assets.count > 0 else { return false }
         PHPhotoLibrary.shared().performChanges({
             PHAssetChangeRequest.deleteAssets(assets)
-        }, completionHandler: { _, _ in })
+        }, completionHandler: { success, _ in
+            // 用户在系统弹窗确认删除后才清 DB；拒绝（success=false）不动，避免数据不一致。
+            // completionHandler 在后台线程；TagDatabase.queue.sync 自身线程安全。
+            if success {
+                TagDatabase.shared.deleteMediaByLocalIdentifiers(localIdentifiers)
+            }
+        })
         return true
     }
 
