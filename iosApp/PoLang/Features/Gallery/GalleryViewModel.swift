@@ -23,6 +23,10 @@ final class GalleryViewModel: ObservableObject {
 
     @Published private(set) var groups: [DayGroup] = []
     @Published private(set) var isLoading = true
+    /// uri(localIdentifier) → faceFocusY，供网格缩略图人脸感知裁切（防「砍头杀」，spec R3）。
+    /// iOS 的 faceFocusY 存独立 TagDatabase（Pass1 写），PHAsset 不携带；相册 MediaAsset 不带此字段，
+    /// 故在此批量读一次注入渲染。对齐 Android：Room 驱动的 MediaAsset.faceFocusY 由 tag 生成回填。
+    @Published private(set) var faceFocusYMap: [String: Float] = [:]
     @Published var groupingMode: GroupingMode = .date {
         didSet { applyGrouping(lastAssets) }
     }
@@ -56,6 +60,8 @@ final class GalleryViewModel: ObservableObject {
     /// none=全部一组（id 为空串，网格不渲染分组头）。
     private func applyGrouping(_ assets: [MediaAsset]) {
         lastAssets = assets
+        // 人脸感知裁切数据注入：每次资产刷新批量读一次 faceFocusY（一张 SELECT，仅含已扫描人脸行）。
+        faceFocusYMap = TagDatabase.shared.faceFocusYByLocalIdentifier()
         switch groupingMode {
         case .none:
             groups = assets.isEmpty ? [] : [DayGroup(id: "", items: assets)]

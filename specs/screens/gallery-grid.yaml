@@ -251,10 +251,20 @@ grid_page:
         priority: P0                        # 🔴 最高优先级
         input: faceFocusY                   # float [0,1]，0=顶 1=底
         behavior: |
-          当 faceFocusY 存在时，缩略图裁切区域以 faceFocusY 为纵向中心。
-          例：faceFocusY=0.3 → 裁切框中心取原图 30% 高度处，
-          而非默认 50%，从而保留头顶到下巴的完整人脸。
-        fallback: center_crop               # 无 faceFocusY 数据时退回居中裁切
+          当 faceFocusY 存在时：不默认居中裁切，而是把「人脸中心」对齐到
+          「cell 中心向上偏移 1/6·cell 高」处，并 clamp 到合法裁切范围。
+          精确公式（cell=裁切框尺寸，img=aspectFill 后渲染尺寸；纵向溢出时 imgH>cellH）：
+            topY = cellH/2 − (1/6)·cellH − faceFocusY·imgH
+            topY = clamp(topY, cellH − imgH, 0)   # 仅纵向溢出维度；横向始终居中
+          语义：faceFocusY 小（脸靠顶）→ topY 趋 0（少裁顶，护头顶）；
+                faceFocusY 大（脸靠底）→ topY 趋下界（图片上移，把底脸拉上来）。
+          自验向量（竖图 2:3 进 1:1 cell：cell=100，imgH=150，clamp[−50,0]）：
+            faceFocusY=0.5 → topY=−42；0.2 → 0（顶脸不裁头）；0.9 → −50（底脸上移到极限）。
+          SSOT：Android `core/image/FaceAwareAlignment.kt`（biasUp=1/6）。
+        fallback: center_crop               # faceFocusY==null（无人脸/未扫描/视频）退回居中裁切
+        data_source_platform_parity:        # 本管线契约层新增台账（砍头杀根因：数据未流到）
+          android: "MediaAsset.faceFocusY 由 Room 持久化、tag 生成回填（migration 17→18）；相册网格直接读 asset.faceFocusY。"
+          ios: "PHAsset 不携带人脸数据；faceFocusY 存独立 TagDatabase（Pass1 扫描写 media_assets.faceFocusY）。相册 MediaAsset 从 PHAsset 构造时不带 faceFocusY → 必须额外批量读 (uri→faceFocusY) 注入网格渲染（GalleryViewModel.faceFocusYMap），否则 asset.faceFocusY 恒 nil → 居中裁切 → 砍头杀。"
 
       # ── 视频标记 ──
       # 🔴 gap #6：iOS 完全缺失。

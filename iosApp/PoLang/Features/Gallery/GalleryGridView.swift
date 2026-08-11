@@ -252,8 +252,10 @@ struct GalleryGridView: View {
                     pagerInitial = asset.uri
                 }
             } label: {
+                // faceFocusY 来自 TagDatabase（PHAsset 不携带），经 vm.faceFocusYMap 注入；
+                // 对齐 Android MediaGrid 读 asset.faceFocusY（Room 回填）。nil → 居中裁切。
                 ThumbnailView(localIdentifier: asset.uri,
-                              faceFocusY: asset.faceFocusY?.floatValue,
+                              faceFocusY: vm.faceFocusYMap[asset.uri],
                               isVideo: asset.type == MediaType.video)
                     .overlay { selectionOverlay(for: asset.uri) }
             }
