@@ -177,6 +177,63 @@ extension TagDatabase {
         }
     }
 
+    // MARK: - media_assets: 删除 / reconcile（对齐 Android deleteMediaByIds + syncSystemMediaToDb）
+
+    /// 按系统 localIdentifier 删除 media_assets 快照行，并级联修 face_embeddings / persons。
+    /// 防线1：用户删图后由 PhMediaBridge.deleteMedia 的 success 回调调用。
+    /// media_assets.uri = localIdentifier（见 getOrCreateMedia 绑定），按 uri 删与
+    /// hasFaceLocalIdentifiers() 的 SELECT uri 口径一致。
+    func deleteMediaByLocalIdentifiers(_ lids: [String]) {
+        guard !lids.isEmpty else { return }
+        queue.sync {
+            guard let db = db else { return }
+            exec("BEGIN TRANSACTION;")
+            defer { exec("COMMIT;") }
+            // 分批绑定，避开 SQLite SQLITE_MAX_VARIABLE_NUMBER（默认 999）上限。
+            let batchSize = 500
+            for start in stride(from: 0, to: lids.count, by: batchSize) {
+                let end = min(start + batchSize, lids.count)
+                let chunk = Array(lids[start..<end])
+                var stmt: OpaquePointer?
+                let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ",")
+                sqlite3_prepare_v2(db, "DELETE FROM media_assets WHERE uri IN (\(placeholders));", -1, &stmt, nil)
+                for (i, lid) in chunk.enumerated() {
+                    sqlite3_bind_text(stmt, Int32(i + 1), lid, -1, SQLITE_TRANSIENT)
+                }
+                sqlite3_step(stmt)
+                sqlite3_finalize(stmt)
+            }
+        }
+        // 级联修 face_embeddings / persons / cover_media_id：reconcilePersons() 幂等。
+        // ⚠️ queue.sync 不可重入 → 必须在本方法的 queue.sync 块之外调用
+        // （reconcilePersons 内部已分多段 queue.sync；见 sessionCounts 同类约束）。
+        // 级联修 face_embeddings / persons / cover_media_id：reconcilePersons() 幂等。
+        // ⚠️ queue.sync 不可重入 → 必须在本方法的 queue.sync 块之外调用
+        // （reconcilePersons 内部已分多段 queue.sync；见 sessionCounts 同类约束）。
+        reconcilePersons()
+    }
+
+    /// 删除 media_assets 中已不存在于系统相册的孤儿行（扫描开始时自愈）。
+    /// 防线2：兜底任何来源的删除（系统相册 app / 其它 app）。
+    /// 在 Swift 端求差集（DB 有 − 系统有 = orphans），避免 NOT IN (?,?…) 受绑定变量上限影响。
+    func reconcileMediaAssets(keepLocalIdentifiers keep: Set<String>) {
+        var orphans: [String] = []
+        queue.sync {
+            guard let db = db else { return }
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT uri FROM media_assets WHERE type='IMAGE';", -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let cs = sqlite3_column_text(stmt, 0) {
+                    let lid = String(cString: cs)
+                    if !keep.contains(lid) { orphans.append(lid) }
+                }
+            }
+            sqlite3_finalize(stmt)
+        }
+        guard !orphans.isEmpty else { return }
+        deleteMediaByLocalIdentifiers(orphans)
+    }
+
     // MARK: - tag_scan_tasks: 队列
 
     struct QueuedTask: Sendable {
@@ -279,6 +336,12 @@ extension TagDatabase {
             exec(sql)
         }
     }
+    /// 清空全部扫描任务（新会话开始时调用，防跨会话累积——否则旧 PENDING/COMPLETED 任务堆积，
+    /// 导致任务数远超照片数、扫描不终止；tag_scan_tasks 仅为当前会话的工作队列，无历史价值）。
+    func clearAllTasks() {
+        queue.sync { exec("DELETE FROM tag_scan_tasks;") }
+    }
+
     func pauseSession(sessionId: String) {
         queue.sync {
             let escaped = sessionId.replacingOccurrences(of: "'", with: "''")

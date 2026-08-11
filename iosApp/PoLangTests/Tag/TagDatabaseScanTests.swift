@@ -159,4 +159,61 @@ final class TagDatabaseScanTests: XCTestCase {
         XCTAssertTrue(db.faceIdByLocalIdentifier().isEmpty, "清空后无 faceId")
         XCTAssertFalse(db.getUnassignedEmbeddings().isEmpty, "reset 后 embedding 重新未分配")
     }
+
+    // MARK: deleteMediaByLocalIdentifiers / reconcileMediaAssets（防线1/2：删图同步清 media_assets）
+    func testDeleteMediaByLocalIdentifiersCascades() {
+        let db = makeDb()
+        let l1 = db.getOrCreateMedia(localIdentifier: "L-1", type: "IMAGE", captureDateMs: 1, fileName: "a")
+        let l2 = db.getOrCreateMedia(localIdentifier: "L-2", type: "IMAGE", captureDateMs: 2, fileName: "b")
+        _ = db.getOrCreateMedia(localIdentifier: "L-3", type: "IMAGE", captureDateMs: 3, fileName: "c")
+        let emb = Data(repeating: 0, count: 2048) // 512 Float32
+        db.insertEmbeddings(mediaId: l1, embeddings: [emb])
+        db.insertEmbeddings(mediaId: l2, embeddings: [emb])
+        let p1 = db.insertPerson(name: nil, coverMediaId: l1, faceCount: 2, isSelf: false)
+        db.assignEmbeddingsByMediaIds([l1, l2], personId: p1)
+
+        // 删 L-1：totalMedia 减 1，L-1 的 embedding 级联删，P1 仍有 L-2 → face_count 重算为 1、不删
+        db.deleteMediaByLocalIdentifiers(["L-1"])
+        let stats = db.scanStats()
+        XCTAssertEqual(stats.totalMedia, 2, "删 1 张后剩 2 张")
+        XCTAssertEqual(stats.faceEmbeddingCount, 1, "L-1 的 embedding 应级联删除")
+        XCTAssertEqual(stats.personCount, 1, "P1 仍有 L-2 的 embedding，不应被删")
+    }
+
+    func testDeleteOrphanRemovesEmptyPerson() {
+        let db = makeDb()
+        let l1 = db.getOrCreateMedia(localIdentifier: "L-1", type: "IMAGE", captureDateMs: 1, fileName: "a")
+        let l2 = db.getOrCreateMedia(localIdentifier: "L-2", type: "IMAGE", captureDateMs: 2, fileName: "b")
+        let l3 = db.getOrCreateMedia(localIdentifier: "L-3", type: "IMAGE", captureDateMs: 3, fileName: "c")
+        let emb = Data(repeating: 0, count: 2048)
+        db.insertEmbeddings(mediaId: l1, embeddings: [emb])
+        db.insertEmbeddings(mediaId: l2, embeddings: [emb])
+        db.insertEmbeddings(mediaId: l3, embeddings: [emb])
+        let p1 = db.insertPerson(name: nil, coverMediaId: l1, faceCount: 2, isSelf: false)
+        let p2 = db.insertPerson(name: nil, coverMediaId: l3, faceCount: 1, isSelf: false)
+        db.assignEmbeddingsByMediaIds([l1, l2], personId: p1)
+        db.assignEmbeddingsByMediaIds([l3], personId: p2)
+        XCTAssertEqual(db.scanStats().personCount, 2)
+
+        // 删 L-1 + L-2：P1 无 embedding → 被 reconcile 删；P2 保留
+        db.deleteMediaByLocalIdentifiers(["L-1", "L-2"])
+        let stats = db.scanStats()
+        XCTAssertEqual(stats.totalMedia, 1)
+        XCTAssertEqual(stats.personCount, 1, "P1 空簇应被删，只剩 P2")
+        XCTAssertEqual(stats.faceEmbeddingCount, 1, "只剩 L-3 的 embedding")
+    }
+
+    func testReconcileMediaAssetsDropsMissing() {
+        let db = makeDb()
+        _ = db.getOrCreateMedia(localIdentifier: "L-1", type: "IMAGE", captureDateMs: 1, fileName: "a")
+        _ = db.getOrCreateMedia(localIdentifier: "L-2", type: "IMAGE", captureDateMs: 2, fileName: "b")
+        _ = db.getOrCreateMedia(localIdentifier: "L-3", type: "IMAGE", captureDateMs: 3, fileName: "c")
+        XCTAssertEqual(db.scanStats().totalMedia, 3)
+
+        // 系统里只剩 L-3 → L-1/L-2 是孤儿，应被清
+        db.reconcileMediaAssets(keepLocalIdentifiers: ["L-3"])
+        let stats = db.scanStats()
+        XCTAssertEqual(stats.totalMedia, 1, "孤儿行应被清理")
+        XCTAssertEqual(db.allImageMediaIds().count, 1)
+    }
 }
