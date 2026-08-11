@@ -266,6 +266,26 @@ extension TagDatabase {
         }
     }
 
+    /// localIdentifier(=uri) → faceFocusY，供相册网格「人脸感知裁切」。
+    /// 仅含已扫描出人脸（faceFocusY 非空）的 media；未扫描/无人脸的不入表（渲染退回居中裁切）。
+    /// 对齐 Android：Room 驱动的 MediaAsset.faceFocusY 由 tag 生成回填；iOS PHAsset 不带此数据，
+    /// 需从独立 TagDatabase 批量读后注入网格（防「砍头杀」，见 gallery-grid.yaml R3）。
+    func faceFocusYByLocalIdentifier() -> [String: Float] {
+        queue.sync {
+            guard let db = db else { return [:] }
+            var out: [String: Float] = [:]
+            var stmt: OpaquePointer?
+            sqlite3_prepare_v2(db, "SELECT uri, faceFocusY FROM media_assets WHERE faceFocusY IS NOT NULL;", -1, &stmt, nil)
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let uri = sqlite3_column_text(stmt, 0), let f = dbColFloatOrNil(stmt, 1) {
+                    out[String(cString: uri)] = f
+                }
+            }
+            sqlite3_finalize(stmt)
+            return out
+        }
+    }
+
     /// 该人物簇的封面候选 media（去重，按拍摄时间倒序）。
     /// 对标 Android getMediaByPersonOrderedForCover（单人脸优先的精修 Stage1 暂缓，按时间倒序）。
     func coverCandidates(personId: Int64) -> [MediaCoverInfo] {
