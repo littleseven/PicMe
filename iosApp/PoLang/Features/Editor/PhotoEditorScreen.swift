@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// 图片编辑屏（editor.yaml §1-§5）。从 MediaPagerView「编辑」入口经 fullScreenCover 进入。
-/// 本轮 lite：CROP/ADJUST/FILTER(9 色)/MARKUP 全功能；BEAUTY 提示页（渲染 DEFER）；
+/// CROP/ADJUST/FILTER(9 色+5 风格)/MARKUP 全功能；BEAUTY 滑杆可调 + 参数存档（渲染 DEFER）；
 /// 去背景/AI 优化顶栏按钮置灰 + 敬请期待 toast。
 struct PhotoEditorScreen: View {
     let localIdentifier: String
@@ -25,7 +25,6 @@ struct PhotoEditorScreen: View {
     @State private var textInput: String = ""
     @State private var viewSize: CGSize = .zero
     @State private var showUnavailableToast = false
-
     private var ready: PhotoEditorViewModel.Ready? {
         if case .ready(let r) = vm.state { return r } else { return nil }
     }
@@ -42,7 +41,7 @@ struct PhotoEditorScreen: View {
                 bottomArea
             }
             if showUnavailableToast {
-                Text("This feature is coming soon")
+                Text(L("editor_feature_unavailable"))
                     .font(.system(size: 14))
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(Color.black.opacity(0.8))
@@ -77,7 +76,7 @@ struct PhotoEditorScreen: View {
         AppTopBar(title: String(localized: "Edit"),
                   showsBackButton: true,
                   onBack: { dismiss() }) {
-            EditorAction(system: "scissors", enabled: false) { unavailable() }      // 去背景 DEFER
+            EditorAction(system: "square.stack.3d.up.slash", enabled: false) { unavailable() } // 去背景 DEFER
             EditorAction(system: "wand.and.stars", enabled: false) { unavailable() } // AI 优化 DEFER
             EditorAction(system: "arrow.uturn.backward", enabled: vm.canUndo) { vm.undo() }
             EditorAction(system: "arrow.uturn.forward", enabled: vm.canRedo) { vm.redo() }
@@ -89,12 +88,14 @@ struct PhotoEditorScreen: View {
     // MARK: Preview
 
     private var previewArea: some View {
-        GeometryReader { geo in
+        // 编辑器画布锁黑底——语义色固定暗色档（下同）
+        let s = AppColorScheme.dark
+        return GeometryReader { geo in
             ZStack {
                 Color.black
                 switch vm.state {
                 case .loading:
-                    ProgressView().tint(.white)
+                    ProgressView().tint(s.primary)
                 case .error(let msg):
                     Text(msg).foregroundStyle(.white).padding()
                 case .ready(let r):
@@ -107,6 +108,7 @@ struct PhotoEditorScreen: View {
 
     @ViewBuilder
     private func previewImage(_ r: PhotoEditorViewModel.Ready, in size: CGSize) -> some View {
+        let s = AppColorScheme.dark
         let img = comparing ? r.originalUIImage : r.previewUIImage
         let ratio = img.size.width / max(1, img.size.height)
         ZStack {
@@ -137,7 +139,7 @@ struct PhotoEditorScreen: View {
                 cropTransformOverlay
             }
             if r.isProcessing {
-                ProgressView().tint(.white)
+                ProgressView().tint(s.primary)
             }
         }
         .clipped()
@@ -151,7 +153,7 @@ struct PhotoEditorScreen: View {
                         vm.updateRecipe { $0.crop.rotation = (r.recipe.crop.rotation - 90 + 360) % 360 }
                     }
                 } label: {
-                    Image(systemName: "rotate.right")
+                    Image(systemName: "rotate.left")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: EditorTokens.cropTransformButtonSize,
@@ -200,11 +202,17 @@ struct PhotoEditorScreen: View {
                 get: { r.recipe.adjustments },
                 set: { v in vm.updateRecipe { $0.adjustments = v } }))
         case .beauty:
-            BeautyNotice()
+            BeautyPanel(beauty: Binding(
+                get: { r.recipe.beauty },
+                set: { v in vm.updateRecipe { $0.beauty = v } }))
         case .filter:
-            FilterPanel(colorFilter: Binding(
-                get: { r.recipe.colorFilter },
-                set: { v in vm.updateRecipe { $0.colorFilter = v } }))
+            FilterPanel(
+                colorFilter: Binding(
+                    get: { r.recipe.colorFilter },
+                    set: { v in vm.updateRecipe { $0.colorFilter = v } }),
+                styleFilter: Binding(
+                    get: { r.recipe.styleFilter },
+                    set: { v in vm.updateRecipe { $0.styleFilter = v } }))
         case .markup:
             MarkupPanel(toolState: markupTool,
                         actions: Binding(
@@ -218,14 +226,16 @@ struct PhotoEditorScreen: View {
     @ViewBuilder
     private var textInputDialog: some View {
         if textPos != nil {
+            let s = AppColorScheme.dark
             ZStack {
                 Color.black.opacity(0.5).ignoresSafeArea().onTapGesture { textPos = nil }
                 VStack(spacing: 12) {
-                    Text("Text").font(.headline).foregroundStyle(.white)
+                    Text("Text").font(.headline).foregroundStyle(s.onSurface)
                     TextField("", text: $textInput)
                         .textFieldStyle(.roundedBorder)
                     HStack {
                         Button("Cancel") { textPos = nil }
+                            .foregroundStyle(s.primary)
                         Spacer()
                         Button("Add") {
                             guard !textInput.isEmpty, let pos = textPos else { return }
@@ -238,10 +248,11 @@ struct PhotoEditorScreen: View {
                             vm.addMarkupAction(action)
                             textPos = nil
                         }
+                        .foregroundStyle(s.primary)
                     }
                 }
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemBackground)))
+                .background(AppShapes.panel.fill(s.surfaceContainerHigh))
                 .padding(40)
             }
         }
@@ -297,23 +308,11 @@ private struct EditorAction: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Image(systemName: system).font(.system(size: 17, weight: .medium))
+            Image(systemName: system).font(.system(size: IconSize.md, weight: .medium))
                 .frame(width: 36, height: 36).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .foregroundStyle(enabled ? Color.primary : Color.secondary.opacity(0.35))
         .disabled(!enabled)
-    }
-}
-
-private struct BeautyNotice: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "face.smiling").font(.system(size: 28)).foregroundStyle(.secondary)
-            Text("Beauty effects will be supported in a later version")
-                .font(.system(size: 14)).foregroundStyle(.secondary).multilineTextAlignment(.center)
-        }
-        .padding(.vertical, 32)
-        .frame(maxWidth: .infinity)
     }
 }

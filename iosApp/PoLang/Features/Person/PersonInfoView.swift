@@ -9,7 +9,6 @@ struct PersonInfoView: View {
 
     let personId: Int64
     var onBack: () -> Void = {}
-
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm: PersonDetailViewModel
 
@@ -30,6 +29,9 @@ struct PersonInfoView: View {
 
     private var customActive: Bool { !customLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
+    // 黑底 shell（MainTabView 锁黑）——语义色固定暗色档，防浅色主题下深文字压黑底
+    private var s: SchemeColors { AppColorScheme.dark }
+
     private var family: [RelationOptionItem] { RelationOptions.all().filter { $0.isFamily } }
     private var social: [RelationOptionItem] { RelationOptions.all().filter { !$0.isFamily } }
 
@@ -39,13 +41,15 @@ struct PersonInfoView: View {
             VStack(spacing: 0) {
                 topBar
                 ScrollView {
-                    VStack(spacing: 22) {
+                    VStack(spacing: 0) {
                         coverHeader
+                            .padding(.vertical, 12)
                         nameSection
+                            .padding(.vertical, 12)
                         relationSection
+                            .padding(.vertical, 12)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
                     .padding(.bottom, 120)
                 }
             }
@@ -108,7 +112,7 @@ struct PersonInfoView: View {
                     .foregroundColor(.white)
                     .frame(width: 36, height: 36)
             }
-            .accessibilityLabel(Text(L("Not set")))
+            .accessibilityLabel(Text(L("Reset")))
             Button { doSave() } label: {
                 Image(systemName: "checkmark")
                     .font(.system(size: 18, weight: .semibold))
@@ -175,7 +179,7 @@ struct PersonInfoView: View {
             if isEditingName {
                 TextField("", text: $nameText)
                     .font(.system(size: CGFloat(AppTypography.headlineSmall.size), weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onSurface)
                     .multilineTextAlignment(.center)
                     .submitLabel(.done)
                     .onSubmit { isEditingName = false }
@@ -183,7 +187,7 @@ struct PersonInfoView: View {
             } else {
                 Text(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L("Tap to name") : nameText)
                     .font(.system(size: CGFloat(AppTypography.headlineSmall.size), weight: .bold))
-                    .foregroundColor(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .white.opacity(0.55) : .white)
+                    .foregroundColor(nameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? s.onSurfaceVariant : s.onSurface)
                     .lineLimit(1)
                     .onTapGesture { isEditingName = true }
             }
@@ -207,10 +211,12 @@ struct PersonInfoView: View {
                     Text(L("This is me"))
                         .font(.system(size: 14, weight: .medium))
                 }
-                .foregroundColor(currentIsSelf ? .black : .white.opacity(0.7))
+                .foregroundColor(currentIsSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(currentIsSelf ? Color.white : Color.white.opacity(0.12)))
+                .frame(height: ChipTokens.height)
+                .background(
+                    RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
+                        .fill(currentIsSelf ? s.primaryContainer : s.surfaceVariant.opacity(0.5)))
             }
             .buttonStyle(.plain)
 
@@ -219,16 +225,19 @@ struct PersonInfoView: View {
 
             // 自定义称呼
             VStack(alignment: .leading, spacing: 4) {
+                Text(L("Custom label"))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(s.onSurfaceVariant)
                 TextField(L("e.g. childhood buddy, second son"), text: $customLabel)
                     .font(.system(size: 14))
-                    .foregroundColor(.white)
+                    .foregroundColor(s.onSurface)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: AppRadius.button, style: .continuous)
-                        .stroke(Color.white.opacity(0.25)))
+                        .stroke(s.outline))
                 Text(L("Custom text takes priority when filled"))
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundColor(s.onSurfaceVariant)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -238,7 +247,7 @@ struct PersonInfoView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(s.onSurfaceVariant)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 6)], alignment: .leading, spacing: 6) {
                 ForEach(options) { opt in
                     let selected = !customActive && currentRelation == opt.id
@@ -248,13 +257,12 @@ struct PersonInfoView: View {
                     } label: {
                         Text(opt.label)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(selected ? .black : .white.opacity(0.8))
+                            .foregroundColor(selected ? s.onPrimaryContainer : s.onSurfaceVariant)
                             .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, minHeight: ChipTokens.height)
                             .background(
-                                RoundedRectangle(cornerRadius: AppRadius.button, style: .continuous)
-                                    .fill(selected ? Color.white : Color.white.opacity(0.1)))
+                                RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
+                                    .fill(selected ? s.primaryContainer : s.surfaceVariant.opacity(0.5)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -265,35 +273,39 @@ struct PersonInfoView: View {
     // MARK: 封面选择器（3 列，簇内候选，按时间倒序）
 
     private var coverPickerSheet: some View {
-        NavigationView {
-            ZStack {
-                Color(.systemBackground).ignoresSafeArea()
-                ScrollView {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 4),
-                        GridItem(.flexible(), spacing: 4),
-                        GridItem(.flexible(), spacing: 4),
-                    ], spacing: 4) {
-                        ForEach(vm.coverCandidates, id: \.mediaId) { cand in
-                            Button {
-                                vm.saveCover(cand.mediaId)
-                                showCoverPicker = false
-                            } label: {
-                                ThumbnailView(localIdentifier: cand.localIdentifier, faceFocusY: cand.faceFocusY, cornerRadius: AppRadius.small)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(4)
-                }
+        VStack(spacing: 0) {
+            HStack {
+                Text(L("Select cover"))
+                    .font(AppTypography.titleLarge.font)
+                    .foregroundColor(.primary)
+                Spacer()
+                Button(L("Cancel")) { showCoverPicker = false }
+                    .font(.system(size: 17))
+                    .foregroundColor(.primary)
             }
-            .navigationTitle(L("Select cover"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L("Cancel")) { showCoverPicker = false }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 4),
+                    GridItem(.flexible(), spacing: 4),
+                    GridItem(.flexible(), spacing: 4),
+                ], spacing: 4) {
+                    ForEach(vm.coverCandidates, id: \.mediaId) { cand in
+                        Button {
+                            vm.saveCover(cand.mediaId)
+                            showCoverPicker = false
+                        } label: {
+                            ThumbnailView(localIdentifier: cand.localIdentifier, faceFocusY: cand.faceFocusY, cornerRadius: AppRadius.small)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
             }
         }
+        .background(Color(.systemBackground).ignoresSafeArea())
     }
 }

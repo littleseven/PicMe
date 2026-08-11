@@ -168,6 +168,14 @@ enum AppColorScheme {
     )
 }
 
+// MARK: - Scheme 解析（跨屏共享）
+
+/// 按当前主题取 M3 语义色组。用法：`@Environment(\.colorScheme)` + `let s = appScheme(cs)`。
+/// 各屏统一经此消费语义色，禁止硬编码 Color.white/opacity 近似（[PARITY] 契约色以 design-tokens.json 为准）。
+func appScheme(_ cs: ColorScheme) -> SchemeColors {
+    cs == .dark ? AppColorScheme.dark : AppColorScheme.light
+}
+
 // MARK: - Alpha（透明度语义阶梯）
 
 /// 派生色用法：`scheme.onSurface.opacity(AppAlpha.secondary)`。

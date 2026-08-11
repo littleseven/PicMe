@@ -85,8 +85,7 @@ struct PersonView: View {
             .accessibilityLabel(Text(L("Re-cluster faces")))
         }
         .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .frame(height: TopBarTokens.height)
     }
 
     // MARK: 内容（对齐 Android：加载/空时不渲染占位）
@@ -145,6 +144,8 @@ private struct DetailRoute: Identifiable {
 // MARK: - 人物卡片（对标 Android PersonListItem）
 
 private struct PersonCardView: View {
+    // 黑底 shell（MainTabView 锁黑）——语义色固定暗色档，防浅色主题下深文字压黑底
+    private var s: SchemeColors { AppColorScheme.dark }
 
     let person: PersonDisplayItem
     let isEditing: Bool
@@ -162,6 +163,7 @@ private struct PersonCardView: View {
         .background(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous)
             .fill(Color.white.opacity(0.06)))
         .clipShape(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
     }
 
     private var cover: some View {
@@ -190,12 +192,12 @@ private struct PersonCardView: View {
                 if !isEditing {
                     Text(photoCountText)
                         .font(.system(size: CGFloat(PersonTokens.photoCountFontSize)))
-                        .foregroundColor(.white.opacity(0.55))
-                        .padding(.trailing, 2)
+                        .foregroundColor(s.onSurfaceVariant)
+                        .padding(.trailing, 4)
                     Button(action: onInfoTap) {
                         Image(systemName: "info.circle")
-                            .font(.system(size: 18))
-                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 20))
+                            .foregroundColor(s.onSurfaceVariant)
                             .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.plain)
@@ -219,7 +221,7 @@ private struct PersonCardView: View {
         } else {
             Text(person.name?.isEmpty == false ? person.name! : L("Tap to name"))
                 .font(.system(size: CGFloat(PersonTokens.nameFontSize), weight: .semibold))
-                .foregroundColor((person.name?.isEmpty == false) ? .white : .white.opacity(0.55))
+                .foregroundColor((person.name?.isEmpty == false) ? s.onSurface : s.onSurfaceVariant)
                 .lineLimit(1)
                 .onTapGesture { onStartEdit() }
         }
@@ -243,13 +245,13 @@ private struct PersonCardView: View {
 
     private var relationChip: some View {
         Text(relationChipLabel)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundColor(person.isSelf ? .black : .white.opacity(0.7))
+            .font(.system(size: 12))
+            .foregroundColor(person.isSelf ? s.onPrimaryContainer : s.onSurfaceVariant)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
-                Capsule()
-                    .fill(person.isSelf ? Color.white : Color.white.opacity(0.12)))
+                RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
+                    .fill(person.isSelf ? s.primaryContainer : s.surfaceContainerHighest))
             .onTapGesture { onInfoTap() }
     }
 }
@@ -257,6 +259,9 @@ private struct PersonCardView: View {
 // MARK: - 行内改名编辑器（对标 Android NameEditor）
 
 private struct NameEditor: View {
+    // 黑底 shell（MainTabView 锁黑）——语义色固定暗色档，防浅色主题下深文字压黑底
+    private var s: SchemeColors { AppColorScheme.dark }
+
     let initial: String
     let onSave: (String) -> Void
     let onCancel: () -> Void
@@ -268,21 +273,21 @@ private struct NameEditor: View {
         HStack(spacing: 4) {
             TextField("", text: $text)
                 .font(.system(size: CGFloat(PersonTokens.nameFontSize), weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(s.onSurface)
                 .focused($focused)
                 .submitLabel(.done)
                 .onSubmit { onSave(text) }
             Button { onSave(text) } label: {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(s.primary)
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
             Button { onCancel() } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(s.onSurfaceVariant)
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)

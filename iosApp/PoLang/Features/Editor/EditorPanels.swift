@@ -2,7 +2,7 @@ import SwiftUI
 
 // 编辑器底部组件与各 tab 面板（editor.yaml §5/§7-§11）。
 // 复用 AppSlider（DesignSystem）、EditorTokens/ChipTokens/Spacing。
-// 本轮 lite 差异：FILTER 仅 9 色调（无缩略图资源→文本 chip）；BEAUTY 渲染 DEFER（提示页）。
+// FILTER: 9 色调 + 5 风格（14 项，互斥）；BEAUTY: 滑杆可调 + 参数存档，渲染 DEFER（B1）。
 
 // MARK: - 通用 Chip
 
@@ -13,17 +13,19 @@ struct EditorChip: View {
     let action: () -> Void
 
     var body: some View {
+        // 编辑器画布锁黑底——语义色固定暗色档
+        let s = AppColorScheme.dark
         Button(action: action) {
             HStack(spacing: 4) {
                 if let icon { Image(systemName: icon).font(.system(size: 14)) }
                 Text(title).font(.system(size: 14))
             }
-            .frame(height: ChipTokens.height - 8)
+            .frame(height: ChipTokens.height)
             .padding(.horizontal, 12)
             .background(isSelected
-                        ? Color.accentColor.opacity(0.18)
-                        : Color.secondary.opacity(ChipTokens.unselectedContainerAlpha))
-            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                        ? s.primaryContainer
+                        : s.surfaceVariant.opacity(ChipTokens.unselectedContainerAlpha))
+            .foregroundStyle(isSelected ? s.onPrimaryContainer : s.onSurfaceVariant)
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -118,51 +120,122 @@ struct AdjustPanel: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.sm)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: EditorTokens.adjustPanelMaxHeight)
     }
 }
 
-// MARK: - FilterPanel（9 色调滤镜；styleFilter 本轮 DEFER）
+// MARK: - FilterPanel（9 色调 + 5 风格 = 14 项；color/style 互斥）
 
 struct FilterPanel: View {
     @Binding var colorFilter: FilterType
-
+    @Binding var styleFilter: StyleFilter
     var body: some View {
+        let s = AppColorScheme.dark
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.md) {
+                // 9 色调滤镜
                 ForEach(FilterType.allCases) { f in
-                    VStack(spacing: 4) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.secondary.opacity(0.25))
-                                .frame(width: EditorTokens.filterThumbSize,
-                                       height: EditorTokens.filterThumbSize)
-                            Circle()
-                                .strokeBorder(
-                                    f == colorFilter
-                                    ? LinearGradient(colors: [.accentColor, .primary],
-                                                     startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    : LinearGradient(colors: [.secondary.opacity(0.3)],
-                                                     startPoint: .top, endPoint: .bottom),
-                                    lineWidth: f == colorFilter
-                                    ? EditorTokens.filterSelectedBorderWidth
-                                    : EditorTokens.filterUnselectedBorderWidth)
-                                .frame(width: EditorTokens.filterThumbSize,
-                                       height: EditorTokens.filterThumbSize)
-                        }
-                        Text(f.displayName)
-                            .font(.system(size: EditorTokens.filterLabelSize))
-                            .foregroundStyle(f == colorFilter ? Color.accentColor : Color.primary.opacity(0.85))
+                    filterItem(
+                        label: f.displayName,
+                        gradient: Self.placeholderGradient(color: f),
+                        isSelected: f == .none
+                            ? (colorFilter == .none && styleFilter == .none)
+                            : colorFilter == f,
+                        scheme: s
+                    ) {
+                        colorFilter = f
+                        styleFilter = .none   // 互斥
                     }
-                    .frame(width: EditorTokens.filterItemWidth)
-                    .contentShape(Rectangle())
-                    .onTapGesture { colorFilter = f }
+                }
+                // 5 风格滤镜（不含 .none）
+                ForEach(StyleFilter.allCases.filter { $0 != .none }) { sf in
+                    filterItem(
+                        label: sf.displayName,
+                        gradient: Self.placeholderGradient(style: sf),
+                        isSelected: styleFilter == sf,
+                        scheme: s
+                    ) {
+                        styleFilter = sf
+                        colorFilter = .none    // 互斥
+                    }
                 }
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
         }
         .frame(height: EditorTokens.filterPanelHeight)
+    }
+
+    // MARK: 单个滤镜条目
+
+    @ViewBuilder
+    private func filterItem(label: String, gradient: [Color],
+                            isSelected: Bool, scheme s: SchemeColors,
+                            onTap: @escaping () -> Void) -> some View {
+        VStack(spacing: 4) {
+            ZStack(alignment: .bottom) {
+                // TODO: 真实缩略图（assets filters/*.jpg 圆裁剪）；当前用语义占位渐变
+                Circle()
+                    .fill(LinearGradient(colors: gradient,
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: EditorTokens.filterThumbSize,
+                           height: EditorTokens.filterThumbSize)
+                // 选中底部横条 overlay（spec selected_overlay）
+                if isSelected {
+                    Capsule()
+                        .fill(s.primary.opacity(0.25))
+                        .frame(width: EditorTokens.filterThumbSize - 12, height: 4)
+                        .padding(.bottom, 4)
+                }
+                // 边框
+                Circle()
+                    .strokeBorder(
+                        isSelected
+                        ? LinearGradient(colors: [s.primary, s.onSurface],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing)
+                        : LinearGradient(colors: [s.onSurface.opacity(0.3), s.onSurface.opacity(0.1)],
+                                         startPoint: .top, endPoint: .bottom),
+                        lineWidth: isSelected
+                        ? EditorTokens.filterSelectedBorderWidth
+                        : EditorTokens.filterUnselectedBorderWidth)
+                    .frame(width: EditorTokens.filterThumbSize,
+                           height: EditorTokens.filterThumbSize)
+            }
+            Text(label)
+                .font(.system(size: EditorTokens.filterLabelSize))
+                .foregroundStyle(isSelected ? s.primary : s.onSurface.opacity(0.85))
+        }
+        .frame(width: EditorTokens.filterItemWidth)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+    }
+
+    // MARK: 占位渐变（spec 允许缩略图或占位渐变）
+
+    // TODO: 替换为真实滤镜缩略图
+    private static func placeholderGradient(color f: FilterType) -> [Color] {
+        switch f {
+        case .none:         return [.gray.opacity(0.5), .gray.opacity(0.25)]
+        case .leicaClassic: return [.orange.opacity(0.7), .brown.opacity(0.5)]
+        case .leicaVibrant: return [.yellow, .orange]
+        case .leicaBW:      return [.white.opacity(0.9), .black.opacity(0.7)]
+        case .filmGold:     return [.yellow.opacity(0.85), .orange.opacity(0.6)]
+        case .filmFuji:     return [.green.opacity(0.6), .teal.opacity(0.4)]
+        case .vintage:      return [.brown.opacity(0.6), .orange.opacity(0.3)]
+        case .cool:         return [.cyan.opacity(0.5), .blue.opacity(0.5)]
+        case .warm:         return [.orange.opacity(0.6), .red.opacity(0.4)]
+        }
+    }
+
+    private static func placeholderGradient(style sf: StyleFilter) -> [Color] {
+        switch sf {
+        case .none:       return [.gray.opacity(0.3)]
+        case .toon:       return [.purple.opacity(0.6), .pink.opacity(0.4)]
+        case .sketch:     return [.gray.opacity(0.7), .gray.opacity(0.3)]
+        case .posterize:  return [.purple, .orange]
+        case .emboss:     return [.brown.opacity(0.5), .gray.opacity(0.6)]
+        case .crosshatch: return [.gray.opacity(0.6), .black.opacity(0.5)]
+        }
     }
 }
 
@@ -171,22 +244,24 @@ struct FilterPanel: View {
 struct MarkupPanel: View {
     @ObservedObject var toolState: MarkupToolState
     @Binding var actions: [MarkupAction]
-
     var body: some View {
+        let s = AppColorScheme.dark
         VStack(spacing: Spacing.sm) {
-            // 工具行
-            HStack(spacing: Spacing.sm) {
+            // 工具行（spec tool_row: spaceEvenly）
+            HStack {
                 EditorChip(title: String(localized: "Doodle"),
                            isSelected: toolState.tool == .doodle,
-                           icon: "paintbrush.pointed") { toolState.tool = .doodle }
+                           icon: "paintbrush") { toolState.tool = .doodle }
+                Spacer()
                 EditorChip(title: String(localized: "Mosaic"),
                            isSelected: toolState.tool == .mosaic,
-                           icon: "circle.grid.cross") { toolState.tool = .mosaic }
+                           icon: "circle.hexagongrid") { toolState.tool = .mosaic }
+                Spacer()
                 EditorChip(title: String(localized: "Text"),
                            isSelected: toolState.tool == .text,
                            icon: "textformat") { toolState.tool = .text }
             }
-            // 颜色行
+            // 颜色行（spec color_row: pad top12）
             HStack(spacing: Spacing.sm) {
                 ForEach(MarkupConstants.colors, id: \.self) { c in
                     let selected = toolState.color == c
@@ -194,12 +269,13 @@ struct MarkupPanel: View {
                         .fill(Color(uiColor: UIColor(argb: c)))
                         .frame(width: selected ? EditorTokens.markupSwatchSelected : EditorTokens.markupSwatchUnselected,
                                height: selected ? EditorTokens.markupSwatchSelected : EditorTokens.markupSwatchUnselected)
-                        .overlay(Circle().stroke(selected ? Color.accentColor : Color.secondary.opacity(0.5),
+                        .overlay(Circle().stroke(selected ? s.primary : s.outline,
                                                  lineWidth: selected ? 2 : 1))
                         .contentShape(Circle())
                         .onTapGesture { toolState.color = c }
                 }
             }
+            .padding(.top, Spacing.md)
             // 粗细 + 清除
             HStack {
                 Text("Stroke width").font(.system(size: 14, weight: .medium))
@@ -224,6 +300,45 @@ final class MarkupToolState: ObservableObject {
     @Published var tool: Tool = .doodle
     @Published var color: Int = MarkupConstants.colors.first ?? 0xFF000000
     @Published var strokeWidth: Float = MarkupConstants.defaultStrokeWidth
+}
+
+// MARK: - BeautyPanel（B1：滑杆可调 + 参数存档，预览/保存不渲染）
+
+struct BeautyPanel: View {
+    @Binding var beauty: BeautySettings
+    var body: some View {
+        let s = AppColorScheme.dark
+        VStack(spacing: Spacing.sm) {
+            // 提示文案（spec beauty_panel：beauty_preview_unavailable）
+            Text(L("beauty_preview_unavailable"))
+                .font(.system(size: 12))
+                .foregroundStyle(s.onSurfaceVariant)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, Spacing.xs)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: Spacing.sm) {
+                    ForEach(BeautySettings.Param.allCases, id: \.self) { param in
+                        HStack {
+                            Text(String(localized: String.LocalizationValue(param.labelKey)))
+                                .font(.system(size: 14))
+                                .frame(width: 56, alignment: .leading)
+                            AppSlider(value: param.get(beauty),
+                                      range: BeautySettings.Param.range) { v in
+                                param.set(&beauty, v)
+                            }
+                            Text(String(format: "%.0f", param.get(beauty)))
+                                .font(.system(size: 14))
+                                .foregroundStyle(s.onSurfaceVariant)
+                                .frame(width: 32, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
+        .frame(maxHeight: EditorTokens.adjustPanelMaxHeight)
+    }
 }
 
 // MARK: - UIColor(hex/argb) 扩展（DesignTokens 用 hex；此处 argb 复用）
