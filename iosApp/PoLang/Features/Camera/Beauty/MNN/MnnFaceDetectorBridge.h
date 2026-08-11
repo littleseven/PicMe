@@ -94,6 +94,20 @@ NS_ASSUME_NONNULL_BEGIN
                    outBuf:(float *)outBuf
                  maxFaces:(int)maxFaces;
 
+/// 在给定 ROI 上跑 Stage-2 2D106 关键点（对标 Android 2d106det）。
+/// @param bgra      源 BGRA 像素（与 detectAllFacesFlat 相同的缓冲区）
+/// @param outPoints 调用方分配的 212 float（106 点 × (x,y)，归一化 [0,1] of full image）。
+/// @return YES 成功；NO 模型未加载/ROI 无效。
+- (BOOL)detectLandmarks106:(const uint8_t *)bgra
+                     width:(int)width
+                    height:(int)height
+               bytesPerRow:(int)bytesPerRow
+                      roiX:(float)roiX
+                      roiY:(float)roiY
+                      roiW:(float)roiW
+                      roiH:(float)roiH
+                 outPoints:(float *)outPoints;
+
 /// 最近一次 detect 的调试信息（后端/耗时/box），供 DebugOverlay 展示。
 @property (nonatomic, readonly, copy) NSString *debugInfo;
 

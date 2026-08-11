@@ -33,6 +33,9 @@
 static const int kInputSize = 112;
 static const int kEmbeddingDim = 512;
 static const NSString *kInputName = @"input.1";
+// Glint360K R100 最终 embedding 输出层名（对标 Android outputName="1333"，FaceClusterEngine.kt:81）。
+// ⚠️ 此前 iOS 漏了按名精确选取这步，回退启发式会错选中间 512 维层 → embedding 无判别力 → 聚类全错。
+static const NSString *kOutputName = @"1333";
 
 @interface PLMnnFaceEmbedder () {
     std::shared_ptr<MNN::Interpreter> _interpreter;
@@ -93,12 +96,11 @@ static const NSString *kInputName = @"input.1";
     }
 
     // ── 创建 session ──
-    // iOS 关键：显式 BackendConfig + Precision_High（默认 nullptr→SIGSEGV；Normal/fp16→数值错误）
+    // 匹配 Android + MNN demo 默认配置（不设显式 precision/backendConfig）。
+    // 此前用 Precision_High + 显式 BackendConfig → 可能导致 MNN 走不同算子路径 → embedding 与 Android 正交。
     MNN::ScheduleConfig config;
     config.type = MNN_FORWARD_CPU;
     config.numThread = 4;
-    _backendCfg.precision = MNN::BackendConfig::Precision_High;
-    config.backendConfig = &_backendCfg;
 
     _session = _interpreter->createSession(config);
     if (!_session) {
@@ -152,47 +154,72 @@ static const NSString *kInputName = @"input.1";
     return YES;
 }
 
-/// 从所有输出中定位 elementSize==512 的 embedding 张量。
-/// 优先名字含 matmul/Reshape/fc1 的输出（对标 Android findEmbeddingOutput 逻辑）。
+/// 从所有输出中定位 embedding 张量（对标 Android mnn_face_embedder.cpp findEmbeddingOutput）：
+///   ① 优先精确名 kOutputName("1333")——Android 主选路径（此前 iOS 漏了这步）；
+///   ② 兜底：elementSize==512 + 名字含 matmul/Reshape/fc1；
+///   ③ 最后兜底：第一个 512 元素张量。
 - (MNN::Tensor *)findEmbeddingOutput {
     auto outputs = _interpreter->getSessionOutputAll(_session);
 
-    NSLog(@"[PoLang] MnnFaceEmbedder: available outputs (%zu):", outputs.size());
+    // 诊断字符串：列出全部输出 + 最终选中名，写入 Documents/embedder_diag.txt（供 devicectl pull 验证）
+    NSMutableString *diag = [NSMutableString stringWithFormat:@"MnnFaceEmbedder available outputs (%zu):\n", outputs.size()];
     for (const auto &kv : outputs) {
         MNN::Tensor *t = kv.second;
         if (t) {
-            NSLog(@"[PoLang]   '%s': [%d,%d,%d,%d] elements=%d",
+            [diag appendFormat:@"  '%s': [%d,%d,%d,%d] elements=%d\n",
+                kv.first.c_str(), t->batch(), t->channel(), t->height(), t->width(), t->elementSize()];
+            NSLog(@"[PoLang] MnnFaceEmbedder:   '%s': [%d,%d,%d,%d] elements=%d",
                   kv.first.c_str(), t->batch(), t->channel(), t->height(), t->width(), t->elementSize());
         }
     }
 
-    // 按 elementSize == 512 筛选
-    std::vector<std::pair<std::string, MNN::Tensor *>> candidates;
-    for (const auto &kv : outputs) {
-        MNN::Tensor *t = kv.second;
-        if (t && t->elementSize() == kEmbeddingDim) {
-            candidates.emplace_back(kv.first, t);
+    MNN::Tensor *result = nullptr;
+    std::string selName = "(none)";
+
+    // ① 精确名 "1333" 优先（Android 主选）。Glint360K R100 最终 embedding 层名为 "1333"。
+    const std::string preferred(kOutputName.UTF8String);
+    auto it = outputs.find(preferred);
+    if (it != outputs.end() && it->second != nullptr) {
+        result = it->second;
+        selName = it->first;
+    } else {
+        [diag appendFormat:@"preferred '%s' NOT found, fallback heuristic\n", preferred.c_str()];
+        NSLog(@"[PoLang] MnnFaceEmbedder: preferred '%s' not found, fallback to heuristic", preferred.c_str());
+        // ② elementSize == 512 筛选
+        std::vector<std::pair<std::string, MNN::Tensor *>> candidates;
+        for (const auto &kv : outputs) {
+            MNN::Tensor *t = kv.second;
+            if (t && t->elementSize() == kEmbeddingDim) {
+                candidates.emplace_back(kv.first, t);
+            }
+        }
+        if (candidates.empty()) {
+            NSLog(@"[PoLang] MnnFaceEmbedder: no output tensor with elementSize=%d", kEmbeddingDim);
+            selName = "(none 512)";
+        } else {
+            // ③ 名字含 embedding 关键字
+            bool found = false;
+            for (const auto &c : candidates) {
+                const std::string &name = c.first;
+                if (name.find("matmul") != std::string::npos ||
+                    name.find("Reshape") != std::string::npos ||
+                    name.find("fc1") != std::string::npos) {
+                    result = c.second; selName = name; found = true; break;
+                }
+            }
+            // ④ 最后兜底第一个候选
+            if (!found) { result = candidates[0].second; selName = candidates[0].first; }
         }
     }
-    if (candidates.empty()) {
-        NSLog(@"[PoLang] MnnFaceEmbedder: no output tensor with elementSize=%d", kEmbeddingDim);
-        return nullptr;
-    }
 
-    // 优先名字含 embedding 关键字
-    for (const auto &c : candidates) {
-        const std::string &name = c.first;
-        if (name.find("matmul") != std::string::npos ||
-            name.find("Reshape") != std::string::npos ||
-            name.find("fc1") != std::string::npos) {
-            NSLog(@"[PoLang] MnnFaceEmbedder: selected output '%s'", name.c_str());
-            return c.second;
-        }
+    [diag appendFormat:@"SELECTED: '%s'\n", selName.c_str()];
+    NSLog(@"[PoLang] MnnFaceEmbedder: SELECTED '%s'", selName.c_str());
+    NSString *docs = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    if (docs) {
+        [diag writeToFile:[docs stringByAppendingPathComponent:@"embedder_diag.txt"]
+               atomically:YES encoding:NSUTF8StringEncoding error:nil];
     }
-
-    // 回退第一个候选
-    NSLog(@"[PoLang] MnnFaceEmbedder: fallback output '%s'", candidates[0].first.c_str());
-    return candidates[0].second;
+    return result;
 }
 
 #pragma mark - Extract
@@ -215,11 +242,16 @@ static const NSString *kInputName = @"input.1";
         NSLog(@"[PoLang] MnnFaceEmbedder: failed to get input host buffer");
         return nil;
     }
+    // CAFFE_C4 有 4 通道（3 RGB + 1 padding），先清零防止第 4 通道残留垃圾影响推理
+    std::memset(inputData, 0, tmpInput.elementSize() * sizeof(float));
 
     const int totalPixels = kInputSize * kInputSize;
     constexpr float normMean = 127.5f;
     constexpr float normStd = 128.0f;
-    const bool isNCHW = (inputDimType == MNN::Tensor::DimensionType::CAFFE);
+    // ⚠️ iOS MNN 对此模型报告 inputDimType=1（TENSORFLOW/NHWC）。
+    // 模型期望交错布局（RGB-RGB-RGB...），必须以 NHWC 填充。
+    // 此前 isNCHW=true 导致平面填充（R-R-R...G-G-G...B-B-B...）→ 像素乱序 → embedding 正交。
+    const bool isNCHW = false;  // 强制 NHWC（交错），匹配模型期望
 
     // InsightFace ArcFace R100 预处理：等价 cv2.dnn.blobFromImage(scalefactor=1/128, mean=127.5, swapRB=false)
     // 通道序 RGB（不交换），输出范围约 [-0.996, 0.992]
@@ -250,6 +282,37 @@ static const NSString *kInputName = @"input.1";
     }
 
     int elementSize = tmpOutput.elementSize();
+
+    // [诊断] 首次推理时写入输入 dimension type + shape + output 样本值
+    static bool diagOnce = false;
+    if (!diagOnce) {
+        diagOnce = true;
+        int dt = (int)inputDimType;  // CAFFE=0, TENSORFLOW=1, CAFFE_C4=2
+        NSString *dtName = dt == 0 ? @"CAFFE" : dt == 1 ? @"TENSORFLOW" : dt == 2 ? @"CAFFE_C4" : @"UNKNOWN";
+        NSMutableString *d = [NSMutableString stringWithFormat:
+            @"\n=== EXTRACT DIAG ===\n"
+            @"inputDimType=%d (%@)  isNCHW=%d\n"
+            @"inputShape: batch=%d channel=%d height=%d width=%d elementSize=%d\n"
+            @"outputShape: batch=%d channel=%d height=%d width=%d elementSize=%d\n"
+            @"outputDimType=%d\n"
+            @"outputFirst10:",
+            dt, dtName, (int)isNCHW,
+            _inputTensor->batch(), _inputTensor->channel(), _inputTensor->height(), _inputTensor->width(), _inputTensor->elementSize(),
+            _outputTensor->batch(), _outputTensor->channel(), _outputTensor->height(), _outputTensor->width(), elementSize,
+            (int)outputDimType];
+        for (int i = 0; i < 10 && i < elementSize; i++) [d appendFormat:@" %.4f", outData[i]];
+        double rawSq = 0;
+        for (int i = 0; i < kEmbeddingDim; i++) rawSq += (double)outData[i] * outData[i];
+        [d appendFormat:@", rawNorm=%.4f\n", std::sqrt(rawSq)];
+        NSLog(@"[PoLang] MnnFaceEmbedder %@", d);
+        NSString *docs = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+        if (docs) {
+            NSString *path = [docs stringByAppendingPathComponent:@"embedder_diag.txt"];
+            NSString *existing = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+            [[existing ?: @"" stringByAppendingString:d] writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+        }
+    }
+
     if (elementSize < kEmbeddingDim) {
         NSLog(@"[PoLang] MnnFaceEmbedder: output too small %d < %d", elementSize, kEmbeddingDim);
         return nil;

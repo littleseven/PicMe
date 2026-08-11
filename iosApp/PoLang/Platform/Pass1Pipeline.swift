@@ -176,14 +176,37 @@ class Pass1Pipeline {
 
         for fi in 0..<faceCount {
             let off = fi * 15
-            let lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // 10 float 5pt landmarks
+            let roiX = faceBuf[off], roiY = faceBuf[off + 1]
+            let roiW = faceBuf[off + 2], roiH = faceBuf[off + 3]
+
+            // 106 点精对齐（对标 Android：RetinaFace ROI → 2D106det → convert106ToLandmarks5）
+            // ROI 已验证正确；106 点比 RetinaFace 原生 5 点精度高得多 → 更好的 ArcFace 对齐
+            var lm5: [Float]
+            var out212 = [Float](repeating: 0, count: 212)
+            let ok106 = out212.withUnsafeMutableBufferPointer { p -> Bool in
+                guard let base = p.baseAddress else { return false }
+                return pixelData.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Bool in
+                    guard let bgra = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return false }
+                    return faceDetector.detectLandmarks106(bgra, width: Int32(width), height: Int32(height),
+                                                            bytesPerRow: Int32(bytesPerRow),
+                                                            roiX: roiX, roiY: roiY, roiW: roiW, roiH: roiH,
+                                                            outPoints: base)
+                }
+            }
+            if ok106 {
+                lm5 = FaceAlignment.convert106ToLandmarks5(landmarks106: out212, width: width, height: height)
+            } else {
+                lm5 = Array(faceBuf[(off + 5)..<(off + 15)])  // 回退 RetinaFace 原生 5 点
+            }
             allLandmarks5.append(lm5)
 
             // 仿射对齐到 112×112
             guard let alignedFace = FaceAlignment.alignFace(image: scaledImage, landmarks5: lm5) else { continue }
+            Self.dumpAlignedDiag(alignedFace, mediaId: mediaId, fi: fi)
 
             // Glint360K embedding
             guard let rgbData = rgbBytesFromImage(alignedFace, size: 112) else { continue }
+            Self.dumpRgbInputDiag(rgbData, mediaId: mediaId, fi: fi)
             if let embedding = rgbData.withUnsafeBytes({ (ptr: UnsafeRawBufferPointer) -> Data? in
                 guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return nil }
                 guard let nsdata = faceEmbedder.extractEmbedding(base, width: 112, height: 112) else { return nil }
@@ -284,20 +307,28 @@ class Pass1Pipeline {
 
     private func rgbBytesFromImage(_ image: UIImage, size: Int) -> Data? {
         guard let cgImage = image.cgImage else { return nil }
-        var rgbData = Data(count: size * size * 3)
-        rgbData.withUnsafeMutableBytes { ptr in
-            guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return }
+        let totalPixels = size * size
+        // ⚠️ 必须分配独立的 RGBA 缓冲区给 CGContext（4 字节/像素），
+        //    再 strip 到 RGB 输出（3 字节/像素）。此前共用一个 3 字节缓冲区 →
+        //    CGContext 写 RGBA 溢出 → 堆损坏 → embedder 输入损坏 → embedding 正交。
+        var rgbaData = Data(count: totalPixels * 4)
+        var rgbData = Data(count: totalPixels * 3)
+        rgbaData.withUnsafeMutableBytes { rgbaPtr in
+            guard let rgbaBase = rgbaPtr.bindMemory(to: UInt8.self).baseAddress else { return }
             let colorSpace = CGColorSpaceCreateDeviceRGB()
-            guard let context = CGContext(data: base, width: size, height: size,
+            guard let context = CGContext(data: rgbaBase, width: size, height: size,
                                           bitsPerComponent: 8, bytesPerRow: size * 4,
                                           space: colorSpace,
                                           bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return }
             context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
-            // RGBA → RGB (strip alpha)
-            for i in 0..<(size * size) {
-                base[i * 3 + 0] = base[i * 4 + 0]  // R
-                base[i * 3 + 1] = base[i * 4 + 1]  // G
-                base[i * 3 + 2] = base[i * 4 + 2]  // B
+            // RGBA → RGB（从独立缓冲区 strip，无溢出）
+            rgbData.withUnsafeMutableBytes { rgbPtr in
+                guard let rgbBase = rgbPtr.bindMemory(to: UInt8.self).baseAddress else { return }
+                for i in 0..<totalPixels {
+                    rgbBase[i * 3]     = rgbaBase[i * 4]     // R
+                    rgbBase[i * 3 + 1] = rgbaBase[i * 4 + 1] // G
+                    rgbBase[i * 3 + 2] = rgbaBase[i * 4 + 2] // B
+                }
             }
         }
         return rgbData
@@ -329,6 +360,91 @@ class Pass1Pipeline {
     }
 
     /// 对标 Android computeFaceFocusY：人脸 ROI 垂直中心的并集
+    // [诊断] dump 前 N 张对齐脸到 Documents/aligned_diag，供 devicectl pull 检查对齐质量
+    // [诊断] dump embedder 实际收到的 RGB 输入（重建 PNG），与 aligned_diag 逐像素对比
+    private static var rgbDumpCount = 0
+    private static func dumpRgbInputDiag(_ rgbData: Data, mediaId: Int64, fi: Int) {
+        let n = Self.rgbDumpCount
+        guard n < 12 else { return }
+        Self.rgbDumpCount += 1
+        let size = 112
+        let totalPixels = size * size
+        guard rgbData.count >= totalPixels * 3 else { return }
+        // RGB → CGImage → UIImage → PNG
+        var rgbaData = Data(count: totalPixels * 4)
+        rgbData.withUnsafeBytes { rgb in
+            guard let rgbBase = rgb.bindMemory(to: UInt8.self).baseAddress else { return }
+            rgbaData.withUnsafeMutableBytes { rgba in
+                guard let rgbaBase = rgba.bindMemory(to: UInt8.self).baseAddress else { return }
+                for i in 0..<totalPixels {
+                    rgbaBase[i*4] = rgbBase[i*3]       // R
+                    rgbaBase[i*4+1] = rgbBase[i*3+1]   // G
+                    rgbaBase[i*4+2] = rgbBase[i*3+2]   // B
+                    rgbaBase[i*4+3] = 255               // A
+                }
+            }
+        }
+        guard let provider = CGDataProvider(data: rgbaData as CFData),
+              let cgImage = CGImage(width: size, height: size,
+                                    bitsPerComponent: 8, bitsPerPixel: 32,
+                                    bytesPerRow: size * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                    provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
+        else { return }
+        let img = UIImage(cgImage: cgImage)
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let dir = docs.appendingPathComponent("rgb_input_diag", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let png = img.pngData() {
+            try? png.write(to: dir.appendingPathComponent("m\(mediaId)_f\(fi)_\(n).png"))
+        }
+    }
+
+    private static var alignedDumpCount = 0
+    private static func dumpAlignedDiag(_ img: UIImage, mediaId: Int64, fi: Int) {
+        let n = Self.alignedDumpCount
+        guard n < 24 else { return }
+        Self.alignedDumpCount += 1
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let dir = docs.appendingPathComponent("aligned_diag", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let png = img.pngData() {
+            try? png.write(to: dir.appendingPathComponent("m\(mediaId)_f\(fi)_\(n).png"))
+        }
+    }
+
+    // [诊断] 在原图上叠加 ROI(红框) + 5 关键点(黄点)，dump 检查二者是否落在脸上
+    private static var roiDumpCount = 0
+    private static func dumpRoiDiag(_ img: UIImage, roiX: Float, roiY: Float, roiW: Float, roiH: Float, lm5: [Float], mediaId: Int64, fi: Int) {
+        let n = Self.roiDumpCount
+        guard n < 12 else { return }
+        Self.roiDumpCount += 1
+        let renderer = UIGraphicsImageRenderer(size: img.size)
+        let overlay = renderer.image { context in
+            img.draw(at: .zero)
+            let cg = context.cgContext
+            // ROI 红框
+            let r = CGRect(x: CGFloat(roiX), y: CGFloat(roiY), width: CGFloat(roiW), height: CGFloat(roiH))
+            cg.setStrokeColor(UIColor.red.cgColor)
+            cg.setLineWidth(max(2, img.size.width / 200))
+            cg.stroke(r)
+            // 5 关键点黄点
+            cg.setFillColor(UIColor.yellow.cgColor)
+            let dot = max(6.0, img.size.width / 80)
+            for i in 0..<5 {
+                let px = CGFloat(lm5[i * 2])
+                let py = CGFloat(lm5[i * 2 + 1])
+                cg.fillEllipse(in: CGRect(x: px - dot / 2, y: py - dot / 2, width: dot, height: dot))
+            }
+        }
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let dir = docs.appendingPathComponent("roi_diag", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let png = overlay.pngData() {
+            try? png.write(to: dir.appendingPathComponent("m\(mediaId)_f\(fi)_\(n).png"))
+        }
+    }
+
     private func computeFaceFocusY(_ landmarks5: [[Float]], imageHeight: Int) -> Double? {
         guard !landmarks5.isEmpty else { return nil }
         var minY = Float(imageHeight)

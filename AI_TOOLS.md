@@ -11,6 +11,7 @@
 |------|----------|----------|-------------|
 | **Claude Code** | `.claude/commands/*.md` + `.claude/CLAUDE.md` | 项目级 | AI 开发环境之一·日常备选（命令目录与索引） |
 | **kimi-cli** | `.kimi/AGENTS.md` + `.kimi/skills/` | 项目级 | 终端交互式 AI 开发·主力；`.kimi/skills` → `../skills` |
+| **kimi-code** | `.kimi-code/skills/` | 项目级 | 终端交互式 AI 开发·主力；`.kimi-code/skills` → `../skills`（2026-08-11 补链，否则 Project scope Skills 不可见） |
 | **AndroidStudio Qwen 插件** | `AGENTS.md`（根目录） | 项目级 | IDE 内置助手，读取根 AGENTS.md 治理 |
 | **通用治理** | `AGENTS.md`（根目录） | 项目级 | 顶层治理、架构原则、全局红线 |
 
@@ -34,7 +35,8 @@
 
 ```text
 skills/                  ← ★ 唯一事实来源（SSOT）：kimi 通过软链共享
-.kimi/skills/            ← 符号链接 → ../skills
+.kimi/skills/            ← 符号链接 → ../skills（kimi-cli）
+.kimi-code/skills/       ← 符号链接 → ../skills（kimi-code；缺此链则 kimi-code 看不到任何项目 Skill）
 .claude/commands/        ← Claude Code 专用镜像（见下方"漂移治理"）
 ```
 
@@ -57,7 +59,7 @@ description: <触发场景描述>
 ---
 EOF
 
-# 2. 同步符号链接（.opencode/skills 和 .kimi/skills 通常已整体软链，无需单条操作）
+# 2. 同步符号链接（.kimi/skills 和 .kimi-code/skills 通常已整体软链，无需单条操作）
 
 # 3. Claude Code 镜像：从 SKILL.md 提取正文（去 frontmatter）写入
 #    .claude/commands/my-skill.md
@@ -215,3 +217,4 @@ cd ~/AndroidStudioProjects/polang && claude
 | 2026-06-25 | Claude Code 命令整理 | `.qoder/skills/` → `.claude/commands/`，修复 19 个过期引用 |
 | 2026-06-30 | AI 工具索引刷新 | 明确 Claude Code 命令为主力来源，更新 DEVELOPMENT.md / CLAUDE.md / 本文件 |
 | 2026-08-01 | **Plans / Specs SSOT 统一** | 新建 `docs/superpowers/README.md`；`.omo/plans` 软链到公共目录；新增 `scripts/check-skill-sync.sh` 治理 `.claude/commands` 漂移；OpenCode 纳入工具表 |
+| 2026-08-11 | 新增 `.kimi-code/skills` 软链 | 补齐 kimi-code 项目级 Skill 入口（→ `../skills`）；此前缺失导致 Project scope Skills（含 `ios-follow`）在 kimi-code 不可见 |

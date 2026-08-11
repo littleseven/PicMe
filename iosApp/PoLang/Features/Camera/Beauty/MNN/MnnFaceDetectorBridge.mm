@@ -171,19 +171,16 @@ public:
     /// 返回所有 NMS 保留的人脸，ROI + 5 点关键点已逆变换为原图像素坐标。
     std::vector<PixelFace> detectAll(const uint8_t *bgra, int w, int h, int bpr);
 
+    /// Stage-2 2D106 关键点推理（ROI 区域）。Pass1 精对齐用。
+    bool runLandmark(int w, int h, float roiL, float roiT, float roiR, float roiB, float *out212);
+
 private:
     void bgraToRgb(const uint8_t *bgra, int w, int h, int bpr);
     inline void sampleRgb(float fx, float fy, int w, int h, float &R, float &G, float &B) const;
-
-    /// RetinaFace 推理 + 3-scale 解码 + NMS。
-    /// 返回所有 NMS 保留的人脸（320×320 模型空间，含 5 点关键点）。
     std::vector<FaceBox> runRetinaInfer(int w, int h);
-
-    /// 单脸：从 runRetinaInfer 结果中取面积最大者。
     bool runRetina(int w, int h, FaceBox &outBox);
     void processScale(int nameIdx, int stride, float threshold, std::vector<FaceBox> &out);
     std::vector<FaceBox> nms(std::vector<FaceBox> &faces, float threshold);
-    bool runLandmark(int w, int h, float roiL, float roiT, float roiR, float roiB, float *out212);
 
     /// 输入朝向探针：把裁剪采样到正向 192×192 缓冲 U，再以 4 种旋转（0/90/180/270）填入
     /// 模型输入并推理，记录每种方向的原始输出 ox/oy 跨度。返回可读诊断串。
@@ -953,6 +950,19 @@ std::vector<PixelFace> Detector::detectAll(const uint8_t *bgra, int w, int h, in
         main = [NSString stringWithFormat:@"%@\nINPUT-GRID(16x16 top→bot, ' '=暗→'@'=亮):\n%@", main, grid];
     }
     return main;
+}
+
+- (BOOL)detectLandmarks106:(const uint8_t *)bgra
+                     width:(int)width
+                    height:(int)height
+               bytesPerRow:(int)bytesPerRow
+                      roiX:(float)roiX
+                      roiY:(float)roiY
+                      roiW:(float)roiW
+                      roiH:(float)roiH
+                 outPoints:(float *)outPoints {
+    if (!_det) return NO;
+    return _det->runLandmark(width, height, roiX, roiY, roiX + roiW, roiY + roiH, outPoints);
 }
 
 @end
