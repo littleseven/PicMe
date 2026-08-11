@@ -40,7 +40,7 @@ final class ModelDownloadIntegrationTest: XCTestCase {
     /// 完成后 SHA256 校验通过（落盘即完整文件）
     func testParallelDownloadReportsProgress() async throws {
         let mgr = ModelDownloadManager.shared
-        let modelId = "face-embedding-glint360k-r100-onnx"
+        let modelId = "face-embedding-glint360k-r100-mnn"
         mgr.delete(modelId)
 
         var progressSamples: [Double] = []

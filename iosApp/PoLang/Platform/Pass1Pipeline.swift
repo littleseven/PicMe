@@ -61,7 +61,7 @@ class Pass1Pipeline {
     static let shared = Pass1Pipeline()
 
     private let faceDetector = PLMnnFaceDetector()
-    private let faceEmbedder = ORTFaceEmbedder()
+    private let faceEmbedder = PLMnnFaceEmbedder()
     private let mobileClip = MobileClipEncoder()
     private let database = TagDatabase.shared
 
@@ -89,12 +89,12 @@ class Pass1Pipeline {
         // 2. Glint360K R100（从 Documents/llm_models/ 加载）
         let modelsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("llm_models")
-        let glintrPath = modelsDir.appendingPathComponent("face-embedding-glint360k-r100-onnx/glintr100.onnx").path
+        let glintrPath = modelsDir.appendingPathComponent("face-embedding-glint360k-r100-mnn/glintr100.mnn").path
         guard FileManager.default.fileExists(atPath: glintrPath) else {
-            print("⚠️ Pass1: glintr100.onnx not found at \(glintrPath)")
+            print("⚠️ Pass1: glintr100.mnn not found at \(glintrPath)")
             return false
         }
-        guard faceEmbedder.load(modelPath: glintrPath) else {
+        guard faceEmbedder.loadModel(glintrPath) else {
             print("⚠️ Pass1: failed to load Glint360K model")
             return false
         }
@@ -182,7 +182,7 @@ class Pass1Pipeline {
             // 仿射对齐到 112×112
             guard let alignedFace = FaceAlignment.alignFace(image: scaledImage, landmarks5: lm5) else { continue }
 
-            // Glint360K embedding（ONNX Runtime，替代 MNN）
+            // Glint360K embedding（MNN）
             guard let rgbData = rgbBytesFromImage(alignedFace, size: 112) else { continue }
             if let embedding = rgbData.withUnsafeBytes({ (ptr: UnsafeRawBufferPointer) -> Data? in
                 guard let base = ptr.bindMemory(to: UInt8.self).baseAddress else { return nil }

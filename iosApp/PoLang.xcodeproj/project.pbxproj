@@ -12,7 +12,6 @@
 		02B95F4164002C8112F7FF69 /* header.glsl in Resources */ = {isa = PBXBuildFile; fileRef = 8AD783A64CF61D2D652FAB61 /* header.glsl */; };
 		03154EA2E98E460C2812F59C /* MnnFaceDetectorBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 129ADEDE5BF5D6B0053F07F2 /* MnnFaceDetectorBridge.mm */; };
 		051B4AFE2498E30D737FF3BD /* ModelDownloadCenterTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C1924085861F083821661F9 /* ModelDownloadCenterTest.swift */; };
-		054FCC0632D764C371D0DA60 /* ORTFaceEmbedder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781806FCAE847AD83FADBD1A /* ORTFaceEmbedder.swift */; };
 		07365278A603945F7E6E1A17 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869CA0089EF9A9086CF46CDD /* CameraPreviewView.swift */; };
 		09A33759D56A1AF124546F5A /* GalleryFaceDebug.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0FF633CDBAC7FB7AC27DA9 /* GalleryFaceDebug.swift */; };
 		0A4DCD4ED0BC7AD77D28C7CA /* FilterSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4BE96725ECD1C7890EB1341 /* FilterSelectorView.swift */; };
@@ -371,7 +370,6 @@
 		751CF5B50D368B211FB98CC9 /* lut.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = lut.metal; sourceTree = "<group>"; };
 		75F020A58325AEC75845F999 /* QuerySegmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuerySegmenter.swift; sourceTree = "<group>"; };
 		780CA9DABD854CDDFA9FFFF6 /* FaceClusterer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceClusterer.swift; sourceTree = "<group>"; };
-		781806FCAE847AD83FADBD1A /* ORTFaceEmbedder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORTFaceEmbedder.swift; sourceTree = "<group>"; };
 		7A44C539E8C5C423AF9B0FD6 /* QueryParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParser.swift; sourceTree = "<group>"; };
 		7AF5981E2CF81D39CA8F1D4E /* uniforms.glsl */ = {isa = PBXFileReference; path = uniforms.glsl; sourceTree = "<group>"; };
 		7E744C735B9269D58D25DA68 /* MnnFaceEmbedderBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MnnFaceEmbedderBridge.mm; sourceTree = "<group>"; };
@@ -648,7 +646,6 @@
 				FA00CA3DAE642D15B0319DF3 /* ModelCatalog.swift */,
 				E10216E19E87BEDC42D938D5 /* ModelDownloadManager.swift */,
 				48EC047850C3D42447CB314C /* OcrRecognizer.swift */,
-				781806FCAE847AD83FADBD1A /* ORTFaceEmbedder.swift */,
 				3A094109D688441062CA7AF2 /* ORTSharedEnv.swift */,
 				B8E4CC9FAF91CBB0941EA43B /* ParallelFileDownloader.swift */,
 				905A4E9836C31178BCBF5EA4 /* Pass1Pipeline.swift */,
@@ -1313,7 +1310,6 @@
 				67A1D8AD89C7C9C96DF8B0E0 /* ModelDownloadCenterView.swift in Sources */,
 				2FBF3AE994DD19E9CB07BC9D /* ModelDownloadManager.swift in Sources */,
 				62C72BBB21037F63969E578C /* ORTBoolTensorHelper.mm in Sources */,
-				054FCC0632D764C371D0DA60 /* ORTFaceEmbedder.swift in Sources */,
 				B84E07F3C841C3456F1E4AFF /* ORTSharedEnv.swift in Sources */,
 				28FE456CDE7CDE3AEA9397D1 /* OcrRecognizer.swift in Sources */,
 				926FCB64D1865B2E9A2513B0 /* ParallelFileDownloader.swift in Sources */,
