@@ -314,6 +314,27 @@ struct DeveloperSettingsView: View {
                         }
                     }
                 }
+                #if DEBUG
+                NavigationLink {
+                    DebugScreenView()
+                } label: {
+                    HStack {
+                        Text(L("Image Download"))
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Text(L("Enter"))
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
+                }
+                .buttonStyle(.plain)
+                #endif
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)

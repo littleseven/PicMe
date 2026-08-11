@@ -1,0 +1,319 @@
+# ============================================================================
+# 人物屏完整产品规格书（Person Screen Spec）—— 列表 + 详情
+# ============================================================================
+# 基准端：Android PersonScreen.kt / components/PersonListItem.kt
+#        / components/PersonInfoScreen.kt / components/PersonCoverPickerSheet.kt
+#        / common/PersonRelationPicker.kt / common/PersonRelationLabels.kt
+# 用途：iOS 重做的唯一输入，不读 Android 源码
+# 值引用：尺寸引用 design-tokens.json token 名（如 spacing.md=12），数值在注释标注
+# 颜色引用：colorScheme.* 节点；图标 Material→SF Symbols
+# 数据源：iOS TagDatabase（persons/face_embeddings/media_assets + 新增 person_relations）
+#         —— 与 Android 同构的聚类模型，非手动建人
+
+# ============================================================================
+# 1. 列表页（PersonScreen）总体结构
+# ============================================================================
+person_list:
+  type: full_screen
+  background: "colorScheme.background"          # 浅色场景；iOS 主入口在 MainTabView page3（黑底相册 shell 内）按 shell 语境
+  layout: vstack                                # Column：顶栏 + 内容
+  entry_points:
+    - main_pager_page3                          # MainTabView page 3，注入 onBack→相册页
+    - settings_navigation_push                  # Settings NavigationLink push，系统返回
+  on_enter: "reconcileAndLoad()"                # 修复孤儿/悬空封面→聚类维护→load（幂等）
+
+# ── 顶栏（AppTopBar）──
+  top_bar:
+    height: "topBar.height=48"
+    title:
+      text: "people_title_with_count"           # "People (%1$d/%2$d)" = 可见数/总数
+      style: "topBar.titleFontSize=17 / Medium"
+    nav_back:
+      icon: { material: arrow_back, sf: "chevron.left" }
+      enabled_when: "isActivePage"              # pager 非当前页时禁用，防跨页 back 捕获
+      click: "onNavigateBack → 切相册页"
+    actions:                                     # 右侧，顺序
+      - id: filter_toggle
+        icon:
+          show_all_off: { material: filter_list, sf: "line.3.horizontal.decrease" }
+          show_all_on:  { material: filter_list_off, sf: "line.3.horizontal.decrease.circle" }
+        desc_show_all: "people_filter_show_all"            # 显示全部人物
+        desc_hide:     "people_filter_hide_singletons"     # 隐藏未命名单人分组
+        click: "toggleShowAll()"
+      - id: recluster
+        icon: { material: autorenew, sf: "arrow.triangle.2.circlepath" }
+        desc: "people_recluster"                            # 重新聚类
+        click: "TagScanOrchestrator.runPass2Clustering() + snackbar(people_recluster_started)"
+      # rescore（重打分）—— Stage 2 暂缓，Stage 1 不渲染
+  snackbar_host: true
+
+  # 隐藏计数提示（showAll=false 且 hidden>0 时）
+  hidden_hint_snackbar: "people_filter_hidden_hint"         # 已隐藏 N 个未命名单人分组…
+
+# ============================================================================
+# 2. 列表网格 + 过滤 + 排序
+# ============================================================================
+  grid:
+    layout: lazy_vertical_grid
+    columns: "person.gridColumns=2"             # 固定 2 列
+    content_padding: "spacing.md=12 四边"
+    horizontal_spacing: "spacing.md=12"
+    vertical_spacing: "spacing.md=12"
+    key: "person.personId"
+
+  filtering:
+    coverable: "封面 uri 解析非空（filterCoverable）"      # 删缺失封面者
+    default_show_all_false:
+      hide: "未命名(name 空) 且 photoCount<2 的单人噪声组"
+    show_all_true: "全部 coverable 人物"
+
+  sort:                                          # 降序
+    - "intimacy: self(5) > 浪漫[PARTNER/SPOUSE](4) > IDOL(3) > 家庭谓词(2) > 其他社会关系(1) > 无关系(0)"
+    - "named_first: !name.isBlank() 降序"
+    - "named: photoCount 降序；unnamed: updatedAt 降序"
+    - "tiebreak: updatedAt 降序"
+
+  empty_state: none                              # 对齐 Android：加载/空时网格直接空，无占位
+  loading_state: none                            # 无 spinner
+
+# ============================================================================
+# 3. 列表卡片（PersonListItem）
+# ============================================================================
+list_item:
+  type: card
+  shape: "person.cardRadius=16"                  # RoundedCornerShape(16dp) 全圆角卡
+  container_color: "colorScheme.surfaceContainerLow"
+  elevation: "elevation.low=1"
+  layout: column
+  children:
+
+    # (a) 封面区
+    - id: cover
+      type: clickable_box
+      aspect_ratio: 1                            # 方形 1:1
+      clip: "person.cardRadius=16（仅顶两角）"
+      content:
+        has_cover:
+          component: "ThumbnailView / AsyncImage"
+          scale: crop
+          alignment: "faceAwareVerticalAlignment(faceFocusY)"   # 水平居中，垂直按 faceFocusY
+          fallback_alignment: center             # faceFocusY==nil
+        no_cover:
+          background: "colorScheme.surfaceVariant"
+      content_description: "person.name 或 people_default_name(人物 #%d)"
+      click: "onCoverClick → 相册按人物筛选（Stage2）；Stage1 → 进详情"
+
+    # (b) 信息列
+    - id: info_column
+      padding: "spacing.md=12"
+      children:
+
+        # 行1：名称块 + 照片数 + info 按钮
+        - id: row1
+          layout: row_center_vertical
+          children:
+            - id: name_block                     # weight 1
+              display:
+                named: { text: "person.name", size: 16, weight: SemiBold, color: "colorScheme.onSurface" }
+                unnamed: { text: "person_edit_name_hint(点击命名)", color: "colorScheme.onSurfaceVariant" }
+              click: "startEditing(personId)"    # 进入行内改名
+              editing_mode:                      # NameEditor
+                text_field: { size: 16, weight: SemiBold, single_line: true, ime: Done, autofocus: true }
+                save_button: { icon: check(small 28dp/18dp), tint: primary, desc: save }
+                cancel_button: { icon: close(small 28dp/18dp), tint: onSurfaceVariant, desc: cancel }
+            - id: photo_count                    # 非编辑态显示
+              text: "people_photos_count(%d photos / %d 张)"
+              size: "typography.bodySmall=13"
+              color: "colorScheme.onSurfaceVariant"
+              padding: { start: 8, end: 4 }
+            - id: info_button
+              type: icon_button(32dp)
+              icon: { material: more_vert(20dp), sf: "info.circle" }
+              desc: "person_info_title(人物信息)"
+              click: "onInfoClick → 进详情"
+
+        # 行2：关系 chip（仅 isSelf 或已设关系时）
+        - id: relation_chip
+          visible_when: "isSelf || relation != null"
+          padding_top: 6
+          shape: "radius.small=8"
+          padding: { h: 10, v: 4 }
+          label:
+            is_self: "person_is_self(这是我)"
+            custom: "relation.customLabel"
+            predicate: "personRelationLabelRes(relation.predicate)"
+            else: "person_relation_none"
+          size: "typography.bodySmall=12"
+          max_lines: 1
+          color:
+            is_self: { bg: "colorScheme.primaryContainer", text: "colorScheme.onPrimaryContainer" }
+            other:  { bg: "colorScheme.surfaceContainerHighest", text: "colorScheme.onSurfaceVariant" }
+          click: "onInfoClick → 进详情"
+
+# ============================================================================
+# 4. 详情页（PersonInfoScreen）总体结构
+# ============================================================================
+person_detail:
+  type: full_screen_overlay                      # 列表层 infoTarget!=null 时覆盖
+  background: "colorScheme.background"
+  layout: vstack                                 # 顶栏 + 滚动主体
+  local_state: [ currentRelation, customLabel, currentIsSelf, showCoverPicker, isEditingName, nameText ]
+
+  top_bar:
+    title: "person_cluster_id(Cluster #%d)"      # 标题=簇 ID，非名字
+    nav_back: { click: "onNavigateBack(关闭)" }
+    actions:
+      - id: save
+        icon: { material: check, sf: "checkmark" }
+        desc: save
+        click: "doSave()"
+      # reset(清空关系) 与 rescore —— Stage1 实现 reset，rescore Stage2
+
+  body:
+    scroll: vertical
+    padding: { h: 16 }
+    sections:
+
+      # ── A. 头部：封面 + 名称 ──
+      - id: header
+        align: center_horizontal
+        padding: { h: 16, v: 12 }
+        children:
+          - id: cover_header
+            width: "fillMaxWidth(0.55)=55% 屏宽"
+            height: "person.coverHeight=180"
+            shape: "person.cardRadius=16"
+            content:
+              has_cover: { component: AsyncImage, scale: crop, alignment: faceAware(faceFocusY), clickable: open_cover_picker }
+              no_cover: { background: surfaceVariant, center_text: "person_set_cover_hint(点击设置封面)", clickable: open_cover_picker }
+            click: "showCoverPicker=true"
+          - id: name_display
+            padding_top: 12
+            display:
+              named: "person.name"
+              unnamed: "person_edit_name_hint(点击命名)"
+            style: "typography.headlineSmall=24 / Bold"
+            max_lines: 1
+            click: "进入名称行内编辑（headline 字号，居中，Done 收键盘，autofocus）"
+
+      # ── B. 关系编辑 ──
+      - id: relation_editor
+        padding: { h: 16, v: 12 }
+        children:
+          - id: is_self_toggle
+            type: filter_chip                    # 单 chip FlowRow
+            selected: "currentIsSelf"
+            label: "person_is_self(这是我)"
+            click: "currentIsSelf = !currentIsSelf"
+          - id: relation_picker                  # 见 §5
+
+# ============================================================================
+# 5. 关系选择器（PersonRelationPicker，stateless）
+# ============================================================================
+relation_picker:
+  show_title: false                              # 详情页内嵌，不显示标题（独立用时 true）
+  show_none_chip: false                          # 详情页不显示"不设置"chip（reset 按钮替代）
+  groups:
+    - id: family
+      title: "person_relation_group_family(家庭)"
+      chips: [ FATHER, MOTHER, SON, DAUGHTER, ELDER_BROTHER, ELDER_SISTER, YOUNGER_BROTHER, YOUNGER_SISTER, GRANDFATHER, GRANDMOTHER, SPOUSE, PARTNER ]
+    - id: social
+      title: "person_relation_group_social(社会)"
+      chips: [ FRIEND, CLASSMATE, COLLEAGUE, IDOL ]
+  chip_style:
+    type: filter_chip
+    height: "chip.height=36"
+    selected: { container: "colorScheme.primaryContainer", label: "colorScheme.onPrimaryContainer" }
+    unselected: { container: "surfaceVariant@0.5", label: "colorScheme.onSurfaceVariant" }
+  selection_rule:
+    select_chip: "清空 customLabel + 设 predicate"
+    type_custom: "清空所有 chip 选中"
+  custom_label:
+    type: outlined_text_field
+    label: "person_relation_custom_label(自定义称呼)"
+    placeholder: "person_relation_custom_hint(如：发小、二儿子)"
+    supporting: "person_relation_custom_supporting(填写后以自定义称呼为准)"
+    single_line: true
+  save_semantics: "customLabel 非空 → effectiveRelation=OTHER；否则所选 predicate"
+
+# ============================================================================
+# 6. 封面选择器（PersonCoverPickerSheet）
+# ============================================================================
+cover_picker:
+  trigger: "cover_header click"
+  anchor: bottom_sheet                            # iOS: .sheet
+  title: "person_select_cover_title(选择封面)"
+  style: "titleLarge"
+  grid:
+    columns: "person.coverPickerColumns=3"
+    padding: { h: 16, bottom: 24 }
+    item:
+      aspect_ratio: 1
+      padding: 4
+      shape: "radius.small=8"
+      scale: crop
+  data_source: "getMediaByPersonOrderedForCover(personId)：单人脸优先 + 拍摄时间倒序 + 去重"
+  on_select: "updateCover(personId, media.id) → 关闭"
+
+# ============================================================================
+# 7. 详情保存逻辑（doSave）
+# ============================================================================
+save_logic:
+  steps:
+    - "effectiveRelation = customLabel.isNotBlank() ? OTHER : currentRelation"
+    - "if nameText.trim() 非空 → onUpdateName(trimmed)"
+    - "onSave(effectiveRelation, customLabel, currentIsSelf)"
+    - "onNavigateBack()"
+
+# ============================================================================
+# 8. 数据模型（TagDatabase，与 Android 同构）
+# ============================================================================
+data_model:
+  person:
+    fields: [ personId(PK auto), name(nullable), cover_media_id(nullable), face_count, is_self(全局唯一), created_at, updated_at ]
+  photo_association:
+    primary: "face_embeddings.person_id（聚类自动）"
+    label_mention: "命名人物 ∪ media_assets.labels/labelsEn/labelsZh LIKE %name%（仅命名）"
+  photo_count:
+    unnamed: "COUNT(DISTINCT media_id) FROM face_embeddings WHERE person_id"
+    named:   "cluster ∪ label-mention 并集 size"
+    fallback: "face_count"
+  relation:
+    table: "person_relations(relationId, subjectPersonId, objectPersonId=自我, predicate, source, customLabel, confidence, UNIQUE(subject,predicate,object))"
+    semantics: "该人物 是 我的 (predicate)；object 隐式 = is_self 人物"
+    source_default: "RelationSource.renameDialog"
+  cover:
+    auto: "cover_media_id（reconcile 修复悬空→指向存活 embedding 的 media）"
+    focus: "media_assets.faceFocusY 供人脸感知裁切"
+
+# ============================================================================
+# 9. 状态枚举
+# ============================================================================
+states:
+  relation_predicate: [ FATHER, MOTHER, SON, DAUGHTER, ELDER_BROTHER, ELDER_SISTER, YOUNGER_BROTHER, YOUNGER_SISTER, GRANDFATHER, GRANDMOTHER, SPOUSE, PARTNER, FRIEND, CLASSMATE, COLLEAGUE, IDOL, OTHER ]   # SSOT=shared RelationPredicate(23)，分组按 isFamily
+  list_mode: [ default_show_all_false, show_all_true ]
+  name_state: [ named, unnamed, editing ]
+
+# ============================================================================
+# 10. 允许的平台差异 / 平台差异台账
+# ============================================================================
+allowed_differences:
+  - { dimension: icon_set, android: "Material Icons", ios: "SF Symbols", note: "语义一致" }
+  - { dimension: bottom_sheet_material, android: "ModalBottomSheet", ios: ".sheet", note: "容器材质各原生，圆角值对齐" }
+  - { dimension: card_elevation, android: "1dp shadow", ios: "轻微 shadow/opacity 近似", note: "iOS 卡片可用 surfaceContainerLow + 弱投影" }
+
+platform_differences:
+  permission: "无新权限（本地 DB + 已有相册访问）"
+  capabilities:
+    recluster: "Android=前台服务 intentReembedFaces；iOS=TagScanOrchestrator.runPass2Clustering()（同步触发 Pass2）"
+    rescore: "Android=aestheticScoreWorker；iOS=无打分器（Stage2 暂缓）"
+    gallery_person_filter: "Android=onRequestGallerySearch(personId)；iOS=相册按 faceId 分组（Stage2 桥接 personId↔faceId）"
+  privacy_disclosure: "无变更（人物/照片关联 100% 端侧，不触远程）"
+
+# ============================================================================
+# 11. iOS 偏离登记（Stage1 已知 interim 差异，Stage2 收敛）
+# ============================================================================
+ios_interim_deviations:
+  - cover_tap: "Stage1 封面点击→进详情（Android→相册筛选）；Stage2 接相册 personId 筛选后收敛"
+  - rescore_button: "Stage1 不渲染重打分按钮；Stage2 接 NIMA 打分器后补"
+  - entry_shell_bg: "iOS MainTabView page3 为黑底相册 shell；列表卡片用半透明深色材质近似 surfaceContainerLow（暗色场景）"

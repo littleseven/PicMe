@@ -44,8 +44,12 @@ enum Pass2Pipeline {
             db.updateFaceIdBatch(midArr, faceId: String(pid))
             personCount += 1
         }
-        scanDebugLog("Pass2 clustering done: \(personCount) persons from \(vectors.count) embeddings")
-        return personCount
+        // 聚类精修（对标 Android FaceClusterEngine.runClusterMaintenance）：
+        // dissolveSinks(解散链式垃圾簇) → split(拆两人并组) → mergeSmallClusters(合并碎片，修过分裂)。
+        FaceClusterMaintenance.runClusterMaintenance()
+        let finalCount = TagDatabase.shared.allPersonRows().count
+        scanDebugLog("Pass2 clustering done: \(personCount) raw → \(finalCount) after maintenance, from \(vectors.count) embeddings")
+        return finalCount
     }
 
     /// Data → [Float]（原生小端）。

@@ -1,50 +1,55 @@
 import SwiftUI
 
-/// 人物页（列表）——对标 Android `PersonScreen`。
+/// 人物页（列表）——对标 Android `PersonScreen` + `PersonListItem`。
 ///
-/// 显示全部人物（本人优先），2 列网格；点击进入 `PersonInfoView` 详情。
-/// `onBack` 由 MainTabView（page 3）或 Settings（NavigationStack push）注入：
-///  - 非 nil：page 3 用法，自定义顶栏返回按钮回调。
-///  - nil：嵌入 NavigationStack，用系统返回；本视图顶栏返回仍可用（dismiss）。
+/// 聚类模型：人物来自 TAG 扫描人脸聚类（`TagDatabase.persons`），非手动建人。
+/// 2 列网格，人脸感知封面卡，行内改名，关系 chip，Android 排序；顶栏动态计数标题 + 筛选/重聚类。
+/// `onBack` 由 MainTabView（page 3）或 Settings（NavigationStack push）注入。
 struct PersonView: View {
 
     var onBack: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = PersonViewModel()
-    @State private var showAdd = false
     @State private var detailRoute: DetailRoute?
 
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    private let columns = [
+        GridItem(.flexible(), spacing: PersonTokens.gridSpacing),
+        GridItem(.flexible(), spacing: PersonTokens.gridSpacing),
+    ]
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-
             VStack(spacing: 0) {
                 topBar
                 content
             }
+            if let toast = vm.toast {
+                toastView(toast)
+            }
         }
         .navigationBarHidden(true)
-        .task { vm.load() }
-        .sheet(isPresented: $showAdd) {
-            AddPersonSheet { name, isSelf in
-                vm.createPerson(name: name, coverMediaId: nil, isSelf: isSelf)
-            }
+        .task { vm.onAppear() }
+        .task(id: vm.toast) {
+            guard vm.toast != nil else { return }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            vm.toast = nil
         }
         .fullScreenCover(item: $detailRoute) { route in
             PersonInfoView(personId: route.id) {
                 detailRoute = nil
-                vm.load()  // 详情可能改了封面/名字，返回时刷新列表
+                vm.refresh()
             }
         }
     }
 
     // MARK: 顶栏
 
+    private var visibleCount: Int { vm.items.count }
+
     private var topBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Button {
                 if let onBack { onBack() } else { dismiss() }
             } label: {
@@ -53,74 +58,82 @@ struct PersonView: View {
                     .foregroundColor(.white)
                     .frame(width: 36, height: 36)
             }
-            Text(L("People"))
-                .font(.system(size: 18, weight: .semibold))
+            Text(String(format: L("People (%1$d/%2$d)"), visibleCount, vm.totalCount))
+                .font(.system(size: CGFloat(TopBarTokens.titleFontSize), weight: .medium))
                 .foregroundColor(.white)
+                .lineLimit(1)
             Spacer()
+            // 筛选切换
             Button {
-                showAdd = true
+                vm.toggleShowAll()
             } label: {
-                Image(systemName: "person.badge.plus")
+                Image(systemName: vm.showAll ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(.white)
                     .frame(width: 36, height: 36)
             }
+            .accessibilityLabel(Text(vm.showAll ? L("Hide unnamed single-face groups") : L("Show all people")))
+            // 重聚类
+            Button {
+                vm.recluster()
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+            }
+            .accessibilityLabel(Text(L("Re-cluster faces")))
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .padding(.bottom, 8)
     }
 
+    // MARK: 内容（对齐 Android：加载/空时不渲染占位）
+
     @ViewBuilder
     private var content: some View {
-        if vm.persons.isEmpty {
-            emptyState
+        if vm.items.isEmpty {
+            Color.black
         } else {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(vm.persons) { person in
-                        PersonCardView(person: person) {
-                            detailRoute = DetailRoute(id: person.id)
-                        }
+                LazyVGrid(columns: columns, spacing: PersonTokens.gridSpacing) {
+                    ForEach(vm.items) { person in
+                        PersonCardView(
+                            person: person,
+                            isEditing: vm.editingPersonId == person.id,
+                            onCoverTap: { openDetail(person.id) },
+                            onInfoTap: { openDetail(person.id) },
+                            onStartEdit: { vm.startEditing(personId: person.id) },
+                            onSaveName: { name in vm.updateName(personId: person.id, name: name) },
+                            onCancelEdit: { vm.stopEditing() })
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.horizontal, CGFloat(PersonTokens.gridSpacing))
+                .padding(.vertical, CGFloat(PersonTokens.gridSpacing))
                 .padding(.bottom, 120)  // 避让悬浮 Tab
             }
         }
     }
 
-    /// 诚实空状态：未建人物时引导手动添加（Phase 6.3 无聚类，不造假数据）。
-    private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "person.2.crop.square.stack")
-                .font(.system(size: 44))
-                .foregroundColor(.white.opacity(0.35))
-            Text(L("No people yet"))
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white.opacity(0.85))
-            Text(L("Add people you care about to organize and remember them."))
+    private func openDetail(_ id: Int64) {
+        detailRoute = DetailRoute(id: id)
+    }
+
+    // MARK: toast
+
+    private func toastView(_ message: String) -> some View {
+        VStack {
+            Spacer()
+            Text(message)
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 48)
-            Button {
-                showAdd = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                    Text(L("Add Person"))
-                }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.black)
-                .padding(.horizontal, 20)
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Capsule().fill(Color.white))
-            }
-            .padding(.top, 6)
+                .background(Capsule().fill(Color.black.opacity(0.8)))
+                .padding(.bottom, 140)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.opacity)
     }
 }
 
@@ -129,116 +142,154 @@ private struct DetailRoute: Identifiable {
     let id: Int64
 }
 
-// MARK: - 人物卡片
+// MARK: - 人物卡片（对标 Android PersonListItem）
 
-/// 2 列网格单元：方形封面（有封面用 ThumbnailView，无则首字母占位）+ 名称 + 副标题。
-struct PersonCardView: View {
+private struct PersonCardView: View {
 
-    let person: PersonStore.PersonRow
-    let onTap: () -> Void
+    let person: PersonDisplayItem
+    let isEditing: Bool
+    let onCoverTap: () -> Void
+    let onInfoTap: () -> Void
+    let onStartEdit: () -> Void
+    let onSaveName: (String) -> Void
+    let onCancelEdit: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                cover
-                Text(person.name)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.55))
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: 0) {
+            cover
+            infoColumn
+        }
+        .background(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous)
+            .fill(Color.white.opacity(0.06)))
+        .clipShape(RoundedRectangle(cornerRadius: PersonTokens.cardRadius, style: .continuous))
+    }
+
+    private var cover: some View {
+        Button(action: onCoverTap) {
+            ZStack {
+                Color.white.opacity(0.04)
+                if let lid = person.coverLocalIdentifier {
+                    ThumbnailView(localIdentifier: lid, faceFocusY: person.coverFaceFocusY, cornerRadius: 0)
+                } else {
+                    Color(white: 0.16)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
+        .aspectRatio(1, contentMode: .fit)
+        .clipShape(UnevenRoundedRectangle(cornerRadii: .init(
+            topLeading: PersonTokens.cardRadius, topTrailing: PersonTokens.cardRadius)))
+        .accessibilityLabel(Text(person.name ?? String(format: L("Person #%1$d"), Int(person.id))))
+    }
+
+    private var infoColumn: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                nameBlock
+                Spacer(minLength: 0)
+                if !isEditing {
+                    Text(photoCountText)
+                        .font(.system(size: CGFloat(PersonTokens.photoCountFontSize)))
+                        .foregroundColor(.white.opacity(0.55))
+                        .padding(.trailing, 2)
+                    Button(action: onInfoTap) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(L("Person info")))
+                }
+            }
+            if showRelationChip {
+                relationChip
+            }
+        }
+        .padding(12)
     }
 
     @ViewBuilder
-    private var cover: some View {
-        ZStack(alignment: .topTrailing) {
-            if let coverId = person.coverMediaId {
-                ThumbnailView(localIdentifier: coverId)
-            } else {
-                // 无封面：首字母占位（深灰底 + 首字符）
-                ZStack {
-                    Color(white: 0.16)
-                    Text(String(person.name.prefix(1)).uppercased())
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.6))
-                }
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-            if person.isSelf {
-                Text(L("Me"))
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.white.opacity(0.9)))
-                    .padding(6)
-            }
+    private var nameBlock: some View {
+        if isEditing {
+            NameEditor(
+                initial: person.name ?? "",
+                onSave: { onSaveName($0) },
+                onCancel: onCancelEdit)
+        } else {
+            Text(person.name?.isEmpty == false ? person.name! : L("Tap to name"))
+                .font(.system(size: CGFloat(PersonTokens.nameFontSize), weight: .semibold))
+                .foregroundColor((person.name?.isEmpty == false) ? .white : .white.opacity(0.55))
+                .lineLimit(1)
+                .onTapGesture { onStartEdit() }
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
     }
 
-    private var subtitle: String {
-        if person.isSelf { return L("You") }
-        return "\(person.photoCount) \(L("photos"))"
+    private var photoCountText: String {
+        String(format: L("%1$d photos"), person.photoCount)
+    }
+
+    private var showRelationChip: Bool {
+        person.isSelf || person.relation != nil
+    }
+
+    private var relationChipLabel: String {
+        if person.isSelf { return L("This is me") }
+        if let rel = person.relation {
+            return rel.customLabel ?? RelationOptions.label(predicateId: rel.predicate)
+        }
+        return L("Not set")
+    }
+
+    private var relationChip: some View {
+        Text(relationChipLabel)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(person.isSelf ? .black : .white.opacity(0.7))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(person.isSelf ? Color.white : Color.white.opacity(0.12)))
+            .onTapGesture { onInfoTap() }
     }
 }
 
-// MARK: - 新建人物表单
+// MARK: - 行内改名编辑器（对标 Android NameEditor）
 
-/// 新建人物：名称 + "这是我" 开关（开启时自动取消其他人物的本人标记）。
-struct AddPersonSheet: View {
+private struct NameEditor: View {
+    let initial: String
+    let onSave: (String) -> Void
+    let onCancel: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var name: String = ""
-    @State private var isSelf: Bool = false
-
-    let onCreate: (String, Bool) -> Void
+    @State private var text: String = ""
+    @FocusState private var focused: Bool
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color(.systemBackground).ignoresSafeArea()
-                VStack(alignment: .leading, spacing: 20) {
-                    HStack {
-                        Text(L("Name"))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    TextField(L("Enter a name"), text: $name)
-                        .textFieldStyle(.roundedBorder)
-                        .submitLabel(.done)
-
-                    Toggle(isOn: $isSelf) {
-                        Text(L("This is me"))
-                            .font(.system(size: 15))
-                    }
-                    Spacer()
-                }
-                .padding(20)
+        HStack(spacing: 4) {
+            TextField("", text: $text)
+                .font(.system(size: CGFloat(PersonTokens.nameFontSize), weight: .semibold))
+                .foregroundColor(.white)
+                .focused($focused)
+                .submitLabel(.done)
+                .onSubmit { onSave(text) }
+            Button { onSave(text) } label: {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 28, height: 28)
             }
-            .navigationTitle(L("Add Person"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L("Cancel")) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L("Create")) {
-                        onCreate(name, isSelf)
-                        dismiss()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+            .buttonStyle(.plain)
+            Button { onCancel() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
+                    .frame(width: 28, height: 28)
             }
+            .buttonStyle(.plain)
+        }
+        .onAppear {
+            text = initial
+            focused = true
         }
     }
 }

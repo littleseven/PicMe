@@ -158,6 +158,24 @@ final class TagDatabase {
         exec("CREATE INDEX IF NOT EXISTS idx_tasks_sched ON tag_scan_tasks(status, priority, scheduledAt);")
         exec("CREATE INDEX IF NOT EXISTS idx_tasks_media ON tag_scan_tasks(mediaId, pass, status);")
         exec("CREATE INDEX IF NOT EXISTS idx_tasks_session ON tag_scan_tasks(sessionId, status);")
+
+        // ── person_relations ──（人物关系图谱边；对标 Android PersonRelationEntity。
+        //   谓词存 RelationPredicate.name；object 隐式 = is_self 人物。FK 级联。）
+        exec("""
+            CREATE TABLE IF NOT EXISTS person_relations (
+                relationId      INTEGER PRIMARY KEY AUTOINCREMENT,
+                subjectPersonId INTEGER NOT NULL,
+                objectPersonId  INTEGER NOT NULL,
+                predicate       TEXT NOT NULL,
+                source          TEXT NOT NULL,
+                customLabel     TEXT,
+                confidence      REAL NOT NULL DEFAULT 1.0,
+                UNIQUE(subjectPersonId, predicate, objectPersonId),
+                FOREIGN KEY(subjectPersonId) REFERENCES persons(person_id) ON DELETE CASCADE,
+                FOREIGN KEY(objectPersonId) REFERENCES persons(person_id) ON DELETE CASCADE
+            );
+            """)
+        exec("CREATE INDEX IF NOT EXISTS idx_person_relations_subject ON person_relations(subjectPersonId);")
     }
 
     // MARK: - face_embeddings: Insert

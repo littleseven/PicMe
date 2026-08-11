@@ -464,6 +464,21 @@ enum ModelCenterTokens {
     static let tagBadgeDotSize: CGFloat = 6
 }
 
+// MARK: - Person（人物页列表+详情，聚类模型）
+
+enum PersonTokens {
+    static let cardRadius: CGFloat = 16
+    static let gridColumns: Int = 2
+    static let gridSpacing: CGFloat = 12
+    static let coverAspectRatio: CGFloat = 1.0
+    static let detailCoverHeight: CGFloat = 180
+    static let detailCoverWidthRatio: CGFloat = 0.55
+    static let coverPickerColumns: Int = 3
+    static let nameFontSize: CGFloat = 16
+    static let photoCountFontSize: CGFloat = 13
+    static let relationChipRadius: CGFloat = 8
+}
+
 // MARK: - Color(hex:) 工具（ARGB 十六进制，与 JSON 一致）
 
 private extension Color {

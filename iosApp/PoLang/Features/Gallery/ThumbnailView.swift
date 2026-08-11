@@ -8,6 +8,8 @@ struct ThumbnailView: View {
     /// 人脸纵向聚焦点（归一化 0~1，nil = 无人脸/未回填 → 居中裁切）
     var faceFocusY: Float? = nil
     var isVideo: Bool = false
+    /// 圆角（默认 2pt 相册网格；人物卡封面用 16pt 等覆盖）
+    var cornerRadius: CGFloat = 2
     @State private var image: UIImage?
 
     var body: some View {
@@ -25,7 +27,7 @@ struct ThumbnailView: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .clipped()
         .task(id: localIdentifier) {
             // 高清档 400px：覆盖 adaptive 列宽（最小 110pt）@3x

@@ -1,6 +1,350 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Batch Generate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Batch Generate" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "批量生成" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "批量產生" } }
+      }
+    },
+    "Data Generation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Data Generation" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "数据生成" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "數據生成" } }
+      }
+    },
+    "Swimwear": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Swimwear" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "泳装" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "泳裝" } }
+      }
+    },
+    "Sexy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Sexy" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "性感" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "性感" } }
+      }
+    },
+    "Clear Test Data": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Clear Test Data" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "清除测试数据" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "清除測試數據" } }
+      }
+    },
+    "Stop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Stop" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "停止" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "停止" } }
+      }
+    },
+    "Grep logs...": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Grep logs..." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Grep logs..." } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Grep logs..." } }
+      }
+    },
+    "Pexels Gallery": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pexels Gallery" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Pexels 图库" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Pexels 圖庫" } }
+      }
+    },
+    "Image Download": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Image Download" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "图片下载页" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "圖片下載頁" } }
+      }
+    },
+    "Enter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Enter" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "进入" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "進入" } }
+      }
+    },
+    "Enter Pexels API Key": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Enter Pexels API Key" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "输入 Pexels API Key" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "輸入 Pexels API Key" } }
+      }
+    },
+    "Invalid API Key, please re-enter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Invalid API Key, please re-enter" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Key 无效，请重新输入" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Key 無效，請重新輸入" } }
+      }
+    },
+    "Get a free key at pexels.com/api": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Get a free key at pexels.com/api" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "前往 pexels.com/api 免费申请 Key" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "前往 pexels.com/api 免費申請 Key" } }
+      }
+    },
+    "API Key configured": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "API Key configured" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "API Key 已配置" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "API Key 已配置" } }
+      }
+    },
+    "Change": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Change" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "修改" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "修改" } }
+      }
+    },
+    "Search keywords (empty = curated)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Search keywords (empty = curated)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "搜索关键词，留空加载精选" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "搜尋關鍵詞，留空載入精選" } }
+      }
+    },
+    "Photos provided by Pexels": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Photos provided by Pexels" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Photos provided by Pexels" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Photos provided by Pexels" } }
+      }
+    },
+    "Pexels rate limit reached (200/hour), try later": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pexels rate limit reached (200/hour), try later" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Pexels 额度已用尽（200 次/小时），请稍后再试" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "Pexels 額度已用盡（200 次/小時），請稍後再試" } }
+      }
+    },
+    "Network error, please retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Network error, please retry" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "网络错误，请重试" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "網路錯誤，請重試" } }
+      }
+    },
+    "No results": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "No results" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无结果" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無結果" } }
+      }
+    },
+    "Photo by %1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Photo by %1$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$@ 拍摄的照片" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "%1$@ 拍攝的照片" } }
+      }
+    },
+    "Downloading %1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Downloading %1$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "下载中 %1$@" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "下載中 %1$@" } }
+      }
+    },
+    "%1$d selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$d selected" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已选 %1$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已選 %1$d 張" } }
+      }
+    },
+    "Download Selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Download Selected" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "下载所选" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "下載所選" } }
+      }
+    },
+    "Batch %1$d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Batch %1$d" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "批量 %1$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "批量 %1$d 張" } }
+      }
+    },
+    "Done: %1$d/%2$d saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Done: %1$d/%2$d saved" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "完成：成功保存 %1$d/%2$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "完成：成功儲存 %1$d/%2$d 張" } }
+      }
+    },
+    "People (%1$d/%2$d)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "People (%1$d/%2$d)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "人物 (%1$d/%2$d)" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "人物 (%1$d/%2$d)" } }
+      }
+    },
+    "Show all people": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Show all people" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "显示全部人物" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "顯示全部人物" } }
+      }
+    },
+    "Hide unnamed single-face groups": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hide unnamed single-face groups" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "隐藏未命名单人分组" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "隱藏未命名单人分組" } }
+      }
+    },
+    "Hidden %1$d unnamed single-face groups; tap filter to show all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hidden %1$d unnamed single-face groups; tap filter to show all" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已隐藏 %1$d 个未命名单人分组，点击筛选按钮可显示全部" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已隱藏 %1$d 個未命名单人分組，點擊篩選按鈕可顯示全部" } }
+      }
+    },
+    "Person #%1$d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Person #%1$d" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "人物 #%1$d" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "人物 #%1$d" } }
+      }
+    },
+    "%1$d photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$d photos" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$d 张" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "%1$d 張" } }
+      }
+    },
+    "Re-cluster faces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Re-cluster faces" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "重新聚类" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "重新聚類" } }
+      }
+    },
+    "Re-clustering started (faces only, may take a while). Re-enter this page to refresh when done.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Re-clustering started (faces only, may take a while). Re-enter this page to refresh when done." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已开始重新聚类（仅有人脸，耗时较长），完成后返回本页自动刷新" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "已開始重新聚類（僅有人臉，耗時較長），完成後返回本頁自動整理" } }
+      }
+    },
+    "Cluster #%1$d": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Cluster #%1$d" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "簇 #%1$d" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "簇 #%1$d" } }
+      }
+    },
+    "Tap to name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Tap to name" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "点击命名" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "點擊命名" } }
+      }
+    },
+    "Tap to set cover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Tap to set cover" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "点击设置封面" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "點擊設置封面" } }
+      }
+    },
+    "Select cover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Select cover" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "选择封面" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "選擇封面" } }
+      }
+    },
+    "Not set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not set" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "不设置" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "不設定" } }
+      }
+    },
+    "Social": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Social" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "社会" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "社會" } }
+      }
+    },
+    "Person info": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Person info" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "人物信息" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "人物資訊" } }
+      }
+    },
+    "e.g. childhood buddy, second son": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "e.g. childhood buddy, second son" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "如：发小、二儿子" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "如：髮小、二兒子" } }
+      }
+    },
+    "Custom text takes priority when filled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Custom text takes priority when filled" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "填写后以自定义称呼为准" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "填寫後以自訂稱呼為準" } }
+      }
+    },
     "A device identifier is generated to count free trial usage for unregistered guests. This identifier is sent to api.polang.net and is not used for personal identification or shared with third parties.": {
       "localizations": {
         "en": {
