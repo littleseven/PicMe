@@ -18,6 +18,10 @@ struct MediaPagerView: View {
     @State private var showInfo = false
     @State private var sharePayload: SharePayload? = nil
     @State private var showDeleteConfirm = false
+    /// 编辑器 fullScreenCover 载体（Edit 按钮 → PhotoEditorScreen）
+    @State private var editTarget: EditorTarget?
+    /// 证照入口「敬请期待」toast（iOS 无 ID-photo 流程，Phase 6）
+    @State private var showIdComingSoon = false
     /// debug 开关门控「人脸关键点」入口（对齐 Android debugUiEnabled）
     @AppStorage("debug_ui_enabled") private var debugEnabled = false
     @State private var showFaceOverlay = false
@@ -77,6 +81,24 @@ struct MediaPagerView: View {
                             isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button(String(localized: "Delete"), role: .destructive) { deleteCurrent() }
             Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+        .fullScreenCover(item: $editTarget) { target in
+            PhotoEditorScreen(localIdentifier: target.id)
+        }
+        .overlay {
+            if showIdComingSoon {
+                Text("This feature is coming soon")
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Color.black.opacity(0.8))
+                    .clipShape(Capsule())
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showIdComingSoon)
+        .onChange(of: showIdComingSoon) { onset in
+            guard onset else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { showIdComingSoon = false }
         }
     }
 
@@ -147,7 +169,8 @@ struct MediaPagerView: View {
 
     /// 底栏（对齐 Android `mediaPagerBottomBar`：4 位 SpaceEvenly、h8/v4 padding、
     /// 按钮 48dp、icon 22dp/白 0.9 + label 10sp/白 0.7）：
-    /// 发送/删除实做；编辑/证照 iOS 无功能（Phase 6）灰置占位，保持 4 位节奏
+    /// 发送/删除实做；编辑→PhotoEditorScreen（fullScreenCover）；
+    /// 证照（ID-photo）iOS 无流程（Phase 6 matting），点出「敬请期待」toast
     private var bottomBar: some View {
         HStack(spacing: 0) {
             Spacer()
@@ -158,12 +181,14 @@ struct MediaPagerView: View {
             bottomBarItem(icon: "mat_autofix",
                           title: String(localized: "Edit"),
                           accessibilityID: "pager_edit",
-                          isEnabled: false) {}
+                          isEnabled: true) {
+                if let uri = currentAsset?.uri { editTarget = EditorTarget(localIdentifier: uri) }
+            }
             Spacer()
             bottomBarItem(icon: "mat_badge",
                           title: String(localized: "ID"),
                           accessibilityID: "pager_id_photo",
-                          isEnabled: false) {}
+                          isEnabled: true) { showIdComingSoon = true }
             Spacer()
             bottomBarItem(icon: "mat_delete",
                           title: String(localized: "Delete"),

@@ -1,0 +1,468 @@
+# ============================================================================
+# 图片编辑屏完整产品规格书（Photo Editor Screen Spec）
+# ============================================================================
+# 基准端：androidApp features/editor/PhotoEditorScreen.kt / PhotoEditorViewModel.kt
+#        / RecipeApplier.kt / EditRecipe.kt / EditHistory.kt / MarkupAction.kt
+#        / AspectRatio.kt + components/{EditorTopBar,EditorBottomBar,EditorSlider,
+#        CropPanel,AdjustPanel,FilterPanel,MarkupPanel,MarkupOverlay,
+#        CheckerboardBackground}.kt
+# 用途：iOS 重做的唯一输入，不读 Android 源码
+# 双端对齐原则：结构零容差一致（信息层级/布局结构/功能默认/文案状态），平台材质各自原生
+# 值引用：尺寸引用 design-tokens.json 的 token 名（如 editor.filterPanelHeight），数值在注释中标注
+# 颜色引用：AppColors.*（iOS）/ colorScheme.*（Android）
+# 图标映射：Material Icons (Android) → SF Symbols (iOS)
+# ----------------------------------------------------------------------------
+# ⚠️ 本轮范围（用户决策 2026-08-10「分阶段落地」）：feasible subset =
+#    CROP + ADJUST + FILTER + MARKUP + Recipe/EditHistory 模型 + 非破坏性保存。
+#    BEAUTY 渲染 / 抠图去背景 / AI 一键优化 / 证件照抽卡 / 对话式编辑 = DEFER
+#    （见 §14 allowed_differences）。DEFER 项的入口控件以「不可用 + 敬请期待」呈现，不删除。
+
+# ============================================================================
+# 1. 总体结构
+# ============================================================================
+root:
+  type: scaffold                # 顶栏 + 内容 + 底栏 三段式
+  background: "#000000"         # 内容区纯黑底色（透明背景模式见 §6，本轮 cutout defer 故恒黑）
+  fill_strategy: edge_to_edge
+  layout: column_top_bottom     # topBar 在上、preview 居中填充、bottomBar 在下
+  status_bar:
+    visible: true               # 编辑页保留系统栏（与相机沉浸式不同）
+    content_color: light        # 黑底白字：iOS preferredStatusBarStyle = .lightContent
+
+# Back 栈优先级链（Back 按键 / 手势返回）
+back_stack:
+  - condition: text_input_dialog_open   # MARKUP 文字输入弹窗打开时
+    action: dismiss_dialog               # 先关弹窗
+  - condition: default
+    action: exit_editor                  # 退出编辑页（丢弃未保存改动，无二次确认）
+
+# ============================================================================
+# 2. 状态机（PhotoEditorViewModel.State）
+# ============================================================================
+state_machine:
+  initial: Loading
+  states:
+    Loading:
+      display: center CircularProgressIndicator(primary)   # 加载源图 + 降采样
+      transitions: { loaded: Ready, failed: Error }
+    Error:
+      display: center Text(message, white, pad16)
+      transitions: {}
+    Ready:
+      fields:
+        originalBitmap: 原图 Bitmap（长边降采样至 2048，用于长按对比）  # iOS: CGImage thumbnail
+        previewBitmap: 当前配方渲染后的预览 Bitmap                       # iOS: CIImage 渲染产物
+        recipe: EditRecipe（当前配方，见 §13）
+        selectedTab: EditorTab = CROP                  # 默认进 CROP tab
+        isProcessing: Boolean = false                  # 预览重渲染中（spinner overlay）
+        isSaving: Boolean = false                      # 保存中（Done 按钮 disabled）
+        gachaRun: GachaRunUiState? = null              # 本轮恒 null（抽卡 defer）
+      transitions:
+        updateRecipe:  → 重渲染预览（debounce 200ms）→ Ready(previewBitmap 更新)
+        selectTab:     → Ready(selectedTab 改变；缩放/平移重置为 1x/0)
+        undo/redo:     → Ready(recipe 回退/前进；重渲染)
+        save:          → Ready(isSaving=true) → 写出新副本 → onEditSaved(newUri)
+        load_new:      → Loading
+# 历史栈：EditHistory(maxSize=30)；push() 丢弃 redo 分支；undo/redo 仅移 index。
+# canUndo = (gachaRun==null) && history.canUndo；canRedo 同理。
+
+# ============================================================================
+# 3. 顶部栏（EditorTopBar = AppTopBar）
+# ============================================================================
+# AppTopBar 通用规格（topBar 节点）：height=48, buttonSize=36, iconSize=22,
+#   titleFontSize=17, weight=Medium, horizontalPadding=8, spacing=8
+top_bar:
+  component: AppTopBar
+  height: 48                     # topBar.height
+  title:
+    text_key: edit               # 「编辑」/Edit
+    style: titleMedium(17sp, Medium)
+  leading:
+    - id: back_button
+      icon: { material: arrow_back, sf_symbol: "chevron.left" }
+      behavior: { click: exit_editor }
+  actions:                       # 从左到右排列
+    - id: remove_background      # 🔴 DEFER（本轮不可用）
+      icon: { material: layers_clear, sf_symbol: "square.stack.3d.up.slash" }
+      enabled: false             # 本轮置灰
+      unavailable_toast_key: editor_feature_unavailable   # 「该功能敬请期待」
+      behavior: { click: toast_unavailable }
+    - id: ai_optimize            # 🔴 DEFER（本轮不可用）
+      icon: { material: auto_fix_high, sf_symbol: "wand.and.stars" }
+      enabled: false
+      unavailable_toast_key: editor_feature_unavailable
+      behavior: { click: toast_unavailable }
+    - id: undo
+      icon: { material: undo (AutoMirrored), sf_symbol: "arrow.uturn.backward" }
+      enabled_when: canUndo
+      behavior: { click: undo }
+    - id: redo
+      icon: { material: redo (AutoMirrored), sf_symbol: "arrow.uturn.forward" }
+      enabled_when: canRedo
+      behavior: { click: redo }
+    - id: done
+      icon: { material: check, sf_symbol: "checkmark" }
+      enabled_when: not(isSaving)
+      behavior: { click: save }   # 渲染全分辨率新副本（非破坏性）
+
+# ============================================================================
+# 4. 内容区——预览（Preview Area）
+# ============================================================================
+preview:
+  container: Box(fillMaxSize, clipToBounds, bg=#000000, contentAlignment=center)
+  image:
+    source: previewBitmap（Ready 态）              # iOS: 渲染后 UIImage
+    content_description_key: cd_image_preview     # 「图片预览」
+    content_scale: Fit                            # 等比适配，留黑边
+  gestures:                       # MARKUP 模式下整体禁用（让位绘制层）
+    pinch_zoom:
+      enabled_when: not(markup_mode)
+      range: [1.0, 4.0]           # scale coerceIn(1,4)
+    pan:
+      enabled_when: not(markup_mode)
+      clamp: true                 # 不超出缩放后图片边界（按 fit 矩形算 max offset）
+    double_tap:
+      enabled_when: not(markup_mode)
+      action: reset_zoom_pan      # scale=1, offset=0
+    long_press:
+      enabled_when: not(markup_mode)
+      action: compare_original    # 按住显示 originalBitmap，松开回 previewBitmap
+  reset_on: [source_uri_change, selected_tab_change]   # 切图/切 tab → scale=1/offset=0
+  overlays:
+    - markup_drawing_layer:       # MARKUP 模式叠加，见 §11
+        visible_when: markup_mode
+    - crop_transform_overlay:     # CROP tab 叠加旋转/镜像浮钮，见 §8
+        visible_when: selected_tab == CROP
+    - processing_spinner:
+        visible_when: isProcessing
+        style: center CircularProgressIndicator(primary)
+
+# ============================================================================
+# 5. 底部栏（Column = PanelForTab + EditorBottomBar）
+# ============================================================================
+bottom_bar:
+  layout: column                  # 上面板、下 tab 条
+  bottom_padding: navigation_bars  # iOS: safeArea bottom；Android: navigationBarsPadding
+  panel_slot:
+    component: PanelForTab         # 按 selectedTab 切换面板（§7-11）
+  tab_bar:
+    component: EditorBottomBar
+    layout: row
+    horizontal_padding: 8          # topBar.horizontalPadding 同源 8
+    vertical_padding: 4
+    arrangement: space_evenly
+    items:                         # 5 个 FilterChip（chip 节点：height=36）
+      - { tab: CROP,   label_key: editor_tab_crop,   zh: 构图 }
+      - { tab: ADJUST, label_key: editor_tab_adjust, zh: 调节 }
+      - { tab: BEAUTY, label_key: editor_tab_beauty, zh: 美颜 }
+      - { tab: FILTER, label_key: editor_tab_filter, zh: 滤镜 }
+      - { tab: MARKUP, label_key: editor_tab_markup, zh: 标记 }
+    chip_style:                    # chip 节点
+      height: 36
+      selected: primaryContainer 系
+      unselected: surfaceVariant @ alpha 0.5
+      content_description: "Editor tab {label}"
+
+# ============================================================================
+# 6. 透明背景棋盘格（CheckerboardBackground）—— cutout 透明模式专用
+# ============================================================================
+# 🔴 本轮 cutout DEFER，故 cutout.bgMode 恒非 TRANSPARENT，棋盘格本轮不显示。
+# 规格保留以对齐全量契约，后续 follow 启用抠图时无需改 spec。
+checkerboard:
+  visible_when: recipe.cutout.bgMode == TRANSPARENT
+  cell_size: 16                   # editor.checkerboardCellSize
+  light: "#FFE6E6E6"              # editor.checkerboardLight
+  dark: "#FFBDBDBD"               # editor.checkerboardDark
+
+# ============================================================================
+# 7. CROP 面板（CropPanel + CropTransformOverlay）
+# ============================================================================
+crop_panel:
+  layout: column, pad(h16, v8)
+  ratio_label:
+    text_key: crop_ratio_label    # 「裁剪比例」
+    style: labelLarge
+    pad_bottom: 8
+  ratio_row:
+    layout: horizontalScroll row, spacedBy 8
+    items:                        # 7 个 FilterChip，selected = crop.aspectRatio
+      - { key: aspect_ratio_free,     zh: 自由,   ratio: null }   # FREE 不裁剪
+      - { key: aspect_ratio_original, zh: 原始,   ratio: -1 }     # 用源图比例
+      - { key: aspect_ratio_square,   zh: "1:1",  ratio: 1.0 }
+      - { key: aspect_ratio_4_3,      zh: "4:3",  ratio: 1.333 }
+      - { key: aspect_ratio_3_4,      zh: "3:4",  ratio: 0.75 }
+      - { key: aspect_ratio_16_9,     zh: "16:9", ratio: 1.778 }
+      - { key: aspect_ratio_9_16,     zh: "9:16", ratio: 0.5625 }
+crop_transform_overlay:           # 仅 CROP tab，小米相册风：浮在预览区底部左右角
+  rotate_left:
+    anchor: bottom_start
+    button: circle 44dp（editor.cropTransformButtonSize），bg black@0.45（cropTransformButtonBgAlpha），icon tint white，pad16
+    icon: { material: rotate_left (AutoMirrored), sf_symbol: "rotate.left" }
+    cd_key: rotate_left           # 「左旋」
+    behavior: { click: crop.rotation = (rotation - 90).mod(360) }
+  flip_horizontal:
+    anchor: bottom_end
+    button: 同上 44dp circle
+    icon: { material: flip, sf_symbol: "rectangle.righthalf.infilled.filled" }
+    cd_key: flip_horizontal       # 「水平翻转」
+    behavior: { click: crop.flippedH = !flippedH }
+
+# ============================================================================
+# 8. ADJUST 面板（AdjustPanel）
+# ============================================================================
+adjust_panel:
+  layout: column, max_height 220（editor.adjustPanelMaxHeight）, pad(h16, v8)
+  # 当前选中参数行
+  header_row: row, spaceBetween, vCenter
+    - label: current.param.label, style titleMedium
+    - value_group: row[ Text("%.0f".format(value), bodyLarge, pad h8), TextButton(重置→resetValue) ]
+      reset_text_key: reset      # 「重置」/「重設」
+  slider:                         # appSlider 节点（全 app 统一滑杆）
+    component: AppSlider
+    track_height: 6, track_shape: capsule
+    thumb: 18dp white circle, primary 2dp border, pressed scale 1.15
+    fill_width: true
+  param_selector:                 # 横向滚动的参数切换条
+    layout: horizontalScroll row, spacedBy 8
+    items:                         # 6 个 FilterChip（NOTE: 模型有 vignette 但面板不暴露）
+      - { key: adjust_brightness,  zh: 亮度,  field: brightness,  range: [-100,100], reset: 0 }
+      - { key: adjust_exposure,    zh: 曝光,  field: exposure,    range: [-100,100], reset: 0 }
+      - { key: contrast,           zh: 对比度, field: contrast,   range: [0,200],    reset: 50 }
+      - { key: saturation,         zh: 饱和度, field: saturation,  range: [0,200],    reset: 100 }
+      - { key: adjust_temperature, zh: 色温,  field: temperature, range: [2000,8000], reset: 5000 }
+      - { key: adjust_tint,        zh: 色调,  field: tint,        range: [-100,100], reset: 0 }
+
+# ============================================================================
+# 9. BEAUTY 面板（BeautyPanel 复用相机组件）—— 🔴 渲染 DEFER
+# ============================================================================
+beauty_panel:
+  component: BeautyPanel（复用相机美颜面板结构：磨皮/美白/瘦脸/大眼/唇色/腮红 等滑杆）
+  data: recipe.beauty（BeautySettings，经 :shared XCFramework 消费）
+  render_effect: NONE             # ⚠️ 本轮：参数写入模型（存档/保存 JSON）但不渲染视觉效果
+  reason: iOS 无静态图人脸感知 GPU 管线（需独立 follow 建 PhotoProcessor actual）
+  allowed_difference: 见 §14.B1
+  # UI 仍可调参（滑杆可用），仅预览不体现——避免「假可用」，面板顶部显示一行
+  # 提示文案 beauty_preview_unavailable（「美颜效果将在后续版本支持」）。
+
+# ============================================================================
+# 10. FILTER 面板（FilterPanel）
+# ============================================================================
+filter_panel:
+  layout: LazyRow, height 120（editor.filterPanelHeight）, pad v8, spacedBy 12, content_pad h16, vCenter
+  mutually_exclusive: true        # color 与 style 二选一：选 color→style=NONE；选 style→color=NONE
+  items:                          # 14 项，顺序固定
+    color_filters:                # FilterType（来自 :shared commonMain）
+      - NONE              # 无
+      - LEICA_CLASSIC     # 徕卡经典
+      - LEICA_VIBRANT     # 徕卡鲜艳
+      - LEICA_BW          # 徕卡黑白
+      - FILM_GOLD         # 胶片金
+      - FILM_FUJI         # 胶片富士
+      - VINTAGE           # 复古
+      - COOL              # 冷色
+      - WARM              # 暖色
+    style_filters:                # StyleFilter（来自 :shared commonMain）
+      - TOON              # 卡通
+      - SKETCH            # 素描
+      - POSTERIZE         # 色调分离
+      - EMBOSS            # 浮雕
+      - CROSSHATCH        # 交叉影线
+  item_layout:                   # 每个 item：column, width 72（editor.filterItemWidth）, clickable, pad h4
+    thumb: circle 64dp（editor.filterThumbSize）
+      border_selected: 3dp（editor.filterSelectedBorderWidth）, gradient primary→onSurface
+      border_unselected: 1dp（editor.filterUnselectedBorderWidth）, onSurface@0.3→@0.1
+      content: 滤镜缩略图（assets filters/*.jpg，圆裁剪 Crop）或占位渐变（缩略图缺失时）
+      selected_overlay: 底部 primary@0.25 横条
+    label: fontSize 10（editor.filterLabelSize）, center, maxLines 1, pad top4
+      color_selected: primary
+      color_unselected: onSurface @ 0.85
+    content_description: "Filter {label}"
+
+# ============================================================================
+# 11. MARKUP 面板 + 绘制层（MarkupPanel / MarkupDrawingOverlay）
+# ============================================================================
+markup_tool_state:                # 屏幕层 remember，驱动面板与预览绘制一致
+  tool: DOODLE | MOSAIC | TEXT（默认 DOODLE）
+  color: Int（默认 红 FFFF3B30）
+  stroke_width: Float（默认 0.015，归一化图片宽度比例）
+markup_panel:
+  layout: column, pad(h16, v8)
+  tool_row: row, spaceEvenly, vCenter   # 3 个 FilterChip（icon-only label）
+    - { tool: DOODLE, icon: brush,   sf: "paintbrush", cd_key: doodle,         zh: 涂鸦 }
+    - { tool: MOSAIC, icon: blur_on, sf: "circle.hexagongrid", cd_key: mosaic, zh: 马赛克 }
+    - { tool: TEXT,   icon: title,   sf: "textformat", cd_key: markup_tool_text, zh: 文字 }
+  color_row: row, spaceEvenly, vCenter, pad top12   # 7 色 swatch
+    swatch: circle, selected 32dp（editor.markupSwatchSelected）/ unselected 24dp（markupSwatchUnselected）
+      border_selected: 2dp primary / border_unselected: 1dp outline
+    colors:                        # MARKUP_COLORS（产品内容色，不入 design token）
+      - red    FFFF3B30
+      - orange FFFF9500
+      - yellow FFFFCC00
+      - green  FF34C759
+      - blue   FF0A84FF
+      - white  FFFFFFFF
+      - black  FF000000
+  stroke_row: row, vCenter
+    - label: markup_stroke_width（「笔画粗细」）, labelLarge, pad(top8, end8)
+    - AppSlider: value=stroke_width, range [0.005, 0.06]（MARKUP_STROKE_MIN..MAX，归一化）, weight 1
+    - TextButton: markup_clear（「清除」）, enabled_when: actions.notEmpty, click→ actions=emptyList
+markup_drawing_overlay:           # MARKUP 模式叠加在预览上，接管手势
+  visible_when: markup_mode       # selected_tab==MARKUP 且 gachaRun==null
+  coordinate: 归一化 0..1（相对处理后图片宽高，见 §13 NormPoint）
+  actions:                        # MarkupAction（sealed）
+    Doodle: { id, points: List<NormPoint>, color: Int, strokeWidth: Float（归一化） }
+    Mosaic: { id, points: List<NormPoint>, strokeWidth: Float（归一化）, mode: PIXEL | BLUR }
+    Text:   { id, text: String, position: NormPoint, color: Int, size: Float（归一化, default 0.05） }
+  commit_flow:
+    - DOODLE/MOSAIC: 拖拽成笔 → onCommit → 先入 pendingActions（覆盖层继续画，避免烘焙空窗闪一下）
+      → 新 previewBitmap 到达（重渲染产物）→ 清 pendingActions
+    - TEXT: 点按 → 弹输入框（MarkupTextInputDialog）→ onConfirm 生成 MarkupAction.Text(default size 0.05)
+  known_limitation: 先标记再改裁剪/旋转时标记不跟随（与多数相册「裁剪即压平」取舍一致）
+
+# ============================================================================
+# 12. 预览渲染管线（RecipeApplier，debounce 200ms，后台线程）
+# ============================================================================
+render_pipeline:
+  order:                          # 处理顺序（全分辨率保存与降采样预览共用同一管线）
+    1_apply_crop:    先旋转/翻转，再按 AspectRatio 自动居中裁剪
+    2_apply_effects: 调节 + 滤镜（Android: PhotoProcessor GPU；iOS lite: CoreImage，见下）
+    3_apply_markup:  最后叠加标记（坐标系=裁剪+效果后的最终图片，归一化）
+  debounce_ms: 200                # 参数调节后 200ms 触发预览
+  ios_lite_actual:                # 本轮 iOS 实现路径（无 GPU 美颜引擎）
+    apply_crop: CGAffineTransform rotate/flip + CIImage cropped(to: aspectRect)
+    apply_adjust: CIFilter 链
+      brightness/exposure → CIColorControls.brightness / CIExposure
+      contrast/saturation → CIColorControls.contrast / saturation
+      temperature/tint     → CITemperatureAndTint
+    apply_filter_color: CIColorMatrix（FilterType→4x5 矩阵，对齐 Android ColorMatrix）
+    apply_filter_style: Metal kernel / CIFilter（StyleFilter→卡通/素描/...；复用相机 lut.metal 思路）
+    apply_beauty: ⏸️ no-op（DEFER，模型仍存档）
+    apply_markup: Core Graphics 烘焙（doodle 路径 / mosaic 像素化或模糊 / text draw）
+  fallback: 任一步异常或输出全黑 → 退回原图，绝不显示黑屏
+
+# ============================================================================
+# 13. 配方数据模型（EditRecipe）—— contracts.md 详签名
+# ============================================================================
+recipe_model:
+  EditRecipe:
+    sourceUri: String
+    crop: CropRecipe = CropRecipe()
+    adjustments: AdjustmentRecipe = AdjustmentRecipe()
+    beauty: BeautySettings = BeautySettings(enabled=true)   # :shared 经 XCFramework
+    colorFilter: FilterType = NONE                          # :shared
+    styleFilter: StyleFilter = NONE                         # :shared
+    filterIntensity: Float = 1.0
+    markup: List<MarkupAction> = []
+    cutout: CutoutRecipe? = null                            # 🔴 DEFER（恒 null）
+    version: Int = 2
+  CropRecipe: { rotation:Int=0, flippedH:Boolean=false, flippedV:Boolean=false,
+                straightenAngle:Float=0, cropRect:RectF?=null, aspectRatio:AspectRatio=FREE }
+  AdjustmentRecipe: { brightness:Float=0, exposure:Float=0, contrast:Float=50,
+                      saturation:Float=100, temperature:Float=5000, tint:Float=0, vignette:Float=0 }
+  NormPoint: { x:Float, y:Float }（归一化 0..1）
+  AspectRatio: FREE(null) | ORIGINAL(-1) | SQUARE(1) | RATIO_4_3 | RATIO_3_4 | RATIO_16_9 | RATIO_9_16
+  EditHistory: stack maxSize=30, push/undo/redo/reset
+  # 🍎 iOS 实现：EditRecipe/CropRecipe/AdjustmentRecipe/MarkupAction/AspectRatio/EditHistory
+  #    在 Swift 侧镜像（androidApp 非 shared，无法经 XCFramework 消费）；
+  #    BeautySettings/FilterType/StyleFilter 直接消费 :shared（SKIE 形态）。
+
+# ============================================================================
+# 14. allowed_differences（本轮 iOS lite 与全量 Android 的显式差异）
+# ============================================================================
+allowed_differences:
+  - id: B1_beauty_render
+    severity: known_gap
+    desc: BEAUTY tab 滑杆可调、参数存档，但预览/保存不渲染美颜效果
+    reason: iOS 缺静态图人脸感知 GPU 管线（PhotoProcessor actual）
+    followup: 独立 follow 建 iOS 美颜静态图管线 + beauty-api 渲染对齐
+  - id: B2_cutout_gacha_absent
+    severity: known_gap
+    desc: 去背景(remove_background)/证件照抽卡(gachaRun)/透明棋盘格 本轮不实现
+    reason: iOS 缺 matting(U2Net)模型
+  - id: B3_ai_optimize_absent
+    severity: known_gap
+    desc: AI 一键优化(ai_optimize)按钮置灰 + 敬请期待 toast
+    reason: 需远程推理协调
+  - id: B4_recipe_persistence_inmem
+    severity: known_gap
+    desc: 配方本轮仅内存态（重编辑不可恢复），Room→GRDB 持久化 fast-follow
+  - id: B5_filter_render_path
+    severity: acceptable
+    desc: 滤镜渲染走 CIColorMatrix/Metal（Android 走 OpenGL shader），视觉对齐在验收 SSIM 校验
+  - id: B6_conversational_edit_absent
+    severity: known_gap
+    desc: 对话式 ImageEditScreen / edit_image capability 本轮不实现（依赖完整管线 + chat 集成）
+
+# ============================================================================
+# 15. platform_differences（契约层台账）
+# ============================================================================
+platform_differences:
+  permission:
+    photo_library_write:
+      android: WRITE_EXTERNAL_STORAGE / MediaStore（targetSdk 30+ 走 scoped storage）
+      ios: NSPhotoLibraryAddUsageDescription（保存新副本到相册）；Info.plist purpose string 必填
+      shared_semantic: 「保存编辑结果到用户相册」——两端均仅写新副本，不动原图
+    # 本轮无相机/人脸权限需求（BEAUTY 渲染 defer，不触发人脸检测）
+  capabilities:
+    matrix:
+      crop:        { android: Bitmap+Matrix,            ios: CIImage+CGAffineTransform,  parity: full }
+      adjust:      { android: OpenGL shader,            ios: CIFilter,                   parity: visual_verified }
+      filter:      { android: OpenGL ColorMatrix/LUT,   ios: CIColorMatrix/Metal LUT,    parity: visual_verified }
+      markup:      { android: Canvas 烘焙,              ios: Core Graphics 烘焙,         parity: full }
+      beauty:      { android: OpenGL 人脸感知 PhotoProcessor, ios: ❌(defer),            parity: none_this_round }
+      cutout:      { android: U2Net matting,            ios: ❌(defer),                   parity: none_this_round }
+      persistence: { android: Room PhotoEditRecipeDao,  ios: in-memory (GRDB fast-follow),parity: partial }
+  privacy_disclosure:
+    android:
+      manifest: 本轮仅新增 photo library 写权限（若有）；无新数据收集
+      play_data_safety: 编辑为本地处理，不上传（与既有声明一致）
+    ios:
+      purpose_string: NSPhotoLibraryAddUsageDescription = 「用于保存编辑后的图片到相册」（三语）
+      privacy_manifest: PrivacyInfo.xcprivacy —— 本地处理，无 tracking，无上传；编辑结果仅写本地相册
+      privacy_label: Photos and Videos – Add Only（仅添加，不读取全库；读取走系统 Picker）
+  red_line_check:
+    PRIVACY: ✅ 所有编辑（裁剪/调节/滤镜/标记）100% 端侧 Core Graphics/CoreImage；图片文件绝不上传远程
+    PERF: ✅ 预览重渲染 debounce 200ms + 后台线程；交互反馈 < 100ms
+    I18N: ✅ 全部文案经 xcstrings 三语（见 §16）
+
+# ============================================================================
+# 16. i18n 键表（xcstrings 三语同步；en/zh-Hans/zh-Hant）
+# ============================================================================
+# 简繁含用词差异（重置/重設、构图、色调/色溫 等），照抄 Android values-zh-rCN / values-zh-rTW
+i18n_keys:
+  edit:                    { en: Edit,         zh-Hans: 编辑,   zh-Hant: 編輯 }
+  cd_image_preview:        { en: Image preview, zh-Hans: 图片预览, zh-Hant: 圖片預覽 }
+  remove_background:       { en: Remove background, zh-Hans: 去背景, zh-Hant: 去背景 }   # DEFER 按钮
+  editor_feature_unavailable: { en: "This feature is coming soon", zh-Hans: 该功能敬请期待, zh-Hant: 此功能敬請期待 }
+  editor_tab_crop:         { en: Crop,   zh-Hans: 构图, zh-Hant: 構圖 }
+  editor_tab_adjust:       { en: Adjust, zh-Hans: 调节, zh-Hant: 調節 }
+  editor_tab_beauty:       { en: Beauty, zh-Hans: 美颜, zh-Hant: 美顏 }
+  editor_tab_filter:       { en: Filter, zh-Hans: 滤镜, zh-Hant: 濾鏡 }
+  editor_tab_markup:       { en: Markup, zh-Hans: 标记, zh-Hant: 標記 }
+  crop_ratio_label:        { en: Aspect Ratio, zh-Hans: 裁剪比例, zh-Hant: 裁剪比例 }
+  rotate_left:             { en: Rotate left, zh-Hans: 左旋, zh-Hant: 左旋 }
+  flip_horizontal:         { en: Flip horizontal, zh-Hans: 水平翻转, zh-Hant: 水平翻轉 }
+  adjust_brightness:       { en: Brightness, zh-Hans: 亮度, zh-Hant: 亮度 }
+  adjust_exposure:         { en: Exposure, zh-Hans: 曝光, zh-Hant: 曝光 }
+  contrast:                { en: Contrast, zh-Hans: 对比度, zh-Hant: 對比度 }
+  saturation:              { en: Saturation, zh-Hans: 饱和度, zh-Hant: 飽和度 }
+  adjust_temperature:      { en: Temperature, zh-Hans: 色温, zh-Hant: 色溫 }
+  adjust_tint:             { en: Tint, zh-Hans: 色调, zh-Hant: 色調 }
+  reset:                   { en: Reset, zh-Hans: 重置, zh-Hant: 重設 }
+  doodle:                  { en: Doodle, zh-Hans: 涂鸦, zh-Hant: 塗鴉 }
+  mosaic:                  { en: Mosaic, zh-Hans: 马赛克, zh-Hant: 馬賽克 }
+  markup_tool_text:        { en: Text, zh-Hans: 文字, zh-Hant: 文字 }
+  markup_stroke_width:     { en: Stroke width, zh-Hans: 笔画粗细, zh-Hant: 筆畫粗細 }
+  markup_clear:            { en: Clear, zh-Hans: 清除, zh-Hant: 清除 }
+  beauty_preview_unavailable: { en: "Beauty effects will be supported in a later version", zh-Hans: 美颜效果将在后续版本支持, zh-Hant: 美顏效果將在後續版本支持 }
+  aspect_ratio_free:       { en: Free, zh-Hans: 自由, zh-Hant: 自由 }
+  aspect_ratio_original:   { en: Original, zh-Hans: 原始, zh-Hant: 原始 }
+  aspect_ratio_square:     { en: "1:1", zh-Hans: "1:1", zh-Hant: "1:1" }
+  aspect_ratio_4_3:        { en: "4:3", zh-Hans: "4:3", zh-Hant: "4:3" }
+  aspect_ratio_3_4:        { en: "3:4", zh-Hans: "3:4", zh-Hant: "3:4" }
+  aspect_ratio_16_9:       { en: "16:9", zh-Hans: "16:9", zh-Hant: "16:9" }
+  aspect_ratio_9_16:       { en: "9:16", zh-Hans: "9:16", zh-Hant: "9:16" }
+  # 滤镜显示名（FilterType/StyleFilter.displayNameRes）—— 来源 :shared，iOS 需同步到 xcstrings：
+  #   filter_none / filter_leica_classic / filter_leica_vibrant / filter_leica_bw /
+  #   filter_film_gold / filter_film_fuji / filter_vintage / filter_cool / filter_warm /
+  #   style_toon / style_sketch / style_posterize / style_emboss / style_crosshatch
