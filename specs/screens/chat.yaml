@@ -26,15 +26,74 @@ top_bar:
   title: ""                         # ⚠️ 无标题文字
   left_actions:
     - { icon: arrow_back, size: topBar.iconSize, button: topBar.buttonSize }  # 返回
-    - { icon: menu, size: topBar.iconSize, button: topBar.buttonSize }        # 菜单（侧栏）
+    - { icon: menu, size: topBar.iconSize, button: topBar.buttonSize, action: open_sidebar }  # 菜单 → 打开会话历史侧栏（§2.5）
   right_actions:
     - { icon: bug_report, size: topBar.iconSize, button: topBar.buttonSize }   # 上报问题
-    - { icon: add_comment, size: topBar.iconSize, button: topBar.buttonSize }  # 新对话
-    - { icon: delete_sweep, size: topBar.iconSize, button: topBar.buttonSize } # 清空对话
+    - { icon: add_comment, size: topBar.iconSize, button: topBar.buttonSize, action: new_session }     # 新对话 = 新建会话并切换（非清空当前会话）
+    - { icon: delete_sweep, size: topBar.iconSize, button: topBar.buttonSize, action: clear_session }  # 清空对话 = 清当前会话消息 + 当前会话 LLM 记忆
   left_spacing: topBar.spacing      # 8dp
   right_spacing: topBar.spacing
   horizontal_padding: topBar.horizontalPadding  # 8dp
   hide_when: fullscreen_preview_open
+
+# ============================================================================
+# 2.5 会话历史侧栏（ChatThreadSidebar）
+# ============================================================================
+chat_history_sidebar:
+  trigger: top_bar.menu                 # 点菜单图标打开
+  scrim:
+    color: "black.opacity(0.3)"
+    tap_action: dismiss
+  panel:
+    width: 280
+    fill_height: true
+    background: "surface"
+    shadow: { elevation: 8 }
+    enter_animation: slide_in_from_leading + fade
+    exit_animation: slide_out_to_leading + fade
+  header:
+    layout: row_space_between
+    padding: 16
+    status_bar_padding: true
+    title:
+      text: "Chat History"              # 聊天历史
+      font: { size: 17, weight: bold }  # titleMedium bold
+    actions:
+      - { icon: add, action: new_session, cd: "New Chat" }      # 新建会话
+      - { icon: close, action: dismiss, cd: "Close" }           # 关闭侧栏
+  search_field:
+    placeholder: "Search history"       # 搜索历史
+    padding: { horizontal: 16, vertical: 8 }
+    filter: "title OR lastMessagePreview contains query (ignoreCase)"
+  thread_list:
+    layout: lazy_column
+    sort: updatedAt_desc
+    item:
+      padding: { horizontal: 16, vertical: 12 }
+      tap_action: "switch_session + dismiss"
+      selected_background: "primary.opacity(0.12)"
+      title:
+        font_size: 15
+        weight: "selected → bold | normal → regular"
+        color: "selected → primary | normal → onSurface"
+      preview:
+        show_when: "lastMessagePreview 非空"
+        font_size: 12
+        color: "onSurface.opacity(0.6)"
+        max_lines: 1
+        padding_top: 2
+      overflow_menu:
+        icon: more_vert
+        items:
+          - rename:
+              text: "Rename"            # 重命名
+              dialog: "alert 带单行文本框（预填当前标题）；Save 仅非空可用；Save/Cancel"
+          - delete:
+              text: "Delete chat"       # 删除聊天
+              confirm_dialog:
+                title: "Delete Chat"    # 删除聊天
+                body: "Delete \"{title}\"? This cannot be undone."  # 删除「{title}」？此操作不可撤销。
+                buttons: [Delete, Cancel]
 
 # ============================================================================
 # 3. 消息列表
@@ -63,7 +122,7 @@ empty_state:
       corner_radius: 18
       background: "surfaceVariant"
       border: { width: 1, color: "outlineVariant" }
-      inner_image_size: 104         # ic_launcher_foreground，溢出 box 但视觉居中
+      inner_image_size: 104         # 品牌前景图（Android ic_launcher_foreground / iOS chat_logo imageset），溢出 box 但视觉居中，不裁切
     title_spacer: 16
     title:
       text: "Hi, I'm Xiaolang, your smart assistant"  # 你好，我是智能助手小浪
@@ -295,6 +354,16 @@ interaction_model:
   # 消息列表是 flat（无日期分隔/无对话分组），按时间顺序排列
   message_list_structure: flat_chronological
 
+  # 多会话模型（侧栏 §2.5）
+  session_model:
+    storage: "会话索引 + 每会话消息记录；会话 ID = UUID，内建 default 会话"
+    new_session: "标题初始 'New Chat'（本地化），创建即切换"
+    auto_title: "首条用户消息生成标题：去首尾标点、换行/连续空白折叠为单空格、>20 字符截断追加 …；仅当标题仍为默认值（空/'New Chat'/'Chat'）时覆盖，用户重命名后不覆盖"
+    thread_preview: "取该会话最后一条消息内容（超长截断）"
+    current_session_persist: "当前会话 ID 持久化；冷启恢复时校验会话仍存在，已删除则回退 default"
+    delete_session: "删除会话消息 + 会话记录 + 该会话 LLM 记忆；删除当前会话回退 default"
+    llm_memory_isolation: "LLM 多轮上下文按 sessionId 分键隔离（koog_memory_<sessionId>），切会话即切上下文"
+
   # 发送消息流程
   send_flow:
     1_type_input: "send button appears only when text non-blank && !isProcessing"
@@ -343,8 +412,8 @@ interaction_model:
 
   # 顶部栏操作
   top_bar_actions:
-    left: [back, sidebar_toggle]
-    right: [report_issue, new_chat, clear_chat]
+    left: [back, sidebar_toggle]       # sidebar_toggle = 打开会话历史侧栏（§2.5）
+    right: [report_issue, new_chat, clear_chat]  # new_chat = 新建会话（非清空）；clear_chat = 清当前会话
 
 # ============================================================================
 # 10. 颜色参考
@@ -384,3 +453,5 @@ allowed_differences:
   - "表格渲染（Android Compose Grid vs iOS LazyVGrid）"
   - "性能指标行（Android LlmPerformance 展示，iOS v1 省略）"
   - "Claude Agent Steps（iOS 无 AI 工程师模式）"
+  - "侧栏溢出菜单图标（Android MoreVert vs iOS mat_more_horiz）"
+  - "侧栏会话列表无 feishu 远程控制会话行（iOS 无飞书通道）"

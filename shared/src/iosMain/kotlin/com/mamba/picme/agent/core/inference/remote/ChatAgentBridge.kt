@@ -27,17 +27,26 @@ import kotlinx.coroutines.launch
  *   Swift 侧必须在 `Task { @MainActor in }` 内更新 UI（漏一处即 UI 线程违规）。
  *
  * @param orchestrator 已初始化的 [AgentOrchestrator] 实例
- * @param sessionId Koog 记忆 session id，默认 "default"（单会话版）
+ * @param initialSessionId Koog 记忆 session id 初值，默认 "default"；
+ *   多会话切换经 [setSessionId]（对齐 KoogReActAgent 语义：换 memory ID，历史按 sessionId 分键持久化）。
  */
 class ChatAgentBridge(
     private val orchestrator: AgentOrchestrator,
-    private val sessionId: String = DEFAULT_SESSION_ID
+    initialSessionId: String = DEFAULT_SESSION_ID
 ) {
     private val tag = "ChatAgentBridge"
 
     private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var currentJob: Job? = null
+
+    /** 当前会话的 memory ID。Swift 侧切会话时经 [setSessionId] 切换。 */
+    private var sessionId: String = initialSessionId
+
+    /** 切换会话：换 memory ID。历史按 sessionId 分键持久化，无需重建 bridge。空白 id 忽略。 */
+    fun setSessionId(id: String) {
+        if (id.isNotBlank()) sessionId = id
+    }
 
     /**
      * 发送消息（启动流式远程推理）。返回 void（K/N 多参数方法丢返回类型，
@@ -100,9 +109,10 @@ class ChatAgentBridge(
     }
 
     /**
-     * 清空对话记忆（Koog koog_memory_<sessionId> 键空间）。返回 void。
+     * 清空指定会话的对话记忆（Koog koog_memory_<sessionId> 键空间）。返回 void。
+     * 显式 sessionId 参数：删除非当前会话时也能清其记忆（K/N 不导出默认参数）。
      */
-    fun clearHistory(onDone: () -> Unit) {
+    fun clearHistory(sessionId: String, onDone: () -> Unit) {
         bridgeScope.launch {
             try {
                 orchestrator.clearChatMemory(sessionId)
@@ -115,6 +125,9 @@ class ChatAgentBridge(
             }
         }
     }
+
+    /** 清空当前会话的对话记忆（顶栏「清空对话」语义）。 */
+    fun clearCurrentHistory(onDone: () -> Unit) = clearHistory(sessionId, onDone)
 
     /** 当前是否有推理在进行（Swift 侧串行发送守卫）。 */
     fun isRunning(): Boolean = currentJob?.isActive == true
