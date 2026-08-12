@@ -268,11 +268,11 @@ struct SettingsScreen: View {
             .init(icon: "forum", title: L("Channels"), desc: L("Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
             .init(icon: "photo_library", title: L("Gallery Settings"), desc: L("Tag scanning, people clustering, tags & duplicates"), target: .gallery, isPlaceholder: false),
             // Row 3
-            .init(icon: "cloud", title: L("Remote Models"), desc: L("Remote model providers, API keys, and the active model."), target: .remoteModels, isPlaceholder: false),
-            .init(icon: "memory", title: L("Local Models"), desc: L("Pick on-device face-detection, tagging and voice models."), target: .localModels, isPlaceholder: false),
+            .init(icon: "smart_toy", title: L("Remote Models"), desc: L("Remote model providers, API keys, and the active model."), target: .remoteModels, isPlaceholder: false),
+            .init(icon: "storage", title: L("Local Models"), desc: L("Pick on-device face-detection, tagging and voice models."), target: .localModels, isPlaceholder: false),
             // Row 4
             .init(icon: "cloud_download", title: L("Model Center"), desc: L("Download and manage all local models"), target: .modelCenter, isPlaceholder: false),
-            .init(icon: "verified_user", title: L("Sandbox & Permissions"), desc: L("Auto-execute, JS engine, device access."), target: .sandbox, isPlaceholder: false),
+            .init(icon: "lock", title: L("Sandbox & Permissions"), desc: L("Auto-execute, JS engine, device access."), target: .sandbox, isPlaceholder: false),
             // Row 5
             .init(icon: "privacy_tip", title: L("Data & Privacy"), desc: L("Privacy policy, data retention, deletion"), target: .dataPrivacy, isPlaceholder: false),
         ]

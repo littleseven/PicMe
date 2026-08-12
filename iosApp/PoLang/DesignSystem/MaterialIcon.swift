@@ -97,6 +97,7 @@ enum MaterialIconMap {
         "terminal":       "mat_terminal",
         "storage":        "mat_storage",
         "privacy_tip":    "mat_privacy_tip",
+        "lock":           "mat_lock",
         "arrow_forward":  "mat_arrow_forward",
         "person":         "mat_person",
     ]
