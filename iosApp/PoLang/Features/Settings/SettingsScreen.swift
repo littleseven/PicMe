@@ -580,25 +580,29 @@ struct LocalModelsSettingsView: View {
     }
 }
 
-// MARK: - 沙盒与权限（占位·P4 填充：执行/设备访问）
+// MARK: - 沙盒与权限（P4：执行 / 设备访问）
 
 struct SandboxSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
+    // 执行（软开关，两端均 persistence-only，能力层消费待接入）
+    @AppStorage("auto_execute_plans") private var autoExecute: Bool = true
+    @AppStorage("js_engine_enabled") private var jsEngine: Bool = false
+    // 设备访问软开关（persistence-only）
+    @AppStorage("agent_camera_access_enabled") private var cameraAccess: Bool = true
+    @AppStorage("agent_gallery_access_enabled") private var galleryAccess: Bool = true
+    // 语音（iOS 无引擎，占位）
+    @AppStorage("voice_command_mode") private var voiceMode: String = "DISABLED"
+    @AppStorage("voice_entry_enabled") private var voiceEntry: Bool = false
+
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(matIcon: "verified_user")
-                .font(.system(size: 56))
-                .foregroundColor(.secondary.opacity(0.3))
-            Text(L("Sandbox & Permissions"))
-                .font(.system(size: 16, weight: .medium))
-            Text(L("Auto-execute, JS engine, and device access controls will be available here."))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            Spacer()
+        ScrollView {
+            VStack(spacing: 14) {
+                executionCard
+                deviceAccessCard
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Sandbox & Permissions"))
@@ -607,6 +611,73 @@ struct SandboxSettingsView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
             }
+        }
+    }
+
+    private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title).font(.system(size: 14, weight: .semibold))
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func toggleRow(_ title: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            Text(title).font(.system(size: 14))
+            Spacer()
+            Toggle("", isOn: isOn).labelsHidden()
+        }
+    }
+
+    private func systemPermissionRow(_ title: String) -> some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            HStack {
+                Text(title).font(.system(size: 14)).foregroundColor(.primary)
+                Spacer()
+                Image(matIcon: "arrow_forward").font(.system(size: 14)).foregroundColor(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var executionCard: some View {
+        sectionCard(title: L("Execution")) {
+            Text(L("Control what the Agent can run autonomously."))
+                .font(.system(size: 12)).foregroundColor(.secondary)
+            toggleRow(L("Auto-execute multi-step plans"), isOn: $autoExecute)
+            Divider()
+            toggleRow(L("JS engine execution"), isOn: $jsEngine)
+            Text(L("Allow the Agent to execute JS sandbox scripts."))
+                .font(.system(size: 11)).foregroundColor(.secondary.opacity(0.7))
+        }
+    }
+
+    private var deviceAccessCard: some View {
+        sectionCard(title: L("Device Access")) {
+            Text(L("Control which device capabilities the Agent may use."))
+                .font(.system(size: 12)).foregroundColor(.secondary)
+            toggleRow(L("Camera access"), isOn: $cameraAccess)
+            systemPermissionRow(L("Camera permission (system)"))
+            Divider()
+            toggleRow(L("Gallery access"), isOn: $galleryAccess)
+            systemPermissionRow(L("Gallery permission (system)"))
+            Divider()
+            // 语音（iOS 占位灰显）
+            HStack {
+                Text(L("Voice interaction mode")).font(.system(size: 14)).foregroundColor(.secondary)
+                Spacer()
+                Text(L("Disabled")).font(.system(size: 13)).foregroundColor(.secondary)
+            }
+            Text(L("On-device voice recognition (ASR) and wake word (KWS) are not yet implemented on iOS."))
+                .font(.system(size: 11)).foregroundColor(.secondary.opacity(0.7))
         }
     }
 }
