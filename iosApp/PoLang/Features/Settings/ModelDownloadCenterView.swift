@@ -234,7 +234,7 @@ private struct ModelDownloadCard: View {
                             HStack(spacing: 4) {
                                 ProgressView()
                                     .scaleEffect(0.5)
-                                Text(L("Reconnecting…"))
+                                Text("\(L("Reconnecting…")) \(min(manager.stallAttempts[entry.id] ?? 1, 3))/3")
                                     .font(.system(size: 11))
                                     .foregroundColor(.orange)
                             }

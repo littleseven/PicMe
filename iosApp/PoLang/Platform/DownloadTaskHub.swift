@@ -26,7 +26,7 @@ final class DownloadTaskHub: NSObject, URLSessionDownloadDelegate {
     /// timeoutIntervalForResource = 0：大文件（1.4GB+）不限总时长。
     private(set) lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForRequest = 15  // stall 检测主驱动：无字节 15s → 必触发 .timedOut（不依赖 task.cancel）
         config.timeoutIntervalForResource = 0
         return URLSession(configuration: config, delegate: self, delegateQueue: nil)
     }()

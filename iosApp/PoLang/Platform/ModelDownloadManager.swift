@@ -72,13 +72,16 @@ final class ModelDownloadManager: ObservableObject {
     private var lastByteReceivedAt: [String: Date] = [:]
     /// 正在 stall 重连中的模型（驱动 UI「重连中…」提示）
     @Published private(set) var reconnectingModels: Set<String> = []
+    /// 当前 stall 重连重试序号（驱动 UI「重连中 n/3」计数 + 自诊断：
+    /// 计数递增 = 在循环重试；卡在 1 不动 = cancelAll 未传播、真卡死）
+    @Published private(set) var stallAttempts: [String: Int] = [:]
 
     /// stall 看门狗：无字节超过此阈值 → cancel 当前 chunk 重连（外科手术式，不重启整个下载）
     private static let stallThreshold: TimeInterval = 12
     /// 看门狗检查间隔
     private static let stallCheckInterval: TimeInterval = 5
     /// 单文件连续 stall 重连上限（超过 → 真失败）
-    private static let maxStallRestarts = 5
+    private static let maxStallRestarts = 3
 
     private init() {
         refreshAllStates()
@@ -227,34 +230,15 @@ final class ModelDownloadManager: ObservableObject {
         url: URL, destUrl: URL, modelId: String, base: Int64
     ) async throws -> Int64 {
         var request = URLRequest(url: url)
-        request.timeoutInterval = 120
+        request.timeoutInterval = 15  // 与 session stall 超时一致（无字节 15s → .timedOut → 重试）
         request.setValue("PoLang-iOS/1.0", forHTTPHeaderField: "User-Agent")
 
-        // 外科手术式 stall 重试（单文件无续传，重试从头下；<32MB 可接受）
+        // stall 重试：靠 URLSession 原生 timeoutIntervalForRequest 驱动 .timedOut（见 downloadFileParallel 注释）
         var attempt = 0
         let tempUrl: URL
         let response: HTTPURLResponse?
         while true {
             if cancelledModels.contains(modelId) { return 0 }
-            lastByteReceivedAt[modelId] = Date()  // grace：覆盖首连接
-            let attemptNow = attempt  // Task 闭包按值捕获
-
-            // stall 看门狗：无字节 > 阈值 → cancel 当前 task 让 continuation 抛错 → 本循环重试
-            let stallWatchdog = Task { [weak self] in
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: UInt64(Self.stallCheckInterval * 1_000_000_000))
-                    guard let self else { return }
-                    guard self.downloadStates[modelId]?.status == .downloading else { return }
-                    if let last = self.lastByteReceivedAt[modelId],
-                       Date().timeIntervalSince(last) > Self.stallThreshold {
-                        NSLog("PoLang:ModelDownload stall restart modelId=%@ singleFile attempt=%d",
-                              modelId, attemptNow)
-                        self.setReconnecting(modelId, true)
-                        self.activeTasks[modelId]?.forEach { $0.cancel() }
-                        return
-                    }
-                }
-            }
 
             do {
                 let result = try await withCheckedThrowingContinuation {
@@ -271,28 +255,31 @@ final class ModelDownloadManager: ObservableObject {
                     // continuation body 同步执行且继承 MainActor 隔离，append 与 cancelActiveWork 无并发
                     activeTasks[modelId, default: []].append(task)
                 }
-                stallWatchdog.cancel()
                 setReconnecting(modelId, false)
                 tempUrl = result.tempFile
                 response = result.response
                 break
             } catch {
-                stallWatchdog.cancel()
                 if cancelledModels.contains(modelId) {
                     setReconnecting(modelId, false)
                     throw error
                 }
                 attempt += 1
-                let isStallCancel = (error as? URLError)?.code == .cancelled || error is CancellationError
-                if !isStallCancel || attempt > Self.maxStallRestarts {
+                let isStall = (error as? URLError)?.code == .timedOut
+                           || (error as? URLError)?.code == .cancelled
+                           || error is CancellationError
+                if !isStall || attempt > Self.maxStallRestarts {
                     setReconnecting(modelId, false)
-                    if isStallCancel {
+                    if isStall {
                         NSLog("PoLang:ModelDownload give up modelId=%@ singleFile reason=stallRestartLimit",
                               modelId)
                     }
                     throw error
                 }
-                // stall 取消 → loop 重试（从头下）
+                NSLog("PoLang:ModelDownload stall retry modelId=%@ singleFile attempt=%d", modelId, attempt)
+                stallAttempts[modelId] = attempt
+                setReconnecting(modelId, true)
+                // stall → loop 重试（从头下）
             }
         }
 
@@ -318,39 +305,20 @@ final class ModelDownloadManager: ObservableObject {
     ) async throws {
         let partUrl = modelDir.appendingPathComponent(fileName + ".part")
 
-        // 外科手术式 stall 重试：只在卡住的 chunk 上重连（.part.meta 续传剩余 chunk），
-        // 不重启整个 performDownload——避免重新遍历文件列表 + 重新校验已完成文件造成的长冻住与进度回跳。
+        // stall 重试：靠 URLSession 原生 timeoutIntervalForRequest（无字节 N 秒→必触发 .timedOut）
+        // 驱动 download() 抛错。不再用单独的看门狗 task.cancel——cancel 在某些连接态下不触发
+        // didCompleteWithError，会泄漏 continuation 致 download() 永不返回（「卡在重连」根因）。
+        // .part.meta 续传剩余 chunk，不重启 performDownload（避免重验已完成文件）。
         var attempt = 0
         while true {
             if cancelledModels.contains(modelId) { return }  // 保留 .part/.meta 供续传
 
             let downloader = ParallelFileDownloader()
             activeDownloaders[modelId] = downloader
-            // 身份守卫清理：重试下一轮会换新 downloader，只在自己仍持有时清（防误删新实例）
+            // 身份守卫清理：重试下一轮换新 downloader，只在自己仍持有时清（防误删新实例）
             defer {
                 if activeDownloaders[modelId] === downloader {
                     activeDownloaders.removeValue(forKey: modelId)
-                }
-            }
-            lastByteReceivedAt[modelId] = Date()  // grace：覆盖 chunk 首连接（建连期无字节不应判 stall）
-            let attemptNow = attempt  // Task 闭包按值捕获（避免 @Sendable 捕获 var）
-
-            // 本 downloader 专属看门狗：无字节 > 阈值 → cancelAll 让 download() 抛错 → 本循环重试
-            let stallWatchdog = Task { [weak self, weak downloader] in
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: UInt64(Self.stallCheckInterval * 1_000_000_000))
-                    guard let self else { return }
-                    // downloader 已换 / 已离开 downloading → 退出，不误杀
-                    guard self.downloadStates[modelId]?.status == .downloading,
-                          self.activeDownloaders[modelId] === downloader else { return }
-                    if let last = self.lastByteReceivedAt[modelId],
-                       Date().timeIntervalSince(last) > Self.stallThreshold {
-                        NSLog("PoLang:ModelDownload stall restart modelId=%@ file=%@ attempt=%d",
-                              modelId, fileName, attemptNow)
-                        self.setReconnecting(modelId, true)
-                        downloader?.cancelAll()
-                        return
-                    }
                 }
             }
 
@@ -360,26 +328,29 @@ final class ModelDownloadManager: ObservableObject {
                         self?.reportProgressThrottled(modelId, base + withinFile)
                     }
                 }
-                stallWatchdog.cancel()
                 setReconnecting(modelId, false)
                 break  // 成功（defer 清理 downloader）
             } catch {
-                stallWatchdog.cancel()
                 if cancelledModels.contains(modelId) {
                     setReconnecting(modelId, false)
                     throw error  // 用户暂停/取消：上抛（performDownload 不报 .failed）
                 }
                 attempt += 1
-                let isStallCancel = (error as? URLError)?.code == .cancelled || error is CancellationError
-                if !isStallCancel || attempt > Self.maxStallRestarts {
+                let isStall = (error as? URLError)?.code == .timedOut
+                           || (error as? URLError)?.code == .cancelled
+                           || error is CancellationError
+                if !isStall || attempt > Self.maxStallRestarts {
                     setReconnecting(modelId, false)
-                    if isStallCancel {
+                    if isStall {
                         NSLog("PoLang:ModelDownload give up modelId=%@ file=%@ reason=stallRestartLimit",
                               modelId, fileName)
                     }
                     throw error  // 真错误（HTTP/sizeMismatch）或重试上限：上抛
                 }
-                // stall 取消 → loop 重试（新 downloader，.part.meta 续传剩余 chunk；defer 已清旧实例）
+                NSLog("PoLang:ModelDownload stall retry modelId=%@ file=%@ attempt=%d", modelId, fileName, attempt)
+                stallAttempts[modelId] = attempt
+                setReconnecting(modelId, true)
+                // stall（.timedOut/.cancelled）→ loop 重试（新 downloader，.part.meta 续传剩余 chunk）
             }
         }
 
@@ -475,9 +446,12 @@ final class ModelDownloadManager: ObservableObject {
 
     // MARK: - State Helpers
 
-    /// 仅在 downloading 状态下更新进度——暂停/取消后在途的进度回调不得把状态翻回 downloading
+    /// 仅在 downloading 状态下更新进度——暂停/取消后在途的进度回调不得把状态翻回 downloading。
+    /// 单调递增：stall 重连会丢弃卡住 chunk 的 in-flight 字节（.part.meta 只存已完成 chunk），
+    /// 导致上报值回退；只接受更大的值，让进度条在重连期间「保持」而非「往回跳」。
     private func updateProgress(_ modelId: String, _ downloaded: Int64) {
         guard var state = downloadStates[modelId], state.status == .downloading else { return }
+        guard downloaded > state.downloadedBytes else { return }
         state.downloadedBytes = downloaded
         downloadStates[modelId] = state
     }
@@ -502,6 +476,7 @@ final class ModelDownloadManager: ObservableObject {
             reconnectingModels = reconnectingModels.union([modelId])
         } else if !on && present {
             reconnectingModels = reconnectingModels.subtracting([modelId])
+            stallAttempts.removeValue(forKey: modelId)  // 清重连时一并清计数
         }
     }
 
