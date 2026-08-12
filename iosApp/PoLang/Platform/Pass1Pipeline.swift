@@ -33,7 +33,7 @@ func scanDebugLog(_ msg: String) {
 ///
 /// 模型依赖（需通过 ModelDownloadCenter 预先下载）：
 /// - det_500m.mnn + 2d106det.mnn（已 bundled）
-/// - glintr100.mnn（需下载，260MB）
+/// - glintr100.onnx（需下载，ONNX Runtime，~248MB；MNN 在 Apple 全塌已验证,弃用）
 /// - vision_model.onnx MobileCLIP（需下载，399MB）
 
 // MARK: - Result Types
