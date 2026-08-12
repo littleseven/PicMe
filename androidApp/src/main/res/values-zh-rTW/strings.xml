@@ -400,6 +400,9 @@
     <string name="tag_gen_use_opencl_title">TAG 生成 GPU 加速</string>
     <string name="tag_gen_use_opencl_desc">使用 GPU 加速批量圖片標籤生成。部分裝置 OpenCL 多模態推理可能卡死，如 Pass 3 卡住請關閉此選項。</string>
     <string name="remote_models">遠端模型</string>
+    <string name="remote_models_desc">遠端模型供應商、API 金鑰與目前選用模型。</string>
+    <string name="local_models">本地模型</string>
+    <string name="local_models_desc">下載與選擇端側模型（語音 ASR/KWS、視覺等）。</string>
     <string name="configured">已設定</string>
     <string name="not_configured">未設定</string>
     <string name="protocol">協議</string>

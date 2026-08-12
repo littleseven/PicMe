@@ -411,6 +411,9 @@
     <string name="tag_control_title">TAG Generation Control</string>
     <string name="tag_control_subtitle">Regenerate by category / time range / full or incremental</string>
     <string name="remote_models">Remote Models</string>
+    <string name="remote_models_desc">Remote model providers, API keys, and the active model.</string>
+    <string name="local_models">Local Models</string>
+    <string name="local_models_desc">Download and pick on-device models (ASR/KWS, vision).</string>
     <string name="configured">Configured</string>
     <string name="not_configured">Not configured</string>
     <string name="protocol">Protocol</string>

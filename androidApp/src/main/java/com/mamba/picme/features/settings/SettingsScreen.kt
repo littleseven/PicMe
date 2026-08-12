@@ -24,6 +24,8 @@ import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
@@ -96,11 +98,11 @@ import kotlinx.coroutines.delay
 enum class SettingsCategory {
     MAIN,           // 设置主菜单
     ACCOUNT,        // 账号
-    PERSONALIZATION,// 个性化
-    AI_AGENT,       // AI 助手
     GALLERY,        // 相册功能
-    CAMERA_BEAUTY,  // 相机与美颜
     SYSTEM,         // 系统与权限
+    REMOTE_MODEL,   // 远程模型（用户侧一级入口）
+    LOCAL_MODEL,    // 本地模型（用户侧一级入口）
+    VOICE_CONTROL,  // 语音控制（用户侧一级入口）
     DEVELOPER       // 开发者选项
 }
 
@@ -371,11 +373,11 @@ private fun SettingsContent(
     val titleRes = when (category) {
         SettingsCategory.MAIN -> R.string.settings
         SettingsCategory.ACCOUNT -> R.string.account
-        SettingsCategory.PERSONALIZATION -> R.string.personalization
-        SettingsCategory.AI_AGENT -> R.string.ai_assistant
         SettingsCategory.GALLERY -> R.string.gallery_features
-        SettingsCategory.CAMERA_BEAUTY -> R.string.camera_and_beauty
         SettingsCategory.SYSTEM -> R.string.system_and_permissions
+        SettingsCategory.REMOTE_MODEL -> R.string.remote_models
+        SettingsCategory.LOCAL_MODEL -> R.string.local_models
+        SettingsCategory.VOICE_CONTROL -> R.string.voice_control
         SettingsCategory.DEVELOPER -> R.string.developer_options
     }
 
@@ -424,9 +426,19 @@ private fun SettingsContent(
 
             // ── 1. 个性化（主题与语言已迁移至设置页主菜单顶部）───
 
-            // ── 2. AI 设置 ────────────────────────────────────────
-            if (category == SettingsCategory.AI_AGENT) {
-                // 2.1 默认链路：单选决定 chat 实际路由 + 全局行为开关
+            // ── 2. 远程模型（用户侧一级入口）────────────────────────
+            if (category == SettingsCategory.REMOTE_MODEL) {
+                SettingsSection(
+                    title = stringResource(R.string.remote_models)
+                ) {
+                    AiAgentRemoteModelsSection(
+                        configsJson = aiAgentRemoteModelConfigs,
+                        onConfigsChange = onAiAgentRemoteModelConfigsChange,
+                        selectedModelId = aiAgentSelectedRemoteModel,
+                        onSelectedModelChange = onAiAgentSelectedRemoteModelChange
+                    )
+                }
+
                 SettingsSection(
                     title = stringResource(R.string.ai_agent),
                     description = stringResource(R.string.ai_agent_desc)
@@ -442,16 +454,42 @@ private fun SettingsContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
-
                     AiAgentModeSelection(
                         currentMode = aiAgentMode,
                         onModeSelected = onAiAgentModeChange
                     )
                 }
+            }
 
-                // 2.2 远程模型原始配置（API key/baseUrl/protocol）已收口至「开发者选项」
+            // ── 3. 本地模型（用户侧一级入口）────────────────────────
+            if (category == SettingsCategory.LOCAL_MODEL) {
+                SettingsSection(
+                    title = stringResource(R.string.local_models),
+                    description = stringResource(R.string.local_models_desc)
+                ) {
+                    SettingsClickableRow(
+                        title = stringResource(R.string.model_center),
+                        subtitle = stringResource(R.string.model_center_desc),
+                        leadingIcon = Icons.Rounded.CloudDownload,
+                        onClick = { onNavigateToModelCenter("") }
+                    )
 
-                // 2.4 语音控制（独立第三区）
+                    LocalAsrModelSelection(
+                        currentModel = localAsrModel,
+                        onModelSelected = onLocalAsrModelChange,
+                        onNavigateToModelCenter = onNavigateToModelCenter
+                    )
+
+                    LocalKwsModelSelection(
+                        currentModel = localKwsModel,
+                        onModelSelected = onLocalKwsModelChange,
+                        onNavigateToModelCenter = onNavigateToModelCenter
+                    )
+                }
+            }
+
+            // ── 4. 语音控制（用户侧一级入口）────────────────────────
+            if (category == SettingsCategory.VOICE_CONTROL) {
                 SettingsSection(
                     title = stringResource(R.string.voice_control),
                     description = stringResource(R.string.voice_control_desc)
@@ -460,20 +498,11 @@ private fun SettingsContent(
                         currentMode = voiceCommandMode,
                         onModeSelected = onVoiceCommandModeChange
                     )
-
-                    if (voiceCommandMode != VoiceCommandMode.DISABLED) {
-                        LocalAsrModelSelection(
-                            currentModel = localAsrModel,
-                            onModelSelected = onLocalAsrModelChange,
-                            onNavigateToModelCenter = onNavigateToModelCenter
-                        )
-
-                        LocalKwsModelSelection(
-                            currentModel = localKwsModel,
-                            onModelSelected = onLocalKwsModelChange,
-                            onNavigateToModelCenter = onNavigateToModelCenter
-                        )
-                    }
+                    DebugOptionRow(
+                        title = stringResource(R.string.voice_entry_enabled),
+                        checked = voiceEntryEnabled,
+                        onCheckedChange = onVoiceEntryEnabledChange
+                    )
                 }
             }
 
@@ -522,21 +551,8 @@ private fun SettingsContent(
                 }
             }
 
-            // ── 4. 相机与美颜 ─────────────────────────────────────
-            if (category == SettingsCategory.CAMERA_BEAUTY) {
-                SettingsSection(
-                    title = stringResource(R.string.voice_control),
-                    description = stringResource(R.string.voice_entry_section_desc)
-                ) {
-                    DebugOptionRow(
-                        title = stringResource(R.string.voice_entry_enabled),
-                        checked = voiceEntryEnabled,
-                        onCheckedChange = onVoiceEntryEnabledChange
-                    )
-                }
-
-                // 人脸检测阶段配置（ROI/Landmark 模型与推理设备）+ 自适应间隔已收口至「开发者选项」
-            }
+            // 「相机与美颜」分类已取消：人脸检测引擎配置收口至「开发者选项」，
+            // 语音入口开关迁入「语音控制」一级入口（语音入口属语音行为）。
 
             // ── 5. 系统与权限 ─────────────────────────────────────
             if (category == SettingsCategory.SYSTEM) {
@@ -731,19 +747,9 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.3 AI 推理链路·高级（收口）：远程模型原始配置 ────────
-                SettingsSection(
-                    title = stringResource(R.string.ai_settings_remote_section)
-                ) {
-                    AiAgentRemoteModelsSection(
-                        configsJson = aiAgentRemoteModelConfigs,
-                        onConfigsChange = onAiAgentRemoteModelConfigsChange,
-                        selectedModelId = aiAgentSelectedRemoteModel,
-                        onSelectedModelChange = onAiAgentSelectedRemoteModelChange
-                    )
-                }
+                // 远程模型原始配置（API key/baseUrl/protocol）已上提为用户侧「远程模型」一级入口
 
-                // ── 6.4 相册打标·高级（收口）：打标模型选择 ─────────────
+                // ── 6.3 相册打标·高级（收口）：打标模型选择 ─────────────
                 SettingsSection(
                     title = stringResource(R.string.gallery_advanced)
                 ) {
@@ -768,7 +774,7 @@ private fun SettingsContent(
                     )
                 }
 
-                // ── 6.5 诊断（全构建可见；release 仅展示纯指标） ──────────
+                // ── 6.4 诊断（全构建可见；release 仅展示纯指标） ──────────
                 SettingsSection(
                     title = stringResource(R.string.diagnostics_entries)
                 ) {
@@ -780,7 +786,7 @@ private fun SettingsContent(
                     )
                 }
 
-                // ── 6.6 测试工具与服务（仅 debug 构建） ────────────────
+                // ── 6.5 测试工具与服务（仅 debug 构建） ────────────────
                 if (BuildConfig.DEBUG) {
                     val context = LocalContext.current
 
@@ -837,7 +843,7 @@ private fun SettingsContent(
                     }
                 }
 
-                // ── 6.7 日志配置：按模块控制日志输出 ──────────────────
+                // ── 6.6 日志配置：按模块控制日志输出 ──────────────────
                 SettingsSection(
                     title = stringResource(R.string.log_management),
                     description = stringResource(R.string.log_management_desc)
@@ -1052,9 +1058,6 @@ private fun SettingsCategoryGrid(
 ) {
     val context = LocalContext.current
     val baseItems = listOf(
-        CategoryGridItem(R.string.ai_assistant, R.string.ai_assistant_desc, Icons.Rounded.SmartToy) {
-            onNavigateToCategory(SettingsCategory.AI_AGENT)
-        },
         CategoryGridItem(R.string.settings_ai_memory, R.string.settings_ai_memory_desc, Icons.Rounded.Psychology, onNavigateToMemoryFacts),
         CategoryGridItem(R.string.people_entry, R.string.people_entry_desc, Icons.Rounded.AccountCircle, onNavigateToPeople),
         CategoryGridItem(R.string.communication_channel, R.string.communication_channel_desc, Icons.Rounded.Forum) {
@@ -1063,10 +1066,15 @@ private fun SettingsCategoryGrid(
         CategoryGridItem(R.string.gallery_features, R.string.gallery_features_desc, Icons.Rounded.PhotoLibrary) {
             onNavigateToCategory(SettingsCategory.GALLERY)
         },
-        CategoryGridItem(R.string.camera_and_beauty, R.string.camera_and_beauty_desc, Icons.Rounded.CameraAlt) {
-            onNavigateToCategory(SettingsCategory.CAMERA_BEAUTY)
+        CategoryGridItem(R.string.remote_models, R.string.remote_models_desc, Icons.Rounded.Cloud) {
+            onNavigateToCategory(SettingsCategory.REMOTE_MODEL)
         },
-        CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
+        CategoryGridItem(R.string.local_models, R.string.local_models_desc, Icons.Rounded.CloudDownload) {
+            onNavigateToCategory(SettingsCategory.LOCAL_MODEL)
+        },
+        CategoryGridItem(R.string.voice_control, R.string.voice_control_desc, Icons.Rounded.Mic) {
+            onNavigateToCategory(SettingsCategory.VOICE_CONTROL)
+        },
         CategoryGridItem(R.string.backup_and_restore, R.string.backup_and_restore_desc, Icons.Rounded.Storage) {
             context.startActivity(BackupRestoreActivity.intent(context))
         },
