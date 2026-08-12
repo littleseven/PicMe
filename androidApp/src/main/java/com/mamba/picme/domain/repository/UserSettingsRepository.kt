@@ -41,6 +41,10 @@ interface UserSettingsRepository {
     suspend fun triggerManualGlEngineRecovery()
     suspend fun clearGlEngineRecoveryCooldown()
 
+    // ── 开发者选项入口解锁（版本号连点解锁后持久化）──────────
+    val developerOptionsUnlockedFlow: Flow<Boolean>
+    suspend fun updateDeveloperOptionsUnlocked(unlocked: Boolean)
+
     // ── 调试开关 ───────────────────────────────────────────
     val debugUiEnabledFlow: Flow<Boolean>
     suspend fun updateDebugUiEnabled(enabled: Boolean)

@@ -57,6 +57,7 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val APP_LANGUAGE = stringPreferencesKey("app_language")
         val BEAUTY_STRATEGY = stringPreferencesKey("beauty_strategy")
+        val DEVELOPER_OPTIONS_UNLOCKED = booleanPreferencesKey("developer_options_unlocked")
         val DEBUG_UI_ENABLED = booleanPreferencesKey("debug_ui_enabled")
         val SHOW_CAMERA_INFO_IN_PREVIEW = booleanPreferencesKey("show_camera_info_in_preview")
         val SHOW_FACE_DEBUG_OVERLAY = booleanPreferencesKey("show_face_debug_overlay")
@@ -299,6 +300,24 @@ class UserPreferencesRepository(private val context: Context) : UserSettingsRepo
     override suspend fun clearGlEngineRecoveryCooldown() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.GL_ENGINE_RECOVERY_AVAILABLE_AT_MS] = 0L
+        }
+    }
+
+    override val developerOptionsUnlockedFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.DEVELOPER_OPTIONS_UNLOCKED] ?: false
+        }
+
+    override suspend fun updateDeveloperOptionsUnlocked(unlocked: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DEVELOPER_OPTIONS_UNLOCKED] = unlocked
         }
     }
 
