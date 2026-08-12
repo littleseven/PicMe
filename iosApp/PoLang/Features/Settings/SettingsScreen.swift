@@ -342,6 +342,17 @@ struct DataPrivacyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // 备份与恢复入口（iOS 尚未实现，占位；Android 已并入此页）
+                HStack {
+                    Text(L("Backup & Restore"))
+                        .font(.system(size: 15, weight: .semibold))
+                    Spacer()
+                    Text(L("Coming Soon"))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary.opacity(0.6))
+                }
+                .padding(.vertical, 4)
+
                 ForEach(sections, id: \.title) { section in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(section.title)
