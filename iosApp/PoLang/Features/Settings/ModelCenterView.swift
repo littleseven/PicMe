@@ -11,6 +11,8 @@ import SharedKit
 struct ModelCenterView: View {
     @EnvironmentObject private var store: ModelConfigStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
     @State private var showAddSheet = false
 
     var body: some View {
@@ -52,8 +54,10 @@ struct ModelCenterView: View {
                 EmptyView()
             }
         }
-        .navigationTitle(L("Model Center"))
+        .navigationTitle(L("Remote Models"))
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(s.background.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -61,11 +65,6 @@ struct ModelCenterView: View {
                 } label: {
                     Image(matIcon: "add")
                         .font(.system(size: 20))
-                }
-            }
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: {
-                    MatIcon(name: "chevron.left", size: 20)
                 }
             }
         }
@@ -80,9 +79,9 @@ struct ModelCenterView: View {
 
     private var currentModelCard: some View {
         HStack(spacing: 12) {
-            Image(matIcon: "cloud")
+            Image(matIcon: "cloud_download")
                 .font(.system(size: 24))
-                .foregroundColor(.accentColor)
+                .foregroundColor(s.primary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(store.activeConfig().modelId)
                     .font(.system(size: 15, weight: .semibold))
