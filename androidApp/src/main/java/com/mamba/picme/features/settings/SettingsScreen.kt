@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Person
@@ -453,34 +454,10 @@ private fun SettingsContent(
 
             // ── 3. 本地模型（用户侧一级入口）────────────────────────
             if (category == SettingsCategory.LOCAL_MODEL) {
+                // ── 1. 人脸检测：检测模型 + 关键点 + 自适应节奏 ──
                 SettingsSection(
-                    title = stringResource(R.string.local_models),
-                    description = stringResource(R.string.local_models_desc)
-                ) {
-                    SettingsClickableRow(
-                        title = stringResource(R.string.model_center),
-                        subtitle = stringResource(R.string.model_center_desc),
-                        leadingIcon = Icons.Rounded.CloudDownload,
-                        onClick = { onNavigateToModelCenter("") }
-                    )
-
-                    LocalAsrModelSelection(
-                        currentModel = localAsrModel,
-                        onModelSelected = onLocalAsrModelChange,
-                        onNavigateToModelCenter = onNavigateToModelCenter
-                    )
-
-                    LocalKwsModelSelection(
-                        currentModel = localKwsModel,
-                        onModelSelected = onLocalKwsModelChange,
-                        onNavigateToModelCenter = onNavigateToModelCenter
-                    )
-                }
-
-                // ── 引擎与模型：人脸检测阶段配置 + 打标模型选择 ──
-                SettingsSection(
-                    title = stringResource(R.string.engines_and_models),
-                    description = stringResource(R.string.engines_and_models_desc)
+                    title = stringResource(R.string.face_detection),
+                    description = stringResource(R.string.face_detection_models_desc)
                 ) {
                     StageConfigSection(
                         stage = DetectionStage.ROI,
@@ -524,24 +501,45 @@ private fun SettingsContent(
                             onProfileSelected = onFaceDetectIntervalProfileSelected
                         )
                     }
+                }
 
-                    val taggerAutoLabel = stringResource(R.string.tag_model_auto)
-                    SettingsClickableRow(
-                        title = stringResource(R.string.tag_model_selector_title),
-                        subtitle = when (taggerModelKey) {
-                            "florence2_base" -> "Florence-2-Base"
-                            "qwen3_vl_2b" -> "Qwen3-VL-2B"
-                            else -> taggerAutoLabel
-                        },
-                        leadingIcon = Icons.AutoMirrored.Rounded.Label,
-                        onClick = {
-                            val next = when (taggerModelKey) {
-                                TaggerModelSelector.AUTO -> "florence2_base"
-                                "florence2_base" -> "qwen3_vl_2b"
-                                else -> TaggerModelSelector.AUTO
-                            }
-                            onTaggerModelKeyChange(next)
-                        }
+                // ── 2. 照片打标：自动识别照片内容生成标签 ──
+                SettingsSection(
+                    title = stringResource(R.string.photo_tagging),
+                    description = stringResource(R.string.photo_tagging_desc)
+                ) {
+                    Text(
+                        text = stringResource(R.string.tagging_model_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 12.dp, top = 4.dp)
+                    )
+                    CompactOptionChips(
+                        options = listOf(
+                            TaggerModelSelector.AUTO to stringResource(R.string.tag_model_auto),
+                            "florence2_base" to "Florence-2",
+                            "qwen3_vl_2b" to "Qwen3-VL"
+                        ),
+                        currentValue = taggerModelKey,
+                        maxLines = 2,
+                        onSelected = onTaggerModelKeyChange
+                    )
+                }
+
+                // ── 3. 语音：语音识别 + 唤醒词模型 ──
+                SettingsSection(
+                    title = stringResource(R.string.voice_models)
+                ) {
+                    LocalAsrModelSelection(
+                        currentModel = localAsrModel,
+                        onModelSelected = onLocalAsrModelChange,
+                        onNavigateToModelCenter = onNavigateToModelCenter
+                    )
+
+                    LocalKwsModelSelection(
+                        currentModel = localKwsModel,
+                        onModelSelected = onLocalKwsModelChange,
+                        onNavigateToModelCenter = onNavigateToModelCenter
                     )
                 }
             }
@@ -1128,9 +1126,10 @@ private fun SettingsCategoryGrid(
         CategoryGridItem(R.string.remote_models, R.string.remote_models_desc, Icons.Rounded.Cloud) {
             onNavigateToCategory(SettingsCategory.REMOTE_MODEL)
         },
-        CategoryGridItem(R.string.local_models, R.string.local_models_desc, Icons.Rounded.CloudDownload) {
+        CategoryGridItem(R.string.local_models, R.string.local_models_desc, Icons.Rounded.Memory) {
             onNavigateToCategory(SettingsCategory.LOCAL_MODEL)
         },
+        CategoryGridItem(R.string.model_center, R.string.model_center_desc, Icons.Rounded.CloudDownload, onNavigateToModelCenter),
         CategoryGridItem(R.string.sandbox_settings, R.string.sandbox_settings_desc, Icons.Rounded.VerifiedUser) {
             onNavigateToCategory(SettingsCategory.SANDBOX)
         },

@@ -404,7 +404,7 @@
     <string name="remote_models">遠端模型</string>
     <string name="remote_models_desc">遠端模型供應商、API 金鑰與目前選用模型。</string>
     <string name="local_models">本地模型</string>
-    <string name="local_models_desc">下載與選擇端側模型（語音 ASR/KWS、視覺等）。</string>
+    <string name="local_models_desc">選擇端側人臉偵測、打標、語音模型。</string>
     <string name="configured">已設定</string>
     <string name="not_configured">未設定</string>
     <string name="protocol">協議</string>
@@ -732,8 +732,11 @@
     <string name="dev_preview_debug">相機預覽除錯</string>
     <string name="dev_diagnostics_log">診斷與日誌</string>
     <string name="dev_test_tools">開發測試工具</string>
-    <string name="engines_and_models">引擎與模型</string>
-    <string name="engines_and_models_desc">人臉偵測階段配置與打標模型選擇。</string>
+    <string name="face_detection_models_desc">選擇人臉偵測模型與推論裝置，調關鍵點與偵測節奏。</string>
+    <string name="photo_tagging">照片打標</string>
+    <string name="photo_tagging_desc">自動辨識照片內容，產生場景、物體、人物、活動、美學等標籤，用於搜尋與分類。</string>
+    <string name="tagging_model_label">打標模型</string>
+    <string name="voice_models">語音</string>
     <string name="sandbox_settings_desc">自動執行、JS 引擎、裝置存取。</string>
     <string name="sandbox_execution">執行</string>
     <string name="sandbox_execution_desc">控制 Agent 可自主執行的內容。</string>

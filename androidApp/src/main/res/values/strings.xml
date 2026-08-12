@@ -415,7 +415,7 @@
     <string name="remote_models">Remote Models</string>
     <string name="remote_models_desc">Remote model providers, API keys, and the active model.</string>
     <string name="local_models">Local Models</string>
-    <string name="local_models_desc">Download and pick on-device models (ASR/KWS, vision).</string>
+    <string name="local_models_desc">Pick on-device face-detection, tagging and voice models.</string>
     <string name="configured">Configured</string>
     <string name="not_configured">Not configured</string>
     <string name="protocol">Protocol</string>
@@ -760,8 +760,11 @@
     <string name="dev_preview_debug">Camera Preview Debug</string>
     <string name="dev_diagnostics_log">Diagnostics &amp; Logs</string>
     <string name="dev_test_tools">Developer Tools</string>
-    <string name="engines_and_models">Engines &amp; Models</string>
-    <string name="engines_and_models_desc">Face detection stages and the tagging model.</string>
+    <string name="face_detection_models_desc">Choose face detection models and device; tune landmarks and cadence.</string>
+    <string name="photo_tagging">Photo Tagging</string>
+    <string name="photo_tagging_desc">Auto-detect photo content into tags (scene, objects, people, activity, aesthetic) for search and grouping.</string>
+    <string name="tagging_model_label">Tagging model</string>
+    <string name="voice_models">Voice</string>
     <string name="sandbox_settings_desc">Auto-execute, JS engine, device access.</string>
     <string name="sandbox_execution">Execution</string>
     <string name="sandbox_execution_desc">Control what the Agent can run autonomously.</string>
