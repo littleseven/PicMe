@@ -852,6 +852,7 @@ private fun SettingsContent(
     }
 }
 
+@Suppress("LongParameterList") // 待重构：SettingsScreen 抽 SettingsNav holder
 @Composable
 private fun SettingsMainMenu(
     themeMode: ThemeMode,
