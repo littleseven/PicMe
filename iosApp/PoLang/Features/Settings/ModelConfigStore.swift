@@ -89,6 +89,23 @@ final class ModelConfigStore: ObservableObject {
         applyToOrchestrator()
     }
 
+    /// 更新已有模型的 API Key（对齐 Android RemoteModelConfigCard 编辑：预定义模型改 apiKey）
+    func updateApiKey(uniqueKey: String, apiKey: String) {
+        guard let idx = configs.firstIndex(where: { $0.uniqueKey == uniqueKey }) else { return }
+        let old = configs[idx]
+        configs[idx] = RemoteModelConfig(
+            modelId: old.modelId,
+            providerId: old.providerId,
+            protocol: old.protocol,
+            apiKey: apiKey,
+            baseUrl: old.baseUrl,
+            gatewayToken: old.gatewayToken,
+            deviceId: old.deviceId
+        )
+        save()
+        applyToOrchestrator()
+    }
+
     // MARK: - Active Config
 
     /// 当前生效的配置：选中且 isConfigured → 用户配置；否则 PICME_SERVER_DEFAULT（访客模式）

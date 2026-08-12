@@ -14,6 +14,7 @@ struct ModelCenterView: View {
     @Environment(\.colorScheme) private var cs
     private var s: SchemeColors { appScheme(cs) }
     @State private var showAddSheet = false
+    @State private var editTarget: EditModelTarget?
 
     var body: some View {
         List {
@@ -73,6 +74,11 @@ struct ModelCenterView: View {
                 store.add(provider: provider, modelId: modelId, apiKey: apiKey)
             }
         }
+        .sheet(item: $editTarget) { target in
+            EditApiKeySheet(modelName: target.config.modelId, initialApiKey: target.config.apiKey) { newKey in
+                store.updateApiKey(uniqueKey: target.config.uniqueKey, apiKey: newKey)
+            }
+        }
     }
 
     // MARK: - Current Model Card
@@ -129,6 +135,15 @@ struct ModelCenterView: View {
             }
 
             Spacer()
+
+            // Edit (改 API Key)
+            Button {
+                editTarget = EditModelTarget(config: config)
+            } label: {
+                Image(matIcon: "tune")
+                    .font(.system(size: 18))
+                    .foregroundColor(s.primary)
+            }
 
             // Delete
             Button {
@@ -271,6 +286,49 @@ struct AddModelSheet: View {
         case "deepseek-official": return "https://platform.deepseek.com/"
         default: return "https://api.polang.net/"
         }
+    }
+}
+
+// MARK: - Edit API Key（对齐 Android RemoteModelConfigCard 编辑：预定义模型改 apiKey）
+
+private struct EditModelTarget: Identifiable {
+    let config: RemoteModelConfig
+    var id: String { config.uniqueKey }
+}
+
+struct EditApiKeySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let modelName: String
+    let initialApiKey: String
+    let onSave: (String) -> Void
+
+    @State private var apiKey: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(L("API Key")) {
+                    SecureField(L("Enter API Key"), text: $apiKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+            .navigationTitle(L("Edit Model"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(L("Cancel")) { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(L("Save")) {
+                        let trimmed = apiKey.trimmingCharacters(in: .whitespaces)
+                        if !trimmed.isEmpty { onSave(trimmed); dismiss() }
+                    }
+                    .disabled(apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .onAppear { apiKey = initialApiKey }
     }
 }
 
