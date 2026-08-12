@@ -230,6 +230,14 @@ private struct ModelDownloadCard: View {
                             Text(L("Pause"))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
+                        } else if manager.reconnectingModels.contains(entry.id) {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.5)
+                                Text(L("Reconnecting…"))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.orange)
+                            }
                         }
                         Spacer()
                         Text("\(Int(state.progress * 100))%")
