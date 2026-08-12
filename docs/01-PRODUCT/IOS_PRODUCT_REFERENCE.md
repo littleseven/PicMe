@@ -64,7 +64,7 @@ PoLang（破浪相册）是一个 **Agent 驱动的智能相册**实验场，核
 - **三大技术轴同库**：① On-device Agent Runtime + 本地/远程推理；② 智能相册与图片编辑；③ 自研 OpenGL ES + EGL 美颜/滤镜引擎 + 自建 Ktor 网关。
 - **隐私优先**：用户图片/视频**文件**不上传远程推理服务器；人脸检测/OCR/分类/打标等媒体处理 100% 端侧；文本/元数据/相册摘要可走远程（chat 默认远程）。详见 §3.4。
 
-> **iOS 落点**：`iosApp/PoLang/Features/Main/MainTabView.swift` 已设相册为初始页，命题一致；但实现为 ZStack 条件渲染，非真正跟手 Pager。`iOS 已有`（首页选择）+ `iOS 待对齐`（跟手横滑 + 4 页常驻）。
+> **iOS 落点**：`iosApp/PoLang/Features/Main/MainTabView.swift` 已设相册为初始页，命题一致；✅ **跟手横滑 + 4 页常驻已对齐**（`e8582301`，`TabView(.page)` 替换 ZStack 条件渲染）。`iOS 已有`（首页选择 + 跟手 Pager）。
 
 ### 1.2 应用骨架与导航拓扑
 
@@ -849,7 +849,7 @@ OFF 模式直接返回「AI Agent 已关闭」，不发远程调用。
 
 端侧多模型 3-Pass 自动打标流水线：为人脸（检测+embedding+聚类）、内容（场景/物体/活动 VLM 打标）、语义（MobileCLIP 向量）三类维度生成结构化标签，支撑自然语言搜索召回与人物分组。全程端侧。前台 Service 驱动，可对话/手动触发、可中断、进度可见。
 
-> **iOS 落点**：✅ Pass1 基建于 main（`Pass1Pipeline.swift`/`FaceAlignment`/`MobileClipEncoder`/`TagDatabase`，`25414e12`）。🔄 **in-flight（分支 `feat/ios-tag-scan-core` 18 commits 待合并）**：Pass2 聚类（`FaceClusterer.swift` k-NN 连通分量，已单测+真机 2 persons/34 embeddings）、Pass3 VLM（`Florence2Tagger.swift` Florence-2 ORT 4-session，代码完成+编译过，**待真机验证** 266MB `florence2_base`；默认 Florence-2，**不阻塞补验 B**）、控制页+编排（`TagScanScreen`/`ViewModel`/`Orchestrator`，已建并全开放）。❌ MetalGuardian（新设计，推迟 SP-A）/ 后台扫描（iOS ~30s→增量/手动）。关键差异：MNN Metal 后端（precision 档位锁定坑）、ForegroundService→BGTaskScheduler、MetalGuardian 新设计。
+> **iOS 落点**：✅ Pass1 基建于 main（`Pass1Pipeline.swift`/`FaceAlignment`/`MobileClipEncoder`/`TagDatabase`，`25414e12`）。✅ **Pass2 聚类 + Pass3 VLM + 控制页/编排 已合入 main**（`b78d7081`；Pass3 Florence-2 真机验证 5 图打标成功 `ab95c3b7`）。🔴 **聚类质量阻塞**：main embedder 走 MNN，MNN3.5 Apple bug 致 embedding 退化→聚类塌成 1 类；分支 `feat/ios-106-to-5-embedding` 用 ONNX+106→5 修复中。❌ MetalGuardian（新设计，推迟 SP-A）/ 后台扫描（iOS ~30s→增量/手动）。关键差异：MNN Metal 后端（precision 档位锁定坑）、ForegroundService→BGTaskScheduler、MetalGuardian 新设计。
 
 ### 2. 入口与导航
 
@@ -1239,7 +1239,7 @@ SettingsScreen (MAIN)
 
 **命名约定**：实际为 **snake_case 小写**（非小驼峰），形如 `tag_scan_control`、`gallery_people_entry`。运行时语言切换（`attachBaseContext` + `setLocale`，EN / 简中 / 繁中 / 跟随系统，切换触发 `recreate()`）。
 
-**iOS 对齐现状**：`Localizable.xcstrings` **main = 239 key**（vs Android 981，覆盖仍不足）；分支 `feat/ios-tag-scan-core` 含 TAG 50+ 键，合并后 **~323**；三语 `en`/`zh-Hans`/`zh-Hant` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
+**iOS 对齐现状**：`Localizable.xcstrings` **main = 417 key**（vs Android 981，覆盖仍不足，持续补）；三语 `en`/`zh-Hans`/`zh-Hant` 均就绪（zh-Hant 于 2026-08-10 补齐，commit `4de9221b`/`da2b78ae`）；xcstrings 以英文文案为 key（非 snake_case id），双端键对齐需建立映射。`iOS 缺口`（key 覆盖率）。
 
 ### 3.6 设计系统
 
@@ -1295,9 +1295,9 @@ SettingsScreen (MAIN)
 
 | 功能 | 缺口 | 平台注意 |
 |------|------|----------|
-| 跟手横滑 Pager + 4 页常驻 | iOS 为 ZStack 条件渲染（已有 swipe 切页手势，非跟手 drag-tracking）；无页面常驻/物理吸附 | 需重构为 SwiftUI 等价跟手容器 |
-| chat 多消息类型 | 仅消费 `media_results`，`text_reply`/`success`/`error` 被 `default:break` 丢弃 | 补全 `handleUiAction` 分支 |
-| iOS i18n | xcstrings 239 key（vs 981，覆盖仍不足）；三语就绪（zh-Hant 已补） | 扩 key 集 |
+| ~~跟手横滑 Pager + 4 页常驻~~ | ✅ 已对齐（`e8582301`，`TabView(.page)` 跟手物理吸附 + 4 页常驻） | — |
+| chat 富消息类型 | 流式文本经 `onText` 逐字吐已 live；`success`/`error` 工具确认仍缺；富消息（图片/图表/表格/代码）需重构 `ChatMessage` | 重构消息模型 + 补确认反馈 |
+| iOS i18n | xcstrings 417 key（vs 981，覆盖仍不足）；三语就绪（zh-Hant 已补） | 扩 key 集 |
 | Telegram 通信通道 | 飞书未接入 | 用户自配置 IM，非推理上传 |
 
 ### 4.3 缺口（Phase 6+，需新建）
@@ -1340,7 +1340,7 @@ SettingsScreen (MAIN)
 | N2 | i18n 命名「`[feature]_[desc]` 小驼峰」 | 实际 snake_case 小写（`tag_scan_control`） | 低 |
 | N3 | CLAUDE.md「三语：values/values-zh-rCN/values-zh-rTW」 | 额外存在 `values-zh/`（679 key，陈旧冗余） | 中 |
 | N4 | 繁中对齐 | values-zh-rTW 仅 963 key（差 18），未完全对齐 | 中 |
-| N5 | iOS 三语双端对齐 | iOS xcstrings 239 key（vs 981）+ 三语就绪（zh-Hant 2026-08-10 补齐）；~~仅 en/zh-Hans 无 zh-Hant~~（已修正） | 中（降级：仅余 key 覆盖缺口） |
+| N5 | iOS 三语双端对齐 | iOS xcstrings 417 key（vs 981）+ 三语就绪（zh-Hant 2026-08-10 补齐）；~~仅 en/zh-Hans 无 zh-Hant~~（已修正） | 中（降级：仅余 key 覆盖缺口） |
 | N6 | NFR 含 LLM 首 token<2s、命令<3s、包体积<150MB | NFR_SPEC.md 无此三项 | 中 |
 
 **相册与浏览（02）**

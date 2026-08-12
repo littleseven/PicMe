@@ -1,5 +1,7 @@
 # PoLang KMP 跨端改造与项目重塑 总体计划
 
+> **🔄 2026-08-12 同步**：本文 §6.1 及「状态同步」段中的「Pass2/3/控制页 in-flight 分支 `feat/ios-tag-scan-core` 待合并」「gallery/搜索待开工」「Pass3 待真机验证」**均已过时**——TAG 3-Pass 已合入 main（`b78d7081`，Pass3 真机验证通过）、NL 搜索已落地（`bb1839de`）、首页跟手 Pager 已对齐（`e8582301`）。现行状态以 [`IOS_TASK_STATUS.md`](../../01-PRODUCT/IOS_TASK_STATUS.md) §2 为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **文档性质**：本文件是**总体路线图（roadmap）**。按 writing-plans 技能的 Scope Check 规则，本改造横跨多个独立子系统（Koog 迁移 / 仓库重组 / KMP 抽取 / C++ 引擎移植 / iOS 应用），**每个 Phase 开工前必须单独产出该 Phase 的细粒度执行计划**（存 `docs/superpowers/plans/YYYY-MM-DD-<phase-slug>.md`），本文件不承载逐行代码级任务。

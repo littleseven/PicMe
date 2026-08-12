@@ -1,6 +1,6 @@
 # iOS TAG 扫描核心（SP-B）设计
 
-> 🔄 **in-flight（2026-08-10）**：SP-B 已实现并扩展到 SP-C/SP-D（Pass2/Pass3），分支 `feat/ios-tag-scan-core` 待合并（Pass3 待真机验证 266MB 模型）。⚠️ §17-21「Pass2/3 各自独立 spec」、§8.2/§11「控件置灰」非目标已不成立。合并后本文归档（git 留史）。现行状态见 `IOS_TASK_STATUS.md` §6.1；归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §1。
+> ✅ **已合并 main（`b78d7081`，2026-08-12）**：SP-B/SP-C/SP-D（Pass2/Pass3/控制页）全部落地，Pass3 Florence-2 真机验证通过。⚠️ §17-21「Pass2/3 各自独立 spec」、§8.2/§11「控件置灰」非目标已不成立。本文归档（git 留史）。现行状态见 `IOS_TASK_STATUS.md` §6.1；归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §1。
 
 
 - **日期**：2026-08-10

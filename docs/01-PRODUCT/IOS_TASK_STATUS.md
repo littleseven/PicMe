@@ -4,7 +4,7 @@
 >
 > **关系**：本文是 *执行视图*（任务 + 状态 + 优先级）；*产品规格* 见 [`IOS_PRODUCT_REFERENCE.md`](IOS_PRODUCT_REFERENCE.md)（逐功能行为契约）；*Phase 路线图* 见 [`../superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md`](../superpowers/plans/2026-08-07-polang-kmp-ios-transformation.md)（Phase 划分 SSOT + 变更记录）。三者冲突时：**代码 > 产品参考 > 本文**，但本文反映最新执行进度。
 >
-> **基线**：Android main v1.0.34 · iOS 截至 Phase 6.x · 最近校准 **2026-08-10**
+> **基线**：Android main v1.0.34 · iOS 截至 Phase 6.x · 最近校准 **2026-08-12**
 >
 > **图例**：✅ 已落地 · 🔄 部分/进行中 · 📋 规划 · ❌ 缺口 · 🚫 不对齐（平台无等价，不做）
 
@@ -28,24 +28,27 @@
 
 ## §2 Phase 6 详细（当前主战场）
 
-### 6.1 TAG 3-Pass 流水线 — 🔄 main 基建已建；Pass2/Pass3/控制页 in-flight（分支 `feat/ios-tag-scan-core` 待合并）
+### 6.1 TAG 3-Pass 流水线 — ✅ 三 Pass 全通并合入 main；🔴 聚类质量阻塞 + MetalGuardian/后台扫描待建
+
+> 2026-08-12 更新：分支 `feat/ios-tag-scan-core` 已合入 main（`b78d7081`），Pass2/Pass3/控制页 全部 live。
 
 | 子项 | 状态 | 证据 / 缺口 |
 |---|---|---|
 | 模型中心（16 模型下载/进度/删除） | ✅ | `ModelCenterView` 真机 6/6 绿 |
 | Pass1 基建（编排/对齐/embedding/MobileCLIP/GRDB） | ✅ | `Pass1Pipeline.swift` / `FaceAlignment` / `MobileClipEncoder` / `TagDatabase`（`25414e12` Step1-6） |
 | 人脸检测可用（MNN 106pt + MediaPipe 468→106） | ✅ | self-test faceFound=true/106pt；2d106det 预归一化修复 |
-| Pass2 聚类（DBSCAN / 自适应 k-NN 连通分量） | 🔄 in-flight | 分支 `feat/ios-tag-scan-core`：`FaceClusterer.swift` k-NN 连通分量（k=2/minSim=0.65），已单测+真机跑过（2 persons/34 embeddings，`7b674428`），**待合并 main** |
-| Pass3 VLM 打标（Florence-2 默认 / Qwen3-VL 备选） | 🔄 in-flight | 分支：`Florence2Tagger.swift` ORT 4-session 代码完成+编译过（`869721c3`），**待真机验证**（需下 266MB `florence2_base`）；默认走 Florence-2，**不阻塞补验 B**（仅备选 Qwen3-VL 路径需） |
+| Pass2 聚类（自适应 k-NN 连通分量） | ✅ 已合并 | `Pass2Pipeline.swift`/`FaceClusterer.swift` k-NN 连通分量（`7b674428`），UI 接 `TagScanOrchestrator` |
+| Pass3 VLM 打标（Florence-2 默认） | ✅ 已合并 | `Florence2Tagger.swift` ORT 4-session，真机验证 5 图打标成功（`ab95c3b7`）；Qwen3-VL 备选路径仍待补验 B |
+| TAG 控制页 + 扫描编排 | ✅ 已合并 | `TagScanScreen`/`TagScanViewModel`/`TagScanOrchestrator` 接 `MainTabView`（`8184b85a`/`9c7bfaba`/`2b06089f`） |
+| 🔴 人脸聚类质量 | 🔄 阻塞 | **main embedder 走 `PLMnnFaceEmbedder`（MNN），MNN3.5 Apple bug 致 embedding 退化（同人/异人 cos 均值 ~0.75）→ 聚类塌成 1 类**。分支 `feat/ios-106-to-5-embedding`：Revert 回 ONNX embedder + 接通 106→5 对齐 + `ios_face_sim_diag.py` 量化 same/cross 分布。**平台决策（定 ONNX / 升级 MNN）+ 阈值标定待定**。详见 [spec](../superpowers/specs/2026-08-12-ios-106-to-5-embedding-design.md)/[plan](../superpowers/plans/2026-08-12-ios-106-to-5-embedding.md) |
 | iOS MetalGuardian（替代 OpenClGuardian） | ❌ | 新设计：warmup 超时 + Metal→CPU 降级（含模型卸载重载）+ MTLDevice 丢失 + 黑名单持久化 |
-| TAG 控制页 + 扫描编排 | 🔄 in-flight | 分支：`TagScanScreen`/`TagScanViewModel`/`TagScanOrchestrator` 已建并全开放（`8184b85a`/`9c7bfaba`/`2b06089f`）；**main 上 `Pass1Pipeline` 仍为孤立编排器，未接 UI/VM** |
-| 后台扫描（ForegroundService → BGTaskScheduler） | ❌ | iOS ~30s 限制 → 改「充电+锁屏增量」或「手动触发」（双端功能差异） |
+| 后台扫描（ForegroundService → BGTaskScheduler） | ❌ | iOS ~30s 限制 → 进后台即 `pauseForBackground()`；改「充电+锁屏增量」或「手动触发」（双端功能差异） |
 
 ### 6.2 Chat 与 AI 指令 — ✅ 完成（基础链路）
 
 ✅ 远程 tool_calls 流式对话（`ChatAgentBridge`→`RemoteChatEngine`→`KoogChatAgent`）/ 思考态→首 token→流式光标 / 媒体结果卡（`media_results`）/ 空态示例 / 清空·新建 / iOS 专属 prompt（8 工具裁剪）/ 隐私契约（DTO 无文件路径/GPS/base64）
 
-**非阻塞缺口**（归 §3 后续）：`text_reply`/`success`/`error` 三 kind 被 `default:break` 丢弃 · 停止生成 UI（`cancelCurrent` 未调用）· 多会话侧边栏 · JS 画图（`CHART`）· 反馈 UI（`media_feedback`）· 图片附件 · 语音输入 · AI 优化抽卡 · Claude 工程师模式
+**非阻塞缺口**（归 §3 后续）：富消息类型（图片/图表/表格/代码块，现仅单一 role+mediaIds）· 停止生成 UI（`cancelCurrent` 未调用）· `success`/`error` 工具确认反馈（流式文本经 `onText` 逐字吐已 live）· JS 画图（`CHART`）· 反馈 UI（`media_feedback`）· 图片附件 · 语音输入 · AI 优化抽卡 · Claude 工程师模式 · ~~多会话侧边栏~~ ✅（`54799952`，`ChatThreadSidebarView`）
 
 ### 6.3 设置与账号 — 🔄 主体完成，剩 3 项
 
@@ -70,8 +73,8 @@
 | 人物页 UI | ✅ | 1311 行（`PersonView`/`PersonInfoView`/`PersonViewModel`/`PersonStore`，`02806687`）；**后端未接** shared |
 | 相册人脸关键点交互 | 🔄 | 近期 commits（debug 门控 + 缩放跟随） |
 | 相机规格 gap（美颜默认值统一 0 / 滤镜互斥 / 快门 80ms 反馈） | 🔄 | MVP 在，细节待对齐 |
-| 跟手横滑 Pager + 4 页常驻 | ❌ | 仍 ZStack 条件渲染，无手势 / 无常驻 |
-| 自然语言搜索（整链路） | ❌ | 依赖 6.1 TAG 索引 |
+| 跟手横滑 Pager + 4 页常驻 | ✅ | `TabView(.page)` 替换 ZStack 条件渲染（`e8582301`），跟手物理吸附 + 4 页常驻；悬浮 Tab 双渲染 bug 同修 |
+| 自然语言搜索（整链路） | ✅ | `MediaSearchEngine`（635 行）+ `QueryParser`/`SemanticSearchEngine`/MobileCLIP 全 live（`bb1839de`） |
 
 ---
 
@@ -81,8 +84,8 @@
 
 | # | 功能域 | 缺口 | 关键替换 / 依赖 | 阻塞 |
 |---|---|---|---|---|
-| G1 | TAG | Pass2 聚类 + Pass3 VLM + MetalGuardian + 控制页 + 后台扫描 | MNN Metal（**precision 档位锁定坑**）；MetalGuardian 新设计；FGS→BGTaskScheduler | 🔴 Pass3 阻塞于补验 B |
-| G2 | 搜索 | 整条 NL 搜索链路（Parser/Segmenter/Vocabulary/Pipeline/Engine） | 前置：G1 TAG 标签 + 人脸聚类 + MobileCLIP + OCR + SQLite；`QueryParser` 用 `java.util.Calendar` 需换 `kotlinx-datetime` | G1（软阻塞，可先做规则+SQL 召回） |
+| G1 | TAG | ~~Pass2 聚类 + Pass3 VLM + 控制页~~ ✅ 已合并（`b78d7081`）；剩 **🔴 聚类质量修复（embedding 平台决策）** + MetalGuardian + 后台扫描 | MNN Metal（**precision 档位锁定坑**）；MetalGuardian 新设计；FGS→BGTaskScheduler；**MNN3.5 Apple bug 致聚类塌陷** | 🔴 聚类质量（发布前必修） |
+| ~~G2~~ | ~~搜索~~ | ~~整条 NL 搜索链路~~ → ✅ 已落地 | `MediaSearchEngine`+`QueryParser`+`SemanticSearchEngine`+MobileCLIP 全 live（`bb1839de`） | — |
 | G3 | 编辑 | 静态美颜编辑器 / 智能抠图 / 证件照 / AI 一键优化抽卡 | FBO→Metal MSL；`BeautyParams`/`FilterType`/`StyleFilter` 已 commonMain；ONNX Runtime iOS 可用；FUSION 纯数组可移植 | 无 |
 | G4 | 人物/记忆 | 关系图谱后端 / 封面美学（NIMA+eDifFIQA）/ 事实记忆 | Room→SQLDelight；NNAPI→CoreML/Metal；`KinshipLexicon`/`PersonQueryResolver` 纯 Kotlin 宜下沉 shared；UI 骨架已有 | G1 Pass2（人脸聚类） |
 | G5 | 相机 | 录像（美颜录制）/ 十字星时序 / 风格特效 5 项 / 语音入口 | Metal 美颜录制；Sherpa-ONNX iOS 单独实现；风格 GLSL→MSL | 无 |
@@ -120,6 +123,7 @@
 | 2026-08-10 | D4 i18n「无 zh-Hant」 | → 三语就绪，key 191→239 | `7832df62` |
 | 2026-08-10 | 全面漂移扫描（A/B/C/D/E 共 25 处） | 6 文档修正：产品参考 11 处（场景同步已接入 / TAG Pass1 已移植 / 人物页非占位 / swipe 手势 / i18n §4.2 传播遗漏等）、路线图风险登记 6 项已解风险关闭、parity spec 清单+RTL+gap 引用、2 份 gap-analysis 加快照 banner；详见 [`2026-08-10-ios-kmp-doc-drift-audit.md`](../reviews/2026-08-10-ios-kmp-doc-drift-audit.md) | 见审计报告 §1 |
 | 2026-08-10 | **整合审计**：TAG Pass2/3/控制页「未实现/未接线」→ in-flight 分支待合并；相机「下一步」→ 已对齐合并；i18n 分支 ~323 待合并；PARITY_MASTER_PLAN 自诊错误；跟踪策略明确（main 为准 + in-flight） | 本文 §6.1 + §7 + 产品参考/路线图/implementation-tasks/parity/gap 7 文档修正 + **删 19 份冗余/历史文档（git 留史）** + [`IOS_DOC_INDEX.md`](IOS_DOC_INDEX.md) 瘦身为前门 | 见 [`../reviews/2026-08-10-ios-doc-consolidation-audit.md`](../reviews/2026-08-10-ios-doc-consolidation-audit.md) |
+| 2026-08-12 | 看板滞后 main：08-10 后大量合并未反映（TAG 3-Pass 合入 `b78d7081`、搜索 `bb1839de`、聊天多会话 `54799952`、首页跟手 Pager `e8582301`、大图页 VLM/OCR `51f85cde`、编辑器 lite `dc021070`） | §6.1 Pass2/3/控制页→✅已合并 + 新增🔴聚类质量阻塞行；§6.2 移除多会话侧栏缺口；§6.6 跟手 Pager + 自然语言搜索→✅；§3 G1/G2 更新（G2 已落地）；gap 文档加 post-08-10 解决批次 banner；i18n 239→417 | 本次提交 |
 
 ---
 

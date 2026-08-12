@@ -1,5 +1,7 @@
 # iOS 功能对齐 — 缺口实施计划（主排序）
 
+> **🔄 2026-08-12 同步**：本计划内 T1/T3/T4（TAG 组装/聚类/控制页）的「🔄 in-flight 分支 `feat/ios-tag-scan-core` 待合并」标记**已过时**——该分支已合入 main（`b78d7081`），Pass3 Florence-2 真机验证通过；G2（NL 搜索）亦已落地（`bb1839de`）。现行状态以 [`IOS_TASK_STATUS.md`](../../01-PRODUCT/IOS_TASK_STATUS.md) §2/§3 为准。
+
 > **For agentic workers:** 本计划是**主排序计划**（priority roadmap + 验收点），每个 Epic 是可派发到 worktree / virtual-team 的独立单元。Epic 开工时用 superpowers:writing-plans 产出该 Epic 的细粒度 TDD 子计划（命名 `plans/YYYY-MM-DD-ios-<epic>.md`，对标 `2026-08-09-ios-chat-phase6.2-plan.md` 的 T0–T7 粒度），再用 superpowers:subagent-driven-development 或 executing-plans 执行。
 >
 > **Goal:** 把 [`IOS_TASK_STATUS.md`](../../01-PRODUCT/IOS_TASK_STATUS.md) §3 的 7 个缺口（G1–G7）按依赖与解锁价值排序，给出可派发、可验收的实施路线。

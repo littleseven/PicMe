@@ -20,7 +20,7 @@
 | [`../../specs/README.md`](../../specs/README.md) | **Vibe Coding 流程** |
 | [`../../specs/screens/*.yaml`](../../specs/screens/) | **逐屏契约**：camera / gallery-grid / chat / settings / model-download-center |
 | [`../superpowers/specs/2026-08-10-ios-follow-command-design.md`](../superpowers/specs/2026-08-10-ios-follow-command-design.md) | **`/ios-follow` 命令设计**（待审批） |
-| [`../superpowers/specs/2026-08-10-ios-tag-scan-core-design.md`](../superpowers/specs/2026-08-10-ios-tag-scan-core-design.md) + [`plans/2026-08-10-ios-tag-scan-core.md`](../superpowers/plans/2026-08-10-ios-tag-scan-core.md) | **TAG SP-B 设计+计划**（🔄 in-flight 分支 `feat/ios-tag-scan-core` 待合并，合并后归档） |
+| [`../superpowers/specs/2026-08-10-ios-tag-scan-core-design.md`](../superpowers/specs/2026-08-10-ios-tag-scan-core-design.md) + [`plans/2026-08-10-ios-tag-scan-core.md`](../superpowers/plans/2026-08-10-ios-tag-scan-core.md) | **TAG SP-B 设计+计划**（✅ 已合并 main `b78d7081`，可归档） |
 
 ---
 
@@ -40,6 +40,6 @@
 ## §3 真实状态快照（详见看板 §1-§2）
 
 - **Phase 1-5 ✅**；**Phase 6 = 主战场**（功能对齐与发布准备）。
-- **TAG**：main 上 Pass1 基建 ✅；Pass2/Pass3/控制页 🔄 in-flight（`feat/ios-tag-scan-core` 18 commits 待合并，Pass3 待真机验证）；MetalGuardian/后台 ❌。
+- **TAG**：3-Pass 全通并合入 main ✅（`b78d7081`）；🔴 **聚类质量阻塞**（MNN3.5 Apple bug 致聚类塌陷，分支 `feat/ios-106-to-5-embedding` 修复中）；MetalGuardian/后台 ❌。
 - **相机对齐 ✅**（已合并 main）；**Chat 6.2 ✅**；**设置 6.3 🔄**（剩合规/隐私政策/账号）；**server 6.4 ✅**。
-- **代码** ~12800 行 Swift；**i18n** main 239 key × 三语（分支 ~323 待合并）。
+- **代码** ~12800 行 Swift；**i18n** main 417 key × 三语。

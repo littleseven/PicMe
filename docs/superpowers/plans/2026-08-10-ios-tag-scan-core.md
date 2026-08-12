@@ -1,6 +1,6 @@
 # iOS TAG 扫描核心（SP-B）实现计划
 
-> 🔄 **in-flight（2026-08-10）**：SP-B 已执行并扩展到 SP-C/SP-D，分支 `feat/ios-tag-scan-core` 待合并（Pass3 待真机验证）。checkbox 未回填但工作已完成。合并后本文归档（git 留史）。现行状态见 `IOS_TASK_STATUS.md` §6.1；归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §1。
+> ✅ **已合并 main（`b78d7081`，2026-08-12）**：SP-B/SP-C/SP-D（Pass2/Pass3/控制页）全部落地，Pass3 Florence-2 真机验证通过。本文归档（git 留史）。现行状态见 `IOS_TASK_STATUS.md` §6.1；归类见 `docs/01-PRODUCT/IOS_DOC_INDEX.md` §1。
 
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
