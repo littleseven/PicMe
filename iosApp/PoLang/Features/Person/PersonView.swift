@@ -209,6 +209,9 @@ private struct PersonCardView: View {
             }
             if showRelationChip {
                 relationChip
+            } else {
+                // 无关系标签时保留等高占位(透明),避免卡片高度不一致
+                relationChip.opacity(0)
             }
         }
         .padding(12)
