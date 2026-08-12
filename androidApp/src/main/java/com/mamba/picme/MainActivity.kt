@@ -320,15 +320,15 @@ class MainActivity : ComponentActivity() {
                                 }
                                 TagGenerationControlScreen(
                                     onNavigateBack = { navController.popBackStack() },
+                                    onNavigateToTagViewer = {
+                                        navController.navigate(
+                                            Screen.TagViewer.route,
+                                            navOptions { launchSingleTop = true }
+                                        )
+                                    },
                                     header = {
                                         val useOpencl by settingsViewModel.tagGenerationUseOpencl.collectAsState()
                                         GallerySettingsHeader(
-                                            onNavigateToTagViewer = {
-                                                navController.navigate(
-                                                    Screen.TagViewer.route,
-                                                    navOptions { launchSingleTop = true }
-                                                )
-                                            },
                                             onNavigateToDuplicateManager = {
                                                 navController.navigate(
                                                     Screen.DuplicateManager.route,

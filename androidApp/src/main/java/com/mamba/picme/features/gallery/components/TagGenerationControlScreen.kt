@@ -48,6 +48,7 @@ import kotlin.math.roundToInt
 @Composable
 fun TagGenerationControlScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToTagViewer: () -> Unit = {},
     header: @Composable (() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -298,7 +299,8 @@ fun TagGenerationControlScreen(
                 namedPersonCount = namedPersonCount,
                 embeddingCount = embeddingCount,
                 remainingPass1 = remainingPass1,
-                remainingPass3 = remainingPass3
+                remainingPass3 = remainingPass3,
+                onNavigateToTagViewer = onNavigateToTagViewer
             )
 
             // ── 混合管道概览（只读状态展示） ────────────────
@@ -989,7 +991,8 @@ private fun StatsCard(
     namedPersonCount: Int,
     embeddingCount: Int,
     remainingPass1: Int,
-    remainingPass3: Int
+    remainingPass3: Int,
+    onNavigateToTagViewer: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1064,6 +1067,29 @@ private fun StatsCard(
                 done = (totalMedia - remainingPass3).toString(),
                 remaining = remainingPass3.toString()
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+
+            // 标签查看入口（数据库统计模块底部）
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToTagViewer() }
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.tag_viewer_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.tag_viewer_open_entry),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

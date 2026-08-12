@@ -1265,7 +1265,6 @@ private fun SettingsVersionFooter(onUnlock: () -> Unit) {
  */
 @Composable
 internal fun GallerySettingsHeader(
-    onNavigateToTagViewer: () -> Unit,
     onNavigateToDuplicateManager: () -> Unit,
     useOpencl: Boolean,
     onUseOpenclChange: (Boolean) -> Unit
@@ -1273,12 +1272,6 @@ internal fun GallerySettingsHeader(
     SettingsSection(
         title = stringResource(R.string.gallery_features)
     ) {
-        SettingsClickableRow(
-            title = stringResource(R.string.tag_viewer_title),
-            subtitle = stringResource(R.string.tag_viewer_open_entry),
-            leadingIcon = Icons.Rounded.Search,
-            onClick = onNavigateToTagViewer
-        )
         SettingsClickableRow(
             title = stringResource(R.string.manage_duplicates),
             subtitle = stringResource(R.string.duplicate_manager_desc),
