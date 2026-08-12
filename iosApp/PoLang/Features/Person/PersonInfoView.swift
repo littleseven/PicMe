@@ -258,12 +258,12 @@ struct PersonInfoView: View {
                     } label: {
                         Text(opt.label)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(selected ? s.onPrimaryContainer : s.onSurfaceVariant)
+                            .foregroundColor(selected ? .white : s.onSurface)
                             .padding(.horizontal, 12)
                             .frame(maxWidth: .infinity, minHeight: ChipTokens.height)
                             .background(
                                 RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
-                                    .fill(selected ? s.primaryContainer : s.surfaceVariant.opacity(0.5)))
+                                    .fill(selected ? Color.accentColor : s.surfaceContainerHighest))
                     }
                     .buttonStyle(.plain)
                 }

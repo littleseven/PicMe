@@ -248,13 +248,13 @@ private struct PersonCardView: View {
 
     private var relationChip: some View {
         Text(relationChipLabel)
-            .font(.system(size: 12))
-            .foregroundColor(s.onPrimaryContainer)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: PersonTokens.relationChipRadius, style: .continuous)
-                    .fill(s.primaryContainer))
+                Capsule()
+                    .fill(Color.accentColor))
             .onTapGesture { onInfoTap() }
     }
 }
