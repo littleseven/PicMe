@@ -16,6 +16,8 @@ struct SettingsScreen: View {
     @State private var unlockTapCount: Int = 0
     @State private var lastUnlockTap: Date = .distantPast
     @State private var unlockHint: String?
+    /// 相册设置（扫描控制台）以 fullScreenCover 呈现（TagScanScreen 既有模式）
+    @State private var showGalleryConsole = false
 
     var body: some View {
         ScrollView {
@@ -38,6 +40,9 @@ struct SettingsScreen: View {
                     MatIcon(name: "chevron.left", size: 20)
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showGalleryConsole) {
+            TagScanScreen(onDismiss: { showGalleryConsole = false })
         }
     }
 
@@ -245,7 +250,7 @@ struct SettingsScreen: View {
             case .developer:
                 NavigationLink { DeveloperSettingsView() } label: { cardContent }
             case .gallery:
-                cardContent.opacity(0.5)
+                Button { showGalleryConsole = true } label: { cardContent }
             }
         }
         .buttonStyle(.plain)
@@ -258,7 +263,7 @@ struct SettingsScreen: View {
             .init(icon: "account_circle", title: L("People"), desc: L("Manage people and relationships"), target: .people, isPlaceholder: false),
             // Row 2
             .init(icon: "forum", title: L("Channels"), desc: L("Configure Feishu / Telegram remote control"), target: .channels, isPlaceholder: false),
-            .init(icon: "photo_library", title: L("Gallery Settings"), desc: L("Tag scanning, people clustering, tags & duplicates"), target: .gallery, isPlaceholder: true),
+            .init(icon: "photo_library", title: L("Gallery Settings"), desc: L("Tag scanning, people clustering, tags & duplicates"), target: .gallery, isPlaceholder: false),
             // Row 3
             .init(icon: "cloud", title: L("Remote Models"), desc: L("Remote model providers, API keys, and the active model."), target: .remoteModels, isPlaceholder: false),
             .init(icon: "memory", title: L("Local Models"), desc: L("Pick on-device face-detection, tagging and voice models."), target: .localModels, isPlaceholder: false),
