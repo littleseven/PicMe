@@ -33,13 +33,6 @@ struct ModelDownloadCenterView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(L("Model Center"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: {
-                    MatIcon(name: "chevron.left", size: 20)
-                }
-            }
-        }
         .onAppear {
             // 确保目录加载后刷新已下载状态（修复 init 时序问题）
             manager.refreshStates()

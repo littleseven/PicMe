@@ -262,9 +262,6 @@ struct MemoryFactsView: View {
         .navigationTitle(L("AI Memory"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: { MatIcon(name: "chevron.left", size: 20) }
-            }
             if !facts.isEmpty {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L("Clear All")) { showClearConfirm = true }
