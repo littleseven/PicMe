@@ -10,6 +10,9 @@ import Photos
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var settings: AppSettings
+    @Environment(\.colorScheme) private var cs
+    /// M3 语义色（对标 Android MaterialTheme.colorScheme）
+    private var s: SchemeColors { appScheme(cs) }
 
     /// 开发者选项解锁态（连点版本号 7 次解锁，持久化；对标 Android developer_options_unlocked）
     @AppStorage("developer_options_unlocked") private var developerUnlocked: Bool = false
@@ -31,7 +34,7 @@ struct SettingsScreen: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Settings"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -125,7 +128,7 @@ struct SettingsScreen: View {
                     .foregroundColor(.secondary)
             }
             .padding(16)
-            .background(Color(.secondarySystemBackground))
+            .background(s.surfaceContainerHighest)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
@@ -146,7 +149,7 @@ struct SettingsScreen: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(s.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -165,7 +168,7 @@ struct SettingsScreen: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(s.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -187,7 +190,7 @@ struct SettingsScreen: View {
                 .foregroundColor(isSelected ? .white : .primary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
-                .background(isSelected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .background(isSelected ? Color.accentColor : s.surfaceContainerHigh)
                 .clipShape(Capsule())
         }
     }
@@ -224,7 +227,7 @@ struct SettingsScreen: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(.secondarySystemBackground))
+        .background(s.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12))
 
         Group {
@@ -301,6 +304,8 @@ struct SettingsCategoryItem {
 
 struct AccountSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -318,7 +323,7 @@ struct AccountSettingsView: View {
                 .foregroundColor(.secondary.opacity(0.7))
             Spacer()
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Account"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -333,6 +338,8 @@ struct AccountSettingsView: View {
 
 struct DataPrivacyView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     private let sections: [(title: String, body: String)] = [
         (L("Account Data"), L("Your email is used only for authentication and LLM free trial usage counting (default 100 times). No passwords are collected — login uses email verification codes.")),
@@ -377,7 +384,7 @@ struct DataPrivacyView: View {
             }
             .padding(20)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Data & Privacy"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -392,6 +399,8 @@ struct DataPrivacyView: View {
 
 struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     private var appVersion: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
@@ -424,7 +433,7 @@ struct AboutView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .background(Color(.secondarySystemBackground))
+                .background(s.surfaceContainerHighest)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
 
@@ -437,7 +446,7 @@ struct AboutView: View {
                 Spacer()
             }
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(s.background.ignoresSafeArea())
         .navigationTitle(L("About"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -470,6 +479,8 @@ struct AboutView: View {
 
 struct LocalModelsSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     // 人脸检测——引擎二选一（真接，对标 Android face detection engine）
     @AppStorage("camera_use_mnn") private var useMnn: Bool = true
@@ -492,7 +503,7 @@ struct LocalModelsSettingsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Local Models"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -509,7 +520,7 @@ struct LocalModelsSettingsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(.secondarySystemBackground))
+        .background(s.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -519,7 +530,7 @@ struct LocalModelsSettingsView: View {
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
                 .foregroundColor(isSelected ? .white : (isDisabled ? .secondary : .primary))
                 .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(isSelected ? Color.accentColor : Color(.tertiarySystemBackground))
+                .background(isSelected ? Color.accentColor : s.surfaceContainerHigh)
                 .clipShape(Capsule())
         }
         .disabled(isDisabled)
@@ -600,6 +611,8 @@ struct LocalModelsSettingsView: View {
 
 struct SandboxSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var cs
+    private var s: SchemeColors { appScheme(cs) }
 
     // 执行（软开关，两端均 persistence-only，能力层消费待接入）
     @AppStorage("auto_execute_plans") private var autoExecute: Bool = true
@@ -620,7 +633,7 @@ struct SandboxSettingsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(s.background.ignoresSafeArea())
         .navigationTitle(L("Sandbox & Permissions"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -637,7 +650,7 @@ struct SandboxSettingsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(.secondarySystemBackground))
+        .background(s.surfaceContainerHighest)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 

@@ -483,30 +483,128 @@ struct CameraBeautySettingsView: View {
 // MARK: - Reusable Components
 
 private func settingsSection<C: View>(_ title: String, _ desc: String? = nil, @ViewBuilder content: () -> C) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-        Text(title)
-            .font(.system(size: 14, weight: .medium))
-            .padding(.leading, 4)
-        if let desc {
-            Text(desc)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-                .padding(.leading, 4)
-        }
-        content()
-            .padding(12)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
+    SettingsM3Section(title: title, desc: desc) { content() }
 }
 
 private func toggleRow(_ title: String, isOn: Binding<Bool>) -> some View {
-    HStack {
-        Text(title).font(.system(size: 14))
-        Spacer()
-        Toggle("", isOn: isOn).labelsHidden()
+    SettingsM3ToggleRow(title: title, isOn: isOn)
+}
+
+// MARK: - M3 设置原语（对齐 Android SettingsBaseComponents，消费 DesignTokens）
+
+/// Android SettingsSection：surfaceContainerHighest 卡片 + titleSmall/bodySmall + 尾部分隔线。
+struct SettingsM3Section<Content: View>: View {
+    let title: String
+    var desc: String? = nil
+    @Environment(\.colorScheme) private var cs
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        let s = appScheme(cs)
+        VStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(AppTypography.titleSmall.font)
+                    .foregroundColor(s.onSurface)
+                if let desc {
+                    Text(desc)
+                        .font(AppTypography.bodySmall.font)
+                        .foregroundColor(s.onSurfaceVariant)
+                }
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, SettingsTokens.sectionPaddingH)
+            .padding(.vertical, SettingsTokens.sectionPaddingV)
+            .background(s.surfaceContainerHighest)
+            .clipShape(AppShapes.card)
+            SettingsM3Divider()
+        }
     }
-    .padding(.vertical, 8)
+}
+
+/// Android DebugOptionRow：高 44 + 标签 bodyMedium + Switch。
+struct SettingsM3ToggleRow: View {
+    let title: String
+    @Binding var isOn: Bool
+    @Environment(\.colorScheme) private var cs
+    var body: some View {
+        HStack {
+            Text(title).font(AppTypography.bodyMedium.font).foregroundColor(appScheme(cs).onSurface)
+            Spacer()
+            Toggle("", isOn: $isOn).labelsHidden()
+        }
+        .frame(height: SettingsTokens.toggleRowHeight)
+        .padding(.horizontal, SettingsTokens.rowPaddingH)
+    }
+}
+
+/// Android SettingsClickableRow：高 56/64 + leading icon 24 + 标题/副标题 + value + chevron。
+struct SettingsM3Row: View {
+    let title: String
+    var subtitle: String? = nil
+    var valueText: String? = nil
+    var leadingIcon: String? = nil
+    var action: () -> Void
+    @Environment(\.colorScheme) private var cs
+    var body: some View {
+        let s = appScheme(cs)
+        Button(action: action) {
+            HStack(spacing: SettingsTokens.rowElementGap) {
+                if let leadingIcon {
+                    Image(matIcon: leadingIcon)
+                        .font(.system(size: SettingsTokens.rowLeadingIconSize))
+                        .foregroundColor(s.primary)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(AppTypography.bodyMedium.font).foregroundColor(s.onSurface)
+                    if let subtitle {
+                        Text(subtitle).font(AppTypography.bodySmall.font).foregroundColor(s.onSurfaceVariant)
+                    }
+                }
+                Spacer()
+                if let valueText {
+                    Text(valueText).font(AppTypography.bodySmall.font).foregroundColor(s.primary)
+                }
+                Image(matIcon: "arrow_forward")
+                    .font(.system(size: SettingsTokens.rowChevronSize))
+                    .foregroundColor(s.onSurfaceVariant.opacity(SettingsTokens.rowChevronAlpha))
+            }
+            .frame(minHeight: subtitle == nil ? SettingsTokens.rowHeightNoSubtitle : SettingsTokens.rowHeightWithSubtitle)
+            .padding(.horizontal, SettingsTokens.rowPaddingH)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Android HorizontalDivider（outlineVariant 0.6）。
+struct SettingsM3Divider: View {
+    @Environment(\.colorScheme) private var cs
+    var body: some View {
+        Divider().background(appScheme(cs).outlineVariant.opacity(SettingsTokens.rowChevronAlpha))
+    }
+}
+
+/// Android FilterChip（selected = primary/onPrimary）。
+struct SettingsM3Chip: View {
+    let label: String
+    let isSelected: Bool
+    var isDisabled: Bool = false
+    var action: () -> Void
+    @Environment(\.colorScheme) private var cs
+    var body: some View {
+        let s = appScheme(cs)
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                .foregroundColor(isSelected ? s.onPrimary : (isDisabled ? s.onSurfaceVariant.opacity(0.5) : s.onSurface))
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(isSelected ? s.primary : s.surfaceContainerHigh)
+                .clipShape(Capsule())
+        }
+        .disabled(isDisabled)
+    }
 }
 
 /// 调试滑杆行（相机美颜设置专用）：标签 + 当前值 + Slider。
